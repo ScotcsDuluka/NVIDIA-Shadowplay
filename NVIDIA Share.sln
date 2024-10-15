@@ -1,0 +1,43 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35312.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{778DAE3C-4631-46EA-AA77-85C1314464D9}") = "NVIDIA Share", "NVIDIA Share.vbproj", "{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Alpha|Any CPU = Alpha|Any CPU
+		Alpha|x86 = Alpha|x86
+		Debug|Any CPU = Debug|Any CPU
+		Debug|x86 = Debug|x86
+		Preview|Any CPU = Preview|Any CPU
+		Preview|x86 = Preview|x86
+		Release|Any CPU = Release|Any CPU
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Alpha|Any CPU.ActiveCfg = Alpha|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Alpha|Any CPU.Build.0 = Alpha|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Alpha|x86.ActiveCfg = Alpha|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Alpha|x86.Build.0 = Alpha|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Debug|x86.ActiveCfg = Debug|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Debug|x86.Build.0 = Debug|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Preview|Any CPU.ActiveCfg = Preview|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Preview|Any CPU.Build.0 = Preview|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Preview|x86.ActiveCfg = Preview|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Preview|x86.Build.0 = Preview|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Release|x86.ActiveCfg = Release|x86
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {72233F80-1D6E-465E-B364-97BE1EED9A6C}
+	EndGlobalSection
+EndGlobal
