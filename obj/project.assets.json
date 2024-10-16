@@ -280,11 +280,11 @@
   "project": {
     "version": "2.59.363",
     "restore": {
-      "projectUniqueName": "A:\\[Inc] NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
+      "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
       "projectName": "NVIDIA ShadowPlay",
-      "projectPath": "A:\\[Inc] NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
+      "projectPath": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
       "packagesPath": "C:\\Users\\Agkarath Truajnok\\.nuget\\packages\\",
-      "outputPath": "A:\\[Inc] NVIDIA Share\\NVIDIA Share\\obj\\",
+      "outputPath": "A:\\NVIDIA Share\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
