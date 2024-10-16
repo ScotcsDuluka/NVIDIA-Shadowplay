@@ -310,7 +310,7 @@ Public Class Base
     Private Const VK_S As Integer = &H53 ' S key
     Private Const VK_T As Integer = &H54 ' T key
     Private Const VK_U As Integer = &H55 ' U key
-    Private Const VK_V As Integer = &H56 ' V key
+    Private Const VK_V As Integer = &H56 ' V key         
     Private Const VK_W As Integer = &H57 ' W key
     Private Const VK_X As Integer = &H58 ' X key
     Private Const VK_Y As Integer = &H59 ' Y key
