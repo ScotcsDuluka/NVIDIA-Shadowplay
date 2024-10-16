@@ -1,1 +1,0 @@
-Read this before using it. I'm doing it for people who don't have an NVIDIA GPU or just that, and I always will. There's not much to this app, just think of it as an imperfect version of NVIDIA Shadowplay.
