@@ -54,8 +54,7 @@
               "RelativeToolTip": "NVIDIA Share.vbproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
               "WhenOpened": "2024-10-16T06:50:48.208Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Document",
@@ -78,7 +77,7 @@
               "RelativeDocumentMoniker": "Base.vb",
               "ToolTip": "A:\\NVIDIA Share\\Base.vb",
               "RelativeToolTip": "Base.vb",
-              "ViewState": "AgIAAKwBAAAAAAAAAAAQwFEBAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAAKwBAAAAAAAAAAAQwMUBAAALAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
               "WhenOpened": "2024-10-14T20:28:20.356Z",
               "IsPinned": true,
@@ -100,11 +99,11 @@
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
             },
             {
               "$type": "Document",
@@ -128,8 +127,7 @@
               "RelativeToolTip": "Notifier.vb",
               "ViewState": "AgIAAJ4AAAAAAAAAAAAAAKIAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T09:07:33.578Z",
-              "EditorCaption": ""
+              "WhenOpened": "2024-10-16T09:07:33.578Z"
             }
           ]
         }
