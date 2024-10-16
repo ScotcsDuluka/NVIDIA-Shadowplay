@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35312.102
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{778DAE3C-4631-46EA-AA77-85C1314464D9}") = "NVIDIA Share", "NVIDIA Share.vbproj", "{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Alpha|x64 = Alpha|x64
+		Preview|x64 = Preview|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Alpha|x64.ActiveCfg = Alpha|x64
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Alpha|x64.Build.0 = Alpha|x64
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Preview|x64.ActiveCfg = Preview|x64
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Preview|x64.Build.0 = Preview|x64
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Release|x64.ActiveCfg = Release|x64
+		{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {72233F80-1D6E-465E-B364-97BE1EED9A6C}
+	EndGlobalSection
+EndGlobal

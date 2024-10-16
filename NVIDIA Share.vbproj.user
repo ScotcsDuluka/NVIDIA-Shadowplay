@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_LastSelectedProfileId>C:\Users\scotc\Documents\[Inc] NVIDIA Share\NVIDIA Share\My Project\PublishProfiles\ClickOnceProfile.pubxml</_LastSelectedProfileId>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Update="Background.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Base.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Background Top.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Gallery.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Notifier.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Overlay Hub.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Notifier Sub.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="FPS.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Privacy Control.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Keyboard Shortcut.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="Video Capture.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="www Overlay.vb">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="base.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>
