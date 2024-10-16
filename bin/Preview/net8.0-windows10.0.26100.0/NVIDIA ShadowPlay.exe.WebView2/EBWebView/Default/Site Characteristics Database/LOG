@@ -1,2 +1,3 @@
-2024/10/17-01:38:12.687 23fc Creating DB A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Site Characteristics Database since it was missing.
-2024/10/17-01:38:13.481 23fc Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Site Characteristics Database/MANIFEST-000001
+2024/10/17-02:16:40.986 1630 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Site Characteristics Database/MANIFEST-000001
+2024/10/17-02:16:40.987 1630 Recovering log #3
+2024/10/17-02:16:40.988 1630 Reusing old log A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Site Characteristics Database/000003.log 

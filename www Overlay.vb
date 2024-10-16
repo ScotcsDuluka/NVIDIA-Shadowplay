@@ -42,6 +42,11 @@ Public Class www
     Private isKeyPressedf As Boolean = False ' เพื่อตรวจสอบว่าปุ่มถูกกดอยู่
 
     Private Sub key_Tick(sender As Object, e As EventArgs) Handles key.Tick
+        If Opacity = 0 Then
+            WindowState = FormWindowState.Minimized
+        Else
+            WindowState = FormWindowState.Maximized
+        End If
         HideFromAltTab()
         If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_Q) And &H8000) <> 0 Then
 

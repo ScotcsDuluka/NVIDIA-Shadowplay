@@ -1444,11 +1444,6 @@ Public Class Base
         HandleGalleryDisplay()
     End Sub
 
-    Private Sub Base_MouseMove(sender As Object, e As MouseEventArgs) Handles Me.MouseMove
-        HandleGalleryDisplay()
-        www.TopMost = True
-    End Sub
-
     ' ฟังก์ชันสำหรับแสดง Gallery_1 และตั้งค่า TopMost ถ้าตรงตามเงื่อนไข
     Private Sub HandleGalleryDisplay()
         If Gallery_1.settings_1.Visible = True Then
