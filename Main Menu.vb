@@ -616,6 +616,9 @@ Public Class Base
             If Not isKeyPressed Then ' ตรวจสอบว่าปุ่มไม่ถูกกดอยู่
                 isFunctionActive = Not isFunctionActive ' สลับสถานะฟังก์ชัน
                 If isFunctionActive Then
+                    If www.Opacity >= 0.01 Then
+                        Return
+                    End If
                     nv_ty.Visible = False
                     hd.Size = New Size(0, 0)
 
@@ -626,7 +629,7 @@ Public Class Base
                     bg_top.TopMost = True
                     Me.Show()
                     Me.TopMost = True
-                    Bg.Opacity = 0.6
+                    Bg.Opacity = 0.5
                     bg_top.Opacity = 0.9
                     Me.Opacity = 0.8
                 Else
@@ -652,8 +655,8 @@ Public Class Base
         a_2.Visible = False
         a_3.Visible = False
         Gallery_1.Hide()
-        If www.Opacity = 1 Then
-            Bg.Opacity = 0.5
+        If www.Opacity >= 0.1 Then
+            Return
         Else
             Bg.Opacity = 0
             Bg.Hide()
@@ -767,11 +770,17 @@ Public Class Base
 
 
     Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles set_to.MouseMove
-        set_to.ForeColor = Color.Gray
+        s1.Visible = True
+        s1r.Visible = True
+        s1l.Visible = True
+        s1b.Visible = True
     End Sub
 
     Private Sub set_to_MouseLeave(sender As Object, e As EventArgs) Handles set_to.MouseLeave
-        set_to.ForeColor = Color.White
+        s1.Visible = False
+        s1r.Visible = False
+        s1l.Visible = False
+        s1b.Visible = False
     End Sub
 
     Private Sub box_py_MouseMove(sender As Object, e As MouseEventArgs) Handles box_py.MouseMove
@@ -908,27 +917,45 @@ Public Class Base
     End Sub
 
     Private Sub logo_gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_gallery.MouseMove
-        SetGalleryColors(Color.Gray)
+        g1.Visible = True
+        g1r.Visible = True
+        g1l.Visible = True
+        g1b.Visible = True
     End Sub
 
     Private Sub logo_gallery_MouseLeave(sender As Object, e As EventArgs) Handles logo_gallery.MouseLeave
-        SetGalleryColors(Color.White)
+        g1.Visible = False
+        g1r.Visible = False
+        g1l.Visible = False
+        g1b.Visible = False
     End Sub
 
     Private Sub gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles gallery.MouseMove
-        SetGalleryColors(Color.Gray)
+        g1.Visible = True
+        g1r.Visible = True
+        g1l.Visible = True
+        g1b.Visible = True
     End Sub
 
     Private Sub gallery_MouseLeave(sender As Object, e As EventArgs) Handles gallery.MouseLeave
-        SetGalleryColors(Color.White)
+        g1.Visible = False
+        g1r.Visible = False
+        g1l.Visible = False
+        g1b.Visible = False
     End Sub
 
     Private Sub bg_gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles bg_gallery.MouseMove
-        SetGalleryColors(Color.Gray)
+        g1.Visible = True
+        g1r.Visible = True
+        g1l.Visible = True
+        g1b.Visible = True
     End Sub
 
     Private Sub bg_gallery_MouseLeave(sender As Object, e As EventArgs) Handles bg_gallery.MouseLeave
-        SetGalleryColors(Color.White)
+        g1.Visible = False
+        g1r.Visible = False
+        g1l.Visible = False
+        g1b.Visible = False
     End Sub
 
     Private Sub mic_Click(sender As Object, e As EventArgs) Handles mic.Click
@@ -1261,11 +1288,15 @@ Public Class Base
         action.Visible = True
     End Sub
     Private Sub pf_Click(sender As Object, e As EventArgs) Handles pf.Click
-
-        www.Timer1.Stop()
-        www.Timer2.Start()
+        HideAllControls()
+        If Opacity = 0 Then
+            www.Timer1.Stop()
+            www.Timer2.Start()
+            Bg.Timer1.Stop()
+            Bg.Timer2.Start()
+        Else
+        End If
         www.Show()
-
     End Sub
 
     Private Sub Logo_Click(sender As Object, e As EventArgs) Handles Logo.Click
@@ -1379,22 +1410,26 @@ Public Class Base
         replay_sc_all.Visible = False
     End Sub
     Private Sub bg_fps_Click(sender As Object, e As EventArgs) Handles bg_fps.Click
-        www.Timer1.Stop()
-        www.Timer2.Start()
-        www.Show()
-
-    End Sub
-
-    Private Sub logo_pf_Click(sender As Object, e As EventArgs) Handles logo_pf.Click
+        HideAllControls()
         If Opacity = 0 Then
             www.Timer1.Stop()
             www.Timer2.Start()
             Bg.Timer1.Stop()
             Bg.Timer2.Start()
         Else
-
         End If
+        www.Show()
+    End Sub
 
+    Private Sub logo_pf_Click(sender As Object, e As EventArgs) Handles logo_pf.Click
+        HideAllControls()
+        If Opacity = 0 Then
+            www.Timer1.Stop()
+            www.Timer2.Start()
+            Bg.Timer1.Stop()
+            Bg.Timer2.Start()
+        Else
+        End If
         www.Show()
     End Sub
 
@@ -1492,33 +1527,45 @@ Public Class Base
     End Sub
 
     Private Sub bg_fps_MouseMove(sender As Object, e As MouseEventArgs) Handles bg_fps.MouseMove
-        logo_pf.ForeColor = Color.Gray
-        pf.ForeColor = Color.Gray
+        h1.Visible = True
+        h1r.Visible = True
+        h1l.Visible = True
+        h1b.Visible = True
     End Sub
 
     Private Sub bg_fps_MouseLeave(sender As Object, e As EventArgs) Handles bg_fps.MouseLeave
-        logo_pf.ForeColor = Color.White
-        pf.ForeColor = Color.White
+        h1.Visible = False
+        h1r.Visible = False
+        h1l.Visible = False
+        h1b.Visible = False
     End Sub
 
     Private Sub pf_MouseMove(sender As Object, e As MouseEventArgs) Handles pf.MouseMove
-        logo_pf.ForeColor = Color.Gray
-        pf.ForeColor = Color.Gray
+        h1.Visible = True
+        h1r.Visible = True
+        h1l.Visible = True
+        h1b.Visible = True
     End Sub
 
     Private Sub pf_MouseLeave(sender As Object, e As EventArgs) Handles pf.MouseLeave
-        logo_pf.ForeColor = Color.White
-        pf.ForeColor = Color.White
+        h1.Visible = False
+        h1r.Visible = False
+        h1l.Visible = False
+        h1b.Visible = False
     End Sub
 
     Private Sub logo_pf_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_pf.MouseMove
-        logo_pf.ForeColor = Color.Gray
-        pf.ForeColor = Color.Gray
+        h1.Visible = True
+        h1r.Visible = True
+        h1l.Visible = True
+        h1b.Visible = True
     End Sub
 
     Private Sub logo_pf_MouseLeave(sender As Object, e As EventArgs) Handles logo_pf.MouseLeave
-        logo_pf.ForeColor = Color.White
-        pf.ForeColor = Color.White
+        h1.Visible = False
+        h1r.Visible = False
+        h1l.Visible = False
+        h1b.Visible = False
     End Sub
 
     Private Sub py_cc_Tick(sender As Object, e As EventArgs) Handles py_cc.Tick
@@ -1943,7 +1990,7 @@ Public Class Base
     End Sub
     Private isNotifierOn As Boolean = False ' ตัวแปรสถานะเพื่อบอกว่าตอนนี้ Notifier เปิดอยู่หรือไม่
 
-    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Sub NotifyIcon_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         ' สร้าง NotifyIcon
         nv_ty = New NotifyIcon()
 
@@ -1978,16 +2025,16 @@ Public Class Base
         checkst.CheckOnClick = True ' ทำให้สามารถติ๊กได้
         checkst.Checked = True
         AddHandler checkst.CheckedChanged, AddressOf AutoStartup
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "now") Then
+        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\now") Then
             checkst.Checked = True
         Else
             checkst.Checked = False
         End If
         contextMenu.Items.Add(separator2)
         contextMenu.Items.Add(checkst)
-        Dim checkItem As New ToolStripMenuItem("Use Notifier")
+        Dim checkItem As New ToolStripMenuItem("Use Overlay")
         checkItem.CheckOnClick = True
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "on") Then
+        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\on") Then
             checkItem.Checked = True
         Else
             checkItem.Checked = False
@@ -2007,7 +2054,7 @@ Public Class Base
 
 
 
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "on") Then
+        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\on") Then
             ' แจ้งการเริ่มแอป
             Notifier.Show()
             Notifier.icon_n.Text = ""
@@ -2033,16 +2080,16 @@ Public Class Base
         Dim item As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         If item.Checked Then
             AddToStartup()
-            File.Create(Application.StartupPath & "now").Dispose()
+            File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data\now").Dispose()
         Else
             RemoveFromStartup()
-            File.Delete(Application.StartupPath & "now")
+            File.Delete(Application.StartupPath & "NVIDIA_Shadowplay_Data\now")
         End If
     End Sub
     Private Sub CheckItem_CheckedChanged(sender As Object, e As EventArgs)
         Dim item As ToolStripMenuItem = CType(sender, ToolStripMenuItem)
         If item.Checked Then
-            File.Create(Application.StartupPath & "on").Dispose()
+            File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data\on").Dispose()
             alt_z.Start()
             alt_f1.Start()
             alt_shift_f10.Start()
@@ -2051,7 +2098,7 @@ Public Class Base
             alt_F_1_2.Start()
             w.Start()
         Else
-            File.Delete(Application.StartupPath & "on")
+            File.Delete(Application.StartupPath & "NVIDIA_Shadowplay_Data\on")
             alt_z.Stop()
             alt_f1.Stop()
             alt_shift_f10.Stop()
@@ -2079,7 +2126,9 @@ Public Class Base
             If Not String.IsNullOrEmpty(versionInfo.version) AndAlso currentVersion <> versionInfo.version Then
                 DisplayNotifierMessage("", "New Version Shadowplay™ Update available")
                 Dim url As String = "cmd.exe /c start https://www.mediafire.com/folder/hcg9p5b2fo43s/app"
-                Process.Start("cmd.exe", "/c start " & versionInfo.updateUrl)
+                If Notifier.text_n.Text = "New Version Shadowplay™ Update available" Then
+                    Process.Start("cmd.exe", "/c start " & versionInfo.updateUrl)
+                End If
             Else
                 DisplayNotifierMessage("", "Version Shadowplay™ is latest.")
             End If
@@ -2516,5 +2565,55 @@ Public Class Base
         record_1.Stop()
         set_vdo.Show()
         Opacity = 1
+    End Sub
+
+    Private Sub Label1_MouseMove(sender As Object, e As MouseEventArgs) Handles Label1.MouseMove
+        s1.Visible = True
+        s1r.Visible = True
+        s1l.Visible = True
+        s1b.Visible = True
+    End Sub
+
+    Private Sub Label1_MouseLeave(sender As Object, e As EventArgs) Handles Label1.MouseLeave
+        s1.Visible = False
+        s1r.Visible = False
+        s1l.Visible = False
+        s1b.Visible = False
+    End Sub
+
+    Private Sub Label2_MouseMove(sender As Object, e As MouseEventArgs) Handles Label2.MouseMove
+        s1.Visible = True
+        s1r.Visible = True
+        s1l.Visible = True
+        s1b.Visible = True
+    End Sub
+
+    Private Sub Label2_MouseLeave(sender As Object, e As EventArgs) Handles Label2.MouseLeave
+        s1.Visible = False
+        s1r.Visible = False
+        s1l.Visible = False
+        s1b.Visible = False
+    End Sub
+
+    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
+        Opacity = 1
+        a_1.Visible = False
+        a_2.Visible = False
+        a_3.Visible = False
+        settings_1.Visible = True ' แสดงฟอร์ม settings_1
+        action.Visible = False ' ซ่อนฟอร์ม action
+        replay_sc_all.Visible = False
+        record_sc.Visible = False
+    End Sub
+
+    Private Sub Label1_Click(sender As Object, e As EventArgs) Handles Label1.Click
+        Opacity = 1
+        a_1.Visible = False
+        a_2.Visible = False
+        a_3.Visible = False
+        settings_1.Visible = True ' แสดงฟอร์ม settings_1
+        action.Visible = False ' ซ่อนฟอร์ม action
+        replay_sc_all.Visible = False
+        record_sc.Visible = False
     End Sub
 End Class

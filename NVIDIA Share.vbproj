@@ -164,7 +164,7 @@
     <None Update="NVIDIA ShadowPlay™\NVIDIA ShadowPlay.ico">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>
-    <None Update="on">
+    <None Update="NVIDIA_Shadowplay_Data\on">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="_Redist\_dxwebsetup.exe">
@@ -193,7 +193,7 @@
   <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;&#xD;&#xA;" />
+    <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;" />
   </Target>
 
 </Project>

@@ -75,23 +75,20 @@ Public Class www
                         Timer2.Start()
                         Bg.Timer1.Stop()
                         Bg.Timer2.Start()
-                    Else
-                        Timer1.Stop()
-                        Timer2.Start()
                     End If
                 Else
+
+                    Timer1.Start()
+                    Timer2.Stop()
                     If Base.Opacity = 0 Then
-                        Timer1.Start()
-                        Timer2.Stop()
                         Bg.Timer1.Start()
                         Bg.Timer2.Stop()
-                    Else
-                        Timer1.Start()
-                        Timer2.Stop()
                     End If
+
 
                 End If
                 isKeyPressed = True ' ตั้งค่าปุ่มให้ถูกกดอยู่
+
             End If
         Else
             isKeyPressed = False ' รีเซ็ตสถานะเมื่อปุ่มถูกปล่อย

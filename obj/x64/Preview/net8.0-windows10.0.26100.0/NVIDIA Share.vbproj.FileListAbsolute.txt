@@ -1,7 +1,6 @@
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\runtimes\win-x64\native\WebView2Loader.dll
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.ico
-A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\on
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll.config
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.deps.json
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.runtimeconfig.json
@@ -46,3 +45,4 @@ A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA Share.genruntimeconfig.cache
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
+A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA_Shadowplay_Data\on
