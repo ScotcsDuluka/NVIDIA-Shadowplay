@@ -8,7 +8,10 @@ Imports System.Diagnostics
 Imports System.Windows.Forms
 Imports System.Runtime
 Imports Newtonsoft.Json
+Imports System.Data.SqlClient
+
 Public Class Base
+
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function

@@ -15,16 +15,8 @@
       "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:en-US.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\www overlay.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:www overlay.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\www overlay.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:www overlay.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -46,7 +38,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 3,
               "Title": "NVIDIA Share",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
               "RelativeDocumentMoniker": "NVIDIA Share.vbproj",
@@ -54,8 +46,7 @@
               "RelativeToolTip": "NVIDIA Share.vbproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
               "WhenOpened": "2024-10-16T06:50:48.208Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Document",
@@ -78,7 +69,7 @@
               "RelativeDocumentMoniker": "Main Menu.vb",
               "ToolTip": "A:\\NVIDIA Share\\Main Menu.vb",
               "RelativeToolTip": "Main Menu.vb",
-              "ViewState": "AgIAAG8FAAAAAAAAAAAwwIgFAAAZAAAAAAAAAA==",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABoAAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
               "WhenOpened": "2024-10-14T20:28:20.356Z",
               "IsPinned": true,
@@ -95,37 +86,11 @@
               "ViewState": "AgIAAEUBAAAAAAAAAAAcwFwBAAAnAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2024-10-16T06:00:14.238Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "www Overlay.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\www Overlay.vb",
-              "RelativeDocumentMoniker": "www Overlay.vb",
-              "ToolTip": "A:\\NVIDIA Share\\www Overlay.vb [Design]",
-              "RelativeToolTip": "www Overlay.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T14:15:47.766Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "www Overlay.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\www Overlay.vb",
-              "RelativeDocumentMoniker": "www Overlay.vb",
-              "ToolTip": "A:\\NVIDIA Share\\www Overlay.vb",
-              "RelativeToolTip": "www Overlay.vb",
-              "ViewState": "AgIAADQAAAAAAAAAAAAAAFQAAAAoAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T14:26:59.877Z",
-              "EditorCaption": ""
             }
           ]
         }
