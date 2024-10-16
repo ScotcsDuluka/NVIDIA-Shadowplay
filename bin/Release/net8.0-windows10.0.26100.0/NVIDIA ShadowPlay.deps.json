@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "NVIDIA ShadowPlay/2.47.353": {
+      "NVIDIA ShadowPlay/2.59.363": {
         "dependencies": {
           "Microsoft.Web.WebView2": "1.0.2792.45",
           "Newtonsoft.Json": "13.0.3",
@@ -106,7 +106,7 @@
     }
   },
   "libraries": {
-    "NVIDIA ShadowPlay/2.47.353": {
+    "NVIDIA ShadowPlay/2.59.363": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

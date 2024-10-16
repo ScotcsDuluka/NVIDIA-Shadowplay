@@ -34,6 +34,15 @@ Partial Class Base
         Logo = New PictureBox()
         logo_record = New Label()
         action = New Panel()
+        PictureBox26 = New PictureBox()
+        PictureBox22 = New PictureBox()
+        PictureBox23 = New PictureBox()
+        PictureBox24 = New PictureBox()
+        PictureBox25 = New PictureBox()
+        PictureBox18 = New PictureBox()
+        PictureBox19 = New PictureBox()
+        PictureBox20 = New PictureBox()
+        PictureBox21 = New PictureBox()
         s_3b = New PictureBox()
         s_3 = New PictureBox()
         s_2b = New PictureBox()
@@ -85,11 +94,11 @@ Partial Class Base
         pf = New Label()
         logo_pf = New Label()
         bg_gallery = New Label()
-        bg_to = New Label()
         bg_fps = New Label()
         logo_live = New Label()
         logo_replay = New Label()
         bg_action = New Label()
+        Label1 = New Label()
         Name_action = New Label()
         settings_1 = New Panel()
         version = New Label()
@@ -201,8 +210,22 @@ Partial Class Base
         Timer4 = New Timer(components)
         hg1 = New Timer(components)
         alt_F_1_2 = New Timer(components)
+        PictureBox27 = New PictureBox()
+        PictureBox28 = New PictureBox()
+        PictureBox29 = New PictureBox()
+        PictureBox30 = New PictureBox()
+        Label2 = New Label()
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         action.SuspendLayout()
+        CType(PictureBox26, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox22, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox23, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox24, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox25, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox20, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox21, ComponentModel.ISupportInitialize).BeginInit()
         CType(s_3b, ComponentModel.ISupportInitialize).BeginInit()
         CType(s_3, ComponentModel.ISupportInitialize).BeginInit()
         CType(s_2b, ComponentModel.ISupportInitialize).BeginInit()
@@ -283,6 +306,10 @@ Partial Class Base
         CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
         CType(replay_sc, ComponentModel.ISupportInitialize).BeginInit()
         CType(replay_sc1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox27, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox28, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox29, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox30, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' alt_z
@@ -317,6 +344,22 @@ Partial Class Base
         ' action
         ' 
         action.BackColor = Color.Red
+        action.Controls.Add(Label2)
+        action.Controls.Add(PictureBox30)
+        action.Controls.Add(PictureBox29)
+        action.Controls.Add(PictureBox28)
+        action.Controls.Add(PictureBox27)
+        action.Controls.Add(PictureBox26)
+        action.Controls.Add(PictureBox22)
+        action.Controls.Add(mic)
+        action.Controls.Add(vdo)
+        action.Controls.Add(PictureBox23)
+        action.Controls.Add(PictureBox24)
+        action.Controls.Add(PictureBox25)
+        action.Controls.Add(PictureBox18)
+        action.Controls.Add(PictureBox19)
+        action.Controls.Add(PictureBox20)
+        action.Controls.Add(PictureBox21)
         action.Controls.Add(s_3b)
         action.Controls.Add(s_3)
         action.Controls.Add(s_2b)
@@ -361,23 +404,110 @@ Partial Class Base
         action.Controls.Add(live)
         action.Controls.Add(record)
         action.Controls.Add(set_to)
-        action.Controls.Add(vdo)
-        action.Controls.Add(mic)
         action.Controls.Add(logo_gallery)
         action.Controls.Add(gallery)
         action.Controls.Add(pf)
         action.Controls.Add(logo_pf)
         action.Controls.Add(bg_gallery)
-        action.Controls.Add(bg_to)
         action.Controls.Add(bg_fps)
         action.Controls.Add(logo_live)
         action.Controls.Add(logo_replay)
         action.Controls.Add(logo_record)
         action.Controls.Add(bg_action)
+        action.Controls.Add(Label1)
         action.Location = New Point(1, 619)
         action.Name = "action"
         action.Size = New Size(1100, 200)
         action.TabIndex = 12
+        ' 
+        ' PictureBox26
+        ' 
+        PictureBox26.BackColor = Color.Red
+        PictureBox26.Location = New Point(878, 0)
+        PictureBox26.Name = "PictureBox26"
+        PictureBox26.Size = New Size(22, 200)
+        PictureBox26.TabIndex = 76
+        PictureBox26.TabStop = False
+        ' 
+        ' PictureBox22
+        ' 
+        PictureBox22.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox22.Location = New Point(900, 129)
+        PictureBox22.Name = "PictureBox22"
+        PictureBox22.Size = New Size(200, 3)
+        PictureBox22.TabIndex = 75
+        PictureBox22.TabStop = False
+        PictureBox22.Visible = False
+        ' 
+        ' PictureBox23
+        ' 
+        PictureBox23.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox23.Location = New Point(900, 66)
+        PictureBox23.Name = "PictureBox23"
+        PictureBox23.Size = New Size(3, 66)
+        PictureBox23.TabIndex = 74
+        PictureBox23.TabStop = False
+        PictureBox23.Visible = False
+        ' 
+        ' PictureBox24
+        ' 
+        PictureBox24.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox24.Location = New Point(900, 66)
+        PictureBox24.Name = "PictureBox24"
+        PictureBox24.Size = New Size(200, 3)
+        PictureBox24.TabIndex = 73
+        PictureBox24.TabStop = False
+        PictureBox24.Visible = False
+        ' 
+        ' PictureBox25
+        ' 
+        PictureBox25.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox25.Location = New Point(1097, 66)
+        PictureBox25.Name = "PictureBox25"
+        PictureBox25.Size = New Size(3, 66)
+        PictureBox25.TabIndex = 72
+        PictureBox25.TabStop = False
+        PictureBox25.Visible = False
+        ' 
+        ' PictureBox18
+        ' 
+        PictureBox18.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox18.Location = New Point(900, 63)
+        PictureBox18.Name = "PictureBox18"
+        PictureBox18.Size = New Size(200, 3)
+        PictureBox18.TabIndex = 71
+        PictureBox18.TabStop = False
+        PictureBox18.Visible = False
+        ' 
+        ' PictureBox19
+        ' 
+        PictureBox19.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox19.Location = New Point(900, 0)
+        PictureBox19.Name = "PictureBox19"
+        PictureBox19.Size = New Size(3, 66)
+        PictureBox19.TabIndex = 70
+        PictureBox19.TabStop = False
+        PictureBox19.Visible = False
+        ' 
+        ' PictureBox20
+        ' 
+        PictureBox20.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox20.Location = New Point(900, 0)
+        PictureBox20.Name = "PictureBox20"
+        PictureBox20.Size = New Size(200, 3)
+        PictureBox20.TabIndex = 69
+        PictureBox20.TabStop = False
+        PictureBox20.Visible = False
+        ' 
+        ' PictureBox21
+        ' 
+        PictureBox21.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox21.Location = New Point(1097, 0)
+        PictureBox21.Name = "PictureBox21"
+        PictureBox21.Size = New Size(3, 66)
+        PictureBox21.TabIndex = 68
+        PictureBox21.TabStop = False
+        PictureBox21.Visible = False
         ' 
         ' s_3b
         ' 
@@ -855,7 +985,7 @@ Partial Class Base
         set_to.BackColor = Color.Black
         set_to.Font = New Font("nvgcshare", 30F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         set_to.ForeColor = Color.White
-        set_to.Location = New Point(1035, 148)
+        set_to.Location = New Point(908, 146)
         set_to.Name = "set_to"
         set_to.Size = New Size(58, 41)
         set_to.TabIndex = 23
@@ -865,11 +995,11 @@ Partial Class Base
         ' 
         vdo.AutoSize = True
         vdo.BackColor = Color.Black
-        vdo.Font = New Font("nvgcshare", 30F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        vdo.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         vdo.ForeColor = Color.White
-        vdo.Location = New Point(970, 148)
+        vdo.Location = New Point(1058, 137)
         vdo.Name = "vdo"
-        vdo.Size = New Size(58, 41)
+        vdo.Size = New Size(39, 27)
         vdo.TabIndex = 22
         vdo.Text = ""
         ' 
@@ -877,11 +1007,11 @@ Partial Class Base
         ' 
         mic.AutoSize = True
         mic.BackColor = Color.Black
-        mic.Font = New Font("nvgcshare", 30F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        mic.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         mic.ForeColor = Color.White
-        mic.Location = New Point(908, 148)
+        mic.Location = New Point(1057, 165)
         mic.Name = "mic"
-        mic.Size = New Size(58, 41)
+        mic.Size = New Size(39, 27)
         mic.TabIndex = 21
         mic.Text = ""
         ' 
@@ -945,18 +1075,6 @@ Partial Class Base
         bg_gallery.TabIndex = 16
         bg_gallery.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' bg_to
-        ' 
-        bg_to.BackColor = Color.Black
-        bg_to.Font = New Font("nvgcshare", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        bg_to.ForeColor = Color.White
-        bg_to.ImageAlign = ContentAlignment.TopCenter
-        bg_to.Location = New Point(900, 132)
-        bg_to.Name = "bg_to"
-        bg_to.Size = New Size(200, 68)
-        bg_to.TabIndex = 15
-        bg_to.TextAlign = ContentAlignment.MiddleCenter
-        ' 
         ' bg_fps
         ' 
         bg_fps.BackColor = Color.Black
@@ -1006,6 +1124,18 @@ Partial Class Base
         bg_action.Size = New Size(600, 200)
         bg_action.TabIndex = 45
         bg_action.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' Label1
+        ' 
+        Label1.BackColor = Color.Black
+        Label1.Font = New Font("nvgcshare", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label1.ForeColor = Color.White
+        Label1.ImageAlign = ContentAlignment.TopCenter
+        Label1.Location = New Point(900, 132)
+        Label1.Name = "Label1"
+        Label1.Size = New Size(200, 68)
+        Label1.TabIndex = 76
+        Label1.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Name_action
         ' 
@@ -2093,6 +2223,58 @@ Partial Class Base
         alt_F_1_2.Enabled = True
         alt_F_1_2.Interval = 1
         ' 
+        ' PictureBox27
+        ' 
+        PictureBox27.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox27.Location = New Point(900, 132)
+        PictureBox27.Name = "PictureBox27"
+        PictureBox27.Size = New Size(200, 3)
+        PictureBox27.TabIndex = 77
+        PictureBox27.TabStop = False
+        PictureBox27.Visible = False
+        ' 
+        ' PictureBox28
+        ' 
+        PictureBox28.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox28.Location = New Point(900, 197)
+        PictureBox28.Name = "PictureBox28"
+        PictureBox28.Size = New Size(200, 3)
+        PictureBox28.TabIndex = 78
+        PictureBox28.TabStop = False
+        PictureBox28.Visible = False
+        ' 
+        ' PictureBox29
+        ' 
+        PictureBox29.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox29.Location = New Point(900, 132)
+        PictureBox29.Name = "PictureBox29"
+        PictureBox29.Size = New Size(3, 68)
+        PictureBox29.TabIndex = 79
+        PictureBox29.TabStop = False
+        PictureBox29.Visible = False
+        ' 
+        ' PictureBox30
+        ' 
+        PictureBox30.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox30.Location = New Point(1097, 132)
+        PictureBox30.Name = "PictureBox30"
+        PictureBox30.Size = New Size(3, 68)
+        PictureBox30.TabIndex = 80
+        PictureBox30.TabStop = False
+        PictureBox30.Visible = False
+        ' 
+        ' Label2
+        ' 
+        Label2.AutoSize = True
+        Label2.BackColor = Color.Black
+        Label2.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Label2.ForeColor = Color.White
+        Label2.Location = New Point(972, 154)
+        Label2.Name = "Label2"
+        Label2.Size = New Size(72, 21)
+        Label2.TabIndex = 81
+        Label2.Text = "Settings"
+        ' 
         ' Base
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -2117,6 +2299,15 @@ Partial Class Base
         CType(Logo, ComponentModel.ISupportInitialize).EndInit()
         action.ResumeLayout(False)
         action.PerformLayout()
+        CType(PictureBox26, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox22, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox23, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox24, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox25, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox20, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox21, ComponentModel.ISupportInitialize).EndInit()
         CType(s_3b, ComponentModel.ISupportInitialize).EndInit()
         CType(s_3, ComponentModel.ISupportInitialize).EndInit()
         CType(s_2b, ComponentModel.ISupportInitialize).EndInit()
@@ -2201,6 +2392,10 @@ Partial Class Base
         CType(rs1, ComponentModel.ISupportInitialize).EndInit()
         CType(replay_sc, ComponentModel.ISupportInitialize).EndInit()
         CType(replay_sc1, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox27, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox28, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox29, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox30, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -2213,7 +2408,6 @@ Partial Class Base
     Friend WithEvents logo_replay As Label
     Friend WithEvents logo_live As Label
     Friend WithEvents bg_gallery As Label
-    Friend WithEvents bg_to As Label
     Friend WithEvents bg_fps As Label
     Friend WithEvents pf As Label
     Friend WithEvents logo_pf As Label
@@ -2377,5 +2571,20 @@ Partial Class Base
     Friend WithEvents r_1 As PictureBox
     Friend WithEvents rsb As PictureBox
     Friend WithEvents rs1 As PictureBox
+    Friend WithEvents PictureBox22 As PictureBox
+    Friend WithEvents PictureBox23 As PictureBox
+    Friend WithEvents PictureBox24 As PictureBox
+    Friend WithEvents PictureBox25 As PictureBox
+    Friend WithEvents PictureBox18 As PictureBox
+    Friend WithEvents PictureBox19 As PictureBox
+    Friend WithEvents PictureBox20 As PictureBox
+    Friend WithEvents PictureBox21 As PictureBox
+    Friend WithEvents Label1 As Label
+    Friend WithEvents PictureBox26 As PictureBox
+    Friend WithEvents Label2 As Label
+    Friend WithEvents PictureBox30 As PictureBox
+    Friend WithEvents PictureBox29 As PictureBox
+    Friend WithEvents PictureBox28 As PictureBox
+    Friend WithEvents PictureBox27 As PictureBox
 
 End Class

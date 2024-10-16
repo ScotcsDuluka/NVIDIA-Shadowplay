@@ -158,11 +158,13 @@ Public Class Notifier
     End Sub
 
     Private Sub load_Tick(sender As Object, e As EventArgs) Handles load.Tick
-
         If Notifier_Sub.Timer1.Enabled = False Then
+            If www.Timer2.Enabled = True Then
+                Return
+            End If
             TopMost = True
-        Else
-            Notifier_Sub.TopMost = True
+            Else
+                Notifier_Sub.TopMost = True
         End If
     End Sub
     Private Sub De_Tick(sender As Object, e As EventArgs) Handles De.Tick

@@ -45,3 +45,51 @@ A:\[Inc] NVIDIA Share\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NV
 A:\[Inc] NVIDIA Share\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
 A:\[Inc] NVIDIA Share\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.genruntimeconfig.cache
 A:\[Inc] NVIDIA Share\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\runtimes\win-x64\native\WebView2Loader.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.ico
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\on
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll.config
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.deps.json
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.runtimeconfig.json
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Newtonsoft.Json.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\System.Management.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\runtimes\win-arm64\native\WebView2Loader.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\runtimes\win-x86\native\WebView2Loader.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\runtimes\win\lib\net8.0\System.Management.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Windows.SDK.NET.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\WinRT.Runtime.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Core.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.WinForms.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Wpf.dll
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Core.xml
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Wpf.xml
+A:\NVIDIA Share\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.WinForms.xml
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.vbproj.AssemblyReference.cache
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\Interop.WMPLib.dll
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.vbproj.ResolveComReference.cache
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.bg_top.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.Bg.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.Base.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.FPS.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.Gallery_1.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.set_key.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.Resources.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.Notifier_Sub.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.Notifier.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.hub_f.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.py.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.set_vdo.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA_Share.www.resources
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.vbproj.GenerateResource.cache
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.GeneratedMSBuildEditorConfig.editorconfig
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.AssemblyInfoInputs.cache
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.AssemblyInfo.vb
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.vbproj.CoreCompileInputs.cache
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.sourcelink.json
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA S.F79BD429.Up2Date
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Share.genruntimeconfig.cache
+A:\NVIDIA Share\obj\x64\Release\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
