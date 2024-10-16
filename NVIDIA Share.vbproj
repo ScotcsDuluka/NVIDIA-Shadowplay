@@ -52,6 +52,7 @@
     <DefineDebug>True</DefineDebug>
     <DebugType>embedded</DebugType>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <WarningLevel>0</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -63,6 +64,7 @@
     <WarningsAsErrors>42025</WarningsAsErrors>
     <DebugType>embedded</DebugType>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <WarningLevel>0</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Preview|x64'">
@@ -74,6 +76,7 @@
     <WarningsAsErrors>42025</WarningsAsErrors>
     <DebugType>embedded</DebugType>
     <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+    <WarningLevel>0</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>

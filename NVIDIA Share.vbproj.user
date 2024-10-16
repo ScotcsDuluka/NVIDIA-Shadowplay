@@ -10,7 +10,7 @@
     <Compile Update="Background Top.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="Base.vb">
+    <Compile Update="Main Menu.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="Gallery.vb">
@@ -42,7 +42,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Update="base.resx">
+    <EmbeddedResource Update="Main Menu.resx">
       <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
