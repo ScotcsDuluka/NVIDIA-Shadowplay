@@ -1,3 +1,2 @@
-2024/10/16-21:40:07.116 4e04 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/MANIFEST-000001
-2024/10/16-21:40:07.117 4e04 Recovering log #3
-2024/10/16-21:40:07.123 4e04 Reusing old log A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/000003.log 
+2024/10/17-01:38:16.841 33a8 Creating DB A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage since it was missing.
+2024/10/17-01:38:17.133 33a8 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/MANIFEST-000001

@@ -21,8 +21,8 @@ Public Class Base
     End Function
 
     Private Const GWL_EXSTYLE As Integer = -20
-    Private Const WS_EX_TOOLWINDOW As Integer = &H80 ' สถานะสำหรับ ToolWindow (ไม่แสดงใน Alt+Tab)
-    Private Const WS_EX_APPWINDOW As Integer = &H40000 ' สถานะสำหรับการแสดงใน Task Switcher
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80
+    Private Const WS_EX_APPWINDOW As Integer = &H40000
 
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
@@ -164,9 +164,9 @@ Public Class Base
         End If
     End Sub
 
-    Private Const AppName As String = "NVIDIA Shadowplay™" ' ชื่อแอป
+    Private Const AppName As String = "NVIDIA Shadowplay™"
 
-    Private Sub AddToStartup() ' เพิ่มแอปให้เริ่มอัตโนมัติ
+    Private Sub AddToStartup()
         Dim exePath As String = Application.ExecutablePath
         Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
             If key IsNot Nothing Then
@@ -175,10 +175,10 @@ Public Class Base
         End Using
     End Sub
 
-    Private Sub RemoveFromStartup() ' ลบแอปออกจากการเริ่มอัตโนมัติ
+    Private Sub RemoveFromStartup()
         Using key As RegistryKey = Registry.CurrentUser.OpenSubKey("SOFTWARE\Microsoft\Windows\CurrentVersion\Run", True)
             If key IsNot Nothing Then
-                key.DeleteValue(AppName, False) ' ลบค่าที่ชื่อ AppName
+                key.DeleteValue(AppName, False)
             End If
         End Using
     End Sub
@@ -225,10 +225,8 @@ Public Class Base
     End Sub
 
     Private Sub MainSub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' ตั้งค่าขนาดเริ่มต้นของ Panel
-        InitializePanelSizes()
 
-        ' ตรวจจับ Key
+        InitializePanelSizes()
         StartKeyDetection()
 
     End Sub
@@ -254,12 +252,12 @@ Public Class Base
     End Sub
 
 
-    'ตัวแปร Key การตรวจจับ
+
     <DllImport("user32.dll")>
     Private Shared Function GetAsyncKeyState(vKey As Integer) As Short
     End Function
 
-    ' ตัวแปรคอนสแตนต์สำหรับปุ่มต่าง ๆ
+
     Private Const VK_LBUTTON As Integer = &H1 ' ปุ่มซ้ายของเมาส์
     Private Const VK_RBUTTON As Integer = &H2 ' ปุ่มขวาของเมาส์
     Private Const VK_CANCEL As Integer = &H3 ' Cancel key
@@ -291,7 +289,7 @@ Public Class Base
     Private Const VK_DELETE As Integer = &H2E ' Delete key
     Private Const VK_HELP As Integer = &H2F ' Help key
 
-    ' ตัวแปรคอนสแตนต์สำหรับตัวอักษร
+
     Private Const VK_A As Integer = &H41 ' A key
     Private Const VK_B As Integer = &H42 ' B key
     Private Const VK_C As Integer = &H43 ' C key
@@ -319,7 +317,7 @@ Public Class Base
     Private Const VK_Y As Integer = &H59 ' Y key
     Private Const VK_Z As Integer = &H5A ' Z key
 
-    ' ตัวแปรสำหรับคีย์ฟังก์ชัน
+
     Private Const VK_F1 As Integer = &H70 ' F1 key
     Private Const VK_F2 As Integer = &H71 ' F2 key
     Private Const VK_F3 As Integer = &H72 ' F3 key
@@ -333,11 +331,7 @@ Public Class Base
     Private Const VK_F11 As Integer = &H7A ' F11 key
     Private Const VK_F12 As Integer = &H7B ' F12 key
 
-    ' ตัวแปรเพิ่มเติมที่คุณอาจต้องการ
-    ' คุณสามารถเพิ่มตัวแปรเพิ่มเติมที่นี่ตามต้องการ
 
-
-    ' ตัวแปรฟังชั่น
 
     Private isFunctionActive As Boolean = False ' ตัวแปรสำหรับเปิด/ปิดฟังก์ชัน
     Private isKeyPressed As Boolean = False ' เพื่อตรวจสอบว่าปุ่มถูกกดอยู่

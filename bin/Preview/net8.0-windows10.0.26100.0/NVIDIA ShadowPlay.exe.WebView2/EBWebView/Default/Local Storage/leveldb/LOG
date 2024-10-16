@@ -1,3 +1,2 @@
-2024/10/16-21:40:06.511 4e04 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
-2024/10/16-21:40:06.562 4e04 Recovering log #4
-2024/10/16-21:40:06.570 4e04 Reusing old log A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb/000004.log 
+2024/10/17-01:38:13.488 33a8 Creating DB A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb since it was missing.
+2024/10/17-01:38:13.933 33a8 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
