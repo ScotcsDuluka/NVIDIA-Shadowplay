@@ -3,28 +3,8 @@
   "WorkspaceRootPath": "A:\\NVIDIA Share\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\www overlay.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:www overlay.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
@@ -46,7 +26,7 @@
       "DocumentGroups": [
         {
           "DockedHeight": 200,
-          "SelectedChildIndex": 9,
+          "SelectedChildIndex": 2,
           "Children": [
             {
               "$type": "Bookmark",
@@ -58,7 +38,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 0,
               "Title": "NVIDIA Share",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
               "RelativeDocumentMoniker": "NVIDIA Share.vbproj",
@@ -71,7 +51,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 2,
               "Title": "Main Menu.vb [Design]",
               "DocumentMoniker": "A:\\NVIDIA Share\\Main Menu.vb",
               "RelativeDocumentMoniker": "Main Menu.vb",
@@ -84,7 +64,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 1,
               "Title": "Main Menu.vb",
               "DocumentMoniker": "A:\\NVIDIA Share\\Main Menu.vb",
               "RelativeDocumentMoniker": "Main Menu.vb",
@@ -98,7 +78,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 8,
+              "DocumentIndex": 3,
               "Title": "en-US.json",
               "DocumentMoniker": "A:\\NVIDIA Share\\en-US.json",
               "RelativeDocumentMoniker": "en-US.json",
@@ -117,69 +97,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "www Overlay.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\www Overlay.vb",
-              "RelativeDocumentMoniker": "www Overlay.vb",
-              "ToolTip": "A:\\NVIDIA Share\\www Overlay.vb",
-              "RelativeToolTip": "www Overlay.vb",
-              "ViewState": "AgIAABQAAAAAAAAAAAAwwCcAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T18:37:38.534Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "Notifier.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier.vb",
-              "RelativeDocumentMoniker": "Notifier.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier.vb [Design]",
-              "RelativeToolTip": "Notifier.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T18:51:28.148Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "Notifier.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier.vb",
-              "RelativeDocumentMoniker": "Notifier.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier.vb",
-              "RelativeToolTip": "Notifier.vb",
-              "ViewState": "AgIAAI0AAAAAAAAAAAAkwAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T18:52:21.573Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "Gallery.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Gallery.vb",
-              "RelativeDocumentMoniker": "Gallery.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Gallery.vb [Design]",
-              "RelativeToolTip": "Gallery.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T18:56:19.058Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Gallery.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Gallery.vb",
-              "RelativeDocumentMoniker": "Gallery.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Gallery.vb",
-              "RelativeToolTip": "Gallery.vb",
-              "ViewState": "AgIAAJgAAAAAAAAAAADwvwAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2024-10-16T18:56:22.922Z",
-              "EditorCaption": ""
             }
           ]
         }

@@ -1409,7 +1409,7 @@ Partial Class Base
         noty.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         noty.Font = New Font("nvgcshare", 25F)
         noty.ForeColor = Color.White
-        noty.Location = New Point(16, 413)
+        noty.Location = New Point(16, 412)
         noty.Name = "noty"
         noty.Size = New Size(49, 34)
         noty.TabIndex = 92
@@ -1461,7 +1461,7 @@ Partial Class Base
         Label22.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label22.Font = New Font("nvgcshare", 25F)
         Label22.ForeColor = Color.White
-        Label22.Location = New Point(16, 174)
+        Label22.Location = New Point(16, 173)
         Label22.Name = "Label22"
         Label22.Size = New Size(49, 34)
         Label22.TabIndex = 87
@@ -1491,7 +1491,7 @@ Partial Class Base
         vdo_setme.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         vdo_setme.Font = New Font("Segoe UI", 7F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         vdo_setme.ForeColor = Color.Gray
-        vdo_setme.Location = New Point(72, 348)
+        vdo_setme.Location = New Point(72, 349)
         vdo_setme.Name = "vdo_setme"
         vdo_setme.Size = New Size(168, 12)
         vdo_setme.TabIndex = 68
@@ -1513,7 +1513,7 @@ Partial Class Base
         Label19.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label19.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
         Label19.ForeColor = Color.White
-        Label19.Location = New Point(72, 335)
+        Label19.Location = New Point(72, 336)
         Label19.Name = "Label19"
         Label19.Size = New Size(85, 15)
         Label19.TabIndex = 83
@@ -1525,7 +1525,7 @@ Partial Class Base
         Label20.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label20.Font = New Font("nvgcshare", 25F)
         Label20.ForeColor = Color.White
-        Label20.Location = New Point(16, 333)
+        Label20.Location = New Point(16, 332)
         Label20.Name = "Label20"
         Label20.Size = New Size(49, 34)
         Label20.TabIndex = 82
@@ -1577,7 +1577,7 @@ Partial Class Base
         Label18.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label18.Font = New Font("nvgcshare", 25F)
         Label18.ForeColor = Color.White
-        Label18.Location = New Point(16, 253)
+        Label18.Location = New Point(16, 252)
         Label18.Name = "Label18"
         Label18.Size = New Size(49, 34)
         Label18.TabIndex = 77
@@ -1619,7 +1619,7 @@ Partial Class Base
         Label15.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label15.Font = New Font("nvgcshare", 25F)
         Label15.ForeColor = Color.White
-        Label15.Location = New Point(16, 94)
+        Label15.Location = New Point(16, 93)
         Label15.Name = "Label15"
         Label15.Size = New Size(49, 34)
         Label15.TabIndex = 73
@@ -1659,7 +1659,7 @@ Partial Class Base
         logo_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         logo_py.Font = New Font("nvgcshare", 25F)
         logo_py.ForeColor = Color.White
-        logo_py.Location = New Point(16, 15)
+        logo_py.Location = New Point(16, 14)
         logo_py.Name = "logo_py"
         logo_py.Size = New Size(49, 34)
         logo_py.TabIndex = 46
@@ -1683,7 +1683,7 @@ Partial Class Base
         Label5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label5.Font = New Font("nvgcshare", 25F)
         Label5.ForeColor = Color.White
-        Label5.Location = New Point(16, 492)
+        Label5.Location = New Point(16, 491)
         Label5.Name = "Label5"
         Label5.Size = New Size(49, 34)
         Label5.TabIndex = 66
@@ -1748,7 +1748,7 @@ Partial Class Base
         Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label9.Font = New Font("nvgcshare", 25F)
         Label9.ForeColor = Color.White
-        Label9.Location = New Point(16, 573)
+        Label9.Location = New Point(16, 572)
         Label9.Name = "Label9"
         Label9.Size = New Size(49, 34)
         Label9.TabIndex = 62
