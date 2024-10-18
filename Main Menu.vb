@@ -1179,6 +1179,11 @@ Public Class Base
     End Sub
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
 
+        If Process.GetProcessesByName("NVPackage 2.62.373-PRE").Length = 1 Then
+            Application.Exit()
+        Else
+
+        End If
 
         AlignPanelToTop()
 
@@ -1809,15 +1814,15 @@ Public Class Base
     End Sub
 
     Private Sub PictureBox1_Click(sender As Object, e As EventArgs)
-        ShowNotifier("NVIDIA ShadowPlay™ Version 2.59.363", "")
+        ShowNotifier("NVIDIA ShadowPlay™ Version 2.62.373", "")
     End Sub
 
     Private Sub Label6_Click(sender As Object, e As EventArgs) Handles Label6.Click
-        ShowNotifier("NVIDIA ShadowPlay™ Version 2.59.363", "")
+        ShowNotifier("NVIDIA ShadowPlay™ Version 2.62.373", "")
     End Sub
 
     Private Sub Label9_Click(sender As Object, e As EventArgs) Handles Label9.Click
-        ShowNotifier("NVIDIA ShadowPlay™ Version 2.59.363", "")
+        ShowNotifier("NVIDIA ShadowPlay™ Version 2.62.373", "")
     End Sub
 
     Private Sub re_Tick(sender As Object, e As EventArgs) Handles re.Tick
@@ -1990,11 +1995,13 @@ Public Class Base
         Dim ic As String = (Application.StartupPath & "NVIDIA ShadowPlay.ico")
         Dim separator1 As New ToolStripSeparator()
         nv_ty.Icon = New Icon(ic) ' ใส่เส้นทางไปยังไฟล์ .ico ของคุณ
-        nv_ty.Text = "NVIDIA Shadowplay"
+        nv_ty.Text = "NVIDIA Shadowplay™"
         nv_ty.Visible = True
         Dim separator2 As New ToolStripSeparator()
         Dim separator3 As New ToolStripSeparator()
         Dim separator4 As New ToolStripSeparator()
+        Dim separator5 As New ToolStripSeparator()
+        Dim separator6 As New ToolStripSeparator()
         ' สร้าง Context Menu
         Dim contextMenu As New ContextMenuStrip()
         Dim menuItem As New ToolStripMenuItem()
@@ -2006,7 +2013,7 @@ Public Class Base
 
         menuver.Text = "Edit By Scotcs Duluka/Duluka Inc."
         menuver.Enabled = False ' ทำให้ไม่สามารถเลือกได้ (ถ้าต้องการให้เป็นเพียงข้อความ)
-
+        'contextMenu.Items.Add(separator5)
         contextMenu.Items.Add(menuItem)
         contextMenu.Items.Add(separator1)
         AddHandler menuItem.Click, AddressOf MenuItem_Click ' เชื่อมโยง event handler
@@ -2038,7 +2045,8 @@ Public Class Base
         contextMenu.Items.Add("Restart", Nothing, AddressOf reset)
         contextMenu.Items.Add("Exit", Nothing, AddressOf ExitApp)
         contextMenu.Items.Add(separator4)
-        contextMenu.Items.Add(menuver)
+        contextMenu.Items.Add("Edit By Scotcs Duluka/Duluka Inc.", Nothing, AddressOf openver)
+        'contextMenu.Items.Add(separator6)
         nv_ty.ContextMenuStrip = contextMenu
 
         ' ตั้งค่า Notifier เริ่มต้น
@@ -2062,6 +2070,10 @@ Public Class Base
             w.Stop()
         End If
 
+    End Sub
+    Private Sub openver()
+        Dim url As String = "cmd.exe /c start https://github.com/ScotcsDuluka/NVIDIA-Shadowplay"
+        Process.Start("cmd.exe", "/c start " & url)
     End Sub
     Private Sub sharef(sender As Object, e As EventArgs)
         www.Close()
@@ -2103,10 +2115,11 @@ Public Class Base
     Public Class VersionInfo
         Public Property version As String
         Public Property updateUrl As String
+        Public Property server As String
     End Class
 
     Private Sub CheckForUpdates()
-        Dim currentVersion As String = "2.59.363" ' เวอร์ชันที่ติดตั้งอยู่
+        Dim currentVersion As String = "2.62.373" ' เวอร์ชันที่ติดตั้งอยู่
         Dim jsonUrl As String = "https://drive.google.com/uc?export=download&id=1tcsQ6tunfe2YbAJ1J0sWBzYj5k3G-aVD" ' URL สำหรับ JSON
 
         Try
@@ -2116,16 +2129,17 @@ Public Class Base
             Dim versionInfo As VersionInfo = JsonConvert.DeserializeObject(Of VersionInfo)(json) ' Deserialize JSON
 
             If Not String.IsNullOrEmpty(versionInfo.version) AndAlso currentVersion <> versionInfo.version Then
-                DisplayNotifierMessage("", "New Version Shadowplay™ Update available")
+                DisplayNotifierMessage("", "NVIDIA Shadowplay™ update version " & versionInfo.version & " is now available.")
                 Dim url As String = "cmd.exe /c start https://www.mediafire.com/folder/hcg9p5b2fo43s/app"
-                If Notifier.text_n.Text = "New Version Shadowplay™ Update available" Then
+                If Notifier.text_n.Text = ("NVIDIA Shadowplay™ update version " & versionInfo.version & " is now available.") Then
                     Process.Start("cmd.exe", "/c start " & versionInfo.updateUrl)
+
                 End If
             Else
-                DisplayNotifierMessage("", "Version Shadowplay™ is latest.")
+                DisplayNotifierMessage("", "Version NVIDIA Shadowplay™ is latest. Current Version : " & currentVersion)
             End If
         Catch ex As Exception
-            DisplayNotifierMessage("", "Erorr.")
+            DisplayNotifierMessage("", "Erorr to Check Update Version NVIDIA Shadowplay™.")
         End Try
     End Sub
     Private Sub upif(sender As Object, e As EventArgs)
@@ -2137,7 +2151,7 @@ Public Class Base
 
     Private Sub MenuItem_Click(sender As Object, e As EventArgs)
         ' ฟังก์ชันที่เรียกเมื่อ menuItem ถูกคลิก
-        ShowNotifier("NVIDIA ShadowPlay™ Version 2.47.341", "")
+        ShowNotifier("NVIDIA ShadowPlay™ Version 2.62.373", "")
     End Sub
     ' ฟังก์ชันเปิดแอป
     Private Sub settings_Notifier(sender As Object, e As EventArgs)
@@ -2159,11 +2173,11 @@ Public Class Base
             Me.Opacity = 0.85
             Notifier.Show()
             Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Notifier is Open."
+            Notifier.text_n.Text = "Overlay is Open."
         Else
             Notifier.Show()
             Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Notifier not using."
+            Notifier.text_n.Text = "Overlay not using."
         End If
 
     End Sub
@@ -2274,7 +2288,7 @@ Public Class Base
     End Sub
 
     Private Sub PictureBox1_Click_1(sender As Object, e As EventArgs) Handles PictureBox1.Click
-        ShowNotifier("NVIDIA ShadowPlay™ Version 2.59.363", "")
+        ShowNotifier("NVIDIA ShadowPlay™ Version 2.62.373", "")
     End Sub
 
     Private Sub PictureBox11_Click(sender As Object, e As EventArgs) Handles PictureBox11.Click

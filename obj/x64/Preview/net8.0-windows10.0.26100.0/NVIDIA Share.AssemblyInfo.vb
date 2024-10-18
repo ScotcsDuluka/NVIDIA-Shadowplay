@@ -17,11 +17,11 @@ Imports System.Reflection
  Assembly: System.Reflection.AssemblyConfigurationAttribute("Preview"),  _
  Assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright© by Scotcs Duluka"),  _
  Assembly: System.Reflection.AssemblyDescriptionAttribute("NVIDIA ShadowPlay™ for All Users"),  _
- Assembly: System.Reflection.AssemblyFileVersionAttribute("2.59.363"),  _
- Assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.59.363+aea84519f9de8f0b671e9aa83f5e26a7fc79340d"),  _
+ Assembly: System.Reflection.AssemblyFileVersionAttribute("2.62.373"),  _
+ Assembly: System.Reflection.AssemblyInformationalVersionAttribute("2.62.373+0dfb64c5106fb12b02974df0a04b707bec3af942"),  _
  Assembly: System.Reflection.AssemblyProductAttribute("NVIDIA ShadowPlay"),  _
  Assembly: System.Reflection.AssemblyTitleAttribute("NVIDIA ShadowPlay"),  _
- Assembly: System.Reflection.AssemblyVersionAttribute("2.59.363"),  _
+ Assembly: System.Reflection.AssemblyVersionAttribute("2.62.373"),  _
  Assembly: System.Resources.NeutralResourcesLanguageAttribute("en-US"),  _
  Assembly: System.Runtime.Versioning.TargetPlatformAttribute("Windows10.0.26100.0"),  _
  Assembly: System.Runtime.Versioning.SupportedOSPlatformAttribute("Windows8.0")> 
