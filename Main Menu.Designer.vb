@@ -106,6 +106,7 @@ Partial Class Base
         Label1 = New Label()
         Name_action = New Label()
         settings_1 = New Panel()
+        Home_settings = New Label()
         PictureBox8 = New PictureBox()
         ch = New Label()
         ch_bg = New PictureBox()
@@ -113,7 +114,6 @@ Partial Class Base
         bg_fn = New PictureBox()
         text_settings = New Label()
         icon_settings = New Label()
-        Home_settings = New Label()
         settings_top = New PictureBox()
         box_settings = New PictureBox()
         settings_all = New Panel()
@@ -122,17 +122,27 @@ Partial Class Base
         noty = New Label()
         PictureBox17 = New PictureBox()
         noy = New PictureBox()
+        vdo_setme = New Label()
+        Label19 = New Label()
+        Label20 = New Label()
+        PictureBox13 = New PictureBox()
+        vd1 = New PictureBox()
+        PictureBox9 = New PictureBox()
+        Label4 = New Label()
+        Label5 = New Label()
+        PictureBox4 = New PictureBox()
+        saved_e = New PictureBox()
+        Label6 = New Label()
+        Label9 = New Label()
+        PictureBox1 = New PictureBox()
+        ab_bg = New PictureBox()
+        saved_e1 = New PictureBox()
         PictureBox15 = New PictureBox()
         Label21 = New Label()
         Label22 = New Label()
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
-        vdo_setme = New Label()
         PictureBox12 = New PictureBox()
-        Label19 = New Label()
-        Label20 = New Label()
-        PictureBox13 = New PictureBox()
-        vd1 = New PictureBox()
         PictureBox2 = New PictureBox()
         Label17 = New Label()
         Label18 = New Label()
@@ -141,20 +151,10 @@ Partial Class Base
         Label12 = New Label()
         Label15 = New Label()
         PictureBox10 = New PictureBox()
-        PictureBox9 = New PictureBox()
         hub = New PictureBox()
         logo_py = New Label()
-        Label4 = New Label()
-        Label5 = New Label()
         text_py = New Label()
-        PictureBox4 = New PictureBox()
         PictureBox3 = New PictureBox()
-        saved_e = New PictureBox()
-        Label6 = New Label()
-        Label9 = New Label()
-        PictureBox1 = New PictureBox()
-        ab_bg = New PictureBox()
-        saved_e1 = New PictureBox()
         box_py = New PictureBox()
         bg_py = New PictureBox()
         settings_bg = New PictureBox()
@@ -263,24 +263,24 @@ Partial Class Base
         CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
         CType(noy, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
-        CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox13, ComponentModel.ISupportInitialize).BeginInit()
         CType(vd1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
-        CType(k1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
-        CType(hub, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox4, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
         CType(saved_e, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         CType(ab_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(saved_e1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
+        CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
+        CType(k1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
+        CType(hub, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
         CType(box_py, ComponentModel.ISupportInitialize).BeginInit()
         CType(bg_py, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
@@ -1203,6 +1203,7 @@ Partial Class Base
         ' 
         ' settings_1
         ' 
+        settings_1.Controls.Add(Home_settings)
         settings_1.Controls.Add(PictureBox8)
         settings_1.Controls.Add(ch)
         settings_1.Controls.Add(ch_bg)
@@ -1210,7 +1211,6 @@ Partial Class Base
         settings_1.Controls.Add(bg_fn)
         settings_1.Controls.Add(text_settings)
         settings_1.Controls.Add(icon_settings)
-        settings_1.Controls.Add(Home_settings)
         settings_1.Controls.Add(settings_top)
         settings_1.Controls.Add(box_settings)
         settings_1.Controls.Add(settings_all)
@@ -1222,12 +1222,24 @@ Partial Class Base
         settings_1.TabIndex = 42
         settings_1.Visible = False
         ' 
+        ' Home_settings
+        ' 
+        Home_settings.AutoSize = True
+        Home_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Home_settings.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        Home_settings.ForeColor = Color.White
+        Home_settings.Location = New Point(258, 43)
+        Home_settings.Name = "Home_settings"
+        Home_settings.Size = New Size(56, 21)
+        Home_settings.TabIndex = 43
+        Home_settings.Text = "Home"
+        ' 
         ' PictureBox8
         ' 
         PictureBox8.BackColor = Color.Red
         PictureBox8.Location = New Point(780, 22)
         PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New Size(24, 574)
+        PictureBox8.Size = New Size(24, 576)
         PictureBox8.TabIndex = 74
         PictureBox8.TabStop = False
         ' 
@@ -1301,18 +1313,6 @@ Partial Class Base
         icon_settings.TabIndex = 53
         icon_settings.Text = ""
         ' 
-        ' Home_settings
-        ' 
-        Home_settings.AutoSize = True
-        Home_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Home_settings.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
-        Home_settings.ForeColor = Color.White
-        Home_settings.Location = New Point(258, 43)
-        Home_settings.Name = "Home_settings"
-        Home_settings.Size = New Size(56, 21)
-        Home_settings.TabIndex = 43
-        Home_settings.Text = "Home"
-        ' 
         ' settings_top
         ' 
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -1341,17 +1341,27 @@ Partial Class Base
         settings_all.Controls.Add(noty)
         settings_all.Controls.Add(PictureBox17)
         settings_all.Controls.Add(noy)
+        settings_all.Controls.Add(vdo_setme)
+        settings_all.Controls.Add(Label19)
+        settings_all.Controls.Add(Label20)
+        settings_all.Controls.Add(PictureBox13)
+        settings_all.Controls.Add(vd1)
+        settings_all.Controls.Add(PictureBox9)
+        settings_all.Controls.Add(Label4)
+        settings_all.Controls.Add(Label5)
+        settings_all.Controls.Add(PictureBox4)
+        settings_all.Controls.Add(saved_e)
+        settings_all.Controls.Add(Label6)
+        settings_all.Controls.Add(Label9)
+        settings_all.Controls.Add(PictureBox1)
+        settings_all.Controls.Add(ab_bg)
+        settings_all.Controls.Add(saved_e1)
         settings_all.Controls.Add(PictureBox15)
         settings_all.Controls.Add(Label21)
         settings_all.Controls.Add(Label22)
         settings_all.Controls.Add(PictureBox16)
         settings_all.Controls.Add(hg2)
-        settings_all.Controls.Add(vdo_setme)
         settings_all.Controls.Add(PictureBox12)
-        settings_all.Controls.Add(Label19)
-        settings_all.Controls.Add(Label20)
-        settings_all.Controls.Add(PictureBox13)
-        settings_all.Controls.Add(vd1)
         settings_all.Controls.Add(PictureBox2)
         settings_all.Controls.Add(Label17)
         settings_all.Controls.Add(Label18)
@@ -1360,20 +1370,10 @@ Partial Class Base
         settings_all.Controls.Add(Label12)
         settings_all.Controls.Add(Label15)
         settings_all.Controls.Add(PictureBox10)
-        settings_all.Controls.Add(PictureBox9)
         settings_all.Controls.Add(hub)
         settings_all.Controls.Add(logo_py)
-        settings_all.Controls.Add(Label4)
-        settings_all.Controls.Add(Label5)
         settings_all.Controls.Add(text_py)
-        settings_all.Controls.Add(PictureBox4)
         settings_all.Controls.Add(PictureBox3)
-        settings_all.Controls.Add(saved_e)
-        settings_all.Controls.Add(Label6)
-        settings_all.Controls.Add(Label9)
-        settings_all.Controls.Add(PictureBox1)
-        settings_all.Controls.Add(ab_bg)
-        settings_all.Controls.Add(saved_e1)
         settings_all.Controls.Add(box_py)
         settings_all.Controls.Add(bg_py)
         settings_all.Location = New Point(262, 81)
@@ -1433,6 +1433,164 @@ Partial Class Base
         noy.TabIndex = 90
         noy.TabStop = False
         ' 
+        ' vdo_setme
+        ' 
+        vdo_setme.AutoSize = True
+        vdo_setme.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        vdo_setme.Font = New Font("Segoe UI", 7F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        vdo_setme.ForeColor = Color.Gray
+        vdo_setme.Location = New Point(72, 349)
+        vdo_setme.Name = "vdo_setme"
+        vdo_setme.Size = New Size(168, 12)
+        vdo_setme.TabIndex = 68
+        vdo_setme.Text = "Instant Replay, Record, and Highlight"
+        ' 
+        ' Label19
+        ' 
+        Label19.AutoSize = True
+        Label19.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label19.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+        Label19.ForeColor = Color.White
+        Label19.Location = New Point(72, 336)
+        Label19.Name = "Label19"
+        Label19.Size = New Size(85, 15)
+        Label19.TabIndex = 83
+        Label19.Text = "Video capture"
+        ' 
+        ' Label20
+        ' 
+        Label20.AutoSize = True
+        Label20.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label20.Font = New Font("nvgcshare", 25F)
+        Label20.ForeColor = Color.White
+        Label20.Location = New Point(16, 332)
+        Label20.Name = "Label20"
+        Label20.Size = New Size(49, 34)
+        Label20.TabIndex = 82
+        Label20.Text = ""
+        ' 
+        ' PictureBox13
+        ' 
+        PictureBox13.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox13.Location = New Point(1, 319)
+        PictureBox13.Name = "PictureBox13"
+        PictureBox13.Size = New Size(485, 58)
+        PictureBox13.TabIndex = 81
+        PictureBox13.TabStop = False
+        ' 
+        ' vd1
+        ' 
+        vd1.BackColor = Color.Gray
+        vd1.Location = New Point(0, 318)
+        vd1.Name = "vd1"
+        vd1.Size = New Size(487, 60)
+        vd1.TabIndex = 80
+        vd1.TabStop = False
+        ' 
+        ' PictureBox9
+        ' 
+        PictureBox9.BackColor = Color.Black
+        PictureBox9.Location = New Point(0, 457)
+        PictureBox9.Name = "PictureBox9"
+        PictureBox9.Size = New Size(100, 20)
+        PictureBox9.TabIndex = 71
+        PictureBox9.TabStop = False
+        PictureBox9.Visible = False
+        ' 
+        ' Label4
+        ' 
+        Label4.AutoSize = True
+        Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label4.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+        Label4.ForeColor = Color.White
+        Label4.Location = New Point(72, 500)
+        Label4.Name = "Label4"
+        Label4.Size = New Size(90, 15)
+        Label4.TabIndex = 67
+        Label4.Text = "Privacy control"
+        ' 
+        ' Label5
+        ' 
+        Label5.AutoSize = True
+        Label5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label5.Font = New Font("nvgcshare", 25F)
+        Label5.ForeColor = Color.White
+        Label5.Location = New Point(16, 491)
+        Label5.Name = "Label5"
+        Label5.Size = New Size(49, 34)
+        Label5.TabIndex = 66
+        Label5.Text = ""
+        ' 
+        ' PictureBox4
+        ' 
+        PictureBox4.BackColor = Color.Black
+        PictureBox4.Location = New Point(0, 538)
+        PictureBox4.Name = "PictureBox4"
+        PictureBox4.Size = New Size(100, 20)
+        PictureBox4.TabIndex = 65
+        PictureBox4.TabStop = False
+        PictureBox4.Visible = False
+        ' 
+        ' saved_e
+        ' 
+        saved_e.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        saved_e.Location = New Point(1, 478)
+        saved_e.Name = "saved_e"
+        saved_e.Size = New Size(485, 58)
+        saved_e.TabIndex = 49
+        saved_e.TabStop = False
+        ' 
+        ' Label6
+        ' 
+        Label6.AutoSize = True
+        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label6.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+        Label6.ForeColor = Color.White
+        Label6.Location = New Point(72, 581)
+        Label6.Name = "Label6"
+        Label6.Size = New Size(170, 15)
+        Label6.TabIndex = 63
+        Label6.Text = "About                                           " & vbCrLf
+        ' 
+        ' Label9
+        ' 
+        Label9.AutoSize = True
+        Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label9.Font = New Font("nvgcshare", 25F)
+        Label9.ForeColor = Color.White
+        Label9.Location = New Point(16, 572)
+        Label9.Name = "Label9"
+        Label9.Size = New Size(49, 34)
+        Label9.TabIndex = 62
+        Label9.Text = ""
+        ' 
+        ' PictureBox1
+        ' 
+        PictureBox1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox1.Location = New Point(1, 559)
+        PictureBox1.Name = "PictureBox1"
+        PictureBox1.Size = New Size(485, 58)
+        PictureBox1.TabIndex = 61
+        PictureBox1.TabStop = False
+        ' 
+        ' ab_bg
+        ' 
+        ab_bg.BackColor = Color.Gray
+        ab_bg.Location = New Point(0, 558)
+        ab_bg.Name = "ab_bg"
+        ab_bg.Size = New Size(487, 60)
+        ab_bg.TabIndex = 60
+        ab_bg.TabStop = False
+        ' 
+        ' saved_e1
+        ' 
+        saved_e1.BackColor = Color.Gray
+        saved_e1.Location = New Point(0, 477)
+        saved_e1.Name = "saved_e1"
+        saved_e1.Size = New Size(487, 60)
+        saved_e1.TabIndex = 48
+        saved_e1.TabStop = False
+        ' 
         ' PictureBox15
         ' 
         PictureBox15.BackColor = Color.Black
@@ -1485,18 +1643,6 @@ Partial Class Base
         hg2.TabIndex = 85
         hg2.TabStop = False
         ' 
-        ' vdo_setme
-        ' 
-        vdo_setme.AutoSize = True
-        vdo_setme.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        vdo_setme.Font = New Font("Segoe UI", 7F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        vdo_setme.ForeColor = Color.Gray
-        vdo_setme.Location = New Point(72, 349)
-        vdo_setme.Name = "vdo_setme"
-        vdo_setme.Size = New Size(168, 12)
-        vdo_setme.TabIndex = 68
-        vdo_setme.Text = "Instant Replay, Record, and Highlight"
-        ' 
         ' PictureBox12
         ' 
         PictureBox12.BackColor = Color.Black
@@ -1506,48 +1652,6 @@ Partial Class Base
         PictureBox12.TabIndex = 84
         PictureBox12.TabStop = False
         PictureBox12.Visible = False
-        ' 
-        ' Label19
-        ' 
-        Label19.AutoSize = True
-        Label19.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label19.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
-        Label19.ForeColor = Color.White
-        Label19.Location = New Point(72, 336)
-        Label19.Name = "Label19"
-        Label19.Size = New Size(85, 15)
-        Label19.TabIndex = 83
-        Label19.Text = "Video capture"
-        ' 
-        ' Label20
-        ' 
-        Label20.AutoSize = True
-        Label20.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label20.Font = New Font("nvgcshare", 25F)
-        Label20.ForeColor = Color.White
-        Label20.Location = New Point(16, 332)
-        Label20.Name = "Label20"
-        Label20.Size = New Size(49, 34)
-        Label20.TabIndex = 82
-        Label20.Text = ""
-        ' 
-        ' PictureBox13
-        ' 
-        PictureBox13.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox13.Location = New Point(1, 319)
-        PictureBox13.Name = "PictureBox13"
-        PictureBox13.Size = New Size(485, 58)
-        PictureBox13.TabIndex = 81
-        PictureBox13.TabStop = False
-        ' 
-        ' vd1
-        ' 
-        vd1.BackColor = Color.Gray
-        vd1.Location = New Point(0, 318)
-        vd1.Name = "vd1"
-        vd1.Size = New Size(487, 60)
-        vd1.TabIndex = 80
-        vd1.TabStop = False
         ' 
         ' PictureBox2
         ' 
@@ -1634,16 +1738,6 @@ Partial Class Base
         PictureBox10.TabIndex = 72
         PictureBox10.TabStop = False
         ' 
-        ' PictureBox9
-        ' 
-        PictureBox9.BackColor = Color.Black
-        PictureBox9.Location = New Point(0, 457)
-        PictureBox9.Name = "PictureBox9"
-        PictureBox9.Size = New Size(100, 20)
-        PictureBox9.TabIndex = 71
-        PictureBox9.TabStop = False
-        PictureBox9.Visible = False
-        ' 
         ' hub
         ' 
         hub.BackColor = Color.Gray
@@ -1665,30 +1759,6 @@ Partial Class Base
         logo_py.TabIndex = 46
         logo_py.Text = ""
         ' 
-        ' Label4
-        ' 
-        Label4.AutoSize = True
-        Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
-        Label4.ForeColor = Color.White
-        Label4.Location = New Point(72, 500)
-        Label4.Name = "Label4"
-        Label4.Size = New Size(90, 15)
-        Label4.TabIndex = 67
-        Label4.Text = "Privacy control"
-        ' 
-        ' Label5
-        ' 
-        Label5.AutoSize = True
-        Label5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label5.Font = New Font("nvgcshare", 25F)
-        Label5.ForeColor = Color.White
-        Label5.Location = New Point(16, 491)
-        Label5.Name = "Label5"
-        Label5.Size = New Size(49, 34)
-        Label5.TabIndex = 66
-        Label5.Text = ""
-        ' 
         ' text_py
         ' 
         text_py.AutoSize = True
@@ -1701,16 +1771,6 @@ Partial Class Base
         text_py.TabIndex = 47
         text_py.Text = "Connect"
         ' 
-        ' PictureBox4
-        ' 
-        PictureBox4.BackColor = Color.Black
-        PictureBox4.Location = New Point(0, 538)
-        PictureBox4.Name = "PictureBox4"
-        PictureBox4.Size = New Size(100, 20)
-        PictureBox4.TabIndex = 65
-        PictureBox4.TabStop = False
-        PictureBox4.Visible = False
-        ' 
         ' PictureBox3
         ' 
         PictureBox3.BackColor = Color.Black
@@ -1720,66 +1780,6 @@ Partial Class Base
         PictureBox3.TabIndex = 64
         PictureBox3.TabStop = False
         PictureBox3.Visible = False
-        ' 
-        ' saved_e
-        ' 
-        saved_e.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        saved_e.Location = New Point(1, 478)
-        saved_e.Name = "saved_e"
-        saved_e.Size = New Size(485, 58)
-        saved_e.TabIndex = 49
-        saved_e.TabStop = False
-        ' 
-        ' Label6
-        ' 
-        Label6.AutoSize = True
-        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label6.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
-        Label6.ForeColor = Color.White
-        Label6.Location = New Point(72, 581)
-        Label6.Name = "Label6"
-        Label6.Size = New Size(170, 15)
-        Label6.TabIndex = 63
-        Label6.Text = "About                                           " & vbCrLf
-        ' 
-        ' Label9
-        ' 
-        Label9.AutoSize = True
-        Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label9.Font = New Font("nvgcshare", 25F)
-        Label9.ForeColor = Color.White
-        Label9.Location = New Point(16, 572)
-        Label9.Name = "Label9"
-        Label9.Size = New Size(49, 34)
-        Label9.TabIndex = 62
-        Label9.Text = ""
-        ' 
-        ' PictureBox1
-        ' 
-        PictureBox1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox1.Location = New Point(1, 559)
-        PictureBox1.Name = "PictureBox1"
-        PictureBox1.Size = New Size(485, 58)
-        PictureBox1.TabIndex = 61
-        PictureBox1.TabStop = False
-        ' 
-        ' ab_bg
-        ' 
-        ab_bg.BackColor = Color.Gray
-        ab_bg.Location = New Point(0, 558)
-        ab_bg.Name = "ab_bg"
-        ab_bg.Size = New Size(487, 60)
-        ab_bg.TabIndex = 60
-        ab_bg.TabStop = False
-        ' 
-        ' saved_e1
-        ' 
-        saved_e1.BackColor = Color.Gray
-        saved_e1.Location = New Point(0, 477)
-        saved_e1.Name = "saved_e1"
-        saved_e1.Size = New Size(487, 60)
-        saved_e1.TabIndex = 48
-        saved_e1.TabStop = False
         ' 
         ' box_py
         ' 
@@ -2334,24 +2334,24 @@ Partial Class Base
         CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
         CType(noy, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
-        CType(hg2, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox13, ComponentModel.ISupportInitialize).EndInit()
         CType(vd1, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox2, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
-        CType(k1, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
-        CType(hub, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox4, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
         CType(saved_e, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
         CType(ab_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(saved_e1, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
+        CType(hg2, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox2, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
+        CType(k1, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
+        CType(hub, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
         CType(box_py, ComponentModel.ISupportInitialize).EndInit()
         CType(bg_py, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()

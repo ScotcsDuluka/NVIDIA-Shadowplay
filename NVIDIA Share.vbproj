@@ -32,7 +32,7 @@
     <UseWPF>False</UseWPF>
     <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
     <StartupObject>NVIDIA_Share.My.MyApplication</StartupObject>
-    <SupportedOSPlatformVersion>8.0</SupportedOSPlatformVersion>
+    <SupportedOSPlatformVersion>7.0</SupportedOSPlatformVersion>
     <AssemblyName>NVIDIA ShadowPlay</AssemblyName>
     <RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
     <RunAnalyzersDuringLiveAnalysis>False</RunAnalyzersDuringLiveAnalysis>
