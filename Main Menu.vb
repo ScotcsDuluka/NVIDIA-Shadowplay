@@ -1351,15 +1351,26 @@ Public Class Base
     End Sub
 
     Private Sub box_py_Click(sender As Object, e As EventArgs) Handles box_py.Click
-        Login.Show()
+
+        If My.Settings.User = "" Then
+            login.Show()
+        Else
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Welcome " & My.Settings.User)
+        End If
+
+
     End Sub
 
     Private Sub text_py_Click(sender As Object, e As EventArgs) Handles text_py.Click
-        Login.Show()
+
     End Sub
 
     Private Sub logo_py_Click(sender As Object, e As EventArgs) Handles logo_py.Click
-        Login.Show()
+
     End Sub
 
     Private Sub replay_sc1_Click(sender As Object, e As EventArgs) Handles replay_sc1.Click

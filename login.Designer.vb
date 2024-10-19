@@ -22,7 +22,7 @@ Partial Class login
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Login))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(login))
         btnLogin = New Button()
         txtUsername = New TextBox()
         txtPassword = New TextBox()
@@ -32,7 +32,9 @@ Partial Class login
         Label2 = New Label()
         Label3 = New Label()
         PictureBox1 = New PictureBox()
+        settings_top = New PictureBox()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' btnLogin
@@ -139,13 +141,24 @@ Partial Class login
         PictureBox1.TabIndex = 9
         PictureBox1.TabStop = False
         ' 
-        ' Login
+        ' settings_top
+        ' 
+        settings_top.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        settings_top.Location = New System.Drawing.Point(-29, 0)
+        settings_top.Name = "settings_top"
+        settings_top.Size = New System.Drawing.Size(550, 5)
+        settings_top.TabIndex = 10
+        settings_top.TabStop = False
+        ' 
+        ' login
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         AutoSizeMode = AutoSizeMode.GrowAndShrink
         BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ClientSize = New System.Drawing.Size(468, 301)
+        ControlBox = False
+        Controls.Add(settings_top)
         Controls.Add(txtPassword)
         Controls.Add(PictureBox1)
         Controls.Add(txtUsername)
@@ -158,11 +171,12 @@ Partial Class login
         ForeColor = Drawing.Color.White
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
         MaximizeBox = False
-        Name = "Login"
+        Name = "login"
         StartPosition = FormStartPosition.CenterScreen
         Text = "Login | Luka accounts"
         TopMost = True
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
+        CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -176,4 +190,5 @@ Partial Class login
     Friend WithEvents Label2 As Label
     Friend WithEvents Label3 As Label
     Friend WithEvents PictureBox1 As PictureBox
+    Friend WithEvents settings_top As PictureBox
 End Class

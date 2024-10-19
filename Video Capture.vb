@@ -58,6 +58,18 @@ Public Class set_vdo
         SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
     End Sub
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
+        If res.Text = "" Or ghz.Text = "" Or bit.Text = "" Then
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Erorr to Saved.")
+            Return
+        End If
+        My.Settings.res = res.Text
+        My.Settings.fps = ghz.Text
+        My.Settings.bit = bit.Text
+        My.Settings.Save()
         res.ForeColor = Color.Gray
         ghz.ForeColor = Color.Gray
         bit.ForeColor = Color.Gray
@@ -72,6 +84,18 @@ Public Class set_vdo
     End Sub
 
     Private Sub bg_fn_Click(sender As Object, e As EventArgs) Handles bg_fn.Click
+        If res.Text = "" Or ghz.Text = "" Or bit.Text = "" Then
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Erorr to Saved.")
+            Return
+        End If
+        My.Settings.res = res.Text
+        My.Settings.fps = ghz.Text
+        My.Settings.bit = bit.Text
+        My.Settings.Save()
         res.ForeColor = Color.Gray
         ghz.ForeColor = Color.Gray
         bit.ForeColor = Color.Gray
@@ -95,14 +119,22 @@ Public Class set_vdo
     Private Sub set_vdo_Load(sender As Object, e As EventArgs) Handles Me.Load
         Dim currentScreen As Screen = Screen.PrimaryScreen
         Dim devMode As New DEVMODE()
-        Dim refreshRate As Integer = devMode.dmDisplayFrequency
 
         Dim currentWidth As Integer = currentScreen.Bounds.Width
         Dim currentHeight As Integer = currentScreen.Bounds.Height
 
-
-        res.Text = currentWidth & " x " & currentHeight
-        ghz.Text = refreshRate
+        If My.Settings.res = "" Then
+            res.Text = currentWidth & " x " & currentHeight
+        End If
+        If My.Settings.fps = "" Then
+            ghz.Text = 60
+        End If
+        If My.Settings.bit = "" Then
+            bit.Text = 20
+        End If
+        res.Text = My.Settings.res
+        ghz.Text = My.Settings.fps
+        bit.Text = My.Settings.bit
 
         ' ซ่อน Form จาก Alt+Tab
         HideFromAltTab()

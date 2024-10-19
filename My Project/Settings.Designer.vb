@@ -65,6 +65,66 @@ Namespace My
                 Me("SavePath") = value
             End Set
         End Property
+        
+        <Global.System.Configuration.UserScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("")>  _
+        Public Property User() As String
+            Get
+                Return CType(Me("User"),String)
+            End Get
+            Set
+                Me("User") = value
+            End Set
+        End Property
+        
+        <Global.System.Configuration.UserScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("")>  _
+        Public Property res() As String
+            Get
+                Return CType(Me("res"),String)
+            End Get
+            Set
+                Me("res") = value
+            End Set
+        End Property
+        
+        <Global.System.Configuration.UserScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("20")>  _
+        Public Property bit() As String
+            Get
+                Return CType(Me("bit"),String)
+            End Get
+            Set
+                Me("bit") = value
+            End Set
+        End Property
+        
+        <Global.System.Configuration.UserScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("60")>  _
+        Public Property fps() As String
+            Get
+                Return CType(Me("fps"),String)
+            End Get
+            Set
+                Me("fps") = value
+            End Set
+        End Property
+        
+        <Global.System.Configuration.UserScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("")>  _
+        Public Property vdo() As String
+            Get
+                Return CType(Me("vdo"),String)
+            End Get
+            Set
+                Me("vdo") = value
+            End Set
+        End Property
     End Class
 End Namespace
 

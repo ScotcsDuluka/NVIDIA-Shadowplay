@@ -1,4 +1,3 @@
-2024/10/19-22:46:37.532 5218 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/MANIFEST-000001
-2024/10/19-22:46:37.534 5218 Recovering log #4
-2024/10/19-22:46:37.534 5218 (ignoring error) A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/000004.log: dropping 13 bytes; Corruption: missing start of fragmented record(2)
-2024/10/19-22:46:37.540 5218 Reusing old log A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/000004.log 
+2024/10/20-00:02:46.071 fbc Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/MANIFEST-000001
+2024/10/20-00:02:46.072 fbc Recovering log #7
+2024/10/20-00:02:46.078 fbc Reusing old log A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Session Storage/000007.log 

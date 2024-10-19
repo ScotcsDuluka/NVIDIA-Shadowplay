@@ -34,20 +34,39 @@ Public Class Login
     End Function
 
     Private Sub btnLogin_Click(sender As Object, e As EventArgs) Handles btnLogin.Click
+        If txtUsername.Text = "" Then
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.Text = ("")  ' แสดงเครื่องหมายผิด
+            Notifier.text_n.Text = ("Login failed! Incorrect username or password.")
+            Return
+        Else
+
+        End If
+        If txtPassword.Text = "" Then
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.Text = ("")  ' แสดงเครื่องหมายผิด
+            Notifier.text_n.Text = ("Login failed! Incorrect username or password.")
+            Return
+        Else
+
+        End If
+
+
         Dim inputUser = txtUsername.Text
         Dim inputPassword = txtPassword.Text
 
-        Dim login As New Login
+        Dim login As New login
 
         ' ตรวจสอบการเข้าสู่ระบบ
         If login.ValidateUser(inputUser, inputPassword) Then
+            My.Settings.User = inputUser
+            My.Settings.Save()
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
             Notifier.icon_n.Text = ("")  ' แสดงเครื่องหมายถูก
             Notifier.text_n.Text = ("Login successful! Welcome " & inputUser)
-            My.Computer.FileSystem.DeleteDirectory("C:\ProgramData\NVIDIA Corporation\ShadowPlay1\", FileIO.DeleteDirectoryOption.DeleteAllContents)
-            My.Computer.FileSystem.CreateDirectory("C:\ProgramData\NVIDIA Corporation\ShadowPlay1\")
-            File.Create("C:\ProgramData\NVIDIA Corporation\ShadowPlay1\" & inputUser).Dispose()
             Me.Close()
         Else
             Notifier.Show()
@@ -60,14 +79,6 @@ Public Class Login
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
         ' ปิดฟอร์มเมื่อกดปุ่ม Button1
         Me.Close()
-    End Sub
-
-    Private Sub Login_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        ' ยกเลิกการปิดฟอร์มเมื่อไม่ใช่ปุ่ม Button1
-        If Not DirectCast(sender, Login).ActiveControl Is Button1 AndAlso
-       Not DirectCast(sender, Login).ActiveControl Is btnLogin Then
-            e.Cancel = True
-        End If
     End Sub
 End Class
 
