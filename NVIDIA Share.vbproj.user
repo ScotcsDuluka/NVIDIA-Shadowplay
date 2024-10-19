@@ -10,10 +10,13 @@
     <Compile Update="Background Top.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Gallery.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="Main Menu.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="Gallery.vb">
+    <Compile Update="www Menu.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="Notifier.vb">

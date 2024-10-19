@@ -30,6 +30,8 @@ Partial Class www
         Timer2 = New Timer(components)
         key_ne = New Timer(components)
         url = New TextBox()
+        menu_p = New Timer(components)
+        newff = New Timer(components)
         CType(WebView21, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
@@ -75,6 +77,15 @@ Partial Class www
         url.Text = "https://"
         url.Visible = False
         ' 
+        ' menu_p
+        ' 
+        menu_p.Enabled = True
+        menu_p.Interval = 1
+        ' 
+        ' newff
+        ' 
+        newff.Interval = 1000
+        ' 
         ' www
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
@@ -106,4 +117,6 @@ Partial Class www
     Friend WithEvents Timer2 As Timer
     Friend WithEvents key_ne As Timer
     Friend WithEvents url As TextBox
+    Friend WithEvents menu_p As Timer
+    Friend WithEvents newff As Timer
 End Class

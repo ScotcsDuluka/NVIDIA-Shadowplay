@@ -75,6 +75,7 @@ Public Class www
                         Timer2.Start()
                         Bg.Timer1.Stop()
                         Bg.Timer2.Start()
+                        www_en.Show()
                     End If
                 Else
 
@@ -83,6 +84,7 @@ Public Class www
                     If Base.Opacity = 0 Then
                         Bg.Timer1.Start()
                         Bg.Timer2.Stop()
+                        www_en.Hide()
                     End If
 
 
@@ -129,6 +131,18 @@ Public Class www
             Catch ex As UriFormatException
                 MessageBox.Show("URL Erorr")
             End Try
+        End If
+    End Sub
+
+    Private Sub menu_p_Tick(sender As Object, e As EventArgs) Handles menu_p.Tick
+        If Opacity = 1 Then
+            www_en.Show()
+            www_en.Opacity += 0.1
+        Else
+            www_en.Opacity -= 0.1
+            If www_en.Opacity = 0 Then
+                www_en.Hide()
+            End If
         End If
     End Sub
 End Class
