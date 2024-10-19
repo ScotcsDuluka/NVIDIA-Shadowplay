@@ -58,11 +58,6 @@ Public Class www
             isKeyPressedf = False ' รีเซ็ตสถานะเมื่อปุ่มถูกปล่อย
         End If
 
-        If Base.Opacity = 0 Then
-
-        Else
-            TopMost = True
-        End If
 
         If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_CAPITAL) And &H8000) <> 0 Then
 

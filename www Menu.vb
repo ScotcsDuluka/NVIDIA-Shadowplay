@@ -27,8 +27,8 @@ Public Class www_en
         Notifier.Show()
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
-        Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Extension not found")
+        Notifier.icon_n.Text = ""
+        Notifier.text_n.Text = "Extension not found"
     End Sub
 
     Private Sub www_en_Click(sender As Object, e As EventArgs) Handles MyBase.Click

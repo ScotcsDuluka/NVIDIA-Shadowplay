@@ -160,7 +160,6 @@ Partial Class Base
         settings_bg = New PictureBox()
         PictureBox7 = New PictureBox()
         Timer3 = New Timer(components)
-        hd = New PictureBox()
         action_sc = New Panel()
         record_sc = New Panel()
         str = New PictureBox()
@@ -285,7 +284,6 @@ Partial Class Base
         CType(bg_py, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
-        CType(hd, ComponentModel.ISupportInitialize).BeginInit()
         action_sc.SuspendLayout()
         record_sc.SuspendLayout()
         CType(str, ComponentModel.ISupportInitialize).BeginInit()
@@ -1817,14 +1815,6 @@ Partial Class Base
         PictureBox7.TabIndex = 69
         PictureBox7.TabStop = False
         ' 
-        ' hd
-        ' 
-        hd.Location = New Point(0, 0)
-        hd.Name = "hd"
-        hd.Size = New Size(0, 0)
-        hd.TabIndex = 43
-        hd.TabStop = False
-        ' 
         ' action_sc
         ' 
         action_sc.Controls.Add(record_sc)
@@ -2269,7 +2259,6 @@ Partial Class Base
         BackColor = Color.Red
         ClientSize = New Size(1300, 820)
         Controls.Add(Logo)
-        Controls.Add(hd)
         Controls.Add(Name_action)
         Controls.Add(action)
         Controls.Add(settings_1)
@@ -2356,7 +2345,6 @@ Partial Class Base
         CType(bg_py, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
-        CType(hd, ComponentModel.ISupportInitialize).EndInit()
         action_sc.ResumeLayout(False)
         record_sc.ResumeLayout(False)
         record_sc.PerformLayout()
@@ -2429,7 +2417,6 @@ Partial Class Base
     Friend WithEvents logo_py As Label
     Friend WithEvents box_py As PictureBox
     Friend WithEvents text_py As Label
-    Friend WithEvents hd As PictureBox
     Friend WithEvents action_sc As Panel
     Friend WithEvents replay_sc As PictureBox
     Friend WithEvents replay_sc1 As PictureBox

@@ -27,12 +27,29 @@ Partial Class set_vdo
         ALTZ = New Timer(components)
         bg_re = New PictureBox()
         setre = New Panel()
-        text_settings = New Label()
         Label15 = New Label()
+        bit = New TextBox()
+        ghz = New TextBox()
+        res = New TextBox()
+        PictureBox21 = New PictureBox()
+        PictureBox20 = New PictureBox()
+        PictureBox19 = New PictureBox()
+        PictureBox18 = New PictureBox()
+        PictureBox17 = New PictureBox()
+        PictureBox16 = New PictureBox()
+        PictureBox15 = New PictureBox()
+        PictureBox14 = New PictureBox()
+        PictureBox13 = New PictureBox()
+        PictureBox12 = New PictureBox()
+        PictureBox11 = New PictureBox()
+        PictureBox10 = New PictureBox()
+        PictureBox9 = New PictureBox()
+        PictureBox8 = New PictureBox()
+        PictureBox5 = New PictureBox()
+        a_1 = New PictureBox()
+        text_settings = New Label()
         icon_settings = New Label()
         box_settings = New PictureBox()
-        TextBox1 = New TextBox()
-        fps = New TextBox()
         PictureBox7 = New PictureBox()
         Label14 = New Label()
         PictureBox6 = New PictureBox()
@@ -58,25 +75,25 @@ Partial Class set_vdo
         Label4 = New Label()
         settings_bg = New PictureBox()
         settings_top = New PictureBox()
-        a_1 = New PictureBox()
-        PictureBox5 = New PictureBox()
-        PictureBox8 = New PictureBox()
-        PictureBox9 = New PictureBox()
-        PictureBox10 = New PictureBox()
-        PictureBox11 = New PictureBox()
-        PictureBox12 = New PictureBox()
-        PictureBox13 = New PictureBox()
-        PictureBox14 = New PictureBox()
-        PictureBox15 = New PictureBox()
-        PictureBox16 = New PictureBox()
-        PictureBox17 = New PictureBox()
-        PictureBox18 = New PictureBox()
-        PictureBox19 = New PictureBox()
-        PictureBox20 = New PictureBox()
-        PictureBox21 = New PictureBox()
         Quality = New Timer(components)
         CType(bg_re, ComponentModel.ISupportInitialize).BeginInit()
         setre.SuspendLayout()
+        CType(PictureBox21, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox20, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox13, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
+        CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
@@ -88,22 +105,6 @@ Partial Class set_vdo
         CType(bg_fn, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
-        CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox13, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox20, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox21, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' ALTZ
@@ -122,6 +123,10 @@ Partial Class set_vdo
         ' setre
         ' 
         setre.BackColor = Drawing.Color.Red
+        setre.Controls.Add(Label15)
+        setre.Controls.Add(bit)
+        setre.Controls.Add(ghz)
+        setre.Controls.Add(res)
         setre.Controls.Add(PictureBox21)
         setre.Controls.Add(PictureBox20)
         setre.Controls.Add(PictureBox19)
@@ -139,11 +144,8 @@ Partial Class set_vdo
         setre.Controls.Add(PictureBox5)
         setre.Controls.Add(a_1)
         setre.Controls.Add(text_settings)
-        setre.Controls.Add(Label15)
         setre.Controls.Add(icon_settings)
         setre.Controls.Add(box_settings)
-        setre.Controls.Add(TextBox1)
-        setre.Controls.Add(fps)
         setre.Controls.Add(PictureBox7)
         setre.Controls.Add(Label14)
         setre.Controls.Add(PictureBox6)
@@ -175,18 +177,6 @@ Partial Class set_vdo
         setre.Size = New System.Drawing.Size(1010, 723)
         setre.TabIndex = 44
         ' 
-        ' text_settings
-        ' 
-        text_settings.AutoSize = True
-        text_settings.BackColor = Drawing.Color.Black
-        text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
-        text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(65, 14)
-        text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(72, 21)
-        text_settings.TabIndex = 59
-        text_settings.Text = "Settings"
-        ' 
         ' Label15
         ' 
         Label15.AutoSize = True
@@ -199,6 +189,221 @@ Partial Class set_vdo
         Label15.Size = New System.Drawing.Size(49, 21)
         Label15.TabIndex = 93
         Label15.Text = "Mbps"
+        ' 
+        ' bit
+        ' 
+        bit.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        bit.BorderStyle = BorderStyle.None
+        bit.Font = New System.Drawing.Font("Segoe UI", 15F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
+        bit.ForeColor = Drawing.Color.Gray
+        bit.Location = New System.Drawing.Point(264, 296)
+        bit.MaxLength = 3
+        bit.Multiline = True
+        bit.Name = "bit"
+        bit.Size = New System.Drawing.Size(109, 33)
+        bit.TabIndex = 112
+        bit.Text = "20"
+        ' 
+        ' ghz
+        ' 
+        ghz.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        ghz.BorderStyle = BorderStyle.None
+        ghz.Font = New System.Drawing.Font("Segoe UI", 15F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
+        ghz.ForeColor = Drawing.Color.Gray
+        ghz.Location = New System.Drawing.Point(521, 220)
+        ghz.MaxLength = 3
+        ghz.Multiline = True
+        ghz.Name = "ghz"
+        ghz.Size = New System.Drawing.Size(172, 33)
+        ghz.TabIndex = 111
+        ghz.Text = "60"
+        ' 
+        ' res
+        ' 
+        res.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        res.BorderStyle = BorderStyle.None
+        res.Font = New System.Drawing.Font("Segoe UI", 15F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
+        res.ForeColor = Drawing.Color.Gray
+        res.Location = New System.Drawing.Point(266, 220)
+        res.MaxLength = 2
+        res.Multiline = True
+        res.Name = "res"
+        res.ReadOnly = True
+        res.Size = New System.Drawing.Size(172, 33)
+        res.TabIndex = 110
+        res.Text = "1280 X 800"
+        ' 
+        ' PictureBox21
+        ' 
+        PictureBox21.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox21.Location = New System.Drawing.Point(742, 110)
+        PictureBox21.Name = "PictureBox21"
+        PictureBox21.Size = New System.Drawing.Size(3, 70)
+        PictureBox21.TabIndex = 109
+        PictureBox21.TabStop = False
+        PictureBox21.Visible = False
+        ' 
+        ' PictureBox20
+        ' 
+        PictureBox20.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox20.Location = New System.Drawing.Point(624, 110)
+        PictureBox20.Name = "PictureBox20"
+        PictureBox20.Size = New System.Drawing.Size(3, 70)
+        PictureBox20.TabIndex = 108
+        PictureBox20.TabStop = False
+        PictureBox20.Visible = False
+        ' 
+        ' PictureBox19
+        ' 
+        PictureBox19.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox19.Location = New System.Drawing.Point(622, 110)
+        PictureBox19.Name = "PictureBox19"
+        PictureBox19.Size = New System.Drawing.Size(3, 70)
+        PictureBox19.TabIndex = 107
+        PictureBox19.TabStop = False
+        PictureBox19.Visible = False
+        ' 
+        ' PictureBox18
+        ' 
+        PictureBox18.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox18.Location = New System.Drawing.Point(504, 110)
+        PictureBox18.Name = "PictureBox18"
+        PictureBox18.Size = New System.Drawing.Size(3, 70)
+        PictureBox18.TabIndex = 106
+        PictureBox18.TabStop = False
+        PictureBox18.Visible = False
+        ' 
+        ' PictureBox17
+        ' 
+        PictureBox17.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox17.Location = New System.Drawing.Point(502, 110)
+        PictureBox17.Name = "PictureBox17"
+        PictureBox17.Size = New System.Drawing.Size(3, 70)
+        PictureBox17.TabIndex = 105
+        PictureBox17.TabStop = False
+        PictureBox17.Visible = False
+        ' 
+        ' PictureBox16
+        ' 
+        PictureBox16.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox16.Location = New System.Drawing.Point(384, 110)
+        PictureBox16.Name = "PictureBox16"
+        PictureBox16.Size = New System.Drawing.Size(3, 70)
+        PictureBox16.TabIndex = 104
+        PictureBox16.TabStop = False
+        PictureBox16.Visible = False
+        ' 
+        ' PictureBox15
+        ' 
+        PictureBox15.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox15.Location = New System.Drawing.Point(382, 110)
+        PictureBox15.Name = "PictureBox15"
+        PictureBox15.Size = New System.Drawing.Size(3, 70)
+        PictureBox15.TabIndex = 103
+        PictureBox15.TabStop = False
+        PictureBox15.Visible = False
+        ' 
+        ' PictureBox14
+        ' 
+        PictureBox14.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox14.Location = New System.Drawing.Point(264, 110)
+        PictureBox14.Name = "PictureBox14"
+        PictureBox14.Size = New System.Drawing.Size(3, 70)
+        PictureBox14.TabIndex = 102
+        PictureBox14.TabStop = False
+        PictureBox14.Visible = False
+        ' 
+        ' PictureBox13
+        ' 
+        PictureBox13.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox13.Location = New System.Drawing.Point(624, 110)
+        PictureBox13.Name = "PictureBox13"
+        PictureBox13.Size = New System.Drawing.Size(121, 3)
+        PictureBox13.TabIndex = 101
+        PictureBox13.TabStop = False
+        PictureBox13.Visible = False
+        ' 
+        ' PictureBox12
+        ' 
+        PictureBox12.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox12.Location = New System.Drawing.Point(504, 110)
+        PictureBox12.Name = "PictureBox12"
+        PictureBox12.Size = New System.Drawing.Size(121, 3)
+        PictureBox12.TabIndex = 100
+        PictureBox12.TabStop = False
+        PictureBox12.Visible = False
+        ' 
+        ' PictureBox11
+        ' 
+        PictureBox11.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox11.Location = New System.Drawing.Point(624, 177)
+        PictureBox11.Name = "PictureBox11"
+        PictureBox11.Size = New System.Drawing.Size(121, 3)
+        PictureBox11.TabIndex = 99
+        PictureBox11.TabStop = False
+        PictureBox11.Visible = False
+        ' 
+        ' PictureBox10
+        ' 
+        PictureBox10.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox10.Location = New System.Drawing.Point(504, 177)
+        PictureBox10.Name = "PictureBox10"
+        PictureBox10.Size = New System.Drawing.Size(121, 3)
+        PictureBox10.TabIndex = 98
+        PictureBox10.TabStop = False
+        PictureBox10.Visible = False
+        ' 
+        ' PictureBox9
+        ' 
+        PictureBox9.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox9.Location = New System.Drawing.Point(384, 177)
+        PictureBox9.Name = "PictureBox9"
+        PictureBox9.Size = New System.Drawing.Size(121, 3)
+        PictureBox9.TabIndex = 97
+        PictureBox9.TabStop = False
+        PictureBox9.Visible = False
+        ' 
+        ' PictureBox8
+        ' 
+        PictureBox8.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox8.Location = New System.Drawing.Point(384, 110)
+        PictureBox8.Name = "PictureBox8"
+        PictureBox8.Size = New System.Drawing.Size(121, 3)
+        PictureBox8.TabIndex = 96
+        PictureBox8.TabStop = False
+        PictureBox8.Visible = False
+        ' 
+        ' PictureBox5
+        ' 
+        PictureBox5.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox5.Location = New System.Drawing.Point(264, 177)
+        PictureBox5.Name = "PictureBox5"
+        PictureBox5.Size = New System.Drawing.Size(121, 3)
+        PictureBox5.TabIndex = 95
+        PictureBox5.TabStop = False
+        PictureBox5.Visible = False
+        ' 
+        ' a_1
+        ' 
+        a_1.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        a_1.Location = New System.Drawing.Point(264, 110)
+        a_1.Name = "a_1"
+        a_1.Size = New System.Drawing.Size(121, 3)
+        a_1.TabIndex = 94
+        a_1.TabStop = False
+        a_1.Visible = False
+        ' 
+        ' text_settings
+        ' 
+        text_settings.AutoSize = True
+        text_settings.BackColor = Drawing.Color.Black
+        text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
+        text_settings.ForeColor = Drawing.Color.White
+        text_settings.Location = New System.Drawing.Point(65, 14)
+        text_settings.Name = "text_settings"
+        text_settings.Size = New System.Drawing.Size(72, 21)
+        text_settings.TabIndex = 59
+        text_settings.Text = "Settings"
         ' 
         ' icon_settings
         ' 
@@ -220,38 +425,6 @@ Partial Class set_vdo
         box_settings.Size = New System.Drawing.Size(200, 200)
         box_settings.TabIndex = 58
         box_settings.TabStop = False
-        ' 
-        ' TextBox1
-        ' 
-        TextBox1.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        TextBox1.BorderStyle = BorderStyle.None
-        TextBox1.Enabled = False
-        TextBox1.Font = New System.Drawing.Font("nvgcshare", 22F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        TextBox1.ForeColor = Drawing.Color.Gray
-        TextBox1.Location = New System.Drawing.Point(270, 221)
-        TextBox1.MaxLength = 2
-        TextBox1.Name = "TextBox1"
-        TextBox1.ReadOnly = True
-        TextBox1.Size = New System.Drawing.Size(218, 30)
-        TextBox1.TabIndex = 91
-        TextBox1.Text = ""
-        TextBox1.TextAlign = HorizontalAlignment.Right
-        ' 
-        ' fps
-        ' 
-        fps.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        fps.BorderStyle = BorderStyle.None
-        fps.Enabled = False
-        fps.Font = New System.Drawing.Font("nvgcshare", 22F)
-        fps.ForeColor = Drawing.Color.Gray
-        fps.Location = New System.Drawing.Point(528, 221)
-        fps.MaxLength = 2
-        fps.Name = "fps"
-        fps.ReadOnly = True
-        fps.Size = New System.Drawing.Size(217, 30)
-        fps.TabIndex = 90
-        fps.Text = ""
-        fps.TextAlign = HorizontalAlignment.Right
         ' 
         ' PictureBox7
         ' 
@@ -325,7 +498,7 @@ Partial Class set_vdo
         Label10.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label10.Cursor = Cursors.Hand
         Label10.Font = New System.Drawing.Font("Segoe UI", 10F)
-        Label10.ForeColor = Drawing.Color.White
+        Label10.ForeColor = Drawing.Color.Gray
         Label10.Location = New System.Drawing.Point(305, 150)
         Label10.Name = "Label10"
         Label10.Size = New System.Drawing.Size(34, 19)
@@ -338,7 +511,7 @@ Partial Class set_vdo
         Label11.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label11.Cursor = Cursors.Hand
         Label11.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Label11.ForeColor = Drawing.Color.White
+        Label11.ForeColor = Drawing.Color.Gray
         Label11.Location = New System.Drawing.Point(303, 122)
         Label11.Name = "Label11"
         Label11.Size = New System.Drawing.Size(39, 27)
@@ -351,7 +524,7 @@ Partial Class set_vdo
         Label8.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label8.Cursor = Cursors.Hand
         Label8.Font = New System.Drawing.Font("Segoe UI", 10F)
-        Label8.ForeColor = Drawing.Color.White
+        Label8.ForeColor = Drawing.Color.Gray
         Label8.Location = New System.Drawing.Point(413, 150)
         Label8.Name = "Label8"
         Label8.Size = New System.Drawing.Size(60, 19)
@@ -364,7 +537,7 @@ Partial Class set_vdo
         Label9.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label9.Cursor = Cursors.Hand
         Label9.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Label9.ForeColor = Drawing.Color.White
+        Label9.ForeColor = Drawing.Color.Gray
         Label9.Location = New System.Drawing.Point(424, 122)
         Label9.Name = "Label9"
         Label9.Size = New System.Drawing.Size(39, 27)
@@ -377,7 +550,7 @@ Partial Class set_vdo
         Label6.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label6.Cursor = Cursors.Hand
         Label6.Font = New System.Drawing.Font("Segoe UI", 10F)
-        Label6.ForeColor = Drawing.Color.White
+        Label6.ForeColor = Drawing.Color.Gray
         Label6.Location = New System.Drawing.Point(544, 150)
         Label6.Name = "Label6"
         Label6.Size = New System.Drawing.Size(38, 19)
@@ -390,7 +563,7 @@ Partial Class set_vdo
         Label7.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label7.Cursor = Cursors.Hand
         Label7.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Label7.ForeColor = Drawing.Color.White
+        Label7.ForeColor = Drawing.Color.Gray
         Label7.Location = New System.Drawing.Point(544, 122)
         Label7.Name = "Label7"
         Label7.Size = New System.Drawing.Size(39, 27)
@@ -541,166 +714,6 @@ Partial Class set_vdo
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
-        ' a_1
-        ' 
-        a_1.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        a_1.Location = New System.Drawing.Point(264, 110)
-        a_1.Name = "a_1"
-        a_1.Size = New System.Drawing.Size(121, 3)
-        a_1.TabIndex = 94
-        a_1.TabStop = False
-        a_1.Visible = False
-        ' 
-        ' PictureBox5
-        ' 
-        PictureBox5.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox5.Location = New System.Drawing.Point(264, 177)
-        PictureBox5.Name = "PictureBox5"
-        PictureBox5.Size = New System.Drawing.Size(121, 3)
-        PictureBox5.TabIndex = 95
-        PictureBox5.TabStop = False
-        PictureBox5.Visible = False
-        ' 
-        ' PictureBox8
-        ' 
-        PictureBox8.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox8.Location = New System.Drawing.Point(384, 110)
-        PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New System.Drawing.Size(121, 3)
-        PictureBox8.TabIndex = 96
-        PictureBox8.TabStop = False
-        PictureBox8.Visible = False
-        ' 
-        ' PictureBox9
-        ' 
-        PictureBox9.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox9.Location = New System.Drawing.Point(384, 177)
-        PictureBox9.Name = "PictureBox9"
-        PictureBox9.Size = New System.Drawing.Size(121, 3)
-        PictureBox9.TabIndex = 97
-        PictureBox9.TabStop = False
-        PictureBox9.Visible = False
-        ' 
-        ' PictureBox10
-        ' 
-        PictureBox10.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox10.Location = New System.Drawing.Point(504, 177)
-        PictureBox10.Name = "PictureBox10"
-        PictureBox10.Size = New System.Drawing.Size(121, 3)
-        PictureBox10.TabIndex = 98
-        PictureBox10.TabStop = False
-        PictureBox10.Visible = False
-        ' 
-        ' PictureBox11
-        ' 
-        PictureBox11.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox11.Location = New System.Drawing.Point(624, 177)
-        PictureBox11.Name = "PictureBox11"
-        PictureBox11.Size = New System.Drawing.Size(121, 3)
-        PictureBox11.TabIndex = 99
-        PictureBox11.TabStop = False
-        PictureBox11.Visible = False
-        ' 
-        ' PictureBox12
-        ' 
-        PictureBox12.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox12.Location = New System.Drawing.Point(504, 110)
-        PictureBox12.Name = "PictureBox12"
-        PictureBox12.Size = New System.Drawing.Size(121, 3)
-        PictureBox12.TabIndex = 100
-        PictureBox12.TabStop = False
-        PictureBox12.Visible = False
-        ' 
-        ' PictureBox13
-        ' 
-        PictureBox13.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox13.Location = New System.Drawing.Point(624, 110)
-        PictureBox13.Name = "PictureBox13"
-        PictureBox13.Size = New System.Drawing.Size(121, 3)
-        PictureBox13.TabIndex = 101
-        PictureBox13.TabStop = False
-        PictureBox13.Visible = False
-        ' 
-        ' PictureBox14
-        ' 
-        PictureBox14.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox14.Location = New System.Drawing.Point(264, 110)
-        PictureBox14.Name = "PictureBox14"
-        PictureBox14.Size = New System.Drawing.Size(3, 70)
-        PictureBox14.TabIndex = 102
-        PictureBox14.TabStop = False
-        PictureBox14.Visible = False
-        ' 
-        ' PictureBox15
-        ' 
-        PictureBox15.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox15.Location = New System.Drawing.Point(382, 110)
-        PictureBox15.Name = "PictureBox15"
-        PictureBox15.Size = New System.Drawing.Size(3, 70)
-        PictureBox15.TabIndex = 103
-        PictureBox15.TabStop = False
-        PictureBox15.Visible = False
-        ' 
-        ' PictureBox16
-        ' 
-        PictureBox16.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox16.Location = New System.Drawing.Point(384, 110)
-        PictureBox16.Name = "PictureBox16"
-        PictureBox16.Size = New System.Drawing.Size(3, 70)
-        PictureBox16.TabIndex = 104
-        PictureBox16.TabStop = False
-        PictureBox16.Visible = False
-        ' 
-        ' PictureBox17
-        ' 
-        PictureBox17.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox17.Location = New System.Drawing.Point(502, 110)
-        PictureBox17.Name = "PictureBox17"
-        PictureBox17.Size = New System.Drawing.Size(3, 70)
-        PictureBox17.TabIndex = 105
-        PictureBox17.TabStop = False
-        PictureBox17.Visible = False
-        ' 
-        ' PictureBox18
-        ' 
-        PictureBox18.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox18.Location = New System.Drawing.Point(504, 110)
-        PictureBox18.Name = "PictureBox18"
-        PictureBox18.Size = New System.Drawing.Size(3, 70)
-        PictureBox18.TabIndex = 106
-        PictureBox18.TabStop = False
-        PictureBox18.Visible = False
-        ' 
-        ' PictureBox19
-        ' 
-        PictureBox19.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox19.Location = New System.Drawing.Point(622, 110)
-        PictureBox19.Name = "PictureBox19"
-        PictureBox19.Size = New System.Drawing.Size(3, 70)
-        PictureBox19.TabIndex = 107
-        PictureBox19.TabStop = False
-        PictureBox19.Visible = False
-        ' 
-        ' PictureBox20
-        ' 
-        PictureBox20.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox20.Location = New System.Drawing.Point(624, 110)
-        PictureBox20.Name = "PictureBox20"
-        PictureBox20.Size = New System.Drawing.Size(3, 70)
-        PictureBox20.TabIndex = 108
-        PictureBox20.TabStop = False
-        PictureBox20.Visible = False
-        ' 
-        ' PictureBox21
-        ' 
-        PictureBox21.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox21.Location = New System.Drawing.Point(742, 110)
-        PictureBox21.Name = "PictureBox21"
-        PictureBox21.Size = New System.Drawing.Size(3, 70)
-        PictureBox21.TabIndex = 109
-        PictureBox21.TabStop = False
-        PictureBox21.Visible = False
-        ' 
         ' Quality
         ' 
         Quality.Enabled = True
@@ -724,6 +737,22 @@ Partial Class set_vdo
         CType(bg_re, ComponentModel.ISupportInitialize).EndInit()
         setre.ResumeLayout(False)
         setre.PerformLayout()
+        CType(PictureBox21, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox20, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox13, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
+        CType(a_1, ComponentModel.ISupportInitialize).EndInit()
         CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
@@ -735,22 +764,6 @@ Partial Class set_vdo
         CType(bg_fn, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
-        CType(a_1, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox13, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox20, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox21, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
 
@@ -770,7 +783,6 @@ Partial Class set_vdo
     Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents PictureBox2 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
-    Friend WithEvents PictureBox4 As PictureBox
     Friend WithEvents Label12 As Label
     Friend WithEvents Label10 As Label
     Friend WithEvents Label11 As Label
@@ -782,8 +794,6 @@ Partial Class set_vdo
     Friend WithEvents Label14 As Label
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents Label13 As Label
-    Friend WithEvents fps As TextBox
-    Friend WithEvents TextBox1 As TextBox
     Friend WithEvents Label15 As Label
     Friend WithEvents text_settings As Label
     Friend WithEvents icon_settings As Label
@@ -805,4 +815,8 @@ Partial Class set_vdo
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents a_1 As PictureBox
     Friend WithEvents Quality As Timer
+    Friend WithEvents res As TextBox
+    Friend WithEvents PictureBox4 As PictureBox
+    Friend WithEvents ghz As TextBox
+    Friend WithEvents bit As TextBox
 End Class

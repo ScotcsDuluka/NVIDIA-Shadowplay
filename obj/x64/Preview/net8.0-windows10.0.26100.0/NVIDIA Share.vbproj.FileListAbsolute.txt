@@ -38,7 +38,6 @@ A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\Interop.WMPLib.dll
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA Share.vbproj.ResolveComReference.cache
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.bg_top.resources
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.Bg.resources
-A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.FPS.resources
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.Gallery_1.resources
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.set_key.resources
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.Base.resources
@@ -61,3 +60,4 @@ A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowP
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA Share.genruntimeconfig.cache
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.www_en.resources
+A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA_Share.Login.resources

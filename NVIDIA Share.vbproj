@@ -9,7 +9,7 @@
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
     <PackageId></PackageId>
     <Title>Shadowplay by Scotcs Duluka</Title>
-    <Version>2.62.373</Version>
+    <Version>2.74.412</Version>
     <Company>NVIDIA</Company>
     <Authors>Scotcs Duluka</Authors>
     <Product>NVIDIA ShadowPlay</Product>
@@ -17,8 +17,8 @@
     <PackageIcon>icon.png</PackageIcon>
     <Copyright>Copyright© by Scotcs Duluka</Copyright>
     <NeutralLanguage>en-US</NeutralLanguage>
-    <AssemblyVersion>2.62.373</AssemblyVersion>
-    <FileVersion>2.62.373</FileVersion>
+    <AssemblyVersion>2.74.412</AssemblyVersion>
+    <FileVersion>2.74.412</FileVersion>
     <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
     <PackageReadmeFile>_readme.md</PackageReadmeFile>
     <Platforms>x64</Platforms>

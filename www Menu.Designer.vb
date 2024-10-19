@@ -38,7 +38,7 @@ Partial Class www_en
         settings_top.Dock = DockStyle.Top
         settings_top.Location = New System.Drawing.Point(0, 0)
         settings_top.Name = "settings_top"
-        settings_top.Size = New System.Drawing.Size(743, 5)
+        settings_top.Size = New System.Drawing.Size(10, 5)
         settings_top.TabIndex = 2
         settings_top.TabStop = False
         ' 
@@ -48,7 +48,7 @@ Partial Class www_en
         settings_bg.Dock = DockStyle.Fill
         settings_bg.Location = New System.Drawing.Point(0, 0)
         settings_bg.Name = "settings_bg"
-        settings_bg.Size = New System.Drawing.Size(743, 64)
+        settings_bg.Size = New System.Drawing.Size(10, 64)
         settings_bg.TabIndex = 3
         settings_bg.TabStop = False
         ' 
@@ -60,7 +60,7 @@ Partial Class www_en
         Menu_www.Dock = DockStyle.Top
         Menu_www.Location = New System.Drawing.Point(0, 0)
         Menu_www.Name = "Menu_www"
-        Menu_www.Size = New System.Drawing.Size(743, 64)
+        Menu_www.Size = New System.Drawing.Size(10, 64)
         Menu_www.TabIndex = 4
         ' 
         ' O_1
@@ -82,7 +82,7 @@ Partial Class www_en
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Drawing.Color.Red
-        ClientSize = New System.Drawing.Size(743, 535)
+        ClientSize = New System.Drawing.Size(10, 10)
         Controls.Add(Menu_www)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)

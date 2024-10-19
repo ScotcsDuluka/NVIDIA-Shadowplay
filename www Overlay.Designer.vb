@@ -43,7 +43,7 @@ Partial Class www
         WebView21.Dock = DockStyle.Fill
         WebView21.Location = New System.Drawing.Point(0, 0)
         WebView21.Name = "WebView21"
-        WebView21.Size = New System.Drawing.Size(884, 561)
+        WebView21.Size = New System.Drawing.Size(958, 549)
         WebView21.Source = New Uri("https://www.google.com/", UriKind.Absolute)
         WebView21.TabIndex = 0
         WebView21.ZoomFactor = 1R
@@ -72,7 +72,7 @@ Partial Class www
         url.Location = New System.Drawing.Point(0, 0)
         url.Multiline = True
         url.Name = "url"
-        url.Size = New System.Drawing.Size(884, 23)
+        url.Size = New System.Drawing.Size(958, 23)
         url.TabIndex = 1
         url.Text = "https://"
         url.Visible = False
@@ -90,7 +90,7 @@ Partial Class www
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New System.Drawing.Size(884, 561)
+        ClientSize = New System.Drawing.Size(958, 549)
         ControlBox = False
         Controls.Add(url)
         Controls.Add(WebView21)

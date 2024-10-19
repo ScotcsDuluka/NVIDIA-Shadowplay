@@ -117,7 +117,9 @@ Public Class Notifier
                 If text_n.Text = ("NVIDIA Shadowplay™ app is closed.") Then
                     Application.Exit()
                 End If
-                Close()
+                Opacity = 0
+                Me.Hide()
+                Me.Close()
             End If
         End If
     End Sub
@@ -158,13 +160,18 @@ Public Class Notifier
     End Sub
 
     Private Sub load_Tick(sender As Object, e As EventArgs) Handles load.Tick
+
+        If Opacity = 0 Then
+            Me.Close()
+        End If
+
         If Notifier_Sub.Timer1.Enabled = False Then
             If www.Timer2.Enabled = True Then
                 Return
             End If
             TopMost = True
-            Else
-                Notifier_Sub.TopMost = True
+        Else
+            Notifier_Sub.TopMost = True
         End If
     End Sub
     Private Sub De_Tick(sender As Object, e As EventArgs) Handles De.Tick

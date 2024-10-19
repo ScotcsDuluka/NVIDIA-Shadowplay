@@ -617,18 +617,17 @@ Public Class Base
                         Return
                     End If
                     nv_ty.Visible = False
-                    hd.Size = New Size(0, 0)
 
-                    Me.WindowState = FormWindowState.Maximized
                     Bg.WindowState = FormWindowState.Maximized
+                    WindowState = FormWindowState.Maximized
                     Bg.Show()
                     bg_top.Show()
                     bg_top.TopMost = True
-                    Me.Show()
-                    Me.TopMost = True
+                    Show()
+                    TopMost = True
                     Bg.Opacity = 0.5
                     bg_top.Opacity = 0.9
-                    Me.Opacity = 0.8
+                    Opacity = 0.8
                 Else
                     HideAllControls()
                 End If
@@ -643,7 +642,6 @@ Public Class Base
         Me.Opacity = 0
         bg_top.Opacity = 0
         Gallery_1.Opacity = 0
-        hd.Size = New Size(10000, 10000)
         replay_sc_all.Visible = False
         record_sc.Visible = False
         settings_1.Visible = False
@@ -1198,7 +1196,7 @@ Public Class Base
 
 
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "set") Then
-            hd.Size = New Size(0, 0)
+
             Me.WindowState = FormWindowState.Maximized
             Bg.WindowState = FormWindowState.Maximized
             Bg.Show()
@@ -1353,27 +1351,15 @@ Public Class Base
     End Sub
 
     Private Sub box_py_Click(sender As Object, e As EventArgs) Handles box_py.Click
-        Notifier.Show()
-        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-        Notifier.icon_n.ForeColor = Color.White
-        Notifier.icon_n.Text = ""
-        Notifier.text_n.Text = "Erorr to confirm account."
+        Login.Show()
     End Sub
 
     Private Sub text_py_Click(sender As Object, e As EventArgs) Handles text_py.Click
-        Notifier.Show()
-        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-        Notifier.icon_n.ForeColor = Color.White
-        Notifier.icon_n.Text = ""
-        Notifier.text_n.Text = "Erorr to confirm account."
+        Login.Show()
     End Sub
 
     Private Sub logo_py_Click(sender As Object, e As EventArgs) Handles logo_py.Click
-        Notifier.Show()
-        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-        Notifier.icon_n.ForeColor = Color.White
-        Notifier.icon_n.Text = ""
-        Notifier.text_n.Text = "Erorr to confirm account."
+        Login.Show()
     End Sub
 
     Private Sub replay_sc1_Click(sender As Object, e As EventArgs) Handles replay_sc1.Click
@@ -2119,7 +2105,7 @@ Public Class Base
     End Class
 
     Private Sub CheckForUpdates()
-        Dim currentVersion As String = "2.62.373" ' เวอร์ชันที่ติดตั้งอยู่
+        Dim currentVersion As String = "2.74.412" ' เวอร์ชันที่ติดตั้งอยู่
         Dim jsonUrl As String = "https://drive.google.com/uc?export=download&id=1tcsQ6tunfe2YbAJ1J0sWBzYj5k3G-aVD" ' URL สำหรับ JSON
 
         Try
@@ -2160,7 +2146,6 @@ Public Class Base
             isFunctionActive = Not isFunctionActive
             replay_sc_all.Visible = False
             record_sc.Visible = False
-            hd.Size = New Size(0, 0)
             Me.WindowState = FormWindowState.Maximized
             Bg.WindowState = FormWindowState.Maximized
             Bg.Show()
@@ -2234,7 +2219,6 @@ Public Class Base
         bg_top.Close()
         Gallery_1.Close()
         hub_f.Close()
-        FPS.Close()
         py.Close()
         set_key.Close()
         set_vdo.Close()
@@ -2411,27 +2395,54 @@ Public Class Base
     End Sub
 
     Private Sub PictureBox13_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click
-        settings_1.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
-        set_vdo.Show()
+        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Capture is open, please close first.")
+        Else
+            settings_1.Visible = False
+            alt_z.Stop()
+            alt_shift_f10.Stop()
+            record_1.Stop()
+            set_vdo.Show()
+        End If
     End Sub
 
     Private Sub vdo_setme_Click(sender As Object, e As EventArgs) Handles vdo_setme.Click
-        settings_1.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
-        set_vdo.Show()
+        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Capture is open, please close first.")
+        Else
+            settings_1.Visible = False
+            alt_z.Stop()
+            alt_shift_f10.Stop()
+            record_1.Stop()
+            set_vdo.Show()
+        End If
     End Sub
 
     Private Sub Label19_Click(sender As Object, e As EventArgs) Handles Label19.Click
-        settings_1.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
-        set_vdo.Show()
+        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Capture is open, please close first.")
+        Else
+            settings_1.Visible = False
+            alt_z.Stop()
+            alt_shift_f10.Stop()
+            record_1.Stop()
+            set_vdo.Show()
+        End If
     End Sub
 
     Private Sub Label20_Click(sender As Object, e As EventArgs) Handles Label20.Click
@@ -2552,25 +2563,43 @@ Public Class Base
     End Sub
 
     Private Sub PictureBox6_Click(sender As Object, e As EventArgs) Handles PictureBox6.Click
-        a_2.Visible = False
-        action.Visible = False
-        record_sc.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
-        set_vdo.Show()
-        Opacity = 1
+        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Capture is open, please close first.")
+        Else
+            a_2.Visible = False
+            action.Visible = False
+            record_sc.Visible = False
+            alt_z.Stop()
+            alt_shift_f10.Stop()
+            record_1.Stop()
+            set_vdo.Show()
+            Opacity = 1
+        End If
     End Sub
 
     Private Sub Label10_Click(sender As Object, e As EventArgs) Handles Label10.Click
-        a_2.Visible = False
-        action.Visible = False
-        record_sc.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
-        set_vdo.Show()
-        Opacity = 1
+        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Capture is open, please close first.")
+        Else
+            a_2.Visible = False
+            action.Visible = False
+            record_sc.Visible = False
+            alt_z.Stop()
+            alt_shift_f10.Stop()
+            record_1.Stop()
+            set_vdo.Show()
+            Opacity = 1
+        End If
     End Sub
 
     Private Sub Label1_MouseMove(sender As Object, e As MouseEventArgs) Handles Label1.MouseMove

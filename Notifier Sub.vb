@@ -40,8 +40,9 @@ Public Class Notifier_Sub
             Me.Opacity -= 0.07 ' ค่อยๆลด Opacity
             TopMost = True
         Else
-            Timer1.Stop() ' หยุด Timer เมื่อ Opacity เป็น 0
             Me.Close() ' ปิด Form
+            Me.Hide()
+            Timer1.Stop() ' หยุด Timer เมื่อ Opacity เป็น 0
         End If
     End Sub
 End Class
