@@ -1352,8 +1352,17 @@ Public Class Base
 
     Private Sub box_py_Click(sender As Object, e As EventArgs) Handles box_py.Click
 
+
         If My.Settings.User = "" Then
             login.Show()
+            alt_z.Stop()
+            Home_settings.Visible = False
+            settings_all.Visible = False
+            ch.Visible = False
+            ch_bg.Visible = False
+            action_fn.Visible = False
+            bg_fn.Visible = False
+            login.Load.Start()
         Else
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
@@ -1367,9 +1376,45 @@ Public Class Base
 
     Private Sub text_py_Click(sender As Object, e As EventArgs) Handles text_py.Click
 
+        If My.Settings.User = "" Then
+            login.Show()
+            alt_z.Stop()
+            Home_settings.Visible = False
+            settings_all.Visible = False
+            ch.Visible = False
+            ch_bg.Visible = False
+            action_fn.Visible = False
+            bg_fn.Visible = False
+            login.Load.Start()
+        Else
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Welcome " & My.Settings.User)
+        End If
+
     End Sub
 
     Private Sub logo_py_Click(sender As Object, e As EventArgs) Handles logo_py.Click
+
+        If My.Settings.User = "" Then
+            login.Show()
+            alt_z.Stop()
+            Home_settings.Visible = False
+            settings_all.Visible = False
+            ch.Visible = False
+            ch_bg.Visible = False
+            action_fn.Visible = False
+            bg_fn.Visible = False
+            login.Load.Start()
+        Else
+            Notifier.Show()
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Text = ("")
+            Notifier.text_n.Text = ("Welcome " & My.Settings.User)
+        End If
 
     End Sub
 
@@ -2661,5 +2706,9 @@ Public Class Base
         action.Visible = False ' ซ่อนฟอร์ม action
         replay_sc_all.Visible = False
         record_sc.Visible = False
+    End Sub
+
+    Private Sub settings_bg_MouseMove(sender As Object, e As MouseEventArgs) Handles settings_bg.MouseMove
+        login.TopMost = True
     End Sub
 End Class

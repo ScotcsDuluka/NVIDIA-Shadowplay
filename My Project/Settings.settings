@@ -12,13 +12,16 @@
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="bit" Type="System.String" Scope="User">
-      <Value Profile="(Default)">20</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="fps" Type="System.String" Scope="User">
-      <Value Profile="(Default)">60</Value>
+      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="vdo" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="mic" Type="System.String" Scope="User">
+      <Value Profile="(Default)">on</Value>
     </Setting>
   </Settings>
 </SettingsFile>

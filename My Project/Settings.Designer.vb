@@ -92,7 +92,7 @@ Namespace My
         
         <Global.System.Configuration.UserScopedSettingAttribute(),  _
          Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
-         Global.System.Configuration.DefaultSettingValueAttribute("20")>  _
+         Global.System.Configuration.DefaultSettingValueAttribute("")>  _
         Public Property bit() As String
             Get
                 Return CType(Me("bit"),String)
@@ -104,7 +104,7 @@ Namespace My
         
         <Global.System.Configuration.UserScopedSettingAttribute(),  _
          Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
-         Global.System.Configuration.DefaultSettingValueAttribute("60")>  _
+         Global.System.Configuration.DefaultSettingValueAttribute("")>  _
         Public Property fps() As String
             Get
                 Return CType(Me("fps"),String)
@@ -123,6 +123,18 @@ Namespace My
             End Get
             Set
                 Me("vdo") = value
+            End Set
+        End Property
+        
+        <Global.System.Configuration.UserScopedSettingAttribute(),  _
+         Global.System.Diagnostics.DebuggerNonUserCodeAttribute(),  _
+         Global.System.Configuration.DefaultSettingValueAttribute("on")>  _
+        Public Property mic() As String
+            Get
+                Return CType(Me("mic"),String)
+            End Get
+            Set
+                Me("mic") = value
             End Set
         End Property
     End Class

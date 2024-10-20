@@ -28,7 +28,7 @@ Partial Class bg_top
         cpuLabel = New Label()
         Logo = New PictureBox()
         top_logo = New PictureBox()
-        Logo_text = New Label()
+        gfe = New Label()
         ac1 = New Panel()
         record_sc = New Panel()
         Label10 = New Label()
@@ -69,7 +69,7 @@ Partial Class bg_top
         Main_Top.Controls.Add(cpuLabel)
         Main_Top.Controls.Add(Logo)
         Main_Top.Controls.Add(top_logo)
-        Main_Top.Controls.Add(Logo_text)
+        Main_Top.Controls.Add(gfe)
         Main_Top.Dock = DockStyle.Top
         Main_Top.Location = New System.Drawing.Point(0, 0)
         Main_Top.Name = "Main_Top"
@@ -108,18 +108,18 @@ Partial Class bg_top
         top_logo.TabIndex = 13
         top_logo.TabStop = False
         ' 
-        ' Logo_text
+        ' gfe
         ' 
-        Logo_text.BackColor = Drawing.Color.Black
-        Logo_text.Dock = DockStyle.Top
-        Logo_text.Font = New System.Drawing.Font("Segoe UI", 20F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
-        Logo_text.ForeColor = Drawing.Color.White
-        Logo_text.Location = New System.Drawing.Point(0, 0)
-        Logo_text.Name = "Logo_text"
-        Logo_text.Size = New System.Drawing.Size(834, 75)
-        Logo_text.TabIndex = 8
-        Logo_text.Text = "Shadowplay Experience"
-        Logo_text.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        gfe.BackColor = Drawing.Color.Black
+        gfe.Dock = DockStyle.Top
+        gfe.Font = New System.Drawing.Font("Segoe UI", 20F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
+        gfe.ForeColor = Drawing.Color.White
+        gfe.Location = New System.Drawing.Point(0, 0)
+        gfe.Name = "gfe"
+        gfe.Size = New System.Drawing.Size(834, 75)
+        gfe.TabIndex = 8
+        gfe.Text = "Shadowplay Experience"
+        gfe.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' ac1
         ' 
@@ -430,7 +430,7 @@ Partial Class bg_top
     Friend WithEvents Main_Top As Panel
     Friend WithEvents Logo As PictureBox
     Friend WithEvents top_logo As PictureBox
-    Friend WithEvents Logo_text As Label
+    Friend WithEvents gfe As Label
     Friend WithEvents ac1 As Panel
     Friend WithEvents record_sc As Panel
     Friend WithEvents Label10 As Label

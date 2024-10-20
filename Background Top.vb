@@ -4,7 +4,7 @@ Imports System.Diagnostics
 Imports System.Windows.Forms
 Imports System.Management
 Public Class bg_top
-
+    Private lang As New Lang()
     Private tpsTimer As Timer
     ' ตัวอย่างฟังก์ชันในการอัปเดตค่า TPS
     Private Sub MainForm_TPS_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -55,7 +55,7 @@ Public Class bg_top
         Application.Exit()
     End Sub
 
-    Private Sub Logo_text_Click(sender As Object, e As EventArgs) Handles Logo_text.Click
+    Private Sub Logo_text_Click(sender As Object, e As EventArgs) Handles gfe.Click
         Application.Restart()
     End Sub
 
@@ -65,7 +65,7 @@ Public Class bg_top
     End Sub
 
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
-
+        lang.LoadStrings("th-TH")
+        gfe.Text = lang.GetString("gfe")
     End Sub
-
 End Class

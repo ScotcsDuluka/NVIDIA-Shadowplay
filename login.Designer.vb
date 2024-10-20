@@ -22,6 +22,7 @@ Partial Class login
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
+        components = New ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(login))
         btnLogin = New Button()
         txtUsername = New TextBox()
@@ -32,9 +33,8 @@ Partial Class login
         Label2 = New Label()
         Label3 = New Label()
         PictureBox1 = New PictureBox()
-        settings_top = New PictureBox()
+        Load = New Timer(components)
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' btnLogin
@@ -42,7 +42,7 @@ Partial Class login
         btnLogin.FlatStyle = FlatStyle.Flat
         btnLogin.Font = New System.Drawing.Font("Segoe UI", 11F, Drawing.FontStyle.Bold)
         btnLogin.ForeColor = Drawing.Color.White
-        btnLogin.Location = New System.Drawing.Point(364, 252)
+        btnLogin.Location = New System.Drawing.Point(364, 441)
         btnLogin.Name = "btnLogin"
         btnLogin.Size = New System.Drawing.Size(92, 37)
         btnLogin.TabIndex = 0
@@ -55,7 +55,7 @@ Partial Class login
         txtUsername.BorderStyle = BorderStyle.None
         txtUsername.Font = New System.Drawing.Font("Segoe UI", 13F, Drawing.FontStyle.Bold)
         txtUsername.ForeColor = Drawing.Color.White
-        txtUsername.Location = New System.Drawing.Point(156, 125)
+        txtUsername.Location = New System.Drawing.Point(149, 125)
         txtUsername.MaxLength = 16
         txtUsername.Multiline = True
         txtUsername.Name = "txtUsername"
@@ -68,7 +68,7 @@ Partial Class login
         txtPassword.BorderStyle = BorderStyle.None
         txtPassword.Font = New System.Drawing.Font("Segoe UI", 13F, Drawing.FontStyle.Bold)
         txtPassword.ForeColor = Drawing.Color.White
-        txtPassword.Location = New System.Drawing.Point(156, 155)
+        txtPassword.Location = New System.Drawing.Point(149, 155)
         txtPassword.MaxLength = 12
         txtPassword.Multiline = True
         txtPassword.Name = "txtPassword"
@@ -80,7 +80,7 @@ Partial Class login
         Button1.FlatStyle = FlatStyle.Flat
         Button1.Font = New System.Drawing.Font("Segoe UI", 11F, Drawing.FontStyle.Bold)
         Button1.ForeColor = Drawing.Color.White
-        Button1.Location = New System.Drawing.Point(266, 252)
+        Button1.Location = New System.Drawing.Point(266, 441)
         Button1.Name = "Button1"
         Button1.Size = New System.Drawing.Size(92, 37)
         Button1.TabIndex = 3
@@ -94,16 +94,16 @@ Partial Class login
         welcome.ForeColor = Drawing.Color.White
         welcome.Location = New System.Drawing.Point(0, 0)
         welcome.Name = "welcome"
-        welcome.Size = New System.Drawing.Size(468, 122)
+        welcome.Size = New System.Drawing.Size(468, 92)
         welcome.TabIndex = 4
-        welcome.Text = "Use Luka accounts" & vbCrLf & "Login"
+        welcome.Text = "Accounts Luka"
         welcome.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label1
         ' 
         Label1.Font = New System.Drawing.Font("Segoe UI", 13F, Drawing.FontStyle.Bold)
         Label1.ForeColor = Drawing.Color.White
-        Label1.Location = New System.Drawing.Point(58, 122)
+        Label1.Location = New System.Drawing.Point(51, 122)
         Label1.Name = "Label1"
         Label1.Size = New System.Drawing.Size(104, 26)
         Label1.TabIndex = 6
@@ -114,7 +114,7 @@ Partial Class login
         ' 
         Label2.Font = New System.Drawing.Font("Segoe UI", 13F, Drawing.FontStyle.Bold)
         Label2.ForeColor = Drawing.Color.White
-        Label2.Location = New System.Drawing.Point(61, 154)
+        Label2.Location = New System.Drawing.Point(54, 154)
         Label2.Name = "Label2"
         Label2.Size = New System.Drawing.Size(104, 26)
         Label2.TabIndex = 7
@@ -126,7 +126,7 @@ Partial Class login
         Label3.Cursor = Cursors.Hand
         Label3.Font = New System.Drawing.Font("Segoe UI", 7F, Drawing.FontStyle.Underline)
         Label3.ForeColor = Drawing.Color.White
-        Label3.Location = New System.Drawing.Point(316, 177)
+        Label3.Location = New System.Drawing.Point(309, 177)
         Label3.Name = "Label3"
         Label3.Size = New System.Drawing.Size(104, 26)
         Label3.TabIndex = 8
@@ -135,30 +135,23 @@ Partial Class login
         ' 
         ' PictureBox1
         ' 
-        PictureBox1.Location = New System.Drawing.Point(407, 98)
+        PictureBox1.Location = New System.Drawing.Point(400, 177)
         PictureBox1.Name = "PictureBox1"
-        PictureBox1.Size = New System.Drawing.Size(43, 105)
+        PictureBox1.Size = New System.Drawing.Size(43, 26)
         PictureBox1.TabIndex = 9
         PictureBox1.TabStop = False
         ' 
-        ' settings_top
+        ' Load
         ' 
-        settings_top.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        settings_top.Location = New System.Drawing.Point(-29, 0)
-        settings_top.Name = "settings_top"
-        settings_top.Size = New System.Drawing.Size(550, 5)
-        settings_top.TabIndex = 10
-        settings_top.TabStop = False
+        Load.Interval = 1000
         ' 
         ' login
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        AutoSizeMode = AutoSizeMode.GrowAndShrink
         BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ClientSize = New System.Drawing.Size(468, 301)
+        ClientSize = New System.Drawing.Size(468, 490)
         ControlBox = False
-        Controls.Add(settings_top)
         Controls.Add(txtPassword)
         Controls.Add(PictureBox1)
         Controls.Add(txtUsername)
@@ -168,15 +161,18 @@ Partial Class login
         Controls.Add(Button1)
         Controls.Add(btnLogin)
         Controls.Add(Label3)
+        DoubleBuffered = True
         ForeColor = Drawing.Color.White
+        FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
         MaximizeBox = False
         Name = "login"
+        ShowInTaskbar = False
+        SizeGripStyle = SizeGripStyle.Hide
         StartPosition = FormStartPosition.CenterScreen
         Text = "Login | Luka accounts"
         TopMost = True
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
-        CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -190,5 +186,5 @@ Partial Class login
     Friend WithEvents Label2 As Label
     Friend WithEvents Label3 As Label
     Friend WithEvents PictureBox1 As PictureBox
-    Friend WithEvents settings_top As PictureBox
+    Friend WithEvents Load As Timer
 End Class

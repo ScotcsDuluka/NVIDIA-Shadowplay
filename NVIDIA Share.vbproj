@@ -168,6 +168,12 @@
     <None Update="NVIDIA_Shadowplay_Data\on">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Update="osc\en-US.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="osc\th-TH.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="_Redist\_dxwebsetup.exe">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </None>

@@ -27,11 +27,12 @@ Public Class Notifier
     Dim slideOutPanel1 As Boolean = False
     Dim slideOutPanel2 As Boolean = False
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        HideFromAltTab()
         If Base.noty.ForeColor = Color.Gray Then
             Opacity = 0
         End If
         Me.DoubleBuffered = True
-        HideFromAltTab()
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         Me.Location = New Point(screenWidth - Me.Width, 90)
