@@ -27,9 +27,8 @@ Partial Class Gallery_1
         box_settings = New PictureBox()
         settings_top = New PictureBox()
         settings_bg = New PictureBox()
-        Home_settings = New Label()
-        Label5 = New Label()
-        Label4 = New Label()
+        chc = New Label()
+        load_save = New Label()
         save_sc = New Label()
         icon_settings = New Label()
         text_settings = New Label()
@@ -40,14 +39,13 @@ Partial Class Gallery_1
         Label6 = New Label()
         PictureBox3 = New PictureBox()
         FlowLayoutPanel1 = New FlowLayoutPanel()
-        Label2 = New Label()
+        opf = New Label()
         PictureBox5 = New PictureBox()
-        Label3 = New Label()
+        allit = New Label()
         PictureBox4 = New PictureBox()
         TextBox1 = New TextBox()
         PictureBox2 = New PictureBox()
         PictureBox1 = New PictureBox()
-        Label1 = New Label()
         ALTZ = New Timer(components)
         ImageList1 = New ImageList(components)
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
@@ -89,41 +87,29 @@ Partial Class Gallery_1
         settings_bg.TabIndex = 1
         settings_bg.TabStop = False
         ' 
-        ' Home_settings
+        ' chc
         ' 
-        Home_settings.AutoSize = True
-        Home_settings.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Home_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
-        Home_settings.ForeColor = Drawing.Color.White
-        Home_settings.Location = New System.Drawing.Point(258, 110)
-        Home_settings.Name = "Home_settings"
-        Home_settings.Size = New System.Drawing.Size(75, 21)
-        Home_settings.TabIndex = 43
-        Home_settings.Text = "Shortcut"
+        chc.AutoSize = True
+        chc.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        chc.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
+        chc.ForeColor = Drawing.Color.White
+        chc.Location = New System.Drawing.Point(258, 110)
+        chc.Name = "chc"
+        chc.Size = New System.Drawing.Size(75, 21)
+        chc.TabIndex = 43
+        chc.Text = "Shortcut"
         ' 
-        ' Label5
+        ' load_save
         ' 
-        Label5.AutoSize = True
-        Label5.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label5.Font = New System.Drawing.Font("nvgcshare", 22F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Label5.ForeColor = Drawing.Color.White
-        Label5.Location = New System.Drawing.Point(376, 38)
-        Label5.Name = "Label5"
-        Label5.Size = New System.Drawing.Size(43, 30)
-        Label5.TabIndex = 50
-        Label5.Text = ""
-        ' 
-        ' Label4
-        ' 
-        Label4.AutoSize = True
-        Label4.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
-        Label4.ForeColor = Drawing.Color.White
-        Label4.Location = New System.Drawing.Point(258, 43)
-        Label4.Name = "Label4"
-        Label4.Size = New System.Drawing.Size(126, 21)
-        Label4.TabIndex = 51
-        Label4.Text = "Loaction Saved"
+        load_save.AutoSize = True
+        load_save.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        load_save.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
+        load_save.ForeColor = Drawing.Color.White
+        load_save.Location = New System.Drawing.Point(258, 43)
+        load_save.Name = "load_save"
+        load_save.Size = New System.Drawing.Size(126, 21)
+        load_save.TabIndex = 51
+        load_save.Text = "Loaction Saved"
         ' 
         ' save_sc
         ' 
@@ -152,15 +138,15 @@ Partial Class Gallery_1
         ' 
         ' text_settings
         ' 
-        text_settings.AutoSize = True
         text_settings.BackColor = Drawing.Color.Black
         text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(67, 14)
+        text_settings.Location = New System.Drawing.Point(0, 14)
         text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(65, 21)
+        text_settings.Size = New System.Drawing.Size(200, 21)
         text_settings.TabIndex = 56
         text_settings.Text = "Gallery"
+        text_settings.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' bg_fn
         ' 
@@ -174,16 +160,16 @@ Partial Class Gallery_1
         ' 
         ' action_fn
         ' 
-        action_fn.AutoSize = True
         action_fn.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         action_fn.ForeColor = Drawing.Color.White
-        action_fn.Location = New System.Drawing.Point(883, 24)
+        action_fn.Location = New System.Drawing.Point(810, 24)
         action_fn.Name = "action_fn"
-        action_fn.Size = New System.Drawing.Size(56, 21)
+        action_fn.Size = New System.Drawing.Size(200, 21)
         action_fn.TabIndex = 58
         action_fn.Text = "Saved"
+        action_fn.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' txtFilePath
         ' 
@@ -204,23 +190,21 @@ Partial Class Gallery_1
         settings_1.Controls.Add(Label6)
         settings_1.Controls.Add(PictureBox3)
         settings_1.Controls.Add(FlowLayoutPanel1)
-        settings_1.Controls.Add(Label2)
+        settings_1.Controls.Add(opf)
         settings_1.Controls.Add(PictureBox5)
-        settings_1.Controls.Add(Label3)
+        settings_1.Controls.Add(allit)
         settings_1.Controls.Add(PictureBox4)
         settings_1.Controls.Add(TextBox1)
         settings_1.Controls.Add(PictureBox2)
         settings_1.Controls.Add(save_sc)
         settings_1.Controls.Add(txtFilePath)
         settings_1.Controls.Add(PictureBox1)
-        settings_1.Controls.Add(Home_settings)
-        settings_1.Controls.Add(Label1)
+        settings_1.Controls.Add(chc)
         settings_1.Controls.Add(action_fn)
         settings_1.Controls.Add(bg_fn)
         settings_1.Controls.Add(text_settings)
         settings_1.Controls.Add(icon_settings)
-        settings_1.Controls.Add(Label4)
-        settings_1.Controls.Add(Label5)
+        settings_1.Controls.Add(load_save)
         settings_1.Controls.Add(settings_bg)
         settings_1.Controls.Add(settings_top)
         settings_1.Controls.Add(box_settings)
@@ -231,16 +215,16 @@ Partial Class Gallery_1
         ' 
         ' Label6
         ' 
-        Label6.AutoSize = True
         Label6.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label6.Cursor = Cursors.Hand
         Label6.Font = New System.Drawing.Font("Segoe UI", 12F)
         Label6.ForeColor = Drawing.Color.White
-        Label6.Location = New System.Drawing.Point(887, 195)
+        Label6.Location = New System.Drawing.Point(810, 195)
         Label6.Name = "Label6"
-        Label6.Size = New System.Drawing.Size(44, 21)
+        Label6.Size = New System.Drawing.Size(200, 21)
         Label6.TabIndex = 74
         Label6.Text = "Load"
+        Label6.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' PictureBox3
         ' 
@@ -260,18 +244,18 @@ Partial Class Gallery_1
         FlowLayoutPanel1.Size = New System.Drawing.Size(488, 368)
         FlowLayoutPanel1.TabIndex = 72
         ' 
-        ' Label2
+        ' opf
         ' 
-        Label2.AutoSize = True
-        Label2.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label2.Cursor = Cursors.Hand
-        Label2.Font = New System.Drawing.Font("Segoe UI", 12F)
-        Label2.ForeColor = Drawing.Color.White
-        Label2.Location = New System.Drawing.Point(846, 110)
-        Label2.Name = "Label2"
-        Label2.Size = New System.Drawing.Size(132, 21)
-        Label2.TabIndex = 70
-        Label2.Text = "Open file loaction"
+        opf.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        opf.Cursor = Cursors.Hand
+        opf.Font = New System.Drawing.Font("Segoe UI", 12F)
+        opf.ForeColor = Drawing.Color.White
+        opf.Location = New System.Drawing.Point(810, 110)
+        opf.Name = "opf"
+        opf.Size = New System.Drawing.Size(200, 21)
+        opf.TabIndex = 70
+        opf.Text = "Open file loaction"
+        opf.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' PictureBox5
         ' 
@@ -283,17 +267,17 @@ Partial Class Gallery_1
         PictureBox5.TabIndex = 69
         PictureBox5.TabStop = False
         ' 
-        ' Label3
+        ' allit
         ' 
-        Label3.AutoSize = True
-        Label3.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label3.Font = New System.Drawing.Font("Segoe UI", 12F)
-        Label3.ForeColor = Drawing.Color.White
-        Label3.Location = New System.Drawing.Point(258, 179)
-        Label3.Name = "Label3"
-        Label3.Size = New System.Drawing.Size(70, 21)
-        Label3.TabIndex = 67
-        Label3.Text = "All items"
+        allit.AutoSize = True
+        allit.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        allit.Font = New System.Drawing.Font("Segoe UI", 12F)
+        allit.ForeColor = Drawing.Color.White
+        allit.Location = New System.Drawing.Point(258, 179)
+        allit.Name = "allit"
+        allit.Size = New System.Drawing.Size(70, 21)
+        allit.TabIndex = 67
+        allit.Text = "All items"
         ' 
         ' PictureBox4
         ' 
@@ -337,18 +321,6 @@ Partial Class Gallery_1
         PictureBox1.TabIndex = 61
         PictureBox1.TabStop = False
         ' 
-        ' Label1
-        ' 
-        Label1.AutoSize = True
-        Label1.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label1.Font = New System.Drawing.Font("nvgcshare", 22F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Label1.ForeColor = Drawing.Color.White
-        Label1.Location = New System.Drawing.Point(326, 106)
-        Label1.Name = "Label1"
-        Label1.Size = New System.Drawing.Size(43, 30)
-        Label1.TabIndex = 60
-        Label1.Text = ""
-        ' 
         ' ImageList1
         ' 
         ImageList1.ColorDepth = ColorDepth.Depth32Bit
@@ -387,9 +359,8 @@ Partial Class Gallery_1
     Friend WithEvents box_settings As PictureBox
     Friend WithEvents settings_top As PictureBox
     Friend WithEvents settings_bg As PictureBox
-    Friend WithEvents Home_settings As Label
-    Friend WithEvents Label5 As Label
-    Friend WithEvents Label4 As Label
+    Friend WithEvents chc As Label
+    Friend WithEvents load_save As Label
     Friend WithEvents save_sc As Label
     Friend WithEvents icon_settings As Label
     Friend WithEvents text_settings As Label
@@ -397,13 +368,12 @@ Partial Class Gallery_1
     Friend WithEvents action_fn As Label
     Friend WithEvents txtFilePath As TextBox
     Friend WithEvents settings_1 As Panel
-    Friend WithEvents Label1 As Label
     Friend WithEvents PictureBox1 As PictureBox
     Friend WithEvents TextBox1 As TextBox
     Friend WithEvents PictureBox2 As PictureBox
-    Friend WithEvents Label3 As Label
+    Friend WithEvents allit As Label
     Friend WithEvents PictureBox4 As PictureBox
-    Friend WithEvents Label2 As Label
+    Friend WithEvents opf As Label
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents ALTZ As Timer
     Friend WithEvents ImageList1 As ImageList

@@ -34,7 +34,7 @@ Partial Class Base
         Logo = New PictureBox()
         logo_record = New Label()
         action = New Panel()
-        Label2 = New Label()
+        settmain = New Label()
         s1l = New PictureBox()
         s1r = New PictureBox()
         s1b = New PictureBox()
@@ -76,7 +76,6 @@ Partial Class Base
         a_1 = New PictureBox()
         s_replay = New Label()
         replay = New Label()
-        replay_on = New Label()
         gamef_alt = New Label()
         pht_alt = New Label()
         sh_alt = New Label()
@@ -106,6 +105,11 @@ Partial Class Base
         Label1 = New Label()
         Name_action = New Label()
         settings_1 = New Panel()
+        lang_all = New GroupBox()
+        zh_CHT = New RadioButton()
+        th = New RadioButton()
+        en = New RadioButton()
+        PictureBox18 = New PictureBox()
         Home_settings = New Label()
         PictureBox8 = New PictureBox()
         ch = New Label()
@@ -138,7 +142,7 @@ Partial Class Base
         ab_bg = New PictureBox()
         saved_e1 = New PictureBox()
         PictureBox15 = New PictureBox()
-        Label21 = New Label()
+        hgd = New Label()
         Label22 = New Label()
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
@@ -148,7 +152,7 @@ Partial Class Base
         Label18 = New Label()
         PictureBox11 = New PictureBox()
         k1 = New PictureBox()
-        Label12 = New Label()
+        hud = New Label()
         Label15 = New Label()
         PictureBox10 = New PictureBox()
         hub = New PictureBox()
@@ -167,7 +171,7 @@ Partial Class Base
         stb = New PictureBox()
         st1 = New PictureBox()
         vsr = New PictureBox()
-        Label10 = New Label()
+        comt = New Label()
         vsl = New PictureBox()
         vsb = New PictureBox()
         vs1 = New PictureBox()
@@ -177,7 +181,7 @@ Partial Class Base
         PictureBox5 = New PictureBox()
         PictureBox6 = New PictureBox()
         replay_sc_all = New Panel()
-        Label8 = New Label()
+        sa1 = New Label()
         rsr = New PictureBox()
         r_1r = New PictureBox()
         r_1l = New PictureBox()
@@ -185,14 +189,14 @@ Partial Class Base
         r_1b = New PictureBox()
         r_1 = New PictureBox()
         rsb = New PictureBox()
-        Label7 = New Label()
-        Label16 = New Label()
+        sa2 = New Label()
+        sa4 = New Label()
         rs1 = New PictureBox()
         sh_replay = New Label()
         if_replay = New Label()
         icon_replay = New Label()
         replay_sc = New PictureBox()
-        replay_sc1 = New PictureBox()
+        sa3 = New PictureBox()
         Load = New Timer(components)
         alt_shift_f10 = New Timer(components)
         Timer5 = New Timer(components)
@@ -213,6 +217,8 @@ Partial Class Base
         Timer4 = New Timer(components)
         hg1 = New Timer(components)
         alt_F_1_2 = New Timer(components)
+        Load_Lang = New Timer(components)
+        MySave = New Timer(components)
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         action.SuspendLayout()
         CType(s1l, ComponentModel.ISupportInitialize).BeginInit()
@@ -253,6 +259,8 @@ Partial Class Base
         CType(a_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
         settings_1.SuspendLayout()
+        lang_all.SuspendLayout()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
         CType(ch_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(bg_fn, ComponentModel.ISupportInitialize).BeginInit()
@@ -306,7 +314,7 @@ Partial Class Base
         CType(rsb, ComponentModel.ISupportInitialize).BeginInit()
         CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
         CType(replay_sc, ComponentModel.ISupportInitialize).BeginInit()
-        CType(replay_sc1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(sa3, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' alt_z
@@ -341,7 +349,7 @@ Partial Class Base
         ' action
         ' 
         action.BackColor = Color.Red
-        action.Controls.Add(Label2)
+        action.Controls.Add(settmain)
         action.Controls.Add(s1l)
         action.Controls.Add(s1r)
         action.Controls.Add(s1b)
@@ -383,7 +391,6 @@ Partial Class Base
         action.Controls.Add(a_1)
         action.Controls.Add(s_replay)
         action.Controls.Add(replay)
-        action.Controls.Add(replay_on)
         action.Controls.Add(gamef_alt)
         action.Controls.Add(pht_alt)
         action.Controls.Add(sh_alt)
@@ -417,17 +424,17 @@ Partial Class Base
         action.Size = New Size(1100, 200)
         action.TabIndex = 12
         ' 
-        ' Label2
+        ' settmain
         ' 
-        Label2.AutoSize = True
-        Label2.BackColor = Color.Black
-        Label2.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        Label2.ForeColor = Color.White
-        Label2.Location = New Point(972, 154)
-        Label2.Name = "Label2"
-        Label2.Size = New Size(72, 21)
-        Label2.TabIndex = 81
-        Label2.Text = "Settings"
+        settmain.BackColor = Color.Black
+        settmain.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        settmain.ForeColor = Color.White
+        settmain.Location = New Point(972, 154)
+        settmain.Name = "settmain"
+        settmain.Size = New Size(92, 21)
+        settmain.TabIndex = 81
+        settmain.Text = "Settings"
+        settmain.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' s1l
         ' 
@@ -824,41 +831,27 @@ Partial Class Base
         ' 
         ' s_replay
         ' 
-        s_replay.AutoSize = True
         s_replay.BackColor = Color.Black
         s_replay.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         s_replay.ForeColor = Color.Gray
-        s_replay.Location = New Point(339, 162)
+        s_replay.Location = New Point(250, 162)
         s_replay.Name = "s_replay"
-        s_replay.Size = New Size(25, 19)
+        s_replay.Size = New Size(200, 19)
         s_replay.TabIndex = 27
-        s_replay.Text = "off"
+        s_replay.Text = "Off"
+        s_replay.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' replay
         ' 
-        replay.AutoSize = True
         replay.BackColor = Color.Black
         replay.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         replay.ForeColor = Color.White
-        replay.Location = New Point(295, 13)
+        replay.Location = New Point(250, 13)
         replay.Name = "replay"
-        replay.Size = New Size(119, 21)
+        replay.Size = New Size(200, 21)
         replay.TabIndex = 24
         replay.Text = "Instant Replay"
-        ' 
-        ' replay_on
-        ' 
-        replay_on.BackColor = Color.Black
-        replay_on.Font = New Font("nvgcshare", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        replay_on.ForeColor = Color.White
-        replay_on.ImageAlign = ContentAlignment.TopCenter
-        replay_on.Location = New Point(256, 0)
-        replay_on.Name = "replay_on"
-        replay_on.Size = New Size(200, 200)
-        replay_on.TabIndex = 41
-        replay_on.Text = ""
-        replay_on.TextAlign = ContentAlignment.MiddleCenter
-        replay_on.Visible = False
+        replay.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' gamef_alt
         ' 
@@ -898,15 +891,15 @@ Partial Class Base
         ' 
         ' game_f
         ' 
-        game_f.AutoSize = True
         game_f.BackColor = Color.Black
         game_f.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         game_f.ForeColor = Color.White
         game_f.Location = New Point(72, 149)
         game_f.Name = "game_f"
-        game_f.Size = New Size(95, 21)
+        game_f.Size = New Size(119, 21)
         game_f.TabIndex = 37
         game_f.Text = "Game filter"
+        game_f.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' logo_gamef
         ' 
@@ -934,27 +927,27 @@ Partial Class Base
         ' 
         ' pht
         ' 
-        pht.AutoSize = True
         pht.BackColor = Color.Black
         pht.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         pht.ForeColor = Color.White
         pht.Location = New Point(72, 83)
         pht.Name = "pht"
-        pht.Size = New Size(56, 21)
+        pht.Size = New Size(119, 21)
         pht.TabIndex = 34
         pht.Text = "Photo"
+        pht.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' sh
         ' 
-        sh.AutoSize = True
         sh.BackColor = Color.Black
         sh.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         sh.ForeColor = Color.White
         sh.Location = New Point(72, 15)
         sh.Name = "sh"
-        sh.Size = New Size(94, 21)
+        sh.Size = New Size(119, 21)
         sh.TabIndex = 33
         sh.Text = "Screenshot"
+        sh.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' logo_sh
         ' 
@@ -1006,51 +999,52 @@ Partial Class Base
         ' 
         ' s_live
         ' 
-        s_live.AutoSize = True
         s_live.BackColor = Color.Black
         s_live.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         s_live.ForeColor = Color.Gray
-        s_live.Location = New Point(713, 162)
+        s_live.Location = New Point(650, 162)
         s_live.Name = "s_live"
-        s_live.Size = New Size(73, 19)
+        s_live.Size = New Size(200, 19)
         s_live.TabIndex = 28
         s_live.Text = "Not Ready"
+        s_live.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' s_record
         ' 
-        s_record.AutoSize = True
         s_record.BackColor = Color.Black
         s_record.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         s_record.ForeColor = Color.Gray
-        s_record.Location = New Point(502, 162)
+        s_record.Location = New Point(450, 162)
         s_record.Name = "s_record"
-        s_record.Size = New Size(97, 19)
+        s_record.Size = New Size(200, 19)
         s_record.TabIndex = 28
         s_record.Text = "Not Recording"
+        s_record.TextAlign = ContentAlignment.MiddleCenter
+        s_record.UseMnemonic = False
         ' 
         ' live
         ' 
-        live.AutoSize = True
         live.BackColor = Color.Black
         live.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         live.ForeColor = Color.White
-        live.Location = New Point(688, 13)
+        live.Location = New Point(650, 13)
         live.Name = "live"
-        live.Size = New Size(122, 21)
+        live.Size = New Size(200, 21)
         live.TabIndex = 26
         live.Text = "Broadcast LIVE"
+        live.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' record
         ' 
-        record.AutoSize = True
         record.BackColor = Color.Black
         record.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         record.ForeColor = Color.White
-        record.Location = New Point(519, 13)
+        record.Location = New Point(450, 13)
         record.Name = "record"
-        record.Size = New Size(63, 21)
+        record.Size = New Size(200, 21)
         record.TabIndex = 25
         record.Text = "Record"
+        record.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' set_to
         ' 
@@ -1078,27 +1072,27 @@ Partial Class Base
         ' 
         ' gallery
         ' 
-        gallery.AutoSize = True
         gallery.BackColor = Color.Black
         gallery.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         gallery.ForeColor = Color.White
         gallery.Location = New Point(972, 88)
         gallery.Name = "gallery"
-        gallery.Size = New Size(65, 21)
+        gallery.Size = New Size(103, 21)
         gallery.TabIndex = 19
         gallery.Text = "Gallery"
+        gallery.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' pf
         ' 
-        pf.AutoSize = True
         pf.BackColor = Color.Black
         pf.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         pf.ForeColor = Color.White
         pf.Location = New Point(972, 22)
         pf.Name = "pf"
-        pf.Size = New Size(53, 21)
+        pf.Size = New Size(119, 21)
         pf.TabIndex = 18
         pf.Text = "Share"
+        pf.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' logo_pf
         ' 
@@ -1201,6 +1195,8 @@ Partial Class Base
         ' 
         ' settings_1
         ' 
+        settings_1.Controls.Add(lang_all)
+        settings_1.Controls.Add(PictureBox18)
         settings_1.Controls.Add(Home_settings)
         settings_1.Controls.Add(PictureBox8)
         settings_1.Controls.Add(ch)
@@ -1216,9 +1212,71 @@ Partial Class Base
         settings_1.Controls.Add(PictureBox7)
         settings_1.Location = New Point(-226, 3)
         settings_1.Name = "settings_1"
-        settings_1.Size = New Size(1010, 610)
+        settings_1.Size = New Size(934, 610)
         settings_1.TabIndex = 42
         settings_1.Visible = False
+        ' 
+        ' lang_all
+        ' 
+        lang_all.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        lang_all.Controls.Add(zh_CHT)
+        lang_all.Controls.Add(th)
+        lang_all.Controls.Add(en)
+        lang_all.FlatStyle = FlatStyle.Flat
+        lang_all.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        lang_all.ForeColor = Color.White
+        lang_all.Location = New Point(810, 173)
+        lang_all.Name = "lang_all"
+        lang_all.Size = New Size(200, 92)
+        lang_all.TabIndex = 75
+        lang_all.TabStop = False
+        lang_all.Text = "Language"
+        ' 
+        ' zh_CHT
+        ' 
+        zh_CHT.AutoSize = True
+        zh_CHT.Font = New Font("Segoe UI", 9F)
+        zh_CHT.Location = New Point(8, 68)
+        zh_CHT.Name = "zh_CHT"
+        zh_CHT.Size = New Size(65, 19)
+        zh_CHT.TabIndex = 2
+        zh_CHT.TabStop = True
+        zh_CHT.Text = "zh-CHT"
+        zh_CHT.UseVisualStyleBackColor = True
+        ' 
+        ' th
+        ' 
+        th.AutoSize = True
+        th.Font = New Font("Segoe UI", 9F)
+        th.Location = New Point(8, 44)
+        th.Name = "th"
+        th.Size = New Size(43, 19)
+        th.TabIndex = 1
+        th.TabStop = True
+        th.Text = "ไทย"
+        th.UseVisualStyleBackColor = True
+        ' 
+        ' en
+        ' 
+        en.AutoSize = True
+        en.Font = New Font("Segoe UI", 9F)
+        en.Location = New Point(8, 20)
+        en.Name = "en"
+        en.Size = New Size(63, 19)
+        en.TabIndex = 0
+        en.TabStop = True
+        en.Text = "English"
+        en.UseVisualStyleBackColor = True
+        ' 
+        ' PictureBox18
+        ' 
+        PictureBox18.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox18.Cursor = Cursors.Hand
+        PictureBox18.Location = New Point(810, 173)
+        PictureBox18.Name = "PictureBox18"
+        PictureBox18.Size = New Size(200, 70)
+        PictureBox18.TabIndex = 76
+        PictureBox18.TabStop = False
         ' 
         ' Home_settings
         ' 
@@ -1243,16 +1301,16 @@ Partial Class Base
         ' 
         ' ch
         ' 
-        ch.AutoSize = True
         ch.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ch.Cursor = Cursors.Hand
         ch.Font = New Font("Segoe UI", 12F)
         ch.ForeColor = Color.White
-        ch.Location = New Point(860, 110)
+        ch.Location = New Point(810, 110)
         ch.Name = "ch"
-        ch.Size = New Size(104, 21)
+        ch.Size = New Size(200, 21)
         ch.TabIndex = 72
         ch.Text = "Check update"
+        ch.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' ch_bg
         ' 
@@ -1266,16 +1324,16 @@ Partial Class Base
         ' 
         ' action_fn
         ' 
-        action_fn.AutoSize = True
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
-        action_fn.Location = New Point(885, 24)
+        action_fn.Location = New Point(810, 24)
         action_fn.Name = "action_fn"
-        action_fn.Size = New Size(51, 21)
+        action_fn.Size = New Size(200, 21)
         action_fn.TabIndex = 58
         action_fn.Text = "Done"
+        action_fn.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' bg_fn
         ' 
@@ -1355,7 +1413,7 @@ Partial Class Base
         settings_all.Controls.Add(ab_bg)
         settings_all.Controls.Add(saved_e1)
         settings_all.Controls.Add(PictureBox15)
-        settings_all.Controls.Add(Label21)
+        settings_all.Controls.Add(hgd)
         settings_all.Controls.Add(Label22)
         settings_all.Controls.Add(PictureBox16)
         settings_all.Controls.Add(hg2)
@@ -1365,7 +1423,7 @@ Partial Class Base
         settings_all.Controls.Add(Label18)
         settings_all.Controls.Add(PictureBox11)
         settings_all.Controls.Add(k1)
-        settings_all.Controls.Add(Label12)
+        settings_all.Controls.Add(hud)
         settings_all.Controls.Add(Label15)
         settings_all.Controls.Add(PictureBox10)
         settings_all.Controls.Add(hub)
@@ -1374,7 +1432,7 @@ Partial Class Base
         settings_all.Controls.Add(PictureBox3)
         settings_all.Controls.Add(box_py)
         settings_all.Controls.Add(bg_py)
-        settings_all.Location = New Point(262, 81)
+        settings_all.Location = New Point(224, 81)
         settings_all.Name = "settings_all"
         settings_all.Size = New Size(542, 496)
         settings_all.TabIndex = 73
@@ -1599,17 +1657,17 @@ Partial Class Base
         PictureBox15.TabStop = False
         PictureBox15.Visible = False
         ' 
-        ' Label21
+        ' hgd
         ' 
-        Label21.AutoSize = True
-        Label21.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label21.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
-        Label21.ForeColor = Color.White
-        Label21.Location = New Point(72, 182)
-        Label21.Name = "Label21"
-        Label21.Size = New Size(58, 15)
-        Label21.TabIndex = 88
-        Label21.Text = "Highlight"
+        hgd.AutoSize = True
+        hgd.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        hgd.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+        hgd.ForeColor = Color.White
+        hgd.Location = New Point(72, 182)
+        hgd.Name = "hgd"
+        hgd.Size = New Size(58, 15)
+        hgd.TabIndex = 88
+        hgd.Text = "Highlight"
         ' 
         ' Label22
         ' 
@@ -1703,17 +1761,17 @@ Partial Class Base
         k1.TabIndex = 75
         k1.TabStop = False
         ' 
-        ' Label12
+        ' hud
         ' 
-        Label12.AutoSize = True
-        Label12.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label12.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
-        Label12.ForeColor = Color.White
-        Label12.Location = New Point(72, 102)
-        Label12.Name = "Label12"
-        Label12.Size = New Size(80, 15)
-        Label12.TabIndex = 74
-        Label12.Text = "Overlay HUD"
+        hud.AutoSize = True
+        hud.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        hud.Font = New Font("Segoe UI", 8.5F, FontStyle.Bold)
+        hud.ForeColor = Color.White
+        hud.Location = New Point(72, 102)
+        hud.Name = "hud"
+        hud.Size = New Size(80, 15)
+        hud.TabIndex = 74
+        hud.Text = "Overlay HUD"
         ' 
         ' Label15
         ' 
@@ -1831,7 +1889,7 @@ Partial Class Base
         record_sc.Controls.Add(stb)
         record_sc.Controls.Add(st1)
         record_sc.Controls.Add(vsr)
-        record_sc.Controls.Add(Label10)
+        record_sc.Controls.Add(comt)
         record_sc.Controls.Add(vsl)
         record_sc.Controls.Add(vsb)
         record_sc.Controls.Add(vs1)
@@ -1896,17 +1954,17 @@ Partial Class Base
         vsr.TabStop = False
         vsr.Visible = False
         ' 
-        ' Label10
+        ' comt
         ' 
-        Label10.AutoSize = True
-        Label10.BackColor = Color.Black
-        Label10.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label10.ForeColor = Color.White
-        Label10.Location = New Point(26, 35)
-        Label10.Name = "Label10"
-        Label10.Size = New Size(58, 19)
-        Label10.TabIndex = 45
-        Label10.Text = "Settings"
+        comt.AutoSize = True
+        comt.BackColor = Color.Black
+        comt.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        comt.ForeColor = Color.White
+        comt.Location = New Point(26, 35)
+        comt.Name = "comt"
+        comt.Size = New Size(58, 19)
+        comt.TabIndex = 45
+        comt.Text = "Settings"
         ' 
         ' vsl
         ' 
@@ -1995,7 +2053,7 @@ Partial Class Base
         ' 
         ' replay_sc_all
         ' 
-        replay_sc_all.Controls.Add(Label8)
+        replay_sc_all.Controls.Add(sa1)
         replay_sc_all.Controls.Add(rsr)
         replay_sc_all.Controls.Add(r_1r)
         replay_sc_all.Controls.Add(r_1l)
@@ -2003,32 +2061,32 @@ Partial Class Base
         replay_sc_all.Controls.Add(r_1b)
         replay_sc_all.Controls.Add(r_1)
         replay_sc_all.Controls.Add(rsb)
-        replay_sc_all.Controls.Add(Label7)
-        replay_sc_all.Controls.Add(Label16)
+        replay_sc_all.Controls.Add(sa2)
+        replay_sc_all.Controls.Add(sa4)
         replay_sc_all.Controls.Add(rs1)
         replay_sc_all.Controls.Add(sh_replay)
         replay_sc_all.Controls.Add(if_replay)
         replay_sc_all.Controls.Add(icon_replay)
         replay_sc_all.Controls.Add(replay_sc)
-        replay_sc_all.Controls.Add(replay_sc1)
+        replay_sc_all.Controls.Add(sa3)
         replay_sc_all.Location = New Point(0, 200)
         replay_sc_all.Name = "replay_sc_all"
         replay_sc_all.Size = New Size(200, 100)
         replay_sc_all.TabIndex = 43
         replay_sc_all.Visible = False
         ' 
-        ' Label8
+        ' sa1
         ' 
-        Label8.AutoSize = True
-        Label8.BackColor = Color.Black
-        Label8.Font = New Font("nvgcshare", 15F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label8.ForeColor = Color.White
-        Label8.Location = New Point(3, 35)
-        Label8.Name = "Label8"
-        Label8.RightToLeft = RightToLeft.Yes
-        Label8.Size = New Size(29, 20)
-        Label8.TabIndex = 46
-        Label8.Text = ""
+        sa1.AutoSize = True
+        sa1.BackColor = Color.Black
+        sa1.Font = New Font("nvgcshare", 15F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        sa1.ForeColor = Color.White
+        sa1.Location = New Point(3, 35)
+        sa1.Name = "sa1"
+        sa1.RightToLeft = RightToLeft.Yes
+        sa1.Size = New Size(29, 20)
+        sa1.TabIndex = 46
+        sa1.Text = ""
         ' 
         ' rsr
         ' 
@@ -2100,29 +2158,29 @@ Partial Class Base
         rsb.TabStop = False
         rsb.Visible = False
         ' 
-        ' Label7
+        ' sa2
         ' 
-        Label7.AutoSize = True
-        Label7.BackColor = Color.Black
-        Label7.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label7.ForeColor = Color.White
-        Label7.Location = New Point(27, 35)
-        Label7.Name = "Label7"
-        Label7.Size = New Size(45, 19)
-        Label7.TabIndex = 45
-        Label7.Text = "Saved"
+        sa2.AutoSize = True
+        sa2.BackColor = Color.Black
+        sa2.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        sa2.ForeColor = Color.White
+        sa2.Location = New Point(27, 35)
+        sa2.Name = "sa2"
+        sa2.Size = New Size(45, 19)
+        sa2.TabIndex = 45
+        sa2.Text = "Saved"
         ' 
-        ' Label16
+        ' sa4
         ' 
-        Label16.AutoSize = True
-        Label16.BackColor = Color.Black
-        Label16.Font = New Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label16.ForeColor = Color.Gray
-        Label16.Location = New Point(150, 38)
-        Label16.Name = "Label16"
-        Label16.Size = New Size(47, 13)
-        Label16.TabIndex = 50
-        Label16.Text = "Alt+F10"
+        sa4.AutoSize = True
+        sa4.BackColor = Color.Black
+        sa4.Font = New Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        sa4.ForeColor = Color.Gray
+        sa4.Location = New Point(150, 38)
+        sa4.Name = "sa4"
+        sa4.Size = New Size(47, 13)
+        sa4.TabIndex = 50
+        sa4.Text = "Alt+F10"
         ' 
         ' rs1
         ' 
@@ -2180,14 +2238,14 @@ Partial Class Base
         replay_sc.TabIndex = 0
         replay_sc.TabStop = False
         ' 
-        ' replay_sc1
+        ' sa3
         ' 
-        replay_sc1.BackColor = Color.Black
-        replay_sc1.Location = New Point(0, 30)
-        replay_sc1.Name = "replay_sc1"
-        replay_sc1.Size = New Size(200, 30)
-        replay_sc1.TabIndex = 42
-        replay_sc1.TabStop = False
+        sa3.BackColor = Color.Black
+        sa3.Location = New Point(0, 30)
+        sa3.Name = "sa3"
+        sa3.Size = New Size(200, 30)
+        sa3.TabIndex = 42
+        sa3.TabStop = False
         ' 
         ' Load
         ' 
@@ -2216,9 +2274,6 @@ Partial Class Base
         up.Interval = 1000
         ' 
         ' w
-        ' 
-        ' 
-        ' py_cc
         ' 
         ' 
         ' ch_t
@@ -2250,6 +2305,15 @@ Partial Class Base
         ' 
         alt_F_1_2.Enabled = True
         alt_F_1_2.Interval = 1
+        ' 
+        ' Load_Lang
+        ' 
+        Load_Lang.Enabled = True
+        ' 
+        ' MySave
+        ' 
+        MySave.Enabled = True
+        MySave.Interval = 1000
         ' 
         ' Base
         ' 
@@ -2313,6 +2377,9 @@ Partial Class Base
         CType(a_1, ComponentModel.ISupportInitialize).EndInit()
         settings_1.ResumeLayout(False)
         settings_1.PerformLayout()
+        lang_all.ResumeLayout(False)
+        lang_all.PerformLayout()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
         CType(ch_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(bg_fn, ComponentModel.ISupportInitialize).EndInit()
@@ -2369,7 +2436,7 @@ Partial Class Base
         CType(rsb, ComponentModel.ISupportInitialize).EndInit()
         CType(rs1, ComponentModel.ISupportInitialize).EndInit()
         CType(replay_sc, ComponentModel.ISupportInitialize).EndInit()
-        CType(replay_sc1, ComponentModel.ISupportInitialize).EndInit()
+        CType(sa3, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -2419,14 +2486,13 @@ Partial Class Base
     Friend WithEvents text_py As Label
     Friend WithEvents action_sc As Panel
     Friend WithEvents replay_sc As PictureBox
-    Friend WithEvents replay_sc1 As PictureBox
+    Friend WithEvents sa3 As PictureBox
     Friend WithEvents replay_sc_all As Panel
     Friend WithEvents if_replay As Label
     Friend WithEvents icon_replay As Label
     Friend WithEvents sh_replay As Label
-    Friend WithEvents Label7 As Label
-    Friend WithEvents Label8 As Label
-    Friend WithEvents replay_on As Label
+    Friend WithEvents sa2 As Label
+    Friend WithEvents sa1 As Label
     Friend WithEvents Load As Timer
     Friend WithEvents alt_shift_f10 As Timer
     Friend WithEvents saved_e As PictureBox
@@ -2449,7 +2515,7 @@ Partial Class Base
     Friend WithEvents Timer5 As Timer
     Friend WithEvents Timer1 As Timer
     Friend WithEvents record_sc As Panel
-    Friend WithEvents Label10 As Label
+    Friend WithEvents comt As Label
     Friend WithEvents sh_record As Label
     Friend WithEvents Label13 As Label
     Friend WithEvents Label14 As Label
@@ -2470,12 +2536,12 @@ Partial Class Base
     Friend WithEvents py_cc As Timer
     Friend WithEvents bg_action As Label
     Friend WithEvents ch_t As Timer
-    Friend WithEvents Label16 As Label
+    Friend WithEvents sa4 As Label
     Friend WithEvents re As Timer
     Friend WithEvents settings_all As Panel
     Friend WithEvents PictureBox8 As PictureBox
     Friend WithEvents PictureBox7 As PictureBox
-    Friend WithEvents Label12 As Label
+    Friend WithEvents hud As Label
     Friend WithEvents Label15 As Label
     Friend WithEvents PictureBox10 As PictureBox
     Friend WithEvents PictureBox9 As PictureBox
@@ -2518,7 +2584,7 @@ Partial Class Base
     Friend WithEvents vd1 As PictureBox
     Friend WithEvents vdo_setme As Label
     Friend WithEvents PictureBox15 As PictureBox
-    Friend WithEvents Label21 As Label
+    Friend WithEvents hgd As Label
     Friend WithEvents Label22 As Label
     Friend WithEvents PictureBox16 As PictureBox
     Friend WithEvents hg2 As PictureBox
@@ -2553,10 +2619,17 @@ Partial Class Base
     Friend WithEvents h1l As PictureBox
     Friend WithEvents Label1 As Label
     Friend WithEvents PictureBox26 As PictureBox
-    Friend WithEvents Label2 As Label
+    Friend WithEvents settmain As Label
     Friend WithEvents s1l As PictureBox
     Friend WithEvents s1r As PictureBox
     Friend WithEvents s1b As PictureBox
     Friend WithEvents s1 As PictureBox
+    Friend WithEvents lang_all As GroupBox
+    Friend WithEvents en As RadioButton
+    Friend WithEvents PictureBox18 As PictureBox
+    Friend WithEvents th As RadioButton
+    Friend WithEvents Load_Lang As Timer
+    Friend WithEvents MySave As Timer
+    Friend WithEvents zh_CHT As RadioButton
 
 End Class

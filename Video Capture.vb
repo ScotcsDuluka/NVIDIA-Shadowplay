@@ -123,18 +123,9 @@ Public Class set_vdo
         Dim currentWidth As Integer = currentScreen.Bounds.Width
         Dim currentHeight As Integer = currentScreen.Bounds.Height
 
-        If My.Settings.res = "" Then
-            res.Text = currentWidth & " x " & currentHeight
-        End If
-        If My.Settings.fps = "" Then
-            ghz.Text = 60
-        End If
-        If My.Settings.bit = "" Then
-            bit.Text = 20
-        End If
-        res.Text = My.Settings.res
-        ghz.Text = My.Settings.fps
-        bit.Text = My.Settings.bit
+        res.Text = currentWidth & " x " & currentHeight
+        ghz.Text = 60
+        bit.Text = 20
 
         ' ซ่อน Form จาก Alt+Tab
         HideFromAltTab()

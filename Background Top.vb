@@ -65,7 +65,6 @@ Public Class bg_top
     End Sub
 
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
-        lang.LoadStrings("th-TH")
-        gfe.Text = lang.GetString("gfe")
+
     End Sub
 End Class

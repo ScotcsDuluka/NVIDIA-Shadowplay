@@ -23,5 +23,11 @@
     <Setting Name="mic" Type="System.String" Scope="User">
       <Value Profile="(Default)">on</Value>
     </Setting>
+    <Setting Name="lang" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="replay" Type="System.String" Scope="User">
+      <Value Profile="(Default)">off</Value>
+    </Setting>
   </Settings>
 </SettingsFile>

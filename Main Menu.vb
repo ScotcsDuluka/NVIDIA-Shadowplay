@@ -9,8 +9,88 @@ Imports System.Windows.Forms
 Imports System.Runtime
 Imports Newtonsoft.Json
 Imports System.Data.SqlClient
+Imports Windows.Media.Streaming.Adaptive
 
 Public Class Base
+
+    Private lang As New Lang()
+    Private Sub Load_Lang_Tick(sender As Object, e As EventArgs) Handles Load_Lang.Tick
+        If My.Settings.lang = "" Then
+            lang.LoadStrings("en-US")
+            My.Settings.lang = "en-US"
+            My.Settings.Save()
+        End If
+
+        If en.Checked = True Then
+            My.Settings.lang = "en-US"
+            My.Settings.Save()
+        End If
+
+        If th.Checked = True Then
+            My.Settings.lang = "th-TH"
+            My.Settings.Save()
+        End If
+
+        If zh_CHT.Checked = True Then
+
+            My.Settings.lang = "zh-CHT"
+            My.Settings.Save()
+        End If
+
+        lang.LoadStrings(My.Settings.lang)
+
+
+
+        '' All Lang SET
+        bg_top.gfe.Text = lang.GetString("gfe")
+        Gallery_1.text_settings.Text = lang.GetString("gallery")
+        Gallery_1.load_save.Text = lang.GetString("galleryLocation")
+        Gallery_1.chc.Text = lang.GetString("keyboardShortcuts")
+        Gallery_1.allit.Text = lang.GetString("all")
+        Gallery_1.action_fn.Text = lang.GetString("save")
+        Gallery_1.opf.Text = lang.GetString("openLocation")
+        sh.Text = lang.GetString("screenshots")
+        pht.Text = lang.GetString("openAnsel")
+        game_f.Text = lang.GetString("mods")
+        replay.Text = lang.GetString("instantReplay")
+        record.Text = lang.GetString("manualRecord")
+        comt.Text = lang.GetString("customize")
+        live.Text = lang.GetString("broadcastLive")
+        s_live.Text = lang.GetString("notok")
+        pf.Text = lang.GetString("upload")
+        gallery.Text = lang.GetString("gallery")
+        settmain.Text = lang.GetString("settings")
+        sa2.Text = lang.GetString("save")
+        action_fn.Text = lang.GetString("done")
+        Home_settings.Text = lang.GetString("preferencesHome")
+        text_py.Text = lang.GetString("connect")
+        hud.Text = lang.GetString("hudLayout")
+        hgd.Text = lang.GetString("highlights")
+        Label17.Text = lang.GetString("keyboardShortcuts")
+        Label19.Text = lang.GetString("videoCapture")
+        vdo_setme.Text = lang.GetString("videoCaptureText")
+        nott.Text = lang.GetString("notifications")
+        Label4.Text = lang.GetString("privacyControl")
+        Label6.Text = lang.GetString("about")
+        ch.Text = lang.GetString("update")
+    End Sub
+
+    Public Sub WriteLog(ByVal message As String)
+        Dim logFilePath As String = "C:\Logs\Log.txt"
+        Try
+            ' ตรวจสอบว่าโฟลเดอร์ Logs มีอยู่แล้วหรือไม่ ถ้าไม่มีก็สร้างใหม่
+            If Not Directory.Exists("C:\Logs") Then
+                Directory.CreateDirectory("C:\Logs")
+            End If
+
+            ' เขียนข้อมูลลงไฟล์พร้อมกับวันและเวลา
+            Using writer As New StreamWriter(logFilePath, True)
+                writer.WriteLine(DateTime.Now.ToString("[yyyy-MM-dd HH:mm:ss]") & " - " & message)
+            End Using
+        Catch ex As Exception
+            MessageBox.Show("Error writing log: " & ex.Message)
+        End Try
+    End Sub
 
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
@@ -80,6 +160,24 @@ Public Class Base
     End Sub
 
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        If My.Settings.replay = "on" Then
+            save.Start()
+
+            if_replay.Text = lang.GetString("instantReplayStop")
+            s_replay.Text = lang.GetString("on")
+            logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900")
+
+            Notifier.Show()
+            Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.Text = ""
+            Notifier.text_n.Text = lang.GetString("notificationInstantReplayStarted")
+        End If
+
+
+
+        lang.LoadStrings(My.Settings.lang)
+
         ' ซ่อนฟอร์มจาก Alt+Tab
         HideFromAltTab()
 
@@ -142,25 +240,27 @@ Public Class Base
 
     Private Sub CheckPrivacyControl()
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data/py") Then
-            py.py_2.Text = ("Turn off")
+            py.py_2.Text = lang.GetString("instantReplayStop")
         Else
-            py.py_2.Text = ("Turn on")
+            py.py_2.Text = lang.GetString("instantReplayStart")
         End If
     End Sub
 
     Private Sub LoadReplaySettings()
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data/Replay/on") Then
-            replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
-            if_replay.Text = ("Turn off")
-            replay_on.Visible = True
-            s_replay.Text = ("on")
+            s_replay.Text = lang.GetString("on")
             s_replay.ForeColor = ColorTranslator.FromHtml("#76B900")
+            sa3.Visible = True
+            sa4.Visible = True
+            sa1.Visible = True
+            sa2.Visible = True
         Else
-            replay_on.ForeColor = Color.White
-            replay_on.Visible = False
-            if_replay.Text = ("Turn on")
-            s_replay.Text = ("off")
-            s_replay.ForeColor = Color.White
+            s_replay.Text = lang.GetString("off")
+            s_replay.ForeColor = Color.Gray
+            sa3.Visible = False
+            sa4.Visible = False
+            sa1.Visible = False
+            sa2.Visible = False
         End If
     End Sub
 
@@ -205,7 +305,7 @@ Public Class Base
                 bmpScreenshot.Save(fileName, System.Drawing.Imaging.ImageFormat.Png)
 
                 If Directory.Exists(filePath) Then
-                    ShowNotifier("Screenshot has been saved to Gallery", "")
+                    ShowNotifier(lang.GetString("notificationScreenshotSavedToGallery"), "")
                 Else
                     ShowNotifier("Please select a valid save path for screenshots.", "")
                 End If
@@ -369,13 +469,13 @@ Public Class Base
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("This feature not ready")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 Else
                     Notifier.Show()
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("This feature not ready")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 End If
                 isKeyPressed_f8 = True ' ตั้งค่าปุ่มให้ถูกกดอยู่
             End If
@@ -390,13 +490,13 @@ Public Class Base
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("Photo Mode Not working Current GPU")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 Else
                     Notifier.Show()
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("Photo Mode Not working Current GPU")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 End If
                 isKeyPressed_f2 = True ' ตั้งค่าปุ่มให้ถูกกดอยู่
             End If
@@ -411,13 +511,13 @@ Public Class Base
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("Game Filter Not working Current GPU")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 Else
                     Notifier.Show()
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("Game Filter Not working Current GPU")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 End If
                 isKeyPressed_f3 = True ' ตั้งค่าปุ่มให้ถูกกดอยู่
             End If
@@ -435,13 +535,13 @@ Public Class Base
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("This feature not ready")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 Else
                     Notifier.Show()
                     Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
                     Notifier.icon_n.ForeColor = Color.White
                     Notifier.icon_n.Text = ("")
-                    Notifier.text_n.Text = ("This feature not ready")
+                    Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
                 End If
                 isKeyPressed_p = True ' ตั้งค่าปุ่มให้ถูกกดอยู่
             End If
@@ -456,37 +556,37 @@ Public Class Base
                 isFunctionActive_record = Not isFunctionActive_record ' สลับสถานะฟังก์ชัน
                 If isFunctionActive_record Then
                     If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-                        If Notifier.text_n.Text = "Recording has started" Or Notifier.text_n.Text = "Recording has started " Then
-                            ShowNotifier("", "Recording has started ", ColorTranslator.FromHtml("#76B900"), 40)
+                        If Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Then
+                            ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                         Else
                             StopVideoRecording()
-                            ShowNotifier("", "Recording has been saved", Color.White, 40)
+                            ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                             logo_record.ForeColor = Color.White
                         End If
                     Else
-                        If Notifier.text_n.Text = "Recording has been saved" Or Notifier.text_n.Text = "Recording has been saved " Then
-                            ShowNotifier("", "Recording has been saved ", Color.White, 40)
+                        If Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Then
+                            ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                         Else
                             StartVideoRecording()
-                            ShowNotifier("", "Recording has started", ColorTranslator.FromHtml("#76B900"), 40)
+                            ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                             logo_record.ForeColor = ColorTranslator.FromHtml("#76B900")
                         End If
                     End If
                 Else
                     If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-                        If Notifier.text_n.Text = "Recording has started" Or Notifier.text_n.Text = "Recording has started " Then
-                            ShowNotifier("", "Recording has started ", ColorTranslator.FromHtml("#76B900"), 40)
+                        If Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Then
+                            ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                         Else
                             StopVideoRecording()
-                            ShowNotifier("", "Recording has been saved", Color.White, 40)
+                            ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                             logo_record.ForeColor = Color.White
                         End If
                     Else
-                        If Notifier.text_n.Text = "Recording has been saved" Or Notifier.text_n.Text = "Recording has been saved " Then
-                            ShowNotifier("", "Recording has been saved ", Color.White, 40)
+                        If Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Then
+                            ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                         Else
                             StartVideoRecording()
-                            ShowNotifier("", "Recording has started", ColorTranslator.FromHtml("#76B900"), 40)
+                            ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                             logo_record.ForeColor = ColorTranslator.FromHtml("#76B900")
                         End If
                     End If
@@ -515,35 +615,9 @@ Public Class Base
                 ' สลับสถานะฟังก์ชัน Instant Replay (เปิด/ปิด)
                 isFunctionActive_replay_save = Not isFunctionActive_replay_save
                 If isFunctionActive_replay_save Then
-                    ' กรณีปิด Instant Replay
-                    If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-                        Notifier.Show()
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.ForeColor = Color.White
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Erorr to saved last {{replay_save}}."
-                        'Notifier.text_n.Text = "Saved last {{replay_saved}} seconds."
-                    Else
-                        Notifier.Show()
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.ForeColor = Color.White
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Turn on instant replay to save the last."
-                    End If
+                    Replay_Save()
                 Else
-                    If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-                        Notifier.Show()
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.ForeColor = Color.White
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Erorr to saved last {{replay_save}}."
-                    Else
-                        Notifier.Show()
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.ForeColor = Color.White
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Turn on instant replay to save the last."
-                    End If
+                    Replay_Save()
                 End If
                 ' ตั้งค่าสถานะว่าปุ่มถูกกดแล้วเพื่อป้องกันการเรียกซ้ำ
                 isKeyPressed_replay_save = True
@@ -553,52 +627,54 @@ Public Class Base
             isKeyPressed_replay_save = False
         End If
     End Sub
+
+    Private Sub Replay_Save()
+        Notifier.Show()
+        Notifier.icon_n.ForeColor = Color.White
+        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+        Notifier.icon_n.Text = ""
+        Notifier.text_n.Text = lang.GetString("notificationInstantReplaySaved")
+    End Sub
+
+    Private Sub Replay_Sub()
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+            save.Stop()
+
+            if_replay.Text = lang.GetString("instantReplayStart")
+            s_replay.Text = lang.GetString("off")
+            logo_replay.ForeColor = Color.White
+
+            Notifier.Show()
+            Notifier.icon_n.ForeColor = Color.White
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.Text = ""
+            Notifier.text_n.Text = lang.GetString("notificationInstantReplayStopped")
+        Else
+            save.Start()
+
+            if_replay.Text = lang.GetString("instantReplayStop")
+            s_replay.Text = lang.GetString("on")
+            logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900")
+
+            Notifier.Show()
+            Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
+            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
+            Notifier.icon_n.Text = ""
+            Notifier.text_n.Text = lang.GetString("notificationInstantReplayStarted")
+        End If
+    End Sub
+
+
     Private Sub alt_shift_f10_Tick(sender As Object, e As EventArgs) Handles alt_shift_f10.Tick 'Alt + Shift + F10 - Relpay
 
         If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_SHIFT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F10) And &H8000) <> 0 Then
             If Not isKeyPressed_replay Then ' ตรวจสอบว่าปุ่มไม่ถูกกดอยู่
                 isFunctionActive_replay = Not isFunctionActive_replay ' สลับสถานะฟังก์ชัน
                 If isFunctionActive_replay Then
-                    If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-                        replay_on.Visible = False
-                        replay_on.ForeColor = Color.White
-                        if_replay.Text = "Turn on"
-                        Notifier.Show()
-                        Notifier.icon_n.ForeColor = Color.White
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Instant Replay is now off"
-                    Else
-                        replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
-                        if_replay.Text = "Turn off"
-                        replay_on.Visible = True
-                        Notifier.Show()
-                        Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Instant Replay is now on"
-                    End If
+                    Replay_Sub()
 
                 Else
-                    If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-                        replay_on.Visible = False
-                        replay_on.ForeColor = Color.White
-                        if_replay.Text = "Turn on"
-                        Notifier.Show()
-                        Notifier.icon_n.ForeColor = Color.White
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Instant Replay is now off"
-                    Else
-                        replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
-                        if_replay.Text = "Turn off"
-                        replay_on.Visible = True
-                        Notifier.Show()
-                        Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
-                        Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-                        Notifier.icon_n.Text = ""
-                        Notifier.text_n.Text = "Instant Replay is now on"
-                    End If
+                    Replay_Sub()
                 End If
                 isKeyPressed_replay = True ' ตั้งค่าปุ่มให้ถูกกดอยู่
             End If
@@ -829,7 +905,6 @@ Public Class Base
             a_1l.Visible = False
             a_1b.Visible = False
         End If
-        logo_replay.ForeColor = Color.White
         bg_top.b1.Visible = False
     End Sub
 
@@ -963,7 +1038,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Game Filter Not working Current GPU")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub logo_replay_Click(sender As Object, e As EventArgs) Handles logo_replay.Click
@@ -1005,7 +1080,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("This feature not ready")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
         replay_sc_all.Visible = False
         a_1.Visible = False
         record_sc.Visible = False
@@ -1056,79 +1131,24 @@ Public Class Base
 
     Private Sub sh_replay_Click(sender As Object, e As EventArgs) Handles sh_replay.Click
         a_1.Visible = False
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-            replay_on.Visible = False
-            replay_on.ForeColor = Color.White
-            if_replay.Text = "Turn on"
-            Notifier.Show()
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Instant Replay is now off"
-        Else
-            replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
-            if_replay.Text = "Turn off"
-            replay_on.Visible = True
-            Notifier.Show()
-            Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Instant Replay is now on"
-        End If
+        Replay_Sub()
         replay_sc_all.Visible = False
     End Sub
 
     Private Sub replay_sc_Click(sender As Object, e As EventArgs) Handles replay_sc.Click
         a_1.Visible = False
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-            replay_on.Visible = False
-            replay_on.ForeColor = Color.White
-            if_replay.Text = "Turn on"
-            Notifier.Show()
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Instant Replay is now off"
-        Else
-            replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
-            if_replay.Text = "Turn off"
-            replay_on.Visible = True
-            Notifier.Show()
-            Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Instant Replay is now on"
-        End If
+        Replay_Sub()
         replay_sc_all.Visible = False
 
     End Sub
 
     Private Sub if_replay_Click(sender As Object, e As EventArgs) Handles if_replay.Click
         a_1.Visible = False
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-            replay_on.Visible = False
-            replay_on.ForeColor = Color.White
-            if_replay.Text = "Turn on"
-            Notifier.Show()
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Instant Replay is now off"
-        Else
-            replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
-            if_replay.Text = "Turn off"
-            replay_on.Visible = True
-            Notifier.Show()
-            Notifier.icon_n.ForeColor = ColorTranslator.FromHtml("#76B900")
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Instant Replay is now on"
-        End If
-
+        Replay_Sub()
         replay_sc_all.Visible = False
     End Sub
 
-    Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles replay_on.Click
+    Private Sub replay_on_Click(sender As Object, e As EventArgs)
         a_1.Visible = False
         If replay_sc_all.Visible = True Then
             replay_sc_all.Visible = False
@@ -1145,7 +1165,7 @@ Public Class Base
         a_3.Visible = False
     End Sub
 
-    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs) Handles replay_on.MouseMove
+    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs)
         If replay_sc_all.Visible = True Then
             a_1.Visible = True
             a_1r.Visible = False
@@ -1160,7 +1180,7 @@ Public Class Base
         bg_top.b1.Visible = True
     End Sub
 
-    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles replay_on.MouseLeave
+    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs)
         If replay_sc_all.Visible = True Then
             a_1.Visible = True
             a_1r.Visible = False
@@ -1172,7 +1192,6 @@ Public Class Base
             a_1l.Visible = False
             a_1b.Visible = False
         End If
-        replay_on.ForeColor = ColorTranslator.FromHtml("#76B900")
         bg_top.b1.Visible = False
     End Sub
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
@@ -1222,35 +1241,50 @@ Public Class Base
 
     Private Sub UpdateRecordStatus()
         If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            Label13.Text = ("Stop")
-            s_record.Text = ("    Recording")
+            Label13.Text = lang.GetString("stop")
+            s_record.Text = lang.GetString("recording")
             s_record.ForeColor = ColorTranslator.FromHtml("#76B900")
         Else
-            Label13.Text = ("Start")
-            s_record.Text = ("Not Recording")
+            Label13.Text = lang.GetString("start")
+            s_record.Text = lang.GetString("notRecording")
             s_record.ForeColor = Color.Gray
         End If
     End Sub
 
     Private Sub UpdateReplayStatus()
-        If if_replay.Text = "Turn off" Then
-            s_replay.Text = "on"
+
+
+
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+
+            save.Start()
+
+            if_replay.Text = lang.GetString("instantReplayStop")
+            s_replay.Text = lang.GetString("on")
+            logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900")
             s_replay.ForeColor = ColorTranslator.FromHtml("#76B900")
-            File.Delete(Application.StartupPath & "NVIDIA_Shadowplay_Data/Replay/off")
-            File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data/Replay/on").Dispose()
-            replay_sc1.Visible = True
-            Label16.Visible = True
-            Label8.Visible = True
-            Label7.Visible = True
+            My.Settings.replay = "on"
+            sa1.Visible = True
+            sa2.Visible = True
+            sa3.Visible = True
+            sa4.Visible = True
+
+
         Else
-            s_replay.Text = "off"
+
+            save.Stop()
+
+
+            sa1.Visible = False
+            sa2.Visible = False
+            sa3.Visible = False
+            sa4.Visible = False
+            My.Settings.replay = "off"
+            if_replay.Text = lang.GetString("instantReplayStart")
+            s_replay.Text = lang.GetString("off")
+            logo_replay.ForeColor = Color.White
             s_replay.ForeColor = Color.Gray
-            File.Delete(Application.StartupPath & "NVIDIA_Shadowplay_Data/Replay/on")
-            File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data/Replay/off").Dispose()
-            replay_sc1.Visible = False
-            Label16.Visible = False
-            Label8.Visible = False
-            Label7.Visible = False
+
         End If
     End Sub
 
@@ -1302,7 +1336,7 @@ Public Class Base
     Private Sub Logo_Click(sender As Object, e As EventArgs) Handles Logo.Click
         Notifier.Show()
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Press Alt + Z to use Shadowplay Experience in-game overlay")
+        Notifier.text_n.Text = lang.GetString("notificationOpenShare").Replace("{{arg1}}", "Alt + Z")
     End Sub
 
     Private Sub bg_gallery_Click(sender As Object, e As EventArgs) Handles bg_gallery.Click
@@ -1347,7 +1381,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Extension not found")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub box_py_Click(sender As Object, e As EventArgs) Handles box_py.Click
@@ -1418,39 +1452,15 @@ Public Class Base
 
     End Sub
 
-    Private Sub replay_sc1_Click(sender As Object, e As EventArgs) Handles replay_sc1.Click
+    Private Sub replay_sc1_Click(sender As Object, e As EventArgs) Handles sa3.Click
         a_1.Visible = False
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Erorr to saved last {{replay_save}}."
-        Else
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Turn on instant replay to save the last."
-        End If
+        Replay_Sub()
         replay_sc_all.Visible = False
     End Sub
 
-    Private Sub Label7_Click(sender As Object, e As EventArgs) Handles Label7.Click
+    Private Sub Label7_Click(sender As Object, e As EventArgs) Handles sa2.Click
         a_1.Visible = False
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Erorr to saved last {{replay_save}}."
-        Else
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Turn on instant replay to save the last."
-        End If
+        Replay_Save()
         replay_sc_all.Visible = False
     End Sub
     Private Sub bg_fps_Click(sender As Object, e As EventArgs) Handles bg_fps.Click
@@ -1607,29 +1617,6 @@ Public Class Base
         h1b.Visible = False
     End Sub
 
-    Private Sub py_cc_Tick(sender As Object, e As EventArgs) Handles py_cc.Tick
-
-
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data/py") Then
-            py.py_2.Text = ("Turn off")
-        Else
-            If replay_on.Visible = True Then
-                replay_on.Visible = False
-                replay_on.ForeColor = Color.White
-                if_replay.Text = ("Turn on")
-            End If
-
-            If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-                logo_record.ForeColor = Color.White
-            End If
-            Label13.Text = ("Start")
-            s_record.Text = ("Not Recording")
-            s_record.ForeColor = Color.Gray
-
-
-            py.py_2.Text = ("Turn on")
-        End If
-    End Sub
     Private Sub SetPhotoColors(color As Color)
         logo_pht.ForeColor = color
         pht.ForeColor = color
@@ -1736,7 +1723,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Game Filter Not working Current GPU")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub bg_gamef_Click(sender As Object, e As EventArgs) Handles bg_gamef.Click
@@ -1744,7 +1731,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Game Filter Not working Current GPU")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
 
     End Sub
 
@@ -1753,7 +1740,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Photo Mode Not working Current GPU")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub pht_Click(sender As Object, e As EventArgs) Handles pht.Click
@@ -1761,7 +1748,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Photo Mode Not working Current GPU")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub logo_pht_Click(sender As Object, e As EventArgs) Handles logo_pht.Click
@@ -1769,65 +1756,53 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("Photo Mode Not working Current GPU")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
-    Private Sub Label16_MouseMove(sender As Object, e As MouseEventArgs) Handles Label16.MouseMove
+    Private Sub Label16_MouseMove(sender As Object, e As MouseEventArgs) Handles sa4.MouseMove
         rs1.Visible = True
         rsl.Visible = True
         rsr.Visible = True
         rsb.Visible = True
     End Sub
 
-    Private Sub Label16_MouseLeave(sender As Object, e As EventArgs) Handles Label16.MouseLeave
+    Private Sub Label16_MouseLeave(sender As Object, e As EventArgs) Handles sa4.MouseLeave
         rs1.Visible = False
         rsl.Visible = False
         rsr.Visible = False
         rsb.Visible = False
     End Sub
 
-    Private Sub replay_sc1_MouseLeave(sender As Object, e As EventArgs) Handles replay_sc1.MouseLeave
+    Private Sub replay_sc1_MouseLeave(sender As Object, e As EventArgs) Handles sa3.MouseLeave
         rs1.Visible = False
         rsl.Visible = False
         rsr.Visible = False
         rsb.Visible = False
     End Sub
 
-    Private Sub replay_sc1_MouseMove(sender As Object, e As MouseEventArgs) Handles replay_sc1.MouseMove
+    Private Sub replay_sc1_MouseMove(sender As Object, e As MouseEventArgs) Handles sa3.MouseMove
         rs1.Visible = True
         rsl.Visible = True
         rsr.Visible = True
         rsb.Visible = True
     End Sub
 
-    Private Sub Label7_MouseMove(sender As Object, e As MouseEventArgs) Handles Label7.MouseMove
+    Private Sub Label7_MouseMove(sender As Object, e As MouseEventArgs) Handles sa2.MouseMove
         rs1.Visible = True
         rsl.Visible = True
         rsr.Visible = True
         rsb.Visible = True
     End Sub
 
-    Private Sub Label7_MouseLeave(sender As Object, e As EventArgs) Handles Label7.MouseLeave
+    Private Sub Label7_MouseLeave(sender As Object, e As EventArgs) Handles sa2.MouseLeave
         rs1.Visible = False
         rsl.Visible = False
         rsr.Visible = False
         rsb.Visible = False
     End Sub
 
-    Private Sub Label16_Click(sender As Object, e As EventArgs) Handles Label16.Click
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Then
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Erorr to saved last {{replay_save}}."
-        Else
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.ForeColor = Color.White
-            Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Turn on instant replay to save the last."
-        End If
+    Private Sub Label16_Click(sender As Object, e As EventArgs) Handles sa4.Click
+        Replay_Save()
         a_1.Visible = False
     End Sub
 
@@ -1920,19 +1895,19 @@ Public Class Base
     Private Sub sh_record_Click(sender As Object, e As EventArgs) Handles sh_record.Click
         a_2.Visible = False
         If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            If Notifier.text_n.Text = "Recording has started" Or Notifier.text_n.Text = "Recording has started " Then
-                ShowNotifier("", "Recording has started ", ColorTranslator.FromHtml("#76B900"), 40)
+            If Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Then
+                ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
             Else
                 StopVideoRecording()
-                ShowNotifier("", "Recording has been saved", Color.White, 40)
+                ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                 logo_record.ForeColor = Color.White
             End If
         Else
-            If Notifier.text_n.Text = "Recording has been saved" Or Notifier.text_n.Text = "Recording has been saved " Then
-                ShowNotifier("", "Recording has been saved ", Color.White, 40)
+            If Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Then
+                ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
             Else
                 StartVideoRecording()
-                ShowNotifier("", "Recording has started", ColorTranslator.FromHtml("#76B900"), 40)
+                ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                 logo_record.ForeColor = ColorTranslator.FromHtml("#76B900")
             End If
         End If
@@ -1941,19 +1916,19 @@ Public Class Base
     Private Sub PictureBox5_Click(sender As Object, e As EventArgs) Handles PictureBox5.Click
         a_2.Visible = False
         If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            If Notifier.text_n.Text = "Recording has started" Or Notifier.text_n.Text = "Recording has started " Then
-                ShowNotifier("", "Recording has started ", ColorTranslator.FromHtml("#76B900"), 40)
+            If Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Then
+                ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
             Else
                 StopVideoRecording()
-                ShowNotifier("", "Recording has been saved", Color.White, 40)
+                ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                 logo_record.ForeColor = Color.White
             End If
         Else
-            If Notifier.text_n.Text = "Recording has been saved" Or Notifier.text_n.Text = "Recording has been saved " Then
-                ShowNotifier("", "Recording has been saved ", Color.White, 40)
+            If Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Then
+                ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
             Else
                 StartVideoRecording()
-                ShowNotifier("", "Recording has started", ColorTranslator.FromHtml("#76B900"), 40)
+                ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                 logo_record.ForeColor = ColorTranslator.FromHtml("#76B900")
             End If
         End If
@@ -1964,19 +1939,19 @@ Public Class Base
 
         a_2.Visible = False
         If logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            If Notifier.text_n.Text = "Recording has started" Or Notifier.text_n.Text = "Recording has started " Then
-                ShowNotifier("", "Recording has started ", ColorTranslator.FromHtml("#76B900"), 40)
+            If Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStarted") Then
+                ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
             Else
                 StopVideoRecording()
-                ShowNotifier("", "Recording has been saved", Color.White, 40)
+                ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
                 logo_record.ForeColor = Color.White
             End If
         Else
-            If Notifier.text_n.Text = "Recording has been saved" Or Notifier.text_n.Text = "Recording has been saved " Then
-                ShowNotifier("", "Recording has been saved ", Color.White, 40)
+            If Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Or Notifier.text_n.Text = lang.GetString("notificationManualRecordStopped") Then
+                ShowNotifier("", lang.GetString("notificationManualRecordStopped"), Color.White, 40)
             Else
                 StartVideoRecording()
-                ShowNotifier("", "Recording has started", ColorTranslator.FromHtml("#76B900"), 40)
+                ShowNotifier("", lang.GetString("notificationManualRecordStarted"), ColorTranslator.FromHtml("#76B900"), 40)
                 logo_record.ForeColor = ColorTranslator.FromHtml("#76B900")
             End If
         End If
@@ -1987,7 +1962,7 @@ Public Class Base
         hub.BackColor = ColorTranslator.FromHtml("#76B900")
     End Sub
 
-    Private Sub Label12_MouseMove(sender As Object, e As MouseEventArgs) Handles Label12.MouseMove
+    Private Sub Label12_MouseMove(sender As Object, e As MouseEventArgs) Handles hud.MouseMove
         hub.BackColor = ColorTranslator.FromHtml("#76B900")
     End Sub
 
@@ -1999,7 +1974,7 @@ Public Class Base
         hub.BackColor = Color.Gray
     End Sub
 
-    Private Sub Label12_MouseLeave(sender As Object, e As EventArgs) Handles Label12.MouseLeave
+    Private Sub Label12_MouseLeave(sender As Object, e As EventArgs) Handles hud.MouseLeave
         hub.BackColor = Color.Gray
     End Sub
 
@@ -2014,7 +1989,7 @@ Public Class Base
         alt_z.Stop()
     End Sub
 
-    Private Sub Label12_Click(sender As Object, e As EventArgs) Handles Label12.Click
+    Private Sub Label12_Click(sender As Object, e As EventArgs) Handles hud.Click
         hub_f.Show()
         settings_1.Visible = False
         hub_f.settings_1.Visible = True
@@ -2095,12 +2070,15 @@ Public Class Base
         'UpdateNotifierMenuText() ' อัปเดตเมนูตามสถานะ
 
 
+        lang.LoadStrings(My.Settings.lang)
 
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\on") Then
             ' แจ้งการเริ่มแอป
             Notifier.Show()
             Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Press Alt + Z to use Shadowplay Experience in-game overlay"
+            String.Format(messageTemplate, "Alt + Z")
+            Notifier.text_n.Text = lang.GetString("notificationOpenShare").Replace("{{arg1}}", "Alt + Z").Replace("{{arg1}}", "Alt + Z")
+
             Return
         Else
             alt_z.Stop()
@@ -2299,7 +2277,7 @@ Public Class Base
             File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data/g").Dispose()
             Notifier.Show()
             Notifier.icon_n.Text = ""
-            Notifier.text_n.Text = "Press Alt + Z to use Shadowplay Experience in-game overlay"
+            Notifier.text_n.Text = lang.GetString("notificationOpenShare").Replace("{{arg1}}", "Alt + Z")
         End If
     End Sub
 
@@ -2398,7 +2376,7 @@ Public Class Base
         hg2.BackColor = ColorTranslator.FromHtml("#76B900")
     End Sub
 
-    Private Sub Label21_MouseMove(sender As Object, e As MouseEventArgs) Handles Label21.MouseMove
+    Private Sub Label21_MouseMove(sender As Object, e As MouseEventArgs) Handles hgd.MouseMove
         hg2.BackColor = ColorTranslator.FromHtml("#76B900")
     End Sub
 
@@ -2410,7 +2388,7 @@ Public Class Base
         hg2.BackColor = Color.Gray
     End Sub
 
-    Private Sub Label21_MouseLeave(sender As Object, e As EventArgs) Handles Label21.MouseLeave
+    Private Sub Label21_MouseLeave(sender As Object, e As EventArgs) Handles hgd.MouseLeave
         hg2.BackColor = Color.Gray
     End Sub
 
@@ -2451,7 +2429,7 @@ Public Class Base
     End Sub
 
     Private Sub PictureBox13_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
 
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
@@ -2468,7 +2446,7 @@ Public Class Base
     End Sub
 
     Private Sub vdo_setme_Click(sender As Object, e As EventArgs) Handles vdo_setme.Click
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
 
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
@@ -2485,7 +2463,7 @@ Public Class Base
     End Sub
 
     Private Sub Label19_Click(sender As Object, e As EventArgs) Handles Label19.Click
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
 
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
@@ -2514,15 +2492,15 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("This feature not ready")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
-    Private Sub Label21_Click(sender As Object, e As EventArgs) Handles Label21.Click
+    Private Sub Label21_Click(sender As Object, e As EventArgs) Handles hgd.Click
         Notifier.Show()
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("This feature not ready")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub Label22_Click(sender As Object, e As EventArgs) Handles Label22.Click
@@ -2530,7 +2508,7 @@ Public Class Base
         Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
         Notifier.icon_n.ForeColor = Color.White
         Notifier.icon_n.Text = ("")
-        Notifier.text_n.Text = ("This feature not ready")
+        Notifier.text_n.Text = lang.GetString("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub PictureBox17_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox17.MouseMove
@@ -2597,7 +2575,7 @@ Public Class Base
         vsb.Visible = True
     End Sub
 
-    Private Sub Label10_MouseMove(sender As Object, e As MouseEventArgs) Handles Label10.MouseMove
+    Private Sub Label10_MouseMove(sender As Object, e As MouseEventArgs) Handles comt.MouseMove
         vs1.Visible = True
         vsr.Visible = True
         vsl.Visible = True
@@ -2611,7 +2589,7 @@ Public Class Base
         vsb.Visible = False
     End Sub
 
-    Private Sub Label10_MouseLeave(sender As Object, e As EventArgs) Handles Label10.MouseLeave
+    Private Sub Label10_MouseLeave(sender As Object, e As EventArgs) Handles comt.MouseLeave
         vs1.Visible = False
         vsr.Visible = False
         vsl.Visible = False
@@ -2619,7 +2597,7 @@ Public Class Base
     End Sub
 
     Private Sub PictureBox6_Click(sender As Object, e As EventArgs) Handles PictureBox6.Click
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
 
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
@@ -2638,8 +2616,8 @@ Public Class Base
         End If
     End Sub
 
-    Private Sub Label10_Click(sender As Object, e As EventArgs) Handles Label10.Click
-        If replay_on.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
+    Private Sub Label10_Click(sender As Object, e As EventArgs) Handles comt.Click
+        If logo_replay.ForeColor = ColorTranslator.FromHtml("#76B900") Or logo_record.ForeColor = ColorTranslator.FromHtml("#76B900") Then
 
             Notifier.Show()
             Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
@@ -2672,21 +2650,21 @@ Public Class Base
         s1b.Visible = False
     End Sub
 
-    Private Sub Label2_MouseMove(sender As Object, e As MouseEventArgs) Handles Label2.MouseMove
+    Private Sub Label2_MouseMove(sender As Object, e As MouseEventArgs) Handles settmain.MouseMove
         s1.Visible = True
         s1r.Visible = True
         s1l.Visible = True
         s1b.Visible = True
     End Sub
 
-    Private Sub Label2_MouseLeave(sender As Object, e As EventArgs) Handles Label2.MouseLeave
+    Private Sub Label2_MouseLeave(sender As Object, e As EventArgs) Handles settmain.MouseLeave
         s1.Visible = False
         s1r.Visible = False
         s1l.Visible = False
         s1b.Visible = False
     End Sub
 
-    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
+    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles settmain.Click
         Opacity = 1
         a_1.Visible = False
         a_2.Visible = False
@@ -2710,5 +2688,9 @@ Public Class Base
 
     Private Sub settings_bg_MouseMove(sender As Object, e As MouseEventArgs) Handles settings_bg.MouseMove
         login.TopMost = True
+    End Sub
+
+    Private Sub MySave_Tick(sender As Object, e As EventArgs) Handles MySave.Tick
+        My.Settings.Save()
     End Sub
 End Class

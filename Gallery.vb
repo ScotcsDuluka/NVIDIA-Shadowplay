@@ -145,7 +145,7 @@ Public Class Gallery_1
         HandleCaptureFolder()
     End Sub
 
-    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
+    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles opf.Click
         Dim folderPath = txtFilePath.Text.Trim
         If Directory.Exists(folderPath) Then
             Process.Start("explorer.exe", folderPath)

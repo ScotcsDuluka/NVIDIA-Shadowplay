@@ -1,3 +1,5 @@
-2024/10/21-02:59:44.096 1090 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
-2024/10/21-02:59:44.127 1090 Recovering log #49
-2024/10/21-02:59:44.133 1090 Reusing old log A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb/000049.log 
+2024/10/21-20:49:01.987 2b48 Reusing MANIFEST A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Local Storage\leveldb/MANIFEST-000001
+2024/10/21-20:49:02.067 2b48 Recovering log #58
+2024/10/21-20:49:02.072 2b48 Level-0 table #61: started
+2024/10/21-20:49:02.220 2b48 Level-0 table #61: 53630 bytes OK
+2024/10/21-20:49:02.265 2b48 Delete type=0 #58

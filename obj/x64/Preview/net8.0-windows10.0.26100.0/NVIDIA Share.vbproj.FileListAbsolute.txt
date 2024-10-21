@@ -63,3 +63,4 @@ A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\NVIDIA Share.genrunti
 A:\NVIDIA Share\obj\x64\Preview\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\osc\en-US.json
 A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\osc\th-TH.json
+A:\NVIDIA Share\bin\Preview\net8.0-windows10.0.26100.0\osc\zh-CHT.json
