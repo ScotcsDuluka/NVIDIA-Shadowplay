@@ -1,7 +1,7 @@
 ﻿Imports System.Drawing
 Imports System.Runtime.InteropServices
 
-Public Class Bg
+Public Class Base_Background
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -25,7 +25,7 @@ Public Class Bg
         HideFromAltTab()
     End Sub
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        www.TopMost = True
+        Base_www.TopMost = True
         Opacity -= 0.1 ' ลดความโปร่งใสลงทีละ 0.05
         If Opacity = 0 Then
             Me.Hide()
@@ -36,17 +36,14 @@ Public Class Bg
         If Opacity = 0.5 Then
             Timer2.Stop()
         Else
-            Me.Opacity += 0.1 ' เพิ่มความโปร่งใสทีละ 0.05
+            Me.Opacity += 0.1
             Me.Show()
         End If
-        www.TopMost = True
+        Base_www.TopMost = True
     End Sub
 
     Private Sub Bg_MouseClick(sender As Object, e As MouseEventArgs) Handles Me.MouseClick
-        www.TopMost = True
+        Base_www.TopMost = True
     End Sub
 
-    Private Sub load_Tick(sender As Object, e As EventArgs) Handles load.Tick
-        HideFromAltTab()
-    End Sub
 End Class

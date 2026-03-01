@@ -3,35 +3,60 @@ Imports System.Drawing
 Imports System.Diagnostics
 Imports System.Windows.Forms
 Imports System.Management
-Public Class bg_top
+Public Class Base_Background_Top
+#Region "Animation Engine"
 
-    Private tpsTimer As Timer
-    ' ตัวอย่างฟังก์ชันในการอัปเดตค่า TPS
-    Private Sub MainForm_TPS_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' ตั้งค่า Timer
-        tpsTimer = New Timer()
-        tpsTimer.Interval = 2000  ' ทำงานทุก 1 วินาที
-        AddHandler tpsTimer.Tick, AddressOf OnTimedEvent
-        tpsTimer.Start()
+    Private animStart As DateTime
+    Private animDuration As Double
+    Private startValue As Integer
+    Private targetValue As Integer
+    Private animationRunning As Boolean = False
+    Private currentControl As Control
+
+    Private WithEvents AnimationTimer As New Timer With {.Interval = 15}
+
+    Private Sub StartSlideY(ctrl As Control,
+                        fromY As Integer,
+                        toY As Integer,
+                        duration As Double)
+
+        If animationRunning Then Return
+
+        currentControl = ctrl
+        startValue = fromY
+        targetValue = toY
+        animDuration = duration
+
+        ctrl.Top = fromY
+        animationRunning = True
+        animStart = DateTime.Now
+
+        AnimationTimer.Start()
+
     End Sub
 
-    ' ฟังก์ชันที่ทำงานเมื่อ Timer ทำงาน
-    Private Sub OnTimedEvent(source As Object, e As EventArgs)
-        ' อัปเดตค่า TPS ในที่นี้คือการจำลองค่า
-        Dim randomTPS As Integer = New Random().Next(0, 500) ' จำลองค่า TPS ระหว่าง 30-60
-        UpdateTPS(randomTPS)  ' อัปเดตค่า TPS ที่แสดงใน Label
-    End Sub
-    Private Sub UpdateTPS(ByVal newTPS As Integer)
-        If newTPS = 0 Then
-            Notifier.Show()
-            Notifier.icon_n.Font = New Font(Notifier.icon_n.Font.FontFamily, 40)
-            Notifier.icon_n.Text = ("")
-            Notifier.text_n.Text = ("TPS is Low. Decreased playing experience.")
-        Else
+    Private Sub AnimationTimer_Tick(sender As Object, e As EventArgs) Handles AnimationTimer.Tick
+
+        If Not animationRunning Then Return
+
+        Dim elapsed = (DateTime.Now - animStart).TotalMilliseconds
+        Dim t As Double = elapsed / animDuration
+
+        If t >= 1 Then
+            t = 1
+            animationRunning = False
+            AnimationTimer.Stop()
         End If
 
-        tpsLabel.Text = "TPS : " & newTPS.ToString()
+        Dim eased As Double = 1 - Math.Pow(1 - t, 3)
+        Dim newY As Integer = startValue + (targetValue - startValue) * eased
+
+        currentControl.Top = newY
+
     End Sub
+
+#End Region
+
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -51,21 +76,38 @@ Public Class bg_top
         ac1.Size = New Size(600, 300) ' ขนาดที่ต้องการAlignPanelToTop()
     End Sub
 
-    Private Sub Logo_Click(sender As Object, e As EventArgs) Handles Logo.Click
+    Private Sub Logo_Click(sender As Object, e As EventArgs)
         Application.Exit()
     End Sub
 
-    Private Sub Logo_text_Click(sender As Object, e As EventArgs) Handles Logo_text.Click
+    Private Sub Main_Top_Click(sender As Object, e As EventArgs) Handles Main_Top.Click
         Application.Restart()
     End Sub
 
     Private Sub bg_top_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
-        Me.DoubleBuffered = True
+
+        ' ตั้งตำแหน่งเริ่มต้น
+
+        ANIME.Start()
+        Main_Top.Location = New Point(0, -100)
     End Sub
 
-    Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
+    Private hasAnimated As Boolean = False
+
+    Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick
+
+        ' เริ่ม Animation ตอน Opacity ≥ 0.5
+        If Me.Opacity >= 0.5 AndAlso Not hasAnimated Then
+            hasAnimated = True
+            StartSlideY(Main_Top, -100, 0, 100)
+        End If
+
+        ' รีเซ็ต ถ้า Opacity หายไป
+        If Me.Opacity <= 0 Then
+            hasAnimated = False
+            Main_Top.Location = New Point(0, -100)
+        End If
 
     End Sub
-
 End Class

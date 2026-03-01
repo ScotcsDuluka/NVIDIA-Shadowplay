@@ -1,7 +1,7 @@
 ﻿Imports System.Runtime.InteropServices
 Imports Microsoft.Web.WebView2.WinForms
 
-Public Class www
+Public Class Base_www
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -42,11 +42,7 @@ Public Class www
     Private isKeyPressedf As Boolean = False ' เพื่อตรวจสอบว่าปุ่มถูกกดอยู่
 
     Private Sub key_Tick(sender As Object, e As EventArgs) Handles key.Tick
-        If Opacity = 0 Then
-            WindowState = FormWindowState.Minimized
-        Else
-            WindowState = FormWindowState.Maximized
-        End If
+
         HideFromAltTab()
         If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_Q) And &H8000) <> 0 Then
 
@@ -66,7 +62,8 @@ Public Class www
         If Base.Opacity = 0 Then
 
         Else
-            TopMost = True
+            ' TopMost = True
+
         End If
 
         If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_CAPITAL) And &H8000) <> 0 Then
@@ -78,16 +75,16 @@ Public Class www
                     If Base.Opacity = 0 Then
                         Timer1.Stop()
                         Timer2.Start()
-                        Bg.Timer1.Stop()
-                        Bg.Timer2.Start()
+                        Base_Background.Timer1.Stop()
+                        Base_Background.Timer2.Start()
                     End If
                 Else
 
                     Timer1.Start()
                     Timer2.Stop()
                     If Base.Opacity = 0 Then
-                        Bg.Timer1.Start()
-                        Bg.Timer2.Stop()
+                        Base_Background.Timer1.Start()
+                        Base_Background.Timer2.Stop()
                     End If
 
 

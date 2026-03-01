@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class www
+Partial Class Base_www
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
@@ -23,12 +23,11 @@ Partial Class www
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(www))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_www))
         WebView21 = New Microsoft.Web.WebView2.WinForms.WebView2()
         key = New Timer(components)
         Timer1 = New Timer(components)
         Timer2 = New Timer(components)
-        key_ne = New Timer(components)
         url = New TextBox()
         CType(WebView21, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
@@ -59,11 +58,6 @@ Partial Class www
         ' 
         Timer2.Interval = 1
         ' 
-        ' key_ne
-        ' 
-        key_ne.Enabled = True
-        key_ne.Interval = 1
-        ' 
         ' url
         ' 
         url.Dock = DockStyle.Top
@@ -75,7 +69,7 @@ Partial Class www
         url.Text = "https://"
         url.Visible = False
         ' 
-        ' www
+        ' Base_www
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -85,11 +79,10 @@ Partial Class www
         Controls.Add(WebView21)
         DoubleBuffered = True
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
-        MaximizeBox = False
         MdiChildrenMinimizedAnchorBottom = False
         MinimizeBox = False
         MinimumSize = New System.Drawing.Size(160, 90)
-        Name = "www"
+        Name = "Base_www"
         Opacity = 0R
         ShowInTaskbar = False
         StartPosition = FormStartPosition.CenterScreen
@@ -104,6 +97,5 @@ Partial Class www
     Friend WithEvents key As Timer
     Friend WithEvents Timer1 As Timer
     Friend WithEvents Timer2 As Timer
-    Friend WithEvents key_ne As Timer
     Friend WithEvents url As TextBox
 End Class

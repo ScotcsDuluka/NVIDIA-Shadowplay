@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class set_vdo
+Partial Class Base_RecordingsSet
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
@@ -23,10 +23,26 @@ Partial Class set_vdo
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(set_vdo))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_RecordingsSet))
         ALTZ = New Timer(components)
         bg_re = New PictureBox()
         setre = New Panel()
+        PictureBox21 = New PictureBox()
+        PictureBox20 = New PictureBox()
+        PictureBox19 = New PictureBox()
+        PictureBox18 = New PictureBox()
+        PictureBox17 = New PictureBox()
+        PictureBox16 = New PictureBox()
+        PictureBox15 = New PictureBox()
+        PictureBox14 = New PictureBox()
+        PictureBox13 = New PictureBox()
+        PictureBox12 = New PictureBox()
+        PictureBox11 = New PictureBox()
+        PictureBox10 = New PictureBox()
+        PictureBox9 = New PictureBox()
+        PictureBox8 = New PictureBox()
+        PictureBox5 = New PictureBox()
+        a_1 = New PictureBox()
         text_settings = New Label()
         Label15 = New Label()
         icon_settings = New Label()
@@ -58,25 +74,25 @@ Partial Class set_vdo
         Label4 = New Label()
         settings_bg = New PictureBox()
         settings_top = New PictureBox()
-        a_1 = New PictureBox()
-        PictureBox5 = New PictureBox()
-        PictureBox8 = New PictureBox()
-        PictureBox9 = New PictureBox()
-        PictureBox10 = New PictureBox()
-        PictureBox11 = New PictureBox()
-        PictureBox12 = New PictureBox()
-        PictureBox13 = New PictureBox()
-        PictureBox14 = New PictureBox()
-        PictureBox15 = New PictureBox()
-        PictureBox16 = New PictureBox()
-        PictureBox17 = New PictureBox()
-        PictureBox18 = New PictureBox()
-        PictureBox19 = New PictureBox()
-        PictureBox20 = New PictureBox()
-        PictureBox21 = New PictureBox()
         Quality = New Timer(components)
         CType(bg_re, ComponentModel.ISupportInitialize).BeginInit()
         setre.SuspendLayout()
+        CType(PictureBox21, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox20, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox13, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
+        CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
@@ -88,22 +104,6 @@ Partial Class set_vdo
         CType(bg_fn, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
-        CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox13, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox20, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox21, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' ALTZ
@@ -174,6 +174,166 @@ Partial Class set_vdo
         setre.Name = "setre"
         setre.Size = New System.Drawing.Size(1010, 723)
         setre.TabIndex = 44
+        ' 
+        ' PictureBox21
+        ' 
+        PictureBox21.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox21.Location = New System.Drawing.Point(742, 110)
+        PictureBox21.Name = "PictureBox21"
+        PictureBox21.Size = New System.Drawing.Size(3, 70)
+        PictureBox21.TabIndex = 109
+        PictureBox21.TabStop = False
+        PictureBox21.Visible = False
+        ' 
+        ' PictureBox20
+        ' 
+        PictureBox20.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox20.Location = New System.Drawing.Point(624, 110)
+        PictureBox20.Name = "PictureBox20"
+        PictureBox20.Size = New System.Drawing.Size(3, 70)
+        PictureBox20.TabIndex = 108
+        PictureBox20.TabStop = False
+        PictureBox20.Visible = False
+        ' 
+        ' PictureBox19
+        ' 
+        PictureBox19.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox19.Location = New System.Drawing.Point(622, 110)
+        PictureBox19.Name = "PictureBox19"
+        PictureBox19.Size = New System.Drawing.Size(3, 70)
+        PictureBox19.TabIndex = 107
+        PictureBox19.TabStop = False
+        PictureBox19.Visible = False
+        ' 
+        ' PictureBox18
+        ' 
+        PictureBox18.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox18.Location = New System.Drawing.Point(504, 110)
+        PictureBox18.Name = "PictureBox18"
+        PictureBox18.Size = New System.Drawing.Size(3, 70)
+        PictureBox18.TabIndex = 106
+        PictureBox18.TabStop = False
+        PictureBox18.Visible = False
+        ' 
+        ' PictureBox17
+        ' 
+        PictureBox17.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox17.Location = New System.Drawing.Point(502, 110)
+        PictureBox17.Name = "PictureBox17"
+        PictureBox17.Size = New System.Drawing.Size(3, 70)
+        PictureBox17.TabIndex = 105
+        PictureBox17.TabStop = False
+        PictureBox17.Visible = False
+        ' 
+        ' PictureBox16
+        ' 
+        PictureBox16.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox16.Location = New System.Drawing.Point(384, 110)
+        PictureBox16.Name = "PictureBox16"
+        PictureBox16.Size = New System.Drawing.Size(3, 70)
+        PictureBox16.TabIndex = 104
+        PictureBox16.TabStop = False
+        PictureBox16.Visible = False
+        ' 
+        ' PictureBox15
+        ' 
+        PictureBox15.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox15.Location = New System.Drawing.Point(382, 110)
+        PictureBox15.Name = "PictureBox15"
+        PictureBox15.Size = New System.Drawing.Size(3, 70)
+        PictureBox15.TabIndex = 103
+        PictureBox15.TabStop = False
+        PictureBox15.Visible = False
+        ' 
+        ' PictureBox14
+        ' 
+        PictureBox14.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox14.Location = New System.Drawing.Point(264, 110)
+        PictureBox14.Name = "PictureBox14"
+        PictureBox14.Size = New System.Drawing.Size(3, 70)
+        PictureBox14.TabIndex = 102
+        PictureBox14.TabStop = False
+        PictureBox14.Visible = False
+        ' 
+        ' PictureBox13
+        ' 
+        PictureBox13.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox13.Location = New System.Drawing.Point(624, 110)
+        PictureBox13.Name = "PictureBox13"
+        PictureBox13.Size = New System.Drawing.Size(121, 3)
+        PictureBox13.TabIndex = 101
+        PictureBox13.TabStop = False
+        PictureBox13.Visible = False
+        ' 
+        ' PictureBox12
+        ' 
+        PictureBox12.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox12.Location = New System.Drawing.Point(504, 110)
+        PictureBox12.Name = "PictureBox12"
+        PictureBox12.Size = New System.Drawing.Size(121, 3)
+        PictureBox12.TabIndex = 100
+        PictureBox12.TabStop = False
+        PictureBox12.Visible = False
+        ' 
+        ' PictureBox11
+        ' 
+        PictureBox11.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox11.Location = New System.Drawing.Point(624, 177)
+        PictureBox11.Name = "PictureBox11"
+        PictureBox11.Size = New System.Drawing.Size(121, 3)
+        PictureBox11.TabIndex = 99
+        PictureBox11.TabStop = False
+        PictureBox11.Visible = False
+        ' 
+        ' PictureBox10
+        ' 
+        PictureBox10.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox10.Location = New System.Drawing.Point(504, 177)
+        PictureBox10.Name = "PictureBox10"
+        PictureBox10.Size = New System.Drawing.Size(121, 3)
+        PictureBox10.TabIndex = 98
+        PictureBox10.TabStop = False
+        PictureBox10.Visible = False
+        ' 
+        ' PictureBox9
+        ' 
+        PictureBox9.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox9.Location = New System.Drawing.Point(384, 177)
+        PictureBox9.Name = "PictureBox9"
+        PictureBox9.Size = New System.Drawing.Size(121, 3)
+        PictureBox9.TabIndex = 97
+        PictureBox9.TabStop = False
+        PictureBox9.Visible = False
+        ' 
+        ' PictureBox8
+        ' 
+        PictureBox8.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox8.Location = New System.Drawing.Point(384, 110)
+        PictureBox8.Name = "PictureBox8"
+        PictureBox8.Size = New System.Drawing.Size(121, 3)
+        PictureBox8.TabIndex = 96
+        PictureBox8.TabStop = False
+        PictureBox8.Visible = False
+        ' 
+        ' PictureBox5
+        ' 
+        PictureBox5.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        PictureBox5.Location = New System.Drawing.Point(264, 177)
+        PictureBox5.Name = "PictureBox5"
+        PictureBox5.Size = New System.Drawing.Size(121, 3)
+        PictureBox5.TabIndex = 95
+        PictureBox5.TabStop = False
+        PictureBox5.Visible = False
+        ' 
+        ' a_1
+        ' 
+        a_1.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        a_1.Location = New System.Drawing.Point(264, 110)
+        a_1.Name = "a_1"
+        a_1.Size = New System.Drawing.Size(121, 3)
+        a_1.TabIndex = 94
+        a_1.TabStop = False
+        a_1.Visible = False
         ' 
         ' text_settings
         ' 
@@ -541,172 +701,12 @@ Partial Class set_vdo
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
-        ' a_1
-        ' 
-        a_1.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        a_1.Location = New System.Drawing.Point(264, 110)
-        a_1.Name = "a_1"
-        a_1.Size = New System.Drawing.Size(121, 3)
-        a_1.TabIndex = 94
-        a_1.TabStop = False
-        a_1.Visible = False
-        ' 
-        ' PictureBox5
-        ' 
-        PictureBox5.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox5.Location = New System.Drawing.Point(264, 177)
-        PictureBox5.Name = "PictureBox5"
-        PictureBox5.Size = New System.Drawing.Size(121, 3)
-        PictureBox5.TabIndex = 95
-        PictureBox5.TabStop = False
-        PictureBox5.Visible = False
-        ' 
-        ' PictureBox8
-        ' 
-        PictureBox8.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox8.Location = New System.Drawing.Point(384, 110)
-        PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New System.Drawing.Size(121, 3)
-        PictureBox8.TabIndex = 96
-        PictureBox8.TabStop = False
-        PictureBox8.Visible = False
-        ' 
-        ' PictureBox9
-        ' 
-        PictureBox9.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox9.Location = New System.Drawing.Point(384, 177)
-        PictureBox9.Name = "PictureBox9"
-        PictureBox9.Size = New System.Drawing.Size(121, 3)
-        PictureBox9.TabIndex = 97
-        PictureBox9.TabStop = False
-        PictureBox9.Visible = False
-        ' 
-        ' PictureBox10
-        ' 
-        PictureBox10.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox10.Location = New System.Drawing.Point(504, 177)
-        PictureBox10.Name = "PictureBox10"
-        PictureBox10.Size = New System.Drawing.Size(121, 3)
-        PictureBox10.TabIndex = 98
-        PictureBox10.TabStop = False
-        PictureBox10.Visible = False
-        ' 
-        ' PictureBox11
-        ' 
-        PictureBox11.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox11.Location = New System.Drawing.Point(624, 177)
-        PictureBox11.Name = "PictureBox11"
-        PictureBox11.Size = New System.Drawing.Size(121, 3)
-        PictureBox11.TabIndex = 99
-        PictureBox11.TabStop = False
-        PictureBox11.Visible = False
-        ' 
-        ' PictureBox12
-        ' 
-        PictureBox12.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox12.Location = New System.Drawing.Point(504, 110)
-        PictureBox12.Name = "PictureBox12"
-        PictureBox12.Size = New System.Drawing.Size(121, 3)
-        PictureBox12.TabIndex = 100
-        PictureBox12.TabStop = False
-        PictureBox12.Visible = False
-        ' 
-        ' PictureBox13
-        ' 
-        PictureBox13.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox13.Location = New System.Drawing.Point(624, 110)
-        PictureBox13.Name = "PictureBox13"
-        PictureBox13.Size = New System.Drawing.Size(121, 3)
-        PictureBox13.TabIndex = 101
-        PictureBox13.TabStop = False
-        PictureBox13.Visible = False
-        ' 
-        ' PictureBox14
-        ' 
-        PictureBox14.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox14.Location = New System.Drawing.Point(264, 110)
-        PictureBox14.Name = "PictureBox14"
-        PictureBox14.Size = New System.Drawing.Size(3, 70)
-        PictureBox14.TabIndex = 102
-        PictureBox14.TabStop = False
-        PictureBox14.Visible = False
-        ' 
-        ' PictureBox15
-        ' 
-        PictureBox15.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox15.Location = New System.Drawing.Point(382, 110)
-        PictureBox15.Name = "PictureBox15"
-        PictureBox15.Size = New System.Drawing.Size(3, 70)
-        PictureBox15.TabIndex = 103
-        PictureBox15.TabStop = False
-        PictureBox15.Visible = False
-        ' 
-        ' PictureBox16
-        ' 
-        PictureBox16.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox16.Location = New System.Drawing.Point(384, 110)
-        PictureBox16.Name = "PictureBox16"
-        PictureBox16.Size = New System.Drawing.Size(3, 70)
-        PictureBox16.TabIndex = 104
-        PictureBox16.TabStop = False
-        PictureBox16.Visible = False
-        ' 
-        ' PictureBox17
-        ' 
-        PictureBox17.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox17.Location = New System.Drawing.Point(502, 110)
-        PictureBox17.Name = "PictureBox17"
-        PictureBox17.Size = New System.Drawing.Size(3, 70)
-        PictureBox17.TabIndex = 105
-        PictureBox17.TabStop = False
-        PictureBox17.Visible = False
-        ' 
-        ' PictureBox18
-        ' 
-        PictureBox18.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox18.Location = New System.Drawing.Point(504, 110)
-        PictureBox18.Name = "PictureBox18"
-        PictureBox18.Size = New System.Drawing.Size(3, 70)
-        PictureBox18.TabIndex = 106
-        PictureBox18.TabStop = False
-        PictureBox18.Visible = False
-        ' 
-        ' PictureBox19
-        ' 
-        PictureBox19.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox19.Location = New System.Drawing.Point(622, 110)
-        PictureBox19.Name = "PictureBox19"
-        PictureBox19.Size = New System.Drawing.Size(3, 70)
-        PictureBox19.TabIndex = 107
-        PictureBox19.TabStop = False
-        PictureBox19.Visible = False
-        ' 
-        ' PictureBox20
-        ' 
-        PictureBox20.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox20.Location = New System.Drawing.Point(624, 110)
-        PictureBox20.Name = "PictureBox20"
-        PictureBox20.Size = New System.Drawing.Size(3, 70)
-        PictureBox20.TabIndex = 108
-        PictureBox20.TabStop = False
-        PictureBox20.Visible = False
-        ' 
-        ' PictureBox21
-        ' 
-        PictureBox21.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox21.Location = New System.Drawing.Point(742, 110)
-        PictureBox21.Name = "PictureBox21"
-        PictureBox21.Size = New System.Drawing.Size(3, 70)
-        PictureBox21.TabIndex = 109
-        PictureBox21.TabStop = False
-        PictureBox21.Visible = False
-        ' 
         ' Quality
         ' 
         Quality.Enabled = True
         Quality.Interval = 1
         ' 
-        ' set_vdo
+        ' Base_RecordingsSet
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -715,7 +715,7 @@ Partial Class set_vdo
         Controls.Add(setre)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
-        Name = "set_vdo"
+        Name = "Base_RecordingsSet"
         ShowInTaskbar = False
         Text = "Recordings"
         TopMost = True
@@ -724,6 +724,22 @@ Partial Class set_vdo
         CType(bg_re, ComponentModel.ISupportInitialize).EndInit()
         setre.ResumeLayout(False)
         setre.PerformLayout()
+        CType(PictureBox21, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox20, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox13, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
+        CType(a_1, ComponentModel.ISupportInitialize).EndInit()
         CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
@@ -735,22 +751,6 @@ Partial Class set_vdo
         CType(bg_fn, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
-        CType(a_1, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox13, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox20, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox21, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
 

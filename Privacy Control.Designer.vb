@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class py
+Partial Class Base_Privacy_Control
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
@@ -22,7 +22,7 @@ Partial Class py
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(py))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Privacy_Control))
         settings_1 = New Panel()
         Label2 = New Label()
         py_2 = New Label()
@@ -79,16 +79,16 @@ Partial Class py
         ' 
         ' py_2
         ' 
-        py_2.AutoSize = True
         py_2.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         py_2.Cursor = Cursors.Hand
         py_2.Font = New System.Drawing.Font("Segoe UI", 12F)
         py_2.ForeColor = Drawing.Color.White
-        py_2.Location = New System.Drawing.Point(880, 109)
+        py_2.Location = New System.Drawing.Point(810, 109)
         py_2.Name = "py_2"
-        py_2.Size = New System.Drawing.Size(64, 21)
+        py_2.Size = New System.Drawing.Size(200, 21)
         py_2.TabIndex = 72
         py_2.Text = "Turn on"
+        py_2.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' py_1
         ' 
@@ -114,16 +114,16 @@ Partial Class py
         ' 
         ' action_fn
         ' 
-        action_fn.AutoSize = True
         action_fn.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         action_fn.ForeColor = Drawing.Color.White
-        action_fn.Location = New System.Drawing.Point(888, 24)
+        action_fn.Location = New System.Drawing.Point(810, 24)
         action_fn.Name = "action_fn"
-        action_fn.Size = New System.Drawing.Size(46, 21)
+        action_fn.Size = New System.Drawing.Size(200, 21)
         action_fn.TabIndex = 58
         action_fn.Text = "Back"
+        action_fn.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' bg_fn
         ' 
@@ -137,15 +137,15 @@ Partial Class py
         ' 
         ' text_settings
         ' 
-        text_settings.AutoSize = True
         text_settings.BackColor = Drawing.Color.Black
         text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(40, 14)
+        text_settings.Location = New System.Drawing.Point(0, 14)
         text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(125, 21)
+        text_settings.Size = New System.Drawing.Size(200, 21)
         text_settings.TabIndex = 56
         text_settings.Text = "Privacy control"
+        text_settings.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' icon_settings
         ' 
@@ -210,7 +210,7 @@ Partial Class py
         box_settings.TabIndex = 55
         box_settings.TabStop = False
         ' 
-        ' py
+        ' Base_Privacy_Control
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -219,7 +219,7 @@ Partial Class py
         Controls.Add(settings_1)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
-        Name = "py"
+        Name = "Base_Privacy_Control"
         ShowInTaskbar = False
         Text = "Privacy control"
         TopMost = True

@@ -1,0 +1,171 @@
+Imports System.Drawing
+Imports System.Runtime.InteropServices
+Imports System.Windows.Forms
+
+Public Class Notifier
+
+#Region "WinAPI"
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
+    End Function
+
+    Private Const GWL_EXSTYLE As Integer = -20
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80
+    Private Const WS_EX_APPWINDOW As Integer = &H40000
+
+    Private Sub HideFromAltTab()
+        Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
+        Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
+    End Sub
+
+#End Region
+
+#Region "Animation Engine"
+
+    Private animStart As DateTime
+    Private animDuration As Double = 350
+    Private startX As Integer
+    Private targetX As Integer
+    Private currentPanel As Control
+    Private animationRunning As Boolean = False
+
+    Private Sub StartSlide(panel As Control, fromX As Integer, toX As Integer, duration As Double)
+        currentPanel = panel
+        startX = fromX
+        targetX = toX
+        animDuration = duration
+
+        panel.Left = fromX
+
+        animStart = DateTime.Now
+        animationRunning = True
+
+        Animation_Engine.Interval = 15
+        Animation_Engine.Start()
+    End Sub
+
+    Private Sub Animation_Engine_Tick(sender As Object, e As EventArgs) Handles Animation_Engine.Tick
+
+        If Not animationRunning Then Return
+
+        Dim elapsed = (DateTime.Now - animStart).TotalMilliseconds
+        Dim t As Double = elapsed / animDuration
+
+        If t >= 1 Then
+            t = 1
+            animationRunning = False
+            Animation_Engine.Stop()
+        End If
+
+        ' EaseOut Cubic
+        Dim eased As Double = 1 - Math.Pow(1 - t, 3)
+        Dim newX As Integer = startX + (targetX - startX) * eased
+
+        currentPanel.Left = newX
+
+    End Sub
+
+#End Region
+
+#Region "Form Load"
+
+    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        Me.DoubleBuffered = True
+        HideFromAltTab()
+
+        Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
+        Me.Location = New Point(screenWidth - Me.Width, 90)
+        Notifier_black.Location = New Point(Me.Width, 0)
+        Notifier_green.Location = New Point(Me.Width, 0)
+        Notifier_green.Size = New Size(300, 90)
+        Notifier_black.Size = New Size(300, 90)
+
+        StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
+
+        Dim delay As New Timer()
+        delay.Interval = 200
+        AddHandler delay.Tick,
+            Sub()
+                delay.Stop()
+                StartSlide(Notifier_black, Me.Width, Me.Width - 300, 350)
+            End Sub
+        delay.Start()
+
+        Dim autoClose As New Timer()
+        autoClose.Interval = 4500
+        AddHandler autoClose.Tick,
+            Sub()
+                autoClose.Stop()
+                SlideOutAll()
+            End Sub
+        autoClose.Start()
+
+        Delay_Engine.Interval = 75
+        Delay_Engine.Start()
+
+        TopMost = True
+
+    End Sub
+
+#End Region
+
+#Region "Slide Out"
+
+    Private Sub SlideOutAll()
+
+        StartSlide(Notifier_black,
+                   Notifier_black.Left,
+                   Me.Width + 300,
+                   350)
+
+        Dim delay As New Timer()
+        delay.Interval = 200
+        AddHandler delay.Tick,
+            Sub()
+                delay.Stop()
+
+                StartSlide(Notifier_green,
+                           Notifier_green.Left,
+                           Me.Width + 300,
+                           300)
+
+                Dim closeDelay As New Timer()
+                closeDelay.Interval = 350
+                AddHandler closeDelay.Tick,
+                    Sub()
+                        closeDelay.Stop()
+                        Me.Close()
+                    End Sub
+                closeDelay.Start()
+            End Sub
+        delay.Start()
+
+    End Sub
+
+#End Region
+
+#Region "Click Events"
+
+    Private Sub CloseClick(sender As Object, e As EventArgs) _
+        Handles Notifier_green.Click,
+                Notifier_black.Click,
+                text_n.Click,
+                icon_n.Click,
+                PictureBox1.Click,
+                Notifier_green_stop.Click
+
+        SlideOutAll()
+
+    End Sub
+
+#End Region
+
+
+End Class

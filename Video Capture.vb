@@ -3,7 +3,7 @@ Imports System.Drawing
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms.VisualStyles.VisualStyleElement.Rebar
 
-Public Class set_vdo
+Public Class Base_RecordingsSet
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function

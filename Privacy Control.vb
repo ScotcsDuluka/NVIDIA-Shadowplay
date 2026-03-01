@@ -1,7 +1,7 @@
 ﻿Imports System.IO
 Imports System.Drawing
 Imports System.Runtime.InteropServices
-Public Class py
+Public Class Base_Privacy_Control
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -36,20 +36,20 @@ Public Class py
     Private Sub py_2_Click(sender As Object, e As EventArgs) Handles py_2.Click
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data/py") Then
             File.Delete(Application.StartupPath & "NVIDIA_Shadowplay_Data/py")
-            py_2.Text = ("Turn on")
+            py_2.Text = LangHelper.GetText("l10n.instantReplayStart")
         Else
             File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data/py").Dispose()
-            py_2.Text = ("Turn off")
+            py_2.Text = LangHelper.GetText("l10n.instantReplayStop")
         End If
     End Sub
 
     Private Sub py_1_Click(sender As Object, e As EventArgs) Handles py_1.Click
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data/py") Then
             File.Delete(Application.StartupPath & "NVIDIA_Shadowplay_Data/py")
-            py_2.Text = ("Turn on")
+            py_2.Text = LangHelper.GetText("l10n.instantReplayStart")
         Else
             File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data/py").Dispose()
-            py_2.Text = ("Turn off")
+            py_2.Text = LangHelper.GetText("l10n.instantReplayStop")
         End If
 
     End Sub

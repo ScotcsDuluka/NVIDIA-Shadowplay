@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class set_key
+Partial Class Base_KeySet
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
@@ -22,9 +22,7 @@ Partial Class set_key
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        components = New ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(set_key))
-        ALTZ = New Timer(components)
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_KeySet))
         PictureBox5 = New PictureBox()
         keyset = New Panel()
         Label2 = New Label()
@@ -171,7 +169,7 @@ Partial Class set_key
         box_settings.TabIndex = 55
         box_settings.TabStop = False
         ' 
-        ' set_key
+        ' Base_KeySet
         ' 
         AutoScaleMode = AutoScaleMode.None
         BackColor = Drawing.Color.Red
@@ -179,7 +177,7 @@ Partial Class set_key
         Controls.Add(keyset)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
-        Name = "set_key"
+        Name = "Base_KeySet"
         ShowInTaskbar = False
         Text = "Keyboard Shortcut "
         TopMost = True
@@ -194,8 +192,6 @@ Partial Class set_key
         CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
-
-    Friend WithEvents ALTZ As Timer
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents keyset As Panel
     Friend WithEvents Label2 As Label

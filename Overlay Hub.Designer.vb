@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class hub_f
+Partial Class Base_Overlay_Hub
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
@@ -22,7 +22,7 @@ Partial Class hub_f
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(hub_f))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Overlay_Hub))
         settings_1 = New Panel()
         PictureBox2 = New PictureBox()
         PictureBox1 = New PictureBox()
@@ -166,7 +166,7 @@ Partial Class hub_f
         box_settings.TabIndex = 55
         box_settings.TabStop = False
         ' 
-        ' hub_f
+        ' Base_Overlay_Hub
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -175,7 +175,7 @@ Partial Class hub_f
         Controls.Add(settings_1)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
-        Name = "hub_f"
+        Name = "Base_Overlay_Hub"
         ShowInTaskbar = False
         SizeGripStyle = SizeGripStyle.Hide
         Text = "Overlay Hub"
