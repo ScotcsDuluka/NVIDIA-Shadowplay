@@ -378,9 +378,9 @@ Public Class Base
         ' Base_KeySet
         With Base_KeySet
             .text_settings.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-            .Label4.Text = LangHelper.GetText("l10n.keyboardShortcuts")
+            .Key_Tx.Text = LangHelper.GetText("l10n.keyboardShortcuts")
             .action_fn.Text = LangHelper.GetText("l10n.Saved")
-            .Label2.Text = LangHelper.GetText("l10n.resetAll")
+            .Reset.Text = LangHelper.GetText("l10n.resetAll")
         End With
 
         ' Base_Privacy Control

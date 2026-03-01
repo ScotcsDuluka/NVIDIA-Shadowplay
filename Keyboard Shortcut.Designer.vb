@@ -25,12 +25,18 @@ Partial Class Base_KeySet
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_KeySet))
         PictureBox5 = New PictureBox()
         keyset = New Panel()
-        Label2 = New Label()
+        TextBox6 = New TextBox()
+        TextBox5 = New TextBox()
+        TextBox4 = New TextBox()
+        TextBox3 = New TextBox()
+        TextBox2 = New TextBox()
+        TextBox1 = New TextBox()
+        Reset = New Label()
         action_fn = New Label()
         bg_fn = New PictureBox()
         text_settings = New Label()
         icon_settings = New Label()
-        Label4 = New Label()
+        Key_Tx = New Label()
         settings_bg = New PictureBox()
         settings_top = New PictureBox()
         box_settings = New PictureBox()
@@ -55,13 +61,19 @@ Partial Class Base_KeySet
         ' keyset
         ' 
         keyset.BackColor = Drawing.Color.Red
-        keyset.Controls.Add(Label2)
+        keyset.Controls.Add(TextBox6)
+        keyset.Controls.Add(TextBox5)
+        keyset.Controls.Add(TextBox4)
+        keyset.Controls.Add(TextBox3)
+        keyset.Controls.Add(TextBox2)
+        keyset.Controls.Add(TextBox1)
+        keyset.Controls.Add(Reset)
         keyset.Controls.Add(PictureBox5)
         keyset.Controls.Add(action_fn)
         keyset.Controls.Add(bg_fn)
         keyset.Controls.Add(text_settings)
         keyset.Controls.Add(icon_settings)
-        keyset.Controls.Add(Label4)
+        keyset.Controls.Add(Key_Tx)
         keyset.Controls.Add(settings_bg)
         keyset.Controls.Add(settings_top)
         keyset.Controls.Add(box_settings)
@@ -70,18 +82,60 @@ Partial Class Base_KeySet
         keyset.Size = New System.Drawing.Size(1010, 723)
         keyset.TabIndex = 45
         ' 
-        ' Label2
+        ' TextBox6
         ' 
-        Label2.AutoSize = True
-        Label2.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label2.Cursor = Cursors.Hand
-        Label2.Font = New System.Drawing.Font("Segoe UI", 12F)
-        Label2.ForeColor = Drawing.Color.White
-        Label2.Location = New System.Drawing.Point(886, 110)
-        Label2.Name = "Label2"
-        Label2.Size = New System.Drawing.Size(48, 21)
-        Label2.TabIndex = 70
-        Label2.Text = "Reset"
+        TextBox6.Location = New System.Drawing.Point(303, 294)
+        TextBox6.Name = "TextBox6"
+        TextBox6.Size = New System.Drawing.Size(100, 23)
+        TextBox6.TabIndex = 76
+        ' 
+        ' TextBox5
+        ' 
+        TextBox5.Location = New System.Drawing.Point(303, 245)
+        TextBox5.Name = "TextBox5"
+        TextBox5.Size = New System.Drawing.Size(100, 23)
+        TextBox5.TabIndex = 75
+        ' 
+        ' TextBox4
+        ' 
+        TextBox4.Location = New System.Drawing.Point(303, 206)
+        TextBox4.Name = "TextBox4"
+        TextBox4.Size = New System.Drawing.Size(100, 23)
+        TextBox4.TabIndex = 74
+        ' 
+        ' TextBox3
+        ' 
+        TextBox3.Location = New System.Drawing.Point(303, 177)
+        TextBox3.Name = "TextBox3"
+        TextBox3.Size = New System.Drawing.Size(100, 23)
+        TextBox3.TabIndex = 73
+        ' 
+        ' TextBox2
+        ' 
+        TextBox2.Location = New System.Drawing.Point(303, 133)
+        TextBox2.Name = "TextBox2"
+        TextBox2.Size = New System.Drawing.Size(100, 23)
+        TextBox2.TabIndex = 72
+        ' 
+        ' TextBox1
+        ' 
+        TextBox1.Location = New System.Drawing.Point(303, 93)
+        TextBox1.Name = "TextBox1"
+        TextBox1.Size = New System.Drawing.Size(100, 23)
+        TextBox1.TabIndex = 71
+        ' 
+        ' Reset
+        ' 
+        Reset.AutoSize = True
+        Reset.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Reset.Cursor = Cursors.Hand
+        Reset.Font = New System.Drawing.Font("Segoe UI", 12F)
+        Reset.ForeColor = Drawing.Color.White
+        Reset.Location = New System.Drawing.Point(886, 110)
+        Reset.Name = "Reset"
+        Reset.Size = New System.Drawing.Size(48, 21)
+        Reset.TabIndex = 70
+        Reset.Text = "Reset"
         ' 
         ' action_fn
         ' 
@@ -130,17 +184,17 @@ Partial Class Base_KeySet
         icon_settings.TabIndex = 53
         icon_settings.Text = ""
         ' 
-        ' Label4
+        ' Key_Tx
         ' 
-        Label4.AutoSize = True
-        Label4.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
-        Label4.ForeColor = Drawing.Color.White
-        Label4.Location = New System.Drawing.Point(258, 43)
-        Label4.Name = "Label4"
-        Label4.Size = New System.Drawing.Size(156, 21)
-        Label4.TabIndex = 51
-        Label4.Text = "Keyboard Shortcut "
+        Key_Tx.AutoSize = True
+        Key_Tx.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Key_Tx.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
+        Key_Tx.ForeColor = Drawing.Color.White
+        Key_Tx.Location = New System.Drawing.Point(258, 43)
+        Key_Tx.Name = "Key_Tx"
+        Key_Tx.Size = New System.Drawing.Size(156, 21)
+        Key_Tx.TabIndex = 51
+        Key_Tx.Text = "Keyboard Shortcut "
         ' 
         ' settings_bg
         ' 
@@ -194,13 +248,19 @@ Partial Class Base_KeySet
     End Sub
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents keyset As Panel
-    Friend WithEvents Label2 As Label
+    Friend WithEvents Reset As Label
     Friend WithEvents action_fn As Label
     Friend WithEvents bg_fn As PictureBox
     Friend WithEvents text_settings As Label
     Friend WithEvents icon_settings As Label
-    Friend WithEvents Label4 As Label
+    Friend WithEvents Key_Tx As Label
     Friend WithEvents settings_bg As PictureBox
     Friend WithEvents settings_top As PictureBox
     Friend WithEvents box_settings As PictureBox
+    Friend WithEvents TextBox6 As TextBox
+    Friend WithEvents TextBox5 As TextBox
+    Friend WithEvents TextBox4 As TextBox
+    Friend WithEvents TextBox3 As TextBox
+    Friend WithEvents TextBox2 As TextBox
+    Friend WithEvents TextBox1 As TextBox
 End Class

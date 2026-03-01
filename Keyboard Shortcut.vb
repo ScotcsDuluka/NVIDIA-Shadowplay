@@ -1,6 +1,7 @@
 ﻿Imports System.Runtime.InteropServices
 
 Public Class Base_KeySet
+
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function

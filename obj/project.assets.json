@@ -291,11 +291,11 @@
   "project": {
     "version": "3.0.100",
     "restore": {
-      "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
+      "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
       "projectName": "NVIDIA ShadowPlay",
-      "projectPath": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
+      "projectPath": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
       "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-      "outputPath": "A:\\NVIDIA Share\\obj\\",
+      "outputPath": "A:\\NVIDIA Share\\NVIDIA Share\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -312,14 +312,14 @@
         "net10.0-windows10.0.26100": {
           "targetAlias": "net10.0-windows10.0.26100.0",
           "projectReferences": {
-            "A:\\Notifier-API\\Notifier-API.vbproj": {
-              "projectPath": "A:\\Notifier-API\\Notifier-API.vbproj"
+            "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj": {
+              "projectPath": "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj"
             },
-            "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj": {
-              "projectPath": "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj"
+            "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj": {
+              "projectPath": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj"
             },
-            "A:\\NVIDIA-API\\NVIDIA-API.vbproj": {
-              "projectPath": "A:\\NVIDIA-API\\NVIDIA-API.vbproj"
+            "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj": {
+              "projectPath": "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj"
             }
           }
         }

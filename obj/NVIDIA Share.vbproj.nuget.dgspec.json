@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "A:\\NVIDIA Share\\NVIDIA Share.vbproj": {}
+    "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj": {}
   },
   "projects": {
-    "A:\\Notifier-API\\Notifier-API.vbproj": {
+    "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "A:\\Notifier-API\\Notifier-API.vbproj",
+        "projectUniqueName": "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj",
         "projectName": "Notifier-API",
-        "projectPath": "A:\\Notifier-API\\Notifier-API.vbproj",
+        "projectPath": "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "A:\\Notifier-API\\obj\\",
+        "outputPath": "A:\\NVIDIA Share\\Notifier-API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -373,14 +373,14 @@
         }
       }
     },
-    "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj": {
+    "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+        "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
         "projectName": "NVIDIA Shadowplay Helper",
-        "projectPath": "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+        "projectPath": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "A:\\NVIDIA Shadowplay Helper\\obj\\",
+        "outputPath": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -736,14 +736,14 @@
         }
       }
     },
-    "A:\\NVIDIA Share\\NVIDIA Share.vbproj": {
+    "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj": {
       "version": "3.0.100",
       "restore": {
-        "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
+        "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
         "projectName": "NVIDIA ShadowPlay",
-        "projectPath": "A:\\NVIDIA Share\\NVIDIA Share.vbproj",
+        "projectPath": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "A:\\NVIDIA Share\\obj\\",
+        "outputPath": "A:\\NVIDIA Share\\NVIDIA Share\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -760,14 +760,14 @@
           "net10.0-windows10.0.26100": {
             "targetAlias": "net10.0-windows10.0.26100.0",
             "projectReferences": {
-              "A:\\Notifier-API\\Notifier-API.vbproj": {
-                "projectPath": "A:\\Notifier-API\\Notifier-API.vbproj"
+              "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj": {
+                "projectPath": "A:\\NVIDIA Share\\Notifier-API\\Notifier-API.vbproj"
               },
-              "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj": {
-                "projectPath": "A:\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj"
+              "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj": {
+                "projectPath": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj"
               },
-              "A:\\NVIDIA-API\\NVIDIA-API.vbproj": {
-                "projectPath": "A:\\NVIDIA-API\\NVIDIA-API.vbproj"
+              "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj": {
+                "projectPath": "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj"
               }
             }
           }
@@ -1118,14 +1118,14 @@
         }
       }
     },
-    "A:\\NVIDIA-API\\NVIDIA-API.vbproj": {
+    "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "A:\\NVIDIA-API\\NVIDIA-API.vbproj",
+        "projectUniqueName": "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj",
         "projectName": "NVIDIA-API",
-        "projectPath": "A:\\NVIDIA-API\\NVIDIA-API.vbproj",
+        "projectPath": "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "A:\\NVIDIA-API\\obj\\",
+        "outputPath": "A:\\NVIDIA Share\\NVIDIA-API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",

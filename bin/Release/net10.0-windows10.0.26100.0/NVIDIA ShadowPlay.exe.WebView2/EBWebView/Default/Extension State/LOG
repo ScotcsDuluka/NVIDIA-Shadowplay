@@ -1,2 +1,3 @@
-2026/03/01-16:29:52.489 5f60 Creating DB A:\NVIDIA Share\bin\Release\net10.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Extension State since it was missing.
-2026/03/01-16:29:52.831 5f60 Reusing MANIFEST A:\NVIDIA Share\bin\Release\net10.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Extension State/MANIFEST-000001
+2026/03/01-23:41:13.735 9c0 Reusing MANIFEST A:\NVIDIA Share\NVIDIA Share\bin\Release\net10.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Extension State/MANIFEST-000001
+2026/03/01-23:41:13.736 9c0 Recovering log #3
+2026/03/01-23:41:13.736 9c0 Reusing old log A:\NVIDIA Share\NVIDIA Share\bin\Release\net10.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe.WebView2\EBWebView\Default\Extension State/000003.log 

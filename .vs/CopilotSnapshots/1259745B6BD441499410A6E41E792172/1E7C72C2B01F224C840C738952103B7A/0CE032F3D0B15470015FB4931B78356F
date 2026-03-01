@@ -1,0 +1,472 @@
+﻿Imports System.Runtime.InteropServices
+Imports System.Windows.Forms
+Imports System.Drawing
+
+Public Class Base_KeySet
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
+    End Function
+
+    Private Const GWL_EXSTYLE As Integer = -20
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80 ' สถานะสำหรับ ToolWindow (ไม่แสดงใน Alt+Tab)
+    Private Const WS_EX_APPWINDOW As Integer = &H40000 ' สถานะสำหรับการแสดงใน Task Switcher
+    Private Sub HideFromAltTab()
+        Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
+    End Sub
+    Private Sub action_fns_Click(sender As Object, e As EventArgs) Handles action_fn.Click
+        Hide()
+        Base.alt_z.Start()
+        Base.settings_1.Visible = True
+
+    End Sub
+
+    Private Sub bg_fn_Click(sender As Object, e As EventArgs) Handles bg_fn.Click
+        Hide()
+        Base.alt_z.Start()
+        Base.settings_1.Visible = True
+    End Sub
+
+    Private Sub set_key_Load(sender As Object, e As EventArgs) Handles Me.Load
+        HideFromAltTab()
+    End Sub
+
+
+    ' ══════════════════════════════════════════════════════════════
+    ' NATIVE METHODS
+    ' ══════════════════════════════════════════════════════════════
+    <DllImport("user32.dll")>
+    Private Shared Function GetAsyncKeyState(vKey As Integer) As Short
+    End Function
+
+    Private Const VK_ALT As Integer = &H12
+    Private Const VK_CONTROL As Integer = &H11
+    Private Const VK_SHIFT As Integer = &H10
+    Private Const VK_ESCAPE As Integer = &H1B
+
+    ' ══════════════════════════════════════════════════════════════
+    ' FIELDS
+    ' ══════════════════════════════════════════════════════════════
+    Private textBoxKeys As Dictionary(Of String, TextBox)  ' Map action -> TextBox
+    Private textBoxActions As Dictionary(Of TextBox, String) ' Map TextBox -> action
+    Private currentTextBox As TextBox = Nothing
+    Private isCapturing As Boolean = False
+    Private WithEvents captureTimer As New Timer With {.Interval = 20}
+
+    ' ══════════════════════════════════════════════════════════════
+    ' FORM LOAD
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub Base_KeySet_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' Load shortcuts from file
+        ShortcutSettings.Load()
+
+        ' Initialize TextBox mappings
+        InitializeTextBoxMappings()
+
+        ' Apply text to TextBoxes
+        UpdateAllTextBoxes()
+
+        ' Setup TextBox properties
+        SetupTextBoxProperties()
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' INITIALIZE TEXTBOX MAPPINGS
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub InitializeTextBoxMappings()
+        ' Create mappings between TextBoxes and Actions
+        ' สมมติว่ามี TextBox1 - TextBox6 บน Form
+
+        textBoxKeys = New Dictionary(Of String, TextBox)() From {
+            {"OpenOverlay", TextBox1},
+            {"Screenshot", TextBox2},
+            {"Record", TextBox3},
+            {"SaveReplay", TextBox4},
+            {"ToggleReplay", TextBox5},
+            {"GameFilter", TextBox6}
+        }
+
+        textBoxActions = New Dictionary(Of TextBox, String)()
+        For Each kvp In textBoxKeys
+            textBoxActions.Add(kvp.Value, kvp.Key)
+        Next
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' SETUP TEXTBOX PROPERTIES
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub SetupTextBoxProperties()
+        Dim greenColor As Color = ColorTranslator.FromHtml("#76B900")
+        Dim darkBg As Color = Color.FromArgb(38, 43, 47)
+        Dim hoverBg As Color = Color.FromArgb(50, 50, 55)
+        Dim activeBg As Color = Color.FromArgb(80, 80, 40)
+
+        For Each kvp In textBoxKeys
+            Dim txt As TextBox = kvp.Value
+
+            With txt
+                ' Appearance
+                .BackColor = darkBg
+                .ForeColor = Color.White
+                .BorderStyle = BorderStyle.FixedSingle
+                .TextAlign = HorizontalAlignment.Center
+                .Cursor = Cursors.Hand
+                .ReadOnly = True  ' Important: Prevent typing
+                .TabStop = False
+
+                ' Size (adjust as needed)
+                .Size = New Size(180, 35)
+
+                ' Font
+                .Font = New Font("Segoe UI", 10, FontStyle.Regular)
+            End With
+
+            ' Add event handlers
+            AddHandler txt.Enter, AddressOf TextBox_Enter
+            AddHandler txt.Leave, AddressOf TextBox_Leave
+            AddHandler txt.MouseEnter, AddressOf TextBox_MouseEnter
+            AddHandler txt.MouseLeave, AddressOf TextBox_MouseLeave
+            AddHandler txt.KeyDown, AddressOf TextBox_KeyDown
+        Next
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' UPDATE ALL TEXTBOXES WITH CURRENT SHORTCUTS
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub UpdateAllTextBoxes()
+        For Each kvp In textBoxKeys
+            kvp.Value.Text = ShortcutSettings.GetDisplayText(kvp.Key)
+        Next
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' TEXTBOX EVENT HANDLERS
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub TextBox_Enter(sender As Object, e As EventArgs)
+        Dim txt As TextBox = DirectCast(sender, TextBox)
+        StartCapture(txt)
+    End Sub
+
+    Private Sub TextBox_Leave(sender As Object, e As EventArgs)
+        StopCapture()
+    End Sub
+
+    Private Sub TextBox_MouseEnter(sender As Object, e As EventArgs)
+        If Not isCapturing Then
+            DirectCast(sender, TextBox).BackColor = Color.FromArgb(50, 50, 55)
+        End If
+    End Sub
+
+    Private Sub TextBox_MouseLeave(sender As Object, e As EventArgs)
+        If Not isCapturing OrElse sender IsNot currentTextBox Then
+            DirectCast(sender, TextBox).BackColor = Color.FromArgb(38, 43, 47)
+        End If
+    End Sub
+
+    Private Sub TextBox_KeyDown(sender As Object, e As KeyEventArgs)
+        ' Handle Escape to cancel
+        If e.KeyCode = Keys.Escape Then
+            CancelCapture()
+            e.Handled = True
+            e.SuppressKeyPress = True
+        End If
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' START CAPTURE
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub StartCapture(txt As TextBox)
+        currentTextBox = txt
+        isCapturing = True
+
+        ' Visual feedback
+        txt.BackColor = Color.FromArgb(80, 80, 40)
+        txt.Text = "... กดปุ่ม ..."
+
+        ' Start capture timer
+        captureTimer.Start()
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' STOP CAPTURE
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub StopCapture()
+        isCapturing = False
+        captureTimer.Stop()
+
+        If currentTextBox IsNot Nothing Then
+            currentTextBox.BackColor = Color.FromArgb(38, 43, 47)
+            ' Restore text
+            If textBoxActions.ContainsKey(currentTextBox) Then
+                currentTextBox.Text = ShortcutSettings.GetDisplayText(textBoxActions(currentTextBox))
+            End If
+        End If
+
+        currentTextBox = Nothing
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' CANCEL CAPTURE
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub CancelCapture()
+        StopCapture()
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' CAPTURE TIMER - DETECT KEY PRESS
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub CaptureTimer_Tick(sender As Object, e As EventArgs) Handles captureTimer.Tick
+        If Not isCapturing OrElse currentTextBox Is Nothing Then
+            captureTimer.Stop()
+            Return
+        End If
+
+        ' Check modifier keys
+        Dim altPressed As Boolean = (GetAsyncKeyState(VK_ALT) And &H8000) <> 0
+        Dim ctrlPressed As Boolean = (GetAsyncKeyState(VK_CONTROL) And &H8000) <> 0
+        Dim shiftPressed As Boolean = (GetAsyncKeyState(VK_SHIFT) And &H8000) <> 0
+
+        ' Update text in real-time
+        UpdateCaptureText(altPressed, ctrlPressed, shiftPressed, 0)
+
+        ' Check for key press (F1-F24)
+        For vk As Integer = &H70 To &H87
+            If (GetAsyncKeyState(vk) And &H8000) <> 0 Then
+                ApplyShortcut(altPressed, ctrlPressed, shiftPressed, vk)
+                Return
+            End If
+        Next
+
+        ' Check letter keys A-Z
+        For vk As Integer = &H41 To &H5A
+            If (GetAsyncKeyState(vk) And &H8000) <> 0 Then
+                ApplyShortcut(altPressed, ctrlPressed, shiftPressed, vk)
+                Return
+            End If
+        Next
+
+        ' Check number keys 0-9
+        For vk As Integer = &H30 To &H39
+            If (GetAsyncKeyState(vk) And &H8000) <> 0 Then
+                ApplyShortcut(altPressed, ctrlPressed, shiftPressed, vk)
+                Return
+            End If
+        Next
+
+        ' Check special keys
+        Dim specialKeys As Integer() = {
+            &H1B, ' Escape
+            &H20, ' Space
+            &HD, ' Enter
+            &H8, ' Backspace
+            &H2D, ' Insert
+            &H2E, ' Delete
+            &H24, ' Home
+            &H23, ' End
+            &H21, ' PageUp
+            &H22, ' PageDown
+            &H25, ' Left
+            &H26, ' Up
+            &H27, ' Right
+            &H28  ' Down
+        }
+
+        For Each vk In specialKeys
+            If (GetAsyncKeyState(vk) And &H8000) <> 0 Then
+                ApplyShortcut(altPressed, ctrlPressed, shiftPressed, vk)
+                Return
+            End If
+        Next
+
+        ' Escape to cancel
+        If (GetAsyncKeyState(VK_ESCAPE) And &H8000) <> 0 Then
+            CancelCapture()
+        End If
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' UPDATE CAPTURE TEXT (REAL-TIME PREVIEW)
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub UpdateCaptureText(alt As Boolean, ctrl As Boolean, shift As Boolean, vk As Integer)
+        If currentTextBox Is Nothing Then Return
+
+        Dim parts As New List(Of String)()
+
+        If ctrl Then parts.Add("Ctrl")
+        If shift Then parts.Add("Shift")
+        If alt Then parts.Add("Alt")
+
+        If vk <> 0 Then
+            parts.Add(ShortcutSettings.VKToKeyName(vk))
+        Else
+            parts.Add("...")
+        End If
+
+        currentTextBox.Text = String.Join(" + ", parts)
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' APPLY SHORTCUT
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub ApplyShortcut(alt As Boolean, ctrl As Boolean, shift As Boolean, vk As Integer)
+        If currentTextBox Is Nothing Then Return
+        If Not textBoxActions.ContainsKey(currentTextBox) Then Return
+
+        Dim actionName As String = textBoxActions(currentTextBox)
+
+        ' Require at least one modifier
+        If Not alt AndAlso Not ctrl AndAlso Not shift Then
+            MessageBox.Show(
+                "ต้องกดปุ่ม Modifier อย่างน้อย 1 ตัว (Alt, Ctrl, หรือ Shift)",
+                "Invalid Shortcut",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Warning
+            )
+            StopCapture()
+            Return
+        End If
+
+        ' Calculate modifiers
+        Dim modifiers As Integer = 0
+        If alt Then modifiers = modifiers Or ShortcutSettings.MOD_ALT
+        If ctrl Then modifiers = modifiers Or ShortcutSettings.MOD_CTRL
+        If shift Then modifiers = modifiers Or ShortcutSettings.MOD_SHIFT
+
+        ' Check for conflicts with other shortcuts
+        For Each kvp In ShortcutSettings.Shortcuts
+            If kvp.Key <> actionName AndAlso
+               kvp.Value.Modifiers = modifiers AndAlso
+               kvp.Value.KeyCode = vk Then
+
+                Dim result As DialogResult = MessageBox.Show(
+                    $"Shortcut นี้ถูกใช้โดย '{kvp.Value.DisplayName}'" & vbCrLf &
+                    "ต้องการสลับ Shortcut หรือไม่?",
+                    "Shortcut Conflict",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question
+                )
+
+                If result = DialogResult.Yes Then
+                    ' Swap shortcuts - give the other action the old shortcut
+                    Dim oldModifiers As Integer = ShortcutSettings.Shortcuts(actionName).Modifiers
+                    Dim oldKeyCode As Integer = ShortcutSettings.Shortcuts(actionName).KeyCode
+
+                    ShortcutSettings.Shortcuts(kvp.Key).Modifiers = oldModifiers
+                    ShortcutSettings.Shortcuts(kvp.Key).KeyCode = oldKeyCode
+
+                    ' Update the other TextBox
+                    If textBoxKeys.ContainsKey(kvp.Key) Then
+                        textBoxKeys(kvp.Key).Text = ShortcutSettings.GetDisplayText(kvp.Key)
+                    End If
+                Else
+                    StopCapture()
+                    Return
+                End If
+
+                Exit For
+            End If
+        Next
+
+        ' Apply new shortcut
+        ShortcutSettings.Shortcuts(actionName).Modifiers = modifiers
+        ShortcutSettings.Shortcuts(actionName).KeyCode = vk
+
+        ' Update TextBox
+        currentTextBox.Text = ShortcutSettings.GetDisplayText(actionName)
+        currentTextBox.BackColor = Color.FromArgb(38, 43, 47)
+
+        ' Save to file
+        ShortcutSettings.Save()
+
+        ' Stop capturing
+        isCapturing = False
+        captureTimer.Stop()
+        currentTextBox = Nothing
+
+        ' Show confirmation
+        ShowConfirmation()
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' SHOW CONFIRMATION (Optional - brief visual feedback)
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub ShowConfirmation()
+        ' Flash green briefly
+        Dim originalColor As Color = Color.FromArgb(38, 43, 47)
+        For Each kvp In textBoxKeys
+            kvp.Value.BackColor = ColorTranslator.FromHtml("#76B900")
+        Next
+
+        ' Reset after 200ms
+        Dim resetTimer As New Timer With {.Interval = 200}
+        AddHandler resetTimer.Tick, Sub()
+                                        For Each kvp2 In textBoxKeys
+                                            kvp2.Value.BackColor = originalColor
+                                        Next
+                                        resetTimer.Stop()
+                                        resetTimer.Dispose()
+                                    End Sub
+        resetTimer.Start()
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' RESET ALL TO DEFAULTS
+    ' ══════════════════════════════════════════════════════════════
+    Public Sub ResetAllToDefaults()
+        Dim result As DialogResult = MessageBox.Show(
+            "ต้องการรีเซ็ต Shortcuts ทั้งหมดเป็นค่าเริ่มต้น?",
+            "Reset Shortcuts",
+            MessageBoxButtons.YesNo,
+            MessageBoxIcon.Question
+        )
+
+        If result = DialogResult.Yes Then
+            ShortcutSettings.LoadDefaults()
+            ShortcutSettings.Save()
+            UpdateAllTextBoxes()
+            MessageBox.Show("รีเซ็ตเรียบร้อยแล้ว", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End If
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' LABEL CLICK HANDLERS (Optional - for labels next to TextBoxes)
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub Label1_Click(sender As Object, e As EventArgs) Handles Label1.Click
+        TextBox1.Focus()
+    End Sub
+
+    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
+        TextBox2.Focus()
+    End Sub
+
+    Private Sub Label3_Click(sender As Object, e As EventArgs) Handles Label3.Click
+        TextBox3.Focus()
+    End Sub
+
+    Private Sub Label4_Click(sender As Object, e As EventArgs) Handles Label4.Click
+        TextBox4.Focus()
+    End Sub
+
+    Private Sub Label5_Click(sender As Object, e As EventArgs) Handles Label5.Click
+        TextBox5.Focus()
+    End Sub
+
+    Private Sub Label6_Click(sender As Object, e As EventArgs) Handles Label6.Click
+        TextBox6.Focus()
+    End Sub
+
+    ' ══════════════════════════════════════════════════════════════
+    ' CLOSE/CANCEL BUTTON
+    ' ══════════════════════════════════════════════════════════════
+    Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
+        Me.Hide()
+        ' Resume key detection in main form
+        Base.alt_z.Start()
+    End Sub
+
+
+End Class

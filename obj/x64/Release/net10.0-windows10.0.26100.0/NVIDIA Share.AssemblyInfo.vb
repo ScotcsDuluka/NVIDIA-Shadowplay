@@ -18,7 +18,7 @@ Imports System.Reflection
  Assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright© by Scotcs Duluka"),  _
  Assembly: System.Reflection.AssemblyDescriptionAttribute("NVIDIA ShadowPlay™ for All Users"),  _
  Assembly: System.Reflection.AssemblyFileVersionAttribute("3.00.100"),  _
- Assembly: System.Reflection.AssemblyInformationalVersionAttribute("3.00.100"),  _
+ Assembly: System.Reflection.AssemblyInformationalVersionAttribute("3.00.100+d9c9e6a505177e62e04f354c4c124e79b92895fb"),  _
  Assembly: System.Reflection.AssemblyProductAttribute("NVIDIA ShadowPlay"),  _
  Assembly: System.Reflection.AssemblyTitleAttribute("NVIDIA ShadowPlay"),  _
  Assembly: System.Reflection.AssemblyVersionAttribute("3.00.100"),  _
