@@ -1,4 +1,5 @@
 ﻿Imports System.Drawing
+Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 
@@ -92,7 +93,11 @@ Public Class Base_Notifier
         HideFromAltTab()
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        Me.Location = New Point(screenWidth - Me.Width, 105)
+        If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier")) Then
+            Me.Location = New Point(screenWidth - Me.Width, 205)
+        Else
+            Me.Location = New Point(screenWidth - Me.Width, 105)
+        End If
         Notifier_black.Location = New Point(Me.Width, 0)
         Notifier_green.Location = New Point(Me.Width, 0)
         Notifier_green.Size = New Size(300, 90)

@@ -33,7 +33,10 @@ Partial Class Base
         alt_f1 = New Timer(components)
         Logo = New PictureBox()
         logo_record = New Label()
-        action = New Panel()
+        Main_menu = New Panel()
+        menu_record_sub = New Label()
+        menu_record_sublogo = New Label()
+        menu_record_subkey = New Label()
         Label2 = New Label()
         s1l = New PictureBox()
         s1r = New PictureBox()
@@ -76,7 +79,7 @@ Partial Class Base
         a_1 = New PictureBox()
         s_replay = New Label()
         replay = New Label()
-        replay_on = New Label()
+        logo_replay = New Label()
         Key_Mode3 = New Label()
         Key_Mode2 = New Label()
         Key_Mode1 = New Label()
@@ -104,22 +107,22 @@ Partial Class Base
         bg_action = New Label()
         Label1 = New Label()
         action_sc = New Panel()
-        record_sc = New Panel()
+        sub_record = New Panel()
         str = New PictureBox()
         stl = New PictureBox()
-        stb = New PictureBox()
-        st1 = New PictureBox()
-        vsr = New PictureBox()
-        Label10 = New Label()
-        vsl = New PictureBox()
         vsb = New PictureBox()
+        stb = New PictureBox()
+        vsr = New PictureBox()
+        st1 = New PictureBox()
+        vsl = New PictureBox()
         vs1 = New PictureBox()
+        Label10 = New Label()
         sh_record = New Label()
         Label13 = New Label()
         Label14 = New Label()
         PictureBox5 = New PictureBox()
         PictureBox6 = New PictureBox()
-        replay_sc_all = New Panel()
+        sub_replay = New Panel()
         Label8 = New Label()
         rsr = New PictureBox()
         r_1r = New PictureBox()
@@ -136,6 +139,7 @@ Partial Class Base
         icon_replay = New Label()
         replay_sc = New PictureBox()
         replay_sc1 = New PictureBox()
+        menu_record_subbg = New PictureBox()
         Name_action = New Label()
         settings_1 = New Panel()
         SW_lang = New Label()
@@ -212,10 +216,12 @@ Partial Class Base
         hg1 = New Timer(components)
         alt_F_1_2 = New Timer(components)
         GAMES_IN = New Timer(components)
-        PictureBox18 = New PictureBox()
         Lang = New Timer(components)
+        ME_CLOSE_BG_GRE = New Label()
+        ME_CLOSE_BG = New Label()
+        d = New Label()
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
-        action.SuspendLayout()
+        Main_menu.SuspendLayout()
         CType(s1l, ComponentModel.ISupportInitialize).BeginInit()
         CType(s1r, ComponentModel.ISupportInitialize).BeginInit()
         CType(s1b, ComponentModel.ISupportInitialize).BeginInit()
@@ -254,18 +260,18 @@ Partial Class Base
         CType(a_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
         action_sc.SuspendLayout()
-        record_sc.SuspendLayout()
+        sub_record.SuspendLayout()
         CType(str, ComponentModel.ISupportInitialize).BeginInit()
         CType(stl, ComponentModel.ISupportInitialize).BeginInit()
-        CType(stb, ComponentModel.ISupportInitialize).BeginInit()
-        CType(st1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(vsr, ComponentModel.ISupportInitialize).BeginInit()
-        CType(vsl, ComponentModel.ISupportInitialize).BeginInit()
         CType(vsb, ComponentModel.ISupportInitialize).BeginInit()
+        CType(stb, ComponentModel.ISupportInitialize).BeginInit()
+        CType(vsr, ComponentModel.ISupportInitialize).BeginInit()
+        CType(st1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(vsl, ComponentModel.ISupportInitialize).BeginInit()
         CType(vs1, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
-        replay_sc_all.SuspendLayout()
+        sub_replay.SuspendLayout()
         CType(rsr, ComponentModel.ISupportInitialize).BeginInit()
         CType(r_1r, ComponentModel.ISupportInitialize).BeginInit()
         CType(r_1l, ComponentModel.ISupportInitialize).BeginInit()
@@ -276,6 +282,7 @@ Partial Class Base
         CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
         CType(replay_sc, ComponentModel.ISupportInitialize).BeginInit()
         CType(replay_sc1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(menu_record_subbg, ComponentModel.ISupportInitialize).BeginInit()
         settings_1.SuspendLayout()
         CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -307,7 +314,6 @@ Partial Class Base
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
         CType(hd, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' alt_z
@@ -339,97 +345,140 @@ Partial Class Base
         logo_record.Text = ""
         logo_record.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' action
+        ' Main_menu
         ' 
-        action.BackColor = Color.Red
-        action.Controls.Add(Label2)
-        action.Controls.Add(s1l)
-        action.Controls.Add(s1r)
-        action.Controls.Add(s1b)
-        action.Controls.Add(s1)
-        action.Controls.Add(PictureBox26)
-        action.Controls.Add(g1b)
-        action.Controls.Add(mic)
-        action.Controls.Add(vdo)
-        action.Controls.Add(g1r)
-        action.Controls.Add(g1)
-        action.Controls.Add(g1l)
-        action.Controls.Add(h1b)
-        action.Controls.Add(h1r)
-        action.Controls.Add(h1)
-        action.Controls.Add(h1l)
-        action.Controls.Add(s_3b)
-        action.Controls.Add(s_3)
-        action.Controls.Add(s_2b)
-        action.Controls.Add(s_2)
-        action.Controls.Add(s_1b)
-        action.Controls.Add(s_3r)
-        action.Controls.Add(s_3l)
-        action.Controls.Add(s_2r)
-        action.Controls.Add(s_2l)
-        action.Controls.Add(s_1r)
-        action.Controls.Add(s_1)
-        action.Controls.Add(s_1l)
-        action.Controls.Add(a_3b)
-        action.Controls.Add(a_3l)
-        action.Controls.Add(a_3r)
-        action.Controls.Add(a_2b)
-        action.Controls.Add(a_2l)
-        action.Controls.Add(a_1b)
-        action.Controls.Add(a_2r)
-        action.Controls.Add(a_1l)
-        action.Controls.Add(a_1r)
-        action.Controls.Add(a_3)
-        action.Controls.Add(a_2)
-        action.Controls.Add(a_1)
-        action.Controls.Add(s_replay)
-        action.Controls.Add(replay)
-        action.Controls.Add(replay_on)
-        action.Controls.Add(Key_Mode3)
-        action.Controls.Add(Key_Mode2)
-        action.Controls.Add(Key_Mode1)
-        action.Controls.Add(Text_Mode3)
-        action.Controls.Add(Logo_Mode3)
-        action.Controls.Add(Logo_Mode2)
-        action.Controls.Add(Text_Mode2)
-        action.Controls.Add(Text_Mode1)
-        action.Controls.Add(Logo_Mode1)
-        action.Controls.Add(Bg_Mode2)
-        action.Controls.Add(Bg_Mode3)
-        action.Controls.Add(Bg_Mode1)
-        action.Controls.Add(s_live)
-        action.Controls.Add(s_record)
-        action.Controls.Add(live)
-        action.Controls.Add(record)
-        action.Controls.Add(set_to)
-        action.Controls.Add(logo_gallery)
-        action.Controls.Add(gallery)
-        action.Controls.Add(pf)
-        action.Controls.Add(logo_pf)
-        action.Controls.Add(bg_gallery)
-        action.Controls.Add(bg_fps)
-        action.Controls.Add(logo_live)
-        action.Controls.Add(logo_record)
-        action.Controls.Add(bg_action)
-        action.Controls.Add(Label1)
-        action.Controls.Add(action_sc)
-        action.Location = New Point(32, 801)
-        action.Name = "action"
-        action.Size = New Size(1100, 422)
-        action.TabIndex = 12
+        Main_menu.BackColor = Color.Red
+        Main_menu.Controls.Add(menu_record_subkey)
+        Main_menu.Controls.Add(menu_record_sub)
+        Main_menu.Controls.Add(menu_record_sublogo)
+        Main_menu.Controls.Add(Label2)
+        Main_menu.Controls.Add(s1l)
+        Main_menu.Controls.Add(s1r)
+        Main_menu.Controls.Add(s1b)
+        Main_menu.Controls.Add(s1)
+        Main_menu.Controls.Add(PictureBox26)
+        Main_menu.Controls.Add(g1b)
+        Main_menu.Controls.Add(mic)
+        Main_menu.Controls.Add(vdo)
+        Main_menu.Controls.Add(g1r)
+        Main_menu.Controls.Add(g1)
+        Main_menu.Controls.Add(g1l)
+        Main_menu.Controls.Add(h1b)
+        Main_menu.Controls.Add(h1r)
+        Main_menu.Controls.Add(h1)
+        Main_menu.Controls.Add(h1l)
+        Main_menu.Controls.Add(s_3b)
+        Main_menu.Controls.Add(s_3)
+        Main_menu.Controls.Add(s_2b)
+        Main_menu.Controls.Add(s_2)
+        Main_menu.Controls.Add(s_1b)
+        Main_menu.Controls.Add(s_3r)
+        Main_menu.Controls.Add(s_3l)
+        Main_menu.Controls.Add(s_2r)
+        Main_menu.Controls.Add(s_2l)
+        Main_menu.Controls.Add(s_1r)
+        Main_menu.Controls.Add(s_1)
+        Main_menu.Controls.Add(s_1l)
+        Main_menu.Controls.Add(a_3b)
+        Main_menu.Controls.Add(a_3l)
+        Main_menu.Controls.Add(a_3r)
+        Main_menu.Controls.Add(a_2b)
+        Main_menu.Controls.Add(a_2l)
+        Main_menu.Controls.Add(a_1b)
+        Main_menu.Controls.Add(a_2r)
+        Main_menu.Controls.Add(a_1l)
+        Main_menu.Controls.Add(a_1r)
+        Main_menu.Controls.Add(a_3)
+        Main_menu.Controls.Add(a_2)
+        Main_menu.Controls.Add(a_1)
+        Main_menu.Controls.Add(s_replay)
+        Main_menu.Controls.Add(replay)
+        Main_menu.Controls.Add(logo_replay)
+        Main_menu.Controls.Add(Key_Mode3)
+        Main_menu.Controls.Add(Key_Mode2)
+        Main_menu.Controls.Add(Key_Mode1)
+        Main_menu.Controls.Add(Text_Mode3)
+        Main_menu.Controls.Add(Logo_Mode3)
+        Main_menu.Controls.Add(Logo_Mode2)
+        Main_menu.Controls.Add(Text_Mode2)
+        Main_menu.Controls.Add(Text_Mode1)
+        Main_menu.Controls.Add(Logo_Mode1)
+        Main_menu.Controls.Add(Bg_Mode2)
+        Main_menu.Controls.Add(Bg_Mode3)
+        Main_menu.Controls.Add(Bg_Mode1)
+        Main_menu.Controls.Add(s_live)
+        Main_menu.Controls.Add(s_record)
+        Main_menu.Controls.Add(live)
+        Main_menu.Controls.Add(record)
+        Main_menu.Controls.Add(set_to)
+        Main_menu.Controls.Add(logo_gallery)
+        Main_menu.Controls.Add(gallery)
+        Main_menu.Controls.Add(pf)
+        Main_menu.Controls.Add(logo_pf)
+        Main_menu.Controls.Add(bg_gallery)
+        Main_menu.Controls.Add(bg_fps)
+        Main_menu.Controls.Add(logo_live)
+        Main_menu.Controls.Add(logo_record)
+        Main_menu.Controls.Add(bg_action)
+        Main_menu.Controls.Add(Label1)
+        Main_menu.Controls.Add(action_sc)
+        Main_menu.Controls.Add(menu_record_subbg)
+        Main_menu.Location = New Point(32, 802)
+        Main_menu.Name = "Main_menu"
+        Main_menu.Size = New Size(1100, 422)
+        Main_menu.TabIndex = 12
+        ' 
+        ' menu_record_sub
+        ' 
+        menu_record_sub.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        menu_record_sub.BackColor = Color.Black
+        menu_record_sub.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        menu_record_sub.ForeColor = Color.White
+        menu_record_sub.Location = New Point(932, 209)
+        menu_record_sub.Name = "menu_record_sub"
+        menu_record_sub.Size = New Size(97, 24)
+        menu_record_sub.TabIndex = 83
+        menu_record_sub.Text = "{{arg}}"
+        menu_record_sub.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' menu_record_sublogo
+        ' 
+        menu_record_sublogo.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        menu_record_sublogo.BackColor = Color.Black
+        menu_record_sublogo.Font = New Font("nvgcshare", 15F)
+        menu_record_sublogo.ForeColor = Color.White
+        menu_record_sublogo.Location = New Point(904, 209)
+        menu_record_sublogo.Name = "menu_record_sublogo"
+        menu_record_sublogo.Size = New Size(37, 24)
+        menu_record_sublogo.TabIndex = 83
+        menu_record_sublogo.Text = ""
+        menu_record_sublogo.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' menu_record_subkey
+        ' 
+        menu_record_subkey.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        menu_record_subkey.BackColor = Color.Black
+        menu_record_subkey.Font = New Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        menu_record_subkey.ForeColor = Color.Gray
+        menu_record_subkey.Location = New Point(972, 209)
+        menu_record_subkey.Name = "menu_record_subkey"
+        menu_record_subkey.Size = New Size(125, 24)
+        menu_record_subkey.TabIndex = 83
+        menu_record_subkey.Text = "Alt+{{arg}}"
+        menu_record_subkey.TextAlign = ContentAlignment.MiddleRight
         ' 
         ' Label2
         ' 
-        Label2.AutoSize = True
         Label2.BackColor = Color.Black
         Label2.Cursor = Cursors.Hand
         Label2.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Label2.ForeColor = Color.White
-        Label2.Location = New Point(972, 154)
+        Label2.Location = New Point(972, 138)
         Label2.Name = "Label2"
-        Label2.Size = New Size(72, 21)
+        Label2.Size = New Size(90, 56)
         Label2.TabIndex = 81
         Label2.Text = "Settings"
+        Label2.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' s1l
         ' 
@@ -849,19 +898,19 @@ Partial Class Base
         replay.Text = "Instant Replay"
         replay.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' replay_on
+        ' logo_replay
         ' 
-        replay_on.BackColor = Color.Black
-        replay_on.Cursor = Cursors.Hand
-        replay_on.Font = New Font("nvgcshare", 80.25F)
-        replay_on.ForeColor = Color.White
-        replay_on.ImageAlign = ContentAlignment.TopCenter
-        replay_on.Location = New Point(256, 0)
-        replay_on.Name = "replay_on"
-        replay_on.Size = New Size(200, 200)
-        replay_on.TabIndex = 41
-        replay_on.Text = ""
-        replay_on.TextAlign = ContentAlignment.MiddleCenter
+        logo_replay.BackColor = Color.Black
+        logo_replay.Cursor = Cursors.Hand
+        logo_replay.Font = New Font("nvgcshare", 80.25F)
+        logo_replay.ForeColor = Color.White
+        logo_replay.ImageAlign = ContentAlignment.TopCenter
+        logo_replay.Location = New Point(256, 0)
+        logo_replay.Name = "logo_replay"
+        logo_replay.Size = New Size(200, 200)
+        logo_replay.TabIndex = 41
+        logo_replay.Text = ""
+        logo_replay.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Key_Mode3
         ' 
@@ -1196,34 +1245,34 @@ Partial Class Base
         ' 
         ' action_sc
         ' 
-        action_sc.Controls.Add(record_sc)
-        action_sc.Controls.Add(replay_sc_all)
+        action_sc.Controls.Add(sub_record)
+        action_sc.Controls.Add(sub_replay)
         action_sc.Location = New Point(250, 0)
         action_sc.Name = "action_sc"
-        action_sc.Size = New Size(594, 276)
+        action_sc.Size = New Size(594, 330)
         action_sc.TabIndex = 44
         ' 
-        ' record_sc
+        ' sub_record
         ' 
-        record_sc.Controls.Add(str)
-        record_sc.Controls.Add(stl)
-        record_sc.Controls.Add(stb)
-        record_sc.Controls.Add(st1)
-        record_sc.Controls.Add(vsr)
-        record_sc.Controls.Add(Label10)
-        record_sc.Controls.Add(vsl)
-        record_sc.Controls.Add(vsb)
-        record_sc.Controls.Add(vs1)
-        record_sc.Controls.Add(sh_record)
-        record_sc.Controls.Add(Label13)
-        record_sc.Controls.Add(Label14)
-        record_sc.Controls.Add(PictureBox5)
-        record_sc.Controls.Add(PictureBox6)
-        record_sc.Location = New Point(200, 200)
-        record_sc.Name = "record_sc"
-        record_sc.Size = New Size(200, 100)
-        record_sc.TabIndex = 44
-        record_sc.Visible = False
+        sub_record.Controls.Add(str)
+        sub_record.Controls.Add(stl)
+        sub_record.Controls.Add(vsb)
+        sub_record.Controls.Add(stb)
+        sub_record.Controls.Add(vsr)
+        sub_record.Controls.Add(st1)
+        sub_record.Controls.Add(vsl)
+        sub_record.Controls.Add(vs1)
+        sub_record.Controls.Add(Label10)
+        sub_record.Controls.Add(sh_record)
+        sub_record.Controls.Add(Label13)
+        sub_record.Controls.Add(Label14)
+        sub_record.Controls.Add(PictureBox5)
+        sub_record.Controls.Add(PictureBox6)
+        sub_record.Location = New Point(200, 200)
+        sub_record.Name = "sub_record"
+        sub_record.Size = New Size(200, 100)
+        sub_record.TabIndex = 44
+        sub_record.Visible = False
         ' 
         ' str
         ' 
@@ -1245,6 +1294,16 @@ Partial Class Base
         stl.TabStop = False
         stl.Visible = False
         ' 
+        ' vsb
+        ' 
+        vsb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        vsb.Location = New Point(0, 57)
+        vsb.Name = "vsb"
+        vsb.Size = New Size(200, 3)
+        vsb.TabIndex = 77
+        vsb.TabStop = False
+        vsb.Visible = False
+        ' 
         ' stb
         ' 
         stb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -1254,6 +1313,16 @@ Partial Class Base
         stb.TabIndex = 81
         stb.TabStop = False
         stb.Visible = False
+        ' 
+        ' vsr
+        ' 
+        vsr.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        vsr.Location = New Point(0, 30)
+        vsr.Name = "vsr"
+        vsr.Size = New Size(3, 30)
+        vsr.TabIndex = 78
+        vsr.TabStop = False
+        vsr.Visible = False
         ' 
         ' st1
         ' 
@@ -1265,15 +1334,25 @@ Partial Class Base
         st1.TabStop = False
         st1.Visible = False
         ' 
-        ' vsr
+        ' vsl
         ' 
-        vsr.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        vsr.Location = New Point(0, 30)
-        vsr.Name = "vsr"
-        vsr.Size = New Size(3, 30)
-        vsr.TabIndex = 78
-        vsr.TabStop = False
-        vsr.Visible = False
+        vsl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        vsl.Location = New Point(197, 30)
+        vsl.Name = "vsl"
+        vsl.Size = New Size(3, 30)
+        vsl.TabIndex = 75
+        vsl.TabStop = False
+        vsl.Visible = False
+        ' 
+        ' vs1
+        ' 
+        vs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        vs1.Location = New Point(0, 30)
+        vs1.Name = "vs1"
+        vs1.Size = New Size(200, 3)
+        vs1.TabIndex = 76
+        vs1.TabStop = False
+        vs1.Visible = False
         ' 
         ' Label10
         ' 
@@ -1286,36 +1365,6 @@ Partial Class Base
         Label10.Size = New Size(58, 19)
         Label10.TabIndex = 45
         Label10.Text = "Settings"
-        ' 
-        ' vsl
-        ' 
-        vsl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        vsl.Location = New Point(197, 30)
-        vsl.Name = "vsl"
-        vsl.Size = New Size(3, 30)
-        vsl.TabIndex = 75
-        vsl.TabStop = False
-        vsl.Visible = False
-        ' 
-        ' vsb
-        ' 
-        vsb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        vsb.Location = New Point(0, 57)
-        vsb.Name = "vsb"
-        vsb.Size = New Size(200, 3)
-        vsb.TabIndex = 77
-        vsb.TabStop = False
-        vsb.Visible = False
-        ' 
-        ' vs1
-        ' 
-        vs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        vs1.Location = New Point(0, 30)
-        vs1.Name = "vs1"
-        vs1.Size = New Size(200, 3)
-        vs1.TabIndex = 76
-        vs1.TabStop = False
-        vs1.Visible = False
         ' 
         ' sh_record
         ' 
@@ -1372,29 +1421,29 @@ Partial Class Base
         PictureBox6.TabIndex = 42
         PictureBox6.TabStop = False
         ' 
-        ' replay_sc_all
+        ' sub_replay
         ' 
-        replay_sc_all.Controls.Add(Label8)
-        replay_sc_all.Controls.Add(rsr)
-        replay_sc_all.Controls.Add(r_1r)
-        replay_sc_all.Controls.Add(r_1l)
-        replay_sc_all.Controls.Add(rsl)
-        replay_sc_all.Controls.Add(r_1b)
-        replay_sc_all.Controls.Add(r_1)
-        replay_sc_all.Controls.Add(rsb)
-        replay_sc_all.Controls.Add(Label7)
-        replay_sc_all.Controls.Add(Label16)
-        replay_sc_all.Controls.Add(rs1)
-        replay_sc_all.Controls.Add(sh_replay)
-        replay_sc_all.Controls.Add(if_replay)
-        replay_sc_all.Controls.Add(icon_replay)
-        replay_sc_all.Controls.Add(replay_sc)
-        replay_sc_all.Controls.Add(replay_sc1)
-        replay_sc_all.Location = New Point(0, 200)
-        replay_sc_all.Name = "replay_sc_all"
-        replay_sc_all.Size = New Size(200, 100)
-        replay_sc_all.TabIndex = 43
-        replay_sc_all.Visible = False
+        sub_replay.Controls.Add(Label8)
+        sub_replay.Controls.Add(rsr)
+        sub_replay.Controls.Add(r_1r)
+        sub_replay.Controls.Add(r_1l)
+        sub_replay.Controls.Add(rsl)
+        sub_replay.Controls.Add(r_1b)
+        sub_replay.Controls.Add(r_1)
+        sub_replay.Controls.Add(rsb)
+        sub_replay.Controls.Add(Label7)
+        sub_replay.Controls.Add(Label16)
+        sub_replay.Controls.Add(rs1)
+        sub_replay.Controls.Add(sh_replay)
+        sub_replay.Controls.Add(if_replay)
+        sub_replay.Controls.Add(icon_replay)
+        sub_replay.Controls.Add(replay_sc)
+        sub_replay.Controls.Add(replay_sc1)
+        sub_replay.Location = New Point(0, 200)
+        sub_replay.Name = "sub_replay"
+        sub_replay.Size = New Size(200, 100)
+        sub_replay.TabIndex = 43
+        sub_replay.Visible = False
         ' 
         ' Label8
         ' 
@@ -1567,6 +1616,16 @@ Partial Class Base
         replay_sc1.Size = New Size(200, 30)
         replay_sc1.TabIndex = 42
         replay_sc1.TabStop = False
+        ' 
+        ' menu_record_subbg
+        ' 
+        menu_record_subbg.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        menu_record_subbg.BackColor = Color.Black
+        menu_record_subbg.Location = New Point(900, 206)
+        menu_record_subbg.Name = "menu_record_subbg"
+        menu_record_subbg.Size = New Size(200, 30)
+        menu_record_subbg.TabIndex = 83
+        menu_record_subbg.TabStop = False
         ' 
         ' Name_action
         ' 
@@ -2263,20 +2322,49 @@ Partial Class Base
         GAMES_IN.Enabled = True
         GAMES_IN.Interval = 600
         ' 
-        ' PictureBox18
-        ' 
-        PictureBox18.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        PictureBox18.BackgroundImageLayout = ImageLayout.None
-        PictureBox18.Cursor = Cursors.No
-        PictureBox18.Location = New Point(1799, 12)
-        PictureBox18.Name = "PictureBox18"
-        PictureBox18.Size = New Size(58, 58)
-        PictureBox18.TabIndex = 45
-        PictureBox18.TabStop = False
-        ' 
         ' Lang
         ' 
         Lang.Enabled = True
+        ' 
+        ' ME_CLOSE_BG_GRE
+        ' 
+        ME_CLOSE_BG_GRE.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        ME_CLOSE_BG_GRE.BackColor = Color.Red
+        ME_CLOSE_BG_GRE.Cursor = Cursors.Hand
+        ME_CLOSE_BG_GRE.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG_GRE.ForeColor = Color.White
+        ME_CLOSE_BG_GRE.Location = New Point(1808, 21)
+        ME_CLOSE_BG_GRE.Name = "ME_CLOSE_BG_GRE"
+        ME_CLOSE_BG_GRE.Size = New Size(40, 40)
+        ME_CLOSE_BG_GRE.TabIndex = 84
+        ME_CLOSE_BG_GRE.Text = ""
+        ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' ME_CLOSE_BG
+        ' 
+        ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        ME_CLOSE_BG.BackColor = Color.Red
+        ME_CLOSE_BG.Cursor = Cursors.Hand
+        ME_CLOSE_BG.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG.ForeColor = Color.White
+        ME_CLOSE_BG.Location = New Point(1811, 24)
+        ME_CLOSE_BG.Name = "ME_CLOSE_BG"
+        ME_CLOSE_BG.Size = New Size(34, 34)
+        ME_CLOSE_BG.TabIndex = 85
+        ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' d
+        ' 
+        d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        d.BackColor = Color.Red
+        d.Cursor = Cursors.Hand
+        d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        d.ForeColor = Color.White
+        d.Location = New Point(1815, 24)
+        d.Name = "d"
+        d.Size = New Size(28, 34)
+        d.TabIndex = 86
+        d.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Base
         ' 
@@ -2285,11 +2373,13 @@ Partial Class Base
         AutoSize = True
         BackColor = Color.Red
         ClientSize = New Size(1869, 1236)
-        Controls.Add(PictureBox18)
+        Controls.Add(d)
+        Controls.Add(ME_CLOSE_BG)
+        Controls.Add(ME_CLOSE_BG_GRE)
         Controls.Add(Logo)
         Controls.Add(hd)
         Controls.Add(Name_action)
-        Controls.Add(action)
+        Controls.Add(Main_menu)
         Controls.Add(settings_1)
         DoubleBuffered = True
         FormBorderStyle = FormBorderStyle.None
@@ -2300,8 +2390,8 @@ Partial Class Base
         Text = "Base"
         TransparencyKey = Color.Red
         CType(Logo, ComponentModel.ISupportInitialize).EndInit()
-        action.ResumeLayout(False)
-        action.PerformLayout()
+        Main_menu.ResumeLayout(False)
+        Main_menu.PerformLayout()
         CType(s1l, ComponentModel.ISupportInitialize).EndInit()
         CType(s1r, ComponentModel.ISupportInitialize).EndInit()
         CType(s1b, ComponentModel.ISupportInitialize).EndInit()
@@ -2340,20 +2430,20 @@ Partial Class Base
         CType(a_2, ComponentModel.ISupportInitialize).EndInit()
         CType(a_1, ComponentModel.ISupportInitialize).EndInit()
         action_sc.ResumeLayout(False)
-        record_sc.ResumeLayout(False)
-        record_sc.PerformLayout()
+        sub_record.ResumeLayout(False)
+        sub_record.PerformLayout()
         CType(str, ComponentModel.ISupportInitialize).EndInit()
         CType(stl, ComponentModel.ISupportInitialize).EndInit()
-        CType(stb, ComponentModel.ISupportInitialize).EndInit()
-        CType(st1, ComponentModel.ISupportInitialize).EndInit()
-        CType(vsr, ComponentModel.ISupportInitialize).EndInit()
-        CType(vsl, ComponentModel.ISupportInitialize).EndInit()
         CType(vsb, ComponentModel.ISupportInitialize).EndInit()
+        CType(stb, ComponentModel.ISupportInitialize).EndInit()
+        CType(vsr, ComponentModel.ISupportInitialize).EndInit()
+        CType(st1, ComponentModel.ISupportInitialize).EndInit()
+        CType(vsl, ComponentModel.ISupportInitialize).EndInit()
         CType(vs1, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
-        replay_sc_all.ResumeLayout(False)
-        replay_sc_all.PerformLayout()
+        sub_replay.ResumeLayout(False)
+        sub_replay.PerformLayout()
         CType(rsr, ComponentModel.ISupportInitialize).EndInit()
         CType(r_1r, ComponentModel.ISupportInitialize).EndInit()
         CType(r_1l, ComponentModel.ISupportInitialize).EndInit()
@@ -2364,6 +2454,7 @@ Partial Class Base
         CType(rs1, ComponentModel.ISupportInitialize).EndInit()
         CType(replay_sc, ComponentModel.ISupportInitialize).EndInit()
         CType(replay_sc1, ComponentModel.ISupportInitialize).EndInit()
+        CType(menu_record_subbg, ComponentModel.ISupportInitialize).EndInit()
         settings_1.ResumeLayout(False)
         settings_1.PerformLayout()
         CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
@@ -2397,7 +2488,6 @@ Partial Class Base
         CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
         CType(hd, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -2406,7 +2496,7 @@ Partial Class Base
     Friend WithEvents alt_f1 As Timer
     Friend WithEvents Logo As PictureBox
     Friend WithEvents logo_record As Label
-    Friend WithEvents action As Panel
+    Friend WithEvents Main_menu As Panel
     Friend WithEvents logo_live As Label
     Friend WithEvents bg_gallery As Label
     Friend WithEvents bg_fps As Label
@@ -2448,13 +2538,13 @@ Partial Class Base
     Friend WithEvents action_sc As Panel
     Friend WithEvents replay_sc As PictureBox
     Friend WithEvents replay_sc1 As PictureBox
-    Friend WithEvents replay_sc_all As Panel
+    Friend WithEvents sub_replay As Panel
     Friend WithEvents if_replay As Label
     Friend WithEvents icon_replay As Label
     Friend WithEvents sh_replay As Label
     Friend WithEvents Label7 As Label
     Friend WithEvents Label8 As Label
-    Friend WithEvents replay_on As Label
+    Friend WithEvents logo_replay As Label
     Friend WithEvents Load As Timer
     Friend WithEvents alt_shift_f10 As Timer
     Friend WithEvents saved_e As PictureBox
@@ -2475,7 +2565,7 @@ Partial Class Base
     Friend WithEvents a_1 As PictureBox
     Friend WithEvents Timer5 As Timer
     Friend WithEvents Timer1 As Timer
-    Friend WithEvents record_sc As Panel
+    Friend WithEvents sub_record As Panel
     Friend WithEvents Label10 As Label
     Friend WithEvents sh_record As Label
     Friend WithEvents Label13 As Label
@@ -2584,8 +2674,14 @@ Partial Class Base
     Friend WithEvents s1b As PictureBox
     Friend WithEvents s1 As PictureBox
     Friend WithEvents GAMES_IN As Timer
-    Friend WithEvents PictureBox18 As PictureBox
     Friend WithEvents Lang As Timer
     Friend WithEvents SW_lang As Label
+    Friend WithEvents menu_record_subbg As PictureBox
+    Friend WithEvents menu_record_subkey As Label
+    Friend WithEvents menu_record_sub As Label
+    Friend WithEvents menu_record_sublogo As Label
+    Friend WithEvents ME_CLOSE_BG_GRE As Label
+    Friend WithEvents ME_CLOSE_BG As Label
+    Friend WithEvents d As Label
 
 End Class

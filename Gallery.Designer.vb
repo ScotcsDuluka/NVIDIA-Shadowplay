@@ -188,6 +188,7 @@ Partial Class Base_Gallery
         ' 
         txtFilePath.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         txtFilePath.BorderStyle = BorderStyle.None
+        txtFilePath.Enabled = False
         txtFilePath.Font = New System.Drawing.Font("Segoe UI", 13F, Drawing.FontStyle.Bold)
         txtFilePath.ForeColor = Drawing.Color.White
         txtFilePath.Location = New System.Drawing.Point(260, 73)
@@ -196,6 +197,7 @@ Partial Class Base_Gallery
         txtFilePath.ReadOnly = True
         txtFilePath.Size = New System.Drawing.Size(488, 28)
         txtFilePath.TabIndex = 46
+        txtFilePath.WordWrap = False
         ' 
         ' settings_1
         ' 

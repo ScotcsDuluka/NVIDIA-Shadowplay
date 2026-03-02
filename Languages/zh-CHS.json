@@ -1,4 +1,28 @@
 {
+    "meta.languageName": "简体中文",
+    "l10n.nvidiashadowplay": "GeForce Experience",
+    "l10n.LoactionSaved": "保存位置",
+    "l10n.Saved": "已保存",
+    "l10n.Shortcut": "快捷方式",
+    "l10n.Load": "加载",
+    "l10n.NotReady": "不可用",
+    "l10n.ThisNotReady": "此功能尚未准备就绪",
+    "l10n.checkForUpdates": "检查更新",
+    "l10n.notificationaccountconfirmerror": "账户验证错误",
+    "l10n.validsavepath": "请选择有效的截图保存路径",
+    "l10n.notificationReplaySaveError": "保存最近回放时出错",
+    "l10n.notificationTurnOnInstantReplay": "请开启即时回放以保存录像",
+    "l10n.notificationFeatureNotReady": "此功能尚未准备就绪",
+    "l10n.notifierOpen": "通知器已开启",
+    "l10n.notifierNotUsing": "未使用通知器",
+    "l10n.notificationAppClosed": "NVIDIA Shadowplay™ 应用已关闭",
+    "l10n.notificationSharedClose": "NVIDIA Shared 已关闭",
+    "l10n.notificationUpdateAvailable": "Shadowplay™ 有新版本可用",
+    "l10n.notificationVersionLatest": "Shadowplay™ 已是最新版本",
+    "l10n.notificationErrorGeneralz": "发生错误",
+
+
+
     "l10n.gfe": "GeForce Experience",
     "l10n.instantReplay": "即时重放",
     "l10n.manualRecord": "录制",

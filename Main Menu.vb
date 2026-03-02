@@ -2,13 +2,42 @@
 Imports System.Drawing
 Imports System.Drawing.Text
 Imports System.IO
+Imports System.Management
+Imports System.Reflection
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 Imports Microsoft.Win32
+Imports Notifier_API
+Imports WinRT
 
 Public Class Base
 
-#Region "Animation Engine"
+    Private cpuCounter As PerformanceCounter
+    Dim searcher As New ManagementObjectSearcher("SELECT * FROM Win32_VideoController")
+
+
+    Private Sub BaseCPU_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        cpuCounter = New PerformanceCounter("Processor", "% Processor Time", "_Total")
+        cpuCounter.NextValue() ' เรียกครั้งแรกก่อน
+        Load.Interval = 1000 ' เช็คทุก 1 วิ
+        Load.Start()
+
+
+    End Sub
+
+    Private Sub LoadCPU_Tick(sender As Object, e As EventArgs) Handles Load.Tick
+        Dim cpuUsage As Single = cpuCounter.NextValue()
+
+        If cpuUsage > 80 Then
+            Base_Notifier.Show()
+            Base_Notifier.text_n.Text = "High CPU Usage Detected : " & cpuUsage.ToString("0") & "%"
+            Base_Notifier.icon_n.Text = ""
+            Base_Notifier.icon_n.Font = New Font(Base_Notifier.icon_n.Font.FontFamily, 38)
+        End If
+    End Sub
+
+
+#Region "============================================================================ Animation Engine"
 
     Private animStart As DateTime
     Private animDuration As Double
@@ -61,7 +90,7 @@ Public Class Base
 
 #End Region
 
-#Region "Fonts"
+#Region "============================================================================ Fonts"
 
     Private pfc As New PrivateFontCollection()
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -71,7 +100,7 @@ Public Class Base
         pfc.AddFontFile(fontPath)
 
         Dim controlsToChange As Control() = {
-    Logo_Mode1, set_to, logo_py, replay_on, logo_record, logo_live, mic, vdo,
+    Logo_Mode1, set_to, logo_py, logo_replay, logo_record, logo_live, mic, vdo,
     logo_gallery, Logo_Mode2, Logo_Mode3, logo_pf, Label5, Label15, Label18,
     Label22, Label20, noty, Label9, icon_settings, Label14, icon_replay, Label8
 }
@@ -315,6 +344,11 @@ Public Class Base
         ' Load application data
         LoadMicrophoneData()
         CheckPrivacyControl()
+        If My.Settings.MicStatus = True Then
+            mic.Text = ""
+        Else
+            mic.Text = ""
+        End If
         Load.Start()
 
         ' Finalize initialization
@@ -398,8 +432,13 @@ Public Class Base
     End Sub
 
     Private Sub UpdateLocalizedTexts()
+        Lang.Start()
         text_settings.Text = LangHelper.GetText("l10n.settings")
-        Home_settings.Text = LangHelper.GetText("l10n.preferencesHome")
+        For Each obj As ManagementObject In searcher.Get()
+            Dim gpuName As String = obj("Name").ToString()
+
+            Home_settings.Text = (LangHelper.GetText("l10n.preferencesHome") & " | Wellcome!! " & gpuName)
+        Next
         action_fn.Text = LangHelper.GetText("l10n.done")
         ch.Text = LangHelper.GetText("l10n.checkForUpdates")
         text_py.Text = LangHelper.GetText("l10n.connect")
@@ -528,16 +567,19 @@ Public Class Base
     End Sub
 
     Private Sub HideAllControls()
+        isFunctionActive = False
+
+
         Me.Opacity = 0
         Base_Background_Top.Opacity = 0
         Base_Gallery.Opacity = 0
         hd.Size = New Size(10000, 10000)
 
         ' Hide panels
-        replay_sc_all.Visible = False
-        record_sc.Visible = False
+        sub_replay.Visible = False
+        sub_record.Visible = False
         settings_1.Visible = False
-        action.Visible = True
+        Main_menu.Visible = True
 
         ' Hide action indicators
         a_1.Visible = False
@@ -564,7 +606,7 @@ Public Class Base
         Dim marginTop As Integer = 150
 
         'action_sc.Location = New Point((Me.ClientSize.Width - action_sc.Width) / 2, marginTop)
-        action.Location = New Point((Me.ClientSize.Width - action.Width) / 2, marginTop)
+        Main_menu.Location = New Point((Me.ClientSize.Width - Main_menu.Width) / 2, marginTop)
         Base_Gallery.settings_1.Location = New Point((Me.ClientSize.Width - Base_Gallery.settings_1.Width) / 2, marginTop)
         Base_Privacy_Control.settings_1.Location = New Point((Me.ClientSize.Width - Base_Privacy_Control.settings_1.Width) / 2, marginTop)
         settings_1.Location = New Point((Me.ClientSize.Width - settings_1.Width) / 2, marginTop)
@@ -738,12 +780,12 @@ Public Class Base
 
         If Replay_value Then
             ' เปิด Instant Replay
-            replay_on.ForeColor = greenColor
+            logo_replay.ForeColor = greenColor
             if_replay.Text = LangHelper.GetText("l10n.instantReplayStop")
             ShowNotifier("instant_replay_on")
         Else
             ' ปิด Instant Replay
-            replay_on.ForeColor = Color.White
+            logo_replay.ForeColor = Color.White
             if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
             ShowNotifier("instant_replay_off")
         End If
@@ -885,9 +927,9 @@ Public Class Base
         a_2.Visible = False
         a_3.Visible = False
         settings_1.Visible = True
-        action.Visible = False
-        replay_sc_all.Visible = False
-        record_sc.Visible = False
+        Main_menu.Visible = False
+        sub_replay.Visible = False
+        sub_record.Visible = False
     End Sub
 
     Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles set_to.MouseMove
@@ -949,36 +991,40 @@ Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY"
 
-    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs) Handles replay_on.MouseMove
-        SetReplayBorder(Not replay_sc_all.Visible)
+    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_replay.MouseMove
+        SetReplayBorder(Not sub_replay.Visible)
         Base_Background_Top.b1.Visible = True
     End Sub
 
-    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles replay_on.MouseLeave
+    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles logo_replay.MouseLeave
         SetReplayBorder(False)
-        ' คงสีไว้ตามสถานะ Replay_value
-        replay_on.ForeColor = If(Replay_value, greenColor, Color.White)
-        Base_Background_Top.b1.Visible = False
+        logo_replay.ForeColor = If(Replay_value, greenColor, Color.White)
+        If sub_replay.Visible = True Then
+            Base_Background_Top.b1.Visible = True
+        Else
+            Base_Background_Top.b1.Visible = False
+        End If
     End Sub
 
     Private Sub SetReplayBorder(isVisible As Boolean)
-        a_1.Visible = replay_sc_all.Visible OrElse isVisible
+
+        a_1.Visible = sub_replay.Visible OrElse isVisible
         a_1r.Visible = isVisible
         a_1l.Visible = isVisible
         a_1b.Visible = isVisible
     End Sub
 
     Private Sub logo_replay_Click(sender As Object, e As EventArgs)
-        replay_sc_all.Visible = Not replay_sc_all.Visible
-        record_sc.Visible = False
+        sub_replay.Visible = Not sub_replay.Visible
+        sub_record.Visible = False
         a_1.Visible = Not a_1.Visible
         a_2.Visible = False
         a_3.Visible = False
     End Sub
 
-    Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles replay_on.Click
-        replay_sc_all.Visible = Not replay_sc_all.Visible
-        record_sc.Visible = False
+    Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles logo_replay.Click
+        sub_replay.Visible = Not sub_replay.Visible
+        sub_record.Visible = False
         a_1.Visible = Not a_1.Visible
         a_2.Visible = False
         a_3.Visible = False
@@ -989,7 +1035,7 @@ Public Class Base
 #Region "============================================================================ MOUSE EVENT HANDLERS - RECORD"
 
     Private Sub logo_record_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_record.MouseMove
-        SetRecordBorder(Not record_sc.Visible)
+        SetRecordBorder(Not sub_record.Visible)
         Base_Background_Top.b2.Visible = True
     End Sub
 
@@ -1006,15 +1052,15 @@ Public Class Base
     End Sub
 
     Private Sub SetRecordBorder(isVisible As Boolean)
-        a_2.Visible = record_sc.Visible OrElse isVisible
+        a_2.Visible = sub_record.Visible OrElse isVisible
         a_2r.Visible = isVisible
         a_2l.Visible = isVisible
         a_2b.Visible = isVisible
     End Sub
 
     Private Sub logo_record_Click(sender As Object, e As EventArgs) Handles logo_record.Click
-        record_sc.Visible = Not record_sc.Visible
-        replay_sc_all.Visible = False
+        sub_record.Visible = Not sub_record.Visible
+        sub_replay.Visible = False
         a_2.Visible = True
         a_1.Visible = False
         a_3.Visible = False
@@ -1042,10 +1088,10 @@ Public Class Base
     End Sub
 
     Private Sub logo_live_Click(sender As Object, e As EventArgs) Handles logo_live.Click
-        File.Create(Path.Combine(Application.StartupPath, DataDirectoryName, "notuse-api")).Dispose()
-        replay_sc_all.Visible = False
+        File.Create(Path.Combine(Application.StartupPath, DataDirectoryName, "feature_not_ready-api")).Dispose()
+        sub_replay.Visible = False
         a_1.Visible = False
-        record_sc.Visible = False
+        sub_record.Visible = False
         a_2.Visible = False
     End Sub
 
@@ -1131,14 +1177,14 @@ Public Class Base
     End Sub
 
     Private Sub ShowGallery()
-        action.Visible = False
+        Main_menu.Visible = False
         a_1.Visible = False
         a_2.Visible = False
         a_3.Visible = False
         Base_Gallery.WindowState = FormWindowState.Maximized
         Base_Gallery.Opacity = 1
-        replay_sc_all.Visible = False
-        record_sc.Visible = False
+        sub_replay.Visible = False
+        sub_record.Visible = False
         Base_Gallery.Show()
     End Sub
 
@@ -1192,7 +1238,7 @@ Public Class Base
     Private Sub HandleReplayToggle()
         a_1.Visible = False
         ToggleInstantReplay()
-        replay_sc_all.Visible = False
+        sub_replay.Visible = False
     End Sub
 
 #End Region
@@ -1252,7 +1298,7 @@ Public Class Base
             ' Replay ปิดอยู่ - ต้องเปิดก่อน
             ShowNotifier("replay_turn_on")
         End If
-        replay_sc_all.Visible = False
+        sub_replay.Visible = False
     End Sub
 
 #End Region
@@ -1305,7 +1351,7 @@ Public Class Base
     Private Sub HandleRecordToggle()
         a_2.Visible = False
         ToggleRecording()
-        record_sc.Visible = False
+        sub_record.Visible = False
     End Sub
 
 #End Region
@@ -1518,15 +1564,15 @@ Public Class Base
         a_2.Visible = False
         a_3.Visible = False
         settings_1.Visible = True
-        action.Visible = False
-        replay_sc_all.Visible = False
-        record_sc.Visible = False
+        Main_menu.Visible = False
+        sub_replay.Visible = False
+        sub_record.Visible = False
     End Sub
 
     Private Sub OpenRecordings()
         a_2.Visible = False
-        action.Visible = False
-        record_sc.Visible = False
+        Main_menu.Visible = False
+        sub_record.Visible = False
         alt_z.Stop()
         alt_shift_f10.Stop()
         record_1.Stop()
@@ -1749,10 +1795,25 @@ Public Class Base
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
         AlignPanelToTop()
 
+
         up.Start()
         UpdateReplayStatus()
         UpdateRecordStatus()
         UpdateMicStatus()
+        Dim filePaths As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")
+
+        Try
+            If Base_Notifier.Visible Then
+                If Not File.Exists(filePaths) Then
+                    File.Create(filePaths).Dispose()
+                End If
+            Else
+                If File.Exists(filePaths) Then
+                    File.Delete(filePaths)
+                End If
+            End If
+        Catch ex As Exception
+        End Try
     End Sub
 
     Private Sub py_cc_Tick(sender As Object, e As EventArgs) Handles py_cc.Tick
@@ -1767,7 +1828,7 @@ Public Class Base
             ' รีเซ็ต Instant Replay
             If Replay_value Then
                 Replay_value = False
-                replay_on.ForeColor = Color.White
+                logo_replay.ForeColor = Color.White
                 if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
             End If
 
@@ -1848,23 +1909,17 @@ Public Class Base
         Dim dataPath As String = Application.StartupPath & DataDirectoryName & "/"
 
         If Replay_value Then
-            ' Replay เปิดอยู่
             s_replay.Text = LangHelper.GetText("l10n.on")
             s_replay.ForeColor = greenColor
-            replay_on.ForeColor = greenColor
-            File.Delete(dataPath & ReplayOffFile)
-            File.Create(dataPath & ReplayOnFile).Dispose()
+            logo_replay.ForeColor = greenColor
             replay_sc1.Visible = True
             Label16.Visible = True
             Label8.Visible = True
             Label7.Visible = True
         Else
-            ' Replay ปิดอยู่
             s_replay.Text = LangHelper.GetText("l10n.off")
             s_replay.ForeColor = Color.Gray
-            replay_on.ForeColor = Color.White
-            File.Delete(dataPath & ReplayOnFile)
-            File.Create(dataPath & ReplayOffFile).Dispose()
+            logo_replay.ForeColor = Color.White
             replay_sc1.Visible = False
             Label16.Visible = False
             Label8.Visible = False
@@ -1873,14 +1928,13 @@ Public Class Base
     End Sub
 
     Private Sub UpdateMicStatus()
-        Dim dataPath As String = Application.StartupPath & DataDirectoryName & "/"
 
-        If mic.Text = "" Then
-            File.Delete(dataPath & MicOnFile)
-            File.Create(dataPath & MicOffFile).Dispose()
+        If mic.Text = "" Then
+            My.Settings.MicStatus = True
+            My.Settings.Save()
         Else
-            File.Delete(dataPath & MicOffFile)
-            File.Create(dataPath & MicOnFile).Dispose()
+            My.Settings.MicStatus = False
+            My.Settings.Save()
         End If
     End Sub
 
@@ -1927,7 +1981,7 @@ Public Class Base
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Opacity = 0.85
         settings_1.Visible = False
-        action.Visible = True
+        Main_menu.Visible = True
     End Sub
 
 
@@ -1970,10 +2024,6 @@ Public Class Base
         End Using
     End Sub
 
-    Private Sub PictureBox18_Click(sender As Object, e As EventArgs) Handles PictureBox18.Click
-        HideAllControls()
-    End Sub
-
     Private Sub SW_lang_Click(sender As Object, e As EventArgs) Handles SW_lang.Click
 
         Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
@@ -2011,6 +2061,26 @@ Public Class Base
     Private Sub ch_Click(sender As Object, e As EventArgs) Handles ch.Click
         ch.Enabled = False
         CheckForUpdateAsync()
+    End Sub
+
+    Private Sub PictureBox19_MouseMove(sender As Object, e As MouseEventArgs) Handles menu_record_sub.MouseMove, menu_record_subkey.MouseMove
+        menu_record_subbg.BackColor = greenColor
+    End Sub
+
+    Private Sub PictureBox19_MouseLeave(sender As Object, e As EventArgs) Handles menu_record_sub.MouseLeave, menu_record_subkey.MouseLeave
+        menu_record_subbg.BackColor = Color.Black
+    End Sub
+
+    Private Sub ME_CLOSE_BG_MouseMove(sender As Object, e As MouseEventArgs) Handles ME_CLOSE_BG.MouseMove, d.MouseMove
+        Base_Background_Top.ME_CLOSE_BG_GRE.BackColor = greenColor
+    End Sub
+
+    Private Sub ME_CLOSE_BG_MouseLeave(sender As Object, e As EventArgs) Handles ME_CLOSE_BG.MouseLeave, d.MouseLeave
+        Base_Background_Top.ME_CLOSE_BG_GRE.BackColor = Color.Black
+    End Sub
+
+    Private Sub ME_CLOSE_BG_Click(sender As Object, e As EventArgs) Handles ME_CLOSE_BG.Click, d.Click
+        HideAllControls()
     End Sub
 #End Region
 

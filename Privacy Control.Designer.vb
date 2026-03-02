@@ -165,7 +165,7 @@ Partial Class Base_Privacy_Control
         Label4.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label4.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
         Label4.ForeColor = Drawing.Color.White
-        Label4.Location = New System.Drawing.Point(258, 43)
+        Label4.Location = New System.Drawing.Point(292, 43)
         Label4.Name = "Label4"
         Label4.Size = New System.Drawing.Size(125, 21)
         Label4.TabIndex = 51
@@ -177,7 +177,7 @@ Partial Class Base_Privacy_Control
         Label5.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label5.Font = New System.Drawing.Font("nvgcshare", 22F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
         Label5.ForeColor = Drawing.Color.White
-        Label5.Location = New System.Drawing.Point(376, 38)
+        Label5.Location = New System.Drawing.Point(260, 38)
         Label5.Name = "Label5"
         Label5.Size = New System.Drawing.Size(43, 30)
         Label5.TabIndex = 50

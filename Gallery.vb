@@ -55,9 +55,10 @@ Public Class Base_Gallery
         ' Reserved for future initialization logic
     End Sub
 
-    Private Sub Gallery_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Async Sub Gallery_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
         InitializeUI()
+        Await Task.Delay(1000)
         LoadImagesFromPath()
     End Sub
 
@@ -66,7 +67,7 @@ Public Class Base_Gallery
     End Sub
 
     Private Sub InitializeUI()
-        Base.action.Visible = False
+        Base.Main_menu.Visible = False
         settings_1.Size = New Size(SettingsPanelWidth, SettingsPanelHeight)
     End Sub
 
@@ -140,10 +141,10 @@ Public Class Base_Gallery
         Dim folderPath As String = txtFilePath.Text.Trim()
 
         If Directory.Exists(folderPath) Then
-            ShowNotifier("Location capture has been saved", "", False)
+            ShowNotifier("Location capture has been saved", "", False)
             CloseGalleryAndReturnToBase()
         Else
-            ShowNotifier("Please select a valid save path for capture.", "", False)
+            ShowNotifier("Please select a valid save path for capture.", "", False)
         End If
     End Sub
 
@@ -152,7 +153,7 @@ Public Class Base_Gallery
         Opacity = 0
         Hide()
         Base.Show()
-        Base.action.Visible = True
+        Base.Main_menu.Visible = True
         Base.alt_z.Start()
     End Sub
 
@@ -162,27 +163,13 @@ Public Class Base_Gallery
             HandleCaptureFolder()
             Base_Notifier.text_n.Text = "Folders open : " & folderPath
         Else
-            ShowNotifier("Please select a valid save path for capture.", "", False)
+            ShowNotifier("Please select a valid save path for capture.", "", False)
         End If
     End Sub
 
 #End Region
 
-#Region "============================================================================ EVENT HANDLERS - FOLDER SELECTION"
 
-    Private Sub save_sc_Click(sender As Object, e As EventArgs) Handles save_sc.Click
-        Using folderDlg As New FolderBrowserDialog With {
-            .Description = "Select the folder to save the capture."
-        }
-            If folderDlg.ShowDialog() = DialogResult.OK Then
-                txtFilePath.Text = folderDlg.SelectedPath
-                My.Settings.SavePath = txtFilePath.Text
-                My.Settings.Save()
-            End If
-        End Using
-    End Sub
-
-#End Region
 
 #Region "============================================================================ EVENT HANDLERS - GALLERY ACTIONS"
 

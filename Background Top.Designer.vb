@@ -38,6 +38,9 @@ Partial Class Base_Background_Top
         b2 = New Label()
         b1 = New Label()
         ANIME = New Timer(components)
+        d = New Label()
+        ME_CLOSE_BG = New Label()
+        ME_CLOSE_BG_GRE = New Label()
         Main_Top.SuspendLayout()
         CType(PictureGFE, ComponentModel.ISupportInitialize).BeginInit()
         ac1.SuspendLayout()
@@ -46,9 +49,12 @@ Partial Class Base_Background_Top
         ' Main_Top
         ' 
         Main_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Main_Top.Controls.Add(d)
+        Main_Top.Controls.Add(ME_CLOSE_BG)
+        Main_Top.Controls.Add(ME_CLOSE_BG_GRE)
         Main_Top.Controls.Add(PictureGFE)
         Main_Top.Controls.Add(Logo_text)
-        Main_Top.Location = New System.Drawing.Point(0, -100)
+        Main_Top.Location = New System.Drawing.Point(0, 0)
         Main_Top.Name = "Main_Top"
         Main_Top.Size = New System.Drawing.Size(1460, 80)
         Main_Top.TabIndex = 10
@@ -224,6 +230,47 @@ Partial Class Base_Background_Top
         ANIME.Enabled = True
         ANIME.Interval = 1
         ' 
+        ' d
+        ' 
+        d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        d.BackColor = Drawing.Color.Black
+        d.Cursor = Cursors.Hand
+        d.Font = New System.Drawing.Font("nvgcshare", 26.25F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
+        d.ForeColor = Drawing.Color.White
+        d.Location = New System.Drawing.Point(1406, 23)
+        d.Name = "d"
+        d.Size = New System.Drawing.Size(28, 34)
+        d.TabIndex = 89
+        d.Text = ""
+        d.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        ' 
+        ' ME_CLOSE_BG
+        ' 
+        ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        ME_CLOSE_BG.BackColor = Drawing.Color.Black
+        ME_CLOSE_BG.Cursor = Cursors.Hand
+        ME_CLOSE_BG.Font = New System.Drawing.Font("nvgcshare", 26.25F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG.ForeColor = Drawing.Color.White
+        ME_CLOSE_BG.Location = New System.Drawing.Point(1402, 23)
+        ME_CLOSE_BG.Name = "ME_CLOSE_BG"
+        ME_CLOSE_BG.Size = New System.Drawing.Size(34, 34)
+        ME_CLOSE_BG.TabIndex = 88
+        ME_CLOSE_BG.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        ' 
+        ' ME_CLOSE_BG_GRE
+        ' 
+        ME_CLOSE_BG_GRE.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        ME_CLOSE_BG_GRE.BackColor = Drawing.Color.Black
+        ME_CLOSE_BG_GRE.Cursor = Cursors.No
+        ME_CLOSE_BG_GRE.Font = New System.Drawing.Font("nvgcshare", 26.25F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG_GRE.ForeColor = Drawing.Color.White
+        ME_CLOSE_BG_GRE.Location = New System.Drawing.Point(1399, 20)
+        ME_CLOSE_BG_GRE.Name = "ME_CLOSE_BG_GRE"
+        ME_CLOSE_BG_GRE.Size = New System.Drawing.Size(40, 40)
+        ME_CLOSE_BG_GRE.TabIndex = 87
+        ME_CLOSE_BG_GRE.Text = ""
+        ME_CLOSE_BG_GRE.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        ' 
         ' Base_Background_Top
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
@@ -262,4 +309,7 @@ Partial Class Base_Background_Top
     Friend WithEvents Bg_Mode2 As Label
     Friend WithEvents Bg_Mode3 As Label
     Friend WithEvents PictureGFE As PictureBox
+    Friend WithEvents d As Label
+    Friend WithEvents ME_CLOSE_BG As Label
+    Friend WithEvents ME_CLOSE_BG_GRE As Label
 End Class

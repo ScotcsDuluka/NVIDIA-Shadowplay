@@ -109,5 +109,7 @@ Public Class Base_Background_Top
             Main_Top.Location = New Point(0, -100)
         End If
 
+        If Main_Top.Location = New Point(0, 0) Then
+        End If
     End Sub
 End Class
