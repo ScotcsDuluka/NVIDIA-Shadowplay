@@ -4,6 +4,7 @@ Imports System.Net.Http
 Imports System.Reflection
 Imports System.Threading.Tasks
 Imports Newtonsoft.Json.Linq
+Imports System.Drawing
 
 Module UpdateChecker
 
@@ -29,6 +30,13 @@ Module UpdateChecker
                         Process.Start(New ProcessStartInfo(downloadUrl) With {.UseShellExecute = True})
                     End If
                     File.Create(Path.Combine(dataFolder, "update_available-api")).Dispose()
+                    Base_Notifier.Show()
+                    With Base_Notifier
+                        .icon_n.Font = New Font(.icon_n.Font.FontFamily, If(isValidPath, 50, 40))
+                        .icon_n.ForeColor = Color.White
+                        .icon_n.Text = ""
+                        .text_n.Text = LangHelper.GetText("l10n.notificationUploadURLCopied")
+                    End With
                 Else
                     File.Create(Path.Combine(dataFolder, "version_latest-api")).Dispose()
                 End If

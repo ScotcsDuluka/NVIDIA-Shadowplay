@@ -67,14 +67,31 @@ Public Class Base_Gallery
     End Sub
 
     Private Sub InitializeUI()
-        Base.Main_menu.Visible = False
+        Base.Main_menu_list.Visible = False
         settings_1.Size = New Size(SettingsPanelWidth, SettingsPanelHeight)
     End Sub
 
 #End Region
 
 #Region "============================================================================ IMAGE LOADING"
+    Private Function CropTo16by9(img As Image) As Image
+        Dim targetWidth As Integer = img.Width
+        Dim targetHeight As Integer = CInt(targetWidth * 9 / 16)
 
+        If targetHeight > img.Height Then
+            targetHeight = img.Height
+            targetWidth = CInt(targetHeight * 16 / 9)
+        End If
+
+        Dim x As Integer = (img.Width - targetWidth) \ 2
+        Dim y As Integer = (img.Height - targetHeight) \ 2
+
+        Dim bmp As New Bitmap(targetWidth, targetHeight)
+        Using g As Graphics = Graphics.FromImage(bmp)
+            g.DrawImage(img, 0, 0, New Rectangle(x, y, targetWidth, targetHeight), GraphicsUnit.Pixel)
+        End Using
+        Return bmp
+    End Function
     Private Sub LoadImagesFromPath()
         Dim folderPath As String = txtFilePath.Text
 
@@ -84,38 +101,83 @@ Public Class Base_Gallery
             ShowNotifier("Please select a valid save path for capture.", "", False)
         End If
     End Sub
-
-    Private Sub LoadImages(folderPath As String)
-        FlowLayoutPanel1.Controls.Clear()
-
-        Try
-            Dim imageFiles As IEnumerable(Of String) = GetImageFiles(folderPath)
-
-            For Each file As String In imageFiles
-                AddImageThumbnail(file)
-            Next
-        Catch ex As Exception
-            MessageBox.Show("ไม่สามารถดึงข้อมูลรูปภาพได้: " & ex.Message)
-        End Try
-    End Sub
-
     Private Function GetImageFiles(folderPath As String) As IEnumerable(Of String)
         Return Directory.GetFiles(folderPath, "*.*").Where(Function(f)
                                                                Dim extension As String = Path.GetExtension(f).ToLower()
                                                                Return SupportedImageExtensions.Contains(extension)
                                                            End Function)
     End Function
+    Private Sub LoadImages(folderPath As String)
+        FlowLayoutPanel1.Controls.Clear()
 
-    Private Sub AddImageThumbnail(filePath As String)
+        Try
+            Dim imageFiles As IEnumerable(Of String) = GetImageFiles(folderPath)
+
+            ' โหลดภาพแบบ async
+            Task.Run(Sub()
+                         For Each file As String In imageFiles
+                             Try
+                                 ' โหลดรูปจากไฟล์
+                                 Using fs As New FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read)
+                                     Using img As New Bitmap(fs)
+                                         Dim croppedImg As Image = CropTo16by9(img)
+
+                                         ' สร้าง PictureBox
+                                         Dim picBox As New PictureBox() With {
+                                         .Image = New Bitmap(croppedImg),
+                                         .SizeMode = PictureBoxSizeMode.Zoom,
+                                         .Width = ThumbnailWidth,
+                                         .Height = ThumbnailHeight,
+                                         .BorderStyle = BorderStyle.FixedSingle
+                                     }
+
+                                         ' เพิ่มเข้า FlowLayoutPanel ใน UI thread
+                                         If FlowLayoutPanel1.InvokeRequired Then
+                                             FlowLayoutPanel1.Invoke(Sub() FlowLayoutPanel1.Controls.Add(picBox))
+                                         Else
+                                             FlowLayoutPanel1.Controls.Add(picBox)
+                                         End If
+                                     End Using
+                                 End Using
+                             Catch ex As Exception
+                                 Debug.WriteLine("Error loading image: " & ex.Message)
+                             End Try
+                         Next
+                     End Sub)
+
+        Catch ex As Exception
+            MessageBox.Show("ไม่สามารถดึงข้อมูลรูปภาพได้: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Async Sub AddImageThumbnail(filePath As String)
+        Dim bmp As Bitmap = Nothing
+
+        Try
+            ' โหลดรูปแบบ async โดยใช้ MemoryStream
+            Using fs As New FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read)
+                bmp = New Bitmap(fs)
+            End Using
+        Catch ex As Exception
+            Debug.WriteLine("Error loading image: " & ex.Message)
+            Return
+        End Try
+
+        ' สร้าง PictureBox
         Dim picBox As New PictureBox() With {
-            .Image = Image.FromFile(filePath),
-            .SizeMode = PictureBoxSizeMode.Zoom,
-            .Width = ThumbnailWidth,
-            .Height = ThumbnailHeight,
-            .BorderStyle = BorderStyle.FixedSingle
-        }
+        .Image = bmp,
+        .SizeMode = PictureBoxSizeMode.Zoom,
+        .Width = ThumbnailWidth,
+        .Height = ThumbnailHeight,
+        .BorderStyle = BorderStyle.FixedSingle
+    }
 
-        FlowLayoutPanel1.Controls.Add(picBox)
+        ' เพิ่มเข้า FlowLayoutPanel ใน UI thread
+        If FlowLayoutPanel1.InvokeRequired Then
+            FlowLayoutPanel1.Invoke(Sub() FlowLayoutPanel1.Controls.Add(picBox))
+        Else
+            FlowLayoutPanel1.Controls.Add(picBox)
+        End If
     End Sub
 
 #End Region
@@ -153,8 +215,8 @@ Public Class Base_Gallery
         Opacity = 0
         Hide()
         Base.Show()
-        Base.Main_menu.Visible = True
-        Base.alt_z.Start()
+        Base.Main_menu_list.Visible = True
+        Base.ALT_Z.Start()
     End Sub
 
     Private Sub OpenFolderInExplorer(folderPath As String)

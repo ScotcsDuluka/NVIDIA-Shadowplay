@@ -21,9 +21,9 @@ Public Class Base_RecordingsSet
     End Sub
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Base.settings_1.Visible = True
-        Base.alt_z.Start()
-        Base.alt_shift_f10.Start()
-        Base.record_1.Start()
+        Base.ALT_Z.Start()
+        Base.ALT_SHIFT_F10.Start()
+        Base.ALT_F9.Start()
         Me.Hide()
         Label2.ForeColor = Color.White
         Label2.Cursor = Cursors.Hand
@@ -32,9 +32,9 @@ Public Class Base_RecordingsSet
 
     Private Sub bg_fn_Click(sender As Object, e As EventArgs) Handles bg_fn.Click
         Base.settings_1.Visible = True
-        Base.alt_z.Start()
-        Base.alt_shift_f10.Start()
-        Base.record_1.Start()
+        Base.ALT_Z.Start()
+        Base.ALT_SHIFT_F10.Start()
+        Base.ALT_F9.Start()
         Me.Hide()
         Label2.ForeColor = Color.White
         Label2.Cursor = Cursors.Hand

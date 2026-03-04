@@ -120,7 +120,7 @@ Public Class Base_Notifier
 
 
         Dim autoClose As New Timer()
-        autoClose.Interval = 4500
+        autoClose.Interval = 3000
         AddHandler autoClose.Tick,
             Sub()
                 autoClose.Stop()
@@ -139,6 +139,10 @@ Public Class Base_Notifier
 
     Private Sub SlideOutAll()
 
+        Dim filePath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifiermainoff")
+
+        Using fs As FileStream = File.Create(filePath)
+        End Using
         StartSlide(Notifier_black,
                    Notifier_black.Left,
                    Me.Width + 300,
@@ -146,6 +150,7 @@ Public Class Base_Notifier
 
         Dim delay As New Timer()
         delay.Interval = 200
+
         AddHandler delay.Tick,
             Sub()
                 delay.Stop()
@@ -177,6 +182,9 @@ Public Class Base_Notifier
 
         SlideOutAll()
 
+    End Sub
+
+    Private Sub Base_Notifier_Closed(sender As Object, e As EventArgs) Handles Me.Closing
     End Sub
 
 #End Region

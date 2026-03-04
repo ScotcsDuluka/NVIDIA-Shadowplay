@@ -19,14 +19,14 @@ Public Class Base_KeySet
     End Sub
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Hide()
-        Base.alt_z.Start()
+        Base.ALT_Z.Start()
         Base.settings_1.Visible = True
 
     End Sub
 
     Private Sub bg_fn_Click(sender As Object, e As EventArgs) Handles bg_fn.Click
         Hide()
-        Base.alt_z.Start()
+        Base.ALT_Z.Start()
         Base.settings_1.Visible = True
     End Sub
 

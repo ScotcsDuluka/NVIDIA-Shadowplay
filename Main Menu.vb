@@ -1,40 +1,12 @@
-﻿Imports System.Diagnostics
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.Drawing.Text
 Imports System.IO
-Imports System.Management
-Imports System.Reflection
 Imports System.Runtime.InteropServices
-Imports System.Windows.Forms
 Imports Microsoft.Win32
-Imports Notifier_API
-Imports WinRT
-
+Imports System.Reflection
+Imports System.Drawing.Drawing2D
 Public Class Base
 
-    Private cpuCounter As PerformanceCounter
-    Dim searcher As New ManagementObjectSearcher("SELECT * FROM Win32_VideoController")
-
-
-    Private Sub BaseCPU_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        cpuCounter = New PerformanceCounter("Processor", "% Processor Time", "_Total")
-        cpuCounter.NextValue() ' เรียกครั้งแรกก่อน
-        Load.Interval = 1000 ' เช็คทุก 1 วิ
-        Load.Start()
-
-
-    End Sub
-
-    Private Sub LoadCPU_Tick(sender As Object, e As EventArgs) Handles Load.Tick
-        Dim cpuUsage As Single = cpuCounter.NextValue()
-
-        If cpuUsage > 80 Then
-            Base_Notifier.Show()
-            Base_Notifier.text_n.Text = "High CPU Usage Detected : " & cpuUsage.ToString("0") & "%"
-            Base_Notifier.icon_n.Text = ""
-            Base_Notifier.icon_n.Font = New Font(Base_Notifier.icon_n.Font.FontFamily, 38)
-        End If
-    End Sub
 
 
 #Region "============================================================================ Animation Engine"
@@ -93,7 +65,10 @@ Public Class Base
 #Region "============================================================================ Fonts"
 
     Private pfc As New PrivateFontCollection()
+
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+
 
         Dim fontPath As String = IO.Path.Combine(Application.StartupPath, "_icon.ttf")
 
@@ -338,8 +313,7 @@ Public Class Base
 
         ' Show initial UI elements
         Base_Background_Top.Show()
-        py_cc.Start()
-        ch_t.Start()
+        Privacy_control.Start()
 
         ' Load application data
         LoadMicrophoneData()
@@ -349,7 +323,7 @@ Public Class Base
         Else
             mic.Text = ""
         End If
-        Load.Start()
+        Load_App.Start()
 
         ' Finalize initialization
         Base_Background_Top.Hide()
@@ -357,9 +331,11 @@ Public Class Base
         CreateDataDirectories()
     End Sub
 
-    Private Sub MainSub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Async Sub MainSub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         InitializePanelSizes()
         StartKeyDetection()
+
+
     End Sub
 
     Private Sub InitializeNotifierAPI()
@@ -386,7 +362,6 @@ Public Class Base
         settings_1.Size = New Size(1010, 600)
         'action.Size = New Size(1100, 200)
     End Sub
-
 #End Region
 
 #Region "============================================================================ LOCALIZATION"
@@ -425,6 +400,33 @@ Public Class Base
             .action_fn.Text = LangHelper.GetText("l10n.back")
         End With
 
+
+        With Base_KeySet
+            .text_settings.Text = LangHelper.GetText("l10n.keyboardShortcuts")
+            .Key_Tx.Text = LangHelper.GetText("l10n.keyboardShortcuts")
+            .action_fn.Text = LangHelper.GetText("l10n.Saved")
+        End With
+
+        With Base_Overlay_Hub
+            .text_settings.Text = LangHelper.GetText("l10n.hudLayout")
+            .action_fn.Text = LangHelper.GetText("l10n.back")
+            .Label4.Text = LangHelper.GetText("l10n.overlays")
+        End With
+
+        With Base_RecordingsSet
+            .text_settings.Text = LangHelper.GetText("l10n.recordings")
+            .action_fn.Text = LangHelper.GetText("l10n.Saved")
+            .Label4.Text = LangHelper.GetText("l10n.videoCapture")
+            .Label1.Text = LangHelper.GetText("l10n.quality")
+            .Label10.Text = LangHelper.GetText("l10n.low")
+            .Label8.Text = LangHelper.GetText("l10n.medium")
+            .Label6.Text = LangHelper.GetText("l10n.high")
+            .Label5.Text = LangHelper.GetText("l10n.custom")
+            .Label12.Text = LangHelper.GetText("l10n.resolution")
+            .Label13.Text = LangHelper.GetText("l10n.framerate")
+            .Label14.Text = LangHelper.GetText("l10n.bitrate")
+        End With
+
         ' Base Form Controls
         UpdateLocalizedTexts()
         My.Settings.Save()
@@ -433,12 +435,10 @@ Public Class Base
 
     Private Sub UpdateLocalizedTexts()
         Lang.Start()
-        text_settings.Text = LangHelper.GetText("l10n.settings")
-        For Each obj As ManagementObject In searcher.Get()
-            Dim gpuName As String = obj("Name").ToString()
-
-            Home_settings.Text = (LangHelper.GetText("l10n.preferencesHome") & " | Wellcome!! " & gpuName)
-        Next
+        text_settings.Text = (Assembly.GetExecutingAssembly().GetName().Version.ToString())
+        'LangHelper.GetText("l10n.settings")
+        Label3.Text = LangHelper.GetText("l10n.settings")
+        Home_settings.Text = LangHelper.GetText("l10n.preferencesHome")
         action_fn.Text = LangHelper.GetText("l10n.done")
         ch.Text = LangHelper.GetText("l10n.checkForUpdates")
         text_py.Text = LangHelper.GetText("l10n.connect")
@@ -566,53 +566,22 @@ Public Class Base
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And (Not WS_EX_APPWINDOW))
     End Sub
 
-    Private Sub HideAllControls()
-        isFunctionActive = False
-
-
-        Me.Opacity = 0
-        Base_Background_Top.Opacity = 0
-        Base_Gallery.Opacity = 0
-        hd.Size = New Size(10000, 10000)
-
-        ' Hide panels
-        sub_replay.Visible = False
-        sub_record.Visible = False
-        settings_1.Visible = False
-        Main_menu.Visible = True
-
-        ' Hide action indicators
-        a_1.Visible = False
-        a_2.Visible = False
-        a_3.Visible = False
-
-        Base_Gallery.Hide()
-
-        If Base_www.Opacity < 0.1 Then
-            Base_Background.Opacity = 0
-            Base_Background.Hide()
-        End If
-
-        Base_Background_Top.Hide()
-        Me.Hide()
-    End Sub
-
     Protected Overrides Sub OnResize(e As EventArgs)
         MyBase.OnResize(e)
         AlignPanelToTop()
     End Sub
 
     Private Sub AlignPanelToTop()
-        Dim marginTop As Integer = 150
+        Dim marginTop As Integer = 160
 
         'action_sc.Location = New Point((Me.ClientSize.Width - action_sc.Width) / 2, marginTop)
-        Main_menu.Location = New Point((Me.ClientSize.Width - Main_menu.Width) / 2, marginTop)
+        Main_menu_list.Location = New Point((Me.ClientSize.Width - Main_menu_list.Width) / 2, marginTop)
         Base_Gallery.settings_1.Location = New Point((Me.ClientSize.Width - Base_Gallery.settings_1.Width) / 2, marginTop)
         Base_Privacy_Control.settings_1.Location = New Point((Me.ClientSize.Width - Base_Privacy_Control.settings_1.Width) / 2, marginTop)
         settings_1.Location = New Point((Me.ClientSize.Width - settings_1.Width) / 2, marginTop)
         Base_RecordingsSet.setre.Location = New Point((Me.ClientSize.Width - Base_RecordingsSet.setre.Width) / 2, marginTop)
         Base_Overlay_Hub.settings_1.Location = New Point((Me.ClientSize.Width - Base_Overlay_Hub.settings_1.Width) / 2, marginTop)
-        Base_Background_Top.ac1.Location = New Point((Me.ClientSize.Width - Base_Background_Top.ac1.Width) / 2, marginTop)
+        Base_Background_Top.Main_menu_list.Location = New Point((Me.ClientSize.Width - Base_Background_Top.Main_menu_list.Width) / 2, marginTop)
         Base_KeySet.keyset.Location = New Point((Me.ClientSize.Width - Base_KeySet.keyset.Width) / 2, marginTop)
     End Sub
 
@@ -642,12 +611,18 @@ Public Class Base
 #Region "============================================================================ KEYBOARD DETECTION"
 
     Private Sub StartKeyDetection()
-        StartKeyTimer(alt_z, 1)           ' Alt + Z
-        StartKeyTimer(alt_f1, 1)          ' Alt + F1
-        StartKeyTimer(alt_shift_f10, 1)   ' Alt + Shift + F10
-        StartKeyTimer(save, 1)            ' Alt + F10
-        StartKeyTimer(record_1, 1)        ' Alt + F9
-        StartKeyTimer(w, 1)               ' W
+        ' === SHARE PANEL ===
+        StartKeyTimer(ALT_Z, 1)           ' Alt + Z - Share Panel
+
+        ' === PHOTO MODE SET ===
+        StartKeyTimer(ALT_F1, 1)          ' Alt + F1 - Screenshot
+        StartKeyTimer(alt_F2_F3_F8, 1)    ' Alt + F2, F3, F8
+        StartKeyTimer(ALT_F12, 1)         ' Alt + F12
+
+        ' === RECORDING / VIDEO SET ===
+        StartKeyTimer(ALT_F9, 1)          ' Alt + F9 - Record
+        StartKeyTimer(ALT_F10, 1)         ' Alt + F10 - Save Replay
+        StartKeyTimer(ALT_SHIFT_F10, 1)   ' Alt + Shift + F10 - Instant Replay
     End Sub
 
     Private Sub StartKeyTimer(timer As Timer, interval As Integer)
@@ -655,16 +630,19 @@ Public Class Base
         timer.Start()
     End Sub
 
-    ' --- Alt + Z - Open Share Panel ---
-    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles alt_z.Tick
+#Region "=== SHARE PANEL ==="
+
+    ' Alt + Z - Open/Close Share Panel
+    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles ALT_Z.Tick
         Dim folderPath As String = Base_Gallery.txtFilePath.Text.Trim()
 
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_Z) And &H8000) <> 0 Then
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_Z) And &H8000) <> 0 Then
             If Not isKeyPressed Then
                 isFunctionActive = Not isFunctionActive
                 If isFunctionActive Then
                     If Base_www.Opacity >= 0.01 Then Return
-                    isKeyPressed_f3 = False
+                    isFunctionActive_f3 = False
                     ShowMainPanel()
                     Base_Game_Filter_Sub.Opacity = 0
                     Base_Game_Filter.Opacity = 0
@@ -679,13 +657,50 @@ Public Class Base
             isKeyPressed = False
         End If
 
-        ' Alt + T - Game notification
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_T) And &H8000) <> 0 Then
-            ShowNotifier("game_n")
+        ' Alt + T - Game Notification
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_T) And &H8000) <> 0 Then
+            If Not isKeyPressed_t Then
+                ShowNotifier("game_n")
+                isKeyPressed_t = True
+            End If
+        Else
+            isKeyPressed_t = False
         End If
     End Sub
 
-    Private Sub ShowMainPanel()
+    Public Sub HideAllControls()
+        isFunctionActive = False
+
+        Me.Opacity = 0
+        Base_Background_Top.Opacity = 0
+        Base_Gallery.Opacity = 0
+        hd.Size = New Size(10000, 10000)
+
+        ' Hide panels
+        sub_replay.Visible = False
+        sub_record.Visible = False
+        settings_1.Visible = False
+        Main_menu_list.Visible = True
+
+        ' Hide action indicators
+        a_1.Visible = False
+        a_2.Visible = False
+        a_3.Visible = False    ' FIXED: Falsez -> False
+
+        Base_Gallery.Hide()
+
+        If Base_www.Opacity < 0.1 Then
+            Base_Background.Opacity = 0
+            Base_Background.Hide()
+        End If
+
+        Base_Background_Top.Hide()
+        Me.Hide()
+    End Sub
+
+    Public Sub ShowMainPanel()
+        isFunctionActive = True
         hd.Size = New Size(0, 0)
         Me.WindowState = FormWindowState.Maximized
         Base_Background.WindowState = FormWindowState.Maximized
@@ -696,12 +711,17 @@ Public Class Base
         Me.TopMost = True
         Base_Background.Opacity = 0.5
         Base_Background_Top.Opacity = 1
-        Me.Opacity = 0.8
+        Me.Opacity = 0.85
     End Sub
 
-    ' --- Alt + F1 - Screenshot ---
-    Private Sub Timer2_Tick(sender As Object, e As EventArgs) Handles alt_f1.Tick
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F1) And &H8000) <> 0 Then
+#End Region
+
+#Region "=== PHOTO MODE SET (F1, F2, F3, F8, F12) ==="
+
+    ' Alt + F1 - Screenshot
+    Private Sub CaptureScreen_Tick(sender As Object, e As EventArgs) Handles ALT_F1.Tick
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F1) And &H8000) <> 0 Then
             If Not isKeyPressed_F1 Then
                 isFunctionActive_F1 = Not isFunctionActive_F1
                 CaptureScreen()
@@ -712,9 +732,89 @@ Public Class Base
         End If
     End Sub
 
-    ' --- Alt + F9 - Record ---
-    Private Sub record_1_Tick(sender As Object, e As EventArgs) Handles record_1.Tick
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F9) And &H8000) <> 0 Then
+    ' Alt + F2, F3, F8 - Photo Mode Functions
+    Private Sub alt_F_1_2_Tick(sender As Object, e As EventArgs) Handles alt_F2_F3_F8.Tick
+
+        ' Alt + F2 - Photo Mode Error
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F2) And &H8000) <> 0 Then
+            If Not isKeyPressed_f2 Then
+                isFunctionActive_f2 = Not isFunctionActive_f2
+                ShowNotifier("photo_mode_error")
+                isKeyPressed_f2 = True
+            End If
+        Else
+            isKeyPressed_f2 = False
+        End If
+
+        ' Alt + F3 - Game Filter
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F3) And &H8000) <> 0 Then
+            If Not isKeyPressed_f3 Then
+                isFunctionActive_f3 = Not isFunctionActive_f3
+                ToggleGameFilter()
+                isKeyPressed_f3 = True
+            End If
+        Else
+            isKeyPressed_f3 = False    ' FIXED: Added reset
+        End If
+
+        ' Alt + F8 - Photo Mode (Not Ready)
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F8) And &H8000) <> 0 Then
+            If Not isKeyPressed_f8 Then
+                isFunctionActive_f8 = Not isFunctionActive_f8
+                ShowNotifier("feature_not_ready")
+                isKeyPressed_f8 = True
+            End If
+        Else
+            isKeyPressed_f8 = False
+        End If
+    End Sub
+
+    Private Sub ToggleGameFilter()
+
+        ShowNotifier("notworkgpu")
+        Base_Game_Filter.Main_Filter.Location = New Point(-500, 0)
+        Base_Game_Filter_Sub.BG.Location = New Point(-500, 0)
+        If isFunctionActive_f3 Then
+            isKeyPressed = False
+            ShowNotifier("notworkgpu")
+            HideAllControls()
+            Base_Game_Filter_Sub.Show()
+            Base_Game_Filter_Sub.Opacity = 0.78
+            Base_Game_Filter.Show()
+            Base_Game_Filter.Opacity = 1
+        Else
+            Base_Game_Filter_Sub.Opacity = 0
+            Base_Game_Filter.Opacity = 0
+            Base_Game_Filter.Hide()
+            Base_Game_Filter_Sub.Hide()
+        End If
+    End Sub
+
+    ' Alt + F12 - Feature Not Ready
+    Private Sub ALT_F2_Tick(sender As Object, e As EventArgs) Handles ALT_F12.Tick
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F12) And &H8000) <> 0 Then
+            If Not isKeyPressed_p Then
+                isFunctionActive_p = Not isFunctionActive_p
+                ShowNotifier("feature_not_ready")
+                isKeyPressed_p = True
+            End If
+        Else
+            isKeyPressed_p = False
+        End If
+    End Sub
+
+#End Region
+
+#Region "=== RECORDING / VIDEO SET (F9, F10, Shift+F10) ==="
+
+    ' Alt + F9 - Start/Stop Recording
+    Private Sub Record_Tick(sender As Object, e As EventArgs) Handles ALT_F9.Tick
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F9) And &H8000) <> 0 Then
             If Not isKeyPressed_record Then
                 isFunctionActive_record = Not isFunctionActive_record
                 ToggleRecording()
@@ -726,7 +826,8 @@ Public Class Base
     End Sub
 
     Private Sub ToggleRecording()
-        Dim isRecording As Boolean = logo_record.ForeColor = greenColor OrElse logo_record.ForeColor = ColorTranslator.FromHtml("#426800")
+        Dim isRecording As Boolean = logo_record.ForeColor = greenColor OrElse
+                                      logo_record.ForeColor = ColorTranslator.FromHtml("#426800")
 
         If isRecording Then
             logo_record.ForeColor = Color.White
@@ -734,37 +835,21 @@ Public Class Base
         Else
             logo_record.ForeColor = greenColor
             ShowNotifier("recording_started")
+            Base_Notifier.Show()
+            With Base_Notifier
+                .icon_n.Font = New Font(.icon_n.Font.FontFamily, If(isValidPath, 50, 40))
+                .icon_n.ForeColor = Color.White
+                .icon_n.Text = ""
+                .text_n.Text = LangHelper.GetText("l10n.notificationErrorNVENC")
+            End With
         End If
     End Sub
 
-    ' --- Alt + F10 - Save Replay ---
-    Private Sub save_Tick(sender As Object, e As EventArgs) Handles save.Tick
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
-           (GetAsyncKeyState(VK_F10) And &H8000) <> 0 AndAlso
-           (GetAsyncKeyState(VK_SHIFT) And &H8000) = 0 Then
-
-            If Not isKeyPressed_replay_save Then
-                isFunctionActive_replay_save = Not isFunctionActive_replay_save
-                If Replay_value Then
-                    ' Replay เปิดอยู่ - สามารถบันทึกได้
-                    ShowNotifier("saved_last_15")
-                Else
-                    ' Replay ปิดอยู่ - ต้องเปิดก่อน
-                    ShowNotifier("replay_turn_on")
-                End If
-                isKeyPressed_replay_save = True
-            End If
-        Else
-            isKeyPressed_replay_save = False
-        End If
-    End Sub
-
-    ' --- Alt + Shift + F10 - Toggle Instant Replay ---
-    Private Sub alt_shift_f10_Tick(sender As Object, e As EventArgs) Handles alt_shift_f10.Tick
+    ' Alt + Shift + F10 - Toggle Instant Replay
+    Private Sub alt_shift_f10_Tick(sender As Object, e As EventArgs) Handles ALT_SHIFT_F10.Tick
         If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
            (GetAsyncKeyState(VK_SHIFT) And &H8000) <> 0 AndAlso
            (GetAsyncKeyState(VK_F10) And &H8000) <> 0 Then
-
             If Not isKeyPressed_replay Then
                 isFunctionActive_replay = Not isFunctionActive_replay
                 ToggleInstantReplay()
@@ -779,12 +864,17 @@ Public Class Base
         Replay_value = Not Replay_value
 
         If Replay_value Then
-            ' เปิด Instant Replay
             logo_replay.ForeColor = greenColor
             if_replay.Text = LangHelper.GetText("l10n.instantReplayStop")
             ShowNotifier("instant_replay_on")
+            Base_Notifier.Show()
+            With Base_Notifier
+                .icon_n.Font = New Font(.icon_n.Font.FontFamily, If(isValidPath, 50, 40))
+                .icon_n.ForeColor = Color.White
+                .icon_n.Text = ""
+                .text_n.Text = LangHelper.GetText("l10n.notificationErrorNVENC")
+            End With
         Else
-            ' ปิด Instant Replay
             logo_replay.ForeColor = Color.White
             if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
             ShowNotifier("instant_replay_off")
@@ -793,70 +883,26 @@ Public Class Base
         UpdateReplayStatus()
     End Sub
 
-    ' --- Alt + F2/F3/F8 - Additional Functions ---
-    Private Sub alt_F_1_2_Tick(sender As Object, e As EventArgs) Handles alt_F_1_2.Tick
-        ' Alt + F8 - Photo Mode (Not Ready)
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F8) And &H8000) <> 0 Then
-            If Not isKeyPressed_f8 Then
-                isFunctionActive_f8 = Not isFunctionActive_f8
-                ShowNotifier("feature_not_ready")
-                isKeyPressed_f8 = True
+    ' Alt + F10 - Save Replay
+    Private Sub save_Tick(sender As Object, e As EventArgs) Handles ALT_F10.Tick
+        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_F10) And &H8000) <> 0 AndAlso
+           (GetAsyncKeyState(VK_SHIFT) And &H8000) = 0 Then
+            If Not isKeyPressed_replay_save Then
+                isFunctionActive_replay_save = Not isFunctionActive_replay_save
+                If Replay_value Then
+                    ShowNotifier("saved_last_15")
+                Else
+                    ShowNotifier("replay_turn_on")
+                End If
+                isKeyPressed_replay_save = True
             End If
         Else
-            isKeyPressed_f8 = False
-        End If
-
-        ' Alt + F2 - Photo Mode Error
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F2) And &H8000) <> 0 Then
-            If Not isKeyPressed_f2 Then
-                isFunctionActive_f2 = Not isFunctionActive_f2
-                ShowNotifier("photo_mode_error")
-                isKeyPressed_f2 = True
-            End If
-        Else
-            isKeyPressed_f2 = False
-        End If
-
-        ' Alt + F3 - Game Filter
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F3) And &H8000) <> 0 Then
-            If Not isKeyPressed_f3 Then
-                isFunctionActive_f3 = Not isFunctionActive_f3
-                ToggleGameFilter()
-                isKeyPressed_f3 = True
-            End If
-        Else
-            isKeyPressed_f3 = False
+            isKeyPressed_replay_save = False
         End If
     End Sub
 
-    Private Sub ToggleGameFilter()
-        If isFunctionActive_f3 Then
-            isKeyPressed = False
-            HideAllControls()
-            Base_Game_Filter_Sub.Show()
-            Base_Game_Filter_Sub.Opacity = 0.78
-            Base_Game_Filter.Show()
-            Base_Game_Filter.Opacity = 1
-        Else
-            Base_Game_Filter_Sub.Opacity = 0
-            Base_Game_Filter.Opacity = 0
-            Base_Game_Filter.Hide()
-            Base_Game_Filter_Sub.Hide()
-        End If
-    End Sub
-
-    ' --- Alt + F12 - Feature Not Ready ---
-    Private Sub w_Tick(sender As Object, e As EventArgs) Handles w.Tick
-        If (GetAsyncKeyState(VK_ALT) And &H8000) <> 0 AndAlso (GetAsyncKeyState(VK_F12) And &H8000) <> 0 Then
-            If Not isKeyPressed_p Then
-                isFunctionActive_p = Not isFunctionActive_p
-                ShowNotifier("feature_not_ready")
-                isKeyPressed_p = True
-            End If
-        Else
-            isKeyPressed_p = False
-        End If
-    End Sub
+#End Region
 
 #End Region
 
@@ -883,12 +929,12 @@ Public Class Base
         Base_Background_Top.Bg_Mode1.Visible = False
     End Sub
 
-    Private Sub sh_MouseMove(sender As Object, e As MouseEventArgs) Handles Text_Mode1.MouseMove
+    Private Sub sh_MouseMove(sender As Object, e As MouseEventArgs) Handles Text_Mode1.MouseMove, Key_Mode1.MouseMove
         SetScreenshotBorder(True)
         Base_Background_Top.Bg_Mode1.Visible = True
     End Sub
 
-    Private Sub sh_MouseLeave(sender As Object, e As EventArgs) Handles Text_Mode1.MouseLeave
+    Private Sub sh_MouseLeave(sender As Object, e As EventArgs) Handles Text_Mode1.MouseLeave, Key_Mode1.MouseLeave
         SetScreenshotBorder(False)
         Base_Background_Top.Bg_Mode1.Visible = False
     End Sub
@@ -927,16 +973,16 @@ Public Class Base
         a_2.Visible = False
         a_3.Visible = False
         settings_1.Visible = True
-        Main_menu.Visible = False
+        Main_menu_list.Visible = False
         sub_replay.Visible = False
         sub_record.Visible = False
     End Sub
 
-    Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles set_to.MouseMove
+    Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs)
         SetSettingsBorder(True)
     End Sub
 
-    Private Sub set_to_MouseLeave(sender As Object, e As EventArgs) Handles set_to.MouseLeave
+    Private Sub set_to_MouseLeave(sender As Object, e As EventArgs)
         SetSettingsBorder(False)
     End Sub
 
@@ -999,11 +1045,7 @@ Public Class Base
     Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles logo_replay.MouseLeave
         SetReplayBorder(False)
         logo_replay.ForeColor = If(Replay_value, greenColor, Color.White)
-        If sub_replay.Visible = True Then
-            Base_Background_Top.b1.Visible = True
-        Else
-            Base_Background_Top.b1.Visible = False
-        End If
+        Base_Background_Top.b1.Visible = False
     End Sub
 
     Private Sub SetReplayBorder(isVisible As Boolean)
@@ -1038,11 +1080,9 @@ Public Class Base
         SetRecordBorder(Not sub_record.Visible)
         Base_Background_Top.b2.Visible = True
     End Sub
-
     Private Sub logo_record_MouseLeave(sender As Object, e As EventArgs) Handles logo_record.MouseLeave
         SetRecordBorder(False)
         Base_Background_Top.b2.Visible = False
-
         ' Maintain recording color if active
         If logo_record.ForeColor = greenColor OrElse logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
             logo_record.ForeColor = greenColor
@@ -1140,29 +1180,18 @@ Public Class Base
         g1b.Visible = isVisible
     End Sub
 
-    Private Sub logo_gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_gallery.MouseMove
+
+    Private Sub logo_gallery_MouseMove_1(sender As Object, e As MouseEventArgs) Handles logo_gallery.MouseMove, gallery.MouseMove, bg_gallery.MouseMove
+        Base_Background_Top.Bg_SET2.Visible = True
         SetGalleryBorder(True)
     End Sub
 
-    Private Sub logo_gallery_MouseLeave(sender As Object, e As EventArgs) Handles logo_gallery.MouseLeave
+    Private Sub logo_gallery_MouseLeave_1(sender As Object, e As EventArgs) Handles logo_gallery.MouseLeave, gallery.MouseLeave, bg_gallery.MouseLeave
+        Base_Background_Top.Bg_SET2.Visible = False
         SetGalleryBorder(False)
     End Sub
 
-    Private Sub gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles gallery.MouseMove
-        SetGalleryBorder(True)
-    End Sub
 
-    Private Sub gallery_MouseLeave(sender As Object, e As EventArgs) Handles gallery.MouseLeave
-        SetGalleryBorder(False)
-    End Sub
-
-    Private Sub bg_gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles bg_gallery.MouseMove
-        SetGalleryBorder(True)
-    End Sub
-
-    Private Sub bg_gallery_MouseLeave(sender As Object, e As EventArgs) Handles bg_gallery.MouseLeave
-        SetGalleryBorder(False)
-    End Sub
 
     Private Sub bg_gallery_Click(sender As Object, e As EventArgs) Handles bg_gallery.Click
         ShowGallery()
@@ -1177,7 +1206,7 @@ Public Class Base
     End Sub
 
     Private Sub ShowGallery()
-        Main_menu.Visible = False
+        Main_menu_list.Visible = False
         a_1.Visible = False
         a_2.Visible = False
         a_3.Visible = False
@@ -1373,11 +1402,13 @@ Public Class Base
 
     Private Sub Photo_MouseMove(sender As Object, e As MouseEventArgs) Handles Logo_Mode2.MouseMove, Text_Mode2.MouseMove, Bg_Mode2.MouseMove
         SetPhotoBorder(True)
+        Base_Background_Top.Bg_Mode2.Visible = True
     End Sub
 
     Private Sub Photo_MouseLeave(sender As Object, e As EventArgs) Handles Logo_Mode2.MouseLeave, Text_Mode2.MouseLeave, Bg_Mode2.MouseLeave
         SetPhotoColors(Color.White)
         SetPhotoBorder(False)
+        Base_Background_Top.Bg_Mode2.Visible = False
     End Sub
 
     Private Sub bg_pht_Click(sender As Object, e As EventArgs) Handles Bg_Mode2.Click
@@ -1407,6 +1438,7 @@ Public Class Base
         s_3r.Visible = isVisible
         s_3l.Visible = isVisible
         s_3b.Visible = isVisible
+        Base_Background_Top.Bg_Mode3.Visible = isVisible
     End Sub
 
     Private Sub logo_gamef_MouseMove(sender As Object, e As MouseEventArgs) Handles Logo_Mode3.MouseMove
@@ -1438,10 +1470,10 @@ Public Class Base
 
     Private Sub logo_gamef_Click(sender As Object, e As EventArgs) Handles Logo_Mode3.Click, Text_Mode3.Click, Bg_Mode3.Click
         ShowNotifier("notworkgpu")
-        isFunctionActive_f3 = Not isFunctionActive_f3
+        isFunctionActive_f3 = True
         ToggleGameFilter()
         HideAllControls()
-        isFunctionActive = Not isFunctionActive
+        isFunctionActive = False
     End Sub
 
 #End Region
@@ -1454,28 +1486,13 @@ Public Class Base
         h1l.Visible = isVisible
         h1b.Visible = isVisible
     End Sub
-
-    Private Sub bg_fps_MouseMove(sender As Object, e As MouseEventArgs) Handles bg_fps.MouseMove
+    Private Sub pf_MouseMove_1(sender As Object, e As MouseEventArgs) Handles bg_fps.MouseMove, pf.MouseMove, logo_pf.MouseMove
+        Base_Background_Top.Bg_SET1.Visible = True
         SetUploadBorder(True)
     End Sub
 
-    Private Sub bg_fps_MouseLeave(sender As Object, e As EventArgs) Handles bg_fps.MouseLeave
-        SetUploadBorder(False)
-    End Sub
-
-    Private Sub pf_MouseMove(sender As Object, e As MouseEventArgs) Handles pf.MouseMove
-        SetUploadBorder(True)
-    End Sub
-
-    Private Sub pf_MouseLeave(sender As Object, e As EventArgs) Handles pf.MouseLeave
-        SetUploadBorder(False)
-    End Sub
-
-    Private Sub logo_pf_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_pf.MouseMove
-        SetUploadBorder(True)
-    End Sub
-
-    Private Sub logo_pf_MouseLeave(sender As Object, e As EventArgs) Handles logo_pf.MouseLeave
+    Private Sub pf_MouseLeave_1(sender As Object, e As EventArgs) Handles bg_fps.MouseLeave, pf.MouseLeave, logo_pf.MouseLeave
+        Base_Background_Top.Bg_SET1.Visible = False
         SetUploadBorder(False)
     End Sub
 
@@ -1520,19 +1537,13 @@ Public Class Base
     Private Sub SW_lanchg_MouseMove(sender As Object, e As MouseEventArgs) Handles ch.MouseMove
         ch.BackColor = Color.FromArgb(64, 64, 64)
     End Sub
-    Private Sub SetVSBorder(isVisible As Boolean)
-        vs1.Visible = isVisible
-        vsr.Visible = isVisible
-        vsl.Visible = isVisible
-        vsb.Visible = isVisible
-    End Sub
 
     Private Sub VS_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox6.MouseMove, Label10.MouseMove
-        SetVSBorder(True)
+        'SetVSBorder(True)
     End Sub
 
     Private Sub VS_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox6.MouseLeave, Label10.MouseLeave
-        SetVSBorder(False)
+        'SetVSBorder(False)
     End Sub
 
     Private Sub VS_Click(sender As Object, e As EventArgs) Handles PictureBox6.Click, Label10.Click
@@ -1545,12 +1556,13 @@ Public Class Base
         s1l.Visible = isVisible
         s1b.Visible = isVisible
     End Sub
-
-    Private Sub S1_MouseMove(sender As Object, e As MouseEventArgs) Handles Label1.MouseMove, Label2.MouseMove
+    Private Sub Label1_MouseMove(sender As Object, e As MouseEventArgs) Handles set_to.MouseMove, Label1.MouseMove, Label2.MouseMove
+        Base_Background_Top.Bg_SET3.Visible = True
         SetS1Border(True)
     End Sub
 
-    Private Sub S1_MouseLeave(sender As Object, e As EventArgs) Handles Label1.MouseLeave, Label2.MouseLeave
+    Private Sub Label1_MouseLeave(sender As Object, e As EventArgs) Handles set_to.MouseLeave, Label1.MouseLeave, Label2.MouseLeave
+        Base_Background_Top.Bg_SET3.Visible = False
         SetS1Border(False)
     End Sub
 
@@ -1564,18 +1576,18 @@ Public Class Base
         a_2.Visible = False
         a_3.Visible = False
         settings_1.Visible = True
-        Main_menu.Visible = False
+        Main_menu_list.Visible = False
         sub_replay.Visible = False
         sub_record.Visible = False
     End Sub
 
     Private Sub OpenRecordings()
         a_2.Visible = False
-        Main_menu.Visible = False
+        Main_menu_list.Visible = False
         sub_record.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
+        ALT_Z.Stop()
+        ALT_SHIFT_F10.Stop()
+        ALT_F9.Stop()
         Base_RecordingsSet.Show()
         Opacity = 1
     End Sub
@@ -1621,7 +1633,7 @@ Public Class Base
     End Sub
 
     Private Sub OpenPrivacySettings()
-        alt_z.Stop()
+        ALT_Z.Stop()
         settings_1.Visible = False
         Base_Privacy_Control.Show()
         Base_Privacy_Control.WindowState = FormWindowState.Maximized
@@ -1672,7 +1684,7 @@ Public Class Base
         Base_Overlay_Hub.Show()
         settings_1.Visible = False
         Base_Overlay_Hub.settings_1.Visible = True
-        alt_z.Stop()
+        ALT_Z.Stop()
     End Sub
 
 #End Region
@@ -1692,7 +1704,7 @@ Public Class Base
     End Sub
 
     Private Sub OpenKeySettings()
-        alt_z.Stop()
+        ALT_Z.Stop()
         Base_KeySet.Show()
         settings_1.Visible = False
     End Sub
@@ -1731,9 +1743,9 @@ Public Class Base
 
     Private Sub OpenRecordingSettings()
         settings_1.Visible = False
-        alt_z.Stop()
-        alt_shift_f10.Stop()
-        record_1.Stop()
+        ALT_Z.Stop()
+        ALT_SHIFT_F10.Stop()
+        ALT_F9.Stop()
         Base_RecordingsSet.Show()
     End Sub
 
@@ -1792,11 +1804,24 @@ Public Class Base
 
 #Region "============================================================================ TIMER EVENT HANDLERS"
 
-    Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load.Tick
+    Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
+
+
+
+
+
+        If sub_record.Visible = True Then
+            Base_Background_Top.b2_all.Visible = True
+        Else
+            Base_Background_Top.b2_all.Visible = False
+        End If
+        If sub_replay.Visible = True Then
+            Base_Background_Top.b1_all.Visible = True
+        Else
+            Base_Background_Top.b1_all.Visible = False
+        End If
+
         AlignPanelToTop()
-
-
-        up.Start()
         UpdateReplayStatus()
         UpdateRecordStatus()
         UpdateMicStatus()
@@ -1816,7 +1841,7 @@ Public Class Base
         End Try
     End Sub
 
-    Private Sub py_cc_Tick(sender As Object, e As EventArgs) Handles py_cc.Tick
+    Private Sub py_cc_Tick(sender As Object, e As EventArgs) Handles Privacy_control.Tick
         Dim privacyPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)
 
         If My.Computer.FileSystem.FileExists(privacyPath) Then
@@ -1878,16 +1903,6 @@ Public Class Base
         hg1.Start()
     End Sub
 
-    Private Sub hd_all_Tick(sender As Object, e As EventArgs) Handles hd_all.Tick
-        Me.Hide()
-        Base_Background.Hide()
-        Base_Background.WindowState = FormWindowState.Maximized
-        Me.WindowState = FormWindowState.Maximized
-    End Sub
-
-    Private Sub rq_Tick(sender As Object, e As EventArgs) Handles rq.Tick
-        ' Empty handler - reserved for future use
-    End Sub
 
 #End Region
 
@@ -1895,35 +1910,33 @@ Public Class Base
 
     Private Sub UpdateRecordStatus()
         If logo_record.ForeColor = greenColor OrElse logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            Label13.Text = LangHelper.GetText("l10n.stop")
+            Label13.Text = LangHelper.GetText("l10n.stopAndSave")
             s_record.Text = LangHelper.GetText("l10n.recording")
             s_record.ForeColor = greenColor
+            s_record.Font = New Font("Segoe UI", 12, FontStyle.Bold)
         Else
             Label13.Text = LangHelper.GetText("l10n.start")
             s_record.Text = LangHelper.GetText("l10n.notRecording")
             s_record.ForeColor = Color.Gray
+            s_record.Font = New Font("Segoe UI", 12, FontStyle.Regular)
         End If
+
     End Sub
 
     Private Sub UpdateReplayStatus()
         Dim dataPath As String = Application.StartupPath & DataDirectoryName & "/"
-
         If Replay_value Then
             s_replay.Text = LangHelper.GetText("l10n.on")
+            s_replay.Font = New Font("Segoe UI", 12, FontStyle.Bold)
             s_replay.ForeColor = greenColor
             logo_replay.ForeColor = greenColor
-            replay_sc1.Visible = True
-            Label16.Visible = True
-            Label8.Visible = True
-            Label7.Visible = True
+            Label8.ForeColor = Color.White
         Else
             s_replay.Text = LangHelper.GetText("l10n.off")
+            s_replay.Font = New Font("Segoe UI", 12, FontStyle.Regular)
             s_replay.ForeColor = Color.Gray
             logo_replay.ForeColor = Color.White
-            replay_sc1.Visible = False
-            Label16.Visible = False
-            Label8.Visible = False
-            Label7.Visible = False
+            Label8.ForeColor = Color.Gray
         End If
     End Sub
 
@@ -1981,7 +1994,7 @@ Public Class Base
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Opacity = 0.85
         settings_1.Visible = False
-        Main_menu.Visible = True
+        Main_menu_list.Visible = True
     End Sub
 
 
@@ -2026,12 +2039,12 @@ Public Class Base
 
     Private Sub SW_lang_Click(sender As Object, e As EventArgs) Handles SW_lang.Click
 
-        Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
-        Dim currentFile As String = Path.Combine(langFolder, "current.txt")
+        Dim langFolder = Path.Combine(Application.StartupPath, "Languages")
+        Dim currentFile = Path.Combine(langFolder, "current.txt")
 
         ' อ่านค่าปัจจุบัน
-        Dim currentLang As String = "en-US"
-        If File.Exists(currentFile) Then currentLang = File.ReadAllText(currentFile).Trim()
+        Dim currentLang = "en-US"
+        If File.Exists(currentFile) Then currentLang = File.ReadAllText(currentFile).Trim
 
         ' สลับภาษา
         Dim newLang As String
@@ -2048,14 +2061,14 @@ Public Class Base
         File.WriteAllText(currentFile, newLang)
 
         ' โหลดภาษาใหม่
-        Dim langFile As String = Path.Combine(langFolder, newLang & ".json")
-        LangHelper.LoadLang(langFile)
+        Dim langFile = Path.Combine(langFolder, newLang & ".json")
+        LoadLang(langFile)
 
         ' อัปเดต UI
         UpdateLocalizedTexts()
 
         ' ตั้งชื่อปุ่มจาก JSON
-        SW_lang.Text = LangHelper.GetText("meta.languageName")
+        SW_lang.Text = GetText("meta.languageName")
 
     End Sub
     Private Sub ch_Click(sender As Object, e As EventArgs) Handles ch.Click
@@ -2082,6 +2095,37 @@ Public Class Base
     Private Sub ME_CLOSE_BG_Click(sender As Object, e As EventArgs) Handles ME_CLOSE_BG.Click, d.Click
         HideAllControls()
     End Sub
+    Private Sub PictureBox24_Click(sender As Object, e As EventArgs) Handles sub_replay_setodv.Click, Label3.Click
+        OpenRecordings()
+    End Sub
+
+    Private Sub Main_menu_Paint(sender As Object, e As PaintEventArgs) Handles Main_menu.Paint
+
+    End Sub
+
+    Private Sub logo_replay_MouseHover(sender As Object, e As EventArgs) Handles logo_replay.MouseHover
+        If Base_Background_Top.b2_all.Visible = True Then
+            sub_replay.Visible = Not sub_replay.Visible
+            sub_record.Visible = False
+            a_1.Visible = Not a_1.Visible
+            a_2.Visible = False
+            a_3.Visible = False
+        End If
+    End Sub
+
+    Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles logo_record.MouseHover
+        If Base_Background_Top.b1_all.Visible = True Then
+            sub_record.Visible = Not sub_record.Visible
+            sub_replay.Visible = False
+            a_2.Visible = True
+            a_1.Visible = False
+            a_3.Visible = False
+        End If
+    End Sub
+
+
+
+
 #End Region
 
 End Class

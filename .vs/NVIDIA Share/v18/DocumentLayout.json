@@ -3,10 +3,6 @@
   "WorkspaceRootPath": "A:\\NVIDIA Share\\NVIDIA Share\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\updatechecker.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:updatechecker.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
@@ -15,68 +11,7 @@
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\nvidia share.vbproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:nvidia share.vbproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\languages\\th-th.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:languages\\th-th.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\languages\\zh-chs.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:languages\\zh-chs.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\languages\\en-us.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:languages\\en-us.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\shadow.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier_sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\api.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{352A7C13-47DE-4823-926C-1674F7785773}|..\\NVIDIA-API\\NVIDIA-API.vbproj|a:\\nvidia share\\nvidia-api\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{352A7C13-47DE-4823-926C-1674F7785773}|..\\NVIDIA-API\\NVIDIA-API.vbproj|a:\\nvidia share\\nvidia-api\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier_sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\privacy control.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:privacy control.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\background top.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
@@ -87,31 +22,112 @@
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:background top.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{5049644C-8E49-7260-45D7-8323C896DACC}|..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj|a:\\nvidia share\\nvidia shadowplay helper\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\languages\\en-us.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:languages\\en-us.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\keyboard shortcut.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:keyboard shortcut.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\shadow.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier_sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\shadow.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\notifier_sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\api.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5049644C-8E49-7260-45D7-8323C896DACC}|..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj|a:\\nvidia share\\nvidia shadowplay helper\\nvidia shadowplay helper.vbproj||{FA3CD31E-987B-443A-9B81-186104E8DAC1}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\lang load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\nvidia shadowplay.ico||{177559E0-D141-11D0-92DF-00A0C9138C45}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5049644C-8E49-7260-45D7-8323C896DACC}|..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj|a:\\nvidia share\\nvidia shadowplay helper\\nvidia shadowplay helper.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\languages\\th-th.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:languages\\th-th.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{352A7C13-47DE-4823-926C-1674F7785773}|..\\NVIDIA-API\\NVIDIA-API.vbproj|a:\\nvidia share\\nvidia-api\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{352A7C13-47DE-4823-926C-1674F7785773}|..\\NVIDIA-API\\NVIDIA-API.vbproj|a:\\nvidia share\\nvidia-api\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:nvidia share.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\keyboard shortcut.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:keyboard shortcut.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\game filter.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:game filter.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{E6B4CCA2-5D60-58EF-D702-0BA0748AD29E}|..\\Notifier-API\\Notifier-API.vbproj|a:\\nvidia share\\notifier-api\\api.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\game filter sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:game filter sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:gallery.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\game filter.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:game filter.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\game filter.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:game filter.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\game filter sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:game filter sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5049644C-8E49-7260-45D7-8323C896DACC}|..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj|a:\\nvidia share\\nvidia shadowplay helper\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{5049644C-8E49-7260-45D7-8323C896DACC}|..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj|a:\\nvidia share\\nvidia shadowplay helper\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{352A7C13-47DE-4823-926C-1674F7785773}|..\\NVIDIA-API\\NVIDIA-API.vbproj|a:\\nvidia share\\nvidia-api\\nvidia-api.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:notifier.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\privacy control.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:privacy control.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\keyboard shortcut.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:keyboard shortcut.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\game filter sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:game filter sub.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\privacy control.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
@@ -132,10 +148,6 @@
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\background.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:background.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|solutionrelative:video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Share.vbproj|a:\\nvidia share\\nvidia share\\security.md||{EFC0BB08-EA7D-40C6-A696-C870411A895B}",
@@ -164,11 +176,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 7,
+          "SelectedChildIndex": 6,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 19,
+              "DocumentIndex": 20,
               "Title": "NVIDIA Share",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
               "RelativeDocumentMoniker": "NVIDIA Share.vbproj",
@@ -181,13 +193,13 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 5,
               "Title": "en-US.json",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Languages\\en-US.json",
               "RelativeDocumentMoniker": "Languages\\en-US.json",
               "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Languages\\en-US.json",
               "RelativeToolTip": "Languages\\en-US.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAIAAAAwAAAAAAAAAA==",
+              "ViewState": "AgIAABgAAAAAAAAAAAAqwC4AAAAVAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-03-01T08:17:17.759Z",
               "IsPinned": true,
@@ -195,151 +207,64 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 17,
               "Title": "th-TH.json",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Languages\\th-TH.json",
               "RelativeDocumentMoniker": "Languages\\th-TH.json",
               "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Languages\\th-TH.json",
               "RelativeToolTip": "Languages\\th-TH.json",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAkAAAAvAAAAAAAAAA==",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAAABYAAAAgAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
               "WhenOpened": "2026-03-02T20:46:52.544Z",
-              "IsPinned": true,
-              "EditorCaption": ""
+              "IsPinned": true
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "zh-CHS.json",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Languages\\zh-CHS.json",
-              "RelativeDocumentMoniker": "Languages\\zh-CHS.json",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Languages\\zh-CHS.json",
-              "RelativeToolTip": "Languages\\zh-CHS.json",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAAABUAAAAtAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-03-02T20:46:42.297Z",
-              "IsPinned": true,
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "Main Menu.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Main Menu.vb",
-              "RelativeDocumentMoniker": "Main Menu.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Main Menu.vb",
-              "RelativeToolTip": "Main Menu.vb",
-              "ViewState": "AgIAAHAHAAAAAAAAAADgv4oHAAAAAAAAAAAAAA==",
+              "DocumentIndex": 12,
+              "Title": "API.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\API.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\API.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\API.vb",
+              "RelativeToolTip": "..\\Notifier-API\\API.vb",
+              "ViewState": "AgIAAIkAAAAAAAAAAAAtwDkAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T10:23:41.825Z",
+              "WhenOpened": "2026-03-02T10:28:16.15Z",
               "IsPinned": true,
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 1,
+              "Title": "Main Menu.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Main Menu.vb",
+              "RelativeDocumentMoniker": "Main Menu.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Main Menu.vb",
+              "RelativeToolTip": "Main Menu.vb",
+              "ViewState": "AgIAADsBAAAAAAAAAAAlwE8BAAAbAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T10:23:41.825Z",
+              "IsPinned": true,
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
               "Title": "Main Menu.vb [Design]",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Main Menu.vb",
               "RelativeDocumentMoniker": "Main Menu.vb",
               "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Main Menu.vb [Design]",
               "RelativeToolTip": "Main Menu.vb [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:20:07.033Z",
-              "IsPinned": true,
+              "WhenOpened": "2026-03-03T22:03:44.044Z",
               "EditorCaption": " [Design]"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "Gallery.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb",
-              "RelativeDocumentMoniker": "Gallery.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb [Design]",
-              "RelativeToolTip": "Gallery.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:30:17.047Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "UpdateChecker.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\UpdateChecker.vb",
-              "RelativeDocumentMoniker": "UpdateChecker.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\UpdateChecker.vb",
-              "RelativeToolTip": "UpdateChecker.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-01T08:41:50.883Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "NVIDIA Share.vbproj",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
-              "RelativeDocumentMoniker": "NVIDIA Share.vbproj",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\NVIDIA Share.vbproj",
-              "RelativeToolTip": "NVIDIA Share.vbproj",
-              "ViewState": "AgIAADMAAAAAAAAAAAAAAEwAAAAUAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
-              "WhenOpened": "2026-03-02T17:23:01.295Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 8,
-              "Title": "Gallery.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb",
-              "RelativeDocumentMoniker": "Gallery.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb",
-              "RelativeToolTip": "Gallery.vb",
-              "ViewState": "AgIAAJYAAAAAAAAAAAAuwKsAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T22:18:38.811Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 9,
-              "Title": "Shadow.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Shadow.vb",
-              "RelativeDocumentMoniker": "..\\Notifier-API\\Shadow.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Shadow.vb [Design]",
-              "RelativeToolTip": "..\\Notifier-API\\Shadow.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T19:53:00.436Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "Notifier_Sub.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb",
-              "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier_Sub.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb",
-              "RelativeToolTip": "..\\Notifier-API\\Notifier_Sub.vb",
-              "ViewState": "AgIAABMAAAAAAAAAAAAMwCIAAAAGAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T18:40:08.762Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "Notifier.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier.vb",
-              "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Notifier.vb",
-              "RelativeToolTip": "..\\Notifier-API\\Notifier.vb",
-              "ViewState": "AgIAAEQAAAAAAAAAAAAgwGIAAAAOAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T18:39:53.258Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 2,
               "Title": "Notifier.vb [Design]",
               "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier.vb",
               "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier.vb",
@@ -351,58 +276,170 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 13,
-              "Title": "API.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\API.vb",
-              "RelativeDocumentMoniker": "..\\Notifier-API\\API.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\API.vb",
-              "RelativeToolTip": "..\\Notifier-API\\API.vb",
-              "ViewState": "AgIAAGcAAAAAAAAAAAAYwJAAAAAPAAAAAAAAAA==",
+              "DocumentIndex": 4,
+              "Title": "Background Top.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb",
+              "RelativeDocumentMoniker": "Background Top.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb [Design]",
+              "RelativeToolTip": "Background Top.vb [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T10:28:16.15Z",
+              "WhenOpened": "2026-03-04T11:54:44.583Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Background Top.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb",
+              "RelativeDocumentMoniker": "Background Top.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb",
+              "RelativeToolTip": "Background Top.vb",
+              "ViewState": "AgIAAD8AAAAAAAAAAAAowGYAAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T22:20:35.173Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 14,
+              "DocumentIndex": 6,
+              "Title": "Shadow.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Shadow.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\Shadow.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Shadow.vb [Design]",
+              "RelativeToolTip": "..\\Notifier-API\\Shadow.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-02T19:53:00.436Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
               "Title": "Notifier.vb",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier.vb",
               "RelativeDocumentMoniker": "Notifier.vb",
               "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier.vb",
               "RelativeToolTip": "Notifier.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGMAAAAOAAAAAAAAAA==",
+              "ViewState": "AgIAAIUAAAAAAAAAAAAwwI8AAAA2AAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
               "WhenOpened": "2026-03-02T20:07:25.873Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "Notifier.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Notifier.vb",
+              "RelativeToolTip": "..\\Notifier-API\\Notifier.vb",
+              "ViewState": "AgIAAG4AAAAAAAAAAAAlwHUAAAAVAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-03T19:54:51.657Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Notifier_Sub.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier_Sub.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb",
+              "RelativeToolTip": "..\\Notifier-API\\Notifier_Sub.vb",
+              "ViewState": "AgIAACUAAAAAAAAAAAAlwDsAAAARAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-03T19:54:58.888Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Shadow.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Shadow.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\Shadow.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Shadow.vb",
+              "RelativeToolTip": "..\\Notifier-API\\Shadow.vb",
+              "ViewState": "AgIAACgAAAAAAAAAAAAqwE8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-03T20:18:05.674Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Notifier_Sub.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier_Sub.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb [Design]",
+              "RelativeToolTip": "..\\Notifier-API\\Notifier_Sub.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-02T19:47:23.284Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "NVIDIA Shadowplay Helper",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "RelativeDocumentMoniker": "..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "RelativeToolTip": "..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
+              "WhenOpened": "2026-03-04T12:23:21.636Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "lang load.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\lang load.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\lang load.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\lang load.vb",
+              "RelativeToolTip": "..\\Notifier-API\\lang load.vb",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-04T12:22:28.246Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 15,
+              "Title": "NVIDIA ShadowPlay.ico - Icon [256x256, 8 bit, BMP]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\NVIDIA ShadowPlay.ico",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\NVIDIA ShadowPlay.ico",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\NVIDIA ShadowPlay.ico - Icon [256x256, 8 bit, BMP]",
+              "RelativeToolTip": "..\\Notifier-API\\NVIDIA ShadowPlay.ico - Icon [256x256, 8 bit, BMP]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001525|",
+              "WhenOpened": "2026-03-04T12:22:16.155Z",
+              "EditorCaption": " - Icon [256x256, 8 bit, BMP]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "NVIDIA Shadowplay Helper",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "RelativeDocumentMoniker": "..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "RelativeToolTip": "..\\NVIDIA Shadowplay Helper\\NVIDIA Shadowplay Helper.vbproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
+              "WhenOpened": "2026-03-02T21:34:14.16Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
               "Title": "Load.vb",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA-API\\Load.vb",
               "RelativeDocumentMoniker": "..\\NVIDIA-API\\Load.vb",
               "ToolTip": "A:\\NVIDIA Share\\NVIDIA-API\\Load.vb",
               "RelativeToolTip": "..\\NVIDIA-API\\Load.vb",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAowBcAAAAYAAAAAAAAAA==",
+              "ViewState": "AgIAACMAAAAAAAAAAAAQwCcAAAALAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T20:04:41.718Z",
-              "EditorCaption": ""
+              "WhenOpened": "2026-03-02T20:04:41.718Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 16,
-              "Title": "Notifier.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier.vb",
-              "RelativeDocumentMoniker": "Notifier.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier.vb [Design]",
-              "RelativeToolTip": "Notifier.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T21:29:56.796Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 17,
+              "DocumentIndex": 19,
               "Title": "Load.vb [Design]",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA-API\\Load.vb",
               "RelativeDocumentMoniker": "..\\NVIDIA-API\\Load.vb",
@@ -414,250 +451,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 18,
-              "Title": "Notifier_Sub.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb",
-              "RelativeDocumentMoniker": "..\\Notifier-API\\Notifier_Sub.vb",
-              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\Notifier_Sub.vb [Design]",
-              "RelativeToolTip": "..\\Notifier-API\\Notifier_Sub.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T19:47:23.284Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 20,
-              "Title": "Privacy Control.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb",
-              "RelativeDocumentMoniker": "Privacy Control.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb [Design]",
-              "RelativeToolTip": "Privacy Control.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T22:13:49.358Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 21,
-              "Title": "Background Top.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb",
-              "RelativeDocumentMoniker": "Background Top.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb",
-              "RelativeToolTip": "Background Top.vb",
-              "ViewState": "AgIAAFsAAAAAAAAAAAAYwGoAAAAfAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T22:20:35.173Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 22,
-              "Title": "Background Top.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb",
-              "RelativeDocumentMoniker": "Background Top.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background Top.vb [Design]",
-              "RelativeToolTip": "Background Top.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T22:20:33.974Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 23,
-              "Title": "Main.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\Main.vb",
-              "RelativeDocumentMoniker": "..\\NVIDIA Shadowplay Helper\\Main.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\Main.vb [Design]",
-              "RelativeToolTip": "..\\NVIDIA Shadowplay Helper\\Main.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-02T10:28:33.241Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 24,
-              "Title": "Keyboard Shortcut.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb",
-              "RelativeDocumentMoniker": "Keyboard Shortcut.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb",
-              "RelativeToolTip": "Keyboard Shortcut.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-01T15:42:48.978Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 25,
-              "Title": "Keyboard Shortcut.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb",
-              "RelativeDocumentMoniker": "Keyboard Shortcut.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb [Design]",
-              "RelativeToolTip": "Keyboard Shortcut.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-01T15:42:47.266Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 37,
-              "Title": "Notifier.vb",
-              "DocumentMoniker": "A:\\Notifier-API\\Notifier.vb",
-              "RelativeDocumentMoniker": "..\\..\\Notifier-API\\Notifier.vb",
-              "ToolTip": "A:\\Notifier-API\\Notifier.vb",
-              "RelativeToolTip": "..\\..\\Notifier-API\\Notifier.vb",
-              "ViewState": "AgIAAI0AAAAAAAAAAAAkwJgAAAAZAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:33:00.857Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 26,
-              "Title": "Game Filter.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb",
-              "RelativeDocumentMoniker": "Game Filter.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb",
-              "RelativeToolTip": "Game Filter.vb",
-              "ViewState": "AgIAAA8AAAAAAAAAAAAowG8AAAAYAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:30:45.092Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 27,
-              "Title": "Game Filter Sub.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb",
-              "RelativeDocumentMoniker": "Game Filter Sub.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb",
-              "RelativeToolTip": "Game Filter Sub.vb",
-              "ViewState": "AgIAAAwAAAAAAAAAAAAowG4AAAALAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:30:27.996Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 28,
-              "Title": "Game Filter.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb",
-              "RelativeDocumentMoniker": "Game Filter.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb [Design]",
-              "RelativeToolTip": "Game Filter.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:30:18.548Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 38,
-              "Title": "lang load.vb",
-              "DocumentMoniker": "A:\\Notifier-API\\lang load.vb",
-              "RelativeDocumentMoniker": "..\\..\\Notifier-API\\lang load.vb",
-              "ToolTip": "A:\\Notifier-API\\lang load.vb",
-              "RelativeToolTip": "..\\..\\Notifier-API\\lang load.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAKAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-01T07:03:48.332Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 29,
-              "Title": "Game Filter Sub.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb",
-              "RelativeDocumentMoniker": "Game Filter Sub.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb [Design]",
-              "RelativeToolTip": "Game Filter Sub.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:30:26.357Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 30,
-              "Title": "Privacy Control.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb",
-              "RelativeDocumentMoniker": "Privacy Control.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb",
-              "RelativeToolTip": "Privacy Control.vb",
-              "ViewState": "AgIAABEAAAAAAAAAAAAwwDMAAABEAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-01T07:19:24.017Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 39,
-              "Title": "Form1.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier-API\\Form1.vb",
-              "RelativeDocumentMoniker": "Notifier-API\\Form1.vb",
-              "ToolTip": "A:\\Notifier-API\\Form1.vb [Design]",
-              "RelativeToolTip": "..\\..\\Notifier-API\\Form1.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-01T06:03:19.624Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 31,
-              "Title": "www Overlay.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb",
-              "RelativeDocumentMoniker": "www Overlay.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb",
-              "RelativeToolTip": "www Overlay.vb",
-              "ViewState": "AgIAAFoAAAAAAAAAAAAQwEAAAAANAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T22:27:35.749Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 33,
-              "Title": "Background.vb",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb",
-              "RelativeDocumentMoniker": "Background.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb",
-              "RelativeToolTip": "Background.vb",
-              "ViewState": "AgIAAAcAAAAAAAAAAAAgwC0AAAAfAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T22:20:41.883Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 32,
-              "Title": "www Overlay.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb",
-              "RelativeDocumentMoniker": "www Overlay.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb [Design]",
-              "RelativeToolTip": "www Overlay.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T20:51:52.098Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 34,
-              "Title": "Background.vb [Design]",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb",
-              "RelativeDocumentMoniker": "Background.vb",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb [Design]",
-              "RelativeToolTip": "Background.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-02-28T21:29:51.156Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 36,
-              "Title": "SECURITY.md",
-              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\SECURITY.md",
-              "RelativeDocumentMoniker": "SECURITY.md",
-              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\SECURITY.md",
-              "RelativeToolTip": "SECURITY.md",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
-              "WhenOpened": "2026-02-28T21:29:58.425Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 35,
               "Title": "Video Capture.vb [Design]",
               "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Video Capture.vb",
               "RelativeDocumentMoniker": "Video Capture.vb",
@@ -669,7 +463,282 @@
             },
             {
               "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "Keyboard Shortcut.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb",
+              "RelativeDocumentMoniker": "Keyboard Shortcut.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb [Design]",
+              "RelativeToolTip": "Keyboard Shortcut.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-01T15:42:47.266Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "API.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\Notifier-API\\API.vb",
+              "RelativeDocumentMoniker": "..\\Notifier-API\\API.vb",
+              "ToolTip": "A:\\NVIDIA Share\\Notifier-API\\API.vb [Design]",
+              "RelativeToolTip": "..\\Notifier-API\\API.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-03T19:57:32.636Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "Gallery.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb",
+              "RelativeDocumentMoniker": "Gallery.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb [Design]",
+              "RelativeToolTip": "Gallery.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:30:17.047Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "Gallery.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb",
+              "RelativeDocumentMoniker": "Gallery.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Gallery.vb",
+              "RelativeToolTip": "Gallery.vb",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T22:18:38.811Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "Game Filter.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb",
+              "RelativeDocumentMoniker": "Game Filter.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb [Design]",
+              "RelativeToolTip": "Game Filter.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:30:18.548Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "Game Filter.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb",
+              "RelativeDocumentMoniker": "Game Filter.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter.vb",
+              "RelativeToolTip": "Game Filter.vb",
+              "ViewState": "AgIAABQAAAAAAAAAAAAwwGMAAAAMAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:30:45.092Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "Game Filter Sub.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb",
+              "RelativeDocumentMoniker": "Game Filter Sub.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb [Design]",
+              "RelativeToolTip": "Game Filter Sub.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:30:26.357Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "Main.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\Main.vb",
+              "RelativeDocumentMoniker": "..\\NVIDIA Shadowplay Helper\\Main.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\Main.vb [Design]",
+              "RelativeToolTip": "..\\NVIDIA Shadowplay Helper\\Main.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-02T10:28:33.241Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "Main.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\Main.vb",
+              "RelativeDocumentMoniker": "..\\NVIDIA Shadowplay Helper\\Main.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Shadowplay Helper\\Main.vb",
+              "RelativeToolTip": "..\\NVIDIA Shadowplay Helper\\Main.vb",
+              "ViewState": "AgIAAGsAAAAAAAAAAAAvwH8AAAAmAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-02T21:30:01.604Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "NVIDIA-API",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj",
+              "RelativeDocumentMoniker": "..\\NVIDIA-API\\NVIDIA-API.vbproj",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA-API\\NVIDIA-API.vbproj",
+              "RelativeToolTip": "..\\NVIDIA-API\\NVIDIA-API.vbproj",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
+              "WhenOpened": "2026-03-02T21:33:55.705Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "Notifier.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier.vb",
+              "RelativeDocumentMoniker": "Notifier.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier.vb [Design]",
+              "RelativeToolTip": "Notifier.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T21:29:56.796Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 33,
+              "Title": "Privacy Control.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb",
+              "RelativeDocumentMoniker": "Privacy Control.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb [Design]",
+              "RelativeToolTip": "Privacy Control.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T22:13:49.358Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 34,
+              "Title": "Keyboard Shortcut.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb",
+              "RelativeDocumentMoniker": "Keyboard Shortcut.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Keyboard Shortcut.vb",
+              "RelativeToolTip": "Keyboard Shortcut.vb",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABkAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-01T15:42:48.978Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 42,
+              "Title": "Notifier.vb",
+              "DocumentMoniker": "A:\\Notifier-API\\Notifier.vb",
+              "RelativeDocumentMoniker": "..\\..\\Notifier-API\\Notifier.vb",
+              "ToolTip": "A:\\Notifier-API\\Notifier.vb",
+              "RelativeToolTip": "..\\..\\Notifier-API\\Notifier.vb",
+              "ViewState": "AgIAAI0AAAAAAAAAAAAkwJgAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:33:00.857Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 35,
+              "Title": "Game Filter Sub.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb",
+              "RelativeDocumentMoniker": "Game Filter Sub.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Game Filter Sub.vb",
+              "RelativeToolTip": "Game Filter Sub.vb",
+              "ViewState": "AgIAAAwAAAAAAAAAAAAowG4AAAALAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:30:27.996Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 43,
+              "Title": "lang load.vb",
+              "DocumentMoniker": "A:\\Notifier-API\\lang load.vb",
+              "RelativeDocumentMoniker": "..\\..\\Notifier-API\\lang load.vb",
+              "ToolTip": "A:\\Notifier-API\\lang load.vb",
+              "RelativeToolTip": "..\\..\\Notifier-API\\lang load.vb",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-01T07:03:48.332Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 36,
+              "Title": "Privacy Control.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb",
+              "RelativeDocumentMoniker": "Privacy Control.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Privacy Control.vb",
+              "RelativeToolTip": "Privacy Control.vb",
+              "ViewState": "AgIAABEAAAAAAAAAAAAwwDMAAABEAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-01T07:19:24.017Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 44,
+              "Title": "Form1.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Notifier-API\\Form1.vb",
+              "RelativeDocumentMoniker": "Notifier-API\\Form1.vb",
+              "ToolTip": "A:\\Notifier-API\\Form1.vb [Design]",
+              "RelativeToolTip": "..\\..\\Notifier-API\\Form1.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-01T06:03:19.624Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 37,
+              "Title": "www Overlay.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb",
+              "RelativeDocumentMoniker": "www Overlay.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb",
+              "RelativeToolTip": "www Overlay.vb",
+              "ViewState": "AgIAAFoAAAAAAAAAAAAQwEAAAAANAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T22:27:35.749Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 39,
+              "Title": "Background.vb",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb",
+              "RelativeDocumentMoniker": "Background.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb",
+              "RelativeToolTip": "Background.vb",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAgwC0AAAAfAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T22:20:41.883Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 38,
+              "Title": "www Overlay.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb",
+              "RelativeDocumentMoniker": "www Overlay.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\www Overlay.vb [Design]",
+              "RelativeToolTip": "www Overlay.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T20:51:52.098Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
               "DocumentIndex": 40,
+              "Title": "Background.vb [Design]",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb",
+              "RelativeDocumentMoniker": "Background.vb",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\Background.vb [Design]",
+              "RelativeToolTip": "Background.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-02-28T21:29:51.156Z",
+              "EditorCaption": " [Design]"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 41,
+              "Title": "SECURITY.md",
+              "DocumentMoniker": "A:\\NVIDIA Share\\NVIDIA Share\\SECURITY.md",
+              "RelativeDocumentMoniker": "SECURITY.md",
+              "ToolTip": "A:\\NVIDIA Share\\NVIDIA Share\\SECURITY.md",
+              "RelativeToolTip": "SECURITY.md",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001818|",
+              "WhenOpened": "2026-02-28T21:29:58.425Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 45,
               "Title": "Notifier_Sub.vb",
               "DocumentMoniker": "A:\\Notifier-API\\Notifier_Sub.vb",
               "RelativeDocumentMoniker": "..\\..\\Notifier-API\\Notifier_Sub.vb",
@@ -681,7 +750,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 41,
+              "DocumentIndex": 46,
               "Title": "Shadow.vb",
               "DocumentMoniker": "A:\\Notifier-API\\Shadow.vb",
               "RelativeDocumentMoniker": "..\\..\\Notifier-API\\Shadow.vb",

@@ -25,14 +25,14 @@ Public Class Base_Overlay_Hub
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Base.settings_1.Visible = True
         settings_1.Visible = False
-        Base.alt_z.Start()
+        Base.ALT_Z.Start()
         Me.Hide()
     End Sub
 
     Private Sub bg_fn_Click(sender As Object, e As EventArgs) Handles bg_fn.Click
         Base.settings_1.Visible = True
         settings_1.Visible = False
-        Base.alt_z.Start()
+        Base.ALT_Z.Start()
         Me.Hide()
     End Sub
 

@@ -34,6 +34,11 @@ Partial Class Base_Overlay_Hub
         settings_bg = New PictureBox()
         settings_top = New PictureBox()
         box_settings = New PictureBox()
+        PictureBox16 = New PictureBox()
+        hg2 = New PictureBox()
+        PictureBox3 = New PictureBox()
+        PictureBox4 = New PictureBox()
+        PictureBox5 = New PictureBox()
         settings_1.SuspendLayout()
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
@@ -41,11 +46,21 @@ Partial Class Base_Overlay_Hub
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
+        CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox4, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' settings_1
         ' 
         settings_1.BackColor = Drawing.Color.Red
+        settings_1.Controls.Add(PictureBox5)
+        settings_1.Controls.Add(PictureBox4)
+        settings_1.Controls.Add(PictureBox3)
+        settings_1.Controls.Add(PictureBox16)
+        settings_1.Controls.Add(hg2)
         settings_1.Controls.Add(PictureBox2)
         settings_1.Controls.Add(PictureBox1)
         settings_1.Controls.Add(action_fn)
@@ -74,7 +89,7 @@ Partial Class Base_Overlay_Hub
         ' PictureBox1
         ' 
         PictureBox1.BackColor = Drawing.Color.Black
-        PictureBox1.Location = New System.Drawing.Point(503, 85)
+        PictureBox1.Location = New System.Drawing.Point(505, 85)
         PictureBox1.Name = "PictureBox1"
         PictureBox1.Size = New System.Drawing.Size(3, 250)
         PictureBox1.TabIndex = 73
@@ -82,16 +97,16 @@ Partial Class Base_Overlay_Hub
         ' 
         ' action_fn
         ' 
-        action_fn.AutoSize = True
         action_fn.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         action_fn.ForeColor = Drawing.Color.White
-        action_fn.Location = New System.Drawing.Point(888, 24)
+        action_fn.Location = New System.Drawing.Point(810, 24)
         action_fn.Name = "action_fn"
-        action_fn.Size = New System.Drawing.Size(46, 21)
+        action_fn.Size = New System.Drawing.Size(200, 21)
         action_fn.TabIndex = 58
         action_fn.Text = "Back"
+        action_fn.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' bg_fn
         ' 
@@ -105,15 +120,15 @@ Partial Class Base_Overlay_Hub
         ' 
         ' text_settings
         ' 
-        text_settings.AutoSize = True
         text_settings.BackColor = Drawing.Color.Black
         text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(65, 14)
+        text_settings.Location = New System.Drawing.Point(0, 14)
         text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(72, 21)
+        text_settings.Size = New System.Drawing.Size(200, 21)
         text_settings.TabIndex = 56
         text_settings.Text = "Settings"
+        text_settings.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' icon_settings
         ' 
@@ -166,6 +181,51 @@ Partial Class Base_Overlay_Hub
         box_settings.TabIndex = 55
         box_settings.TabStop = False
         ' 
+        ' PictureBox16
+        ' 
+        PictureBox16.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox16.Location = New System.Drawing.Point(250, 342)
+        PictureBox16.Name = "PictureBox16"
+        PictureBox16.Size = New System.Drawing.Size(256, 120)
+        PictureBox16.TabIndex = 88
+        PictureBox16.TabStop = False
+        ' 
+        ' hg2
+        ' 
+        hg2.BackColor = Drawing.Color.DimGray
+        hg2.Location = New System.Drawing.Point(249, 341)
+        hg2.Name = "hg2"
+        hg2.Size = New System.Drawing.Size(513, 239)
+        hg2.TabIndex = 87
+        hg2.TabStop = False
+        ' 
+        ' PictureBox3
+        ' 
+        PictureBox3.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox3.Location = New System.Drawing.Point(507, 342)
+        PictureBox3.Name = "PictureBox3"
+        PictureBox3.Size = New System.Drawing.Size(254, 120)
+        PictureBox3.TabIndex = 89
+        PictureBox3.TabStop = False
+        ' 
+        ' PictureBox4
+        ' 
+        PictureBox4.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox4.Location = New System.Drawing.Point(250, 463)
+        PictureBox4.Name = "PictureBox4"
+        PictureBox4.Size = New System.Drawing.Size(256, 116)
+        PictureBox4.TabIndex = 90
+        PictureBox4.TabStop = False
+        ' 
+        ' PictureBox5
+        ' 
+        PictureBox5.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox5.Location = New System.Drawing.Point(507, 463)
+        PictureBox5.Name = "PictureBox5"
+        PictureBox5.Size = New System.Drawing.Size(254, 116)
+        PictureBox5.TabIndex = 91
+        PictureBox5.TabStop = False
+        ' 
         ' Base_Overlay_Hub
         ' 
         AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
@@ -190,6 +250,11 @@ Partial Class Base_Overlay_Hub
         CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
+        CType(hg2, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox4, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
 
@@ -204,4 +269,9 @@ Partial Class Base_Overlay_Hub
     Friend WithEvents box_settings As PictureBox
     Friend WithEvents PictureBox2 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
+    Friend WithEvents PictureBox5 As PictureBox
+    Friend WithEvents PictureBox4 As PictureBox
+    Friend WithEvents PictureBox3 As PictureBox
+    Friend WithEvents PictureBox16 As PictureBox
+    Friend WithEvents hg2 As PictureBox
 End Class

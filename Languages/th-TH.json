@@ -1,6 +1,6 @@
 {
     "meta.languageName": "ภาษาไทย",
-    "l10n.nvidiashadowplay": "GeForce Experience",
+    "l10n.nvidiashadowplay": " GeForce Experience",
     "l10n.LoactionSaved": "บันทึกตำแหน่งที่จัดเก็บ",
     "l10n.Saved": "บันทึก",
     "l10n.Shortcut": "ทางทัด",
@@ -19,7 +19,8 @@
     "l10n.notificationSharedClose": "NVIDIA Shared ถูกปิด",
     "l10n.notificationUpdateAvailable": "มีอัปเดตเวอร์ชันใหม่ของ Shadowplay™",
     "l10n.notificationVersionLatest": "Shadowplay™ เป็นเวอร์ชันล่าสุดแล้ว",
-    "l10n.notificationErrorGeneralz": "เกิดข้อผิดพลาด",
+    "l10n.notificationErrorGeneral": "เกิดข้อผิดพลาด",
+    "l10n.notificationErrorNVENC": "ไม่สามารถเชื่อมต่อกับ NVIDIA NVENC ได้ โปรดตรวจสอบไดรเวอร์หรือรีสตาร์ทโปรแกรม",
 
 
     "l10n.gfe": "GeForce Experience",

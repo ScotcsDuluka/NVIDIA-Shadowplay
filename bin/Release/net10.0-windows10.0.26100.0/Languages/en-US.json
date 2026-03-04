@@ -1,6 +1,6 @@
 ﻿{
     "meta.languageName": "English",
-    "l10n.nvidiashadowplay": "GeForce Experience",
+    "l10n.nvidiashadowplay": " GeForce Experience",
     "l10n.LoactionSaved": "LoactionSaved",
     "l10n.Saved": "Saved",
     "l10n.Shortcut": "Shortcut",
@@ -19,6 +19,7 @@
     "l10n.notificationUpdateAvailable": "New Version Shadowplay™ Update available",
     "l10n.notificationVersionLatest": "Version Shadowplay™ is latest.",
     "l10n.notificationErrorGeneral": "Error.",
+    "l10n.notificationErrorNVENC": "Unable to connect to NVIDIA NVENC. Please check your driver or restart the app.",
 
 
     "l10n.instantReplay": "Instant Replay",

@@ -1,6 +1,6 @@
 {
     "meta.languageName": "简体中文",
-    "l10n.nvidiashadowplay": "GeForce Experience",
+    "l10n.nvidiashadowplay": " GeForce Experience",
     "l10n.LoactionSaved": "保存位置",
     "l10n.Saved": "已保存",
     "l10n.Shortcut": "快捷方式",
@@ -20,7 +20,7 @@
     "l10n.notificationUpdateAvailable": "Shadowplay™ 有新版本可用",
     "l10n.notificationVersionLatest": "Shadowplay™ 已是最新版本",
     "l10n.notificationErrorGeneralz": "发生错误",
-
+    "l10n.notificationErrorNVENC": "无法连接到 NVIDIA NVENC。请检查驱动程序或重启应用。",
 
 
     "l10n.gfe": "GeForce Experience",

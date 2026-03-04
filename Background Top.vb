@@ -73,7 +73,7 @@ Public Class Base_Background_Top
         SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
     End Sub
     Private Sub bg_top_MouseMove(sender As Object, e As MouseEventArgs) Handles MyBase.MouseMove
-        ac1.Size = New Size(600, 300) ' ขนาดที่ต้องการAlignPanelToTop()
+
     End Sub
 
     Private Sub Logo_Click(sender As Object, e As EventArgs)

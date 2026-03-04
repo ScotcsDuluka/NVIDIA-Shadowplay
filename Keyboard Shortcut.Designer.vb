@@ -25,12 +25,6 @@ Partial Class Base_KeySet
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_KeySet))
         PictureBox5 = New PictureBox()
         keyset = New Panel()
-        TextBox6 = New TextBox()
-        TextBox5 = New TextBox()
-        TextBox4 = New TextBox()
-        TextBox3 = New TextBox()
-        TextBox2 = New TextBox()
-        TextBox1 = New TextBox()
         Reset = New Label()
         action_fn = New Label()
         bg_fn = New PictureBox()
@@ -61,12 +55,6 @@ Partial Class Base_KeySet
         ' keyset
         ' 
         keyset.BackColor = Drawing.Color.Red
-        keyset.Controls.Add(TextBox6)
-        keyset.Controls.Add(TextBox5)
-        keyset.Controls.Add(TextBox4)
-        keyset.Controls.Add(TextBox3)
-        keyset.Controls.Add(TextBox2)
-        keyset.Controls.Add(TextBox1)
         keyset.Controls.Add(Reset)
         keyset.Controls.Add(PictureBox5)
         keyset.Controls.Add(action_fn)
@@ -82,73 +70,31 @@ Partial Class Base_KeySet
         keyset.Size = New System.Drawing.Size(1010, 723)
         keyset.TabIndex = 45
         ' 
-        ' TextBox6
-        ' 
-        TextBox6.Location = New System.Drawing.Point(303, 294)
-        TextBox6.Name = "TextBox6"
-        TextBox6.Size = New System.Drawing.Size(100, 23)
-        TextBox6.TabIndex = 76
-        ' 
-        ' TextBox5
-        ' 
-        TextBox5.Location = New System.Drawing.Point(303, 245)
-        TextBox5.Name = "TextBox5"
-        TextBox5.Size = New System.Drawing.Size(100, 23)
-        TextBox5.TabIndex = 75
-        ' 
-        ' TextBox4
-        ' 
-        TextBox4.Location = New System.Drawing.Point(303, 206)
-        TextBox4.Name = "TextBox4"
-        TextBox4.Size = New System.Drawing.Size(100, 23)
-        TextBox4.TabIndex = 74
-        ' 
-        ' TextBox3
-        ' 
-        TextBox3.Location = New System.Drawing.Point(303, 177)
-        TextBox3.Name = "TextBox3"
-        TextBox3.Size = New System.Drawing.Size(100, 23)
-        TextBox3.TabIndex = 73
-        ' 
-        ' TextBox2
-        ' 
-        TextBox2.Location = New System.Drawing.Point(303, 133)
-        TextBox2.Name = "TextBox2"
-        TextBox2.Size = New System.Drawing.Size(100, 23)
-        TextBox2.TabIndex = 72
-        ' 
-        ' TextBox1
-        ' 
-        TextBox1.Location = New System.Drawing.Point(303, 93)
-        TextBox1.Name = "TextBox1"
-        TextBox1.Size = New System.Drawing.Size(100, 23)
-        TextBox1.TabIndex = 71
-        ' 
         ' Reset
         ' 
-        Reset.AutoSize = True
         Reset.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Reset.Cursor = Cursors.Hand
         Reset.Font = New System.Drawing.Font("Segoe UI", 12F)
         Reset.ForeColor = Drawing.Color.White
-        Reset.Location = New System.Drawing.Point(886, 110)
+        Reset.Location = New System.Drawing.Point(810, 110)
         Reset.Name = "Reset"
-        Reset.Size = New System.Drawing.Size(48, 21)
+        Reset.Size = New System.Drawing.Size(200, 21)
         Reset.TabIndex = 70
         Reset.Text = "Reset"
+        Reset.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' action_fn
         ' 
-        action_fn.AutoSize = True
         action_fn.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         action_fn.ForeColor = Drawing.Color.White
-        action_fn.Location = New System.Drawing.Point(883, 24)
+        action_fn.Location = New System.Drawing.Point(810, 24)
         action_fn.Name = "action_fn"
-        action_fn.Size = New System.Drawing.Size(56, 21)
+        action_fn.Size = New System.Drawing.Size(200, 21)
         action_fn.TabIndex = 58
         action_fn.Text = "Saved"
+        action_fn.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' bg_fn
         ' 
@@ -162,15 +108,15 @@ Partial Class Base_KeySet
         ' 
         ' text_settings
         ' 
-        text_settings.AutoSize = True
         text_settings.BackColor = Drawing.Color.Black
         text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(23, 14)
+        text_settings.Location = New System.Drawing.Point(0, 14)
         text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(156, 21)
+        text_settings.Size = New System.Drawing.Size(200, 21)
         text_settings.TabIndex = 56
         text_settings.Text = "Keyboard Shortcut "
+        text_settings.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' icon_settings
         ' 
@@ -257,10 +203,4 @@ Partial Class Base_KeySet
     Friend WithEvents settings_bg As PictureBox
     Friend WithEvents settings_top As PictureBox
     Friend WithEvents box_settings As PictureBox
-    Friend WithEvents TextBox6 As TextBox
-    Friend WithEvents TextBox5 As TextBox
-    Friend WithEvents TextBox4 As TextBox
-    Friend WithEvents TextBox3 As TextBox
-    Friend WithEvents TextBox2 As TextBox
-    Friend WithEvents TextBox1 As TextBox
 End Class

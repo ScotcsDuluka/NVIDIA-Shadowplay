@@ -43,15 +43,11 @@
 <Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
 
   <!-- ถ้าไม่มีไฟล์ ให้สร้าง -->
-  <WriteLinesToFile
-      File="build.txt"
-      Lines="100"
-      Overwrite="false"
-      Condition="!Exists('build.txt')" />
+  <WriteLinesToFile File="build.txt" Lines="100" Overwrite="false" Condition="!Exists('build.txt')" />
 
   <!-- อ่านค่า -->
   <ReadLinesFromFile File="build.txt">
-    <Output TaskParameter="Lines" PropertyName="BuildNumberRaw"/>
+    <Output TaskParameter="Lines" PropertyName="BuildNumberRaw" />
   </ReadLinesFromFile>
 
   <!-- ตัดช่องว่าง -->
@@ -66,16 +62,13 @@
   </PropertyGroup>
 
   <!-- เขียนกลับ -->
-  <WriteLinesToFile
-      File="build.txt"
-      Lines="$(BuildNumber)"
-      Overwrite="true" />
+  <WriteLinesToFile File="build.txt" Lines="$(BuildNumber)" Overwrite="true" />
 
   <!-- ตั้ง Version -->
   <PropertyGroup>
-    <Version>3.00.$(BuildNumber)</Version>
-    <AssemblyVersion>3.00.$(BuildNumber)</AssemblyVersion>
-    <FileVersion>3.00.$(BuildNumber)</FileVersion>
+    <Version>3.1.$(BuildNumber).0</Version>
+    <AssemblyVersion>3.1.$(BuildNumber).0</AssemblyVersion>
+    <FileVersion>3.1.$(BuildNumber).0</FileVersion>
   </PropertyGroup>
 
 </Target>
@@ -252,7 +245,7 @@
   <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;" />
+    <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;&#xD;&#xA;del &quot;$(TargetDir)*.deps.json&quot;" />
   </Target>
 
 </Project>

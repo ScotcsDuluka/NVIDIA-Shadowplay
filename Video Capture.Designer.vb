@@ -337,15 +337,15 @@ Partial Class Base_RecordingsSet
         ' 
         ' text_settings
         ' 
-        text_settings.AutoSize = True
         text_settings.BackColor = Drawing.Color.Black
         text_settings.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(65, 14)
+        text_settings.Location = New System.Drawing.Point(0, 14)
         text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(72, 21)
+        text_settings.Size = New System.Drawing.Size(200, 21)
         text_settings.TabIndex = 59
         text_settings.Text = "Settings"
+        text_settings.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label15
         ' 
@@ -370,7 +370,7 @@ Partial Class Base_RecordingsSet
         icon_settings.Name = "icon_settings"
         icon_settings.Size = New System.Drawing.Size(142, 100)
         icon_settings.TabIndex = 57
-        icon_settings.Text = ""
+        icon_settings.Text = ""
         ' 
         ' box_settings
         ' 
@@ -481,107 +481,107 @@ Partial Class Base_RecordingsSet
         ' 
         ' Label10
         ' 
-        Label10.AutoSize = True
         Label10.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label10.Cursor = Cursors.Hand
         Label10.Font = New System.Drawing.Font("Segoe UI", 10F)
         Label10.ForeColor = Drawing.Color.White
-        Label10.Location = New System.Drawing.Point(305, 150)
+        Label10.Location = New System.Drawing.Point(264, 150)
         Label10.Name = "Label10"
-        Label10.Size = New System.Drawing.Size(34, 19)
+        Label10.Size = New System.Drawing.Size(121, 19)
         Label10.TabIndex = 83
         Label10.Text = "Low"
+        Label10.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label11
         ' 
-        Label11.AutoSize = True
         Label11.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label11.Cursor = Cursors.Hand
         Label11.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
         Label11.ForeColor = Drawing.Color.White
-        Label11.Location = New System.Drawing.Point(303, 122)
+        Label11.Location = New System.Drawing.Point(264, 122)
         Label11.Name = "Label11"
-        Label11.Size = New System.Drawing.Size(39, 27)
+        Label11.Size = New System.Drawing.Size(121, 27)
         Label11.TabIndex = 82
         Label11.Text = ""
+        Label11.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label8
         ' 
-        Label8.AutoSize = True
         Label8.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label8.Cursor = Cursors.Hand
         Label8.Font = New System.Drawing.Font("Segoe UI", 10F)
         Label8.ForeColor = Drawing.Color.White
-        Label8.Location = New System.Drawing.Point(413, 150)
+        Label8.Location = New System.Drawing.Point(384, 150)
         Label8.Name = "Label8"
-        Label8.Size = New System.Drawing.Size(60, 19)
+        Label8.Size = New System.Drawing.Size(121, 19)
         Label8.TabIndex = 81
         Label8.Text = "Medium"
+        Label8.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label9
         ' 
-        Label9.AutoSize = True
         Label9.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label9.Cursor = Cursors.Hand
         Label9.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
         Label9.ForeColor = Drawing.Color.White
-        Label9.Location = New System.Drawing.Point(424, 122)
+        Label9.Location = New System.Drawing.Point(384, 122)
         Label9.Name = "Label9"
-        Label9.Size = New System.Drawing.Size(39, 27)
+        Label9.Size = New System.Drawing.Size(121, 27)
         Label9.TabIndex = 80
         Label9.Text = ""
+        Label9.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label6
         ' 
-        Label6.AutoSize = True
         Label6.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label6.Cursor = Cursors.Hand
         Label6.Font = New System.Drawing.Font("Segoe UI", 10F)
         Label6.ForeColor = Drawing.Color.White
-        Label6.Location = New System.Drawing.Point(544, 150)
+        Label6.Location = New System.Drawing.Point(504, 150)
         Label6.Name = "Label6"
-        Label6.Size = New System.Drawing.Size(38, 19)
+        Label6.Size = New System.Drawing.Size(121, 19)
         Label6.TabIndex = 79
         Label6.Text = "High"
+        Label6.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label7
         ' 
-        Label7.AutoSize = True
         Label7.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label7.Cursor = Cursors.Hand
         Label7.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
         Label7.ForeColor = Drawing.Color.White
-        Label7.Location = New System.Drawing.Point(544, 122)
+        Label7.Location = New System.Drawing.Point(504, 122)
         Label7.Name = "Label7"
-        Label7.Size = New System.Drawing.Size(39, 27)
+        Label7.Size = New System.Drawing.Size(121, 27)
         Label7.TabIndex = 78
         Label7.Text = ""
+        Label7.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label5
         ' 
-        Label5.AutoSize = True
         Label5.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label5.Cursor = Cursors.Hand
         Label5.Font = New System.Drawing.Font("Segoe UI", 10F)
         Label5.ForeColor = Drawing.Color.White
-        Label5.Location = New System.Drawing.Point(656, 150)
+        Label5.Location = New System.Drawing.Point(624, 150)
         Label5.Name = "Label5"
-        Label5.Size = New System.Drawing.Size(57, 19)
+        Label5.Size = New System.Drawing.Size(121, 19)
         Label5.TabIndex = 77
         Label5.Text = "Custom"
+        Label5.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' Label3
         ' 
-        Label3.AutoSize = True
         Label3.BackColor = Drawing.Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label3.Cursor = Cursors.Hand
         Label3.Font = New System.Drawing.Font("nvgcshare", 20F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
         Label3.ForeColor = Drawing.Color.White
-        Label3.Location = New System.Drawing.Point(664, 122)
+        Label3.Location = New System.Drawing.Point(624, 122)
         Label3.Name = "Label3"
-        Label3.Size = New System.Drawing.Size(39, 27)
+        Label3.Size = New System.Drawing.Size(121, 27)
         Label3.TabIndex = 76
         Label3.Text = ""
+        Label3.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' PictureBox3
         ' 
@@ -637,29 +637,29 @@ Partial Class Base_RecordingsSet
         ' 
         ' Label2
         ' 
-        Label2.AutoSize = True
         Label2.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label2.Cursor = Cursors.Hand
         Label2.Font = New System.Drawing.Font("Segoe UI", 12F)
         Label2.ForeColor = Drawing.Color.White
-        Label2.Location = New System.Drawing.Point(886, 110)
+        Label2.Location = New System.Drawing.Point(810, 110)
         Label2.Name = "Label2"
-        Label2.Size = New System.Drawing.Size(48, 21)
+        Label2.Size = New System.Drawing.Size(200, 21)
         Label2.TabIndex = 70
         Label2.Text = "Reset"
+        Label2.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' action_fn
         ' 
-        action_fn.AutoSize = True
         action_fn.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
         action_fn.ForeColor = Drawing.Color.White
-        action_fn.Location = New System.Drawing.Point(883, 24)
+        action_fn.Location = New System.Drawing.Point(810, 24)
         action_fn.Name = "action_fn"
-        action_fn.Size = New System.Drawing.Size(56, 21)
+        action_fn.Size = New System.Drawing.Size(200, 21)
         action_fn.TabIndex = 58
         action_fn.Text = "Saved"
+        action_fn.TextAlign = Drawing.ContentAlignment.MiddleCenter
         ' 
         ' bg_fn
         ' 
