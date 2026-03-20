@@ -1,10 +1,10 @@
 ﻿Imports Newtonsoft.Json.Linq
 Imports System.IO
 
-Module LangHelper
-    Private lang As JObject
+Public Class LangHelper
+    Private Shared lang As JObject
 
-    Public Sub LoadLang(langFile As String)
+    Public Shared Sub LoadLang(langFile As String)
         If File.Exists(langFile) Then
             Dim jsonText As String = File.ReadAllText(langFile)
             lang = JObject.Parse(jsonText)
@@ -13,7 +13,7 @@ Module LangHelper
         End If
     End Sub
 
-    Public Function GetText(key As String, ParamArray args() As String) As String
+    Public Shared Function GetText(key As String, ParamArray args() As String) As String
         If lang IsNot Nothing AndAlso lang(key) IsNot Nothing Then
             Dim text = lang(key).ToString()
             For i = 0 To args.Length - 1
@@ -24,4 +24,4 @@ Module LangHelper
             Return key
         End If
     End Function
-End Module
+End Class

@@ -1,4 +1,4 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+﻿
 Partial Class Base_Game_Filter_Sub
     Inherits NoCloseForm
 

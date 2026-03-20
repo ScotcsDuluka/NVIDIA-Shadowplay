@@ -1185,16 +1185,6 @@ Namespace CaptureCore
 
                 Dim segmentsNeeded As Integer = CInt(Math.Floor(saveDuration / SEGMENT_DURATION))
 
-                ' ═══════════════════════════════════════════════════════════════════════════
-                ' FIX: FFmpeg segment muxer cuts at keyframes, not exactly at segment_time
-                ' Each segment is slightly longer than SEGMENT_DURATION (0.25s)
-                ' To get closer to requested duration, reduce segment count by 1
-                ' Example: 15s requested → 60 segments → but actual ~16s
-                '          59 segments → actual ~15.7s (closer to 15s)
-                ' ═══════════════════════════════════════════════════════════════════════════
-                If segmentsNeeded > 1 Then
-                    segmentsNeeded -= 1
-                End If
 
                 Dim availableSegments As Integer = segments.Count
 

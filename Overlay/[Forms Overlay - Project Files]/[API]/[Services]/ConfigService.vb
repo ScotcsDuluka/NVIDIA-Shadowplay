@@ -1,14 +1,3 @@
-' ═══════════════════════════════════════════════════════════════════════════════
-' AppSettings_Fixed.vb - Singleton Settings Manager (แก้ไข Intel Detection)
-' ═══════════════════════════════════════════════════════════════════════════════
-'
-' ✅ Fixed:
-'   1. Intel GPU Detection - ตรวจจับ Intel แม้มี Dedicated GPU
-'   2. แยกการตรวจจับ GPU แต่ละตัวอย่างอิสระ
-'   3. เพิ่ม Intel iGPU Registry Detection
-'
-' ═══════════════════════════════════════════════════════════════════════════════
-
 Imports System.IO
 Imports System.Text.Json
 Imports System.Text.Json.Serialization

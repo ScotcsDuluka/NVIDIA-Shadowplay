@@ -25,7 +25,7 @@
     "l10n.selectmenu": "选择“设置”即可查看该菜单。",
     "l10n.gallerynotready": "画廊目前无法访问。",
     "l10n.foldererror": "找不到指定的文件夹。",
-    "l10n.captrueresolutionwarm": "请使用您的默认或当前屏幕分辨率。使用不兼容的分辨率可能会消耗系统资源，包括 CPU 或 GPU。",
+    "l10n.captrueresolutionwarm": "如果未使用原始屏幕分辨率，系统将使用屏幕的原生分辨率。",
     "l10n.Capture_notuse": "由于 FFmpeg 尚未发布，因此无法使用捕获功能。",
     "l10n.m": "分钟",
     "l10n.s": "秒",

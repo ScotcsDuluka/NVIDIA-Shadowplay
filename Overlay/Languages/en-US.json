@@ -25,7 +25,7 @@
     "l10n.selectmenu": "Select Settings to view that menu.",
     "l10n.gallerynotready": "The Gallery is currently unavailable.",
     "l10n.foldererror": "The specified folder could not be found.",
-    "l10n.captrueresolutionwarm": "Please use your default or current screen resolution. Using an incompatible resolution may consume system resources, including CPU or GPU.",
+    "l10n.captrueresolutionwarm": "If the original screen resolution is not used, the system will use the screen's native resolution.",
     "l10n.Capture_notuse": "The capture function is not available because FFmpeg is not yet available.",
     "l10n.m": "minutes",
     "l10n.s": "seconds",

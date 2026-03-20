@@ -1,7 +1,3 @@
-' ═══════════════════════════════════════════════════════════════════════════════
-' Base.vb - Main Form (แก้ไขให้ใช้ AppSettings แทน My.Settings)
-' ═══════════════════════════════════════════════════════════════════════════════
-
 Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Drawing.Drawing2D

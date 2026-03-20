@@ -1,283 +1,255 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <RootNamespace>NVIDIA_Share</RootNamespace>
-    <UseWindowsForms>True</UseWindowsForms>
-    <MyType>WindowsForms</MyType>
-    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
-    <PackageId></PackageId>
-    <Title>NVIDIA ShadowPlay by ScotcsDuluka</Title>
-    <Company>NVIDIA</Company>
-    <Authors>ScotcsDuluka</Authors>
-    <Product>NVIDIA ShadowPlay</Product>
-    <Description>NVIDIA ShadowPlay™ for All Users</Description>
-    <PackageIcon></PackageIcon>
-    <Copyright>Copyright© by Scotcs Duluka</Copyright>
-    <NeutralLanguage>en-US</NeutralLanguage>
-    <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
-    <PackageReadmeFile></PackageReadmeFile>
-    <Platforms>AnyCPU</Platforms>
-    <ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
-    <ApplicationManifest>My Project\app.manifest</ApplicationManifest>
-    <IncludeSymbols>False</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <GenerateDocumentationFile>False</GenerateDocumentationFile>
-    <AnalysisLevel>6.0-minimum</AnalysisLevel>
-    <EnableNETAnalyzers>True</EnableNETAnalyzers>
-    <UseWPF>False</UseWPF>
-    <EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
-    <StartupObject>NVIDIA_Share.My.MyApplication</StartupObject>
-    <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
-    <AssemblyName>NVIDIA ShadowPlay</AssemblyName>
-    <RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
-    <RunAnalyzersDuringLiveAnalysis>False</RunAnalyzersDuringLiveAnalysis>
-    <Configurations>Release;Debug</Configurations>
-    <OptionExplicit>Off</OptionExplicit>
-    <OptionInfer>Off</OptionInfer>
-    <RunPostBuildEvent>Always</RunPostBuildEvent>
-    <PackAsTool>True</PackAsTool>
-    <NuGetAudit>True</NuGetAudit>
-    <AppDesignerFolder>My Project</AppDesignerFolder>
-  </PropertyGroup>
-<Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<RootNamespace>NVIDIA_Share</RootNamespace>
+		<UseWindowsForms>True</UseWindowsForms>
+		<MyType>WindowsForms</MyType>
+		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+		<PackageId></PackageId>
+		<Title>NVIDIA ShadowPlay by ScotcsDuluka</Title>
+		<Company>NVIDIA</Company>
+		<Authors>ScotcsDuluka</Authors>
+		<Product>NVIDIA ShadowPlay</Product>
+		<Description>NVIDIA ShadowPlay™ for All Users</Description>
+		<PackageIcon></PackageIcon>
+		<Copyright>Copyright© by Scotcs Duluka</Copyright>
+		<NeutralLanguage>en-US</NeutralLanguage>
+		<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+		<PackageReadmeFile></PackageReadmeFile>
+		<Platforms>AnyCPU</Platforms>
+		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
+		<ApplicationManifest>My Project\app.manifest</ApplicationManifest>
+		<IncludeSymbols>False</IncludeSymbols>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
+		<GenerateDocumentationFile>False</GenerateDocumentationFile>
+		<AnalysisLevel>6.0-minimum</AnalysisLevel>
+		<EnableNETAnalyzers>True</EnableNETAnalyzers>
+		<UseWPF>False</UseWPF>
+		<EnforceCodeStyleInBuild>False</EnforceCodeStyleInBuild>
+		<StartupObject>NVIDIA_Share.My.MyApplication</StartupObject>
+		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+		<AssemblyName>NVIDIA ShadowPlay</AssemblyName>
+		<RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
+		<RunAnalyzersDuringLiveAnalysis>False</RunAnalyzersDuringLiveAnalysis>
+		<Configurations>Release;Debug</Configurations>
+		<OptionExplicit>Off</OptionExplicit>
+		<OptionInfer>Off</OptionInfer>
+		<RunPostBuildEvent>Always</RunPostBuildEvent>
+		<PackAsTool>True</PackAsTool>
+		<NuGetAudit>True</NuGetAudit>
+		<AppDesignerFolder>My Project</AppDesignerFolder>
+	</PropertyGroup>
 
-  <!-- ถ้าไม่มีไฟล์ ให้สร้าง -->
-  <WriteLinesToFile File="build.txt" Lines="100" Overwrite="false" Condition="!Exists('build.txt')" />
+	<Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
+		<WriteLinesToFile File="build.txt" Lines="100" Overwrite="false" Condition="!Exists('build.txt')" />
+		<ReadLinesFromFile File="build.txt">
+			<Output TaskParameter="Lines" PropertyName="BuildNumberRaw" />
+		</ReadLinesFromFile>
+		<PropertyGroup>
+			<BuildNumber>$([System.String]::Copy('$(BuildNumberRaw)').Trim())</BuildNumber>
+			<BuildNumber Condition="'$(BuildNumber)'==''">100</BuildNumber>
+		</PropertyGroup>
+		<PropertyGroup>
+			<BuildNumber>$([MSBuild]::Add($(BuildNumber), 1))</BuildNumber>
+		</PropertyGroup>
+		<WriteLinesToFile File="build.txt" Lines="$(BuildNumber)" Overwrite="true" />
+		<PropertyGroup>
+			<Version>3.3.$(BuildNumber).1</Version>
+			<AssemblyVersion>3.3.$(BuildNumber).1</AssemblyVersion>
+			<FileVersion>3.3.$(BuildNumber).1</FileVersion>
+		</PropertyGroup>
+	</Target>
 
-  <!-- อ่านค่า -->
-  <ReadLinesFromFile File="build.txt">
-    <Output TaskParameter="Lines" PropertyName="BuildNumberRaw" />
-  </ReadLinesFromFile>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<RegisterForComInterop>False</RegisterForComInterop>
+		<DefineDebug>False</DefineDebug>
+		<OutputPath>bin\$(Configuration)\</OutputPath>
+		<RemoveIntegerChecks>True</RemoveIntegerChecks>
+		<NoWarn>41998,41999,42004,42016,42017,42018,42019,42020,42021,42022,42024,42025,42026,42029,42030,42031,42032,42036,42099,42104,42105,42106,42107,42108,42109,42353,42354,42355</NoWarn>
+		<WarningsAsErrors>42025</WarningsAsErrors>
+		<DebugType>none</DebugType>
+		<GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+		<WarningLevel>0</WarningLevel>
+	</PropertyGroup>
 
-  <!-- ตัดช่องว่าง -->
-  <PropertyGroup>
-    <BuildNumber>$([System.String]::Copy('$(BuildNumberRaw)').Trim())</BuildNumber>
-    <BuildNumber Condition="'$(BuildNumber)'==''">100</BuildNumber>
-  </PropertyGroup>
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DebugType>none</DebugType>
+	</PropertyGroup>
 
-  <!-- เพิ่มค่า -->
-  <PropertyGroup>
-    <BuildNumber>$([MSBuild]::Add($(BuildNumber), 1))</BuildNumber>
-  </PropertyGroup>
+	<ItemGroup>
+		<COMReference Include="WMPLib">
+			<WrapperTool>tlbimp</WrapperTool>
+			<VersionMinor>0</VersionMinor>
+			<VersionMajor>1</VersionMajor>
+			<Guid>6bf52a50-394a-11d3-b153-00c04f79faa6</Guid>
+			<Lcid>0</Lcid>
+			<Isolated>false</Isolated>
+			<EmbedInteropTypes>true</EmbedInteropTypes>
+		</COMReference>
+	</ItemGroup>
 
-  <!-- เขียนกลับ -->
-  <WriteLinesToFile File="build.txt" Lines="$(BuildNumber)" Overwrite="true" />
+	<ItemGroup>
+		<Content Include="NVIDIA ShadowPlay.ico" />
+	</ItemGroup>
 
-  <!-- ตั้ง Version -->
-  <PropertyGroup>
-    <Version>3.3.$(BuildNumber).1</Version>
-    <AssemblyVersion>3.3.$(BuildNumber).1</AssemblyVersion>
-    <FileVersion>3.3.$(BuildNumber).1</FileVersion>
-  </PropertyGroup>
+	<!-- ✅ Imports ที่จำเป็น -->
+	<ItemGroup>
+		<Import Include="System" />
+		<Import Include="System.Collections" />
+		<Import Include="System.Collections.Generic" />
+		<Import Include="System.Data" />
+		<Import Include="System.Diagnostics" />
+		<Import Include="System.Drawing" />
+		<Import Include="System.Linq" />
+		<Import Include="System.Threading.Tasks" />
+		<Import Include="System.Windows.Forms" />
+		<Import Include="System.Xml.Linq" />
+		<Import Include="Microsoft.VisualBasic" />
+	</ItemGroup>
 
-</Target>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.5" />
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3856.49" />
+		<PackageReference Include="NAudio" Version="2.3.0" />
+		<PackageReference Include="NAudio.Core" Version="2.3.0" />
+		<PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="NLog" Version="6.1.1" />
+		<PackageReference Include="NLog.Config" Version="4.7.15" />
+		<PackageReference Include="System.CodeDom" Version="10.0.5" />
+		<PackageReference Include="System.Management" Version="10.0.5" />
+	</ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <RegisterForComInterop>False</RegisterForComInterop>
-    <DefineDebug>False</DefineDebug>
-    <OutputPath>bin\$(Configuration)\</OutputPath>
-    <RemoveIntegerChecks>True</RemoveIntegerChecks>
-    <NoWarn>41998,41999,42004,42016,42017,42018,42019,42020,42021,42022,42024,42025,42026,42029,42030,42031,42032,42036,42099,42104,42105,42106,42107,42108,42109,42353,42354,42355</NoWarn>
-    <WarningsAsErrors>42025</WarningsAsErrors>
-    <DebugType>none</DebugType>
-    <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-    <WarningLevel>0</WarningLevel>
-  </PropertyGroup>
+	<ItemGroup>
+		<Compile Update="My Project\Application.Designer.vb">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Application.myapp</DependentUpon>
+		</Compile>
+		<Compile Update="My Project\Resources.Designer.vb">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Resources.resx</DependentUpon>
+		</Compile>
+		<Compile Update="My Project\Settings.Designer.vb">
+			<DesignTimeSharedInput>True</DesignTimeSharedInput>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Settings.settings</DependentUpon>
+		</Compile>
+		<Compile Update="[Forms Overlay - Project Files]\[API]\[Helpers]\BlockClose.vb">
+			<SubType>Form</SubType>
+		</Compile>
+	</ItemGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DebugType>none</DebugType>
-  </PropertyGroup>
-	
-	
-  <ItemGroup>
-    <Compile Remove="www Overlay - Copy.Designer.vb" />
-    <Compile Remove="www Overlay - Copy.vb" />
-    <Compile Remove="www Overlay.Designer.vb" />
-    <Compile Remove="www Overlay.vb" />
-  </ItemGroup>
+	<ItemGroup>
+		<EmbeddedResource Update="My Project\Resources.resx">
+			<CustomToolNamespace>My.Resources</CustomToolNamespace>
+			<Generator>VbMyResourcesResXFileCodeGenerator</Generator>
+			<LastGenOutput>Resources.Designer.vb</LastGenOutput>
+		</EmbeddedResource>
+	</ItemGroup>
 
-  <ItemGroup>
-    <EmbeddedResource Remove="www Overlay - Copy.resx" />
-    <EmbeddedResource Remove="www Overlay.resx" />
-  </ItemGroup>
+	<ItemGroup>
+		<None Update="API-Core\avcodec-62.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\avdevice-62.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\avfilter-11.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\avformat-62.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\avutil-60.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\ffmpeg.exe">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\ffplay.exe">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\ffprobe.exe">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\swresample-6.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="API-Core\swscale-9.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="betanv.ttf">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Languages\current.txt">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Languages\en-US.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Languages\th-TH.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Languages\zh-CHS.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="My Project\Application.myapp">
+			<Generator>MyApplicationCodeGenerator</Generator>
+			<LastGenOutput>Application.Designer.vb</LastGenOutput>
+		</None>
+		<None Update="My Project\Settings.settings">
+			<Generator>SettingsSingleFileGenerator</Generator>
+			<CustomToolNamespace>My</CustomToolNamespace>
+			<LastGenOutput>Settings.Designer.vb</LastGenOutput>
+		</None>
+		<None Update="NVIDIA ShadowPlay.ico">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="NVIDIA_Shadowplay_Data\on">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="_icon.ttf">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="_Redist\_dxwebsetup.exe">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+		<None Update="_Redist\_overlay.ttf">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+		<None Update="_readme.md">
+			<Pack>True</Pack>
+			<PackagePath>\</PackagePath>
+		</None>
+		<None Update="_Redist\_runtime_8.0.8.exe">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Remove="z1uukiz5.ciz~" />
-  </ItemGroup>
+	<ItemGroup>
+		<Folder Include="Resources\" />
+		<Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
+		<Folder Include="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <COMReference Include="WMPLib">
-      <WrapperTool>tlbimp</WrapperTool>
-      <VersionMinor>0</VersionMinor>
-      <VersionMajor>1</VersionMajor>
-      <Guid>6bf52a50-394a-11d3-b153-00c04f79faa6</Guid>
-      <Lcid>0</Lcid>
-      <Isolated>false</Isolated>
-      <EmbedInteropTypes>true</EmbedInteropTypes>
-    </COMReference>
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="..\API\NVIDIA API.vbproj" />
+		<ProjectReference Include="..\App Experience\NVIDIA Experience.vbproj" />
+		<ProjectReference Include="..\Engine\Capture Core.vbproj" />
+		<ProjectReference Include="..\Notifier\NVIDIA Notifier.vbproj" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <Content Include="NVIDIA ShadowPlay.ico" />
-  </ItemGroup>
+	<ProjectExtensions>
+		<VisualStudio>
+			<UserProperties />
+		</VisualStudio>
+	</ProjectExtensions>
 
-  <ItemGroup>
-    <Import Include="Microsoft.VisualBasic.ApplicationServices" />
-    <Import Include="Microsoft.VisualBasic.CompilerServices" />
-    <Import Include="Microsoft.VisualBasic.Devices" />
-    <Import Include="System.Data" />
-    <Import Include="System.Windows.Forms" />
-    <Import Include="Windows.Management" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3856.49" />
-    <PackageReference Include="NAudio" Version="2.3.0" />
-    <PackageReference Include="NAudio.Core" Version="2.3.0" />
-    <PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-    <PackageReference Include="NLog" Version="6.1.1" />
-    <PackageReference Include="NLog.Config" Version="4.7.15" />
-    <PackageReference Include="System.CodeDom" Version="10.0.5" />
-    <PackageReference Include="System.Management" Version="10.0.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Update="My Project\Application.Designer.vb">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Application.myapp</DependentUpon>
-    </Compile>
-    <Compile Update="My Project\Resources.Designer.vb">
-      <DesignTime>True</DesignTime>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-    <Compile Update="My Project\Settings.Designer.vb">
-      <DesignTimeSharedInput>True</DesignTimeSharedInput>
-      <AutoGen>True</AutoGen>
-      <DependentUpon>Settings.settings</DependentUpon>
-    </Compile>
-    <Compile Update="[Forms Overlay - Project Files]\[API]\[Helpers]\BlockClose.vb">
-      <SubType>Form</SubType>
-    </Compile>
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="My Project\Resources.resx">
-      <CustomToolNamespace>My.Resources</CustomToolNamespace>
-      <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
-      <LastGenOutput>Resources.Designer.vb</LastGenOutput>
-    </EmbeddedResource>
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Update="API-Core\avcodec-62.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\avdevice-62.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\avfilter-11.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\avformat-62.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\avutil-60.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\ffmpeg.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\ffplay.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\ffprobe.exe">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\swresample-6.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="API-Core\swscale-9.dll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="betanv.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Languages\current.txt">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Languages\en-US.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Languages\th-TH.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="Languages\zh-CHS.json">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="My Project\Application.myapp">
-      <Generator>MyApplicationCodeGenerator</Generator>
-      <LastGenOutput>Application.Designer.vb</LastGenOutput>
-    </None>
-    <None Update="My Project\Settings.settings">
-      <Generator>SettingsSingleFileGenerator</Generator>
-      <CustomToolNamespace>My</CustomToolNamespace>
-      <LastGenOutput>Settings.Designer.vb</LastGenOutput>
-    </None>
-    <None Update="NVIDIA ShadowPlay.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="NVIDIA ShadowPlay.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="NVIDIA_Shadowplay_Data\on">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="_icon.ttf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Update="_Redist\_dxwebsetup.exe">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="_Redist\_overlay.ttf">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Update="_readme.md">
-      <Pack>True</Pack>
-      <PackagePath>\</PackagePath>
-    </None>
-    <None Update="_Redist\_runtime_8.0.8.exe">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-  </ItemGroup>
-	
-	
-  <ItemGroup>
-    <Folder Include="Resources\" />
-    <Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
-    <Folder Include="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\API\NVIDIA API.vbproj" />
-    <ProjectReference Include="..\App Experience\NVIDIA Experience.vbproj" />
-    <ProjectReference Include="..\Engine\Capture Core.vbproj" />
-    <ProjectReference Include="..\Notifier\NVIDIA Notifier.vbproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="Captrue Core">
-      <HintPath>..\Engine\bin\Debug\Captrue Core.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
-  <ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
-
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
-    <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;&#xD;&#xA;del &quot;$(TargetDir)*.deps.json&quot;" />
-  </Target>
+	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
+		<Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;&#xD;&#xA;del &quot;$(TargetDir)*.deps.json&quot;" />
+	</Target>
 
 </Project>
