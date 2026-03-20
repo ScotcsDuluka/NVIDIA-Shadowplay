@@ -1,7 +1,0 @@
-﻿-------------
-### 🛠️New Updates🛠️  For **`[Ver]`**
--------------
-- **[new]**
--------------
-### **`❗`Please install Redist before using the app.**  Especially "[`icon.ttf`](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/blob/main/_Redist/_icon.ttf)"`❗`
--------------
