@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <_LastSelectedProfileId>A:\NVIDIA Share\NVIDIA Share\My Project\PublishProfiles\FolderProfile.pubxml</_LastSelectedProfileId>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Sub_Animation.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Sub_Hotkey.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Sub_Misc.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Sub_Mouse.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Sub_Record.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[2] Background Top.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[3] Background.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Settings - UI Main.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Main Menu.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Gallery]\[1] Main.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Game Filter]\[2] Sub.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Game Filter]\[1] Settings UI Main.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[2] Keyboard Shortcut.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[5] Video Capture.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[3] Overlay Hub.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[4] Privacy Control.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Web]\[1] Web.vb">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Update="My Project\Resources.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Main Menu.resx">
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+  </ItemGroup>
+</Project>

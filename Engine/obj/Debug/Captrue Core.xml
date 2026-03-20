@@ -1,0 +1,48 @@
+﻿<?xml version="1.0"?>
+<doc>
+<assembly>
+<name>
+Captrue Core
+</name>
+</assembly>
+<members>
+<member name="T:Captrue_Core.My.Resources.Resources">
+<summary>
+  A strongly-typed resource class, for looking up localized strings, etc.
+</summary>
+</member>
+<member name="P:Captrue_Core.My.Resources.Resources.ResourceManager">
+<summary>
+  Returns the cached ResourceManager instance used by this class.
+</summary>
+</member>
+<member name="P:Captrue_Core.My.Resources.Resources.Culture">
+<summary>
+  Overrides the current thread's CurrentUICulture property for all
+  resource lookups using this strongly typed resource class.
+</summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.SaveReplay(System.String,System.Int32)">
+ <summary>
+ ✅ v8.12: STREAM COPY - Exact duration via segment selection
+ 
+ HOW IT WORKS:
+ 1. Each segment = 0.25s = 15 frames (at 60fps)
+ 2. Calculate exact segments needed: 30s / 0.25s = 120 segments
+ 3. Select 120 segments from buffer end (most recent)
+ 4. Concat with -c copy (NO re-encoding!)
+ 
+ RESULT:
+ - Duration: EXACT (30s = 120 segments × 0.25s)
+ - Quality: SAME AS BUFFER (no re-encoding)
+ - Speed: VERY FAST (~0.5s)
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.BuildBufferEncoderCommand(System.Text.StringBuilder)">
+ <summary>
+ ✅ v8.12: Build buffer encoder with FREQUENT KEYFRAMES for exact trimming
+ Keyframe every segment duration (0.25s) for frame-accurate access
+ </summary>
+</member>
+</members>
+</doc>
