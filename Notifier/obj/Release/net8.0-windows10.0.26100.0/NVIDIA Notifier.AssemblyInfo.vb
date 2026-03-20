@@ -16,7 +16,7 @@ Imports System.Reflection
 <Assembly: System.Reflection.AssemblyCompanyAttribute("NVIDIA Notifier"),  _
  Assembly: System.Reflection.AssemblyConfigurationAttribute("Release"),  _
  Assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0"),  _
- Assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+44ab40d208c9932677b6027a00c4daa693bd19ca"),  _
+ Assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4257131abddd93973334023e1765a62568632068"),  _
  Assembly: System.Reflection.AssemblyProductAttribute("NVIDIA Notifier"),  _
  Assembly: System.Reflection.AssemblyTitleAttribute("NVIDIA Notifier"),  _
  Assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0"),  _
