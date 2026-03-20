@@ -255,7 +255,7 @@ Partial Public Class Base
                 Debug.WriteLine($"SaveInstantReplay: SUCCESS")
                 Debug.WriteLine($"  Saved to {outputPath}")
 
-                ShowNotifier("saved_last_15")
+
 
                 ' ✅ Save duration info for UI display - gets duration from actual file
                 SaveReplayDurationInfo(outputPath)
@@ -319,7 +319,7 @@ Partial Public Class Base
 
             Debug.WriteLine("Created: " & minutes & ".m, " & seconds & ".s")
             Debug.WriteLine("Duration: " & minutes & "m " & seconds & "s")
-
+            ShowNotifier("saved_last_15")
         Catch ex As Exception
             Debug.WriteLine("SaveReplayDurationInfo Error: " & ex.Message)
         End Try
@@ -446,7 +446,10 @@ Partial Public Class Base
 
     ''' <summary>
     ''' ✅ FIXED: Select best available encoder
-    ''' Priority: NVENC > QuickSync > AMF > Software
+    ''' Priority: NVENC_HEVC > NVENC_H264 > QuickSync_HEVC > QuickSync_H264 > AMF_HEVC > AMF_H264 > LibX264
+    ''' 
+    ''' HEVC is preferred over H.264 for better quality at same bitrate.
+    ''' This matches Base_RecordingsSet_Fixed.vb priority order.
     ''' </summary>
     Private Sub SelectBestEncoder()
         Try
@@ -454,23 +457,23 @@ Partial Public Class Base
 
             ' ═══════════════════════════════════════════════════════════════════════
             ' ✅ Priority: NVENC > QuickSync > AMF > LibX264
-            ' This matches Base_RecordingsSet_Fixed.vb priority
+            ' ✅ HEVC is preferred over H.264 (better quality at same bitrate)
             ' ═══════════════════════════════════════════════════════════════════════
 
             If AppSettings.HasNvidia Then
-                ' NVIDIA NVENC - Best performance
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264
-                Debug.WriteLine("SelectBestEncoder: NVENC_H264 (NVIDIA)")
+                ' ✅ NVIDIA NVENC - Best performance (HEVC preferred)
+                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
+                Debug.WriteLine("SelectBestEncoder: NVENC_HEVC (NVIDIA)")
 
             ElseIf AppSettings.HasIntel Then
-                ' ✅ Intel QuickSync - Good performance (priority over AMD)
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264
-                Debug.WriteLine("SelectBestEncoder: QuickSync_H264 (Intel)")
+                ' ✅ Intel QuickSync - Good performance (HEVC preferred)
+                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
+                Debug.WriteLine("SelectBestEncoder: QuickSync_HEVC (Intel)")
 
             ElseIf AppSettings.HasAMD Then
-                ' AMD AMF
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264
-                Debug.WriteLine("SelectBestEncoder: AMF_H264 (AMD)")
+                ' ✅ AMD AMF (HEVC preferred)
+                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
+                Debug.WriteLine("SelectBestEncoder: AMF_HEVC (AMD)")
 
             Else
                 ' Fallback to CPU
@@ -528,6 +531,63 @@ Partial Public Class Base
         Catch ex As Exception
             Return "Unknown"
         End Try
+    End Function
+
+    ''' <summary>
+    ''' ✅ NEW: Get encoder info with rate control details
+    ''' Useful for debugging and displaying current settings
+    ''' </summary>
+    Public Function GetEncoderInfoDetailed() As String
+        Try
+            Dim encoder As CaptureCore.ScreenRecorder.VideoEncoder = Recorder.Encoder
+            Dim info As New System.Text.StringBuilder()
+
+            ' Encoder name
+            info.AppendLine("Encoder: " & GetEncoderInfo())
+
+            ' Rate control info based on encoder type
+            Select Case encoder
+                Case CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264,
+                     CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC,
+                     CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
+                    info.AppendLine("Rate Control: -cq 20 (Quality Mode)")
+                    info.AppendLine("Preset: p" & Recorder.EncoderPreset)
+
+                Case CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264,
+                     CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
+                    info.AppendLine("Rate Control: -global_quality 20 -look_ahead 1")
+                    info.AppendLine("Preset: " & GetQSVPresetString(Recorder.EncoderPreset))
+
+                Case CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264,
+                     CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
+                    info.AppendLine("Rate Control: -rc qvbr -qvbr_quality_level 20")
+
+                Case CaptureCore.ScreenRecorder.VideoEncoder.LibX264,
+                     CaptureCore.ScreenRecorder.VideoEncoder.LibX265
+                    info.AppendLine("Rate Control: -crf 18-20")
+                    info.AppendLine("Note: CPU encoding may impact performance")
+            End Select
+
+            ' Capture info
+            info.AppendLine("Resolution: " & Recorder.ResolutionWidth & "x" & Recorder.ResolutionHeight)
+            info.AppendLine("Framerate: " & Recorder.Framerate & " fps")
+            info.AppendLine("Bitrate: " & Recorder.Bitrate & " kbps")
+
+            Return info.ToString()
+
+        Catch ex As Exception
+            Return "Error getting encoder info: " & ex.Message
+        End Try
+    End Function
+
+    Private Function GetQSVPresetString(preset As Integer) As String
+        Select Case preset
+            Case 1 : Return "slow"
+            Case 2 : Return "medium"
+            Case 3 : Return "fast"
+            Case 4 : Return "faster"
+            Case Else : Return "veryfast"
+        End Select
     End Function
 
 #End Region

@@ -43,13 +43,13 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[2] Keyboard Shortcut.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[5] Video Capture.vb">
-      <SubType>Form</SubType>
-    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[3] Overlay Hub.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[4] Privacy Control.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[5] Video Capture.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Web]\[1] Web.vb">

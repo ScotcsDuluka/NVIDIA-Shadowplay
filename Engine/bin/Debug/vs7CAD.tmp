@@ -1,0 +1,37 @@
+﻿<?xml version="1.0"?>
+<doc>
+<assembly>
+<name>
+Captrue Core
+</name>
+</assembly>
+<members>
+<member name="T:Captrue_Core.My.Resources.Resources">
+<summary>
+  A strongly-typed resource class, for looking up localized strings, etc.
+</summary>
+</member>
+<member name="P:Captrue_Core.My.Resources.Resources.ResourceManager">
+<summary>
+  Returns the cached ResourceManager instance used by this class.
+</summary>
+</member>
+<member name="P:Captrue_Core.My.Resources.Resources.Culture">
+<summary>
+  Overrides the current thread's CurrentUICulture property for all
+  resource lookups using this strongly typed resource class.
+</summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.ScreenRecorder.NeedsGdiFallback">
+ <summary>
+ Check if hardware capture failed and fallback is needed.
+ Call this after recording starts to detect if fallback is required.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.ResetFallbackFlag">
+ <summary>
+ Reset fallback flag before starting a new recording.
+ </summary>
+</member>
+</members>
+</doc>

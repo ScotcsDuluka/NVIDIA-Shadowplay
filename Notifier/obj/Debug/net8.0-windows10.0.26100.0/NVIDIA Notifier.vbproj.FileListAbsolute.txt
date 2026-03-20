@@ -7,7 +7,6 @@ C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\Mi
 C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\WinRT.Runtime.dll
 C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.dll
 C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.pdb
-C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.xml
 C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.dll.config
 C:\My Project\NVIDIA Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Notifier.vbproj.AssemblyReference.cache
 C:\My Project\NVIDIA Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\Notifier_API.Resources.resources
@@ -26,3 +25,4 @@ C:\My Project\NVIDIA Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\NV
 C:\My Project\NVIDIA Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\refint\NVIDIA Notifier.dll
 C:\My Project\NVIDIA Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Notifier.genruntimeconfig.cache
 C:\My Project\NVIDIA Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA Notifier.dll
+C:\My Project\NVIDIA Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.xml

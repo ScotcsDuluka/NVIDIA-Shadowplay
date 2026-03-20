@@ -1,14 +1,3 @@
-' ═══════════════════════════════════════════════════════════════════════════════
-' Base_RecordingsSet_Fixed.vb - Settings Form with Encoder Validation
-' ═══════════════════════════════════════════════════════════════════════════════
-' 
-' ✅ Fixed:
-'   1. CheckEncoderAvailability - ตรวจสอบ encoder ก่อนเพิ่มลง ComboBox
-'   2. Better encoder info messages
-'   3. Error handling สำหรับ QuickSync/AMF
-'
-' ═══════════════════════════════════════════════════════════════════════════════
-
 Imports System.Drawing
 Imports System.IO
 Imports System.Runtime.InteropServices
@@ -487,7 +476,7 @@ Public Class Base_RecordingsSet
                 ClearEncoderAvailabilityCache()
 
                 ' ✅ Check ddagrab availability
-                ScreenRecorder.CheckDdagrabAvailability(ffmpegPath)
+                ScreenRecorder.CheckDDAGrabAvailability(ffmpegPath)
 
                 ' Pre-warm
                 Task.Run(Sub()

@@ -83,11 +83,11 @@ Public Class Load
                 Integer.TryParse(fileName, seconds)
                 Exit For
             Next
-        Catch
+        Catch ex As Exception
+            Console.WriteLine("Error: " & ex.Message)
         End Try
 
         Return (minutes, seconds)
-
     End Function
     Private Sub RUN_API_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick
         ' 1. Language Handling
@@ -102,8 +102,6 @@ Public Class Load
         Dim langFile As String = Path.Combine(langFolder, currentLang & ".json")
         LangHelper.LoadLang(langFile)
         GetSavedReplayDuration()
-        ' 2. Define Notification Data
-        ' เพิ่ม Color เข้าไปใน Tuple ตัวสุดท้าย (Message, ShowImage, Icon, IconColor)
         Dim checks As New Dictionary(Of String, (Message As String, ShowImage As Boolean, Icon As String, IconColor As Color)) From {
         {"l10n.notificationOpenShare", (LangHelper.GetText("l10n.notificationOpenShare", "Alt + Z"), True, "", Color.White)},
         {"notuse", (LangHelper.GetText("l10n.notificationWarningGameRequired"), False, "", Color.White)},
@@ -229,6 +227,7 @@ Public Class Load
 
         ' === Notifications with args ===
         notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))
+        notifications.Add(New NotificationData("l10n.notificationInstantReplaySaved", "", False, Color.White, {GetSavedReplayDuration.minutes, GetSavedReplayDuration.seconds}))
 
     End Sub
     Private Sub RUN_NEW_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick
@@ -268,6 +267,19 @@ Public Class Load
 
                 UpdateNotifier(message, showImage, icon, iconColor)
                 SafeDelete(filePath)
+                Dim dataDira As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
+
+                If Directory.Exists(dataDira) Then
+                    ' ลบไฟล์ทั้งหมดในโฟลเดอร์
+                    For Each files As String In Directory.GetFiles(dataDir)
+                        File.Delete(files)
+                    Next
+
+                    ' ถ้าอยากลบโฟลเดอร์ย่อยทั้งหมดด้วย
+                    For Each dir As String In Directory.GetDirectories(dataDir)
+                        Directory.Delete(dir, True) ' True = ลบพร้อมเนื้อหาในโฟลเดอร์
+                    Next
+                End If
             End If
         Next
 

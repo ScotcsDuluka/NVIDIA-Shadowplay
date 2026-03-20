@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "4ZOWYvQY9aU=",
+  "dgSpecHash": "h3qX93WKEuw=",
   "success": true,
-  "projectFilePath": "C:\\NVIDIA-Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
+  "projectFilePath": "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
   "expectedPackageFiles": [
     "C:\\Users\\HUAWEI-PC\\.nuget\\packages\\microsoft.aspnetcore.components.webview\\10.0.5\\microsoft.aspnetcore.components.webview.10.0.5.nupkg.sha512",
     "C:\\Users\\HUAWEI-PC\\.nuget\\packages\\microsoft.web.webview2\\1.0.3856.49\\microsoft.web.webview2.1.0.3856.49.nupkg.sha512",

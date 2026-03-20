@@ -41,7 +41,7 @@ Partial Class Load
         ' RUN_API
         ' 
         RUN_API.Enabled = True
-        RUN_API.Interval = 300
+        RUN_API.Interval = 120
         ' 
         ' Button2
         ' 
@@ -61,7 +61,7 @@ Partial Class Load
         Button3.Text = "Button3"
         Button3.UseVisualStyleBackColor = True
         ' 
-        ' API
+        ' Load
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -72,7 +72,7 @@ Partial Class Load
         Controls.Add(Button1)
         DoubleBuffered = True
         FormBorderStyle = FormBorderStyle.None
-        Name = "API"
+        Name = "Load"
         Opacity = 0R
         ShowInTaskbar = False
         Text = "Notifier"

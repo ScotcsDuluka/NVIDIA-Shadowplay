@@ -30,7 +30,6 @@ C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVI
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.deps.json
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.runtimeconfig.json
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll
-C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.pdb
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.dll
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.Asio.dll
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.Core.dll
@@ -54,7 +53,6 @@ C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVI
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA API.pdb
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA Experience.pdb
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.pdb
-C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.xml
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.dll.config
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Core.xml
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.WinForms.xml
@@ -84,9 +82,9 @@ C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVI
 C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA O.CA9EDA4A.Up2Date
 C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll
 C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
-C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.pdb
 C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.genruntimeconfig.cache
 C:\My Project\NVIDIA Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NLog.config
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NLog.dll
 C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll.config
+C:\My Project\NVIDIA Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Captrue Core.xml

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj": {}
+    "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj": {}
   },
   "projects": {
-    "C:\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj": {
+    "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
+        "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
         "projectName": "NVIDIA API",
-        "projectPath": "C:\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
+        "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
         "packagesPath": "C:\\Users\\HUAWEI-PC\\.nuget\\packages\\",
-        "outputPath": "C:\\NVIDIA-Shadowplay\\API\\obj\\",
+        "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\HUAWEI-PC\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -40,7 +40,7 @@
           "auditLevel": "low",
           "auditMode": "direct"
         },
-        "SdkAnalysisLevel": "10.0.100"
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net8.0-windows10.0.26100": {
@@ -89,7 +89,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.104/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

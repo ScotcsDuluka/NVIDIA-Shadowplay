@@ -17,3 +17,4 @@ C:\My Project\NVIDIA Shadowplay\API\obj\Debug\net8.0-windows10.0.26100.0\refint\
 C:\My Project\NVIDIA Shadowplay\API\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA API.pdb
 C:\My Project\NVIDIA Shadowplay\API\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA API.genruntimeconfig.cache
 C:\My Project\NVIDIA Shadowplay\API\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA API.dll
+C:\My Project\NVIDIA Shadowplay\API\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA API.sourcelink.json

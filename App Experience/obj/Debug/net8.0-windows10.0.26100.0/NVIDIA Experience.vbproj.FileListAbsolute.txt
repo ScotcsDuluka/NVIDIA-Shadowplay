@@ -18,3 +18,4 @@ C:\My Project\NVIDIA Shadowplay\App Experience\obj\Debug\net8.0-windows10.0.2610
 C:\My Project\NVIDIA Shadowplay\App Experience\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Experience.pdb
 C:\My Project\NVIDIA Shadowplay\App Experience\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Experience.genruntimeconfig.cache
 C:\My Project\NVIDIA Shadowplay\App Experience\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA Experience.dll
+C:\My Project\NVIDIA Shadowplay\App Experience\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Experience.sourcelink.json

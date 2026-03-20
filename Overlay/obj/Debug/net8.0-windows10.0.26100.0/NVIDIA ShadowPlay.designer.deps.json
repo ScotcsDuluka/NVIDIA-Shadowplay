@@ -6,22 +6,22 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "Microsoft.Web.WebView2/1.0.3800.47": {
+      "Microsoft.Web.WebView2/1.0.3856.49": {
         "runtimeTargets": {
           "runtimes/win-arm64/native/WebView2Loader.dll": {
             "rid": "win-arm64",
             "assetType": "native",
-            "fileVersion": "1.0.3800.47"
+            "fileVersion": "1.0.3856.49"
           },
           "runtimes/win-x64/native/WebView2Loader.dll": {
             "rid": "win-x64",
             "assetType": "native",
-            "fileVersion": "1.0.3800.47"
+            "fileVersion": "1.0.3856.49"
           },
           "runtimes/win-x86/native/WebView2Loader.dll": {
             "rid": "win-x86",
             "assetType": "native",
-            "fileVersion": "1.0.3800.47"
+            "fileVersion": "1.0.3856.49"
           }
         }
       },
@@ -155,12 +155,12 @@
     }
   },
   "libraries": {
-    "Microsoft.Web.WebView2/1.0.3800.47": {
+    "Microsoft.Web.WebView2/1.0.3856.49": {
       "type": "package",
       "serviceable": true,
-      "sha512": "sha512-vluoF9sqb72AB02yYs1UXW/2/VsxOMl2idiFJNvG993sOw3bHJvjHXmd3tqevTd9s3Md/9FgEzkOXoUl2Nb/ww==",
-      "path": "microsoft.web.webview2/1.0.3800.47",
-      "hashPath": "microsoft.web.webview2.1.0.3800.47.nupkg.sha512"
+      "sha512": "sha512-OOBKvFgK0pUKcndvTK6/jUsbrPRwce62Wt/0hkJWDsK2AcsJ2ylOS/mLa4xAcNUTOs96YIjpPN4AHMADXJcrgQ==",
+      "path": "microsoft.web.webview2/1.0.3856.49",
+      "hashPath": "microsoft.web.webview2.1.0.3856.49.nupkg.sha512"
     },
     "NAudio/2.3.0": {
       "type": "package",
