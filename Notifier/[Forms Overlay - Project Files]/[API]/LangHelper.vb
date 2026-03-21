@@ -6,17 +6,25 @@ Module LangHelper
 
     Public Sub LoadLang(langFile As String)
         If File.Exists(langFile) Then
-            Dim jsonText As String = File.ReadAllText(langFile)
-            lang = JObject.Parse(jsonText)
+            Try
+                Dim jsonText As String
+                Using fs As New FileStream(langFile, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+                    Using sr As New StreamReader(fs)
+                        jsonText = sr.ReadToEnd()
+                    End Using
+                End Using
+                lang = JObject.Parse(jsonText)
+            Catch ex As IOException
+                Debug.WriteLine("Lang file locked: " & ex.Message)
+            End Try
         Else
-            lang = New JObject() ' fallback ว่าง
+            lang = New JObject()
         End If
     End Sub
 
     Public Function GetText(key As String, ParamArray args() As String) As String
         If lang IsNot Nothing AndAlso lang(key) IsNot Nothing Then
             Dim text = lang(key).ToString()
-            ' แทนที่ arg1, arg2, arg3 ...
             For i = 0 To args.Length - 1
                 text = text.Replace("{{arg" & (i + 1) & "}}", args(i))
             Next

@@ -4,19 +4,6 @@ Imports System.Runtime.InteropServices
 Public Class NVIDIA_Shadowplay_Helper
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
     <DllImport("dwmapi.dll")>
     Private Shared Function DwmSetWindowAttribute(
         hwnd As IntPtr,

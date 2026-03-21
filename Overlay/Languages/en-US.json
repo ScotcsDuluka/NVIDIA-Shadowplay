@@ -29,7 +29,7 @@
     "l10n.Capture_notuse": "The capture function is not available because FFmpeg is not yet available.",
     "l10n.m": "minutes",
     "l10n.s": "seconds",
-    "l10n.recommended": "Recommended:",
+    "l10n.recommended": "Recommended",
     "l10n.advanced": "Advanced:",
     "l10n.range": "Bitrate Range",
     "l10n.test": "test",

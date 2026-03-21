@@ -171,7 +171,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub logo_live_Click(sender As Object, e As EventArgs) Handles logo_live.Click, live.Click, s_live.Click
-        ShowNotifier("notificationFeatureNotReady")
+        ShowNotifier("feature_not_ready")
         sub_replay.Visible = False
         a_1.Visible = False
         sub_record.Visible = False
@@ -189,7 +189,7 @@ Partial Public Class Base
     Private Sub mic_MouseLeave(sender As Object, e As EventArgs) Handles mic.MouseLeave
         mic.ForeColor = System.Drawing.Color.White
     End Sub
-    Private Sub LoadMicState()
+    Public Sub LoadMicState()
         If AppSettings.Instance.Audio.MicEnabled = True Then
             mic.Text = ""
         Else

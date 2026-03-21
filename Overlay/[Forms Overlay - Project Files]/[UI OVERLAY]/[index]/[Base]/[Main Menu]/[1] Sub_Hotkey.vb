@@ -68,7 +68,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ (เดิมคือ KEYBOARD DETECTION - ถูกลบแล้ว)"
+#Region "============================================================================ (เดิมคือ KEYBOARD DETECTION)"
 
     Public Sub HideAllControls()
         isFunctionActive = False

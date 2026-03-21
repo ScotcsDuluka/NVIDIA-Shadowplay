@@ -7,7 +7,13 @@
 		<MyType>WindowsForms</MyType>
 		<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
 		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+		<StartupObject>NVIDIA_Experience.My.MyApplication</StartupObject>
+		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <Content Include="NVIDIA ShadowPlay.ico" />
+	</ItemGroup>
 
 	<!-- ✅ Imports ที่จำเป็น -->
 	<ItemGroup>

@@ -12,6 +12,7 @@ Public Class AppSettings
     ''' Recording settings: encoder, fps, bitrate, resolution, preset
     ''' </summary>
     Public Class RecordingSettingsClass
+        Public Property UseNativeResolution As Boolean = True
         Public Property Encoder As String = "NVENC_H264"
         Public Property EncoderNow As String = "NVENC_H264"
         Public Property FPS As Integer = 60
@@ -50,12 +51,63 @@ Public Class AppSettings
     End Class
 
     ''' <summary>
-    ''' Audio settings: microphone, volume
+    ''' ✅ Audio settings: system audio, microphone, volume
     ''' </summary>
     Public Class AudioSettingsClass
+        ''' <summary>
+        ''' Enable system audio capture (WASAPI Loopback via NAudio)
+        ''' </summary>
+        Public Property SystemAudioEnabled As Boolean = True
+
+        ''' <summary>
+        ''' Enable microphone capture (DirectShow)
+        ''' </summary>
         Public Property MicEnabled As Boolean = False
-        Public Property MicVolume As Integer = 100
-        Public Property SystemVolume As Integer = 100
+
+        ''' <summary>
+        ''' System audio volume (0.0 - 1.0)
+        ''' </summary>
+        Public Property SystemAudioVolume As Single = 1.0F
+
+        ''' <summary>
+        ''' Microphone volume (0.0 - 1.0)
+        ''' </summary>
+        Public Property MicVolume As Single = 1.0F
+
+        ''' <summary>
+        ''' Microphone device name (empty = default device)
+        ''' </summary>
+        Public Property MicDeviceName As String = ""
+
+        ' ═══════════════════════════════════════════════════════════════════════
+        ' Legacy properties for backward compatibility with old config.json
+        ' ═══════════════════════════════════════════════════════════════════════
+
+        ''' <summary>
+        ''' Legacy: Mic volume as integer (0-100) - converted to MicVolume
+        ''' </summary>
+        <Obsolete("Use MicVolume instead")>
+        Public Property MicVolumePercent As Integer
+            Get
+                Return CInt(MicVolume * 100)
+            End Get
+            Set(value As Integer)
+                MicVolume = Math.Max(0, Math.Min(100, value)) / 100.0F
+            End Set
+        End Property
+
+        ''' <summary>
+        ''' Legacy: System volume as integer (0-100) - converted to SystemAudioVolume
+        ''' </summary>
+        <Obsolete("Use SystemAudioVolume instead")>
+        Public Property SystemVolumePercent As Integer
+            Get
+                Return CInt(SystemAudioVolume * 100)
+            End Get
+            Set(value As Integer)
+                SystemAudioVolume = Math.Max(0, Math.Min(100, value)) / 100.0F
+            End Set
+        End Property
 
         Public Sub New()
         End Sub
@@ -78,6 +130,9 @@ Public Class AppSettings
     Private Shared ReadOnly _lock As New Object()
     Private Shared _isLoaded As Boolean = False
 
+    ' Hardware detection flag
+    Private Shared _hardwareDetected As Boolean = False
+
     ''' <summary>
     ''' Get singleton instance - Load() จะถูกเรียกอัตโนมัติครั้งแรก
     ''' </summary>
@@ -97,6 +152,15 @@ Public Class AppSettings
     End Property
 
     ''' <summary>
+    ''' Check if hardware detection has been run
+    ''' </summary>
+    Public Shared ReadOnly Property HardwareDetected As Boolean
+        Get
+            Return _hardwareDetected
+        End Get
+    End Property
+
+    ''' <summary>
     ''' Parameterless constructor สำหรับ JSON deserialization
     ''' </summary>
     Public Sub New()
@@ -107,7 +171,7 @@ Public Class AppSettings
     End Sub
 
     ''' <summary>
-    ''' ✅ Initialize และ Load config - เรียกตอน app start (optional)
+    ''' Initialize และ Load config - เรียกตอน app start (optional)
     ''' </summary>
     Public Shared Sub Initialize()
         SyncLock _lock
@@ -118,7 +182,9 @@ Public Class AppSettings
                 _instance.Load()
                 _isLoaded = True
             End If
-            DetectHardware()
+            If Not _hardwareDetected Then
+                DetectHardware()
+            End If
         End SyncLock
     End Sub
 
@@ -151,7 +217,6 @@ Public Class AppSettings
 
             If File.Exists(ConfigPath) Then
                 Dim json As String = File.ReadAllText(ConfigPath)
-                Debug.WriteLine("JSON Content: " & json)
 
                 If Not String.IsNullOrWhiteSpace(json) Then
                     Dim options As New JsonSerializerOptions With {
@@ -174,6 +239,7 @@ Public Class AppSettings
                             Recording.Preset = loaded.Recording.Preset
                             Recording.EncoderPreset = loaded.Recording.EncoderPreset
                             Recording.ReplayDuration = loaded.Recording.ReplayDuration
+                            Recording.UseNativeResolution = loaded.Recording.UseNativeResolution
                         End If
 
                         ' Paths
@@ -189,20 +255,18 @@ Public Class AppSettings
                             UI.Theme = loaded.UI.Theme
                         End If
 
-                        ' Audio
+                        ' ═══════════════════════════════════════════════════════════════════════
+                        ' ✅ Audio - Load new properties
+                        ' ═══════════════════════════════════════════════════════════════════════
                         If loaded.Audio IsNot Nothing Then
+                            Audio.SystemAudioEnabled = loaded.Audio.SystemAudioEnabled
                             Audio.MicEnabled = loaded.Audio.MicEnabled
+                            Audio.SystemAudioVolume = loaded.Audio.SystemAudioVolume
                             Audio.MicVolume = loaded.Audio.MicVolume
-                            Audio.SystemVolume = loaded.Audio.SystemVolume
+                            Audio.MicDeviceName = loaded.Audio.MicDeviceName
                         End If
 
                         Debug.WriteLine("AppSettings.Load: SUCCESS")
-                        Debug.WriteLine($"  Encoder: {Recording.Encoder}")
-                        Debug.WriteLine($"  FPS: {Recording.FPS}")
-                        Debug.WriteLine($"  Bitrate: {Recording.Bitrate}")
-                        Debug.WriteLine($"  Resolution: {Recording.Width}x{Recording.Height}")
-                        Debug.WriteLine($"  Preset: {Recording.Preset}")
-                        Debug.WriteLine($"  ReplayDuration: {Recording.ReplayDuration}s")
                     End If
                 End If
             Else
@@ -213,7 +277,6 @@ Public Class AppSettings
 
         Catch ex As Exception
             Debug.WriteLine("AppSettings.Load Error: " & ex.Message)
-            Debug.WriteLine("Stack: " & ex.StackTrace)
         End Try
     End Sub
 
@@ -230,8 +293,6 @@ Public Class AppSettings
             Dim json As String = JsonSerializer.Serialize(Me, options)
             File.WriteAllText(ConfigPath, json)
 
-            Debug.WriteLine("AppSettings.Save: SUCCESS to " & ConfigPath)
-
         Catch ex As Exception
             Debug.WriteLine("AppSettings.Save Error: " & ex.Message)
         End Try
@@ -246,18 +307,8 @@ Public Class AppSettings
     ''' </summary>
     Public Sub ApplyToRecorder(recorder As ScreenRecorder)
         Try
-            Debug.WriteLine("══════════ ApplyToRecorder ══════════")
-            Debug.WriteLine("  Loading from AppSettings.Instance.Recording:")
-            Debug.WriteLine("    Encoder: " & Recording.Encoder)
-            Debug.WriteLine("    FPS: " & Recording.FPS)
-            Debug.WriteLine("    Bitrate: " & Recording.Bitrate)
-            Debug.WriteLine("    Resolution: " & Recording.Width & "x" & Recording.Height)
-            Debug.WriteLine("    Preset: " & Recording.Preset)
-            Debug.WriteLine("    EncoderPreset: " & Recording.EncoderPreset)
-            Debug.WriteLine("    ReplayDuration: " & Recording.ReplayDuration)
-
             ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ IMPORTANT: Set Preset FIRST (เพราะ setter จะทับค่าอื่นๆ)
+            ' IMPORTANT: Set Preset FIRST (เพราะ setter จะทับค่าอื่นๆ)
             ' ═══════════════════════════════════════════════════════════════════════
             Select Case Recording.Preset
                 Case "Low"
@@ -273,7 +324,7 @@ Public Class AppSettings
             End Select
 
             ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ Now apply custom settings (will override preset defaults)
+            ' Now apply custom settings (will override preset defaults)
             ' ═══════════════════════════════════════════════════════════════════════
 
             ' FPS
@@ -295,16 +346,43 @@ Public Class AppSettings
             ' Replay Duration
             recorder.BufferDurationSeconds = Recording.ReplayDuration
 
-            Debug.WriteLine("  Applied to recorder:")
-            Debug.WriteLine("    recorder.Framerate = " & recorder.Framerate)
-            Debug.WriteLine("    recorder.Bitrate = " & recorder.Bitrate)
-            Debug.WriteLine("    recorder.Resolution = " & recorder.ResolutionWidth & "x" & recorder.ResolutionHeight)
-            Debug.WriteLine("    recorder.Encoder = " & recorder.Encoder.ToString())
-            Debug.WriteLine("    recorder.Preset = " & recorder.Preset.ToString())
-            Debug.WriteLine("═════════════════════════════════════")
-
         Catch ex As Exception
             Debug.WriteLine("ApplyToRecorder Error: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' ✅ Apply Audio settings to ScreenRecorder
+    ''' </summary>
+    Public Sub ApplyAudioSettings(recorder As ScreenRecorder)
+        Try
+            ' Set audio mode
+            If Audio.SystemAudioEnabled AndAlso Audio.MicEnabled Then
+                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.Both
+            ElseIf Audio.SystemAudioEnabled Then
+                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.SystemOnly
+            ElseIf Audio.MicEnabled Then
+                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.MicOnly
+            Else
+                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.None
+            End If
+
+            ' Set volumes
+            recorder.SystemAudioVolume = Audio.SystemAudioVolume
+            recorder.MicVolume = Audio.MicVolume
+
+            ' Set mic device name (if specified)
+            If Audio.MicEnabled AndAlso Not String.IsNullOrEmpty(Audio.MicDeviceName) Then
+                recorder.MicDeviceName = Audio.MicDeviceName
+            End If
+
+            Debug.WriteLine($"ApplyAudioSettings: Mode={recorder.AudioMode}, SystemVol={Audio.SystemAudioVolume:P0}, MicVol={Audio.MicVolume:P0}")
+
+        Catch ex As Exception
+            Debug.WriteLine("ApplyAudioSettings Error: " & ex.Message)
+            ' Default to system audio only
+            recorder.AudioMode = ScreenRecorder.VideoCaptureMode.SystemOnly
+            recorder.SystemAudioVolume = 1.0F
         End Try
     End Sub
 
@@ -354,8 +432,11 @@ Public Class AppSettings
     Private Shared _hasNvidia As Boolean? = Nothing
     Private Shared _hasIntel As Boolean? = Nothing
     Private Shared _hasAMD As Boolean? = Nothing
+    Private Shared _gpuName As String = ""
+    Private Shared _intelGpuName As String = ""
+    Private Shared _supportsAV1 As Boolean? = Nothing
 
-    ' ✅ NEW: Store all detected GPU names
+    ' Store all detected GPU names
     Private Shared _allGpuNames As New List(Of String)()
 
     ''' <summary>
@@ -384,10 +465,6 @@ Public Class AppSettings
             Return _hasAMD.GetValueOrDefault(False)
         End Get
     End Property
-
-    Private Shared _gpuName As String = ""
-    Private Shared _intelGpuName As String = ""
-    Private Shared _supportsAV1 As Boolean? = Nothing
 
     ''' <summary>
     ''' Get primary GPU name (NVIDIA > AMD > Intel)
@@ -430,7 +507,6 @@ Public Class AppSettings
         End If
 
         ' AV1 supported on: RTX 40 series (Ada Lovelace)
-        ' Not supported on: GTX 10xx, GTX 16xx, RTX 20xx, RTX 30xx
         Dim gpuUpper As String = _gpuName.ToUpperInvariant()
 
         If gpuUpper.Contains("RTX 40") OrElse
@@ -443,9 +519,15 @@ Public Class AppSettings
     End Sub
 
     ''' <summary>
-    ''' ✅ FIXED: Detect available GPUs - ตรวจจับทุก GPU อย่างอิสระ
+    ''' Detect available GPUs
     ''' </summary>
     Public Shared Sub DetectHardware()
+        ' Skip if already detected
+        If _hardwareDetected Then
+            Debug.WriteLine("DetectHardware: Already detected, skipping")
+            Exit Sub
+        End If
+
         Try
             Debug.WriteLine("══════════ DetectHardware START ══════════")
 
@@ -454,19 +536,13 @@ Public Class AppSettings
             _hasAMD = False
             _allGpuNames.Clear()
 
-            ' ═════════════════════════════════════════════════════════════════
-            ' Method 1: PowerShell Get-CimInstance (แทน wmic)
-            ' ═════════════════════════════════════════════════════════════════
+            ' Method 1: PowerShell Get-CimInstance
             DetectGPUsViaPowerShell()
 
-            ' ═════════════════════════════════════════════════════════════════
-            ' Method 2: Registry Detection (สำหรับ GPU ที่ PowerShell พลาด)
-            ' ═════════════════════════════════════════════════════════════════
+            ' Method 2: Registry Detection
             DetectGPUsViaRegistry()
 
-            ' ═════════════════════════════════════════════════════════════════
             ' Method 3: DLL Check (final fallback)
-            ' ═════════════════════════════════════════════════════════════════
             Dim system32 As String = Environment.SystemDirectory
 
             ' NVIDIA - ต้องมี nvenc.dll
@@ -485,12 +561,6 @@ Public Class AppSettings
                 End If
             End If
 
-            ' ═════════════════════════════════════════════════════════════════
-            ' ✅ REMOVED: Don't suppress Intel when there's dedicated GPU!
-            ' Many systems have BOTH Intel iGPU + NVIDIA/AMD dGPU
-            ' QuickSync is useful even with dedicated GPU
-            ' ═════════════════════════════════════════════════════════════════
-
             ' Set primary GPU name
             If _hasNvidia.GetValueOrDefault(False) Then
                 _gpuName = _allGpuNames.FirstOrDefault(Function(n) n.ToUpperInvariant().Contains("NVIDIA"), "NVIDIA GPU")
@@ -500,20 +570,24 @@ Public Class AppSettings
                 _gpuName = _intelGpuName
             End If
 
+            ' Mark as detected
+            _hardwareDetected = True
+
             Debug.WriteLine("══════════ DetectHardware RESULT ══════════")
             Debug.WriteLine("  NVIDIA: " & _hasNvidia.ToString())
-            Debug.WriteLine("  Intel:  " & _hasIntel.ToString() & If(_hasIntel.GetValueOrDefault(False), " (" & _intelGpuName & ")", ""))
+            Debug.WriteLine("  Intel:  " & _hasIntel.ToString())
             Debug.WriteLine("  AMD:    " & _hasAMD.ToString())
             Debug.WriteLine("  Primary GPU: " & _gpuName)
             Debug.WriteLine("═══════════════════════════════════════════")
 
         Catch ex As Exception
             Debug.WriteLine("DetectHardware Error: " & ex.Message)
+            _hardwareDetected = True ' Still mark as detected to prevent loops
         End Try
     End Sub
 
     ''' <summary>
-    ''' ✅ FIXED: Detect GPUs using PowerShell - ตรวจจับแต่ละ brand อย่างอิสระ
+    ''' Detect GPUs using PowerShell
     ''' </summary>
     Private Shared Sub DetectGPUsViaPowerShell()
         Try
@@ -545,10 +619,6 @@ Public Class AppSettings
 
                         Dim upper As String = trimmed.ToUpperInvariant()
 
-                        ' ═════════════════════════════════════════════════════════════════
-                        ' ✅ FIXED: Detect each GPU brand INDEPENDENTLY
-                        ' ═════════════════════════════════════════════════════════════════
-
                         ' NVIDIA Detection
                         If upper.Contains("NVIDIA") OrElse upper.Contains("GEFORCE") OrElse upper.Contains("GTX") OrElse upper.Contains("RTX") Then
                             _hasNvidia = True
@@ -563,10 +633,8 @@ Public Class AppSettings
                             Continue For
                         End If
 
-                        ' ✅ Intel Detection - Check independently!
-                        ' Common Intel iGPU names: "Intel(R) UHD Graphics", "Intel(R) Iris(R) Xe Graphics"
+                        ' Intel Detection
                         If upper.Contains("INTEL") Then
-                            ' Skip if it's Intel + NVIDIA/AMD combined string
                             If upper.Contains("NVIDIA") OrElse upper.Contains("AMD") OrElse upper.Contains("RADEON") Then
                                 Continue For
                             End If
@@ -586,11 +654,10 @@ Public Class AppSettings
     End Sub
 
     ''' <summary>
-    ''' ✅ NEW: Detect GPUs via Windows Registry
+    ''' Detect GPUs via Windows Registry
     ''' </summary>
     Private Shared Sub DetectGPUsViaRegistry()
         Try
-            ' GPU Registry path
             Const GPU_REGISTRY_PATH As String = "SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"
 
             Using key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(GPU_REGISTRY_PATH)
@@ -601,12 +668,9 @@ Public Class AppSettings
                         If subKey Is Nothing Then Continue For
 
                         Dim driverDesc As String = subKey.GetValue("DriverDesc", "").ToString()
-                        Dim adapterString As String = subKey.GetValue("AdapterString", "").ToString()
-                        Dim combined As String = (driverDesc & " " & adapterString).ToUpperInvariant()
+                        Dim combined As String = driverDesc.ToUpperInvariant()
 
-                        If String.IsNullOrEmpty(driverDesc) AndAlso String.IsNullOrEmpty(adapterString) Then
-                            Continue For
-                        End If
+                        If String.IsNullOrEmpty(driverDesc) Then Continue For
 
                         ' NVIDIA
                         If combined.Contains("NVIDIA") OrElse combined.Contains("GEFORCE") Then
@@ -626,15 +690,12 @@ Public Class AppSettings
                             End If
                         End If
 
-                        ' ═════════════════════════════════════════════════════════════════
-                        ' ✅ Intel iGPU Detection via Registry
-                        ' ═════════════════════════════════════════════════════════════════
+                        ' Intel iGPU
                         If combined.Contains("INTEL") AndAlso
                            Not combined.Contains("NVIDIA") AndAlso
                            Not combined.Contains("AMD") AndAlso
                            Not combined.Contains("RADEON") Then
 
-                            ' Additional check: Intel iGPU usually has these keywords
                             If combined.Contains("UHD") OrElse
                                combined.Contains("IRIS") OrElse
                                combined.Contains("HD GRAPHICS") OrElse
@@ -670,7 +731,6 @@ Public Class AppSettings
         UI = New UISettingsClass()
         Audio = New AudioSettingsClass()
         Save()
-        Debug.WriteLine("AppSettings.ResetDefaults: Done")
     End Sub
 
 #End Region

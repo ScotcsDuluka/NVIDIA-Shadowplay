@@ -1,3 +1,5 @@
+C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\libmp3lame.32.dll
+C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\libmp3lame.64.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\Captrue Core.dll.config
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\Captrue Core.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\Captrue Core.pdb
@@ -7,6 +9,7 @@ C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\Microsoft.Win32.Registry.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Asio.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Core.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.dll
+C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Lame.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Midi.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Wasapi.dll
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.WinForms.dll
@@ -26,6 +29,7 @@ C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\Microsoft.Win32.Registry.xml
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.xml
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Asio.xml
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Core.xml
+C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Lame.pdb
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Midi.xml
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.Wasapi.xml
 C:\My Project\NVIDIA Shadowplay\Engine\bin\Debug\NAudio.WinForms.xml

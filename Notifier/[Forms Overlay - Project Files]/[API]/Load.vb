@@ -224,6 +224,7 @@ Public Class Load
 
         ' === Notifications without args ===
         notifications.Add(New NotificationData("l10n.test", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.notificationScreenshotSavedToGallery", "", False, Color.White))
 
         ' === Notifications with args ===
         notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))

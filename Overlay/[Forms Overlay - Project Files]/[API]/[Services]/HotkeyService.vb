@@ -1,5 +1,4 @@
-﻿' API/Services/HotkeyService.vb
-Public Class HotkeyService
+﻿Public Class HotkeyService
     Private _hwnd As IntPtr
     Private ReadOnly _actions As New Dictionary(Of Integer, Action)
 

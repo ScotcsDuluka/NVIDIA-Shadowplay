@@ -222,7 +222,6 @@ Partial Public Class Base
     Private isNotiOn As Boolean = False
     Private notifierShown As Boolean = False
 
-    ' HotkeyService
     Private WithEvents _hotkeyService As HotkeyService
 
 #End Region
@@ -244,61 +243,37 @@ Partial Public Class Base
     End Sub
 
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' ✅ Initialize AppSettings FIRST (load from config.json)
-        AppSettings.Initialize()
-        Debug.WriteLine("AppSettings initialized")
-        Debug.WriteLine("  Encoder: " & AppSettings.Instance.Recording.Encoder)
-        Debug.WriteLine("  FPS: " & AppSettings.Instance.Recording.FPS)
-        Debug.WriteLine("  Bitrate: " & AppSettings.Instance.Recording.Bitrate)
-        Debug.WriteLine("  Resolution: " & AppSettings.Instance.Recording.Width & "x" & AppSettings.Instance.Recording.Height)
-
-        Dim formTypes = System.Reflection.Assembly.GetExecutingAssembly().GetTypes().
-        Where(Function(x) x.IsSubclassOf(GetType(Form)) AndAlso Not x.IsAbstract)
-
-        For Each ft In formTypes
-            If ft.Name = Me.GetType().Name Then Continue For
-            If ft.Name = NoCloseForm.GetType.Name Then Continue For
-
-            Try
-                Dim f As Form = CType(Activator.CreateInstance(ft), Form)
-                f.Show()
-                f.Hide()
-                Debug.WriteLine("Preloaded: " & f.Name)
-            Catch ex As Exception
-                Debug.WriteLine("Skip: " & ft.Name)
-            End Try
-        Next
-
-        LoadCurrentLanguage()
-        InitializeNotifierAPI()
         HideFromAltTab()
 
-        Base_Background_Top.Show()
+        ' Force handle creation before registering hotkeys
+        Dim handle As IntPtr = Me.Handle
 
-        Privacy_control.Start()
-        LoadMicrophoneData()
+        _hotkeyService = New HotkeyService()
+        _hotkeyService.RegisterAll(handle)
+        Debug.WriteLine("Hotkeys registered!")
+
+        AppSettings.Initialize()
+
+
+        InitializeNotifierAPI()
+        LoadCurrentLanguage()
         CheckPrivacyControl()
-
-        ' ✅ Use AppSettings instead of My.Settings
-        If AppSettings.Instance.Audio.MicEnabled Then
-            mic.Text = ""
-        Else
-            mic.Text = ""
-        End If
-
-        Load_App.Start()
-
-        Base_Background_Top.Hide()
-
+        MainSub_Load()
         LoadFilePath()
         CreateDataDirectories()
         LoadMicState()
-        _hotkeyService = New HotkeyService()
-        _hotkeyService.RegisterAll(Me.Handle)
-        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+        TIMESLOAD()
     End Sub
 
-    Private Sub MainSub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+    Private Sub TIMESLOAD()
+        Load_App.Start()
+        Privacy_control.Start()
+    End Sub
+
+    Private Sub MainSub_Load()
+        Base_Background_Top.Show()
+        Base_Background_Top.Hide()
         SET_Back.Location = New Point(80, 160)
         Base_RecordingsSet.Show()
         Base_RecordingsSet.Hide()
@@ -328,6 +303,7 @@ Partial Public Class Base
             ShowNotifier("ErrorResolution")
         Else
             ShowNotifier("notificationOpenShare")
+            File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
         End If
     End Sub
 
@@ -397,7 +373,6 @@ Partial Public Class Base
             '----
             Dim savedSeconds As Integer = 60
             Try
-                ' ✅ Use AppSettings instead of My.Settings
                 Dim settingValue As Integer = AppSettings.Instance.Recording.ReplayDuration
                 savedSeconds = Math.Max(15, Math.Min(1200, settingValue))
             Catch
@@ -423,12 +398,14 @@ Partial Public Class Base
 
         ' Base Form Controls
         UpdateLocalizedTexts()
-        AppSettings.Instance.Save()  ' ✅ Use AppSettings
+        AppSettings.Instance.Save()
         Lang.Stop()
     End Sub
 
     Public Sub UpdateLocalizedTexts()
         Lang.Start()
+
+        ' Base
         text_settings.Text = (Assembly.GetExecutingAssembly().GetName().Version.ToString())
         Label3.Text = LangHelper.GetText("l10n.settings")
         Home_settings.Text = LangHelper.GetText("l10n.preferencesHome")
@@ -469,12 +446,11 @@ Partial Public Class Base
             "Gallery"
         )
 
-        ' ✅ Use AppSettings instead of My.Settings
         Base_Gallery.txtFilePath.Text = AppSettings.Instance.Paths.GalleryPath
 
         If String.IsNullOrEmpty(Base_Gallery.txtFilePath.Text) Then
             Base_Gallery.txtFilePath.Text = GalleryPath
-            ' Save default path
+
             AppSettings.Instance.Paths.GalleryPath = GalleryPath
         End If
 
@@ -493,11 +469,6 @@ Partial Public Class Base
         Next
     End Sub
 
-    Private Sub LoadMicrophoneData()
-        Dim micOnPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, MicOnFile)
-        mic.Text = If(My.Computer.FileSystem.FileExists(micOnPath), "", "")
-    End Sub
-
     Private Sub CheckPrivacyControl()
         Dim privacyPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)
         Base_Privacy_Control.py_2.Text = If(
@@ -513,7 +484,7 @@ Partial Public Class Base
 
     Private Sub CaptureScreen()
         If Not My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)) Then
-            ShowNotifier("notificationScreenshotSavedToGallery")
+            ShowNotifier("privacy")
             Return
         End If
 
@@ -593,7 +564,6 @@ Partial Public Class Base
 #End Region
 
     Private Sub Base_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
-        ' ✅ Save all settings to config.json
         AppSettings.Instance.Save()
         _hotkeyService?.UnregisterAll()
     End Sub

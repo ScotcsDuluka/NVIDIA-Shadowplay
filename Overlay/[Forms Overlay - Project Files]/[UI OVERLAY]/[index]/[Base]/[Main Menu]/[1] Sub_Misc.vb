@@ -133,12 +133,14 @@ Partial Public Class Base
     Private Sub UpdateReplayStatus()
         If ReplayValue = True Then
             s_replay.Text = LangHelper.GetText("l10n.on")
+            if_replay.Text = LangHelper.GetText("l10n.instantReplayStop")
             s_replay.Font = New Font("Segoe UI", 12, FontStyle.Bold)
             s_replay.ForeColor = greenColor
             logo_replay.ForeColor = greenColor
             Label8.ForeColor = System.Drawing.Color.White
         Else
             s_replay.Text = LangHelper.GetText("l10n.off")
+            if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
             s_replay.Font = New Font("Segoe UI", 12, FontStyle.Regular)
             s_replay.ForeColor = System.Drawing.Color.Gray
             logo_replay.ForeColor = System.Drawing.Color.White

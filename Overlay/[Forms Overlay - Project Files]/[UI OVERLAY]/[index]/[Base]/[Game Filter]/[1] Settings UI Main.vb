@@ -109,7 +109,7 @@ Public Class Base_Game_Filter
         Me.Opacity = 0
         Me.Hide()
         Base_Game_Filter_Sub.Hide()
-        isFunctionActive_f3 = True
+        Base.isFunctionActive_f3 = True
     End Sub
 
     Private Sub Label1_MouseMove(sender As Object, e As MouseEventArgs) Handles Label1.MouseMove
