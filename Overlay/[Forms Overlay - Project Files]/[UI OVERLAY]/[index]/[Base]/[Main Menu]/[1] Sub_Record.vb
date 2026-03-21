@@ -4,6 +4,7 @@ Imports System.Threading.Tasks
 Imports System.Windows.Forms
 Imports Captrue_Core
 Imports Captrue_Core.CaptureCore
+Imports Captrue_Core.CaptureCore.ScreenRecorder
 
 Partial Public Class Base
     Public ReplayValue As Boolean = False
@@ -103,9 +104,23 @@ Partial Public Class Base
 #End Region
 
 #Region "Toggle Recording (Alt+F9)"
+
+    Private Sub PrivacyOpen()
+        Base_Settings.Hide()
+        Base_Overlay_Hub.Hide()
+        Base_KeySet.Hide()
+        Base_RecordingsSet.Hide()
+        Base_Privacy_Control.settings_1.Location = New Point(695, -2000)
+        Base_Privacy_Control.Show()
+        AMY(Base_Privacy_Control.settings_1, -2000, 160, 300)
+    End Sub
+
     Public Async Sub ToggleRecording()
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
         Else
+            ShowMainPanel()
+            OpenSettings()
+            PrivacyOpen()
             ShowNotifier("privacy")
             Exit Sub
         End If
@@ -151,8 +166,14 @@ Partial Public Class Base
     Public Async Sub ToggleInstantReplay()
         If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
         Else
-            ShowNotifier("privacy")
-            Exit Sub
+            ' If Recorder.SelectedCaptureAPI = CaptureAPIType.GFxCapture Then
+            ' Else
+            ShowMainPanel()
+                OpenSettings()
+                PrivacyOpen()
+                ShowNotifier("privacy")
+                Exit Sub
+            '  End If
         End If
         Try
             ' Set FFmpeg paths

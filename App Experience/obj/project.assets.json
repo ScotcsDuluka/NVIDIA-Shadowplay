@@ -8,7 +8,7 @@
     "net8.0-windows10.0.26100": []
   },
   "packageFolders": {
-    "C:\\Users\\HUAWEI-PC\\.nuget\\packages\\": {}
+    "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
@@ -16,11 +16,11 @@
       "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj",
       "projectName": "NVIDIA Experience",
       "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj",
-      "packagesPath": "C:\\Users\\HUAWEI-PC\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
       "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\HUAWEI-PC\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
