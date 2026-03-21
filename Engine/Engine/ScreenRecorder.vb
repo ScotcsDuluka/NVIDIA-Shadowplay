@@ -34,13 +34,9 @@ Namespace CaptureCore
         Public Const FIXED_BUFFER_SEGMENTS As Integer = 2400
         Public Const FIXED_BUFFER_SECONDS As Integer = 1200
 
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' ✅ Reduced timeouts for faster stop
-        '    Audio pipe is closed FIRST, so FFmpeg should exit quickly
-        ' ═══════════════════════════════════════════════════════════════════════
-        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 2000   ' 2 seconds (was 10)
-        Private Const FORCE_KILL_TIMEOUT As Integer = 1000     ' 1 second (was 5)
-        Private Const FILE_WRITE_DELAY As Integer = 200        ' 200ms (was 500)
+        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 2000
+        Private Const FORCE_KILL_TIMEOUT As Integer = 1000
+        Private Const FILE_WRITE_DELAY As Integer = 200
         Private Const CONCAT_TIMEOUT As Integer = 60000
 
         Private Const SEGMENT_DURATION As Double = 0.25
@@ -112,14 +108,11 @@ Namespace CaptureCore
             Region
         End Enum
 
-        ' ══════════════════════════════════════════════════════════════════════════════
-        ' ✅ NAudio Audio Capture Mode
-        ' ══════════════════════════════════════════════════════════════════════════════
         Public Enum VideoCaptureMode
-            None            ' No audio
-            SystemOnly      ' System audio only (WASAPI Loopback via NAudio)
-            MicOnly         ' Microphone only (DirectShow)
-            Both            ' System + Microphone
+            None
+            SystemOnly
+            MicOnly
+            Both
         End Enum
 #End Region
 
@@ -151,12 +144,10 @@ Namespace CaptureCore
 #End Region
 
 #Region "Audio Capture State (NAudio)"
-        ' Separate pipes for Record and Buffer to avoid conflicts
         Private _recordingAudioPipe As AudioPipe
         Private _bufferAudioPipe As AudioPipe
         Private _audioLock As New Object()
 
-        ' Audio settings
         Private _audioMode As VideoCaptureMode = VideoCaptureMode.None
         Private _systemAudioVolume As Single = 1.0F
         Private _micVolume As Single = 1.0F
@@ -518,7 +509,6 @@ Namespace CaptureCore
                 Return CInt(SEGMENT_DURATION * 1000)
             End Get
             Set(value As Integer)
-                ' Segment duration is fixed at 0.25s
             End Set
         End Property
 
@@ -540,9 +530,6 @@ Namespace CaptureCore
 #End Region
 
 #Region "Properties - Audio Settings (NAudio)"
-        ''' <summary>
-        ''' Audio capture mode: None, SystemOnly, MicOnly, or Both
-        ''' </summary>
         Public Property AudioMode As VideoCaptureMode
             Get
                 Return _audioMode
@@ -552,9 +539,6 @@ Namespace CaptureCore
             End Set
         End Property
 
-        ''' <summary>
-        ''' Enable system audio capture (WASAPI Loopback via NAudio)
-        ''' </summary>
         Public Property SystemAudioEnabled As Boolean
             Get
                 Return _audioMode = VideoCaptureMode.SystemOnly OrElse _audioMode = VideoCaptureMode.Both
@@ -576,9 +560,6 @@ Namespace CaptureCore
             End Set
         End Property
 
-        ''' <summary>
-        ''' Enable microphone capture (DirectShow)
-        ''' </summary>
         Public Property MicEnabled As Boolean
             Get
                 Return _audioMode = VideoCaptureMode.MicOnly OrElse _audioMode = VideoCaptureMode.Both
@@ -600,16 +581,12 @@ Namespace CaptureCore
             End Set
         End Property
 
-        ''' <summary>
-        ''' System audio volume (0.0 - 1.0)
-        ''' </summary>
         Public Property SystemAudioVolume As Single
             Get
                 Return _systemAudioVolume
             End Get
             Set(value As Single)
                 _systemAudioVolume = Math.Max(0.0F, Math.Min(1.0F, value))
-                ' Update running pipe if active
                 SyncLock _audioLock
                     If _recordingAudioPipe IsNot Nothing Then
                         _recordingAudioPipe.Volume = _systemAudioVolume
@@ -621,9 +598,6 @@ Namespace CaptureCore
             End Set
         End Property
 
-        ''' <summary>
-        ''' Microphone volume (0.0 - 1.0)
-        ''' </summary>
         Public Property MicVolume As Single
             Get
                 Return _micVolume
@@ -633,9 +607,6 @@ Namespace CaptureCore
             End Set
         End Property
 
-        ''' <summary>
-        ''' Microphone device name (empty = default)
-        ''' </summary>
         Public Property MicDeviceName As String
             Get
                 Return _micDeviceName
@@ -947,7 +918,6 @@ Namespace CaptureCore
                 If _isPreWarmed Then Exit Sub
 
                 Try
-                    ' Run encoder pre-warm in background (non-blocking)
                     Task.Run(Sub() PreWarmEncoderCore(ffmpegPath, preferredEncoder))
                     _isPreWarmed = True
                 Catch ex As Exception
@@ -1158,7 +1128,6 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
-                ' Reset fallback state for new recording
                 ResetCaptureAPIFallback()
 
                 Try
@@ -1169,9 +1138,6 @@ Namespace CaptureCore
 
                     recordingOutputPath = outputFilePath
 
-                    ' ═══════════════════════════════════════════════════════════════════════
-                    ' ✅ Start Audio Pipe BEFORE building FFmpeg arguments
-                    ' ═══════════════════════════════════════════════════════════════════════
                     StartRecordingAudioPipe()
 
                     Dim arguments As String = BuildFFmpegArguments(outputFilePath, region)
@@ -1206,10 +1172,6 @@ Namespace CaptureCore
 
                 Dim savedPath As String = recordingOutputPath
 
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Stop Audio Pipe FIRST - Close pipe so FFmpeg sees EOF
-                '    If we stop FFmpeg first, it will wait forever for audio pipe!
-                ' ═══════════════════════════════════════════════════════════════════════
                 StopRecordingAudioPipe()
 
                 Try
@@ -1231,7 +1193,6 @@ Namespace CaptureCore
                 If _isBuffering Then Return False
                 If Not ValidateFFmpeg() Then Return False
 
-                ' Reset fallback state
                 ResetCaptureAPIFallback()
 
                 bufferTempDir = Path.Combine(Application.StartupPath, "Temp", "replay_buffer")
@@ -1254,9 +1215,6 @@ Namespace CaptureCore
                 _segmentTimestamps.Clear()
 
                 Try
-                    ' ═══════════════════════════════════════════════════════════════════════
-                    ' ✅ Start Audio Pipe BEFORE building FFmpeg arguments
-                    ' ═══════════════════════════════════════════════════════════════════════
                     StartBufferAudioPipe()
 
                     Dim arguments As String = BuildBufferFFmpegArguments()
@@ -1289,10 +1247,6 @@ Namespace CaptureCore
             SyncLock _bufferLock
                 If Not _isBuffering OrElse bufferProcess Is Nothing Then Exit Sub
 
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Stop Audio Pipe FIRST - Close pipe so FFmpeg sees EOF
-                '    If we stop FFmpeg first, it will wait forever for audio pipe!
-                ' ═══════════════════════════════════════════════════════════════════════
                 StopBufferAudioPipe()
 
                 Try
@@ -1361,10 +1315,6 @@ Namespace CaptureCore
                         Directory.CreateDirectory(outputDir)
                     End If
 
-                    ' ═══════════════════════════════════════════════════════════════════════
-                    ' ✅ คัดลอก segments ไป temp folder ก่อน concat
-                    '    ป้องกัน segment_wrap ทับไฟล์ระหว่าง concat
-                    ' ═══════════════════════════════════════════════════════════════════════
                     Dim uniqueId As String = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff")
                     Dim tempConcatDir As String = Path.Combine(bufferTempDir, "concat_" & uniqueId)
                     Directory.CreateDirectory(tempConcatDir)
@@ -1373,7 +1323,6 @@ Namespace CaptureCore
 
                     Using writer As New StreamWriter(concatListPath)
                         For Each seg In selectedSegments
-                            ' คัดลอกไฟล์ไป temp
                             Dim tempSegPath As String = Path.Combine(tempConcatDir, Path.GetFileName(seg.FilePath))
                             Try
                                 File.Copy(seg.FilePath, tempSegPath, True)
@@ -1390,9 +1339,6 @@ Namespace CaptureCore
 
                     Dim success As Boolean = RunFFmpegSync(concatArgs, CONCAT_TIMEOUT)
 
-                    ' ═══════════════════════════════════════════════════════════════════════
-                    ' ✅ ลบ temp folder หลัง concat เสร็จ
-                    ' ═══════════════════════════════════════════════════════════════════════
                     Try
                         If Directory.Exists(tempConcatDir) Then
                             For Each f In Directory.GetFiles(tempConcatDir)
@@ -1566,12 +1512,8 @@ Namespace CaptureCore
 
 #Region "Audio Pipe Management (NAudio)"
 
-        ''' <summary>
-        ''' Start audio pipe for recording
-        ''' </summary>
         Private Sub StartRecordingAudioPipe()
             SyncLock _audioLock
-                ' Only start if system audio is enabled
                 If _audioMode = VideoCaptureMode.None OrElse _audioMode = VideoCaptureMode.MicOnly Then
                     Exit Sub
                 End If
@@ -1602,9 +1544,6 @@ Namespace CaptureCore
             End SyncLock
         End Sub
 
-        ''' <summary>
-        ''' Stop audio pipe for recording
-        ''' </summary>
         Private Sub StopRecordingAudioPipe()
             SyncLock _audioLock
                 If _recordingAudioPipe IsNot Nothing Then
@@ -1620,12 +1559,8 @@ Namespace CaptureCore
             End SyncLock
         End Sub
 
-        ''' <summary>
-        ''' Start audio pipe for buffer
-        ''' </summary>
         Private Sub StartBufferAudioPipe()
             SyncLock _audioLock
-                ' Only start if system audio is enabled
                 If _audioMode = VideoCaptureMode.None OrElse _audioMode = VideoCaptureMode.MicOnly Then
                     Exit Sub
                 End If
@@ -1656,9 +1591,6 @@ Namespace CaptureCore
             End SyncLock
         End Sub
 
-        ''' <summary>
-        ''' Stop audio pipe for buffer
-        ''' </summary>
         Private Sub StopBufferAudioPipe()
             SyncLock _audioLock
                 If _bufferAudioPipe IsNot Nothing Then
@@ -1703,75 +1635,50 @@ Namespace CaptureCore
         Private Function BuildFFmpegArguments(outputFile As String, region As Rectangle) As String
             Dim sb As New StringBuilder(SB_CAPACITY_XLARGE)
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 1. GLOBAL OPTIONS
-            ' ══════════════════════════════════════════════════════════════════════════════
             sb.Append("-y -hide_banner -loglevel warning ")
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 2. HARDWARE INITIALIZATION
-            ' ══════════════════════════════════════════════════════════════════════════════
             Dim isQuickSync As Boolean = (_encoder = VideoEncoder.QuickSync_H264 OrElse _encoder = VideoEncoder.QuickSync_HEVC)
             Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
             Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
             Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
             ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ D3D11 Hardware Device Init
-            '    DDAGrab and GFxCapture both need -init_hw_device d3d11va
-            '    QSV needs vendor_id filter for Intel GPUs
+            ' Hardware Device Initialization
+            ' 
+            ' 🔧 FIX for QSV: DO NOT create qsv device separately!
+            '    hwmap=derive_device=qsv will create QSV context from D3D11VA
+            ' 
+            ' ✅ Correct (from FFmpeg docs):
+            '    ffmpeg -init_hw_device d3d11va:,vendor_id=0x8086 
+            '           -filter_complex ddagrab=0,hwmap=derive_device=qsv,format=qsv 
+            '           -c:v h264_qsv -global_quality 20 output.mkv
             ' ═══════════════════════════════════════════════════════════════════════
             If isQuickSync Then
+                ' QSV: Only init d3d11va - hwmap will derive qsv from it
                 sb.Append("-init_hw_device d3d11va:,vendor_id=0x8086 ")
-            ElseIf isNVIDIA OrElse isAMD Then
-                ' DDAGrab and GFxCapture both need D3D11 device for NVENC/AMF
-                If selectedAPI = CaptureAPIType.DDAGrab OrElse selectedAPI = CaptureAPIType.GFxCapture Then
-                    sb.Append("-init_hw_device d3d11va ")
-                End If
+            ElseIf selectedAPI = CaptureAPIType.DDAGrab OrElse selectedAPI = CaptureAPIType.GFxCapture Then
+                sb.Append("-init_hw_device d3d11va ")
             End If
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 3. ALL INPUTS (Video first, then Audio)
-            '    FFmpeg requires ALL inputs before any -map commands!
-            ' ══════════════════════════════════════════════════════════════════════════════
-
-            ' Reset pending filter
             _pendingVideoFilter = ""
 
-            ' Video input (filter_complex or lavfi input)
             BuildCaptureCommand(sb, region)
 
-            ' Audio input(s)
             Dim audioInputArgs As String = BuildAudioInputArgs(useBufferPipe:=False)
             sb.Append(audioInputArgs)
 
-            ' Apply pending video filter AFTER audio input (for DDAGrab non-QSV)
             If Not String.IsNullOrEmpty(_pendingVideoFilter) Then
                 sb.Append(_pendingVideoFilter)
             End If
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 4. ALL MAPPINGS (-map commands AFTER all inputs)
-            ' ══════════════════════════════════════════════════════════════════════════════
             BuildAudioMapCommand(sb, useBufferPipe:=False)
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 5. ENCODER SETTINGS
-            ' ══════════════════════════════════════════════════════════════════════════════
             BuildEncoderCommand(sb)
 
-            ' Audio codec (if audio enabled)
             If _audioMode <> VideoCaptureMode.None Then
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Audio Sync Options
-                '    -async 1: Stretch/squeeze audio to match video timestamps
-                ' ═══════════════════════════════════════════════════════════════════════
                 sb.Append("-c:a aac -b:a 192k -async 1 ")
             End If
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 6. OUTPUT FILE
-            ' ══════════════════════════════════════════════════════════════════════════════
             sb.Append("-movflags +faststart """)
             sb.Append(outputFile)
             sb.Append(""""c)
@@ -1781,76 +1688,42 @@ Namespace CaptureCore
         Private Function BuildBufferFFmpegArguments() As String
             Dim sb As New StringBuilder(SB_CAPACITY_XLARGE)
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 1. GLOBAL OPTIONS
-            ' ══════════════════════════════════════════════════════════════════════════════
             sb.Append("-y -hide_banner -loglevel warning ")
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 2. HARDWARE INITIALIZATION
-            ' ══════════════════════════════════════════════════════════════════════════════
             Dim isQuickSync As Boolean = (_encoder = VideoEncoder.QuickSync_H264 OrElse _encoder = VideoEncoder.QuickSync_HEVC)
             Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
             Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
             Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
             ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ D3D11 Hardware Device Init
-            '    DDAGrab and GFxCapture both need -init_hw_device d3d11va
+            ' Hardware Device Initialization (same as recording)
             ' ═══════════════════════════════════════════════════════════════════════
             If isQuickSync Then
+                ' QSV: Only init d3d11va - hwmap will derive qsv from it
                 sb.Append("-init_hw_device d3d11va:,vendor_id=0x8086 ")
-            ElseIf isNVIDIA OrElse isAMD Then
-                ' DDAGrab and GFxCapture both need D3D11 device for NVENC/AMF
-                If selectedAPI = CaptureAPIType.DDAGrab OrElse selectedAPI = CaptureAPIType.GFxCapture Then
-                    sb.Append("-init_hw_device d3d11va ")
-                End If
+            ElseIf selectedAPI = CaptureAPIType.DDAGrab OrElse selectedAPI = CaptureAPIType.GFxCapture Then
+                sb.Append("-init_hw_device d3d11va ")
             End If
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 3. ALL INPUTS (Video first, then Audio)
-            '    FFmpeg requires ALL inputs before any -map commands!
-            ' ══════════════════════════════════════════════════════════════════════════════
-
-            ' Reset pending filter
             _pendingVideoFilter = ""
 
-            ' Video input (filter_complex or lavfi input)
             BuildCaptureCommand(sb, Rectangle.Empty)
 
-            ' Audio input(s)
             Dim audioInputArgs As String = BuildAudioInputArgs(useBufferPipe:=True)
             sb.Append(audioInputArgs)
 
-            ' Apply pending video filter AFTER audio input (for DDAGrab non-QSV)
             If Not String.IsNullOrEmpty(_pendingVideoFilter) Then
                 sb.Append(_pendingVideoFilter)
             End If
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 4. ALL MAPPINGS (-map commands AFTER all inputs)
-            ' ══════════════════════════════════════════════════════════════════════════════
             BuildAudioMapCommand(sb, useBufferPipe:=True)
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 5. ENCODER SETTINGS
-            ' ══════════════════════════════════════════════════════════════════════════════
             BuildBufferEncoderCommand(sb)
 
-            ' Audio codec (if audio enabled)
             If _audioMode <> VideoCaptureMode.None Then
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Audio Sync Options
-                '    -async 1: Stretch/squeeze audio to match video timestamps
-                ' ═══════════════════════════════════════════════════════════════════════
                 sb.Append("-c:a aac -b:a 192k -async 1 ")
             End If
 
-            ' ══════════════════════════════════════════════════════════════════════════════
-            ' 6. SEGMENT OUTPUT with WRAP
-            '    -segment_wrap N: วนลูปไฟล์ทับของเก่าเมื่อถึง N (ป้องกันไฟล์เยอะเกิน)
-            '    FIXED_BUFFER_SEGMENTS = 2400 → 2400 * 0.25s = 600 วินาที (10 นาที)
-            ' ══════════════════════════════════════════════════════════════════════════════
             sb.Append("-f segment ")
             sb.Append("-segment_time ")
             sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
@@ -1867,14 +1740,9 @@ Namespace CaptureCore
             Return sb.ToString()
         End Function
 
-        ' ══════════════════════════════════════════════════════════════════════════════
-        ' ✅ Build Audio Input Arguments
-        ' Returns input args string (NOT including -i prefix for video)
-        ' ══════════════════════════════════════════════════════════════════════════════
         Private Function BuildAudioInputArgs(useBufferPipe As Boolean) As String
             Dim sb As New StringBuilder()
 
-            ' System Audio via NAudio Pipe
             If _audioMode = VideoCaptureMode.SystemOnly OrElse _audioMode = VideoCaptureMode.Both Then
                 Dim pipe As AudioPipe = If(useBufferPipe, _bufferAudioPipe, _recordingAudioPipe)
                 If pipe IsNot Nothing AndAlso pipe.IsRunning Then
@@ -1884,7 +1752,6 @@ Namespace CaptureCore
                 End If
             End If
 
-            ' Microphone via DirectShow
             If _audioMode = VideoCaptureMode.MicOnly OrElse _audioMode = VideoCaptureMode.Both Then
                 If String.IsNullOrEmpty(_micDeviceName) Then
                     sb.Append("-f dshow -i ""audio=default"" ")
@@ -1899,28 +1766,20 @@ Namespace CaptureCore
             Return sb.ToString()
         End Function
 
-        ' ══════════════════════════════════════════════════════════════════════════════
-        ' ✅ Build Audio Map Command
-        ' Handles -map commands for video and audio streams
-        ' ══════════════════════════════════════════════════════════════════════════════
         Private Sub BuildAudioMapCommand(sb As StringBuilder, useBufferPipe As Boolean)
-            ' Determine if video comes from filter_complex (labeled [v]) or regular input (0:v)
             Dim usesFilterComplex As Boolean = UsesFilterComplexForVideo()
 
-            ' Video mapping
             If usesFilterComplex Then
                 sb.Append("-map ""[v]"" ")
             Else
                 sb.Append("-map 0:v ")
             End If
 
-            ' Audio mapping
             If _audioMode = VideoCaptureMode.None Then Exit Sub
 
             Dim hasSystemAudio As Boolean = (_audioMode = VideoCaptureMode.SystemOnly OrElse _audioMode = VideoCaptureMode.Both)
             Dim hasMic As Boolean = (_audioMode = VideoCaptureMode.MicOnly OrElse _audioMode = VideoCaptureMode.Both)
 
-            ' Check if audio pipe is actually running
             If hasSystemAudio Then
                 Dim pipe As AudioPipe = If(useBufferPipe, _bufferAudioPipe, _recordingAudioPipe)
                 If pipe Is Nothing OrElse Not pipe.IsRunning Then
@@ -1930,29 +1789,9 @@ Namespace CaptureCore
 
             If Not hasSystemAudio AndAlso Not hasMic Then Exit Sub
 
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' Determine audio input indices
-            '
-            ' FFmpeg Input Indexing:
-            ' - Input index เริ่มจาก 0
-            ' - เฉพาะ -i <file> ที่นับเป็น input
-            ' - -filter_complex ไม่ใช่ input, เป็น filter source
-            '
-            ' GFxCapture (filter_complex):
-            '   Video: [v] = filter output (NOT an input!)
-            '   Audio pipe = input #0
-            '   ดังนั้น: -map "[v]" -map 0:a
-            '
-            ' GDIGrab (-i desktop):
-            '   Video = input #0
-            '   Audio = input #1
-            '   ดังนั้น: -map 0:v -map 1:a
-            ' ═══════════════════════════════════════════════════════════════════════
             Dim audioBaseIdx As Integer = If(usesFilterComplex, 0, 1)
 
-            ' Build audio mapping
             If hasSystemAudio AndAlso hasMic Then
-                ' Need filter_complex to mix system audio and microphone
                 Dim sysIdx As Integer = audioBaseIdx
                 Dim micIdx As Integer = audioBaseIdx + 1
 
@@ -1972,7 +1811,6 @@ Namespace CaptureCore
                 sb.Append("-map ""[aout]"" ")
 
             ElseIf hasSystemAudio Then
-                ' System audio only
                 sb.Append("-map ")
                 sb.Append(audioBaseIdx)
                 sb.Append(":a ")
@@ -1984,7 +1822,6 @@ Namespace CaptureCore
                 End If
 
             ElseIf hasMic Then
-                ' Microphone only
                 sb.Append("-map ")
                 sb.Append(audioBaseIdx)
                 sb.Append(":a ")
@@ -1997,34 +1834,20 @@ Namespace CaptureCore
             End If
         End Sub
 
-        ''' <summary>
-        ''' Determine if video comes from filter_complex (labeled [v]) or regular input (0:v)
-        ''' </summary>
         Private Function UsesFilterComplexForVideo() As Boolean
             Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
             Select Case selectedAPI
                 Case CaptureAPIType.GFxCapture
-                    ' GFxCapture always uses filter_complex
                     Return True
-
                 Case CaptureAPIType.DDAGrab
-                    ' ═══════════════════════════════════════════════════════════════════════
-                    ' ✅ DDAGrab now uses filter_complex for ALL encoders
-                    '    NVENC/AMF: -filter_complex "ddagrab=0,fps=60[v]"
-                    '    QSV:       -filter_complex "ddagrab=0,hwmap=derive_device=qsv[v]"
-                    '    Software:  -filter_complex "ddagrab=0,hwdownload[v]"
-                    ' ═══════════════════════════════════════════════════════════════════════
                     Return True
-
                 Case Else
-                    ' GDIGrab uses regular input
                     Return False
             End Select
         End Function
 
         Private Function DetermineBestCaptureAPI() As CaptureAPIType
-            ' If user specified a specific API, use it
             If _captureAPI <> CaptureAPIType.Auto Then
                 Return _captureAPI
             End If
@@ -2040,16 +1863,10 @@ Namespace CaptureCore
             )
 
             If isHardwareEncoder Then
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ DDAGrab for ALL hardware encoders
-                '    Works on Desktop + Games + Video (no D3D11 content required)
-                '    GFxCapture only works when D3D11 content is active (games/videos)
-                ' ═══════════════════════════════════════════════════════════════════════
                 Debug.WriteLine("DetermineBestCaptureAPI: Hardware Encoder -> DDAGrab")
                 Return CaptureAPIType.DDAGrab
             End If
 
-            ' Software Encoder: Use GDIGrab
             Debug.WriteLine("DetermineBestCaptureAPI: Software -> GDIGrab")
             Return CaptureAPIType.GDIGrab
         End Function
@@ -2102,7 +1919,6 @@ Namespace CaptureCore
             Dim needScaling As Boolean = (_resolutionWidth > 0 AndAlso _resolutionHeight > 0 AndAlso
                                           (_resolutionWidth <> screenDims.Width OrElse _resolutionHeight <> screenDims.Height))
 
-            ' Output labeled [v] for mapping later
             sb.Append("-filter_complex """)
             BuildGfxCaptureOptions(sb)
 
@@ -2122,12 +1938,10 @@ Namespace CaptureCore
                 End If
             End If
 
-            ' Output label for mapping
             sb.Append("[v]"" ")
         End Sub
 
         Private Sub BuildGfxCaptureStandardPath(sb As StringBuilder, needScaling As Boolean)
-            ' Output labeled [v] for mapping later
             sb.Append("-filter_complex """)
             BuildGfxCaptureOptions(sb)
             sb.Append(",hwdownload,format=")
@@ -2137,7 +1951,6 @@ Namespace CaptureCore
                 BuildScalingAndFormatFilters(sb, needScaling)
             End If
 
-            ' Output label for mapping
             sb.Append("[v]"" ")
         End Sub
 
@@ -2205,17 +2018,17 @@ Namespace CaptureCore
             Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
             Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
 
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ DDAGrab via filter_complex (FFmpeg docs format)
-            ' 
-            ' NVENC/AMF: -filter_complex "ddagrab=0" -c:v h264_nvenc
-            ' QSV:        -filter_complex "ddagrab=0,hwmap=derive_device=qsv" -c:v h264_qsv
-            ' 
-            ' IMPORTANT: This format works on Desktop without D3D11 content!
-            ' ═══════════════════════════════════════════════════════════════════════
-
             If isQuickSync Then
-                ' QSV: Use filter_complex with hwmap
+                ' ═══════════════════════════════════════════════════════════════════════
+                ' ✅ QSV Zero-Copy Path (per FFmpeg docs - VERIFIED WORKING)
+                '    
+                '    ffmpeg -init_hw_device d3d11va:,vendor_id=0x8086 
+                '           -filter_complex "ddagrab=0,hwmap=derive_device=qsv,format=qsv" 
+                '           -c:v h264_qsv -global_quality 20 output.mkv
+                '
+                '    IMPORTANT: Do NOT create qsv device separately!
+                '               hwmap=derive_device=qsv creates QSV context from D3D11VA
+                ' ═══════════════════════════════════════════════════════════════════════
                 sb.Append("-filter_complex ""ddagrab=")
                 sb.Append(_monitorIndex.ToString())
                 sb.Append(":framerate=")
@@ -2236,14 +2049,10 @@ Namespace CaptureCore
                     sb.Append(_cropTop.ToString())
                 End If
 
-                sb.Append(",hwmap=derive_device=qsv[v]"" ")
+                ' ✅ hwmap=derive_device=qsv creates QSV context from D3D11VA
+                sb.Append(",hwmap=derive_device=qsv,format=qsv[v]"" ")
 
             ElseIf isNVIDIA OrElse isAMD Then
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ NVENC/AMF: filter_complex with fps filter
-                '    Format: -filter_complex "ddagrab=0:framerate=60:draw_mouse=1,fps=60[v]"
-                '    D3D11 frames go directly to NVENC - no hwdownload needed!
-                ' ═══════════════════════════════════════════════════════════════════════
                 sb.Append("-filter_complex ""ddagrab=")
                 sb.Append(_monitorIndex.ToString())
                 sb.Append(":framerate=")
@@ -2264,15 +2073,12 @@ Namespace CaptureCore
                     sb.Append(_cropTop.ToString())
                 End If
 
-                ' Add fps filter inline with filter_complex
                 sb.Append(",fps=")
                 sb.Append(_framerate.ToString())
                 sb.Append("[v]"" ")
 
-                ' No pending video filter needed - fps is in filter_complex
                 _pendingVideoFilter = ""
             Else
-                ' Software encoder: Use hwdownload
                 sb.Append("-filter_complex ""ddagrab=")
                 sb.Append(_monitorIndex.ToString())
                 sb.Append(":framerate=")
@@ -2297,7 +2103,6 @@ Namespace CaptureCore
             End If
         End Sub
 
-        ' Store video filter to be applied after all inputs
         Private _pendingVideoFilter As String = ""
 
         Private Sub BuildGDIGrabCommand(sb As StringBuilder, region As Rectangle)
@@ -2309,10 +2114,6 @@ Namespace CaptureCore
             sb.Append(If(_captureCursor, "1", "0"))
             sb.Append(" -i desktop ")
 
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ Store video filter to apply AFTER all inputs
-            '    If we put -vf here, FFmpeg will think it's an option for audio input!
-            ' ═══════════════════════════════════════════════════════════════════════
             _pendingVideoFilter = "-vf ""scale=" & _resolutionWidth.ToString() & ":" & _resolutionHeight.ToString() & ":flags=lanczos,format=yuv420p"" "
         End Sub
 
@@ -2446,28 +2247,14 @@ Namespace CaptureCore
                     BuildQSVRateControl(sb)
                     sb.Append("-g ")
                     sb.Append(gopSize)
-                    Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
-                    If selectedAPI = CaptureAPIType.GFxCapture Then
-                        sb.Append(" -r ")
-                        sb.Append(_framerate)
-                        sb.Append(" -fps_mode cfr ")
-                    Else
-                        sb.Append(" ")
-                    End If
+                    sb.Append(" -fps_mode cfr ")
 
                 Case VideoEncoder.QuickSync_HEVC
                     sb.Append("-c:v hevc_qsv ")
-                    BuildQSVRateControl(sb)
+                    BuildQSVRateControl(sb, isHEVC:=True)
                     sb.Append("-g ")
                     sb.Append(gopSize)
-                    Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
-                    If selectedAPI = CaptureAPIType.GFxCapture Then
-                        sb.Append(" -r ")
-                        sb.Append(_framerate)
-                        sb.Append(" -fps_mode cfr ")
-                    Else
-                        sb.Append(" ")
-                    End If
+                    sb.Append(" -fps_mode cfr ")
 
                 Case VideoEncoder.AMF_H264
                     sb.Append("-c:v h264_amf -quality ")
@@ -2551,34 +2338,14 @@ Namespace CaptureCore
                     BuildQSVRateControl(sb)
                     sb.Append("-g ")
                     sb.Append(gopSize)
-                    sb.Append(" -keyint_min ")
-                    sb.Append(gopSize)
-                    sb.Append(" -force_key_frames ""expr:gte(t,n_forced*")
-                    sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
-                    sb.Append(")"" ")
-                    Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
-                    If selectedAPI = CaptureAPIType.GFxCapture Then
-                        sb.Append("-r ")
-                        sb.Append(_framerate)
-                        sb.Append(" -fps_mode cfr ")
-                    End If
+                    sb.Append(" -fps_mode cfr ")
 
                 Case VideoEncoder.QuickSync_HEVC
                     sb.Append("-c:v hevc_qsv ")
-                    BuildQSVRateControl(sb)
+                    BuildQSVRateControl(sb, isHEVC:=True)
                     sb.Append("-g ")
                     sb.Append(gopSize)
-                    sb.Append(" -keyint_min ")
-                    sb.Append(gopSize)
-                    sb.Append(" -force_key_frames ""expr:gte(t,n_forced*")
-                    sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
-                    sb.Append(")"" ")
-                    Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
-                    If selectedAPI = CaptureAPIType.GFxCapture Then
-                        sb.Append("-r ")
-                        sb.Append(_framerate)
-                        sb.Append(" -fps_mode cfr ")
-                    End If
+                    sb.Append(" -fps_mode cfr ")
 
                 Case VideoEncoder.AMF_H264
                     sb.Append("-c:v h264_amf -quality ")
@@ -2680,20 +2447,7 @@ Namespace CaptureCore
 #Region "Rate Control Helpers"
 
         Private Sub BuildNVENCRateControl(sb As StringBuilder)
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ NVENC Rate Control - TRUE CBR for Stable Bitrate
-            ' 
-            ' CBR (Constant Bitrate) mode:
-            '   -cbr 1        = Enable CBR mode
-            '   -b:v 8000k    = Target bitrate
-            '   -minrate      = Minimum bitrate = target (CBR)
-            '   -maxrate      = Maximum bitrate = target (CBR)
-            '   -bufsize      = Buffer size = 1x bitrate for strict CBR
-            ' 
-            ' Result: Bitrate stays FIXED at target value
-            ' ═══════════════════════════════════════════════════════════════════════
             If _useConstantBitrate Then
-                ' ✅ TRUE CBR - Bitrate fixed at target
                 sb.Append("-cbr 1 -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -minrate ")
@@ -2704,7 +2458,6 @@ Namespace CaptureCore
                 sb.Append(_bitrate)
                 sb.Append("k ")
             Else
-                ' VBR mode with quality-based encoding
                 sb.Append("-cq 20 -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -maxrate ")
@@ -2713,39 +2466,35 @@ Namespace CaptureCore
             End If
         End Sub
 
-        Private Sub BuildQSVRateControl(sb As StringBuilder)
+        Private Sub BuildQSVRateControl(sb As StringBuilder, Optional isHEVC As Boolean = False)
             ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ QSV Rate Control - TRUE CBR for Stable Bitrate
+            ' ✅ QSV Rate Control
+            ' 
+            ' FFmpeg docs example (tested and working for H264):
+            '   ffmpeg -init_hw_device d3d11va:,vendor_id=0x8086 
+            '          -filter_complex ddagrab=0,hwmap=derive_device=qsv,format=qsv 
+            '          -c:v h264_qsv -global_quality 20 output.mkv
+            '
+            ' 🔧 FIX: HEVC QSV 在某些 Intel GPU 上不支持 global_quality (ICQ 模式)
+            '         错误: "Error querying encoder params: unsupported (-3)"
+            '         
+            '         Intel UHD Graphics 可能对 HEVC 编码支持有限
+            '         尝试使用简单的 VBR 模式
             ' ═══════════════════════════════════════════════════════════════════════
-            If _useConstantBitrate Then
-                ' ✅ TRUE CBR - Bitrate fixed at target
-                sb.Append("-cbr 1 -b:v ")
-                sb.Append(_bitrate)
-                sb.Append("k -minrate ")
-                sb.Append(_bitrate)
-                sb.Append("k -maxrate ")
-                sb.Append(_bitrate)
-                sb.Append("k -bufsize ")
+            If isHEVC Then
+                ' HEVC QSV: 尝试使用 VBR 模式
+                ' 不使用 -load_plugin，直接使用简单参数
+                sb.Append("-b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k ")
             Else
-                ' VBR mode
-                sb.Append("-b:v ")
-                sb.Append(_bitrate)
-                sb.Append("k -maxrate ")
-                sb.Append(_bitrate * 2)
-                sb.Append("k -bufsize ")
-                sb.Append(_bitrate * 2)
-                sb.Append("k ")
+                ' H264 QSV: global_quality 工作正常
+                sb.Append("-global_quality 20 ")
             End If
         End Sub
 
         Private Sub BuildAMFRateControl(sb As StringBuilder)
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ AMF Rate Control - TRUE CBR for Stable Bitrate
-            ' ═══════════════════════════════════════════════════════════════════════
             If _useConstantBitrate Then
-                ' ✅ TRUE CBR - Bitrate fixed at target
                 sb.Append("-rc cbr -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -minrate ")
@@ -2765,11 +2514,7 @@ Namespace CaptureCore
         End Sub
 
         Private Sub BuildX264RateControl(sb As StringBuilder)
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ x264 Rate Control - TRUE CBR for Stable Bitrate
-            ' ═══════════════════════════════════════════════════════════════════════
             If _useConstantBitrate Then
-                ' ✅ TRUE CBR - Bitrate fixed at target
                 sb.Append("-b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -minrate ")
@@ -2789,11 +2534,7 @@ Namespace CaptureCore
         End Sub
 
         Private Sub BuildX265RateControl(sb As StringBuilder)
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ x265 Rate Control - TRUE CBR for Stable Bitrate
-            ' ═══════════════════════════════════════════════════════════════════════
             If _useConstantBitrate Then
-                ' ✅ TRUE CBR - Bitrate fixed at target
                 sb.Append("-b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -minrate ")
@@ -2955,9 +2696,6 @@ Namespace CaptureCore
                 Catch
                 End Try
 
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Cleanup Audio Pipes
-                ' ═══════════════════════════════════════════════════════════════════════
                 Try
                     StopRecordingAudioPipe()
                     StopBufferAudioPipe()

@@ -1,0 +1,32 @@
+{
+  "Recording": {
+    "UseNativeResolution": true,
+    "Encoder": "QuickSync_H264",
+    "EncoderNow": "QuickSync_H264",
+    "FPS": 70,
+    "Bitrate": 16500,
+    "Width": 1920,
+    "Height": 1080,
+    "Preset": "Custom",
+    "EncoderPreset": 4,
+    "ReplayDuration": 60
+  },
+  "Paths": {
+    "GalleryPath": "C:\\Users\\HUAWEI-PC\\Videos\\Shadowplay\\Gallery",
+    "SavePath": "",
+    "FFmpegPath": "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\bin\\Debug\\net8.0-windows10.0.26100.0\\api-core\\ffmpeg.exe"
+  },
+  "UI": {
+    "Language": "en-US",
+    "Theme": "Dark"
+  },
+  "Audio": {
+    "SystemAudioEnabled": true,
+    "MicEnabled": false,
+    "SystemAudioVolume": 1,
+    "MicVolume": 1,
+    "MicDeviceName": "",
+    "MicVolumePercent": 100,
+    "SystemVolumePercent": 100
+  }
+}
