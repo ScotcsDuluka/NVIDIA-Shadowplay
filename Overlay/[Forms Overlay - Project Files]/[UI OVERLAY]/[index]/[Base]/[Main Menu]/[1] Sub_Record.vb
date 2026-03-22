@@ -121,7 +121,7 @@ Partial Public Class Base
             ShowMainPanel()
             OpenSettings()
             PrivacyOpen()
-            ShowNotifier("privacy")
+            ShowNotifier("notificationWarningDesktopCaptureDisabled")
             Exit Sub
         End If
         Try
@@ -171,8 +171,8 @@ Partial Public Class Base
             ShowMainPanel()
                 OpenSettings()
                 PrivacyOpen()
-                ShowNotifier("privacy")
-                Exit Sub
+            ShowNotifier("notificationWarningDesktopCaptureDisabled")
+            Exit Sub
             '  End If
         End If
         Try

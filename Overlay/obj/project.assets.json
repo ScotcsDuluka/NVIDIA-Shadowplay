@@ -11,63 +11,6 @@
           "buildMultiTargeting/Microsoft.AspNetCore.Components.WebView.props": {}
         }
       },
-      "Microsoft.Web.WebView2/1.0.3856.49": {
-        "type": "package",
-        "build": {
-          "buildTransitive/Microsoft.Web.WebView2.targets": {}
-        },
-        "runtimeTargets": {
-          "runtimes/win-arm64/native/WebView2Loader.dll": {
-            "assetType": "native",
-            "rid": "win-arm64"
-          },
-          "runtimes/win-x64/native/WebView2Loader.dll": {
-            "assetType": "native",
-            "rid": "win-x64"
-          },
-          "runtimes/win-x86/native/WebView2Loader.dll": {
-            "assetType": "native",
-            "rid": "win-x86"
-          }
-        }
-      },
-      "NAudio/2.3.0": {
-        "type": "package",
-        "dependencies": {
-          "NAudio.Asio": "2.3.0",
-          "NAudio.Core": "2.3.0",
-          "NAudio.Midi": "2.3.0",
-          "NAudio.Wasapi": "2.3.0",
-          "NAudio.WinForms": "2.3.0",
-          "NAudio.WinMM": "2.3.0"
-        },
-        "compile": {
-          "lib/net6.0-windows7.0/NAudio.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net6.0-windows7.0/NAudio.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "NAudio.Asio/2.3.0": {
-        "type": "package",
-        "dependencies": {
-          "NAudio.Core": "2.3.0"
-        },
-        "compile": {
-          "lib/net8.0-windows7.0/NAudio.Asio.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0-windows7.0/NAudio.Asio.dll": {
-            "related": ".xml"
-          }
-        }
-      },
       "NAudio.Core/2.3.0": {
         "type": "package",
         "compile": {
@@ -77,22 +20,6 @@
         },
         "runtime": {
           "lib/netstandard2.0/NAudio.Core.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "NAudio.Midi/2.3.0": {
-        "type": "package",
-        "dependencies": {
-          "NAudio.Core": "2.3.0"
-        },
-        "compile": {
-          "lib/netstandard2.0/NAudio.Midi.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/netstandard2.0/NAudio.Midi.dll": {
             "related": ".xml"
           }
         }
@@ -109,41 +36,6 @@
         },
         "runtime": {
           "lib/netstandard2.0/NAudio.Wasapi.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "NAudio.WinForms/2.3.0": {
-        "type": "package",
-        "dependencies": {
-          "NAudio.WinMM": "2.3.0"
-        },
-        "compile": {
-          "lib/netcoreapp3.1/NAudio.WinForms.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/netcoreapp3.1/NAudio.WinForms.dll": {
-            "related": ".xml"
-          }
-        },
-        "frameworkReferences": [
-          "Microsoft.WindowsDesktop.App.WindowsForms"
-        ]
-      },
-      "NAudio.WinMM/2.3.0": {
-        "type": "package",
-        "dependencies": {
-          "NAudio.Core": "2.3.0"
-        },
-        "compile": {
-          "lib/net6.0/NAudio.WinMM.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net6.0/NAudio.WinMM.dll": {
             "related": ".xml"
           }
         }
@@ -315,139 +207,6 @@
         "staticwebassets/blazor.webview.js"
       ]
     },
-    "Microsoft.Web.WebView2/1.0.3856.49": {
-      "sha512": "OOBKvFgK0pUKcndvTK6/jUsbrPRwce62Wt/0hkJWDsK2AcsJ2ylOS/mLa4xAcNUTOs96YIjpPN4AHMADXJcrgQ==",
-      "type": "package",
-      "path": "microsoft.web.webview2/1.0.3856.49",
-      "hasTools": true,
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "LICENSE.txt",
-        "NOTICE.txt",
-        "WebView2.idl",
-        "WebView2.tlb",
-        "build/Common.targets",
-        "build/Microsoft.Web.WebView2.targets",
-        "build/WebView2Rules.Project.xml",
-        "build/native/Microsoft.Web.WebView2.targets",
-        "build/native/arm64/WebView2Loader.dll",
-        "build/native/arm64/WebView2Loader.dll.lib",
-        "build/native/arm64/WebView2LoaderStatic.lib",
-        "build/native/include-winrt/WebView2Interop.h",
-        "build/native/include-winrt/WebView2Interop.idl",
-        "build/native/include-winrt/WebView2Interop.tlb",
-        "build/native/include/WebView2.h",
-        "build/native/include/WebView2EnvironmentOptions.h",
-        "build/native/x64/WebView2Loader.dll",
-        "build/native/x64/WebView2Loader.dll.lib",
-        "build/native/x64/WebView2LoaderStatic.lib",
-        "build/native/x86/WebView2Loader.dll",
-        "build/native/x86/WebView2Loader.dll.lib",
-        "build/native/x86/WebView2LoaderStatic.lib",
-        "build/wv2winrt.targets",
-        "buildTransitive/Microsoft.Web.WebView2.targets",
-        "lib/Microsoft.Web.WebView2.Core.winmd",
-        "lib/net462/Microsoft.Web.WebView2.Core.dll",
-        "lib/net462/Microsoft.Web.WebView2.Core.xml",
-        "lib/net462/Microsoft.Web.WebView2.WinForms.dll",
-        "lib/net462/Microsoft.Web.WebView2.WinForms.xml",
-        "lib/net462/Microsoft.Web.WebView2.Wpf.dll",
-        "lib/net462/Microsoft.Web.WebView2.Wpf.xml",
-        "lib_manual/net5.0-windows10.0.17763.0/Microsoft.Web.WebView2.Wpf.dll",
-        "lib_manual/net5.0-windows10.0.17763.0/Microsoft.Web.WebView2.Wpf.xml",
-        "lib_manual/net6.0-windows10.0.17763.0/Microsoft.Web.WebView2.Core.Projection.dll",
-        "lib_manual/net8.0-windows10.0.17763.0/Microsoft.Web.WebView2.Core.Projection.dll",
-        "lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.Core.dll",
-        "lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.Core.xml",
-        "lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.WinForms.dll",
-        "lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.WinForms.xml",
-        "lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.Wpf.dll",
-        "lib_manual/netcoreapp3.0/Microsoft.Web.WebView2.Wpf.xml",
-        "microsoft.web.webview2.1.0.3856.49.nupkg.sha512",
-        "microsoft.web.webview2.nuspec",
-        "runtimes/win-arm64/native/WebView2Loader.dll",
-        "runtimes/win-arm64/native_uap/Microsoft.Web.WebView2.Core.dll",
-        "runtimes/win-x64/native/WebView2Loader.dll",
-        "runtimes/win-x64/native_uap/Microsoft.Web.WebView2.Core.dll",
-        "runtimes/win-x86/native/WebView2Loader.dll",
-        "runtimes/win-x86/native_uap/Microsoft.Web.WebView2.Core.dll",
-        "tools/VisualStudioToolsManifest.xml",
-        "tools/wv2winrt/Antlr3.Runtime.dll",
-        "tools/wv2winrt/Antlr4.StringTemplate.dll",
-        "tools/wv2winrt/System.Buffers.dll",
-        "tools/wv2winrt/System.CommandLine.DragonFruit.dll",
-        "tools/wv2winrt/System.CommandLine.Rendering.dll",
-        "tools/wv2winrt/System.CommandLine.dll",
-        "tools/wv2winrt/System.Memory.dll",
-        "tools/wv2winrt/System.Numerics.Vectors.dll",
-        "tools/wv2winrt/System.Runtime.CompilerServices.Unsafe.dll",
-        "tools/wv2winrt/codegen_util.dll",
-        "tools/wv2winrt/concrt140_app.dll",
-        "tools/wv2winrt/cs/System.CommandLine.resources.dll",
-        "tools/wv2winrt/de/System.CommandLine.resources.dll",
-        "tools/wv2winrt/es/System.CommandLine.resources.dll",
-        "tools/wv2winrt/fr/System.CommandLine.resources.dll",
-        "tools/wv2winrt/it/System.CommandLine.resources.dll",
-        "tools/wv2winrt/ja/System.CommandLine.resources.dll",
-        "tools/wv2winrt/ko/System.CommandLine.resources.dll",
-        "tools/wv2winrt/msvcp140_1_app.dll",
-        "tools/wv2winrt/msvcp140_2_app.dll",
-        "tools/wv2winrt/msvcp140_app.dll",
-        "tools/wv2winrt/pl/System.CommandLine.resources.dll",
-        "tools/wv2winrt/pt-BR/System.CommandLine.resources.dll",
-        "tools/wv2winrt/ru/System.CommandLine.resources.dll",
-        "tools/wv2winrt/tr/System.CommandLine.resources.dll",
-        "tools/wv2winrt/type_hierarchy.dll",
-        "tools/wv2winrt/vcamp140_app.dll",
-        "tools/wv2winrt/vccorlib140_app.dll",
-        "tools/wv2winrt/vcomp140_app.dll",
-        "tools/wv2winrt/vcruntime140_app.dll",
-        "tools/wv2winrt/winrt_winmd.dll",
-        "tools/wv2winrt/winrt_winmd.winmd",
-        "tools/wv2winrt/wv2winrt.exe",
-        "tools/wv2winrt/wv2winrt.exe.config",
-        "tools/wv2winrt/wv2winrt.xml",
-        "tools/wv2winrt/zh-Hans/System.CommandLine.resources.dll",
-        "tools/wv2winrt/zh-Hant/System.CommandLine.resources.dll"
-      ]
-    },
-    "NAudio/2.3.0": {
-      "sha512": "xN+Lzlu9DmXqBiL6XkP0VZmgTxZPdSGjVSWtKG9HKuar3LhIYNOIYQETieigS+QDS+nrs1QmHbBWWOru0nWA5A==",
-      "type": "package",
-      "path": "naudio/2.3.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/net472/NAudio.dll",
-        "lib/net472/NAudio.xml",
-        "lib/net6.0-windows7.0/NAudio.dll",
-        "lib/net6.0-windows7.0/NAudio.xml",
-        "lib/net6.0/NAudio.dll",
-        "lib/net6.0/NAudio.xml",
-        "lib/netcoreapp3.1/NAudio.dll",
-        "lib/netcoreapp3.1/NAudio.xml",
-        "naudio-icon.png",
-        "naudio.2.3.0.nupkg.sha512",
-        "naudio.nuspec"
-      ]
-    },
-    "NAudio.Asio/2.3.0": {
-      "sha512": "I+rAAPT8vmSEw4d4ie+AoSkrvNK6ylRrXznnjQKS+qZgTA9Jnt1Pxe0EaU8nXxOOq5h8ucBSWccBEw6I/J0nkQ==",
-      "type": "package",
-      "path": "naudio.asio/2.3.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/net8.0-windows7.0/NAudio.Asio.dll",
-        "lib/net8.0-windows7.0/NAudio.Asio.xml",
-        "lib/netstandard2.0/NAudio.Asio.dll",
-        "lib/netstandard2.0/NAudio.Asio.xml",
-        "naudio-icon.png",
-        "naudio.asio.2.3.0.nupkg.sha512",
-        "naudio.asio.nuspec"
-      ]
-    },
     "NAudio.Core/2.3.0": {
       "sha512": "jMd7r6dB6tAtXhOYL58ntPqwERNm1/Rhw5MKOIYvsnXzuX+PTGsa2VMam6n0npZYSwlSidKa4GAm4bFcXFUlcg==",
       "type": "package",
@@ -460,20 +219,6 @@
         "naudio-icon.png",
         "naudio.core.2.3.0.nupkg.sha512",
         "naudio.core.nuspec"
-      ]
-    },
-    "NAudio.Midi/2.3.0": {
-      "sha512": "t8wvPFPHHQOHhoNMCaDE8OiYZoJuxmY4H6UPBtmnf+xx7oQuajFCqlG4Q00ID+tiEyj471WeVb4Nkylr4tDoow==",
-      "type": "package",
-      "path": "naudio.midi/2.3.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/netstandard2.0/NAudio.Midi.dll",
-        "lib/netstandard2.0/NAudio.Midi.xml",
-        "naudio-icon.png",
-        "naudio.midi.2.3.0.nupkg.sha512",
-        "naudio.midi.nuspec"
       ]
     },
     "NAudio.Wasapi/2.3.0": {
@@ -490,38 +235,6 @@
         "naudio-icon.png",
         "naudio.wasapi.2.3.0.nupkg.sha512",
         "naudio.wasapi.nuspec"
-      ]
-    },
-    "NAudio.WinForms/2.3.0": {
-      "sha512": "vyKqFUlAZrZ0QPcCM1T+zimjYgC1cNDloHaiOdtV4S1eK4AGu3Dz1EE4yy/WgcneJwQNjGFaELY7b2TsL+g56w==",
-      "type": "package",
-      "path": "naudio.winforms/2.3.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/net472/NAudio.WinForms.dll",
-        "lib/net472/NAudio.WinForms.xml",
-        "lib/netcoreapp3.1/NAudio.WinForms.dll",
-        "lib/netcoreapp3.1/NAudio.WinForms.xml",
-        "naudio-icon.png",
-        "naudio.winforms.2.3.0.nupkg.sha512",
-        "naudio.winforms.nuspec"
-      ]
-    },
-    "NAudio.WinMM/2.3.0": {
-      "sha512": "5G1dRjsZm50T3luyuqcmI2BSvj3K4ZJaD/x776/0Epj88qOsOryDZG40+MufwIk1UFJSFWhRobBqtJYFc8Ss4g==",
-      "type": "package",
-      "path": "naudio.winmm/2.3.0",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/net6.0/NAudio.WinMM.dll",
-        "lib/net6.0/NAudio.WinMM.xml",
-        "lib/netstandard2.0/NAudio.WinMM.dll",
-        "lib/netstandard2.0/NAudio.WinMM.xml",
-        "naudio-icon.png",
-        "naudio.winmm.2.3.0.nupkg.sha512",
-        "naudio.winmm.nuspec"
       ]
     },
     "Newtonsoft.Json/13.0.4": {
@@ -690,8 +403,6 @@
     "net8.0-windows10.0.26100": [
       "Capture Core >= 1.0.0",
       "Microsoft.AspNetCore.Components.WebView >= 10.0.5",
-      "Microsoft.Web.WebView2 >= 1.0.3856.49",
-      "NAudio >= 2.3.0",
       "NAudio.Core >= 2.3.0",
       "NAudio.Wasapi >= 2.3.0",
       "NLog >= 6.1.1",
@@ -746,11 +457,6 @@
           }
         }
       },
-      "warningProperties": {
-        "warnAsError": [
-          "NU1605"
-        ]
-      },
       "restoreAuditProperties": {
         "enableAudit": "True",
         "auditLevel": "low",
@@ -765,14 +471,6 @@
           "Microsoft.AspNetCore.Components.WebView": {
             "target": "Package",
             "version": "[10.0.5, )"
-          },
-          "Microsoft.Web.WebView2": {
-            "target": "Package",
-            "version": "[1.0.3856.49, )"
-          },
-          "NAudio": {
-            "target": "Package",
-            "version": "[2.3.0, )"
           },
           "NAudio.Core": {
             "target": "Package",

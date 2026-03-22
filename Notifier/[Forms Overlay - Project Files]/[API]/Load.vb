@@ -150,13 +150,7 @@ Public Class Load
                 Dim showImage As Boolean = kvp.Value.ShowImage
                 Dim displayColor As Color = kvp.Value.IconColor
 
-                ' LOGIC: 
-                If Not isPyActive AndAlso displayIcon <> "" Then
-                    displayIcon = ""
-                    displayMessage = "Privacy control capture has off. Turn on to use"
-                    showImage = False
-                    displayColor = Color.White
-                End If
+
 
                 ' 4. Update UI 
                 UpdateNotifier(displayMessage, showImage, displayIcon, displayColor)
@@ -224,7 +218,10 @@ Public Class Load
 
         ' === Notifications without args ===
         notifications.Add(New NotificationData("l10n.test", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.notificationWarningDesktopCaptureDisabled", "", False, Color.White))
         notifications.Add(New NotificationData("l10n.notificationScreenshotSavedToGallery", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.ramwram", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.cpuwram", "", False, Color.White))
 
         ' === Notifications with args ===
         notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))
@@ -258,13 +255,6 @@ Public Class Load
                 Dim showImage As Boolean = data.Png
                 Dim iconColor As Color = data.Color
 
-                ' Privacy check
-                If Not isPyActive AndAlso icon <> "" Then
-                    icon = ""
-                    message = "Privacy control capture has off. Turn on to use"
-                    showImage = False
-                    iconColor = Color.White
-                End If
 
                 UpdateNotifier(message, showImage, icon, iconColor)
                 SafeDelete(filePath)

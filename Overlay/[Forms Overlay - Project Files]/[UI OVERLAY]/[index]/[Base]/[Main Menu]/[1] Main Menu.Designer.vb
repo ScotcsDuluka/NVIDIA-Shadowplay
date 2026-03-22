@@ -57,9 +57,6 @@ Partial Class Base
         Bg_Mode1 = New Label()
         Bg_Mode2 = New Label()
         Bg_Mode3 = New Label()
-        menu_record_subkey = New Label()
-        menu_record_sub = New Label()
-        menu_record_sublogo = New Label()
         Label2 = New Label()
         s1l = New PictureBox()
         s1r = New PictureBox()
@@ -100,7 +97,6 @@ Partial Class Base
         bg_gallery = New Label()
         bg_fps = New Label()
         Label1 = New Label()
-        menu_record_subbg = New PictureBox()
         logo_live = New Label()
         logo_replay = New Label()
         bg_action = New Label()
@@ -125,7 +121,7 @@ Partial Class Base
         st1 = New PictureBox()
         Label10 = New Label()
         sh_record = New Label()
-        Label14 = New Label()
+        icon_record = New Label()
         PictureBox5 = New PictureBox()
         PictureBox6 = New PictureBox()
         PictureBox18 = New PictureBox()
@@ -248,7 +244,6 @@ Partial Class Base
         CType(a_3, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(menu_record_subbg, ComponentModel.ISupportInitialize).BeginInit()
         Main_menu.SuspendLayout()
         Panel1.SuspendLayout()
         CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
@@ -339,9 +334,6 @@ Partial Class Base
         Main_menu_list.BackColor = Color.Red
         Main_menu_list.Controls.Add(a_3l)
         Main_menu_list.Controls.Add(Mode_Menu)
-        Main_menu_list.Controls.Add(menu_record_subkey)
-        Main_menu_list.Controls.Add(menu_record_sub)
-        Main_menu_list.Controls.Add(menu_record_sublogo)
         Main_menu_list.Controls.Add(Label2)
         Main_menu_list.Controls.Add(s1l)
         Main_menu_list.Controls.Add(s1r)
@@ -383,7 +375,6 @@ Partial Class Base
         Main_menu_list.Controls.Add(bg_fps)
         Main_menu_list.Controls.Add(logo_record)
         Main_menu_list.Controls.Add(Label1)
-        Main_menu_list.Controls.Add(menu_record_subbg)
         Main_menu_list.Controls.Add(logo_live)
         Main_menu_list.Controls.Add(logo_replay)
         Main_menu_list.Controls.Add(bg_action)
@@ -704,45 +695,6 @@ Partial Class Base
         Bg_Mode3.Size = New Size(240, 80)
         Bg_Mode3.TabIndex = 30
         Bg_Mode3.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' menu_record_subkey
-        ' 
-        menu_record_subkey.BackColor = Color.Black
-        menu_record_subkey.Font = New Font("Segoe UI", 8F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        menu_record_subkey.ForeColor = Color.Gray
-        menu_record_subkey.Location = New Point(1114, 333)
-        menu_record_subkey.Name = "menu_record_subkey"
-        menu_record_subkey.Size = New Size(125, 24)
-        menu_record_subkey.TabIndex = 83
-        menu_record_subkey.Text = "Alt+{{arg}}"
-        menu_record_subkey.TextAlign = ContentAlignment.MiddleRight
-        menu_record_subkey.Visible = False
-        ' 
-        ' menu_record_sub
-        ' 
-        menu_record_sub.BackColor = Color.Black
-        menu_record_sub.Font = New Font("Segoe UI", 10F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        menu_record_sub.ForeColor = Color.White
-        menu_record_sub.Location = New Point(1074, 333)
-        menu_record_sub.Name = "menu_record_sub"
-        menu_record_sub.Size = New Size(97, 24)
-        menu_record_sub.TabIndex = 83
-        menu_record_sub.Text = "{{arg}}"
-        menu_record_sub.TextAlign = ContentAlignment.MiddleLeft
-        menu_record_sub.Visible = False
-        ' 
-        ' menu_record_sublogo
-        ' 
-        menu_record_sublogo.BackColor = Color.Black
-        menu_record_sublogo.Font = New Font("nvgcshare", 15F)
-        menu_record_sublogo.ForeColor = Color.White
-        menu_record_sublogo.Location = New Point(1046, 333)
-        menu_record_sublogo.Name = "menu_record_sublogo"
-        menu_record_sublogo.Size = New Size(37, 24)
-        menu_record_sublogo.TabIndex = 83
-        menu_record_sublogo.Text = ""
-        menu_record_sublogo.TextAlign = ContentAlignment.MiddleCenter
-        menu_record_sublogo.Visible = False
         ' 
         ' Label2
         ' 
@@ -1194,16 +1146,6 @@ Partial Class Base
         Label1.TabIndex = 76
         Label1.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' menu_record_subbg
-        ' 
-        menu_record_subbg.BackColor = Color.Black
-        menu_record_subbg.Location = New Point(1042, 330)
-        menu_record_subbg.Name = "menu_record_subbg"
-        menu_record_subbg.Size = New Size(200, 30)
-        menu_record_subbg.TabIndex = 83
-        menu_record_subbg.TabStop = False
-        menu_record_subbg.Visible = False
-        ' 
         ' logo_live
         ' 
         logo_live.BackColor = Color.Black
@@ -1358,7 +1300,7 @@ Partial Class Base
         Label25.Location = New Point(3, 3)
         Label25.Name = "Label25"
         Label25.RightToLeft = RightToLeft.Yes
-        Label25.Size = New Size(40, 33)
+        Label25.Size = New Size(40, 36)
         Label25.TabIndex = 44
         Label25.Text = ""
         Label25.TextAlign = ContentAlignment.MiddleCenter
@@ -1400,7 +1342,7 @@ Partial Class Base
         sub_record.Controls.Add(st1)
         sub_record.Controls.Add(Label10)
         sub_record.Controls.Add(sh_record)
-        sub_record.Controls.Add(Label14)
+        sub_record.Controls.Add(icon_record)
         sub_record.Controls.Add(PictureBox5)
         sub_record.Controls.Add(PictureBox6)
         sub_record.Controls.Add(PictureBox18)
@@ -1413,6 +1355,7 @@ Partial Class Base
         ' Label13
         ' 
         Label13.BackColor = Color.Black
+        Label13.Cursor = Cursors.Hand
         Label13.Font = New Font("Segoe UI", 14.25F)
         Label13.ForeColor = Color.White
         Label13.Location = New Point(37, 3)
@@ -1435,6 +1378,7 @@ Partial Class Base
         ' stl
         ' 
         stl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        stl.Cursor = Cursors.Hand
         stl.Location = New Point(237, 0)
         stl.Name = "stl"
         stl.Size = New Size(3, 44)
@@ -1445,6 +1389,7 @@ Partial Class Base
         ' stb
         ' 
         stb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        stb.Cursor = Cursors.Hand
         stb.Location = New Point(0, 41)
         stb.Name = "stb"
         stb.Size = New Size(240, 3)
@@ -1455,6 +1400,7 @@ Partial Class Base
         ' st1
         ' 
         st1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        st1.Cursor = Cursors.Hand
         st1.Location = New Point(0, 0)
         st1.Name = "st1"
         st1.Size = New Size(240, 3)
@@ -1477,6 +1423,7 @@ Partial Class Base
         ' sh_record
         ' 
         sh_record.BackColor = Color.Black
+        sh_record.Cursor = Cursors.Hand
         sh_record.Font = New Font("Segoe UI", 9F)
         sh_record.ForeColor = Color.Gray
         sh_record.ImageAlign = ContentAlignment.MiddleRight
@@ -1487,22 +1434,24 @@ Partial Class Base
         sh_record.Text = "Alt+F9"
         sh_record.TextAlign = ContentAlignment.MiddleRight
         ' 
-        ' Label14
+        ' icon_record
         ' 
-        Label14.BackColor = Color.Black
-        Label14.Font = New Font("nvgcshare", 20.25F)
-        Label14.ForeColor = Color.White
-        Label14.Location = New Point(3, 3)
-        Label14.Name = "Label14"
-        Label14.RightToLeft = RightToLeft.Yes
-        Label14.Size = New Size(40, 33)
-        Label14.TabIndex = 44
-        Label14.Text = ""
-        Label14.TextAlign = ContentAlignment.MiddleCenter
+        icon_record.BackColor = Color.Black
+        icon_record.Cursor = Cursors.Hand
+        icon_record.Font = New Font("nvgcshare", 20.25F)
+        icon_record.ForeColor = Color.White
+        icon_record.Location = New Point(3, 3)
+        icon_record.Name = "icon_record"
+        icon_record.RightToLeft = RightToLeft.Yes
+        icon_record.Size = New Size(40, 36)
+        icon_record.TabIndex = 44
+        icon_record.Text = ""
+        icon_record.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox5
         ' 
         PictureBox5.BackColor = Color.Black
+        PictureBox5.Cursor = Cursors.Hand
         PictureBox5.Location = New Point(0, 0)
         PictureBox5.Name = "PictureBox5"
         PictureBox5.Size = New Size(240, 44)
@@ -1558,6 +1507,7 @@ Partial Class Base
         ' sh_replay
         ' 
         sh_replay.BackColor = Color.Black
+        sh_replay.Cursor = Cursors.Hand
         sh_replay.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         sh_replay.ForeColor = Color.Gray
         sh_replay.Location = New Point(139, 4)
@@ -1570,11 +1520,12 @@ Partial Class Base
         ' if_replay
         ' 
         if_replay.BackColor = Color.Black
+        if_replay.Cursor = Cursors.Hand
         if_replay.Font = New Font("Segoe UI", 14.25F)
         if_replay.ForeColor = Color.White
         if_replay.Location = New Point(37, 3)
         if_replay.Name = "if_replay"
-        if_replay.Size = New Size(81, 35)
+        if_replay.Size = New Size(118, 35)
         if_replay.TabIndex = 41
         if_replay.Text = "Turn on"
         if_replay.TextAlign = ContentAlignment.MiddleLeft
@@ -1582,6 +1533,7 @@ Partial Class Base
         ' icon_replay
         ' 
         icon_replay.BackColor = Color.Black
+        icon_replay.Cursor = Cursors.Hand
         icon_replay.Font = New Font("nvgcshare", 20.25F)
         icon_replay.ForeColor = Color.White
         icon_replay.Location = New Point(5, 5)
@@ -1618,6 +1570,7 @@ Partial Class Base
         ' r_1r
         ' 
         r_1r.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1r.Cursor = Cursors.Hand
         r_1r.Location = New Point(0, 0)
         r_1r.Name = "r_1r"
         r_1r.Size = New Size(3, 44)
@@ -1628,6 +1581,7 @@ Partial Class Base
         ' r_1l
         ' 
         r_1l.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1l.Cursor = Cursors.Hand
         r_1l.Location = New Point(237, 0)
         r_1l.Name = "r_1l"
         r_1l.Size = New Size(3, 44)
@@ -1638,6 +1592,7 @@ Partial Class Base
         ' r_1b
         ' 
         r_1b.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1b.Cursor = Cursors.Hand
         r_1b.Location = New Point(0, 44)
         r_1b.Name = "r_1b"
         r_1b.Size = New Size(240, 3)
@@ -1648,6 +1603,7 @@ Partial Class Base
         ' r_1
         ' 
         r_1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1.Cursor = Cursors.Hand
         r_1.Location = New Point(0, 0)
         r_1.Name = "r_1"
         r_1.Size = New Size(240, 3)
@@ -1658,6 +1614,7 @@ Partial Class Base
         ' rsr
         ' 
         rsr.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rsr.Cursor = Cursors.Hand
         rsr.Location = New Point(0, 44)
         rsr.Name = "rsr"
         rsr.Size = New Size(3, 44)
@@ -1668,6 +1625,7 @@ Partial Class Base
         ' rsb
         ' 
         rsb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rsb.Cursor = Cursors.Hand
         rsb.Location = New Point(0, 85)
         rsb.Name = "rsb"
         rsb.Size = New Size(240, 3)
@@ -1678,11 +1636,12 @@ Partial Class Base
         ' Label7
         ' 
         Label7.BackColor = Color.Black
+        Label7.Cursor = Cursors.Hand
         Label7.Font = New Font("Segoe UI", 14.25F)
         Label7.ForeColor = Color.White
         Label7.Location = New Point(37, 49)
         Label7.Name = "Label7"
-        Label7.Size = New Size(81, 33)
+        Label7.Size = New Size(118, 33)
         Label7.TabIndex = 45
         Label7.Text = "Saved"
         Label7.TextAlign = ContentAlignment.MiddleLeft
@@ -1690,6 +1649,7 @@ Partial Class Base
         ' Label16
         ' 
         Label16.BackColor = Color.Black
+        Label16.Cursor = Cursors.Hand
         Label16.Font = New Font("Segoe UI", 9F)
         Label16.ForeColor = Color.Gray
         Label16.Location = New Point(139, 45)
@@ -1702,6 +1662,7 @@ Partial Class Base
         ' rs1
         ' 
         rs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rs1.Cursor = Cursors.Hand
         rs1.Location = New Point(0, 41)
         rs1.Name = "rs1"
         rs1.Size = New Size(240, 3)
@@ -1712,6 +1673,7 @@ Partial Class Base
         ' Label8
         ' 
         Label8.BackColor = Color.Black
+        Label8.Cursor = Cursors.Hand
         Label8.Font = New Font("nvgcshare", 20.25F)
         Label8.ForeColor = Color.White
         Label8.Location = New Point(5, 49)
@@ -1725,6 +1687,7 @@ Partial Class Base
         ' rsl
         ' 
         rsl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rsl.Cursor = Cursors.Hand
         rsl.Location = New Point(237, 44)
         rsl.Name = "rsl"
         rsl.Size = New Size(3, 44)
@@ -1735,6 +1698,7 @@ Partial Class Base
         ' replay_sc1
         ' 
         replay_sc1.BackColor = Color.Black
+        replay_sc1.Cursor = Cursors.Hand
         replay_sc1.Location = New Point(0, 44)
         replay_sc1.Name = "replay_sc1"
         replay_sc1.Size = New Size(240, 44)
@@ -1744,6 +1708,7 @@ Partial Class Base
         ' replay_sc
         ' 
         replay_sc.BackColor = Color.Black
+        replay_sc.Cursor = Cursors.Hand
         replay_sc.Location = New Point(0, 0)
         replay_sc.Name = "replay_sc"
         replay_sc.Size = New Size(240, 44)
@@ -1871,6 +1836,7 @@ Partial Class Base
         ' text_py
         ' 
         text_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        text_py.Cursor = Cursors.Hand
         text_py.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         text_py.ForeColor = Color.White
         text_py.Location = New Point(60, 2)
@@ -1883,6 +1849,7 @@ Partial Class Base
         ' vdo_setme
         ' 
         vdo_setme.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        vdo_setme.Cursor = Cursors.Hand
         vdo_setme.Font = New Font("Segoe UI Semibold", 7F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         vdo_setme.ForeColor = Color.Gray
         vdo_setme.Location = New Point(61, 350)
@@ -1894,6 +1861,7 @@ Partial Class Base
         ' Label19
         ' 
         Label19.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label19.Cursor = Cursors.Hand
         Label19.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Label19.ForeColor = Color.White
         Label19.Location = New Point(60, 321)
@@ -1906,6 +1874,7 @@ Partial Class Base
         ' PictureBox14
         ' 
         PictureBox14.BackColor = Color.Black
+        PictureBox14.Cursor = Cursors.Hand
         PictureBox14.Location = New Point(0, 378)
         PictureBox14.Name = "PictureBox14"
         PictureBox14.Size = New Size(100, 20)
@@ -1916,6 +1885,7 @@ Partial Class Base
         ' nott
         ' 
         nott.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        nott.Cursor = Cursors.Hand
         nott.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         nott.ForeColor = Color.White
         nott.Location = New Point(60, 400)
@@ -1928,6 +1898,7 @@ Partial Class Base
         ' noty
         ' 
         noty.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        noty.Cursor = Cursors.Hand
         noty.Font = New Font("nvgcshare", 26F)
         noty.ForeColor = Color.White
         noty.Location = New Point(3, 400)
@@ -1940,6 +1911,7 @@ Partial Class Base
         ' PictureBox17
         ' 
         PictureBox17.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox17.Cursor = Cursors.Hand
         PictureBox17.Location = New Point(2, 400)
         PictureBox17.Name = "PictureBox17"
         PictureBox17.Size = New Size(266, 56)
@@ -1949,6 +1921,7 @@ Partial Class Base
         ' noy
         ' 
         noy.BackColor = Color.DimGray
+        noy.Cursor = Cursors.Hand
         noy.Location = New Point(0, 398)
         noy.Name = "noy"
         noy.Size = New Size(270, 60)
@@ -1958,6 +1931,7 @@ Partial Class Base
         ' PictureBox15
         ' 
         PictureBox15.BackColor = Color.Black
+        PictureBox15.Cursor = Cursors.Hand
         PictureBox15.Location = New Point(0, 139)
         PictureBox15.Name = "PictureBox15"
         PictureBox15.Size = New Size(100, 20)
@@ -1968,6 +1942,7 @@ Partial Class Base
         ' Label21
         ' 
         Label21.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label21.Cursor = Cursors.Hand
         Label21.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Label21.ForeColor = Color.White
         Label21.Location = New Point(60, 161)
@@ -1980,6 +1955,7 @@ Partial Class Base
         ' Label22
         ' 
         Label22.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label22.Cursor = Cursors.Hand
         Label22.Font = New Font("nvgcshare", 26F)
         Label22.ForeColor = Color.White
         Label22.Location = New Point(3, 161)
@@ -1992,6 +1968,7 @@ Partial Class Base
         ' PictureBox16
         ' 
         PictureBox16.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox16.Cursor = Cursors.Hand
         PictureBox16.Location = New Point(2, 161)
         PictureBox16.Name = "PictureBox16"
         PictureBox16.Size = New Size(266, 56)
@@ -2001,6 +1978,7 @@ Partial Class Base
         ' hg2
         ' 
         hg2.BackColor = Color.DimGray
+        hg2.Cursor = Cursors.Hand
         hg2.Location = New Point(0, 159)
         hg2.Name = "hg2"
         hg2.Size = New Size(270, 60)
@@ -2010,6 +1988,7 @@ Partial Class Base
         ' PictureBox12
         ' 
         PictureBox12.BackColor = Color.Black
+        PictureBox12.Cursor = Cursors.Hand
         PictureBox12.Location = New Point(0, 298)
         PictureBox12.Name = "PictureBox12"
         PictureBox12.Size = New Size(100, 20)
@@ -2020,6 +1999,7 @@ Partial Class Base
         ' Label20
         ' 
         Label20.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label20.Cursor = Cursors.Hand
         Label20.Font = New Font("nvgcshare", 26F)
         Label20.ForeColor = Color.White
         Label20.Location = New Point(3, 320)
@@ -2032,6 +2012,7 @@ Partial Class Base
         ' PictureBox13
         ' 
         PictureBox13.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox13.Cursor = Cursors.Hand
         PictureBox13.Location = New Point(2, 320)
         PictureBox13.Name = "PictureBox13"
         PictureBox13.Size = New Size(266, 56)
@@ -2041,6 +2022,7 @@ Partial Class Base
         ' vd1
         ' 
         vd1.BackColor = Color.DimGray
+        vd1.Cursor = Cursors.Hand
         vd1.Location = New Point(0, 318)
         vd1.Name = "vd1"
         vd1.Size = New Size(270, 60)
@@ -2050,6 +2032,7 @@ Partial Class Base
         ' PictureBox2
         ' 
         PictureBox2.BackColor = Color.Black
+        PictureBox2.Cursor = Cursors.Hand
         PictureBox2.Location = New Point(0, 218)
         PictureBox2.Name = "PictureBox2"
         PictureBox2.Size = New Size(100, 20)
@@ -2060,6 +2043,7 @@ Partial Class Base
         ' Label17
         ' 
         Label17.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label17.Cursor = Cursors.Hand
         Label17.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Label17.ForeColor = Color.White
         Label17.Location = New Point(60, 240)
@@ -2072,6 +2056,7 @@ Partial Class Base
         ' Label18
         ' 
         Label18.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label18.Cursor = Cursors.Hand
         Label18.Font = New Font("nvgcshare", 26F)
         Label18.ForeColor = Color.White
         Label18.Location = New Point(3, 240)
@@ -2084,6 +2069,7 @@ Partial Class Base
         ' PictureBox11
         ' 
         PictureBox11.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox11.Cursor = Cursors.Hand
         PictureBox11.Location = New Point(2, 240)
         PictureBox11.Name = "PictureBox11"
         PictureBox11.Size = New Size(266, 56)
@@ -2093,6 +2079,7 @@ Partial Class Base
         ' k1
         ' 
         k1.BackColor = Color.DimGray
+        k1.Cursor = Cursors.Hand
         k1.Location = New Point(0, 238)
         k1.Name = "k1"
         k1.Size = New Size(270, 60)
@@ -2102,6 +2089,7 @@ Partial Class Base
         ' Label12
         ' 
         Label12.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label12.Cursor = Cursors.Hand
         Label12.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Label12.ForeColor = Color.White
         Label12.Location = New Point(60, 81)
@@ -2114,6 +2102,7 @@ Partial Class Base
         ' Label15
         ' 
         Label15.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label15.Cursor = Cursors.Hand
         Label15.Font = New Font("nvgcshare", 26F)
         Label15.ForeColor = Color.White
         Label15.Location = New Point(3, 81)
@@ -2126,6 +2115,7 @@ Partial Class Base
         ' PictureBox10
         ' 
         PictureBox10.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox10.Cursor = Cursors.Hand
         PictureBox10.Location = New Point(2, 81)
         PictureBox10.Name = "PictureBox10"
         PictureBox10.Size = New Size(266, 56)
@@ -2135,6 +2125,7 @@ Partial Class Base
         ' PictureBox9
         ' 
         PictureBox9.BackColor = Color.Black
+        PictureBox9.Cursor = Cursors.Hand
         PictureBox9.Location = New Point(0, 457)
         PictureBox9.Name = "PictureBox9"
         PictureBox9.Size = New Size(100, 20)
@@ -2145,6 +2136,7 @@ Partial Class Base
         ' hub
         ' 
         hub.BackColor = Color.DimGray
+        hub.Cursor = Cursors.Hand
         hub.Location = New Point(0, 79)
         hub.Name = "hub"
         hub.Size = New Size(270, 60)
@@ -2154,6 +2146,7 @@ Partial Class Base
         ' logo_py
         ' 
         logo_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        logo_py.Cursor = Cursors.Hand
         logo_py.Font = New Font("nvgcshare", 26F)
         logo_py.ForeColor = Color.White
         logo_py.Location = New Point(3, 2)
@@ -2166,6 +2159,7 @@ Partial Class Base
         ' Label4
         ' 
         Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label4.Cursor = Cursors.Hand
         Label4.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Label4.ForeColor = Color.White
         Label4.Location = New Point(60, 479)
@@ -2178,6 +2172,7 @@ Partial Class Base
         ' Label5
         ' 
         Label5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label5.Cursor = Cursors.Hand
         Label5.Font = New Font("nvgcshare", 26F)
         Label5.ForeColor = Color.White
         Label5.Location = New Point(3, 479)
@@ -2190,6 +2185,7 @@ Partial Class Base
         ' PictureBox4
         ' 
         PictureBox4.BackColor = Color.Black
+        PictureBox4.Cursor = Cursors.Hand
         PictureBox4.Location = New Point(0, 538)
         PictureBox4.Name = "PictureBox4"
         PictureBox4.Size = New Size(100, 20)
@@ -2200,6 +2196,7 @@ Partial Class Base
         ' PictureBox3
         ' 
         PictureBox3.BackColor = Color.Black
+        PictureBox3.Cursor = Cursors.Hand
         PictureBox3.Location = New Point(0, 60)
         PictureBox3.Name = "PictureBox3"
         PictureBox3.Size = New Size(100, 20)
@@ -2210,6 +2207,7 @@ Partial Class Base
         ' saved_e
         ' 
         saved_e.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        saved_e.Cursor = Cursors.Hand
         saved_e.Location = New Point(2, 479)
         saved_e.Name = "saved_e"
         saved_e.Size = New Size(266, 56)
@@ -2219,6 +2217,7 @@ Partial Class Base
         ' Label6
         ' 
         Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label6.Cursor = Cursors.Hand
         Label6.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Label6.ForeColor = Color.White
         Label6.Location = New Point(60, 560)
@@ -2231,6 +2230,7 @@ Partial Class Base
         ' Label9
         ' 
         Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label9.Cursor = Cursors.Hand
         Label9.Font = New Font("nvgcshare", 26F)
         Label9.ForeColor = Color.White
         Label9.Location = New Point(3, 560)
@@ -2243,6 +2243,7 @@ Partial Class Base
         ' PictureBox1
         ' 
         PictureBox1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox1.Cursor = Cursors.Hand
         PictureBox1.Location = New Point(2, 560)
         PictureBox1.Name = "PictureBox1"
         PictureBox1.Size = New Size(266, 56)
@@ -2252,6 +2253,7 @@ Partial Class Base
         ' ab_bg
         ' 
         ab_bg.BackColor = Color.DimGray
+        ab_bg.Cursor = Cursors.Hand
         ab_bg.Location = New Point(0, 558)
         ab_bg.Name = "ab_bg"
         ab_bg.Size = New Size(270, 60)
@@ -2261,6 +2263,7 @@ Partial Class Base
         ' saved_e1
         ' 
         saved_e1.BackColor = Color.DimGray
+        saved_e1.Cursor = Cursors.Hand
         saved_e1.Location = New Point(0, 477)
         saved_e1.Name = "saved_e1"
         saved_e1.Size = New Size(270, 60)
@@ -2270,6 +2273,7 @@ Partial Class Base
         ' box_py
         ' 
         box_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        box_py.Cursor = Cursors.Hand
         box_py.Location = New Point(2, 2)
         box_py.Name = "box_py"
         box_py.Size = New Size(266, 56)
@@ -2279,6 +2283,7 @@ Partial Class Base
         ' bg_py
         ' 
         bg_py.BackColor = Color.DimGray
+        bg_py.Cursor = Cursors.Hand
         bg_py.Location = New Point(0, 0)
         bg_py.Name = "bg_py"
         bg_py.Size = New Size(270, 60)
@@ -2442,7 +2447,6 @@ Partial Class Base
         CType(a_3, ComponentModel.ISupportInitialize).EndInit()
         CType(a_2, ComponentModel.ISupportInitialize).EndInit()
         CType(a_1, ComponentModel.ISupportInitialize).EndInit()
-        CType(menu_record_subbg, ComponentModel.ISupportInitialize).EndInit()
         Main_menu.ResumeLayout(False)
         Panel1.ResumeLayout(False)
         CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
@@ -2573,7 +2577,7 @@ Partial Class Base
     Friend WithEvents Label10 As Label
     Friend WithEvents sh_record As Label
     Friend WithEvents Label13 As Label
-    Friend WithEvents Label14 As Label
+    Friend WithEvents icon_record As Label
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents not_save As Timer
@@ -2659,10 +2663,6 @@ Partial Class Base
     Friend WithEvents s1 As PictureBox
     Friend WithEvents GAMES_IN As Timer
     Friend WithEvents Lang As Timer
-    Friend WithEvents menu_record_subbg As PictureBox
-    Friend WithEvents menu_record_subkey As Label
-    Friend WithEvents menu_record_sub As Label
-    Friend WithEvents menu_record_sublogo As Label
     Friend WithEvents ME_CLOSE_BG As Label
     Friend WithEvents d As Label
     Friend WithEvents Mode_Menu As Panel

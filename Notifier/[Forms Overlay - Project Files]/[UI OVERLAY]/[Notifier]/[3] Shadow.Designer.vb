@@ -29,7 +29,7 @@ Partial Class Shadow
         ' Timer1
         ' 
         Timer1.Enabled = True
-        Timer1.Interval = 15
+        Timer1.Interval = 1
         ' 
         ' Shadow
         ' 

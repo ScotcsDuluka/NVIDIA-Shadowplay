@@ -116,4 +116,30 @@ Public Class Base_Game_Filter_Sub
     Private Sub BG_MouseHover(sender As Object, e As EventArgs) Handles BG.MouseHover
         Base_Game_Filter.TopMost = True
     End Sub
+
+    Private Sub Label1_Click(sender As Object, e As EventArgs)
+        Opacity = 0
+        Base_Game_Filter.Opacity = 0
+        Base_Game_Filter.Hide()
+        Hide()
+        Base.isFunctionActive_f3 = True
+    End Sub
+
+    Private Sub ME_CLOSE_BG_GRE_MouseMove(sender As Object, e As MouseEventArgs) Handles d.MouseMove, ME_CLOSE_BG_GRE.MouseMove, ME_CLOSE_BG.MouseMove
+        ME_CLOSE_BG_GRE.BackColor = ColorTranslator.FromHtml("#76B900")
+        Base_Game_Filter.ME_CLOSE_BG_GRE.BackColor = ColorTranslator.FromHtml("#76B900")
+    End Sub
+
+    Private Sub ME_CLOSE_BG_GRE_MouseLeave(sender As Object, e As EventArgs) Handles d.MouseLeave, ME_CLOSE_BG_GRE.MouseLeave, ME_CLOSE_BG.MouseLeave
+        ME_CLOSE_BG_GRE.BackColor = System.Drawing.Color.Black
+        Base_Game_Filter.ME_CLOSE_BG_GRE.BackColor = Color.FromArgb(1, 0, 1)
+    End Sub
+
+    Private Sub ME_CLOSE_BG_GRE_Click(sender As Object, e As EventArgs) Handles d.Click, ME_CLOSE_BG_GRE.Click, ME_CLOSE_BG.Click
+        Me.Opacity = 0
+        Base_Game_Filter.Opacity = 0
+        Base_Game_Filter.Hide()
+        Me.Hide()
+        Base.isFunctionActive_f3 = True
+    End Sub
 End Class

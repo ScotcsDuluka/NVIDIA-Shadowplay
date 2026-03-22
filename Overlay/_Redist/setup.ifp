@@ -4,7 +4,7 @@
   <Metadata productVersion="1.6.1" projectFileVersion="2.0"/>
   <ProductInformation>
     <Name>NVIDIA Shadowplay</Name>
-    <Version>3.3.1557.1</Version>
+    <Version>3.3.1777.1</Version>
     <CompanyName>ScotcsDuluka</CompanyName>
     <WebURI>https://github.com/ScotcsDuluka/NVIDIA-Shadowplay</WebURI>
   </ProductInformation>
@@ -32,43 +32,36 @@
       <VisualStyle isEnabled="true"/>
     </UserInterface>
     <InstallationFiles defaultInstallationPath="C:\Duluka Corporation\&lt;AppName&gt;\" isDefaultInstallationPathAlterable ="false">
-      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\API-Core\</InstallationFile>
-      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Languages\</InstallationFile>
-      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA_Shadowplay_Data\</InstallationFile>
-      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\runtimes\</InstallationFile>
-      <InstallationFile size="58 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.dll</InstallationFile>
-      <InstallationFile size="439 Byte" type="config">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.dll.config</InstallationFile>
-      <InstallationFile size="634.6 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Core.dll</InstallationFile>
-      <InstallationFile size="38.6 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.WinForms.dll</InstallationFile>
-      <InstallationFile size="81.1 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Web.WebView2.Wpf.dll</InstallationFile>
+      <InstallationFile size="68.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.dll</InstallationFile>
+      <InstallationFile size="1.3 KB" type="config">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.dll.config</InstallationFile>
+      <InstallationFile size="681 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\libmp3lame.32.dll</InstallationFile>
+      <InstallationFile size="1 MB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\libmp3lame.64.dll</InstallationFile>
       <InstallationFile size="25.1 MB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Windows.SDK.NET.dll</InstallationFile>
-      <InstallationFile size="34 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Asio.dll</InstallationFile>
       <InstallationFile size="183.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Core.dll</InstallationFile>
-      <InstallationFile size="7.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.dll</InstallationFile>
-      <InstallationFile size="45.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Midi.dll</InstallationFile>
       <InstallationFile size="176 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Wasapi.dll</InstallationFile>
-      <InstallationFile size="34 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.WinForms.dll</InstallationFile>
-      <InstallationFile size="57 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.WinMM.dll</InstallationFile>
       <InstallationFile size="706.4 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Newtonsoft.Json.dll</InstallationFile>
       <InstallationFile size="1.3 KB" type="config">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NLog.config</InstallationFile>
       <InstallationFile size="904.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NLog.dll</InstallationFile>
-      <InstallationFile size="463 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA API.dll</InstallationFile>
+      <InstallationFile size="463.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA API.dll</InstallationFile>
       <InstallationFile size="597 KB" type="exe">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA API.exe</InstallationFile>
       <InstallationFile size="429 Byte" type="json">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA API.runtimeconfig.json</InstallationFile>
       <InstallationFile size="859.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.dll</InstallationFile>
       <InstallationFile size="597 KB" type="exe">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.exe</InstallationFile>
       <InstallationFile size="429 Byte" type="json">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.runtimeconfig.json</InstallationFile>
-      <InstallationFile size="492 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.dll</InstallationFile>
+      <InstallationFile size="492.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.dll</InstallationFile>
       <InstallationFile size="597 KB" type="exe">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.exe</InstallationFile>
       <InstallationFile size="429 Byte" type="json">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.runtimeconfig.json</InstallationFile>
-      <InstallationFile size="1.7 MB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll</InstallationFile>
-      <InstallationFile size="128 Byte" type="config">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll.config</InstallationFile>
+      <InstallationFile size="1.3 MB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll</InstallationFile>
       <InstallationFile size="600 KB" type="exe">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.exe</InstallationFile>
       <InstallationFile size="448.3 KB" type="ico">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.ico</InstallationFile>
       <InstallationFile size="429 Byte" type="json">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.runtimeconfig.json</InstallationFile>
       <InstallationFile size="179.8 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\System.CodeDom.dll</InstallationFile>
       <InstallationFile size="71.8 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\System.Management.dll</InstallationFile>
       <InstallationFile size="516.5 KB" type="dll">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\WinRT.Runtime.dll</InstallationFile>
+      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\API-Core\</InstallationFile>
+      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Languages\</InstallationFile>
+      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA_Shadowplay_Data\</InstallationFile>
+      <InstallationFile size="N/A" type="[Folder]">C:\My Project\NVIDIA Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\runtimes\</InstallationFile>
     </InstallationFiles>
     <Languages>
       <Language>English</Language>
@@ -77,7 +70,7 @@
     <Commands/>
     <Registry/>
     <Shortcuts defaultPath="&lt;Company&gt;\&lt;AppName&gt;\" isDefaultPathAlterable="false" isCreateStartmenuShortcutsForAllUsers="false" isCreateDesktopShortcutsForAllUsers="true">
-      <Shortcut destination="Desktop" name="NVIDIA Shadowplay" targetFile="C:\Duluka Corporation\NVIDIA Shadowplay\NVIDIA Shadowplay Helper.exe" commandLineArguments="" iconFilePath="C:\Duluka Corporation\NVIDIA Shadowplay\NVIDIA Shadowplay Helper.exe" iconIndex="0"/>
+      <Shortcut destination="Desktop" name="NVIDIA Experience" targetFile="C:\Duluka Corporation\NVIDIA Shadowplay\NVIDIA Experience.exe" commandLineArguments="" iconFilePath="C:\Duluka Corporation\NVIDIA Shadowplay\NVIDIA Experience.exe" iconIndex="0"/>
     </Shortcuts>
     <Serials isDialogEnabled="false" count="1000" mask ="#####-#####-#####-#####"/>
     <SplashScreen isDialogEnabled="false" delayTime="2">
@@ -85,7 +78,7 @@
       <Sound isEnabled="false" filePath=""/>
     </SplashScreen>
     <License isDialogEnabled="false">
-      <Data>e1xydGYxXGZiaWRpc1xhbnNpXGFuc2ljcGcxMjUyXGRlZmYwXG5vdWljb21wYXRcZGVmbGFuZzEwMzN7XGZvbnR0Ymx7XGYwXGZuaWwgQXJpYWw7fX0NCntcKlxnZW5lcmF0b3IgUmljaGVkMjAgMTAuMC4yNjEwMH1cdmlld2tpbmQ0XHVjMSANClxwYXJkXGYwXGZzMjBccGFyDQp9DQoA</Data>
+      <Data>e1xydGYxXGFuc2lcYW5zaWNwZzEyNTJcZGVmZjBcbm91aWNvbXBhdFxkZWZsYW5nMTAzM3tcZm9udHRibHtcZjBcZm5pbCBBcmlhbDt9fQ0Ke1wqXGdlbmVyYXRvciBSaWNoZWQyMCAxMC4wLjI2MTAwfVx2aWV3a2luZDRcdWMxIA0KXHBhcmRcZjBcZnMyMFxwYXINCn0NCgA=</Data>
     </License>
     <Finish isRebootMachineEnabled="false">
       <Program executableFilePath="C:\Program Files (x86)\ScotcsDuluka\NVIDIA Shadowplay\net10.0-windows10.0.26100.0\NVIDIA Shadowplay Helper.exe" isLaunchEnabled="false" arguments=""/>
@@ -110,7 +103,7 @@
     <Program executableFilePath="" isLaunchEnabled="false" isTerminationEnabled="false"/>
   </VisualUpdateConfiguration>
   <BuildConfiguration>
-    <SetupFilePath>C:\My Project\NVIDIA Shadowplay\Overlay\_Redist\NVIDIA ShadowPlay 3.3.1557.1-BETA.exe</SetupFilePath>
+    <SetupFilePath>C:\My Project\NVIDIA Shadowplay\Overlay\_Redist\NVIDIA ShadowPlay 3.3.1777.1-BETA.exe</SetupFilePath>
     <SetupIconPath>C:\My Project\NVIDIA Shadowplay\Overlay\NVIDIA ShadowPlay.ico</SetupIconPath>
     <UninstallerIconPath>C:\My Project\NVIDIA Shadowplay\Overlay\NVIDIA ShadowPlay.ico</UninstallerIconPath>
     <Compression method="0" level="1"/>

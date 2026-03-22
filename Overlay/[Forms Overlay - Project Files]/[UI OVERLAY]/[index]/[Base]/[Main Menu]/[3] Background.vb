@@ -58,7 +58,7 @@ Public Class Base_Background
         HideFromAltTab()
     End Sub
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        Base_www.TopMost = True
+
         Opacity -= 0.1
         If Opacity = 0 Then
             Me.Hide()
@@ -72,11 +72,11 @@ Public Class Base_Background
             Me.Opacity += 0.1
             Me.Show()
         End If
-        Base_www.TopMost = True
+
     End Sub
 
     Private Sub Bg_MouseClick(sender As Object, e As MouseEventArgs) Handles Me.MouseClick
-        Base_www.TopMost = True
+
     End Sub
 
 End Class

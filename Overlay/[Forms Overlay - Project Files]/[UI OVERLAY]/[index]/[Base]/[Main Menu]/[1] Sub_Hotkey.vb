@@ -6,7 +6,7 @@ Partial Public Class Base
     Private Sub OnAltZ() Handles _hotkeyService.AltZPressed
         If settings_1.Visible Then Return
 
-        If Base_www.Opacity >= 0.01 Then Return
+
 
         isFunctionActive_f3 = False
 
@@ -87,11 +87,7 @@ Partial Public Class Base
         a_2.Visible = False
         a_3.Visible = False
 
-        If Base_www.Opacity < 0.1 Then
-            Base_Background.Opacity = 0
-            Base_Background.Hide()
-        End If
-
+        Base_Background.Hide()
         Base_Background_Top.Hide()
         Me.Hide()
     End Sub

@@ -227,7 +227,7 @@ Partial Public Class Base
 #End Region
 
 #Region "============================================================================ FORM LOAD & INITIALIZATION"
-
+    Private SystemMonitor As New SystemMonitor()
     Private Sub LoadCurrentLanguage()
         Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
         Dim currentFile As String = Path.Combine(langFolder, "current.txt")
@@ -244,8 +244,6 @@ Partial Public Class Base
 
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
-
-        ' Force handle creation before registering hotkeys
         Dim handle As IntPtr = Me.Handle
 
         _hotkeyService = New HotkeyService()
@@ -263,6 +261,7 @@ Partial Public Class Base
         CreateDataDirectories()
         LoadMicState()
         TIMESLOAD()
+        SystemMonitor.StartMonitoring()
     End Sub
 
 
@@ -484,7 +483,10 @@ Partial Public Class Base
 
     Private Sub CaptureScreen()
         If Not My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)) Then
-            ShowNotifier("privacy")
+            ShowNotifier("notificationWarningDesktopCaptureDisabled")
+            ShowMainPanel()
+            OpenSettings()
+            PrivacyOpen()
             Return
         End If
 
@@ -567,5 +569,4 @@ Partial Public Class Base
         AppSettings.Instance.Save()
         _hotkeyService?.UnregisterAll()
     End Sub
-
 End Class

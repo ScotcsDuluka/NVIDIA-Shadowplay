@@ -29,6 +29,5 @@
   </ImportGroup>
   <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
     <PkgNLog_Config Condition=" '$(PkgNLog_Config)' == '' ">C:\Users\ScotcsDuluka\.nuget\packages\nlog.config\4.7.15</PkgNLog_Config>
-    <PkgMicrosoft_Web_WebView2 Condition=" '$(PkgMicrosoft_Web_WebView2)' == '' ">C:\Users\ScotcsDuluka\.nuget\packages\microsoft.web.webview2\1.0.3856.49</PkgMicrosoft_Web_WebView2>
   </PropertyGroup>
 </Project>

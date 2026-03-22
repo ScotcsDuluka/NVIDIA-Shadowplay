@@ -336,11 +336,6 @@
             }
           }
         },
-        "warningProperties": {
-          "warnAsError": [
-            "NU1605"
-          ]
-        },
         "restoreAuditProperties": {
           "enableAudit": "True",
           "auditLevel": "low",
@@ -355,14 +350,6 @@
             "Microsoft.AspNetCore.Components.WebView": {
               "target": "Package",
               "version": "[10.0.5, )"
-            },
-            "Microsoft.Web.WebView2": {
-              "target": "Package",
-              "version": "[1.0.3856.49, )"
-            },
-            "NAudio": {
-              "target": "Package",
-              "version": "[2.3.0, )"
             },
             "NAudio.Core": {
               "target": "Package",

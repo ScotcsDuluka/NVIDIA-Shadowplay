@@ -85,6 +85,10 @@ Partial Class Notifier_Sub
         ' Timer1
         ' 
         ' 
+        ' Animation_Engine
+        ' 
+        Animation_Engine.Interval = 1
+        ' 
         ' Notifier_Sub
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)

@@ -50,8 +50,5 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[5] Video Capture.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Web]\[1] Web.vb">
-      <SubType>Form</SubType>
-    </Compile>
   </ItemGroup>
 </Project>

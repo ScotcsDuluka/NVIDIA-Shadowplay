@@ -60,75 +60,75 @@ Partial Class Base_Background_Top
         Main_Top.Controls.Add(ME_CLOSE_BG_GRE)
         Main_Top.Controls.Add(PictureGFE)
         Main_Top.Controls.Add(Logo_text)
-        Main_Top.Location = New System.Drawing.Point(0, 0)
+        Main_Top.Location = New Point(0, 0)
         Main_Top.Name = "Main_Top"
-        Main_Top.Size = New System.Drawing.Size(1460, 80)
+        Main_Top.Size = New Size(1460, 80)
         Main_Top.TabIndex = 10
         ' 
         ' d
         ' 
         d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        d.BackColor = Drawing.Color.Black
+        d.BackColor = Color.Black
         d.Cursor = Cursors.Hand
-        d.Font = New System.Drawing.Font("nvgcshare", 26.25F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        d.ForeColor = Drawing.Color.White
-        d.Location = New System.Drawing.Point(1406, 23)
+        d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        d.ForeColor = Color.White
+        d.Location = New Point(1406, 23)
         d.Name = "d"
-        d.Size = New System.Drawing.Size(28, 34)
+        d.Size = New Size(28, 34)
         d.TabIndex = 89
         d.Text = ""
-        d.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        d.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' ME_CLOSE_BG
         ' 
         ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        ME_CLOSE_BG.BackColor = Drawing.Color.Black
+        ME_CLOSE_BG.BackColor = Color.Black
         ME_CLOSE_BG.Cursor = Cursors.Hand
-        ME_CLOSE_BG.Font = New System.Drawing.Font("nvgcshare", 26.25F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        ME_CLOSE_BG.ForeColor = Drawing.Color.White
-        ME_CLOSE_BG.Location = New System.Drawing.Point(1402, 23)
+        ME_CLOSE_BG.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG.ForeColor = Color.White
+        ME_CLOSE_BG.Location = New Point(1402, 23)
         ME_CLOSE_BG.Name = "ME_CLOSE_BG"
-        ME_CLOSE_BG.Size = New System.Drawing.Size(34, 34)
+        ME_CLOSE_BG.Size = New Size(34, 34)
         ME_CLOSE_BG.TabIndex = 88
-        ME_CLOSE_BG.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' ME_CLOSE_BG_GRE
         ' 
         ME_CLOSE_BG_GRE.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        ME_CLOSE_BG_GRE.BackColor = Drawing.Color.Black
+        ME_CLOSE_BG_GRE.BackColor = Color.Black
         ME_CLOSE_BG_GRE.Cursor = Cursors.No
-        ME_CLOSE_BG_GRE.Font = New System.Drawing.Font("nvgcshare", 26.25F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        ME_CLOSE_BG_GRE.ForeColor = Drawing.Color.White
-        ME_CLOSE_BG_GRE.Location = New System.Drawing.Point(1399, 20)
+        ME_CLOSE_BG_GRE.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG_GRE.ForeColor = Color.White
+        ME_CLOSE_BG_GRE.Location = New Point(1399, 20)
         ME_CLOSE_BG_GRE.Name = "ME_CLOSE_BG_GRE"
-        ME_CLOSE_BG_GRE.Size = New System.Drawing.Size(40, 40)
+        ME_CLOSE_BG_GRE.Size = New Size(40, 40)
         ME_CLOSE_BG_GRE.TabIndex = 87
         ME_CLOSE_BG_GRE.Text = ""
-        ME_CLOSE_BG_GRE.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureGFE
         ' 
-        PictureGFE.BackColor = Drawing.Color.Black
+        PictureGFE.BackColor = Color.Black
         PictureGFE.BackgroundImage = My.Resources.Resources.osc_img_appicon_64x64
         PictureGFE.BackgroundImageLayout = ImageLayout.None
-        PictureGFE.Location = New System.Drawing.Point(8, 8)
+        PictureGFE.Location = New Point(8, 8)
         PictureGFE.Name = "PictureGFE"
-        PictureGFE.Size = New System.Drawing.Size(64, 64)
+        PictureGFE.Size = New Size(64, 64)
         PictureGFE.TabIndex = 46
         PictureGFE.TabStop = False
         ' 
         ' Logo_text
         ' 
         Logo_text.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Logo_text.BackColor = Drawing.Color.Black
-        Logo_text.Font = New System.Drawing.Font("Segoe UI", 24F, Drawing.FontStyle.Bold, Drawing.GraphicsUnit.Point, CByte(0))
-        Logo_text.ForeColor = Drawing.Color.White
-        Logo_text.Location = New System.Drawing.Point(0, 0)
+        Logo_text.BackColor = Color.Black
+        Logo_text.Font = New Font("Segoe UI", 24F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Logo_text.ForeColor = Color.White
+        Logo_text.Location = New Point(0, 0)
         Logo_text.Name = "Logo_text"
-        Logo_text.Size = New System.Drawing.Size(1460, 80)
+        Logo_text.Size = New Size(1460, 80)
         Logo_text.TabIndex = 8
         Logo_text.Text = "NVIDIA Shadowplay OBT 1"
-        Logo_text.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Logo_text.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' ANIME
         ' 
@@ -137,7 +137,7 @@ Partial Class Base_Background_Top
         ' 
         ' Main_menu_list
         ' 
-        Main_menu_list.BackColor = Drawing.Color.Blue
+        Main_menu_list.BackColor = Color.Blue
         Main_menu_list.Controls.Add(b1_all)
         Main_menu_list.Controls.Add(b2_all)
         Main_menu_list.Controls.Add(Mode_u)
@@ -147,37 +147,37 @@ Partial Class Base_Background_Top
         Main_menu_list.Controls.Add(b3)
         Main_menu_list.Controls.Add(b2)
         Main_menu_list.Controls.Add(Bg_SET3)
-        Main_menu_list.Location = New System.Drawing.Point(101, 644)
+        Main_menu_list.Location = New Point(101, 644)
         Main_menu_list.Name = "Main_menu_list"
-        Main_menu_list.Size = New System.Drawing.Size(1280, 483)
+        Main_menu_list.Size = New Size(1280, 483)
         Main_menu_list.TabIndex = 46
         ' 
         ' b1_all
         ' 
-        b1_all.BackColor = Drawing.Color.Black
+        b1_all.BackColor = Color.Black
         b1_all.Cursor = Cursors.Hand
-        b1_all.Font = New System.Drawing.Font("nvgcshare", 90F)
-        b1_all.ForeColor = Drawing.Color.White
-        b1_all.ImageAlign = Drawing.ContentAlignment.TopCenter
-        b1_all.Location = New System.Drawing.Point(280, 0)
+        b1_all.Font = New Font("nvgcshare", 90F)
+        b1_all.ForeColor = Color.White
+        b1_all.ImageAlign = ContentAlignment.TopCenter
+        b1_all.Location = New Point(280, 0)
         b1_all.Name = "b1_all"
-        b1_all.Size = New System.Drawing.Size(240, 373)
+        b1_all.Size = New Size(240, 373)
         b1_all.TabIndex = 86
-        b1_all.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        b1_all.TextAlign = ContentAlignment.MiddleCenter
         b1_all.Visible = False
         ' 
         ' b2_all
         ' 
-        b2_all.BackColor = Drawing.Color.Black
+        b2_all.BackColor = Color.Black
         b2_all.Cursor = Cursors.Hand
-        b2_all.Font = New System.Drawing.Font("nvgcshare", 90F)
-        b2_all.ForeColor = Drawing.Color.White
-        b2_all.ImageAlign = Drawing.ContentAlignment.TopCenter
-        b2_all.Location = New System.Drawing.Point(520, 0)
+        b2_all.Font = New Font("nvgcshare", 90F)
+        b2_all.ForeColor = Color.White
+        b2_all.ImageAlign = ContentAlignment.TopCenter
+        b2_all.Location = New Point(520, 0)
         b2_all.Name = "b2_all"
-        b2_all.Size = New System.Drawing.Size(240, 329)
+        b2_all.Size = New Size(240, 329)
         b2_all.TabIndex = 85
-        b2_all.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        b2_all.TextAlign = ContentAlignment.MiddleCenter
         b2_all.Visible = False
         ' 
         ' Mode_u
@@ -186,165 +186,165 @@ Partial Class Base_Background_Top
         Mode_u.Controls.Add(Bg_Mode1)
         Mode_u.Controls.Add(Bg_Mode2)
         Mode_u.Controls.Add(Bg_Mode3)
-        Mode_u.Location = New System.Drawing.Point(0, 0)
+        Mode_u.Location = New Point(0, 0)
         Mode_u.Name = "Mode_u"
-        Mode_u.Size = New System.Drawing.Size(240, 240)
+        Mode_u.Size = New Size(240, 240)
         Mode_u.TabIndex = 84
         ' 
         ' s_3r
         ' 
         s_3r.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        s_3r.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        s_3r.Location = New System.Drawing.Point(0, 300)
+        s_3r.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        s_3r.Location = New Point(0, 300)
         s_3r.Name = "s_3r"
-        s_3r.Size = New System.Drawing.Size(3, 80)
+        s_3r.Size = New Size(3, 80)
         s_3r.TabIndex = 62
         s_3r.TabStop = False
         s_3r.Visible = False
         ' 
         ' Bg_Mode1
         ' 
-        Bg_Mode1.BackColor = Drawing.Color.Black
+        Bg_Mode1.BackColor = Color.Black
         Bg_Mode1.Cursor = Cursors.Hand
-        Bg_Mode1.Font = New System.Drawing.Font("Microsoft Sans Serif", 80F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Bg_Mode1.ForeColor = Drawing.Color.White
-        Bg_Mode1.ImageAlign = Drawing.ContentAlignment.TopCenter
-        Bg_Mode1.Location = New System.Drawing.Point(0, 0)
+        Bg_Mode1.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_Mode1.ForeColor = Color.White
+        Bg_Mode1.ImageAlign = ContentAlignment.TopCenter
+        Bg_Mode1.Location = New Point(0, 0)
         Bg_Mode1.Name = "Bg_Mode1"
-        Bg_Mode1.Size = New System.Drawing.Size(240, 80)
+        Bg_Mode1.Size = New Size(240, 80)
         Bg_Mode1.TabIndex = 29
-        Bg_Mode1.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Bg_Mode1.TextAlign = ContentAlignment.MiddleCenter
         Bg_Mode1.Visible = False
         ' 
         ' Bg_Mode2
         ' 
-        Bg_Mode2.BackColor = Drawing.Color.Black
+        Bg_Mode2.BackColor = Color.Black
         Bg_Mode2.Cursor = Cursors.Hand
-        Bg_Mode2.Font = New System.Drawing.Font("Microsoft Sans Serif", 80F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Bg_Mode2.ForeColor = Drawing.Color.White
-        Bg_Mode2.ImageAlign = Drawing.ContentAlignment.TopCenter
-        Bg_Mode2.Location = New System.Drawing.Point(0, 80)
+        Bg_Mode2.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_Mode2.ForeColor = Color.White
+        Bg_Mode2.ImageAlign = ContentAlignment.TopCenter
+        Bg_Mode2.Location = New Point(0, 80)
         Bg_Mode2.Name = "Bg_Mode2"
-        Bg_Mode2.Size = New System.Drawing.Size(240, 80)
+        Bg_Mode2.Size = New Size(240, 80)
         Bg_Mode2.TabIndex = 31
-        Bg_Mode2.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Bg_Mode2.TextAlign = ContentAlignment.MiddleCenter
         Bg_Mode2.Visible = False
         ' 
         ' Bg_Mode3
         ' 
-        Bg_Mode3.BackColor = Drawing.Color.Black
+        Bg_Mode3.BackColor = Color.Black
         Bg_Mode3.Cursor = Cursors.Hand
-        Bg_Mode3.Font = New System.Drawing.Font("Microsoft Sans Serif", 80F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Bg_Mode3.ForeColor = Drawing.Color.White
-        Bg_Mode3.ImageAlign = Drawing.ContentAlignment.TopCenter
-        Bg_Mode3.Location = New System.Drawing.Point(0, 160)
+        Bg_Mode3.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_Mode3.ForeColor = Color.White
+        Bg_Mode3.ImageAlign = ContentAlignment.TopCenter
+        Bg_Mode3.Location = New Point(0, 160)
         Bg_Mode3.Name = "Bg_Mode3"
-        Bg_Mode3.Size = New System.Drawing.Size(240, 80)
+        Bg_Mode3.Size = New Size(240, 80)
         Bg_Mode3.TabIndex = 30
-        Bg_Mode3.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Bg_Mode3.TextAlign = ContentAlignment.MiddleCenter
         Bg_Mode3.Visible = False
         ' 
         ' b1
         ' 
-        b1.BackColor = Drawing.Color.Black
+        b1.BackColor = Color.Black
         b1.Cursor = Cursors.Hand
-        b1.Font = New System.Drawing.Font("nvgcshare", 90F)
-        b1.ForeColor = Drawing.Color.White
-        b1.ImageAlign = Drawing.ContentAlignment.TopCenter
-        b1.Location = New System.Drawing.Point(280, 0)
+        b1.Font = New Font("nvgcshare", 90F)
+        b1.ForeColor = Color.White
+        b1.ImageAlign = ContentAlignment.TopCenter
+        b1.Location = New Point(280, 0)
         b1.Name = "b1"
-        b1.Size = New System.Drawing.Size(240, 240)
+        b1.Size = New Size(240, 240)
         b1.TabIndex = 41
-        b1.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        b1.TextAlign = ContentAlignment.MiddleCenter
         b1.Visible = False
         ' 
         ' Bg_SET2
         ' 
-        Bg_SET2.BackColor = Drawing.Color.Black
+        Bg_SET2.BackColor = Color.Black
         Bg_SET2.Cursor = Cursors.Hand
-        Bg_SET2.Font = New System.Drawing.Font("Microsoft Sans Serif", 80F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Bg_SET2.ForeColor = Drawing.Color.White
-        Bg_SET2.ImageAlign = Drawing.ContentAlignment.TopCenter
-        Bg_SET2.Location = New System.Drawing.Point(1040, 80)
+        Bg_SET2.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_SET2.ForeColor = Color.White
+        Bg_SET2.ImageAlign = ContentAlignment.TopCenter
+        Bg_SET2.Location = New Point(1040, 80)
         Bg_SET2.Name = "Bg_SET2"
-        Bg_SET2.Size = New System.Drawing.Size(240, 80)
+        Bg_SET2.Size = New Size(240, 80)
         Bg_SET2.TabIndex = 16
-        Bg_SET2.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Bg_SET2.TextAlign = ContentAlignment.MiddleCenter
         Bg_SET2.Visible = False
         ' 
         ' Bg_SET1
         ' 
-        Bg_SET1.BackColor = Drawing.Color.Black
+        Bg_SET1.BackColor = Color.Black
         Bg_SET1.Cursor = Cursors.Hand
-        Bg_SET1.Font = New System.Drawing.Font("Microsoft Sans Serif", 80F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Bg_SET1.ForeColor = Drawing.Color.White
-        Bg_SET1.ImageAlign = Drawing.ContentAlignment.TopCenter
-        Bg_SET1.Location = New System.Drawing.Point(1040, 0)
+        Bg_SET1.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_SET1.ForeColor = Color.White
+        Bg_SET1.ImageAlign = ContentAlignment.TopCenter
+        Bg_SET1.Location = New Point(1040, 0)
         Bg_SET1.Name = "Bg_SET1"
-        Bg_SET1.Size = New System.Drawing.Size(240, 80)
+        Bg_SET1.Size = New Size(240, 80)
         Bg_SET1.TabIndex = 14
-        Bg_SET1.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Bg_SET1.TextAlign = ContentAlignment.MiddleCenter
         Bg_SET1.Visible = False
         ' 
         ' b3
         ' 
-        b3.BackColor = Drawing.Color.Black
+        b3.BackColor = Color.Black
         b3.Cursor = Cursors.Hand
-        b3.Font = New System.Drawing.Font("nvgcshare", 90F)
-        b3.ForeColor = Drawing.Color.White
-        b3.ImageAlign = Drawing.ContentAlignment.TopCenter
-        b3.Location = New System.Drawing.Point(760, 0)
+        b3.Font = New Font("nvgcshare", 90F)
+        b3.ForeColor = Color.White
+        b3.ImageAlign = ContentAlignment.TopCenter
+        b3.Location = New Point(760, 0)
         b3.Name = "b3"
-        b3.Size = New System.Drawing.Size(240, 240)
+        b3.Size = New Size(240, 240)
         b3.TabIndex = 13
-        b3.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        b3.TextAlign = ContentAlignment.MiddleCenter
         b3.Visible = False
         ' 
         ' b2
         ' 
-        b2.BackColor = Drawing.Color.Black
+        b2.BackColor = Color.Black
         b2.Cursor = Cursors.Hand
-        b2.Font = New System.Drawing.Font("nvgcshare", 90F)
-        b2.ForeColor = Drawing.Color.White
-        b2.ImageAlign = Drawing.ContentAlignment.TopCenter
-        b2.Location = New System.Drawing.Point(520, 0)
+        b2.Font = New Font("nvgcshare", 90F)
+        b2.ForeColor = Color.White
+        b2.ImageAlign = ContentAlignment.TopCenter
+        b2.Location = New Point(520, 0)
         b2.Name = "b2"
-        b2.Size = New System.Drawing.Size(240, 240)
+        b2.Size = New Size(240, 240)
         b2.TabIndex = 11
-        b2.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        b2.TextAlign = ContentAlignment.MiddleCenter
         b2.Visible = False
         ' 
         ' Bg_SET3
         ' 
-        Bg_SET3.BackColor = Drawing.Color.Black
+        Bg_SET3.BackColor = Color.Black
         Bg_SET3.Cursor = Cursors.Hand
-        Bg_SET3.Font = New System.Drawing.Font("Microsoft Sans Serif", 80F, Drawing.FontStyle.Regular, Drawing.GraphicsUnit.Point, CByte(0))
-        Bg_SET3.ForeColor = Drawing.Color.White
-        Bg_SET3.ImageAlign = Drawing.ContentAlignment.TopCenter
-        Bg_SET3.Location = New System.Drawing.Point(1040, 160)
+        Bg_SET3.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_SET3.ForeColor = Color.White
+        Bg_SET3.ImageAlign = ContentAlignment.TopCenter
+        Bg_SET3.Location = New Point(1040, 160)
         Bg_SET3.Name = "Bg_SET3"
-        Bg_SET3.Size = New System.Drawing.Size(240, 80)
+        Bg_SET3.Size = New Size(240, 80)
         Bg_SET3.TabIndex = 76
-        Bg_SET3.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Bg_SET3.TextAlign = ContentAlignment.MiddleCenter
         Bg_SET3.Visible = False
         ' 
         ' Base_Background_Top
         ' 
-        AutoScaleDimensions = New System.Drawing.SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        BackColor = Drawing.Color.Blue
-        ClientSize = New System.Drawing.Size(1460, 1165)
+        BackColor = Color.Blue
+        ClientSize = New Size(1460, 1165)
         ControlBox = False
         Controls.Add(Main_menu_list)
         Controls.Add(Main_Top)
         FormBorderStyle = FormBorderStyle.None
-        Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
+        Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_Background_Top"
         Opacity = 0R
         ShowInTaskbar = False
         Text = "Background Top"
         TopMost = True
-        TransparencyKey = Drawing.Color.Blue
+        TransparencyKey = Color.Blue
         WindowState = FormWindowState.Maximized
         Main_Top.ResumeLayout(False)
         CType(PictureGFE, ComponentModel.ISupportInitialize).EndInit()

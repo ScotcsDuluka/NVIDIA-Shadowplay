@@ -121,12 +121,14 @@ Partial Public Class Base
             s_record.ForeColor = greenColor
             logo_record.ForeColor = greenColor
             s_record.Font = New Font("Segoe UI", 12, FontStyle.Bold)
+            icon_record.Text = ""
         Else
             Label13.Text = LangHelper.GetText("l10n.start")
             logo_record.ForeColor = System.Drawing.Color.White
             s_record.Text = LangHelper.GetText("l10n.notRecording")
             s_record.ForeColor = System.Drawing.Color.Gray
             s_record.Font = New Font("Segoe UI", 12, FontStyle.Regular)
+            icon_record.Text = ""
         End If
     End Sub
 
@@ -138,6 +140,7 @@ Partial Public Class Base
             s_replay.ForeColor = greenColor
             logo_replay.ForeColor = greenColor
             Label8.ForeColor = System.Drawing.Color.White
+            icon_replay.Text = ""
         Else
             s_replay.Text = LangHelper.GetText("l10n.off")
             if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
@@ -145,6 +148,7 @@ Partial Public Class Base
             s_replay.ForeColor = System.Drawing.Color.Gray
             logo_replay.ForeColor = System.Drawing.Color.White
             Label8.ForeColor = System.Drawing.Color.Gray
+            icon_replay.Text = ""
         End If
     End Sub
 
@@ -212,15 +216,6 @@ Partial Public Class Base
             End If
         End Using
     End Sub
-
-    Private Sub PictureBox19_MouseMove(sender As Object, e As MouseEventArgs) Handles menu_record_sub.MouseMove, menu_record_subkey.MouseMove
-        menu_record_subbg.BackColor = greenColor
-    End Sub
-
-    Private Sub PictureBox19_MouseLeave(sender As Object, e As EventArgs) Handles menu_record_sub.MouseLeave, menu_record_subkey.MouseLeave
-        menu_record_subbg.BackColor = System.Drawing.Color.Black
-    End Sub
-
     Private Sub ME_CLOSE_BG_MouseMove(sender As Object, e As MouseEventArgs) Handles ME_CLOSE_BG.MouseMove, d.MouseMove
         Base_Background_Top.ME_CLOSE_BG_GRE.BackColor = greenColor
     End Sub

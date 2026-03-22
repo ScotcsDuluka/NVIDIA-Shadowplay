@@ -421,14 +421,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub Upload_Click(sender As Object, e As EventArgs) Handles pf.Click, bg_fps.Click, logo_pf.Click
-        HideAllControls()
-        If Opacity = 0 Then
-            Base_www.Timer1.Stop()
-            Base_www.Timer2.Start()
-            Base_Background.Timer1.Stop()
-            Base_Background.Timer2.Start()
-        End If
-        Base_www.Show()
+        ShowNotifier("feature_not_ready")
     End Sub
 
 #End Region

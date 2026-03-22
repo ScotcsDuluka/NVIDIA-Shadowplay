@@ -104,20 +104,20 @@ Public Class Base_Game_Filter
 
     End Sub
 
-    Private Sub Label1_Click(sender As Object, e As EventArgs) Handles Label1.Click
+    Private Sub d_Click(sender As Object, e As EventArgs) Handles d.Click, ME_CLOSE_BG.Click, ME_CLOSE_BG_GRE.Click
         Base_Game_Filter_Sub.Opacity = 0
         Me.Opacity = 0
         Me.Hide()
         Base_Game_Filter_Sub.Hide()
         Base.isFunctionActive_f3 = True
     End Sub
-
-    Private Sub Label1_MouseMove(sender As Object, e As MouseEventArgs) Handles Label1.MouseMove
-        Label1.ForeColor = Color.Gray
+    Private Sub ME_CLOSE_BG_GRE_MouseMove(sender As Object, e As MouseEventArgs) Handles d.MouseMove, ME_CLOSE_BG_GRE.MouseMove, ME_CLOSE_BG.MouseMove
+        ME_CLOSE_BG_GRE.BackColor = ColorTranslator.FromHtml("#76B900")
+        Base_Game_Filter_Sub.ME_CLOSE_BG_GRE.BackColor = ColorTranslator.FromHtml("#76B900")
     End Sub
 
-    Private Sub Label1_MouseLeave(sender As Object, e As EventArgs) Handles Label1.MouseLeave
-        Label1.ForeColor = Color.White
-
+    Private Sub ME_CLOSE_BG_GRE_MouseLeave(sender As Object, e As EventArgs) Handles d.MouseLeave, ME_CLOSE_BG_GRE.MouseLeave, ME_CLOSE_BG.MouseLeave
+        Base_Game_Filter_Sub.ME_CLOSE_BG_GRE.BackColor = System.Drawing.Color.Black
+        ME_CLOSE_BG_GRE.BackColor = Color.FromArgb(1, 0, 1)
     End Sub
 End Class

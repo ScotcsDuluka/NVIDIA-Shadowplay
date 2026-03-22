@@ -94,7 +94,7 @@ Partial Class Notifier
         ' 
         ' Animation_Engine
         ' 
-        Animation_Engine.Interval = 15
+        Animation_Engine.Interval = 1
         ' 
         ' IF_N
         ' 
