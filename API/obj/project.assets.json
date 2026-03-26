@@ -13,11 +13,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
+      "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
       "projectName": "NVIDIA API",
-      "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
+      "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
       "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-      "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\obj\\",
+      "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\API\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",

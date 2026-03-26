@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "61E/CVZYCWw=",
+  "dgSpecHash": "zhPeDEfNsS0=",
   "success": true,
-  "projectFilePath": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
+  "projectFilePath": "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
   "expectedPackageFiles": [
     "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\microsoft.windows.sdk.net.ref\\10.0.26100.57\\microsoft.windows.sdk.net.ref.10.0.26100.57.nupkg.sha512",
     "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\microsoft.windowsdesktop.app.ref\\8.0.25\\microsoft.windowsdesktop.app.ref.8.0.25.nupkg.sha512",

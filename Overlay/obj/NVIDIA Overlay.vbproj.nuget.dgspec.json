@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\NVIDIA Overlay.vbproj": {}
+    "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\NVIDIA Overlay.vbproj": {}
   },
   "projects": {
-    "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj": {
+    "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
+        "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
         "projectName": "NVIDIA API",
-        "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj",
+        "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\obj\\",
+        "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\API\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -93,14 +93,14 @@
         }
       }
     },
-    "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj": {
+    "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\NVIDIA Experience.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj",
+        "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\NVIDIA Experience.vbproj",
         "projectName": "NVIDIA Experience",
-        "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj",
+        "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\NVIDIA Experience.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\obj\\",
+        "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -182,11 +182,11 @@
         }
       }
     },
-    "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj": {
+    "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
       "restore": {
-        "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj",
+        "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj",
         "projectName": "Capture Core",
-        "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj",
+        "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj",
         "UsingMicrosoftNETSdk": false,
         "frameworks": {
           "net48": {
@@ -198,14 +198,14 @@
         "net48": {}
       }
     },
-    "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj": {
+    "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
+        "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
         "projectName": "NVIDIA Notifier",
-        "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
+        "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\obj\\",
+        "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -222,8 +222,8 @@
           "net8.0-windows10.0.26100": {
             "targetAlias": "net8.0-windows10.0.26100.0",
             "projectReferences": {
-              "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj": {
-                "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj"
+              "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
+                "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj"
               }
             }
           }
@@ -297,14 +297,14 @@
         }
       }
     },
-    "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\NVIDIA Overlay.vbproj": {
+    "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\NVIDIA Overlay.vbproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
+        "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
         "projectName": "NVIDIA ShadowPlay",
-        "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
+        "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
         "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-        "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\Overlay\\obj\\",
+        "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -321,17 +321,17 @@
           "net8.0-windows10.0.26100": {
             "targetAlias": "net8.0-windows10.0.26100.0",
             "projectReferences": {
-              "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj": {
-                "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\API\\NVIDIA API.vbproj"
+              "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj": {
+                "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\API\\NVIDIA API.vbproj"
               },
-              "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj": {
-                "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\App Experience\\NVIDIA Experience.vbproj"
+              "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\NVIDIA Experience.vbproj": {
+                "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\NVIDIA Experience.vbproj"
               },
-              "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj": {
-                "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj"
+              "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
+                "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj"
               },
-              "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj": {
-                "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj"
+              "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj": {
+                "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj"
               }
             }
           }

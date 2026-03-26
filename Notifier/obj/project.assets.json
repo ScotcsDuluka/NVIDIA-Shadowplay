@@ -75,11 +75,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
+      "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
       "projectName": "NVIDIA Notifier",
-      "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
+      "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj",
       "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
-      "outputPath": "C:\\My Project\\NVIDIA Shadowplay\\Notifier\\obj\\",
+      "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
@@ -96,8 +96,8 @@
         "net8.0-windows10.0.26100": {
           "targetAlias": "net8.0-windows10.0.26100.0",
           "projectReferences": {
-            "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj": {
-              "projectPath": "C:\\My Project\\NVIDIA Shadowplay\\Engine\\Capture Core.vbproj"
+            "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
+              "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj"
             }
           }
         }
