@@ -36,12 +36,12 @@ Partial Public Class Base
 #Region "============================================================================ TIMER EVENT HANDLERS"
 
     Private Async Sub CheckStatus()
-        If logo_record.ForeColor = greenColor Then
+        If Record_Logo.ForeColor = greenColor Then
             Await Task.Delay(1200)
-            logo_record.ForeColor = System.Drawing.Color.White
+            Record_Logo.ForeColor = System.Drawing.Color.White
         End If
 
-        If logo_replay.ForeColor = greenColor Then
+        If Replay_Logo.ForeColor = greenColor Then
             Await Task.Delay(1200)
         End If
     End Sub
@@ -52,7 +52,7 @@ Partial Public Class Base
         Else
             Base_Background_Top.b2_all.Visible = False
         End If
-        If sub_replay.Visible = True Then
+        If Menu_Replay.Visible = True Then
             Base_Background_Top.b1_all.Visible = True
         Else
             Base_Background_Top.b1_all.Visible = False
@@ -117,43 +117,43 @@ Partial Public Class Base
     Private Sub UpdateRecordStatus()
         If RecordValue = True Then
             Label13.Text = LangHelper.GetText("l10n.stopAndSave")
-            s_record.Text = LangHelper.GetText("l10n.recording")
-            s_record.ForeColor = greenColor
-            logo_record.ForeColor = greenColor
-            s_record.Font = New Font("Segoe UI", 12, FontStyle.Bold)
+            Record_Stats.Text = LangHelper.GetText("l10n.recording")
+            Record_Stats.ForeColor = greenColor
+            Record_Logo.ForeColor = greenColor
+            Record_Stats.Font = New Font("Segoe UI", 12, FontStyle.Bold)
             icon_record.Text = ""
         Else
             Label13.Text = LangHelper.GetText("l10n.start")
-            logo_record.ForeColor = System.Drawing.Color.White
-            s_record.Text = LangHelper.GetText("l10n.notRecording")
-            s_record.ForeColor = System.Drawing.Color.Gray
-            s_record.Font = New Font("Segoe UI", 12, FontStyle.Regular)
+            Record_Logo.ForeColor = System.Drawing.Color.White
+            Record_Stats.Text = LangHelper.GetText("l10n.notRecording")
+            Record_Stats.ForeColor = System.Drawing.Color.Gray
+            Record_Stats.Font = New Font("Segoe UI", 12, FontStyle.Regular)
             icon_record.Text = ""
         End If
     End Sub
 
     Private Sub UpdateReplayStatus()
         If ReplayValue = True Then
-            s_replay.Text = LangHelper.GetText("l10n.on")
-            if_replay.Text = LangHelper.GetText("l10n.instantReplayStop")
-            s_replay.Font = New Font("Segoe UI", 12, FontStyle.Bold)
-            s_replay.ForeColor = greenColor
-            logo_replay.ForeColor = greenColor
-            Label8.ForeColor = System.Drawing.Color.White
-            icon_replay.Text = ""
+            Replay_Stats.Text = LangHelper.GetText("l10n.on")
+            Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStop")
+            Replay_Stats.Font = New Font("Segoe UI", 12, FontStyle.Bold)
+            Replay_Stats.ForeColor = greenColor
+            Replay_Logo.ForeColor = greenColor
+            Menu_Replay_save_ico.ForeColor = System.Drawing.Color.White
+            Menu_Replay_ico.Text = ""
         Else
-            s_replay.Text = LangHelper.GetText("l10n.off")
-            if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
-            s_replay.Font = New Font("Segoe UI", 12, FontStyle.Regular)
-            s_replay.ForeColor = System.Drawing.Color.Gray
-            logo_replay.ForeColor = System.Drawing.Color.White
-            Label8.ForeColor = System.Drawing.Color.Gray
-            icon_replay.Text = ""
+            Replay_Stats.Text = LangHelper.GetText("l10n.off")
+            Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStart")
+            Replay_Stats.Font = New Font("Segoe UI", 12, FontStyle.Regular)
+            Replay_Stats.ForeColor = System.Drawing.Color.Gray
+            Replay_Logo.ForeColor = System.Drawing.Color.White
+            Menu_Replay_save_ico.ForeColor = System.Drawing.Color.Gray
+            Menu_Replay_ico.Text = ""
         End If
     End Sub
 
     Private Sub UpdateMicStatus()
-        If mic.Text = "" Then
+        If MIC_ICO.Text = "" Then
             AppSettings.Instance.Audio.MicEnabled = True
         Else
             AppSettings.Instance.Audio.MicEnabled = False
@@ -228,14 +228,14 @@ Partial Public Class Base
         HideAllControls()
     End Sub
 
-    Private Sub PictureBox24_Click(sender As Object, e As EventArgs) Handles sub_replay_setodv.Click, Label3.Click
+    Private Sub PictureBox24_Click(sender As Object, e As EventArgs) Handles Menu_Replay_Box3.Click, Menu_Replay_Sttings_text.Click
         OpenRecordings()
     End Sub
 
-    Private Sub logo_replay_MouseHover(sender As Object, e As EventArgs) Handles logo_replay.MouseHover, replay.MouseHover, s_replay.MouseHover
+    Private Sub logo_replay_MouseHover(sender As Object, e As EventArgs) Handles Replay_Logo.MouseHover, Replay_Text.MouseHover, Replay_Stats.MouseHover
         If Base_Background_Top.b2_all.Visible = True Then
-            AMY(sub_replay, -200, 3, 150)
-            sub_replay.Visible = Not sub_replay.Visible
+            AMY(Menu_Replay, -200, 3, 150)
+            Menu_Replay.Visible = Not Menu_Replay.Visible
             sub_record.Visible = False
             a_1.Visible = Not a_1.Visible
             a_2.Visible = False
@@ -244,11 +244,11 @@ Partial Public Class Base
         End If
     End Sub
 
-    Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles logo_record.MouseHover, record.MouseHover, s_record.MouseHover
+    Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
         If Base_Background_Top.b1_all.Visible = True Then
             AMY(sub_record, -200, 3, 150)
             sub_record.Visible = Not sub_record.Visible
-            sub_replay.Visible = False
+            Menu_Replay.Visible = False
             a_2.Visible = True
             a_1.Visible = False
             a_3.Visible = False

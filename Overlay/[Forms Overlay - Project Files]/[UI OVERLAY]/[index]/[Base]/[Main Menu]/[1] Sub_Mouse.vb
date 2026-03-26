@@ -46,15 +46,15 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - SETTINGS"
 
-    Private Sub set_to_Click(sender As Object, e As EventArgs) Handles set_to.Click
+    Private Sub set_to_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click
         OpenSettings()
     End Sub
 
-    Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles set_to.MouseMove
+    Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove
         SetSettingsBorder(True)
     End Sub
 
-    Private Sub set_to_MouseLeave(sender As Object, e As EventArgs) Handles set_to.MouseLeave
+    Private Sub set_to_MouseLeave(sender As Object, e As EventArgs) Handles Settings_Logo.MouseLeave
         SetSettingsBorder(False)
     End Sub
 
@@ -85,27 +85,27 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY"
 
-    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_replay.MouseMove, replay.MouseMove, s_replay.MouseMove
-        SetReplayBorder(Not sub_replay.Visible)
+    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs) Handles Replay_Logo.MouseMove, Replay_Text.MouseMove, Replay_Stats.MouseMove
+        SetReplayBorder(Not Menu_Replay.Visible)
         Base_Background_Top.b1.Visible = True
     End Sub
 
-    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles logo_replay.MouseLeave, replay.MouseLeave, s_replay.MouseLeave
+    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles Replay_Logo.MouseLeave, Replay_Text.MouseLeave, Replay_Stats.MouseLeave
         SetReplayBorder(False)
-        logo_replay.ForeColor = If(ReplayActive, greenColor, System.Drawing.Color.White)
+        Replay_Logo.ForeColor = If(ReplayActive, greenColor, System.Drawing.Color.White)
         Base_Background_Top.b1.Visible = False
     End Sub
 
     Private Sub SetReplayBorder(isVisible As Boolean)
-        a_1.Visible = sub_replay.Visible OrElse isVisible
+        a_1.Visible = Menu_Replay.Visible OrElse isVisible
         a_1r.Visible = isVisible
         a_1l.Visible = isVisible
         a_1b.Visible = isVisible
     End Sub
 
-    Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles logo_replay.Click, replay.Click, s_replay.Click
-        AMY(sub_replay, -200, 3, 150)
-        sub_replay.Visible = Not sub_replay.Visible
+    Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
+        AMY(Menu_Replay, -200, 3, 150)
+        Menu_Replay.Visible = Not Menu_Replay.Visible
         sub_record.Visible = False
         a_1.Visible = Not a_1.Visible
         a_2.Visible = False
@@ -117,18 +117,18 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - RECORD"
 
-    Private Sub logo_record_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_record.MouseMove, record.MouseMove, s_record.MouseMove
+    Private Sub logo_record_MouseMove(sender As Object, e As MouseEventArgs) Handles Record_Logo.MouseMove, Record_Text.MouseMove, Record_Stats.MouseMove
         SetRecordBorder(Not sub_record.Visible)
         Base_Background_Top.b2.Visible = True
     End Sub
 
-    Private Sub logo_record_MouseLeave(sender As Object, e As EventArgs) Handles logo_record.MouseLeave, record.MouseLeave, s_record.MouseLeave
+    Private Sub logo_record_MouseLeave(sender As Object, e As EventArgs) Handles Record_Logo.MouseLeave, Record_Text.MouseLeave, Record_Stats.MouseLeave
         SetRecordBorder(False)
         Base_Background_Top.b2.Visible = False
-        If logo_record.ForeColor = greenColor OrElse logo_record.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            logo_record.ForeColor = greenColor
+        If Record_Logo.ForeColor = greenColor OrElse Record_Logo.ForeColor = ColorTranslator.FromHtml("#426800") Then
+            Record_Logo.ForeColor = greenColor
         Else
-            logo_record.ForeColor = System.Drawing.Color.White
+            Record_Logo.ForeColor = System.Drawing.Color.White
         End If
     End Sub
 
@@ -139,10 +139,10 @@ Partial Public Class Base
         a_2b.Visible = isVisible
     End Sub
 
-    Private Sub logo_record_Click(sender As Object, e As EventArgs) Handles logo_record.Click, record.Click, s_record.Click
+    Private Sub logo_record_Click(sender As Object, e As EventArgs) Handles Record_Logo.Click, Record_Text.Click, Record_Stats.Click
         AMY(sub_record, -200, 3, 150)
         sub_record.Visible = Not sub_record.Visible
-        sub_replay.Visible = False
+        Menu_Replay.Visible = False
         a_2.Visible = True
         a_1.Visible = False
         a_3.Visible = False
@@ -153,7 +153,7 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - LIVE STREAM"
 
-    Private Sub logo_live_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_live.MouseMove, live.MouseMove, s_live.MouseMove
+    Private Sub logo_live_MouseMove(sender As Object, e As MouseEventArgs) Handles Live_Logo.MouseMove, Live_Text.MouseMove, Live_Stats.MouseMove
         a_3.Visible = True
         a_3r.Visible = True
         a_3l.Visible = True
@@ -161,18 +161,18 @@ Partial Public Class Base
         Base_Background_Top.b3.Visible = True
     End Sub
 
-    Private Sub logo_live_MouseLeave(sender As Object, e As EventArgs) Handles logo_live.MouseLeave, live.MouseLeave, s_live.MouseLeave
+    Private Sub logo_live_MouseLeave(sender As Object, e As EventArgs) Handles Live_Logo.MouseLeave, Live_Text.MouseLeave, Live_Stats.MouseLeave
         a_3.Visible = False
         a_3r.Visible = False
         a_3l.Visible = False
         a_3b.Visible = False
         Base_Background_Top.b3.Visible = False
-        logo_live.ForeColor = System.Drawing.Color.White
+        Live_Logo.ForeColor = System.Drawing.Color.White
     End Sub
 
-    Private Sub logo_live_Click(sender As Object, e As EventArgs) Handles logo_live.Click, live.Click, s_live.Click
+    Private Sub logo_live_Click(sender As Object, e As EventArgs) Handles Live_Logo.Click, Live_Text.Click, Live_Stats.Click
         ShowNotifier("feature_not_ready")
-        sub_replay.Visible = False
+        Menu_Replay.Visible = False
         a_1.Visible = False
         sub_record.Visible = False
         a_2.Visible = False
@@ -182,23 +182,23 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - MICROPHONE & VIDEO"
 
-    Private Sub mic_MouseMove(sender As Object, e As MouseEventArgs) Handles mic.MouseMove
-        mic.ForeColor = System.Drawing.Color.Gray
+    Private Sub mic_MouseMove(sender As Object, e As MouseEventArgs) Handles MIC_ICO.MouseMove
+        MIC_ICO.ForeColor = System.Drawing.Color.Gray
     End Sub
 
-    Private Sub mic_MouseLeave(sender As Object, e As EventArgs) Handles mic.MouseLeave
-        mic.ForeColor = System.Drawing.Color.White
+    Private Sub mic_MouseLeave(sender As Object, e As EventArgs) Handles MIC_ICO.MouseLeave
+        MIC_ICO.ForeColor = System.Drawing.Color.White
     End Sub
     Public Sub LoadMicState()
         If AppSettings.Instance.Audio.MicEnabled = True Then
-            mic.Text = ""
+            MIC_ICO.Text = ""
         Else
-            mic.Text = ""
+            MIC_ICO.Text = ""
         End If
     End Sub
-    Private Sub mic_Click(sender As Object, e As EventArgs) Handles mic.Click
-        mic.Text = If(mic.Text = "", "", "")
-        If mic.Text = "" Then
+    Private Sub mic_Click(sender As Object, e As EventArgs) Handles MIC_ICO.Click
+        MIC_ICO.Text = If(MIC_ICO.Text = "", "", "")
+        If MIC_ICO.Text = "" Then
             AppSettings.Instance.Audio.MicEnabled = True
         Else
             AppSettings.Instance.Audio.MicEnabled = False
@@ -226,9 +226,9 @@ Partial Public Class Base
 #Region "============================================================================ MOUSE EVENT HANDLERS - GALLERY"
 
     Private Sub SetGalleryColors(color As System.Drawing.Color)
-        logo_gallery.ForeColor = color
-        gallery.ForeColor = color
-        bg_gallery.ForeColor = color
+        Gallery_Logo.ForeColor = color
+        Gallery_Text.ForeColor = color
+        Gallery_Box.ForeColor = color
     End Sub
 
     Private Sub SetGalleryBorder(isVisible As Boolean)
@@ -238,22 +238,22 @@ Partial Public Class Base
         g1b.Visible = isVisible
     End Sub
 
-    Private Sub Gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles logo_gallery.MouseMove, gallery.MouseMove, bg_gallery.MouseMove
+    Private Sub Gallery_MouseMove(sender As Object, e As MouseEventArgs) Handles Gallery_Logo.MouseMove, Gallery_Text.MouseMove, Gallery_Box.MouseMove
         Base_Background_Top.Bg_SET2.Visible = True
         SetGalleryBorder(True)
     End Sub
 
-    Private Sub Gallery_MouseLeave(sender As Object, e As EventArgs) Handles logo_gallery.MouseLeave, gallery.MouseLeave, bg_gallery.MouseLeave
+    Private Sub Gallery_MouseLeave(sender As Object, e As EventArgs) Handles Gallery_Logo.MouseLeave, Gallery_Text.MouseLeave, Gallery_Box.MouseLeave
         Base_Background_Top.Bg_SET2.Visible = False
         SetGalleryBorder(False)
     End Sub
 
-    Private Sub Gallery_Click(sender As Object, e As EventArgs) Handles bg_gallery.Click, gallery.Click, logo_gallery.Click
-        Main_menu_list.Visible = False
+    Private Sub Gallery_Click(sender As Object, e As EventArgs) Handles Gallery_Box.Click, Gallery_Text.Click, Gallery_Logo.Click
+        shadowplay.Visible = False
         a_1.Visible = False
         a_2.Visible = False
         a_3.Visible = False
-        sub_replay.Visible = False
+        Menu_Replay.Visible = False
         sub_record.Visible = False
         AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
         Base_Gallery.Show()
@@ -263,11 +263,11 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY CONTROLS"
 
-    Private Sub ReplayControl_MouseMove(sender As Object, e As MouseEventArgs) Handles sh_replay.MouseMove, replay_sc.MouseMove, if_replay.MouseMove
+    Private Sub ReplayControl_MouseMove(sender As Object, e As MouseEventArgs) Handles Menu_Replay_key.MouseMove, Menu_Replay_Box1.MouseMove, Menu_Replay_text.MouseMove
         SetReplayControlBorder(True)
     End Sub
 
-    Private Sub ReplayControl_MouseLeave(sender As Object, e As EventArgs) Handles sh_replay.MouseLeave, replay_sc.MouseLeave, if_replay.MouseLeave
+    Private Sub ReplayControl_MouseLeave(sender As Object, e As EventArgs) Handles Menu_Replay_key.MouseLeave, Menu_Replay_Box1.MouseLeave, Menu_Replay_text.MouseLeave
         SetReplayControlBorder(False)
     End Sub
 
@@ -278,21 +278,21 @@ Partial Public Class Base
         r_1b.Visible = isVisible
     End Sub
 
-    Private Sub ReplayControl_Click(sender As Object, e As EventArgs) Handles sh_replay.Click, replay_sc.Click, if_replay.Click
+    Private Sub ReplayControl_Click(sender As Object, e As EventArgs) Handles Menu_Replay_key.Click, Menu_Replay_Box1.Click, Menu_Replay_text.Click
         a_1.Visible = False
         ToggleInstantReplay()
-        sub_replay.Visible = False
+        Menu_Replay.Visible = False
     End Sub
 
 #End Region
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY SAVE CONTROLS"
 
-    Private Sub ReplaySave_MouseMove(sender As Object, e As MouseEventArgs) Handles replay_sc1.MouseMove, Label7.MouseMove, Label16.MouseMove
+    Private Sub ReplaySave_MouseMove(sender As Object, e As MouseEventArgs) Handles Menu_Replay_Box2.MouseMove, Menu_Replay_save_text.MouseMove, Menu_Replay_save_key.MouseMove
         SetReplaySaveBorder(True)
     End Sub
 
-    Private Sub ReplaySave_MouseLeave(sender As Object, e As EventArgs) Handles replay_sc1.MouseLeave, Label7.MouseLeave, Label16.MouseLeave
+    Private Sub ReplaySave_MouseLeave(sender As Object, e As EventArgs) Handles Menu_Replay_Box2.MouseLeave, Menu_Replay_save_text.MouseLeave, Menu_Replay_save_key.MouseLeave
         SetReplaySaveBorder(False)
     End Sub
 
@@ -303,10 +303,10 @@ Partial Public Class Base
         rsb.Visible = isVisible
     End Sub
 
-    Private Sub ReplaySave_Click(sender As Object, e As EventArgs) Handles replay_sc1.Click, Label7.Click, Label16.Click
+    Private Sub ReplaySave_Click(sender As Object, e As EventArgs) Handles Menu_Replay_Box2.Click, Menu_Replay_save_text.Click, Menu_Replay_save_key.Click
         SaveInstantReplay()
         a_1.Visible = False
-        sub_replay.Visible = False
+        Menu_Replay.Visible = False
     End Sub
 
 #End Region
@@ -410,17 +410,17 @@ Partial Public Class Base
         h1b.Visible = isVisible
     End Sub
 
-    Private Sub Upload_MouseMove(sender As Object, e As MouseEventArgs) Handles bg_fps.MouseMove, pf.MouseMove, logo_pf.MouseMove
+    Private Sub Upload_MouseMove(sender As Object, e As MouseEventArgs) Handles Share_Box.MouseMove, Share_Text.MouseMove, Share_Logo.MouseMove
         Base_Background_Top.Bg_SET1.Visible = True
         SetUploadBorder(True)
     End Sub
 
-    Private Sub Upload_MouseLeave(sender As Object, e As EventArgs) Handles bg_fps.MouseLeave, pf.MouseLeave, logo_pf.MouseLeave
+    Private Sub Upload_MouseLeave(sender As Object, e As EventArgs) Handles Share_Box.MouseLeave, Share_Text.MouseLeave, Share_Logo.MouseLeave
         Base_Background_Top.Bg_SET1.Visible = False
         SetUploadBorder(False)
     End Sub
 
-    Private Sub Upload_Click(sender As Object, e As EventArgs) Handles pf.Click, bg_fps.Click, logo_pf.Click
+    Private Sub Upload_Click(sender As Object, e As EventArgs) Handles Share_Text.Click, Share_Box.Click, Share_Logo.Click
         ShowNotifier("feature_not_ready")
     End Sub
 
@@ -447,17 +447,17 @@ Partial Public Class Base
         s1b.Visible = isVisible
     End Sub
 
-    Private Sub Settings_MouseMove(sender As Object, e As MouseEventArgs) Handles set_to.MouseMove, Label1.MouseMove, Label2.MouseMove
+    Private Sub Settings_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove, Settings_Box.MouseMove, Settings_Text.MouseMove
         Base_Background_Top.Bg_SET3.Visible = True
         SetS1Border(True)
     End Sub
 
-    Private Sub Settings_MouseLeave(sender As Object, e As EventArgs) Handles set_to.MouseLeave, Label1.MouseLeave, Label2.MouseLeave
+    Private Sub Settings_MouseLeave(sender As Object, e As EventArgs) Handles Settings_Logo.MouseLeave, Settings_Box.MouseLeave, Settings_Text.MouseLeave
         Base_Background_Top.Bg_SET3.Visible = False
         SetS1Border(False)
     End Sub
 
-    Private Sub Settings_Click(sender As Object, e As EventArgs) Handles Label1.Click, Label2.Click
+    Private Sub Settings_Click(sender As Object, e As EventArgs) Handles Settings_Box.Click, Settings_Text.Click
         OpenSettings()
     End Sub
 
@@ -474,8 +474,8 @@ Partial Public Class Base
         a_3.Visible = False
         settings_1.Visible = True
         SET_Back.Visible = False
-        Main_menu_list.Visible = False
-        sub_replay.Visible = False
+        shadowplay.Visible = False
+        Menu_Replay.Visible = False
         sub_record.Visible = False
     End Sub
 

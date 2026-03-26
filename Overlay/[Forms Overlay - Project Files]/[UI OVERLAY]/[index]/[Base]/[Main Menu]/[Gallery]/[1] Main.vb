@@ -34,7 +34,7 @@ Public Class Base_Gallery
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles Saved_l10n.Click, bg_fn.Click
         Hide()
         Base.ShowMainPanel()
-        Base.Main_menu_list.Visible = True
+        Base.shadowplay.Visible = True
     End Sub
 
     Private Sub Openloaction_l10n_Click(sender As Object, e As EventArgs) Handles Openloaction_l10n.Click, PictureBox5.Click

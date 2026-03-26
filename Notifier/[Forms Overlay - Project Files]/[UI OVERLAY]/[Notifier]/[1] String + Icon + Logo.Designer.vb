@@ -47,6 +47,7 @@ Partial Class Notifier_Sub
         ' 
         ' PictureBox1
         ' 
+        PictureBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom
         PictureBox1.BackColor = Color.Transparent
         PictureBox1.BackgroundImage = My.Resources.Resources.osc_img_appicon_64x64
         PictureBox1.BackgroundImageLayout = ImageLayout.Zoom
@@ -93,7 +94,7 @@ Partial Class Notifier_Sub
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        BackColor = Color.Red
+        BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         ClientSize = New Size(300, 90)
         Controls.Add(Notifier_black)
         DoubleBuffered = True

@@ -1,0 +1,32 @@
+{
+  "Recording": {
+    "UseNativeResolution": true,
+    "Encoder": "LibX265",
+    "EncoderNow": "LibX265",
+    "FPS": 60,
+    "Bitrate": 7000,
+    "Width": 1920,
+    "Height": 1080,
+    "Preset": "Medium",
+    "EncoderPreset": 4,
+    "ReplayDuration": 60
+  },
+  "Paths": {
+    "GalleryPath": "C:\\Users\\ScotcsDuluka\\Videos\\Shadowplay\\Gallery",
+    "SavePath": "",
+    "FFmpegPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\bin\\Debug\\net8.0-windows10.0.26100.0\\api-core\\ffmpeg.exe"
+  },
+  "UI": {
+    "Language": "en-US",
+    "Theme": "Dark"
+  },
+  "Audio": {
+    "SystemAudioEnabled": true,
+    "MicEnabled": false,
+    "SystemAudioVolume": 1,
+    "MicVolume": 1,
+    "MicDeviceName": "",
+    "MicVolumePercent": 100,
+    "SystemVolumePercent": 100
+  }
+}

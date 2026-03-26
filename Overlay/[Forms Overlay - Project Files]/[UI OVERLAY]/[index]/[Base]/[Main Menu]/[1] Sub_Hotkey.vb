@@ -10,7 +10,7 @@ Partial Public Class Base
 
         isFunctionActive_f3 = False
 
-        If Main_menu_list.Visible Then
+        If shadowplay.Visible Then
             HideAllControls()
         Else
             ShowMainPanel()
@@ -77,10 +77,10 @@ Partial Public Class Base
         Base_Background_Top.Opacity = 0
 
         ' Hide panels
-        sub_replay.Visible = False
+        Menu_Replay.Visible = False
         sub_record.Visible = False
         settings_1.Visible = False
-        Main_menu_list.Visible = True
+        shadowplay.Visible = True
 
         ' Hide action indicators
         a_1.Visible = False
@@ -93,6 +93,7 @@ Partial Public Class Base
     End Sub
 
     Public Sub ShowMainPanel()
+
         isFunctionActive = True
         Base_Background.Show()
         Base_Background_Top.Show()

@@ -125,6 +125,7 @@ Public Class Notifier
 
 #Region "Form Load"
 
+    Public autoClose As New Timer()
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         BlockClose.AllowClose = False
         Shadow.Show()
@@ -159,7 +160,6 @@ Public Class Notifier
 
 
 
-        Dim autoClose As New Timer()
         autoClose.Interval = 6000
         AddHandler autoClose.Tick,
             Sub()

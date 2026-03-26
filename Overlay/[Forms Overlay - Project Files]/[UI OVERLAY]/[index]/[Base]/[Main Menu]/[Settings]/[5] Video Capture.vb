@@ -1368,7 +1368,7 @@ Public Class Base_RecordingsSet
                                        t.Stop()
                                        t.Dispose()
                                        Button_Copy.Text = originalText
-                                       Button_Copy.BackColor = Color.FromArgb(60, 60, 60)
+                                       Button_Copy.BackColor = Color.FromArgb(33, 35, 38)
                                    End Sub
                 t.Start()
             End If

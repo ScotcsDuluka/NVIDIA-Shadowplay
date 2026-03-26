@@ -405,8 +405,27 @@ Partial Public Class Base
         Lang.Start()
 
         ' Base
+
+        'Main-Menu======================
+
+        'Mode-
+        Text_Mode1.Text = LangHelper.GetText("l10n.screenshots")
+        Text_Mode2.Text = LangHelper.GetText("l10n.photos")
+        Text_Mode3.Text = LangHelper.GetText("l10n.mods")
+
+        'Captrue-
+        Replay_Text.Text = LangHelper.GetText("l10n.instantReplay")
+        Replay_Stats.Text = LangHelper.GetText("l10n.off")
+        '-
+        Record_Text.Text = LangHelper.GetText("l10n.manualRecord")
+        Record_Stats.Text = LangHelper.GetText("l10n.notRecording")
+        '-
+        Live_Text.Text = LangHelper.GetText("l10n.broadcastLive")
+        Live_Stats.Text = LangHelper.GetText("l10n.NotReady")
+
+        'Preferences
         text_settings.Text = (Assembly.GetExecutingAssembly().GetName().Version.ToString())
-        Label3.Text = LangHelper.GetText("l10n.settings")
+        Menu_Replay_Sttings_text.Text = LangHelper.GetText("l10n.settings")
         Home_settings.Text = LangHelper.GetText("l10n.preferencesHome")
         text_py.Text = LangHelper.GetText("l10n.connect")
         Label12.Text = LangHelper.GetText("l10n.hudLayout")
@@ -414,22 +433,15 @@ Partial Public Class Base
         Label17.Text = LangHelper.GetText("l10n.keyboardShortcuts")
         Label19.Text = LangHelper.GetText("l10n.videoCapture")
         nott.Text = LangHelper.GetText("l10n.notifications")
-        Text_Mode1.Text = LangHelper.GetText("l10n.screenshots")
-        Text_Mode2.Text = LangHelper.GetText("l10n.photos")
-        Text_Mode3.Text = LangHelper.GetText("l10n.mods")
-        replay.Text = LangHelper.GetText("l10n.instantReplay")
-        record.Text = LangHelper.GetText("l10n.manualRecord")
-        live.Text = LangHelper.GetText("l10n.broadcastLive")
-        s_replay.Text = LangHelper.GetText("l10n.off")
-        s_record.Text = LangHelper.GetText("l10n.notRecording")
-        s_live.Text = LangHelper.GetText("l10n.NotReady")
-        pf.Text = LangHelper.GetText("l10n.upload")
-        gallery.Text = LangHelper.GetText("l10n.gallery")
-        Label2.Text = LangHelper.GetText("l10n.settings")
+
+
+        Share_Text.Text = LangHelper.GetText("l10n.upload")
+        Gallery_Text.Text = LangHelper.GetText("l10n.gallery")
+        Settings_Text.Text = LangHelper.GetText("l10n.settings")
         Label10.Text = LangHelper.GetText("l10n.settings")
         Label13.Text = LangHelper.GetText("l10n.start")
-        if_replay.Text = LangHelper.GetText("l10n.instantReplayStart")
-        Label7.Text = LangHelper.GetText("l10n.Saved")
+        Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStart")
+        Menu_Replay_save_text.Text = LangHelper.GetText("l10n.Saved")
         Label4.Text = LangHelper.GetText("l10n.privacyControl")
         vdo_setme.Text = LangHelper.GetText("l10n.videoCaptureText")
     End Sub
@@ -550,7 +562,7 @@ Partial Public Class Base
         ' Base
         settings_1.Location = New Point(80, 160)
         Base_Background_Top.Main_menu_list.Location = New Point((Me.ClientSize.Width - Base_Background_Top.Main_menu_list.Width) / 2, marginTop)
-        Main_menu_list.Location = New Point((Me.ClientSize.Width - Main_menu_list.Width) / 2, marginTop)
+        shadowplay.Location = New Point((Me.ClientSize.Width - shadowplay.Width) / 2, marginTop)
 
         ' Gallery
         Base_Gallery.settings_1.Location = New Point((Me.ClientSize.Width - Base_Gallery.settings_1.Width) / 2, marginTop)

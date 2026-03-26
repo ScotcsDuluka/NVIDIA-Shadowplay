@@ -15,7 +15,6 @@
 	  <Content Include="NVIDIA ShadowPlay.ico" />
 	</ItemGroup>
 
-	<!-- ✅ Imports ที่จำเป็น -->
 	<ItemGroup>
 		<Import Include="System" />
 		<Import Include="System.Collections" />

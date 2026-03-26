@@ -186,16 +186,16 @@ Partial Public Class Base
                 ' Stop replay buffer
                 Await Recorder.StopBufferAsync()
                 ReplayValue = False
-                SetControlColor(logo_replay, Color.White)
+                SetControlColor(Replay_Logo, Color.White)
                 ShowNotifier("instant_replay_off")
                 Debug.WriteLine("Replay buffer stopped")
             Else
                 ' Start replay buffer
                 ReplayValue = True
                 ShowNotifier("instant_replay_on")
-                SetControlEnabled(replay_sc1, True)
-                SetControlEnabled(Label7, True)
-                SetControlEnabled(Label16, True)
+                SetControlEnabled(Menu_Replay_Box2, True)
+                SetControlEnabled(Menu_Replay_save_text, True)
+                SetControlEnabled(Menu_Replay_save_key, True)
                 Debug.WriteLine("Replay buffer starting...")
 
                 Dim saveSeconds As Integer = AppSettings.Instance.Recording.ReplayDuration
@@ -234,9 +234,9 @@ Partial Public Class Base
             End If
 
             ' Disable UI during save
-            SetControlEnabled(replay_sc1, False)
-            SetControlEnabled(Label7, False)
-            SetControlEnabled(Label16, False)
+            SetControlEnabled(Menu_Replay_Box2, False)
+            SetControlEnabled(Menu_Replay_save_text, False)
+            SetControlEnabled(Menu_Replay_save_key, False)
 
             ' ✅ Get output directory from AppSettings
             Dim outputDir As String = GetOutputDirectory()
@@ -280,9 +280,9 @@ Partial Public Class Base
             ShowNotifier("replay_error")
         Finally
             ' Re-enable UI
-            SetControlEnabled(replay_sc1, True)
-            SetControlEnabled(Label7, True)
-            SetControlEnabled(Label16, True)
+            SetControlEnabled(Menu_Replay_Box2, True)
+            SetControlEnabled(Menu_Replay_save_text, True)
+            SetControlEnabled(Menu_Replay_save_key, True)
         End Try
     End Sub
 

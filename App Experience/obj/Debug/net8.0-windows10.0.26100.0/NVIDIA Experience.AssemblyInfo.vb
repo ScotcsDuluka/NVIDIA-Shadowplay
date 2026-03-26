@@ -16,7 +16,7 @@ Imports System.Reflection
 <Assembly: System.Reflection.AssemblyCompanyAttribute("NVIDIA Experience"),  _
  Assembly: System.Reflection.AssemblyConfigurationAttribute("Debug"),  _
  Assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0"),  _
- Assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f6137fb25e72e7ecbe28cfdb6428f244349e9d5e"),  _
+ Assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f4280def8dcdfab1a5c5ea888995968e41155b21"),  _
  Assembly: System.Reflection.AssemblyProductAttribute("NVIDIA Experience"),  _
  Assembly: System.Reflection.AssemblyTitleAttribute("NVIDIA Experience"),  _
  Assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0"),  _

@@ -46,7 +46,7 @@ Public Class Base_Settings
         Base.SET_Back.Visible = True
         Base.Opacity = 0.85
         Base.settings_1.Visible = False
-        Base.Main_menu_list.Visible = True
+        Base.shadowplay.Visible = True
         Base.ShowMainPanel()   ' ใช้ ShowMainPanel แทน ALT_Z.Start()
     End Sub
 

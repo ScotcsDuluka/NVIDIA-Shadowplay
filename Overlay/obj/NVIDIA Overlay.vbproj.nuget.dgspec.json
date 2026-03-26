@@ -336,6 +336,11 @@
             }
           }
         },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
         "restoreAuditProperties": {
           "enableAudit": "True",
           "auditLevel": "low",

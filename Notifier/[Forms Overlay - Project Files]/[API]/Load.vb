@@ -310,6 +310,7 @@ Public Class Load
 
 
     Private Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color)
+        Notifier.autoClose.Stop()
         Notifier_Sub.TopMost = True
         Notifier.Show()
 
@@ -321,6 +322,7 @@ Public Class Load
 
         Notifier_Sub.text_n.Text = message
         Notifier_Sub.PictureBox1.Visible = showImage
+        Notifier.autoClose.Start()
     End Sub
     Private Sub SafeDelete(path As String)
 
