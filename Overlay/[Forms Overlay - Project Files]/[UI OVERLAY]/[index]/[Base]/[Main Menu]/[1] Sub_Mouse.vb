@@ -45,11 +45,26 @@ Partial Public Class Base
 #End Region
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - SETTINGS"
-
-    Private Sub set_to_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click
+    Public Sub OpenSettings()
+        For Each f In allForms
+            If f IsNot Base_Settings Then f?.Hide()
+        Next
+        Base_Settings.Show()
+        AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+        Base_Background_Top.Bg_SET3.Visible = False
+        ME_CLOSE_BG.Visible = False
+        d.Visible = False
+        clickThrough = True
+        Opacity = 1
+        a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
+        Settings_List.Visible = True
+        shadowplay.Visible = False
+        Menu_Replay.Visible = False
+        Menu_Record.Visible = False
+    End Sub
+    Private Sub set_to_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click, Settings_Box.Click, Settings_Text.Click
         OpenSettings()
     End Sub
-
     Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove
         SetSettingsBorder(True)
     End Sub
@@ -69,15 +84,15 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - PRIVACY/CONNECT"
 
-    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles box_py.MouseMove, text_py.MouseMove, logo_py.MouseMove
-        bg_py.BackColor = greenColor
+    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Box.MouseMove, Connect_Text.MouseMove, Connect_ICO.MouseMove
+        Connect_Box_Sub.BackColor = greenColor
     End Sub
 
-    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles box_py.MouseLeave, text_py.MouseLeave, logo_py.MouseLeave
-        bg_py.BackColor = System.Drawing.Color.Gray
+    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Box.MouseLeave, Connect_Text.MouseLeave, Connect_ICO.MouseLeave
+        Connect_Box_Sub.BackColor = System.Drawing.Color.Gray
     End Sub
 
-    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles box_py.Click, text_py.Click, logo_py.Click
+    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_Box.Click, Connect_Text.Click, Connect_ICO.Click
         ShowNotifier("account_confirm_error")
     End Sub
 
@@ -92,8 +107,8 @@ Partial Public Class Base
 
     Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles Replay_Logo.MouseLeave, Replay_Text.MouseLeave, Replay_Stats.MouseLeave
         SetReplayBorder(False)
-        Replay_Logo.ForeColor = If(ReplayActive, greenColor, System.Drawing.Color.White)
         Base_Background_Top.b1.Visible = False
+        SetReplayControlBorder(False)
     End Sub
 
     Private Sub SetReplayBorder(isVisible As Boolean)
@@ -106,7 +121,7 @@ Partial Public Class Base
     Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
         AMY(Menu_Replay, -200, 3, 150)
         Menu_Replay.Visible = Not Menu_Replay.Visible
-        sub_record.Visible = False
+        Menu_Record.Visible = False
         a_1.Visible = Not a_1.Visible
         a_2.Visible = False
         a_3.Visible = False
@@ -118,30 +133,26 @@ Partial Public Class Base
 #Region "============================================================================ MOUSE EVENT HANDLERS - RECORD"
 
     Private Sub logo_record_MouseMove(sender As Object, e As MouseEventArgs) Handles Record_Logo.MouseMove, Record_Text.MouseMove, Record_Stats.MouseMove
-        SetRecordBorder(Not sub_record.Visible)
+        SetRecordBorder(Not Menu_Record.Visible)
         Base_Background_Top.b2.Visible = True
     End Sub
 
     Private Sub logo_record_MouseLeave(sender As Object, e As EventArgs) Handles Record_Logo.MouseLeave, Record_Text.MouseLeave, Record_Stats.MouseLeave
         SetRecordBorder(False)
+        SetRecordControlBorder(False)
         Base_Background_Top.b2.Visible = False
-        If Record_Logo.ForeColor = greenColor OrElse Record_Logo.ForeColor = ColorTranslator.FromHtml("#426800") Then
-            Record_Logo.ForeColor = greenColor
-        Else
-            Record_Logo.ForeColor = System.Drawing.Color.White
-        End If
     End Sub
 
     Private Sub SetRecordBorder(isVisible As Boolean)
-        a_2.Visible = sub_record.Visible OrElse isVisible
+        a_2.Visible = Menu_Record.Visible OrElse isVisible
         a_2r.Visible = isVisible
         a_2l.Visible = isVisible
         a_2b.Visible = isVisible
     End Sub
 
     Private Sub logo_record_Click(sender As Object, e As EventArgs) Handles Record_Logo.Click, Record_Text.Click, Record_Stats.Click
-        AMY(sub_record, -200, 3, 150)
-        sub_record.Visible = Not sub_record.Visible
+        AMY(Menu_Record, -200, 3, 150)
+        Menu_Record.Visible = Not Menu_Record.Visible
         Menu_Replay.Visible = False
         a_2.Visible = True
         a_1.Visible = False
@@ -174,7 +185,7 @@ Partial Public Class Base
         ShowNotifier("feature_not_ready")
         Menu_Replay.Visible = False
         a_1.Visible = False
-        sub_record.Visible = False
+        Menu_Record.Visible = False
         a_2.Visible = False
     End Sub
 
@@ -254,7 +265,7 @@ Partial Public Class Base
         a_2.Visible = False
         a_3.Visible = False
         Menu_Replay.Visible = False
-        sub_record.Visible = False
+        Menu_Record.Visible = False
         AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
         Base_Gallery.Show()
     End Sub
@@ -313,11 +324,11 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - RECORD CONTROLS"
 
-    Private Sub RecordControl_MouseMove(sender As Object, e As MouseEventArgs) Handles sh_record.MouseMove, PictureBox5.MouseMove, Label13.MouseMove
+    Private Sub RecordControl_MouseMove(sender As Object, e As MouseEventArgs) Handles Menu_Record_key.MouseMove, Menu_Record_Box1.MouseMove, Menu_Record_text.MouseMove
         SetRecordControlBorder(True)
     End Sub
 
-    Private Sub RecordControl_MouseLeave(sender As Object, e As EventArgs) Handles sh_record.MouseLeave, PictureBox5.MouseLeave, Label13.MouseLeave
+    Private Sub RecordControl_MouseLeave(sender As Object, e As EventArgs) Handles Menu_Record_key.MouseLeave, Menu_Record_Box1.MouseLeave, Menu_Record_text.MouseLeave
         SetRecordControlBorder(False)
     End Sub
 
@@ -328,10 +339,10 @@ Partial Public Class Base
         stb.Visible = isVisible
     End Sub
 
-    Private Sub RecordControl_Click(sender As Object, e As EventArgs) Handles sh_record.Click, PictureBox5.Click, Label13.Click
+    Private Sub RecordControl_Click(sender As Object, e As EventArgs) Handles Menu_Record_key.Click, Menu_Record_Box1.Click, Menu_Record_text.Click
         a_2.Visible = False
         ToggleRecording()
-        sub_record.Visible = False
+        Menu_Record.Visible = False
     End Sub
 
 #End Region
@@ -426,205 +437,151 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - SETTINGS PANEL"
+#Region "==================== MOUSE EVENT HANDLERS"
 
-    Private Sub VS_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox6.MouseMove, Label10.MouseMove
-        'SetVSBorder(True)
+    ' ========== SHARED COLORS ==========
+    Private ReadOnly grayColor As Color = Color.Gray
+
+    ' ========== ALL FORMS LIST ==========
+    Private ReadOnly allForms As Form() = {
+        Base_Settings,
+        Base_Connect,
+        Base_Privacy_Control,
+        Base_Overlay_Hub,
+        Base_KeySet,
+        Base_RecordingsSet
+    }
+
+    ' ========== HELPER METHOD ==========
+    Private Sub OpenPanel(showForm As Form, settingsCtrl As Control)
+        For Each f In allForms
+            If f IsNot showForm Then f?.Hide()
+        Next
+        settingsCtrl.Location = New Point(695, -2000)
+        showForm.Show()
+        AMY(settingsCtrl, -2000, 160, 300)
     End Sub
 
-    Private Sub VS_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox6.MouseLeave, Label10.MouseLeave
-        'SetVSBorder(False)
-    End Sub
-
-    Private Sub VS_Click(sender As Object, e As EventArgs) Handles PictureBox6.Click, Label10.Click
-        OpenRecordings()
-    End Sub
-
-    Private Sub SetS1Border(isVisible As Boolean)
-        s1.Visible = isVisible
-        s1r.Visible = isVisible
-        s1l.Visible = isVisible
-        s1b.Visible = isVisible
-    End Sub
-
+    ' ========== SETTINGS PANEL ==========
     Private Sub Settings_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove, Settings_Box.MouseMove, Settings_Text.MouseMove
         Base_Background_Top.Bg_SET3.Visible = True
-        SetS1Border(True)
+        s1.Visible = True : s1r.Visible = True : s1l.Visible = True : s1b.Visible = True
     End Sub
 
     Private Sub Settings_MouseLeave(sender As Object, e As EventArgs) Handles Settings_Logo.MouseLeave, Settings_Box.MouseLeave, Settings_Text.MouseLeave
         Base_Background_Top.Bg_SET3.Visible = False
-        SetS1Border(False)
+        s1.Visible = False : s1r.Visible = False : s1l.Visible = False : s1b.Visible = False
     End Sub
 
-    Private Sub Settings_Click(sender As Object, e As EventArgs) Handles Settings_Box.Click, Settings_Text.Click
-        OpenSettings()
+    ' ========== CONNECT ==========
+    Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Text.MouseMove, Connect_ICO.MouseMove, Connect_Box.MouseMove
+        Connect_Box_Sub.BackColor = greenColor
     End Sub
 
-    Private Sub OpenSettings()
-        Base_Settings.Show()
-        AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
-        Base_Background_Top.Bg_SET3.Visible = False
-        ME_CLOSE_BG.Visible = False
-        d.Visible = False
-        clickThrough = True
-        Opacity = 1
-        a_1.Visible = False
-        a_2.Visible = False
-        a_3.Visible = False
-        settings_1.Visible = True
-        SET_Back.Visible = False
-        shadowplay.Visible = False
-        Menu_Replay.Visible = False
-        sub_record.Visible = False
+    Private Sub Connect_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Text.MouseLeave, Connect_ICO.MouseLeave, Connect_Box.MouseLeave
+        Connect_Box_Sub.BackColor = grayColor
     End Sub
 
-    Private Sub OpenRecordings()
-        OpenSettings()
-        Base_Settings.Hide()
-        Base_Privacy_Control.Hide()
-        Base_Overlay_Hub.Hide()
-        Base_KeySet.Hide()
-        Base_RecordingsSet.setre.Location = New Point(695, -2000)
-        Base_RecordingsSet.Show()
-        AMY(Base_RecordingsSet.setre, -2000, 160, 300)
+    Private Sub Connect_Click(sender As Object, e As EventArgs) Handles Connect_Text.Click, Connect_ICO.Click, Connect_Box.Click
+        OpenPanel(Base_Connect, Base_Connect.settings_1)
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - PRIVACY SETTINGS"
-
+    ' ========== PRIVACY SETTINGS ==========
     Private Sub Saved_MouseMove(sender As Object, e As MouseEventArgs) Handles saved_e.MouseMove, Label4.MouseMove, Label5.MouseMove
         saved_e1.BackColor = greenColor
     End Sub
 
     Private Sub Saved_MouseLeave(sender As Object, e As EventArgs) Handles saved_e.MouseLeave, Label4.MouseLeave, Label5.MouseLeave
-        saved_e1.BackColor = System.Drawing.Color.Gray
+        saved_e1.BackColor = grayColor
     End Sub
 
     Private Sub Saved_Click(sender As Object, e As EventArgs) Handles saved_e.Click, Label4.Click, Label5.Click
-        Base_Settings.Hide()
-        Base_Overlay_Hub.Hide()
-        Base_KeySet.Hide()
-        Base_RecordingsSet.Hide()
-        Base_Privacy_Control.settings_1.Location = New Point(695, -2000)
-        Base_Privacy_Control.Show()
-        AMY(Base_Privacy_Control.settings_1, -2000, 160, 300)
+        OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - OVERLAY HUB"
-
+    ' ========== OVERLAY HUB ==========
     Private Sub Hub_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox10.MouseMove, Label12.MouseMove, Label15.MouseMove
         hub.BackColor = greenColor
     End Sub
 
     Private Sub Hub_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox10.MouseLeave, Label12.MouseLeave, Label15.MouseLeave
-        hub.BackColor = System.Drawing.Color.Gray
+        hub.BackColor = grayColor
     End Sub
 
     Private Sub Hub_Click(sender As Object, e As EventArgs) Handles PictureBox10.Click, Label12.Click, Label15.Click
-        Base_Settings.Hide()
-        Base_KeySet.Hide()
-        Base_Privacy_Control.Hide()
-        Base_RecordingsSet.Hide()
-        Base_Overlay_Hub.settings_1.Location = New Point(695, -2000)
-        Base_Overlay_Hub.Show()
-        AMY(Base_Overlay_Hub.settings_1, -2000, 160, 300)
+        OpenPanel(Base_Overlay_Hub, Base_Overlay_Hub.settings_1)
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - KEYBOARD SHORTCUTS"
-
+    ' ========== KEYBOARD SHORTCUTS ==========
     Private Sub K1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox11.MouseMove, Label17.MouseMove, Label18.MouseMove
         k1.BackColor = greenColor
     End Sub
 
     Private Sub K1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox11.MouseLeave, Label17.MouseLeave, Label18.MouseLeave
-        k1.BackColor = System.Drawing.Color.Gray
+        k1.BackColor = grayColor
     End Sub
 
     Private Sub K1_Click(sender As Object, e As EventArgs) Handles PictureBox11.Click, Label17.Click, Label18.Click
-        Base_Settings.Hide()
-        Base_RecordingsSet.Hide()
-        Base_Privacy_Control.Hide()
-        Base_Overlay_Hub.Hide()
-        Base_KeySet.keyset.Location = New Point(695, -2000)
-        Base_KeySet.Show()
-        AMY(Base_KeySet.keyset, -2000, 160, 300)
+        OpenPanel(Base_KeySet, Base_KeySet.keyset)
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - HIGHLIGHTS"
-
+    ' ========== HIGHLIGHTS ==========
     Private Sub Highlights_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox16.MouseMove, Label21.MouseMove, Label22.MouseMove
         hg2.BackColor = greenColor
     End Sub
 
     Private Sub Highlights_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox16.MouseLeave, Label21.MouseLeave, Label22.MouseLeave
-        hg2.BackColor = System.Drawing.Color.Gray
+        hg2.BackColor = grayColor
     End Sub
 
     Private Sub Highlights_Click(sender As Object, e As EventArgs) Handles PictureBox16.Click, Label21.Click, Label22.Click
         ShowNotifier("feature_not_ready")
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - VIDEO CAPTURE SETTINGS"
-
+    ' ========== VIDEO CAPTURE SETTINGS ==========
     Private Sub vd1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox13.MouseMove, vdo_setme.MouseMove, Label19.MouseMove, Label20.MouseMove
         vd1.BackColor = greenColor
     End Sub
 
     Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox13.MouseLeave, vdo_setme.MouseLeave, Label19.MouseLeave
-        vd1.BackColor = System.Drawing.Color.Gray
+        vd1.BackColor = grayColor
     End Sub
 
+    Public Sub OpenRecordings()
+        OpenSettings()
+        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
+    End Sub
     Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, Label19.Click, Label20.Click
-        Base_Settings.Hide()
-        Base_Privacy_Control.Hide()
-        Base_Overlay_Hub.Hide()
-        Base_KeySet.Hide()
-        Base_RecordingsSet.setre.Location = New Point(695, -2000)
-        Base_RecordingsSet.Show()
-        AMY(Base_RecordingsSet.setre, -2000, 160, 300)
+        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - NOTIFICATIONS"
-
+    ' ========== NOTIFICATIONS ==========
     Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox17.MouseMove, nott.MouseMove, noty.MouseMove
         noy.BackColor = greenColor
     End Sub
 
     Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox17.MouseLeave, nott.MouseLeave
-        noy.BackColor = System.Drawing.Color.Gray
+        noy.BackColor = grayColor
     End Sub
 
     Private Sub Noti_Click(sender As Object, e As EventArgs) Handles PictureBox17.Click, nott.Click, noty.Click
         isNotiOn = Not isNotiOn
-        Dim targetColor As System.Drawing.Color = If(isNotiOn, System.Drawing.Color.White, System.Drawing.Color.Gray)
-        noty.ForeColor = targetColor
-        nott.ForeColor = targetColor
+        Dim c = If(isNotiOn, Color.White, grayColor)
+        noty.ForeColor = c : nott.ForeColor = c
     End Sub
 
-#End Region
-
-#Region "============================================================================ MOUSE EVENT HANDLERS - ABOUT"
-
-    Private Sub About_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox1.MouseMove, Label6.MouseMove, Label9.MouseMove
+    ' ========== ABOUT ==========
+    Private Sub About_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox1.MouseMove, About_Text.MouseMove, Label9.MouseMove
         ab_bg.BackColor = greenColor
     End Sub
 
-    Private Sub About_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox1.MouseLeave, Label6.MouseLeave, Label9.MouseLeave
-        ab_bg.BackColor = System.Drawing.Color.Gray
+    Private Sub About_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox1.MouseLeave, About_Text.MouseLeave, Label9.MouseLeave
+        ab_bg.BackColor = grayColor
     End Sub
 
 #End Region
+    Private Sub PictureBox1_Click(sender As Object, e As EventArgs) Handles PictureBox1.Click, About_Text.Click, Label9.Click
+        ShowNotifier("feature_not_ready")
+    End Sub
 
 End Class

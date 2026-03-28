@@ -32,8 +32,13 @@
     "l10n.recommended": "推荐:",
     "l10n.range": "比特率范围",
     "l10n.advanced": "高级：",
-    "l10n.ramwram": "系统内存接近满格，这可能会影响 NVIDIA ShadowPlay 的性能。",
+    "l10n.ramwram": "系统内存使用率较高，可能会影响视频录制性能。",
+    "l10n.ramwram95": "系统内存即将满载，建议关闭不必要的应用程序。",
+    "l10n.ramwramcritical": "系统内存已满，请关闭部分应用程序以避免录制问题。",
     "l10n.cpuwram": "CPU 使用率过高可能会影响 NVIDIA ShadowPlay 的性能。",
+    "l10n.about": "关于",
+    "l10n.diskspacelow": "存储空间不足，请删除文件或更改录制位置。",
+
 
     "l10n.gfe": "GeForce Experience",
     "l10n.instantReplay": "即时重放",

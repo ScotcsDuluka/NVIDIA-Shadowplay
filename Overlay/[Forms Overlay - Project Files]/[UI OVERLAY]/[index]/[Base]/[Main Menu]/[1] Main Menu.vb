@@ -3,11 +3,14 @@ Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Drawing.Text
 Imports System.IO
+Imports System.Net.Http.Headers
 Imports System.Reflection
 Imports System.Runtime.InteropServices
 Imports System.Security.Principal
 Imports System.Text
+Imports System.Text.Json
 Imports System.Threading
+Imports System.Windows.Forms
 Imports Captrue_Core
 Imports Captrue_Core.CaptureCore
 Imports Microsoft.Win32
@@ -16,12 +19,9 @@ Imports Windows.Graphics.DirectX
 Imports Windows.Graphics.DirectX.Direct3D11
 Imports Windows.Media.Devices
 Imports WinRT.Interop
-Imports System.Windows.Forms
-Imports System.Text.Json
 
 Partial Public Class Base
-
-#Region "============================================================================ NATIVE METHODS & STRUCTURES"
+#Region "NATIVE METHODS & STRUCTURES"
 
     Public clickThrough As Boolean = False
 
@@ -44,84 +44,6 @@ Partial Public Class Base
         MyBase.WndProc(m)
     End Sub
 
-    Private Const GWL_EXSTYLE As Integer = -20
-    Private Const WS_EX_TOOLWINDOW As Integer = &H80
-    Private Const WS_EX_APPWINDOW As Integer = &H40000
-
-    ' Virtual Key Codes - Modifier Keys
-    Private Const VK_ALT As Integer = &H12
-    Private Const VK_SHIFT As Integer = &H10
-    Private Const VK_CONTROL As Integer = &H11
-
-    ' Virtual Key Codes - Function Keys
-    Private Const VK_F1 As Integer = &H70
-    Private Const VK_F2 As Integer = &H71
-    Private Const VK_F3 As Integer = &H72
-    Private Const VK_F8 As Integer = &H77
-    Private Const VK_F9 As Integer = &H78
-    Private Const VK_F10 As Integer = &H79
-    Private Const VK_F12 As Integer = &H7B
-
-    ' Virtual Key Codes - Letter Keys
-    Private Const VK_Z As Integer = &H5A
-    Private Const VK_T As Integer = &H54
-    Private Const VK_W As Integer = &H57
-
-    ' Virtual Key Codes - Navigation Keys
-    Private Const VK_LEFT As Integer = &H25
-    Private Const VK_UP As Integer = &H26
-    Private Const VK_RIGHT As Integer = &H27
-    Private Const VK_DOWN As Integer = &H28
-
-    ' Virtual Key Codes - Other Keys
-    Private Const VK_LBUTTON As Integer = &H1
-    Private Const VK_RBUTTON As Integer = &H2
-    Private Const VK_MBUTTON As Integer = &H4
-    Private Const VK_CANCEL As Integer = &H3
-    Private Const VK_BACK As Integer = &H8
-    Private Const VK_TAB As Integer = &H9
-    Private Const VK_CLEAR As Integer = &HC
-    Private Const VK_RETURN As Integer = &HD
-    Private Const VK_PAUSE As Integer = &H13
-    Private Const VK_CAPITAL As Integer = &H14
-    Private Const VK_ESCAPE As Integer = &H1B
-    Private Const VK_SPACE As Integer = &H20
-    Private Const VK_PAGEUP As Integer = &H21
-    Private Const VK_PAGEDOWN As Integer = &H22
-    Private Const VK_END As Integer = &H23
-    Private Const VK_HOME As Integer = &H24
-    Private Const VK_SELECT As Integer = &H29
-    Private Const VK_PRINT As Integer = &H2A
-    Private Const VK_EXECUTE As Integer = &H2B
-    Private Const VK_SNAPSHOT As Integer = &H2C
-    Private Const VK_INSERT As Integer = &H2D
-    Private Const VK_DELETE As Integer = &H2E
-    Private Const VK_HELP As Integer = &H2F
-
-    ' Virtual Key Codes - A-Z
-    Private Const VK_A As Integer = &H41
-    Private Const VK_B As Integer = &H42
-    Private Const VK_C As Integer = &H43
-    Private Const VK_D As Integer = &H44
-    Private Const VK_E As Integer = &H45
-    Private Const VK_F As Integer = &H46
-    Private Const VK_G As Integer = &H47
-    Private Const VK_H As Integer = &H48
-    Private Const VK_I As Integer = &H49
-    Private Const VK_J As Integer = &H4A
-    Private Const VK_K As Integer = &H4B
-    Private Const VK_L As Integer = &H4C
-    Private Const VK_M As Integer = &H4D
-    Private Const VK_N As Integer = &H4E
-    Private Const VK_O As Integer = &H4F
-    Private Const VK_P As Integer = &H50
-    Private Const VK_Q As Integer = &H51
-    Private Const VK_R As Integer = &H52
-    Private Const VK_S As Integer = &H53
-    Private Const VK_U As Integer = &H55
-    Private Const VK_V As Integer = &H56
-    Private Const VK_X As Integer = &H58
-    Private Const VK_Y As Integer = &H59
 
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
@@ -131,9 +53,7 @@ Partial Public Class Base
     Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
     End Function
 
-    <DllImport("user32.dll")>
-    Private Shared Function GetAsyncKeyState(vKey As Integer) As Short
-    End Function
+
 
     <DllImport("kernel32.dll", SetLastError:=True, CharSet:=CharSet.Auto)>
     Public Shared Function CreateProcess(
@@ -226,6 +146,41 @@ Partial Public Class Base
 
 #End Region
 
+    ' UI
+    Private Sub SetHoverEffect(ctrl As Control, hoverColor As Color, leaveColor As Color)
+        AddHandler ctrl.MouseMove, Sub() ctrl.BackColor = hoverColor
+        AddHandler ctrl.MouseLeave, Sub() ctrl.BackColor = leaveColor
+    End Sub
+
+    Private ReadOnly HoverColorG As Color = Color.FromArgb(64, 64, 64)
+    Private ReadOnly LeaveColorG As Color = Color.FromArgb(38, 43, 47)
+
+    Private ReadOnly HoverColorGR As Color = Color.Green
+    Private ReadOnly LeaveColorGR As Color = Color.FromArgb(118, 185, 0)
+
+    Private Sub MainUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        '0
+        SetHoverEffect(Base_Settings.SW_lang, HoverColorG, LeaveColorG)
+        SetHoverEffect(Base_Settings.ch, HoverColorG, LeaveColorG)
+        SetHoverEffect(Base_Settings.action_fn, HoverColorGR, LeaveColorGR)
+
+        '1
+        SetHoverEffect(Base_Connect.action_fn, HoverColorG, LeaveColorG)
+
+        '2
+        SetHoverEffect(Base_Overlay_Hub.action_fn, HoverColorG, LeaveColorG)
+
+        '4
+        SetHoverEffect(Base_KeySet.action_fn, HoverColorG, LeaveColorG)
+
+        '5
+        SetHoverEffect(Base_RecordingsSet.action_fn, HoverColorGR, LeaveColorGR)
+
+        '7
+        SetHoverEffect(Base_Privacy_Control.action_fn, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_Privacy_Control.py_2, HoverColorG, LeaveColorG)
+    End Sub
+
 #Region "============================================================================ FORM LOAD & INITIALIZATION"
     Private SystemMonitor As New SystemMonitor()
     Private Sub LoadCurrentLanguage()
@@ -242,19 +197,24 @@ Partial Public Class Base
         Base_Settings.SW_lang.Text = LangHelper.GetText("meta.languageName")
     End Sub
 
+    Private Const GWL_EXSTYLE As Integer = -20
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80
+    Private Const WS_EX_APPWINDOW As Integer = &H40000
+
     Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
         Dim handle As IntPtr = Me.Handle
-
         _hotkeyService = New HotkeyService()
         _hotkeyService.RegisterAll(handle)
         Debug.WriteLine("Hotkeys registered!")
 
         AppSettings.Initialize()
+        AppSettings.Instance.LoadGitHubUser()
+        Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
+        AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
 
-
-        InitializeNotifierAPI()
         LoadCurrentLanguage()
+        InitializeNotifierAPI()
         CheckPrivacyControl()
         MainSub_Load()
         LoadFilePath()
@@ -262,7 +222,11 @@ Partial Public Class Base
         LoadMicState()
         TIMESLOAD()
         SystemMonitor.StartMonitoring()
+
+        ShowNotifier("notificationOpenShare")
+        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
     End Sub
+
 
 
     Private Sub TIMESLOAD()
@@ -273,43 +237,46 @@ Partial Public Class Base
     Private Sub MainSub_Load()
         Base_Background_Top.Show()
         Base_Background_Top.Hide()
-        SET_Back.Location = New Point(80, 160)
         Base_RecordingsSet.Show()
         Base_RecordingsSet.Hide()
         Base_RecordingsSet.Opacity = 1
     End Sub
 
     Private Sub InitializeNotifierAPI()
-        Try
-            Dim exePath As String = Path.Combine(Application.StartupPath, "NVIDIA Notifier.exe")
-            If Not File.Exists(exePath) Then
-                MessageBox.Show(
-                    "NVIDIA Notifier Service Could Not Be Started!" & vbCrLf &
-                    "Please check if the file exists and you have sufficient permissions.",
-                    "Error",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error)
-                Application.Exit()
-            End If
-            Process.Start(exePath)
-        Catch ex As Exception
-            MessageBox.Show("Failed to run NVIDIA Notifier.exe: " & ex.Message)
-        End Try
+        ' Check Resolution ก่อน
         Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
         Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
 
         If width <> 1920 OrElse height <> 1080 Then
             ShowNotifier("ErrorResolution")
-        Else
-            ShowNotifier("notificationOpenShare")
-            File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+            File.Delete(Path.Combine(Application.StartupPath, "Use_Overlay"))
+            Application.Exit()
+            Exit Sub
         End If
-    End Sub
 
+        ' Start Notifier
+        Try
+            Dim exePath As String = Path.Combine(Application.StartupPath, "NVIDIA Notifier.exe")
+            If Not File.Exists(exePath) Then
+                MessageBox.Show(
+                "NVIDIA Notifier Service Could Not Be Started!" & vbCrLf &
+                "Please check if the file exists and you have sufficient permissions.",
+                "Error",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            )
+                Application.Exit()
+                Exit Sub
+            End If
+            Process.Start(exePath)
+        Catch ex As Exception
+            MessageBox.Show("Failed to run NVIDIA Notifier.exe: " & ex.Message)
+            Application.Exit()
+        End Try
+    End Sub
 #End Region
 
 #Region "============================================================================ LOCALIZATION"
-
     Private Sub Lang_Tick(sender As Object, e As EventArgs) Handles Lang.Tick
         ' Base_Background_Top
         Base_Background_Top.Logo_text.Text = LangHelper.GetText("l10n.nvidiashadowplay")
@@ -343,6 +310,11 @@ Partial Public Class Base
             .Label4.Text = LangHelper.GetText("l10n.settingsPrivacySwitch")
             .Label2.Text = LangHelper.GetText("l10n.settingsPrivacyDescribe")
             .action_fn.Text = LangHelper.GetText("l10n.back")
+            If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
+                .py_2.Text = LangHelper.GetText("l10n.instantReplayStop")
+            Else
+                .py_2.Text = LangHelper.GetText("l10n.instantReplayStart")
+            End If
         End With
 
         With Base_KeySet
@@ -395,6 +367,12 @@ Partial Public Class Base
             .ch.Text = LangHelper.GetText("l10n.checkForUpdates")
         End With
 
+        With Base_Connect
+            .text_settings.Text = LangHelper.GetText("l10n.connect")
+            .text_menu.Text = LangHelper.GetText("l10n.connect")
+            .action_fn.Text = LangHelper.GetText("l10n.back")
+        End With
+
         ' Base Form Controls
         UpdateLocalizedTexts()
         AppSettings.Instance.Save()
@@ -403,47 +381,59 @@ Partial Public Class Base
 
     Public Sub UpdateLocalizedTexts()
         Lang.Start()
-
         ' Base
+        'Main-Menu
 
-        'Main-Menu======================
+#Region "===========================Mode"
 
-        'Mode-
         Text_Mode1.Text = LangHelper.GetText("l10n.screenshots")
         Text_Mode2.Text = LangHelper.GetText("l10n.photos")
         Text_Mode3.Text = LangHelper.GetText("l10n.mods")
 
-        'Captrue-
+#End Region '===========================
+
+#Region "===========================Captrue"
+
+        '-Replay
         Replay_Text.Text = LangHelper.GetText("l10n.instantReplay")
         Replay_Stats.Text = LangHelper.GetText("l10n.off")
-        '-
+        Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStart")
+        Menu_Replay_save_text.Text = LangHelper.GetText("l10n.Saved")
+        Menu_Replay_Sttings_text.Text = LangHelper.GetText("l10n.settings")
+        '-Record
         Record_Text.Text = LangHelper.GetText("l10n.manualRecord")
         Record_Stats.Text = LangHelper.GetText("l10n.notRecording")
-        '-
+        Menu_Record_text.Text = LangHelper.GetText("l10n.start")
+        Menu_Record_Sttings_text.Text = LangHelper.GetText("l10n.settings")
+        '-Live
         Live_Text.Text = LangHelper.GetText("l10n.broadcastLive")
         Live_Stats.Text = LangHelper.GetText("l10n.NotReady")
 
-        'Preferences
-        text_settings.Text = (Assembly.GetExecutingAssembly().GetName().Version.ToString())
-        Menu_Replay_Sttings_text.Text = LangHelper.GetText("l10n.settings")
-        Home_settings.Text = LangHelper.GetText("l10n.preferencesHome")
-        text_py.Text = LangHelper.GetText("l10n.connect")
-        Label12.Text = LangHelper.GetText("l10n.hudLayout")
-        Label21.Text = LangHelper.GetText("l10n.highlights")
-        Label17.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-        Label19.Text = LangHelper.GetText("l10n.videoCapture")
-        nott.Text = LangHelper.GetText("l10n.notifications")
+#End Region '===========================
 
+#Region "===========================Options"
 
         Share_Text.Text = LangHelper.GetText("l10n.upload")
         Gallery_Text.Text = LangHelper.GetText("l10n.gallery")
         Settings_Text.Text = LangHelper.GetText("l10n.settings")
-        Label10.Text = LangHelper.GetText("l10n.settings")
-        Label13.Text = LangHelper.GetText("l10n.start")
-        Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStart")
-        Menu_Replay_save_text.Text = LangHelper.GetText("l10n.Saved")
-        Label4.Text = LangHelper.GetText("l10n.privacyControl")
+
+#End Region
+
+#Region "===========================Preferences"
+
+        Settings_List_Text.Text = LangHelper.GetText("l10n.preferencesHome")
+        Connect_Text.Text = LangHelper.GetText("l10n.connect")
+        Label12.Text = LangHelper.GetText("l10n.hudLayout")
+        Label21.Text = LangHelper.GetText("l10n.highlights")
+        Label17.Text = LangHelper.GetText("l10n.keyboardShortcuts")
+        Label19.Text = LangHelper.GetText("l10n.videoCapture")
         vdo_setme.Text = LangHelper.GetText("l10n.videoCaptureText")
+        nott.Text = LangHelper.GetText("l10n.notifications")
+        Label4.Text = LangHelper.GetText("l10n.privacyControl")
+        About_Text.Text = LangHelper.GetText("l10n.about")
+
+#End Region '===========================
+
     End Sub
 
 #End Region
@@ -497,7 +487,21 @@ Partial Public Class Base
         If Not My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)) Then
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
             ShowMainPanel()
-            OpenSettings()
+            For Each f In allForms
+                If f IsNot Base_Settings Then f?.Hide()
+            Next
+            Base_Settings.Show()
+            AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+            Base_Background_Top.Bg_SET3.Visible = False
+            ME_CLOSE_BG.Visible = False
+            d.Visible = False
+            clickThrough = True
+            Opacity = 1
+            a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
+            Settings_List.Visible = True
+            shadowplay.Visible = False
+            Menu_Replay.Visible = False
+            Menu_Record.Visible = False
             PrivacyOpen()
             Return
         End If
@@ -560,7 +564,7 @@ Partial Public Class Base
         Dim marginTop As Integer = 160
 
         ' Base
-        settings_1.Location = New Point(80, 160)
+        Settings_List.Location = New Point(80, 160)
         Base_Background_Top.Main_menu_list.Location = New Point((Me.ClientSize.Width - Base_Background_Top.Main_menu_list.Width) / 2, marginTop)
         shadowplay.Location = New Point((Me.ClientSize.Width - shadowplay.Width) / 2, marginTop)
 
@@ -581,4 +585,14 @@ Partial Public Class Base
         AppSettings.Instance.Save()
         _hotkeyService?.UnregisterAll()
     End Sub
+
+    Private Sub Menu_Record_Sttings_text_Click(sender As Object, e As EventArgs) Handles Menu_Record_Sttings_text.Click, Menu_Record_Box2.Click
+        OpenRecordings()
+    End Sub
+
+    Private Sub Menu_Replay_Sttings_text_Click(sender As Object, e As EventArgs) Handles Menu_Replay_Sttings_text.Click, Menu_Replay_Box3.Click
+        OpenRecordings()
+    End Sub
+
+
 End Class

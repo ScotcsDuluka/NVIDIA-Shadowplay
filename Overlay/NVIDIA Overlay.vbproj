@@ -230,6 +230,7 @@
 	<ItemGroup>
 		<Folder Include="Resources\" />
 		<Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
+		<Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
 		<Folder Include="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\" />
 	</ItemGroup>
 

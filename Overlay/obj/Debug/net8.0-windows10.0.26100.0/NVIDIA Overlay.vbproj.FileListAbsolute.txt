@@ -258,3 +258,4 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVI
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.genruntimeconfig.cache
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Connect.resources

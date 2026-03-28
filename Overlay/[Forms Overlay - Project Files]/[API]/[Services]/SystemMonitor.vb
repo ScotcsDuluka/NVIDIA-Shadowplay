@@ -25,16 +25,23 @@ Public Class SystemMonitor
     Private cpuCounter As PerformanceCounter
 
     ' Threshold
-    Public RamThreshold As Integer = 80
-    Public CpuThreshold As Integer = 80
+    Public RamThreshold80 As Integer = 80
+    Public RamThreshold95 As Integer = 95
+    Public CpuThreshold As Integer = 95
+    Public DiskThresholdGB As Integer = 44
 
     ' Flag ป้องกันเตือนซ้ำ
-    Private ramWarned As Boolean = False
+    Private ram80Warned As Boolean = False
+    Private ram95Warned As Boolean = False
+    Private ramCriticalLastWarn As DateTime = DateTime.MinValue
     Private cpuWarned As Boolean = False
+    Private diskLastWarn As DateTime = DateTime.MinValue
+
+    ' Path ที่จะตรวจพื้นที่
+    Public MonitorDiskPath As String = ""
 
     ' ===== เริ่มตรวจจับ =====
     Public Sub StartMonitoring()
-        ' สร้าง CPU Counter
         cpuCounter = New PerformanceCounter("Processor", "% Processor Time", "_Total")
 
         timer = New Timer()
@@ -58,6 +65,7 @@ Public Class SystemMonitor
     Private Sub CheckSystem(sender As Object, e As EventArgs)
         CheckRam()
         CheckCpu()
+        CheckDiskSpace()
     End Sub
 
     ' ===== ตรวจ RAM =====
@@ -68,16 +76,40 @@ Public Class SystemMonitor
         If GlobalMemoryStatusEx(ramInfo) Then
             Dim ramPercent As Integer = CInt(ramInfo.dwMemoryLoad)
 
-            If ramPercent >= RamThreshold Then
-                If Not ramWarned Then
-                    Dim totalGB As Double = ramInfo.ullTotalPhys / (1024 * 1024 * 1024)
-                    Dim availGB As Double = ramInfo.ullAvailPhys / (1024 * 1024 * 1024)
-
-                    Base.ShowNotifier("ramwram")
-                    ramWarned = True
+            ' ===== 95-99% : เตือนทุก 10 วินาที =====
+            If ramPercent >= RamThreshold95 AndAlso ramPercent < 100 Then
+                Dim now As DateTime = DateTime.Now
+                If (now - ramCriticalLastWarn).TotalSeconds >= 10 Then
+                    Base.ShowNotifier("ramwramcritical")
+                    ramCriticalLastWarn = now
                 End If
+
+                ram80Warned = False
+                ram95Warned = False
+
+                ' ===== 95% : เตือนครั้งเดียว =====
+            ElseIf ramPercent >= RamThreshold95 Then
+                If Not ram95Warned Then
+                    Base.ShowNotifier("ramwram95")
+                    ram95Warned = True
+                End If
+                ram80Warned = False
+                ramCriticalLastWarn = DateTime.MinValue
+
+                ' ===== 80-95% : เตือนครั้งเดียว =====
+            ElseIf ramPercent >= RamThreshold80 Then
+                If Not ram80Warned Then
+                    Base.ShowNotifier("ramwram")
+                    ram80Warned = True
+                End If
+                ram95Warned = False
+                ramCriticalLastWarn = DateTime.MinValue
+
+                ' ===== < 80% : Reset ทุกอย่าง =====
             Else
-                ramWarned = False
+                ram80Warned = False
+                ram95Warned = False
+                ramCriticalLastWarn = DateTime.MinValue
             End If
         End If
     End Sub
@@ -94,6 +126,33 @@ Public Class SystemMonitor
         Else
             cpuWarned = False
         End If
+    End Sub
+
+    ' ===== ตรวจพื้นที่ดิสก์ =====
+    Private Sub CheckDiskSpace()
+        If Base.RecordValue = False Then
+            Exit Sub
+        End If
+        Try
+            Dim path As String = MonitorDiskPath
+            If String.IsNullOrEmpty(path) Then path = "C:\"
+
+            Dim drive As New IO.DriveInfo(path)
+            Dim freeGB As Double = drive.AvailableFreeSpace / (1024 * 1024 * 1024)
+
+            If freeGB < DiskThresholdGB Then
+                ' ===== เตือนทุก 10 วินาที =====
+                Dim now As DateTime = DateTime.Now
+                If (now - diskLastWarn).TotalSeconds >= 10 Then
+                    Base.ShowNotifier("diskspacelow")
+                    diskLastWarn = now
+                End If
+            Else
+                diskLastWarn = DateTime.MinValue
+            End If
+        Catch ex As Exception
+            ' ถ้าไม่เจอ Drive ข้ามไป
+        End Try
     End Sub
 
     ' ===== ดึงข้อมูล RAM =====
@@ -118,5 +177,21 @@ Public Class SystemMonitor
             Return CInt(cpuCounter.NextValue())
         End If
         Return 0
+    End Function
+
+    ' ===== ดึงข้อมูล Disk =====
+    Public Function GetDiskInfo() As (FreeGB As Double, TotalGB As Double)
+        Try
+            Dim path As String = MonitorDiskPath
+            If String.IsNullOrEmpty(path) Then path = "C:\"
+
+            Dim drive As New IO.DriveInfo(path)
+            Return (
+                drive.AvailableFreeSpace / (1024 * 1024 * 1024),
+                drive.TotalSize / (1024 * 1024 * 1024)
+            )
+        Catch
+            Return (0, 0)
+        End Try
     End Function
 End Class

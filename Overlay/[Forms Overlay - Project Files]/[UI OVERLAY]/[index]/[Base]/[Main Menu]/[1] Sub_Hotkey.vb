@@ -4,16 +4,18 @@ Partial Public Class Base
 #Region "Hotkey Event Handlers"
 
     Private Sub OnAltZ() Handles _hotkeyService.AltZPressed
-        If settings_1.Visible Then Return
-
+        If Settings_List.Visible Then Return
+        If Base_Gallery.Visible Then Return
 
 
         isFunctionActive_f3 = False
 
-        If shadowplay.Visible Then
+        If shadowplay.Visible = True Then
             HideAllControls()
+            shadowplay.Visible = False
         Else
             ShowMainPanel()
+            shadowplay.Visible = True
             Base_Game_Filter_Sub.Opacity = 0
             Base_Game_Filter.Opacity = 0
             Base_Game_Filter.Hide()
@@ -22,47 +24,47 @@ Partial Public Class Base
     End Sub
 
     Private Sub OnAltF1() Handles _hotkeyService.AltF1Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         CaptureScreen()
     End Sub
 
     Private Sub OnAltF9() Handles _hotkeyService.AltF9Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ToggleRecording()
     End Sub
 
     Private Sub OnAltShiftF10() Handles _hotkeyService.AltShiftF10Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ToggleInstantReplay()
     End Sub
 
     Private Sub OnAltF10() Handles _hotkeyService.AltF10Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         SaveInstantReplay()
     End Sub
 
     Private Sub OnAltF3() Handles _hotkeyService.AltF3Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ToggleGameFilter()
     End Sub
 
     Private Sub OnAltF2() Handles _hotkeyService.AltF2Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ShowNotifier("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub OnAltF8() Handles _hotkeyService.AltF8Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ShowNotifier("feature_not_ready")
     End Sub
 
     Private Sub OnAltF12() Handles _hotkeyService.AltF12Pressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ShowNotifier("feature_not_ready")
     End Sub
 
     Private Sub OnAltT() Handles _hotkeyService.AltTPressed
-        If settings_1.Visible Then Return
+        If Settings_List.Visible Then Return
         ShowNotifier("notificationOpenShare")
     End Sub
 
@@ -78,8 +80,8 @@ Partial Public Class Base
 
         ' Hide panels
         Menu_Replay.Visible = False
-        sub_record.Visible = False
-        settings_1.Visible = False
+        Menu_Record.Visible = False
+        Settings_List.Visible = False
         shadowplay.Visible = True
 
         ' Hide action indicators

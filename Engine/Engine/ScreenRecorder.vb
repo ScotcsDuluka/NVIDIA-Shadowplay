@@ -34,14 +34,19 @@ Namespace CaptureCore
         Public Const FIXED_BUFFER_SEGMENTS As Integer = 2400
         Public Const FIXED_BUFFER_SECONDS As Integer = 1200
 
-        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 2000
-        Private Const FORCE_KILL_TIMEOUT As Integer = 1000
-        Private Const FILE_WRITE_DELAY As Integer = 200
+        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 10000
+        Private Const FORCE_KILL_TIMEOUT As Integer = 2000
+        Private Const FILE_WRITE_DELAY As Integer = 300
         Private Const CONCAT_TIMEOUT As Integer = 60000
 
-        Private Const SEGMENT_DURATION As Double = 0.25
+        Private Const SEGMENT_DURATION As Double = 0.5
+        Private Const BUFFER_MAX_SEGMENTS As Integer = 2400
+        Private Const BUFFER_MAX_DURATION As Integer = 1200
         Private Const SB_CAPACITY_XLARGE As Integer = 4096
         Private Const CAPTURE_API_CHECK_TIMEOUT As Integer = 3000
+        Private _bufferStartTime As DateTime
+        Private _lastSegmentTime As DateTime
+
 #End Region
 
 #Region "Enums"
@@ -476,7 +481,7 @@ Namespace CaptureCore
         Public ReadOnly Property BufferCurrentDuration As Double
             Get
                 If Not _isBuffering Then Return 0
-                Return Math.Min(GetActualBufferDuration(), FIXED_BUFFER_SECONDS)
+                Return Math.Min(GetActualBufferDuration().TotalSeconds, FIXED_BUFFER_SECONDS)
             End Get
         End Property
 
@@ -1172,17 +1177,35 @@ Namespace CaptureCore
 
                 Dim savedPath As String = recordingOutputPath
 
+                Try
+                    ' ===== 1. ส่ง 'q' ให้ FFmpeg =====
+                    recordingProcess.StandardInput.Write("q"c)
+                    recordingProcess.StandardInput.Flush()
+                    recordingProcess.StandardInput.Close()
+
+                    ' ===== 2. รอให้ FFmpeg exit =====
+                    If Not recordingProcess.WaitForExit(10000) Then
+                        Debug.WriteLine("StopRecording: FFmpeg timeout")
+                        recordingProcess.Kill()
+                        recordingProcess.WaitForExit(1000)
+                    End If
+
+                    Debug.WriteLine("StopRecording: FFmpeg exited")
+
+                Catch ex As Exception
+                    Debug.WriteLine("StopRecording Error: " & ex.Message)
+                    ForceKillProcess(recordingProcess)
+                End Try
+
+                ' ===== 3. FFmpeg exit แล้ว = AudioPipe broken อัตโนมัติ =====
+                ' เรียก Stop เพื่อ cleanup (จะไม่ส่ง silent frame เพิ่ม)
                 StopRecordingAudioPipe()
 
-                Try
-                    StopProcessGracefully(recordingProcess, GRACEFUL_EXIT_TIMEOUT)
-                Catch ex As Exception
-                    ForceKillProcess(recordingProcess)
-                Finally
-                    CleanupRecordingProcess()
-                    _isRecording = False
-                    RaiseEvent RecordingStopped(Me, savedPath)
-                End Try
+                ' ===== 4. Final cleanup =====
+                CleanupRecordingProcess()
+                _isRecording = False
+
+                RaiseEvent RecordingStopped(Me, savedPath)
             End SyncLock
         End Sub
 #End Region
@@ -1190,14 +1213,21 @@ Namespace CaptureCore
 #Region "Replay Buffer"
         Public Function StartBuffer() As Boolean
             SyncLock _bufferLock
-                If _isBuffering Then Return False
+                If _isBuffering Then
+                    Debug.WriteLine("StartBuffer: Already buffering")
+                    Return False
+                End If
+
                 If Not ValidateFFmpeg() Then Return False
 
                 ResetCaptureAPIFallback()
 
-                bufferTempDir = Path.Combine(Application.StartupPath, "Temp", "replay_buffer")
+                ' ===== Create temp directory =====
+                bufferTempDir = Path.Combine(Application.StartupPath, "Temp", "replay_buffer_" & Process.GetCurrentProcess().Id)
+
                 Try
                     If Directory.Exists(bufferTempDir) Then
+                        ' Clean old segments
                         For Each f In Directory.GetFiles(bufferTempDir, "*.mkv")
                             Try
                                 File.Delete(f)
@@ -1208,19 +1238,25 @@ Namespace CaptureCore
                         Directory.CreateDirectory(bufferTempDir)
                     End If
                 Catch
+                    ' Fallback to temp folder
                     bufferTempDir = Path.Combine(Path.GetTempPath(), "ShadowPlay_Buffer_" & Process.GetCurrentProcess().Id)
                     Directory.CreateDirectory(bufferTempDir)
                 End Try
 
                 _segmentTimestamps.Clear()
+                _bufferStartTime = DateTime.Now
+                _lastSegmentTime = DateTime.Now
 
                 Try
+                    ' ===== Start AudioPipe =====
                     StartBufferAudioPipe()
 
+                    ' ===== Build FFmpeg arguments =====
                     Dim arguments As String = BuildBufferFFmpegArguments()
                     Debug.WriteLine("══════════ Buffer FFmpeg Arguments ══════════")
                     Debug.WriteLine(arguments)
 
+                    ' ===== Start FFmpeg process =====
                     bufferProcess = CreateFFmpegProcess(arguments)
                     bufferProcess.Start()
                     AddProcessToJob(bufferProcess)
@@ -1228,16 +1264,18 @@ Namespace CaptureCore
                     bufferProcess.BeginOutputReadLine()
 
                     _isBuffering = True
-                    bufferStartTime = DateTime.Now
 
                     RaiseEvent ReplayBufferStarted(Me, EventArgs.Empty)
                     RaiseEvent BufferStarted(Me, EventArgs.Empty)
+
+                    Debug.WriteLine("StartBuffer: Success")
                     Return True
 
                 Catch ex As Exception
+                    Debug.WriteLine("StartBuffer Error: " & ex.Message)
                     StopBufferAudioPipe()
-                    RaiseEvent RecordingError(Me, "Failed to start buffer: " & ex.Message)
                     CleanupBufferProcess()
+                    RaiseEvent RecordingError(Me, "Failed to start buffer: " & ex.Message)
                     Return False
                 End Try
             End SyncLock
@@ -1245,123 +1283,172 @@ Namespace CaptureCore
 
         Public Sub StopBuffer()
             SyncLock _bufferLock
-                If Not _isBuffering OrElse bufferProcess Is Nothing Then Exit Sub
+                If Not _isBuffering OrElse bufferProcess Is Nothing Then
+                    Debug.WriteLine("StopBuffer: Not buffering or process is null")
+                    Exit Sub
+                End If
 
-                StopBufferAudioPipe()
+                Debug.WriteLine("═══ StopBuffer START ═══")
 
                 Try
-                    StopProcessGracefully(bufferProcess, FORCE_KILL_TIMEOUT)
-                Catch
-                    ForceKillProcess(bufferProcess)
-                Finally
-                    CleanupBufferProcess()
-                    _isBuffering = False
+                    ' ===== 1. ส่ง 'q' ให้ FFmpeg (graceful exit) =====
+                    If bufferProcess IsNot Nothing AndAlso Not bufferProcess.HasExited Then
+                        Try
+                            bufferProcess.StandardInput.Write("q"c)
+                            bufferProcess.StandardInput.Flush()
+                            bufferProcess.StandardInput.Close()
 
-                    Threading.Thread.Sleep(500)
+                            Debug.WriteLine("StopBuffer: Sent 'q' to FFmpeg")
+                        Catch ex As Exception
+                            Debug.WriteLine("StopBuffer: Failed to send 'q' - " & ex.Message)
+                        End Try
+                    End If
 
-                    Try
-                        If Directory.Exists(bufferTempDir) Then
-                            For Each f In Directory.GetFiles(bufferTempDir)
-                                Try
-                                    File.Delete(f)
-                                Catch
-                                End Try
-                            Next
+                    ' ===== 2. รอให้ FFmpeg exit (สำคัญมาก!) =====
+                    If bufferProcess IsNot Nothing AndAlso Not bufferProcess.HasExited Then
+                        Dim exited As Boolean = bufferProcess.WaitForExit(GRACEFUL_EXIT_TIMEOUT)
+
+                        If Not exited Then
+                            Debug.WriteLine("StopBuffer: FFmpeg timeout, force killing...")
+                            Try
+                                bufferProcess.Kill()
+                                bufferProcess.WaitForExit(FORCE_KILL_TIMEOUT)
+                            Catch
+                            End Try
+                        Else
+                            Debug.WriteLine("StopBuffer: FFmpeg exited gracefully")
                         End If
-                    Catch
-                    End Try
+                    End If
 
-                    _segmentTimestamps.Clear()
-                    RaiseEvent ReplayBufferStopped(Me, EventArgs.Empty)
-                    RaiseEvent BufferStopped(Me, EventArgs.Empty)
+                Catch ex As Exception
+                    Debug.WriteLine("StopBuffer Error: " & ex.Message)
+                    ForceKillProcess(bufferProcess)
                 End Try
+
+                ' ===== 3. FFmpeg exit แล้ว ค่อยปิด AudioPipe =====
+                StopBufferAudioPipe()
+
+                ' ===== 4. Cleanup =====
+                CleanupBufferProcess()
+                _isBuffering = False
+
+                ' ===== 5. Small delay for file system =====
+                Threading.Thread.Sleep(FILE_WRITE_DELAY)
+
+                ' ===== 6. Delete temp segments (optional) =====
+                Try
+                    If Directory.Exists(bufferTempDir) Then
+                        For Each f In Directory.GetFiles(bufferTempDir)
+                            Try
+                                File.Delete(f)
+                            Catch
+                            End Try
+                        Next
+                    End If
+                Catch
+                End Try
+
+                _segmentTimestamps.Clear()
+
+                RaiseEvent ReplayBufferStopped(Me, EventArgs.Empty)
+                RaiseEvent BufferStopped(Me, EventArgs.Empty)
+
+                Debug.WriteLine("═══ StopBuffer END ═══")
             End SyncLock
         End Sub
 
         Public Function SaveReplay(outputPath As String, saveDuration As Integer) As Boolean
             SyncLock _saveLock
-                If _isSaving Then Return False
+                If _isSaving Then
+                    Debug.WriteLine("SaveReplay: Already saving")
+                    Return False
+                End If
                 _isSaving = True
             End SyncLock
 
             Try
-                If Not _isBuffering Then Return False
+                If Not _isBuffering Then
+                    Debug.WriteLine("SaveReplay: Not buffering")
+                    Return False
+                End If
 
+                ' ===== 1. Wait for file system =====
                 Threading.Thread.Sleep(FILE_WRITE_DELAY)
 
+                ' ===== 2. Get available segments =====
                 Dim segments As New List(Of TimestampedSegment)()
                 SyncLock _bufferLock
                     segments = GetTimestampedSegments()
                 End SyncLock
 
-                If segments.Count = 0 Then Return False
-
-                segments = segments.OrderBy(Function(s) s.SegmentNumber).ToList()
-
-                Dim segmentsNeeded As Integer = CInt(Math.Floor(saveDuration / SEGMENT_DURATION))
-                Dim availableSegments As Integer = segments.Count
-
-                If availableSegments < segmentsNeeded Then
-                    segmentsNeeded = availableSegments
+                If segments.Count = 0 Then
+                    Debug.WriteLine("SaveReplay: No segments found")
+                    Return False
                 End If
 
-                Dim selectedSegments As List(Of TimestampedSegment) = segments.Skip(Math.Max(0, segments.Count - segmentsNeeded)).Take(segmentsNeeded).ToList()
+                ' Sort by segment number
+                segments = segments.OrderBy(Function(s) s.SegmentNumber).ToList()
 
-                If selectedSegments.Count = 0 Then Return False
+                Debug.WriteLine(String.Format("SaveReplay: Found {0} segments", segments.Count))
 
+                ' ===== 3. Calculate segments needed =====
+                Dim actualBufferDuration As Double = segments.Count * SEGMENT_DURATION
+                Dim requestedDuration As Double = Math.Min(saveDuration, actualBufferDuration)
+                Dim segmentsNeeded As Integer = CInt(Math.Ceiling(requestedDuration / SEGMENT_DURATION))
+
+                ' Take the last N segments
+                Dim startIndex As Integer = Math.Max(0, segments.Count - segmentsNeeded)
+                Dim selectedSegments As List(Of TimestampedSegment) = segments.Skip(startIndex).Take(segmentsNeeded).ToList()
+
+                If selectedSegments.Count = 0 Then
+                    Debug.WriteLine("SaveReplay: No segments selected")
+                    Return False
+                End If
+
+                Debug.WriteLine(String.Format("SaveReplay: Using {0} segments ({1:F1}s)",
+            selectedSegments.Count, selectedSegments.Count * SEGMENT_DURATION))
+
+                ' ===== 4. Prepare output =====
                 Try
                     Dim outputDir As String = Path.GetDirectoryName(outputPath)
                     If Not String.IsNullOrEmpty(outputDir) AndAlso Not Directory.Exists(outputDir) Then
                         Directory.CreateDirectory(outputDir)
                     End If
 
-                    Dim uniqueId As String = DateTime.Now.ToString("yyyyMMdd_HHmmss_fff")
-                    Dim tempConcatDir As String = Path.Combine(bufferTempDir, "concat_" & uniqueId)
-                    Directory.CreateDirectory(tempConcatDir)
-
-                    Dim concatListPath As String = Path.Combine(tempConcatDir, "concat_list.txt")
+                    ' ===== 5. Create concat list =====
+                    Dim concatListPath As String = Path.Combine(bufferTempDir, "concat_list.txt")
 
                     Using writer As New StreamWriter(concatListPath)
                         For Each seg In selectedSegments
-                            Dim tempSegPath As String = Path.Combine(tempConcatDir, Path.GetFileName(seg.FilePath))
-                            Try
-                                File.Copy(seg.FilePath, tempSegPath, True)
-                                Dim escapedPath As String = tempSegPath.Replace("\"c, "/"c)
-                                writer.WriteLine(String.Format("file '{0}'", escapedPath))
-                            Catch ex As Exception
-                                Debug.WriteLine("Copy segment error: " & ex.Message)
-                            End Try
+                            If File.Exists(seg.FilePath) Then
+                                Dim fileInfo As New FileInfo(seg.FilePath)
+                                If fileInfo.Length > 0 Then
+                                    Dim escapedPath As String = seg.FilePath.Replace("\"c, "/"c)
+                                    writer.WriteLine(String.Format("file '{0}'", escapedPath))
+                                End If
+                            End If
                         Next
                     End Using
 
-                    Dim concatArgs As String = String.Format("-y -hide_banner -loglevel warning -f concat -safe 0 -i ""{0}"" -c copy -movflags +faststart ""{1}""",
-                        concatListPath, outputPath)
+                    ' ===== 6. Concat segments =====
+                    Dim concatArgs As String = String.Format(
+                "-y -hide_banner -loglevel warning -f concat -safe 0 -i ""{0}"" -c copy -movflags +faststart ""{1}""",
+                concatListPath, outputPath)
 
-                    Dim success As Boolean = RunFFmpegSync(concatArgs, CONCAT_TIMEOUT)
+                    Dim success As Boolean = RunFFmpegSync(concatArgs, 60000)
 
-                    Try
-                        If Directory.Exists(tempConcatDir) Then
-                            For Each f In Directory.GetFiles(tempConcatDir)
-                                Try
-                                    File.Delete(f)
-                                Catch
-                                End Try
-                            Next
-                            Directory.Delete(tempConcatDir)
+                    ' ===== 7. Verify output =====
+                    If success AndAlso File.Exists(outputPath) Then
+                        Dim fileInfo As New FileInfo(outputPath)
+                        If fileInfo.Length > 0 Then
+                            Debug.WriteLine(String.Format("SaveReplay: Success - {0} bytes", fileInfo.Length))
+                            RaiseEvent ReplaySaved(Me, outputPath)
+                            Return True
                         End If
-                    Catch
-                    End Try
-
-                    If Not success Then
-                        Return False
                     End If
 
-                    If File.Exists(outputPath) Then
-                        RaiseEvent ReplaySaved(Me, outputPath)
-                        Return True
-                    Else
-                        Return False
-                    End If
+                    Debug.WriteLine("SaveReplay: Concat failed")
+                    Return False
 
                 Catch ex As Exception
                     Debug.WriteLine("SaveReplay Error: " & ex.Message)
@@ -1379,14 +1466,20 @@ Namespace CaptureCore
             Return SaveReplay(outputPath, _replaySaveDuration)
         End Function
 
-        Private Function GetActualBufferDuration() As Double
-            Try
-                If Not Directory.Exists(bufferTempDir) Then Return 0
-                Dim files = Directory.GetFiles(bufferTempDir, "segment_*.mkv")
-                Return files.Length * SEGMENT_DURATION
-            Catch
-                Return 0
-            End Try
+        Public Function GetActualBufferDuration() As TimeSpan
+            SyncLock _bufferLock
+                If Not _isBuffering Then Return TimeSpan.Zero
+
+                Try
+                    If Directory.Exists(bufferTempDir) Then
+                        Dim files = Directory.GetFiles(bufferTempDir, "segment_*.mkv")
+                        Return TimeSpan.FromSeconds(files.Length * SEGMENT_DURATION)
+                    End If
+                Catch
+                End Try
+
+                Return TimeSpan.Zero
+            End SyncLock
         End Function
 
         Private Function GetTimestampedSegments() As List(Of TimestampedSegment)
@@ -1431,12 +1524,21 @@ Namespace CaptureCore
             If proc Is Nothing OrElse proc.HasExited Then Exit Sub
 
             Try
+                ' ===== ส่ง 'q' เพื่อให้ FFmpeg ปิดไฟล์อย่างถูกต้อง =====
                 proc.StandardInput.Write("q"c)
                 proc.StandardInput.Flush()
+                proc.StandardInput.Close()  ' ✅ ปิด stdin
+
+                ' ===== รอให้ FFmpeg exit =====
                 If Not proc.WaitForExit(timeoutMs) Then
+                    Debug.WriteLine("StopProcessGracefully: Timeout, force killing...")
                     proc.Kill()
+                    proc.WaitForExit(1000)
+                Else
+                    Debug.WriteLine("StopProcessGracefully: Process exited gracefully")
                 End If
-            Catch
+            Catch ex As Exception
+                Debug.WriteLine("StopProcessGracefully Error: " & ex.Message)
                 Throw
             End Try
         End Sub
@@ -1691,15 +1793,10 @@ Namespace CaptureCore
             sb.Append("-y -hide_banner -loglevel warning ")
 
             Dim isQuickSync As Boolean = (_encoder = VideoEncoder.QuickSync_H264 OrElse _encoder = VideoEncoder.QuickSync_HEVC)
-            Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
-            Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
             Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' Hardware Device Initialization (same as recording)
-            ' ═══════════════════════════════════════════════════════════════════════
+            ' Hardware device initialization
             If isQuickSync Then
-                ' QSV: Only init d3d11va - hwmap will derive qsv from it
                 sb.Append("-init_hw_device d3d11va:,vendor_id=0x8086 ")
             ElseIf selectedAPI = CaptureAPIType.DDAGrab OrElse selectedAPI = CaptureAPIType.GFxCapture Then
                 sb.Append("-init_hw_device d3d11va ")
@@ -1707,8 +1804,10 @@ Namespace CaptureCore
 
             _pendingVideoFilter = ""
 
+            ' Build capture command
             BuildCaptureCommand(sb, Rectangle.Empty)
 
+            ' Audio input
             Dim audioInputArgs As String = BuildAudioInputArgs(useBufferPipe:=True)
             sb.Append(audioInputArgs)
 
@@ -1716,23 +1815,31 @@ Namespace CaptureCore
                 sb.Append(_pendingVideoFilter)
             End If
 
+            ' Audio map
             BuildAudioMapCommand(sb, useBufferPipe:=True)
 
+            ' Encoder
             BuildBufferEncoderCommand(sb)
 
+            ' Audio codec
             If _audioMode <> VideoCaptureMode.None Then
                 sb.Append("-c:a aac -b:a 192k -async 1 ")
             End If
 
+            ' ═══════════════════════════════════════════════════════════════════════
+            ' ✅ Segment settings for Replay Buffer
+            ' ═══════════════════════════════════════════════════════════════════════
             sb.Append("-f segment ")
             sb.Append("-segment_time ")
             sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
             sb.Append(" -segment_format mkv ")
             sb.Append("-segment_wrap ")
-            sb.Append(FIXED_BUFFER_SEGMENTS.ToString())
+            sb.Append(BUFFER_MAX_SEGMENTS.ToString())
             sb.Append(" -reset_timestamps 1 ")
+            sb.Append("-strftime_mkdir 0 ")
 
-            Dim segmentPath As String = Path.Combine(bufferTempDir, "segment_%04d.mkv")
+            ' Output path
+            Dim segmentPath As String = Path.Combine(bufferTempDir, "segment_%05d.mkv")
             sb.Append(""""c)
             sb.Append(segmentPath)
             sb.Append(""""c)

@@ -47,7 +47,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
-        If sub_record.Visible = True Then
+        If Menu_Record.Visible = True Then
             Base_Background_Top.b2_all.Visible = True
         Else
             Base_Background_Top.b2_all.Visible = False
@@ -116,19 +116,19 @@ Partial Public Class Base
 
     Private Sub UpdateRecordStatus()
         If RecordValue = True Then
-            Label13.Text = LangHelper.GetText("l10n.stopAndSave")
+            Menu_Record_text.Text = LangHelper.GetText("l10n.stopAndSave")
             Record_Stats.Text = LangHelper.GetText("l10n.recording")
             Record_Stats.ForeColor = greenColor
             Record_Logo.ForeColor = greenColor
             Record_Stats.Font = New Font("Segoe UI", 12, FontStyle.Bold)
-            icon_record.Text = ""
+            Menu_Record_ico.Text = ""
         Else
-            Label13.Text = LangHelper.GetText("l10n.start")
+            Menu_Record_text.Text = LangHelper.GetText("l10n.start")
             Record_Logo.ForeColor = System.Drawing.Color.White
             Record_Stats.Text = LangHelper.GetText("l10n.notRecording")
             Record_Stats.ForeColor = System.Drawing.Color.Gray
             Record_Stats.Font = New Font("Segoe UI", 12, FontStyle.Regular)
-            icon_record.Text = ""
+            Menu_Record_ico.Text = ""
         End If
     End Sub
 
@@ -228,15 +228,11 @@ Partial Public Class Base
         HideAllControls()
     End Sub
 
-    Private Sub PictureBox24_Click(sender As Object, e As EventArgs) Handles Menu_Replay_Box3.Click, Menu_Replay_Sttings_text.Click
-        OpenRecordings()
-    End Sub
-
     Private Sub logo_replay_MouseHover(sender As Object, e As EventArgs) Handles Replay_Logo.MouseHover, Replay_Text.MouseHover, Replay_Stats.MouseHover
         If Base_Background_Top.b2_all.Visible = True Then
             AMY(Menu_Replay, -200, 3, 150)
             Menu_Replay.Visible = Not Menu_Replay.Visible
-            sub_record.Visible = False
+            Menu_Record.Visible = False
             a_1.Visible = Not a_1.Visible
             a_2.Visible = False
             a_3.Visible = False
@@ -246,8 +242,8 @@ Partial Public Class Base
 
     Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
         If Base_Background_Top.b1_all.Visible = True Then
-            AMY(sub_record, -200, 3, 150)
-            sub_record.Visible = Not sub_record.Visible
+            AMY(Menu_Record, -200, 3, 150)
+            Menu_Record.Visible = Not Menu_Record.Visible
             Menu_Replay.Visible = False
             a_2.Visible = True
             a_1.Visible = False

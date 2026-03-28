@@ -113,18 +113,18 @@ Partial Class Base
         PictureBox23 = New PictureBox()
         PictureBox24 = New PictureBox()
         PictureBox25 = New PictureBox()
-        sub_record = New Panel()
-        Label13 = New Label()
+        Menu_Record = New Panel()
+        Menu_Record_text = New Label()
         str = New PictureBox()
         stl = New PictureBox()
         stb = New PictureBox()
         st1 = New PictureBox()
-        Label10 = New Label()
-        sh_record = New Label()
-        icon_record = New Label()
-        PictureBox5 = New PictureBox()
-        PictureBox6 = New PictureBox()
-        PictureBox18 = New PictureBox()
+        Menu_Record_Sttings_text = New Label()
+        Menu_Record_key = New Label()
+        Menu_Record_ico = New Label()
+        Menu_Record_Box1 = New PictureBox()
+        Menu_Record_Box2 = New PictureBox()
+        Menu_Record_Bg = New PictureBox()
         Menu_Replay = New Panel()
         Menu_Replay_key = New Label()
         Menu_Replay_text = New Label()
@@ -144,14 +144,14 @@ Partial Class Base
         rsl = New PictureBox()
         Menu_Replay_Box2 = New PictureBox()
         Menu_Replay_Box1 = New PictureBox()
-        sub_replay_bg2 = New PictureBox()
+        Menu_Replay_Bg = New PictureBox()
         Name_action = New Label()
-        settings_1 = New Panel()
-        settings_top = New PictureBox()
-        Home_settings = New Label()
-        PictureBox8 = New PictureBox()
-        settings_all = New Panel()
-        text_py = New Label()
+        Settings_List = New Panel()
+        Settings_List_Top = New PictureBox()
+        Settings_List_Text = New Label()
+        Settings_index = New PictureBox()
+        Settings_List_All = New Panel()
+        Connect_Text = New Label()
         vdo_setme = New Label()
         Label19 = New Label()
         PictureBox14 = New PictureBox()
@@ -178,21 +178,20 @@ Partial Class Base
         PictureBox10 = New PictureBox()
         PictureBox9 = New PictureBox()
         hub = New PictureBox()
-        logo_py = New Label()
+        Connect_ICO = New Label()
         Label4 = New Label()
         Label5 = New Label()
         PictureBox4 = New PictureBox()
         PictureBox3 = New PictureBox()
         saved_e = New PictureBox()
-        Label6 = New Label()
+        About_Text = New Label()
         Label9 = New Label()
         PictureBox1 = New PictureBox()
         ab_bg = New PictureBox()
         saved_e1 = New PictureBox()
-        box_py = New PictureBox()
-        bg_py = New PictureBox()
-        settings_bg = New PictureBox()
-        text_settings = New Label()
+        Connect_Box = New PictureBox()
+        Connect_Box_Sub = New PictureBox()
+        Settings_List_Box = New PictureBox()
         Load_App = New Timer(components)
         not_save = New Timer(components)
         Privacy_control = New Timer(components)
@@ -203,8 +202,7 @@ Partial Class Base
         d = New Label()
         GAMESFORM = New Timer(components)
         Animation_Engine = New Timer(components)
-        PictureBox7 = New PictureBox()
-        SET_Back = New Panel()
+        index_BT = New PictureBox()
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         shadowplay.SuspendLayout()
         CType(a_3l, ComponentModel.ISupportInitialize).BeginInit()
@@ -253,14 +251,14 @@ Partial Class Base
         CType(PictureBox23, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox24, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox25, ComponentModel.ISupportInitialize).BeginInit()
-        sub_record.SuspendLayout()
+        Menu_Record.SuspendLayout()
         CType(str, ComponentModel.ISupportInitialize).BeginInit()
         CType(stl, ComponentModel.ISupportInitialize).BeginInit()
         CType(stb, ComponentModel.ISupportInitialize).BeginInit()
         CType(st1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Record_Box1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).BeginInit()
         Menu_Replay.SuspendLayout()
         CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).BeginInit()
         CType(r_1r, ComponentModel.ISupportInitialize).BeginInit()
@@ -273,11 +271,11 @@ Partial Class Base
         CType(rsl, ComponentModel.ISupportInitialize).BeginInit()
         CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).BeginInit()
         CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(sub_replay_bg2, ComponentModel.ISupportInitialize).BeginInit()
-        settings_1.SuspendLayout()
-        CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
-        settings_all.SuspendLayout()
+        CType(Menu_Replay_Bg, ComponentModel.ISupportInitialize).BeginInit()
+        Settings_List.SuspendLayout()
+        CType(Settings_List_Top, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Settings_index, ComponentModel.ISupportInitialize).BeginInit()
+        Settings_List_All.SuspendLayout()
         CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
         CType(noy, ComponentModel.ISupportInitialize).BeginInit()
@@ -299,10 +297,10 @@ Partial Class Base
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         CType(ab_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(saved_e1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(box_py, ComponentModel.ISupportInitialize).BeginInit()
-        CType(bg_py, ComponentModel.ISupportInitialize).BeginInit()
-        CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Connect_Box, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Settings_List_Box, ComponentModel.ISupportInitialize).BeginInit()
+        CType(index_BT, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' Logo
@@ -383,6 +381,7 @@ Partial Class Base
         shadowplay.Name = "shadowplay"
         shadowplay.Size = New Size(1280, 483)
         shadowplay.TabIndex = 12
+        shadowplay.Visible = False
         ' 
         ' a_3l
         ' 
@@ -704,9 +703,9 @@ Partial Class Base
         Settings_Text.ForeColor = Color.White
         Settings_Text.Location = New Point(1114, 172)
         Settings_Text.Name = "Settings_Text"
-        Settings_Text.Size = New Size(112, 56)
+        Settings_Text.Size = New Size(116, 56)
         Settings_Text.TabIndex = 81
-        Settings_Text.Text = "Settings"
+        Settings_Text.Text = "l10n.settings"
         Settings_Text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' s1l
@@ -1078,7 +1077,7 @@ Partial Class Base
         Gallery_Text.Name = "Gallery_Text"
         Gallery_Text.Size = New Size(116, 32)
         Gallery_Text.TabIndex = 19
-        Gallery_Text.Text = "Gallery"
+        Gallery_Text.Text = "l10n.gallery"
         Gallery_Text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Share_Text
@@ -1091,7 +1090,7 @@ Partial Class Base
         Share_Text.Name = "Share_Text"
         Share_Text.Size = New Size(116, 42)
         Share_Text.TabIndex = 18
-        Share_Text.Text = "Share"
+        Share_Text.Text = "l10n.upload"
         Share_Text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Share_Logo
@@ -1189,7 +1188,7 @@ Partial Class Base
         ' menu_shadowplay
         ' 
         menu_shadowplay.Controls.Add(Panel1)
-        menu_shadowplay.Controls.Add(sub_record)
+        menu_shadowplay.Controls.Add(Menu_Record)
         menu_shadowplay.Controls.Add(Menu_Replay)
         menu_shadowplay.Location = New Point(280, 237)
         menu_shadowplay.Name = "menu_shadowplay"
@@ -1333,37 +1332,37 @@ Partial Class Base
         PictureBox25.TabIndex = 83
         PictureBox25.TabStop = False
         ' 
-        ' sub_record
+        ' Menu_Record
         ' 
-        sub_record.Controls.Add(Label13)
-        sub_record.Controls.Add(str)
-        sub_record.Controls.Add(stl)
-        sub_record.Controls.Add(stb)
-        sub_record.Controls.Add(st1)
-        sub_record.Controls.Add(Label10)
-        sub_record.Controls.Add(sh_record)
-        sub_record.Controls.Add(icon_record)
-        sub_record.Controls.Add(PictureBox5)
-        sub_record.Controls.Add(PictureBox6)
-        sub_record.Controls.Add(PictureBox18)
-        sub_record.Location = New Point(240, 3)
-        sub_record.Name = "sub_record"
-        sub_record.Size = New Size(240, 148)
-        sub_record.TabIndex = 44
-        sub_record.Visible = False
+        Menu_Record.Controls.Add(Menu_Record_text)
+        Menu_Record.Controls.Add(str)
+        Menu_Record.Controls.Add(stl)
+        Menu_Record.Controls.Add(stb)
+        Menu_Record.Controls.Add(st1)
+        Menu_Record.Controls.Add(Menu_Record_Sttings_text)
+        Menu_Record.Controls.Add(Menu_Record_key)
+        Menu_Record.Controls.Add(Menu_Record_ico)
+        Menu_Record.Controls.Add(Menu_Record_Box1)
+        Menu_Record.Controls.Add(Menu_Record_Box2)
+        Menu_Record.Controls.Add(Menu_Record_Bg)
+        Menu_Record.Location = New Point(240, 3)
+        Menu_Record.Name = "Menu_Record"
+        Menu_Record.Size = New Size(240, 148)
+        Menu_Record.TabIndex = 44
+        Menu_Record.Visible = False
         ' 
-        ' Label13
+        ' Menu_Record_text
         ' 
-        Label13.BackColor = Color.Black
-        Label13.Cursor = Cursors.Hand
-        Label13.Font = New Font("Segoe UI", 14.25F)
-        Label13.ForeColor = Color.White
-        Label13.Location = New Point(37, 3)
-        Label13.Name = "Label13"
-        Label13.Size = New Size(150, 35)
-        Label13.TabIndex = 41
-        Label13.Text = "Start"
-        Label13.TextAlign = ContentAlignment.MiddleLeft
+        Menu_Record_text.BackColor = Color.Black
+        Menu_Record_text.Cursor = Cursors.Hand
+        Menu_Record_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Record_text.ForeColor = Color.White
+        Menu_Record_text.Location = New Point(37, 3)
+        Menu_Record_text.Name = "Menu_Record_text"
+        Menu_Record_text.Size = New Size(150, 35)
+        Menu_Record_text.TabIndex = 41
+        Menu_Record_text.Text = "l10n.start"
+        Menu_Record_text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' str
         ' 
@@ -1408,74 +1407,74 @@ Partial Class Base
         st1.TabStop = False
         st1.Visible = False
         ' 
-        ' Label10
+        ' Menu_Record_Sttings_text
         ' 
-        Label10.BackColor = Color.Black
-        Label10.Cursor = Cursors.Hand
-        Label10.Font = New Font("Segoe UI", 14.25F)
-        Label10.ForeColor = Color.White
-        Label10.Location = New Point(37, 53)
-        Label10.Name = "Label10"
-        Label10.Size = New Size(108, 27)
-        Label10.TabIndex = 45
-        Label10.Text = "Settings"
+        Menu_Record_Sttings_text.BackColor = Color.Black
+        Menu_Record_Sttings_text.Cursor = Cursors.Hand
+        Menu_Record_Sttings_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Record_Sttings_text.ForeColor = Color.White
+        Menu_Record_Sttings_text.Location = New Point(37, 53)
+        Menu_Record_Sttings_text.Name = "Menu_Record_Sttings_text"
+        Menu_Record_Sttings_text.Size = New Size(157, 27)
+        Menu_Record_Sttings_text.TabIndex = 45
+        Menu_Record_Sttings_text.Text = "l10n.settings"
         ' 
-        ' sh_record
+        ' Menu_Record_key
         ' 
-        sh_record.BackColor = Color.Black
-        sh_record.Cursor = Cursors.Hand
-        sh_record.Font = New Font("Segoe UI", 9F)
-        sh_record.ForeColor = Color.Gray
-        sh_record.ImageAlign = ContentAlignment.MiddleRight
-        sh_record.Location = New Point(183, 4)
-        sh_record.Name = "sh_record"
-        sh_record.Size = New Size(51, 35)
-        sh_record.TabIndex = 41
-        sh_record.Text = "Alt+F9"
-        sh_record.TextAlign = ContentAlignment.MiddleRight
+        Menu_Record_key.BackColor = Color.Black
+        Menu_Record_key.Cursor = Cursors.Hand
+        Menu_Record_key.Font = New Font("Segoe UI", 9F)
+        Menu_Record_key.ForeColor = Color.Gray
+        Menu_Record_key.ImageAlign = ContentAlignment.MiddleRight
+        Menu_Record_key.Location = New Point(183, 4)
+        Menu_Record_key.Name = "Menu_Record_key"
+        Menu_Record_key.Size = New Size(51, 35)
+        Menu_Record_key.TabIndex = 41
+        Menu_Record_key.Text = "Alt+F9"
+        Menu_Record_key.TextAlign = ContentAlignment.MiddleRight
         ' 
-        ' icon_record
+        ' Menu_Record_ico
         ' 
-        icon_record.BackColor = Color.Black
-        icon_record.Cursor = Cursors.Hand
-        icon_record.Font = New Font("nvgcshare", 20.25F)
-        icon_record.ForeColor = Color.White
-        icon_record.Location = New Point(3, 3)
-        icon_record.Name = "icon_record"
-        icon_record.RightToLeft = RightToLeft.Yes
-        icon_record.Size = New Size(40, 36)
-        icon_record.TabIndex = 44
-        icon_record.Text = ""
-        icon_record.TextAlign = ContentAlignment.MiddleCenter
+        Menu_Record_ico.BackColor = Color.Black
+        Menu_Record_ico.Cursor = Cursors.Hand
+        Menu_Record_ico.Font = New Font("nvgcshare", 20.25F)
+        Menu_Record_ico.ForeColor = Color.White
+        Menu_Record_ico.Location = New Point(3, 3)
+        Menu_Record_ico.Name = "Menu_Record_ico"
+        Menu_Record_ico.RightToLeft = RightToLeft.Yes
+        Menu_Record_ico.Size = New Size(40, 36)
+        Menu_Record_ico.TabIndex = 44
+        Menu_Record_ico.Text = ""
+        Menu_Record_ico.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' PictureBox5
+        ' Menu_Record_Box1
         ' 
-        PictureBox5.BackColor = Color.Black
-        PictureBox5.Cursor = Cursors.Hand
-        PictureBox5.Location = New Point(0, 0)
-        PictureBox5.Name = "PictureBox5"
-        PictureBox5.Size = New Size(240, 44)
-        PictureBox5.TabIndex = 0
-        PictureBox5.TabStop = False
+        Menu_Record_Box1.BackColor = Color.Black
+        Menu_Record_Box1.Cursor = Cursors.Hand
+        Menu_Record_Box1.Location = New Point(0, 0)
+        Menu_Record_Box1.Name = "Menu_Record_Box1"
+        Menu_Record_Box1.Size = New Size(240, 44)
+        Menu_Record_Box1.TabIndex = 0
+        Menu_Record_Box1.TabStop = False
         ' 
-        ' PictureBox6
+        ' Menu_Record_Box2
         ' 
-        PictureBox6.BackColor = Color.Black
-        PictureBox6.Cursor = Cursors.Hand
-        PictureBox6.Location = New Point(0, 45)
-        PictureBox6.Name = "PictureBox6"
-        PictureBox6.Size = New Size(240, 44)
-        PictureBox6.TabIndex = 42
-        PictureBox6.TabStop = False
+        Menu_Record_Box2.BackColor = Color.Black
+        Menu_Record_Box2.Cursor = Cursors.Hand
+        Menu_Record_Box2.Location = New Point(0, 45)
+        Menu_Record_Box2.Name = "Menu_Record_Box2"
+        Menu_Record_Box2.Size = New Size(240, 44)
+        Menu_Record_Box2.TabIndex = 42
+        Menu_Record_Box2.TabStop = False
         ' 
-        ' PictureBox18
+        ' Menu_Record_Bg
         ' 
-        PictureBox18.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        PictureBox18.Location = New Point(0, 1)
-        PictureBox18.Name = "PictureBox18"
-        PictureBox18.Size = New Size(240, 54)
-        PictureBox18.TabIndex = 83
-        PictureBox18.TabStop = False
+        Menu_Record_Bg.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
+        Menu_Record_Bg.Location = New Point(0, 1)
+        Menu_Record_Bg.Name = "Menu_Record_Bg"
+        Menu_Record_Bg.Size = New Size(240, 54)
+        Menu_Record_Bg.TabIndex = 83
+        Menu_Record_Bg.TabStop = False
         ' 
         ' Menu_Replay
         ' 
@@ -1497,7 +1496,7 @@ Partial Class Base
         Menu_Replay.Controls.Add(rsl)
         Menu_Replay.Controls.Add(Menu_Replay_Box2)
         Menu_Replay.Controls.Add(Menu_Replay_Box1)
-        Menu_Replay.Controls.Add(sub_replay_bg2)
+        Menu_Replay.Controls.Add(Menu_Replay_Bg)
         Menu_Replay.Location = New Point(0, 3)
         Menu_Replay.Name = "Menu_Replay"
         Menu_Replay.Size = New Size(240, 171)
@@ -1527,7 +1526,7 @@ Partial Class Base
         Menu_Replay_text.Name = "Menu_Replay_text"
         Menu_Replay_text.Size = New Size(118, 35)
         Menu_Replay_text.TabIndex = 41
-        Menu_Replay_text.Text = "Turn on"
+        Menu_Replay_text.Text = "l10n.instantReplayStart"
         Menu_Replay_text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Menu_Replay_ico
@@ -1552,9 +1551,9 @@ Partial Class Base
         Menu_Replay_Sttings_text.ForeColor = Color.White
         Menu_Replay_Sttings_text.Location = New Point(37, 92)
         Menu_Replay_Sttings_text.Name = "Menu_Replay_Sttings_text"
-        Menu_Replay_Sttings_text.Size = New Size(91, 34)
+        Menu_Replay_Sttings_text.Size = New Size(170, 34)
         Menu_Replay_Sttings_text.TabIndex = 85
-        Menu_Replay_Sttings_text.Text = "Settings"
+        Menu_Replay_Sttings_text.Text = "l10n.settings"
         Menu_Replay_Sttings_text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Menu_Replay_Box3
@@ -1643,7 +1642,7 @@ Partial Class Base
         Menu_Replay_save_text.Name = "Menu_Replay_save_text"
         Menu_Replay_save_text.Size = New Size(118, 33)
         Menu_Replay_save_text.TabIndex = 45
-        Menu_Replay_save_text.Text = "Saved"
+        Menu_Replay_save_text.Text = "l10n.Saved"
         Menu_Replay_save_text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Menu_Replay_save_key
@@ -1715,14 +1714,14 @@ Partial Class Base
         Menu_Replay_Box1.TabIndex = 0
         Menu_Replay_Box1.TabStop = False
         ' 
-        ' sub_replay_bg2
+        ' Menu_Replay_Bg
         ' 
-        sub_replay_bg2.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        sub_replay_bg2.Location = New Point(0, 53)
-        sub_replay_bg2.Name = "sub_replay_bg2"
-        sub_replay_bg2.Size = New Size(240, 64)
-        sub_replay_bg2.TabIndex = 90
-        sub_replay_bg2.TabStop = False
+        Menu_Replay_Bg.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
+        Menu_Replay_Bg.Location = New Point(0, 53)
+        Menu_Replay_Bg.Name = "Menu_Replay_Bg"
+        Menu_Replay_Bg.Size = New Size(240, 64)
+        Menu_Replay_Bg.TabIndex = 90
+        Menu_Replay_Bg.TabStop = False
         ' 
         ' Name_action
         ' 
@@ -1737,114 +1736,114 @@ Partial Class Base
         Name_action.Text = "{press} alt + z Show {}"
         Name_action.Visible = False
         ' 
-        ' settings_1
+        ' Settings_List
         ' 
-        settings_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
-        settings_1.BackColor = Color.Red
-        settings_1.Controls.Add(settings_top)
-        settings_1.Controls.Add(Home_settings)
-        settings_1.Controls.Add(PictureBox8)
-        settings_1.Controls.Add(settings_all)
-        settings_1.Controls.Add(settings_bg)
-        settings_1.Location = New Point(80, 160)
-        settings_1.Name = "settings_1"
-        settings_1.Size = New Size(358, 840)
-        settings_1.TabIndex = 42
-        settings_1.Visible = False
+        Settings_List.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
+        Settings_List.BackColor = Color.Red
+        Settings_List.Controls.Add(Settings_List_Top)
+        Settings_List.Controls.Add(Settings_List_Text)
+        Settings_List.Controls.Add(Settings_index)
+        Settings_List.Controls.Add(Settings_List_All)
+        Settings_List.Controls.Add(Settings_List_Box)
+        Settings_List.Location = New Point(80, 160)
+        Settings_List.Name = "Settings_List"
+        Settings_List.Size = New Size(358, 840)
+        Settings_List.TabIndex = 42
+        Settings_List.Visible = False
         ' 
-        ' settings_top
+        ' Settings_List_Top
         ' 
-        settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        settings_top.Location = New Point(0, 0)
-        settings_top.Name = "settings_top"
-        settings_top.Size = New Size(335, 5)
-        settings_top.TabIndex = 0
-        settings_top.TabStop = False
+        Settings_List_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Settings_List_Top.Location = New Point(0, 0)
+        Settings_List_Top.Name = "Settings_List_Top"
+        Settings_List_Top.Size = New Size(335, 5)
+        Settings_List_Top.TabIndex = 0
+        Settings_List_Top.TabStop = False
         ' 
-        ' Home_settings
+        ' Settings_List_Text
         ' 
-        Home_settings.AutoSize = True
-        Home_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Home_settings.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
-        Home_settings.ForeColor = Color.White
-        Home_settings.Location = New Point(32, 41)
-        Home_settings.Name = "Home_settings"
-        Home_settings.Size = New Size(175, 21)
-        Home_settings.TabIndex = 43
-        Home_settings.Text = "l10n.preferencesHome"
+        Settings_List_Text.AutoSize = True
+        Settings_List_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Settings_List_Text.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
+        Settings_List_Text.ForeColor = Color.White
+        Settings_List_Text.Location = New Point(32, 41)
+        Settings_List_Text.Name = "Settings_List_Text"
+        Settings_List_Text.Size = New Size(175, 21)
+        Settings_List_Text.TabIndex = 43
+        Settings_List_Text.Text = "l10n.preferencesHome"
         ' 
-        ' PictureBox8
+        ' Settings_index
         ' 
-        PictureBox8.BackColor = Color.Red
-        PictureBox8.Location = New Point(335, 79)
-        PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New Size(23, 761)
-        PictureBox8.TabIndex = 74
-        PictureBox8.TabStop = False
+        Settings_index.BackColor = Color.Red
+        Settings_index.Location = New Point(335, 79)
+        Settings_index.Name = "Settings_index"
+        Settings_index.Size = New Size(23, 761)
+        Settings_index.TabIndex = 74
+        Settings_index.TabStop = False
         ' 
-        ' settings_all
+        ' Settings_List_All
         ' 
-        settings_all.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
-        settings_all.AutoScroll = True
-        settings_all.AutoScrollMargin = New Size(0, 1)
-        settings_all.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        settings_all.Controls.Add(text_py)
-        settings_all.Controls.Add(vdo_setme)
-        settings_all.Controls.Add(Label19)
-        settings_all.Controls.Add(PictureBox14)
-        settings_all.Controls.Add(nott)
-        settings_all.Controls.Add(noty)
-        settings_all.Controls.Add(PictureBox17)
-        settings_all.Controls.Add(noy)
-        settings_all.Controls.Add(PictureBox15)
-        settings_all.Controls.Add(Label21)
-        settings_all.Controls.Add(Label22)
-        settings_all.Controls.Add(PictureBox16)
-        settings_all.Controls.Add(hg2)
-        settings_all.Controls.Add(PictureBox12)
-        settings_all.Controls.Add(Label20)
-        settings_all.Controls.Add(PictureBox13)
-        settings_all.Controls.Add(vd1)
-        settings_all.Controls.Add(PictureBox2)
-        settings_all.Controls.Add(Label17)
-        settings_all.Controls.Add(Label18)
-        settings_all.Controls.Add(PictureBox11)
-        settings_all.Controls.Add(k1)
-        settings_all.Controls.Add(Label12)
-        settings_all.Controls.Add(Label15)
-        settings_all.Controls.Add(PictureBox10)
-        settings_all.Controls.Add(PictureBox9)
-        settings_all.Controls.Add(hub)
-        settings_all.Controls.Add(logo_py)
-        settings_all.Controls.Add(Label4)
-        settings_all.Controls.Add(Label5)
-        settings_all.Controls.Add(PictureBox4)
-        settings_all.Controls.Add(PictureBox3)
-        settings_all.Controls.Add(saved_e)
-        settings_all.Controls.Add(Label6)
-        settings_all.Controls.Add(Label9)
-        settings_all.Controls.Add(PictureBox1)
-        settings_all.Controls.Add(ab_bg)
-        settings_all.Controls.Add(saved_e1)
-        settings_all.Controls.Add(box_py)
-        settings_all.Controls.Add(bg_py)
-        settings_all.Location = New Point(32, 93)
-        settings_all.Name = "settings_all"
-        settings_all.Size = New Size(326, 716)
-        settings_all.TabIndex = 73
+        Settings_List_All.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
+        Settings_List_All.AutoScroll = True
+        Settings_List_All.AutoScrollMargin = New Size(0, 1)
+        Settings_List_All.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Settings_List_All.Controls.Add(Connect_Text)
+        Settings_List_All.Controls.Add(vdo_setme)
+        Settings_List_All.Controls.Add(Label19)
+        Settings_List_All.Controls.Add(PictureBox14)
+        Settings_List_All.Controls.Add(nott)
+        Settings_List_All.Controls.Add(noty)
+        Settings_List_All.Controls.Add(PictureBox17)
+        Settings_List_All.Controls.Add(noy)
+        Settings_List_All.Controls.Add(PictureBox15)
+        Settings_List_All.Controls.Add(Label21)
+        Settings_List_All.Controls.Add(Label22)
+        Settings_List_All.Controls.Add(PictureBox16)
+        Settings_List_All.Controls.Add(hg2)
+        Settings_List_All.Controls.Add(PictureBox12)
+        Settings_List_All.Controls.Add(Label20)
+        Settings_List_All.Controls.Add(PictureBox13)
+        Settings_List_All.Controls.Add(vd1)
+        Settings_List_All.Controls.Add(PictureBox2)
+        Settings_List_All.Controls.Add(Label17)
+        Settings_List_All.Controls.Add(Label18)
+        Settings_List_All.Controls.Add(PictureBox11)
+        Settings_List_All.Controls.Add(k1)
+        Settings_List_All.Controls.Add(Label12)
+        Settings_List_All.Controls.Add(Label15)
+        Settings_List_All.Controls.Add(PictureBox10)
+        Settings_List_All.Controls.Add(PictureBox9)
+        Settings_List_All.Controls.Add(hub)
+        Settings_List_All.Controls.Add(Connect_ICO)
+        Settings_List_All.Controls.Add(Label4)
+        Settings_List_All.Controls.Add(Label5)
+        Settings_List_All.Controls.Add(PictureBox4)
+        Settings_List_All.Controls.Add(PictureBox3)
+        Settings_List_All.Controls.Add(saved_e)
+        Settings_List_All.Controls.Add(About_Text)
+        Settings_List_All.Controls.Add(Label9)
+        Settings_List_All.Controls.Add(PictureBox1)
+        Settings_List_All.Controls.Add(ab_bg)
+        Settings_List_All.Controls.Add(saved_e1)
+        Settings_List_All.Controls.Add(Connect_Box)
+        Settings_List_All.Controls.Add(Connect_Box_Sub)
+        Settings_List_All.Location = New Point(32, 93)
+        Settings_List_All.Name = "Settings_List_All"
+        Settings_List_All.Size = New Size(326, 716)
+        Settings_List_All.TabIndex = 73
         ' 
-        ' text_py
+        ' Connect_Text
         ' 
-        text_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        text_py.Cursor = Cursors.Hand
-        text_py.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        text_py.ForeColor = Color.White
-        text_py.Location = New Point(60, 2)
-        text_py.Name = "text_py"
-        text_py.Size = New Size(131, 56)
-        text_py.TabIndex = 47
-        text_py.Text = "l10n.connect"
-        text_py.TextAlign = ContentAlignment.MiddleLeft
+        Connect_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Connect_Text.Cursor = Cursors.Hand
+        Connect_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Connect_Text.ForeColor = Color.White
+        Connect_Text.Location = New Point(60, 2)
+        Connect_Text.Name = "Connect_Text"
+        Connect_Text.Size = New Size(208, 56)
+        Connect_Text.TabIndex = 47
+        Connect_Text.Text = "l10n.connect"
+        Connect_Text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' vdo_setme
         ' 
@@ -1854,7 +1853,7 @@ Partial Class Base
         vdo_setme.ForeColor = Color.Gray
         vdo_setme.Location = New Point(61, 350)
         vdo_setme.Name = "vdo_setme"
-        vdo_setme.Size = New Size(196, 26)
+        vdo_setme.Size = New Size(207, 26)
         vdo_setme.TabIndex = 68
         vdo_setme.Text = "Instant Replay, Record, and Highlight"
         ' 
@@ -1866,7 +1865,7 @@ Partial Class Base
         Label19.ForeColor = Color.White
         Label19.Location = New Point(60, 321)
         Label19.Name = "Label19"
-        Label19.Size = New Size(156, 40)
+        Label19.Size = New Size(208, 40)
         Label19.TabIndex = 83
         Label19.Text = "l10n.videoCapture"
         Label19.TextAlign = ContentAlignment.MiddleLeft
@@ -1890,7 +1889,7 @@ Partial Class Base
         nott.ForeColor = Color.White
         nott.Location = New Point(60, 400)
         nott.Name = "nott"
-        nott.Size = New Size(168, 56)
+        nott.Size = New Size(208, 56)
         nott.TabIndex = 93
         nott.Text = "l10n.notifications"
         nott.TextAlign = ContentAlignment.MiddleLeft
@@ -1947,7 +1946,7 @@ Partial Class Base
         Label21.ForeColor = Color.White
         Label21.Location = New Point(60, 161)
         Label21.Name = "Label21"
-        Label21.Size = New Size(156, 56)
+        Label21.Size = New Size(208, 56)
         Label21.TabIndex = 88
         Label21.Text = "l10n.highlights"
         Label21.TextAlign = ContentAlignment.MiddleLeft
@@ -2048,7 +2047,7 @@ Partial Class Base
         Label17.ForeColor = Color.White
         Label17.Location = New Point(60, 240)
         Label17.Name = "Label17"
-        Label17.Size = New Size(186, 56)
+        Label17.Size = New Size(208, 56)
         Label17.TabIndex = 78
         Label17.Text = "l10n.keyboardShortcuts"
         Label17.TextAlign = ContentAlignment.MiddleLeft
@@ -2094,7 +2093,7 @@ Partial Class Base
         Label12.ForeColor = Color.White
         Label12.Location = New Point(60, 81)
         Label12.Name = "Label12"
-        Label12.Size = New Size(131, 56)
+        Label12.Size = New Size(208, 56)
         Label12.TabIndex = 74
         Label12.Text = "l10n.hudLayout"
         Label12.TextAlign = ContentAlignment.MiddleLeft
@@ -2143,18 +2142,18 @@ Partial Class Base
         hub.TabIndex = 70
         hub.TabStop = False
         ' 
-        ' logo_py
+        ' Connect_ICO
         ' 
-        logo_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        logo_py.Cursor = Cursors.Hand
-        logo_py.Font = New Font("nvgcshare", 26F)
-        logo_py.ForeColor = Color.White
-        logo_py.Location = New Point(3, 2)
-        logo_py.Name = "logo_py"
-        logo_py.Size = New Size(63, 56)
-        logo_py.TabIndex = 46
-        logo_py.Text = ""
-        logo_py.TextAlign = ContentAlignment.MiddleCenter
+        Connect_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Connect_ICO.Cursor = Cursors.Hand
+        Connect_ICO.Font = New Font("nvgcshare", 26F)
+        Connect_ICO.ForeColor = Color.White
+        Connect_ICO.Location = New Point(3, 2)
+        Connect_ICO.Name = "Connect_ICO"
+        Connect_ICO.Size = New Size(63, 56)
+        Connect_ICO.TabIndex = 46
+        Connect_ICO.Text = ""
+        Connect_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Label4
         ' 
@@ -2164,9 +2163,9 @@ Partial Class Base
         Label4.ForeColor = Color.White
         Label4.Location = New Point(60, 479)
         Label4.Name = "Label4"
-        Label4.Size = New Size(156, 56)
+        Label4.Size = New Size(208, 56)
         Label4.TabIndex = 67
-        Label4.Text = "Privacy control"
+        Label4.Text = "l10n.privacyControl"
         Label4.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Label5
@@ -2214,18 +2213,18 @@ Partial Class Base
         saved_e.TabIndex = 49
         saved_e.TabStop = False
         ' 
-        ' Label6
+        ' About_Text
         ' 
-        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label6.Cursor = Cursors.Hand
-        Label6.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        Label6.ForeColor = Color.White
-        Label6.Location = New Point(60, 560)
-        Label6.Name = "Label6"
-        Label6.Size = New Size(186, 56)
-        Label6.TabIndex = 63
-        Label6.Text = "About"
-        Label6.TextAlign = ContentAlignment.MiddleLeft
+        About_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        About_Text.Cursor = Cursors.Hand
+        About_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        About_Text.ForeColor = Color.White
+        About_Text.Location = New Point(60, 560)
+        About_Text.Name = "About_Text"
+        About_Text.Size = New Size(208, 56)
+        About_Text.TabIndex = 63
+        About_Text.Text = "l10n.about"
+        About_Text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Label9
         ' 
@@ -2270,47 +2269,34 @@ Partial Class Base
         saved_e1.TabIndex = 48
         saved_e1.TabStop = False
         ' 
-        ' box_py
+        ' Connect_Box
         ' 
-        box_py.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        box_py.Cursor = Cursors.Hand
-        box_py.Location = New Point(2, 2)
-        box_py.Name = "box_py"
-        box_py.Size = New Size(266, 56)
-        box_py.TabIndex = 45
-        box_py.TabStop = False
+        Connect_Box.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Connect_Box.Cursor = Cursors.Hand
+        Connect_Box.Location = New Point(2, 2)
+        Connect_Box.Name = "Connect_Box"
+        Connect_Box.Size = New Size(266, 56)
+        Connect_Box.TabIndex = 45
+        Connect_Box.TabStop = False
         ' 
-        ' bg_py
+        ' Connect_Box_Sub
         ' 
-        bg_py.BackColor = Color.DimGray
-        bg_py.Cursor = Cursors.Hand
-        bg_py.Location = New Point(0, 0)
-        bg_py.Name = "bg_py"
-        bg_py.Size = New Size(270, 60)
-        bg_py.TabIndex = 44
-        bg_py.TabStop = False
+        Connect_Box_Sub.BackColor = Color.DimGray
+        Connect_Box_Sub.Cursor = Cursors.Hand
+        Connect_Box_Sub.Location = New Point(0, 0)
+        Connect_Box_Sub.Name = "Connect_Box_Sub"
+        Connect_Box_Sub.Size = New Size(270, 60)
+        Connect_Box_Sub.TabIndex = 44
+        Connect_Box_Sub.TabStop = False
         ' 
-        ' settings_bg
+        ' Settings_List_Box
         ' 
-        settings_bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        settings_bg.Location = New Point(0, -133)
-        settings_bg.Name = "settings_bg"
-        settings_bg.Size = New Size(335, 973)
-        settings_bg.TabIndex = 1
-        settings_bg.TabStop = False
-        ' 
-        ' text_settings
-        ' 
-        text_settings.Anchor = AnchorStyles.Bottom
-        text_settings.BackColor = Color.Black
-        text_settings.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
-        text_settings.ForeColor = Color.White
-        text_settings.Location = New Point(80, 172)
-        text_settings.Name = "text_settings"
-        text_settings.Size = New Size(162, 21)
-        text_settings.TabIndex = 56
-        text_settings.Text = "Settings"
-        text_settings.TextAlign = ContentAlignment.MiddleCenter
+        Settings_List_Box.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Settings_List_Box.Location = New Point(0, -133)
+        Settings_List_Box.Name = "Settings_List_Box"
+        Settings_List_Box.Size = New Size(335, 973)
+        Settings_List_Box.TabIndex = 1
+        Settings_List_Box.TabStop = False
         ' 
         ' not_save
         ' 
@@ -2364,23 +2350,16 @@ Partial Class Base
         ' 
         Animation_Engine.Interval = 1
         ' 
-        ' PictureBox7
+        ' index_BT
         ' 
-        PictureBox7.BackColor = Color.Blue
-        PictureBox7.BackgroundImageLayout = ImageLayout.None
-        PictureBox7.Location = New Point(383, 1000)
-        PictureBox7.Name = "PictureBox7"
-        PictureBox7.Size = New Size(80, 80)
-        PictureBox7.TabIndex = 87
-        PictureBox7.TabStop = False
-        PictureBox7.Visible = False
-        ' 
-        ' SET_Back
-        ' 
-        SET_Back.Location = New Point(461, 516)
-        SET_Back.Name = "SET_Back"
-        SET_Back.Size = New Size(335, 125)
-        SET_Back.TabIndex = 88
+        index_BT.BackColor = Color.Blue
+        index_BT.BackgroundImageLayout = ImageLayout.None
+        index_BT.Location = New Point(383, 1000)
+        index_BT.Name = "index_BT"
+        index_BT.Size = New Size(80, 80)
+        index_BT.TabIndex = 87
+        index_BT.TabStop = False
+        index_BT.Visible = False
         ' 
         ' Base
         ' 
@@ -2388,15 +2367,13 @@ Partial Class Base
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1080)
-        Controls.Add(settings_1)
-        Controls.Add(PictureBox7)
+        Controls.Add(Settings_List)
+        Controls.Add(index_BT)
         Controls.Add(shadowplay)
-        Controls.Add(SET_Back)
         Controls.Add(d)
         Controls.Add(ME_CLOSE_BG)
         Controls.Add(Logo)
         Controls.Add(Name_action)
-        Controls.Add(text_settings)
         DoubleBuffered = True
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
@@ -2456,14 +2433,14 @@ Partial Class Base
         CType(PictureBox23, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox24, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox25, ComponentModel.ISupportInitialize).EndInit()
-        sub_record.ResumeLayout(False)
+        Menu_Record.ResumeLayout(False)
         CType(str, ComponentModel.ISupportInitialize).EndInit()
         CType(stl, ComponentModel.ISupportInitialize).EndInit()
         CType(stb, ComponentModel.ISupportInitialize).EndInit()
         CType(st1, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox18, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Record_Box1, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).EndInit()
         Menu_Replay.ResumeLayout(False)
         CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).EndInit()
         CType(r_1r, ComponentModel.ISupportInitialize).EndInit()
@@ -2476,12 +2453,12 @@ Partial Class Base
         CType(rsl, ComponentModel.ISupportInitialize).EndInit()
         CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).EndInit()
         CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).EndInit()
-        CType(sub_replay_bg2, ComponentModel.ISupportInitialize).EndInit()
-        settings_1.ResumeLayout(False)
-        settings_1.PerformLayout()
-        CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
-        settings_all.ResumeLayout(False)
+        CType(Menu_Replay_Bg, ComponentModel.ISupportInitialize).EndInit()
+        Settings_List.ResumeLayout(False)
+        Settings_List.PerformLayout()
+        CType(Settings_List_Top, ComponentModel.ISupportInitialize).EndInit()
+        CType(Settings_index, ComponentModel.ISupportInitialize).EndInit()
+        Settings_List_All.ResumeLayout(False)
         CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
         CType(noy, ComponentModel.ISupportInitialize).EndInit()
@@ -2503,10 +2480,10 @@ Partial Class Base
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
         CType(ab_bg, ComponentModel.ISupportInitialize).EndInit()
         CType(saved_e1, ComponentModel.ISupportInitialize).EndInit()
-        CType(box_py, ComponentModel.ISupportInitialize).EndInit()
-        CType(bg_py, ComponentModel.ISupportInitialize).EndInit()
-        CType(settings_bg, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
+        CType(Connect_Box, ComponentModel.ISupportInitialize).EndInit()
+        CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).EndInit()
+        CType(Settings_List_Box, ComponentModel.ISupportInitialize).EndInit()
+        CType(index_BT, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -2542,13 +2519,13 @@ Partial Class Base
     Friend WithEvents Key_Mode3 As Label
     Friend WithEvents Key_Mode2 As Label
     Friend WithEvents Name_action As Label
-    Friend WithEvents settings_1 As Panel
-    Friend WithEvents settings_top As PictureBox
-    Friend WithEvents Home_settings As Label
-    Friend WithEvents bg_py As PictureBox
-    Friend WithEvents logo_py As Label
-    Friend WithEvents box_py As PictureBox
-    Friend WithEvents text_py As Label
+    Friend WithEvents Settings_List As Panel
+    Friend WithEvents Settings_List_Top As PictureBox
+    Friend WithEvents Settings_List_Text As Label
+    Friend WithEvents Connect_Box_Sub As PictureBox
+    Friend WithEvents Connect_ICO As Label
+    Friend WithEvents Connect_Box As PictureBox
+    Friend WithEvents Connect_Text As Label
     Friend WithEvents menu_shadowplay As Panel
     Friend WithEvents Menu_Replay_Box1 As PictureBox
     Friend WithEvents Menu_Replay_Box2 As PictureBox
@@ -2562,10 +2539,9 @@ Partial Class Base
     Friend WithEvents Load_App As Timer
     Friend WithEvents saved_e As PictureBox
     Friend WithEvents saved_e1 As PictureBox
-    Friend WithEvents text_settings As Label
-    Friend WithEvents settings_bg As PictureBox
+    Friend WithEvents Settings_List_Box As PictureBox
     Friend WithEvents PictureBox3 As PictureBox
-    Friend WithEvents Label6 As Label
+    Friend WithEvents About_Text As Label
     Friend WithEvents Label9 As Label
     Friend WithEvents PictureBox1 As PictureBox
     Friend WithEvents ab_bg As PictureBox
@@ -2573,20 +2549,20 @@ Partial Class Base
     Friend WithEvents a_3 As PictureBox
     Friend WithEvents a_2 As PictureBox
     Friend WithEvents a_1 As PictureBox
-    Friend WithEvents sub_record As Panel
-    Friend WithEvents Label10 As Label
-    Friend WithEvents sh_record As Label
-    Friend WithEvents Label13 As Label
-    Friend WithEvents icon_record As Label
-    Friend WithEvents PictureBox5 As PictureBox
-    Friend WithEvents PictureBox6 As PictureBox
+    Friend WithEvents Menu_Record As Panel
+    Friend WithEvents Menu_Record_Sttings_text As Label
+    Friend WithEvents Menu_Record_key As Label
+    Friend WithEvents Menu_Record_text As Label
+    Friend WithEvents Menu_Record_ico As Label
+    Friend WithEvents Menu_Record_Box1 As PictureBox
+    Friend WithEvents Menu_Record_Box2 As PictureBox
     Friend WithEvents not_save As Timer
     Friend WithEvents Label4 As Label
     Friend WithEvents Label5 As Label
     Friend WithEvents Privacy_control As Timer
     Friend WithEvents bg_action As Label
     Friend WithEvents Menu_Replay_save_key As Label
-    Friend WithEvents settings_all As Panel
+    Friend WithEvents Settings_List_All As Panel
     Friend WithEvents Label12 As Label
     Friend WithEvents Label15 As Label
     Friend WithEvents PictureBox10 As PictureBox
@@ -2666,10 +2642,10 @@ Partial Class Base
     Friend WithEvents ME_CLOSE_BG As Label
     Friend WithEvents d As Label
     Friend WithEvents Mode_Menu As Panel
-    Friend WithEvents PictureBox18 As PictureBox
+    Friend WithEvents Menu_Record_Bg As PictureBox
     Friend WithEvents Menu_Replay_Sttings_text As Label
     Friend WithEvents Menu_Replay_Box3 As PictureBox
-    Friend WithEvents sub_replay_bg2 As PictureBox
+    Friend WithEvents Menu_Replay_Bg As PictureBox
     Friend WithEvents Panel1 As Panel
     Friend WithEvents PictureBox19 As PictureBox
     Friend WithEvents PictureBox20 As PictureBox
@@ -2684,8 +2660,7 @@ Partial Class Base
     Friend WithEvents PictureBox25 As PictureBox
     Friend WithEvents GAMESFORM As Timer
     Friend WithEvents Animation_Engine As Timer
-    Friend WithEvents PictureBox8 As PictureBox
-    Friend WithEvents PictureBox7 As PictureBox
-    Friend WithEvents SET_Back As Panel
+    Friend WithEvents Settings_index As PictureBox
+    Friend WithEvents index_BT As PictureBox
 
 End Class

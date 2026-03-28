@@ -35,8 +35,12 @@
     "l10n.test": "test",
     "l10n.testpng": "testpng",
     "l10n.testarg": "{{arg2}} test {{arg1}}",
-    "l10n.ramwram": "Low system memory may affect NVIDIA ShadowPlay performance.",
+    "l10n.ramwram": "System memory usage is high. Video recording performance may be affected.",
+    "l10n.ramwram95": "System memory is critically low. Please close unnecessary applications.",
+    "l10n.ramwramcritical": "System memory is full. Close applications to prevent recording issues.",
     "l10n.cpuwram": "High CPU usage may affect the performance of NVIDIA ShadowPlay.",
+    "l10n.about": "About",
+    "l10n.diskspacelow": "Storage space is low. Please delete files or change the recording location.",
 
 
     "l10n.instantReplay": "Instant Replay",

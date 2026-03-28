@@ -1004,6 +1004,7 @@ Partial Class Base_RecordingsSet
         vdo_resetall.TabIndex = 70
         vdo_resetall.Text = "Reset All"
         vdo_resetall.TextAlign = ContentAlignment.MiddleCenter
+        vdo_resetall.Visible = False
         ' 
         ' action_fn
         ' 

@@ -43,11 +43,11 @@ Public Class Base_Settings
         Me.Hide()
         Base.ME_CLOSE_BG.Visible = True
         Base.d.Visible = True
-        Base.SET_Back.Visible = True
         Base.Opacity = 0.85
-        Base.settings_1.Visible = False
+        Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True
-        Base.ShowMainPanel()   ' ใช้ ShowMainPanel แทน ALT_Z.Start()
+        Base.ShowMainPanel()
+        AppSettings.Instance.Save()
     End Sub
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -57,7 +57,16 @@ Public Class Base_Settings
     Private Sub Back_btn_Click(sender As Object, e As EventArgs) Handles Back_btn.Click
         Me.Hide()
     End Sub
-
+    Private _delayTimer As Timer
+    Private Sub RefreshAllControls(parent As Control)
+        parent.Refresh()
+        For Each ctrl As Control In parent.Controls
+            ctrl.Refresh()
+            If ctrl.HasChildren Then
+                RefreshAllControls(ctrl)
+            End If
+        Next
+    End Sub
     Private Sub SW_lang_Click(sender As Object, e As EventArgs) Handles SW_lang.Click
         Dim langFolder = Path.Combine(Application.StartupPath, "Languages")
         Dim currentFile = Path.Combine(langFolder, "current.txt")
@@ -89,9 +98,36 @@ Public Class Base_Settings
 
         ' ตั้งชื่อปุ่มจาก JSON
         SW_lang.Text = LangHelper.GetText("meta.languageName")
+        AppSettings.Instance.Save()
+
+
+        Me.Hide()
+        Base.ME_CLOSE_BG.Visible = True
+        Base.d.Visible = True
+        Base.Opacity = 0.85
+        Base.Settings_List.Visible = False
+        Base.shadowplay.Visible = True
+        Base.ShowMainPanel()
+        AppSettings.Instance.Save()
+        Base.HideAllControls()
+
+        ' ✅ Refresh ทุกอย่าง
+        RefreshAllControls(Base)
+        RefreshAllControls(Me)
+        Application.DoEvents()
+
+        ' Delay
+        _delayTimer = New Timer()
+        _delayTimer.Interval = 100
+        AddHandler _delayTimer.Tick, Sub()
+                                         _delayTimer.Stop()
+                                         _delayTimer.Dispose()
+                                         Base.ShowMainPanel()
+                                         Base.OpenSettings()
+                                         Base.ShowNotifier("notificationOpenShare")
+                                     End Sub
+        _delayTimer.Start()
     End Sub
 
-    Private Sub text_settings_Click(sender As Object, e As EventArgs) Handles text_settings.Click
-        ' ไม่ต้องทำอะไร
-    End Sub
+
 End Class

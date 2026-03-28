@@ -51,8 +51,8 @@ Public Class Shadow
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         HideFromAltTab()
         Notifier_Sub.TopMost = True
-        Me.Left = Notifier_Sub.Left
-        Me.Top = Notifier_Sub.Top
+        Me.Left = Notifier.Left
+        Me.Top = Notifier.Top
     End Sub
 
     <DllImport("dwmapi.dll")>

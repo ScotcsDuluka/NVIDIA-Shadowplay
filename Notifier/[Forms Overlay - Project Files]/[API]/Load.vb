@@ -221,7 +221,10 @@ Public Class Load
         notifications.Add(New NotificationData("l10n.notificationWarningDesktopCaptureDisabled", "", False, Color.White))
         notifications.Add(New NotificationData("l10n.notificationScreenshotSavedToGallery", "", False, Color.White))
         notifications.Add(New NotificationData("l10n.ramwram", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.ramwram95", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.ramwramcritical", "", False, Color.White))
         notifications.Add(New NotificationData("l10n.cpuwram", "", False, Color.White))
+        notifications.Add(New NotificationData("l10n.diskspacelow", "", False, Color.White))
 
         ' === Notifications with args ===
         notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))
@@ -310,20 +313,71 @@ Public Class Load
 
 
     Private Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color)
-        Notifier.autoClose.Stop()
-        Notifier_Sub.TopMost = True
-        Notifier.Show()
+        ' Ensure UI thread
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor))
+            Return
+        End If
 
+        Notifier.autoClose.Stop()
+        Notifier.autoClose.Start()
+        Notifier_Sub.TopMost = True
+
+        If Notifier.Notifier_green_stop.Visible Then
+            ' Close sub + Slide out
+            AllowClose = True
+            Notifier_Sub.Close()
+
+            ' Force UI update before animation
+            Application.DoEvents()
+
+            Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
+
+            ' Update content
+            With Notifier_Sub.icon_n
+                .Font = New Font(.Font.FontFamily, 35)
+                .ForeColor = iconColor
+                .Text = icon
+            End With
+            Notifier_Sub.text_n.Text = message
+            Notifier_Sub.PictureBox1.Visible = showImage
+
+            ' Delay then slide back in
+            Dim delay As New Timer()
+            delay.Interval = 200
+            AddHandler delay.Tick, Sub()
+                                       delay.Stop()
+                                       delay.Dispose()
+
+                                       Notifier.StartSlide(
+                                       Notifier.Notifier_black,
+                                       Notifier.Width,
+                                       Notifier.Width - 300,
+                                       300,
+                                       Sub()
+                                           Notifier_Sub.Show()
+                                       End Sub
+                                   )
+                                   End Sub
+            delay.Start()
+            AllowClose = False
+            Exit Sub
+        End If
+
+        ' First show
+        Notifier.Show()
         With Notifier_Sub.icon_n
             .Font = New Font(.Font.FontFamily, 35)
             .ForeColor = iconColor
             .Text = icon
         End With
-
         Notifier_Sub.text_n.Text = message
         Notifier_Sub.PictureBox1.Visible = showImage
-        Notifier.autoClose.Start()
     End Sub
+
+
+
+
     Private Sub SafeDelete(path As String)
 
         For i As Integer = 0 To 5

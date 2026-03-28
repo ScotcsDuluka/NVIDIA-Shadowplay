@@ -1,8 +1,11 @@
+Imports System.Diagnostics
 Imports System.IO
+Imports System.Net.Http.Headers
 Imports System.Text.Json
 Imports System.Text.Json.Serialization
-Imports System.Diagnostics
 Imports Captrue_Core.CaptureCore
+Imports System.Net.Http
+Imports System.Security.Cryptography
 
 Public Class AppSettings
 
@@ -113,6 +116,172 @@ Public Class AppSettings
         End Sub
     End Class
 
+    ''' <summary>
+    ''' ✅ GitHub User settings - เก็บข้อมูลผู้ใช้ GitHub
+    ''' </summary>
+    Public Class GitHubUserClass
+        Public Property Username As String = ""
+        Public Property AvatarUrl As String = ""
+        Public Property IsLoggedIn As Boolean = False
+        Public Property LastLogin As DateTime = DateTime.MinValue
+
+        Public Sub New()
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' ✅ GitHub Token สำหรับ OAuth
+    ''' </summary>
+    Public Property GitHubUser As New GitHubUserClass()
+    Public Property GitHubToken As String = ""
+
+#End Region
+
+#Region "✅ GitHub Management Methods"
+
+    ''' <summary>
+    ''' บันทึกข้อมูล GitHub User และ Token
+    ''' </summary>
+    Public Sub SaveGitHubUser(username As String, avatarUrl As String, token As String)
+        GitHubUser.Username = username
+        GitHubUser.AvatarUrl = avatarUrl
+        GitHubUser.IsLoggedIn = True
+        GitHubUser.LastLogin = DateTime.Now
+        GitHubToken = token
+        Save()
+        Debug.WriteLine($"SaveGitHubUser: Saved user '{username}' to config.json")
+    End Sub
+
+    ''' <summary>
+    ''' ล้างข้อมูล GitHub User (Logout)
+    ''' </summary>
+    Public Sub ClearGitHubUser()
+        GitHubUser.Username = ""
+        GitHubUser.AvatarUrl = ""
+        GitHubUser.IsLoggedIn = False
+        GitHubUser.LastLogin = DateTime.MinValue
+        GitHubToken = ""
+        Save()
+        Debug.WriteLine("ClearGitHubUser: User logged out")
+    End Sub
+
+    ''' <summary>
+    ''' โหลดข้อมูล GitHub User จาก API (ถ้ามี token)
+    ''' </summary>
+    Public Async Function LoadGitHubUser() As Task
+        Try
+            If String.IsNullOrEmpty(GitHubToken) Then
+                Debug.WriteLine("LoadGitHubUser: No token, skipping")
+                Return
+            End If
+
+            ' เช็คเน็ต
+            Using ping As New Net.NetworkInformation.Ping()
+                Dim reply = Await ping.SendPingAsync("api.github.com", 2000)
+                If reply.Status <> Net.NetworkInformation.IPStatus.Success Then
+                    Debug.WriteLine("LoadGitHubUser: No internet connection")
+                    Throw New Exception("No Internet")
+                End If
+            End Using
+
+            ' โหลดจาก GitHub API
+            Using client As New HttpClient()
+                client.DefaultRequestHeaders.Authorization = New AuthenticationHeaderValue("Bearer", GitHubToken)
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("VBApp")
+
+                Dim json = Await client.GetStringAsync("https://api.github.com/user")
+                Dim doc = JsonDocument.Parse(json)
+
+                GitHubUser.Username = doc.RootElement.GetProperty("login").GetString()
+                GitHubUser.AvatarUrl = doc.RootElement.GetProperty("avatar_url").GetString()
+                GitHubUser.IsLoggedIn = True
+
+                Debug.WriteLine($"LoadGitHubUser: Loaded user '{GitHubUser.Username}' from API")
+            End Using
+
+            ' บันทึก config.json
+            Save()
+
+        Catch ex As Exception
+            Debug.WriteLine($"LoadGitHubUser Error: {ex.Message}")
+            ' offline ใช้ข้อมูลเก่าใน GitHubUser
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' โหลด Avatar จาก URL และแสดงใน PictureBox
+    ''' </summary>
+    Public Async Function LoadGitHubAvatar(pb As PictureBox) As Task
+        If String.IsNullOrEmpty(GitHubUser.AvatarUrl) Then
+            Debug.WriteLine("LoadGitHubAvatar: No avatar URL")
+            Return
+        End If
+
+        Try
+            ' พยายามโหลดจาก cache ก่อน
+            Dim avatarPath As String = Path.Combine(Application.StartupPath, "avatar.png")
+            If File.Exists(avatarPath) Then
+                Try
+                    ' ✅ ใช้ MemoryStream เพื่อหลีกเลี่ยง file lock
+                    Dim bytes As Byte() = File.ReadAllBytes(avatarPath)
+                    Using ms As New MemoryStream(bytes)
+                        pb.BackgroundImage = New Bitmap(ms)
+                    End Using
+                    Debug.WriteLine("LoadGitHubAvatar: Loaded from cache")
+                    Return
+                Catch
+                    ' ถ้า cache ใช้ไม่ได้ โหลดใหม่จาก URL
+                End Try
+            End If
+
+            ' โหลดจาก URL
+            Using client As New HttpClient()
+                Dim bytes() As Byte = Await client.GetByteArrayAsync(GitHubUser.AvatarUrl)
+
+                ' ✅ แก้ bug: Clone image แทนการใช้ stream โดยตรง
+                Using ms As New MemoryStream(bytes)
+                    pb.BackgroundImage = New Bitmap(ms)
+                End Using
+
+                ' บันทึก cache
+                Try
+                    File.WriteAllBytes(avatarPath, bytes)
+                    Debug.WriteLine("LoadGitHubAvatar: Saved to cache")
+                Catch ex As Exception
+                    Debug.WriteLine($"LoadGitHubAvatar: Failed to save cache - {ex.Message}")
+                End Try
+            End Using
+
+            Debug.WriteLine("LoadGitHubAvatar: Loaded from URL")
+
+        Catch ex As Exception
+            Debug.WriteLine($"LoadGitHubAvatar Error: {ex.Message}")
+            ' offline / error ไม่โหลดรูป
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' โหลด Avatar จาก Byte Array (หลัง login)
+    ''' </summary>
+    Public Sub SaveAvatarFromBytes(avatarBytes As Byte())
+        Try
+            Dim avatarPath As String = Path.Combine(Application.StartupPath, "avatar.png")
+            File.WriteAllBytes(avatarPath, avatarBytes)
+            Debug.WriteLine($"SaveAvatarFromBytes: Saved to {avatarPath}")
+        Catch ex As Exception
+            Debug.WriteLine($"SaveAvatarFromBytes Error: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' ตรวจสอบว่ามีการ login อยู่หรือไม่
+    ''' </summary>
+    Public ReadOnly Property IsGitHubLoggedIn As Boolean
+        Get
+            Return GitHubUser.IsLoggedIn AndAlso Not String.IsNullOrEmpty(GitHubToken)
+        End Get
+    End Property
+
 #End Region
 
 #Region "Properties (Public สำหรับ JSON Serialization)"
@@ -168,6 +337,7 @@ Public Class AppSettings
         Paths = New PathSettingsClass()
         UI = New UISettingsClass()
         Audio = New AudioSettingsClass()
+        GitHubUser = New GitHubUserClass()
     End Sub
 
     ''' <summary>
@@ -255,9 +425,7 @@ Public Class AppSettings
                             UI.Theme = loaded.UI.Theme
                         End If
 
-                        ' ═══════════════════════════════════════════════════════════════════════
-                        ' ✅ Audio - Load new properties
-                        ' ═══════════════════════════════════════════════════════════════════════
+                        ' Audio
                         If loaded.Audio IsNot Nothing Then
                             Audio.SystemAudioEnabled = loaded.Audio.SystemAudioEnabled
                             Audio.MicEnabled = loaded.Audio.MicEnabled
@@ -266,7 +434,20 @@ Public Class AppSettings
                             Audio.MicDeviceName = loaded.Audio.MicDeviceName
                         End If
 
+                        ' ✅ GitHub User
+                        If loaded.GitHubUser IsNot Nothing Then
+                            GitHubUser.Username = loaded.GitHubUser.Username
+                            GitHubUser.AvatarUrl = loaded.GitHubUser.AvatarUrl
+                            GitHubUser.IsLoggedIn = loaded.GitHubUser.IsLoggedIn
+                            GitHubUser.LastLogin = loaded.GitHubUser.LastLogin
+                        End If
+
+                        ' ✅ GitHub Token
+                        GitHubToken = loaded.GitHubToken
+
                         Debug.WriteLine("AppSettings.Load: SUCCESS")
+                        Debug.WriteLine($"  GitHub User: {GitHubUser.Username}")
+                        Debug.WriteLine($"  GitHub Logged In: {GitHubUser.IsLoggedIn}")
                     End If
                 End If
             Else
@@ -292,6 +473,7 @@ Public Class AppSettings
 
             Dim json As String = JsonSerializer.Serialize(Me, options)
             File.WriteAllText(ConfigPath, json)
+            Debug.WriteLine("AppSettings.Save: Saved to " & ConfigPath)
 
         Catch ex As Exception
             Debug.WriteLine("AppSettings.Save Error: " & ex.Message)
@@ -730,6 +912,7 @@ Public Class AppSettings
         Paths = New PathSettingsClass()
         UI = New UISettingsClass()
         Audio = New AudioSettingsClass()
+        ' ✅ ไม่ reset GitHub user
         Save()
     End Sub
 

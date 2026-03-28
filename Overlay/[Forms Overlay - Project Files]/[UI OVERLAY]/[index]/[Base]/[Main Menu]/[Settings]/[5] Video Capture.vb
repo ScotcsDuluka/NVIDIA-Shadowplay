@@ -12,7 +12,7 @@ Public Class Base_RecordingsSet
     Public Const DEFAULT_BITRATE As Integer = 8000
 
     Public Const MIN_FPS_GLOBAL As Integer = 1
-    Public Const MAX_FPS_GLOBAL As Integer = 240
+    Public Const MAX_FPS_GLOBAL As Integer = 800
     Public Const DEFAULT_FPS As Integer = 60
 
     Public Const MIN_RESOLUTION_WIDTH As Integer = 320
@@ -98,7 +98,7 @@ Public Class Base_RecordingsSet
         {"1280x720", New FPSLimit(0, 240, 60)},
         {"1366x768", New FPSLimit(0, 240, 60)},
         {"1600x900", New FPSLimit(0, 240, 60)},
-        {"1920x1080", New FPSLimit(0, 320, 60)},
+        {"1920x1080", New FPSLimit(0, 800, 60)},
         {"2560x1080", New FPSLimit(0, 240, 60)},
         {"2560x1440", New FPSLimit(0, 120, 60)},
         {"3440x1440", New FPSLimit(0, 100, 60)},

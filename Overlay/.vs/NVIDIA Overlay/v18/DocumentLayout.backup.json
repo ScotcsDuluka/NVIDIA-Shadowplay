@@ -3,51 +3,65 @@
   "WorkspaceRootPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_hotkey.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_hotkey.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\screenrecorder.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[ui overlay]\\[notifier]\\[1] string \u002B icon \u002B logo.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\audiocapture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[ui overlay]\\[notifier]\\[2] background.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\audiopipe.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[ui overlay]\\[notifier]\\[2] background.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[api]\\[services]\\systemmonitor.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[api]\\[services]\\systemmonitor.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[api]\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\languages\\zh-chs.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:languages\\zh-chs.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\languages\\th-th.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:languages\\th-th.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\languages\\en-us.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:languages\\en-us.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[api]\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_mouse.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_mouse.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_misc.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_misc.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[ui overlay]\\[notifier]\\[3] shadow.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[0] settings - ui main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[0] settings - ui main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\screenrecorder.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[ui overlay]\\[notifier]\\[2] background.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_mouse.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_mouse.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[0] settings - ui main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[0] settings - ui main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[api]\\blockclose.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     }
   ],
   "DocumentGroupContainers": [
@@ -57,108 +71,19 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 2,
+          "SelectedChildIndex": 5,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "[2] Background.vb [Design]",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
-              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb [Design]",
-              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb [Design]",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T09:16:16.461Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 1,
-              "Title": "[1] String \u002B Icon \u002B Logo.vb [Design]",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[1] String \u002B Icon \u002B Logo.vb",
-              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[1] String \u002B Icon \u002B Logo.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[1] String \u002B Icon \u002B Logo.vb [Design]",
-              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[1] String \u002B Icon \u002B Logo.vb [Design]",
+              "Title": "AudioCapture.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioCapture.vb",
+              "RelativeDocumentMoniker": "..\\Engine\\Engine\\AudioCapture.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioCapture.vb",
+              "RelativeToolTip": "..\\Engine\\Engine\\AudioCapture.vb",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAgwI8AAAAAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T09:15:59.859Z",
-              "EditorCaption": " [Design]"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "[1] Sub_Hotkey.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Hotkey.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Hotkey.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Hotkey.vb",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Hotkey.vb",
-              "ViewState": "AgIAAEoAAAAAAAAAAAAjwF4AAAAeAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T09:11:11.429Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "[2] Background.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
-              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
-              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
-              "ViewState": "AgIAAAUAAAAAAAAAAAAxwIQAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T09:02:58.213Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 5,
-              "Title": "Load.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
-              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
-              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
-              "ViewState": "AgIAAC0BAAAAAAAAAAAQwDkBAAAjAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T09:02:29.748Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "[1] Sub_Mouse.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAGwAAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T08:43:51.639Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 10,
-              "Title": "[1] Sub_Misc.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Misc.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Misc.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Misc.vb",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Misc.vb",
-              "ViewState": "AgIAAG8AAAAAAAAAAAAIwHUAAAAiAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T08:43:33.848Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "en-US.json",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\en-US.json",
-              "RelativeDocumentMoniker": "Languages\\en-US.json",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\en-US.json",
-              "RelativeToolTip": "Languages\\en-US.json",
-              "ViewState": "AgIAABMAAAAAAAAAAAAkwCoAAAAWAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
-              "WhenOpened": "2026-03-26T08:34:31.806Z",
+              "WhenOpened": "2026-03-27T17:40:18.569Z",
               "EditorCaption": ""
             },
             {
@@ -170,41 +95,188 @@
               "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
             },
             {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+            },
+            {
               "$type": "Document",
-              "DocumentIndex": 12,
+              "DocumentIndex": 2,
+              "Title": "AudioPipe.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioPipe.vb",
+              "RelativeDocumentMoniker": "..\\Engine\\Engine\\AudioPipe.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioPipe.vb",
+              "RelativeToolTip": "..\\Engine\\Engine\\AudioPipe.vb",
+              "ViewState": "AgIAAAMAAAAAAAAAAAAmwJwBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T17:43:05.061Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
               "Title": "ScreenRecorder.vb",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\ScreenRecorder.vb",
               "RelativeDocumentMoniker": "..\\Engine\\Engine\\ScreenRecorder.vb",
               "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\ScreenRecorder.vb",
               "RelativeToolTip": "..\\Engine\\Engine\\ScreenRecorder.vb",
-              "ViewState": "AgIAABICAAAAAAAAAAAkwKEKAAAAAAAAAAAAAA==",
+              "ViewState": "AgIAANEBAAAAAAAAAAAQwOABAABAAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T08:32:11.562Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 11,
-              "Title": "[5] Video Capture.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "ViewState": "AgIAAF0FAAAAAAAAAAAAAGEFAAALAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T08:25:17.762Z",
+              "WhenOpened": "2026-03-27T17:40:19.14Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 8,
-              "Title": "[1] Main Menu.vb [Design]",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb [Design]",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb [Design]",
+              "Title": "[5] Video Capture.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
+              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
+              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
+              "ViewState": "AgIAAEkAAAAAAAAAAAAcwGEAAAAvAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T08:44:58.8Z",
+              "WhenOpened": "2026-03-27T17:23:59.193Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "en-US.json",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\en-US.json",
+              "RelativeDocumentMoniker": "Languages\\en-US.json",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\en-US.json",
+              "RelativeToolTip": "Languages\\en-US.json",
+              "ViewState": "AgIAAAcAAAAAAAAAAAAAACoAAAAWAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-03-27T15:46:14.377Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "th-TH.json",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\th-TH.json",
+              "RelativeDocumentMoniker": "Languages\\th-TH.json",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\th-TH.json",
+              "RelativeToolTip": "Languages\\th-TH.json",
+              "ViewState": "AgIAAAUAAAAAAAAAAAAAACgAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-03-27T17:10:46.429Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "zh-CHS.json",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\zh-CHS.json",
+              "RelativeDocumentMoniker": "Languages\\zh-CHS.json",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\Languages\\zh-CHS.json",
+              "RelativeToolTip": "Languages\\zh-CHS.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAUAAAAcAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2026-03-27T17:10:47.067Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "Load.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
+              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
+              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[API]\\Load.vb",
+              "ViewState": "AgIAAIABAAAAAAAAAAAmwKcBAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T15:51:54.995Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "SystemMonitor.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[API]\\[Services]\\SystemMonitor.vb",
+              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[API]\\[Services]\\SystemMonitor.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[API]\\[Services]\\SystemMonitor.vb",
+              "RelativeToolTip": "[Forms Overlay - Project Files]\\[API]\\[Services]\\SystemMonitor.vb",
+              "ViewState": "AgIAAHcAAAAAAAAAAAAYwIIAAAAiAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T17:07:30.367Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "[3] Shadow.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[3] Shadow.vb",
+              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[3] Shadow.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[3] Shadow.vb",
+              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[3] Shadow.vb",
+              "ViewState": "AgIAADsAAAAAAAAAAAAuwFYAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T16:44:06.16Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "[2] Background.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
+              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
+              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
+              "ViewState": "AgIAAOgAAAAAAAAAAAAkwP8AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T15:53:03.436Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "[1] Sub_Mouse.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
+              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
+              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Mouse.vb",
+              "ViewState": "AgIAAAQAAAAAAAAAAAAcwEEAAAAUAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T15:17:37.029Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "BlockClose.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[API]\\BlockClose.vb",
+              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[API]\\BlockClose.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[API]\\BlockClose.vb",
+              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[API]\\BlockClose.vb",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAqwAcAAAAZAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T15:03:08.153Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "[0] Settings - UI Main.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb",
+              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb",
+              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb",
+              "ViewState": "AgIAAGgAAAAAAAAAAAAmwHwAAAAdAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T14:58:08.595Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "[0] Settings - UI Main.vb [Design]",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb",
+              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb [Design]",
+              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[0] Settings - UI Main.vb [Design]",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
+              "WhenOpened": "2026-03-27T14:58:06.049Z",
               "EditorCaption": " [Design]"
             },
             {
@@ -215,21 +287,21 @@
               "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
               "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
               "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
-              "ViewState": "AgIAALABAAAAAAAAAAAswEYCAAALAAAAAAAAAA==",
+              "ViewState": "AgIAAAIBAAAAAAAAAAAhwNUAAAAIAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T07:46:20.544Z",
+              "WhenOpened": "2026-03-27T14:55:58.242Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "[5] Video Capture.vb [Design]",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb [Design]",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb [Design]",
+              "DocumentIndex": 12,
+              "Title": "[1] Main Menu.vb [Design]",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
+              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb [Design]",
+              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb [Design]",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-26T08:24:40.805Z",
+              "WhenOpened": "2026-03-27T14:52:11.594Z",
               "EditorCaption": " [Design]"
             }
           ]

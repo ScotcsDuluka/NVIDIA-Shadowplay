@@ -42,107 +42,107 @@ Partial Class Base_KeySet
         ' keyset
         ' 
         keyset.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        keyset.BackColor = Drawing.Color.Red
+        keyset.BackColor = Color.Red
         keyset.Controls.Add(Key_Tx)
         keyset.Controls.Add(settings_bg)
-        keyset.Location = New System.Drawing.Point(695, 160)
+        keyset.Location = New Point(695, 160)
         keyset.Name = "keyset"
-        keyset.Size = New System.Drawing.Size(1145, 841)
+        keyset.Size = New Size(1145, 841)
         keyset.TabIndex = 45
         ' 
         ' Key_Tx
         ' 
         Key_Tx.AutoSize = True
-        Key_Tx.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Key_Tx.Font = New System.Drawing.Font("Segoe UI", 17F, Drawing.FontStyle.Bold)
-        Key_Tx.ForeColor = Drawing.Color.White
-        Key_Tx.Location = New System.Drawing.Point(62, 43)
+        Key_Tx.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Key_Tx.Font = New Font("Segoe UI", 17F, FontStyle.Bold)
+        Key_Tx.ForeColor = Color.White
+        Key_Tx.Location = New Point(62, 43)
         Key_Tx.Name = "Key_Tx"
-        Key_Tx.Size = New System.Drawing.Size(222, 31)
+        Key_Tx.Size = New Size(222, 31)
         Key_Tx.TabIndex = 51
         Key_Tx.Text = "Keyboard Shortcut "
         ' 
         ' settings_bg
         ' 
         settings_bg.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Right
-        settings_bg.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        settings_bg.Location = New System.Drawing.Point(0, 4)
+        settings_bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        settings_bg.Location = New Point(0, 4)
         settings_bg.Name = "settings_bg"
-        settings_bg.Size = New System.Drawing.Size(1145, 837)
+        settings_bg.Size = New Size(1145, 837)
         settings_bg.TabIndex = 1
         settings_bg.TabStop = False
         ' 
         ' Reset
         ' 
-        Reset.BackColor = Drawing.Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Reset.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Reset.Cursor = Cursors.Hand
-        Reset.Font = New System.Drawing.Font("Segoe UI", 14F)
-        Reset.ForeColor = Drawing.Color.White
-        Reset.Location = New System.Drawing.Point(465, 300)
+        Reset.Font = New Font("Segoe UI", 14F)
+        Reset.ForeColor = Color.White
+        Reset.Location = New Point(465, 300)
         Reset.Name = "Reset"
-        Reset.Size = New System.Drawing.Size(200, 70)
+        Reset.Size = New Size(200, 70)
         Reset.TabIndex = 70
         Reset.Text = "Reset"
-        Reset.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        Reset.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' text_settings
         ' 
-        text_settings.BackColor = Drawing.Color.Black
-        text_settings.Font = New System.Drawing.Font("Segoe UI Semibold", 14F, Drawing.FontStyle.Bold)
-        text_settings.ForeColor = Drawing.Color.White
-        text_settings.Location = New System.Drawing.Point(465, 159)
+        text_settings.BackColor = Color.Black
+        text_settings.Font = New Font("Segoe UI Semibold", 14F, FontStyle.Bold)
+        text_settings.ForeColor = Color.White
+        text_settings.Location = New Point(465, 160)
         text_settings.Name = "text_settings"
-        text_settings.Size = New System.Drawing.Size(200, 50)
+        text_settings.Size = New Size(200, 50)
         text_settings.TabIndex = 56
         text_settings.Text = "Keyboard Shortcut"
-        text_settings.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        text_settings.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' box_settings
         ' 
-        box_settings.BackColor = Drawing.Color.Black
-        box_settings.Location = New System.Drawing.Point(465, 160)
+        box_settings.BackColor = Color.Black
+        box_settings.Location = New Point(465, 160)
         box_settings.Name = "box_settings"
-        box_settings.Size = New System.Drawing.Size(200, 49)
+        box_settings.Size = New Size(200, 49)
         box_settings.TabIndex = 55
         box_settings.TabStop = False
         ' 
         ' settings_top
         ' 
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        settings_top.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        settings_top.Location = New System.Drawing.Point(695, 160)
+        settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        settings_top.Location = New Point(695, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New System.Drawing.Size(1145, 5)
+        settings_top.Size = New Size(1145, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
         ' action_fn
         ' 
-        action_fn.BackColor = Drawing.Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
-        action_fn.Font = New System.Drawing.Font("Segoe UI", 12F, Drawing.FontStyle.Bold)
-        action_fn.ForeColor = Drawing.Color.White
-        action_fn.Location = New System.Drawing.Point(465, 220)
+        action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        action_fn.ForeColor = Color.White
+        action_fn.Location = New Point(465, 220)
         action_fn.Name = "action_fn"
-        action_fn.Size = New System.Drawing.Size(200, 70)
+        action_fn.Size = New Size(200, 70)
         action_fn.TabIndex = 58
         action_fn.Text = "Saved"
-        action_fn.TextAlign = Drawing.ContentAlignment.MiddleCenter
+        action_fn.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox6
         ' 
         PictureBox6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        PictureBox6.Location = New System.Drawing.Point(-3, -16)
+        PictureBox6.Location = New Point(-3, -16)
         PictureBox6.Name = "PictureBox6"
-        PictureBox6.Size = New System.Drawing.Size(1951, 176)
+        PictureBox6.Size = New Size(1951, 176)
         PictureBox6.TabIndex = 71
         PictureBox6.TabStop = False
         ' 
         ' Base_KeySet
         ' 
         AutoScaleMode = AutoScaleMode.None
-        BackColor = Drawing.Color.Red
-        ClientSize = New System.Drawing.Size(1920, 1080)
+        BackColor = Color.Red
+        ClientSize = New Size(1920, 1080)
         Controls.Add(Reset)
         Controls.Add(text_settings)
         Controls.Add(settings_top)
@@ -151,12 +151,12 @@ Partial Class Base_KeySet
         Controls.Add(action_fn)
         Controls.Add(box_settings)
         FormBorderStyle = FormBorderStyle.None
-        Icon = CType(resources.GetObject("$this.Icon"), Drawing.Icon)
+        Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_KeySet"
         ShowInTaskbar = False
         Text = "Keyboard Shortcut "
         TopMost = True
-        TransparencyKey = Drawing.Color.Red
+        TransparencyKey = Color.Red
         WindowState = FormWindowState.Maximized
         keyset.ResumeLayout(False)
         keyset.PerformLayout()
