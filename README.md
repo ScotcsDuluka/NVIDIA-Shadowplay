@@ -1,34 +1,32 @@
-# NVIDIA Shadowplay 🎮
+# NVIDIA ShadowPlay (Custom Implementation)
 
-![GitHub stars](https://img.shields.io/github/stars/ScotcsDuluka/NVIDIA-Shadowplay?style=social)
-![GitHub forks](https://img.shields.io/github/forks/ScotcsDuluka/NVIDIA-Shadowplay?style=social)
-
-โย่วววววว
-นี่คือ *NVIDIA ShadowPlay สุดโหด* ตรงไหน — บันทึก เล่น เซฟคลิปได้แบบกิน CPU จนพัง…หยอกๆ 556555665
+A lightweight ShadowPlay-style screen recorder with overlay UI, built in VB.NET.
 
 ---
 
-## ฟีเจอร์ 💥
+## Features
 
-- 🎥 บันทึกเกมแบบ real-time (ไม่มีแลค แล้วก็ไม่อัดให้ด้วย…ล้อเล่น)  
-- ⏪ Instant Replay: เซฟคลิปโมเมนต์โหด ๆ ได้ทันใจ  
-- 📷 จับภาพหน้าจอ หรือบางทีก็จับมั่วๆ  
-- 🚀 ใช้ CPU เข้ารหัสแทน GPU ช่วยให้เกมกระตุกขึ้น
-- 📤 แชร์คลิปไป YouTube, Discord, Facebook… ยังไม่ได้ทำ แต่สักวันจะทำ
-
----
-
-## วิธีใช้ 🛠️
-
-1. เปิด **NVIDIA Experience** แล้วเปิด ShadowPlay  
-2. รอ… อาจจะนานหน่อย  
-3. กด Hotkeys / คลิก UI ตามใจชอบ  
-4. เซฟ แชร์ โชว์ความกาก หรือความเทพของแก 556555665  
-
-> ⚠️ แอปบางตัวอาจบล็อกการบันทึก เช่น Netflix / DRM อย่าบ่นนะ 556555665
+-  Real-time screen recording
+-  Instant Replay (save last moments)
+-  Screenshot capture
+-  In-game overlay UI
 
 ---
 
-## Contributing 🤝
+## About
 
-อยากเพิ่มฟีเจอร์ / แก้โค้ด?? เอาเถอะ เอาไปพัฒนาต่อด้วยขี้เกีดทำละ แง้นนนนนนนนนนนนนนนนนนนนนนนนนนน
+This project is inspired by NVIDIA ShadowPlay.  
+Built over 3 years focusing on animation system, overlay UX, and performance.
+
+---
+
+## Notes
+
+- Some apps (Netflix / DRM content) cannot be recorded
+- Still under active development
+
+---
+
+## Dev Note
+
+"บางทีก็อัดได้ บางทีก็ไม่… แล้วแต่ดวง 556555665"
