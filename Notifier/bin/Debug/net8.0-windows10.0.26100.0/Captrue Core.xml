@@ -26,16 +26,95 @@ Captrue Core
  <summary>
  Audio Pipe - Streams system audio to FFmpeg via Named Pipe
  
- ✅ Optimized Silent Frame Generator:
-    - Only sends silence when NO audio for 200ms
-    - Uses 100ms intervals (not 20ms - too fast!)
-    - Stops immediately when real audio arrives
+ v2.0 Improvements:
+   - Fixed race condition: _isRunning now uses Volatile.Read/Write
+   - Thread-safe _waveFormat access with _formatLock
+   - Silent buffer now correctly handles non-float formats
+   - No more empty Catch blocks - all errors logged with context
+   - Pipe connection wait uses async pattern properly
+   - Volume is applied only once (in AudioCapture, not duplicated here)
+ 
+ v2.1 Improvements:
+   - FIX 1: ManualResetEventSlim ensures WaveFormat is available before FFmpeg args
+   - FIX 2: Rate-matched silent frames instead of fixed 100ms intervals
+   - FIX 3: Volatile ticks for _lastAudioTime (thread-safe without lock)
+   - FIX 4: ConcurrentQueue + background WriteLoop for backpressure
+ </summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.AudioPipe.IsRunning">
+ <summary>
+ Whether the pipe is actively running. Uses Volatile for thread-safe reads.
+ </summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.AudioPipe.Volume">
+ <summary>
+ Volume control (0.0 - 1.0). Applied inside AudioCapture, not duplicated here.
+ Setting this updates the underlying AudioCapture volume.
+ </summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.AudioPipe.CurrentWaveFormat">
+ <summary>
+ Current audio format. Thread-safe.
+ </summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.AudioPipe.FormatReadyEvent">
+ <summary>
+ Event that signals when WaveFormat is available for FFmpeg args.
+ Used to prevent GetFFmpegInputArgs() from returning defaults before format is populated.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioPipe.Stop">
+ <summary>
+ Full stop: set flag, cancel CTS, stop timer, stop capture, close pipe.
+ IOException in WriteLoop is caught and handled (first-chance, harmless).
+ </summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.AudioPipe.LastAudioTimeTicks">
+ <summary>
+ FIX 3: Thread-safe access to last audio time using volatile ticks.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioPipe.WriteLoop">
+ <summary>
+ FIX 4: Background write loop that dequeues buffers and writes to pipe.
+ Prevents pipe.Write() from blocking the audio capture thread.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioPipe.CleanupOnFailure">
+ <summary>
+ Cleanup resources when Start() fails mid-way
+ </summary>
+</member>
+<member name="T:Captrue_Core.CaptureCore.MicPipe">
+ <summary>
+ Mic Pipe - Streams microphone audio to FFmpeg via Named Pipe
+ Uses NAudio WaveIn instead of DirectShow for consistent latency
+ 
+ v1.0: New class to replace DirectShow microphone capture
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.MicPipe.Stop">
+ <summary>
+ Full stop: set flag, cancel CTS, stop timer, stop capture, close pipe.
  </summary>
 </member>
 <member name="T:Captrue_Core.CaptureCore.AudioCapture">
  <summary>
  WASAPI Loopback Audio Capture using NAudio
  Captures system audio (what you hear) without Stereo Mix or Virtual Cable
+ 
+ v2.0 Improvements:
+   - ApplyVolume now handles IEEE Float (32/64-bit) AND PCM (16/24/32-bit)
+   - Added PeakLevel property for audio metering
+   - Proper MMDevice disposal on device change
+   - No more silent empty Catch blocks - all errors are logged
+   - Thread-safe WaveFormat access
+ </summary>
+</member>
+<member name="P:Captrue_Core.CaptureCore.AudioCapture.PeakLevel">
+ <summary>
+ Current peak audio level (0.0 - 1.0) for metering.
+ Thread-safe.
  </summary>
 </member>
 <member name="M:Captrue_Core.CaptureCore.AudioCapture.GetOutputDevices">
@@ -53,9 +132,102 @@ Captrue Core
  Stop capturing
  </summary>
 </member>
+<member name="M:Captrue_Core.CaptureCore.AudioCapture.ApplyVolume(System.Byte[],NAudio.Wave.WaveFormat,System.Single)">
+ <summary>
+ Apply volume to audio buffer.
+ v2.0: Now properly handles IEEE Float (32/64-bit) AND PCM (16/24/32-bit int).
+ Original version assumed all data was 32-bit float (divide by 4) which was incorrect
+ for PCM formats.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioCapture.ApplyVolumeFloat(System.Byte[],System.Int32,System.Single)">
+ <summary>
+ Apply volume to IEEE Float audio (32-bit or 64-bit)
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioCapture.ApplyVolumeFloat32Fast(System.Byte[],System.Single)">
+ <summary>
+ Fast 32-bit float volume using BitConverter (compatible with all VB.NET versions)
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioCapture.ApplyVolumeFloat64(System.Byte[],System.Single)">
+ <summary>
+ Apply volume to 64-bit float audio (BitConverter fallback)
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioCapture.ApplyVolumePCM(System.Byte[],System.Int32,System.Single)">
+ <summary>
+ Apply volume to PCM audio (16-bit, 24-bit, or 32-bit integer)
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.AudioCapture.UpdatePeakLevel(System.Byte[],NAudio.Wave.WaveFormat)">
+ <summary>
+ Update peak audio level for metering (only processes IEEE Float 32-bit for speed).
+ Called from OnDataAvailable on the capture thread.
+ </summary>
+</member>
 <member name="T:Captrue_Core.CaptureCore.AudioDataEventArgs">
  <summary>
  Event args for audio data
+ </summary>
+</member>
+<member name="T:Captrue_Core.CaptureCore.MicCapture">
+ <summary>
+ Microphone Audio Capture using NAudio WaveIn
+ Captures microphone input with consistent latency matching AudioCapture
+ 
+ v1.0: Uses WaveIn API for microphone capture (replaces DirectShow approach)
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.MicCapture.GetInputDevices">
+ <summary>
+ Get available microphone input devices
+ </summary>
+</member>
+<member name="E:Captrue_Core.CaptureCore.ScreenRecorder.FFmpegCrashed">
+ <summary>
+ Raised when FFmpeg process exits unexpectedly (crash).
+ v2.0: New event for crash detection.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.PreWarmFFmpegAsync(System.String,Captrue_Core.CaptureCore.ScreenRecorder.VideoEncoder)">
+ <summary>
+ Pre-warm FFmpeg encoder. Returns a Task that completes when warmup is done.
+ v2.0: Now properly waits for warmup to complete (not fire-and-forget).
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.PreWarmFFmpeg(System.String,Captrue_Core.CaptureCore.ScreenRecorder.VideoEncoder)">
+ <summary>
+ Synchronous pre-warm (backward compatible). Waits up to 5 seconds.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.OnRecordingProcessExited(System.Object,System.EventArgs)">
+ <summary>
+ FFmpeg recording process exited.
+ v3.0: Distinguishes intentional stop from real crash.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.OnBufferProcessExited(System.Object,System.EventArgs)">
+ <summary>
+ FFmpeg buffer process exited.
+ v3.0: Distinguishes intentional stop from real crash. Only auto-restarts on REAL crash.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.GetFallbackAPI">
+ <summary>
+ Get fallback capture API if the primary API failed.
+ v2.0: Actually implements the fallback logic that was declared but unused.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.MarkCaptureAPIFailed">
+ <summary>
+ Mark the current capture API as failed and set fallback.
+ Called when FFmpeg fails to start with the current capture API.
+ </summary>
+</member>
+<member name="M:Captrue_Core.CaptureCore.ScreenRecorder.GetEffectiveCaptureAPI">
+ <summary>
+ Get the capture API to use, considering fallback.
  </summary>
 </member>
 </members>

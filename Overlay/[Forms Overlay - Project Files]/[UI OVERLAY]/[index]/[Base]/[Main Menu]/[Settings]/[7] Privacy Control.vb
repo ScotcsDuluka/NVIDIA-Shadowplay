@@ -25,8 +25,8 @@ Public Class Base_Privacy_Control
     End Function
 
     Private Const GWL_EXSTYLE As Integer = -20
-    Private Const WS_EX_TOOLWINDOW As Integer = &H80 ' สถานะสำหรับ ToolWindow (ไม่แสดงใน Alt+Tab)
-    Private Const WS_EX_APPWINDOW As Integer = &H40000 ' สถานะสำหรับการแสดงใน Task Switcher
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80
+    Private Const WS_EX_APPWINDOW As Integer = &H40000
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
         SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)

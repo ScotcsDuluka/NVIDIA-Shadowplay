@@ -52,15 +52,86 @@ Public Class Notifier
     Private onComplete As Action
     Private isSlideX As Boolean
 
+    Private Delegate Sub MMTimerProc(uID As UInteger, uMsg As UInteger,
+                                      dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
+    Private Const TIME_PERIODIC As Integer = 1
+    Private Const TIME_KILL_SYNCHRONOUS As Integer = &H100
+
+    <DllImport("winmm.dll")>
+    Private Shared Function timeSetEvent(uDelay As UInteger, uResolution As UInteger,
+                                         fptc As MMTimerProc, dwUser As UIntPtr,
+                                         fuEvent As UInteger) As UInteger
+    End Function
+
+    <DllImport("winmm.dll")>
+    Private Shared Function timeKillEvent(uTimerID As UInteger) As Integer
+    End Function
+
+    <DllImport("winmm.dll")>
+    Private Shared Function timeBeginPeriod(uPeriod As UInteger) As UInteger
+    End Function
+
+    <DllImport("winmm.dll")>
+    Private Shared Function timeEndPeriod(uPeriod As UInteger) As UInteger
+    End Function
+
+    Private mmTimerId As UInteger = 0
+    Private mmCallback As MMTimerProc
+    Private sw As Stopwatch
+
+    ' ★★★ ใหม่: ป้องกันบักกดรัวๆ — คิว BeginInvoke ไม่ให้ต่อซ้อน ★★★
+    Private _invokePending As Boolean = False
+
+    Private Sub Animation_Engine_Start()
+        timeBeginPeriod(1)
+        mmCallback = New MMTimerProc(AddressOf OnMMTick)
+        mmTimerId = timeSetEvent(1, 1, mmCallback, UIntPtr.Zero,
+                                  TIME_PERIODIC Or TIME_KILL_SYNCHRONOUS)
+        Debug.WriteLine("[Notifier.MM] Timer started, ID=" & mmTimerId)
+    End Sub
+
+    Private Sub Animation_Engine_Stop()
+        If mmTimerId <> 0 Then
+            timeKillEvent(mmTimerId)
+            mmTimerId = 0
+        End If
+        timeEndPeriod(1)
+        _invokePending = False
+        Debug.WriteLine("[Notifier.MM] Timer stopped")
+    End Sub
+
+    ' ★★★ แก้: throttle — ถ้า tick ก่อนหน้ายังรออยู่ในคิว ข้ามไป ★★★
+    Private Sub OnMMTick(uID As UInteger, uMsg As UInteger,
+                          dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
+        If Me.IsDisposed OrElse Me.Disposing Then Return
+
+        If _invokePending Then Return
+        _invokePending = True
+
+        Try
+            Me.BeginInvoke(Sub()
+                               _invokePending = False
+                               Animation_Engine_Tick()
+                           End Sub)
+        Catch ex As ObjectDisposedException
+            _invokePending = False
+            Debug.WriteLine("[Notifier.MM] BeginInvoke failed — disposed")
+        End Try
+    End Sub
+
     Public Sub StartSlide(panel As Control,
                            fromX As Integer,
                            toX As Integer,
                            duration As Double,
                            Optional completed As Action = Nothing)
 
-        ' Stop previous animation
+        Debug.WriteLine("[Notifier] StartSlide: " & panel.Name &
+                        " X " & fromX & "→" & toX &
+                        " dur=" & duration & "ms" &
+                        " wasRunning=" & animationRunning)
+
         If animationRunning Then
-            Animation_Engine.Stop()
+            Animation_Engine_Stop()
             animationRunning = False
         End If
 
@@ -73,9 +144,10 @@ Public Class Notifier
 
         panel.Left = fromX
         animStart = DateTime.Now
+        sw = Stopwatch.StartNew()
         animationRunning = True
 
-        Animation_Engine.Start()
+        Animation_Engine_Start()
     End Sub
 
     Public Sub StartSlideY(panel As Control,
@@ -84,9 +156,13 @@ Public Class Notifier
                            duration As Double,
                            Optional completed As Action = Nothing)
 
-        ' Stop previous animation
+        Debug.WriteLine("[Notifier] StartSlideY: " & panel.Name &
+                        " Y " & fromY & "→" & toY &
+                        " dur=" & duration & "ms" &
+                        " wasRunning=" & animationRunning)
+
         If animationRunning Then
-            Animation_Engine.Stop()
+            Animation_Engine_Stop()
             animationRunning = False
         End If
 
@@ -99,36 +175,41 @@ Public Class Notifier
 
         panel.Top = fromY
         animStart = DateTime.Now
+        sw = Stopwatch.StartNew()
         animationRunning = True
 
-        Animation_Engine.Start()
+        Animation_Engine_Start()
     End Sub
 
-    Private Sub Animation_Engine_Tick(sender As Object, e As EventArgs) Handles Animation_Engine.Tick
+    Private Sub Animation_Engine_Tick()
         If Not animationRunning Then Return
 
-        Dim elapsed = (DateTime.Now - animStart).TotalMilliseconds
+        Dim elapsed = sw.Elapsed.TotalMilliseconds
         Dim t As Double = elapsed / animDuration
 
         If t >= 1 Then
             t = 1
             animationRunning = False
-            Animation_Engine.Stop()
+            Animation_Engine_Stop()
 
-            ' Final position
             If isSlideX Then
                 currentPanel.Left = targetX
             Else
                 currentPanel.Top = targetY
             End If
 
-            ' Callback
+            Debug.WriteLine("[Notifier] Animation COMPLETE " &
+                            If(isSlideX, "X=" & targetX, "Y=" & targetY))
+
             Dim callback As Action = onComplete
             onComplete = Nothing
 
             If callback IsNot Nothing Then
-                ' Use BeginInvoke to prevent blocking
-                Me.BeginInvoke(Sub() callback.Invoke())
+                Try
+                    callback.Invoke()
+                Catch ex As Exception
+                    Debug.WriteLine("[Notifier] onComplete ERROR: " & ex.Message)
+                End Try
             End If
         Else
             Dim eased As Double = 1 - Math.Pow(1 - t, 3)
@@ -170,6 +251,8 @@ Public Class Notifier
 #Region "Form Load"
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Debug.WriteLine("[Notifier] ===== Form Load =====")
+
         BlockClose.AllowClose = False
         Shadow.Show()
         HideFromAltTab()
@@ -177,8 +260,10 @@ Public Class Notifier
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             Me.Location = New Point(screenWidth - Me.Width, 205)
+            Debug.WriteLine("[Notifier] Position Y=205")
         Else
             Me.Location = New Point(screenWidth - Me.Width, 105)
+            Debug.WriteLine("[Notifier] Position Y=105")
         End If
 
         Notifier_black.Location = New Point(Me.Width, 0)
@@ -186,10 +271,8 @@ Public Class Notifier
         Notifier_green.Size = New Size(300, 90)
         Notifier_black.Size = New Size(300, 90)
 
-        ' Start initial animation
         StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
 
-        ' Delay for black panel
         StopDelayTimer()
         _delayTimer = New Timer()
         _delayTimer.Interval = 200
@@ -203,18 +286,29 @@ Public Class Notifier
                                      End Sub
         _delayTimer.Start()
 
-        ' Auto close timer
         autoClose.Interval = 6000
         RemoveHandler autoClose.Tick, AddressOf AutoClose_Tick
         AddHandler autoClose.Tick, AddressOf AutoClose_Tick
         autoClose.Start()
 
         TopMost = True
+        Debug.WriteLine("[Notifier] ===== Form Load Done =====")
     End Sub
 
     Private Sub AutoClose_Tick(sender As Object, e As EventArgs)
+        Debug.WriteLine("[Notifier] AutoClose triggered")
         autoClose.Stop()
         SlideOutAll()
+    End Sub
+
+    ' ★★★ ใหม่: cleanup ตอนปิด ★★★
+    Private Sub Notifier_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        Debug.WriteLine("[Notifier] FormClosing — cleanup")
+        animationRunning = False
+        Animation_Engine_Stop()
+        autoClose.Stop()
+        StopDelayTimer()
+        StopCloseTimer()
     End Sub
 
 #End Region
@@ -222,6 +316,8 @@ Public Class Notifier
 #Region "Slide Out"
 
     Private Sub SlideOutAll()
+        Debug.WriteLine("[Notifier] SlideOutAll")
+
         BlockClose.AllowClose = True
         Shadow.Close()
         Notifier_Sub.Close()
@@ -229,7 +325,6 @@ Public Class Notifier
 
         StartSlide(Notifier_black, Notifier_black.Left, Me.Width + 300, 600)
 
-        ' Delay for green panel
         StopDelayTimer()
         _delayTimer = New Timer()
         _delayTimer.Interval = 200
@@ -237,7 +332,6 @@ Public Class Notifier
                                          _delayTimer.Stop()
                                          StartSlide(Notifier_green, Notifier_green.Left, Me.Width + 300, 600)
 
-                                         ' Close timer
                                          StopCloseTimer()
                                          _closeTimer = New Timer()
                                          _closeTimer.Interval = 200
@@ -255,18 +349,27 @@ Public Class Notifier
 #Region "Click Events"
 
     Public Sub DoCloseClick()
+        Debug.WriteLine("[Notifier] DoCloseClick → Restart")
         Application.Restart()
     End Sub
 
     Private Sub Notifier_green_Click(sender As Object, e As EventArgs) Handles Notifier_green.Click, text_n.Click, icon_n.Click, Notifier_black.Click, Notifier_green_stop.Click
+        Debug.WriteLine("[Notifier] Click → Restart")
         Application.Restart()
     End Sub
 
     Private Sub IF_N_Tick(sender As Object, e As EventArgs) Handles IF_N.Tick
+        If Me.IsDisposed Then
+            IF_N.Stop()
+            Return
+        End If
+
+        Debug.WriteLine("[Notifier] IF_N tick → StartSlideY")
         StartSlideY(Me, Me.Top, 105, 200)
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If Not My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             IF_N.Stop()
+            Debug.WriteLine("[Notifier] IF_N stopped")
         End If
     End Sub
 

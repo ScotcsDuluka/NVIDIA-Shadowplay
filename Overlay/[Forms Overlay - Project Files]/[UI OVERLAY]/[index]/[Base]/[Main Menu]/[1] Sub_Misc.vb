@@ -35,17 +35,6 @@ Partial Public Class Base
 
 #Region "============================================================================ TIMER EVENT HANDLERS"
 
-    Private Async Sub CheckStatus()
-        If Record_Logo.ForeColor = greenColor Then
-            Await Task.Delay(1200)
-            Record_Logo.ForeColor = System.Drawing.Color.White
-        End If
-
-        If Replay_Logo.ForeColor = greenColor Then
-            Await Task.Delay(1200)
-        End If
-    End Sub
-
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
         If Menu_Record.Visible = True Then
             Base_Background_Top.b2_all.Visible = True
@@ -76,6 +65,7 @@ Partial Public Class Base
         Catch ex As Exception
         End Try
     End Sub
+
     Public PrivacyValue As Boolean = False
 
     Private Sub hg1_Tick(sender As Object, e As EventArgs) Handles hg1.Tick

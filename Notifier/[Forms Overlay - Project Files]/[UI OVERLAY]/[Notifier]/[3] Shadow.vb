@@ -4,7 +4,6 @@ Imports System.Runtime.InteropServices
 Public Class Shadow
     Inherits BlockClose
 
-
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
             Dim cp As CreateParams = MyBase.CreateParams
@@ -13,12 +12,8 @@ Public Class Shadow
         End Get
     End Property
 
-
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000
-
-
-
 
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
@@ -37,22 +32,36 @@ Public Class Shadow
         Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
         SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
     End Sub
+
     Private Sub Shadow_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Debug.WriteLine("[Shadow] ===== Form Load =====")
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             Me.Location = New Point(screenWidth - Me.Width, 205)
+            Debug.WriteLine("[Shadow] Position Y=205")
         Else
             Me.Location = New Point(screenWidth - Me.Width, 105)
+            Debug.WriteLine("[Shadow] Position Y=105")
         End If
         Me.SetStyle(ControlStyles.ResizeRedraw, True)
         HideFromAltTab()
     End Sub
+
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        HideFromAltTab()
-        Notifier_Sub.TopMost = True
-        Me.Left = Notifier.Left
-        Me.Top = Notifier.Top
+        Try
+            If Me.IsDisposed OrElse Notifier.IsDisposed Then
+                Timer1.Stop()
+                Return
+            End If
+
+            HideFromAltTab()
+            Notifier_Sub.TopMost = True
+            Me.Left = Notifier.Left
+            Me.Top = Notifier.Top
+        Catch ex As Exception
+            Debug.WriteLine("[Shadow] Timer1 ERROR: " & ex.Message)
+        End Try
     End Sub
 
     <DllImport("dwmapi.dll")>
@@ -81,6 +90,7 @@ Public Class Shadow
 
     Protected Overrides Sub OnHandleCreated(e As EventArgs)
         MyBase.OnHandleCreated(e)
+        Debug.WriteLine("[Shadow] Handle created → DWM setup")
 
         Dim attrValue As Integer = 2
         DwmSetWindowAttribute(Me.Handle, 2, attrValue, 4)
@@ -94,5 +104,8 @@ Public Class Shadow
 
         DwmExtendFrameIntoClientArea(Me.Handle, margins)
     End Sub
-
+    Private Sub Shadow_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        Debug.WriteLine("[Shadow] FormClosing — cleanup")
+        Timer1.Stop()
+    End Sub
 End Class

@@ -23,6 +23,7 @@ Partial Class Notifier_Sub
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Notifier_Sub))
         Notifier_black = New Panel()
         PictureBox1 = New PictureBox()
         text_n = New Label()
@@ -49,11 +50,11 @@ Partial Class Notifier_Sub
         ' 
         PictureBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom
         PictureBox1.BackColor = Color.Transparent
-        PictureBox1.BackgroundImage = My.Resources.Resources.osc_img_appicon_64x64
+        PictureBox1.BackgroundImage = CType(resources.GetObject("PictureBox1.BackgroundImage"), Image)
         PictureBox1.BackgroundImageLayout = ImageLayout.Zoom
-        PictureBox1.Location = New Point(20, 13)
+        PictureBox1.Location = New Point(21, 13)
         PictureBox1.Name = "PictureBox1"
-        PictureBox1.Size = New Size(47, 64)
+        PictureBox1.Size = New Size(48, 64)
         PictureBox1.TabIndex = 8
         PictureBox1.TabStop = False
         PictureBox1.Visible = False

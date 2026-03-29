@@ -34,9 +34,9 @@ Public Class Base_Settings
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
-    Private Sub ch_Click(sender As Object, e As EventArgs) Handles ch.Click
+    Private Async Sub ch_Click(sender As Object, e As EventArgs) Handles ch.Click
         ch.Enabled = False
-        CheckForUpdateAsync()
+        Await CheckForUpdateAsync()
     End Sub
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click

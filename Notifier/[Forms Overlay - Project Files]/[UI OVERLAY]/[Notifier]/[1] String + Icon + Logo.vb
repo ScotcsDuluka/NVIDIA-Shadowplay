@@ -44,41 +44,43 @@ Public Class Notifier_Sub
         Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
         SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
     End Sub
+
     Private Sub Notifier_Sub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Debug.WriteLine("[Notifier_Sub] ===== Form Load =====")
+
         HideFromAltTab()
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         Me.Location = New Point(screenWidth - Me.Width, Notifier.Location.Y)
 
-        ' เริ่มโปร่งใส
         Me.Opacity = 0
         Me.Show()
 
-        ' ตั้งค่า Fade
-        fadeTimer.Interval = 10 ' 10ms เนียนพอแล้ว
+        fadeTimer.Interval = 10
         AddHandler fadeTimer.Tick, AddressOf FadeIn
         fadeTimer.Start()
 
+        Debug.WriteLine("[Notifier_Sub] Fade in started")
     End Sub
 
     Private Sub FadeIn(sender As Object, e As EventArgs)
-        ' ถ้าฟอร์มยังไม่เต็ม opacity ให้ฟอร์มโผล่ก่อน
         If Me.Opacity < 1 Then
-            Me.Opacity += 0.05 ' ปรับความเร็วตรงนี้ได้
-            Exit Sub ' รอให้ฟอร์มเต็มก่อน
+            Me.Opacity += 0.05
+            Exit Sub
         End If
 
-        Me.Opacity = 1 ' ฟอร์มเต็มแล้ว
+        Me.Opacity = 1
 
-        ' เริ่ม fade Shadow
         If Shadow.Opacity < 1 Then
-            Shadow.Opacity += 0.05 ' ปรับความเร็ว shadow
+            Shadow.Opacity += 0.05
         Else
             Shadow.Opacity = 1
-            fadeTimer.Stop() ' เสร็จครบแล้วหยุด Timer
+            fadeTimer.Stop()
+            Debug.WriteLine("[Notifier_Sub] Fade complete")
         End If
     End Sub
 
     Private Sub text_n_Click_1(sender As Object, e As EventArgs) Handles MyBase.Click, text_n.Click, Notifier_black.Click, PictureBox1.Click, icon_n.Click
+        Debug.WriteLine("[Notifier_Sub] Click → DoCloseClick")
         Notifier.DoCloseClick()
     End Sub
 
@@ -92,11 +94,17 @@ Public Class Notifier_Sub
     Private animationRunning As Boolean = False
     Private onComplete As Action
     Private isSlideX As Boolean = False
+
     Private Sub StartSlideY(LOS As Control,
                        fromY As Integer,
                        toY As Integer,
                        duration As Double,
                        Optional completed As Action = Nothing)
+
+        Debug.WriteLine("[Notifier_Sub] StartSlideY: " & LOS.Name &
+                        " Y " & fromY & "→" & toY &
+                        " dur=" & duration & "ms" &
+                        " wasRunning=" & animationRunning)
 
         currentPanel = LOS
         startY = fromY
@@ -111,8 +119,8 @@ Public Class Notifier_Sub
         Animation_Engine.Interval = 15
         Animation_Engine.Start()
     End Sub
-    Private Sub Animation_Engine_Tick(sender As Object, e As EventArgs) Handles Animation_Engine.Tick
 
+    Private Sub Animation_Engine_Tick(sender As Object, e As EventArgs) Handles Animation_Engine.Tick
         If Not animationRunning Then Return
 
         Dim elapsed = (DateTime.Now - animStart).TotalMilliseconds
@@ -122,6 +130,8 @@ Public Class Notifier_Sub
             t = 1
             animationRunning = False
             Animation_Engine.Stop()
+
+            Debug.WriteLine("[Notifier_Sub] Animation COMPLETE → Y=" & targetY)
 
             If onComplete IsNot Nothing Then
                 onComplete.Invoke()
@@ -133,9 +143,23 @@ Public Class Notifier_Sub
 
         Dim newY As Integer = startY + (targetY - startY) * eased
         currentPanel.Top = newY
-
     End Sub
+
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
+        If Me.IsDisposed Then
+            Timer1.Stop()
+            Return
+        End If
+        Debug.WriteLine("[Notifier_Sub] Timer1 tick → StartSlideY")
         StartSlideY(Me, Me.Top, 105, 200)
+    End Sub
+
+    Private Sub Notifier_Sub_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        Debug.WriteLine("[Notifier_Sub] FormClosing — cleanup")
+        animationRunning = False
+        Animation_Engine.Stop()
+        fadeTimer.Stop()
+        fadeTimer.Dispose()
+        Timer1.Stop()
     End Sub
 End Class

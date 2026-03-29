@@ -264,14 +264,14 @@ Public Class Load
                 Dim dataDira As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
 
                 If Directory.Exists(dataDira) Then
-                    ' ลบไฟล์ทั้งหมดในโฟลเดอร์
-                    For Each files As String In Directory.GetFiles(dataDir)
+                    ' ลบไฟล์ทั้งหมดในโฟลเดอร์ Replay
+                    For Each files As String In Directory.GetFiles(dataDira)
                         File.Delete(files)
                     Next
 
-                    ' ถ้าอยากลบโฟลเดอร์ย่อยทั้งหมดด้วย
-                    For Each dir As String In Directory.GetDirectories(dataDir)
-                        Directory.Delete(dir, True) ' True = ลบพร้อมเนื้อหาในโฟลเดอร์
+                    ' ลบโฟลเดอร์ย่อยทั้งหมดใน Replay
+                    For Each dir As String In Directory.GetDirectories(dataDira)
+                        Directory.Delete(dir, True)
                     Next
                 End If
             End If
@@ -419,5 +419,9 @@ Public Class Load
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
         Notifier.IF_N.Start()
         Notifier_Sub.Timer1.Start()
+    End Sub
+
+    Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+
     End Sub
 End Class

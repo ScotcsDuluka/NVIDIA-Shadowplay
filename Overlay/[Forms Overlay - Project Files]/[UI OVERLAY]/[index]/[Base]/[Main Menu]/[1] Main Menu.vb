@@ -21,6 +21,7 @@ Imports Windows.Media.Devices
 Imports WinRT.Interop
 
 Partial Public Class Base
+
 #Region "NATIVE METHODS & STRUCTURES"
 
     Public clickThrough As Boolean = False
@@ -201,7 +202,7 @@ Partial Public Class Base
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
 
-    Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
         Dim handle As IntPtr = Me.Handle
         _hotkeyService = New HotkeyService()
@@ -209,13 +210,12 @@ Partial Public Class Base
         Debug.WriteLine("Hotkeys registered!")
 
         AppSettings.Initialize()
-        AppSettings.Instance.LoadGitHubUser()
+        Await AppSettings.Instance.LoadGitHubUser()
         Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
-        AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
+        Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
 
         LoadCurrentLanguage()
         InitializeNotifierAPI()
-        CheckPrivacyControl()
         MainSub_Load()
         LoadFilePath()
         CreateDataDirectories()
@@ -243,7 +243,6 @@ Partial Public Class Base
     End Sub
 
     Private Sub InitializeNotifierAPI()
-        ' Check Resolution ก่อน
         Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
         Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
 

@@ -31,7 +31,6 @@ Partial Class Notifier
         icon_n = New Label()
         Notifier_black = New Panel()
         Notifier_green_stop = New PictureBox()
-        Animation_Engine = New Timer(components)
         IF_N = New Timer(components)
         Notifier_black.SuspendLayout()
         CType(Notifier_green_stop, ComponentModel.ISupportInitialize).BeginInit()
@@ -92,10 +91,6 @@ Partial Class Notifier
         Notifier_green_stop.TabIndex = 2
         Notifier_green_stop.TabStop = False
         ' 
-        ' Animation_Engine
-        ' 
-        Animation_Engine.Interval = 1
-        ' 
         ' IF_N
         ' 
         ' 
@@ -125,7 +120,6 @@ Partial Class Notifier
     End Sub
 
     Friend WithEvents Notifier_green As Panel
-    Friend WithEvents Animation_Engine As Timer
     Friend WithEvents Notifier_black As Panel
     Friend WithEvents Notifier_green_stop As PictureBox
     Friend WithEvents icon_n As Label

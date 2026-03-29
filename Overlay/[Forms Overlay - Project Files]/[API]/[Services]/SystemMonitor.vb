@@ -28,7 +28,7 @@ Public Class SystemMonitor
     Public RamThreshold80 As Integer = 80
     Public RamThreshold95 As Integer = 95
     Public CpuThreshold As Integer = 95
-    Public DiskThresholdGB As Integer = 44
+    Public DiskThresholdGB As Integer = 10
 
     ' Flag ป้องกันเตือนซ้ำ
     Private ram80Warned As Boolean = False

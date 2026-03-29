@@ -259,3 +259,7 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\ref
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.genruntimeconfig.cache
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Connect.resources
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinForms.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinMM.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinForms.xml
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinMM.xml

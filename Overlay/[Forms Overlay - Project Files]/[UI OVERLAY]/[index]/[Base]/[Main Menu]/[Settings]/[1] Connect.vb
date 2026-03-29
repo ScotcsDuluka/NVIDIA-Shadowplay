@@ -202,7 +202,7 @@ Public Class Base_Connect
             Debug.WriteLine("HttpListener started on http://localhost:5000/callback/")
 
             ' ✅ Listen asynchronously with cancellation support
-            Task.Run(Async Sub()
+            Task.Run(Async Function()
                          Try
                              While _isListening AndAlso Not _listenerCts.Token.IsCancellationRequested
                                  Dim getContextTask As Task(Of HttpListenerContext) = _listener.GetContextAsync()
@@ -223,7 +223,7 @@ Public Class Base_Connect
                          Catch ex As Exception
                              Debug.WriteLine($"HttpListener error: {ex.Message}")
                          End Try
-                     End Sub, _listenerCts.Token)
+                     End Function, _listenerCts.Token)
 
         Catch ex As Exception
             Debug.WriteLine($"StartLoginListener Error: {ex.Message}")
