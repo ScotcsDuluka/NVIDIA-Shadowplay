@@ -1,6 +1,6 @@
-# NVIDIA ShadowPlay (Custom Implementation)
+### NVIDIA ShadowPlay `Custom Implementation`
 
-A lightweight ShadowPlay-style screen recorder with overlay UI, built in VB.NET.
+> A screen capture utility inspired by NVIDIA ShadowPlay with overlay UI, built in VB.NET [No Hook].
 
 ---
 
