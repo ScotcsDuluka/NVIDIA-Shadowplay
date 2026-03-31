@@ -1,0 +1,40 @@
+{
+  "GitHubUser": {
+    "Username": "",
+    "AvatarUrl": "",
+    "IsLoggedIn": false,
+    "LastLogin": "0001-01-01T00:00:00"
+  },
+  "GitHubToken": "",
+  "IsGitHubLoggedIn": false,
+  "Recording": {
+    "UseNativeResolution": true,
+    "Encoder": "NVENC_H264",
+    "EncoderNow": "NVENC_H264",
+    "FPS": 60,
+    "Bitrate": 7000,
+    "Width": 1920,
+    "Height": 1080,
+    "Preset": "Medium",
+    "EncoderPreset": 5,
+    "ReplayDuration": 45
+  },
+  "Paths": {
+    "GalleryPath": "C:\\Users\\ScotcsDuluka\\Videos\\Shadowplay\\Gallery",
+    "SavePath": "",
+    "FFmpegPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\bin\\Debug\\net8.0-windows10.0.26100.0\\api-core\\ffmpeg.exe"
+  },
+  "UI": {
+    "Language": "en-US",
+    "Theme": "Dark"
+  },
+  "Audio": {
+    "SystemAudioEnabled": true,
+    "MicEnabled": false,
+    "SystemAudioVolume": 1,
+    "MicVolume": 1,
+    "MicDeviceName": "",
+    "MicVolumePercent": 100,
+    "SystemVolumePercent": 100
+  }
+}

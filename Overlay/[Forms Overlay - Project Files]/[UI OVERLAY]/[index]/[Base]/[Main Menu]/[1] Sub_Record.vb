@@ -71,7 +71,7 @@ Partial Public Class Base
         Dim outputDir As String = ""
 
         Try
-            ' ✅ Primary: Use AppSettings.Instance.Paths.SavePath
+            ' Primary: Use AppSettings.Instance.Paths.SavePath
             outputDir = AppSettings.Instance.Paths.SavePath
 
             ' Fallback: Use Base_Gallery.txtFilePath.Text
@@ -125,25 +125,25 @@ Partial Public Class Base
             Exit Sub
         End If
         Try
-            ' Set FFmpeg paths
-            Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
-            Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
-            ApplyRecorderSettings()
-            ApplyAudioSettings(Recorder)
-
             If Recorder.IsRecording Then
-                ' Stop recording
+                ' ✅ FIXED: Stop recording FIRST - do NOT apply settings while FFmpeg is running
+                ' Applying settings during recording causes FFmpeg to hang → timeout → 0 KB file
                 Await Recorder.StopRecordingAsync()
                 RecordValue = False
                 ShowNotifier("recording_saved")
-                Debug.WriteLine($"Recording stopped")
+                Debug.WriteLine("Recording stopped")
             Else
-                ' Start recording
+                ' ✅ Apply settings ONLY when starting a new recording
+                Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
+                Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
+                ApplyRecorderSettings()
+                ApplyAudioSettings(Recorder)
+
                 RecordValue = True
                 ShowNotifier("recording_started")
                 Debug.WriteLine("Recording started")
 
-                ' ✅ Use output directory from AppSettings
+                ' Use output directory from AppSettings
                 Dim outputDir As String = GetOutputDirectory()
                 Dim fileName = $"Record_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4"
                 Dim outputPath = Path.Combine(outputDir, fileName)
@@ -169,28 +169,27 @@ Partial Public Class Base
             ' If Recorder.SelectedCaptureAPI = CaptureAPIType.GFxCapture Then
             ' Else
             ShowMainPanel()
-                OpenSettings()
-                PrivacyOpen()
+            OpenSettings()
+            PrivacyOpen()
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
             Exit Sub
             '  End If
         End If
         Try
-            ' Set FFmpeg paths
-            Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
-            Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
-            ApplyRecorderSettings()
-            ApplyAudioSettings(Recorder)
-
             If Recorder.IsBuffering Then
-                ' Stop replay buffer
+                ' ✅ FIXED: Stop buffer FIRST - do NOT apply settings while FFmpeg is running
                 Await Recorder.StopBufferAsync()
                 ReplayValue = False
                 SetControlColor(Replay_Logo, Color.White)
                 ShowNotifier("instant_replay_off")
                 Debug.WriteLine("Replay buffer stopped")
             Else
-                ' Start replay buffer
+                ' ✅ Apply settings ONLY when starting a new buffer
+                Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
+                Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
+                ApplyRecorderSettings()
+                ApplyAudioSettings(Recorder)
+
                 ReplayValue = True
                 ShowNotifier("instant_replay_on")
                 SetControlEnabled(Menu_Replay_Box2, True)
@@ -238,14 +237,14 @@ Partial Public Class Base
             SetControlEnabled(Menu_Replay_save_text, False)
             SetControlEnabled(Menu_Replay_save_key, False)
 
-            ' ✅ Get output directory from AppSettings
+            ' Get output directory from AppSettings
             Dim outputDir As String = GetOutputDirectory()
 
             ' Generate filename
             Dim fileName = $"Replay_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4"
             Dim outputPath = Path.Combine(outputDir, fileName)
 
-            ' ✅ Get requested duration from AppSettings.Instance (config.json)
+            ' Get requested duration from AppSettings.Instance (config.json)
             Dim requestedDuration As Integer = AppSettings.Instance.Recording.ReplayDuration
             If requestedDuration < 15 Then requestedDuration = 15
             If requestedDuration > 1200 Then requestedDuration = 1200
@@ -265,9 +264,7 @@ Partial Public Class Base
                 Debug.WriteLine($"SaveInstantReplay: SUCCESS")
                 Debug.WriteLine($"  Saved to {outputPath}")
 
-
-
-                ' ✅ Save duration info for UI display - gets duration from actual file
+                ' Save duration info for UI display - gets duration from actual file
                 SaveReplayDurationInfo(outputPath)
             Else
                 Debug.WriteLine("SaveInstantReplay: FAILED")
@@ -328,19 +325,19 @@ Partial Public Class Base
 
     Private Sub SaveReplayDurationInfo(filePath As String)
         Try
-            ' ✅ Get duration from file
+            ' Get duration from file
             Dim actualSeconds As Integer = CInt(Math.Floor(Recorder.GetVideoDuration(filePath)))
             Dim minutes As Integer = actualSeconds \ 60
             Dim seconds As Integer = actualSeconds Mod 60
 
             Dim dataDir As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "Replay")
 
-            ' ✅ Create directory if not exists
+            ' Create directory if not exists
             If Not Directory.Exists(dataDir) Then
                 Directory.CreateDirectory(dataDir)
             End If
 
-            ' ✅ 1. DELETE OLD FILES FIRST
+            ' 1. DELETE OLD FILES FIRST
             Dim deletedCount As Integer = 0
             For Each oldFile As String In Directory.GetFiles(dataDir, "*.m")
                 Try
@@ -360,7 +357,7 @@ Partial Public Class Base
             Next
             Debug.WriteLine("Deleted " & deletedCount & " old files")
 
-            ' ✅ 2. CREATE NEW FILES
+            ' 2. CREATE NEW FILES
             Dim mPath As String = Path.Combine(dataDir, minutes & ".m")
             Dim sPath As String = Path.Combine(dataDir, seconds & ".s")
 
@@ -482,17 +479,17 @@ Partial Public Class Base
             Dim selectedEncoder As CaptureCore.ScreenRecorder.VideoEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264
 
             If AppSettings.HasNvidia Then
-                ' ✅ NVIDIA NVENC - Best performance (HEVC preferred)
+                ' NVIDIA NVENC - Best performance (HEVC preferred)
                 selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
                 Debug.WriteLine("SelectBestEncoder: NVENC_HEVC (NVIDIA)")
 
             ElseIf AppSettings.HasIntel Then
-                ' ✅ Intel QuickSync - Good performance (HEVC preferred)
+                ' Intel QuickSync - Good performance (HEVC preferred)
                 selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
                 Debug.WriteLine("SelectBestEncoder: QuickSync_HEVC (Intel)")
 
             ElseIf AppSettings.HasAMD Then
-                ' ✅ AMD AMF (HEVC preferred)
+                ' AMD AMF (HEVC preferred)
                 selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
                 Debug.WriteLine("SelectBestEncoder: AMF_HEVC (AMD)")
 

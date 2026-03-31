@@ -1243,26 +1243,56 @@ Namespace CaptureCore
             End SyncLock
         End Function
 
+        ' ═══════════════════════════════════════════════════════════════════════
+        ' v3.1 FIX: StopRecording - ปิด audio pipes ก่อนส่ง 'q' ให้ FFmpeg
+        '
+        ' ปัญหาเดิม: AudioCapture ตาย (0x88890004) → named pipe server ยังเปิดอยู่
+        ' → FFmpeg block รอ ReadFile() จาก pipe → 'q' ส่งไปถูก ignore → timeout
+        '
+        ' แก้: ปิด pipe ก่อน → FFmpeg ได้ EOF → อ่าน 'q' ได้ → exit gracefully
+        ' ═══════════════════════════════════════════════════════════════════════
         Public Sub StopRecording()
             SyncLock _recordingLock
                 If Not _isRecording OrElse recordingProcess Is Nothing Then Exit Sub
 
                 Dim savedPath As String = recordingOutputPath
 
-                ' Mark as intentionally stopping BEFORE sending 'q'
+                ' Mark as intentionally stopping BEFORE anything
                 _stoppingRecording = True
 
                 Try
-                    ' ===== 1. ส่ง 'q' ให้ FFmpeg =====
-                    recordingProcess.StandardInput.Write("q"c)
-                    recordingProcess.StandardInput.Flush()
-                    recordingProcess.StandardInput.Close()
+                    ' ===== 1. ปิด audio pipes ก่อน เพื่อ unblock FFmpeg =====
+                    ' เมื่อ AudioCapture ตาย (0x88890004) named pipe server ยังเปิดอยู่
+                    ' FFmpeg block รอ ReadFile() จาก pipe → 'q' ส่งไปถูก ignore
+                    ' ปิด pipe = FFmpeg ได้ EOF → กลับมา process 'q' ได้
+                    StopRecordingMicPipe()
+                    StopRecordingAudioPipe()
+                    Threading.Thread.Sleep(200)
 
-                    ' ===== 2. รอให้ FFmpeg exit =====
-                    If Not recordingProcess.WaitForExit(10000) Then
-                        Debug.WriteLine("StopRecording: FFmpeg timeout")
-                        recordingProcess.Kill()
-                        recordingProcess.WaitForExit(1000)
+                    ' ===== 2. ส่ง 'q' ให้ FFmpeg =====
+                    If Not recordingProcess.HasExited Then
+                        Try
+                            recordingProcess.StandardInput.Write("q"c)
+                            recordingProcess.StandardInput.Flush()
+                            recordingProcess.StandardInput.Close()
+                            Debug.WriteLine("StopRecording: Sent 'q' to FFmpeg")
+                        Catch ex As Exception
+                            Debug.WriteLine("StopRecording: Failed to send 'q' - " & ex.Message)
+                        End Try
+                    End If
+
+                    ' ===== 3. รอให้ FFmpeg exit =====
+                    If Not recordingProcess.HasExited Then
+                        If Not recordingProcess.WaitForExit(GRACEFUL_EXIT_TIMEOUT) Then
+                            Debug.WriteLine("StopRecording: FFmpeg timeout, force killing...")
+                            Try
+                                recordingProcess.Kill()
+                                recordingProcess.WaitForExit(FORCE_KILL_TIMEOUT)
+                            Catch
+                            End Try
+                        Else
+                            Debug.WriteLine("StopRecording: FFmpeg exited gracefully")
+                        End If
                     End If
 
                     Debug.WriteLine("StopRecording: FFmpeg exited")
@@ -1271,12 +1301,6 @@ Namespace CaptureCore
                     Debug.WriteLine("StopRecording Error: " & ex.Message)
                     ForceKillProcess(recordingProcess)
                 End Try
-
-                ' ===== 3. FFmpeg exit แล้ว — Stop audio pipes =====
-                ' IOException "Pipe is broken" may appear in VS Output (first-chance exception).
-                ' This is NORMAL and harmless — WriteLoop catches it and exits gracefully.
-                StopRecordingMicPipe()
-                StopRecordingAudioPipe()
 
                 ' ===== 4. Final cleanup =====
                 CleanupRecordingProcess()
@@ -1371,6 +1395,10 @@ Namespace CaptureCore
             End SyncLock
         End Function
 
+        ' ═══════════════════════════════════════════════════════════════════════
+        ' v3.1 FIX: StopBuffer - ปิด audio pipes ก่อนส่ง 'q' ให้ FFmpeg
+        ' ลำดับเดียวกับ StopRecording — ปิด pipe ก่อน → unblock FFmpeg
+        ' ═══════════════════════════════════════════════════════════════════════
         Public Sub StopBuffer()
             SyncLock _bufferLock
                 If Not _isBuffering OrElse bufferProcess Is Nothing Then
@@ -1380,11 +1408,16 @@ Namespace CaptureCore
 
                 Debug.WriteLine("═══ StopBuffer START ═══")
 
-                ' Mark as intentionally stopping BEFORE sending 'q'
+                ' Mark as intentionally stopping BEFORE anything
                 _stoppingBuffer = True
 
                 Try
-                    ' ===== 1. ส่ง 'q' ให้ FFmpeg (graceful exit) =====
+                    ' ===== 1. ปิด audio pipes ก่อน เพื่อ unblock FFmpeg =====
+                    StopBufferMicPipe()
+                    StopBufferAudioPipe()
+                    Threading.Thread.Sleep(200)
+
+                    ' ===== 2. ส่ง 'q' ให้ FFmpeg (graceful exit) =====
                     If bufferProcess IsNot Nothing AndAlso Not bufferProcess.HasExited Then
                         Try
                             bufferProcess.StandardInput.Write("q"c)
@@ -1396,7 +1429,7 @@ Namespace CaptureCore
                         End Try
                     End If
 
-                    ' ===== 2. รอให้ FFmpeg exit =====
+                    ' ===== 3. รอให้ FFmpeg exit =====
                     If bufferProcess IsNot Nothing AndAlso Not bufferProcess.HasExited Then
                         Dim exited As Boolean = bufferProcess.WaitForExit(GRACEFUL_EXIT_TIMEOUT)
                         If Not exited Then
@@ -1415,11 +1448,6 @@ Namespace CaptureCore
                     Debug.WriteLine("StopBuffer Error: " & ex.Message)
                     ForceKillProcess(bufferProcess)
                 End Try
-
-                ' ===== 3. FFmpeg exit แล้ว — Stop audio pipes =====
-                ' IOException "Pipe is broken" in VS Output is a harmless first-chance exception.
-                StopBufferMicPipe()
-                StopBufferAudioPipe()
 
                 ' ===== 4. Cleanup =====
                 CleanupBufferProcess()
@@ -1853,6 +1881,14 @@ Namespace CaptureCore
 
 #Region "Audio Pipe Management (NAudio)"
 
+        ' ═══════════════════════════════════════════════════════════════════════
+        ' v3.1 FIX: PipeError handler — ปิด pipe ที่พังทันทีเพื่อ unblock FFmpeg
+        '
+        ' เดิม: PipeError เขียน log แล้วจบ → named pipe server ยังเปิดอยู่
+        ' → FFmpeg block รอ ReadFile() → ค้างจน timeout
+        '
+        ' ใหม่: PipeError → dispose pipe ทันที → pipe server close → FFmpeg ได้ EOF
+        ' ═══════════════════════════════════════════════════════════════════════
         Private Sub StartRecordingAudioPipe()
             SyncLock _audioLock
                 If _audioMode = VideoCaptureMode.None OrElse _audioMode = VideoCaptureMode.MicOnly Then
@@ -1865,6 +1901,19 @@ Namespace CaptureCore
                     _recordingAudioPipe = New AudioPipe(_systemAudioVolume)
                     AddHandler _recordingAudioPipe.PipeError, Sub(sender, err)
                                                                   Debug.WriteLine("Recording AudioPipe Error: " & err)
+                                                                  Dim brokenPipe = TryCast(sender, AudioPipe)
+                                                                  If brokenPipe IsNot Nothing Then
+                                                                      Task.Run(Sub()
+                                                                                   SyncLock _audioLock
+                                                                                       If _recordingAudioPipe Is brokenPipe Then
+                                                                                           Try : brokenPipe.Stop() : Catch : End Try
+                                                                                           Try : brokenPipe.Dispose() : Catch : End Try
+                                                                                           _recordingAudioPipe = Nothing
+                                                                                           Debug.WriteLine("Recording AudioPipe: Disposed broken pipe to unblock FFmpeg")
+                                                                                       End If
+                                                                                   End SyncLock
+                                                                               End Sub)
+                                                                  End If
                                                               End Sub
 
                     If Not _recordingAudioPipe.Start() Then
@@ -1912,6 +1961,19 @@ Namespace CaptureCore
                     _bufferAudioPipe = New AudioPipe(_systemAudioVolume)
                     AddHandler _bufferAudioPipe.PipeError, Sub(sender, err)
                                                                Debug.WriteLine("Buffer AudioPipe Error: " & err)
+                                                               Dim brokenPipe = TryCast(sender, AudioPipe)
+                                                               If brokenPipe IsNot Nothing Then
+                                                                   Task.Run(Sub()
+                                                                                SyncLock _audioLock
+                                                                                    If _bufferAudioPipe Is brokenPipe Then
+                                                                                        Try : brokenPipe.Stop() : Catch : End Try
+                                                                                        Try : brokenPipe.Dispose() : Catch : End Try
+                                                                                        _bufferAudioPipe = Nothing
+                                                                                        Debug.WriteLine("Buffer AudioPipe: Disposed broken pipe to unblock FFmpeg")
+                                                                                    End If
+                                                                                End SyncLock
+                                                                            End Sub)
+                                                               End If
                                                            End Sub
 
                     If Not _bufferAudioPipe.Start() Then
@@ -1957,6 +2019,19 @@ Namespace CaptureCore
                     _recordingMicPipe = New MicPipe(_micVolume)
                     AddHandler _recordingMicPipe.PipeError, Sub(sender, err)
                                                                 Debug.WriteLine("Recording MicPipe Error: " & err)
+                                                                Dim brokenPipe = TryCast(sender, MicPipe)
+                                                                If brokenPipe IsNot Nothing Then
+                                                                    Task.Run(Sub()
+                                                                                 SyncLock _audioLock
+                                                                                     If _recordingMicPipe Is brokenPipe Then
+                                                                                         Try : brokenPipe.Stop() : Catch : End Try
+                                                                                         Try : brokenPipe.Dispose() : Catch : End Try
+                                                                                         _recordingMicPipe = Nothing
+                                                                                         Debug.WriteLine("Recording MicPipe: Disposed broken pipe")
+                                                                                     End If
+                                                                                 End SyncLock
+                                                                             End Sub)
+                                                                End If
                                                             End Sub
 
                     If Not _recordingMicPipe.Start() Then
@@ -2000,6 +2075,19 @@ Namespace CaptureCore
                     _bufferMicPipe = New MicPipe(_micVolume)
                     AddHandler _bufferMicPipe.PipeError, Sub(sender, err)
                                                              Debug.WriteLine("Buffer MicPipe Error: " & err)
+                                                             Dim brokenPipe = TryCast(sender, MicPipe)
+                                                             If brokenPipe IsNot Nothing Then
+                                                                 Task.Run(Sub()
+                                                                              SyncLock _audioLock
+                                                                                  If _bufferMicPipe Is brokenPipe Then
+                                                                                      Try : brokenPipe.Stop() : Catch : End Try
+                                                                                      Try : brokenPipe.Dispose() : Catch : End Try
+                                                                                      _bufferMicPipe = Nothing
+                                                                                      Debug.WriteLine("Buffer MicPipe: Disposed broken pipe")
+                                                                                  End If
+                                                                              End SyncLock
+                                                                          End Sub)
+                                                             End If
                                                          End Sub
 
                     If Not _bufferMicPipe.Start() Then
