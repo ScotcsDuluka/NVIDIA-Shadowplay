@@ -31,20 +31,22 @@ Namespace CaptureCore
         Public Const MAX_REPLAY_DURATION As Integer = 1200
         Public Const DEFAULT_REPLAY_DURATION As Integer = 60
 
+        Public Const FIXED_BUFFER_SEGMENTS As Integer = 2400
+        Public Const FIXED_BUFFER_SECONDS As Integer = 1200
+
         Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 10000
         Private Const FORCE_KILL_TIMEOUT As Integer = 2000
-        Private Const FILE_WRITE_DELAY As Integer = 1000
+        Private Const FILE_WRITE_DELAY As Integer = 300
         Private Const CONCAT_TIMEOUT As Integer = 60000
 
         Private Const SEGMENT_DURATION As Double = 0.5
+        Private Const BUFFER_MAX_SEGMENTS As Integer = 2400
+        Private Const BUFFER_MAX_DURATION As Integer = 1200
         Private Const SB_CAPACITY_XLARGE As Integer = 4096
         Private Const CAPTURE_API_CHECK_TIMEOUT As Integer = 3000
         Private _bufferStartTime As DateTime
         Private _lastSegmentTime As DateTime
 
-        ' Configurable buffer fields (replaces constants - FIX 7)
-        Private _bufferMaxSegments As Integer = 2400
-        Private _bufferMaxDuration As Integer = 1200
 #End Region
 
 #Region "Enums"
@@ -139,20 +141,16 @@ Namespace CaptureCore
 #Region "Pre-warm State"
         Private Shared _isPreWarmed As Boolean = False
         Private Shared _prewarmLock As New Object()
-        Private Shared _prewarmTCS As New TaskCompletionSource(Of Boolean)()
 #End Region
 
 #Region "Capture API Fallback State"
         Private _captureAPIFailed As Boolean = False
         Private _fallbackAPI As CaptureAPIType? = Nothing
-        Private _fallbackLock As New Object()
 #End Region
 
 #Region "Audio Capture State (NAudio)"
         Private _recordingAudioPipe As AudioPipe
         Private _bufferAudioPipe As AudioPipe
-        Private _recordingMicPipe As MicPipe    ' FIX 4: MicPipe for microphone
-        Private _bufferMicPipe As MicPipe        ' FIX 4: MicPipe for microphone buffer
         Private _audioLock As New Object()
 
         Private _audioMode As VideoCaptureMode = VideoCaptureMode.None
@@ -239,14 +237,12 @@ Namespace CaptureCore
         Private recordingProcess As Process
         Private recordingOutputPath As String
         Private _isRecording As Boolean = False
-        Private _stoppingRecording As Boolean = False
         Private recordingStartTime As DateTime
         Private ReadOnly _recordingLock As New Object()
 
         Private bufferProcess As Process
         Private bufferTempDir As String = ""
         Private _isBuffering As Boolean = False
-        Private _stoppingBuffer As Boolean = False
         Private _replaySaveDuration As Integer = DEFAULT_REPLAY_DURATION
         Private ReadOnly _bufferLock As New Object()
         Private bufferStartTime As DateTime
@@ -458,7 +454,6 @@ Namespace CaptureCore
             End Get
         End Property
 
-        <Obsolete("Use BufferDurationSeconds instead. This property will be removed in a future version.")>
         Public Property ReplayBufferDuration As Integer
             Get
                 Return _replaySaveDuration
@@ -486,49 +481,28 @@ Namespace CaptureCore
         Public ReadOnly Property BufferCurrentDuration As Double
             Get
                 If Not _isBuffering Then Return 0
-                Return Math.Min(GetActualBufferDuration().TotalSeconds, _bufferMaxDuration)
+                Return Math.Min(GetActualBufferDuration().TotalSeconds, FIXED_BUFFER_SECONDS)
             End Get
         End Property
 
         Public ReadOnly Property BufferCapacitySeconds As Integer
             Get
-                Return _bufferMaxDuration
+                Return FIXED_BUFFER_SECONDS
             End Get
         End Property
 
         Public ReadOnly Property BufferCapacitySegments As Integer
             Get
-                Return _bufferMaxSegments
+                Return FIXED_BUFFER_SEGMENTS
             End Get
         End Property
 
-        ' FIX 7: Configurable buffer properties
-        Public Property BufferMaxSegments As Integer
-            Get
-                Return _bufferMaxSegments
-            End Get
-            Set(value As Integer)
-                _bufferMaxSegments = Math.Max(30, Math.Min(7200, value))
-            End Set
-        End Property
-
-        Public Property BufferMaxDuration As Integer
-            Get
-                Return _bufferMaxDuration
-            End Get
-            Set(value As Integer)
-                _bufferMaxDuration = Math.Max(15, Math.Min(3600, value))
-            End Set
-        End Property
-
-        <Obsolete("Use IsBuffering instead. This property will be removed in a future version.")>
         Public ReadOnly Property IsReplayBuffering As Boolean
             Get
                 Return _isBuffering
             End Get
         End Property
 
-        <Obsolete("Use IsBuffering instead. This property will be removed in a future version.")>
         Public ReadOnly Property IsBufferActive As Boolean
             Get
                 Return _isBuffering
@@ -543,12 +517,21 @@ Namespace CaptureCore
             End Set
         End Property
 
-        ' v2.0: Removed dead properties ExactDurationMode and AllIntraMode
-        ' (they always returned True/False respectively and did nothing)
-#Region "Removed Dead Properties - See v1.0 changelog"
-        ' ExactDurationMode - always returned True, setter did nothing -> REMOVED
-        ' AllIntraMode - always returned False, setter did nothing -> REMOVED
-#End Region
+        Public Property ExactDurationMode As Boolean
+            Get
+                Return True
+            End Get
+            Set(value As Boolean)
+            End Set
+        End Property
+
+        Public Property AllIntraMode As Boolean
+            Get
+                Return False
+            End Get
+            Set(value As Boolean)
+            End Set
+        End Property
 #End Region
 
 #Region "Properties - Audio Settings (NAudio)"
@@ -626,14 +609,6 @@ Namespace CaptureCore
             End Get
             Set(value As Single)
                 _micVolume = Math.Max(0.0F, Math.Min(1.0F, value))
-                SyncLock _audioLock
-                    If _recordingMicPipe IsNot Nothing Then
-                        _recordingMicPipe.Volume = _micVolume
-                    End If
-                    If _bufferMicPipe IsNot Nothing Then
-                        _bufferMicPipe.Volume = _micVolume
-                    End If
-                End SyncLock
             End Set
         End Property
 
@@ -786,12 +761,6 @@ Namespace CaptureCore
         Public Event BufferStopped As EventHandler
         Public Event FFmpegLogReceived As EventHandler(Of String)
         Public Event ProgressChanged As EventHandler(Of RecordingProgressEventArgs)
-
-        ''' <summary>
-        ''' Raised when FFmpeg process exits unexpectedly (crash).
-        ''' v2.0: New event for crash detection.
-        ''' </summary>
-        Public Event FFmpegCrashed As EventHandler(Of String)
 #End Region
 
 #Region "Event Args"
@@ -943,49 +912,27 @@ Namespace CaptureCore
 #End Region
 
 #Region "Pre-warm System"
-        ''' <summary>
-        ''' Pre-warm FFmpeg encoder. Returns a Task that completes when warmup is done.
-        ''' v2.0: Now properly waits for warmup to complete (not fire-and-forget).
-        ''' </summary>
-        Public Shared Function PreWarmFFmpegAsync(ffmpegPath As String, preferredEncoder As VideoEncoder) As Task
-            If _isPreWarmed Then Return Task.CompletedTask
+        Public Shared Sub PreWarmFFmpeg(ffmpegPath As String, preferredEncoder As VideoEncoder)
+            If _isPreWarmed Then Exit Sub
             If String.IsNullOrEmpty(ffmpegPath) OrElse Not File.Exists(ffmpegPath) Then
                 _isPreWarmed = True
-                Return Task.CompletedTask
+                Exit Sub
             End If
 
             SyncLock _prewarmLock
-                If _isPreWarmed Then Return Task.CompletedTask
-
-                ' Reset TCS if needed
-                If _prewarmTCS.Task.IsCompleted Then
-                    _prewarmTCS = New TaskCompletionSource(Of Boolean)()
-                End If
+                If _isPreWarmed Then Exit Sub
 
                 Try
-                    Dim tcs As TaskCompletionSource(Of Boolean) = _prewarmTCS
-                    Task.Run(Sub() PreWarmEncoderCore(ffmpegPath, preferredEncoder, tcs))
-                    Return tcs.Task
-                Catch ex As Exception
-                    Debug.WriteLine("PreWarmFFmpegAsync Error: " & ex.Message)
+                    Task.Run(Sub() PreWarmEncoderCore(ffmpegPath, preferredEncoder))
                     _isPreWarmed = True
-                    Return Task.CompletedTask
+                Catch ex As Exception
+                    Debug.WriteLine("PreWarmFFmpeg Error: " & ex.Message)
+                    _isPreWarmed = True
                 End Try
             End SyncLock
-        End Function
-
-        ''' <summary>
-        ''' Synchronous pre-warm (backward compatible). Waits up to 5 seconds.
-        ''' </summary>
-        Public Shared Sub PreWarmFFmpeg(ffmpegPath As String, preferredEncoder As VideoEncoder)
-            Try
-                PreWarmFFmpegAsync(ffmpegPath, preferredEncoder).Wait(5000)
-            Catch ex As Exception
-                Debug.WriteLine("PreWarmFFmpeg Error: " & ex.Message)
-            End Try
         End Sub
 
-        Private Shared Sub PreWarmEncoderCore(ffmpegPath As String, encoder As VideoEncoder, tcs As TaskCompletionSource(Of Boolean))
+        Private Shared Sub PreWarmEncoderCore(ffmpegPath As String, encoder As VideoEncoder)
             Try
                 Dim encoderArgs As String = GetPreWarmEncoderArgs(encoder)
                 Dim prewarmArgs As String = "-f lavfi -i ""nullsrc=s=256x256:d=0.1"" " & encoderArgs & " -f null - -hide_banner -loglevel error"
@@ -995,19 +942,12 @@ Namespace CaptureCore
                     proc.Start()
                     If proc.WaitForExit(5000) Then
                         Debug.WriteLine("PreWarmEncoderCore: " & encoder.ToString() & " loaded")
-                        _isPreWarmed = True
-                        tcs.TrySetResult(True)
                     Else
                         proc.Kill()
-                        Debug.WriteLine("PreWarmEncoderCore: " & encoder.ToString() & " timeout")
-                        _isPreWarmed = True
-                        tcs.TrySetResult(False)
                     End If
                 End Using
             Catch ex As Exception
                 Debug.WriteLine("PreWarmEncoderCore Error: " & ex.Message)
-                _isPreWarmed = True
-                tcs.TrySetResult(False)
             End Try
         End Sub
 
@@ -1204,15 +1144,6 @@ Namespace CaptureCore
                     recordingOutputPath = outputFilePath
 
                     StartRecordingAudioPipe()
-                    StartRecordingMicPipe()
-
-                    ' FIX 6: Wait for audio format to be ready before building FFmpeg args
-                    If _recordingAudioPipe IsNot Nothing Then
-                        _recordingAudioPipe.FormatReadyEvent.Wait(3000)
-                    End If
-                    If _recordingMicPipe IsNot Nothing Then
-                        _recordingMicPipe.FormatReadyEvent.Wait(3000)
-                    End If
 
                     Dim arguments As String = BuildFFmpegArguments(outputFilePath, region)
 
@@ -1220,8 +1151,6 @@ Namespace CaptureCore
                     Debug.WriteLine(arguments)
 
                     recordingProcess = CreateFFmpegProcess(arguments)
-                    AddHandler recordingProcess.Exited, AddressOf OnRecordingProcessExited
-                    recordingProcess.EnableRaisingEvents = True
                     recordingProcess.Start()
                     AddProcessToJob(recordingProcess)
                     recordingProcess.BeginErrorReadLine()
@@ -1234,7 +1163,6 @@ Namespace CaptureCore
                     Return True
 
                 Catch ex As Exception
-                    StopRecordingMicPipe()
                     StopRecordingAudioPipe()
                     RaiseEvent RecordingError(Me, "Failed to start recording: " & ex.Message)
                     CleanupRecordingProcess()
@@ -1243,56 +1171,23 @@ Namespace CaptureCore
             End SyncLock
         End Function
 
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' v3.1 FIX: StopRecording - ปิด audio pipes ก่อนส่ง 'q' ให้ FFmpeg
-        '
-        ' ปัญหาเดิม: AudioCapture ตาย (0x88890004) → named pipe server ยังเปิดอยู่
-        ' → FFmpeg block รอ ReadFile() จาก pipe → 'q' ส่งไปถูก ignore → timeout
-        '
-        ' แก้: ปิด pipe ก่อน → FFmpeg ได้ EOF → อ่าน 'q' ได้ → exit gracefully
-        ' ═══════════════════════════════════════════════════════════════════════
         Public Sub StopRecording()
             SyncLock _recordingLock
                 If Not _isRecording OrElse recordingProcess Is Nothing Then Exit Sub
 
                 Dim savedPath As String = recordingOutputPath
 
-                ' Mark as intentionally stopping BEFORE anything
-                _stoppingRecording = True
-
                 Try
-                    ' ===== 1. ปิด audio pipes ก่อน เพื่อ unblock FFmpeg =====
-                    ' เมื่อ AudioCapture ตาย (0x88890004) named pipe server ยังเปิดอยู่
-                    ' FFmpeg block รอ ReadFile() จาก pipe → 'q' ส่งไปถูก ignore
-                    ' ปิด pipe = FFmpeg ได้ EOF → กลับมา process 'q' ได้
-                    StopRecordingMicPipe()
-                    StopRecordingAudioPipe()
-                    Threading.Thread.Sleep(200)
+                    ' ===== 1. ส่ง 'q' ให้ FFmpeg =====
+                    recordingProcess.StandardInput.Write("q"c)
+                    recordingProcess.StandardInput.Flush()
+                    recordingProcess.StandardInput.Close()
 
-                    ' ===== 2. ส่ง 'q' ให้ FFmpeg =====
-                    If Not recordingProcess.HasExited Then
-                        Try
-                            recordingProcess.StandardInput.Write("q"c)
-                            recordingProcess.StandardInput.Flush()
-                            recordingProcess.StandardInput.Close()
-                            Debug.WriteLine("StopRecording: Sent 'q' to FFmpeg")
-                        Catch ex As Exception
-                            Debug.WriteLine("StopRecording: Failed to send 'q' - " & ex.Message)
-                        End Try
-                    End If
-
-                    ' ===== 3. รอให้ FFmpeg exit =====
-                    If Not recordingProcess.HasExited Then
-                        If Not recordingProcess.WaitForExit(GRACEFUL_EXIT_TIMEOUT) Then
-                            Debug.WriteLine("StopRecording: FFmpeg timeout, force killing...")
-                            Try
-                                recordingProcess.Kill()
-                                recordingProcess.WaitForExit(FORCE_KILL_TIMEOUT)
-                            Catch
-                            End Try
-                        Else
-                            Debug.WriteLine("StopRecording: FFmpeg exited gracefully")
-                        End If
+                    ' ===== 2. รอให้ FFmpeg exit =====
+                    If Not recordingProcess.WaitForExit(10000) Then
+                        Debug.WriteLine("StopRecording: FFmpeg timeout")
+                        recordingProcess.Kill()
+                        recordingProcess.WaitForExit(1000)
                     End If
 
                     Debug.WriteLine("StopRecording: FFmpeg exited")
@@ -1302,10 +1197,13 @@ Namespace CaptureCore
                     ForceKillProcess(recordingProcess)
                 End Try
 
+                ' ===== 3. FFmpeg exit แล้ว = AudioPipe broken อัตโนมัติ =====
+                ' เรียก Stop เพื่อ cleanup (จะไม่ส่ง silent frame เพิ่ม)
+                StopRecordingAudioPipe()
+
                 ' ===== 4. Final cleanup =====
                 CleanupRecordingProcess()
                 _isRecording = False
-                _stoppingRecording = False
 
                 RaiseEvent RecordingStopped(Me, savedPath)
             End SyncLock
@@ -1352,15 +1250,6 @@ Namespace CaptureCore
                 Try
                     ' ===== Start AudioPipe =====
                     StartBufferAudioPipe()
-                    StartBufferMicPipe()
-
-                    ' FIX 6: Wait for audio format to be ready before building FFmpeg args
-                    If _bufferAudioPipe IsNot Nothing Then
-                        _bufferAudioPipe.FormatReadyEvent.Wait(3000)
-                    End If
-                    If _bufferMicPipe IsNot Nothing Then
-                        _bufferMicPipe.FormatReadyEvent.Wait(3000)
-                    End If
 
                     ' ===== Build FFmpeg arguments =====
                     Dim arguments As String = BuildBufferFFmpegArguments()
@@ -1369,8 +1258,6 @@ Namespace CaptureCore
 
                     ' ===== Start FFmpeg process =====
                     bufferProcess = CreateFFmpegProcess(arguments)
-                    AddHandler bufferProcess.Exited, AddressOf OnBufferProcessExited
-                    bufferProcess.EnableRaisingEvents = True
                     bufferProcess.Start()
                     AddProcessToJob(bufferProcess)
                     bufferProcess.BeginErrorReadLine()
@@ -1386,7 +1273,6 @@ Namespace CaptureCore
 
                 Catch ex As Exception
                     Debug.WriteLine("StartBuffer Error: " & ex.Message)
-                    StopBufferMicPipe()
                     StopBufferAudioPipe()
                     CleanupBufferProcess()
                     RaiseEvent RecordingError(Me, "Failed to start buffer: " & ex.Message)
@@ -1395,10 +1281,6 @@ Namespace CaptureCore
             End SyncLock
         End Function
 
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' v3.1 FIX: StopBuffer - ปิด audio pipes ก่อนส่ง 'q' ให้ FFmpeg
-        ' ลำดับเดียวกับ StopRecording — ปิด pipe ก่อน → unblock FFmpeg
-        ' ═══════════════════════════════════════════════════════════════════════
         Public Sub StopBuffer()
             SyncLock _bufferLock
                 If Not _isBuffering OrElse bufferProcess Is Nothing Then
@@ -1408,30 +1290,24 @@ Namespace CaptureCore
 
                 Debug.WriteLine("═══ StopBuffer START ═══")
 
-                ' Mark as intentionally stopping BEFORE anything
-                _stoppingBuffer = True
-
                 Try
-                    ' ===== 1. ปิด audio pipes ก่อน เพื่อ unblock FFmpeg =====
-                    StopBufferMicPipe()
-                    StopBufferAudioPipe()
-                    Threading.Thread.Sleep(200)
-
-                    ' ===== 2. ส่ง 'q' ให้ FFmpeg (graceful exit) =====
+                    ' ===== 1. ส่ง 'q' ให้ FFmpeg (graceful exit) =====
                     If bufferProcess IsNot Nothing AndAlso Not bufferProcess.HasExited Then
                         Try
                             bufferProcess.StandardInput.Write("q"c)
                             bufferProcess.StandardInput.Flush()
                             bufferProcess.StandardInput.Close()
+
                             Debug.WriteLine("StopBuffer: Sent 'q' to FFmpeg")
                         Catch ex As Exception
                             Debug.WriteLine("StopBuffer: Failed to send 'q' - " & ex.Message)
                         End Try
                     End If
 
-                    ' ===== 3. รอให้ FFmpeg exit =====
+                    ' ===== 2. รอให้ FFmpeg exit (สำคัญมาก!) =====
                     If bufferProcess IsNot Nothing AndAlso Not bufferProcess.HasExited Then
                         Dim exited As Boolean = bufferProcess.WaitForExit(GRACEFUL_EXIT_TIMEOUT)
+
                         If Not exited Then
                             Debug.WriteLine("StopBuffer: FFmpeg timeout, force killing...")
                             Try
@@ -1448,6 +1324,9 @@ Namespace CaptureCore
                     Debug.WriteLine("StopBuffer Error: " & ex.Message)
                     ForceKillProcess(bufferProcess)
                 End Try
+
+                ' ===== 3. FFmpeg exit แล้ว ค่อยปิด AudioPipe =====
+                StopBufferAudioPipe()
 
                 ' ===== 4. Cleanup =====
                 CleanupBufferProcess()
@@ -1470,8 +1349,6 @@ Namespace CaptureCore
                 End Try
 
                 _segmentTimestamps.Clear()
-                _isBuffering = False
-                _stoppingBuffer = False
 
                 RaiseEvent ReplayBufferStopped(Me, EventArgs.Empty)
                 RaiseEvent BufferStopped(Me, EventArgs.Empty)
@@ -1519,45 +1396,13 @@ Namespace CaptureCore
                 Dim requestedDuration As Double = Math.Min(saveDuration, actualBufferDuration)
                 Dim segmentsNeeded As Integer = CInt(Math.Ceiling(requestedDuration / SEGMENT_DURATION))
 
-                ' v2.2 FIX: Select extra segments to account for empty/incomplete ones at the tail.
-                ' The last 1-2 segments are often still being written by FFmpeg or are empty.
-                ' We select more than needed, filter out empties, then trim to exact count.
-                Dim emptyMargin As Integer = 3
-                Dim selectCount As Integer = Math.Min(segments.Count, segmentsNeeded + emptyMargin)
-                Debug.WriteLine(String.Format("SaveReplay: Need {0} segments for {1:F1}s, selecting {2} (+{3} margin for empties)",
-                    segmentsNeeded, requestedDuration, selectCount, emptyMargin))
-                Dim startIndex As Integer = Math.Max(0, segments.Count - selectCount)
-                Dim candidateSegments As List(Of TimestampedSegment) = segments.Skip(startIndex).Take(selectCount).ToList()
+                ' Take the last N segments
+                Dim startIndex As Integer = Math.Max(0, segments.Count - segmentsNeeded)
+                Dim selectedSegments As List(Of TimestampedSegment) = segments.Skip(startIndex).Take(segmentsNeeded).ToList()
 
-                ' FIX 3: Validate segments before concat
-                For Each seg In candidateSegments
-                    If Not File.Exists(seg.FilePath) Then
-                        Debug.WriteLine(String.Format("SaveReplay: Segment missing: {0}", seg.FilePath))
-                        Continue For
-                    End If
-                    Dim fileInfo As New FileInfo(seg.FilePath)
-                    If fileInfo.Length = 0 Then
-                        Debug.WriteLine(String.Format("SaveReplay: Segment empty: {0}", seg.FilePath))
-                        Continue For
-                    End If
-                Next
-
-                ' Filter out invalid segments (missing or empty)
-                Dim validSegments As List(Of TimestampedSegment) = candidateSegments.Where(
-                    Function(s) File.Exists(s.FilePath) AndAlso New FileInfo(s.FilePath).Length > 0).ToList()
-
-                If validSegments.Count = 0 Then
-                    Debug.WriteLine("SaveReplay: No valid segments after validation")
+                If selectedSegments.Count = 0 Then
+                    Debug.WriteLine("SaveReplay: No segments selected")
                     Return False
-                End If
-
-                ' v2.2 FIX: If we have more valid segments than needed, take only the last N.
-                ' This ensures we get exactly the requested duration even if some segments were empty.
-                Dim selectedSegments As List(Of TimestampedSegment)
-                If validSegments.Count > segmentsNeeded Then
-                    selectedSegments = validSegments.Skip(validSegments.Count - segmentsNeeded).ToList()
-                Else
-                    selectedSegments = validSegments
                 End If
 
                 Debug.WriteLine(String.Format("SaveReplay: Using {0} segments ({1:F1}s)",
@@ -1586,12 +1431,9 @@ Namespace CaptureCore
                     End Using
 
                     ' ===== 6. Concat segments =====
-                    ' v2.4 FIX: Add -t to trim to exact requested duration.
-                    ' FFmpeg segments are "at least X seconds" not "exactly X seconds",
-                    ' so 60 × 0.50s segments may actually produce 31-32s of video.
                     Dim concatArgs As String = String.Format(
-                "-y -hide_banner -loglevel warning -f concat -safe 0 -i ""{0}"" -t {2:F3} -c copy -movflags +faststart ""{1}""",
-                concatListPath, outputPath, requestedDuration)
+                "-y -hide_banner -loglevel warning -f concat -safe 0 -i ""{0}"" -c copy -movflags +faststart ""{1}""",
+                concatListPath, outputPath)
 
                     Dim success As Boolean = RunFFmpegSync(concatArgs, 60000)
 
@@ -1678,110 +1520,6 @@ Namespace CaptureCore
 #End Region
 
 #Region "FFmpeg Process Management"
-
-        ''' <summary>
-        ''' FFmpeg recording process exited.
-        ''' v3.0: Distinguishes intentional stop from real crash.
-        ''' </summary>
-        Private Sub OnRecordingProcessExited(sender As Object, e As EventArgs)
-            Dim proc As Process = TryCast(sender, Process)
-            If proc Is Nothing Then Exit Sub
-
-            ' Remove handler to prevent duplicate calls
-            RemoveHandler proc.Exited, AddressOf OnRecordingProcessExited
-
-            Dim exitCode As Integer = -1
-            Try
-                exitCode = proc.ExitCode
-            Catch
-            End Try
-
-            ' If intentionally stopping, let StopRecording handle cleanup
-            If _stoppingRecording Then
-                Debug.WriteLine(String.Format("OnRecordingProcessExited: Intentional stop (exit code: {0})", exitCode))
-                Exit Sub
-            End If
-
-            ' If we're still supposed to be recording, this is a REAL crash
-            If Threading.Volatile.Read(_isRecording) Then
-                Dim msg As String = String.Format("FFmpeg recording process crashed (exit code: {0})", exitCode)
-                Debug.WriteLine("═══ CRASH: " & msg & " ═══")
-
-                ' Reset recording state
-                SyncLock _recordingLock
-                    _isRecording = False
-                End SyncLock
-
-                ' Cleanup audio pipe
-                StopRecordingMicPipe()
-                StopRecordingAudioPipe()
-
-                ' Cleanup process
-                Try
-                    CleanupRecordingProcess()
-                Catch ex As Exception
-                    Debug.WriteLine("OnRecordingProcessExited Cleanup Error: " & ex.Message)
-                End Try
-
-                ' Notify listeners
-                RaiseEvent RecordingError(Me, msg)
-                RaiseEvent FFmpegCrashed(Me, msg)
-                RaiseEvent RecordingStopped(Me, "")
-            End If
-        End Sub
-
-        ''' <summary>
-        ''' FFmpeg buffer process exited.
-        ''' v3.0: Distinguishes intentional stop from real crash. Only auto-restarts on REAL crash.
-        ''' </summary>
-        Private Sub OnBufferProcessExited(sender As Object, e As EventArgs)
-            Dim proc As Process = TryCast(sender, Process)
-            If proc Is Nothing Then Exit Sub
-
-            RemoveHandler proc.Exited, AddressOf OnBufferProcessExited
-
-            Dim exitCode As Integer = -1
-            Try : exitCode = proc.ExitCode : Catch : End Try
-
-            ' If intentionally stopping, let StopBuffer handle cleanup
-            If _stoppingBuffer Then
-                Debug.WriteLine(String.Format("OnBufferProcessExited: Intentional stop (exit code: {0})", exitCode))
-                Exit Sub
-            End If
-
-            ' If we're still supposed to be buffering, this is a REAL crash
-            If Threading.Volatile.Read(_isBuffering) Then
-                Dim msg As String = String.Format("FFmpeg buffer process crashed (exit code: {0})", exitCode)
-                Debug.WriteLine("=== CRASH: " & msg & " ===")
-
-                SyncLock _bufferLock
-                    _isBuffering = False
-                End SyncLock
-
-                StopBufferAudioPipe()
-                StopBufferMicPipe()
-
-                Try : CleanupBufferProcess() : Catch : End Try
-
-                RaiseEvent RecordingError(Me, msg)
-                RaiseEvent FFmpegCrashed(Me, msg)
-                RaiseEvent ReplayBufferStopped(Me, EventArgs.Empty)
-                RaiseEvent BufferStopped(Me, EventArgs.Empty)
-
-                ' Auto-restart buffer after 2 second delay (only on REAL crash)
-                Debug.WriteLine("OnBufferProcessExited: Auto-restarting buffer in 2 seconds...")
-                Task.Run(Sub()
-                             Threading.Thread.Sleep(2000)
-                             Dim restartResult As Boolean = StartBuffer()
-                             If restartResult Then
-                                 Debug.WriteLine("OnBufferProcessExited: Buffer auto-restarted successfully")
-                             Else
-                                 Debug.WriteLine("OnBufferProcessExited: Buffer auto-restart failed")
-                             End If
-                         End Sub)
-            End If
-        End Sub
-
         Private Sub StopProcessGracefully(proc As Process, timeoutMs As Integer)
             If proc Is Nothing OrElse proc.HasExited Then Exit Sub
 
@@ -1819,13 +1557,11 @@ Namespace CaptureCore
                     If Not recordingProcess.HasExited Then
                         ForceKillProcess(recordingProcess)
                     End If
-                Catch ex As Exception
-                    Debug.WriteLine("CleanupRecordingProcess (Kill): " & ex.Message)
+                Catch
                 End Try
                 Try
                     recordingProcess.Dispose()
-                Catch ex As Exception
-                    Debug.WriteLine("CleanupRecordingProcess (Dispose): " & ex.Message)
+                Catch
                 End Try
                 recordingProcess = Nothing
             End If
@@ -1837,13 +1573,11 @@ Namespace CaptureCore
                     If Not bufferProcess.HasExited Then
                         ForceKillProcess(bufferProcess)
                     End If
-                Catch ex As Exception
-                    Debug.WriteLine("CleanupBufferProcess (Kill): " & ex.Message)
+                Catch
                 End Try
                 Try
                     bufferProcess.Dispose()
-                Catch ex As Exception
-                    Debug.WriteLine("CleanupBufferProcess (Dispose): " & ex.Message)
+                Catch
                 End Try
                 bufferProcess = Nothing
             End If
@@ -1864,8 +1598,7 @@ Namespace CaptureCore
                         Try
                             proc.Kill()
                             proc.WaitForExit(1000)
-                        Catch ex As Exception
-                            Debug.WriteLine("RunFFmpegSync Kill Error: " & ex.Message)
+                        Catch
                         End Try
                         Return False
                     End If
@@ -1881,14 +1614,6 @@ Namespace CaptureCore
 
 #Region "Audio Pipe Management (NAudio)"
 
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' v3.1 FIX: PipeError handler — ปิด pipe ที่พังทันทีเพื่อ unblock FFmpeg
-        '
-        ' เดิม: PipeError เขียน log แล้วจบ → named pipe server ยังเปิดอยู่
-        ' → FFmpeg block รอ ReadFile() → ค้างจน timeout
-        '
-        ' ใหม่: PipeError → dispose pipe ทันที → pipe server close → FFmpeg ได้ EOF
-        ' ═══════════════════════════════════════════════════════════════════════
         Private Sub StartRecordingAudioPipe()
             SyncLock _audioLock
                 If _audioMode = VideoCaptureMode.None OrElse _audioMode = VideoCaptureMode.MicOnly Then
@@ -1901,19 +1626,6 @@ Namespace CaptureCore
                     _recordingAudioPipe = New AudioPipe(_systemAudioVolume)
                     AddHandler _recordingAudioPipe.PipeError, Sub(sender, err)
                                                                   Debug.WriteLine("Recording AudioPipe Error: " & err)
-                                                                  Dim brokenPipe = TryCast(sender, AudioPipe)
-                                                                  If brokenPipe IsNot Nothing Then
-                                                                      Task.Run(Sub()
-                                                                                   SyncLock _audioLock
-                                                                                       If _recordingAudioPipe Is brokenPipe Then
-                                                                                           Try : brokenPipe.Stop() : Catch : End Try
-                                                                                           Try : brokenPipe.Dispose() : Catch : End Try
-                                                                                           _recordingAudioPipe = Nothing
-                                                                                           Debug.WriteLine("Recording AudioPipe: Disposed broken pipe to unblock FFmpeg")
-                                                                                       End If
-                                                                                   End SyncLock
-                                                                               End Sub)
-                                                                  End If
                                                               End Sub
 
                     If Not _recordingAudioPipe.Start() Then
@@ -1961,19 +1673,6 @@ Namespace CaptureCore
                     _bufferAudioPipe = New AudioPipe(_systemAudioVolume)
                     AddHandler _bufferAudioPipe.PipeError, Sub(sender, err)
                                                                Debug.WriteLine("Buffer AudioPipe Error: " & err)
-                                                               Dim brokenPipe = TryCast(sender, AudioPipe)
-                                                               If brokenPipe IsNot Nothing Then
-                                                                   Task.Run(Sub()
-                                                                                SyncLock _audioLock
-                                                                                    If _bufferAudioPipe Is brokenPipe Then
-                                                                                        Try : brokenPipe.Stop() : Catch : End Try
-                                                                                        Try : brokenPipe.Dispose() : Catch : End Try
-                                                                                        _bufferAudioPipe = Nothing
-                                                                                        Debug.WriteLine("Buffer AudioPipe: Disposed broken pipe to unblock FFmpeg")
-                                                                                    End If
-                                                                                End SyncLock
-                                                                            End Sub)
-                                                               End If
                                                            End Sub
 
                     If Not _bufferAudioPipe.Start() Then
@@ -2005,119 +1704,6 @@ Namespace CaptureCore
                         Debug.WriteLine("StopBufferAudioPipe Error: " & ex.Message)
                     End Try
                     _bufferAudioPipe = Nothing
-                End If
-            End SyncLock
-        End Sub
-
-        ' FIX 4: MicPipe management methods
-        Private Sub StartRecordingMicPipe()
-            SyncLock _audioLock
-                If _audioMode = VideoCaptureMode.None OrElse _audioMode = VideoCaptureMode.SystemOnly Then Exit Sub
-
-                Try
-                    Debug.WriteLine("=== Starting Recording Mic Pipe ===")
-                    _recordingMicPipe = New MicPipe(_micVolume)
-                    AddHandler _recordingMicPipe.PipeError, Sub(sender, err)
-                                                                Debug.WriteLine("Recording MicPipe Error: " & err)
-                                                                Dim brokenPipe = TryCast(sender, MicPipe)
-                                                                If brokenPipe IsNot Nothing Then
-                                                                    Task.Run(Sub()
-                                                                                 SyncLock _audioLock
-                                                                                     If _recordingMicPipe Is brokenPipe Then
-                                                                                         Try : brokenPipe.Stop() : Catch : End Try
-                                                                                         Try : brokenPipe.Dispose() : Catch : End Try
-                                                                                         _recordingMicPipe = Nothing
-                                                                                         Debug.WriteLine("Recording MicPipe: Disposed broken pipe")
-                                                                                     End If
-                                                                                 End SyncLock
-                                                                             End Sub)
-                                                                End If
-                                                            End Sub
-
-                    If Not _recordingMicPipe.Start() Then
-                        Debug.WriteLine("Failed to start recording mic pipe")
-                        _recordingMicPipe.Dispose()
-                        _recordingMicPipe = Nothing
-                    Else
-                        Debug.WriteLine("Recording Mic Pipe started: " & _recordingMicPipe.PipePath)
-                    End If
-                Catch ex As Exception
-                    Debug.WriteLine("StartRecordingMicPipe Error: " & ex.Message)
-                    If _recordingMicPipe IsNot Nothing Then
-                        _recordingMicPipe.Dispose()
-                        _recordingMicPipe = Nothing
-                    End If
-                End Try
-            End SyncLock
-        End Sub
-
-        Private Sub StopRecordingMicPipe()
-            SyncLock _audioLock
-                If _recordingMicPipe IsNot Nothing Then
-                    Try
-                        Debug.WriteLine("=== Stopping Recording Mic Pipe ===")
-                        _recordingMicPipe.Stop()
-                        _recordingMicPipe.Dispose()
-                    Catch ex As Exception
-                        Debug.WriteLine("StopRecordingMicPipe Error: " & ex.Message)
-                    End Try
-                    _recordingMicPipe = Nothing
-                End If
-            End SyncLock
-        End Sub
-
-        Private Sub StartBufferMicPipe()
-            SyncLock _audioLock
-                If _audioMode = VideoCaptureMode.None OrElse _audioMode = VideoCaptureMode.SystemOnly Then Exit Sub
-
-                Try
-                    Debug.WriteLine("=== Starting Buffer Mic Pipe ===")
-                    _bufferMicPipe = New MicPipe(_micVolume)
-                    AddHandler _bufferMicPipe.PipeError, Sub(sender, err)
-                                                             Debug.WriteLine("Buffer MicPipe Error: " & err)
-                                                             Dim brokenPipe = TryCast(sender, MicPipe)
-                                                             If brokenPipe IsNot Nothing Then
-                                                                 Task.Run(Sub()
-                                                                              SyncLock _audioLock
-                                                                                  If _bufferMicPipe Is brokenPipe Then
-                                                                                      Try : brokenPipe.Stop() : Catch : End Try
-                                                                                      Try : brokenPipe.Dispose() : Catch : End Try
-                                                                                      _bufferMicPipe = Nothing
-                                                                                      Debug.WriteLine("Buffer MicPipe: Disposed broken pipe")
-                                                                                  End If
-                                                                              End SyncLock
-                                                                          End Sub)
-                                                             End If
-                                                         End Sub
-
-                    If Not _bufferMicPipe.Start() Then
-                        Debug.WriteLine("Failed to start buffer mic pipe")
-                        _bufferMicPipe.Dispose()
-                        _bufferMicPipe = Nothing
-                    Else
-                        Debug.WriteLine("Buffer Mic Pipe started: " & _bufferMicPipe.PipePath)
-                    End If
-                Catch ex As Exception
-                    Debug.WriteLine("StartBufferMicPipe Error: " & ex.Message)
-                    If _bufferMicPipe IsNot Nothing Then
-                        _bufferMicPipe.Dispose()
-                        _bufferMicPipe = Nothing
-                    End If
-                End Try
-            End SyncLock
-        End Sub
-
-        Private Sub StopBufferMicPipe()
-            SyncLock _audioLock
-                If _bufferMicPipe IsNot Nothing Then
-                    Try
-                        Debug.WriteLine("=== Stopping Buffer Mic Pipe ===")
-                        _bufferMicPipe.Stop()
-                        _bufferMicPipe.Dispose()
-                    Catch ex As Exception
-                        Debug.WriteLine("StopBufferMicPipe Error: " & ex.Message)
-                    End Try
-                    _bufferMicPipe = Nothing
                 End If
             End SyncLock
         End Sub
@@ -2156,12 +1742,10 @@ Namespace CaptureCore
             Dim isQuickSync As Boolean = (_encoder = VideoEncoder.QuickSync_H264 OrElse _encoder = VideoEncoder.QuickSync_HEVC)
             Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
             Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
-            Dim selectedAPI As CaptureAPIType = GetEffectiveCaptureAPI()
+            Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
             ' ═══════════════════════════════════════════════════════════════════════
             ' Hardware Device Initialization
-            ' 
-            ' v2.0: Uses GetEffectiveCaptureAPI() which respects fallback
             ' 
             ' 🔧 FIX for QSV: DO NOT create qsv device separately!
             '    hwmap=derive_device=qsv will create QSV context from D3D11VA
@@ -2178,16 +1762,15 @@ Namespace CaptureCore
                 sb.Append("-init_hw_device d3d11va ")
             End If
 
-            ' FIX 2: Use local ByRef parameter instead of class field
-            Dim pendingVideoFilter As String = ""
+            _pendingVideoFilter = ""
 
-            BuildCaptureCommand(sb, region, pendingVideoFilter)
+            BuildCaptureCommand(sb, region)
 
             Dim audioInputArgs As String = BuildAudioInputArgs(useBufferPipe:=False)
             sb.Append(audioInputArgs)
 
-            If Not String.IsNullOrEmpty(pendingVideoFilter) Then
-                sb.Append(pendingVideoFilter)
+            If Not String.IsNullOrEmpty(_pendingVideoFilter) Then
+                sb.Append(_pendingVideoFilter)
             End If
 
             BuildAudioMapCommand(sb, useBufferPipe:=False)
@@ -2210,27 +1793,26 @@ Namespace CaptureCore
             sb.Append("-y -hide_banner -loglevel warning ")
 
             Dim isQuickSync As Boolean = (_encoder = VideoEncoder.QuickSync_H264 OrElse _encoder = VideoEncoder.QuickSync_HEVC)
-            Dim selectedAPI As CaptureAPIType = GetEffectiveCaptureAPI()
+            Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
-            ' Hardware device initialization (v2.0: respects API fallback)
+            ' Hardware device initialization
             If isQuickSync Then
                 sb.Append("-init_hw_device d3d11va:,vendor_id=0x8086 ")
             ElseIf selectedAPI = CaptureAPIType.DDAGrab OrElse selectedAPI = CaptureAPIType.GFxCapture Then
                 sb.Append("-init_hw_device d3d11va ")
             End If
 
-            ' FIX 2: Use local variable instead of class field
-            Dim pendingVideoFilter As String = ""
+            _pendingVideoFilter = ""
 
             ' Build capture command
-            BuildCaptureCommand(sb, Rectangle.Empty, pendingVideoFilter)
+            BuildCaptureCommand(sb, Rectangle.Empty)
 
             ' Audio input
             Dim audioInputArgs As String = BuildAudioInputArgs(useBufferPipe:=True)
             sb.Append(audioInputArgs)
 
-            If Not String.IsNullOrEmpty(pendingVideoFilter) Then
-                sb.Append(pendingVideoFilter)
+            If Not String.IsNullOrEmpty(_pendingVideoFilter) Then
+                sb.Append(_pendingVideoFilter)
             End If
 
             ' Audio map
@@ -2252,7 +1834,7 @@ Namespace CaptureCore
             sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
             sb.Append(" -segment_format mkv ")
             sb.Append("-segment_wrap ")
-            sb.Append(_bufferMaxSegments.ToString())
+            sb.Append(BUFFER_MAX_SEGMENTS.ToString())
             sb.Append(" -reset_timestamps 1 ")
             sb.Append("-strftime_mkdir 0 ")
 
@@ -2265,7 +1847,6 @@ Namespace CaptureCore
             Return sb.ToString()
         End Function
 
-        ' FIX 1: Audio-Video Sync - Add wallclock timestamps and MicPipe support
         Private Function BuildAudioInputArgs(useBufferPipe As Boolean) As String
             Dim sb As New StringBuilder()
 
@@ -2273,37 +1854,25 @@ Namespace CaptureCore
                 Dim pipe As AudioPipe = If(useBufferPipe, _bufferAudioPipe, _recordingAudioPipe)
                 If pipe IsNot Nothing AndAlso pipe.IsRunning Then
                     sb.Append(pipe.GetFFmpegInputArgs())
-                    ' Add wallclock timestamps to prevent audio-video desync
                     sb.Append(" ")
-                    sb.Append("-use_wallclock_as_timestamps 1 ")
                     Debug.WriteLine("BuildAudioInputArgs: System Audio Pipe = " & pipe.PipePath)
                 End If
             End If
 
             If _audioMode = VideoCaptureMode.MicOnly OrElse _audioMode = VideoCaptureMode.Both Then
-                ' FIX 4: Use MicPipe instead of DirectShow
-                Dim micPipe As MicPipe = If(useBufferPipe, _bufferMicPipe, _recordingMicPipe)
-                If micPipe IsNot Nothing AndAlso micPipe.IsRunning Then
-                    sb.Append(micPipe.GetFFmpegInputArgs())
-                    sb.Append(" ")
-                    sb.Append("-use_wallclock_as_timestamps 1 ")
-                    Debug.WriteLine("BuildAudioInputArgs: Mic Pipe = " & micPipe.PipePath)
+                If String.IsNullOrEmpty(_micDeviceName) Then
+                    sb.Append("-f dshow -i ""audio=default"" ")
                 Else
-                    ' Fallback to DirectShow if MicPipe not available
-                    If String.IsNullOrEmpty(_micDeviceName) Then
-                        sb.Append("-f dshow -i ""audio=default"" ")
-                    Else
-                        sb.Append("-f dshow -i ""audio=")
-                        sb.Append(_micDeviceName.Replace("""", "\"""))
-                        sb.Append(""" ")
-                    End If
+                    sb.Append("-f dshow -i ""audio=")
+                    sb.Append(_micDeviceName.Replace("""", "\"""))
+                    sb.Append(""" ")
                 End If
+                Debug.WriteLine("BuildAudioInputArgs: Microphone via DirectShow")
             End If
 
             Return sb.ToString()
         End Function
 
-        ' FIX 8: BuildAudioMapCommand - Handle MicPipe properly
         Private Sub BuildAudioMapCommand(sb As StringBuilder, useBufferPipe As Boolean)
             Dim usesFilterComplex As Boolean = UsesFilterComplexForVideo()
 
@@ -2317,71 +1886,33 @@ Namespace CaptureCore
 
             Dim hasSystemAudio As Boolean = (_audioMode = VideoCaptureMode.SystemOnly OrElse _audioMode = VideoCaptureMode.Both)
             Dim hasMic As Boolean = (_audioMode = VideoCaptureMode.MicOnly OrElse _audioMode = VideoCaptureMode.Both)
-            Dim systemFromPipe As Boolean = False
-            Dim micFromPipe As Boolean = False
 
             If hasSystemAudio Then
                 Dim pipe As AudioPipe = If(useBufferPipe, _bufferAudioPipe, _recordingAudioPipe)
                 If pipe Is Nothing OrElse Not pipe.IsRunning Then
                     hasSystemAudio = False
-                Else
-                    systemFromPipe = True
-                End If
-            End If
-
-            If hasMic Then
-                Dim micPipe As MicPipe = If(useBufferPipe, _bufferMicPipe, _recordingMicPipe)
-                If micPipe IsNot Nothing AndAlso micPipe.IsRunning Then
-                    micFromPipe = True
                 End If
             End If
 
             If Not hasSystemAudio AndAlso Not hasMic Then Exit Sub
 
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' v2.0 FIX: System audio from Pipe already has volume applied by
-            ' AudioCapture.ApplyVolume(). Do NOT add FFmpeg volume filter for
-            ' pipe audio to avoid double-volume.
-            ' Only apply FFmpeg volume filter for Mic (from DirectShow).
-            '
-            ' FIX 8: Same logic applies to MicPipe - volume already applied.
-            ' ═══════════════════════════════════════════════════════════════════════
             Dim audioBaseIdx As Integer = If(usesFilterComplex, 0, 1)
 
             If hasSystemAudio AndAlso hasMic Then
                 Dim sysIdx As Integer = audioBaseIdx
                 Dim micIdx As Integer = audioBaseIdx + 1
 
-                ' System audio from pipe already has volume applied
-                ' Mic from pipe also has volume applied
-                ' Only apply volume filter for DirectShow fallback
                 sb.Append("-filter_complex """)
-                If Not systemFromPipe AndAlso _systemAudioVolume < 0.99F Then
-                    ' Only apply FFmpeg volume for non-pipe system audio
-                    sb.Append("[")
-                    sb.Append(sysIdx)
-                    sb.Append(":a]volume=")
-                    sb.Append(_systemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
-                    sb.Append("[sys];")
-                Else
-                    sb.Append("[")
-                    sb.Append(sysIdx)
-                    sb.Append(":a]acopy[sys];")
-                End If
-
-                ' FIX 8: Only apply FFmpeg volume filter for mic if NOT from pipe
-                If Not micFromPipe Then
-                    sb.Append("[")
-                    sb.Append(micIdx)
-                    sb.Append(":a]volume=")
-                    sb.Append(_micVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
-                    sb.Append("[mic];")
-                Else
-                    sb.Append("[")
-                    sb.Append(micIdx)
-                    sb.Append(":a]acopy[mic];")
-                End If
-
+                sb.Append("[")
+                sb.Append(sysIdx)
+                sb.Append(":a]volume=")
+                sb.Append(_systemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
+                sb.Append("[sys];")
+                sb.Append("[")
+                sb.Append(micIdx)
+                sb.Append(":a]volume=")
+                sb.Append(_micVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
+                sb.Append("[mic];")
                 sb.Append("[sys][mic]amix=inputs=2:duration=longest[aout]"" ")
 
                 sb.Append("-map ""[aout]"" ")
@@ -2391,9 +1922,7 @@ Namespace CaptureCore
                 sb.Append(audioBaseIdx)
                 sb.Append(":a ")
 
-                ' v2.0: Skip FFmpeg volume filter if system audio comes from pipe
-                ' (volume already applied by AudioCapture.ApplyVolume)
-                If Not systemFromPipe AndAlso _systemAudioVolume < 0.99F Then
+                If _systemAudioVolume < 0.99F Then
                     sb.Append("-af ""volume=")
                     sb.Append(_systemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
                     sb.Append(""" ")
@@ -2404,8 +1933,7 @@ Namespace CaptureCore
                 sb.Append(audioBaseIdx)
                 sb.Append(":a ")
 
-                ' FIX 8: Only apply FFmpeg volume for mic if NOT from pipe
-                If Not micFromPipe AndAlso _micVolume < 0.99F Then
+                If _micVolume < 0.99F Then
                     sb.Append("-af ""volume=")
                     sb.Append(_micVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
                     sb.Append(""" ")
@@ -2414,7 +1942,7 @@ Namespace CaptureCore
         End Sub
 
         Private Function UsesFilterComplexForVideo() As Boolean
-            Dim selectedAPI As CaptureAPIType = GetEffectiveCaptureAPI()
+            Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
             Select Case selectedAPI
                 Case CaptureAPIType.GFxCapture
@@ -2451,78 +1979,25 @@ Namespace CaptureCore
         End Function
 
         Private Sub ResetCaptureAPIFallback()
-            SyncLock _fallbackLock
-                _captureAPIFailed = False
-                _fallbackAPI = Nothing
-            End SyncLock
+            _captureAPIFailed = False
         End Sub
 
-        ''' <summary>
-        ''' Get fallback capture API if the primary API failed.
-        ''' v2.0: Actually implements the fallback logic that was declared but unused.
-        ''' </summary>
-        Private Function GetFallbackAPI() As CaptureAPIType
-            SyncLock _fallbackLock
-                If _captureAPIFailed AndAlso _fallbackAPI.HasValue Then
-                    Return _fallbackAPI.Value
-                End If
-            End SyncLock
-
-            ' Determine fallback based on current selection
-            Dim currentAPI As CaptureAPIType = DetermineBestCaptureAPI()
-            Select Case currentAPI
-                Case CaptureAPIType.DDAGrab
-                    Return CaptureAPIType.GDIGrab
-                Case CaptureAPIType.GFxCapture
-                    Return CaptureAPIType.DDAGrab
-                Case Else
-                    Return CaptureAPIType.GDIGrab
-            End Select
-        End Function
-
-        ''' <summary>
-        ''' Mark the current capture API as failed and set fallback.
-        ''' Called when FFmpeg fails to start with the current capture API.
-        ''' </summary>
-        Private Sub MarkCaptureAPIFailed()
-            SyncLock _fallbackLock
-                _captureAPIFailed = True
-                _fallbackAPI = GetFallbackAPI()
-                Debug.WriteLine(String.Format("MarkCaptureAPIFailed: Falling back to {0}", _fallbackAPI.Value.ToString()))
-            End SyncLock
-        End Sub
-
-        ''' <summary>
-        ''' Get the capture API to use, considering fallback.
-        ''' </summary>
-        Private Function GetEffectiveCaptureAPI() As CaptureAPIType
-            SyncLock _fallbackLock
-                If _captureAPIFailed AndAlso _fallbackAPI.HasValue Then
-                    Return _fallbackAPI.Value
-                End If
-            End SyncLock
-
-            Return DetermineBestCaptureAPI()
-        End Function
-
-        ' FIX 2: BuildCaptureCommand now takes ByRef pendingVideoFilter parameter
-        Private Sub BuildCaptureCommand(sb As StringBuilder, region As Rectangle, ByRef pendingVideoFilter As String)
-            Dim selectedAPI As CaptureAPIType = GetEffectiveCaptureAPI()
+        Private Sub BuildCaptureCommand(sb As StringBuilder, region As Rectangle)
+            Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
             Debug.WriteLine(String.Format("BuildCaptureCommand: Selected API = {0}", selectedAPI.ToString()))
 
             Select Case selectedAPI
                 Case CaptureAPIType.GFxCapture
-                    BuildGfxCaptureCommand(sb, region, pendingVideoFilter)
+                    BuildGfxCaptureCommand(sb, region)
                 Case CaptureAPIType.DDAGrab
-                    BuildDDAGrabCommand(sb, region, pendingVideoFilter)
+                    BuildDDAGrabCommand(sb, region)
                 Case Else
-                    BuildGDIGrabCommand(sb, region, pendingVideoFilter)
+                    BuildGDIGrabCommand(sb, region)
             End Select
         End Sub
 
-        ' FIX 2: BuildGfxCaptureCommand now takes ByRef pendingVideoFilter parameter
-        Private Sub BuildGfxCaptureCommand(sb As StringBuilder, region As Rectangle, ByRef pendingVideoFilter As String)
+        Private Sub BuildGfxCaptureCommand(sb As StringBuilder, region As Rectangle)
             Dim screenDims = GetCachedScreenDimensions()
             Dim needScaling As Boolean = (_resolutionWidth <> screenDims.Width OrElse _resolutionHeight <> screenDims.Height)
 
@@ -2537,14 +2012,13 @@ Namespace CaptureCore
             )
 
             If canUseGPUDirectPath Then
-                BuildGfxCaptureDirectPath(sb, pendingVideoFilter)
+                BuildGfxCaptureDirectPath(sb)
             Else
-                BuildGfxCaptureStandardPath(sb, needScaling, pendingVideoFilter)
+                BuildGfxCaptureStandardPath(sb, needScaling)
             End If
         End Sub
 
-        ' FIX 2: BuildGfxCaptureDirectPath now takes ByRef pendingVideoFilter parameter
-        Private Sub BuildGfxCaptureDirectPath(sb As StringBuilder, ByRef pendingVideoFilter As String)
+        Private Sub BuildGfxCaptureDirectPath(sb As StringBuilder)
             Dim isQuickSync As Boolean = (_encoder = VideoEncoder.QuickSync_H264 OrElse _encoder = VideoEncoder.QuickSync_HEVC)
             Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
             Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
@@ -2574,8 +2048,7 @@ Namespace CaptureCore
             sb.Append("[v]"" ")
         End Sub
 
-        ' FIX 2: BuildGfxCaptureStandardPath now takes ByRef pendingVideoFilter parameter
-        Private Sub BuildGfxCaptureStandardPath(sb As StringBuilder, needScaling As Boolean, ByRef pendingVideoFilter As String)
+        Private Sub BuildGfxCaptureStandardPath(sb As StringBuilder, needScaling As Boolean)
             sb.Append("-filter_complex """)
             BuildGfxCaptureOptions(sb)
             sb.Append(",hwdownload,format=")
@@ -2644,8 +2117,7 @@ Namespace CaptureCore
             sb.Append(String.Join(":", options))
         End Sub
 
-        ' FIX 2: BuildDDAGrabCommand now takes ByRef pendingVideoFilter parameter
-        Private Sub BuildDDAGrabCommand(sb As StringBuilder, region As Rectangle, ByRef pendingVideoFilter As String)
+        Private Sub BuildDDAGrabCommand(sb As StringBuilder, region As Rectangle)
             Dim screenDims = GetCachedScreenDimensions()
             Dim needScaling As Boolean = (_resolutionWidth > 0 AndAlso _resolutionHeight > 0 AndAlso
                                           (_resolutionWidth <> screenDims.Width OrElse _resolutionHeight <> screenDims.Height))
@@ -2712,7 +2184,7 @@ Namespace CaptureCore
                 sb.Append(_framerate.ToString())
                 sb.Append("[v]"" ")
 
-                pendingVideoFilter = ""
+                _pendingVideoFilter = ""
             Else
                 sb.Append("-filter_complex ""ddagrab=")
                 sb.Append(_monitorIndex.ToString())
@@ -2738,10 +2210,9 @@ Namespace CaptureCore
             End If
         End Sub
 
-        ' NOTE: _pendingVideoFilter field removed (FIX 2) - using ByRef parameter instead
+        Private _pendingVideoFilter As String = ""
 
-        ' FIX 2: BuildGDIGrabCommand now takes ByRef pendingVideoFilter parameter
-        Private Sub BuildGDIGrabCommand(sb As StringBuilder, region As Rectangle, ByRef pendingVideoFilter As String)
+        Private Sub BuildGDIGrabCommand(sb As StringBuilder, region As Rectangle)
             sb.Append("-f gdigrab ")
             sb.Append("-framerate ")
             sb.Append(_framerate.ToString())
@@ -2750,7 +2221,7 @@ Namespace CaptureCore
             sb.Append(If(_captureCursor, "1", "0"))
             sb.Append(" -i desktop ")
 
-            pendingVideoFilter = "-vf ""scale=" & _resolutionWidth.ToString() & ":" & _resolutionHeight.ToString() & ":flags=lanczos,format=yuv420p"" "
+            _pendingVideoFilter = "-vf ""scale=" & _resolutionWidth.ToString() & ":" & _resolutionHeight.ToString() & ":flags=lanczos,format=yuv420p"" "
         End Sub
 
         Private Sub BuildScalingAndFormatFilters(sb As StringBuilder, needScaling As Boolean)
@@ -3322,35 +2793,20 @@ Namespace CaptureCore
             If disposing Then
                 Try
                     If _isRecording Then StopRecording()
-                Catch ex As Exception
-                    Debug.WriteLine("Dispose (StopRecording): " & ex.Message)
-                End Try
-
-                Try
                     If _isBuffering Then StopBuffer()
-                Catch ex As Exception
-                    Debug.WriteLine("Dispose (StopBuffer): " & ex.Message)
+                Catch
                 End Try
 
                 Try
                     CleanupRecordingProcess()
                     CleanupBufferProcess()
-                Catch ex As Exception
-                    Debug.WriteLine("Dispose (Cleanup): " & ex.Message)
+                Catch
                 End Try
 
                 Try
                     StopRecordingAudioPipe()
                     StopBufferAudioPipe()
-                Catch ex As Exception
-                    Debug.WriteLine("Dispose (AudioPipes): " & ex.Message)
-                End Try
-
-                Try
-                    StopRecordingMicPipe()
-                    StopBufferMicPipe()
-                Catch ex As Exception
-                    Debug.WriteLine("Dispose (MicPipes): " & ex.Message)
+                Catch
                 End Try
             End If
 

@@ -244,10 +244,11 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVI
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Background.resources
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Gallery.resources
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Settings.resources
-C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_KeySet.resources
+C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Connect.resources
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Overlay_Hub.resources
-C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Privacy_Control.resources
+C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_KeySet.resources
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_RecordingsSet.resources
+C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Privacy_Control.resources
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.vbproj.GenerateResource.cache
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.GeneratedMSBuildEditorConfig.editorconfig
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.AssemblyInfoInputs.cache
@@ -258,8 +259,3 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVI
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Overlay.genruntimeconfig.cache
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
-C:\My Project\NVIDIA-Shadowplay\Overlay\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA_Share.Base_Connect.resources
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinForms.dll
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinMM.dll
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinForms.xml
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinMM.xml

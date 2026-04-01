@@ -129,7 +129,7 @@ Public Class Notifier
                         " X " & fromX & "→" & toX &
                         " dur=" & duration & "ms" &
                         " wasRunning=" & animationRunning)
-
+        TopMost = True
         If animationRunning Then
             Animation_Engine_Stop()
             animationRunning = False
@@ -160,7 +160,7 @@ Public Class Notifier
                         " Y " & fromY & "→" & toY &
                         " dur=" & duration & "ms" &
                         " wasRunning=" & animationRunning)
-
+        TopMost = True
         If animationRunning Then
             Animation_Engine_Stop()
             animationRunning = False

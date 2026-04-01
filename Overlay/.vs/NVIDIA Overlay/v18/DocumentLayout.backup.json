@@ -3,21 +3,7 @@
   "WorkspaceRootPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_record.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] sub_record.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[settings]\\[5] video capture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\screenrecorder.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\audiocapture.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\audiopipe.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+      "AbsoluteMoniker": "D:0:0:{26F262C5-0779-12EF-2119-F8A521A814E8}|..\\Notifier\\NVIDIA Notifier.vbproj|c:\\my project\\nvidia-shadowplay\\notifier\\[forms overlay - project files]\\[ui overlay]\\[notifier]\\[2] background.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     }
   ],
   "DocumentGroupContainers": [
@@ -44,65 +30,15 @@
             {
               "$type": "Document",
               "DocumentIndex": 0,
-              "Title": "[1] Sub_Record.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Record.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Record.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Record.vb",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Sub_Record.vb",
-              "ViewState": "AgIAALgAAAAAAAAAAAAUwMoAAAA8AAAAAAAAAA==",
+              "Title": "[2] Background.vb",
+              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
+              "RelativeDocumentMoniker": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb",
+              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb*",
+              "RelativeToolTip": "..\\Notifier\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[Notifier]\\[2] Background.vb*",
+              "ViewState": "AgIAAIAAAAAAAAAAAAAqwKIAAAAWAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-29T12:36:19.127Z",
+              "WhenOpened": "2026-04-01T05:43:34.284Z",
               "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "[5] Video Capture.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[Settings]\\[5] Video Capture.vb",
-              "ViewState": "AgIAAMsDAAAAAAAAAAAAAGUFAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-29T10:46:11.391Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "ScreenRecorder.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\ScreenRecorder.vb",
-              "RelativeDocumentMoniker": "..\\Engine\\Engine\\ScreenRecorder.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\ScreenRecorder.vb",
-              "RelativeToolTip": "..\\Engine\\Engine\\ScreenRecorder.vb",
-              "ViewState": "AgIAAF0KAAAAAAAAAAAUwGcKAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-29T10:26:24.315Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 4,
-              "Title": "AudioPipe.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioPipe.vb",
-              "RelativeDocumentMoniker": "..\\Engine\\Engine\\AudioPipe.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioPipe.vb",
-              "RelativeToolTip": "..\\Engine\\Engine\\AudioPipe.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAYAAAAeAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-29T10:26:23.344Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
-              "Title": "AudioCapture.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioCapture.vb",
-              "RelativeDocumentMoniker": "..\\Engine\\Engine\\AudioCapture.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\AudioCapture.vb",
-              "RelativeToolTip": "..\\Engine\\Engine\\AudioCapture.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAMAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-03-29T10:26:22.287Z"
             }
           ]
         }

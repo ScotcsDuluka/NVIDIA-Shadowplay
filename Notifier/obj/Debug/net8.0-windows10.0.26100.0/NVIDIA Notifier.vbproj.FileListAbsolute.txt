@@ -66,7 +66,3 @@ C:\My Project\NVIDIA-Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\NV
 C:\My Project\NVIDIA-Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\refint\NVIDIA Notifier.dll
 C:\My Project\NVIDIA-Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\NVIDIA Notifier.genruntimeconfig.cache
 C:\My Project\NVIDIA-Shadowplay\Notifier\obj\Debug\net8.0-windows10.0.26100.0\ref\NVIDIA Notifier.dll
-C:\My Project\NVIDIA-Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinForms.dll
-C:\My Project\NVIDIA-Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinMM.dll
-C:\My Project\NVIDIA-Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinForms.xml
-C:\My Project\NVIDIA-Shadowplay\Notifier\bin\Debug\net8.0-windows10.0.26100.0\NAudio.WinMM.xml
