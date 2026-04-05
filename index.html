@@ -1,0 +1,2596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NVIDIA ShadowPlay | Custom Implementation</title>
+    
+    <!-- MathJax -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)'], ['$$', '$$'], ['\\[', '\\]']], 
+                displayMath: []
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <style>
+        /* ============================================
+           NVIDIA STYLE - ULTRA SMOOTH SCROLL
+           WITH ADVANCED ANIMATION SYSTEM
+           ============================================ */
+        
+        :root {
+            --nvidia-green: #76B900;
+            --nvidia-green-hover: #8FC93A;
+            --nvidia-black: #000000;
+            --nvidia-dark-bg: #0A0A0A;
+            --nvidia-gray-dark: #141414;
+            --nvidia-gray: #1C1C1C;
+            --nvidia-gray-light: #2A2A2A;
+            --text-white: #FFFFFF;
+            --text-gray: #BEBEBE;
+            --text-muted: #6E6E6E;
+            --border-color: rgba(255, 255, 255, 0.1);
+            
+            --radius-sm: 2px;
+            --radius-md: 4px;
+            --radius-lg: 12px;
+            
+            --section-padding: 7rem 3rem;
+            --container-max: 1400px;
+
+            /* Animation Variables */
+            --animation-speed: 0.6s;
+            --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+            --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--nvidia-black);
+            color: var(--text-white);
+            line-height: 1.6;
+            overflow-x: hidden;
+            font-weight: 400;
+        }
+
+        /* Smooth scroll body class */
+        html {
+            overflow-x: hidden;
+        }
+        
+        body.is-scrolling {
+            cursor: grabbing !important;
+        }
+        
+        body.is-scrolling .custom-cursor {
+            transform: translate(-50%, -50%) scale(1.5) !important;
+            border-color: var(--nvidia-green-hover) !important;
+        }
+
+        ::selection {
+            background: var(--nvidia-green);
+            color: var(--nvidia-black);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--nvidia-dark-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--nvidia-gray-light);
+            border-radius: 5px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--nvidia-green);
+        }
+
+        /* Container */
+        .container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            padding: 0 3rem;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 1.5rem;
+            }
+            :root {
+                --section-padding: 5rem 1.5rem;
+            }
+        }
+
+        /* ============================================
+           ENHANCED SCROLL PROGRESS BAR
+           ============================================ */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, 
+                var(--nvidia-green) 0%, 
+                var(--nvidia-green-hover) 50%, 
+                #00D4FF 100%);
+            z-index: 99999;
+            transition: width 0.05s linear;
+            box-shadow: 
+                0 0 10px var(--nvidia-green),
+                0 0 20px rgba(118, 185, 0, 0.5);
+            border-radius: 0 2px 2px 0;
+        }
+
+        /* Navigation */
+        .main-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 0 3rem;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            text-decoration: none;
+            color: var(--text-white);
+            font-weight: 700;
+            font-size: 1.4rem;
+        }
+
+        .nav-brand img {
+            height: 32px;
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 2.5rem;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-menu a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            padding: 0.5rem 0;
+            position: relative;
+        }
+
+        .nav-menu a:hover {
+            color: var(--nvidia-green);
+        }
+
+        .nav-menu a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--nvidia-green);
+            transition: width 0.3s ease;
+        }
+
+        .nav-menu a:hover::after {
+            width: 100%;
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+        }
+
+        /* Hero Section */
+        .hero-section {
+            padding: 8rem 3rem 6rem;
+            padding-top: calc(8rem + 70px);
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+
+        .hero-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 30% 40%, rgba(118, 185, 0, 0.08) 0%, transparent 60%),
+                radial-gradient(circle at 70% 60%, rgba(0, 212, 255, 0.04) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero-section::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                radial-gradient(2px 2px at 20% 30%, rgba(118, 185, 0, 0.4), transparent),
+                radial-gradient(2px 2px at 40% 70%, rgba(118, 185, 0, 0.3), transparent),
+                radial-gradient(2px 2px at 80% 40%, rgba(0, 212, 255, 0.3), transparent),
+                radial-gradient(2px 2px at 60% 20%, rgba(118, 185, 0, 0.4), transparent),
+                radial-gradient(2px 2px at 90% 80%, rgba(0, 212, 255, 0.2), transparent);
+            background-size: 200% 200%;
+            animation: float 20s linear infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero-container {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+            width: 100%;
+        }
+
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(118, 185, 0, 0.15);
+            border: 1px solid rgba(118, 185, 0, 0.3);
+            color: var(--nvidia-green);
+            padding: 0.5rem 1.2rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            letter-spacing: 0.5px;
+        }
+
+        .hero-title {
+            font-size: 4.5rem;
+            font-weight: 800;
+            line-height: 1.05;
+            margin-bottom: 1.5rem;
+            letter-spacing: -2px;
+        }
+
+        .hero-subtitle {
+            font-size: 1.35rem;
+            color: var(--nvidia-green);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+
+        .hero-description {
+            font-size: 1.25rem;
+            color: var(--text-gray);
+            max-width: 900px;
+            margin-bottom: 2.5rem;
+            line-height: 1.8;
+        }
+
+        .tech-info {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            background: var(--nvidia-gray-dark);
+            padding: 0.8rem 1.5rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 2.5rem;
+            font-size: 0.95rem;
+            color: var(--text-gray);
+        }
+
+        .hero-cta-group {
+            display: flex;
+            gap: 1.2rem;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--nvidia-green);
+            color: var(--nvidia-black);
+            padding: 1rem 2.5rem;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.05rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 4px 20px rgba(118, 185, 0, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            background: var(--nvidia-green-hover);
+            transform: translateY(-4px) scale(1.05);
+            box-shadow: 
+                0 15px 45px rgba(118, 185, 0, 0.5),
+                0 0 20px rgba(118, 185, 0, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(-2px) scale(0.98);
+        }
+
+        .btn-secondary {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-white);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .btn-secondary:hover {
+            color: var(--nvidia-green);
+        }
+
+        .btn-secondary::after {
+            content: '→';
+            transition: transform 0.3s ease;
+        }
+
+        .btn-secondary:hover::after {
+            transform: translateX(5px);
+        }
+
+        .alert-inline {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .alert-item {
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            line-height: 1.6;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            max-width: 900px;
+        }
+
+        .alert-note {
+            background: rgba(59, 130, 246, 0.1);
+            border-left: 4px solid #3B82F6;
+            color: #93C5FD;
+        }
+
+        .alert-warning {
+            background: rgba(255, 184, 0, 0.1);
+            border-left: 4px solid #FFB800;
+            color: #FDE047;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title {
+                font-size: 2.8rem;
+            }
+            .hero-description {
+                font-size: 1.1rem;
+            }
+        }
+
+        /* Section Base */
+        section {
+            padding: var(--section-padding);
+            position: relative;
+            transition: all 0.6s var(--ease-out-expo);
+        }
+
+        section.in-view {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        section:nth-child(even) {
+            background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 100%);
+        }
+
+        .section-header {
+            max-width: 1200px;
+            margin: 0 auto 4rem;
+        }
+
+        .section-label {
+            display: inline-block;
+            color: var(--nvidia-green);
+            font-size: 0.9rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .section-title {
+            font-size: 3.5rem;
+            font-weight: 800;
+            letter-spacing: -1.5px;
+            margin-bottom: 1.5rem;
+            line-height: 1.1;
+        }
+
+        .section-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-gray);
+            max-width: 750px;
+            line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            .section-title {
+                font-size: 2.5rem;
+            }
+        }
+
+        /* Features Grid - Bento Layout */
+        .feature-card {
+            background: linear-gradient(135deg, var(--nvidia-gray-dark), var(--nvidia-gray));
+            padding: 2.5rem;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-color);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--nvidia-green), transparent);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-12px) scale(1.02);
+            border-color: rgba(118, 185, 0, 0.5);
+            box-shadow: 
+                0 25px 70px rgba(0, 0, 0, 0.6),
+                0 0 30px rgba(118, 185, 0, 0.15);
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-card:hover .card-icon {
+            transform: scale(1.2) rotate(5deg);
+        }
+
+        .card-status {
+            display: inline-block;
+            background: var(--nvidia-green);
+            color: var(--nvidia-black);
+            padding: 0.3rem 0.9rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-bottom: 1.2rem;
+            letter-spacing: 1px;
+        }
+
+        .card-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: block;
+            transition: transform 0.5s var(--ease-out-back);
+        }
+
+        .feature-card h3 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: var(--text-white);
+        }
+
+        .feature-card p {
+            color: var(--text-gray);
+            line-height: 1.7;
+            font-size: 1rem;
+        }
+
+        /* Two Column Layout */
+        .two-col-layout {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5rem;
+            align-items: start;
+        }
+
+        @media (max-width: 1024px) {
+            .two-col-layout {
+                grid-template-columns: 1fr;
+                gap: 3rem;
+            }
+        }
+
+        .content-block h2 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.5rem;
+            letter-spacing: -1px;
+        }
+
+        .content-block h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--nvidia-green);
+            margin-bottom: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .content-block p {
+            font-size: 1.15rem;
+            color: var(--text-gray);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-block ul {
+            list-style: none;
+            margin-bottom: 1.5rem;
+        }
+
+        .content-block li {
+            padding: 0.7rem 0;
+            color: var(--text-gray);
+            font-size: 1.05rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .check-mark {
+            color: var(--nvidia-green);
+            font-weight: 900;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        strong {
+            color: var(--text-white);
+            font-weight: 600;
+        }
+
+        code {
+            background: #0D1117;
+            padding: 0.3rem 0.8rem;
+            border-radius: var(--radius-sm);
+            color: var(--nvidia-green);
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.9em;
+        }
+
+        /* Spec Cards */
+        .spec-card {
+            background: var(--nvidia-gray-dark);
+            padding: 3rem;
+            border-radius: var(--radius-md);
+            border-left: 4px solid var(--nvidia-green);
+            margin-bottom: 2rem;
+        }
+
+        .spec-card h3 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--nvidia-green);
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .spec-list {
+            list-style: none;
+        }
+
+        .spec-list li {
+            padding: 1rem 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--text-gray);
+            font-size: 1.05rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .spec-list li:last-child {
+            border-bottom: none;
+        }
+
+        .status-icon {
+            font-weight: 900;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .status-ready { color: var(--nvidia-green); }
+        .status-pending { color: var(--text-muted); }
+
+        /* Encoder Badges */
+        .encoder-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .encoder-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0.6rem 1.2rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+
+        .badge-ready {
+            background: rgba(34, 197, 94, 0.15);
+            border: 1px solid rgba(34, 197, 94, 0.4);
+            color: #22C55E;
+        }
+
+        .badge-pending {
+            background: rgba(107, 114, 128, 0.15);
+            border: 1px solid rgba(107, 114, 128, 0.4);
+            color: #9CA3AF;
+        }
+
+        /* Requirement Cards */
+        .req-card {
+            background: var(--nvidia-gray-dark);
+            padding: 2.5rem;
+            border-radius: var(--radius-md);
+            border-left: 4px solid;
+            margin-bottom: 2rem;
+        }
+
+        .req-important { border-color: #EF4444; }
+        .req-caution { border-color: #A855F7; }
+        .req-tip { border-color: #22C55E; }
+
+        .req-card h3 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .req-important h3 { color: #EF4444; }
+        .req-caution h3 { color: #A855F7; }
+        .req-tip h3 { color: #22C55E; }
+
+        .req-card p,
+        .req-card ul {
+            color: var(--text-gray);
+            font-size: 1.05rem;
+            line-height: 1.8;
+        }
+
+        /* Code Block */
+        .code-block-wrapper {
+            background: #0D1117;
+            border: 1px solid #30363D;
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            margin: 2rem 0;
+        }
+
+        .code-header {
+            background: #161B22;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #30363D;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .dot-red { background: #FF5F56; }
+        .dot-yellow { background: #FFBD2E; }
+        .dot-green { background: #27CA40; }
+
+        .code-filename {
+            margin-left: 1rem;
+            color: var(--text-gray);
+            font-size: 0.9rem;
+            font-family: monospace;
+        }
+
+        .code-body {
+            padding: 2rem;
+            overflow-x: auto;
+        }
+
+        .code-body pre {
+            margin: 0;
+            font-family: 'SF Mono', 'Consolas', monospace;
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: #E6EDF3;
+        }
+
+        /* Tech Stack Badges */
+        .tech-stack-badges {
+            display: flex;
+            gap: 1.5rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+        }
+
+        .tech-badge {
+            background: var(--nvidia-gray);
+            padding: 1.2rem 2rem;
+            border-radius: var(--radius-md);
+            border: 1px solid rgba(118, 185, 0, 0.2);
+            transition: all 0.3s ease;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .tech-badge:hover {
+            border-color: var(--nvidia-green);
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(118, 185, 0, 0.2);
+        }
+
+        .tech-badge strong {
+            display: block;
+            color: var(--nvidia-green);
+            font-size: 1.1rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .tech-badge span {
+            color: var(--text-gray);
+            font-size: 0.95rem;
+        }
+
+        /* Download Steps */
+        .download-steps {
+            max-width: 900px;
+            margin: 3rem auto 0;
+        }
+
+        .download-step {
+            background: var(--nvidia-gray-dark);
+            padding: 2.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 2rem;
+            border-left: 4px solid var(--nvidia-green);
+        }
+
+        .download-step h3 {
+            font-size: 1.6rem;
+            color: var(--nvidia-green);
+            margin-bottom: 1.5rem;
+            font-weight: 700;
+        }
+
+        .download-step ol {
+            margin-left: 1.5rem;
+            color: var(--text-gray);
+        }
+
+        .download-step li {
+            margin: 1rem 0;
+            font-size: 1.05rem;
+            line-height: 1.6;
+        }
+
+        /* Quote Box */
+        .quote-box {
+            background: linear-gradient(135deg, rgba(118, 185, 0, 0.1), rgba(0, 212, 255, 0.1));
+            border-left: 4px solid var(--nvidia-green);
+            padding: 2rem 2.5rem;
+            margin: 2rem 0;
+            border-radius: var(--radius-sm);
+            font-style: italic;
+            color: var(--text-white);
+            font-size: 1.3rem;
+            line-height: 1.7;
+        }
+
+        /* Support Buttons */
+        .support-buttons {
+            display: flex;
+            gap: 1.2rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 3rem;
+        }
+
+        .btn-outline {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: transparent;
+            color: var(--text-white);
+            padding: 1rem 2.5rem;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.05rem;
+            border: 2px solid var(--nvidia-gray-light);
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline:hover {
+            border-color: var(--nvidia-green);
+            color: var(--nvidia-green);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(118, 185, 0, 0.2);
+        }
+
+        /* Team Grid */
+        .team-grid {
+            max-width: 1100px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 3rem;
+        }
+
+        .team-member {
+            background: var(--nvidia-gray-dark);
+            padding: 3rem 2.5rem;
+            border-radius: var(--radius-md);
+            text-align: center;
+            border: 1px solid var(--border-color);
+            transition: all 0.4s ease;
+        }
+
+        .team-member:hover {
+            border-color: var(--nvidia-green);
+            transform: translateY(-15px) scale(1.03);
+            box-shadow: 
+                0 25px 70px rgba(0, 0, 0, 0.5),
+                0 0 30px rgba(118, 185, 0, 0.2);
+        }
+
+        .team-member:hover .member-avatar {
+            transform: scale(1.1);
+            box-shadow: 0 15px 40px rgba(118, 185, 0, 0.5);
+        }
+
+        .member-avatar {
+            width: 130px;
+            height: 130px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--nvidia-green);
+            margin: 0 auto 1.5rem;
+            box-shadow: 0 10px 30px rgba(118, 185, 0, 0.3);
+            transition: all 0.5s var(--ease-out-back);
+        }
+
+        .team-member h3 {
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            color: var(--text-white);
+        }
+
+        .member-role {
+            color: var(--nvidia-green);
+            font-weight: 600;
+            font-size: 1.05rem;
+            margin-bottom: 1rem;
+        }
+
+        .team-member p {
+            color: var(--text-gray);
+            line-height: 1.7;
+        }
+
+        /* Footer */
+        footer {
+            background: var(--nvidia-black);
+            padding: 5rem 3rem 3rem;
+            border-top: 1px solid var(--border-color);
+            position: relative;
+            z-index: 2;
+        }
+
+        .footer-grid {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 2fr repeat(3, 1fr);
+            gap: 4rem;
+            margin-bottom: 4rem;
+        }
+
+        @media (max-width: 1024px) {
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        .footer-brand p {
+            color: var(--text-gray);
+            margin-top: 1rem;
+            line-height: 1.7;
+            font-size: 0.95rem;
+        }
+
+        .footer-column h4 {
+            color: var(--text-white);
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+        }
+
+        .footer-column ul {
+            list-style: none;
+        }
+
+        .footer-column li {
+            margin-bottom: 0.8rem;
+        }
+
+        .footer-column a {
+            color: var(--text-gray);
+            text-decoration: none;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-column a:hover {
+            color: var(--nvidia-green);
+            transform: translateX(5px);
+        }
+
+        .footer-bottom {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            border-top: 1px solid var(--border-color);
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .copyright {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .heart {
+            color: #e74c3c;
+            animation: heartbeat 1.5s ease infinite;
+            display: inline-block;
+        }
+
+        @keyframes heartbeat {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+        }
+
+        /* ============================================
+           🎬 ADVANCED ANIMATION SYSTEM
+           ============================================ */
+
+        .animate-on-scroll {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: all var(--animation-speed) var(--ease-out-expo);
+        }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .animate-fade-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: all 0.6s var(--ease-out-expo);
+        }
+
+        .animate-fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .animate-scale {
+            opacity: 0;
+            transform: scale(0.9);
+            transition: all 0.7s var(--ease-out-back);
+        }
+
+        .animate-scale.visible {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* Stagger Delays */
+        .delay-1 { transition-delay: 0.1s; }
+        .delay-2 { transition-delay: 0.2s; }
+        .delay-3 { transition-delay: 0.3s; }
+        .delay-4 { transition-delay: 0.4s; }
+        .delay-5 { transition-delay: 0.5s; }
+        .delay-6 { transition-delay: 0.6s; }
+
+        /* Continuous Animations */
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes float-slow {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(5deg); }
+        }
+
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 20px rgba(118, 185, 0, 0.3); }
+            50% { box-shadow: 0 0 40px rgba(118, 185, 0, 0.6); }
+        }
+
+        @keyframes gradient-shift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes bounce-subtle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .float-slow-animation {
+            animation: float-slow 8s ease-in-out infinite;
+        }
+
+        .pulse-glow-animation {
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+
+        .bounce-animation {
+            animation: bounce-subtle 2s ease-in-out infinite;
+        }
+
+        .animated-gradient-bg {
+            background: linear-gradient(-45deg, #000000, #0a0a0a, #0f1510, #0a0f0a);
+            background-size: 400% 400%;
+            animation: gradient-shift 15s ease infinite;
+        }
+
+        .animated-text-gradient {
+            background: linear-gradient(90deg, var(--nvidia-green), #00D4FF, var(--nvidia-green));
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: gradient-shift 4s linear infinite;
+        }
+
+        .magnetic-btn {
+            position: relative;
+            transition: transform 0.3s var(--ease-out-back);
+        }
+
+        .tilt-card {
+            transform-style: preserve-3d;
+            perspective: 1000px;
+            transition: transform 0.5s var(--ease-out-back);
+        }
+
+        @media (max-width: 1024px) {
+            .bento-grid {
+                grid-template-columns: 1fr !important;
+            }
+            
+            .bento-grid > div[style*="grid-column: span 2"] {
+                grid-column: span 1 !important;
+            }
+        }
+
+        /* ============================================
+           🎨 OPTION B: VISUAL UPGRADES
+           ============================================ */
+
+        /* Loading Screen */
+        .loading-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: var(--nvidia-black);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 99999;
+            transition: opacity 0.8s ease, visibility 0.8s ease;
+        }
+
+        .loading-screen.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .loader {
+            width: 80px;
+            height: 80px;
+            position: relative;
+        }
+
+        .loader::before,
+        .loader::after {
+            content: '';
+            position: absolute;
+            border-radius: 50%;
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+
+        .loader::before {
+            width: 100%;
+            height: 100%;
+            border: 4px solid var(--nvidia-green);
+            border-top-color: transparent;
+        }
+
+        .loader::after {
+            width: 60%;
+            height: 60%;
+            top: 20%;
+            left: 20%;
+            border: 4px solid var(--nvidia-green-hover);
+            border-bottom-color: transparent;
+            animation-delay: 0.2s;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: rotate(0deg) scale(1); opacity: 1; }
+            50% { transform: rotate(180deg) scale(0.8); opacity: 0.5; }
+            100% { transform: rotate(360deg) scale(1); opacity: 1; }
+        }
+
+        /* Custom Cursor */
+        .custom-cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--nvidia-green);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 99998;
+            transition: transform 0.15s ease, background 0.15s ease;
+            transform: translate(-50%, -50%);
+            mix-blend-mode: difference;
+        }
+
+        .custom-cursor.hover {
+            transform: translate(-50%, -50%) scale(2);
+            background: rgba(118, 185, 0, 0.3);
+        }
+
+        .cursor-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--nvidia-green);
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 99998;
+            transform: translate(-50%, -50%);
+            transition: transform 0.1s ease;
+        }
+
+        /* Particle System */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Stats Counter Section */
+        .stats-section {
+            padding: 6rem 3rem;
+            background: linear-gradient(135deg, var(--nvidia-dark-bg), var(--nvidia-black));
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stats-grid {
+            max-width: var(--container-max);
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 3rem;
+        }
+
+        .stat-card {
+            text-align: center;
+            padding: 3rem 2rem;
+            background: linear-gradient(135deg, rgba(118, 185, 0, 0.05), var(--nvidia-gray-dark));
+            border-radius: var(--radius-lg);
+            border: 1px solid rgba(118, 185, 0, 0.2);
+            transition: all 0.4s var(--ease-out-back);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(118, 185, 0, 0.1), transparent);
+            transition: left 0.6s ease;
+        }
+
+        .stat-card:hover::before {
+            left: 100%;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--nvidia-green);
+            box-shadow: 0 20px 60px rgba(118, 185, 0, 0.2);
+        }
+
+        .stat-number {
+            font-size: 4rem;
+            font-weight: 900;
+            color: var(--nvidia-green);
+            line-height: 1;
+            margin-bottom: 1rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .stat-label {
+            font-size: 1.2rem;
+            color: var(--text-white);
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-description {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            margin-bottom: 1.5rem;
+            display: block;
+        }
+
+        /* Typing Effect */
+        .typing-text {
+            display: inline-block;
+            overflow: hidden;
+            white-space: nowrap;
+            border-right: 3px solid var(--nvidia-green);
+            animation: blink-caret 0.75s step-end infinite;
+            max-width: fit-content;
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: var(--nvidia-green); }
+        }
+
+        /* Morphing Background Shapes */
+        .morphing-bg {
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.15;
+            animation: morph 15s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        .morph-1 {
+            top: -10%;
+            right: -5%;
+            background: var(--nvidia-green);
+        }
+
+        .morph-2 {
+            bottom: -10%;
+            left: -5%;
+            background: #00D4FF;
+            animation-delay: -5s;
+        }
+
+        .morph-3 {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--nvidia-green-hover);
+            animation-delay: -10s;
+            width: 400px;
+            height: 400px;
+        }
+
+        @keyframes morph {
+            0%, 100% {
+                border-radius: 40% 60% 70% 30% / 40% 50% 60% 50%;
+                transform: rotate(0deg) scale(1);
+            }
+            25% {
+                border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+                transform: rotate(90deg) scale(1.1);
+            }
+            50% {
+                border-radius: 30% 70% 50% 50% / 50% 60% 30% 70%;
+                transform: rotate(180deg) scale(0.9);
+            }
+            75% {
+                border-radius: 50% 50% 70% 30% / 30% 30% 50% 70%;
+                transform: rotate(270deg) scale(1.05);
+            }
+        }
+
+        /* Shine Effect */
+        .shine-effect {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shine-effect::after {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(
+                to bottom right,
+                rgba(255, 255, 255, 0) 0%,
+                rgba(255, 255, 255, 0) 40%,
+                rgba(255, 255, 255, 0.1) 50%,
+                rgba(255, 255, 255, 0) 60%,
+                rgba(255, 255, 255, 0) 100%
+            );
+            transform: rotate(45deg);
+            transition: all 0.8s ease;
+            pointer-events: none;
+        }
+
+        .shine-effect:hover::after {
+            left: 100%;
+            top: 100%;
+        }
+
+        /* Ripple Effect */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .ripple-effect {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(118, 185, 0, 0.4);
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
+
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+
+        /* Hide default cursor when custom cursor is active */
+        body.custom-cursor-active {
+            cursor: none;
+        }
+
+        body.custom-cursor-active a,
+        body.custom-cursor-active button,
+        body.custom-cursor-active .btn-primary,
+        body.custom-cursor-active .btn-outline,
+        body.custom-cursor-active .feature-card,
+        body.custom-cursor-active .team-member {
+            cursor: none;
+        }
+        
+        /* Smooth Scroll Indicator */
+        @keyframes pulse-border {
+            0%, 100% { box-shadow: inset 0 0 0 2px rgba(118, 185, 0, 0.3); }
+            50% { box-shadow: inset 0 0 0 4px rgba(118, 185, 0, 0.6); }
+        }
+        
+        .smooth-scroll-indicator {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: rgba(20, 20, 20, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            z-index: 998;
+            border: 2px solid rgba(118, 185, 0, 0.3);
+            transition: all 0.3s ease;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        .smooth-scroll-indicator.visible {
+            opacity: 1;
+            transform: translateY(0);
+            animation: pulse-border 2s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="custom-cursor-active">
+    
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loadingScreen">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Custom Cursor -->
+    <div class="custom-cursor" id="cursor"></div>
+    <div class="cursor-dot" id="cursorDot"></div>
+
+    <!-- Particle Canvas -->
+    <canvas id="particles-canvas"></canvas>
+    
+    <!-- Smooth Scroll Indicator -->
+    <div class="smooth-scroll-indicator" id="scrollIndicator">🖱️</div>
+
+    <!-- Scroll Progress Bar -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- Navigation -->
+    <nav class="main-nav">
+        <a href="#" class="nav-brand">
+            <img src="https://cdn2.steamgriddb.com/icon/e885b3528cb03d1def9803220bd3cb9/32/48x48.png" alt="Logo">
+            SHADOWPLAY
+        </a>
+        <ul class="nav-menu">
+            <li><a href="#features">Features</a></li>
+            <li><a href="#specs">Specifications</a></li>
+            <li><a href="#requirements">Requirements</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="#team">Team</a></li>
+        </ul>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero-section animated-gradient-bg" id="hero">
+        <div class="hero-container">
+            <!-- Floating Decorative Elements -->
+            <div class="float-animation" style="position: absolute; top: 10%; right: 10%; font-size: 4rem; opacity: 0.1; z-index: 0;">⚡</div>
+            <div class="float-slow-animation" style="position: absolute; bottom: 20%; left: 5%; font-size: 3rem; opacity: 0.08; z-index: 0;">🎬</div>
+            
+            <div style="position: relative; z-index: 1;">
+                <div class="hero-badge animate-fade-up">
+                    <span class="bounce-animation" style="display: inline-block;">⚡</span>
+                    OPEN SOURCE PROJECT
+                </div>
+                
+                <h1 class="hero-title animate-fade-up delay-1">
+                    NVIDIA ShadowPlay<br>
+                    <span class="animated-text-gradient">Custom Implementation</span>
+                </h1>
+                
+                <p class="hero-subtitle animate-fade-up delay-2">
+                    Open Source Screen Capture Utility
+                </p>
+                
+                <p class="hero-description animate-fade-up delay-3">
+                    A custom screen capture implementation inspired by NVIDIA ShadowPlay™ featuring overlay UI, built entirely in <strong>VB.NET</strong> with <strong>No-Hook</strong> architecture. Record engine powered by <strong>FFmpeg</strong>. Built over <strong>3+ years</strong> focusing on animation system, overlay UX, and performance.
+                </p>
+
+                <div class="tech-info animate-fade-up delay-4">
+                    💻 Built with VB.NET • No Hook Design • FFmpeg Powered
+                </div>
+                
+                <div class="hero-cta-group animate-fade-up delay-5">
+                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/tag/Download" class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">
+                        📥 Download Now
+                    </a>
+                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" class="btn-secondary magnetic-btn" target="_blank">
+                        ⭐ Star Repository →
+                    </a>
+                    <a href="#features" class="btn-secondary magnetic-btn">
+                        Learn More ↓
+                    </a>
+                </div>
+
+                <div class="alert-inline animate-fade-up delay-6">
+                    <div class="alert-item alert-note">
+                        <span style="font-size: 1.2rem;">📝</span>
+                        <div>
+                            <strong>NOTE:</strong> A screen capture utility inspired by NVIDIA ShadowPlay with overlay UI, built in <strong>VB.NET</strong>, <strong>[No Hook]</strong>. Record Engine Powered by FFmpeg
+                        </div>
+                    </div>
+                    
+                    <div class="alert-item alert-warning">
+                        <span style="font-size: 1.2rem;">⚠️</span>
+                        <div>
+                            <strong>WARNING:</strong> Some apps (<strong>Netflix</strong> / <strong>DRM content</strong>) cannot be recorded. Still under active development.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Core Features Section -->
+    <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem; position: relative; overflow: hidden;">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Features Overview</span>
+                <h2 class="section-title">Capture Your Best Moments</h2>
+                <p class="section-subtitle">This custom implementation brings NVIDIA ShadowPlay-inspired functionality to your desktop with professional-grade features.</p>
+            </div>
+
+            <!-- Bento Grid Layout for Features -->
+            <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: auto auto; gap: 2rem;" class="bento-grid">
+                <!-- Large Featured Card -->
+                <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 2; grid-row: span 2; background: linear-gradient(135deg, rgba(118, 185, 0, 0.1), var(--nvidia-gray-dark)); padding: 3rem; border-radius: var(--radius-lg); border: 1px solid rgba(118, 185, 0, 0.3); position: relative; overflow: hidden;">
+                    <div style="position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: radial-gradient(circle, rgba(118, 185, 0, 0.15), transparent); border-radius: 50%; transform: translate(30%, -30%);"></div>
+                    <span class="card-status">✅ FEATURED</span>
+                    <span class="card-icon float-animation" style="font-size: 5rem; margin-bottom: 1.5rem; display: block;">🎬</span>
+                    <h3 style="font-size: 2rem; font-weight: 700; margin-bottom: 1rem; color: var(--text-white);">Real-time Screen Recording</h3>
+                    <p style="color: var(--text-gray); line-height: 1.8; font-size: 1.1rem; margin-bottom: 1.5rem;">Record your gaming sessions or desktop with FFmpeg engine — high quality, low performance impact with full NVIDIA NVENC hardware acceleration support.</p>
+                    <ul style="list-style: none; margin-top: 1.5rem;">
+                        <li style="padding: 0.5rem 0; color: var(--text-gray); display: flex; align-items: center; gap: 10px;"><span style="color: var(--nvidia-green); font-weight: 900;">✓</span> Hardware Accelerated Encoding</li>
+                        <li style="padding: 0.5rem 0; color: var(--text-gray); display: flex; align-items: center; gap: 10px;"><span style="color: var(--nvidia-green); font-weight: 900;">✓</span> Low CPU Usage</li>
+                        <li style="padding: 0.5rem 0; color: var(--text-gray); display: flex; align-items: center; gap: 10px;"><span style="color: var(--nvidia-green); font-weight: 900;">✓</span> Multiple Format Support</li>
+                    </ul>
+                </div>
+
+                <!-- Small Card 1 -->
+                <div class="feature-card animate-scale delay-2 tilt-card">
+                    <span class="card-status">✅ READY</span>
+                    <span class="card-icon">⏪</span>
+                    <h3>Instant Replay</h3>
+                    <p style="color: var(--text-gray); line-height: 1.7; font-size: 1rem;">Automatically record the last few minutes.</p>
+                </div>
+
+                <!-- Small Card 2 -->
+                <div class="feature-card animate-scale delay-3 tilt-card">
+                    <span class="card-status">✅ READY</span>
+                    <span class="card-icon">📸</span>
+                    <h3>Screenshot Capture</h3>
+                    <p style="color: var(--text-gray); line-height: 1.7; font-size: 1rem;">High-quality screenshots instantly.</p>
+                </div>
+
+                <!-- Medium Card -->
+                <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+                    <div>
+                        <span class="card-status">✅ READY</span>
+                        <h3 style="font-size: 1.8rem; margin-bottom: 1rem;">In-game Overlay UI</h3>
+                        <p style="color: var(--text-gray); line-height: 1.7; font-size: 1.05rem;">Beautiful borderless windowed interface that doesn't interrupt your gameplay experience.</p>
+                    </div>
+                    <div style="text-align: center; font-size: 6rem;" class="float-slow-animation">🎮</div>
+                </div>
+
+                <!-- No-Hook Card -->
+                <div class="feature-card animate-scale delay-5 tilt-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), var(--nvidia-gray-dark)); border: 1px solid rgba(239, 68, 68, 0.3);">
+                    <span class="card-status" style="background: #EF4444; color: white;">🔒 SAFE</span>
+                    <span class="card-icon">🔒</span>
+                    <h3>No-Hook Architecture</h3>
+                    <p style="color: var(--text-gray); line-height: 1.7; font-size: 1rem;">Safe design without memory injection.</p>
+                </div>
+
+                <!-- NVIDIA Card -->
+                <div class="feature-card animate-scale delay-6 tilt-card" style="background: linear-gradient(135deg, rgba(118, 185, 0, 0.15), var(--nvidia-gray-dark)); border: 1px solid rgba(118, 185, 0, 0.4);">
+                    <span class="card-status">⚡ FAST</span>
+                    <span class="card-icon bounce-animation">⚡</span>
+                    <h3>NVIDIA Hardware Acceleration</h3>
+                    <p style="color: var(--text-gray); line-height: 1.7; font-size: 1rem;">Full NVENC encoder support via FFmpeg.</p>
+                </div>
+            </div>
+
+            <div style="margin-top: 4rem; text-align: center;">
+                <h3 style="color: var(--nvidia-green); font-size: 1.5rem; margin-bottom: 1.5rem;">Encoder Support Status</h3>
+                <div class="encoder-badges" style="justify-content: center;">
+                    <span class="encoder-badge badge-ready">✓ NVIDIA NVENC — Ready</span>
+                    <span class="encoder-badge badge-pending">○ Intel QSV — Coming Soon</span>
+                    <span class="encoder-badge badge-pending">○ AMD AMF — Coming Soon</span>
+                </div>
+                <p style="color: var(--text-muted); margin-top: 1.5rem; font-size: 1rem;">
+                    <strong>Recommended Resolution: 1920 x 1080</strong>
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section class="stats-section" id="stats">
+        <!-- Morphing Background Shapes -->
+        <div class="morphing-bg morph-1"></div>
+        <div class="morphing-bg morph-2"></div>
+        <div class="morphing-bg morph-3"></div>
+
+        <div style="position: relative; z-index: 2;">
+            <div class="section-header" style="text-align: center;">
+                <span class="section-label">Impact</span>
+                <h2 class="section-title" style="font-size: 3.5rem;">Project Statistics</h2>
+                <p class="section-subtitle" style="margin: 0 auto;">Numbers that speak for themselves</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card shine-effect">
+                    <span class="stat-icon">📥</span>
+                    <div class="stat-number" data-target="15000">0</div>
+                    <div class="stat-label">Downloads</div>
+                    <div class="stat-description">And growing every day</div>
+                </div>
+
+                <div class="stat-card shine-effect">
+                    <span class="stat-icon">⭐</span>
+                    <div class="stat-number" data-target="850">0</div>
+                    <div class="stat-label">GitHub Stars</div>
+                    <div class="stat-description">Community love</div>
+                </div>
+
+                <div class="stat-card shine-effect">
+                    <span class="stat-icon">👨‍💻</span>
+                    <div class="stat-number" data-target="3">0</div>
+                    <div class="stat-label">Years of Development</div>
+                    <div class="stat-description">Passion project</div>
+                </div>
+
+                <div class="stat-card shine-effect">
+                    <span class="stat-icon">🎮</span>
+                    <div class="stat-number" data-target="99">0</div>
+                    <div class="stat-label">Performance Score</div>
+                    <div class="stat-description">Optimized efficiency</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technical Specifications Section -->
+    <section id="specs">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Technical Details</span>
+                <h2 class="section-title">API Capture & Specifications</h2>
+                <p class="section-subtitle">Comprehensive technical details about capture APIs, encoders, and architecture.</p>
+            </div>
+
+            <div class="two-col-layout">
+                <div class="content-block">
+                    <div class="spec-card">
+                        <h3>🎯 API Capture Methods</h3>
+                        <ul class="spec-list">
+                            <li>
+                                <span class="status-icon status-ready">●</span>
+                                <div>
+                                    <strong>Windows.Graphics.Capture</strong><br>
+                                    Modern Windows 10/11 capture API with high performance
+                                </div>
+                            </li>
+                            <li>
+                                <span class="status-icon status-ready">●</span>
+                                <div>
+                                    <strong>Desktop Duplication API</strong><br>
+                                    DirectX-based desktop duplication for efficient capture
+                                </div>
+                            </li>
+                            <li>
+                                <span class="status-icon status-ready">●</span>
+                                <div>
+                                    <strong>GDI Screen Grabber</strong><br>
+                                    Legacy GDI-based screen capture for compatibility
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="content-block">
+                    <div class="spec-card">
+                        <h3>🚀 Encoder Configuration</h3>
+                        <ul class="spec-list">
+                            <li>
+                                <span class="status-icon status-ready">✓</span>
+                                <div>
+                                    <strong>NVIDIA NVENC (h264_nvenc)</strong><br>
+                                    Full GPU acceleration via FFmpeg — primary recommended encoder
+                                </div>
+                            </li>
+                            <li>
+                                <span class="status-icon status-pending">○</span>
+                                <div>
+                                    <strong>Intel QSV</strong><br>
+                                    Intel Quick Sync Video — coming soon
+                                </div>
+                            </li>
+                            <li>
+                                <span class="status-icon status-pending">○</span>
+                                <div>
+                                    <strong>AMD AMF</strong><br>
+                                    Advanced Media Framework — coming soon
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="spec-card" style="margin-top: 2rem; border-left-color: #3B82F6;">
+                        <h3 style="color: #3B82F6;">⚙️ Architecture Highlights</h3>
+                        <ul class="spec-list">
+                            <li>
+                                <span class="check-mark">✓</span>
+                                <span><strong>No-Hook Design:</strong> Does not inject into other processes</span>
+                            </li>
+                            <li>
+                                <span class="check-mark">✓</span>
+                                <span><strong>Borderless Windowed Mode:</strong> Reliable capture method</span>
+                            </li>
+                            <li>
+                                <span class="check-mark">✓</span>
+                                <span><strong>FFmpeg Integration:</strong> Powerful multimedia framework</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Requirements Section -->
+    <section id="requirements">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-label">Prerequisites</span>
+                <h2 class="section-title">System Requirements</h2>
+                <p class="section-subtitle">Ensure your system meets these requirements for optimal performance.</p>
+            </div>
+
+            <div style="max-width: 1000px; margin: 0 auto;">
+                <div class="req-card req-important">
+                    <h3>❗ IMPORTANT — Runtime Dependencies</h3>
+                    <p><strong>.NET 8.0 Desktop Runtime</strong> — Required for application execution</p>
+                    <p style="margin-top: 1rem;"><strong>.NET 4.8 Framework</strong> — Additional framework dependency</p>
+                    <p style="margin-top: 1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p>
+                </div>
+
+                <div class="req-card req-caution">
+                    <h3>⚡ CAUTION — Known Limitations</h3>
+                    <p><strong>Exclusive Fullscreen</strong> applications cannot be captured due to no-hook design on older Windows builds.</p>
+                    <p style="margin-top: 1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p>
+                    <p style="margin-top: 1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p>
+                </div>
+
+                <div class="req-card req-tip">
+                    <h3>💡 TIP — Performance Optimization</h3>
+                    <p>For best performance, use <strong>NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg.</p>
+                    <p style="margin-top: 1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Architecture Section -->
+    <section id="architecture">
+        <div class="container">
+            <div class="section-header" style="text-align: center;">
+                <span class="section-label">Architecture</span>
+                <h2 class="section-title">Project Structure</h2>
+                <p class="section-subtitle" style="margin: 0 auto;">Built over <strong>3 years</strong> focusing on animation system, overlay UX, and performance</p>
+            </div>
+
+            <div class="code-block-wrapper" style="max-width: 900px; margin: 3rem auto 0;">
+                <div class="code-header">
+                    <span class="dot dot-red"></span>
+                    <span class="dot dot-yellow"></span>
+                    <span class="dot dot-green"></span>
+                    <span class="code-filename">NVIDIA-Shadowplay/</span>
+                </div>
+                <div class="code-body">
+                    <pre>NVIDIA-Shadowplay/
+├── API/
+│   ├── Windows.Graphics.Capture
+│   ├── Desktop Duplication API
+│   └── GDI Screen Grabber
+├── App Experience/
+├── Engine/
+├── Notifier/
+└── Overlay/</pre>
+                </div>
+            </div>
+
+            <div class="tech-stack-badges">
+                <div class="tech-badge">
+                    <strong>Language</strong>
+                    <span>Visual Basic .NET 100%</span>
+                </div>
+                <div class="tech-badge">
+                    <strong>Engine</strong>
+                    <span>FFmpeg Powered</span>
+                </div>
+                <div class="tech-badge">
+                    <strong>Development Time</strong>
+                    <span>3+ Years</span>
+                </div>
+                <div class="tech-badge">
+                    <strong>Design Focus</strong>
+                    <span>Animation • UX • Performance</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Section -->
+    <section id="download">
+        <div class="container">
+            <div class="section-header" style="text-align: center;">
+                <span class="section-label">Get Started</span>
+                <h2 class="section-title">Download & Installation</h2>
+                <p class="section-subtitle" style="margin: 0 auto;">Get up and running in just a few simple steps</p>
+            </div>
+
+            <div class="download-steps">
+                <div class="download-step">
+                    <h3>📋 Prerequisites Checklist</h3>
+                    <ol>
+                        <li>Install <strong>.NET 8.0 Desktop Runtime</strong></li>
+                        <li>Install <strong>.NET 4.8 Framework</strong></li>
+                        <li>Ensure you're running <strong>Windows 8+</strong> / Server 2012+</li>
+                    </ol>
+                </div>
+                
+                <div class="download-step">
+                    <h3>📦 Option 1: Download Release</h3>
+                    <ol>
+                        <li>Visit the <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank" style="color: var(--nvidia-green); text-decoration: none; font-weight: 600;">Releases page</a></li>
+                        <li>Download the latest version</li>
+                        <li>Extract ZIP archive to your preferred location</li>
+                        <li>Run the executable!</li>
+                    </ol>
+                </div>
+                
+                <div class="download-step">
+                    <h3>🛠️ Option 2: Build from Source</h3>
+                    <div class="code-block-wrapper" style="margin-top: 1rem;">
+                        <div class="code-body" style="padding: 1.5rem;">
+                            <pre>git clone https://github.com/ScotcsDuluka/NVIDIA-Shadowplay.git
+
+# Then:
+# 1. Open solution in Visual Studio
+# 2. Restore NuGet packages
+# 3. Build in Release mode
+# 4. Run the executable</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- About Section -->
+    <section id="about">
+        <div class="container">
+            <div class="section-header" style="text-align: center;">
+                <span class="section-label">About</span>
+                <h2 class="section-title">More About This Project</h2>
+            </div>
+
+            <div style="max-width: 900px; margin: 0 auto; background: var(--nvidia-gray-dark); padding: 3.5rem; border-radius: var(--radius-md);">
+                <h3 style="font-size: 2rem; margin-bottom: 1.5rem; color: var(--text-white);">📖 Project Information</h3>
+                
+                <p style="color: var(--text-gray); font-size: 1.1rem; line-height: 1.9; margin-bottom: 1.5rem;">
+                    This is an <strong>open-source project</strong> inspired by NVIDIA ShadowPlay™, featuring:
+                </p>
+                
+                <ul style="list-style: none; margin: 1rem 0 2rem 2rem;">
+                    <li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;">
+                        <span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span>
+                        Custom screen capture utility with beautiful overlay UI
+                    </li>
+                    <li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;">
+                        <span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span>
+                        Built entirely in <strong>VB.NET</strong> with <strong>No Hook</strong> design philosophy
+                    </li>
+                    <li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;">
+                        <span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span>
+                        Record engine powered by <strong>FFmpeg</strong>
+                    </li>
+                    <li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;">
+                        <span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span>
+                        Developed passionately over <strong>3+ years</strong>
+                    </li>
+                    <li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;">
+                        <span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span>
+                        Focused on three pillars: <strong>Animation System</strong>, <strong>Overlay UX</strong>, and <strong>Performance</strong>
+                    </li>
+                </ul>
+
+                <h4 style="font-size: 1.4rem; margin: 2rem 0 1rem; color: var(--text-white);">Design Philosophy</h4>
+                <p style="color: var(--text-gray); font-size: 1.05rem; line-height: 1.8;">
+                    The No-Hook architecture ensures safety and compatibility — no memory injection means it won't trigger anti-cheat systems or cause instability in games.
+                </p>
+
+                <div class="quote-box">
+                    "Sometimes it records, sometimes it doesn't... depends on luck lol"
+                    <div style="font-size: 0.9rem; color: var(--text-gray); margin-top: 0.5rem; font-style: normal;">— Developer humor about DRM limitations</div>
+                </div>
+
+                <h4 style="font-size: 1.4rem; margin: 2rem 0 1.5rem; color: var(--text-white);">🌟 Show Your Support</h4>
+                <p style="color: var(--text-gray); font-size: 1.05rem; line-height: 1.8; margin-bottom: 2rem;">
+                    If this project has been helpful to you, please consider supporting us:
+                </p>
+
+                <div class="support-buttons">
+                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" class="btn-primary" target="_blank">
+                        ⭐ Star Repository
+                    </a>
+                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/fork" class="btn-outline" target="_blank">
+                        🍴 Fork Project
+                    </a>
+                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues" class="btn-outline" target="_blank">
+                        🐛 Report Issues
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Team Section -->
+    <section id="team">
+        <div class="container">
+            <div class="section-header" style="text-align: center;">
+                <span class="section-label">Contributors</span>
+                <h2 class="section-title">Meet The Team</h2>
+                <p class="section-subtitle" style="margin: 0 auto;">The people behind this 3+ year development journey</p>
+            </div>
+
+            <div class="team-grid">
+                <div class="team-member fade-in">
+                    <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar">
+                    <h3>ScotcsDuluka</h3>
+                    <p class="member-role">Lead Developer & Designer</p>
+                    <p>Main developer behind this 3+ year project. Focused on architecture, UI/UX design, and animation system implementation.</p>
+                </div>
+                
+                <div class="team-member fade-in">
+                    <img src="https://avatars.githubusercontent.com/u/269697472?s=200&v=4" alt="AphiwichKaemanee" class="member-avatar">
+                    <h3>AphiwichKaemanee</h3>
+                    <p class="member-role">Contributor</p>
+                    <p>Active collaborator on the project, contributing to features and improvements.</p>
+                </div>
+            </div>
+
+            <div style="text-align: center; margin-top: 3rem; color: var(--text-gray); font-style: italic; font-size: 1.1rem;">
+                Built with passion and dedication to creating a high-quality screen capture experience.
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-grid">
+            <div class="footer-brand">
+                <a href="#" class="nav-brand">
+                    <img src="https://cdn2.steamgriddb.com/icon/e885b3528cb03d1def9803220bd3cb9/32/48x48.png" alt="Logo" style="height: 28px;">
+                    SHADOWPLAY
+                </a>
+                <p>A custom screen capture implementation inspired by NVIDIA ShadowPlay. Built with passion over 3+ years using VB.NET & FFmpeg.</p>
+            </div>
+            
+            <div class="footer-column">
+                <h4>Project</h4>
+                <ul>
+                    <li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">📂 GitHub Repo</a></li>
+                    <li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">📥 Releases</a></li>
+                    <li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues" target="_blank">🐛 Issues</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#specs">Specifications</a></li>
+                    <li><a href="#requirements">Requirements</a></li>
+                </ul>
+            </div>
+            
+            <div class="footer-column">
+                <h4>Connect</h4>
+                <ul>
+                    <li><a href="https://github.com/ScotcsDuluka" target="_blank">👤 Developer Profile</a></li>
+                    <li><a href="#">📧 Contact</a></li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="footer-bottom">
+            <p class="copyright">
+                © 2026 ScotcsDuluka | Inspired by NVIDIA ShadowPlay™
+            </p>
+            <p class="copyright">
+                Built with <span class="heart">❤️</span> using VB.NET & FFmpeg
+            </p>
+        </div>
+    </footer>
+
+    <!-- Smooth Scroll Library (Lenis-style) -->
+    <script>
+        // ============================================
+        // 🌊 ULTRA SMOOTH SCROLL SYSTEM
+        // ============================================
+        
+        class SmoothScroll {
+            constructor() {
+                this.scrollY = 0;
+                this.targetScrollY = 0;
+                this.scrollSpeed = 0.08; // Lower = smoother but slower
+                this.isScrolling = false;
+                this.rAF = null;
+                
+                this.init();
+            }
+            
+            init() {
+                // Listen to wheel events
+                window.addEventListener('wheel', this.onWheel.bind(this), { passive: false });
+                
+                // Listen to keyboard events
+                window.addEventListener('keydown', this.onKeydown.bind(this));
+                
+                // Start render loop
+                this.render();
+            }
+            
+            onWheel(e) {
+                e.preventDefault();
+                
+                // Get delta with normalization for different browsers
+                const delta = e.deltaY || e.deltaX || e.wheelDelta;
+                const normalizedDelta = delta > 0 ? 1 : -1;
+                
+                // Add to target with multiplier for speed control
+                this.targetScrollY += normalizedDelta * Math.abs(delta) * 0.5;
+                
+                // Clamp target scroll position
+                this.targetScrollY = Math.max(0, Math.min(this.targetScrollY, document.documentElement.scrollHeight - window.innerHeight));
+                
+                if (!this.isScrolling) {
+                    this.isScrolling = true;
+                    document.body.classList.add('is-scrolling');
+                }
+            }
+            
+            onKeydown(e) {
+                const scrollAmount = 100;
+                
+                switch(e.key) {
+                    case 'ArrowDown':
+                    case 'PageDown':
+                    case ' ':
+                        e.preventDefault();
+                        this.targetScrollY += scrollAmount;
+                        break;
+                    case 'ArrowUp':
+                    case 'PageUp':
+                        e.preventDefault();
+                        this.targetScrollY -= scrollAmount;
+                        break;
+                    case 'Home':
+                        e.preventDefault();
+                        this.targetScrollY = 0;
+                        break;
+                    case 'End':
+                        e.preventDefault();
+                        this.targetScrollY = document.documentElement.scrollHeight - window.innerHeight;
+                        break;
+                }
+                
+                this.targetScrollY = Math.max(0, Math.min(this.targetScrollY, document.documentElement.scrollHeight - window.innerHeight));
+            }
+            
+            render() {
+                // Lerp (Linear Interpolation) for smooth movement
+                this.scrollY += (this.targetScrollY - this.scrollY) * this.scrollSpeed;
+                
+                // Apply scroll position
+                window.scrollTo(0, this.scrollY);
+                
+                // Check if we've reached the target
+                if (Math.abs(this.targetScrollY - this.scrollY) < 0.5) {
+                    if (this.isScrolling) {
+                        this.isScrolling = false;
+                        document.body.classList.remove('is-scrolling');
+                    }
+                }
+                
+                // Continue loop
+                this.rAF = requestAnimationFrame(() => this.render());
+            }
+            
+            scrollTo(target, duration = 1500) {
+                const startScrollY = this.scrollY;
+                const targetPosition = typeof target === 'number' ? target : target.offsetTop - 70;
+                const distance = targetPosition - startScrollY;
+                let startTime = null;
+                
+                const animateScroll = (currentTime) => {
+                    if (!startTime) startTime = currentTime;
+                    const elapsed = currentTime - startTime;
+                    const progress = Math.min(elapsed / duration, 1);
+                    
+                    // Easing function (easeInOutCubic)
+                    const easeProgress = progress < 0.5 
+                        ? 4 * progress * progress * progress 
+                        : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+                    
+                    this.targetScrollY = startScrollY + (distance * easeProgress);
+                    
+                    if (progress < 1) {
+                        requestAnimationFrame(animateScroll);
+                    }
+                };
+                
+                requestAnimationFrame(animateScroll);
+            }
+            
+            destroy() {
+                cancelAnimationFrame(this.rAF);
+                window.removeEventListener('wheel', this.onWheel);
+                window.removeEventListener('keydown', this.onKeydown);
+            }
+        }
+        
+        // Initialize smooth scroll
+        const smoothScroll = new SmoothScroll();
+        
+        // Override anchor link clicks to use smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                
+                if (targetElement) {
+                    smoothScroll.scrollTo(targetElement, 2000); // 2 seconds for ultra-smooth
+                }
+            });
+        });
+    </script>
+
+    <!-- Main JavaScript -->
+    <script>
+        // Prevent scroll during loading
+        document.body.style.overflow = 'hidden';
+
+        // Initialize when DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Init loading screen
+            const loadingScreen = document.getElementById('loadingScreen');
+            window.addEventListener('load', () => {
+                setTimeout(() => {
+                    loadingScreen.classList.add('hidden');
+                    document.body.style.overflow = 'auto';
+                }, 800);
+            });
+
+            // Fallback: hide after 3 seconds even if not fully loaded
+            setTimeout(() => {
+                if (!loadingScreen.classList.contains('hidden')) {
+                    loadingScreen.classList.add('hidden');
+                    document.body.style.overflow = 'auto';
+                }
+            }, 3000);
+
+            // Init custom cursor
+            const cursor = document.getElementById('cursor');
+            const cursorDot = document.getElementById('cursorDot');
+            let mouseX = 0, mouseY = 0;
+            let cursorX = 0, cursorY = 0;
+
+            document.addEventListener('mousemove', (e) => {
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                cursorDot.style.left = mouseX + 'px';
+                cursorDot.style.top = mouseY + 'px';
+            });
+
+            function animateCursor() {
+                cursorX += (mouseX - cursorX) * 0.15;
+                cursorY += (mouseY - cursorY) * 0.15;
+                cursor.style.left = cursorX + 'px';
+                cursor.style.top = cursorY + 'px';
+                requestAnimationFrame(animateCursor);
+            }
+            animateCursor();
+
+            const interactiveElements = document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline');
+            interactiveElements.forEach(el => {
+                el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+                el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            });
+
+            // Init particles
+            const canvas = document.getElementById('particles-canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particlesArray = [];
+            const numberOfParticles = 80;
+
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 3 + 1;
+                    this.speedX = Math.random() * 1 - 0.5;
+                    this.speedY = Math.random() * 1 - 0.5;
+                    this.opacity = Math.random() * 0.5 + 0.1;
+                }
+
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+
+                    if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
+                    if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
+                }
+
+                draw() {
+                    ctx.fillStyle = `rgba(118, 185, 0, ${this.opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function initParticles() {
+                for (let i = 0; i < numberOfParticles; i++) {
+                    particlesArray.push(new Particle());
+                }
+            }
+
+            function animateParticles() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particlesArray.forEach(particle => {
+                    particle.update();
+                    particle.draw();
+                });
+                
+                // Connect particles
+                for (let a = 0; a < particlesArray.length; a++) {
+                    for (let b = a; b < particlesArray.length; b++) {
+                        const dx = particlesArray[a].x - particlesArray[b].x;
+                        const dy = particlesArray[a].y - particlesArray[b].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+
+                        if (distance < 120) {
+                            const opacity = (120 - distance) / 120 * 0.15;
+                            ctx.strokeStyle = `rgba(118, 185, 0, ${opacity})`;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                
+                requestAnimationFrame(animateParticles);
+            }
+
+            initParticles();
+            animateParticles();
+
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            });
+
+            // Init counter animation
+            const counters = document.querySelectorAll('.stat-number');
+            const speed = 200;
+
+            const animateCounter = (counter) => {
+                const target = +counter.getAttribute('data-target');
+                const count = +counter.innerText;
+                const increment = target / speed;
+
+                if (count < target) {
+                    counter.innerText = Math.ceil(count + increment);
+                    setTimeout(() => animateCounter(counter), 10);
+                } else {
+                    counter.innerText = target.toLocaleString();
+                }
+            };
+
+            const counterObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        animateCounter(entry.target);
+                        counterObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.5 });
+
+            counters.forEach(counter => counterObserver.observe(counter));
+
+            // Init ripple effect
+            const buttons = document.querySelectorAll('.btn-primary, .btn-outline, .feature-card, .team-member');
+            buttons.forEach(button => {
+                button.classList.add('ripple');
+                button.addEventListener('click', function(e) {
+                    const rect = this.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+
+                    const ripple = document.createElement('span');
+                    ripple.className = 'ripple-effect';
+                    ripple.style.left = x + 'px';
+                    ripple.style.top = y + 'px';
+
+                    this.appendChild(ripple);
+
+                    setTimeout(() => ripple.remove(), 600);
+                });
+            });
+
+            // Init page transitions
+            const sections = document.querySelectorAll('section');
+            sections.forEach(section => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(30px)';
+            });
+
+            const sectionObserver = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                        entry.target.classList.add('in-view');
+                    }
+                });
+            }, { threshold: 0.1 });
+
+            sections.forEach(section => sectionObserver.observe(section));
+
+            // Init scroll animations
+            const animatedElements = document.querySelectorAll('.animate-fade-up, .animate-scale');
+            
+            const observerOptions = {
+                root: null,
+                rootMargin: '0px 0px -50px',
+                threshold: 0.1
+            };
+            
+            const observerCallback = (entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            };
+
+            const observer = new IntersectionObserver(observerCallback, observerOptions);
+            
+            animatedElements.forEach(el => {
+                observer.observe(el);
+            });
+
+            // Init 3D tilt effect
+            const cards = document.querySelectorAll('.tilt-card');
+            
+            cards.forEach(card => {
+                card.addEventListener('mousemove', (e) => {
+                    const rect = card.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const y = e.clientY - rect.top;
+                    
+                    const centerX = rect.width / 2;
+                    const centerY = rect.height / 2;
+                    
+                    const rotateX = ((y - centerY) / centerY) * -5;
+                    const rotateY = ((x - centerX) / centerX) * 5;
+                    
+                    card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1, 1, 1)';
+                });
+            });
+
+            // Init magnetic buttons
+            const magneticBtns = document.querySelectorAll('.magnetic-btn');
+            
+            magneticBtns.forEach(btn => {
+                btn.addEventListener('mousemove', (e) => {
+                    const rect = btn.getBoundingClientRect();
+                    const x = e.clientX - rect.left - rect.width / 2;
+                    const y = e.clientY - rect.top - rect.height / 2;
+                    
+                    btn.style.transform = `translate(${x * 0.2}px, ${y * 0.2}px)`;
+                });
+                
+                btn.addEventListener('mouseleave', () => {
+                    btn.style.transform = 'translate(0, 0)';
+                });
+            });
+
+            // Enhanced parallax effects
+            const heroSection = document.querySelector('.hero-section');
+            const floatingElements = document.querySelectorAll('.float-animation, .float-slow-animation');
+            const morphShapes = document.querySelectorAll('.morphing-bg');
+            
+            function updateParallax() {
+                const scrolled = smoothScroll.scrollY;
+                
+                // Hero parallax
+                if (heroSection && scrolled < heroSection.offsetHeight + window.innerHeight) {
+                    const rate = scrolled * -0.15;
+                    const scale = 1 + (scrolled * 0.0001);
+                    const opacity = 1 - (scrolled / (heroSection.offsetHeight * 0.8));
+                    
+                    heroSection.style.transform = `translateY(${rate}px) scale(${Math.min(scale, 1.05)})`;
+                    heroSection.style.opacity = Math.max(opacity, 0);
+                }
+                
+                // Floating elements move at different speeds
+                floatingElements.forEach((el, index) => {
+                    const speed = (index + 1) * 0.02;
+                    el.style.transform = `translateY(${scrolled * speed}px)`;
+                });
+                
+                // Morph shapes subtle movement
+                morphShapes.forEach((el, index) => {
+                    const speed = (index + 1) * 0.01;
+                    const xOffset = Math.sin(scrolled * 0.001 + index) * 30;
+                    const yOffset = Math.cos(scrolled * 0.001 + index) * 30;
+                    el.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+                });
+                
+                requestAnimationFrame(updateParallax);
+            }
+            
+            updateParallax();
+
+            // Update progress bar
+            function updateScrollProgress() {
+                const scrollProgress = document.getElementById('scrollProgress');
+                if (!scrollProgress) return;
+                
+                const windowHeight = document.documentElement.scrollHeight - window.innerHeight;
+                const currentScroll = smoothScroll.scrollY;
+                const scrolled = (currentScroll / windowHeight) * 100;
+                scrollProgress.style.width = Math.max(0, Math.min(100, scrolled)) + '%';
+            }
+            
+            function updateProgressBar() {
+                updateScrollProgress();
+                requestAnimationFrame(updateProgressBar);
+            }
+            updateProgressBar();
+
+            // Show scroll indicator briefly on load
+            setTimeout(() => {
+                const indicator = document.getElementById('scrollIndicator');
+                if (indicator) {
+                    indicator.classList.add('visible');
+                    setTimeout(() => indicator.classList.remove('visible'), 3000);
+                }
+            }, 2000);
+        });
+    </script>
+
+</body>
+</html>

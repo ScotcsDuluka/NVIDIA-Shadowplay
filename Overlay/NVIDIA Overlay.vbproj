@@ -113,8 +113,6 @@
 		<PackageReference Include="NAudio.Core" Version="2.3.0" />
 		<PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
 		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-		<PackageReference Include="NLog" Version="6.1.1" />
-		<PackageReference Include="NLog.Config" Version="4.7.15" />
 		<PackageReference Include="System.CodeDom" Version="10.0.5" />
 		<PackageReference Include="System.Management" Version="10.0.5" />
 	</ItemGroup>

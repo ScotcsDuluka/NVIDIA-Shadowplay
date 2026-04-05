@@ -11,13 +11,13 @@
     "UseNativeResolution": true,
     "Encoder": "NVENC_H264",
     "EncoderNow": "NVENC_H264",
-    "FPS": 75,
-    "Bitrate": 33000,
+    "FPS": 60,
+    "Bitrate": 7000,
     "Width": 1920,
     "Height": 1080,
-    "Preset": "Custom",
-    "EncoderPreset": 5,
-    "ReplayDuration": 45
+    "Preset": "Medium",
+    "EncoderPreset": 4,
+    "ReplayDuration": 60
   },
   "Paths": {
     "GalleryPath": "C:\\Users\\ScotcsDuluka\\Videos\\Shadowplay\\Gallery",

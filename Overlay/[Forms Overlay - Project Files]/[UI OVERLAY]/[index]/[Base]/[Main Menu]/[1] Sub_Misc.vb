@@ -160,7 +160,7 @@ Partial Public Class Base
             "crashhandler", "gta5", "hd-player", "a dance of fire and ice", "aot",
             "aot2_as", "iw5mp", "iw5sp", "obscure", "genshinimpact", "gta5_enhanced",
             "dwrg", "dungeons", "minecraftlegends.windows", "secret neighbour",
-            "smash_legends", "asphalt9_steam_x64_rtl", "furmark_gui", "misidefull", "miside zero", "HSHO-Win64-Shipping"
+            "smash_legends", "asphalt9_steam_x64_rtl", "furmark_gui", "misidefull", "miside zero", "HSHO-Win64-Shipping" ,"re9","re4"
         }
 
         Dim isGameRunning As Boolean = Process.GetProcesses().Any(Function(p) targetGames.Contains(p.ProcessName))

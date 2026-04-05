@@ -53,44 +53,6 @@
           }
         }
       },
-      "NLog/6.1.1": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard2.1/NLog.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/netstandard2.1/NLog.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "NLog.Config/4.7.15": {
-        "type": "package",
-        "dependencies": {
-          "NLog": "4.7.15",
-          "NLog.Schema": "4.7.15"
-        },
-        "contentFiles": {
-          "contentFiles/any/any/NLog.config": {
-            "buildAction": "None",
-            "codeLanguage": "any",
-            "copyToOutput": true,
-            "outputPath": "NLog.config"
-          }
-        }
-      },
-      "NLog.Schema/4.7.15": {
-        "type": "package",
-        "contentFiles": {
-          "contentFiles/any/any/_._": {
-            "buildAction": "None",
-            "codeLanguage": "any",
-            "copyToOutput": false
-          }
-        }
-      },
       "System.CodeDom/10.0.5": {
         "type": "package",
         "compile": {
@@ -267,56 +229,6 @@
         "packageIcon.png"
       ]
     },
-    "NLog/6.1.1": {
-      "sha512": "TCIwfAQX2IpZDnqs/+c5jCPnveCG8M6/wFmUk2odjRl0xiocfe4B+4qIvRbVbazSxcS28+Zu14pFeRJE9yAQAQ==",
-      "type": "package",
-      "path": "nlog/6.1.1",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "N.png",
-        "lib/net35/NLog.dll",
-        "lib/net35/NLog.xml",
-        "lib/net45/NLog.dll",
-        "lib/net45/NLog.xml",
-        "lib/net46/NLog.dll",
-        "lib/net46/NLog.xml",
-        "lib/netstandard2.0/NLog.dll",
-        "lib/netstandard2.0/NLog.xml",
-        "lib/netstandard2.1/NLog.dll",
-        "lib/netstandard2.1/NLog.xml",
-        "nlog.6.1.1.nupkg.sha512",
-        "nlog.nuspec"
-      ]
-    },
-    "NLog.Config/4.7.15": {
-      "sha512": "njc2NvwgAzEuH609TGO4yqpokcxXFdypHwG3I8hyLYIE4pr+j4KJB4ZhsyODVwkP/n2F2V4uJ24VW4icNyJMcA==",
-      "type": "package",
-      "path": "nlog.config/4.7.15",
-      "hasTools": true,
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "content/NLog.config",
-        "contentFiles/any/any/NLog.config",
-        "nlog.config.4.7.15.nupkg.sha512",
-        "nlog.config.nuspec",
-        "tools/Install.ps1"
-      ]
-    },
-    "NLog.Schema/4.7.15": {
-      "sha512": "cBzca2abS5Qz8e40vIPZNWBiDAQaRY7PKWffBbazMAzvxGBM6/ZWgaAEmqHUOluhV41cuyXnHOzo485JPLeChg==",
-      "type": "package",
-      "path": "nlog.schema/4.7.15",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "content/NLog.xsd",
-        "contentFiles/any/any/NLog.xsd",
-        "nlog.schema.4.7.15.nupkg.sha512",
-        "nlog.schema.nuspec"
-      ]
-    },
     "System.CodeDom/10.0.5": {
       "sha512": "hGZWDDJh1U6t7fy3iO4HlZYK1ur1fWE3sTqTNHkHk0Leh0JUcxYM//JtLBNG5g+6D2Lt0+aHH8rc7e5oIlNgCg==",
       "type": "package",
@@ -405,8 +317,6 @@
       "Microsoft.AspNetCore.Components.WebView >= 10.0.5",
       "NAudio.Core >= 2.3.0",
       "NAudio.Wasapi >= 2.3.0",
-      "NLog >= 6.1.1",
-      "NLog.Config >= 4.7.15",
       "NVIDIA API >= 1.0.0",
       "NVIDIA Experience >= 1.0.0",
       "NVIDIA Notifier >= 1.0.0",
@@ -416,7 +326,8 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\": {}
+    "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\": {},
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
     "version": "1.0.0",
@@ -427,8 +338,12 @@
       "packagesPath": "C:\\Users\\ScotcsDuluka\\.nuget\\packages\\",
       "outputPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\obj\\",
       "projectStyle": "PackageReference",
+      "fallbackFolders": [
+        "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+      ],
       "configFilePaths": [
         "C:\\Users\\ScotcsDuluka\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
@@ -485,14 +400,6 @@
             "target": "Package",
             "version": "[2.3.0, )"
           },
-          "NLog": {
-            "target": "Package",
-            "version": "[6.1.1, )"
-          },
-          "NLog.Config": {
-            "target": "Package",
-            "version": "[4.7.15, )"
-          },
           "Newtonsoft.Json": {
             "target": "Package",
             "version": "[13.0.4, )"
@@ -519,24 +426,8 @@
         "warn": true,
         "downloadDependencies": [
           {
-            "name": "Microsoft.AspNetCore.App.Ref",
-            "version": "[8.0.25, 8.0.25]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Host.win-x64",
-            "version": "[8.0.25, 8.0.25]"
-          },
-          {
-            "name": "Microsoft.NETCore.App.Ref",
-            "version": "[8.0.25, 8.0.25]"
-          },
-          {
             "name": "Microsoft.Windows.SDK.NET.Ref",
             "version": "[10.0.26100.57, 10.0.26100.57]"
-          },
-          {
-            "name": "Microsoft.WindowsDesktop.App.Ref",
-            "version": "[8.0.25, 8.0.25]"
           }
         ],
         "frameworkReferences": {
