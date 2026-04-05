@@ -62,11 +62,14 @@
 
         ::selection { background: var(--nvidia-green); color: var(--nvidia-black); }
 
-        /* Scrollbar */
-        ::-webkit-scrollbar { width: 10px; }
-        ::-webkit-scrollbar-track { background: var(--nvidia-dark-bg); }
-        ::-webkit-scrollbar-thumb { background: var(--nvidia-gray-light); border-radius: 5px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--nvidia-green); }
+        /* Scrollbar - HIDDEN (Still scrollable) */
+        * {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        *::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari, Opera */
+        }
 
         .container { max-width: var(--container-max); margin: 0 auto; padding: 0 3rem; }
 
@@ -1073,28 +1076,6 @@
         </div>
     </section>
 
-    <!-- About Section -->
-    <section id="about">
-        <div class="container">
-            <div class="section-header" style="text-align: center;"><span class="section-label">About</span><h2 class="section-title">More About This Project</h2></div>
-            <div style="max-width: 900px; margin: 0 auto; background: var(--nvidia-gray-dark); padding: 3.5rem; border-radius: var(--radius-md);">
-                <h3 style="font-size: 2rem; margin-bottom: 1.5rem; color: var(--text-white);">📖 Project Information</h3>
-                <p style="color: var(--text-gray); font-size: 1.1rem; line-height: 1.9; margin-bottom: 1.5rem;">This is an <strong>open-source project</strong> inspired by NVIDIA ShadowPlay™, featuring:</p>
-                <ul style="list-style: none; margin: 1rem 0 2rem 2rem;"><li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;"><span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span> Custom screen capture utility with beautiful overlay UI</li><li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;"><span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span> Built entirely in <strong>VB.NET</strong> with <strong>No Hook</strong> design philosophy</li><li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;"><span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span> Record engine powered by <strong>FFmpeg</strong></li><li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;"><span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span> Developed passionately over <strong>3+ years</strong></li><li style="padding: 0.6rem 0; color: var(--text-gray); font-size: 1.05rem; position: relative; padding-left: 1.8rem;"><span style="position: absolute; left: 0; color: var(--nvidia-green); font-weight: bold;">→</span> Focused on three pillars: <strong>Animation System</strong>, <strong>Overlay UX</strong>, and <strong>Performance</strong></li></ul>
-                <h4 style="font-size: 1.4rem; margin: 2rem 0 1rem; color: var(--text-white);">Design Philosophy</h4>
-                <p style="color: var(--text-gray); font-size: 1.05rem; line-height: 1.8;">The No-Hook architecture ensures safety and compatibility — no memory injection means it won't trigger anti-cheat systems or cause instability in games.</p>
-                <div class="quote-box">"Sometimes it records, sometimes it doesn't... depends on luck lol"<div style="font-size: 0.9rem; color: var(--text-gray); margin-top: 0.5rem; font-style: normal;">— Developer humor about DRM limitations</div></div>
-                <h4 style="font-size: 1.4rem; margin: 2rem 0 1.5rem; color: var(--text-white);">🌟 Show Your Support</h4>
-                <p style="color: var(--text-gray); font-size: 1.05rem; line-height: 1.8; margin-bottom: 2rem;">If this project has been helpful to you, please consider supporting us:</p>
-                <div class="support-buttons">
-                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" class="btn-primary" target="_blank">⭐ Star Repository</a>
-                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/fork" class="btn-outline" target="_blank">🍴 Fork Project</a>
-                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues" class="btn-outline" target="_blank">🐛 Report Issues</a>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- Team Section -->
     <section id="team">
         <div class="container">
@@ -1121,129 +1102,21 @@
         </div>
     </footer>
 
-    <!-- FIXED SMOOTH SCROLL SYSTEM -->
+    <!-- NATIVE SCROLL SYSTEM (Fast & Responsive) -->
     <script>
-        let isUserInteracting = false;
-        let interactionTimeout = null;
-        
-        function initSmoothScroll() {
-            let currentY = window.scrollY;
-            let targetY = currentY;
-            
-            const lerp = (start, end, factor) => start + (end - start) * factor;
-            
-            function updateScroll() {
-                if (!isUserInteracting) {
-                    currentY = lerp(currentY, targetY, 0.08);
-                    window.scrollTo(0, currentY);
-                } else {
-                    currentY = window.scrollY;
-                    targetY = currentY;
-                }
-                requestAnimationFrame(updateScroll);
-            }
-            
-            updateScroll();
-            
-            let lastWheelTime = 0;
-            let wheelTimeout = null;
-            
-            window.addEventListener('wheel', (e) => {
-                const now = Date.now();
-                if (now - lastWheelTime > 50) {
-                    e.preventDefault();
-                    
-                    const delta = e.deltaY || e.deltaX || e.wheelDelta;
-                    const direction = delta > 0 ? 1 : -1;
-                    const magnitude = Math.min(Math.abs(delta) * 0.5, 100);
-                    
-                    targetY += direction * magnitude;
-                    targetY = Math.max(0, Math.min(targetY, document.documentElement.scrollHeight - window.innerHeight));
-                    
-                    document.body.classList.add('is-scrolling');
-                    
-                    clearTimeout(wheelTimeout);
-                    wheelTimeout = setTimeout(() => {
-                        document.body.classList.remove('is-scrolling');
-                    }, 150);
-                }
-                lastWheelTime = now;
-            }, { passive: false });
-            
-            // Keyboard
-            window.addEventListener('keydown', (e) => {
-                if (!e.target.matches('input, textarea, select')) {
-                    const scrollAmount = 80;
-                    switch(e.key) {
-                        case 'ArrowDown': case 'PageDown': case ' ': e.preventDefault(); targetY += scrollAmount; break;
-                        case 'ArrowUp': case 'PageUp': e.preventDefault(); targetY -= scrollAmount; break;
-                        case 'Home': e.preventDefault(); targetY = 0; break;
-                        case 'End': e.preventDefault(); targetY = document.documentElement.scrollHeight - window.innerHeight; break;
-                    }
-                    targetY = Math.max(0, Math.min(targetY, document.documentElement.scrollHeight - window.innerHeight));
-                }
-            });
-            
-            // Track user interactions (clicks/touches)
-            document.addEventListener('mousedown', () => {
-                isUserInteracting = true;
-                clearTimeout(interactionTimeout);
-            });
-            
-            document.addEventListener('mouseup', () => {
-                interactionTimeout = setTimeout(() => {
-                    isUserInteracting = false;
-                    targetY = window.scrollY;
-                    currentY = targetY;
-                }, 100);
-            });
-            
-            document.addEventListener('touchstart', () => {
-                isUserInteracting = true;
-                clearTimeout(interactionTimeout);
-            }, { passive: true });
-            
-            document.addEventListener('touchend', () => {
-                interactionTimeout = setTimeout(() => {
-                    isUserInteracting = false;
-                    targetY = window.scrollY;
-                    currentY = targetY;
-                }, 100);
-            }, { passive: true });
-            
-            // Smooth scroll to element
-            window.smoothScrollTo = (target, duration = 1500) => {
-                const startY = currentY;
-                const endY = typeof target === 'number' ? target : (target?.offsetTop || 0) - 70;
-                const distance = endY - startY;
-                let startTime = null;
-                
-                function animate(time) {
-                    if (!startTime) startTime = time;
-                    const elapsed = time - startTime;
-                    const progress = Math.min(elapsed / duration, 1);
-                    const ease = 1 - Math.pow(1 - progress, 3);
-                    targetY = startY + (distance * ease);
-                    if (progress < 1) requestAnimationFrame(animate);
-                }
-                
-                requestAnimationFrame(animate);
-            };
-            
-            return { scrollTo: (target, duration) => window.smoothScrollTo(target, duration) };
-        }
-        
-        // Initialize smooth scroll
-        const smoothScrollSystem = initSmoothScroll();
-        
-        // Handle anchor links
+        // Smooth scroll for anchor links ONLY (not global scroll)
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
                 const href = this.getAttribute('href');
                 if (href && href !== '#') {
                     e.preventDefault();
                     const target = document.querySelector(href);
-                    if (target) smoothScrollSystem.scrollTo(target, 1500);
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
                 }
             });
         });
@@ -1447,7 +1320,7 @@
             const morphShapes = document.querySelectorAll('.morphing-bg');
             
             function updateParallax() {
-                const scrolled = smoothScrollSystem ? window.scrollY : window.scrollY;
+                const scrolled = window.scrollY;
                 
                 if (heroSection && scrolled < heroSection.offsetHeight + window.innerHeight) {
                     const rate = scrolled * -0.15;
