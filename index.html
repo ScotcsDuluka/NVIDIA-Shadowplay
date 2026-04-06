@@ -372,11 +372,11 @@
             color: #93C5FD;
         }
         .alert-warning {
-		    background: rgba(255, 68, 68, 0.1);
+            background: rgba(255, 68, 68, 0.1);
             border-left: 4px solid #FF4444;
             color: #FF4444;
         }
-		.alert-test {
+        .alert-test {
             background: rgba(255, 255 ,255, 0.1);
             border-left: 4px solid #FFFFFF;
             color: #FFFFFF;
@@ -420,7 +420,7 @@
         }
         @media (max-width: 768px) { .section-title { font-size: 2.5rem; } }
 
-        /* Feature Cards */
+       /* Feature Cards */
         .feature-card {
             background: linear-gradient(135deg, var(--nvidia-gray-dark), var(--nvidia-gray));
             padding: 2.5rem;
@@ -453,19 +453,17 @@
             border-radius: var(--radius-sm);
             font-size: 0.75rem;
             font-weight: 700;
-            margin-bottom: 1.2rem;
             letter-spacing: 1px;
         }
         .card-icon {
             font-size: 3rem;
-            margin-bottom: 1.5rem;
             display: block;
             transition: transform 0.5s var(--ease-out-back);
+			margin-right: 8px;
         }
         .feature-card h3 {
             font-size: 1.5rem;
             font-weight: 700;
-            margin-bottom: 1rem;
             color: var(--text-white);
         }
         .feature-card p { color: var(--text-gray); line-height: 1.7; font-size: 1rem; }
@@ -510,36 +508,90 @@
         }
         .faq-item.active .faq-icon { transform: rotate(45deg); }
 
-        /* Back to Top Button */
-        .back-to-top {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 50px;
-            height: 50px;
-            background: var(--nvidia-green);
-            color: var(--nvidia-black);
-            border: none;
-            border-radius: 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.8rem;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-            z-index: 997;
-            box-shadow: 0 4px 15px rgba(118, 185, 0, 0.3);
-        }
-        .back-to-top.visible {
-            opacity: 1;
-            visibility: visible;
-        }
-        .back-to-top:hover {
-            background: var(--nvidia-green-hover);
-            transform: translateY(-5px);
-        }
+      /* Back to Top Button - 优化版 */
+.back-to-top {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 52px;
+    height: 52px;
+    background: var(--nvidia-green, #76b900);
+    color: var(--nvidia-black, #000000);
+    border: none;
+    border-radius: 16px;  /* 柔和圆角，现代感 */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease, background 0.2s ease;
+    z-index: 997;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(118, 185, 0, 0.2);
+    backdrop-filter: blur(0px); /* 预留性能友好 */
+}
+
+/* 可见状态 */
+.back-to-top.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* 悬停效果：上浮 + 轻微放大 + 绿色光晕 */
+.back-to-top:hover {
+    background: var(--nvidia-green-hover, #8fce00);
+    transform: translateY(-6px) scale(1.02);
+    box-shadow: 0 12px 24px rgba(118, 185, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* 点击反馈（主动效果） */
+.back-to-top:active {
+    transform: translateY(-2px) scale(0.98);
+    transition-duration: 0.1s;
+}
+
+/* 键盘焦点无障碍样式 */
+.back-to-top:focus-visible {
+    outline: 3px solid var(--nvidia-green, #76b900);
+    outline-offset: 2px;
+    border-radius: 16px;
+}
+
+/* 移动端适配：按钮缩小并更靠边缘 */
+@media (max-width: 768px) {
+    .back-to-top {
+        bottom: 16px;
+        right: 16px;
+        width: 44px;
+        height: 44px;
+        font-size: 1.4rem;
+        border-radius: 12px;
+    }
+    .back-to-top:hover {
+        transform: translateY(-4px) scale(1.01); /* 小屏幕避免过度夸张 */
+    }
+}
+
+/* 深色模式下调整阴影，避免过暗 */
+@media (prefers-color-scheme: dark) {
+    .back-to-top {
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(118, 185, 0, 0.3);
+    }
+    .back-to-top:hover {
+        box-shadow: 0 12px 28px rgba(118, 185, 0, 0.5);
+    }
+}
+
+/* 尊重用户减少动画的偏好 */
+@media (prefers-reduced-motion: reduce) {
+    .back-to-top,
+    .back-to-top:hover,
+    .back-to-top:active {
+        transition: opacity 0.01s ease, visibility 0.01s ease;
+        transform: none;
+    }
+}
 
         /* Two Column Layout */
         .two-col-layout { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: start; }
@@ -636,53 +688,102 @@
         body.custom-cursor-active { cursor: none; }
         .smooth-scroll-indicator { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; background: rgba(20,20,20,0.9); backdrop-filter: blur(10px); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; z-index: 998; border: 2px solid rgba(118,185,0,0.3); transition: all 0.3s; pointer-events: none; opacity: 0; transform: translateY(20px); }
         .smooth-scroll-indicator.visible { opacity: 1; transform: translateY(0); }
-		
-		/* CLICK SHOCKWAVE */
-.click-wave {
-    position: fixed;
-    width: 20px;
-    height: 20px;
-    border: 2px solid var(--nvidia-green);
-    border-radius: 50%;
-    pointer-events: none;
-    transform: translate(-50%, -50%) scale(0);
-    animation: clickWaveAnim 0.6s ease-out forwards;
-    z-index: 99999;
+        
+        /* CLICK SHOCKWAVE */
+        .click-wave {
+            position: fixed;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--nvidia-green);
+            border-radius: 50%;
+            pointer-events: none;
+            transform: translate(-50%, -50%) scale(0);
+            animation: clickWaveAnim 0.6s ease-out forwards;
+            z-index: 99999;
+        }
+
+        @keyframes clickWaveAnim {
+            0% {
+                transform: translate(-50%, -50%) scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(-50%, -50%) scale(6);
+                opacity: 0;
+            }
+        }
+
+        /* CLICK PARTICLE */
+        .click-particle {
+            position: fixed;
+            width: 6px;
+            height: 6px;
+            background: var(--nvidia-green);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 99999;
+            animation: particleFade 0.8s ease-out forwards;
+        }
+
+        @keyframes particleFade {
+            to {
+                transform: translate(var(--x), var(--y)) scale(0);
+                opacity: 0;
+            }
+        }
+
+        /* Overlay UI Section */
+        .overlay-ui-section {
+            padding: 10rem 3rem;
+            background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%);
+            position: relative;
+            overflow: hidden;
+        }
+        .overlay-ui-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(ellipse at center, rgba(120, 184, 2, 0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .overlay-image-container {
+            position: relative;
+            max-width: 1000px;
+            margin: 4rem auto 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .overlay-image-container img {
+            width: 100%;
+            max-width: 800px;
+            height: auto;
+            border-radius: 16px;
+            box-shadow: 0 30px 100px rgba(0,0,0,0.9), 0 0 60px rgba(120, 184, 2, 0.2);
+            border: 2px solid rgba(120, 184, 2, 0.3);
+        }
+        .overlay-glow {
+            position: absolute;
+            width: 600px;
+            height: 400px;
+            background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%);
+            filter: blur(60px);
+            z-index: -1;
+        }
+
+        html, body, * {
+            cursor: none !important;
+        }
+		.title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
 }
-
-@keyframes clickWaveAnim {
-    0% {
-        transform: translate(-50%, -50%) scale(0);
-        opacity: 1;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(6);
-        opacity: 0;
-    }
-}
-
-/* CLICK PARTICLE */
-.click-particle {
-    position: fixed;
-    width: 6px;
-    height: 6px;
-    background: var(--nvidia-green);
-    border-radius: 50%;
-    pointer-events: none;
-    z-index: 99999;
-    animation: particleFade 0.8s ease-out forwards;
-}
-
-@keyframes particleFade {
-    to {
-        transform: translate(var(--x), var(--y)) scale(0);
-        opacity: 0;
-    }
-}
-
-
-html, body, * {
-    cursor: none !important;
+.desc-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
     </style>
 </head>
@@ -696,15 +797,25 @@ html, body, * {
     <nav class="main-nav">
         <a href="#" class="nav-brand">NVIDIA ShadowPlay</a>
         <ul class="nav-menu">
-            <li><a href="#features">Features</a></li><li><a href="#specs">Specifications</a></li><li><a href="#requirements">Requirements</a></li>
-            <li><a href="#architecture">Architecture</a></li><li><a href="#download">Download</a></li><li><a href="#team">Team</a></li>
+            <li><a href="#features">Features</a></li>
+            
+            <li><a href="#specs">Specifications</a></li>
+            <li><a href="#requirements">Requirements</a></li>
+            <li><a href="#architecture">Architecture</a></li>
+            <li><a href="#download">Download</a></li>
+            <li><a href="#team">Team</a></li>
             <li><a href="#faq">FAQ</a></li>
         </ul>
         <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
-        <a href="#features">Features</a><a href="#specs">Specifications</a><a href="#requirements">Requirements</a>
-        <a href="#architecture">Architecture</a><a href="#download">Download</a><a href="#team">Team</a>
+        <a href="#features">Features</a>
+        
+        <a href="#specs">Specifications</a>
+        <a href="#requirements">Requirements</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#download">Download</a>
+        <a href="#team">Team</a>
         <a href="#faq">FAQ</a>
     </div>
 
@@ -725,8 +836,7 @@ html, body, * {
                 <div class="alert-inline animate-fade-up delay-6">
                     <div class="alert-item alert-note"><div><strong>NOTE :</strong> Built in <strong>VB.NET</strong>, <strong>[No Hook]</strong>. Record Engine Powered by FFmpeg</div></div>
                     <div class="alert-item alert-warning"><div><strong>WARNING :</strong> Some apps (<strong>Netflix</strong> / <strong>DRM content</strong>) cannot be recorded.</div></div>
-               <!--  <div class="alert-item alert-test"><div><strong>NOTE :</strong> Built in <strong>VB.NET</strong>, <strong>[No Hook]</strong>. Record Engine Powered by FFmpeg</div></div>   -->
-				</div>
+                </div>
             </div>
         </div>
     </section>
@@ -736,22 +846,56 @@ html, body, * {
         <div class="container">
             <div class="section-header"><span class="section-label">Features Overview</span><h2 class="section-title">Capture Your Best Moments</h2><p class="section-subtitle">Professional-grade features inspired by NVIDIA ShadowPlay</p></div>
             <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;" class="bento-grid">
-                <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 2; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
-                    <span class="card-status">FEATURED</span>
-                    <span class="card-icon icon-nvidia float-animation" style="font-size:5rem;"></span>
-                    <h3 style="font-size:2rem;">Real-time Screen Recording</h3>
-                    <p>Record your gaming sessions or desktop with FFmpeg engine — high quality, low performance impact with full NVIDIA NVENC hardware acceleration support.</p>
-                    <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Hardware Accelerated Encoding</li><li style="padding:0.5rem 0;">- Low CPU Usage</li><li style="padding:0.5rem 0;">- Multiple Format Support</li></ul>
+                <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+                     <div class="title-row">
+        <span class="card-status">FEATURED</span>
+           <h3 style="font-size:2rem;">Real-time Screen Recording</h3>
+    </div>
+				<div class="desc-row">
+				<span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+     <p>Record your gameplay or desktop in real time.<br>High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.</p>
+   </div>
+                    <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Hardware-accelerated encoding</li><li style="padding:0.5rem 0;">- Low CPU Usage</li><li style="padding:0.5rem 0;">- Supports multiple formats</li></ul>
                 </div>
-                <div class="feature-card animate-scale delay-2 tilt-card"><span class="card-status">READY</span><span class="card-icon icon-nvidia"></span><h3>Instant Replay</h3><p>Automatically record the last few minutes.</p></div>
-                <div class="feature-card animate-scale delay-3 tilt-card"><span class="card-status">READY</span><span class="card-icon icon-nvidia"></span><h3>Screenshot Capture</h3><p>High-quality screenshots instantly.</p></div>
-                <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 2; display: grid; grid-template-columns:1fr 1fr; gap:2rem; align-items:center;">
-                <div><span class="card-status">READY</span><h3 style="font-size:1.8rem;">In-game Overlay UI</h3><p>Beautiful borderless windowed interface that doesn't interrupt your gameplay experience.</p></div>
-                  <div style="text-align:center; font-size:6rem;" class="icon-nvidia float-slow-animation"></div>
+
+<div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
+    <div class="title-row">
+        <span class="card-status">READY</span>
+        <h3>Instant Replay</h3>
+    </div>
+   <div class="desc-row">
+    <span class="card-icon icon-nvidia"></span>
+    <p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p>
+   </div>
+</div>
+
+<div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
+    <div class="title-row">
+        <span class="card-status">READY</span>
+        <h3>Screenshot Capture</h3>
+    </div>
+<div class="desc-row">
+    <span class="card-icon icon-nvidia"></span>
+    <p>Snap crisp, high-resolution screenshots instantly — perfect for sharing or reviewing your best moments.</p>
+   </div>
+</div>
+
+                <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+                        <div style="padding: 2.5rem;">
+                            <h3 style="font-size:2rem; margin-top: 1rem;">In-game Overlay UI</h3>
+                            <p style="margin-top: 1rem;">Seamless, borderless overlay that keeps you in control without interrupting gameplay.<br>Real-time stats and shortcuts at your fingertips.</p>
+                            <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Stats</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
+                        </div>
+                        <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+                            <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
+                            <img src="overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 7000px; height: auto; position: relative; z-index: 1;">
+                        </div>
+                    </div>
                 </div>
-                <div class="feature-card animate-scale delay-5 tilt-card" style="background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe design without memory injection.</p></div>
-                <div class="feature-card animate-scale delay-6 tilt-card"><span class="card-status">FAST</span><h3>NVIDIA Hardware Acceleration</h3><p>Full NVENC encoder support via FFmpeg.</p></div>
-		   </div>
+                <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe and secure by design. No memory injection, no hooks — just pure stability.</p></div>
+                <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 2;"><span class="card-status">FAST</span><span class="card-icon icon-nvidia"></span><h3>NVIDIA Hardware Acceleration</h3><p>Fully optimized with NVIDIA NVENC via FFmpeg. Fast, efficient, and reliable GPU-based encoding.</p></div>
+          </div>
             <div style="margin-top:4rem; text-align:center;"><h3 style="color:var(--nvidia-green);">Encoder Support Status</h3><div class="encoder-badges"><span class="encoder-badge badge-ready">NVIDIA NVENC — Ready</span><span class="encoder-badge badge-pending">Intel QSV — Coming Soon</span><span class="encoder-badge badge-pending">AMD AMF — Coming Soon</span></div><p style="color:var(--text-muted); margin-top:1.5rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p></div>
         </div>
     </section>
@@ -807,52 +951,37 @@ html, body, * {
         </div>
     </section>
 
-   <!-- Team Section -->
-<section id="team">
-  <div class="container">
-    
-    <div class="section-header" style="text-align:center;">
-      <span class="section-label">Contributors</span>
-      <h2 class="section-title">Meet The Team</h2>
-      <p class="section-subtitle" style="margin:0 auto;">
-        The people behind this 3+ year development journey
-      </p>
-    </div>
-
-    <div class="team-grid">
-
-      <!-- Member 1 -->
-      <div class="team-member">
-        <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar">
-        <h3>ScotcsDuluka</h3>
-        <p class="member-role">Lead Developer & Designer</p>
-        <p>Main developer behind this 3+ year project. Focused on architecture, UI/UX design, and animation system implementation.</p>
-      </div>
-
-      <!-- Member 2 -->
-      <div class="team-member">
-        <img src="https://avatars.githubusercontent.com/u/269697472?s=200&v=4" alt="AphiwichKaemanee" class="member-avatar">
-        <h3>Aphiwich Kaemanee</h3>
-        <p class="member-role">Contributor</p>
-        <p>Active collaborator on the project, contributing to features and improvements.</p>
-      </div>
-
-      <!-- Member 3 -->
-      <div class="team-member">
-        <img src="https://pics.craiyon.com/2023-11-21/J-ets3iVSli5qam8CrBifg.webp" alt="Coming soon" class="member-avatar">
-        <h3>Coming soon...</h3>
-        <p class="member-role">Supporters</p>
-        <p>He has always been there to help us.</p>
-      </div>
-
-    </div>
-
-    <div style="text-align:center; margin-top:3rem; color:var(--text-gray); font-style:italic;">
-      Built with passion and dedication to creating a high-quality screen capture experience.
-    </div>
-
-  </div>
-</section>
+    <!-- Team Section -->
+    <section id="team">
+        <div class="container">
+            <div class="section-header" style="text-align:center;">
+                <span class="section-label">Contributors</span>
+                <h2 class="section-title">Meet The Team</h2>
+                <p class="section-subtitle" style="margin:0 auto;">The people behind this 3+ year development journey</p>
+            </div>
+            <div class="team-grid">
+                <div class="team-member">
+                    <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar">
+                    <h3>ScotcsDuluka</h3>
+                    <p class="member-role">Lead Developer & Designer</p>
+                    <p>Main developer behind this 3+ year project. Focused on architecture, UI/UX design, and animation system implementation.</p>
+                </div>
+                <div class="team-member">
+                    <img src="https://avatars.githubusercontent.com/u/269697472?s=200&v=4" alt="AphiwichKaemanee" class="member-avatar">
+                    <h3>Aphiwich Kaemanee</h3>
+                    <p class="member-role">Contributor</p>
+                    <p>Active collaborator on the project, contributing to features and improvements.</p>
+                </div>
+                <div class="team-member">
+                    <img src="https://pics.craiyon.com/2023-11-21/J-ets3iVSli5qam8CrBifg.webp" alt="Coming soon" class="member-avatar">
+                    <h3>Coming soon...</h3>
+                    <p class="member-role">Supporters</p>
+                    <p>He has always been there to help us.</p>
+                </div>
+            </div>
+            <div style="text-align:center; margin-top:3rem; color:var(--text-gray); font-style:italic;">Built with passion and dedication to creating a high-quality screen capture experience.</div>
+        </div>
+    </section>
 
     <footer>
         <div class="footer-grid"><div class="footer-brand"><a href="#" class="nav-brand">NVIDIA SHADOWPLAY</a><p>A custom screen capture implementation inspired by NVIDIA ShadowPlay. Built with passion over 3+ years using VB.NET & FFmpeg.</p></div>
@@ -862,7 +991,7 @@ html, body, * {
         <div class="footer-bottom"><p class="copyright">© <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay™</p><p class="copyright">Built with <span class="heart">❤️</span> using VB.NET & FFmpeg</p></div>
     </footer>
 
-    <button class="back-to-top" id="backToTop"><span class="card-icon icon-nvidia"></span></button>
+    <button class="back-to-top" id="backToTop">↑</button>
 
     <script>
         // Smooth scroll for anchor links
@@ -892,124 +1021,104 @@ html, body, * {
         animateCursor();
         document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline').forEach(el => { el.addEventListener('mouseenter', () => cursor.classList.add('hover')); el.addEventListener('mouseleave', () => cursor.classList.remove('hover')); });
 
-    const canvas = document.getElementById('particles-canvas');
-const ctx = canvas.getContext('2d');
+        const canvas = document.getElementById('particles-canvas');
+        const ctx = canvas.getContext('2d');
 
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
 
-// 🟢 Mouse
-const mouse = {
-    x: null,
-    y: null,
-    radius: 120
-};
+        const mouse = { x: null, y: null, radius: 120 };
 
-window.addEventListener('mousemove', (e) => {
-    mouse.x = e.x;
-    mouse.y = e.y;
-});
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = e.x;
+            mouse.y = e.y;
+        });
 
-// 🟢 Particle
-let particlesArray = [];
+        let particlesArray = [];
 
-	class Particle {
-		constructor() {
-			this.x = Math.random() * canvas.width;
-			this.y = Math.random() * canvas.height;
-			this.size = Math.random() * 0.5 + 1;
-			this.speedX = Math.random() * 1.2 - 0.5;
-			this.speedY = Math.random() * 1.2 - 0.5;
-			this.opacity = Math.random() * 0.9 + 0.4;
-		}
-
-    update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-
-        // เด้งขอบ
-        if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
-        if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
-
-        // 🔥 เมาส์ interaction
-        if (mouse.x && mouse.y) {
-            const dx = this.x - mouse.x;
-            const dy = this.y - mouse.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < mouse.radius) {
-                const force = (mouse.radius - distance) / mouse.radius;
-                const angle = Math.atan2(dy, dx);
-
-                // 🏃‍♂️ หนีเมาส์
-                this.x += Math.cos(angle) * force * 3;
-                this.y += Math.sin(angle) * force * 3;
-
-                // ⚡ glitch สั่นๆ
-                this.x += (Math.random() - 0.5) * 2;
-                this.y += (Math.random() - 0.5) * 2;
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 0.5 + 1;
+                this.speedX = Math.random() * 1.2 - 0.5;
+                this.speedY = Math.random() * 1.2 - 0.5;
+                this.opacity = Math.random() * 0.9 + 0.4;
             }
-        }
-    }
 
-    draw() {
-        ctx.fillStyle = `rgba(118, 185, 0, ${this.opacity})`;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
-    }
-}
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
 
-// สร้าง particles
-function init() {
-    particlesArray = [];
-    for (let i = 0; i < 80; i++) {
-        particlesArray.push(new Particle());
-    }
-}
+                if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
+                if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
 
-// 🎬 Animate
-function animateParticles() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                if (mouse.x && mouse.y) {
+                    const dx = this.x - mouse.x;
+                    const dy = this.y - mouse.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
 
- 
-    // อัพเดต + วาด
-    particlesArray.forEach(p => {
-        p.update();
-        p.draw();
-    });
+                    if (distance < mouse.radius) {
+                        const force = (mouse.radius - distance) / mouse.radius;
+                        const angle = Math.atan2(dy, dx);
+                        this.x += Math.cos(angle) * force * 3;
+                        this.y += Math.sin(angle) * force * 3;
+                        this.x += (Math.random() - 0.5) * 2;
+                        this.y += (Math.random() - 0.5) * 2;
+                    }
+                }
+            }
 
-    // 🔗 เส้นเชื่อม
-    for (let a = 0; a < particlesArray.length; a++) {
-        for (let b = a; b < particlesArray.length; b++) {
-            const dx = particlesArray[a].x - particlesArray[b].x;
-            const dy = particlesArray[a].y - particlesArray[b].y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance < 120) {
-                ctx.strokeStyle = `rgba(118, 185, 0, ${(110 - distance) / 120 * 0.95})`;
-                ctx.lineWidth = 1;
+            draw() {
+                ctx.fillStyle = `rgba(118, 185, 0, ${this.opacity})`;
                 ctx.beginPath();
-                ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                ctx.stroke();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
-    }
 
-    requestAnimationFrame(animateParticles);
-}
+        function init() {
+            particlesArray = [];
+            for (let i = 0; i < 80; i++) {
+                particlesArray.push(new Particle());
+            }
+        }
 
-// resize
-window.addEventListener('resize', () => {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    init();
-});
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particlesArray.forEach(p => {
+                p.update();
+                p.draw();
+            });
 
-// start
-init();
-animateParticles();
+            for (let a = 0; a < particlesArray.length; a++) {
+                for (let b = a; b < particlesArray.length; b++) {
+                    const dx = particlesArray[a].x - particlesArray[b].x;
+                    const dy = particlesArray[a].y - particlesArray[b].y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < 120) {
+                        ctx.strokeStyle = `rgba(118, 185, 0, ${(110 - distance) / 120 * 0.95})`;
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            requestAnimationFrame(animateParticles);
+        }
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            init();
+        });
+
+        init();
+        animateParticles();
 
         // Fetch GitHub stars
         async function fetchGitHubStars() {
@@ -1080,41 +1189,31 @@ animateParticles();
 
         // Scroll indicator
         setTimeout(() => { const ind = document.getElementById('scrollIndicator'); if(ind) { ind.classList.add('visible'); setTimeout(() => ind.classList.remove('visible'), 3000); } }, 2000);
-    
-	// ADVANCED CLICK EFFECT 💥
-document.addEventListener('click', (e) => {
 
-    // Shockwave
-    const wave = document.createElement('div');
-    wave.className = 'click-wave';
-    wave.style.left = e.clientX + 'px';
-    wave.style.top = e.clientY + 'px';
-    document.body.appendChild(wave);
+        // ADVANCED CLICK EFFECT
+        document.addEventListener('click', (e) => {
+            const wave = document.createElement('div');
+            wave.className = 'click-wave';
+            wave.style.left = e.clientX + 'px';
+            wave.style.top = e.clientY + 'px';
+            document.body.appendChild(wave);
+            setTimeout(() => wave.remove(), 600);
 
-    setTimeout(() => wave.remove(), 600);
-
-    // Particle explosion
-    for (let i = 0; i < 8; i++) {
-        const p = document.createElement('div');
-        p.className = 'click-particle';
-        p.style.left = e.clientX + 'px';
-        p.style.top = e.clientY + 'px';
-
-        const angle = Math.random() * 2 * Math.PI;
-        const distance = Math.random() * 60 + 20;
-
-        const x = Math.cos(angle) * distance + 'px';
-        const y = Math.sin(angle) * distance + 'px';
-
-        p.style.setProperty('--x', x);
-        p.style.setProperty('--y', y);
-
-        document.body.appendChild(p);
-
-        setTimeout(() => p.remove(), 800);
-    }
-});
-
-	</script>
+            for (let i = 0; i < 8; i++) {
+                const p = document.createElement('div');
+                p.className = 'click-particle';
+                p.style.left = e.clientX + 'px';
+                p.style.top = e.clientY + 'px';
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = Math.random() * 60 + 20;
+                const x = Math.cos(angle) * distance + 'px';
+                const y = Math.sin(angle) * distance + 'px';
+                p.style.setProperty('--x', x);
+                p.style.setProperty('--y', y);
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        });
+    </script>
 </body>
 </html>
