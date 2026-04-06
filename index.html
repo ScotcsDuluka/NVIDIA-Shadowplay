@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="https://camo.githubusercontent.com/189f450c3c7997fd8f52d7b7278d18c04674aa747ff66745eaa21bb099ac2436/68747470733a2f2f63646e322e737465616d6772696464622e636f6d2f69636f6e2f65383835356233353238636230336431646566393830333232306264336362392f33322f34387834382e706e67">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>NVIDIA ShadowPlay | Custom Implementation</title>
+    <title>NVIDIA ShadowPlay | Beta</title>
     
     <!-- MathJax -->
     <script>
@@ -685,7 +686,6 @@ html, body, * {
     <div class="custom-cursor" id="cursor"></div>
     <div class="cursor-dot" id="cursorDot"></div>
     <canvas id="particles-canvas"></canvas>
-    <div class="smooth-scroll-indicator" id="scrollIndicator">🖱️</div>
     <div class="scroll-progress" id="scrollProgress"></div>
 
     <nav class="main-nav">
@@ -740,12 +740,12 @@ html, body, * {
                 <div class="feature-card animate-scale delay-2 tilt-card"><span class="card-status">READY</span><span class="card-icon icon-nvidia"></span><h3>Instant Replay</h3><p>Automatically record the last few minutes.</p></div>
                 <div class="feature-card animate-scale delay-3 tilt-card"><span class="card-status">READY</span><span class="card-icon icon-nvidia"></span><h3>Screenshot Capture</h3><p>High-quality screenshots instantly.</p></div>
                 <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 2; display: grid; grid-template-columns:1fr 1fr; gap:2rem; align-items:center;">
-                    <div><span class="card-status">READY</span><h3 style="font-size:1.8rem;">In-game Overlay UI</h3><p>Beautiful borderless windowed interface that doesn't interrupt your gameplay experience.</p></div>
-                    <div style="text-align:center; font-size:6rem;" class="icon-nvidia float-slow-animation"></div>
+                <div><span class="card-status">READY</span><h3 style="font-size:1.8rem;">In-game Overlay UI</h3><p>Beautiful borderless windowed interface that doesn't interrupt your gameplay experience.</p></div>
+                  <div style="text-align:center; font-size:6rem;" class="icon-nvidia float-slow-animation"></div>
                 </div>
                 <div class="feature-card animate-scale delay-5 tilt-card" style="background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe design without memory injection.</p></div>
                 <div class="feature-card animate-scale delay-6 tilt-card"><span class="card-status">FAST</span><h3>NVIDIA Hardware Acceleration</h3><p>Full NVENC encoder support via FFmpeg.</p></div>
-            </div>
+		   </div>
             <div style="margin-top:4rem; text-align:center;"><h3 style="color:var(--nvidia-green);"><span class="icon-nvidia"></span> Encoder Support Status</h3><div class="encoder-badges"><span class="encoder-badge badge-ready">NVIDIA NVENC — Ready</span><span class="encoder-badge badge-pending">Intel QSV — Coming Soon</span><span class="encoder-badge badge-pending">AMD AMF — Coming Soon</span></div><p style="color:var(--text-muted); margin-top:1.5rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p></div>
         </div>
     </section>
@@ -812,7 +812,7 @@ html, body, * {
         <div class="footer-bottom"><p class="copyright">© <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay™</p><p class="copyright">Built with <span class="heart">❤️</span> using VB.NET & FFmpeg</p></div>
     </footer>
 
-    <button class="back-to-top" id="backToTop">↑</button>
+    <button class="back-to-top" id="backToTop"><span class="card-icon icon-nvidia"></span></button>
 
     <script>
         // Smooth scroll for anchor links
