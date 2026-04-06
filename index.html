@@ -6,15 +6,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>NVIDIA ShadowPlay | Beta</title>
     
-    <!-- MathJax -->
-    <script>
-        window.MathJax = {
-            tex: { inlineMath: [['$', '$'], ['\\(', '\\)'], ['$$', '$$'], ['\\[', '\\]']], displayMath: [] },
-            svg: { fontCache: 'global' }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
-
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     
@@ -40,9 +31,6 @@
             -moz-osx-font-smoothing: grayscale;
         }
     </style>
-    
-    <!-- Lucide Icons (for hamburger, etc) -->
-    <script src="https://unpkg.com/lucide@latest"></script>
     
     <style>
         /* ============================================
@@ -86,12 +74,26 @@
 
         ::selection { background: var(--nvidia-green); color: var(--nvidia-black); }
 
-        /* Scrollbar - HIDDEN */
-        * {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        /* Custom scrollbar - visible but sleek */
+        ::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
         }
-        *::-webkit-scrollbar { display: none; }
+        ::-webkit-scrollbar-track {
+            background: var(--nvidia-gray-dark);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--nvidia-green);
+            border-radius: 0px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--nvidia-green-hover);
+        }
+        /* Firefox */
+        * {
+            scrollbar-width: thin;
+            scrollbar-color: var(--nvidia-green) var(--nvidia-gray-dark);
+        }
 
         .container { max-width: var(--container-max); margin: 0 auto; padding: 0 3rem; }
 
@@ -140,7 +142,6 @@
             font-size: 1.4rem;
         }
 
-        /* Desktop menu */
         .nav-menu {
             display: flex;
             gap: 2.5rem;
@@ -171,13 +172,14 @@
         }
         .nav-menu a:hover::after { width: 100%; }
 
-        /* Hamburger button (mobile) */
         .hamburger {
             display: none;
             flex-direction: column;
             cursor: pointer;
             gap: 6px;
             z-index: 1001;
+            background: transparent;
+            border: none;
         }
         .hamburger span {
             width: 28px;
@@ -189,7 +191,6 @@
         .hamburger.active span:nth-child(2) { opacity: 0; }
         .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(7px, -7px); }
 
-        /* Mobile menu panel */
         .mobile-menu {
             position: fixed;
             top: 70px;
@@ -221,6 +222,15 @@
         @media (max-width: 768px) {
             .nav-menu { display: none; }
             .hamburger { display: flex; }
+        }
+
+        /* Focus indicator for keyboard users */
+        a:focus-visible, button:focus-visible, .btn-primary:focus-visible, 
+        .hamburger:focus-visible, .faq-question:focus-visible, 
+        .back-to-top:focus-visible {
+            outline: 3px solid var(--nvidia-green);
+            outline-offset: 4px;
+            border-radius: 2px;
         }
 
         /* Hero Section */
@@ -487,6 +497,11 @@
             justify-content: space-between;
             align-items: center;
             user-select: none;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            color: var(--text-white);
         }
         .faq-question:hover { background: rgba(118, 185, 0, 0.1); }
         .faq-answer {
@@ -508,7 +523,7 @@
         }
         .faq-item.active .faq-icon { transform: rotate(45deg); }
 
-      /* Back to Top Button - 优化版 */
+      /* Back to Top Button */
 .back-to-top {
     position: fixed;
     bottom: 24px;
@@ -518,7 +533,7 @@
     background: var(--nvidia-green, #76b900);
     color: var(--nvidia-black, #000000);
     border: none;
-    border-radius: 16px;  /* 柔和圆角，现代感 */
+    border-radius: 16px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -529,36 +544,24 @@
     transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease, background 0.2s ease;
     z-index: 997;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(118, 185, 0, 0.2);
-    backdrop-filter: blur(0px); /* 预留性能友好 */
 }
 
-/* 可见状态 */
 .back-to-top.visible {
     opacity: 1;
     visibility: visible;
 }
 
-/* 悬停效果：上浮 + 轻微放大 + 绿色光晕 */
 .back-to-top:hover {
     background: var(--nvidia-green-hover, #8fce00);
     transform: translateY(-6px) scale(1.02);
     box-shadow: 0 12px 24px rgba(118, 185, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* 点击反馈（主动效果） */
 .back-to-top:active {
     transform: translateY(-2px) scale(0.98);
     transition-duration: 0.1s;
 }
 
-/* 键盘焦点无障碍样式 */
-.back-to-top:focus-visible {
-    outline: 3px solid var(--nvidia-green, #76b900);
-    outline-offset: 2px;
-    border-radius: 16px;
-}
-
-/* 移动端适配：按钮缩小并更靠边缘 */
 @media (max-width: 768px) {
     .back-to-top {
         bottom: 16px;
@@ -569,11 +572,10 @@
         border-radius: 12px;
     }
     .back-to-top:hover {
-        transform: translateY(-4px) scale(1.01); /* 小屏幕避免过度夸张 */
+        transform: translateY(-4px) scale(1.01);
     }
 }
 
-/* 深色模式下调整阴影，避免过暗 */
 @media (prefers-color-scheme: dark) {
     .back-to-top {
         box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(118, 185, 0, 0.3);
@@ -583,7 +585,6 @@
     }
 }
 
-/* 尊重用户减少动画的偏好 */
 @media (prefers-reduced-motion: reduce) {
     .back-to-top,
     .back-to-top:hover,
@@ -798,7 +799,6 @@
         <a href="#" class="nav-brand">NVIDIA ShadowPlay</a>
         <ul class="nav-menu">
             <li><a href="#features">Features</a></li>
-            
             <li><a href="#specs">Specifications</a></li>
             <li><a href="#requirements">Requirements</a></li>
             <li><a href="#architecture">Architecture</a></li>
@@ -806,11 +806,10 @@
             <li><a href="#team">Team</a></li>
             <li><a href="#faq">FAQ</a></li>
         </ul>
-        <div class="hamburger" id="hamburger"><span></span><span></span><span></span></div>
+        <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
         <a href="#features">Features</a>
-        
         <a href="#specs">Specifications</a>
         <a href="#requirements">Requirements</a>
         <a href="#architecture">Architecture</a>
@@ -943,10 +942,10 @@
                 <p class="section-subtitle">Everything you need to know about the project</p>
             </div>
             <div class="faq-list">
-                <div class="faq-item"><div class="faq-question">Why No-Hook architecture? <span class="faq-icon">+</span></div><div class="faq-answer">We avoid memory injection to ensure compatibility with anti-cheat systems and maintain system stability. This makes the app safer for online gaming.</div></div>
-                <div class="faq-item"><div class="faq-question">Can I record DRM content like Netflix? <span class="faq-icon">+</span></div><div class="faq-answer">Due to digital rights management, most streaming platforms block screen capture. This is a limitation of Windows itself, not our app.</div></div>
-                <div class="faq-item"><div class="faq-question">What if I don't have an NVIDIA GPU? <span class="faq-icon">+</span></div><div class="faq-answer">You can still use software encoding (x264) but performance may be lower. We plan to add Intel QSV and AMD AMF in future updates.</div></div>
-                <div class="faq-item"><div class="faq-question">How can I contribute to the project? <span class="faq-icon">+</span></div><div class="faq-answer">Fork the repository, make your changes, and submit a pull request. We welcome improvements, bug fixes, and documentation updates.</div></div>
+                <div class="faq-item"><button class="faq-question">Why No-Hook architecture? <span class="faq-icon">+</span></button><div class="faq-answer">We avoid memory injection to ensure compatibility with anti-cheat systems and maintain system stability. This makes the app safer for online gaming.</div></div>
+                <div class="faq-item"><button class="faq-question">Can I record DRM content like Netflix? <span class="faq-icon">+</span></button><div class="faq-answer">Due to digital rights management, most streaming platforms block screen capture. This is a limitation of Windows itself, not our app.</div></div>
+                <div class="faq-item"><button class="faq-question">What if I don't have an NVIDIA GPU? <span class="faq-icon">+</span></button><div class="faq-answer">You can still use software encoding (x264) but performance may be lower. We plan to add Intel QSV and AMD AMF in future updates.</div></div>
+                <div class="faq-item"><button class="faq-question">How can I contribute to the project? <span class="faq-icon">+</span></button><div class="faq-answer">Fork the repository, make your changes, and submit a pull request. We welcome improvements, bug fixes, and documentation updates.</div></div>
             </div>
         </div>
     </section>
@@ -991,7 +990,7 @@
         <div class="footer-bottom"><p class="copyright">© <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay™</p><p class="copyright">Built with <span class="heart">❤️</span> using VB.NET & FFmpeg</p></div>
     </footer>
 
-    <button class="back-to-top" id="backToTop">↑</button>
+    <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
 
     <script>
         // Smooth scroll for anchor links
@@ -1004,6 +1003,9 @@
                     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     document.getElementById('mobileMenu')?.classList.remove('active');
                     document.getElementById('hamburger')?.classList.remove('active');
+                    if (document.getElementById('hamburger')) {
+                        document.getElementById('hamburger').setAttribute('aria-expanded', 'false');
+                    }
                 }
             });
         });
@@ -1021,116 +1023,134 @@
         animateCursor();
         document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline').forEach(el => { el.addEventListener('mouseenter', () => cursor.classList.add('hover')); el.addEventListener('mouseleave', () => cursor.classList.remove('hover')); });
 
+        // Particles with prefers-reduced-motion check
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let particlesEnabled = !reduceMotion;
         const canvas = document.getElementById('particles-canvas');
-        const ctx = canvas.getContext('2d');
+        let ctx, particlesArray = [], animationId = null;
 
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const mouse = { x: null, y: null, radius: 120 };
-
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = e.x;
-            mouse.y = e.y;
-        });
-
-        let particlesArray = [];
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 0.5 + 1;
-                this.speedX = Math.random() * 1.2 - 0.5;
-                this.speedY = Math.random() * 1.2 - 0.5;
-                this.opacity = Math.random() * 0.9 + 0.4;
-            }
-
-            update() {
-                this.x += this.speedX;
-                this.y += this.speedY;
-
-                if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
-                if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
-
-                if (mouse.x && mouse.y) {
-                    const dx = this.x - mouse.x;
-                    const dy = this.y - mouse.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < mouse.radius) {
-                        const force = (mouse.radius - distance) / mouse.radius;
-                        const angle = Math.atan2(dy, dx);
-                        this.x += Math.cos(angle) * force * 3;
-                        this.y += Math.sin(angle) * force * 3;
-                        this.x += (Math.random() - 0.5) * 2;
-                        this.y += (Math.random() - 0.5) * 2;
-                    }
-                }
-            }
-
-            draw() {
-                ctx.fillStyle = `rgba(118, 185, 0, ${this.opacity})`;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        function init() {
-            particlesArray = [];
-            for (let i = 0; i < 80; i++) {
-                particlesArray.push(new Particle());
-            }
-        }
-
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particlesArray.forEach(p => {
-                p.update();
-                p.draw();
-            });
-
-            for (let a = 0; a < particlesArray.length; a++) {
-                for (let b = a; b < particlesArray.length; b++) {
-                    const dx = particlesArray[a].x - particlesArray[b].x;
-                    const dy = particlesArray[a].y - particlesArray[b].y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-
-                    if (distance < 120) {
-                        ctx.strokeStyle = `rgba(118, 185, 0, ${(110 - distance) / 120 * 0.95})`;
-                        ctx.lineWidth = 1;
-                        ctx.beginPath();
-                        ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                        ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-
-            requestAnimationFrame(animateParticles);
-        }
-
-        window.addEventListener('resize', () => {
+        if (particlesEnabled && canvas) {
+            ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            init();
-        });
 
-        init();
-        animateParticles();
+            const mouse = { x: null, y: null, radius: 120 };
+            window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
 
-        // Fetch GitHub stars
+            class Particle {
+                constructor() {
+                    this.x = Math.random() * canvas.width;
+                    this.y = Math.random() * canvas.height;
+                    this.size = Math.random() * 0.5 + 1;
+                    this.speedX = Math.random() * 1.2 - 0.5;
+                    this.speedY = Math.random() * 1.2 - 0.5;
+                    this.opacity = Math.random() * 0.9 + 0.4;
+                }
+                update() {
+                    this.x += this.speedX;
+                    this.y += this.speedY;
+                    if (this.x > canvas.width || this.x < 0) this.speedX *= -1;
+                    if (this.y > canvas.height || this.y < 0) this.speedY *= -1;
+                    if (mouse.x && mouse.y) {
+                        const dx = this.x - mouse.x;
+                        const dy = this.y - mouse.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < mouse.radius) {
+                            const force = (mouse.radius - distance) / mouse.radius;
+                            const angle = Math.atan2(dy, dx);
+                            this.x += Math.cos(angle) * force * 3;
+                            this.y += Math.sin(angle) * force * 3;
+                            this.x += (Math.random() - 0.5) * 2;
+                            this.y += (Math.random() - 0.5) * 2;
+                        }
+                    }
+                }
+                draw() {
+                    ctx.fillStyle = `rgba(118, 185, 0, ${this.opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+
+            function initParticles() {
+                particlesArray = [];
+                for (let i = 0; i < 80; i++) particlesArray.push(new Particle());
+            }
+
+            function animateParticles() {
+                if (!ctx) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particlesArray.forEach(p => { p.update(); p.draw(); });
+                for (let a = 0; a < particlesArray.length; a++) {
+                    for (let b = a; b < particlesArray.length; b++) {
+                        const dx = particlesArray[a].x - particlesArray[b].x;
+                        const dy = particlesArray[a].y - particlesArray[b].y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        if (distance < 120) {
+                            ctx.strokeStyle = `rgba(118, 185, 0, ${(110 - distance) / 120 * 0.95})`;
+                            ctx.lineWidth = 1;
+                            ctx.beginPath();
+                            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                            ctx.stroke();
+                        }
+                    }
+                }
+                animationId = requestAnimationFrame(animateParticles);
+            }
+
+            window.addEventListener('resize', () => {
+                if (!particlesEnabled) return;
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                initParticles();
+            });
+
+            initParticles();
+            animateParticles();
+        } else if (canvas) {
+            canvas.style.display = 'none';
+        }
+
+        // GitHub stars with fallback (localStorage)
         async function fetchGitHubStars() {
+            const starElem = document.getElementById('starCount');
+            if (!starElem) return;
+            const cacheKey = 'github_stars_cache';
+            const cacheTimeKey = 'github_stars_time';
+            const now = Date.now();
+            const cachedStars = localStorage.getItem(cacheKey);
+            const cachedTime = localStorage.getItem(cacheTimeKey);
+            // use cache if less than 1 hour old
+            if (cachedStars && cachedTime && (now - parseInt(cachedTime)) < 3600000) {
+                starElem.setAttribute('data-target', cachedStars);
+                starElem.innerText = cachedStars;
+                return;
+            }
             try {
                 const res = await fetch('https://api.github.com/repos/ScotcsDuluka/NVIDIA-Shadowplay');
+                if (!res.ok) throw new Error('GitHub API error');
                 const data = await res.json();
-                if (data.stargazers_count) {
-                    const starElem = document.getElementById('starCount');
-                    starElem.setAttribute('data-target', data.stargazers_count);
-                    starElem.innerText = '0';
+                const stars = data.stargazers_count;
+                if (stars !== undefined) {
+                    starElem.setAttribute('data-target', stars);
+                    starElem.innerText = stars;
+                    localStorage.setItem(cacheKey, stars);
+                    localStorage.setItem(cacheTimeKey, now);
+                } else {
+                    throw new Error('No stars field');
                 }
-            } catch(e) { console.warn("GitHub API failed"); }
+            } catch(e) {
+                console.warn("GitHub API failed, using fallback or cached");
+                if (cachedStars) {
+                    starElem.setAttribute('data-target', cachedStars);
+                    starElem.innerText = cachedStars;
+                } else {
+                    starElem.innerText = '?';
+                    starElem.setAttribute('data-target', '0');
+                }
+            }
         }
         fetchGitHubStars();
 
@@ -1141,9 +1161,10 @@
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
                     const el = entry.target;
-                    const target = parseInt(el.getAttribute('data-target'));
+                    let target = parseInt(el.getAttribute('data-target'));
+                    if (isNaN(target)) target = 0;
                     let count = 0;
-                    const animate = () => { count += target / 200; if (count < target) { el.innerText = Math.ceil(count); requestAnimationFrame(animate); } else { el.innerText = target.toLocaleString(); } };
+                    const animate = () => { count += target / 200; if (count < target) { el.textContent = Math.ceil(count); requestAnimationFrame(animate); } else { el.textContent = target.toLocaleString(); } };
                     animate();
                     observer.unobserve(el);
                 }
@@ -1176,19 +1197,29 @@
         // Hamburger menu
         const hamburger = document.getElementById('hamburger');
         const mobileMenu = document.getElementById('mobileMenu');
-        hamburger.addEventListener('click', () => { hamburger.classList.toggle('active'); mobileMenu.classList.toggle('active'); });
-        document.querySelectorAll('.mobile-menu a').forEach(link => { link.addEventListener('click', () => { hamburger.classList.remove('active'); mobileMenu.classList.remove('active'); }); });
+        if (hamburger && mobileMenu) {
+            hamburger.addEventListener('click', () => {
+                const expanded = hamburger.getAttribute('aria-expanded') === 'true' ? false : true;
+                hamburger.classList.toggle('active');
+                mobileMenu.classList.toggle('active');
+                hamburger.setAttribute('aria-expanded', expanded);
+            });
+            document.querySelectorAll('.mobile-menu a').forEach(link => {
+                link.addEventListener('click', () => {
+                    hamburger.classList.remove('active');
+                    mobileMenu.classList.remove('active');
+                    hamburger.setAttribute('aria-expanded', 'false');
+                });
+            });
+        }
 
-        // FAQ Accordion
+        // FAQ Accordion (using button elements)
         document.querySelectorAll('.faq-question').forEach(q => {
             q.addEventListener('click', () => { q.parentElement.classList.toggle('active'); });
         });
 
         // Auto year
         document.getElementById('currentYear').innerText = new Date().getFullYear();
-
-        // Scroll indicator
-        setTimeout(() => { const ind = document.getElementById('scrollIndicator'); if(ind) { ind.classList.add('visible'); setTimeout(() => ind.classList.remove('visible'), 3000); } }, 2000);
 
         // ADVANCED CLICK EFFECT
         document.addEventListener('click', (e) => {
