@@ -35,7 +35,7 @@
     <style>
         /* ============================================
            NVIDIA STYLE - ULTRA SMOOTH SCROLL + ENHANCEMENTS
-           (คงเดิมทุกประการ เพิ่ม CSS สำหรับส่วนใหม่ด้านล่าง)
+           MOBILE-FIXED VERSION
            ============================================ */
         
         :root {
@@ -98,9 +98,36 @@
 
         .container { max-width: var(--container-max); margin: 0 auto; padding: 0 3rem; }
 
+        /* ========== MOBILE FIX: cursor:none ONLY on desktop (hover-capable) ========== */
+        @media (hover: hover) and (pointer: fine) {
+            html, body, * {
+                cursor: none !important;
+            }
+            body.custom-cursor-active { cursor: none !important; }
+        }
+        @media (hover: none), (pointer: coarse) {
+            /* On touch devices, hide custom cursor visuals */
+            .custom-cursor,
+            .cursor-dot {
+                display: none !important;
+            }
+            /* Restore normal cursor behavior */
+            html, body, * {
+                cursor: auto !important;
+            }
+            a, button, [role="button"] {
+                cursor: pointer !important;
+            }
+        }
+
+        /* Mobile container padding */
         @media (max-width: 768px) {
             .container { padding: 0 1.5rem; }
             :root { --section-padding: 5rem 1.5rem; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 0 1rem; }
+            :root { --section-padding: 4rem 1rem; }
         }
 
         /* Scroll Progress */
@@ -179,6 +206,7 @@
             z-index: 1001;
             background: transparent;
             border: none;
+            -webkit-tap-highlight-color: transparent;
         }
         .hamburger span {
             width: 28px;
@@ -206,6 +234,8 @@
             display: flex;
             flex-direction: column;
             gap: 1.5rem;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .mobile-menu.active { left: 0; }
         .mobile-menu a {
@@ -215,12 +245,21 @@
             font-weight: 500;
             padding: 0.8rem 0;
             border-bottom: 1px solid rgba(255,255,255,0.1);
+            -webkit-tap-highlight-color: transparent;
         }
         .mobile-menu a:hover { color: var(--nvidia-green); }
 
+        /* Mobile nav fix */
         @media (max-width: 768px) {
             .nav-menu { display: none; }
             .hamburger { display: flex; }
+            .main-nav { padding: 0 1.5rem; }
+            .nav-brand { font-size: 1.1rem; }
+            .hero-badge { font-size: 0.7rem; padding: 0.4rem 0.8rem; }
+        }
+        @media (max-width: 480px) {
+            .main-nav { padding: 0 1rem; height: 60px; }
+            .mobile-menu { top: 60px; height: calc(100vh - 60px); }
         }
 
         /* Focus indicator for keyboard users */
@@ -339,6 +378,7 @@
             box-shadow: 0 4px 20px rgba(118, 185, 0, 0.25);
             position: relative;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent;
         }
         .btn-primary::before {
             content: '';
@@ -390,9 +430,26 @@
             border-left: 4px solid #FFFFFF;
             color: #FFFFFF;
         }
+
+        /* ========== MOBILE FIX: Hero responsive ========== */
         @media (max-width: 768px) {
-            .hero-title { font-size: 2.8rem; }
-            .hero-description { font-size: 1.1rem; }
+            .hero-section {
+                padding: 2rem 1.5rem;
+                padding-top: calc(2rem + 70px);
+                min-height: auto;
+            }
+            .hero-title { font-size: 2.2rem; letter-spacing: -1px; }
+            .hero-subtitle { font-size: 1.1rem; }
+            .hero-description { font-size: 1rem; line-height: 1.6; }
+            .hero-cta-group { flex-direction: column; align-items: flex-start; }
+            .btn-primary { width: 100%; justify-content: center; padding: 1rem 1.5rem; font-size: 1rem; }
+            .alert-item { font-size: 0.85rem; padding: 0.8rem 1rem; max-width: 100%; }
+        }
+        @media (max-width: 480px) {
+            .hero-section { padding-top: calc(1.5rem + 60px); }
+            .hero-title { font-size: 1.8rem; }
+            .hero-subtitle { font-size: 1rem; }
+            .hero-description { font-size: 0.9rem; }
         }
 
         /* Sections */
@@ -427,7 +484,15 @@
             max-width: 750px;
             line-height: 1.7;
         }
-        @media (max-width: 768px) { .section-title { font-size: 2.5rem; } }
+        @media (max-width: 768px) {
+            .section-header { margin-bottom: 2.5rem; }
+            .section-title { font-size: 2rem; letter-spacing: -1px; }
+            .section-subtitle { font-size: 1rem; }
+        }
+        @media (max-width: 480px) {
+            .section-title { font-size: 1.6rem; }
+            .section-subtitle { font-size: 0.9rem; }
+        }
 
        /* Feature Cards */
         .feature-card {
@@ -448,12 +513,15 @@
             transform-origin: left;
             transition: transform 0.4s ease;
         }
-        .feature-card:hover {
-            transform: translateY(-12px) scale(1.02);
-            border-color: rgba(118, 185, 0, 0.5);
-            box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 30px rgba(118, 185, 0, 0.15);
+        /* Desktop hover only */
+        @media (hover: hover) and (pointer: fine) {
+            .feature-card:hover {
+                transform: translateY(-12px) scale(1.02);
+                border-color: rgba(118, 185, 0, 0.5);
+                box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 30px rgba(118, 185, 0, 0.15);
+            }
+            .feature-card:hover::before { transform: scaleX(1); }
         }
-        .feature-card:hover::before { transform: scaleX(1); }
         .card-status {
             display: inline-block;
             background: var(--nvidia-green);
@@ -468,7 +536,7 @@
             font-size: 3rem;
             display: block;
             transition: transform 0.5s var(--ease-out-back);
-			margin-right: 8px;
+            margin-right: 8px;
         }
         .feature-card h3 {
             font-size: 1.5rem;
@@ -501,6 +569,7 @@
             width: 100%;
             text-align: left;
             color: var(--text-white);
+            -webkit-tap-highlight-color: transparent;
         }
         .faq-question:hover { background: rgba(118, 185, 0, 0.1); }
         .faq-answer {
@@ -522,80 +591,87 @@
         }
         .faq-item.active .faq-icon { transform: rotate(45deg); }
 
+        @media (max-width: 768px) {
+            .faq-question { font-size: 1rem; padding: 1rem 1.2rem; }
+            .faq-answer { padding: 0 1.2rem; }
+            .faq-item.active .faq-answer { padding: 0 1.2rem 1rem 1.2rem; }
+        }
+
       /* Back to Top Button */
-.back-to-top {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    width: 134px;
-    height: 52px;
-    background: var(--nvidia-green, #76b900);
-    color: var(--nvidia-black, #000000);
-    border: 1px solid var(--nvidia-back);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.8rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease, background 0.2s ease;
-    z-index: 997;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(118, 185, 0, 0.2);
-}
+        .back-to-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 134px;
+            height: 52px;
+            background: var(--nvidia-green, #76b900);
+            color: var(--nvidia-black, #000000);
+            border: 1px solid var(--nvidia-back);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, transform 0.25s ease, box-shadow 0.25s ease, background 0.2s ease;
+            z-index: 997;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12), 0 2px 4px rgba(118, 185, 0, 0.2);
+            -webkit-tap-highlight-color: transparent;
+        }
 
-.back-to-top.visible {
-    opacity: 1;
-    visibility: visible;
-}
+        .back-to-top.visible {
+            opacity: 1;
+            visibility: visible;
+        }
 
-.back-to-top:hover {
-    background: var(--nvidia-green-hover, #8fce00);
-    transform: translateY(-6px) scale(1.02);
-    box-shadow: 0 12px 24px rgba(118, 185, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.1);
-}
+        .back-to-top:hover {
+            background: var(--nvidia-green-hover, #8fce00);
+            transform: translateY(-6px) scale(1.02);
+            box-shadow: 0 12px 24px rgba(118, 185, 0, 0.35), 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
 
-.back-to-top:active {
-    transform: translateY(-2px) scale(0.98);
-    transition-duration: 0.1s;
-}
+        .back-to-top:active {
+            transform: translateY(-2px) scale(0.98);
+            transition-duration: 0.1s;
+        }
 
-@media (max-width: 768px) {
-    .back-to-top {
-        bottom: 16px;
-        right: 16px;
-        width: 44px;
-        height: 44px;
-        font-size: 1.4rem;
-        border-radius: 12px;
-    }
-    .back-to-top:hover {
-        transform: translateY(-4px) scale(1.01);
-    }
-}
+        @media (max-width: 768px) {
+            .back-to-top {
+                bottom: 16px;
+                right: 16px;
+                width: 44px;
+                height: 44px;
+                font-size: 1.4rem;
+                border-radius: 12px;
+            }
+            .back-to-top:hover {
+                transform: translateY(-4px) scale(1.01);
+            }
+        }
 
-@media (prefers-color-scheme: dark) {
-    .back-to-top {
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(118, 185, 0, 0.3);
-    }
-    .back-to-top:hover {
-        box-shadow: 0 12px 28px rgba(118, 185, 0, 0.5);
-    }
-}
+        @media (prefers-color-scheme: dark) {
+            .back-to-top {
+                box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), 0 2px 4px rgba(118, 185, 0, 0.3);
+            }
+            .back-to-top:hover {
+                box-shadow: 0 12px 28px rgba(118, 185, 0, 0.5);
+            }
+        }
 
-@media (prefers-reduced-motion: reduce) {
-    .back-to-top,
-    .back-to-top:hover,
-    .back-to-top:active {
-        transition: opacity 0.01s ease, visibility 0.01s ease;
-        transform: none;
-    }
-}
+        @media (prefers-reduced-motion: reduce) {
+            .back-to-top,
+            .back-to-top:hover,
+            .back-to-top:active {
+                transition: opacity 0.01s ease, visibility 0.01s ease;
+                transform: none;
+            }
+        }
 
         /* Two Column Layout */
         .two-col-layout { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 5rem; align-items: start; }
         @media (max-width: 1024px) { .two-col-layout { grid-template-columns: 1fr; gap: 3rem; } }
-        code { background: #0D1117; padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); color: var(--nvidia-green); font-family: monospace; }
+        code { background: #0D1117; padding: 0.3rem 0.8rem; border-radius: var(--radius-sm); color: var(--nvidia-green); font-family: monospace; font-size: 0.85rem; }
         .spec-card { background: var(--nvidia-gray-dark); padding: 3rem; border-radius: var(--radius-md); border-left: 4px solid var(--nvidia-green); margin-bottom: 2rem; }
         .spec-card h3 { font-size: 1.8rem; font-weight: 700; color: var(--nvidia-green); margin-bottom: 2rem; }
         .spec-list { list-style: none; }
@@ -612,8 +688,8 @@
         .code-header { background: #161B22; padding: 1rem 1.5rem; border-bottom: 1px solid #30363D; display: flex; align-items: center; gap: 8px; }
         .dot { width: 12px; height: 12px; border-radius: 50%; }
         .dot-red { background: #FF5F56; } .dot-yellow { background: #FFBD2E; } .dot-green { background: #27CA40; }
-        .code-body { padding: 2rem; overflow-x: auto; }
-        .code-body pre { margin: 0; font-family: monospace; font-size: 0.95rem; color: #E6EDF3; }
+        .code-body { padding: 2rem; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .code-body pre { margin: 0; font-family: monospace; font-size: 0.85rem; color: #E6EDF3; white-space: pre-wrap; word-break: break-all; }
         .tech-stack-badges { display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-top: 3rem; }
         .tech-badge { background: var(--nvidia-gray); padding: 1.2rem 2rem; border-radius: var(--radius-md); border: 1px solid rgba(118, 185, 0, 0.2); text-align: center; min-width: 180px; transition: all 0.3s; }
         .tech-badge:hover { border-color: var(--nvidia-green); transform: translateY(-5px); }
@@ -628,15 +704,42 @@
         .team-member:hover .member-avatar { transform: scale(1.1); }
         .team-member h3 { font-size: 1.7rem; font-weight: 700; margin-bottom: 0.5rem; }
         .member-role { color: var(--nvidia-green); font-weight: 600; font-size: 1.05rem; margin-bottom: 1rem; }
+
+        /* ========== MOBILE FIX: Cards and layout ========== */
+        @media (max-width: 768px) {
+            .feature-card { padding: 1.5rem; }
+            .feature-card h3 { font-size: 1.2rem; }
+            .feature-card p { font-size: 0.9rem; }
+            .card-icon { font-size: 2.5rem; }
+            .spec-card { padding: 2rem; }
+            .spec-card h3 { font-size: 1.4rem; }
+            .req-card { padding: 1.8rem; }
+            .req-card h3 { font-size: 1.3rem; }
+            .code-body { padding: 1.2rem; }
+            .code-body pre { font-size: 0.75rem; }
+            .download-step { padding: 1.8rem; }
+            .download-step h3 { font-size: 1.3rem; }
+            .tech-badge { padding: 1rem 1.2rem; min-width: 140px; }
+            .tech-badge strong { font-size: 0.95rem; }
+        }
+        @media (max-width: 480px) {
+            .feature-card { padding: 1.2rem; }
+            .feature-card h3 { font-size: 1.1rem; }
+            .spec-card { padding: 1.5rem; }
+            .spec-card h3 { font-size: 1.2rem; }
+            .req-card { padding: 1.2rem; }
+            .req-card h3 { font-size: 1.1rem; }
+        }
+
         footer { background: var(--nvidia-black); padding: 5rem 3rem 3rem; border-top: 1px solid var(--border-color); }
         .footer-grid { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: 2fr repeat(3, 1fr); gap: 4rem; margin-bottom: 4rem; }
         @media (max-width: 1024px) { .footer-grid { grid-template-columns: 1fr 1fr; } }
-        @media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr; gap: 2rem; } }
+        @media (max-width: 768px) { .footer-grid { grid-template-columns: 1fr; gap: 2rem; } footer { padding: 3rem 1.5rem 2rem; } }
         .footer-brand p { color: var(--text-gray); margin-top: 1rem; }
         .footer-column h4 { color: var(--text-white); font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; }
         .footer-column ul { list-style: none; }
         .footer-column li { margin-bottom: 0.8rem; }
-        .footer-column a { color: var(--text-gray); text-decoration: none; transition: all 0.3s; }
+        .footer-column a { color: var(--text-gray); text-decoration: none; transition: all 0.3s; -webkit-tap-highlight-color: transparent; }
         .footer-column a:hover { color: var(--nvidia-green); transform: translateX(5px); display: inline-block; }
         .footer-bottom { max-width: var(--container-max); margin: 0 auto; border-top: 1px solid var(--border-color); padding-top: 2rem; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
         .copyright { color: var(--text-muted); font-size: 0.9rem; }
@@ -661,7 +764,19 @@
         .animated-text-gradient { background: linear-gradient(90deg, var(--nvidia-green), #00D4FF, var(--nvidia-green)); background-size: 200% auto; -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; animation: gradient-shift 4s linear infinite; }
         .magnetic-btn { transition: transform 0.3s var(--ease-out-back); }
         .tilt-card { transform-style: preserve-3d; perspective: 1000px; transition: transform 0.5s var(--ease-out-back); }
-        @media (max-width: 1024px) { .bento-grid { grid-template-columns: 1fr !important; } .bento-grid > div[style*="grid-column: span 2"] { grid-column: span 1 !important; } }
+
+        /* Disable tilt/magnetic on touch */
+        @media (hover: none), (pointer: coarse) {
+            .tilt-card:hover,
+            .magnetic-btn:hover {
+                transform: none !important;
+            }
+        }
+
+        @media (max-width: 1024px) { 
+            .bento-grid { grid-template-columns: 1fr !important; } 
+            .bento-grid > div[style*="grid-column: span 2"] { grid-column: span 1 !important; } 
+        }
         .loading-screen { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--nvidia-black); display: flex; justify-content: center; align-items: center; z-index: 99999; transition: opacity 0.8s, visibility 0.8s; }
         .loading-screen.hidden { opacity: 0; visibility: hidden; }
         .loader { width: 80px; height: 80px; position: relative; }
@@ -669,22 +784,39 @@
         .loader::before { width: 100%; height: 100%; border: 4px solid var(--nvidia-green); border-top-color: transparent; }
         .loader::after { width: 60%; height: 60%; top: 20%; left: 20%; border: 4px solid var(--nvidia-green-hover); border-bottom-color: transparent; animation-delay: 0.2s; }
         @keyframes pulse-ring { 0% { transform: rotate(0deg) scale(1); opacity:1; } 50% { transform: rotate(180deg) scale(0.8); opacity:0.5; } 100% { transform: rotate(360deg) scale(1); opacity:1; } }
+        
+        /* Custom cursor - only visible on desktop */
         .custom-cursor { width: 20px; height: 20px; border: 2px solid var(--nvidia-green); border-radius: 50%; position: fixed; pointer-events: none; z-index: 99998; transition: transform 0.15s; transform: translate(-50%, -50%); mix-blend-mode: difference; }
         .custom-cursor.hover { transform: translate(-50%, -50%) scale(2); background: rgba(118,185,0,0.3); }
         .cursor-dot { width: 6px; height: 6px; background: var(--nvidia-green); border-radius: 50%; position: fixed; pointer-events: none; z-index: 99998; transform: translate(-50%, -50%); }
+        
         #particles-canvas { position: fixed; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index: 1; }
+        
         .stats-section { padding: 6rem 3rem; background: linear-gradient(135deg, var(--nvidia-dark-bg), var(--nvidia-black)); position: relative; overflow: hidden; }
         .stats-grid { max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 3rem; }
         .stat-card { text-align: center; padding: 3rem 2rem; background: linear-gradient(135deg, rgba(118,185,0,0.05), var(--nvidia-gray-dark)); border-radius: var(--radius-lg); border: 1px solid rgba(118,185,0,0.2); transition: all 0.4s var(--ease-out-back); position: relative; overflow: hidden; }
         .stat-card:hover { transform: translateY(-10px) scale(1.02); border-color: var(--nvidia-green); }
         .stat-number { font-size: 4rem; font-weight: 900; color: var(--nvidia-green); line-height: 1; margin-bottom: 1rem; }
+
+        /* ========== MOBILE FIX: Stats, team grid responsive ========== */
+        @media (max-width: 768px) {
+            .stats-section { padding: 4rem 1.5rem; }
+            .stats-grid { gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); }
+            .stat-card { padding: 2rem 1rem; }
+            .stat-number { font-size: 2.5rem; }
+            .team-grid { grid-template-columns: 1fr !important; gap: 2rem; }
+            .team-member { padding: 2rem 1.5rem; }
+            .team-member h3 { font-size: 1.3rem; }
+            .member-avatar { width: 100px; height: 100px; }
+        }
+
         .shine-effect { position: relative; overflow: hidden; }
         .shine-effect::after { content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%; background: linear-gradient(to bottom right, rgba(255,255,255,0) 0%, rgba(255,255,255,0) 40%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0) 60%, rgba(255,255,255,0) 100%); transform: rotate(45deg); transition: all 0.8s ease; pointer-events: none; }
         .shine-effect:hover::after { left: 100%; top: 100%; }
         .ripple { position: relative; overflow: hidden; }
         .ripple-effect { position: absolute; border-radius: 50%; background: rgba(118,185,0,0.4); transform: scale(0); animation: ripple-animation 0.6s linear; pointer-events: none; }
         @keyframes ripple-animation { to { transform: scale(4); opacity: 0; } }
-        body.custom-cursor-active { cursor: none; }
+        
         .smooth-scroll-indicator { position: fixed; bottom: 30px; right: 30px; width: 50px; height: 50px; background: rgba(20,20,20,0.9); backdrop-filter: blur(10px); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; z-index: 998; border: 2px solid rgba(118,185,0,0.3); transition: all 0.3s; pointer-events: none; opacity: 0; transform: translateY(20px); }
         .smooth-scroll-indicator.visible { opacity: 1; transform: translateY(0); }
         
@@ -702,14 +834,8 @@
         }
 
         @keyframes clickWaveAnim {
-            0% {
-                transform: translate(-50%, -50%) scale(0);
-                opacity: 1;
-            }
-            100% {
-                transform: translate(-50%, -50%) scale(6);
-                opacity: 0;
-            }
+            0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
+            100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
         }
 
         /* CLICK PARTICLE */
@@ -729,6 +855,11 @@
                 transform: translate(var(--x), var(--y)) scale(0);
                 opacity: 0;
             }
+        }
+
+        /* Disable click particles on touch */
+        @media (hover: none), (pointer: coarse) {
+            .click-wave, .click-particle { display: none !important; }
         }
 
         /* Overlay UI Section */
@@ -770,14 +901,17 @@
             z-index: -1;
         }
 
-        html, body, * {
-            cursor: none !important;
+        @media (max-width: 768px) {
+            .overlay-ui-section { padding: 5rem 1.5rem; }
+            .overlay-image-container img { border-radius: 8px; }
         }
+
 		.title-row {
             display: flex;
             align-items: center;
             gap: 10px;
             margin-bottom: 1rem;
+            flex-wrap: wrap;
         }
         .desc-row {
             display: flex;
@@ -785,8 +919,13 @@
             gap: 8px;
         }
         
-        /* ========== เพิ่ม CSS สำหรับส่วนใหม่ทั้ง 3 ส่วน (โดยไม่กระทบของเดิม) ========== */
-        /* 1. Changelog Releases */
+        /* ========== MOBILE FIX: title-row wrap ========== */
+        @media (max-width: 480px) {
+            .title-row { gap: 6px; }
+            .card-status { font-size: 0.65rem; padding: 0.2rem 0.6rem; }
+        }
+        
+        /* ========== Changelog Releases ========== */
         .release-list { display: flex; flex-direction: column; gap: 1.8rem; margin-top: 2rem; }
         .release-card { background: var(--nvidia-gray-dark); border: 1px solid var(--border-color); padding: 1.8rem; transition: 0.2s; border-left: 4px solid var(--nvidia-green); }
         .release-header { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline; margin-bottom: 0.8rem; gap: 10px; }
@@ -802,14 +941,29 @@
         .release-link:hover { text-decoration: underline; }
 		.preview-card { background: var(--nvidia-gray-dark); border: 1px solid rgba(245,158,11,0.3); padding: 1.8rem; transition: 0.2s; border-left: 4px solid #F59E0B; }
         .preview-card .release-tag { color: #F59E0B; }
-        
+
+        /* ========== MOBILE FIX: Release cards ========== */
+        @media (max-width: 768px) {
+            .release-card { padding: 1.3rem; }
+            .release-tag { font-size: 1.1rem; }
+            .release-notes li { font-size: 0.9rem; }
+        }
+		
         /* 2. Architecture Modules */
         .arch-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; margin-top: 2rem; }
         .arch-card { background: rgba(20,20,20,0.8); backdrop-filter: blur(4px); padding: 2rem; border-left-width: 6px; border-left-style: solid; transition: all 0.3s; }
         .arch-card:hover { transform: translateY(-6px); background: var(--nvidia-gray-dark); }
         .arch-card h3 { font-size: 1.7rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; }
         .arch-card p { color: var(--text-gray); line-height: 1.6; }
-        
+
+        /* ========== MOBILE FIX: Arch modules grid ========== */
+        @media (max-width: 768px) {
+            .arch-modules { grid-template-columns: 1fr !important; gap: 1.5rem; }
+            .arch-card { padding: 1.5rem; }
+            .arch-card h3 { font-size: 1.3rem; }
+            .arch-card p { font-size: 0.9rem; }
+        }
+
         /* 3. API Cards */
         .api-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap: 2rem; margin-top: 2rem; }
         .api-spec-card { background: linear-gradient(135deg, var(--nvidia-gray-dark), var(--nvidia-gray)); border: 1px solid var(--border-color); padding: 2rem; transition: all 0.4s var(--ease-out-back); position: relative; overflow: hidden; border-radius: 0; }
@@ -827,6 +981,57 @@
         .status-partial { background: rgba(251,191,36,0.2); border-left: 3px solid #FBBF24; color: #FBBF24; }
         .status-none { background: rgba(107,114,128,0.2); border-left: 3px solid #6B7280; color: #9CA3AF; }
         .api-spec-card p { color: var(--text-gray); margin-top: 1rem; }
+
+        /* ========== MOBILE FIX: API cards grid ========== */
+        @media (max-width: 768px) {
+            .api-cards-grid { grid-template-columns: 1fr !important; gap: 1.5rem; }
+            .api-spec-card { padding: 1.5rem; }
+            .card-title-icon h3 { font-size: 1.2rem; }
+            .card-title-icon i { font-size: 1.6rem; }
+            .api-spec-card p { font-size: 0.9rem; }
+        }
+
+        /* ========== MOBILE FIX: Bento grid feature cards ========== */
+        @media (max-width: 768px) {
+            /* Force single column for all feature card children */
+            .bento-grid > div {
+                grid-column: span 1 !important;
+                grid-row: span 1 !important;
+            }
+            /* Fix the overlay card internal grid */
+            .feature-card div[style*="grid-template-columns: 1fr 1fr"] {
+                grid-template-columns: 1fr !important;
+            }
+            /* Fix image container in overlay card */
+            .feature-card div[style*="position: relative; display: flex"] {
+                padding: 1rem !important;
+            }
+        }
+
+        /* ========== MOBILE FIX: Hero feature card ========== */
+        @media (max-width: 768px) {
+            .hero-cta-group .alert-item {
+                width: 100%;
+                max-width: 100%;
+            }
+            .desc-row {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .desc-row .card-icon {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+        }
+
+        /* ========== MOBILE FIX: Prefers reduced motion ========== */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
     </style>
 </head>
 <body class="custom-cursor-active">
@@ -865,7 +1070,7 @@
             <div style="position:relative; z-index:1;">
                 <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay<br><span class="animated-text-gradient">Custom Implementation</span></h1>
                 <p class="hero-subtitle animate-fade-up delay-2">Open Source Screen Capture Utility</p>
-                <p class="hero-description animate-fade-up delay-3">A custom screen capture implementation inspired by NVIDIA ShadowPlay™ featuring overlay UI, built entirely in <strong>VB.NET</strong> with <strong>No-Hook</strong> architecture. Record engine powered by <strong>FFmpeg</strong>.</p>
+                <p class="hero-description animate-fade-up delay-3">A custom screen capture implementation inspired by NVIDIA ShadowPlay&trade; featuring overlay UI, built entirely in <strong>VB.NET</strong> with <strong>No-Hook</strong> architecture. Record engine powered by <strong>FFmpeg</strong>.</p>
             
                 <div class="hero-cta-group animate-fade-up delay-5">
                     <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">Download</a> <a class="alert-item alert-warning"><div><strong>Announcement :</strong> None</div></a>   
@@ -880,7 +1085,7 @@
                     </div>
 					
                     <div class="desc-row">
-                        <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+                        <span class="card-icon icon-nvidia" style="font-size:5rem;">&#xF04B;</span>
                        <p>
 Built and refined core systems including Recording Engine, Overlay UI, and Web platform.
 Integrated Animation Engine and Notifier system to enhance interactivity.
@@ -897,7 +1102,7 @@ Continuously optimized for performance, scalability, and seamless user experienc
 
   
 				
-    <!-- Features Section (คงเดิม) -->
+    <!-- Features Section -->
     <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
         <div class="container">
             <div class="section-header"><span class="section-label">Features Overview</span><h2 class="section-title">Capture Your Best Moments</h2><p class="section-subtitle">Professional-grade features inspired by NVIDIA ShadowPlay</p></div>
@@ -908,51 +1113,49 @@ Continuously optimized for performance, scalability, and seamless user experienc
                         <h3 style="font-size:2rem;">Real-time Screen Recording</h3>
                     </div>
                     <div class="desc-row">
-                        <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+                        <span class="card-icon icon-nvidia" style="font-size:5rem;">&#xF033;</span>
                         <p>Record your gameplay or desktop in real time.<br>High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.</p>
                     </div>
                     <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Hardware-accelerated encoding</li><li style="padding:0.5rem 0;">- Low CPU Usage</li><li style="padding:0.5rem 0;">- Supports multiple formats</li></ul>
                 </div>
                 <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
                     <div class="title-row"><span class="card-status">READY</span><h3>Instant Replay</h3></div>
-                    <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p></div>
+                    <div class="desc-row"><span class="card-icon icon-nvidia">&#xF035;</span><p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p></div>
                 </div>
                 <div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
                     <div class="title-row"><span class="card-status">READY</span><h3>Screenshot Capture</h3></div>
-                    <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly — perfect for sharing or reviewing your best moments.</p></div>
+                    <div class="desc-row"><span class="card-icon icon-nvidia">&#xF032;</span><p>Snap crisp, high-resolution screenshots instantly &mdash; perfect for sharing or reviewing your best moments.</p></div>
                 </div>
                 <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+                    <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
                         <div style="padding: 2.5rem;">
                             <h3 style="font-size:2rem; margin-top: 1rem;">In-game Overlay UI</h3><br>
                     <div class="desc-row">
-  <span class="card-icon icon-nvidia"></span>
-  <p>Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.</p>
+  <span class="card-icon icon-nvidia">&#xF03E;</span>
+  <p>Precision-engineered, borderless overlay that keeps you in control &mdash; without ever breaking immersion.</p>
 </div>
 						 <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Stats</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
                         </div>
                         <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
                             <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
-                            <img src="overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 7000px; height: auto; position: relative; z-index: 1;">
+                            <img src="overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
                         </div>
                     </div>
                 </div>
-                <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe and secure by design. No memory injection, no hooks — just pure stability.</p></div>
+                <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe and secure by design. No memory injection, no hooks &mdash; just pure stability.</p></div>
                 <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 2;"><span class="card-status">FAST</span><span class="card-icon icon-nvidia"></span><h3>NVIDIA Hardware Acceleration</h3><p>Fully optimized with NVIDIA NVENC via FFmpeg. Fast, efficient, and reliable GPU-based encoding.</p></div>
                </div>
         </div>
     </section>
 
-
-
-    <!-- ========== ส่วนที่ 2: API CAPTURE & SPECS (การ์ดใหม่) ========== -->
+    <!-- API CAPTURE & SPECS -->
     <section id="api-specs" style="padding: var(--section-padding); background: var(--nvidia-dark-bg);">
         <div class="container">
-            <div class="section-header"><span class="section-label">Encoder & Capture</span><p class="section-subtitle">Modern capture APIs + hardware encoder status — hover cards for underline effect</p></div>
+            <div class="section-header"><span class="section-label">Encoder & Capture</span><p class="section-subtitle">Modern capture APIs + hardware encoder status &mdash; hover cards for underline effect</p></div>
            <h2 class="section-title">Encoder Support</h2>
 		   <div class="api-cards-grid">
 		   <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-microchip"></i><h3 class="underline-effect">NVIDIA NVENC</h3></div><span class="status-badge status-ready">Ready</span></div><p>Full GPU encoding via FFmpeg, minimal performance impact.</p></div>
-                <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-line"></i><h3 class="underline-effect">Intel QSV</h3></div><span class="status-badge status-partial">Partial</span></div><p>Intel QuickSync Video support — planned.</p></div>
+                <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-line"></i><h3 class="underline-effect">Intel QSV</h3></div><span class="status-badge status-partial">Partial</span></div><p>Intel QuickSync Video support &mdash; planned.</p></div>
               <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-simple"></i><h3 class="underline-effect">AMD AMF</h3></div><span class="status-badge status-soon">Soon</span></div><p>AMD Advanced Media Framework encoder on roadmap.</p></div>
 	
 			      </div>
@@ -969,29 +1172,29 @@ Continuously optimized for performance, scalability, and seamless user experienc
     </section>
 
  
-    <!-- Requirements Section (คงเดิม) -->
-    <section id="requirements"><div class="container"><div class="section-header"><span class="section-label">Prerequisites</span><h2 class="section-title">System Requirements</h2><p class="section-subtitle">Ensure your system meets these requirements for optimal performance.</p></div><div style="max-width:1000px; margin:0 auto;"><div class="req-card req-important"><h3>IMPORTANT — Runtime Dependencies</h3><p><strong>.NET 8.0 Desktop Runtime</strong> — Required for application execution</p><p style="margin-top:1rem;"><strong>.NET 4.8 Framework</strong> — Additional framework dependency</p><p style="margin-top:1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p></div><div class="req-card req-caution"><h3>CAUTION — Known Limitations</h3><p><strong>Exclusive Fullscreen</strong> applications cannot be captured due to no-hook design on older Windows builds.</p><p style="margin-top:1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p><p style="margin-top:1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p></div><div class="req-card req-tip"><h3>TIP — Performance Optimization</h3><p>For best performance, use <strong>NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg.</p><p style="margin-top:1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p></div></div></div></section>
+    <!-- Requirements Section -->
+    <section id="requirements"><div class="container"><div class="section-header"><span class="section-label">Prerequisites</span><h2 class="section-title">System Requirements</h2><p class="section-subtitle">Ensure your system meets these requirements for optimal performance.</p></div><div style="max-width:1000px; margin:0 auto;"><div class="req-card req-important"><h3>IMPORTANT &mdash; Runtime Dependencies</h3><p><strong>.NET 8.0 Desktop Runtime</strong> &mdash; Required for application execution</p><p style="margin-top:1rem;"><strong>.NET 4.8 Framework</strong> &mdash; Additional framework dependency</p><p style="margin-top:1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p></div><div class="req-card req-caution"><h3>CAUTION &mdash; Known Limitations</h3><p><strong>Exclusive Fullscreen</strong> applications cannot be captured due to no-hook design on older Windows builds.</p><p style="margin-top:1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p><p style="margin-top:1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p></div><div class="req-card req-tip"><h3>TIP &mdash; Performance Optimization</h3><p>For best performance, use <strong>NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg.</p><p style="margin-top:1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p></div></div></div></section>
 
-    <!-- ========== ส่วนที่ 3: ARCHITECTURE (5 modules, border colors) ========== -->
+    <!-- ARCHITECTURE (5 modules, border colors) -->
     <section id="architecture" style="padding: var(--section-padding);">
         <div class="container">
-            <div class="section-header" style="text-align:center;"><span class="section-label">Deep Dive</span><h2 class="section-title">Modular Architecture</h2><p class="section-subtitle" style="margin:0 auto;">Each module with distinct border color — real stack components</p></div>
+            <div class="section-header" style="text-align:center;"><span class="section-label">Deep Dive</span><h2 class="section-title">Modular Architecture</h2><p class="section-subtitle" style="margin:0 auto;">Each module with distinct border color &mdash; real stack components</p></div>
             <div class="arch-modules">
                 <div class="arch-card" style="border-left-color: #78B802;"><h3><i class="fas fa-plug"></i> API/</h3><p>Screen capture abstraction: Windows.Graphics.Capture, Desktop Duplication, GDI fallback. Provides unified interface for frame grabbing.</p></div>
                 <div class="arch-card" style="border-left-color: #3B82F6;"><h3><i class="fas fa-mobile-alt"></i> App Experience/</h3><p>User settings, hotkey manager, UI state, theming, and configuration persistence. Responsive design and smooth animations.</p></div>
                 <div class="arch-card" style="border-left-color: #F59E0B;"><h3><i class="fas fa-cogs"></i> Engine/</h3><p>FFmpeg encoding pipeline, replay buffer management, hardware acceleration dispatcher, and recording session controller.</p></div>
                 <div class="arch-card" style="border-left-color: #A855F7;"><h3><i class="fas fa-bell"></i> Notifier/</h3><p>System tray integration, toast notifications, error reporting, status updates, and user alerts for recording events.</p></div>
-                <div class="arch-card" style="border-left-color: #06B6D4;"><h3><i class="fas fa-layer-group"></i> Overlay/</h3><p>In-game borderless overlay with FPS counter, recording timer, hotkey hints. Built with No‑Hook for anti‑cheat compatibility.</p></div>
+                <div class="arch-card" style="border-left-color: #06B6D4;"><h3><i class="fas fa-layer-group"></i> Overlay/</h3><p>In-game borderless overlay with FPS counter, recording timer, hotkey hints. Built with No-Hook for anti-cheat compatibility.</p></div>
             </div>
-            <div class="tech-stack-badges"><div class="tech-badge"><strong>Language</strong><span>Visual Basic .NET 100%</span></div><div class="tech-badge"><strong>Engine</strong><span>FFmpeg Powered</span></div><div class="tech-badge"><strong>Development Time</strong><span>3+ Years</span></div><div class="tech-badge"><strong>Design Focus</strong><span>Animation • UX • Performance</span></div></div>
+            <div class="tech-stack-badges"><div class="tech-badge"><strong>Language</strong><span>Visual Basic .NET 100%</span></div><div class="tech-badge"><strong>Engine</strong><span>FFmpeg Powered</span></div><div class="tech-badge"><strong>Development Time</strong><span>3+ Years</span></div><div class="tech-badge"><strong>Design Focus</strong><span>Animation &bull; UX &bull; Performance</span></div></div>
         </div>
     </section>
 
-    <!-- Download Section (คงเดิม) -->
+    <!-- Download Section -->
     <section id="download"><div class="container"><div class="section-header" style="text-align:center;"><span class="section-label">Get Started</span><h2 class="section-title">Download & Installation</h2><p class="section-subtitle" style="margin:0 auto;">Get up and running in just a few simple steps</p></div><div class="download-steps"><div class="download-step"><h3>Prerequisites Checklist</h3><ol><li>Install <strong>.NET 8.0 Desktop Runtime</strong></li><li>Install <strong>.NET 4.8 Framework</strong></li><li>Ensure you're running <strong>Windows 8+</strong> / Server 2012+</li></ol></div><div class="download-step"><h3>Option 1: Download Release</h3><ol><li>Visit the <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank" style="color:var(--nvidia-green);">Releases page</a></li><li>Download the latest version</li><li>Extract ZIP archive to your preferred location</li><li>Run the executable!</li></ol></div><div class="download-step"><h3>Option 2: Build from Source</h3><div class="code-block-wrapper" style="margin-top:1rem;"><div class="code-body" style="padding:1.5rem;"><pre>git clone https://github.com/ScotcsDuluka/NVIDIA-Shadowplay.git
 # Then: Open solution in Visual Studio, restore NuGet, build Release, run</pre></div></div></div></div></div></section>
 
-    <!-- FAQ Section (คงเดิม) -->
+    <!-- FAQ Section -->
     <section id="faq">
         <div class="container">
             <div class="section-header" style="text-align:center;">
@@ -1008,7 +1211,7 @@ Continuously optimized for performance, scalability, and seamless user experienc
         </div>
     </section>
 
-    <!-- Team Section (คงเดิม) -->
+    <!-- Team Section -->
     <section id="team">
         <div class="container">
             <div class="section-header" style="text-align:center;">
@@ -1055,12 +1258,23 @@ Continuously optimized for performance, scalability, and seamless user experienc
         <div class="footer-column"><h4>Project</h4><ul><li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub Repo</a></li><li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">Releases</a></li><li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues" target="_blank">Issues</a></li></ul></div>
         <div class="footer-column"><h4>Resources</h4><ul><li><a href="#features">Features</a></li><li><a href="#specs">Specifications</a></li><li><a href="#requirements">Requirements</a></li></ul></div>
         <div class="footer-column"><h4>Connect</h4><ul><li><a href="https://github.com/ScotcsDuluka" target="_blank">Developer Profile</a></li><li><a href="#">Contact</a></li></ul></div></div>
-        <div class="footer-bottom"><p class="copyright">© <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay™</p><p class="copyright">Built with <span class="heart">❤️</span> using VB.NET & FFmpeg</p></div>
+        <div class="footer-bottom"><p class="copyright">&copy; <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay&trade;</p><p class="copyright">Built with <span class="heart">&#10084;&#65039;</span> using VB.NET & FFmpeg</p></div>
     </footer>
 
     <button class="back-to-top" id="backToTop" aria-label="Back to top">Up Page</button>
 
     <script>
+        // ========== TOUCH DETECTION ==========
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
+        
+        if (isTouchDevice) {
+            // Hide custom cursor elements immediately
+            const cursor = document.getElementById('cursor');
+            const cursorDot = document.getElementById('cursorDot');
+            if (cursor) cursor.style.display = 'none';
+            if (cursorDot) cursorDot.style.display = 'none';
+        }
+
         // Smooth scroll for anchor links
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function(e) {
@@ -1078,30 +1292,63 @@ Continuously optimized for performance, scalability, and seamless user experienc
             });
         });
 
-        // Loading screen
-        document.body.style.overflow = 'hidden';
-        window.addEventListener('load', () => { setTimeout(() => { document.getElementById('loadingScreen').classList.add('hidden'); document.body.style.overflow = 'auto'; }, 800); });
-        setTimeout(() => { if (!document.getElementById('loadingScreen').classList.contains('hidden')) { document.getElementById('loadingScreen').classList.add('hidden'); document.body.style.overflow = 'auto'; } }, 3000);
+        // ========== FIXED: Loading screen - only if element exists ==========
+        const loadingScreen = document.getElementById('loadingScreen');
+        if (loadingScreen) {
+            document.body.style.overflow = 'hidden';
+            window.addEventListener('load', () => { 
+                setTimeout(() => { 
+                    loadingScreen.classList.add('hidden'); 
+                    document.body.style.overflow = 'auto'; 
+                }, 800); 
+            });
+            setTimeout(() => { 
+                if (!loadingScreen.classList.contains('hidden')) { 
+                    loadingScreen.classList.add('hidden'); 
+                    document.body.style.overflow = 'auto'; 
+                } 
+            }, 3000);
+        }
 
-        // Custom cursor
-        const cursor = document.getElementById('cursor'), cursorDot = document.getElementById('cursorDot');
-        let mouseX = 0, mouseY = 0, cursorX = 0, cursorY = 0;
-        document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; cursorDot.style.left = mouseX + 'px'; cursorDot.style.top = mouseY + 'px'; });
-        function animateCursor() { cursorX += (mouseX - cursorX) * 0.15; cursorY += (mouseY - cursorY) * 0.15; cursor.style.left = cursorX + 'px'; cursor.style.top = cursorY + 'px'; requestAnimationFrame(animateCursor); }
-        animateCursor();
-        document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline, .api-spec-card, .arch-card').forEach(el => { el.addEventListener('mouseenter', () => cursor.classList.add('hover')); el.addEventListener('mouseleave', () => cursor.classList.remove('hover')); });
+        // ========== Custom cursor - ONLY on desktop ==========
+        if (!isTouchDevice) {
+            const cursor = document.getElementById('cursor'), cursorDot = document.getElementById('cursorDot');
+            let mouseX = 0, mouseY = 0, cursorX = 0, cursorY = 0;
+            document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; cursorDot.style.left = mouseX + 'px'; cursorDot.style.top = mouseY + 'px'; });
+            function animateCursor() { 
+                cursorX += (mouseX - cursorX) * 0.15; 
+                cursorY += (mouseY - cursorY) * 0.15; 
+                cursor.style.left = cursorX + 'px'; 
+                cursor.style.top = cursorY + 'px'; 
+                requestAnimationFrame(animateCursor); 
+            }
+            animateCursor();
+            document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline, .api-spec-card, .arch-card').forEach(el => { 
+                el.addEventListener('mouseenter', () => cursor.classList.add('hover')); 
+                el.addEventListener('mouseleave', () => cursor.classList.remove('hover')); 
+            });
+        }
 
-        // Particles (คงเดิม)
+        // ========== Particles - reduced on mobile ==========
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let particlesEnabled = !reduceMotion;
         const canvas = document.getElementById('particles-canvas');
         let ctx, particlesArray = [], animationId = null;
+        
+        // On mobile, reduce particle count dramatically
+        const particleCount = (isTouchDevice || window.innerWidth < 768) ? 20 : 80;
+        
         if (particlesEnabled && canvas) {
             ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
             const mouse = { x: null, y: null, radius: 120 };
-            window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+            
+            // Only track mouse on desktop
+            if (!isTouchDevice) {
+                window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
+            }
+            
             class Particle {
                 constructor() {
                     this.x = Math.random() * canvas.width;
@@ -1137,34 +1384,42 @@ Continuously optimized for performance, scalability, and seamless user experienc
                     ctx.fill();
                 }
             }
-            function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
+            function initParticles() { particlesArray = []; for (let i = 0; i < particleCount; i++) particlesArray.push(new Particle()); }
             function animateParticles() {
                 if (!ctx) return;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 particlesArray.forEach(p => { p.update(); p.draw(); });
-                for (let a = 0; a < particlesArray.length; a++) {
-                    for (let b = a; b < particlesArray.length; b++) {
-                        const dx = particlesArray[a].x - particlesArray[b].x;
-                        const dy = particlesArray[a].y - particlesArray[b].y;
-                        const distance = Math.sqrt(dx * dx + dy * dy);
-                        if (distance < 120) {
-                            ctx.strokeStyle = `rgba(118, 185, 0, ${(110 - distance) / 120 * 0.95})`;
-                            ctx.lineWidth = 1;
-                            ctx.beginPath();
-                            ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
-                            ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
-                            ctx.stroke();
+                // Skip connection lines on mobile for performance
+                if (!isTouchDevice && window.innerWidth >= 768) {
+                    for (let a = 0; a < particlesArray.length; a++) {
+                        for (let b = a; b < particlesArray.length; b++) {
+                            const dx = particlesArray[a].x - particlesArray[b].x;
+                            const dy = particlesArray[a].y - particlesArray[b].y;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+                            if (distance < 120) {
+                                ctx.strokeStyle = `rgba(118, 185, 0, ${(110 - distance) / 120 * 0.95})`;
+                                ctx.lineWidth = 1;
+                                ctx.beginPath();
+                                ctx.moveTo(particlesArray[a].x, particlesArray[a].y);
+                                ctx.lineTo(particlesArray[b].x, particlesArray[b].y);
+                                ctx.stroke();
+                            }
                         }
                     }
                 }
                 animationId = requestAnimationFrame(animateParticles);
             }
-            window.addEventListener('resize', () => { if (!particlesEnabled) return; canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
+            window.addEventListener('resize', () => { 
+                if (!particlesEnabled) return; 
+                canvas.width = window.innerWidth; 
+                canvas.height = window.innerHeight; 
+                initParticles(); 
+            });
             initParticles();
             animateParticles();
         } else if (canvas) { canvas.style.display = 'none'; }
 
-        // GitHub stars (คงเดิม)
+        // GitHub stars
         async function fetchGitHubStars() {
             const starElem = document.getElementById('starCount');
             if (!starElem) return;
@@ -1215,18 +1470,39 @@ Continuously optimized for performance, scalability, and seamless user experienc
         }, observerOptions);
         counters.forEach(c => observer.observe(c));
 
-        // Ripple effect
-        document.querySelectorAll('.btn-primary, .btn-outline, .feature-card, .team-member').forEach(btn => {
-            btn.addEventListener('click', function(e) { const rect = this.getBoundingClientRect(); const ripple = document.createElement('span'); ripple.className = 'ripple-effect'; ripple.style.left = (e.clientX - rect.left) + 'px'; ripple.style.top = (e.clientY - rect.top) + 'px'; this.appendChild(ripple); setTimeout(() => ripple.remove(), 600); });
-        });
+        // Ripple effect - desktop only
+        if (!isTouchDevice) {
+            document.querySelectorAll('.btn-primary, .btn-outline, .feature-card, .team-member').forEach(btn => {
+                btn.addEventListener('click', function(e) { const rect = this.getBoundingClientRect(); const ripple = document.createElement('span'); ripple.className = 'ripple-effect'; ripple.style.left = (e.clientX - rect.left) + 'px'; ripple.style.top = (e.clientY - rect.top) + 'px'; this.appendChild(ripple); setTimeout(() => ripple.remove(), 600); });
+            });
+        }
 
         // Page transitions for sections
         document.querySelectorAll('section').forEach(section => { section.style.opacity = '0'; section.style.transform = 'translateY(30px)'; new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) { entry.target.style.opacity = '1'; entry.target.style.transform = 'translateY(0)'; } }); }, { threshold: 0.1 }).observe(section); });
         document.querySelectorAll('.animate-fade-up, .animate-scale').forEach(el => { new IntersectionObserver((entries) => { entries.forEach(entry => { if (entry.isIntersecting) entry.target.classList.add('visible'); }); }, { threshold: 0.1 }).observe(el); });
 
-        // 3D Tilt
-        document.querySelectorAll('.tilt-card').forEach(card => { card.addEventListener('mousemove', (e) => { const rect = card.getBoundingClientRect(); const x = e.clientX - rect.left, y = e.clientY - rect.top; card.style.transform = `perspective(1000px) rotateX(${((y - rect.height/2) / rect.height * -5)}deg) rotateY(${(x - rect.width/2) / rect.width * 5}deg) scale3d(1.02,1.02,1.02)`; }); card.addEventListener('mouseleave', () => { card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1,1,1)'; }); });
-        document.querySelectorAll('.magnetic-btn').forEach(btn => { btn.addEventListener('mousemove', (e) => { const rect = btn.getBoundingClientRect(); btn.style.transform = `translate(${(e.clientX - rect.left - rect.width/2) * 0.2}px, ${(e.clientY - rect.top - rect.height/2) * 0.2}px)`; }); btn.addEventListener('mouseleave', () => { btn.style.transform = 'translate(0,0)'; }); });
+        // 3D Tilt - desktop only
+        if (!isTouchDevice) {
+            document.querySelectorAll('.tilt-card').forEach(card => { 
+                card.addEventListener('mousemove', (e) => { 
+                    const rect = card.getBoundingClientRect(); 
+                    const x = e.clientX - rect.left, y = e.clientY - rect.top; 
+                    card.style.transform = `perspective(1000px) rotateX(${((y - rect.height/2) / rect.height * -5)}deg) rotateY(${(x - rect.width/2) / rect.width * 5}deg) scale3d(1.02,1.02,1.02)`; 
+                }); 
+                card.addEventListener('mouseleave', () => { 
+                    card.style.transform = 'perspective(1000px) rotateX(0) rotateY(0) scale3d(1,1,1)'; 
+                }); 
+            });
+            document.querySelectorAll('.magnetic-btn').forEach(btn => { 
+                btn.addEventListener('mousemove', (e) => { 
+                    const rect = btn.getBoundingClientRect(); 
+                    btn.style.transform = `translate(${(e.clientX - rect.left - rect.width/2) * 0.2}px, ${(e.clientY - rect.top - rect.height/2) * 0.2}px)`; 
+                }); 
+                btn.addEventListener('mouseleave', () => { 
+                    btn.style.transform = 'translate(0,0)'; 
+                }); 
+            });
+        }
 
         // Progress bar
         function updateProgressBar() { const progressBar = document.getElementById('scrollProgress'); if (progressBar) { const winHeight = document.documentElement.scrollHeight - window.innerHeight; progressBar.style.width = (window.scrollY / winHeight) * 100 + '%'; } requestAnimationFrame(updateProgressBar); }
@@ -1256,6 +1532,17 @@ Continuously optimized for performance, scalability, and seamless user experienc
             });
         }
 
+        // Close mobile menu on outside tap
+        if (isTouchDevice && mobileMenu) {
+            document.addEventListener('touchstart', (e) => {
+                if (mobileMenu.classList.contains('active') && !mobileMenu.contains(e.target) && !hamburger.contains(e.target)) {
+                    mobileMenu.classList.remove('active');
+                    hamburger.classList.remove('active');
+                    hamburger.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+
         // FAQ Accordion
         document.querySelectorAll('.faq-question').forEach(q => {
             q.addEventListener('click', () => { q.parentElement.classList.toggle('active'); });
@@ -1264,29 +1551,45 @@ Continuously optimized for performance, scalability, and seamless user experienc
         // Auto year
         document.getElementById('currentYear').innerText = new Date().getFullYear();
 
-        // ADVANCED CLICK EFFECT
-        document.addEventListener('click', (e) => {
-            const wave = document.createElement('div');
-            wave.className = 'click-wave';
-            wave.style.left = e.clientX + 'px';
-            wave.style.top = e.clientY + 'px';
-            document.body.appendChild(wave);
-            setTimeout(() => wave.remove(), 600);
-            for (let i = 0; i < 8; i++) {
-                const p = document.createElement('div');
-                p.className = 'click-particle';
-                p.style.left = e.clientX + 'px';
-                p.style.top = e.clientY + 'px';
-                const angle = Math.random() * 2 * Math.PI;
-                const distance = Math.random() * 60 + 20;
-                const x = Math.cos(angle) * distance + 'px';
-                const y = Math.sin(angle) * distance + 'px';
-                p.style.setProperty('--x', x);
-                p.style.setProperty('--y', y);
-                document.body.appendChild(p);
-                setTimeout(() => p.remove(), 800);
+        // ADVANCED CLICK EFFECT - desktop only
+        if (!isTouchDevice) {
+            document.addEventListener('click', (e) => {
+                const wave = document.createElement('div');
+                wave.className = 'click-wave';
+                wave.style.left = e.clientX + 'px';
+                wave.style.top = e.clientY + 'px';
+                document.body.appendChild(wave);
+                setTimeout(() => wave.remove(), 600);
+                for (let i = 0; i < 8; i++) {
+                    const p = document.createElement('div');
+                    p.className = 'click-particle';
+                    p.style.left = e.clientX + 'px';
+                    p.style.top = e.clientY + 'px';
+                    const angle = Math.random() * 2 * Math.PI;
+                    const distance = Math.random() * 60 + 20;
+                    const x = Math.cos(angle) * distance + 'px';
+                    const y = Math.sin(angle) * distance + 'px';
+                    p.style.setProperty('--x', x);
+                    p.style.setProperty('--y', y);
+                    document.body.appendChild(p);
+                    setTimeout(() => p.remove(), 800);
+                }
+            });
+        }
+
+        // ========== MOBILE FIX: Overlay card inner grid responsive ==========
+        function fixOverlayCardGrid() {
+            const overlayInner = document.querySelector('.overlay-card-inner');
+            if (overlayInner) {
+                if (window.innerWidth <= 768) {
+                    overlayInner.style.gridTemplateColumns = '1fr';
+                } else {
+                    overlayInner.style.gridTemplateColumns = '1fr 1fr';
+                }
             }
-        });
+        }
+        fixOverlayCardGrid();
+        window.addEventListener('resize', fixOverlayCardGrid);
     </script>
 </body>
 </html>
