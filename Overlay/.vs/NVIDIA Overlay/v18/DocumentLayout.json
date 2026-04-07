@@ -1,17 +1,7 @@
 {
   "Version": 1,
   "WorkspaceRootPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\",
-  "Documents": [
-    {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\healthmonitor.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\screenrecorder.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{D1973391-8616-4B8F-A265-1C9DC1507093}|..\\Engine\\Capture Core.vbproj|c:\\my project\\nvidia-shadowplay\\engine\\engine\\stablelogger.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    }
-  ],
+  "Documents": [],
   "DocumentGroupContainers": [
     {
       "Orientation": 0,
@@ -19,7 +9,7 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 3,
+          "SelectedChildIndex": -1,
           "Children": [
             {
               "$type": "Bookmark",
@@ -32,44 +22,6 @@
             {
               "$type": "Bookmark",
               "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "HealthMonitor.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\HealthMonitor.vb",
-              "RelativeDocumentMoniker": "..\\Engine\\Engine\\HealthMonitor.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\HealthMonitor.vb",
-              "RelativeToolTip": "..\\Engine\\Engine\\HealthMonitor.vb",
-              "ViewState": "AgIAAGMAAAAAAAAAAAAowIAAAAApAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-04-02T13:42:56.979Z",
-              "EditorCaption": ""
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "StableLogger.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\StableLogger.vb",
-              "RelativeDocumentMoniker": "..\\Engine\\Engine\\StableLogger.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\StableLogger.vb",
-              "RelativeToolTip": "..\\Engine\\Engine\\StableLogger.vb",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-04-02T13:42:38.787Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 1,
-              "Title": "ScreenRecorder.vb",
-              "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\ScreenRecorder.vb",
-              "RelativeDocumentMoniker": "..\\Engine\\Engine\\ScreenRecorder.vb",
-              "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Engine\\ScreenRecorder.vb",
-              "RelativeToolTip": "..\\Engine\\Engine\\ScreenRecorder.vb",
-              "ViewState": "AgIAAL4FAAAAAAAAAAAqwOMFAAAAAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
-              "WhenOpened": "2026-04-02T13:33:06.322Z",
-              "EditorCaption": ""
             }
           ]
         }
