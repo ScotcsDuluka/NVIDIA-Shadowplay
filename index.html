@@ -857,10 +857,7 @@
             }
         }
 
-        /* Disable click particles on touch */
-        @media (hover: none), (pointer: coarse) {
-            .click-wave, .click-particle { display: none !important; }
-        }
+        /* Tap/click effects enabled on all devices */
 
         /* Overlay UI Section */
         .overlay-ui-section {
@@ -906,7 +903,7 @@
             .overlay-image-container img { border-radius: 8px; }
         }
 
-		.title-row {
+                .title-row {
             display: flex;
             align-items: center;
             gap: 10px;
@@ -939,7 +936,7 @@
         .release-notes li { margin: 0.4rem 0; }
         .release-link { margin-top: 1rem; display: inline-block; color: var(--nvidia-green); text-decoration: none; font-weight: 500; }
         .release-link:hover { text-decoration: underline; }
-		.preview-card { background: var(--nvidia-gray-dark); border: 1px solid rgba(245,158,11,0.3); padding: 1.8rem; transition: 0.2s; border-left: 4px solid #F59E0B; }
+                .preview-card { background: var(--nvidia-gray-dark); border: 1px solid rgba(245,158,11,0.3); padding: 1.8rem; transition: 0.2s; border-left: 4px solid #F59E0B; }
         .preview-card .release-tag { color: #F59E0B; }
 
         /* ========== MOBILE FIX: Release cards ========== */
@@ -948,7 +945,7 @@
             .release-tag { font-size: 1.1rem; }
             .release-notes li { font-size: 0.9rem; }
         }
-		
+                
         /* 2. Architecture Modules */
         .arch-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; margin-top: 2rem; }
         .arch-card { background: rgba(20,20,20,0.8); backdrop-filter: blur(4px); padding: 2rem; border-left-width: 6px; border-left-style: solid; transition: all 0.3s; }
@@ -1075,15 +1072,15 @@
                 <div class="hero-cta-group animate-fade-up delay-5">
                     <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">Download</a> <a class="alert-item alert-warning"><div><strong>Announcement :</strong> None</div></a>   
                 </div>
-				  
-			    <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+                                  
+                            <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
                    
-				    <div class="title-row">
+                                    <div class="title-row">
                         <span class="card-status">Release</span>
                         <h3 style="font-size:2rem;">NVIDIA ShadowPlay</h3>
-						<span class="status-badge status-soon">3.3.1777.1 <b>BETA</b></span>
+                                                <span class="status-badge status-soon">3.3.1777.1 <b>BETA</b></span>
                     </div>
-					
+                                        
                     <div class="desc-row">
                         <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
                        <p>
@@ -1093,15 +1090,15 @@ Continuously optimized for performance, scalability, and seamless user experienc
 </p>
                     </div>
                 </div>
-				
-				
+                                
+                                
                 </div>
             </div>
         </div>
     </section>
 
   
-				
+                                
     <!-- Features Section -->
     <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
         <div class="container">
@@ -1134,7 +1131,7 @@ Continuously optimized for performance, scalability, and seamless user experienc
   <span class="card-icon icon-nvidia"></span>
   <p>Precision-engineered, borderless overlay that keeps you in control &mdash; without ever breaking immersion.</p>
 </div>
-						 <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Stats</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
+                                                 <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Stats</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
                         </div>
                         <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
                             <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
@@ -1153,21 +1150,21 @@ Continuously optimized for performance, scalability, and seamless user experienc
         <div class="container">
             <div class="section-header"><span class="section-label">Encoder & Capture</span><p class="section-subtitle">Modern capture APIs + hardware encoder status &mdash; hover cards for underline effect</p></div>
            <h2 class="section-title">Encoder Support</h2>
-		   <div class="api-cards-grid">
-		   <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-microchip"></i><h3 class="underline-effect">NVIDIA NVENC</h3></div><span class="status-badge status-ready">Ready</span></div><p>Full GPU encoding via FFmpeg, minimal performance impact.</p></div>
+                   <div class="api-cards-grid">
+                   <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-microchip"></i><h3 class="underline-effect">NVIDIA NVENC</h3></div><span class="status-badge status-ready">Ready</span></div><p>Full GPU encoding via FFmpeg, minimal performance impact.</p></div>
                 <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-line"></i><h3 class="underline-effect">Intel QSV</h3></div><span class="status-badge status-partial">Partial</span></div><p>Intel QuickSync Video support &mdash; planned.</p></div>
               <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-simple"></i><h3 class="underline-effect">AMD AMF</h3></div><span class="status-badge status-soon">Soon</span></div><p>AMD Advanced Media Framework encoder on roadmap.</p></div>
-	
-			      </div>
-				  <br>
-				    <h2 class="section-title">API Capture</h2>
-			<div>
-			
+        
+                              </div>
+                                  <br>
+                                    <h2 class="section-title">API Capture</h2>
+                        <div>
+                        
                 <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-window-maximize"></i><h3 class="underline-effect">Windows.Graphics.Capture</h3></div><span class="status-badge status-ready">Ready</span></div><p>Modern Windows 10/11 API, high-performance, borderless window capture. <strong>Recommended</strong>.</p></div>
                 <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-desktop"></i><h3 class="underline-effect">Desktop Duplication API</h3></div><span class="status-badge status-recommended">Recommended</span></div><p>DirectX-based duplication, minimal latency, captures exclusive fullscreen (with limitations).</p></div>
                 <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-camera-retro"></i><h3 class="underline-effect">GDI Screen Grabber</h3></div><span class="status-badge status-partial">Partial</span></div><p>Legacy fallback, CPU heavy. Use only when needed.</p></div>
                
-			    	 </div>
+                                 </div>
         </div>
     </section>
 
@@ -1551,30 +1548,46 @@ Continuously optimized for performance, scalability, and seamless user experienc
         // Auto year
         document.getElementById('currentYear').innerText = new Date().getFullYear();
 
-        // ADVANCED CLICK EFFECT - desktop only
-        if (!isTouchDevice) {
-            document.addEventListener('click', (e) => {
-                const wave = document.createElement('div');
-                wave.className = 'click-wave';
-                wave.style.left = e.clientX + 'px';
-                wave.style.top = e.clientY + 'px';
-                document.body.appendChild(wave);
-                setTimeout(() => wave.remove(), 600);
-                for (let i = 0; i < 8; i++) {
-                    const p = document.createElement('div');
-                    p.className = 'click-particle';
-                    p.style.left = e.clientX + 'px';
-                    p.style.top = e.clientY + 'px';
-                    const angle = Math.random() * 2 * Math.PI;
-                    const distance = Math.random() * 60 + 20;
-                    const x = Math.cos(angle) * distance + 'px';
-                    const y = Math.sin(angle) * distance + 'px';
-                    p.style.setProperty('--x', x);
-                    p.style.setProperty('--y', y);
-                    document.body.appendChild(p);
-                    setTimeout(() => p.remove(), 800);
+        // ========== TAP / CLICK EFFECT - all devices ==========
+        function spawnTapEffect(clientX, clientY) {
+            // Shockwave ring
+            const wave = document.createElement('div');
+            wave.className = 'click-wave';
+            wave.style.left = clientX + 'px';
+            wave.style.top = clientY + 'px';
+            document.body.appendChild(wave);
+            setTimeout(() => wave.remove(), 600);
+            // Burst particles
+            const particleCount = (isTouchDevice) ? 6 : 8;
+            for (let i = 0; i < particleCount; i++) {
+                const p = document.createElement('div');
+                p.className = 'click-particle';
+                p.style.left = clientX + 'px';
+                p.style.top = clientY + 'px';
+                const angle = Math.random() * 2 * Math.PI;
+                const distance = Math.random() * 60 + 20;
+                const x = Math.cos(angle) * distance + 'px';
+                const y = Math.sin(angle) * distance + 'px';
+                p.style.setProperty('--x', x);
+                p.style.setProperty('--y', y);
+                document.body.appendChild(p);
+                setTimeout(() => p.remove(), 800);
+            }
+        }
+
+        // Desktop: click event
+        document.addEventListener('click', (e) => {
+            if (!isTouchDevice) spawnTapEffect(e.clientX, e.clientY);
+        });
+
+        // Mobile: touchstart for instant response (no 300ms delay)
+        if (isTouchDevice) {
+            document.addEventListener('touchstart', (e) => {
+                const touch = e.touches[0];
+                if (touch) {
+                    spawnTapEffect(touch.clientX, touch.clientY);
                 }
-            });
+            }, { passive: true });
         }
 
         // ========== MOBILE FIX: Overlay card inner grid responsive ==========
