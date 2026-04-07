@@ -12,7 +12,7 @@
     "Encoder": "NVENC_H264",
     "EncoderNow": "NVENC_H264",
     "FPS": 60,
-    "Bitrate": 7000,
+    "Bitrate": 8000,
     "Width": 1920,
     "Height": 1080,
     "Preset": "Medium",
