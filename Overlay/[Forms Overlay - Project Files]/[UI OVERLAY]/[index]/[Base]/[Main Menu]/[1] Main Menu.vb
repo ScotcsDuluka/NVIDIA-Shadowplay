@@ -5,6 +5,7 @@ Imports System.Drawing.Text
 Imports System.IO
 Imports System.Net.Http.Headers
 Imports System.Reflection
+Imports System.Reflection.Emit
 Imports System.Runtime.InteropServices
 Imports System.Security.Principal
 Imports System.Text
@@ -21,6 +22,8 @@ Imports Windows.Media.Devices
 Imports WinRT.Interop
 
 Partial Public Class Base
+
+
 
 #Region "NATIVE METHODS & STRUCTURES"
 
@@ -147,7 +150,6 @@ Partial Public Class Base
 
 #End Region
 
-    ' UI
     Private Sub SetHoverEffect(ctrl As Control, hoverColor As Color, leaveColor As Color)
         AddHandler ctrl.MouseMove, Sub() ctrl.BackColor = hoverColor
         AddHandler ctrl.MouseLeave, Sub() ctrl.BackColor = leaveColor
@@ -203,28 +205,33 @@ Partial Public Class Base
     Private Const WS_EX_APPWINDOW As Integer = &H40000
 
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        HideFromAltTab()
-        Dim handle As IntPtr = Me.Handle
-        _hotkeyService = New HotkeyService()
-        _hotkeyService.RegisterAll(handle)
-        Debug.WriteLine("Hotkeys registered!")
+        Dim proc() As Process = Process.GetProcessesByName("NVIDIA API")
+        If proc.Length = 0 Then
+            Application.Exit()
+        Else
+            HideFromAltTab()
+            Dim handle As IntPtr = Me.Handle
+            _hotkeyService = New HotkeyService()
+            _hotkeyService.RegisterAll(handle)
+            Debug.WriteLine("Hotkeys registered!")
 
-        AppSettings.Initialize()
-        Await AppSettings.Instance.LoadGitHubUser()
-        Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
-        Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
+            AppSettings.Initialize()
+            Await AppSettings.Instance.LoadGitHubUser()
+            Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
+            Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
 
-        LoadCurrentLanguage()
-        InitializeNotifierAPI()
-        MainSub_Load()
-        LoadFilePath()
-        CreateDataDirectories()
-        LoadMicState()
-        TIMESLOAD()
-        SystemMonitor.StartMonitoring()
+            LoadCurrentLanguage()
+            InitializeNotifierAPI()
+            MainSub_Load()
+            LoadFilePath()
+            CreateDataDirectories()
+            LoadMicState()
+            TIMESLOAD()
+            SystemMonitor.StartMonitoring()
 
-        ShowNotifier("notificationOpenShare")
-        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+            ShowNotifier("notificationOpenShare")
+            File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+        End If
     End Sub
 
 

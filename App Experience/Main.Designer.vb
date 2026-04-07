@@ -199,7 +199,7 @@ Partial Class NVIDIA_Shadowplay_Helper
         API_OVERLAY.Name = "API_OVERLAY"
         API_OVERLAY.Size = New Size(140, 19)
         API_OVERLAY.TabIndex = 7
-        API_OVERLAY.Text = "OVERLAY API"
+        API_OVERLAY.Text = "Notifier API"
         API_OVERLAY.UseVisualStyleBackColor = False
         ' 
         ' overlay_game

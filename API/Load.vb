@@ -24,11 +24,7 @@ Public Class API_RUN
     End Sub
 
     Private Sub API_RUN_Load(sender As Object, e As EventArgs) Handles Me.Load
-        ' กำหนด path หลังจาก form load แล้ว
-        iconFontPath = Path.Combine(Application.StartupPath, "Languages", "_icon.ttf")
 
-        ' ติดตั้งฟอนต์ครั้งเดียวตอน load
-        FontManager.InstallFont(iconFontPath)
 
         SetStartup(True)
     End Sub
@@ -47,11 +43,26 @@ Public Class API_RUN
             End If
         End Using
     End Sub
+    Private Shared Sub KillProcess(processName As String)
+        Try
+            ' เอา .exe ออกถ้ามี
+            Dim name As String = processName.Replace(".exe", "")
+            For Each proc As Process In Process.GetProcessesByName(name)
+                proc.Kill()
+            Next
+        Catch ex As Exception
+            Debug.WriteLine("Error killing process " & processName & ": " & ex.Message)
+        End Try
+    End Sub
 
     Private Sub Load_APP_Disposed(sender As Object, e As EventArgs) Handles Load_APP.Tick
         HideFromAltTab()
         HandleAppsSmart()
-        ' ❌ เอา FontManager.InstallFont ออกจากนี้
+        Dim fontExists As Boolean = FontHelper.CheckAndInstallUserFont("nvgcshare.ttf")
+        If Not fontExists Then
+            KillProcess("NVIDIA Notifier.exe")
+            KillProcess("NVIDIA ShadowPlay.exe")
+        End If
     End Sub
 
     Public Sub HandleAppsSmart()
@@ -90,7 +101,4 @@ Public Class API_RUN
         Next
     End Sub
 
-    Private Sub Form1_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
-        FontManager.UninstallFont(iconFontPath)
-    End Sub
 End Class

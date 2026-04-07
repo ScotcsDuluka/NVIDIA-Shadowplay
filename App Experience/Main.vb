@@ -62,6 +62,11 @@ Public Class NVIDIA_Shadowplay_Helper
         End If
     End Sub
     Private Sub NVIDIA_Shadowplay_Helper_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Dim fontExists As Boolean = FontHelper.CheckAndInstallUserFont("nvgcshare.ttf")
+        If Not fontExists Then
+            Return
+        End If
+
         If My.Computer.FileSystem.FileExists("Use_Overlay") Then
             Use_Overlay.Checked = True
         Else

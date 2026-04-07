@@ -1,7 +1,7 @@
 ﻿Public Class NoCloseForm
     Inherits Form
 
-    Public Shared AllowClose As Boolean = False
+    Public Shared AllowClose As Boolean = True
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
 

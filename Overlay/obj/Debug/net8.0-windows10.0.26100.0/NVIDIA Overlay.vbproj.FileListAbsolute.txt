@@ -22,10 +22,12 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\API
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\API-Core\swscale-9.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Languages\current.txt
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Languages\en-US.json
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Languages\nvgcshare.ttf
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Languages\th-TH.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\Languages\zh-CHS.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.ico
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA_Shadowplay_Data\on
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\_Redist\64bit.runtime.exe
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.deps.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.runtimeconfig.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Debug\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll

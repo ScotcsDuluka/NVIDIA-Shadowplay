@@ -17,7 +17,7 @@
 		<NeutralLanguage>en-US</NeutralLanguage>
 		<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
 		<PackageReadmeFile></PackageReadmeFile>
-		<Platforms>AnyCPU</Platforms>
+		<Platforms>AnyCPU;x64</Platforms>
 		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
 		<ApplicationManifest>My Project\app.manifest</ApplicationManifest>
 		<IncludeSymbols>False</IncludeSymbols>
@@ -73,8 +73,24 @@
 		<WarningLevel>0</WarningLevel>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+	  <RegisterForComInterop>False</RegisterForComInterop>
+	  <DefineDebug>False</DefineDebug>
+	  <OutputPath>bin\$(Configuration)\</OutputPath>
+	  <RemoveIntegerChecks>True</RemoveIntegerChecks>
+	  <NoWarn>41998,41999,42004,42016,42017,42018,42019,42020,42021,42022,42024,42025,42026,42029,42030,42031,42032,42036,42099,42104,42105,42106,42107,42108,42109,42353,42354,42355</NoWarn>
+	  <WarningsAsErrors>42025</WarningsAsErrors>
+	  <DebugType>none</DebugType>
+	  <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
+	  <WarningLevel>0</WarningLevel>
+	</PropertyGroup>
+
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
 		<DebugType>none</DebugType>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+	  <DebugType>none</DebugType>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -186,11 +202,17 @@
 		<None Update="Languages\en-US.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="Languages\nvgcshare.ttf">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="Languages\th-TH.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="Languages\zh-CHS.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="Languages\_icon.ttf">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="My Project\Application.myapp">
 			<Generator>MyApplicationCodeGenerator</Generator>
@@ -201,6 +223,9 @@
 			<CustomToolNamespace>My</CustomToolNamespace>
 			<LastGenOutput>Settings.Designer.vb</LastGenOutput>
 		</None>
+		<None Update="nvgcshare.ttf">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="NVIDIA ShadowPlay.ico">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
@@ -209,6 +234,9 @@
 		</None>
 		<None Update="_icon.ttf">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="_Redist\64bit.runtime.exe">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="_Redist\_dxwebsetup.exe">
 			<CopyToOutputDirectory>Never</CopyToOutputDirectory>

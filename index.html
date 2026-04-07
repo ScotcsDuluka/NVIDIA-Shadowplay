@@ -828,13 +828,13 @@
             border-radius: 50%;
             pointer-events: none;
             transform: translate(-50%, -50%) scale(0);
-            animation: clickWaveAnim 0.6s ease-out forwards;
+            animation: clickWaveAnim 0.2s ease-out forwards;
             z-index: 99999;
         }
 
         @keyframes clickWaveAnim {
             0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-            100% { transform: translate(-50%, -50%) scale(6); opacity: 0; }
+            100% { transform: translate(-50%, -50%) scale(4); opacity: 0; }
         }
 
         /* CLICK PARTICLE */
@@ -1028,6 +1028,38 @@
                 transition-duration: 0.01ms !important;
             }
         }
+		
+		
+		
+		.game-see {
+  position: relative;
+  display: inline-block;
+}
+
+/* ตัวข้อความ Coming Soon */
+.game-see::after {
+  content: "Coming Soon";
+  position: absolute;
+  left: 110%;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+
+  opacity: 0;
+  font-size: 0.8rem;
+  color: #aaa;
+  transition: 0.25s ease;
+}
+
+/* ตอน hover */
+.game-see:hover::after {
+  opacity: 1;
+  left: 120%;
+}
+		
+		
+		
+		
     </style>
 </head>
 <body class="custom-cursor-active">
@@ -1045,9 +1077,9 @@
             <li><a href="#api-specs">API Capture</a></li>
             <li><a href="#requirements">Requirements</a></li>
             <li><a href="#architecture">Architecture</a></li>
-            <li><a href="#download">Download</a></li>
             <li><a href="#faq">FAQ</a></li>
             <li><a href="#team">Team</a></li>
+            <li><a target="_blank" href="https://discord.gg/v5qUGVD3jZ">Discord Server</a></li>
         </ul>
         <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
     </nav>
@@ -1056,9 +1088,9 @@
         <a href="#api-specs">API Capture</a>
         <a href="#requirements">Requirements</a>
         <a href="#architecture">Architecture</a>
-        <a href="#download">Download</a>
         <a href="#faq">FAQ</a>
         <a href="#team">Team</a>
+        <a target="_blank" href="https://discord.gg/v5qUGVD3jZ">Discord Server </a>
     </div>
 
     <section class="hero-section animated-gradient-bg" id="hero">
@@ -1088,14 +1120,29 @@
                     <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
                         <div style="padding: 2.5rem;">
 						 <div class="title-row">
-                        <span class="card-status">OVERLAY</span>
-                        <h3 style="font-size:2rem;">In-game Overlay</h3><br>
+                        <span class="card-status">Game Ready</span> 
+                        <h3 style="font-size:2rem;">In-game Overlay</h3><br> 
                     </div>
                            
                     <div class="desc-row">  <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
   <p style="font-size:1.1rem;">Precision-engineered, borderless overlay that keeps you in control &mdash; without ever breaking immersion.</p>
 </div>
-                                                 <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Checked</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
+  <ul style="list-style:none; margin-top:1.5rem;">
+  <li style="padding:0.5rem 0;">- Borderless Windowed Design</li>
+  <li style="padding:0.5rem 0;">- Real-time Performance Checked</li>
+  <li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li>
+  <li style="padding:0.5rem 0; list-style:none;">
+  <a href="#supported-games" class="game-see"
+     style="
+       color:#76B900;
+       text-decoration:none;
+       font-weight:600;
+       transition: all 0.2s ease;
+     "
+     onmouseover="this.style.opacity='0.7'; this.style.transform='translateX(5px)';"
+     onmouseout="this.style.opacity='1'; this.style.transform='translateX(0)';"
+     >- View Supported Games</a></li>
+</ul>
                         </div>
                         <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
                             <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
@@ -1137,24 +1184,27 @@
         <div style="display:flex; align-items:center; gap:1rem;">
             <span class="card-status">Release</span>
             <h3 style="font-size:2rem; margin:0;">NVIDIA ShadowPlay</h3>
-            <span class="status-badge status-ready">3.3.1777.1 <b>BETA</b></span>
-			<span class="status-badge status-partial">for Windows <b>AnyCpu</b> x64 / x32 bit</span>
+            <span class="status-badge status-ready">3.3.2057.1 <b>BETA</b></span>
+			<span class="status-badge status-partial">for Windows x64 bit</span>
+			<span class="status-badge status-soon">Full Package + Runtime + Resouces Requirement</span>
         </div>
 
         <!-- ปุ่ม Download ชิดขวา -->
-        <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.1777.1-BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe" 
-           class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">
-           Download Installer
-        </a>
+       
     </div>
     
     <!-- Description -->
     <div class="desc-row" style="margin-top:1.5rem;">
-        <p>
-            Built and refined core systems including Recording Engine, Overlay UI, and Web platform.
-            Integrated Animation Engine and Notifier system to enhance interactivity.
-            Continuously optimized for performance, scalability, and seamless user experience through rapid iteration.
-        </p>
+	<a 
+		href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe" 
+        class="btn-primary magnetic-btn pulse-glow-animation">
+    Download Installer
+	</a>
+    <p style="margin-left:1.5rem;">
+	Built and refined core systems including Recording Engine, Overlay UI, and Web platform.
+	<br>Integrated Animation Engine and Notifier system to enhance interactivity.
+	<br>Continuously optimized for performance, scalability, and seamless user experience through rapid iteration.
+    </p>
     </div>
 </div>
 		
@@ -1237,10 +1287,7 @@
         </div>
     </section>
 
-    <!-- Download Section -->
-    <section id="download"><div class="container"><div class="section-header" style="text-align:center;"><span class="section-label">Get Started</span><h2 class="section-title">Download & Installation</h2><p class="section-subtitle" style="margin:0 auto;">Get up and running in just a few simple steps</p></div><div class="download-steps"><div class="download-step"><h3>Prerequisites Checklist</h3><ol><li>Install <strong>.NET 8.0 Desktop Runtime</strong></li><li>Install <strong>.NET 4.8 Framework</strong></li><li>Ensure you're running <strong>Windows 8+</strong> / Server 2012+</li></ol></div><div class="download-step"><h3>Option 1: Download Release</h3><ol><li>Visit the <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank" style="color:var(--nvidia-green);">Releases page</a></li><li>Download the latest version</li><li>Extract ZIP archive to your preferred location</li><li>Run the executable!</li></ol></div><div class="download-step"><h3>Option 2: Build from Source</h3><div class="code-block-wrapper" style="margin-top:1rem;"><div class="code-body" style="padding:1.5rem;"><pre>git clone https://github.com/ScotcsDuluka/NVIDIA-Shadowplay.git
-# Then: Open solution in Visual Studio, restore NuGet, build Release, run</pre></div></div></div></div></div></section>
-
+   
     <!-- FAQ Section -->
     <section id="faq">
         <div class="container">
@@ -1303,12 +1350,11 @@
     <footer>
         <div class="footer-grid"><div class="footer-brand"><a href="#" class="nav-brand">NVIDIA SHADOWPLAY</a><p>A custom screen capture implementation inspired by NVIDIA ShadowPlay. Built with passion over 3+ years using VB.NET & FFmpeg.</p></div>
         <div class="footer-column"><h4>Project</h4><ul><li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub Repo</a></li><li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">Releases</a></li><li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues" target="_blank">Issues</a></li></ul></div>
-        <div class="footer-column"><h4>Resources</h4><ul><li><a href="#features">Features</a></li><li><a href="#specs">Specifications</a></li><li><a href="#requirements">Requirements</a></li></ul></div>
+        <div class="footer-column"><h4>Resources</h4><ul><li><a href="#features">Features</a></li><li><a href="#architecture">Architecture</a></li><li><a href="#requirements">Requirements</a></li></ul></div>
         <div class="footer-column"><h4>Connect</h4><ul><li><a href="https://github.com/ScotcsDuluka" target="_blank">Developer Profile</a></li><li><a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord Server</a></li></ul></div></div>
         <div class="footer-bottom"><p class="copyright">&copy; <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay&trade;</p><p class="copyright">Built with <span class="heart">&#10084;&#65039;</span> using VB.NET & FFmpeg</p></div>
     </footer>
 
-    <button class="back-to-top" id="backToTop" aria-label="Back to top">Up</button>
 
     <script>
         // ========== TOUCH DETECTION ==========
@@ -1339,23 +1385,7 @@
             });
         });
 
-        // ========== FIXED: Loading screen - only if element exists ==========
-        const loadingScreen = document.getElementById('loadingScreen');
-        if (loadingScreen) {
-            document.body.style.overflow = 'hidden';
-            window.addEventListener('load', () => { 
-                setTimeout(() => { 
-                    loadingScreen.classList.add('hidden'); 
-                    document.body.style.overflow = 'auto'; 
-                }, 800); 
-            });
-            setTimeout(() => { 
-                if (!loadingScreen.classList.contains('hidden')) { 
-                    loadingScreen.classList.add('hidden'); 
-                    document.body.style.overflow = 'auto'; 
-                } 
-            }, 3000);
-        }
+      
 
         // ========== Custom cursor - ONLY on desktop ==========
         if (!isTouchDevice) {
@@ -1555,11 +1585,7 @@
         function updateProgressBar() { const progressBar = document.getElementById('scrollProgress'); if (progressBar) { const winHeight = document.documentElement.scrollHeight - window.innerHeight; progressBar.style.width = (window.scrollY / winHeight) * 100 + '%'; } requestAnimationFrame(updateProgressBar); }
         updateProgressBar();
 
-        // Back to top
-        const backBtn = document.getElementById('backToTop');
-        window.addEventListener('scroll', () => { if (window.scrollY > 300) backBtn.classList.add('visible'); else backBtn.classList.remove('visible'); });
-        backBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
-
+       
         // Hamburger menu
         const hamburger = document.getElementById('hamburger');
         const mobileMenu = document.getElementById('mobileMenu');
@@ -1668,6 +1694,8 @@
         window.open("https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.1777.1-BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe", "_blank");
     }, 600);
 }
+
+   
 
     </script>
 </body>
