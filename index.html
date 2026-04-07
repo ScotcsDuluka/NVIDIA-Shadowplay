@@ -274,7 +274,6 @@
         /* Hero Section */
         .hero-section {
             padding: 8rem 3rem 6rem;
-            padding-top: calc(8rem + 70px);
             position: relative;
             overflow: hidden;
             min-height: 100vh;
@@ -1065,29 +1064,53 @@
     <section class="hero-section animated-gradient-bg" id="hero">
         <div class="hero-container">
             <div style="position:relative; z-index:1;">
-                <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay<br><span class="animated-text-gradient">Capture Every Moment</span></h1>
+                <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay<h2 class="animated-text-gradient">Capture Every Moment</h2></h1>
                 <h3 class="animated-text-gradient">Zero latency. Zero compromise. Built for performance.</h3><br>
                 
-                <div class="hero-cta-group animate-fade-up delay-5">
-                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">Download</a> <a class="alert-item alert-warning"><div><strong>Announcement :</strong> None</div></a>   
-                </div>     
-                            <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
-                   
-                                    <div class="title-row">
-                        <span class="card-status">Release</span>
-                        <h3 style="font-size:2rem;">NVIDIA ShadowPlay</h3>
-                                                <span class="status-badge status-soon">3.3.1777.1 <b>BETA</b></span>
+               <div class="hero-cta-group animate-fade-up delay-5">
+    <!-- ปุ่ม Give it a try -->
+    <a href="#download-section" 
+       class="btn-primary magnetic-btn pulse-glow-animation" 
+       target="_blank">
+       Give it a try
+    </a>
+
+    <!-- Announcement -->
+    <a class="alert-item alert-warning">
+        <div><strong>Announcement :</strong> None</div>
+    </a>   
+</div>
+
+
+
+
+ <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
+                    <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+                        <div style="padding: 2.5rem;">
+						 <div class="title-row">
+                        <span class="card-status">OVERLAY</span>
+                        <h3 style="font-size:2rem;">In-game Overlay</h3><br>
                     </div>
-                                        
-                    <div class="desc-row">
-                        <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
-                       <p>
-Built and refined core systems including Recording Engine, Overlay UI, and Web platform.
-Integrated Animation Engine and Notifier system to enhance interactivity.
-Continuously optimized for performance, scalability, and seamless user experience through rapid iteration.
-</p>
+                           
+                    <div class="desc-row">  <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+  <p style="font-size:1.1rem;">Precision-engineered, borderless overlay that keeps you in control &mdash; without ever breaking immersion.</p>
+</div>
+                                                 <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Checked</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
+                        </div>
+                        <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+                            <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
+                            <img src="overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
+                        </div>
                     </div>
                 </div>
+
+
+
+
+
+
+
+				
                                 
                                 
                 </div>
@@ -1098,8 +1121,51 @@ Continuously optimized for performance, scalability, and seamless user experienc
   
                                 
     <!-- Features Section -->
-    <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
-        <div class="container">
+	<div id="download-section"></div>
+    <section  id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
+       
+	   <div class="container" >
+		
+		
+		
+		<span class="section-label">DOWNLOAD NVIDIA SHADOWPLAY</span>
+<div class="feature-card animate-scale delay-0 tilt-card"
+     style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+
+    <!-- Title + Version + Download -->
+    <div class="title-row" style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
+        <div style="display:flex; align-items:center; gap:1rem;">
+            <span class="card-status">Release</span>
+            <h3 style="font-size:2rem; margin:0;">NVIDIA ShadowPlay</h3>
+            <span class="status-badge status-soon">3.3.1777.1 <b>BETA</b></span>
+        </div>
+
+        <!-- ปุ่ม Download ชิดขวา -->
+        <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.1777.1-BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe" 
+           class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">
+           Download Installer
+        </a>
+    </div>
+    
+    <!-- Description -->
+    <div class="desc-row" style="margin-top:1.5rem;">
+        <p>
+            Built and refined core systems including Recording Engine, Overlay UI, and Web platform.
+            Integrated Animation Engine and Notifier system to enhance interactivity.
+            Continuously optimized for performance, scalability, and seamless user experience through rapid iteration.
+        </p>
+    </div>
+</div>
+		
+		
+		
+	<br>
+	<br>
+		<br>
+		<br>
+		
+		
+		
             <div class="section-header"><span class="section-label">Features Overview</span><h2 class="section-title">Capture Your Best Moments</h2><p class="section-subtitle">Professional-grade features inspired by NVIDIA ShadowPlay</p></div>
             <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;" class="bento-grid">
                 <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
@@ -1121,25 +1187,7 @@ Continuously optimized for performance, scalability, and seamless user experienc
                     <div class="title-row"><span class="card-status">READY</span><h3>Screenshot Capture</h3></div>
                     <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly &mdash; perfect for sharing or reviewing your best moments.</p></div>
                 </div>
-                <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
-                    <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
-                        <div style="padding: 2.5rem;">
-						 <div class="title-row">
-                        <span class="card-status">OVERLAY</span>
-                        <h3 style="font-size:2rem;">In-game Overlay</h3><br>
-                    </div>
-                           
-                    <div class="desc-row">  <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
-  <p style="font-size:1.1rem;">Precision-engineered, borderless overlay that keeps you in control &mdash; without ever breaking immersion.</p>
-</div>
-                                                 <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Borderless Windowed Design</li><li style="padding:0.5rem 0;">- Real-time Performance Checked</li><li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li></ul>
-                        </div>
-                        <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
-                            <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
-                            <img src="overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
-                        </div>
-                    </div>
-                </div>
+               
                 <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe and secure by design. No memory injection, no hooks &mdash; just pure stability.</p></div>
                 <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 2;"><span class="card-status">FAST</span><span class="card-icon icon-nvidia"></span><h3>NVIDIA Hardware Acceleration</h3><p>Fully optimized with NVIDIA NVENC via FFmpeg. Fast, efficient, and reliable GPU-based encoding.</p></div>
                </div>
@@ -1604,6 +1652,22 @@ Continuously optimized for performance, scalability, and seamless user experienc
         }
         fixOverlayCardGrid();
         window.addEventListener('resize', fixOverlayCardGrid);
+		
+		
+		
+		function downloadAndScroll(e) {
+    e.preventDefault();
+
+    // scroll ก่อน
+    document.getElementById("download-section")
+        .scrollIntoView({ behavior: "smooth" });
+
+    // delay แล้วค่อยโหลด
+    setTimeout(() => {
+        window.open("https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.1777.1-BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe", "_blank");
+    }, 600);
+}
+
     </script>
 </body>
 </html>
