@@ -4,7 +4,7 @@
     <link rel="icon" type="image/png" href="https://camo.githubusercontent.com/189f450c3c7997fd8f52d7b7278d18c04674aa747ff66745eaa21bb099ac2436/68747470733a2f2f63646e322e737465616d6772696464622e636f6d2f69636f6e2f65383835356233353238636230336431646566393830333232306264336362392f33322f34387834382e706e67">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>NVIDIA ShadowPlay | Beta</title>
+    <title>NVIDIA ShadowPlay | Beta + Live Changelog + Architecture + API Specs</title>
     
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -35,6 +35,7 @@
     <style>
         /* ============================================
            NVIDIA STYLE - ULTRA SMOOTH SCROLL + ENHANCEMENTS
+           (คงเดิมทุกประการ เพิ่ม CSS สำหรับส่วนใหม่ด้านล่าง)
            ============================================ */
         
         :root {
@@ -133,8 +134,6 @@
         }
 
         .nav-brand {
-            display: flex;
-            align-items: center;
             gap: 12px;
             text-decoration: none;
             color: var(--text-white);
@@ -284,7 +283,7 @@
             border-radius: var(--radius-sm);
             font-size: 0.85rem;
             font-weight: 600;
-            margin-bottom: 2rem;
+            margin-left: 0rem;
             letter-spacing: 0.5px;
         }
         .hero-title {
@@ -528,12 +527,11 @@
     position: fixed;
     bottom: 24px;
     right: 24px;
-    width: 52px;
+    width: 134px;
     height: 52px;
     background: var(--nvidia-green, #76b900);
     color: var(--nvidia-black, #000000);
-    border: none;
-    border-radius: 16px;
+    border: 1px solid var(--nvidia-back);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -776,16 +774,59 @@
             cursor: none !important;
         }
 		.title-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 1rem;
-}
-.desc-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1rem;
+        }
+        .desc-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* ========== เพิ่ม CSS สำหรับส่วนใหม่ทั้ง 3 ส่วน (โดยไม่กระทบของเดิม) ========== */
+        /* 1. Changelog Releases */
+        .release-list { display: flex; flex-direction: column; gap: 1.8rem; margin-top: 2rem; }
+        .release-card { background: var(--nvidia-gray-dark); border: 1px solid var(--border-color); padding: 1.8rem; transition: 0.2s; border-left: 4px solid var(--nvidia-green); }
+        .release-header { display: flex; justify-content: space-between; flex-wrap: wrap; align-items: baseline; margin-bottom: 0.8rem; gap: 10px; }
+        .release-tag { font-size: 1.4rem; font-weight: 800; font-family: monospace; color: var(--nvidia-green); }
+        .release-date { color: var(--text-muted); font-size: 0.85rem; }
+        .release-badges { display: flex; gap: 8px; }
+        .badge-latest { background: var(--nvidia-green); color: black; padding: 0.2rem 0.8rem; font-weight: 700; font-size: 0.7rem; }
+        .badge-prerelease { background: #F59E0B; color: black; padding: 0.2rem 0.8rem; font-weight: 700; font-size: 0.7rem; }
+        .release-notes { margin-top: 1rem; padding-left: 1rem; border-left: 2px solid rgba(120,184,2,0.4); color: var(--text-gray); }
+        .release-notes ul { margin-left: 1.5rem; margin-top: 0.5rem; list-style-type: disc; }
+        .release-notes li { margin: 0.4rem 0; }
+        .release-link { margin-top: 1rem; display: inline-block; color: var(--nvidia-green); text-decoration: none; font-weight: 500; }
+        .release-link:hover { text-decoration: underline; }
+		.preview-card { background: var(--nvidia-gray-dark); border: 1px solid rgba(245,158,11,0.3); padding: 1.8rem; transition: 0.2s; border-left: 4px solid #F59E0B; }
+        .preview-card .release-tag { color: #F59E0B; }
+        
+        /* 2. Architecture Modules */
+        .arch-modules { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 2rem; margin-top: 2rem; }
+        .arch-card { background: rgba(20,20,20,0.8); backdrop-filter: blur(4px); padding: 2rem; border-left-width: 6px; border-left-style: solid; transition: all 0.3s; }
+        .arch-card:hover { transform: translateY(-6px); background: var(--nvidia-gray-dark); }
+        .arch-card h3 { font-size: 1.7rem; margin-bottom: 1rem; display: flex; align-items: center; gap: 10px; }
+        .arch-card p { color: var(--text-gray); line-height: 1.6; }
+        
+        /* 3. API Cards */
+        .api-cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px,1fr)); gap: 2rem; margin-top: 2rem; }
+        .api-spec-card { background: linear-gradient(135deg, var(--nvidia-gray-dark), var(--nvidia-gray)); border: 1px solid var(--border-color); padding: 2rem; transition: all 0.4s var(--ease-out-back); position: relative; overflow: hidden; border-radius: 0; }
+        .api-spec-card:hover { transform: translateY(-8px) scale(1.02); border-color: var(--nvidia-green); box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        .card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; flex-wrap: wrap; justify-content: space-between; }
+        .card-title-icon { display: flex; align-items: center; gap: 12px; }
+        .card-title-icon i { font-size: 2.2rem; color: var(--nvidia-green); }
+        .card-title-icon h3 { font-size: 1.6rem; font-weight: 700; position: relative; display: inline-block; }
+        .underline-effect::after { content: ''; position: absolute; bottom: -4px; left: 0; width: 0; height: 2px; background: var(--nvidia-green); transition: width 0.3s ease; }
+        .api-spec-card:hover .underline-effect::after { width: 100%; }
+        .status-badge { font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1rem; border-radius: 0; text-transform: uppercase; letter-spacing: 1px; }
+        .status-ready { background: rgba(34,197,94,0.2); border-left: 3px solid #22C55E; color: #22C55E; }
+        .status-recommended { background: rgba(120,184,2,0.2); border-left: 3px solid var(--nvidia-green); color: var(--nvidia-green); }
+        .status-soon { background: rgba(168,85,247,0.2); border-left: 3px solid #A855F7; color: #A855F7; }
+        .status-partial { background: rgba(251,191,36,0.2); border-left: 3px solid #FBBF24; color: #FBBF24; }
+        .status-none { background: rgba(107,114,128,0.2); border-left: 3px solid #6B7280; color: #9CA3AF; }
+        .api-spec-card p { color: var(--text-gray); margin-top: 1rem; }
     </style>
 </head>
 <body class="custom-cursor-active">
@@ -796,89 +837,91 @@
     <div class="scroll-progress" id="scrollProgress"></div>
 
     <nav class="main-nav">
-        <a href="#" class="nav-brand">NVIDIA ShadowPlay</a>
+    <a href="#" class="nav-brand" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+    <span class="hero-badge animate-fade-up">OPEN SOURCE PROJECT</span>
+</a>
         <ul class="nav-menu">
             <li><a href="#features">Features</a></li>
-            <li><a href="#specs">Specifications</a></li>
+            <li><a href="#api-specs">API Capture</a></li>
             <li><a href="#requirements">Requirements</a></li>
             <li><a href="#architecture">Architecture</a></li>
             <li><a href="#download">Download</a></li>
-            <li><a href="#team">Team</a></li>
             <li><a href="#faq">FAQ</a></li>
+            <li><a href="#team">Team</a></li>
         </ul>
         <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false"><span></span><span></span><span></span></button>
     </nav>
     <div class="mobile-menu" id="mobileMenu">
         <a href="#features">Features</a>
-        <a href="#specs">Specifications</a>
+        <a href="#api-specs">API Capture</a>
         <a href="#requirements">Requirements</a>
         <a href="#architecture">Architecture</a>
         <a href="#download">Download</a>
-        <a href="#team">Team</a>
         <a href="#faq">FAQ</a>
+        <a href="#team">Team</a>
     </div>
 
-    <!-- Hero Section -->
     <section class="hero-section animated-gradient-bg" id="hero">
         <div class="hero-container">
             <div style="position:relative; z-index:1;">
-                <div class="hero-badge animate-fade-up">OPEN SOURCE PROJECT</div>
                 <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay<br><span class="animated-text-gradient">Custom Implementation</span></h1>
                 <p class="hero-subtitle animate-fade-up delay-2">Open Source Screen Capture Utility</p>
-                <p class="hero-description animate-fade-up delay-3">A custom screen capture implementation inspired by NVIDIA ShadowPlay™ featuring overlay UI, built entirely in <strong>VB.NET</strong> with <strong>No-Hook</strong> architecture. Record engine powered by <strong>FFmpeg</strong>. Built over <strong>3+ years</strong>.</p>
-                <div class="tech-info animate-fade-up delay-4">Built with VB.NET • No Hook Design • FFmpeg Powered</div>
+                <p class="hero-description animate-fade-up delay-3">A custom screen capture implementation inspired by NVIDIA ShadowPlay™ featuring overlay UI, built entirely in <strong>VB.NET</strong> with <strong>No-Hook</strong> architecture. Record engine powered by <strong>FFmpeg</strong>.</p>
+            
                 <div class="hero-cta-group animate-fade-up delay-5">
-                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/tag/Download" class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">Download</a>
-                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" class="btn-secondary magnetic-btn" target="_blank"><span class="icon-nvidia"></span> Star Repository</a>
-                    <a href="#features" class="btn-secondary magnetic-btn"><span class="icon-nvidia"></span> Learn More</a>
+                    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/BETA/NVIDIA.ShadowPlay.3.3.1777.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation" target="_blank">Download</a> <a class="alert-item alert-warning"><div><strong>Announcement :</strong> None</div></a>   
                 </div>
-                <div class="alert-inline animate-fade-up delay-6">
-                    <div class="alert-item alert-note"><div><strong>NOTE :</strong> Built in <strong>VB.NET</strong>, <strong>[No Hook]</strong>. Record Engine Powered by FFmpeg</div></div>
-                    <div class="alert-item alert-warning"><div><strong>WARNING :</strong> Some apps (<strong>Netflix</strong> / <strong>DRM content</strong>) cannot be recorded.</div></div>
+				  
+			    <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+                   
+				    <div class="title-row">
+                        <span class="card-status">Release</span>
+                        <h3 style="font-size:2rem;">NVIDIA ShadowPlay</h3>
+						<span class="status-badge status-soon">3.3.1777.1 <b>BETA</b></span>
+                    </div>
+					
+                    <div class="desc-row">
+                        <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+                       <p>
+Built and refined core systems including Recording Engine, Overlay UI, and Web platform.
+Integrated Animation Engine and Notifier system to enhance interactivity.
+Continuously optimized for performance, scalability, and seamless user experience through rapid iteration.
+</p>
+                    </div>
+                </div>
+				
+				
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Features Section -->
+  
+				
+    <!-- Features Section (คงเดิม) -->
     <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
         <div class="container">
             <div class="section-header"><span class="section-label">Features Overview</span><h2 class="section-title">Capture Your Best Moments</h2><p class="section-subtitle">Professional-grade features inspired by NVIDIA ShadowPlay</p></div>
             <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;" class="bento-grid">
                 <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
                      <div class="title-row">
-        <span class="card-status">FEATURED</span>
-           <h3 style="font-size:2rem;">Real-time Screen Recording</h3>
-    </div>
-				<div class="desc-row">
-				<span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
-     <p>Record your gameplay or desktop in real time.<br>High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.</p>
-   </div>
+                        <span class="card-status">FEATURED</span>
+                        <h3 style="font-size:2rem;">Real-time Screen Recording</h3>
+                    </div>
+                    <div class="desc-row">
+                        <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+                        <p>Record your gameplay or desktop in real time.<br>High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.</p>
+                    </div>
                     <ul style="list-style:none; margin-top:1.5rem;"><li style="padding:0.5rem 0;">- Hardware-accelerated encoding</li><li style="padding:0.5rem 0;">- Low CPU Usage</li><li style="padding:0.5rem 0;">- Supports multiple formats</li></ul>
                 </div>
-
-<div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
-    <div class="title-row">
-        <span class="card-status">READY</span>
-        <h3>Instant Replay</h3>
-    </div>
-   <div class="desc-row">
-    <span class="card-icon icon-nvidia"></span>
-    <p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p>
-   </div>
-</div>
-
-<div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
-    <div class="title-row">
-        <span class="card-status">READY</span>
-        <h3>Screenshot Capture</h3>
-    </div>
-<div class="desc-row">
-    <span class="card-icon icon-nvidia"></span>
-    <p>Snap crisp, high-resolution screenshots instantly — perfect for sharing or reviewing your best moments.</p>
-   </div>
-</div>
-
+                <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
+                    <div class="title-row"><span class="card-status">READY</span><h3>Instant Replay</h3></div>
+                    <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p></div>
+                </div>
+                <div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
+                    <div class="title-row"><span class="card-status">READY</span><h3>Screenshot Capture</h3></div>
+                    <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly — perfect for sharing or reviewing your best moments.</p></div>
+                </div>
                 <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
                         <div style="padding: 2.5rem;">
@@ -894,46 +937,59 @@
                 </div>
                 <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));"><span class="card-status" style="background:#EF4444; color:white;">SAFE</span><span class="card-icon icon-nvidia"></span><h3>No-Hook Architecture</h3><p>Safe and secure by design. No memory injection, no hooks — just pure stability.</p></div>
                 <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 2;"><span class="card-status">FAST</span><span class="card-icon icon-nvidia"></span><h3>NVIDIA Hardware Acceleration</h3><p>Fully optimized with NVIDIA NVENC via FFmpeg. Fast, efficient, and reliable GPU-based encoding.</p></div>
-          </div>
-            <div style="margin-top:4rem; text-align:center;"><h3 style="color:var(--nvidia-green);">Encoder Support Status</h3><div class="encoder-badges"><span class="encoder-badge badge-ready">NVIDIA NVENC — Ready</span><span class="encoder-badge badge-pending">Intel QSV — Coming Soon</span><span class="encoder-badge badge-pending">AMD AMF — Coming Soon</span></div><p style="color:var(--text-muted); margin-top:1.5rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p></div>
+               </div>
         </div>
     </section>
 
-    <!-- Stats Section (dynamic GitHub stars) -->
-    <section class="stats-section" id="stats">
-        <div style="position:relative; z-index:2;">
-            <div class="section-header" style="text-align:center;"><span class="section-label">Impact</span><h2 class="section-title" style="font-size:3.5rem;">Project Statistics</h2><p class="section-subtitle" style="margin:0 auto;">Numbers that speak for themselves</p></div>
-            <div class="stats-grid">
-                <div class="stat-card shine-effect"><div class="stat-number" data-target="2" id="downloadsCount">0</div><div class="stat-label">Downloads</div><div class="stat-description">And growing every day</div></div>
-                <div class="stat-card shine-effect"><div class="stat-number" data-target="2" id="starCount">0</div><div class="stat-label">GitHub Stars</div><div class="stat-description">Community love</div></div>
-                <div class="stat-card shine-effect"><div class="stat-number" data-target="3">0</div><div class="stat-label">Years of Development</div><div class="stat-description">Passion project</div></div>
-                <div class="stat-card shine-effect"><div class="stat-number" data-target="60">0</div><div class="stat-label">Performance Score</div><div class="stat-description">Optimized efficiency</div></div>
-            </div>
+
+
+    <!-- ========== ส่วนที่ 2: API CAPTURE & SPECS (การ์ดใหม่) ========== -->
+    <section id="api-specs" style="padding: var(--section-padding); background: var(--nvidia-dark-bg);">
+        <div class="container">
+            <div class="section-header"><span class="section-label">Encoder & Capture</span><p class="section-subtitle">Modern capture APIs + hardware encoder status — hover cards for underline effect</p></div>
+           <h2 class="section-title">Encoder Support</h2>
+		   <div class="api-cards-grid">
+		   <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-microchip"></i><h3 class="underline-effect">NVIDIA NVENC</h3></div><span class="status-badge status-ready">Ready</span></div><p>Full GPU encoding via FFmpeg, minimal performance impact.</p></div>
+                <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-line"></i><h3 class="underline-effect">Intel QSV</h3></div><span class="status-badge status-partial">Partial</span></div><p>Intel QuickSync Video support — planned.</p></div>
+              <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-chart-simple"></i><h3 class="underline-effect">AMD AMF</h3></div><span class="status-badge status-soon">Soon</span></div><p>AMD Advanced Media Framework encoder on roadmap.</p></div>
+	
+			      </div>
+				  <br>
+				    <h2 class="section-title">API Capture</h2>
+			<div>
+			
+                <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-window-maximize"></i><h3 class="underline-effect">Windows.Graphics.Capture</h3></div><span class="status-badge status-ready">Ready</span></div><p>Modern Windows 10/11 API, high-performance, borderless window capture. <strong>Recommended</strong>.</p></div>
+                <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-desktop"></i><h3 class="underline-effect">Desktop Duplication API</h3></div><span class="status-badge status-recommended">Recommended</span></div><p>DirectX-based duplication, minimal latency, captures exclusive fullscreen (with limitations).</p></div>
+                <div class="api-spec-card"><div class="card-header"><div class="card-title-icon"><i class="fas fa-camera-retro"></i><h3 class="underline-effect">GDI Screen Grabber</h3></div><span class="status-badge status-partial">Partial</span></div><p>Legacy fallback, CPU heavy. Use only when needed.</p></div>
+               
+			    	 </div>
         </div>
     </section>
 
-    <!-- Specs Section -->
-    <section id="specs"><div class="container"><div class="section-header"><span class="section-label">Technical Details</span><h2 class="section-title">API Capture & Specifications</h2><p class="section-subtitle">Comprehensive technical details about capture APIs, encoders, and architecture.</p></div><div class="two-col-layout"><div class="content-block"><div class="spec-card"><h3>API Capture Methods</h3><ul class="spec-list"><li><strong>Windows.Graphics.Capture</strong><br>Modern Windows 10/11 capture API</li><li><strong>Desktop Duplication API</strong><br>DirectX-based desktop duplication</li><li><strong>GDI Screen Grabber</strong><br>Legacy GDI-based screen capture</li></ul></div></div><div class="content-block"><div class="spec-card"><h3>Encoder Configuration</h3><ul class="spec-list"><li><strong>NVIDIA NVENC (h264_nvenc)</strong><br>Full GPU acceleration via FFmpeg</li><li><strong>Intel QSV</strong><br>Coming soon</li><li><strong>AMD AMF</strong><br>Coming soon</li></ul></div><div class="spec-card" style="margin-top:2rem; border-left-color:#3B82F6;"><h3 style="color:#3B82F6;">Architecture Highlights</h3><ul class="spec-list"><li><strong>No-Hook Design:</strong> Does not inject into other processes</li><li><strong>Borderless Windowed Mode:</strong> Reliable capture method</li><li><strong>FFmpeg Integration:</strong> Powerful multimedia framework</li></ul></div></div></div></div></section>
-
-    <!-- Requirements Section -->
+ 
+    <!-- Requirements Section (คงเดิม) -->
     <section id="requirements"><div class="container"><div class="section-header"><span class="section-label">Prerequisites</span><h2 class="section-title">System Requirements</h2><p class="section-subtitle">Ensure your system meets these requirements for optimal performance.</p></div><div style="max-width:1000px; margin:0 auto;"><div class="req-card req-important"><h3>IMPORTANT — Runtime Dependencies</h3><p><strong>.NET 8.0 Desktop Runtime</strong> — Required for application execution</p><p style="margin-top:1rem;"><strong>.NET 4.8 Framework</strong> — Additional framework dependency</p><p style="margin-top:1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p></div><div class="req-card req-caution"><h3>CAUTION — Known Limitations</h3><p><strong>Exclusive Fullscreen</strong> applications cannot be captured due to no-hook design on older Windows builds.</p><p style="margin-top:1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p><p style="margin-top:1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p></div><div class="req-card req-tip"><h3>TIP — Performance Optimization</h3><p>For best performance, use <strong>NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg.</p><p style="margin-top:1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p></div></div></div></section>
 
-    <!-- Architecture Section -->
-    <section id="architecture"><div class="container"><div class="section-header" style="text-align:center;"><span class="section-label">Architecture</span><h2 class="section-title">Project Structure</h2><p class="section-subtitle" style="margin:0 auto;">Built over <strong>3 years</strong> focusing on animation system, overlay UX, and performance</p></div><div class="code-block-wrapper" style="max-width:900px; margin:3rem auto 0;"><div class="code-header"><span class="dot dot-red"></span><span class="dot dot-yellow"></span><span class="dot dot-green"></span><span class="code-filename">NVIDIA-Shadowplay/</span></div><div class="code-body"><pre>NVIDIA-Shadowplay/
-├── API/
-│   ├── Windows.Graphics.Capture
-│   ├── Desktop Duplication API
-│   └── GDI Screen Grabber
-├── App Experience/
-├── Engine/
-├── Notifier/
-└── Overlay/</pre></div></div><div class="tech-stack-badges"><div class="tech-badge"><strong>Language</strong><span>Visual Basic .NET 100%</span></div><div class="tech-badge"><strong>Engine</strong><span>FFmpeg Powered</span></div><div class="tech-badge"><strong>Development Time</strong><span>3+ Years</span></div><div class="tech-badge"><strong>Design Focus</strong><span>Animation • UX • Performance</span></div></div></div></section>
+    <!-- ========== ส่วนที่ 3: ARCHITECTURE (5 modules, border colors) ========== -->
+    <section id="architecture" style="padding: var(--section-padding);">
+        <div class="container">
+            <div class="section-header" style="text-align:center;"><span class="section-label">Deep Dive</span><h2 class="section-title">Modular Architecture</h2><p class="section-subtitle" style="margin:0 auto;">Each module with distinct border color — real stack components</p></div>
+            <div class="arch-modules">
+                <div class="arch-card" style="border-left-color: #78B802;"><h3><i class="fas fa-plug"></i> API/</h3><p>Screen capture abstraction: Windows.Graphics.Capture, Desktop Duplication, GDI fallback. Provides unified interface for frame grabbing.</p></div>
+                <div class="arch-card" style="border-left-color: #3B82F6;"><h3><i class="fas fa-mobile-alt"></i> App Experience/</h3><p>User settings, hotkey manager, UI state, theming, and configuration persistence. Responsive design and smooth animations.</p></div>
+                <div class="arch-card" style="border-left-color: #F59E0B;"><h3><i class="fas fa-cogs"></i> Engine/</h3><p>FFmpeg encoding pipeline, replay buffer management, hardware acceleration dispatcher, and recording session controller.</p></div>
+                <div class="arch-card" style="border-left-color: #A855F7;"><h3><i class="fas fa-bell"></i> Notifier/</h3><p>System tray integration, toast notifications, error reporting, status updates, and user alerts for recording events.</p></div>
+                <div class="arch-card" style="border-left-color: #06B6D4;"><h3><i class="fas fa-layer-group"></i> Overlay/</h3><p>In-game borderless overlay with FPS counter, recording timer, hotkey hints. Built with No‑Hook for anti‑cheat compatibility.</p></div>
+            </div>
+            <div class="tech-stack-badges"><div class="tech-badge"><strong>Language</strong><span>Visual Basic .NET 100%</span></div><div class="tech-badge"><strong>Engine</strong><span>FFmpeg Powered</span></div><div class="tech-badge"><strong>Development Time</strong><span>3+ Years</span></div><div class="tech-badge"><strong>Design Focus</strong><span>Animation • UX • Performance</span></div></div>
+        </div>
+    </section>
 
-    <!-- Download Section -->
+    <!-- Download Section (คงเดิม) -->
     <section id="download"><div class="container"><div class="section-header" style="text-align:center;"><span class="section-label">Get Started</span><h2 class="section-title">Download & Installation</h2><p class="section-subtitle" style="margin:0 auto;">Get up and running in just a few simple steps</p></div><div class="download-steps"><div class="download-step"><h3>Prerequisites Checklist</h3><ol><li>Install <strong>.NET 8.0 Desktop Runtime</strong></li><li>Install <strong>.NET 4.8 Framework</strong></li><li>Ensure you're running <strong>Windows 8+</strong> / Server 2012+</li></ol></div><div class="download-step"><h3>Option 1: Download Release</h3><ol><li>Visit the <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank" style="color:var(--nvidia-green);">Releases page</a></li><li>Download the latest version</li><li>Extract ZIP archive to your preferred location</li><li>Run the executable!</li></ol></div><div class="download-step"><h3>Option 2: Build from Source</h3><div class="code-block-wrapper" style="margin-top:1rem;"><div class="code-body" style="padding:1.5rem;"><pre>git clone https://github.com/ScotcsDuluka/NVIDIA-Shadowplay.git
 # Then: Open solution in Visual Studio, restore NuGet, build Release, run</pre></div></div></div></div></div></section>
 
-    <!-- FAQ Section -->
+    <!-- FAQ Section (คงเดิม) -->
     <section id="faq">
         <div class="container">
             <div class="section-header" style="text-align:center;">
@@ -950,7 +1006,7 @@
         </div>
     </section>
 
-    <!-- Team Section -->
+    <!-- Team Section (คงเดิม) -->
     <section id="team">
         <div class="container">
             <div class="section-header" style="text-align:center;">
@@ -959,25 +1015,35 @@
                 <p class="section-subtitle" style="margin:0 auto;">The people behind this 3+ year development journey</p>
             </div>
             <div class="team-grid">
-                <div class="team-member">
-                    <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar">
-                    <h3>ScotcsDuluka</h3>
-                    <p class="member-role">Lead Developer & Designer</p>
-                    <p>Main developer behind this 3+ year project. Focused on architecture, UI/UX design, and animation system implementation.</p>
-                </div>
-                <div class="team-member">
-                    <img src="https://avatars.githubusercontent.com/u/269697472?s=200&v=4" alt="AphiwichKaemanee" class="member-avatar">
-                    <h3>Aphiwich Kaemanee</h3>
-                    <p class="member-role">Contributor</p>
-                    <p>Active collaborator on the project, contributing to features and improvements.</p>
-                </div>
-                <div class="team-member">
-                    <img src="https://pics.craiyon.com/2023-11-21/J-ets3iVSli5qam8CrBifg.webp" alt="Coming soon" class="member-avatar">
-                    <h3>Coming soon...</h3>
-                    <p class="member-role">Supporters</p>
-                    <p>He has always been there to help us.</p>
-                </div>
-            </div>
+    <div class="team-member">
+        <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar">
+        <h3>ScotcsDuluka</h3>
+        <p class="member-role">Lead Developer & Designer</p>
+        <p>
+            Creator and lead developer of the project. Responsible for system architecture, UI/UX design,
+            and development of core systems including the animation engine.
+        </p>
+    </div>
+
+    <div class="team-member">
+        <img src="https://avatars.githubusercontent.com/u/269697472?s=200&v=4" alt="AphiwichKaemanee" class="member-avatar">
+        <h3>AphiwichKaemanee</h3>
+        <p class="member-role">Collaborator</p>
+        <p>
+            Contributed to feature development, testing, and overall project improvements.
+            Actively involved in refining functionality and stability.
+        </p>
+    </div>
+
+    <div class="team-member">
+        <img src="https://pics.craiyon.com/2023-11-21/J-ets3iVSli5qam8CrBifg.webp" alt="Coming soon" class="member-avatar">
+        <h3>Coming Soon...</h3>
+        <p class="member-role">Supporters</p>
+        <p>
+            Individuals who support the project behind the scenes, helping it grow and improve over time.
+        </p>
+    </div>
+</div>
             <div style="text-align:center; margin-top:3rem; color:var(--text-gray); font-style:italic;">Built with passion and dedication to creating a high-quality screen capture experience.</div>
         </div>
     </section>
@@ -990,7 +1056,7 @@
         <div class="footer-bottom"><p class="copyright">© <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay™</p><p class="copyright">Built with <span class="heart">❤️</span> using VB.NET & FFmpeg</p></div>
     </footer>
 
-    <button class="back-to-top" id="backToTop" aria-label="Back to top">↑</button>
+    <button class="back-to-top" id="backToTop" aria-label="Back to top">Up Page</button>
 
     <script>
         // Smooth scroll for anchor links
@@ -1021,22 +1087,19 @@
         document.addEventListener('mousemove', (e) => { mouseX = e.clientX; mouseY = e.clientY; cursorDot.style.left = mouseX + 'px'; cursorDot.style.top = mouseY + 'px'; });
         function animateCursor() { cursorX += (mouseX - cursorX) * 0.15; cursorY += (mouseY - cursorY) * 0.15; cursor.style.left = cursorX + 'px'; cursor.style.top = cursorY + 'px'; requestAnimationFrame(animateCursor); }
         animateCursor();
-        document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline').forEach(el => { el.addEventListener('mouseenter', () => cursor.classList.add('hover')); el.addEventListener('mouseleave', () => cursor.classList.remove('hover')); });
+        document.querySelectorAll('a, button, .feature-card, .team-member, .btn-primary, .btn-outline, .api-spec-card, .arch-card').forEach(el => { el.addEventListener('mouseenter', () => cursor.classList.add('hover')); el.addEventListener('mouseleave', () => cursor.classList.remove('hover')); });
 
-        // Particles with prefers-reduced-motion check
+        // Particles (คงเดิม)
         const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         let particlesEnabled = !reduceMotion;
         const canvas = document.getElementById('particles-canvas');
         let ctx, particlesArray = [], animationId = null;
-
         if (particlesEnabled && canvas) {
             ctx = canvas.getContext('2d');
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-
             const mouse = { x: null, y: null, radius: 120 };
             window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
-
             class Particle {
                 constructor() {
                     this.x = Math.random() * canvas.width;
@@ -1072,12 +1135,7 @@
                     ctx.fill();
                 }
             }
-
-            function initParticles() {
-                particlesArray = [];
-                for (let i = 0; i < 80; i++) particlesArray.push(new Particle());
-            }
-
+            function initParticles() { particlesArray = []; for (let i = 0; i < 80; i++) particlesArray.push(new Particle()); }
             function animateParticles() {
                 if (!ctx) return;
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -1099,21 +1157,12 @@
                 }
                 animationId = requestAnimationFrame(animateParticles);
             }
-
-            window.addEventListener('resize', () => {
-                if (!particlesEnabled) return;
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                initParticles();
-            });
-
+            window.addEventListener('resize', () => { if (!particlesEnabled) return; canvas.width = window.innerWidth; canvas.height = window.innerHeight; initParticles(); });
             initParticles();
             animateParticles();
-        } else if (canvas) {
-            canvas.style.display = 'none';
-        }
+        } else if (canvas) { canvas.style.display = 'none'; }
 
-        // GitHub stars with fallback (localStorage)
+        // GitHub stars (คงเดิม)
         async function fetchGitHubStars() {
             const starElem = document.getElementById('starCount');
             if (!starElem) return;
@@ -1122,7 +1171,6 @@
             const now = Date.now();
             const cachedStars = localStorage.getItem(cacheKey);
             const cachedTime = localStorage.getItem(cacheTimeKey);
-            // use cache if less than 1 hour old
             if (cachedStars && cachedTime && (now - parseInt(cachedTime)) < 3600000) {
                 starElem.setAttribute('data-target', cachedStars);
                 starElem.innerText = cachedStars;
@@ -1138,18 +1186,11 @@
                     starElem.innerText = stars;
                     localStorage.setItem(cacheKey, stars);
                     localStorage.setItem(cacheTimeKey, now);
-                } else {
-                    throw new Error('No stars field');
-                }
+                } else { throw new Error('No stars field'); }
             } catch(e) {
                 console.warn("GitHub API failed, using fallback or cached");
-                if (cachedStars) {
-                    starElem.setAttribute('data-target', cachedStars);
-                    starElem.innerText = cachedStars;
-                } else {
-                    starElem.innerText = '?';
-                    starElem.setAttribute('data-target', '0');
-                }
+                if (cachedStars) { starElem.setAttribute('data-target', cachedStars); starElem.innerText = cachedStars; }
+                else { starElem.innerText = '?'; starElem.setAttribute('data-target', '0'); }
             }
         }
         fetchGitHubStars();
@@ -1213,7 +1254,7 @@
             });
         }
 
-        // FAQ Accordion (using button elements)
+        // FAQ Accordion
         document.querySelectorAll('.faq-question').forEach(q => {
             q.addEventListener('click', () => { q.parentElement.classList.toggle('active'); });
         });
@@ -1229,7 +1270,6 @@
             wave.style.top = e.clientY + 'px';
             document.body.appendChild(wave);
             setTimeout(() => wave.remove(), 600);
-
             for (let i = 0; i < 8; i++) {
                 const p = document.createElement('div');
                 p.className = 'click-particle';
