@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>NEXTGEN NVIDIA ShadowPlay</title>
   
-  <!-- Style -->
+  <!-- Stylesheets -->
   <link rel="stylesheet" href="css/style.css">
   <link rel="stylesheet" href="css/role.css">
   
@@ -15,7 +15,11 @@
   <!-- Google Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
   
+  <!-- Font Awesome (for icons used in architecture/modules) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
   <style>
+    /* Custom Fonts */
     @font-face {
       font-family: 'NvidiaIcons';
       src: url('resource/nvgcshare.woff2') format('woff2');
@@ -23,6 +27,15 @@
       font-style: normal;
       font-display: block;
     }
+    @font-face {
+      font-family: 'GeForce';
+      src: url('resource/GeForce-Bold-Alt.woff2') format('woff2');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    /* Icon Utility */
     .icon-nvidia {
       font-family: 'NvidiaIcons';
       speak: never;
@@ -34,25 +47,19 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
-	
-	@font-face {
-	font-family: 'GeForce';
-	src: url('resource/GeForce-Bold-Alt.woff2') format('woff2');
-	font-weight: bold;
-	font-style: normal;
-	font-display: swap;
-	}
   </style>
-  
 </head>
 <body class="custom-cursor-active">
   
+  <!-- Custom Cursor Elements -->
   <div class="custom-cursor" id="cursor"></div>
   <div class="cursor-dot" id="cursorDot"></div>
+  
+  <!-- Background Particles & Scroll Progress -->
   <canvas id="particles-canvas"></canvas>
   <div class="scroll-progress" id="scrollProgress"></div>
 
-  <!-- Navigation -->
+  <!-- ==================== NAVIGATION ==================== -->
   <nav class="main-nav">
     <a href="#" class="nav-brand" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
       <span class="hero-badge animate-fade-up">OPEN SOURCE PROJECT</span>
@@ -70,6 +77,8 @@
       <span></span><span></span><span></span>
     </button>
   </nav>
+  
+  <!-- Mobile Menu -->
   <div class="mobile-menu" id="mobileMenu">
     <a href="#features">Features</a>
     <a href="#api-specs">API Capture</a>
@@ -80,23 +89,17 @@
     <a target="_blank" href="https://discord.gg/v5qUGVD3jZ">Discord Server</a>
   </div>
 
-  <!-- Hero Section -->
+  <!-- ==================== HERO SECTION ==================== -->
   <section class="hero-section animated-gradient-bg" id="hero">
     <div class="hero-container">
-      <div style="position:relative; z-index:1;">
-       <h1 class="hero-title animate-fade-up delay-1">
-  NVIDIA ShadowPlay
-</h1>
-
-<h2 class="animated-text-gradient">
-  Capture Every Moment
-</h2>
-        <h3 class="animated-text-gradient">Zero latency. Zero compromise. Built for performance.</h3><br>
+      <div style="position: relative; z-index: 1;">
+        <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay</h1>
+        <h2 class="animated-text-gradient">Capture Every Moment</h2>
+        <h3 class="animated-text-gradient">Zero latency. Zero compromise. Built for performance.</h3>
+        <br>
         
         <div class="hero-cta-group animate-fade-up delay-5">
-          <a href="#download-section" class="btn-primary magnetic-btn pulse-glow-animation">
-            Download for Windows
-          </a>
+          <a href="#download-section" class="btn-primary magnetic-btn pulse-glow-animation">Download for Windows</a>
           <a class="alert-item alert-warning">
             <div><strong>Announcement :</strong> PRE-RELEASE | October 10th, 2026 – The future is almost here</div>
           </a>
@@ -105,25 +108,27 @@
         <!-- In-game Overlay Card -->
         <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
           <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+            <!-- Left: Text Content -->
             <div style="padding: 2.5rem;">
               <div class="title-row">
-                <span class="card-status" STYLE="font-family: 'GeForce', 'Inter', sans-serif;
-  letter-spacing: 1.3px; font-size:1.5rem;">Game Ready</span>
-                <h3 style="font-size:2.4rem;">In-game Overlay</h3><br>
+                <span class="card-status" style="font-family: 'GeForce', 'Inter', sans-serif; letter-spacing: 1.3px; font-size: 1.5rem;">Game Ready</span>
+                <h3 style="font-size: 2.4rem;">In-game Overlay</h3>
+                <br>
               </div>
               <div class="desc-row">
-                <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
-                <p style="font-size:1.1rem;">Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.</p>
+                <span class="card-icon icon-nvidia" style="font-size: 5rem;"></span>
+                <p style="font-size: 1.1rem;">Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.</p>
               </div>
-              <ul style="list-style:none; margin-top:1.5rem;">
-                <li style="padding:0.5rem 0;">- Borderless Windowed Design</li>
-                <li style="padding:0.5rem 0;">- Real-time Performance Checked</li>
-                <li style="padding:0.5rem 0;">- Keyboard Shortcut Access</li>
-                <li style="padding:0.5rem 0; list-style:none;">
-                  <a href="games.html" class="game-see" style="color:#76B900; text-decoration:none; font-weight:600;">- View Supported Games</a>
-				  </li>
+              <ul style="list-style: none; margin-top: 1.5rem;">
+                <li style="padding: 0.5rem 0;">- Borderless Windowed Design</li>
+                <li style="padding: 0.5rem 0;">- Real-time Performance Checked</li>
+                <li style="padding: 0.5rem 0;">- Keyboard Shortcut Access</li>
+                <li style="padding: 0.5rem 0; list-style: none;">
+                  <a href="games.html" class="game-see" style="color: #76B900; text-decoration: none; font-weight: 600;">- View Supported Games</a>
+                </li>
               </ul>
             </div>
+            <!-- Right: Image -->
             <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
               <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
               <img src="resource/overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
@@ -134,95 +139,102 @@
     </div>
   </section>
 
-  <!-- Download Section -->
+  <!-- Anchor for download section -->
   <div id="download-section"></div>
+
+  <!-- ==================== FEATURES & DOWNLOAD ==================== -->
   <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
     <div class="container">
       <span class="section-label">DOWNLOAD NVIDIA SHADOWPLAY</span>
       
       <!-- Release Card -->
       <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
-        <div class="title-row" style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-          <div style="display:flex; align-items:center; gap:1rem;">
+        <div class="title-row" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
             <span class="card-status">Release</span>
-            <h3 style="font-size:2rem; margin:0;">NVIDIA ShadowPlay</h3>
+            <h3 style="font-size: 2rem; margin: 0;">NVIDIA ShadowPlay</h3>
             <span class="status-badge status-ready">3.3.2057.1</span>
             <span class="status-badge status-partial">Windows x64 bit</span>
             <span class="status-badge status-soon">App + Runtime + Resources</span>
           </div>
         </div>
-        <div class="desc-row" style="margin-top:1.5rem;">
-          <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation">
-            Download Installer
-          </a>
-          <p style="margin-left:1.5rem;">
+        <div class="desc-row" style="margin-top: 1.5rem;">
+          <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation">Download Installer</a>
+          <p style="margin-left: 1.5rem;">
             This stable release of NVIDIA ShadowPlay is built for smooth and reliable everyday use, delivering high-performance<br>recording with minimal impact on gameplay.
           </p>
         </div>
       </div>
 
       <!-- Pre-Release Card -->
-      <div class="feature-card animate-scale delay-0 tilt-card" style="margin-top:1.5rem; grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(255, 174, 0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
-        <div class="title-row" style="display:flex; justify-content:space-between; align-items:center; gap:1rem;">
-          <div style="display:flex; align-items:center; gap:1rem;">
-            <span class="card-status" style="background:#ffae00;">Pre-Release</span>
-            <h3 style="font-size:2rem; margin:0;">NVIDIA ShadowPlay</h3>
+      <div class="feature-card animate-scale delay-0 tilt-card" style="margin-top: 1.5rem; grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(255, 174, 0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+        <div class="title-row" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="card-status" style="background: #ffae00;">Pre-Release</span>
+            <h3 style="font-size: 2rem; margin: 0;">NVIDIA ShadowPlay</h3>
             <span class="status-badge status-ready">Coming soon</span>
             <span class="status-badge status-partial">Experimental</span>
             <span class="status-badge status-soon">App + Runtime</span>
           </div>
         </div>
-        <div class="desc-row" style="margin-top:1.5rem;">
-		<!-- href="#download-section" -->
-          <a  class="btn-primary magnetic-btn pulse-glow-animation">Coming Soon</a>
-          <p style="margin-left:1.5rem;">
-            This experimental build provides early access to new features and ongoing improvements.<br> While it offers the latest updates and faster iteration,<br>it may include bugs and is recommended for advanced users who want to test upcoming changes.
+        <div class="desc-row" style="margin-top: 1.5rem;">
+          <a class="btn-primary magnetic-btn pulse-glow-animation">Coming Soon</a>
+          <p style="margin-left: 1.5rem;">
+            This experimental build provides early access to new features and ongoing improvements.<br> 
+            While it offers the latest updates and faster iteration,<br>it may include bugs and is recommended for advanced users who want to test upcoming changes.
           </p>
         </div>
       </div>
 
       <br><br><br><br>
 
-      <!-- Features Overview -->
+      <!-- Features Overview Header -->
       <div class="section-header">
         <span class="section-label">Features Overview</span>
         <h2 class="section-title">Capture Your Best Moments</h2>
         <p class="section-subtitle">Professional-grade features inspired by NVIDIA ShadowPlay</p>
       </div>
+      
+      <!-- Bento Grid Features -->
       <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;" class="bento-grid">
+        
         <!-- Real-time Screen Recording -->
         <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
           <div class="title-row">
             <span class="card-status">FEATURED</span>
-            <h3 style="font-size:2rem;">Real-time Screen Recording</h3>
+            <h3 style="font-size: 2rem;">Real-time Screen Recording</h3>
           </div>
           <div class="desc-row">
-            <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
+            <span class="card-icon icon-nvidia" style="font-size: 5rem;"></span>
             <p>Record your gameplay or desktop in real time.<br>High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.</p>
           </div>
-          <ul style="list-style:none; margin-top:1.5rem;">
-            <li style="padding:0.5rem 0;">- Hardware-accelerated encoding</li>
-            <li style="padding:0.5rem 0;">- Low CPU Usage</li>
-            <li style="padding:0.5rem 0;">- Supports multiple formats</li>
+          <ul style="list-style: none; margin-top: 1.5rem;">
+            <li style="padding: 0.5rem 0;">- Hardware-accelerated encoding</li>
+            <li style="padding: 0.5rem 0;">- Low CPU Usage</li>
+            <li style="padding: 0.5rem 0;">- Supports multiple formats</li>
           </ul>
         </div>
+        
         <!-- Instant Replay -->
         <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
           <div class="title-row"><span class="card-status">READY</span><h3>Instant Replay</h3></div>
           <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p></div>
         </div>
+        
         <!-- Screenshot -->
         <div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
           <div class="title-row"><span class="card-status">READY</span><h3>Screenshot</h3></div>
           <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly — perfect for sharing or reviewing your best moments.</p></div>
         </div>
+        
         <!-- No-Hook Architecture -->
         <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));">
-          <span class="card-status" style="background:#EF4444; color:white;">SAFE</span>
+          <span class="card-status" style="background: #EF4444; color: white;">SAFE</span>
           <span class="card-icon icon-nvidia"></span>
           <h3>No-Hook Architecture</h3>
           <p>Safe and secure by design. No memory injection, no hooks — just pure stability.</p>
         </div>
+        
         <!-- Hardware Acceleration -->
         <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 2;">
           <span class="card-status">FAST</span>
@@ -234,15 +246,17 @@
     </div>
   </section>
 
-  <!-- API Capture & Specs -->
+  <!-- ==================== API CAPTURE & SPECS ==================== -->
   <section id="api-specs" style="padding: var(--section-padding); background: var(--nvidia-dark-bg);">
     <div class="container">
       <div class="section-header">
         <span class="section-label">Encoder & Capture</span>
         <p class="section-subtitle">Modern capture APIs + hardware encoder status</p>
       </div>
+      
       <h2 class="section-title">Encoder Support</h2>
       <div class="api-cards-grid">
+        <!-- NVENC -->
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><i class="fas fa-microchip"></i><h3 class="underline-effect">NVIDIA NVENC</h3></div>
@@ -250,6 +264,7 @@
           </div>
           <p>Full GPU encoding via FFmpeg, minimal performance impact.</p>
         </div>
+        <!-- Intel QSV -->
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><i class="fas fa-chart-line"></i><h3 class="underline-effect">Intel QSV</h3></div>
@@ -257,6 +272,7 @@
           </div>
           <p>Intel QuickSync Video support — planned.</p>
         </div>
+        <!-- AMD AMF -->
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><i class="fas fa-chart-simple"></i><h3 class="underline-effect">AMD AMF</h3></div>
@@ -265,9 +281,11 @@
           <p>AMD Advanced Media Framework encoder on roadmap.</p>
         </div>
       </div>
+      
       <br>
       <h2 class="section-title">API Capture</h2>
       <div>
+        <!-- Windows.Graphics.Capture -->
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><i class="fas fa-window-maximize"></i><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
@@ -275,6 +293,7 @@
           </div>
           <p>Modern Windows 10/11 API, high-performance, borderless window capture. <strong>Recommended</strong>.</p>
         </div>
+        <!-- Desktop Duplication API -->
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><i class="fas fa-desktop"></i><h3 class="underline-effect">Desktop Duplication API</h3></div>
@@ -282,6 +301,7 @@
           </div>
           <p>DirectX-based duplication, minimal latency, captures exclusive fullscreen (with limitations).</p>
         </div>
+        <!-- GDI Screen Grabber -->
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><i class="fas fa-camera-retro"></i><h3 class="underline-effect">GDI Screen Grabber</h3></div>
@@ -293,7 +313,7 @@
     </div>
   </section>
 
-  <!-- Requirements Section -->
+  <!-- ==================== REQUIREMENTS ==================== -->
   <section id="requirements">
     <div class="container">
       <div class="section-header">
@@ -301,35 +321,35 @@
         <h2 class="section-title">System Requirements</h2>
         <p class="section-subtitle">Ensure your system meets these requirements for optimal performance.</p>
       </div>
-      <div style="max-width:1000px; margin:0 auto;">
+      <div style="max-width: 1000px; margin: 0 auto;">
         <div class="req-card req-important">
           <h3>IMPORTANT — Runtime Dependencies</h3>
           <p><strong>.NET 8.0 Desktop Runtime</strong> — Required for application execution</p>
-          <p style="margin-top:1rem;"><strong>.NET 4.8 Framework</strong> — Additional framework dependency</p>
-          <p style="margin-top:1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p>
+          <p style="margin-top: 1rem;"><strong>.NET 4.8 Framework</strong> — Additional framework dependency</p>
+          <p style="margin-top: 1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p>
         </div>
         <div class="req-card req-caution">
           <h3>CAUTION — Known Limitations</h3>
           <p><strong>Exclusive Fullscreen</strong> applications cannot be captured due to no-hook design on older Windows builds.</p>
-          <p style="margin-top:1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p>
-          <p style="margin-top:1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p>
+          <p style="margin-top: 1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p>
+          <p style="margin-top: 1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p>
         </div>
         <div class="req-card req-tip">
           <h3>TIP — Performance Optimization</h3>
           <p>For best performance, use <strong>NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg.</p>
-          <p style="margin-top:1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p>
+          <p style="margin-top: 1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- Architecture Section -->
+  <!-- ==================== ARCHITECTURE ==================== -->
   <section id="architecture" style="padding: var(--section-padding);">
     <div class="container">
-      <div class="section-header" style="text-align:center;">
+      <div class="section-header" style="text-align: center;">
         <span class="section-label">Deep Dive</span>
         <h2 class="section-title">Modular Architecture</h2>
-        <p class="section-subtitle" style="margin:0 auto;">Each module with distinct border color — real stack components</p>
+        <p class="section-subtitle" style="margin: 0 auto;">Each module with distinct border color — real stack components</p>
       </div>
       <div class="arch-modules">
         <div class="arch-card" style="border-left-color: #78B802;">
@@ -366,10 +386,10 @@
     </div>
   </section>
 
-  <!-- FAQ Section -->
+  <!-- ==================== FAQ ==================== -->
   <section id="faq">
     <div class="container">
-      <div class="section-header" style="text-align:center;">
+      <div class="section-header" style="text-align: center;">
         <span class="section-label">Common Questions</span>
         <h2 class="section-title">Frequently Asked Questions</h2>
         <p class="section-subtitle">Everything you need to know about the project</p>
@@ -395,68 +415,49 @@
     </div>
   </section>
 
-  <!-- Team Section -->
+  <!-- ==================== TEAM ==================== -->
   <section id="team">
     <div class="container">
-      <div class="section-header" style="text-align:center;">
+      <div class="section-header" style="text-align: center;">
         <span class="section-label">Contributors</span>
         <h2 class="section-title">Meet The Team</h2>
-        <p class="section-subtitle" style="margin:0 auto;">
+        <p class="section-subtitle" style="margin: 0 auto;">
           Driven by passion, built through 3+ years of continuous innovation and refinement.
         </p>
       </div>
 
       <div class="team-grid">
-       <!-- ScotcsDuluka -->
-<div class="team-member" >
-  <div class="member-avatar-wrapper">
-    <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar" style="
-       
-        border-radius: 50%;
-    ">
-  </div>
-  <div class="member-content">
-  <div class="member-header">
-    <span class="member-name rainbow-name">ScotcsDuluka</span>
-    <div class="member-role">
-      <span class="role-title rainbow-text">Founder • Visionary Architect • System Overmind</span>
-      
-      <!-- Tier 1: Identity (Fixed) -->
-      <span class="card-status legacy" style="background: #ff5555">3+ YEARS LEGACY</span>
-      <span class="card-status origin glow">OWNERSHIP</span>
-      <span class="card-status mythic" style="
-        color: black;
-        text-shadow:
-          0 0 5px white,
-          0 0 10px white,
-          0 0 15px white;
-      ">MYTHIC FOUNDER</span>
-      
-      <!-- Tier 2: Core Technology (Fixed) -->
-      <span class="card-status realtime">ORIGIN CORE</span>
-      
-      <!-- Tier 3: New Capabilities (UPDATED!) -->
-      <span class="card-status elite">FULL-STACK SYSTEM BUILDER</span>
-      <span class="card-status ui">REAL-TIME INTERFACE ARCHITECT</span>
-      <span class="card-status perf">WEBSITE Editor</span>
-      
-      <!-- หน้าที่ใหม่ ScotcsDuluka พร้อม glow background -->
-      
-    </div>
-  </div>
-  
-  <p class="member-description">
-    The creator and driving force behind the entire project — from the first concept to full execution. 
-    Responsible for architecting the system, designing the user experience, and engineering every core component 
-    including the recording engine, overlay system, and animation framework.
-    <br><br>
-    Known for pushing technical boundaries and turning complex ideas into seamless, real-time experiences. 
-    Continuously refining performance, scalability, and innovation to deliver a product that stands above the rest.
-    <br><br>
-    <span>Not just building software — defining the experience.</span>
-  </p>
-</div>
-</div>
+        <!-- ScotcsDuluka -->
+        <div class="team-member">
+          <div class="member-avatar-wrapper">
+            <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar" style="border-radius: 50%;">
+          </div>
+          <div class="member-content">
+            <div class="member-header">
+              <span class="member-name rainbow-name">ScotcsDuluka</span>
+              <div class="member-role">
+                <span class="role-title rainbow-text">Founder • Visionary Architect • System Overmind</span>
+                <span class="card-status legacy" style="background: #ff5555;">3+ YEARS LEGACY</span>
+                <span class="card-status origin glow">OWNERSHIP</span>
+                <span class="card-status mythic" style="color: black; text-shadow: 0 0 5px white, 0 0 10px white, 0 0 15px white;">MYTHIC FOUNDER</span>
+                <span class="card-status realtime">ORIGIN CORE</span>
+                <span class="card-status elite">FULL-STACK SYSTEM BUILDER</span>
+                <span class="card-status ui">REAL-TIME INTERFACE ARCHITECT</span>
+                <span class="card-status perf">WEBSITE Editor</span>
+              </div>
+            </div>
+            <p class="member-description">
+              The creator and driving force behind the entire project — from the first concept to full execution. 
+              Responsible for architecting the system, designing the user experience, and engineering every core component 
+              including the recording engine, overlay system, and animation framework.
+              <br><br>
+              Known for pushing technical boundaries and turning complex ideas into seamless, real-time experiences. 
+              Continuously refining performance, scalability, and innovation to deliver a product that stands above the rest.
+              <br><br>
+              <span>Not just building software — defining the experience.</span>
+            </p>
+          </div>
+        </div>
 
         <!-- Aphiwich -->
         <div class="team-member">
@@ -470,13 +471,7 @@
                 <span class="role-title">Core Contributor • QA Specialist • System Tester</span>
                 <span class="card-status">ACTIVE</span>
                 <span class="card-status trusted">TRUSTED BUILDER</span>
-				<span class="card-status scotcs-glow" style="
-    color: #00fad5; 
-    text-shadow:
-      0 0 4px #00ffd5,
-      0 0 8px #ff77ff;
-    background: linear-gradient(45deg, #ff77aa, #ff55ff);
-  ">FRIEND</span>
+                <span class="card-status scotcs-glow" style="color: #00fad5; text-shadow: 0 0 4px #00ffd5, 0 0 8px #ff77ff; background: linear-gradient(45deg, #ff77aa, #ff55ff);">FRIEND</span>
               </div>
             </div>
             <p class="member-description">
@@ -502,15 +497,7 @@
                 <span class="role-title">Backer • Supporter • Silent Contributor</span>
                 <span class="card-status join">SUPPORTING</span>
                 <span class="card-status next">BEHIND THE SCENES</span>
-				<span class="card-status scotcs-glow" style="
-    color: #ffdd00;
-    text-shadow:
-      0 0 8px #ffdd00,
-      0 0 16px #ffaa00,
-      0 0 24px #ff5500;
-    background: linear-gradient(45deg, #ff5555, #ffaa00);
-    box-shadow: 0 0 5px #ffdd00, 0 0 20px #ffaa00 inset;
-  ">SENIOR</span>
+                <span class="card-status scotcs-glow" style="color: #ffdd00; text-shadow: 0 0 8px #ffdd00, 0 0 16px #ffaa00, 0 0 24px #ff5500; background: linear-gradient(45deg, #ff5555, #ffaa00); box-shadow: 0 0 5px #ffdd00, 0 0 20px #ffaa00 inset;">SENIOR</span>
               </div>
             </div>
             <p class="member-description">
@@ -525,13 +512,13 @@
         </div>
       </div>
 
-      <div style="text-align:center; margin-top:3.5rem; color:var(--text-gray); font-style:italic; opacity:0.8;">
+      <div style="text-align: center; margin-top: 3.5rem; color: var(--text-gray); font-style: italic; opacity: 0.8;">
         Crafted with passion, engineered for performance, and continuously evolving.
       </div>
     </div>
   </section>
 
-  <!-- Footer -->
+  <!-- ==================== FOOTER ==================== -->
   <footer>
     <div class="footer-grid">
       <div class="footer-brand">
