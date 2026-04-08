@@ -31,6 +31,14 @@
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
     }
+	
+	@font-face {
+	font-family: 'GeForce';
+	src: url('GeForce Bold-Alt.woff2') format('woff2');
+	font-weight: bold;
+	font-style: normal;
+	font-display: swap;
+	}
   </style>
   
   <style>
@@ -61,6 +69,11 @@
       --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
       --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
     }
+
+
+
+
+
 
     /* ---------- BASE & RESET ---------- */
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -222,25 +235,33 @@
     }
     .hero-title {
       font-size: 4.5rem; font-weight: 800; line-height: 1.05;
-      margin-bottom: 1.5rem; letter-spacing: -2px;
+      margin-bottom: 1.5rem; 
+	  font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px;
     }
     .hero-subtitle {
       font-size: 1.35rem; color: var(--nvidia-green);
       font-weight: 600; margin-bottom: 1.5rem;
+	  
     }
     .hero-description {
       font-size: 1.25rem; color: var(--text-gray); max-width: 900px;
       margin-bottom: 2.5rem; line-height: 1.8;
+	  
     }
     .tech-info {
       display: inline-flex; align-items: center; gap: 12px;
       background: var(--nvidia-gray-dark); padding: 0.8rem 1.5rem;
       border-radius: var(--radius-sm); margin-bottom: 2.5rem;
       font-size: 0.95rem; color: var(--text-gray);
+	   font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px;
     }
     .hero-cta-group {
       display: flex; gap: 1.2rem; flex-wrap: wrap; align-items: center;
       margin-bottom: 2.5rem;
+	   font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px;
     }
     .btn-primary {
       display: inline-flex; align-items: center; gap: 10px;
@@ -251,6 +272,8 @@
       box-shadow: 0 4px 20px rgba(118, 185, 0, 0.25);
       position: relative; overflow: hidden;
       -webkit-tap-highlight-color: transparent;
+	   font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px;
     }
     .btn-primary::before {
       content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
@@ -277,6 +300,7 @@
     .alert-note {
       background: rgba(59, 130, 246, 0.1); border-left: 4px solid #3B82F6;
       color: #93C5FD;
+	  
     }
    .alert-warning {
             background: rgba(255, 68, 68, 0.15);
@@ -445,6 +469,8 @@
     .section-title {
       font-size: 3.5rem; font-weight: 800; letter-spacing: -1.5px;
       margin-bottom: 1.5rem; line-height: 1.1;
+	   font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px;
     }
     .section-subtitle {
       font-size: 1.2rem; color: var(--text-gray); max-width: 750px;
@@ -467,6 +493,7 @@
       border: 1px solid var(--border-color);
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       position: relative; overflow: hidden;
+	  
     }
     .feature-card::before {
       content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
@@ -486,6 +513,7 @@
       color: var(--nvidia-black); padding: 0.3rem 0.9rem;
       border-radius: var(--radius-sm); font-size: 0.75rem;
       font-weight: 700; letter-spacing: 1px;
+	  
     }
     .card-icon {
       font-size: 3rem; display: block;
@@ -494,6 +522,8 @@
     }
     .feature-card h3 {
       font-size: 1.5rem; font-weight: 700; color: var(--text-white);
+	   font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px;
     }
     .feature-card p {
       color: var(--text-gray); line-height: 1.7; font-size: 1rem;
@@ -1245,8 +1275,9 @@
           <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
             <div style="padding: 2.5rem;">
               <div class="title-row">
-                <span class="card-status">Game Ready</span>
-                <h3 style="font-size:2rem;">In-game Overlay</h3><br>
+                <span class="card-status" STYLE="font-family: 'GeForce', 'Inter', sans-serif;
+  letter-spacing: 1.3px; font-size:1.5rem;">Game Ready</span>
+                <h3 style="font-size:2.4rem;">In-game Overlay</h3><br>
               </div>
               <div class="desc-row">
                 <span class="card-icon icon-nvidia" style="font-size:5rem;"></span>
