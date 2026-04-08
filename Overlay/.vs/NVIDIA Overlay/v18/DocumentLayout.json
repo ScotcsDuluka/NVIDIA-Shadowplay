@@ -3,19 +3,6 @@
   "WorkspaceRootPath": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}|..\\App Experience\\NVIDIA Experience.vbproj|c:\\my project\\nvidia-shadowplay\\app experience\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}|..\\App Experience\\NVIDIA Experience.vbproj|c:\\my project\\nvidia-shadowplay\\app experience\\fonts.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}|..\\App Experience\\NVIDIA Experience.vbproj|c:\\my project\\nvidia-shadowplay\\app experience\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
-      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
@@ -26,8 +13,21 @@
       "AbsoluteMoniker": "D:0:0:{F7369117-4B71-950A-C4CB-D6E0D5E5A225}|..\\API\\NVIDIA API.vbproj|c:\\my project\\nvidia-shadowplay\\api\\load.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
     },
     {
+      "AbsoluteMoniker": "D:0:0:{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}|..\\App Experience\\NVIDIA Experience.vbproj|c:\\my project\\nvidia-shadowplay\\app experience\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}|..\\App Experience\\NVIDIA Experience.vbproj|c:\\my project\\nvidia-shadowplay\\app experience\\fonts.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}"
+    },
+    {
       "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\nvidia overlay.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|",
       "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:nvidia overlay.vbproj||{04B8AB82-A572-4FEF-95CE-5222444B6B64}|"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|c:\\my project\\nvidia-shadowplay\\overlay\\[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form",
+      "RelativeMoniker": "D:0:0:{47D8F77D-2B51-4033-BDDC-F3DD81079D6E}|NVIDIA Overlay.vbproj|solutionrelative:[forms overlay - project files]\\[ui overlay]\\[index]\\[base]\\[main menu]\\[1] main menu.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}|..\\App Experience\\NVIDIA Experience.vbproj|c:\\my project\\nvidia-shadowplay\\app experience\\main.vb||{2C015C70-C72C-11D0-88C3-00A0C9110049}|Form"
     }
   ],
   "DocumentGroupContainers": [
@@ -37,11 +37,11 @@
       "DocumentGroups": [
         {
           "DockedWidth": 200,
-          "SelectedChildIndex": 5,
+          "SelectedChildIndex": 9,
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 7,
+              "DocumentIndex": 5,
               "Title": "NVIDIA Overlay",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\NVIDIA Overlay.vbproj",
               "RelativeDocumentMoniker": "NVIDIA Overlay.vbproj",
@@ -49,11 +49,12 @@
               "RelativeToolTip": "NVIDIA Overlay.vbproj",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003380|",
               "WhenOpened": "2026-04-07T14:40:20.017Z",
-              "IsPinned": true
+              "IsPinned": true,
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 6,
               "Title": "[1] Main Menu.vb [Design]",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
               "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
@@ -66,11 +67,15 @@
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
+              "DocumentIndex": 7,
               "Title": "Main.vb [Design]",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\Main.vb",
               "RelativeDocumentMoniker": "..\\App Experience\\Main.vb",
@@ -82,7 +87,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 1,
+              "DocumentIndex": 4,
               "Title": "FONTS.vb",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\FONTS.vb",
               "RelativeDocumentMoniker": "..\\App Experience\\FONTS.vb",
@@ -95,7 +100,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 0,
+              "DocumentIndex": 3,
               "Title": "Main.vb",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\App Experience\\Main.vb",
               "RelativeDocumentMoniker": "..\\App Experience\\Main.vb",
@@ -108,7 +113,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
+              "DocumentIndex": 2,
               "Title": "Load.vb",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\API\\Load.vb",
               "RelativeDocumentMoniker": "..\\API\\Load.vb",
@@ -121,7 +126,7 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 5,
+              "DocumentIndex": 1,
               "Title": "FONTS.vb",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\API\\FONTS.vb",
               "RelativeDocumentMoniker": "..\\API\\FONTS.vb",
@@ -134,24 +139,20 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 0,
               "Title": "[1] Main Menu.vb",
               "DocumentMoniker": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
               "RelativeDocumentMoniker": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
               "ToolTip": "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
               "RelativeToolTip": "[Forms Overlay - Project Files]\\[UI OVERLAY]\\[index]\\[Base]\\[Main Menu]\\[1] Main Menu.vb",
-              "ViewState": "AgIAALQAAAAAAAAAAAAcwOkAAAAOAAAAAAAAAA==",
+              "ViewState": "AgIAALQAAAAAAAAAAAAcwLoAAABKAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003361|",
               "WhenOpened": "2026-04-07T14:40:27.994Z",
               "EditorCaption": ""
             },
             {
               "$type": "Bookmark",
-              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
-            },
-            {
-              "$type": "Bookmark",
-              "Name": "ST:0:0:{aa2115a1-9712-457b-9047-dbb71ca2cdd2}"
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
             }
           ]
         }
