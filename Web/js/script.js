@@ -9,7 +9,7 @@
         if (cursor) cursor.style.display = 'none';
         if (cursorDot) cursorDot.style.display = 'none';
       }
-
+ 
       // ---------- SMOOTH SCROLL FOR ANCHOR LINKS ----------
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
