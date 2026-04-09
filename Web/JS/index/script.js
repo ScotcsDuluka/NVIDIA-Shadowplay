@@ -399,7 +399,3 @@ document.querySelectorAll('.req-tab').forEach(tab => {
   });
 });
 
-// Initialize first tab's scores
-setTimeout(() => {
-  document.querySelector('#tab-minimum .score-fill').style.width = '65%';
-}, 500);
