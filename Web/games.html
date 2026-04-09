@@ -1,71 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+    <style>
+          @font-face { font-family: 'GeForce'; src: url('Assets/GeForce-Bold-Alt.woff2') format('woff2'); font-weight: bold; font-style: normal; font-display: swap; }
+    @font-face { font-family: 'NvidiaIcons'; src: url('Assets/nvgcshare.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: block; }
+    
+    </style>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Supported Games – NVIDIA ShadowPlay</title>
   <link rel="icon" type="image/png" href="https://camo.githubusercontent.com/189f450c3c7997fd8f52d7b7278d18c04674aa747ff66745eaa21bb099ac2436/68747470733a2f2f63646e322e737465616d6772696464622e636f6d2f69636f6e2f65383835356233353238636230336431646566393830333232306264336362392f33322f34387834382e706e67">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <style>
-    @font-face { font-family: 'GeForce'; src: url('resource/GeForce-Bold-Alt.woff2') format('woff2'); font-weight: bold; font-style: normal; font-display: swap; }
-    @font-face { font-family: 'NvidiaIcons'; src: url('resource/nvgcshare.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: block; }
-    .icon-nvidia { font-family: 'NvidiaIcons'; font-weight: normal; font-style: normal; line-height: 1; -webkit-font-smoothing: antialiased; }
-    :root {
-      --nvidia-green: #78B802; --nvidia-green-hover: #8FC93A; --nvidia-black: #000000;
-      --nvidia-gray-dark: #141414; --text-white: #FFFFFF; --text-gray: #BEBEBE;
-      --border-color: rgba(255,255,255,0.1); --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
-    }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html { overflow-x: hidden; height: 100%; }
-    body {
-      font-family: 'Inter', sans-serif; background-color: var(--nvidia-black); color: var(--text-white);
-      line-height: 1.6; height: 100%; min-height: 100vh; display: block; padding: 0;
-      overflow-y: auto; overflow-x: hidden; opacity: 0;
-      animation: pageEnter 0.6s var(--ease-out-expo) forwards;
-      cursor: default;
-    }
-    @keyframes pageEnter { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-    body.page-exit { animation: pageExit 0.3s var(--ease-out-expo) forwards; }
-    @keyframes pageExit { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.96); } }
-    @keyframes fadeUp { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
-    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--nvidia-gray-dark); } ::-webkit-scrollbar-thumb { background: var(--nvidia-green); }
-    #particles-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
-    .main-content { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; z-index: 2; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem; animation: fadeUp 0.5s var(--ease-out-expo) 0.1s both; }
-    .back-link { color: var(--nvidia-green); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; font-family: 'GeForce', sans-serif; }
-    .back-link:hover { gap: 12px; color: var(--nvidia-green-hover); }
-    h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: 1.2px; background: linear-gradient(90deg, #fff, var(--nvidia-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.5rem; font-family: 'GeForce', sans-serif; animation: fadeUp 0.5s var(--ease-out-expo) 0.15s both; }
-    .statusVER { background: rgba(34,197,94,0.2); border-left: 3px solid #22C55E; color: #22C55E; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1rem; text-transform: uppercase; letter-spacing: 1px; }
-    .info-note { background: rgba(118,185,0,0.1); border-left: 4px solid var(--nvidia-green); padding: 1rem 1.5rem; margin-bottom: 2.5rem; color: var(--text-gray); animation: fadeUp 0.5s var(--ease-out-expo) 0.25s both; font-size: 0.95rem; }
-    .filter-bar { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; animation: fadeUp 0.5s var(--ease-out-expo) 0.3s both; }
-    .search-box { flex: 1; min-width: 250px; background: var(--nvidia-gray-dark); border: 1px solid var(--border-color); padding: 0.8rem 1.2rem; color: white; font-size: 1rem; outline: none; }
-    .search-box:focus { border-color: var(--nvidia-green); }
-    .filter-tag { background: transparent; border: 1px solid var(--border-color); color: var(--text-gray); padding: 0.8rem 1.5rem; cursor: pointer; font-weight: 600; font-family: 'GeForce', sans-serif; transition: all 0.2s; }
-    .filter-tag.active { background: var(--nvidia-green); border-color: var(--nvidia-green); color: black; }
-    .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; margin: 2rem 0 3rem; }
-    .game-card {
-      background: var(--nvidia-gray-dark); border: 1px solid var(--border-color);
-      padding: 1.5rem; transition: all 0.25s; display: flex; flex-direction: column;
-      border-left: 4px solid var(--nvidia-green); opacity: 0; transform: translateY(20px);
-      animation: cardAppear 0.5s var(--ease-out-expo) forwards;
-      animation-delay: calc(0.05s * var(--index, 0));
-    }
-    @keyframes cardAppear { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
-    .game-card:hover { transform: translateY(-8px) scale(1.02); border-color: var(--nvidia-green); box-shadow: 0 20px 30px -8px rgba(0,0,0,0.7); }
-    .game-name { font-size: 1.3rem; font-weight: 700; font-family: 'GeForce', sans-serif; margin-bottom: 0.75rem; }
-    .game-status { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.9rem; align-self: flex-start; text-transform: uppercase; letter-spacing: 1px; }
-    .status-full { background: #22C55E20; color: #22C55E; border: 1px solid #22C55E40; }
-    .status-borderless { background: #3B82F620; color: #60A5FA; border: 1px solid #3B82F640; }
-    .status-limited { background: #F59E0B20; color: #FBBF24; border: 1px solid #F59E0B40; }
-    .legend { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color); animation: fadeUp 0.5s var(--ease-out-expo) 0.4s both; }
-    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
-    .color-dot { width: 14px; height: 14px; border-radius: 2px; }
-    .footer-note { margin-top: 3rem; text-align: center; color: #6E6E6E; animation: fadeUp 0.5s var(--ease-out-expo) 0.45s both; }
-    @media (max-width: 600px) {
-      .main-content { padding: 1rem; } h1 { font-size: 1.8rem; } .filter-bar { flex-direction: column; }
-      .games-grid { grid-template-columns: 1fr; }
-    }
-  </style>
+  <link rel="stylesheet" href="CSS/games/style.css">
 </head>
 <body>
   <canvas id="particles-canvas"></canvas>
@@ -97,118 +43,6 @@
       Based on internal process detection — automatically updated
     </div>
   </div>
-  <script>
-    (function() {
-      // ---------- PARTICLES ----------
-      const canvas = document.getElementById('particles-canvas');
-      if (canvas) {
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        const particleCount = 35;
-        function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resizeCanvas); resizeCanvas();
-        class Particle {
-          constructor() { this.x = Math.random()*canvas.width; this.y = Math.random()*canvas.height; this.size = Math.random()*1.5+0.8; this.speedX = Math.random()*1.2-0.5; this.speedY = Math.random()*1.2-0.5; this.opacity = Math.random()*0.7+0.3; }
-          update() { this.x += this.speedX; this.y += this.speedY; if(this.x<0||this.x>canvas.width) this.speedX*=-1; if(this.y<0||this.y>canvas.height) this.speedY*=-1; }
-          draw() { ctx.fillStyle = `rgba(120,184,2,${this.opacity})`; ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI*2); ctx.fill(); }
-        }
-        for(let i=0; i<particleCount; i++) particles.push(new Particle());
-        function animate() { ctx.clearRect(0,0,canvas.width,canvas.height); particles.forEach(p=>{ p.update(); p.draw(); }); requestAnimationFrame(animate); }
-        animate();
-      }
-
-      // ---------- PROCESS LIST (ชื่อที่ตรวจจับได้) พร้อม mapping เป็นชื่อเกมและสถานะ ----------
-      const processMapping = {
-        "minecraft": { display: "Minecraft", status: "full" },
-        "javaw": { display: "Minecraft (Java)", status: "full" },
-        "robloxplayerbeta": { display: "Roblox", status: "full" },
-        "robloxcrashhandler": { display: "Roblox", status: "full" },
-        "java": { display: "Java Edition", status: "full" },
-        "crashhandler": { display: "Crash Handler", status: "limited" },
-        "gta5": { display: "GTA V", status: "borderless" },
-        "hd-player": { display: "HD Player", status: "limited" },
-        "a dance of fire and ice": { display: "A Dance of Fire and Ice", status: "borderless" },
-        "aot": { display: "Attack on Titan", status: "full" },
-        "aot2_as": { display: "Attack on Titan 2", status: "full" },
-        "iw5mp": { display: "CoD: MW3 Multiplayer", status: "limited" },
-        "iw5sp": { display: "CoD: MW3 Singleplayer", status: "limited" },
-        "obscure": { display: "Obscure", status: "full" },
-        "genshinimpact": { display: "Genshin Impact", status: "borderless" },
-        "gta5_enhanced": { display: "GTA V Enhanced", status: "borderless" },
-        "dwrg": { display: "Dead by Daylight", status: "full" },
-        "dungeons": { display: "Minecraft Dungeons", status: "full" },
-        "minecraftlegends.windows": { display: "Minecraft Legends", status: "full" },
-        "secret neighbour": { display: "Secret Neighbor", status: "full" },
-        "smash_legends": { display: "Smash Legends", status: "full" },
-        "asphalt9_steam_x64_rtl": { display: "Asphalt 9: Legends", status: "full" },
-        "furmark_gui": { display: "FurMark", status: "limited" },
-        "misidefull": { display: "MiSide", status: "full" },
-        "miside zero": { display: "MiSide Zero", status: "full" },
-        "HSHO-Win64-Shipping": { display: "Hello Neighbor", status: "full" },
-        "re9": { display: "Resident Evil 9", status: "limited" },
-        "re4": { display: "Resident Evil 4", status: "full" }
-      };
-
-      const processList = [
-        "minecraft", "javaw", "robloxplayerbeta", "robloxcrashhandler", "java",
-        "crashhandler", "gta5", "hd-player", "a dance of fire and ice", "aot",
-        "aot2_as", "iw5mp", "iw5sp", "obscure", "genshinimpact", "gta5_enhanced",
-        "dwrg", "dungeons", "minecraftlegends.windows", "secret neighbour",
-        "smash_legends", "asphalt9_steam_x64_rtl", "furmark_gui", "misidefull",
-        "miside zero", "HSHO-Win64-Shipping", "re9", "re4"
-      ];
-
-      // สร้าง gamesData แบบกระชับ (แค่ชื่อกับ status)
-      const gamesData = processList.map(proc => {
-        const mapped = processMapping[proc] || { display: proc, status: "full" };
-        return {
-          name: mapped.display,
-          status: mapped.status
-        };
-      }).sort((a, b) => a.name.localeCompare(b.name));
-
-      // ---------- RENDER (ไม่มีไอคอน) ----------
-      const container = document.getElementById('gamesContainer');
-      const searchInput = document.getElementById('searchInput');
-      const filterBtns = document.querySelectorAll('.filter-tag');
-      let currentFilter = 'all', searchTerm = '';
-
-      function render() {
-        const filtered = gamesData.filter(g => 
-          (currentFilter === 'all' || g.status === currentFilter) &&
-          (!searchTerm || g.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        );
-        if (!filtered.length) {
-          container.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-gray);padding:3rem;">No games found</p>';
-          return;
-        }
-        container.innerHTML = filtered.map((g, i) => {
-          const cls = g.status === 'full' ? 'status-full' : g.status === 'borderless' ? 'status-borderless' : 'status-limited';
-          const txt = g.status === 'full' ? 'FULL SUPPORT' : g.status === 'borderless' ? 'BORDERLESS' : 'LIMITED';
-          return `
-            <div class="game-card" style="--index:${i}">
-              <div class="game-name">${g.name}</div>
-              <span class="game-status ${cls}">${txt}</span>
-            </div>
-          `;
-        }).join('');
-      }
-
-      searchInput.addEventListener('input', (e) => { searchTerm = e.target.value; render(); });
-      filterBtns.forEach(btn => btn.addEventListener('click', () => {
-        filterBtns.forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFilter = btn.dataset.filter;
-        render();
-      }));
-      render();
-
-      document.getElementById('backButton').addEventListener('click', (e) => {
-        e.preventDefault();
-        document.body.classList.add('page-exit');
-        setTimeout(() => { window.location.href = 'index.html'; }, 250);
-      });
-    })();
-  </script>
+  <script src="JS/games/script.js"></script>
 </body>
 </html>
