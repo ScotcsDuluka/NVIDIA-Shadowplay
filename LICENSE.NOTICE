@@ -1,0 +1,49 @@
+NOTICE File for NVIDIA ShadowPlay
+
+=====================================
+Third-Party Components Attribution
+=====================================
+
+This product includes software developed by:
+
+1. Mark Heath - NAudio Library
+   Website: https://github.com/naudio/NAudio
+   License: MIT
+   Source files: NAudio.Core.dll, NAudio.Wasapi.dll
+
+2. James Newton-King - JSON.NET (Newtonsoft.Json)
+   Website: https://www.newtonsoft.com/json
+   License: MIT
+   Source file: Newtonsoft.Json.dll
+
+3. The LAME Project - libmp3lame
+   Website: https://lame.sourceforge.io/
+   License: LGPL-2.0
+   Source files: libmp3lame.32.dll, libmp3lame.64.dll
+
+4. FFmpeg Developers - FFmpeg
+   Website: https://ffmpeg.org/
+   License: LGPLv2.1+ / GPLv2+
+   Used for: Video encoding pipeline
+
+5. Microsoft Corporation - .NET Runtime & Windows SDK
+   Website: https://dotnet.microsoft.com/
+   License: MIT
+   Source files: Microsoft.Windows.SDK.NET.dll, WinRT.Runtime.dll, etc.
+
+6. NVIDIA Corporation - NVENC Encoder Technology
+   Website: https://developer.nvidia.com/nvidia-video-codec-sdk
+   Used via: FFmpeg nvenc integration
+   Requires: NVIDIA GPU with NVENC support
+
+=====================================
+Project Information
+=====================================
+
+Project Name: SD Shadowplay (NVIDIA ShadowPlay)
+Version: 3.3.2057.1-BETA
+Author: ScotcsDuluka
+Repository: https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
+Website: https://scotcsduluka-project-nvidiashaodwplay.netlify.app
+
+Copyright (c) 2024 ScotcsDuluka. All rights reserved.
