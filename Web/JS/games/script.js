@@ -23,7 +23,7 @@
   const filterBtns = document.querySelectorAll('.filter-tag');
   let currentFilter = 'all', searchTerm = '', gamesData = [];
 
-  fetch('/JSON/games/games.json')
+  fetch('JSON/games/games.json')
     .then(response => response.json())
     .then(data => {
       gamesData = data.map(item => ({

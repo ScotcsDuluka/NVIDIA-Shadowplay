@@ -4,9 +4,21 @@
       --border-color: rgba(255,255,255,0.1); --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
     }
 
-    @font-face { font-family: 'GeForce'; src: url('/Assets/GeForce-Bold-Alt.woff2') format('woff2'); font-weight: bold; font-style: normal; font-display: swap; }
-    @font-face { font-family: 'NvidiaIcons'; src: url('Assets/nvgcshare.woff2') format('woff2'); font-weight: normal; font-style: normal; font-display: block; }
-    
+@font-face {
+  font-family: 'GeForce';
+  src: url('../../Assets/GeForce-Bold-Alt.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'NvidiaIcons';
+  src: url('../../Assets/nvgcshare.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
 
 
     .icon-nvidia { font-family: 'NvidiaIcons'; font-weight: normal; font-style: normal; line-height: 1; -webkit-font-smoothing: antialiased; }
