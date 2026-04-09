@@ -96,7 +96,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 | Role | Name | Description |
 |------|------|-------------|
 | **Creator & Lead Developer** | [ScotcsDuluka](https://github.com/ScotcsDuluka) | Architecture, UX Design, Core Engine, Overlay System, Animation Framework |
-| **Tester & QA** | [ApiwitKaemanee](https://www.facebook.com/profile.php?id=61577847980691)) | Testing, Validation, Stability Assurance |
+| **Tester & QA** | [ApiwitKaemanee](https://www.facebook.com/profile.php?id=61577847980691) | Testing, Validation, Stability Assurance |
 
 ---
 
