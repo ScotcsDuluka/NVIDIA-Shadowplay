@@ -22,8 +22,20 @@
 
 
     .icon-nvidia { font-family: 'NvidiaIcons'; font-weight: normal; font-style: normal; line-height: 1; -webkit-font-smoothing: antialiased; }
-   
-   
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--nvidia-green); transform: scaleX(0);
+      transform-origin: left; transition: transform 0.4s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .feature-card:hover {
+        transform: translateY(-12px) scale(1.02);
+        border-color: rgba(118, 185, 0, 0.5);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 30px rgba(118, 185, 0, 0.15);
+      }
+      .feature-card:hover::before { transform: scaleX(1); }
+    }
+  
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { overflow-x: hidden; height: 100%; }
     body {
@@ -43,6 +55,7 @@
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem; animation: fadeUp 0.5s var(--ease-out-expo) 0.1s both; }
     .back-link { color: var(--nvidia-green); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; font-family: 'GeForce', sans-serif; }
     .back-link:hover { gap: 12px; color: var(--nvidia-green-hover); }
+
     h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: 1.2px; background: linear-gradient(90deg, #fff, var(--nvidia-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.5rem; font-family: 'GeForce', sans-serif; animation: fadeUp 0.5s var(--ease-out-expo) 0.15s both; }
     .statusVER { background: rgba(34,197,94,0.2); border-left: 3px solid #22C55E; color: #22C55E; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1rem; text-transform: uppercase; letter-spacing: 1px; }
     .info-note { background: rgba(118,185,0,0.1); border-left: 4px solid var(--nvidia-green); padding: 1rem 1.5rem; margin-bottom: 2.5rem; color: var(--text-gray); animation: fadeUp 0.5s var(--ease-out-expo) 0.25s both; font-size: 0.95rem; }

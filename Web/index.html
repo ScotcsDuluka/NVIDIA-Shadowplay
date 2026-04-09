@@ -158,12 +158,17 @@
             <span class="status-badge status-soon">App + Runtime + Resources</span>
           </div>
         </div>
-        <div class="desc-row" style="margin-top: 1.5rem;">
-          <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation">Download Installer</a>
-          <p style="margin-left: 1.5rem;">
-            This stable release of NVIDIA ShadowPlay is built for smooth and reliable everyday use, delivering high-performance<br>recording with minimal impact on gameplay.
-          </p>
-        </div>
+     <div class="desc-row" style="margin-top: 1.5rem;">
+  <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe" class="btn-primary magnetic-btn pulse-glow-animation">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px; vertical-align: middle;">
+      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+    </svg>
+    Download Installer
+  </a>
+  <p style="margin-left: 1.5rem;">
+    This stable release of NVIDIA ShadowPlay is built for smooth and reliable everyday use, delivering high-performance<br>recording with minimal impact on gameplay.
+  </p>
+</div>
       </div>
 
       <!-- Pre-Release Card -->
@@ -259,7 +264,7 @@
         <!-- NVENC -->
         <div class="api-spec-card">
           <div class="card-header">
-            <div class="card-title-icon"><i class="fas fa-microchip"></i><h3 class="underline-effect">NVIDIA NVENC</h3></div>
+            <div class="card-title-icon"><h3 class="underline-effect">NVIDIA NVENC</h3></div>
             <span class="status-badge status-ready">Ready</span>
           </div>
           <p>Full GPU encoding via FFmpeg, minimal performance impact.</p>
@@ -267,7 +272,7 @@
         <!-- Intel QSV -->
         <div class="api-spec-card">
           <div class="card-header">
-            <div class="card-title-icon"><i class="fas fa-chart-line"></i><h3 class="underline-effect">Intel QSV</h3></div>
+            <div class="card-title-icon"><h3 class="underline-effect">Intel QSV</h3></div>
             <span class="status-badge status-partial">Partial</span>
           </div>
           <p>Intel QuickSync Video support — planned.</p>
@@ -275,7 +280,7 @@
         <!-- AMD AMF -->
         <div class="api-spec-card">
           <div class="card-header">
-            <div class="card-title-icon"><i class="fas fa-chart-simple"></i><h3 class="underline-effect">AMD AMF</h3></div>
+            <div class="card-title-icon"><h3 class="underline-effect">AMD AMF</h3></div>
             <span class="status-badge status-soon">Soon</span>
           </div>
           <p>AMD Advanced Media Framework encoder on roadmap.</p>
@@ -288,7 +293,7 @@
         <!-- Windows.Graphics.Capture -->
         <div class="api-spec-card">
           <div class="card-header">
-            <div class="card-title-icon"><i class="fas fa-window-maximize"></i><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
+            <div class="card-title-icon"><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
             <span class="status-badge status-ready">Ready</span>
           </div>
           <p>Modern Windows 10/11 API, high-performance, borderless window capture. <strong>Recommended</strong>.</p>
@@ -296,7 +301,7 @@
         <!-- Desktop Duplication API -->
         <div class="api-spec-card">
           <div class="card-header">
-            <div class="card-title-icon"><i class="fas fa-desktop"></i><h3 class="underline-effect">Desktop Duplication API</h3></div>
+            <div class="card-title-icon"><h3 class="underline-effect">Desktop Duplication API</h3></div>
             <span class="status-badge status-recommended">Recommended</span>
           </div>
           <p>DirectX-based duplication, minimal latency, captures exclusive fullscreen (with limitations).</p>
@@ -304,7 +309,7 @@
         <!-- GDI Screen Grabber -->
         <div class="api-spec-card">
           <div class="card-header">
-            <div class="card-title-icon"><i class="fas fa-camera-retro"></i><h3 class="underline-effect">GDI Screen Grabber</h3></div>
+            <div class="card-title-icon"><h3 class="underline-effect">GDI Screen Grabber</h3></div>
             <span class="status-badge status-partial">Partial</span>
           </div>
           <p>Legacy fallback, CPU heavy. Use only when needed.</p>
@@ -353,27 +358,27 @@
       </div>
       <div class="arch-modules">
         <div class="arch-card" style="border-left-color: #78B802;">
-          <h3><i class="fas fa-plug"></i> API/</h3>
+          <h3> API/</h3>
           <p>Screen capture abstraction: Windows.Graphics.Capture, Desktop Duplication, GDI fallback. Provides unified interface for frame grabbing.</p>
         </div>
         <div class="arch-card" style="border-left-color: #3B82F6;">
-          <h3><i class="fas fa-mobile-alt"></i> App Experience/</h3>
+          <h3> App Experience/</h3>
           <p>User settings, hotkey manager, UI state, theming, and configuration persistence. Responsive design and smooth animations.</p>
         </div>
         <div class="arch-card" style="border-left-color: #F59E0B;">
-          <h3><i class="fas fa-cogs"></i> Engine/</h3>
+          <h3> Engine/</h3>
           <p>FFmpeg encoding pipeline, replay buffer management, hardware acceleration dispatcher, and recording session controller.</p>
         </div>
         <div class="arch-card" style="border-left-color: #A855F7;">
-          <h3><i class="fas fa-bell"></i> Notifier/</h3>
+          <h3> Notifier/</h3>
           <p>System tray integration, toast notifications, error reporting, status updates, and user alerts for recording events.</p>
         </div>
         <div class="arch-card" style="border-left-color: #06B6D4;">
-          <h3><i class="fas fa-layer-group"></i> Overlay/</h3>
+          <h3> Overlay/</h3>
           <p>In-game borderless overlay with FPS counter, recording timer, hotkey hints. Built with No-Hook for anti-cheat compatibility.</p>
         </div>
         <div class="arch-card" style="border-left-color: #A85527;">
-          <h3><i class="fas fa-bell"></i> Coming Soon/</h3>
+          <h3> Coming Soon/</h3>
           <p>Nahhhh, i need boost speeded<br>This is new feature.</p>
         </div>
       </div>
