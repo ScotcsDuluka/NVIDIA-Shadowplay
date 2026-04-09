@@ -318,35 +318,93 @@
     </div>
   </section>
 
-  <!-- ==================== REQUIREMENTS ==================== -->
-  <section id="requirements">
-    <div class="container">
-      <div class="section-header">
-        <span class="section-label">Prerequisites</span>
-        <h2 class="section-title">System Requirements</h2>
-        <p class="section-subtitle">Ensure your system meets these requirements for optimal performance.</p>
-      </div>
-      <div style="max-width: 1000px; margin: 0 auto;">
-        <div class="req-card req-important">
-          <h3>IMPORTANT — Runtime Dependencies</h3>
-          <p><strong>.NET 8.0 Desktop Runtime</strong> — Required for application execution</p>
-          <p style="margin-top: 1rem;"><strong>.NET 4.8 Framework</strong> — Additional framework dependency</p>
-          <p style="margin-top: 1rem;"><strong>Operating System:</strong> Windows 8 / Server 2012 or newer (<strong>Windows 7 is NOT supported</strong>)</p>
-        </div>
-        <div class="req-card req-caution">
-          <h3>CAUTION — Known Limitations</h3>
-          <p><strong>Exclusive Fullscreen</strong> applications cannot be captured due to no-hook design on older Windows builds.</p>
-          <p style="margin-top: 1rem;">Please use <strong>"Borderless Windowed"</strong> mode in your games for reliable recording.</p>
-          <p style="margin-top: 1rem;">Some DRM-protected content (<strong>Netflix</strong>, etc.) cannot be recorded due to protection mechanisms.</p>
-        </div>
-        <div class="req-card req-tip">
-          <h3>TIP — Performance Optimization</h3>
-          <p>For best performance, use <strong>NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg.</p>
-          <p style="margin-top: 1rem;"><strong>Recommended Resolution: 1920 x 1080</strong></p>
-        </div>
-      </div>
+
+  <!-- ==================== REQUIREMENTS (NVIDIA STYLE) ==================== -->
+<section id="requirements" style="padding: var(--section-padding); background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%);">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">Prerequisites</span>
+      <h2 class="section-title">System Requirements</h2>
+      <p class="section-subtitle">Ensure your system meets these specifications for optimal recording performance</p>
     </div>
-  </section>
+
+    <!-- Bento Grid Layout -->
+    <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;" class="req-bento-grid">
+      
+      <!-- CRITICAL: Operating System (Spans 2 cols) -->
+      <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 2; grid-row: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.08), var(--nvidia-gray-dark)); padding: 2.5rem;">
+        <div class="title-row">
+          <span class="card-status" style="background: #EF4444;">CRITICAL</span>
+          <h3 style="font-size: 1.6rem;">Operating System</h3>
+        </div>
+        <div class="desc-row">
+          <span class="card-icon"><i class="fab fa-windows" style="font-size: 3rem; color: #3B82F6;"></i></span>
+          <div>
+            <p style="margin-bottom: 1rem;"><strong style="color: var(--text-white);">Windows 8 / Server 2012 or newer</strong> (64-bit required)</p>
+            <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+              <span class="status-badge status-ready">Win 10/11</span>
+              <span class="status-badge status-ready">Win 8</span>
+              <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Win 7</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Runtime Dependencies -->
+      <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 1; grid-row: span 1; background: linear-gradient(135deg, rgba(168,85,247,0.08), var(--nvidia-gray-dark));">
+        <div class="title-row">
+          <span class="card-status" style="background: #A855F7;">REQUIRED</span>
+          <h3 style="font-size: 1.4rem;">.NET Runtime</h3>
+        </div>
+        <div class="desc-row">
+          <span class="card-icon"><i class="fas fa-cube" style="font-size: 2.5rem; color: #A855F7;"></i></span>
+          <p><strong style="color: var(--text-white);">.NET 8.0 Desktop</strong><br>+ .NET 4.8 Framework</p>
+        </div>
+        <a href="#download-section" class="btn-primary" style="margin-top: 1rem; padding: 0.7rem 1.5rem; font-size: 0.9rem; display: inline-flex;">Download</a>
+      </div>
+
+
+      <!-- CAUTION: DRM Warning (Spans full width) -->
+      <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--nvidia-gray-dark));">
+        <div class="title-row">
+          <span class="card-status" style="background: #EF4444;">CAUTION</span>
+          <h3 style="font-size: 1.5rem;">Known Limitations</h3>
+        </div>
+        <div class="desc-row">
+          <span class="card-icon"><i class="fas fa-shield-alt" style="font-size: 3rem; color: #EF4444;"></i></span>
+          <div style="flex: 1;">
+            <ul style="list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr); gap: 0.8rem;">
+              <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #EF4444; color: var(--text-gray); font-size: 0.9rem;">
+                <strong style="color: #EF4444;">DRM Content:</strong> Netflix/Disney+ blocked by Windows protection
+              </li>
+              <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #F59E0B; color: var(--text-gray); font-size: 0.9rem;">
+                <strong style="color: #F59E0B;">Fullscreen:</strong> Exclusive mode not supported (no-hook design)
+              </li>
+              <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #78B802; color: var(--text-gray); font-size: 0.9rem;">
+                <strong style="color: #78B802;">Solution:</strong> Use Borderless Windowed mode in games
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIP Card -->
+      <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--nvidia-gray-dark)); border: 1px dashed rgba(34,197,94,0.3);">
+        <div class="title-row">
+          <span class="card-status" style="background: #22C55E;">TIP</span>
+          <h3 style="font-size: 1.4rem;">Performance Optimization</h3>
+        </div>
+        <div class="desc-row">
+          <span class="card-icon"><i class="fas fa-lightbulb" style="font-size: 2.5rem; color: #22C55E;"></i></span>
+          <p style="flex: 1;">For best results, use <strong style="color: #78B802;">NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg at <strong style="color: var(--text-white);">1920 × 1080 resolution</strong>. This ensures minimal CPU usage and maximum recording quality.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
 
   <!-- ==================== ARCHITECTURE ==================== -->
   <section id="architecture" style="padding: var(--section-padding);">
@@ -381,12 +439,6 @@
           <h3> Coming Soon/</h3>
           <p>Nahhhh, i need boost speeded<br>This is new feature.</p>
         </div>
-      </div>
-      <div class="tech-stack-badges">
-        <div class="tech-badge"><strong>Language</strong><span>Visual Basic .NET 100%</span></div>
-        <div class="tech-badge"><strong>Engine</strong><span>FFmpeg Powered</span></div>
-        <div class="tech-badge"><strong>Development Time</strong><span>3+ Years</span></div>
-        <div class="tech-badge"><strong>Design Focus</strong><span>Animation • UX • Performance</span></div>
       </div>
     </div>
   </section>

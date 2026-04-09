@@ -366,3 +366,40 @@
          }, 600);
       };
     })();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    // ===== TABS FUNCTIONALITY =====
+document.querySelectorAll('.req-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    // Remove active from all tabs
+    document.querySelectorAll('.req-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.req-tab-content').forEach(c => c.classList.remove('active'));
+    
+    // Add active to clicked tab
+    tab.classList.add('active');
+    const tabId = tab.getAttribute('data-tab');
+    document.getElementById(`tab-${tabId}`).classList.add('active');
+    
+    // Animate score bars
+    setTimeout(() => {
+      document.querySelectorAll('.score-fill').forEach(fill => {
+        const score = fill.getAttribute('data-score');
+        fill.style.width = `${score}%`;
+      });
+    }, 300);
+  });
+});
+
+// Initialize first tab's scores
+setTimeout(() => {
+  document.querySelector('#tab-minimum .score-fill').style.width = '65%';
+}, 500);

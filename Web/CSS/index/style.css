@@ -580,60 +580,42 @@
       background: rgba(107, 114, 128, 0.15); border: 1px solid rgba(107, 114, 128, 0.4);
       color: #9CA3AF;
     }
-    .req-card {
-      background: var(--nvidia-gray-dark); padding: 2.5rem;
-      border-radius: var(--radius-md); border-left: 4px solid; margin-bottom: 2rem;
-    }
-    .req-important { border-color: #EF4444; }
-    .req-caution { border-color: #A855F7; }
-    .req-tip { border-color: #22C55E; }
-    .req-card h3 { font-size: 1.6rem; font-weight: 700; margin-bottom: 1.5rem; }
-    .req-important h3 { color: #EF4444; }
-    .req-caution h3 { color: #A855F7; }
-    .req-tip h3 { color: #22C55E; }
-    .code-block-wrapper {
-      background: #0D1117; border: 1px solid #30363D;
-      border-radius: var(--radius-md); overflow: hidden; margin: 2rem 0;
-    }
-    .code-header {
-      background: #161B22; padding: 1rem 1.5rem;
-      border-bottom: 1px solid #30363D; display: flex; align-items: center; gap: 8px;
-    }
-    .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .dot-red { background: #FF5F56; }
-    .dot-yellow { background: #FFBD2E; }
-    .dot-green { background: #27CA40; }
-    .code-body {
-      padding: 2rem; overflow-x: auto; -webkit-overflow-scrolling: touch;
-    }
-    .code-body pre {
-      margin: 0; font-family: monospace; font-size: 0.85rem;
-      color: #E6EDF3; white-space: pre-wrap; word-break: break-all;
-    }
-    .tech-stack-badges {
-      display: flex; gap: 1.5rem; justify-content: center; flex-wrap: wrap; margin-top: 3rem;
-    }
-    .tech-badge {
-      background: var(--nvidia-gray); padding: 1.2rem 2rem;
-      border-radius: var(--radius-md); border: 1px solid rgba(118, 185, 0, 0.2);
-      text-align: center; min-width: 180px; transition: all 0.3s;
-    }
-    .tech-badge:hover {
-      border-color: var(--nvidia-green); transform: translateY(-5px);
-    }
-    .tech-badge strong {
-      display: block; color: var(--nvidia-green); font-size: 1.1rem;
-      margin-bottom: 0.4rem;
-    }
-    .download-steps { max-width: 900px; margin: 3rem auto 0; }
-    .download-step {
-      background: var(--nvidia-gray-dark); padding: 2.5rem;
-      border-radius: var(--radius-md); margin-bottom: 2rem;
-      border-left: 4px solid var(--nvidia-green);
-    }
-    .download-step h3 {
-      font-size: 1.6rem; color: var(--nvidia-green); margin-bottom: 1.5rem;
-    }
+  
+
+
+
+@media (max-width: 768px) {
+  .bento-grid > div { 
+    grid-column: span 1 !important; 
+    grid-row: span 1 !important; 
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     /* ---------- TEAM SECTION ---------- */
     .team-grid {
