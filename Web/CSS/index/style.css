@@ -242,7 +242,7 @@
     .alert-item {
       padding: 1rem 1.5rem; border-radius: var(--radius-sm);
       font-size: 0.95rem; line-height: 1.6;
-      display: flex; align-items: flex-start; gap: 12px; max-width: 900px;
+      display: flex; align-items: flex-start; gap: 12px;
     }
 
 
