@@ -1,8 +1,6 @@
 # Build outputs
 **/bin/
 **/obj/
-**/*.exe
-**/*.dll
 **/*.pdb
 **/*.cache
 
