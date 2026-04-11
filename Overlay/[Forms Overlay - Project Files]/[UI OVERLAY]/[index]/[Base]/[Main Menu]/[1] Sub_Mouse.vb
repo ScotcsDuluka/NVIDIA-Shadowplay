@@ -46,21 +46,28 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - SETTINGS"
     Public Sub OpenSettings()
-        For Each f In allForms
-            If f IsNot Base_Settings Then f?.Hide()
-        Next
+        Me.Opacity = 0
+        Base_Settings.Opacity = 0
         Base_Settings.Show()
-        AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+
         Base_Background_Top.Bg_SET3.Visible = False
         ME_CLOSE_BG.Visible = False
         d.Visible = False
         clickThrough = True
-        Opacity = 1
         a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
         Settings_List.Visible = True
         shadowplay.Visible = False
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
+        AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+
+        'Dim t As New Timer With {.Interval = 20}
+        'AddHandler t.Tick, Sub(s, e)
+        't.Stop()
+        Base_Settings.Opacity = 1
+                               Me.Opacity = 1
+        'End Sub
+        't.Start()
     End Sub
     Private Sub set_to_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click, Settings_Box.Click, Settings_Text.Click
         OpenSettings()
@@ -457,9 +464,19 @@ Partial Public Class Base
         For Each f In allForms
             If f IsNot showForm Then f?.Hide()
         Next
-        settingsCtrl.Location = New Point(695, -2000)
+        showForm.Opacity = 0
         showForm.Show()
-        AMY(settingsCtrl, -2000, 160, 300)
+        settingsCtrl.Location = New Point(695, 160)
+
+        Dim t As New Timer With {.Interval = 20}
+
+        AddHandler t.Tick, Sub(s, e)
+                               t.Stop()
+                               showForm.Opacity = 1
+                               settingsCtrl.Location = New Point(695, 160)
+                           End Sub
+
+        t.Start()
     End Sub
 
     ' ========== SETTINGS PANEL ==========
@@ -547,10 +564,28 @@ Partial Public Class Base
         vd1.BackColor = grayColor
     End Sub
 
+    Public Sub OpenSettings_Sub()
+        Me.Opacity = 0
+
+        Base_Background_Top.Bg_SET3.Visible = False
+        ME_CLOSE_BG.Visible = False
+        d.Visible = False
+        clickThrough = True
+        a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
+        Settings_List.Visible = True
+        shadowplay.Visible = False
+        Menu_Replay.Visible = False
+        Menu_Record.Visible = False
+
+        Me.Opacity = 1
+
+                           End Sub
+
     Public Sub OpenRecordings()
-        OpenSettings()
+        OpenSettings_Sub()
         OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
     End Sub
+
     Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, Label19.Click, Label20.Click
         OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
     End Sub

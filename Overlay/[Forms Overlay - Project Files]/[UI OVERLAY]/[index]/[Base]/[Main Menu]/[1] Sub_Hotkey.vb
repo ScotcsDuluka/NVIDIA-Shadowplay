@@ -73,28 +73,28 @@ Partial Public Class Base
 #Region "============================================================================ (เดิมคือ KEYBOARD DETECTION)"
 
     Public Sub HideAllControls()
+        Me.SuspendLayout()
+
         isFunctionActive = False
-
         Me.Opacity = 0
+        Base_Background.Opacity = 0
         Base_Background_Top.Opacity = 0
-
-        ' Hide panels
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
         Settings_List.Visible = False
         shadowplay.Visible = True
-
-        ' Hide action indicators
         a_1.Visible = False
         a_2.Visible = False
         a_3.Visible = False
-
         Base_Background.Hide()
         Base_Background_Top.Hide()
         Me.Hide()
+
+        Me.ResumeLayout(True)
     End Sub
 
     Public Sub ShowMainPanel()
+        Me.SuspendLayout()
 
         isFunctionActive = True
         Base_Background.Show()
@@ -105,6 +105,8 @@ Partial Public Class Base
         Base_Background.Opacity = 0.5
         Base_Background_Top.Opacity = 1
         Me.Opacity = 0.85
+
+        Me.ResumeLayout(True)
     End Sub
 
     Private Sub ToggleGameFilter()

@@ -108,9 +108,8 @@ Partial Public Class Base
         Base_Overlay_Hub.Hide()
         Base_KeySet.Hide()
         Base_RecordingsSet.Hide()
-        Base_Privacy_Control.settings_1.Location = New Point(695, -2000)
+        Base_Privacy_Control.settings_1.Location = New Point(695, 160)
         Base_Privacy_Control.Show()
-        AMY(Base_Privacy_Control.settings_1, -2000, 160, 300)
     End Sub
 
     Public Async Sub ToggleRecording()

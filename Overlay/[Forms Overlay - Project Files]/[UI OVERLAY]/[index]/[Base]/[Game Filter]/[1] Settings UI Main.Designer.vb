@@ -74,7 +74,7 @@ Partial Class Base_Game_Filter
         ' d
         ' 
         d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        d.BackColor = Color.Black
+        d.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         d.Cursor = Cursors.Hand
         d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         d.ForeColor = Color.White

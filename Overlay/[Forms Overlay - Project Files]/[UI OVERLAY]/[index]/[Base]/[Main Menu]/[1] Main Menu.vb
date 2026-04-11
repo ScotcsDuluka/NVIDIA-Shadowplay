@@ -12,8 +12,6 @@ Imports System.Text
 Imports System.Text.Json
 Imports System.Threading
 Imports System.Windows.Forms
-Imports Captrue_Core
-Imports Captrue_Core.CaptureCore
 Imports Microsoft.Win32
 Imports Windows.Graphics.Capture
 Imports Windows.Graphics.DirectX
@@ -204,34 +202,45 @@ Partial Public Class Base
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
 
+
+    Private Declare Function SendMessage Lib "user32" (
+    hWnd As IntPtr, Msg As Integer,
+    wParam As IntPtr, lParam As IntPtr
+) As IntPtr
+    Private Const WM_SETREDRAW As Integer = &HB
+
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
         Dim proc() As Process = Process.GetProcessesByName("NVIDIA API")
         If proc.Length = 0 Then
             Application.Exit()
-        Else
-            HideFromAltTab()
-            Dim handle As IntPtr = Me.Handle
-            _hotkeyService = New HotkeyService()
-            _hotkeyService.RegisterAll(handle)
-            Debug.WriteLine("Hotkeys registered!")
-
-            AppSettings.Initialize()
-            Await AppSettings.Instance.LoadGitHubUser()
-            Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
-            Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
-
-            LoadCurrentLanguage()
-            InitializeNotifierAPI()
-            MainSub_Load()
-            LoadFilePath()
-            CreateDataDirectories()
-            LoadMicState()
-            TIMESLOAD()
-            SystemMonitor.StartMonitoring()
-
-            ShowNotifier("notificationOpenShare")
-            File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+            Return
         End If
+
+
+        HideFromAltTab()
+
+        _hotkeyService = New HotkeyService()
+        _hotkeyService.RegisterAll(handle)
+        Debug.WriteLine("Hotkeys registered!")
+
+        AppSettings.Initialize()
+        Await AppSettings.Instance.LoadGitHubUser()
+        Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
+        Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
+
+        LoadCurrentLanguage()
+        InitializeNotifierAPI()
+        MainSub_Load()
+        LoadFilePath()
+        CreateDataDirectories()
+        LoadMicState()
+        TIMESLOAD()
+        SystemMonitor.StartMonitoring()
+
+        ShowNotifier("notificationOpenShare")
+        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+
     End Sub
 
 
@@ -242,10 +251,6 @@ Partial Public Class Base
     End Sub
 
     Private Sub MainSub_Load()
-        Base_Background_Top.Show()
-        Base_Background_Top.Hide()
-        Base_RecordingsSet.Show()
-        Base_RecordingsSet.Hide()
         Base_RecordingsSet.Opacity = 1
     End Sub
 
@@ -497,7 +502,7 @@ Partial Public Class Base
                 If f IsNot Base_Settings Then f?.Hide()
             Next
             Base_Settings.Show()
-            AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+            Base_Settings.Main_Menu_SET.Location = New Point(695, 160)
             Base_Background_Top.Bg_SET3.Visible = False
             ME_CLOSE_BG.Visible = False
             d.Visible = False
@@ -593,12 +598,16 @@ Partial Public Class Base
     End Sub
 
     Private Sub Menu_Record_Sttings_text_Click(sender As Object, e As EventArgs) Handles Menu_Record_Sttings_text.Click, Menu_Record_Box2.Click
+
+
         OpenRecordings()
+
     End Sub
 
     Private Sub Menu_Replay_Sttings_text_Click(sender As Object, e As EventArgs) Handles Menu_Replay_Sttings_text.Click, Menu_Replay_Box3.Click
+
+
         OpenRecordings()
+
     End Sub
-
-
 End Class

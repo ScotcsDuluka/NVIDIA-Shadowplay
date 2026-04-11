@@ -43,11 +43,20 @@ Public Class Base_Settings
         Me.Hide()
         Base.ME_CLOSE_BG.Visible = True
         Base.d.Visible = True
-        Base.Opacity = 0.85
+        Base.Opacity = 0
         Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True
-        Base.ShowMainPanel()
+
         AppSettings.Instance.Save()
+
+        Dim TIME As New Timer With {.Interval = 20}
+        AddHandler TIME.Tick, Sub(s, MIEXXXXXXX)
+                                  TIME.Stop()
+                                  Base.ShowMainPanel()
+                                  Base.Opacity = 0.85
+                              End Sub
+        TIME.Start()
+
     End Sub
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load

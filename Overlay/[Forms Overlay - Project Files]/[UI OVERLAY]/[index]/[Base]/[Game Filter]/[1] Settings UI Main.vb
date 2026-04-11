@@ -86,7 +86,7 @@ Public Class Base_Game_Filter
         Main_Filter.Location = New Point(-500, 0)
         Me.Opacity = 0
         ANIME.Start()
-        ANIME.Interval = 1
+        ANIME.Interval = 16
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick

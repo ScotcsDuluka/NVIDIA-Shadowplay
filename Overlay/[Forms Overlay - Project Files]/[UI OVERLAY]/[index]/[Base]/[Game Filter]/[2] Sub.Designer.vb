@@ -83,9 +83,9 @@ Partial Class Base_Game_Filter_Sub
         ' 
         ' Base_Game_Filter_Sub
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        BackColor = Color.Coral
+        BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         ClientSize = New Size(268, 717)
         Controls.Add(BG)
         FormBorderStyle = FormBorderStyle.None
@@ -95,7 +95,7 @@ Partial Class Base_Game_Filter_Sub
         StartPosition = FormStartPosition.Manual
         Text = "Game_Filter_Sub"
         TopMost = True
-        TransparencyKey = Color.Coral
+        TransparencyKey = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         BG.ResumeLayout(False)
         ResumeLayout(False)
     End Sub

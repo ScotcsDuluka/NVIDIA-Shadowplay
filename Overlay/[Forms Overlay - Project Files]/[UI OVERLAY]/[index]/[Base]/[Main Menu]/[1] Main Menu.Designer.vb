@@ -126,6 +126,8 @@ Partial Class Base
         Menu_Record_Box2 = New PictureBox()
         Menu_Record_Bg = New PictureBox()
         Menu_Replay = New Panel()
+        r_1b = New PictureBox()
+        rs1 = New PictureBox()
         Menu_Replay_key = New Label()
         Menu_Replay_text = New Label()
         Menu_Replay_ico = New Label()
@@ -133,13 +135,11 @@ Partial Class Base
         Menu_Replay_Box3 = New PictureBox()
         r_1r = New PictureBox()
         r_1l = New PictureBox()
-        r_1b = New PictureBox()
         r_1 = New PictureBox()
         rsr = New PictureBox()
         rsb = New PictureBox()
         Menu_Replay_save_text = New Label()
         Menu_Replay_save_key = New Label()
-        rs1 = New PictureBox()
         Menu_Replay_save_ico = New Label()
         rsl = New PictureBox()
         Menu_Replay_Box2 = New PictureBox()
@@ -260,14 +260,14 @@ Partial Class Base
         CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).BeginInit()
         CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).BeginInit()
         Menu_Replay.SuspendLayout()
+        CType(r_1b, ComponentModel.ISupportInitialize).BeginInit()
+        CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).BeginInit()
         CType(r_1r, ComponentModel.ISupportInitialize).BeginInit()
         CType(r_1l, ComponentModel.ISupportInitialize).BeginInit()
-        CType(r_1b, ComponentModel.ISupportInitialize).BeginInit()
         CType(r_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(rsr, ComponentModel.ISupportInitialize).BeginInit()
         CType(rsb, ComponentModel.ISupportInitialize).BeginInit()
-        CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
         CType(rsl, ComponentModel.ISupportInitialize).BeginInit()
         CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).BeginInit()
         CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).BeginInit()
@@ -1442,7 +1442,7 @@ Partial Class Base
         Menu_Record_ico.Location = New Point(3, 3)
         Menu_Record_ico.Name = "Menu_Record_ico"
         Menu_Record_ico.RightToLeft = RightToLeft.Yes
-        Menu_Record_ico.Size = New Size(40, 36)
+        Menu_Record_ico.Size = New Size(42, 38)
         Menu_Record_ico.TabIndex = 44
         Menu_Record_ico.Text = ""
         Menu_Record_ico.TextAlign = ContentAlignment.MiddleCenter
@@ -1478,6 +1478,8 @@ Partial Class Base
         ' 
         ' Menu_Replay
         ' 
+        Menu_Replay.Controls.Add(r_1b)
+        Menu_Replay.Controls.Add(rs1)
         Menu_Replay.Controls.Add(Menu_Replay_key)
         Menu_Replay.Controls.Add(Menu_Replay_text)
         Menu_Replay.Controls.Add(Menu_Replay_ico)
@@ -1485,13 +1487,11 @@ Partial Class Base
         Menu_Replay.Controls.Add(Menu_Replay_Box3)
         Menu_Replay.Controls.Add(r_1r)
         Menu_Replay.Controls.Add(r_1l)
-        Menu_Replay.Controls.Add(r_1b)
         Menu_Replay.Controls.Add(r_1)
         Menu_Replay.Controls.Add(rsr)
         Menu_Replay.Controls.Add(rsb)
         Menu_Replay.Controls.Add(Menu_Replay_save_text)
         Menu_Replay.Controls.Add(Menu_Replay_save_key)
-        Menu_Replay.Controls.Add(rs1)
         Menu_Replay.Controls.Add(Menu_Replay_save_ico)
         Menu_Replay.Controls.Add(rsl)
         Menu_Replay.Controls.Add(Menu_Replay_Box2)
@@ -1502,6 +1502,28 @@ Partial Class Base
         Menu_Replay.Size = New Size(240, 171)
         Menu_Replay.TabIndex = 43
         Menu_Replay.Visible = False
+        ' 
+        ' r_1b
+        ' 
+        r_1b.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1b.Cursor = Cursors.Hand
+        r_1b.Location = New Point(0, 41)
+        r_1b.Name = "r_1b"
+        r_1b.Size = New Size(240, 3)
+        r_1b.TabIndex = 69
+        r_1b.TabStop = False
+        r_1b.Visible = False
+        ' 
+        ' rs1
+        ' 
+        rs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rs1.Cursor = Cursors.Hand
+        rs1.Location = New Point(0, 44)
+        rs1.Name = "rs1"
+        rs1.Size = New Size(240, 3)
+        rs1.TabIndex = 72
+        rs1.TabStop = False
+        rs1.Visible = False
         ' 
         ' Menu_Replay_key
         ' 
@@ -1524,9 +1546,9 @@ Partial Class Base
         Menu_Replay_text.ForeColor = Color.White
         Menu_Replay_text.Location = New Point(37, 3)
         Menu_Replay_text.Name = "Menu_Replay_text"
-        Menu_Replay_text.Size = New Size(118, 35)
+        Menu_Replay_text.Size = New Size(200, 35)
         Menu_Replay_text.TabIndex = 41
-        Menu_Replay_text.Text = "l10n.instantReplayStart"
+        Menu_Replay_text.Text = "l10n.instantReplay"
         Menu_Replay_text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Menu_Replay_ico
@@ -1535,10 +1557,10 @@ Partial Class Base
         Menu_Replay_ico.Cursor = Cursors.Hand
         Menu_Replay_ico.Font = New Font("nvgcshare", 20.25F)
         Menu_Replay_ico.ForeColor = Color.White
-        Menu_Replay_ico.Location = New Point(5, 5)
+        Menu_Replay_ico.Location = New Point(3, 3)
         Menu_Replay_ico.Name = "Menu_Replay_ico"
         Menu_Replay_ico.RightToLeft = RightToLeft.Yes
-        Menu_Replay_ico.Size = New Size(40, 33)
+        Menu_Replay_ico.Size = New Size(42, 38)
         Menu_Replay_ico.TabIndex = 44
         Menu_Replay_ico.Text = ""
         Menu_Replay_ico.TextAlign = ContentAlignment.MiddleCenter
@@ -1587,17 +1609,6 @@ Partial Class Base
         r_1l.TabIndex = 68
         r_1l.TabStop = False
         r_1l.Visible = False
-        ' 
-        ' r_1b
-        ' 
-        r_1b.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        r_1b.Cursor = Cursors.Hand
-        r_1b.Location = New Point(0, 44)
-        r_1b.Name = "r_1b"
-        r_1b.Size = New Size(240, 3)
-        r_1b.TabIndex = 69
-        r_1b.TabStop = False
-        r_1b.Visible = False
         ' 
         ' r_1
         ' 
@@ -1658,27 +1669,16 @@ Partial Class Base
         Menu_Replay_save_key.Text = "Alt+F10"
         Menu_Replay_save_key.TextAlign = ContentAlignment.MiddleRight
         ' 
-        ' rs1
-        ' 
-        rs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        rs1.Cursor = Cursors.Hand
-        rs1.Location = New Point(0, 41)
-        rs1.Name = "rs1"
-        rs1.Size = New Size(240, 3)
-        rs1.TabIndex = 72
-        rs1.TabStop = False
-        rs1.Visible = False
-        ' 
         ' Menu_Replay_save_ico
         ' 
         Menu_Replay_save_ico.BackColor = Color.Black
         Menu_Replay_save_ico.Cursor = Cursors.Hand
         Menu_Replay_save_ico.Font = New Font("nvgcshare", 20.25F)
         Menu_Replay_save_ico.ForeColor = Color.White
-        Menu_Replay_save_ico.Location = New Point(5, 49)
+        Menu_Replay_save_ico.Location = New Point(3, 47)
         Menu_Replay_save_ico.Name = "Menu_Replay_save_ico"
         Menu_Replay_save_ico.RightToLeft = RightToLeft.Yes
-        Menu_Replay_save_ico.Size = New Size(40, 37)
+        Menu_Replay_save_ico.Size = New Size(42, 38)
         Menu_Replay_save_ico.TabIndex = 46
         Menu_Replay_save_ico.Text = ""
         Menu_Replay_save_ico.TextAlign = ContentAlignment.MiddleCenter
@@ -2442,14 +2442,14 @@ Partial Class Base
         CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).EndInit()
         CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).EndInit()
         Menu_Replay.ResumeLayout(False)
+        CType(r_1b, ComponentModel.ISupportInitialize).EndInit()
+        CType(rs1, ComponentModel.ISupportInitialize).EndInit()
         CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).EndInit()
         CType(r_1r, ComponentModel.ISupportInitialize).EndInit()
         CType(r_1l, ComponentModel.ISupportInitialize).EndInit()
-        CType(r_1b, ComponentModel.ISupportInitialize).EndInit()
         CType(r_1, ComponentModel.ISupportInitialize).EndInit()
         CType(rsr, ComponentModel.ISupportInitialize).EndInit()
         CType(rsb, ComponentModel.ISupportInitialize).EndInit()
-        CType(rs1, ComponentModel.ISupportInitialize).EndInit()
         CType(rsl, ComponentModel.ISupportInitialize).EndInit()
         CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).EndInit()
         CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).EndInit()
