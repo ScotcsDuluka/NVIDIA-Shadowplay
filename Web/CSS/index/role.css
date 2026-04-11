@@ -67,6 +67,10 @@
               0 0 16px rgba(34, 197, 94, 0.3);
 }
 
+
+
+
+
 /* --- Mythic Animated Badge --- */
 .card-status.mythic {
   background: linear-gradient(
@@ -83,7 +87,7 @@
   background-size: 200% 100%;
   animation: rainbowFlow 4s linear infinite,
              mythicPulse 2.5s ease-in-out infinite;
-  color: white;
+  color: rgb(255, 255, 255);
   border: 1px solid #ffffff;
 }
 
@@ -100,11 +104,52 @@
 @keyframes mythicPulse {
   0%,
   100% {
-    box-shadow: 0 0 10px rgba(168, 85, 247, 0.6),
-                0 0 20px rgba(168, 85, 247, 0.4);
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.6),
+                0 0 14px rgba(255, 255, 255, 0.4);
   }
   50% {
-    box-shadow: 0 0 20px rgba(168, 85, 247, 0.9),
-                0 0 35px rgba(168, 85, 247, 0.6);
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.9),
+                0 0 3px rgba(255, 255, 255, 0.6);
   }
 }
+
+
+
+
+
+
+/* --- Elite Animated Badge - SPINNING COLORS --- */
+.card-status.Elite {
+  /* 🌀 CONIC GRADIENT - สีวางเรียงแบบวงกลม */
+  background: conic-gradient(
+    from 0deg,
+    #ffffff,      /* เริ่มที่สีขาว */
+    #ffeef2,      /* Baby Pink */
+    #ffd6e7,      /* Soft Rose */
+    #ffcce0,      /* Blush Pink */
+    #d4f1f9,      /* Light Sky Blue */
+    #c7f0db,      /* Mint Green */
+    #fff4d6,      /* Cream Yellow */
+    #fce4ec,      /* Cherry Blossom */
+    #e8eaf6,      /* Lavender */
+    #ffffff       /* จบที่สีขาว */
+  );
+  
+  /* 🔄 SPINNING ANIMATION - หมุนสีไปเรื่อยๆ!
+     hue-rotate(0deg → 360deg) = สีหมุนครบวงกลม */
+  animation: spinColors 3s linear infinite,
+             mythicPulse 2.5s ease-in-out infinite;
+             
+  color: #5a4a4a;
+}
+
+/* 🌈 KEYFRAME - หมุนสี 360 องศา! */
+@keyframes spinColors {
+  0%   { filter: hue-rotate(0deg); }   /* เริ่มต้น */
+  100% { filter: hue-rotate(360deg); } /* หมุนครบรอบ */
+}
+
+
+
+
+
