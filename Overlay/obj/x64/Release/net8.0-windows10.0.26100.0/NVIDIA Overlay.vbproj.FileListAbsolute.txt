@@ -4,8 +4,6 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\N
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.deps.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.runtimeconfig.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.exe
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\libmp3lame.32.dll
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\libmp3lame.64.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.deps.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.runtimeconfig.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.exe
@@ -24,29 +22,33 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\L
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Languages\en-US.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Languages\th-TH.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Languages\zh-CHS.json
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\nvgcshare.ttf
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.ico
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA_Shadowplay_Data\on
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\_Redist\64bit.runtime.exe
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.deps.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.runtimeconfig.json
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA ShadowPlay.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Asio.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Core.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Midi.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.Wasapi.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.WinForms.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NAudio.WinMM.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Newtonsoft.Json.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\System.CodeDom.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\System.Management.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\runtimes\win\lib\net8.0\System.Management.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Microsoft.Windows.SDK.NET.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\WinRT.Runtime.dll
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.dll
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\CaptureEngine.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA API.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Notifier.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA API.pdb
 C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Experience.pdb
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.pdb
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.xml
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\Captrue Core.dll.config
+C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\CaptureEngine.pdb
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Overlay.vbproj.AssemblyReference.cache
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100.0\Interop.WMPLib.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Overlay.vbproj.ResolveComReference.cache
@@ -74,4 +76,3 @@ C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100.0\refint\NVIDIA ShadowPlay.dll
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100.0\NVIDIA Overlay.genruntimeconfig.cache
 C:\My Project\NVIDIA-Shadowplay\Overlay\obj\x64\Release\net8.0-windows10.0.26100.0\ref\NVIDIA ShadowPlay.dll
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\nvgcshare.ttf

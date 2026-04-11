@@ -2,9 +2,7 @@ Imports System.Drawing
 Imports System.IO
 Imports System.Threading.Tasks
 Imports System.Windows.Forms
-Imports Captrue_Core
-Imports Captrue_Core.CaptureCore
-Imports Captrue_Core.CaptureCore.ScreenRecorder
+Imports CaptureEngine
 
 Partial Public Class Base
     Public ReplayValue As Boolean = False
@@ -14,7 +12,7 @@ Partial Public Class Base
     Private Shared _availableEncoders As New Dictionary(Of String, Boolean)()
 
 
-    Private ReadOnly Property Recorder As CaptureCore.ScreenRecorder
+    Private ReadOnly Property Recorder As CaptureEngine.CaptureCore.ScreenRecorder
         Get
             Return Base_RecordingsSet.RecorderInstance
         End Get
@@ -286,7 +284,7 @@ Partial Public Class Base
         End Try
     End Sub
 
-    Private Sub ApplyAudioSettings(recorder As Captrue_Core.CaptureCore.ScreenRecorder)
+    Private Sub ApplyAudioSettings(recorder As CaptureEngine.CaptureCore.ScreenRecorder)
         Try
             ' Get settings from AppSettings (adjust property names as needed)
             Dim systemAudioEnabled As Boolean = AppSettings.Instance.Audio.SystemAudioEnabled
@@ -296,13 +294,13 @@ Partial Public Class Base
 
             ' Set audio mode
             If systemAudioEnabled AndAlso micEnabled Then
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.Both
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.Both
             ElseIf systemAudioEnabled Then
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.SystemOnly
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
             ElseIf micEnabled Then
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.MicOnly
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.MicOnly
             Else
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.None
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.None
             End If
 
             ' Set volumes
@@ -320,7 +318,7 @@ Partial Public Class Base
 
         Catch ex As Exception
             ' Default to system audio if settings not available
-            recorder.AudioMode = ScreenRecorder.VideoCaptureMode.SystemOnly
+            recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
             recorder.SystemAudioVolume = 1.0F
             Debug.WriteLine($"ApplyAudioSettings Error: {ex.Message} - Using defaults")
         End Try

@@ -3,7 +3,7 @@ Imports System.IO
 Imports System.Net.Http.Headers
 Imports System.Text.Json
 Imports System.Text.Json.Serialization
-Imports Captrue_Core.CaptureCore
+Imports CaptureEngine.CaptureCore
 Imports System.Net.Http
 Imports System.Security.Cryptography
 
@@ -482,27 +482,27 @@ Public Class AppSettings
 
 #End Region
 
-#Region "Apply to ScreenRecorder"
+#Region "Apply to CaptureEngine.CaptureCore.ScreenRecorder"
 
     ''' <summary>
-    ''' Apply settings from config.json to ScreenRecorder
+    ''' Apply settings from config.json to CaptureEngine.CaptureCore.ScreenRecorder
     ''' </summary>
-    Public Sub ApplyToRecorder(recorder As ScreenRecorder)
+    Public Sub ApplyToRecorder(recorder As CaptureEngine.CaptureCore.ScreenRecorder)
         Try
             ' ═══════════════════════════════════════════════════════════════════════
             ' IMPORTANT: Set Preset FIRST (เพราะ setter จะทับค่าอื่นๆ)
             ' ═══════════════════════════════════════════════════════════════════════
             Select Case Recording.Preset
                 Case "Low"
-                    recorder.Preset = ScreenRecorder.RecordingPreset.Low
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Low
                 Case "Medium"
-                    recorder.Preset = ScreenRecorder.RecordingPreset.Medium
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium
                 Case "High"
-                    recorder.Preset = ScreenRecorder.RecordingPreset.High
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.High
                 Case "Custom"
-                    recorder.Preset = ScreenRecorder.RecordingPreset.Custom
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Custom
                 Case Else
-                    recorder.Preset = ScreenRecorder.RecordingPreset.Medium
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium
             End Select
 
             ' ═══════════════════════════════════════════════════════════════════════
@@ -534,19 +534,19 @@ Public Class AppSettings
     End Sub
 
     ''' <summary>
-    ''' ✅ Apply Audio settings to ScreenRecorder
+    ''' ✅ Apply Audio settings to CaptureEngine.CaptureCore.ScreenRecorder
     ''' </summary>
-    Public Sub ApplyAudioSettings(recorder As ScreenRecorder)
+    Public Sub ApplyAudioSettings(recorder As CaptureEngine.CaptureCore.ScreenRecorder)
         Try
             ' Set audio mode
             If Audio.SystemAudioEnabled AndAlso Audio.MicEnabled Then
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.Both
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.Both
             ElseIf Audio.SystemAudioEnabled Then
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.SystemOnly
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
             ElseIf Audio.MicEnabled Then
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.MicOnly
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.MicOnly
             Else
-                recorder.AudioMode = ScreenRecorder.VideoCaptureMode.None
+                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.None
             End If
 
             ' Set volumes
@@ -563,42 +563,42 @@ Public Class AppSettings
         Catch ex As Exception
             Debug.WriteLine("ApplyAudioSettings Error: " & ex.Message)
             ' Default to system audio only
-            recorder.AudioMode = ScreenRecorder.VideoCaptureMode.SystemOnly
+            recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
             recorder.SystemAudioVolume = 1.0F
         End Try
     End Sub
 
-    Private Sub SetEncoder(recorder As ScreenRecorder, encoderName As String)
+    Private Sub SetEncoder(recorder As CaptureEngine.CaptureCore.ScreenRecorder, encoderName As String)
         Try
             Select Case encoderName
                 Case "NVENC_H264"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.NVENC_H264
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264
                 Case "NVENC_HEVC"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.NVENC_HEVC
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
                 Case "NVENC_AV1"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.NVENC_AV1
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
                 Case "QuickSync_H264"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.QuickSync_H264
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264
                 Case "QuickSync_HEVC"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.QuickSync_HEVC
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
                 Case "AMF_H264"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.AMF_H264
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264
                 Case "AMF_HEVC"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.AMF_HEVC
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
                 Case "LibX264"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.LibX264
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264
                 Case "LibX265"
-                    recorder.Encoder = ScreenRecorder.VideoEncoder.LibX265
+                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX265
                 Case Else
                     ' Auto-select based on hardware
                     If _hasNvidia.GetValueOrDefault(False) Then
-                        recorder.Encoder = ScreenRecorder.VideoEncoder.NVENC_H264
+                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264
                     ElseIf _hasIntel.GetValueOrDefault(False) Then
-                        recorder.Encoder = ScreenRecorder.VideoEncoder.QuickSync_H264
+                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264
                     ElseIf _hasAMD.GetValueOrDefault(False) Then
-                        recorder.Encoder = ScreenRecorder.VideoEncoder.AMF_H264
+                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264
                     Else
-                        recorder.Encoder = ScreenRecorder.VideoEncoder.LibX264
+                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264
                     End If
             End Select
 

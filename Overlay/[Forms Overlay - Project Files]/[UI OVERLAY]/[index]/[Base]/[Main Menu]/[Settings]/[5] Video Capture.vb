@@ -2,7 +2,7 @@ Imports System.Drawing
 Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Threading.Tasks
-Imports Captrue_Core.CaptureCore
+Imports CaptureEngine
 
 Public Class Base_RecordingsSet
 
@@ -136,17 +136,17 @@ Public Class Base_RecordingsSet
 #End Region
 
 #Region "Shared ScreenRecorder Instance"
-    Private Shared ReadOnly _recorder As New Lazy(Of ScreenRecorder)(Function() New ScreenRecorder())
-    Private Shared ReadOnly _encoderDict As New Dictionary(Of String, ScreenRecorder.VideoEncoder)()
+    Private Shared ReadOnly _recorder As New Lazy(Of CaptureEngine.CaptureCore.ScreenRecorder)(Function() New CaptureEngine.CaptureCore.ScreenRecorder())
+    Private Shared ReadOnly _encoderDict As New Dictionary(Of String, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder)()
     Private Shared ReadOnly _lockObj As New Object()
 
-    Public Shared ReadOnly Property RecorderInstance As ScreenRecorder
+    Public Shared ReadOnly Property RecorderInstance As CaptureEngine.CaptureCore.ScreenRecorder
         Get
             Return _recorder.Value
         End Get
     End Property
 
-    Public Shared Function GetConfiguredRecorder() As ScreenRecorder
+    Public Shared Function GetConfiguredRecorder() As CaptureEngine.CaptureCore.ScreenRecorder
         ApplySettingsToRecorder()
         Return _recorder.Value
     End Function
@@ -451,7 +451,7 @@ Public Class Base_RecordingsSet
                 ClearEncoderAvailabilityCache()
 
                 ' ✅ 6. Pre-warm FFmpeg (runs API checks in background - NON-BLOCKING!)
-                ScreenRecorder.PreWarmFFmpeg(ffmpegPath, RecorderInstance.Encoder)
+                CaptureEngine.CaptureCore.ScreenRecorder.PreWarmFFmpeg(ffmpegPath, RecorderInstance.Encoder)
             End If
 
             ' ✅ 7. Populate encoders (trust hardware detection - no FFmpeg check)
@@ -551,7 +551,7 @@ Public Class Base_RecordingsSet
         If sender Is Nothing Then Return
         AppSettings.Instance.Recording.Preset = "Medium"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.Medium)
+        UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium)
     End Sub
 #End Region
 
@@ -584,30 +584,30 @@ Public Class Base_RecordingsSet
 
         ' NVIDIA Encoders
         If AppSettings.HasNvidia Then
-            AddEncoderSafe("NVENC_H264", ScreenRecorder.VideoEncoder.NVENC_H264, addedCount)
-            AddEncoderSafe("NVENC_HEVC", ScreenRecorder.VideoEncoder.NVENC_HEVC, addedCount)
+            AddEncoderSafe("NVENC_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264, addedCount)
+            AddEncoderSafe("NVENC_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC, addedCount)
 
             ' AV1 only for RTX 40+
             If AppSettings.SupportsNVENCAV1 Then
-                AddEncoderSafe("NVENC_AV1", ScreenRecorder.VideoEncoder.NVENC_AV1, addedCount)
+                AddEncoderSafe("NVENC_AV1", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1, addedCount)
             End If
         End If
 
         ' Intel QuickSync Encoders
         If AppSettings.HasIntel Then
-            AddEncoderSafe("QuickSync_H264", ScreenRecorder.VideoEncoder.QuickSync_H264, addedCount)
-            AddEncoderSafe("QuickSync_HEVC", ScreenRecorder.VideoEncoder.QuickSync_HEVC, addedCount)
+            AddEncoderSafe("QuickSync_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264, addedCount)
+            AddEncoderSafe("QuickSync_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC, addedCount)
         End If
 
         ' AMD AMF Encoders
         If AppSettings.HasAMD Then
-            AddEncoderSafe("AMF_H264", ScreenRecorder.VideoEncoder.AMF_H264, addedCount)
-            AddEncoderSafe("AMF_HEVC", ScreenRecorder.VideoEncoder.AMF_HEVC, addedCount)
+            AddEncoderSafe("AMF_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264, addedCount)
+            AddEncoderSafe("AMF_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC, addedCount)
         End If
 
         ' Software Encoders (always available)
-        AddEncoderSafe("LibX264", ScreenRecorder.VideoEncoder.LibX264, addedCount)
-        AddEncoderSafe("LibX265", ScreenRecorder.VideoEncoder.LibX265, addedCount)
+        AddEncoderSafe("LibX264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264, addedCount)
+        AddEncoderSafe("LibX265", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX265, addedCount)
 
         ' ═══════════════════════════════════════════════════════════════════════
         ' ✅ Verify encoders in background (don't block UI)
@@ -657,7 +657,7 @@ Public Class Base_RecordingsSet
         End Try
     End Sub
 
-    Private Sub AddEncoderSafe(name As String, encoder As ScreenRecorder.VideoEncoder, ByRef count As Integer)
+    Private Sub AddEncoderSafe(name As String, encoder As CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder, ByRef count As Integer)
         SyncLock _lockObj
             If Not _encoderDict.ContainsKey(name) Then
                 _encoderDict.Add(name, encoder)
@@ -1028,19 +1028,19 @@ Public Class Base_RecordingsSet
     Private Sub LowPreset_Click(sender As Object, e As EventArgs) Handles Label11.Click, Label10.Click, low.Click
         AppSettings.Instance.Recording.Preset = "Low"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.Low)
+        UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Low)
     End Sub
 
     Private Sub MediumPreset_Click(sender As Object, e As EventArgs) Handles PictureBox1.Click, Label8.Click, Label9.Click
         AppSettings.Instance.Recording.Preset = "Medium"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.Medium)
+        UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium)
     End Sub
 
     Private Sub HighPreset_Click(sender As Object, e As EventArgs) Handles PictureBox2.Click, Label7.Click, Label6.Click
         AppSettings.Instance.Recording.Preset = "High"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.High)
+        UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.High)
     End Sub
 
     Private Sub CustomPreset_Click(sender As Object, e As EventArgs) Handles C_ICO.Click, C_BG.Click, C_TEXT.Click
@@ -1056,7 +1056,7 @@ Public Class Base_RecordingsSet
         UpdateBitrateLimits()
     End Sub
 
-    Private Sub UpdateControlsFromPreset(preset As ScreenRecorder.RecordingPreset)
+    Private Sub UpdateControlsFromPreset(preset As CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset)
         _recorder.Value.Preset = preset
 
         If FPS_BOX IsNot Nothing Then
@@ -1098,9 +1098,9 @@ Public Class Base_RecordingsSet
 
     Private Sub UpdateUIFromPreset()
         Select Case AppSettings.Instance.Recording.Preset
-            Case "Low" : UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.Low)
-            Case "Medium" : UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.Medium)
-            Case "High" : UpdateControlsFromPreset(ScreenRecorder.RecordingPreset.High)
+            Case "Low" : UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Low)
+            Case "Medium" : UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium)
+            Case "High" : UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.High)
             Case "Custom"
                 EnableCustomControls(True)
                 UpdateBitrateLimits()
@@ -1137,16 +1137,16 @@ Public Class Base_RecordingsSet
         If lblEncoderInfo Is Nothing Then Exit Sub
 
         Select Case _recorder.Value.Encoder
-            Case ScreenRecorder.VideoEncoder.NVENC_H264, ScreenRecorder.VideoEncoder.NVENC_HEVC
+            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
                 lblEncoderInfo.Text = "NVIDIA NVENC - Best Performance"
                 lblEncoderInfo.ForeColor = COLOR_ACTIVE
-            Case ScreenRecorder.VideoEncoder.NVENC_AV1
+            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
                 lblEncoderInfo.Text = "NVIDIA NVENC AV1 - Next-Gen"
                 lblEncoderInfo.ForeColor = COLOR_ACTIVE
-            Case ScreenRecorder.VideoEncoder.QuickSync_H264, ScreenRecorder.VideoEncoder.QuickSync_HEVC
+            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
                 lblEncoderInfo.Text = "Intel QuickSync - Great Performance"
                 lblEncoderInfo.ForeColor = Color.FromArgb(0, 150, 255)
-            Case ScreenRecorder.VideoEncoder.AMF_H264, ScreenRecorder.VideoEncoder.AMF_HEVC
+            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
                 lblEncoderInfo.Text = "AMD AMF - Good Performance"
                 lblEncoderInfo.ForeColor = Color.FromArgb(237, 28, 36)
             Case Else

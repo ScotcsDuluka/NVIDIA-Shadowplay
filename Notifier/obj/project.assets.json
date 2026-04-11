@@ -14,15 +14,6 @@
             "related": ".xml"
           }
         }
-      },
-      "Capture Core/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/Capture Core.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/Capture Core.dll": {}
-        }
       }
     }
   },
@@ -56,16 +47,10 @@
         "newtonsoft.json.nuspec",
         "packageIcon.png"
       ]
-    },
-    "Capture Core/1.0.0": {
-      "type": "project",
-      "path": "../Engine/Capture Core.vbproj",
-      "msbuildProject": "../Engine/Capture Core.vbproj"
     }
   },
   "projectFileDependencyGroups": {
     "net8.0-windows10.0.26100": [
-      "Capture Core >= 1.0.0",
       "Newtonsoft.Json >= 13.0.4"
     ]
   },
@@ -100,11 +85,7 @@
       "frameworks": {
         "net8.0-windows10.0.26100": {
           "targetAlias": "net8.0-windows10.0.26100.0",
-          "projectReferences": {
-            "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
-              "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj"
-            }
-          }
+          "projectReferences": {}
         }
       },
       "warningProperties": {

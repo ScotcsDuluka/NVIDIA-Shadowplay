@@ -4,22 +4,6 @@
     "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj": {}
   },
   "projects": {
-    "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
-      "restore": {
-        "projectUniqueName": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj",
-        "projectName": "Capture Core",
-        "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj",
-        "UsingMicrosoftNETSdk": false,
-        "frameworks": {
-          "net48": {
-            "projectReferences": {}
-          }
-        }
-      },
-      "frameworks": {
-        "net48": {}
-      }
-    },
     "C:\\My Project\\NVIDIA-Shadowplay\\Notifier\\NVIDIA Notifier.vbproj": {
       "version": "1.0.0",
       "restore": {
@@ -47,11 +31,7 @@
         "frameworks": {
           "net8.0-windows10.0.26100": {
             "targetAlias": "net8.0-windows10.0.26100.0",
-            "projectReferences": {
-              "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj": {
-                "projectPath": "C:\\My Project\\NVIDIA-Shadowplay\\Engine\\Capture Core.vbproj"
-              }
-            }
+            "projectReferences": {}
           }
         },
         "warningProperties": {

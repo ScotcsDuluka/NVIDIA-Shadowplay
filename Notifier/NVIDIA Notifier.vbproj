@@ -47,10 +47,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Engine\Capture Core.vbproj" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Compile Update="My Project\Application.Designer.vb">
 			<DesignTime>True</DesignTime>
 			<AutoGen>True</AutoGen>

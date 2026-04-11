@@ -16,7 +16,7 @@ Imports System.Reflection
 <Assembly: System.Reflection.AssemblyCompanyAttribute("NVIDIA API"),  _
  Assembly: System.Reflection.AssemblyConfigurationAttribute("Release"),  _
  Assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0"),  _
- Assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+907147dccb2dfda398f972de7e35e268dbf8b4d7"),  _
+ Assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+d9e6fe5ca1598015748b54a62792ffc561277d1a"),  _
  Assembly: System.Reflection.AssemblyProductAttribute("NVIDIA API"),  _
  Assembly: System.Reflection.AssemblyTitleAttribute("NVIDIA API"),  _
  Assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0"),  _
