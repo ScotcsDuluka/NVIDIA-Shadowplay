@@ -4,5 +4,8 @@
     <Compile Update="Load.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="Server.vb">
+      <SubType>Form</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

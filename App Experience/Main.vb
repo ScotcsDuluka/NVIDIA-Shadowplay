@@ -1,7 +1,21 @@
-﻿Imports System.IO
-Imports System.Diagnostics
+﻿
+Imports System.IO
+Imports System.Net.Sockets
 Imports System.Runtime.InteropServices
+Imports Microsoft.VisualBasic.Logging
 Public Class NVIDIA_Shadowplay_Helper
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     <DllImport("dwmapi.dll")>
@@ -67,7 +81,7 @@ Public Class NVIDIA_Shadowplay_Helper
             Return
         End If
 
-        If My.Computer.FileSystem.FileExists("Use_Overlay") Then
+        If IO.File.Exists("Use_Overlay") Then
             Use_Overlay.Checked = True
         Else
             Use_Overlay.Checked = False
@@ -192,14 +206,22 @@ Public Class NVIDIA_Shadowplay_Helper
                 Try
                     proc.Kill()
                 Catch ex As Exception
-                    File.AppendAllText("kill_error.log", $"{proc.ProcessName} : {ex.Message}" & vbCrLf)
+                    File.AppendAllText("kill_error.log", $"{proc.ProcessName} : {ex.Message}" & Environment.NewLine)
                 End Try
             Next
         Next
         Application.Exit()
     End Sub
 
-    Private Sub RadioButton2_CheckedChanged_1(sender As Object, e As EventArgs) Handles RadioButton2.CheckedChanged
+    Dim tcp As TcpClientHelper
 
+    Private Sub Server_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        tcp = New TcpClientHelper
+    End Sub
+
+
+    Private Sub BOX_LOGO_Click(sender As Object, e As EventArgs) Handles NVAPI.Click
+        tcp.Send("record_start")
     End Sub
 End Class

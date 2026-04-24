@@ -1,6 +1,9 @@
 ﻿Imports System.IO
 Imports System.Runtime.InteropServices
 Imports Microsoft.Win32
+Imports System.Net
+Imports System.Net.Sockets
+Imports System.Threading
 
 Public Class API_RUN
     <DllImport("user32.dll", SetLastError:=True)>
@@ -24,7 +27,7 @@ Public Class API_RUN
     End Sub
 
     Private Sub API_RUN_Load(sender As Object, e As EventArgs) Handles Me.Load
-
+        SetupLogCopy()
 
         SetStartup(True)
     End Sub
@@ -56,7 +59,7 @@ Public Class API_RUN
     End Sub
 
     Private Sub Load_APP_Disposed(sender As Object, e As EventArgs) Handles Load_APP.Tick
-        HideFromAltTab()
+
         HandleAppsSmart()
         Dim fontExists As Boolean = FontHelper.CheckAndInstallUserFont("nvgcshare.ttf")
         If Not fontExists Then
@@ -100,5 +103,68 @@ Public Class API_RUN
             End If
         Next
     End Sub
+
+    Private Sub API_RUN_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        If e.CloseReason = CloseReason.UserClosing Then
+            e.Cancel = True
+            Me.WindowState = FormWindowState.Minimized
+        End If
+    End Sub
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Private Sub SetupLogCopy()
+        ' Context Menu
+        Dim menu As New ContextMenuStrip()
+
+        ' Copy Selected
+        menu.Items.Add("Copy Selected", Nothing, Sub(s, e) CopyLog(False))
+        menu.Items.Add("Copy All", Nothing, Sub(s, e) CopyLog(True))
+        menu.Items.Add(New ToolStripSeparator())
+        menu.Items.Add("Clear", Nothing, Sub(s, e) lstLog.Items.Clear())
+
+        lstLog.ContextMenuStrip = menu
+
+        ' Keyboard Shortcut
+        AddHandler lstLog.KeyDown, Sub(s, e)
+                                       If e.Control AndAlso e.KeyCode = Keys.C Then CopyLog(False)
+                                       If e.Control AndAlso e.KeyCode = Keys.A Then SelectAllLog()
+                                   End Sub
+    End Sub
+
+
+    Private Sub CopyLog(copyAll As Boolean)
+        Dim items = If(copyAll, lstLog.Items.Cast(Of Object)(),
+                                 lstLog.SelectedItems.Cast(Of Object)())
+
+        If items.Count = 0 Then Return
+
+        Dim text = String.Join(Environment.NewLine, items.Select(Function(x) x.ToString()))
+        Clipboard.SetText(text)
+    End Sub
+
+
+    Private Sub SelectAllLog()
+        For i = 0 To lstLog.Items.Count - 1
+            lstLog.SetSelected(i, True)
+        Next
+    End Sub
+
+
+
+
+
+
+
 
 End Class
