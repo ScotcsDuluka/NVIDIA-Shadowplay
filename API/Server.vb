@@ -50,7 +50,7 @@ Partial Public Class API_RUN
         End SyncLock
 
         ' Server status
-        lblStatus.Text = "Online"
+        lblStatus.Text = "Server log | Online"
         lblStatus.ForeColor = Color.FromArgb(76, 175, 80)
 
         ' Total messages

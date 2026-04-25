@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
-Partial Class Load
+Partial Class Loader
     Inherits BlockClose
 
     'Form overrides dispose to clean up the component list.

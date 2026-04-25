@@ -1,4 +1,4 @@
-﻿Partial Public Class Load
+﻿Partial Public Class Loader
 
     Private tcp As TcpClientHelper
 

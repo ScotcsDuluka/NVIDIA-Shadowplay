@@ -63,7 +63,7 @@ Partial Class API_RUN
         lblStatus.Size = New Size(642, 110)
         lblStatus.TabIndex = 2
         lblStatus.TabStop = False
-        lblStatus.Text = "Server log"
+        lblStatus.Text = "Server log | Offline"
         ' 
         ' lblUptime
         ' 
@@ -135,7 +135,7 @@ Partial Class API_RUN
         Name = "API_RUN"
         Opacity = 0R
         StartPosition = FormStartPosition.CenterScreen
-        Text = "API Server"
+        Text = "API Server has running"
         TopMost = True
         lblStatus.ResumeLayout(False)
         lblStatus.PerformLayout()

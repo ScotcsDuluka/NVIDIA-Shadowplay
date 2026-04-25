@@ -1,7 +1,7 @@
 Imports System.IO
 Imports System.Runtime.InteropServices
 
-Partial Public Class Load
+Partial Public Class Loader
     Inherits BlockClose
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
