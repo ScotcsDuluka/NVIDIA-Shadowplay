@@ -544,6 +544,7 @@ Partial Public Class Base
 #Region "============================================================================ NOTIFIER SYSTEM"
 
     Public Sub ShowNotifier(message As String)
+        tcp.Send("notifier_show")
         Dim folderPath As String = Path.Combine(Application.StartupPath, DataDirectoryName)
 
         If Not Directory.Exists(folderPath) Then

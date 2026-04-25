@@ -20,16 +20,62 @@ Public Class API_RUN
 
     Private iconFontPath As String
 
-    Private Sub HideFromAltTab()
-        Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
-        SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
-    End Sub
+    ' ═══════════════════════════════════════════
+    '  ซ่อน/แสดง จาก Alt-Tab
+    ' ═══════════════════════════════════════════
+    Private isHiddenFromAltTab As Boolean = False
 
+    Private Sub ToggleAltTabVisibility(hide As Boolean)
+        isHiddenFromAltTab = hide
+        Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
+
+        If hide Then
+            ' ซ่อนจาก Alt-Tab
+            Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
+            SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
+        Else
+            ' แสดงใน Alt-Tab
+            Dim newStyle As Integer = (style And Not WS_EX_TOOLWINDOW) Or WS_EX_APPWINDOW
+            SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
+        End If
+    End Sub
     Private Sub API_RUN_Load(sender As Object, e As EventArgs) Handles Me.Load
         SetupLogCopy()
-
+        Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
+        If overlayExists Then
+            ToggleAltTabVisibility(False)
+            Opacity = 1
+            Me.WindowState = FormWindowState.Normal
+        Else
+            ToggleAltTabVisibility(True)
+            Me.WindowState = FormWindowState.Minimized
+            Me.Hide()
+            Opacity = 0
+        End If
         SetStartup(True)
+        notifyIcon.Icon = Me.Icon
+        notifyIcon.Text = "NVIDIA API Server"
+        notifyIcon.Visible = True
+
+        ' Menu เวลาคลิกขวา
+        Dim contextMenu As New ContextMenuStrip()
+
+        Dim miShow As New ToolStripMenuItem("Show")
+        miShow.Font = New Font("Consolas", 9)
+        AddHandler miShow.Click, AddressOf Tray_Show
+        contextMenu.Items.Add(miShow)
+
+        contextMenu.Items.Add(New ToolStripSeparator())
+
+        Dim miExit As New ToolStripMenuItem("Exit")
+        miExit.Font = New Font("Consolas", 9)
+        AddHandler miExit.Click, AddressOf Tray_Exit
+        contextMenu.Items.Add(miExit)
+
+        notifyIcon.ContextMenuStrip = contextMenu
+
+        ' Double-click → แสดง Form
+        AddHandler notifyIcon.DoubleClick, AddressOf Tray_Show
     End Sub
 
     Public Sub SetStartup(enable As Boolean)
@@ -165,6 +211,50 @@ Public Class API_RUN
 
 
 
+    ' ═══════════════════════════════════════════
+    '  Minimize → Tray
+    ' ═══════════════════════════════════════════
+    Private Sub API_RUN_Resize(sender As Object, e As EventArgs) Handles MyBase.Resize
+        If Me.WindowState = FormWindowState.Minimized Then
+            Me.Hide()
+            notifyIcon.Visible = True
+            notifyIcon.BalloonTipTitle = "Server"
+            notifyIcon.BalloonTipText = "Server is running in background"
+            notifyIcon.BalloonTipIcon = ToolTipIcon.Info
+            notifyIcon.ShowBalloonTip(2000)
+            ToggleAltTabVisibility(True)
+            Me.Opacity = 0
+        End If
+    End Sub
 
+    ' ═══════════════════════════════════════════
+    '  Tray Actions
+    ' ═══════════════════════════════════════════
+    Private Sub Tray_Show(sender As Object, e As EventArgs)
+        Me.Show()
+        Me.Opacity = 1
+        Me.WindowState = FormWindowState.Normal
+        Me.Activate()
+        ToggleAltTabVisibility(False)
+    End Sub
+
+
+    Private Sub Tray_Exit(sender As Object, e As EventArgs)
+        ' ปิดทุก Client
+        SyncLock clientsLock
+            For Each c In clients
+                Try : c.Client.Close() : Catch : End Try
+            Next
+            clients.Clear()
+        End SyncLock
+
+        ' หยุด Server
+        Try
+            listener.Stop()
+        Catch : End Try
+
+        notifyIcon.Visible = False
+        Application.Exit()
+    End Sub
 
 End Class

@@ -29,4 +29,8 @@
 		<Import Include="Microsoft.VisualBasic" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <Compile Update="[APP] Client.vb" />
+	</ItemGroup>
+
 </Project>

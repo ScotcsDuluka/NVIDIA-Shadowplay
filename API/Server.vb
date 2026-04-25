@@ -3,172 +3,251 @@ Imports System.Net
 Imports System.Net.Sockets
 Imports System.Threading
 
-Public Class API_RUN
+Partial Public Class API_RUN
 
-    ' ══════════════════════════════════════
-    ' 🌐 SERVER VARIABLES
-    ' ══════════════════════════════════════
+    Private listener As TcpListener
+    Private clients As New List(Of ClientInfo)
+    Private clientsLock As New Object()
+    Private startTime As DateTime
 
-    Dim listener As TcpListener
-    Dim clients As New List(Of TcpClient)
-    Private clientsLock As New Object()   ' ✅ FIX: Thread Safety
+    Private Class ClientInfo
+        Public Client As TcpClient
+        Public Writer As StreamWriter
+        Public AppName As String = "Unknown"
+        Public LastActivity As DateTime = DateTime.Now
+        Public ConnectedAt As DateTime = DateTime.Now
+    End Class
 
+    Private Sub Server_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        startTime = DateTime.Now
 
-    ' ══════════════════════════════════════
-    ' ▶️ START SERVER
-    ' ══════════════════════════════════════
+        Dim uiTimer As New System.Windows.Forms.Timer()
+        uiTimer.Interval = 1000
+        AddHandler uiTimer.Tick, AddressOf UpdateUI
+        uiTimer.Start()
 
-    Private Sub API_Server_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Task.Run(AddressOf StartServer)
-        Log("SYSTEM", "Server started on port 5000")
+        Log("[Log] NVIDIA API", "server_started")
     End Sub
 
-    Sub StartServer()
-        listener = New TcpListener(IPAddress.Any, 5000)
-        listener.Start()
+    ' ═══════════════════════════════════════════
+    ' เพิ่ม: อัปเดต UI ทุก 1 วินาที
+    ' ═══════════════════════════════════════════
+    Private Sub UpdateUI()
+        Me.Text = "API Server - tcp://127.0.0.1:5000"
+        If InvokeRequired Then
+            Invoke(Sub() UpdateUI())
+            Return
+        End If
 
-        While True
-            Dim client = listener.AcceptTcpClient()
+        ' Uptime
+        Dim uptime = DateTime.Now - startTime
+        lblUptime.Text = $"{uptime.Hours:D2}:{uptime.Minutes:D2}:{uptime.Seconds:D2}"
 
-            ' ✅ FIX: Thread-safe add
-            SyncLock clientsLock
-                clients.Add(client)
-            End SyncLock
+        ' Client count
+        SyncLock clientsLock
+            lblClientsOnline.Text = clients.Count.ToString()
+        End SyncLock
 
-            Log("SYSTEM", $"Client connected (Total: {clients.Count})")
+        ' Server status
+        lblStatus.Text = "Online"
+        lblStatus.ForeColor = Color.FromArgb(76, 175, 80)
 
-            Dim t As New Thread(Sub() HandleClient(client))
-            t.IsBackground = True
-            t.Start()
-        End While
+        ' Total messages
+        lblMessages.Text = totalMessages.ToString()
+
+        ' Client list
+        UpdateClientList()
     End Sub
 
+    Private totalMessages As Integer = 0
 
-    ' ══════════════════════════════════════
-    ' 📥 HANDLE CLIENT
-    ' ══════════════════════════════════════
-
-    Sub HandleClient(client As TcpClient)
-        Dim clientId As String = ""
-
-        Try
-            clientId = client.Client.RemoteEndPoint.ToString()
-
-            Using reader As New StreamReader(client.GetStream())
-
-                While True
-                    Try
-                        Dim msg = reader.ReadLine()
-                        If msg Is Nothing Then Exit While
-
-                        ProcessMessage(msg)
-                        Broadcast(msg, client)
-
-                    Catch ex As Exception
-                        Log($"ERROR-{clientId}", ex.Message)
-                        Exit While
-                    End Try
-                End While
-
-            End Using
-
-        Finally
-            ' ✅ FIX: Cleanup when disconnect
-            SyncLock clientsLock
-                clients.Remove(client)
-            End SyncLock
-
-            Try : client.Close() : Catch : End Try
-
-            Log("SYSTEM", $"Client {clientId} disconnected (Remaining: {clients.Count})")
-        End Try
-    End Sub
-
-
-    ' ══════════════════════════════════════
-    ' 📨 PROCESS MESSAGE
-    ' ══════════════════════════════════════
-
-    Sub ProcessMessage(msg As String)
-        If Not msg.Contains("|") Then Exit Sub
-
-        Dim parts = msg.Split("|"c)
-        Dim app = parts(0).Trim()
-        Dim data = parts(1).Trim()
-
-        Log(app, data)
-
-        Select Case data
-            Case "record_start"
-              '  Log("ACTION", "▶ Start Recording")
-
-            Case "record_stop"
-                'Log("ACTION", "⏹ Stop Recording")
-
-            Case Else
-                'Log("RECV", data)
-        End Select
-    End Sub
-
-
-    ' ══════════════════════════════════════
-    ' 📤 BROADCAST TO ALL CLIENTS
-    ' ══════════════════════════════════════
-
-    Sub Broadcast(msg As String, senderClient As TcpClient)
-        Dim deadClients As New List(Of TcpClient)
+    Private Sub UpdateClientList()
+        lstClients.Items.Clear()
 
         SyncLock clientsLock
             For Each c In clients
-                If c Is senderClient Then Continue For
-
-                Try
-                    Using writer As New StreamWriter(c.GetStream())
-                        writer.WriteLine(msg)
-                        writer.Flush()
-                    End Using
-                Catch
-                    deadClients.Add(c)   ' Mark dead client
-                End Try
-            Next
-
-            ' ✅ FIX: Remove dead clients
-            For Each dead In deadClients
-                clients.Remove(dead)
-                Try : dead.Close() : Catch : End Try
+                Dim name As String = c.AppName
+                If name = "Unknown" Then name = "Connecting..."
+                Dim line = $"{name} / Connected  {c.ConnectedAt:HH:mm:ss}"
+                lstClients.Items.Add(line)
             Next
         End SyncLock
-
-        If deadClients.Count > 0 Then
-            Log("CLEANUP", $"Removed {deadClients.Count} dead client(s)")
-        End If
     End Sub
 
-
-    ' ══════════════════════════════════════
-    ' 📝 LOGGING
-    ' ══════════════════════════════════════
-
-    Sub Log(app As String, data As String)
-        Dim line = $"[{DateTime.Now:HH:mm:ss}] {app} ""{data}"""
-
-        If lstLog.InvokeRequired Then
+    Private Async Sub StartServer()
+        listener = New TcpListener(IPAddress.Any, 5000)
+        listener.Start()
+#Disable Warning BC42358
+        Task.Run(AddressOf HeartbeatMonitor)
+#Enable Warning BC42358
+        While True
             Try
-                lstLog.Invoke(Sub()
-                                  lstLog.Items.Add(line)
-                                  lstLog.TopIndex = lstLog.Items.Count - 1
-                              End Sub)
-            Catch
+                Dim client = Await listener.AcceptTcpClientAsync()
+                Dim info As New ClientInfo With {
+                    .Client = client,
+                    .Writer = New StreamWriter(client.GetStream()) With {.AutoFlush = True},
+                    .ConnectedAt = DateTime.Now
+                }
+
+                SyncLock clientsLock
+                    clients.Add(info)
+                End SyncLock
+
+                Log("[Log] NVIDIA API", $"client_connected_{clients.Count}")
+#Disable Warning BC42358
+                Task.Run(Function() HandleClientAsync(info))
+#Enable Warning BC42358
+            Catch ex As Exception
+                Log("[Error] NVIDIA API", $"accept_failed_{ex.Message}")
             End Try
-        Else
-            lstLog.Items.Add(line)
-            lstLog.TopIndex = lstLog.Items.Count - 1
+        End While
+    End Sub
+
+    Private Async Function HandleClientAsync(info As ClientInfo) As Task
+        Dim reader As New StreamReader(info.Client.GetStream())
+
+        Dim id As String = "unknown"
+        If info.Client.Client IsNot Nothing AndAlso info.Client.Client.RemoteEndPoint IsNot Nothing Then
+            id = info.Client.Client.RemoteEndPoint.ToString()
         End If
 
         Try
-            IO.File.AppendAllText("server.log", line & Environment.NewLine)
-        Catch
+            While True
+                Dim msg = Await reader.ReadLineAsync()
+                If msg Is Nothing Then Exit While
+
+                info.LastActivity = DateTime.Now
+                ProcessMessage(msg, info)
+                Broadcast(msg, info)
+            End While
+
+        Catch ex As IOException
+            Log("[Warn] NVIDIA API", $"client_{id}_connection_lost")
+        Catch ex As Exception
+            Log("[Error] NVIDIA API", $"client_{id}_error_{ex.Message}")
+
+        Finally
+            SyncLock clientsLock
+                clients.Remove(info)
+            End SyncLock
+
+            Try : info.Client.Close() : Catch : End Try
+            Log("[Log] NVIDIA API", $"client_{id}_disconnected")
         End Try
+    End Function
+
+    Private Sub ProcessMessage(msg As String, info As ClientInfo)
+        If Not msg.Contains("|") Then Exit Sub
+
+        Dim parts = msg.Split("|"c)
+        Dim app = parts(0)
+        Dim data = parts(1)
+
+        Dim cleanName = app.Replace("[Send] ", "").Replace("[Receive] ", "").Trim()
+        info.AppName = cleanName
+
+        Dim colonIndex = data.IndexOf(":"c)
+        Dim cmd, value As String
+        If colonIndex >= 0 Then
+            cmd = data.Substring(0, colonIndex)
+            value = data.Substring(colonIndex + 1)
+        Else
+            cmd = data
+            value = ""
+        End If
+
+        If cmd = "ping" Then
+            Try
+                info.Writer.WriteLine("[System]|pong")
+            Catch : End Try
+            Exit Sub
+        End If
+
+        If cmd = "register" Then
+            info.AppName = value
+            Log("[Log] NVIDIA API", $"client_registered_{value}")
+            Exit Sub
+        End If
+
+        totalMessages += 1
+        Log(app, data)
+
+        Select Case cmd
+            Case "overlay_show"
+                ' action
+
+            Case "notifier_show"
+                ' action
+
+            Case "open"
+                ' action
+
+            Case Else
+
+        End Select
+    End Sub
+
+    Private Sub Broadcast(msg As String, senderInfo As ClientInfo)
+        Dim dead As New List(Of ClientInfo)
+
+        SyncLock clientsLock
+            For Each c In clients
+                If c Is senderInfo Then Continue For
+
+                Try
+                    c.Writer.WriteLine(msg)
+                    c.LastActivity = DateTime.Now
+                Catch
+                    dead.Add(c)
+                End Try
+            Next
+
+            For Each d In dead
+                clients.Remove(d)
+                Try : d.Client.Close() : Catch : End Try
+                Log("[Heartbeat] NVIDIA API", $"removed_dead_client_{d.AppName}")
+            Next
+        End SyncLock
+    End Sub
+
+    Private Sub HeartbeatMonitor()
+        While True
+            Thread.Sleep(10000)
+
+            Dim dead As New List(Of ClientInfo)
+            SyncLock clientsLock
+                For Each c In clients
+                    If (DateTime.Now - c.LastActivity).TotalSeconds > 30 Then
+                        dead.Add(c)
+                    End If
+                Next
+
+                For Each d In dead
+                    clients.Remove(d)
+                    Try : d.Client.Close() : Catch : End Try
+                    Log("[Heartbeat] NVIDIA API", $"killed_inactive_{d.AppName}")
+                Next
+            End SyncLock
+        End While
+    End Sub
+
+    Private Sub Log(app As String, msg As String)
+        Dim line = $"[{DateTime.Now:HH:mm:ss}] {app} ""{msg}"""
+
+        Dim action = Sub()
+                         If lstLog.Items.Count > 1000 Then
+                             lstLog.Items.RemoveAt(0)
+                         End If
+                         lstLog.Items.Add(line)
+                         lstLog.TopIndex = lstLog.Items.Count - 1
+                     End Sub
+
+        If lstLog.InvokeRequired Then
+            lstLog.Invoke(action)
+        Else
+            action()
+        End If
     End Sub
 
 End Class

@@ -3,19 +3,7 @@ Imports System.IO
 Imports System.Net.Sockets
 Imports System.Runtime.InteropServices
 Imports Microsoft.VisualBasic.Logging
-Public Class NVIDIA_Shadowplay_Helper
-
-
-
-
-
-
-
-
-
-
-
-
+Partial Public Class NVIDIA_Shadowplay_Helper
 
 
     <DllImport("dwmapi.dll")>
@@ -139,6 +127,7 @@ Public Class NVIDIA_Shadowplay_Helper
         Dim exePath As String = Application.StartupPath & "\NVIDIA API.exe"
         Try
             Process.Start(exePath)
+
         Catch ex As Exception
         End Try
     End Sub
@@ -213,15 +202,10 @@ Public Class NVIDIA_Shadowplay_Helper
         Application.Exit()
     End Sub
 
-    Dim tcp As TcpClientHelper
 
-    Private Sub Server_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-
-        tcp = New TcpClientHelper
-    End Sub
 
 
     Private Sub BOX_LOGO_Click(sender As Object, e As EventArgs) Handles NVAPI.Click
-        tcp.Send("record_start")
+        tcp.Send("overlay_show")
     End Sub
 End Class

@@ -26,7 +26,15 @@ Partial Class API_RUN
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(API_RUN))
         Load_APP = New Timer(components)
         lstLog = New ListBox()
-        GroupBox1 = New GroupBox()
+        lblStatus = New GroupBox()
+        lblUptime = New Label()
+        lstClients = New ListBox()
+        GroupBox2 = New GroupBox()
+        lblClientsOnline = New Label()
+        lblMessages = New Label()
+        notifyIcon = New NotifyIcon(components)
+        lblStatus.SuspendLayout()
+        GroupBox2.SuspendLayout()
         SuspendLayout()
         ' 
         ' Load_APP
@@ -36,42 +44,115 @@ Partial Class API_RUN
         ' 
         ' lstLog
         ' 
+        lstLog.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lstLog.FormattingEnabled = True
         lstLog.IntegralHeight = False
         lstLog.ItemHeight = 15
         lstLog.Location = New Point(12, 30)
         lstLog.Name = "lstLog"
-        lstLog.SelectionMode = SelectionMode.MultiSimple
-        lstLog.Size = New Size(480, 383)
+        lstLog.SelectionMode = SelectionMode.MultiExtended
+        lstLog.Size = New Size(642, 265)
         lstLog.TabIndex = 1
         ' 
-        ' GroupBox1
+        ' lblStatus
         ' 
-        GroupBox1.Location = New Point(12, 12)
-        GroupBox1.Name = "GroupBox1"
-        GroupBox1.Size = New Size(480, 110)
-        GroupBox1.TabIndex = 2
-        GroupBox1.TabStop = False
-        GroupBox1.Text = "Server log"
+        lblStatus.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        lblStatus.Controls.Add(lblUptime)
+        lblStatus.Location = New Point(12, 12)
+        lblStatus.Name = "lblStatus"
+        lblStatus.Size = New Size(642, 110)
+        lblStatus.TabIndex = 2
+        lblStatus.TabStop = False
+        lblStatus.Text = "Server log"
+        ' 
+        ' lblUptime
+        ' 
+        lblUptime.AutoSize = True
+        lblUptime.Location = New Point(576, 0)
+        lblUptime.Name = "lblUptime"
+        lblUptime.Size = New Size(66, 15)
+        lblUptime.TabIndex = 5
+        lblUptime.Text = "%Uptime%"
+        ' 
+        ' lstClients
+        ' 
+        lstClients.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        lstClients.FormattingEnabled = True
+        lstClients.IntegralHeight = False
+        lstClients.ItemHeight = 15
+        lstClients.Location = New Point(12, 319)
+        lstClients.Name = "lstClients"
+        lstClients.SelectionMode = SelectionMode.MultiExtended
+        lstClients.Size = New Size(642, 94)
+        lstClients.TabIndex = 3
+        ' 
+        ' GroupBox2
+        ' 
+        GroupBox2.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        GroupBox2.Controls.Add(lblClientsOnline)
+        GroupBox2.Location = New Point(12, 301)
+        GroupBox2.Name = "GroupBox2"
+        GroupBox2.Size = New Size(642, 58)
+        GroupBox2.TabIndex = 4
+        GroupBox2.TabStop = False
+        GroupBox2.Text = "Clients Online"
+        ' 
+        ' lblClientsOnline
+        ' 
+        lblClientsOnline.AutoSize = True
+        lblClientsOnline.Location = New Point(88, 0)
+        lblClientsOnline.Name = "lblClientsOnline"
+        lblClientsOnline.Size = New Size(98, 15)
+        lblClientsOnline.TabIndex = 6
+        lblClientsOnline.Text = "%ClientsOnline%"
+        ' 
+        ' lblMessages
+        ' 
+        lblMessages.AutoSize = True
+        lblMessages.Location = New Point(110, 107)
+        lblMessages.Name = "lblMessages"
+        lblMessages.Size = New Size(71, 15)
+        lblMessages.TabIndex = 7
+        lblMessages.Text = "lblMessages"
+        ' 
+        ' notifyIcon
+        ' 
+        notifyIcon.Text = "NotifyIcon1"
+        notifyIcon.Visible = True
         ' 
         ' API_RUN
         ' 
         AutoScaleMode = AutoScaleMode.None
         AutoSizeMode = AutoSizeMode.GrowAndShrink
-        ClientSize = New Size(843, 425)
+        ClientSize = New Size(666, 425)
+        Controls.Add(lstClients)
+        Controls.Add(GroupBox2)
         Controls.Add(lstLog)
-        Controls.Add(GroupBox1)
+        Controls.Add(lblStatus)
+        Controls.Add(lblMessages)
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         MaximizeBox = False
         Name = "API_RUN"
+        Opacity = 0R
         StartPosition = FormStartPosition.CenterScreen
         Text = "API Server"
         TopMost = True
+        lblStatus.ResumeLayout(False)
+        lblStatus.PerformLayout()
+        GroupBox2.ResumeLayout(False)
+        GroupBox2.PerformLayout()
         ResumeLayout(False)
+        PerformLayout()
     End Sub
 
     Friend WithEvents Load_APP As Timer
     Friend WithEvents lstLog As ListBox
-    Friend WithEvents GroupBox1 As GroupBox
+    Friend WithEvents lblStatus As GroupBox
+    Friend WithEvents lstClients As ListBox
+    Friend WithEvents GroupBox2 As GroupBox
+    Friend WithEvents lblUptime As Label
+    Friend WithEvents lblClientsOnline As Label
+    Friend WithEvents lblMessages As Label
+    Friend WithEvents notifyIcon As NotifyIcon
 
 End Class

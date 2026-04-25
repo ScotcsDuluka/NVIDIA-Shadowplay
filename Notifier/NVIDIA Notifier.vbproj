@@ -57,6 +57,9 @@
 			<AutoGen>True</AutoGen>
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
+		<Compile Update="[Forms Overlay - Project Files]\[API]\TCP\[Notifier] Client.vb">
+		  <SubType>Form</SubType>
+		</Compile>
 	</ItemGroup>
 
 	<ItemGroup>

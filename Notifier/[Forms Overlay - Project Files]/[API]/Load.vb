@@ -1,7 +1,7 @@
 Imports System.IO
 Imports System.Runtime.InteropServices
 
-Public Class Load
+Partial Public Class Load
     Inherits BlockClose
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
@@ -313,12 +313,13 @@ Public Class Load
 
 
     Private Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color)
+
         ' Ensure UI thread
         If Me.InvokeRequired Then
             Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor))
             Return
         End If
-
+        tcp.SendLog("notifier_show")
         Notifier.autoClose.Stop()
         Notifier.autoClose.Start()
         Notifier_Sub.TopMost = True
