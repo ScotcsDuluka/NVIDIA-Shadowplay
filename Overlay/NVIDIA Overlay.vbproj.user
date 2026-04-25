@@ -2,7 +2,7 @@
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup />
   <ItemGroup>
-    <Compile Update="[Forms Overlay - Project Files]\[API]\[Services]\[Overlay] Client.vb">
+    <Compile Update="[Forms Overlay - Project Files]\[API]\[Services]\TCP\[Overlay] Client.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Game Filter]\[1] Settings UI Main.vb">

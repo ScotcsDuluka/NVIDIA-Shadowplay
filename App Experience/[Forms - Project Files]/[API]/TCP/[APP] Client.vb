@@ -6,15 +6,14 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     Private tcp As TcpClientHelper
 
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-
+        tcp = New TcpClientHelper("NVIDIA  APP")
+        AddHandler tcp.OnMessageReceived, AddressOf OnMessage
         If tcp IsNot Nothing Then Exit Sub
 
         While Process.GetProcessesByName("NVIDIA API").Length = 0
             Threading.Thread.Sleep(500)
         End While
 
-        tcp = New TcpClientHelper("NVIDIA  APP")
-        AddHandler tcp.OnMessageReceived, AddressOf OnMessage
 
     End Sub
 

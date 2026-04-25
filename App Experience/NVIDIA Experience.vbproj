@@ -30,7 +30,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <Compile Update="[APP] Client.vb" />
+	  <Compile Update="[Forms - Project Files]\[API]\TCP\[APP] Client.vb" />
 	</ItemGroup>
 
 </Project>

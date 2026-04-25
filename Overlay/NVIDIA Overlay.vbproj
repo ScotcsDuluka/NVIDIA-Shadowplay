@@ -94,6 +94,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
+	  <EmbeddedResource Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
+	  <None Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<COMReference Include="WMPLib">
 			<WrapperTool>tlbimp</WrapperTool>
 			<VersionMinor>0</VersionMinor>
@@ -256,8 +262,6 @@
 	<ItemGroup>
 		<Folder Include="Resources\" />
 		<Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
-		<Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
-		<Folder Include="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\" />
 	</ItemGroup>
 
 	<ItemGroup>

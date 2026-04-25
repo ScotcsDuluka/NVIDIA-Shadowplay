@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Compile Update="Main.vb">
+    <Compile Update="[Forms - Project Files]\[UI Forms]\Main.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="[APP] Client.vb">
+    <Compile Update="[Forms - Project Files]\[API]\TCP\[APP] Client.vb">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>

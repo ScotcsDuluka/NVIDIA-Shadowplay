@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <Compile Update="Load.vb">
+    <Compile Update="[Forms - Project Files]\[UI Forms]\NVIDIA API.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="Server.vb">
+    <Compile Update="[Forms - Project Files]\[API]\Server.vb">
       <SubType>Form</SubType>
     </Compile>
   </ItemGroup>
