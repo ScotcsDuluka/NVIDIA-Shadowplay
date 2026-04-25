@@ -208,20 +208,23 @@ Partial Public Class Base
     wParam As IntPtr, lParam As IntPtr
 ) As IntPtr
     Private Const WM_SETREDRAW As Integer = &HB
-
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
-        Dim proc() As Process = Process.GetProcessesByName("NVIDIA API")
-        If proc.Length = 0 Then
-            Application.Exit()
-            Return
+        ' รอให้ต่อ server สำเร็จ (สูงสุด 30 วินาที)
+        If Not tcp.IsConnected Then
+            Debug.WriteLine("[Init] Waiting for server connection...")
+            Await WaitForConnection(30000)
         End If
 
+        If Not tcp.IsConnected Then
+            Debug.WriteLine("[Init] Cannot connect to server!")
+            Return
+        End If
 
         HideFromAltTab()
 
         _hotkeyService = New HotkeyService()
-        _hotkeyService.RegisterAll(handle)
+        _hotkeyService.RegisterAll(Handle)
         Debug.WriteLine("Hotkeys registered!")
 
         AppSettings.Initialize()
@@ -242,6 +245,32 @@ Partial Public Class Base
         File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
 
     End Sub
+
+    ''' <summary>
+    ''' รอให้เชื่อมต่อสำเร็จ — ไม่ block UI
+    ''' </summary>
+    Private Async Function WaitForConnection(timeoutMs As Integer) As Task
+        Dim tcs As New TaskCompletionSource(Of Boolean)()
+        Dim handler As TcpClientHelper.OnMessageReceivedEventHandler = Nothing
+
+        handler = Sub(msg)
+                      If tcp.IsConnected Then
+                          RemoveHandler tcp.OnMessageReceived, handler
+                          tcs.TrySetResult(True)
+                      End If
+                  End Sub
+
+        AddHandler tcp.OnMessageReceived, handler
+
+        ' ตั้ง timeout
+        Using timeoutCts As New CancellationTokenSource(timeoutMs)
+            Dim reg = timeoutCts.Token.Register(Sub()
+                                                    RemoveHandler tcp.OnMessageReceived, handler
+                                                    tcs.TrySetResult(False)
+                                                End Sub)
+            Await tcs.Task
+        End Using
+    End Function
 
 
 
@@ -544,18 +573,18 @@ Partial Public Class Base
 #Region "============================================================================ NOTIFIER SYSTEM"
 
     Public Sub ShowNotifier(message As String)
-        tcp.Send("notifier_show")
+        tcp.Send("l10n." & message)
         Dim folderPath As String = Path.Combine(Application.StartupPath, DataDirectoryName)
 
-        If Not Directory.Exists(folderPath) Then
-            Directory.CreateDirectory(folderPath)
-        End If
+        '  If Not Directory.Exists(folderPath) Then
+        ' Directory.CreateDirectory(folderPath)
+        '  End If
 
-        Dim filePath As String = Path.Combine(folderPath, "l10n." & message)
-        Try
-            File.Create(filePath).Dispose()
-        Catch ex As UnauthorizedAccessException
-        End Try
+        ' Dim filePath As String = Path.Combine(folderPath, "l10n." & message)
+        'Try
+        'File.Create(filePath).Dispose()
+        'Catch ex As UnauthorizedAccessException
+        'End Try
     End Sub
 
 #End Region

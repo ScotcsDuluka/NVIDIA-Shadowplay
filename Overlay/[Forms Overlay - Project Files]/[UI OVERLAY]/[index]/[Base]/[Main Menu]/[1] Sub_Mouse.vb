@@ -600,9 +600,15 @@ Partial Public Class Base
     End Sub
 
     Private Sub Noti_Click(sender As Object, e As EventArgs) Handles PictureBox17.Click, nott.Click, noty.Click
-        isNotiOn = Not isNotiOn
-        Dim c = If(isNotiOn, Color.White, grayColor)
-        noty.ForeColor = c : nott.ForeColor = c
+        If isNotiOn = True Then
+            noty.ForeColor = Color.White
+            nott.ForeColor = Color.White
+            isNotiOn = False
+        Else
+            noty.ForeColor = Color.Gray
+            nott.ForeColor = Color.Gray
+            isNotiOn = True
+        End If
     End Sub
 
     ' ========== ABOUT ==========

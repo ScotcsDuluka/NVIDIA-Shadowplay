@@ -142,7 +142,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         Else
             Null_OVERLAY.Visible = False
         End If
-
+        tcp.Send("l10n.test")
     End Sub
 
     Private Sub Use_Overlay_CheckedChanged(sender As Object, e As EventArgs) Handles Use_Overlay.CheckedChanged

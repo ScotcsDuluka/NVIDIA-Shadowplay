@@ -33,7 +33,7 @@ Namespace My
 
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
         Protected Overrides Sub OnCreateMainForm()
-            Me.MainForm = Global.Notifier_API.Load
+            Me.MainForm = Global.Notifier_API.Loader
         End Sub
         
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>  _

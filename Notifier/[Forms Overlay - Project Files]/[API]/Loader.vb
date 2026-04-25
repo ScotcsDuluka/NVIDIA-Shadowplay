@@ -4,9 +4,9 @@ Imports System.Runtime.InteropServices
 Partial Public Class Loader
     Inherits BlockClose
 
+    ' ส่วน API และสไตล์ฟอร์ม
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000
-
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
             Dim cp As CreateParams = MyBase.CreateParams
@@ -16,14 +16,13 @@ Partial Public Class Loader
     End Property
 
     Private ReadOnly greenColor As Color = ColorTranslator.FromHtml("#76B900")
+
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
-
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
     End Function
-
     Private Const GWL_EXSTYLE As Integer = -20
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
@@ -36,305 +35,60 @@ Partial Public Class Loader
         End If
     End Sub
 
-    Private Sub ShowNotification(iconText As String, messageText As String, showImage As Boolean)
-        ' Ensure UI updates run on the UI thread
-        If Me.InvokeRequired Then
-            Me.Invoke(Sub() ShowNotification(iconText, messageText, showImage))
-            Return
-        End If
+    ' Events ฟอร์ม
+    Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' TCP Client
+        tcp = New TcpClientHelper("NVIDIA Notifier")
+        AddHandler tcp.OnMessageReceived, AddressOf OnMessage
+        ' เปิดเชื่อมต่อ TCP (ปรับตามจริง)
+        ' tcp.Connect("127.0.0.1", 12345) ' หรือ .Start()
 
-        Try
-            Notifier.Show()
-        Catch
-            ' ignore if already shown or not available
-        End Try
+        ' โหลดภาษาครั้งแรก
+        LoadLanguage()
 
-        Try
-            Notifier_Sub.icon_n.Text = iconText
-            Notifier_Sub.text_n.Text = messageText
-            Notifier_Sub.PictureBox1.Visible = showImage
-            Notifier_Sub.TopMost = True
-            Notifier_Sub.Show()
-        Catch
-            ' If controls/forms are not available, fail silently
-        End Try
+        ' สร้างรายการแจ้งเตือน
+        InitNotifications()
+
+        ' ซ่อนจาก Alt+Tab
+        HideFromAltTab()
     End Sub
 
-    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        Notifier.Show()
-        Notifier_Sub.icon_n.Text = ""
-        Notifier_Sub.text_n.Text = "Press Alt + Z to use Shadowplay Experience in-game overlay"
-        Notifier_Sub.PictureBox1.Visible = True
+    Private Sub Form1_Shown(sender As Object, e As EventArgs) Handles Me.Shown
+        HideFromAltTab()
     End Sub
-    Private Function GetSavedReplayDuration() As (minutes As Integer, seconds As Integer)
-        Dim dataDir As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
-        Dim minutes As Integer = 0
-        Dim seconds As Integer = 0
 
-        Try
-            For Each file As String In Directory.GetFiles(dataDir, "*.m")
-                Dim fileName As String = Path.GetFileNameWithoutExtension(file)
-                Integer.TryParse(fileName, minutes)
-                Exit For
-            Next
-
-            For Each file As String In Directory.GetFiles(dataDir, "*.s")
-                Dim fileName As String = Path.GetFileNameWithoutExtension(file)
-                Integer.TryParse(fileName, seconds)
-                Exit For
-            Next
-        Catch ex As Exception
-            Console.WriteLine("Error: " & ex.Message)
-        End Try
-
-        Return (minutes, seconds)
-    End Function
-    Private Sub RUN_API_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick
-        ' 1. Language Handling
+    Private Sub LoadLanguage(Optional langCode As String = Nothing)
         Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
         Dim currentFile As String = Path.Combine(langFolder, "current.txt")
-
-        Dim currentLang As String = "en-US"
-        If File.Exists(currentFile) Then
-            currentLang = File.ReadAllText(currentFile).Trim()
-        End If
-
-        Dim langFile As String = Path.Combine(langFolder, currentLang & ".json")
-        LangHelper.LoadLang(langFile)
-        GetSavedReplayDuration()
-        Dim checks As New Dictionary(Of String, (Message As String, ShowImage As Boolean, Icon As String, IconColor As Color)) From {
-        {"l10n.notificationOpenShare", (LangHelper.GetText("l10n.notificationOpenShare", "Alt + Z"), True, "", Color.White)},
-        {"notuse", (LangHelper.GetText("l10n.notificationWarningGameRequired"), False, "", Color.White)},
-        {"l10n.notificationWarningNvidiaGpuRequired", (LangHelper.GetText("l10n.notificationWarningNvidiaGpuRequired"), False, "", Color.White)},
-        {"l10n.Screenshot", (LangHelper.GetText("l10n.notificationScreenshotSavedToGallery"), False, "", Color.White)},
-        {"l10n.validsavepath", (LangHelper.GetText("l10n.validsavepath"), False, "", Color.White)},
-        {"l10n.recording_started", (LangHelper.GetText("l10n.notificationManualRecordStarted"), False, "", greenColor)},
-        {"l10n.recording_saved", (LangHelper.GetText("l10n.notificationManualRecordStopped"), False, "", Color.White)},
-        {"l10n.replay_error", (LangHelper.GetText("l10n.notificationReplaySaveError"), False, "", Color.White)},
-        {"l10n.replay_turn_on", (LangHelper.GetText("l10n.notificationTurnOnInstantReplay"), False, "", Color.White)},
-        {"l10n.instant_replay_off", (LangHelper.GetText("l10n.notificationInstantReplayStopped"), False, "", Color.White)},
-        {"l10n.instant_replay_on", (LangHelper.GetText("l10n.notificationInstantReplayStarted"), False, "", greenColor)},
-        {"l10n.photo_mode_error", (LangHelper.GetText("l10n.notificationWarningPhotographyNotAllowed"), False, "", Color.White)},
-        {"l10n.feature_not_ready", (LangHelper.GetText("l10n.notificationFeatureNotReady"), False, "", Color.White)},
-        {"l10n.extension_not_found", (LangHelper.GetText("l10n.notificationCustomOverlayFileNotFound"), False, "", Color.White)},
-        {"l10n.error_confirm", (LangHelper.GetText("l10n.notificationaccountconfirmerror"), False, "", Color.White)},
-        {"l10n.saved_last_15", (LangHelper.GetText("l10n.notificationInstantReplaySaved", GetSavedReplayDuration.minutes, GetSavedReplayDuration.seconds), False, "", Color.White)},
-        {"l10n.notifier_open", (LangHelper.GetText("l10n.notifierOpen"), False, "", Color.White)},
-        {"l10n.notifier_not_using", (LangHelper.GetText("l10n.notifierNotUsing"), False, "", Color.White)},
-        {"l10n.app_closed", (LangHelper.GetText("l10n.notificationAppClosed"), False, "", Color.White)},
-        {"l10n.shared_close", (LangHelper.GetText("l10n.notificationSharedClose"), False, "", Color.White)},
-        {"l10n.update_available", (LangHelper.GetText("l10n.notificationUpdateAvailable"), False, "", Color.White)},
-        {"l10n.privacy", (LangHelper.GetText("l10n.notificationWarningDesktopCaptureDisabled"), False, "", Color.White)},
-        {"l10n.version_latest", (LangHelper.GetText("l10n.notificationVersionLatest"), False, "", Color.White)},
-        {"l10n.account_confirm_error", (LangHelper.GetText("l10n.notificationaccountconfirmerror"), False, "", Color.White)},
-        {"l10n.ErrorResolution", (LangHelper.GetText("l10n.notificationErrorResolution"), False, "", Color.White)},
-        {"l10n.error_general", (LangHelper.GetText("l10n.notificationErrorGeneral"), False, "", Color.White)},
-        {"l10n.foldererror", (LangHelper.GetText("l10n.foldererror"), False, "", Color.White)},
-        {"l10n.Capture_notuse", (LangHelper.GetText("l10n.Capture_notuse"), False, "", Color.White)},
-        {"l10n.openLocation", (LangHelper.GetText("l10n.openLocation"), False, "", Color.White)}
-    }
-
-
-        ' Path to the special "py" file
-        Dim pyFilePath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
-        Dim isPyActive As Boolean = File.Exists(pyFilePath)
-
-        ' 3. Iterate through checks
-        For Each kvp In checks
-            Dim filePath = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", kvp.Key)
-
-            If File.Exists(filePath) Then
-                ' ดึงค่าจาก Dictionary (เพิ่ม displayColor เข้ามา)
-                Dim displayMessage As String = kvp.Value.Message
-                Dim displayIcon As String = kvp.Value.Icon
-                Dim showImage As Boolean = kvp.Value.ShowImage
-                Dim displayColor As Color = kvp.Value.IconColor
-
-
-
-                ' 4. Update UI 
-                UpdateNotifier(displayMessage, showImage, displayIcon, displayColor)
-
-                ' 5. Cleanup
-                SafeDelete(filePath)
-            End If
-        Next
-        Dim filePaths As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier")
-
-        Try
-            If Notifier.Visible Then
-                If Not File.Exists(filePaths) Then
-                    File.Create(filePaths).Dispose()
-                End If
-            Else
-                If File.Exists(filePaths) Then
-                    File.Delete(filePaths)
-                End If
-            End If
-        Catch ex As Exception
-        End Try
-
-        Dim filePathss As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifiermainoff")
-
-        Try
-            If File.Exists(filePathss) Then
-                File.Delete(filePathss)
-                Notifier.IF_N.Start()
-                Notifier_Sub.Timer1.Start()
-            End If
-
-        Catch ex As Exception
-            Debug.WriteLine("Error handling notifier file: " & ex.Message)
-        End Try
-    End Sub
-
-
-
-
-
-
-
-
-    Public Class NotificationData
-        Public Property Key As String
-        Public Property Ico As String = ""
-        Public Property Png As Boolean = False
-        Public Property Color As Color = Color.White
-        Public Property Args As String() = {}
-
-        Public Sub New(key As String, Optional ico As String = "", Optional png As Boolean = False, Optional color As Color = Nothing, Optional args As String() = Nothing)
-            Me.Key = key
-            Me.Ico = ico
-            Me.Png = png
-            Me.Color = If(color = Nothing, Color.White, color)
-            Me.Args = If(args, {})
-        End Sub
-    End Class
-
-    Private ReadOnly notifications As New List(Of NotificationData)()
-
-    Public Sub New()
-        InitializeComponent()
-
-        ' === Notifications without args ===
-        notifications.Add(New NotificationData("l10n.test", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.notificationWarningDesktopCaptureDisabled", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.notificationScreenshotSavedToGallery", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.ramwram", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.ramwram95", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.ramwramcritical", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.cpuwram", "", False, Color.White))
-        notifications.Add(New NotificationData("l10n.diskspacelow", "", False, Color.White))
-
-        ' === Notifications with args ===
-        notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))
-        notifications.Add(New NotificationData("l10n.notificationInstantReplaySaved", "", False, Color.White, {GetSavedReplayDuration.minutes, GetSavedReplayDuration.seconds}))
-
-    End Sub
-    Private Sub RUN_NEW_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick
-        ' Language Handling
-        Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
-        Dim currentFile As String = Path.Combine(langFolder, "current.txt")
-        Dim currentLang As String = "en-US"
-        If File.Exists(currentFile) Then
+        Dim currentLang As String = If(langCode, "en-US")
+        If String.IsNullOrEmpty(langCode) AndAlso File.Exists(currentFile) Then
             currentLang = File.ReadAllText(currentFile).Trim()
         End If
         Dim langFile As String = Path.Combine(langFolder, currentLang & ".json")
         LangHelper.LoadLang(langFile)
-
-        ' Privacy check
-        Dim pyFilePath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
-        Dim isPyActive As Boolean = File.Exists(pyFilePath)
-
-        ' Process notifications
-        Dim dataDir As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data")
-
-        For Each data As NotificationData In notifications
-            Dim filePath As String = Path.Combine(dataDir, data.Key)
-
-            If File.Exists(filePath) Then
-                Dim message As String = LangHelper.GetText(data.Key, data.Args)
-                Dim icon As String = data.Ico
-                Dim showImage As Boolean = data.Png
-                Dim iconColor As Color = data.Color
-
-
-                UpdateNotifier(message, showImage, icon, iconColor)
-                SafeDelete(filePath)
-                Dim dataDira As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
-
-                If Directory.Exists(dataDira) Then
-                    ' ลบไฟล์ทั้งหมดในโฟลเดอร์ Replay
-                    For Each files As String In Directory.GetFiles(dataDira)
-                        File.Delete(files)
-                    Next
-
-                    ' ลบโฟลเดอร์ย่อยทั้งหมดใน Replay
-                    For Each dir As String In Directory.GetDirectories(dataDira)
-                        Directory.Delete(dir, True)
-                    Next
-                End If
-            End If
-        Next
-
-        ' Notifier state tracking
-        Dim filePaths As String = Path.Combine(dataDir, "notifier")
-        Try
-            If Notifier.Visible Then
-                If Not File.Exists(filePaths) Then File.Create(filePaths).Dispose()
-            Else
-                If File.Exists(filePaths) Then File.Delete(filePaths)
-            End If
-        Catch
-        End Try
-
-        Dim filePathss As String = Path.Combine(dataDir, "notifiermainoff")
-        Try
-            If File.Exists(filePathss) Then
-                File.Delete(filePathss)
-                Notifier.IF_N.Start()
-                Notifier_Sub.Timer1.Start()
-            End If
-        Catch
-        End Try
     End Sub
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-    Private Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color)
-
-        ' Ensure UI thread
+    ' ฟังก์ชัน UpdateNotifier (จัดการ UI)
+    Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color)
         If Me.InvokeRequired Then
             Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor))
             Return
         End If
-        tcp.SendLog("notifier_show")
+
+        ' tcp.SendLog("notifier_show") ' ถ้าต้องการ
+
         Notifier.autoClose.Stop()
         Notifier.autoClose.Start()
         Notifier_Sub.TopMost = True
 
+        ' Logic เดิมเรื่องการสไลด์
         If Notifier.Notifier_green_stop.Visible Then
-            ' Close sub + Slide out
             AllowClose = True
             Notifier_Sub.Close()
-
-            ' Force UI update before animation
             Application.DoEvents()
 
             Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
 
-            ' Update content
             With Notifier_Sub.icon_n
                 .Font = New Font(.Font.FontFamily, 35)
                 .ForeColor = iconColor
@@ -343,29 +97,19 @@ Partial Public Class Loader
             Notifier_Sub.text_n.Text = message
             Notifier_Sub.PictureBox1.Visible = showImage
 
-            ' Delay then slide back in
             Dim delay As New Timer()
             delay.Interval = 200
             AddHandler delay.Tick, Sub()
                                        delay.Stop()
                                        delay.Dispose()
-
-                                       Notifier.StartSlide(
-                                       Notifier.Notifier_black,
-                                       Notifier.Width,
-                                       Notifier.Width - 300,
-                                       300,
-                                       Sub()
-                                           Notifier_Sub.Show()
-                                       End Sub
-                                   )
+                                       Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
+                                           Sub() Notifier_Sub.Show())
                                    End Sub
             delay.Start()
             AllowClose = False
             Exit Sub
         End If
 
-        ' First show
         Notifier.Show()
         With Notifier_Sub.icon_n
             .Font = New Font(.Font.FontFamily, 35)
@@ -376,11 +120,30 @@ Partial Public Class Loader
         Notifier_Sub.PictureBox1.Visible = showImage
     End Sub
 
+    ' ฟังก์ชัน GetSavedReplayDuration
+    Public Function GetSavedReplayDuration() As (minutes As Integer, seconds As Integer)
+        Dim dataDir As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
+        Dim minutes As Integer = 0
+        Dim seconds As Integer = 0
+        Try
+            For Each file As String In Directory.GetFiles(dataDir, "*.m")
+                Dim fileName As String = Path.GetFileNameWithoutExtension(file)
+                Integer.TryParse(fileName, minutes)
+                Exit For
+            Next
+            For Each file As String In Directory.GetFiles(dataDir, "*.s")
+                Dim fileName As String = Path.GetFileNameWithoutExtension(file)
+                Integer.TryParse(fileName, seconds)
+                Exit For
+            Next
+        Catch ex As Exception
+            Console.WriteLine("Error reading replay duration: " & ex.Message)
+        End Try
+        Return (minutes, seconds)
+    End Function
 
-
-
-    Private Sub SafeDelete(path As String)
-
+    ' SafeDelete
+    Public Sub SafeDelete(path As String)
         For i As Integer = 0 To 5
             Try
                 If File.Exists(path) Then
@@ -391,38 +154,64 @@ Partial Public Class Loader
                 Threading.Thread.Sleep(50)
             End Try
         Next
+    End Sub
 
+    ' จัดการไฟล์ Replay หลังอ่าน
+    Public Sub DeleteReplayFiles()
+        Dim replayDir = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
+        Try
+            If Directory.Exists(replayDir) Then
+                For Each f In Directory.GetFiles(replayDir)
+                    File.Delete(f)
+                Next
+                For Each d In Directory.GetDirectories(replayDir)
+                    Directory.Delete(d, True)
+                Next
+            End If
+        Catch
+        End Try
+    End Sub
+
+    ' จัดการสถานะ Notifier
+    Public Sub ManageNotifierState()
+        Dim dataDir = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data")
+        Dim notifierFile = Path.Combine(dataDir, "notifier")
+        Dim mainOffFile = Path.Combine(dataDir, "notifiermainoff")
+        Try
+            If Notifier.Visible Then
+                If Not File.Exists(notifierFile) Then File.Create(notifierFile).Dispose()
+            Else
+                If File.Exists(notifierFile) Then File.Delete(notifierFile)
+            End If
+        Catch
+        End Try
+        Try
+            If File.Exists(mainOffFile) Then
+                File.Delete(mainOffFile)
+                Notifier.IF_N.Start()
+                Notifier_Sub.Timer1.Start()
+            End If
+        Catch
+        End Try
+    End Sub
+
+    ' ปุ่มทดสอบ
+    Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
+        Notifier.Show()
+        Notifier_Sub.icon_n.Text = ""
+        Notifier_Sub.text_n.Text = "Press Alt + Z to use Shadowplay Experience in-game overlay"
+        Notifier_Sub.PictureBox1.Visible = True
     End Sub
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
         Notifier_Sub.Show()
     End Sub
-
-    Private Sub Form1_Shown(sender As Object, e As EventArgs) Handles Me.Shown
-        HideFromAltTab()
-    End Sub
-
-    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles Me.Load
-
-        Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
-        Dim currentFile As String = Path.Combine(langFolder, "current.txt")
-
-        Dim currentLang As String = "en-US"
-        If File.Exists(currentFile) Then
-            currentLang = File.ReadAllText(currentFile).Trim()
-        End If
-
-        Dim langFile As String = Path.Combine(langFolder, currentLang & ".json")
-        LangHelper.LoadLang(langFile)
-
-
-    End Sub
-
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
         Notifier.IF_N.Start()
         Notifier_Sub.Timer1.Start()
     End Sub
 
     Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
-
+        ' Dispose TCP
+        ' tcp?.Dispose()
     End Sub
 End Class
