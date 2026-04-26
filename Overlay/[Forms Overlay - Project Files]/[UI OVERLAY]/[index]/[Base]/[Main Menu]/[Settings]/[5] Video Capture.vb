@@ -1315,13 +1315,11 @@ Public Class Base_RecordingsSet
             Panel_SET.Enabled = False
             captrueblock.Visible = True
             captrueblock_ico.Visible = True
-            Panel.Size = New Size(1145, 206)
         Else
             Panel_SET.Visible = True
             Panel_SET.Enabled = True
             captrueblock.Visible = False
             captrueblock_ico.Visible = False
-            Panel.Size = New Size(1145, 775)
         End If
     End Sub
 

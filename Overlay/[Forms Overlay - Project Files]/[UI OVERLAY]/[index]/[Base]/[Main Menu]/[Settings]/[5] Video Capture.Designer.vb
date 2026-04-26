@@ -27,8 +27,9 @@ Partial Class Base_RecordingsSet
         ALTZ = New Timer(components)
         setre = New Panel()
         Label4 = New Label()
-        Panel = New Panel()
+        Panel_SetVDO = New Panel()
         Panel_SET = New Panel()
+        lblBitrateRange = New Label()
         PictureBox8 = New PictureBox()
         PictureBox7 = New PictureBox()
         PictureBox4 = New PictureBox()
@@ -38,7 +39,6 @@ Partial Class Base_RecordingsSet
         prearg = New TextBox()
         TextBox1 = New TextBox()
         Label3 = New Label()
-        lblBitrateRange = New Label()
         warm_re = New Label()
         Label14 = New Label()
         TrackBar_Replaylast = New TrackBar()
@@ -100,8 +100,10 @@ Partial Class Base_RecordingsSet
         action_fn = New Label()
         Quality = New Timer(components)
         PictureBox22 = New PictureBox()
+        PictureBox9 = New PictureBox()
+        PictureBox10 = New PictureBox()
         setre.SuspendLayout()
-        Panel.SuspendLayout()
+        Panel_SetVDO.SuspendLayout()
         Panel_SET.SuspendLayout()
         CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
@@ -134,6 +136,8 @@ Partial Class Base_RecordingsSet
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox22, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' ALTZ
@@ -142,13 +146,13 @@ Partial Class Base_RecordingsSet
         ' 
         ' setre
         ' 
-        setre.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Right
+        setre.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         setre.BackColor = Color.Red
         setre.Controls.Add(Label4)
-        setre.Controls.Add(Panel)
+        setre.Controls.Add(Panel_SetVDO)
         setre.Location = New Point(695, 160)
         setre.Name = "setre"
-        setre.Size = New Size(1145, 841)
+        setre.Size = New Size(925, 832)
         setre.TabIndex = 44
         ' 
         ' Label4
@@ -163,21 +167,22 @@ Partial Class Base_RecordingsSet
         Label4.TabIndex = 51
         Label4.Text = "Video capture"
         ' 
-        ' Panel
+        ' Panel_SetVDO
         ' 
-        Panel.Anchor = AnchorStyles.None
-        Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Panel.Controls.Add(Panel_SET)
-        Panel.Controls.Add(captrueblock_ico)
-        Panel.Controls.Add(captrueblock)
-        Panel.Location = New Point(0, 0)
-        Panel.Name = "Panel"
-        Panel.Size = New Size(1145, 775)
-        Panel.TabIndex = 110
+        Panel_SetVDO.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel_SetVDO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Panel_SetVDO.Controls.Add(Panel_SET)
+        Panel_SetVDO.Controls.Add(captrueblock_ico)
+        Panel_SetVDO.Controls.Add(captrueblock)
+        Panel_SetVDO.Location = New Point(0, 0)
+        Panel_SetVDO.Name = "Panel_SetVDO"
+        Panel_SetVDO.Size = New Size(925, 775)
+        Panel_SetVDO.TabIndex = 110
         ' 
         ' Panel_SET
         ' 
         Panel_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel_SET.Controls.Add(lblBitrateRange)
         Panel_SET.Controls.Add(PictureBox8)
         Panel_SET.Controls.Add(PictureBox7)
         Panel_SET.Controls.Add(PictureBox4)
@@ -187,7 +192,6 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(prearg)
         Panel_SET.Controls.Add(TextBox1)
         Panel_SET.Controls.Add(Label3)
-        Panel_SET.Controls.Add(lblBitrateRange)
         Panel_SET.Controls.Add(warm_re)
         Panel_SET.Controls.Add(Label14)
         Panel_SET.Controls.Add(TrackBar_Replaylast)
@@ -242,51 +246,68 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(lbl_BufferDuration)
         Panel_SET.Location = New Point(62, 73)
         Panel_SET.Name = "Panel_SET"
-        Panel_SET.Size = New Size(1033, 678)
+        Panel_SET.Size = New Size(813, 678)
         Panel_SET.TabIndex = 121
+        ' 
+        ' lblBitrateRange
+        ' 
+        lblBitrateRange.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        lblBitrateRange.Font = New Font("Segoe UI Semibold", 10.0F)
+        lblBitrateRange.ForeColor = Color.White
+        lblBitrateRange.Location = New Point(351, 284)
+        lblBitrateRange.Name = "lblBitrateRange"
+        lblBitrateRange.Size = New Size(381, 19)
+        lblBitrateRange.TabIndex = 127
+        lblBitrateRange.Text = "Bitแนะนำ"
+        lblBitrateRange.TextAlign = ContentAlignment.BottomLeft
         ' 
         ' PictureBox8
         ' 
+        PictureBox8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox8.Location = New Point(358, 277)
         PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New Size(630, 4)
+        PictureBox8.Size = New Size(410, 4)
         PictureBox8.TabIndex = 145
         PictureBox8.TabStop = False
         ' 
         ' PictureBox7
         ' 
+        PictureBox7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox7.Location = New Point(358, 249)
         PictureBox7.Name = "PictureBox7"
-        PictureBox7.Size = New Size(630, 4)
+        PictureBox7.Size = New Size(410, 4)
         PictureBox7.TabIndex = 144
         PictureBox7.TabStop = False
         ' 
         ' PictureBox4
         ' 
+        PictureBox4.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox4.Location = New Point(58, 395)
         PictureBox4.Name = "PictureBox4"
-        PictureBox4.Size = New Size(920, 4)
+        PictureBox4.Size = New Size(700, 4)
         PictureBox4.TabIndex = 143
         PictureBox4.TabStop = False
         ' 
         ' PictureBox3
         ' 
+        PictureBox3.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox3.Location = New Point(58, 367)
         PictureBox3.Name = "PictureBox3"
-        PictureBox3.Size = New Size(920, 4)
+        PictureBox3.Size = New Size(700, 4)
         PictureBox3.TabIndex = 142
         PictureBox3.TabStop = False
         ' 
         ' Button_Copy
         ' 
+        Button_Copy.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Button_Copy.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Button_Copy.FlatStyle = FlatStyle.Flat
         Button_Copy.ForeColor = SystemColors.Control
-        Button_Copy.Location = New Point(896, 540)
+        Button_Copy.Location = New Point(676, 540)
         Button_Copy.Name = "Button_Copy"
         Button_Copy.Size = New Size(77, 112)
         Button_Copy.TabIndex = 141
@@ -295,10 +316,11 @@ Partial Class Base_RecordingsSet
         ' 
         ' Button1
         ' 
+        Button1.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Button1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Button1.FlatStyle = FlatStyle.Flat
         Button1.ForeColor = SystemColors.Control
-        Button1.Location = New Point(896, 499)
+        Button1.Location = New Point(676, 499)
         Button1.Name = "Button1"
         Button1.Size = New Size(77, 35)
         Button1.TabIndex = 140
@@ -307,6 +329,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' prearg
         ' 
+        prearg.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         prearg.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         prearg.BorderStyle = BorderStyle.None
         prearg.Enabled = False
@@ -315,12 +338,13 @@ Partial Class Base_RecordingsSet
         prearg.Multiline = True
         prearg.Name = "prearg"
         prearg.ReadOnly = True
-        prearg.Size = New Size(589, 137)
+        prearg.Size = New Size(369, 137)
         prearg.TabIndex = 139
         prearg.Text = "Command"
         ' 
         ' TextBox1
         ' 
+        TextBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TextBox1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         TextBox1.BorderStyle = BorderStyle.None
         TextBox1.Enabled = False
@@ -328,7 +352,7 @@ Partial Class Base_RecordingsSet
         TextBox1.Location = New Point(288, 499)
         TextBox1.Multiline = True
         TextBox1.Name = "TextBox1"
-        TextBox1.Size = New Size(602, 153)
+        TextBox1.Size = New Size(382, 153)
         TextBox1.TabIndex = 138
         ' 
         ' Label3
@@ -343,26 +367,15 @@ Partial Class Base_RecordingsSet
         Label3.TabIndex = 137
         Label3.Text = "Preview Build FFmpeg Arguments"
         ' 
-        ' lblBitrateRange
-        ' 
-        lblBitrateRange.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        lblBitrateRange.Font = New Font("Segoe UI Semibold", 10.0F)
-        lblBitrateRange.ForeColor = Color.White
-        lblBitrateRange.Location = New Point(592, 222)
-        lblBitrateRange.Name = "lblBitrateRange"
-        lblBitrateRange.Size = New Size(381, 19)
-        lblBitrateRange.TabIndex = 127
-        lblBitrateRange.Text = "Bitแนะนำ"
-        lblBitrateRange.TextAlign = ContentAlignment.MiddleRight
-        ' 
         ' warm_re
         ' 
+        warm_re.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         warm_re.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         warm_re.Font = New Font("Segoe UI", 10.0F)
         warm_re.ForeColor = Color.Coral
         warm_re.Location = New Point(592, 82)
         warm_re.Name = "warm_re"
-        warm_re.Size = New Size(407, 115)
+        warm_re.Size = New Size(187, 140)
         warm_re.TabIndex = 136
         warm_re.Text = "warm"
         ' 
@@ -380,11 +393,12 @@ Partial Class Base_RecordingsSet
         ' 
         ' TrackBar_Replaylast
         ' 
+        TrackBar_Replaylast.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TrackBar_Replaylast.LargeChange = 1
         TrackBar_Replaylast.Location = New Point(58, 362)
         TrackBar_Replaylast.Maximum = 1200
         TrackBar_Replaylast.Name = "TrackBar_Replaylast"
-        TrackBar_Replaylast.Size = New Size(915, 45)
+        TrackBar_Replaylast.Size = New Size(695, 45)
         TrackBar_Replaylast.TabIndex = 131
         TrackBar_Replaylast.TickFrequency = 15
         TrackBar_Replaylast.TickStyle = TickStyle.Both
@@ -402,9 +416,10 @@ Partial Class Base_RecordingsSet
         ' 
         ' TrackBar_BITRATE
         ' 
+        TrackBar_BITRATE.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TrackBar_BITRATE.Location = New Point(351, 244)
         TrackBar_BITRATE.Name = "TrackBar_BITRATE"
-        TrackBar_BITRATE.Size = New Size(622, 45)
+        TrackBar_BITRATE.Size = New Size(402, 45)
         TrackBar_BITRATE.TabIndex = 128
         TrackBar_BITRATE.TickStyle = TickStyle.Both
         ' 
@@ -927,47 +942,50 @@ Partial Class Base_RecordingsSet
         ' 
         ' lbl_BufferDuration
         ' 
+        lbl_BufferDuration.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         lbl_BufferDuration.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lbl_BufferDuration.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         lbl_BufferDuration.ForeColor = Color.White
         lbl_BufferDuration.Location = New Point(58, 292)
         lbl_BufferDuration.Name = "lbl_BufferDuration"
-        lbl_BufferDuration.Size = New Size(915, 67)
+        lbl_BufferDuration.Size = New Size(695, 67)
         lbl_BufferDuration.TabIndex = 135
         lbl_BufferDuration.Text = "instantReplayLength:"
         lbl_BufferDuration.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' captrueblock_ico
         ' 
+        captrueblock_ico.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         captrueblock_ico.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         captrueblock_ico.Cursor = Cursors.Hand
         captrueblock_ico.Font = New Font("nvgcshare", 20.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         captrueblock_ico.ForeColor = Color.Peru
         captrueblock_ico.Location = New Point(139, 104)
         captrueblock_ico.Name = "captrueblock_ico"
-        captrueblock_ico.Size = New Size(40, 31)
+        captrueblock_ico.Size = New Size(24, 31)
         captrueblock_ico.TabIndex = 131
         captrueblock_ico.Text = ""
         captrueblock_ico.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' captrueblock
         ' 
+        captrueblock.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         captrueblock.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         captrueblock.Font = New Font("Segoe UI", 13.0F)
         captrueblock.ForeColor = Color.White
         captrueblock.Location = New Point(176, 104)
         captrueblock.Name = "captrueblock"
-        captrueblock.Size = New Size(885, 76)
+        captrueblock.Size = New Size(665, 76)
         captrueblock.TabIndex = 73
         captrueblock.Text = "Settings"
         ' 
         ' settings_top
         ' 
-        settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(695, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(1145, 5)
+        settings_top.Size = New Size(924, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
@@ -1033,11 +1051,35 @@ Partial Class Base_RecordingsSet
         PictureBox22.TabIndex = 72
         PictureBox22.TabStop = False
         ' 
+        ' PictureBox9
+        ' 
+        PictureBox9.BackColor = Color.Blue
+        PictureBox9.BackgroundImageLayout = ImageLayout.None
+        PictureBox9.Location = New Point(873, 990)
+        PictureBox9.Name = "PictureBox9"
+        PictureBox9.Size = New Size(80, 80)
+        PictureBox9.TabIndex = 90
+        PictureBox9.TabStop = False
+        PictureBox9.Visible = False
+        ' 
+        ' PictureBox10
+        ' 
+        PictureBox10.BackColor = Color.Blue
+        PictureBox10.BackgroundImageLayout = ImageLayout.None
+        PictureBox10.Location = New Point(1620, 166)
+        PictureBox10.Name = "PictureBox10"
+        PictureBox10.Size = New Size(80, 80)
+        PictureBox10.TabIndex = 91
+        PictureBox10.TabStop = False
+        PictureBox10.Visible = False
+        ' 
         ' Base_RecordingsSet
         ' 
         AutoScaleMode = AutoScaleMode.None
         BackColor = Color.Red
-        ClientSize = New Size(1920, 1080)
+        ClientSize = New Size(1700, 1070)
+        Controls.Add(PictureBox10)
+        Controls.Add(PictureBox9)
         Controls.Add(vdo_resetall)
         Controls.Add(settings_top)
         Controls.Add(text_settings)
@@ -1057,7 +1099,7 @@ Partial Class Base_RecordingsSet
         WindowState = FormWindowState.Maximized
         setre.ResumeLayout(False)
         setre.PerformLayout()
-        Panel.ResumeLayout(False)
+        Panel_SetVDO.ResumeLayout(False)
         Panel_SET.ResumeLayout(False)
         Panel_SET.PerformLayout()
         CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
@@ -1091,6 +1133,8 @@ Partial Class Base_RecordingsSet
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox22, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
 
@@ -1137,7 +1181,7 @@ Partial Class Base_RecordingsSet
     Friend WithEvents L_T As PictureBox
     Friend WithEvents Quality As Timer
     Friend WithEvents PictureBox22 As PictureBox
-    Friend WithEvents Panel As Panel
+    Friend WithEvents Panel_SetVDO As Panel
     Friend WithEvents Label2 As Label
     Friend WithEvents Encoder_CODE As Label
     Friend WithEvents FPS_BOX As TextBox
@@ -1170,4 +1214,6 @@ Partial Class Base_RecordingsSet
     Friend WithEvents PictureBox8 As PictureBox
     Friend WithEvents PictureBox7 As PictureBox
     Friend WithEvents PictureBox4 As PictureBox
+    Friend WithEvents PictureBox9 As PictureBox
+    Friend WithEvents PictureBox10 As PictureBox
 End Class

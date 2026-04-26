@@ -44,7 +44,7 @@ Partial Class Base_Settings
         ' 
         ' Main_Menu_SET
         ' 
-        Main_Menu_SET.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Main_Menu_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Main_Menu_SET.BackColor = Color.Red
         Main_Menu_SET.Controls.Add(Panel)
         Main_Menu_SET.Location = New Point(695, 160)
@@ -78,7 +78,7 @@ Partial Class Base_Settings
         ' 
         ' ICON_1
         ' 
-        ICON_1.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        ICON_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         ICON_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ICON_1.Font = New Font("nvgcshare", 120F)
         ICON_1.ForeColor = Color.DimGray
@@ -200,7 +200,7 @@ Partial Class Base_Settings
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
-        ClientSize = New Size(1920, 1080)
+        ClientSize = New Size(1700, 1070)
         Controls.Add(SW_lang)
         Controls.Add(ch)
         Controls.Add(action_fn)

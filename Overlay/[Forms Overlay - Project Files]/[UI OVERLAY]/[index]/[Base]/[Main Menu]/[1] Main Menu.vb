@@ -172,7 +172,7 @@ Partial Public Class Base
         SetHoverEffect(Base_Overlay_Hub.action_fn, HoverColorG, LeaveColorG)
 
         '4
-        SetHoverEffect(Base_KeySet.action_fn, HoverColorG, LeaveColorG)
+        SetHoverEffect(Base_KeySet.action_fn, HoverColorGR, LeaveColorGR)
 
         '5
         SetHoverEffect(Base_RecordingsSet.action_fn, HoverColorGR, LeaveColorGR)
@@ -210,7 +210,6 @@ Partial Public Class Base
     Private Const WM_SETREDRAW As Integer = &HB
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
-        ' รอให้ต่อ server สำเร็จ (สูงสุด 30 วินาที)
         If Not tcp.IsConnected Then
             Debug.WriteLine("[Init] Waiting for server connection...")
             Await WaitForConnection(30000)
@@ -246,9 +245,6 @@ Partial Public Class Base
 
     End Sub
 
-    ''' <summary>
-    ''' รอให้เชื่อมต่อสำเร็จ — ไม่ block UI
-    ''' </summary>
     Private Async Function WaitForConnection(timeoutMs As Integer) As Task
         Dim tcs As New TaskCompletionSource(Of Boolean)()
         Dim handler As TcpClientHelper.OnMessageReceivedEventHandler = Nothing
@@ -272,8 +268,6 @@ Partial Public Class Base
         End Using
     End Function
 
-
-
     Private Sub TIMESLOAD()
         Load_App.Start()
         Privacy_control.Start()
@@ -290,8 +284,7 @@ Partial Public Class Base
         If width <> 1920 OrElse height <> 1080 Then
             ShowNotifier("ErrorResolution")
             File.Delete(Path.Combine(Application.StartupPath, "Use_Overlay"))
-            Application.Exit()
-            Exit Sub
+            'Application.Exit()
         End If
 
         ' Start Notifier

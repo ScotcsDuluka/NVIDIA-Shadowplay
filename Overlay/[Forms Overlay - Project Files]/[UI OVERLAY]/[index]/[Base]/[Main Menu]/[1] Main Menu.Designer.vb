@@ -202,7 +202,8 @@ Partial Class Base
         d = New Label()
         GAMESFORM = New Timer(components)
         Animation_Engine = New Timer(components)
-        index_BT = New PictureBox()
+        PictureBox5 = New PictureBox()
+        PictureBox6 = New PictureBox()
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         shadowplay.SuspendLayout()
         CType(a_3l, ComponentModel.ISupportInitialize).BeginInit()
@@ -300,7 +301,8 @@ Partial Class Base
         CType(Connect_Box, ComponentModel.ISupportInitialize).BeginInit()
         CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).BeginInit()
         CType(Settings_List_Box, ComponentModel.ISupportInitialize).BeginInit()
-        CType(index_BT, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' Logo
@@ -1747,7 +1749,7 @@ Partial Class Base
         Settings_List.Controls.Add(Settings_List_Box)
         Settings_List.Location = New Point(80, 160)
         Settings_List.Name = "Settings_List"
-        Settings_List.Size = New Size(358, 840)
+        Settings_List.Size = New Size(358, 830)
         Settings_List.TabIndex = 42
         Settings_List.Visible = False
         ' 
@@ -1829,7 +1831,7 @@ Partial Class Base
         Settings_List_All.Controls.Add(Connect_Box_Sub)
         Settings_List_All.Location = New Point(32, 93)
         Settings_List_All.Name = "Settings_List_All"
-        Settings_List_All.Size = New Size(326, 716)
+        Settings_List_All.Size = New Size(326, 706)
         Settings_List_All.TabIndex = 73
         ' 
         ' Connect_Text
@@ -2350,25 +2352,37 @@ Partial Class Base
         ' 
         Animation_Engine.Interval = 1
         ' 
-        ' index_BT
+        ' PictureBox5
         ' 
-        index_BT.BackColor = Color.Blue
-        index_BT.BackgroundImageLayout = ImageLayout.None
-        index_BT.Location = New Point(383, 1000)
-        index_BT.Name = "index_BT"
-        index_BT.Size = New Size(80, 80)
-        index_BT.TabIndex = 87
-        index_BT.TabStop = False
-        index_BT.Visible = False
+        PictureBox5.BackColor = Color.Blue
+        PictureBox5.BackgroundImageLayout = ImageLayout.None
+        PictureBox5.Location = New Point(0, 830)
+        PictureBox5.Name = "PictureBox5"
+        PictureBox5.Size = New Size(80, 80)
+        PictureBox5.TabIndex = 88
+        PictureBox5.TabStop = False
+        PictureBox5.Visible = False
+        ' 
+        ' PictureBox6
+        ' 
+        PictureBox6.BackColor = Color.Blue
+        PictureBox6.BackgroundImageLayout = ImageLayout.None
+        PictureBox6.Location = New Point(335, 990)
+        PictureBox6.Name = "PictureBox6"
+        PictureBox6.Size = New Size(80, 80)
+        PictureBox6.TabIndex = 89
+        PictureBox6.TabStop = False
+        PictureBox6.Visible = False
         ' 
         ' Base
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
-        ClientSize = New Size(1920, 1080)
+        ClientSize = New Size(1700, 1070)
+        Controls.Add(PictureBox6)
+        Controls.Add(PictureBox5)
         Controls.Add(Settings_List)
-        Controls.Add(index_BT)
         Controls.Add(shadowplay)
         Controls.Add(d)
         Controls.Add(ME_CLOSE_BG)
@@ -2483,7 +2497,8 @@ Partial Class Base
         CType(Connect_Box, ComponentModel.ISupportInitialize).EndInit()
         CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).EndInit()
         CType(Settings_List_Box, ComponentModel.ISupportInitialize).EndInit()
-        CType(index_BT, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -2661,6 +2676,7 @@ Partial Class Base
     Friend WithEvents GAMESFORM As Timer
     Friend WithEvents Animation_Engine As Timer
     Friend WithEvents Settings_index As PictureBox
-    Friend WithEvents index_BT As PictureBox
+    Friend WithEvents PictureBox5 As PictureBox
+    Friend WithEvents PictureBox6 As PictureBox
 
 End Class

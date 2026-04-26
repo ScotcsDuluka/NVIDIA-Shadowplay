@@ -1,22 +1,33 @@
 # Build outputs
 **/bin/
 **/obj/
+**/Debug/
+**/Release/
+**/x64/
 **/*.pdb
 **/*.cache
+**/*.tmp
+**/*.temp
 
-# IDE
+# IDE and local user settings
 **/.vs/
 **/*.user
 **/*.suo
+**/*.userosscache
+**/*.sln.docstates
 
-# Packages (restore from NuGet)
+# NuGet and restored packages
 **/packages/
+*.nupkg
 
-# OS
+# OS files
 desktop.ini
 Thumbs.db
 .DS_Store
 
 # Logs
 *.log
-/Launcher/node_modules
+
+# App/runtime data that should stay local
+Overlay/build.txt
+Overlay/NVIDIA_Shadowplay_Data/
