@@ -32,22 +32,26 @@ Partial Class Base_KeySet
         settings_top = New PictureBox()
         action_fn = New Label()
         PictureBox6 = New PictureBox()
+        PictureBox9 = New PictureBox()
+        PictureBox1 = New PictureBox()
         keyset.SuspendLayout()
         CType(settings_bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' keyset
         ' 
-        keyset.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        keyset.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         keyset.BackColor = Color.Red
         keyset.Controls.Add(Key_Tx)
         keyset.Controls.Add(settings_bg)
         keyset.Location = New Point(695, 160)
         keyset.Name = "keyset"
-        keyset.Size = New Size(1145, 841)
+        keyset.Size = New Size(1145, 840)
         keyset.TabIndex = 45
         ' 
         ' Key_Tx
@@ -64,11 +68,11 @@ Partial Class Base_KeySet
         ' 
         ' settings_bg
         ' 
-        settings_bg.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Right
+        settings_bg.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         settings_bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         settings_bg.Location = New Point(0, 4)
         settings_bg.Name = "settings_bg"
-        settings_bg.Size = New Size(1145, 837)
+        settings_bg.Size = New Size(1145, 836)
         settings_bg.TabIndex = 1
         settings_bg.TabStop = False
         ' 
@@ -126,7 +130,7 @@ Partial Class Base_KeySet
         action_fn.Name = "action_fn"
         action_fn.Size = New Size(200, 70)
         action_fn.TabIndex = 58
-        action_fn.Text = "Saved"
+        action_fn.Text = "s"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox6
@@ -138,11 +142,35 @@ Partial Class Base_KeySet
         PictureBox6.TabIndex = 71
         PictureBox6.TabStop = False
         ' 
+        ' PictureBox9
+        ' 
+        PictureBox9.BackColor = Color.Blue
+        PictureBox9.BackgroundImageLayout = ImageLayout.None
+        PictureBox9.Location = New Point(1130, 1000)
+        PictureBox9.Name = "PictureBox9"
+        PictureBox9.Size = New Size(80, 80)
+        PictureBox9.TabIndex = 91
+        PictureBox9.TabStop = False
+        PictureBox9.Visible = False
+        ' 
+        ' PictureBox1
+        ' 
+        PictureBox1.BackColor = Color.Blue
+        PictureBox1.BackgroundImageLayout = ImageLayout.None
+        PictureBox1.Location = New Point(1840, 678)
+        PictureBox1.Name = "PictureBox1"
+        PictureBox1.Size = New Size(80, 80)
+        PictureBox1.TabIndex = 92
+        PictureBox1.TabStop = False
+        PictureBox1.Visible = False
+        ' 
         ' Base_KeySet
         ' 
         AutoScaleMode = AutoScaleMode.None
         BackColor = Color.Red
         ClientSize = New Size(1920, 1080)
+        Controls.Add(PictureBox1)
+        Controls.Add(PictureBox9)
         Controls.Add(Reset)
         Controls.Add(text_settings)
         Controls.Add(settings_top)
@@ -164,6 +192,8 @@ Partial Class Base_KeySet
         CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
     Friend WithEvents keyset As Panel
@@ -175,4 +205,6 @@ Partial Class Base_KeySet
     Friend WithEvents settings_top As PictureBox
     Friend WithEvents box_settings As PictureBox
     Friend WithEvents PictureBox6 As PictureBox
+    Friend WithEvents PictureBox9 As PictureBox
+    Friend WithEvents PictureBox1 As PictureBox
 End Class

@@ -1,5 +1,4 @@
 ﻿Imports System.IO
-
 Partial Public Class Loader
 
     Private tcp As TcpClientHelper
@@ -74,6 +73,8 @@ Partial Public Class Loader
         notifications.Add(New NotificationData("l10n.replay_error", "", localizationKey:="l10n.notificationReplaySaveError"))
         notifications.Add(New NotificationData("l10n.recording_started", "", False, greenColor, localizationKey:="l10n.notificationManualRecordStarted"))
         notifications.Add(New NotificationData("l10n.recording_saved", "", localizationKey:="l10n.notificationManualRecordStopped"))
+        notifications.Add(New NotificationData("l10n.update_available", "", localizationKey:="l10n.notificationUpdateAvailable"))
+        notifications.Add(New NotificationData("l10n.version_latest", "", localizationKey:="l10n.notificationVersionLatest"))
 
         ' =================== มี ARGS ===================
         notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))
@@ -82,12 +83,14 @@ Partial Public Class Loader
     End Sub
 
     Public Sub OnMessage(msg As String)
+
+
         ' เช็ค InvokeRequired
         If InvokeRequired Then
             Invoke(Sub() OnMessage(msg))
             Return
         End If
-
+        LoadLanguage()
         ' ตัวอย่างข้อความ: [NVIDIA Overlay]|l10n.notificationOpenShare
         If Not msg.Contains("|") Then Exit Sub
 
@@ -132,4 +135,5 @@ Partial Public Class Loader
 
         tcp.SendLog(message)
     End Sub
+
 End Class

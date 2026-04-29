@@ -52,7 +52,6 @@ Partial Public Class Base
 
         Base_Background_Top.Bg_SET3.Visible = False
         ME_CLOSE_BG.Visible = False
-        d.Visible = False
         clickThrough = True
         a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
         Settings_List.Visible = True
@@ -91,15 +90,15 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - PRIVACY/CONNECT"
 
-    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Box.MouseMove, Connect_Text.MouseMove, Connect_ICO.MouseMove
+    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Text.MouseMove, Connect_ICO.MouseMove
         Connect_Box_Sub.BackColor = greenColor
     End Sub
 
-    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Box.MouseLeave, Connect_Text.MouseLeave, Connect_ICO.MouseLeave
+    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Text.MouseLeave, Connect_ICO.MouseLeave
         Connect_Box_Sub.BackColor = System.Drawing.Color.Gray
     End Sub
 
-    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_Box.Click, Connect_Text.Click, Connect_ICO.Click
+    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_Text.Click, Connect_ICO.Click
         ShowNotifier("account_confirm_error")
     End Sub
 
@@ -126,7 +125,8 @@ Partial Public Class Base
     End Sub
 
     Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
-        AMY(Menu_Replay, -200, 3, 150)
+        'AMY(Menu_Replay, -200, 3, 150)
+        ShadowLoad()
         Menu_Replay.Visible = Not Menu_Replay.Visible
         Menu_Record.Visible = False
         a_1.Visible = Not a_1.Visible
@@ -134,6 +134,20 @@ Partial Public Class Base
         a_3.Visible = False
         SetReplayControlBorder(True)
     End Sub
+    Private Sub logo_replay_MouseHover(sender As Object, e As EventArgs) Handles Replay_Logo.MouseHover, Replay_Text.MouseHover, Replay_Stats.MouseHover
+        If Base_Background_Top.b2_all.Visible = True Then
+            'AMY(Menu_Replay, -200, 3, 150)
+            ShadowLoad()
+            Menu_Replay.Visible = Not Menu_Replay.Visible
+            Menu_Record.Visible = False
+            a_1.Visible = Not a_1.Visible
+            a_2.Visible = False
+            a_3.Visible = False
+            SetReplayControlBorder(True)
+        End If
+    End Sub
+
+
 
 #End Region
 
@@ -158,13 +172,26 @@ Partial Public Class Base
     End Sub
 
     Private Sub logo_record_Click(sender As Object, e As EventArgs) Handles Record_Logo.Click, Record_Text.Click, Record_Stats.Click
-        AMY(Menu_Record, -200, 3, 150)
+        ' AMY(Menu_Record, -200, 3, 150)
+        ShadowLoad()
         Menu_Record.Visible = Not Menu_Record.Visible
         Menu_Replay.Visible = False
         a_2.Visible = True
         a_1.Visible = False
         a_3.Visible = False
         SetReplayControlBorder(True)
+    End Sub
+    Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
+        If Base_Background_Top.b1_all.Visible = True Then
+            'AMY(Menu_Record, -200, 3, 150)
+            ShadowLoad()
+            Menu_Record.Visible = Not Menu_Record.Visible
+            Menu_Replay.Visible = False
+            a_2.Visible = True
+            a_1.Visible = False
+            a_3.Visible = False
+            SetRecordControlBorder(True)
+        End If
     End Sub
 
 #End Region
@@ -468,7 +495,7 @@ Partial Public Class Base
         showForm.Show()
         settingsCtrl.Location = New Point(695, 160)
 
-        Dim t As New Timer With {.Interval = 20}
+        Dim t As New Timer With {.Interval = 1}
 
         AddHandler t.Tick, Sub(s, e)
                                t.Stop()
@@ -491,15 +518,15 @@ Partial Public Class Base
     End Sub
 
     ' ========== CONNECT ==========
-    Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Text.MouseMove, Connect_ICO.MouseMove, Connect_Box.MouseMove
+    Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Text.MouseMove, Connect_ICO.MouseMove
         Connect_Box_Sub.BackColor = greenColor
     End Sub
 
-    Private Sub Connect_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Text.MouseLeave, Connect_ICO.MouseLeave, Connect_Box.MouseLeave
+    Private Sub Connect_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Text.MouseLeave, Connect_ICO.MouseLeave
         Connect_Box_Sub.BackColor = grayColor
     End Sub
 
-    Private Sub Connect_Click(sender As Object, e As EventArgs) Handles Connect_Text.Click, Connect_ICO.Click, Connect_Box.Click
+    Private Sub Connect_Click(sender As Object, e As EventArgs) Handles Connect_Text.Click, Connect_ICO.Click
         OpenPanel(Base_Connect, Base_Connect.settings_1)
     End Sub
 
@@ -556,11 +583,11 @@ Partial Public Class Base
     End Sub
 
     ' ========== VIDEO CAPTURE SETTINGS ==========
-    Private Sub vd1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox13.MouseMove, vdo_setme.MouseMove, Label19.MouseMove, Label20.MouseMove
+    Private Sub vd1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox13.MouseMove, vdo_setme.MouseMove, videoCapture_Text.MouseMove, videoCapture_ICO.MouseMove
         vd1.BackColor = greenColor
     End Sub
 
-    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox13.MouseLeave, vdo_setme.MouseLeave, Label19.MouseLeave
+    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox13.MouseLeave, vdo_setme.MouseLeave, videoCapture_Text.MouseLeave
         vd1.BackColor = grayColor
     End Sub
 
@@ -569,7 +596,6 @@ Partial Public Class Base
 
         Base_Background_Top.Bg_SET3.Visible = False
         ME_CLOSE_BG.Visible = False
-        d.Visible = False
         clickThrough = True
         a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
         Settings_List.Visible = True
@@ -586,27 +612,27 @@ Partial Public Class Base
         OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
     End Sub
 
-    Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, Label19.Click, Label20.Click
+    Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, videoCapture_Text.Click, videoCapture_ICO.Click
         OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
     End Sub
 
     ' ========== NOTIFICATIONS ==========
-    Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox17.MouseMove, nott.MouseMove, noty.MouseMove
+    Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox17.MouseMove, notifications_Text.MouseMove, notifications_ICO.MouseMove
         noy.BackColor = greenColor
     End Sub
 
-    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox17.MouseLeave, nott.MouseLeave
+    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox17.MouseLeave, notifications_Text.MouseLeave
         noy.BackColor = grayColor
     End Sub
 
-    Private Sub Noti_Click(sender As Object, e As EventArgs) Handles PictureBox17.Click, nott.Click, noty.Click
+    Private Sub Noti_Click(sender As Object, e As EventArgs) Handles PictureBox17.Click, notifications_Text.Click, notifications_ICO.Click
         If isNotiOn = True Then
-            noty.ForeColor = Color.White
-            nott.ForeColor = Color.White
+            notifications_ICO.ForeColor = Color.White
+            notifications_Text.ForeColor = Color.White
             isNotiOn = False
         Else
-            noty.ForeColor = Color.Gray
-            nott.ForeColor = Color.Gray
+            notifications_ICO.ForeColor = Color.Gray
+            notifications_Text.ForeColor = Color.Gray
             isNotiOn = True
         End If
     End Sub

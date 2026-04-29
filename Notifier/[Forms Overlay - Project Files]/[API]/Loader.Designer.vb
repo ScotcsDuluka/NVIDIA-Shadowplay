@@ -1,7 +1,6 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Loader
-    Inherits BlockClose
-
+    Inherits Form
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(disposing As Boolean)
@@ -61,7 +60,7 @@ Partial Class Loader
         Button3.Text = "Button3"
         Button3.UseVisualStyleBackColor = True
         ' 
-        ' Load
+        ' Loader
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -72,7 +71,7 @@ Partial Class Loader
         Controls.Add(Button1)
         DoubleBuffered = True
         FormBorderStyle = FormBorderStyle.None
-        Name = "Load"
+        Name = "Loader"
         Opacity = 0R
         ShowInTaskbar = False
         Text = "Notifier"

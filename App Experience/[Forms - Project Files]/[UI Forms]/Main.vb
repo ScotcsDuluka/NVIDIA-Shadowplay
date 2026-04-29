@@ -90,6 +90,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
 
         overlay_game.Checked = ShadowPlay AndAlso isReady
         overlay_game.Text = If(Not ShadowPlay OrElse isReady, "IN-GAME OVERLAY", "Loading...")
+        openoverlay.Visible = ShadowPlay AndAlso isReady
 
 
         Dim API As Boolean = Process.GetProcessesByName("NVIDIA Notifier").Length > 0
@@ -201,4 +202,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         Application.Exit()
     End Sub
 
+    Private Sub openoverlay_Click(sender As Object, e As EventArgs) Handles openoverlay.Click
+        tcp.Send("open_overlay")
+    End Sub
 End Class

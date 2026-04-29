@@ -3,7 +3,7 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<RootNamespace>Notifier_API</RootNamespace>
-		<StartupObject>Sub Main</StartupObject>
+		<StartupObject>Notifier_API.My.MyApplication</StartupObject>
 		<UseWindowsForms>true</UseWindowsForms>
 		<MyType>WindowsForms</MyType>
 		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
@@ -57,9 +57,7 @@
 			<AutoGen>True</AutoGen>
 			<DependentUpon>Resources.resx</DependentUpon>
 		</Compile>
-		<Compile Update="[Forms Overlay - Project Files]\[API]\TCP\[Notifier] Client.vb">
-		  <SubType>Form</SubType>
-		</Compile>
+		<Compile Update="[Forms Overlay - Project Files]\[API]\TCP\[Notifier] Client.vb" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -1,4 +1,4 @@
-Imports System.Diagnostics
+﻿Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Drawing.Text
@@ -18,8 +18,8 @@ Imports Windows.Graphics.DirectX
 Imports Windows.Graphics.DirectX.Direct3D11
 Imports Windows.Media.Devices
 Imports WinRT.Interop
-Partial Public Class Base
 
+Partial Public Class Base
 
 
 
@@ -211,7 +211,6 @@ Partial Public Class Base
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
         HideFromAltTab()
-
         If Not tcp.IsConnected Then
             Debug.WriteLine("[Init] Waiting for server connection...")
             Await WaitForConnection(30000)
@@ -221,6 +220,10 @@ Partial Public Class Base
             Debug.WriteLine("[Init] Cannot connect to server!")
             Return
         End If
+        For Each f As Form In Application.OpenForms
+            f.TopMost = True
+            f.TopMost = False
+        Next
 
 
         AppSettings.Initialize()
@@ -237,17 +240,21 @@ Partial Public Class Base
         TIMESLOAD()
         SystemMonitor.StartMonitoring()
 
-
-        _hotkeyService = New HotkeyService()
-        _hotkeyService.RegisterAll(Handle)
-        tcp.Send("Hotkeys registered!")
-        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
         Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
         If overlayExists Then
             Debug_UI.Show()
-        Else
-        End If
+            _hotkeyService = New HotkeyService()
+            _hotkeyService.RegisterAll(Handle)
+            tcp.Send("Hotkeys registered!")
+            File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
 
+        Else
+            _hotkeyService = New HotkeyService()
+            _hotkeyService.RegisterAll(Handle)
+            tcp.Send("Hotkeys registered!")
+            File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+
+        End If
 
     End Sub
 
@@ -463,9 +470,9 @@ Partial Public Class Base
         Label12.Text = LangHelper.GetText("l10n.hudLayout")
         Label21.Text = LangHelper.GetText("l10n.highlights")
         Label17.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-        videoCapture_Text.Text = LangHelper.GetText("l10n.videoCapture")
+        Label19.Text = LangHelper.GetText("l10n.videoCapture")
         vdo_setme.Text = LangHelper.GetText("l10n.videoCaptureText")
-        notifications_Text.Text = LangHelper.GetText("l10n.notifications")
+        nott.Text = LangHelper.GetText("l10n.notifications")
         Label4.Text = LangHelper.GetText("l10n.privacyControl")
         About_Text.Text = LangHelper.GetText("l10n.about")
 
@@ -635,102 +642,5 @@ Partial Public Class Base
 
         OpenRecordings()
 
-    End Sub
-
-
-
-    Private shas As Control()
-    Private lastMode As String = ""
-
-    Private Sub lastMode_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        lastMode = "None"
-        shas = {sha1, sha2, sha3, sha4}
-
-        For Each s In shas
-            s.Show()
-            s.Visible = False
-        Next
-
-    End Sub
-
-    Public Sub ShadowLoad()
-        Dim shas = {sha1, sha2, sha3, sha4}
-
-        Dim currentMode As String = ""
-        Dim newSize As Size
-
-        If Menu_Replay.Visible Then
-            currentMode = "Replay"
-        ElseIf Menu_Record.Visible Then
-            currentMode = "Record"
-        Else
-            currentMode = "None"
-        End If
-
-        If currentMode <> lastMode Then
-            lastMode = currentMode
-
-            Dim target As Control = Nothing
-
-            Select Case currentMode
-                Case "None"
-                    target = Nothing
-                    newSize = New Size(0, 0)
-                Case "Replay"
-                    target = bg_action
-                    newSize = New Size(240, 373)
-
-                Case "Record"
-                    target = a_2r
-                    newSize = New Size(240, 329)
-            End Select
-
-            If currentMode = "None" Then
-                For Each s In shas
-                    s.Hide()
-                Next
-                Base_Background_Top.b2_all.Visible = False
-                Base_Background_Top.b1_all.Visible = False
-                Exit Sub
-            End If
-
-            Dim screenPos As Point = shadowplay.PointToScreen(target.Location)
-
-            Using g As Graphics = Me.CreateGraphics()
-                Dim scale As Single = g.DpiX / 96.0F
-
-                For Each s In shas
-                    s.Location = New Point(
-                    CInt(screenPos.X / scale),
-                    CInt(screenPos.Y / scale)
-                )
-
-                    s.Size = newSize
-                Next
-            End Using
-
-
-            If Menu_Record.Visible = True Then
-                Base_Background_Top.b2_all.Visible = True
-            Else
-                Base_Background_Top.b2_all.Visible = False
-            End If
-            If Menu_Replay.Visible = True Then
-                Base_Background_Top.b1_all.Visible = True
-            Else
-                Base_Background_Top.b1_all.Visible = False
-            End If
-
-            For Each s In shas
-                s.Show()
-                s.TopMost = False
-            Next
-
-
-        End If
-
-    End Sub
-    Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
-        ShadowLoad()
     End Sub
 End Class

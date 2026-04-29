@@ -1,8 +1,6 @@
-﻿Imports System.IO
-Imports System.Runtime.InteropServices
+﻿Imports System.Runtime.InteropServices
 
-Public Class Shadow
-    Inherits Form
+Public Class sha2
 
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
@@ -33,36 +31,6 @@ Public Class Shadow
         SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
     End Sub
 
-    Private Sub Shadow_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Debug.WriteLine("[Shadow] ===== Form Load =====")
-
-        Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            Me.Location = New Point(screenWidth - Me.Width, 205)
-            Debug.WriteLine("[Shadow] Position Y=205")
-        Else
-            Me.Location = New Point(screenWidth - Me.Width, 105)
-            Debug.WriteLine("[Shadow] Position Y=105")
-        End If
-        Me.SetStyle(ControlStyles.ResizeRedraw, True)
-        HideFromAltTab()
-    End Sub
-
-    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        Try
-            If Me.IsDisposed OrElse Notifier.IsDisposed Then
-                Timer1.Stop()
-                Return
-            End If
-
-            HideFromAltTab()
-            Notifier_Sub.TopMost = True
-            Me.Left = Notifier.Left
-            Me.Top = Notifier.Top
-        Catch ex As Exception
-            Debug.WriteLine("[Shadow] Timer1 ERROR: " & ex.Message)
-        End Try
-    End Sub
 
     <DllImport("dwmapi.dll")>
     Private Shared Function DwmSetWindowAttribute(
@@ -88,6 +56,11 @@ Public Class Shadow
         Public bottomHeight As Integer
     End Structure
 
+    <DllImport("user32.dll")>
+    Private Shared Function SetLayeredWindowAttributes(ByVal hWnd As IntPtr, ByVal crKey As Integer, ByVal bAlpha As Byte, ByVal dwFlags As Integer) As Boolean
+    End Function
+
+    Private Const LWA_COLORKEY As Integer = &H1
     Protected Overrides Sub OnHandleCreated(e As EventArgs)
         MyBase.OnHandleCreated(e)
         Debug.WriteLine("[Shadow] Handle created → DWM setup")
@@ -103,9 +76,17 @@ Public Class Shadow
         }
 
         DwmExtendFrameIntoClientArea(Me.Handle, margins)
+        SetLayeredWindowAttributes(Me.Handle, Color.Magenta.ToArgb(), 0, LWA_COLORKEY)
     End Sub
-    Private Sub Shadow_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        Debug.WriteLine("[Shadow] FormClosing — cleanup")
-        Timer1.Stop()
+
+
+    Private Sub test_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        HideFromAltTab()
+        Dim screenPos As Point = Base.shadowplay.PointToScreen(Base.bg_action.Location)
+
+        Using g As Graphics = Me.CreateGraphics()
+            Dim scale As Single = g.DpiX / 96.0F
+            Me.Location = New Point(CInt(screenPos.X / scale), CInt(screenPos.Y / scale))
+        End Using
     End Sub
 End Class

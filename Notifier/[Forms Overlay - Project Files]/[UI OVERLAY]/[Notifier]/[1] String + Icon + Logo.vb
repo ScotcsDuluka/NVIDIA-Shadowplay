@@ -5,7 +5,7 @@ Imports System.Windows.Forms.AxHost
 Imports Microsoft.VisualBasic.Logging
 
 Public Class Notifier_Sub
-    Inherits BlockClose
+    Inherits Form
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000

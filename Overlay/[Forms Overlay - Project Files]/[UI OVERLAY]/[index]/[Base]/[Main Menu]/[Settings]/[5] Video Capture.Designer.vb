@@ -29,6 +29,7 @@ Partial Class Base_RecordingsSet
         Label4 = New Label()
         Panel_SetVDO = New Panel()
         Panel_SET = New Panel()
+        warm_re = New Label()
         lblBitrateRange = New Label()
         PictureBox8 = New PictureBox()
         PictureBox7 = New PictureBox()
@@ -39,7 +40,6 @@ Partial Class Base_RecordingsSet
         prearg = New TextBox()
         TextBox1 = New TextBox()
         Label3 = New Label()
-        warm_re = New Label()
         Label14 = New Label()
         TrackBar_Replaylast = New TrackBar()
         lblBitrateValue = New Label()
@@ -146,7 +146,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' setre
         ' 
-        setre.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        setre.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         setre.BackColor = Color.Red
         setre.Controls.Add(Label4)
         setre.Controls.Add(Panel_SetVDO)
@@ -159,7 +159,7 @@ Partial Class Base_RecordingsSet
         ' 
         Label4.AutoSize = True
         Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New Font("Segoe UI", 17.0F, FontStyle.Bold)
+        Label4.Font = New Font("Segoe UI", 17F, FontStyle.Bold)
         Label4.ForeColor = Color.White
         Label4.Location = New Point(62, 43)
         Label4.Name = "Label4"
@@ -169,19 +169,21 @@ Partial Class Base_RecordingsSet
         ' 
         ' Panel_SetVDO
         ' 
-        Panel_SetVDO.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel_SetVDO.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel_SetVDO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Panel_SetVDO.Controls.Add(Panel_SET)
         Panel_SetVDO.Controls.Add(captrueblock_ico)
         Panel_SetVDO.Controls.Add(captrueblock)
         Panel_SetVDO.Location = New Point(0, 0)
         Panel_SetVDO.Name = "Panel_SetVDO"
-        Panel_SetVDO.Size = New Size(925, 775)
+        Panel_SetVDO.Size = New Size(925, 832)
         Panel_SetVDO.TabIndex = 110
         ' 
         ' Panel_SET
         ' 
-        Panel_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel_SET.AutoScroll = True
+        Panel_SET.Controls.Add(warm_re)
         Panel_SET.Controls.Add(lblBitrateRange)
         Panel_SET.Controls.Add(PictureBox8)
         Panel_SET.Controls.Add(PictureBox7)
@@ -192,7 +194,6 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(prearg)
         Panel_SET.Controls.Add(TextBox1)
         Panel_SET.Controls.Add(Label3)
-        Panel_SET.Controls.Add(warm_re)
         Panel_SET.Controls.Add(Label14)
         Panel_SET.Controls.Add(TrackBar_Replaylast)
         Panel_SET.Controls.Add(lblBitrateValue)
@@ -246,15 +247,26 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(lbl_BufferDuration)
         Panel_SET.Location = New Point(62, 73)
         Panel_SET.Name = "Panel_SET"
-        Panel_SET.Size = New Size(813, 678)
+        Panel_SET.Size = New Size(816, 672)
         Panel_SET.TabIndex = 121
+        ' 
+        ' warm_re
+        ' 
+        warm_re.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        warm_re.Font = New Font("Segoe UI", 10F)
+        warm_re.ForeColor = Color.Coral
+        warm_re.Location = New Point(601, 82)
+        warm_re.Name = "warm_re"
+        warm_re.Size = New Size(177, 140)
+        warm_re.TabIndex = 136
+        warm_re.Text = "warm"
         ' 
         ' lblBitrateRange
         ' 
         lblBitrateRange.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        lblBitrateRange.Font = New Font("Segoe UI Semibold", 10.0F)
+        lblBitrateRange.Font = New Font("Segoe UI Semibold", 10F)
         lblBitrateRange.ForeColor = Color.White
-        lblBitrateRange.Location = New Point(351, 284)
+        lblBitrateRange.Location = New Point(360, 284)
         lblBitrateRange.Name = "lblBitrateRange"
         lblBitrateRange.Size = New Size(381, 19)
         lblBitrateRange.TabIndex = 127
@@ -263,51 +275,46 @@ Partial Class Base_RecordingsSet
         ' 
         ' PictureBox8
         ' 
-        PictureBox8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox8.Location = New Point(358, 277)
+        PictureBox8.Location = New Point(367, 277)
         PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New Size(410, 4)
+        PictureBox8.Size = New Size(400, 4)
         PictureBox8.TabIndex = 145
         PictureBox8.TabStop = False
         ' 
         ' PictureBox7
         ' 
-        PictureBox7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox7.Location = New Point(358, 249)
+        PictureBox7.Location = New Point(367, 249)
         PictureBox7.Name = "PictureBox7"
-        PictureBox7.Size = New Size(410, 4)
+        PictureBox7.Size = New Size(400, 4)
         PictureBox7.TabIndex = 144
         PictureBox7.TabStop = False
         ' 
         ' PictureBox4
         ' 
-        PictureBox4.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox4.Location = New Point(58, 395)
+        PictureBox4.Location = New Point(67, 395)
         PictureBox4.Name = "PictureBox4"
-        PictureBox4.Size = New Size(700, 4)
+        PictureBox4.Size = New Size(690, 4)
         PictureBox4.TabIndex = 143
         PictureBox4.TabStop = False
         ' 
         ' PictureBox3
         ' 
-        PictureBox3.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox3.Location = New Point(58, 367)
+        PictureBox3.Location = New Point(67, 367)
         PictureBox3.Name = "PictureBox3"
-        PictureBox3.Size = New Size(700, 4)
+        PictureBox3.Size = New Size(690, 4)
         PictureBox3.TabIndex = 142
         PictureBox3.TabStop = False
         ' 
         ' Button_Copy
         ' 
-        Button_Copy.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Button_Copy.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Button_Copy.FlatStyle = FlatStyle.Flat
         Button_Copy.ForeColor = SystemColors.Control
-        Button_Copy.Location = New Point(676, 540)
+        Button_Copy.Location = New Point(675, 540)
         Button_Copy.Name = "Button_Copy"
         Button_Copy.Size = New Size(77, 112)
         Button_Copy.TabIndex = 141
@@ -316,11 +323,10 @@ Partial Class Base_RecordingsSet
         ' 
         ' Button1
         ' 
-        Button1.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Button1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Button1.FlatStyle = FlatStyle.Flat
         Button1.ForeColor = SystemColors.Control
-        Button1.Location = New Point(676, 499)
+        Button1.Location = New Point(675, 499)
         Button1.Name = "Button1"
         Button1.Size = New Size(77, 35)
         Button1.TabIndex = 140
@@ -329,62 +335,48 @@ Partial Class Base_RecordingsSet
         ' 
         ' prearg
         ' 
-        prearg.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         prearg.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         prearg.BorderStyle = BorderStyle.None
         prearg.Enabled = False
         prearg.ForeColor = Color.White
-        prearg.Location = New Point(294, 506)
+        prearg.Location = New Point(303, 506)
         prearg.Multiline = True
         prearg.Name = "prearg"
         prearg.ReadOnly = True
-        prearg.Size = New Size(369, 137)
+        prearg.Size = New Size(359, 137)
         prearg.TabIndex = 139
         prearg.Text = "Command"
         ' 
         ' TextBox1
         ' 
-        TextBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TextBox1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         TextBox1.BorderStyle = BorderStyle.None
         TextBox1.Enabled = False
         TextBox1.ForeColor = Color.White
-        TextBox1.Location = New Point(288, 499)
+        TextBox1.Location = New Point(297, 499)
         TextBox1.Multiline = True
         TextBox1.Name = "TextBox1"
-        TextBox1.Size = New Size(382, 153)
+        TextBox1.Size = New Size(372, 153)
         TextBox1.TabIndex = 138
         ' 
         ' Label3
         ' 
         Label3.AutoSize = True
         Label3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label3.Font = New Font("Segoe UI Semibold", 10.0F)
+        Label3.Font = New Font("Segoe UI Semibold", 10F)
         Label3.ForeColor = Color.White
-        Label3.Location = New Point(288, 477)
+        Label3.Location = New Point(297, 477)
         Label3.Name = "Label3"
         Label3.Size = New Size(219, 19)
         Label3.TabIndex = 137
         Label3.Text = "Preview Build FFmpeg Arguments"
         ' 
-        ' warm_re
-        ' 
-        warm_re.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        warm_re.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        warm_re.Font = New Font("Segoe UI", 10.0F)
-        warm_re.ForeColor = Color.Coral
-        warm_re.Location = New Point(592, 82)
-        warm_re.Name = "warm_re"
-        warm_re.Size = New Size(187, 140)
-        warm_re.TabIndex = 136
-        warm_re.Text = "warm"
-        ' 
         ' Label14
         ' 
         Label14.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label14.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label14.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label14.ForeColor = Color.White
-        Label14.Location = New Point(13, 292)
+        Label14.Location = New Point(22, 292)
         Label14.Name = "Label14"
         Label14.Size = New Size(39, 67)
         Label14.TabIndex = 134
@@ -393,12 +385,11 @@ Partial Class Base_RecordingsSet
         ' 
         ' TrackBar_Replaylast
         ' 
-        TrackBar_Replaylast.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TrackBar_Replaylast.LargeChange = 1
-        TrackBar_Replaylast.Location = New Point(58, 362)
+        TrackBar_Replaylast.Location = New Point(67, 362)
         TrackBar_Replaylast.Maximum = 1200
         TrackBar_Replaylast.Name = "TrackBar_Replaylast"
-        TrackBar_Replaylast.Size = New Size(695, 45)
+        TrackBar_Replaylast.Size = New Size(685, 45)
         TrackBar_Replaylast.TabIndex = 131
         TrackBar_Replaylast.TickFrequency = 15
         TrackBar_Replaylast.TickStyle = TickStyle.Both
@@ -406,9 +397,9 @@ Partial Class Base_RecordingsSet
         ' lblBitrateValue
         ' 
         lblBitrateValue.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        lblBitrateValue.Font = New Font("Segoe UI Semibold", 10.0F)
+        lblBitrateValue.Font = New Font("Segoe UI Semibold", 10F)
         lblBitrateValue.ForeColor = Color.White
-        lblBitrateValue.Location = New Point(351, 222)
+        lblBitrateValue.Location = New Point(360, 222)
         lblBitrateValue.Name = "lblBitrateValue"
         lblBitrateValue.Size = New Size(242, 19)
         lblBitrateValue.TabIndex = 129
@@ -416,10 +407,9 @@ Partial Class Base_RecordingsSet
         ' 
         ' TrackBar_BITRATE
         ' 
-        TrackBar_BITRATE.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        TrackBar_BITRATE.Location = New Point(351, 244)
+        TrackBar_BITRATE.Location = New Point(360, 244)
         TrackBar_BITRATE.Name = "TrackBar_BITRATE"
-        TrackBar_BITRATE.Size = New Size(402, 45)
+        TrackBar_BITRATE.Size = New Size(392, 45)
         TrackBar_BITRATE.TabIndex = 128
         TrackBar_BITRATE.TickStyle = TickStyle.Both
         ' 
@@ -429,7 +419,7 @@ Partial Class Base_RecordingsSet
         Resolution_BOX.DropDownStyle = ComboBoxStyle.DropDownList
         Resolution_BOX.ForeColor = Color.White
         Resolution_BOX.FormattingEnabled = True
-        Resolution_BOX.Location = New Point(64, 547)
+        Resolution_BOX.Location = New Point(73, 547)
         Resolution_BOX.Name = "Resolution_BOX"
         Resolution_BOX.Size = New Size(206, 23)
         Resolution_BOX.TabIndex = 126
@@ -438,9 +428,9 @@ Partial Class Base_RecordingsSet
         ' 
         P_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         P_BOX.BorderStyle = BorderStyle.None
-        P_BOX.Font = New Font("nvgcshare", 20.0F)
+        P_BOX.Font = New Font("nvgcshare", 20F)
         P_BOX.ForeColor = Color.White
-        P_BOX.Location = New Point(296, 247)
+        P_BOX.Location = New Point(305, 247)
         P_BOX.MaxLength = 1
         P_BOX.Name = "P_BOX"
         P_BOX.Size = New Size(41, 27)
@@ -452,9 +442,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label20.AutoSize = True
         Label20.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label20.Font = New Font("Segoe UI Semibold", 10.0F)
+        Label20.Font = New Font("Segoe UI Semibold", 10F)
         Label20.ForeColor = Color.White
-        Label20.Location = New Point(288, 222)
+        Label20.Location = New Point(297, 222)
         Label20.Name = "Label20"
         Label20.Size = New Size(50, 19)
         Label20.TabIndex = 121
@@ -463,7 +453,7 @@ Partial Class Base_RecordingsSet
         ' PictureBox5
         ' 
         PictureBox5.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        PictureBox5.Location = New Point(294, 244)
+        PictureBox5.Location = New Point(303, 244)
         PictureBox5.Name = "PictureBox5"
         PictureBox5.Size = New Size(44, 37)
         PictureBox5.TabIndex = 122
@@ -472,9 +462,9 @@ Partial Class Base_RecordingsSet
         ' Label2
         ' 
         Label2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label2.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label2.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label2.ForeColor = Color.White
-        Label2.Location = New Point(13, 12)
+        Label2.Location = New Point(22, 12)
         Label2.Name = "Label2"
         Label2.Size = New Size(39, 67)
         Label2.TabIndex = 110
@@ -484,11 +474,11 @@ Partial Class Base_RecordingsSet
         ' custom_main
         ' 
         custom_main.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        custom_main.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        custom_main.Font = New Font("Segoe UI Semibold", 18F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         custom_main.ForeColor = Color.White
-        custom_main.Location = New Point(58, 155)
+        custom_main.Location = New Point(67, 155)
         custom_main.Name = "custom_main"
-        custom_main.Size = New Size(645, 67)
+        custom_main.Size = New Size(121, 67)
         custom_main.TabIndex = 120
         custom_main.Text = "Custom:"
         custom_main.TextAlign = ContentAlignment.MiddleLeft
@@ -496,9 +486,9 @@ Partial Class Base_RecordingsSet
         ' Label19
         ' 
         Label19.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label19.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label19.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label19.ForeColor = Color.White
-        Label19.Location = New Point(13, 155)
+        Label19.Location = New Point(22, 155)
         Label19.Name = "Label19"
         Label19.Size = New Size(39, 67)
         Label19.TabIndex = 119
@@ -508,9 +498,9 @@ Partial Class Base_RecordingsSet
         ' advanced_main
         ' 
         advanced_main.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        advanced_main.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        advanced_main.Font = New Font("Segoe UI Semibold", 18F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         advanced_main.ForeColor = Color.White
-        advanced_main.Location = New Point(58, 408)
+        advanced_main.Location = New Point(67, 408)
         advanced_main.Name = "advanced_main"
         advanced_main.Size = New Size(138, 67)
         advanced_main.TabIndex = 118
@@ -520,9 +510,9 @@ Partial Class Base_RecordingsSet
         ' Label16
         ' 
         Label16.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label16.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label16.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label16.ForeColor = Color.White
-        Label16.Location = New Point(13, 408)
+        Label16.Location = New Point(22, 408)
         Label16.Name = "Label16"
         Label16.Size = New Size(39, 67)
         Label16.TabIndex = 117
@@ -532,9 +522,9 @@ Partial Class Base_RecordingsSet
         ' lblEncoderInfo
         ' 
         lblEncoderInfo.AutoSize = True
-        lblEncoderInfo.Font = New Font("Segoe UI Semibold", 9.0F)
+        lblEncoderInfo.Font = New Font("Segoe UI Semibold", 9F)
         lblEncoderInfo.ForeColor = Color.White
-        lblEncoderInfo.Location = New Point(58, 589)
+        lblEncoderInfo.Location = New Point(67, 589)
         lblEncoderInfo.Name = "lblEncoderInfo"
         lblEncoderInfo.Size = New Size(30, 15)
         lblEncoderInfo.TabIndex = 116
@@ -546,7 +536,7 @@ Partial Class Base_RecordingsSet
         cmbEncoder.DropDownStyle = ComboBoxStyle.DropDownList
         cmbEncoder.ForeColor = Color.White
         cmbEncoder.FormattingEnabled = True
-        cmbEncoder.Location = New Point(64, 499)
+        cmbEncoder.Location = New Point(73, 499)
         cmbEncoder.Name = "cmbEncoder"
         cmbEncoder.Size = New Size(206, 23)
         cmbEncoder.TabIndex = 115
@@ -555,9 +545,9 @@ Partial Class Base_RecordingsSet
         ' 
         FPS_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         FPS_BOX.BorderStyle = BorderStyle.None
-        FPS_BOX.Font = New Font("nvgcshare", 20.0F)
+        FPS_BOX.Font = New Font("nvgcshare", 20F)
         FPS_BOX.ForeColor = Color.White
-        FPS_BOX.Location = New Point(72, 247)
+        FPS_BOX.Location = New Point(81, 247)
         FPS_BOX.MaxLength = 3
         FPS_BOX.Name = "FPS_BOX"
         FPS_BOX.Size = New Size(185, 27)
@@ -568,9 +558,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label13.AutoSize = True
         Label13.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label13.Font = New Font("Segoe UI Semibold", 10.0F)
+        Label13.Font = New Font("Segoe UI Semibold", 10F)
         Label13.ForeColor = Color.White
-        Label13.Location = New Point(58, 222)
+        Label13.Location = New Point(67, 222)
         Label13.Name = "Label13"
         Label13.Size = New Size(78, 19)
         Label13.TabIndex = 86
@@ -580,9 +570,9 @@ Partial Class Base_RecordingsSet
         ' 
         Encoder_CODE.AutoSize = True
         Encoder_CODE.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Encoder_CODE.Font = New Font("Segoe UI Semibold", 10.0F)
+        Encoder_CODE.Font = New Font("Segoe UI Semibold", 10F)
         Encoder_CODE.ForeColor = Color.White
-        Encoder_CODE.Location = New Point(58, 477)
+        Encoder_CODE.Location = New Point(67, 477)
         Encoder_CODE.Name = "Encoder_CODE"
         Encoder_CODE.Size = New Size(99, 19)
         Encoder_CODE.TabIndex = 111
@@ -592,9 +582,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label12.AutoSize = True
         Label12.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label12.Font = New Font("Segoe UI Semibold", 10.0F)
+        Label12.Font = New Font("Segoe UI Semibold", 10F)
         Label12.ForeColor = Color.White
-        Label12.Location = New Point(58, 525)
+        Label12.Location = New Point(67, 525)
         Label12.Name = "Label12"
         Label12.Size = New Size(79, 19)
         Label12.TabIndex = 84
@@ -603,7 +593,7 @@ Partial Class Base_RecordingsSet
         ' C_R
         ' 
         C_R.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        C_R.Location = New Point(570, 82)
+        C_R.Location = New Point(579, 82)
         C_R.Name = "C_R"
         C_R.Size = New Size(3, 70)
         C_R.TabIndex = 109
@@ -613,9 +603,9 @@ Partial Class Base_RecordingsSet
         ' Label1
         ' 
         Label1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label1.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label1.Font = New Font("Segoe UI Semibold", 18F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label1.ForeColor = Color.White
-        Label1.Location = New Point(58, 12)
+        Label1.Location = New Point(67, 12)
         Label1.Name = "Label1"
         Label1.Size = New Size(138, 67)
         Label1.TabIndex = 72
@@ -625,7 +615,7 @@ Partial Class Base_RecordingsSet
         ' C_L
         ' 
         C_L.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        C_L.Location = New Point(452, 82)
+        C_L.Location = New Point(461, 82)
         C_L.Name = "C_L"
         C_L.Size = New Size(3, 70)
         C_L.TabIndex = 108
@@ -637,9 +627,9 @@ Partial Class Base_RecordingsSet
         fps.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         fps.BorderStyle = BorderStyle.None
         fps.Enabled = False
-        fps.Font = New Font("nvgcshare", 22.0F)
+        fps.Font = New Font("nvgcshare", 22F)
         fps.ForeColor = Color.Gray
-        fps.Location = New Point(71, 247)
+        fps.Location = New Point(80, 247)
         fps.MaxLength = 2
         fps.Name = "fps"
         fps.ReadOnly = True
@@ -650,7 +640,7 @@ Partial Class Base_RecordingsSet
         ' H_R
         ' 
         H_R.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        H_R.Location = New Point(430, 82)
+        H_R.Location = New Point(439, 82)
         H_R.Name = "H_R"
         H_R.Size = New Size(3, 70)
         H_R.TabIndex = 107
@@ -660,7 +650,7 @@ Partial Class Base_RecordingsSet
         ' H_L
         ' 
         H_L.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        H_L.Location = New Point(312, 82)
+        H_L.Location = New Point(321, 82)
         H_L.Name = "H_L"
         H_L.Size = New Size(3, 70)
         H_L.TabIndex = 106
@@ -670,7 +660,7 @@ Partial Class Base_RecordingsSet
         ' M_R
         ' 
         M_R.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        M_R.Location = New Point(303, 82)
+        M_R.Location = New Point(312, 82)
         M_R.Name = "M_R"
         M_R.Size = New Size(3, 70)
         M_R.TabIndex = 105
@@ -680,7 +670,7 @@ Partial Class Base_RecordingsSet
         ' M_L
         ' 
         M_L.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        M_L.Location = New Point(185, 82)
+        M_L.Location = New Point(194, 82)
         M_L.Name = "M_L"
         M_L.Size = New Size(3, 70)
         M_L.TabIndex = 104
@@ -691,9 +681,9 @@ Partial Class Base_RecordingsSet
         ' 
         C_ICO.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         C_ICO.Cursor = Cursors.Hand
-        C_ICO.Font = New Font("nvgcshare", 20.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        C_ICO.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         C_ICO.ForeColor = Color.White
-        C_ICO.Location = New Point(452, 94)
+        C_ICO.Location = New Point(461, 94)
         C_ICO.Name = "C_ICO"
         C_ICO.Size = New Size(121, 27)
         C_ICO.TabIndex = 76
@@ -703,7 +693,7 @@ Partial Class Base_RecordingsSet
         ' L_T
         ' 
         L_T.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        L_T.Location = New Point(58, 82)
+        L_T.Location = New Point(67, 82)
         L_T.Name = "L_T"
         L_T.Size = New Size(121, 3)
         L_T.TabIndex = 94
@@ -713,7 +703,7 @@ Partial Class Base_RecordingsSet
         ' L_R
         ' 
         L_R.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        L_R.Location = New Point(176, 82)
+        L_R.Location = New Point(185, 82)
         L_R.Name = "L_R"
         L_R.Size = New Size(3, 70)
         L_R.TabIndex = 103
@@ -723,7 +713,7 @@ Partial Class Base_RecordingsSet
         ' L_B
         ' 
         L_B.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        L_B.Location = New Point(58, 149)
+        L_B.Location = New Point(67, 149)
         L_B.Name = "L_B"
         L_B.Size = New Size(121, 3)
         L_B.TabIndex = 95
@@ -734,9 +724,9 @@ Partial Class Base_RecordingsSet
         ' 
         C_TEXT.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         C_TEXT.Cursor = Cursors.Hand
-        C_TEXT.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        C_TEXT.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         C_TEXT.ForeColor = Color.White
-        C_TEXT.Location = New Point(452, 122)
+        C_TEXT.Location = New Point(461, 122)
         C_TEXT.Name = "C_TEXT"
         C_TEXT.Size = New Size(121, 19)
         C_TEXT.TabIndex = 77
@@ -746,7 +736,7 @@ Partial Class Base_RecordingsSet
         ' M_T
         ' 
         M_T.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        M_T.Location = New Point(185, 82)
+        M_T.Location = New Point(194, 82)
         M_T.Name = "M_T"
         M_T.Size = New Size(121, 3)
         M_T.TabIndex = 96
@@ -756,7 +746,7 @@ Partial Class Base_RecordingsSet
         ' L_L
         ' 
         L_L.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        L_L.Location = New Point(58, 82)
+        L_L.Location = New Point(67, 82)
         L_L.Name = "L_L"
         L_L.Size = New Size(3, 70)
         L_L.TabIndex = 102
@@ -767,9 +757,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label10.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label10.Cursor = Cursors.Hand
-        Label10.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        Label10.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         Label10.ForeColor = Color.White
-        Label10.Location = New Point(58, 122)
+        Label10.Location = New Point(67, 122)
         Label10.Name = "Label10"
         Label10.Size = New Size(121, 19)
         Label10.TabIndex = 83
@@ -780,9 +770,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label7.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label7.Cursor = Cursors.Hand
-        Label7.Font = New Font("nvgcshare", 20.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label7.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label7.ForeColor = Color.White
-        Label7.Location = New Point(312, 94)
+        Label7.Location = New Point(321, 94)
         Label7.Name = "Label7"
         Label7.Size = New Size(121, 27)
         Label7.TabIndex = 78
@@ -792,7 +782,7 @@ Partial Class Base_RecordingsSet
         ' M_B
         ' 
         M_B.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        M_B.Location = New Point(185, 149)
+        M_B.Location = New Point(194, 149)
         M_B.Name = "M_B"
         M_B.Size = New Size(121, 3)
         M_B.TabIndex = 97
@@ -802,7 +792,7 @@ Partial Class Base_RecordingsSet
         ' C_T
         ' 
         C_T.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        C_T.Location = New Point(452, 82)
+        C_T.Location = New Point(461, 82)
         C_T.Name = "C_T"
         C_T.Size = New Size(121, 3)
         C_T.TabIndex = 101
@@ -813,9 +803,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label11.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label11.Cursor = Cursors.Hand
-        Label11.Font = New Font("nvgcshare", 20.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label11.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label11.ForeColor = Color.White
-        Label11.Location = New Point(58, 94)
+        Label11.Location = New Point(67, 94)
         Label11.Name = "Label11"
         Label11.Size = New Size(121, 27)
         Label11.TabIndex = 82
@@ -826,9 +816,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label6.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label6.Cursor = Cursors.Hand
-        Label6.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        Label6.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         Label6.ForeColor = Color.White
-        Label6.Location = New Point(312, 122)
+        Label6.Location = New Point(321, 122)
         Label6.Name = "Label6"
         Label6.Size = New Size(121, 19)
         Label6.TabIndex = 79
@@ -838,7 +828,7 @@ Partial Class Base_RecordingsSet
         ' H_B
         ' 
         H_B.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        H_B.Location = New Point(312, 149)
+        H_B.Location = New Point(321, 149)
         H_B.Name = "H_B"
         H_B.Size = New Size(121, 3)
         H_B.TabIndex = 98
@@ -848,7 +838,7 @@ Partial Class Base_RecordingsSet
         ' H_T
         ' 
         H_T.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        H_T.Location = New Point(312, 82)
+        H_T.Location = New Point(321, 82)
         H_T.Name = "H_T"
         H_T.Size = New Size(121, 3)
         H_T.TabIndex = 100
@@ -859,9 +849,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label8.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label8.Cursor = Cursors.Hand
-        Label8.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        Label8.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         Label8.ForeColor = Color.White
-        Label8.Location = New Point(185, 122)
+        Label8.Location = New Point(194, 122)
         Label8.Name = "Label8"
         Label8.Size = New Size(121, 19)
         Label8.TabIndex = 81
@@ -872,9 +862,9 @@ Partial Class Base_RecordingsSet
         ' 
         Label9.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Label9.Cursor = Cursors.Hand
-        Label9.Font = New Font("nvgcshare", 20.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label9.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label9.ForeColor = Color.White
-        Label9.Location = New Point(185, 94)
+        Label9.Location = New Point(194, 94)
         Label9.Name = "Label9"
         Label9.Size = New Size(121, 27)
         Label9.TabIndex = 80
@@ -884,7 +874,7 @@ Partial Class Base_RecordingsSet
         ' C_B
         ' 
         C_B.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        C_B.Location = New Point(452, 149)
+        C_B.Location = New Point(461, 149)
         C_B.Name = "C_B"
         C_B.Size = New Size(121, 3)
         C_B.TabIndex = 99
@@ -895,7 +885,7 @@ Partial Class Base_RecordingsSet
         ' 
         C_BG.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         C_BG.Cursor = Cursors.Hand
-        C_BG.Location = New Point(452, 82)
+        C_BG.Location = New Point(461, 82)
         C_BG.Name = "C_BG"
         C_BG.Size = New Size(121, 70)
         C_BG.TabIndex = 75
@@ -905,7 +895,7 @@ Partial Class Base_RecordingsSet
         ' 
         PictureBox2.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         PictureBox2.Cursor = Cursors.Hand
-        PictureBox2.Location = New Point(312, 82)
+        PictureBox2.Location = New Point(321, 82)
         PictureBox2.Name = "PictureBox2"
         PictureBox2.Size = New Size(121, 70)
         PictureBox2.TabIndex = 74
@@ -915,7 +905,7 @@ Partial Class Base_RecordingsSet
         ' 
         PictureBox1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         PictureBox1.Cursor = Cursors.Hand
-        PictureBox1.Location = New Point(185, 82)
+        PictureBox1.Location = New Point(194, 82)
         PictureBox1.Name = "PictureBox1"
         PictureBox1.Size = New Size(121, 70)
         PictureBox1.TabIndex = 73
@@ -925,7 +915,7 @@ Partial Class Base_RecordingsSet
         ' 
         low.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         low.Cursor = Cursors.Hand
-        low.Location = New Point(58, 82)
+        low.Location = New Point(67, 82)
         low.Name = "low"
         low.Size = New Size(121, 70)
         low.TabIndex = 71
@@ -934,7 +924,7 @@ Partial Class Base_RecordingsSet
         ' PictureBox6
         ' 
         PictureBox6.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        PictureBox6.Location = New Point(64, 244)
+        PictureBox6.Location = New Point(73, 244)
         PictureBox6.Name = "PictureBox6"
         PictureBox6.Size = New Size(224, 37)
         PictureBox6.TabIndex = 87
@@ -942,23 +932,21 @@ Partial Class Base_RecordingsSet
         ' 
         ' lbl_BufferDuration
         ' 
-        lbl_BufferDuration.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         lbl_BufferDuration.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        lbl_BufferDuration.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        lbl_BufferDuration.Font = New Font("Segoe UI Semibold", 18F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         lbl_BufferDuration.ForeColor = Color.White
-        lbl_BufferDuration.Location = New Point(58, 292)
+        lbl_BufferDuration.Location = New Point(67, 292)
         lbl_BufferDuration.Name = "lbl_BufferDuration"
-        lbl_BufferDuration.Size = New Size(695, 67)
+        lbl_BufferDuration.Size = New Size(685, 67)
         lbl_BufferDuration.TabIndex = 135
         lbl_BufferDuration.Text = "instantReplayLength:"
         lbl_BufferDuration.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' captrueblock_ico
         ' 
-        captrueblock_ico.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         captrueblock_ico.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         captrueblock_ico.Cursor = Cursors.Hand
-        captrueblock_ico.Font = New Font("nvgcshare", 20.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        captrueblock_ico.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         captrueblock_ico.ForeColor = Color.Peru
         captrueblock_ico.Location = New Point(139, 104)
         captrueblock_ico.Name = "captrueblock_ico"
@@ -971,7 +959,7 @@ Partial Class Base_RecordingsSet
         ' 
         captrueblock.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         captrueblock.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        captrueblock.Font = New Font("Segoe UI", 13.0F)
+        captrueblock.Font = New Font("Segoe UI", 13F)
         captrueblock.ForeColor = Color.White
         captrueblock.Location = New Point(176, 104)
         captrueblock.Name = "captrueblock"
@@ -985,14 +973,14 @@ Partial Class Base_RecordingsSet
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(695, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(924, 5)
+        settings_top.Size = New Size(925, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
         ' text_settings
         ' 
         text_settings.BackColor = Color.Black
-        text_settings.Font = New Font("Segoe UI Semibold", 14.0F, FontStyle.Bold)
+        text_settings.Font = New Font("Segoe UI Semibold", 14F, FontStyle.Bold)
         text_settings.ForeColor = Color.White
         text_settings.Location = New Point(465, 160)
         text_settings.Name = "text_settings"
@@ -1014,7 +1002,7 @@ Partial Class Base_RecordingsSet
         ' 
         vdo_resetall.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         vdo_resetall.Cursor = Cursors.Hand
-        vdo_resetall.Font = New Font("Segoe UI", 14.0F)
+        vdo_resetall.Font = New Font("Segoe UI", 14F)
         vdo_resetall.ForeColor = Color.White
         vdo_resetall.Location = New Point(465, 300)
         vdo_resetall.Name = "vdo_resetall"
@@ -1028,7 +1016,7 @@ Partial Class Base_RecordingsSet
         ' 
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
-        action_fn.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
         action_fn.Location = New Point(465, 220)
         action_fn.Name = "action_fn"

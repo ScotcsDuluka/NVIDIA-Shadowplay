@@ -42,7 +42,6 @@ Public Class Base_Settings
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Me.Hide()
         Base.ME_CLOSE_BG.Visible = True
-        Base.d.Visible = True
         Base.Opacity = 0
         Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True
@@ -112,7 +111,6 @@ Public Class Base_Settings
 
         Me.Hide()
         Base.ME_CLOSE_BG.Visible = True
-        Base.d.Visible = True
         Base.Opacity = 0.85
         Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True

@@ -36,7 +36,7 @@
 		<OptionExplicit>Off</OptionExplicit>
 		<OptionInfer>Off</OptionInfer>
 		<RunPostBuildEvent>Always</RunPostBuildEvent>
-		<PackAsTool>True</PackAsTool>
+		<PackAsTool>False</PackAsTool>
 		<NuGetAudit>True</NuGetAudit>
 		<AppDesignerFolder>My Project</AppDesignerFolder>
 	</PropertyGroup>
@@ -131,6 +131,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="MaterialSkin.2" Version="2.3.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.5" />
 		<PackageReference Include="NAudio.Core" Version="2.3.0" />
 		<PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
@@ -157,6 +158,14 @@
 		</Compile>
 		<Compile Update="[Forms Overlay - Project Files]\[API]\[Helpers]\BlockClose.vb">
 			<SubType>Form</SubType>
+		</Compile>
+		<Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s1.vb" />
+		<Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s4.vb">
+		  <SubType>Form</SubType>
+		</Compile>
+		<Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s3.vb" />
+		<Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s2.vb">
+		  <SubType>Form</SubType>
 		</Compile>
 	</ItemGroup>
 

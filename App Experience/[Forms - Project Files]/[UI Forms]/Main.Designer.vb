@@ -25,9 +25,11 @@ Partial Class NVIDIA_Shadowplay_Helper
         components = New ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(NVIDIA_Shadowplay_Helper))
         Panel_MAIN = New Panel()
+        openoverlay = New Label()
+        Null_OVERLAY = New PictureBox()
+        NVAPI = New CheckBox()
         PictureBox8 = New PictureBox()
         PictureBox7 = New PictureBox()
-        Null_OVERLAY = New PictureBox()
         PictureBox2 = New PictureBox()
         PictureBox9 = New PictureBox()
         Use_Overlay = New CheckBox()
@@ -44,14 +46,13 @@ Partial Class NVIDIA_Shadowplay_Helper
         RadioButton1 = New RadioButton()
         IF_APP = New Timer(components)
         PictureBox5 = New PictureBox()
-        NVAPI = New CheckBox()
         icon_settings = New Label()
         Timer1 = New Timer(components)
         RadioButton2 = New RadioButton()
         Panel_MAIN.SuspendLayout()
+        CType(Null_OVERLAY, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Null_OVERLAY, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
@@ -67,9 +68,11 @@ Partial Class NVIDIA_Shadowplay_Helper
         Panel_MAIN.BackColor = Color.Transparent
         Panel_MAIN.BackgroundImage = CType(resources.GetObject("Panel_MAIN.BackgroundImage"), Image)
         Panel_MAIN.BackgroundImageLayout = ImageLayout.Stretch
+        Panel_MAIN.Controls.Add(Null_OVERLAY)
+        Panel_MAIN.Controls.Add(openoverlay)
+        Panel_MAIN.Controls.Add(NVAPI)
         Panel_MAIN.Controls.Add(PictureBox8)
         Panel_MAIN.Controls.Add(PictureBox7)
-        Panel_MAIN.Controls.Add(Null_OVERLAY)
         Panel_MAIN.Controls.Add(PictureBox2)
         Panel_MAIN.Controls.Add(PictureBox9)
         Panel_MAIN.Controls.Add(Use_Overlay)
@@ -85,6 +88,42 @@ Partial Class NVIDIA_Shadowplay_Helper
         Panel_MAIN.Name = "Panel_MAIN"
         Panel_MAIN.Size = New Size(1083, 585)
         Panel_MAIN.TabIndex = 1
+        ' 
+        ' openoverlay
+        ' 
+        openoverlay.AutoSize = True
+        openoverlay.Cursor = Cursors.Hand
+        openoverlay.Font = New Font("Segoe UI Black", 9F, FontStyle.Bold)
+        openoverlay.ForeColor = SystemColors.HighlightText
+        openoverlay.Location = New Point(1009, 50)
+        openoverlay.Name = "openoverlay"
+        openoverlay.Size = New Size(49, 15)
+        openoverlay.TabIndex = 19
+        openoverlay.Text = "[Open]"
+        openoverlay.Visible = False
+        ' 
+        ' Null_OVERLAY
+        ' 
+        Null_OVERLAY.Location = New Point(833, 0)
+        Null_OVERLAY.Name = "Null_OVERLAY"
+        Null_OVERLAY.Size = New Size(241, 158)
+        Null_OVERLAY.TabIndex = 15
+        Null_OVERLAY.TabStop = False
+        ' 
+        ' NVAPI
+        ' 
+        NVAPI.AutoCheck = False
+        NVAPI.BackColor = Color.Transparent
+        NVAPI.CheckAlign = ContentAlignment.MiddleRight
+        NVAPI.Font = New Font("Segoe UI Black", 9F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        NVAPI.ForeColor = Color.White
+        NVAPI.Location = New Point(977, 557)
+        NVAPI.Name = "NVAPI"
+        NVAPI.Size = New Size(97, 19)
+        NVAPI.TabIndex = 11
+        NVAPI.Text = "NVIDIA API"
+        NVAPI.TextAlign = ContentAlignment.MiddleRight
+        NVAPI.UseVisualStyleBackColor = False
         ' 
         ' PictureBox8
         ' 
@@ -109,14 +148,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         PictureBox7.TabIndex = 17
         PictureBox7.TabStop = False
         PictureBox7.Visible = False
-        ' 
-        ' Null_OVERLAY
-        ' 
-        Null_OVERLAY.Location = New Point(833, 0)
-        Null_OVERLAY.Name = "Null_OVERLAY"
-        Null_OVERLAY.Size = New Size(241, 158)
-        Null_OVERLAY.TabIndex = 15
-        Null_OVERLAY.TabStop = False
         ' 
         ' PictureBox2
         ' 
@@ -263,7 +294,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         ' BOX_LOGO
         ' 
         BOX_LOGO.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        BOX_LOGO.BackgroundImage = CType(resources.GetObject("BOX_LOGO.BackgroundImage"), Image)
         BOX_LOGO.BackgroundImageLayout = ImageLayout.Center
         BOX_LOGO.Location = New Point(3, 3)
         BOX_LOGO.Name = "BOX_LOGO"
@@ -299,27 +329,12 @@ Partial Class NVIDIA_Shadowplay_Helper
         PictureBox5.TabIndex = 11
         PictureBox5.TabStop = False
         ' 
-        ' NVAPI
-        ' 
-        NVAPI.AutoCheck = False
-        NVAPI.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        NVAPI.CheckAlign = ContentAlignment.MiddleRight
-        NVAPI.Font = New Font("Segoe UI Black", 9F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        NVAPI.ForeColor = Color.White
-        NVAPI.Location = New Point(912, 12)
-        NVAPI.Name = "NVAPI"
-        NVAPI.Size = New Size(97, 19)
-        NVAPI.TabIndex = 11
-        NVAPI.Text = "NVIDIA API"
-        NVAPI.TextAlign = ContentAlignment.MiddleRight
-        NVAPI.UseVisualStyleBackColor = False
-        ' 
         ' icon_settings
         ' 
         icon_settings.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
         icon_settings.Font = New Font("nvgcshare", 20.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         icon_settings.ForeColor = Color.White
-        icon_settings.Location = New Point(876, 3)
+        icon_settings.Location = New Point(979, 3)
         icon_settings.Name = "icon_settings"
         icon_settings.Size = New Size(42, 35)
         icon_settings.TabIndex = 54
@@ -353,7 +368,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         ClientSize = New Size(1089, 629)
         Controls.Add(RadioButton2)
         Controls.Add(PictureBox3)
-        Controls.Add(NVAPI)
         Controls.Add(icon_settings)
         Controls.Add(PictureBox5)
         Controls.Add(RadioButton1)
@@ -365,9 +379,10 @@ Partial Class NVIDIA_Shadowplay_Helper
         StartPosition = FormStartPosition.CenterScreen
         Text = "NVIDIA Shadowplay Helper"
         Panel_MAIN.ResumeLayout(False)
+        Panel_MAIN.PerformLayout()
+        CType(Null_OVERLAY, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
-        CType(Null_OVERLAY, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox2, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
@@ -402,5 +417,6 @@ Partial Class NVIDIA_Shadowplay_Helper
     Friend WithEvents PictureBox7 As PictureBox
     Friend WithEvents PictureBox8 As PictureBox
     Friend WithEvents RadioButton2 As RadioButton
+    Friend WithEvents openoverlay As Label
 
 End Class

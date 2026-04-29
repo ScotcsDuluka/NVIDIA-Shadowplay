@@ -3,8 +3,9 @@ Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 
+
 Public Class Notifier
-    Inherits BlockClose
+    Inherits Form
 
 #Region "WinAPI"
 
@@ -250,19 +251,21 @@ Public Class Notifier
 
 #Region "Form Load"
 
-    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Debug.WriteLine("[Notifier] ===== Form Load =====")
 
-        BlockClose.AllowClose = False
+
+    Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Shadow.Show()
         HideFromAltTab()
+        Opacity = 1
+        ' Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
+        Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
 
-        Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
+
         If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            Me.Location = New Point(screenWidth - Me.Width, 205)
+            Me.Location = New Point(w - Me.Width, 205)
             Debug.WriteLine("[Notifier] Position Y=205")
         Else
-            Me.Location = New Point(screenWidth - Me.Width, 105)
+            Me.Location = New Point(w - Me.Width, 105)
             Debug.WriteLine("[Notifier] Position Y=105")
         End If
 
@@ -318,7 +321,6 @@ Public Class Notifier
     Private Sub SlideOutAll()
         Debug.WriteLine("[Notifier] SlideOutAll")
 
-        BlockClose.AllowClose = True
         Shadow.Close()
         Notifier_Sub.Close()
         Notifier_green_stop.Visible = False

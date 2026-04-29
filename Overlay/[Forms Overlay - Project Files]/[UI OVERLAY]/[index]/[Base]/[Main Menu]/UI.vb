@@ -1,5 +1,7 @@
 ﻿Public Class Debug_UI
 
+
+
     Private _lastX As Integer = Integer.MinValue
     Private _lastY As Integer = Integer.MinValue
     Private _lastW As Integer = Integer.MinValue
@@ -42,25 +44,32 @@
         DoSync() ' ★ Sync every tick!
     End Sub
 
-    Private Sub DoSync()
+    Public Sub DoSync()
 
         Dim pt As Point = Me.PointToScreen(Point.Empty)
         Dim x As Integer = pt.X : Dim y As Integer = pt.Y
         Dim w As Integer = Me.ClientSize.Width : Dim h As Integer = Me.ClientSize.Height
 
-        ' ★ ★★ ลบ cache check! Sync ทุกครั้ง! ★★★
-        '_lastX = x : _lastY = y : _lastW = w : _lastH = h
 
         For Each frm In Application.OpenForms
             If frm.Name <> Me.Name AndAlso Not frm.IsDisposed AndAlso frm.Visible Then
+
+                If frm.Name = "sha1" OrElse frm.Name = "sha2" OrElse frm.Name = "sha3" OrElse frm.Name = "sha4" Then
+                    Continue For
+                End If
 
                 If frm.WindowState <> FormWindowState.Normal Then
                     frm.WindowState = FormWindowState.Normal
                 End If
 
                 frm.SetBounds(x, y, w, h)
+
             End If
         Next
+
     End Sub
 
+    Private Sub Debug_UI_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        Application.Exit()
+    End Sub
 End Class

@@ -36,10 +36,16 @@ Partial Class Base_Settings
         ch = New Label()
         SW_lang = New Label()
         Panel1 = New Panel()
+        PictureBox9 = New PictureBox()
+        PictureBox1 = New PictureBox()
+        Panel2 = New Panel()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
+        Panel2.SuspendLayout()
         SuspendLayout()
         ' 
         ' Main_Menu_SET
@@ -49,42 +55,41 @@ Partial Class Base_Settings
         Main_Menu_SET.Controls.Add(Panel)
         Main_Menu_SET.Location = New Point(695, 160)
         Main_Menu_SET.Name = "Main_Menu_SET"
-        Main_Menu_SET.Size = New Size(1145, 841)
+        Main_Menu_SET.Size = New Size(770, 579)
         Main_Menu_SET.TabIndex = 44
         ' 
         ' Panel
         ' 
-        Panel.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Panel.Controls.Add(text_sub)
-        Panel.Controls.Add(ICON_1)
-        Panel.Location = New Point(0, 4)
+        Panel.Controls.Add(Panel2)
+        Panel.Location = New Point(0, -7)
         Panel.Name = "Panel"
-        Panel.Size = New Size(1145, 837)
+        Panel.Size = New Size(770, 586)
         Panel.TabIndex = 74
         ' 
         ' text_sub
         ' 
-        text_sub.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        text_sub.Anchor = AnchorStyles.Bottom
         text_sub.BackColor = Color.Transparent
         text_sub.Font = New Font("Segoe UI Semibold", 13F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         text_sub.ForeColor = Color.Gray
-        text_sub.Location = New Point(0, 452)
+        text_sub.Location = New Point(0, 130)
         text_sub.Name = "text_sub"
-        text_sub.Size = New Size(1145, 52)
+        text_sub.Size = New Size(770, 83)
         text_sub.TabIndex = 51
         text_sub.Text = "Privacy control"
         text_sub.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' ICON_1
         ' 
-        ICON_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        ICON_1.Anchor = AnchorStyles.Top
         ICON_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ICON_1.Font = New Font("nvgcshare", 120F)
         ICON_1.ForeColor = Color.DimGray
         ICON_1.Location = New Point(0, 0)
         ICON_1.Name = "ICON_1"
-        ICON_1.Size = New Size(1145, 792)
+        ICON_1.Size = New Size(770, 145)
         ICON_1.TabIndex = 74
         ICON_1.Text = ""
         ICON_1.TextAlign = ContentAlignment.MiddleCenter
@@ -95,7 +100,7 @@ Partial Class Base_Settings
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(695, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(1145, 5)
+        settings_top.Size = New Size(770, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
@@ -108,7 +113,7 @@ Partial Class Base_Settings
         action_1.ForeColor = Color.White
         action_1.Location = New Point(110, 220)
         action_1.Name = "action_1"
-        action_1.Size = New Size(200, 70)
+        action_1.Size = New Size(200, 0)
         action_1.TabIndex = 72
         action_1.Text = "Turn on"
         action_1.TextAlign = ContentAlignment.MiddleCenter
@@ -145,7 +150,7 @@ Partial Class Base_Settings
         Block_AM.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Block_AM.Location = New Point(-3, -16)
         Block_AM.Name = "Block_AM"
-        Block_AM.Size = New Size(1951, 176)
+        Block_AM.Size = New Size(1796, 176)
         Block_AM.TabIndex = 73
         Block_AM.TabStop = False
         ' 
@@ -195,12 +200,47 @@ Partial Class Base_Settings
         Panel1.Size = New Size(261, 329)
         Panel1.TabIndex = 77
         ' 
+        ' PictureBox9
+        ' 
+        PictureBox9.Anchor = AnchorStyles.Bottom
+        PictureBox9.BackColor = Color.Blue
+        PictureBox9.BackgroundImageLayout = ImageLayout.None
+        PictureBox9.Location = New Point(1220, 739)
+        PictureBox9.Name = "PictureBox9"
+        PictureBox9.Size = New Size(80, 80)
+        PictureBox9.TabIndex = 91
+        PictureBox9.TabStop = False
+        PictureBox9.Visible = False
+        ' 
+        ' PictureBox1
+        ' 
+        PictureBox1.BackColor = Color.Blue
+        PictureBox1.BackgroundImageLayout = ImageLayout.None
+        PictureBox1.Location = New Point(1465, 279)
+        PictureBox1.Name = "PictureBox1"
+        PictureBox1.Size = New Size(80, 80)
+        PictureBox1.TabIndex = 92
+        PictureBox1.TabStop = False
+        PictureBox1.Visible = False
+        ' 
+        ' Panel2
+        ' 
+        Panel2.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        Panel2.Controls.Add(text_sub)
+        Panel2.Controls.Add(ICON_1)
+        Panel2.Location = New Point(0, 190)
+        Panel2.Name = "Panel2"
+        Panel2.Size = New Size(770, 213)
+        Panel2.TabIndex = 75
+        ' 
         ' Base_Settings
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
-        ClientSize = New Size(1700, 1070)
+        ClientSize = New Size(1545, 819)
+        Controls.Add(PictureBox1)
+        Controls.Add(PictureBox9)
         Controls.Add(SW_lang)
         Controls.Add(ch)
         Controls.Add(action_fn)
@@ -223,6 +263,9 @@ Partial Class Base_Settings
         Panel.ResumeLayout(False)
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
+        Panel2.ResumeLayout(False)
         ResumeLayout(False)
     End Sub
 
@@ -239,4 +282,7 @@ Partial Class Base_Settings
     Friend WithEvents SW_lang As Label
     Public WithEvents action_fn As Label
     Friend WithEvents Panel1 As Panel
+    Friend WithEvents PictureBox9 As PictureBox
+    Friend WithEvents PictureBox1 As PictureBox
+    Friend WithEvents Panel2 As Panel
 End Class

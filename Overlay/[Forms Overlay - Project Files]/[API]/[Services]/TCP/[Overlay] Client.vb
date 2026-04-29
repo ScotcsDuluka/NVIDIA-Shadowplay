@@ -31,7 +31,7 @@
 
         Select Case cmd
 
-            Case "overlay_show"
+            Case "open_overlay"
                 tcp.SendLog(cmd)
                 If Settings_List.Visible Then Return
                 If Base_Gallery.Visible Then Return

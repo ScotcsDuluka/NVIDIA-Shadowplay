@@ -29,6 +29,7 @@ Public Class Base_Gallery
 
     Private Sub Gallery_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
+        Base.AlignPanelToTop()
     End Sub
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles Saved_l10n.Click, bg_fn.Click
@@ -58,5 +59,9 @@ Public Class Base_Gallery
             AppSettings.Instance.Paths.GalleryPath = txtFilePath.Text
             AppSettings.Instance.Save()
         End If
+    End Sub
+
+    Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
+        settings_1.Location = New Point((Me.ClientSize.Width - settings_1.Width) / 2, 160)
     End Sub
 End Class

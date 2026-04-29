@@ -64,7 +64,7 @@ Partial Class Base_Connect
         settings_1.Controls.Add(text_menu)
         settings_1.Location = New Point(695, 160)
         settings_1.Name = "settings_1"
-        settings_1.Size = New Size(1145, 841)
+        settings_1.Size = New Size(1145, 840)
         settings_1.TabIndex = 45
         ' 
         ' Login_BT

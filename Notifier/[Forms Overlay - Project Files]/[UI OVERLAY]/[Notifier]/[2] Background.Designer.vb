@@ -2,7 +2,7 @@
 
 <Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Notifier
-    Inherits BlockClose
+    Inherits Form
 
     'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()>
@@ -109,6 +109,7 @@ Partial Class Notifier
         MdiChildrenMinimizedAnchorBottom = False
         MinimizeBox = False
         Name = "Notifier"
+        Opacity = 0R
         ShowInTaskbar = False
         SizeGripStyle = SizeGripStyle.Hide
         Text = "Notifier"

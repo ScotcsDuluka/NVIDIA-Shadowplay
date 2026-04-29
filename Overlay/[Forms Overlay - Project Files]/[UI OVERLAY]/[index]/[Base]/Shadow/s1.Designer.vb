@@ -1,9 +1,9 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
-Partial Class Debug_UI
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+Partial Class sha1
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
-    <System.Diagnostics.DebuggerNonUserCode()> _
+    <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
             If disposing AndAlso components IsNot Nothing Then
@@ -20,20 +20,22 @@ Partial Class Debug_UI
     'NOTE: The following procedure is required by the Windows Form Designer
     'It can be modified using the Windows Form Designer.  
     'Do not modify it using the code editor.
-    <System.Diagnostics.DebuggerStepThrough()> _
+    <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Debug_UI))
         SuspendLayout()
         ' 
-        ' Debug_UI
+        ' sha1
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(1264, 681)
-        Icon = CType(resources.GetObject("$this.Icon"), Icon)
-        MinimumSize = New Size(1280, 720)
-        Name = "Debug_UI"
-        Text = "index"
+        BackColor = Color.Black
+        ClientSize = New Size(0, 0)
+        DoubleBuffered = True
+        FormBorderStyle = FormBorderStyle.None
+        Name = "sha1"
+        Opacity = 0R
+        Text = "test"
+        TopMost = True
         ResumeLayout(False)
     End Sub
 End Class

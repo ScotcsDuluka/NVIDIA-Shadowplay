@@ -5,11 +5,20 @@
     <Compile Update="[Forms Overlay - Project Files]\[API]\[Services]\TCP\[Overlay] Client.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s1.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s3.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Game Filter]\[1] Settings UI Main.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Game Filter]\[2] Sub.vb">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\ShadowPanel.vb">
+      <SubType>Component</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\UI.vb">
       <SubType>Form</SubType>

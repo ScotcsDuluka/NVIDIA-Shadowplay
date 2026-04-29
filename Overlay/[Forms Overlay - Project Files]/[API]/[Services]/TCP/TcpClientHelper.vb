@@ -11,7 +11,7 @@ Public Class TcpClientHelper
     Private _cts As CancellationTokenSource
     Private _writeLock As New Object()
 
-    Private ReadOnly _appName As String = "NVIDIA Overlay"
+    Private ReadOnly _appName As String
     Private ReadOnly _host As String
     Private ReadOnly _port As Integer
     Private ReadOnly _autoReconnect As Boolean

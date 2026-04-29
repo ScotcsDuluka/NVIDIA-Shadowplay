@@ -4,7 +4,7 @@
     <Compile Update="[Forms Overlay - Project Files]\[API]\Loader.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="[Forms Overlay - Project Files]\[API]\BlockClose.vb">
+    <Compile Update="[Forms Overlay - Project Files]\[API]\TCP\[Notifier] Client.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\[1] String + Icon + Logo.vb">

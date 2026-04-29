@@ -30,10 +30,10 @@ Module UpdateHelper
                     If Not String.IsNullOrEmpty(downloadUrl) Then
                         Process.Start(New ProcessStartInfo(downloadUrl) With {.UseShellExecute = True})
                     End If
-                    File.Create(Path.Combine(dataFolder, "l10n.update_available")).Dispose()
+                    Base.ShowNotifier("update_available")
 
                 Else
-                    File.Create(Path.Combine(dataFolder, "l10n.version_latest")).Dispose()
+                    Base.ShowNotifier("version_latest")
                 End If
             End Using
 
@@ -41,7 +41,7 @@ Module UpdateHelper
             ' เกิด Error
             Dim dataFolder As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data")
             If Not Directory.Exists(dataFolder) Then Directory.CreateDirectory(dataFolder)
-            File.Create(Path.Combine(dataFolder, "l10n.notificationErrorGeneral")).Dispose()
+            Base.ShowNotifier("notificationErrorGeneral")
         End Try
         Base_Settings.ch.Enabled = True
     End Function

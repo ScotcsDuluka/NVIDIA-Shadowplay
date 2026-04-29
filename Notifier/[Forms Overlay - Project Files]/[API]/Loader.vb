@@ -2,8 +2,7 @@ Imports System.IO
 Imports System.Runtime.InteropServices
 
 Partial Public Class Loader
-    Inherits BlockClose
-
+    Inherits Form
     ' ส่วน API และสไตล์ฟอร์ม
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000
@@ -83,7 +82,6 @@ Partial Public Class Loader
 
         ' Logic เดิมเรื่องการสไลด์
         If Notifier.Notifier_green_stop.Visible Then
-            AllowClose = True
             Notifier_Sub.Close()
             Application.DoEvents()
 
@@ -106,7 +104,6 @@ Partial Public Class Loader
                                            Sub() Notifier_Sub.Show())
                                    End Sub
             delay.Start()
-            AllowClose = False
             Exit Sub
         End If
 
@@ -213,5 +210,9 @@ Partial Public Class Loader
     Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         ' Dispose TCP
         ' tcp?.Dispose()
+    End Sub
+
+    Private Sub RUN_API_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick
+
     End Sub
 End Class
