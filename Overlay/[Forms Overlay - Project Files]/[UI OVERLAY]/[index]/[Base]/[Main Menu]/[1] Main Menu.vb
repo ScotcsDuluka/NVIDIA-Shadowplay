@@ -160,6 +160,10 @@ Partial Public Class Base
     Private ReadOnly LeaveColorGR As Color = Color.FromArgb(118, 185, 0)
 
     Private Sub MainUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'gallery
+        SetHoverEffect(Base_Gallery.Saved_l10n, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_Gallery.Openloaction_l10n, HoverColorG, LeaveColorG)
+
         '0
         SetHoverEffect(Base_Settings.SW_lang, HoverColorG, LeaveColorG)
         SetHoverEffect(Base_Settings.ch, HoverColorG, LeaveColorG)

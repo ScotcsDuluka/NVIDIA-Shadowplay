@@ -41,7 +41,6 @@ Partial Class Base_Gallery
         Load_l10n = New Label()
         PictureBox3 = New PictureBox()
         Openloaction_l10n = New Label()
-        PictureBox5 = New PictureBox()
         Base_Submenu = New Panel()
         text_sub = New Label()
         Label2 = New Label()
@@ -60,7 +59,6 @@ Partial Class Base_Gallery
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
         Base_Submenu.SuspendLayout()
         FlowLayoutPanel1.SuspendLayout()
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
@@ -211,8 +209,6 @@ Partial Class Base_Gallery
         settings_1.Controls.Add(PictureBox7)
         settings_1.Controls.Add(Load_l10n)
         settings_1.Controls.Add(PictureBox3)
-        settings_1.Controls.Add(Openloaction_l10n)
-        settings_1.Controls.Add(PictureBox5)
         settings_1.Controls.Add(Saved_l10n)
         settings_1.Controls.Add(bg_fn)
         settings_1.Controls.Add(Gallery_l10n)
@@ -220,6 +216,7 @@ Partial Class Base_Gallery
         settings_1.Controls.Add(settings_top)
         settings_1.Controls.Add(box_settings)
         settings_1.Controls.Add(Base_Submenu)
+        settings_1.Controls.Add(Openloaction_l10n)
         settings_1.Location = New Point(150, 197)
         settings_1.Name = "settings_1"
         settings_1.Size = New Size(1280, 483)
@@ -281,23 +278,12 @@ Partial Class Base_Gallery
         Openloaction_l10n.Cursor = Cursors.Hand
         Openloaction_l10n.Font = New Font("Segoe UI Semibold", 12F)
         Openloaction_l10n.ForeColor = Color.White
-        Openloaction_l10n.Location = New Point(1040, 115)
+        Openloaction_l10n.Location = New Point(1040, 91)
         Openloaction_l10n.Name = "Openloaction_l10n"
-        Openloaction_l10n.Size = New Size(240, 21)
+        Openloaction_l10n.Size = New Size(240, 70)
         Openloaction_l10n.TabIndex = 70
         Openloaction_l10n.Text = "Openloaction_l10n"
         Openloaction_l10n.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox5
-        ' 
-        PictureBox5.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        PictureBox5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox5.Cursor = Cursors.Hand
-        PictureBox5.Location = New Point(1040, 91)
-        PictureBox5.Name = "PictureBox5"
-        PictureBox5.Size = New Size(240, 70)
-        PictureBox5.TabIndex = 69
-        PictureBox5.TabStop = False
         ' 
         ' Base_Submenu
         ' 
@@ -455,7 +441,6 @@ Partial Class Base_Gallery
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
         Base_Submenu.ResumeLayout(False)
         Base_Submenu.PerformLayout()
         FlowLayoutPanel1.ResumeLayout(False)
@@ -485,7 +470,6 @@ Partial Class Base_Gallery
     Friend WithEvents Label3 As Label
     Friend WithEvents PictureBox4 As PictureBox
     Friend WithEvents Openloaction_l10n As Label
-    Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents FlowLayoutPanel1 As FlowLayoutPanel
     Friend WithEvents Load_l10n As Label
     Friend WithEvents PictureBox3 As PictureBox

@@ -252,6 +252,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' warm_re
         ' 
+        warm_re.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         warm_re.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         warm_re.Font = New Font("Segoe UI", 10F)
         warm_re.ForeColor = Color.Coral
@@ -263,6 +264,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' lblBitrateRange
         ' 
+        lblBitrateRange.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         lblBitrateRange.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblBitrateRange.Font = New Font("Segoe UI Semibold", 10F)
         lblBitrateRange.ForeColor = Color.White
@@ -275,6 +277,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' PictureBox8
         ' 
+        PictureBox8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox8.Location = New Point(367, 277)
         PictureBox8.Name = "PictureBox8"
@@ -284,6 +287,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' PictureBox7
         ' 
+        PictureBox7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox7.Location = New Point(367, 249)
         PictureBox7.Name = "PictureBox7"
@@ -293,6 +297,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' PictureBox4
         ' 
+        PictureBox4.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox4.Location = New Point(67, 395)
         PictureBox4.Name = "PictureBox4"
@@ -302,6 +307,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' PictureBox3
         ' 
+        PictureBox3.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox3.Location = New Point(67, 367)
         PictureBox3.Name = "PictureBox3"
@@ -311,6 +317,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' Button_Copy
         ' 
+        Button_Copy.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Button_Copy.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Button_Copy.FlatStyle = FlatStyle.Flat
         Button_Copy.ForeColor = SystemColors.Control
@@ -323,6 +330,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' Button1
         ' 
+        Button1.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Button1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Button1.FlatStyle = FlatStyle.Flat
         Button1.ForeColor = SystemColors.Control
@@ -335,6 +343,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' prearg
         ' 
+        prearg.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         prearg.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         prearg.BorderStyle = BorderStyle.None
         prearg.Enabled = False
@@ -349,6 +358,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' TextBox1
         ' 
+        TextBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TextBox1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         TextBox1.BorderStyle = BorderStyle.None
         TextBox1.Enabled = False
@@ -385,6 +395,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' TrackBar_Replaylast
         ' 
+        TrackBar_Replaylast.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TrackBar_Replaylast.LargeChange = 1
         TrackBar_Replaylast.Location = New Point(67, 362)
         TrackBar_Replaylast.Maximum = 1200
@@ -407,6 +418,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' TrackBar_BITRATE
         ' 
+        TrackBar_BITRATE.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         TrackBar_BITRATE.Location = New Point(360, 244)
         TrackBar_BITRATE.Name = "TrackBar_BITRATE"
         TrackBar_BITRATE.Size = New Size(392, 45)

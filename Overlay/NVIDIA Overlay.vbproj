@@ -8,10 +8,10 @@
 		<GeneratePackageOnBuild>False</GeneratePackageOnBuild>
 		<PackageId></PackageId>
 		<Title>NVIDIA ShadowPlay by ScotcsDuluka</Title>
-		<Company>NVIDIA</Company>
+		<Company>Duluka Corporation</Company>
 		<Authors>ScotcsDuluka</Authors>
 		<Product>NVIDIA ShadowPlay</Product>
-		<Description>NVIDIA ShadowPlay™ for All Users</Description>
+		<Description>NVIDIA ShadowPlay for All Users</Description>
 		<PackageIcon></PackageIcon>
 		<Copyright>Copyright© by Scotcs Duluka</Copyright>
 		<NeutralLanguage>en-US</NeutralLanguage>
@@ -55,9 +55,9 @@
 		</PropertyGroup>
 		<WriteLinesToFile File="build.txt" Lines="$(BuildNumber)" Overwrite="true" />
 		<PropertyGroup>
-			<Version>3.3.$(BuildNumber).1</Version>
-			<AssemblyVersion>3.3.$(BuildNumber).1</AssemblyVersion>
-			<FileVersion>3.3.$(BuildNumber).1</FileVersion>
+			<Version>3.3.$(BuildNumber).30</Version>
+			<AssemblyVersion>3.3.$(BuildNumber).30</AssemblyVersion>
+			<FileVersion>3.35.$(BuildNumber).30</FileVersion>
 		</PropertyGroup>
 	</Target>
 
@@ -115,7 +115,6 @@
 		<Content Include="NVIDIA ShadowPlay.ico" />
 	</ItemGroup>
 
-	<!-- ✅ Imports ที่จำเป็น -->
 	<ItemGroup>
 		<Import Include="System" />
 		<Import Include="System.Collections" />
@@ -131,7 +130,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="MaterialSkin.2" Version="2.3.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebView" Version="10.0.5" />
 		<PackageReference Include="NAudio.Core" Version="2.3.0" />
 		<PackageReference Include="NAudio.Wasapi" Version="2.3.0" />

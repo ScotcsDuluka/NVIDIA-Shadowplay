@@ -38,11 +38,11 @@ Public Class Base_Gallery
         Base.shadowplay.Visible = True
     End Sub
 
-    Private Sub Openloaction_l10n_Click(sender As Object, e As EventArgs) Handles Openloaction_l10n.Click, PictureBox5.Click
-        If IO.Directory.Exists(txtFilePath.Text) Then
+    Private Sub Openloaction_l10n_Click(sender As Object, e As EventArgs) Handles Openloaction_l10n.Click
+        If Directory.Exists(txtFilePath.Text) Then
             Process.Start("explorer.exe", txtFilePath.Text)
-            Hide()
-            Base.HideAllControls()   ' ปิด Overlay ทั้งหมด
+            Hide
+            Base.HideAllControls   ' ปิด Overlay ทั้งหมด
         Else
             MessageBox.Show("foldererror")
         End If
