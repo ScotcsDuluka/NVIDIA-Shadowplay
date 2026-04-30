@@ -6,10 +6,7 @@ Partial Public Class Base
     Private Sub OnAltZ() Handles _hotkeyService.AltZPressed
         If Settings_List.Visible Then Return
         If Base_Gallery.Visible Then Return
-
-
         isFunctionActive_f3 = False
-
         If shadowplay.Visible = True Then
             HideAllControls()
             shadowplay.Visible = False
@@ -70,7 +67,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ (เดิมคือ KEYBOARD DETECTION)"
+#Region "Action"
 
     Public Sub HideAllControls()
         Me.SuspendLayout()
@@ -102,9 +99,9 @@ Partial Public Class Base
         Base_Background_Top.TopMost = True
         Me.Show()
         Me.TopMost = True
-        Base_Background.Opacity = 0.5
+        Base_Background.Opacity = 0.67
         Base_Background_Top.Opacity = 1
-        Me.Opacity = 0.85
+        Me.Opacity = 0.87
 
         Me.ResumeLayout(True)
     End Sub

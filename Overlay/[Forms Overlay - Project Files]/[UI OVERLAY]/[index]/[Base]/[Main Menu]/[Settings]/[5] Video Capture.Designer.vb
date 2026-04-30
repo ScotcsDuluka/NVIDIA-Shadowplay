@@ -490,7 +490,7 @@ Partial Class Base_RecordingsSet
         custom_main.ForeColor = Color.White
         custom_main.Location = New Point(67, 155)
         custom_main.Name = "custom_main"
-        custom_main.Size = New Size(121, 67)
+        custom_main.Size = New Size(319, 67)
         custom_main.TabIndex = 120
         custom_main.Text = "Custom:"
         custom_main.TextAlign = ContentAlignment.MiddleLeft
@@ -514,7 +514,7 @@ Partial Class Base_RecordingsSet
         advanced_main.ForeColor = Color.White
         advanced_main.Location = New Point(67, 408)
         advanced_main.Name = "advanced_main"
-        advanced_main.Size = New Size(138, 67)
+        advanced_main.Size = New Size(449, 67)
         advanced_main.TabIndex = 118
         advanced_main.Text = "Advanced:"
         advanced_main.TextAlign = ContentAlignment.MiddleLeft

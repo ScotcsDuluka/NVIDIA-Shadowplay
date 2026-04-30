@@ -25,6 +25,7 @@ Partial Class Base_Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
         Main_Menu_SET = New Panel()
         Panel = New Panel()
+        Panel2 = New Panel()
         text_sub = New Label()
         ICON_1 = New Label()
         settings_top = New PictureBox()
@@ -38,14 +39,13 @@ Partial Class Base_Settings
         Panel1 = New Panel()
         PictureBox9 = New PictureBox()
         PictureBox1 = New PictureBox()
-        Panel2 = New Panel()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
+        Panel2.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
-        Panel2.SuspendLayout()
         SuspendLayout()
         ' 
         ' Main_Menu_SET
@@ -68,6 +68,16 @@ Partial Class Base_Settings
         Panel.Size = New Size(770, 586)
         Panel.TabIndex = 74
         ' 
+        ' Panel2
+        ' 
+        Panel2.Anchor = AnchorStyles.Left Or AnchorStyles.Right
+        Panel2.Controls.Add(text_sub)
+        Panel2.Controls.Add(ICON_1)
+        Panel2.Location = New Point(0, 190)
+        Panel2.Name = "Panel2"
+        Panel2.Size = New Size(770, 213)
+        Panel2.TabIndex = 75
+        ' 
         ' text_sub
         ' 
         text_sub.Anchor = AnchorStyles.Bottom
@@ -87,9 +97,9 @@ Partial Class Base_Settings
         ICON_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ICON_1.Font = New Font("nvgcshare", 120F)
         ICON_1.ForeColor = Color.DimGray
-        ICON_1.Location = New Point(0, 0)
+        ICON_1.Location = New Point(16, 0)
         ICON_1.Name = "ICON_1"
-        ICON_1.Size = New Size(770, 145)
+        ICON_1.Size = New Size(754, 145)
         ICON_1.TabIndex = 74
         ICON_1.Text = ""
         ICON_1.TextAlign = ContentAlignment.MiddleCenter
@@ -223,16 +233,6 @@ Partial Class Base_Settings
         PictureBox1.TabStop = False
         PictureBox1.Visible = False
         ' 
-        ' Panel2
-        ' 
-        Panel2.Anchor = AnchorStyles.Left Or AnchorStyles.Right
-        Panel2.Controls.Add(text_sub)
-        Panel2.Controls.Add(ICON_1)
-        Panel2.Location = New Point(0, 190)
-        Panel2.Name = "Panel2"
-        Panel2.Size = New Size(770, 213)
-        Panel2.TabIndex = 75
-        ' 
         ' Base_Settings
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -261,11 +261,11 @@ Partial Class Base_Settings
         WindowState = FormWindowState.Maximized
         Main_Menu_SET.ResumeLayout(False)
         Panel.ResumeLayout(False)
+        Panel2.ResumeLayout(False)
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
-        Panel2.ResumeLayout(False)
         ResumeLayout(False)
     End Sub
 

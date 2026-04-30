@@ -1,4 +1,6 @@
-﻿Public Class HotkeyService
+﻿Imports System.IO
+
+Public Class HotkeyService
     Private _hwnd As IntPtr
     Private ReadOnly _actions As New Dictionary(Of Integer, Action)
 
@@ -14,6 +16,17 @@
     Public Event AltTPressed()
 
     Public Sub RegisterAll(hWnd As IntPtr)
+        Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
+        Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
+        If width >= 1680 AndAlso height >= 1050 Then
+            Base.ShowNotifier("notificationOpenShare")
+        Else
+            Base.ShowNotifier("ErrorResolution")
+        End If
+        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+
+
+
         _hwnd = hWnd
 
         Register(1, WinAPI.MOD_ALT, Keys.Z, AddressOf RaiseAltZ)

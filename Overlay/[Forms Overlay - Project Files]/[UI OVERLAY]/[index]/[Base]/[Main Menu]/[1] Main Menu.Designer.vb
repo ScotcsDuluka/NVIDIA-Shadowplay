@@ -31,7 +31,18 @@ Partial Class Base
         Logo = New PictureBox()
         Record_Logo = New Label()
         shadowplay = New Panel()
-        PictureBox7 = New PictureBox()
+        Menu_Record = New Panel()
+        Menu_Record_text = New Label()
+        str = New PictureBox()
+        stl = New PictureBox()
+        stb = New PictureBox()
+        st1 = New PictureBox()
+        Menu_Record_Sttings_text = New Label()
+        Menu_Record_key = New Label()
+        Menu_Record_ico = New Label()
+        Menu_Record_Box1 = New PictureBox()
+        Menu_Record_Box2 = New PictureBox()
+        Menu_Record_Bg = New PictureBox()
         a_3l = New PictureBox()
         Mode_Menu = New Panel()
         s_3b = New PictureBox()
@@ -58,6 +69,26 @@ Partial Class Base
         Bg_Mode1 = New Label()
         Bg_Mode2 = New Label()
         Bg_Mode3 = New Label()
+        Menu_Replay = New Panel()
+        r_1b = New PictureBox()
+        Menu_Replay_key = New Label()
+        Menu_Replay_text = New Label()
+        Menu_Replay_ico = New Label()
+        r_1r = New PictureBox()
+        r_1l = New PictureBox()
+        r_1 = New PictureBox()
+        Menu_Replay_Box1 = New PictureBox()
+        rs1 = New PictureBox()
+        Menu_Replay_Sttings_text = New Label()
+        Menu_Replay_Box3 = New PictureBox()
+        rsr = New PictureBox()
+        rsb = New PictureBox()
+        Menu_Replay_save_text = New Label()
+        Menu_Replay_save_key = New Label()
+        Menu_Replay_save_ico = New Label()
+        rsl = New PictureBox()
+        Menu_Replay_Box2 = New PictureBox()
+        Menu_Replay_Bg = New PictureBox()
         Settings_Text = New Label()
         s1l = New PictureBox()
         s1r = New PictureBox()
@@ -101,51 +132,6 @@ Partial Class Base
         Live_Logo = New Label()
         Replay_Logo = New Label()
         bg_action = New Label()
-        menu_shadowplay = New Panel()
-        Panel1 = New Panel()
-        PictureBox19 = New PictureBox()
-        PictureBox20 = New PictureBox()
-        PictureBox21 = New PictureBox()
-        PictureBox22 = New PictureBox()
-        Label11 = New Label()
-        Label23 = New Label()
-        Label24 = New Label()
-        Label25 = New Label()
-        PictureBox23 = New PictureBox()
-        PictureBox24 = New PictureBox()
-        PictureBox25 = New PictureBox()
-        Menu_Record = New Panel()
-        Menu_Record_text = New Label()
-        str = New PictureBox()
-        stl = New PictureBox()
-        stb = New PictureBox()
-        st1 = New PictureBox()
-        Menu_Record_Sttings_text = New Label()
-        Menu_Record_key = New Label()
-        Menu_Record_ico = New Label()
-        Menu_Record_Box1 = New PictureBox()
-        Menu_Record_Box2 = New PictureBox()
-        Menu_Record_Bg = New PictureBox()
-        Menu_Replay = New Panel()
-        r_1b = New PictureBox()
-        rs1 = New PictureBox()
-        Menu_Replay_key = New Label()
-        Menu_Replay_text = New Label()
-        Menu_Replay_ico = New Label()
-        Menu_Replay_Sttings_text = New Label()
-        Menu_Replay_Box3 = New PictureBox()
-        r_1r = New PictureBox()
-        r_1l = New PictureBox()
-        r_1 = New PictureBox()
-        rsr = New PictureBox()
-        rsb = New PictureBox()
-        Menu_Replay_save_text = New Label()
-        Menu_Replay_save_key = New Label()
-        Menu_Replay_save_ico = New Label()
-        rsl = New PictureBox()
-        Menu_Replay_Box2 = New PictureBox()
-        Menu_Replay_Box1 = New PictureBox()
-        Menu_Replay_Bg = New PictureBox()
         Name_action = New Label()
         Settings_List = New Panel()
         Settings_List_Top = New PictureBox()
@@ -205,7 +191,14 @@ Partial Class Base
         ME_CLOSE_BG = New Label()
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         shadowplay.SuspendLayout()
-        CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
+        Menu_Record.SuspendLayout()
+        CType(str, ComponentModel.ISupportInitialize).BeginInit()
+        CType(stl, ComponentModel.ISupportInitialize).BeginInit()
+        CType(stb, ComponentModel.ISupportInitialize).BeginInit()
+        CType(st1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Record_Box1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_3l, ComponentModel.ISupportInitialize).BeginInit()
         Mode_Menu.SuspendLayout()
         CType(s_3b, ComponentModel.ISupportInitialize).BeginInit()
@@ -220,6 +213,19 @@ Partial Class Base
         CType(s_1r, ComponentModel.ISupportInitialize).BeginInit()
         CType(s_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(s_1l, ComponentModel.ISupportInitialize).BeginInit()
+        Menu_Replay.SuspendLayout()
+        CType(r_1b, ComponentModel.ISupportInitialize).BeginInit()
+        CType(r_1r, ComponentModel.ISupportInitialize).BeginInit()
+        CType(r_1l, ComponentModel.ISupportInitialize).BeginInit()
+        CType(r_1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).BeginInit()
+        CType(rsr, ComponentModel.ISupportInitialize).BeginInit()
+        CType(rsb, ComponentModel.ISupportInitialize).BeginInit()
+        CType(rsl, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Menu_Replay_Bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(s1l, ComponentModel.ISupportInitialize).BeginInit()
         CType(s1r, ComponentModel.ISupportInitialize).BeginInit()
         CType(s1b, ComponentModel.ISupportInitialize).BeginInit()
@@ -243,36 +249,6 @@ Partial Class Base
         CType(a_3, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
-        menu_shadowplay.SuspendLayout()
-        Panel1.SuspendLayout()
-        CType(PictureBox19, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox20, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox21, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox22, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox23, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox24, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox25, ComponentModel.ISupportInitialize).BeginInit()
-        Menu_Record.SuspendLayout()
-        CType(str, ComponentModel.ISupportInitialize).BeginInit()
-        CType(stl, ComponentModel.ISupportInitialize).BeginInit()
-        CType(stb, ComponentModel.ISupportInitialize).BeginInit()
-        CType(st1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Record_Box1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).BeginInit()
-        Menu_Replay.SuspendLayout()
-        CType(r_1b, ComponentModel.ISupportInitialize).BeginInit()
-        CType(rs1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).BeginInit()
-        CType(r_1r, ComponentModel.ISupportInitialize).BeginInit()
-        CType(r_1l, ComponentModel.ISupportInitialize).BeginInit()
-        CType(r_1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(rsr, ComponentModel.ISupportInitialize).BeginInit()
-        CType(rsb, ComponentModel.ISupportInitialize).BeginInit()
-        CType(rsl, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Menu_Replay_Bg, ComponentModel.ISupportInitialize).BeginInit()
         Settings_List.SuspendLayout()
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Settings_index, ComponentModel.ISupportInitialize).BeginInit()
@@ -331,9 +307,10 @@ Partial Class Base
         ' 
         shadowplay.Anchor = AnchorStyles.Top
         shadowplay.BackColor = Color.Red
-        shadowplay.Controls.Add(PictureBox7)
+        shadowplay.Controls.Add(Menu_Record)
         shadowplay.Controls.Add(a_3l)
         shadowplay.Controls.Add(Mode_Menu)
+        shadowplay.Controls.Add(Menu_Replay)
         shadowplay.Controls.Add(Settings_Text)
         shadowplay.Controls.Add(s1l)
         shadowplay.Controls.Add(s1r)
@@ -378,23 +355,155 @@ Partial Class Base
         shadowplay.Controls.Add(Live_Logo)
         shadowplay.Controls.Add(Replay_Logo)
         shadowplay.Controls.Add(bg_action)
-        shadowplay.Controls.Add(menu_shadowplay)
         shadowplay.Location = New Point(444, 71)
         shadowplay.Name = "shadowplay"
-        shadowplay.Size = New Size(1280, 478)
+        shadowplay.Size = New Size(1280, 384)
         shadowplay.TabIndex = 12
         shadowplay.Visible = False
         ' 
-        ' PictureBox7
+        ' Menu_Record
         ' 
-        PictureBox7.BackColor = Color.Blue
-        PictureBox7.BackgroundImageLayout = ImageLayout.None
-        PictureBox7.Location = New Point(240, 98)
-        PictureBox7.Name = "PictureBox7"
-        PictureBox7.Size = New Size(40, 80)
-        PictureBox7.TabIndex = 90
-        PictureBox7.TabStop = False
-        PictureBox7.Visible = False
+        Menu_Record.Controls.Add(Menu_Record_text)
+        Menu_Record.Controls.Add(str)
+        Menu_Record.Controls.Add(stl)
+        Menu_Record.Controls.Add(stb)
+        Menu_Record.Controls.Add(st1)
+        Menu_Record.Controls.Add(Menu_Record_Sttings_text)
+        Menu_Record.Controls.Add(Menu_Record_key)
+        Menu_Record.Controls.Add(Menu_Record_ico)
+        Menu_Record.Controls.Add(Menu_Record_Box1)
+        Menu_Record.Controls.Add(Menu_Record_Box2)
+        Menu_Record.Controls.Add(Menu_Record_Bg)
+        Menu_Record.Location = New Point(520, 240)
+        Menu_Record.Name = "Menu_Record"
+        Menu_Record.Size = New Size(240, 133)
+        Menu_Record.TabIndex = 44
+        Menu_Record.Visible = False
+        ' 
+        ' Menu_Record_text
+        ' 
+        Menu_Record_text.BackColor = Color.Black
+        Menu_Record_text.Cursor = Cursors.Hand
+        Menu_Record_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Record_text.ForeColor = Color.White
+        Menu_Record_text.Location = New Point(37, 3)
+        Menu_Record_text.Name = "Menu_Record_text"
+        Menu_Record_text.Size = New Size(150, 35)
+        Menu_Record_text.TabIndex = 41
+        Menu_Record_text.Text = "l10n.start"
+        Menu_Record_text.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' str
+        ' 
+        str.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        str.Location = New Point(0, 0)
+        str.Name = "str"
+        str.Size = New Size(3, 44)
+        str.TabIndex = 82
+        str.TabStop = False
+        str.Visible = False
+        ' 
+        ' stl
+        ' 
+        stl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        stl.Cursor = Cursors.Hand
+        stl.Location = New Point(237, 0)
+        stl.Name = "stl"
+        stl.Size = New Size(3, 44)
+        stl.TabIndex = 79
+        stl.TabStop = False
+        stl.Visible = False
+        ' 
+        ' stb
+        ' 
+        stb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        stb.Cursor = Cursors.Hand
+        stb.Location = New Point(0, 41)
+        stb.Name = "stb"
+        stb.Size = New Size(240, 3)
+        stb.TabIndex = 81
+        stb.TabStop = False
+        stb.Visible = False
+        ' 
+        ' st1
+        ' 
+        st1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        st1.Cursor = Cursors.Hand
+        st1.Location = New Point(0, 0)
+        st1.Name = "st1"
+        st1.Size = New Size(240, 3)
+        st1.TabIndex = 80
+        st1.TabStop = False
+        st1.Visible = False
+        ' 
+        ' Menu_Record_Sttings_text
+        ' 
+        Menu_Record_Sttings_text.BackColor = Color.Black
+        Menu_Record_Sttings_text.Cursor = Cursors.Hand
+        Menu_Record_Sttings_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Record_Sttings_text.ForeColor = Color.White
+        Menu_Record_Sttings_text.Location = New Point(37, 53)
+        Menu_Record_Sttings_text.Name = "Menu_Record_Sttings_text"
+        Menu_Record_Sttings_text.Size = New Size(157, 27)
+        Menu_Record_Sttings_text.TabIndex = 45
+        Menu_Record_Sttings_text.Text = "l10n.settings"
+        ' 
+        ' Menu_Record_key
+        ' 
+        Menu_Record_key.BackColor = Color.Black
+        Menu_Record_key.Cursor = Cursors.Hand
+        Menu_Record_key.Font = New Font("Segoe UI", 9F)
+        Menu_Record_key.ForeColor = Color.Gray
+        Menu_Record_key.ImageAlign = ContentAlignment.MiddleRight
+        Menu_Record_key.Location = New Point(183, 4)
+        Menu_Record_key.Name = "Menu_Record_key"
+        Menu_Record_key.Size = New Size(51, 35)
+        Menu_Record_key.TabIndex = 41
+        Menu_Record_key.Text = "Alt+F9"
+        Menu_Record_key.TextAlign = ContentAlignment.MiddleRight
+        ' 
+        ' Menu_Record_ico
+        ' 
+        Menu_Record_ico.BackColor = Color.Black
+        Menu_Record_ico.Cursor = Cursors.Hand
+        Menu_Record_ico.Font = New Font("nvgcshare", 20.25F)
+        Menu_Record_ico.ForeColor = Color.White
+        Menu_Record_ico.Location = New Point(3, 3)
+        Menu_Record_ico.Name = "Menu_Record_ico"
+        Menu_Record_ico.RightToLeft = RightToLeft.Yes
+        Menu_Record_ico.Size = New Size(42, 38)
+        Menu_Record_ico.TabIndex = 44
+        Menu_Record_ico.Text = ""
+        Menu_Record_ico.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' Menu_Record_Box1
+        ' 
+        Menu_Record_Box1.BackColor = Color.Black
+        Menu_Record_Box1.Cursor = Cursors.Hand
+        Menu_Record_Box1.Location = New Point(0, 0)
+        Menu_Record_Box1.Name = "Menu_Record_Box1"
+        Menu_Record_Box1.Size = New Size(240, 44)
+        Menu_Record_Box1.TabIndex = 0
+        Menu_Record_Box1.TabStop = False
+        ' 
+        ' Menu_Record_Box2
+        ' 
+        Menu_Record_Box2.BackColor = Color.Black
+        Menu_Record_Box2.Cursor = Cursors.Hand
+        Menu_Record_Box2.Location = New Point(0, 45)
+        Menu_Record_Box2.Name = "Menu_Record_Box2"
+        Menu_Record_Box2.Size = New Size(240, 44)
+        Menu_Record_Box2.TabIndex = 42
+        Menu_Record_Box2.TabStop = False
+        ' 
+        ' Menu_Record_Bg
+        ' 
+        Menu_Record_Bg.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
+        Menu_Record_Bg.Location = New Point(0, 1)
+        Menu_Record_Bg.Name = "Menu_Record_Bg"
+        Menu_Record_Bg.Size = New Size(240, 54)
+        Menu_Record_Bg.TabIndex = 83
+        Menu_Record_Bg.TabStop = False
         ' 
         ' a_3l
         ' 
@@ -639,6 +748,7 @@ Partial Class Base
         ' 
         Key_Mode2.AutoSize = True
         Key_Mode2.BackColor = Color.Black
+        Key_Mode2.Cursor = Cursors.Hand
         Key_Mode2.Font = New Font("Segoe UI", 9F)
         Key_Mode2.ForeColor = Color.Gray
         Key_Mode2.Location = New Point(80, 123)
@@ -661,6 +771,7 @@ Partial Class Base
         ' 
         Key_Mode3.AutoSize = True
         Key_Mode3.BackColor = Color.Black
+        Key_Mode3.Cursor = Cursors.Hand
         Key_Mode3.Font = New Font("Segoe UI", 9F)
         Key_Mode3.ForeColor = Color.Gray
         Key_Mode3.Location = New Point(80, 203)
@@ -707,6 +818,264 @@ Partial Class Base
         Bg_Mode3.Size = New Size(240, 80)
         Bg_Mode3.TabIndex = 30
         Bg_Mode3.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' Menu_Replay
+        ' 
+        Menu_Replay.Controls.Add(r_1b)
+        Menu_Replay.Controls.Add(Menu_Replay_key)
+        Menu_Replay.Controls.Add(Menu_Replay_text)
+        Menu_Replay.Controls.Add(Menu_Replay_ico)
+        Menu_Replay.Controls.Add(r_1r)
+        Menu_Replay.Controls.Add(r_1l)
+        Menu_Replay.Controls.Add(r_1)
+        Menu_Replay.Controls.Add(Menu_Replay_Box1)
+        Menu_Replay.Controls.Add(rs1)
+        Menu_Replay.Controls.Add(Menu_Replay_Sttings_text)
+        Menu_Replay.Controls.Add(Menu_Replay_Box3)
+        Menu_Replay.Controls.Add(rsr)
+        Menu_Replay.Controls.Add(rsb)
+        Menu_Replay.Controls.Add(Menu_Replay_save_text)
+        Menu_Replay.Controls.Add(Menu_Replay_save_key)
+        Menu_Replay.Controls.Add(Menu_Replay_save_ico)
+        Menu_Replay.Controls.Add(rsl)
+        Menu_Replay.Controls.Add(Menu_Replay_Box2)
+        Menu_Replay.Controls.Add(Menu_Replay_Bg)
+        Menu_Replay.Location = New Point(280, 240)
+        Menu_Replay.Name = "Menu_Replay"
+        Menu_Replay.Size = New Size(240, 133)
+        Menu_Replay.TabIndex = 43
+        Menu_Replay.Visible = False
+        ' 
+        ' r_1b
+        ' 
+        r_1b.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1b.Cursor = Cursors.Hand
+        r_1b.Location = New Point(0, 41)
+        r_1b.Name = "r_1b"
+        r_1b.Size = New Size(240, 3)
+        r_1b.TabIndex = 69
+        r_1b.TabStop = False
+        r_1b.Visible = False
+        ' 
+        ' Menu_Replay_key
+        ' 
+        Menu_Replay_key.BackColor = Color.Black
+        Menu_Replay_key.Cursor = Cursors.Hand
+        Menu_Replay_key.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Menu_Replay_key.ForeColor = Color.Gray
+        Menu_Replay_key.Location = New Point(139, 4)
+        Menu_Replay_key.Name = "Menu_Replay_key"
+        Menu_Replay_key.Size = New Size(95, 35)
+        Menu_Replay_key.TabIndex = 41
+        Menu_Replay_key.Text = "Alt+Shift+F10"
+        Menu_Replay_key.TextAlign = ContentAlignment.MiddleRight
+        ' 
+        ' Menu_Replay_text
+        ' 
+        Menu_Replay_text.BackColor = Color.Black
+        Menu_Replay_text.Cursor = Cursors.Hand
+        Menu_Replay_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Replay_text.ForeColor = Color.White
+        Menu_Replay_text.Location = New Point(37, 3)
+        Menu_Replay_text.Name = "Menu_Replay_text"
+        Menu_Replay_text.Size = New Size(200, 35)
+        Menu_Replay_text.TabIndex = 41
+        Menu_Replay_text.Text = "l10n.instantReplay"
+        Menu_Replay_text.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Menu_Replay_ico
+        ' 
+        Menu_Replay_ico.BackColor = Color.Black
+        Menu_Replay_ico.Cursor = Cursors.Hand
+        Menu_Replay_ico.Font = New Font("nvgcshare", 20.25F)
+        Menu_Replay_ico.ForeColor = Color.White
+        Menu_Replay_ico.Location = New Point(3, 3)
+        Menu_Replay_ico.Name = "Menu_Replay_ico"
+        Menu_Replay_ico.RightToLeft = RightToLeft.Yes
+        Menu_Replay_ico.Size = New Size(42, 38)
+        Menu_Replay_ico.TabIndex = 44
+        Menu_Replay_ico.Text = ""
+        Menu_Replay_ico.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' r_1r
+        ' 
+        r_1r.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1r.Cursor = Cursors.Hand
+        r_1r.Location = New Point(0, 0)
+        r_1r.Name = "r_1r"
+        r_1r.Size = New Size(3, 44)
+        r_1r.TabIndex = 70
+        r_1r.TabStop = False
+        r_1r.Visible = False
+        ' 
+        ' r_1l
+        ' 
+        r_1l.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1l.Cursor = Cursors.Hand
+        r_1l.Location = New Point(237, 0)
+        r_1l.Name = "r_1l"
+        r_1l.Size = New Size(3, 44)
+        r_1l.TabIndex = 68
+        r_1l.TabStop = False
+        r_1l.Visible = False
+        ' 
+        ' r_1
+        ' 
+        r_1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        r_1.Cursor = Cursors.Hand
+        r_1.Location = New Point(0, 0)
+        r_1.Name = "r_1"
+        r_1.Size = New Size(240, 3)
+        r_1.TabIndex = 68
+        r_1.TabStop = False
+        r_1.Visible = False
+        ' 
+        ' Menu_Replay_Box1
+        ' 
+        Menu_Replay_Box1.BackColor = Color.Black
+        Menu_Replay_Box1.Cursor = Cursors.Hand
+        Menu_Replay_Box1.Location = New Point(0, 0)
+        Menu_Replay_Box1.Name = "Menu_Replay_Box1"
+        Menu_Replay_Box1.Size = New Size(240, 44)
+        Menu_Replay_Box1.TabIndex = 0
+        Menu_Replay_Box1.TabStop = False
+        ' 
+        ' rs1
+        ' 
+        rs1.Anchor = AnchorStyles.Bottom
+        rs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rs1.Cursor = Cursors.Hand
+        rs1.Location = New Point(0, 44)
+        rs1.Name = "rs1"
+        rs1.Size = New Size(240, 3)
+        rs1.TabIndex = 72
+        rs1.TabStop = False
+        rs1.Visible = False
+        ' 
+        ' Menu_Replay_Sttings_text
+        ' 
+        Menu_Replay_Sttings_text.Anchor = AnchorStyles.Bottom
+        Menu_Replay_Sttings_text.BackColor = Color.Black
+        Menu_Replay_Sttings_text.Cursor = Cursors.Hand
+        Menu_Replay_Sttings_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Replay_Sttings_text.ForeColor = Color.White
+        Menu_Replay_Sttings_text.Location = New Point(37, 92)
+        Menu_Replay_Sttings_text.Name = "Menu_Replay_Sttings_text"
+        Menu_Replay_Sttings_text.Size = New Size(170, 34)
+        Menu_Replay_Sttings_text.TabIndex = 85
+        Menu_Replay_Sttings_text.Text = "l10n.settings"
+        Menu_Replay_Sttings_text.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Menu_Replay_Box3
+        ' 
+        Menu_Replay_Box3.Anchor = AnchorStyles.Bottom
+        Menu_Replay_Box3.BackColor = Color.Black
+        Menu_Replay_Box3.Cursor = Cursors.Hand
+        Menu_Replay_Box3.Location = New Point(0, 89)
+        Menu_Replay_Box3.Name = "Menu_Replay_Box3"
+        Menu_Replay_Box3.Size = New Size(240, 44)
+        Menu_Replay_Box3.TabIndex = 84
+        Menu_Replay_Box3.TabStop = False
+        ' 
+        ' rsr
+        ' 
+        rsr.Anchor = AnchorStyles.Bottom
+        rsr.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rsr.Cursor = Cursors.Hand
+        rsr.Location = New Point(0, 44)
+        rsr.Name = "rsr"
+        rsr.Size = New Size(3, 44)
+        rsr.TabIndex = 74
+        rsr.TabStop = False
+        rsr.Visible = False
+        ' 
+        ' rsb
+        ' 
+        rsb.Anchor = AnchorStyles.Bottom
+        rsb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rsb.Cursor = Cursors.Hand
+        rsb.Location = New Point(0, 85)
+        rsb.Name = "rsb"
+        rsb.Size = New Size(240, 3)
+        rsb.TabIndex = 73
+        rsb.TabStop = False
+        rsb.Visible = False
+        ' 
+        ' Menu_Replay_save_text
+        ' 
+        Menu_Replay_save_text.Anchor = AnchorStyles.Bottom
+        Menu_Replay_save_text.BackColor = Color.Black
+        Menu_Replay_save_text.Cursor = Cursors.Hand
+        Menu_Replay_save_text.Font = New Font("Segoe UI", 14.25F)
+        Menu_Replay_save_text.ForeColor = Color.White
+        Menu_Replay_save_text.Location = New Point(37, 49)
+        Menu_Replay_save_text.Name = "Menu_Replay_save_text"
+        Menu_Replay_save_text.Size = New Size(118, 33)
+        Menu_Replay_save_text.TabIndex = 45
+        Menu_Replay_save_text.Text = "l10n.Saved"
+        Menu_Replay_save_text.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Menu_Replay_save_key
+        ' 
+        Menu_Replay_save_key.Anchor = AnchorStyles.Bottom
+        Menu_Replay_save_key.BackColor = Color.Black
+        Menu_Replay_save_key.Cursor = Cursors.Hand
+        Menu_Replay_save_key.Font = New Font("Segoe UI", 9F)
+        Menu_Replay_save_key.ForeColor = Color.Gray
+        Menu_Replay_save_key.Location = New Point(139, 45)
+        Menu_Replay_save_key.Name = "Menu_Replay_save_key"
+        Menu_Replay_save_key.Size = New Size(95, 42)
+        Menu_Replay_save_key.TabIndex = 50
+        Menu_Replay_save_key.Text = "Alt+F10"
+        Menu_Replay_save_key.TextAlign = ContentAlignment.MiddleRight
+        ' 
+        ' Menu_Replay_save_ico
+        ' 
+        Menu_Replay_save_ico.Anchor = AnchorStyles.Bottom
+        Menu_Replay_save_ico.BackColor = Color.Black
+        Menu_Replay_save_ico.Cursor = Cursors.Hand
+        Menu_Replay_save_ico.Font = New Font("nvgcshare", 20.25F)
+        Menu_Replay_save_ico.ForeColor = Color.White
+        Menu_Replay_save_ico.Location = New Point(3, 47)
+        Menu_Replay_save_ico.Name = "Menu_Replay_save_ico"
+        Menu_Replay_save_ico.RightToLeft = RightToLeft.Yes
+        Menu_Replay_save_ico.Size = New Size(42, 38)
+        Menu_Replay_save_ico.TabIndex = 46
+        Menu_Replay_save_ico.Text = ""
+        Menu_Replay_save_ico.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' rsl
+        ' 
+        rsl.Anchor = AnchorStyles.Bottom
+        rsl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        rsl.Cursor = Cursors.Hand
+        rsl.Location = New Point(237, 44)
+        rsl.Name = "rsl"
+        rsl.Size = New Size(3, 44)
+        rsl.TabIndex = 71
+        rsl.TabStop = False
+        rsl.Visible = False
+        ' 
+        ' Menu_Replay_Box2
+        ' 
+        Menu_Replay_Box2.Anchor = AnchorStyles.Bottom
+        Menu_Replay_Box2.BackColor = Color.Black
+        Menu_Replay_Box2.Cursor = Cursors.Hand
+        Menu_Replay_Box2.Location = New Point(0, 44)
+        Menu_Replay_Box2.Name = "Menu_Replay_Box2"
+        Menu_Replay_Box2.Size = New Size(240, 44)
+        Menu_Replay_Box2.TabIndex = 42
+        Menu_Replay_Box2.TabStop = False
+        ' 
+        ' Menu_Replay_Bg
+        ' 
+        Menu_Replay_Bg.Anchor = AnchorStyles.Bottom
+        Menu_Replay_Bg.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
+        Menu_Replay_Bg.Location = New Point(0, 53)
+        Menu_Replay_Bg.Name = "Menu_Replay_Bg"
+        Menu_Replay_Bg.Size = New Size(240, 64)
+        Menu_Replay_Bg.TabIndex = 90
+        Menu_Replay_Bg.TabStop = False
         ' 
         ' Settings_Text
         ' 
@@ -782,6 +1151,7 @@ Partial Class Base
         MIC_ICO.Size = New Size(39, 27)
         MIC_ICO.TabIndex = 21
         MIC_ICO.Text = ""
+        MIC_ICO.Visible = False
         ' 
         ' vdo
         ' 
@@ -795,6 +1165,7 @@ Partial Class Base
         vdo.Size = New Size(39, 27)
         vdo.TabIndex = 22
         vdo.Text = ""
+        vdo.Visible = False
         ' 
         ' g1r
         ' 
@@ -982,9 +1353,9 @@ Partial Class Base
         Replay_Stats.Cursor = Cursors.Hand
         Replay_Stats.Font = New Font("Segoe UI", 12F)
         Replay_Stats.ForeColor = Color.Gray
-        Replay_Stats.Location = New Point(280, 192)
+        Replay_Stats.Location = New Point(283, 192)
         Replay_Stats.Name = "Replay_Stats"
-        Replay_Stats.Size = New Size(240, 26)
+        Replay_Stats.Size = New Size(234, 26)
         Replay_Stats.TabIndex = 27
         Replay_Stats.Text = "l10n.off"
         Replay_Stats.TextAlign = ContentAlignment.MiddleCenter
@@ -995,9 +1366,9 @@ Partial Class Base
         Replay_Text.Cursor = Cursors.Hand
         Replay_Text.Font = New Font("Segoe UI Semibold", 14.25F, FontStyle.Bold)
         Replay_Text.ForeColor = Color.White
-        Replay_Text.Location = New Point(280, 6)
+        Replay_Text.Location = New Point(283, 6)
         Replay_Text.Name = "Replay_Text"
-        Replay_Text.Size = New Size(240, 51)
+        Replay_Text.Size = New Size(234, 51)
         Replay_Text.TabIndex = 24
         Replay_Text.Text = "l10n.instantReplay"
         Replay_Text.TextAlign = ContentAlignment.MiddleCenter
@@ -1008,9 +1379,9 @@ Partial Class Base
         Live_Stats.Cursor = Cursors.Hand
         Live_Stats.Font = New Font("Segoe UI", 12F)
         Live_Stats.ForeColor = Color.Gray
-        Live_Stats.Location = New Point(760, 192)
+        Live_Stats.Location = New Point(763, 192)
         Live_Stats.Name = "Live_Stats"
-        Live_Stats.Size = New Size(240, 26)
+        Live_Stats.Size = New Size(234, 26)
         Live_Stats.TabIndex = 28
         Live_Stats.Text = "l10n.NotReady"
         Live_Stats.TextAlign = ContentAlignment.MiddleCenter
@@ -1021,9 +1392,9 @@ Partial Class Base
         Record_Stats.Cursor = Cursors.Hand
         Record_Stats.Font = New Font("Segoe UI", 12F)
         Record_Stats.ForeColor = Color.Gray
-        Record_Stats.Location = New Point(520, 192)
+        Record_Stats.Location = New Point(523, 192)
         Record_Stats.Name = "Record_Stats"
-        Record_Stats.Size = New Size(240, 26)
+        Record_Stats.Size = New Size(234, 26)
         Record_Stats.TabIndex = 28
         Record_Stats.Text = "l10n.notRecording"
         Record_Stats.TextAlign = ContentAlignment.MiddleCenter
@@ -1034,9 +1405,9 @@ Partial Class Base
         Live_Text.Cursor = Cursors.Hand
         Live_Text.Font = New Font("Segoe UI Semibold", 14.25F, FontStyle.Bold)
         Live_Text.ForeColor = Color.White
-        Live_Text.Location = New Point(759, 6)
+        Live_Text.Location = New Point(762, 6)
         Live_Text.Name = "Live_Text"
-        Live_Text.Size = New Size(240, 51)
+        Live_Text.Size = New Size(234, 51)
         Live_Text.TabIndex = 26
         Live_Text.Text = "l10n.broadcastLive"
         Live_Text.TextAlign = ContentAlignment.MiddleCenter
@@ -1047,9 +1418,9 @@ Partial Class Base
         Record_Text.Cursor = Cursors.Hand
         Record_Text.Font = New Font("Segoe UI Semibold", 14.25F, FontStyle.Bold)
         Record_Text.ForeColor = Color.White
-        Record_Text.Location = New Point(520, 6)
+        Record_Text.Location = New Point(523, 6)
         Record_Text.Name = "Record_Text"
-        Record_Text.Size = New Size(240, 51)
+        Record_Text.Size = New Size(234, 51)
         Record_Text.TabIndex = 25
         Record_Text.Text = "l10n.manualRecord"
         Record_Text.TextAlign = ContentAlignment.MiddleCenter
@@ -1198,544 +1569,6 @@ Partial Class Base
         bg_action.TabIndex = 45
         bg_action.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' menu_shadowplay
-        ' 
-        menu_shadowplay.Controls.Add(Panel1)
-        menu_shadowplay.Controls.Add(Menu_Record)
-        menu_shadowplay.Controls.Add(Menu_Replay)
-        menu_shadowplay.Location = New Point(280, 237)
-        menu_shadowplay.Name = "menu_shadowplay"
-        menu_shadowplay.Size = New Size(720, 217)
-        menu_shadowplay.TabIndex = 44
-        ' 
-        ' Panel1
-        ' 
-        Panel1.Controls.Add(PictureBox19)
-        Panel1.Controls.Add(PictureBox20)
-        Panel1.Controls.Add(PictureBox21)
-        Panel1.Controls.Add(PictureBox22)
-        Panel1.Controls.Add(Label11)
-        Panel1.Controls.Add(Label23)
-        Panel1.Controls.Add(Label24)
-        Panel1.Controls.Add(Label25)
-        Panel1.Controls.Add(PictureBox23)
-        Panel1.Controls.Add(PictureBox24)
-        Panel1.Controls.Add(PictureBox25)
-        Panel1.Location = New Point(480, 3)
-        Panel1.Name = "Panel1"
-        Panel1.Size = New Size(240, 148)
-        Panel1.TabIndex = 84
-        Panel1.Visible = False
-        ' 
-        ' PictureBox19
-        ' 
-        PictureBox19.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox19.Location = New Point(0, 0)
-        PictureBox19.Name = "PictureBox19"
-        PictureBox19.Size = New Size(3, 44)
-        PictureBox19.TabIndex = 82
-        PictureBox19.TabStop = False
-        PictureBox19.Visible = False
-        ' 
-        ' PictureBox20
-        ' 
-        PictureBox20.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox20.Location = New Point(237, 0)
-        PictureBox20.Name = "PictureBox20"
-        PictureBox20.Size = New Size(3, 44)
-        PictureBox20.TabIndex = 79
-        PictureBox20.TabStop = False
-        PictureBox20.Visible = False
-        ' 
-        ' PictureBox21
-        ' 
-        PictureBox21.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox21.Location = New Point(0, 41)
-        PictureBox21.Name = "PictureBox21"
-        PictureBox21.Size = New Size(240, 3)
-        PictureBox21.TabIndex = 81
-        PictureBox21.TabStop = False
-        PictureBox21.Visible = False
-        ' 
-        ' PictureBox22
-        ' 
-        PictureBox22.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        PictureBox22.Location = New Point(0, 0)
-        PictureBox22.Name = "PictureBox22"
-        PictureBox22.Size = New Size(240, 3)
-        PictureBox22.TabIndex = 80
-        PictureBox22.TabStop = False
-        PictureBox22.Visible = False
-        ' 
-        ' Label11
-        ' 
-        Label11.BackColor = Color.Black
-        Label11.Cursor = Cursors.Hand
-        Label11.Font = New Font("Segoe UI", 14.25F)
-        Label11.ForeColor = Color.White
-        Label11.Location = New Point(37, 53)
-        Label11.Name = "Label11"
-        Label11.Size = New Size(108, 27)
-        Label11.TabIndex = 45
-        Label11.Text = "Settings"
-        ' 
-        ' Label23
-        ' 
-        Label23.BackColor = Color.Black
-        Label23.Font = New Font("Segoe UI", 9F)
-        Label23.ForeColor = Color.Gray
-        Label23.ImageAlign = ContentAlignment.MiddleRight
-        Label23.Location = New Point(139, 4)
-        Label23.Name = "Label23"
-        Label23.Size = New Size(95, 35)
-        Label23.TabIndex = 41
-        Label23.Text = "Alt+F9"
-        Label23.TextAlign = ContentAlignment.MiddleRight
-        ' 
-        ' Label24
-        ' 
-        Label24.BackColor = Color.Black
-        Label24.Font = New Font("Segoe UI", 14.25F)
-        Label24.ForeColor = Color.White
-        Label24.Location = New Point(37, 3)
-        Label24.Name = "Label24"
-        Label24.Size = New Size(81, 35)
-        Label24.TabIndex = 41
-        Label24.Text = "Start"
-        Label24.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label25
-        ' 
-        Label25.BackColor = Color.Black
-        Label25.Font = New Font("nvgcshare", 20.25F)
-        Label25.ForeColor = Color.White
-        Label25.Location = New Point(3, 3)
-        Label25.Name = "Label25"
-        Label25.RightToLeft = RightToLeft.Yes
-        Label25.Size = New Size(40, 36)
-        Label25.TabIndex = 44
-        Label25.Text = ""
-        Label25.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox23
-        ' 
-        PictureBox23.BackColor = Color.Black
-        PictureBox23.Location = New Point(0, 0)
-        PictureBox23.Name = "PictureBox23"
-        PictureBox23.Size = New Size(240, 44)
-        PictureBox23.TabIndex = 0
-        PictureBox23.TabStop = False
-        ' 
-        ' PictureBox24
-        ' 
-        PictureBox24.BackColor = Color.Black
-        PictureBox24.Cursor = Cursors.Hand
-        PictureBox24.Location = New Point(0, 45)
-        PictureBox24.Name = "PictureBox24"
-        PictureBox24.Size = New Size(240, 44)
-        PictureBox24.TabIndex = 42
-        PictureBox24.TabStop = False
-        ' 
-        ' PictureBox25
-        ' 
-        PictureBox25.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        PictureBox25.Location = New Point(0, 1)
-        PictureBox25.Name = "PictureBox25"
-        PictureBox25.Size = New Size(240, 54)
-        PictureBox25.TabIndex = 83
-        PictureBox25.TabStop = False
-        ' 
-        ' Menu_Record
-        ' 
-        Menu_Record.Controls.Add(Menu_Record_text)
-        Menu_Record.Controls.Add(str)
-        Menu_Record.Controls.Add(stl)
-        Menu_Record.Controls.Add(stb)
-        Menu_Record.Controls.Add(st1)
-        Menu_Record.Controls.Add(Menu_Record_Sttings_text)
-        Menu_Record.Controls.Add(Menu_Record_key)
-        Menu_Record.Controls.Add(Menu_Record_ico)
-        Menu_Record.Controls.Add(Menu_Record_Box1)
-        Menu_Record.Controls.Add(Menu_Record_Box2)
-        Menu_Record.Controls.Add(Menu_Record_Bg)
-        Menu_Record.Location = New Point(240, 3)
-        Menu_Record.Name = "Menu_Record"
-        Menu_Record.Size = New Size(240, 148)
-        Menu_Record.TabIndex = 44
-        Menu_Record.Visible = False
-        ' 
-        ' Menu_Record_text
-        ' 
-        Menu_Record_text.BackColor = Color.Black
-        Menu_Record_text.Cursor = Cursors.Hand
-        Menu_Record_text.Font = New Font("Segoe UI", 14.25F)
-        Menu_Record_text.ForeColor = Color.White
-        Menu_Record_text.Location = New Point(37, 3)
-        Menu_Record_text.Name = "Menu_Record_text"
-        Menu_Record_text.Size = New Size(150, 35)
-        Menu_Record_text.TabIndex = 41
-        Menu_Record_text.Text = "l10n.start"
-        Menu_Record_text.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' str
-        ' 
-        str.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        str.Location = New Point(0, 0)
-        str.Name = "str"
-        str.Size = New Size(3, 44)
-        str.TabIndex = 82
-        str.TabStop = False
-        str.Visible = False
-        ' 
-        ' stl
-        ' 
-        stl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        stl.Cursor = Cursors.Hand
-        stl.Location = New Point(237, 0)
-        stl.Name = "stl"
-        stl.Size = New Size(3, 44)
-        stl.TabIndex = 79
-        stl.TabStop = False
-        stl.Visible = False
-        ' 
-        ' stb
-        ' 
-        stb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        stb.Cursor = Cursors.Hand
-        stb.Location = New Point(0, 41)
-        stb.Name = "stb"
-        stb.Size = New Size(240, 3)
-        stb.TabIndex = 81
-        stb.TabStop = False
-        stb.Visible = False
-        ' 
-        ' st1
-        ' 
-        st1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        st1.Cursor = Cursors.Hand
-        st1.Location = New Point(0, 0)
-        st1.Name = "st1"
-        st1.Size = New Size(240, 3)
-        st1.TabIndex = 80
-        st1.TabStop = False
-        st1.Visible = False
-        ' 
-        ' Menu_Record_Sttings_text
-        ' 
-        Menu_Record_Sttings_text.BackColor = Color.Black
-        Menu_Record_Sttings_text.Cursor = Cursors.Hand
-        Menu_Record_Sttings_text.Font = New Font("Segoe UI", 14.25F)
-        Menu_Record_Sttings_text.ForeColor = Color.White
-        Menu_Record_Sttings_text.Location = New Point(37, 53)
-        Menu_Record_Sttings_text.Name = "Menu_Record_Sttings_text"
-        Menu_Record_Sttings_text.Size = New Size(157, 27)
-        Menu_Record_Sttings_text.TabIndex = 45
-        Menu_Record_Sttings_text.Text = "l10n.settings"
-        ' 
-        ' Menu_Record_key
-        ' 
-        Menu_Record_key.BackColor = Color.Black
-        Menu_Record_key.Cursor = Cursors.Hand
-        Menu_Record_key.Font = New Font("Segoe UI", 9F)
-        Menu_Record_key.ForeColor = Color.Gray
-        Menu_Record_key.ImageAlign = ContentAlignment.MiddleRight
-        Menu_Record_key.Location = New Point(183, 4)
-        Menu_Record_key.Name = "Menu_Record_key"
-        Menu_Record_key.Size = New Size(51, 35)
-        Menu_Record_key.TabIndex = 41
-        Menu_Record_key.Text = "Alt+F9"
-        Menu_Record_key.TextAlign = ContentAlignment.MiddleRight
-        ' 
-        ' Menu_Record_ico
-        ' 
-        Menu_Record_ico.BackColor = Color.Black
-        Menu_Record_ico.Cursor = Cursors.Hand
-        Menu_Record_ico.Font = New Font("nvgcshare", 20.25F)
-        Menu_Record_ico.ForeColor = Color.White
-        Menu_Record_ico.Location = New Point(3, 3)
-        Menu_Record_ico.Name = "Menu_Record_ico"
-        Menu_Record_ico.RightToLeft = RightToLeft.Yes
-        Menu_Record_ico.Size = New Size(42, 38)
-        Menu_Record_ico.TabIndex = 44
-        Menu_Record_ico.Text = ""
-        Menu_Record_ico.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Menu_Record_Box1
-        ' 
-        Menu_Record_Box1.BackColor = Color.Black
-        Menu_Record_Box1.Cursor = Cursors.Hand
-        Menu_Record_Box1.Location = New Point(0, 0)
-        Menu_Record_Box1.Name = "Menu_Record_Box1"
-        Menu_Record_Box1.Size = New Size(240, 44)
-        Menu_Record_Box1.TabIndex = 0
-        Menu_Record_Box1.TabStop = False
-        ' 
-        ' Menu_Record_Box2
-        ' 
-        Menu_Record_Box2.BackColor = Color.Black
-        Menu_Record_Box2.Cursor = Cursors.Hand
-        Menu_Record_Box2.Location = New Point(0, 45)
-        Menu_Record_Box2.Name = "Menu_Record_Box2"
-        Menu_Record_Box2.Size = New Size(240, 44)
-        Menu_Record_Box2.TabIndex = 42
-        Menu_Record_Box2.TabStop = False
-        ' 
-        ' Menu_Record_Bg
-        ' 
-        Menu_Record_Bg.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        Menu_Record_Bg.Location = New Point(0, 1)
-        Menu_Record_Bg.Name = "Menu_Record_Bg"
-        Menu_Record_Bg.Size = New Size(240, 54)
-        Menu_Record_Bg.TabIndex = 83
-        Menu_Record_Bg.TabStop = False
-        ' 
-        ' Menu_Replay
-        ' 
-        Menu_Replay.Controls.Add(r_1b)
-        Menu_Replay.Controls.Add(rs1)
-        Menu_Replay.Controls.Add(Menu_Replay_key)
-        Menu_Replay.Controls.Add(Menu_Replay_text)
-        Menu_Replay.Controls.Add(Menu_Replay_ico)
-        Menu_Replay.Controls.Add(Menu_Replay_Sttings_text)
-        Menu_Replay.Controls.Add(Menu_Replay_Box3)
-        Menu_Replay.Controls.Add(r_1r)
-        Menu_Replay.Controls.Add(r_1l)
-        Menu_Replay.Controls.Add(r_1)
-        Menu_Replay.Controls.Add(rsr)
-        Menu_Replay.Controls.Add(rsb)
-        Menu_Replay.Controls.Add(Menu_Replay_save_text)
-        Menu_Replay.Controls.Add(Menu_Replay_save_key)
-        Menu_Replay.Controls.Add(Menu_Replay_save_ico)
-        Menu_Replay.Controls.Add(rsl)
-        Menu_Replay.Controls.Add(Menu_Replay_Box2)
-        Menu_Replay.Controls.Add(Menu_Replay_Box1)
-        Menu_Replay.Controls.Add(Menu_Replay_Bg)
-        Menu_Replay.Location = New Point(0, 3)
-        Menu_Replay.Name = "Menu_Replay"
-        Menu_Replay.Size = New Size(240, 148)
-        Menu_Replay.TabIndex = 43
-        Menu_Replay.Visible = False
-        ' 
-        ' r_1b
-        ' 
-        r_1b.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        r_1b.Cursor = Cursors.Hand
-        r_1b.Location = New Point(0, 41)
-        r_1b.Name = "r_1b"
-        r_1b.Size = New Size(240, 3)
-        r_1b.TabIndex = 69
-        r_1b.TabStop = False
-        r_1b.Visible = False
-        ' 
-        ' rs1
-        ' 
-        rs1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        rs1.Cursor = Cursors.Hand
-        rs1.Location = New Point(0, 44)
-        rs1.Name = "rs1"
-        rs1.Size = New Size(240, 3)
-        rs1.TabIndex = 72
-        rs1.TabStop = False
-        rs1.Visible = False
-        ' 
-        ' Menu_Replay_key
-        ' 
-        Menu_Replay_key.BackColor = Color.Black
-        Menu_Replay_key.Cursor = Cursors.Hand
-        Menu_Replay_key.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Menu_Replay_key.ForeColor = Color.Gray
-        Menu_Replay_key.Location = New Point(139, 4)
-        Menu_Replay_key.Name = "Menu_Replay_key"
-        Menu_Replay_key.Size = New Size(95, 35)
-        Menu_Replay_key.TabIndex = 41
-        Menu_Replay_key.Text = "Alt+Shift+F10"
-        Menu_Replay_key.TextAlign = ContentAlignment.MiddleRight
-        ' 
-        ' Menu_Replay_text
-        ' 
-        Menu_Replay_text.BackColor = Color.Black
-        Menu_Replay_text.Cursor = Cursors.Hand
-        Menu_Replay_text.Font = New Font("Segoe UI", 14.25F)
-        Menu_Replay_text.ForeColor = Color.White
-        Menu_Replay_text.Location = New Point(37, 3)
-        Menu_Replay_text.Name = "Menu_Replay_text"
-        Menu_Replay_text.Size = New Size(200, 35)
-        Menu_Replay_text.TabIndex = 41
-        Menu_Replay_text.Text = "l10n.instantReplay"
-        Menu_Replay_text.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Menu_Replay_ico
-        ' 
-        Menu_Replay_ico.BackColor = Color.Black
-        Menu_Replay_ico.Cursor = Cursors.Hand
-        Menu_Replay_ico.Font = New Font("nvgcshare", 20.25F)
-        Menu_Replay_ico.ForeColor = Color.White
-        Menu_Replay_ico.Location = New Point(3, 3)
-        Menu_Replay_ico.Name = "Menu_Replay_ico"
-        Menu_Replay_ico.RightToLeft = RightToLeft.Yes
-        Menu_Replay_ico.Size = New Size(42, 38)
-        Menu_Replay_ico.TabIndex = 44
-        Menu_Replay_ico.Text = ""
-        Menu_Replay_ico.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Menu_Replay_Sttings_text
-        ' 
-        Menu_Replay_Sttings_text.BackColor = Color.Black
-        Menu_Replay_Sttings_text.Cursor = Cursors.Hand
-        Menu_Replay_Sttings_text.Font = New Font("Segoe UI", 14.25F)
-        Menu_Replay_Sttings_text.ForeColor = Color.White
-        Menu_Replay_Sttings_text.Location = New Point(37, 92)
-        Menu_Replay_Sttings_text.Name = "Menu_Replay_Sttings_text"
-        Menu_Replay_Sttings_text.Size = New Size(170, 34)
-        Menu_Replay_Sttings_text.TabIndex = 85
-        Menu_Replay_Sttings_text.Text = "l10n.settings"
-        Menu_Replay_Sttings_text.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Menu_Replay_Box3
-        ' 
-        Menu_Replay_Box3.BackColor = Color.Black
-        Menu_Replay_Box3.Cursor = Cursors.Hand
-        Menu_Replay_Box3.Location = New Point(0, 89)
-        Menu_Replay_Box3.Name = "Menu_Replay_Box3"
-        Menu_Replay_Box3.Size = New Size(240, 44)
-        Menu_Replay_Box3.TabIndex = 84
-        Menu_Replay_Box3.TabStop = False
-        ' 
-        ' r_1r
-        ' 
-        r_1r.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        r_1r.Cursor = Cursors.Hand
-        r_1r.Location = New Point(0, 0)
-        r_1r.Name = "r_1r"
-        r_1r.Size = New Size(3, 44)
-        r_1r.TabIndex = 70
-        r_1r.TabStop = False
-        r_1r.Visible = False
-        ' 
-        ' r_1l
-        ' 
-        r_1l.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        r_1l.Cursor = Cursors.Hand
-        r_1l.Location = New Point(237, 0)
-        r_1l.Name = "r_1l"
-        r_1l.Size = New Size(3, 44)
-        r_1l.TabIndex = 68
-        r_1l.TabStop = False
-        r_1l.Visible = False
-        ' 
-        ' r_1
-        ' 
-        r_1.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        r_1.Cursor = Cursors.Hand
-        r_1.Location = New Point(0, 0)
-        r_1.Name = "r_1"
-        r_1.Size = New Size(240, 3)
-        r_1.TabIndex = 68
-        r_1.TabStop = False
-        r_1.Visible = False
-        ' 
-        ' rsr
-        ' 
-        rsr.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        rsr.Cursor = Cursors.Hand
-        rsr.Location = New Point(0, 44)
-        rsr.Name = "rsr"
-        rsr.Size = New Size(3, 44)
-        rsr.TabIndex = 74
-        rsr.TabStop = False
-        rsr.Visible = False
-        ' 
-        ' rsb
-        ' 
-        rsb.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        rsb.Cursor = Cursors.Hand
-        rsb.Location = New Point(0, 85)
-        rsb.Name = "rsb"
-        rsb.Size = New Size(240, 3)
-        rsb.TabIndex = 73
-        rsb.TabStop = False
-        rsb.Visible = False
-        ' 
-        ' Menu_Replay_save_text
-        ' 
-        Menu_Replay_save_text.BackColor = Color.Black
-        Menu_Replay_save_text.Cursor = Cursors.Hand
-        Menu_Replay_save_text.Font = New Font("Segoe UI", 14.25F)
-        Menu_Replay_save_text.ForeColor = Color.White
-        Menu_Replay_save_text.Location = New Point(37, 49)
-        Menu_Replay_save_text.Name = "Menu_Replay_save_text"
-        Menu_Replay_save_text.Size = New Size(118, 33)
-        Menu_Replay_save_text.TabIndex = 45
-        Menu_Replay_save_text.Text = "l10n.Saved"
-        Menu_Replay_save_text.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Menu_Replay_save_key
-        ' 
-        Menu_Replay_save_key.BackColor = Color.Black
-        Menu_Replay_save_key.Cursor = Cursors.Hand
-        Menu_Replay_save_key.Font = New Font("Segoe UI", 9F)
-        Menu_Replay_save_key.ForeColor = Color.Gray
-        Menu_Replay_save_key.Location = New Point(139, 45)
-        Menu_Replay_save_key.Name = "Menu_Replay_save_key"
-        Menu_Replay_save_key.Size = New Size(95, 42)
-        Menu_Replay_save_key.TabIndex = 50
-        Menu_Replay_save_key.Text = "Alt+F10"
-        Menu_Replay_save_key.TextAlign = ContentAlignment.MiddleRight
-        ' 
-        ' Menu_Replay_save_ico
-        ' 
-        Menu_Replay_save_ico.BackColor = Color.Black
-        Menu_Replay_save_ico.Cursor = Cursors.Hand
-        Menu_Replay_save_ico.Font = New Font("nvgcshare", 20.25F)
-        Menu_Replay_save_ico.ForeColor = Color.White
-        Menu_Replay_save_ico.Location = New Point(3, 47)
-        Menu_Replay_save_ico.Name = "Menu_Replay_save_ico"
-        Menu_Replay_save_ico.RightToLeft = RightToLeft.Yes
-        Menu_Replay_save_ico.Size = New Size(42, 38)
-        Menu_Replay_save_ico.TabIndex = 46
-        Menu_Replay_save_ico.Text = ""
-        Menu_Replay_save_ico.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' rsl
-        ' 
-        rsl.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        rsl.Cursor = Cursors.Hand
-        rsl.Location = New Point(237, 44)
-        rsl.Name = "rsl"
-        rsl.Size = New Size(3, 44)
-        rsl.TabIndex = 71
-        rsl.TabStop = False
-        rsl.Visible = False
-        ' 
-        ' Menu_Replay_Box2
-        ' 
-        Menu_Replay_Box2.BackColor = Color.Black
-        Menu_Replay_Box2.Cursor = Cursors.Hand
-        Menu_Replay_Box2.Location = New Point(0, 44)
-        Menu_Replay_Box2.Name = "Menu_Replay_Box2"
-        Menu_Replay_Box2.Size = New Size(240, 44)
-        Menu_Replay_Box2.TabIndex = 42
-        Menu_Replay_Box2.TabStop = False
-        ' 
-        ' Menu_Replay_Box1
-        ' 
-        Menu_Replay_Box1.BackColor = Color.Black
-        Menu_Replay_Box1.Cursor = Cursors.Hand
-        Menu_Replay_Box1.Location = New Point(0, 0)
-        Menu_Replay_Box1.Name = "Menu_Replay_Box1"
-        Menu_Replay_Box1.Size = New Size(240, 44)
-        Menu_Replay_Box1.TabIndex = 0
-        Menu_Replay_Box1.TabStop = False
-        ' 
-        ' Menu_Replay_Bg
-        ' 
-        Menu_Replay_Bg.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
-        Menu_Replay_Bg.Location = New Point(0, 53)
-        Menu_Replay_Bg.Name = "Menu_Replay_Bg"
-        Menu_Replay_Bg.Size = New Size(240, 64)
-        Menu_Replay_Bg.TabIndex = 90
-        Menu_Replay_Bg.TabStop = False
-        ' 
         ' Name_action
         ' 
         Name_action.AutoSize = True
@@ -1789,9 +1622,9 @@ Partial Class Base
         ' 
         Settings_index.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         Settings_index.BackColor = Color.Red
-        Settings_index.Location = New Point(335, 79)
+        Settings_index.Location = New Point(335, 0)
         Settings_index.Name = "Settings_index"
-        Settings_index.Size = New Size(23, 677)
+        Settings_index.Size = New Size(23, 756)
         Settings_index.TabIndex = 74
         Settings_index.TabStop = False
         ' 
@@ -2393,7 +2226,14 @@ Partial Class Base
         CType(Logo, ComponentModel.ISupportInitialize).EndInit()
         shadowplay.ResumeLayout(False)
         shadowplay.PerformLayout()
-        CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
+        Menu_Record.ResumeLayout(False)
+        CType(str, ComponentModel.ISupportInitialize).EndInit()
+        CType(stl, ComponentModel.ISupportInitialize).EndInit()
+        CType(stb, ComponentModel.ISupportInitialize).EndInit()
+        CType(st1, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Record_Box1, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).EndInit()
         CType(a_3l, ComponentModel.ISupportInitialize).EndInit()
         Mode_Menu.ResumeLayout(False)
         Mode_Menu.PerformLayout()
@@ -2409,6 +2249,19 @@ Partial Class Base
         CType(s_1r, ComponentModel.ISupportInitialize).EndInit()
         CType(s_1, ComponentModel.ISupportInitialize).EndInit()
         CType(s_1l, ComponentModel.ISupportInitialize).EndInit()
+        Menu_Replay.ResumeLayout(False)
+        CType(r_1b, ComponentModel.ISupportInitialize).EndInit()
+        CType(r_1r, ComponentModel.ISupportInitialize).EndInit()
+        CType(r_1l, ComponentModel.ISupportInitialize).EndInit()
+        CType(r_1, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).EndInit()
+        CType(rs1, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).EndInit()
+        CType(rsr, ComponentModel.ISupportInitialize).EndInit()
+        CType(rsb, ComponentModel.ISupportInitialize).EndInit()
+        CType(rsl, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).EndInit()
+        CType(Menu_Replay_Bg, ComponentModel.ISupportInitialize).EndInit()
         CType(s1l, ComponentModel.ISupportInitialize).EndInit()
         CType(s1r, ComponentModel.ISupportInitialize).EndInit()
         CType(s1b, ComponentModel.ISupportInitialize).EndInit()
@@ -2432,36 +2285,6 @@ Partial Class Base
         CType(a_3, ComponentModel.ISupportInitialize).EndInit()
         CType(a_2, ComponentModel.ISupportInitialize).EndInit()
         CType(a_1, ComponentModel.ISupportInitialize).EndInit()
-        menu_shadowplay.ResumeLayout(False)
-        Panel1.ResumeLayout(False)
-        CType(PictureBox19, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox20, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox21, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox22, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox23, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox24, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox25, ComponentModel.ISupportInitialize).EndInit()
-        Menu_Record.ResumeLayout(False)
-        CType(str, ComponentModel.ISupportInitialize).EndInit()
-        CType(stl, ComponentModel.ISupportInitialize).EndInit()
-        CType(stb, ComponentModel.ISupportInitialize).EndInit()
-        CType(st1, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Record_Box1, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Record_Box2, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Record_Bg, ComponentModel.ISupportInitialize).EndInit()
-        Menu_Replay.ResumeLayout(False)
-        CType(r_1b, ComponentModel.ISupportInitialize).EndInit()
-        CType(rs1, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Replay_Box3, ComponentModel.ISupportInitialize).EndInit()
-        CType(r_1r, ComponentModel.ISupportInitialize).EndInit()
-        CType(r_1l, ComponentModel.ISupportInitialize).EndInit()
-        CType(r_1, ComponentModel.ISupportInitialize).EndInit()
-        CType(rsr, ComponentModel.ISupportInitialize).EndInit()
-        CType(rsb, ComponentModel.ISupportInitialize).EndInit()
-        CType(rsl, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Replay_Box2, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Replay_Box1, ComponentModel.ISupportInitialize).EndInit()
-        CType(Menu_Replay_Bg, ComponentModel.ISupportInitialize).EndInit()
         Settings_List.ResumeLayout(False)
         Settings_List.PerformLayout()
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).EndInit()
@@ -2533,7 +2356,6 @@ Partial Class Base
     Friend WithEvents Connect_Box_Sub As PictureBox
     Friend WithEvents Connect_ICO As Label
     Friend WithEvents Connect_Text As Label
-    Friend WithEvents menu_shadowplay As Panel
     Friend WithEvents Menu_Replay_Box1 As PictureBox
     Friend WithEvents Menu_Replay_Box2 As PictureBox
     Friend WithEvents Menu_Replay As Panel
@@ -2651,24 +2473,11 @@ Partial Class Base
     Friend WithEvents Menu_Replay_Sttings_text As Label
     Friend WithEvents Menu_Replay_Box3 As PictureBox
     Friend WithEvents Menu_Replay_Bg As PictureBox
-    Friend WithEvents Panel1 As Panel
-    Friend WithEvents PictureBox19 As PictureBox
-    Friend WithEvents PictureBox20 As PictureBox
-    Friend WithEvents PictureBox21 As PictureBox
-    Friend WithEvents PictureBox22 As PictureBox
-    Friend WithEvents Label11 As Label
-    Friend WithEvents Label23 As Label
-    Friend WithEvents Label24 As Label
-    Friend WithEvents Label25 As Label
-    Friend WithEvents PictureBox23 As PictureBox
-    Friend WithEvents PictureBox24 As PictureBox
-    Friend WithEvents PictureBox25 As PictureBox
     Friend WithEvents GAMESFORM As Timer
     Friend WithEvents Animation_Engine As Timer
     Friend WithEvents Settings_index As PictureBox
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents ME_CLOSE_BG As Label
-    Friend WithEvents PictureBox7 As PictureBox
 
 End Class

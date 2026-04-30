@@ -1,7 +1,7 @@
 ﻿Imports System.IO
 Imports System.Drawing
 Imports System.Runtime.InteropServices
-
+Imports Newtonsoft.Json.Linq
 Public Class Base_Settings
     Inherits NoCloseForm
 
@@ -79,35 +79,62 @@ Public Class Base_Settings
         Dim langFolder = Path.Combine(Application.StartupPath, "Languages")
         Dim currentFile = Path.Combine(langFolder, "current.txt")
 
-        ' อ่านค่าปัจจุบัน
         Dim currentLang = "en-US"
         If File.Exists(currentFile) Then currentLang = File.ReadAllText(currentFile).Trim
 
-        ' สลับภาษา
-        Dim newLang As String
-        Select Case currentLang
-            Case "en-US"
-                newLang = "th-TH"
-            Case "th-TH"
-                newLang = "zh-CHS"
-            Case Else
-                newLang = "en-US"
-        End Select
+        Dim files = Directory.GetFiles(langFolder, "*.json")
+        If files.Length = 0 Then Return
 
-        ' บันทึก
-        File.WriteAllText(currentFile, newLang)
+        Dim cms As New ContextMenuStrip()
+        cms.BackColor = Color.FromArgb(30, 30, 34)
+        cms.ForeColor = Color.FromArgb(220, 220, 220)
+        cms.Font = New Font("Segoe UI", 10)
+        cms.ShowImageMargin = False
 
-        ' โหลดภาษาใหม่
-        Dim langFile = Path.Combine(langFolder, newLang & ".json")
+        For Each f As String In files
+            Dim langCode = Path.GetFileNameWithoutExtension(f)
+            Dim langName As String = langCode
+
+            Try
+                Dim raw = File.ReadAllText(f, System.Text.Encoding.UTF8)
+                Dim jObject As JObject = JObject.Parse(raw)
+                If jObject("meta.languageName") IsNot Nothing Then
+                    langName = jObject("meta.languageName").ToString()
+                End If
+            Catch
+            End Try
+
+            Dim tsi As New ToolStripMenuItem(CStr(langName))
+            tsi.Tag = langCode
+            tsi.Width = 160
+
+            If langCode = currentLang Then
+                tsi.ForeColor = Color.FromArgb(100, 149, 237)
+            End If
+
+            AddHandler tsi.Click, Sub(s, a)
+                                      Dim code = CStr(CType(s, ToolStripMenuItem).Tag.ToString())
+                                      SelectLang(code)
+                                      cms.Close()
+                                  End Sub
+
+            cms.Items.Add(tsi)
+        Next
+
+        cms.Show(SW_lang, 0, SW_lang.Height)
+    End Sub
+
+    Private Sub SelectLang(langCode As String)
+        Dim langFolder = Path.Combine(Application.StartupPath, "Languages")
+        Dim currentFile = Path.Combine(langFolder, "current.txt")
+        File.WriteAllText(currentFile, langCode)
+
+        Dim langFile = Path.Combine(langFolder, langCode & ".json")
         LangHelper.LoadLang(langFile)
 
-        ' อัปเดต UI
         Base.UpdateLocalizedTexts()
-
-        ' ตั้งชื่อปุ่มจาก JSON
         SW_lang.Text = LangHelper.GetText("meta.languageName")
         AppSettings.Instance.Save()
-
 
         Me.Hide()
         Base.ME_CLOSE_BG.Visible = True
@@ -118,12 +145,10 @@ Public Class Base_Settings
         AppSettings.Instance.Save()
         Base.HideAllControls()
 
-        ' ✅ Refresh ทุกอย่าง
         RefreshAllControls(Base)
         RefreshAllControls(Me)
         Application.DoEvents()
 
-        ' Delay
         _delayTimer = New Timer()
         _delayTimer.Interval = 100
         AddHandler _delayTimer.Tick, Sub()
@@ -135,6 +160,5 @@ Public Class Base_Settings
                                      End Sub
         _delayTimer.Start()
     End Sub
-
 
 End Class

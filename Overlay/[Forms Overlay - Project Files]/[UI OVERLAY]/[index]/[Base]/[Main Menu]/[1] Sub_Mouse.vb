@@ -38,7 +38,7 @@ Partial Public Class Base
         Text_Mode1.ForeColor = System.Drawing.Color.White
     End Sub
 
-    Private Sub Screenshot_Click(sender As Object, e As EventArgs) Handles Logo_Mode1.Click, Bg_Mode1.Click, Text_Mode1.Click
+    Private Sub Screenshot_Click(sender As Object, e As EventArgs) Handles Logo_Mode1.Click, Bg_Mode1.Click, Text_Mode1.Click, Key_Mode1.Click
         CaptureScreen()
     End Sub
 
@@ -324,9 +324,9 @@ Partial Public Class Base
     End Sub
 
     Private Sub ReplayControl_Click(sender As Object, e As EventArgs) Handles Menu_Replay_key.Click, Menu_Replay_Box1.Click, Menu_Replay_text.Click
-        a_1.Visible = False
+        'a_1.Visible = False
         ToggleInstantReplay()
-        Menu_Replay.Visible = False
+        'Menu_Replay.Visible = False
     End Sub
 
 #End Region
@@ -350,8 +350,6 @@ Partial Public Class Base
 
     Private Sub ReplaySave_Click(sender As Object, e As EventArgs) Handles Menu_Replay_Box2.Click, Menu_Replay_save_text.Click, Menu_Replay_save_key.Click
         SaveInstantReplay()
-        a_1.Visible = False
-        Menu_Replay.Visible = False
     End Sub
 
 #End Region
@@ -396,18 +394,18 @@ Partial Public Class Base
         s_2b.Visible = isVisible
     End Sub
 
-    Private Sub Photo_MouseMove(sender As Object, e As MouseEventArgs) Handles Logo_Mode2.MouseMove, Text_Mode2.MouseMove, Bg_Mode2.MouseMove
+    Private Sub Photo_MouseMove(sender As Object, e As MouseEventArgs) Handles Logo_Mode2.MouseMove, Text_Mode2.MouseMove, Bg_Mode2.MouseMove, Key_Mode2.MouseMove
         SetPhotoBorder(True)
         Base_Background_Top.Bg_Mode2.Visible = True
     End Sub
 
-    Private Sub Photo_MouseLeave(sender As Object, e As EventArgs) Handles Logo_Mode2.MouseLeave, Text_Mode2.MouseLeave, Bg_Mode2.MouseLeave
+    Private Sub Photo_MouseLeave(sender As Object, e As EventArgs) Handles Logo_Mode2.MouseLeave, Text_Mode2.MouseLeave, Bg_Mode2.MouseLeave, Key_Mode2.MouseLeave
         SetPhotoColors(System.Drawing.Color.White)
         SetPhotoBorder(False)
         Base_Background_Top.Bg_Mode2.Visible = False
     End Sub
 
-    Private Sub Photo_Click(sender As Object, e As EventArgs) Handles Bg_Mode2.Click, Text_Mode2.Click, Logo_Mode2.Click
+    Private Sub Photo_Click(sender As Object, e As EventArgs) Handles Bg_Mode2.Click, Text_Mode2.Click, Logo_Mode2.Click, Key_Mode2.Click
         ShowNotifier("notificationWarningNvidiaGpuRequired")
     End Sub
 
@@ -429,16 +427,16 @@ Partial Public Class Base
         Base_Background_Top.Bg_Mode3.Visible = isVisible
     End Sub
 
-    Private Sub GameFilter_MouseMove(sender As Object, e As MouseEventArgs) Handles Logo_Mode3.MouseMove, Text_Mode3.MouseMove, Bg_Mode3.MouseMove
+    Private Sub GameFilter_MouseMove(sender As Object, e As MouseEventArgs) Handles Logo_Mode3.MouseMove, Text_Mode3.MouseMove, Bg_Mode3.MouseMove, Key_Mode3.MouseMove
         SetGameBorder(True)
     End Sub
 
-    Private Sub GameFilter_MouseLeave(sender As Object, e As EventArgs) Handles Logo_Mode3.MouseLeave, Text_Mode3.MouseLeave, Bg_Mode3.MouseLeave
+    Private Sub GameFilter_MouseLeave(sender As Object, e As EventArgs) Handles Logo_Mode3.MouseLeave, Text_Mode3.MouseLeave, Bg_Mode3.MouseLeave, Key_Mode3.MouseLeave
         SetGameColors(System.Drawing.Color.White)
         SetGameBorder(False)
     End Sub
 
-    Private Sub GameFilter_Click(sender As Object, e As EventArgs) Handles Logo_Mode3.Click, Text_Mode3.Click, Bg_Mode3.Click
+    Private Sub GameFilter_Click(sender As Object, e As EventArgs) Handles Logo_Mode3.Click, Text_Mode3.Click, Bg_Mode3.Click, Key_Mode3.Click
         ToggleGameFilter()
         HideAllControls()
         isFunctionActive = False

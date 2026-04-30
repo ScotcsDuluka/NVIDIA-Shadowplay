@@ -245,13 +245,12 @@ Partial Public Class Base
         _hotkeyService = New HotkeyService()
         _hotkeyService.RegisterAll(Handle)
         tcp.Send("Hotkeys registered!")
-        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+
         Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
         If overlayExists Then
             Debug_UI.Show()
         Else
         End If
-
 
     End Sub
 
@@ -288,14 +287,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub InitializeNotifierAPI()
-        Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
-        Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
 
-        If width >= 1680 AndAlso height >= 1050 Then
-            ShowNotifier("notificationOpenShare")
-        Else
-            ShowNotifier("ErrorResolution")
-        End If
         ' Start Notifier
         Try
             Dim exePath As String = Path.Combine(Application.StartupPath, "NVIDIA Notifier.exe")
@@ -680,9 +672,14 @@ Partial Public Class Base
                 Case "None"
                     target = Nothing
                     newSize = New Size(0, 0)
+
                 Case "Replay"
                     target = bg_action
-                    newSize = New Size(240, 373)
+                    If ReplayValue = False Then
+                        newSize = New Size(240, 329)
+                    Else
+                        newSize = New Size(240, 373)
+                    End If
 
                 Case "Record"
                     target = a_2r
@@ -736,5 +733,32 @@ Partial Public Class Base
     End Sub
     Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
         ShadowLoad()
+
+        If animationRunning Then Return
+
+        If ReplayValue = False Then
+            If Menu_Replay.Height = 133 Then
+                If Menu_Record.Visible Then
+                    sha1.Size = New Size(240, 329)
+                    sha2.Size = New Size(240, 329)
+                    sha3.Size = New Size(240, 329)
+                    sha4.Size = New Size(240, 329)
+                    Return
+                End If
+                ANH_Group(
+                {Menu_Replay, sha1, sha2, sha3, sha4, Base_Background_Top.b1_all},
+                {133, 373, 373, 373, 373, 373},
+                {89, 329, 329, 329, 329, 329},
+                300)
+            End If
+        Else
+            If Menu_Replay.Height = 89 Then
+                ANH_Group(
+                {Menu_Replay, sha1, sha2, sha3, sha4, Base_Background_Top.b1_all},
+                {89, 329, 329, 329, 329, 329},
+                {133, 373, 373, 373, 373, 373},
+                300)
+            End If
+        End If
     End Sub
 End Class
