@@ -21,7 +21,15 @@ Imports WinRT.Interop
 Partial Public Class Base
 
 
+    Public Sub PauseHotkeys()
+        If _hotkeyService IsNot Nothing Then
+            _hotkeyService.UnregisterAll()
+        End If
+    End Sub
 
+    Public Sub ResumeHotkeys()
+        ReloadHotkeys()
+    End Sub
 
 #Region "NATIVE METHODS & STRUCTURES"
 
@@ -252,6 +260,14 @@ Partial Public Class Base
         Else
         End If
 
+        Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
+        Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
+        If width >= 1680 AndAlso height >= 1050 Then
+            ShowNotifier("notificationOpenShare")
+        Else
+            ShowNotifier("ErrorResolution")
+        End If
+        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
     End Sub
 
     Private Async Function WaitForConnection(timeoutMs As Integer) As Task
@@ -307,107 +323,145 @@ Partial Public Class Base
 
         End Try
     End Sub
+
+    Public Sub ReloadHotkeys()
+        If _hotkeyService Is Nothing Then Return
+        _hotkeyService.UnregisterAll()
+        _hotkeyService.RegisterAll(Handle)
+    End Sub
 #End Region
 
 #Region "============================================================================ LOCALIZATION"
+    Private Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
+    Private Function GetClampedReplayDuration() As Integer
+        Dim savedSeconds As Integer = 60
+        Try
+            Dim settingValue As Integer = AppSettings.Instance.Recording.ReplayDuration
+            savedSeconds = Math.Max(15, Math.Min(1200, settingValue))
+        Catch
+        End Try
+        Return CInt(Math.Round(savedSeconds / 15.0) * 15)
+    End Function
+    Private Function GetClampedReplayDurationMinutes() As Integer
+        Dim savedMinutes As Integer = 1 ' default 1 นาที
+        Try
+            Dim settingValue As Integer = AppSettings.Instance.Recording.ReplayDuration
+
+            ' ถ้า setting เดิมยังเป็นวินาที → แปลงเป็นนาที
+            savedMinutes = settingValue \ 60
+
+            ' clamp 1 - 20 นาที (เท่ากับ 60 - 1200 วิ)
+            savedMinutes = Math.Max(1, Math.Min(20, savedMinutes))
+        Catch
+        End Try
+
+        ' ปัดเป็น step 1 นาที (หรือจะเปลี่ยนเป็น 5 นาที ก็แก้ตรงนี้)
+        Return savedMinutes
+    End Function
+
+    Private Sub UpdatePrivacyToggleText()
+        Dim privacyPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)
+        Base_Privacy_Control.py_2.Text = If(
+            My.Computer.FileSystem.FileExists(privacyPath),
+            L("l10n.instantReplayStop"),
+            L("l10n.instantReplayStart")
+        )
+    End Sub
+
     Private Sub Lang_Tick(sender As Object, e As EventArgs) Handles Lang.Tick
         ' Base_Background_Top
-        Base_Background_Top.Logo_text.Text = LangHelper.GetText("l10n.nvidiashadowplay")
+        Base_Background_Top.Logo_text.Text = L("l10n.nvidiashadowplay")
 
         ' Base_Gallery
         With Base_Gallery
-            .Gallery_l10n.Text = LangHelper.GetText("l10n.gallery")
-            .LoactionSaved_l10n.Text = LangHelper.GetText("l10n.LoactionSaved")
-            .Saved_l10n.Text = LangHelper.GetText("l10n.done")
-            .Openloaction_l10n.Text = LangHelper.GetText("l10n.openLocation")
-            .Shortcut_l10n.Text = LangHelper.GetText("l10n.Shortcut")
-            .Load_l10n.Text = LangHelper.GetText("l10n.Load")
-            .Label3.Text = LangHelper.GetText("l10n.all")
-            .text_sub.Text = LangHelper.GetText("l10n.gallerynotready")
+            .Gallery_l10n.Text = L("l10n.gallery")
+            .LoactionSaved_l10n.Text = L("l10n.LoactionSaved")
+            .Saved_l10n.Text = L("l10n.done")
+            .Openloaction_l10n.Text = L("l10n.openLocation")
+            .Shortcut_l10n.Text = L("l10n.Shortcut")
+            .Load_l10n.Text = L("l10n.Load")
+            .Label3.Text = L("l10n.all")
+            .text_sub.Text = L("l10n.gallerynotready")
         End With
 
         ' Base_Game_Filter
-        Base_Game_Filter.Home_settings.Text = LangHelper.GetText("l10n.mods")
+        Base_Game_Filter.Home_settings.Text = L("l10n.mods")
 
         ' Base_KeySet
         With Base_KeySet
-            .text_settings.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-            .Key_Tx.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-            .action_fn.Text = LangHelper.GetText("l10n.Saved")
-            .Reset.Text = LangHelper.GetText("l10n.resetAll")
+            .Key_Tx.Text = L("l10n.keyboardShortcuts")
+            .action_fn.Text = L("l10n.Saved")
+            .Reset.Text = L("l10n.resetAll")
         End With
 
         ' Base_Privacy Control
         With Base_Privacy_Control
-            .text_settings.Text = LangHelper.GetText("l10n.privacyControl")
-            .Label4.Text = LangHelper.GetText("l10n.settingsPrivacySwitch")
-            .Label2.Text = LangHelper.GetText("l10n.settingsPrivacyDescribe")
-            .action_fn.Text = LangHelper.GetText("l10n.back")
-            If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
-                .py_2.Text = LangHelper.GetText("l10n.instantReplayStop")
-            Else
-                .py_2.Text = LangHelper.GetText("l10n.instantReplayStart")
-            End If
+            .Label4.Text = L("l10n.settingsPrivacySwitch")
+            .Label2.Text = L("l10n.settingsPrivacyDescribe")
+            .action_fn.Text = L("l10n.back")
         End With
-
-        With Base_KeySet
-            .text_settings.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-            .Key_Tx.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-            .action_fn.Text = LangHelper.GetText("l10n.Saved")
-        End With
+        UpdatePrivacyToggleText()
 
         With Base_Overlay_Hub
-            .text_settings.Text = LangHelper.GetText("l10n.hudLayout")
-            .action_fn.Text = LangHelper.GetText("l10n.back")
-            .Label4.Text = LangHelper.GetText("l10n.overlays")
+            ' .text_settings.Text = L("l10n.hudLayout")
+            .action_fn.Text = L("l10n.back")
+            .Label4.Text = L("l10n.overlays")
         End With
 
         ' Base_RecordingsSet
         With Base_RecordingsSet
-            .text_settings.Text = LangHelper.GetText("l10n.recordings")
-            .action_fn.Text = LangHelper.GetText("l10n.Saved")
-            .Label4.Text = LangHelper.GetText("l10n.videoCapture")
-            .Label1.Text = LangHelper.GetText("l10n.quality")
-            .Label10.Text = LangHelper.GetText("l10n.low")
-            .Label8.Text = LangHelper.GetText("l10n.medium")
-            .Label6.Text = LangHelper.GetText("l10n.high")
-            .C_TEXT.Text = LangHelper.GetText("l10n.custom")
-            .Label12.Text = LangHelper.GetText("l10n.resolution")
-            .Label13.Text = LangHelper.GetText("l10n.framerate")
-            '----
-            Dim savedSeconds As Integer = 60
-            Try
-                Dim settingValue As Integer = AppSettings.Instance.Recording.ReplayDuration
-                savedSeconds = Math.Max(15, Math.Min(1200, settingValue))
-            Catch
-            End Try
-            savedSeconds = CInt(Math.Round(savedSeconds / 15.0) * 15)
-            .UpdateBufferLabel(savedSeconds)
+            .text_settings.Text = L("l10n.recordings")
+            .action_fn.Text = L("l10n.Saved")
+            .Label4.Text = L("l10n.videoCapture")
+            .Label1.Text = L("l10n.quality")
+            .Label10.Text = L("l10n.low")
+            .Label8.Text = L("l10n.medium")
+            .Label6.Text = L("l10n.high")
+            .C_TEXT.Text = L("l10n.custom")
+            .Label12.Text = L("l10n.resolution")
+            .Label13.Text = L("l10n.framerate")
+            .UpdateBufferLabel(GetClampedReplayDuration())
             .UpdateBitrateLabel()
-            '----
-            .vdo_resetall.Text = LangHelper.GetText("l10n.resetToDefaults")
-            .captrueblock.Text = LangHelper.GetText("l10n.settingsVideoCaptureDisable")
-            .warm_re.Text = LangHelper.GetText("l10n.captrueresolutionwarm")
-            .custom_main.Text = LangHelper.GetText("l10n.custom")
-            .advanced_main.Text = LangHelper.GetText("l10n.advanced")
+            .vdo_resetall.Text = L("l10n.resetToDefaults")
+            .captrueblock.Text = L("l10n.settingsVideoCaptureDisable")
+            .warm_re.Text = L("l10n.captrueresolutionwarm")
+            .custom_main.Text = L("l10n.custom")
+            .advanced_main.Text = L("l10n.advanced")
         End With
 
         With Base_Settings
-            .text_settings.Text = LangHelper.GetText("l10n.settings")
-            .Back_btn.Text = LangHelper.GetText("l10n.back")
-            .text_sub.Text = LangHelper.GetText("l10n.selectmenu")
-            .action_fn.Text = LangHelper.GetText("l10n.done")
-            .ch.Text = LangHelper.GetText("l10n.checkForUpdates")
+            .text_sub.Text = L("l10n.selectmenu")
+            .action_fn.Text = L("l10n.done")
+            .ch.Text = L("l10n.checkForUpdates")
         End With
 
         With Base_Connect
-            .text_settings.Text = LangHelper.GetText("l10n.connect")
-            .text_menu.Text = LangHelper.GetText("l10n.connect")
-            .action_fn.Text = LangHelper.GetText("l10n.back")
+            .text_menu.Text = L("l10n.connect")
+            .action_fn.Text = L("l10n.back")
+        End With
+
+        With Base_KeySet
+            .lblCat_General.Text = L("l10n.general")
+            .Desc_ToggleOverlay.Text = L("l10n.openShare")
+            .Desc_Test.Text = L("l10n.testNotifier")
+            .Desc_Empty.Text = ""
+
+            .Desc_Screenshot.Text = L("l10n.saveScreenshot")
+            .Desc_PhotosToggle.Text = L("l10n.openClosePhotoMode")
+            .Desc_GameFilterToggle.Text = L("l10n.toggleMods")
+
+            .Desc_ManualRecordToggle.Text = L("l10n.toggleRecording")
+            .Desc_InstantReplayToggle.Text = L("l10n.toggleIR")
+            .Desc_InstantReplaySave.Text = L("l10n.saveLastNMins", GetClampedReplayDurationMinutes)
+            .Desc_BroadcastToggle.Text = L("l10n.toggleBroadcasting")
         End With
 
         ' Base Form Controls
         UpdateLocalizedTexts()
+        RefreshRuntimeStatusTexts()
         AppSettings.Instance.Save()
         Lang.Stop()
     End Sub
@@ -419,51 +473,51 @@ Partial Public Class Base
 
 #Region "===========================Mode"
 
-        Text_Mode1.Text = LangHelper.GetText("l10n.screenshots")
-        Text_Mode2.Text = LangHelper.GetText("l10n.photos")
-        Text_Mode3.Text = LangHelper.GetText("l10n.mods")
+        Text_Mode1.Text = L("l10n.screenshots")
+        Text_Mode2.Text = L("l10n.photos")
+        Text_Mode3.Text = L("l10n.mods")
 
 #End Region '===========================
 
 #Region "===========================Captrue"
 
         '-Replay
-        Replay_Text.Text = LangHelper.GetText("l10n.instantReplay")
-        Replay_Stats.Text = LangHelper.GetText("l10n.off")
-        Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStart")
-        Menu_Replay_save_text.Text = LangHelper.GetText("l10n.Saved")
-        Menu_Replay_Sttings_text.Text = LangHelper.GetText("l10n.settings")
+        Replay_Text.Text = L("l10n.instantReplay")
+        Replay_Stats.Text = L("l10n.off")
+        Menu_Replay_text.Text = L("l10n.instantReplayStart")
+        Menu_Replay_save_text.Text = L("l10n.Saved")
+        Menu_Replay_Sttings_text.Text = L("l10n.settings")
         '-Record
-        Record_Text.Text = LangHelper.GetText("l10n.manualRecord")
-        Record_Stats.Text = LangHelper.GetText("l10n.notRecording")
-        Menu_Record_text.Text = LangHelper.GetText("l10n.start")
-        Menu_Record_Sttings_text.Text = LangHelper.GetText("l10n.settings")
+        Record_Text.Text = L("l10n.manualRecord")
+        Record_Stats.Text = L("l10n.notRecording")
+        Menu_Record_text.Text = L("l10n.start")
+        Menu_Record_Sttings_text.Text = L("l10n.settings")
         '-Live
-        Live_Text.Text = LangHelper.GetText("l10n.broadcastLive")
-        Live_Stats.Text = LangHelper.GetText("l10n.NotReady")
+        Live_Text.Text = L("l10n.broadcastLive")
+        Live_Stats.Text = L("l10n.NotReady")
 
 #End Region '===========================
 
 #Region "===========================Options"
 
-        Share_Text.Text = LangHelper.GetText("l10n.upload")
-        Gallery_Text.Text = LangHelper.GetText("l10n.gallery")
-        Settings_Text.Text = LangHelper.GetText("l10n.settings")
+        Share_Text.Text = L("l10n.upload")
+        Gallery_Text.Text = L("l10n.gallery")
+        Settings_Text.Text = L("l10n.settings")
 
 #End Region
 
 #Region "===========================Preferences"
 
-        Settings_List_Text.Text = LangHelper.GetText("l10n.preferencesHome")
-        Connect_Text.Text = LangHelper.GetText("l10n.connect")
-        Label12.Text = LangHelper.GetText("l10n.hudLayout")
-        Label21.Text = LangHelper.GetText("l10n.highlights")
-        Label17.Text = LangHelper.GetText("l10n.keyboardShortcuts")
-        videoCapture_Text.Text = LangHelper.GetText("l10n.videoCapture")
-        vdo_setme.Text = LangHelper.GetText("l10n.videoCaptureText")
-        notifications_Text.Text = LangHelper.GetText("l10n.notifications")
-        Label4.Text = LangHelper.GetText("l10n.privacyControl")
-        About_Text.Text = LangHelper.GetText("l10n.about")
+        Settings_List_Text.Text = L("l10n.preferencesHome")
+        Connect_Text.Text = L("l10n.connect")
+        Label12.Text = L("l10n.hudLayout")
+        Label21.Text = L("l10n.highlights")
+        Label17.Text = L("l10n.keyboardShortcuts")
+        videoCapture_Text.Text = L("l10n.videoCapture")
+        vdo_setme.Text = L("l10n.videoCaptureText")
+        notifications_Text.Text = L("l10n.notifications")
+        Label4.Text = L("l10n.privacyControl")
+        About_Text.Text = L("l10n.about")
 
 #End Region '===========================
 
@@ -604,12 +658,11 @@ Partial Public Class Base
         ' Gallery
         Base_Gallery.settings_1.Location = New Point((Me.ClientSize.Width - Base_Gallery.settings_1.Width) / 2, marginTop)
 
-        ' Settings
-        Base_Privacy_Control.settings_1.Location = New Point(695, marginTop)
-        Base_RecordingsSet.setre.Location = New Point(695, marginTop)
-        Base_Overlay_Hub.settings_1.Location = New Point(695, marginTop)
-        Base_Settings.Main_Menu_SET.Location = New Point(695, marginTop)
-        Base_KeySet.keyset.Location = New Point(695, marginTop)
+        'Settings
+        Base_Privacy_Control.settings_1.Location = New Point(80, marginTop)
+        Base_RecordingsSet.setret.Location = New Point(80, marginTop)
+        Base_Overlay_Hub.settings_1.Location = New Point(80, marginTop)
+        Base_KeySet.keyset.Location = New Point(80, marginTop)
     End Sub
 
 #End Region
@@ -732,6 +785,16 @@ Partial Public Class Base
 
     End Sub
     Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
+        If shadowplay.Visible = False Then
+            Base_Background_Top.d.Visible = False
+            Base_Background_Top.ME_CLOSE_BG.Visible = False
+            Base_Background_Top.ME_CLOSE_BG_GRE.Visible = False
+        Else
+            Base_Background_Top.d.Visible = True
+            Base_Background_Top.ME_CLOSE_BG.Visible = True
+            Base_Background_Top.ME_CLOSE_BG_GRE.Visible = True
+        End If
+
         ShadowLoad()
 
         If animationRunning Then Return
@@ -761,4 +824,5 @@ Partial Public Class Base
             End If
         End If
     End Sub
+
 End Class

@@ -32,8 +32,6 @@ Partial Class Base_Overlay_Hub
         PictureBox2 = New PictureBox()
         PictureBox1 = New PictureBox()
         Label4 = New Label()
-        text_settings = New Label()
-        box_settings = New PictureBox()
         settings_top = New PictureBox()
         action_fn = New Label()
         PictureBox6 = New PictureBox()
@@ -45,7 +43,6 @@ Partial Class Base_Overlay_Hub
         CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
@@ -62,9 +59,9 @@ Partial Class Base_Overlay_Hub
         settings_1.Controls.Add(PictureBox2)
         settings_1.Controls.Add(PictureBox1)
         settings_1.Controls.Add(Label4)
-        settings_1.Location = New Point(695, 160)
+        settings_1.Location = New Point(80, 160)
         settings_1.Name = "settings_1"
-        settings_1.Size = New Size(1145, 840)
+        settings_1.Size = New Size(1760, 840)
         settings_1.TabIndex = 45
         ' 
         ' PictureBox5
@@ -155,34 +152,13 @@ Partial Class Base_Overlay_Hub
         Label4.TabIndex = 51
         Label4.Text = "Overlay Hub"
         ' 
-        ' text_settings
-        ' 
-        text_settings.BackColor = Color.Black
-        text_settings.Font = New Font("Segoe UI Semibold", 14F, FontStyle.Bold)
-        text_settings.ForeColor = Color.White
-        text_settings.Location = New Point(465, 160)
-        text_settings.Name = "text_settings"
-        text_settings.Size = New Size(200, 50)
-        text_settings.TabIndex = 56
-        text_settings.Text = "Settings"
-        text_settings.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' box_settings
-        ' 
-        box_settings.BackColor = Color.Black
-        box_settings.Location = New Point(465, 160)
-        box_settings.Name = "box_settings"
-        box_settings.Size = New Size(200, 48)
-        box_settings.TabIndex = 55
-        box_settings.TabStop = False
-        ' 
         ' settings_top
         ' 
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        settings_top.Location = New Point(695, 160)
+        settings_top.Location = New Point(80, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(1145, 5)
+        settings_top.Size = New Size(1760, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
@@ -192,9 +168,9 @@ Partial Class Base_Overlay_Hub
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
-        action_fn.Location = New Point(465, 220)
+        action_fn.Location = New Point(80, 115)
         action_fn.Name = "action_fn"
-        action_fn.Size = New Size(200, 70)
+        action_fn.Size = New Size(200, 50)
         action_fn.TabIndex = 58
         action_fn.Text = "Back"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
@@ -214,12 +190,10 @@ Partial Class Base_Overlay_Hub
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1080)
-        Controls.Add(text_settings)
-        Controls.Add(box_settings)
-        Controls.Add(settings_top)
-        Controls.Add(PictureBox6)
-        Controls.Add(settings_1)
         Controls.Add(action_fn)
+        Controls.Add(PictureBox6)
+        Controls.Add(settings_top)
+        Controls.Add(settings_1)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_Overlay_Hub"
@@ -238,7 +212,6 @@ Partial Class Base_Overlay_Hub
         CType(hg2, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox2, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
-        CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
@@ -246,10 +219,8 @@ Partial Class Base_Overlay_Hub
 
     Friend WithEvents settings_1 As Panel
     Friend WithEvents action_fn As Label
-    Friend WithEvents text_settings As Label
     Friend WithEvents Label4 As Label
     Friend WithEvents settings_top As PictureBox
-    Friend WithEvents box_settings As PictureBox
     Friend WithEvents PictureBox2 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
     Friend WithEvents PictureBox5 As PictureBox

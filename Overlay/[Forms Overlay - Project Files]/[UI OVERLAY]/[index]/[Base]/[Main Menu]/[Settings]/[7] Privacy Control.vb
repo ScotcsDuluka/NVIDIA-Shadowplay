@@ -39,6 +39,7 @@ Public Class Base_Privacy_Control
         Me.Hide()
         Base_Settings.Show()
         Base.AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+        Base.Settings_List.Visible = True
     End Sub
 
     Private Sub py_2_Click(sender As Object, e As EventArgs) Handles py_2.Click

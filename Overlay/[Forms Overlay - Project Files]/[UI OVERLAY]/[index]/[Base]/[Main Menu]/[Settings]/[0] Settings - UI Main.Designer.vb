@@ -29,14 +29,10 @@ Partial Class Base_Settings
         text_sub = New Label()
         ICON_1 = New Label()
         settings_top = New PictureBox()
-        action_1 = New Label()
-        Back_btn = New Label()
-        text_settings = New Label()
         Block_AM = New PictureBox()
         action_fn = New Label()
         ch = New Label()
         SW_lang = New Label()
-        Panel1 = New Panel()
         PictureBox9 = New PictureBox()
         PictureBox1 = New PictureBox()
         Main_Menu_SET.SuspendLayout()
@@ -53,9 +49,9 @@ Partial Class Base_Settings
         Main_Menu_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Main_Menu_SET.BackColor = Color.Red
         Main_Menu_SET.Controls.Add(Panel)
-        Main_Menu_SET.Location = New Point(695, 160)
+        Main_Menu_SET.Location = New Point(465, 160)
         Main_Menu_SET.Name = "Main_Menu_SET"
-        Main_Menu_SET.Size = New Size(770, 579)
+        Main_Menu_SET.Size = New Size(1000, 579)
         Main_Menu_SET.TabIndex = 44
         ' 
         ' Panel
@@ -65,7 +61,7 @@ Partial Class Base_Settings
         Panel.Controls.Add(Panel2)
         Panel.Location = New Point(0, -7)
         Panel.Name = "Panel"
-        Panel.Size = New Size(770, 586)
+        Panel.Size = New Size(1000, 586)
         Panel.TabIndex = 74
         ' 
         ' Panel2
@@ -75,16 +71,16 @@ Partial Class Base_Settings
         Panel2.Controls.Add(ICON_1)
         Panel2.Location = New Point(0, 190)
         Panel2.Name = "Panel2"
-        Panel2.Size = New Size(770, 213)
+        Panel2.Size = New Size(1000, 213)
         Panel2.TabIndex = 75
         ' 
         ' text_sub
         ' 
         text_sub.Anchor = AnchorStyles.Bottom
         text_sub.BackColor = Color.Transparent
-        text_sub.Font = New Font("Segoe UI Semibold", 13F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        text_sub.Font = New Font("Segoe UI Semibold", 13.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         text_sub.ForeColor = Color.Gray
-        text_sub.Location = New Point(0, 130)
+        text_sub.Location = New Point(115, 130)
         text_sub.Name = "text_sub"
         text_sub.Size = New Size(770, 83)
         text_sub.TabIndex = 51
@@ -95,9 +91,9 @@ Partial Class Base_Settings
         ' 
         ICON_1.Anchor = AnchorStyles.Top
         ICON_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ICON_1.Font = New Font("nvgcshare", 120F)
+        ICON_1.Font = New Font("nvgcshare", 120.0F)
         ICON_1.ForeColor = Color.DimGray
-        ICON_1.Location = New Point(16, 0)
+        ICON_1.Location = New Point(131, 0)
         ICON_1.Name = "ICON_1"
         ICON_1.Size = New Size(754, 145)
         ICON_1.TabIndex = 74
@@ -108,52 +104,11 @@ Partial Class Base_Settings
         ' 
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        settings_top.Location = New Point(695, 160)
+        settings_top.Location = New Point(465, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(770, 5)
+        settings_top.Size = New Size(1000, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
-        ' 
-        ' action_1
-        ' 
-        action_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
-        action_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        action_1.Cursor = Cursors.Hand
-        action_1.Font = New Font("Segoe UI", 12F)
-        action_1.ForeColor = Color.White
-        action_1.Location = New Point(110, 220)
-        action_1.Name = "action_1"
-        action_1.Size = New Size(200, 0)
-        action_1.TabIndex = 72
-        action_1.Text = "Turn on"
-        action_1.TextAlign = ContentAlignment.MiddleCenter
-        action_1.Visible = False
-        ' 
-        ' Back_btn
-        ' 
-        Back_btn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        Back_btn.Cursor = Cursors.Hand
-        Back_btn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
-        Back_btn.ForeColor = Color.White
-        Back_btn.Location = New Point(110, 300)
-        Back_btn.Name = "Back_btn"
-        Back_btn.Size = New Size(200, 70)
-        Back_btn.TabIndex = 58
-        Back_btn.Text = "Back"
-        Back_btn.TextAlign = ContentAlignment.MiddleCenter
-        Back_btn.Visible = False
-        ' 
-        ' text_settings
-        ' 
-        text_settings.BackColor = Color.Black
-        text_settings.Font = New Font("Segoe UI Semibold", 14F, FontStyle.Bold)
-        text_settings.ForeColor = Color.White
-        text_settings.Location = New Point(465, 160)
-        text_settings.Name = "text_settings"
-        text_settings.Size = New Size(200, 50)
-        text_settings.TabIndex = 56
-        text_settings.Text = "Settings"
-        text_settings.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Block_AM
         ' 
@@ -168,11 +123,11 @@ Partial Class Base_Settings
         ' 
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
-        action_fn.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
+        action_fn.Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
-        action_fn.Location = New Point(465, 220)
+        action_fn.Location = New Point(465, 110)
         action_fn.Name = "action_fn"
-        action_fn.Size = New Size(200, 70)
+        action_fn.Size = New Size(200, 50)
         action_fn.TabIndex = 74
         action_fn.Text = "Done"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
@@ -181,11 +136,11 @@ Partial Class Base_Settings
         ' 
         ch.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ch.Cursor = Cursors.Hand
-        ch.Font = New Font("Segoe UI Semibold", 12F)
+        ch.Font = New Font("Segoe UI Semibold", 12.0F)
         ch.ForeColor = Color.White
-        ch.Location = New Point(465, 380)
+        ch.Location = New Point(877, 115)
         ch.Name = "ch"
-        ch.Size = New Size(200, 70)
+        ch.Size = New Size(200, 50)
         ch.TabIndex = 75
         ch.Text = "Check update"
         ch.TextAlign = ContentAlignment.MiddleCenter
@@ -194,21 +149,14 @@ Partial Class Base_Settings
         ' 
         SW_lang.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         SW_lang.Cursor = Cursors.Hand
-        SW_lang.Font = New Font("Segoe UI Semibold", 12F)
+        SW_lang.Font = New Font("Segoe UI Semibold", 12.0F)
         SW_lang.ForeColor = Color.White
-        SW_lang.Location = New Point(465, 300)
+        SW_lang.Location = New Point(671, 115)
         SW_lang.Name = "SW_lang"
-        SW_lang.Size = New Size(200, 70)
+        SW_lang.Size = New Size(200, 50)
         SW_lang.TabIndex = 76
         SW_lang.Text = "SW_lang"
         SW_lang.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Panel1
-        ' 
-        Panel1.Location = New Point(428, 160)
-        Panel1.Name = "Panel1"
-        Panel1.Size = New Size(261, 329)
-        Panel1.TabIndex = 77
         ' 
         ' PictureBox9
         ' 
@@ -235,7 +183,7 @@ Partial Class Base_Settings
         ' 
         ' Base_Settings
         ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1545, 819)
@@ -245,12 +193,8 @@ Partial Class Base_Settings
         Controls.Add(ch)
         Controls.Add(action_fn)
         Controls.Add(settings_top)
-        Controls.Add(text_settings)
         Controls.Add(Block_AM)
-        Controls.Add(action_1)
-        Controls.Add(Back_btn)
         Controls.Add(Main_Menu_SET)
-        Controls.Add(Panel1)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_Settings"
@@ -270,18 +214,14 @@ Partial Class Base_Settings
     End Sub
 
     Friend WithEvents Main_Menu_SET As Panel
-    Friend WithEvents Back_btn As Label
-    Friend WithEvents text_settings As Label
     Friend WithEvents text_sub As Label
     Friend WithEvents settings_top As PictureBox
-    Friend WithEvents action_1 As Label
     Friend WithEvents Block_AM As PictureBox
     Friend WithEvents Panel As Panel
     Friend WithEvents ICON_1 As Label
     Friend WithEvents ch As Label
     Friend WithEvents SW_lang As Label
     Public WithEvents action_fn As Label
-    Friend WithEvents Panel1 As Panel
     Friend WithEvents PictureBox9 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
     Friend WithEvents Panel2 As Panel

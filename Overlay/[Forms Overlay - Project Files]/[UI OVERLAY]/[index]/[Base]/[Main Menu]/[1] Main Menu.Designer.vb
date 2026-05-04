@@ -1593,7 +1593,7 @@ Partial Class Base
         Settings_List.Controls.Add(Settings_List_Box)
         Settings_List.Location = New Point(80, 160)
         Settings_List.Name = "Settings_List"
-        Settings_List.Size = New Size(358, 746)
+        Settings_List.Size = New Size(355, 746)
         Settings_List.TabIndex = 42
         Settings_List.Visible = False
         ' 
@@ -1602,7 +1602,7 @@ Partial Class Base
         Settings_List_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Settings_List_Top.Location = New Point(0, 0)
         Settings_List_Top.Name = "Settings_List_Top"
-        Settings_List_Top.Size = New Size(335, 5)
+        Settings_List_Top.Size = New Size(358, 5)
         Settings_List_Top.TabIndex = 0
         Settings_List_Top.TabStop = False
         ' 
@@ -1622,7 +1622,7 @@ Partial Class Base
         ' 
         Settings_index.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         Settings_index.BackColor = Color.Red
-        Settings_index.Location = New Point(335, 0)
+        Settings_index.Location = New Point(359, 0)
         Settings_index.Name = "Settings_index"
         Settings_index.Size = New Size(23, 756)
         Settings_index.TabIndex = 74
@@ -1673,9 +1673,9 @@ Partial Class Base
         Settings_List_All.Controls.Add(ab_bg)
         Settings_List_All.Controls.Add(saved_e1)
         Settings_List_All.Controls.Add(Connect_Box_Sub)
-        Settings_List_All.Location = New Point(32, 93)
+        Settings_List_All.Location = New Point(30, 93)
         Settings_List_All.Name = "Settings_List_All"
-        Settings_List_All.Size = New Size(326, 622)
+        Settings_List_All.Size = New Size(361, 622)
         Settings_List_All.TabIndex = 73
         ' 
         ' Connect_Text
@@ -1686,7 +1686,7 @@ Partial Class Base
         Connect_Text.ForeColor = Color.White
         Connect_Text.Location = New Point(60, 2)
         Connect_Text.Name = "Connect_Text"
-        Connect_Text.Size = New Size(208, 56)
+        Connect_Text.Size = New Size(233, 56)
         Connect_Text.TabIndex = 47
         Connect_Text.Text = "l10n.connect"
         Connect_Text.TextAlign = ContentAlignment.MiddleLeft
@@ -1699,7 +1699,7 @@ Partial Class Base
         vdo_setme.ForeColor = Color.Gray
         vdo_setme.Location = New Point(61, 350)
         vdo_setme.Name = "vdo_setme"
-        vdo_setme.Size = New Size(207, 26)
+        vdo_setme.Size = New Size(232, 26)
         vdo_setme.TabIndex = 68
         vdo_setme.Text = "Instant Replay, Record, and Highlight"
         ' 
@@ -1711,7 +1711,7 @@ Partial Class Base
         videoCapture_Text.ForeColor = Color.White
         videoCapture_Text.Location = New Point(60, 321)
         videoCapture_Text.Name = "videoCapture_Text"
-        videoCapture_Text.Size = New Size(208, 40)
+        videoCapture_Text.Size = New Size(233, 40)
         videoCapture_Text.TabIndex = 83
         videoCapture_Text.Text = "l10n.videoCapture"
         videoCapture_Text.TextAlign = ContentAlignment.MiddleLeft
@@ -1735,7 +1735,7 @@ Partial Class Base
         notifications_Text.ForeColor = Color.White
         notifications_Text.Location = New Point(60, 400)
         notifications_Text.Name = "notifications_Text"
-        notifications_Text.Size = New Size(208, 56)
+        notifications_Text.Size = New Size(233, 56)
         notifications_Text.TabIndex = 93
         notifications_Text.Text = "l10n.notifications"
         notifications_Text.TextAlign = ContentAlignment.MiddleLeft
@@ -1759,7 +1759,7 @@ Partial Class Base
         PictureBox17.Cursor = Cursors.Hand
         PictureBox17.Location = New Point(2, 400)
         PictureBox17.Name = "PictureBox17"
-        PictureBox17.Size = New Size(266, 56)
+        PictureBox17.Size = New Size(291, 56)
         PictureBox17.TabIndex = 91
         PictureBox17.TabStop = False
         ' 
@@ -1769,7 +1769,7 @@ Partial Class Base
         noy.Cursor = Cursors.Hand
         noy.Location = New Point(0, 398)
         noy.Name = "noy"
-        noy.Size = New Size(270, 60)
+        noy.Size = New Size(295, 60)
         noy.TabIndex = 90
         noy.TabStop = False
         ' 
@@ -1792,7 +1792,7 @@ Partial Class Base
         Label21.ForeColor = Color.White
         Label21.Location = New Point(60, 161)
         Label21.Name = "Label21"
-        Label21.Size = New Size(208, 56)
+        Label21.Size = New Size(233, 56)
         Label21.TabIndex = 88
         Label21.Text = "l10n.highlights"
         Label21.TextAlign = ContentAlignment.MiddleLeft
@@ -1816,7 +1816,7 @@ Partial Class Base
         PictureBox16.Cursor = Cursors.Hand
         PictureBox16.Location = New Point(2, 161)
         PictureBox16.Name = "PictureBox16"
-        PictureBox16.Size = New Size(266, 56)
+        PictureBox16.Size = New Size(291, 56)
         PictureBox16.TabIndex = 86
         PictureBox16.TabStop = False
         ' 
@@ -1826,7 +1826,7 @@ Partial Class Base
         hg2.Cursor = Cursors.Hand
         hg2.Location = New Point(0, 159)
         hg2.Name = "hg2"
-        hg2.Size = New Size(270, 60)
+        hg2.Size = New Size(295, 60)
         hg2.TabIndex = 85
         hg2.TabStop = False
         ' 
@@ -1860,7 +1860,7 @@ Partial Class Base
         PictureBox13.Cursor = Cursors.Hand
         PictureBox13.Location = New Point(2, 320)
         PictureBox13.Name = "PictureBox13"
-        PictureBox13.Size = New Size(266, 56)
+        PictureBox13.Size = New Size(291, 56)
         PictureBox13.TabIndex = 81
         PictureBox13.TabStop = False
         ' 
@@ -1870,7 +1870,7 @@ Partial Class Base
         vd1.Cursor = Cursors.Hand
         vd1.Location = New Point(0, 318)
         vd1.Name = "vd1"
-        vd1.Size = New Size(270, 60)
+        vd1.Size = New Size(295, 60)
         vd1.TabIndex = 80
         vd1.TabStop = False
         ' 
@@ -1893,7 +1893,7 @@ Partial Class Base
         Label17.ForeColor = Color.White
         Label17.Location = New Point(60, 240)
         Label17.Name = "Label17"
-        Label17.Size = New Size(208, 56)
+        Label17.Size = New Size(233, 56)
         Label17.TabIndex = 78
         Label17.Text = "l10n.keyboardShortcuts"
         Label17.TextAlign = ContentAlignment.MiddleLeft
@@ -1917,7 +1917,7 @@ Partial Class Base
         PictureBox11.Cursor = Cursors.Hand
         PictureBox11.Location = New Point(2, 240)
         PictureBox11.Name = "PictureBox11"
-        PictureBox11.Size = New Size(266, 56)
+        PictureBox11.Size = New Size(291, 56)
         PictureBox11.TabIndex = 76
         PictureBox11.TabStop = False
         ' 
@@ -1927,7 +1927,7 @@ Partial Class Base
         k1.Cursor = Cursors.Hand
         k1.Location = New Point(0, 238)
         k1.Name = "k1"
-        k1.Size = New Size(270, 60)
+        k1.Size = New Size(295, 60)
         k1.TabIndex = 75
         k1.TabStop = False
         ' 
@@ -1939,7 +1939,7 @@ Partial Class Base
         Label12.ForeColor = Color.White
         Label12.Location = New Point(60, 81)
         Label12.Name = "Label12"
-        Label12.Size = New Size(208, 56)
+        Label12.Size = New Size(233, 56)
         Label12.TabIndex = 74
         Label12.Text = "l10n.hudLayout"
         Label12.TextAlign = ContentAlignment.MiddleLeft
@@ -1963,7 +1963,7 @@ Partial Class Base
         PictureBox10.Cursor = Cursors.Hand
         PictureBox10.Location = New Point(2, 81)
         PictureBox10.Name = "PictureBox10"
-        PictureBox10.Size = New Size(266, 56)
+        PictureBox10.Size = New Size(291, 56)
         PictureBox10.TabIndex = 72
         PictureBox10.TabStop = False
         ' 
@@ -1984,7 +1984,7 @@ Partial Class Base
         hub.Cursor = Cursors.Hand
         hub.Location = New Point(0, 79)
         hub.Name = "hub"
-        hub.Size = New Size(270, 60)
+        hub.Size = New Size(295, 60)
         hub.TabIndex = 70
         hub.TabStop = False
         ' 
@@ -1994,9 +1994,9 @@ Partial Class Base
         Connect_ICO.Cursor = Cursors.Hand
         Connect_ICO.Font = New Font("nvgcshare", 26F)
         Connect_ICO.ForeColor = Color.White
-        Connect_ICO.Location = New Point(3, 2)
+        Connect_ICO.Location = New Point(2, 2)
         Connect_ICO.Name = "Connect_ICO"
-        Connect_ICO.Size = New Size(63, 56)
+        Connect_ICO.Size = New Size(64, 56)
         Connect_ICO.TabIndex = 46
         Connect_ICO.Text = ""
         Connect_ICO.TextAlign = ContentAlignment.MiddleCenter
@@ -2009,7 +2009,7 @@ Partial Class Base
         Label4.ForeColor = Color.White
         Label4.Location = New Point(60, 479)
         Label4.Name = "Label4"
-        Label4.Size = New Size(208, 56)
+        Label4.Size = New Size(233, 56)
         Label4.TabIndex = 67
         Label4.Text = "l10n.privacyControl"
         Label4.TextAlign = ContentAlignment.MiddleLeft
@@ -2055,7 +2055,7 @@ Partial Class Base
         saved_e.Cursor = Cursors.Hand
         saved_e.Location = New Point(2, 479)
         saved_e.Name = "saved_e"
-        saved_e.Size = New Size(266, 56)
+        saved_e.Size = New Size(291, 56)
         saved_e.TabIndex = 49
         saved_e.TabStop = False
         ' 
@@ -2067,7 +2067,7 @@ Partial Class Base
         About_Text.ForeColor = Color.White
         About_Text.Location = New Point(60, 560)
         About_Text.Name = "About_Text"
-        About_Text.Size = New Size(208, 56)
+        About_Text.Size = New Size(233, 56)
         About_Text.TabIndex = 63
         About_Text.Text = "l10n.about"
         About_Text.TextAlign = ContentAlignment.MiddleLeft
@@ -2091,7 +2091,7 @@ Partial Class Base
         PictureBox1.Cursor = Cursors.Hand
         PictureBox1.Location = New Point(2, 560)
         PictureBox1.Name = "PictureBox1"
-        PictureBox1.Size = New Size(266, 56)
+        PictureBox1.Size = New Size(291, 56)
         PictureBox1.TabIndex = 61
         PictureBox1.TabStop = False
         ' 
@@ -2101,7 +2101,7 @@ Partial Class Base
         ab_bg.Cursor = Cursors.Hand
         ab_bg.Location = New Point(0, 558)
         ab_bg.Name = "ab_bg"
-        ab_bg.Size = New Size(270, 60)
+        ab_bg.Size = New Size(295, 60)
         ab_bg.TabIndex = 60
         ab_bg.TabStop = False
         ' 
@@ -2111,7 +2111,7 @@ Partial Class Base
         saved_e1.Cursor = Cursors.Hand
         saved_e1.Location = New Point(0, 477)
         saved_e1.Name = "saved_e1"
-        saved_e1.Size = New Size(270, 60)
+        saved_e1.Size = New Size(295, 60)
         saved_e1.TabIndex = 48
         saved_e1.TabStop = False
         ' 
@@ -2121,7 +2121,7 @@ Partial Class Base
         Connect_Box_Sub.Cursor = Cursors.Hand
         Connect_Box_Sub.Location = New Point(0, 0)
         Connect_Box_Sub.Name = "Connect_Box_Sub"
-        Connect_Box_Sub.Size = New Size(270, 60)
+        Connect_Box_Sub.Size = New Size(295, 60)
         Connect_Box_Sub.TabIndex = 44
         Connect_Box_Sub.TabStop = False
         ' 
@@ -2131,7 +2131,7 @@ Partial Class Base
         Settings_List_Box.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_List_Box.Location = New Point(0, -133)
         Settings_List_Box.Name = "Settings_List_Box"
-        Settings_List_Box.Size = New Size(335, 889)
+        Settings_List_Box.Size = New Size(367, 889)
         Settings_List_Box.TabIndex = 1
         Settings_List_Box.TabStop = False
         ' 

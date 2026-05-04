@@ -540,6 +540,7 @@ Public Class Base_RecordingsSet
             Base_Settings.Show()
             Base.AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
             SaveCustomSettings()
+            Base.Settings_List.Visible = True
         Catch ex As Exception
             Debug.WriteLine("action_fn_Click Error: " & ex.Message)
         End Try
@@ -551,7 +552,7 @@ Public Class Base_RecordingsSet
         If sender Is Nothing Then Return
         AppSettings.Instance.Recording.Preset = "Medium"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium)
+        UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.Medium)
     End Sub
 #End Region
 

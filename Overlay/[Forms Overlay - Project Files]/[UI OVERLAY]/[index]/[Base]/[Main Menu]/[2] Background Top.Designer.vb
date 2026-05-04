@@ -25,9 +25,9 @@ Partial Class Base_Background_Top
         components = New ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Background_Top))
         Main_Top = New Panel()
-        d = New Label()
         ME_CLOSE_BG = New Label()
         ME_CLOSE_BG_GRE = New Label()
+        d = New Label()
         PictureGFE = New PictureBox()
         Logo_text = New Label()
         ANIME = New Timer(components)
@@ -65,20 +65,6 @@ Partial Class Base_Background_Top
         Main_Top.Size = New Size(1460, 80)
         Main_Top.TabIndex = 10
         ' 
-        ' d
-        ' 
-        d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        d.BackColor = Color.Black
-        d.Cursor = Cursors.Hand
-        d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        d.ForeColor = Color.White
-        d.Location = New Point(1406, 23)
-        d.Name = "d"
-        d.Size = New Size(28, 34)
-        d.TabIndex = 89
-        d.Text = ""
-        d.TextAlign = ContentAlignment.MiddleCenter
-        ' 
         ' ME_CLOSE_BG
         ' 
         ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
@@ -105,6 +91,20 @@ Partial Class Base_Background_Top
         ME_CLOSE_BG_GRE.TabIndex = 87
         ME_CLOSE_BG_GRE.Text = ""
         ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' d
+        ' 
+        d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        d.BackColor = Color.Black
+        d.Cursor = Cursors.Hand
+        d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        d.ForeColor = Color.White
+        d.Location = New Point(1406, 23)
+        d.Name = "d"
+        d.Size = New Size(28, 34)
+        d.TabIndex = 89
+        d.Text = ""
+        d.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureGFE
         ' 

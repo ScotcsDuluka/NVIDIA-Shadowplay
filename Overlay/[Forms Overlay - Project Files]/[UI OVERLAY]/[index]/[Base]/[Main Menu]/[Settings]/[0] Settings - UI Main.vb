@@ -4,6 +4,9 @@ Imports System.Runtime.InteropServices
 Imports Newtonsoft.Json.Linq
 Public Class Base_Settings
     Inherits NoCloseForm
+    Private Const LanguageFolderName As String = "Languages"
+    Private Const CurrentLanguageFileName As String = "current.txt"
+    Private Const DefaultLanguageCode As String = "en-US"
 
     Protected Overrides Sub WndProc(ByRef m As Message)
         Const WM_NCHITTEST As Integer = &H84
@@ -46,6 +49,12 @@ Public Class Base_Settings
         Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True
 
+
+        Base_Background_Top.d.Visible = True
+        Base_Background_Top.ME_CLOSE_BG_GRE.Visible = True
+        Base_Background_Top.ME_CLOSE_BG.Visible = True
+
+
         AppSettings.Instance.Save()
 
         Dim TIME As New Timer With {.Interval = 20}
@@ -62,8 +71,8 @@ Public Class Base_Settings
         HideFromAltTab()
     End Sub
 
-    Private Sub Back_btn_Click(sender As Object, e As EventArgs) Handles Back_btn.Click
-        Me.Hide()
+    Private Sub Back_btn_Click(sender As Object, e As EventArgs)
+        Hide()
     End Sub
     Private _delayTimer As Timer
     Private Sub RefreshAllControls(parent As Control)
@@ -76,57 +85,23 @@ Public Class Base_Settings
         Next
     End Sub
     Private Sub SW_lang_Click(sender As Object, e As EventArgs) Handles SW_lang.Click
-        Dim langFolder = Path.Combine(Application.StartupPath, "Languages")
-        Dim currentFile = Path.Combine(langFolder, "current.txt")
-
-        Dim currentLang = "en-US"
-        If File.Exists(currentFile) Then currentLang = File.ReadAllText(currentFile).Trim
-
+        Dim langFolder As String = GetLanguageFolderPath()
+        Dim currentLang As String = GetCurrentLanguageCode(langFolder)
         Dim files = Directory.GetFiles(langFolder, "*.json")
         If files.Length = 0 Then Return
 
-        Dim cms As New ContextMenuStrip()
-        cms.BackColor = Color.FromArgb(30, 30, 34)
-        cms.ForeColor = Color.FromArgb(220, 220, 220)
-        cms.Font = New Font("Segoe UI", 10)
-        cms.ShowImageMargin = False
+        Dim cms As ContextMenuStrip = CreateLanguageMenu()
 
         For Each f As String In files
-            Dim langCode = Path.GetFileNameWithoutExtension(f)
-            Dim langName As String = langCode
-
-            Try
-                Dim raw = File.ReadAllText(f, System.Text.Encoding.UTF8)
-                Dim jObject As JObject = JObject.Parse(raw)
-                If jObject("meta.languageName") IsNot Nothing Then
-                    langName = jObject("meta.languageName").ToString()
-                End If
-            Catch
-            End Try
-
-            Dim tsi As New ToolStripMenuItem(CStr(langName))
-            tsi.Tag = langCode
-            tsi.Width = 160
-
-            If langCode = currentLang Then
-                tsi.ForeColor = Color.FromArgb(100, 149, 237)
-            End If
-
-            AddHandler tsi.Click, Sub(s, a)
-                                      Dim code = CStr(CType(s, ToolStripMenuItem).Tag.ToString())
-                                      SelectLang(code)
-                                      cms.Close()
-                                  End Sub
-
-            cms.Items.Add(tsi)
+            cms.Items.Add(CreateLanguageMenuItem(f, currentLang, cms))
         Next
 
         cms.Show(SW_lang, 0, SW_lang.Height)
     End Sub
 
     Private Sub SelectLang(langCode As String)
-        Dim langFolder = Path.Combine(Application.StartupPath, "Languages")
-        Dim currentFile = Path.Combine(langFolder, "current.txt")
+        Dim langFolder As String = GetLanguageFolderPath()
+        Dim currentFile As String = Path.Combine(langFolder, CurrentLanguageFileName)
         File.WriteAllText(currentFile, langCode)
 
         Dim langFile = Path.Combine(langFolder, langCode & ".json")
@@ -160,5 +135,59 @@ Public Class Base_Settings
                                      End Sub
         _delayTimer.Start()
     End Sub
+
+    Private Function GetLanguageFolderPath() As String
+        Return Path.Combine(Application.StartupPath, LanguageFolderName)
+    End Function
+
+    Private Function GetCurrentLanguageCode(langFolder As String) As String
+        Dim currentFile As String = Path.Combine(langFolder, CurrentLanguageFileName)
+        If File.Exists(currentFile) Then
+            Return File.ReadAllText(currentFile).Trim()
+        End If
+
+        Return DefaultLanguageCode
+    End Function
+
+    Private Function CreateLanguageMenu() As ContextMenuStrip
+        Dim menu As New ContextMenuStrip()
+        menu.BackColor = Color.FromArgb(30, 30, 34)
+        menu.ForeColor = Color.FromArgb(220, 220, 220)
+        menu.Font = New Font("Segoe UI", 10)
+        menu.ShowImageMargin = False
+        Return menu
+    End Function
+
+    Private Function CreateLanguageMenuItem(languageFile As String, currentLang As String, menu As ContextMenuStrip) As ToolStripMenuItem
+        Dim langCode As String = Path.GetFileNameWithoutExtension(languageFile)
+        Dim item As New ToolStripMenuItem(GetLanguageDisplayName(languageFile, langCode)) With {
+            .Tag = langCode,
+            .Width = 160
+        }
+
+        If langCode = currentLang Then
+            item.ForeColor = Color.FromArgb(100, 149, 237)
+        End If
+
+        AddHandler item.Click, Sub(sender, e)
+                                   Dim code = CStr(CType(sender, ToolStripMenuItem).Tag)
+                                   SelectLang(code)
+                                   menu.Close()
+                               End Sub
+        Return item
+    End Function
+
+    Private Function GetLanguageDisplayName(languageFile As String, fallbackCode As String) As String
+        Try
+            Dim raw = File.ReadAllText(languageFile, System.Text.Encoding.UTF8)
+            Dim jObject As JObject = JObject.Parse(raw)
+            If jObject("meta.languageName") IsNot Nothing Then
+                Return jObject("meta.languageName").ToString()
+            End If
+        Catch
+        End Try
+
+        Return fallbackCode
+    End Function
 
 End Class

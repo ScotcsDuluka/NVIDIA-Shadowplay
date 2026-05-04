@@ -2,6 +2,15 @@
 Imports System.IO
 
 Partial Public Class Base
+    Private ReadOnly _statusFontRegular As New Font("Segoe UI", 12, FontStyle.Regular)
+    Private ReadOnly _statusFontBold As New Font("Segoe UI", 12, FontStyle.Bold)
+    Private ReadOnly _scanTargetColor As Color = ColorTranslator.FromHtml("#ACB22E")
+    Private _lastRecordValue As Boolean? = Nothing
+    Private _lastReplayValue As Boolean? = Nothing
+    Private _lastMicEnabled As Boolean? = Nothing
+    Private _lastPixelScanUtc As DateTime = DateTime.MinValue
+    Private Const PixelScanCooldownMs As Integer = 250
+    Private Const PixelSampleStride As Integer = 6
 
     Private Sub SetControlColor(ctrl As Control, color As Color)
         If ctrl IsNot Nothing Then
@@ -59,31 +68,10 @@ Partial Public Class Base
 
     Public PrivacyValue As Boolean = False
 
-    Private Sub hg1_Tick(sender As Object, e As EventArgs) Handles hg1.Tick
-        If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, DataDirectoryName, "save")) Then
-            hg1.Stop()
-            Return
-        End If
-
-        Using bmpScreenshot As New Bitmap(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height)
-            Using g As Graphics = Graphics.FromImage(bmpScreenshot)
-                g.CopyFromScreen(0, 0, 0, 0, Screen.PrimaryScreen.Bounds.Size)
-            End Using
-
-            Dim targetColor As System.Drawing.Color = ColorTranslator.FromHtml("#ACB22E")
-
-            For x As Integer = 0 To bmpScreenshot.Width - 1
-                For y As Integer = 0 To bmpScreenshot.Height - 1
-                    If bmpScreenshot.GetPixel(x, y) = targetColor Then
-                        If Not My.Computer.FileSystem.FileExists(Application.StartupPath & DataDirectoryName & "/save") Then
-                            ShowNotifier("saved_last_15")
-                            hg1.Stop()
-                        End If
-                        Exit Sub
-                    End If
-                Next
-            Next
-        End Using
+    Public Sub RefreshRuntimeStatusTexts()
+        UpdateReplayStatus(True)
+        UpdateRecordStatus(True)
+        UpdateMicStatus(True)
     End Sub
 
     Private Sub not_save_Tick(sender As Object, e As EventArgs) Handles not_save.Tick
@@ -94,51 +82,91 @@ Partial Public Class Base
 #End Region
 
 #Region "============================================================================ STATUS UPDATE METHODS"
+    Private Function ContainsTargetColorSampled(image As Bitmap, targetColor As Color, stride As Integer) As Boolean
+        Dim safeStride As Integer = Math.Max(1, stride)
+        For x As Integer = 0 To image.Width - 1 Step safeStride
+            For y As Integer = 0 To image.Height - 1 Step safeStride
+                If image.GetPixel(x, y) = targetColor Then
+                    Return True
+                End If
+            Next
+        Next
 
-    Private Sub UpdateRecordStatus()
-        If RecordValue = True Then
-            Menu_Record_text.Text = LangHelper.GetText("l10n.stopAndSave")
-            Record_Stats.Text = LangHelper.GetText("l10n.recording")
-            Record_Stats.ForeColor = greenColor
-            Record_Logo.ForeColor = greenColor
-            Record_Stats.Font = New Font("Segoe UI", 12, FontStyle.Bold)
-            Menu_Record_ico.Text = ""
-        Else
-            Menu_Record_text.Text = LangHelper.GetText("l10n.start")
-            Record_Logo.ForeColor = System.Drawing.Color.White
-            Record_Stats.Text = LangHelper.GetText("l10n.notRecording")
-            Record_Stats.ForeColor = System.Drawing.Color.Gray
-            Record_Stats.Font = New Font("Segoe UI", 12, FontStyle.Regular)
-            Menu_Record_ico.Text = ""
-        End If
+        Return False
+    End Function
+
+    Private Function LStatus(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
+    Private Sub ApplyCaptureStatus(
+        isActive As Boolean,
+        statusControl As Control,
+        logoControl As Control,
+        actionTextControl As Control,
+        actionIconControl As Control,
+        activeStatusKey As String,
+        inactiveStatusKey As String,
+        activeActionKey As String,
+        inactiveActionKey As String)
+
+        statusControl.Text = If(isActive, LStatus(activeStatusKey), LStatus(inactiveStatusKey))
+        actionTextControl.Text = If(isActive, LStatus(activeActionKey), LStatus(inactiveActionKey))
+
+        statusControl.Font = If(isActive, _statusFontBold, _statusFontRegular)
+        statusControl.ForeColor = If(isActive, greenColor, Color.Gray)
+        logoControl.ForeColor = If(isActive, greenColor, Color.White)
+        actionIconControl.Text = If(isActive, "", "")
     End Sub
 
-    Private Sub UpdateReplayStatus()
-        If ReplayValue = True Then
-            Replay_Stats.Text = LangHelper.GetText("l10n.on")
-            Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStop")
-            Replay_Stats.Font = New Font("Segoe UI", 12, FontStyle.Bold)
-            Replay_Stats.ForeColor = greenColor
-            Replay_Logo.ForeColor = greenColor
-            Menu_Replay_save_ico.ForeColor = System.Drawing.Color.White
-            Menu_Replay_ico.Text = ""
-        Else
-            Replay_Stats.Text = LangHelper.GetText("l10n.off")
-            Menu_Replay_text.Text = LangHelper.GetText("l10n.instantReplayStart")
-            Replay_Stats.Font = New Font("Segoe UI", 12, FontStyle.Regular)
-            Replay_Stats.ForeColor = System.Drawing.Color.Gray
-            Replay_Logo.ForeColor = System.Drawing.Color.White
-            Menu_Replay_save_ico.ForeColor = System.Drawing.Color.Gray
-            Menu_Replay_ico.Text = ""
+    Private Sub UpdateRecordStatus(Optional force As Boolean = False)
+        If Not force AndAlso _lastRecordValue.HasValue AndAlso _lastRecordValue.Value = RecordValue Then
+            Return
         End If
+
+        ApplyCaptureStatus(
+            RecordValue,
+            Record_Stats,
+            Record_Logo,
+            Menu_Record_text,
+            Menu_Record_ico,
+            "l10n.recording",
+            "l10n.notRecording",
+            "l10n.stopAndSave",
+            "l10n.start")
+
+        _lastRecordValue = RecordValue
     End Sub
 
-    Private Sub UpdateMicStatus()
-        If MIC_ICO.Text = "" Then
-            AppSettings.Instance.Audio.MicEnabled = True
-        Else
-            AppSettings.Instance.Audio.MicEnabled = False
+    Private Sub UpdateReplayStatus(Optional force As Boolean = False)
+        If Not force AndAlso _lastReplayValue.HasValue AndAlso _lastReplayValue.Value = ReplayValue Then
+            Return
         End If
+
+        ApplyCaptureStatus(
+            ReplayValue,
+            Replay_Stats,
+            Replay_Logo,
+            Menu_Replay_text,
+            Menu_Replay_ico,
+            "l10n.on",
+            "l10n.off",
+            "l10n.instantReplayStop",
+            "l10n.instantReplayStart")
+
+        Menu_Replay_save_ico.ForeColor = If(ReplayValue, Color.White, Color.Gray)
+        _lastReplayValue = ReplayValue
+    End Sub
+
+    Private Sub UpdateMicStatus(Optional force As Boolean = False)
+        Dim micEnabledNow As Boolean = (MIC_ICO.Text = "")
+
+        If Not force AndAlso _lastMicEnabled.HasValue AndAlso _lastMicEnabled.Value = micEnabledNow Then
+            Return
+        End If
+
+        AppSettings.Instance.Audio.MicEnabled = micEnabledNow
+        _lastMicEnabled = micEnabledNow
     End Sub
 
 #End Region

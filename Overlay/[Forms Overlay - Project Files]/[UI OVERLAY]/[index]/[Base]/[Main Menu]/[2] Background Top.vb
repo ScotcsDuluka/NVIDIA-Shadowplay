@@ -125,8 +125,4 @@ Public Class Base_Background_Top
         If Main_Top.Location = New Point(0, 0) Then
         End If
     End Sub
-
-    Private Sub d_Click(sender As Object, e As EventArgs) Handles d.Click
-
-    End Sub
 End Class

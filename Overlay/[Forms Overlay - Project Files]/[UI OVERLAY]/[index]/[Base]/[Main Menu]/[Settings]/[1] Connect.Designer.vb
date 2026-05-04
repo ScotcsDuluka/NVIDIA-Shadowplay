@@ -34,18 +34,19 @@ Partial Class Base_Connect
         Connect_Box = New PictureBox()
         Connect_Box_Sub = New PictureBox()
         text_menu = New Label()
-        text_settings = New Label()
-        box_settings = New PictureBox()
         settings_top = New PictureBox()
         action_fn = New Label()
         PictureBox6 = New PictureBox()
+        PictureBox11 = New PictureBox()
+        PictureBox1 = New PictureBox()
         settings_1.SuspendLayout()
         CType(Box_PNG, ComponentModel.ISupportInitialize).BeginInit()
         CType(Connect_Box, ComponentModel.ISupportInitialize).BeginInit()
         CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).BeginInit()
-        CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' settings_1
@@ -62,9 +63,9 @@ Partial Class Base_Connect
         settings_1.Controls.Add(Connect_Box)
         settings_1.Controls.Add(Connect_Box_Sub)
         settings_1.Controls.Add(text_menu)
-        settings_1.Location = New Point(695, 160)
+        settings_1.Location = New Point(80, 160)
         settings_1.Name = "settings_1"
-        settings_1.Size = New Size(1145, 840)
+        settings_1.Size = New Size(1760, 840)
         settings_1.TabIndex = 45
         ' 
         ' Login_BT
@@ -177,34 +178,13 @@ Partial Class Base_Connect
         text_menu.TabIndex = 51
         text_menu.Text = "Connect"
         ' 
-        ' text_settings
-        ' 
-        text_settings.BackColor = Color.Black
-        text_settings.Font = New Font("Segoe UI Semibold", 14F, FontStyle.Bold)
-        text_settings.ForeColor = Color.White
-        text_settings.Location = New Point(465, 160)
-        text_settings.Name = "text_settings"
-        text_settings.Size = New Size(200, 50)
-        text_settings.TabIndex = 56
-        text_settings.Text = "Connect"
-        text_settings.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' box_settings
-        ' 
-        box_settings.BackColor = Color.Black
-        box_settings.Location = New Point(465, 160)
-        box_settings.Name = "box_settings"
-        box_settings.Size = New Size(200, 48)
-        box_settings.TabIndex = 55
-        box_settings.TabStop = False
-        ' 
         ' settings_top
         ' 
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        settings_top.Location = New Point(695, 160)
+        settings_top.Location = New Point(80, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(1145, 5)
+        settings_top.Size = New Size(1760, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
@@ -214,9 +194,9 @@ Partial Class Base_Connect
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
-        action_fn.Location = New Point(465, 220)
+        action_fn.Location = New Point(80, 115)
         action_fn.Name = "action_fn"
-        action_fn.Size = New Size(200, 70)
+        action_fn.Size = New Size(200, 50)
         action_fn.TabIndex = 58
         action_fn.Text = "Back"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
@@ -224,11 +204,33 @@ Partial Class Base_Connect
         ' PictureBox6
         ' 
         PictureBox6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        PictureBox6.Location = New Point(454, -16)
+        PictureBox6.Location = New Point(-24, -16)
         PictureBox6.Name = "PictureBox6"
-        PictureBox6.Size = New Size(1435, 176)
+        PictureBox6.Size = New Size(1913, 176)
         PictureBox6.TabIndex = 46
         PictureBox6.TabStop = False
+        ' 
+        ' PictureBox11
+        ' 
+        PictureBox11.BackColor = Color.Blue
+        PictureBox11.BackgroundImageLayout = ImageLayout.None
+        PictureBox11.Location = New Point(0, 203)
+        PictureBox11.Name = "PictureBox11"
+        PictureBox11.Size = New Size(80, 80)
+        PictureBox11.TabIndex = 93
+        PictureBox11.TabStop = False
+        PictureBox11.Visible = False
+        ' 
+        ' PictureBox1
+        ' 
+        PictureBox1.BackColor = Color.Blue
+        PictureBox1.BackgroundImageLayout = ImageLayout.None
+        PictureBox1.Location = New Point(1840, 166)
+        PictureBox1.Name = "PictureBox1"
+        PictureBox1.Size = New Size(80, 80)
+        PictureBox1.TabIndex = 94
+        PictureBox1.TabStop = False
+        PictureBox1.Visible = False
         ' 
         ' Base_Connect
         ' 
@@ -236,12 +238,12 @@ Partial Class Base_Connect
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1080)
-        Controls.Add(text_settings)
-        Controls.Add(box_settings)
-        Controls.Add(settings_top)
-        Controls.Add(PictureBox6)
-        Controls.Add(settings_1)
         Controls.Add(action_fn)
+        Controls.Add(PictureBox1)
+        Controls.Add(PictureBox11)
+        Controls.Add(settings_top)
+        Controls.Add(settings_1)
+        Controls.Add(PictureBox6)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_Connect"
@@ -256,18 +258,17 @@ Partial Class Base_Connect
         CType(Box_PNG, ComponentModel.ISupportInitialize).EndInit()
         CType(Connect_Box, ComponentModel.ISupportInitialize).EndInit()
         CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).EndInit()
-        CType(box_settings, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
 
     Friend WithEvents settings_1 As Panel
     Friend WithEvents action_fn As Label
-    Friend WithEvents text_settings As Label
     Friend WithEvents text_menu As Label
     Friend WithEvents settings_top As PictureBox
-    Friend WithEvents box_settings As PictureBox
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents Box_PNG As PictureBox
     Friend WithEvents USERSNAME_TEXT As Label
@@ -278,4 +279,6 @@ Partial Class Base_Connect
     Friend WithEvents Password_Box As TextBox
     Friend WithEvents Usersname_Box As TextBox
     Friend WithEvents Login_BT As Button
+    Friend WithEvents PictureBox11 As PictureBox
+    Friend WithEvents PictureBox1 As PictureBox
 End Class

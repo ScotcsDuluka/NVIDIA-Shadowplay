@@ -1,4 +1,5 @@
 Imports System.Diagnostics
+Imports System.Collections.Generic
 Imports System.IO
 Imports System.Net.Http.Headers
 Imports System.Text.Json
@@ -8,6 +9,10 @@ Imports System.Net.Http
 Imports System.Security.Cryptography
 
 Public Class AppSettings
+    Private Shared ReadOnly NvidiaKeywords As String() = {"NVIDIA", "GEFORCE", "GTX", "RTX"}
+    Private Shared ReadOnly AmdKeywords As String() = {"AMD", "RADEON", "RX "}
+    Private Shared ReadOnly IntelKeywords As String() = {"INTEL"}
+    Private Shared ReadOnly IntelIGpuKeywords As String() = {"UHD", "IRIS", "HD GRAPHICS", "INTEL(R) GRAPHICS"}
 
 #Region "Settings Classes (Grouped) - สำหรับ JSON Serialization"
 
@@ -128,6 +133,10 @@ Public Class AppSettings
         Public Sub New()
         End Sub
     End Class
+
+    ' ====================================================================
+    ' <<<< ลบ HotkeySettingsClass ทิ้งไปแล้ว ใช้ Dictionary แทน >>>
+    ' ====================================================================
 
     ''' <summary>
     ''' ✅ GitHub Token สำหรับ OAuth
@@ -291,6 +300,9 @@ Public Class AppSettings
     Public Property UI As New UISettingsClass()
     Public Property Audio As New AudioSettingsClass()
 
+    ' <<< เปลี่ยนจาก HotkeySettingsClass เป็น Dictionary >>>
+    Public Property Hotkeys As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+
 #End Region
 
 #Region "Singleton"
@@ -338,6 +350,9 @@ Public Class AppSettings
         UI = New UISettingsClass()
         Audio = New AudioSettingsClass()
         GitHubUser = New GitHubUserClass()
+
+        ' <<< เปลี่ยนจาก HotkeySettingsClass เป็น Dictionary >>>
+        Hotkeys = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
     End Sub
 
     ''' <summary>
@@ -398,52 +413,7 @@ Public Class AppSettings
                     Dim loaded As AppSettings = JsonSerializer.Deserialize(Of AppSettings)(json, options)
 
                     If loaded IsNot Nothing Then
-                        ' Recording
-                        If loaded.Recording IsNot Nothing Then
-                            Recording.Encoder = loaded.Recording.Encoder
-                            Recording.EncoderNow = loaded.Recording.EncoderNow
-                            Recording.FPS = loaded.Recording.FPS
-                            Recording.Bitrate = loaded.Recording.Bitrate
-                            Recording.Width = loaded.Recording.Width
-                            Recording.Height = loaded.Recording.Height
-                            Recording.Preset = loaded.Recording.Preset
-                            Recording.EncoderPreset = loaded.Recording.EncoderPreset
-                            Recording.ReplayDuration = loaded.Recording.ReplayDuration
-                            Recording.UseNativeResolution = loaded.Recording.UseNativeResolution
-                        End If
-
-                        ' Paths
-                        If loaded.Paths IsNot Nothing Then
-                            Paths.GalleryPath = loaded.Paths.GalleryPath
-                            Paths.SavePath = loaded.Paths.SavePath
-                            Paths.FFmpegPath = loaded.Paths.FFmpegPath
-                        End If
-
-                        ' UI
-                        If loaded.UI IsNot Nothing Then
-                            UI.Language = loaded.UI.Language
-                            UI.Theme = loaded.UI.Theme
-                        End If
-
-                        ' Audio
-                        If loaded.Audio IsNot Nothing Then
-                            Audio.SystemAudioEnabled = loaded.Audio.SystemAudioEnabled
-                            Audio.MicEnabled = loaded.Audio.MicEnabled
-                            Audio.SystemAudioVolume = loaded.Audio.SystemAudioVolume
-                            Audio.MicVolume = loaded.Audio.MicVolume
-                            Audio.MicDeviceName = loaded.Audio.MicDeviceName
-                        End If
-
-                        ' ✅ GitHub User
-                        If loaded.GitHubUser IsNot Nothing Then
-                            GitHubUser.Username = loaded.GitHubUser.Username
-                            GitHubUser.AvatarUrl = loaded.GitHubUser.AvatarUrl
-                            GitHubUser.IsLoggedIn = loaded.GitHubUser.IsLoggedIn
-                            GitHubUser.LastLogin = loaded.GitHubUser.LastLogin
-                        End If
-
-                        ' ✅ GitHub Token
-                        GitHubToken = loaded.GitHubToken
+                        ApplyLoadedSettings(loaded)
 
                         Debug.WriteLine("AppSettings.Load: SUCCESS")
                         Debug.WriteLine($"  GitHub User: {GitHubUser.Username}")
@@ -460,6 +430,74 @@ Public Class AppSettings
             Debug.WriteLine("AppSettings.Load Error: " & ex.Message)
         End Try
     End Sub
+
+    Private Sub ApplyLoadedSettings(loaded As AppSettings)
+        If loaded Is Nothing Then Return
+
+        ApplyRecordingSettings(loaded.Recording)
+        ApplyPathSettings(loaded.Paths)
+        ApplyUISettings(loaded.UI)
+        ApplyAudioSettings(loaded.Audio)
+        ApplyGitHubUserSettings(loaded.GitHubUser)
+
+        ' <<< ลบ ApplyHotkeySettings แล้ว ใช้วิธี Copy Dictionary แทน >>>
+        If loaded.Hotkeys IsNot Nothing Then
+            Hotkeys = New Dictionary(Of String, String)(loaded.Hotkeys, StringComparer.OrdinalIgnoreCase)
+        End If
+
+        GitHubToken = loaded.GitHubToken
+    End Sub
+
+    Private Sub ApplyRecordingSettings(loadedRecording As RecordingSettingsClass)
+        If loadedRecording Is Nothing Then Return
+
+        Recording.Encoder = loadedRecording.Encoder
+        Recording.EncoderNow = loadedRecording.EncoderNow
+        Recording.FPS = loadedRecording.FPS
+        Recording.Bitrate = loadedRecording.Bitrate
+        Recording.Width = loadedRecording.Width
+        Recording.Height = loadedRecording.Height
+        Recording.Preset = loadedRecording.Preset
+        Recording.EncoderPreset = loadedRecording.EncoderPreset
+        Recording.ReplayDuration = loadedRecording.ReplayDuration
+        Recording.UseNativeResolution = loadedRecording.UseNativeResolution
+    End Sub
+
+    Private Sub ApplyPathSettings(loadedPaths As PathSettingsClass)
+        If loadedPaths Is Nothing Then Return
+
+        Paths.GalleryPath = loadedPaths.GalleryPath
+        Paths.SavePath = loadedPaths.SavePath
+        Paths.FFmpegPath = loadedPaths.FFmpegPath
+    End Sub
+
+    Private Sub ApplyUISettings(loadedUI As UISettingsClass)
+        If loadedUI Is Nothing Then Return
+
+        UI.Language = loadedUI.Language
+        UI.Theme = loadedUI.Theme
+    End Sub
+
+    Private Sub ApplyAudioSettings(loadedAudio As AudioSettingsClass)
+        If loadedAudio Is Nothing Then Return
+
+        Audio.SystemAudioEnabled = loadedAudio.SystemAudioEnabled
+        Audio.MicEnabled = loadedAudio.MicEnabled
+        Audio.SystemAudioVolume = loadedAudio.SystemAudioVolume
+        Audio.MicVolume = loadedAudio.MicVolume
+        Audio.MicDeviceName = loadedAudio.MicDeviceName
+    End Sub
+
+    Private Sub ApplyGitHubUserSettings(loadedGitHubUser As GitHubUserClass)
+        If loadedGitHubUser Is Nothing Then Return
+
+        GitHubUser.Username = loadedGitHubUser.Username
+        GitHubUser.AvatarUrl = loadedGitHubUser.AvatarUrl
+        GitHubUser.IsLoggedIn = loadedGitHubUser.IsLoggedIn
+        GitHubUser.LastLogin = loadedGitHubUser.LastLogin
+    End Sub
+
+    ' <<< ลบเมธอด ApplyHotkeySettings ทิ้งไปแล้ว >>>
 
     ''' <summary>
     ''' Save settings to config.json
@@ -796,36 +834,8 @@ Public Class AppSettings
                         If String.IsNullOrEmpty(trimmed) Then Continue For
                         If trimmed.ToUpperInvariant().Contains("NAME") Then Continue For
 
-                        ' Add to list
-                        _allGpuNames.Add(trimmed)
-
-                        Dim upper As String = trimmed.ToUpperInvariant()
-
-                        ' NVIDIA Detection
-                        If upper.Contains("NVIDIA") OrElse upper.Contains("GEFORCE") OrElse upper.Contains("GTX") OrElse upper.Contains("RTX") Then
-                            _hasNvidia = True
-                            Debug.WriteLine("  NVIDIA detected: " & trimmed)
-                            Continue For
-                        End If
-
-                        ' AMD Detection
-                        If upper.Contains("AMD") OrElse upper.Contains("RADEON") OrElse upper.Contains("RX ") Then
-                            _hasAMD = True
-                            Debug.WriteLine("  AMD detected: " & trimmed)
-                            Continue For
-                        End If
-
-                        ' Intel Detection
-                        If upper.Contains("INTEL") Then
-                            If upper.Contains("NVIDIA") OrElse upper.Contains("AMD") OrElse upper.Contains("RADEON") Then
-                                Continue For
-                            End If
-
-                            _hasIntel = True
-                            _intelGpuName = trimmed
-                            Debug.WriteLine("  Intel detected: " & trimmed)
-                            Continue For
-                        End If
+                        AddGpuNameIfMissing(trimmed)
+                        UpdateGpuFlagsFromName(trimmed)
                     Next
                 End If
             End Using
@@ -850,47 +860,9 @@ Public Class AppSettings
                         If subKey Is Nothing Then Continue For
 
                         Dim driverDesc As String = subKey.GetValue("DriverDesc", "").ToString()
-                        Dim combined As String = driverDesc.ToUpperInvariant()
-
                         If String.IsNullOrEmpty(driverDesc) Then Continue For
-
-                        ' NVIDIA
-                        If combined.Contains("NVIDIA") OrElse combined.Contains("GEFORCE") Then
-                            If Not _hasNvidia.GetValueOrDefault(False) Then
-                                _hasNvidia = True
-                                _allGpuNames.Add(driverDesc)
-                                Debug.WriteLine("  NVIDIA detected via Registry: " & driverDesc)
-                            End If
-                        End If
-
-                        ' AMD
-                        If combined.Contains("AMD") OrElse combined.Contains("RADEON") Then
-                            If Not _hasAMD.GetValueOrDefault(False) Then
-                                _hasAMD = True
-                                _allGpuNames.Add(driverDesc)
-                                Debug.WriteLine("  AMD detected via Registry: " & driverDesc)
-                            End If
-                        End If
-
-                        ' Intel iGPU
-                        If combined.Contains("INTEL") AndAlso
-                           Not combined.Contains("NVIDIA") AndAlso
-                           Not combined.Contains("AMD") AndAlso
-                           Not combined.Contains("RADEON") Then
-
-                            If combined.Contains("UHD") OrElse
-                               combined.Contains("IRIS") OrElse
-                               combined.Contains("HD GRAPHICS") OrElse
-                               combined.Contains("INTEL(R) GRAPHICS") Then
-
-                                If Not _hasIntel.GetValueOrDefault(False) Then
-                                    _hasIntel = True
-                                    _intelGpuName = driverDesc
-                                    _allGpuNames.Add(driverDesc)
-                                    Debug.WriteLine("  Intel iGPU detected via Registry: " & driverDesc)
-                                End If
-                            End If
-                        End If
+                        AddGpuNameIfMissing(driverDesc)
+                        UpdateGpuFlagsFromName(driverDesc, True)
                     End Using
                 Next
             End Using
@@ -899,6 +871,55 @@ Public Class AppSettings
             Debug.WriteLine("DetectGPUsViaRegistry Error: " & ex.Message)
         End Try
     End Sub
+
+    Private Shared Sub AddGpuNameIfMissing(gpuName As String)
+        If String.IsNullOrWhiteSpace(gpuName) Then Return
+        If Not _allGpuNames.Contains(gpuName) Then
+            _allGpuNames.Add(gpuName)
+        End If
+    End Sub
+
+    Private Shared Sub UpdateGpuFlagsFromName(gpuName As String, Optional fromRegistry As Boolean = False)
+        Dim upper As String = gpuName.ToUpperInvariant()
+        Dim source As String = If(fromRegistry, " via Registry", "")
+
+        If ContainsAny(upper, NvidiaKeywords) Then
+            If Not _hasNvidia.GetValueOrDefault(False) Then
+                _hasNvidia = True
+            End If
+            Debug.WriteLine("  NVIDIA detected" & source & ": " & gpuName)
+            Return
+        End If
+
+        If ContainsAny(upper, AmdKeywords) Then
+            If Not _hasAMD.GetValueOrDefault(False) Then
+                _hasAMD = True
+            End If
+            Debug.WriteLine("  AMD detected" & source & ": " & gpuName)
+            Return
+        End If
+
+        If ContainsAny(upper, IntelKeywords) AndAlso Not ContainsAny(upper, NvidiaKeywords) AndAlso Not ContainsAny(upper, AmdKeywords) Then
+            If fromRegistry AndAlso Not ContainsAny(upper, IntelIGpuKeywords) Then
+                Return
+            End If
+
+            If Not _hasIntel.GetValueOrDefault(False) Then
+                _hasIntel = True
+                _intelGpuName = gpuName
+            End If
+            Debug.WriteLine("  Intel detected" & source & ": " & gpuName)
+        End If
+    End Sub
+
+    Private Shared Function ContainsAny(value As String, keywords As IEnumerable(Of String)) As Boolean
+        For Each keyword As String In keywords
+            If value.IndexOf(keyword, StringComparison.Ordinal) >= 0 Then
+                Return True
+            End If
+        Next
+        Return False
+    End Function
 
 #End Region
 
@@ -912,6 +933,10 @@ Public Class AppSettings
         Paths = New PathSettingsClass()
         UI = New UISettingsClass()
         Audio = New AudioSettingsClass()
+
+        ' <<< เปลี่ยนจาก HotkeySettingsClass เป็น Dictionary >>>
+        Hotkeys = New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+
         ' ✅ ไม่ reset GitHub user
         Save()
     End Sub

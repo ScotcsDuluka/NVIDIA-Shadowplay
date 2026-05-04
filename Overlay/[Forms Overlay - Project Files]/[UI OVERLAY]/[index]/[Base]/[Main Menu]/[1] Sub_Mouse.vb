@@ -489,16 +489,18 @@ Partial Public Class Base
         For Each f In allForms
             If f IsNot showForm Then f?.Hide()
         Next
+        Settings_List.Visible = False
         showForm.Opacity = 0
         showForm.Show()
-        settingsCtrl.Location = New Point(695, 160)
+        settingsCtrl.Location = New Point(80, 160)
 
         Dim t As New Timer With {.Interval = 1}
 
         AddHandler t.Tick, Sub(s, e)
                                t.Stop()
+
                                showForm.Opacity = 1
-                               settingsCtrl.Location = New Point(695, 160)
+
                            End Sub
 
         t.Start()
@@ -585,7 +587,7 @@ Partial Public Class Base
         vd1.BackColor = greenColor
     End Sub
 
-    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox13.MouseLeave, vdo_setme.MouseLeave, videoCapture_Text.MouseLeave
+    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox13.MouseLeave, vdo_setme.MouseLeave, videoCapture_Text.MouseLeave, videoCapture_ICO.MouseLeave
         vd1.BackColor = grayColor
     End Sub
 
@@ -607,11 +609,13 @@ Partial Public Class Base
 
     Public Sub OpenRecordings()
         OpenSettings_Sub()
-        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
+
+        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
     End Sub
 
     Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, videoCapture_Text.Click, videoCapture_ICO.Click
-        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setre)
+        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
+
     End Sub
 
     ' ========== NOTIFICATIONS ==========
@@ -619,7 +623,7 @@ Partial Public Class Base
         noy.BackColor = greenColor
     End Sub
 
-    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox17.MouseLeave, notifications_Text.MouseLeave
+    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox17.MouseLeave, notifications_Text.MouseLeave, notifications_ICO.MouseLeave
         noy.BackColor = grayColor
     End Sub
 

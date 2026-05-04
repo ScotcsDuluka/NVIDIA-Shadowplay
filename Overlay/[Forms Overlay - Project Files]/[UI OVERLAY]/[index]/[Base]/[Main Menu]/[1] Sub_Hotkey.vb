@@ -3,7 +3,7 @@ Partial Public Class Base
 
 #Region "Hotkey Event Handlers"
 
-    Private Sub OnAltZ() Handles _hotkeyService.AltZPressed
+    Private Sub Run_OpenShare() Handles _hotkeyService.Key_OpenShare
         If Settings_List.Visible Then Return
         If Base_Gallery.Visible Then Return
         isFunctionActive_f3 = False
@@ -20,47 +20,73 @@ Partial Public Class Base
         End If
     End Sub
 
-    Private Sub OnAltF1() Handles _hotkeyService.AltF1Pressed
+
+
+
+    'Mode
+
+
+
+
+    Private Sub Mode1() Handles _hotkeyService.Key_CaptureScreen
         If Settings_List.Visible Then Return
         CaptureScreen()
     End Sub
 
-    Private Sub OnAltF9() Handles _hotkeyService.AltF9Pressed
-        If Settings_List.Visible Then Return
-        ToggleRecording()
-    End Sub
-
-    Private Sub OnAltShiftF10() Handles _hotkeyService.AltShiftF10Pressed
-        If Settings_List.Visible Then Return
-        ToggleInstantReplay()
-    End Sub
-
-    Private Sub OnAltF10() Handles _hotkeyService.AltF10Pressed
-        If Settings_List.Visible Then Return
-        SaveInstantReplay()
-    End Sub
-
-    Private Sub OnAltF3() Handles _hotkeyService.AltF3Pressed
-        If Settings_List.Visible Then Return
-        ToggleGameFilter()
-    End Sub
-
-    Private Sub OnAltF2() Handles _hotkeyService.AltF2Pressed
+    Private Sub Mode2() Handles _hotkeyService.Key_PhotosToggle
         If Settings_List.Visible Then Return
         ShowNotifier("notificationWarningNvidiaGpuRequired")
     End Sub
 
-    Private Sub OnAltF8() Handles _hotkeyService.AltF8Pressed
+    Private Sub Mode3() Handles _hotkeyService.Key_GameFilterToggle
+        If Settings_List.Visible Then Return
+        ToggleGameFilter()
+    End Sub
+
+
+
+
+
+
+
+
+
+
+    'Shadowplay
+
+
+
+    Private Sub Run_InstantReplayToggle() Handles _hotkeyService.Key_InstantReplayToggle
+        If Settings_List.Visible Then Return
+        ToggleInstantReplay()
+    End Sub
+
+    Private Sub Run_InstantReplaySave() Handles _hotkeyService.Key_InstantReplaySave
+        If Settings_List.Visible Then Return
+        SaveInstantReplay()
+    End Sub
+
+
+
+
+    Private Sub Run_ManualRecordToggle() Handles _hotkeyService.Key_ManualRecordToggle
+        If Settings_List.Visible Then Return
+        ToggleRecording()
+    End Sub
+
+    Private Sub Run_BroadcastToggle() Handles _hotkeyService.Key_BroadcastToggle
         If Settings_List.Visible Then Return
         ShowNotifier("feature_not_ready")
     End Sub
 
-    Private Sub OnAltF12() Handles _hotkeyService.AltF12Pressed
-        If Settings_List.Visible Then Return
-        ShowNotifier("feature_not_ready")
-    End Sub
 
-    Private Sub OnAltT() Handles _hotkeyService.AltTPressed
+
+
+
+
+
+
+    Private Sub TestNotifier() Handles _hotkeyService.Key_TestNotifier
         If Settings_List.Visible Then Return
         ShowNotifier("notificationOpenShare")
     End Sub

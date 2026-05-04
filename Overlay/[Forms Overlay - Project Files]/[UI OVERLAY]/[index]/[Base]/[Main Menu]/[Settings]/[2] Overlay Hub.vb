@@ -49,5 +49,6 @@ Public Class Base_Overlay_Hub
         Me.Hide()
         Base_Settings.Show()
         Base.AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+        Base.Settings_List.Visible = True
     End Sub
 End Class
