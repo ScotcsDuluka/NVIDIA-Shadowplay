@@ -58,18 +58,20 @@ Partial Public Class Base
         shadowplay.Visible = False
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
-        AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
 
-        'Dim t As New Timer With {.Interval = 20}
-        'AddHandler t.Tick, Sub(s, e)
-        't.Stop()
-        Base_Settings.Opacity = 1
+        Dim t As New Timer With {.Interval = 20}
+        AddHandler t.Tick, Sub(s, e)
+                               t.Stop()
+                               Base_Settings.Opacity = 1
                                Me.Opacity = 1
-        'End Sub
-        't.Start()
+
+                               AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+                           End Sub
+        t.Start()
     End Sub
     Private Sub set_to_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click, Settings_Box.Click, Settings_Text.Click
         OpenSettings()
+        IF_OpenShare = False
     End Sub
     Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove
         SetSettingsBorder(True)
@@ -300,8 +302,19 @@ Partial Public Class Base
         a_3.Visible = False
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
-        AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
+        Base_Gallery.Opacity = 0
         Base_Gallery.Show()
+
+
+        Dim TIME As New Timer With {.Interval = 20}
+        AddHandler TIME.Tick, Sub(s, MIEXXXXXXX)
+                                  TIME.Stop()
+
+                                  AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
+                                  Base_Gallery.Opacity = 1
+                              End Sub
+        TIME.Start()
+
     End Sub
 
 #End Region
@@ -591,26 +604,31 @@ Partial Public Class Base
         vd1.BackColor = grayColor
     End Sub
 
-    Public Sub OpenSettings_Sub()
-        Me.Opacity = 0
 
-        Base_Background_Top.Bg_SET3.Visible = False
-        ME_CLOSE_BG.Visible = False
-        clickThrough = True
-        a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
-        Settings_List.Visible = True
-        shadowplay.Visible = False
-        Menu_Replay.Visible = False
-        Menu_Record.Visible = False
-
-        Me.Opacity = 1
-
-                           End Sub
 
     Public Sub OpenRecordings()
-        OpenSettings_Sub()
+        Menu_Replay.Visible = False
+        Menu_Record.Visible = False
+        sha1.Hide()
+        sha2.Hide()
+        sha3.Hide()
+        sha4.Hide()
 
-        OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
+        Dim t As New Timer With {.Interval = 10}
+        AddHandler t.Tick, Sub(s, e)
+                               t.Stop()
+
+                               OpenSettings()
+                           End Sub
+        t.Start()
+
+        Dim td As New Timer With {.Interval = 20}
+        AddHandler td.Tick, Sub(s, e)
+                                td.Stop()
+
+                                OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
+                           End Sub
+        td.Start()
     End Sub
 
     Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, videoCapture_Text.Click, videoCapture_ICO.Click

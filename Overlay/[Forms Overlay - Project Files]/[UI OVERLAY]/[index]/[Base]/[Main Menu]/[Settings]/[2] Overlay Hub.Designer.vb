@@ -164,11 +164,11 @@ Partial Class Base_Overlay_Hub
         ' 
         ' action_fn
         ' 
-        action_fn.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
-        action_fn.Location = New Point(80, 115)
+        action_fn.Location = New Point(80, 110)
         action_fn.Name = "action_fn"
         action_fn.Size = New Size(200, 50)
         action_fn.TabIndex = 58
@@ -178,9 +178,9 @@ Partial Class Base_Overlay_Hub
         ' PictureBox6
         ' 
         PictureBox6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        PictureBox6.Location = New Point(454, -16)
+        PictureBox6.Location = New Point(-46, -16)
         PictureBox6.Name = "PictureBox6"
-        PictureBox6.Size = New Size(1435, 176)
+        PictureBox6.Size = New Size(1935, 176)
         PictureBox6.TabIndex = 46
         PictureBox6.TabStop = False
         ' 

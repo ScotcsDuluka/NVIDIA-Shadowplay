@@ -343,7 +343,6 @@
 
 	<ItemGroup>
 		<Folder Include="Resources\" />
-		<Folder Include="[Forms Overlay - Project Files]\[API]\[Models]\" />
 	</ItemGroup>
 
 	<ItemGroup>

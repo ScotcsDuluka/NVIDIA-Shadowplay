@@ -34,8 +34,8 @@ Partial Class sha1
         FormBorderStyle = FormBorderStyle.None
         Name = "sha1"
         Opacity = 0R
+        StartPosition = FormStartPosition.CenterScreen
         Text = "test"
-        TopMost = True
         ResumeLayout(False)
     End Sub
 End Class

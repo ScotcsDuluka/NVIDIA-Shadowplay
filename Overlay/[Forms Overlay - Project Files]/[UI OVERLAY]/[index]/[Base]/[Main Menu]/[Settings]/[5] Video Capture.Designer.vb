@@ -95,7 +95,6 @@ Partial Class Base_RecordingsSet
         captrueblock_ico = New Label()
         captrueblock = New Label()
         action_fn = New Label()
-        text_settings = New Label()
         vdo_resetall = New Label()
         Quality = New Timer(components)
         PictureBox9 = New PictureBox()
@@ -103,6 +102,7 @@ Partial Class Base_RecordingsSet
         PictureBox11 = New PictureBox()
         Label5 = New Label()
         PictureBox22 = New PictureBox()
+        text_settings = New Label()
         setret.SuspendLayout()
         Panel_SetVDO.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -160,6 +160,7 @@ Partial Class Base_RecordingsSet
         ' 
         Panel_SetVDO.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel_SetVDO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Panel_SetVDO.Controls.Add(text_settings)
         Panel_SetVDO.Controls.Add(settings_top)
         Panel_SetVDO.Controls.Add(Panel_SET)
         Panel_SetVDO.Location = New Point(0, 0)
@@ -1003,19 +1004,6 @@ Partial Class Base_RecordingsSet
         action_fn.Text = "Saved"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' text_settings
-        ' 
-        text_settings.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Right
-        text_settings.BackColor = Color.Black
-        text_settings.Font = New Font("Segoe UI Semibold", 14F, FontStyle.Bold)
-        text_settings.ForeColor = Color.White
-        text_settings.Location = New Point(1420, 233)
-        text_settings.Name = "text_settings"
-        text_settings.Size = New Size(200, 759)
-        text_settings.TabIndex = 59
-        text_settings.Text = "Settings"
-        text_settings.TextAlign = ContentAlignment.TopCenter
-        ' 
         ' vdo_resetall
         ' 
         vdo_resetall.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Right
@@ -1088,6 +1076,18 @@ Partial Class Base_RecordingsSet
         PictureBox22.TabIndex = 72
         PictureBox22.TabStop = False
         ' 
+        ' text_settings
+        ' 
+        text_settings.AutoSize = True
+        text_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        text_settings.Font = New Font("Segoe UI", 17F, FontStyle.Bold)
+        text_settings.ForeColor = Color.White
+        text_settings.Location = New Point(62, 43)
+        text_settings.Name = "text_settings"
+        text_settings.Size = New Size(46, 31)
+        text_settings.TabIndex = 122
+        text_settings.Text = "VD"
+        ' 
         ' Base_RecordingsSet
         ' 
         AutoScaleMode = AutoScaleMode.None
@@ -1103,7 +1103,6 @@ Partial Class Base_RecordingsSet
         Controls.Add(setret)
         Controls.Add(Label5)
         Controls.Add(vdo_resetall)
-        Controls.Add(text_settings)
         DoubleBuffered = True
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
@@ -1117,6 +1116,7 @@ Partial Class Base_RecordingsSet
         setret.ResumeLayout(False)
         setret.PerformLayout()
         Panel_SetVDO.ResumeLayout(False)
+        Panel_SetVDO.PerformLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         Panel_SET.ResumeLayout(False)
         Panel_SET.PerformLayout()
@@ -1177,7 +1177,6 @@ Partial Class Base_RecordingsSet
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents Label13 As Label
     Friend WithEvents fps As TextBox
-    Friend WithEvents text_settings As Label
     Friend WithEvents C_R As PictureBox
     Friend WithEvents C_L As PictureBox
     Friend WithEvents H_R As PictureBox
@@ -1234,4 +1233,5 @@ Partial Class Base_RecordingsSet
     Friend WithEvents setret As Panel
     Friend WithEvents Label5 As Label
     Friend WithEvents PictureBox22 As PictureBox
+    Friend WithEvents text_settings As Label
 End Class

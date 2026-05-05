@@ -36,20 +36,39 @@ Public Class Base_Privacy_Control
     End Sub
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
-        Me.Hide()
+        Hide()
         Base_Settings.Show()
         Base.AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
         Base.Settings_List.Visible = True
     End Sub
+    Private Sub Base_Privacy_Control_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
 
-    Private Sub py_2_Click(sender As Object, e As EventArgs) Handles py_2.Click
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
-            File.Delete(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\privacy"))
-            py_2.Text = LangHelper.GetText("l10n.instantReplayStart")
+        ' เช็กว่ามีไฟล์ไหม ถ้ามีให้ Toggle ชี้ที่ On
+        TogglePrivacy.IsOn = File.Exists(privacyPath)
+    End Sub
+    Private Sub TogglePrivacy_ValueChanged(sender As Object, e As EventArgs) Handles TogglePrivacy.ValueChanged
+        ' แก้ Path ให้ถูกต้อง (เดิมขาด \ ด้านหลัง StartupPath)
+        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
+
+        If TogglePrivacy.IsOn Then
+            ' เปิด
+            File.Create(privacyPath).Dispose()
         Else
-            File.Create(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy").Dispose()
-            py_2.Text = LangHelper.GetText("l10n.instantReplayStop")
+            ' ปิด
+            If File.Exists(privacyPath) Then File.Delete(privacyPath)
         End If
     End Sub
 
+    Private Sub IF_Use_Engine_Tick(sender As Object, e As EventArgs) Handles IF_Use_Engine.Tick
+        If Base.RecordValue = True Or Base.ReplayValue = True Then
+            TogglePrivacy.Enabled = False
+            captrueblock.Visible = True
+            captrueblock_ico.Visible = True
+        Else
+            TogglePrivacy.Enabled = True
+            captrueblock.Visible = False
+            captrueblock_ico.Visible = False
+        End If
+    End Sub
 End Class

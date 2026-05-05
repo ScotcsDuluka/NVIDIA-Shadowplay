@@ -43,6 +43,7 @@ Public Class Base_Settings
     End Sub
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
+
         Me.Hide()
         Base.ME_CLOSE_BG.Visible = True
         Base.Opacity = 0
@@ -62,6 +63,7 @@ Public Class Base_Settings
                                   TIME.Stop()
                                   Base.ShowMainPanel()
                                   Base.Opacity = 0.85
+                                  Base.IF_OpenShare = True
                               End Sub
         TIME.Start()
 

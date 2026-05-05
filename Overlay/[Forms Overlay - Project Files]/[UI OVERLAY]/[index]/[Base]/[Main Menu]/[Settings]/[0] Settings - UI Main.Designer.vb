@@ -78,7 +78,7 @@ Partial Class Base_Settings
         ' 
         text_sub.Anchor = AnchorStyles.Bottom
         text_sub.BackColor = Color.Transparent
-        text_sub.Font = New Font("Segoe UI Semibold", 13.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        text_sub.Font = New Font("Segoe UI Semibold", 13F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         text_sub.ForeColor = Color.Gray
         text_sub.Location = New Point(115, 130)
         text_sub.Name = "text_sub"
@@ -91,7 +91,7 @@ Partial Class Base_Settings
         ' 
         ICON_1.Anchor = AnchorStyles.Top
         ICON_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ICON_1.Font = New Font("nvgcshare", 120.0F)
+        ICON_1.Font = New Font("nvgcshare", 120F)
         ICON_1.ForeColor = Color.DimGray
         ICON_1.Location = New Point(131, 0)
         ICON_1.Name = "ICON_1"
@@ -123,7 +123,7 @@ Partial Class Base_Settings
         ' 
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
-        action_fn.Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold)
+        action_fn.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
         action_fn.Location = New Point(465, 110)
         action_fn.Name = "action_fn"
@@ -136,7 +136,7 @@ Partial Class Base_Settings
         ' 
         ch.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ch.Cursor = Cursors.Hand
-        ch.Font = New Font("Segoe UI Semibold", 12.0F)
+        ch.Font = New Font("Segoe UI Semibold", 12F)
         ch.ForeColor = Color.White
         ch.Location = New Point(877, 115)
         ch.Name = "ch"
@@ -149,7 +149,7 @@ Partial Class Base_Settings
         ' 
         SW_lang.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         SW_lang.Cursor = Cursors.Hand
-        SW_lang.Font = New Font("Segoe UI Semibold", 12.0F)
+        SW_lang.Font = New Font("Segoe UI Semibold", 12F)
         SW_lang.ForeColor = Color.White
         SW_lang.Location = New Point(671, 115)
         SW_lang.Name = "SW_lang"
@@ -183,7 +183,7 @@ Partial Class Base_Settings
         ' 
         ' Base_Settings
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1545, 819)

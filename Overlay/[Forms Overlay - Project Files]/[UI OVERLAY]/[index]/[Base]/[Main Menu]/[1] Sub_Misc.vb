@@ -74,11 +74,6 @@ Partial Public Class Base
         UpdateMicStatus(True)
     End Sub
 
-    Private Sub not_save_Tick(sender As Object, e As EventArgs) Handles not_save.Tick
-        File.Delete(Path.Combine(Application.StartupPath, DataDirectoryName, "save"))
-        hg1.Start()
-    End Sub
-
 #End Region
 
 #Region "============================================================================ STATUS UPDATE METHODS"

@@ -104,12 +104,7 @@ Partial Public Class Base
 #Region "Toggle Recording (Alt+F9)"
 
     Private Sub PrivacyOpen()
-        Base_Settings.Hide()
-        Base_Overlay_Hub.Hide()
-        Base_KeySet.Hide()
-        Base_RecordingsSet.Hide()
-        Base_Privacy_Control.settings_1.Location = New Point(695, 160)
-        Base_Privacy_Control.Show()
+        OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
     Public Async Sub ToggleRecording()

@@ -31,6 +31,8 @@ Partial Class Base
         Logo = New PictureBox()
         Record_Logo = New Label()
         shadowplay = New Panel()
+        MIC_ICO = New Label()
+        vdo = New Label()
         Menu_Record = New Panel()
         Menu_Record_text = New Label()
         str = New PictureBox()
@@ -95,8 +97,6 @@ Partial Class Base
         s1b = New PictureBox()
         s1 = New PictureBox()
         g1b = New PictureBox()
-        MIC_ICO = New Label()
-        vdo = New Label()
         g1r = New PictureBox()
         g1 = New PictureBox()
         g1l = New PictureBox()
@@ -138,9 +138,9 @@ Partial Class Base
         Settings_List_Text = New Label()
         Settings_index = New PictureBox()
         Settings_List_All = New Panel()
+        videoCapture_Text = New Label()
         Connect_Text = New Label()
         vdo_setme = New Label()
-        videoCapture_Text = New Label()
         PictureBox14 = New PictureBox()
         notifications_Text = New Label()
         notifications_ICO = New Label()
@@ -307,6 +307,8 @@ Partial Class Base
         ' 
         shadowplay.Anchor = AnchorStyles.Top
         shadowplay.BackColor = Color.Red
+        shadowplay.Controls.Add(MIC_ICO)
+        shadowplay.Controls.Add(vdo)
         shadowplay.Controls.Add(Menu_Record)
         shadowplay.Controls.Add(a_3l)
         shadowplay.Controls.Add(Mode_Menu)
@@ -317,8 +319,6 @@ Partial Class Base
         shadowplay.Controls.Add(s1b)
         shadowplay.Controls.Add(s1)
         shadowplay.Controls.Add(g1b)
-        shadowplay.Controls.Add(MIC_ICO)
-        shadowplay.Controls.Add(vdo)
         shadowplay.Controls.Add(g1r)
         shadowplay.Controls.Add(g1)
         shadowplay.Controls.Add(g1l)
@@ -359,7 +359,33 @@ Partial Class Base
         shadowplay.Name = "shadowplay"
         shadowplay.Size = New Size(1280, 384)
         shadowplay.TabIndex = 12
-        shadowplay.Visible = False
+        ' 
+        ' MIC_ICO
+        ' 
+        MIC_ICO.AutoSize = True
+        MIC_ICO.BackColor = Color.Black
+        MIC_ICO.Font = New Font("nvgcshare", 20.25F)
+        MIC_ICO.ForeColor = Color.White
+        MIC_ICO.Location = New Point(1232, 199)
+        MIC_ICO.Name = "MIC_ICO"
+        MIC_ICO.Size = New Size(39, 27)
+        MIC_ICO.TabIndex = 21
+        MIC_ICO.Text = ""
+        MIC_ICO.Visible = False
+        ' 
+        ' vdo
+        ' 
+        vdo.AutoSize = True
+        vdo.BackColor = Color.Black
+        vdo.Cursor = Cursors.No
+        vdo.Font = New Font("nvgcshare", 20.25F)
+        vdo.ForeColor = Color.White
+        vdo.Location = New Point(1232, 173)
+        vdo.Name = "vdo"
+        vdo.Size = New Size(39, 27)
+        vdo.TabIndex = 22
+        vdo.Text = ""
+        vdo.Visible = False
         ' 
         ' Menu_Record
         ' 
@@ -1085,7 +1111,7 @@ Partial Class Base
         Settings_Text.ForeColor = Color.White
         Settings_Text.Location = New Point(1114, 172)
         Settings_Text.Name = "Settings_Text"
-        Settings_Text.Size = New Size(116, 56)
+        Settings_Text.Size = New Size(141, 56)
         Settings_Text.TabIndex = 81
         Settings_Text.Text = "l10n.settings"
         Settings_Text.TextAlign = ContentAlignment.MiddleLeft
@@ -1139,33 +1165,6 @@ Partial Class Base
         g1b.TabIndex = 75
         g1b.TabStop = False
         g1b.Visible = False
-        ' 
-        ' MIC_ICO
-        ' 
-        MIC_ICO.AutoSize = True
-        MIC_ICO.BackColor = Color.Black
-        MIC_ICO.Font = New Font("nvgcshare", 20.25F)
-        MIC_ICO.ForeColor = Color.White
-        MIC_ICO.Location = New Point(1232, 199)
-        MIC_ICO.Name = "MIC_ICO"
-        MIC_ICO.Size = New Size(39, 27)
-        MIC_ICO.TabIndex = 21
-        MIC_ICO.Text = ""
-        MIC_ICO.Visible = False
-        ' 
-        ' vdo
-        ' 
-        vdo.AutoSize = True
-        vdo.BackColor = Color.Black
-        vdo.Cursor = Cursors.No
-        vdo.Font = New Font("nvgcshare", 20.25F)
-        vdo.ForeColor = Color.White
-        vdo.Location = New Point(1232, 173)
-        vdo.Name = "vdo"
-        vdo.Size = New Size(39, 27)
-        vdo.TabIndex = 22
-        vdo.Text = ""
-        vdo.Visible = False
         ' 
         ' g1r
         ' 
@@ -1634,9 +1633,9 @@ Partial Class Base
         Settings_List_All.AutoScroll = True
         Settings_List_All.AutoScrollMargin = New Size(0, 1)
         Settings_List_All.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Settings_List_All.Controls.Add(videoCapture_Text)
         Settings_List_All.Controls.Add(Connect_Text)
         Settings_List_All.Controls.Add(vdo_setme)
-        Settings_List_All.Controls.Add(videoCapture_Text)
         Settings_List_All.Controls.Add(PictureBox14)
         Settings_List_All.Controls.Add(notifications_Text)
         Settings_List_All.Controls.Add(notifications_ICO)
@@ -1673,10 +1672,23 @@ Partial Class Base
         Settings_List_All.Controls.Add(ab_bg)
         Settings_List_All.Controls.Add(saved_e1)
         Settings_List_All.Controls.Add(Connect_Box_Sub)
-        Settings_List_All.Location = New Point(30, 93)
+        Settings_List_All.Location = New Point(30, 83)
         Settings_List_All.Name = "Settings_List_All"
-        Settings_List_All.Size = New Size(361, 622)
+        Settings_List_All.Size = New Size(361, 632)
         Settings_List_All.TabIndex = 73
+        ' 
+        ' videoCapture_Text
+        ' 
+        videoCapture_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        videoCapture_Text.Cursor = Cursors.Hand
+        videoCapture_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        videoCapture_Text.ForeColor = Color.White
+        videoCapture_Text.Location = New Point(60, 321)
+        videoCapture_Text.Name = "videoCapture_Text"
+        videoCapture_Text.Size = New Size(233, 30)
+        videoCapture_Text.TabIndex = 83
+        videoCapture_Text.Text = "l10n.videoCapture"
+        videoCapture_Text.TextAlign = ContentAlignment.BottomLeft
         ' 
         ' Connect_Text
         ' 
@@ -1695,26 +1707,13 @@ Partial Class Base
         ' 
         vdo_setme.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         vdo_setme.Cursor = Cursors.Hand
-        vdo_setme.Font = New Font("Segoe UI Semibold", 7F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        vdo_setme.Font = New Font("Segoe UI Semibold", 8F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         vdo_setme.ForeColor = Color.Gray
-        vdo_setme.Location = New Point(61, 350)
+        vdo_setme.Location = New Point(61, 351)
         vdo_setme.Name = "vdo_setme"
-        vdo_setme.Size = New Size(232, 26)
+        vdo_setme.Size = New Size(232, 25)
         vdo_setme.TabIndex = 68
-        vdo_setme.Text = "Instant Replay, Record, and Highlight"
-        ' 
-        ' videoCapture_Text
-        ' 
-        videoCapture_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        videoCapture_Text.Cursor = Cursors.Hand
-        videoCapture_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        videoCapture_Text.ForeColor = Color.White
-        videoCapture_Text.Location = New Point(60, 321)
-        videoCapture_Text.Name = "videoCapture_Text"
-        videoCapture_Text.Size = New Size(233, 40)
-        videoCapture_Text.TabIndex = 83
-        videoCapture_Text.Text = "l10n.videoCapture"
-        videoCapture_Text.TextAlign = ContentAlignment.MiddleLeft
+        vdo_setme.Text = "Instant Replay, Record, and Highlight" & vbCrLf
         ' 
         ' PictureBox14
         ' 

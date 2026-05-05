@@ -2,11 +2,13 @@
 Partial Public Class Base
 
 #Region "Hotkey Event Handlers"
+    Public IF_OpenShare As Boolean = True
 
     Private Sub Run_OpenShare() Handles _hotkeyService.Key_OpenShare
-        If Settings_List.Visible Then Return
-        If Base_Gallery.Visible Then Return
+        If IF_OpenShare = False Then Return
+
         isFunctionActive_f3 = False
+
         If shadowplay.Visible = True Then
             HideAllControls()
             shadowplay.Visible = False
@@ -29,17 +31,17 @@ Partial Public Class Base
 
 
     Private Sub Mode1() Handles _hotkeyService.Key_CaptureScreen
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         CaptureScreen()
     End Sub
 
     Private Sub Mode2() Handles _hotkeyService.Key_PhotosToggle
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         ShowNotifier("notificationWarningNvidiaGpuRequired")
     End Sub
 
     Private Sub Mode3() Handles _hotkeyService.Key_GameFilterToggle
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         ToggleGameFilter()
     End Sub
 
@@ -57,12 +59,12 @@ Partial Public Class Base
 
 
     Private Sub Run_InstantReplayToggle() Handles _hotkeyService.Key_InstantReplayToggle
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         ToggleInstantReplay()
     End Sub
 
     Private Sub Run_InstantReplaySave() Handles _hotkeyService.Key_InstantReplaySave
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         SaveInstantReplay()
     End Sub
 
@@ -70,12 +72,12 @@ Partial Public Class Base
 
 
     Private Sub Run_ManualRecordToggle() Handles _hotkeyService.Key_ManualRecordToggle
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         ToggleRecording()
     End Sub
 
     Private Sub Run_BroadcastToggle() Handles _hotkeyService.Key_BroadcastToggle
-        If Settings_List.Visible Then Return
+        If Base_KeySet.Visible Then Return
         ShowNotifier("feature_not_ready")
     End Sub
 
@@ -87,7 +89,7 @@ Partial Public Class Base
 
 
     Private Sub TestNotifier() Handles _hotkeyService.Key_TestNotifier
-        If Settings_List.Visible Then Return
+        If IF_OpenShare = False Then Return
         ShowNotifier("notificationOpenShare")
     End Sub
 
@@ -105,7 +107,6 @@ Partial Public Class Base
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
         Settings_List.Visible = False
-        shadowplay.Visible = True
         a_1.Visible = False
         a_2.Visible = False
         a_3.Visible = False

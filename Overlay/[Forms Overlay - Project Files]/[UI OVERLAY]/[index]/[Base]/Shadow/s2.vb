@@ -25,7 +25,7 @@ Public Class sha2
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
 
-    Private Sub HideFromAltTab()
+    Public Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
         Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
         SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)

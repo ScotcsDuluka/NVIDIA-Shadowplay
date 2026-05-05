@@ -178,20 +178,20 @@ Partial Public Class Base
         SetHoverEffect(Base_Settings.action_fn, HoverColorGR, LeaveColorGR)
 
         '1
-        SetHoverEffect(Base_Connect.action_fn, HoverColorG, LeaveColorG)
+        SetHoverEffect(Base_Connect.action_fn, HoverColorGR, LeaveColorGR)
 
         '2
-        SetHoverEffect(Base_Overlay_Hub.action_fn, HoverColorG, LeaveColorG)
+        SetHoverEffect(Base_Overlay_Hub.action_fn, HoverColorGR, LeaveColorGR)
 
         '4
         SetHoverEffect(Base_KeySet.action_fn, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_KeySet.Reset, HoverColorG, LeaveColorG)
 
         '5
         SetHoverEffect(Base_RecordingsSet.action_fn, HoverColorGR, LeaveColorGR)
 
         '7
         SetHoverEffect(Base_Privacy_Control.action_fn, HoverColorGR, LeaveColorGR)
-        SetHoverEffect(Base_Privacy_Control.py_2, HoverColorG, LeaveColorG)
     End Sub
 
 #Region "============================================================================ FORM LOAD & INITIALIZATION"
@@ -361,16 +361,6 @@ Partial Public Class Base
         ' ปัดเป็น step 1 นาที (หรือจะเปลี่ยนเป็น 5 นาที ก็แก้ตรงนี้)
         Return savedMinutes
     End Function
-
-    Private Sub UpdatePrivacyToggleText()
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)
-        Base_Privacy_Control.py_2.Text = If(
-            My.Computer.FileSystem.FileExists(privacyPath),
-            L("l10n.instantReplayStop"),
-            L("l10n.instantReplayStart")
-        )
-    End Sub
-
     Private Sub Lang_Tick(sender As Object, e As EventArgs) Handles Lang.Tick
         ' Base_Background_Top
         Base_Background_Top.Logo_text.Text = L("l10n.nvidiashadowplay")
@@ -390,23 +380,18 @@ Partial Public Class Base
         ' Base_Game_Filter
         Base_Game_Filter.Home_settings.Text = L("l10n.mods")
 
-        ' Base_KeySet
-        With Base_KeySet
-            .Key_Tx.Text = L("l10n.keyboardShortcuts")
-            .action_fn.Text = L("l10n.Saved")
-            .Reset.Text = L("l10n.resetAll")
-        End With
 
         ' Base_Privacy Control
         With Base_Privacy_Control
-            .Label4.Text = L("l10n.settingsPrivacySwitch")
+            .Label4.Text = L("l10n.privacyControl")
             .Label2.Text = L("l10n.settingsPrivacyDescribe")
             .action_fn.Text = L("l10n.back")
+            .captrueblock.Text = L("l10n.settingsVideoCaptureDisable")
         End With
-        UpdatePrivacyToggleText()
+        CheckPrivacyControl()
 
         With Base_Overlay_Hub
-            ' .text_settings.Text = L("l10n.hudLayout")
+            '.text_settings.Text = L("l10n.hudLayout")
             .action_fn.Text = L("l10n.back")
             .Label4.Text = L("l10n.overlays")
         End With
@@ -443,6 +428,13 @@ Partial Public Class Base
             .action_fn.Text = L("l10n.back")
         End With
 
+
+        ' Base_KeySet
+        With Base_KeySet
+            .text_settings.Text = L("l10n.keyboardShortcuts")
+            .action_fn.Text = L("l10n.done")
+            .Reset.Text = L("l10n.resetAll")
+        End With
         With Base_KeySet
             .lblCat_General.Text = L("l10n.general")
             .Desc_ToggleOverlay.Text = L("l10n.openShare")
@@ -559,11 +551,8 @@ Partial Public Class Base
 
     Private Sub CheckPrivacyControl()
         Dim privacyPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)
-        Base_Privacy_Control.py_2.Text = If(
-            My.Computer.FileSystem.FileExists(privacyPath),
-            LangHelper.GetText("l10n.instantReplayStop"),
-           LangHelper.GetText("l10n.instantReplayStart")
-        )
+
+        Base_Privacy_Control.TogglePrivacy.IsOn = File.Exists(privacyPath)
     End Sub
 
 #End Region
@@ -687,7 +676,6 @@ Partial Public Class Base
     End Sub
 
 
-
     Private shas As Control()
     Private lastMode As String = ""
 
@@ -695,18 +683,28 @@ Partial Public Class Base
         lastMode = "None"
         shas = {sha1, sha2, sha3, sha4}
 
+
         For Each s In shas
-            s.Show()
-            s.Visible = False
+            If s IsNot Nothing Then
+                s.Opacity = 0
+                s.Show()
+                s.Visible = False
+            End If
         Next
 
+        Dim initTimer As New System.Windows.Forms.Timer With {.Interval = 100}
+        AddHandler initTimer.Tick, Sub()
+                                       initTimer.Stop()
+                                       initTimer.Dispose()
+                                   End Sub
+        initTimer.Start()
     End Sub
 
     Public Sub ShadowLoad()
-        Dim shas = {sha1, sha2, sha3, sha4}
+        If shas Is Nothing Then Return
 
         Dim currentMode As String = ""
-        Dim newSize As Size
+        Dim newSize As Size = Size.Empty
 
         If Menu_Replay.Visible Then
             currentMode = "Replay"
@@ -716,6 +714,7 @@ Partial Public Class Base
             currentMode = "None"
         End If
 
+        ' ทำงานเฉพาะเมื่อโหมดเปลี่ยน
         If currentMode <> lastMode Then
             lastMode = currentMode
 
@@ -723,67 +722,52 @@ Partial Public Class Base
 
             Select Case currentMode
                 Case "None"
-                    target = Nothing
-                    newSize = New Size(0, 0)
+                    For Each s In shas
+                        If s IsNot Nothing Then s.Hide()
+                    Next
+                    Base_Background_Top.b2_all.Visible = False
+                    Base_Background_Top.b1_all.Visible = False
+                    Exit Sub
 
                 Case "Replay"
                     target = bg_action
-                    If ReplayValue = False Then
-                        newSize = New Size(240, 329)
-                    Else
-                        newSize = New Size(240, 373)
-                    End If
+                    newSize = If(ReplayValue, New Size(240, 373), New Size(240, 329))
 
                 Case "Record"
                     target = a_2r
                     newSize = New Size(240, 329)
             End Select
 
-            If currentMode = "None" Then
-                For Each s In shas
-                    s.Hide()
-                Next
-                Base_Background_Top.b2_all.Visible = False
-                Base_Background_Top.b1_all.Visible = False
-                Exit Sub
-            End If
+            ' ป้องกัน Null Reference ถ้า Control หาย
+            If target Is Nothing Then Return
 
             Dim screenPos As Point = shadowplay.PointToScreen(target.Location)
 
             Using g As Graphics = Me.CreateGraphics()
                 Dim scale As Single = g.DpiX / 96.0F
+                Dim posX As Integer = CInt(screenPos.X / scale)
+                Dim posY As Integer = CInt(screenPos.Y / scale)
 
                 For Each s In shas
-                    s.Location = New Point(
-                    CInt(screenPos.X / scale),
-                    CInt(screenPos.Y / scale)
-                )
-
+                    If s Is Nothing Then Continue For
+                    s.Location = New Point(posX, posY)
                     s.Size = newSize
                 Next
             End Using
 
-
-            If Menu_Record.Visible = True Then
-                Base_Background_Top.b2_all.Visible = True
-            Else
-                Base_Background_Top.b2_all.Visible = False
-            End If
-            If Menu_Replay.Visible = True Then
-                Base_Background_Top.b1_all.Visible = True
-            Else
-                Base_Background_Top.b1_all.Visible = False
-            End If
+            ' จัดการสถานะการแสดงผล
+            Base_Background_Top.b2_all.Visible = (currentMode = "Record")
+            Base_Background_Top.b1_all.Visible = (currentMode = "Replay")
 
             For Each s In shas
+                If s Is Nothing Then Continue For
                 s.Show()
                 s.TopMost = False
+                s.Opacity = 1
             Next
-
-
         End If
-
     End Sub
+
     Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
         If shadowplay.Visible = False Then
             Base_Background_Top.d.Visible = False
@@ -799,30 +783,29 @@ Partial Public Class Base
 
         If animationRunning Then Return
 
-        If ReplayValue = False Then
-            If Menu_Replay.Height = 133 Then
-                If Menu_Record.Visible Then
-                    sha1.Size = New Size(240, 329)
-                    sha2.Size = New Size(240, 329)
-                    sha3.Size = New Size(240, 329)
-                    sha4.Size = New Size(240, 329)
-                    Return
-                End If
-                ANH_Group(
+        ' ขนาดเป้าหมายสำหรับ Shadow
+        Dim shadowSize As Size = If(ReplayValue, New Size(240, 373), New Size(240, 329))
+
+        If Not ReplayValue AndAlso Menu_Replay.Height = 133 Then
+            If Menu_Record.Visible Then
+                ' ใช้ Loop แทนการเขียนซ้ำ 4 ครั้ง
+                For Each s In shas
+                    If s IsNot Nothing Then s.Size = New Size(240, 329)
+                Next
+                Return
+            End If
+
+            ANH_Group(
                 {Menu_Replay, sha1, sha2, sha3, sha4, Base_Background_Top.b1_all},
                 {133, 373, 373, 373, 373, 373},
                 {89, 329, 329, 329, 329, 329},
                 300)
-            End If
-        Else
-            If Menu_Replay.Height = 89 Then
-                ANH_Group(
+        ElseIf ReplayValue AndAlso Menu_Replay.Height = 89 Then
+            ANH_Group(
                 {Menu_Replay, sha1, sha2, sha3, sha4, Base_Background_Top.b1_all},
                 {89, 329, 329, 329, 329, 329},
                 {133, 373, 373, 373, 373, 373},
                 300)
-            End If
         End If
     End Sub
-
 End Class

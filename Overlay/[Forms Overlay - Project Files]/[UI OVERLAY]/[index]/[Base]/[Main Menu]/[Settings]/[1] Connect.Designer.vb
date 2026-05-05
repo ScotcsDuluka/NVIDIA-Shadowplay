@@ -190,11 +190,11 @@ Partial Class Base_Connect
         ' 
         ' action_fn
         ' 
-        action_fn.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         action_fn.ForeColor = Color.White
-        action_fn.Location = New Point(80, 115)
+        action_fn.Location = New Point(80, 110)
         action_fn.Name = "action_fn"
         action_fn.Size = New Size(200, 50)
         action_fn.TabIndex = 58
