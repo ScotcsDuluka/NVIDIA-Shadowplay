@@ -2573,30 +2573,11 @@ Namespace CaptureCore
         End Sub
 
         Private Sub BuildQSVRateControl(sb As StringBuilder, Optional isHEVC As Boolean = False)
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' ✅ QSV Rate Control
-            ' 
-            ' FFmpeg docs example (tested and working for H264):
-            '   ffmpeg -init_hw_device d3d11va:,vendor_id=0x8086 
-            '          -filter_complex ddagrab=0,hwmap=derive_device=qsv,format=qsv 
-            '          -c:v h264_qsv -global_quality 20 output.mkv
-            '
-            ' 🔧 FIX: HEVC QSV 在某些 Intel GPU 上不支持 global_quality (ICQ 模式)
-            '         错误: "Error querying encoder params: unsupported (-3)"
-            '         
-            '         Intel UHD Graphics 可能对 HEVC 编码支持有限
-            '         尝试使用简单的 VBR 模式
-            ' ═══════════════════════════════════════════════════════════════════════
-            If isHEVC Then
-                ' HEVC QSV: 尝试使用 VBR 模式
-                ' 不使用 -load_plugin，直接使用简单参数
-                sb.Append("-b:v ")
-                sb.Append(_bitrate)
-                sb.Append("k ")
-            Else
-                ' H264 QSV: global_quality 工作正常
-                sb.Append("-global_quality 20 ")
-            End If
+            sb.Append("-b:v ")
+            sb.Append(_bitrate)
+            sb.Append("k -maxrate ")
+            sb.Append(_bitrate * 2)
+            sb.Append("k ")
         End Sub
 
         Private Sub BuildAMFRateControl(sb As StringBuilder)
