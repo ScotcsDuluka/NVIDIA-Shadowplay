@@ -156,8 +156,33 @@ Partial Public Class Base
 
 #End Region
 
+    Private Sub SetGroupHoverEffect(hoverColor As Color, leaveColor As Color, ParamArray ctrls() As Control)
+        For Each ctrl As Control In ctrls
+            AddHandler ctrl.MouseEnter, Sub()
+                                            For Each c As Control In ctrls
+                                                c.BackColor = hoverColor
+                                            Next
+                                        End Sub
+            AddHandler ctrl.MouseLeave, Sub()
+                                            Dim mousePos As Point = Cursor.Position
+                                            Dim stillOver As Boolean = False
+                                            For Each c As Control In ctrls
+                                                If c.RectangleToScreen(c.ClientRectangle).Contains(mousePos) Then
+                                                    stillOver = True
+                                                    Exit For
+                                                End If
+                                            Next
+                                            If Not stillOver Then
+                                                For Each c As Control In ctrls
+                                                    c.BackColor = leaveColor
+                                                Next
+                                            End If
+                                        End Sub
+        Next
+    End Sub
+
     Private Sub SetHoverEffect(ctrl As Control, hoverColor As Color, leaveColor As Color)
-        AddHandler ctrl.MouseMove, Sub() ctrl.BackColor = hoverColor
+        AddHandler ctrl.MouseEnter, Sub() ctrl.BackColor = hoverColor
         AddHandler ctrl.MouseLeave, Sub() ctrl.BackColor = leaveColor
     End Sub
 
@@ -167,7 +192,38 @@ Partial Public Class Base
     Private ReadOnly HoverColorGR As Color = Color.Green
     Private ReadOnly LeaveColorGR As Color = Color.FromArgb(118, 185, 0)
 
+    Private ReadOnly HVDG As Color = Color.FromArgb(53, 55, 58)
+    Private ReadOnly VDG As Color = Color.FromArgb(33, 35, 38)
+
+    Private ReadOnly HVDGR As Color = Color.Green
+    Private ReadOnly VDGR As Color = Color.FromArgb(118, 185, 0)
+
+    Private Sub Sub_VDUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        'VD — กลุ่ม FPS
+        SetGroupHoverEffect(HVDG, VDG,
+        Base_RecordingsSet.FPS_BOX,
+        Base_RecordingsSet.fps_bg,
+        Base_RecordingsSet.FPS_DROP)
+
+        'VD — กลุ่ม Preset (P)
+        SetGroupHoverEffect(HVDG, VDG,
+        Base_RecordingsSet.P_BOX,
+        Base_RecordingsSet.P_bg)
+
+        'VD — กลุ่ม Resolution
+        SetGroupHoverEffect(HVDG, VDG,
+        Base_RecordingsSet.Resolution_bg,
+        Base_RecordingsSet.Resolution_BOX,
+        Base_RecordingsSet.Resolution_DROP)
+
+        'VD — กลุ่ม Encoder
+        SetGroupHoverEffect(HVDG, VDG,
+        Base_RecordingsSet.cmbEncoder,
+        Base_RecordingsSet.Encoder_DROP,
+        Base_RecordingsSet.Encoder_bg)
+    End Sub
     Private Sub MainUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
         'gallery
         SetHoverEffect(Base_Gallery.Saved_l10n, HoverColorGR, LeaveColorGR)
         SetHoverEffect(Base_Gallery.Openloaction_l10n, HoverColorG, LeaveColorG)
@@ -176,6 +232,8 @@ Partial Public Class Base
         SetHoverEffect(Base_Settings.SW_lang, HoverColorG, LeaveColorG)
         SetHoverEffect(Base_Settings.ch, HoverColorG, LeaveColorG)
         SetHoverEffect(Base_Settings.action_fn, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_Settings.btnExportSettings, HoverColorG, LeaveColorG)
+        SetHoverEffect(Base_Settings.btnImportSettings, HoverColorG, LeaveColorG)
 
         '1
         SetHoverEffect(Base_Connect.action_fn, HoverColorGR, LeaveColorGR)
@@ -189,6 +247,7 @@ Partial Public Class Base
 
         '5
         SetHoverEffect(Base_RecordingsSet.action_fn, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_RecordingsSet.vdo_resetall, HoverColorG, LeaveColorG)
 
         '7
         SetHoverEffect(Base_Privacy_Control.action_fn, HoverColorGR, LeaveColorGR)
@@ -220,18 +279,49 @@ Partial Public Class Base
     wParam As IntPtr, lParam As IntPtr
 ) As IntPtr
     Private Const WM_SETREDRAW As Integer = &HB
+
+
+
+
+
+    Private Sub Highlight_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+
+        ' โหลดเสียง .mp3 ทั้งหมดจาก NVIDIA_Shadowplay_Data\highlights\
+        Dim count As Integer = HighlightDetector.Instance.LoadTemplates()
+
+        ' ต่อ event
+        AddHandler HighlightDetector.Instance.HighlightDetected, AddressOf OnHighlightDetected
+
+        ' เริ่มฟังเสียง
+        HighlightDetector.Instance.Start()
+    End Sub
+
+    ' เมื่อจับเสียงได้
+    Private Sub OnHighlightDetected(templateName As String, timestamp As DateTime)
+        Debug.WriteLine("HIGHLIGHT: " & templateName)
+        ShowNotifier("feature_not_ready")
+    End Sub
+
+    ' ปิดแอป
+    Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
+        HighlightDetector.Instance.Stop()
+    End Sub
+
+
+
+
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
         HideFromAltTab()
 
         If Not tcp.IsConnected Then
             Debug.WriteLine("[Init] Waiting for server connection...")
-            Await WaitForConnection(30000)
+            ' Await WaitForConnection(30000)
         End If
 
         If Not tcp.IsConnected Then
             Debug.WriteLine("[Init] Cannot connect to server!")
-            Return
+            ' Return
         End If
 
 
@@ -265,7 +355,7 @@ Partial Public Class Base
         If width >= 1680 AndAlso height >= 1050 Then
             ShowNotifier("notificationOpenShare")
         Else
-            ShowNotifier("ErrorResolution")
+            ShowNotifier("notificationErrorResolution")
         End If
         File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
     End Sub
@@ -401,20 +491,42 @@ Partial Public Class Base
             .text_settings.Text = L("l10n.recordings")
             .action_fn.Text = L("l10n.Saved")
             .Label4.Text = L("l10n.videoCapture")
-            .Label1.Text = L("l10n.quality")
+            .quality_main.Text = L("l10n.quality")
+            .Preset_NVIDIA.Text = L("l10n.nvidiaPreset")
+            .Preset_Custom.Text = L("l10n.advanced")
+            .Preset_My_Preset.Text = L("l10n.myPreset")
             .Label10.Text = L("l10n.low")
             .Label8.Text = L("l10n.medium")
             .Label6.Text = L("l10n.high")
+            .ML_TEXT.Text = L("l10n.low")
+            .MM_TEXT.Text = L("l10n.medium")
+            .MH_TEXT.Text = L("l10n.high")
             .C_TEXT.Text = L("l10n.custom")
+            .Recommended_TEXT.Text = L("l10n.pre_recommended")
+            .Maximum_TEXT.Text = L("l10n.maximum")
+            .Encoder_CODE.Text = L("l10n.codecEncoder")
             .Label12.Text = L("l10n.resolution")
             .Label13.Text = L("l10n.framerate")
-            .UpdateBufferLabel(GetClampedReplayDuration())
-            .UpdateBitrateLabel()
             .vdo_resetall.Text = L("l10n.resetToDefaults")
             .captrueblock.Text = L("l10n.settingsVideoCaptureDisable")
             .warm_re.Text = L("l10n.captrueresolutionwarm")
             .custom_main.Text = L("l10n.custom")
             .advanced_main.Text = L("l10n.advanced")
+
+            ' ═══ Dynamic labels
+            .UpdatePresetStatusLabel()    ' lblPresetStatus: "NVIDIA Medium — All settings locked"
+            .UpdateBitrateRangeLabel()    ' lblBitrateRange: "Range: 3.0-50.0 Mbps..."
+            .UpdateBitrateLabel()         ' lblBitrateValue + lblBitratePre: "Bitrate: 8000 kbps (8.0 Mbps)"
+            .UpdateBufferLabel(GetClampedReplayDuration())  ' lbl_BufferDuration + lblReplaySize
+            .UpdateEncoderInfo()          ' lblEncoderInfo: "NVIDIA NVENC - Best Performance"
+            .UpdateCommandPreview()       ' prearg: ffmpeg command
+
+            ' ═══ Resolution text
+            If .Resolution_BOX IsNot Nothing Then
+                Dim curRes As String = AppSettings.Instance.Recording.Preset
+                ' Refresh resolution display with localized text
+                .Resolution_BOX.Text = LangHelper.GetText("l10n.native", ._nativeResolutionWidth & "x" & ._nativeResolutionHeight)
+            End If
         End With
 
         With Base_Settings
@@ -474,7 +586,7 @@ Partial Public Class Base
 #Region "===========================Captrue"
 
         '-Replay
-        Replay_Text.Text = L("l10n.instantReplay")
+        Replay_Text.Text = L("l10n.instantReplay") & " - BETA"
         Replay_Stats.Text = L("l10n.off")
         Menu_Replay_text.Text = L("l10n.instantReplayStart")
         Menu_Replay_save_text.Text = L("l10n.Saved")
@@ -764,6 +876,7 @@ Partial Public Class Base
                 s.Show()
                 s.TopMost = False
                 s.Opacity = 1
+                s.HideFromAltTab()
             Next
         End If
     End Sub
@@ -808,4 +921,5 @@ Partial Public Class Base
                 300)
         End If
     End Sub
+
 End Class

@@ -40,8 +40,8 @@ Partial Class Base_Gallery
         PictureBox7 = New PictureBox()
         Load_l10n = New Label()
         PictureBox3 = New PictureBox()
-        Openloaction_l10n = New Label()
         Base_Submenu = New Panel()
+        Label4 = New Label()
         text_sub = New Label()
         Label2 = New Label()
         Label3 = New Label()
@@ -51,6 +51,7 @@ Partial Class Base_Gallery
         TextBox1 = New TextBox()
         PictureBox1 = New PictureBox()
         PictureBox4 = New PictureBox()
+        Openloaction_l10n = New Label()
         Timer1 = New Timer(components)
         CType(box_settings, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -191,14 +192,14 @@ Partial Class Base_Gallery
         txtFilePath.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         txtFilePath.BorderStyle = BorderStyle.None
         txtFilePath.Enabled = False
-        txtFilePath.Font = New Font("Segoe UI Semibold", 13F, FontStyle.Bold)
+        txtFilePath.Font = New Font("Segoe UI Semilight", 11.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         txtFilePath.ForeColor = Color.White
-        txtFilePath.Location = New Point(157, 186)
-        txtFilePath.Multiline = True
+        txtFilePath.Location = New Point(160, 190)
         txtFilePath.Name = "txtFilePath"
         txtFilePath.ReadOnly = True
-        txtFilePath.Size = New Size(545, 28)
+        txtFilePath.Size = New Size(542, 20)
         txtFilePath.TabIndex = 46
+        txtFilePath.Text = "C:\Users\ScotcsDuluka\Videos\Shadowplay\Gallery"
         txtFilePath.WordWrap = False
         ' 
         ' settings_1
@@ -271,38 +272,37 @@ Partial Class Base_Gallery
         PictureBox3.TabStop = False
         PictureBox3.Visible = False
         ' 
-        ' Openloaction_l10n
-        ' 
-        Openloaction_l10n.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        Openloaction_l10n.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Openloaction_l10n.Cursor = Cursors.Hand
-        Openloaction_l10n.Font = New Font("Segoe UI Semibold", 12F)
-        Openloaction_l10n.ForeColor = Color.White
-        Openloaction_l10n.Location = New Point(1040, 91)
-        Openloaction_l10n.Name = "Openloaction_l10n"
-        Openloaction_l10n.Size = New Size(240, 70)
-        Openloaction_l10n.TabIndex = 70
-        Openloaction_l10n.Text = "Openloaction_l10n"
-        Openloaction_l10n.TextAlign = ContentAlignment.MiddleCenter
-        ' 
         ' Base_Submenu
         ' 
         Base_Submenu.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Base_Submenu.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Base_Submenu.Controls.Add(save_sc)
+        Base_Submenu.Controls.Add(txtFilePath)
+        Base_Submenu.Controls.Add(Label4)
         Base_Submenu.Controls.Add(text_sub)
         Base_Submenu.Controls.Add(Label2)
         Base_Submenu.Controls.Add(Label3)
         Base_Submenu.Controls.Add(Label5)
         Base_Submenu.Controls.Add(LoactionSaved_l10n)
         Base_Submenu.Controls.Add(FlowLayoutPanel1)
-        Base_Submenu.Controls.Add(save_sc)
-        Base_Submenu.Controls.Add(txtFilePath)
         Base_Submenu.Controls.Add(PictureBox1)
         Base_Submenu.Controls.Add(PictureBox4)
         Base_Submenu.Location = New Point(280, 5)
         Base_Submenu.Name = "Base_Submenu"
         Base_Submenu.Size = New Size(720, 235)
         Base_Submenu.TabIndex = 75
+        ' 
+        ' Label4
+        ' 
+        Label4.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label4.Cursor = Cursors.Hand
+        Label4.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label4.ForeColor = Color.White
+        Label4.Location = New Point(157, 186)
+        Label4.Name = "Label4"
+        Label4.Size = New Size(545, 28)
+        Label4.TabIndex = 78
         ' 
         ' text_sub
         ' 
@@ -413,6 +413,20 @@ Partial Class Base_Gallery
         PictureBox4.TabIndex = 66
         PictureBox4.TabStop = False
         ' 
+        ' Openloaction_l10n
+        ' 
+        Openloaction_l10n.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        Openloaction_l10n.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Openloaction_l10n.Cursor = Cursors.Hand
+        Openloaction_l10n.Font = New Font("Segoe UI Semibold", 12F)
+        Openloaction_l10n.ForeColor = Color.White
+        Openloaction_l10n.Location = New Point(1040, 91)
+        Openloaction_l10n.Name = "Openloaction_l10n"
+        Openloaction_l10n.Size = New Size(240, 70)
+        Openloaction_l10n.TabIndex = 70
+        Openloaction_l10n.Text = "Openloaction_l10n"
+        Openloaction_l10n.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Timer1
         ' 
         Timer1.Enabled = True
@@ -479,4 +493,5 @@ Partial Class Base_Gallery
     Friend WithEvents PictureBox7 As PictureBox
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents Timer1 As Timer
+    Friend WithEvents Label4 As Label
 End Class

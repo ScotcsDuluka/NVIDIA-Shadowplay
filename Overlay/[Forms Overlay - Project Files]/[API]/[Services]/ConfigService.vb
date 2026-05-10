@@ -31,6 +31,19 @@ Public Class AppSettings
         Public Property EncoderPreset As Integer = 4
         Public Property ReplayDuration As Integer = 60
 
+        ' ═══ My Preset saved values (Nothing = use default from ScreenRecorder) ═══
+        Public Property MyLowFPS As Integer? = Nothing
+        Public Property MyLowBitrate As Integer? = Nothing
+        Public Property MyLowEncoderPreset As Integer? = Nothing
+
+        Public Property MyMediumFPS As Integer? = Nothing
+        Public Property MyMediumBitrate As Integer? = Nothing
+        Public Property MyMediumEncoderPreset As Integer? = Nothing
+
+        Public Property MyHighFPS As Integer? = Nothing
+        Public Property MyHighBitrate As Integer? = Nothing
+        Public Property MyHighEncoderPreset As Integer? = Nothing
+
         Public Sub New()
         End Sub
     End Class
@@ -461,6 +474,19 @@ Public Class AppSettings
         Recording.EncoderPreset = loadedRecording.EncoderPreset
         Recording.ReplayDuration = loadedRecording.ReplayDuration
         Recording.UseNativeResolution = loadedRecording.UseNativeResolution
+
+        ' ═══ My Preset saved values (ถ้าไม่มีใน config.json เก่า จะเป็น Nothing → ใช้ default) ═══
+        Recording.MyLowFPS = loadedRecording.MyLowFPS
+        Recording.MyLowBitrate = loadedRecording.MyLowBitrate
+        Recording.MyLowEncoderPreset = loadedRecording.MyLowEncoderPreset
+
+        Recording.MyMediumFPS = loadedRecording.MyMediumFPS
+        Recording.MyMediumBitrate = loadedRecording.MyMediumBitrate
+        Recording.MyMediumEncoderPreset = loadedRecording.MyMediumEncoderPreset
+
+        Recording.MyHighFPS = loadedRecording.MyHighFPS
+        Recording.MyHighBitrate = loadedRecording.MyHighBitrate
+        Recording.MyHighEncoderPreset = loadedRecording.MyHighEncoderPreset
     End Sub
 
     Private Sub ApplyPathSettings(loadedPaths As PathSettingsClass)
@@ -537,10 +563,36 @@ Public Class AppSettings
                     recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium
                 Case "High"
                     recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.High
+                Case "MyLow"
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.MyLow
+                Case "MyMedium"
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.MyMedium
+                Case "MyHigh"
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.MyHigh
+                Case "Recommended"
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Recommended
+                Case "Maximum"
+                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Maximum
                 Case "Custom"
                     recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Custom
                 Case Else
                     recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium
+            End Select
+
+            ' ═══ Override with My Preset saved values (if set) ═══
+            Select Case Recording.Preset
+                Case "MyLow"
+                    If Recording.MyLowFPS.HasValue Then recorder.Framerate = Recording.MyLowFPS.Value
+                    If Recording.MyLowBitrate.HasValue Then recorder.Bitrate = Recording.MyLowBitrate.Value
+                    If Recording.MyLowEncoderPreset.HasValue Then recorder.EncoderPreset = Recording.MyLowEncoderPreset.Value
+                Case "MyMedium"
+                    If Recording.MyMediumFPS.HasValue Then recorder.Framerate = Recording.MyMediumFPS.Value
+                    If Recording.MyMediumBitrate.HasValue Then recorder.Bitrate = Recording.MyMediumBitrate.Value
+                    If Recording.MyMediumEncoderPreset.HasValue Then recorder.EncoderPreset = Recording.MyMediumEncoderPreset.Value
+                Case "MyHigh"
+                    If Recording.MyHighFPS.HasValue Then recorder.Framerate = Recording.MyHighFPS.Value
+                    If Recording.MyHighBitrate.HasValue Then recorder.Bitrate = Recording.MyHighBitrate.Value
+                    If Recording.MyHighEncoderPreset.HasValue Then recorder.EncoderPreset = Recording.MyHighEncoderPreset.Value
             End Select
 
             ' ═══════════════════════════════════════════════════════════════════════

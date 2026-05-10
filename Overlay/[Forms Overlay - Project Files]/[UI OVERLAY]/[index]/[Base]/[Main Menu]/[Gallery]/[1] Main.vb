@@ -34,6 +34,7 @@ Public Class Base_Gallery
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles Saved_l10n.Click, bg_fn.Click
         Hide()
+        Base.IF_OpenShare = True
         Base.ShowMainPanel()
         Base.shadowplay.Visible = True
     End Sub
@@ -53,7 +54,7 @@ Public Class Base_Gallery
         .Description = "Select the folder to save the capture."
     }
 
-        If folderDlg.ShowDialog() = DialogResult.OK Then
+        If folderDlg.ShowDialog = DialogResult.OK Then
             txtFilePath.Text = folderDlg.SelectedPath
 
             AppSettings.Instance.Paths.GalleryPath = txtFilePath.Text

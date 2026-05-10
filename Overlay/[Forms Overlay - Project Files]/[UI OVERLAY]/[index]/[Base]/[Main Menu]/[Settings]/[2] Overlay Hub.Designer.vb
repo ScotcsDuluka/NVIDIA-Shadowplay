@@ -123,7 +123,7 @@ Partial Class Base_Overlay_Hub
         ' 
         PictureBox2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox2.BackgroundImage = My.Resources.Resources.display_graphic
-        PictureBox2.Location = New Point(831, 305)
+        PictureBox2.Location = New Point(466, 118)
         PictureBox2.Name = "PictureBox2"
         PictureBox2.Size = New Size(250, 205)
         PictureBox2.TabIndex = 74

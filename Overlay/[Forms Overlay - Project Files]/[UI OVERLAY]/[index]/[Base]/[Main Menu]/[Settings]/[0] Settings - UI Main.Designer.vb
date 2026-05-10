@@ -35,6 +35,8 @@ Partial Class Base_Settings
         SW_lang = New Label()
         PictureBox9 = New PictureBox()
         PictureBox1 = New PictureBox()
+        btnExportSettings = New Label()
+        btnImportSettings = New Label()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         Panel2.SuspendLayout()
@@ -181,12 +183,40 @@ Partial Class Base_Settings
         PictureBox1.TabStop = False
         PictureBox1.Visible = False
         ' 
+        ' btnExportSettings
+        ' 
+        btnExportSettings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        btnExportSettings.Cursor = Cursors.Hand
+        btnExportSettings.Font = New Font("Segoe UI Semibold", 12F)
+        btnExportSettings.ForeColor = Color.White
+        btnExportSettings.Location = New Point(1083, 115)
+        btnExportSettings.Name = "btnExportSettings"
+        btnExportSettings.Size = New Size(200, 50)
+        btnExportSettings.TabIndex = 93
+        btnExportSettings.Text = "Export Settings"
+        btnExportSettings.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' btnImportSettings
+        ' 
+        btnImportSettings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        btnImportSettings.Cursor = Cursors.Hand
+        btnImportSettings.Font = New Font("Segoe UI Semibold", 12F)
+        btnImportSettings.ForeColor = Color.White
+        btnImportSettings.Location = New Point(1289, 115)
+        btnImportSettings.Name = "btnImportSettings"
+        btnImportSettings.Size = New Size(200, 50)
+        btnImportSettings.TabIndex = 94
+        btnImportSettings.Text = "Import Settings"
+        btnImportSettings.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Base_Settings
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1545, 819)
+        Controls.Add(btnImportSettings)
+        Controls.Add(btnExportSettings)
         Controls.Add(PictureBox1)
         Controls.Add(PictureBox9)
         Controls.Add(SW_lang)
@@ -225,4 +255,6 @@ Partial Class Base_Settings
     Friend WithEvents PictureBox9 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
     Friend WithEvents Panel2 As Panel
+    Friend WithEvents btnExportSettings As Label
+    Friend WithEvents btnImportSettings As Label
 End Class

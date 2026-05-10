@@ -359,6 +359,7 @@ Partial Class Base
         shadowplay.Name = "shadowplay"
         shadowplay.Size = New Size(1280, 384)
         shadowplay.TabIndex = 12
+        shadowplay.Visible = False
         ' 
         ' MIC_ICO
         ' 

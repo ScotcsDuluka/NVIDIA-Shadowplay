@@ -192,4 +192,23 @@ Public Class Base_Settings
         Return fallbackCode
     End Function
 
+    ' Export
+    Private Sub btnExportSettings_Click(sender As Object, e As EventArgs) Handles btnExportSettings.Click
+        Dim path As String = SettingsExportImport.ExportWithDialog(Me)
+        If path IsNot Nothing Then
+            MessageBox.Show(LangHelper.GetText("l10n.exportSuccess"), "Settings - Export                                                        ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        Else
+            MessageBox.Show(LangHelper.GetText("l10n.exportFailed"), "Settings - Export                                                        ", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End If
+    End Sub
+
+    ' Import
+    Private Sub btnImportSettings_Click(sender As Object, e As EventArgs) Handles btnImportSettings.Click
+        If SettingsExportImport.ImportWithDialog(Me) Then
+            MessageBox.Show(LangHelper.GetText("l10n.importSuccess"), "Settings - Import                                                        ", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Base_RecordingsSet.LoadAPIRECORD()
+        Else
+            MessageBox.Show(LangHelper.GetText("l10n.importFailed"), "Settings - Import                                                        ", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End If
+    End Sub
 End Class

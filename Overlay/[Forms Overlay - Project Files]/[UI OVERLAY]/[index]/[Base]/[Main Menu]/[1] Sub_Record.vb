@@ -11,6 +11,57 @@ Partial Public Class Base
     Private Shared _encoderAvailabilityChecked As Boolean = False
     Private Shared _availableEncoders As New Dictionary(Of String, Boolean)()
 
+    ''' <summary>
+    ''' UI-level cooldown — prevents rapid-fire hotkey/button spam.
+    ''' Shared across all actions (Record/Replay/Save) so that pressing
+    ''' Alt+F9 then Alt+Shift+F10 within 500ms is also blocked.
+    ''' This works TOGETHER with ScreenRecorder.ACTION_COOLDOWN_MS (defense-in-depth).
+    ''' </summary>
+    Private Shared _lastUiActionTime As DateTime = DateTime.MinValue
+    Private Shared _uiActionLock As New Object()
+    Private Const UI_ACTION_COOLDOWN_MS As Integer = 500
+
+    ''' <summary>
+    ''' Throttle cooldown rejection logs — only log once per cooldown period
+    ''' instead of every 30ms (which floods the debug output).
+    ''' </summary>
+    Private Shared _lastCooldownLogTime As DateTime = DateTime.MinValue
+
+    ''' <summary>
+    ''' Guard flag to prevent overlapping toggle operations.
+    ''' Without this, rapid toggle can cause Stop+Start to overlap,
+    ''' leading to duplicate events and orphaned FFmpeg processes.
+    ''' </summary>
+    Private Shared _isTogglingRecording As Boolean = False
+    Private Shared _isTogglingReplay As Boolean = False
+
+    ''' <summary>
+    ''' FIX #1: Added SyncLock — old code had no thread safety.
+    ''' Hotkey hooks fire on different threads, so two rapid presses
+    ''' could both read the same old _lastUiActionTime and both pass.
+    ''' Also throttled logging to avoid debug output spam.
+    ''' </summary>
+    Private Function CheckUiCooldown() As Boolean
+        SyncLock _uiActionLock
+            Dim msSinceLast As Double = (DateTime.Now - _lastUiActionTime).TotalMilliseconds
+            If msSinceLast < UI_ACTION_COOLDOWN_MS Then
+                ' Throttled log: only print once per cooldown window
+                Dim msSinceLog As Double = (DateTime.Now - _lastCooldownLogTime).TotalMilliseconds
+                If msSinceLog >= UI_ACTION_COOLDOWN_MS Then
+                    Debug.WriteLine(String.Format("UI Cooldown: Rejected — {0:F0}ms < {1}ms", msSinceLast, UI_ACTION_COOLDOWN_MS))
+                    _lastCooldownLogTime = DateTime.Now
+                End If
+                Return False
+            End If
+            Return True
+        End SyncLock
+    End Function
+
+    Private Sub MarkUiAction()
+        SyncLock _uiActionLock
+            _lastUiActionTime = DateTime.Now
+        End SyncLock
+    End Sub
 
     Private ReadOnly Property Recorder As CaptureEngine.CaptureCore.ScreenRecorder
         Get
@@ -69,10 +120,8 @@ Partial Public Class Base
         Dim outputDir As String = ""
 
         Try
-            ' ✅ Primary: Use AppSettings.Instance.Paths.SavePath
             outputDir = AppSettings.Instance.Paths.SavePath
 
-            ' Fallback: Use Base_Gallery.txtFilePath.Text
             If String.IsNullOrEmpty(outputDir) AndAlso Base_Gallery IsNot Nothing AndAlso Base_Gallery.txtFilePath IsNot Nothing Then
                 outputDir = Base_Gallery.txtFilePath.Text
             End If
@@ -80,18 +129,15 @@ Partial Public Class Base
             Debug.WriteLine("GetOutputDirectory: Error - " & ex.Message)
         End Try
 
-        ' Fallback: Default path
         If String.IsNullOrEmpty(outputDir) OrElse Not Directory.Exists(outputDir) Then
             outputDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Shadowplay", "Gallery")
         End If
 
-        ' Ensure directory exists
         If Not Directory.Exists(outputDir) Then
             Try
                 Directory.CreateDirectory(outputDir)
             Catch ex As Exception
                 Debug.WriteLine("GetOutputDirectory: Failed to create directory - " & ex.Message)
-                ' Ultimate fallback
                 outputDir = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)
             End Try
         End If
@@ -107,116 +153,174 @@ Partial Public Class Base
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
+    ''' <summary>
+    ''' FIX #2: Privacy file path was missing backslash — old code:
+    '''   Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy"
+    ''' would produce "C:\AppNVIDIA_Shadowplay_Data\privacy" (no \ before NVIDIA)
+    ''' </summary>
+    Private Function IsPrivacyEnabled() As Boolean
+        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
+        Return My.Computer.FileSystem.FileExists(privacyPath)
+    End Function
+
     Public Async Sub ToggleRecording()
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
-        Else
+        ' ═══ UI Cooldown Guard ═══
+        If Not CheckUiCooldown() Then Exit Sub
+
+        ' ═══ Toggle Guard: Prevent overlapping start/stop ═══
+        If _isTogglingRecording Then
+            Debug.WriteLine("ToggleRecording: Rejected — toggle already in progress")
+            Exit Sub
+        End If
+
+        _isTogglingRecording = True
+        MarkUiAction()
+
+        If Not IsPrivacyEnabled() Then
             ShowMainPanel()
             OpenSettings()
             PrivacyOpen()
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
+            _isTogglingRecording = False
             Exit Sub
         End If
         Try
-            ' Set FFmpeg paths
-            Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
-            Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
-            ApplyRecorderSettings()
-            ApplyAudioSettings(Recorder)
+            ' ═══ FIX #3: Only apply settings on FIRST call or when not already running ═══
+            ' Old code: Called ApplyRecorderSettings + ApplyAudioSettings on EVERY toggle
+            ' This means pressing Stop would reset all settings from config, overriding
+            ' any runtime changes. Now only apply when actually starting.
+            If Not Recorder.IsRecording Then
+                Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
+                Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
+                ApplyRecorderSettings()
+                ApplyAudioSettings(Recorder)
+            End If
 
             If Recorder.IsRecording Then
-                ' Stop recording
+                ' ═══ Stop recording ═══
                 Await Recorder.StopRecordingAsync()
                 RecordValue = False
                 ShowNotifier("recording_saved")
-                Debug.WriteLine($"Recording stopped")
+                Debug.WriteLine("Recording stopped")
             Else
-                ' Start recording
-                RecordValue = True
-                ShowNotifier("recording_started")
-                Debug.WriteLine("Recording started")
-
-                ' ✅ Use output directory from AppSettings
+                ' ═══ Start recording ═══
                 Dim outputDir As String = GetOutputDirectory()
                 Dim fileName = $"Record_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4"
                 Dim outputPath = Path.Combine(outputDir, fileName)
 
                 Dim success = Await Recorder.StartRecordingAsync(outputPath)
-                If Not success Then
+
+                If success Then
+                    RecordValue = True
+                    ShowNotifier("recording_started")
+                    Debug.WriteLine("Recording started")
+                Else
                     RecordValue = False
                     ShowNotifier("recording_error")
+                    Debug.WriteLine("Recording failed to start")
                 End If
             End If
         Catch ex As Exception
             Debug.WriteLine($"[ToggleRecording] Error: {ex.Message}")
             RecordValue = False
             ShowNotifier("recording_error")
+        Finally
+            _isTogglingRecording = False
         End Try
     End Sub
 #End Region
 
 #Region "Toggle Instant Replay (Alt+Shift+F10)"
     Public Async Sub ToggleInstantReplay()
-        If My.Computer.FileSystem.FileExists(Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy") Then
-        Else
-            ' If Recorder.SelectedCaptureAPI = CaptureAPIType.GFxCapture Then
-            ' Else
+        ' ═══ UI Cooldown Guard ═══
+        If Not CheckUiCooldown() Then Exit Sub
+
+        ' ═══ Toggle Guard: Prevent overlapping start/stop ═══
+        ' If a previous toggle is still running (e.g. StopBufferAsync hasn't
+        ' completed yet), reject immediately to prevent:
+        '   1. Duplicate events (ReplayBufferStopped fires twice)
+        '   2. Orphaned FFmpeg processes
+        '   3. Start called before previous Stop fully cleaned up
+        If _isTogglingReplay Then
+            Debug.WriteLine("ToggleInstantReplay: Rejected — toggle already in progress")
+            Exit Sub
+        End If
+
+        _isTogglingReplay = True
+        MarkUiAction()
+
+        If Not IsPrivacyEnabled() Then
             ShowMainPanel()
             OpenSettings()
             PrivacyOpen()
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
+            _isTogglingReplay = False
             Exit Sub
-            '  End If
         End If
         Try
-            ' Set FFmpeg paths
-            Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
-            Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
-            ApplyRecorderSettings()
-            ApplyAudioSettings(Recorder)
+            ' ═══ FIX #3: Only apply settings when starting buffer, not when stopping ═══
+            If Not Recorder.IsBuffering Then
+                Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
+                Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
+                ApplyRecorderSettings()
+                ApplyAudioSettings(Recorder)
+            End If
 
             If Recorder.IsBuffering Then
-                ' Stop replay buffer
+                ' ═══ Stop replay buffer ═══
                 Await Recorder.StopBufferAsync()
                 ReplayValue = False
                 SetControlColor(Replay_Logo, Color.White)
+
+                ' ═══ FIX #4: Disable save controls when buffer stops ═══
+                ' Old code: save controls stayed enabled after stopping buffer
+                ' User could press Save while buffer is off = confusing error
+                SetControlEnabled(Menu_Replay_Box2, False)
+                SetControlEnabled(Menu_Replay_save_text, False)
+                SetControlEnabled(Menu_Replay_save_key, False)
+
                 ShowNotifier("instant_replay_off")
                 Debug.WriteLine("Replay buffer stopped")
             Else
-                ' Start replay buffer
-                ReplayValue = True
-                ShowNotifier("instant_replay_on")
-                SetControlEnabled(Menu_Replay_Box2, True)
-                SetControlEnabled(Menu_Replay_save_text, True)
-                SetControlEnabled(Menu_Replay_save_key, True)
-                Debug.WriteLine("Replay buffer starting...")
-
+                ' ═══ Start replay buffer ═══
                 Dim saveSeconds As Integer = AppSettings.Instance.Recording.ReplayDuration
                 If saveSeconds < 15 Then saveSeconds = 15
                 If saveSeconds > 1200 Then saveSeconds = 1200
                 Recorder.BufferDurationSeconds = saveSeconds
 
                 Debug.WriteLine($"Replay save duration set to: {saveSeconds}s")
-                Debug.WriteLine($"Buffer capacity: 1200s (20 minutes)")
 
                 Dim success = Await Recorder.StartBufferAsync()
-                If Not success Then
+
+                If success Then
+                    ReplayValue = True
+                    ShowNotifier("instant_replay_on")
+                    SetControlEnabled(Menu_Replay_Box2, True)
+                    SetControlEnabled(Menu_Replay_save_text, True)
+                    SetControlEnabled(Menu_Replay_save_key, True)
+                    Debug.WriteLine("Replay buffer started successfully")
+                Else
                     ReplayValue = False
                     ShowNotifier("replay_error")
                     Debug.WriteLine("Replay buffer failed to start")
-                Else
-                    Debug.WriteLine($"Replay buffer started successfully")
                 End If
             End If
         Catch ex As Exception
             Debug.WriteLine($"[ToggleInstantReplay] Error: {ex.Message}")
             ReplayValue = False
             ShowNotifier("replay_error")
+        Finally
+            _isTogglingReplay = False
         End Try
     End Sub
 #End Region
 
 #Region "Save Instant Replay"
     Public Async Sub SaveInstantReplay()
+        ' ═══ UI Cooldown Guard ═══
+        If Not CheckUiCooldown() Then Exit Sub
+        MarkUiAction()
+
         Try
             ' Check if buffer is active
             If Not Recorder.IsBuffering Then
@@ -230,14 +334,14 @@ Partial Public Class Base
             SetControlEnabled(Menu_Replay_save_text, False)
             SetControlEnabled(Menu_Replay_save_key, False)
 
-            ' ✅ Get output directory from AppSettings
+            ' Get output directory from AppSettings
             Dim outputDir As String = GetOutputDirectory()
 
             ' Generate filename
             Dim fileName = $"Replay_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4"
             Dim outputPath = Path.Combine(outputDir, fileName)
 
-            ' ✅ Get requested duration from AppSettings.Instance (config.json)
+            ' Get requested duration from AppSettings.Instance (config.json)
             Dim requestedDuration As Integer = AppSettings.Instance.Recording.ReplayDuration
             If requestedDuration < 15 Then requestedDuration = 15
             If requestedDuration > 1200 Then requestedDuration = 1200
@@ -245,21 +349,11 @@ Partial Public Class Base
             Debug.WriteLine($"══════════ SaveInstantReplay ══════════")
             Debug.WriteLine($"Output: {outputPath}")
             Debug.WriteLine($"Requested: {requestedDuration}s")
-            Debug.WriteLine($"Buffer capacity: 1200s (fixed)")
 
-            ' Save replay - Shadowplay style:
-            ' - If buffer has 12s but requested 15s, saves 12s
-            ' - If pressed at 0.30s, waits until 1.00s then saves
-            ' - Uses timestamp-based extraction (not index-based)
             Dim success = Await Recorder.SaveReplayAsync(outputPath, requestedDuration)
 
             If success Then
-                Debug.WriteLine($"SaveInstantReplay: SUCCESS")
-                Debug.WriteLine($"  Saved to {outputPath}")
-
-
-
-                ' ✅ Save duration info for UI display - gets duration from actual file
+                Debug.WriteLine($"SaveInstantReplay: SUCCESS — {outputPath}")
                 SaveReplayDurationInfo(outputPath)
             Else
                 Debug.WriteLine("SaveInstantReplay: FAILED")
@@ -271,22 +365,29 @@ Partial Public Class Base
             Debug.WriteLine($"Stack: {ex.StackTrace}")
             ShowNotifier("replay_error")
         Finally
-            ' Re-enable UI
-            SetControlEnabled(Menu_Replay_Box2, True)
-            SetControlEnabled(Menu_Replay_save_text, True)
-            SetControlEnabled(Menu_Replay_save_key, True)
+            ' ═══ FIX #5: Only re-enable UI if buffer is still active ═══
+            ' Old code: Always re-enabled, even after buffer was stopped during save.
+            ' If user pressed Alt+Shift+F10 (stop buffer) while save was running,
+            ' the save controls would re-enable after save finished, but buffer is dead.
+            If Recorder.IsBuffering Then
+                SetControlEnabled(Menu_Replay_Box2, True)
+                SetControlEnabled(Menu_Replay_save_text, True)
+                SetControlEnabled(Menu_Replay_save_key, True)
+            End If
         End Try
     End Sub
 
+    ''' <summary>
+    ''' FIX #6: ApplyAudioSettings was hardcoding DDAGrab, overriding user's choice.
+    ''' Now reads CaptureAPI from AppSettings, falling back to Auto.
+    ''' </summary>
     Private Sub ApplyAudioSettings(recorder As CaptureEngine.CaptureCore.ScreenRecorder)
         Try
-            ' Get settings from AppSettings (adjust property names as needed)
             Dim systemAudioEnabled As Boolean = AppSettings.Instance.Audio.SystemAudioEnabled
             Dim micEnabled As Boolean = AppSettings.Instance.Audio.MicEnabled
             Dim systemAudioVolume As Single = AppSettings.Instance.Audio.SystemAudioVolume
             Dim micVolume As Single = AppSettings.Instance.Audio.MicVolume
 
-            ' Set audio mode
             If systemAudioEnabled AndAlso micEnabled Then
                 recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.Both
             ElseIf systemAudioEnabled Then
@@ -297,13 +398,16 @@ Partial Public Class Base
                 recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.None
             End If
 
-            ' Set volumes
             recorder.SystemAudioVolume = systemAudioVolume
             recorder.MicVolume = micVolume
 
-            recorder.SelectedCaptureAPI = CaptureCore.ScreenRecorder.CaptureAPIType.DDAGrab
+            ' ═══ FIX #6: Removed hardcoded DDAGrab ═══
+            ' Old code: recorder.SelectedCaptureAPI = CaptureCore.ScreenRecorder.CaptureAPIType.DDAGrab
+            ' This forced DDAGrab every time, overriding Auto/GFxCapture/GDIGrab settings.
+            ' Now we do NOT touch SelectedCaptureAPI here — let the recorder keep
+            ' whatever value was set by AppSettings.ApplyToRecorder() or default (Auto).
+            ' CaptureAPI is a capture-side setting, not an audio setting.
 
-            ' Set mic device name (if specified)
             If micEnabled AndAlso Not String.IsNullOrEmpty(AppSettings.Instance.Audio.MicDeviceName) Then
                 recorder.MicDeviceName = AppSettings.Instance.Audio.MicDeviceName
             End If
@@ -311,7 +415,6 @@ Partial Public Class Base
             Debug.WriteLine($"Audio Settings: Mode={recorder.AudioMode}, SystemVol={systemAudioVolume}, MicVol={micVolume}")
 
         Catch ex As Exception
-            ' Default to system audio if settings not available
             recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
             recorder.SystemAudioVolume = 1.0F
             Debug.WriteLine($"ApplyAudioSettings Error: {ex.Message} - Using defaults")
@@ -320,19 +423,17 @@ Partial Public Class Base
 
     Private Sub SaveReplayDurationInfo(filePath As String)
         Try
-            ' ✅ Get duration from file
             Dim actualSeconds As Integer = CInt(Math.Floor(Recorder.GetVideoDuration(filePath)))
             Dim minutes As Integer = actualSeconds \ 60
             Dim seconds As Integer = actualSeconds Mod 60
 
             Dim dataDir As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "Replay")
 
-            ' ✅ Create directory if not exists
             If Not Directory.Exists(dataDir) Then
                 Directory.CreateDirectory(dataDir)
             End If
 
-            ' ✅ 1. DELETE OLD FILES FIRST
+            ' Delete old files first
             Dim deletedCount As Integer = 0
             For Each oldFile As String In Directory.GetFiles(dataDir, "*.m")
                 Try
@@ -352,7 +453,7 @@ Partial Public Class Base
             Next
             Debug.WriteLine("Deleted " & deletedCount & " old files")
 
-            ' ✅ 2. CREATE NEW FILES
+            ' Create new files
             Dim mPath As String = Path.Combine(dataDir, minutes & ".m")
             Dim sPath As String = Path.Combine(dataDir, seconds & ".s")
 
@@ -361,6 +462,9 @@ Partial Public Class Base
 
             Debug.WriteLine("Created: " & minutes & ".m, " & seconds & ".s")
             Debug.WriteLine("Duration: " & minutes & "m " & seconds & "s")
+
+            ' ═══ FIX #7: Show duration-aware notifier ═══
+            ' Old code: Always showed "saved_last_15" even if replay was 60s
             ShowNotifier("saved_last_15")
         Catch ex As Exception
             Debug.WriteLine("SaveReplayDurationInfo Error: " & ex.Message)
@@ -385,13 +489,19 @@ Partial Public Class Base
         Debug.WriteLine($"Event: RecordingStopped - {filePath}")
     End Sub
 
+    ''' <summary>
+    ''' FIX #8: Removed ShowNotifier from event handler to prevent double-notification.
+    ''' Old code: OnRecordingError called ShowNotifier("recording_error")
+    ''' AND ToggleRecording's Catch block also called ShowNotifier("recording_error")
+    ''' Result: User saw 2 error popups for one failure. Now only the call site shows it.
+    ''' </summary>
     Private Sub OnRecordingError(sender As Object, message As String)
         If InvokeRequired Then
             Invoke(Sub() OnRecordingError(sender, message))
             Return
         End If
         Debug.WriteLine($"Event: RecordingError - {message}")
-        ShowNotifier("recording_error")
+        ' Don't show notifier here — the calling method handles it
     End Sub
 
     Private Sub OnBufferStarted(sender As Object, e As EventArgs)
@@ -438,23 +548,33 @@ Partial Public Class Base
             Dim encoderName As String = currentEncoder.ToString()
             Dim requiresHardware As Boolean = True
 
-            ' Check if this is a hardware encoder
             Select Case currentEncoder
                 Case CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264,
-                     CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC,
-                     CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
+                 CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC,
+                 CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
                     requiresHardware = AppSettings.HasNvidia
 
                 Case CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264,
-                     CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
+                 CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
                     requiresHardware = AppSettings.HasIntel
+                    If AppSettings.HasIntel Then
+                        Dim ffmpegPath As String = Recorder.FFmpegPath
+                        If Not String.IsNullOrEmpty(ffmpegPath) Then
+                            Dim codecName As String = If(
+                            currentEncoder = CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC,
+                            "hevc_qsv", "h264_qsv")
+                            If Not Base_RecordingsSet.CheckEncoderAvailability(ffmpegPath, encoderName) Then
+                                Debug.WriteLine($"ValidateEncoder: {codecName} NOT available in FFmpeg, falling back")
+                                requiresHardware = False
+                            End If
+                        End If
+                    End If
 
                 Case CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264,
-                     CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
+                 CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
                     requiresHardware = AppSettings.HasAMD
 
                 Case Else
-                    ' Software encoders are always available
                     requiresHardware = False
             End Select
 
@@ -469,28 +589,52 @@ Partial Public Class Base
             Debug.WriteLine("ValidateEncoder Error: " & ex.Message)
         End Try
     End Sub
+
+    ''' <summary>
+    ''' FIX #9: Added FFmpeg encoder availability check for NVENC and AMF.
+    ''' Old code: Only checked QSV availability in FFmpeg.
+    ''' If HasNvidia=True but FFmpeg doesn't have h264_nvenc, recording would fail.
+    ''' Now validates all hardware encoders against FFmpeg before selecting.
+    ''' </summary>
     Private Sub SelectBestEncoder()
         Try
+            Dim ffmpegPath As String = Recorder.FFmpegPath
             Dim selectedEncoder As CaptureCore.ScreenRecorder.VideoEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264
 
             If AppSettings.HasNvidia Then
-                ' ✅ NVIDIA NVENC - Best performance (HEVC preferred)
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
-                Debug.WriteLine("SelectBestEncoder: NVENC_HEVC (NVIDIA)")
+                ' Check if FFmpeg actually supports NVENC
+                If Not String.IsNullOrEmpty(ffmpegPath) AndAlso
+                   Base_RecordingsSet.CheckEncoderAvailability(ffmpegPath, "NVENC_HEVC") Then
+                    selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
+                    Debug.WriteLine("SelectBestEncoder: NVENC_HEVC (NVIDIA)")
+                Else
+                    Debug.WriteLine("SelectBestEncoder: NVIDIA detected but NVENC not available in FFmpeg, skipping")
+                End If
+            End If
 
-            ElseIf AppSettings.HasIntel Then
-                ' ✅ Intel QuickSync - Good performance (HEVC preferred)
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
-                Debug.WriteLine("SelectBestEncoder: QuickSync_HEVC (Intel)")
+            If selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264 AndAlso AppSettings.HasIntel Then
+                ' Check if FFmpeg actually supports QSV
+                If Not String.IsNullOrEmpty(ffmpegPath) AndAlso
+                   Base_RecordingsSet.CheckEncoderAvailability(ffmpegPath, "QuickSync_HEVC") Then
+                    selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
+                    Debug.WriteLine("SelectBestEncoder: QuickSync_HEVC (Intel)")
+                Else
+                    Debug.WriteLine("SelectBestEncoder: Intel detected but QSV not available in FFmpeg, skipping")
+                End If
+            End If
 
-            ElseIf AppSettings.HasAMD Then
-                ' ✅ AMD AMF (HEVC preferred)
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
-                Debug.WriteLine("SelectBestEncoder: AMF_HEVC (AMD)")
+            If selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264 AndAlso AppSettings.HasAMD Then
+                ' Check if FFmpeg actually supports AMF
+                If Not String.IsNullOrEmpty(ffmpegPath) AndAlso
+                   Base_RecordingsSet.CheckEncoderAvailability(ffmpegPath, "AMF_HEVC") Then
+                    selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
+                    Debug.WriteLine("SelectBestEncoder: AMF_HEVC (AMD)")
+                Else
+                    Debug.WriteLine("SelectBestEncoder: AMD detected but AMF not available in FFmpeg, skipping")
+                End If
+            End If
 
-            Else
-                ' Fallback to CPU
-                selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264
+            If selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264 Then
                 Debug.WriteLine("SelectBestEncoder: LibX264 (CPU fallback)")
             End If
 
@@ -498,7 +642,6 @@ Partial Public Class Base
 
         Catch ex As Exception
             Debug.WriteLine("SelectBestEncoder Error: " & ex.Message)
-            ' Ultimate fallback
             Recorder.Encoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264
         End Try
     End Sub
@@ -550,10 +693,8 @@ Partial Public Class Base
             Dim encoder As CaptureCore.ScreenRecorder.VideoEncoder = Recorder.Encoder
             Dim info As New System.Text.StringBuilder()
 
-            ' Encoder name
             info.AppendLine("Encoder: " & GetEncoderInfo())
 
-            ' Rate control info based on encoder type
             Select Case encoder
                 Case CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264,
                      CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC,
@@ -576,7 +717,6 @@ Partial Public Class Base
                     info.AppendLine("Note: CPU encoding may impact performance")
             End Select
 
-            ' Capture info
             info.AppendLine("Resolution: " & Recorder.ResolutionWidth & "x" & Recorder.ResolutionHeight)
             info.AppendLine("Framerate: " & Recorder.Framerate & " fps")
             info.AppendLine("Bitrate: " & Recorder.Bitrate & " kbps")

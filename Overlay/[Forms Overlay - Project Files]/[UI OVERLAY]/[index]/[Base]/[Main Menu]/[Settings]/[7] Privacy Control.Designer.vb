@@ -173,7 +173,7 @@ Partial Class Base_Privacy_Control
         captrueblock_ico.Cursor = Cursors.Hand
         captrueblock_ico.Font = New Font("nvgcshare", 20F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         captrueblock_ico.ForeColor = Color.Peru
-        captrueblock_ico.Location = New Point(277, 110)
+        captrueblock_ico.Location = New Point(276, 110)
         captrueblock_ico.Name = "captrueblock_ico"
         captrueblock_ico.Size = New Size(91, 50)
         captrueblock_ico.TabIndex = 133

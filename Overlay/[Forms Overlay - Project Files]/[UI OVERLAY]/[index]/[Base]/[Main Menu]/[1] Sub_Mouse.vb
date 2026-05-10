@@ -296,6 +296,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub Gallery_Click(sender As Object, e As EventArgs) Handles Gallery_Box.Click, Gallery_Text.Click, Gallery_Logo.Click
+        IF_OpenShare = False
         shadowplay.Visible = False
         a_1.Visible = False
         a_2.Visible = False
@@ -499,6 +500,7 @@ Partial Public Class Base
 
     ' ========== HELPER METHOD ==========
     Private Sub OpenPanel(showForm As Form, settingsCtrl As Control)
+        IF_OpenShare = False
         For Each f In allForms
             If f IsNot showForm Then f?.Hide()
         Next
@@ -607,6 +609,7 @@ Partial Public Class Base
 
 
     Public Sub OpenRecordings()
+        IF_OpenShare = False
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
         sha1.Hide()
@@ -627,7 +630,7 @@ Partial Public Class Base
                                 td.Stop()
 
                                 OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
-                           End Sub
+                            End Sub
         td.Start()
     End Sub
 
