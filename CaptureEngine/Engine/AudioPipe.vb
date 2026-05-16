@@ -1,34 +1,31 @@
 Imports NAudio.Wave
-Imports NAudio.CoreAudioApi
 Imports System.Diagnostics
 Imports System.IO
 Imports System.IO.Pipes
 Imports System.Threading
-Imports System.Threading.Tasks
+Imports System.Collections.Concurrent
 Imports System.Timers
 
 Namespace CaptureCore
 
-    ''' <summary>
-    ''' Audio Pipe - Streams system audio to FFmpeg via Named Pipe
-    ''' 
-    ''' ✅ Optimized Silent Frame Generator:
-    '''    - Only sends silence when NO audio for 200ms
-    '''    - Uses 100ms intervals (not 20ms - too fast!)
-    '''    - Stops immediately when real audio arrives
-    ''' </summary>
+
     Public Class AudioPipe
         Implements IDisposable
 
 #Region "Constants"
-        Private Const PIPE_BUFFER_SIZE As Integer = 2 * 1024 * 1024  ' 2MB buffer
+        Private Const PIPE_BUFFER_SIZE As Integer = 2 * 1024 * 1024  ' 2MB pipe buffer
         Private Const AUDIO_PIPE_PREFIX As String = "ShadowPlay_Audio_"
 
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' ✅ Silent Frame Settings (Optimized)
-        ' ═══════════════════════════════════════════════════════════════════════
-        Private Const SILENT_FRAME_INTERVAL_MS As Integer = 100  ' Check every 100ms (was 20ms)
-        Private Const SILENT_TIMEOUT_MS As Integer = 200         ' Start silence after 200ms no audio
+        Private Const SILENT_FRAME_INTERVAL_MS As Integer = 50   ' 50ms for smoother silence
+        Private Const SILENT_TIMEOUT_MS As Integer = 80          ' reduced from 200ms
+
+        ''' <summary>Max items in write queue before we start dropping oldest</summary>
+        Private Const QUEUE_DROP_THRESHOLD As Integer = 30
+
+        ''' <summary>How long to wait for pipe connection before considering it failed.
+        ''' ★ v4 FIX: Must match _connectionTimeout to avoid race where WaitForConnection
+        ''' gives up but writer thread is still waiting (or vice versa).</summary>
+        Private Const PIPE_CONNECT_TIMEOUT_MS As Integer = 15000
 #End Region
 
 #Region "Private Fields"
@@ -37,17 +34,37 @@ Namespace CaptureCore
         Private _pipeName As String
         Private _isRunning As Boolean = False
         Private _isDisposed As Boolean = False
-        Private _writeLock As New Object()
         Private _waveFormat As WaveFormat
         Private _volume As Single = 1.0F
-        Private _connectionTimeout As Integer = 5000
+        ''' <summary>★ v4 FIX: Unified timeout — same as PIPE_CONNECT_TIMEOUT_MS.
+        ''' Old bug: _connectionTimeout=5s but writer thread waited 15s.
+        ''' If FFmpeg connected at 6-15s, WaitForConnection already gave up,
+        ''' EndWaitForConnection was never called → pipe in broken state.</summary>
+        Private _connectionTimeout As Integer = PIPE_CONNECT_TIMEOUT_MS
+
+        ' ★ v3.1: Connection state — CRITICAL for writer thread
+        ' _ffmpegConnected = True only after FFmpeg actually opens the pipe
+        ' Before that, writer thread must NOT try to write (would fail + mark disconnected)
+        Private _ffmpegConnected As Boolean = False
+
+        ' ★ v3.1: Producer/Consumer queue — WASAPI callback pushes, writer thread drains
+        Private _writeQueue As New ConcurrentQueue(Of Byte())()
+        Private _writerThread As Thread
+        Private _writerSignal As New AutoResetEvent(False)
+        Private _stopWriter As New ManualResetEvent(False)
+        Private _connectedEvent As New ManualResetEvent(False)
 
         ' Silent Frame Generator
         Private _silentTimer As System.Timers.Timer
-        Private _lastAudioTime As DateTime = DateTime.MinValue
+        Private _lastAudioTimeMs As Long = 0
         Private _silentBuffer As Byte() = Nothing
         Private _silentBufferSize As Integer = 0
         Private _isSendingSilence As Boolean = False
+        Private _silenceStopwatch As New Stopwatch()
+
+        ' Pipe health tracking
+        Private _pipeDisconnected As Boolean = False
+        Private _bytesWritten As Long = 0
 #End Region
 
 #Region "Properties"
@@ -59,7 +76,7 @@ Namespace CaptureCore
 
         Public ReadOnly Property IsConnected As Boolean
             Get
-                Return _namedPipeServer IsNot Nothing AndAlso _namedPipeServer.IsConnected
+                Return _ffmpegConnected AndAlso _namedPipeServer IsNot Nothing AndAlso _namedPipeServer.IsConnected AndAlso Not _pipeDisconnected
             End Get
         End Property
 
@@ -75,12 +92,19 @@ Namespace CaptureCore
             End Get
         End Property
 
+        ''' <summary>
+        ''' ★ v4 FIX: Volume is stored but NOT propagated to AudioCapture.
+        ''' Old bug: AudioCapture.ApplyVolumeFast + FFmpeg -af volume = double volume!
+        ''' AudioPipe stores volume so ScreenRecorder can read it, but the actual
+        ''' volume application happens ONLY in FFmpeg (-af or filter_complex).
+        ''' </summary>
         Public Property Volume As Single
             Get
                 Return _volume
             End Get
             Set(value As Single)
                 _volume = Math.Max(0.0F, Math.Min(1.0F, value))
+                ' ★ v4: Do NOT propagate to AudioCapture — volume is handled by FFmpeg only
             End Set
         End Property
 
@@ -96,6 +120,12 @@ Namespace CaptureCore
         Public Event PipeStopped As EventHandler
         Public Event PipeConnected As EventHandler
         Public Event PipeError As EventHandler(Of String)
+
+        ''' <summary>
+        ''' ★ v3: แจกจ่ายข้อมูลเสียงให้ subscriber อื่น (เช่น HighlightDetector)
+        ''' ส่ง copy ของข้อมูล — subscriber ไม่ต้อง copy เอง
+        ''' </summary>
+        Public Event AudioTapped As EventHandler(Of AudioTappedEventArgs)
 #End Region
 
 #Region "Constructor"
@@ -116,6 +146,11 @@ Namespace CaptureCore
             Try
                 Debug.WriteLine("═══ AudioPipe.Start ═══")
 
+                _pipeDisconnected = False
+                _ffmpegConnected = False
+                _bytesWritten = 0
+                _lastAudioTimeMs = 0
+
                 ' Create named pipe
                 _namedPipeServer = New NamedPipeServerStream(
                     _pipeName,
@@ -131,7 +166,7 @@ Namespace CaptureCore
 
                 ' Start audio capture
                 _audioCapture = New AudioCapture()
-                _audioCapture.Volume = _volume
+                ' ★ v4: Don't set _audioCapture.Volume — volume handled by FFmpeg only
                 AddHandler _audioCapture.AudioDataAvailable, AddressOf OnAudioDataAvailable
                 AddHandler _audioCapture.CaptureError, AddressOf OnCaptureError
 
@@ -145,10 +180,23 @@ Namespace CaptureCore
                     PrepareSilentBuffer()
                 End If
 
+                ' ★ v3.1: Reset sync events before starting threads
+                _stopWriter.Reset()
+                _writerSignal.Reset()
+                _connectedEvent.Reset()
+
+                ' ★ v3.1: Start writer thread (drains queue → pipe)
+                _writerThread = New Thread(AddressOf WriterThreadProc) With {
+                    .Name = "AudioPipeWriter",
+                    .IsBackground = True,
+                    .Priority = ThreadPriority.AboveNormal
+                }
+                _writerThread.Start()
+
                 ' Start silent timer
                 StartSilentTimer()
 
-                ' Wait for FFmpeg connection
+                ' Wait for FFmpeg connection (async)
                 Task.Run(Sub() WaitForConnection())
 
                 RaiseEvent PipeStarted(Me, EventArgs.Empty)
@@ -170,8 +218,18 @@ Namespace CaptureCore
             _isRunning = False
 
             Try
-                ' Stop timer first
+                ' ★ v3.1: Stop order matters:
+                ' 1. Stop timer (no more silence data)
+                ' 2. Signal writer thread to stop
+                ' 3. Stop capture (no more real audio data)
+                ' 4. Wait for writer thread to drain remaining queue
+                ' 5. Close pipe
+
                 StopSilentTimer()
+
+                ' Signal writer thread to stop
+                _stopWriter.Set()
+                _writerSignal.Set()
 
                 ' Stop capture
                 If _audioCapture IsNot Nothing Then
@@ -185,20 +243,34 @@ Namespace CaptureCore
                     _audioCapture = Nothing
                 End If
 
+                ' Wait for writer thread to finish (with timeout)
+                If _writerThread IsNot Nothing Then
+                    If Not _writerThread.Join(2000) Then
+                        Debug.WriteLine("AudioPipe: Writer thread didn't exit in time")
+                    End If
+                    _writerThread = Nothing
+                End If
+
                 ' Close pipe
                 If _namedPipeServer IsNot Nothing Then
                     Try
-                        If _namedPipeServer.IsConnected Then
-                            _namedPipeServer.WaitForPipeDrain()
-                        End If
-                        _namedPipeServer.Dispose()
-                    Catch
+                        ' ★ v4 FIX: Don't Flush() — it can block forever if FFmpeg already exited.
+                    ' The data in the pipe buffer will be lost anyway since FFmpeg is gone.
+                    ' Just dispose the pipe immediately.
+                    _namedPipeServer.Dispose()
+                    Catch ex As Exception
+                        Debug.WriteLine("AudioPipe: Pipe close error (expected): " & ex.Message)
                     End Try
                     _namedPipeServer = Nothing
                 End If
 
+                ' Clear any remaining queue items
+                Dim dummy As Byte() = Nothing
+                While _writeQueue.TryDequeue(dummy)
+                End While
+
                 RaiseEvent PipeStopped(Me, EventArgs.Empty)
-                Debug.WriteLine("AudioPipe: Stopped")
+                Debug.WriteLine(String.Format("AudioPipe: Stopped (wrote {0:N0} bytes total)", _bytesWritten))
 
             Catch ex As Exception
                 Debug.WriteLine("AudioPipe Stop Error: " & ex.Message)
@@ -206,7 +278,6 @@ Namespace CaptureCore
         End Sub
 
         Public Function GetFFmpegInputArgs() As String
-            ' Get format from AudioCapture if available
             If _waveFormat Is Nothing AndAlso _audioCapture IsNot Nothing Then
                 _waveFormat = _audioCapture.WaveFormat
                 If _waveFormat IsNot Nothing Then
@@ -252,20 +323,122 @@ Namespace CaptureCore
         End Function
 #End Region
 
+#Region "Writer Thread"
+        ''' <summary>
+        ''' ★ v3.1: Dedicated writer thread that drains the ConcurrentQueue and writes to pipe.
+        ''' 
+        ''' CRITICAL FIX: Writer thread now WAITS for FFmpeg connection before writing.
+        ''' Old v3 bug: If FFmpeg hadn't connected yet, writer thread saw IsConnected=False
+        ''' and set _pipeDisconnected=True, which DROPPED ALL AUDIO forever!
+        ''' 
+        ''' Flow:
+        '''   1. Wait for signal OR stop
+        '''   2. If not connected yet → wait for _connectedEvent (with timeout)
+        '''   3. Once connected → drain queue → write to pipe
+        ''' </summary>
+        Private Sub WriterThreadProc()
+            Debug.WriteLine("AudioPipe: Writer thread started")
+
+            Dim waitHandles() As WaitHandle = {_writerSignal, _stopWriter}
+
+            Do While True
+                ' Wait for signal or stop
+                WaitHandle.WaitAny(waitHandles, 200)
+
+                ' Check if we should stop first
+                If _stopWriter.WaitOne(0) Then Exit Do
+                If Not _isRunning Then Exit Do
+
+                ' ═══════════════════════════════════════════════════════════════════════
+                ' ★ v3.1 FIX: If FFmpeg hasn't connected yet, DON'T mark pipe as disconnected!
+                ' Just wait. Data stays in queue (bounded by QUEUE_DROP_THRESHOLD).
+                ' ═══════════════════════════════════════════════════════════════════════
+                If Not Volatile.Read(_ffmpegConnected) Then
+                    ' Wait for FFmpeg to connect (with timeout to check stop periodically)
+                    Dim connectedWaitHandles() As WaitHandle = {_connectedEvent, _stopWriter}
+                    Dim connectResult As Integer = WaitHandle.WaitAny(connectedWaitHandles, PIPE_CONNECT_TIMEOUT_MS)
+
+                    If connectResult = 1 Then Exit Do  ' stopWriter signaled
+                    If connectResult = WaitHandle.WaitTimeout Then
+                        Debug.WriteLine("AudioPipe: FFmpeg connection timeout in writer thread")
+                        Volatile.Write(_pipeDisconnected, True)
+                        ' Discard queue
+                        Dim discard As Byte() = Nothing
+                        While _writeQueue.TryDequeue(discard)
+                        End While
+                        ' ★ v4: Stop WASAPI capture on timeout
+                        TryStopCaptureOnPipeDisconnect()
+                        Exit Do
+                    End If
+
+                    ' FFmpeg connected! Continue to drain queue.
+                End If
+
+                ' ═══════════════════════════════════════════════════════════════════════
+                ' Drain all available data from queue
+                ' ═══════════════════════════════════════════════════════════════════════
+                Dim data As Byte() = Nothing
+
+                While _writeQueue.TryDequeue(data)
+                    ' ★ v4 FIX: Use Volatile.Read for thread-safe check of _pipeDisconnected
+                    If Volatile.Read(_pipeDisconnected) OrElse _namedPipeServer Is Nothing OrElse Not _namedPipeServer.IsConnected Then
+                        Volatile.Write(_pipeDisconnected, True)
+                        ' Discard remaining queue
+                        Dim discard As Byte() = Nothing
+                        While _writeQueue.TryDequeue(discard)
+                        End While
+                        ' ★ v4: Stop WASAPI capture when pipe dies — saves CPU
+                        TryStopCaptureOnPipeDisconnect()
+                        Exit Do
+                    End If
+
+                    Try
+                        _namedPipeServer.Write(data, 0, data.Length)
+                        _bytesWritten += data.Length
+                    Catch ex As IOException
+                        ' Pipe disconnected — FFmpeg likely exited
+                        Volatile.Write(_pipeDisconnected, True)
+                        Debug.WriteLine("AudioPipe: Pipe disconnected in writer thread (FFmpeg exited?)")
+                        Dim discard As Byte() = Nothing
+                        While _writeQueue.TryDequeue(discard)
+                        End While
+                        TryStopCaptureOnPipeDisconnect()
+                        Exit Do
+                    Catch ex As ObjectDisposedException
+                        Volatile.Write(_pipeDisconnected, True)
+                        TryStopCaptureOnPipeDisconnect()
+                        Exit Do
+                    Catch ex As Exception
+                        If Volatile.Read(_isRunning) Then
+                            Debug.WriteLine("AudioPipe Write Error: " & ex.Message)
+                        End If
+                        Volatile.Write(_pipeDisconnected, True)
+                        TryStopCaptureOnPipeDisconnect()
+                        Exit Do
+                    End Try
+                End While
+
+                ' Check stop again before looping
+                If _stopWriter.WaitOne(0) Then Exit Do
+            Loop
+
+            Debug.WriteLine("AudioPipe: Writer thread exiting")
+        End Sub
+#End Region
+
 #Region "Silent Frame Generator"
 
         Private Sub PrepareSilentBuffer()
             If _waveFormat Is Nothing Then Exit Sub
 
-            ' Calculate buffer size for SILENT_FRAME_INTERVAL_MS of audio
-            Dim bytesPerSample As Integer = 4 ' 32-bit float
+            Dim bytesPerSample As Integer = 4
             If _waveFormat.Encoding <> WaveFormatEncoding.IeeeFloat Then
                 bytesPerSample = _waveFormat.BitsPerSample \ 8
             End If
 
             Dim samplesPerInterval As Integer = CInt(_waveFormat.SampleRate * SILENT_FRAME_INTERVAL_MS / 1000.0)
             _silentBufferSize = samplesPerInterval * _waveFormat.Channels * bytesPerSample
-            _silentBuffer = New Byte(_silentBufferSize - 1) {}  ' All zeros = silence
+            _silentBuffer = New Byte(_silentBufferSize - 1) {}
 
             Debug.WriteLine(String.Format("AudioPipe: Silent buffer prepared - {0} bytes ({1}ms)",
                 _silentBufferSize, SILENT_FRAME_INTERVAL_MS))
@@ -282,7 +455,8 @@ Namespace CaptureCore
             _silentTimer.AutoReset = True
             _silentTimer.Start()
 
-            _lastAudioTime = DateTime.Now
+            _silenceStopwatch.Restart()
+            _lastAudioTimeMs = _silenceStopwatch.ElapsedMilliseconds
             _isSendingSilence = False
             Debug.WriteLine("AudioPipe: Silent frame timer started")
         End Sub
@@ -297,30 +471,27 @@ Namespace CaptureCore
                 End Try
                 _silentTimer = Nothing
             End If
+            _silenceStopwatch.Stop()
         End Sub
 
         Private Sub OnSilentTimerElapsed(sender As Object, e As ElapsedEventArgs)
-            If Not _isRunning Then Exit Sub
-            If _namedPipeServer Is Nothing OrElse Not _namedPipeServer.IsConnected Then Exit Sub
+            If Not Volatile.Read(_isRunning) Then Exit Sub
+            If Volatile.Read(_pipeDisconnected) Then Exit Sub
             If _silentBuffer Is Nothing Then Exit Sub
 
             Try
-                Dim timeSinceLastAudio As TimeSpan = DateTime.Now - _lastAudioTime
+                Dim nowMs As Long = _silenceStopwatch.ElapsedMilliseconds
+                Dim timeSinceLastAudio As Long = nowMs - _lastAudioTimeMs
 
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Only send silence if:
-                '    1. No real audio for SILENT_TIMEOUT_MS
-                '    2. We're not already sending silence (avoid duplicate)
-                ' ═══════════════════════════════════════════════════════════════════════
-                If timeSinceLastAudio.TotalMilliseconds >= SILENT_TIMEOUT_MS Then
+                If timeSinceLastAudio >= SILENT_TIMEOUT_MS Then
                     If Not _isSendingSilence Then
                         _isSendingSilence = True
                         Debug.WriteLine("AudioPipe: Started sending silent frames")
                     End If
 
-                    SyncLock _writeLock
-                        _namedPipeServer.Write(_silentBuffer, 0, _silentBufferSize)
-                    End SyncLock
+                    ' Enqueue silence copy
+                    Dim silenceCopy As Byte() = New Byte(_silentBufferSize - 1) {}
+                    EnqueueAudioData(silenceCopy)
                 End If
 
             Catch ex As Exception
@@ -332,17 +503,41 @@ Namespace CaptureCore
 
 #End Region
 
-#Region "Private Methods"
+#Region "Private Methods — Audio Data Flow"
+
+        Private Sub EnqueueAudioData(data As Byte())
+            If Volatile.Read(_pipeDisconnected) Then Exit Sub
+
+            ' Drop-on-full: if queue is too large, drop oldest items
+            While _writeQueue.Count >= QUEUE_DROP_THRESHOLD
+                Dim dropped As Byte() = Nothing
+                _writeQueue.TryDequeue(dropped)
+            End While
+
+            _writeQueue.Enqueue(data)
+            _writerSignal.Set()
+        End Sub
+
         Private Sub WaitForConnection()
             Try
                 Dim asyncResult = _namedPipeServer.BeginWaitForConnection(Nothing, Nothing)
 
                 If asyncResult.AsyncWaitHandle.WaitOne(_connectionTimeout) Then
-                    _namedPipeServer.EndWaitForConnection(asyncResult)
-                    Debug.WriteLine("AudioPipe: FFmpeg connected!")
-                    RaiseEvent PipeConnected(Me, EventArgs.Empty)
+                    Try
+                        _namedPipeServer.EndWaitForConnection(asyncResult)
+
+                        ' ★ v4 FIX: Use Volatile.Write for thread-safe flag
+                        Volatile.Write(_ffmpegConnected, True)
+                        _connectedEvent.Set()
+
+                        Debug.WriteLine("AudioPipe: FFmpeg connected!")
+                        RaiseEvent PipeConnected(Me, EventArgs.Empty)
+                    Catch ex As ObjectDisposedException
+                        Debug.WriteLine("AudioPipe: Connection cancelled (pipe disposed)")
+                    End Try
                 Else
                     Debug.WriteLine("AudioPipe: Connection timeout - continuing anyway")
+                    ' Don't set _ffmpegConnected — writer thread will handle timeout
                 End If
             Catch ex As Exception
                 Debug.WriteLine("AudioPipe WaitForConnection Error: " & ex.Message)
@@ -350,22 +545,29 @@ Namespace CaptureCore
         End Sub
 
         Private Sub OnAudioDataAvailable(sender As Object, e As AudioDataEventArgs)
-            If Not _isRunning OrElse _namedPipeServer Is Nothing Then Exit Sub
-            If Not _namedPipeServer.IsConnected Then Exit Sub
+            If Not Volatile.Read(_isRunning) Then
+                e.ReturnBuffer()
+                Exit Sub
+            End If
 
             Try
-                ' ═══════════════════════════════════════════════════════════════════════
-                ' ✅ Real audio received - update timestamp and stop silence flag
-                ' ═══════════════════════════════════════════════════════════════════════
-                _lastAudioTime = DateTime.Now
+                ' Update silence tracking
+                _lastAudioTimeMs = _silenceStopwatch.ElapsedMilliseconds
                 If _isSendingSilence Then
                     _isSendingSilence = False
                     Debug.WriteLine("AudioPipe: Real audio received - stopped silent frames")
                 End If
 
-                SyncLock _writeLock
-                    _namedPipeServer.Write(e.Buffer, 0, e.BytesRecorded)
-                End SyncLock
+                ' Copy data and return buffer to pool immediately
+                Dim dataCopy As Byte() = New Byte(e.BytesRecorded - 1) {}
+                Array.Copy(e.Buffer, dataCopy, e.BytesRecorded)
+                e.ReturnBuffer()
+
+                ' Fire AudioTapped event with the COPY
+                RaiseEvent AudioTapped(Me, New AudioTappedEventArgs(dataCopy, e.BytesRecorded, e.WaveFormat))
+
+                ' Enqueue for writer thread (non-blocking)
+                EnqueueAudioData(dataCopy)
 
                 ' Store format
                 If _waveFormat Is Nothing AndAlso e.WaveFormat IsNot Nothing Then
@@ -375,10 +577,27 @@ Namespace CaptureCore
                 End If
 
             Catch ex As Exception
-                If _isRunning Then
-                    Debug.WriteLine("AudioPipe Write Error: " & ex.Message)
+                If Volatile.Read(_isRunning) Then
+                    Debug.WriteLine("AudioPipe AudioData Error: " & ex.Message)
                 End If
+                e.ReturnBuffer()
             End Try
+        End Sub
+
+        ''' <summary>
+        ''' ★ v4: Stop WASAPI capture when pipe disconnects (FFmpeg exited).
+        ''' Without this, WASAPI Loopback keeps running even though there's nowhere
+        ''' to send the data — wasting CPU and causing the writer thread queue to fill up.
+        ''' </summary>
+        Private Sub TryStopCaptureOnPipeDisconnect()
+            If _audioCapture IsNot Nothing AndAlso _audioCapture.IsCapturing Then
+                Try
+                    Debug.WriteLine("AudioPipe: Pipe disconnected — stopping WASAPI capture to save CPU")
+                    _audioCapture.StopCapture()
+                Catch ex As Exception
+                    Debug.WriteLine("AudioPipe: Error stopping capture on pipe disconnect: " & ex.Message)
+                End Try
+            End If
         End Sub
 
         Private Sub OnCaptureError(sender As Object, errorMessage As String)
@@ -396,6 +615,20 @@ Namespace CaptureCore
                     [Stop]()
                 Catch
                 End Try
+
+                ' Dispose sync events
+                Try
+                    _writerSignal.Dispose()
+                Catch
+                End Try
+                Try
+                    _stopWriter.Dispose()
+                Catch
+                End Try
+                Try
+                    _connectedEvent.Dispose()
+                Catch
+                End Try
             End If
 
             _isDisposed = True
@@ -407,6 +640,24 @@ Namespace CaptureCore
         End Sub
 #End Region
 
+    End Class
+
+    ''' <summary>
+    ''' ★ v3: Event args สำหรับ AudioTapped — ส่งข้อมูลเสียงดิบให้ subscriber
+    ''' ข้อมูลเป็น COPY — subscriber ถือได้โดยไม่มีผลต่อ pipe
+    ''' </summary>
+    Public Class AudioTappedEventArgs
+        Inherits EventArgs
+
+        Public ReadOnly Property Buffer As Byte()
+        Public ReadOnly Property BytesRecorded As Integer
+        Public ReadOnly Property WaveFormat As WaveFormat
+
+        Public Sub New(buffer As Byte(), bytesRecorded As Integer, format As WaveFormat)
+            Me.Buffer = buffer
+            Me.BytesRecorded = bytesRecorded
+            Me.WaveFormat = format
+        End Sub
     End Class
 
 End Namespace

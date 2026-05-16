@@ -317,6 +317,9 @@
 		<None Update="NVIDIA ShadowPlay.ico">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="NVIDIA_Shadowplay_Data\highlights\Effect.mp3">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="NVIDIA_Shadowplay_Data\on">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>

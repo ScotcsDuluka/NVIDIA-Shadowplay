@@ -43,10 +43,7 @@ Namespace CaptureCore
         Private Const SB_CAPACITY_XLARGE As Integer = 4096
         Private Const CAPTURE_API_CHECK_TIMEOUT As Integer = 3000
 
-        ''' <summary>
-        ''' Minimum cooldown between any user-triggered action (Start/Stop/Save).
-        ''' Prevents rapid-fire button spam. Default 500ms.
-        ''' </summary>
+
         Public Const ACTION_COOLDOWN_MS As Integer = 500
 
         Private _bufferStartTime As DateTime
@@ -944,6 +941,95 @@ Namespace CaptureCore
                 _ddagrabAvailable = False
             End SyncLock
         End Sub
+
+        ''' <summary>
+        ''' ★ v5: คืนรายการ Capture API ที่ใช้ได้กับ CaptureTargetType ปัจจุบัน
+        ''' UI ใช้แสดง dropdown/combo box ให้ User เลือก
+        ''' </summary>
+        Public Function GetAvailableCaptureAPIs() As List(Of CaptureAPIOption)
+            Dim result As New List(Of CaptureAPIOption)()
+
+            ' GDIGrab ใช้ได้เสมอ (fallback)
+            result.Add(New CaptureAPIOption With {
+                .APIType = CaptureAPIType.GDIGrab,
+                .DisplayName = "GDI Capture",
+                .Description = "Fallback — ช้าที่สุดแต่ใช้ได้ทุกกรณี (CPU-based)",
+                .IsRecommended = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport() AndAlso Not _ddagrabAvailable AndAlso Not _gfxcaptureAvailable),
+                .IsAvailable = True
+            })
+
+            ' DDAGrab — Monitor only
+            If _captureTargetType <> CaptureTargetType.Window Then
+                Dim ddagrabAvail As Boolean = _ddagrabAvailable OrElse Not _ddagrabChecked
+                Dim ddagrabRecommended As Boolean = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport())
+                result.Add(New CaptureAPIOption With {
+                    .APIType = CaptureAPIType.DDAGrab,
+                    .DisplayName = "DDA Grab (DXGI Desktop Duplication)",
+                    .Description = "Monitor capture — เร็วกว่า GFxCapture เล็กน้อย (Monitor เท่านั้น)",
+                    .IsRecommended = ddagrabRecommended AndAlso ddagrabAvail,
+                    .IsAvailable = ddagrabAvail
+                })
+            End If
+
+            ' GFxCapture — Window + HDR
+            Dim gfxcaptureAvail As Boolean = _gfxcaptureAvailable OrElse Not _gfxcaptureChecked
+            Dim gfxcaptureRecommended As Boolean = (_captureTargetType = CaptureTargetType.Window OrElse RequiresHDRSupport())
+            result.Add(New CaptureAPIOption With {
+                .APIType = CaptureAPIType.GFxCapture,
+                .DisplayName = "Graphics Capture (Windows.Graphics.Capture)",
+                .Description = "Window capture + HDR — จับ Window ได้ + รองรับ HDR ครบ (เหมาะสำหรับ Window/HDR)",
+                .IsRecommended = gfxcaptureRecommended AndAlso gfxcaptureAvail,
+                .IsAvailable = gfxcaptureAvail
+            })
+
+            ' Auto
+            result.Add(New CaptureAPIOption With {
+                .APIType = CaptureAPIType.Auto,
+                .DisplayName = "Auto (แนะนำ)",
+                .Description = String.Format("เลือกอัตโนมัติตามโหมด — {0}",
+                    If(_captureTargetType = CaptureTargetType.Window, "Window → GFxCapture",
+                    If(RequiresHDRSupport(), "HDR → GFxCapture", "Monitor → DDAGrab (เร็วกว่า)"))),
+                .IsRecommended = True,
+                .IsAvailable = True
+            })
+
+            Return result
+        End Function
+
+        ''' <summary>
+        ''' ★ v5: คืน Capture API ที่จะถูกใช้จริง (หลัง resolve fallback)
+        ''' UI ใช้แสดง label ว่าตอนนี้ใช้ API อะไร
+        ''' </summary>
+        Public ReadOnly Property ResolvedCaptureAPI As CaptureAPIType
+            Get
+                Return DetermineBestCaptureAPI()
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' ★ v5: คืนคำอธิบายของ Capture API ที่จะถูกใช้จริง
+        ''' </summary>
+        Public ReadOnly Property ResolvedCaptureAPIDescription As String
+            Get
+                Dim api As CaptureAPIType = DetermineBestCaptureAPI()
+                Select Case api
+                    Case CaptureAPIType.GFxCapture
+                        If _captureTargetType = CaptureTargetType.Window Then
+                            Return "GFxCapture — จับ Window (รองรับ HDR)"
+                        ElseIf RequiresHDRSupport() Then
+                            Return "GFxCapture — Monitor + HDR"
+                        Else
+                            Return "GFxCapture — Graphics Capture API"
+                        End If
+                    Case CaptureAPIType.DDAGrab
+                        Return "DDAGrab — Desktop Duplication (เร็ว, Monitor เท่านั้น)"
+                    Case CaptureAPIType.GDIGrab
+                        Return "GDIGrab — GDI Fallback (ช้าที่สุด)"
+                    Case Else
+                        Return "Auto"
+                End Select
+            End Get
+        End Property
 #End Region
 
 #Region "Pre-warm System"
@@ -1124,21 +1210,18 @@ Namespace CaptureCore
                     _framerate = 60
                     _encoderPreset = 2
                 Case RecordingPreset.MyLow
-                    ' My Preset Low: mirrors Low defaults but UI overrides resolution to Native
                     _resolutionWidth = 1280
                     _resolutionHeight = 720
                     _bitrate = 4000
                     _framerate = 30
                     _encoderPreset = 6
                 Case RecordingPreset.MyMedium
-                    ' My Preset Medium: mirrors Medium defaults but UI overrides resolution to Native
                     _resolutionWidth = 1920
                     _resolutionHeight = 1080
                     _bitrate = 7000
                     _framerate = 60
                     _encoderPreset = 4
                 Case RecordingPreset.MyHigh
-                    ' My Preset High: mirrors High defaults but UI overrides resolution to Native
                     _resolutionWidth = 2560
                     _resolutionHeight = 1440
                     _bitrate = 12000
@@ -1735,7 +1818,7 @@ Namespace CaptureCore
                     recordingProcess.Dispose()
                 Catch
                 End Try
-                recordingProcess = Nothing
+                    recordingProcess = Nothing
             End If
         End Sub
 
@@ -1763,9 +1846,10 @@ Namespace CaptureCore
 
                     proc.StandardInput.Close()
 
-                    ' BUG FIX: Read BOTH stdout and stderr to prevent buffer deadlock
+                    ' ★ v4 FIX: Read BOTH stdout and stderr asynchronously to prevent deadlock.
+                    ' Old bug: ReadToEnd() synchronous + WaitForExit = deadlock when both buffers fill up.
                     Dim stdoutTask As Task(Of String) = proc.StandardOutput.ReadToEndAsync()
-                    Dim stderr As String = proc.StandardError.ReadToEnd()
+                    Dim stderrTask As Task(Of String) = proc.StandardError.ReadToEndAsync()
 
                     Dim exited As Boolean = proc.WaitForExit(timeoutMs)
 
@@ -1778,8 +1862,9 @@ Namespace CaptureCore
                         Return False
                     End If
 
-                    ' Ensure async read completes
+                    ' Ensure async reads complete
                     stdoutTask.Wait(5000)
+                    stderrTask.Wait(5000)
 
                     Return proc.ExitCode = 0
                 End Using
@@ -1987,6 +2072,7 @@ Namespace CaptureCore
             End If
 
             _pendingVideoFilter = ""
+            _pendingVideoInput = ""
 
             ' ═══ Build video filter chain content (without -filter_complex wrapper) ═══
             Dim videoFilterChain As String = BuildVideoFilterChain(region, selectedAPI)
@@ -2014,9 +2100,14 @@ Namespace CaptureCore
                 sb.Append(""" ")
             End If
 
-            ' ═══ Audio inputs (after filter_complex for proper index numbering) ═══
-            ' NOTE: FFmpeg parses all args before processing, so input index numbering
-            ' is based on the order of -i arguments regardless of -filter_complex position.
+            ' ═══ ★ v4 FIX: GDIGrab video input goes BEFORE audio inputs ═══
+            ' GDIGrab is a regular -i input, not a filter_complex source.
+            ' It must appear BEFORE audio -i arguments so input indices are correct.
+            If Not String.IsNullOrEmpty(_pendingVideoInput) Then
+                sb.Append(_pendingVideoInput)
+            End If
+
+            ' ═══ Audio inputs ═══
             sb.Append(audioInputArgs)
 
             ' ═══ GDIGrab pending video filter (-vf) ═══
@@ -2031,12 +2122,10 @@ Namespace CaptureCore
             BuildEncoderCommand(sb)
 
             If _audioMode <> VideoCaptureMode.None Then
-                ' BUG FIX: -async 1 is deprecated in newer FFmpeg.
-                ' Use aresample=async=1000:first_pts=0 instead for proper A/V sync.
-                ' This handles the case where audio pipe starts slightly after video.
-                ' first_pts=0 aligns the first audio sample to timestamp 0.
-                ' async=1000 allows up to 1000 samples of stretch/compression per frame.
-                sb.Append("-c:a aac -b:a 192k -af aresample=async=1000:first_pts=0 ")
+                ' ★ v3 FIX: ใช้ BuildAudioOutputFilter แทน -af ตรงๆ
+                ' เพื่อรวม volume + aresample เป็น -af เดียว (ไม่ชนกับ BuildMapCommand)
+                sb.Append("-c:a aac -b:a 192k ")
+                sb.Append(BuildAudioOutputFilter())
             End If
 
             sb.Append("-movflags +faststart """)
@@ -2062,6 +2151,7 @@ Namespace CaptureCore
             End If
 
             _pendingVideoFilter = ""
+            _pendingVideoInput = ""
 
             ' ═══ Build video filter chain ═══
             Dim videoFilterChain As String = BuildVideoFilterChain(Rectangle.Empty, selectedAPI)
@@ -2088,6 +2178,11 @@ Namespace CaptureCore
                 sb.Append(""" ")
             End If
 
+            ' ★ v4 FIX: GDIGrab video input goes BEFORE audio inputs
+            If Not String.IsNullOrEmpty(_pendingVideoInput) Then
+                sb.Append(_pendingVideoInput)
+            End If
+
             ' Audio inputs
             sb.Append(audioInputArgs)
 
@@ -2104,8 +2199,9 @@ Namespace CaptureCore
 
             ' Audio codec
             If _audioMode <> VideoCaptureMode.None Then
-                ' BUG FIX: Same as recording — use aresample instead of deprecated -async
-                sb.Append("-c:a aac -b:a 192k -af aresample=async=1000:first_pts=0 ")
+                ' ★ v3 FIX: ใช้ BuildAudioOutputFilter แทน -af ตรงๆ
+                sb.Append("-c:a aac -b:a 192k ")
+                sb.Append(BuildAudioOutputFilter())
             End If
 
             ' ═══ Segment settings for Replay Buffer ═══
@@ -2128,9 +2224,13 @@ Namespace CaptureCore
         End Function
 
         ''' <summary>
-        ''' BUG FIX: New method — builds the video filter chain content (without -filter_complex wrapper).
+        ''' ★ v4 FIX: Builds the video filter chain content (without -filter_complex wrapper).
         ''' Returns the content inside the filter_complex quotes, e.g. "ddagrab=0:framerate=60[v]"
         ''' Returns empty string for GDIGrab (which uses -vf instead).
+        ''' 
+        ''' OLD BUG: GDIGrab wrote "-f gdigrab -i desktop" into filterSb, which was then
+        ''' wrapped in -filter_complex → FFmpeg syntax error! GDIGrab is a regular input,
+        ''' NOT a filter. Now GDIGrab returns empty string and writes to _pendingVideoInput.
         ''' </summary>
         Private Function BuildVideoFilterChain(region As Rectangle, selectedAPI As CaptureAPIType) As String
             Dim filterSb As New StringBuilder(SB_CAPACITY_XLARGE)
@@ -2141,8 +2241,11 @@ Namespace CaptureCore
                 Case CaptureAPIType.DDAGrab
                     BuildDDAGrabFilterChain(filterSb, region)
                 Case Else
-                    ' GDIGrab uses -vf, not -filter_complex
-                    BuildGDIGrabCommand(filterSb, region)
+                    ' ★ v4 FIX: GDIGrab uses -vf, not -filter_complex
+                    ' Write input command to _pendingVideoInput instead of filterSb
+                    BuildGDIGrabInput()
+                    ' Return empty — no filter_complex for GDIGrab
+                    Return ""
             End Select
 
             Return filterSb.ToString()
@@ -2192,8 +2295,10 @@ Namespace CaptureCore
         End Function
 
         ''' <summary>
-        ''' BUG FIX: New method — builds the -map arguments for both video and audio outputs.
-        ''' Replaces the old BuildAudioMapCommand which could create a conflicting -filter_complex.
+        ''' ★ v3 FIX: สร้าง -map arguments สำหรับ video + audio
+        ''' ★ ไม่ใส่ -af ในนี้แล้ว — audio filter ทั้งหมดไปรวมใน BuildAudioOutputFilter
+        ''' เดิม: ใส่ -af "volume=X" ตรงนี้ + -af aresample ใน BuildFFmpegArguments = ชนกัน!
+        ''' FFmpeg ใช้แค่ -af อันสุดท้าย → volume หาย + A/V sync เละ → กระตุก!
         ''' </summary>
         Private Sub BuildMapCommand(sb As StringBuilder, usesFilterComplex As Boolean, hasAudioFilterChain As Boolean)
             ' Map video
@@ -2217,28 +2322,15 @@ Namespace CaptureCore
                 Dim audioBaseIdx As Integer = If(usesFilterComplex, 0, 1)
 
                 If hasSystemAudio Then
-                    Dim pipe As AudioPipe = Nothing
-                    ' Determine which pipe to check based on context - we can't access useBufferPipe here
-                    ' but the mapping logic is the same regardless
                     sb.Append("-map ")
                     sb.Append(audioBaseIdx)
                     sb.Append(":a ")
-
-                    If _systemAudioVolume < 0.99F Then
-                        sb.Append("-af ""volume=")
-                        sb.Append(_systemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
-                        sb.Append(""" ")
-                    End If
+                    ' ★ v3: ไม่ใส่ -af ที่นี่แล้ว — ไปรวมใน BuildAudioOutputFilter แทน
                 ElseIf hasMic Then
                     sb.Append("-map ")
                     sb.Append(audioBaseIdx)
                     sb.Append(":a ")
-
-                    If _micVolume < 0.99F Then
-                        sb.Append("-af ""volume=")
-                        sb.Append(_micVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture))
-                        sb.Append(""" ")
-                    End If
+                    ' ★ v3: ไม่ใส่ -af ที่นี่แล้ว — ไปรวมใน BuildAudioOutputFilter แทน
                 End If
             End If
         End Sub
@@ -2269,6 +2361,49 @@ Namespace CaptureCore
             Return sb.ToString()
         End Function
 
+        ''' <summary>
+        ''' ★ v3 NEW: สร้าง audio output filter chain เดียวที่รวมทุกอย่าง
+        ''' volume (ถ้าต้องการ) + aresample (sync) เป็น -af เดียว
+        ''' 
+        ''' BUG: เดิมมี -af สองตัวที่ชนกัน:
+        '''   1) -af "volume=0.80"  จาก BuildMapCommand (single audio source + volume < 0.99)
+        '''   2) -af aresample=async=1000:first_pts=0  จาก BuildFFmpegArguments
+        ''' FFmpeg ใช้แค่อันสุดท้าย → volume หาย + A/V sync ผิด → กระตุก!
+        ''' </summary>
+        Private Function BuildAudioOutputFilter() As String
+            ' aresample is always needed for A/V sync
+            Dim needVolume As Boolean = False
+            Dim volumeValue As Single = 1.0F
+
+            ' Check if we need volume filter (only for single audio source, not mixed via filter_complex)
+            Dim hasSystemAudio As Boolean = (_audioMode = VideoCaptureMode.SystemOnly OrElse _audioMode = VideoCaptureMode.Both)
+            Dim hasMic As Boolean = (_audioMode = VideoCaptureMode.MicOnly OrElse _audioMode = VideoCaptureMode.Both)
+            Dim bothSources As Boolean = hasSystemAudio AndAlso hasMic
+
+            ' Volume is only needed when NOT mixing via amix (amix already applies volume)
+            If Not bothSources Then
+                If hasSystemAudio AndAlso _systemAudioVolume < 0.99F Then
+                    needVolume = True
+                    volumeValue = _systemAudioVolume
+                ElseIf hasMic AndAlso _micVolume < 0.99F Then
+                    needVolume = True
+                    volumeValue = _micVolume
+                End If
+            End If
+
+            ' Build combined filter chain
+            Dim filters As New List(Of String)()
+
+            If needVolume Then
+                filters.Add(String.Format("volume={0:F2}", volumeValue))
+            End If
+
+            ' Always add aresample for A/V sync
+            filters.Add("aresample=async=1000:first_pts=0")
+
+            Return "-af """ & String.Join(",", filters) & """ "
+        End Function
+
         Private Function UsesFilterComplexForVideo() As Boolean
             Dim selectedAPI As CaptureAPIType = DetermineBestCaptureAPI()
 
@@ -2282,44 +2417,136 @@ Namespace CaptureCore
             End Select
         End Function
 
+        ''' <summary>
+        ''' ★ v5: DetermineBestCaptureAPI — 3-tier strategy ตาม CaptureTargetType + HDR
+        ''' 
+        ''' Priority:
+        '''   1. GFxCapture → Window capture + HDR (จับ Window ได้, รองรับ HDR)
+        '''   2. DDAGrab   → Monitor capture only (เร็วกว่า GFxCapture เล็กน้อย, จับ Monitor เท่านั้น)
+        '''   3. GDIGrab   → Fallback สุดท้าย (ช้าที่สุดแต่ใช้ได้ทุกกรณี)
+        ''' 
+        ''' Rules by CaptureTargetType:
+        '''   - Window  → GFxCapture only (DDAGrab ไม่รองรับ Window capture)
+        '''   - Monitor + HDR → GFxCapture (DDAGrab ไม่รองรับ HDR/16bit)
+        '''   - Monitor + SDR → DDAGrab (เร็วกว่า) → GFxCapture fallback → GDIGrab
+        '''   - Region  → DDAGrab (เร็วกว่าสำหรับ monitor region) → GFxCapture fallback → GDIGrab
+        ''' </summary>
         Private Function DetermineBestCaptureAPI() As CaptureAPIType
+            ' ★ ถ้า User เลือกเอง ใช้ตามที่เลือก (ยกเว้น DDAGrab + Window → override)
             If _captureAPI <> CaptureAPIType.Auto Then
+                ' ★ v5 FIX: DDAGrab ไม่รองรับ Window capture — ถ้า User เลือก DDAGrab แต่ target เป็น Window
+                ' ให้ fallback เป็น GFxCapture อัตโนมัติ
+                If _captureAPI = CaptureAPIType.DDAGrab AndAlso _captureTargetType = CaptureTargetType.Window Then
+                    Debug.WriteLine("DetermineBestCaptureAPI: DDAGrab selected but target is Window → forcing GFxCapture")
+                    _fallbackAPI = CaptureAPIType.GDIGrab
+                    Return CaptureAPIType.GFxCapture
+                End If
+
+                ' ★ HDR + DDAGrab → GFxCapture (DDAGrab ไม่รองรับ 16bit/HDR output)
+                If _captureAPI = CaptureAPIType.DDAGrab AndAlso RequiresHDRSupport() Then
+                    Debug.WriteLine("DetermineBestCaptureAPI: DDAGrab selected but HDR required → forcing GFxCapture")
+                    _fallbackAPI = CaptureAPIType.GDIGrab
+                    Return CaptureAPIType.GFxCapture
+                End If
+
                 Return _captureAPI
             End If
 
-            ' BUG FIX: Implement fallback logic
+            ' ★ Auto mode: ใช้ fallback ถ้า API ก่อนหน้าล้มเหลว
             If _captureAPIFailed AndAlso _fallbackAPI.HasValue Then
                 Debug.WriteLine(String.Format("DetermineBestCaptureAPI: Fallback to {0}", _fallbackAPI.Value.ToString()))
                 Return _fallbackAPI.Value
             End If
 
-            Dim isHardwareEncoder As Boolean = (
-                _encoder = VideoEncoder.NVENC_H264 OrElse
-                _encoder = VideoEncoder.NVENC_HEVC OrElse
-                _encoder = VideoEncoder.NVENC_AV1 OrElse
-                _encoder = VideoEncoder.QuickSync_H264 OrElse
-                _encoder = VideoEncoder.QuickSync_HEVC OrElse
-                _encoder = VideoEncoder.AMF_H264 OrElse
-                _encoder = VideoEncoder.AMF_HEVC
-            )
-
-            If isHardwareEncoder Then
-                ' Prefer GFxCapture if available, then DDAGrab
-                If _gfxcaptureAvailable Then
-                    _fallbackAPI = CaptureAPIType.DDAGrab
+            ' ═══════════════════════════════════════════════════════════════════════
+            ' ★ v5: 3-tier selection based on CaptureTargetType + HDR requirement
+            ' ═══════════════════════════════════════════════════════════════════════
+            Select Case _captureTargetType
+                Case CaptureTargetType.Window
+                    ' ★ Window capture → GFxCapture only (DDAGrab ไม่รองรับ)
+                    ' GFxCapture รองรับ window_title, window_class, window_exe
+                    ' Fallback: GDIGrab ด้วย -i title=... (ถ้า GFxCapture ไม่ available)
+                    _fallbackAPI = CaptureAPIType.GDIGrab
+                    If _gfxcaptureAvailable Then
+                        Return CaptureAPIType.GFxCapture
+                    End If
+                    ' GFxCapture not checked yet or not available
+                    Debug.WriteLine("DetermineBestCaptureAPI: Window → GFxCapture (not checked, trying) → fallback GDIGrab")
                     Return CaptureAPIType.GFxCapture
-                End If
-                If _ddagrabAvailable Then
+
+                Case CaptureTargetType.Monitor
+                    ' ★ Monitor + HDR → GFxCapture (DDAGrab ไม่รองรับ 16bit/HDR)
+                    If RequiresHDRSupport() Then
+                        _fallbackAPI = CaptureAPIType.GDIGrab
+                        If _gfxcaptureAvailable Then
+                            Return CaptureAPIType.GFxCapture
+                        End If
+                        Debug.WriteLine("DetermineBestCaptureAPI: Monitor+HDR → GFxCapture (not checked, trying) → fallback GDIGrab")
+                        Return CaptureAPIType.GFxCapture
+                    End If
+
+                    ' ★ Monitor + SDR → DDAGrab (เร็วกว่า) → GFxCapture fallback → GDIGrab
+                    If _ddagrabAvailable Then
+                        _fallbackAPI = CaptureAPIType.GFxCapture
+                        Return CaptureAPIType.DDAGrab
+                    End If
+                    If _gfxcaptureAvailable Then
+                        _fallbackAPI = CaptureAPIType.GDIGrab
+                        Return CaptureAPIType.GFxCapture
+                    End If
+                    ' Neither checked yet — try DDAGrab first (faster for monitor)
+                    _fallbackAPI = CaptureAPIType.GFxCapture
+                    Debug.WriteLine("DetermineBestCaptureAPI: Monitor+SDR → DDAGrab (not checked, trying) → fallback GFxCapture")
+                    Return CaptureAPIType.DDAGrab
+
+                Case CaptureTargetType.Region
+                    ' ★ Region capture → DDAGrab (รองรับ offset_x/offset_y + video_size) → GFxCapture fallback → GDIGrab
+                    If RequiresHDRSupport() Then
+                        _fallbackAPI = CaptureAPIType.GDIGrab
+                        If _gfxcaptureAvailable Then
+                            Return CaptureAPIType.GFxCapture
+                        End If
+                        Return CaptureAPIType.GFxCapture
+                    End If
+
+                    If _ddagrabAvailable Then
+                        _fallbackAPI = CaptureAPIType.GFxCapture
+                        Return CaptureAPIType.DDAGrab
+                    End If
+                    If _gfxcaptureAvailable Then
+                        _fallbackAPI = CaptureAPIType.GDIGrab
+                        Return CaptureAPIType.GFxCapture
+                    End If
+                    _fallbackAPI = CaptureAPIType.GFxCapture
+                    Debug.WriteLine("DetermineBestCaptureAPI: Region → DDAGrab (not checked, trying) → fallback GFxCapture")
+                    Return CaptureAPIType.DDAGrab
+
+                Case Else
                     _fallbackAPI = CaptureAPIType.GDIGrab
                     Return CaptureAPIType.DDAGrab
-                End If
-                ' Neither checked yet or both unavailable — try DDAGrab as default for hardware
-                _fallbackAPI = CaptureAPIType.GDIGrab
-                Return CaptureAPIType.DDAGrab
-            End If
+            End Select
+        End Function
 
-            Debug.WriteLine("DetermineBestCaptureAPI: Software -> GDIGrab")
-            Return CaptureAPIType.GDIGrab
+        ''' <summary>
+        ''' ★ v5: ตรวจสอบว่าต้องการ HDR support หรือไม่
+        ''' HDR = 10bit (x2bgr10) หรือ 16bit (rgbaf16) output format
+        ''' DDAGrab รองรับแค่ 8bit และ 10bit — ไม่รองรับ 16bit
+        ''' GFxCapture รองรับ 8bit, 10bit, 16bit (full HDR)
+        ''' </summary>
+        Private Function RequiresHDRSupport() As Boolean
+            ' 16bit output → ต้องใช้ GFxCapture เท่านั้น (DDAGrab ไม่รองรับ)
+            If _outputFormat = OutputColorFormat.RGBAF16_16Bit Then
+                Return True
+            End If
+            ' 10bit output → DDAGrab รองรับ แต่ถ้า User ต้องการ HDR เต็มรูปแบบ ต้องใช้ GFxCapture
+            ' ใช้ heuristics: 10bit + NVENC/AMF = likely HDR encoding
+            If _outputFormat = OutputColorFormat.X2BGR10_10Bit Then
+                Dim isNVIDIA As Boolean = (_encoder = VideoEncoder.NVENC_H264 OrElse _encoder = VideoEncoder.NVENC_HEVC OrElse _encoder = VideoEncoder.NVENC_AV1)
+                Dim isAMD As Boolean = (_encoder = VideoEncoder.AMF_H264 OrElse _encoder = VideoEncoder.AMF_HEVC)
+                ' NVENC/AMF with 10bit = likely HDR capture intent → prefer GFxCapture
+                Return isNVIDIA OrElse isAMD
+            End If
+            Return False
         End Function
 
         Private Sub ResetCaptureAPIFallback()
@@ -2710,18 +2937,25 @@ Namespace CaptureCore
             End If
         End Sub
 
+        ''' <summary>
+        ''' ★ v4 NEW: GDIGrab video input command (separate from filter_complex).
+        ''' GDIGrab is a regular input (-f gdigrab -i desktop), NOT a filter_complex source.
+        ''' </summary>
+        Private _pendingVideoInput As String = ""
+
         Private _pendingVideoFilter As String = ""
 
-        Private Sub BuildGDIGrabCommand(sb As StringBuilder, region As Rectangle)
-            sb.Append("-f gdigrab ")
-            sb.Append("-framerate ")
-            sb.Append(_framerate.ToString())
-            sb.Append(" ")
-            sb.Append("-draw_mouse ")
-            sb.Append(If(_captureCursor, "1", "0"))
-            sb.Append(" -i desktop ")
-
+        ''' <summary>
+        ''' ★ v4: Builds GDIGrab as a regular input command (not inside -filter_complex).
+        ''' </summary>
+        Private Sub BuildGDIGrabInput()
+            _pendingVideoInput = "-f gdigrab -framerate " & _framerate.ToString() & " -draw_mouse " & If(_captureCursor, "1", "0") & " -i desktop "
             _pendingVideoFilter = "-vf ""scale=" & _resolutionWidth.ToString() & ":" & _resolutionHeight.ToString() & ":flags=lanczos,format=yuv420p"" "
+        End Sub
+
+        Private Sub BuildGDIGrabCommand(sb As StringBuilder, region As Rectangle)
+            ' ★ v4 FIX: Don't write to sb — GDIGrab is not a filter_complex
+            BuildGDIGrabInput()
         End Sub
 
         Private Sub BuildScalingAndFormatFilters(sb As StringBuilder, needScaling As Boolean)
@@ -3487,6 +3721,34 @@ Namespace CaptureCore
         End Sub
 #End Region
 
+    End Class
+
+    ''' <summary>
+    ''' ★ v5: ข้อมูลตัวเลือก Capture API สำหรับ UI
+    ''' ใช้กับ ScreenRecorder.GetAvailableCaptureAPIs()
+    ''' </summary>
+    Public Class CaptureAPIOption
+        ''' <summary>ประเภทของ Capture API</summary>
+        Public Property APIType As ScreenRecorder.CaptureAPIType
+
+        ''' <summary>ชื่อที่แสดงใน UI เช่น "DDA Grab (DXGI Desktop Duplication)"</summary>
+        Public Property DisplayName As String
+
+        ''' <summary>คำอธิบายสั้นๆ เช่น "Monitor capture — เร็วกว่า GFxCapture"</summary>
+        Public Property Description As String
+
+        ''' <summary>แนะนำสำหรับ CaptureTargetType ปัจจุบันหรือไม่</summary>
+        Public Property IsRecommended As Boolean
+
+        ''' <summary>ใช้ได้บนเครื่องนี้หรือไม่ (ผ่านการ check แล้ว)</summary>
+        Public Property IsAvailable As Boolean
+
+        Public Overrides Function ToString() As String
+            Dim suffix As String = ""
+            If IsRecommended Then suffix &= " ★"
+            If Not IsAvailable Then suffix &= " (ไม่พร้อมใช้งาน)"
+            Return DisplayName & suffix
+        End Function
     End Class
 
 End Namespace

@@ -35,6 +35,7 @@ Partial Public Class Loader
         notifications.Add(New NotificationData("l10n.ramwramcritical", ""))
         notifications.Add(New NotificationData("l10n.cpuwram", ""))
         notifications.Add(New NotificationData("l10n.diskspacelow", ""))
+        notifications.Add(New NotificationData("l10n.irOn", ""))
 
         ' checks เก่า (key ตรงกับ localization)
         notifications.Add(New NotificationData("l10n.notificationWarningGameRequired", ""))

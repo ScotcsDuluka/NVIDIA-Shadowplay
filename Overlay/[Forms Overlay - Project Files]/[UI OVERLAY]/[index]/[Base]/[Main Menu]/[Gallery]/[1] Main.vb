@@ -40,10 +40,12 @@ Public Class Base_Gallery
     End Sub
 
     Private Sub Openloaction_l10n_Click(sender As Object, e As EventArgs) Handles Openloaction_l10n.Click
+          Base.IF_OpenShare = True
         If Directory.Exists(txtFilePath.Text) Then
             Process.Start("explorer.exe", txtFilePath.Text)
-            Hide
-            Base.HideAllControls   ' ปิด Overlay ทั้งหมด
+            Hide()
+            Base.HideAllControls()
+            Base.IF_OpenShare = True
         Else
             MessageBox.Show("foldererror")
         End If

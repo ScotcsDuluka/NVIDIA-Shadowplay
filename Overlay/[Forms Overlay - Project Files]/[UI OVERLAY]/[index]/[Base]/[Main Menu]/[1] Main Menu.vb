@@ -293,13 +293,13 @@ Partial Public Class Base
         AddHandler HighlightDetector.Instance.HighlightDetected, AddressOf OnHighlightDetected
 
         ' เริ่มฟังเสียง
-        HighlightDetector.Instance.Start()
+        '  HighlightDetector.Instance.Start()
     End Sub
 
     ' เมื่อจับเสียงได้
     Private Sub OnHighlightDetected(templateName As String, timestamp As DateTime)
         Debug.WriteLine("HIGHLIGHT: " & templateName)
-        ShowNotifier("feature_not_ready")
+        ShowNotifier("irOn")
     End Sub
 
     ' ปิดแอป
