@@ -1,0 +1,1362 @@
+Microsoft Windows [Version 10.0.28120.2302]
+(c) Microsoft Corporation. All rights reserved.
+
+C:\My Project\NVIDIA-Shadowplay>tree /f
+Folder PATH listing for volume \\OS
+Volume serial number is AC6F-0E95
+C:.
+│   .gitignore
+│   Build.lnk
+│   LICENSE
+│   LICENSE.NOTICE
+│   PROJECT-STRUCTURE.md
+│   README.md
+│
+├───.github
+│   └───workflows
+│           static.yml
+│
+├───API
+│   │   ApplicationEvents.vb
+│   │   NVIDIA API.vbproj
+│   │   NVIDIA API.vbproj.user
+│   │   NVIDIA ShadowPlay.ico
+│   │
+│   ├───bin
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │               Microsoft.Windows.SDK.NET.dll
+│   │               NVIDIA API.deps.json
+│   │               NVIDIA API.dll
+│   │               NVIDIA API.exe
+│   │               NVIDIA API.pdb
+│   │               NVIDIA API.runtimeconfig.json
+│   │               WinRT.Runtime.dll
+│   │
+│   ├───My Project
+│   │       Application.Designer.vb
+│   │       Application.myapp
+│   │
+│   ├───obj
+│   │   │   NVIDIA API.vbproj.nuget.dgspec.json
+│   │   │   NVIDIA API.vbproj.nuget.g.props
+│   │   │   NVIDIA API.vbproj.nuget.g.targets
+│   │   │   project.assets.json
+│   │   │   project.nuget.cache
+│   │   │
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │           │   .NETCoreApp,Version=v8.0.AssemblyAttributes.vb
+│   │           │   apphost.exe
+│   │           │   NVIDIA API.AssemblyInfo.vb
+│   │           │   NVIDIA API.AssemblyInfoInputs.cache
+│   │           │   NVIDIA API.assets.cache
+│   │           │   NVIDIA API.dll
+│   │           │   NVIDIA API.GeneratedMSBuildEditorConfig.editorconfig
+│   │           │   NVIDIA API.genruntimeconfig.cache
+│   │           │   NVIDIA API.pdb
+│   │           │   NVIDIA API.sourcelink.json
+│   │           │   NVIDIA API.vbproj.CoreCompileInputs.cache
+│   │           │   NVIDIA API.vbproj.FileListAbsolute.txt
+│   │           │   NVIDIA API.vbproj.GenerateResource.cache
+│   │           │   NVIDIA API.vbproj.Up2Date
+│   │           │   NVIDIA_API.API_RUN.resources
+│   │           │
+│   │           ├───ref
+│   │           │       NVIDIA API.dll
+│   │           │
+│   │           └───refint
+│   │                   NVIDIA API.dll
+│   │
+│   └───[Forms - Project Files]
+│       ├───[API]
+│       │       FONTS.vb
+│       │       Server.vb
+│       │
+│       └───[UI Forms]
+│               NVIDIA API.Designer.vb
+│               NVIDIA API.resx
+│               NVIDIA API.vb
+│
+├───App Experience
+│   │   ApplicationEvents.vb
+│   │   NVIDIA Experience.vbproj
+│   │   NVIDIA Experience.vbproj.user
+│   │   NVIDIA Shadowplay Helper.slnx
+│   │   NVIDIA ShadowPlay.ico
+│   │
+│   ├───bin
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │               Microsoft.Windows.SDK.NET.dll
+│   │               NVIDIA Experience.deps.json
+│   │               NVIDIA Experience.dll
+│   │               NVIDIA Experience.exe
+│   │               NVIDIA Experience.pdb
+│   │               NVIDIA Experience.runtimeconfig.json
+│   │               WinRT.Runtime.dll
+│   │
+│   ├───My Project
+│   │       Application.Designer.vb
+│   │       Application.myapp
+│   │       Resources.Designer.vb
+│   │       Resources.resx
+│   │
+│   ├───obj
+│   │   │   NVIDIA Experience.vbproj.nuget.dgspec.json
+│   │   │   NVIDIA Experience.vbproj.nuget.g.props
+│   │   │   NVIDIA Experience.vbproj.nuget.g.targets
+│   │   │   project.assets.json
+│   │   │   project.nuget.cache
+│   │   │
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │           │   .NETCoreApp,Version=v8.0.AssemblyAttributes.vb
+│   │           │   apphost.exe
+│   │           │   NVIDIA E.9848F0AF.Up2Date
+│   │           │   NVIDIA Experience.AssemblyInfo.vb
+│   │           │   NVIDIA Experience.AssemblyInfoInputs.cache
+│   │           │   NVIDIA Experience.assets.cache
+│   │           │   NVIDIA Experience.dll
+│   │           │   NVIDIA Experience.GeneratedMSBuildEditorConfig.editorconfig
+│   │           │   NVIDIA Experience.genruntimeconfig.cache
+│   │           │   NVIDIA Experience.pdb
+│   │           │   NVIDIA Experience.sourcelink.json
+│   │           │   NVIDIA Experience.vbproj.CoreCompileInputs.cache
+│   │           │   NVIDIA Experience.vbproj.FileListAbsolute.txt
+│   │           │   NVIDIA Experience.vbproj.GenerateResource.cache
+│   │           │   NVIDIA_Experience.NVIDIA_Shadowplay_Helper.resources
+│   │           │   NVIDIA_Experience.Resources.resources
+│   │           │
+│   │           ├───ref
+│   │           │       NVIDIA Experience.dll
+│   │           │
+│   │           └───refint
+│   │                   NVIDIA Experience.dll
+│   │
+│   └───[Forms - Project Files]
+│       ├───[API]
+│       │   │   FONTS.vb
+│       │   │
+│       │   └───TCP
+│       │           TcpClientHelper.vb
+│       │           [APP] Client.vb
+│       │
+│       └───[UI Forms]
+│               Main.Designer.vb
+│               Main.resx
+│               Main.vb
+│
+├───CaptureEngine
+│   │   CaptureEngine.vbproj
+│   │
+│   ├───bin
+│   │   └───Debug
+│   │       └───net8.0
+│   │               CaptureEngine.deps.json
+│   │               CaptureEngine.dll
+│   │               CaptureEngine.pdb
+│   │
+│   ├───Engine
+│   │       AudioCapture.vb
+│   │       AudioPipe.vb
+│   │       ScreenRecorder.vb
+│   │       [Base] - Shortcut.lnk
+│   │
+│   └───obj
+│       │   CaptureEngine.vbproj.nuget.dgspec.json
+│       │   CaptureEngine.vbproj.nuget.g.props
+│       │   CaptureEngine.vbproj.nuget.g.targets
+│       │   project.assets.json
+│       │   project.nuget.cache
+│       │
+│       └───Debug
+│           └───net8.0
+│               │   .NETCoreApp,Version=v8.0.AssemblyAttributes.vb
+│               │   CaptureEngine.AssemblyInfo.vb
+│               │   CaptureEngine.AssemblyInfoInputs.cache
+│               │   CaptureEngine.assets.cache
+│               │   CaptureEngine.dll
+│               │   CaptureEngine.GeneratedMSBuildEditorConfig.editorconfig
+│               │   CaptureEngine.pdb
+│               │   CaptureEngine.sourcelink.json
+│               │   CaptureEngine.vbproj.AssemblyReference.cache
+│               │   CaptureEngine.vbproj.CoreCompileInputs.cache
+│               │   CaptureEngine.vbproj.FileListAbsolute.txt
+│               │
+│               ├───ref
+│               │       CaptureEngine.dll
+│               │
+│               └───refint
+│                       CaptureEngine.dll
+│
+├───Notifier
+│   │   Notifier-API.slnx
+│   │   NVIDIA Notifier.vbproj
+│   │   NVIDIA Notifier.vbproj.user
+│   │   NVIDIA ShadowPlay.ico
+│   │
+│   ├───bin
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │               Microsoft.Windows.SDK.NET.dll
+│   │               Newtonsoft.Json.dll
+│   │               NVIDIA Notifier.deps.json
+│   │               NVIDIA Notifier.dll
+│   │               NVIDIA Notifier.exe
+│   │               NVIDIA Notifier.runtimeconfig.json
+│   │               WinRT.Runtime.dll
+│   │
+│   ├───My Project
+│   │       Application.Designer.vb
+│   │       Application.myapp
+│   │       Resources.Designer.vb
+│   │       Resources.resx
+│   │
+│   ├───obj
+│   │   │   NVIDIA Notifier.vbproj.nuget.dgspec.json
+│   │   │   NVIDIA Notifier.vbproj.nuget.g.props
+│   │   │   NVIDIA Notifier.vbproj.nuget.g.targets
+│   │   │   project.assets.json
+│   │   │   project.nuget.cache
+│   │   │
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │           │   .NETCoreApp,Version=v8.0.AssemblyAttributes.vb
+│   │           │   apphost.exe
+│   │           │   Notifier_API.Loader.resources
+│   │           │   Notifier_API.Notifier.resources
+│   │           │   Notifier_API.Notifier_Sub.resources
+│   │           │   Notifier_API.Resources.resources
+│   │           │   Notifier_API.Shadow.resources
+│   │           │   NVIDIA N.9D345B7C.Up2Date
+│   │           │   NVIDIA Notifier.AssemblyInfo.vb
+│   │           │   NVIDIA Notifier.AssemblyInfoInputs.cache
+│   │           │   NVIDIA Notifier.assets.cache
+│   │           │   NVIDIA Notifier.dll
+│   │           │   NVIDIA Notifier.GeneratedMSBuildEditorConfig.editorconfig
+│   │           │   NVIDIA Notifier.genruntimeconfig.cache
+│   │           │   NVIDIA Notifier.vbproj.AssemblyReference.cache
+│   │           │   NVIDIA Notifier.vbproj.CoreCompileInputs.cache
+│   │           │   NVIDIA Notifier.vbproj.FileListAbsolute.txt
+│   │           │   NVIDIA Notifier.vbproj.GenerateResource.cache
+│   │           │
+│   │           ├───ref
+│   │           │       NVIDIA Notifier.dll
+│   │           │
+│   │           └───refint
+│   │                   NVIDIA Notifier.dll
+│   │
+│   ├───Resources
+│   │       256x256.png
+│   │       osc_img_appicon_64x64.png
+│   │
+│   └───[Forms Overlay - Project Files]
+│       ├───[API]
+│       │   │   LangHelper.vb
+│       │   │   Load.old
+│       │   │   Loader.Designer.vb
+│       │   │   Loader.resx
+│       │   │   Loader.vb
+│       │   │
+│       │   └───TCP
+│       │           TcpClientHelper.vb
+│       │           [Notifier] Client.vb
+│       │
+│       └───[UI OVERLAY]
+│           └───[Notifier]
+│                   [1] String + Icon + Logo.Designer.vb
+│                   [1] String + Icon + Logo.resx
+│                   [1] String + Icon + Logo.vb
+│                   [2] Background.Designer.vb
+│                   [2] Background.resx
+│                   [2] Background.vb
+│                   [3] Shadow.Designer.vb
+│                   [3] Shadow.resx
+│                   [3] Shadow.vb
+│
+├───Overlay
+│   │   build.txt
+│   │   nvgcshare.ttf
+│   │   NVIDIA Overlay.sln
+│   │   NVIDIA Overlay.vbproj
+│   │   NVIDIA Overlay.vbproj.user
+│   │   NVIDIA ShadowPlay.ico
+│   │   Overlay.zip
+│   │
+│   ├───API-Core
+│   │       avcodec-62.dll
+│   │       avdevice-62.dll
+│   │       avfilter-11.dll
+│   │       avformat-62.dll
+│   │       avutil-60.dll
+│   │       ffmpeg.exe
+│   │       ffplay.exe
+│   │       ffprobe.exe
+│   │       swresample-6.dll
+│   │       swscale-9.dll
+│   │
+│   ├───bin
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │           │   CaptureEngine.dll
+│   │           │   config.json
+│   │           │   dev
+│   │           │   Microsoft.Windows.SDK.NET.dll
+│   │           │   NAudio.Asio.dll
+│   │           │   NAudio.Core.dll
+│   │           │   NAudio.dll
+│   │           │   NAudio.Midi.dll
+│   │           │   NAudio.Wasapi.dll
+│   │           │   NAudio.WinForms.dll
+│   │           │   NAudio.WinMM.dll
+│   │           │   Newtonsoft.Json.dll
+│   │           │   nvgcshare.ttf
+│   │           │   NVIDIA API.dll
+│   │           │   NVIDIA API.exe
+│   │           │   NVIDIA API.runtimeconfig.json
+│   │           │   NVIDIA Experience.dll
+│   │           │   NVIDIA Experience.exe
+│   │           │   NVIDIA Experience.runtimeconfig.json
+│   │           │   NVIDIA Notifier.dll
+│   │           │   NVIDIA Notifier.exe
+│   │           │   NVIDIA Notifier.runtimeconfig.json
+│   │           │   NVIDIA ShadowPlay.dll
+│   │           │   NVIDIA ShadowPlay.exe
+│   │           │   NVIDIA ShadowPlay.ico
+│   │           │   NVIDIA ShadowPlay.runtimeconfig.json
+│   │           │   System.CodeDom.dll
+│   │           │   System.Management.dll
+│   │           │   WinRT.Runtime.dll
+│   │           │
+│   │           ├───API-Core
+│   │           │       avcodec-62.dll
+│   │           │       avdevice-62.dll
+│   │           │       avfilter-11.dll
+│   │           │       avformat-62.dll
+│   │           │       avutil-60.dll
+│   │           │       ffmpeg.exe
+│   │           │       ffplay.exe
+│   │           │       ffprobe.exe
+│   │           │       swresample-6.dll
+│   │           │       swscale-9.dll
+│   │           │
+│   │           ├───Languages
+│   │           │       cs-CZ.json
+│   │           │       current.txt
+│   │           │       da-DK.json
+│   │           │       de-DE.json
+│   │           │       el-GR.json
+│   │           │       en-GB.json
+│   │           │       en-US.json
+│   │           │       es-ES.json
+│   │           │       es-MX.json
+│   │           │       fi-FI.json
+│   │           │       fr-FR.json
+│   │           │       hu-HU.json
+│   │           │       it-IT.json
+│   │           │       ja-JP.json
+│   │           │       ko-KR.json
+│   │           │       nb-NO.json
+│   │           │       nl-NL.json
+│   │           │       pl-PL.json
+│   │           │       pt-BR.json
+│   │           │       pt-PT.json
+│   │           │       ru-RU.json
+│   │           │       sk-SK.json
+│   │           │       sl-SI.json
+│   │           │       sv-SE.json
+│   │           │       th-TH.json
+│   │           │       tr-TR.json
+│   │           │       uk-UA.json
+│   │           │       zh-CHS.json
+│   │           │       zh-CHT.json
+│   │           │
+│   │           ├───NVIDIA_Shadowplay_Data
+│   │           │   │   notifier
+│   │           │   │   on
+│   │           │   │   privacy
+│   │           │   │
+│   │           │   ├───highlights
+│   │           │   │       Effect.mp3
+│   │           │   │
+│   │           │   ├───Live
+│   │           │   ├───mic
+│   │           │   ├───Record
+│   │           │   └───Replay
+│   │           ├───runtimes
+│   │           │   └───win
+│   │           │       └───lib
+│   │           │           └───net8.0
+│   │           │                   System.Management.dll
+│   │           │
+│   │           ├───Temp
+│   │           └───_Redist
+│   │                   64bit.runtime.exe
+│   │
+│   ├───Languages
+│   │       cs-CZ.json
+│   │       current.txt
+│   │       da-DK.json
+│   │       de-DE.json
+│   │       el-GR.json
+│   │       en-GB.json
+│   │       en-US.json
+│   │       es-ES.json
+│   │       es-MX.json
+│   │       fi-FI.json
+│   │       fr-FR.json
+│   │       hu-HU.json
+│   │       it-IT.json
+│   │       ja-JP.json
+│   │       ko-KR.json
+│   │       nb-NO.json
+│   │       nl-NL.json
+│   │       pl-PL.json
+│   │       pt-BR.json
+│   │       pt-PT.json
+│   │       ru-RU.json
+│   │       sk-SK.json
+│   │       sl-SI.json
+│   │       sv-SE.json
+│   │       th-TH.json
+│   │       tr-TR.json
+│   │       uk-UA.json
+│   │       zh-CHS.json
+│   │       zh-CHT.json
+│   │
+│   ├───My Project
+│   │   │   app.manifest
+│   │   │   Application.Designer.vb
+│   │   │   Application.myapp
+│   │   │   launchSettings.json
+│   │   │   Resources.Designer.vb
+│   │   │   Resources.resx
+│   │   │
+│   │   └───PublishProfiles
+│   │           FolderProfile.pubxml
+│   │           FolderProfile.pubxml.user
+│   │
+│   ├───NVIDIA_Shadowplay_Data
+│   │   │   on
+│   │   │
+│   │   └───highlights
+│   │           Effect.mp3
+│   │
+│   ├───obj
+│   │   │   NVIDIA Overlay.vbproj.nuget.dgspec.json
+│   │   │   NVIDIA Overlay.vbproj.nuget.g.props
+│   │   │   NVIDIA Overlay.vbproj.nuget.g.targets
+│   │   │   project.assets.json
+│   │   │   project.nuget.cache
+│   │   │
+│   │   └───Debug
+│   │       └───net8.0-windows10.0.26100.0
+│   │           │   .NETCoreApp,Version=v8.0.AssemblyAttributes.vb
+│   │           │   apphost.exe
+│   │           │   Interop.WMPLib.dll
+│   │           │   NVIDIA O.CA9EDA4A.Up2Date
+│   │           │   NVIDIA Overlay.AssemblyInfo.vb
+│   │           │   NVIDIA Overlay.AssemblyInfoInputs.cache
+│   │           │   NVIDIA Overlay.assets.cache
+│   │           │   NVIDIA Overlay.GeneratedMSBuildEditorConfig.editorconfig
+│   │           │   NVIDIA Overlay.genruntimeconfig.cache
+│   │           │   NVIDIA Overlay.vbproj.AssemblyReference.cache
+│   │           │   NVIDIA Overlay.vbproj.BuildWithSkipAnalyzers
+│   │           │   NVIDIA Overlay.vbproj.CoreCompileInputs.cache
+│   │           │   NVIDIA Overlay.vbproj.FileListAbsolute.txt
+│   │           │   NVIDIA Overlay.vbproj.GenerateResource.cache
+│   │           │   NVIDIA Overlay.vbproj.ResolveComReference.cache
+│   │           │   NVIDIA ShadowPlay.designer.deps.json
+│   │           │   NVIDIA ShadowPlay.designer.runtimeconfig.json
+│   │           │   NVIDIA ShadowPlay.dll
+│   │           │   NVIDIA_Share.Base.resources
+│   │           │   NVIDIA_Share.Base_Background.resources
+│   │           │   NVIDIA_Share.Base_Background_Top.resources
+│   │           │   NVIDIA_Share.Base_Connect.resources
+│   │           │   NVIDIA_Share.Base_Gallery.resources
+│   │           │   NVIDIA_Share.Base_Game_Filter.resources
+│   │           │   NVIDIA_Share.Base_Game_Filter_Sub.resources
+│   │           │   NVIDIA_Share.Base_KeySet.resources
+│   │           │   NVIDIA_Share.Base_Overlay_Hub.resources
+│   │           │   NVIDIA_Share.Base_Privacy_Control.resources
+│   │           │   NVIDIA_Share.Base_RecordingsSet.resources
+│   │           │   NVIDIA_Share.Base_Settings.resources
+│   │           │   NVIDIA_Share.Debug_UI.resources
+│   │           │   NVIDIA_Share.NoCloseForm.resources
+│   │           │   NVIDIA_Share.Resources.resources
+│   │           │   NVIDIA_Share.sha1.resources
+│   │           │   NVIDIA_Share.sha2.resources
+│   │           │   NVIDIA_Share.sha3.resources
+│   │           │   NVIDIA_Share.sha4.resources
+│   │           │
+│   │           ├───ref
+│   │           │       NVIDIA ShadowPlay.dll
+│   │           │
+│   │           └───refint
+│   │                   NVIDIA ShadowPlay.dll
+│   │
+│   ├───packages
+│   │   ├───Microsoft.Bcl.HashCode.6.0.0
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   Microsoft.Bcl.HashCode.6.0.0.nupkg
+│   │   │   │   PACKAGE.md
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       Microsoft.Bcl.HashCode.targets
+│   │   │   │   │
+│   │   │   │   ├───net462
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   ├───net6.0
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   └───netcoreapp2.0
+│   │   │   │           Microsoft.Bcl.HashCode.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net462
+│   │   │       │       Microsoft.Bcl.HashCode.dll
+│   │   │       │       Microsoft.Bcl.HashCode.xml
+│   │   │       │
+│   │   │       ├───net6.0
+│   │   │       │       Microsoft.Bcl.HashCode.dll
+│   │   │       │       Microsoft.Bcl.HashCode.xml
+│   │   │       │
+│   │   │       ├───netstandard2.0
+│   │   │       │       Microsoft.Bcl.HashCode.dll
+│   │   │       │       Microsoft.Bcl.HashCode.xml
+│   │   │       │
+│   │   │       └───netstandard2.1
+│   │   │               Microsoft.Bcl.HashCode.dll
+│   │   │               Microsoft.Bcl.HashCode.xml
+│   │   │
+│   │   ├───Microsoft.Win32.Registry.5.0.0
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   LICENSE.TXT
+│   │   │   │   Microsoft.Win32.Registry.5.0.0.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │   version.txt
+│   │   │   │
+│   │   │   ├───lib
+│   │   │   │   ├───net46
+│   │   │   │   │       Microsoft.Win32.Registry.dll
+│   │   │   │   │
+│   │   │   │   ├───net461
+│   │   │   │   │       Microsoft.Win32.Registry.dll
+│   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │
+│   │   │   │   ├───netstandard1.3
+│   │   │   │   │       Microsoft.Win32.Registry.dll
+│   │   │   │   │
+│   │   │   │   └───netstandard2.0
+│   │   │   │           Microsoft.Win32.Registry.dll
+│   │   │   │           Microsoft.Win32.Registry.xml
+│   │   │   │
+│   │   │   ├───ref
+│   │   │   │   ├───net46
+│   │   │   │   │       Microsoft.Win32.Registry.dll
+│   │   │   │   │
+│   │   │   │   ├───net461
+│   │   │   │   │       Microsoft.Win32.Registry.dll
+│   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │
+│   │   │   │   ├───netstandard1.3
+│   │   │   │   │   │   Microsoft.Win32.Registry.dll
+│   │   │   │   │   │   Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───de
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───es
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───fr
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───it
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───ja
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───ko
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───ru
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───zh-hans
+│   │   │   │   │   │       Microsoft.Win32.Registry.xml
+│   │   │   │   │   │
+│   │   │   │   │   └───zh-hant
+│   │   │   │   │           Microsoft.Win32.Registry.xml
+│   │   │   │   │
+│   │   │   │   └───netstandard2.0
+│   │   │   │           Microsoft.Win32.Registry.dll
+│   │   │   │           Microsoft.Win32.Registry.xml
+│   │   │   │
+│   │   │   └───runtimes
+│   │   │       └───win
+│   │   │           └───lib
+│   │   │               ├───net46
+│   │   │               │       Microsoft.Win32.Registry.dll
+│   │   │               │
+│   │   │               ├───net461
+│   │   │               │       Microsoft.Win32.Registry.dll
+│   │   │               │       Microsoft.Win32.Registry.xml
+│   │   │               │
+│   │   │               ├───netstandard1.3
+│   │   │               │       Microsoft.Win32.Registry.dll
+│   │   │               │
+│   │   │               └───netstandard2.0
+│   │   │                       Microsoft.Win32.Registry.dll
+│   │   │                       Microsoft.Win32.Registry.xml
+│   │   │
+│   │   ├───NAudio.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net472
+│   │   │       │       NAudio.dll
+│   │   │       │       NAudio.xml
+│   │   │       │
+│   │   │       ├───net6.0
+│   │   │       │       NAudio.dll
+│   │   │       │       NAudio.xml
+│   │   │       │
+│   │   │       ├───net6.0-windows7.0
+│   │   │       │       NAudio.dll
+│   │   │       │       NAudio.xml
+│   │   │       │
+│   │   │       └───netcoreapp3.1
+│   │   │               NAudio.dll
+│   │   │               NAudio.xml
+│   │   │
+│   │   ├───NAudio.Asio.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.Asio.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net8.0-windows7.0
+│   │   │       │       NAudio.Asio.dll
+│   │   │       │       NAudio.Asio.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               NAudio.Asio.dll
+│   │   │               NAudio.Asio.xml
+│   │   │
+│   │   ├───NAudio.Core.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.Core.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       └───netstandard2.0
+│   │   │               NAudio.Core.dll
+│   │   │               NAudio.Core.xml
+│   │   │
+│   │   ├───NAudio.Lame.2.1.0
+│   │   │   │   .signature.p7s
+│   │   │   │   LICENSE.txt
+│   │   │   │   NAudio.Lame.2.1.0.nupkg
+│   │   │   │
+│   │   │   ├───build
+│   │   │   │       libmp3lame.32.dll
+│   │   │   │       libmp3lame.64.dll
+│   │   │   │       NAudio.Lame.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       └───netstandard2.0
+│   │   │               NAudio.Lame.dll
+│   │   │               NAudio.Lame.pdb
+│   │   │
+│   │   ├───NAudio.Midi.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.Midi.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       └───netstandard2.0
+│   │   │               NAudio.Midi.dll
+│   │   │               NAudio.Midi.xml
+│   │   │
+│   │   ├───NAudio.Wasapi.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.Wasapi.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net9.0-windows10.0.26100
+│   │   │       │       NAudio.Wasapi.dll
+│   │   │       │       NAudio.Wasapi.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               NAudio.Wasapi.dll
+│   │   │               NAudio.Wasapi.xml
+│   │   │
+│   │   ├───NAudio.WinForms.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.WinForms.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net472
+│   │   │       │       NAudio.WinForms.dll
+│   │   │       │       NAudio.WinForms.xml
+│   │   │       │
+│   │   │       └───netcoreapp3.1
+│   │   │               NAudio.WinForms.dll
+│   │   │               NAudio.WinForms.xml
+│   │   │
+│   │   ├───NAudio.WinMM.2.3.0
+│   │   │   │   .signature.p7s
+│   │   │   │   naudio-icon.png
+│   │   │   │   NAudio.WinMM.2.3.0.nupkg
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net6.0
+│   │   │       │       NAudio.WinMM.dll
+│   │   │       │       NAudio.WinMM.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               NAudio.WinMM.dll
+│   │   │               NAudio.WinMM.xml
+│   │   │
+│   │   ├───System.Buffers.4.6.1
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Buffers.4.6.1.nupkg
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Buffers.targets
+│   │   │   │   │
+│   │   │   │   └───net462
+│   │   │   │           _._
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net462
+│   │   │       │       System.Buffers.dll
+│   │   │       │       System.Buffers.xml
+│   │   │       │
+│   │   │       ├───netcoreapp2.0
+│   │   │       │       _._
+│   │   │       │
+│   │   │       ├───netstandard2.0
+│   │   │       │       System.Buffers.dll
+│   │   │       │       System.Buffers.xml
+│   │   │       │
+│   │   │       └───netstandard2.1
+│   │   │               _._
+│   │   │
+│   │   ├───System.Collections.Immutable.10.0.5
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Collections.Immutable.10.0.5.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Collections.Immutable.targets
+│   │   │   │   │
+│   │   │   │   ├───net462
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   ├───net8.0
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   └───netcoreapp2.0
+│   │   │   │           System.Collections.Immutable.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net10.0
+│   │   │       │       System.Collections.Immutable.dll
+│   │   │       │       System.Collections.Immutable.xml
+│   │   │       │
+│   │   │       ├───net462
+│   │   │       │       System.Collections.Immutable.dll
+│   │   │       │       System.Collections.Immutable.xml
+│   │   │       │
+│   │   │       ├───net8.0
+│   │   │       │       System.Collections.Immutable.dll
+│   │   │       │       System.Collections.Immutable.xml
+│   │   │       │
+│   │   │       ├───net9.0
+│   │   │       │       System.Collections.Immutable.dll
+│   │   │       │       System.Collections.Immutable.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               System.Collections.Immutable.dll
+│   │   │               System.Collections.Immutable.xml
+│   │   │
+│   │   ├───System.Formats.Nrbf.10.0.5
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Formats.Nrbf.10.0.5.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Formats.Nrbf.targets
+│   │   │   │   │
+│   │   │   │   ├───net462
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   ├───net8.0
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   └───netcoreapp2.0
+│   │   │   │           System.Formats.Nrbf.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net10.0
+│   │   │       │       System.Formats.Nrbf.dll
+│   │   │       │       System.Formats.Nrbf.xml
+│   │   │       │
+│   │   │       ├───net462
+│   │   │       │       System.Formats.Nrbf.dll
+│   │   │       │       System.Formats.Nrbf.xml
+│   │   │       │
+│   │   │       ├───net8.0
+│   │   │       │       System.Formats.Nrbf.dll
+│   │   │       │       System.Formats.Nrbf.xml
+│   │   │       │
+│   │   │       ├───net9.0
+│   │   │       │       System.Formats.Nrbf.dll
+│   │   │       │       System.Formats.Nrbf.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               System.Formats.Nrbf.dll
+│   │   │               System.Formats.Nrbf.xml
+│   │   │
+│   │   ├───System.Memory.4.6.3
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Memory.4.6.3.nupkg
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Memory.targets
+│   │   │   │   │
+│   │   │   │   └───net462
+│   │   │   │           _._
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net462
+│   │   │       │       System.Memory.dll
+│   │   │       │       System.Memory.xml
+│   │   │       │
+│   │   │       ├───netcoreapp2.1
+│   │   │       │       _._
+│   │   │       │
+│   │   │       ├───netstandard2.0
+│   │   │       │       System.Memory.dll
+│   │   │       │       System.Memory.xml
+│   │   │       │
+│   │   │       └───netstandard2.1
+│   │   │               _._
+│   │   │
+│   │   ├───System.Numerics.Vectors.4.6.1
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Numerics.Vectors.4.6.1.nupkg
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Numerics.Vectors.targets
+│   │   │   │   │
+│   │   │   │   └───net462
+│   │   │   │           _._
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net462
+│   │   │       │       System.Numerics.Vectors.dll
+│   │   │       │       System.Numerics.Vectors.xml
+│   │   │       │
+│   │   │       ├───netcoreapp2.0
+│   │   │       │       _._
+│   │   │       │
+│   │   │       ├───netstandard2.0
+│   │   │       │       System.Numerics.Vectors.dll
+│   │   │       │       System.Numerics.Vectors.xml
+│   │   │       │
+│   │   │       └───netstandard2.1
+│   │   │               _._
+│   │   │
+│   │   ├───System.Reflection.Metadata.10.0.5
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Reflection.Metadata.10.0.5.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Reflection.Metadata.targets
+│   │   │   │   │
+│   │   │   │   ├───net462
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   ├───net8.0
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   └───netcoreapp2.0
+│   │   │   │           System.Reflection.Metadata.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net10.0
+│   │   │       │       System.Reflection.Metadata.dll
+│   │   │       │       System.Reflection.Metadata.xml
+│   │   │       │
+│   │   │       ├───net462
+│   │   │       │       System.Reflection.Metadata.dll
+│   │   │       │       System.Reflection.Metadata.xml
+│   │   │       │
+│   │   │       ├───net8.0
+│   │   │       │       System.Reflection.Metadata.dll
+│   │   │       │       System.Reflection.Metadata.xml
+│   │   │       │
+│   │   │       ├───net9.0
+│   │   │       │       System.Reflection.Metadata.dll
+│   │   │       │       System.Reflection.Metadata.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               System.Reflection.Metadata.dll
+│   │   │               System.Reflection.Metadata.xml
+│   │   │
+│   │   ├───System.Resources.Extensions.10.0.5
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   System.Resources.Extensions.10.0.5.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Resources.Extensions.targets
+│   │   │   │   │
+│   │   │   │   ├───net462
+│   │   │   │   │       System.Resources.Extensions.targets
+│   │   │   │   │
+│   │   │   │   ├───net8.0
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   └───netcoreapp2.0
+│   │   │   │           System.Resources.Extensions.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net10.0
+│   │   │       │       System.Resources.Extensions.dll
+│   │   │       │       System.Resources.Extensions.xml
+│   │   │       │
+│   │   │       ├───net462
+│   │   │       │       System.Resources.Extensions.dll
+│   │   │       │       System.Resources.Extensions.xml
+│   │   │       │
+│   │   │       ├───net8.0
+│   │   │       │       System.Resources.Extensions.dll
+│   │   │       │       System.Resources.Extensions.xml
+│   │   │       │
+│   │   │       ├───net9.0
+│   │   │       │       System.Resources.Extensions.dll
+│   │   │       │       System.Resources.Extensions.xml
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               System.Resources.Extensions.dll
+│   │   │               System.Resources.Extensions.xml
+│   │   │
+│   │   ├───System.Runtime.CompilerServices.Unsafe.6.1.2
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   PACKAGE.md
+│   │   │   │   System.Runtime.CompilerServices.Unsafe.6.1.2.nupkg
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Runtime.CompilerServices.Unsafe.targets
+│   │   │   │   │
+│   │   │   │   ├───net462
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   ├───net6.0
+│   │   │   │   │       _._
+│   │   │   │   │
+│   │   │   │   └───netcoreapp2.0
+│   │   │   │           System.Runtime.CompilerServices.Unsafe.targets
+│   │   │   │
+│   │   │   └───lib
+│   │   │       ├───net462
+│   │   │       │       System.Runtime.CompilerServices.Unsafe.dll
+│   │   │       │       System.Runtime.CompilerServices.Unsafe.xml
+│   │   │       │
+│   │   │       ├───net6.0
+│   │   │       │       System.Runtime.CompilerServices.Unsafe.dll
+│   │   │       │       System.Runtime.CompilerServices.Unsafe.xml
+│   │   │       │
+│   │   │       ├───net7.0
+│   │   │       │       _._
+│   │   │       │
+│   │   │       └───netstandard2.0
+│   │   │               System.Runtime.CompilerServices.Unsafe.dll
+│   │   │               System.Runtime.CompilerServices.Unsafe.xml
+│   │   │
+│   │   ├───System.Security.AccessControl.6.0.1
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   LICENSE.TXT
+│   │   │   │   System.Security.AccessControl.6.0.1.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │
+│   │   │   ├───buildTransitive
+│   │   │   │   ├───netcoreapp2.0
+│   │   │   │   │       System.Security.AccessControl.targets
+│   │   │   │   │
+│   │   │   │   └───netcoreapp3.1
+│   │   │   │           _._
+│   │   │   │
+│   │   │   ├───lib
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Security.AccessControl.dll
+│   │   │   │   │       System.Security.AccessControl.xml
+│   │   │   │   │
+│   │   │   │   ├───net6.0
+│   │   │   │   │       System.Security.AccessControl.dll
+│   │   │   │   │       System.Security.AccessControl.xml
+│   │   │   │   │
+│   │   │   │   └───netstandard2.0
+│   │   │   │           System.Security.AccessControl.dll
+│   │   │   │           System.Security.AccessControl.xml
+│   │   │   │
+│   │   │   └───runtimes
+│   │   │       └───win
+│   │   │           └───lib
+│   │   │               ├───net461
+│   │   │               │       System.Security.AccessControl.dll
+│   │   │               │       System.Security.AccessControl.xml
+│   │   │               │
+│   │   │               ├───net6.0
+│   │   │               │       System.Security.AccessControl.dll
+│   │   │               │       System.Security.AccessControl.xml
+│   │   │               │
+│   │   │               └───netstandard2.0
+│   │   │                       System.Security.AccessControl.dll
+│   │   │                       System.Security.AccessControl.xml
+│   │   │
+│   │   ├───System.Security.Principal.Windows.5.0.0
+│   │   │   │   .signature.p7s
+│   │   │   │   Icon.png
+│   │   │   │   LICENSE.TXT
+│   │   │   │   System.Security.Principal.Windows.5.0.0.nupkg
+│   │   │   │   THIRD-PARTY-NOTICES.TXT
+│   │   │   │   useSharedDesignerContext.txt
+│   │   │   │   version.txt
+│   │   │   │
+│   │   │   ├───lib
+│   │   │   │   ├───net46
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │
+│   │   │   │   ├───netstandard1.3
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │
+│   │   │   │   ├───netstandard2.0
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │
+│   │   │   │   └───uap10.0.16299
+│   │   │   │           _._
+│   │   │   │
+│   │   │   ├───ref
+│   │   │   │   ├───net46
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │
+│   │   │   │   ├───net461
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │
+│   │   │   │   ├───netcoreapp3.0
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │
+│   │   │   │   ├───netstandard1.3
+│   │   │   │   │   │   System.Security.Principal.Windows.dll
+│   │   │   │   │   │   System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───de
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───es
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───fr
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───it
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───ja
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───ko
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───ru
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   ├───zh-hans
+│   │   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │   │
+│   │   │   │   │   └───zh-hant
+│   │   │   │   │           System.Security.Principal.Windows.xml
+│   │   │   │   │
+│   │   │   │   ├───netstandard2.0
+│   │   │   │   │       System.Security.Principal.Windows.dll
+│   │   │   │   │       System.Security.Principal.Windows.xml
+│   │   │   │   │
+│   │   │   │   └───uap10.0.16299
+│   │   │   │           _._
+│   │   │   │
+│   │   │   └───runtimes
+│   │   │       ├───unix
+│   │   │       │   └───lib
+│   │   │       │       ├───netcoreapp2.0
+│   │   │       │       │       System.Security.Principal.Windows.dll
+│   │   │       │       │       System.Security.Principal.Windows.xml
+│   │   │       │       │
+│   │   │       │       └───netcoreapp2.1
+│   │   │       │               System.Security.Principal.Windows.dll
+│   │   │       │               System.Security.Principal.Windows.xml
+│   │   │       │
+│   │   │       └───win
+│   │   │           └───lib
+│   │   │               ├───net46
+│   │   │               │       System.Security.Principal.Windows.dll
+│   │   │               │
+│   │   │               ├───net461
+│   │   │               │       System.Security.Principal.Windows.dll
+│   │   │               │       System.Security.Principal.Windows.xml
+│   │   │               │
+│   │   │               ├───netcoreapp2.0
+│   │   │               │       System.Security.Principal.Windows.dll
+│   │   │               │       System.Security.Principal.Windows.xml
+│   │   │               │
+│   │   │               ├───netcoreapp2.1
+│   │   │               │       System.Security.Principal.Windows.dll
+│   │   │               │       System.Security.Principal.Windows.xml
+│   │   │               │
+│   │   │               ├───netstandard1.3
+│   │   │               │       System.Security.Principal.Windows.dll
+│   │   │               │
+│   │   │               └───uap10.0.16299
+│   │   │                       _._
+│   │   │
+│   │   └───System.ValueTuple.4.6.2
+│   │       │   .signature.p7s
+│   │       │   Icon.png
+│   │       │   PACKAGE.md
+│   │       │   System.ValueTuple.4.6.2.nupkg
+│   │       │
+│   │       ├───build
+│   │       │   └───net471
+│   │       │           System.ValueTuple.targets
+│   │       │           ValueTupleFrameworkList.xml
+│   │       │
+│   │       ├───buildTransitive
+│   │       │   ├───net461
+│   │       │   │       System.ValueTuple.targets
+│   │       │   │
+│   │       │   ├───net462
+│   │       │   │       _._
+│   │       │   │
+│   │       │   └───net471
+│   │       │           System.ValueTuple.targets
+│   │       │           ValueTupleFrameworkList.xml
+│   │       │
+│   │       └───lib
+│   │           ├───net462
+│   │           │       System.ValueTuple.dll
+│   │           │       System.ValueTuple.xml
+│   │           │
+│   │           ├───net47
+│   │           │       System.ValueTuple.dll
+│   │           │       System.ValueTuple.xml
+│   │           │
+│   │           ├───net471
+│   │           │       _._
+│   │           │
+│   │           ├───netcoreapp2.0
+│   │           │       _._
+│   │           │
+│   │           └───netstandard2.0
+│   │                   _._
+│   │
+│   ├───Resources
+│   │       display_camera_icon_L.png
+│   │       display_camera_icon_M.png
+│   │       display_camera_icon_S.png
+│   │       display_comments_icon16.png
+│   │       display_eye_icon16.png
+│   │       display_graphic.png
+│   │       display_record_icon16.png
+│   │       display_watermark_icon.png
+│   │       fps_counter_icon16.png
+│   │       GFE_Logo_16.png
+│   │       ico.ttf
+│   │       img_osd_viewer_count_left_32x30.png
+│   │       img_osd_viewer_count_middle_1x30.png
+│   │       img_osd_viewer_count_right_5x30.png
+│   │       lg_osc_logo_48x48.png
+│   │       osc_img_appicon_24x24.png
+│   │       osc_img_appicon_64x64.png
+│   │       perfstats_preview.png
+│   │
+│   ├───[Forms Overlay - Project Files]
+│   │   ├───[API]
+│   │   │   ├───[Helpers]
+│   │   │   │       BlockClose.resx
+│   │   │   │       BlockClose.vb
+│   │   │   │       LangHelper.vb
+│   │   │   │       UpdateHelper.vb
+│   │   │   │       WinAPIHelper.vb
+│   │   │   │
+│   │   │   ├───[Models]
+│   │   │   │       HighlightDetector.vb
+│   │   │   │       ToggleSwitch.vb
+│   │   │   │
+│   │   │   └───[Services]
+│   │   │       │   ConfigService.vb
+│   │   │       │   HotkeyService.vb
+│   │   │       │   Logger.vb
+│   │   │       │   SettingsExportImport.vb
+│   │   │       │   SystemMonitor.vb
+│   │   │       │
+│   │   │       └───TCP
+│   │   │               TcpClientHelper.vb
+│   │   │               [Overlay] Client.vb
+│   │   │
+│   │   └───[UI OVERLAY]
+│   │       └───[index]
+│   │           └───[Base]
+│   │               │   Engine - Shortcut.lnk
+│   │               │
+│   │               ├───Shadow
+│   │               │       s1.Designer.vb
+│   │               │       s1.resx
+│   │               │       s1.vb
+│   │               │       s2.Designer.vb
+│   │               │       s2.resx
+│   │               │       s2.vb
+│   │               │       s3.Designer.vb
+│   │               │       s3.resx
+│   │               │       s3.vb
+│   │               │       s4.Designer.vb
+│   │               │       s4.resx
+│   │               │       s4.vb
+│   │               │
+│   │               ├───[Game Filter]
+│   │               │       [1] Settings UI Main.Designer.vb
+│   │               │       [1] Settings UI Main.resx
+│   │               │       [1] Settings UI Main.vb
+│   │               │       [2] Sub.Designer.vb
+│   │               │       [2] Sub.resx
+│   │               │       [2] Sub.vb
+│   │               │
+│   │               └───[Main Menu]
+│   │                   │   base.old
+│   │                   │   UI.Designer.vb
+│   │                   │   UI.resx
+│   │                   │   UI.vb
+│   │                   │   [1] Main Menu.Designer.vb
+│   │                   │   [1] Main Menu.resx
+│   │                   │   [1] Main Menu.vb
+│   │                   │   [1] Sub_Animation.vb
+│   │                   │   [1] Sub_Hotkey.vb
+│   │                   │   [1] Sub_Misc.vb
+│   │                   │   [1] Sub_Mouse.vb
+│   │                   │   [1] Sub_Record.vb
+│   │                   │   [2] Background Top.Designer.vb
+│   │                   │   [2] Background Top.resx
+│   │                   │   [2] Background Top.vb
+│   │                   │   [3] Background.Designer.vb
+│   │                   │   [3] Background.resx
+│   │                   │   [3] Background.vb
+│   │                   │
+│   │                   ├───[Gallery]
+│   │                   │       [1] Main.Designer.vb
+│   │                   │       [1] Main.resx
+│   │                   │       [1] Main.vb
+│   │                   │
+│   │                   └───[Settings]
+│   │                           [0] Settings - UI Main.Designer.vb
+│   │                           [0] Settings - UI Main.resx
+│   │                           [0] Settings - UI Main.vb
+│   │                           [1] Connect.Designer.vb
+│   │                           [1] Connect.resx
+│   │                           [1] Connect.vb
+│   │                           [2] Overlay Hub.Designer.vb
+│   │                           [2] Overlay Hub.resx
+│   │                           [2] Overlay Hub.vb
+│   │                           [4] Keyboard Shortcut.Designer.vb
+│   │                           [4] Keyboard Shortcut.resx
+│   │                           [4] Keyboard Shortcut.vb
+│   │                           [5] Video Capture.Designer.vb
+│   │                           [5] Video Capture.resx
+│   │                           [5] Video Capture.vb
+│   │                           [7] Privacy Control.Designer.vb
+│   │                           [7] Privacy Control.resx
+│   │                           [7] Privacy Control.vb
+│   │
+│   └───_Redist
+│           64bit.runtime.exe
+│
+└───Web
+    │   games.html
+    │   index.html
+    │
+    ├───Assets
+    │       GeForce-Bold-Alt.woff2
+    │       nvgcshare.woff2
+    │       overlay.png
+    │       Team3.png
+    │
+    ├───CSS
+    │   ├───games
+    │   │       style.css
+    │   │
+    │   └───index
+    │           role.css
+    │           style.css
+    │
+    ├───JS
+    │   ├───games
+    │   │       script.js
+    │   │
+    │   └───index
+    │           script.js
+    │
+    └───JSON
+        └───games
+                games.json
+
+
+C:\My Project\NVIDIA-Shadowplay>

@@ -1818,7 +1818,7 @@ Namespace CaptureCore
                     recordingProcess.Dispose()
                 Catch
                 End Try
-                    recordingProcess = Nothing
+                recordingProcess = Nothing
             End If
         End Sub
 

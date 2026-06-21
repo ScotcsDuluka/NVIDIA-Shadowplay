@@ -8,7 +8,6 @@ Imports System.Timers
 
 Namespace CaptureCore
 
-
     Public Class AudioPipe
         Implements IDisposable
 
@@ -255,9 +254,9 @@ Namespace CaptureCore
                 If _namedPipeServer IsNot Nothing Then
                     Try
                         ' ★ v4 FIX: Don't Flush() — it can block forever if FFmpeg already exited.
-                    ' The data in the pipe buffer will be lost anyway since FFmpeg is gone.
-                    ' Just dispose the pipe immediately.
-                    _namedPipeServer.Dispose()
+                        ' The data in the pipe buffer will be lost anyway since FFmpeg is gone.
+                        ' Just dispose the pipe immediately.
+                        _namedPipeServer.Dispose()
                     Catch ex As Exception
                         Debug.WriteLine("AudioPipe: Pipe close error (expected): " & ex.Message)
                     End Try
