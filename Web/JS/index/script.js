@@ -1,7 +1,6 @@
 (function() {
   "use strict";
 
-  // ---------- TOUCH DETECTION ----------
   const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
   if (isTouchDevice) {
     const cursor = document.getElementById('cursor');
@@ -10,7 +9,6 @@
     if (cursorDot) cursorDot.style.display = 'none';
   }
  
-  // ---------- SMOOTH SCROLL FOR ANCHOR LINKS ----------
   document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function(e) {
       const href = this.getAttribute('href');
@@ -26,7 +24,6 @@
     });
   });
 
-  // ---------- CUSTOM CURSOR (Desktop only) ----------
   if (!isTouchDevice) {
     const cursor = document.getElementById('cursor'), cursorDot = document.getElementById('cursorDot');
     let mouseX = 0, mouseY = 0, cursorX = 0, cursorY = 0;
@@ -49,7 +46,6 @@
     });
   }
 
-  // ---------- PARTICLES ----------
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let particlesEnabled = !reduceMotion;
   const canvas = document.getElementById('particles-canvas');
@@ -111,7 +107,6 @@
       if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particlesArray.forEach(p => { p.update(); p.draw(); });
-      // ★ แก้: ใช้แค่ isTouchDevice ไม่ต้องเช็ค width ด้วย
       if (!isTouchDevice) {
         for (let a = 0; a < particlesArray.length; a++) {
           for (let b = a; b < particlesArray.length; b++) {
@@ -144,7 +139,6 @@
     canvas.style.display = 'none';
   }
 
-  // ---------- GITHUB STARS ----------
   async function fetchGitHubStars() {
     const starElem = document.getElementById('starCount');
     if (!starElem) return;
@@ -184,7 +178,6 @@
   }
   fetchGitHubStars();
 
-  // ---------- COUNTER ANIMATION ----------
   const counters = document.querySelectorAll('.stat-number');
   const observerOptions = { threshold: 0.5 };
   const observer = new IntersectionObserver((entries) => {
@@ -210,7 +203,6 @@
   }, observerOptions);
   counters.forEach(c => observer.observe(c));
 
-  // ---------- RIPPLE EFFECT (Desktop) ----------
   if (!isTouchDevice) {
     document.querySelectorAll('.btn-primary, .btn-outline, .feature-card, .team-member').forEach(btn => {
       btn.addEventListener('click', function(e) {
@@ -225,8 +217,6 @@
     });
   }
 
-  // ---------- PAGE TRANSITIONS ----------
-  // ★ แก้ใหญ่: เพิ่ม transition, threshold ให้ trigger ง่าย, unobserve, และ fallback
   const ioSupported = 'IntersectionObserver' in window;
 
   document.querySelectorAll('section').forEach(section => {
@@ -251,7 +241,6 @@
     }
   });
 
-  // ★ แก้: Fallback บังคับแสดง section ถ้า 1.5 วินาทียังไม่ขึ้น
   setTimeout(() => {
     document.querySelectorAll('section').forEach(section => {
       if (parseFloat(getComputedStyle(section).opacity) < 0.1) {
@@ -277,14 +266,12 @@
     }
   });
 
-  // ★ แก้: Fallback สำหรับ animate classes ด้วย
   setTimeout(() => {
     document.querySelectorAll('.animate-fade-up, .animate-scale').forEach(el => {
       if (!el.classList.contains('visible')) el.classList.add('visible');
     });
   }, 1500);
 
-  // ---------- 3D TILT (Desktop) ----------
   if (!isTouchDevice) {
     document.querySelectorAll('.tilt-card').forEach(card => {
       card.addEventListener('mousemove', (e) => {
@@ -307,12 +294,10 @@
     });
   }
 
-  // ---------- PROGRESS BAR ----------
   function updateProgressBar() {
     const progressBar = document.getElementById('scrollProgress');
     if (progressBar) {
       const winHeight = document.documentElement.scrollHeight - window.innerHeight;
-      // ★ แก้: ป้องกัน divide by zero
       if (winHeight > 0) {
         progressBar.style.width = (window.scrollY / winHeight) * 100 + '%';
       }
@@ -321,7 +306,6 @@
   }
   updateProgressBar();
 
-  // ---------- HAMBURGER MENU ----------
   const hamburger = document.getElementById('hamburger');
   const mobileMenu = document.getElementById('mobileMenu');
   if (hamburger && mobileMenu) {
@@ -349,17 +333,13 @@
     });
   }
 
-  // ---------- FAQ ACCORDION ----------
   document.querySelectorAll('.faq-question').forEach(q => {
     q.addEventListener('click', () => { q.parentElement.classList.toggle('active'); });
   });
 
-  // ---------- AUTO YEAR ----------
   const yearEl = document.getElementById('currentYear');
   if (yearEl) yearEl.innerText = new Date().getFullYear();
 
-  // ---------- TAP / CLICK EFFECT ----------
-  // ★ แก้ใหญ่: ปิดบนมือถือเลย รบกวน scroll & tap เยอะมาก
   function spawnTapEffect(clientX, clientY) {
     const wave = document.createElement('div');
     wave.className = 'click-wave';
@@ -380,13 +360,10 @@
       setTimeout(() => p.remove(), 800);
     }
   }
-  // Desktop เท่านั้น
   if (!isTouchDevice) {
     document.addEventListener('click', (e) => spawnTapEffect(e.clientX, e.clientY));
   }
-  // ลบ touchstart listener ออกไปเลย
 
-  // ---------- OVERLAY CARD GRID FIX ----------
   function fixOverlayCardGrid() {
     const overlayInner = document.querySelector('.overlay-card-inner');
     if (overlayInner) {
@@ -396,7 +373,6 @@
   fixOverlayCardGrid();
   window.addEventListener('resize', fixOverlayCardGrid);
 
-  // ---------- DOWNLOAD SCROLL HANDLER ----------
   window.downloadAndScroll = function(e) {
     e.preventDefault();
     document.getElementById("download-section").scrollIntoView({ behavior: "smooth" });
@@ -405,7 +381,6 @@
 
 
 
-// ===== TABS FUNCTIONALITY =====
 document.querySelectorAll('.req-tab').forEach(tab => {
   tab.addEventListener('click', () => {
     document.querySelectorAll('.req-tab').forEach(t => t.classList.remove('active'));
