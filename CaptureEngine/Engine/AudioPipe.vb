@@ -543,6 +543,28 @@ Namespace CaptureCore
             End Try
         End Sub
 
+        ''' <summary>
+        ''' ★ RACE FIX: Waits for the pipe to be ready for FFmpeg to connect.
+        ''' Returns True if the pipe server is created and waiting for connection.
+        ''' This is a SHORT wait — it only ensures the pipe server exists,
+        ''' not that FFmpeg has connected (that happens asynchronously).
+        ''' </summary>
+        Public Async Function WaitForPipeServerReadyAsync(timeoutMs As Integer) As Task(Of Boolean)
+            ' Wait for the pipe stream to be created (should be near-instant after Start())
+            Dim sw As New Stopwatch()
+            sw.Start()
+            
+            While sw.ElapsedMilliseconds < timeoutMs
+                If _namedPipeServer IsNot Nothing AndAlso _isRunning Then
+                    Return True
+                End If
+                Await Task.Delay(5)
+            End While
+            
+            Debug.WriteLine("AudioPipe: WaitForPipeServerReadyAsync timed out - pipe server never created")
+            Return False
+        End Function
+
         Private Sub OnAudioDataAvailable(sender As Object, e As AudioDataEventArgs)
             If Not Volatile.Read(_isRunning) Then
                 e.ReturnBuffer()

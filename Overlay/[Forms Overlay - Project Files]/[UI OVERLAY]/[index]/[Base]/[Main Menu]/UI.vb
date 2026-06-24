@@ -1,4 +1,5 @@
-﻿Public Class Debug_UI
+﻿#If DEBUG Then
+Public Class Debug_UI
 
 
 
@@ -73,3 +74,4 @@
         Application.Exit()
     End Sub
 End Class
+#End If

@@ -1,4 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+#If DEBUG Then
 Partial Class Debug_UI
     Inherits System.Windows.Forms.Form
 
@@ -37,3 +38,4 @@ Partial Class Debug_UI
         ResumeLayout(False)
     End Sub
 End Class
+#End If

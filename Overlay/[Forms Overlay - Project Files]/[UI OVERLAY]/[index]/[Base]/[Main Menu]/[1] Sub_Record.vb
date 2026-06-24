@@ -168,12 +168,13 @@ Partial Public Class Base
         If Not CheckUiCooldown() Then Exit Sub
 
         ' ═══ Toggle Guard: Prevent overlapping start/stop ═══
-        If _isTogglingRecording Then
-            Debug.WriteLine("ToggleRecording: Rejected — toggle already in progress")
-            Exit Sub
-        End If
-
-        _isTogglingRecording = True
+        SyncLock _uiActionLock
+            If _isTogglingRecording Then
+                Debug.WriteLine("ToggleRecording: Rejected — toggle already in progress")
+                Exit Sub
+            End If
+            _isTogglingRecording = True
+        End SyncLock
         MarkUiAction()
 
         If Not IsPrivacyEnabled() Then
@@ -192,6 +193,17 @@ Partial Public Class Base
             If Not Recorder.IsRecording Then
                 Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
                 Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
+
+                ' ★ FIX: Validate FFmpeg exists before attempting to record
+                If Not File.Exists(Recorder.FFmpegPath) Then
+                    Debug.WriteLine($"ToggleRecording: FFmpeg not found at {Recorder.FFmpegPath}")
+                    ShowNotifier("recording_error")
+                    SyncLock _uiActionLock
+                        _isTogglingRecording = False
+                    End SyncLock
+                    Exit Sub
+                End If
+
                 ApplyRecorderSettings()
                 ApplyAudioSettings(Recorder)
             End If
@@ -225,7 +237,9 @@ Partial Public Class Base
             RecordValue = False
             ShowNotifier("recording_error")
         Finally
-            _isTogglingRecording = False
+            SyncLock _uiActionLock
+                _isTogglingRecording = False
+            End SyncLock
         End Try
     End Sub
 #End Region
@@ -241,12 +255,13 @@ Partial Public Class Base
         '   1. Duplicate events (ReplayBufferStopped fires twice)
         '   2. Orphaned FFmpeg processes
         '   3. Start called before previous Stop fully cleaned up
-        If _isTogglingReplay Then
-            Debug.WriteLine("ToggleInstantReplay: Rejected — toggle already in progress")
-            Exit Sub
-        End If
-
-        _isTogglingReplay = True
+        SyncLock _uiActionLock
+            If _isTogglingReplay Then
+                Debug.WriteLine("ToggleInstantReplay: Rejected — toggle already in progress")
+                Exit Sub
+            End If
+            _isTogglingReplay = True
+        End SyncLock
         MarkUiAction()
 
         If Not IsPrivacyEnabled() Then
@@ -262,6 +277,17 @@ Partial Public Class Base
             If Not Recorder.IsBuffering Then
                 Recorder.FFmpegPath = Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe")
                 Recorder.FFprobePath = Path.Combine(Application.StartupPath, "api-core", "ffprobe.exe")
+
+                ' ★ FIX: Validate FFmpeg exists before attempting to buffer
+                If Not File.Exists(Recorder.FFmpegPath) Then
+                    Debug.WriteLine($"ToggleInstantReplay: FFmpeg not found at {Recorder.FFmpegPath}")
+                    ShowNotifier("notificationWarningBufferFailed")
+                    SyncLock _uiActionLock
+                        _isTogglingReplay = False
+                    End SyncLock
+                    Exit Sub
+                End If
+
                 ApplyRecorderSettings()
                 ApplyAudioSettings(Recorder)
             End If
@@ -310,7 +336,9 @@ Partial Public Class Base
             ReplayValue = False
             ShowNotifier("replay_error")
         Finally
-            _isTogglingReplay = False
+            SyncLock _uiActionLock
+                _isTogglingReplay = False
+            End SyncLock
         End Try
     End Sub
 #End Region

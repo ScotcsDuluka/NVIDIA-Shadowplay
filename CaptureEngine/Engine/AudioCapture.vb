@@ -139,7 +139,8 @@ Namespace CaptureCore
                 If _device IsNot Nothing Then
                     Try
                         _device.Dispose()
-                    Catch
+                    Catch ex As Exception
+                        Debug.WriteLine("AudioCapture: SetDevice (dispose old device) Error: " & ex.Message)
                     End Try
                     _device = Nothing
                 End If
@@ -160,7 +161,8 @@ Namespace CaptureCore
                         ' ★ v4 FIX: Dispose non-matching devices (COM objects must be released)
                         Try
                             device.Dispose()
-                        Catch
+                        Catch ex As Exception
+                            Debug.WriteLine("AudioCapture: SetDevice (dispose non-matching device) Error: " & ex.Message)
                         End Try
                     End If
                 Next
@@ -300,7 +302,8 @@ Namespace CaptureCore
                     RemoveHandler _capture.DataAvailable, AddressOf OnDataAvailable
                     RemoveHandler _capture.RecordingStopped, AddressOf OnRecordingStopped
                     _capture.Dispose()
-                Catch
+                Catch ex As Exception
+                    Debug.WriteLine("AudioCapture: CleanupCapture Error: " & ex.Message)
                 End Try
                 _capture = Nothing
             End If
@@ -320,13 +323,15 @@ Namespace CaptureCore
                 Try
                     StopCapture()
                     CleanupCapture()
-                Catch
+                Catch ex As Exception
+                    Debug.WriteLine("AudioCapture: Dispose Error: " & ex.Message)
                 End Try
 
                 If _deviceEnumerator IsNot Nothing Then
                     Try
                         _deviceEnumerator.Dispose()
-                    Catch
+                    Catch ex As Exception
+                        Debug.WriteLine("AudioCapture: Dispose (deviceEnumerator) Error: " & ex.Message)
                     End Try
                     _deviceEnumerator = Nothing
                 End If

@@ -1301,6 +1301,18 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
+                ' ★ RACE FIX: Ensure API availability is checked BEFORE recording
+                ' If checks haven't completed yet (user pressed record very fast),
+                ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
+                If Not _gfxcaptureChecked Then
+                    Debug.WriteLine("StartRecording: GfxCapture not yet checked — checking synchronously")
+                    CheckGfxCaptureAvailability(FFmpegPath)
+                End If
+                If Not _ddagrabChecked Then
+                    Debug.WriteLine("StartRecording: DDAGrab not yet checked — checking synchronously")
+                    CheckDDAGrabAvailability(FFmpegPath)
+                End If
+
                 ResetCaptureAPIFallback()
                 MarkActionTime()
 
@@ -1313,6 +1325,15 @@ Namespace CaptureCore
                     recordingOutputPath = outputFilePath
 
                     StartRecordingAudioPipe()
+
+                    ' ★ RACE FIX: Wait for AudioPipe server to be ready before starting FFmpeg
+                    If _recordingAudioPipe IsNot Nothing Then
+                        Dim pipeReady As Boolean = _recordingAudioPipe.WaitForPipeServerReadyAsync(3000).Result
+                        If Not pipeReady Then
+                            Debug.WriteLine("StartRecording: AudioPipe server not ready — proceeding without audio")
+                            StopRecordingAudioPipe()
+                        End If
+                    End If
 
                     Dim arguments As String = BuildFFmpegArguments(outputFilePath, region)
 
@@ -1393,6 +1414,18 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
+                ' ★ RACE FIX: Ensure API availability is checked BEFORE buffering
+                ' If checks haven't completed yet (user pressed replay very fast),
+                ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
+                If Not _gfxcaptureChecked Then
+                    Debug.WriteLine("StartBuffer: GfxCapture not yet checked — checking synchronously")
+                    CheckGfxCaptureAvailability(FFmpegPath)
+                End If
+                If Not _ddagrabChecked Then
+                    Debug.WriteLine("StartBuffer: DDAGrab not yet checked — checking synchronously")
+                    CheckDDAGrabAvailability(FFmpegPath)
+                End If
+
                 ResetCaptureAPIFallback()
                 MarkActionTime()
 
@@ -1422,6 +1455,15 @@ Namespace CaptureCore
                 Try
                     ' ===== Start AudioPipe =====
                     StartBufferAudioPipe()
+
+                    ' ★ RACE FIX: Wait for AudioPipe server to be ready before starting FFmpeg
+                    If _bufferAudioPipe IsNot Nothing Then
+                        Dim pipeReady As Boolean = _bufferAudioPipe.WaitForPipeServerReadyAsync(3000).Result
+                        If Not pipeReady Then
+                            Debug.WriteLine("StartBuffer: AudioPipe server not ready — proceeding without audio")
+                            StopBufferAudioPipe()
+                        End If
+                    End If
 
                     ' ===== Build FFmpeg arguments =====
                     Dim arguments As String = BuildBufferFFmpegArguments()
@@ -1560,7 +1602,12 @@ Namespace CaptureCore
                     Return False
                 End If
 
-                ' ===== 2. Get available segments =====
+                ' ===== 2. Wait briefly for FFmpeg to finish writing current segment =====
+                ' ★ RACE FIX: FFmpeg's segment muxer might be mid-write on the last segment.
+                ' Wait one segment duration to ensure the current segment is complete.
+                System.Threading.Thread.Sleep(CInt(SEGMENT_DURATION * 1000) + 200)
+
+                ' ===== 3. Get available segments =====
                 Dim segments As New List(Of TimestampedSegment)()
                 SyncLock _bufferLock
                     segments = GetTimestampedSegments()
@@ -1575,7 +1622,7 @@ Namespace CaptureCore
 
                 Debug.WriteLine(String.Format("SaveReplay: Found {0} segments", segments.Count))
 
-                ' ===== 3. Calculate segments needed =====
+                ' ===== 4. Calculate segments needed =====
                 Dim actualBufferDuration As Double = segments.Count * SEGMENT_DURATION
                 Dim requestedDuration As Double = Math.Min(saveDuration, actualBufferDuration)
                 Dim segmentsNeeded As Integer = CInt(Math.Ceiling(requestedDuration / SEGMENT_DURATION))
@@ -1586,6 +1633,29 @@ Namespace CaptureCore
 
                 If selectedSegments.Count = 0 Then
                     Debug.WriteLine("SaveReplay: No segments selected")
+                    Return False
+                End If
+
+                ' ★ RACE FIX: Filter out segments that are locked or inaccessible
+                Dim safeSegments As New List(Of TimestampedSegment)()
+                For Each seg In selectedSegments
+                    If Not File.Exists(seg.FilePath) Then
+                        Debug.WriteLine(String.Format("SaveReplay: Segment missing: {0}", seg.FilePath))
+                        Continue For
+                    End If
+                    Try
+                        Using fs As IO.FileStream = New IO.FileStream(seg.FilePath, IO.FileMode.Open, IO.FileAccess.Read, IO.FileShare.ReadWrite)
+                            ' File is accessible
+                        End Using
+                        safeSegments.Add(seg)
+                    Catch ex As IOException
+                        Debug.WriteLine(String.Format("SaveReplay: Segment locked, skipping: {0}", seg.FilePath))
+                    End Try
+                Next
+                selectedSegments = safeSegments
+
+                If selectedSegments.Count = 0 Then
+                    Debug.WriteLine("SaveReplay: All segments were locked or missing")
                     Return False
                 End If
 

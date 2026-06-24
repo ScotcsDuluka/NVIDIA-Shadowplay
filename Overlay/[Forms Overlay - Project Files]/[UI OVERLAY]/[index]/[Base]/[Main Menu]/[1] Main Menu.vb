@@ -344,11 +344,13 @@ Partial Public Class Base
         _hotkeyService.RegisterAll(Handle)
         tcp.Send("Hotkeys registered!")
 
+        #If DEBUG Then
         Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
         If overlayExists Then
             Debug_UI.Show()
         Else
         End If
+#End If
 
         Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
         Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
