@@ -70,9 +70,9 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         End If
 
         If IO.File.Exists("Use_Overlay") Then
-            Use_Overlay.Checked = True
+            Use_Overlay.IsOn = True
         Else
-            Use_Overlay.Checked = False
+            Use_Overlay.IsOn = False
         End If
         OpenApp()
         Timer1.Start()
@@ -113,7 +113,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
 
         Dim overlayPath As String = Path.Combine(Application.StartupPath, "Use_Overlay")
 
-        If Use_Overlay.Checked Then
+        If Use_Overlay.IsOn Then
             If Not File.Exists(overlayPath) Then
                 File.Create(overlayPath).Dispose()
             End If
@@ -132,30 +132,6 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         Catch ex As Exception
         End Try
     End Sub
-
-    Private Sub Panel_MAIN_Paint(sender As Object, e As PaintEventArgs) Handles Panel_MAIN.Paint
-
-    End Sub
-
-    Private Sub icon_settings_Click(sender As Object, e As EventArgs) Handles icon_settings.Click
-        If Null_OVERLAY.Visible = False Then
-            Null_OVERLAY.Visible = True
-        Else
-            Null_OVERLAY.Visible = False
-        End If
-    End Sub
-
-    Private Sub Use_Overlay_CheckedChanged(sender As Object, e As EventArgs) Handles Use_Overlay.CheckedChanged
-
-    End Sub
-
-    Private Sub icon_settings_MouseMove(sender As Object, e As MouseEventArgs) Handles icon_settings.MouseMove
-        icon_settings.ForeColor = Color.Gray
-    End Sub
-
-    Private Sub icon_settings_MouseLeave(sender As Object, e As EventArgs) Handles icon_settings.MouseLeave
-        icon_settings.ForeColor = Color.White
-    End Sub
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         Me.Opacity = 0
 
@@ -170,11 +146,11 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         End If
     End Sub
 
-    Private Sub Label2_Click(sender As Object, e As EventArgs) Handles Label2.Click
+    Private Sub Label2_Click(sender As Object, e As EventArgs)
 
     End Sub
 
-    Private Sub Null_OVERLAY_Click(sender As Object, e As EventArgs) Handles Null_OVERLAY.Click
+    Private Sub Null_OVERLAY_Click(sender As Object, e As EventArgs)
 
     End Sub
 

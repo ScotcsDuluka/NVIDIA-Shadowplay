@@ -3,6 +3,7 @@ Imports System.Net.Sockets
 Imports System.Threading
 
 Public Class TcpClientHelper
+    Implements IDisposable
 
     Private _client As TcpClient
     Private _writer As StreamWriter
@@ -10,6 +11,7 @@ Public Class TcpClientHelper
     Private _isConnected As Boolean
     Private _cts As CancellationTokenSource
     Private _writeLock As New Object()
+    Private _disposed As Boolean
 
     Private ReadOnly _appName As String
     Private ReadOnly _host As String
@@ -35,11 +37,11 @@ Public Class TcpClientHelper
     End Sub
 
     Public Sub Connect()
+        If _disposed Then Return
+        CancelCurrentOperations()
+        _cts = New CancellationTokenSource()
+
         Try
-            Disconnect()
-
-            _cts = New CancellationTokenSource()
-
             _client = New TcpClient()
             _client.Connect(_host, _port)
 
@@ -49,36 +51,68 @@ Public Class TcpClientHelper
 
             _isConnected = True
 
-            Task.Run(AddressOf ListenLoop)
-            Task.Run(AddressOf PingLoop)
+            Dim token = _cts.Token
+            Task.Run(Sub() ListenLoop(token), token)
+            Task.Run(Sub() PingLoop(token), token)
 
         Catch ex As Exception
             _isConnected = False
+            CleanupStreams()
 
             If _autoReconnect Then
-                Task.Run(AddressOf ReconnectLoop)
+                Dim token = _cts.Token
+                Task.Run(Sub() ReconnectLoop(token), token)
             End If
         End Try
     End Sub
 
-    Public Sub Disconnect()
+    Private Sub CleanupStreams()
+        SyncLock _writeLock
+            Try
+                If _writer IsNot Nothing Then
+                    _writer.Dispose()
+                    _writer = Nothing
+                End If
+            Catch
+            End Try
+            Try
+                If _reader IsNot Nothing Then
+                    _reader.Dispose()
+                    _reader = Nothing
+                End If
+            Catch
+            End Try
+        End SyncLock
+
+        Try
+            If _client IsNot Nothing Then
+                _client.Close()
+                _client = Nothing
+            End If
+        Catch
+        End Try
+    End Sub
+
+    Private Sub CancelCurrentOperations()
         _isConnected = False
         If _cts IsNot Nothing Then
             Try : _cts.Cancel() : Catch : End Try
+            Try : _cts.Dispose() : Catch : End Try
+            _cts = Nothing
         End If
-        If _client IsNot Nothing Then
-            Try : _client.Close() : Catch : End Try
-        End If
-        _client = Nothing
+        CleanupStreams()
     End Sub
 
-    Public Sub Send(cmd As String, Optional value As String = "")
-        If Not IsConnected Then Exit Sub
+    Public Sub Disconnect()
+        CancelCurrentOperations()
+    End Sub
 
-        Try
-            SyncLock _writeLock
+    Public Function Send(cmd As String, Optional value As String = "") As Boolean
+        SyncLock _writeLock
+            If Not _isConnected OrElse _writer Is Nothing Then Return False
+
+            Try
                 Dim msg As String
-
                 If value = "" Then
                     msg = $"[Send] {_appName}|{cmd}"
                 Else
@@ -86,23 +120,27 @@ Public Class TcpClientHelper
                 End If
 
                 _writer.WriteLine(msg)
-            End SyncLock
-        Catch
-            _isConnected = False
-        End Try
-    End Sub
+                Return True
+            Catch
+                _isConnected = False
+                Return False
+            End Try
+        End SyncLock
+    End Function
 
-    Public Sub SendLog(message As String)
-        If Not IsConnected Then Exit Sub
+    Public Function SendLog(message As String) As Boolean
+        SyncLock _writeLock
+            If Not _isConnected OrElse _writer Is Nothing Then Return False
 
-        Try
-            SyncLock _writeLock
+            Try
                 _writer.WriteLine($"[Receive] {_appName}|{message}")
-            End SyncLock
-        Catch
-            _isConnected = False
-        End Try
-    End Sub
+                Return True
+            Catch
+                _isConnected = False
+                Return False
+            End Try
+        End SyncLock
+    End Function
 
     Public ReadOnly Property IsConnected As Boolean
         Get
@@ -110,9 +148,11 @@ Public Class TcpClientHelper
         End Get
     End Property
 
-    Private Sub ListenLoop()
+    Private Sub ListenLoop(token As CancellationToken)
         Try
-            While _isConnected AndAlso Not _cts.IsCancellationRequested
+            While _isConnected AndAlso Not token.IsCancellationRequested
+                If _reader Is Nothing Then Exit While
+
                 Dim msg = _reader.ReadLine()
                 If msg Is Nothing Then Exit While
 
@@ -120,63 +160,76 @@ Public Class TcpClientHelper
 
                 RaiseEvent OnMessageReceived(msg)
             End While
+        Catch ex As OperationCanceledException
         Catch
         End Try
 
         _isConnected = False
         RaiseEvent OnDisconnected()
-
-        If _autoReconnect Then
-            Task.Run(AddressOf ReconnectLoop)
-        End If
     End Sub
 
-    Private Sub PingLoop()
+    Private Sub PingLoop(token As CancellationToken)
         Try
-            While _isConnected AndAlso Not _cts.IsCancellationRequested
+            While _isConnected AndAlso Not token.IsCancellationRequested
                 Thread.Sleep(10000)
 
-                If Not IsConnected Then Exit While
+                If Not IsConnected OrElse _writer Is Nothing Then Exit While
+                If token.IsCancellationRequested Then Exit While
 
                 Try
                     SyncLock _writeLock
-                        _writer.WriteLine($"[Send] {_appName}|ping")
+                        If _writer IsNot Nothing Then
+                            _writer.WriteLine($"[Send] {_appName}|ping")
+                        End If
                     End SyncLock
                 Catch
                     Exit While
                 End Try
             End While
+        Catch ex As OperationCanceledException
         Catch
         End Try
     End Sub
 
-    Private Sub ReconnectLoop()
+    Private Sub ReconnectLoop(token As CancellationToken)
         RaiseEvent OnReconnecting()
 
-        While Not IsConnected AndAlso _autoReconnect
+        While Not _isConnected AndAlso _autoReconnect AndAlso Not token.IsCancellationRequested
             Try
                 Thread.Sleep(_reconnectIntervalMs)
+            Catch ex As ThreadInterruptedException
+                Exit While
+            End Try
 
-                _cts = New CancellationTokenSource()
+            If token.IsCancellationRequested Then Exit While
+            If _disposed Then Exit While
+
+            Try
                 _client = New TcpClient()
                 _client.Connect(_host, _port)
 
-                ' ← แก้: ประกาศ type ชัดเจน
                 Dim stream As NetworkStream = _client.GetStream()
                 _writer = New StreamWriter(stream) With {.AutoFlush = True}
                 _reader = New StreamReader(stream)
 
                 _isConnected = True
 
-                Task.Run(AddressOf ListenLoop)
-                Task.Run(AddressOf PingLoop)
+                Dim loopToken = _cts.Token
+                Task.Run(Sub() ListenLoop(loopToken), loopToken)
+                Task.Run(Sub() PingLoop(loopToken), loopToken)
                 Return
 
             Catch
                 _isConnected = False
-                Try : _client.Close() : Catch : End Try
+                CleanupStreams()
             End Try
         End While
+    End Sub
+
+    Public Sub Dispose() Implements IDisposable.Dispose
+        If _disposed Then Return
+        _disposed = True
+        Disconnect()
     End Sub
 
 End Class

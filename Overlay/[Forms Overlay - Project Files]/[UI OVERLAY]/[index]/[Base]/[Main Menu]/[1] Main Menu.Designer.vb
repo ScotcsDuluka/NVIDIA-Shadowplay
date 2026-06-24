@@ -2195,7 +2195,7 @@ Partial Class Base
         ME_CLOSE_BG.Cursor = Cursors.Hand
         ME_CLOSE_BG.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         ME_CLOSE_BG.ForeColor = Color.White
-        ME_CLOSE_BG.Location = New Point(1870, 20)
+        ME_CLOSE_BG.Location = New Point(1639, 20)
         ME_CLOSE_BG.Name = "ME_CLOSE_BG"
         ME_CLOSE_BG.Size = New Size(40, 40)
         ME_CLOSE_BG.TabIndex = 85
@@ -2206,7 +2206,7 @@ Partial Class Base
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
-        ClientSize = New Size(1931, 986)
+        ClientSize = New Size(1700, 986)
         Controls.Add(PictureBox6)
         Controls.Add(PictureBox5)
         Controls.Add(Settings_List)

@@ -9,6 +9,9 @@ Partial Public Class API_RUN
     Private clients As New List(Of ClientInfo)
     Private clientsLock As New Object()
     Private startTime As DateTime
+    Private uiTimer As System.Windows.Forms.Timer
+    Private _heartbeatCts As CancellationTokenSource
+    Private _isShuttingDown As Boolean = False
 
     Private Class ClientInfo
         Public Client As TcpClient
@@ -21,7 +24,7 @@ Partial Public Class API_RUN
     Private Sub Server_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         startTime = DateTime.Now
 
-        Dim uiTimer As New System.Windows.Forms.Timer()
+        uiTimer = New System.Windows.Forms.Timer()
         uiTimer.Interval = 1000
         AddHandler uiTimer.Tick, AddressOf UpdateUI
         uiTimer.Start()
@@ -30,39 +33,86 @@ Partial Public Class API_RUN
         Log("[Log] NVIDIA API", "server_started")
     End Sub
 
-    ' ═══════════════════════════════════════════
-    ' เพิ่ม: อัปเดต UI ทุก 1 วินาที
-    ' ═══════════════════════════════════════════
+    ''' <summary>
+    ''' แก้: FormClosing cleanup — หยุดทุกอย่างให้เรียบร้อย
+    ''' </summary>
+    Private Sub Server_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        _isShuttingDown = True
+
+        ' หยุด heartbeat
+        If _heartbeatCts IsNot Nothing Then
+            Try : _heartbeatCts.Cancel() : Catch : End Try
+        End If
+
+        ' หยุด UI timer
+        If uiTimer IsNot Nothing Then
+            uiTimer.Stop()
+            uiTimer.Dispose()
+            uiTimer = Nothing
+        End If
+
+        ' ปิด clients ทั้งหมด
+        SyncLock clientsLock
+            For Each c In clients
+                Try : c.Client.Close() : Catch : End Try
+            Next
+            clients.Clear()
+        End SyncLock
+
+        ' หยุด listener
+        If listener IsNot Nothing Then
+            Try : listener.Stop() : Catch : End Try
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' แก้: ย้าย UI modification เข้าไว้ใน Invoke check ก่อน
+    ''' </summary>
     Private Sub UpdateUI()
-        Me.Text = "API Server - tcp://127.0.0.1:5000"
         If InvokeRequired Then
-            Invoke(Sub() UpdateUI())
+            Try
+                Invoke(Sub() UpdateUI())
+            Catch ex As ObjectDisposedException
+                ' form ปิดแล้ว ไม่ต้องทำอะไร
+            End Try
             Return
         End If
 
-        ' Uptime
-        Dim uptime = DateTime.Now - startTime
-        lblUptime.Text = $"{uptime.Hours:D2}:{uptime.Minutes:D2}:{uptime.Seconds:D2}"
+        If _isShuttingDown Then Return
 
-        ' Client count
-        SyncLock clientsLock
-            lblClientsOnline.Text = clients.Count.ToString()
-        End SyncLock
+        Try
+            Me.Text = "API Server - tcp://127.0.0.1:5000"
 
-        ' Server status
-        lblStatus.Text = "Server log | Online"
-        lblStatus.ForeColor = Color.FromArgb(76, 175, 80)
+            ' Uptime
+            Dim uptime = DateTime.Now - startTime
+            lblUptime.Text = $"{uptime.Hours:D2}:{uptime.Minutes:D2}:{uptime.Seconds:D2}"
 
-        ' Total messages
-        lblMessages.Text = totalMessages.ToString()
+            ' Client count
+            SyncLock clientsLock
+                lblClientsOnline.Text = clients.Count.ToString()
+            End SyncLock
 
-        ' Client list
-        UpdateClientList()
+            ' Server status
+            lblStatus.Text = "Server log | Online"
+            lblStatus.ForeColor = Color.FromArgb(76, 175, 80)
+
+            ' Total messages — แก้: ใช้ Interlocked.Read
+            lblMessages.Text = Interlocked.Read(totalMessages).ToString()
+
+            ' Client list
+            UpdateClientList()
+        Catch ex As ObjectDisposedException
+        End Try
     End Sub
 
-    Private totalMessages As Integer = 0
+    ''' <summary>
+    ''' แก้: totalMessages เปลี่ยนเป็น Long ใช้กับ Interlocked
+    ''' </summary>
+    Private totalMessages As Long = 0
 
     Private Sub UpdateClientList()
+        If lstLog.IsDisposed OrElse lstClients.IsDisposed Then Return
+
         lstClients.Items.Clear()
 
         SyncLock clientsLock
@@ -78,10 +128,9 @@ Partial Public Class API_RUN
     Private Async Sub StartServer()
         listener = New TcpListener(IPAddress.Any, 5000)
         listener.Start()
-#Disable Warning BC42358
-        Task.Run(AddressOf HeartbeatMonitor)
-#Enable Warning BC42358
-        While True
+        _heartbeatCts = New CancellationTokenSource()
+        Task.Run(Sub() HeartbeatMonitor(_heartbeatCts.Token), _heartbeatCts.Token)
+        While Not _isShuttingDown
             Try
                 Dim client = Await listener.AcceptTcpClientAsync()
                 Dim info As New ClientInfo With {
@@ -95,11 +144,12 @@ Partial Public Class API_RUN
                 End SyncLock
 
                 Log("[Log] NVIDIA API", $"client_connected_{clients.Count}")
-#Disable Warning BC42358
                 Task.Run(Function() HandleClientAsync(info))
-#Enable Warning BC42358
             Catch ex As Exception
-                Log("[Error] NVIDIA API", $"accept_failed_{ex.Message}")
+                If Not _isShuttingDown Then
+                    Log("[Error] NVIDIA API", $"accept_failed_{ex.Message}")
+                End If
+                Exit While
             End Try
         End While
     End Sub
@@ -170,7 +220,8 @@ Partial Public Class API_RUN
             Exit Sub
         End If
 
-        totalMessages += 1
+        ' แก้: ใช้ Interlocked.Increment
+        Interlocked.Increment(totalMessages)
         Log(app, data)
 
         Select Case cmd
@@ -211,31 +262,47 @@ Partial Public Class API_RUN
         End SyncLock
     End Sub
 
-    Private Sub HeartbeatMonitor()
-        While True
-            Thread.Sleep(10000)
+    ''' <summary>
+    ''' แก้: HeartbeatMonitor รับ CancellationToken — หยุดได้
+    ''' </summary>
+    Private Sub HeartbeatMonitor(token As CancellationToken)
+        Try
+            While Not token.IsCancellationRequested
+                Thread.Sleep(10000)
+                If token.IsCancellationRequested Then Exit While
 
-            Dim dead As New List(Of ClientInfo)
-            SyncLock clientsLock
-                For Each c In clients
-                    If (DateTime.Now - c.LastActivity).TotalSeconds > 30 Then
-                        dead.Add(c)
-                    End If
-                Next
+                Dim dead As New List(Of ClientInfo)
+                SyncLock clientsLock
+                    For Each c In clients
+                        If (DateTime.Now - c.LastActivity).TotalSeconds > 30 Then
+                            dead.Add(c)
+                        End If
+                    Next
 
-                For Each d In dead
-                    clients.Remove(d)
-                    Try : d.Client.Close() : Catch : End Try
-                    Log("[Heartbeat] NVIDIA API", $"killed_inactive_{d.AppName}")
-                Next
-            End SyncLock
-        End While
+                    For Each d In dead
+                        clients.Remove(d)
+                        Try : d.Client.Close() : Catch : End Try
+                        Log("[Heartbeat] NVIDIA API", $"killed_inactive_{d.AppName}")
+                    Next
+                End SyncLock
+            End While
+        Catch ex As OperationCanceledException
+            ' ปกติ — ถูก cancel
+        Catch
+        End Try
     End Sub
 
+    ''' <summary>
+    ''' แก้: Log ป้องกัน crash ตอน form ปิด
+    ''' </summary>
     Private Sub Log(app As String, msg As String)
+        If _isShuttingDown Then Return
+        If lstLog.IsDisposed Then Return
+
         Dim line = $"[{DateTime.Now:HH:mm:ss}] {app} ""{msg}"""
 
         Dim action = Sub()
+                         If lstLog.IsDisposed Then Return
                          If lstLog.Items.Count > 1000 Then
                              lstLog.Items.RemoveAt(0)
                          End If
@@ -244,9 +311,16 @@ Partial Public Class API_RUN
                      End Sub
 
         If lstLog.InvokeRequired Then
-            lstLog.Invoke(action)
+            Try
+                lstLog.Invoke(action)
+            Catch ex As ObjectDisposedException
+                ' form ปิดแล้ว
+            End Try
         Else
-            action()
+            Try
+                action()
+            Catch ex As ObjectDisposedException
+            End Try
         End If
     End Sub
 

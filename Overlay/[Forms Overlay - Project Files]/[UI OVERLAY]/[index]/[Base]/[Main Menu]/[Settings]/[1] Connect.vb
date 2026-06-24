@@ -20,7 +20,7 @@ Public Class Base_Connect
     Private Const CLIENT_ID As String = "Iv23liJGjq9Pbp2XhAOM"
 
     ' ⚠️ ใส่ Client Secret ที่นี่ (สร้างจาก GitHub App settings → Client secrets → Generate)
-    Private Const CLIENT_SECRET As String = "e86765b3c27190f98d90629c0b0438acf9473b37"  ' <-- ใส่ secret ที่นี่ถ้า PKCE ไม่ทำงาน
+    Private Const CLIENT_SECRET As String = ""  ' <-- ใส่ secret ที่นี่ถ้า PKCE ไม่ทำงาน
 
     ' ✅ PKCE variables
     Private _codeVerifier As String = ""

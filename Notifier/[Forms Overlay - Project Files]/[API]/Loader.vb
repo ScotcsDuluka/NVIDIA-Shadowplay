@@ -83,7 +83,7 @@ Partial Public Class Loader
         ' Logic เดิมเรื่องการสไลด์
         If Notifier.Notifier_green_stop.Visible Then
             Notifier_Sub.Close()
-            Application.DoEvents()
+            ' แก้: เอา Application.DoEvents() ออก — กัน reentrancy
 
             Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
 
@@ -139,7 +139,7 @@ Partial Public Class Loader
         Return (minutes, seconds)
     End Function
 
-    ' SafeDelete
+    ' แก้: SafeDelete ไม่นอนบน UI thread
     Public Sub SafeDelete(path As String)
         For i As Integer = 0 To 5
             Try
@@ -148,7 +148,7 @@ Partial Public Class Loader
                 End If
                 Exit Sub
             Catch
-                Threading.Thread.Sleep(50)
+                System.Threading.Tasks.Task.Delay(50).Wait()
             End Try
         Next
     End Sub
@@ -207,9 +207,15 @@ Partial Public Class Loader
         Notifier_Sub.Timer1.Start()
     End Sub
 
+    ' แก้: Dispose TCP ตอน form ปิด
     Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
-        ' Dispose TCP
-        ' tcp?.Dispose()
+        Try
+            If tcp IsNot Nothing Then
+                tcp.Disconnect()
+                tcp.Dispose()
+            End If
+        Catch
+        End Try
     End Sub
 
     Private Sub RUN_API_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick

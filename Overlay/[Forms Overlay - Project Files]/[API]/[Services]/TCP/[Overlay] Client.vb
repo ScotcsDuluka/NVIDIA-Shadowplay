@@ -8,6 +8,18 @@
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
     End Sub
 
+    ' แก้: Dispose TCP ตอน form ปิด
+    Private Sub Base_TestFormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        Try
+            If tcp IsNot Nothing Then
+                tcp.Disconnect()
+                tcp.Dispose()
+            End If
+        Catch
+        End Try
+
+    End Sub
+
     Public Sub OnMessage(msg As String)
         If InvokeRequired Then
             Invoke(Sub() OnMessage(msg))
@@ -17,6 +29,8 @@
         If Not msg.Contains("|") Then Exit Sub
 
         Dim parts = msg.Split("|"c)
+        If parts.Length < 2 Then Exit Sub
+
         Dim data = parts(1)
 
         Dim colonIndex = data.IndexOf(":"c)

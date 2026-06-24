@@ -25,9 +25,9 @@ Partial Class Base_Background_Top
         components = New ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Background_Top))
         Main_Top = New Panel()
+        d = New Label()
         ME_CLOSE_BG = New Label()
         ME_CLOSE_BG_GRE = New Label()
-        d = New Label()
         PictureGFE = New PictureBox()
         Logo_text = New Label()
         ANIME = New Timer(components)
@@ -62,8 +62,22 @@ Partial Class Base_Background_Top
         Main_Top.Controls.Add(Logo_text)
         Main_Top.Location = New Point(0, 0)
         Main_Top.Name = "Main_Top"
-        Main_Top.Size = New Size(1460, 80)
+        Main_Top.Size = New Size(1700, 80)
         Main_Top.TabIndex = 10
+        ' 
+        ' d
+        ' 
+        d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        d.BackColor = Color.Black
+        d.Cursor = Cursors.Hand
+        d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        d.ForeColor = Color.White
+        d.Location = New Point(1646, 23)
+        d.Name = "d"
+        d.Size = New Size(28, 34)
+        d.TabIndex = 89
+        d.Text = ""
+        d.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' ME_CLOSE_BG
         ' 
@@ -72,7 +86,7 @@ Partial Class Base_Background_Top
         ME_CLOSE_BG.Cursor = Cursors.Hand
         ME_CLOSE_BG.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         ME_CLOSE_BG.ForeColor = Color.White
-        ME_CLOSE_BG.Location = New Point(1402, 23)
+        ME_CLOSE_BG.Location = New Point(1642, 23)
         ME_CLOSE_BG.Name = "ME_CLOSE_BG"
         ME_CLOSE_BG.Size = New Size(34, 34)
         ME_CLOSE_BG.TabIndex = 88
@@ -85,26 +99,12 @@ Partial Class Base_Background_Top
         ME_CLOSE_BG_GRE.Cursor = Cursors.No
         ME_CLOSE_BG_GRE.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         ME_CLOSE_BG_GRE.ForeColor = Color.White
-        ME_CLOSE_BG_GRE.Location = New Point(1399, 20)
+        ME_CLOSE_BG_GRE.Location = New Point(1639, 20)
         ME_CLOSE_BG_GRE.Name = "ME_CLOSE_BG_GRE"
         ME_CLOSE_BG_GRE.Size = New Size(40, 40)
         ME_CLOSE_BG_GRE.TabIndex = 87
         ME_CLOSE_BG_GRE.Text = ""
         ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' d
-        ' 
-        d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        d.BackColor = Color.Black
-        d.Cursor = Cursors.Hand
-        d.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        d.ForeColor = Color.White
-        d.Location = New Point(1406, 23)
-        d.Name = "d"
-        d.Size = New Size(28, 34)
-        d.TabIndex = 89
-        d.Text = ""
-        d.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureGFE
         ' 
@@ -125,7 +125,7 @@ Partial Class Base_Background_Top
         Logo_text.ForeColor = Color.White
         Logo_text.Location = New Point(0, 0)
         Logo_text.Name = "Logo_text"
-        Logo_text.Size = New Size(1460, 80)
+        Logo_text.Size = New Size(1700, 80)
         Logo_text.TabIndex = 8
         Logo_text.Text = "NVIDIA Shadowplay OBT 1"
         Logo_text.TextAlign = ContentAlignment.MiddleCenter
@@ -333,7 +333,7 @@ Partial Class Base_Background_Top
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Blue
-        ClientSize = New Size(1460, 1165)
+        ClientSize = New Size(1700, 1070)
         ControlBox = False
         Controls.Add(Main_menu_list)
         Controls.Add(Main_Top)
