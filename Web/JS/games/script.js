@@ -1,5 +1,5 @@
 (function() {
-  // ---------- (Optional) Particles Animation ----------
+  //Particles Animation
   const canvas = document.getElementById('particles-canvas');
   if (canvas) {
     const ctx = canvas.getContext('2d');
@@ -17,7 +17,7 @@
     animate();
   }
 
-  // ----------  Load Games from JSON ----------
+  //Load Games from JSON
   const container = document.getElementById('gamesContainer');
   const searchInput = document.getElementById('searchInput');
   const filterBtns = document.querySelectorAll('.filter-tag');
