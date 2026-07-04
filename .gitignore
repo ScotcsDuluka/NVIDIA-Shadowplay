@@ -31,3 +31,4 @@ Thumbs.db
 # App/runtime data that should stay local
 Overlay/build.txt
 Overlay/NVIDIA_Shadowplay_Data/
+**/API-Core/
