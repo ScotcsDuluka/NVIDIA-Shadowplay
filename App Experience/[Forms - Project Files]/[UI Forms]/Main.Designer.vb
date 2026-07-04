@@ -231,6 +231,7 @@ Partial Class NVIDIA_Shadowplay_Helper
         ' 
         API_OVERLAY.AutoCheck = False
         API_OVERLAY.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(20))
+        API_OVERLAY.FlatStyle = FlatStyle.Flat
         API_OVERLAY.Font = New Font("Segoe UI Black", 9F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         API_OVERLAY.ForeColor = Color.White
         API_OVERLAY.Location = New Point(847, 116)
@@ -244,6 +245,7 @@ Partial Class NVIDIA_Shadowplay_Helper
         ' 
         overlay_game.AutoCheck = False
         overlay_game.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(20))
+        overlay_game.FlatStyle = FlatStyle.Flat
         overlay_game.Font = New Font("Segoe UI Black", 9F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         overlay_game.ForeColor = Color.White
         overlay_game.Location = New Point(847, 91)
@@ -289,6 +291,7 @@ Partial Class NVIDIA_Shadowplay_Helper
         NVAPI.AutoCheck = False
         NVAPI.BackColor = Color.FromArgb(CByte(30), CByte(30), CByte(30))
         NVAPI.CheckAlign = ContentAlignment.MiddleRight
+        NVAPI.FlatStyle = FlatStyle.Flat
         NVAPI.Font = New Font("Segoe UI Black", 9F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         NVAPI.ForeColor = Color.White
         NVAPI.Location = New Point(911, 12)

@@ -3,6 +3,7 @@ Imports System.Net.Sockets
 Imports System.Threading
 
 Public Class TcpClientHelper
+    Implements IDisposable
 
     Private _client As TcpClient
     Private _writer As StreamWriter
@@ -186,6 +187,11 @@ Public Class TcpClientHelper
                 Try : _client.Close() : Catch ex2 As Exception : Debug.WriteLine($"TcpClientHelper.ReconnectLoop cleanup Error: {ex2.Message}") : End Try
             End Try
         End While
+    End Sub
+
+    ''' <summary>★ FIX: Implements IDisposable for proper cleanup</summary>
+    Public Sub Dispose() Implements IDisposable.Dispose
+        Disconnect()
     End Sub
 
 End Class
