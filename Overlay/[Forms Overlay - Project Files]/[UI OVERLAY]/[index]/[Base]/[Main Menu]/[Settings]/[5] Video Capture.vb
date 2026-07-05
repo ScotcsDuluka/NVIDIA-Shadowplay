@@ -773,8 +773,7 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Sub vdo_resetall_Click(sender As Object, e As EventArgs) Handles vdo_resetall.Click
-        vdo_resetall.ForeColor = Color.Gray
-        vdo_resetall.Cursor = Cursors.Default
+
         If sender Is Nothing Then Return
 
         ' Reset กลับไป NVIDIA Preset Medium

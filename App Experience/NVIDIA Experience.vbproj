@@ -30,6 +30,11 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4022.49" />
+	  <PackageReference Include="naudio.winforms" Version="2.3.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Compile Update="[Forms - Project Files]\[API]\TCP\[APP] Client.vb" />
 	  <Compile Update="[Forms - Project Files]\[API]\UI\ToggleSwitch.vb">
 	    <SubType>Component</SubType>

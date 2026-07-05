@@ -2220,7 +2220,7 @@ Partial Class Base
         Name = "Base"
         Opacity = 0R
         ShowInTaskbar = False
-        Text = "s"
+        Text = "Main"
         TransparencyKey = Color.Red
         WindowState = FormWindowState.Maximized
         CType(Logo, ComponentModel.ISupportInitialize).EndInit()

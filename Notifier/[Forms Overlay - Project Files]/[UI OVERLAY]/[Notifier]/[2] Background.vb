@@ -126,6 +126,7 @@ Public Class Notifier
                            duration As Double,
                            Optional completed As Action = Nothing)
 
+
         Debug.WriteLine("[Notifier] StartSlide: " & panel.Name &
                         " X " & fromX & "→" & toX &
                         " dur=" & duration & "ms" &
@@ -229,6 +230,7 @@ Public Class Notifier
 
     Public autoClose As New Timer()
     Private _delayTimer As Timer
+    Private _delayTimers As Timer
     Private _closeTimer As Timer
 
     Private Sub StopDelayTimer()
@@ -254,13 +256,13 @@ Public Class Notifier
 
 
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Shadow.Show()
+
         HideFromAltTab()
-        Opacity = 1
+
         ' Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
+
+
         Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
-
-
         If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             Me.Location = New Point(w - Me.Width, 205)
             Debug.WriteLine("[Notifier] Position Y=205")
@@ -274,28 +276,56 @@ Public Class Notifier
         Notifier_green.Size = New Size(300, 90)
         Notifier_black.Size = New Size(300, 90)
 
-        StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
 
-        StopDelayTimer()
-        _delayTimer = New Timer()
-        _delayTimer.Interval = 200
-        AddHandler _delayTimer.Tick, Sub()
-                                         _delayTimer.Stop()
-                                         StartSlide(Notifier_black, Me.Width, Me.Width - 300, 300,
-                                             Sub()
-                                                 Notifier_Sub.Show()
-                                                 Notifier_green_stop.Visible = True
-                                             End Sub)
-                                     End Sub
-        _delayTimer.Start()
 
-        autoClose.Interval = 6000
-        RemoveHandler autoClose.Tick, AddressOf AutoClose_Tick
-        AddHandler autoClose.Tick, AddressOf AutoClose_Tick
-        autoClose.Start()
+        _delayTimers = New System.Windows.Forms.Timer()
+        _delayTimers.Interval = 300
+        AddHandler _delayTimers.Tick, Sub()
+                                          _delayTimers.Stop()
 
-        TopMost = True
-        Debug.WriteLine("[Notifier] ===== Form Load Done =====")
+                                          Shadow.Show()
+                                          Opacity = 1
+                                          StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
+                                          StopDelayTimer()
+
+
+
+
+
+
+
+
+
+                                          _delayTimer = New Timer()
+                                          _delayTimer.Interval = 250
+                                          AddHandler _delayTimer.Tick, Sub()
+                                                                           _delayTimer.Stop()
+
+                                                                           StartSlide(Notifier_black, Me.Width, Me.Width - 300, 300,
+                                                                               Sub()
+                                                                                   Notifier_Sub.Show()
+                                                                                   Notifier_green_stop.Visible = True
+                                                                               End Sub)
+                                                                       End Sub
+                                          _delayTimer.Start()
+
+                                          autoClose.Interval = 6000
+                                          RemoveHandler autoClose.Tick, AddressOf AutoClose_Tick
+                                          AddHandler autoClose.Tick, AddressOf AutoClose_Tick
+                                          autoClose.Start()
+
+                                          TopMost = True
+                                          Debug.WriteLine("[Notifier] ===== Form Load Done =====")
+
+
+
+
+
+
+
+                                      End Sub
+        _delayTimers.Start()
+
     End Sub
 
     Private Sub AutoClose_Tick(sender As Object, e As EventArgs)
@@ -326,6 +356,7 @@ Public Class Notifier
         Notifier_green_stop.Visible = False
 
         StartSlide(Notifier_black, Notifier_black.Left, Me.Width + 300, 600)
+
 
         StopDelayTimer()
         _delayTimer = New Timer()

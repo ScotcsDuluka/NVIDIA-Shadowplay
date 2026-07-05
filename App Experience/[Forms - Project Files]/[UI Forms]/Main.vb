@@ -85,34 +85,32 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     Private Sub IF_APP_Tick(sender As Object, e As EventArgs) Handles IF_APP.Tick
         Dim ShadowPlay As Boolean = Process.GetProcessesByName("NVIDIA ShadowPlay").Length > 0
         Dim Ready_Use As String = Path.Combine(Application.StartupPath, "Ready")
-
         Dim isReady As Boolean = File.Exists(Ready_Use)
 
-        overlay_game.Checked = ShadowPlay AndAlso isReady
-        overlay_game.Text = If(Not ShadowPlay OrElse isReady, "IN-GAME OVERLAY", "Loading...")
-        openoverlay.Visible = ShadowPlay AndAlso isReady
+        ' ── NVIDIA ShadowPlay + Overlay API ──
+        Dim overlayActive As Boolean = ShadowPlay AndAlso isReady
+        overlay_game.Checked = overlayActive
+        overlay_game.Text = If(Not ShadowPlay OrElse isReady, "O V E R L A Y  A P I", "L o a d i n g . . .")
+        openoverlay.Visible = overlayActive
+        NvStatusDot_OVERLAYAPI.Status = If(ShadowPlay AndAlso Not isReady,
+            NvStatusDot.DotStatus.Loading,
+            If(overlayActive, NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped))
 
+        ' ── NVIDIA Notifier ──
+        Dim notifierRunning As Boolean = Process.GetProcessesByName("NVIDIA Notifier").Length > 0
+        API_OVERLAY.Checked = notifierRunning
+        NvStatusDot_NVNOTIFIER.Status = If(notifierRunning,
+            NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped)
+        If Not notifierRunning Then File.Delete(Ready_Use)
 
-        Dim API As Boolean = Process.GetProcessesByName("NVIDIA Notifier").Length > 0
+        ' ── NVIDIA API ──
+        Dim apiRunning As Boolean = Process.GetProcessesByName("NVIDIA API").Length > 0
+        NVAPI.Checked = apiRunning
+        NvStatusDot_NVAPI.Status = If(apiRunning,
+            NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped)
 
-        If API Then
-            API_OVERLAY.Checked = CheckState.Checked
-        Else
-            API_OVERLAY.Checked = CheckState.Unchecked
-            File.Delete(Ready_Use)
-        End If
-
-        Dim NVAPIC As Boolean = Process.GetProcessesByName("NVIDIA API").Length > 0
-
-        If NVAPIC Then
-            NVAPI.Checked = CheckState.Checked
-        Else
-            NVAPI.Checked = CheckState.Unchecked
-        End If
-
-
+        ' ── Overlay toggle file ──
         Dim overlayPath As String = Path.Combine(Application.StartupPath, "Use_Overlay")
-
         If Use_Overlay.IsOn Then
             If Not File.Exists(overlayPath) Then
                 File.Create(overlayPath).Dispose()
@@ -158,14 +156,14 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         If File.Exists("Use_Overlay") Then
             File.Delete("Use_Overlay")
         End If
-        Dim apps As String() = {
+        Dim apps = {
         "NVIDIA Notifier.exe",
         "NVIDIA ShadowPlay.exe",
         "NVIDIA API.exe"
     }
 
         For Each app In apps
-            Dim processName As String = Path.GetFileNameWithoutExtension(app)
+            Dim processName = Path.GetFileNameWithoutExtension(app)
             Dim running = Process.GetProcessesByName(processName)
             For Each proc In running
                 Try
@@ -178,7 +176,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         Application.Exit()
     End Sub
 
-    Private Sub openoverlay_Click(sender As Object, e As EventArgs) Handles openoverlay.Click
+    Private Sub NvButton1_Click(sender As Object, e As EventArgs) Handles openoverlay.Click
         tcp.Send("open_overlay")
     End Sub
 End Class

@@ -105,6 +105,7 @@ Partial Class Notifier
         DoubleBuffered = True
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
+        Location = New Point(-5000, 0)
         MaximizeBox = False
         MdiChildrenMinimizedAnchorBottom = False
         MinimizeBox = False
@@ -112,6 +113,7 @@ Partial Class Notifier
         Opacity = 0R
         ShowInTaskbar = False
         SizeGripStyle = SizeGripStyle.Hide
+        StartPosition = FormStartPosition.Manual
         Text = "Notifier"
         TopMost = True
         TransparencyKey = Color.Coral

@@ -309,7 +309,7 @@ Partial Public Class Base
 
 
 
-
+    Private _delayTimers As System.Windows.Forms.Timer
     Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
         HideFromAltTab()
@@ -337,8 +337,16 @@ Partial Public Class Base
         CreateDataDirectories()
         LoadMicState()
         TIMESLOAD()
-        SystemMonitor.StartMonitoring()
 
+
+        _delayTimers = New System.Windows.Forms.Timer
+        _delayTimers.Interval = 2000
+        AddHandler _delayTimers.Tick, Sub()
+                                          _delayTimers.Stop()
+                                          SystemMonitor.StartMonitoring()
+
+                                      End Sub
+        _delayTimers.Start()
 
         _hotkeyService = New HotkeyService()
         _hotkeyService.RegisterAll(Handle)
