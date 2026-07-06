@@ -278,12 +278,12 @@ Namespace CaptureCore
         ' ddagrab dup_frames setting
         ' ★ Fix K: Default False instead of True.
         ' DDAGrab's dup_frames=1 duplicates the last frame whenever the desktop
-        ' hasn't changed (e.g. static screen, paused video). Combined with
-        ' -fps_mode cfr (Round 4 still had cfr), this produced a stream of
-        ' duplicated frames at the requested framerate. Even with -fps_mode vfr
-        ' (Fix J), dup_frames=1 still wastes encoder cycles encoding identical
-        ' frames. Better to let DDAGrab emit only real frames and let VFR
-        ' handle the timing.
+        ' hasn't changed (e.g. static screen, paused video). Combined with the
+        ' old -fps_mode cfr, this produced a stream of duplicated frames at the
+        ' requested framerate. With -fps_mode removed entirely (Fix J2), FFmpeg
+        ' uses input timestamps from DDAGrab — but dup_frames=1 still wastes
+        ' encoder cycles encoding identical frames. Better to let DDAGrab emit
+        ' only real frames and let FFmpeg's default vsync=auto handle timing.
         Private _dupFrames As Boolean = False
 
         ' Screen cache
@@ -3052,7 +3052,6 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
@@ -3063,7 +3062,6 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
@@ -3074,7 +3072,6 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.QuickSync_H264
                     sb.Append("-c:v h264_qsv ")
@@ -3086,7 +3083,9 @@ Namespace CaptureCore
                     sb.Append(gopSize)
                     sb.Append(" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode vfr ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.QuickSync_HEVC
                     sb.Append("-c:v hevc_qsv ")
@@ -3098,8 +3097,10 @@ Namespace CaptureCore
                     sb.Append(gopSize)
                     sb.Append(" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode vfr ")
                     sb.Append("-profile:v main ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.AMF_H264
                     sb.Append("-c:v h264_amf -quality ")
@@ -3110,7 +3111,6 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.AMF_HEVC
                     sb.Append("-c:v hevc_amf -quality ")
@@ -3121,7 +3121,6 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case Else
                     BuildSoftwareEncoderCommand(sb, gopSize)
@@ -3146,7 +3145,6 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
@@ -3161,7 +3159,6 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
@@ -3176,7 +3173,6 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.QuickSync_H264
                     sb.Append("-c:v h264_qsv ")
@@ -3194,7 +3190,9 @@ Namespace CaptureCore
                     sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
                     sb.Append(")"" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode vfr ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.QuickSync_HEVC
                     sb.Append("-c:v hevc_qsv ")
@@ -3212,8 +3210,10 @@ Namespace CaptureCore
                     sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
                     sb.Append(")"" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode vfr ")
                     sb.Append("-profile:v main ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.AMF_H264
                     sb.Append("-c:v h264_amf -quality ")
@@ -3228,7 +3228,6 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.AMF_HEVC
                     sb.Append("-c:v hevc_amf -quality ")
@@ -3243,7 +3242,6 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case Else
                     BuildSoftwareBufferEncoderCommand(sb, gopSize)
@@ -3261,7 +3259,6 @@ Namespace CaptureCore
                     BuildX264RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.LibX265
                     sb.Append("-c:v libx265 -preset ")
@@ -3272,7 +3269,6 @@ Namespace CaptureCore
                     BuildX265RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
             End Select
         End Sub
 
@@ -3291,7 +3287,6 @@ Namespace CaptureCore
                     BuildX264RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
 
                 Case VideoEncoder.LibX265
                     sb.Append("-c:v libx265 -preset ")
@@ -3306,7 +3301,6 @@ Namespace CaptureCore
                     BuildX265RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode vfr ")
             End Select
         End Sub
 
