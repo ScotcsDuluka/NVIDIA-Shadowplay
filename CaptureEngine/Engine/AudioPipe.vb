@@ -23,21 +23,16 @@ Namespace CaptureCore
         Private Const PIPE_BUFFER_SIZE As Integer = 1024 * 1024  ' 1MB pipe buffer
         Private Const AUDIO_PIPE_PREFIX As String = "ShadowPlay_Audio_"
 
-        ' ★ Fix M: SILENT_TIMEOUT_MS 50 → 500ms (was 50 in Round 1, 80 in Master).
-        ' WASAPI loopback normally emits audio every 10-30ms, but during system
-        ' load (high CPU, disk I/O) gaps can stretch to 100-300ms. Round 1's
-        ' 50ms timeout was too aggressive — every time WASAPI paused >50ms the
-        ' silent timer kicked in and inserted a silent frame, then immediately
-        ' stopped when real audio arrived. This START-STOP-START-STOP pattern
-        ' appeared in the log ~15 times in a few seconds and produced audible
-        ' stuttering in the output mp4.
-        ' 500ms = only insert silence if WASAPI has been truly silent for half
-        ' a second (genuinely no audio playing). Real audio bursts of 100-300ms
-        ' gap will NOT trigger silent frame insertion.
-        ' SILENT_FRAME_INTERVAL_MS kept at 30ms (Round 1 value) — when silence
-        ' IS needed, send it at 30ms intervals to match real audio cadence.
+        ' ★ Fix P: SILENT_TIMEOUT_MS 500 → 200ms.
+        ' Fix M set this to 500ms (too long — caused stutter that didn't recover).
+        ' Fix O disabled silent frames entirely (caused corrupt mp4).
+        ' 200ms is the sweet spot:
+        '   - Long enough to ignore normal WASAPI burst gaps (10-100ms)
+        '   - Short enough that genuine silence is filled quickly
+        '   - Combined with aresample async=192 (Fix P2), FFmpeg can re-sync
+        '     smoothly when real audio resumes after silence
         Private Const SILENT_FRAME_INTERVAL_MS As Integer = 30   ' 30ms for tighter silence
-        Private Const SILENT_TIMEOUT_MS As Integer = 500         ' was 50ms — too aggressive
+        Private Const SILENT_TIMEOUT_MS As Integer = 200         ' was 500 (Fix M) — too long
 
         ''' <summary>Max items in write queue before we start dropping oldest</summary>
         Private Const QUEUE_DROP_THRESHOLD As Integer = 30
@@ -213,21 +208,15 @@ Namespace CaptureCore
                 }
                 _writerThread.Start()
 
-                ' ★ Fix O: Silent timer DISABLED.
-                ' Old behavior: when WASAPI loopback reported no audio for
-                ' >SILENT_TIMEOUT_MS, AudioPipe inserted silent frames into
-                ' the pipe to "keep FFmpeg's audio stream alive".
-                ' Problem: every time the user paused music / stopped talking /
-                ' closed a video, silent frames kicked in. FFmpeg then had to
-                ' re-sync audio/video after the silence, but the re-sync never
-                ' fully recovered — video kept stuttering for the rest of the
-                ' recording even after real audio resumed.
-                ' New behavior: send NO silent frames. When WASAPI has no audio,
-                ' the pipe simply has no data. FFmpeg's aresample=async=44
-                ' (already in BuildAudioOutputFilter) handles PTS drift
-                ' correction natively — no fake silence needed.
-                ' StartSilentTimer()  ' <-- DISABLED
-                PrepareSilentBuffer()  ' keep buffer prepared in case we re-enable later
+                ' ★ Fix P: Re-enabled silent frame insertion (Fix O was wrong).
+                ' Fix O disabled this entirely, but that made WASAPI send NO
+                ' audio data when no sound was playing → FFmpeg's audio input
+                ' pipe had no data → mp4 file was corrupt (would not open).
+                ' Silent frame insertion IS needed to keep FFmpeg's audio stream
+                ' alive when WASAPI loopback has no audio. The original stutter
+                ' issue was from the timeout being too aggressive (50ms), not
+                ' from the silent frames themselves.
+                StartSilentTimer()
 
                 ' Wait for FFmpeg connection (async)
                 Task.Run(Sub() WaitForConnection())

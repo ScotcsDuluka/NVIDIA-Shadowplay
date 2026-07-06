@@ -2361,12 +2361,17 @@ Namespace CaptureCore
             End If
 
             ' Always add aresample for A/V sync
-            ' ★ Fix A2: async=44 (1ms @ 48kHz) instead of async=1 (Round 1) or async=1000 (Master).
-            ' Master had async=1000 → up to 1s silence insertion → audio delayed 300ms.
-            ' Round 1 had async=1 → almost no compensation → audio arrived 100ms early.
-            ' async=44 = 1ms of audio samples at 48kHz = FFmpeg's recommended value for
-            ' live capture. Allows small drift correction without large silence padding.
-            filters.Add("aresample=async=44:first_pts=0")
+            ' ★ Fix P2: aresample async=44 → async=192 (4ms @ 48kHz).
+            ' async=44 (Round 4) was too tight — when silent frames were
+            ' inserted (Fix P re-enabled them), FFmpeg couldn't compensate
+            ' for the PTS gap between silence and real audio, causing the
+            ' "stutter that doesn't recover" issue.
+            ' async=192 = 4ms of audio samples = enough headroom for FFmpeg
+            ' to smoothly transition between silence and real audio without
+            ' inserting large padding (which was the original 300ms delay
+            ' issue from Master's async=1000).
+            ' Goldilocks zone: 192 samples.
+            filters.Add("aresample=async=192:first_pts=0")
 
             Return "-af """ & String.Join(",", filters) & """ "
         End Function
