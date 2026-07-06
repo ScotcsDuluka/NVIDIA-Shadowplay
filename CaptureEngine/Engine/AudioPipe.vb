@@ -23,13 +23,21 @@ Namespace CaptureCore
         Private Const PIPE_BUFFER_SIZE As Integer = 1024 * 1024  ' 1MB pipe buffer
         Private Const AUDIO_PIPE_PREFIX As String = "ShadowPlay_Audio_"
 
-        ' ★ Fix C: Silent frame interval + timeout reduced (Round 1, kept).
-        ' Old: 50ms interval, 80ms timeout → FFmpeg saw silence as ~80ms audio
-        '      leading → audio track appeared to start later than video.
-        ' New: 30ms interval, 50ms timeout → silence is shorter and more
-        '      closely tracks real audio gaps. Slight CPU cost, no quality hit.
+        ' ★ Fix M: SILENT_TIMEOUT_MS 50 → 500ms (was 50 in Round 1, 80 in Master).
+        ' WASAPI loopback normally emits audio every 10-30ms, but during system
+        ' load (high CPU, disk I/O) gaps can stretch to 100-300ms. Round 1's
+        ' 50ms timeout was too aggressive — every time WASAPI paused >50ms the
+        ' silent timer kicked in and inserted a silent frame, then immediately
+        ' stopped when real audio arrived. This START-STOP-START-STOP pattern
+        ' appeared in the log ~15 times in a few seconds and produced audible
+        ' stuttering in the output mp4.
+        ' 500ms = only insert silence if WASAPI has been truly silent for half
+        ' a second (genuinely no audio playing). Real audio bursts of 100-300ms
+        ' gap will NOT trigger silent frame insertion.
+        ' SILENT_FRAME_INTERVAL_MS kept at 30ms (Round 1 value) — when silence
+        ' IS needed, send it at 30ms intervals to match real audio cadence.
         Private Const SILENT_FRAME_INTERVAL_MS As Integer = 30   ' 30ms for tighter silence
-        Private Const SILENT_TIMEOUT_MS As Integer = 50          ' reduced from 80ms
+        Private Const SILENT_TIMEOUT_MS As Integer = 500         ' was 50ms — too aggressive
 
         ''' <summary>Max items in write queue before we start dropping oldest</summary>
         Private Const QUEUE_DROP_THRESHOLD As Integer = 30
