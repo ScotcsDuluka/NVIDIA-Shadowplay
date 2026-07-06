@@ -189,44 +189,13 @@ Namespace CaptureCore
 #End Region
 
 #Region "Job Object for Process Cleanup"
-        <DllImport("kernel32.dll", CharSet:=CharSet.Unicode)>
-        Private Shared Function CreateJobObject(ByVal lpJobAttributes As IntPtr, ByVal lpName As String) As IntPtr
-        End Function
-
-        <DllImport("kernel32.dll")>
-        Private Shared Function AssignProcessToJobObject(ByVal hJob As IntPtr, ByVal hProcess As IntPtr) As Boolean
-        End Function
-
-        <DllImport("kernel32.dll")>
-        Private Shared Function SetInformationJobObject(ByVal hJob As IntPtr, ByVal JobObjectInfoClass As JOBOBJECTINFOCLASS, ByVal lpJobObjectInfo As JOBOBJECT_BASIC_LIMIT_INFORMATION, ByVal cbJobObjectInfoLength As UInteger) As Boolean
-        End Function
-
-        <DllImport("kernel32.dll")>
-        Private Shared Function CloseHandle(ByVal hObject As IntPtr) As Boolean
-        End Function
-
-        Private Enum JOBOBJECTINFOCLASS
-            BasicLimitInformation = 2
-        End Enum
-
-        <StructLayout(LayoutKind.Sequential)>
-        Private Structure JOBOBJECT_BASIC_LIMIT_INFORMATION
-            Public PerProcessUserTimeLimit As Long
-            Public PerJobUserTimeLimit As Long
-            Public LimitFlags As UInteger
-            Public MinimumWorkingSetSize As IntPtr
-            Public MaximumWorkingSetSize As IntPtr
-            Public ActiveProcessLimit As UInteger
-            Public Affinity As IntPtr
-            Public PriorityClass As UInteger
-            Public SchedulingClass As UInteger
-        End Structure
-
-        Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As UInteger = &H2000
-
-        Private Shared jobHandle As IntPtr = IntPtr.Zero
-        Private Shared jobInitialized As Boolean = False
-        Private Shared jobLock As New Object()
+        ' ★ Phase 3 refactor: All Job Object P/Invoke + state + helpers moved
+        ' to JobObjectManager module. AddProcessToJob below is a thin
+        ' forwarder so existing call sites inside ScreenRecorder compile
+        ' unchanged.
+        Private Sub AddProcessToJob(proc As Process)
+            JobObjectManager.AddProcessToJob(proc)
+        End Sub
 #End Region
 
 #Region "Native Methods"
@@ -815,7 +784,7 @@ Namespace CaptureCore
 #Region "Constructor"
         Public Sub New()
             ApplyPreset(RecordingPreset.Medium)
-            InitializeJobObject()
+            JobObjectManager.InitializeJobObject()
         End Sub
 
         Public Sub New(ffmpegPath As String)
@@ -1042,45 +1011,11 @@ Namespace CaptureCore
 #End Region
 
 #Region "Job Object Methods"
-        Private Shared Sub InitializeJobObject()
-            SyncLock jobLock
-                If jobInitialized Then Exit Sub
-
-                Try
-                    jobHandle = CreateJobObject(IntPtr.Zero, Nothing)
-                    If jobHandle = IntPtr.Zero Then Exit Sub
-
-                    Dim info As New JOBOBJECT_BASIC_LIMIT_INFORMATION()
-                    info.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-
-                    SetInformationJobObject(
-                        jobHandle,
-                        JOBOBJECTINFOCLASS.BasicLimitInformation,
-                        info,
-                        CUInt(Marshal.SizeOf(GetType(JOBOBJECT_BASIC_LIMIT_INFORMATION)))
-                    )
-
-                    jobInitialized = True
-                Catch ex As Exception
-                    Debug.WriteLine("Job Object init error: " & ex.Message)
-                End Try
-            End SyncLock
-        End Sub
-
-        Private Sub AddProcessToJob(proc As Process)
-            If proc Is Nothing Then Exit Sub
-            InitializeJobObject()
-
-            SyncLock jobLock
-                If jobHandle <> IntPtr.Zero Then
-                    Try
-                        AssignProcessToJobObject(jobHandle, proc.Handle)
-                    Catch ex As Exception
-                        Debug.WriteLine("AddProcessToJob error: " & ex.Message)
-                    End Try
-                End If
-            End SyncLock
-        End Sub
+        ' ★ Phase 3 refactor: InitializeJobObject + AddProcessToJob moved to
+        ' JobObjectManager. AddProcessToJob forwarder is declared above in
+        ' the "Job Object for Process Cleanup" region. Nothing else to do
+        ' here — kept the region marker as a placeholder so existing
+        ' code-folding still finds a home.
 #End Region
 
 #Region "Public Async Methods"
