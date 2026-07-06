@@ -213,8 +213,21 @@ Namespace CaptureCore
                 }
                 _writerThread.Start()
 
-                ' Start silent timer
-                StartSilentTimer()
+                ' ★ Fix O: Silent timer DISABLED.
+                ' Old behavior: when WASAPI loopback reported no audio for
+                ' >SILENT_TIMEOUT_MS, AudioPipe inserted silent frames into
+                ' the pipe to "keep FFmpeg's audio stream alive".
+                ' Problem: every time the user paused music / stopped talking /
+                ' closed a video, silent frames kicked in. FFmpeg then had to
+                ' re-sync audio/video after the silence, but the re-sync never
+                ' fully recovered — video kept stuttering for the rest of the
+                ' recording even after real audio resumed.
+                ' New behavior: send NO silent frames. When WASAPI has no audio,
+                ' the pipe simply has no data. FFmpeg's aresample=async=44
+                ' (already in BuildAudioOutputFilter) handles PTS drift
+                ' correction natively — no fake silence needed.
+                ' StartSilentTimer()  ' <-- DISABLED
+                PrepareSilentBuffer()  ' keep buffer prepared in case we re-enable later
 
                 ' Wait for FFmpeg connection (async)
                 Task.Run(Sub() WaitForConnection())
