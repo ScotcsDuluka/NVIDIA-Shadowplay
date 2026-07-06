@@ -3059,7 +3059,7 @@ Namespace CaptureCore
                     ' -bf 0 disables B-frames: encoder doesn't need to buffer future
                     ' frames to encode the current one. Lower encoding latency, no
                     ' quality hit at the bitrates we use (8-17 Mbps).
-                    sb.Append(" -bf 0 -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
@@ -3069,7 +3069,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -bf 0 -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
@@ -3079,7 +3079,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -bf 0 -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
@@ -3148,7 +3148,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_H264
                     sb.Append("-c:v h264_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -bf 0 -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3162,7 +3162,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -bf 0 -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3176,7 +3176,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -bf 0 -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3324,22 +3324,41 @@ Namespace CaptureCore
 #Region "Rate Control Helpers"
 
         Private Sub BuildNVENCRateControl(sb As StringBuilder)
+            ' ★ Round 6: ShadowPlay mode — CQP (Constant Quality) instead of CBR.
+            '
+            ' Old CBR mode (minrate=maxrate=bitrate) was the WORST for latency:
+            '   - Forced encoder to emit exactly 'bitrate' kbps every second
+            '   - On static scenes (paused video, desktop), encoder wasted cycles
+            '     padding to maintain bitrate
+            '   - bufsize=bitrate meant 1-second encoder buffer = high latency
+            '
+            ' CQP mode:
+            '   - Encoder uses only as many bits as needed for quality level CQ=21
+            '   - Static scenes use almost no bits → encoder idle → zero backlog
+            '   - High-motion scenes get more bits automatically (up to GPU max)
+            '   - No -b:v / -minrate / -maxrate / -bufsize needed
+            '
+            ' Combined with -tune ull (Ultra Low Latency) added in BuildEncoderCommand,
+            ' this matches NVIDIA ShadowPlay's encoder configuration.
+            '
+            ' CQ scale: lower = better quality (typical range 18-28)
+            '   18 = visually lossless (~50 Mbps at 1080p60)
+            '   21 = high quality (~15-25 Mbps at 1080p60)  ← we use this
+            '   23 = balanced (~10-15 Mbps at 1080p60)
+            '   28 = low quality (~3-5 Mbps at 1080p60)
             If _useConstantBitrate Then
-                sb.Append("-cbr 1 -b:v ")
-                sb.Append(_bitrate)
-                sb.Append("k -minrate ")
+                ' User asked for "constant bitrate" mode → use CBR but with smaller
+                ' buffer for lower latency. Old bufsize=bitrate (1s) → bufsize=bitrate/4 (250ms).
+                sb.Append("-rc cbr -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -maxrate ")
                 sb.Append(_bitrate)
                 sb.Append("k -bufsize ")
-                sb.Append(_bitrate)
+                sb.Append(CInt(_bitrate / 4))
                 sb.Append("k ")
             Else
-                sb.Append("-cq 20 -b:v ")
-                sb.Append(_bitrate)
-                sb.Append("k -maxrate ")
-                sb.Append(_bitrate * 2)
-                sb.Append("k ")
+                ' ★ Round 6: CQP mode — pure constant quality, no bitrate caps.
+                sb.Append("-rc cqp -cq 21 ")
             End If
         End Sub
 
