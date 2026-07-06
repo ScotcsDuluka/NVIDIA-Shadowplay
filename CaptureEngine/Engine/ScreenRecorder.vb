@@ -44,7 +44,13 @@ Namespace CaptureCore
         Public Const BUFFER_MAX_DURATION As Integer = CaptureLimits.BUFFER_MAX_DURATION
 
         ' ── Internal (Private) constants — engine-implementation-specific ──
-        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 10000
+        ' ★ Fix B: GRACEFUL_EXIT_TIMEOUT reduced from 10000ms to 3000ms.
+        ' FFmpeg normally exits within 1-3s after receiving 'q' (flush + close).
+        ' The old 10s timeout was a worst-case safety net that made the UI
+        ' feel frozen for up to 10s whenever FFmpeg was slow to exit.
+        ' 3s is enough for normal flush; if FFmpeg hangs, FORCE_KILL_TIMEOUT
+        ' (2000ms) kicks in and terminates the process.
+        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 3000
         Private Const BUFFER_GRACEFUL_EXIT_TIMEOUT As Integer = 3000
         Private Const FORCE_KILL_TIMEOUT As Integer = 2000
         Private Const FILE_WRITE_DELAY As Integer = 300
