@@ -2345,13 +2345,12 @@ Namespace CaptureCore
             End If
 
             ' Always add aresample for A/V sync
-            ' ★ Fix A: async=1 (1-sample correction) instead of async=1000 (1s).
-            ' Old async=1000 caused FFmpeg to insert up to 1 second of silence
-            ' whenever there was a PTS gap between video first frame and audio
-            ' first frame — that manifested as ~300ms audio delay in the final
-            ' mp4 even though live monitoring looked synced. async=1 keeps
-            ' compensation minimal (just samples, not seconds).
-            filters.Add("aresample=async=1:first_pts=0")
+            ' ★ Fix A2: async=44 (1ms @ 48kHz) instead of async=1 (Round 1) or async=1000 (Master).
+            ' Master had async=1000 → up to 1s silence insertion → audio delayed 300ms.
+            ' Round 1 had async=1 → almost no compensation → audio arrived 100ms early.
+            ' async=44 = 1ms of audio samples at 48kHz = FFmpeg's recommended value for
+            ' live capture. Allows small drift correction without large silence padding.
+            filters.Add("aresample=async=44:first_pts=0")
 
             Return "-af """ & String.Join(",", filters) & """ "
         End Function
@@ -3022,7 +3021,16 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_H264
                     sb.Append("-c:v h264_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    ' ★ Fix H: -tune ll → -bf 0 for local recording.
+                    ' -tune ll (low latency) is for live streaming where the encoder
+                    ' trades quality for sub-frame latency to keep the stream fresh.
+                    ' For local recording we don't care about that — we want every
+                    ' frame to be encoded as soon as it arrives, without the tune-ll
+                    ' tweaks that cause encoder backlog at high framerates (144fps).
+                    ' -bf 0 disables B-frames: encoder doesn't need to buffer future
+                    ' frames to encode the current one. Lower encoding latency, no
+                    ' quality hit at the bitrates we use (8-17 Mbps).
+                    sb.Append(" -bf 0 -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
@@ -3033,7 +3041,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
@@ -3044,7 +3052,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
@@ -3112,7 +3120,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_H264
                     sb.Append("-c:v h264_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3127,7 +3135,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3142,7 +3150,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3351,7 +3359,15 @@ Namespace CaptureCore
             sb.Append("-extbrc 1 ")
 
             If Not _useConstantBitrate Then
-                sb.Append("-look_ahead_depth 15 ")
+                ' ★ Fix I: -look_ahead_depth 15 → 4.
+                ' Lookahead makes the encoder wait N frames before encoding the current
+                ' one so it can plan bitrate allocation. 15 frames at 144fps = 104ms
+                ' buffer delay at startup, plus the encoder has to spin up the lookahead
+                ' pipeline before it can emit frame 0. This contributes to the "first
+                ' frames look choppy" symptom at high framerates.
+                ' 4 frames at 144fps = 28ms — still gives the encoder some lookahead
+                ' for bitrate planning but starts emitting frames much faster.
+                sb.Append("-look_ahead_depth 4 ")
             End If
 
         End Sub

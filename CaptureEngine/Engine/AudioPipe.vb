@@ -12,15 +12,18 @@ Namespace CaptureCore
         Implements IDisposable
 
 #Region "Constants"
-        ' ★ Fix F: PIPE_BUFFER_SIZE reduced from 2MB to 256KB.
-        ' 2MB = ~5s of audio at 48kHz stereo f32le = way too much headroom that
-        ' added 200-500ms latency between WASAPI callback and FFmpeg ingestion.
-        ' 256KB = ~0.7s — still enough for burst absorption, but pushes audio
-        ' through to FFmpeg much faster.
-        Private Const PIPE_BUFFER_SIZE As Integer = 256 * 1024  ' 256KB pipe buffer
+        ' ★ Fix F2: PIPE_BUFFER_SIZE 256KB → 1MB (Round 1 had 256KB which was too small).
+        ' Round 1 reduced from 2MB → 256KB to cut latency, but 256KB = ~0.7s of audio
+        ' which was NOT enough headroom when FFmpeg's encoder was busy warming up at
+        ' recording start. Result: audio buffer overflowed → audio drop → stutter
+        ' + first frames looked choppy.
+        ' 1MB = ~2.7s of audio at 48kHz stereo f32le. Still much smaller than the
+        ' original 2MB (so latency is cut roughly in half) but big enough to absorb
+        ' encoder init burst without dropping.
+        Private Const PIPE_BUFFER_SIZE As Integer = 1024 * 1024  ' 1MB pipe buffer
         Private Const AUDIO_PIPE_PREFIX As String = "ShadowPlay_Audio_"
 
-        ' ★ Fix C: Silent frame interval + timeout reduced.
+        ' ★ Fix C: Silent frame interval + timeout reduced (Round 1, kept).
         ' Old: 50ms interval, 80ms timeout → FFmpeg saw silence as ~80ms audio
         '      leading → audio track appeared to start later than video.
         ' New: 30ms interval, 50ms timeout → silence is shorter and more
