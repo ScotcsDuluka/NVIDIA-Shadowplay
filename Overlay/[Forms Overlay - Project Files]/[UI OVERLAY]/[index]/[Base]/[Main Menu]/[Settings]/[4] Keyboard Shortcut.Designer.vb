@@ -57,7 +57,7 @@ Partial Class Base_KeySet
         lbl_TestNotifier = New Label()
         Label4 = New Label()
         Label3 = New Label()
-        lbl_empty = New Label()
+        lbl_WebToggle = New Label()
         Label2 = New Label()
         Label1 = New Label()
         lbl_Screenshot = New Label()
@@ -193,7 +193,7 @@ Partial Class Base_KeySet
         Panel1.Controls.Add(lbl_TestNotifier)
         Panel1.Controls.Add(Label4)
         Panel1.Controls.Add(Label3)
-        Panel1.Controls.Add(lbl_empty)
+        Panel1.Controls.Add(lbl_WebToggle)
         Panel1.Controls.Add(Label2)
         Panel1.Controls.Add(Label1)
         Panel1.Controls.Add(lbl_Screenshot)
@@ -612,19 +612,19 @@ Partial Class Base_KeySet
         Label3.Text = ""
         Label3.TextAlign = ContentAlignment.MiddleRight
         ' 
-        ' lbl_empty
+        ' lbl_WebToggle
         ' 
-        lbl_empty.Anchor = AnchorStyles.Top
-        lbl_empty.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        lbl_empty.Cursor = Cursors.Hand
-        lbl_empty.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        lbl_empty.ForeColor = Color.White
-        lbl_empty.Location = New Point(91, 214)
-        lbl_empty.Name = "lbl_empty"
-        lbl_empty.Size = New Size(147, 40)
-        lbl_empty.TabIndex = 61
-        lbl_empty.Text = "Empty"
-        lbl_empty.TextAlign = ContentAlignment.MiddleCenter
+        lbl_WebToggle.Anchor = AnchorStyles.Top
+        lbl_WebToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        lbl_WebToggle.Cursor = Cursors.Hand
+        lbl_WebToggle.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        lbl_WebToggle.ForeColor = Color.White
+        lbl_WebToggle.Location = New Point(91, 214)
+        lbl_WebToggle.Name = "lbl_WebToggle"
+        lbl_WebToggle.Size = New Size(147, 40)
+        lbl_WebToggle.TabIndex = 61
+        lbl_WebToggle.Text = "Empty"
+        lbl_WebToggle.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Label2
         ' 
@@ -1186,7 +1186,7 @@ Partial Class Base_KeySet
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents lbl_Screenshot As Label
     Friend WithEvents PictureBox7 As PictureBox
-    Friend WithEvents lbl_empty As Label
+    Friend WithEvents lbl_WebToggle As Label
     Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents lbl_TestNotifier As Label
     Friend WithEvents PictureBox2 As PictureBox

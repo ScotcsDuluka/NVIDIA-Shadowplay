@@ -181,7 +181,7 @@ Partial Public Class Base
         a_2.Visible = True
         a_1.Visible = False
         a_3.Visible = False
-        SetReplayControlBorder(True)
+        SetRecordControlBorder(True)
     End Sub
     Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
         If Base_Background_Top.b1_all.Visible = True Then

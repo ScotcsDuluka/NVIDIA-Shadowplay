@@ -285,15 +285,11 @@ Partial Public Class Base
 
 
     Private Sub Highlight_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-
-        ' โหลดเสียง .mp3 ทั้งหมดจาก NVIDIA_Shadowplay_Data\highlights\
-        Dim count As Integer = HighlightDetector.Instance.LoadTemplates()
-
-        ' ต่อ event
         AddHandler HighlightDetector.Instance.HighlightDetected, AddressOf OnHighlightDetected
-
-        ' เริ่มฟังเสียง
-        '  HighlightDetector.Instance.Start()
+        Task.Run(Sub()
+                     Dim count As Integer = HighlightDetector.Instance.LoadTemplates()
+                     Debug.WriteLine("[Highlight] " & count & " templates loaded")
+                 End Sub)
     End Sub
 
     ' เมื่อจับเสียงได้
@@ -309,65 +305,92 @@ Partial Public Class Base
 
 
 
+    ' ╔══════════════════════════════════════════════════════════════╗
+    ' ║  ใหม่: แยก "แสดง UI เร็วๆ" กับ "ทำงานหนักทีหลัง"             ║
+    ' ╚══════════════════════════════════════════════════════════════╝
+
+    ' ✅ ใหม่ — UI พร้อมใช้ทันที, network ทีหลัง
     Private _delayTimers As System.Windows.Forms.Timer
-    Private Async Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+    Private _bgInitDone As Boolean = False
+
+    Private Sub MainForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
         HideFromAltTab()
 
-        If Not tcp.IsConnected Then
-            Debug.WriteLine("[Init] Waiting for server connection...")
-            ' Await WaitForConnection(30000)
-        End If
-
-        If Not tcp.IsConnected Then
-            Debug.WriteLine("[Init] Cannot connect to server!")
-            ' Return
-        End If
-
-
+        ' ===== เริ่มต้นที่เบาที่สุดก่อน (ไม่มี network) =====
         AppSettings.Initialize()
-        Await AppSettings.Instance.LoadGitHubUser()
-        Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
-        Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
-
         LoadCurrentLanguage()
-        InitializeNotifierAPI()
         MainSub_Load()
         LoadFilePath()
         CreateDataDirectories()
         LoadMicState()
         TIMESLOAD()
 
-
-        _delayTimers = New System.Windows.Forms.Timer
-        _delayTimers.Interval = 2000
-        AddHandler _delayTimers.Tick, Sub()
-                                          _delayTimers.Stop()
-                                          SystemMonitor.StartMonitoring()
-
-                                      End Sub
-        _delayTimers.Start()
-
+        ' ===== Hotkeys ทันที =====
         _hotkeyService = New HotkeyService()
         _hotkeyService.RegisterAll(Handle)
         tcp.Send("Hotkeys registered!")
 
-        #If DEBUG Then
-        Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
-        If overlayExists Then
-            Debug_UI.Show()
-        Else
-        End If
+        ' ===== SystemMonitor (เดิม delay 2 วิ ให้ลดเป็น 500ms) =====
+        _delayTimers = New System.Windows.Forms.Timer
+        _delayTimers.Interval = 500
+        AddHandler _delayTimers.Tick, Sub()
+                                          _delayTimers.Stop()
+                                          SystemMonitor.StartMonitoring()
+                                      End Sub
+        _delayTimers.Start()
+
+        ' ===== UI พร้อมแล้ว — ส่งสัญญาณ Ready =====
+        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+
+        ' ===== ทำงานหนักใน background (ไม่ block UI) =====
+        Task.Run(Async Function()
+                     Try
+                         ' 1) GitHub User (network)
+                         Await AppSettings.Instance.LoadGitHubUser()
+                         Me.BeginInvoke(Sub()
+                                            Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
+                                        End Sub)
+
+                         ' 2) Avatar (network + decode)
+                         Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
+
+                     Catch ex As Exception
+                         Debug.WriteLine("[BG Init] " & ex.Message)
+                     End Try
+
+                     ' 3) Notifier (Process.Start) — หลัง network เสร็จ
+                     Me.BeginInvoke(Sub()
+                                        InitializeNotifierAPI()
+                                        _bgInitDone = True
+                                        Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
+                                        Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
+                                        If width >= 1680 AndAlso height >= 1050 Then
+                                            ShowNotifier("notificationOpenShare")
+                                        Else
+                                            ShowNotifier("notificationErrorResolution")
+                                        End If
+                                    End Sub)
+                 End Function)
+
+#If DEBUG Then
+    Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
+    If overlayExists Then
+        Debug_UI.Show()
+    End If
 #End If
 
-        Dim width As Integer = Screen.PrimaryScreen.Bounds.Width
-        Dim height As Integer = Screen.PrimaryScreen.Bounds.Height
-        If width >= 1680 AndAlso height >= 1050 Then
-            ShowNotifier("notificationOpenShare")
-        Else
-            ShowNotifier("notificationErrorResolution")
-        End If
-        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+    End Sub
+
+    ' ── เพิ่ม Shown event — form แสดงแล้วค่อยโหลดของหนัก ──
+    Private Sub MainForm_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
+        Task.Run(Async Function()
+                     Await AppSettings.Instance.LoadGitHubUser()
+                     Me.BeginInvoke(Sub()
+                                        Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
+                                    End Sub)
+                     Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
+                 End Function)
     End Sub
 
     Private Async Function WaitForConnection(timeoutMs As Integer) As Task
@@ -813,13 +836,6 @@ Partial Public Class Base
                 s.Visible = False
             End If
         Next
-
-        Dim initTimer As New System.Windows.Forms.Timer With {.Interval = 100}
-        AddHandler initTimer.Tick, Sub()
-                                       initTimer.Stop()
-                                       initTimer.Dispose()
-                                   End Sub
-        initTimer.Start()
     End Sub
 
     Public Sub ShadowLoad()

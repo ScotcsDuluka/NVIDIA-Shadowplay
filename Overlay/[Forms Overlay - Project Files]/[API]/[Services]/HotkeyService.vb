@@ -23,7 +23,8 @@ Public Class HotkeyService
             CreateDef("InstantReplayToggle", "Alt+Shift+F10"),
             CreateDef("InstantReplaySave", "Alt+F10"),
             CreateDef("BroadcastToggle", "Alt+F8"),
-            CreateDef("TestNotifier", "Alt+T")
+            CreateDef("TestNotifier", "Alt+T"),
+            CreateDef("WebToggle", "Alt+CAPITAL")
         }
     End Sub
 
@@ -68,6 +69,8 @@ Public Class HotkeyService
     Public Event Key_BroadcastToggle()
 
     Public Event Key_TestNotifier()
+
+    Public Event Key_Web()
     Public Sub RegisterAll(hWnd As IntPtr)
         UnregisterAll()
         _hwnd = hWnd
@@ -125,6 +128,8 @@ Public Class HotkeyService
             Case "BroadcastToggle" : RaiseEvent Key_BroadcastToggle()
 
             Case "TestNotifier" : RaiseEvent Key_TestNotifier()
+
+            Case "WebToggle" : RaiseEvent Key_Web()
         End Select
     End Sub
 
