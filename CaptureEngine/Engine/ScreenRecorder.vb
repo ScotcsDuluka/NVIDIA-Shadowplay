@@ -276,15 +276,23 @@ Namespace CaptureCore
         Private _cropBottom As Integer = 0
 
         ' ddagrab dup_frames setting
-        ' ★ Fix K: Default False instead of True.
-        ' DDAGrab's dup_frames=1 duplicates the last frame whenever the desktop
-        ' hasn't changed (e.g. static screen, paused video). Combined with the
-        ' old -fps_mode cfr, this produced a stream of duplicated frames at the
-        ' requested framerate. With -fps_mode removed entirely (Fix J2), FFmpeg
-        ' uses input timestamps from DDAGrab — but dup_frames=1 still wastes
-        ' encoder cycles encoding identical frames. Better to let DDAGrab emit
-        ' only real frames and let FFmpeg's default vsync=auto handle timing.
-        Private _dupFrames As Boolean = False
+        ' ★ Fix N: Reverted back to True (default). Round 5's Fix K set this to
+        ' False thinking it would avoid wasting encoder cycles on duplicate
+        ' frames. In practice, with `-r 60` (CFR output), FFmpeg has to maintain
+        ' 60fps output regardless. With dup_frames=0:
+        '   - DDAGrab emits only real desktop-change frames (5-30fps on static screens)
+        '   - FFmpeg sees VFR input + `-r 60` CFR → FFmpeg duplicates each frame
+        '     many times to maintain 60fps output
+        '   - Result: "More than 1000 frames duplicated" warning + video looks
+        '     frozen during static periods (FPS drops to 2-3/s)
+        ' With dup_frames=1 (this fix):
+        '   - DDAGrab maintains 60fps input by duplicating last frame at source
+        '   - FFmpeg sees 60fps CFR input + `-r 60` → no duplication needed
+        '   - Result: smooth 60fps output (matches Master behavior)
+        ' The original Master used dup_frames=1 and it worked — the only audio
+        ' issues were in aresample/silent-frame timing, which are fixed by
+        ' Fix A2/F2/M and remain independent of this setting.
+        Private _dupFrames As Boolean = True
 
         ' Screen cache
         Private _cachedScreenW As Integer = -1
