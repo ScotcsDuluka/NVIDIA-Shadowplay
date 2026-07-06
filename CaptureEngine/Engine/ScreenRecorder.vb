@@ -2342,7 +2342,13 @@ Namespace CaptureCore
             End If
 
             ' Always add aresample for A/V sync
-            filters.Add("aresample=async=1000:first_pts=0")
+            ' ★ Fix A: async=1 (1-sample correction) instead of async=1000 (1s).
+            ' Old async=1000 caused FFmpeg to insert up to 1 second of silence
+            ' whenever there was a PTS gap between video first frame and audio
+            ' first frame — that manifested as ~300ms audio delay in the final
+            ' mp4 even though live monitoring looked synced. async=1 keeps
+            ' compensation minimal (just samples, not seconds).
+            filters.Add("aresample=async=1:first_pts=0")
 
             Return "-af """ & String.Join(",", filters) & """ "
         End Function

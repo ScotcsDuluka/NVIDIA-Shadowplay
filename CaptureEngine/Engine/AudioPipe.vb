@@ -12,11 +12,21 @@ Namespace CaptureCore
         Implements IDisposable
 
 #Region "Constants"
-        Private Const PIPE_BUFFER_SIZE As Integer = 2 * 1024 * 1024  ' 2MB pipe buffer
+        ' ★ Fix F: PIPE_BUFFER_SIZE reduced from 2MB to 256KB.
+        ' 2MB = ~5s of audio at 48kHz stereo f32le = way too much headroom that
+        ' added 200-500ms latency between WASAPI callback and FFmpeg ingestion.
+        ' 256KB = ~0.7s — still enough for burst absorption, but pushes audio
+        ' through to FFmpeg much faster.
+        Private Const PIPE_BUFFER_SIZE As Integer = 256 * 1024  ' 256KB pipe buffer
         Private Const AUDIO_PIPE_PREFIX As String = "ShadowPlay_Audio_"
 
-        Private Const SILENT_FRAME_INTERVAL_MS As Integer = 50   ' 50ms for smoother silence
-        Private Const SILENT_TIMEOUT_MS As Integer = 80          ' reduced from 200ms
+        ' ★ Fix C: Silent frame interval + timeout reduced.
+        ' Old: 50ms interval, 80ms timeout → FFmpeg saw silence as ~80ms audio
+        '      leading → audio track appeared to start later than video.
+        ' New: 30ms interval, 50ms timeout → silence is shorter and more
+        '      closely tracks real audio gaps. Slight CPU cost, no quality hit.
+        Private Const SILENT_FRAME_INTERVAL_MS As Integer = 30   ' 30ms for tighter silence
+        Private Const SILENT_TIMEOUT_MS As Integer = 50          ' reduced from 80ms
 
         ''' <summary>Max items in write queue before we start dropping oldest</summary>
         Private Const QUEUE_DROP_THRESHOLD As Integer = 30
