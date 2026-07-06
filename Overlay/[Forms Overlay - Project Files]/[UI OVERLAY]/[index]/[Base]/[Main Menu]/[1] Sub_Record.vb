@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.IO
 Imports System.Threading.Tasks
 Imports System.Windows.Forms
@@ -149,19 +149,9 @@ Partial Public Class Base
 
 #Region "Toggle Recording (Alt+F9)"
 
-    Private Sub PrivacyOpen()
-        OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
-    End Sub
-
-    ''' <summary>
-    ''' FIX #2: Privacy file path was missing backslash — old code:
-    '''   Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy"
-    ''' would produce "C:\AppNVIDIA_Shadowplay_Data\privacy" (no \ before NVIDIA)
-    ''' </summary>
-    Private Function IsPrivacyEnabled() As Boolean
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
-        Return My.Computer.FileSystem.FileExists(privacyPath)
-    End Function
+    ' Phase 5: PrivacyOpen() and IsPrivacyEnabled() moved to Sub_Misc.vb.
+    ' They are still accessible from here because both files are partial
+    ' classes of the same Base class.
 
     Public Async Sub ToggleRecording()
         ' ═══ UI Cooldown Guard ═══
