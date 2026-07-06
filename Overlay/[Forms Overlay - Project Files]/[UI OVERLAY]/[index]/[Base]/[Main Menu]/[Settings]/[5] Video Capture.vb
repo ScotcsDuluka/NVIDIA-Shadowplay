@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.IO
 Imports System.Linq
 Imports System.Runtime.InteropServices
@@ -837,60 +837,10 @@ Public Class Base_RecordingsSet
         Debug.WriteLine("=== PopulateEncoderDictionary END: Added " & addedCount & " encoders ===")
     End Sub
 
+    ' Phase 6: Body moved to EncoderService.VerifyAllInBackground.
+    ' This wrapper preserves the original instance-method call site.
     Private Sub VerifyEncodersInBackground(ffmpegPath As String)
-        Try
-            Using proc As New Process()
-                proc.StartInfo = New ProcessStartInfo() With {
-                    .FileName = ffmpegPath,
-                    .Arguments = "-hide_banner -encoders",
-                    .UseShellExecute = False,
-                    .CreateNoWindow = True,
-                    .RedirectStandardOutput = True,
-                    .RedirectStandardError = True,
-                    .StandardOutputEncoding = System.Text.Encoding.UTF8
-                }
-
-                proc.Start()
-
-                Dim stdoutTask As Task(Of String) = proc.StandardOutput.ReadToEndAsync()
-                Dim stderrTask As Task(Of String) = proc.StandardError.ReadToEndAsync()
-
-                If proc.WaitForExit(5000) Then
-                    Dim output As String = stdoutTask.Result
-
-                    Dim codecsToCheck As String() = {
-                        "NVENC_H264", "NVENC_HEVC", "NVENC_AV1",
-                        "QuickSync_H264", "QuickSync_HEVC",
-                        "AMF_H264", "AMF_HEVC",
-                        "LibX264", "LibX265"
-                    }
-
-                    Debug.WriteLine("═══ FFmpeg Encoder Verification ═══")
-                    SyncLock _availabilityCacheLock
-                        For Each encoderName As String In codecsToCheck
-                            Dim codecName As String = GetFFmpegCodecName(encoderName)
-                            If Not String.IsNullOrEmpty(codecName) Then
-                                Dim available As Boolean = output.Contains(codecName)
-                                _encoderAvailabilityCache(encoderName) = available
-                                Debug.WriteLine("  " & codecName & ": " & available.ToString())
-                            End If
-                        Next
-                    End SyncLock
-                    Debug.WriteLine("════════════════════════════════════")
-                Else
-                    Try
-                        proc.Kill()
-                    Catch
-                    End Try
-                    Debug.WriteLine("VerifyEncodersInBackground: FFmpeg timed out")
-                End If
-
-                stdoutTask.Wait(3000)
-                stderrTask.Wait(3000)
-            End Using
-        Catch ex As Exception
-            Debug.WriteLine("VerifyEncodersInBackground Error: " & ex.Message)
-        End Try
+        EncoderService.VerifyAllInBackground(ffmpegPath)
     End Sub
 
     Private Sub AddEncoderSafe(name As String, encoder As CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder, ByRef count As Integer)
