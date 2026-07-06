@@ -3052,7 +3052,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
@@ -3062,7 +3062,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
@@ -3072,7 +3072,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.QuickSync_H264
                     sb.Append("-c:v h264_qsv ")
                     sb.Append("-preset ")
@@ -3111,7 +3111,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.AMF_HEVC
                     sb.Append("-c:v hevc_amf -quality ")
                     sb.Append(GetAmfQualityString())
@@ -3121,7 +3121,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case Else
                     BuildSoftwareEncoderCommand(sb, gopSize)
             End Select
@@ -3145,7 +3145,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
@@ -3159,7 +3159,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
@@ -3173,7 +3173,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.QuickSync_H264
                     sb.Append("-c:v h264_qsv ")
                     sb.Append("-preset ")
@@ -3228,7 +3228,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.AMF_HEVC
                     sb.Append("-c:v hevc_amf -quality ")
                     sb.Append(GetAmfQualityString())
@@ -3242,7 +3242,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case Else
                     BuildSoftwareBufferEncoderCommand(sb, gopSize)
             End Select
@@ -3259,7 +3259,7 @@ Namespace CaptureCore
                     BuildX264RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.LibX265
                     sb.Append("-c:v libx265 -preset ")
                     sb.Append(GetX264PresetString())
@@ -3269,6 +3269,7 @@ Namespace CaptureCore
                     BuildX265RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
+                    sb.Append(" ")
             End Select
         End Sub
 
@@ -3287,7 +3288,7 @@ Namespace CaptureCore
                     BuildX264RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-
+                    sb.Append(" ")
                 Case VideoEncoder.LibX265
                     sb.Append("-c:v libx265 -preset ")
                     sb.Append(GetX264PresetString())
@@ -3301,6 +3302,7 @@ Namespace CaptureCore
                     BuildX265RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
+                    sb.Append(" ")
             End Select
         End Sub
 
