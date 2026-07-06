@@ -8,20 +8,31 @@ Imports CaptureEngine
 Public Class Base_RecordingsSet
 
 #Region "Constants"
-    Public Const MIN_BITRATE_GLOBAL As Integer = 500
-    Public Const MAX_BITRATE_GLOBAL As Integer = 150000
-    Public Const DEFAULT_BITRATE As Integer = 8000
+        ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+        ' â Phase 1 refactor: Public constants below are backward-compatible
+        ' aliases for CaptureCore.CaptureLimits. The actual values live in
+        ' CaptureEngine/Engine/CaptureLimits.vb.
+        '
+        ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT
+        ' caps (150000 / 800). The recorder's hard caps are different
+        ' (300000 / 240) and live in CaptureLimits.MAX_BITRATE_RECORDER /
+        ' MAX_FRAMERATE_RECORDER. UI allows typing larger values than the
+        ' recorder accepts; the recorder clamps at its own hard cap.
+        ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+        Public Const MIN_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_BITRATE
+        Public Const MAX_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_BITRATE_UI
+        Public Const DEFAULT_BITRATE As Integer = CaptureCore.CaptureLimits.DEFAULT_BITRATE
 
-    Public Const MIN_FPS_GLOBAL As Integer = 1
-    Public Const MAX_FPS_GLOBAL As Integer = 800
-    Public Const DEFAULT_FPS As Integer = 60
+        Public Const MIN_FPS_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_FRAMERATE
+        Public Const MAX_FPS_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_FRAMERATE_UI
+        Public Const DEFAULT_FPS As Integer = CaptureCore.CaptureLimits.DEFAULT_FRAMERATE
 
-    Public Const MIN_RESOLUTION_WIDTH As Integer = 320
-    Public Const MAX_RESOLUTION_WIDTH As Integer = 7680
-    Public Const MIN_RESOLUTION_HEIGHT As Integer = 240
-    Public Const MAX_RESOLUTION_HEIGHT As Integer = 4320
+        Public Const MIN_RESOLUTION_WIDTH As Integer = CaptureCore.CaptureLimits.MIN_RESOLUTION_WIDTH
+        Public Const MAX_RESOLUTION_WIDTH As Integer = CaptureCore.CaptureLimits.MAX_RESOLUTION_WIDTH
+        Public Const MIN_RESOLUTION_HEIGHT As Integer = CaptureCore.CaptureLimits.MIN_RESOLUTION_HEIGHT
+        Public Const MAX_RESOLUTION_HEIGHT As Integer = CaptureCore.CaptureLimits.MAX_RESOLUTION_HEIGHT
 
-    Private Const NATIVE_RESOLUTION_KEY As String = "Native"
+        Private Const NATIVE_RESOLUTION_KEY As String = "Native"
 
     Private Structure BitrateLimit
         Public MinBitrate As Integer

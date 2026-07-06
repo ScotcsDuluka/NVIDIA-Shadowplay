@@ -14,25 +14,36 @@ Namespace CaptureCore
         Implements IDisposable
 
 #Region "Constants"
-        Public Const MIN_BITRATE As Integer = 500
-        Public Const MAX_BITRATE As Integer = 300000
-        Public Const DEFAULT_BITRATE As Integer = 8000
+        ' ════════════════════════════════════════════════════════════════════
+        ' ★ Phase 1 refactor: Public constants below are backward-compatible
+        ' aliases for CaptureLimits. The actual values live in CaptureLimits.vb.
+        ' External callers that reference ScreenRecorder.MIN_BITRATE etc. still
+        ' work — they resolve to the same integer at compile time.
+        '
+        ' IMPORTANT: MAX_BITRATE / MAX_FRAMERATE here are the RECORDER hard
+        ' cap (300000 / 240). The UI layer uses a different ceiling (150000 / 800)
+        ' which lives in CaptureLimits as MAX_BITRATE_UI / MAX_FRAMERATE_UI.
+        ' ════════════════════════════════════════════════════════════════════
+        Public Const MIN_BITRATE As Integer = CaptureLimits.MIN_BITRATE
+        Public Const MAX_BITRATE As Integer = CaptureLimits.MAX_BITRATE_RECORDER
+        Public Const DEFAULT_BITRATE As Integer = CaptureLimits.DEFAULT_BITRATE
 
-        Public Const MIN_FRAMERATE As Integer = 1
-        Public Const MAX_FRAMERATE As Integer = 240
-        Public Const DEFAULT_FRAMERATE As Integer = 60
+        Public Const MIN_FRAMERATE As Integer = CaptureLimits.MIN_FRAMERATE
+        Public Const MAX_FRAMERATE As Integer = CaptureLimits.MAX_FRAMERATE_RECORDER
+        Public Const DEFAULT_FRAMERATE As Integer = CaptureLimits.DEFAULT_FRAMERATE
 
-        Public Const MIN_ENCODER_PRESET As Integer = 1
-        Public Const MAX_ENCODER_PRESET As Integer = 7
-        Public Const DEFAULT_ENCODER_PRESET As Integer = 4
+        Public Const MIN_ENCODER_PRESET As Integer = CaptureLimits.MIN_ENCODER_PRESET
+        Public Const MAX_ENCODER_PRESET As Integer = CaptureLimits.MAX_ENCODER_PRESET
+        Public Const DEFAULT_ENCODER_PRESET As Integer = CaptureLimits.DEFAULT_ENCODER_PRESET
 
-        Public Const MIN_REPLAY_DURATION As Integer = 15
-        Public Const MAX_REPLAY_DURATION As Integer = 1200
-        Public Const DEFAULT_REPLAY_DURATION As Integer = 60
+        Public Const MIN_REPLAY_DURATION As Integer = CaptureLimits.MIN_REPLAY_DURATION
+        Public Const MAX_REPLAY_DURATION As Integer = CaptureLimits.MAX_REPLAY_DURATION
+        Public Const DEFAULT_REPLAY_DURATION As Integer = CaptureLimits.DEFAULT_REPLAY_DURATION
 
-        Public Const BUFFER_MAX_SEGMENTS As Integer = 2400
-        Public Const BUFFER_MAX_DURATION As Integer = 1200
+        Public Const BUFFER_MAX_SEGMENTS As Integer = CaptureLimits.BUFFER_MAX_SEGMENTS
+        Public Const BUFFER_MAX_DURATION As Integer = CaptureLimits.BUFFER_MAX_DURATION
 
+        ' ── Internal (Private) constants — engine-implementation-specific ──
         Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 10000
         Private Const BUFFER_GRACEFUL_EXIT_TIMEOUT As Integer = 3000
         Private Const FORCE_KILL_TIMEOUT As Integer = 2000
@@ -43,8 +54,7 @@ Namespace CaptureCore
         Private Const SB_CAPACITY_XLARGE As Integer = 4096
         Private Const CAPTURE_API_CHECK_TIMEOUT As Integer = 3000
 
-
-        Public Const ACTION_COOLDOWN_MS As Integer = 500
+        Public Const ACTION_COOLDOWN_MS As Integer = CaptureLimits.ACTION_COOLDOWN_MS
 
         Private _bufferStartTime As DateTime
         Private _lastSegmentTime As DateTime
