@@ -90,8 +90,16 @@ Namespace CaptureCore
         ''' Minimum interval between user-initiated actions (record toggle,
         ''' replay toggle, save replay). Used by both the recorder engine
         ''' AND the UI layer as defense-in-depth against hotkey spam.
+        '''
+        ''' ★ Fix G: Reduced from 500ms to 200ms. The old 500ms cooldown made
+        ''' rapid Alt+F9 toggles feel sluggish. 200ms is still enough to
+        ''' debounce a single physical keypress (which typically lasts
+        ''' 50-150ms) while letting users toggle quickly when needed.
+        ''' The _isTogglingRecording / _isTogglingReplay guards in the UI
+        ''' layer already prevent overlapping start/stop operations, so the
+        ''' shorter cooldown does not risk double-toggles.
         ''' </summary>
-        Public Const ACTION_COOLDOWN_MS As Integer = 500
+        Public Const ACTION_COOLDOWN_MS As Integer = 200
 #End Region
 
     End Module

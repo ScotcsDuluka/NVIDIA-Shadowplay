@@ -1180,17 +1180,21 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
-                ' ★ RACE FIX: Ensure API availability is checked BEFORE recording
-                ' If checks haven't completed yet (user pressed record very fast),
-                ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
-                If Not CaptureAPIDetector.IsGfxCaptureChecked Then
-                    Debug.WriteLine("StartRecording: GfxCapture not yet checked — checking synchronously")
-                    CheckGfxCaptureAvailability(FFmpegPath)
-                End If
-                If Not CaptureAPIDetector.IsDDAGrabChecked Then
-                    Debug.WriteLine("StartRecording: DDAGrab not yet checked — checking synchronously")
-                    CheckDDAGrabAvailability(FFmpegPath)
-                End If
+                ' ★ Fix D: Removed synchronous API availability check.
+                ' Old code blocked StartRecording for up to 6 seconds (3s × 2 APIs)
+                ' if PreWarmFFmpeg hadn't finished yet. This made the first recording
+                ' attempt after app startup feel frozen.
+                '
+                ' DetermineBestCaptureAPI() already handles "not yet checked" by
+                ' falling through to the best-guess API with a fallback flag set
+                ' (e.g. Monitor+SDR → tries DDAGrab, fallback GFxCapture). If that
+                ' API fails at runtime, NotifyCaptureAPIFailed() triggers the
+                ' fallback automatically. So we don't NEED the synchronous check
+                ' to make a correct decision — it just made the user wait.
+                '
+                ' PreWarmFFmpeg (called at app startup) still runs the checks
+                ' asynchronously. By the time the user actually triggers a
+                ' recording, the cache is usually populated.
 
                 ResetCaptureAPIFallback()
                 MarkActionTime()
@@ -1293,17 +1297,10 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
-                ' ★ RACE FIX: Ensure API availability is checked BEFORE buffering
-                ' If checks haven't completed yet (user pressed replay very fast),
-                ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
-                If Not CaptureAPIDetector.IsGfxCaptureChecked Then
-                    Debug.WriteLine("StartBuffer: GfxCapture not yet checked — checking synchronously")
-                    CheckGfxCaptureAvailability(FFmpegPath)
-                End If
-                If Not CaptureAPIDetector.IsDDAGrabChecked Then
-                    Debug.WriteLine("StartBuffer: DDAGrab not yet checked — checking synchronously")
-                    CheckDDAGrabAvailability(FFmpegPath)
-                End If
+                ' ★ Fix D: Removed synchronous API availability check (same as
+                ' StartRecording above). DetermineBestCaptureAPI handles the
+                ' "not yet checked" case by trying the best-guess API with a
+                ' fallback flag. No need to block the UI here.
 
                 ResetCaptureAPIFallback()
                 MarkActionTime()

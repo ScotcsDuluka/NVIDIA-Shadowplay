@@ -14,12 +14,13 @@ Partial Public Class Base
     ''' <summary>
     ''' UI-level cooldown — prevents rapid-fire hotkey/button spam.
     ''' Shared across all actions (Record/Replay/Save) so that pressing
-    ''' Alt+F9 then Alt+Shift+F10 within 500ms is also blocked.
+    ''' Alt+F9 then Alt+Shift+F10 within the cooldown window is also blocked.
     ''' This works TOGETHER with ScreenRecorder.ACTION_COOLDOWN_MS (defense-in-depth).
+    ''' ★ Fix G: 500ms → 200ms. Matches CaptureLimits.ACTION_COOLDOWN_MS.
     ''' </summary>
     Private Shared _lastUiActionTime As DateTime = DateTime.MinValue
     Private Shared _uiActionLock As New Object()
-    Private Const UI_ACTION_COOLDOWN_MS As Integer = 500
+    Private Const UI_ACTION_COOLDOWN_MS As Integer = 200
 
     ''' <summary>
     ''' Throttle cooldown rejection logs — only log once per cooldown period
