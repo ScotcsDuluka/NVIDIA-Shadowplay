@@ -148,11 +148,9 @@ Namespace CaptureCore
 #End Region
 
 #Region "API Detection State"
-        Private Shared _gfxcaptureAvailable As Boolean = False
-        Private Shared _gfxcaptureChecked As Boolean = False
-        Private Shared _ddagrabAvailable As Boolean = False
-        Private Shared _ddagrabChecked As Boolean = False
-        Private Shared _apiLock As New Object()
+        ' ★ Phase 2 refactor: Availability state + check methods moved to
+        ' CaptureAPIDetector. ScreenRecorder keeps thin forwarders below
+        ' for backward compatibility with all external callers.
 #End Region
 
 #Region "Pre-warm State"
@@ -178,24 +176,14 @@ Namespace CaptureCore
 
 #Region "API Detection Methods - Async Versions"
 
+        ''' <summary>★ Phase 2: Forwarder to CaptureAPIDetector.</summary>
         Public Shared Sub CheckGfxCaptureAvailabilityAsync(ffmpegPath As String)
-            Task.Run(Sub()
-                         Try
-                             CheckGfxCaptureAvailability(ffmpegPath)
-                         Catch ex As Exception
-                             Debug.WriteLine("CheckGfxCaptureAvailabilityAsync Error: " & ex.Message)
-                         End Try
-                     End Sub)
+            CaptureAPIDetector.CheckGfxCaptureAvailabilityAsync(ffmpegPath)
         End Sub
 
+        ''' <summary>★ Phase 2: Forwarder to CaptureAPIDetector.</summary>
         Public Shared Sub CheckDDAGrabAvailabilityAsync(ffmpegPath As String)
-            Task.Run(Sub()
-                         Try
-                             CheckDDAGrabAvailability(ffmpegPath)
-                         Catch ex As Exception
-                             Debug.WriteLine("CheckDDAGrabAvailabilityAsync Error: " & ex.Message)
-                         End Try
-                     End Sub)
+            CaptureAPIDetector.CheckDDAGrabAvailabilityAsync(ffmpegPath)
         End Sub
 
 #End Region
@@ -863,93 +851,33 @@ Namespace CaptureCore
 #End Region
 
 #Region "API Detection Methods"
+        ' ★ Phase 2 refactor: All availability check state + logic moved to
+        ' CaptureAPIDetector. The Shared methods below remain as thin
+        ' forwarders so external callers (Sub_Record.vb, Base_RecordingsSet,
+        ' etc.) continue to compile and behave identically.
+
         Public Shared Sub CheckGfxCaptureAvailability(ffmpegPath As String)
-            SyncLock _apiLock
-                If _gfxcaptureChecked Then Exit Sub
-
-                Try
-                    Debug.WriteLine("═══ CheckGfxCaptureAvailability START ═══")
-                    Dim testArgs As String = "-filter_complex ""gfxcapture=monitor_idx=0:max_framerate=1:capture_cursor=0,hwdownload,format=bgra"" -t 0.1 -f null - -hide_banner -loglevel error"
-
-                    Using proc As New Process()
-                        proc.StartInfo = CreateProcessStartInfo(ffmpegPath, testArgs)
-                        proc.Start()
-
-                        Dim exited As Boolean = proc.WaitForExit(CAPTURE_API_CHECK_TIMEOUT)
-
-                        If Not exited Then
-                            Try
-                                proc.Kill()
-                                proc.WaitForExit(1000)
-                            Catch
-                            End Try
-                            _gfxcaptureAvailable = False
-                        Else
-                            _gfxcaptureAvailable = (proc.ExitCode = 0)
-                        End If
-                    End Using
-                Catch ex As Exception
-                    Debug.WriteLine("CheckGfxCaptureAvailability Error: " & ex.Message)
-                    _gfxcaptureAvailable = False
-                Finally
-                    _gfxcaptureChecked = True
-                End Try
-            End SyncLock
+            CaptureAPIDetector.CheckGfxCaptureAvailability(ffmpegPath)
         End Sub
 
         Public Shared Sub CheckDDAGrabAvailability(ffmpegPath As String)
-            SyncLock _apiLock
-                If _ddagrabChecked Then Exit Sub
-
-                Try
-                    Debug.WriteLine("═══ CheckDDAGrabAvailability START ═══")
-                    Dim testArgs As String = "-f lavfi -i ""ddagrab=0:framerate=1:draw_mouse=0"" -t 0.1 -f null - -hide_banner -loglevel error"
-
-                    Using proc As New Process()
-                        proc.StartInfo = CreateProcessStartInfo(ffmpegPath, testArgs)
-                        proc.Start()
-
-                        Dim exited As Boolean = proc.WaitForExit(CAPTURE_API_CHECK_TIMEOUT)
-
-                        If Not exited Then
-                            Try
-                                proc.Kill()
-                                proc.WaitForExit(1000)
-                            Catch
-                            End Try
-                            _ddagrabAvailable = False
-                        Else
-                            _ddagrabAvailable = (proc.ExitCode = 0)
-                        End If
-                    End Using
-                Catch ex As Exception
-                    Debug.WriteLine("CheckDDAGrabAvailability Error: " & ex.Message)
-                    _ddagrabAvailable = False
-                Finally
-                    _ddagrabChecked = True
-                End Try
-            End SyncLock
+            CaptureAPIDetector.CheckDDAGrabAvailability(ffmpegPath)
         End Sub
 
         Public Shared ReadOnly Property IsGfxCaptureAvailable As Boolean
             Get
-                Return _gfxcaptureAvailable
+                Return CaptureAPIDetector.IsGfxCaptureAvailable
             End Get
         End Property
 
         Public Shared ReadOnly Property IsDDAGrabAvailable As Boolean
             Get
-                Return _ddagrabAvailable
+                Return CaptureAPIDetector.IsDDAGrabAvailable
             End Get
         End Property
 
         Public Shared Sub ResetAPIChecks()
-            SyncLock _apiLock
-                _gfxcaptureChecked = False
-                _gfxcaptureAvailable = False
-                _ddagrabChecked = False
-                _ddagrabAvailable = False
-            End SyncLock
+            CaptureAPIDetector.ResetAPIChecks()
         End Sub
 
         ''' <summary>
@@ -964,13 +892,13 @@ Namespace CaptureCore
                 .APIType = CaptureAPIType.GDIGrab,
                 .DisplayName = "GDI Capture",
                 .Description = "Fallback — ช้าที่สุดแต่ใช้ได้ทุกกรณี (CPU-based)",
-                .IsRecommended = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport() AndAlso Not _ddagrabAvailable AndAlso Not _gfxcaptureAvailable),
+                .IsRecommended = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport() AndAlso Not CaptureAPIDetector.IsDDAGrabAvailable AndAlso Not CaptureAPIDetector.IsGfxCaptureAvailable),
                 .IsAvailable = True
             })
 
             ' DDAGrab — Monitor only
             If _captureTargetType <> CaptureTargetType.Window Then
-                Dim ddagrabAvail As Boolean = _ddagrabAvailable OrElse Not _ddagrabChecked
+                Dim ddagrabAvail As Boolean = CaptureAPIDetector.IsDDAGrabAvailable OrElse Not CaptureAPIDetector.IsDDAGrabChecked
                 Dim ddagrabRecommended As Boolean = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport())
                 result.Add(New CaptureAPIOption With {
                     .APIType = CaptureAPIType.DDAGrab,
@@ -982,7 +910,7 @@ Namespace CaptureCore
             End If
 
             ' GFxCapture — Window + HDR
-            Dim gfxcaptureAvail As Boolean = _gfxcaptureAvailable OrElse Not _gfxcaptureChecked
+            Dim gfxcaptureAvail As Boolean = CaptureAPIDetector.IsGfxCaptureAvailable OrElse Not CaptureAPIDetector.IsGfxCaptureChecked
             Dim gfxcaptureRecommended As Boolean = (_captureTargetType = CaptureTargetType.Window OrElse RequiresHDRSupport())
             result.Add(New CaptureAPIOption With {
                 .APIType = CaptureAPIType.GFxCapture,
@@ -1314,11 +1242,11 @@ Namespace CaptureCore
                 ' ★ RACE FIX: Ensure API availability is checked BEFORE recording
                 ' If checks haven't completed yet (user pressed record very fast),
                 ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
-                If Not _gfxcaptureChecked Then
+                If Not CaptureAPIDetector.IsGfxCaptureChecked Then
                     Debug.WriteLine("StartRecording: GfxCapture not yet checked — checking synchronously")
                     CheckGfxCaptureAvailability(FFmpegPath)
                 End If
-                If Not _ddagrabChecked Then
+                If Not CaptureAPIDetector.IsDDAGrabChecked Then
                     Debug.WriteLine("StartRecording: DDAGrab not yet checked — checking synchronously")
                     CheckDDAGrabAvailability(FFmpegPath)
                 End If
@@ -1427,11 +1355,11 @@ Namespace CaptureCore
                 ' ★ RACE FIX: Ensure API availability is checked BEFORE buffering
                 ' If checks haven't completed yet (user pressed replay very fast),
                 ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
-                If Not _gfxcaptureChecked Then
+                If Not CaptureAPIDetector.IsGfxCaptureChecked Then
                     Debug.WriteLine("StartBuffer: GfxCapture not yet checked — checking synchronously")
                     CheckGfxCaptureAvailability(FFmpegPath)
                 End If
-                If Not _ddagrabChecked Then
+                If Not CaptureAPIDetector.IsDDAGrabChecked Then
                     Debug.WriteLine("StartBuffer: DDAGrab not yet checked — checking synchronously")
                     CheckDDAGrabAvailability(FFmpegPath)
                 End If
@@ -2547,7 +2475,7 @@ Namespace CaptureCore
                     ' GFxCapture รองรับ window_title, window_class, window_exe
                     ' Fallback: GDIGrab ด้วย -i title=... (ถ้า GFxCapture ไม่ available)
                     _fallbackAPI = CaptureAPIType.GDIGrab
-                    If _gfxcaptureAvailable Then
+                    If CaptureAPIDetector.IsGfxCaptureAvailable Then
                         Return CaptureAPIType.GFxCapture
                     End If
                     ' GFxCapture not checked yet or not available
@@ -2558,7 +2486,7 @@ Namespace CaptureCore
                     ' ★ Monitor + HDR → GFxCapture (DDAGrab ไม่รองรับ 16bit/HDR)
                     If RequiresHDRSupport() Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
-                        If _gfxcaptureAvailable Then
+                        If CaptureAPIDetector.IsGfxCaptureAvailable Then
                             Return CaptureAPIType.GFxCapture
                         End If
                         Debug.WriteLine("DetermineBestCaptureAPI: Monitor+HDR → GFxCapture (not checked, trying) → fallback GDIGrab")
@@ -2566,11 +2494,11 @@ Namespace CaptureCore
                     End If
 
                     ' ★ Monitor + SDR → DDAGrab (เร็วกว่า) → GFxCapture fallback → GDIGrab
-                    If _ddagrabAvailable Then
+                    If CaptureAPIDetector.IsDDAGrabAvailable Then
                         _fallbackAPI = CaptureAPIType.GFxCapture
                         Return CaptureAPIType.DDAGrab
                     End If
-                    If _gfxcaptureAvailable Then
+                    If CaptureAPIDetector.IsGfxCaptureAvailable Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
                         Return CaptureAPIType.GFxCapture
                     End If
@@ -2583,17 +2511,17 @@ Namespace CaptureCore
                     ' ★ Region capture → DDAGrab (รองรับ offset_x/offset_y + video_size) → GFxCapture fallback → GDIGrab
                     If RequiresHDRSupport() Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
-                        If _gfxcaptureAvailable Then
+                        If CaptureAPIDetector.IsGfxCaptureAvailable Then
                             Return CaptureAPIType.GFxCapture
                         End If
                         Return CaptureAPIType.GFxCapture
                     End If
 
-                    If _ddagrabAvailable Then
+                    If CaptureAPIDetector.IsDDAGrabAvailable Then
                         _fallbackAPI = CaptureAPIType.GFxCapture
                         Return CaptureAPIType.DDAGrab
                     End If
-                    If _gfxcaptureAvailable Then
+                    If CaptureAPIDetector.IsGfxCaptureAvailable Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
                         Return CaptureAPIType.GFxCapture
                     End If
