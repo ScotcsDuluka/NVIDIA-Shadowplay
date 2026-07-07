@@ -166,6 +166,19 @@ Namespace CaptureCore
                 _bytesWritten = 0
                 _lastAudioTimeMs = 0
 
+                ' ★ Fix Q: Pre-roll silence — start in "sending silence" state.
+                ' Old behavior: silent timer waited 200ms after start before inserting
+                ' any silence. During those 200ms, WASAPI was still initializing and
+                ' hadn't sent audio yet → FFmpeg's audio input had NO data → audio
+                ' track started ~200-300ms after video track → 300ms audio delay
+                ' in the final mp4 (the original Master symptom).
+                ' New behavior: start in _isSendingSilence=True so silence is sent
+                ' immediately when FFmpeg connects. When WASAPI delivers the first
+                ' real audio buffer, OnAudioDataAvailable flips _isSendingSilence
+                ' to False and real audio takes over. This keeps FFmpeg's audio
+                ' stream alive from the very first frame, eliminating the gap.
+                _isSendingSilence = True
+
                 ' Create named pipe
                 _namedPipeServer = New NamedPipeServerStream(
                     _pipeName,
@@ -505,7 +518,28 @@ Namespace CaptureCore
                 Dim nowMs As Long = _silenceStopwatch.ElapsedMilliseconds
                 Dim timeSinceLastAudio As Long = nowMs - _lastAudioTimeMs
 
-                If timeSinceLastAudio >= SILENT_TIMEOUT_MS Then
+                ' ★ Fix Q: Pre-roll silence logic.
+                ' - If we're already sending silence (initial state OR resumed after
+                '   a gap), keep sending as long as WASAPI hasn't delivered new audio.
+                ' - If WASAPI has delivered audio at some point (lastAudioTimeMs > 0)
+                '   AND we've been silent for >SILENT_TIMEOUT_MS, resume sending silence.
+                ' - If WASAPI is actively delivering audio, don't send silence.
+                Dim shouldSendSilence As Boolean
+
+                If _lastAudioTimeMs = 0 Then
+                    ' Pre-roll phase: WASAPI hasn't sent any audio yet. Send silence
+                    ' to keep FFmpeg's audio stream alive from the very first frame.
+                    shouldSendSilence = True
+                ElseIf timeSinceLastAudio >= SILENT_TIMEOUT_MS Then
+                    ' Post-roll / gap phase: WASAPI was sending audio but has been
+                    ' silent for >SILENT_TIMEOUT_MS. Resume silence to keep stream alive.
+                    shouldSendSilence = True
+                Else
+                    ' Active audio phase: WASAPI is delivering audio. No silence needed.
+                    shouldSendSilence = False
+                End If
+
+                If shouldSendSilence Then
                     If Not _isSendingSilence Then
                         _isSendingSilence = True
                         Debug.WriteLine("AudioPipe: Started sending silent frames")
@@ -514,6 +548,9 @@ Namespace CaptureCore
                     ' Enqueue silence copy
                     Dim silenceCopy As Byte() = New Byte(_silentBufferSize - 1) {}
                     EnqueueAudioData(silenceCopy)
+                ElseIf _isSendingSilence Then
+                    _isSendingSilence = False
+                    Debug.WriteLine("AudioPipe: Real audio active — stopped silent frames")
                 End If
 
             Catch ex As Exception
