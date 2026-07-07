@@ -3324,41 +3324,54 @@ Namespace CaptureCore
 #Region "Rate Control Helpers"
 
         Private Sub BuildNVENCRateControl(sb As StringBuilder)
-            ' ★ Round 6: ShadowPlay mode — CQP (Constant Quality) instead of CBR.
+            ' ★ Round 7: Stable VBR — matches NVIDIA ShadowPlay's encoder behavior.
             '
-            ' Old CBR mode (minrate=maxrate=bitrate) was the WORST for latency:
-            '   - Forced encoder to emit exactly 'bitrate' kbps every second
-            '   - On static scenes (paused video, desktop), encoder wasted cycles
-            '     padding to maintain bitrate
-            '   - bufsize=bitrate meant 1-second encoder buffer = high latency
+            ' Evolution:
+            '   Master:  CBR (minrate=maxrate=bitrate, bufsize=1s) — high latency, stutter
+            '   Round 6: CQP (no bitrate caps) — fast but file size unpredictable,
+            '            could spike to 100+ Mbps on high-motion scenes
+            '   Round 7: VBR with CQ target + bitrate cap — STABLE like ShadowPlay
             '
-            ' CQP mode:
-            '   - Encoder uses only as many bits as needed for quality level CQ=21
-            '   - Static scenes use almost no bits → encoder idle → zero backlog
-            '   - High-motion scenes get more bits automatically (up to GPU max)
-            '   - No -b:v / -minrate / -maxrate / -bufsize needed
+            ' NVIDIA ShadowPlay uses VBR with these characteristics:
+            '   - Static scene (desktop): ~3-5 Mbps (encoder idle, low CPU/GPU)
+            '   - Motion scene (game):    ~20-40 Mbps (full quality, capped)
+            '   - Average bitrate:        predictable (~20 Mbps at 1080p60)
+            '   - Quality:                high (CQ=21 = visually near-lossless)
             '
-            ' Combined with -tune ull (Ultra Low Latency) added in BuildEncoderCommand,
-            ' this matches NVIDIA ShadowPlay's encoder configuration.
+            ' We achieve this with FFmpeg's VBR + CQ mode:
+            '   -rc vbr        → Variable Bitrate (encoder adjusts based on scene)
+            '   -cq 21         → Quality target (lower = better, 21 = high quality)
+            '   -b:v 20M       → Target bitrate (default; user can change via _bitrate)
+            '   -maxrate 40M   → Hard cap (prevents runaway file size on complex scenes)
+            '   -bufsize 4M    → Small buffer (low latency, ~200ms at 20 Mbps)
             '
-            ' CQ scale: lower = better quality (typical range 18-28)
-            '   18 = visually lossless (~50 Mbps at 1080p60)
-            '   21 = high quality (~15-25 Mbps at 1080p60)  ← we use this
-            '   23 = balanced (~10-15 Mbps at 1080p60)
-            '   28 = low quality (~3-5 Mbps at 1080p60)
+            ' User customization:
+            '   - _bitrate controls target bitrate (default 20000 = 20 Mbps)
+            '   - _useConstantBitrate=True switches to pure CBR (for streaming)
+            '   - Quality presets (Low/Medium/High) can be added via UI later
+            '     by changing _bitrate: Low=10M, Medium=20M, High=40M
             If _useConstantBitrate Then
-                ' User asked for "constant bitrate" mode → use CBR but with smaller
-                ' buffer for lower latency. Old bufsize=bitrate (1s) → bufsize=bitrate/4 (250ms).
+                ' Pure CBR mode for streaming — strict bitrate, larger buffer.
                 sb.Append("-rc cbr -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -maxrate ")
                 sb.Append(_bitrate)
                 sb.Append("k -bufsize ")
-                sb.Append(CInt(_bitrate / 4))
+                sb.Append(CInt(_bitrate / 2))
                 sb.Append("k ")
             Else
-                ' ★ Round 6: CQP mode — pure constant quality, no bitrate caps.
-                sb.Append("-rc cqp -cq 21 ")
+                ' ★ Stable VBR — ShadowPlay-like behavior.
+                ' Target = _bitrate (default 20000 kbps = 20 Mbps)
+                ' Max = 2× target (cap to prevent runaway file size)
+                ' Buffer = target/5 (~200ms low-latency buffer)
+                ' CQ = 21 (high quality target)
+                sb.Append("-rc vbr -cq 21 -b:v ")
+                sb.Append(_bitrate)
+                sb.Append("k -maxrate ")
+                sb.Append(_bitrate * 2)
+                sb.Append("k -bufsize ")
+                sb.Append(CInt(_bitrate / 5))
+                sb.Append("k ")
             End If
         End Sub
 

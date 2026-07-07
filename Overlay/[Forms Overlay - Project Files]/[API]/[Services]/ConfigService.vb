@@ -24,7 +24,7 @@ Public Class AppSettings
         Public Property Encoder As String = "NVENC_H264"
         Public Property EncoderNow As String = "NVENC_H264"
         Public Property FPS As Integer = 60
-        Public Property Bitrate As Integer = 8000
+        Public Property Bitrate As Integer = 20000  ' ★ Round 7: 8000→20000 (ShadowPlay Medium)
         Public Property Width As Integer = 1920
         Public Property Height As Integer = 1080
         Public Property Preset As String = "Medium"

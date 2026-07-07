@@ -40,8 +40,12 @@ Namespace CaptureCore
         ''' <summary>Maximum bitrate the settings UI will allow the user to enter.</summary>
         Public Const MAX_BITRATE_UI As Integer = 150000
 
-        ''' <summary>Default bitrate when no user preference is loaded.</summary>
-        Public Const DEFAULT_BITRATE As Integer = 8000
+        ''' <summary>Default bitrate when no user preference is loaded.
+        ''' ★ Round 7: 8000 → 20000 (20 Mbps) — matches ShadowPlay Medium preset.
+        ''' Old 8 Mbps was too low for 1080p60 game recording → blurry on motion.
+        ''' 20 Mbps is what NVIDIA ShadowPlay uses for "Medium" quality.
+        ''' User can still override via UI bitrate slider.</summary>
+        Public Const DEFAULT_BITRATE As Integer = 20000
 #End Region
 
 #Region "Framerate (fps)"
