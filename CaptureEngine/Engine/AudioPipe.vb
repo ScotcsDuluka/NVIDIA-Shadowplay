@@ -515,42 +515,44 @@ Namespace CaptureCore
             If _silentBuffer Is Nothing Then Exit Sub
 
             Try
-                Dim nowMs As Long = _silenceStopwatch.ElapsedMilliseconds
-                Dim timeSinceLastAudio As Long = nowMs - _lastAudioTimeMs
-
-                ' ★ Fix Q: Pre-roll silence logic.
-                ' - If we're already sending silence (initial state OR resumed after
-                '   a gap), keep sending as long as WASAPI hasn't delivered new audio.
-                ' - If WASAPI has delivered audio at some point (lastAudioTimeMs > 0)
-                '   AND we've been silent for >SILENT_TIMEOUT_MS, resume sending silence.
-                ' - If WASAPI is actively delivering audio, don't send silence.
-                Dim shouldSendSilence As Boolean
-
+                ' ★ Fix Q2: Stable Mode — Pre-roll silence ONLY.
+                ' Phase 1 (Pre-roll): _lastAudioTimeMs == 0 → WASAPI hasn't sent
+                '   any audio yet. Send silence to keep FFmpeg's audio stream
+                '   alive from the very first frame. This eliminates the 300ms
+                '   delay caused by WASAPI's startup latency.
+                ' Phase 2 (Active): _lastAudioTimeMs > 0 → WASAPI has delivered
+                '   audio at some point. STOP sending silence permanently.
+                '   Even if WASAPI pauses (user pauses music), we do NOT resume
+                '   silence. This avoids the silence→real-audio transition that
+                '   caused clicks/pops in earlier versions.
+                '
+                ' Why this is stable:
+                '   - FFmpeg's aresample=async=192 handles audio gaps natively
+                '     without needing fake silence.
+                '   - No silence→real-audio transitions after the initial pre-roll
+                '     means no chance of click/pop artifacts.
+                '   - The audio track may have brief gaps during genuine silence
+                '     (imperceptible — there's no audio to hear during silence).
+                '   - This is the same approach NVIDIA ShadowPlay uses: keep the
+                '     stream alive during capture init, then let real audio flow.
                 If _lastAudioTimeMs = 0 Then
-                    ' Pre-roll phase: WASAPI hasn't sent any audio yet. Send silence
-                    ' to keep FFmpeg's audio stream alive from the very first frame.
-                    shouldSendSilence = True
-                ElseIf timeSinceLastAudio >= SILENT_TIMEOUT_MS Then
-                    ' Post-roll / gap phase: WASAPI was sending audio but has been
-                    ' silent for >SILENT_TIMEOUT_MS. Resume silence to keep stream alive.
-                    shouldSendSilence = True
-                Else
-                    ' Active audio phase: WASAPI is delivering audio. No silence needed.
-                    shouldSendSilence = False
-                End If
-
-                If shouldSendSilence Then
+                    ' Pre-roll phase: WASAPI hasn't sent any audio yet.
+                    ' Send silence to keep FFmpeg's audio stream alive.
                     If Not _isSendingSilence Then
                         _isSendingSilence = True
-                        Debug.WriteLine("AudioPipe: Started sending silent frames")
+                        Debug.WriteLine("AudioPipe: Pre-roll silence (waiting for WASAPI)")
                     End If
 
-                    ' Enqueue silence copy
                     Dim silenceCopy As Byte() = New Byte(_silentBufferSize - 1) {}
                     EnqueueAudioData(silenceCopy)
-                ElseIf _isSendingSilence Then
-                    _isSendingSilence = False
-                    Debug.WriteLine("AudioPipe: Real audio active — stopped silent frames")
+                Else
+                    ' Active phase: WASAPI has delivered audio. Stop pre-roll silence.
+                    ' Do NOT resume silence even if WASAPI pauses — let FFmpeg
+                    ' handle gaps via aresample. This is the stable mode.
+                    If _isSendingSilence Then
+                        _isSendingSilence = False
+                        Debug.WriteLine("AudioPipe: Real audio received — pre-roll complete, silence stopped")
+                    End If
                 End If
 
             Catch ex As Exception
