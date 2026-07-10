@@ -8,18 +8,18 @@ Imports CaptureEngine
 Public Class Base_RecordingsSet
 
 #Region "Constants"
-        ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-        ' â Phase 1 refactor: Public constants below are backward-compatible
-        ' aliases for CaptureCore.CaptureLimits. The actual values live in
-        ' CaptureEngine/Engine/CaptureLimits.vb.
-        '
-        ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT
-        ' caps (150000 / 800). The recorder's hard caps are different
-        ' (300000 / 240) and live in CaptureLimits.MAX_BITRATE_RECORDER /
-        ' MAX_FRAMERATE_RECORDER. UI allows typing larger values than the
-        ' recorder accepts; the recorder clamps at its own hard cap.
-        ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-        Public Const MIN_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_BITRATE
+    ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    ' â
+    ' aliases for CaptureCore.CaptureLimits. The actual values live in
+    ' CaptureEngine/Engine/CaptureLimits.vb.
+    '
+    ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT
+    ' caps (150000 / 800). The recorder's hard caps are different
+    ' (300000 / 240) and live in CaptureLimits.MAX_BITRATE_RECORDER /
+    ' MAX_FRAMERATE_RECORDER. UI allows typing larger values than the
+    ' recorder accepts; the recorder clamps at its own hard cap.
+    ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    Public Const MIN_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_BITRATE
         Public Const MAX_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_BITRATE_UI
         Public Const DEFAULT_BITRATE As Integer = CaptureCore.CaptureLimits.DEFAULT_BITRATE
 
