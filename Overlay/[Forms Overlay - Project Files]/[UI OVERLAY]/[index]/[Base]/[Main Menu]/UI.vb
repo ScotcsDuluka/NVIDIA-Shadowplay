@@ -1,7 +1,6 @@
-﻿#If DEBUG Then
-Public Class Debug_UI
+﻿Public Class Debug_UI
 
-
+#If DEBUG Then
 
     Private _lastX As Integer = Integer.MinValue
     Private _lastY As Integer = Integer.MinValue
@@ -73,5 +72,7 @@ Public Class Debug_UI
     Private Sub Debug_UI_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         Application.Exit()
     End Sub
-End Class
+
 #End If
+
+End Class
