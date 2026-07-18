@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.IO
 Imports System.Threading.Tasks
 Imports System.Windows.Forms
@@ -14,12 +14,13 @@ Partial Public Class Base
     ''' <summary>
     ''' UI-level cooldown — prevents rapid-fire hotkey/button spam.
     ''' Shared across all actions (Record/Replay/Save) so that pressing
-    ''' Alt+F9 then Alt+Shift+F10 within 500ms is also blocked.
+    ''' Alt+F9 then Alt+Shift+F10 within the cooldown window is also blocked.
     ''' This works TOGETHER with ScreenRecorder.ACTION_COOLDOWN_MS (defense-in-depth).
+    ''' ★ Fix G: 500ms → 200ms. Matches CaptureLimits.ACTION_COOLDOWN_MS.
     ''' </summary>
     Private Shared _lastUiActionTime As DateTime = DateTime.MinValue
     Private Shared _uiActionLock As New Object()
-    Private Const UI_ACTION_COOLDOWN_MS As Integer = 500
+    Private Const UI_ACTION_COOLDOWN_MS As Integer = 200
 
     ''' <summary>
     ''' Throttle cooldown rejection logs — only log once per cooldown period
@@ -149,19 +150,9 @@ Partial Public Class Base
 
 #Region "Toggle Recording (Alt+F9)"
 
-    Private Sub PrivacyOpen()
-        OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
-    End Sub
-
-    ''' <summary>
-    ''' FIX #2: Privacy file path was missing backslash — old code:
-    '''   Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy"
-    ''' would produce "C:\AppNVIDIA_Shadowplay_Data\privacy" (no \ before NVIDIA)
-    ''' </summary>
-    Private Function IsPrivacyEnabled() As Boolean
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
-        Return My.Computer.FileSystem.FileExists(privacyPath)
-    End Function
+    ' Phase 5: PrivacyOpen() and IsPrivacyEnabled() moved to Sub_Misc.vb.
+    ' They are still accessible from here because both files are partial
+    ' classes of the same Base class.
 
     Public Async Sub ToggleRecording()
         ' ═══ UI Cooldown Guard ═══
@@ -210,12 +201,25 @@ Partial Public Class Base
 
             If Recorder.IsRecording Then
                 ' ═══ Stop recording ═══
-                Await Recorder.StopRecordingAsync()
+                ' ★ Fix E: Optimistic UI feedback — show "saved" notifier IMMEDIATELY
+                ' instead of waiting for StopRecordingAsync to complete (which blocks
+                ' up to 3s on FFmpeg graceful exit). User sees instant response.
+                ' If stop fails internally, the error is logged but UI stays consistent
+                ' (recording was going to stop either way).
                 RecordValue = False
                 ShowNotifier("recording_saved")
+                Debug.WriteLine("Recording stop requested")
+                Await Recorder.StopRecordingAsync()
                 Debug.WriteLine("Recording stopped")
             Else
                 ' ═══ Start recording ═══
+                ' ★ Fix E: Optimistic UI feedback — show "started" notifier IMMEDIATELY
+                ' so user sees instant response. If StartRecordingAsync fails (e.g.
+                ' FFmpeg not found, audio pipe init error), we roll back the notifier
+                ' to "recording_error" after the fact.
+                ShowNotifier("recording_started")
+                Debug.WriteLine("Recording start requested")
+
                 Dim outputDir As String = GetOutputDirectory()
                 Dim fileName = $"Record_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4"
                 Dim outputPath = Path.Combine(outputDir, fileName)
@@ -224,12 +228,11 @@ Partial Public Class Base
 
                 If success Then
                     RecordValue = True
-                    ShowNotifier("recording_started")
-                    Debug.WriteLine("Recording started")
+                    Debug.WriteLine("Recording started successfully")
                 Else
                     RecordValue = False
                     ShowNotifier("recording_error")
-                    Debug.WriteLine("Recording failed to start")
+                    Debug.WriteLine("Recording failed to start — rolling back optimistic notifier")
                 End If
             End If
         Catch ex As Exception
@@ -294,33 +297,35 @@ Partial Public Class Base
 
             If Recorder.IsBuffering Then
                 ' ═══ Stop replay buffer ═══
-                Await Recorder.StopBufferAsync()
+                ' ★ Fix E: Optimistic UI feedback — show "off" notifier IMMEDIATELY
+                ' instead of waiting for StopBufferAsync to complete (which blocks
+                ' up to 3s on FFmpeg graceful exit).
                 ReplayValue = False
                 SetControlColor(Replay_Logo, Color.White)
-
-                ' ═══ FIX #4: Disable save controls when buffer stops ═══
-                ' Old code: save controls stayed enabled after stopping buffer
-                ' User could press Save while buffer is off = confusing error
                 SetControlEnabled(Menu_Replay_Box2, False)
                 SetControlEnabled(Menu_Replay_save_text, False)
                 SetControlEnabled(Menu_Replay_save_key, False)
-
                 ShowNotifier("instant_replay_off")
+                Debug.WriteLine("Replay buffer stop requested")
+                Await Recorder.StopBufferAsync()
                 Debug.WriteLine("Replay buffer stopped")
             Else
                 ' ═══ Start replay buffer ═══
+                ' ★ Fix E: Optimistic UI feedback — show "on" notifier IMMEDIATELY.
+                ' If StartBufferAsync fails, we roll back the notifier.
                 Dim saveSeconds As Integer = AppSettings.Instance.Recording.ReplayDuration
                 If saveSeconds < 15 Then saveSeconds = 15
                 If saveSeconds > 1200 Then saveSeconds = 1200
                 Recorder.BufferDurationSeconds = saveSeconds
 
                 Debug.WriteLine($"Replay save duration set to: {saveSeconds}s")
+                ShowNotifier("instant_replay_on")
+                Debug.WriteLine("Replay buffer start requested")
 
                 Dim success = Await Recorder.StartBufferAsync()
 
                 If success Then
                     ReplayValue = True
-                    ShowNotifier("instant_replay_on")
                     SetControlEnabled(Menu_Replay_Box2, True)
                     SetControlEnabled(Menu_Replay_save_text, True)
                     SetControlEnabled(Menu_Replay_save_key, True)
@@ -328,7 +333,7 @@ Partial Public Class Base
                 Else
                     ReplayValue = False
                     ShowNotifier("replay_error")
-                    Debug.WriteLine("Replay buffer failed to start")
+                    Debug.WriteLine("Replay buffer failed to start — rolling back optimistic notifier")
                 End If
             End If
         Catch ex As Exception

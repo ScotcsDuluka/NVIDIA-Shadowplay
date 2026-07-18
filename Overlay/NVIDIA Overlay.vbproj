@@ -41,25 +41,27 @@
 		<AppDesignerFolder>My Project</AppDesignerFolder>
 	</PropertyGroup>
 
-	<Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
-		<WriteLinesToFile File="build.txt" Lines="100" Overwrite="false" Condition="!Exists('build.txt')" />
-		<ReadLinesFromFile File="build.txt">
-			<Output TaskParameter="Lines" PropertyName="BuildNumberRaw" />
-		</ReadLinesFromFile>
-		<PropertyGroup>
-			<BuildNumber>$([System.String]::Copy('$(BuildNumberRaw)').Trim())</BuildNumber>
-			<BuildNumber Condition="'$(BuildNumber)'==''">100</BuildNumber>
-		</PropertyGroup>
-		<PropertyGroup>
-			<BuildNumber>$([MSBuild]::Add($(BuildNumber), 1))</BuildNumber>
-		</PropertyGroup>
-		<WriteLinesToFile File="build.txt" Lines="$(BuildNumber)" Overwrite="true" />
-		<PropertyGroup>
-			<Version>3.3.$(BuildNumber).30</Version>
-			<AssemblyVersion>3.3.$(BuildNumber).30</AssemblyVersion>
-			<FileVersion>3.35.$(BuildNumber).30</FileVersion>
-		</PropertyGroup>
-	</Target>
+<Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
+
+  <WriteLinesToFile
+      File="$(MSBuildProjectDirectory)\build.txt"
+      Lines="100"
+      Overwrite="false"
+      Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
+
+<Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$f='$(MSBuildProjectDirectory)\build.txt'; $n=[int](Get-Content $f -Raw).Trim(); Set-Content $f ($n+1)&quot;" />
+
+  <ReadLinesFromFile File="$(MSBuildProjectDirectory)\build.txt">
+    <Output TaskParameter="Lines" PropertyName="BuildNumber" />
+  </ReadLinesFromFile>
+
+  <PropertyGroup>
+    <Version>3.3.$(BuildNumber).30</Version>
+    <AssemblyVersion>3.3.$(BuildNumber).30</AssemblyVersion>
+    <FileVersion>3.3.$(BuildNumber).30</FileVersion>
+  </PropertyGroup>
+
+</Target>
 
 	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
 		<RegisterForComInterop>False</RegisterForComInterop>

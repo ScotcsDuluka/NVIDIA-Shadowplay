@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.IO
 Imports System.Linq
 Imports System.Runtime.InteropServices
@@ -8,20 +8,31 @@ Imports CaptureEngine
 Public Class Base_RecordingsSet
 
 #Region "Constants"
-    Public Const MIN_BITRATE_GLOBAL As Integer = 500
-    Public Const MAX_BITRATE_GLOBAL As Integer = 150000
-    Public Const DEFAULT_BITRATE As Integer = 8000
+    ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    ' â
+    ' aliases for CaptureCore.CaptureLimits. The actual values live in
+    ' CaptureEngine/Engine/CaptureLimits.vb.
+    '
+    ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT
+    ' caps (150000 / 800). The recorder's hard caps are different
+    ' (300000 / 240) and live in CaptureLimits.MAX_BITRATE_RECORDER /
+    ' MAX_FRAMERATE_RECORDER. UI allows typing larger values than the
+    ' recorder accepts; the recorder clamps at its own hard cap.
+    ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+    Public Const MIN_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_BITRATE
+        Public Const MAX_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_BITRATE_UI
+        Public Const DEFAULT_BITRATE As Integer = CaptureCore.CaptureLimits.DEFAULT_BITRATE
 
-    Public Const MIN_FPS_GLOBAL As Integer = 1
-    Public Const MAX_FPS_GLOBAL As Integer = 800
-    Public Const DEFAULT_FPS As Integer = 60
+        Public Const MIN_FPS_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_FRAMERATE
+        Public Const MAX_FPS_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_FRAMERATE_UI
+        Public Const DEFAULT_FPS As Integer = CaptureCore.CaptureLimits.DEFAULT_FRAMERATE
 
-    Public Const MIN_RESOLUTION_WIDTH As Integer = 320
-    Public Const MAX_RESOLUTION_WIDTH As Integer = 7680
-    Public Const MIN_RESOLUTION_HEIGHT As Integer = 240
-    Public Const MAX_RESOLUTION_HEIGHT As Integer = 4320
+        Public Const MIN_RESOLUTION_WIDTH As Integer = CaptureCore.CaptureLimits.MIN_RESOLUTION_WIDTH
+        Public Const MAX_RESOLUTION_WIDTH As Integer = CaptureCore.CaptureLimits.MAX_RESOLUTION_WIDTH
+        Public Const MIN_RESOLUTION_HEIGHT As Integer = CaptureCore.CaptureLimits.MIN_RESOLUTION_HEIGHT
+        Public Const MAX_RESOLUTION_HEIGHT As Integer = CaptureCore.CaptureLimits.MAX_RESOLUTION_HEIGHT
 
-    Private Const NATIVE_RESOLUTION_KEY As String = "Native"
+        Private Const NATIVE_RESOLUTION_KEY As String = "Native"
 
     Private Structure BitrateLimit
         Public MinBitrate As Integer
@@ -826,60 +837,10 @@ Public Class Base_RecordingsSet
         Debug.WriteLine("=== PopulateEncoderDictionary END: Added " & addedCount & " encoders ===")
     End Sub
 
+    ' Phase 6: Body moved to EncoderService.VerifyAllInBackground.
+    ' This wrapper preserves the original instance-method call site.
     Private Sub VerifyEncodersInBackground(ffmpegPath As String)
-        Try
-            Using proc As New Process()
-                proc.StartInfo = New ProcessStartInfo() With {
-                    .FileName = ffmpegPath,
-                    .Arguments = "-hide_banner -encoders",
-                    .UseShellExecute = False,
-                    .CreateNoWindow = True,
-                    .RedirectStandardOutput = True,
-                    .RedirectStandardError = True,
-                    .StandardOutputEncoding = System.Text.Encoding.UTF8
-                }
-
-                proc.Start()
-
-                Dim stdoutTask As Task(Of String) = proc.StandardOutput.ReadToEndAsync()
-                Dim stderrTask As Task(Of String) = proc.StandardError.ReadToEndAsync()
-
-                If proc.WaitForExit(5000) Then
-                    Dim output As String = stdoutTask.Result
-
-                    Dim codecsToCheck As String() = {
-                        "NVENC_H264", "NVENC_HEVC", "NVENC_AV1",
-                        "QuickSync_H264", "QuickSync_HEVC",
-                        "AMF_H264", "AMF_HEVC",
-                        "LibX264", "LibX265"
-                    }
-
-                    Debug.WriteLine("═══ FFmpeg Encoder Verification ═══")
-                    SyncLock _availabilityCacheLock
-                        For Each encoderName As String In codecsToCheck
-                            Dim codecName As String = GetFFmpegCodecName(encoderName)
-                            If Not String.IsNullOrEmpty(codecName) Then
-                                Dim available As Boolean = output.Contains(codecName)
-                                _encoderAvailabilityCache(encoderName) = available
-                                Debug.WriteLine("  " & codecName & ": " & available.ToString())
-                            End If
-                        Next
-                    End SyncLock
-                    Debug.WriteLine("════════════════════════════════════")
-                Else
-                    Try
-                        proc.Kill()
-                    Catch
-                    End Try
-                    Debug.WriteLine("VerifyEncodersInBackground: FFmpeg timed out")
-                End If
-
-                stdoutTask.Wait(3000)
-                stderrTask.Wait(3000)
-            End Using
-        Catch ex As Exception
-            Debug.WriteLine("VerifyEncodersInBackground Error: " & ex.Message)
-        End Try
+        EncoderService.VerifyAllInBackground(ffmpegPath)
     End Sub
 
     Private Sub AddEncoderSafe(name As String, encoder As CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder, ByRef count As Integer)
