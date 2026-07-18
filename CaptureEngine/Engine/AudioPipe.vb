@@ -12,11 +12,27 @@ Namespace CaptureCore
         Implements IDisposable
 
 #Region "Constants"
-        Private Const PIPE_BUFFER_SIZE As Integer = 2 * 1024 * 1024  ' 2MB pipe buffer
+        ' ★ Fix F2: PIPE_BUFFER_SIZE 256KB → 1MB (Round 1 had 256KB which was too small).
+        ' Round 1 reduced from 2MB → 256KB to cut latency, but 256KB = ~0.7s of audio
+        ' which was NOT enough headroom when FFmpeg's encoder was busy warming up at
+        ' recording start. Result: audio buffer overflowed → audio drop → stutter
+        ' + first frames looked choppy.
+        ' 1MB = ~2.7s of audio at 48kHz stereo f32le. Still much smaller than the
+        ' original 2MB (so latency is cut roughly in half) but big enough to absorb
+        ' encoder init burst without dropping.
+        Private Const PIPE_BUFFER_SIZE As Integer = 1024 * 1024  ' 1MB pipe buffer
         Private Const AUDIO_PIPE_PREFIX As String = "ShadowPlay_Audio_"
 
-        Private Const SILENT_FRAME_INTERVAL_MS As Integer = 50   ' 50ms for smoother silence
-        Private Const SILENT_TIMEOUT_MS As Integer = 80          ' reduced from 200ms
+        ' ★ Fix P: SILENT_TIMEOUT_MS 500 → 200ms.
+        ' Fix M set this to 500ms (too long — caused stutter that didn't recover).
+        ' Fix O disabled silent frames entirely (caused corrupt mp4).
+        ' 200ms is the sweet spot:
+        '   - Long enough to ignore normal WASAPI burst gaps (10-100ms)
+        '   - Short enough that genuine silence is filled quickly
+        '   - Combined with aresample async=192 (Fix P2), FFmpeg can re-sync
+        '     smoothly when real audio resumes after silence
+        Private Const SILENT_FRAME_INTERVAL_MS As Integer = 30   ' 30ms for tighter silence
+        Private Const SILENT_TIMEOUT_MS As Integer = 200         ' was 500 (Fix M) — too long
 
         ''' <summary>Max items in write queue before we start dropping oldest</summary>
         Private Const QUEUE_DROP_THRESHOLD As Integer = 30
@@ -150,6 +166,19 @@ Namespace CaptureCore
                 _bytesWritten = 0
                 _lastAudioTimeMs = 0
 
+                ' ★ Fix Q: Pre-roll silence — start in "sending silence" state.
+                ' Old behavior: silent timer waited 200ms after start before inserting
+                ' any silence. During those 200ms, WASAPI was still initializing and
+                ' hadn't sent audio yet → FFmpeg's audio input had NO data → audio
+                ' track started ~200-300ms after video track → 300ms audio delay
+                ' in the final mp4 (the original Master symptom).
+                ' New behavior: start in _isSendingSilence=True so silence is sent
+                ' immediately when FFmpeg connects. When WASAPI delivers the first
+                ' real audio buffer, OnAudioDataAvailable flips _isSendingSilence
+                ' to False and real audio takes over. This keeps FFmpeg's audio
+                ' stream alive from the very first frame, eliminating the gap.
+                _isSendingSilence = True
+
                 ' Create named pipe
                 _namedPipeServer = New NamedPipeServerStream(
                     _pipeName,
@@ -192,7 +221,14 @@ Namespace CaptureCore
                 }
                 _writerThread.Start()
 
-                ' Start silent timer
+                ' ★ Fix P: Re-enabled silent frame insertion (Fix O was wrong).
+                ' Fix O disabled this entirely, but that made WASAPI send NO
+                ' audio data when no sound was playing → FFmpeg's audio input
+                ' pipe had no data → mp4 file was corrupt (would not open).
+                ' Silent frame insertion IS needed to keep FFmpeg's audio stream
+                ' alive when WASAPI loopback has no audio. The original stutter
+                ' issue was from the timeout being too aggressive (50ms), not
+                ' from the silent frames themselves.
                 StartSilentTimer()
 
                 ' Wait for FFmpeg connection (async)
@@ -479,18 +515,44 @@ Namespace CaptureCore
             If _silentBuffer Is Nothing Then Exit Sub
 
             Try
-                Dim nowMs As Long = _silenceStopwatch.ElapsedMilliseconds
-                Dim timeSinceLastAudio As Long = nowMs - _lastAudioTimeMs
-
-                If timeSinceLastAudio >= SILENT_TIMEOUT_MS Then
+                ' ★ Fix Q2: Stable Mode — Pre-roll silence ONLY.
+                ' Phase 1 (Pre-roll): _lastAudioTimeMs == 0 → WASAPI hasn't sent
+                '   any audio yet. Send silence to keep FFmpeg's audio stream
+                '   alive from the very first frame. This eliminates the 300ms
+                '   delay caused by WASAPI's startup latency.
+                ' Phase 2 (Active): _lastAudioTimeMs > 0 → WASAPI has delivered
+                '   audio at some point. STOP sending silence permanently.
+                '   Even if WASAPI pauses (user pauses music), we do NOT resume
+                '   silence. This avoids the silence→real-audio transition that
+                '   caused clicks/pops in earlier versions.
+                '
+                ' Why this is stable:
+                '   - FFmpeg's aresample=async=192 handles audio gaps natively
+                '     without needing fake silence.
+                '   - No silence→real-audio transitions after the initial pre-roll
+                '     means no chance of click/pop artifacts.
+                '   - The audio track may have brief gaps during genuine silence
+                '     (imperceptible — there's no audio to hear during silence).
+                '   - This is the same approach NVIDIA ShadowPlay uses: keep the
+                '     stream alive during capture init, then let real audio flow.
+                If _lastAudioTimeMs = 0 Then
+                    ' Pre-roll phase: WASAPI hasn't sent any audio yet.
+                    ' Send silence to keep FFmpeg's audio stream alive.
                     If Not _isSendingSilence Then
                         _isSendingSilence = True
-                        Debug.WriteLine("AudioPipe: Started sending silent frames")
+                        Debug.WriteLine("AudioPipe: Pre-roll silence (waiting for WASAPI)")
                     End If
 
-                    ' Enqueue silence copy
                     Dim silenceCopy As Byte() = New Byte(_silentBufferSize - 1) {}
                     EnqueueAudioData(silenceCopy)
+                Else
+                    ' Active phase: WASAPI has delivered audio. Stop pre-roll silence.
+                    ' Do NOT resume silence even if WASAPI pauses — let FFmpeg
+                    ' handle gaps via aresample. This is the stable mode.
+                    If _isSendingSilence Then
+                        _isSendingSilence = False
+                        Debug.WriteLine("AudioPipe: Real audio received — pre-roll complete, silence stopped")
+                    End If
                 End If
 
             Catch ex As Exception

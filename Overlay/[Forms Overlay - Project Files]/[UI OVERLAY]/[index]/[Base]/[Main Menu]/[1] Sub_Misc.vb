@@ -236,4 +236,34 @@ Partial Public Class Base
 
 #End Region
 
+
+#Region "Privacy State (Phase 5: moved from Sub_Record.vb)"
+
+    ''' <summary>
+    ''' Phase 5: Relocated from Sub_Record.vb.
+    ''' Opens the Privacy Control settings panel. Belongs here (UI navigation
+    ''' for the Privacy toggle) rather than inside the Record toggle module.
+    ''' </summary>
+    Private Sub PrivacyOpen()
+        OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
+    End Sub
+
+    ''' <summary>
+    ''' Phase 5: Relocated from Sub_Record.vb.
+    ''' Returns True if the privacy consent file exists, meaning the user has
+    ''' explicitly opted in to desktop capture.
+    '''
+    ''' FIX #2 (preserved): Path used to be
+    '''   Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy"
+    ''' which produced "C:\AppNVIDIA_Shadowplay_Data\privacy" (no backslash
+    ''' before the folder name). Now uses Path.Combine which always joins
+    ''' with the platform-correct separator.
+    ''' </summary>
+    Private Function IsPrivacyEnabled() As Boolean
+        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
+        Return My.Computer.FileSystem.FileExists(privacyPath)
+    End Function
+
+#End Region
+
 End Class

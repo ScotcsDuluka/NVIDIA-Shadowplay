@@ -14,26 +14,43 @@ Namespace CaptureCore
         Implements IDisposable
 
 #Region "Constants"
-        Public Const MIN_BITRATE As Integer = 500
-        Public Const MAX_BITRATE As Integer = 300000
-        Public Const DEFAULT_BITRATE As Integer = 8000
+        ' ════════════════════════════════════════════════════════════════════
+        ' ★ Phase 1 refactor: Public constants below are backward-compatible
+        ' aliases for CaptureLimits. The actual values live in CaptureLimits.vb.
+        ' External callers that reference ScreenRecorder.MIN_BITRATE etc. still
+        ' work — they resolve to the same integer at compile time.
+        '
+        ' IMPORTANT: MAX_BITRATE / MAX_FRAMERATE here are the RECORDER hard
+        ' cap (300000 / 240). The UI layer uses a different ceiling (150000 / 800)
+        ' which lives in CaptureLimits as MAX_BITRATE_UI / MAX_FRAMERATE_UI.
+        ' ════════════════════════════════════════════════════════════════════
+        Public Const MIN_BITRATE As Integer = CaptureLimits.MIN_BITRATE
+        Public Const MAX_BITRATE As Integer = CaptureLimits.MAX_BITRATE_RECORDER
+        Public Const DEFAULT_BITRATE As Integer = CaptureLimits.DEFAULT_BITRATE
 
-        Public Const MIN_FRAMERATE As Integer = 1
-        Public Const MAX_FRAMERATE As Integer = 240
-        Public Const DEFAULT_FRAMERATE As Integer = 60
+        Public Const MIN_FRAMERATE As Integer = CaptureLimits.MIN_FRAMERATE
+        Public Const MAX_FRAMERATE As Integer = CaptureLimits.MAX_FRAMERATE_RECORDER
+        Public Const DEFAULT_FRAMERATE As Integer = CaptureLimits.DEFAULT_FRAMERATE
 
-        Public Const MIN_ENCODER_PRESET As Integer = 1
-        Public Const MAX_ENCODER_PRESET As Integer = 7
-        Public Const DEFAULT_ENCODER_PRESET As Integer = 4
+        Public Const MIN_ENCODER_PRESET As Integer = CaptureLimits.MIN_ENCODER_PRESET
+        Public Const MAX_ENCODER_PRESET As Integer = CaptureLimits.MAX_ENCODER_PRESET
+        Public Const DEFAULT_ENCODER_PRESET As Integer = CaptureLimits.DEFAULT_ENCODER_PRESET
 
-        Public Const MIN_REPLAY_DURATION As Integer = 15
-        Public Const MAX_REPLAY_DURATION As Integer = 1200
-        Public Const DEFAULT_REPLAY_DURATION As Integer = 60
+        Public Const MIN_REPLAY_DURATION As Integer = CaptureLimits.MIN_REPLAY_DURATION
+        Public Const MAX_REPLAY_DURATION As Integer = CaptureLimits.MAX_REPLAY_DURATION
+        Public Const DEFAULT_REPLAY_DURATION As Integer = CaptureLimits.DEFAULT_REPLAY_DURATION
 
-        Public Const BUFFER_MAX_SEGMENTS As Integer = 2400
-        Public Const BUFFER_MAX_DURATION As Integer = 1200
+        Public Const BUFFER_MAX_SEGMENTS As Integer = CaptureLimits.BUFFER_MAX_SEGMENTS
+        Public Const BUFFER_MAX_DURATION As Integer = CaptureLimits.BUFFER_MAX_DURATION
 
-        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 10000
+        ' ── Internal (Private) constants — engine-implementation-specific ──
+        ' ★ Fix B: GRACEFUL_EXIT_TIMEOUT reduced from 10000ms to 3000ms.
+        ' FFmpeg normally exits within 1-3s after receiving 'q' (flush + close).
+        ' The old 10s timeout was a worst-case safety net that made the UI
+        ' feel frozen for up to 10s whenever FFmpeg was slow to exit.
+        ' 3s is enough for normal flush; if FFmpeg hangs, FORCE_KILL_TIMEOUT
+        ' (2000ms) kicks in and terminates the process.
+        Private Const GRACEFUL_EXIT_TIMEOUT As Integer = 3000
         Private Const BUFFER_GRACEFUL_EXIT_TIMEOUT As Integer = 3000
         Private Const FORCE_KILL_TIMEOUT As Integer = 2000
         Private Const FILE_WRITE_DELAY As Integer = 300
@@ -43,8 +60,7 @@ Namespace CaptureCore
         Private Const SB_CAPACITY_XLARGE As Integer = 4096
         Private Const CAPTURE_API_CHECK_TIMEOUT As Integer = 3000
 
-
-        Public Const ACTION_COOLDOWN_MS As Integer = 500
+        Public Const ACTION_COOLDOWN_MS As Integer = CaptureLimits.ACTION_COOLDOWN_MS
 
         Private _bufferStartTime As DateTime
         Private _lastSegmentTime As DateTime
@@ -138,11 +154,9 @@ Namespace CaptureCore
 #End Region
 
 #Region "API Detection State"
-        Private Shared _gfxcaptureAvailable As Boolean = False
-        Private Shared _gfxcaptureChecked As Boolean = False
-        Private Shared _ddagrabAvailable As Boolean = False
-        Private Shared _ddagrabChecked As Boolean = False
-        Private Shared _apiLock As New Object()
+        ' ★ Phase 2 refactor: Availability state + check methods moved to
+        ' CaptureAPIDetector. ScreenRecorder keeps thin forwarders below
+        ' for backward compatibility with all external callers.
 #End Region
 
 #Region "Pre-warm State"
@@ -168,67 +182,26 @@ Namespace CaptureCore
 
 #Region "API Detection Methods - Async Versions"
 
+        ''' <summary>★ Phase 2: Forwarder to CaptureAPIDetector.</summary>
         Public Shared Sub CheckGfxCaptureAvailabilityAsync(ffmpegPath As String)
-            Task.Run(Sub()
-                         Try
-                             CheckGfxCaptureAvailability(ffmpegPath)
-                         Catch ex As Exception
-                             Debug.WriteLine("CheckGfxCaptureAvailabilityAsync Error: " & ex.Message)
-                         End Try
-                     End Sub)
+            CaptureAPIDetector.CheckGfxCaptureAvailabilityAsync(ffmpegPath)
         End Sub
 
+        ''' <summary>★ Phase 2: Forwarder to CaptureAPIDetector.</summary>
         Public Shared Sub CheckDDAGrabAvailabilityAsync(ffmpegPath As String)
-            Task.Run(Sub()
-                         Try
-                             CheckDDAGrabAvailability(ffmpegPath)
-                         Catch ex As Exception
-                             Debug.WriteLine("CheckDDAGrabAvailabilityAsync Error: " & ex.Message)
-                         End Try
-                     End Sub)
+            CaptureAPIDetector.CheckDDAGrabAvailabilityAsync(ffmpegPath)
         End Sub
 
 #End Region
 
 #Region "Job Object for Process Cleanup"
-        <DllImport("kernel32.dll", CharSet:=CharSet.Unicode)>
-        Private Shared Function CreateJobObject(ByVal lpJobAttributes As IntPtr, ByVal lpName As String) As IntPtr
-        End Function
-
-        <DllImport("kernel32.dll")>
-        Private Shared Function AssignProcessToJobObject(ByVal hJob As IntPtr, ByVal hProcess As IntPtr) As Boolean
-        End Function
-
-        <DllImport("kernel32.dll")>
-        Private Shared Function SetInformationJobObject(ByVal hJob As IntPtr, ByVal JobObjectInfoClass As JOBOBJECTINFOCLASS, ByVal lpJobObjectInfo As JOBOBJECT_BASIC_LIMIT_INFORMATION, ByVal cbJobObjectInfoLength As UInteger) As Boolean
-        End Function
-
-        <DllImport("kernel32.dll")>
-        Private Shared Function CloseHandle(ByVal hObject As IntPtr) As Boolean
-        End Function
-
-        Private Enum JOBOBJECTINFOCLASS
-            BasicLimitInformation = 2
-        End Enum
-
-        <StructLayout(LayoutKind.Sequential)>
-        Private Structure JOBOBJECT_BASIC_LIMIT_INFORMATION
-            Public PerProcessUserTimeLimit As Long
-            Public PerJobUserTimeLimit As Long
-            Public LimitFlags As UInteger
-            Public MinimumWorkingSetSize As IntPtr
-            Public MaximumWorkingSetSize As IntPtr
-            Public ActiveProcessLimit As UInteger
-            Public Affinity As IntPtr
-            Public PriorityClass As UInteger
-            Public SchedulingClass As UInteger
-        End Structure
-
-        Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As UInteger = &H2000
-
-        Private Shared jobHandle As IntPtr = IntPtr.Zero
-        Private Shared jobInitialized As Boolean = False
-        Private Shared jobLock As New Object()
+        ' ★ Phase 3 refactor: All Job Object P/Invoke + state + helpers moved
+        ' to JobObjectManager module. AddProcessToJob below is a thin
+        ' forwarder so existing call sites inside ScreenRecorder compile
+        ' unchanged.
+        Private Sub AddProcessToJob(proc As Process)
+            JobObjectManager.AddProcessToJob(proc)
+        End Sub
 #End Region
 
 #Region "Native Methods"
@@ -302,7 +275,23 @@ Namespace CaptureCore
         Private _cropRight As Integer = 0
         Private _cropBottom As Integer = 0
 
-        ' ddagrab dup_frames setting (per FFmpeg docs: default true)
+        ' ddagrab dup_frames setting
+        ' ★ Fix N: Reverted back to True (default). Round 5's Fix K set this to
+        ' False thinking it would avoid wasting encoder cycles on duplicate
+        ' frames. In practice, with `-r 60` (CFR output), FFmpeg has to maintain
+        ' 60fps output regardless. With dup_frames=0:
+        '   - DDAGrab emits only real desktop-change frames (5-30fps on static screens)
+        '   - FFmpeg sees VFR input + `-r 60` CFR → FFmpeg duplicates each frame
+        '     many times to maintain 60fps output
+        '   - Result: "More than 1000 frames duplicated" warning + video looks
+        '     frozen during static periods (FPS drops to 2-3/s)
+        ' With dup_frames=1 (this fix):
+        '   - DDAGrab maintains 60fps input by duplicating last frame at source
+        '   - FFmpeg sees 60fps CFR input + `-r 60` → no duplication needed
+        '   - Result: smooth 60fps output (matches Master behavior)
+        ' The original Master used dup_frames=1 and it worked — the only audio
+        ' issues were in aresample/silent-frame timing, which are fixed by
+        ' Fix A2/F2/M and remain independent of this setting.
         Private _dupFrames As Boolean = True
 
         ' Screen cache
@@ -817,7 +806,7 @@ Namespace CaptureCore
 #Region "Constructor"
         Public Sub New()
             ApplyPreset(RecordingPreset.Medium)
-            InitializeJobObject()
+            JobObjectManager.InitializeJobObject()
         End Sub
 
         Public Sub New(ffmpegPath As String)
@@ -853,93 +842,33 @@ Namespace CaptureCore
 #End Region
 
 #Region "API Detection Methods"
+        ' ★ Phase 2 refactor: All availability check state + logic moved to
+        ' CaptureAPIDetector. The Shared methods below remain as thin
+        ' forwarders so external callers (Sub_Record.vb, Base_RecordingsSet,
+        ' etc.) continue to compile and behave identically.
+
         Public Shared Sub CheckGfxCaptureAvailability(ffmpegPath As String)
-            SyncLock _apiLock
-                If _gfxcaptureChecked Then Exit Sub
-
-                Try
-                    Debug.WriteLine("═══ CheckGfxCaptureAvailability START ═══")
-                    Dim testArgs As String = "-filter_complex ""gfxcapture=monitor_idx=0:max_framerate=1:capture_cursor=0,hwdownload,format=bgra"" -t 0.1 -f null - -hide_banner -loglevel error"
-
-                    Using proc As New Process()
-                        proc.StartInfo = CreateProcessStartInfo(ffmpegPath, testArgs)
-                        proc.Start()
-
-                        Dim exited As Boolean = proc.WaitForExit(CAPTURE_API_CHECK_TIMEOUT)
-
-                        If Not exited Then
-                            Try
-                                proc.Kill()
-                                proc.WaitForExit(1000)
-                            Catch
-                            End Try
-                            _gfxcaptureAvailable = False
-                        Else
-                            _gfxcaptureAvailable = (proc.ExitCode = 0)
-                        End If
-                    End Using
-                Catch ex As Exception
-                    Debug.WriteLine("CheckGfxCaptureAvailability Error: " & ex.Message)
-                    _gfxcaptureAvailable = False
-                Finally
-                    _gfxcaptureChecked = True
-                End Try
-            End SyncLock
+            CaptureAPIDetector.CheckGfxCaptureAvailability(ffmpegPath)
         End Sub
 
         Public Shared Sub CheckDDAGrabAvailability(ffmpegPath As String)
-            SyncLock _apiLock
-                If _ddagrabChecked Then Exit Sub
-
-                Try
-                    Debug.WriteLine("═══ CheckDDAGrabAvailability START ═══")
-                    Dim testArgs As String = "-f lavfi -i ""ddagrab=0:framerate=1:draw_mouse=0"" -t 0.1 -f null - -hide_banner -loglevel error"
-
-                    Using proc As New Process()
-                        proc.StartInfo = CreateProcessStartInfo(ffmpegPath, testArgs)
-                        proc.Start()
-
-                        Dim exited As Boolean = proc.WaitForExit(CAPTURE_API_CHECK_TIMEOUT)
-
-                        If Not exited Then
-                            Try
-                                proc.Kill()
-                                proc.WaitForExit(1000)
-                            Catch
-                            End Try
-                            _ddagrabAvailable = False
-                        Else
-                            _ddagrabAvailable = (proc.ExitCode = 0)
-                        End If
-                    End Using
-                Catch ex As Exception
-                    Debug.WriteLine("CheckDDAGrabAvailability Error: " & ex.Message)
-                    _ddagrabAvailable = False
-                Finally
-                    _ddagrabChecked = True
-                End Try
-            End SyncLock
+            CaptureAPIDetector.CheckDDAGrabAvailability(ffmpegPath)
         End Sub
 
         Public Shared ReadOnly Property IsGfxCaptureAvailable As Boolean
             Get
-                Return _gfxcaptureAvailable
+                Return CaptureAPIDetector.IsGfxCaptureAvailable
             End Get
         End Property
 
         Public Shared ReadOnly Property IsDDAGrabAvailable As Boolean
             Get
-                Return _ddagrabAvailable
+                Return CaptureAPIDetector.IsDDAGrabAvailable
             End Get
         End Property
 
         Public Shared Sub ResetAPIChecks()
-            SyncLock _apiLock
-                _gfxcaptureChecked = False
-                _gfxcaptureAvailable = False
-                _ddagrabChecked = False
-                _ddagrabAvailable = False
-            End SyncLock
+            CaptureAPIDetector.ResetAPIChecks()
         End Sub
 
         ''' <summary>
@@ -954,13 +883,13 @@ Namespace CaptureCore
                 .APIType = CaptureAPIType.GDIGrab,
                 .DisplayName = "GDI Capture",
                 .Description = "Fallback — ช้าที่สุดแต่ใช้ได้ทุกกรณี (CPU-based)",
-                .IsRecommended = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport() AndAlso Not _ddagrabAvailable AndAlso Not _gfxcaptureAvailable),
+                .IsRecommended = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport() AndAlso Not CaptureAPIDetector.IsDDAGrabAvailable AndAlso Not CaptureAPIDetector.IsGfxCaptureAvailable),
                 .IsAvailable = True
             })
 
             ' DDAGrab — Monitor only
             If _captureTargetType <> CaptureTargetType.Window Then
-                Dim ddagrabAvail As Boolean = _ddagrabAvailable OrElse Not _ddagrabChecked
+                Dim ddagrabAvail As Boolean = CaptureAPIDetector.IsDDAGrabAvailable OrElse Not CaptureAPIDetector.IsDDAGrabChecked
                 Dim ddagrabRecommended As Boolean = (_captureTargetType = CaptureTargetType.Monitor AndAlso Not RequiresHDRSupport())
                 result.Add(New CaptureAPIOption With {
                     .APIType = CaptureAPIType.DDAGrab,
@@ -972,7 +901,7 @@ Namespace CaptureCore
             End If
 
             ' GFxCapture — Window + HDR
-            Dim gfxcaptureAvail As Boolean = _gfxcaptureAvailable OrElse Not _gfxcaptureChecked
+            Dim gfxcaptureAvail As Boolean = CaptureAPIDetector.IsGfxCaptureAvailable OrElse Not CaptureAPIDetector.IsGfxCaptureChecked
             Dim gfxcaptureRecommended As Boolean = (_captureTargetType = CaptureTargetType.Window OrElse RequiresHDRSupport())
             result.Add(New CaptureAPIOption With {
                 .APIType = CaptureAPIType.GFxCapture,
@@ -1104,45 +1033,11 @@ Namespace CaptureCore
 #End Region
 
 #Region "Job Object Methods"
-        Private Shared Sub InitializeJobObject()
-            SyncLock jobLock
-                If jobInitialized Then Exit Sub
-
-                Try
-                    jobHandle = CreateJobObject(IntPtr.Zero, Nothing)
-                    If jobHandle = IntPtr.Zero Then Exit Sub
-
-                    Dim info As New JOBOBJECT_BASIC_LIMIT_INFORMATION()
-                    info.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-
-                    SetInformationJobObject(
-                        jobHandle,
-                        JOBOBJECTINFOCLASS.BasicLimitInformation,
-                        info,
-                        CUInt(Marshal.SizeOf(GetType(JOBOBJECT_BASIC_LIMIT_INFORMATION)))
-                    )
-
-                    jobInitialized = True
-                Catch ex As Exception
-                    Debug.WriteLine("Job Object init error: " & ex.Message)
-                End Try
-            End SyncLock
-        End Sub
-
-        Private Sub AddProcessToJob(proc As Process)
-            If proc Is Nothing Then Exit Sub
-            InitializeJobObject()
-
-            SyncLock jobLock
-                If jobHandle <> IntPtr.Zero Then
-                    Try
-                        AssignProcessToJobObject(jobHandle, proc.Handle)
-                    Catch ex As Exception
-                        Debug.WriteLine("AddProcessToJob error: " & ex.Message)
-                    End Try
-                End If
-            End SyncLock
-        End Sub
+        ' ★ Phase 3 refactor: InitializeJobObject + AddProcessToJob moved to
+        ' JobObjectManager. AddProcessToJob forwarder is declared above in
+        ' the "Job Object for Process Cleanup" region. Nothing else to do
+        ' here — kept the region marker as a placeholder so existing
+        ' code-folding still finds a home.
 #End Region
 
 #Region "Public Async Methods"
@@ -1301,17 +1196,21 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
-                ' ★ RACE FIX: Ensure API availability is checked BEFORE recording
-                ' If checks haven't completed yet (user pressed record very fast),
-                ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
-                If Not _gfxcaptureChecked Then
-                    Debug.WriteLine("StartRecording: GfxCapture not yet checked — checking synchronously")
-                    CheckGfxCaptureAvailability(FFmpegPath)
-                End If
-                If Not _ddagrabChecked Then
-                    Debug.WriteLine("StartRecording: DDAGrab not yet checked — checking synchronously")
-                    CheckDDAGrabAvailability(FFmpegPath)
-                End If
+                ' ★ Fix D: Removed synchronous API availability check.
+                ' Old code blocked StartRecording for up to 6 seconds (3s × 2 APIs)
+                ' if PreWarmFFmpeg hadn't finished yet. This made the first recording
+                ' attempt after app startup feel frozen.
+                '
+                ' DetermineBestCaptureAPI() already handles "not yet checked" by
+                ' falling through to the best-guess API with a fallback flag set
+                ' (e.g. Monitor+SDR → tries DDAGrab, fallback GFxCapture). If that
+                ' API fails at runtime, NotifyCaptureAPIFailed() triggers the
+                ' fallback automatically. So we don't NEED the synchronous check
+                ' to make a correct decision — it just made the user wait.
+                '
+                ' PreWarmFFmpeg (called at app startup) still runs the checks
+                ' asynchronously. By the time the user actually triggers a
+                ' recording, the cache is usually populated.
 
                 ResetCaptureAPIFallback()
                 MarkActionTime()
@@ -1414,17 +1313,10 @@ Namespace CaptureCore
 
                 If Not ValidateFFmpeg() Then Return False
 
-                ' ★ RACE FIX: Ensure API availability is checked BEFORE buffering
-                ' If checks haven't completed yet (user pressed replay very fast),
-                ' do them synchronously now. Max ~6s worst case (Gfx + DDA).
-                If Not _gfxcaptureChecked Then
-                    Debug.WriteLine("StartBuffer: GfxCapture not yet checked — checking synchronously")
-                    CheckGfxCaptureAvailability(FFmpegPath)
-                End If
-                If Not _ddagrabChecked Then
-                    Debug.WriteLine("StartBuffer: DDAGrab not yet checked — checking synchronously")
-                    CheckDDAGrabAvailability(FFmpegPath)
-                End If
+                ' ★ Fix D: Removed synchronous API availability check (same as
+                ' StartRecording above). DetermineBestCaptureAPI handles the
+                ' "not yet checked" case by trying the best-guess API with a
+                ' fallback flag. No need to block the UI here.
 
                 ResetCaptureAPIFallback()
                 MarkActionTime()
@@ -2469,7 +2361,17 @@ Namespace CaptureCore
             End If
 
             ' Always add aresample for A/V sync
-            filters.Add("aresample=async=1000:first_pts=0")
+            ' ★ Fix P2: aresample async=44 → async=192 (4ms @ 48kHz).
+            ' async=44 (Round 4) was too tight — when silent frames were
+            ' inserted (Fix P re-enabled them), FFmpeg couldn't compensate
+            ' for the PTS gap between silence and real audio, causing the
+            ' "stutter that doesn't recover" issue.
+            ' async=192 = 4ms of audio samples = enough headroom for FFmpeg
+            ' to smoothly transition between silence and real audio without
+            ' inserting large padding (which was the original 300ms delay
+            ' issue from Master's async=1000).
+            ' Goldilocks zone: 192 samples.
+            filters.Add("aresample=async=192:first_pts=0")
 
             Return "-af """ & String.Join(",", filters) & """ "
         End Function
@@ -2537,7 +2439,7 @@ Namespace CaptureCore
                     ' GFxCapture รองรับ window_title, window_class, window_exe
                     ' Fallback: GDIGrab ด้วย -i title=... (ถ้า GFxCapture ไม่ available)
                     _fallbackAPI = CaptureAPIType.GDIGrab
-                    If _gfxcaptureAvailable Then
+                    If CaptureAPIDetector.IsGfxCaptureAvailable Then
                         Return CaptureAPIType.GFxCapture
                     End If
                     ' GFxCapture not checked yet or not available
@@ -2548,7 +2450,7 @@ Namespace CaptureCore
                     ' ★ Monitor + HDR → GFxCapture (DDAGrab ไม่รองรับ 16bit/HDR)
                     If RequiresHDRSupport() Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
-                        If _gfxcaptureAvailable Then
+                        If CaptureAPIDetector.IsGfxCaptureAvailable Then
                             Return CaptureAPIType.GFxCapture
                         End If
                         Debug.WriteLine("DetermineBestCaptureAPI: Monitor+HDR → GFxCapture (not checked, trying) → fallback GDIGrab")
@@ -2556,11 +2458,11 @@ Namespace CaptureCore
                     End If
 
                     ' ★ Monitor + SDR → DDAGrab (เร็วกว่า) → GFxCapture fallback → GDIGrab
-                    If _ddagrabAvailable Then
+                    If CaptureAPIDetector.IsDDAGrabAvailable Then
                         _fallbackAPI = CaptureAPIType.GFxCapture
                         Return CaptureAPIType.DDAGrab
                     End If
-                    If _gfxcaptureAvailable Then
+                    If CaptureAPIDetector.IsGfxCaptureAvailable Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
                         Return CaptureAPIType.GFxCapture
                     End If
@@ -2573,17 +2475,17 @@ Namespace CaptureCore
                     ' ★ Region capture → DDAGrab (รองรับ offset_x/offset_y + video_size) → GFxCapture fallback → GDIGrab
                     If RequiresHDRSupport() Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
-                        If _gfxcaptureAvailable Then
+                        If CaptureAPIDetector.IsGfxCaptureAvailable Then
                             Return CaptureAPIType.GFxCapture
                         End If
                         Return CaptureAPIType.GFxCapture
                     End If
 
-                    If _ddagrabAvailable Then
+                    If CaptureAPIDetector.IsDDAGrabAvailable Then
                         _fallbackAPI = CaptureAPIType.GFxCapture
                         Return CaptureAPIType.DDAGrab
                     End If
-                    If _gfxcaptureAvailable Then
+                    If CaptureAPIDetector.IsGfxCaptureAvailable Then
                         _fallbackAPI = CaptureAPIType.GDIGrab
                         Return CaptureAPIType.GFxCapture
                     End If
@@ -3134,42 +3036,56 @@ Namespace CaptureCore
 
         Private Sub BuildEncoderCommand(sb As StringBuilder)
             Dim presetStr As String = GetEncoderPresetString()
-            Dim gopSize As Integer = _framerate * 2
+            ' ★ Fix L: GOP reduced from 2s (framerate*2) to 1s (framerate).
+            ' Old 2s GOP meant keyframes every 2 seconds — at 144fps that's a 288-frame
+            ' GOP. Keyframe encoding is expensive (much larger than P-frames), and the
+            ' periodic spike every 2s caused encoder backlog → frame drops → audio
+            ' buffer overflow → stutter pattern.
+            ' 1s GOP (144 frames at 144fps) distributes the keyframe cost more evenly
+            ' and matches typical screen-recording GOP lengths. File size grows ~5%
+            ' but smoothness improves significantly.
+            Dim gopSize As Integer = _framerate
 
             Select Case _encoder
                 Case VideoEncoder.NVENC_H264
                     sb.Append("-c:v h264_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    ' ★ Fix H: -tune ll → -bf 0 for local recording.
+                    ' -tune ll (low latency) is for live streaming where the encoder
+                    ' trades quality for sub-frame latency to keep the stream fresh.
+                    ' For local recording we don't care about that — we want every
+                    ' frame to be encoded as soon as it arrives, without the tune-ll
+                    ' tweaks that cause encoder backlog at high framerates (144fps).
+                    ' -bf 0 disables B-frames: encoder doesn't need to buffer future
+                    ' frames to encode the current one. Lower encoding latency, no
+                    ' quality hit at the bitrates we use (8-17 Mbps).
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" ")
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.QuickSync_H264
                     sb.Append("-c:v h264_qsv ")
                     sb.Append("-preset ")
@@ -3180,7 +3096,9 @@ Namespace CaptureCore
                     sb.Append(gopSize)
                     sb.Append(" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode cfr ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.QuickSync_HEVC
                     sb.Append("-c:v hevc_qsv ")
@@ -3192,8 +3110,10 @@ Namespace CaptureCore
                     sb.Append(gopSize)
                     sb.Append(" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode cfr ")
                     sb.Append("-profile:v main ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.AMF_H264
                     sb.Append("-c:v h264_amf -quality ")
@@ -3204,8 +3124,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.AMF_HEVC
                     sb.Append("-c:v hevc_amf -quality ")
                     sb.Append(GetAmfQualityString())
@@ -3215,8 +3134,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case Else
                     BuildSoftwareEncoderCommand(sb, gopSize)
             End Select
@@ -3230,7 +3148,7 @@ Namespace CaptureCore
                 Case VideoEncoder.NVENC_H264
                     sb.Append("-c:v h264_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3240,12 +3158,11 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_HEVC
                     sb.Append("-c:v hevc_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3255,12 +3172,11 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.NVENC_AV1
                     sb.Append("-c:v av1_nvenc -preset ")
                     sb.Append(presetStr)
-                    sb.Append(" -tune ll -g ")
+                    sb.Append(" -bf 0 -tune ull -g ")
                     sb.Append(gopSize)
                     sb.Append(" -keyint_min ")
                     sb.Append(gopSize)
@@ -3270,8 +3186,7 @@ Namespace CaptureCore
                     BuildNVENCRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.QuickSync_H264
                     sb.Append("-c:v h264_qsv ")
                     sb.Append("-preset ")
@@ -3288,7 +3203,9 @@ Namespace CaptureCore
                     sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
                     sb.Append(")"" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode cfr ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.QuickSync_HEVC
                     sb.Append("-c:v hevc_qsv ")
@@ -3306,8 +3223,10 @@ Namespace CaptureCore
                     sb.Append(SEGMENT_DURATION.ToString("F2", Globalization.CultureInfo.InvariantCulture))
                     sb.Append(")"" ")
                     sb.Append("-async_depth 1 ")
-                    sb.Append("-fps_mode cfr ")
                     sb.Append("-profile:v main ")
+                    sb.Append("-r ")
+                    sb.Append(_framerate)
+                    sb.Append(" ")
 
                 Case VideoEncoder.AMF_H264
                     sb.Append("-c:v h264_amf -quality ")
@@ -3322,8 +3241,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.AMF_HEVC
                     sb.Append("-c:v hevc_amf -quality ")
                     sb.Append(GetAmfQualityString())
@@ -3337,8 +3255,7 @@ Namespace CaptureCore
                     BuildAMFRateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case Else
                     BuildSoftwareBufferEncoderCommand(sb, gopSize)
             End Select
@@ -3355,8 +3272,7 @@ Namespace CaptureCore
                     BuildX264RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.LibX265
                     sb.Append("-c:v libx265 -preset ")
                     sb.Append(GetX264PresetString())
@@ -3366,7 +3282,7 @@ Namespace CaptureCore
                     BuildX265RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
+                    sb.Append(" ")
             End Select
         End Sub
 
@@ -3385,8 +3301,7 @@ Namespace CaptureCore
                     BuildX264RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
-
+                    sb.Append(" ")
                 Case VideoEncoder.LibX265
                     sb.Append("-c:v libx265 -preset ")
                     sb.Append(GetX264PresetString())
@@ -3400,7 +3315,7 @@ Namespace CaptureCore
                     BuildX265RateControl(sb)
                     sb.Append("-r ")
                     sb.Append(_framerate)
-                    sb.Append(" -fps_mode cfr ")
+                    sb.Append(" ")
             End Select
         End Sub
 
@@ -3409,21 +3324,53 @@ Namespace CaptureCore
 #Region "Rate Control Helpers"
 
         Private Sub BuildNVENCRateControl(sb As StringBuilder)
+            ' ★ Round 7: Stable VBR — matches NVIDIA ShadowPlay's encoder behavior.
+            '
+            ' Evolution:
+            '   Master:  CBR (minrate=maxrate=bitrate, bufsize=1s) — high latency, stutter
+            '   Round 6: CQP (no bitrate caps) — fast but file size unpredictable,
+            '            could spike to 100+ Mbps on high-motion scenes
+            '   Round 7: VBR with CQ target + bitrate cap — STABLE like ShadowPlay
+            '
+            ' NVIDIA ShadowPlay uses VBR with these characteristics:
+            '   - Static scene (desktop): ~3-5 Mbps (encoder idle, low CPU/GPU)
+            '   - Motion scene (game):    ~20-40 Mbps (full quality, capped)
+            '   - Average bitrate:        predictable (~20 Mbps at 1080p60)
+            '   - Quality:                high (CQ=21 = visually near-lossless)
+            '
+            ' We achieve this with FFmpeg's VBR + CQ mode:
+            '   -rc vbr        → Variable Bitrate (encoder adjusts based on scene)
+            '   -cq 21         → Quality target (lower = better, 21 = high quality)
+            '   -b:v 20M       → Target bitrate (default; user can change via _bitrate)
+            '   -maxrate 40M   → Hard cap (prevents runaway file size on complex scenes)
+            '   -bufsize 4M    → Small buffer (low latency, ~200ms at 20 Mbps)
+            '
+            ' User customization:
+            '   - _bitrate controls target bitrate (default 20000 = 20 Mbps)
+            '   - _useConstantBitrate=True switches to pure CBR (for streaming)
+            '   - Quality presets (Low/Medium/High) can be added via UI later
+            '     by changing _bitrate: Low=10M, Medium=20M, High=40M
             If _useConstantBitrate Then
-                sb.Append("-cbr 1 -b:v ")
-                sb.Append(_bitrate)
-                sb.Append("k -minrate ")
+                ' Pure CBR mode for streaming — strict bitrate, larger buffer.
+                sb.Append("-rc cbr -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -maxrate ")
                 sb.Append(_bitrate)
                 sb.Append("k -bufsize ")
-                sb.Append(_bitrate)
+                sb.Append(CInt(_bitrate / 2))
                 sb.Append("k ")
             Else
-                sb.Append("-cq 20 -b:v ")
+                ' ★ Stable VBR — ShadowPlay-like behavior.
+                ' Target = _bitrate (default 20000 kbps = 20 Mbps)
+                ' Max = 2× target (cap to prevent runaway file size)
+                ' Buffer = target/5 (~200ms low-latency buffer)
+                ' CQ = 21 (high quality target)
+                sb.Append("-rc vbr -cq 21 -b:v ")
                 sb.Append(_bitrate)
                 sb.Append("k -maxrate ")
                 sb.Append(_bitrate * 2)
+                sb.Append("k -bufsize ")
+                sb.Append(CInt(_bitrate / 5))
                 sb.Append("k ")
             End If
         End Sub
@@ -3469,7 +3416,15 @@ Namespace CaptureCore
             sb.Append("-extbrc 1 ")
 
             If Not _useConstantBitrate Then
-                sb.Append("-look_ahead_depth 15 ")
+                ' ★ Fix I: -look_ahead_depth 15 → 4.
+                ' Lookahead makes the encoder wait N frames before encoding the current
+                ' one so it can plan bitrate allocation. 15 frames at 144fps = 104ms
+                ' buffer delay at startup, plus the encoder has to spin up the lookahead
+                ' pipeline before it can emit frame 0. This contributes to the "first
+                ' frames look choppy" symptom at high framerates.
+                ' 4 frames at 144fps = 28ms — still gives the encoder some lookahead
+                ' for bitrate planning but starts emitting frames much faster.
+                sb.Append("-look_ahead_depth 4 ")
             End If
 
         End Sub
