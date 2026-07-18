@@ -893,7 +893,6 @@ Partial Public Class Base
                 Next
             End Using
 
-            ' จัดการสถานะการแสดงผล
             Base_Background_Top.b2_all.Visible = (currentMode = "Record")
             Base_Background_Top.b1_all.Visible = (currentMode = "Replay")
 
@@ -922,7 +921,6 @@ Partial Public Class Base
 
         If animationRunning Then Return
 
-        ' ขนาดเป้าหมายสำหรับ Shadow
         Dim shadowSize As Size = If(ReplayValue, New Size(240, 373), New Size(240, 329))
 
         If Not ReplayValue AndAlso Menu_Replay.Height = 133 Then
