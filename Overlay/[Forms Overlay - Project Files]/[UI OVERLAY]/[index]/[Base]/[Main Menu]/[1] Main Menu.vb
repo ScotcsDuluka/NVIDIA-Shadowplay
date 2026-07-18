@@ -852,7 +852,6 @@ Partial Public Class Base
             currentMode = "None"
         End If
 
-        ' ทำงานเฉพาะเมื่อโหมดเปลี่ยน
         If currentMode <> lastMode Then
             lastMode = currentMode
 
@@ -876,7 +875,6 @@ Partial Public Class Base
                     newSize = New Size(240, 329)
             End Select
 
-            ' ป้องกัน Null Reference ถ้า Control หาย
             If target Is Nothing Then Return
 
             Dim screenPos As Point = shadowplay.PointToScreen(target.Location)
@@ -925,7 +923,6 @@ Partial Public Class Base
 
         If Not ReplayValue AndAlso Menu_Replay.Height = 133 Then
             If Menu_Record.Visible Then
-                ' ใช้ Loop แทนการเขียนซ้ำ 4 ครั้ง
                 For Each s In shas
                     If s IsNot Nothing Then s.Size = New Size(240, 329)
                 Next
