@@ -2,26 +2,6 @@ Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 
 Namespace CaptureCore
-
-    ''' <summary>
-    ''' ★ Phase 3 refactor: Windows Job Object wrapper for FFmpeg child-process cleanup.
-    '''
-    ''' WHY THIS EXISTS:
-    '''   When FFmpeg child processes are spawned for recording / buffering /
-    '''   replay-save, they must be killed if the parent (this app) dies.
-    '''   Windows Job Objects with KILL_ON_JOB_CLOSE provide that guarantee:
-    '''   when the parent process exits for any reason, the kernel kills every
-    '''   process attached to the job.
-    '''
-    '''   Previously this P/Invoke + state + helper methods lived inside
-    '''   ScreenRecorder as Private Shared members. Moved here so the Job
-    '''   Object plumbing has a single home and ScreenRecorder no longer has
-    '''   to carry kernel32 P/Invoke declarations.
-    '''
-    ''' USAGE:
-    '''   Call AddProcessToJob(proc) once per FFmpeg Process instance, right
-    '''   after proc.Start(). The first call lazily initializes the job.
-    ''' </summary>
     Public Module JobObjectManager
 
         ' ════════════════════════════════════════════════════════════════════
@@ -62,19 +42,10 @@ Namespace CaptureCore
 
         Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As UInteger = &H2000
 
-        ' ════════════════════════════════════════════════════════════════════
-        ' State — module-level (Shared equivalent). Single job per process.
-        ' ════════════════════════════════════════════════════════════════════
         Private jobHandle As IntPtr = IntPtr.Zero
         Private jobInitialized As Boolean = False
         Private jobLock As New Object()
 
-        ''' <summary>
-        ''' Lazily creates the Job Object on first use. Idempotent — safe to
-        ''' call multiple times. Exposed as Public so legacy callers (e.g.
-        ''' ScreenRecorder constructor) can pre-warm the job at startup,
-        ''' matching the original behavior.
-        ''' </summary>
         Public Sub InitializeJobObject()
             SyncLock jobLock
                 If jobInitialized Then Exit Sub
