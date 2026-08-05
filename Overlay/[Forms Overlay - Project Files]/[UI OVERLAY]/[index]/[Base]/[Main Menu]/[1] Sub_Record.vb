@@ -656,16 +656,17 @@ Partial Public Class Base
                 End If
             End If
 
-            If selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264 AndAlso AppSettings.HasAMD Then
-                ' Check if FFmpeg actually supports AMF
-                If Not String.IsNullOrEmpty(ffmpegPath) AndAlso
-                   Base_RecordingsSet.CheckEncoderAvailability(ffmpegPath, "AMF_HEVC") Then
-                    selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
-                    Debug.WriteLine("SelectBestEncoder: AMF_HEVC (AMD)")
-                Else
-                    Debug.WriteLine("SelectBestEncoder: AMD detected but AMF not available in FFmpeg, skipping")
-                End If
-            End If
+            ' AMD AMF disabled — reserved for future support
+            'If selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264 AndAlso AppSettings.HasAMD Then
+            '    ' Check if FFmpeg actually supports AMF
+            '    If Not String.IsNullOrEmpty(ffmpegPath) AndAlso
+            '       Base_RecordingsSet.CheckEncoderAvailability(ffmpegPath, "AMF_HEVC") Then
+            '        selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
+            '        Debug.WriteLine("SelectBestEncoder: AMF_HEVC (AMD)")
+            '    Else
+            '        Debug.WriteLine("SelectBestEncoder: AMD detected but AMF not available in FFmpeg, skipping")
+            '    End If
+            'End If
 
             If selectedEncoder = CaptureCore.ScreenRecorder.VideoEncoder.LibX264 Then
                 Debug.WriteLine("SelectBestEncoder: LibX264 (CPU fallback)")

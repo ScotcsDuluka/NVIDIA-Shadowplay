@@ -822,10 +822,11 @@ Public Class Base_RecordingsSet
             AddEncoderSafe("QuickSync_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC, addedCount)
         End If
 
-        If AppSettings.HasAMD Then
-            AddEncoderSafe("AMF_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264, addedCount)
-            AddEncoderSafe("AMF_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC, addedCount)
-        End If
+        ' AMD AMF disabled — reserved for future support
+        'If AppSettings.HasAMD Then
+        '    AddEncoderSafe("AMF_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264, addedCount)
+        '    AddEncoderSafe("AMF_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC, addedCount)
+        'End If
 
         AddEncoderSafe("LibX264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264, addedCount)
         AddEncoderSafe("LibX265", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX265, addedCount)
@@ -871,7 +872,8 @@ Public Class Base_RecordingsSet
             End SyncLock
         End If
 
-        Dim priorityOrder As String() = {"NVENC_HEVC", "NVENC_H264", "NVENC_AV1", "QuickSync_HEVC", "QuickSync_H264", "AMF_HEVC", "AMF_H264", "LibX264", "LibX265"}
+        ' AMD removed from priority — reserved for future support
+        Dim priorityOrder As String() = {"NVENC_HEVC", "NVENC_H264", "NVENC_AV1", "QuickSync_HEVC", "QuickSync_H264", "LibX264", "LibX265"}
 
         SyncLock _lockObj
             For Each enc As String In priorityOrder
@@ -2329,11 +2331,12 @@ Public Class Base_RecordingsSet
             cms.Items.Add(New ToolStripSeparator())
         End If
 
-        If AppSettings.HasAMD Then
-            AddEncoderMenuItem(cms, "AMF_H264", "AMD AMF H.264", currentEncoder)
-            AddEncoderMenuItem(cms, "AMF_HEVC", "AMD AMF HEVC", currentEncoder)
-            cms.Items.Add(New ToolStripSeparator())
-        End If
+        ' AMD AMF disabled — reserved for future support
+        'If AppSettings.HasAMD Then
+        '    AddEncoderMenuItem(cms, "AMF_H264", "AMD AMF H.264", currentEncoder)
+        '    AddEncoderMenuItem(cms, "AMF_HEVC", "AMD AMF HEVC", currentEncoder)
+        '    cms.Items.Add(New ToolStripSeparator())
+        'End If
 
         AddEncoderMenuItem(cms, "LibX264", "Software x264", currentEncoder)
         AddEncoderMenuItem(cms, "LibX265", "Software x265", currentEncoder)
