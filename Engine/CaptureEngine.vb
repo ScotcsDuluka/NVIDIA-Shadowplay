@@ -1,0 +1,527 @@
+' CaptureEngine.vb
+' ShadowPlay Engine - FFmpeg Screen Capture Engine
+' Manages FFmpeg process: Start/Stop/ForceStop
+' Builds FFmpeg args based on CaptureSettings
+' Supports: ddagrab, gdigrab, gfxcapture
+' Encoders: NVENC, QSV, AMF, libx264, libx265, SVT-AV1
+'
+' ── FFmpeg Official Syntax ──
+'
+' ddagrab (Desktop Duplication via DXGI):
+'   ffmpeg -f lavfi -i "ddagrab=output_idx=0:framerate=60" -c:v h264_nvenc out.mp4
+'   Output: D3D11 hardware frames
+'   -> NVENC/AMF: pass directly (d3d11 -> d3d11)
+'   -> QSV: add -vf "hwmap=derive_device=qsv"
+'   -> CPU: add -vf "hwdownload,format=bgra,format=yuv420p"
+'
+' gfxcapture (Windows.Graphics.Capture):
+'   ffmpeg -f lavfi -i "gfxcapture=monitor_idx=0:max_framerate=60" -vf "fps=60" ...
+'   Output: D3D11 hardware frames (VFR, needs fps filter)
+'
+' gdigrab (GDI Legacy Screen Capture):
+'   ffmpeg -f gdigrab -framerate 60 -i desktop -c:v libx264 out.mp4
+'   Output: System memory frames (BGRA)
+'
+' Audio capture:
+'   -f dshow -i audio="Device Name"
+'
+' IMPORTANT: ddagrab and gfxcapture use -f lavfi -i (NOT -filter_complex alone)
+' because -filter_complex without -i causes stream mapping issues with
+' multiple inputs (audio from dshow). Use -vf for post-filters instead.
+
+Imports System.Diagnostics
+Imports System.IO
+Imports System.Text
+
+Public Class CaptureEngine
+    Implements IDisposable
+
+    ' ── Events ────────────────────────────────────────────────
+
+    Public Event StateChanged As Action(Of CaptureState)
+    Public Event RecordingStarted As Action(Of String)
+    Public Event RecordingStopped As Action(Of String)
+    Public Event ErrorOccurred As Action(Of String)
+    Public Event FrameCaptured As Action(Of Long)
+
+    ' ── Enums ──────────────────────────────────────────────────
+    ' NOTE: 'Error' is a VB.NET reserved keyword - using 'HasError' instead
+
+    Public Enum CaptureState
+        Idle
+        Detecting
+        Recording
+        Paused
+        Stopping
+        HasError
+    End Enum
+
+    ' ── Hardware device type enum for filter chain ────────────
+
+    Private Enum HwDeviceType
+        None        ' CPU software encoder
+        NVIDIA      ' h264_nvenc, hevc_nvenc (accepts d3d11 directly)
+        IntelQSV    ' h264_qsv, hevc_qsv  (needs hwmap from d3d11)
+        AMD         ' h264_amf, hevc_amf  (accepts d3d11 directly)
+    End Enum
+
+    ' ── Fields ────────────────────────────────────────────────
+
+    Private _settings As CaptureSettings
+    Private _ffmpegProcess As Process
+    Private _state As CaptureState = CaptureState.Idle
+    Private _outputFile As String = ""
+    Private _stopwatch As Stopwatch
+    Private _logBuffer As StringBuilder
+    Private _disposed As Boolean = False
+
+    ' ── Properties ────────────────────────────────────────────
+
+    Public ReadOnly Property State As CaptureState
+        Get
+            Return _state
+        End Get
+    End Property
+
+    Public ReadOnly Property IsRecording As Boolean
+        Get
+            Return _state = CaptureState.Recording
+        End Get
+    End Property
+
+    Public ReadOnly Property OutputFile As String
+        Get
+            Return _outputFile
+        End Get
+    End Property
+
+    Public ReadOnly Property RecordingDuration As TimeSpan
+        Get
+            If _stopwatch Is Nothing OrElse Not _stopwatch.IsRunning Then
+                Return TimeSpan.Zero
+            End If
+            Return _stopwatch.Elapsed
+        End Get
+    End Property
+
+    ' ── Constructor ───────────────────────────────────────────
+
+    Public Sub New(settings As CaptureSettings)
+        _settings = settings
+        _logBuffer = New StringBuilder()
+    End Sub
+
+    ' ── Start Recording ───────────────────────────────────────
+
+    Public Async Function StartRecordingAsync() As Task(Of Boolean)
+        If _state <> CaptureState.Idle Then
+            RaiseEvent ErrorOccurred("Cannot start: engine is not idle")
+            Return False
+        End If
+
+        Dim validation = _settings.Validate()
+        If Not validation.Valid Then
+            RaiseEvent ErrorOccurred(validation.Message)
+            Return False
+        End If
+
+        If Not Directory.Exists(_settings.OutputDirectory) Then
+            Directory.CreateDirectory(_settings.OutputDirectory)
+        End If
+
+        _outputFile = _settings.GenerateOutputFilename()
+        SetState(CaptureState.Recording)
+
+        Return Await Task.Run(Function()
+                                 Try
+                                     Dim args As String = BuildFFmpegArguments(_outputFile)
+                                     LogDebug("FFmpeg command: " & _settings.FFmpegPath & " " & args)
+                                     WriteDebugLog("FFmpeg command: " & _settings.FFmpegPath & " " & args)
+
+                                     Dim si As New ProcessStartInfo()
+                                     si.FileName = _settings.FFmpegPath
+                                     si.Arguments = args
+                                     si.UseShellExecute = False
+                                     si.RedirectStandardOutput = True
+                                     si.RedirectStandardError = True
+                                     si.RedirectStandardInput = True
+                                     si.CreateNoWindow = True
+
+                                     _ffmpegProcess = New Process()
+                                     _ffmpegProcess.StartInfo = si
+                                     AddHandler _ffmpegProcess.OutputDataReceived, AddressOf OnStdOut
+                                     AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
+                                     AddHandler _ffmpegProcess.Exited, AddressOf OnExited
+
+                                     If Not _ffmpegProcess.Start() Then
+                                         SetState(CaptureState.HasError)
+                                         RaiseEvent ErrorOccurred("Failed to start FFmpeg process")
+                                         Return False
+                                     End If
+
+                                     _ffmpegProcess.BeginOutputReadLine()
+                                     _ffmpegProcess.BeginErrorReadLine()
+                                     _stopwatch = Stopwatch.StartNew()
+                                     RaiseEvent RecordingStarted(_outputFile)
+                                     Return True
+
+                                 Catch ex As Exception
+                                     SetState(CaptureState.HasError)
+                                     RaiseEvent ErrorOccurred("Start failed: " & ex.Message)
+                                     LogDebug("Exception: " & ex.ToString())
+                                     WriteDebugLog("Start exception: " & ex.ToString())
+                                     Return False
+                                 End Try
+                             End Function)
+    End Function
+
+    ' ── Stop Recording ────────────────────────────────────────
+
+    Public Async Function StopRecordingAsync() As Task(Of Boolean)
+        If _state <> CaptureState.Recording Then
+            Return False
+        End If
+
+        SetState(CaptureState.Stopping)
+        _stopwatch?.Stop()
+
+        Return Await Task.Run(Function()
+                                 Try
+                                     If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                                         Try
+                                             _ffmpegProcess.StandardInput.Write("q" & vbLf)
+                                             _ffmpegProcess.StandardInput.Flush()
+                                         Catch
+                                         End Try
+
+                                         If Not _ffmpegProcess.WaitForExit(10000) Then
+                                             _ffmpegProcess.Kill()
+                                         End If
+                                     End If
+
+                                     SetState(CaptureState.Idle)
+                                     RaiseEvent RecordingStopped(_outputFile)
+                                     LogDebug("Recording saved: " & _outputFile)
+                                     Return True
+
+                                 Catch ex As Exception
+                                     SetState(CaptureState.HasError)
+                                     RaiseEvent ErrorOccurred("Stop failed: " & ex.Message)
+                                     Return False
+                                 End Try
+                             End Function)
+    End Function
+
+    ' ── Force Stop ────────────────────────────────────────────
+
+    Public Sub ForceStop()
+        Try
+            If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                _ffmpegProcess.Kill()
+                _ffmpegProcess.WaitForExit(5000)
+            End If
+        Catch
+        Finally
+            If _ffmpegProcess IsNot Nothing Then
+                _ffmpegProcess.Dispose()
+                _ffmpegProcess = Nothing
+            End If
+            If _stopwatch IsNot Nothing Then
+                _stopwatch.Stop()
+            End If
+            SetState(CaptureState.Idle)
+        End Try
+    End Sub
+
+    ' ════════════════════════════════════════════════════════════
+    ' ── Build FFmpeg Arguments ─────────────────────────────────
+    ' ════════════════════════════════════════════════════════════
+    '
+    ' ALL capture methods use -f XXX -i "..." (standard FFmpeg input)
+    ' Video post-processing uses -vf (video filter chain)
+    ' Audio uses separate -f dshow -i audio="..."
+    '
+    ' This avoids stream mapping issues that -filter_complex alone causes.
+    '
+    ' ── ddagrab (DXGI Desktop Duplication) ──
+    '   Input:  -f lavfi -i "ddagrab=output_idx=0:framerate=N"
+    '   NVENC:  (direct, no -vf needed)
+    '   QSV:    -vf "hwmap=derive_device=qsv"
+    '   CPU:    -vf "hwdownload,format=bgra,format=yuv420p"
+    '   AMF:    (direct, no -vf needed)
+    '
+    ' ── gfxcapture (Windows.Graphics.Capture) ──
+    '   Input:  -f lavfi -i "gfxcapture=monitor_idx=0:max_framerate=N"
+    '   All:    -vf "fps=N" (VFR -> CFR)
+    '   + QSV:  -vf "fps=N,hwmap=derive_device=qsv"
+    '   + CPU:  -vf "fps=N,hwdownload,format=bgra,format=yuv420p"
+    '
+    ' ── gdigrab (GDI Legacy) ──
+    '   Input:  -f gdigrab -framerate N -i desktop
+    '   System memory, no hw filters needed
+
+    Private Function BuildFFmpegArguments(outputFile As String) As String
+        Dim sb As StringBuilder = New StringBuilder()
+        Dim fpsStr As String = _settings.FPS.ToString()
+        Dim br As String = _settings.Bitrate.ToString()
+        Dim buf As String = (_settings.Bitrate * 2).ToString()
+        Dim hwType As HwDeviceType = DetectHwDeviceType(_settings.Encoder)
+
+        sb.Append("-hide_banner -loglevel info ")
+
+        ' ── Video input by capture method ──
+        ' Also build -vf (video filter) chain for post-processing
+        Dim videoFilter As String = ""
+
+        Select Case _settings.CaptureMethod.ToLower()
+
+            ' ═══ ddagrab: DXGI Desktop Duplication ═══
+            Case "ddagrab"
+                sb.Append("-f lavfi -i ""ddagrab=output_idx=0:framerate=" & fpsStr & """ ")
+
+                Select Case hwType
+                    Case HwDeviceType.IntelQSV
+                        videoFilter = "hwmap=derive_device=qsv"
+
+                    Case HwDeviceType.None
+                        ' CPU: download D3D11 frames to system memory
+                        videoFilter = "hwdownload,format=bgra,format=yuv420p"
+
+                    Case HwDeviceType.NVIDIA, HwDeviceType.AMD
+                        ' Direct D3D11 -> HW encoder, no filter needed
+                        videoFilter = ""
+
+                End Select
+
+            ' ═══ gdigrab: GDI Legacy Screen Capture ═══
+            Case "gdigrab"
+                sb.Append("-f gdigrab -framerate " & fpsStr & " -i desktop ")
+                ' gdigrab outputs system memory, no hw filter needed
+                videoFilter = ""
+
+            ' ═══ gfxcapture: Windows.Graphics.Capture API ═══
+            Case "gfxcapture"
+                sb.Append("-f lavfi -i ""gfxcapture=monitor_idx=0:max_framerate=" & fpsStr & """ ")
+
+                ' gfxcapture outputs VFR - always add fps filter
+                Select Case hwType
+                    Case HwDeviceType.IntelQSV
+                        videoFilter = "fps=" & fpsStr & ",hwmap=derive_device=qsv"
+
+                    Case HwDeviceType.None
+                        videoFilter = "fps=" & fpsStr & ",hwdownload,format=bgra,format=yuv420p"
+
+                    Case HwDeviceType.NVIDIA, HwDeviceType.AMD
+                        videoFilter = "fps=" & fpsStr
+
+                End Select
+
+        End Select
+
+        ' ── Add scale filter if custom resolution ──
+        If Not _settings.UseNativeResolution AndAlso _settings.CustomWidth > 0 Then
+            If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+            videoFilter = videoFilter & "scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+        End If
+
+        ' ── Audio input (dshow) ──
+        If _settings.AudioCapture Then
+            sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
+        End If
+
+        ' ── Video filter chain (-vf) ──
+        If videoFilter.Length > 0 Then
+            sb.Append("-vf """ & videoFilter & """ ")
+        End If
+
+        ' ── Video encoder settings ──
+        sb.Append("-c:v " & _settings.Encoder & " ")
+
+        Select Case hwType
+            Case HwDeviceType.NVIDIA
+                sb.Append("-preset p4 -tune ll ")
+                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
+                sb.Append("-zerolatency 1 -spatial-aq 1 -temporal-aq 1 ")
+
+            Case HwDeviceType.IntelQSV
+                sb.Append("-preset medium ")
+                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
+                sb.Append("-look_ahead 1 ")
+
+            Case HwDeviceType.AMD
+                sb.Append("-preset balanced -usage transcoding ")
+                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
+
+            Case HwDeviceType.None
+                ' CPU encoder-specific settings
+                If _settings.Encoder.IndexOf("libx265", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    sb.Append("-preset medium ")
+                    sb.Append("-b:v " & br & " -crf 23 -pix_fmt yuv420p10le ")
+                ElseIf _settings.Encoder.IndexOf("libx264", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    sb.Append("-preset ultrafast -tune zerolatency ")
+                    sb.Append("-b:v " & br & " -crf 18 -pix_fmt yuv420p ")
+                ElseIf _settings.Encoder.IndexOf("svtav1", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    sb.Append("-preset 6 ")
+                    sb.Append("-b:v " & br & " -crf 35 -pix_fmt yuv420p ")
+                Else
+                    sb.Append("-b:v " & br & " ")
+                End If
+        End Select
+
+        ' ── Pixel format ──
+        ' IMPORTANT: ddagrab/gfxcapture output d3d11 hardware frames.
+        ' -pix_fmt triggers FFmpeg auto_scale filter which ONLY handles software formats.
+        ' So for hw encoder + hw capture: do NOT add -pix_fmt — the encoder handles d3d11 natively.
+        ' For hw encoder + gdigrab (software frames): -pix_fmt is safe.
+        Dim isHwCapture As Boolean = (_settings.CaptureMethod.ToLower() = "ddagrab" OrElse
+                                        _settings.CaptureMethod.ToLower() = "gfxcapture")
+
+        If hwType = HwDeviceType.None Then
+            ' CPU encoders: pix_fmt already set in encoder section above (libx265/x264/svtav1)
+            ' Only add for unknown CPU encoders
+            If _settings.Encoder.IndexOf("libx265", StringComparison.OrdinalIgnoreCase) < 0 AndAlso
+               _settings.Encoder.IndexOf("libx264", StringComparison.OrdinalIgnoreCase) < 0 AndAlso
+               _settings.Encoder.IndexOf("svtav1", StringComparison.OrdinalIgnoreCase) < 0 Then
+                sb.Append("-pix_fmt " & _settings.PixelFormat & " ")
+            End If
+        ElseIf hwType = HwDeviceType.NVIDIA OrElse hwType = HwDeviceType.AMD Then
+            ' NVENC/AMF accept d3d11 natively — skip -pix_fmt for hw capture
+            If Not isHwCapture Then
+                sb.Append("-pix_fmt " & _settings.PixelFormat & " ")
+            End If
+        ElseIf hwType = HwDeviceType.IntelQSV Then
+            ' QSV handles format via hwmap filter — skip -pix_fmt for hw capture
+            If Not isHwCapture Then
+                sb.Append("-pix_fmt " & _settings.PixelFormat & " ")
+            End If
+        End If
+
+        ' ── Audio encoding ──
+        If _settings.AudioCapture Then
+            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+        End If
+
+        ' ── Output ──
+        sb.Append("-y """ & outputFile & """")
+
+        Return sb.ToString()
+    End Function
+
+    ' ── Detect hardware device type from encoder string ──────
+
+    Private Function DetectHwDeviceType(encoderId As String) As HwDeviceType
+        If encoderId.IndexOf("nvenc", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return HwDeviceType.NVIDIA
+        End If
+        If encoderId.IndexOf("qsv", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return HwDeviceType.IntelQSV
+        End If
+        If encoderId.IndexOf("amf", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return HwDeviceType.AMD
+        End If
+        Return HwDeviceType.None
+    End Function
+
+    ' ── FFmpeg Process Events ─────────────────────────────────
+
+    Private Sub OnStdOut(sender As Object, e As DataReceivedEventArgs)
+        If e.Data IsNot Nothing Then
+            LogDebug("[stdout] " & e.Data)
+        End If
+    End Sub
+
+    Private Sub OnStdErr(sender As Object, e As DataReceivedEventArgs)
+        If e.Data Is Nothing Then Return
+
+        LogDebug("[stderr] " & e.Data)
+        WriteDebugLog("[stderr] " & e.Data)
+
+        ' Parse frame progress: "frame=  120 fps=60 ..."
+        If e.Data.IndexOf("frame=", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Try
+                Dim idx As Integer = e.Data.IndexOf("frame=") + 6
+                If idx < e.Data.Length Then
+                    Dim remaining As String = e.Data.Substring(idx).TrimStart()
+                    Dim spaceIdx As Integer = remaining.IndexOf(" "c)
+                    Dim frameStr As String = ""
+                    If spaceIdx > 0 Then
+                        frameStr = remaining.Substring(0, spaceIdx).Trim()
+                    Else
+                        frameStr = remaining.Trim()
+                    End If
+                    Dim frameNum As Long = 0
+                    If Long.TryParse(frameStr, frameNum) Then
+                        RaiseEvent FrameCaptured(frameNum)
+                    End If
+                End If
+            Catch
+            End Try
+        End If
+
+        ' Report errors
+        If e.Data.ToLower().Contains("error") Then
+            RaiseEvent ErrorOccurred(e.Data)
+            WriteDebugLog("[ERROR] " & e.Data)
+        End If
+    End Sub
+
+    Private Sub OnExited(sender As Object, e As EventArgs)
+        If _state = CaptureState.Recording Then
+            If _stopwatch IsNot Nothing Then _stopwatch.Stop()
+            SetState(CaptureState.Idle)
+            RaiseEvent RecordingStopped(_outputFile)
+        End If
+        Dim exitCode As String = ""
+        If _ffmpegProcess IsNot Nothing Then
+            exitCode = _ffmpegProcess.ExitCode.ToString()
+        End If
+        LogDebug("FFmpeg exited with code: " & exitCode)
+        WriteDebugLog("FFmpeg exited with code: " & exitCode)
+    End Sub
+
+    ' ── Helpers ──────────────────────────────────────────────
+
+    Private Sub SetState(newState As CaptureState)
+        _state = newState
+        RaiseEvent StateChanged(newState)
+    End Sub
+
+    Private Sub LogDebug(message As String)
+        Dim line As String = "[" & DateTime.Now.ToString("HH:mm:ss.fff") & "] " & message
+        _logBuffer.AppendLine(line)
+        If _logBuffer.Length > 10240 Then
+            _logBuffer.Remove(0, _logBuffer.Length - 8192)
+        End If
+    End Sub
+
+    ''' <summary>
+    ''' Write debug info to log file on disk for troubleshooting
+    ''' </summary>
+    Private Sub WriteDebugLog(message As String)
+        Try
+            Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+            If Not Directory.Exists(logDir) Then Directory.CreateDirectory(logDir)
+            Dim logPath As String = Path.Combine(logDir, "capture-engine.log")
+            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] " & message & Environment.NewLine
+            File.AppendAllText(logPath, logLine)
+        Catch
+        End Try
+    End Sub
+
+    ' ── Dispose ────────────────────────────────────────────────
+
+    Public Sub Dispose() Implements IDisposable.Dispose
+        Dispose(True)
+        GC.SuppressFinalize(Me)
+    End Sub
+
+    Protected Overridable Sub Dispose(disposing As Boolean)
+        If Not _disposed Then
+            If disposing Then
+                ForceStop()
+            End If
+            _disposed = True
+        End If
+    End Sub
+
+End Class
