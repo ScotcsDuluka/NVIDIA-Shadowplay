@@ -63,12 +63,39 @@ Public Class CaptureSettings
     <JsonPropertyName("CustomHeight")>
     Public Property CustomHeight As Integer = 0
 
+    <JsonPropertyName("QualityPreset")>
+    Public Property QualityPreset As String = "high"   ' low/medium/high/custom
+
+    <JsonPropertyName("NVENCPreset")>
+    Public Property NVENCPreset As String = "p4"      ' p1-p7
+
+    <JsonPropertyName("Tune")>
+    Public Property Tune As String = "ll"              ' ll/ull/hq
+
+    <JsonPropertyName("Zerolatency")>
+    Public Property Zerolatency As Boolean = True
+
+    <JsonPropertyName("SpatialAQ")>
+    Public Property SpatialAQ As Boolean = True
+
+    <JsonPropertyName("TemporalAQ")>
+    Public Property TemporalAQ As Boolean = True       ' Will be auto-set to False for hevc/av1
+
+    <JsonPropertyName("Lookahead")>
+    Public Property Lookahead As Integer = 0
+
+    <JsonPropertyName("StorageEstimate")>
+    Public Property StorageEstimate As String = ""
+
+    <JsonPropertyName("ReplayLength")>
+    Public Property ReplayLength As Integer = 0         ' 0 = manual only
+
     ' ── Config version for migration ──
     <JsonPropertyName("ConfigVersion")>
     Public Property ConfigVersion As Integer = 2
 
     ' Default values for old config migration
-    Private Const CURRENT_VERSION As Integer = 2
+    Private Const CURRENT_VERSION As Integer = 3
 
     ' ── Save / Load ──────────────────────────────────────────
 
@@ -95,10 +122,19 @@ Public Class CaptureSettings
             ' ── Config migration ──
             ' Version 1 (or missing) had audio enabled with hardcoded "stereo mix"
             ' which doesn't exist on most machines. Force-reset audio on old configs.
-            If settings.ConfigVersion < CURRENT_VERSION Then
+            If settings.ConfigVersion < 2 Then
                 settings.AudioCapture = False
                 settings.AudioDevice = ""
-                settings.ConfigVersion = CURRENT_VERSION
+                settings.ConfigVersion = 2
+                settings.Save(configPath)
+            End If
+
+            ' Version 3: Add new NVENC-specific settings with smart defaults
+            If settings.ConfigVersion < 3 Then
+                If String.IsNullOrEmpty(settings.NVENCPreset) Then settings.NVENCPreset = "p4"
+                If String.IsNullOrEmpty(settings.Tune) Then settings.Tune = "ll"
+                If String.IsNullOrEmpty(settings.QualityPreset) Then settings.QualityPreset = "high"
+                settings.ConfigVersion = 3
                 settings.Save(configPath)
             End If
 
@@ -173,6 +209,69 @@ Public Class CaptureSettings
         Dim timestamp As String = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss")
         Return Path.Combine(OutputDirectory, "ShadowPlay_" & timestamp & "." & FileFormat)
     End Function
+
+    Public Function GetStorageEstimate() As String
+        Dim bytesPerSec As Double = Bitrate / 8.0
+        Dim bytesPerMin As Double = bytesPerSec * 60
+        Dim bytesPerHour As Double = bytesPerSec * 3600
+        If bytesPerHour >= 1073741824 Then
+            Return "~ " & (bytesPerHour / 1073741824).ToString("F1") & " GB/hour"
+        ElseIf bytesPerHour >= 1048576 Then
+            Return "~ " & (bytesPerHour / 1048576).ToString("F0") & " MB/hour"
+        Else
+            Return "~ " & (bytesPerHour / 1024).ToString("F0") & " KB/hour"
+        End If
+    End Function
+
+    Public Sub ApplyQualityPreset(preset As String)
+        QualityPreset = preset.ToLower()
+        Select Case QualityPreset
+            Case "low"
+                FPS = 30
+                Bitrate = 10000000     ' 10 Mbps
+                NVENCPreset = "p7"
+                Zerolatency = True
+                SpatialAQ = False
+                TemporalAQ = False
+                Lookahead = 0
+            Case "medium"
+                FPS = 60
+                Bitrate = 35000000     ' 35 Mbps
+                NVENCPreset = "p5"
+                Zerolatency = True
+                SpatialAQ = True
+                TemporalAQ = False
+                Lookahead = 0
+            Case "high"
+                FPS = 60
+                Bitrate = 50000000     ' 50 Mbps
+                NVENCPreset = "p4"
+                Tune = "ll"
+                Zerolatency = True
+                SpatialAQ = True
+                TemporalAQ = True
+                Lookahead = 0
+            Case "recommended"
+                FPS = 60
+                Bitrate = 70000000     ' 70 Mbps
+                NVENCPreset = "p4"
+                Tune = "ll"
+                Zerolatency = True
+                SpatialAQ = True
+                TemporalAQ = True
+                Lookahead = 16
+            Case "maximum"
+                FPS = 60
+                Bitrate = 150000000    ' 150 Mbps
+                NVENCPreset = "p1"
+                Tune = "hq"
+                Zerolatency = False
+                SpatialAQ = True
+                TemporalAQ = True
+                Lookahead = 32
+        End Select
+        StorageEstimate = GetStorageEstimate()
+    End Sub
 
     ''' <summary>
     ''' Returns (Valid, Message) tuple - no reserved keywords

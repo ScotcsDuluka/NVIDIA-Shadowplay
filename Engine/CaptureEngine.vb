@@ -320,8 +320,26 @@ Public Class CaptureEngine
 
         ' ── Add scale filter if custom resolution ──
         If Not _settings.UseNativeResolution AndAlso _settings.CustomWidth > 0 Then
-            If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
-            videoFilter = videoFilter & "scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+            If _settings.CaptureMethod.ToLower() = "ddagrab" OrElse
+               _settings.CaptureMethod.ToLower() = "gfxcapture" Then
+                ' d3d11 frames must be downloaded to system memory before scaling
+                If hwType = HwDeviceType.NVIDIA OrElse hwType = HwDeviceType.AMD Then
+                    ' HW encoder: download -> scale -> upload back
+                    ' Actually NVENC can accept nv12 from scale filter chain
+                    If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                    videoFilter = videoFilter & "hwdownload,format=nv12,scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+                ElseIf hwType = HwDeviceType.IntelQSV Then
+                    If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                    videoFilter = videoFilter & "hwdownload,format=nv12,scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+                Else
+                    If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                    videoFilter = videoFilter & "scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+                End If
+            Else
+                ' gdigrab: software frames, scale directly
+                If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                videoFilter = videoFilter & "scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+            End If
         End If
 
         ' ── Audio input (dshow) ──
@@ -339,14 +357,36 @@ Public Class CaptureEngine
 
         Select Case hwType
             Case HwDeviceType.NVIDIA
-                sb.Append("-preset p4 -tune ll ")
-                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
-                sb.Append("-zerolatency 1 -spatial-aq 1 -temporal-aq 1 ")
+                sb.Append("-preset " & _settings.NVENCPreset & " ")
+                If Not String.IsNullOrEmpty(_settings.Tune) Then
+                    ' hevc_nvenc and av1_nvenc don't support "hq" tune well, only "ll" and "ull"
+                    If (_settings.Encoder.IndexOf("hevc", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                        _settings.Encoder.IndexOf("av1", StringComparison.OrdinalIgnoreCase) >= 0) AndAlso
+                        _settings.Tune = "hq" Then
+                        sb.Append("-tune ll ")
+                    Else
+                        sb.Append("-tune " & _settings.Tune & " ")
+                    End If
+                End If
+                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " -maxrate " & br & " ")
+                sb.Append("-zerolatency " & CInt(_settings.Zerolatency).ToString() & " ")
+                sb.Append("-spatial-aq " & CInt(_settings.SpatialAQ).ToString() & " ")
+                ' IMPORTANT: hevc_nvenc and av1_nvenc do NOT support temporal-aq on many GPUs
+                ' Auto-disable for HEVC/AV1 unless explicitly on a GPU that supports it
+                Dim isHEVC As Boolean = _settings.Encoder.IndexOf("hevc", StringComparison.OrdinalIgnoreCase) >= 0
+                Dim isAV1 As Boolean = _settings.Encoder.IndexOf("av1", StringComparison.OrdinalIgnoreCase) >= 0
+                If isHEVC OrElse isAV1 Then
+                    sb.Append("-temporal-aq 0 ")
+                Else
+                    sb.Append("-temporal-aq " & CInt(_settings.TemporalAQ).ToString() & " ")
+                End If
+                If _settings.Lookahead > 0 Then
+                    sb.Append("-rc-lookahead " & _settings.Lookahead.ToString() & " ")
+                End If
 
             Case HwDeviceType.IntelQSV
                 sb.Append("-preset medium ")
-                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
-                sb.Append("-look_ahead 1 ")
+                sb.Append("-b:v " & br & " -bufsize " & buf & " ")
 
             Case HwDeviceType.AMD
                 sb.Append("-preset balanced -usage transcoding ")
@@ -399,6 +439,11 @@ Public Class CaptureEngine
         ' ── Audio encoding ──
         If _settings.AudioCapture Then
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+        End If
+
+        ' ── Output format flags ──
+        If _settings.FileFormat = "mp4" Then
+            sb.Append("-movflags +faststart ")
         End If
 
         ' ── Output ──
