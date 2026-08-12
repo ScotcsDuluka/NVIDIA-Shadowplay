@@ -22,6 +22,12 @@ Public Class Base_Connect
     ' ⚠️ ใส่ Client Secret ที่นี่ (สร้างจาก GitHub App settings → Client secrets → Generate)
     Private Const CLIENT_SECRET As String = ""  ' <-- ใส่ secret ที่นี่ถ้า PKCE ไม่ทำงาน
 
+    ' ✅ OAuth callback port — MUST NOT be 5000 (that's the TCP Hub port used by
+    ' TcpClientHelper to reach Engine/API/Notifier). Old code used 5000, which made
+    ' HttpListener fail to bind whenever the Hub was already running (i.e. always).
+    Private Const OAUTH_CALLBACK_PORT As Integer = 8765
+    Private Const OAUTH_CALLBACK_URL As String = "http://localhost:8765/callback/"
+
     ' ✅ PKCE variables
     Private _codeVerifier As String = ""
     Private _codeChallenge As String = ""
