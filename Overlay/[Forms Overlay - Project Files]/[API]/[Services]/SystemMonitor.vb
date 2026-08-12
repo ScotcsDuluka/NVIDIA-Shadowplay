@@ -76,28 +76,31 @@ Public Class SystemMonitor
         If GlobalMemoryStatusEx(ramInfo) Then
             Dim ramPercent As Integer = CInt(ramInfo.dwMemoryLoad)
 
-            ' ===== 95-99% : เตือนทุก 10 วินาที =====
-            If ramPercent >= RamThreshold95 AndAlso ramPercent < 100 Then
+            ' ✅ FIX: threshold branches were broken in the old code:
+            '   If ramPercent >= 95 AndAlso < 100 Then   ' 95-99: critical
+            '   ElseIf ramPercent >= 95 Then             ' ← can only fire at exactly 100%, comment said "95%"
+            '   ElseIf ramPercent >= 80 Then             ' 80-94: warn once
+            ' Order is now: 100 → critical-once, 95-99 → critical-every-10s, 80-94 → warn-once.
+            If ramPercent >= 100 Then
+                ' Truly out of memory — fire once, then again every 10s.
+                If Not ram95Warned OrElse (DateTime.Now - ramCriticalLastWarn).TotalSeconds >= 10 Then
+                    Base.ShowNotifier("ramwramcritical")
+                    ramCriticalLastWarn = DateTime.Now
+                    ram95Warned = True
+                End If
+                ram80Warned = True
+
+            ElseIf ramPercent >= RamThreshold95 Then
+                ' 95-99% — repeat every 10s so the user knows it's still bad.
                 Dim now As DateTime = DateTime.Now
                 If (now - ramCriticalLastWarn).TotalSeconds >= 10 Then
                     Base.ShowNotifier("ramwramcritical")
                     ramCriticalLastWarn = now
                 End If
+                ram80Warned = True
 
-                ram80Warned = False
-                ram95Warned = False
-
-                ' ===== 95% : เตือนครั้งเดียว =====
-            ElseIf ramPercent >= RamThreshold95 Then
-                If Not ram95Warned Then
-                    Base.ShowNotifier("ramwram95")
-                    ram95Warned = True
-                End If
-                ram80Warned = False
-                ramCriticalLastWarn = DateTime.MinValue
-
-                ' ===== 80-95% : เตือนครั้งเดียว =====
             ElseIf ramPercent >= RamThreshold80 Then
+                ' 80-94% — warn once per entry into this band.
                 If Not ram80Warned Then
                     Base.ShowNotifier("ramwram")
                     ram80Warned = True
@@ -105,8 +108,8 @@ Public Class SystemMonitor
                 ram95Warned = False
                 ramCriticalLastWarn = DateTime.MinValue
 
-                ' ===== < 80% : Reset ทุกอย่าง =====
             Else
+                ' < 80% — reset everything so re-entry into a band warns again.
                 ram80Warned = False
                 ram95Warned = False
                 ramCriticalLastWarn = DateTime.MinValue

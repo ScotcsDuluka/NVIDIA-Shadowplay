@@ -153,7 +153,7 @@ Public Class Base_Connect
                 ' PKCE only flow
                 url = "https://github.com/login/oauth/authorize?" &
                       "client_id=" & CLIENT_ID &
-                      "&redirect_uri=http://localhost:5000/callback" &
+                      "&redirect_uri=" & OAUTH_CALLBACK_URL.TrimEnd("/"c) &
                       "&response_type=code" &
                       "&code_challenge=" & _codeChallenge &
                       "&code_challenge_method=S256"
@@ -161,7 +161,7 @@ Public Class Base_Connect
                 ' Standard OAuth flow with client_secret
                 url = "https://github.com/login/oauth/authorize?" &
                       "client_id=" & CLIENT_ID &
-                      "&redirect_uri=http://localhost:5000/callback" &
+                      "&redirect_uri=" & OAUTH_CALLBACK_URL.TrimEnd("/"c) &
                       "&response_type=code"
             End If
 
@@ -193,13 +193,13 @@ Public Class Base_Connect
             End If
 
             _listener = New HttpListener()
-            _listener.Prefixes.Add("http://localhost:5000/callback/")
+            _listener.Prefixes.Add(OAUTH_CALLBACK_URL)
             _listener.Start()
 
             _listenerCts = New Threading.CancellationTokenSource()
             _isListening = True
 
-            Debug.WriteLine("HttpListener started on http://localhost:5000/callback/")
+            Debug.WriteLine($"HttpListener started on {OAUTH_CALLBACK_URL}")
 
             ' ✅ Listen asynchronously with cancellation support
             Task.Run(Async Function()
@@ -322,7 +322,7 @@ Public Class Base_Connect
                 Dim values As New Dictionary(Of String, String) From {
                     {"client_id", CLIENT_ID},
                     {"code", code},
-                    {"redirect_uri", "http://localhost:5000/callback"}
+                    {"redirect_uri", OAUTH_CALLBACK_URL.TrimEnd("/"c)}
                 }
 
                 ' ✅ ถ้ามี CLIENT_SECRET → ใช้ client_secret

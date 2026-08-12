@@ -149,6 +149,9 @@ Public Class CaptureEngine
 
                                      _ffmpegProcess = New Process()
                                      _ffmpegProcess.StartInfo = si
+                                     ' ✅ FIX: Must set EnableRaisingEvents=True BEFORE Start() or the Exited event never fires.
+                                     ' Without this, a crashed FFmpeg looks "still recording" forever.
+                                     _ffmpegProcess.EnableRaisingEvents = True
                                      AddHandler _ffmpegProcess.OutputDataReceived, AddressOf OnStdOut
                                      AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
                                      AddHandler _ffmpegProcess.Exited, AddressOf OnExited
@@ -401,6 +404,14 @@ Public Class CaptureEngine
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         End If
 
+        ' ── MP4 faststart: write moov atom at the head so the file is playable
+        '    even if FFmpeg is killed mid-write (Stop timeout, crash, Engine exit).
+        '    Without this, a forced Kill on MP4 output leaves a corrupt file.
+        Dim ext As String = Path.GetExtension(outputFile).ToLowerInvariant()
+        If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".m4v" Then
+            sb.Append("-movflags +faststart ")
+        End If
+
         ' ── Output ──
         sb.Append("-y """ & outputFile & """")
 
@@ -458,25 +469,54 @@ Public Class CaptureEngine
             End Try
         End If
 
-        ' Report errors
-        If e.Data.ToLower().Contains("error") Then
+        ' Report errors — tightened: only match real FFmpeg error markers.
+        ' Old code matched the substring "error" which fires on benign lines like
+        ' "Error resilience", "errordetect", "max_error_rate", x264 "[error]:" notices, etc.
+        Dim low As String = e.Data.ToLowerInvariant()
+        Dim isError As Boolean =
+            low.Contains("[error]") OrElse
+            low.Contains("conversion failed") OrElse
+            low.Contains("could not open") OrElse
+            low.Contains("no such file or directory") OrElse
+            low.Contains("invalid argument") OrElse
+            low.Contains("device not found") OrElse
+            low.Contains("unknown encoder") OrElse
+            low.Contains("not currently supported in output") OrElse
+            low.StartsWith("error") OrElse
+            low.Contains("av_interleaved_write_header")
+
+        If isError Then
             RaiseEvent ErrorOccurred(e.Data)
             WriteDebugLog("[ERROR] " & e.Data)
         End If
     End Sub
 
     Private Sub OnExited(sender As Object, e As EventArgs)
-        If _state = CaptureState.Recording Then
-            If _stopwatch IsNot Nothing Then _stopwatch.Stop()
-            SetState(CaptureState.Idle)
-            RaiseEvent RecordingStopped(_outputFile)
+        ' Capture exit code first — _ffmpegProcess may be nulled by ForceStop()/Dispose() concurrently.
+        Dim exitCode As String = "?"
+        Dim proc As Process = _ffmpegProcess
+        If proc IsNot Nothing Then
+            Try
+                exitCode = proc.ExitCode.ToString()
+            Catch
+            End Try
         End If
-        Dim exitCode As String = ""
-        If _ffmpegProcess IsNot Nothing Then
-            exitCode = _ffmpegProcess.ExitCode.ToString()
-        End If
+
         LogDebug("FFmpeg exited with code: " & exitCode)
         WriteDebugLog("FFmpeg exited with code: " & exitCode)
+
+        If _state = CaptureState.Recording Then
+            If _stopwatch IsNot Nothing Then _stopwatch.Stop()
+            ' Non-zero exit → treat as error (FFmpeg crashed or failed to start).
+            ' This is the path that catches a crashed FFmpeg now that EnableRaisingEvents=True.
+            If exitCode <> "0" AndAlso exitCode <> "?" Then
+                SetState(CaptureState.HasError)
+                RaiseEvent ErrorOccurred("FFmpeg exited unexpectedly with code " & exitCode)
+            Else
+                SetState(CaptureState.Idle)
+                RaiseEvent RecordingStopped(_outputFile)
+            End If
+        End If
     End Sub
 
     ' ── Helpers ──────────────────────────────────────────────

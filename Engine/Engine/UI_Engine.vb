@@ -338,6 +338,13 @@ Public Class UI_Engine
         For i As Integer = 0 To cboEncoder.Items.Count - 1
             If cboEncoder.Items(i).ToString().IndexOf(recommended, StringComparison.OrdinalIgnoreCase) >= 0 Then
                 cboEncoder.SelectedIndex = i
+                ' ✅ FIX: set _settings.Encoder directly here. Previously this fired OnEncoderChanged
+                ' which early-returned when _isLoaded=False (race: detection completes before line 46
+                ' sets _isLoaded=True), so first Record click errored with "No encoder selected".
+                If _settings IsNot Nothing Then
+                    Dim parts As String() = cboEncoder.Items(i).ToString().Trim().Split(New Char() {" "c}, StringSplitOptions.RemoveEmptyEntries)
+                    If parts.Length > 0 Then _settings.Encoder = parts(0).Trim()
+                End If
                 Exit For
             End If
         Next

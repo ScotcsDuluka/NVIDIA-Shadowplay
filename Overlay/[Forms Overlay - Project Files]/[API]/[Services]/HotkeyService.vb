@@ -24,7 +24,7 @@ Public Class HotkeyService
             CreateDef("InstantReplaySave", "Alt+F10"),
             CreateDef("BroadcastToggle", "Alt+F8"),
             CreateDef("TestNotifier", "Alt+T"),
-            CreateDef("WebToggle", "Alt+CAPITAL")
+            CreateDef("WebToggle", "Alt+W")
         }
     End Sub
 

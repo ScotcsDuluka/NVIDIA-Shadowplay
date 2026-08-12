@@ -104,21 +104,35 @@ Public Class API_RUN
         End Try
     End Sub
 
+    ' ✅ FIX: flag to stop the font-install bootloop. Old code: Load_APP.Tick ran every 1s;
+    ' if nvgcshare.ttf was missing from both %LOCALAPPDATA%\...\Fonts AND appdir, FontHelper
+    ' returned False and the supervisor immediately killed Notifier + ShadowPlay → next tick
+    ' supervisor restarted them → next tick FontHelper killed them again → endless loop, CPU spike.
+    Private _fontInstallFailedOnce As Boolean = False
+
     Private Sub Load_APP_Disposed(sender As Object, e As EventArgs) Handles Load_APP.Tick
 
         HandleAppsSmart()
-        Dim fontExists As Boolean = FontHelper.CheckAndInstallUserFont("nvgcshare.ttf")
-        If Not fontExists Then
-            KillProcess("NVIDIA Notifier.exe")
-            KillProcess("NVIDIA ShadowPlay.exe")
+        If Not _fontInstallFailedOnce Then
+            Dim fontExists As Boolean = FontHelper.CheckAndInstallUserFont("nvgcshare.ttf")
+            If Not fontExists Then
+                ' Install failed once → don't try again every 1s. Don't kill Notifier/ShadowPlay either —
+                ' they'll fall back to a default font. User can re-trigger by restarting the app.
+                _fontInstallFailedOnce = True
+                Log("[Warn] NVIDIA API", "font_install_failed_disabling_retry")
+            End If
         End If
     End Sub
 
     Public Sub HandleAppsSmart()
+        ' ✅ FIX: removed ffmpeg.exe from the supervised list. ffmpeg is a CLI tool spawned
+        ' by the Engine on demand; it is NOT a long-running background process and should
+        ' not be "kept alive" or killed by the API Hub. Old behavior: when Use_Overlay marker
+        ' was absent, the API killed every ffmpeg.exe on the machine — including ones launched
+        ' by unrelated software (OBS, HandBrake, streamers, video editors).
         Dim apps As String() = {
             "NVIDIA Notifier.exe",
-            "NVIDIA ShadowPlay.exe",
-            "ffmpeg.exe"
+            "NVIDIA ShadowPlay.exe"
         }
 
         Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Use_Overlay"))

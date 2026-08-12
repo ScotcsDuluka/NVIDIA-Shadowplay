@@ -37,6 +37,12 @@ Partial Public Class API_RUN
     ''' แก้: FormClosing cleanup — หยุดทุกอย่างให้เรียบร้อย
     ''' </summary>
     Private Sub Server_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        ' ✅ FIX: previously this handler ran full destructive cleanup regardless of e.Cancel.
+        ' When user clicked X, API_RUN_FormClosing set e.Cancel=True (minimize to tray),
+        ' but THIS handler had already torn down the listener, heartbeat, and all clients —
+        ' so the tray icon stayed alive but the Hub was dead and never restarted.
+        If e.Cancel Then Return
+
         _isShuttingDown = True
 
         ' หยุด heartbeat
@@ -126,13 +132,24 @@ Partial Public Class API_RUN
     End Sub
 
     Private Async Sub StartServer()
-        listener = New TcpListener(IPAddress.Any, 5000)
+        ' ✅ FIX: bind to Loopback only. Old code used IPAddress.Any, which let any LAN host
+        ' connect and inject `engine_record_start` etc., or DoS the hub with huge messages.
+        listener = New TcpListener(IPAddress.Loopback, 5000)
         listener.Start()
         _heartbeatCts = New CancellationTokenSource()
         Task.Run(Sub() HeartbeatMonitor(_heartbeatCts.Token), _heartbeatCts.Token)
         While Not _isShuttingDown
             Try
                 Dim client = Await listener.AcceptTcpClientAsync()
+                ' ✅ FIX: hard cap on connected clients to bound memory.
+                Dim curCount As Integer
+                SyncLock clientsLock : curCount = clients.Count : End SyncLock
+                If curCount >= 32 Then
+                    Try : client.Close() : Catch : End Try
+                    Log("[Warn] NVIDIA API", "client_rejected_max_reached")
+                    Continue While
+                End If
+
                 Dim info As New ClientInfo With {
                     .Client = client,
                     .Writer = New StreamWriter(client.GetStream()) With {.AutoFlush = True},
@@ -162,10 +179,23 @@ Partial Public Class API_RUN
             id = info.Client.Client.RemoteEndPoint.ToString()
         End If
 
+        ' ✅ FIX: per-read timeout. If a client opens a socket and sends no newline
+        ' for hours, old code held the connection forever. With 60s inactivity, the
+        ' HeartbeatMonitor (30s) wins first, but this is belt-and-suspenders.
+        info.Client.ReceiveTimeout = 60000
+
         Try
             While True
                 Dim msg = Await reader.ReadLineAsync()
                 If msg Is Nothing Then Exit While
+
+                ' ✅ FIX: message size cap. Old code happily ReadLine'd a 1GB line into RAM.
+                ' 64 KB is generous for any legitimate command in this protocol
+                ' (longest is something like `engine_record_start:<path>`).
+                If msg.Length > 65536 Then
+                    Log("[Warn] NVIDIA API", $"client_{id}_oversized_msg_{msg.Length}")
+                    Exit While
+                End If
 
                 info.LastActivity = DateTime.Now
                 ProcessMessage(msg, info)
@@ -241,7 +271,13 @@ Partial Public Class API_RUN
 
     Private Sub Broadcast(msg As String, senderInfo As ClientInfo)
         Dim dead As New List(Of ClientInfo)
+        Dim broadcastLog As String = Nothing
 
+        ' ✅ FIX: previously Log() was called WHILE holding clientsLock. Log() does
+        ' lstLog.Invoke() which blocks on the UI thread; the UI thread can be waiting
+        ' on clientsLock inside UpdateClientList() → classic deadlock.
+        ' Now we collect the dead list and the log message under the lock, but do the
+        ' Log() call after releasing the lock.
         SyncLock clientsLock
             For Each c In clients
                 If c Is senderInfo Then Continue For
@@ -257,9 +293,13 @@ Partial Public Class API_RUN
             For Each d In dead
                 clients.Remove(d)
                 Try : d.Client.Close() : Catch : End Try
-                Log("[Heartbeat] NVIDIA API", $"removed_dead_client_{d.AppName}")
+                broadcastLog = $"removed_dead_client_{d.AppName}"
             Next
         End SyncLock
+
+        If broadcastLog IsNot Nothing Then
+            Log("[Heartbeat] NVIDIA API", broadcastLog)
+        End If
     End Sub
 
     ''' <summary>
@@ -272,6 +312,7 @@ Partial Public Class API_RUN
                 If token.IsCancellationRequested Then Exit While
 
                 Dim dead As New List(Of ClientInfo)
+                Dim killLog As New List(Of String)
                 SyncLock clientsLock
                     For Each c In clients
                         If (DateTime.Now - c.LastActivity).TotalSeconds > 30 Then
@@ -282,9 +323,13 @@ Partial Public Class API_RUN
                     For Each d In dead
                         clients.Remove(d)
                         Try : d.Client.Close() : Catch : End Try
-                        Log("[Heartbeat] NVIDIA API", $"killed_inactive_{d.AppName}")
+                        killLog.Add($"killed_inactive_{d.AppName}")
                     Next
                 End SyncLock
+                ' ✅ FIX: log outside the lock (matches Broadcast fix).
+                For Each ln In killLog
+                    Log("[Heartbeat] NVIDIA API", ln)
+                Next
             End While
         Catch ex As OperationCanceledException
             ' ปกติ — ถูก cancel
