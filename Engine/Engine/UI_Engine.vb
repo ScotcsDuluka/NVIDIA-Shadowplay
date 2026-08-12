@@ -53,6 +53,8 @@ Public Class UI_Engine
         SaveSettings()
         If _hubClient IsNot Nothing Then _hubClient.Dispose()
         If _captureEngine IsNot Nothing Then _captureEngine.Dispose()
+        ' ✅ P1: flush all queued log writers so no log lines are lost on exit.
+        BackgroundLogger.ShutdownAll()
     End Sub
 
     ' ── Hub Client ────────────────────────────────────────────
@@ -91,35 +93,46 @@ Public Class UI_Engine
 
     ''' <summary>
     ''' รับ engine_* commands จาก Hub แล้ว execute
+    ''' ✅ P1: made Async so a slow StopRecordingAsync (up to 10s) doesn't block
+    ''' the listener thread. Old code did task.Wait() inside OnHubCommand which
+    ''' queued every subsequent TCP command behind it.
     ''' </summary>
-    Private Sub OnHubCommand(sender As Object, e As CommandEventArgs)
-        DebugLog($"[Engine] Executing: {e.Command}={e.Value}")
+    Private Async Sub OnHubCommand(sender As Object, e As CommandEventArgs)
+        DebugLog($"[Engine] Executing: {e.Command}={e.Value}" & If(e.RequestId, $" (req={e.RequestId})", ""))
 
-        Select Case e.Command
-            Case "engine_record_start"
-                HandleEngineRecordStart(e.Value)
-            Case "engine_record_stop"
-                HandleEngineRecordStop()
-            Case "engine_replay_start"
-                HandleEngineReplayStart(e.Value)
-            Case "engine_replay_stop"
-                HandleEngineReplayStop()
-            Case "engine_replay_save"
-                HandleEngineReplaySave(e.Value)
-            Case "engine_get_status"
-                HandleEngineGetStatus()
-            Case "engine_load_config"
-                HandleEngineLoadConfig()
-            Case "engine_set_encoder"
-                HandleEngineSetEncoder(e.Value)
-            Case Else
-                _hubClient.SendResponse(e.Command, "error", "unknown_command")
-        End Select
+        Try
+            Select Case e.Command
+                Case "engine_record_start"
+                    Await HandleEngineRecordStart(e.Value, e.RequestId)
+                Case "engine_record_stop"
+                    Await HandleEngineRecordStop(e.RequestId)
+                Case "engine_replay_start"
+                    HandleEngineReplayStart(e.Value, e.RequestId)
+                Case "engine_replay_stop"
+                    HandleEngineReplayStop(e.RequestId)
+                Case "engine_replay_save"
+                    HandleEngineReplaySave(e.Value, e.RequestId)
+                Case "engine_get_status"
+                    HandleEngineGetStatus(e.RequestId)
+                Case "engine_load_config"
+                    HandleEngineLoadConfig(e.RequestId)
+                Case "engine_set_encoder"
+                    HandleEngineSetEncoder(e.Value, e.RequestId)
+                Case Else
+                    _hubClient.SendResponse(e.Command, "error", "unknown_command", e.RequestId)
+            End Select
+        Catch ex As Exception
+            DebugLog($"OnHubCommand unhandled exception: {ex.Message}")
+            Try
+                _hubClient.SendResponse(e.Command, "error", ex.Message, e.RequestId)
+            Catch
+            End Try
+        End Try
     End Sub
 
     ' ── Engine Command Handlers (TCP แค่ on/off) ──────────
 
-    Private Sub HandleEngineRecordStart(value As String)
+    Private Async Function HandleEngineRecordStart(value As String, reqId As String) As Task
         Try
             ' โหลด config ใหม่จาก json ทุกครั้งก่อน record
             _settings = CaptureSettings.Load(_configPath)
@@ -135,10 +148,11 @@ Public Class UI_Engine
             AddHandler _captureEngine.RecordingStopped, AddressOf OnRecordingStopped
             AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
 
-            Dim task As Task(Of Boolean) = _captureEngine.StartRecordingAsync()
-            task.Wait()
+            ' ✅ P1: Await instead of task.Wait() — frees the listener thread to
+            ' process other commands while StartRecordingAsync runs.
+            Dim ok As Boolean = Await _captureEngine.StartRecordingAsync()
 
-            If task.Result Then
+            If ok Then
                 Me.Invoke(Sub()
                               lblStatus.Text = "Recording (Hub)..."
                               lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
@@ -146,25 +160,25 @@ Public Class UI_Engine
                               btnRecord.Enabled = False
                               btnStop.Enabled = True
                           End Sub)
-                _hubClient.SendResponse("engine_record_start", "ok", _captureEngine.OutputFile)
+                _hubClient.SendResponse("engine_record_start", "ok", _captureEngine.OutputFile, reqId)
             Else
-                _hubClient.SendResponse("engine_record_start", "error", "start_failed")
+                _hubClient.SendResponse("engine_record_start", "error", "start_failed", reqId)
             End If
         Catch ex As Exception
             DebugLog("RecordStart error: " & ex.Message)
-            _hubClient.SendResponse("engine_record_start", "error", ex.Message)
+            _hubClient.SendResponse("engine_record_start", "error", ex.Message, reqId)
         End Try
-    End Sub
+    End Function
 
-    Private Sub HandleEngineRecordStop()
+    Private Async Function HandleEngineRecordStop(reqId As String) As Task
         Try
             If _captureEngine Is Nothing OrElse Not _captureEngine.IsRecording Then
-                _hubClient.SendResponse("engine_record_stop", "error", "not_recording")
+                _hubClient.SendResponse("engine_record_stop", "error", "not_recording", reqId)
                 Return
             End If
 
-            Dim task As Task(Of Boolean) = _captureEngine.StopRecordingAsync()
-            task.Wait()
+            ' ✅ P1: Await instead of task.Wait().
+            Await _captureEngine.StopRecordingAsync()
 
             Me.Invoke(Sub()
                           tmrRecording.Stop()
@@ -175,43 +189,43 @@ Public Class UI_Engine
                           btnStop.Enabled = False
                       End Sub)
 
-            _hubClient.SendResponse("engine_record_stop", "ok", _captureEngine.OutputFile)
+            _hubClient.SendResponse("engine_record_stop", "ok", _captureEngine.OutputFile, reqId)
         Catch ex As Exception
-            _hubClient.SendResponse("engine_record_stop", "error", ex.Message)
+            _hubClient.SendResponse("engine_record_stop", "error", ex.Message, reqId)
         End Try
+    End Function
+
+    Private Sub HandleEngineReplayStart(value As String, reqId As String)
+        _hubClient.SendResponse("engine_replay_start", "error", "not_implemented", reqId)
     End Sub
 
-    Private Sub HandleEngineReplayStart(value As String)
-        _hubClient.SendResponse("engine_replay_start", "error", "not_implemented")
+    Private Sub HandleEngineReplayStop(reqId As String)
+        _hubClient.SendResponse("engine_replay_stop", "error", "not_implemented", reqId)
     End Sub
 
-    Private Sub HandleEngineReplayStop()
-        _hubClient.SendResponse("engine_replay_stop", "error", "not_implemented")
+    Private Sub HandleEngineReplaySave(value As String, reqId As String)
+        _hubClient.SendResponse("engine_replay_save", "error", "not_implemented", reqId)
     End Sub
 
-    Private Sub HandleEngineReplaySave(value As String)
-        _hubClient.SendResponse("engine_replay_save", "error", "not_implemented")
-    End Sub
-
-    Private Sub HandleEngineGetStatus()
+    Private Sub HandleEngineGetStatus(reqId As String)
         Dim state As String = "Idle"
         If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
             state = "Recording"
         End If
-        _hubClient.SendResponse("engine_get_status", "ok", state)
+        _hubClient.SendResponse("engine_get_status", "ok", state, reqId)
     End Sub
 
-    Private Sub HandleEngineLoadConfig()
+    Private Sub HandleEngineLoadConfig(reqId As String)
         Try
             _settings = CaptureSettings.Load(_configPath)
-            _hubClient.SendResponse("engine_load_config", "ok")
+            _hubClient.SendResponse("engine_load_config", "ok", Nothing, reqId)
         Catch ex As Exception
-            _hubClient.SendResponse("engine_load_config", "error", ex.Message)
+            _hubClient.SendResponse("engine_load_config", "error", ex.Message, reqId)
         End Try
     End Sub
 
-    Private Sub HandleEngineSetEncoder(value As String)
-        _hubClient.SendResponse("engine_set_encoder", "error", "use_config_json")
+    Private Sub HandleEngineSetEncoder(value As String, reqId As String)
+        _hubClient.SendResponse("engine_set_encoder", "error", "use_config_json", reqId)
     End Sub
 
     ' ── Init ──────────────────────────────────────────────────
@@ -556,10 +570,10 @@ Public Class UI_Engine
     Private Sub DebugLog(message As String)
         Try
             Dim logDir As String = IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
-            If Not IO.Directory.Exists(logDir) Then IO.Directory.CreateDirectory(logDir)
             Dim logPath As String = IO.Path.Combine(logDir, "ui-engine.log")
-            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & "] " & message & Environment.NewLine
-            IO.File.AppendAllText(logPath, logLine)
+            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & "] " & message
+            ' ✅ P1: route through BackgroundLogger instead of File.AppendAllText per line.
+            BackgroundLogger.Log(logPath, logLine)
         Catch
         End Try
     End Sub

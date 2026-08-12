@@ -74,6 +74,11 @@ Public Class CaptureEngine
     Private _stopwatch As Stopwatch
     Private _logBuffer As StringBuilder
     Private _disposed As Boolean = False
+    ' ✅ P1: Job Object guard — when the Engine process dies for any reason
+    ' (crash, Task Manager kill, logoff), Windows automatically kills every
+    ' process assigned to this job. Prevents orphaned ffmpeg.exe from running
+    ' indefinitely after Engine is gone.
+    Private _jobGuard As JobObjectGuard
 
     ' ── Properties ────────────────────────────────────────────
 
@@ -109,6 +114,13 @@ Public Class CaptureEngine
     Public Sub New(settings As CaptureSettings)
         _settings = settings
         _logBuffer = New StringBuilder()
+        Try
+            _jobGuard = New JobObjectGuard()
+        Catch ex As Exception
+            ' Best-effort: if job creation fails (e.g. on Wine/older Windows),
+            ' capture still works — we just lose orphan protection.
+            LogDebug("JobObjectGuard init failed: " & ex.Message)
+        End Try
     End Sub
 
     ' ── Start Recording ───────────────────────────────────────
@@ -160,6 +172,11 @@ Public Class CaptureEngine
                                          SetState(CaptureState.HasError)
                                          RaiseEvent ErrorOccurred("Failed to start FFmpeg process")
                                          Return False
+                                     End If
+
+                                     ' ✅ P1: tie the FFmpeg child to our Job Object so it dies with us.
+                                     If _jobGuard IsNot Nothing Then
+                                         _jobGuard.Assign(_ffmpegProcess)
                                      End If
 
                                      _ffmpegProcess.BeginOutputReadLine()
@@ -535,15 +552,17 @@ Public Class CaptureEngine
     End Sub
 
     ''' <summary>
-    ''' Write debug info to log file on disk for troubleshooting
+    ''' Write debug info to log file on disk for troubleshooting.
     ''' </summary>
     Private Sub WriteDebugLog(message As String)
         Try
             Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
-            If Not Directory.Exists(logDir) Then Directory.CreateDirectory(logDir)
             Dim logPath As String = Path.Combine(logDir, "capture-engine.log")
-            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] " & message & Environment.NewLine
-            File.AppendAllText(logPath, logLine)
+            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] " & message
+            ' ✅ P1: route through BackgroundLogger instead of File.AppendAllText per line.
+            ' FFmpeg progress goes to stderr at up to 60 lines/sec (one per frame); the old
+            ' per-line AppendAllText was a real disk-thrash on long recordings.
+            BackgroundLogger.Log(logPath, logLine)
         Catch
         End Try
     End Sub
@@ -559,6 +578,12 @@ Public Class CaptureEngine
         If Not _disposed Then
             If disposing Then
                 ForceStop()
+                ' ✅ P1: dispose the job guard AFTER ForceStop — closing the job handle
+                ' is what guarantees any straggler ffmpeg is killed.
+                If _jobGuard IsNot Nothing Then
+                    _jobGuard.Dispose()
+                    _jobGuard = Nothing
+                End If
             End If
             _disposed = True
         End If

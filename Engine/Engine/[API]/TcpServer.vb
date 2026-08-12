@@ -145,10 +145,19 @@ Public Class EngineHubClient
     End Sub
 
     ''' <summary>ส่ง response กลับไปยัง Overlay (ผ่าน Hub broadcast)</summary>
-    Public Sub SendResponse(command As String, status As String, Optional data As String = "")
+    Public Sub SendResponse(command As String, status As String, Optional data As String = "", Optional requestId As String = Nothing)
         Dim value As String = $"{command},{status}"
         If Not String.IsNullOrEmpty(data) Then
             value &= $",{data}"
+        End If
+        ' ✅ P1: include requestId in response so the Overlay can correlate
+        ' this response to the original request. Old protocol had no correlation
+        ' → if two engine_record_start commands were issued rapidly, the Overlay
+        ' couldn't tell which response matched which request.
+        ' Format: engine_response:<command>,<status>[,<data>][,req=<reqId>]
+        ' Backward compatible: if requestId is null/empty, the suffix is omitted.
+        If Not String.IsNullOrEmpty(requestId) Then
+            value &= $",req={requestId}"
         End If
         Send($"engine_response:{value}")
     End Sub
@@ -249,6 +258,15 @@ Public Class EngineHubClient
     ''' <summary>
     ''' Parse ข้อความจาก Hub และฟิลเตอร์เฉพาะ engine_ commands
     ''' Format: [Send] AppName|command:value หรือ [Receive] AppName|command:value
+    '''
+    ''' ✅ P1: Request ID support (backward compatible).
+    '''   New format: [Send] AppName|command:reqId|value
+    '''   Old format: [Send] AppName|command:value
+    ''' If the value contains a leading token with no colon and the command
+    ''' looks like it should have a payload, we treat the first | -delimited
+    ''' chunk after the command as the requestId. Old clients that don't send
+    ''' a reqId still work — Value just contains the original payload and
+    ''' RequestId is empty.
     ''' </summary>
     Private Sub ProcessMessage(msg As String)
         Try
@@ -275,8 +293,21 @@ Public Class EngineHubClient
             ' ฟิลเตอร์เฉพาะ engine_ commands
             If Not cmd.StartsWith("engine_") Then Return
 
-            RaiseEvent OnLog(Me, $"[Engine] Received: {cmd}={value}")
-            RaiseEvent OnCommandReceived(Me, New CommandEventArgs(cmd, value))
+            ' ✅ P1: parse optional requestId. New format:
+            '   command:reqId|payload  (reqId is the first | -segment after the command)
+            ' If the value starts with "req=<token>|" we treat <token> as the requestId
+            ' and strip it from value. Otherwise value is unchanged (backward compat).
+            Dim reqId As String = Nothing
+            If value.StartsWith("req=", StringComparison.Ordinal) Then
+                Dim sepIdx As Integer = value.IndexOf("|"c)
+                If sepIdx > 4 Then
+                    reqId = value.Substring(4, sepIdx - 4)
+                    value = value.Substring(sepIdx + 1)
+                End If
+            End If
+
+            RaiseEvent OnLog(Me, $"[Engine] Received: {cmd}={value}" & If(reqId, $" (req={reqId})", ""))
+            RaiseEvent OnCommandReceived(Me, New CommandEventArgs(cmd, value) With {.RequestId = reqId})
 
         Catch ex As Exception
             Debug.WriteLine($"EngineHubClient.ProcessMessage Error: {ex.Message}")
@@ -298,6 +329,12 @@ Public Class CommandEventArgs
 
     Public Property Command As String
     Public Property Value As String
+    ''' <summary>
+    ''' ✅ P1: optional request ID for correlation. Empty if the sender
+    ''' did not include one (old clients). Echo back in SendResponse to let
+    ''' the Overlay match this response to its original request.
+    ''' </summary>
+    Public Property RequestId As String
 
     Public Sub New(cmd As String, val As String)
         Command = cmd

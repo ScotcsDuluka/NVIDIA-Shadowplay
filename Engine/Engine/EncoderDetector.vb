@@ -506,10 +506,10 @@ Public Class EncoderDetector
         _lastError = message
         Try
             Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
-            If Not Directory.Exists(logDir) Then Directory.CreateDirectory(logDir)
             Dim logPath As String = Path.Combine(logDir, "encoder-detect.log")
-            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & "] " & message & Environment.NewLine
-            File.AppendAllText(logPath, logLine)
+            Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & "] " & message
+            ' ✅ P1: route through BackgroundLogger instead of File.AppendAllText per line.
+            BackgroundLogger.Log(logPath, logLine)
         Catch
         End Try
     End Sub

@@ -6,6 +6,8 @@ Imports System.Text.Json
 Imports System.Text.Json.Serialization
 Imports System.Net.Http
 Imports System.Security.Cryptography
+Imports System.Security.Cryptography.ProtectedData
+Imports System.Text
 
 Public Class AppSettings
     Private Shared ReadOnly NvidiaKeywords As String() = {"NVIDIA", "GEFORCE", "GTX", "RTX"}
@@ -154,9 +156,59 @@ Public Class AppSettings
 
     ''' <summary>
     ''' GitHub Token สำหรับ OAuth
+    ''' ✅ P1: stored encrypted (DPAPI, CurrentUser scope) in config.json as
+    ''' GitHubTokenEncrypted. Never written to disk as plain text. The plain
+    ''' GitHubToken property below is computed (decrypt-on-read) and only
+    ''' exists in memory. On first load after upgrade, an old plain-text
+    ''' GitHubToken value is automatically migrated to encrypted form.
     ''' </summary>
     Public Property GitHubUser As New GitHubUserClass()
-    Public Property GitHubToken As String = ""
+
+    ''' <summary>Encrypted GitHub token (Base64 of DPAPI-protected bytes). Persisted.</summary>
+    <JsonPropertyName("GitHubTokenEncrypted")>
+    Public Property GitHubTokenEncrypted As String = ""
+
+    ''' <summary>
+    ''' Plain-text GitHub token. NOT serialized to JSON (JsonIgnore on the
+    ''' backing field below). Reading it decrypts GitHubTokenEncrypted; writing
+    ''' it encrypts and stores in GitHubTokenEncrypted. On failed decrypt the
+    ''' getter returns "" (treats token as missing).
+    ''' </summary>
+    <JsonIgnore>
+    Public Property GitHubToken As String
+        Get
+            Return DecryptToken(GitHubTokenEncrypted)
+        End Get
+        Set(value As String)
+            GitHubTokenEncrypted = EncryptToken(value)
+        End Set
+    End Property
+
+    ' ── DPAPI helpers ─────────────────────────────────────────
+    Private Shared Function EncryptToken(plain As String) As String
+        If String.IsNullOrEmpty(plain) Then Return ""
+        Try
+            Dim bytes As Byte() = Encoding.UTF8.GetBytes(plain)
+            Dim cipher As Byte() = ProtectedData.Protect(bytes, Nothing, DataProtectionScope.CurrentUser)
+            Return Convert.ToBase64String(cipher)
+        Catch ex As Exception
+            Debug.WriteLine($"EncryptToken failed: {ex.Message}")
+            Return ""
+        End Try
+    End Function
+
+    Private Shared Function DecryptToken(cipherB64 As String) As String
+        If String.IsNullOrEmpty(cipherB64) Then Return ""
+        Try
+            Dim cipher As Byte() = Convert.FromBase64String(cipherB64)
+            Dim plain As Byte() = ProtectedData.Unprotect(cipher, Nothing, DataProtectionScope.CurrentUser)
+            Return Encoding.UTF8.GetString(plain)
+        Catch ex As Exception
+            ' Wrong user, corrupted, or it's actually a legacy plain-text token.
+            Debug.WriteLine($"DecryptToken failed: {ex.Message}")
+            Return ""
+        End Try
+    End Function
 
 #End Region
 
@@ -445,6 +497,23 @@ Public Class AppSettings
                     If loaded IsNot Nothing Then
                         ApplyLoadedSettings(loaded)
 
+                        ' ✅ P1: Migration — if the JSON on disk still has a legacy
+                        ' plain-text GitHubToken field (from before DPAPI encryption),
+                        ' encrypt it and store it as GitHubTokenEncrypted, then trigger
+                        ' a save so the plain-text field is wiped from disk.
+                        ' The <JsonIgnore> on the GitHubToken setter means it never
+                        ' deserializes directly — we have to peek at the raw JSON.
+                        Dim legacyPlainToken As String = TryGetLegacyPlainToken(json)
+                        If Not String.IsNullOrEmpty(legacyPlainToken) Then
+                            GitHubToken = legacyPlainToken  ' triggers EncryptToken via setter
+                            Debug.WriteLine("AppSettings.Load: migrated legacy plain-text GitHubToken → encrypted")
+                            Try
+                                Save()  ' persist the encrypted form and wipe the plain-text field
+                            Catch ex As Exception
+                                Debug.WriteLine("AppSettings.Load: migration save failed: " & ex.Message)
+                            End Try
+                        End If
+
                         Debug.WriteLine("AppSettings.Load: SUCCESS")
                         Debug.WriteLine($"  GitHub User: {GitHubUser.Username}")
                         Debug.WriteLine($"  GitHub Logged In: {GitHubUser.IsLoggedIn}")
@@ -461,6 +530,31 @@ Public Class AppSettings
         End Try
     End Sub
 
+    ''' <summary>
+    ''' Peek at the raw JSON to find a legacy plain-text "GitHubToken" field.
+    ''' Returns "" if not present or if the value is empty.
+    ''' </summary>
+    Private Shared Function TryGetLegacyPlainToken(json As String) As String
+        Try
+            Using doc As JsonDocument = JsonDocument.Parse(json)
+                Dim root As JsonElement = doc.RootElement
+                Dim tok As JsonElement
+                ' PropertyNameCaseInsensitive at the parser level is not a thing —
+                ' check both common casings explicitly.
+                If root.TryGetProperty("GitHubToken", tok) AndAlso tok.ValueKind = JsonValueKind.String Then
+                    Dim s As String = tok.GetString()
+                    If Not String.IsNullOrEmpty(s) Then Return s
+                End If
+                If root.TryGetProperty("githubtoken", tok) AndAlso tok.ValueKind = JsonValueKind.String Then
+                    Dim s As String = tok.GetString()
+                    If Not String.IsNullOrEmpty(s) Then Return s
+                End If
+            End Using
+        Catch
+        End Try
+        Return ""
+    End Function
+
     Private Sub ApplyLoadedSettings(loaded As AppSettings)
         If loaded Is Nothing Then Return
 
@@ -475,7 +569,12 @@ Public Class AppSettings
             Hotkeys = New Dictionary(Of String, String)(loaded.Hotkeys, StringComparer.OrdinalIgnoreCase)
         End If
 
-        GitHubToken = loaded.GitHubToken
+        ' ✅ P1: copy the encrypted token directly (the plain GitHubToken property
+        ' is <JsonIgnore> so the deserializer can't set it; copying the encrypted
+        ' form preserves the value without a decrypt-then-encrypt round-trip that
+        ' could subtly corrupt the bytes). Legacy plain-text migration is handled
+        ' separately in Load() via TryGetLegacyPlainToken.
+        GitHubTokenEncrypted = loaded.GitHubTokenEncrypted
     End Sub
 
     Private Sub ApplyRecordingSettings(loadedRecording As RecordingSettingsClass)
