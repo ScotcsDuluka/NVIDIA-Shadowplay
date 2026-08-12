@@ -148,9 +148,13 @@ Public Class UI_Engine
             AddHandler _captureEngine.RecordingStopped, AddressOf OnRecordingStopped
             AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
 
-            ' ✅ P1: Await instead of task.Wait() — frees the listener thread to
-            ' process other commands while StartRecordingAsync runs.
-            Dim ok As Boolean = Await _captureEngine.StartRecordingAsync()
+            ' ✅ P1.5: pass the Overlay-supplied output path through to CaptureEngine.
+            ' value is the path the Overlay wants the file saved to (e.g.
+            ' "C:\Users\...\Videos\Shadowplay\Gallery\Record_2024-01-01_12-00-00.mp4").
+            ' If empty, CaptureEngine falls back to settings.GenerateOutputFilename().
+            ' Old behavior ignored value entirely → file landed in Engine's preferred
+            ' folder instead of where the Overlay told the user it would be.
+            Dim ok As Boolean = Await _captureEngine.StartRecordingAsync(value)
 
             If ok Then
                 Me.Invoke(Sub()

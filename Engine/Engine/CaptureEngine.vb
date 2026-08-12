@@ -125,7 +125,7 @@ Public Class CaptureEngine
 
     ' ── Start Recording ───────────────────────────────────────
 
-    Public Async Function StartRecordingAsync() As Task(Of Boolean)
+    Public Async Function StartRecordingAsync(Optional overrideOutputPath As String = Nothing) As Task(Of Boolean)
         If _state <> CaptureState.Idle Then
             RaiseEvent ErrorOccurred("Cannot start: engine is not idle")
             Return False
@@ -141,7 +141,34 @@ Public Class CaptureEngine
             Directory.CreateDirectory(_settings.OutputDirectory)
         End If
 
-        _outputFile = _settings.GenerateOutputFilename()
+        ' ✅ P1.5: if the caller (Overlay via Hub) supplied a specific output path,
+        ' honor it. Otherwise fall back to settings.GenerateOutputFilename() which
+        ' uses settings.OutputDirectory + timestamp. Old behavior always used the
+        ' settings path, which meant files ended up in Engine's preferred folder
+        ' instead of where the Overlay told the user they'd be saved.
+        If Not String.IsNullOrEmpty(overrideOutputPath) Then
+            ' Basic sanity: must end with a known video extension.
+            Dim ext As String = Path.GetExtension(overrideOutputPath).ToLowerInvariant()
+            If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".mkv" OrElse ext = ".avi" OrElse ext = ".m4v" Then
+                _outputFile = overrideOutputPath
+                ' Make sure parent dir exists.
+                Dim parentDir As String = Path.GetDirectoryName(overrideOutputPath)
+                If Not String.IsNullOrEmpty(parentDir) AndAlso Not Directory.Exists(parentDir) Then
+                    Try
+                        Directory.CreateDirectory(parentDir)
+                    Catch ex As Exception
+                        RaiseEvent ErrorOccurred("Cannot create output dir: " & ex.Message)
+                        Return False
+                    End Try
+                End If
+            Else
+                RaiseEvent ErrorOccurred("Unsupported output extension: " & ext)
+                Return False
+            End If
+        Else
+            _outputFile = _settings.GenerateOutputFilename()
+        End If
+
         SetState(CaptureState.Recording)
 
         Return Await Task.Run(Function()

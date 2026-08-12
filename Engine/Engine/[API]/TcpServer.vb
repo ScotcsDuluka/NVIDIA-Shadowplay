@@ -290,8 +290,22 @@ Public Class EngineHubClient
                 value = ""
             End If
 
-            ' ฟิลเตอร์เฉพาะ engine_ commands
-            If Not cmd.StartsWith("engine_") Then Return
+            ' ฟิลเตอร์เฉพาะ engine_ commands (และ alias เก่า)
+            ' ✅ P1.5: accept legacy RECORD_START/STOP/REPLAY_* commands that
+            ' Overlay's Sub_Record.vb still sends. Old behavior filtered them
+            ' out (cmd.StartsWith("engine_") was the only check), so pressing
+            ' Record in the Overlay did nothing while Overlay's UI optimistically
+            ' showed "Recording" — bug reported as "กดอัด ขึ้นอัด แต่ไม่ได้อัดจริง".
+            Dim canonicalCmd As String = cmd
+            Select Case cmd
+                Case "RECORD_START" : canonicalCmd = "engine_record_start"
+                Case "RECORD_STOP" : canonicalCmd = "engine_record_stop"
+                Case "REPLAY_START" : canonicalCmd = "engine_replay_start"
+                Case "REPLAY_STOP" : canonicalCmd = "engine_replay_stop"
+                Case "REPLAY_SAVE" : canonicalCmd = "engine_replay_save"
+            End Select
+            If Not canonicalCmd.StartsWith("engine_") Then Return
+            cmd = canonicalCmd
 
             ' ✅ P1: parse optional requestId. New format:
             '   command:reqId|payload  (reqId is the first | -segment after the command)
