@@ -22,13 +22,18 @@ Imports System.Threading
 Public NotInheritable Class BackgroundLogger
 
     Private Class FileWriter
-        ReadOnly _queue As New BlockingCollection(Of String)(boundedCapacity:=8192)
+        ReadOnly _queue As BlockingCollection(Of String)
         ReadOnly _task As Task
         ReadOnly _filePath As String
         Dim _stopped As Boolean
 
         Public Sub New(filePath As String)
             _filePath = filePath
+            ' ✅ FIX: VB.NET doesn't allow named arguments in a ReadOnly field
+            ' initializer (the parser treats 'New ...(name:=value)' as a method
+            ' call, not a constructor initializer). Move into the ctor where
+            ' named-arg syntax IS allowed.
+            _queue = New BlockingCollection(Of String)(boundedCapacity:=8192)
             ' Long-running task. Marked LongRunning so the scheduler gives it
             ' a dedicated thread instead of consuming a thread-pool slot.
             _task = Task.Factory.StartNew(AddressOf DrainLoop,
@@ -43,7 +48,7 @@ Public NotInheritable Class BackgroundLogger
                     Directory.CreateDirectory(dir)
                 End If
 
-                Using fs As New FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.Read, bufferSize:=65536)
+                Using fs As New FileStream(_filePath, FileMode.Append, FileAccess.Write, FileShare.Read, 65536)
                     Using sw As New StreamWriter(fs) With {.AutoFlush = False}
                         Dim batch As New List(Of String)(256)
 
