@@ -1,7 +1,6 @@
 ' UI_Engine.vb
 ' ShadowPlay Engine - Main Form Logic
-' Connects UI to CaptureEngine, EncoderDetector, CaptureSettings
-' Handles: Record/Stop, Detect, Hotkeys, Browse, Config load/save
+' TCP Hub Client Mode — เชื่อม API Hub (port 5000) รับ engine_* commands
 
 Imports System.IO
 Imports System.Windows.Forms
@@ -13,11 +12,14 @@ Public Class UI_Engine
     Private _settings As CaptureSettings
     Private _captureEngine As CaptureEngine
     Private _encoderDetector As EncoderDetector
-    Private _hotkeyManager As HotkeyManager
     Private _hotkeyStartId As Integer = -1
     Private _hotkeyStopId As Integer = -1
     Private _configPath As String
     Private _isLoaded As Boolean = False
+
+    ' ── TCP Hub Client (เชื่อม Hub port 5000) ──────────────────
+
+    Private _hubClient As EngineHubClient
 
     ' ── Form Load / Close ──────────────────────────────────────
 
@@ -26,8 +28,10 @@ Public Class UI_Engine
 
         LoadSettings()
         InitializeEngine()
-        RegisterHotkeys()
         DetectEncoders()
+
+        ' เชื่อมกับ API Hub
+        StartHubClient()
 
         AddHandler chkNativeRes.CheckedChanged, AddressOf OnNativeResChanged
         AddHandler btnRecord.Click, AddressOf OnRecordClick
@@ -47,8 +51,167 @@ Public Class UI_Engine
             _captureEngine.ForceStop()
         End If
         SaveSettings()
-        If _hotkeyManager IsNot Nothing Then _hotkeyManager.Dispose()
+        If _hubClient IsNot Nothing Then _hubClient.Dispose()
         If _captureEngine IsNot Nothing Then _captureEngine.Dispose()
+    End Sub
+
+    ' ── Hub Client ────────────────────────────────────────────
+
+    Private Sub StartHubClient()
+        Try
+            _hubClient = New EngineHubClient()
+            AddHandler _hubClient.OnCommandReceived, AddressOf OnHubCommand
+            AddHandler _hubClient.OnConnectionStatusChanged, AddressOf OnHubConnectionChanged
+            AddHandler _hubClient.OnLog, AddressOf OnHubLog
+
+            _hubClient.Connect()
+            lblHotkeys.Text = "Connecting to Hub (port 5000)..."
+            DebugLog("Hub client starting...")
+        Catch ex As Exception
+            lblHotkeys.Text = "Hub connect failed: " & ex.Message
+            DebugLog("Hub client error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub OnHubConnectionChanged(sender As Object, connected As Boolean)
+        Me.Invoke(Sub()
+                      If connected Then
+                          lblHotkeys.Text = "Hub Connected (port 5000) | engine_* ready"
+                          lblHotkeys.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                      Else
+                          lblHotkeys.Text = "Hub Disconnected — reconnecting..."
+                          lblHotkeys.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
+                      End If
+                  End Sub)
+    End Sub
+
+    Private Sub OnHubLog(sender As Object, message As String)
+        DebugLog(message)
+    End Sub
+
+    ''' <summary>
+    ''' รับ engine_* commands จาก Hub แล้ว execute
+    ''' </summary>
+    Private Sub OnHubCommand(sender As Object, e As CommandEventArgs)
+        DebugLog($"[Engine] Executing: {e.Command}={e.Value}")
+
+        Select Case e.Command
+            Case "engine_record_start"
+                HandleEngineRecordStart(e.Value)
+            Case "engine_record_stop"
+                HandleEngineRecordStop()
+            Case "engine_replay_start"
+                HandleEngineReplayStart(e.Value)
+            Case "engine_replay_stop"
+                HandleEngineReplayStop()
+            Case "engine_replay_save"
+                HandleEngineReplaySave(e.Value)
+            Case "engine_get_status"
+                HandleEngineGetStatus()
+            Case "engine_load_config"
+                HandleEngineLoadConfig()
+            Case "engine_set_encoder"
+                HandleEngineSetEncoder(e.Value)
+            Case Else
+                _hubClient.SendResponse(e.Command, "error", "unknown_command")
+        End Select
+    End Sub
+
+    ' ── Engine Command Handlers (TCP แค่ on/off) ──────────
+
+    Private Sub HandleEngineRecordStart(value As String)
+        Try
+            ' โหลด config ใหม่จาก json ทุกครั้งก่อน record
+            _settings = CaptureSettings.Load(_configPath)
+
+            If Not IO.Directory.Exists(_settings.OutputDirectory) Then
+                IO.Directory.CreateDirectory(_settings.OutputDirectory)
+            End If
+
+            _captureEngine?.Dispose()
+            _captureEngine = New CaptureEngine(_settings)
+            AddHandler _captureEngine.StateChanged, AddressOf OnEngineStateChanged
+            AddHandler _captureEngine.RecordingStarted, AddressOf OnRecordingStarted
+            AddHandler _captureEngine.RecordingStopped, AddressOf OnRecordingStopped
+            AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
+
+            Dim task As Task(Of Boolean) = _captureEngine.StartRecordingAsync()
+            task.Wait()
+
+            If task.Result Then
+                Me.Invoke(Sub()
+                              lblStatus.Text = "Recording (Hub)..."
+                              lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                              tmrRecording.Start()
+                              btnRecord.Enabled = False
+                              btnStop.Enabled = True
+                          End Sub)
+                _hubClient.SendResponse("engine_record_start", "ok", _captureEngine.OutputFile)
+            Else
+                _hubClient.SendResponse("engine_record_start", "error", "start_failed")
+            End If
+        Catch ex As Exception
+            DebugLog("RecordStart error: " & ex.Message)
+            _hubClient.SendResponse("engine_record_start", "error", ex.Message)
+        End Try
+    End Sub
+
+    Private Sub HandleEngineRecordStop()
+        Try
+            If _captureEngine Is Nothing OrElse Not _captureEngine.IsRecording Then
+                _hubClient.SendResponse("engine_record_stop", "error", "not_recording")
+                Return
+            End If
+
+            Dim task As Task(Of Boolean) = _captureEngine.StopRecordingAsync()
+            task.Wait()
+
+            Me.Invoke(Sub()
+                          tmrRecording.Stop()
+                          lblTimer.Text = "00:00:00"
+                          lblStatus.Text = "Saved: " & Path.GetFileName(_captureEngine.OutputFile)
+                          lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                          btnRecord.Enabled = True
+                          btnStop.Enabled = False
+                      End Sub)
+
+            _hubClient.SendResponse("engine_record_stop", "ok", _captureEngine.OutputFile)
+        Catch ex As Exception
+            _hubClient.SendResponse("engine_record_stop", "error", ex.Message)
+        End Try
+    End Sub
+
+    Private Sub HandleEngineReplayStart(value As String)
+        _hubClient.SendResponse("engine_replay_start", "error", "not_implemented")
+    End Sub
+
+    Private Sub HandleEngineReplayStop()
+        _hubClient.SendResponse("engine_replay_stop", "error", "not_implemented")
+    End Sub
+
+    Private Sub HandleEngineReplaySave(value As String)
+        _hubClient.SendResponse("engine_replay_save", "error", "not_implemented")
+    End Sub
+
+    Private Sub HandleEngineGetStatus()
+        Dim state As String = "Idle"
+        If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
+            state = "Recording"
+        End If
+        _hubClient.SendResponse("engine_get_status", "ok", state)
+    End Sub
+
+    Private Sub HandleEngineLoadConfig()
+        Try
+            _settings = CaptureSettings.Load(_configPath)
+            _hubClient.SendResponse("engine_load_config", "ok")
+        Catch ex As Exception
+            _hubClient.SendResponse("engine_load_config", "error", ex.Message)
+        End Try
+    End Sub
+
+    Private Sub HandleEngineSetEncoder(value As String)
+        _hubClient.SendResponse("engine_set_encoder", "error", "use_config_json")
     End Sub
 
     ' ── Init ──────────────────────────────────────────────────
@@ -97,15 +260,6 @@ Public Class UI_Engine
         AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
     End Sub
 
-    Private Sub RegisterHotkeys()
-        _hotkeyManager = New HotkeyManager()
-        _hotkeyStartId = _hotkeyManager.RegisterFromString(_settings.HotkeyStart)
-        _hotkeyStopId = _hotkeyManager.RegisterFromString(_settings.HotkeyStop)
-        If _hotkeyStartId >= 0 Then
-            AddHandler _hotkeyManager.HotkeyPressed, AddressOf OnHotkeyPressed
-        End If
-    End Sub
-
     ' ── Detect Encoders ────────────────────────────────────────
 
     Private Sub DetectEncoders()
@@ -119,48 +273,15 @@ Public Class UI_Engine
                          Dim encOk As Boolean = _encoderDetector.DetectEncoders()
                          _encoderDetector.DetectCaptureDevices()
 
-                         ' Auto-detect audio devices
-                         Dim audioDevices As List(Of String) = _encoderDetector.DetectAudioDevices()
-                         Dim audioOk As Boolean = False
-                         If _settings.AudioCapture AndAlso Not String.IsNullOrWhiteSpace(_settings.AudioDevice) Then
-                             audioOk = _encoderDetector.IsAudioDeviceAvailable(_settings.AudioDevice)
-                             If Not audioOk Then
-                                 ' Audio device not found - disable audio capture
-                                 _settings.AudioCapture = False
-                                 _settings.Save(_configPath)
-                             End If
-                         End If
-
-                         Dim detectedAudioDevices As List(Of String) = audioDevices
-
                          Me.Invoke(Sub()
                                        UpdateEncoderDropdown()
 
                                        If encOk Then
-                                           Dim msg As String = "Idle - Ready (" & _encoderDetector.VideoEncoders.Count.ToString() & " encoders"
-                                           If Not audioOk AndAlso _settings.AudioCapture = False Then
-                                               msg = msg & ", no audio device"
-                                           End If
-                                           msg = msg & ")"
-                                           lblStatus.Text = msg
+                                           lblStatus.Text = "Idle - Hub Client (" & _encoderDetector.VideoEncoders.Count.ToString() & " encoders)"
                                            lblStatus.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
                                        Else
-                                           Dim errDetail As String = _encoderDetector.LastDetectionError
-                                           If _encoderDetector.UsedFallback Then
-                                               lblStatus.Text = "FFmpeg detect failed - using fallback encoders. Check: " & errDetail
-                                               lblStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
-                                           Else
-                                           If String.IsNullOrEmpty(errDetail) Then errDetail = "No encoders found"
-                                           lblStatus.Text = "Detection: " & errDetail
+                                           lblStatus.Text = "Detection: " & If(String.IsNullOrEmpty(_encoderDetector.LastDetectionError), "No encoders", _encoderDetector.LastDetectionError)
                                            lblStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
-                                           End If
-                                       End If
-
-                                       ' Log detected audio devices
-                                       If detectedAudioDevices.Count > 0 Then
-                                           DebugLog("Audio devices found: " & String.Join(", ", detectedAudioDevices))
-                                       Else
-                                           DebugLog("No audio devices found on this system")
                                        End If
                                    End Sub)
                      Catch ex As Exception
@@ -213,7 +334,6 @@ Public Class UI_Engine
             Return
         End If
 
-        ' Select recommended
         Dim recommended As String = _encoderDetector.GetRecommendedEncoder()
         For i As Integer = 0 To cboEncoder.Items.Count - 1
             If cboEncoder.Items(i).ToString().IndexOf(recommended, StringComparison.OrdinalIgnoreCase) >= 0 Then
@@ -268,15 +388,14 @@ Public Class UI_Engine
                  End Sub)
     End Sub
 
-    ' ── Engine Events ─────────────────────────────────────────
+    ' ── Engine Events ────────────────────────────────────────────
 
     Private Sub OnEngineStateChanged(state As CaptureEngine.CaptureState)
         Me.Invoke(Sub()
                       Select Case state
                           Case CaptureEngine.CaptureState.Idle
-                              lblStatus.Text = "Idle - Ready"
+                              lblStatus.Text = "Idle - Hub Client"
                               lblStatus.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
-                              lblTimer.ForeColor = _accentGreen
                               tmrRecording.Stop()
 
                           Case CaptureEngine.CaptureState.Recording
@@ -381,14 +500,12 @@ Public Class UI_Engine
             dlg.Filter = "FFmpeg (ffmpeg.exe)|ffmpeg.exe"
             dlg.FileName = "ffmpeg.exe"
 
-            ' Auto-navigate to likely locations
             Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
             If File.Exists(txtFFmpegPath.Text) Then
                 dlg.InitialDirectory = Path.GetDirectoryName(txtFFmpegPath.Text)
             ElseIf Directory.Exists(Path.Combine(appDir, "API-Core")) Then
                 dlg.InitialDirectory = Path.Combine(appDir, "API-Core")
             ElseIf appDir.Contains("bin" & IO.Path.DirectorySeparatorChar) Then
-                ' Walk up from bin\Release\... to solution root
                 Dim parentDir As String = appDir
                 For depth As Integer = 1 To 5
                     Try
@@ -409,7 +526,6 @@ Public Class UI_Engine
                 txtFFmpegPath.Text = dlg.FileName
                 _settings.FFmpegPath = dlg.FileName
                 ValidateFFmpegPath()
-                ' Re-detect encoders with new FFmpeg path
                 DetectEncoders()
             End If
         End Using

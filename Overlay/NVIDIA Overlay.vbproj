@@ -43,11 +43,7 @@
 
 <Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
 
-  <WriteLinesToFile
-      File="$(MSBuildProjectDirectory)\build.txt"
-      Lines="100"
-      Overwrite="false"
-      Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
+  <WriteLinesToFile File="$(MSBuildProjectDirectory)\build.txt" Lines="100" Overwrite="false" Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
 
 <Exec Command="bash $(MSBuildProjectDirectory)/inc_build.sh $(MSBuildProjectDirectory)/build.txt" Condition=" '$(OS)' != 'Windows_NT'" />
 <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$f='$(MSBuildProjectDirectory)\build.txt'; $n=[int](Get-Content $f -Raw).Trim(); Set-Content $f ($n+1)&quot;" Condition=" '$(OS)' == 'Windows_NT'" />
@@ -345,6 +341,7 @@
                 <ProjectReference Include="..\API\NVIDIA API.vbproj" />
                 <ProjectReference Include="..\App Experience\NVIDIA Experience.vbproj" />
                 <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+                <ProjectReference Include="..\Engine\NVIDIA Capture.vbproj" />
                 <ProjectReference Include="..\Notifier\NVIDIA Notifier.vbproj" />
         </ItemGroup>
 

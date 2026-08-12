@@ -44,31 +44,32 @@ Partial Class API_RUN
         ' 
         ' lstLog
         ' 
-        lstLog.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        lstLog.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         lstLog.FormattingEnabled = True
         lstLog.IntegralHeight = False
         lstLog.ItemHeight = 15
         lstLog.Location = New Point(12, 30)
         lstLog.Name = "lstLog"
         lstLog.SelectionMode = SelectionMode.MultiExtended
-        lstLog.Size = New Size(642, 265)
+        lstLog.Size = New Size(785, 265)
         lstLog.TabIndex = 1
         ' 
         ' lblStatus
         ' 
-        lblStatus.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        lblStatus.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         lblStatus.Controls.Add(lblUptime)
         lblStatus.Location = New Point(12, 12)
         lblStatus.Name = "lblStatus"
-        lblStatus.Size = New Size(642, 110)
+        lblStatus.Size = New Size(785, 110)
         lblStatus.TabIndex = 2
         lblStatus.TabStop = False
         lblStatus.Text = "Server log | Offline"
         ' 
         ' lblUptime
         ' 
+        lblUptime.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lblUptime.AutoSize = True
-        lblUptime.Location = New Point(576, 0)
+        lblUptime.Location = New Point(719, 0)
         lblUptime.Name = "lblUptime"
         lblUptime.Size = New Size(66, 15)
         lblUptime.TabIndex = 5
@@ -76,23 +77,23 @@ Partial Class API_RUN
         ' 
         ' lstClients
         ' 
-        lstClients.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        lstClients.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         lstClients.FormattingEnabled = True
         lstClients.IntegralHeight = False
         lstClients.ItemHeight = 15
         lstClients.Location = New Point(12, 319)
         lstClients.Name = "lstClients"
         lstClients.SelectionMode = SelectionMode.MultiExtended
-        lstClients.Size = New Size(642, 94)
+        lstClients.Size = New Size(785, 94)
         lstClients.TabIndex = 3
         ' 
         ' GroupBox2
         ' 
-        GroupBox2.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        GroupBox2.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         GroupBox2.Controls.Add(lblClientsOnline)
         GroupBox2.Location = New Point(12, 301)
         GroupBox2.Name = "GroupBox2"
-        GroupBox2.Size = New Size(642, 58)
+        GroupBox2.Size = New Size(785, 58)
         GroupBox2.TabIndex = 4
         GroupBox2.TabStop = False
         GroupBox2.Text = "Clients Online"
@@ -124,7 +125,7 @@ Partial Class API_RUN
         ' 
         AutoScaleMode = AutoScaleMode.None
         AutoSizeMode = AutoSizeMode.GrowAndShrink
-        ClientSize = New Size(666, 425)
+        ClientSize = New Size(809, 425)
         Controls.Add(lstClients)
         Controls.Add(GroupBox2)
         Controls.Add(lstLog)

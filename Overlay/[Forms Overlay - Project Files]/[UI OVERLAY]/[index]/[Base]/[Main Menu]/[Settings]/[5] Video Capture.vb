@@ -1,38 +1,30 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.IO
 Imports System.Linq
 Imports System.Runtime.InteropServices
 Imports System.Threading.Tasks
-Imports CaptureEngine
-
+Imports System.Text.Json
+Imports System.Text.Json.Serialization
 Public Class Base_RecordingsSet
 
 #Region "Constants"
-    ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    ' â
-    ' aliases for CaptureCore.CaptureLimits. The actual values live in
-    ' CaptureEngine/Engine/CaptureLimits.vb.
-    '
-    ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT
-    ' caps (150000 / 800). The recorder's hard caps are different
-    ' (300000 / 240) and live in CaptureLimits.MAX_BITRATE_RECORDER /
-    ' MAX_FRAMERATE_RECORDER. UI allows typing larger values than the
-    ' recorder accepts; the recorder clamps at its own hard cap.
-    ' âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
-    Public Const MIN_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_BITRATE
-        Public Const MAX_BITRATE_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_BITRATE_UI
-        Public Const DEFAULT_BITRATE As Integer = CaptureCore.CaptureLimits.DEFAULT_BITRATE
+    ' Hardcoded values — formerly read from CaptureCore.CaptureLimits
+    ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT caps.
+    ' The recorder's hard caps are different and live in Engine's CaptureLimits.
+    Public Const MIN_BITRATE_GLOBAL As Integer = 500
+    Public Const MAX_BITRATE_GLOBAL As Integer = 150000
+    Public Const DEFAULT_BITRATE As Integer = 20000
 
-        Public Const MIN_FPS_GLOBAL As Integer = CaptureCore.CaptureLimits.MIN_FRAMERATE
-        Public Const MAX_FPS_GLOBAL As Integer = CaptureCore.CaptureLimits.MAX_FRAMERATE_UI
-        Public Const DEFAULT_FPS As Integer = CaptureCore.CaptureLimits.DEFAULT_FRAMERATE
+    Public Const MIN_FPS_GLOBAL As Integer = 1
+    Public Const MAX_FPS_GLOBAL As Integer = 800
+    Public Const DEFAULT_FPS As Integer = 60
 
-        Public Const MIN_RESOLUTION_WIDTH As Integer = CaptureCore.CaptureLimits.MIN_RESOLUTION_WIDTH
-        Public Const MAX_RESOLUTION_WIDTH As Integer = CaptureCore.CaptureLimits.MAX_RESOLUTION_WIDTH
-        Public Const MIN_RESOLUTION_HEIGHT As Integer = CaptureCore.CaptureLimits.MIN_RESOLUTION_HEIGHT
-        Public Const MAX_RESOLUTION_HEIGHT As Integer = CaptureCore.CaptureLimits.MAX_RESOLUTION_HEIGHT
+    Public Const MIN_RESOLUTION_WIDTH As Integer = 320
+    Public Const MAX_RESOLUTION_WIDTH As Integer = 7680
+    Public Const MIN_RESOLUTION_HEIGHT As Integer = 240
+    Public Const MAX_RESOLUTION_HEIGHT As Integer = 4320
 
-        Private Const NATIVE_RESOLUTION_KEY As String = "Native"
+    Private Const NATIVE_RESOLUTION_KEY As String = "Native"
 
     Private Structure BitrateLimit
         Public MinBitrate As Integer
@@ -81,13 +73,12 @@ Public Class Base_RecordingsSet
             Return
         End If
 
-        ' ═══ Auto-detect resolution change ═══
+        ' Auto-detect resolution change
         If m.Msg = WM_DISPLAYCHANGE Then
             Dim oldRes As String = _nativeResolution
             DetectNativeResolution()
             If _nativeResolution <> oldRes Then
                 Debug.WriteLine("WM_DISPLAYCHANGE: Resolution changed from " & oldRes & " to " & _nativeResolution)
-                ' Refresh resolution list and UI
                 LoadResolutionBox()
                 UpdateBitrateLimits()
                 UpdateBitrateLabel()
@@ -162,10 +153,10 @@ Public Class Base_RecordingsSet
         {"7680x4320", New BitrateLimit(24000, 150000, 40000, 100000)}
     }
 
-    ' ═══ Encoder Preset Tooltip ═══
+    ' Encoder Preset Tooltip
     Private WithEvents _presetToolTip As ToolTip
 
-    ' ═══ Dropdown menu restore state ═══
+    ' Dropdown menu restore state
     Private _menuRestoreDrop As Control
     Private _menuRestoreBg As Control
 
@@ -187,46 +178,6 @@ Public Class Base_RecordingsSet
     Private _currentResolutionIndex As Integer = -1
     Private Shared _encoderAvailabilityCache As New Dictionary(Of String, Boolean)()
     Private Shared ReadOnly _availabilityCacheLock As New Object()
-
-    ' ═══ All labels are Designer-placed — code only updates text/color ═══
-    ' lblPresetStatus, lblBitrateRange, lblBitrateValue, lblBitratePre, lblReplaySize
-#End Region
-
-#Region "Shared ScreenRecorder Instance"
-    Private Shared ReadOnly _recorder As New Lazy(Of CaptureEngine.CaptureCore.ScreenRecorder)(Function() New CaptureEngine.CaptureCore.ScreenRecorder())
-    Private Shared ReadOnly _encoderDict As New Dictionary(Of String, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder)()
-    Private Shared ReadOnly _lockObj As New Object()
-
-    Public Shared ReadOnly Property RecorderInstance As CaptureEngine.CaptureCore.ScreenRecorder
-        Get
-            Return _recorder.Value
-        End Get
-    End Property
-
-    Public Shared Function GetConfiguredRecorder() As CaptureEngine.CaptureCore.ScreenRecorder
-        ApplySettingsToRecorder()
-        Return _recorder.Value
-    End Function
-
-    Public Shared Sub ApplySettingsToRecorder()
-        Try
-            AppSettings.Instance.ApplyToRecorder(_recorder.Value)
-        Catch ex As Exception
-            Debug.WriteLine("ApplySettingsToRecorder Error: " & ex.Message)
-        End Try
-    End Sub
-
-    Public Shared Function IsNvidiaAvailable() As Boolean
-        Return AppSettings.HasNvidia
-    End Function
-
-    Public Shared Function IsIntelAvailable() As Boolean
-        Return AppSettings.HasIntel
-    End Function
-
-    Public Shared Function IsAMDAvailable() As Boolean
-        Return AppSettings.HasAMD
-    End Function
 #End Region
 
 #Region "Encoder Availability Check"
@@ -339,10 +290,11 @@ Public Class Base_RecordingsSet
         AppSettings.Instance.Recording.ReplayDuration = seconds
         AppSettings.Instance.Save()
 
+        ' Send buffer duration to Engine via TCP
         Try
-            RecorderInstance.BufferDurationSeconds = seconds
+            Base.tcp.Send("BUFFER_DURATION", seconds.ToString())
         Catch ex As Exception
-            Debug.WriteLine("TrackBar Error: " & ex.Message)
+            Debug.WriteLine("TrackBar TCP Error: " & ex.Message)
         End Try
     End Sub
 
@@ -359,10 +311,10 @@ Public Class Base_RecordingsSet
             lbl_BufferDuration.Text = LangHelper.GetText("l10n.replayLength") & " " & seconds & " " & LangHelper.GetText("l10n.s")
         End If
 
-        ' ═══ Update lblReplaySize: estimated buffer size ═══
+        ' Update lblReplaySize: estimated buffer size
         If lblReplaySize IsNot Nothing Then
             Dim bitrateKbps As Long = CLng(TrackBar_BITRATE.Value) * 100L
-            Dim totalKB As Double = (bitrateKbps / 8.0) * seconds  ' kbps → KB/s × seconds = total KB
+            Dim totalKB As Double = (bitrateKbps / 8.0) * seconds
             Dim sizeMB As Double = totalKB / 1024.0
             Dim sizeGB As Double = sizeMB / 1024.0
             If sizeGB >= 1.0 Then
@@ -377,11 +329,6 @@ Public Class Base_RecordingsSet
 
 #Region "Helper Methods"
 
-    ''' <summary>
-    ''' Applies locked/unlocked visual state to a control and its associated _bg / _DROP elements.
-    ''' Locked: gray text + strikethrough font + default cursor + hide _DROP + _bg cursor default
-    ''' Unlocked: white text + normal font + hand cursor + show _DROP + _bg cursor hand
-    ''' </summary>
     Private Sub ApplyControlLockState(ctrl As Control, isLocked As Boolean, Optional bgCtrl As Control = Nothing, Optional dropCtrl As Control = Nothing)
         If ctrl Is Nothing Then Exit Sub
 
@@ -519,19 +466,11 @@ Public Class Base_RecordingsSet
         Return Math.Max(limits.MinFPS, Math.Min(limits.MaxFPS, fps))
     End Function
 
-    ''' <summary>
-    ''' Returns True if current preset allows editing FPS/Bitrate/EncoderPreset.
-    ''' MyLow/MyMedium/MyHigh allow it (but Resolution stays locked to Native).
-    ''' </summary>
     Private Function IsEditablePreset() As Boolean
         Dim p As String = AppSettings.Instance.Recording.Preset
         Return p = "Custom" OrElse p = "MyLow" OrElse p = "MyMedium" OrElse p = "MyHigh"
     End Function
 
-    ''' <summary>
-    ''' Maps a raw preset name (Low/Medium/High/Custom/Recommended/Maximum) 
-    ''' to its localized display string via LangHelper.
-    ''' </summary>
     Private Function GetLocalizedPresetName(preset As String) As String
         Select Case preset
             Case "Low" : Return LangHelper.GetText("l10n.low")
@@ -544,10 +483,6 @@ Public Class Base_RecordingsSet
         End Select
     End Function
 
-    ''' <summary>
-    ''' Returns a localized description for an encoder preset name.
-    ''' Used in tooltip to explain what each preset level means.
-    ''' </summary>
     Private Function GetEncoderPresetDescription(presetName As String, encoderName As String) As String
         If encoderName.StartsWith("AMF") Then
             Select Case presetName.ToLowerInvariant()
@@ -572,10 +507,6 @@ Public Class Base_RecordingsSet
         End Select
     End Function
 
-    ''' <summary>
-    ''' Updates the tooltip shown when hovering over P_BOX.
-    ''' Shows: "PresetName — Description" (e.g. "P6 — Faster: High performance")
-    ''' </summary>
     Public Sub UpdatePresetTooltip()
         If P_BOX Is Nothing Then Exit Sub
 
@@ -592,7 +523,7 @@ Public Class Base_RecordingsSet
         If String.IsNullOrEmpty(desc) Then
             _presetToolTip.SetToolTip(P_BOX, _currentPresetName)
         Else
-            _presetToolTip.SetToolTip(P_BOX, _currentPresetName & " — " & desc)
+            _presetToolTip.SetToolTip(P_BOX, _currentPresetName & " - " & desc)
         End If
     End Sub
 #End Region
@@ -600,7 +531,6 @@ Public Class Base_RecordingsSet
 #Region "Form Events"
 
     Public Sub LoadAPIRECORD()
-        Debug.WriteLine("═════════════════════════════════════════════════════════════════")
         Debug.WriteLine("LoadAPIRECORD START")
         Dim startTime As DateTime = DateTime.Now
 
@@ -621,12 +551,19 @@ Public Class Base_RecordingsSet
             End If
             Debug.WriteLine($"Hardware: NVIDIA={AppSettings.HasNvidia}, Intel={AppSettings.HasIntel}, AMD={AppSettings.HasAMD}")
 
+            ' Load video.json first (before UI initialization)
+            LoadVideoJson()
+
             Dim ffmpegPath As String = FindFFmpegPath()
             If Not String.IsNullOrEmpty(ffmpegPath) Then
-                RecorderInstance.SetFFmpegPath(ffmpegPath)
                 AppSettings.Instance.Paths.FFmpegPath = ffmpegPath
                 ClearEncoderAvailabilityCache()
-                CaptureEngine.CaptureCore.ScreenRecorder.PreWarmFFmpeg(ffmpegPath, RecorderInstance.Encoder)
+                ' Tell Engine to pre-warm FFmpeg via TCP
+                Try
+                    Base.tcp.Send("PREWARM_FFMPEG", ffmpegPath & "|" & _currentEncoderName)
+                Catch ex As Exception
+                    Debug.WriteLine("PreWarmFFmpeg TCP Error: " & ex.Message)
+                End Try
             End If
 
             PopulateEncoderDictionary(ffmpegPath)
@@ -645,8 +582,6 @@ Public Class Base_RecordingsSet
             Debug.WriteLine("LoadAPIRECORD Error: " & ex.Message)
             Quality.Enabled = True
         End Try
-
-        Debug.WriteLine("═════════════════════════════════════════════════════════════════")
     End Sub
 
     Private Sub SetupTrackBar()
@@ -662,7 +597,7 @@ Public Class Base_RecordingsSet
         TrackBar_Replaylast.Value = savedSeconds
 
         SetupTrackBarDefaults()
-        UpdateBufferLabel(savedSeconds)   ' Must be AFTER SetupTrackBarDefaults so TrackBar_BITRATE has a value
+        UpdateBufferLabel(savedSeconds)
     End Sub
 
     Private Function FindFFmpegPath() As String
@@ -703,22 +638,21 @@ Public Class Base_RecordingsSet
             End If
 
             SaveCurrentSettings()
+            SaveVideoJson()
             AppSettings.Instance.Save()
         Catch ex As Exception
             Debug.WriteLine("FormClosing Save Error: " & ex.Message)
         End Try
     End Sub
 
-    ' ════════════════════════════════════════════════════════════════
     ' Two-Group Preset System
-    ' ════════════════════════════════════════════════════════════════
     Private Enum PresetGroup
-        NVIDIA      ' NVIDIA Preset: Low/Medium/High/Custom
-        [My]        ' My Preset: Low/Medium/High/Recommended/Maximum
+        NVIDIA
+        [My]
     End Enum
 
     Private ActivePresetGroup As PresetGroup = PresetGroup.NVIDIA
-    Private ActiveMyPresetLevel As String = ""   ' "Low", "Medium", "High", "Recommended", "Maximum"
+    Private ActiveMyPresetLevel As String = ""
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Try
@@ -726,7 +660,6 @@ Public Class Base_RecordingsSet
                 FPS_BOX.Text = DEFAULT_FPS.ToString()
             End If
 
-            ' ถ้าอยู่ใน My Preset (Low/Medium/High) → Save ค่าที่ปรับไว้ทันที
             If IsMyPreset() Then
                 SaveMyPresetValues()
             End If
@@ -743,10 +676,6 @@ Public Class Base_RecordingsSet
         End Try
     End Sub
 
-    ''' <summary>
-    ''' ตรวจสอบว่าเลือก My Preset (Low/Medium/High) อยู่หรือเปล่า
-    ''' Recommended/Maximum ไม่นับ เพราะล็อคค่า ไม่ต้อง Save
-    ''' </summary>
     Private Function IsMyPreset() As Boolean
         If ActivePresetGroup <> PresetGroup.My Then Return False
 
@@ -754,14 +683,10 @@ Public Class Base_RecordingsSet
             Case "Low", "Medium", "High"
                 Return True
             Case Else
-                Return False   ' Recommended, Maximum, หรือยังไม่ได้เลือก → ไม่ Save
+                Return False
         End Select
     End Function
 
-    ''' <summary>
-    ''' Save ค่า My Preset ที่ผู้ใช้ปรับเอง (FPS/Bitrate/EncoderPreset)
-    ''' Resolution ไม่ต้อง Save เพราะล็อคเป็น Native เสมอ
-    ''' </summary>
     Private Sub SaveMyPresetValues()
         Dim settings = AppSettings.Instance.Recording
 
@@ -784,52 +709,47 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Sub vdo_resetall_Click(sender As Object, e As EventArgs) Handles vdo_resetall.Click
-
         If sender Is Nothing Then Return
 
-        ' Reset กลับไป NVIDIA Preset Medium
+        ' Reset to NVIDIA Preset Medium
         ActivePresetGroup = PresetGroup.NVIDIA
         ActiveMyPresetLevel = ""
 
         AppSettings.Instance.Recording.Preset = "Medium"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.Medium)
+        UpdateControlsFromPreset("Medium")
     End Sub
 #End Region
 
-#Region "Populate Encoders"
+#Region "Encoder Selection"
 
     Public Sub PopulateEncoderDictionary(Optional ffmpegPath As String = Nothing)
         Debug.WriteLine("=== PopulateEncoderDictionary START ===")
 
-        SyncLock _lockObj
-            _encoderDict.Clear()
-        End SyncLock
-
         Dim addedCount As Integer = 0
 
         If AppSettings.HasNvidia Then
-            AddEncoderSafe("NVENC_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264, addedCount)
-            AddEncoderSafe("NVENC_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC, addedCount)
+            AddEncoderSafe("NVENC_H264", addedCount)
+            AddEncoderSafe("NVENC_HEVC", addedCount)
 
             If AppSettings.SupportsNVENCAV1 Then
-                AddEncoderSafe("NVENC_AV1", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1, addedCount)
+                AddEncoderSafe("NVENC_AV1", addedCount)
             End If
         End If
 
         If AppSettings.HasIntel Then
-            AddEncoderSafe("QuickSync_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264, addedCount)
-            AddEncoderSafe("QuickSync_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC, addedCount)
+            AddEncoderSafe("QuickSync_H264", addedCount)
+            AddEncoderSafe("QuickSync_HEVC", addedCount)
         End If
 
-        ' AMD AMF disabled — reserved for future support
+        ' AMD AMF disabled - reserved for future support
         'If AppSettings.HasAMD Then
-        '    AddEncoderSafe("AMF_H264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264, addedCount)
-        '    AddEncoderSafe("AMF_HEVC", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC, addedCount)
+        '    AddEncoderSafe("AMF_H264", addedCount)
+        '    AddEncoderSafe("AMF_HEVC", addedCount)
         'End If
 
-        AddEncoderSafe("LibX264", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264, addedCount)
-        AddEncoderSafe("LibX265", CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX265, addedCount)
+        AddEncoderSafe("LibX264", addedCount)
+        AddEncoderSafe("LibX265", addedCount)
 
         If Not String.IsNullOrEmpty(ffmpegPath) AndAlso File.Exists(ffmpegPath) Then
             Task.Run(Sub() VerifyEncodersInBackground(ffmpegPath))
@@ -838,54 +758,45 @@ Public Class Base_RecordingsSet
         Debug.WriteLine("=== PopulateEncoderDictionary END: Added " & addedCount & " encoders ===")
     End Sub
 
-    ' Phase 6: Body moved to EncoderService.VerifyAllInBackground.
-    ' This wrapper preserves the original instance-method call site.
     Private Sub VerifyEncodersInBackground(ffmpegPath As String)
         EncoderService.VerifyAllInBackground(ffmpegPath)
     End Sub
 
-    Private Sub AddEncoderSafe(name As String, encoder As CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder, ByRef count As Integer)
-        SyncLock _lockObj
-            If Not _encoderDict.ContainsKey(name) Then
-                _encoderDict.Add(name, encoder)
-            End If
-        End SyncLock
+    Private _encoderNameList As New List(Of String)()
 
+    Private Sub AddEncoderSafe(name As String, ByRef count As Integer)
+        If Not _encoderNameList.Contains(name) Then
+            _encoderNameList.Add(name)
+        End If
         count += 1
     End Sub
 
     Private Sub SelectSavedOrBestEncoder()
         Debug.WriteLine("=== SelectSavedOrBestEncoder START ===")
 
-        SyncLock _lockObj
-            If _encoderDict.Count = 0 Then Exit Sub
-        End SyncLock
+        If _encoderNameList.Count = 0 Then Exit Sub
 
         Dim savedEncoder As String = AppSettings.Instance.Recording.EncoderNow
         If Not String.IsNullOrEmpty(savedEncoder) Then
-            SyncLock _lockObj
-                If _encoderDict.ContainsKey(savedEncoder) Then
-                    ApplyEncoderSelection(savedEncoder)
-                    Debug.WriteLine("Selected saved encoder: " & savedEncoder)
-                    Exit Sub
-                End If
-            End SyncLock
+            If _encoderNameList.Contains(savedEncoder) Then
+                ApplyEncoderSelection(savedEncoder)
+                Debug.WriteLine("Selected saved encoder: " & savedEncoder)
+                Exit Sub
+            End If
         End If
 
-        ' AMD removed from priority — reserved for future support
+        ' Priority order
         Dim priorityOrder As String() = {"NVENC_HEVC", "NVENC_H264", "NVENC_AV1", "QuickSync_HEVC", "QuickSync_H264", "LibX264", "LibX265"}
 
-        SyncLock _lockObj
-            For Each enc As String In priorityOrder
-                If _encoderDict.ContainsKey(enc) Then
-                    ApplyEncoderSelection(enc)
-                    Exit Sub
-                End If
-            Next
-            If _encoderDict.Count > 0 Then
-                ApplyEncoderSelection(_encoderDict.Keys.First())
+        For Each enc As String In priorityOrder
+            If _encoderNameList.Contains(enc) Then
+                ApplyEncoderSelection(enc)
+                Exit Sub
             End If
-        End SyncLock
+        Next
+        If _encoderNameList.Count > 0 Then
+            ApplyEncoderSelection(_encoderNameList(0))
+        End If
     End Sub
 
     Private Sub ApplyEncoderSelection(encoderName As String)
@@ -894,12 +805,6 @@ Public Class Base_RecordingsSet
         If cmbEncoder IsNot Nothing Then
             cmbEncoder.Text = GetEncoderDisplayName(encoderName)
         End If
-
-        SyncLock _lockObj
-            If _encoderDict.ContainsKey(encoderName) Then
-                _recorder.Value.Encoder = _encoderDict(encoderName)
-            End If
-        End SyncLock
 
         AppSettings.Instance.Recording.Encoder = encoderName
         AppSettings.Instance.Recording.EncoderNow = encoderName
@@ -961,7 +866,6 @@ Public Class Base_RecordingsSet
         Dim newMax As Integer = CInt(Math.Floor(_currentBitrateMax / 100.0))
 
         If TrackBar_BITRATE IsNot Nothing Then
-            ' ═══ Suppress ValueChanged while updating range to prevent cascading events ═══
             _isUpdatingBitrate = True
 
             TrackBar_BITRATE.Minimum = newMin
@@ -985,7 +889,6 @@ Public Class Base_RecordingsSet
 
         Dim limits As BitrateLimit = GetBitrateLimits(_currentResolution)
 
-        ' Use TrackBar's actual min/max (in kbps) for accurate display
         Dim displayMinKbps As Integer = TrackBar_BITRATE.Minimum * 100
         Dim displayMaxKbps As Integer = TrackBar_BITRATE.Maximum * 100
         Dim minMbps As Double = displayMinKbps / 1000.0
@@ -1006,17 +909,12 @@ Public Class Base_RecordingsSet
             lblBitrateValue.Text = LangHelper.GetText("l10n.bitrateLabel", bitrateKbps.ToString(), bitrateMbps.ToString("F1"))
         End If
 
-        ' ═══ lblBitratePre: Mbps + GB/hour ═══
         If lblBitratePre IsNot Nothing Then
             Dim gbPerHour As Double = (bitrateKbps * 3600.0) / 8.0 / 1024.0 / 1024.0
             lblBitratePre.Text = LangHelper.GetText("l10n.mbpsValue", bitrateMbps.ToString("F1")) & Environment.NewLine & LangHelper.GetText("l10n.gbPerHour", gbPerHour.ToString("F1"))
         End If
     End Sub
 
-    ''' <summary>
-    ''' Updates the preset status label showing current mode and lock state.
-    ''' Shows what's adjustable vs locked for the current preset.
-    ''' </summary>
     Public Sub UpdatePresetStatusLabel()
         If lblPresetStatus Is Nothing Then Exit Sub
 
@@ -1056,13 +954,6 @@ Public Class Base_RecordingsSet
         lblPresetStatus.ForeColor = statusColor
     End Sub
 
-
-
-    ''' <summary>
-    ''' Sets TrackBar_BITRATE to a specific bitrate (in kbps) safely.
-    ''' Validates against current resolution limits and uses _isUpdatingBitrate
-    ''' to prevent cascading ValueChanged events.
-    ''' </summary>
     Private Sub SetBitrateValue(targetKbps As Integer)
         If TrackBar_BITRATE Is Nothing Then Exit Sub
 
@@ -1193,7 +1084,7 @@ Public Class Base_RecordingsSet
     Private Sub ApplyResolutionSelection(resKey As String)
         If resKey = NATIVE_RESOLUTION_KEY OrElse resKey.StartsWith(NATIVE_RESOLUTION_KEY & " (") Then
             _currentResolution = NATIVE_RESOLUTION_KEY
-            _currentResolutionIndex = 0   ' Native is always index 0
+            _currentResolutionIndex = 0
             AppSettings.Instance.Recording.UseNativeResolution = True
             AppSettings.Instance.Recording.Width = _nativeResolutionWidth
             AppSettings.Instance.Recording.Height = _nativeResolutionHeight
@@ -1209,7 +1100,6 @@ Public Class Base_RecordingsSet
             End If
             Resolution_BOX.Text = resKey
 
-            ' Find matching index in _resolutionList
             _currentResolutionIndex = -1
             For i As Integer = 0 To _resolutionList.Count - 1
                 If _resolutionList(i).Contains(resKey) Then
@@ -1249,20 +1139,168 @@ Public Class Base_RecordingsSet
                 _isUpdatingBitrate = False
 
                 UpdateBitrateLabel()
-                UpdateBufferLabel(TrackBar_Replaylast.Value)   ' Update lblReplaySize with actual bitrate
+                UpdateBufferLabel(TrackBar_Replaylast.Value)
             End If
         Catch ex As Exception
             Debug.WriteLine("LoadSettings Error: " & ex.Message)
         End Try
     End Sub
 
+#Region "video.json Save/Load"
+    Private Function GetVideoJsonPath() As String
+        Return Path.Combine(Application.StartupPath, "video.json")
+    End Function
+
+    Private Sub SaveVideoJson()
+        Try
+            ' ═══ Build clean nested JSON structure ═══
+            Dim currentValues As New Dictionary(Of String, Object) From {
+                {"fps", GetCurrentFPS()},
+                {"bitrate", If(TrackBar_BITRATE IsNot Nothing, TrackBar_BITRATE.Value * 100, AppSettings.Instance.Recording.Bitrate)},
+                {"encoder_preset", AppSettings.Instance.Recording.EncoderPreset},
+                {"use_native_resolution", AppSettings.Instance.Recording.UseNativeResolution},
+                {"width", AppSettings.Instance.Recording.Width},
+                {"height", AppSettings.Instance.Recording.Height}
+            }
+
+            Dim audioValues As New Dictionary(Of String, Object) From {
+                {"system_enabled", AppSettings.Instance.Audio.SystemAudioEnabled},
+                {"mic_enabled", AppSettings.Instance.Audio.MicEnabled},
+                {"system_volume", AppSettings.Instance.Audio.SystemAudioVolume},
+                {"mic_volume", AppSettings.Instance.Audio.MicVolume},
+                {"mic_device", AppSettings.Instance.Audio.MicDeviceName}
+            }
+
+            Dim myPresets As New Dictionary(Of String, Object) From {
+                {"name", AppSettings.Instance.Recording.MyPresetName},
+                {"low", If(AppSettings.Instance.Recording.MyLowFPS.HasValue,
+                    New Dictionary(Of String, Object) From {
+                        {"fps", AppSettings.Instance.Recording.MyLowFPS.Value},
+                        {"bitrate", AppSettings.Instance.Recording.MyLowBitrate.Value},
+                        {"encoder_preset", AppSettings.Instance.Recording.MyLowEncoderPreset.Value}
+                    }, Nothing)},
+                {"medium", If(AppSettings.Instance.Recording.MyMediumFPS.HasValue,
+                    New Dictionary(Of String, Object) From {
+                        {"fps", AppSettings.Instance.Recording.MyMediumFPS.Value},
+                        {"bitrate", AppSettings.Instance.Recording.MyMediumBitrate.Value},
+                        {"encoder_preset", AppSettings.Instance.Recording.MyMediumEncoderPreset.Value}
+                    }, Nothing)},
+                {"high", If(AppSettings.Instance.Recording.MyHighFPS.HasValue,
+                    New Dictionary(Of String, Object) From {
+                        {"fps", AppSettings.Instance.Recording.MyHighFPS.Value},
+                        {"bitrate", AppSettings.Instance.Recording.MyHighBitrate.Value},
+                        {"encoder_preset", AppSettings.Instance.Recording.MyHighEncoderPreset.Value}
+                    }, Nothing)}
+            }
+
+            Dim data As New Dictionary(Of String, Object) From {
+                {"encoder", If(Not String.IsNullOrEmpty(_currentEncoderName), _currentEncoderName, "")},
+                {"encoder_now", AppSettings.Instance.Recording.EncoderNow},
+                {"active_preset", AppSettings.Instance.Recording.Preset},
+                {"current", currentValues},
+                {"replay_duration", AppSettings.Instance.Recording.ReplayDuration},
+                {"audio", audioValues},
+                {"my_presets", myPresets}
+            }
+
+            Dim json As String = JsonSerializer.Serialize(data, New JsonSerializerOptions With {.WriteIndented = True, .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull})
+            File.WriteAllText(GetVideoJsonPath(), json)
+            Debug.WriteLine("SaveVideoJson OK: " & GetVideoJsonPath())
+        Catch ex As Exception
+            Debug.WriteLine("SaveVideoJson Error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub LoadVideoJson()
+        Try
+            Dim path As String = GetVideoJsonPath()
+            If Not File.Exists(path) Then
+                Debug.WriteLine("LoadVideoJson: video.json not found, skipping")
+                Return
+            End If
+
+            Dim json As String = File.ReadAllText(path)
+            Dim data As Dictionary(Of String, JsonElement) = JsonSerializer.Deserialize(Of Dictionary(Of String, JsonElement))(json)
+            If data Is Nothing Then Return
+
+            Dim rec = AppSettings.Instance.Recording
+
+            ' ═══ Top-level fields ═══
+            If data.ContainsKey("encoder") Then rec.Encoder = data("encoder").GetString()
+            If data.ContainsKey("encoder_now") Then rec.EncoderNow = data("encoder_now").GetString()
+            If data.ContainsKey("active_preset") Then rec.Preset = data("active_preset").GetString()
+            If data.ContainsKey("replay_duration") Then rec.ReplayDuration = data("replay_duration").GetInt32()
+
+            ' ═══ Current values (nested) ═══
+            If data.ContainsKey("current") Then
+                Dim cur = data("current")
+                If cur.ValueKind = JsonValueKind.Object Then
+                    If cur.TryGetProperty("fps", Nothing) Then rec.FPS = cur("fps").GetInt32()
+                    If cur.TryGetProperty("bitrate", Nothing) Then rec.Bitrate = cur("bitrate").GetInt32()
+                    If cur.TryGetProperty("encoder_preset", Nothing) Then rec.EncoderPreset = cur("encoder_preset").GetInt32()
+                    If cur.TryGetProperty("use_native_resolution", Nothing) Then rec.UseNativeResolution = cur("use_native_resolution").GetBoolean()
+                    If cur.TryGetProperty("width", Nothing) Then rec.Width = cur("width").GetInt32()
+                    If cur.TryGetProperty("height", Nothing) Then rec.Height = cur("height").GetInt32()
+                End If
+            End If
+
+            ' ═══ Audio settings (nested) ═══
+            If data.ContainsKey("audio") Then
+                Dim aud = data("audio")
+                If aud.ValueKind = JsonValueKind.Object Then
+                    If aud.TryGetProperty("system_enabled", Nothing) Then AppSettings.Instance.Audio.SystemAudioEnabled = aud("system_enabled").GetBoolean()
+                    If aud.TryGetProperty("mic_enabled", Nothing) Then AppSettings.Instance.Audio.MicEnabled = aud("mic_enabled").GetBoolean()
+                    If aud.TryGetProperty("system_volume", Nothing) Then AppSettings.Instance.Audio.SystemAudioVolume = aud("system_volume").GetSingle()
+                    If aud.TryGetProperty("mic_volume", Nothing) Then AppSettings.Instance.Audio.MicVolume = aud("mic_volume").GetSingle()
+                    If aud.TryGetProperty("mic_device", Nothing) Then AppSettings.Instance.Audio.MicDeviceName = aud("mic_device").GetString()
+                End If
+            End If
+
+            ' ═══ My Presets (nested) ═══
+            If data.ContainsKey("my_presets") Then
+                Dim mp = data("my_presets")
+                If mp.ValueKind = JsonValueKind.Object Then
+                    ' Preset name
+                    If mp.TryGetProperty("name", Nothing) Then rec.MyPresetName = mp("name").GetString()
+                    ' Low
+                    If mp.TryGetProperty("low", Nothing) AndAlso mp("low").ValueKind = JsonValueKind.Object Then
+                        Dim p = mp("low")
+                        rec.MyLowFPS = If(p.TryGetProperty("fps", Nothing), p("fps").GetInt32(), Nothing)
+                        rec.MyLowBitrate = If(p.TryGetProperty("bitrate", Nothing), p("bitrate").GetInt32(), Nothing)
+                        rec.MyLowEncoderPreset = If(p.TryGetProperty("encoder_preset", Nothing), p("encoder_preset").GetInt32(), Nothing)
+                    End If
+                    ' Medium
+                    If mp.TryGetProperty("medium", Nothing) AndAlso mp("medium").ValueKind = JsonValueKind.Object Then
+                        Dim p = mp("medium")
+                        rec.MyMediumFPS = If(p.TryGetProperty("fps", Nothing), p("fps").GetInt32(), Nothing)
+                        rec.MyMediumBitrate = If(p.TryGetProperty("bitrate", Nothing), p("bitrate").GetInt32(), Nothing)
+                        rec.MyMediumEncoderPreset = If(p.TryGetProperty("encoder_preset", Nothing), p("encoder_preset").GetInt32(), Nothing)
+                    End If
+                    ' High
+                    If mp.TryGetProperty("high", Nothing) AndAlso mp("high").ValueKind = JsonValueKind.Object Then
+                        Dim p = mp("high")
+                        rec.MyHighFPS = If(p.TryGetProperty("fps", Nothing), p("fps").GetInt32(), Nothing)
+                        rec.MyHighBitrate = If(p.TryGetProperty("bitrate", Nothing), p("bitrate").GetInt32(), Nothing)
+                        rec.MyHighEncoderPreset = If(p.TryGetProperty("encoder_preset", Nothing), p("encoder_preset").GetInt32(), Nothing)
+                    End If
+                End If
+            End If
+
+            ' Sync encoder_now if not in file
+            If Not data.ContainsKey("encoder_now") Then rec.EncoderNow = rec.Encoder
+
+            AppSettings.Instance.Save()
+            Debug.WriteLine("LoadVideoJson OK: loaded new nested format")
+        Catch ex As Exception
+            Debug.WriteLine("LoadVideoJson Error: " & ex.Message)
+        End Try
+    End Sub
+#End Region
+
 #Region "Save Settings"
     Private _saveSettingsTimer As System.Windows.Forms.Timer
     Private _saveSettingsPending As Boolean = False
 
-    ''' <summary>
-    ''' Debounced save - works for Custom AND My Preset (MyLow/MyMedium/MyHigh)
-    ''' </summary>
     Private Sub SaveCurrentSettings()
         If _saveSettingsTimer Is Nothing Then
             _saveSettingsTimer = New System.Windows.Forms.Timer With {.Interval = 300}
@@ -1281,22 +1319,11 @@ Public Class Base_RecordingsSet
         End If
     End Sub
 
-    ''' <summary>
-    ''' Saves current UI values to AppSettings. Handles both Custom and My Preset.
-    ''' - Always saves to global Recording settings (FPS/Bitrate/Resolution/EncoderPreset)
-    ''' - For MyLow/MyMedium/MyHigh: ALSO saves to My* specific properties for persistence
-    ''' </summary>
     Private Sub SaveSettingsNow()
         Try
             If Not String.IsNullOrEmpty(_currentEncoderName) Then
                 AppSettings.Instance.Recording.Encoder = _currentEncoderName
                 AppSettings.Instance.Recording.EncoderNow = _currentEncoderName
-
-                SyncLock _lockObj
-                    If _encoderDict.ContainsKey(_currentEncoderName) Then
-                        _recorder.Value.Encoder = _encoderDict(_currentEncoderName)
-                    End If
-                End SyncLock
             End If
 
             AppSettings.Instance.Recording.FPS = GetCurrentFPS()
@@ -1319,7 +1346,7 @@ Public Class Base_RecordingsSet
                 End If
             End If
 
-            ' ═══ Save My Preset specific values ═══
+            ' Save My Preset specific values
             Select Case AppSettings.Instance.Recording.Preset
                 Case "MyLow"
                     AppSettings.Instance.Recording.MyLowFPS = AppSettings.Instance.Recording.FPS
@@ -1336,6 +1363,7 @@ Public Class Base_RecordingsSet
             End Select
 
             AppSettings.Instance.Save()
+            SaveVideoJson()
         Catch ex As Exception
             Debug.WriteLine("SaveSettingsNow Error: " & ex.Message)
         End Try
@@ -1346,15 +1374,36 @@ Public Class Base_RecordingsSet
 
     ' ════════════════════════════════════════════════════════════════
     ' NVIDIA Preset: Low / Medium / High / Custom
-    ' All settings locked, uses hardcoded ScreenRecorder defaults
+    ' All settings locked, uses hardcoded default values
     ' ════════════════════════════════════════════════════════════════
+
+    ' Hardcoded NVIDIA preset values (formerly from ScreenRecorder.RecordingPreset enum)
+    Private Shared ReadOnly NVIDIA_PRESETS As New Dictionary(Of String, PresetValues) From {
+        {"Low", New PresetValues(30, 4000, 6, True)},
+        {"Medium", New PresetValues(60, 5000, 6, True)},
+        {"High", New PresetValues(60, 10000, 4, True)}
+    }
+
+    Private Structure PresetValues
+        Public FPS As Integer
+        Public Bitrate As Integer
+        Public EncoderPreset As Integer
+        Public UseNativeResolution As Boolean
+
+        Public Sub New(fps As Integer, bitrate As Integer, encoderPreset As Integer, useNative As Boolean)
+            Me.FPS = fps
+            Me.Bitrate = bitrate
+            Me.EncoderPreset = encoderPreset
+            Me.UseNativeResolution = useNative
+        End Sub
+    End Structure
 
     Private Sub LowPreset_Click(sender As Object, e As EventArgs) Handles Label11.Click, Label10.Click, low.Click
         ActivePresetGroup = PresetGroup.NVIDIA
         ActiveMyPresetLevel = ""
         AppSettings.Instance.Recording.Preset = "Low"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.Low)
+        UpdateControlsFromPreset("Low")
     End Sub
 
     Private Sub MediumPreset_Click(sender As Object, e As EventArgs) Handles PictureBox1.Click, Label8.Click, Label9.Click
@@ -1362,7 +1411,7 @@ Public Class Base_RecordingsSet
         ActiveMyPresetLevel = ""
         AppSettings.Instance.Recording.Preset = "Medium"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.Medium)
+        UpdateControlsFromPreset("Medium")
     End Sub
 
     Private Sub HighPreset_Click(sender As Object, e As EventArgs) Handles PictureBox2.Click, Label7.Click, Label6.Click
@@ -1370,7 +1419,7 @@ Public Class Base_RecordingsSet
         ActiveMyPresetLevel = ""
         AppSettings.Instance.Recording.Preset = "High"
         AppSettings.Instance.Save()
-        UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.High)
+        UpdateControlsFromPreset("High")
     End Sub
 
     Private Sub CustomPreset_Click(sender As Object, e As EventArgs) Handles C_ICO.Click, C_BG.Click, C_TEXT.Click
@@ -1389,9 +1438,6 @@ Public Class Base_RecordingsSet
 
     ' ════════════════════════════════════════════════════════════════
     ' My Preset: MyLow / MyMedium / MyHigh / Recommended / Maximum
-    ' MyLow/MyMedium/MyHigh: FPS/Bitrate/EncoderPreset adjustable,
-    '   Resolution LOCKED to Native, changes auto-saved as My Preset
-    ' Recommended/Maximum: All locked (system-calculated values)
     ' ════════════════════════════════════════════════════════════════
 
     Private Sub MyLow_TEXT_Click(sender As Object, e As EventArgs) Handles ML_TEXT.Click, ML_ICO.Click, ML_BG.Click
@@ -1434,13 +1480,9 @@ Public Class Base_RecordingsSet
         ApplyMaximumPreset()
     End Sub
 
-    ' ═══ My Preset: MyLow ═══
+    ' My Preset: MyLow
     Private Sub ApplyMyLowPreset()
-        _recorder.Value.Preset = CaptureCore.ScreenRecorder.RecordingPreset.MyLow
-
         ' Force Native resolution
-        _recorder.Value.ResolutionWidth = _nativeResolutionWidth
-        _recorder.Value.ResolutionHeight = _nativeResolutionHeight
         _currentResolutionIndex = 0
         _currentResolution = NATIVE_RESOLUTION_KEY
         If Resolution_BOX IsNot Nothing Then Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
@@ -1453,15 +1495,10 @@ Public Class Base_RecordingsSet
         Dim myBitrate As Integer = AppSettings.Instance.Recording.MyLowBitrate.GetValueOrDefault(4000)
         Dim myEncoderPreset As Integer = AppSettings.Instance.Recording.MyLowEncoderPreset.GetValueOrDefault(6)
 
-        _recorder.Value.Framerate = myFPS
-        _recorder.Value.Bitrate = myBitrate
-        _recorder.Value.EncoderPreset = myEncoderPreset
-
         If FPS_BOX IsNot Nothing Then
             FPS_BOX.Text = ValidateFPS(myFPS, _currentResolution).ToString()
         End If
 
-        ' Set bitrate with _isUpdatingBitrate to prevent cascading ValueChanged
         SetBitrateValue(myBitrate)
 
         AppSettings.Instance.Recording.FPS = myFPS
@@ -1476,34 +1513,23 @@ Public Class Base_RecordingsSet
         UpdatePresetColors()
     End Sub
 
-    ' ═══ My Preset: MyMedium ═══
+    ' My Preset: MyMedium
     Private Sub ApplyMyMediumPreset()
-        _recorder.Value.Preset = CaptureCore.ScreenRecorder.RecordingPreset.MyMedium
-
         ' Force Native resolution
-        _recorder.Value.ResolutionWidth = _nativeResolutionWidth
-        _recorder.Value.ResolutionHeight = _nativeResolutionHeight
         _currentResolutionIndex = 0
         _currentResolution = NATIVE_RESOLUTION_KEY
         If Resolution_BOX IsNot Nothing Then Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
 
-        ' Update TrackBar range to match Native resolution FIRST
         UpdateBitrateLimits()
 
-        ' Use saved MyMedium values or defaults (Medium defaults: 60fps, 7000kbps, P4)
         Dim myFPS As Integer = AppSettings.Instance.Recording.MyMediumFPS.GetValueOrDefault(60)
         Dim myBitrate As Integer = AppSettings.Instance.Recording.MyMediumBitrate.GetValueOrDefault(7000)
         Dim myEncoderPreset As Integer = AppSettings.Instance.Recording.MyMediumEncoderPreset.GetValueOrDefault(4)
 
-        _recorder.Value.Framerate = myFPS
-        _recorder.Value.Bitrate = myBitrate
-        _recorder.Value.EncoderPreset = myEncoderPreset
-
         If FPS_BOX IsNot Nothing Then
             FPS_BOX.Text = ValidateFPS(myFPS, _currentResolution).ToString()
         End If
 
-        ' Set bitrate with _isUpdatingBitrate to prevent cascading ValueChanged
         SetBitrateValue(myBitrate)
 
         AppSettings.Instance.Recording.FPS = myFPS
@@ -1518,34 +1544,23 @@ Public Class Base_RecordingsSet
         UpdatePresetColors()
     End Sub
 
-    ' ═══ My Preset: MyHigh ═══
+    ' My Preset: MyHigh
     Private Sub ApplyMyHighPreset()
-        _recorder.Value.Preset = CaptureCore.ScreenRecorder.RecordingPreset.MyHigh
-
         ' Force Native resolution
-        _recorder.Value.ResolutionWidth = _nativeResolutionWidth
-        _recorder.Value.ResolutionHeight = _nativeResolutionHeight
         _currentResolutionIndex = 0
         _currentResolution = NATIVE_RESOLUTION_KEY
         If Resolution_BOX IsNot Nothing Then Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
 
-        ' Update TrackBar range to match Native resolution FIRST
         UpdateBitrateLimits()
 
-        ' Use saved MyHigh values or defaults (High defaults: 60fps, 12000kbps, P2)
         Dim myFPS As Integer = AppSettings.Instance.Recording.MyHighFPS.GetValueOrDefault(60)
         Dim myBitrate As Integer = AppSettings.Instance.Recording.MyHighBitrate.GetValueOrDefault(12000)
         Dim myEncoderPreset As Integer = AppSettings.Instance.Recording.MyHighEncoderPreset.GetValueOrDefault(2)
 
-        _recorder.Value.Framerate = myFPS
-        _recorder.Value.Bitrate = myBitrate
-        _recorder.Value.EncoderPreset = myEncoderPreset
-
         If FPS_BOX IsNot Nothing Then
             FPS_BOX.Text = ValidateFPS(myFPS, _currentResolution).ToString()
         End If
 
-        ' Set bitrate with _isUpdatingBitrate to prevent cascading ValueChanged
         SetBitrateValue(myBitrate)
 
         AppSettings.Instance.Recording.FPS = myFPS
@@ -1560,31 +1575,21 @@ Public Class Base_RecordingsSet
         UpdatePresetColors()
     End Sub
 
-    ' ═══ My Preset: Recommended (ALL LOCKED) ═══
+    ' My Preset: Recommended (ALL LOCKED)
     Private Sub ApplyRecommendedPreset()
-        _recorder.Value.Preset = CaptureCore.ScreenRecorder.RecordingPreset.Recommended
-
         ' Force Native resolution
-        _recorder.Value.ResolutionWidth = _nativeResolutionWidth
-        _recorder.Value.ResolutionHeight = _nativeResolutionHeight
         _currentResolutionIndex = 0
         _currentResolution = NATIVE_RESOLUTION_KEY
         If Resolution_BOX IsNot Nothing Then Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
 
-        ' Update TrackBar range to match Native resolution FIRST
         UpdateBitrateLimits()
 
-        ' Recommended bitrate from limits
         Dim limits As BitrateLimit = GetBitrateLimits(NATIVE_RESOLUTION_KEY)
-        _recorder.Value.Bitrate = limits.RecommendedMax
-        _recorder.Value.Framerate = 60
-        _recorder.Value.EncoderPreset = 4
 
         If FPS_BOX IsNot Nothing Then
             FPS_BOX.Text = ValidateFPS(60, _currentResolution).ToString()
         End If
 
-        ' Set bitrate with _isUpdatingBitrate to prevent cascading ValueChanged
         SetBitrateValue(limits.RecommendedMax)
 
         AppSettings.Instance.Recording.UseNativeResolution = True
@@ -1595,38 +1600,27 @@ Public Class Base_RecordingsSet
         AppSettings.Instance.Recording.EncoderPreset = 4
 
         UpdatePresetDisplay()
-        EnableMyPresetControls(False)  ' Recommended is My Preset group (all locked)
+        EnableMyPresetControls(False)
         UpdatePresetColors()
     End Sub
 
-    ' ═══ My Preset: Maximum (ALL LOCKED) ═══
+    ' My Preset: Maximum (ALL LOCKED)
     Private Sub ApplyMaximumPreset()
-        _recorder.Value.Preset = CaptureCore.ScreenRecorder.RecordingPreset.Maximum
-
         ' Force Native resolution
-        _recorder.Value.ResolutionWidth = _nativeResolutionWidth
-        _recorder.Value.ResolutionHeight = _nativeResolutionHeight
         _currentResolutionIndex = 0
         _currentResolution = NATIVE_RESOLUTION_KEY
         If Resolution_BOX IsNot Nothing Then Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
 
-        ' Update TrackBar range to match Native resolution FIRST
         UpdateBitrateLimits()
 
-        ' Max bitrate + max FPS (capped at 144)
         Dim limits As BitrateLimit = GetBitrateLimits(NATIVE_RESOLUTION_KEY)
         Dim fpsLimits As FPSLimit = GetFPSLimits(NATIVE_RESOLUTION_KEY)
         Dim maxFPS As Integer = Math.Min(144, fpsLimits.MaxFPS)
-
-        _recorder.Value.Bitrate = limits.MaxBitrate
-        _recorder.Value.Framerate = maxFPS
-        _recorder.Value.EncoderPreset = 7
 
         If FPS_BOX IsNot Nothing Then
             FPS_BOX.Text = ValidateFPS(maxFPS, _currentResolution).ToString()
         End If
 
-        ' Set bitrate with _isUpdatingBitrate to prevent cascading ValueChanged
         SetBitrateValue(limits.MaxBitrate)
 
         AppSettings.Instance.Recording.UseNativeResolution = True
@@ -1637,78 +1631,50 @@ Public Class Base_RecordingsSet
         AppSettings.Instance.Recording.EncoderPreset = 7
 
         UpdatePresetDisplay()
-        EnableMyPresetControls(False)  ' Maximum is My Preset group (all locked)
+        EnableMyPresetControls(False)
         UpdatePresetColors()
     End Sub
 
-    ' ═══ NVIDIA Preset: UpdateControlsFromPreset ═══
-    Private Sub UpdateControlsFromPreset(preset As CaptureCore.ScreenRecorder.RecordingPreset)
-        _recorder.Value.Preset = preset
-
-        If FPS_BOX IsNot Nothing Then
-            FPS_BOX.Text = ValidateFPS(_recorder.Value.Framerate, _currentResolution).ToString()
+    ' NVIDIA Preset: UpdateControlsFromPreset (String-based, no enum)
+    Private Sub UpdateControlsFromPreset(presetName As String)
+        If Not NVIDIA_PRESETS.ContainsKey(presetName) Then
+            Debug.WriteLine("UpdateControlsFromPreset: Unknown preset " & presetName)
+            Exit Sub
         End If
 
-        Dim resW As Integer = _recorder.Value.ResolutionWidth
-        Dim resH As Integer = _recorder.Value.ResolutionHeight
+        Dim pv As PresetValues = NVIDIA_PRESETS(presetName)
 
-        If resW = _nativeResolutionWidth AndAlso resH = _nativeResolutionHeight Then
+        If FPS_BOX IsNot Nothing Then
+            FPS_BOX.Text = ValidateFPS(pv.FPS, _currentResolution).ToString()
+        End If
+
+        If pv.UseNativeResolution Then
             _currentResolutionIndex = 0
             _currentResolution = NATIVE_RESOLUTION_KEY
             Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
-        Else
-            ' Find matching resolution in the list
-            Dim found As Boolean = False
-            For i As Integer = 0 To _resolutionList.Count - 1
-                If _resolutionList(i).Contains(resW & "x" & resH) Then
-                    _currentResolutionIndex = i
-                    Resolution_BOX.Text = _resolutionList(i)
-                    found = True
-                    Exit For
-                End If
-            Next
-            If Not found Then
-                ' Resolution not in list — add it
-                Dim resStr As String = resW & "x" & resH
-                If IsValidResolution(resStr) Then
-                    _resolutionList.Add(resStr)
-                    _currentResolutionIndex = _resolutionList.Count - 1
-                    Resolution_BOX.Text = resStr
-                Else
-                    ' Fallback to Native
-                    _currentResolutionIndex = 0
-                    _currentResolution = NATIVE_RESOLUTION_KEY
-                    Resolution_BOX.Text = LangHelper.GetText("l10n.native", _nativeResolution)
-                End If
-            End If
         End If
 
         ' Update TrackBar range to match the preset's resolution FIRST
         UpdateBitrateLimits()
 
-        ' Set bitrate with _isUpdatingBitrate to prevent cascading ValueChanged
-        SetBitrateValue(_recorder.Value.Bitrate)
+        SetBitrateValue(pv.Bitrate)
 
-        AppSettings.Instance.Recording.FPS = _recorder.Value.Framerate
-        AppSettings.Instance.Recording.Bitrate = _recorder.Value.Bitrate
-        AppSettings.Instance.Recording.EncoderPreset = _recorder.Value.EncoderPreset
+        AppSettings.Instance.Recording.FPS = pv.FPS
+        AppSettings.Instance.Recording.Bitrate = pv.Bitrate
+        AppSettings.Instance.Recording.EncoderPreset = pv.EncoderPreset
 
         UpdatePresetDisplay()
         EnableCustomControls(False)
         UpdatePresetColors()
     End Sub
 
-    ' ═══ Controls Accessibility ═══
+    ' Controls Accessibility
 
-    ''' <summary>
-    ''' Full Custom mode: ALL controls enabled (FPS, Resolution, Bitrate, EncoderPreset)
-    ''' </summary>
     Private Sub EnableCustomControls(enabled As Boolean)
         ApplyControlLockState(FPS_BOX, Not enabled, fps_bg, FPS_DROP)
         ApplyControlLockState(Resolution_BOX, Not enabled, Resolution_bg, Resolution_DROP)
         ApplyControlLockState(P_BOX, Not enabled, P_bg)
 
-        ' Encoder is always accessible
         If cmbEncoder IsNot Nothing Then
             cmbEncoder.ForeColor = COLOR_ENABLED
             cmbEncoder.Cursor = Cursors.Hand
@@ -1718,21 +1684,13 @@ Public Class Base_RecordingsSet
 
         If TrackBar_BITRATE IsNot Nothing Then TrackBar_BITRATE.Enabled = enabled
 
-        ' Update preset status label
         UpdatePresetStatusLabel()
     End Sub
 
-    ''' <summary>
-    ''' My Preset mode: FPS/Bitrate/EncoderPreset adjustable, Resolution LOCKED to Native
-    ''' </summary>
     Private Sub EnableMyPresetControls(enabled As Boolean)
-        ' FPS: adjustable when enabled (no strikethrough)
         ApplyControlLockState(FPS_BOX, Not enabled, fps_bg, FPS_DROP)
-
-        ' Resolution: ALWAYS locked for My Preset (strikethrough)
         ApplyControlLockState(Resolution_BOX, True, Resolution_bg, Resolution_DROP)
 
-        ' Encoder: always accessible
         If cmbEncoder IsNot Nothing Then
             cmbEncoder.ForeColor = COLOR_ENABLED
             cmbEncoder.Cursor = Cursors.Hand
@@ -1740,13 +1698,10 @@ Public Class Base_RecordingsSet
         If Encoder_bg IsNot Nothing Then Encoder_bg.Cursor = Cursors.Hand
         If Encoder_DROP IsNot Nothing Then Encoder_DROP.Visible = True
 
-        ' Encoder Preset: adjustable when enabled (no strikethrough)
         ApplyControlLockState(P_BOX, Not enabled, P_bg)
 
-        ' Bitrate: adjustable
         If TrackBar_BITRATE IsNot Nothing Then TrackBar_BITRATE.Enabled = enabled
 
-        ' Update preset status label
         UpdatePresetStatusLabel()
     End Sub
 
@@ -1755,15 +1710,15 @@ Public Class Base_RecordingsSet
             Case "Low"
                 ActivePresetGroup = PresetGroup.NVIDIA
                 ActiveMyPresetLevel = ""
-                UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.Low)
+                UpdateControlsFromPreset("Low")
             Case "Medium"
                 ActivePresetGroup = PresetGroup.NVIDIA
                 ActiveMyPresetLevel = ""
-                UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.Medium)
+                UpdateControlsFromPreset("Medium")
             Case "High"
                 ActivePresetGroup = PresetGroup.NVIDIA
                 ActiveMyPresetLevel = ""
-                UpdateControlsFromPreset(CaptureCore.ScreenRecorder.RecordingPreset.High)
+                UpdateControlsFromPreset("High")
             Case "MyLow"
                 ActivePresetGroup = PresetGroup.My
                 ActiveMyPresetLevel = "Low"
@@ -1795,21 +1750,22 @@ Public Class Base_RecordingsSet
     End Sub
 #End Region
 
-#Region "Encoder Selection"
+#Region "Encoder Info"
     Public Sub UpdateEncoderInfo()
         If lblEncoderInfo Is Nothing Then Exit Sub
 
-        Select Case _recorder.Value.Encoder
-            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
+        ' String-based matching instead of VideoEncoder enum
+        Select Case _currentEncoderName
+            Case "NVENC_H264", "NVENC_HEVC"
                 lblEncoderInfo.Text = LangHelper.GetText("l10n.encoderNvenc")
                 lblEncoderInfo.ForeColor = COLOR_ACTIVE
-            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
+            Case "NVENC_AV1"
                 lblEncoderInfo.Text = LangHelper.GetText("l10n.encoderNvencAV1")
                 lblEncoderInfo.ForeColor = COLOR_ACTIVE
-            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
+            Case "QuickSync_H264", "QuickSync_HEVC"
                 lblEncoderInfo.Text = LangHelper.GetText("l10n.encoderQuickSync")
                 lblEncoderInfo.ForeColor = Color.FromArgb(0, 150, 255)
-            Case CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264, CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
+            Case "AMF_H264", "AMF_HEVC"
                 lblEncoderInfo.Text = LangHelper.GetText("l10n.encoderAMF")
                 lblEncoderInfo.ForeColor = Color.FromArgb(237, 28, 36)
             Case Else
@@ -1842,10 +1798,10 @@ Public Class Base_RecordingsSet
                     UpdatePresetColors()
 
                 Case "Recommended", "Maximum"
-                    EnableMyPresetControls(False)  ' My Preset group (all locked)
+                    EnableMyPresetControls(False)
                     UpdatePresetColors()
 
-                Case Else ' Low, Medium, High
+                Case Else
                     EnableCustomControls(False)
                     UpdatePresetColors()
             End Select
@@ -1890,7 +1846,6 @@ Public Class Base_RecordingsSet
         ResetAllPresetColors()
 
         Select Case AppSettings.Instance.Recording.Preset
-            ' NVIDIA Preset
             Case "Low"
                 If Label11 IsNot Nothing Then Label11.BackColor = COLOR_ACTIVE
                 If Label10 IsNot Nothing Then Label10.BackColor = COLOR_ACTIVE
@@ -1908,7 +1863,6 @@ Public Class Base_RecordingsSet
                 If C_ICO IsNot Nothing Then C_ICO.BackColor = COLOR_ACTIVE
                 If C_TEXT IsNot Nothing Then C_TEXT.BackColor = COLOR_ACTIVE
 
-            ' My Preset
             Case "MyLow"
                 If ML_BG IsNot Nothing Then ML_BG.BackColor = COLOR_ACTIVE
                 If ML_ICO IsNot Nothing Then ML_ICO.BackColor = COLOR_ACTIVE
@@ -1931,13 +1885,12 @@ Public Class Base_RecordingsSet
                 If Maximum_TEXT IsNot Nothing Then Maximum_TEXT.BackColor = COLOR_ACTIVE
         End Select
 
-        ' Update the status label whenever preset colors change (i.e., preset switched)
         UpdatePresetStatusLabel()
     End Sub
 #End Region
 
 #Region "Hover Effects"
-    ' ═══ NVIDIA Preset: Low ═══
+    ' NVIDIA Preset: Low
     Private Sub Label11_MouseMove(sender As Object, e As MouseEventArgs) Handles Label11.MouseMove, Label10.MouseMove, low.MouseMove
         If L_B IsNot Nothing Then L_B.Visible = True
         If L_L IsNot Nothing Then L_L.Visible = True
@@ -1952,7 +1905,7 @@ Public Class Base_RecordingsSet
         If L_T IsNot Nothing Then L_T.Visible = False
     End Sub
 
-    ' ═══ NVIDIA Preset: Medium ═══
+    ' NVIDIA Preset: Medium
     Private Sub PictureBox1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox1.MouseMove, Label8.MouseMove, Label9.MouseMove
         If M_B IsNot Nothing Then M_B.Visible = True
         If M_L IsNot Nothing Then M_L.Visible = True
@@ -1967,7 +1920,7 @@ Public Class Base_RecordingsSet
         If M_T IsNot Nothing Then M_T.Visible = False
     End Sub
 
-    ' ═══ NVIDIA Preset: High ═══
+    ' NVIDIA Preset: High
     Private Sub PictureBox2_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox2.MouseMove, Label7.MouseMove, Label6.MouseMove
         If H_B IsNot Nothing Then H_B.Visible = True
         If H_L IsNot Nothing Then H_L.Visible = True
@@ -1982,7 +1935,7 @@ Public Class Base_RecordingsSet
         If H_T IsNot Nothing Then H_T.Visible = False
     End Sub
 
-    ' ═══ NVIDIA Preset: Custom ═══
+    ' NVIDIA Preset: Custom
     Private Sub C_BG_MouseMove(sender As Object, e As MouseEventArgs) Handles C_ICO.MouseMove, C_BG.MouseMove, C_TEXT.MouseMove
         C_B.Visible = True
         C_T.Visible = True
@@ -1997,7 +1950,7 @@ Public Class Base_RecordingsSet
         C_R.Visible = False
     End Sub
 
-    ' ═══ My Preset: MyLow ═══
+    ' My Preset: MyLow
     Private Sub ML_MouseMove(sender As Object, e As MouseEventArgs) Handles ML_BG.MouseMove, ML_ICO.MouseMove, ML_TEXT.MouseMove
         If MH_HB IsNot Nothing Then MH_HB.Visible = True
         If MH_HL IsNot Nothing Then MH_HL.Visible = True
@@ -2012,7 +1965,7 @@ Public Class Base_RecordingsSet
         If MH_HT IsNot Nothing Then MH_HT.Visible = False
     End Sub
 
-    ' ═══ My Preset: MyMedium ═══
+    ' My Preset: MyMedium
     Private Sub MM_MouseMove(sender As Object, e As MouseEventArgs) Handles MM_BG.MouseMove, MM_ICO.MouseMove, MM_TEXT.MouseMove
         If MM_HB IsNot Nothing Then MM_HB.Visible = True
         If MM_HL IsNot Nothing Then MM_HL.Visible = True
@@ -2027,7 +1980,7 @@ Public Class Base_RecordingsSet
         If MM_HT IsNot Nothing Then MM_HT.Visible = False
     End Sub
 
-    ' ═══ My Preset: MyHigh ═══
+    ' My Preset: MyHigh
     Private Sub MH_MouseMove(sender As Object, e As MouseEventArgs) Handles MH_BG.MouseMove, MH_ICO.MouseMove, MH_TEXT.MouseMove
         If ML_HB IsNot Nothing Then ML_HB.Visible = True
         If ML_HL IsNot Nothing Then ML_HL.Visible = True
@@ -2042,7 +1995,7 @@ Public Class Base_RecordingsSet
         If ML_HT IsNot Nothing Then ML_HT.Visible = False
     End Sub
 
-    ' ═══ My Preset: Recommended ═══
+    ' My Preset: Recommended
     Private Sub RD_MouseMove(sender As Object, e As MouseEventArgs) Handles Recommended_BG.MouseMove, Recommended_ICO.MouseMove, Recommended_TEXT.MouseMove
         If RD_B IsNot Nothing Then RD_B.Visible = True
         If RD_L IsNot Nothing Then RD_L.Visible = True
@@ -2057,7 +2010,7 @@ Public Class Base_RecordingsSet
         If RD_T IsNot Nothing Then RD_T.Visible = False
     End Sub
 
-    ' ═══ My Preset: Maximum ═══
+    ' My Preset: Maximum
     Private Sub MX_MouseMove(sender As Object, e As MouseEventArgs) Handles Maximum_BG.MouseMove, Maximum_ICO.MouseMove, Maximum_TEXT.MouseMove
         If MX_B IsNot Nothing Then MX_B.Visible = True
         If MX_L IsNot Nothing Then MX_L.Visible = True
@@ -2072,7 +2025,7 @@ Public Class Base_RecordingsSet
         If MX_T IsNot Nothing Then MX_T.Visible = False
     End Sub
 
-    ' ═══ ALTZ Timer ═══
+    ' ALTZ Timer
     Private Sub ALTZ_Tick(sender As Object, e As EventArgs) Handles ALTZ.Tick
         If Base.ReplayValue OrElse Base.RecordValue Then
             Panel_SET.Visible = False
@@ -2094,9 +2047,12 @@ Public Class Base_RecordingsSet
     Public Sub UpdateCommandPreview()
         If prearg IsNot Nothing Then
             Try
-                prearg.Text = "ffmpeg " & RecorderInstance.GetFFmpegArguments()
+                ' Engine sends ffmpeg args via OnMessageReceived (async response)
+                ' For now, show placeholder — Engine will push args when ready
+                Base.tcp.Send("GET_FFMPEG_ARGS")
+                prearg.Text = LangHelper.GetText("l10n.engineNotConnected")
             Catch ex As Exception
-                prearg.Text = LangHelper.GetText("l10n.error") & ": " & ex.Message
+                prearg.Text = LangHelper.GetText("l10n.engineNotConnected")
             End Try
         End If
     End Sub
@@ -2138,12 +2094,6 @@ Public Class Base_RecordingsSet
 #End Region
 
 #Region "Encoder Preset System"
-    ''' <summary>
-    ''' Returns preset names ordered by ScreenRecorder EncoderPreset index (1-based).
-    ''' Index 1 = slowest/best quality, Index 7 = fastest/lowest quality.
-    ''' AMF is special: 3 display items map to 7 integer positions
-    '''   (1,2→quality, 3,4→balanced, 5,6,7→speed).
-    ''' </summary>
     Private Function GetEncoderPresets(encoderName As String) As String()
         Select Case encoderName
             Case "NVENC_H264", "NVENC_HEVC", "NVENC_AV1"
@@ -2159,11 +2109,6 @@ Public Class Base_RecordingsSet
         End Select
     End Function
 
-    ''' <summary>
-    ''' Updates P_BOX display from the saved EncoderPreset index.
-    ''' AMF maps: 1,2→quality, 3,4→balanced, 5,6,7→speed
-    ''' Others: direct index-to-array mapping (1-based)
-    ''' </summary>
     Private Sub UpdatePresetDisplay()
         If P_BOX Is Nothing Then Exit Sub
 
@@ -2189,11 +2134,6 @@ Public Class Base_RecordingsSet
         UpdatePresetTooltip()
     End Sub
 
-    ''' <summary>
-    ''' Converts a preset display name back to ScreenRecorder EncoderPreset index (1-7).
-    ''' AMF: quality→2, balanced→4, speed→6 (midpoints of their index ranges)
-    ''' Others: array position + 1
-    ''' </summary>
     Private Function PresetNameToIndex(presetName As String) As Integer
         If _currentEncoderName.StartsWith("AMF") Then
             Select Case presetName.ToLowerInvariant()
@@ -2227,7 +2167,7 @@ Public Class Base_RecordingsSet
         Return menu
     End Function
 
-    ' ═══ FPS ═══
+    ' FPS
     Private Sub FPS_BOX_Click(sender As Object, e As EventArgs) Handles FPS_BOX.Click, FPS_DROP.Click
         If Not IsEditablePreset() Then Exit Sub
         If FPS_BOX Is Nothing Then Exit Sub
@@ -2266,9 +2206,8 @@ Public Class Base_RecordingsSet
         If IsEditablePreset() Then SaveCurrentSettings()
     End Sub
 
-    ' ═══ Resolution ═══
+    ' Resolution
     Private Sub Resolution_BOX_Click(sender As Object, e As EventArgs) Handles Resolution_BOX.Click, Resolution_DROP.Click
-        ' Only Custom can change resolution (My Preset locks to Native)
         If AppSettings.Instance.Recording.Preset <> "Custom" Then Exit Sub
         If Resolution_BOX Is Nothing Then Exit Sub
 
@@ -2311,7 +2250,7 @@ Public Class Base_RecordingsSet
         ApplyResolutionSelection(res)
     End Sub
 
-    ' ═══ Encoder ═══
+    ' Encoder
     Private Sub cmbEncoder_Click(sender As Object, e As EventArgs) Handles cmbEncoder.Click, Encoder_DROP.Click
         If cmbEncoder Is Nothing Then Exit Sub
 
@@ -2331,12 +2270,7 @@ Public Class Base_RecordingsSet
             cms.Items.Add(New ToolStripSeparator())
         End If
 
-        ' AMD AMF disabled — reserved for future support
-        'If AppSettings.HasAMD Then
-        '    AddEncoderMenuItem(cms, "AMF_H264", "AMD AMF H.264", currentEncoder)
-        '    AddEncoderMenuItem(cms, "AMF_HEVC", "AMD AMF HEVC", currentEncoder)
-        '    cms.Items.Add(New ToolStripSeparator())
-        'End If
+        ' AMD AMF disabled - reserved for future support
 
         AddEncoderMenuItem(cms, "LibX264", "Software x264", currentEncoder)
         AddEncoderMenuItem(cms, "LibX265", "Software x265", currentEncoder)
@@ -2376,7 +2310,7 @@ Public Class Base_RecordingsSet
         End If
     End Sub
 
-    ' ═══ Preset P ═══
+    ' Preset P
     Private Sub P_BOX_Click(sender As Object, e As EventArgs) Handles P_BOX.Click
         If Not IsEditablePreset() Then Exit Sub
         If P_BOX Is Nothing Then Exit Sub

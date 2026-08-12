@@ -1,7 +1,9 @@
 {
   "meta.languageName": "English",
   "l10n.nvidiashadowplay": " GeForce Experience",
-  "l10n.LoactionSaved": "LoactionSaved",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Location Saved",
   "l10n.Saved": "Saved",
   "l10n.Shortcut": "Shortcut",
   "l10n.Load": "Load",

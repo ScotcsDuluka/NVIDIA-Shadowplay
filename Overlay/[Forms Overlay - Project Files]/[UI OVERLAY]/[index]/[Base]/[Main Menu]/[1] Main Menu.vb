@@ -491,7 +491,7 @@ Partial Public Class Base
         ' Base_Gallery
         With Base_Gallery
             .Gallery_l10n.Text = L("l10n.gallery")
-            .LoactionSaved_l10n.Text = L("l10n.LoactionSaved")
+            .LoactionSaved_l10n.Text = L("l10n.LocationSaved")
             .Saved_l10n.Text = L("l10n.done")
             .Openloaction_l10n.Text = L("l10n.openLocation")
             .Shortcut_l10n.Text = L("l10n.Shortcut")
@@ -524,7 +524,7 @@ Partial Public Class Base
             .text_settings.Text = L("l10n.recordings")
             .action_fn.Text = L("l10n.Saved")
             .Label4.Text = L("l10n.videoCapture")
-            .quality_main.Text = L("l10n.quality")
+            .quality_main.Text = L("l10n.preset")
             .Preset_NVIDIA.Text = L("l10n.nvidiaPreset")
             .Preset_Custom.Text = L("l10n.advanced")
             .Preset_My_Preset.Text = L("l10n.myPreset")
@@ -543,7 +543,7 @@ Partial Public Class Base
             .vdo_resetall.Text = L("l10n.resetToDefaults")
             .captrueblock.Text = L("l10n.settingsVideoCaptureDisable")
             .warm_re.Text = L("l10n.captrueresolutionwarm")
-            .custom_main.Text = L("l10n.custom")
+            .custom_main.Text = L("l10n.adjust_value")
             .advanced_main.Text = L("l10n.advanced")
 
             ' ═══ Dynamic labels

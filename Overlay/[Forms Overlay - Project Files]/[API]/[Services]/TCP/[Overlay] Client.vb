@@ -1,6 +1,7 @@
-﻿Public Class Base
+Public Class Base
 
-    Private tcp As TcpClientHelper
+    ''' <summary>Shared TCP helper — accessible from all forms (Sub_Record, Video Capture, etc.)</summary>
+    Public Shared tcp As TcpClientHelper
 
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         tcp = New TcpClientHelper("NVIDIA Overlay")
@@ -8,7 +9,7 @@
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
     End Sub
 
-    ' แก้: Dispose TCP ตอน form ปิด
+    ' Dispose TCP on form close
     Private Sub Base_TestFormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         Try
             If tcp IsNot Nothing Then

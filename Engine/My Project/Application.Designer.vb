@@ -33,7 +33,7 @@ Namespace My
         
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>  _
         Protected Overrides Sub OnCreateMainForm()
-            Me.MainForm = Global.Engine.UI_Engine
+            Me.MainForm = Global.NVIDIA_Capture.UI_Engine
         End Sub
         
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>  _

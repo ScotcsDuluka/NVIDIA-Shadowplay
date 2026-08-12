@@ -4,7 +4,6 @@ Imports System.IO
 Imports System.Net.Http.Headers
 Imports System.Text.Json
 Imports System.Text.Json.Serialization
-Imports CaptureEngine.CaptureCore
 Imports System.Net.Http
 Imports System.Security.Cryptography
 
@@ -24,14 +23,14 @@ Public Class AppSettings
         Public Property Encoder As String = "NVENC_H264"
         Public Property EncoderNow As String = "NVENC_H264"
         Public Property FPS As Integer = 60
-        Public Property Bitrate As Integer = 20000  ' ★ Round 7: 8000→20000 (ShadowPlay Medium)
+        Public Property Bitrate As Integer = 20000
         Public Property Width As Integer = 1920
         Public Property Height As Integer = 1080
         Public Property Preset As String = "Medium"
         Public Property EncoderPreset As Integer = 4
         Public Property ReplayDuration As Integer = 60
 
-        ' ═══ My Preset saved values (Nothing = use default from ScreenRecorder) ═══
+        ' ═══ My Preset saved values (Nothing = use default) ═══
         Public Property MyLowFPS As Integer? = Nothing
         Public Property MyLowBitrate As Integer? = Nothing
         Public Property MyLowEncoderPreset As Integer? = Nothing
@@ -43,6 +42,12 @@ Public Class AppSettings
         Public Property MyHighFPS As Integer? = Nothing
         Public Property MyHighBitrate As Integer? = Nothing
         Public Property MyHighEncoderPreset As Integer? = Nothing
+
+        ''' <summary>Custom renameable name for MY preset group (e.g. "P4", "P6")</summary>
+        Public Property MyPresetName As String = "MY"
+
+        ''' <summary>Capture API: ddagrab, gfxcapture, GDIGrab, or null (auto)</summary>
+        Public Property APICapture As String = Nothing
 
         Public Sub New()
         End Sub
@@ -72,7 +77,7 @@ Public Class AppSettings
     End Class
 
     ''' <summary>
-    ''' ✅ Audio settings: system audio, microphone, volume
+    ''' Audio settings: system audio, microphone, volume
     ''' </summary>
     Public Class AudioSettingsClass
         ''' <summary>
@@ -135,7 +140,7 @@ Public Class AppSettings
     End Class
 
     ''' <summary>
-    ''' ✅ GitHub User settings - เก็บข้อมูลผู้ใช้ GitHub
+    ''' GitHub User settings - เก็บข้อมูลผู้ใช้ GitHub
     ''' </summary>
     Public Class GitHubUserClass
         Public Property Username As String = ""
@@ -147,12 +152,8 @@ Public Class AppSettings
         End Sub
     End Class
 
-    ' ====================================================================
-    ' <<<< ลบ HotkeySettingsClass ทิ้งไปแล้ว ใช้ Dictionary แทน >>>
-    ' ====================================================================
-
     ''' <summary>
-    ''' ✅ GitHub Token สำหรับ OAuth
+    ''' GitHub Token สำหรับ OAuth
     ''' </summary>
     Public Property GitHubUser As New GitHubUserClass()
     Public Property GitHubToken As String = ""
@@ -388,10 +389,14 @@ Public Class AppSettings
 
 #End Region
 
-#Region "JSON File Path"
+#Region "JSON File Paths"
 
     Private _configPath As String = Nothing
+    Private _videoConfigPath As String = Nothing
 
+    ''' <summary>
+    ''' Path to config.json (general overlay settings)
+    ''' </summary>
     Private ReadOnly Property ConfigPath As String
         Get
             If _configPath Is Nothing Then
@@ -401,9 +406,21 @@ Public Class AppSettings
         End Get
     End Property
 
+    ''' <summary>
+    ''' Path to video.json (video capture settings — saved on exit from Video Capture page)
+    ''' </summary>
+    Public ReadOnly Property VideoConfigPath As String
+        Get
+            If _videoConfigPath Is Nothing Then
+                _videoConfigPath = Path.Combine(Application.StartupPath, "video.json")
+            End If
+            Return _videoConfigPath
+        End Get
+    End Property
+
 #End Region
 
-#Region "Load / Save"
+#Region "config.json — Load / Save"
 
     ''' <summary>
     ''' Load settings from config.json
@@ -487,6 +504,8 @@ Public Class AppSettings
         Recording.MyHighFPS = loadedRecording.MyHighFPS
         Recording.MyHighBitrate = loadedRecording.MyHighBitrate
         Recording.MyHighEncoderPreset = loadedRecording.MyHighEncoderPreset
+        Recording.MyPresetName = loadedRecording.MyPresetName
+        Recording.APICapture = loadedRecording.APICapture
     End Sub
 
     Private Sub ApplyPathSettings(loadedPaths As PathSettingsClass)
@@ -523,8 +542,6 @@ Public Class AppSettings
         GitHubUser.LastLogin = loadedGitHubUser.LastLogin
     End Sub
 
-    ' <<< ลบเมธอด ApplyHotkeySettings ทิ้งไปแล้ว >>>
-
     ''' <summary>
     ''' Save settings to config.json
     ''' </summary>
@@ -546,155 +563,297 @@ Public Class AppSettings
 
 #End Region
 
-#Region "Apply to CaptureEngine.CaptureCore.ScreenRecorder"
+#Region "video.json — Load / Save (TCP Architecture)"
 
     ''' <summary>
-    ''' Apply settings from config.json to CaptureEngine.CaptureCore.ScreenRecorder
+    ''' Video capture settings สำหรับ Engine — ส่งผ่าน TCP
+    ''' ถูก Save ตอนปิด Video Capture page และ Load ตอนเปิดหน้า
+    ''' 
+    ''' JSON structure:
+    ''' {
+    '''   "encoder": "NVENC_H264",
+    '''   "active_preset": "my_medium",
+    '''   "current": { "fps": 60, "bitrate": 9000, "encoder_preset": 4, ... },
+    '''   "replay_duration": 60,
+    '''   "audio": { "system_enabled": true, "mic_enabled": false, ... },
+    '''   "my_presets": { "low": {...}, "medium": {...}, "high": {...} }
+    ''' }
     ''' </summary>
-    Public Sub ApplyToRecorder(recorder As CaptureEngine.CaptureCore.ScreenRecorder)
-        Try
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' IMPORTANT: Set Preset FIRST (เพราะ setter จะทับค่าอื่นๆ)
-            ' ═══════════════════════════════════════════════════════════════════════
-            Select Case Recording.Preset
-                Case "Low"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Low
-                Case "Medium"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium
-                Case "High"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.High
-                Case "MyLow"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.MyLow
-                Case "MyMedium"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.MyMedium
-                Case "MyHigh"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.MyHigh
-                Case "Recommended"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Recommended
-                Case "Maximum"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Maximum
-                Case "Custom"
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Custom
-                Case Else
-                    recorder.Preset = CaptureEngine.CaptureCore.ScreenRecorder.RecordingPreset.Medium
-            End Select
+    Public Class VideoConfigClass
+        ''' <summary>Encoder string: NVENC_H264, NVENC_HEVC, QuickSync_H264, etc.</summary>
+        Public Property Encoder As String = "NVENC_H264"
 
-            ' ═══ Override with My Preset saved values (if set) ═══
-            Select Case Recording.Preset
-                Case "MyLow"
-                    If Recording.MyLowFPS.HasValue Then recorder.Framerate = Recording.MyLowFPS.Value
-                    If Recording.MyLowBitrate.HasValue Then recorder.Bitrate = Recording.MyLowBitrate.Value
-                    If Recording.MyLowEncoderPreset.HasValue Then recorder.EncoderPreset = Recording.MyLowEncoderPreset.Value
-                Case "MyMedium"
-                    If Recording.MyMediumFPS.HasValue Then recorder.Framerate = Recording.MyMediumFPS.Value
-                    If Recording.MyMediumBitrate.HasValue Then recorder.Bitrate = Recording.MyMediumBitrate.Value
-                    If Recording.MyMediumEncoderPreset.HasValue Then recorder.EncoderPreset = Recording.MyMediumEncoderPreset.Value
-                Case "MyHigh"
-                    If Recording.MyHighFPS.HasValue Then recorder.Framerate = Recording.MyHighFPS.Value
-                    If Recording.MyHighBitrate.HasValue Then recorder.Bitrate = Recording.MyHighBitrate.Value
-                    If Recording.MyHighEncoderPreset.HasValue Then recorder.EncoderPreset = Recording.MyHighEncoderPreset.Value
-            End Select
+        ''' <summary>Encoder currently in use (may differ from Encoder during transitions)</summary>
+        Public Property EncoderNow As String = "NVENC_H264"
 
-            ' ═══════════════════════════════════════════════════════════════════════
-            ' Now apply custom settings (will override preset defaults)
-            ' ═══════════════════════════════════════════════════════════════════════
+        ''' <summary>Currently selected preset name (e.g. "Medium", "MyLow", "Custom")</summary>
+        Public Property ActivePreset As String = "Medium"
 
-            ' FPS
-            recorder.Framerate = Recording.FPS
+        ''' <summary>Current actual recording values being used</summary>
+        Public Property Current As New VideoCurrentValuesClass()
 
-            ' Bitrate
-            recorder.Bitrate = Recording.Bitrate
+        ''' <summary>Replay buffer duration in seconds</summary>
+        Public Property ReplayDuration As Integer = 60
 
-            ' Resolution
-            recorder.ResolutionWidth = Recording.Width
-            recorder.ResolutionHeight = Recording.Height
+        ''' <summary>Audio settings</summary>
+        Public Property Audio As New VideoAudioConfigClass()
 
-            ' Encoder Preset (1-7)
-            recorder.EncoderPreset = Recording.EncoderPreset
+        ''' <summary>MY preset definitions (low/medium/high)</summary>
+        Public Property MyPresets As New VideoMyPresetsClass()
 
-            ' Encoder
-            SetEncoder(recorder, Recording.Encoder)
+        ''' <summary>Capture API: ddagrab, gfxcapture, GDIGrab, or null (auto)</summary>
+        Public Property APICapture As String = Nothing
 
-            ' Replay Duration
-            recorder.BufferDurationSeconds = Recording.ReplayDuration
-
-        Catch ex As Exception
-            Debug.WriteLine("ApplyToRecorder Error: " & ex.Message)
-        End Try
-    End Sub
+        Public Sub New()
+        End Sub
+    End Class
 
     ''' <summary>
-    ''' ✅ Apply Audio settings to CaptureEngine.CaptureCore.ScreenRecorder
+    ''' Current actual recording values (nested under "current" in video.json)
     ''' </summary>
-    Public Sub ApplyAudioSettings(recorder As CaptureEngine.CaptureCore.ScreenRecorder)
+    Public Class VideoCurrentValuesClass
+        Public Property FPS As Integer = 60
+        Public Property Bitrate As Integer = 20000
+        Public Property EncoderPreset As Integer = 4
+        Public Property UseNativeResolution As Boolean = True
+        Public Property Width As Integer = 0
+        Public Property Height As Integer = 0
+
+        Public Sub New()
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' Audio settings (nested under "audio" in video.json)
+    ''' </summary>
+    Public Class VideoAudioConfigClass
+        Public Property SystemEnabled As Boolean = True
+        Public Property MicEnabled As Boolean = False
+        Public Property SystemVolume As Single = 1.0F
+        Public Property MicVolume As Single = 1.0F
+        Public Property MicDevice As String = ""
+
+        Public Sub New()
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' Single MY preset slot (low / medium / high)
+    ''' </summary>
+    Public Class MyPresetSlotClass
+        ''' <summary>FPS (Nothing = use NVIDIA default)</summary>
+        Public Property FPS As Integer? = Nothing
+
+        ''' <summary>Bitrate in kbps (Nothing = use NVIDIA default)</summary>
+        Public Property Bitrate As Integer? = Nothing
+
+        ''' <summary>Encoder preset index 1-7 (Nothing = use NVIDIA default)</summary>
+        Public Property EncoderPreset As Integer? = Nothing
+
+        Public Sub New()
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' MY preset container (nested under "my_presets" in video.json)
+    ''' </summary>
+    Public Class VideoMyPresetsClass
+        ''' <summary>Custom renameable name for MY preset group (e.g. "P4", "P6")</summary>
+        Public Property Name As String = "MY"
+
+        Public Property Low As New MyPresetSlotClass()
+        Public Property Medium As New MyPresetSlotClass()
+        Public Property High As New MyPresetSlotClass()
+
+        Public Sub New()
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' โหลด video settings จาก video.json
+    ''' </summary>
+    Public Function LoadVideoSettings() As VideoConfigClass
         Try
-            ' Set audio mode
-            If Audio.SystemAudioEnabled AndAlso Audio.MicEnabled Then
-                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.Both
-            ElseIf Audio.SystemAudioEnabled Then
-                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
-            ElseIf Audio.MicEnabled Then
-                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.MicOnly
-            Else
-                recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.None
-            End If
+            Debug.WriteLine("══════════ AppSettings.LoadVideoSettings ══════════")
 
-            ' Set volumes
-            recorder.SystemAudioVolume = Audio.SystemAudioVolume
-            recorder.MicVolume = Audio.MicVolume
+            If File.Exists(VideoConfigPath) Then
+                Dim json As String = File.ReadAllText(VideoConfigPath)
 
-            ' Set mic device name (if specified)
-            If Audio.MicEnabled AndAlso Not String.IsNullOrEmpty(Audio.MicDeviceName) Then
-                recorder.MicDeviceName = Audio.MicDeviceName
-            End If
+                If Not String.IsNullOrWhiteSpace(json) Then
+                    Dim options As New JsonSerializerOptions With {
+                        .PropertyNameCaseInsensitive = True,
+                        .AllowTrailingCommas = True,
+                        .ReadCommentHandling = JsonCommentHandling.Skip
+                    }
 
-            Debug.WriteLine($"ApplyAudioSettings: Mode={recorder.AudioMode}, SystemVol={Audio.SystemAudioVolume:P0}, MicVol={Audio.MicVolume:P0}")
+                    Dim loaded As VideoConfigClass = JsonSerializer.Deserialize(Of VideoConfigClass)(json, options)
 
-        Catch ex As Exception
-            Debug.WriteLine("ApplyAudioSettings Error: " & ex.Message)
-            ' Default to system audio only
-            recorder.AudioMode = CaptureEngine.CaptureCore.ScreenRecorder.VideoCaptureMode.SystemOnly
-            recorder.SystemAudioVolume = 1.0F
-        End Try
-    End Sub
-
-    Private Sub SetEncoder(recorder As CaptureEngine.CaptureCore.ScreenRecorder, encoderName As String)
-        Try
-            Select Case encoderName
-                Case "NVENC_H264"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264
-                Case "NVENC_HEVC"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_HEVC
-                Case "NVENC_AV1"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_AV1
-                Case "QuickSync_H264"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264
-                Case "QuickSync_HEVC"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_HEVC
-                Case "AMF_H264"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264
-                Case "AMF_HEVC"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_HEVC
-                Case "LibX264"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264
-                Case "LibX265"
-                    recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX265
-                Case Else
-                    ' Auto-select based on hardware
-                    If _hasNvidia.GetValueOrDefault(False) Then
-                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.NVENC_H264
-                    ElseIf _hasIntel.GetValueOrDefault(False) Then
-                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.QuickSync_H264
-                    ElseIf _hasAMD.GetValueOrDefault(False) Then
-                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.AMF_H264
-                    Else
-                        recorder.Encoder = CaptureEngine.CaptureCore.ScreenRecorder.VideoEncoder.LibX264
+                    If loaded IsNot Nothing Then
+                        Debug.WriteLine("AppSettings.LoadVideoSettings: SUCCESS")
+                        Debug.WriteLine($"  Encoder: {loaded.Encoder}, ActivePreset: {loaded.ActivePreset}")
+                        Debug.WriteLine($"  FPS: {loaded.Current.FPS}, Bitrate: {loaded.Current.Bitrate}, Res: {loaded.Current.Width}x{loaded.Current.Height}")
+                        Return loaded
                     End If
-            End Select
+                End If
+            Else
+                Debug.WriteLine("AppSettings.LoadVideoSettings: video.json not found, using defaults")
+            End If
 
         Catch ex As Exception
-            Debug.WriteLine("SetEncoder Error: " & ex.Message)
+            Debug.WriteLine("AppSettings.LoadVideoSettings Error: " & ex.Message)
         End Try
+
+        ' Return defaults
+        Return Nothing
+    End Function
+
+    ''' <summary>
+    ''' Save video settings to video.json — เรียกตอนออกจาก Video Capture page
+    ''' </summary>
+    Public Sub SaveVideoSettings(video As VideoConfigClass)
+        Try
+            If video Is Nothing Then Return
+
+            Dim options As New JsonSerializerOptions With {
+                .WriteIndented = True,
+                .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            }
+
+            Dim json As String = JsonSerializer.Serialize(video, options)
+            File.WriteAllText(VideoConfigPath, json)
+
+            Debug.WriteLine("AppSettings.SaveVideoSettings: Saved to " & VideoConfigPath)
+            Debug.WriteLine($"  Encoder: {video.Encoder}, ActivePreset: {video.ActivePreset}")
+            Debug.WriteLine($"  FPS: {video.Current.FPS}, Bitrate: {video.Current.Bitrate}")
+
+        Catch ex As Exception
+            Debug.WriteLine("AppSettings.SaveVideoSettings Error: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Sync current Recording + Audio settings → VideoConfigClass and save to video.json
+    ''' เรียกจาก Video Capture page เมื่อกดปิด/ออก
+    ''' 
+    ''' Produces JSON:
+    ''' {
+    '''   "encoder": "NVENC_H264",
+    '''   "active_preset": "MyMedium",
+    '''   "current": { "fps": 60, "bitrate": 9000, "encoder_preset": 4, ... },
+    '''   "replay_duration": 60,
+    '''   "audio": { "system_enabled": true, ... },
+    '''   "my_presets": { "low": {...}, "medium": {...}, "high": {...} }
+    ''' }
+    ''' </summary>
+    Public Sub SyncAndSaveVideoConfig()
+        Dim video As New VideoConfigClass()
+
+        ' ═══ Top-level ═══
+        video.Encoder = Recording.Encoder
+        video.EncoderNow = Recording.EncoderNow
+        video.ActivePreset = Recording.Preset
+        video.ReplayDuration = Recording.ReplayDuration
+
+        ' ═══ My Preset name ═══
+        video.MyPresets.Name = Recording.MyPresetName
+
+        ' ═══ API Capture ═══
+        video.APICapture = Recording.APICapture
+
+        ' ═══ Current values (nested) ═══
+        video.Current.FPS = Recording.FPS
+        video.Current.Bitrate = Recording.Bitrate
+        video.Current.EncoderPreset = Recording.EncoderPreset
+        video.Current.UseNativeResolution = Recording.UseNativeResolution
+        video.Current.Width = Recording.Width
+        video.Current.Height = Recording.Height
+
+        ' ═══ Audio settings (nested) ═══
+        video.Audio.SystemEnabled = Audio.SystemAudioEnabled
+        video.Audio.MicEnabled = Audio.MicEnabled
+        video.Audio.SystemVolume = Audio.SystemAudioVolume
+        video.Audio.MicVolume = Audio.MicVolume
+        video.Audio.MicDevice = Audio.MicDeviceName
+
+        ' ═══ My Preset saved values (nested) ═══
+        video.MyPresets.Low.FPS = Recording.MyLowFPS
+        video.MyPresets.Low.Bitrate = Recording.MyLowBitrate
+        video.MyPresets.Low.EncoderPreset = Recording.MyLowEncoderPreset
+
+        video.MyPresets.Medium.FPS = Recording.MyMediumFPS
+        video.MyPresets.Medium.Bitrate = Recording.MyMediumBitrate
+        video.MyPresets.Medium.EncoderPreset = Recording.MyMediumEncoderPreset
+
+        video.MyPresets.High.FPS = Recording.MyHighFPS
+        video.MyPresets.High.Bitrate = Recording.MyHighBitrate
+        video.MyPresets.High.EncoderPreset = Recording.MyHighEncoderPreset
+
+        ' Save to video.json
+        SaveVideoSettings(video)
+
+        ' Also update config.json (keeps both in sync)
+        Save()
+    End Sub
+
+    ''' <summary>
+    ''' Load video.json and apply to Recording + Audio properties
+    ''' เรียกจาก Video Capture page เมื่อเปิดหน้า
+    ''' 
+    ''' Reads nested JSON:
+    ''' { "encoder", "active_preset", "current": {...}, "replay_duration", "audio": {...}, "my_presets": {...} }
+    ''' </summary>
+    Public Sub LoadAndApplyVideoConfig()
+        Dim video = LoadVideoSettings()
+
+        If video Is Nothing Then
+            Debug.WriteLine("LoadAndApplyVideoConfig: No video.json, using current config.json values")
+            Return
+        End If
+
+        ' ═══ Top-level fields ═══
+        Recording.Encoder = video.Encoder
+        Recording.EncoderNow = video.EncoderNow
+        Recording.Preset = video.ActivePreset
+        Recording.ReplayDuration = video.ReplayDuration
+
+        ' ═══ My Preset name ═══
+        Recording.MyPresetName = video.MyPresets.Name
+
+        ' ═══ API Capture ═══
+        Recording.APICapture = video.APICapture
+
+        ' ═══ Current values (nested) ═══
+        Recording.FPS = video.Current.FPS
+        Recording.Bitrate = video.Current.Bitrate
+        Recording.EncoderPreset = video.Current.EncoderPreset
+        Recording.UseNativeResolution = video.Current.UseNativeResolution
+        Recording.Width = If(video.Current.Width = 0, Recording.Width, video.Current.Width)
+        Recording.Height = If(video.Current.Height = 0, Recording.Height, video.Current.Height)
+
+        ' ═══ Audio settings (nested) ═══
+        Audio.SystemAudioEnabled = video.Audio.SystemEnabled
+        Audio.MicEnabled = video.Audio.MicEnabled
+        Audio.SystemAudioVolume = video.Audio.SystemVolume
+        Audio.MicVolume = video.Audio.MicVolume
+        Audio.MicDeviceName = video.Audio.MicDevice
+
+        ' ═══ My Preset values (nested) ═══
+        Recording.MyLowFPS = video.MyPresets.Low.FPS
+        Recording.MyLowBitrate = video.MyPresets.Low.Bitrate
+        Recording.MyLowEncoderPreset = video.MyPresets.Low.EncoderPreset
+
+        Recording.MyMediumFPS = video.MyPresets.Medium.FPS
+        Recording.MyMediumBitrate = video.MyPresets.Medium.Bitrate
+        Recording.MyMediumEncoderPreset = video.MyPresets.Medium.EncoderPreset
+
+        Recording.MyHighFPS = video.MyPresets.High.FPS
+        Recording.MyHighBitrate = video.MyPresets.High.Bitrate
+        Recording.MyHighEncoderPreset = video.MyPresets.High.EncoderPreset
+
+        ' Also save to config.json (keeps both in sync)
+        Save()
+
+        Debug.WriteLine("LoadAndApplyVideoConfig: Applied video.json → Recording + Audio properties")
     End Sub
 
 #End Region
@@ -991,6 +1150,16 @@ Public Class AppSettings
 
         ' ✅ ไม่ reset GitHub user
         Save()
+
+        ' Also reset video.json
+        If File.Exists(VideoConfigPath) Then
+            Try
+                File.Delete(VideoConfigPath)
+                Debug.WriteLine("ResetDefaults: Deleted video.json")
+            Catch ex As Exception
+                Debug.WriteLine("ResetDefaults: Failed to delete video.json - " & ex.Message)
+            End Try
+        End If
     End Sub
 
 #End Region
