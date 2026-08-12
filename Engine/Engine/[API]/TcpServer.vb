@@ -290,6 +290,20 @@ Public Class EngineHubClient
                 value = ""
             End If
 
+            ' ✅ P1.5: handle Overlay's PREWARM_FFMPEG command BEFORE the engine_*
+            ' filter. Overlay sends this with value="<ffmpegPath>|<encoderName>"
+            ' to tell Engine where ffmpeg.exe lives (Overlay's api-core folder).
+            ' Old behavior: Engine ignored this and used its own search path,
+            ' which often didn't find ffmpeg.exe → StartRecordingAsync failed
+            ' with "FFmpeg not found" → no response sent → Overlay showed
+            ' "Recording" but nothing happened.
+            If cmd = "PREWARM_FFMPEG" AndAlso value.Length > 0 Then
+                Dim pipeIdx As Integer = value.IndexOf("|"c)
+                Dim ffmpegPath As String = If(pipeIdx > 0, value.Substring(0, pipeIdx), value)
+                RaiseEvent OnCommandReceived(Me, New CommandEventArgs("engine_prewarm_ffmpeg", ffmpegPath))
+                Return
+            End If
+
             ' ฟิลเตอร์เฉพาะ engine_ commands (และ alias เก่า)
             ' ✅ P1.5: accept legacy RECORD_START/STOP/REPLAY_* commands that
             ' Overlay's Sub_Record.vb still sends. Old behavior filtered them

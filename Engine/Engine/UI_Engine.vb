@@ -118,6 +118,8 @@ Public Class UI_Engine
                     HandleEngineLoadConfig(e.RequestId)
                 Case "engine_set_encoder"
                     HandleEngineSetEncoder(e.Value, e.RequestId)
+                Case "engine_prewarm_ffmpeg"
+                    HandleEnginePrewarmFFmpeg(e.Value)
                 Case Else
                     _hubClient.SendResponse(e.Command, "error", "unknown_command", e.RequestId)
             End Select
@@ -230,6 +232,43 @@ Public Class UI_Engine
 
     Private Sub HandleEngineSetEncoder(value As String, reqId As String)
         _hubClient.SendResponse("engine_set_encoder", "error", "use_config_json", reqId)
+    End Sub
+
+    ''' <summary>
+    ''' ✅ P1.5: Overlay sends PREWARM_FFMPEG with the path to ffmpeg.exe in
+    ''' Overlay's api-core folder. Engine should use this path if it doesn't
+    ''' have its own ffmpeg.exe. Without this, Engine's CaptureSettings might
+    ''' point to a non-existent ffmpeg.exe → StartRecordingAsync fails →
+    ''' "กดอัด ขึ้นอัด แต่ไม่ได้อัดจริง".
+    ''' </summary>
+    Private Sub HandleEnginePrewarmFFmpeg(ffmpegPath As String)
+        Try
+            DebugLog($"[Engine] PREWARM_FFMPEG received: {ffmpegPath}")
+
+            If String.IsNullOrEmpty(ffmpegPath) OrElse Not IO.File.Exists(ffmpegPath) Then
+                DebugLog($"[Engine] PREWARM_FFMPEG: path does not exist: {ffmpegPath}")
+                Return
+            End If
+
+            ' Load current settings, update FFmpegPath, save back.
+            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+            If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not IO.File.Exists(s.FFmpegPath) Then
+                s.FFmpegPath = ffmpegPath
+                s.Save(_configPath)
+                _settings = s
+                Me.Invoke(Sub()
+                              txtFFmpegPath.Text = ffmpegPath
+                              ValidateFFmpegPath()
+                          End Sub)
+                DebugLog($"[Engine] PREWARM_FFMPEG: updated FFmpegPath → {ffmpegPath}")
+                ' Re-detect encoders with the new ffmpeg path.
+                DetectEncoders()
+            Else
+                DebugLog($"[Engine] PREWARM_FFMPEG: already have valid FFmpegPath: {s.FFmpegPath}")
+            End If
+        Catch ex As Exception
+            DebugLog($"[Engine] PREWARM_FFMPEG error: {ex.Message}")
+        End Try
     End Sub
 
     ' ── Init ──────────────────────────────────────────────────
