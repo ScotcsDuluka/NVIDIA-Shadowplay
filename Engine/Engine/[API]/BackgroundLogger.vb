@@ -22,7 +22,7 @@ Imports System.Threading
 Public NotInheritable Class BackgroundLogger
 
     Private Class FileWriter
-        ReadOnly _queue As New BlockingCollection(Of String)(capacity:=8192)
+        ReadOnly _queue As New BlockingCollection(Of String)(boundedCapacity:=8192)
         ReadOnly _task As Task
         ReadOnly _filePath As String
         Dim _stopped As Boolean
@@ -82,9 +82,17 @@ Public NotInheritable Class BackgroundLogger
             If _stopped Then Return
             ' TryAdd: if queue is full, drop instead of blocking the calling thread
             ' (a dropped log line is better than freezing the recording pipeline).
-            If Not _queue.TryAdd(line, 0) Then
-                Debug.WriteLine($"BackgroundLogger queue full, dropping line for {_filePath}")
-            End If
+            ' ✅ FIX: after CompleteAdding() in [Stop], TryAdd throws InvalidOperationException
+            ' instead of returning False — guard against the race between the _stopped
+            ' check above and the IsAddingCompleted flip below.
+            If _queue.IsAddingCompleted Then Return
+            Try
+                If Not _queue.TryAdd(line, 0) Then
+                    Debug.WriteLine($"BackgroundLogger queue full, dropping line for {_filePath}")
+                End If
+            Catch ex As InvalidOperationException
+                ' Collection completed between the IsAddingCompleted check and TryAdd — drop silently.
+            End Try
         End Sub
 
         Public Sub [Stop]()

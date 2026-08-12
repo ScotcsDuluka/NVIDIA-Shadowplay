@@ -6,7 +6,6 @@ Imports System.Text.Json
 Imports System.Text.Json.Serialization
 Imports System.Net.Http
 Imports System.Security.Cryptography
-Imports System.Security.Cryptography.ProtectedData
 Imports System.Text
 
 Public Class AppSettings
