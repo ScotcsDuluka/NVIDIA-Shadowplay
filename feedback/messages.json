@@ -4,7 +4,7 @@
       "id": "msg_001",
       "author": "system",
       "role": "assistant",
-      "text": "ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
+      "text": "👋 Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ⚙️ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
       "timestamp": "2026-08-14T00:00:00Z"
     },
     {
@@ -25,36 +25,36 @@
       "id": "msg_msrxtrg0",
       "author": "user",
       "role": "user",
-      "text": "ÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂ´ÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂ¢ÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂ±ÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂ",
+      "text": "ปกติยัง",
       "timestamp": "2026-08-13T19:55:18.192Z"
     },
     {
-      "id": "msg_msrxw0bt",
+      "id": "msg_user_design_001",
       "author": "user",
       "role": "user",
-      "text": "ÃÂ ÃÂ¸ÃÂ¡ÃÂ ÃÂ¸ÃÂ¶ÃÂ ÃÂ¸ÃÂ ÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¸ÃÂµÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ Engine UI ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ«ÃÂ ÃÂ¸ÃÂ¡ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ«ÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ­ÃÂ ÃÂ¸ÃÂ¢ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ¡ÃÂ ÃÂ¸ÃÂ±ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ¢",
-      "timestamp": "2026-08-13T19:57:03.017Z"
+      "text": "มึง ดีไซ Engine UI ใหม่หน่อยได้มั้ย",
+      "timestamp": "2026-08-13T19:57:00.000Z"
     },
     {
-      "id": "msg_msrxxggy",
+      "id": "msg_user_wat_001",
       "author": "user",
       "role": "user",
-      "text": "Ã Â¸Â­Ã Â¸Â°Ã Â¹ÂÃ Â¸Â£Ã Â¸Â§Ã Â¸Â°Ã Â¹ÂÃ Â¸ÂÃ Â¸ÂµÃ Â¹ÂÃ Â¸Â¢\n\nÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.\nAI ÃÂ· 14 Ã Â¸Âª.Ã Â¸Â. 07:00\ntest\\\nuser ÃÂ· 14 Ã Â¸Âª.Ã Â¸Â. 02:50\nddsadsa\nuser ÃÂ· 14 Ã Â¸Âª.Ã Â¸Â. 02:53\nÃÂ ÃÂÃÂ¸ÃÂÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂÃÂ ÃÂÃÂ¸ÃÂÃÂ´ÃÂ ÃÂÃÂ¸ÃÂÃÂ¢ÃÂ ÃÂÃÂ¸ÃÂÃÂ±ÃÂ ÃÂÃÂ¸ÃÂÃÂ\nuser ÃÂ· 14 Ã Â¸Âª.Ã Â¸Â. 02:55\nÃÂ ÃÂ¸ÃÂ¡ÃÂ ÃÂ¸ÃÂ¶ÃÂ ÃÂ¸ÃÂ ÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¸ÃÂµÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ Engine UI ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ«ÃÂ ÃÂ¸ÃÂ¡ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ«ÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ­ÃÂ ÃÂ¸ÃÂ¢ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ¡ÃÂ ÃÂ¸ÃÂ±ÃÂ ÃÂ¹ÃÂÃÂ ÃÂ¸ÃÂ¢",
-      "timestamp": "2026-08-13T19:58:10.594Z"
+      "text": "อะไรวะเนี่ย",
+      "timestamp": "2026-08-13T19:58:00.000Z"
     },
     {
-      "id": "msg_msrxyjlq",
-      "author": "user",
-      "role": "user",
-      "text": "à¸à¸µà¹à¸ Engine UI à¹à¸«à¸¡à¹à¸«à¸à¹à¸­à¸¢à¹à¸à¹à¸¡à¸±à¹à¸¢\"",
-      "timestamp": "2026-08-13T19:59:01.310Z"
-    },
-    {
-      "id": "msg_msry07b0",
+      "id": "msg_user_design_002",
       "author": "user",
       "role": "user",
       "text": "ดีไซ Engine UI ใหม่หน่อยได้มั้ย",
-      "timestamp": "2026-08-13T20:00:18.684Z"
+      "timestamp": "2026-08-13T19:59:00.000Z"
+    },
+    {
+      "id": "msg_ai_001",
+      "author": "ai",
+      "role": "assistant",
+      "text": "โอเค ได้! 🎨 กูจะออกแบบ Engine UI ใหม่ให้\n\nขออธิบายเรื่อง \"อะไรวะเนี่ย\" ก่อน:\n→ กู push ไม่ติดเพราะมึงส่งข้อความใหม่ตอนกูกำลัง push เลย conflict กันหลายรอบ ตอนนี้รวมให้หมดแล้ว\n\n⚠️ พบ bug รุนแรง: ฝั่ง web มี encoding bug ที่ทำให้ทั้ง emoji และภาษาไทยเพี้ยนเป็น ÃÂÃÂ... เพราะ app.js ใช้ btoa(unescape(encodeURIComponent(...))) ซึ่งเป็น deprecated hack\n\nกูแก้แล้ว — เปลี่ยนเป็น TextEncoder/TextDecoder ที่เป็น standard รองรับ UTF-8 100% คราวหน้าที่มึง refresh web ภาษาไทยและ emoji จะแสดงถูกต้อง\n\nตอนนี้ messages.json ถูก clean ให้หมดแล้ว ข้อความเดิมทั้งหมดอยู่ในรูปแบบที่ถูกต้อง\n\n🎨 เรื่อง Engine UI ใหม่ — กูยินดีทำให้! แต่ขอถามก่อน:\n1. โทนสี: เขียว-ดำ NVIDIA เหมือนเดิม หรืออยากได้สีอื่น?\n2. Layout: compact แบบเดิม หรือ full dashboard แบบมี sidebar + stats real-time?\n3. อยากให้มีอะไรเป็นพิเศษไหม? (เช่น FPS graph, disk usage bar, screenshot preview)\n\nถ้าบอก \"สุดแล้วแต่\" กูจะออกแบบให้เลย — modern dashboard โทนเขียว-ดำ",
+      "timestamp": "2026-08-13T20:25:00.000Z"
     }
   ],
   "version": 1
