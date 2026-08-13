@@ -103,6 +103,13 @@ Partial Class UI_Engine
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
         OPEN_UI = New System.Windows.Forms.Timer(components)
+        ' ✅ P2.10: status panel for real-time recording info
+        pnlStatus = New Panel()
+        lblRecState = New Label()
+        lblRecTimer = New Label()
+        lblRecSize = New Label()
+        lblRecFrames = New Label()
+        lblRecBitrate = New Label()
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
@@ -118,6 +125,7 @@ Partial Class UI_Engine
         pnlFFmpeg.SuspendLayout()
         pnlGitHub.SuspendLayout()
         pnlHub.SuspendLayout()
+        pnlStatus.SuspendLayout()
         CType(DIMBOX_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(DIMBOX_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -694,10 +702,83 @@ Partial Class UI_Engine
         ' tmrRecording
         ' 
         tmrRecording.Interval = 1000
-        ' 
+        '
         ' tmrRefresh
-        ' 
+        '
         tmrRefresh.Interval = 2000
+
+        ' ═══════════════════════════════════════════════════════════════════════
+        ' ✅ P2.10: pnlStatus — real-time recording info panel
+        ' Shows: state indicator + timer + file size + frame count + bitrate
+        ' Updated by UI_Engine.OnEngineProgress (1/sec from FFmpeg stderr).
+        ' ═══════════════════════════════════════════════════════════════════════
+        pnlStatus.BackColor = Drawing.Color.FromArgb(20, 20, 24)
+        pnlStatus.BorderStyle = BorderStyle.FixedSingle
+        pnlStatus.Controls.Add(lblRecState)
+        pnlStatus.Controls.Add(lblRecTimer)
+        pnlStatus.Controls.Add(lblRecSize)
+        pnlStatus.Controls.Add(lblRecFrames)
+        pnlStatus.Controls.Add(lblRecBitrate)
+        pnlStatus.Location = New Point(574, 164)
+        pnlStatus.Name = "pnlStatus"
+        pnlStatus.Size = New Drawing.Size(500, 240)
+        pnlStatus.TabIndex = 90
+        '
+        ' lblRecState — pulsing state indicator (● Idle / ● Recording / ● Stopping / ● Error)
+        '
+        lblRecState.AutoSize = False
+        lblRecState.BackColor = Drawing.Color.FromArgb(20, 20, 24)
+        lblRecState.Font = New Font("GeForce", 14F, FontStyle.Bold)
+        lblRecState.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
+        lblRecState.Location = New Point(15, 15)
+        lblRecState.Name = "lblRecState"
+        lblRecState.Size = New Drawing.Size(470, 32)
+        lblRecState.Text = "● Idle"
+        lblRecState.TextAlign = ContentAlignment.MiddleLeft
+        '
+        ' lblRecTimer — big monospace timer 00:00:42
+        '
+        lblRecTimer.AutoSize = False
+        lblRecTimer.Font = New Font("Consolas", 28F, FontStyle.Bold)
+        lblRecTimer.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+        lblRecTimer.Location = New Point(15, 55)
+        lblRecTimer.Name = "lblRecTimer"
+        lblRecTimer.Size = New Drawing.Size(280, 50)
+        lblRecTimer.Text = "00:00:00"
+        lblRecTimer.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' lblRecSize — file size in MB
+        '
+        lblRecSize.AutoSize = False
+        lblRecSize.Font = New Font("Consolas", 14F, FontStyle.Bold)
+        lblRecSize.ForeColor = Drawing.Color.FromArgb(230, 230, 230)
+        lblRecSize.Location = New Point(305, 60)
+        lblRecSize.Name = "lblRecSize"
+        lblRecSize.Size = New Drawing.Size(180, 30)
+        lblRecSize.Text = "0.0 MB"
+        lblRecSize.TextAlign = ContentAlignment.MiddleLeft
+        '
+        ' lblRecFrames — frame count
+        '
+        lblRecFrames.AutoSize = False
+        lblRecFrames.Font = New Font("Consolas", 10F)
+        lblRecFrames.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
+        lblRecFrames.Location = New Point(305, 95)
+        lblRecFrames.Name = "lblRecFrames"
+        lblRecFrames.Size = New Drawing.Size(180, 20)
+        lblRecFrames.Text = "0 frames"
+        lblRecFrames.TextAlign = ContentAlignment.MiddleLeft
+        '
+        ' lblRecBitrate — current bitrate (target vs actual)
+        '
+        lblRecBitrate.AutoSize = False
+        lblRecBitrate.Font = New Font("Consolas", 10F)
+        lblRecBitrate.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
+        lblRecBitrate.Location = New Point(15, 115)
+        lblRecBitrate.Name = "lblRecBitrate"
+        lblRecBitrate.Size = New Drawing.Size(470, 20)
+        lblRecBitrate.Text = "Target: -- Mbps"
+        lblRecBitrate.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' DIMBOX_1
         ' 
@@ -767,6 +848,7 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(pnlAudio)
         settings_menu.Controls.Add(pnlGitHub)
         settings_menu.Controls.Add(pnlOutput)
+        settings_menu.Controls.Add(pnlStatus)   ' ✅ P2.10: real-time status panel
         settings_menu.Controls.Add(pnlFFmpeg)
         settings_menu.Controls.Add(lblTitle)
         settings_menu.ForeColor = Color.White
@@ -881,6 +963,7 @@ Partial Class UI_Engine
         pnlGitHub.PerformLayout()
         pnlHub.ResumeLayout(False)
         pnlHub.PerformLayout()
+        pnlStatus.ResumeLayout(False)
         CType(DIMBOX_1, ComponentModel.ISupportInitialize).EndInit()
         CType(DIMBOX_2, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
@@ -970,5 +1053,13 @@ Partial Class UI_Engine
     Friend WithEvents PictureBox16 As PictureBox
     Friend WithEvents hg2 As PictureBox
     Friend WithEvents OPEN_UI As System.Windows.Forms.Timer
+
+    ' ✅ P2.10: real-time status panel controls
+    Friend WithEvents pnlStatus As Panel
+    Friend WithEvents lblRecState As Label
+    Friend WithEvents lblRecTimer As Label
+    Friend WithEvents lblRecSize As Label
+    Friend WithEvents lblRecFrames As Label
+    Friend WithEvents lblRecBitrate As Label
 
 End Class
