@@ -214,29 +214,46 @@ Public Class CaptureSettings
     End Function
 
     ''' <summary>
-    ''' Returns (Valid, Message) tuple - no reserved keywords
+    ''' ✅ P2.5: ValidationResult — replaced ValueTuple(Of Boolean, String).
+    ''' Old code returned (Valid As Boolean, Message As String) which requires
+    ''' Option Infer On to preserve the named members across method boundaries.
+    ''' Engine's project has OptionInfer=Off, so 'Dim validation = Validate()'
+    ''' produced a plain ValueTuple(Of Boolean, String) without .Valid / .Message
+    ''' → runtime error "Public member 'Valid' on type 'ValueTuple' not found".
+    ''' </summary>
+    Public Class ValidationResult
+        Public Property Valid As Boolean
+        Public Property Message As String
+        Public Sub New(valid As Boolean, message As String)
+            Me.Valid = valid
+            Me.Message = message
+        End Sub
+    End Class
+
+    ''' <summary>
+    ''' Returns ValidationResult — check .Valid and .Message.
     ''' If AudioCapture is enabled but device name is empty,
     ''' auto-disable audio capture instead of failing.
     ''' </summary>
-    Public Function Validate() As (Valid As Boolean, Message As String)
+    Public Function Validate() As ValidationResult
         If FPS < 1 OrElse FPS > 240 Then
-            Return (False, "FPS must be between 1 and 240")
+            Return New ValidationResult(False, "FPS must be between 1 and 240")
         End If
         If Bitrate < 1000000 Then
-            Return (False, "Bitrate must be at least 1 Mbps")
+            Return New ValidationResult(False, "Bitrate must be at least 1 Mbps")
         End If
         If Bitrate > 200000000 Then
-            Return (False, "Bitrate must not exceed 200 Mbps")
+            Return New ValidationResult(False, "Bitrate must not exceed 200 Mbps")
         End If
         Dim validMethods As String() = {"ddagrab", "gdigrab", "gfxcapture"}
         If Not validMethods.Contains(CaptureMethod.ToLower()) Then
-            Return (False, "Invalid capture method. Use: " & String.Join(", ", validMethods))
+            Return New ValidationResult(False, "Invalid capture method. Use: " & String.Join(", ", validMethods))
         End If
         If String.IsNullOrWhiteSpace(Encoder) Then
-            Return (False, "No encoder selected")
+            Return New ValidationResult(False, "No encoder selected")
         End If
         If String.IsNullOrWhiteSpace(FFmpegPath) OrElse Not File.Exists(FFmpegPath) Then
-            Return (False, "FFmpeg not found at: " & FFmpegPath)
+            Return New ValidationResult(False, "FFmpeg not found at: " & FFmpegPath)
         End If
 
         ' Audio validation: if enabled but no device set, disable audio
@@ -244,7 +261,7 @@ Public Class CaptureSettings
             AudioCapture = False
         End If
 
-        Return (True, "")
+        Return New ValidationResult(True, "")
     End Function
 
 End Class
