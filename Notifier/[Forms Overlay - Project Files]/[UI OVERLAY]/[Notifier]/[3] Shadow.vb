@@ -50,10 +50,7 @@ Public Class Shadow
 
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         Try
-            ' ✅ Bug 5 FIX: check Notifier Is Nothing before accessing .IsDisposed.
-            ' Old code just checked Notifier.IsDisposed — if Notifier was GC'd or
-            ' set to Nothing during shutdown, this would NullReferenceException.
-            If Me.IsDisposed OrElse Notifier Is Nothing OrElse Notifier.IsDisposed Then
+            If Me.IsDisposed OrElse Notifier.IsDisposed Then
                 Timer1.Stop()
                 Return
             End If

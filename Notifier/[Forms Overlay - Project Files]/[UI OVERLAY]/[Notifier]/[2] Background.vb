@@ -95,13 +95,8 @@ Public Class Notifier
         If mmTimerId <> 0 Then
             timeKillEvent(mmTimerId)
             mmTimerId = 0
-            ' ✅ Bug 1 FIX: only call timeEndPeriod if we actually called
-            ' timeBeginPeriod. Old code called timeEndPeriod(1) unconditionally
-            ' — if Animation_Engine_Stop ran twice (once in Tick completion,
-            ' once in FormClosing), the second call was unbalanced → corrupts
-            ' system timer resolution reference count.
-            timeEndPeriod(1)
         End If
+        timeEndPeriod(1)
         _invokePending = False
         Debug.WriteLine("[Notifier.MM] Timer stopped")
     End Sub
@@ -363,21 +358,10 @@ Public Class Notifier
     Private Sub SlideOutAll()
         Debug.WriteLine("[Notifier] SlideOutAll")
 
-        ' ✅ Bug 2 FIX: wrap Close() in try/catch — if Shadow or Notifier_Sub
-        ' are already closed/disposed (e.g., double-trigger of SlideOutAll),
-        ' Close() throws ObjectDisposedException which crashes the Notifier.
-        Try : If Shadow IsNot Nothing AndAlso Not Shadow.IsDisposed Then Shadow.Close()
-        Catch ex As Exception : Debug.WriteLine("[Notifier] Shadow.Close error: " & ex.Message)
-        End Try
-        Try : If Notifier_Sub IsNot Nothing AndAlso Not Notifier_Sub.IsDisposed Then Notifier_Sub.Close()
-        Catch ex As Exception : Debug.WriteLine("[Notifier] Notifier_Sub.Close error: " & ex.Message)
-        End Try
+        Shadow.Close()
+        Notifier_Sub.Close()
+        Notifier_green_stop.Visible = False
 
-        ' ✅ Bug 4 FIX: delay setting Visible=False until AFTER slide-out completes.
-        ' Old code set it immediately, so UpdateNotifier saw Visible=False during
-        ' slide-out and tried Notifier.Show() on an already-visible form → no-op →
-        ' new notification was lost when Me.Close() fired.
-        ' Now we set it in the _closeTimer callback (after all animations are done).
         StartSlide(Notifier_black, Notifier_black.Left, Me.Width + 300, 600)
 
 
@@ -393,11 +377,6 @@ Public Class Notifier
                                          _closeTimer.Interval = 200
                                          AddHandler _closeTimer.Tick, Sub()
                                                                           _closeTimer.Stop()
-                                                                          ' ✅ Bug 4 FIX: set Visible=False
-                                                                          ' HERE, after all animations are done.
-                                                                          ' UpdateNotifier can now correctly
-                                                                          ' detect that the toast is fully closed.
-                                                                          Notifier_green_stop.Visible = False
                                                                           Me.Close()
                                                                       End Sub
                                          _closeTimer.Start()
@@ -410,20 +389,13 @@ Public Class Notifier
 #Region "Click Events"
 
     Public Sub DoCloseClick()
-        Debug.WriteLine("[Notifier] DoCloseClick → SlideOutAll")
-        ' ✅ Bug 3 FIX: was Application.Restart() — killed the entire process
-        ' and restarted. Heavy-handed for just dismissing a toast. Now just
-        ' slide out and close the form. The Loader (main form) stays alive
-        ' and can show the next notification.
-        autoClose.Stop()
-        SlideOutAll()
+        Debug.WriteLine("[Notifier] DoCloseClick → Restart")
+        Application.Restart()
     End Sub
 
     Private Sub Notifier_green_Click(sender As Object, e As EventArgs) Handles Notifier_green.Click, text_n.Click, icon_n.Click, Notifier_black.Click, Notifier_green_stop.Click
-        Debug.WriteLine("[Notifier] Click → SlideOutAll")
-        ' ✅ Bug 3 FIX: same as DoCloseClick — was Application.Restart().
-        autoClose.Stop()
-        SlideOutAll()
+        Debug.WriteLine("[Notifier] Click → Restart")
+        Application.Restart()
     End Sub
 
     Private Sub IF_N_Tick(sender As Object, e As EventArgs) Handles IF_N.Tick
