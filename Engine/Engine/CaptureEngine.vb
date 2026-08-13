@@ -425,13 +425,14 @@ Public Class CaptureEngine
 
         Select Case hwType
             Case HwDeviceType.NVIDIA
-                ' ✅ FIX: NVENC VBR mode for better bitrate accuracy.
-                ' -g = GOP size (standard FFmpeg option, NOT -gop_len which is
-                '   NVENC private and not recognized as a CLI arg)
-                ' -rc vbr = variable bitrate (more accurate than cbr on modern drivers)
-                ' -b:v = average target, -maxrate = peak cap, -bufsize = 2x target
-                sb.Append("-preset " & nvencPreset & " -tune ll -rc vbr ")
-                sb.Append("-b:v " & br & " -maxrate " & br & " -bufsize " & buf & " ")
+                ' ✅ FIX: CBR for screen recording. VBR was a mistake — desktop
+                ' content is mostly static, so VBR dropped bitrate to 2 Mbps
+                ' even though target was 17 Mbps. CBR forces constant bitrate
+                ' regardless of scene complexity.
+                ' -bufsize = 1x bitrate (not 2x) → tighter CBR, less drift
+                ' Removed -zerolatency 1 (was causing bitrate undershoot)
+                sb.Append("-preset " & nvencPreset & " -tune ll -rc cbr ")
+                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & br & " ")
                 sb.Append("-g " & fpsStr & " ")
                 sb.Append("-spatial-aq 1 -temporal-aq 1 ")
 
