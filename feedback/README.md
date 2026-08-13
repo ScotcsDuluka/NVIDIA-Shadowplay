@@ -6,23 +6,30 @@ A lightweight chat web app that lives entirely inside this repo.
 
 - **Storage:** `feedback/messages.json` (committed to this repo)
 - **Backend:** GitHub Contents API (no separate server)
-- **Hosting:** GitHub Pages (free, static)
+- **Hosting:** GitHub Pages via GitHub Actions (deploys the `feedback/` folder)
 - **Auth:** User-supplied GitHub PAT (stored in browser localStorage, never sent anywhere except github.com)
 
 ## Setup (one-time)
 
-### 1. Enable GitHub Pages
+### 1. Enable GitHub Pages with Actions source
 
 1. Go to https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/settings/pages
-2. **Source:** Deploy from a branch
-3. **Branch:** `Engine` / `/feedback` folder
-4. Click **Save**
+2. **Build and deployment → Source:** GitHub Actions
+3. No need to pick a branch — the workflow in `.github/workflows/deploy-feedback.yml` handles it.
 
-Wait 1–2 minutes. The chat will be live at:
+The workflow triggers automatically on every push to `Engine` that touches `feedback/**`. Wait ~30 seconds for the first build.
 
+URL:
 ```
 https://scotcsduluka.github.io/NVIDIA-Shadowplay/feedback/
 ```
+
+Wait — actually with Pages-from-Actions, the artifact root IS the feedback folder, so the URL becomes:
+```
+https://scotcsduluka.github.io/NVIDIA-Shadowplay/
+```
+
+Bookmark the second one.
 
 ### 2. Create a Personal Access Token
 
@@ -48,6 +55,7 @@ The message is committed to `feedback/messages.json` on the `Engine` branch. The
 | `style.css` | NVIDIA-green dark theme |
 | `app.js` | GitHub API client (fetch + PUT messages.json) |
 | `messages.json` | The chat log itself |
+| `.github/workflows/deploy-feedback.yml` | Deploys `feedback/` to GitHub Pages on every push |
 
 ## For the AI
 
