@@ -122,10 +122,13 @@ Partial Public Class UI_Engine
             Dim parts As String() = msg.Split("|"c)
             If parts.Length < 2 Then Return
 
-            ' Self-filter: skip our own broadcasts (Hub echoes everything).
-            ' Use exact prefix match, not substring, to avoid false positives
-            ' (e.g. "NVIDIA Engine" appearing in a path or error message).
-            If parts(0).Contains("NVIDIA Engine") Then Return
+            ' ✅ M9 FIX: self-filter — old code used .Contains("NVIDIA Engine")
+            ' which would also match "NVIDIA Engine Helper" or a path containing
+            ' the string. Now strip the "[Send] "/"[Receive] " prefix and compare
+            ' the cleaned app name exactly.
+            Dim senderSegment As String = parts(0).Trim()
+            senderSegment = senderSegment.Replace("[Send] ", "").Replace("[Receive] ", "").Trim()
+            If String.Equals(senderSegment, "NVIDIA Engine", StringComparison.Ordinal) Then Return
 
             Dim data As String = parts(1)
 

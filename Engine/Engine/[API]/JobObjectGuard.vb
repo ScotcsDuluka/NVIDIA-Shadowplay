@@ -130,14 +130,26 @@ Public NotInheritable Class JobObjectGuard
         Dim hProc As IntPtr = process.Handle
         If hProc = IntPtr.Zero Then Return
 
-        ' AssignProcessToJobObject fails on Windows 7 and earlier if the
-        ' process is already in another job. From Windows 8 onward, nested
-        ' jobs are supported and this call cannot fail for a fresh process.
-        ' Silently swallow the error — orphan protection is best-effort,
-        ' not a hard requirement for capture to work.
+        ' ✅ M11 FIX: use DangerousAddRef/Release to prevent the handle from
+        ' being closed by Dispose() on another thread mid-P/Invoke.
+        ' Old code called DangerousGetHandle() which returns the raw value
+        ' without incrementing the ref count — if Dispose ran concurrently,
+        ' the handle could be closed before AssignProcessToJobObject executes.
+        Dim success As Boolean = False
         Try
-            AssignProcessToJobObject(_handle.DangerousGetHandle(), hProc)
+            _handle.DangerousAddRef(success)
+            If Not success Then Return
+            Dim rawHandle As IntPtr = _handle.DangerousGetHandle()
+            AssignProcessToJobObject(rawHandle, hProc)
         Catch
+            ' Silently swallow — orphan protection is best-effort.
+        Finally
+            If success Then
+                Try
+                    _handle.DangerousRelease()
+                Catch
+                End Try
+            End If
         End Try
     End Sub
 

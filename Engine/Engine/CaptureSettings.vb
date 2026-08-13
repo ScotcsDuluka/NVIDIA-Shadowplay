@@ -261,9 +261,14 @@ Public Class CaptureSettings
             Return New ValidationResult(False, "FFmpeg not found at: " & FFmpegPath)
         End If
 
-        ' Audio validation: if enabled but no device set, disable audio
+        ' ✅ M4 FIX: don't mutate settings during Validate. Old code silently
+        ' set AudioCapture = False if device was empty, then SyncWithOverlayConfig
+        ' would persist this to disk — user's "audio on" setting was flipped
+        ' to off without their knowledge.
+        ' Now Validate returns a validation error instead. Caller decides
+        ' whether to disable audio or fail.
         If AudioCapture AndAlso String.IsNullOrWhiteSpace(AudioDevice) Then
-            AudioCapture = False
+            Return New ValidationResult(False, "AudioCapture is enabled but AudioDevice is empty. Set a device or disable audio.")
         End If
 
         Return New ValidationResult(True, "")

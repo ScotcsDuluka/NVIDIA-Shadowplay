@@ -475,11 +475,14 @@ Public Class EncoderDetector
             proc.StartInfo = si
             proc.Start()
 
-            ' Read stdout synchronously (ffmpeg -encoders outputs to stdout)
-            stdout = proc.StandardOutput.ReadToEnd()
-
-            ' Read stderr (may have warnings/errors)
-            stderr = proc.StandardError.ReadToEnd()
+            ' ✅ M2 FIX: read stdout and stderr concurrently to avoid deadlock.
+            ' Old code called ReadToEnd() on stdout first, then stderr. If
+            ' ffmpeg's stderr fills the OS pipe buffer (~64KB) while we're
+            ' still reading stdout, ffmpeg blocks writing to stderr → we
+            ' block reading stdout → classic deadlock. Now read both on
+            ' separate Tasks and wait for both.
+            Dim stdoutTask As Task(Of String) = Task.Run(Function() proc.StandardOutput.ReadToEnd())
+            Dim stderrTask As Task(Of String) = Task.Run(Function() proc.StandardError.ReadToEnd())
 
             ' Wait for exit with timeout
             If proc.WaitForExit(30000) Then
@@ -488,6 +491,19 @@ Public Class EncoderDetector
                 Try : proc.Kill() : Catch : End Try
                 exitCode = -999
             End If
+
+            ' Wait for both reads to finish (with a short timeout in case
+            ' the process died before flushing).
+            Try
+                stdout = stdoutTask.Result
+            Catch
+                stdout = ""
+            End Try
+            Try
+                stderr = stderrTask.Result
+            Catch
+                stderr = ""
+            End Try
         End Using
 
         ' Return stdout (primary), or stderr if stdout is empty

@@ -131,14 +131,30 @@ Public NotInheritable Class BackgroundLogger
 
     ''' <summary>
     ''' Flush all writers. Call on process exit / app shutdown.
+    ' ✅ M1 FIX: stop all writers in PARALLEL so form close doesn't stall
+    ' for 15 seconds (3 writers × 5s timeout each, serialized).
+    ' Now worst case is 5 seconds total.
     ''' </summary>
     Public Shared Sub ShutdownAll()
+        Dim snapshot As List(Of FileWriter)
         SyncLock _lock
-            For Each w In _writers.Values
-                w.Stop()
-            Next
+            snapshot = _writers.Values.ToList()
             _writers.Clear()
         End SyncLock
+
+        ' Stop all in parallel — each does _task.Wait(5000), so worst case
+        ' is 5 seconds total instead of N×5s serialized.
+        If snapshot.Count = 0 Then Return
+        Try
+            System.Threading.Tasks.Parallel.ForEach(snapshot,
+                Sub(w)
+                    Try
+                        w.Stop()
+                    Catch
+                    End Try
+                End Sub)
+        Catch
+        End Try
     End Sub
 
 End Class
