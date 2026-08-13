@@ -374,10 +374,10 @@ Partial Public Class Base
                  End Function)
 
 #If DEBUG Then
-    Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
-    If overlayExists Then
-        Debug_UI.Show()
-    End If
+        Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
+        If overlayExists Then
+            Debug_UI.Show()
+        End If
 #End If
 
     End Sub
@@ -906,6 +906,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
+
         If shadowplay.Visible = False Then
             Base_Background_Top.d.Visible = False
             Base_Background_Top.ME_CLOSE_BG.Visible = False
@@ -944,4 +945,16 @@ Partial Public Class Base
         End If
     End Sub
 
+    Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
+        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+
+        If File.Exists(uiFile) Then
+            Settings_List.Visible = False
+            Base_Settings.Hide()
+        Else
+            Settings_List.Visible = True
+            Base_Settings.Show()
+            Engine_UI.Stop()
+        End If
+    End Sub
 End Class

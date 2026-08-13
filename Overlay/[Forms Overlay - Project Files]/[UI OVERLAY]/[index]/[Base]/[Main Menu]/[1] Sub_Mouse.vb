@@ -640,6 +640,22 @@ Partial Public Class Base
     End Sub
 
     ' ========== NOTIFICATIONS ==========
+    Private Sub EngineUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_TEXT.MouseMove, Engine_ICO.MouseMove
+        Engine_BOX_SUB.BackColor = greenColor
+    End Sub
+
+    Private Sub EngineUI_MouseLeave(sender As Object, e As EventArgs) Handles Engine_TEXT.MouseLeave, Engine_ICO.MouseLeave
+        Engine_BOX_SUB.BackColor = grayColor
+    End Sub
+
+    Private Sub EngineUI_Click(sender As Object, e As EventArgs) Handles Engine_TEXT.Click, Engine_ICO.Click
+        File.Create(Path.Combine(Application.StartupPath, "Engine.UI"))
+        Settings_List.Visible = False
+        Base_Settings.Hide()
+        Engine_UI.Start()
+    End Sub
+
+    ' ========== NOTIFICATIONS ==========
     Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles Notifications_TEXT.MouseMove, notifications_ICO.MouseMove
         Notifications_BOX_SUB.BackColor = greenColor
     End Sub

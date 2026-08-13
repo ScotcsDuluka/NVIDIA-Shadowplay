@@ -851,6 +851,7 @@ Partial Class UI_Engine
         MaximizeBox = False
         Name = "UI_Engine"
         Opacity = 0R
+        ShowInTaskbar = False
         StartPosition = FormStartPosition.CenterScreen
         Text = "NVIDIA Capture"
         TopMost = True

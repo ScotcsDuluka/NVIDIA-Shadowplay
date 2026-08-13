@@ -186,6 +186,7 @@ Partial Class Base
         PictureBox5 = New PictureBox()
         PictureBox6 = New PictureBox()
         ME_CLOSE_BG = New Label()
+        Engine_UI = New Timer(components)
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         shadowplay.SuspendLayout()
         Menu_Record.SuspendLayout()
@@ -2167,6 +2168,9 @@ Partial Class Base
         ME_CLOSE_BG.TabIndex = 85
         ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' Engine_UI
+        ' 
+        ' 
         ' Base
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -2438,5 +2442,6 @@ Partial Class Base
     Friend WithEvents Engine_ICO As Label
     Friend WithEvents PictureBox8 As PictureBox
     Friend WithEvents Engine_BOX_SUB As PictureBox
+    Friend WithEvents Engine_UI As Timer
 
 End Class

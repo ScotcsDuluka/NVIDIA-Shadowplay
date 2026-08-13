@@ -991,13 +991,20 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
-        File.Delete(Path.Combine(Application.StartupPath, "Engine.UI"))
+        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+
+        If File.Exists(uiFile) Then
+            File.Delete(uiFile)
+        End If
     End Sub
 
     Private Sub OPEN_UI_Tick(sender As Object, e As EventArgs) Handles OPEN_UI.Tick
         HideFromAltTab()
-        If File.Exists(Path.Combine(Application.StartupPath, "Engine.UI")) Then
-            Me.Opacity = 100
+
+        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+
+        If File.Exists(uiFile) Then
+            Me.Opacity = 1
             Me.WindowState = FormWindowState.Maximized
         Else
             Me.Opacity = 0
