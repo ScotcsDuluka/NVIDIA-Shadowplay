@@ -722,53 +722,54 @@ Partial Public Class UI_Engine
 
     ' ── Record / Stop ──────────────────────────────────────────
 
-    Private Sub OnRecordClick(sender As Object, e As EventArgs)
+    ' ✅ C4 FIX: convert OnRecordClick/OnStopClick to Async Sub so we can
+    ' Await StartRecordingAsync/StopRecordingAsync instead of .Wait().
+    ' .Wait() is sync-over-async: burns a threadpool thread for the duration
+    ' and wraps exceptions in AggregateException (misleading error messages).
+
+    Private Async Sub OnRecordClick(sender As Object, e As EventArgs)
         SaveSettings()
         btnRecord.Enabled = False
         btnStop.Enabled = True
 
-        Task.Run(Sub()
-                     Try
-                         ' ✅ P2.6: sync with Overlay config before recording
-                         ' (same as HandleEngineRecordStart does for TCP-triggered recordings).
-                         Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
-                         SyncWithOverlayConfig(s)
-                         _settings = s
+        Try
+            ' ✅ P2.6: sync with Overlay config before recording
+            ' (same as HandleEngineRecordStart does for TCP-triggered recordings).
+            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+            SyncWithOverlayConfig(s)
+            _settings = s
 
-                         Dim engine As New CaptureEngine(_settings)
-                         AddHandler engine.StateChanged, AddressOf OnEngineStateChanged
-                         AddHandler engine.RecordingStarted, AddressOf OnRecordingStarted
-                         AddHandler engine.RecordingStopped, AddressOf OnRecordingStopped
-                         AddHandler engine.ErrorOccurred, AddressOf OnEngineError
+            Dim engine As New CaptureEngine(_settings)
+            AddHandler engine.StateChanged, AddressOf OnEngineStateChanged
+            AddHandler engine.RecordingStarted, AddressOf OnRecordingStarted
+            AddHandler engine.RecordingStopped, AddressOf OnRecordingStopped
+            AddHandler engine.ErrorOccurred, AddressOf OnEngineError
+            ' ✅ C2 FIX: wire ProgressUpdated so button-triggered recordings also
+            ' update the status panel + broadcast to Overlay. Was missing — only
+            ' TCP-triggered recordings had it.
+            AddHandler engine.ProgressUpdated, AddressOf OnEngineProgress
 
-                         _captureEngine?.Dispose()
-                         _captureEngine = engine
+            _captureEngine?.Dispose()
+            _captureEngine = engine
 
-                         Dim ok As Task(Of Boolean) = _captureEngine.StartRecordingAsync()
-                         ok.Wait()
-                     Catch ex As Exception
-                         Me.Invoke(Sub()
-                                       lblStatus.Text = "Error: " & ex.Message
-                                       lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
-                                       btnRecord.Enabled = True
-                                       btnStop.Enabled = False
-                                   End Sub)
-                     End Try
-                 End Sub)
+            Await _captureEngine.StartRecordingAsync()
+        Catch ex As Exception
+            lblStatus.Text = "Error: " & ex.Message
+            lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
+            btnRecord.Enabled = True
+            btnStop.Enabled = False
+        End Try
     End Sub
 
-    Private Sub OnStopClick(sender As Object, e As EventArgs)
+    Private Async Sub OnStopClick(sender As Object, e As EventArgs)
         btnStop.Enabled = False
 
-        Task.Run(Sub()
-                     Try
-                         Dim task As Task(Of Boolean) = _captureEngine.StopRecordingAsync()
-                         task.Wait()
-                         Me.Invoke(Sub() btnRecord.Enabled = True)
-                     Catch
-                         Me.Invoke(Sub() btnRecord.Enabled = True)
-                     End Try
-                 End Sub)
+        Try
+            Await _captureEngine.StopRecordingAsync()
+            btnRecord.Enabled = True
+        Catch
+            btnRecord.Enabled = True
+        End Try
     End Sub
 
     ' ── Engine Events ────────────────────────────────────────────
@@ -785,7 +786,11 @@ Partial Public Class UI_Engine
         Catch
         End Try
 
-        Me.Invoke(Sub()
+        ' ✅ C6 FIX: guard Me.Invoke with try/catch. This handler is called from
+        ' FFmpeg's Exited threadpool thread; if the form is closing (IsDisposed=True
+        ' or handle being destroyed), Me.Invoke throws InvalidOperationException
+        ' which would propagate out and crash the app.
+        SafeInvoke(Sub()
                       Select Case state
                           Case CaptureEngine.CaptureState.Idle
                               lblStatus.Text = "Idle - Hub Client"
@@ -831,7 +836,7 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub OnRecordingStarted(filename As String)
-        Me.Invoke(Sub()
+        SafeInvoke(Sub()
                       lblStatus.Text = "Recording: " & Path.GetFileName(filename)
                   End Sub)
     End Sub
@@ -845,7 +850,7 @@ Partial Public Class UI_Engine
         Catch
         End Try
 
-        Me.Invoke(Sub()
+        SafeInvoke(Sub()
                       tmrRecording.Stop()
                       lblTimer.Text = "00:00:00"
                       lblTimer.ForeColor = _accentGreen
@@ -864,12 +869,31 @@ Partial Public Class UI_Engine
         Catch
         End Try
 
-        Me.Invoke(Sub()
+        SafeInvoke(Sub()
                       lblStatus.Text = "Error: " & message
                       lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
                       btnRecord.Enabled = True
                       btnStop.Enabled = False
                   End Sub)
+    End Sub
+
+    ''' <summary>
+    ' ✅ C6 FIX: safe Me.Invoke wrapper. Uses BeginInvoke (fire-and-forget) so
+    ' the calling thread (FFmpeg Exited, etc.) doesn't block. Catches
+    ' InvalidOperationException (form handle not created) and ObjectDisposedException
+    ' (form already disposed) silently — these happen during shutdown and are
+    ' expected, not errors.
+    ''' </summary>
+    Private Sub SafeInvoke(action As Action)
+        Try
+            If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
+            Me.BeginInvoke(action)
+        Catch ex As InvalidOperationException
+            ' Form handle not created yet — drop the update.
+        Catch ex As ObjectDisposedException
+            ' Form already disposed — drop the update.
+        Catch
+        End Try
     End Sub
 
     Private Sub OnHotkeyPressed(id As Integer)

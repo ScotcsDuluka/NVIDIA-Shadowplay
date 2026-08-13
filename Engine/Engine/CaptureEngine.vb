@@ -174,7 +174,14 @@ Public Class CaptureEngine
             _outputFile = _settings.GenerateOutputFilename()
         End If
 
-        SetState(CaptureState.Recording)
+        ' ✅ C5 FIX: do NOT set Recording state until _ffmpegProcess is actually
+        ' assigned inside the Task. Old code called SetState(Recording) here,
+        ' before the Task even started — if StopRecordingAsync arrived in the
+        ' window between SetState and the Task assigning _ffmpegProcess, Stop
+        ' would see _state=Recording but _ffmpegProcess=Nothing → skip FFmpeg
+        ' cleanup, set state back to Idle, raise RecordingStopped. The Task
+        ' would then launch FFmpeg with no one tracking it (orphan).
+        ' Now we set Recording state only AFTER _ffmpegProcess is alive.
 
         Return Await Task.Run(Function()
                                  Try
@@ -214,6 +221,9 @@ Public Class CaptureEngine
                                      _ffmpegProcess.BeginOutputReadLine()
                                      _ffmpegProcess.BeginErrorReadLine()
                                      _stopwatch = Stopwatch.StartNew()
+                                     ' ✅ C5 FIX: now that _ffmpegProcess is alive, set Recording state.
+                                     ' Any Stop arriving after this point will correctly see the process.
+                                     SetState(CaptureState.Recording)
                                      RaiseEvent RecordingStarted(_outputFile)
                                      Return True
 
@@ -420,18 +430,21 @@ Public Class CaptureEngine
                 sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -rc cbr ")
 
             Case HwDeviceType.None
-                ' CPU encoder-specific settings
+                ' ✅ C1 FIX: CPU encoders — drop -crf because it overrides -b:v.
+                ' FFmpeg gives CRF mode precedence over -b:v, so the user's
+                ' bitrate setting was silently ignored. Now use pure bitrate
+                ' mode with minrate/maxrate = b:v for strict CBR (same as NVENC).
                 If _settings.Encoder.IndexOf("libx265", StringComparison.OrdinalIgnoreCase) >= 0 Then
                     sb.Append("-preset medium ")
-                    sb.Append("-b:v " & br & " -crf 23 -pix_fmt yuv420p10le ")
+                    sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -pix_fmt yuv420p10le ")
                 ElseIf _settings.Encoder.IndexOf("libx264", StringComparison.OrdinalIgnoreCase) >= 0 Then
                     sb.Append("-preset ultrafast -tune zerolatency ")
-                    sb.Append("-b:v " & br & " -crf 18 -pix_fmt yuv420p ")
+                    sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -pix_fmt yuv420p ")
                 ElseIf _settings.Encoder.IndexOf("svtav1", StringComparison.OrdinalIgnoreCase) >= 0 Then
                     sb.Append("-preset 6 ")
-                    sb.Append("-b:v " & br & " -crf 35 -pix_fmt yuv420p ")
+                    sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -pix_fmt yuv420p ")
                 Else
-                    sb.Append("-b:v " & br & " ")
+                    sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " ")
                 End If
         End Select
 
@@ -541,7 +554,11 @@ Public Class CaptureEngine
                             Dim timeEnd As Integer = timeStr.IndexOf(" "c)
                             If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
                             Dim parsed As TimeSpan
-                            If TimeSpan.TryParse(timeStr, parsed) Then
+                            ' ✅ C3 FIX: use InvariantCulture so the parser works on
+                            ' machines with non-English locales (de-DE uses ',' as
+                            ' decimal separator, which breaks Double.TryParse for the
+                            ' millisecond portion).
+                            If TimeSpan.TryParse(timeStr, Globalization.CultureInfo.InvariantCulture, parsed) Then
                                 duration = parsed
                             End If
                         End If
@@ -563,7 +580,8 @@ Public Class CaptureEngine
                             Dim numStr As String = If(unitStart >= 0, sizeStr.Substring(0, unitStart), sizeStr)
                             Dim unitStr As String = If(unitStart >= 0, sizeStr.Substring(unitStart).Trim(), "")
                             Dim sizeNum As Double = 0
-                            If Double.TryParse(numStr, sizeNum) Then
+                            ' ✅ C3 FIX: InvariantCulture for the same reason.
+                            If Double.TryParse(numStr, Globalization.CultureInfo.InvariantCulture, sizeNum) Then
                                 Select Case unitStr.ToUpperInvariant()
                                     Case "B" : sizeBytes = CLng(sizeNum)
                                     Case "KB", "KIB" : sizeBytes = CLng(sizeNum * 1024)
@@ -644,10 +662,15 @@ Public Class CaptureEngine
 
     Private Sub LogDebug(message As String)
         Dim line As String = "[" & DateTime.Now.ToString("HH:mm:ss.fff") & "] " & message
-        _logBuffer.AppendLine(line)
-        If _logBuffer.Length > 10240 Then
-            _logBuffer.Remove(0, _logBuffer.Length - 8192)
-        End If
+        ' ✅ C8 FIX: StringBuilder is not thread-safe. LogDebug is called from
+        ' FFmpeg stdout, stderr, Exited, UI, and TCP listener threads concurrently.
+        ' Without a lock, concurrent appends can corrupt internal state.
+        SyncLock _logBuffer
+            _logBuffer.AppendLine(line)
+            If _logBuffer.Length > 10240 Then
+                _logBuffer.Remove(0, _logBuffer.Length - 8192)
+            End If
+        End SyncLock
     End Sub
 
     ''' <summary>

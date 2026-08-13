@@ -496,7 +496,10 @@ Partial Class UI_Engine
         pnlOutput.Controls.Add(lblOutTitle)
         pnlOutput.Controls.Add(txtOutputDir)
         pnlOutput.Controls.Add(btnBrowse)
-        pnlOutput.Location = New Point(47, 479)
+        ' ✅ C7 FIX: was (47, 479) — same Y as pnlPreset, so pnlOutput
+        ' was rendering on top of pnlPreset and hiding it. Moved down by 220px
+        ' to give pnlPreset room (70px tall) + gap.
+        pnlOutput.Location = New Point(47, 699)
         pnlOutput.Name = "pnlOutput"
         pnlOutput.Size = New Size(490, 65)
         pnlOutput.TabIndex = 7
@@ -535,7 +538,10 @@ Partial Class UI_Engine
         pnlFFmpeg.Controls.Add(txtFFmpegPath)
         pnlFFmpeg.Controls.Add(btnFFmpegBrowse)
         pnlFFmpeg.Controls.Add(lblFFmpegStatus)
-        pnlFFmpeg.Location = New Point(47, 554)
+        ' ✅ C7 FIX: was (47, 554) — same Y as pnlAudio (559), so pnlFFmpeg
+        ' was rendering on top of pnlAudio and hiding it. Moved down by 235px
+        ' to give pnlAudio room (105px tall) + gap.
+        pnlFFmpeg.Location = New Point(47, 794)
         pnlFFmpeg.Name = "pnlFFmpeg"
         pnlFFmpeg.Size = New Size(490, 87)
         pnlFFmpeg.TabIndex = 8
