@@ -1,5 +1,4 @@
 {
-  "l10m.created": "作成",
   "l10n.360PhotoSphere": "360° パノラマ写真",
   "l10n.360PhotoSphere3D": "360° パノラマ写真 (立体画像)",
   "l10n.360PhotoSpheres": "360° パノラマ写真",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} 秒",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} 秒",
   "l10n.HighlightsHDRError": "HDR をオフにして、このゲームのハイライトをキャプチャします。",
-  "l10n.LoactionSaved": "保存場所を保存しました",
   "l10n.Load": "読み込み",
   "l10n.NotReady": "準備未完了",
   "l10n.RecordHDRError": "HDR をオフにして、このゲームの動画を録画します。",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "設定をエクスポートしました！",
   "l10n.importSuccess": "設定をインポートしました！",
   "l10n.exportFailed": "エクスポート失敗",
-  "l10n.importFailed": "インポート失敗"
+  "l10n.importFailed": "インポート失敗",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "保存場所を保存しました",
+  "l10n.created": "作成"
 }

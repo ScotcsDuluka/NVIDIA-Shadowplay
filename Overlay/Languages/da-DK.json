@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Oprettet",
   "l10n.360PhotoSphere": "360 ° fotokugle",
   "l10n.360PhotoSphere3D": "360 ° fotokugle (Stereo)",
   "l10n.360PhotoSpheres": "360 ° fotokugler",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} sekunder langt",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} sekund langt",
   "l10n.HighlightsHDRError": "Deaktivér HDR for at optage højdepunkter fra dette spil.",
-  "l10n.LoactionSaved": "LocationSaved",
   "l10n.Load": "Indlæs",
   "l10n.NotReady": "Ikke klar",
   "l10n.RecordHDRError": "Deaktivér HDR for at indspille en video af dette spil.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Indstillinger eksporteret!",
   "l10n.importSuccess": "Indstillinger importeret!",
   "l10n.exportFailed": "Eksport mislykkedes",
-  "l10n.importFailed": "Import mislykkedes"
+  "l10n.importFailed": "Import mislykkedes",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "LocationSaved",
+  "l10n.created": "Oprettet"
 }

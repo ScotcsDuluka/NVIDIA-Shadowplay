@@ -558,7 +558,6 @@
   "l10n.type": "Type",
   "l10n.dimensions": "Dimensions",
   "l10n.fileSize": "File size",
-  "l10m.created": "Created",
   "l10n.duration": "Duration",
   "l10n.name": "Name",
   "l10n.memeTextColor": "Meme color",
@@ -757,5 +756,6 @@
   "l10n.exportSuccess": "Settings exported!",
   "l10n.importSuccess": "Settings imported!",
   "l10n.exportFailed": "Export failed",
-  "l10n.importFailed": "Import failed"
+  "l10n.importFailed": "Import failed",
+  "l10n.created": "Created"
 }

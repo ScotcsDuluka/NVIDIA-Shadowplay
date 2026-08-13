@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Vytvořil/a",
   "l10n.360PhotoSphere": "360° sférická fotka",
   "l10n.360PhotoSphere3D": "360° sférická fotka (stereoskopická)",
   "l10n.360PhotoSpheres": "360° sférické fotky",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} sekund(y) dlouhé",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} sekundu dlouhé",
   "l10n.HighlightsHDRError": "Vypněte režim HDR pro zachycení nejdůležitějších událostí u této hry.",
-  "l10n.LoactionSaved": "LocationSaved",
   "l10n.Load": "Načíst",
   "l10n.NotReady": "Nepřipraveno",
   "l10n.RecordHDRError": "Vypněte režim HDR pro záznam videa z této hry.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Nastavení exportováno!",
   "l10n.importSuccess": "Nastavení importováno!",
   "l10n.exportFailed": "Export selhal",
-  "l10n.importFailed": "Import selhal"
+  "l10n.importFailed": "Import selhal",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "LocationSaved",
+  "l10n.created": "Vytvořil/a"
 }

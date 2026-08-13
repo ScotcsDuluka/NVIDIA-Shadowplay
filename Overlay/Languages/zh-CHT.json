@@ -1,5 +1,4 @@
 {
-  "l10m.created": "建立日期",
   "l10n.360PhotoSphere": "360° 全景照片",
   "l10n.360PhotoSphere3D": "360° 全景照片（立體）",
   "l10n.360PhotoSpheres": "360° 全景照片",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} 秒鐘長",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} 秒鐘長",
   "l10n.HighlightsHDRError": "關閉 HDR 以捕捉這個遊戲的集錦。",
-  "l10n.LoactionSaved": "已儲存位置",
   "l10n.Load": "載入",
   "l10n.NotReady": "未就緒",
   "l10n.RecordHDRError": "關閉 HDR 以錄製這個遊戲的視訊。",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "設定已匯出！",
   "l10n.importSuccess": "設定已匯入！",
   "l10n.exportFailed": "匯出失敗",
-  "l10n.importFailed": "匯入失敗"
+  "l10n.importFailed": "匯入失敗",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "已儲存位置",
+  "l10n.created": "建立日期"
 }

@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Δημιουργήθηκε",
   "l10n.360PhotoSphere": "Φωτόσφαιρα 360°",
   "l10n.360PhotoSphere3D": "Φωτόσφαιρα 360° (Στερεοσκοπικά)",
   "l10n.360PhotoSpheres": "Φωτόσφαιρες 360°",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "διάρκεια{{arg1}} δευτερόλεπτα",
   "l10n.GIFLengthUnitsSingular": "διάρκεια{{arg1}} δευτερόλεπτο",
   "l10n.HighlightsHDRError": "Απενεργοποιήστε το HDR για να καταγράψετε κύρια σημεία αυτού του παιχνιδιού.",
-  "l10n.LoactionSaved": "LocationSaved",
   "l10n.Load": "Φόρτωση",
   "l10n.NotReady": "Μη έτοιμο",
   "l10n.RecordHDRError": "Απενεργοποιήστε το HDR για να καταγράψετε ένα βίντεο αυτού του παιχνιδιού.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Οι ρυθμίσεις εξήχθησαν!",
   "l10n.importSuccess": "Οι ρυθμίσεις εισήχθησαν!",
   "l10n.exportFailed": "Η εξαγωγή απέτυχε",
-  "l10n.importFailed": "Η εισαγωγή απέτυχε"
+  "l10n.importFailed": "Η εισαγωγή απέτυχε",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "LocationSaved",
+  "l10n.created": "Δημιουργήθηκε"
 }

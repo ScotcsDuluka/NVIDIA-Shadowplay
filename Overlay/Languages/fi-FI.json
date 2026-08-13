@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Luotu",
   "l10n.360PhotoSphere": "360° valokuvapiiri",
   "l10n.360PhotoSphere3D": "360° valokuvapiiri (stereo)",
   "l10n.360PhotoSpheres": "360° valokuvapiirit",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} sekuntia pitkä",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} sekunti pitkä",
   "l10n.HighlightsHDRError": "Ota HDR pois päältä siepataksesi tämän pelin kohokohdat.",
-  "l10n.LoactionSaved": "Sijainti tallennettu",
   "l10n.Load": "Lataa",
   "l10n.NotReady": "Ei valmis",
   "l10n.RecordHDRError": "Ota HDR pois päältä nauhoittaaksesi videon tästä pelistä.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Asetukset viety!",
   "l10n.importSuccess": "Asetukset tuotu!",
   "l10n.exportFailed": "Vienti epäonnistui",
-  "l10n.importFailed": "Tuonti epäonnistui"
+  "l10n.importFailed": "Tuonti epäonnistui",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Sijainti tallennettu",
+  "l10n.created": "Luotu"
 }

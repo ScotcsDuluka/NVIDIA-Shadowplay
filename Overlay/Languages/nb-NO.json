@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Opprettet",
   "l10n.360PhotoSphere": "360° bildesfære",
   "l10n.360PhotoSphere3D": "360° fotosfære (stereo)",
   "l10n.360PhotoSpheres": "360° bildesfærer",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} sekunder lang",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} sekund lang",
   "l10n.HighlightsHDRError": "Slå av HDR for å gjøre opptak av høydepunkter av dette spillet.",
-  "l10n.LoactionSaved": "Plassering lagret",
   "l10n.Load": "Last",
   "l10n.NotReady": "Ikke klar",
   "l10n.RecordHDRError": "Slå av HDR for å spille inn en video av dette spillet.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Innstillinger eksportert!",
   "l10n.importSuccess": "Innstillinger importert!",
   "l10n.exportFailed": "Eksport mislyktes",
-  "l10n.importFailed": "Import mislyktes"
+  "l10n.importFailed": "Import mislyktes",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Plassering lagret",
+  "l10n.created": "Opprettet"
 }

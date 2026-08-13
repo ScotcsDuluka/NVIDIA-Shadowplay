@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Crée le",
   "l10n.360PhotoSphere": "Photos sphériques 360°",
   "l10n.360PhotoSphere3D": "Photo sphérique 360° (stéréo)",
   "l10n.360PhotoSpheres": "Photos sphériques 360°",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} secondes",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} seconde",
   "l10n.HighlightsHDRError": "Désactivez le HDR pour capturer des extraits de cette partie.",
-  "l10n.LoactionSaved": "Emplacement enregistré",
   "l10n.Load": "Charger",
   "l10n.NotReady": "Non prêt",
   "l10n.RecordHDRError": "Désactivez le HDR pour enregistrer une vidéo de cette partie.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Paramètres exportés !",
   "l10n.importSuccess": "Paramètres importés !",
   "l10n.exportFailed": "Échec de l'export",
-  "l10n.importFailed": "Échec de l'import"
+  "l10n.importFailed": "Échec de l'import",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Emplacement enregistré",
+  "l10n.created": "Crée le"
 }

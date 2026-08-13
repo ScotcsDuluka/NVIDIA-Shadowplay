@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Створено",
   "l10n.360PhotoSphere": "360° фото сфера",
   "l10n.360PhotoSphere3D": "360° фото сфера (стерео)",
   "l10n.360PhotoSpheres": "360° фото сфери",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "тривалість {{arg1}} секунд",
   "l10n.GIFLengthUnitsSingular": "тривалість {{arg1}} секунду",
   "l10n.HighlightsHDRError": "Вимкніть HDR, щоб засняти яскраві моменти цієї гри.",
-  "l10n.LoactionSaved": "Місце збережено",
   "l10n.Load": "Завантажити",
   "l10n.NotReady": "Не готово",
   "l10n.RecordHDRError": "Вимкніть HDR, щоб записати відео цієї гри.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Налаштування експортовано!",
   "l10n.importSuccess": "Налаштування імпортовано!",
   "l10n.exportFailed": "Помилка експорту",
-  "l10n.importFailed": "Помилка імпорту"
+  "l10n.importFailed": "Помилка імпорту",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Місце збережено",
+  "l10n.created": "Створено"
 }

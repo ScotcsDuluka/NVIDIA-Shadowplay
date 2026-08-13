@@ -1,5 +1,4 @@
 {
-  "l10m.created": "생성일자",
   "l10n.360PhotoSphere": "360° 포토 스피어",
   "l10n.360PhotoSphere3D": "360° 포토 스피어(입체)",
   "l10n.360PhotoSpheres": "360° 포토 스피어",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}}초",
   "l10n.GIFLengthUnitsSingular": "{{arg1}}초",
   "l10n.HighlightsHDRError": "이 게임의 하이라이트를 캡처하려면 HDR을 끄십시오.",
-  "l10n.LoactionSaved": "위치가 저장되었습니다",
   "l10n.Load": "불러오기",
   "l10n.NotReady": "준비 안 됨",
   "l10n.RecordHDRError": "이 게임을 비디오로 녹화하려면 HDR을 끄십시오.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "설정을 내보냈습니다!",
   "l10n.importSuccess": "설정을 가져왔습니다!",
   "l10n.exportFailed": "내보내기 실패",
-  "l10n.importFailed": "가져오기 실패"
+  "l10n.importFailed": "가져오기 실패",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "위치가 저장되었습니다",
+  "l10n.created": "생성일자"
 }

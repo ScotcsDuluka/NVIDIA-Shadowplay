@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Erstellt",
   "l10n.360PhotoSphere": "360°-Photosphäre",
   "l10n.360PhotoSphere3D": "360°-Panoramafoto (Stereo)",
   "l10n.360PhotoSpheres": "360°-Photosphären",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} Sekunden lang",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} Sekunde lang",
   "l10n.HighlightsHDRError": "Schalten Sie HDR aus, um Highlights für dieses Spiel zu erfassen.",
-  "l10n.LoactionSaved": "LocationSaved",
   "l10n.Load": "Laden",
   "l10n.NotReady": "Nicht bereit",
   "l10n.RecordHDRError": "Schalten Sie HDR aus, um ein Video dieses Spiels aufzunehmen.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Einstellungen exportiert!",
   "l10n.importSuccess": "Einstellungen importiert!",
   "l10n.exportFailed": "Export fehlgeschlagen",
-  "l10n.importFailed": "Import fehlgeschlagen"
+  "l10n.importFailed": "Import fehlgeschlagen",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "LocationSaved",
+  "l10n.created": "Erstellt"
 }

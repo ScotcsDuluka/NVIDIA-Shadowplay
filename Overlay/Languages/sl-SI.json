@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Ustvarjeno",
   "l10n.360PhotoSphere": "360-stopinjska slika",
   "l10n.360PhotoSphere3D": "360-stopinjska slika (Stereo)",
   "l10n.360PhotoSpheres": "360-stopinjske slike",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} sekund dolgo",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} sekundo dolgo",
   "l10n.HighlightsHDRError": "Izklopite visok dinamični razpon (HDR), da zajamete označbe za to igro.",
-  "l10n.LoactionSaved": "Lokacija shranjena",
   "l10n.Load": "Naloži",
   "l10n.NotReady": "Ni pripravljeno",
   "l10n.RecordHDRError": "Izklopite visok dinamični razpon (HDR), da naredite video posnetek te igre.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Nastavitve izvožene!",
   "l10n.importSuccess": "Nastavitve uvožene!",
   "l10n.exportFailed": "Izvoz ni uspel",
-  "l10n.importFailed": "Uvoz ni uspel"
+  "l10n.importFailed": "Uvoz ni uspel",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Lokacija shranjena",
+  "l10n.created": "Ustvarjeno"
 }

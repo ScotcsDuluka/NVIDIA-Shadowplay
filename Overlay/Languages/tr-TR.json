@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Oluşturulma tarihi",
   "l10n.360PhotoSphere": "360° fotoğraf küresi",
   "l10n.360PhotoSphere3D": "360° fotoğraf küresi (Stereo)",
   "l10n.360PhotoSpheres": "360° fotoğraf küreleri",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} saniye uzunluğunda",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} saniye uzunluğunda",
   "l10n.HighlightsHDRError": "Bu oyunda dikkati çekenleri yakalamak için HDR özelliğini kapatın.",
-  "l10n.LoactionSaved": "Konum kaydedildi",
   "l10n.Load": "Yükle",
   "l10n.NotReady": "Hazır değil",
   "l10n.RecordHDRError": "Bu oyunun videosunu kaydetmek için HDR özelliğini kapatın.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Ayarlar dışa aktarıldı!",
   "l10n.importSuccess": "Ayarlar içe aktarıldı!",
   "l10n.exportFailed": "Dışa aktarma başarısız",
-  "l10n.importFailed": "İçe aktarma başarısız"
+  "l10n.importFailed": "İçe aktarma başarısız",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Konum kaydedildi",
+  "l10n.created": "Oluşturulma tarihi"
 }

@@ -12,7 +12,6 @@
   "l10n.GIFLengthUnitsPlural": "ยาว {{arg1}} วินาที",
   "l10n.GIFLengthUnitsSingular": "ยาว {{arg1}} วินาที",
   "l10n.HighlightsHDRError": "ปิด HDR เพื่อบันทึกภาพจุดเด่นของเกมนี้",
-  "l10n.LoactionSaved": "บันทึกตำแหน่งที่จัดเก็บ",
   "l10n.Load": "โหลด",
   "l10n.NotReady": "ไม่พร้อมใช้งาน",
   "l10n.RecordHDRError": "ปิด HDR เพื่อบันทึกวิดีโอของเกมนี้",
@@ -754,5 +753,9 @@
   "l10n.exportSuccess": "ส่งออกการตั้งค่าสำเร็จ!",
   "l10n.importSuccess": "นำเข้าการตั้งค่าสำเร็จ!",
   "l10n.exportFailed": "ส่งออกล้มเหลว",
-  "l10n.importFailed": "นำเข้าล้มเหลว"
+  "l10n.importFailed": "นำเข้าล้มเหลว",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "บันทึกตำแหน่งที่จัดเก็บ"
 }

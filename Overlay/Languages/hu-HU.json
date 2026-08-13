@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Létrehozva",
   "l10n.360PhotoSphere": "360°-os panorámakép",
   "l10n.360PhotoSphere3D": "360°-os panorámakép (sztereó)",
   "l10n.360PhotoSpheres": "360°-os panorámaképek",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "{{arg1}} másodperc hosszú",
   "l10n.GIFLengthUnitsSingular": "{{arg1}} másodperc hosszú",
   "l10n.HighlightsHDRError": "Ha rögzíteni szeretnéd a játék nagy pillanatait, kapcsold ki a HDR-t.",
-  "l10n.LoactionSaved": "Hely mentve",
   "l10n.Load": "Betöltés",
   "l10n.NotReady": "Nincs kész",
   "l10n.RecordHDRError": "Ha videót szeretnél rögzíteni erről a játékról, kapcsold ki a HDR-t.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Beállítások exportálva!",
   "l10n.importSuccess": "Beállítások importálva!",
   "l10n.exportFailed": "Export sikertelen",
-  "l10n.importFailed": "Import sikertelen"
+  "l10n.importFailed": "Import sikertelen",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Hely mentve",
+  "l10n.created": "Létrehozva"
 }

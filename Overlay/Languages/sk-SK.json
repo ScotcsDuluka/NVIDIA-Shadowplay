@@ -1,5 +1,4 @@
 {
-  "l10m.created": "Vytvorené",
   "l10n.360PhotoSphere": "360° fotografia",
   "l10n.360PhotoSphere3D": "360° fotografia (stereoskopická)",
   "l10n.360PhotoSpheres": "360° fotografie",
@@ -12,7 +11,6 @@
   "l10n.GIFLengthUnitsPlural": "dĺžka {{arg1}} s",
   "l10n.GIFLengthUnitsSingular": "dĺžka {{arg1}} s",
   "l10n.HighlightsHDRError": "Vypnúť HDR a zachytiť najlepšie momenty tejto hry.",
-  "l10n.LoactionSaved": "Umiestnenie uložené",
   "l10n.Load": "Načítať",
   "l10n.NotReady": "Nie je pripravené",
   "l10n.RecordHDRError": "Vypnúť HDR a nahrať snímku video z tejto hry.",
@@ -754,5 +752,10 @@
   "l10n.exportSuccess": "Nastavenia exportované!",
   "l10n.importSuccess": "Nastavenia importované!",
   "l10n.exportFailed": "Export zlyhal",
-  "l10n.importFailed": "Import zlyhal"
+  "l10n.importFailed": "Import zlyhal",
+  "l10n.engine": "Engine",
+  "l10n.preset": "Preset",
+  "l10n.adjust_value": "Adjust Value",
+  "l10n.LocationSaved": "Umiestnenie uložené",
+  "l10n.created": "Vytvorené"
 }
