@@ -791,17 +791,31 @@ Partial Public Class UI_Engine
                               lblStatus.Text = "Idle - Hub Client"
                               lblStatus.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
                               tmrRecording.Stop()
+                              ' ✅ P2.10: update status panel
+                              lblRecState.Text = "● Idle"
+                              lblRecState.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
 
                           Case CaptureEngine.CaptureState.Recording
                               lblStatus.Text = "Recording..."
                               lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
                               lblTimer.ForeColor = Drawing.Color.Red
                               tmrRecording.Start()
+                              ' ✅ P2.10: update status panel
+                              lblRecState.Text = "● Recording"
+                              lblRecState.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                              lblRecTimer.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                              ' Show target bitrate so user can compare with actual.
+                              If _settings IsNot Nothing AndAlso _settings.Bitrate > 0 Then
+                                  lblRecBitrate.Text = $"Target: {(_settings.Bitrate / 1000000.0):F1} Mbps · {_settings.FPS} FPS · p{_settings.NvencPreset}"
+                              End If
 
                           Case CaptureEngine.CaptureState.Stopping
                               lblStatus.Text = "Stopping..."
                               lblStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
                               tmrRecording.Stop()
+                              ' ✅ P2.10: update status panel
+                              lblRecState.Text = "● Stopping..."
+                              lblRecState.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
 
                           Case CaptureEngine.CaptureState.HasError
                               lblStatus.Text = "Error"
@@ -809,6 +823,9 @@ Partial Public Class UI_Engine
                               tmrRecording.Stop()
                               btnRecord.Enabled = True
                               btnStop.Enabled = False
+                              ' ✅ P2.10: update status panel
+                              lblRecState.Text = "● Error"
+                              lblRecState.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
                       End Select
                   End Sub)
     End Sub
@@ -875,10 +892,35 @@ Partial Public Class UI_Engine
     ' Format: engine_recording_progress:<duration_sec>|<frames>|<size_bytes>
     Private Sub OnEngineProgress(frames As Long, duration As TimeSpan, sizeBytes As Long)
         Try
-            ' Update local UI timer (Engine UI's lblTimer).
+            ' ✅ P2.10: update local UI status panel.
             If Me.IsHandleCreated AndAlso Not Me.IsDisposed Then
                 Me.BeginInvoke(Sub()
+                                   ' Timer
+                                   lblRecTimer.Text = duration.ToString("hh\:mm\:ss")
                                    lblTimer.Text = duration.ToString("hh\:mm\:ss")
+                                   ' File size
+                                   Dim sizeStr As String
+                                   If sizeBytes >= 1024 * 1024 * 1024 Then
+                                       sizeStr = (sizeBytes / (1024.0 * 1024 * 1024)).ToString("F2") & " GB"
+                                   ElseIf sizeBytes >= 1024 * 1024 Then
+                                       sizeStr = (sizeBytes / (1024.0 * 1024)).ToString("F1") & " MB"
+                                   ElseIf sizeBytes >= 1024 Then
+                                       sizeStr = (sizeBytes / 1024.0).ToString("F0") & " KB"
+                                   Else
+                                       sizeStr = sizeBytes & " B"
+                                   End If
+                                   lblRecSize.Text = sizeStr
+                                   ' Frame count
+                                   lblRecFrames.Text = $"{frames:N0} frames"
+                                   ' Actual bitrate (size / duration)
+                                   If duration.TotalSeconds > 0 Then
+                                       Dim actualMbps As Double = (sizeBytes * 8.0) / (duration.TotalSeconds * 1000000.0)
+                                       Dim targetStr As String = ""
+                                       If _settings IsNot Nothing AndAlso _settings.Bitrate > 0 Then
+                                           targetStr = $" / target {(_settings.Bitrate / 1000000.0):F1}"
+                                       End If
+                                       lblRecBitrate.Text = $"Actual: {actualMbps:F1} Mbps{targetStr}"
+                                   End If
                                End Sub)
             End If
 
