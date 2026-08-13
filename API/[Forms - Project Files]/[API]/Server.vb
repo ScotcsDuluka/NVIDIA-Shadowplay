@@ -132,10 +132,25 @@ Partial Public Class API_RUN
     End Sub
 
     Private Async Sub StartServer()
-        ' ✅ FIX: bind to Loopback only. Old code used IPAddress.Any, which let any LAN host
-        ' connect and inject `engine_record_start` etc., or DoS the hub with huge messages.
-        listener = New TcpListener(IPAddress.Loopback, 5000)
-        listener.Start()
+        ' ✅ P2.2: bind to IPv6 Any with dual-stack enabled.
+        ' Old code: New TcpListener(IPAddress.Loopback, 5000) → IPv4 only.
+        ' Problem: when Engine's TcpClient.Connect("127.0.0.1", 5000) resolved
+        ' to ::ffff:127.0.0.1 (IPv6 dual-stack), the connection was refused
+        ' because the Hub wasn't listening on IPv6.
+        ' Fix: bind IPv6Any with SocketOptionName.IPv6Only=False (default in
+        ' .NET 8) → accepts both IPv4 and IPv6 connections on the same socket.
+        ' We still constrain to loopback by checking the remote endpoint
+        ' after accept (to keep the security posture from P0).
+        Try
+            listener = New TcpListener(IPAddress.IPv6Any, 5000)
+            listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, False)
+            listener.Start()
+        Catch ex As SocketException
+            ' Fallback to IPv4-only if IPv6 isn't available on this machine
+            Log("[Warn] NVIDIA API", $"ipv6_bind_failed_{ex.Message}_falling_back_to_ipv4")
+            listener = New TcpListener(IPAddress.Loopback, 5000)
+            listener.Start()
+        End Try
         _heartbeatCts = New CancellationTokenSource()
         Task.Run(Sub() HeartbeatMonitor(_heartbeatCts.Token), _heartbeatCts.Token)
         While Not _isShuttingDown

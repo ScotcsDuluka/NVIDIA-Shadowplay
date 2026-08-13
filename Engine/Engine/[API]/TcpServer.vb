@@ -46,8 +46,12 @@ Public Class EngineHubClient
     Private Const HUB_HOST As String = "127.0.0.1"
     Private Const HUB_PORT As Integer = 5000
     Private Const APP_NAME As String = "NVIDIA Engine"
-    Private Const RECONNECT_BASE_MS As Integer = 2000
-    Private Const RECONNECT_MAX_MS As Integer = 30000
+    Private Const RECONNECT_BASE_MS As Integer = 1000
+    Private Const RECONNECT_MAX_MS As Integer = 15000
+    ' ✅ P2.2: ping every 5s (down from 10s). Hub heartbeat timeout is 60s,
+    ' so 5s ping gives us 12 missed pings worth of buffer before kill.
+    ' Old 10s ping was too sparse on unstable connections.
+    Private Const PING_INTERVAL_MS As Integer = 5000
     Private _reconnectDelay As Integer = RECONNECT_BASE_MS
 #End Region
 
@@ -66,9 +70,27 @@ Public Class EngineHubClient
             Disconnect()
             _cts = New CancellationTokenSource()
 
-            _client = New TcpClient()
+            ' ✅ P2.2: prefer IPv4 explicitly to avoid ::ffff:127.0.0.1 dual-stack
+            ' ambiguity. Old code used TcpClient.Connect(host, port) which in .NET 8
+            ' may resolve to IPv6 ::ffff:127.0.0.1 and connect to a different listener
+            ' than the one bound to IPAddress.Loopback (IPv4 127.0.0.1).
+            ' Now we resolve addresses ourselves and prefer IPv4, falling back to
+            ' IPv6 only if no IPv4 is available.
+            Dim addrs As IPAddress() = Dns.GetHostAddresses(HUB_HOST)
+            Dim ipv4 As IPAddress = Nothing
+            Dim ipv6 As IPAddress = Nothing
+            For Each a As IPAddress In addrs
+                If a.AddressFamily = Sockets.AddressFamily.InterNetwork AndAlso ipv4 Is Nothing Then
+                    ipv4 = a
+                ElseIf a.AddressFamily = Sockets.AddressFamily.InterNetworkV6 AndAlso ipv6 Is Nothing Then
+                    ipv6 = a
+                End If
+            Next
+            Dim target As IPAddress = If(ipv4, ipv6, IPAddress.Loopback)
+
+            _client = New TcpClient(target.AddressFamily)
             _client.NoDelay = True
-            _client.Connect(HUB_HOST, HUB_PORT)
+            _client.Connect(target, HUB_PORT)
 
             Dim stream As NetworkStream = _client.GetStream()
             _writer = New StreamWriter(stream) With {.AutoFlush = True}
@@ -213,7 +235,7 @@ Public Class EngineHubClient
     Private Sub PingLoop()
         Try
             While _isConnected AndAlso Not _cts.IsCancellationRequested
-                Thread.Sleep(10000)
+                Thread.Sleep(PING_INTERVAL_MS)
                 If Not IsConnected Then Exit While
 
                 ' ✅ FIX: check underlying socket health before writing.
@@ -270,10 +292,12 @@ Public Class EngineHubClient
                         _reconnectDelay = Math.Min(_reconnectDelay * 2, RECONNECT_MAX_MS)
                         Thread.Sleep(_reconnectDelay)
 
+                        ' ✅ P2.2: prefer IPv4 (same as Connect()).
+                        Dim target As IPAddress = ResolveHubAddress()
                         _cts = New CancellationTokenSource()
-                        _client = New TcpClient()
+                        _client = New TcpClient(target.AddressFamily)
                         _client.NoDelay = True
-                        _client.Connect(HUB_HOST, HUB_PORT)
+                        _client.Connect(target, HUB_PORT)
 
                         Dim stream As NetworkStream = _client.GetStream()
                         _writer = New StreamWriter(stream) With {.AutoFlush = True}
