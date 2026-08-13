@@ -483,6 +483,12 @@ Public Class UI_Engine
     ''' have its own ffmpeg.exe. Without this, Engine's CaptureSettings might
     ''' point to a non-existent ffmpeg.exe → StartRecordingAsync fails →
     ''' "กดอัด ขึ้นอัด แต่ไม่ได้อัดจริง".
+    '''
+    ''' ✅ P2.1: this handler runs on the Hub listener thread, NOT the UI
+    ''' thread. Calling DetectEncoders() directly was crashing Engine because
+    ''' DetectEncoders sets lblStatus.Text from a non-UI thread →
+    ''' InvalidOperationException → Engine.exe exits.
+    ''' Fix: wrap the whole thing in Me.Invoke so it runs on the UI thread.
     ''' </summary>
     Private Sub HandleEnginePrewarmFFmpeg(ffmpegPath As String)
         Try
@@ -493,22 +499,30 @@ Public Class UI_Engine
                 Return
             End If
 
-            ' Load current settings, update FFmpegPath, save back.
-            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
-            If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not IO.File.Exists(s.FFmpegPath) Then
-                s.FFmpegPath = ffmpegPath
-                s.Save(_configPath)
-                _settings = s
-                Me.Invoke(Sub()
-                              txtFFmpegPath.Text = ffmpegPath
-                              ValidateFFmpegPath()
-                          End Sub)
-                DebugLog($"[Engine] PREWARM_FFMPEG: updated FFmpegPath → {ffmpegPath}")
-                ' Re-detect encoders with the new ffmpeg path.
-                DetectEncoders()
-            Else
-                DebugLog($"[Engine] PREWARM_FFMPEG: already have valid FFmpegPath: {s.FFmpegPath}")
-            End If
+            ' ✅ P2.1: marshal to UI thread before touching any UI control.
+            ' HandleEnginePrewarmFFmpeg runs on the Hub listener thread.
+            ' DetectEncoders() and ValidateFFmpegPath() both set UI controls
+            ' directly, which is illegal from a non-UI thread and crashes Engine.
+            Me.Invoke(Sub()
+                          Try
+                              ' Load current settings, update FFmpegPath, save back.
+                              Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+                              If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not IO.File.Exists(s.FFmpegPath) Then
+                                  s.FFmpegPath = ffmpegPath
+                                  s.Save(_configPath)
+                                  _settings = s
+                                  txtFFmpegPath.Text = ffmpegPath
+                                  ValidateFFmpegPath()
+                                  DebugLog($"[Engine] PREWARM_FFMPEG: updated FFmpegPath → {ffmpegPath}")
+                                  ' Re-detect encoders with the new ffmpeg path (safe now on UI thread).
+                                  DetectEncoders()
+                              Else
+                                  DebugLog($"[Engine] PREWARM_FFMPEG: already have valid FFmpegPath: {s.FFmpegPath}")
+                              End If
+                          Catch ex As Exception
+                              DebugLog($"[Engine] PREWARM_FFMPEG inner error: {ex.Message}")
+                          End Try
+                      End Sub)
         Catch ex As Exception
             DebugLog($"[Engine] PREWARM_FFMPEG error: {ex.Message}")
         End Try
