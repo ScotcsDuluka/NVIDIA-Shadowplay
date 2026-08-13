@@ -17,7 +17,7 @@ Public Class TcpClientHelper
     Private ReadOnly _port As Integer
     Private ReadOnly _autoReconnect As Boolean
     Private ReadOnly _reconnectIntervalMs As Integer = 3000
-    Private _currentReconnectDelay As Integer = 1000 ' ★ Start at 1s, doubles each attempt (exponential backoff)
+    Private _currentReconnectDelay As Integer = 1000
 
     Public Event OnMessageReceived(msg As String)
     Public Event OnDisconnected()
@@ -161,9 +161,29 @@ Public Class TcpClientHelper
 
         While Not IsConnected AndAlso _autoReconnect
             Try
-                ' ★ FIX: Exponential backoff instead of fixed interval
-                _currentReconnectDelay = Math.Min(_currentReconnectDelay * 2, 30000) ' max 30s
+                ' ✅ M12 FIX: old code doubled _currentReconnectDelay BEFORE
+                ' the first sleep, so the first reconnect waited 2s instead
+                ' of 1s. Now sleep first, then double for next iteration.
                 Thread.Sleep(_currentReconnectDelay)
+                _currentReconnectDelay = Math.Min(_currentReconnectDelay * 2, 30000) ' max 30s
+
+                ' ✅ M7 FIX: dispose old _cts / _writer / _reader before
+                ' replacing them. Old code just overwrote the references,
+                ' leaking CancellationTokenSource objects (hold internal
+                ' timers) and StreamReader/StreamWriter (hold NetworkStream).
+                If _cts IsNot Nothing Then
+                    Try : _cts.Cancel() : Catch : End Try
+                    Try : _cts.Dispose() : Catch : End Try
+                End If
+                If _writer IsNot Nothing Then
+                    Try : _writer.Dispose() : Catch : End Try
+                End If
+                If _reader IsNot Nothing Then
+                    Try : _reader.Dispose() : Catch : End Try
+                End If
+                If _client IsNot Nothing Then
+                    Try : _client.Close() : Catch : End Try
+                End If
 
                 _cts = New CancellationTokenSource()
                 _client = New TcpClient()

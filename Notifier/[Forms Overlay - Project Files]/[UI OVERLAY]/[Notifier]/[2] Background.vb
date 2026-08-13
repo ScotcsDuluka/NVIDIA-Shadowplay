@@ -239,6 +239,13 @@ Public Class Notifier
             _delayTimer.Dispose()
             _delayTimer = Nothing
         End If
+        ' ✅ M3 FIX: also dispose _delayTimers (plural) — was never disposed.
+        ' Each toast show cycle created a new one without disposing the old.
+        If _delayTimers IsNot Nothing Then
+            _delayTimers.Stop()
+            _delayTimers.Dispose()
+            _delayTimers = Nothing
+        End If
     End Sub
 
     Private Sub StopCloseTimer()

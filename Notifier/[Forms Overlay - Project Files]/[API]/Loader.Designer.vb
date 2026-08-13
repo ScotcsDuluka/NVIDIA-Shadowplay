@@ -39,7 +39,9 @@ Partial Class Loader
         ' 
         ' RUN_API
         ' 
-        RUN_API.Enabled = True
+        ' ✅ m1 FIX: was Enabled=True with empty handler — ticked 8x/second
+        ' doing nothing (dead code from TCP migration). Disabled.
+        RUN_API.Enabled = False
         RUN_API.Interval = 120
         ' 
         ' Button2

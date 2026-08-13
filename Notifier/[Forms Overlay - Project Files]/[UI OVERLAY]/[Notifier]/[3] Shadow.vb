@@ -55,8 +55,11 @@ Public Class Shadow
                 Return
             End If
 
-            HideFromAltTab()
-            Notifier_Sub.TopMost = True
+            ' ✅ M4 FIX: removed HideFromAltTab() and Notifier_Sub.TopMost = True.
+            ' Both were redundant — HideFromAltTab is called once in Shadow_Load,
+            ' and TopMost is set in the Designer. Calling them 1000x/second was
+            ' pure CPU waste (Win32 P/Invoke per tick).
+            ' Only sync position — that's the only thing that needs updating.
             Me.Left = Notifier.Left
             Me.Top = Notifier.Top
         Catch ex As Exception
