@@ -146,7 +146,9 @@ Partial Public Class API_RUN
         ' already in use by another app), wait 5s and retry instead of
         ' crashing the Hub.
         Dim bindAttempts As Integer = 0
+        Dim shouldRetry As Boolean = False
         Do
+            shouldRetry = False
             Try
                 listener = New TcpListener(IPAddress.IPv6Any, 5000)
                 listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, False)
@@ -166,10 +168,23 @@ Partial Public Class API_RUN
                         Log("[Error] NVIDIA API", "bind_failed_giving_up_after_12_attempts")
                         Return
                     End If
-                    Await Task.Delay(5000)
+                    shouldRetry = True
                 End Try
             End Try
-        Loop While Not _isShuttingDown
+
+            ' ✅ P2.6b: VB.NET does not allow Await inside Catch/Finally/SyncLock
+            ' (BC36943). Wait outside the Catch block instead.
+            If shouldRetry AndAlso Not _isShuttingDown Then
+                ' Task.Delay(...).Wait() is a blocking wait — fine here because
+                ' StartServer is already on a background Task (no UI thread to block).
+                Try
+                    Task.Delay(5000).Wait()
+                Catch
+                    ' Wait was interrupted (CTS cancelled) — exit gracefully.
+                    Return
+                End Try
+            End If
+        Loop While shouldRetry AndAlso Not _isShuttingDown
 
         If _isShuttingDown Then Return
 
