@@ -399,9 +399,36 @@ Public Class CaptureEngine
         End Select
 
         ' ── Add scale filter if custom resolution ──
+        ' ✅ FIX: for hw capture (ddagrab/gfxcapture) + NVENC/AMF, frames are d3d11.
+        ' scale filter only handles software formats → must hwdownload first,
+        ' scale, then hwupload back to d3d11 for the encoder.
+        ' For QSV: hwdownload → scale → hwmap=derive_device=qsv
+        ' For CPU: hwdownload → scale (stays in software)
         If Not _settings.UseNativeResolution AndAlso _settings.CustomWidth > 0 Then
-            If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
-            videoFilter = videoFilter & "scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+            Dim isHw As Boolean = (_settings.CaptureMethod.ToLower() = "ddagrab" OrElse
+                                   _settings.CaptureMethod.ToLower() = "gfxcapture")
+            Dim scalePart As String = "scale=" & _settings.CustomWidth.ToString() & ":" & _settings.CustomHeight.ToString()
+
+            If isHw Then
+                ' Need to download from d3d11 → software → scale → upload back
+                If hwType = HwDeviceType.NVIDIA OrElse hwType = HwDeviceType.AMD Then
+                    ' NVENC/AMF accept d3d11 → hwupload back after scale
+                    If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                    videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",hwupload"
+                ElseIf hwType = HwDeviceType.IntelQSV
+                    ' QSV: hwdownload → scale → hwmap
+                    If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                    videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",hwmap=derive_device=qsv"
+                Else
+                    ' CPU encoder: hwdownload → scale (stays software)
+                    If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                    videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart
+                End If
+            Else
+                ' gdigrab: software frames, just scale
+                If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
+                videoFilter = videoFilter & scalePart
+            End If
         End If
 
         ' ── Audio input (dshow) ──
