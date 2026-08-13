@@ -1,72 +1,74 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<OutputType>WinExe</OutputType>
-		<RootNamespace>NVIDIA_Capture</RootNamespace>
-		<StartupObject>NVIDIA_Capture.My.MyApplication</StartupObject>
-		<UseWindowsForms>true</UseWindowsForms>
-		<MyType>WindowsForms</MyType>
-		<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
-		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
-		<Platforms>AnyCPU;x64</Platforms>
-		<OptionExplicit>Off</OptionExplicit>
-		<OptionInfer>Off</OptionInfer>
-		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
-	</PropertyGroup>
+        <PropertyGroup>
+                <OutputType>WinExe</OutputType>
+                <RootNamespace>NVIDIA_Capture</RootNamespace>
+                <StartupObject>NVIDIA_Capture.My.MyApplication</StartupObject>
+                <UseWindowsForms>true</UseWindowsForms>
+                <MyType>WindowsForms</MyType>
+                <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+                <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+                <Platforms>AnyCPU;x64</Platforms>
+                <OptionExplicit>Off</OptionExplicit>
+                <OptionInfer>Off</OptionInfer>
+                <ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
+        </PropertyGroup>
 
-	<ItemGroup>
-	  <Content Include="NVIDIA ShadowPlay.ico" />
-	</ItemGroup>
+        <ItemGroup>
+          <Content Include="NVIDIA ShadowPlay.ico" />
+        </ItemGroup>
 
-	<ItemGroup>
-		<Import Include="System" />
-		<Import Include="System.Collections" />
-		<Import Include="System.Collections.Generic" />
-		<Import Include="System.Data" />
-		<Import Include="System.Diagnostics" />
-		<Import Include="System.Drawing" />
-		<Import Include="System.IO" />
-		<Import Include="System.Linq" />
-		<Import Include="System.Net" />
-		<Import Include="System.Net.Sockets" />
-		<Import Include="System.Text" />
-		<Import Include="System.Text.Json" />
-		<Import Include="System.Threading" />
-		<Import Include="System.Threading.Tasks" />
-		<Import Include="System.Windows.Forms" />
-		<Import Include="Microsoft.VisualBasic" />
-	</ItemGroup>
+        <ItemGroup>
+                <Import Include="System" />
+                <Import Include="System.Collections" />
+                <Import Include="System.Collections.Generic" />
+                <Import Include="System.Data" />
+                <Import Include="System.Diagnostics" />
+                <Import Include="System.Drawing" />
+                <Import Include="System.IO" />
+                <Import Include="System.Linq" />
+                <Import Include="System.Net" />
+                <Import Include="System.Net.Sockets" />
+                <Import Include="System.Text" />
+                <Import Include="System.Text.Json" />
+                <Import Include="System.Threading" />
+                <Import Include="System.Threading.Tasks" />
+                <Import Include="System.Windows.Forms" />
+                <Import Include="Microsoft.VisualBasic" />
+        </ItemGroup>
 
-	<ItemGroup>
-		<PackageReference Include="NAudio.Core" Version="2.3.0" />
-		<PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
-	</ItemGroup>
+        <ItemGroup>
+                <!-- ✅ m4 FIX: removed NAudio.Core + NAudio.Wasapi references.
+                     Engine doesn't use NAudio anywhere (audio capture is via
+                     FFmpeg's dshow input). These were leftover from an early
+                     design that was never wired up. -->
+        </ItemGroup>
 
-	<ItemGroup>
-		<None Update="API-Core\ffmpeg.exe">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-		<None Update="API-Core\ffprobe.exe">
-			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
-		</None>
-	</ItemGroup>
+        <ItemGroup>
+                <None Update="API-Core\ffmpeg.exe">
+                        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                </None>
+                <None Update="API-Core\ffprobe.exe">
+                        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+                </None>
+        </ItemGroup>
 
-	<ItemGroup>
-		<Compile Update="Engine\[API]\[Overlay] Client.vb">
-		  <SubType>Form</SubType>
-		</Compile>
-		<Compile Update="My Project\Application.Designer.vb">
-			<DesignTime>True</DesignTime>
-			<AutoGen>True</AutoGen>
-			<DependentUpon>Application.myapp</DependentUpon>
-		</Compile>
-	</ItemGroup>
+        <ItemGroup>
+                <Compile Update="Engine\[API]\[Overlay] Client.vb">
+                  <SubType>Form</SubType>
+                </Compile>
+                <Compile Update="My Project\Application.Designer.vb">
+                        <DesignTime>True</DesignTime>
+                        <AutoGen>True</AutoGen>
+                        <DependentUpon>Application.myapp</DependentUpon>
+                </Compile>
+        </ItemGroup>
 
-	<ItemGroup>
-		<None Update="My Project\Application.myapp">
-			<Generator>MyApplicationCodeGenerator</Generator>
-			<LastGenOutput>Application.Designer.vb</LastGenOutput>
-		</None>
-	</ItemGroup>
+        <ItemGroup>
+                <None Update="My Project\Application.myapp">
+                        <Generator>MyApplicationCodeGenerator</Generator>
+                        <LastGenOutput>Application.Designer.vb</LastGenOutput>
+                </None>
+        </ItemGroup>
 
 </Project>

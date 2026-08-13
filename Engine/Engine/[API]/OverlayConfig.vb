@@ -56,9 +56,11 @@ Public NotInheritable Class OverlayConfig
 
     Public Class VideoMyPresets
         Public Property name As String = "MY"
-        Public Property low As VideoMyPresetSlot
-        Public Property medium As VideoMyPresetSlot
-        Public Property high As VideoMyPresetSlot
+        ' ✅ m11 FIX: initialize with New so callers don't NRE if they
+        ' access my_presets.low.fps when the JSON didn't include a slot.
+        Public Property low As VideoMyPresetSlot = New VideoMyPresetSlot()
+        Public Property medium As VideoMyPresetSlot = New VideoMyPresetSlot()
+        Public Property high As VideoMyPresetSlot = New VideoMyPresetSlot()
     End Class
 
     Public Class VideoConfig
