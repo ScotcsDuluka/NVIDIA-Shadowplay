@@ -4,7 +4,7 @@
       "id": "msg_001",
       "author": "system",
       "role": "assistant",
-      "text": "ÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
+      "text": "ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
       "timestamp": "2026-08-14T00:00:00Z"
     },
     {
@@ -25,22 +25,29 @@
       "id": "msg_msrxtrg0",
       "author": "user",
       "role": "user",
-      "text": "Ã Â¸ÂÃ Â¸ÂÃ Â¸ÂÃ Â¸Â´Ã Â¸Â¢Ã Â¸Â±Ã Â¸Â",
+      "text": "ÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¸ÃÂÃÂ ÃÂ¸ÃÂ´ÃÂ ÃÂ¸ÃÂ¢ÃÂ ÃÂ¸ÃÂ±ÃÂ ÃÂ¸ÃÂ",
       "timestamp": "2026-08-13T19:55:18.192Z"
     },
     {
       "id": "msg_msrxw0bt",
       "author": "user",
       "role": "user",
-      "text": "à¸¡à¸¶à¸ à¸à¸µà¹à¸ Engine UI à¹à¸«à¸¡à¹à¸«à¸à¹à¸­à¸¢à¹à¸à¹à¸¡à¸±à¹à¸¢",
+      "text": "Ã Â¸Â¡Ã Â¸Â¶Ã Â¸Â Ã Â¸ÂÃ Â¸ÂµÃ Â¹ÂÃ Â¸Â Engine UI Ã Â¹ÂÃ Â¸Â«Ã Â¸Â¡Ã Â¹ÂÃ Â¸Â«Ã Â¸ÂÃ Â¹ÂÃ Â¸Â­Ã Â¸Â¢Ã Â¹ÂÃ Â¸ÂÃ Â¹ÂÃ Â¸Â¡Ã Â¸Â±Ã Â¹ÂÃ Â¸Â¢",
       "timestamp": "2026-08-13T19:57:03.017Z"
     },
     {
       "id": "msg_msrxxggy",
       "author": "user",
       "role": "user",
-      "text": "อะไรวะเนี่ย\n\nÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.\nAI · 14 ส.ค. 07:00\ntest\\\nuser · 14 ส.ค. 02:50\nddsadsa\nuser · 14 ส.ค. 02:53\nÃ Â¸ÂÃ Â¸ÂÃ Â¸ÂÃ Â¸Â´Ã Â¸Â¢Ã Â¸Â±Ã Â¸Â\nuser · 14 ส.ค. 02:55\nà¸¡à¸¶à¸ à¸à¸µà¹à¸ Engine UI à¹à¸«à¸¡à¹à¸«à¸à¹à¸­à¸¢à¹à¸à¹à¸¡à¸±à¹à¸¢",
+      "text": "à¸­à¸°à¹à¸£à¸§à¸°à¹à¸à¸µà¹à¸¢\n\nÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ°ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¢ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¯ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ¸ÃÂÃÂÃÂÃÂÃÂÃÂÃÂÃÂ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.\nAI Â· 14 à¸ª.à¸. 07:00\ntest\\\nuser Â· 14 à¸ª.à¸. 02:50\nddsadsa\nuser Â· 14 à¸ª.à¸. 02:53\nÃ ÃÂ¸ÃÂÃ ÃÂ¸ÃÂÃ ÃÂ¸ÃÂÃ ÃÂ¸ÃÂ´Ã ÃÂ¸ÃÂ¢Ã ÃÂ¸ÃÂ±Ã ÃÂ¸ÃÂ\nuser Â· 14 à¸ª.à¸. 02:55\nÃ Â¸Â¡Ã Â¸Â¶Ã Â¸Â Ã Â¸ÂÃ Â¸ÂµÃ Â¹ÂÃ Â¸Â Engine UI Ã Â¹ÂÃ Â¸Â«Ã Â¸Â¡Ã Â¹ÂÃ Â¸Â«Ã Â¸ÂÃ Â¹ÂÃ Â¸Â­Ã Â¸Â¢Ã Â¹ÂÃ Â¸ÂÃ Â¹ÂÃ Â¸Â¡Ã Â¸Â±Ã Â¹ÂÃ Â¸Â¢",
       "timestamp": "2026-08-13T19:58:10.594Z"
+    },
+    {
+      "id": "msg_msrxyjlq",
+      "author": "user",
+      "role": "user",
+      "text": "ดีไซ Engine UI ใหม่หน่อยได้มั้ย\"",
+      "timestamp": "2026-08-13T19:59:01.310Z"
     }
   ],
   "version": 1
