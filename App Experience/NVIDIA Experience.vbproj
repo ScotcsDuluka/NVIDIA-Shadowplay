@@ -30,7 +30,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="naudio.winforms" Version="2.3.0" />
+	  <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
 	</ItemGroup>
 
 	<ItemGroup>

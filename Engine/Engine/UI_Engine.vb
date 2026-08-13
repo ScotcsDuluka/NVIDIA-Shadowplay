@@ -789,53 +789,53 @@ Partial Public Class UI_Engine
         ' or handle being destroyed), Me.Invoke throws InvalidOperationException
         ' which would propagate out and crash the app.
         SafeInvoke(Sub()
-                      Select Case state
-                          Case CaptureEngine.CaptureState.Idle
-                              lblStatus.Text = "Idle - Hub Client"
-                              lblStatus.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
-                              tmrRecording.Stop()
-                              ' ✅ P2.10: update status panel
-                              lblRecState.Text = "● Idle"
-                              lblRecState.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
+                       Select Case state
+                           Case CaptureEngine.CaptureState.Idle
+                               lblStatus.Text = "Idle - Hub Client"
+                               lblStatus.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
+                               tmrRecording.Stop()
+                               ' ✅ P2.10: update status panel
+                               lblRecState.Text = "● Idle"
+                               lblRecState.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
 
-                          Case CaptureEngine.CaptureState.Recording
-                              lblStatus.Text = "Recording..."
-                              lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-                              lblTimer.ForeColor = Drawing.Color.Red
-                              tmrRecording.Start()
-                              ' ✅ P2.10: update status panel
-                              lblRecState.Text = "● Recording"
-                              lblRecState.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-                              ' Show target bitrate so user can compare with actual.
-                              If _settings IsNot Nothing AndAlso _settings.Bitrate > 0 Then
-                                  lblRecBitrate.Text = $"Target: {(_settings.Bitrate / 1000000.0):F1} Mbps · {_settings.FPS} FPS · p{_settings.NvencPreset}"
-                              End If
+                           Case CaptureEngine.CaptureState.Recording
+                               lblStatus.Text = "Recording..."
+                               lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                               lblTimer.ForeColor = Drawing.Color.Red
+                               tmrRecording.Start()
+                               ' ✅ P2.10: update status panel
+                               lblRecState.Text = "● Recording"
+                               lblRecState.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                               ' Show target bitrate so user can compare with actual.
+                               If _settings IsNot Nothing AndAlso _settings.Bitrate > 0 Then
+                                   lblRecBitrate.Text = $"Target: {(_settings.Bitrate / 1000000.0):F1} Mbps · {_settings.FPS} FPS · p{_settings.NvencPreset}"
+                               End If
 
-                          Case CaptureEngine.CaptureState.Stopping
-                              lblStatus.Text = "Stopping..."
-                              lblStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
-                              tmrRecording.Stop()
-                              ' ✅ P2.10: update status panel
-                              lblRecState.Text = "● Stopping..."
-                              lblRecState.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
+                           Case CaptureEngine.CaptureState.Stopping
+                               lblStatus.Text = "Stopping..."
+                               lblStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
+                               tmrRecording.Stop()
+                               ' ✅ P2.10: update status panel
+                               lblRecState.Text = "● Stopping..."
+                               lblRecState.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
 
-                          Case CaptureEngine.CaptureState.HasError
-                              lblStatus.Text = "Error"
-                              lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
-                              tmrRecording.Stop()
-                              btnRecord.Enabled = True
-                              btnStop.Enabled = False
-                              ' ✅ P2.10: update status panel
-                              lblRecState.Text = "● Error"
-                              lblRecState.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
-                      End Select
-                  End Sub)
+                           Case CaptureEngine.CaptureState.HasError
+                               lblStatus.Text = "Error"
+                               lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
+                               tmrRecording.Stop()
+                               btnRecord.Enabled = True
+                               btnStop.Enabled = False
+                               ' ✅ P2.10: update status panel
+                               lblRecState.Text = "● Error"
+                               lblRecState.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
+                       End Select
+                   End Sub)
     End Sub
 
     Private Sub OnRecordingStarted(filename As String)
         SafeInvoke(Sub()
-                      lblStatus.Text = "Recording: " & Path.GetFileName(filename)
-                  End Sub)
+                       lblStatus.Text = "Recording: " & Path.GetFileName(filename)
+                   End Sub)
     End Sub
 
     Private Sub OnRecordingStopped(filename As String)
@@ -848,13 +848,13 @@ Partial Public Class UI_Engine
         End Try
 
         SafeInvoke(Sub()
-                      tmrRecording.Stop()
-                      lblTimer.Text = "00:00:00"
-                      lblTimer.ForeColor = _accentGreen
-                      btnRecord.Enabled = True
-                      lblStatus.Text = "Saved: " & Path.GetFileName(filename)
-                      lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-                  End Sub)
+                       tmrRecording.Stop()
+                       lblTimer.Text = "00:00:00"
+                       lblTimer.ForeColor = _accentGreen
+                       btnRecord.Enabled = True
+                       lblStatus.Text = "Saved: " & Path.GetFileName(filename)
+                       lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                   End Sub)
     End Sub
 
     Private Sub OnEngineError(message As String)
@@ -867,11 +867,11 @@ Partial Public Class UI_Engine
         End Try
 
         SafeInvoke(Sub()
-                      lblStatus.Text = "Error: " & message
-                      lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
-                      btnRecord.Enabled = True
-                      btnStop.Enabled = False
-                  End Sub)
+                       lblStatus.Text = "Error: " & message
+                       lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
+                       btnRecord.Enabled = True
+                       btnStop.Enabled = False
+                   End Sub)
     End Sub
 
     ''' <summary>
@@ -1070,5 +1070,13 @@ Partial Public Class UI_Engine
             Me.Opacity = 0
             Me.WindowState = FormWindowState.Minimized
         End If
+    End Sub
+
+    Private Sub BT_Back_MouseMove(sender As Object, e As MouseEventArgs) Handles BT_Back.MouseMove
+        BT_Back.BackColor = Color.Green
+    End Sub
+
+    Private Sub BT_Back_MouseLeave(sender As Object, e As EventArgs) Handles BT_Back.MouseLeave
+        BT_Back.BackColor = Color.FromArgb(118, 185, 0)
     End Sub
 End Class

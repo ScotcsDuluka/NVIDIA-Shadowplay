@@ -490,9 +490,6 @@ Partial Class UI_Engine
         pnlOutput.Controls.Add(lblOutTitle)
         pnlOutput.Controls.Add(txtOutputDir)
         pnlOutput.Controls.Add(btnBrowse)
-        ' ✅ C7 FIX: was (47, 479) — same Y as pnlPreset, so pnlOutput
-        ' was rendering on top of pnlPreset and hiding it. Moved down by 220px
-        ' to give pnlPreset room (70px tall) + gap.
         pnlOutput.Location = New Point(47, 699)
         pnlOutput.Name = "pnlOutput"
         pnlOutput.Size = New Size(490, 65)

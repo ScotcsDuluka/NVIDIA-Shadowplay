@@ -282,34 +282,6 @@ Partial Public Class Base
 
 
 
-
-
-    Private Sub Highlight_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        AddHandler HighlightDetector.Instance.HighlightDetected, AddressOf OnHighlightDetected
-        Task.Run(Sub()
-                     Dim count As Integer = HighlightDetector.Instance.LoadTemplates()
-                     Debug.WriteLine("[Highlight] " & count & " templates loaded")
-                 End Sub)
-    End Sub
-
-    ' เมื่อจับเสียงได้
-    Private Sub OnHighlightDetected(templateName As String, timestamp As DateTime)
-        Debug.WriteLine("HIGHLIGHT: " & templateName)
-        ShowNotifier("irOn")
-    End Sub
-
-    ' ปิดแอป
-    Private Sub MainForm_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        HighlightDetector.Instance.Stop()
-    End Sub
-
-
-
-    ' ╔══════════════════════════════════════════════════════════════╗
-    ' ║  ใหม่: แยก "แสดง UI เร็วๆ" กับ "ทำงานหนักทีหลัง"             ║
-    ' ╚══════════════════════════════════════════════════════════════╝
-
-    ' ✅ ใหม่ — UI พร้อมใช้ทันที, network ทีหลัง
     Private _delayTimers As System.Windows.Forms.Timer
     Private _bgInitDone As Boolean = False
 
