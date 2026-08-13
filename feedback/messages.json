@@ -1,0 +1,12 @@
+{
+  "messages": [
+    {
+      "id": "msg_001",
+      "author": "system",
+      "role": "assistant",
+      "text": "👋 Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ⚙️ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
+      "timestamp": "2026-08-14T00:00:00Z"
+    }
+  ],
+  "version": 1
+}

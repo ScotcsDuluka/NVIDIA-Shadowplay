@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ShadowPlay — AI Feedback Chat</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <div class="header-left">
+        <span class="logo">●</span>
+        <h1>ShadowPlay Feedback</h1>
+      </div>
+      <div class="header-right">
+        <span id="status-dot" class="dot dot-off" title="Not connected"></span>
+        <span id="status-text" class="status-text">Loading…</span>
+        <button id="settings-btn" class="icon-btn" title="Settings">⚙️</button>
+      </div>
+    </header>
+
+    <main id="chat" class="chat">
+      <div class="msg msg-system">
+        <div class="bubble">Loading messages…</div>
+      </div>
+    </main>
+
+    <footer class="composer">
+      <textarea id="input" placeholder="Type your message…  (Enter to send, Shift+Enter for newline)" rows="1"></textarea>
+      <button id="send-btn" class="send-btn">Send</button>
+    </footer>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-card">
+      <h2>Settings</h2>
+      <label>
+        GitHub Personal Access Token
+        <input type="password" id="token-input" placeholder="ghp_…" autocomplete="off" />
+      </label>
+      <p class="hint">
+        Token needs <code>repo</code> scope. Create one at
+        <a href="https://github.com/settings/tokens/new?scopes=repo" target="_blank" rel="noopener">github.com/settings/tokens</a>.
+        Stored only in this browser's localStorage.
+      </p>
+      <div class="modal-actions">
+        <button id="settings-cancel" class="btn-secondary">Cancel</button>
+        <button id="settings-save" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
