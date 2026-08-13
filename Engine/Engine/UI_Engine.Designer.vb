@@ -53,6 +53,21 @@ Partial Class UI_Engine
         lblBitTitle = New Label()
         nudBitrate = New NumericUpDown()
         lblBitrateHint = New Label()
+        pnlPreset = New Panel()
+        lblPresetTitle = New Label()
+        lblPresetValue = New Label()
+        lblNvencPreset = New Label()
+        nudReplayDuration = New NumericUpDown()
+        lblReplayTitle = New Label()
+        pnlAudio = New Panel()
+        lblAudioTitle = New Label()
+        chkSysAudio = New CheckBox()
+        chkMic = New CheckBox()
+        lblSysVol = New Label()
+        trkSysVol = New TrackBar()
+        lblMicVol = New Label()
+        trkMicVol = New TrackBar()
+        lblMicDevice = New Label()
         pnlOutput = New Panel()
         lblOutTitle = New Label()
         txtOutputDir = New TextBox()
@@ -62,18 +77,35 @@ Partial Class UI_Engine
         txtFFmpegPath = New TextBox()
         btnFFmpegBrowse = New Button()
         lblFFmpegStatus = New Label()
+        pnlGitHub = New Panel()
+        lblGitHubTitle = New Label()
+        lblGitHubUser = New Label()
+        lblGitHubStatus = New Label()
+        pnlHub = New Panel()
+        lblHubTitle = New Label()
+        lblHubStatus = New Label()
+        lblHubClients = New Label()
+        lblConfigSource = New Label()
         btnRecord = New Button()
         btnStop = New Button()
         lblHotkeys = New Label()
         tmrRecording = New System.Windows.Forms.Timer(components)
+        tmrRefresh = New System.Windows.Forms.Timer(components)
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
         pnlPerf.SuspendLayout()
         CType(nudFPS, ComponentModel.ISupportInitialize).BeginInit()
         CType(nudBitrate, ComponentModel.ISupportInitialize).BeginInit()
+        pnlPreset.SuspendLayout()
+        CType(nudReplayDuration, ComponentModel.ISupportInitialize).BeginInit()
+        pnlAudio.SuspendLayout()
+        CType(trkSysVol, ComponentModel.ISupportInitialize).BeginInit()
+        CType(trkMicVol, ComponentModel.ISupportInitialize).BeginInit()
         pnlOutput.SuspendLayout()
         pnlFFmpeg.SuspendLayout()
+        pnlGitHub.SuspendLayout()
+        pnlHub.SuspendLayout()
         SuspendLayout()
         ' 
         ' lblTitle
@@ -391,16 +423,240 @@ Partial Class UI_Engine
         lblHotkeys.Size = New Size(273, 13)
         lblHotkeys.TabIndex = 11
         lblHotkeys.Text = "Hotkeys: Start=Ctrl+Shift+F9 | Stop=Ctrl+Shift+F10"
-        ' 
+        '
         ' tmrRecording
-        ' 
+        '
         tmrRecording.Interval = 1000
+        '
+        ' tmrRefresh — polls Overlay config files every 2s for changes
+        '
+        tmrRefresh.Interval = 2000
+        '
+        ' pnlPreset — preset/replay info
+        '
+        pnlPreset.BackColor = _bgPanel
+        pnlPreset.Controls.Add(lblPresetTitle)
+        pnlPreset.Controls.Add(lblPresetValue)
+        pnlPreset.Controls.Add(lblNvencPreset)
+        pnlPreset.Controls.Add(lblReplayTitle)
+        pnlPreset.Controls.Add(nudReplayDuration)
+        pnlPreset.Location = New Point(15, 420)
+        pnlPreset.Name = "pnlPreset"
+        pnlPreset.Size = New Size(490, 70)
+        pnlPreset.TabIndex = 11
+        '
+        ' lblPresetTitle
+        '
+        lblPresetTitle.AutoSize = True
+        lblPresetTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        lblPresetTitle.Location = New Point(12, 8)
+        lblPresetTitle.Name = "lblPresetTitle"
+        lblPresetTitle.Size = New Size(44, 15)
+        lblPresetTitle.Text = "Preset"
+        '
+        ' lblPresetValue
+        '
+        lblPresetValue.AutoSize = True
+        lblPresetValue.Font = New Font("Segoe UI", 9F)
+        lblPresetValue.Location = New Point(60, 8)
+        lblPresetValue.Name = "lblPresetValue"
+        lblPresetValue.Size = New Size(60, 15)
+        lblPresetValue.Text = "Maximum"
+        '
+        ' lblNvencPreset
+        '
+        lblNvencPreset.AutoSize = True
+        lblNvencPreset.Font = New Font("Segoe UI", 8F)
+        lblNvencPreset.Location = New Point(200, 9)
+        lblNvencPreset.Name = "lblNvencPreset"
+        lblNvencPreset.Size = New Size(70, 13)
+        lblNvencPreset.Text = "NVENC: p7"
+        '
+        ' lblReplayTitle
+        '
+        lblReplayTitle.AutoSize = True
+        lblReplayTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        lblReplayTitle.Location = New Point(12, 32)
+        lblReplayTitle.Name = "lblReplayTitle"
+        lblReplayTitle.Size = New Size(120, 15)
+        lblReplayTitle.Text = "Replay Duration (s)"
+        '
+        ' nudReplayDuration
+        '
+        nudReplayDuration.BorderStyle = BorderStyle.FixedSingle
+        nudReplayDuration.Location = New Point(140, 30)
+        nudReplayDuration.Maximum = New Decimal(New Integer() {1200, 0, 0, 0})
+        nudReplayDuration.Minimum = New Decimal(New Integer() {15, 0, 0, 0})
+        nudReplayDuration.Name = "nudReplayDuration"
+        nudReplayDuration.Size = New Size(80, 23)
+        nudReplayDuration.Value = New Decimal(New Integer() {60, 0, 0, 0})
+        '
+        ' pnlAudio — audio capture settings
+        '
+        pnlAudio.BackColor = _bgPanel
+        pnlAudio.Controls.Add(lblAudioTitle)
+        pnlAudio.Controls.Add(chkSysAudio)
+        pnlAudio.Controls.Add(chkMic)
+        pnlAudio.Controls.Add(lblSysVol)
+        pnlAudio.Controls.Add(trkSysVol)
+        pnlAudio.Controls.Add(lblMicVol)
+        pnlAudio.Controls.Add(trkMicVol)
+        pnlAudio.Controls.Add(lblMicDevice)
+        pnlAudio.Location = New Point(15, 500)
+        pnlAudio.Name = "pnlAudio"
+        pnlAudio.Size = New Size(490, 105)
+        pnlAudio.TabIndex = 12
+        '
+        ' lblAudioTitle
+        '
+        lblAudioTitle.AutoSize = True
+        lblAudioTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        lblAudioTitle.Location = New Point(12, 8)
+        lblAudioTitle.Name = "lblAudioTitle"
+        lblAudioTitle.Text = "Audio"
+        '
+        ' chkSysAudio
+        '
+        chkSysAudio.AutoSize = True
+        chkSysAudio.Font = New Font("Segoe UI", 9F)
+        chkSysAudio.Location = New Point(12, 32)
+        chkSysAudio.Name = "chkSysAudio"
+        chkSysAudio.Text = "System Audio"
+        '
+        ' chkMic
+        '
+        chkMic.AutoSize = True
+        chkMic.Font = New Font("Segoe UI", 9F)
+        chkMic.Location = New Point(140, 32)
+        chkMic.Name = "chkMic"
+        chkMic.Text = "Microphone"
+        '
+        ' lblSysVol
+        '
+        lblSysVol.AutoSize = True
+        lblSysVol.Font = New Font("Segoe UI", 8F)
+        lblSysVol.Location = New Point(12, 58)
+        lblSysVol.Name = "lblSysVol"
+        lblSysVol.Text = "Sys Vol: 100%"
+        '
+        ' trkSysVol
+        '
+        trkSysVol.Location = New Point(95, 55)
+        trkSysVol.Maximum = 100
+        trkSysVol.Name = "trkSysVol"
+        trkSysVol.Size = New Size(120, 45)
+        trkSysVol.Value = 100
+        '
+        ' lblMicVol
+        '
+        lblMicVol.AutoSize = True
+        lblMicVol.Font = New Font("Segoe UI", 8F)
+        lblMicVol.Location = New Point(240, 58)
+        lblMicVol.Name = "lblMicVol"
+        lblMicVol.Text = "Mic Vol: 100%"
+        '
+        ' trkMicVol
+        '
+        trkMicVol.Location = New Point(325, 55)
+        trkMicVol.Maximum = 100
+        trkMicVol.Name = "trkMicVol"
+        trkMicVol.Size = New Size(120, 45)
+        trkMicVol.Value = 100
+        '
+        ' lblMicDevice
+        '
+        lblMicDevice.AutoSize = True
+        lblMicDevice.Font = New Font("Segoe UI", 8F)
+        lblMicDevice.Location = New Point(12, 85)
+        lblMicDevice.Name = "lblMicDevice"
+        lblMicDevice.Size = New Size(460, 13)
+        lblMicDevice.Text = "Mic: (default)"
+        '
+        ' pnlGitHub
+        '
+        pnlGitHub.BackColor = _bgPanel
+        pnlGitHub.Controls.Add(lblGitHubTitle)
+        pnlGitHub.Controls.Add(lblGitHubUser)
+        pnlGitHub.Controls.Add(lblGitHubStatus)
+        pnlGitHub.Location = New Point(15, 615)
+        pnlGitHub.Name = "pnlGitHub"
+        pnlGitHub.Size = New Size(490, 50)
+        pnlGitHub.TabIndex = 13
+        '
+        ' lblGitHubTitle
+        '
+        lblGitHubTitle.AutoSize = True
+        lblGitHubTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        lblGitHubTitle.Location = New Point(12, 8)
+        lblGitHubTitle.Name = "lblGitHubTitle"
+        lblGitHubTitle.Text = "GitHub:"
+        '
+        ' lblGitHubUser
+        '
+        lblGitHubUser.AutoSize = True
+        lblGitHubUser.Font = New Font("Segoe UI", 9F)
+        lblGitHubUser.Location = New Point(70, 8)
+        lblGitHubUser.Name = "lblGitHubUser"
+        lblGitHubUser.Text = "(not loaded)"
+        '
+        ' lblGitHubStatus
+        '
+        lblGitHubStatus.AutoSize = True
+        lblGitHubStatus.Font = New Font("Segoe UI", 8F)
+        lblGitHubStatus.Location = New Point(12, 28)
+        lblGitHubStatus.Name = "lblGitHubStatus"
+        lblGitHubStatus.Text = "Status: not logged in"
+        '
+        ' pnlHub
+        '
+        pnlHub.BackColor = _bgPanel
+        pnlHub.Controls.Add(lblHubTitle)
+        pnlHub.Controls.Add(lblHubStatus)
+        pnlHub.Controls.Add(lblHubClients)
+        pnlHub.Location = New Point(15, 675)
+        pnlHub.Name = "pnlHub"
+        pnlHub.Size = New Size(490, 50)
+        pnlHub.TabIndex = 14
+        '
+        ' lblHubTitle
+        '
+        lblHubTitle.AutoSize = True
+        lblHubTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        lblHubTitle.Location = New Point(12, 8)
+        lblHubTitle.Name = "lblHubTitle"
+        lblHubTitle.Text = "Hub:"
+        '
+        ' lblHubStatus
+        '
+        lblHubStatus.AutoSize = True
+        lblHubStatus.Font = New Font("Segoe UI", 9F)
+        lblHubStatus.Location = New Point(50, 8)
+        lblHubStatus.Name = "lblHubStatus"
+        lblHubStatus.Text = "disconnected"
+        '
+        ' lblHubClients
+        '
+        lblHubClients.AutoSize = True
+        lblHubClients.Font = New Font("Segoe UI", 8F)
+        lblHubClients.Location = New Point(12, 28)
+        lblHubClients.Name = "lblHubClients"
+        lblHubClients.Text = "Clients: 0"
+        '
+        ' lblConfigSource
+        '
+        lblConfigSource.AutoSize = True
+        lblConfigSource.Font = New Font("Segoe UI", 7F)
+        lblConfigSource.ForeColor = _fgDim
+        lblConfigSource.Location = New Point(15, 730)
+        lblConfigSource.Name = "lblConfigSource"
+        lblConfigSource.Size = New Size(490, 13)
+        lblConfigSource.Text = "Config: (searching...)"
         ' 
         ' UI_Engine
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(520, 680)
+        ClientSize = New Size(520, 850)
         Controls.Add(lblTitle)
         Controls.Add(lblStatus)
         Controls.Add(lblTimer)
@@ -408,8 +664,13 @@ Partial Class UI_Engine
         Controls.Add(pnlEncoder)
         Controls.Add(pnlRes)
         Controls.Add(pnlPerf)
+        Controls.Add(pnlPreset)
+        Controls.Add(pnlAudio)
         Controls.Add(pnlOutput)
         Controls.Add(pnlFFmpeg)
+        Controls.Add(pnlGitHub)
+        Controls.Add(pnlHub)
+        Controls.Add(lblConfigSource)
         Controls.Add(btnRecord)
         Controls.Add(btnStop)
         Controls.Add(lblHotkeys)
@@ -430,10 +691,21 @@ Partial Class UI_Engine
         pnlPerf.PerformLayout()
         CType(nudFPS, ComponentModel.ISupportInitialize).EndInit()
         CType(nudBitrate, ComponentModel.ISupportInitialize).EndInit()
+        pnlPreset.ResumeLayout(False)
+        pnlPreset.PerformLayout()
+        CType(nudReplayDuration, ComponentModel.ISupportInitialize).EndInit()
+        pnlAudio.ResumeLayout(False)
+        pnlAudio.PerformLayout()
+        CType(trkSysVol, ComponentModel.ISupportInitialize).EndInit()
+        CType(trkMicVol, ComponentModel.ISupportInitialize).EndInit()
         pnlOutput.ResumeLayout(False)
         pnlOutput.PerformLayout()
         pnlFFmpeg.ResumeLayout(False)
         pnlFFmpeg.PerformLayout()
+        pnlGitHub.ResumeLayout(False)
+        pnlGitHub.PerformLayout()
+        pnlHub.ResumeLayout(False)
+        pnlHub.PerformLayout()
         ResumeLayout(False)
         PerformLayout()
     End Sub
@@ -472,5 +744,36 @@ Partial Class UI_Engine
     Friend WithEvents lblOutTitle As Label
     Friend WithEvents pnlFFmpeg As Panel
     Friend WithEvents lblFfmpegTitle As Label
+
+    ' ✅ P2: new controls for full Overlay config display
+    Friend WithEvents pnlPreset As Panel
+    Friend WithEvents lblPresetTitle As Label
+    Friend WithEvents lblPresetValue As Label
+    Friend WithEvents lblNvencPreset As Label
+    Friend WithEvents lblReplayTitle As Label
+    Friend WithEvents nudReplayDuration As NumericUpDown
+
+    Friend WithEvents pnlAudio As Panel
+    Friend WithEvents lblAudioTitle As Label
+    Friend WithEvents chkSysAudio As CheckBox
+    Friend WithEvents chkMic As CheckBox
+    Friend WithEvents lblSysVol As Label
+    Friend WithEvents trkSysVol As TrackBar
+    Friend WithEvents lblMicVol As Label
+    Friend WithEvents trkMicVol As TrackBar
+    Friend WithEvents lblMicDevice As Label
+
+    Friend WithEvents pnlGitHub As Panel
+    Friend WithEvents lblGitHubTitle As Label
+    Friend WithEvents lblGitHubUser As Label
+    Friend WithEvents lblGitHubStatus As Label
+
+    Friend WithEvents pnlHub As Panel
+    Friend WithEvents lblHubTitle As Label
+    Friend WithEvents lblHubStatus As Label
+    Friend WithEvents lblHubClients As Label
+
+    Friend WithEvents lblConfigSource As Label
+    Friend WithEvents tmrRefresh As System.Windows.Forms.Timer
 
 End Class

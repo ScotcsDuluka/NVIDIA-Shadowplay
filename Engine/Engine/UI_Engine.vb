@@ -1,6 +1,10 @@
 ' UI_Engine.vb
 ' ShadowPlay Engine - Main Form Logic
 ' TCP Hub Client Mode — เชื่อม API Hub (port 5000) รับ engine_* commands
+'
+' ✅ P2: Engine UI ตอนนี้อ่านค่าจาก config.json + video.json ของ Overlay
+' (source of truth) แสดงผลแบบ read-only และ refresh ทุก 2 วินาที
+' ถ้า Overlay เปลี่ยนค่า → Engine UI จะอัปเดทตาม
 
 Imports System.IO
 Imports System.Windows.Forms
@@ -17,6 +21,12 @@ Public Class UI_Engine
     Private _configPath As String
     Private _isLoaded As Boolean = False
 
+    ' ✅ P2: cache last-loaded Overlay config so we can detect changes
+    Private _overlayConfig As OverlayConfig.AppConfig
+    Private _overlayVideo As OverlayConfig.VideoConfig
+    Private _lastConfigWrite As DateTime = DateTime.MinValue
+    Private _lastVideoWrite As DateTime = DateTime.MinValue
+
     ' ── TCP Hub Client (เชื่อม Hub port 5000) ──────────────────
 
     Private _hubClient As EngineHubClient
@@ -25,6 +35,13 @@ Public Class UI_Engine
 
     Private Sub UI_Engine_Load(sender As Object, e As EventArgs) Handles Me.Load
         _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "shadowplay-config.json")
+
+        ' ✅ P2: locate Overlay's config.json + video.json first.
+        ' lblConfigSource will show where they were found.
+        RefreshOverlayConfigUI()
+        lblConfigSource.Text = "Config: " & If(OverlayConfig.IsAvailable,
+                                               OverlayConfig.ConfigPath,
+                                               "(not found — using Engine defaults)")
 
         LoadSettings()
         InitializeEngine()
@@ -42,6 +59,10 @@ Public Class UI_Engine
         AddHandler tmrRecording.Tick, AddressOf OnTimerTick
         AddHandler cboEncoder.SelectedIndexChanged, AddressOf OnEncoderChanged
         AddHandler cboCaptureMethod.SelectedIndexChanged, AddressOf OnCaptureMethodChanged
+
+        ' ✅ P2: refresh Overlay config every 2s to detect changes
+        AddHandler tmrRefresh.Tick, AddressOf OnRefreshTick
+        tmrRefresh.Start()
 
         _isLoaded = True
     End Sub
@@ -109,6 +130,192 @@ Public Class UI_Engine
         DebugLog(message)
     End Sub
 
+    ' ═══════════════════════════════════════════════════════════════════════
+    ' ✅ P2: Overlay config synchronization
+    ' ═══════════════════════════════════════════════════════════════════════
+
+    ''' <summary>
+    ''' Refresh the UI from Overlay's config.json + video.json.
+    ''' Called on Form Load and every 2s by tmrRefresh.
+    ''' </summary>
+    Private Sub RefreshOverlayConfigUI()
+        Try
+            ' Re-resolve path in case Overlay just started after Engine
+            If Not OverlayConfig.IsAvailable Then
+                OverlayConfig.ResetResolvedPath()
+            End If
+
+            _overlayConfig = OverlayConfig.LoadConfig()
+            _overlayVideo = OverlayConfig.LoadVideoConfig()
+
+            ' ─── video.json → UI ───
+            If _overlayVideo IsNot Nothing Then
+                ' Encoder (display label)
+                lblPresetValue.Text = If(_overlayVideo.active_preset, "(none)")
+                lblNvencPreset.Text = "NVENC: " & OverlayConfig.MapNvencPreset(_overlayVideo.current.encoder_preset)
+
+                ' FPS / Bitrate (read-only mirror)
+                If _overlayVideo.current.fps > 0 AndAlso _overlayVideo.current.fps <= 240 Then
+                    nudFPS.Value = _overlayVideo.current.fps
+                End If
+                If _overlayVideo.current.bitrate > 0 AndAlso _overlayVideo.current.bitrate <= 200000 Then
+                    nudBitrate.Value = _overlayVideo.current.bitrate / 1000  ' kbps → Mbps
+                End If
+
+                ' Resolution
+                chkNativeRes.Checked = _overlayVideo.current.use_native_resolution
+                cboResolution.Enabled = Not _overlayVideo.current.use_native_resolution
+                If Not _overlayVideo.current.use_native_resolution AndAlso _overlayVideo.current.width > 0 Then
+                    lblNvencPreset.Text &= $" | {_overlayVideo.current.width}x{_overlayVideo.current.height}"
+                End If
+
+                ' Replay duration
+                If _overlayVideo.replay_duration >= 15 AndAlso _overlayVideo.replay_duration <= 1200 Then
+                    nudReplayDuration.Value = _overlayVideo.replay_duration
+                End If
+
+                ' Audio
+                chkSysAudio.Checked = _overlayVideo.audio.system_enabled
+                chkMic.Checked = _overlayVideo.audio.mic_enabled
+                trkSysVol.Value = CInt(Math.Max(0, Math.Min(100, _overlayVideo.audio.system_volume * 100)))
+                trkMicVol.Value = CInt(Math.Max(0, Math.Min(100, _overlayVideo.audio.mic_volume * 100)))
+                lblSysVol.Text = "Sys Vol: " & trkSysVol.Value & "%"
+                lblMicVol.Text = "Mic Vol: " & trkMicVol.Value & "%"
+                If Not String.IsNullOrEmpty(_overlayVideo.audio.mic_device) Then
+                    lblMicDevice.Text = "Mic: " & _overlayVideo.audio.mic_device
+                Else
+                    lblMicDevice.Text = "Mic: (default)"
+                End If
+
+                ' Encoder dropdown
+                UpdateEncoderDropdownFromOverlay(_overlayVideo.encoder)
+            End If
+
+            ' ─── config.json → UI ───
+            If _overlayConfig IsNot Nothing Then
+                ' Output directory
+                Dim galleryPath As String = _overlayConfig.Paths.GalleryPath
+                If String.IsNullOrEmpty(galleryPath) Then galleryPath = _overlayConfig.Paths.SavePath
+                txtOutputDir.Text = If(String.IsNullOrEmpty(galleryPath), "(not set)", galleryPath)
+
+                ' FFmpeg path
+                txtFFmpegPath.Text = If(_overlayConfig.Paths.FFmpegPath, "(not set)")
+                ValidateFFmpegPath()
+
+                ' GitHub user
+                If _overlayConfig.GitHubUser.IsLoggedIn AndAlso Not String.IsNullOrEmpty(_overlayConfig.GitHubUser.Username) Then
+                    lblGitHubUser.Text = _overlayConfig.GitHubUser.Username
+                    lblGitHubStatus.Text = "Status: logged in"
+                    lblGitHubStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                Else
+                    lblGitHubUser.Text = "(not logged in)"
+                    lblGitHubStatus.Text = "Status: not logged in"
+                    lblGitHubStatus.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
+                End If
+            End If
+
+            ' Config source label
+            lblConfigSource.Text = "Config: " & If(OverlayConfig.IsAvailable,
+                                                   OverlayConfig.ConfigPath,
+                                                   "(not found)")
+
+        Catch ex As Exception
+            DebugLog("RefreshOverlayConfigUI error: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Update the encoder dropdown to reflect the Overlay-selected encoder.
+    ''' Called from RefreshOverlayConfigUI.
+    ''' </summary>
+    Private Sub UpdateEncoderDropdownFromOverlay(overlayEncoder As String)
+        If String.IsNullOrEmpty(overlayEncoder) Then Return
+        Dim ffmpegEncoder As String = OverlayConfig.MapEncoderToFfmpeg(overlayEncoder)
+        ' Find the dropdown item that starts with this encoder id
+        For i As Integer = 0 To cboEncoder.Items.Count - 1
+            Dim item As String = cboEncoder.Items(i).ToString()
+            If item.IndexOf(ffmpegEncoder, StringComparison.OrdinalIgnoreCase) >= 0 Then
+                If cboEncoder.SelectedIndex <> i Then
+                    cboEncoder.SelectedIndex = i
+                End If
+                Exit For
+            End If
+        Next
+    End Sub
+
+    ''' <summary>
+    ''' Timer tick: check if Overlay's config files changed on disk.
+    ''' Uses LastWriteTime to avoid re-reading + re-parsing on every tick.
+    ''' </summary>
+    Private Sub OnRefreshTick(sender As Object, e As EventArgs)
+        Try
+            Dim configChanged As Boolean = False
+            Dim videoChanged As Boolean = False
+
+            Dim configPath As String = OverlayConfig.ConfigPath
+            Dim videoPath As String = OverlayConfig.VideoConfigPath
+
+            If configPath.Length > 0 AndAlso File.Exists(configPath) Then
+                Dim wt As DateTime = File.GetLastWriteTime(configPath)
+                If wt <> _lastConfigWrite Then
+                    _lastConfigWrite = wt
+                    configChanged = True
+                End If
+            End If
+
+            If videoPath.Length > 0 AndAlso File.Exists(videoPath) Then
+                Dim wt As DateTime = File.GetLastWriteTime(videoPath)
+                If wt <> _lastVideoWrite Then
+                    _lastVideoWrite = wt
+                    videoChanged = True
+                End If
+            End If
+
+            ' If config was not found before, retry path resolution every tick
+            If Not OverlayConfig.IsAvailable Then
+                OverlayConfig.ResetResolvedPath()
+                If OverlayConfig.IsAvailable Then
+                    configChanged = True
+                    videoChanged = True
+                End If
+            End If
+
+            If configChanged OrElse videoChanged Then
+                DebugLog($"[Engine] Overlay config changed (config={configChanged}, video={videoChanged}) → refreshing UI")
+                RefreshOverlayConfigUI()
+            End If
+
+            ' Update Hub status panel
+            UpdateHubStatusUI()
+        Catch ex As Exception
+            ' Don't let timer exceptions crash the form
+            DebugLog("OnRefreshTick error: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Update the Hub status panel from the EngineHubClient.
+    ''' </summary>
+    Private Sub UpdateHubStatusUI()
+        If _hubClient Is Nothing Then
+            lblHubStatus.Text = "not started"
+            lblHubClients.Text = "Clients: 0"
+            Return
+        End If
+
+        If _hubClient.IsConnected Then
+            lblHubStatus.Text = "connected (port 5000)"
+            lblHubStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+        Else
+            lblHubStatus.Text = "disconnected — reconnecting..."
+            lblHubStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
+        End If
+
+        ' Client count isn't directly available to Engine; we only know
+        ' we're connected. Show 1 (us) if connected.
+        lblHubClients.Text = "Engine: " & If(_hubClient.IsConnected, "online", "offline")
+    End Sub
+
     ''' <summary>
     ''' รับ engine_* commands จาก Hub แล้ว execute
     ''' ✅ P1: made Async so a slow StopRecordingAsync (up to 10s) doesn't block
@@ -138,6 +345,8 @@ Public Class UI_Engine
                     HandleEngineSetEncoder(e.Value, e.RequestId)
                 Case "engine_prewarm_ffmpeg"
                     HandleEnginePrewarmFFmpeg(e.Value)
+                Case "engine_config_changed"
+                    HandleEngineConfigChanged(e.Value)
                 Case Else
                     _hubClient.SendResponse(e.Command, "error", "unknown_command", e.RequestId)
             End Select
@@ -302,6 +511,25 @@ Public Class UI_Engine
             End If
         Catch ex As Exception
             DebugLog($"[Engine] PREWARM_FFMPEG error: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' ✅ P2: Overlay broadcast engine_config_changed after saving video.json
+    ''' or config.json. Engine reloads its UI from the files immediately.
+    ''' value = "video" | "config" | "" (empty = reload both)
+    ''' </summary>
+    Private Sub HandleEngineConfigChanged(scope As String)
+        Try
+            DebugLog($"[Engine] engine_config_changed received (scope={scope})")
+            ' Force path re-resolution in case Overlay moved files
+            OverlayConfig.ResetResolvedPath()
+            ' Reload on UI thread
+            Me.Invoke(Sub()
+                          RefreshOverlayConfigUI()
+                      End Sub)
+        Catch ex As Exception
+            DebugLog($"[Engine] engine_config_changed error: {ex.Message}")
         End Try
     End Sub
 

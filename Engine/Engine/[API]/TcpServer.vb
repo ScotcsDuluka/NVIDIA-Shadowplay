@@ -354,6 +354,15 @@ Public Class EngineHubClient
                 Return
             End If
 
+            ' ✅ P2: handle engine_config_changed broadcast from Overlay.
+            ' Overlay sends this after SaveVideoSettings() so the Engine can
+            ' refresh its UI immediately instead of waiting up to 2s for the
+            ' file-poll timer. value = "video" or "config" or "".
+            If cmd = "engine_config_changed" Then
+                RaiseEvent OnCommandReceived(Me, New CommandEventArgs("engine_config_changed", value))
+                Return
+            End If
+
             ' ฟิลเตอร์เฉพาะ engine_ commands (และ alias เก่า)
             ' ✅ P1.5: accept legacy RECORD_START/STOP/REPLAY_* commands that
             ' Overlay's Sub_Record.vb still sends. Old behavior filtered them

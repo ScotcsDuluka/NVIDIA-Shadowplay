@@ -824,6 +824,17 @@ Public Class AppSettings
             Debug.WriteLine($"  Encoder: {video.Encoder}, ActivePreset: {video.ActivePreset}")
             Debug.WriteLine($"  FPS: {video.Current.FPS}, Bitrate: {video.Current.Bitrate}")
 
+            ' ✅ P2: broadcast engine_config_changed so the Engine can reload
+            ' its UI immediately (instead of waiting up to 2s for the file poll).
+            ' Engine's tmrRefresh will also pick this up via LastWriteTime change.
+            Try
+                If Base.tcp IsNot Nothing Then
+                    Base.tcp.Send("engine_config_changed", "video")
+                End If
+            Catch ex As Exception
+                Debug.WriteLine("SaveVideoSettings: broadcast failed: " & ex.Message)
+            End Try
+
         Catch ex As Exception
             Debug.WriteLine("AppSettings.SaveVideoSettings Error: " & ex.Message)
         End Try
