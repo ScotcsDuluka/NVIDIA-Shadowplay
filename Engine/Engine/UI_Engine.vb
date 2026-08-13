@@ -381,6 +381,7 @@ Partial Public Class UI_Engine
             AddHandler _captureEngine.RecordingStarted, AddressOf OnRecordingStarted
             AddHandler _captureEngine.RecordingStopped, AddressOf OnRecordingStopped
             AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
+            AddHandler _captureEngine.ProgressUpdated, AddressOf OnEngineProgress
 
             DebugLog($"[Engine] starting CaptureEngine with override path: {value}")
             Dim ok As Boolean = Await _captureEngine.StartRecordingAsync(value)
@@ -626,6 +627,7 @@ Partial Public Class UI_Engine
         AddHandler _captureEngine.RecordingStarted, AddressOf OnRecordingStarted
         AddHandler _captureEngine.RecordingStopped, AddressOf OnRecordingStopped
         AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
+        AddHandler _captureEngine.ProgressUpdated, AddressOf OnEngineProgress
     End Sub
 
     ' ── Detect Encoders ────────────────────────────────────────
@@ -772,6 +774,17 @@ Partial Public Class UI_Engine
     ' ── Engine Events ────────────────────────────────────────────
 
     Private Sub OnEngineStateChanged(state As CaptureEngine.CaptureState)
+        ' ✅ P2.9: broadcast state change to Overlay so its UI stays in sync.
+        ' Format: engine_state_changed:<state_name>
+        ' Overlay uses this to reconcile its _isRecordingLocal flag.
+        Dim stateName As String = state.ToString()
+        Try
+            If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                tcp.Send("engine_state_changed", stateName)
+            End If
+        Catch
+        End Try
+
         Me.Invoke(Sub()
                       Select Case state
                           Case CaptureEngine.CaptureState.Idle
@@ -807,6 +820,14 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub OnRecordingStopped(filename As String)
+        ' ✅ P2.9: broadcast saved file path to Overlay.
+        Try
+            If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                tcp.Send("engine_recording_saved", filename)
+            End If
+        Catch
+        End Try
+
         Me.Invoke(Sub()
                       tmrRecording.Stop()
                       lblTimer.Text = "00:00:00"
@@ -818,6 +839,14 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub OnEngineError(message As String)
+        ' ✅ P2.9: broadcast error to Overlay so it can show a toast.
+        Try
+            If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                tcp.Send("engine_recording_error", message)
+            End If
+        Catch
+        End Try
+
         Me.Invoke(Sub()
                       lblStatus.Text = "Error: " & message
                       lblStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
@@ -838,6 +867,29 @@ Partial Public Class UI_Engine
         If _captureEngine IsNot Nothing Then
             lblTimer.Text = _captureEngine.RecordingDuration.ToString("hh\:mm\:ss")
         End If
+    End Sub
+
+    ' ✅ P2.9: progress event from CaptureEngine — fired every FFmpeg stderr
+    ' progress line (~1/sec at 60fps). Broadcast to Overlay so it can show
+    ' real-time timer + file size in its UI.
+    ' Format: engine_recording_progress:<duration_sec>|<frames>|<size_bytes>
+    Private Sub OnEngineProgress(frames As Long, duration As TimeSpan, sizeBytes As Long)
+        Try
+            ' Update local UI timer (Engine UI's lblTimer).
+            If Me.IsHandleCreated AndAlso Not Me.IsDisposed Then
+                Me.BeginInvoke(Sub()
+                                   lblTimer.Text = duration.ToString("hh\:mm\:ss")
+                               End Sub)
+            End If
+
+            ' Broadcast to Overlay.
+            If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                Dim sec As Integer = CInt(Math.Floor(duration.TotalSeconds))
+                Dim value As String = $"{sec}|{frames}|{sizeBytes}"
+                tcp.Send("engine_recording_progress", value)
+            End If
+        Catch
+        End Try
     End Sub
 
     ' ── UI Change Handlers ─────────────────────────────────────

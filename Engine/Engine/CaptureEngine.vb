@@ -44,6 +44,11 @@ Public Class CaptureEngine
     Public Event ErrorOccurred As Action(Of String)
     Public Event FrameCaptured As Action(Of Long)
 
+    ' ✅ P2.9: new event for progress reporting (frame + duration + file size).
+    ' Fired on every FFmpeg stderr progress line (typically 1/sec at 60fps).
+    ' UI_Engine listens and broadcasts to Overlay via TCP.
+    Public Event ProgressUpdated As Action(Of Long, TimeSpan, Long)
+
     ' ── Enums ──────────────────────────────────────────────────
     ' NOTE: 'Error' is a VB.NET reserved keyword - using 'HasError' instead
 
@@ -522,6 +527,58 @@ Public Class CaptureEngine
                     Dim frameNum As Long = 0
                     If Long.TryParse(frameStr, frameNum) Then
                         RaiseEvent FrameCaptured(frameNum)
+
+                        ' ✅ P2.9: also parse "time=00:00:42.50" and "size=    8420KiB"
+                        ' and fire ProgressUpdated. Overlay uses this to show real-time
+                        ' recording timer + file size in its UI.
+                        Dim duration As TimeSpan = TimeSpan.Zero
+                        Dim sizeBytes As Long = 0
+
+                        ' Parse time=HH:MM:SS.mmm
+                        Dim timeIdx As Integer = e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase)
+                        If timeIdx >= 0 Then
+                            Dim timeStr As String = e.Data.Substring(timeIdx + 5).TrimStart()
+                            Dim timeEnd As Integer = timeStr.IndexOf(" "c)
+                            If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
+                            Dim parsed As TimeSpan
+                            If TimeSpan.TryParse(timeStr, parsed) Then
+                                duration = parsed
+                            End If
+                        End If
+
+                        ' Parse size=NNNNKiB or NNNNMiB
+                        Dim sizeIdx As Integer = e.Data.IndexOf("size=", StringComparison.OrdinalIgnoreCase)
+                        If sizeIdx >= 0 Then
+                            Dim sizeStr As String = e.Data.Substring(sizeIdx + 5).TrimStart()
+                            Dim sizeEnd As Integer = sizeStr.IndexOf(" "c)
+                            If sizeEnd > 0 Then sizeStr = sizeStr.Substring(0, sizeEnd)
+                            ' Strip trailing unit (kB, KiB, MB, MiB, etc.)
+                            Dim unitStart As Integer = -1
+                            For i As Integer = 0 To sizeStr.Length - 1
+                                If Not (Char.IsDigit(sizeStr(i)) OrElse sizeStr(i) = "."c) Then
+                                    unitStart = i
+                                    Exit For
+                                End If
+                            Next
+                            Dim numStr As String = If(unitStart >= 0, sizeStr.Substring(0, unitStart), sizeStr)
+                            Dim unitStr As String = If(unitStart >= 0, sizeStr.Substring(unitStart).Trim(), "")
+                            Dim sizeNum As Double = 0
+                            If Double.TryParse(numStr, sizeNum) Then
+                                Select Case unitStr.ToUpperInvariant()
+                                    Case "B" : sizeBytes = CLng(sizeNum)
+                                    Case "KB", "KIB" : sizeBytes = CLng(sizeNum * 1024)
+                                    Case "MB", "MIB" : sizeBytes = CLng(sizeNum * 1024 * 1024)
+                                    Case "GB", "GIB" : sizeBytes = CLng(sizeNum * 1024 * 1024 * 1024)
+                                End Select
+                            End If
+                        End If
+
+                        ' Fallback: use stopwatch if FFmpeg's time= is missing.
+                        If duration = TimeSpan.Zero AndAlso _stopwatch IsNot Nothing AndAlso _stopwatch.IsRunning Then
+                            duration = _stopwatch.Elapsed
+                        End If
+
+                        RaiseEvent ProgressUpdated(frameNum, duration, sizeBytes)
                     End If
                 End If
             Catch

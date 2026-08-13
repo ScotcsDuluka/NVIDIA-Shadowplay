@@ -89,10 +89,131 @@ Public Class Base
                 Debug.WriteLine($"[Overlay] engine_response: {value}")
                 HandleEngineResponse(value)
 
+            Case "engine_state_changed"
+                ' ✅ P2.9: Engine reported state change. Reconcile Overlay's
+                ' local state with Engine's actual state.
+                ' value = "Idle" | "Recording" | "Stopping" | "HasError"
+                Debug.WriteLine($"[Overlay] engine_state_changed: {value}")
+                HandleEngineStateChanged(value)
+
+            Case "engine_recording_progress"
+                ' ✅ P2.9: real-time progress from Engine.
+                ' value = "<sec>|<frames>|<size_bytes>"
+                Debug.WriteLine($"[Overlay] engine_recording_progress: {value}")
+                HandleEngineProgress(value)
+
+            Case "engine_recording_saved"
+                ' ✅ P2.9: Engine finished saving the file.
+                ' value = full path to MP4
+                Debug.WriteLine($"[Overlay] engine_recording_saved: {value}")
+                HandleEngineRecordingSaved(value)
+
+            Case "engine_recording_error"
+                ' ✅ P2.9: Engine reported an error during recording.
+                Debug.WriteLine($"[Overlay] engine_recording_error: {value}")
+                HandleEngineRecordingError(value)
+
             Case Else
                 Debug.WriteLine("Unknown: " & cmd)
 
         End Select
+    End Sub
+
+    ' ═══════════════════════════════════════════════════════════════════════
+    ' ✅ P2.9: State sync handlers — reconcile Overlay's UI with Engine state
+    ' ═══════════════════════════════════════════════════════════════════════
+
+    ''' <summary>
+    ''' Engine state changed (Idle/Recording/Stopping/HasError).
+    ''' Reconcile _isRecordingLocal so Overlay's UI matches Engine reality.
+    ''' </summary>
+    Private Sub HandleEngineStateChanged(stateName As String)
+        Try
+            Select Case stateName
+                Case "Recording"
+                    If Not _isRecordingLocal Then
+                        _isRecordingLocal = True
+                        RecordValue = True
+                        Debug.WriteLine("[Overlay] reconcile: state=Recording → _isRecordingLocal=True")
+                    End If
+                Case "Idle", "Stopping", "HasError"
+                    If _isRecordingLocal AndAlso stateName <> "Stopping" Then
+                        _isRecordingLocal = False
+                        RecordValue = False
+                        Debug.WriteLine($"[Overlay] reconcile: state={stateName} → _isRecordingLocal=False")
+                    End If
+            End Select
+        Catch ex As Exception
+            Debug.WriteLine($"[Overlay] HandleEngineStateChanged error: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Real-time recording progress (1/sec).
+    ''' value = "sec|frames|size_bytes"
+    ''' </summary>
+    Private Sub HandleEngineProgress(value As String)
+        Try
+            Dim parts As String() = value.Split("|"c)
+            If parts.Length < 3 Then Return
+
+            Dim sec As Integer
+            Dim frames As Long
+            Dim sizeBytes As Long
+            If Not Integer.TryParse(parts(0), sec) Then Return
+            If Not Long.TryParse(parts(1), frames) Then Return
+            If Not Long.TryParse(parts(2), sizeBytes) Then Return
+
+            ' Update Overlay's RecordValue (used by SystemMonitor + UI).
+            ' Convert to friendly units.
+            Dim sizeStr As String
+            If sizeBytes >= 1024 * 1024 * 1024 Then
+                sizeStr = (sizeBytes / (1024.0 * 1024 * 1024)).ToString("F2") & " GB"
+            ElseIf sizeBytes >= 1024 * 1024 Then
+                sizeStr = (sizeBytes / (1024.0 * 1024)).ToString("F1") & " MB"
+            ElseIf sizeBytes >= 1024 Then
+                sizeStr = (sizeBytes / 1024.0).ToString("F0") & " KB"
+            Else
+                sizeStr = sizeBytes & " B"
+            End If
+
+            Debug.WriteLine($"[Overlay] progress: {sec}s, {frames} frames, {sizeStr}")
+            ' TODO: UI designers can wire this to a label in the recording panel.
+            ' Example: lblRecordingSize.Text = sizeStr
+            '          lblRecordingTimer.Text = TimeSpan.FromSeconds(sec).ToString("hh\:mm\:ss")
+        Catch ex As Exception
+            Debug.WriteLine($"[Overlay] HandleEngineProgress error: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Engine saved the file successfully. Show toast + clear local state.
+    ''' </summary>
+    Private Sub HandleEngineRecordingSaved(filePath As String)
+        Try
+            _isRecordingLocal = False
+            RecordValue = False
+            ' ShowNotifier already called by Sub_Record.vb's ToggleRecording
+            ' when Stop was pressed, but if Engine saved on its own (e.g.
+            ' auto-stop on error recovery), we need to update UI.
+            Debug.WriteLine($"[Overlay] recording saved: {filePath}")
+        Catch ex As Exception
+            Debug.WriteLine($"[Overlay] HandleEngineRecordingSaved error: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Engine reported an error. Revert local state + show error toast.
+    ''' </summary>
+    Private Sub HandleEngineRecordingError(message As String)
+        Try
+            _isRecordingLocal = False
+            RecordValue = False
+            ShowNotifier("recording_error")
+            Debug.WriteLine($"[Overlay] recording error: {message}")
+        Catch ex As Exception
+            Debug.WriteLine($"[Overlay] HandleEngineRecordingError error: {ex.Message}")
+        End Try
     End Sub
 
     ''' <summary>
