@@ -298,9 +298,15 @@ Partial Public Class UI_Engine
         Try
             DebugLog($"[Engine] HandleEngineRecordStart: path={value}, reqId={If(reqId, "(none)")}")
 
-            ' โหลด config ใหม่จาก json ทุกครั้งก่อน record
-            _settings = CaptureSettings.Load(_configPath)
-            DebugLog($"[Engine] config loaded: FFmpegPath={If(_settings.FFmpegPath, "(empty)")}, Encoder={If(_settings.Encoder, "(empty)")}, CaptureMethod={_settings.CaptureMethod}")
+            ' ✅ P2.6: load settings from Overlay's config.json + video.json
+            ' (source of truth). Old code loaded from Engine's shadowplay-config.json
+            ' which drifted out of sync with Overlay → wrong encoder/fps/bitrate.
+            ' Now we merge Overlay's video.json into CaptureSettings so the
+            ' recording uses exactly what the user picked in Overlay's UI.
+            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+            SyncWithOverlayConfig(s)
+            _settings = s
+            DebugLog($"[Engine] config loaded (synced with Overlay): FFmpegPath={If(_settings.FFmpegPath, "(empty)")}, Encoder={If(_settings.Encoder, "(empty)")}, CaptureMethod={_settings.CaptureMethod}, FPS={_settings.FPS}, Bitrate={_settings.Bitrate}")
 
             ' ✅ P1.6: if FFmpegPath is empty or doesn't exist, respond with
             ' a clear error immediately. Old code let StartRecordingAsync run
@@ -335,13 +341,13 @@ Partial Public Class UI_Engine
             DebugLog($"[Engine] StartRecordingAsync returned: {ok}")
 
             If ok Then
-                Me.Invoke(Sub()
-                              lblStatus.Text = "Recording (Hub)..."
-                              lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-                              tmrRecording.Start()
-                              btnRecord.Enabled = False
-                              btnStop.Enabled = True
-                          End Sub)
+                ' ✅ P2.6: caller already marshals via BeginUiInvoke, so we're
+                ' on the UI thread. Direct UI access is safe.
+                lblStatus.Text = "Recording (Hub)..."
+                lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                tmrRecording.Start()
+                btnRecord.Enabled = False
+                btnStop.Enabled = True
                 SendResponse("engine_record_start", "ok", _captureEngine.OutputFile, reqId)
             Else
                 SendResponse("engine_record_start", "error", "start_failed", reqId)
@@ -351,6 +357,69 @@ Partial Public Class UI_Engine
             SendResponse("engine_record_start", "error", ex.Message, reqId)
         End Try
     End Function
+
+    ''' <summary>
+    ''' ✅ P2.6: copy values from Overlay's video.json + config.json into
+    ''' Engine's CaptureSettings. This is what makes Engine actually use the
+    ''' encoder/fps/bitrate the user picked in Overlay's UI.
+    ''' </summary>
+    Private Sub SyncWithOverlayConfig(s As CaptureSettings)
+        Try
+            Dim video As OverlayConfig.VideoConfig = OverlayConfig.LoadVideoConfig()
+            Dim appCfg As OverlayConfig.AppConfig = OverlayConfig.LoadConfig()
+
+            If video IsNot Nothing Then
+                ' Encoder: Overlay uses 'NVENC_H264' etc., FFmpeg uses 'h264_nvenc'.
+                s.Encoder = OverlayConfig.MapEncoderToFfmpeg(video.encoder)
+
+                ' FPS / Bitrate from current preset values.
+                If video.current.fps > 0 AndAlso video.current.fps <= 240 Then
+                    s.FPS = video.current.fps
+                End If
+                If video.current.bitrate > 0 Then
+                    ' Overlay stores bitrate in kbps, CaptureSettings expects bps.
+                    s.Bitrate = video.current.bitrate * 1000L
+                End If
+
+                ' Resolution.
+                s.UseNativeResolution = video.current.use_native_resolution
+                If Not video.current.use_native_resolution Then
+                    s.CustomWidth = video.current.width
+                    s.CustomHeight = video.current.height
+                End If
+
+                ' Capture method from api_capture (Overlay's name).
+                If Not String.IsNullOrEmpty(video.api_capture) Then
+                    s.CaptureMethod = video.api_capture.ToLowerInvariant()
+                End If
+
+                ' Audio.
+                ' s.AudioCapture = video.audio.system_enabled OrElse video.audio.mic_enabled
+                ' s.AudioDevice = video.audio.mic_device
+                ' Note: Engine's audio path is not fully wired up yet — leave as-is
+                ' for now so we don't break recordings. P3 will add audio.
+            End If
+
+            If appCfg IsNot Nothing Then
+                ' FFmpegPath: prefer Overlay's path (it's the bundler).
+                If Not String.IsNullOrEmpty(appCfg.Paths.FFmpegPath) AndAlso IO.File.Exists(appCfg.Paths.FFmpegPath) Then
+                    s.FFmpegPath = appCfg.Paths.FFmpegPath
+                End If
+
+                ' OutputDirectory: prefer GalleryPath, fallback to SavePath.
+                Dim outDir As String = appCfg.Paths.GalleryPath
+                If String.IsNullOrEmpty(outDir) Then outDir = appCfg.Paths.SavePath
+                If Not String.IsNullOrEmpty(outDir) Then
+                    s.OutputDirectory = outDir
+                End If
+            End If
+
+            ' Persist back to shadowplay-config.json so old code paths still work.
+            s.Save(_configPath)
+        Catch ex As Exception
+            DebugLog($"SyncWithOverlayConfig error: {ex.Message}")
+        End Try
+    End Sub
 
     Private Async Function HandleEngineRecordStop(reqId As String) As Task
         Try
@@ -417,11 +486,8 @@ Partial Public Class UI_Engine
     ''' point to a non-existent ffmpeg.exe → StartRecordingAsync fails →
     ''' "กดอัด ขึ้นอัด แต่ไม่ได้อัดจริง".
     '''
-    ''' ✅ P2.1: this handler runs on the Hub listener thread, NOT the UI
-    ''' thread. Calling DetectEncoders() directly was crashing Engine because
-    ''' DetectEncoders sets lblStatus.Text from a non-UI thread →
-    ''' InvalidOperationException → Engine.exe exits.
-    ''' Fix: wrap the whole thing in Me.Invoke so it runs on the UI thread.
+    ''' ✅ P2.6: simplified — caller (OnTcpMessage) now marshals via BeginUiInvoke
+    ''' so this method always runs on the UI thread. Removed the inner Me.Invoke.
     ''' </summary>
     Private Sub HandleEnginePrewarmFFmpeg(ffmpegPath As String)
         Try
@@ -432,30 +498,21 @@ Partial Public Class UI_Engine
                 Return
             End If
 
-            ' ✅ P2.1: marshal to UI thread before touching any UI control.
-            ' HandleEnginePrewarmFFmpeg runs on the Hub listener thread.
-            ' DetectEncoders() and ValidateFFmpegPath() both set UI controls
-            ' directly, which is illegal from a non-UI thread and crashes Engine.
-            Me.Invoke(Sub()
-                          Try
-                              ' Load current settings, update FFmpegPath, save back.
-                              Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
-                              If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not IO.File.Exists(s.FFmpegPath) Then
-                                  s.FFmpegPath = ffmpegPath
-                                  s.Save(_configPath)
-                                  _settings = s
-                                  txtFFmpegPath.Text = ffmpegPath
-                                  ValidateFFmpegPath()
-                                  DebugLog($"[Engine] PREWARM_FFMPEG: updated FFmpegPath → {ffmpegPath}")
-                                  ' Re-detect encoders with the new ffmpeg path (safe now on UI thread).
-                                  DetectEncoders()
-                              Else
-                                  DebugLog($"[Engine] PREWARM_FFMPEG: already have valid FFmpegPath: {s.FFmpegPath}")
-                              End If
-                          Catch ex As Exception
-                              DebugLog($"[Engine] PREWARM_FFMPEG inner error: {ex.Message}")
-                          End Try
-                      End Sub)
+            ' ✅ P2.6: caller marshals via BeginUiInvoke, so we're on the UI thread.
+            ' Load current settings, update FFmpegPath, save back.
+            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+            If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not IO.File.Exists(s.FFmpegPath) Then
+                s.FFmpegPath = ffmpegPath
+                s.Save(_configPath)
+                _settings = s
+                txtFFmpegPath.Text = ffmpegPath
+                ValidateFFmpegPath()
+                DebugLog($"[Engine] PREWARM_FFMPEG: updated FFmpegPath → {ffmpegPath}")
+                ' Re-detect encoders with the new ffmpeg path.
+                DetectEncoders()
+            Else
+                DebugLog($"[Engine] PREWARM_FFMPEG: already have valid FFmpegPath: {s.FFmpegPath}")
+            End If
         Catch ex As Exception
             DebugLog($"[Engine] PREWARM_FFMPEG error: {ex.Message}")
         End Try
@@ -465,16 +522,15 @@ Partial Public Class UI_Engine
     ''' ✅ P2: Overlay broadcast engine_config_changed after saving video.json
     ''' or config.json. Engine reloads its UI from the files immediately.
     ''' value = "video" | "config" | "" (empty = reload both)
+    ''' ✅ P2.6: caller marshals via BeginUiInvoke, so we're already on UI thread.
     ''' </summary>
     Private Sub HandleEngineConfigChanged(scope As String)
         Try
             DebugLog($"[Engine] engine_config_changed received (scope={scope})")
             ' Force path re-resolution in case Overlay moved files
             OverlayConfig.ResetResolvedPath()
-            ' Reload on UI thread
-            Me.Invoke(Sub()
-                          RefreshOverlayConfigUI()
-                      End Sub)
+            ' Refresh UI (we're on the UI thread already).
+            RefreshOverlayConfigUI()
         Catch ex As Exception
             DebugLog($"[Engine] engine_config_changed error: {ex.Message}")
         End Try

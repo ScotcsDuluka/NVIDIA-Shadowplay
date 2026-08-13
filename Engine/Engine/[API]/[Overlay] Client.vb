@@ -54,14 +54,14 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub OnTcpDisconnected()
-        If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
-        Try
-            Me.Invoke(Sub()
+        ' ✅ P2.6: use BeginInvoke (fire-and-forget) instead of Invoke.
+        ' OnTcpDisconnected runs on the listener thread; using Me.Invoke would
+        ' block the listener until the UI thread processes it, which could
+        ' delay incoming messages. Same fix as OnTcpMessage.
+        BeginUiInvoke(Sub()
                           lblHotkeys.Text = "Hub Disconnected — reconnecting..."
                           lblHotkeys.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
                       End Sub)
-        Catch
-        End Try
     End Sub
 
     Private Sub OnTcpReconnecting()
