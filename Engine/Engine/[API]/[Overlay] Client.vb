@@ -1,58 +1,224 @@
-Public Class UI_Engine
+' [Overlay] Client.vb
+' ✅ P2.3: Engine-side TCP client — uses the same shared TcpClientHelper
+' as Overlay / Notifier / App Experience. No more bespoke EngineHubClient.
+'
+' This is a Partial Class of UI_Engine. It owns:
+'   - Public Shared tcp As TcpClientHelper
+'   - OnMessage parser (replaces EngineHubClient.ProcessMessage)
+'   - SendResponse helper (replaces EngineHubClient.SendResponse)
+'
+' Message format on the wire:
+'   [Send] <AppName>|<cmd>[:<value>]
+'   [Receive] <AppName>|<msg>
+'   [System]|pong
+'
+' Engine listens for:
+'   - PREWARM_FFMPEG:<ffmpegPath>[|<encoderName>]
+'   - engine_config_changed[:video|config]
+'   - RECORD_START:<outputPath>        (legacy alias → engine_record_start)
+'   - RECORD_STOP                      (legacy alias → engine_record_stop)
+'   - REPLAY_START:<seconds>           (legacy alias → engine_replay_start)
+'   - REPLAY_STOP                      (legacy alias → engine_replay_stop)
+'   - REPLAY_SAVE:<path>;<duration>    (legacy alias → engine_replay_save)
+'   - engine_get_status
+'   - engine_load_config
+'   - engine_set_encoder:<value>
+'
+' Engine sends:
+'   - register:NVIDIA Engine       (on connect)
+'   - engine_ready                 (broadcast after connect)
+'   - ping                         (every 10s)
+'   - engine_response:<cmd>,<status>[,<data>][,req=<reqId>]
 
-    ''' <summary>Shared TCP helper — accessible from all forms (Sub_Record, Video Capture, etc.)</summary>
+Imports System.Diagnostics
+
+Public Partial Class UI_Engine
+
+    ''' <summary>Shared TCP helper — accessible from all UI_Engine partials.</summary>
     Public Shared tcp As TcpClientHelper
 
-    Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        tcp = New TcpClientHelper("NVIDIA Engine")
+    ' ── Connection lifecycle ───────────────────────────────────
 
-        AddHandler tcp.OnMessageReceived, AddressOf OnMessage
+    Private Sub StartTcpClient()
+        Try
+            tcp = New TcpClientHelper("NVIDIA Engine", "127.0.0.1", 5000, autoReconnect:=True)
+            AddHandler tcp.OnMessageReceived, AddressOf OnTcpMessage
+            AddHandler tcp.OnDisconnected, AddressOf OnTcpDisconnected
+            AddHandler tcp.OnReconnecting, AddressOf OnTcpReconnecting
+            lblHotkeys.Text = "Connecting to Hub (port 5000)..."
+            DebugLog("TCP client starting...")
+        Catch ex As Exception
+            lblHotkeys.Text = "Hub connect failed: " & ex.Message
+            DebugLog("TCP client error: " & ex.Message)
+        End Try
     End Sub
 
-    ' Dispose TCP on form close
-    Private Sub Base_TestFormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+    Private Sub OnTcpDisconnected()
+        If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
         Try
-            If tcp IsNot Nothing Then
-                tcp.Disconnect()
-                tcp.Dispose()
-            End If
+            Me.Invoke(Sub()
+                          lblHotkeys.Text = "Hub Disconnected — reconnecting..."
+                          lblHotkeys.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
+                      End Sub)
         Catch
         End Try
-
     End Sub
 
-    Public Sub OnMessage(msg As String)
+    Private Sub OnTcpReconnecting()
+        ' Could log; for now keep silent to avoid log spam every retry.
+    End Sub
+
+    ''' <summary>
+    ''' Called after a successful connect (detected via first register ack or
+    ''' any time we want to broadcast engine_ready). Public so UI_Engine_Load
+    '  can call it after StartTcpClient.
+    ''' </summary>
+    Private Sub BroadcastEngineReady()
+        Try
+            If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                ' Send register first so Hub knows who we are.
+                tcp.Send("register", "NVIDIA Engine")
+                tcp.Send("engine_ready")
+                DebugLog("[Engine] broadcast engine_ready")
+            End If
+        Catch ex As Exception
+            DebugLog("[Engine] engine_ready broadcast failed: " & ex.Message)
+        End Try
+    End Sub
+
+    ' ── SendResponse helper ────────────────────────────────────
+
+    ''' <summary>
+    ''' Send a response back to whoever sent the command (via Hub broadcast).
+    ''' Format: engine_response:&lt;command&gt;,&lt;status&gt;[,&lt;data&gt;][,req=&lt;reqId&gt;]
+    ''' </summary>
+    Public Sub SendResponse(command As String, status As String, Optional data As String = "", Optional requestId As String = Nothing)
+        If tcp Is Nothing Then Return
+        Dim value As String = command & "," & status
+        If Not String.IsNullOrEmpty(data) Then
+            value &= "," & data
+        End If
+        If Not String.IsNullOrEmpty(requestId) Then
+            value &= ",req=" & requestId
+        End If
+        tcp.Send("engine_response", value)
+    End Sub
+
+    ' ── Message parser ─────────────────────────────────────────
+
+    Public Sub OnTcpMessage(msg As String)
+        If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
         If InvokeRequired Then
-            Invoke(Sub() OnMessage(msg))
+            Try
+                Invoke(Sub() OnTcpMessage(msg))
+            Catch
+            End Try
             Return
         End If
 
-        If Not msg.Contains("|") Then Exit Sub
+        Try
+            If String.IsNullOrEmpty(msg) OrElse Not msg.Contains("|") Then Return
 
-        Dim parts = msg.Split("|"c)
-        If parts.Length < 2 Then Exit Sub
+            Dim parts As String() = msg.Split("|"c)
+            If parts.Length < 2 Then Return
 
-        Dim data = parts(1)
+            ' Self-filter: skip our own broadcasts (Hub echoes everything).
+            If msg.Contains("NVIDIA Engine") Then Return
 
-        Dim colonIndex = data.IndexOf(":"c)
-        Dim cmd, value As String
-        If colonIndex >= 0 Then
-            cmd = data.Substring(0, colonIndex)
-            value = data.Substring(colonIndex + 1)
-        Else
-            cmd = data
-            value = ""
-        End If
+            Dim data As String = parts(1)
 
-        Select Case cmd
+            Dim colonIndex As Integer = data.IndexOf(":"c)
+            Dim cmd, value As String
+            If colonIndex >= 0 Then
+                cmd = data.Substring(0, colonIndex)
+                value = data.Substring(colonIndex + 1)
+            Else
+                cmd = data
+                value = ""
+            End If
 
-            Case ""
+            ' ── Pre-filter commands (handled BEFORE engine_* normalization) ──
 
-            Case ""
+            ' PREWARM_FFMPEG:<path>[|<encoderName>]
+            If cmd = "PREWARM_FFMPEG" AndAlso value.Length > 0 Then
+                Dim pipeIdx As Integer = value.IndexOf("|"c)
+                Dim ffmpegPath As String = If(pipeIdx > 0, value.Substring(0, pipeIdx), value)
+                HandleEnginePrewarmFFmpeg(ffmpegPath)
+                Return
+            End If
 
-            Case Else
-                Debug.WriteLine("Unknown: " & cmd)
+            ' engine_config_changed[:video|config]
+            If cmd = "engine_config_changed" Then
+                HandleEngineConfigChanged(value)
+                Return
+            End If
 
-        End Select
+            ' ── Legacy alias mapping (RECORD_* → engine_*) ──
+            Dim canonicalCmd As String = cmd
+            Select Case cmd
+                Case "RECORD_START" : canonicalCmd = "engine_record_start"
+                Case "RECORD_STOP" : canonicalCmd = "engine_record_stop"
+                Case "REPLAY_START" : canonicalCmd = "engine_replay_start"
+                Case "REPLAY_STOP" : canonicalCmd = "engine_replay_stop"
+                Case "REPLAY_SAVE" : canonicalCmd = "engine_replay_save"
+            End Select
+
+            ' Only engine_* commands are routed to the handler.
+            If Not canonicalCmd.StartsWith("engine_") Then Return
+            cmd = canonicalCmd
+
+            ' ── Optional request ID ──
+            ' Format: req=<token>|<payload>
+            Dim reqId As String = Nothing
+            If value.StartsWith("req=", StringComparison.Ordinal) Then
+                Dim sepIdx As Integer = value.IndexOf("|"c)
+                If sepIdx > 4 Then
+                    reqId = value.Substring(4, sepIdx - 4)
+                    value = value.Substring(sepIdx + 1)
+                End If
+            End If
+
+            DebugLog($"[Engine] Received: {cmd}={value}" & If(reqId, $" (req={reqId})", ""))
+            DispatchEngineCommand(cmd, value, reqId)
+
+        Catch ex As Exception
+            Debug.WriteLine($"UI_Engine.OnTcpMessage error: {ex.Message}")
+        End Try
     End Sub
+
+    ''' <summary>
+    ''' Route engine_* commands to their handlers. Extracted from OnTcpMessage
+    ''' so it's easy to read and add new commands.
+    ''' </summary>
+    Private Async Sub DispatchEngineCommand(cmd As String, value As String, reqId As String)
+        Try
+            Select Case cmd
+                Case "engine_record_start"
+                    Await HandleEngineRecordStart(value, reqId)
+                Case "engine_record_stop"
+                    Await HandleEngineRecordStop(reqId)
+                Case "engine_replay_start"
+                    HandleEngineReplayStart(value, reqId)
+                Case "engine_replay_stop"
+                    HandleEngineReplayStop(reqId)
+                Case "engine_replay_save"
+                    HandleEngineReplaySave(value, reqId)
+                Case "engine_get_status"
+                    HandleEngineGetStatus(reqId)
+                Case "engine_load_config"
+                    HandleEngineLoadConfig(reqId)
+                Case "engine_set_encoder"
+                    HandleEngineSetEncoder(value, reqId)
+                Case Else
+                    SendResponse(cmd, "error", "unknown_command", reqId)
+            End Select
+        Catch ex As Exception
+            DebugLog($"DispatchEngineCommand unhandled exception: {ex.Message}")
+            Try
+                SendResponse(cmd, "error", ex.Message, reqId)
+            Catch
+            End Try
+        End Try
+    End Sub
+
 End Class

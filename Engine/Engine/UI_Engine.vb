@@ -9,7 +9,7 @@
 Imports System.IO
 Imports System.Windows.Forms
 
-Public Class UI_Engine
+Public Partial Class UI_Engine
 
     ' ── Fields ─────────────────────────────────────────────────
 
@@ -68,58 +68,35 @@ Public Class UI_Engine
             _captureEngine.ForceStop()
         End If
         SaveSettings()
-        If _hubClient IsNot Nothing Then _hubClient.Dispose()
+        If tcp IsNot Nothing Then
+            tcp.Disconnect()
+            tcp.Dispose()
+        End If
         If _captureEngine IsNot Nothing Then _captureEngine.Dispose()
         ' ✅ P1: flush all queued log writers so no log lines are lost on exit.
         BackgroundLogger.ShutdownAll()
     End Sub
 
-    ' ── Hub Client ────────────────────────────────────────────
+    ' ── Hub Client (uses shared TcpClientHelper — see [Overlay] Client.vb) ──
 
     Private Sub StartHubClient()
-        Try
-            _hubClient = New EngineHubClient()
-            AddHandler _hubClient.OnCommandReceived, AddressOf OnHubCommand
-            AddHandler _hubClient.OnConnectionStatusChanged, AddressOf OnHubConnectionChanged
-            AddHandler _hubClient.OnLog, AddressOf OnHubLog
-
-            _hubClient.Connect()
-            lblHotkeys.Text = "Connecting to Hub (port 5000)..."
-            DebugLog("Hub client starting...")
-        Catch ex As Exception
-            lblHotkeys.Text = "Hub connect failed: " & ex.Message
-            DebugLog("Hub client error: " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub OnHubConnectionChanged(sender As Object, connected As Boolean)
-        Me.Invoke(Sub()
-                      If connected Then
-                          lblHotkeys.Text = "Hub Connected (port 5000) | engine_* ready"
-                          lblHotkeys.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-                      Else
-                          lblHotkeys.Text = "Hub Disconnected — reconnecting..."
-                          lblHotkeys.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
-                      End If
-                  End Sub)
-
-        ' ✅ P1.6: broadcast "engine_ready" on connect so the Overlay can
-        ' re-send PREWARM_FFMPEG. Problem we're solving: Overlay sends
-        ' PREWARM_FFMPEG on its Load event, but Engine often connects to
-        ' the Hub LATER than Overlay (user starts Engine manually, or
-        ' Engine's startup is slow). The PREWARM message is fire-and-forget
-        ' over TCP → if Engine isn't connected yet, it's lost forever.
-        ' Engine then can't find ffmpeg.exe → RECORD_START fails silently.
-        ' By broadcasting "engine_ready" on connect, Overlay gets a chance
-        ' to re-send PREWARM_FFMPEG and Engine gets the ffmpeg path.
-        If connected Then
-            Try
-                _hubClient?.Send("engine_ready")
-                DebugLog("[Engine] broadcast engine_ready")
-            Catch ex As Exception
-                DebugLog("[Engine] engine_ready broadcast failed: " & ex.Message)
-            End Try
-        End If
+        StartTcpClient()
+        ' Give the TCP helper a moment to connect, then broadcast engine_ready.
+        ' If not connected yet, the TCP helper will fire OnReconnecting; we'll
+        ' broadcast engine_ready on the next successful register attempt via
+        ' a one-shot timer.
+        Dim t As New System.Windows.Forms.Timer With {.Interval = 500}
+        AddHandler t.Tick, Sub(s, ev)
+                               t.Stop()
+                               t.Dispose()
+                               BroadcastEngineReady()
+                               ' Update UI
+                               If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                                   lblHotkeys.Text = "Hub Connected (port 5000) | engine_* ready"
+                                   lblHotkeys.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                               End If
+                           End Sub
+        t.Start()
     End Sub
 
     Private Sub OnHubLog(sender As Object, message As String)
@@ -290,60 +267,30 @@ Public Class UI_Engine
     End Sub
 
     ''' <summary>
-    ''' Update the Hub status panel from the EngineHubClient.
+    ''' Update the Hub status panel from the TcpClientHelper.
     ''' </summary>
     Private Sub UpdateHubStatusUI()
-        If _hubClient Is Nothing Then
+        If tcp Is Nothing Then
             lblHubStatus.Text = "not started"
-            lblHubClients.Text = "Clients: 0"
+            lblHubClients.Text = "Engine: offline"
             Return
         End If
 
-        If _hubClient.IsConnected Then
+        If tcp.IsConnected Then
             lblHubStatus.Text = "connected (port 5000)"
             lblHubStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+            lblHubClients.Text = "Engine: online"
         Else
             lblHubStatus.Text = "disconnected — reconnecting..."
             lblHubStatus.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
+            lblHubClients.Text = "Engine: offline"
         End If
-
-        ' Client count isn't directly available to Engine; we only know
-        ' we're connected. Show 1 (us) if connected.
-        lblHubClients.Text = "Engine: " & If(_hubClient.IsConnected, "online", "offline")
     End Sub
 
-    Private Async Sub OnHubCommand(sender As Object, e As CommandEventArgs)
-        DebugLog($"[Engine] Executing: {e.Command}={e.Value}" & If(String.IsNullOrEmpty(e.RequestId), "", $" (req={e.RequestId})"))
-
-        Try
-            Select Case e.Command
-                Case "engine_record_start"
-                    Await HandleEngineRecordStart(e.Value, e.RequestId)
-                Case "engine_record_stop"
-                    Await HandleEngineRecordStop(e.RequestId)
-                Case "engine_replay_start"
-                    HandleEngineReplayStart(e.Value, e.RequestId)
-                Case "engine_replay_stop"
-                    HandleEngineReplayStop(e.RequestId)
-                Case "engine_replay_save"
-                    HandleEngineReplaySave(e.Value, e.RequestId)
-                Case "engine_get_status"
-                    HandleEngineGetStatus(e.RequestId)
-                Case "engine_load_config"
-                    HandleEngineLoadConfig(e.RequestId)
-                Case "engine_set_encoder"
-                    HandleEngineSetEncoder(e.Value, e.RequestId)
-                Case "PREWARM_FFMPEG"
-                    HandleEnginePrewarmFFmpeg(e.Value)
-                Case "engine_config_changed"
-                    HandleEngineConfigChanged(e.Value)
-                Case Else
-                    _hubClient.SendResponse("unhandled_command", "error", "unknown_command", e.RequestId)
-            End Select
-        Catch ex As Exception
-            DebugLog($"OnHubCommand unhandled exception: {ex.Message}")
-        End Try
-    End Sub
+    ' ═══════════════════════════════════════════════════════════════════════
+    ' ✅ P2.3: command dispatch moved to [Overlay] Client.vb (DispatchEngineCommand)
+    ' — uses the shared TcpClientHelper, same as Overlay.
+    ' ═══════════════════════════════════════════════════════════════════════
 
     ' ── Engine Command Handlers (TCP แค่ on/off) ──────────
 
@@ -362,13 +309,13 @@ Public Class UI_Engine
             ' send the response ourselves.
             If String.IsNullOrEmpty(_settings.FFmpegPath) OrElse Not IO.File.Exists(_settings.FFmpegPath) Then
                 DebugLog($"[Engine] RECORD_START rejected: FFmpegPath invalid ('{_settings.FFmpegPath}')")
-                _hubClient.SendResponse("engine_record_start", "error", "ffmpeg_not_found", reqId)
+                SendResponse("engine_record_start", "error", "ffmpeg_not_found", reqId)
                 Return
             End If
 
             If String.IsNullOrEmpty(_settings.Encoder) Then
                 DebugLog("[Engine] RECORD_START rejected: Encoder not set")
-                _hubClient.SendResponse("engine_record_start", "error", "no_encoder_selected", reqId)
+                SendResponse("engine_record_start", "error", "no_encoder_selected", reqId)
                 Return
             End If
 
@@ -395,20 +342,20 @@ Public Class UI_Engine
                               btnRecord.Enabled = False
                               btnStop.Enabled = True
                           End Sub)
-                _hubClient.SendResponse("engine_record_start", "ok", _captureEngine.OutputFile, reqId)
+                SendResponse("engine_record_start", "ok", _captureEngine.OutputFile, reqId)
             Else
-                _hubClient.SendResponse("engine_record_start", "error", "start_failed", reqId)
+                SendResponse("engine_record_start", "error", "start_failed", reqId)
             End If
         Catch ex As Exception
             DebugLog("RecordStart error: " & ex.Message)
-            _hubClient.SendResponse("engine_record_start", "error", ex.Message, reqId)
+            SendResponse("engine_record_start", "error", ex.Message, reqId)
         End Try
     End Function
 
     Private Async Function HandleEngineRecordStop(reqId As String) As Task
         Try
             If _captureEngine Is Nothing OrElse Not _captureEngine.IsRecording Then
-                _hubClient.SendResponse("engine_record_stop", "error", "not_recording", reqId)
+                SendResponse("engine_record_stop", "error", "not_recording", reqId)
                 Return
             End If
 
@@ -424,22 +371,22 @@ Public Class UI_Engine
                           btnStop.Enabled = False
                       End Sub)
 
-            _hubClient.SendResponse("engine_record_stop", "ok", _captureEngine.OutputFile, reqId)
+            SendResponse("engine_record_stop", "ok", _captureEngine.OutputFile, reqId)
         Catch ex As Exception
-            _hubClient.SendResponse("engine_record_stop", "error", ex.Message, reqId)
+            SendResponse("engine_record_stop", "error", ex.Message, reqId)
         End Try
     End Function
 
     Private Sub HandleEngineReplayStart(value As String, reqId As String)
-        _hubClient.SendResponse("engine_replay_start", "error", "not_implemented", reqId)
+        SendResponse("engine_replay_start", "error", "not_implemented", reqId)
     End Sub
 
     Private Sub HandleEngineReplayStop(reqId As String)
-        _hubClient.SendResponse("engine_replay_stop", "error", "not_implemented", reqId)
+        SendResponse("engine_replay_stop", "error", "not_implemented", reqId)
     End Sub
 
     Private Sub HandleEngineReplaySave(value As String, reqId As String)
-        _hubClient.SendResponse("engine_replay_save", "error", "not_implemented", reqId)
+        SendResponse("engine_replay_save", "error", "not_implemented", reqId)
     End Sub
 
     Private Sub HandleEngineGetStatus(reqId As String)
@@ -447,20 +394,20 @@ Public Class UI_Engine
         If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
             state = "Recording"
         End If
-        _hubClient.SendResponse("engine_get_status", "ok", state, reqId)
+        SendResponse("engine_get_status", "ok", state, reqId)
     End Sub
 
     Private Sub HandleEngineLoadConfig(reqId As String)
         Try
             _settings = CaptureSettings.Load(_configPath)
-            _hubClient.SendResponse("engine_load_config", "ok", Nothing, reqId)
+            SendResponse("engine_load_config", "ok", Nothing, reqId)
         Catch ex As Exception
-            _hubClient.SendResponse("engine_load_config", "error", ex.Message, reqId)
+            SendResponse("engine_load_config", "error", ex.Message, reqId)
         End Try
     End Sub
 
     Private Sub HandleEngineSetEncoder(value As String, reqId As String)
-        _hubClient.SendResponse("engine_set_encoder", "error", "use_config_json", reqId)
+        SendResponse("engine_set_encoder", "error", "use_config_json", reqId)
     End Sub
 
     ''' <summary>
