@@ -314,6 +314,12 @@ Public Class CaptureEngine
         Dim buf As String = (_settings.Bitrate * 2).ToString()
         Dim hwType As HwDeviceType = DetectHwDeviceType(_settings.Encoder)
 
+        ' ✅ P2.8: log the values actually being sent to FFmpeg so we can
+        ' verify they match what Overlay's UI shows. This is the only way
+        ' to debug "FPS 60 = 60, bitrate 15Mbps = 15Mbps" claims.
+        LogDebug($"[CaptureEngine] BuildFFmpegArguments: FPS={fpsStr}, Bitrate={br} bps ({(_settings.Bitrate / 1000000.0):F2} Mbps), Encoder={_settings.Encoder}, CaptureMethod={_settings.CaptureMethod}, Output={outputFile}")
+        WriteDebugLog($"[CaptureEngine] BuildFFmpegArguments: FPS={fpsStr}, Bitrate={br} bps ({(_settings.Bitrate / 1000000.0):F2} Mbps), Encoder={_settings.Encoder}, CaptureMethod={_settings.CaptureMethod}, UseNativeRes={_settings.UseNativeResolution}, CustomW={_settings.CustomWidth}, CustomH={_settings.CustomHeight}")
+
         sb.Append("-hide_banner -loglevel info ")
 
         ' ── Video input by capture method ──
@@ -384,20 +390,29 @@ Public Class CaptureEngine
         ' ── Video encoder settings ──
         sb.Append("-c:v " & _settings.Encoder & " ")
 
+        ' ✅ P2.8: build NVENC preset string from Overlay's encoder_preset
+        ' (1-7 → p1-p7). Was hardcoded to 'p4' before, so user's 'Maximum'
+        ' preset (p7) was silently ignored.
+        Dim nvencPreset As String = OverlayConfig.MapNvencPreset(_settings.NvencPreset)
+        If String.IsNullOrEmpty(nvencPreset) Then nvencPreset = "p4"
+
         Select Case hwType
             Case HwDeviceType.NVIDIA
-                sb.Append("-preset p4 -tune ll ")
-                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
+                ' ✅ P2.8: strict CBR — set minrate = maxrate = b:v so NVENC
+                ' can't drift. Old code only had -rc cbr without -minrate/-maxrate,
+                ' which let NVENC use VBR-like behavior under load.
+                sb.Append("-preset " & nvencPreset & " -tune ll ")
+                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -rc cbr ")
                 sb.Append("-zerolatency 1 -spatial-aq 1 -temporal-aq 1 ")
 
             Case HwDeviceType.IntelQSV
                 sb.Append("-preset medium ")
-                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
+                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -rc cbr ")
                 sb.Append("-look_ahead 1 ")
 
             Case HwDeviceType.AMD
                 sb.Append("-preset balanced -usage transcoding ")
-                sb.Append("-b:v " & br & " -rc cbr -bufsize " & buf & " ")
+                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -rc cbr ")
 
             Case HwDeviceType.None
                 ' CPU encoder-specific settings

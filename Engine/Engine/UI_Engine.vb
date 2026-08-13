@@ -372,9 +372,22 @@ Partial Public Class UI_Engine
             Dim video As OverlayConfig.VideoConfig = OverlayConfig.LoadVideoConfig()
             Dim appCfg As OverlayConfig.AppConfig = OverlayConfig.LoadConfig()
 
+            ' ✅ P2.8: log raw Overlay values before sync so we can trace
+            ' exactly what's coming in vs what's going to FFmpeg.
+            If video IsNot Nothing Then
+                DebugLog($"[SyncWithOverlayConfig] BEFORE sync: Engine.FPS={s.FPS}, Engine.Bitrate={s.Bitrate} bps, Engine.NvencPreset={s.NvencPreset}, Engine.Encoder={s.Encoder}, Engine.CaptureMethod={s.CaptureMethod}")
+                DebugLog($"[SyncWithOverlayConfig] Overlay source: video.current.fps={video.current.fps}, video.current.bitrate={video.current.bitrate} kbps, video.current.encoder_preset={video.current.encoder_preset}, video.encoder={video.encoder}, video.api_capture={If(video.api_capture, "(none)")}")
+            End If
+
             If video IsNot Nothing Then
                 ' Encoder: Overlay uses 'NVENC_H264' etc., FFmpeg uses 'h264_nvenc'.
                 s.Encoder = OverlayConfig.MapEncoderToFfmpeg(video.encoder)
+
+                ' ✅ P2.8: copy NVENC preset (1-7) from Overlay. Was hardcoded
+                ' to p4 before, so user's 'Maximum' preset (7) was ignored.
+                If video.current.encoder_preset >= 1 AndAlso video.current.encoder_preset <= 7 Then
+                    s.NvencPreset = video.current.encoder_preset
+                End If
 
                 ' FPS / Bitrate from current preset values.
                 If video.current.fps > 0 AndAlso video.current.fps <= 240 Then
@@ -397,30 +410,11 @@ Partial Public Class UI_Engine
                     s.CaptureMethod = video.api_capture.ToLowerInvariant()
                 End If
 
-                ' ✅ P2.7: Audio capture — enable based on Overlay's settings.
-                ' Engine uses FFmpeg's dshow audio input. For system audio on
-                ' Windows, the typical device names are:
-                '   - "Stereo Mix (Realtek Audio)" — exists on some Realtek cards
-                '   - "virtual-audio-capturer" — screen-capture-recorder's virtual device
-                '   - WASAPI loopback via -f lavfi -i "amovie=..." (requires special build)
-                ' The pragmatic choice: use whatever MicDevice is set. If empty,
-                ' attempt "Stereo Mix" as fallback. If that fails, Engine will
-                ' just record video without audio (graceful degradation).
-                If video.audio.system_enabled OrElse video.audio.mic_enabled Then
-                    s.AudioCapture = True
-                    If Not String.IsNullOrEmpty(video.audio.mic_device) Then
-                        s.AudioDevice = video.audio.mic_device
-                    Else
-                        ' ✅ Default to "Stereo Mix" if no specific device was set.
-                        ' This will fail gracefully if the device doesn't exist —
-                        ' FFmpeg will exit with an error, but Engine will catch it
-                        ' and fall back to video-only on the next attempt.
-                        s.AudioDevice = "Stereo Mix"
-                    End If
-                Else
-                    s.AudioCapture = False
-                    s.AudioDevice = ""
-                End If
+                ' Audio — disabled for now (P3). User wants to nail down
+                ' video quality first (FPS/bitrate must match exactly).
+                ' Will re-enable after video pipeline is rock-solid.
+                s.AudioCapture = False
+                s.AudioDevice = ""
             End If
 
             If appCfg IsNot Nothing Then
@@ -436,6 +430,9 @@ Partial Public Class UI_Engine
                     s.OutputDirectory = outDir
                 End If
             End If
+
+            ' ✅ P2.8: log after sync so we can verify values match Overlay.
+            DebugLog($"[SyncWithOverlayConfig] AFTER sync: Engine.FPS={s.FPS}, Engine.Bitrate={s.Bitrate} bps ({(s.Bitrate / 1000000.0):F2} Mbps), Engine.NvencPreset={s.NvencPreset} (→ p{s.NvencPreset}), Engine.Encoder={s.Encoder}, Engine.CaptureMethod={s.CaptureMethod}, Engine.FFmpegPath={s.FFmpegPath}")
 
             ' Persist back to shadowplay-config.json so old code paths still work.
             s.Save(_configPath)

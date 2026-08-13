@@ -39,6 +39,11 @@ Public Class CaptureSettings
     <JsonPropertyName("Preset")>
     Public Property Preset As String = "p4"
 
+    ' ✅ P2.8: NVENC preset as integer 1-7 (from Overlay's encoder_preset).
+    ' Overlay stores this as int, Engine's CaptureEngine maps it to 'p1'..'p7'.
+    <JsonPropertyName("NvencPreset")>
+    Public Property NvencPreset As Integer = 4
+
     <JsonPropertyName("RateControl")>
     Public Property RateControl As String = "cbr"
 
