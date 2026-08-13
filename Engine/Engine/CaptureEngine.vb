@@ -425,26 +425,15 @@ Public Class CaptureEngine
 
         Select Case hwType
             Case HwDeviceType.NVIDIA
-                ' ✅ FIX: NVENC CBR with -rc cbr + minrate=maxrate=b:v is known to
-                ' produce bitrate that doesn't match the target exactly (NVENC's
-                ' internal rate control has rounding/quantization overhead).
-                ' Better approach: use VBR with -b:v as the target and -maxrate
-                ' as the ceiling. NVENC's VBR mode is actually more accurate than
-                ' its CBR mode on modern drivers (R515+).
-                ' -b:v = average bitrate (target)
-                ' -maxrate = peak (same as target to cap it)
-                ' -bufsize = 2x bitrate (standard buffer for smooth encoding)
-                ' -rc vbr = variable bitrate mode
-                ' -tune ll = low latency tuning
-                ' -preset p1-p7 = quality preset from Overlay
-                ' -gop_len = FPS (1 second per GOP — prevents fractional fps output)
-                ' -forced-idr 1 = force IDR frames at GOP boundaries
+                ' ✅ FIX: NVENC VBR mode for better bitrate accuracy.
+                ' -g = GOP size (standard FFmpeg option, NOT -gop_len which is
+                '   NVENC private and not recognized as a CLI arg)
+                ' -rc vbr = variable bitrate (more accurate than cbr on modern drivers)
+                ' -b:v = average target, -maxrate = peak cap, -bufsize = 2x target
                 sb.Append("-preset " & nvencPreset & " -tune ll -rc vbr ")
                 sb.Append("-b:v " & br & " -maxrate " & br & " -bufsize " & buf & " ")
-                sb.Append("-gop_len " & fpsStr & " -forced-idr 1 ")
+                sb.Append("-g " & fpsStr & " ")
                 sb.Append("-spatial-aq 1 -temporal-aq 1 ")
-                ' Note: removed -zerolatency 1 — it conflicts with -tune ll on
-                ' some NVENC driver versions and causes bitrate spikes.
 
             Case HwDeviceType.IntelQSV
                 sb.Append("-preset medium ")
