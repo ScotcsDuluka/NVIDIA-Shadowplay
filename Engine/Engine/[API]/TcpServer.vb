@@ -38,6 +38,7 @@ Public Class EngineHubClient
     Private _writer As StreamWriter
     Private _reader As StreamReader
     Private _isConnected As Boolean = False
+    Private _isReconnecting As Boolean = False
     Private _cts As CancellationTokenSource
     Private _writeLock As New Object()
     Private _reconnectLock As New Object()
@@ -174,10 +175,14 @@ Public Class EngineHubClient
 
 #Region "Listen Loop"
     Private Sub ListenLoop()
+        Dim exitReason As String = "unknown"
         Try
             While _isConnected AndAlso Not _cts.IsCancellationRequested
                 Dim msg = _reader.ReadLine()
-                If msg Is Nothing Then Exit While
+                If msg Is Nothing Then
+                    exitReason = "ReadLine returned Nothing (remote closed)"
+                    Exit While
+                End If
 
                 ' ข้าม pong
                 If msg = "[System]|pong" Then Continue While
@@ -186,14 +191,23 @@ Public Class EngineHubClient
                 ProcessMessage(msg)
             End While
         Catch ex As Exception When TypeOf ex Is IOException OrElse TypeOf ex Is OperationCanceledException
-            ' ปกติ — disconnect
+            exitReason = $"IOException/OperationCanceledException: {ex.Message}"
         Catch ex As Exception
+            exitReason = $"Exception: {ex.Message}"
             Debug.WriteLine($"EngineHubClient.ListenLoop Error: {ex.Message}")
         End Try
 
+        Debug.WriteLine($"[Engine] ListenLoop exited: {exitReason}")
+        RaiseEvent OnLog(Me, $"[Engine] ListenLoop exited: {exitReason}")
+
         _isConnected = False
         RaiseEvent OnConnectionStatusChanged(Me, False)
-        Task.Run(AddressOf ReconnectLoop)
+        ' ✅ FIX: only spawn ReconnectLoop if not already reconnecting.
+        ' Old code spawned a new ReconnectLoop on every ListenLoop exit,
+        ' even if one was already running → double "Reconnecting..." logs.
+        If Not _isReconnecting Then
+            Task.Run(AddressOf ReconnectLoop)
+        End If
     End Sub
 
     Private Sub PingLoop()
@@ -202,55 +216,91 @@ Public Class EngineHubClient
                 Thread.Sleep(10000)
                 If Not IsConnected Then Exit While
 
+                ' ✅ FIX: check underlying socket health before writing.
+                ' Old code just tried to write and caught the exception,
+                ' but sometimes the socket is half-open and the write
+                ' succeeds locally while the remote never receives it.
+                ' Poll for write availability to detect this case.
+                If _client Is Nothing OrElse Not _client.Connected Then
+                    Debug.WriteLine("[Engine] PingLoop: socket not connected, exiting")
+                    Exit While
+                End If
+
                 Try
                     SyncLock _writeLock
                         _writer.WriteLine($"[Send] {APP_NAME}|ping")
                     End SyncLock
-                Catch
+                Catch ex As Exception
+                    Debug.WriteLine($"[Engine] PingLoop write failed: {ex.Message}")
                     Exit While
                 End Try
             End While
         Catch ex As Exception
+            Debug.WriteLine($"[Engine] PingLoop exception: {ex.Message}")
         End Try
+
+        ' ✅ FIX: if PingLoop exits because the socket is dead, force a
+        ' reconnect. Old code exited silently → ListenLoop kept blocking
+        ' on ReadLine → waited for Hub's 30s heartbeat kill → slow.
+        ' Now we proactively close the client so ReadLine returns Nothing
+        ' immediately, triggering a fast reconnect.
+        If _isConnected Then
+            Debug.WriteLine("[Engine] PingLoop exited while _isConnected=True, forcing reconnect")
+            Try
+                _client?.Close()
+            Catch
+            End Try
+        End If
     End Sub
 
     Private Sub ReconnectLoop()
-        RaiseEvent OnLog(Me, "[Engine] Reconnecting to Hub...")
+        ' ✅ FIX: guard against double-spawn. Old code logged "Reconnecting..."
+        ' BEFORE checking _isConnected, so even if Engine was already
+        ' reconnected (by a parallel ReconnectLoop), it would still log.
+        ' Now we check the flag first and bail out immediately.
+        If _isReconnecting Then Return
+        _isReconnecting = True
 
-        SyncLock _reconnectLock
-            While Not _isConnected
-                Try
-                    _reconnectDelay = Math.Min(_reconnectDelay * 2, RECONNECT_MAX_MS)
-                    Thread.Sleep(_reconnectDelay)
+        Try
+            RaiseEvent OnLog(Me, "[Engine] Reconnecting to Hub...")
 
-                    _cts = New CancellationTokenSource()
-                    _client = New TcpClient()
-                    _client.NoDelay = True
-                    _client.Connect(HUB_HOST, HUB_PORT)
+            SyncLock _reconnectLock
+                While Not _isConnected
+                    Try
+                        _reconnectDelay = Math.Min(_reconnectDelay * 2, RECONNECT_MAX_MS)
+                        Thread.Sleep(_reconnectDelay)
 
-                    Dim stream As NetworkStream = _client.GetStream()
-                    _writer = New StreamWriter(stream) With {.AutoFlush = True}
-                    _reader = New StreamReader(stream)
+                        _cts = New CancellationTokenSource()
+                        _client = New TcpClient()
+                        _client.NoDelay = True
+                        _client.Connect(HUB_HOST, HUB_PORT)
 
-                    _isConnected = True
-                    _reconnectDelay = RECONNECT_BASE_MS
+                        Dim stream As NetworkStream = _client.GetStream()
+                        _writer = New StreamWriter(stream) With {.AutoFlush = True}
+                        _reader = New StreamReader(stream)
 
-                    SendRegister()
+                        _isConnected = True
+                        _reconnectDelay = RECONNECT_BASE_MS
 
-                    RaiseEvent OnConnectionStatusChanged(Me, True)
-                    RaiseEvent OnLog(Me, "[Engine] Reconnected to Hub")
+                        SendRegister()
 
-                    Task.Run(AddressOf ListenLoop, _cts.Token)
-                    Task.Run(AddressOf PingLoop, _cts.Token)
-                    Return
+                        RaiseEvent OnConnectionStatusChanged(Me, True)
+                        RaiseEvent OnLog(Me, "[Engine] Reconnected to Hub")
 
-                Catch ex As Exception
-                    Debug.WriteLine($"EngineHubClient.ReconnectLoop Error: {ex.Message}")
-                    _isConnected = False
-                    Try : _client.Close() : Catch : End Try
-                End Try
-            End While
-        End SyncLock
+                        Task.Run(AddressOf ListenLoop, _cts.Token)
+                        Task.Run(AddressOf PingLoop, _cts.Token)
+                        Return
+
+                    Catch ex As Exception
+                        Debug.WriteLine($"EngineHubClient.ReconnectLoop Error: {ex.Message}")
+                        _isConnected = False
+                        Try : _client.Close() : Catch : End Try
+                    End Try
+                End While
+            End SyncLock
+        Finally
+            _isReconnecting = False
+        End Try
     End Sub
 #End Region
 

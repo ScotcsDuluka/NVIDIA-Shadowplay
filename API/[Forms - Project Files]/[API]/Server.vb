@@ -315,7 +315,12 @@ Partial Public Class API_RUN
                 Dim killLog As New List(Of String)
                 SyncLock clientsLock
                     For Each c In clients
-                        If (DateTime.Now - c.LastActivity).TotalSeconds > 30 Then
+                        ' ✅ FIX: increased from 30s to 60s. Old timeout was too
+                        ' aggressive — Engine pings every 10s, but if one ping
+                        ' is delayed or lost (network hiccup, OS scheduling),
+                        ' the 30s window closes fast. 60s gives 5 missed pings
+                        ' worth of buffer before killing the connection.
+                        If (DateTime.Now - c.LastActivity).TotalSeconds > 60 Then
                             dead.Add(c)
                         End If
                     Next
