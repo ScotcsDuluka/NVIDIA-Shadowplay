@@ -27,10 +27,6 @@ Public Class UI_Engine
     Private _lastConfigWrite As DateTime = DateTime.MinValue
     Private _lastVideoWrite As DateTime = DateTime.MinValue
 
-    ' ── TCP Hub Client (เชื่อม Hub port 5000) ──────────────────
-
-    Private _hubClient As EngineHubClient
-
     ' ── Form Load / Close ──────────────────────────────────────
 
     Private Sub UI_Engine_Load(sender As Object, e As EventArgs) Handles Me.Load
@@ -316,14 +312,8 @@ Public Class UI_Engine
         lblHubClients.Text = "Engine: " & If(_hubClient.IsConnected, "online", "offline")
     End Sub
 
-    ''' <summary>
-    ''' รับ engine_* commands จาก Hub แล้ว execute
-    ''' ✅ P1: made Async so a slow StopRecordingAsync (up to 10s) doesn't block
-    ''' the listener thread. Old code did task.Wait() inside OnHubCommand which
-    ''' queued every subsequent TCP command behind it.
-    ''' </summary>
     Private Async Sub OnHubCommand(sender As Object, e As CommandEventArgs)
-        DebugLog($"[Engine] Executing: {e.Command}={e.Value}" & If(e.RequestId, $" (req={e.RequestId})", ""))
+        DebugLog($"[Engine] Executing: {e.Command}={e.Value}" & If(String.IsNullOrEmpty(e.RequestId), "", $" (req={e.RequestId})"))
 
         Try
             Select Case e.Command
@@ -343,19 +333,15 @@ Public Class UI_Engine
                     HandleEngineLoadConfig(e.RequestId)
                 Case "engine_set_encoder"
                     HandleEngineSetEncoder(e.Value, e.RequestId)
-                Case "engine_prewarm_ffmpeg"
+                Case "PREWARM_FFMPEG"
                     HandleEnginePrewarmFFmpeg(e.Value)
                 Case "engine_config_changed"
                     HandleEngineConfigChanged(e.Value)
                 Case Else
-                    _hubClient.SendResponse(e.Command, "error", "unknown_command", e.RequestId)
+                    _hubClient.SendResponse("unhandled_command", "error", "unknown_command", e.RequestId)
             End Select
         Catch ex As Exception
             DebugLog($"OnHubCommand unhandled exception: {ex.Message}")
-            Try
-                _hubClient.SendResponse(e.Command, "error", ex.Message, e.RequestId)
-            Catch
-            End Try
         End Try
     End Sub
 

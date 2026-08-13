@@ -65,7 +65,7 @@ Public NotInheritable Class BackgroundLogger
                             batch.Add(first)
 
                             ' Snap up anything else queued without blocking.
-                            Dim item As String
+                            Dim item As String = Nothing
                             While _queue.TryTake(item, 0) AndAlso batch.Count < 1024
                                 batch.Add(item)
                             End While
@@ -73,6 +73,8 @@ Public NotInheritable Class BackgroundLogger
                             For Each ln In batch
                                 sw.WriteLine(ln)
                             Next
+
+                            ' Continue draining until stopped/empty (loop repeats).
                             sw.Flush()
                         End While
                     End Using
@@ -117,7 +119,7 @@ Public NotInheritable Class BackgroundLogger
     ''' Enqueue a single pre-formatted line (no trailing newline). Thread-safe.
     ''' </summary>
     Public Shared Sub Log(filePath As String, line As String)
-        Dim w As FileWriter
+        Dim w As FileWriter = Nothing
         SyncLock _lock
             If Not _writers.TryGetValue(filePath, w) Then
                 w = New FileWriter(filePath)

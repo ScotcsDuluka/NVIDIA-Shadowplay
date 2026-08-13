@@ -39,6 +39,7 @@
                 <PackAsTool>False</PackAsTool>
                 <NuGetAudit>True</NuGetAudit>
                 <AppDesignerFolder>My Project</AppDesignerFolder>
+                <NuGetAuditLevel>low</NuGetAuditLevel>
         </PropertyGroup>
 
 <Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
@@ -69,7 +70,6 @@
                 <WarningsAsErrors>42025</WarningsAsErrors>
                 <DebugType>none</DebugType>
                 <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-                <WarningLevel>0</WarningLevel>
         </PropertyGroup>
 
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -81,7 +81,6 @@
           <WarningsAsErrors>42025</WarningsAsErrors>
           <DebugType>none</DebugType>
           <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
-          <WarningLevel>0</WarningLevel>
         </PropertyGroup>
 
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">

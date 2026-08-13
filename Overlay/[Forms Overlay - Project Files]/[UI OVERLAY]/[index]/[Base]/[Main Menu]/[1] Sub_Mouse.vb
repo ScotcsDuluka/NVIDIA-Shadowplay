@@ -92,15 +92,15 @@ Partial Public Class Base
 
 #Region "============================================================================ MOUSE EVENT HANDLERS - PRIVACY/CONNECT"
 
-    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Text.MouseMove, Connect_ICO.MouseMove
-        Connect_Box_Sub.BackColor = greenColor
+    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_TEXT.MouseMove, Connect_ICO.MouseMove
+        Connect_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Text.MouseLeave, Connect_ICO.MouseLeave
-        Connect_Box_Sub.BackColor = System.Drawing.Color.Gray
+    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_TEXT.MouseLeave, Connect_ICO.MouseLeave
+        Connect_BOX_SUB.BackColor = System.Drawing.Color.Gray
     End Sub
 
-    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_Text.Click, Connect_ICO.Click
+    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_TEXT.Click, Connect_ICO.Click
         ShowNotifier("account_confirm_error")
     End Sub
 
@@ -533,77 +533,77 @@ Partial Public Class Base
     End Sub
 
     ' ========== CONNECT ==========
-    Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_Text.MouseMove, Connect_ICO.MouseMove
-        Connect_Box_Sub.BackColor = greenColor
+    Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_TEXT.MouseMove, Connect_ICO.MouseMove
+        Connect_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Connect_MouseLeave(sender As Object, e As EventArgs) Handles Connect_Text.MouseLeave, Connect_ICO.MouseLeave
-        Connect_Box_Sub.BackColor = grayColor
+    Private Sub Connect_MouseLeave(sender As Object, e As EventArgs) Handles Connect_TEXT.MouseLeave, Connect_ICO.MouseLeave
+        Connect_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Connect_Click(sender As Object, e As EventArgs) Handles Connect_Text.Click, Connect_ICO.Click
+    Private Sub Connect_Click(sender As Object, e As EventArgs) Handles Connect_TEXT.Click, Connect_ICO.Click
         OpenPanel(Base_Connect, Base_Connect.settings_1)
     End Sub
 
     ' ========== PRIVACY SETTINGS ==========
-    Private Sub Saved_MouseMove(sender As Object, e As MouseEventArgs) Handles saved_e.MouseMove, Label4.MouseMove, Label5.MouseMove
-        saved_e1.BackColor = greenColor
+    Private Sub Saved_MouseMove(sender As Object, e As MouseEventArgs) Handles PrivacyControl_TEXT.MouseMove, PrivacyControl_ICO.MouseMove
+        PrivacyControl_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Saved_MouseLeave(sender As Object, e As EventArgs) Handles saved_e.MouseLeave, Label4.MouseLeave, Label5.MouseLeave
-        saved_e1.BackColor = grayColor
+    Private Sub Saved_MouseLeave(sender As Object, e As EventArgs) Handles PrivacyControl_TEXT.MouseLeave, PrivacyControl_ICO.MouseLeave
+        PrivacyControl_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Saved_Click(sender As Object, e As EventArgs) Handles saved_e.Click, Label4.Click, Label5.Click
+    Private Sub Saved_Click(sender As Object, e As EventArgs) Handles PrivacyControl_TEXT.Click, PrivacyControl_ICO.Click
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
     ' ========== OVERLAY HUB ==========
-    Private Sub Hub_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox10.MouseMove, Label12.MouseMove, Label15.MouseMove
-        hub.BackColor = greenColor
+    Private Sub Hub_MouseMove(sender As Object, e As MouseEventArgs) Handles HUDLayout_TEXT.MouseMove, HUDLayout_ICO.MouseMove
+        HUDLayout_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Hub_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox10.MouseLeave, Label12.MouseLeave, Label15.MouseLeave
-        hub.BackColor = grayColor
+    Private Sub Hub_MouseLeave(sender As Object, e As EventArgs) Handles HUDLayout_TEXT.MouseLeave, HUDLayout_ICO.MouseLeave
+        HUDLayout_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Hub_Click(sender As Object, e As EventArgs) Handles PictureBox10.Click, Label12.Click, Label15.Click
+    Private Sub Hub_Click(sender As Object, e As EventArgs) Handles HUDLayout_TEXT.Click, HUDLayout_ICO.Click
         OpenPanel(Base_Overlay_Hub, Base_Overlay_Hub.settings_1)
     End Sub
 
     ' ========== KEYBOARD SHORTCUTS ==========
-    Private Sub K1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox11.MouseMove, Label17.MouseMove, Label18.MouseMove
-        k1.BackColor = greenColor
+    Private Sub K1_MouseMove(sender As Object, e As MouseEventArgs) Handles KeyboardShortcuts_TEXT.MouseMove, KeyboardShortcuts_ICO.MouseMove
+        KeyboardShortcuts_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub K1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox11.MouseLeave, Label17.MouseLeave, Label18.MouseLeave
-        k1.BackColor = grayColor
+    Private Sub K1_MouseLeave(sender As Object, e As EventArgs) Handles KeyboardShortcuts_TEXT.MouseLeave, KeyboardShortcuts_ICO.MouseLeave
+        KeyboardShortcuts_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub K1_Click(sender As Object, e As EventArgs) Handles PictureBox11.Click, Label17.Click, Label18.Click
+    Private Sub K1_Click(sender As Object, e As EventArgs) Handles KeyboardShortcuts_TEXT.Click, KeyboardShortcuts_ICO.Click
         OpenPanel(Base_KeySet, Base_KeySet.keyset)
     End Sub
 
     ' ========== HIGHLIGHTS ==========
-    Private Sub Highlights_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox16.MouseMove, Label21.MouseMove, Label22.MouseMove
-        hg2.BackColor = greenColor
+    Private Sub Highlights_MouseMove(sender As Object, e As MouseEventArgs) Handles Highlights_TEXT.MouseMove, Highlights_ICO.MouseMove
+        Highlights_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Highlights_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox16.MouseLeave, Label21.MouseLeave, Label22.MouseLeave
-        hg2.BackColor = grayColor
+    Private Sub Highlights_MouseLeave(sender As Object, e As EventArgs) Handles Highlights_TEXT.MouseLeave, Highlights_ICO.MouseLeave
+        Highlights_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Highlights_Click(sender As Object, e As EventArgs) Handles PictureBox16.Click, Label21.Click, Label22.Click
+    Private Sub Highlights_Click(sender As Object, e As EventArgs) Handles Highlights_TEXT.Click, Highlights_ICO.Click
         ShowNotifier("feature_not_ready")
     End Sub
 
     ' ========== VIDEO CAPTURE SETTINGS ==========
-    Private Sub vd1_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox13.MouseMove, vdo_setme.MouseMove, videoCapture_Text.MouseMove, videoCapture_ICO.MouseMove
-        vd1.BackColor = greenColor
+    Private Sub vd1_MouseMove(sender As Object, e As MouseEventArgs) Handles VideoCapture_TEXT_SUB.MouseMove, VideoCapture_TEXT.MouseMove, VideoCapture_ICO.MouseMove
+        VideoCapture_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox13.MouseLeave, vdo_setme.MouseLeave, videoCapture_Text.MouseLeave, videoCapture_ICO.MouseLeave
-        vd1.BackColor = grayColor
+    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.MouseLeave, VideoCapture_TEXT.MouseLeave, VideoCapture_ICO.MouseLeave
+        VideoCapture_BOX_SUB.BackColor = grayColor
     End Sub
 
 
@@ -634,43 +634,43 @@ Partial Public Class Base
         td.Start()
     End Sub
 
-    Private Sub vd1_Click(sender As Object, e As EventArgs) Handles PictureBox13.Click, vdo_setme.Click, videoCapture_Text.Click, videoCapture_ICO.Click
+    Private Sub vd1_Click(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.Click, VideoCapture_TEXT.Click, VideoCapture_ICO.Click
         OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
 
     End Sub
 
     ' ========== NOTIFICATIONS ==========
-    Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox17.MouseMove, notifications_Text.MouseMove, notifications_ICO.MouseMove
-        noy.BackColor = greenColor
+    Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles Notifications_TEXT.MouseMove, notifications_ICO.MouseMove
+        Notifications_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox17.MouseLeave, notifications_Text.MouseLeave, notifications_ICO.MouseLeave
-        noy.BackColor = grayColor
+    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles Notifications_TEXT.MouseLeave, notifications_ICO.MouseLeave
+        Notifications_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Noti_Click(sender As Object, e As EventArgs) Handles PictureBox17.Click, notifications_Text.Click, notifications_ICO.Click
+    Private Sub Noti_Click(sender As Object, e As EventArgs) Handles Notifications_TEXT.Click, notifications_ICO.Click
         If isNotiOn = True Then
             notifications_ICO.ForeColor = Color.White
-            notifications_Text.ForeColor = Color.White
+            Notifications_TEXT.ForeColor = Color.White
             isNotiOn = False
         Else
             notifications_ICO.ForeColor = Color.Gray
-            notifications_Text.ForeColor = Color.Gray
+            Notifications_TEXT.ForeColor = Color.Gray
             isNotiOn = True
         End If
     End Sub
 
     ' ========== ABOUT ==========
-    Private Sub About_MouseMove(sender As Object, e As MouseEventArgs) Handles PictureBox1.MouseMove, About_Text.MouseMove, Label9.MouseMove
-        ab_bg.BackColor = greenColor
+    Private Sub About_MouseMove(sender As Object, e As MouseEventArgs) Handles About_TEXT.MouseMove, About_ICO.MouseMove
+        About_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub About_MouseLeave(sender As Object, e As EventArgs) Handles PictureBox1.MouseLeave, About_Text.MouseLeave, Label9.MouseLeave
-        ab_bg.BackColor = grayColor
+    Private Sub About_MouseLeave(sender As Object, e As EventArgs) Handles About_TEXT.MouseLeave, About_ICO.MouseLeave
+        About_BOX_SUB.BackColor = grayColor
     End Sub
 
 #End Region
-    Private Sub PictureBox1_Click(sender As Object, e As EventArgs) Handles PictureBox1.Click, About_Text.Click, Label9.Click
+    Private Sub PictureBox1_Click(sender As Object, e As EventArgs) Handles About_TEXT.Click, About_ICO.Click
         ShowNotifier("feature_not_ready")
     End Sub
 

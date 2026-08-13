@@ -646,15 +646,16 @@ Partial Public Class Base
 #Region "===========================Preferences"
 
         Settings_List_Text.Text = L("l10n.preferencesHome")
-        Connect_Text.Text = L("l10n.connect")
-        Label12.Text = L("l10n.hudLayout")
-        Label21.Text = L("l10n.highlights")
-        Label17.Text = L("l10n.keyboardShortcuts")
-        videoCapture_Text.Text = L("l10n.videoCapture")
-        vdo_setme.Text = L("l10n.videoCaptureText")
-        notifications_Text.Text = L("l10n.notifications")
-        Label4.Text = L("l10n.privacyControl")
-        About_Text.Text = L("l10n.about")
+        Connect_TEXT.Text = L("l10n.connect")
+        HUDLayout_TEXT.Text = L("l10n.hudLayout")
+        Highlights_TEXT.Text = L("l10n.highlights")
+        KeyboardShortcuts_TEXT.Text = L("l10n.keyboardShortcuts")
+        VideoCapture_TEXT.Text = L("l10n.videoCapture")
+        Engine_TEXT.Text = L("l10n.engine")
+        VideoCapture_TEXT_SUB.Text = L("l10n.videoCaptureText")
+        Notifications_TEXT.Text = L("l10n.notifications")
+        PrivacyControl_TEXT.Text = L("l10n.privacyControl")
+        About_TEXT.Text = L("l10n.about")
 
 #End Region '===========================
 

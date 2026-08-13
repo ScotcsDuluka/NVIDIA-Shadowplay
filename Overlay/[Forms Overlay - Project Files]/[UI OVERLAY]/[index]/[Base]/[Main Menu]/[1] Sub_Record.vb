@@ -287,10 +287,6 @@ Partial Public Class Base
 
 #Region "Save Instant Replay"
 
-    ''' <summary>
-    ''' บันทึก clip จาก Replay Buffer ผ่าน TCP → Engine
-    '''   Command: REPLAY_SAVE &lt;outputPath&gt;;&lt;duration&gt;
-    ''' </summary>
     Public Async Sub SaveInstantReplay()
         If Not CheckUiCooldown() Then Exit Sub
         MarkUiAction()
@@ -319,7 +315,14 @@ Partial Public Class Base
             Debug.WriteLine($"SaveInstantReplay: {outputPath} ({duration}s)")
 
             ' TCP: REPLAY_SAVE <path>;<duration>
-            Try : tcp.Send("REPLAY_SAVE", $"{outputPath};{duration}")
+            Try
+                Await Task.Run(Sub()
+                                   Try
+                                       tcp.Send("REPLAY_SAVE", $"{outputPath};{duration}")
+                                   Catch ex As Exception
+                                       Debug.WriteLine("REPLAY_SAVE TCP Error: " & ex.Message)
+                                   End Try
+                               End Sub)
             Catch ex As Exception
                 Debug.WriteLine("REPLAY_SAVE TCP Error: " & ex.Message)
             End Try

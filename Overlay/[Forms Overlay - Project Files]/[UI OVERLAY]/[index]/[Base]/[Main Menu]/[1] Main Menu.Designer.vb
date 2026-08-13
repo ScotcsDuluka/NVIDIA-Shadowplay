@@ -138,45 +138,42 @@ Partial Class Base
         Settings_List_Text = New Label()
         Settings_index = New PictureBox()
         Settings_List_All = New Panel()
-        videoCapture_Text = New Label()
-        Connect_Text = New Label()
-        vdo_setme = New Label()
+        Connect_TEXT = New Label()
+        HUDLayout_TEXT = New Label()
+        Highlights_TEXT = New Label()
+        KeyboardShortcuts_TEXT = New Label()
+        VideoCapture_TEXT = New Label()
+        VideoCapture_TEXT_SUB = New Label()
+        Engine_TEXT = New Label()
+        Notifications_TEXT = New Label()
+        PrivacyControl_TEXT = New Label()
+        About_TEXT = New Label()
+        PictureBox7 = New PictureBox()
+        Engine_ICO = New Label()
         PictureBox14 = New PictureBox()
-        notifications_Text = New Label()
         notifications_ICO = New Label()
-        PictureBox17 = New PictureBox()
-        noy = New PictureBox()
         PictureBox15 = New PictureBox()
-        Label21 = New Label()
-        Label22 = New Label()
-        PictureBox16 = New PictureBox()
-        hg2 = New PictureBox()
+        Highlights_ICO = New Label()
         PictureBox12 = New PictureBox()
-        videoCapture_ICO = New Label()
-        PictureBox13 = New PictureBox()
-        vd1 = New PictureBox()
+        VideoCapture_ICO = New Label()
         PictureBox2 = New PictureBox()
-        Label17 = New Label()
-        Label18 = New Label()
-        PictureBox11 = New PictureBox()
-        k1 = New PictureBox()
-        Label12 = New Label()
-        Label15 = New Label()
-        PictureBox10 = New PictureBox()
+        KeyboardShortcuts_ICO = New Label()
+        HUDLayout_ICO = New Label()
         PictureBox9 = New PictureBox()
-        hub = New PictureBox()
         Connect_ICO = New Label()
-        Label4 = New Label()
-        Label5 = New Label()
+        PrivacyControl_ICO = New Label()
         PictureBox4 = New PictureBox()
         PictureBox3 = New PictureBox()
-        saved_e = New PictureBox()
-        About_Text = New Label()
-        Label9 = New Label()
-        PictureBox1 = New PictureBox()
-        ab_bg = New PictureBox()
-        saved_e1 = New PictureBox()
-        Connect_Box_Sub = New PictureBox()
+        About_ICO = New Label()
+        Connect_BOX_SUB = New PictureBox()
+        HUDLayout_BOX_SUB = New PictureBox()
+        KeyboardShortcuts_BOX_SUB = New PictureBox()
+        Highlights_BOX_SUB = New PictureBox()
+        VideoCapture_BOX_SUB = New PictureBox()
+        Engine_BOX_SUB = New PictureBox()
+        Notifications_BOX_SUB = New PictureBox()
+        PrivacyControl_BOX_SUB = New PictureBox()
+        About_BOX_SUB = New PictureBox()
         Settings_List_Box = New PictureBox()
         Load_App = New Timer(components)
         not_save = New Timer(components)
@@ -253,28 +250,23 @@ Partial Class Base
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Settings_index, ComponentModel.ISupportInitialize).BeginInit()
         Settings_List_All.SuspendLayout()
+        CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox17, ComponentModel.ISupportInitialize).BeginInit()
-        CType(noy, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
-        CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox12, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox13, ComponentModel.ISupportInitialize).BeginInit()
-        CType(vd1, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).BeginInit()
-        CType(k1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
-        CType(hub, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox4, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
-        CType(saved_e, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(ab_bg, ComponentModel.ISupportInitialize).BeginInit()
-        CType(saved_e1, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Connect_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(HUDLayout_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(KeyboardShortcuts_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Highlights_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(VideoCapture_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Engine_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Notifications_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PrivacyControl_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
+        CType(About_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
         CType(Settings_List_Box, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
@@ -1634,111 +1626,210 @@ Partial Class Base
         Settings_List_All.AutoScroll = True
         Settings_List_All.AutoScrollMargin = New Size(0, 1)
         Settings_List_All.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_List_All.Controls.Add(videoCapture_Text)
-        Settings_List_All.Controls.Add(Connect_Text)
-        Settings_List_All.Controls.Add(vdo_setme)
+        Settings_List_All.Controls.Add(Connect_TEXT)
+        Settings_List_All.Controls.Add(HUDLayout_TEXT)
+        Settings_List_All.Controls.Add(Highlights_TEXT)
+        Settings_List_All.Controls.Add(KeyboardShortcuts_TEXT)
+        Settings_List_All.Controls.Add(VideoCapture_TEXT)
+        Settings_List_All.Controls.Add(VideoCapture_TEXT_SUB)
+        Settings_List_All.Controls.Add(Engine_TEXT)
+        Settings_List_All.Controls.Add(Notifications_TEXT)
+        Settings_List_All.Controls.Add(PrivacyControl_TEXT)
+        Settings_List_All.Controls.Add(About_TEXT)
+        Settings_List_All.Controls.Add(PictureBox7)
+        Settings_List_All.Controls.Add(Engine_ICO)
         Settings_List_All.Controls.Add(PictureBox14)
-        Settings_List_All.Controls.Add(notifications_Text)
         Settings_List_All.Controls.Add(notifications_ICO)
-        Settings_List_All.Controls.Add(PictureBox17)
-        Settings_List_All.Controls.Add(noy)
         Settings_List_All.Controls.Add(PictureBox15)
-        Settings_List_All.Controls.Add(Label21)
-        Settings_List_All.Controls.Add(Label22)
-        Settings_List_All.Controls.Add(PictureBox16)
-        Settings_List_All.Controls.Add(hg2)
+        Settings_List_All.Controls.Add(Highlights_ICO)
         Settings_List_All.Controls.Add(PictureBox12)
-        Settings_List_All.Controls.Add(videoCapture_ICO)
-        Settings_List_All.Controls.Add(PictureBox13)
-        Settings_List_All.Controls.Add(vd1)
+        Settings_List_All.Controls.Add(VideoCapture_ICO)
         Settings_List_All.Controls.Add(PictureBox2)
-        Settings_List_All.Controls.Add(Label17)
-        Settings_List_All.Controls.Add(Label18)
-        Settings_List_All.Controls.Add(PictureBox11)
-        Settings_List_All.Controls.Add(k1)
-        Settings_List_All.Controls.Add(Label12)
-        Settings_List_All.Controls.Add(Label15)
-        Settings_List_All.Controls.Add(PictureBox10)
+        Settings_List_All.Controls.Add(KeyboardShortcuts_ICO)
+        Settings_List_All.Controls.Add(HUDLayout_ICO)
         Settings_List_All.Controls.Add(PictureBox9)
-        Settings_List_All.Controls.Add(hub)
         Settings_List_All.Controls.Add(Connect_ICO)
-        Settings_List_All.Controls.Add(Label4)
-        Settings_List_All.Controls.Add(Label5)
+        Settings_List_All.Controls.Add(PrivacyControl_ICO)
         Settings_List_All.Controls.Add(PictureBox4)
         Settings_List_All.Controls.Add(PictureBox3)
-        Settings_List_All.Controls.Add(saved_e)
-        Settings_List_All.Controls.Add(About_Text)
-        Settings_List_All.Controls.Add(Label9)
-        Settings_List_All.Controls.Add(PictureBox1)
-        Settings_List_All.Controls.Add(ab_bg)
-        Settings_List_All.Controls.Add(saved_e1)
-        Settings_List_All.Controls.Add(Connect_Box_Sub)
+        Settings_List_All.Controls.Add(About_ICO)
+        Settings_List_All.Controls.Add(Connect_BOX_SUB)
+        Settings_List_All.Controls.Add(HUDLayout_BOX_SUB)
+        Settings_List_All.Controls.Add(KeyboardShortcuts_BOX_SUB)
+        Settings_List_All.Controls.Add(Highlights_BOX_SUB)
+        Settings_List_All.Controls.Add(VideoCapture_BOX_SUB)
+        Settings_List_All.Controls.Add(Engine_BOX_SUB)
+        Settings_List_All.Controls.Add(Notifications_BOX_SUB)
+        Settings_List_All.Controls.Add(PrivacyControl_BOX_SUB)
+        Settings_List_All.Controls.Add(About_BOX_SUB)
         Settings_List_All.Location = New Point(30, 83)
         Settings_List_All.Name = "Settings_List_All"
-        Settings_List_All.Size = New Size(361, 632)
+        Settings_List_All.Size = New Size(352, 636)
         Settings_List_All.TabIndex = 73
         ' 
-        ' videoCapture_Text
+        ' Connect_TEXT
         ' 
-        videoCapture_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        videoCapture_Text.Cursor = Cursors.Hand
-        videoCapture_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        videoCapture_Text.ForeColor = Color.White
-        videoCapture_Text.Location = New Point(60, 321)
-        videoCapture_Text.Name = "videoCapture_Text"
-        videoCapture_Text.Size = New Size(233, 30)
-        videoCapture_Text.TabIndex = 83
-        videoCapture_Text.Text = "l10n.videoCapture"
-        videoCapture_Text.TextAlign = ContentAlignment.BottomLeft
+        Connect_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Connect_TEXT.Cursor = Cursors.Hand
+        Connect_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Connect_TEXT.ForeColor = Color.White
+        Connect_TEXT.Location = New Point(60, 2)
+        Connect_TEXT.Name = "Connect_TEXT"
+        Connect_TEXT.Size = New Size(233, 56)
+        Connect_TEXT.TabIndex = 47
+        Connect_TEXT.Text = "l10n.connect"
+        Connect_TEXT.TextAlign = ContentAlignment.MiddleLeft
         ' 
-        ' Connect_Text
+        ' HUDLayout_TEXT
         ' 
-        Connect_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Connect_Text.Cursor = Cursors.Hand
-        Connect_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        Connect_Text.ForeColor = Color.White
-        Connect_Text.Location = New Point(60, 2)
-        Connect_Text.Name = "Connect_Text"
-        Connect_Text.Size = New Size(233, 56)
-        Connect_Text.TabIndex = 47
-        Connect_Text.Text = "l10n.connect"
-        Connect_Text.TextAlign = ContentAlignment.MiddleLeft
+        HUDLayout_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        HUDLayout_TEXT.Cursor = Cursors.Hand
+        HUDLayout_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        HUDLayout_TEXT.ForeColor = Color.White
+        HUDLayout_TEXT.Location = New Point(60, 82)
+        HUDLayout_TEXT.Name = "HUDLayout_TEXT"
+        HUDLayout_TEXT.Size = New Size(233, 56)
+        HUDLayout_TEXT.TabIndex = 74
+        HUDLayout_TEXT.Text = "l10n.hudLayout"
+        HUDLayout_TEXT.TextAlign = ContentAlignment.MiddleLeft
         ' 
-        ' vdo_setme
+        ' Highlights_TEXT
         ' 
-        vdo_setme.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        vdo_setme.Cursor = Cursors.Hand
-        vdo_setme.Font = New Font("Segoe UI Semibold", 8F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        vdo_setme.ForeColor = Color.Gray
-        vdo_setme.Location = New Point(61, 351)
-        vdo_setme.Name = "vdo_setme"
-        vdo_setme.Size = New Size(232, 25)
-        vdo_setme.TabIndex = 68
-        vdo_setme.Text = "Instant Replay, Record, and Highlight" & vbCrLf
+        Highlights_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Highlights_TEXT.Cursor = Cursors.Hand
+        Highlights_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Highlights_TEXT.ForeColor = Color.White
+        Highlights_TEXT.Location = New Point(60, 162)
+        Highlights_TEXT.Name = "Highlights_TEXT"
+        Highlights_TEXT.Size = New Size(233, 56)
+        Highlights_TEXT.TabIndex = 88
+        Highlights_TEXT.Text = "l10n.highlights"
+        Highlights_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' KeyboardShortcuts_TEXT
+        ' 
+        KeyboardShortcuts_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        KeyboardShortcuts_TEXT.Cursor = Cursors.Hand
+        KeyboardShortcuts_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        KeyboardShortcuts_TEXT.ForeColor = Color.White
+        KeyboardShortcuts_TEXT.Location = New Point(60, 242)
+        KeyboardShortcuts_TEXT.Name = "KeyboardShortcuts_TEXT"
+        KeyboardShortcuts_TEXT.Size = New Size(233, 56)
+        KeyboardShortcuts_TEXT.TabIndex = 78
+        KeyboardShortcuts_TEXT.Text = "l10n.keyboardShortcuts"
+        KeyboardShortcuts_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' VideoCapture_TEXT
+        ' 
+        VideoCapture_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        VideoCapture_TEXT.Cursor = Cursors.Hand
+        VideoCapture_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        VideoCapture_TEXT.ForeColor = Color.White
+        VideoCapture_TEXT.Location = New Point(60, 322)
+        VideoCapture_TEXT.Name = "VideoCapture_TEXT"
+        VideoCapture_TEXT.Size = New Size(233, 31)
+        VideoCapture_TEXT.TabIndex = 83
+        VideoCapture_TEXT.Text = "l10n.videoCapture"
+        VideoCapture_TEXT.TextAlign = ContentAlignment.BottomLeft
+        ' 
+        ' VideoCapture_TEXT_SUB
+        ' 
+        VideoCapture_TEXT_SUB.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        VideoCapture_TEXT_SUB.Cursor = Cursors.Hand
+        VideoCapture_TEXT_SUB.Font = New Font("Segoe UI Semibold", 8F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        VideoCapture_TEXT_SUB.ForeColor = Color.Gray
+        VideoCapture_TEXT_SUB.Location = New Point(61, 353)
+        VideoCapture_TEXT_SUB.Name = "VideoCapture_TEXT_SUB"
+        VideoCapture_TEXT_SUB.Size = New Size(232, 25)
+        VideoCapture_TEXT_SUB.TabIndex = 68
+        VideoCapture_TEXT_SUB.Text = "Instant Replay, Record, and Highlight" & vbCrLf
+        ' 
+        ' Engine_TEXT
+        ' 
+        Engine_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Engine_TEXT.Cursor = Cursors.Hand
+        Engine_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Engine_TEXT.ForeColor = Color.White
+        Engine_TEXT.Location = New Point(60, 402)
+        Engine_TEXT.Name = "Engine_TEXT"
+        Engine_TEXT.Size = New Size(233, 56)
+        Engine_TEXT.TabIndex = 98
+        Engine_TEXT.Text = "l10n.engine"
+        Engine_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Notifications_TEXT
+        ' 
+        Notifications_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Notifications_TEXT.Cursor = Cursors.Hand
+        Notifications_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Notifications_TEXT.ForeColor = Color.White
+        Notifications_TEXT.Location = New Point(60, 482)
+        Notifications_TEXT.Name = "Notifications_TEXT"
+        Notifications_TEXT.Size = New Size(233, 56)
+        Notifications_TEXT.TabIndex = 93
+        Notifications_TEXT.Text = "l10n.notifications"
+        Notifications_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' PrivacyControl_TEXT
+        ' 
+        PrivacyControl_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PrivacyControl_TEXT.Cursor = Cursors.Hand
+        PrivacyControl_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        PrivacyControl_TEXT.ForeColor = Color.White
+        PrivacyControl_TEXT.Location = New Point(60, 562)
+        PrivacyControl_TEXT.Name = "PrivacyControl_TEXT"
+        PrivacyControl_TEXT.Size = New Size(233, 56)
+        PrivacyControl_TEXT.TabIndex = 67
+        PrivacyControl_TEXT.Text = "l10n.privacyControl"
+        PrivacyControl_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' About_TEXT
+        ' 
+        About_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        About_TEXT.Cursor = Cursors.Hand
+        About_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        About_TEXT.ForeColor = Color.White
+        About_TEXT.Location = New Point(60, 642)
+        About_TEXT.Name = "About_TEXT"
+        About_TEXT.Size = New Size(233, 56)
+        About_TEXT.TabIndex = 63
+        About_TEXT.Text = "l10n.about"
+        About_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' PictureBox7
+        ' 
+        PictureBox7.BackColor = Color.Black
+        PictureBox7.Cursor = Cursors.Hand
+        PictureBox7.Location = New Point(0, 380)
+        PictureBox7.Name = "PictureBox7"
+        PictureBox7.Size = New Size(100, 20)
+        PictureBox7.TabIndex = 99
+        PictureBox7.TabStop = False
+        PictureBox7.Visible = False
+        ' 
+        ' Engine_ICO
+        ' 
+        Engine_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Engine_ICO.Cursor = Cursors.Hand
+        Engine_ICO.Font = New Font("nvgcshare", 26F)
+        Engine_ICO.ForeColor = Color.White
+        Engine_ICO.Location = New Point(2, 402)
+        Engine_ICO.Name = "Engine_ICO"
+        Engine_ICO.Size = New Size(64, 56)
+        Engine_ICO.TabIndex = 97
+        Engine_ICO.Text = ""
+        Engine_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox14
         ' 
         PictureBox14.BackColor = Color.Black
         PictureBox14.Cursor = Cursors.Hand
-        PictureBox14.Location = New Point(0, 378)
+        PictureBox14.Location = New Point(0, 460)
         PictureBox14.Name = "PictureBox14"
         PictureBox14.Size = New Size(100, 20)
         PictureBox14.TabIndex = 94
         PictureBox14.TabStop = False
         PictureBox14.Visible = False
-        ' 
-        ' notifications_Text
-        ' 
-        notifications_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        notifications_Text.Cursor = Cursors.Hand
-        notifications_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        notifications_Text.ForeColor = Color.White
-        notifications_Text.Location = New Point(60, 400)
-        notifications_Text.Name = "notifications_Text"
-        notifications_Text.Size = New Size(233, 56)
-        notifications_Text.TabIndex = 93
-        notifications_Text.Text = "l10n.notifications"
-        notifications_Text.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' notifications_ICO
         ' 
@@ -1746,247 +1837,108 @@ Partial Class Base
         notifications_ICO.Cursor = Cursors.Hand
         notifications_ICO.Font = New Font("nvgcshare", 26F)
         notifications_ICO.ForeColor = Color.White
-        notifications_ICO.Location = New Point(3, 400)
+        notifications_ICO.Location = New Point(2, 482)
         notifications_ICO.Name = "notifications_ICO"
-        notifications_ICO.Size = New Size(63, 56)
+        notifications_ICO.Size = New Size(64, 56)
         notifications_ICO.TabIndex = 92
         notifications_ICO.Text = ""
         notifications_ICO.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox17
-        ' 
-        PictureBox17.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox17.Cursor = Cursors.Hand
-        PictureBox17.Location = New Point(2, 400)
-        PictureBox17.Name = "PictureBox17"
-        PictureBox17.Size = New Size(291, 56)
-        PictureBox17.TabIndex = 91
-        PictureBox17.TabStop = False
-        ' 
-        ' noy
-        ' 
-        noy.BackColor = Color.DimGray
-        noy.Cursor = Cursors.Hand
-        noy.Location = New Point(0, 398)
-        noy.Name = "noy"
-        noy.Size = New Size(295, 60)
-        noy.TabIndex = 90
-        noy.TabStop = False
         ' 
         ' PictureBox15
         ' 
         PictureBox15.BackColor = Color.Black
         PictureBox15.Cursor = Cursors.Hand
-        PictureBox15.Location = New Point(0, 139)
+        PictureBox15.Location = New Point(0, 140)
         PictureBox15.Name = "PictureBox15"
         PictureBox15.Size = New Size(100, 20)
         PictureBox15.TabIndex = 89
         PictureBox15.TabStop = False
         PictureBox15.Visible = False
         ' 
-        ' Label21
+        ' Highlights_ICO
         ' 
-        Label21.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label21.Cursor = Cursors.Hand
-        Label21.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        Label21.ForeColor = Color.White
-        Label21.Location = New Point(60, 161)
-        Label21.Name = "Label21"
-        Label21.Size = New Size(233, 56)
-        Label21.TabIndex = 88
-        Label21.Text = "l10n.highlights"
-        Label21.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label22
-        ' 
-        Label22.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label22.Cursor = Cursors.Hand
-        Label22.Font = New Font("nvgcshare", 26F)
-        Label22.ForeColor = Color.White
-        Label22.Location = New Point(3, 161)
-        Label22.Name = "Label22"
-        Label22.Size = New Size(63, 56)
-        Label22.TabIndex = 87
-        Label22.Text = ""
-        Label22.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox16
-        ' 
-        PictureBox16.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox16.Cursor = Cursors.Hand
-        PictureBox16.Location = New Point(2, 161)
-        PictureBox16.Name = "PictureBox16"
-        PictureBox16.Size = New Size(291, 56)
-        PictureBox16.TabIndex = 86
-        PictureBox16.TabStop = False
-        ' 
-        ' hg2
-        ' 
-        hg2.BackColor = Color.DimGray
-        hg2.Cursor = Cursors.Hand
-        hg2.Location = New Point(0, 159)
-        hg2.Name = "hg2"
-        hg2.Size = New Size(295, 60)
-        hg2.TabIndex = 85
-        hg2.TabStop = False
+        Highlights_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Highlights_ICO.Cursor = Cursors.Hand
+        Highlights_ICO.Font = New Font("nvgcshare", 26F)
+        Highlights_ICO.ForeColor = Color.White
+        Highlights_ICO.Location = New Point(2, 162)
+        Highlights_ICO.Name = "Highlights_ICO"
+        Highlights_ICO.Size = New Size(64, 56)
+        Highlights_ICO.TabIndex = 87
+        Highlights_ICO.Text = ""
+        Highlights_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox12
         ' 
         PictureBox12.BackColor = Color.Black
         PictureBox12.Cursor = Cursors.Hand
-        PictureBox12.Location = New Point(0, 298)
+        PictureBox12.Location = New Point(0, 300)
         PictureBox12.Name = "PictureBox12"
         PictureBox12.Size = New Size(100, 20)
         PictureBox12.TabIndex = 84
         PictureBox12.TabStop = False
         PictureBox12.Visible = False
         ' 
-        ' videoCapture_ICO
+        ' VideoCapture_ICO
         ' 
-        videoCapture_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        videoCapture_ICO.Cursor = Cursors.Hand
-        videoCapture_ICO.Font = New Font("nvgcshare", 26F)
-        videoCapture_ICO.ForeColor = Color.White
-        videoCapture_ICO.Location = New Point(3, 320)
-        videoCapture_ICO.Name = "videoCapture_ICO"
-        videoCapture_ICO.Size = New Size(63, 56)
-        videoCapture_ICO.TabIndex = 82
-        videoCapture_ICO.Text = ""
-        videoCapture_ICO.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox13
-        ' 
-        PictureBox13.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox13.Cursor = Cursors.Hand
-        PictureBox13.Location = New Point(2, 320)
-        PictureBox13.Name = "PictureBox13"
-        PictureBox13.Size = New Size(291, 56)
-        PictureBox13.TabIndex = 81
-        PictureBox13.TabStop = False
-        ' 
-        ' vd1
-        ' 
-        vd1.BackColor = Color.DimGray
-        vd1.Cursor = Cursors.Hand
-        vd1.Location = New Point(0, 318)
-        vd1.Name = "vd1"
-        vd1.Size = New Size(295, 60)
-        vd1.TabIndex = 80
-        vd1.TabStop = False
+        VideoCapture_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        VideoCapture_ICO.Cursor = Cursors.Hand
+        VideoCapture_ICO.Font = New Font("nvgcshare", 26F)
+        VideoCapture_ICO.ForeColor = Color.White
+        VideoCapture_ICO.Location = New Point(2, 322)
+        VideoCapture_ICO.Name = "VideoCapture_ICO"
+        VideoCapture_ICO.Size = New Size(64, 56)
+        VideoCapture_ICO.TabIndex = 82
+        VideoCapture_ICO.Text = ""
+        VideoCapture_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox2
         ' 
         PictureBox2.BackColor = Color.Black
         PictureBox2.Cursor = Cursors.Hand
-        PictureBox2.Location = New Point(0, 218)
+        PictureBox2.Location = New Point(0, 220)
         PictureBox2.Name = "PictureBox2"
         PictureBox2.Size = New Size(100, 20)
         PictureBox2.TabIndex = 79
         PictureBox2.TabStop = False
         PictureBox2.Visible = False
         ' 
-        ' Label17
+        ' KeyboardShortcuts_ICO
         ' 
-        Label17.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label17.Cursor = Cursors.Hand
-        Label17.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        Label17.ForeColor = Color.White
-        Label17.Location = New Point(60, 240)
-        Label17.Name = "Label17"
-        Label17.Size = New Size(233, 56)
-        Label17.TabIndex = 78
-        Label17.Text = "l10n.keyboardShortcuts"
-        Label17.TextAlign = ContentAlignment.MiddleLeft
+        KeyboardShortcuts_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        KeyboardShortcuts_ICO.Cursor = Cursors.Hand
+        KeyboardShortcuts_ICO.Font = New Font("nvgcshare", 26F)
+        KeyboardShortcuts_ICO.ForeColor = Color.White
+        KeyboardShortcuts_ICO.Location = New Point(2, 242)
+        KeyboardShortcuts_ICO.Name = "KeyboardShortcuts_ICO"
+        KeyboardShortcuts_ICO.Size = New Size(64, 56)
+        KeyboardShortcuts_ICO.TabIndex = 77
+        KeyboardShortcuts_ICO.Text = ""
+        KeyboardShortcuts_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' Label18
+        ' HUDLayout_ICO
         ' 
-        Label18.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label18.Cursor = Cursors.Hand
-        Label18.Font = New Font("nvgcshare", 26F)
-        Label18.ForeColor = Color.White
-        Label18.Location = New Point(3, 240)
-        Label18.Name = "Label18"
-        Label18.Size = New Size(63, 56)
-        Label18.TabIndex = 77
-        Label18.Text = ""
-        Label18.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox11
-        ' 
-        PictureBox11.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox11.Cursor = Cursors.Hand
-        PictureBox11.Location = New Point(2, 240)
-        PictureBox11.Name = "PictureBox11"
-        PictureBox11.Size = New Size(291, 56)
-        PictureBox11.TabIndex = 76
-        PictureBox11.TabStop = False
-        ' 
-        ' k1
-        ' 
-        k1.BackColor = Color.DimGray
-        k1.Cursor = Cursors.Hand
-        k1.Location = New Point(0, 238)
-        k1.Name = "k1"
-        k1.Size = New Size(295, 60)
-        k1.TabIndex = 75
-        k1.TabStop = False
-        ' 
-        ' Label12
-        ' 
-        Label12.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label12.Cursor = Cursors.Hand
-        Label12.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        Label12.ForeColor = Color.White
-        Label12.Location = New Point(60, 81)
-        Label12.Name = "Label12"
-        Label12.Size = New Size(233, 56)
-        Label12.TabIndex = 74
-        Label12.Text = "l10n.hudLayout"
-        Label12.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label15
-        ' 
-        Label15.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label15.Cursor = Cursors.Hand
-        Label15.Font = New Font("nvgcshare", 26F)
-        Label15.ForeColor = Color.White
-        Label15.Location = New Point(3, 81)
-        Label15.Name = "Label15"
-        Label15.Size = New Size(63, 56)
-        Label15.TabIndex = 73
-        Label15.Text = ""
-        Label15.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox10
-        ' 
-        PictureBox10.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox10.Cursor = Cursors.Hand
-        PictureBox10.Location = New Point(2, 81)
-        PictureBox10.Name = "PictureBox10"
-        PictureBox10.Size = New Size(291, 56)
-        PictureBox10.TabIndex = 72
-        PictureBox10.TabStop = False
+        HUDLayout_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        HUDLayout_ICO.Cursor = Cursors.Hand
+        HUDLayout_ICO.Font = New Font("nvgcshare", 26F)
+        HUDLayout_ICO.ForeColor = Color.White
+        HUDLayout_ICO.Location = New Point(2, 82)
+        HUDLayout_ICO.Name = "HUDLayout_ICO"
+        HUDLayout_ICO.Size = New Size(64, 56)
+        HUDLayout_ICO.TabIndex = 73
+        HUDLayout_ICO.Text = ""
+        HUDLayout_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox9
         ' 
         PictureBox9.BackColor = Color.Black
         PictureBox9.Cursor = Cursors.Hand
-        PictureBox9.Location = New Point(0, 457)
+        PictureBox9.Location = New Point(0, 540)
         PictureBox9.Name = "PictureBox9"
         PictureBox9.Size = New Size(100, 20)
         PictureBox9.TabIndex = 71
         PictureBox9.TabStop = False
         PictureBox9.Visible = False
-        ' 
-        ' hub
-        ' 
-        hub.BackColor = Color.DimGray
-        hub.Cursor = Cursors.Hand
-        hub.Location = New Point(0, 79)
-        hub.Name = "hub"
-        hub.Size = New Size(295, 60)
-        hub.TabIndex = 70
-        hub.TabStop = False
         ' 
         ' Connect_ICO
         ' 
@@ -2001,37 +1953,24 @@ Partial Class Base
         Connect_ICO.Text = ""
         Connect_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' Label4
+        ' PrivacyControl_ICO
         ' 
-        Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Cursor = Cursors.Hand
-        Label4.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        Label4.ForeColor = Color.White
-        Label4.Location = New Point(60, 479)
-        Label4.Name = "Label4"
-        Label4.Size = New Size(233, 56)
-        Label4.TabIndex = 67
-        Label4.Text = "l10n.privacyControl"
-        Label4.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label5
-        ' 
-        Label5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label5.Cursor = Cursors.Hand
-        Label5.Font = New Font("nvgcshare", 26F)
-        Label5.ForeColor = Color.White
-        Label5.Location = New Point(3, 479)
-        Label5.Name = "Label5"
-        Label5.Size = New Size(63, 56)
-        Label5.TabIndex = 66
-        Label5.Text = ""
-        Label5.TextAlign = ContentAlignment.MiddleCenter
+        PrivacyControl_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PrivacyControl_ICO.Cursor = Cursors.Hand
+        PrivacyControl_ICO.Font = New Font("nvgcshare", 26F)
+        PrivacyControl_ICO.ForeColor = Color.White
+        PrivacyControl_ICO.Location = New Point(2, 562)
+        PrivacyControl_ICO.Name = "PrivacyControl_ICO"
+        PrivacyControl_ICO.Size = New Size(64, 56)
+        PrivacyControl_ICO.TabIndex = 66
+        PrivacyControl_ICO.Text = ""
+        PrivacyControl_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' PictureBox4
         ' 
         PictureBox4.BackColor = Color.Black
         PictureBox4.Cursor = Cursors.Hand
-        PictureBox4.Location = New Point(0, 538)
+        PictureBox4.Location = New Point(0, 620)
         PictureBox4.Name = "PictureBox4"
         PictureBox4.Size = New Size(100, 20)
         PictureBox4.TabIndex = 65
@@ -2049,81 +1988,108 @@ Partial Class Base
         PictureBox3.TabStop = False
         PictureBox3.Visible = False
         ' 
-        ' saved_e
+        ' About_ICO
         ' 
-        saved_e.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        saved_e.Cursor = Cursors.Hand
-        saved_e.Location = New Point(2, 479)
-        saved_e.Name = "saved_e"
-        saved_e.Size = New Size(291, 56)
-        saved_e.TabIndex = 49
-        saved_e.TabStop = False
+        About_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        About_ICO.Cursor = Cursors.Hand
+        About_ICO.Font = New Font("nvgcshare", 26F)
+        About_ICO.ForeColor = Color.White
+        About_ICO.Location = New Point(2, 642)
+        About_ICO.Name = "About_ICO"
+        About_ICO.Size = New Size(64, 56)
+        About_ICO.TabIndex = 62
+        About_ICO.Text = ""
+        About_ICO.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' About_Text
+        ' Connect_BOX_SUB
         ' 
-        About_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        About_Text.Cursor = Cursors.Hand
-        About_Text.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
-        About_Text.ForeColor = Color.White
-        About_Text.Location = New Point(60, 560)
-        About_Text.Name = "About_Text"
-        About_Text.Size = New Size(233, 56)
-        About_Text.TabIndex = 63
-        About_Text.Text = "l10n.about"
-        About_Text.TextAlign = ContentAlignment.MiddleLeft
+        Connect_BOX_SUB.BackColor = Color.DimGray
+        Connect_BOX_SUB.Cursor = Cursors.Hand
+        Connect_BOX_SUB.Location = New Point(0, 0)
+        Connect_BOX_SUB.Name = "Connect_BOX_SUB"
+        Connect_BOX_SUB.Size = New Size(295, 60)
+        Connect_BOX_SUB.TabIndex = 44
+        Connect_BOX_SUB.TabStop = False
         ' 
-        ' Label9
+        ' HUDLayout_BOX_SUB
         ' 
-        Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label9.Cursor = Cursors.Hand
-        Label9.Font = New Font("nvgcshare", 26F)
-        Label9.ForeColor = Color.White
-        Label9.Location = New Point(3, 560)
-        Label9.Name = "Label9"
-        Label9.Size = New Size(63, 56)
-        Label9.TabIndex = 62
-        Label9.Text = ""
-        Label9.TextAlign = ContentAlignment.MiddleCenter
+        HUDLayout_BOX_SUB.BackColor = Color.DimGray
+        HUDLayout_BOX_SUB.Cursor = Cursors.Hand
+        HUDLayout_BOX_SUB.Location = New Point(0, 80)
+        HUDLayout_BOX_SUB.Name = "HUDLayout_BOX_SUB"
+        HUDLayout_BOX_SUB.Size = New Size(295, 60)
+        HUDLayout_BOX_SUB.TabIndex = 70
+        HUDLayout_BOX_SUB.TabStop = False
         ' 
-        ' PictureBox1
+        ' KeyboardShortcuts_BOX_SUB
         ' 
-        PictureBox1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox1.Cursor = Cursors.Hand
-        PictureBox1.Location = New Point(2, 560)
-        PictureBox1.Name = "PictureBox1"
-        PictureBox1.Size = New Size(291, 56)
-        PictureBox1.TabIndex = 61
-        PictureBox1.TabStop = False
+        KeyboardShortcuts_BOX_SUB.BackColor = Color.DimGray
+        KeyboardShortcuts_BOX_SUB.Cursor = Cursors.Hand
+        KeyboardShortcuts_BOX_SUB.Location = New Point(0, 240)
+        KeyboardShortcuts_BOX_SUB.Name = "KeyboardShortcuts_BOX_SUB"
+        KeyboardShortcuts_BOX_SUB.Size = New Size(295, 60)
+        KeyboardShortcuts_BOX_SUB.TabIndex = 75
+        KeyboardShortcuts_BOX_SUB.TabStop = False
         ' 
-        ' ab_bg
+        ' Highlights_BOX_SUB
         ' 
-        ab_bg.BackColor = Color.DimGray
-        ab_bg.Cursor = Cursors.Hand
-        ab_bg.Location = New Point(0, 558)
-        ab_bg.Name = "ab_bg"
-        ab_bg.Size = New Size(295, 60)
-        ab_bg.TabIndex = 60
-        ab_bg.TabStop = False
+        Highlights_BOX_SUB.BackColor = Color.DimGray
+        Highlights_BOX_SUB.Cursor = Cursors.Hand
+        Highlights_BOX_SUB.Location = New Point(0, 160)
+        Highlights_BOX_SUB.Name = "Highlights_BOX_SUB"
+        Highlights_BOX_SUB.Size = New Size(295, 60)
+        Highlights_BOX_SUB.TabIndex = 85
+        Highlights_BOX_SUB.TabStop = False
         ' 
-        ' saved_e1
+        ' VideoCapture_BOX_SUB
         ' 
-        saved_e1.BackColor = Color.DimGray
-        saved_e1.Cursor = Cursors.Hand
-        saved_e1.Location = New Point(0, 477)
-        saved_e1.Name = "saved_e1"
-        saved_e1.Size = New Size(295, 60)
-        saved_e1.TabIndex = 48
-        saved_e1.TabStop = False
+        VideoCapture_BOX_SUB.BackColor = Color.DimGray
+        VideoCapture_BOX_SUB.Cursor = Cursors.Hand
+        VideoCapture_BOX_SUB.Location = New Point(0, 320)
+        VideoCapture_BOX_SUB.Name = "VideoCapture_BOX_SUB"
+        VideoCapture_BOX_SUB.Size = New Size(295, 60)
+        VideoCapture_BOX_SUB.TabIndex = 80
+        VideoCapture_BOX_SUB.TabStop = False
         ' 
-        ' Connect_Box_Sub
+        ' Engine_BOX_SUB
         ' 
-        Connect_Box_Sub.BackColor = Color.DimGray
-        Connect_Box_Sub.Cursor = Cursors.Hand
-        Connect_Box_Sub.Location = New Point(0, 0)
-        Connect_Box_Sub.Name = "Connect_Box_Sub"
-        Connect_Box_Sub.Size = New Size(295, 60)
-        Connect_Box_Sub.TabIndex = 44
-        Connect_Box_Sub.TabStop = False
+        Engine_BOX_SUB.BackColor = Color.DimGray
+        Engine_BOX_SUB.Cursor = Cursors.Hand
+        Engine_BOX_SUB.Location = New Point(0, 400)
+        Engine_BOX_SUB.Name = "Engine_BOX_SUB"
+        Engine_BOX_SUB.Size = New Size(295, 60)
+        Engine_BOX_SUB.TabIndex = 95
+        Engine_BOX_SUB.TabStop = False
+        ' 
+        ' Notifications_BOX_SUB
+        ' 
+        Notifications_BOX_SUB.BackColor = Color.DimGray
+        Notifications_BOX_SUB.Cursor = Cursors.Hand
+        Notifications_BOX_SUB.Location = New Point(0, 480)
+        Notifications_BOX_SUB.Name = "Notifications_BOX_SUB"
+        Notifications_BOX_SUB.Size = New Size(295, 60)
+        Notifications_BOX_SUB.TabIndex = 90
+        Notifications_BOX_SUB.TabStop = False
+        ' 
+        ' PrivacyControl_BOX_SUB
+        ' 
+        PrivacyControl_BOX_SUB.BackColor = Color.DimGray
+        PrivacyControl_BOX_SUB.Cursor = Cursors.Hand
+        PrivacyControl_BOX_SUB.Location = New Point(0, 560)
+        PrivacyControl_BOX_SUB.Name = "PrivacyControl_BOX_SUB"
+        PrivacyControl_BOX_SUB.Size = New Size(295, 60)
+        PrivacyControl_BOX_SUB.TabIndex = 48
+        PrivacyControl_BOX_SUB.TabStop = False
+        ' 
+        ' About_BOX_SUB
+        ' 
+        About_BOX_SUB.BackColor = Color.DimGray
+        About_BOX_SUB.Cursor = Cursors.Hand
+        About_BOX_SUB.Location = New Point(0, 640)
+        About_BOX_SUB.Name = "About_BOX_SUB"
+        About_BOX_SUB.Size = New Size(295, 60)
+        About_BOX_SUB.TabIndex = 60
+        About_BOX_SUB.TabStop = False
         ' 
         ' Settings_List_Box
         ' 
@@ -2290,28 +2256,23 @@ Partial Class Base
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).EndInit()
         CType(Settings_index, ComponentModel.ISupportInitialize).EndInit()
         Settings_List_All.ResumeLayout(False)
+        CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox17, ComponentModel.ISupportInitialize).EndInit()
-        CType(noy, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
-        CType(hg2, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox12, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox13, ComponentModel.ISupportInitialize).EndInit()
-        CType(vd1, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox2, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox11, ComponentModel.ISupportInitialize).EndInit()
-        CType(k1, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox10, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
-        CType(hub, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox4, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
-        CType(saved_e, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
-        CType(ab_bg, ComponentModel.ISupportInitialize).EndInit()
-        CType(saved_e1, ComponentModel.ISupportInitialize).EndInit()
-        CType(Connect_Box_Sub, ComponentModel.ISupportInitialize).EndInit()
+        CType(Connect_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(HUDLayout_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(KeyboardShortcuts_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(Highlights_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(VideoCapture_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(Engine_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(Notifications_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(PrivacyControl_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
+        CType(About_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
         CType(Settings_List_Box, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
@@ -2353,9 +2314,9 @@ Partial Class Base
     Friend WithEvents Settings_List As Panel
     Friend WithEvents Settings_List_Top As PictureBox
     Friend WithEvents Settings_List_Text As Label
-    Friend WithEvents Connect_Box_Sub As PictureBox
+    Friend WithEvents Connect_BOX_SUB As PictureBox
     Friend WithEvents Connect_ICO As Label
-    Friend WithEvents Connect_Text As Label
+    Friend WithEvents Connect_TEXT As Label
     Friend WithEvents Menu_Replay_Box1 As PictureBox
     Friend WithEvents Menu_Replay_Box2 As PictureBox
     Friend WithEvents Menu_Replay As Panel
@@ -2366,14 +2327,12 @@ Partial Class Base
     Friend WithEvents Menu_Replay_save_ico As Label
     Friend WithEvents Replay_Logo As Label
     Friend WithEvents Load_App As Timer
-    Friend WithEvents saved_e As PictureBox
-    Friend WithEvents saved_e1 As PictureBox
+    Friend WithEvents PrivacyControl_BOX_SUB As PictureBox
     Friend WithEvents Settings_List_Box As PictureBox
     Friend WithEvents PictureBox3 As PictureBox
-    Friend WithEvents About_Text As Label
-    Friend WithEvents Label9 As Label
-    Friend WithEvents PictureBox1 As PictureBox
-    Friend WithEvents ab_bg As PictureBox
+    Friend WithEvents About_TEXT As Label
+    Friend WithEvents About_ICO As Label
+    Friend WithEvents About_BOX_SUB As PictureBox
     Friend WithEvents PictureBox4 As PictureBox
     Friend WithEvents a_3 As PictureBox
     Friend WithEvents a_2 As PictureBox
@@ -2386,22 +2345,20 @@ Partial Class Base
     Friend WithEvents Menu_Record_Box1 As PictureBox
     Friend WithEvents Menu_Record_Box2 As PictureBox
     Friend WithEvents not_save As Timer
-    Friend WithEvents Label4 As Label
-    Friend WithEvents Label5 As Label
+    Friend WithEvents PrivacyControl_TEXT As Label
+    Friend WithEvents PrivacyControl_ICO As Label
     Friend WithEvents Privacy_control As Timer
     Friend WithEvents bg_action As Label
     Friend WithEvents Menu_Replay_save_key As Label
     Friend WithEvents Settings_List_All As Panel
-    Friend WithEvents Label12 As Label
-    Friend WithEvents Label15 As Label
-    Friend WithEvents PictureBox10 As PictureBox
+    Friend WithEvents HUDLayout_TEXT As Label
+    Friend WithEvents HUDLayout_ICO As Label
     Friend WithEvents PictureBox9 As PictureBox
-    Friend WithEvents hub As PictureBox
+    Friend WithEvents HUDLayout_BOX_SUB As PictureBox
     Friend WithEvents PictureBox2 As PictureBox
-    Friend WithEvents Label17 As Label
-    Friend WithEvents Label18 As Label
-    Friend WithEvents PictureBox11 As PictureBox
-    Friend WithEvents k1 As PictureBox
+    Friend WithEvents KeyboardShortcuts_TEXT As Label
+    Friend WithEvents KeyboardShortcuts_ICO As Label
+    Friend WithEvents KeyboardShortcuts_BOX_SUB As PictureBox
     Friend WithEvents a_1r As PictureBox
     Friend WithEvents a_1b As PictureBox
     Friend WithEvents a_2r As PictureBox
@@ -2425,21 +2382,18 @@ Partial Class Base
     Friend WithEvents s_3 As PictureBox
     Friend WithEvents s_2b As PictureBox
     Friend WithEvents PictureBox12 As PictureBox
-    Friend WithEvents videoCapture_Text As Label
-    Friend WithEvents videoCapture_ICO As Label
-    Friend WithEvents PictureBox13 As PictureBox
-    Friend WithEvents vd1 As PictureBox
-    Friend WithEvents vdo_setme As Label
+    Friend WithEvents VideoCapture_TEXT As Label
+    Friend WithEvents VideoCapture_ICO As Label
+    Friend WithEvents VideoCapture_BOX_SUB As PictureBox
+    Friend WithEvents VideoCapture_TEXT_SUB As Label
     Friend WithEvents PictureBox15 As PictureBox
-    Friend WithEvents Label21 As Label
-    Friend WithEvents Label22 As Label
-    Friend WithEvents PictureBox16 As PictureBox
-    Friend WithEvents hg2 As PictureBox
+    Friend WithEvents Highlights_TEXT As Label
+    Friend WithEvents Highlights_ICO As Label
+    Friend WithEvents Highlights_BOX_SUB As PictureBox
     Friend WithEvents PictureBox14 As PictureBox
-    Friend WithEvents notifications_Text As Label
+    Friend WithEvents Notifications_TEXT As Label
     Friend WithEvents notifications_ICO As Label
-    Friend WithEvents PictureBox17 As PictureBox
-    Friend WithEvents noy As PictureBox
+    Friend WithEvents Notifications_BOX_SUB As PictureBox
     Friend WithEvents str As PictureBox
     Friend WithEvents stl As PictureBox
     Friend WithEvents stb As PictureBox
@@ -2479,5 +2433,10 @@ Partial Class Base
     Friend WithEvents PictureBox5 As PictureBox
     Friend WithEvents PictureBox6 As PictureBox
     Friend WithEvents ME_CLOSE_BG As Label
+    Friend WithEvents PictureBox7 As PictureBox
+    Friend WithEvents Engine_TEXT As Label
+    Friend WithEvents Engine_ICO As Label
+    Friend WithEvents PictureBox8 As PictureBox
+    Friend WithEvents Engine_BOX_SUB As PictureBox
 
 End Class
