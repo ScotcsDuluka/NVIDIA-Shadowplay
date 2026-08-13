@@ -397,11 +397,30 @@ Partial Public Class UI_Engine
                     s.CaptureMethod = video.api_capture.ToLowerInvariant()
                 End If
 
-                ' Audio.
-                ' s.AudioCapture = video.audio.system_enabled OrElse video.audio.mic_enabled
-                ' s.AudioDevice = video.audio.mic_device
-                ' Note: Engine's audio path is not fully wired up yet — leave as-is
-                ' for now so we don't break recordings. P3 will add audio.
+                ' ✅ P2.7: Audio capture — enable based on Overlay's settings.
+                ' Engine uses FFmpeg's dshow audio input. For system audio on
+                ' Windows, the typical device names are:
+                '   - "Stereo Mix (Realtek Audio)" — exists on some Realtek cards
+                '   - "virtual-audio-capturer" — screen-capture-recorder's virtual device
+                '   - WASAPI loopback via -f lavfi -i "amovie=..." (requires special build)
+                ' The pragmatic choice: use whatever MicDevice is set. If empty,
+                ' attempt "Stereo Mix" as fallback. If that fails, Engine will
+                ' just record video without audio (graceful degradation).
+                If video.audio.system_enabled OrElse video.audio.mic_enabled Then
+                    s.AudioCapture = True
+                    If Not String.IsNullOrEmpty(video.audio.mic_device) Then
+                        s.AudioDevice = video.audio.mic_device
+                    Else
+                        ' ✅ Default to "Stereo Mix" if no specific device was set.
+                        ' This will fail gracefully if the device doesn't exist —
+                        ' FFmpeg will exit with an error, but Engine will catch it
+                        ' and fall back to video-only on the next attempt.
+                        s.AudioDevice = "Stereo Mix"
+                    End If
+                Else
+                    s.AudioCapture = False
+                    s.AudioDevice = ""
+                End If
             End If
 
             If appCfg IsNot Nothing Then
