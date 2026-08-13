@@ -71,6 +71,23 @@
     inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
   }
 
+  // ✅ P2.7: UTF-8 safe base64 encode/decode. Old code used
+  // btoa(unescape(encodeURIComponent(str))) which is a deprecated hack —
+  // it corrupts multi-byte emoji (👋, ⚙️) and Thai text into mojibake
+  // like ÃÂÃÂ. Use TextEncoder/TextDecoder for proper UTF-8 handling.
+  function utf8ToBase64(str) {
+    const bytes = new TextEncoder().encode(str);
+    let bin = "";
+    for (const b of bytes) bin += String.fromCharCode(b);
+    return btoa(bin);
+  }
+  function base64ToUtf8(b64) {
+    const bin = atob(b64.replace(/\n/g, ""));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new TextDecoder().decode(bytes);
+  }
+
   // ── Render ────────────────────────────────────────────────────────────
   function render(data) {
     if (!data || !Array.isArray(data.messages)) {
@@ -118,7 +135,7 @@
       const data = await r.json();
       lastFileSha = data.sha;
 
-      const content = JSON.parse(atob(data.content.replace(/\n/g, "")));
+      const content = JSON.parse(base64ToUtf8(data.content));
       render(content);
       setStatus(token ? "on" : "off", token ? "Connected · polling" : "Read-only (set token to send)");
       return content;
@@ -156,7 +173,7 @@
       const fileData = await r.json();
       lastFileSha = fileData.sha;
 
-      const content = JSON.parse(atob(fileData.content.replace(/\n/g, "")));
+      const content = JSON.parse(base64ToUtf8(fileData.content));
 
       // 2. Append new message.
       const newMsg = {
@@ -178,7 +195,7 @@
         },
         body: JSON.stringify({
           message: `feedback: ${text.slice(0, 50)}${text.length > 50 ? "…" : ""}`,
-          content: btoa(unescape(encodeURIComponent(JSON.stringify(content, null, 2)))),
+          content: utf8ToBase64(JSON.stringify(content, null, 2)),
           sha: lastFileSha,
           branch: BRANCH
         })
