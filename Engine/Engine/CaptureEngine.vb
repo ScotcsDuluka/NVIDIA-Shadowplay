@@ -335,16 +335,17 @@ Public Class CaptureEngine
         LogDebug($"[CaptureEngine] BuildFFmpegArguments: FPS={fpsStr}, Bitrate={br} bps ({(_settings.Bitrate / 1000000.0):F2} Mbps), Encoder={_settings.Encoder}, CaptureMethod={_settings.CaptureMethod}, Output={outputFile}")
         WriteDebugLog($"[CaptureEngine] BuildFFmpegArguments: FPS={fpsStr}, Bitrate={br} bps ({(_settings.Bitrate / 1000000.0):F2} Mbps), Encoder={_settings.Encoder}, CaptureMethod={_settings.CaptureMethod}, UseNativeRes={_settings.UseNativeResolution}, CustomW={_settings.CustomWidth}, CustomH={_settings.CustomHeight}")
 
-        ' ✅ M6 FIX: QSV encoder needs an init_hw_device context before
-        ' hwmap=derive_device=qsv can work. Without this, FFmpeg fails with
-        ' "Filter hwmap has an unconnected output" on ddagrab/gfxcapture.
-        ' Only emit when the encoder is QSV and the capture method outputs
-        ' hardware frames (ddagrab/gfxcapture).
-        If hwType = HwDeviceType.IntelQSV AndAlso
-           (_settings.CaptureMethod.ToLower() = "ddagrab" OrElse
-            _settings.CaptureMethod.ToLower() = "gfxcapture") Then
-            sb.Append("-init_hw_device qsv:qsvhw 0 -filter_hw_device qsvhw ")
-        End If
+        ' ✅ M6 REVERTED: user confirmed QSV works without -init_hw_device.
+        ' The audit was speculative — newer FFmpeg builds auto-init the QSV
+        ' device when -c:v h264_qsv is selected, so hwmap=derive_device=qsv
+        ' derives from it without explicit -init_hw_device.
+        ' Adding -init_hw_device qsv:qsvhw 0 -filter_hw_device qsvhw could
+        ' actually break things on FFmpeg builds that don't expect it
+        ' (double-init, syntax mismatch, or conflict with encoder's own
+        ' session). Reverted to the original behavior that the user verified
+        ' works on Intel hardware.
+        ' If a future FFmpeg version breaks this, we can re-add with proper
+        ' testing on the specific version.
 
         sb.Append("-hide_banner -loglevel info ")
 
