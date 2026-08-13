@@ -18,7 +18,7 @@ Public Class API_RUN
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
 
-    Private iconFontPath As String
+    ' ✅ m2 FIX: removed dead 'Private iconFontPath As String' — never assigned, never read.
 
     ' ═══════════════════════════════════════════
     '  ซ่อน/แสดง จาก Alt-Tab
@@ -92,17 +92,8 @@ Public Class API_RUN
             End If
         End Using
     End Sub
-    Private Shared Sub KillProcess(processName As String)
-        Try
-            ' เอา .exe ออกถ้ามี
-            Dim name As String = processName.Replace(".exe", "")
-            For Each proc As Process In Process.GetProcessesByName(name)
-                proc.Kill()
-            Next
-        Catch ex As Exception
-            Debug.WriteLine("Error killing process " & processName & ": " & ex.Message)
-        End Try
-    End Sub
+    ' ✅ m1 FIX: removed dead KillProcess — FONTS.vb has its own identical
+    ' copy that is actually called. This one was never referenced.
 
     ' ✅ FIX: flag to stop the font-install bootloop. Old code: Load_APP.Tick ran every 1s;
     ' if nvgcshare.ttf was missing from both %LOCALAPPDATA%\...\Fonts AND appdir, FontHelper
@@ -142,6 +133,10 @@ Public Class API_RUN
             Dim exePath As String = Path.Combine(Application.StartupPath, app)
             Dim processName As String = Path.GetFileNameWithoutExtension(app)
 
+            ' ✅ M4 FIX: dispose every Process object. HandleAppsSmart runs every 1s
+            ' and Process.GetProcessesByName returns Process objects that hold
+            ' SafeProcessHandle. Without disposal, handles accumulate over hours
+            ' until GC finalizes them — slow leak.
             Dim running = Process.GetProcessesByName(processName)
 
             If overlayExists Then
@@ -159,9 +154,16 @@ Public Class API_RUN
                         p.WaitForExit()
                     Catch ex As Exception
                         Console.WriteLine("Cannot kill " & processName & ": " & ex.Message)
+                    Finally
+                        Try : p.Dispose() : Catch : End Try
                     End Try
                 Next
             End If
+
+            ' Dispose the rest (the ones we didn't kill).
+            For Each p In running
+                Try : p.Dispose() : Catch : End Try
+            Next
         Next
     End Sub
 
@@ -255,6 +257,13 @@ Public Class API_RUN
 
 
     Private Sub Tray_Exit(sender As Object, e As EventArgs)
+        ' ✅ M5 FIX: set _isShuttingDown = True FIRST so the StartServer accept
+        ' loop and HeartbeatMonitor know we're shutting down. Without this,
+        ' listener.Stop() throws SocketException in AcceptTcpClientAsync which
+        ' gets logged as a spurious 'accept_failed_' error even though it's
+        ' a clean exit.
+        _isShuttingDown = True
+
         ' ✅ P2.6: cancel heartbeat before closing clients (was missing).
         If _heartbeatCts IsNot Nothing Then
             Try : _heartbeatCts.Cancel() : Catch : End Try

@@ -166,6 +166,21 @@ Partial Public Class API_RUN
                     If bindAttempts >= 12 Then
                         ' Give up after ~1 minute of retries.
                         Log("[Error] NVIDIA API", "bind_failed_giving_up_after_12_attempts")
+                        ' ✅ M12 FIX: tell the user the hub is dead. Old code just
+                        ' returned silently — lblStatus still said "Online" because
+                        ' UpdateUI hardcodes "Online". Now show an error status and
+                        ' a tray balloon so the user knows nothing can connect.
+                        Try
+                            Me.Invoke(Sub()
+                                          lblStatus.Text = "Server log | OFFLINE — bind failed"
+                                          lblStatus.ForeColor = Color.FromArgb(200, 50, 50)
+                                          notifyIcon.BalloonTipTitle = "NVIDIA API"
+                                          notifyIcon.BalloonTipText = "Hub failed to bind port 5000 after 12 attempts. Check if another app is using the port."
+                                          notifyIcon.BalloonTipIcon = ToolTipIcon.Error
+                                          notifyIcon.ShowBalloonTip(5000)
+                                      End Sub)
+                        Catch
+                        End Try
                         Return
                     End If
                     shouldRetry = True
@@ -290,8 +305,14 @@ Partial Public Class API_RUN
         End If
 
         If cmd = "ping" Then
+            ' ✅ C2 FIX: lock clientsLock while writing pong. StreamWriter is not
+            ' thread-safe — Broadcast() could be writing to the same info.Writer
+            ' on another thread at the same time, interleaving bytes and
+            ' producing garbled TCP frames like "[Sys|pongotem|ping".
             Try
-                info.Writer.WriteLine("[System]|pong")
+                SyncLock clientsLock
+                    info.Writer.WriteLine("[System]|pong")
+                End SyncLock
             Catch : End Try
             Exit Sub
         End If
@@ -323,7 +344,10 @@ Partial Public Class API_RUN
 
     Private Sub Broadcast(msg As String, senderInfo As ClientInfo)
         Dim dead As New List(Of ClientInfo)
-        Dim broadcastLog As String = Nothing
+        ' ✅ M8 FIX: collect ALL dead client names, not just the last one.
+        ' Old code reassigned broadcastLog inside the loop, so if 3 clients
+        ' died in one Broadcast cycle, only the third's name was logged.
+        Dim deadLogs As New List(Of String)
 
         ' ✅ FIX: previously Log() was called WHILE holding clientsLock. Log() does
         ' lstLog.Invoke() which blocks on the UI thread; the UI thread can be waiting
@@ -345,13 +369,14 @@ Partial Public Class API_RUN
             For Each d In dead
                 clients.Remove(d)
                 Try : d.Client.Close() : Catch : End Try
-                broadcastLog = $"removed_dead_client_{d.AppName}"
+                deadLogs.Add($"removed_dead_client_{d.AppName}")
             Next
         End SyncLock
 
-        If broadcastLog IsNot Nothing Then
-            Log("[Heartbeat] NVIDIA API", broadcastLog)
-        End If
+        ' ✅ M8 FIX: log every dead client, not just the last.
+        For Each ln In deadLogs
+            Log("[Heartbeat] NVIDIA API", ln)
+        Next
     End Sub
 
     ''' <summary>
