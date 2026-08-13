@@ -107,14 +107,14 @@ Public Partial Class UI_Engine
     ' ── Message parser ─────────────────────────────────────────
 
     Public Sub OnTcpMessage(msg As String)
-        If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
-        If InvokeRequired Then
-            Try
-                Invoke(Sub() OnTcpMessage(msg))
-            Catch
-            End Try
-            Return
-        End If
+        ' ✅ P2.4: Do NOT use Me.Invoke here — it blocks the listener thread
+        ' until the UI thread processes the message. If the UI thread is busy
+        ' (e.g. RefreshOverlayConfigUI triggered by file-poll, or HandleEnginePrewarmFFmpeg
+        ' which itself uses Me.Invoke), every subsequent TCP message gets
+        ' queued behind it. RECORD_START would be delayed or lost.
+        ' Instead, parse on the listener thread (no UI access) and only
+        ' dispatch to UI thread for the actual handler execution via BeginInvoke
+        ' (fire-and-forget).
 
         Try
             If String.IsNullOrEmpty(msg) OrElse Not msg.Contains("|") Then Return
@@ -123,7 +123,9 @@ Public Partial Class UI_Engine
             If parts.Length < 2 Then Return
 
             ' Self-filter: skip our own broadcasts (Hub echoes everything).
-            If msg.Contains("NVIDIA Engine") Then Return
+            ' Use exact prefix match, not substring, to avoid false positives
+            ' (e.g. "NVIDIA Engine" appearing in a path or error message).
+            If parts(0).Contains("NVIDIA Engine") Then Return
 
             Dim data As String = parts(1)
 
@@ -143,13 +145,14 @@ Public Partial Class UI_Engine
             If cmd = "PREWARM_FFMPEG" AndAlso value.Length > 0 Then
                 Dim pipeIdx As Integer = value.IndexOf("|"c)
                 Dim ffmpegPath As String = If(pipeIdx > 0, value.Substring(0, pipeIdx), value)
-                HandleEnginePrewarmFFmpeg(ffmpegPath)
+                ' Marshal to UI thread but fire-and-forget (don't block listener).
+                BeginUiInvoke(Sub() HandleEnginePrewarmFFmpeg(ffmpegPath))
                 Return
             End If
 
             ' engine_config_changed[:video|config]
             If cmd = "engine_config_changed" Then
-                HandleEngineConfigChanged(value)
+                BeginUiInvoke(Sub() HandleEngineConfigChanged(value))
                 Return
             End If
 
@@ -178,11 +181,32 @@ Public Partial Class UI_Engine
                 End If
             End If
 
-            DebugLog($"[Engine] Received: {cmd}={value}" & If(reqId, $" (req={reqId})", ""))
-            DispatchEngineCommand(cmd, value, reqId)
+            DebugLog($"[Engine] Received: {cmd}={value}" & If(String.IsNullOrEmpty(reqId), "", $" (req={reqId})"))
+
+            ' Dispatch on UI thread (fire-and-forget) so listener stays free.
+            Dim cmdCopy As String = cmd
+            Dim valueCopy As String = value
+            Dim reqIdCopy As String = reqId
+            BeginUiInvoke(Sub() DispatchEngineCommand(cmdCopy, valueCopy, reqIdCopy))
 
         Catch ex As Exception
             Debug.WriteLine($"UI_Engine.OnTcpMessage error: {ex.Message}")
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Fire-and-forget UI dispatch. Uses BeginInvoke so the caller (listener
+    ''' thread) doesn't block waiting for the UI thread. Safe to call even
+    ''' if the form handle hasn't been created yet.
+    ''' </summary>
+    Private Sub BeginUiInvoke(action As Action)
+        Try
+            If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
+            Me.BeginInvoke(action)
+        Catch ex As InvalidOperationException
+            ' Form handle not created yet — drop the message.
+        Catch ex As Exception
+            Debug.WriteLine($"BeginUiInvoke error: {ex.Message}")
         End Try
     End Sub
 
