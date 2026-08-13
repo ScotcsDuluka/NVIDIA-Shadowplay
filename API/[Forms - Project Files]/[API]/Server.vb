@@ -141,16 +141,38 @@ Partial Public Class API_RUN
         ' .NET 8) → accepts both IPv4 and IPv6 connections on the same socket.
         ' We still constrain to loopback by checking the remote endpoint
         ' after accept (to keep the security posture from P0).
-        Try
-            listener = New TcpListener(IPAddress.IPv6Any, 5000)
-            listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, False)
-            listener.Start()
-        Catch ex As SocketException
-            ' Fallback to IPv4-only if IPv6 isn't available on this machine
-            Log("[Warn] NVIDIA API", $"ipv6_bind_failed_{ex.Message}_falling_back_to_ipv4")
-            listener = New TcpListener(IPAddress.Loopback, 5000)
-            listener.Start()
-        End Try
+
+        ' ✅ P2.6: retry loop. If both IPv6 and IPv4 binds fail (port 5000
+        ' already in use by another app), wait 5s and retry instead of
+        ' crashing the Hub.
+        Dim bindAttempts As Integer = 0
+        Do
+            Try
+                listener = New TcpListener(IPAddress.IPv6Any, 5000)
+                listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, False)
+                listener.Start()
+                Exit Do
+            Catch ex As SocketException
+                Log("[Warn] NVIDIA API", $"ipv6_bind_failed_{ex.Message}_trying_ipv4")
+                Try
+                    listener = New TcpListener(IPAddress.Loopback, 5000)
+                    listener.Start()
+                    Exit Do
+                Catch ex2 As SocketException
+                    bindAttempts += 1
+                    Log("[Error] NVIDIA API", $"bind_failed_attempt_{bindAttempts}_ipv4_error_{ex2.Message}")
+                    If bindAttempts >= 12 Then
+                        ' Give up after ~1 minute of retries.
+                        Log("[Error] NVIDIA API", "bind_failed_giving_up_after_12_attempts")
+                        Return
+                    End If
+                    Await Task.Delay(5000)
+                End Try
+            End Try
+        Loop While Not _isShuttingDown
+
+        If _isShuttingDown Then Return
+
         _heartbeatCts = New CancellationTokenSource()
         Task.Run(Sub() HeartbeatMonitor(_heartbeatCts.Token), _heartbeatCts.Token)
         While Not _isShuttingDown

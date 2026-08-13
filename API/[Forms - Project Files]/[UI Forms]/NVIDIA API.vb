@@ -254,6 +254,11 @@ Public Class API_RUN
 
 
     Private Sub Tray_Exit(sender As Object, e As EventArgs)
+        ' ✅ P2.6: cancel heartbeat before closing clients (was missing).
+        If _heartbeatCts IsNot Nothing Then
+            Try : _heartbeatCts.Cancel() : Catch : End Try
+        End If
+
         ' ปิดทุก Client
         SyncLock clientsLock
             For Each c In clients
