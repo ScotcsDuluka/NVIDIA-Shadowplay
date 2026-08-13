@@ -526,23 +526,6 @@ Partial Class UI_Engine
         btnBrowse.TabIndex = 2
         btnBrowse.Text = "..."
         ' 
-<<<<<<< HEAD
-=======
-        ' pnlFFmpeg
-        ' 
-        pnlFFmpeg.Controls.Add(lblFfmpegTitle)
-        pnlFFmpeg.Controls.Add(txtFFmpegPath)
-        pnlFFmpeg.Controls.Add(btnFFmpegBrowse)
-        pnlFFmpeg.Controls.Add(lblFFmpegStatus)
-        ' ✅ C7 FIX: was (47, 554) — same Y as pnlAudio (559), so pnlFFmpeg
-        ' was rendering on top of pnlAudio and hiding it. Moved down by 235px
-        ' to give pnlAudio room (105px tall) + gap.
-        pnlFFmpeg.Location = New Point(47, 794)
-        pnlFFmpeg.Name = "pnlFFmpeg"
-        pnlFFmpeg.Size = New Size(490, 87)
-        pnlFFmpeg.TabIndex = 8
-        ' 
->>>>>>> 0078e0cf7f4f01227c271c53788dc774609a11b4
         ' lblFfmpegTitle
         ' 
         lblFfmpegTitle.AutoSize = True

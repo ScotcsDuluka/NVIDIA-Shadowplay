@@ -58,10 +58,6 @@
                         <SubType>Form</SubType>
                 </Compile>
 
-                <Compile Update="Engine\[API]\[Overlay] Client.vb">
-                        <SubType>Form</SubType>
-                </Compile>
-
                 <Compile Update="My Project\Application.Designer.vb">
                         <DesignTime>True</DesignTime>
                         <AutoGen>True</AutoGen>
