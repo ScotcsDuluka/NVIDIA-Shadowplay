@@ -425,12 +425,26 @@ Public Class CaptureEngine
 
         Select Case hwType
             Case HwDeviceType.NVIDIA
-                ' ✅ P2.8: strict CBR — set minrate = maxrate = b:v so NVENC
-                ' can't drift. Old code only had -rc cbr without -minrate/-maxrate,
-                ' which let NVENC use VBR-like behavior under load.
-                sb.Append("-preset " & nvencPreset & " -tune ll ")
-                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -rc cbr ")
-                sb.Append("-zerolatency 1 -spatial-aq 1 -temporal-aq 1 ")
+                ' ✅ FIX: NVENC CBR with -rc cbr + minrate=maxrate=b:v is known to
+                ' produce bitrate that doesn't match the target exactly (NVENC's
+                ' internal rate control has rounding/quantization overhead).
+                ' Better approach: use VBR with -b:v as the target and -maxrate
+                ' as the ceiling. NVENC's VBR mode is actually more accurate than
+                ' its CBR mode on modern drivers (R515+).
+                ' -b:v = average bitrate (target)
+                ' -maxrate = peak (same as target to cap it)
+                ' -bufsize = 2x bitrate (standard buffer for smooth encoding)
+                ' -rc vbr = variable bitrate mode
+                ' -tune ll = low latency tuning
+                ' -preset p1-p7 = quality preset from Overlay
+                ' -gop_len = FPS (1 second per GOP — prevents fractional fps output)
+                ' -forced-idr 1 = force IDR frames at GOP boundaries
+                sb.Append("-preset " & nvencPreset & " -tune ll -rc vbr ")
+                sb.Append("-b:v " & br & " -maxrate " & br & " -bufsize " & buf & " ")
+                sb.Append("-gop_len " & fpsStr & " -forced-idr 1 ")
+                sb.Append("-spatial-aq 1 -temporal-aq 1 ")
+                ' Note: removed -zerolatency 1 — it conflicts with -tune ll on
+                ' some NVENC driver versions and causes bitrate spikes.
 
             Case HwDeviceType.IntelQSV
                 sb.Append("-preset medium ")
