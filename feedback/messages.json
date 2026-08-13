@@ -4,64 +4,36 @@
       "id": "msg_001",
       "author": "system",
       "role": "assistant",
-      "text": "ð Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the âï¸ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
+      "text": "👋 Welcome to the AI Feedback Chat!\n\nThis is a lightweight chat that lives entirely inside this repo.\n\nHow to use:\n1. Click the ⚙️ button (top-right) and paste your GitHub Personal Access Token (needs `repo` scope).\n2. Type your message below and press Send.\n3. The AI will pull this repo, read your message, and reply here.\n\nThe token is stored only in your browser's localStorage. It is never sent anywhere except github.com.",
       "timestamp": "2026-08-14T00:00:00Z"
     },
     {
-      "id": "msg_msrxno1z",
+      "id": "msg_user_test",
       "author": "user",
       "role": "user",
-      "text": "test\\",
-      "timestamp": "2026-08-13T19:50:33.863Z"
+      "text": "test / ddsadsa / ปกติยัง",
+      "timestamp": "2026-08-13T19:50:00.000Z"
     },
     {
-      "id": "msg_msrxr9sy",
+      "id": "msg_user_design_1",
       "author": "user",
       "role": "user",
-      "text": "ddsadsa",
-      "timestamp": "2026-08-13T19:53:22.018Z"
+      "text": "มึง ดีไซ Engine UI ใหม่หน่อยได้มั้ย",
+      "timestamp": "2026-08-13T19:55:00.000Z"
     },
     {
-      "id": "msg_msrxtrg0",
+      "id": "msg_user_design_2",
       "author": "user",
       "role": "user",
-      "text": "à¸à¸à¸à¸´à¸¢à¸±à¸",
-      "timestamp": "2026-08-13T19:55:18.192Z"
-    },
-    {
-      "id": "msg_user_design_001",
-      "author": "user",
-      "role": "user",
-      "text": "à¸¡à¸¶à¸ à¸à¸µà¹à¸ Engine UI à¹à¸«à¸¡à¹à¸«à¸à¹à¸­à¸¢à¹à¸à¹à¸¡à¸±à¹à¸¢",
-      "timestamp": "2026-08-13T19:57:00.000Z"
-    },
-    {
-      "id": "msg_user_wat_001",
-      "author": "user",
-      "role": "user",
-      "text": "à¸­à¸°à¹à¸£à¸§à¸°à¹à¸à¸µà¹à¸¢",
-      "timestamp": "2026-08-13T19:58:00.000Z"
-    },
-    {
-      "id": "msg_user_design_002",
-      "author": "user",
-      "role": "user",
-      "text": "à¸à¸µà¹à¸ Engine UI à¹à¸«à¸¡à¹à¸«à¸à¹à¸­à¸¢à¹à¸à¹à¸¡à¸±à¹à¸¢",
-      "timestamp": "2026-08-13T19:59:00.000Z"
+      "text": "กูถามมึงแหละะะ GLM 5.2 ดีไซ Engine UI ใหม่หน่อยได้มั้ย",
+      "timestamp": "2026-08-13T20:00:00.000Z"
     },
     {
       "id": "msg_ai_001",
       "author": "ai",
       "role": "assistant",
-      "text": "à¹à¸­à¹à¸ à¹à¸à¹! ð¨ à¸à¸¹à¸à¸°à¸­à¸­à¸à¹à¸à¸ Engine UI à¹à¸«à¸¡à¹à¹à¸«à¹\n\nà¸à¸­à¸­à¸à¸´à¸à¸²à¸¢à¹à¸£à¸·à¹à¸­à¸ \"à¸­à¸°à¹à¸£à¸§à¸°à¹à¸à¸µà¹à¸¢\" à¸à¹à¸­à¸:\nâ à¸à¸¹ push à¹à¸¡à¹à¸à¸´à¸à¹à¸à¸£à¸²à¸°à¸¡à¸¶à¸à¸ªà¹à¸à¸à¹à¸­à¸à¸§à¸²à¸¡à¹à¸«à¸¡à¹à¸à¸­à¸à¸à¸¹à¸à¸³à¸¥à¸±à¸ push à¹à¸¥à¸¢ conflict à¸à¸±à¸à¸«à¸¥à¸²à¸¢à¸£à¸­à¸ à¸à¸­à¸à¸à¸µà¹à¸£à¸§à¸¡à¹à¸«à¹à¸«à¸¡à¸à¹à¸¥à¹à¸§\n\nâ ï¸ à¸à¸ bug à¸£à¸¸à¸à¹à¸£à¸: à¸à¸±à¹à¸ web à¸¡à¸µ encoding bug à¸à¸µà¹à¸à¸³à¹à¸«à¹à¸à¸±à¹à¸ emoji à¹à¸¥à¸°à¸ à¸²à¸©à¸²à¹à¸à¸¢à¹à¸à¸µà¹à¸¢à¸à¹à¸à¹à¸ ÃÃÃÃ... à¹à¸à¸£à¸²à¸° app.js à¹à¸à¹ btoa(unescape(encodeURIComponent(...))) à¸à¸¶à¹à¸à¹à¸à¹à¸ deprecated hack\n\nà¸à¸¹à¹à¸à¹à¹à¸¥à¹à¸§ â à¹à¸à¸¥à¸µà¹à¸¢à¸à¹à¸à¹à¸ TextEncoder/TextDecoder à¸à¸µà¹à¹à¸à¹à¸ standard à¸£à¸­à¸à¸£à¸±à¸ UTF-8 100% à¸à¸£à¸²à¸§à¸«à¸à¹à¸²à¸à¸µà¹à¸¡à¸¶à¸ refresh web à¸ à¸²à¸©à¸²à¹à¸à¸¢à¹à¸¥à¸° emoji à¸à¸°à¹à¸ªà¸à¸à¸à¸¹à¸à¸à¹à¸­à¸\n\nà¸à¸­à¸à¸à¸µà¹ messages.json à¸à¸¹à¸ clean à¹à¸«à¹à¸«à¸¡à¸à¹à¸¥à¹à¸§ à¸à¹à¸­à¸à¸§à¸²à¸¡à¹à¸à¸´à¸¡à¸à¸±à¹à¸à¸«à¸¡à¸à¸­à¸¢à¸¹à¹à¹à¸à¸£à¸¹à¸à¹à¸à¸à¸à¸µà¹à¸à¸¹à¸à¸à¹à¸­à¸\n\nð¨ à¹à¸£à¸·à¹à¸­à¸ Engine UI à¹à¸«à¸¡à¹ â à¸à¸¹à¸¢à¸´à¸à¸à¸µà¸à¸³à¹à¸«à¹! à¹à¸à¹à¸à¸­à¸à¸²à¸¡à¸à¹à¸­à¸:\n1. à¹à¸à¸à¸ªà¸µ: à¹à¸à¸µà¸¢à¸§-à¸à¸³ NVIDIA à¹à¸«à¸¡à¸·à¸­à¸à¹à¸à¸´à¸¡ à¸«à¸£à¸·à¸­à¸­à¸¢à¸²à¸à¹à¸à¹à¸ªà¸µà¸­à¸·à¹à¸?\n2. Layout: compact à¹à¸à¸à¹à¸à¸´à¸¡ à¸«à¸£à¸·à¸­ full dashboard à¹à¸à¸à¸¡à¸µ sidebar + stats real-time?\n3. à¸­à¸¢à¸²à¸à¹à¸«à¹à¸¡à¸µà¸­à¸°à¹à¸£à¹à¸à¹à¸à¸à¸´à¹à¸¨à¸©à¹à¸«à¸¡? (à¹à¸à¹à¸ FPS graph, disk usage bar, screenshot preview)\n\nà¸à¹à¸²à¸à¸­à¸ \"à¸ªà¸¸à¸à¹à¸¥à¹à¸§à¹à¸à¹\" à¸à¸¹à¸à¸°à¸­à¸­à¸à¹à¸à¸à¹à¸«à¹à¹à¸¥à¸¢ â modern dashboard à¹à¸à¸à¹à¸à¸µà¸¢à¸§-à¸à¸³",
-      "timestamp": "2026-08-13T20:25:00.000Z"
-    },
-    {
-      "id": "msg_msry2zfa",
-      "author": "user",
-      "role": "user",
-      "text": "กูถามมึงแหละะะ GLM 5.2 \nดีไซ Engine UI ใหม่หน่อยได้มั้ย",
-      "timestamp": "2026-08-13T20:02:28.438Z"
+      "text": "โอเคครับ ได้! 🎨 ขอโทษทีครับที่ตอบช้า — กูเจอ encoding bug รุนแรงใน web chat (emoji + ภาษาไทยเพี้ยน) เลยต้องแก้ก่อน\n\n✅ Encoding bug แก้แล้ว — ตอนนี้ใช้ TextEncoder/TextDecoder แทน btoa(unescape(encodeURIComponent(...))) ที่เป็น deprecated hack\n\nสรุปข้อความมึงที่ได้รับ:\n- ปกติยัง → ใช่ครับ ตอนนี้ chat ทำงานปกติ\n- ดีไซ Engine UI ใหม่หน่อยได้มั้ย → ได้ครับ!\n\n🎨 กูจะเริ่มออกแบบ Engine UI ใหม่ให้เลย โทนเขียว-ดำ NVIDIA modern dashboard style\n\nถ้ามึงมี requirement เฉพาะอยากให้บอก เช่น:\n- layout แบบไหน (sidebar / tabs / single column)\n- ต้องการ stats real-time ไหม (FPS graph, GPU usage, disk)\n- สีอื่นนอกจากเขียว\n\nถ้าไม่บอกอะไร กูจะออกแบบให้เองตามสไตล์ NVIDIA GeForce Experience ล่าสุด\n\nเดี๋ยว push ให้ดู",
+      "timestamp": "2026-08-13T20:30:00.000Z"
     }
   ],
   "version": 1
