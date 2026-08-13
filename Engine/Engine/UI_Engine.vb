@@ -131,8 +131,12 @@ Partial Public Class UI_Engine
                 If _overlayVideo.current.fps > 0 AndAlso _overlayVideo.current.fps <= 240 Then
                     nudFPS.Value = _overlayVideo.current.fps
                 End If
-                If _overlayVideo.current.bitrate > 0 AndAlso _overlayVideo.current.bitrate <= 200000 Then
-                    nudBitrate.Value = _overlayVideo.current.bitrate / 1000  ' kbps → Mbps
+                ' ✅ P2.6: clamp to nudBitrate's min/max (1-200 Mbps) to avoid
+                ' ArgumentOutOfRangeException if Overlay's bitrate is out of range.
+                If _overlayVideo.current.bitrate > 0 Then
+                    Dim mbps As Integer = CInt(_overlayVideo.current.bitrate / 1000)
+                    mbps = Math.Max(1, Math.Min(200, mbps))
+                    nudBitrate.Value = mbps
                 End If
 
                 ' Resolution
@@ -296,7 +300,7 @@ Partial Public Class UI_Engine
 
     Private Async Function HandleEngineRecordStart(value As String, reqId As String) As Task
         Try
-            DebugLog($"[Engine] HandleEngineRecordStart: path={value}, reqId={If(reqId, "(none)")}")
+            DebugLog($"[Engine] HandleEngineRecordStart: path={value}, reqId={If(String.IsNullOrEmpty(reqId), "(none)", reqId)}")
 
             ' ✅ P2.6: load settings from Overlay's config.json + video.json
             ' (source of truth). Old code loaded from Engine's shadowplay-config.json

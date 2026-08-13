@@ -131,7 +131,7 @@ Public Class CaptureEngine
             Return False
         End If
 
-        Dim validation = _settings.Validate()
+        Dim validation As CaptureSettings.ValidationResult = _settings.Validate()
         If Not validation.Valid Then
             RaiseEvent ErrorOccurred(validation.Message)
             Return False
