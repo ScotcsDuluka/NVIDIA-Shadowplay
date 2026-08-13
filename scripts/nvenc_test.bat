@@ -4,8 +4,8 @@ setlocal enabledelayedexpansion
 
 set FFMPEG=C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\api-core\ffmpeg.exe
 set OUTDIR=C:\Users\ScotcsDuluka\Desktop\nvenc_test
-set FPS=60
-set BR=10000000
+set FPS=240
+set BR=100000000
 set DUR=5
 
 mkdir "%OUTDIR%" 2>nul
@@ -29,7 +29,7 @@ echo.
 set /a TEST+=1
 set TAG=test%TEST%_cbr_buf2_tunell
 echo [!TEST!] CBR bufsize=2x tune=ll g=%FPS%
-"%FFMPEG%" -y -f lavfi -t %DUR% -i "ddagrab=output_idx=0:framerate=%FPS%" -c:v h264_nvenc -preset p4 -tune ll -rc cbr -b:v %BR% -minrate %BR% -maxrate %BR% -bufsize 20000000 -g %FPS% -fps_mode cfr -spatial-aq 1 -temporal-aq 1 -movflags +faststart "%OUTDIR%\!TAG!.mp4" 2>nul
+"%FFMPEG%" -y -f lavfi -t %DUR% -i "ddagrab=output_idx=0:framerate=%FPS%" -c:v h264_nvenc -preset p4 -tune ll -rc cbr -b:v %BR% -minrate %BR% -maxrate %BR% -bufsize 200000000 -g %FPS% -fps_mode cfr -spatial-aq 1 -temporal-aq 1 -movflags +faststart "%OUTDIR%\!TAG!.mp4" 2>nul
 for %%A in ("%OUTDIR%\!TAG!.mp4") do echo     Size: %%~zA bytes
 echo.
 
@@ -103,7 +103,7 @@ echo  DONE — %TEST% tests completed
 echo  Files saved to: %OUTDIR%
 echo ═══════════════════════════════════════════════════
 echo.
-echo  Target size: 6,250,000 bytes (10 Mbps x 5s / 8)
+echo  Target size: 62,500,000 bytes (100 Mbps x 5s / 8)
 echo  Compare file sizes — closest to target = best CBR.
 echo.
 explorer "%OUTDIR%"
