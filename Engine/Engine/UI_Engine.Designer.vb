@@ -92,6 +92,16 @@ Partial Class UI_Engine
         lblHotkeys = New Label()
         tmrRecording = New System.Windows.Forms.Timer(components)
         tmrRefresh = New System.Windows.Forms.Timer(components)
+        DIMBOX_1 = New PictureBox()
+        DIMBOX_2 = New PictureBox()
+        BT_Back = New Label()
+        settings_top = New PictureBox()
+        settings_menu = New Panel()
+        PictureBox5 = New PictureBox()
+        PictureBox4 = New PictureBox()
+        PictureBox3 = New PictureBox()
+        PictureBox16 = New PictureBox()
+        hg2 = New PictureBox()
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
@@ -107,35 +117,44 @@ Partial Class UI_Engine
         pnlFFmpeg.SuspendLayout()
         pnlGitHub.SuspendLayout()
         pnlHub.SuspendLayout()
+        CType(DIMBOX_1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(DIMBOX_2, ComponentModel.ISupportInitialize).BeginInit()
+        CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
+        settings_menu.SuspendLayout()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox4, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
+        CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' lblTitle
         ' 
         lblTitle.AutoSize = True
-        lblTitle.Font = New Font("Segoe UI", 16F, FontStyle.Bold)
-        lblTitle.Location = New Point(20, 15)
+        lblTitle.Font = New Font("GeForce", 24F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        lblTitle.Location = New Point(62, 43)
         lblTitle.Name = "lblTitle"
-        lblTitle.Size = New Size(179, 30)
+        lblTitle.Size = New Size(234, 42)
         lblTitle.TabIndex = 0
         lblTitle.Text = "NVIDIA Capture"
         ' 
         ' lblStatus
         ' 
         lblStatus.AutoSize = True
-        lblStatus.Font = New Font("Segoe UI", 10F)
-        lblStatus.Location = New Point(20, 48)
+        lblStatus.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        lblStatus.Location = New Point(599, 116)
         lblStatus.Name = "lblStatus"
-        lblStatus.Size = New Size(31, 19)
+        lblStatus.Size = New Size(34, 19)
         lblStatus.TabIndex = 1
         lblStatus.Text = "Idle"
         ' 
         ' lblTimer
         ' 
         lblTimer.AutoSize = True
-        lblTimer.Font = New Font("Consolas", 20F, FontStyle.Bold)
-        lblTimer.Location = New Point(20, 70)
+        lblTimer.Font = New Font("GeForce", 20.25F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        lblTimer.Location = New Point(48, 116)
         lblTimer.Name = "lblTimer"
-        lblTimer.Size = New Size(134, 32)
+        lblTimer.Size = New Size(123, 36)
         lblTimer.TabIndex = 2
         lblTimer.Text = "00:00:00"
         ' 
@@ -143,7 +162,7 @@ Partial Class UI_Engine
         ' 
         pnlCapture.Controls.Add(lblCapTitle)
         pnlCapture.Controls.Add(cboCaptureMethod)
-        pnlCapture.Location = New Point(15, 105)
+        pnlCapture.Location = New Point(47, 164)
         pnlCapture.Name = "pnlCapture"
         pnlCapture.Size = New Size(490, 70)
         pnlCapture.TabIndex = 3
@@ -173,7 +192,7 @@ Partial Class UI_Engine
         pnlEncoder.Controls.Add(lblEncTitle)
         pnlEncoder.Controls.Add(cboEncoder)
         pnlEncoder.Controls.Add(btnDetect)
-        pnlEncoder.Location = New Point(15, 185)
+        pnlEncoder.Location = New Point(47, 244)
         pnlEncoder.Name = "pnlEncoder"
         pnlEncoder.Size = New Size(490, 70)
         pnlEncoder.TabIndex = 4
@@ -212,7 +231,7 @@ Partial Class UI_Engine
         ' 
         pnlRes.Controls.Add(chkNativeRes)
         pnlRes.Controls.Add(cboResolution)
-        pnlRes.Location = New Point(15, 265)
+        pnlRes.Location = New Point(47, 324)
         pnlRes.Name = "pnlRes"
         pnlRes.Size = New Size(490, 65)
         pnlRes.TabIndex = 5
@@ -249,7 +268,7 @@ Partial Class UI_Engine
         pnlPerf.Controls.Add(lblBitTitle)
         pnlPerf.Controls.Add(nudBitrate)
         pnlPerf.Controls.Add(lblBitrateHint)
-        pnlPerf.Location = New Point(15, 340)
+        pnlPerf.Location = New Point(47, 399)
         pnlPerf.Name = "pnlPerf"
         pnlPerf.Size = New Size(490, 70)
         pnlPerf.TabIndex = 6
@@ -314,7 +333,7 @@ Partial Class UI_Engine
         pnlPreset.Controls.Add(lblNvencPreset)
         pnlPreset.Controls.Add(lblReplayTitle)
         pnlPreset.Controls.Add(nudReplayDuration)
-        pnlPreset.Location = New Point(15, 420)
+        pnlPreset.Location = New Point(47, 479)
         pnlPreset.Name = "pnlPreset"
         pnlPreset.Size = New Size(490, 70)
         pnlPreset.TabIndex = 11
@@ -380,7 +399,7 @@ Partial Class UI_Engine
         pnlAudio.Controls.Add(lblMicVol)
         pnlAudio.Controls.Add(trkMicVol)
         pnlAudio.Controls.Add(lblMicDevice)
-        pnlAudio.Location = New Point(15, 500)
+        pnlAudio.Location = New Point(47, 559)
         pnlAudio.Name = "pnlAudio"
         pnlAudio.Size = New Size(490, 105)
         pnlAudio.TabIndex = 12
@@ -468,7 +487,7 @@ Partial Class UI_Engine
         pnlOutput.Controls.Add(lblOutTitle)
         pnlOutput.Controls.Add(txtOutputDir)
         pnlOutput.Controls.Add(btnBrowse)
-        pnlOutput.Location = New Point(15, 420)
+        pnlOutput.Location = New Point(47, 479)
         pnlOutput.Name = "pnlOutput"
         pnlOutput.Size = New Size(490, 65)
         pnlOutput.TabIndex = 7
@@ -507,7 +526,7 @@ Partial Class UI_Engine
         pnlFFmpeg.Controls.Add(txtFFmpegPath)
         pnlFFmpeg.Controls.Add(btnFFmpegBrowse)
         pnlFFmpeg.Controls.Add(lblFFmpegStatus)
-        pnlFFmpeg.Location = New Point(15, 495)
+        pnlFFmpeg.Location = New Point(47, 554)
         pnlFFmpeg.Name = "pnlFFmpeg"
         pnlFFmpeg.Size = New Size(490, 87)
         pnlFFmpeg.TabIndex = 8
@@ -553,7 +572,7 @@ Partial Class UI_Engine
         pnlGitHub.Controls.Add(lblGitHubTitle)
         pnlGitHub.Controls.Add(lblGitHubUser)
         pnlGitHub.Controls.Add(lblGitHubStatus)
-        pnlGitHub.Location = New Point(15, 615)
+        pnlGitHub.Location = New Point(587, 657)
         pnlGitHub.Name = "pnlGitHub"
         pnlGitHub.Size = New Size(490, 50)
         pnlGitHub.TabIndex = 13
@@ -593,7 +612,7 @@ Partial Class UI_Engine
         pnlHub.Controls.Add(lblHubTitle)
         pnlHub.Controls.Add(lblHubStatus)
         pnlHub.Controls.Add(lblHubClients)
-        pnlHub.Location = New Point(15, 675)
+        pnlHub.Location = New Point(587, 717)
         pnlHub.Name = "pnlHub"
         pnlHub.Size = New Size(490, 50)
         pnlHub.TabIndex = 14
@@ -632,7 +651,7 @@ Partial Class UI_Engine
         ' 
         lblConfigSource.AutoSize = True
         lblConfigSource.Font = New Font("Segoe UI", 7F)
-        lblConfigSource.Location = New Point(15, 730)
+        lblConfigSource.Location = New Point(587, 772)
         lblConfigSource.Name = "lblConfigSource"
         lblConfigSource.Size = New Size(93, 12)
         lblConfigSource.TabIndex = 15
@@ -643,7 +662,7 @@ Partial Class UI_Engine
         btnRecord.Cursor = Cursors.Hand
         btnRecord.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         btnRecord.ForeColor = Color.White
-        btnRecord.Location = New Point(15, 588)
+        btnRecord.Location = New Point(574, 545)
         btnRecord.Name = "btnRecord"
         btnRecord.Size = New Size(240, 32)
         btnRecord.TabIndex = 9
@@ -655,7 +674,7 @@ Partial Class UI_Engine
         btnStop.Enabled = False
         btnStop.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         btnStop.ForeColor = Color.White
-        btnStop.Location = New Point(265, 588)
+        btnStop.Location = New Point(781, 545)
         btnStop.Name = "btnStop"
         btnStop.Size = New Size(240, 32)
         btnStop.TabIndex = 10
@@ -665,7 +684,7 @@ Partial Class UI_Engine
         ' 
         lblHotkeys.AutoSize = True
         lblHotkeys.Font = New Font("Segoe UI", 8F)
-        lblHotkeys.Location = New Point(15, 638)
+        lblHotkeys.Location = New Point(709, 811)
         lblHotkeys.Name = "lblHotkeys"
         lblHotkeys.Size = New Size(273, 13)
         lblHotkeys.TabIndex = 11
@@ -679,36 +698,157 @@ Partial Class UI_Engine
         ' 
         tmrRefresh.Interval = 2000
         ' 
+        ' DIMBOX_1
+        ' 
+        DIMBOX_1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        DIMBOX_1.BackColor = Color.Coral
+        DIMBOX_1.Location = New Point(-3, -16)
+        DIMBOX_1.Name = "DIMBOX_1"
+        DIMBOX_1.Size = New Size(2779, 176)
+        DIMBOX_1.TabIndex = 73
+        DIMBOX_1.TabStop = False
+        ' 
+        ' DIMBOX_2
+        ' 
+        DIMBOX_2.BackColor = Color.Blue
+        DIMBOX_2.BackgroundImageLayout = ImageLayout.None
+        DIMBOX_2.Location = New Point(0, 160)
+        DIMBOX_2.Name = "DIMBOX_2"
+        DIMBOX_2.Size = New Size(80, 80)
+        DIMBOX_2.TabIndex = 93
+        DIMBOX_2.TabStop = False
+        DIMBOX_2.Visible = False
+        ' 
+        ' BT_Back
+        ' 
+        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_Back.Cursor = Cursors.Hand
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        BT_Back.ForeColor = Color.White
+        BT_Back.Location = New Point(80, 110)
+        BT_Back.Name = "BT_Back"
+        BT_Back.Size = New Size(200, 50)
+        BT_Back.TabIndex = 96
+        BT_Back.Text = "Back"
+        BT_Back.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' settings_top
+        ' 
+        settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        settings_top.Location = New Point(80, 160)
+        settings_top.Name = "settings_top"
+        settings_top.Size = New Size(1760, 5)
+        settings_top.TabIndex = 94
+        settings_top.TabStop = False
+        ' 
+        ' settings_menu
+        ' 
+        settings_menu.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        settings_menu.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        settings_menu.Controls.Add(PictureBox5)
+        settings_menu.Controls.Add(PictureBox4)
+        settings_menu.Controls.Add(PictureBox3)
+        settings_menu.Controls.Add(PictureBox16)
+        settings_menu.Controls.Add(lblStatus)
+        settings_menu.Controls.Add(hg2)
+        settings_menu.Controls.Add(lblTimer)
+        settings_menu.Controls.Add(pnlCapture)
+        settings_menu.Controls.Add(lblHotkeys)
+        settings_menu.Controls.Add(pnlEncoder)
+        settings_menu.Controls.Add(btnStop)
+        settings_menu.Controls.Add(pnlRes)
+        settings_menu.Controls.Add(btnRecord)
+        settings_menu.Controls.Add(pnlPerf)
+        settings_menu.Controls.Add(lblConfigSource)
+        settings_menu.Controls.Add(pnlPreset)
+        settings_menu.Controls.Add(pnlHub)
+        settings_menu.Controls.Add(pnlAudio)
+        settings_menu.Controls.Add(pnlGitHub)
+        settings_menu.Controls.Add(pnlOutput)
+        settings_menu.Controls.Add(pnlFFmpeg)
+        settings_menu.Controls.Add(lblTitle)
+        settings_menu.ForeColor = Color.White
+        settings_menu.Location = New Point(80, 160)
+        settings_menu.Name = "settings_menu"
+        settings_menu.Size = New Size(1760, 840)
+        settings_menu.TabIndex = 95
+        ' 
+        ' PictureBox5
+        ' 
+        PictureBox5.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        PictureBox5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox5.Location = New Point(269, 1450)
+        PictureBox5.Name = "PictureBox5"
+        PictureBox5.Size = New Size(254, 116)
+        PictureBox5.TabIndex = 91
+        PictureBox5.TabStop = False
+        PictureBox5.Visible = False
+        ' 
+        ' PictureBox4
+        ' 
+        PictureBox4.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        PictureBox4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox4.Location = New Point(12, 1450)
+        PictureBox4.Name = "PictureBox4"
+        PictureBox4.Size = New Size(256, 116)
+        PictureBox4.TabIndex = 90
+        PictureBox4.TabStop = False
+        PictureBox4.Visible = False
+        ' 
+        ' PictureBox3
+        ' 
+        PictureBox3.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        PictureBox3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox3.Location = New Point(269, 1329)
+        PictureBox3.Name = "PictureBox3"
+        PictureBox3.Size = New Size(254, 120)
+        PictureBox3.TabIndex = 89
+        PictureBox3.TabStop = False
+        PictureBox3.Visible = False
+        ' 
+        ' PictureBox16
+        ' 
+        PictureBox16.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        PictureBox16.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PictureBox16.Location = New Point(12, 1329)
+        PictureBox16.Name = "PictureBox16"
+        PictureBox16.Size = New Size(256, 120)
+        PictureBox16.TabIndex = 88
+        PictureBox16.TabStop = False
+        PictureBox16.Visible = False
+        ' 
+        ' hg2
+        ' 
+        hg2.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        hg2.BackColor = Color.DimGray
+        hg2.Location = New Point(11, 1328)
+        hg2.Name = "hg2"
+        hg2.Size = New Size(513, 239)
+        hg2.TabIndex = 87
+        hg2.TabStop = False
+        hg2.Visible = False
+        ' 
         ' UI_Engine
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
-        ClientSize = New Size(873, 778)
-        Controls.Add(lblTitle)
-        Controls.Add(lblStatus)
-        Controls.Add(lblTimer)
-        Controls.Add(pnlCapture)
-        Controls.Add(pnlEncoder)
-        Controls.Add(pnlRes)
-        Controls.Add(pnlPerf)
-        Controls.Add(pnlPreset)
-        Controls.Add(pnlAudio)
-        Controls.Add(pnlOutput)
-        Controls.Add(pnlFFmpeg)
-        Controls.Add(pnlGitHub)
-        Controls.Add(pnlHub)
-        Controls.Add(lblConfigSource)
-        Controls.Add(btnRecord)
-        Controls.Add(btnStop)
-        Controls.Add(lblHotkeys)
+        BackColor = Color.Coral
+        ClientSize = New Size(1920, 1080)
+        Controls.Add(BT_Back)
+        Controls.Add(settings_top)
+        Controls.Add(DIMBOX_2)
+        Controls.Add(DIMBOX_1)
+        Controls.Add(settings_menu)
         Font = New Font("Segoe UI", 9F)
-        FormBorderStyle = FormBorderStyle.FixedSingle
+        FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         MaximizeBox = False
-        MinimizeBox = False
         Name = "UI_Engine"
         StartPosition = FormStartPosition.CenterScreen
         Text = "NVIDIA Capture"
+        TransparencyKey = Color.Coral
+        WindowState = FormWindowState.Maximized
         pnlCapture.ResumeLayout(False)
         pnlCapture.PerformLayout()
         pnlEncoder.ResumeLayout(False)
@@ -734,8 +874,17 @@ Partial Class UI_Engine
         pnlGitHub.PerformLayout()
         pnlHub.ResumeLayout(False)
         pnlHub.PerformLayout()
+        CType(DIMBOX_1, ComponentModel.ISupportInitialize).EndInit()
+        CType(DIMBOX_2, ComponentModel.ISupportInitialize).EndInit()
+        CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
+        settings_menu.ResumeLayout(False)
+        settings_menu.PerformLayout()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox4, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
+        CType(hg2, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
-        PerformLayout()
     End Sub
 
     ' ── Control Declarations ──
@@ -803,5 +952,15 @@ Partial Class UI_Engine
 
     Friend WithEvents lblConfigSource As Label
     Friend WithEvents tmrRefresh As System.Windows.Forms.Timer
+    Friend WithEvents DIMBOX_1 As PictureBox
+    Friend WithEvents DIMBOX_2 As PictureBox
+    Friend WithEvents BT_Back As Label
+    Friend WithEvents settings_top As PictureBox
+    Friend WithEvents settings_menu As Panel
+    Friend WithEvents PictureBox5 As PictureBox
+    Friend WithEvents PictureBox4 As PictureBox
+    Friend WithEvents PictureBox3 As PictureBox
+    Friend WithEvents PictureBox16 As PictureBox
+    Friend WithEvents hg2 As PictureBox
 
 End Class
