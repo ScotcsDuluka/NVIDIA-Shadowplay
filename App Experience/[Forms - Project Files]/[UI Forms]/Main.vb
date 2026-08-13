@@ -159,7 +159,8 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         Dim apps = {
         "NVIDIA Notifier.exe",
         "NVIDIA ShadowPlay.exe",
-        "NVIDIA API.exe"
+        "NVIDIA API.exe",
+        "NVIDIA Capture.exe"
     }
 
         For Each app In apps

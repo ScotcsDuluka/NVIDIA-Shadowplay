@@ -132,7 +132,8 @@ Public Class API_RUN
         ' by unrelated software (OBS, HandBrake, streamers, video editors).
         Dim apps As String() = {
             "NVIDIA Notifier.exe",
-            "NVIDIA ShadowPlay.exe"
+            "NVIDIA ShadowPlay.exe",
+            "NVIDIA Capture.exe"
         }
 
         Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Use_Overlay"))

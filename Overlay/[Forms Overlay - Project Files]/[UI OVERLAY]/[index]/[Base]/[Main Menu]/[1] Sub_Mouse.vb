@@ -649,10 +649,23 @@ Partial Public Class Base
     End Sub
 
     Private Sub EngineUI_Click(sender As Object, e As EventArgs) Handles Engine_TEXT.Click, Engine_ICO.Click
-        File.Create(Path.Combine(Application.StartupPath, "Engine.UI"))
-        Settings_List.Visible = False
-        Base_Settings.Hide()
-        Engine_UI.Start()
+        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+
+        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        If captureProcess Is Nothing Then
+            Engine_UI.Stop()
+            ShowNotifier("notificationErrorEngineNotRunning")
+            Exit Sub
+        End If
+        Try
+            Using fs As FileStream = File.Create(uiFile)
+            End Using
+
+            Engine_UI.Start()
+
+        Catch ex As IOException
+            ShowNotifier("notificationErrorEngineUIInUse")
+        End Try
     End Sub
 
     ' ========== NOTIFICATIONS ==========

@@ -76,6 +76,7 @@ Partial Public Class Loader
         notifications.Add(New NotificationData("l10n.recording_saved", "", localizationKey:="l10n.notificationManualRecordStopped"))
         notifications.Add(New NotificationData("l10n.update_available", "", localizationKey:="l10n.notificationUpdateAvailable"))
         notifications.Add(New NotificationData("l10n.version_latest", "", localizationKey:="l10n.notificationVersionLatest"))
+        notifications.Add(New NotificationData("l10n.notificationErrorEngineNotRunning", "", localizationKey:="l10n.notificationErrorEngineNotRunning"))
 
         ' =================== มี ARGS ===================
         notifications.Add(New NotificationData("l10n.testarg", "", False, Color.White, {"1", "2"}))

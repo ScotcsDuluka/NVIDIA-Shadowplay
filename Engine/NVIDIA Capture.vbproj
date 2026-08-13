@@ -15,7 +15,7 @@
         </PropertyGroup>
 
         <ItemGroup>
-          <Content Include="NVIDIA ShadowPlay.ico" />
+                <Content Include="NVIDIA ShadowPlay.ico" />
         </ItemGroup>
 
         <ItemGroup>
@@ -54,9 +54,14 @@
         </ItemGroup>
 
         <ItemGroup>
-                <Compile Update="Engine\[API]\[Overlay] Client.vb">
-                  <SubType>Form</SubType>
+                <Compile Update="Engine\[API]\[Engine] Client.vb">
+                        <SubType>Form</SubType>
                 </Compile>
+
+                <Compile Update="Engine\[API]\[Overlay] Client.vb">
+                        <SubType>Form</SubType>
+                </Compile>
+
                 <Compile Update="My Project\Application.Designer.vb">
                         <DesignTime>True</DesignTime>
                         <AutoGen>True</AutoGen>

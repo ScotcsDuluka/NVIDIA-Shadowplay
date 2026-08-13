@@ -948,6 +948,14 @@ Partial Public Class Base
     Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
         Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
 
+        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        If captureProcess Is Nothing Then
+            Engine_UI.Stop()
+            ShowNotifier("notificationErrorEngineNotRunning")
+            Exit Sub
+        End If
+
+
         If File.Exists(uiFile) Then
             Settings_List.Visible = False
             Base_Settings.Hide()

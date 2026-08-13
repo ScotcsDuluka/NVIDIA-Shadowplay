@@ -134,8 +134,6 @@ Partial Public Class UI_Engine
                                BroadcastEngineReady()
                                ' Update UI
                                If tcp IsNot Nothing AndAlso tcp.IsConnected Then
-                                   lblHotkeys.Text = "Hub Connected (port 5000) | engine_* ready"
-                                   lblHotkeys.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
                                End If
                            End Sub
         t.Start()
@@ -808,7 +806,6 @@ Partial Public Class UI_Engine
                               ' ✅ P2.10: update status panel
                               lblRecState.Text = "● Recording"
                               lblRecState.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-                              lblRecTimer.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
                               ' Show target bitrate so user can compare with actual.
                               If _settings IsNot Nothing AndAlso _settings.Bitrate > 0 Then
                                   lblRecBitrate.Text = $"Target: {(_settings.Bitrate / 1000000.0):F1} Mbps · {_settings.FPS} FPS · p{_settings.NvencPreset}"
@@ -920,7 +917,6 @@ Partial Public Class UI_Engine
             If Me.IsHandleCreated AndAlso Not Me.IsDisposed Then
                 Me.BeginInvoke(Sub()
                                    ' Timer
-                                   lblRecTimer.Text = duration.ToString("hh\:mm\:ss")
                                    lblTimer.Text = duration.ToString("hh\:mm\:ss")
                                    ' File size
                                    Dim sizeStr As String
@@ -1037,11 +1033,7 @@ Partial Public Class UI_Engine
 
     Private Sub ValidateFFmpegPath()
         If File.Exists(txtFFmpegPath.Text) Then
-            lblFFmpegStatus.Text = "FFmpeg found"
-            lblFFmpegStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
         Else
-            lblFFmpegStatus.Text = "FFmpeg not found - click ... to browse"
-            lblFFmpegStatus.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
         End If
     End Sub
 
@@ -1055,13 +1047,15 @@ Partial Public Class UI_Engine
         Catch
         End Try
     End Sub
-
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
 
-        If File.Exists(uiFile) Then
-            File.Delete(uiFile)
-        End If
+        Try
+            If File.Exists(uiFile) Then
+                File.Delete(uiFile)
+            End If
+        Catch ex As IOException
+        End Try
     End Sub
 
     Private Sub OPEN_UI_Tick(sender As Object, e As EventArgs) Handles OPEN_UI.Tick

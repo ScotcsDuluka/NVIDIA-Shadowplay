@@ -73,11 +73,9 @@ Partial Class UI_Engine
         lblOutTitle = New Label()
         txtOutputDir = New TextBox()
         btnBrowse = New Button()
-        pnlFFmpeg = New Panel()
         lblFfmpegTitle = New Label()
         txtFFmpegPath = New TextBox()
         btnFFmpegBrowse = New Button()
-        lblFFmpegStatus = New Label()
         pnlGitHub = New Panel()
         lblGitHubTitle = New Label()
         lblGitHubUser = New Label()
@@ -89,7 +87,6 @@ Partial Class UI_Engine
         lblConfigSource = New Label()
         btnRecord = New Button()
         btnStop = New Button()
-        lblHotkeys = New Label()
         tmrRecording = New System.Windows.Forms.Timer(components)
         tmrRefresh = New System.Windows.Forms.Timer(components)
         DIMBOX_1 = New PictureBox()
@@ -102,14 +99,12 @@ Partial Class UI_Engine
         PictureBox3 = New PictureBox()
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
-        OPEN_UI = New System.Windows.Forms.Timer(components)
-        ' ✅ P2.10: status panel for real-time recording info
         pnlStatus = New Panel()
         lblRecState = New Label()
-        lblRecTimer = New Label()
         lblRecSize = New Label()
         lblRecFrames = New Label()
         lblRecBitrate = New Label()
+        OPEN_UI = New System.Windows.Forms.Timer(components)
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
@@ -122,10 +117,8 @@ Partial Class UI_Engine
         CType(trkSysVol, ComponentModel.ISupportInitialize).BeginInit()
         CType(trkMicVol, ComponentModel.ISupportInitialize).BeginInit()
         pnlOutput.SuspendLayout()
-        pnlFFmpeg.SuspendLayout()
         pnlGitHub.SuspendLayout()
         pnlHub.SuspendLayout()
-        pnlStatus.SuspendLayout()
         CType(DIMBOX_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(DIMBOX_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -135,6 +128,7 @@ Partial Class UI_Engine
         CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
         CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
+        pnlStatus.SuspendLayout()
         SuspendLayout()
         ' 
         ' lblTitle
@@ -151,7 +145,7 @@ Partial Class UI_Engine
         ' 
         lblStatus.AutoSize = True
         lblStatus.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
-        lblStatus.Location = New Point(599, 116)
+        lblStatus.Location = New Point(47, 95)
         lblStatus.Name = "lblStatus"
         lblStatus.Size = New Size(34, 19)
         lblStatus.TabIndex = 1
@@ -159,9 +153,9 @@ Partial Class UI_Engine
         ' 
         ' lblTimer
         ' 
-        lblTimer.AutoSize = True
+        lblTimer.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lblTimer.Font = New Font("GeForce", 20.25F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        lblTimer.Location = New Point(48, 116)
+        lblTimer.Location = New Point(325, 15)
         lblTimer.Name = "lblTimer"
         lblTimer.Size = New Size(123, 36)
         lblTimer.TabIndex = 2
@@ -394,7 +388,7 @@ Partial Class UI_Engine
         nudReplayDuration.Maximum = New Decimal(New Integer() {1200, 0, 0, 0})
         nudReplayDuration.Minimum = New Decimal(New Integer() {15, 0, 0, 0})
         nudReplayDuration.Name = "nudReplayDuration"
-        nudReplayDuration.Size = New Size(80, 23)
+        nudReplayDuration.Size = New Size(75, 23)
         nudReplayDuration.TabIndex = 4
         nudReplayDuration.Value = New Decimal(New Integer() {60, 0, 0, 0})
         ' 
@@ -532,6 +526,8 @@ Partial Class UI_Engine
         btnBrowse.TabIndex = 2
         btnBrowse.Text = "..."
         ' 
+<<<<<<< HEAD
+=======
         ' pnlFFmpeg
         ' 
         pnlFFmpeg.Controls.Add(lblFfmpegTitle)
@@ -546,48 +542,45 @@ Partial Class UI_Engine
         pnlFFmpeg.Size = New Size(490, 87)
         pnlFFmpeg.TabIndex = 8
         ' 
+>>>>>>> 0078e0cf7f4f01227c271c53788dc774609a11b4
         ' lblFfmpegTitle
         ' 
         lblFfmpegTitle.AutoSize = True
-        lblFfmpegTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
-        lblFfmpegTitle.Location = New Point(12, 8)
+        lblFfmpegTitle.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        lblFfmpegTitle.Location = New Point(15, 130)
         lblFfmpegTitle.Name = "lblFfmpegTitle"
-        lblFfmpegTitle.Size = New Size(79, 15)
+        lblFfmpegTitle.Size = New Size(96, 19)
         lblFfmpegTitle.TabIndex = 0
         lblFfmpegTitle.Text = "FFmpeg Path"
         ' 
         ' txtFFmpegPath
         ' 
+        txtFFmpegPath.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         txtFFmpegPath.BorderStyle = BorderStyle.FixedSingle
-        txtFFmpegPath.Location = New Point(12, 30)
+        txtFFmpegPath.Location = New Point(15, 156)
         txtFFmpegPath.Name = "txtFFmpegPath"
-        txtFFmpegPath.Size = New Size(420, 23)
+        txtFFmpegPath.Size = New Size(383, 23)
         txtFFmpegPath.TabIndex = 1
         ' 
         ' btnFFmpegBrowse
         ' 
+        btnFFmpegBrowse.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        btnFFmpegBrowse.BackColor = Color.DimGray
+        btnFFmpegBrowse.FlatStyle = FlatStyle.Flat
         btnFFmpegBrowse.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
-        btnFFmpegBrowse.Location = New Point(438, 30)
+        btnFFmpegBrowse.Location = New Point(404, 156)
         btnFFmpegBrowse.Name = "btnFFmpegBrowse"
         btnFFmpegBrowse.Size = New Size(40, 23)
         btnFFmpegBrowse.TabIndex = 2
         btnFFmpegBrowse.Text = "..."
-        ' 
-        ' lblFFmpegStatus
-        ' 
-        lblFFmpegStatus.AutoSize = True
-        lblFFmpegStatus.Font = New Font("Segoe UI", 8F)
-        lblFFmpegStatus.Location = New Point(12, 55)
-        lblFFmpegStatus.Name = "lblFFmpegStatus"
-        lblFFmpegStatus.Size = New Size(0, 13)
-        lblFFmpegStatus.TabIndex = 3
+        btnFFmpegBrowse.UseVisualStyleBackColor = False
         ' 
         ' pnlGitHub
         ' 
         pnlGitHub.Controls.Add(lblGitHubTitle)
         pnlGitHub.Controls.Add(lblGitHubUser)
         pnlGitHub.Controls.Add(lblGitHubStatus)
-        pnlGitHub.Location = New Point(587, 657)
+        pnlGitHub.Location = New Point(47, 670)
         pnlGitHub.Name = "pnlGitHub"
         pnlGitHub.Size = New Size(490, 50)
         pnlGitHub.TabIndex = 13
@@ -627,7 +620,7 @@ Partial Class UI_Engine
         pnlHub.Controls.Add(lblHubTitle)
         pnlHub.Controls.Add(lblHubStatus)
         pnlHub.Controls.Add(lblHubClients)
-        pnlHub.Location = New Point(587, 717)
+        pnlHub.Location = New Point(47, 726)
         pnlHub.Name = "pnlHub"
         pnlHub.Size = New Size(490, 50)
         pnlHub.TabIndex = 14
@@ -666,7 +659,7 @@ Partial Class UI_Engine
         ' 
         lblConfigSource.AutoSize = True
         lblConfigSource.Font = New Font("Segoe UI", 7F)
-        lblConfigSource.Location = New Point(587, 772)
+        lblConfigSource.Location = New Point(543, 377)
         lblConfigSource.Name = "lblConfigSource"
         lblConfigSource.Size = New Size(93, 12)
         lblConfigSource.TabIndex = 15
@@ -677,7 +670,7 @@ Partial Class UI_Engine
         btnRecord.Cursor = Cursors.Hand
         btnRecord.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         btnRecord.ForeColor = Color.White
-        btnRecord.Location = New Point(574, 545)
+        btnRecord.Location = New Point(47, 117)
         btnRecord.Name = "btnRecord"
         btnRecord.Size = New Size(240, 32)
         btnRecord.TabIndex = 9
@@ -689,102 +682,19 @@ Partial Class UI_Engine
         btnStop.Enabled = False
         btnStop.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         btnStop.ForeColor = Color.White
-        btnStop.Location = New Point(781, 545)
+        btnStop.Location = New Point(297, 117)
         btnStop.Name = "btnStop"
         btnStop.Size = New Size(240, 32)
         btnStop.TabIndex = 10
         btnStop.Text = "Stop"
         ' 
-        ' lblHotkeys
-        ' 
-        lblHotkeys.AutoSize = True
-        lblHotkeys.Font = New Font("Segoe UI", 8F)
-        lblHotkeys.Location = New Point(709, 811)
-        lblHotkeys.Name = "lblHotkeys"
-        lblHotkeys.Size = New Size(273, 13)
-        lblHotkeys.TabIndex = 11
-        lblHotkeys.Text = "Hotkeys: Start=Ctrl+Shift+F9 | Stop=Ctrl+Shift+F10"
-        ' 
         ' tmrRecording
         ' 
         tmrRecording.Interval = 1000
-        '
+        ' 
         ' tmrRefresh
-        '
+        ' 
         tmrRefresh.Interval = 2000
-
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' ✅ P2.10: pnlStatus — real-time recording info panel
-        ' Shows: state indicator + timer + file size + frame count + bitrate
-        ' Updated by UI_Engine.OnEngineProgress (1/sec from FFmpeg stderr).
-        ' ═══════════════════════════════════════════════════════════════════════
-        pnlStatus.BackColor = Drawing.Color.FromArgb(20, 20, 24)
-        pnlStatus.BorderStyle = BorderStyle.FixedSingle
-        pnlStatus.Controls.Add(lblRecState)
-        pnlStatus.Controls.Add(lblRecTimer)
-        pnlStatus.Controls.Add(lblRecSize)
-        pnlStatus.Controls.Add(lblRecFrames)
-        pnlStatus.Controls.Add(lblRecBitrate)
-        pnlStatus.Location = New Point(574, 164)
-        pnlStatus.Name = "pnlStatus"
-        pnlStatus.Size = New Drawing.Size(500, 240)
-        pnlStatus.TabIndex = 90
-        '
-        ' lblRecState — pulsing state indicator (● Idle / ● Recording / ● Stopping / ● Error)
-        '
-        lblRecState.AutoSize = False
-        lblRecState.BackColor = Drawing.Color.FromArgb(20, 20, 24)
-        lblRecState.Font = New Font("GeForce", 14F, FontStyle.Bold)
-        lblRecState.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
-        lblRecState.Location = New Point(15, 15)
-        lblRecState.Name = "lblRecState"
-        lblRecState.Size = New Drawing.Size(470, 32)
-        lblRecState.Text = "● Idle"
-        lblRecState.TextAlign = ContentAlignment.MiddleLeft
-        '
-        ' lblRecTimer — big monospace timer 00:00:42
-        '
-        lblRecTimer.AutoSize = False
-        lblRecTimer.Font = New Font("Consolas", 28F, FontStyle.Bold)
-        lblRecTimer.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
-        lblRecTimer.Location = New Point(15, 55)
-        lblRecTimer.Name = "lblRecTimer"
-        lblRecTimer.Size = New Drawing.Size(280, 50)
-        lblRecTimer.Text = "00:00:00"
-        lblRecTimer.TextAlign = ContentAlignment.MiddleCenter
-        '
-        ' lblRecSize — file size in MB
-        '
-        lblRecSize.AutoSize = False
-        lblRecSize.Font = New Font("Consolas", 14F, FontStyle.Bold)
-        lblRecSize.ForeColor = Drawing.Color.FromArgb(230, 230, 230)
-        lblRecSize.Location = New Point(305, 60)
-        lblRecSize.Name = "lblRecSize"
-        lblRecSize.Size = New Drawing.Size(180, 30)
-        lblRecSize.Text = "0.0 MB"
-        lblRecSize.TextAlign = ContentAlignment.MiddleLeft
-        '
-        ' lblRecFrames — frame count
-        '
-        lblRecFrames.AutoSize = False
-        lblRecFrames.Font = New Font("Consolas", 10F)
-        lblRecFrames.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
-        lblRecFrames.Location = New Point(305, 95)
-        lblRecFrames.Name = "lblRecFrames"
-        lblRecFrames.Size = New Drawing.Size(180, 20)
-        lblRecFrames.Text = "0 frames"
-        lblRecFrames.TextAlign = ContentAlignment.MiddleLeft
-        '
-        ' lblRecBitrate — current bitrate (target vs actual)
-        '
-        lblRecBitrate.AutoSize = False
-        lblRecBitrate.Font = New Font("Consolas", 10F)
-        lblRecBitrate.ForeColor = Drawing.Color.FromArgb(160, 160, 160)
-        lblRecBitrate.Location = New Point(15, 115)
-        lblRecBitrate.Name = "lblRecBitrate"
-        lblRecBitrate.Size = New Drawing.Size(470, 20)
-        lblRecBitrate.Text = "Target: -- Mbps"
-        lblRecBitrate.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' DIMBOX_1
         ' 
@@ -840,9 +750,7 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(PictureBox16)
         settings_menu.Controls.Add(lblStatus)
         settings_menu.Controls.Add(hg2)
-        settings_menu.Controls.Add(lblTimer)
         settings_menu.Controls.Add(pnlCapture)
-        settings_menu.Controls.Add(lblHotkeys)
         settings_menu.Controls.Add(pnlEncoder)
         settings_menu.Controls.Add(btnStop)
         settings_menu.Controls.Add(pnlRes)
@@ -854,9 +762,8 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(pnlAudio)
         settings_menu.Controls.Add(pnlGitHub)
         settings_menu.Controls.Add(pnlOutput)
-        settings_menu.Controls.Add(pnlStatus)   ' ✅ P2.10: real-time status panel
-        settings_menu.Controls.Add(pnlFFmpeg)
         settings_menu.Controls.Add(lblTitle)
+        settings_menu.Controls.Add(pnlStatus)
         settings_menu.ForeColor = Color.White
         settings_menu.Location = New Point(80, 160)
         settings_menu.Name = "settings_menu"
@@ -918,6 +825,72 @@ Partial Class UI_Engine
         hg2.TabStop = False
         hg2.Visible = False
         ' 
+        ' pnlStatus
+        ' 
+        pnlStatus.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
+        pnlStatus.BorderStyle = BorderStyle.FixedSingle
+        pnlStatus.Controls.Add(lblFfmpegTitle)
+        pnlStatus.Controls.Add(txtFFmpegPath)
+        pnlStatus.Controls.Add(lblTimer)
+        pnlStatus.Controls.Add(btnFFmpegBrowse)
+        pnlStatus.Controls.Add(lblRecState)
+        pnlStatus.Controls.Add(lblRecSize)
+        pnlStatus.Controls.Add(lblRecFrames)
+        pnlStatus.Controls.Add(lblRecBitrate)
+        pnlStatus.Location = New Point(543, 164)
+        pnlStatus.Name = "pnlStatus"
+        pnlStatus.Size = New Size(463, 200)
+        pnlStatus.TabIndex = 90
+        ' 
+        ' lblRecState
+        ' 
+        lblRecState.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblRecState.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
+        lblRecState.Font = New Font("GeForce", 14F, FontStyle.Bold)
+        lblRecState.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
+        lblRecState.Location = New Point(15, 15)
+        lblRecState.Name = "lblRecState"
+        lblRecState.Size = New Size(433, 32)
+        lblRecState.TabIndex = 0
+        lblRecState.Text = "● Idle"
+        lblRecState.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' lblRecSize
+        ' 
+        lblRecSize.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblRecSize.Font = New Font("Consolas", 14F, FontStyle.Bold)
+        lblRecSize.ForeColor = Color.FromArgb(CByte(230), CByte(230), CByte(230))
+        lblRecSize.Location = New Point(15, 87)
+        lblRecSize.Name = "lblRecSize"
+        lblRecSize.Size = New Size(433, 30)
+        lblRecSize.TabIndex = 2
+        lblRecSize.Text = "0.0 MB"
+        lblRecSize.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' lblRecFrames
+        ' 
+        lblRecFrames.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        lblRecFrames.Font = New Font("Consolas", 10F)
+        lblRecFrames.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
+        lblRecFrames.Location = New Point(307, 51)
+        lblRecFrames.Name = "lblRecFrames"
+        lblRecFrames.Size = New Size(141, 20)
+        lblRecFrames.TabIndex = 3
+        lblRecFrames.Text = "0 frames"
+        lblRecFrames.TextAlign = ContentAlignment.MiddleRight
+        ' 
+        ' lblRecBitrate
+        ' 
+        lblRecBitrate.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        lblRecBitrate.Font = New Font("Consolas", 10F)
+        lblRecBitrate.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
+        lblRecBitrate.Location = New Point(15, 51)
+        lblRecBitrate.Name = "lblRecBitrate"
+        lblRecBitrate.Size = New Size(433, 20)
+        lblRecBitrate.TabIndex = 4
+        lblRecBitrate.Text = "Target: -- Mbps"
+        lblRecBitrate.TextAlign = ContentAlignment.MiddleLeft
+        ' 
         ' OPEN_UI
         ' 
         OPEN_UI.Enabled = True
@@ -964,13 +937,10 @@ Partial Class UI_Engine
         CType(trkMicVol, ComponentModel.ISupportInitialize).EndInit()
         pnlOutput.ResumeLayout(False)
         pnlOutput.PerformLayout()
-        pnlFFmpeg.ResumeLayout(False)
-        pnlFFmpeg.PerformLayout()
         pnlGitHub.ResumeLayout(False)
         pnlGitHub.PerformLayout()
         pnlHub.ResumeLayout(False)
         pnlHub.PerformLayout()
-        pnlStatus.ResumeLayout(False)
         CType(DIMBOX_1, ComponentModel.ISupportInitialize).EndInit()
         CType(DIMBOX_2, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
@@ -981,6 +951,8 @@ Partial Class UI_Engine
         CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
         CType(hg2, ComponentModel.ISupportInitialize).EndInit()
+        pnlStatus.ResumeLayout(False)
+        pnlStatus.PerformLayout()
         ResumeLayout(False)
     End Sub
 
@@ -999,11 +971,9 @@ Partial Class UI_Engine
     Friend WithEvents btnBrowse As System.Windows.Forms.Button
     Friend WithEvents txtFFmpegPath As System.Windows.Forms.TextBox
     Friend WithEvents btnFFmpegBrowse As System.Windows.Forms.Button
-    Friend WithEvents lblFFmpegStatus As System.Windows.Forms.Label
     Friend WithEvents btnRecord As System.Windows.Forms.Button
     Friend WithEvents btnStop As System.Windows.Forms.Button
     Friend WithEvents btnDetect As System.Windows.Forms.Button
-    Friend WithEvents lblHotkeys As System.Windows.Forms.Label
     Friend WithEvents tmrRecording As System.Windows.Forms.Timer
     Friend WithEvents lblTitle As Label
     Friend WithEvents pnlCapture As Panel
@@ -1016,7 +986,6 @@ Partial Class UI_Engine
     Friend WithEvents lblBitTitle As Label
     Friend WithEvents pnlOutput As Panel
     Friend WithEvents lblOutTitle As Label
-    Friend WithEvents pnlFFmpeg As Panel
     Friend WithEvents lblFfmpegTitle As Label
 
     ' ✅ P2: new controls for full Overlay config display
@@ -1064,7 +1033,6 @@ Partial Class UI_Engine
     ' ✅ P2.10: real-time status panel controls
     Friend WithEvents pnlStatus As Panel
     Friend WithEvents lblRecState As Label
-    Friend WithEvents lblRecTimer As Label
     Friend WithEvents lblRecSize As Label
     Friend WithEvents lblRecFrames As Label
     Friend WithEvents lblRecBitrate As Label
