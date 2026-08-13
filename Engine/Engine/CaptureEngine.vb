@@ -425,15 +425,15 @@ Public Class CaptureEngine
 
         Select Case hwType
             Case HwDeviceType.NVIDIA
-                ' ✅ FIX: CBR for screen recording. VBR was a mistake — desktop
-                ' content is mostly static, so VBR dropped bitrate to 2 Mbps
-                ' even though target was 17 Mbps. CBR forces constant bitrate
-                ' regardless of scene complexity.
-                ' -bufsize = 1x bitrate (not 2x) → tighter CBR, less drift
-                ' Removed -zerolatency 1 (was causing bitrate undershoot)
+                ' ✅ CBR + CFR for 100% bitrate accuracy.
+                ' -fps_mode cfr = force Constant Frame Rate (duplicate frames if
+                '   ddagrab can't deliver full FPS). Without this, ddagrab delivers
+                '   ~57fps instead of 60fps → bitrate = 57/60 × target = 95%.
+                '   With CFR, output is always exactly 60fps → bitrate = 100%.
+                ' -bufsize = 1x bitrate → tight CBR
                 sb.Append("-preset " & nvencPreset & " -tune ll -rc cbr ")
                 sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & br & " ")
-                sb.Append("-g " & fpsStr & " ")
+                sb.Append("-g " & fpsStr & " -fps_mode cfr ")
                 sb.Append("-spatial-aq 1 -temporal-aq 1 ")
 
             Case HwDeviceType.IntelQSV
