@@ -128,11 +128,50 @@ Public Class CaptureSettings
                 parentDir = Directory.GetParent(parentDir)?.FullName
                 If String.IsNullOrWhiteSpace(parentDir) Then Exit For
                 candidates.Add(Path.Combine(parentDir, "API-Core", "ffmpeg.exe"))
+                candidates.Add(Path.Combine(parentDir, "api-core", "ffmpeg.exe"))
                 candidates.Add(Path.Combine(parentDir, "ffmpeg.exe"))
             Catch
                 Exit For
             End Try
         Next
+
+        ' ✅ P1.6: also search sibling Overlay project output folder.
+        ' When running from source, Engine's bin\Release\ is a sibling of
+        ' Overlay's bin\Release\. Overlay always has api-core\ffmpeg.exe
+        ' (it's the one that bundles it). Engine's project references it
+        ' too but sometimes the build doesn't copy it (race with Overlay
+        ' build, or .gitignore excludes the .exe). Searching Overlay's
+        ' folder as a fallback is the pragmatic fix.
+        Try
+            Dim engineProjDir As String = appDir
+            For depth As Integer = 1 To 6
+                Dim parent As DirectoryInfo = Directory.GetParent(engineProjDir)
+                If parent Is Nothing Then Exit For
+                engineProjDir = parent.FullName
+                ' Look for ..\Overlay\bin\Release\*\api-core\ffmpeg.exe
+                Dim overlayBin As String = Path.Combine(parent.FullName, "Overlay", "bin")
+                If Directory.Exists(overlayBin) Then
+                    For Each configDir As String In {"Release", "Debug"}
+                        Dim configPath_ As String = Path.Combine(overlayBin, configDir)
+                        If Directory.Exists(configPath_) Then
+                            ' Walk into the TFM subfolder (net8.0-windows10.0.26100.0)
+                            For Each subDir As String In Directory.GetDirectories(configPath_)
+                                Dim ffmpegCandidate As String = Path.Combine(subDir, "api-core", "ffmpeg.exe")
+                                If File.Exists(ffmpegCandidate) Then
+                                    candidates.Add(ffmpegCandidate)
+                                End If
+                                Dim ffmpegCandidate2 As String = Path.Combine(subDir, "API-Core", "ffmpeg.exe")
+                                If File.Exists(ffmpegCandidate2) Then
+                                    candidates.Add(ffmpegCandidate2)
+                                End If
+                            Next
+                        End If
+                    Next
+                    Exit For ' found the Overlay/bin folder, no need to go higher
+                End If
+            Next
+        Catch
+        End Try
 
         For Each candidate In candidates
             If File.Exists(candidate) Then

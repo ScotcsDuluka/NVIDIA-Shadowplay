@@ -65,6 +65,29 @@ Public Class Base
                     Base_Game_Filter_Sub.Hide()
                 End If
 
+            Case "engine_ready"
+                ' ✅ P1.6: Engine just connected to the Hub (or reconnected).
+                ' Re-send PREWARM_FFMPEG so Engine picks up our ffmpeg.exe path.
+                ' Problem: Overlay sends PREWARM on its Load event, but Engine
+                ' often connects LATER → the original PREWARM is lost. Engine
+                ' then can't find ffmpeg → RECORD_START fails. By re-sending
+                ' PREWARM here, we ensure Engine always gets the path.
+                Debug.WriteLine("[Overlay] received engine_ready, re-sending PREWARM_FFMPEG")
+                Try
+                    Dim ffmpegPath As String = AppSettings.Instance.Paths.FFmpegPath
+                    If Not String.IsNullOrEmpty(ffmpegPath) Then
+                        Dim encoderName As String = AppSettings.Instance.Recording.Encoder
+                        tcp.Send("PREWARM_FFMPEG", ffmpegPath & "|" & encoderName)
+                    End If
+                Catch ex As Exception
+                    Debug.WriteLine("[Overlay] engine_ready re-send failed: " & ex.Message)
+                End Try
+
+            Case "engine_response"
+                ' ✅ P1.6: log Engine responses for debugging. Format:
+                '   engine_response:<command>,<status>[,<data>][,req=<reqId>]
+                Debug.WriteLine($"[Overlay] engine_response: {value}")
+
             Case Else
                 Debug.WriteLine("Unknown: " & cmd)
 

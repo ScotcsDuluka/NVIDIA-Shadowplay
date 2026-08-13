@@ -85,6 +85,24 @@ Public Class UI_Engine
                           lblHotkeys.ForeColor = Drawing.Color.FromArgb(255, 200, 50)
                       End If
                   End Sub)
+
+        ' ✅ P1.6: broadcast "engine_ready" on connect so the Overlay can
+        ' re-send PREWARM_FFMPEG. Problem we're solving: Overlay sends
+        ' PREWARM_FFMPEG on its Load event, but Engine often connects to
+        ' the Hub LATER than Overlay (user starts Engine manually, or
+        ' Engine's startup is slow). The PREWARM message is fire-and-forget
+        ' over TCP → if Engine isn't connected yet, it's lost forever.
+        ' Engine then can't find ffmpeg.exe → RECORD_START fails silently.
+        ' By broadcasting "engine_ready" on connect, Overlay gets a chance
+        ' to re-send PREWARM_FFMPEG and Engine gets the ffmpeg path.
+        If connected Then
+            Try
+                _hubClient?.Send("engine_ready")
+                DebugLog("[Engine] broadcast engine_ready")
+            Catch ex As Exception
+                DebugLog("[Engine] engine_ready broadcast failed: " & ex.Message)
+            End Try
+        End If
     End Sub
 
     Private Sub OnHubLog(sender As Object, message As String)
@@ -136,8 +154,28 @@ Public Class UI_Engine
 
     Private Async Function HandleEngineRecordStart(value As String, reqId As String) As Task
         Try
+            DebugLog($"[Engine] HandleEngineRecordStart: path={value}, reqId={If(reqId, "(none)")}")
+
             ' โหลด config ใหม่จาก json ทุกครั้งก่อน record
             _settings = CaptureSettings.Load(_configPath)
+            DebugLog($"[Engine] config loaded: FFmpegPath={If(_settings.FFmpegPath, "(empty)")}, Encoder={If(_settings.Encoder, "(empty)")}, CaptureMethod={_settings.CaptureMethod}")
+
+            ' ✅ P1.6: if FFmpegPath is empty or doesn't exist, respond with
+            ' a clear error immediately. Old code let StartRecordingAsync run
+            ' and fail inside Validate() — but the error path was unreliable
+            ' (Async Sub + event-based ErrorOccurred). Now we fail fast and
+            ' send the response ourselves.
+            If String.IsNullOrEmpty(_settings.FFmpegPath) OrElse Not IO.File.Exists(_settings.FFmpegPath) Then
+                DebugLog($"[Engine] RECORD_START rejected: FFmpegPath invalid ('{_settings.FFmpegPath}')")
+                _hubClient.SendResponse("engine_record_start", "error", "ffmpeg_not_found", reqId)
+                Return
+            End If
+
+            If String.IsNullOrEmpty(_settings.Encoder) Then
+                DebugLog("[Engine] RECORD_START rejected: Encoder not set")
+                _hubClient.SendResponse("engine_record_start", "error", "no_encoder_selected", reqId)
+                Return
+            End If
 
             If Not IO.Directory.Exists(_settings.OutputDirectory) Then
                 IO.Directory.CreateDirectory(_settings.OutputDirectory)
@@ -150,13 +188,9 @@ Public Class UI_Engine
             AddHandler _captureEngine.RecordingStopped, AddressOf OnRecordingStopped
             AddHandler _captureEngine.ErrorOccurred, AddressOf OnEngineError
 
-            ' ✅ P1.5: pass the Overlay-supplied output path through to CaptureEngine.
-            ' value is the path the Overlay wants the file saved to (e.g.
-            ' "C:\Users\...\Videos\Shadowplay\Gallery\Record_2024-01-01_12-00-00.mp4").
-            ' If empty, CaptureEngine falls back to settings.GenerateOutputFilename().
-            ' Old behavior ignored value entirely → file landed in Engine's preferred
-            ' folder instead of where the Overlay told the user it would be.
+            DebugLog($"[Engine] starting CaptureEngine with override path: {value}")
             Dim ok As Boolean = Await _captureEngine.StartRecordingAsync(value)
+            DebugLog($"[Engine] StartRecordingAsync returned: {ok}")
 
             If ok Then
                 Me.Invoke(Sub()
