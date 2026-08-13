@@ -102,6 +102,7 @@ Partial Class UI_Engine
         PictureBox3 = New PictureBox()
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
+        OPEN_UI = New System.Windows.Forms.Timer(components)
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
@@ -829,6 +830,10 @@ Partial Class UI_Engine
         hg2.TabStop = False
         hg2.Visible = False
         ' 
+        ' OPEN_UI
+        ' 
+        OPEN_UI.Enabled = True
+        ' 
         ' UI_Engine
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -845,8 +850,10 @@ Partial Class UI_Engine
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         MaximizeBox = False
         Name = "UI_Engine"
+        Opacity = 0R
         StartPosition = FormStartPosition.CenterScreen
         Text = "NVIDIA Capture"
+        TopMost = True
         TransparencyKey = Color.Coral
         WindowState = FormWindowState.Maximized
         pnlCapture.ResumeLayout(False)
@@ -962,5 +969,6 @@ Partial Class UI_Engine
     Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents PictureBox16 As PictureBox
     Friend WithEvents hg2 As PictureBox
+    Friend WithEvents OPEN_UI As System.Windows.Forms.Timer
 
 End Class

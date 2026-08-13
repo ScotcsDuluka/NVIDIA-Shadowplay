@@ -7,10 +7,52 @@
 ' ถ้า Overlay เปลี่ยนค่า → Engine UI จะอัปเดทตาม
 
 Imports System.IO
+Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
+Imports System.Xml
 
 Partial Public Class UI_Engine
+    Const WS_EX_TRANSPARENT As Integer = &H20
 
+
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
+    End Function
+
+    Protected Overrides Sub WndProc(ByRef m As Message)
+
+        Const WM_NCHITTEST As Integer = &H84
+        Const HTTRANSPARENT As Integer = -1
+
+        If m.Msg = WM_NCHITTEST Then
+            Dim pos As Point = Me.PointToClient(Cursor.Position)
+
+
+            If Me.GetChildAtPoint(pos) Is Nothing Then
+                m.Result = CType(HTTRANSPARENT, IntPtr)
+                Return
+            End If
+        End If
+
+        MyBase.WndProc(m)
+
+    End Sub
+
+    Private Const GWL_EXSTYLE As Integer = -20
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80
+    Private Const WS_EX_APPWINDOW As Integer = &H40000
+    Private Sub HideFromAltTab()
+        Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
+    End Sub
+    Private Sub hub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        HideFromAltTab()
+    End Sub
     ' ── Fields ─────────────────────────────────────────────────
 
     Private _settings As CaptureSettings
@@ -896,4 +938,18 @@ Partial Public Class UI_Engine
         End Try
     End Sub
 
+    Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
+        File.Delete(Path.Combine(Application.StartupPath, "Engine.UI"))
+    End Sub
+
+    Private Sub OPEN_UI_Tick(sender As Object, e As EventArgs) Handles OPEN_UI.Tick
+        HideFromAltTab()
+        If File.Exists(Path.Combine(Application.StartupPath, "Engine.UI")) Then
+            Me.Opacity = 100
+            Me.WindowState = FormWindowState.Maximized
+        Else
+            Me.Opacity = 0
+            Me.WindowState = FormWindowState.Minimized
+        End If
+    End Sub
 End Class
