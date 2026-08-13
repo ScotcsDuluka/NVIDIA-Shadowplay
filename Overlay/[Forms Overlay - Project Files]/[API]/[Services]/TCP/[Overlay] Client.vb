@@ -84,13 +84,68 @@ Public Class Base
                 End Try
 
             Case "engine_response"
-                ' ✅ P1.6: log Engine responses for debugging. Format:
-                '   engine_response:<command>,<status>[,<data>][,req=<reqId>]
+                ' ✅ P2.6: parse engine_response and reconcile UI state.
+                ' Format: engine_response:<command>,<status>[,<data>][,req=<reqId>]
                 Debug.WriteLine($"[Overlay] engine_response: {value}")
+                HandleEngineResponse(value)
 
             Case Else
                 Debug.WriteLine("Unknown: " & cmd)
 
         End Select
+    End Sub
+
+    ''' <summary>
+    ''' ✅ P2.6: parse engine_response and reconcile Overlay's optimistic UI state.
+    ''' Format: &lt;command&gt;,&lt;status&gt;[,&lt;data&gt;][,req=&lt;reqId&gt;]
+    ''' If Engine reports an error for record_start, clear _isRecordingLocal so
+    ''' the Overlay doesn't show "Recording" when nothing is actually recording.
+    ''' </summary>
+    Private Sub HandleEngineResponse(value As String)
+        Try
+            If String.IsNullOrEmpty(value) Then Return
+            Dim parts As String() = value.Split(","c)
+            If parts.Length < 2 Then Return
+
+            Dim cmd As String = parts(0).Trim()
+            Dim status As String = parts(1).Trim()
+
+            Select Case cmd
+                Case "engine_record_start"
+                    If status = "ok" Then
+                        Debug.WriteLine($"[Overlay] Engine confirmed record_start OK")
+                    Else
+                        ' Engine failed to start recording — revert optimistic UI.
+                        Debug.WriteLine($"[Overlay] Engine record_start FAILED: {status} {If(parts.Length >= 3, parts(2), "")}")
+                        _isRecordingLocal = False
+                        RecordValue = False
+                        ShowNotifier("recording_error")
+                    End If
+
+                Case "engine_record_stop"
+                    If status = "ok" Then
+                        Debug.WriteLine($"[Overlay] Engine confirmed record_stop OK")
+                    Else
+                        Debug.WriteLine($"[Overlay] Engine record_stop FAILED: {status}")
+                    End If
+
+                Case "engine_get_status"
+                    ' parts(2) = "Recording" or "Idle"
+                    If parts.Length >= 3 Then
+                        Dim engineState As String = parts(2).Trim()
+                        Debug.WriteLine($"[Overlay] Engine status: {engineState}")
+                        ' Reconcile local state with Engine's actual state.
+                        If engineState = "Recording" AndAlso Not _isRecordingLocal Then
+                            _isRecordingLocal = True
+                            RecordValue = True
+                        ElseIf engineState <> "Recording" AndAlso _isRecordingLocal Then
+                            _isRecordingLocal = False
+                            RecordValue = False
+                        End If
+                    End If
+            End Select
+        Catch ex As Exception
+            Debug.WriteLine($"[Overlay] HandleEngineResponse error: {ex.Message}")
+        End Try
     End Sub
 End Class

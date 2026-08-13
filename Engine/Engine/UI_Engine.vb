@@ -681,6 +681,12 @@ Partial Public Class UI_Engine
 
         Task.Run(Sub()
                      Try
+                         ' ✅ P2.6: sync with Overlay config before recording
+                         ' (same as HandleEngineRecordStart does for TCP-triggered recordings).
+                         Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+                         SyncWithOverlayConfig(s)
+                         _settings = s
+
                          Dim engine As New CaptureEngine(_settings)
                          AddHandler engine.StateChanged, AddressOf OnEngineStateChanged
                          AddHandler engine.RecordingStarted, AddressOf OnRecordingStarted
