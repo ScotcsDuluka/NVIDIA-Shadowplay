@@ -9,7 +9,7 @@
 Imports System.IO
 Imports System.Windows.Forms
 
-Public Partial Class UI_Engine
+Partial Public Class UI_Engine
 
     ' ── Fields ─────────────────────────────────────────────────
 

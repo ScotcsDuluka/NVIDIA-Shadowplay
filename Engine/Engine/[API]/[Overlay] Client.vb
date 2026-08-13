@@ -32,7 +32,7 @@
 
 Imports System.Diagnostics
 
-Public Partial Class UI_Engine
+Partial Public Class UI_Engine
 
     ''' <summary>Shared TCP helper — accessible from all UI_Engine partials.</summary>
     Public Shared tcp As TcpClientHelper
