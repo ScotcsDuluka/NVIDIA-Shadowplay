@@ -495,7 +495,7 @@ Public Class CaptureEngine
                           $"highpass=f=20," &
                           $"lowpass=f=20000," &
                           $"afftdn=nr=10:nf=-40," &
-                          $"aresample=48000:async=1:" &
+                          $"aresample=48000:async=1," &
                           $"aformat=channel_layouts=stereo[sys];")
                 audioLabels.Add("[sys]")
                 nextIdx += 1
@@ -510,7 +510,7 @@ Public Class CaptureEngine
                           $"highpass=f=80," &
                           $"lowpass=f=16000," &
                           $"afftdn=nr=15:nf=-35," &
-                          $"aresample=48000:async=1:" &
+                          $"aresample=48000:async=1," &
                           $"aformat=channel_layouts=stereo[mic];")
                 audioLabels.Add("[mic]")
                 nextIdx += 1
