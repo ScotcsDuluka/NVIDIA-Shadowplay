@@ -438,14 +438,11 @@ Partial Public Class UI_Engine
                     s.CaptureMethod = video.api_capture.ToLowerInvariant()
                 End If
 
-                ' ✅ Audio Capture — sync from Overlay's video.json.audio
-                s.SystemAudioCapture = video.audio.system_enabled
-                s.MicCapture = video.audio.mic_enabled
-                s.SystemAudioVolume = video.audio.system_volume
-                s.MicVolume = video.audio.mic_volume
-                s.MicDeviceName = video.audio.mic_device
-                ' Set legacy AudioCapture for backward compat with old code paths
-                s.AudioCapture = s.SystemAudioCapture OrElse s.MicCapture
+                ' Audio.
+                ' s.AudioCapture = video.audio.system_enabled OrElse video.audio.mic_enabled
+                ' s.AudioDevice = video.audio.mic_device
+                ' Note: Engine's audio path is not fully wired up yet — leave as-is
+                ' for now so we don't break recordings. P3 will add audio.
             End If
 
             If appCfg IsNot Nothing Then

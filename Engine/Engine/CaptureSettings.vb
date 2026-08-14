@@ -33,22 +33,6 @@ Public Class CaptureSettings
     <JsonPropertyName("AudioDevice")>
     Public Property AudioDevice As String = ""
 
-    ' ✅ Audio Capture: WASAPI-based, matches Overlay's video.json.audio schema
-    <JsonPropertyName("SystemAudioCapture")>
-    Public Property SystemAudioCapture As Boolean = False
-
-    <JsonPropertyName("MicCapture")>
-    Public Property MicCapture As Boolean = False
-
-    <JsonPropertyName("SystemAudioVolume")>
-    Public Property SystemAudioVolume As Single = 1.0F
-
-    <JsonPropertyName("MicVolume")>
-    Public Property MicVolume As Single = 1.0F
-
-    <JsonPropertyName("MicDeviceName")>
-    Public Property MicDeviceName As String = ""
-
     <JsonPropertyName("PixelFormat")>
     Public Property PixelFormat As String = "nv12"
 
@@ -277,11 +261,14 @@ Public Class CaptureSettings
             Return New ValidationResult(False, "FFmpeg not found at: " & FFmpegPath)
         End If
 
-        ' ✅ Audio validation — check new WASAPI fields, not legacy AudioDevice.
-        ' SystemAudioCapture uses WASAPI "default" — always available, no validation needed.
-        ' MicCapture needs MicDeviceName.
-        If MicCapture AndAlso String.IsNullOrWhiteSpace(MicDeviceName) Then
-            Return New ValidationResult(False, "Microphone is enabled but no device name is set. Select a microphone in the Overlay settings.")
+        ' ✅ M4 FIX: don't mutate settings during Validate. Old code silently
+        ' set AudioCapture = False if device was empty, then SyncWithOverlayConfig
+        ' would persist this to disk — user's "audio on" setting was flipped
+        ' to off without their knowledge.
+        ' Now Validate returns a validation error instead. Caller decides
+        ' whether to disable audio or fail.
+        If AudioCapture AndAlso String.IsNullOrWhiteSpace(AudioDevice) Then
+            Return New ValidationResult(False, "AudioCapture is enabled but AudioDevice is empty. Set a device or disable audio.")
         End If
 
         Return New ValidationResult(True, "")

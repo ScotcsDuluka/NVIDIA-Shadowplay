@@ -431,98 +431,14 @@ Public Class CaptureEngine
             End If
         End If
 
-        ' ── Audio inputs (WASAPI for system, WASAPI/dshow for mic) ──
-        ' ✅ Audio Capture: WASAPI loopback for system audio, WASAPI for mic.
-        ' Falls back to dshow if WASAPI device name looks like a dshow name.
-        Dim hasAudio As Boolean = _settings.SystemAudioCapture OrElse _settings.MicCapture
-        Dim audioInputCount As Integer = 0  ' tracks how many -i inputs we add after video
-
-        If _settings.SystemAudioCapture Then
-            ' WASAPI loopback captures whatever the default output device plays.
-            ' "default" = the current default audio output (speakers/headphones).
-            sb.Append("-thread_queue_size 512 -f wasapi -i ""default"" ")
-            audioInputCount += 1
+        ' ── Audio input (dshow) ──
+        If _settings.AudioCapture Then
+            sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
         End If
 
-        If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
-            ' Try WASAPI first for mic (lower latency, bit-perfect).
-            ' If the device name contains parentheses like "Microphone (Realtek)",
-            ' it works with both WASAPI and dshow — WASAPI is preferred.
-            sb.Append("-thread_queue_size 512 -f wasapi -i """ & _settings.MicDeviceName & """ ")
-            audioInputCount += 1
-        End If
-
-        ' ── Build filter chain ──
-        ' If audio is present, we MUST use -filter_complex (not -vf) because
-        ' we need to mix multiple audio streams and map them alongside video.
-        Dim useFilterComplex As Boolean = hasAudio AndAlso audioInputCount > 0
-
-        If useFilterComplex Then
-            ' ═══ -filter_complex mode ═══
-            ' Build a combined filter graph: [video filter] + [audio mix]
-            Dim fc As New StringBuilder()
-
-            ' Video filter portion: [0:v]<video_filter>[vout]
-            ' Input 0 is always the video (ddagrab/gdigrab/gfxcapture).
-            If videoFilter.Length > 0 Then
-                fc.Append("[0:v]" & videoFilter & "[vout];")
-            Else
-                fc.Append("[0:v]copy[vout];")
-            End If
-
-            ' Audio portion:
-            ' Input 1 = system audio (if enabled)
-            ' Input 2 = mic (if enabled)
-            ' Each audio stream gets: volume, aresample, aformat=stereo
-            Dim sysInputIdx As Integer = -1
-            Dim micInputIdx As Integer = -1
-            Dim nextIdx As Integer = 1  ' audio inputs start at index 1
-
-            If _settings.SystemAudioCapture Then
-                sysInputIdx = nextIdx
-                nextIdx += 1
-            End If
-
-            If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
-                micInputIdx = nextIdx
-                nextIdx += 1
-            End If
-
-            ' Build audio filter for each enabled source
-            Dim audioLabels As New List(Of String)
-
-            If sysInputIdx >= 0 Then
-                Dim vol As String = _settings.SystemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
-                fc.Append($"[{sysInputIdx}:a]volume={vol},aresample=48000,aformat=channel_layouts=stereo[sys];")
-                audioLabels.Add("[sys]")
-            End If
-
-            If micInputIdx >= 0 Then
-                Dim vol As String = _settings.MicVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
-                fc.Append($"[{micInputIdx}:a]volume={vol},aresample=48000,aformat=channel_layouts=stereo[mic];")
-                audioLabels.Add("[mic]")
-            End If
-
-            ' Mix audio sources
-            If audioLabels.Count = 1 Then
-                ' Only one audio source — just rename it to [aout]
-                fc.Append($"{audioLabels(0)}anull[aout]")
-            ElseIf audioLabels.Count = 2 Then
-                ' Two sources — mix with amix (normalize=0 to prevent volume drop)
-                fc.Append($"{audioLabels(0)}{audioLabels(1)}amix=inputs=2:duration=first:normalize=0[aout]")
-            End If
-
-            ' Remove trailing semicolon if present
-            Dim fcStr As String = fc.ToString().TrimEnd(";"c)
-
-            sb.Append($"-filter_complex ""{fcStr}"" ")
-            sb.Append("-map ""[vout]"" -map ""[aout]"" ")
-
-        Else
-            ' ═══ -vf mode (no audio, same as before) ═══
-            If videoFilter.Length > 0 Then
-                sb.Append("-vf """ & videoFilter & """ ")
-            End If
+        ' ── Video filter chain (-vf) ──
+        If videoFilter.Length > 0 Then
+            sb.Append("-vf """ & videoFilter & """ ")
         End If
 
         ' ── Video encoder settings ──
@@ -604,13 +520,8 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio encoding ──
-        ' ✅ Audio: only add audio encoder args if we have audio inputs.
-        ' -c:a aac = AAC codec (universal compatibility)
-        ' -b:a 320k = 320 kbps (high quality, reasonable file size)
-        ' -ar 48000 = 48 kHz (video standard)
-        ' -async 1 = auto-sync audio to video timeline (prevents drift)
-        If hasAudio AndAlso audioInputCount > 0 Then
-            sb.Append("-c:a aac -b:a 320k -ar 48000 -async 1 ")
+        If _settings.AudioCapture Then
+            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         End If
 
         ' ── MP4 faststart: write moov atom at the head so the file is playable
