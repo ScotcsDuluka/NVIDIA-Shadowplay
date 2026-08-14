@@ -5,8 +5,6 @@
 '   If the Engine process is killed (Task Manager, crash, logoff), the
 '   ffmpeg.exe child keeps running as an orphan — still consuming GPU/CPU,
 '   still holding the output file open, still writing frames to nowhere.
-'   The sibling CaptureEngine/ project had JobObjectManager.vb but Engine
-'   didn't reference it.
 '
 ' Fix:
 '   Create one Job Object per CaptureEngine instance, with

@@ -8,9 +8,8 @@ Imports System.Text.Json.Serialization
 Public Class Base_RecordingsSet
 
 #Region "Constants"
-    ' Hardcoded values — formerly read from CaptureCore.CaptureLimits
     ' IMPORTANT: MAX_BITRATE_GLOBAL / MAX_FPS_GLOBAL are the UI INPUT caps.
-    ' The recorder's hard caps are different and live in Engine's CaptureLimits.
+    ' The recorder's hard caps are different and live in Engine's CaptureSettings validation.
     Public Const MIN_BITRATE_GLOBAL As Integer = 500
     Public Const MAX_BITRATE_GLOBAL As Integer = 150000
     Public Const DEFAULT_BITRATE As Integer = 20000

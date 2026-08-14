@@ -6,12 +6,15 @@ This repository is split into several app and support modules:
   Windows capture API host and related WinForms UI files.
 - `App Experience/`
   Main desktop app experience and helper UI.
-- `CaptureEngine/`
-  Reusable recording engine code such as audio and screen capture.
+- `Engine/`
+  Runtime capture engine — FFmpeg process management, capture settings,
+  encoder detection, and Engine UI. This is the only engine project; the
+  Overlay references it directly via ProjectReference.
 - `Notifier/`
   Notification app and overlay-related notifier flow.
 - `Overlay/`
   Overlay UI, resources, local runtime data, and the main overlay solution.
+  Bundles `Overlay/API-Core/ffmpeg.exe` and related FFmpeg DLLs at runtime.
 - `Web/`
   Static website assets and pages for the project site.
 - `.github/workflows/`
