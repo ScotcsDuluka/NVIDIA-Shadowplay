@@ -552,15 +552,18 @@ Public Class CaptureEngine
         Select Case hwType
             Case HwDeviceType.NVIDIA
                 ' ✅ CBR + CFR for 100% bitrate accuracy.
-                ' -fps_mode cfr = force Constant Frame Rate (duplicate frames if
-                '   ddagrab can't deliver full FPS). Without this, ddagrab delivers
-                '   ~57fps instead of 60fps → bitrate = 57/60 × target = 95%.
-                '   With CFR, output is always exactly 60fps → bitrate = 100%.
-                ' -bufsize = 1x bitrate → tight CBR
                 sb.Append("-preset " & nvencPreset & " -tune ll -rc cbr ")
                 sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & br & " ")
                 sb.Append("-g " & fpsStr & " -fps_mode cfr ")
-                sb.Append("-spatial-aq 1 -temporal-aq 1 ")
+                ' ✅ FIX: -spatial-aq and -temporal-aq are h264_nvenc ONLY.
+                ' hevc_nvenc and av1_nvenc don't support them → FFmpeg errors out.
+                If _settings.Encoder.IndexOf("h264_nvenc", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    sb.Append("-spatial-aq 1 -temporal-aq 1 ")
+                ElseIf _settings.Encoder.IndexOf("hevc_nvenc", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    ' HEVC: only spatial-aq (temporal-aq not supported)
+                    sb.Append("-spatial-aq 1 ")
+                End If
+                ' av1_nvenc: no AQ options at all
 
             Case HwDeviceType.IntelQSV
                 sb.Append("-preset medium ")
