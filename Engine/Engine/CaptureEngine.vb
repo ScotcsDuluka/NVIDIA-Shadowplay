@@ -431,14 +431,125 @@ Public Class CaptureEngine
             End If
         End If
 
-        ' ── Audio input (dshow) ──
-        If _settings.AudioCapture Then
-            sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
+        ' ═══════════════════════════════════════════════════════════════
+        ' ── Audio inputs (WASAPI) ──
+        ' ═══════════════════════════════════════════════════════════════
+        ' WASAPI = Windows Audio Session API (same as OBS/Discord/ShadowPlay)
+        ' - Bit-perfect capture (no resample by Windows)
+        ' - Low latency (~10ms vs dshow ~50ms)
+        ' - Works on every Windows 10/11 machine (no Stereo Mix needed)
+        '
+        ' Audio quality features:
+        ' - thread_queue_size 4096: large buffer to prevent underruns
+        ' - aresample=async=1: auto-resample + sync to prevent drift
+        ' - aformat=channel_layouts=stereo: force stereo for consistent mixing
+        ' - highpass=20: cut sub-bass rumble (below human hearing)
+        ' - lowpass=20000: cut ultrasonic noise (above human hearing)
+        ' - afftdn=nr=10: light noise reduction (FFT-based, -10dB threshold)
+        ' - loudnorm=I=-16:LUFS:TP=-1.5:LRA=11: EBU R128 loudness normalization
+        '   (same standard as YouTube/Netflix — consistent volume across recordings)
+        ' - amix normalize=0: don't reduce volume when mixing sources
+        ' - AAC 320kbps @ 48kHz: high quality, universal compatibility
+        ' ═══════════════════════════════════════════════════════════════
+
+        Dim hasAudio As Boolean = _settings.SystemAudioCapture OrElse _settings.MicCapture
+        Dim audioInputCount As Integer = 0
+
+        ' ✅ Detect WASAPI support at runtime. Some FFmpeg builds (mingw
+        ' cross-compile) don't include WASAPI. Fall back to dshow.
+        Dim useWasapi As Boolean = SupportsWasapi()
+
+        If _settings.SystemAudioCapture Then
+            If useWasapi Then
+                sb.Append("-thread_queue_size 4096 -f wasapi -i ""default"" ")
+            Else
+                ' dshow fallback: try "Stereo Mix" for system audio loopback.
+                ' If Stereo Mix doesn't exist, this will fail — but it's the
+                ' only dshow option for system audio capture.
+                sb.Append("-thread_queue_size 4096 -f dshow -i audio=""Stereo Mix"" ")
+            End If
+            audioInputCount += 1
         End If
 
-        ' ── Video filter chain (-vf) ──
-        If videoFilter.Length > 0 Then
-            sb.Append("-vf """ & videoFilter & """ ")
+        If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
+            If useWasapi Then
+                sb.Append("-thread_queue_size 4096 -f wasapi -i """ & _settings.MicDeviceName & """ ")
+            Else
+                sb.Append("-thread_queue_size 4096 -f dshow -i audio=""" & _settings.MicDeviceName & """ ")
+            End If
+            audioInputCount += 1
+        End If
+
+        ' ── Filter chain ──
+        Dim useFilterComplex As Boolean = hasAudio AndAlso audioInputCount > 0
+
+        If useFilterComplex Then
+            Dim fc As New StringBuilder()
+
+            ' ── Video portion: [0:v]<filter>[vout] ──
+            If videoFilter.Length > 0 Then
+                fc.Append("[0:v]" & videoFilter & "[vout];")
+            Else
+                fc.Append("[0:v]copy[vout];")
+            End If
+
+            ' ── Audio portion ──
+            ' Each source gets a professional audio chain:
+            '   volume → highpass → lowpass → afftdn (noise reduction) → aresample → aformat
+            Dim audioLabels As New List(Of String)
+            Dim nextIdx As Integer = 1
+
+            If _settings.SystemAudioCapture Then
+                Dim vol As String = _settings.SystemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
+                ' System audio chain: volume + EQ + noise gate + resample
+                fc.Append($"[{nextIdx}:a]" &
+                          $"volume={vol}," &
+                          $"highpass=f=20," &
+                          $"lowpass=f=20000," &
+                          $"afftdn=nr=10:nf=-40," &
+                          $"aresample=48000:async=1," &
+                          $"aformat=channel_layouts=stereo[sys];")
+                audioLabels.Add("[sys]")
+                nextIdx += 1
+            End If
+
+            If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
+                Dim vol As String = _settings.MicVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
+                ' Mic chain: volume + highpass (cut low rumble) + lowpass (cut hiss)
+                ' + afftdn (noise reduction) + resample + stereo
+                fc.Append($"[{nextIdx}:a]" &
+                          $"volume={vol}," &
+                          $"highpass=f=80," &
+                          $"lowpass=f=16000," &
+                          $"afftdn=nr=15:nf=-35," &
+                          $"aresample=48000:async=1," &
+                          $"aformat=channel_layouts=stereo[mic];")
+                audioLabels.Add("[mic]")
+                nextIdx += 1
+            End If
+
+            ' ── Mix audio sources ──
+            If audioLabels.Count = 1 Then
+                ' Single source: apply loudnorm after all processing
+                fc.Append($"{audioLabels(0)}" &
+                          $"loudnorm=I=-16:TP=-1.5:LRA=11[aout]")
+            ElseIf audioLabels.Count = 2 Then
+                ' Two sources: mix with normalize=0 (no volume reduction)
+                ' then apply loudnorm on the mixed result
+                fc.Append($"{audioLabels(0)}{audioLabels(1)}" &
+                          $"amix=inputs=2:duration=first:normalize=0," &
+                          $"loudnorm=I=-16:TP=-1.5:LRA=11[aout]")
+            End If
+
+            Dim fcStr As String = fc.ToString().TrimEnd(";"c)
+            sb.Append($"-filter_complex ""{fcStr}"" ")
+            sb.Append("-map ""[vout]"" -map ""[aout]"" ")
+
+        Else
+            ' No audio — use -vf as before (zero regression)
+            If videoFilter.Length > 0 Then
+                sb.Append("-vf """ & videoFilter & """ ")
+            End If
         End If
 
         ' ── Video encoder settings ──
@@ -453,15 +564,18 @@ Public Class CaptureEngine
         Select Case hwType
             Case HwDeviceType.NVIDIA
                 ' ✅ CBR + CFR for 100% bitrate accuracy.
-                ' -fps_mode cfr = force Constant Frame Rate (duplicate frames if
-                '   ddagrab can't deliver full FPS). Without this, ddagrab delivers
-                '   ~57fps instead of 60fps → bitrate = 57/60 × target = 95%.
-                '   With CFR, output is always exactly 60fps → bitrate = 100%.
-                ' -bufsize = 1x bitrate → tight CBR
                 sb.Append("-preset " & nvencPreset & " -tune ll -rc cbr ")
                 sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & br & " ")
                 sb.Append("-g " & fpsStr & " -fps_mode cfr ")
-                sb.Append("-spatial-aq 1 -temporal-aq 1 ")
+                ' ✅ FIX: -spatial-aq and -temporal-aq are h264_nvenc ONLY.
+                ' hevc_nvenc and av1_nvenc don't support them → FFmpeg errors out.
+                If _settings.Encoder.IndexOf("h264_nvenc", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    sb.Append("-spatial-aq 1 -temporal-aq 1 ")
+                ElseIf _settings.Encoder.IndexOf("hevc_nvenc", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    ' HEVC: only spatial-aq (temporal-aq not supported)
+                    sb.Append("-spatial-aq 1 ")
+                End If
+                ' av1_nvenc: no AQ options at all
 
             Case HwDeviceType.IntelQSV
                 sb.Append("-preset medium ")
@@ -520,8 +634,15 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio encoding ──
-        If _settings.AudioCapture Then
-            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+        ' ✅ Pro quality: AAC 320kbps @ 48kHz with -async 1 for sync.
+        ' AAC is universally compatible (every player, every platform).
+        ' 320kbps is transparent — no audible difference from lossless for AAC.
+        ' 48kHz matches video timing exactly (prevents resampling artifacts).
+        If hasAudio AndAlso audioInputCount > 0 Then
+            sb.Append("-c:a aac -b:a 320k -ar 48000 -async 1 ")
+            ' ✅ Pro: add -shortest to stop when the shortest input ends.
+            ' Prevents runaway audio after video stops.
+            sb.Append("-shortest ")
         End If
 
         ' ── MP4 faststart: write moov atom at the head so the file is playable
@@ -536,6 +657,43 @@ Public Class CaptureEngine
         sb.Append("-y """ & outputFile & """")
 
         Return sb.ToString()
+    End Function
+
+    ' ── Detect WASAPI support at runtime ──────────────────────
+    ' ✅ Some FFmpeg builds (mingw cross-compile) don't include WASAPI.
+    ' We run `ffmpeg -devices` and check. NOT cached — user might swap
+    ' ffmpeg.exe at any time (e.g. upgrade to BtbN build that has WASAPI).
+    Private Shared _wasapiSupported As Boolean = False
+
+    Private Function SupportsWasapi() As Boolean
+        Try
+            Dim si As New ProcessStartInfo()
+            si.FileName = _settings.FFmpegPath
+            si.Arguments = "-devices -hide_banner"
+            si.UseShellExecute = False
+            si.RedirectStandardOutput = True
+            si.RedirectStandardError = True
+            si.CreateNoWindow = True
+
+            Using proc As New Process()
+                proc.StartInfo = si
+                proc.Start()
+                ' ✅ M2 FIX: read stdout + stderr concurrently to prevent deadlock
+                Dim stdoutTask As Task(Of String) = Task.Run(Function() proc.StandardOutput.ReadToEnd())
+                Dim stderrTask As Task(Of String) = Task.Run(Function() proc.StandardError.ReadToEnd())
+                proc.WaitForExit(5000)
+                Dim output As String = ""
+                Try : output = stdoutTask.Result & stderrTask.Result
+                Catch : End Try
+
+                _wasapiSupported = output.IndexOf("wasapi", StringComparison.OrdinalIgnoreCase) >= 0
+            End Using
+        Catch
+            _wasapiSupported = False
+        End Try
+
+        LogDebug($"[CaptureEngine] WASAPI support: {_wasapiSupported}")
+        Return _wasapiSupported
     End Function
 
     ' ── Detect hardware device type from encoder string ──────
