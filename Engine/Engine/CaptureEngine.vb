@@ -431,14 +431,64 @@ Public Class CaptureEngine
             End If
         End If
 
-        ' ── Audio input (dshow) ──
-        If _settings.AudioCapture Then
-            sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
+        ' ── Audio inputs (WASAPI) ──
+        Dim hasAudio As Boolean = _settings.SystemAudioCapture OrElse _settings.MicCapture
+        Dim audioInputCount As Integer = 0
+
+        If _settings.SystemAudioCapture Then
+            sb.Append("-thread_queue_size 512 -f wasapi -i ""default"" ")
+            audioInputCount += 1
         End If
 
-        ' ── Video filter chain (-vf) ──
-        If videoFilter.Length > 0 Then
-            sb.Append("-vf """ & videoFilter & """ ")
+        If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
+            sb.Append("-thread_queue_size 512 -f wasapi -i """ & _settings.MicDeviceName & """ ")
+            audioInputCount += 1
+        End If
+
+        ' ── Filter chain ──
+        Dim useFilterComplex As Boolean = hasAudio AndAlso audioInputCount > 0
+
+        If useFilterComplex Then
+            Dim fc As New StringBuilder()
+            ' Video: [0:v]<filter>[vout] or [0:v]copy[vout]
+            If videoFilter.Length > 0 Then
+                fc.Append("[0:v]" & videoFilter & "[vout];")
+            Else
+                fc.Append("[0:v]copy[vout];")
+            End If
+
+            ' Audio: assign input indices (1=system, 2=mic)
+            Dim audioLabels As New List(Of String)
+            Dim nextIdx As Integer = 1
+
+            If _settings.SystemAudioCapture Then
+                Dim vol As String = _settings.SystemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
+                fc.Append($"[{nextIdx}:a]volume={vol},aresample=48000,aformat=channel_layouts=stereo[sys];")
+                audioLabels.Add("[sys]")
+                nextIdx += 1
+            End If
+
+            If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
+                Dim vol As String = _settings.MicVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
+                fc.Append($"[{nextIdx}:a]volume={vol},aresample=48000,aformat=channel_layouts=stereo[mic];")
+                audioLabels.Add("[mic]")
+                nextIdx += 1
+            End If
+
+            ' Mix or pass through
+            If audioLabels.Count = 1 Then
+                fc.Append($"{audioLabels(0)}anull[aout]")
+            ElseIf audioLabels.Count = 2 Then
+                fc.Append($"{audioLabels(0)}{audioLabels(1)}amix=inputs=2:duration=first:normalize=0[aout]")
+            End If
+
+            Dim fcStr As String = fc.ToString().TrimEnd(";"c)
+            sb.Append($"-filter_complex ""{fcStr}"" ")
+            sb.Append("-map ""[vout]"" -map ""[aout]"" ")
+        Else
+            If videoFilter.Length > 0 Then
+                sb.Append("-vf """ & videoFilter & """ ")
+            End If
         End If
 
         ' ── Video encoder settings ──
@@ -520,8 +570,8 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio encoding ──
-        If _settings.AudioCapture Then
-            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+        If hasAudio AndAlso audioInputCount > 0 Then
+            sb.Append("-c:a aac -b:a 320k -ar 48000 -async 1 ")
         End If
 
         ' ── MP4 faststart: write moov atom at the head so the file is playable
