@@ -661,13 +661,11 @@ Public Class CaptureEngine
 
     ' ── Detect WASAPI support at runtime ──────────────────────
     ' ✅ Some FFmpeg builds (mingw cross-compile) don't include WASAPI.
-    ' We run `ffmpeg -devices` once and cache the result.
-    Private Shared _wasapiChecked As Boolean = False
+    ' We run `ffmpeg -devices` and check. NOT cached — user might swap
+    ' ffmpeg.exe at any time (e.g. upgrade to BtbN build that has WASAPI).
     Private Shared _wasapiSupported As Boolean = False
 
     Private Function SupportsWasapi() As Boolean
-        If _wasapiChecked Then Return _wasapiSupported
-
         Try
             Dim si As New ProcessStartInfo()
             si.FileName = _settings.FFmpegPath
@@ -680,17 +678,20 @@ Public Class CaptureEngine
             Using proc As New Process()
                 proc.StartInfo = si
                 proc.Start()
-                Dim output As String = proc.StandardOutput.ReadToEnd() & proc.StandardError.ReadToEnd()
+                ' ✅ M2 FIX: read stdout + stderr concurrently to prevent deadlock
+                Dim stdoutTask As Task(Of String) = Task.Run(Function() proc.StandardOutput.ReadToEnd())
+                Dim stderrTask As Task(Of String) = Task.Run(Function() proc.StandardError.ReadToEnd())
                 proc.WaitForExit(5000)
+                Dim output As String = ""
+                Try : output = stdoutTask.Result & stderrTask.Result
+                Catch : End Try
 
-                ' Look for "wasapi" in the devices list
                 _wasapiSupported = output.IndexOf("wasapi", StringComparison.OrdinalIgnoreCase) >= 0
             End Using
         Catch
             _wasapiSupported = False
         End Try
 
-        _wasapiChecked = True
         LogDebug($"[CaptureEngine] WASAPI support: {_wasapiSupported}")
         Return _wasapiSupported
     End Function
