@@ -89,7 +89,6 @@ Partial Class UI_Engine
         btnStop = New Button()
         tmrRecording = New System.Windows.Forms.Timer(components)
         tmrRefresh = New System.Windows.Forms.Timer(components)
-        DIMBOX_1 = New PictureBox()
         DIMBOX_2 = New PictureBox()
         BT_Back = New Label()
         settings_top = New PictureBox()
@@ -119,7 +118,6 @@ Partial Class UI_Engine
         pnlOutput.SuspendLayout()
         pnlGitHub.SuspendLayout()
         pnlHub.SuspendLayout()
-        CType(DIMBOX_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(DIMBOX_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         settings_menu.SuspendLayout()
@@ -676,16 +674,6 @@ Partial Class UI_Engine
         ' 
         tmrRefresh.Interval = 2000
         ' 
-        ' DIMBOX_1
-        ' 
-        DIMBOX_1.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        DIMBOX_1.BackColor = Color.Coral
-        DIMBOX_1.Location = New Point(-3, -16)
-        DIMBOX_1.Name = "DIMBOX_1"
-        DIMBOX_1.Size = New Size(2779, 176)
-        DIMBOX_1.TabIndex = 73
-        DIMBOX_1.TabStop = False
-        ' 
         ' DIMBOX_2
         ' 
         DIMBOX_2.BackColor = Color.Blue
@@ -874,6 +862,7 @@ Partial Class UI_Engine
         ' OPEN_UI
         ' 
         OPEN_UI.Enabled = True
+        OPEN_UI.Interval = 1
         ' 
         ' UI_Engine
         ' 
@@ -884,7 +873,6 @@ Partial Class UI_Engine
         Controls.Add(BT_Back)
         Controls.Add(settings_top)
         Controls.Add(DIMBOX_2)
-        Controls.Add(DIMBOX_1)
         Controls.Add(settings_menu)
         Font = New Font("Segoe UI", 9F)
         FormBorderStyle = FormBorderStyle.None
@@ -921,7 +909,6 @@ Partial Class UI_Engine
         pnlGitHub.PerformLayout()
         pnlHub.ResumeLayout(False)
         pnlHub.PerformLayout()
-        CType(DIMBOX_1, ComponentModel.ISupportInitialize).EndInit()
         CType(DIMBOX_2, ComponentModel.ISupportInitialize).EndInit()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         settings_menu.ResumeLayout(False)
@@ -998,7 +985,6 @@ Partial Class UI_Engine
 
     Friend WithEvents lblConfigSource As Label
     Friend WithEvents tmrRefresh As System.Windows.Forms.Timer
-    Friend WithEvents DIMBOX_1 As PictureBox
     Friend WithEvents DIMBOX_2 As PictureBox
     Friend WithEvents BT_Back As Label
     Friend WithEvents settings_top As PictureBox

@@ -132,6 +132,7 @@ Partial Class Base
         Live_Logo = New Label()
         Replay_Logo = New Label()
         bg_action = New Label()
+        PictureBox1 = New PictureBox()
         Name_action = New Label()
         Settings_List = New Panel()
         Settings_List_Top = New PictureBox()
@@ -174,7 +175,8 @@ Partial Class Base
         Notifications_BOX_SUB = New PictureBox()
         PrivacyControl_BOX_SUB = New PictureBox()
         About_BOX_SUB = New PictureBox()
-        Settings_List_Box = New PictureBox()
+        Box_FIX_UIMENU = New PictureBox()
+        BOX_FIX_UIMENU_1 = New PictureBox()
         Load_App = New Timer(components)
         not_save = New Timer(components)
         Privacy_control = New Timer(components)
@@ -247,6 +249,7 @@ Partial Class Base
         CType(a_3, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(a_1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         Settings_List.SuspendLayout()
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Settings_index, ComponentModel.ISupportInitialize).BeginInit()
@@ -268,7 +271,8 @@ Partial Class Base
         CType(Notifications_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
         CType(PrivacyControl_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
         CType(About_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
-        CType(Settings_List_Box, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Box_FIX_UIMENU, ComponentModel.ISupportInitialize).BeginInit()
+        CType(BOX_FIX_UIMENU_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox5, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
@@ -348,6 +352,7 @@ Partial Class Base
         shadowplay.Controls.Add(Live_Logo)
         shadowplay.Controls.Add(Replay_Logo)
         shadowplay.Controls.Add(bg_action)
+        shadowplay.Controls.Add(PictureBox1)
         shadowplay.Location = New Point(444, 71)
         shadowplay.Name = "shadowplay"
         shadowplay.Size = New Size(1280, 384)
@@ -879,6 +884,7 @@ Partial Class Base
         ' 
         ' Menu_Replay_key
         ' 
+        Menu_Replay_key.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Menu_Replay_key.BackColor = Color.Black
         Menu_Replay_key.Cursor = Cursors.Hand
         Menu_Replay_key.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -1562,6 +1568,16 @@ Partial Class Base
         bg_action.TabIndex = 45
         bg_action.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' PictureBox1
+        ' 
+        PictureBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        PictureBox1.Location = New Point(280, 240)
+        PictureBox1.Name = "PictureBox1"
+        PictureBox1.Size = New Size(240, 133)
+        PictureBox1.TabIndex = 101
+        PictureBox1.TabStop = False
+        PictureBox1.Visible = False
+        ' 
         ' Name_action
         ' 
         Name_action.AutoSize = True
@@ -1578,12 +1594,12 @@ Partial Class Base
         ' Settings_List
         ' 
         Settings_List.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
-        Settings_List.BackColor = Color.Red
+        Settings_List.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_List.Controls.Add(Settings_List_Top)
         Settings_List.Controls.Add(Settings_List_Text)
         Settings_List.Controls.Add(Settings_index)
         Settings_List.Controls.Add(Settings_List_All)
-        Settings_List.Controls.Add(Settings_List_Box)
+        Settings_List.Controls.Add(BOX_FIX_UIMENU_1)
         Settings_List.Location = New Point(80, 160)
         Settings_List.Name = "Settings_List"
         Settings_List.Size = New Size(355, 746)
@@ -1663,6 +1679,7 @@ Partial Class Base
         Settings_List_All.Controls.Add(Notifications_BOX_SUB)
         Settings_List_All.Controls.Add(PrivacyControl_BOX_SUB)
         Settings_List_All.Controls.Add(About_BOX_SUB)
+        Settings_List_All.Controls.Add(Box_FIX_UIMENU)
         Settings_List_All.Location = New Point(30, 83)
         Settings_List_All.Name = "Settings_List_All"
         Settings_List_All.Size = New Size(352, 636)
@@ -2092,15 +2109,23 @@ Partial Class Base
         About_BOX_SUB.TabIndex = 60
         About_BOX_SUB.TabStop = False
         ' 
-        ' Settings_List_Box
+        ' Box_FIX_UIMENU
         ' 
-        Settings_List_Box.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
-        Settings_List_Box.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_List_Box.Location = New Point(0, -133)
-        Settings_List_Box.Name = "Settings_List_Box"
-        Settings_List_Box.Size = New Size(367, 889)
-        Settings_List_Box.TabIndex = 1
-        Settings_List_Box.TabStop = False
+        Box_FIX_UIMENU.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Box_FIX_UIMENU.Location = New Point(-46, -95)
+        Box_FIX_UIMENU.Name = "Box_FIX_UIMENU"
+        Box_FIX_UIMENU.Size = New Size(386, 898)
+        Box_FIX_UIMENU.TabIndex = 75
+        Box_FIX_UIMENU.TabStop = False
+        ' 
+        ' BOX_FIX_UIMENU_1
+        ' 
+        BOX_FIX_UIMENU_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        BOX_FIX_UIMENU_1.Location = New Point(-29, -22)
+        BOX_FIX_UIMENU_1.Name = "BOX_FIX_UIMENU_1"
+        BOX_FIX_UIMENU_1.Size = New Size(411, 803)
+        BOX_FIX_UIMENU_1.TabIndex = 100
+        BOX_FIX_UIMENU_1.TabStop = False
         ' 
         ' Load_App
         ' 
@@ -2255,6 +2280,7 @@ Partial Class Base
         CType(a_3, ComponentModel.ISupportInitialize).EndInit()
         CType(a_2, ComponentModel.ISupportInitialize).EndInit()
         CType(a_1, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
         Settings_List.ResumeLayout(False)
         Settings_List.PerformLayout()
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).EndInit()
@@ -2277,7 +2303,8 @@ Partial Class Base
         CType(Notifications_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
         CType(PrivacyControl_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
         CType(About_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
-        CType(Settings_List_Box, ComponentModel.ISupportInitialize).EndInit()
+        CType(Box_FIX_UIMENU, ComponentModel.ISupportInitialize).EndInit()
+        CType(BOX_FIX_UIMENU_1, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
@@ -2332,7 +2359,6 @@ Partial Class Base
     Friend WithEvents Replay_Logo As Label
     Friend WithEvents Load_App As Timer
     Friend WithEvents PrivacyControl_BOX_SUB As PictureBox
-    Friend WithEvents Settings_List_Box As PictureBox
     Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents About_TEXT As Label
     Friend WithEvents About_ICO As Label
@@ -2443,5 +2469,8 @@ Partial Class Base
     Friend WithEvents PictureBox8 As PictureBox
     Friend WithEvents Engine_BOX_SUB As PictureBox
     Friend WithEvents Engine_UI As Timer
+    Friend WithEvents Box_FIX_UIMENU As PictureBox
+    Friend WithEvents BOX_FIX_UIMENU_1 As PictureBox
+    Friend WithEvents PictureBox1 As PictureBox
 
 End Class

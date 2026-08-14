@@ -12,6 +12,7 @@
                 <OptionExplicit>Off</OptionExplicit>
                 <OptionInfer>Off</OptionInfer>
                 <ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
+                <UserSecretsId>d88fe301-91c6-4beb-a579-370ec911430c</UserSecretsId>
         </PropertyGroup>
 
         <ItemGroup>
@@ -38,10 +39,8 @@
         </ItemGroup>
 
         <ItemGroup>
-                <!-- ✅ m4 FIX: removed NAudio.Core + NAudio.Wasapi references.
-                     Engine doesn't use NAudio anywhere (audio capture is via
-                     FFmpeg's dshow input). These were leftover from an early
-                     design that was never wired up. -->
+          <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.1" />
+          <PackageReference Include="NAudio" Version="2.3.0" />
         </ItemGroup>
 
         <ItemGroup>

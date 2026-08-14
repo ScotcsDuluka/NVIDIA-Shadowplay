@@ -60,7 +60,7 @@ Public Class Base_KeySet
     End Sub
 
     ' <<<< ไม่ต้อง Hardcode แล้ว! มันหา Label เองจากชื่อ >>>>
-    Private Sub InitKeyLabels()
+    Public Sub InitKeyLabels()
         _keyLabels.Clear()
         For Each def In HotkeyService.AllHotkeys
             ' มันจะไปหา Label ที่ชื่อ "lbl_<ActionKey>" เช่น lbl_ToggleOverlay ใน Panel keyset ให้เอง
@@ -75,7 +75,7 @@ Public Class Base_KeySet
         Next
     End Sub
 
-    Private Sub WireEvents()
+    Public Sub WireEvents()
         For Each kvp In _keyLabels
             Dim lbl As Label = kvp.Value
             AddHandler lbl.Click, AddressOf HotkeyLabel_Click
@@ -90,7 +90,7 @@ Public Class Base_KeySet
         Next
     End Sub
 
-    Private Sub LoadHotkeyValues()
+    Public Sub LoadHotkeyValues()
         For Each def As HotkeyService.HotkeyDef In HotkeyService.AllHotkeys
             Dim val As String = def.GetSetting.Invoke()
             Call SetLabelText(def.ActionKey, val)

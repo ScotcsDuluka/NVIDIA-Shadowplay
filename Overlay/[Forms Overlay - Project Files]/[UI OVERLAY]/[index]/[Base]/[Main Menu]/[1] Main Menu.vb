@@ -297,6 +297,9 @@ Partial Public Class Base
         CreateDataDirectories()
         LoadMicState()
         TIMESLOAD()
+        Base_KeySet.InitKeyLabels()
+        Base_KeySet.WireEvents()
+        Base_KeySet.LoadHotkeyValues()
 
         ' ===== Hotkeys ทันที =====
         _hotkeyService = New HotkeyService()
@@ -878,6 +881,12 @@ Partial Public Class Base
     End Sub
 
     Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
+        Menu_Replay_key.Text = Base_KeySet.lbl_InstantReplayToggle.Text
+        Menu_Replay_save_key.Text = Base_KeySet.lbl_InstantReplaySave.Text
+        Menu_Record_key.Text = Base_KeySet.lbl_ManualRecordToggle.Text
+        Key_Mode1.Text = Base_KeySet.lbl_Screenshot.Text
+        Key_Mode2.Text = Base_KeySet.lbl_PhotosToggle.Text
+        Key_Mode3.Text = Base_KeySet.lbl_GameFilterToggle.Text
 
         If shadowplay.Visible = False Then
             Base_Background_Top.d.Visible = False
