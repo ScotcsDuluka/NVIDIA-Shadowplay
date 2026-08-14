@@ -49,6 +49,7 @@ Public Class Shadow
     End Sub
 
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
+        HideFromAltTab()
         Try
             If Me.IsDisposed OrElse Notifier.IsDisposed Then
                 Timer1.Stop()
@@ -110,5 +111,9 @@ Public Class Shadow
     Private Sub Shadow_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         Debug.WriteLine("[Shadow] FormClosing — cleanup")
         Timer1.Stop()
+    End Sub
+
+    Private Sub HideShadow_Tick(sender As Object, e As EventArgs) Handles HideShadow.Tick
+        HideFromAltTab()
     End Sub
 End Class

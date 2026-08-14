@@ -1064,8 +1064,8 @@ Partial Public Class UI_Engine
         Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
 
         If File.Exists(uiFile) Then
-            Me.Opacity = 1
             Me.WindowState = FormWindowState.Maximized
+            Me.Opacity = 1
         Else
             Me.Opacity = 0
             Me.WindowState = FormWindowState.Minimized

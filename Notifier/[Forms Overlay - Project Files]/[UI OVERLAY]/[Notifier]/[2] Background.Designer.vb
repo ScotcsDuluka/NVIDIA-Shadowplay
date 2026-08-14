@@ -97,6 +97,7 @@ Partial Class Notifier
         ' Notifier
         ' 
         AutoScaleMode = AutoScaleMode.Inherit
+        AutoValidate = AutoValidate.Disable
         BackColor = Color.Coral
         ClientSize = New Size(300, 90)
         ControlBox = False

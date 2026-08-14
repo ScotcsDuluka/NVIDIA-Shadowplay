@@ -341,7 +341,6 @@ Public Class Notifier
         SlideOutAll()
     End Sub
 
-    ' ★★★ ใหม่: cleanup ตอนปิด ★★★
     Private Sub Notifier_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         Debug.WriteLine("[Notifier] FormClosing — cleanup")
         animationRunning = False

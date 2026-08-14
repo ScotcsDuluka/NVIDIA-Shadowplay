@@ -95,6 +95,7 @@ Partial Class Notifier_Sub
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
+        AutoValidate = AutoValidate.Disable
         BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         ClientSize = New Size(300, 90)
         Controls.Add(Notifier_black)
