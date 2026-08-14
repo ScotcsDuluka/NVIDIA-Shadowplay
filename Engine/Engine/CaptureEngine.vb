@@ -455,16 +455,28 @@ Public Class CaptureEngine
         Dim hasAudio As Boolean = _settings.SystemAudioCapture OrElse _settings.MicCapture
         Dim audioInputCount As Integer = 0
 
+        ' ✅ Detect WASAPI support at runtime. Some FFmpeg builds (mingw
+        ' cross-compile) don't include WASAPI. Fall back to dshow.
+        Dim useWasapi As Boolean = SupportsWasapi()
+
         If _settings.SystemAudioCapture Then
-            ' WASAPI loopback: captures whatever the default output device plays.
-            ' "default" = current default audio output (speakers/headphones).
-            sb.Append("-thread_queue_size 4096 -f wasapi -i ""default"" ")
+            If useWasapi Then
+                sb.Append("-thread_queue_size 4096 -f wasapi -i ""default"" ")
+            Else
+                ' dshow fallback: try "Stereo Mix" for system audio loopback.
+                ' If Stereo Mix doesn't exist, this will fail — but it's the
+                ' only dshow option for system audio capture.
+                sb.Append("-thread_queue_size 4096 -f dshow -i audio=""Stereo Mix"" ")
+            End If
             audioInputCount += 1
         End If
 
         If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
-            ' WASAPI input for microphone: lower latency than dshow, bit-perfect.
-            sb.Append("-thread_queue_size 4096 -f wasapi -i """ & _settings.MicDeviceName & """ ")
+            If useWasapi Then
+                sb.Append("-thread_queue_size 4096 -f wasapi -i """ & _settings.MicDeviceName & """ ")
+            Else
+                sb.Append("-thread_queue_size 4096 -f dshow -i audio=""" & _settings.MicDeviceName & """ ")
+            End If
             audioInputCount += 1
         End If
 
@@ -645,6 +657,42 @@ Public Class CaptureEngine
         sb.Append("-y """ & outputFile & """")
 
         Return sb.ToString()
+    End Function
+
+    ' ── Detect WASAPI support at runtime ──────────────────────
+    ' ✅ Some FFmpeg builds (mingw cross-compile) don't include WASAPI.
+    ' We run `ffmpeg -devices` once and cache the result.
+    Private Shared _wasapiChecked As Boolean = False
+    Private Shared _wasapiSupported As Boolean = False
+
+    Private Function SupportsWasapi() As Boolean
+        If _wasapiChecked Then Return _wasapiSupported
+
+        Try
+            Dim si As New ProcessStartInfo()
+            si.FileName = _settings.FFmpegPath
+            si.Arguments = "-devices -hide_banner"
+            si.UseShellExecute = False
+            si.RedirectStandardOutput = True
+            si.RedirectStandardError = True
+            si.CreateNoWindow = True
+
+            Using proc As New Process()
+                proc.StartInfo = si
+                proc.Start()
+                Dim output As String = proc.StandardOutput.ReadToEnd() & proc.StandardError.ReadToEnd()
+                proc.WaitForExit(5000)
+
+                ' Look for "wasapi" in the devices list
+                _wasapiSupported = output.IndexOf("wasapi", StringComparison.OrdinalIgnoreCase) >= 0
+            End Using
+        Catch
+            _wasapiSupported = False
+        End Try
+
+        _wasapiChecked = True
+        LogDebug($"[CaptureEngine] WASAPI support: {_wasapiSupported}")
+        Return _wasapiSupported
     End Function
 
     ' ── Detect hardware device type from encoder string ──────
