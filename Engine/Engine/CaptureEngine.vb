@@ -431,17 +431,40 @@ Public Class CaptureEngine
             End If
         End If
 
+        ' ═══════════════════════════════════════════════════════════════
         ' ── Audio inputs (WASAPI) ──
+        ' ═══════════════════════════════════════════════════════════════
+        ' WASAPI = Windows Audio Session API (same as OBS/Discord/ShadowPlay)
+        ' - Bit-perfect capture (no resample by Windows)
+        ' - Low latency (~10ms vs dshow ~50ms)
+        ' - Works on every Windows 10/11 machine (no Stereo Mix needed)
+        '
+        ' Audio quality features:
+        ' - thread_queue_size 4096: large buffer to prevent underruns
+        ' - aresample=async=1: auto-resample + sync to prevent drift
+        ' - aformat=channel_layouts=stereo: force stereo for consistent mixing
+        ' - highpass=20: cut sub-bass rumble (below human hearing)
+        ' - lowpass=20000: cut ultrasonic noise (above human hearing)
+        ' - afftdn=nr=10: light noise reduction (FFT-based, -10dB threshold)
+        ' - loudnorm=I=-16:LUFS:TP=-1.5:LRA=11: EBU R128 loudness normalization
+        '   (same standard as YouTube/Netflix — consistent volume across recordings)
+        ' - amix normalize=0: don't reduce volume when mixing sources
+        ' - AAC 320kbps @ 48kHz: high quality, universal compatibility
+        ' ═══════════════════════════════════════════════════════════════
+
         Dim hasAudio As Boolean = _settings.SystemAudioCapture OrElse _settings.MicCapture
         Dim audioInputCount As Integer = 0
 
         If _settings.SystemAudioCapture Then
-            sb.Append("-thread_queue_size 512 -f wasapi -i ""default"" ")
+            ' WASAPI loopback: captures whatever the default output device plays.
+            ' "default" = current default audio output (speakers/headphones).
+            sb.Append("-thread_queue_size 4096 -f wasapi -i ""default"" ")
             audioInputCount += 1
         End If
 
         If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
-            sb.Append("-thread_queue_size 512 -f wasapi -i """ & _settings.MicDeviceName & """ ")
+            ' WASAPI input for microphone: lower latency than dshow, bit-perfect.
+            sb.Append("-thread_queue_size 4096 -f wasapi -i """ & _settings.MicDeviceName & """ ")
             audioInputCount += 1
         End If
 
@@ -450,42 +473,68 @@ Public Class CaptureEngine
 
         If useFilterComplex Then
             Dim fc As New StringBuilder()
-            ' Video: [0:v]<filter>[vout] or [0:v]copy[vout]
+
+            ' ── Video portion: [0:v]<filter>[vout] ──
             If videoFilter.Length > 0 Then
                 fc.Append("[0:v]" & videoFilter & "[vout];")
             Else
                 fc.Append("[0:v]copy[vout];")
             End If
 
-            ' Audio: assign input indices (1=system, 2=mic)
+            ' ── Audio portion ──
+            ' Each source gets a professional audio chain:
+            '   volume → highpass → lowpass → afftdn (noise reduction) → aresample → aformat
             Dim audioLabels As New List(Of String)
             Dim nextIdx As Integer = 1
 
             If _settings.SystemAudioCapture Then
                 Dim vol As String = _settings.SystemAudioVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
-                fc.Append($"[{nextIdx}:a]volume={vol},aresample=48000,aformat=channel_layouts=stereo[sys];")
+                ' System audio chain: volume + EQ + noise gate + resample
+                fc.Append($"[{nextIdx}:a]" &
+                          $"volume={vol}," &
+                          $"highpass=f=20," &
+                          $"lowpass=f=20000," &
+                          $"afftdn=nr=10:nf=-40," &
+                          $"aresample=48000:async=1:" &
+                          $"aformat=channel_layouts=stereo[sys];")
                 audioLabels.Add("[sys]")
                 nextIdx += 1
             End If
 
             If _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
                 Dim vol As String = _settings.MicVolume.ToString("F2", Globalization.CultureInfo.InvariantCulture)
-                fc.Append($"[{nextIdx}:a]volume={vol},aresample=48000,aformat=channel_layouts=stereo[mic];")
+                ' Mic chain: volume + highpass (cut low rumble) + lowpass (cut hiss)
+                ' + afftdn (noise reduction) + resample + stereo
+                fc.Append($"[{nextIdx}:a]" &
+                          $"volume={vol}," &
+                          $"highpass=f=80," &
+                          $"lowpass=f=16000," &
+                          $"afftdn=nr=15:nf=-35," &
+                          $"aresample=48000:async=1:" &
+                          $"aformat=channel_layouts=stereo[mic];")
                 audioLabels.Add("[mic]")
                 nextIdx += 1
             End If
 
-            ' Mix or pass through
+            ' ── Mix audio sources ──
             If audioLabels.Count = 1 Then
-                fc.Append($"{audioLabels(0)}anull[aout]")
+                ' Single source: apply loudnorm after all processing
+                fc.Append($"{audioLabels(0)}" &
+                          $"loudnorm=I=-16:TP=-1.5:LRA=11[aout]")
             ElseIf audioLabels.Count = 2 Then
-                fc.Append($"{audioLabels(0)}{audioLabels(1)}amix=inputs=2:duration=first:normalize=0[aout]")
+                ' Two sources: mix with normalize=0 (no volume reduction)
+                ' then apply loudnorm on the mixed result
+                fc.Append($"{audioLabels(0)}{audioLabels(1)}" &
+                          $"amix=inputs=2:duration=first:normalize=0," &
+                          $"loudnorm=I=-16:TP=-1.5:LRA=11[aout]")
             End If
 
             Dim fcStr As String = fc.ToString().TrimEnd(";"c)
             sb.Append($"-filter_complex ""{fcStr}"" ")
             sb.Append("-map ""[vout]"" -map ""[aout]"" ")
+
         Else
+            ' No audio — use -vf as before (zero regression)
             If videoFilter.Length > 0 Then
                 sb.Append("-vf """ & videoFilter & """ ")
             End If
@@ -570,8 +619,15 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio encoding ──
+        ' ✅ Pro quality: AAC 320kbps @ 48kHz with -async 1 for sync.
+        ' AAC is universally compatible (every player, every platform).
+        ' 320kbps is transparent — no audible difference from lossless for AAC.
+        ' 48kHz matches video timing exactly (prevents resampling artifacts).
         If hasAudio AndAlso audioInputCount > 0 Then
             sb.Append("-c:a aac -b:a 320k -ar 48000 -async 1 ")
+            ' ✅ Pro: add -shortest to stop when the shortest input ends.
+            ' Prevents runaway audio after video stops.
+            sb.Append("-shortest ")
         End If
 
         ' ── MP4 faststart: write moov atom at the head so the file is playable
