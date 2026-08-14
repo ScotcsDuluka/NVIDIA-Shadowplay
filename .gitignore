@@ -29,9 +29,9 @@ Thumbs.db
 *.log
 
 # App/runtime data that should stay local
-Overlay/build.txt
-Overlay/NVIDIA_Shadowplay_Data/
-Overlay/API-Core/
+**/Overlay/build.txt
+**/Overlay/NVIDIA_Shadowplay_Data/
+**/Overlay/API-Core/
 
 # wrangler files
 .wrangler
