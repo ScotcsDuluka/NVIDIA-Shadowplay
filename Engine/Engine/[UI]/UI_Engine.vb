@@ -15,7 +15,7 @@ Partial Public Class UI_Engine
     Const WS_EX_TRANSPARENT As Integer = &H20
 
 
-
+    Private _audioSettingsForm As AudioSettingsForm
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -72,20 +72,26 @@ Partial Public Class UI_Engine
     ' ── Form Load / Close ──────────────────────────────────────
 
     Private Sub UI_Engine_Load(sender As Object, e As EventArgs) Handles Me.Load
-        _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "shadowplay-config.json")
 
-        ' ✅ P2: locate Overlay's config.json + video.json first.
-        ' lblConfigSource will show where they were found.
+        _configPath = Path.Combine(
+        AppDomain.CurrentDomain.BaseDirectory,
+        "shadowplay-config.json"
+    )
+
+        ' P2: locate Overlay config
         RefreshOverlayConfigUI()
-        lblConfigSource.Text = "Config: " & If(OverlayConfig.IsAvailable,
-                                               OverlayConfig.ConfigPath,
-                                               "(not found — using Engine defaults)")
+
+        lblConfigSource.Text = "Config: " & If(
+        OverlayConfig.IsAvailable,
+        OverlayConfig.ConfigPath,
+        "(not found — using Engine defaults)"
+    )
 
         LoadSettings()
         InitializeEngine()
         DetectEncoders()
 
-        ' เชื่อมกับ API Hub
+        ' Connect API Hub
         StartHubClient()
 
         AddHandler chkNativeRes.CheckedChanged, AddressOf OnNativeResChanged
@@ -98,11 +104,61 @@ Partial Public Class UI_Engine
         AddHandler cboEncoder.SelectedIndexChanged, AddressOf OnEncoderChanged
         AddHandler cboCaptureMethod.SelectedIndexChanged, AddressOf OnCaptureMethodChanged
 
-        ' ✅ P2: refresh Overlay config every 2s to detect changes
         AddHandler tmrRefresh.Tick, AddressOf OnRefreshTick
         tmrRefresh.Start()
 
         _isLoaded = True
+
+
+        ' ═══════════════════════════════════════════════
+        ' AudioSettingsForm
+        ' ═══════════════════════════════════════════════
+
+        Try
+
+            Dim s As CaptureSettings =
+            CaptureSettings.Load(_configPath)
+
+            SyncWithOverlayConfig(s)
+
+            Dim videoJsonPath As String =
+            OverlayConfig.VideoConfigPath
+
+            If String.IsNullOrEmpty(videoJsonPath) OrElse
+           Not File.Exists(videoJsonPath) Then
+
+                videoJsonPath = ""
+
+            End If
+
+            ' สร้าง Audio Form แค่ครั้งเดียว
+            _audioSettingsForm = New AudioSettingsForm(
+            s,
+            _configPath,
+            videoJsonPath
+        )
+
+            ' สำคัญมาก:
+            ' ห้าม Close / Dispose Form นี้
+            _audioSettingsForm.Opacity = 0
+            _audioSettingsForm.WindowState =
+            FormWindowState.Minimized
+
+            ' ให้ Audio.UI Timer ทำงานตลอด
+            _audioSettingsForm.Show()
+
+        Catch ex As Exception
+
+            MessageBox.Show(
+            Me,
+            "Failed to initialize audio settings: " & ex.Message,
+            "Error",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Error
+        )
+
+        End Try
+
     End Sub
 
     Private Sub UI_Engine_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
@@ -1069,6 +1125,7 @@ Partial Public Class UI_Engine
         If File.Exists(uiFile) Then
             Me.WindowState = FormWindowState.Maximized
             Me.Opacity = 1
+            Me.Show()
         Else
             Me.Opacity = 0
             Me.WindowState = FormWindowState.Minimized
@@ -1082,26 +1139,55 @@ Partial Public Class UI_Engine
     Private Sub BT_Back_MouseLeave(sender As Object, e As EventArgs) Handles BT_Back.MouseLeave
         BT_Back.BackColor = Color.FromArgb(118, 185, 0)
     End Sub
-
     Private Sub btnOpenAudioSettings_Click(sender As Object, e As EventArgs) Handles btnOpenAudioSettings.Click
+
         Try
-            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+
+            Dim s As CaptureSettings =
+            CaptureSettings.Load(_configPath)
+
             SyncWithOverlayConfig(s)
 
-            Dim videoJsonPath As String = OverlayConfig.VideoConfigPath
-            If String.IsNullOrEmpty(videoJsonPath) OrElse Not IO.File.Exists(videoJsonPath) Then
+            Dim videoJsonPath As String =
+            OverlayConfig.VideoConfigPath
+
+            If String.IsNullOrEmpty(videoJsonPath) OrElse
+           Not File.Exists(videoJsonPath) Then
+
                 videoJsonPath = ""
+
             End If
 
-            Using frm As New AudioSettingsForm(s, _configPath, videoJsonPath)
-                Dim result As DialogResult = frm.ShowDialog(Me)
-                If result = DialogResult.OK Then
-                    RefreshOverlayConfigUI()
-                End If
-            End Using
+            If _audioSettingsForm Is Nothing OrElse
+           _audioSettingsForm.IsDisposed Then
+
+                _audioSettingsForm =
+                New AudioSettingsForm(
+                    s,
+                    _configPath,
+                    videoJsonPath
+                )
+
+                _audioSettingsForm.Show(Me)
+
+            Else
+
+                _audioSettingsForm.Show()
+                _audioSettingsForm.BringToFront()
+
+            End If
+
         Catch ex As Exception
-            MessageBox.Show(Me, "Failed to open audio settings: " & ex.Message, "Error",
-                            MessageBoxButtons.OK, MessageBoxIcon.Error)
+
+            MessageBox.Show(
+            Me,
+            "Failed to open audio settings: " & ex.Message,
+            "Error",
+            MessageBoxButtons.OK,
+            MessageBoxIcon.Error
+        )
+
         End Try
+
     End Sub
 End Class

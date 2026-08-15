@@ -66,11 +66,12 @@ Public Class AudioFileWriter
         Public Property Failed As Boolean
         Public Property FailReason As String
         ' FirstCallbackDispatchTicks: when the first WASAPI callback was dispatched.
-        ' NOTE: This is NOT the actual capture timestamp of sample 0 — it's when
-        ' our code first saw the callback. WASAPI buffers ~10ms before dispatching,
-        ' so sample 0 was captured slightly before this. The mux-stage
-        ' aresample=async=1:first_pts=0 handles this sub-frame offset.
+        ' NOTE: This is NOT used for sync offset calculation — it's diagnostic only.
+        ' The sync offset uses StartRecordingTicks (when capture was started) because
+        ' WASAPI loopback may not fire callbacks for seconds when no audio is playing.
         Public Property FirstCallbackDispatchTicks As Long
+        Public Property StartRecordingTicks As Long  ' TRUE capture start time (sync anchor)
+        Public Property InitialSilenceBytes As Long  ' silence pre-filled to align WAV with capture timeline
         Public Property Started As Boolean
         Public Property BytesPerSecond As Integer
         Public Property FrameSize As Integer
@@ -231,6 +232,24 @@ Public Class AudioFileWriter
             ' Set lifecycle to Running BEFORE StartRecording (so first callback sees Running)
             System.Threading.Interlocked.Exchange(track.Lifecycle, CInt(TrackLifecycle.Running))
 
+            ' ── Record StartRecording call time (NOT first callback time) ──
+            ' This is the TRUE audio capture start timestamp. WASAPI loopback
+            ' doesn't fire callbacks when no audio is playing, so the first
+            ' callback may arrive seconds late. But the capture TIMELINE starts
+            ' here, when StartRecording() is called.
+            '
+            ' Using first-callback-time as "audio start" was a BUG that caused
+            ' sysOffset to be -10s (clamped to -2s) when no audio played for 10s.
+            ' The correct offset should be based on when capture STARTED, not when
+            ' the first audio data arrived.
+            Dim startRecordingTicks As Long = Stopwatch.GetTimestamp()
+            track.StartRecordingTicks = startRecordingTicks
+            If track.Config.IsSystem Then
+                _systemStartTicks = startRecordingTicks
+            Else
+                _micStartTicks = startRecordingTicks
+            End If
+
             track.Capture.StartRecording()
 
             Dim fmt As AudioFormat = WaveFormatToInfo(track.Capture.WaveFormat)
@@ -242,6 +261,8 @@ Public Class AudioFileWriter
 
             Return True
         Catch ex As Exception
+            ' Clean up partial state on failure (per GPT P1)
+            CleanupTrack(track)
             track.Failed = True
             track.FailReason = ex.Message
             Return False
@@ -294,14 +315,38 @@ Public Class AudioFileWriter
 
             Dim nowTicks As Long = Stopwatch.GetTimestamp()
 
-            ' Capture first callback dispatch timestamp (NOT actual sample 0 timestamp)
+            ' ── First-callback initialization: pre-fill initial silence ──
+            ' WAV sample 0 = StartRecording time, NOT first callback time.
+            ' When WASAPI loopback doesn't fire for N seconds (no audio playing),
+            ' we must insert N seconds of silence at the START of the WAV file
+            ' so that the file's timeline matches the capture timeline.
+            '
+            ' Without this, mux -ss <offset> would CUT real audio (the first
+            ' callback's data) instead of skipping leading silence.
+            '
+            ' initialGap = FirstCallback - StartRecording
+            ' This is "best-effort" (callback dispatch time includes WASAPI
+            ' buffer latency of ~10ms), but it's far better than losing the
+            ' entire initial gap.
             If Not track.Started Then
                 track.Started = True
                 track.FirstCallbackDispatchTicks = nowTicks
-                If track.Config.IsSystem Then
-                    _systemStartTicks = nowTicks
-                Else
-                    _micStartTicks = nowTicks
+
+                ' Compute initial gap and pre-fill silence BEFORE real audio
+                ' NO 50ms cutoff (per GPT P1) — initial gap is deterministic
+                ' (StartRecording → first callback), not jitter. Any gap > 0
+                ' must be pre-filled so -ss at mux time skips silence, not real audio.
+                Dim initialGapSec As Double = (nowTicks - track.StartRecordingTicks) / Stopwatch.Frequency
+                If initialGapSec > 0.0 AndAlso initialGapSec < 60.0 Then
+                    ' Cap at 60s to prevent runaway (shouldn't happen in practice)
+                    Dim silenceBytes As Long = CLng(initialGapSec * track.BytesPerSecond)
+                    If track.FrameSize > 0 Then silenceBytes = (silenceBytes \ track.FrameSize) * track.FrameSize
+                    If silenceBytes > 0 Then
+                        ' PreFillSilence returns ACTUAL bytes enqueued (may be less if queue full)
+                        Dim writtenBytes As Long = PreFillSilence(track, silenceBytes)
+                        track.InitialSilenceBytes = writtenBytes
+                        track.BytesEnqueued += writtenBytes
+                    End If
                 End If
             End If
 
@@ -309,23 +354,31 @@ Public Class AudioFileWriter
             Dim copy As Byte() = New Byte(e.BytesRecorded - 1) {}
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
 
-            ' Try to enqueue without blocking. If queue is full, drop oldest
-            ' to make room (prevents blocking the capture callback → buffer overrun)
-            ' Track dropped bytes/samples/duration for timeline integrity (per GPT P1.2)
-            If Not track.Queue.TryAdd(copy, 0) Then
-                Dim dropped As Byte() = Nothing
-                If track.Queue.TryTake(dropped) Then
-                    track.DroppedChunks += 1
-                    track.DroppedBytes += dropped.Length
-                    If track.FrameSize > 0 Then
-                        track.DroppedSamples += dropped.Length \ track.FrameSize
+            ' Try to enqueue without blocking. Wrap in Try/Catch because
+            ' BlockingCollection.TryAdd throws InvalidOperationException after
+            ' CompleteAdding() is called (race during shutdown — see GPT review).
+            ' This is a benign shutdown race: the data is lost but the callback
+            ' exits cleanly instead of throwing into the WASAPI dispatch thread.
+            Try
+                If Not track.Queue.TryAdd(copy, 0) Then
+                    Dim dropped As Byte() = Nothing
+                    If track.Queue.TryTake(dropped) Then
+                        track.DroppedChunks += 1
+                        track.DroppedBytes += dropped.Length
+                        If track.FrameSize > 0 Then
+                            track.DroppedSamples += dropped.Length \ track.FrameSize
+                        End If
+                        If track.BytesPerSecond > 0 Then
+                            track.DroppedDurationSec += CDbl(dropped.Length) / track.BytesPerSecond
+                        End If
+                        track.Queue.TryAdd(copy, 0)
                     End If
-                    If track.BytesPerSecond > 0 Then
-                        track.DroppedDurationSec += CDbl(dropped.Length) / track.BytesPerSecond
-                    End If
-                    track.Queue.TryAdd(copy, 0)
                 End If
-            End If
+            Catch ex As InvalidOperationException
+                ' Queue completed during shutdown — drop this chunk silently
+                ' (better than throwing into the WASAPI callback dispatch thread)
+                Return
+            End Try
 
             track.CallbackCount += 1
             track.BytesEnqueued += e.BytesRecorded
@@ -359,6 +412,95 @@ Public Class AudioFileWriter
             End While
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine("[AudioFileWriter] Writer thread crashed: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Pre-fill silence at the start of the WAV file.
+    '''
+    ''' Called ONCE from the first callback, BEFORE any real audio data is
+    ''' enqueued. This ensures WAV sample 0 = StartRecording time, so the
+    ''' file timeline matches the capture timeline.
+    '''
+    ' Without this, if WASAPI loopback doesn't fire for N seconds (no audio
+    ' playing), the WAV file would start at the first callback's time, and
+    ' mux -ss <offset> would CUT real audio instead of skipping leading silence.
+    '''
+    ''' Returns the ACTUAL number of bytes enqueued (may be less than requested
+    ''' if queue is full — diagnostics must reflect reality, not the request).
+    '''
+    ''' Splits into 16KB chunks to avoid huge allocations.
+    ''' </summary>
+    Private Function PreFillSilence(track As TrackState, byteCount As Long) As Long
+        If byteCount <= 0 Then Return 0
+        Const chunkSize As Integer = 16384
+        Dim remaining As Long = byteCount
+        Dim written As Long = 0
+        While remaining > 0
+            Dim size As Integer = CInt(Math.Min(remaining, CLng(chunkSize)))
+            If track.FrameSize > 0 Then size = (size \ track.FrameSize) * track.FrameSize
+            If size <= 0 Then Exit While
+            Dim silence As Byte() = New Byte(size - 1) {}
+            Try
+                ' Check TryAdd return value (per GPT P0) — False means queue full,
+                ' we must NOT count this as written or diagnostics will lie.
+                If Not track.Queue.TryAdd(silence, 0) Then
+                    ' Queue full — can't enqueue more silence. Stop here.
+                    ' (Don't drop real audio to make room for silence — that would
+                    ' defeat the purpose. Better to have slightly shorter initial
+                    ' silence than to lose real audio data.)
+                    Exit While
+                End If
+                written += size
+            Catch ex As InvalidOperationException
+                ' Queue completed during shutdown (shouldn't happen on first callback,
+                ' but handle defensively)
+                Exit While
+            End Try
+            remaining -= size
+        End While
+        Return written
+    End Function
+
+    ''' <summary>
+    ''' Clean up partial state when StartTrack fails partway through.
+    ''' Disposes all resources that were created before the failure point
+    ''' (per GPT P1 — prevents resource leaks on initialization failure).
+    ''' </summary>
+    Private Sub CleanupTrack(track As TrackState)
+        ' Set lifecycle to Stopped first (so any callback that managed to attach exits early)
+        System.Threading.Interlocked.Exchange(track.Lifecycle, CInt(TrackLifecycle.Stopped))
+
+        Try
+            If track.Queue IsNot Nothing Then
+                track.Queue.CompleteAdding()
+                track.Queue.Dispose()
+                track.Queue = Nothing
+            End If
+        Catch
+        End Try
+
+        Try
+            If track.WriterThread IsNot Nothing AndAlso track.WriterThread.IsAlive Then
+                track.WriterThread.Join(2000)
+            End If
+        Catch
+        End Try
+
+        Try
+            If track.Writer IsNot Nothing Then
+                track.Writer.Dispose()
+                track.Writer = Nothing
+            End If
+        Catch
+        End Try
+
+        Try
+            If track.Capture IsNot Nothing Then
+                track.Capture.Dispose()
+                track.Capture = Nothing
+            End If
+        Catch
         End Try
     End Sub
 
@@ -504,8 +646,17 @@ Public Class AudioFileWriter
             sb.AppendLine("[Audio] " & label & "DroppedSamples=" & track.DroppedSamples)
             sb.AppendLine("[Audio] " & label & "DroppedDurationSec=" & track.DroppedDurationSec.ToString("F3"))
             sb.AppendLine("[Audio] " & label & "Started=" & track.Started.ToString())
+            sb.AppendLine("[Audio] " & label & "StartRecordingTicks=" & track.StartRecordingTicks)
             sb.AppendLine("[Audio] " & label & "FirstCallbackDispatchTicks=" & track.FirstCallbackDispatchTicks)
-            sb.AppendLine("[Audio] " & label & "Lifecycle=" & DirectCast(track.Lifecycle, TrackLifecycle).ToString())
+            Dim cbDelayMs As Double = 0.0
+            If track.StartRecordingTicks > 0 AndAlso track.FirstCallbackDispatchTicks > 0 Then
+                cbDelayMs = (track.FirstCallbackDispatchTicks - track.StartRecordingTicks) * 1000.0 / Stopwatch.Frequency
+            End If
+            sb.AppendLine("[Audio] " & label & "FirstCallbackDelayMs=" & cbDelayMs.ToString("F1"))
+            sb.AppendLine("[Audio] " & label & "InitialSilenceBytes=" & track.InitialSilenceBytes)
+            Dim initSilenceSec As Double = If(track.BytesPerSecond > 0, CDbl(track.InitialSilenceBytes) / track.BytesPerSecond, 0)
+            sb.AppendLine("[Audio] " & label & "InitialSilenceSec=" & initSilenceSec.ToString("F3"))
+            sb.AppendLine("[Audio] " & label & "Lifecycle=" & CType(track.Lifecycle, TrackLifecycle).ToString())
             sb.AppendLine("[Audio] " & label & "Path=" & track.Config.OutputPath)
             If track.Failed Then
                 sb.AppendLine("[Audio] " & label & "FAILED: " & track.FailReason)
