@@ -230,13 +230,18 @@ Partial Public Class Loader
                 Path.Combine(startupPath, "ffprobe.exe"),
                 Path.Combine(startupPath, "ffmpeg", "ffprobe.exe"),
                 Path.Combine(startupPath, "..", "API-Core", "ffprobe.exe"),
-                Path.Combine(startupPath, "..", "..", "..", "..", "API-Core", "ffprobe.exe")
+                Path.Combine(startupPath, "..", "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "Release", "net8.0-windows10.0.26100.0", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "x64", "Release", "net8.0-windows10.0.26100.0", "API-Core", "ffprobe.exe")
             }
 
             Dim ffprobePath As String = ""
             For Each c In candidates
-                ObsLog($"ReadVideoDurationSeconds: trying {c} → {If(File.Exists(c), "EXISTS", "missing")}")
-                If File.Exists(c) Then
+                Dim exists As Boolean = File.Exists(c)
+                ObsLog($"ReadVideoDurationSeconds: trying {c} → {If(exists, "EXISTS", "missing")}")
+                If exists Then
                     ffprobePath = c
                     Exit For
                 End If
