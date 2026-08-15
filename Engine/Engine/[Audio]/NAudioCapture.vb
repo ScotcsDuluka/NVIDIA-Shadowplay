@@ -414,7 +414,6 @@ Public Class NAudioCaptureEngine
         Try
             If _systemQueue Is Nothing OrElse _systemFormat Is Nothing Then Return
 
-            ' P1-B 4A: Instrument callback
             System.Threading.Interlocked.Increment(_sysCallbackCount)
             System.Threading.Interlocked.Add(_sysBytesPerCallbackTotal, e.BytesRecorded)
 
@@ -427,30 +426,17 @@ Public Class NAudioCaptureEngine
             End If
 
             Dim samplesPerChannel As Integer = e.BytesRecorded \ bytesPerSample
-
             Dim endSample As Long = System.Threading.Interlocked.Add(_systemStartSample, samplesPerChannel)
             Dim startSample As Long = endSample - samplesPerChannel
-
             System.Threading.Interlocked.Add(_sysSamplesReceived, samplesPerChannel)
 
             Dim ts As TimeSpan = GetSessionTimestamp()
 
-            ' P1-B 4A: Time the BlockCopy
-            Dim bcStart As Long = Stopwatch.GetTimestamp()
             Dim copy(e.BytesRecorded - 1) As Byte
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
-            Dim bcEnd As Long = Stopwatch.GetTimestamp()
-            System.Threading.Interlocked.Add(_sysBlockCopyTicks, bcEnd - bcStart)
-            System.Threading.Interlocked.Increment(_sysBlockCopyCount)
 
             Dim frame As New AudioFrame(copy, e.BytesRecorded, _systemFormat,
                                         AudioSource.SystemLoopback, ts, startSample, samplesPerChannel)
-
-            ' P1-B 4A: Track queue depth
-            Dim queueDepth As Integer = _systemQueue.Count
-            If queueDepth > System.Threading.Interlocked.Read(_sysQueueMaxDepth) Then
-                System.Threading.Interlocked.Exchange(_sysQueueMaxDepth, CLng(queueDepth))
-            End If
 
             If Not _systemQueue.TryAdd(frame) Then
                 System.Threading.Interlocked.Increment(_systemDropCount)
@@ -638,73 +624,19 @@ Public Class NAudioCaptureEngine
         Dim bytesPerSample As Integer = (fmt.BitsPerSample \ 8) * fmt.Channels
         If bytesPerSample < 1 Then bytesPerSample = 4
 
-        ' ── Frame alignment: only write complete frames ──
         Dim alignedLength As Integer = (frame.Length \ bytesPerSample) * bytesPerSample
         If alignedLength < frame.Length Then
             System.Threading.Interlocked.Increment(partialCount)
         End If
         If alignedLength = 0 Then Return
 
-        ' ── NaN/Infinity sanitization for f32le — BATCH mode ──
-        ' P1-B 4A: Time the NaN scan to measure its CPU cost
-        If fmt.IsFloat AndAlso fmt.BitsPerSample = 32 Then
-            Dim nanStart As Long = Stopwatch.GetTimestamp()
-            Dim buf As Byte() = frame.Buffer
-            Dim numFloats As Integer = alignedLength \ 4
-            Dim foundBad As Boolean = False
-
-            For i As Integer = 0 To numFloats - 1
-                Dim offset As Integer = i * 4
-                Dim sample As Single = BitConverter.ToSingle(buf, offset)
-                If Single.IsNaN(sample) OrElse Single.IsInfinity(sample) Then
-                    foundBad = True
-                    Exit For
-                End If
-            Next
-
-            If foundBad Then
-                For i As Integer = 0 To numFloats - 1
-                    Dim offset As Integer = i * 4
-                    Dim sample As Single = BitConverter.ToSingle(buf, offset)
-                    If Single.IsNaN(sample) Then
-                        System.Threading.Interlocked.Increment(nanCount)
-                        buf(offset) = 0 : buf(offset + 1) = 0 : buf(offset + 2) = 0 : buf(offset + 3) = 0
-                    ElseIf Single.IsInfinity(sample) Then
-                        System.Threading.Interlocked.Increment(infCount)
-                        buf(offset) = 0 : buf(offset + 1) = 0 : buf(offset + 2) = 0 : buf(offset + 3) = 0
-                    End If
-                Next
-            End If
-            Dim nanEnd As Long = Stopwatch.GetTimestamp()
-            System.Threading.Interlocked.Add(_sysNaNScanTicks, nanEnd - nanStart)
-            System.Threading.Interlocked.Increment(_sysNaNScanCount)
-        End If
-
-        ' ── Write aligned data ──
-        Dim writeStart As Long = Stopwatch.GetTimestamp()
-        SyncLock stream
-            Try
-                stream.Write(frame.Buffer, 0, alignedLength)
-                System.Threading.Interlocked.Add(samplesWritten, alignedLength \ bytesPerSample)
-                System.Threading.Interlocked.Add(bytesWritten, alignedLength)
-            Catch ex As Exception
-                System.Diagnostics.Debug.WriteLine("[NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
-                Try
-                    Dim logDir As String = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
-                    Dim logPath As String = System.IO.Path.Combine(logDir, "capture-engine.log")
-                    BackgroundLogger.Log(logPath, "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] [NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
-                Catch
-                End Try
-            End Try
-        End SyncLock
-        Dim writeEnd As Long = Stopwatch.GetTimestamp()
-        If source = AudioSource.SystemLoopback Then
-            System.Threading.Interlocked.Add(_sysWriterWriteTicks, writeEnd - writeStart)
-            System.Threading.Interlocked.Increment(_sysWriterWriteCount)
-        Else
-            System.Threading.Interlocked.Add(_micWriterWriteTicks, writeEnd - writeStart)
-            System.Threading.Interlocked.Increment(_micWriterWriteCount)
-        End If
+        Try
+            stream.Write(frame.Buffer, 0, alignedLength)
+            System.Threading.Interlocked.Add(samplesWritten, alignedLength \ bytesPerSample)
+            System.Threading.Interlocked.Add(bytesWritten, alignedLength)
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine("[NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
+        End Try
     End Sub
 
     Private Sub OnSystemCaptureStopped(sender As Object, e As StoppedEventArgs)
