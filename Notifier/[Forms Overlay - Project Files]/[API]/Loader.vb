@@ -271,7 +271,7 @@ Partial Public Class Loader
                 ObsLog($"ReadVideoDurationSeconds: ffprobe stdout=""{stdout}""")
                 Dim durSec As Double
                 If Double.TryParse(stdout, durSec) Then
-                    Return CInt(Math.Round(durSec))
+                    Return CInt(Math.Floor(durSec))
                 End If
             End Using
         Catch ex As Exception
