@@ -213,6 +213,8 @@ Partial Public Class CaptureEngine
                                          Return False
                                      End If
 
+                                     LogDebug($"[FFmpeg] Started PID={_ffmpegProcess.Id}")
+
                                      ' ✅ P1: tie the FFmpeg child to our Job Object so it dies with us.
                                      If _jobGuard IsNot Nothing Then
                                          _jobGuard.Assign(_ffmpegProcess)
@@ -256,13 +258,17 @@ Partial Public Class CaptureEngine
                                      ' Stop audio capture — drains writer queues first so all
                                      ' buffered PCM reaches FFmpeg stdin before we send q.
                                      LogDebug("[FFmpeg] Stop requested. State=" & _state.ToString())
+                                     If _ffmpegProcess IsNot Nothing Then
+                                         LogDebug($"[FFmpeg] BeforeAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}")
+                                     End If
                                      LogDebug("[FFmpeg] Stopping audio capture (drain + close stdin)…")
                                      StopAudioCaptureIfNeeded()
-                                     LogDebug("[FFmpeg] Audio capture stopped. FFmpeg HasExited=" &
-                                               If(_ffmpegProcess IsNot Nothing, _ffmpegProcess.HasExited.ToString(), "(process null)"))
+                                     If _ffmpegProcess IsNot Nothing Then
+                                         LogDebug($"[FFmpeg] AfterAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}")
+                                     End If
 
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
-                                         LogDebug("[FFmpeg] Sending quit command (q)…")
+                                         LogDebug($"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}")
                                          Try
                                              _ffmpegProcess.StandardInput.Write("q" & vbLf)
                                              _ffmpegProcess.StandardInput.Flush()
@@ -270,20 +276,22 @@ Partial Public Class CaptureEngine
                                              LogDebug("[FFmpeg] Failed to send q: " & ex.Message)
                                          End Try
 
-                                         LogDebug("[FFmpeg] WaitForExit(10000)…")
+                                         LogDebug($"[FFmpeg] WaitForExit(10000)… PID={_ffmpegProcess.Id}")
                                          Dim exited As Boolean = _ffmpegProcess.WaitForExit(10000)
                                          LogDebug($"[FFmpeg] WaitForExit returned. HasExited={_ffmpegProcess.HasExited.ToString()}")
 
                                          If Not _ffmpegProcess.HasExited Then
-                                             LogDebug("[FFmpeg] WaitForExit TIMEOUT → KILL")
+                                             LogDebug($"[FFmpeg] WaitForExit TIMEOUT → KILL PID={_ffmpegProcess.Id}")
                                              Try
                                                  _ffmpegProcess.Kill()
                                                  _ffmpegProcess.WaitForExit(2000)
-                                                 LogDebug("[FFmpeg] Kill completed. ExitCode=" & _ffmpegProcess.ExitCode.ToString())
+                                                 LogDebug($"[FFmpeg] Kill completed. ExitCode={_ffmpegProcess.ExitCode.ToString()}")
                                              Catch ex As Exception
                                                  LogDebug("[FFmpeg] Kill failed: " & ex.Message)
                                              End Try
                                          End If
+                                     Else
+                                         LogDebug("[FFmpeg] Process already exited before q could be sent.")
                                      End If
 
                                      ' Use Interlocked.Exchange to ensure RecordingStopped fires exactly once
@@ -445,18 +453,20 @@ Partial Public Class CaptureEngine
     End Sub
 
     Private Sub OnExited(sender As Object, e As EventArgs)
-        ' Capture exit code first — _ffmpegProcess may be nulled by ForceStop()/Dispose() concurrently.
+        ' Capture exit code + PID first — _ffmpegProcess may be nulled by ForceStop()/Dispose() concurrently.
         Dim exitCode As String = "?"
+        Dim pidStr As String = "?"
         Dim proc As Process = _ffmpegProcess
         If proc IsNot Nothing Then
             Try
+                pidStr = proc.Id.ToString()
                 exitCode = proc.ExitCode.ToString()
             Catch
             End Try
         End If
 
-        LogDebug($"[FFmpeg] Exit detected. State={_state.ToString()}, ExitCode={exitCode}")
-        WriteDebugLog($"FFmpeg exited with code: {exitCode} (state was {_state.ToString()})")
+        LogDebug($"[FFmpeg] Exited PID={pidStr} ExitCode={exitCode} State={_state.ToString()}")
+        WriteDebugLog($"FFmpeg exited with code: {exitCode} (state was {_state.ToString()}, PID={pidStr})")
 
         ' GPT P0 fix: handle BOTH Recording AND Stopping. Previously only Recording
         ' was handled — if user pressed Stop (state becomes Stopping) and FFmpeg then
