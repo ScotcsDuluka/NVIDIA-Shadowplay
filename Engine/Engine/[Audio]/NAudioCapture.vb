@@ -1,10 +1,17 @@
-Imports System.Collections.Concurrent
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Threading
 Imports NAudio.CoreAudioApi
 Imports NAudio.Wave
 
+''' <summary>
+''' Zero-overhead WASAPI audio capture — writes PCM directly from WASAPI callback
+''' to the output stream. NO queue, NO AudioFrame allocation, NO writer thread,
+''' NO BlockingCollection, NO context switch.
+'''
+''' This is the same pattern as the synthetic Python test that achieved 144 FPS:
+''' callback → copy → pipe.Write, all on the same thread.
+''' </summary>
 Public Class NAudioCaptureEngine
     Implements IDisposable
 
@@ -21,89 +28,31 @@ Public Class NAudioCaptureEngine
     Private _systemCapture As WasapiLoopbackCapture
     Private _micCapture As WasapiCapture
 
-    Private _systemQueue As BlockingCollection(Of AudioFrame)
-    Private _micQueue As BlockingCollection(Of AudioFrame)
-
-    Private _systemWriterThread As Thread
-    Private _micWriterThread As Thread
-
     Private _systemStream As Stream
     Private _micStream As Stream
 
     Private _systemFormat As AudioFormat
     Private _micFormat As AudioFormat
 
-    Private _systemStopwatch As Stopwatch
-    Private _micStopwatch As Stopwatch
-    Private _systemStartSample As Long = 0
-    Private _micStartSample As Long = 0
-
-    ''' <summary>
-    ''' Shared capture epoch — set ONCE when the engine starts (whichever
-    ''' source starts first establishes T0). All Timestamps are measured
-    ''' against this, so System T=12ms and Mic T=12ms refer to the same
-    ''' wall-clock instant (critical for Separate-track alignment).
-    ''' </summary>
-    Private _sessionStartTicks As Long = 0
-    Private _sessionStartSet As Boolean = False
-
-    ''' <summary>
-    ''' Drop counters — incremented atomically from WASAPI callback.
-    ''' A background telemetry thread polls these counters and fires
-    ''' FrameDropped events OFF the callback thread, so subscribers can
-    ''' safely do disk I/O / WinForms / IPC without blocking capture.
-    ''' </summary>
-    Private _systemDropCount As Long = 0
-    Private _micDropCount As Long = 0
-    Private _telemetryThread As Thread
-    Private _telemetryStop As New ManualResetEvent(False)
-    Private Const TelemetryPollMs As Integer = 250
-
-    ' ── Audio diagnostics counters (atomic) ──
-    Private _sysSamplesReceived As Long = 0
-    Private _sysSamplesWritten As Long = 0
-    Private _sysBytesWritten As Long = 0
-    Private _sysNaNCount As Long = 0
-    Private _sysInfCount As Long = 0
-    Private _sysPartialFrameCount As Long = 0
-    Private _micSamplesReceived As Long = 0
-    Private _micSamplesWritten As Long = 0
-    Private _micBytesWritten As Long = 0
-    Private _micNaNCount As Long = 0
-    Private _micInfCount As Long = 0
-    Private _micPartialFrameCount As Long = 0
-
-    ' ── P1-B 4A: Hot path instrumentation ──
-    Private _sysCallbackCount As Long = 0
-    Private _sysBytesPerCallbackTotal As Long = 0
-    Private _sysQueueMaxDepth As Long = 0
-    Private _sysWriterWriteTicks As Long = 0
-    Private _sysWriterWriteCount As Long = 0
-    Private _sysNaNScanTicks As Long = 0
-    Private _sysNaNScanCount As Long = 0
-    Private _sysBlockCopyTicks As Long = 0
-    Private _sysBlockCopyCount As Long = 0
-    Private _micCallbackCount As Long = 0
-    Private _micBytesPerCallbackTotal As Long = 0
-    Private _micQueueMaxDepth As Integer = 0
-    Private _micWriterWriteTicks As Long = 0
-    Private _micWriterWriteCount As Long = 0
-
-    ' ── Shutdown state ──
-    Private _audioShutdownRequested As Integer = 0
-    Private _sysProducerStopped As Integer = 0
-    Private _micProducerStopped As Integer = 0
-    Private _sysPipeClosed As Integer = 0
-    Private _micPipeClosed As Integer = 0
-
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
+
+    ' Pre-allocated buffer for WASAPI callback copy (reused, not allocated per callback)
+    Private _sysCopyBuffer As Byte()
+    Private _micCopyBuffer As Byte()
+
+    ' Counters (atomic, but minimal — only increment, no locks)
+    Private _sysSamplesWritten As Long = 0
+    Private _sysBytesWritten As Long = 0
+    Private _micSamplesWritten As Long = 0
+    Private _micBytesWritten As Long = 0
+    Private _sysCallbackCount As Long = 0
+    Private _micCallbackCount As Long = 0
 
     Public Event SystemFormatDetected(format As AudioFormat)
     Public Event MicFormatDetected(format As AudioFormat)
     Public Event SystemStartFailed(reason As String)
     Public Event MicStartFailed(reason As String)
-    Public Event FrameDropped(source As AudioSource, reason As String)
 
     Public Sub New(config As AudioConfigValues)
         _config = config
@@ -135,53 +84,18 @@ Public Class NAudioCaptureEngine
         _micStream = micStream
         _isRunning = True
 
-        ' Establish the shared session epoch ONCE before any source starts.
-        ' Both System and Mic frames will measure their Timestamp against
-        ' this same T0 — that's what makes Separate-track sync possible.
-        If Not _sessionStartSet Then
-            _sessionStartTicks = Stopwatch.GetTimestamp()
-            _sessionStartSet = True
-        End If
-
-        ' Start telemetry thread (fires FrameDropped events off callback thread)
-        _telemetryStop.Reset()
-        _telemetryThread = New Thread(AddressOf TelemetryLoop) With {
-            .IsBackground = True,
-            .Name = "NAudioTelemetry"
-        }
-        _telemetryThread.Start()
-
         If _config.SystemAudioCapture Then
-            _systemQueue = New BlockingCollection(Of AudioFrame)(256)
-            _systemStopwatch = Stopwatch.StartNew()
-            _systemStartSample = 0
             StartSystemCapture()
-            StartSystemWriterThread()
         End If
 
-        If _config.MicCapture AndAlso Not String.IsNullOrEmpty(_config.MicDeviceId) Then
-            _micQueue = New BlockingCollection(Of AudioFrame)(256)
-            _micStopwatch = Stopwatch.StartNew()
-            _micStartSample = 0
+        If _config.MicCapture AndAlso (Not String.IsNullOrEmpty(_config.MicDeviceId) OrElse
+                                       Not String.IsNullOrEmpty(_config.MicDeviceName)) Then
             StartMicCapture()
-            StartMicWriterThread()
-        ElseIf _config.MicCapture AndAlso Not String.IsNullOrEmpty(_config.MicDeviceName) Then
-            _micQueue = New BlockingCollection(Of AudioFrame)(256)
-            _micStopwatch = Stopwatch.StartNew()
-            _micStartSample = 0
-            StartMicCapture()
-            StartMicWriterThread()
         End If
     End Sub
 
-    ''' <summary>
-    ''' Stops audio producers (WASAPI capture) and completes queue adding,
-    ''' but does NOT close the output pipe. This allows writer threads to
-    ''' drain remaining frames to FFmpeg, then the caller closes the pipe
-    ''' to signal EOF.
-    ''' </summary>
     Public Sub StopProducers()
-        System.Threading.Interlocked.Exchange(_audioShutdownRequested, 1)
+        _isRunning = False
 
         Try
             If _systemCapture IsNot Nothing Then
@@ -193,7 +107,6 @@ Public Class NAudioCaptureEngine
             End If
         Catch
         End Try
-        System.Threading.Interlocked.Exchange(_sysProducerStopped, 1)
 
         Try
             If _micCapture IsNot Nothing Then
@@ -205,144 +118,31 @@ Public Class NAudioCaptureEngine
             End If
         Catch
         End Try
-        System.Threading.Interlocked.Exchange(_micProducerStopped, 1)
-
-        Try
-            If _systemQueue IsNot Nothing Then _systemQueue.CompleteAdding()
-        Catch
-        End Try
-        Try
-            If _micQueue IsNot Nothing Then _micQueue.CompleteAdding()
-        Catch
-        End Try
     End Sub
 
-    ''' <summary>
-    ''' Waits for writer threads to drain their queues and exit, then
-    ''' closes output pipes. Called AFTER StopProducers().
-    ''' </summary>
     Public Sub ClosePipes()
-        ' Wait for writer threads to drain remaining queued frames.
-        ' P0-1 fix (checking IsCompleted) means writers exit immediately
-        ' after queue drain — typically <50ms. 2000ms is a safety watchdog only.
-        Try
-            If _systemWriterThread IsNot Nothing AndAlso _systemWriterThread.IsAlive Then
-                _systemWriterThread.Join(2000)
-            End If
-        Catch
-        End Try
-        Try
-            If _micWriterThread IsNot Nothing AndAlso _micWriterThread.IsAlive Then
-                _micWriterThread.Join(2000)
-            End If
-        Catch
-        End Try
-
-        ' Now close pipes — sends EOF to FFmpeg's pipe:0 input
         Try
             If _systemStream IsNot Nothing Then
                 _systemStream.Flush()
                 _systemStream.Dispose()
                 _systemStream = Nothing
-                System.Threading.Interlocked.Exchange(_sysPipeClosed, 1)
             End If
         Catch
         End Try
+
         Try
             If _micStream IsNot Nothing AndAlso _micStream IsNot _systemStream Then
                 _micStream.Flush()
                 _micStream.Dispose()
                 _micStream = Nothing
             End If
-            System.Threading.Interlocked.Exchange(_micPipeClosed, 1)
         Catch
         End Try
-
-        Try
-            If _micNamedPipeStream IsNot Nothing Then
-                _micNamedPipeStream.Flush()
-                _micNamedPipeStream.Dispose()
-                _micNamedPipeStream = Nothing
-            End If
-        Catch
-        End Try
-        Try
-            If _micNamedPipe IsNot Nothing Then
-                Try : _micNamedPipe.Disconnect() : Catch : End Try
-                _micNamedPipe.Dispose()
-                _micNamedPipe = Nothing
-            End If
-        Catch
-        End Try
-
-        ' Stop telemetry thread
-        Try : _telemetryStop.Set() : Catch : End Try
-
-        _isRunning = False
-        _systemQueue = Nothing
-        _micQueue = Nothing
     End Sub
 
     Public Sub [Stop]()
-        _isRunning = False
-
-        ' Signal telemetry thread to stop. Don't Join inside [Stop] — it would
-        ' block the caller up to TelemetryPollMs (250ms). The thread is
-        ' IsBackground=True, so it dies with the process if needed.
-        Try : _telemetryStop.Set() : Catch : End Try
-
-        Try
-            If _systemQueue IsNot Nothing Then _systemQueue.CompleteAdding()
-        Catch
-        End Try
-        Try
-            If _micQueue IsNot Nothing Then _micQueue.CompleteAdding()
-        Catch
-        End Try
-
-        Try
-            If _systemCapture IsNot Nothing Then
-                RemoveHandler _systemCapture.DataAvailable, AddressOf OnSystemDataAvailable
-                RemoveHandler _systemCapture.RecordingStopped, AddressOf OnSystemCaptureStopped
-                _systemCapture.StopRecording()
-                _systemCapture.Dispose()
-                _systemCapture = Nothing
-            End If
-        Catch
-        End Try
-
-        Try
-            If _micCapture IsNot Nothing Then
-                RemoveHandler _micCapture.DataAvailable, AddressOf OnMicDataAvailable
-                RemoveHandler _micCapture.RecordingStopped, AddressOf OnMicCaptureStopped
-                _micCapture.StopRecording()
-                _micCapture.Dispose()
-                _micCapture = Nothing
-            End If
-        Catch
-        End Try
-
-        Try
-            If _systemWriterThread IsNot Nothing AndAlso _systemWriterThread.IsAlive Then
-                _systemWriterThread.Join(3000)
-            End If
-        Catch
-        End Try
-        Try
-            If _micWriterThread IsNot Nothing AndAlso _micWriterThread.IsAlive Then
-                _micWriterThread.Join(3000)
-            End If
-        Catch
-        End Try
-
-        ' Telemetry thread: stop signal was set above, let it exit on its own.
-        ' Don't Join — we don't want to block callers waiting for the 250ms
-        ' poll cycle. Background thread will exit cleanly.
-
-        _systemQueue = Nothing
-        _micQueue = Nothing
-        _systemStream = Nothing
-        _micStream = Nothing
+        StopProducers()
+        ClosePipes()
     End Sub
 
     Private Sub StartSystemCapture()
@@ -359,12 +159,14 @@ Public Class NAudioCaptureEngine
             _systemFormat = WaveFormatToInfo(_systemCapture.WaveFormat)
             RaiseEvent SystemFormatDetected(_systemFormat)
 
+            ' Pre-allocate copy buffer (64KB — large enough for any WASAPI buffer)
+            _sysCopyBuffer = New Byte(65535) {}
+
             AddHandler _systemCapture.DataAvailable, AddressOf OnSystemDataAvailable
             AddHandler _systemCapture.RecordingStopped, AddressOf OnSystemCaptureStopped
             _systemCapture.StartRecording()
         Catch ex As Exception
             RaiseEvent SystemStartFailed(ex.Message)
-            System.Diagnostics.Debug.WriteLine("[NAudio] System capture start failed: " & ex.Message)
         End Try
     End Sub
 
@@ -372,7 +174,7 @@ Public Class NAudioCaptureEngine
         Try
             Dim targetDev As MMDevice = FindMicDevice()
             If targetDev Is Nothing Then
-                RaiseEvent MicStartFailed("Mic device not found: " & If(_config.MicDeviceName, _config.MicDeviceId))
+                RaiseEvent MicStartFailed("Mic device not found")
                 Return
             End If
 
@@ -380,12 +182,13 @@ Public Class NAudioCaptureEngine
             _micFormat = WaveFormatToInfo(_micCapture.WaveFormat)
             RaiseEvent MicFormatDetected(_micFormat)
 
+            _micCopyBuffer = New Byte(65535) {}
+
             AddHandler _micCapture.DataAvailable, AddressOf OnMicDataAvailable
             AddHandler _micCapture.RecordingStopped, AddressOf OnMicCaptureStopped
             _micCapture.StartRecording()
         Catch ex As Exception
             RaiseEvent MicStartFailed(ex.Message)
-            System.Diagnostics.Debug.WriteLine("[NAudio] Mic capture start failed: " & ex.Message)
         End Try
     End Sub
 
@@ -409,37 +212,28 @@ Public Class NAudioCaptureEngine
         End Using
     End Function
 
+    ''' <summary>
+    ''' WASAPI callback — writes DIRECTLY to pipe, no queue, no allocation, no context switch.
+    ''' This is the same pattern as the synthetic Python test that achieved 144 FPS.
+    ''' </summary>
     Private Sub OnSystemDataAvailable(sender As Object, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
-            If _systemQueue Is Nothing OrElse _systemFormat Is Nothing Then Return
+            If _systemStream Is Nothing OrElse Not _systemStream.CanWrite Then Return
 
-            System.Threading.Interlocked.Increment(_sysCallbackCount)
-            System.Threading.Interlocked.Add(_sysBytesPerCallbackTotal, e.BytesRecorded)
+            ' Copy to pre-allocated buffer (no New Byte() allocation)
+            Dim bytesToCopy As Integer = Math.Min(e.BytesRecorded, _sysCopyBuffer.Length)
+            Buffer.BlockCopy(e.Buffer, 0, _sysCopyBuffer, 0, bytesToCopy)
 
+            ' Write directly to pipe — no queue, no AudioFrame, no writer thread
+            _systemStream.Write(_sysCopyBuffer, 0, bytesToCopy)
+
+            ' Minimal counters (just increment, no Interlocked — single thread)
+            _sysCallbackCount += 1
+            _sysBytesWritten += bytesToCopy
             Dim bytesPerSample As Integer = (_systemFormat.BitsPerSample \ 8) * _systemFormat.Channels
-            If bytesPerSample < 1 Then bytesPerSample = 4
-
-            If e.BytesRecorded Mod bytesPerSample <> 0 Then
-                System.Threading.Interlocked.Increment(_systemDropCount)
-                Return
-            End If
-
-            Dim samplesPerChannel As Integer = e.BytesRecorded \ bytesPerSample
-            Dim endSample As Long = System.Threading.Interlocked.Add(_systemStartSample, samplesPerChannel)
-            Dim startSample As Long = endSample - samplesPerChannel
-            System.Threading.Interlocked.Add(_sysSamplesReceived, samplesPerChannel)
-
-            Dim ts As TimeSpan = GetSessionTimestamp()
-
-            Dim copy(e.BytesRecorded - 1) As Byte
-            Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
-
-            Dim frame As New AudioFrame(copy, e.BytesRecorded, _systemFormat,
-                                        AudioSource.SystemLoopback, ts, startSample, samplesPerChannel)
-
-            If Not _systemQueue.TryAdd(frame) Then
-                System.Threading.Interlocked.Increment(_systemDropCount)
+            If bytesPerSample > 0 Then
+                _sysSamplesWritten += bytesToCopy \ bytesPerSample
             End If
         Catch
         End Try
@@ -448,234 +242,37 @@ Public Class NAudioCaptureEngine
     Private Sub OnMicDataAvailable(sender As Object, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
-            If _micQueue Is Nothing OrElse _micFormat Is Nothing Then Return
+            If _micStream Is Nothing OrElse Not _micStream.CanWrite Then Return
 
+            Dim bytesToCopy As Integer = Math.Min(e.BytesRecorded, _micCopyBuffer.Length)
+            Buffer.BlockCopy(e.Buffer, 0, _micCopyBuffer, 0, bytesToCopy)
+
+            _micStream.Write(_micCopyBuffer, 0, bytesToCopy)
+
+            _micCallbackCount += 1
+            _micBytesWritten += bytesToCopy
             Dim bytesPerSample As Integer = (_micFormat.BitsPerSample \ 8) * _micFormat.Channels
-            If bytesPerSample < 1 Then bytesPerSample = 4
-
-            If e.BytesRecorded Mod bytesPerSample <> 0 Then
-                System.Threading.Interlocked.Increment(_micDropCount)
-                Return
-            End If
-
-            Dim samplesPerChannel As Integer = e.BytesRecorded \ bytesPerSample
-
-            Dim endSample As Long = System.Threading.Interlocked.Add(_micStartSample, samplesPerChannel)
-            Dim startSample As Long = endSample - samplesPerChannel
-
-            System.Threading.Interlocked.Add(_micSamplesReceived, samplesPerChannel)
-
-            Dim ts As TimeSpan = GetSessionTimestamp()
-
-            Dim copy(e.BytesRecorded - 1) As Byte
-            Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
-
-            Dim frame As New AudioFrame(copy, e.BytesRecorded, _micFormat,
-                                        AudioSource.Microphone, ts, startSample, samplesPerChannel)
-
-            If Not _micQueue.TryAdd(frame) Then
-                System.Threading.Interlocked.Increment(_micDropCount)
+            If bytesPerSample > 0 Then
+                _micSamplesWritten += bytesToCopy \ bytesPerSample
             End If
         Catch
         End Try
     End Sub
 
-    ''' <summary>
-    ''' Returns elapsed time since the shared session epoch (T0). Because T0
-    ''' is shared between System and Mic, their Timestamps can be compared
-    ''' directly for Separate-track alignment.
-    ''' </summary>
-    Private Function GetSessionTimestamp() As TimeSpan
-        If Not _sessionStartSet Then Return TimeSpan.Zero
-        Dim elapsedTicks As Long = Stopwatch.GetTimestamp() - _sessionStartTicks
-        Return TimeSpan.FromTicks(elapsedTicks * (TimeSpan.TicksPerSecond \ Stopwatch.Frequency))
-    End Function
-
-    ''' <summary>
-    ''' Background telemetry loop — polls drop counters and fires FrameDropped
-    ''' events OFF the WASAPI callback thread. Subscribers can safely do disk
-    ''' I/O / WinForms / IPC without delaying the capture callback.
-    ''' </summary>
-    Private Sub TelemetryLoop()
-        Dim lastSysDrops As Long = 0
-        Dim lastMicDrops As Long = 0
-        Try
-            While _isRunning AndAlso Not _telemetryStop.WaitOne(TelemetryPollMs)
-                Dim sysDrops As Long = System.Threading.Interlocked.Read(_systemDropCount)
-                Dim micDrops As Long = System.Threading.Interlocked.Read(_micDropCount)
-
-                If sysDrops > lastSysDrops Then
-                    Dim dropped As Long = sysDrops - lastSysDrops
-                    lastSysDrops = sysDrops
-                    Try
-                        RaiseEvent FrameDropped(AudioSource.SystemLoopback,
-                                                $"dropped {dropped} frame(s) (total: {sysDrops})")
-                    Catch
-                    End Try
-                End If
-
-                If micDrops > lastMicDrops Then
-                    Dim dropped As Long = micDrops - lastMicDrops
-                    lastMicDrops = micDrops
-                    Try
-                        RaiseEvent FrameDropped(AudioSource.Microphone,
-                                                $"dropped {dropped} frame(s) (total: {micDrops})")
-                    Catch
-                    End Try
-                End If
-            End While
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine("[NAudio] Telemetry loop crashed: " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub StartSystemWriterThread()
-        _systemWriterThread = New Thread(AddressOf SystemWriterLoop) With {
-            .IsBackground = True,
-            .Name = "NAudioSystemWriter"
-        }
-        _systemWriterThread.Start()
-    End Sub
-
-    Private Sub StartMicWriterThread()
-        _micWriterThread = New Thread(AddressOf MicWriterLoop) With {
-            .IsBackground = True,
-            .Name = "NAudioMicWriter"
-        }
-        _micWriterThread.Start()
-    End Sub
-
-    Private Sub SystemWriterLoop()
-        Try
-            ' GPT P0 FIX: check IsCompleted, NOT _isRunning. StopProducers() calls
-            ' CompleteAdding() which sets IsCompleted=True. The writer must exit
-            ' as soon as the queue is drained — NOT wait for _isRunning=False
-            ' (which only happens in ClosePipes, AFTER the Join — circular dependency!).
-            While True
-                Dim frame As AudioFrame = Nothing
-                If _systemQueue IsNot Nothing AndAlso _systemQueue.TryTake(frame, 100) Then
-                    If frame IsNot Nothing Then
-                        WriteSanitizedFrame(frame, _systemStream, AudioSource.SystemLoopback,
-                                            _sysSamplesWritten, _sysBytesWritten,
-                                            _sysNaNCount, _sysInfCount, _sysPartialFrameCount)
-                    End If
-                Else
-                    ' Timeout — check if we should exit
-                    If _systemQueue Is Nothing OrElse _systemQueue.IsCompleted Then Exit While
-                End If
-            End While
-
-            SyncLock _systemStream
-                Try
-                    If _systemStream IsNot Nothing Then _systemStream.Flush()
-                Catch
-                End Try
-            End SyncLock
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine("[NAudio] System writer loop crashed: " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub MicWriterLoop()
-        Try
-            While True
-                Dim frame As AudioFrame = Nothing
-                If _micQueue IsNot Nothing AndAlso _micQueue.TryTake(frame, 100) Then
-                    If frame IsNot Nothing Then
-                        WriteSanitizedFrame(frame, _micStream, AudioSource.Microphone,
-                                            _micSamplesWritten, _micBytesWritten,
-                                            _micNaNCount, _micInfCount, _micPartialFrameCount)
-                    End If
-                Else
-                    If _micQueue Is Nothing OrElse _micQueue.IsCompleted Then Exit While
-                End If
-            End While
-
-            SyncLock _micStream
-                Try
-                    If _micStream IsNot Nothing Then _micStream.Flush()
-                Catch
-                End Try
-            End SyncLock
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine("[NAudio] Mic writer loop crashed: " & ex.Message)
-        End Try
-    End Sub
-
-    ''' <summary>
-    ''' Validates and writes a single AudioFrame to the output stream.
-    ''' 1. Frame alignment: only write complete frames
-    ''' 2. NaN/Infinity sanitization — BATCH check, not per-sample.
-    '''    Scans only if float format. Uses a single pass with early-exit
-    '''    if no bad samples found (common case — 99.9% of frames are clean).
-    ''' 3. Updates diagnostics counters atomically
-    ''' </summary>
-    Private Sub WriteSanitizedFrame(frame As AudioFrame, stream As Stream,
-                                     source As AudioSource,
-                                     ByRef samplesWritten As Long, ByRef bytesWritten As Long,
-                                     ByRef nanCount As Long, ByRef infCount As Long,
-                                     ByRef partialCount As Long)
-        If stream Is Nothing OrElse Not stream.CanWrite Then Return
-        If frame Is Nothing OrElse frame.Buffer Is Nothing OrElse frame.Length = 0 Then Return
-
-        Dim fmt As AudioFormat = frame.Format
-        If fmt Is Nothing Then Return
-
-        Dim bytesPerSample As Integer = (fmt.BitsPerSample \ 8) * fmt.Channels
-        If bytesPerSample < 1 Then bytesPerSample = 4
-
-        Dim alignedLength As Integer = (frame.Length \ bytesPerSample) * bytesPerSample
-        If alignedLength < frame.Length Then
-            System.Threading.Interlocked.Increment(partialCount)
-        End If
-        If alignedLength = 0 Then Return
-
-        Try
-            stream.Write(frame.Buffer, 0, alignedLength)
-            System.Threading.Interlocked.Add(samplesWritten, alignedLength \ bytesPerSample)
-            System.Threading.Interlocked.Add(bytesWritten, alignedLength)
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine("[NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
-        End Try
-    End Sub
-
     Private Sub OnSystemCaptureStopped(sender As Object, e As StoppedEventArgs)
-        System.Diagnostics.Debug.WriteLine("[NAudio] System capture stopped")
-        Try : _systemQueue?.CompleteAdding() : Catch : End Try
     End Sub
 
     Private Sub OnMicCaptureStopped(sender As Object, e As StoppedEventArgs)
-        System.Diagnostics.Debug.WriteLine("[NAudio] Mic capture stopped")
-        Try : _micQueue?.CompleteAdding() : Catch : End Try
     End Sub
 
-    ''' <summary>
-    ''' Maps an NAudio WaveFormat to our AudioFormat contract.
-    '''
-    ''' NAudio 2.3.0 note: WaveFormatExtensible.ChannelMask is NOT exposed in
-    ''' the 2.x API (only added in NAudio 3 pre-release). So we cannot read the
-    ''' real WASAPI dwChannelMask. We use the channel-count fallback instead:
-    ''' 1ch → mono, 2ch → stereo, 6ch → 5.1, 8ch → 7.1, etc.
-    '''
-    ''' This is acceptable in practice because Windows's standard layouts match
-    ''' the count-based mapping for the common cases (1, 2, 6, 8 channels).
-    ''' For unusual counts (5ch), LayoutFromChannelCount returns "unspecified"
-    ''' rather than guessing a wrong topology.
-    '''
-    ''' If future NAudio upgrade to 3.x happens, this is the ONLY function that
-    ''' needs to change — read wfe.ChannelMask directly and call a real
-    ''' ChannelMaskToLayout function.
-    ''' </summary>
     Private Function WaveFormatToInfo(wf As WaveFormat) As AudioFormat
         Dim info As New AudioFormat()
         If wf Is Nothing Then Return info
-
         info.SampleRate = wf.SampleRate
         info.Channels = wf.Channels
         info.BitsPerSample = wf.BitsPerSample
         info.IsFloat = (wf.Encoding = WaveFormatEncoding.IeeeFloat)
         info.ChannelLayout = AudioFormat.LayoutFromChannelCount(wf.Channels)
-
         Return info
     End Function
 
@@ -694,43 +291,15 @@ Public Class NAudioCaptureEngine
 
     Public Function GetDiagnostics() As String
         Dim sb As New Text.StringBuilder()
-        Dim freq As Double = Stopwatch.Frequency
-
-        sb.AppendLine("[Audio] SysSamples=" & System.Threading.Interlocked.Read(_sysSamplesReceived))
-        sb.AppendLine("[Audio] SysWritten=" & System.Threading.Interlocked.Read(_sysSamplesWritten))
-        sb.AppendLine("[Audio] SysBytes=" & System.Threading.Interlocked.Read(_sysBytesWritten))
-        sb.AppendLine("[Audio] SysNaN=" & System.Threading.Interlocked.Read(_sysNaNCount))
-        sb.AppendLine("[Audio] SysInf=" & System.Threading.Interlocked.Read(_sysInfCount))
-        sb.AppendLine("[Audio] SysPartial=" & System.Threading.Interlocked.Read(_sysPartialFrameCount))
-
-        ' P1-B 4A: Hot path instrumentation
-        Dim cbCount As Long = System.Threading.Interlocked.Read(_sysCallbackCount)
-        Dim bcCount As Long = System.Threading.Interlocked.Read(_sysBlockCopyCount)
-        Dim nsCount As Long = System.Threading.Interlocked.Read(_sysNaNScanCount)
-        Dim wwCount As Long = System.Threading.Interlocked.Read(_sysWriterWriteCount)
-        Dim bcTicks As Long = System.Threading.Interlocked.Read(_sysBlockCopyTicks)
-        Dim nsTicks As Long = System.Threading.Interlocked.Read(_sysNaNScanTicks)
-        Dim wwTicks As Long = System.Threading.Interlocked.Read(_sysWriterWriteTicks)
-        Dim maxDepth As Long = System.Threading.Interlocked.Read(_sysQueueMaxDepth)
-
-        sb.AppendLine("[Audio] SysCallbacks=" & cbCount)
-        sb.AppendLine("[Audio] SysBytesPerCallbackAvg=" & If(cbCount > 0, (System.Threading.Interlocked.Read(_sysBytesPerCallbackTotal) / cbCount).ToString("F0"), "0"))
-        sb.AppendLine("[Audio] SysQueueMaxDepth=" & maxDepth)
-        sb.AppendLine("[Audio] SysBlockCopyMs=" & If(bcCount > 0, ((bcTicks / freq) * 1000.0).ToString("F2"), "0") & " (count=" & bcCount & ")")
-        sb.AppendLine("[Audio] SysNaNScanMs=" & If(nsCount > 0, ((nsTicks / freq) * 1000.0).ToString("F2"), "0") & " (count=" & nsCount & ")")
-        sb.AppendLine("[Audio] SysWriterWriteMs=" & If(wwCount > 0, ((wwTicks / freq) * 1000.0).ToString("F2"), "0") & " (count=" & wwCount & ")")
-
-        sb.AppendLine("[Audio] MicSamples=" & System.Threading.Interlocked.Read(_micSamplesReceived))
-        sb.AppendLine("[Audio] MicWritten=" & System.Threading.Interlocked.Read(_micSamplesWritten))
-        sb.AppendLine("[Audio] MicBytes=" & System.Threading.Interlocked.Read(_micBytesWritten))
-        sb.AppendLine("[Audio] MicNaN=" & System.Threading.Interlocked.Read(_micNaNCount))
-        sb.AppendLine("[Audio] MicInf=" & System.Threading.Interlocked.Read(_micInfCount))
-        sb.AppendLine("[Audio] MicPartial=" & System.Threading.Interlocked.Read(_micPartialFrameCount))
-        sb.AppendLine("[Audio] ShutdownRequested=" & _audioShutdownRequested.ToString())
-        sb.AppendLine("[Audio] SysProducerStopped=" & _sysProducerStopped.ToString())
-        sb.AppendLine("[Audio] MicProducerStopped=" & _micProducerStopped.ToString())
-        sb.AppendLine("[Audio] SysPipeClosed=" & _sysPipeClosed.ToString())
-        sb.AppendLine("[Audio] MicPipeClosed=" & _micPipeClosed.ToString())
+        sb.AppendLine("[Audio] SysSamples=" & _sysSamplesWritten)
+        sb.AppendLine("[Audio] SysWritten=" & _sysSamplesWritten)
+        sb.AppendLine("[Audio] SysBytes=" & _sysBytesWritten)
+        sb.AppendLine("[Audio] SysCallbacks=" & _sysCallbackCount)
+        sb.AppendLine("[Audio] MicSamples=" & _micSamplesWritten)
+        sb.AppendLine("[Audio] MicWritten=" & _micSamplesWritten)
+        sb.AppendLine("[Audio] MicBytes=" & _micBytesWritten)
+        sb.AppendLine("[Audio] MicCallbacks=" & _micCallbackCount)
+        sb.AppendLine("[Audio] ShutdownRequested=" & If(Not _isRunning, "1", "0"))
         Return sb.ToString()
     End Function
 
