@@ -115,6 +115,7 @@ Partial Public Class Loader
             End If
 
             If eventType = "ReplayBufferSaved" Then
+                If obs IsNot Nothing AndAlso obs.ShouldSuppressDuplicate("l10n.notificationInstantReplaySaved") Then Return
                 HandleReplayBufferSaved()
                 Return
             End If
@@ -124,6 +125,8 @@ Partial Public Class Loader
                 Debug.WriteLine($"[OBS]   → no mapping for {eventType}")
                 Return
             End If
+
+            If obs IsNot Nothing AndAlso obs.ShouldSuppressDuplicate(mapped.Key) Then Return
 
             Debug.WriteLine($"[OBS]   → mapped to {mapped.Key}")
             Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"

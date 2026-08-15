@@ -64,6 +64,9 @@
                 <None Update="notifier_obs.json">
                         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
                 </None>
+                <None Update="notifier_obs.example.json">
+                        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+                </None>
         </ItemGroup>
 
         <ItemGroup>

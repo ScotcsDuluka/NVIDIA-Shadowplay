@@ -26,6 +26,12 @@ Public Class ObsWebSocketClient
     Private _pendingResponses As New Dictionary(Of String, TaskCompletionSource(Of JObject))
     Private _pendingLock As New Object()
 
+    Private _isReconnecting As Boolean = False
+    Private _reconnectLock As New Object()
+    Private _lastShownKey As String = ""
+    Private _lastShownTime As DateTime = DateTime.MinValue
+    Private Const DedupWindowMs As Integer = 1500
+
     Public Event OnEvent(eventType As String, eventData As JObject, raw As JObject)
     Public Event OnConnected()
     Public Event OnDisconnected()
@@ -67,11 +73,24 @@ Public Class ObsWebSocketClient
         _password = password
 
         _isConnected = False
+        _isReconnecting = False
         _currentReconnectDelayMs = 1000
 
         Disconnect()
         Connect()
     End Sub
+
+    Public Function ShouldSuppressDuplicate(key As String) As Boolean
+        If String.IsNullOrEmpty(key) Then Return False
+        Dim now As DateTime = DateTime.Now
+        If key = _lastShownKey AndAlso (now - _lastShownTime).TotalMilliseconds < DedupWindowMs Then
+            Log("warn", $"Duplicate event suppressed: {key}")
+            Return True
+        End If
+        _lastShownKey = key
+        _lastShownTime = now
+        Return False
+    End Function
 
     Public ReadOnly Property IsConnected As Boolean
         Get
@@ -82,6 +101,7 @@ Public Class ObsWebSocketClient
     Public Sub Connect()
         Try
             Disconnect()
+            _isReconnecting = False
             _cts = New CancellationTokenSource()
             _ws = New ClientWebSocket()
             Dim uri = New Uri($"ws://{_host}:{_port}/")
@@ -93,7 +113,7 @@ Public Class ObsWebSocketClient
         Catch ex As Exception
             Log("error", $"Connect failed: {ex.Message}")
             _isConnected = False
-            If _autoReconnect Then Task.Run(AddressOf ReconnectLoop)
+            TryStartReconnect()
         End Try
     End Sub
 
@@ -146,7 +166,16 @@ Public Class ObsWebSocketClient
 
         _isConnected = False
         RaiseEvent OnDisconnected()
-        If _autoReconnect Then Task.Run(AddressOf ReconnectLoop)
+        TryStartReconnect()
+    End Sub
+
+    Private Sub TryStartReconnect()
+        If Not _autoReconnect Then Return
+        SyncLock _reconnectLock
+            If _isReconnecting Then Return
+            _isReconnecting = True
+        End SyncLock
+        Task.Run(AddressOf ReconnectLoop)
     End Sub
 
     Private Sub HandleMessage(msg As JObject)
@@ -293,6 +322,9 @@ Public Class ObsWebSocketClient
                 _ws.ConnectAsync(uri, _cts.Token).Wait(5000)
                 _isConnected = True
                 _currentReconnectDelayMs = 1000
+                SyncLock _reconnectLock
+                    _isReconnecting = False
+                End SyncLock
                 Task.Run(AddressOf ReceiveLoop)
                 Return
             Catch ex As Exception
@@ -300,6 +332,10 @@ Public Class ObsWebSocketClient
                 _isConnected = False
             End Try
         End While
+
+        SyncLock _reconnectLock
+            _isReconnecting = False
+        End SyncLock
     End Sub
 
     Private Sub Log(level As String, message As String)
