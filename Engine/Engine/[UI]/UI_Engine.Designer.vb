@@ -682,7 +682,7 @@ Partial Class UI_Engine
         btnStressTest.Cursor = Cursors.Hand
         btnStressTest.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         btnStressTest.ForeColor = Color.White
-        btnStressTest.Location = New Point(47, 670)
+        btnStressTest.Location = New Point(47, 770)
         btnStressTest.Name = "btnStressTest"
         btnStressTest.Size = New Size(490, 32)
         btnStressTest.TabIndex = 20
@@ -746,7 +746,6 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(btnStop)
         settings_menu.Controls.Add(pnlRes)
         settings_menu.Controls.Add(btnRecord)
-        settings_menu.Controls.Add(btnStressTest)
         settings_menu.Controls.Add(pnlPerf)
         settings_menu.Controls.Add(lblConfigSource)
         settings_menu.Controls.Add(pnlPreset)
@@ -756,6 +755,7 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(pnlOutput)
         settings_menu.Controls.Add(lblTitle)
         settings_menu.Controls.Add(pnlStatus)
+        settings_menu.Controls.Add(btnStressTest)  ' add LAST so it's on top of z-order
         settings_menu.ForeColor = Color.White
         settings_menu.Location = New Point(80, 160)
         settings_menu.Name = "settings_menu"
