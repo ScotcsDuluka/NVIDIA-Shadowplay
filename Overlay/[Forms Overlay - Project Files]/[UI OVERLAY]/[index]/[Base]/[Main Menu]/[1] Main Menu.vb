@@ -953,12 +953,14 @@ Partial Public Class Base
 
     Private Sub Audio_UI_Tick(sender As Object, e As EventArgs) Handles Audio_UI.Tick
         Dim AudioFile = Path.Combine(Application.StartupPath, "Audio.UI")
+
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
         If captureProcess Is Nothing Then
             Audio_UI.Stop()
             ShowNotifier("notificationErrorEngineNotRunning")
             Exit Sub
         End If
+
         If File.Exists(AudioFile) Then
             Settings_List.Visible = False
             Base_Settings.Hide()

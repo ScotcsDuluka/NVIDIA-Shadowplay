@@ -2172,7 +2172,7 @@ Partial Class Base
         Box_FIX_UIMENU.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Box_FIX_UIMENU.Location = New Point(-31, -104)
         Box_FIX_UIMENU.Name = "Box_FIX_UIMENU"
-        Box_FIX_UIMENU.Size = New Size(359, 1107)
+        Box_FIX_UIMENU.Size = New Size(359, 1251)
         Box_FIX_UIMENU.TabIndex = 75
         Box_FIX_UIMENU.TabStop = False
         ' 
@@ -2257,6 +2257,7 @@ Partial Class Base
         ' 
         ' Audio_UI
         ' 
+        Audio_UI.Interval = 1
         ' 
         ' Base
         ' 
