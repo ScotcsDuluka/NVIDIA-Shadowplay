@@ -265,31 +265,42 @@ Partial Public Class CaptureEngine
                                          WriteDebugLog(beforeMsg)
                                      End If
 
-                                     ' ─── FIX: Send "q" FIRST, then stop audio ───
-                                     ' Previous order was: StopAudio → send q.
-                                     ' But StopAudio closes the BufferedStream wrapping
-                                     ' StandardInput.BaseStream → StandardInput.Write throws
-                                     ' "Cannot access a closed Stream" → q never reaches FFmpeg
-                                     ' → WaitForExit times out → Kill → exit -1.
+                                     ' ─── NEW SHUTDOWN ORDER (fixes stdin "q" corruption) ───
+                                     ' FFmpeg uses -i pipe:0 for raw PCM audio. The SAME stdin
+                                     ' cannot be used for both PCM data AND the "q" command —
+                                     ' "q\n" bytes would be interpreted as garbage float samples.
                                      '
-                                     ' New order: send q → wait for FFmpeg to exit → THEN stop audio.
-                                     ' This way FFmpeg receives q, flushes its pipeline, writes the
-                                     ' moov atom (faststart), and exits 0. Audio pipe close after
-                                     ' that is a no-op since FFmpeg already exited.
-                                     If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
-                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
-                                         LogDebug(qMsg)
-                                         WriteDebugLog(qMsg)
-                                         Try
-                                             _ffmpegProcess.StandardInput.Write("q" & vbLf)
-                                             _ffmpegProcess.StandardInput.Flush()
-                                         Catch ex As Exception
-                                             Dim qErrMsg As String = "[FFmpeg] Failed to send q: " & ex.Message
-                                             LogDebug(qErrMsg)
-                                             WriteDebugLog(qErrMsg)
-                                         End Try
+                                     ' New order:
+                                     ' 1. Stop audio producers (WASAPI capture stops, no new PCM)
+                                     ' 2. CompleteAdding on queues (writer threads know to drain + exit)
+                                     ' 3. Wait for writer threads to drain remaining PCM to pipe
+                                     ' 4. Close stdin pipe → FFmpeg sees EOF on pipe:0 → finalizes AAC
+                                     ' 5. WaitForExit → FFmpeg writes moov atom + exits 0
+                                     ' 6. Kill only as absolute last resort
 
-                                         Dim waitMsg As String = $"[FFmpeg] WaitForExit(10000)… PID={_ffmpegProcess.Id}"
+                                     If _audioEngine IsNot Nothing Then
+                                         Dim prodMsg As String = "[Audio] Stopping producers…"
+                                         LogDebug(prodMsg)
+                                         WriteDebugLog(prodMsg)
+                                         _audioEngine.StopProducers()
+                                         Dim prodStoppedMsg As String = "[Audio] Producers stopped. Draining queues…"
+                                         LogDebug(prodStoppedMsg)
+                                         WriteDebugLog(prodStoppedMsg)
+                                         _audioEngine.ClosePipes()
+                                         Dim pipesClosedMsg As String = "[Audio] Pipes closed (FFmpeg stdin EOF sent)."
+                                         LogDebug(pipesClosedMsg)
+                                         WriteDebugLog(pipesClosedMsg)
+
+                                         Dim diagMsg As String = _audioEngine.GetDiagnostics()
+                                         LogDebug(diagMsg)
+                                         WriteDebugLog(diagMsg)
+
+                                         _audioEngine.Dispose()
+                                         _audioEngine = Nothing
+                                     End If
+
+                                     If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                                         Dim waitMsg As String = $"[FFmpeg] WaitForExit(10000) after stdin EOF… PID={_ffmpegProcess.Id}"
                                          LogDebug(waitMsg)
                                          WriteDebugLog(waitMsg)
                                          Dim exited As Boolean = _ffmpegProcess.WaitForExit(10000)
@@ -314,19 +325,10 @@ Partial Public Class CaptureEngine
                                              End Try
                                          End If
                                      Else
-                                         Dim alreadyMsg As String = "[FFmpeg] Process already exited before q could be sent."
+                                         Dim alreadyMsg As String = "[FFmpeg] Process already exited."
                                          LogDebug(alreadyMsg)
                                          WriteDebugLog(alreadyMsg)
                                      End If
-
-                                     ' Stop audio capture AFTER FFmpeg has exited (or been killed).
-                                     ' NAudio WASAPI capture keeps producing frames during FFmpeg's
-                                     ' shutdown — that's fine, they just get dropped at the closed
-                                     ' pipe end (queue fills + FrameDropped fires, no crash).
-                                     Dim audioStopMsg As String = "[FFmpeg] Stopping audio capture (post-FFmpeg-exit)…"
-                                     LogDebug(audioStopMsg)
-                                     WriteDebugLog(audioStopMsg)
-                                     StopAudioCaptureIfNeeded()
 
                                      ' Use Interlocked.Exchange to ensure RecordingStopped fires exactly once
                                      ' — OnExited may have already fired during WaitForExit, in which case

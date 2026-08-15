@@ -59,6 +59,27 @@ Public Class NAudioCaptureEngine
     Private _telemetryStop As New ManualResetEvent(False)
     Private Const TelemetryPollMs As Integer = 250
 
+    ' ── Audio diagnostics counters (atomic) ──
+    Private _sysSamplesReceived As Long = 0
+    Private _sysSamplesWritten As Long = 0
+    Private _sysBytesWritten As Long = 0
+    Private _sysNaNCount As Long = 0
+    Private _sysInfCount As Long = 0
+    Private _sysPartialFrameCount As Long = 0
+    Private _micSamplesReceived As Long = 0
+    Private _micSamplesWritten As Long = 0
+    Private _micBytesWritten As Long = 0
+    Private _micNaNCount As Long = 0
+    Private _micInfCount As Long = 0
+    Private _micPartialFrameCount As Long = 0
+
+    ' ── Shutdown state ──
+    Private _audioShutdownRequested As Integer = 0
+    Private _sysProducerStopped As Integer = 0
+    Private _micProducerStopped As Integer = 0
+    Private _sysPipeClosed As Integer = 0
+    Private _micPipeClosed As Integer = 0
+
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
 
@@ -135,6 +156,113 @@ Public Class NAudioCaptureEngine
             StartMicCapture()
             StartMicWriterThread()
         End If
+    End Sub
+
+    ''' <summary>
+    ''' Stops audio producers (WASAPI capture) and completes queue adding,
+    ''' but does NOT close the output pipe. This allows writer threads to
+    ''' drain remaining frames to FFmpeg, then the caller closes the pipe
+    ''' to signal EOF.
+    ''' </summary>
+    Public Sub StopProducers()
+        System.Threading.Interlocked.Exchange(_audioShutdownRequested, 1)
+
+        Try
+            If _systemCapture IsNot Nothing Then
+                RemoveHandler _systemCapture.DataAvailable, AddressOf OnSystemDataAvailable
+                RemoveHandler _systemCapture.RecordingStopped, AddressOf OnSystemCaptureStopped
+                _systemCapture.StopRecording()
+                _systemCapture.Dispose()
+                _systemCapture = Nothing
+            End If
+        Catch
+        End Try
+        System.Threading.Interlocked.Exchange(_sysProducerStopped, 1)
+
+        Try
+            If _micCapture IsNot Nothing Then
+                RemoveHandler _micCapture.DataAvailable, AddressOf OnMicDataAvailable
+                RemoveHandler _micCapture.RecordingStopped, AddressOf OnMicCaptureStopped
+                _micCapture.StopRecording()
+                _micCapture.Dispose()
+                _micCapture = Nothing
+            End If
+        Catch
+        End Try
+        System.Threading.Interlocked.Exchange(_micProducerStopped, 1)
+
+        Try
+            If _systemQueue IsNot Nothing Then _systemQueue.CompleteAdding()
+        Catch
+        End Try
+        Try
+            If _micQueue IsNot Nothing Then _micQueue.CompleteAdding()
+        Catch
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Waits for writer threads to drain their queues and exit, then
+    ''' closes output pipes. Called AFTER StopProducers().
+    ''' </summary>
+    Public Sub ClosePipes()
+        ' Wait for writer threads to drain remaining queued frames
+        Try
+            If _systemWriterThread IsNot Nothing AndAlso _systemWriterThread.IsAlive Then
+                _systemWriterThread.Join(5000)
+            End If
+        Catch
+        End Try
+        Try
+            If _micWriterThread IsNot Nothing AndAlso _micWriterThread.IsAlive Then
+                _micWriterThread.Join(5000)
+            End If
+        Catch
+        End Try
+
+        ' Now close pipes — sends EOF to FFmpeg's pipe:0 input
+        Try
+            If _systemStream IsNot Nothing Then
+                _systemStream.Flush()
+                _systemStream.Dispose()
+                _systemStream = Nothing
+                System.Threading.Interlocked.Exchange(_sysPipeClosed, 1)
+            End If
+        Catch
+        End Try
+        Try
+            If _micStream IsNot Nothing AndAlso _micStream IsNot _systemStream Then
+                _micStream.Flush()
+                _micStream.Dispose()
+                _micStream = Nothing
+            End If
+            System.Threading.Interlocked.Exchange(_micPipeClosed, 1)
+        Catch
+        End Try
+
+        Try
+            If _micNamedPipeStream IsNot Nothing Then
+                _micNamedPipeStream.Flush()
+                _micNamedPipeStream.Dispose()
+                _micNamedPipeStream = Nothing
+            End If
+        Catch
+        End Try
+        Try
+            If _micNamedPipe IsNot Nothing Then
+                Try : _micNamedPipe.Disconnect() : Catch : End Try
+                _micNamedPipe.Dispose()
+                _micNamedPipe = Nothing
+            End If
+        Catch
+        End Try
+
+        ' Stop telemetry thread
+        Try : _telemetryStop.Set() : Catch : End Try
+
+        _isRunning = False
+        _systemQueue = Nothing
+        _micQueue = Nothing
     End Sub
 
     Public Sub [Stop]()
@@ -410,31 +538,19 @@ Public Class NAudioCaptureEngine
                 Dim frame As AudioFrame = Nothing
                 If Not _systemQueue.TryTake(frame, 500) Then Continue While
                 If frame Is Nothing Then Continue While
-                SyncLock _systemStream
-                    Try
-                        If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
-                            _systemStream.Write(frame.Buffer, 0, frame.Length)
-                        End If
-                    Catch ex As Exception
-                        System.Diagnostics.Debug.WriteLine("[NAudio] System writer error: " & ex.Message)
-                        Exit While
-                    End Try
-                End SyncLock
+                WriteSanitizedFrame(frame, _systemStream, AudioSource.SystemLoopback,
+                                    _sysSamplesWritten, _sysBytesWritten,
+                                    _sysNaNCount, _sysInfCount, _sysPartialFrameCount)
             End While
 
+            ' Drain remaining
             While _systemQueue IsNot Nothing
                 Dim frame As AudioFrame = Nothing
                 If Not _systemQueue.TryTake(frame, 0) Then Exit While
                 If frame Is Nothing Then Continue While
-                SyncLock _systemStream
-                    Try
-                        If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
-                            _systemStream.Write(frame.Buffer, 0, frame.Length)
-                        End If
-                    Catch
-                        Exit While
-                    End Try
-                End SyncLock
+                WriteSanitizedFrame(frame, _systemStream, AudioSource.SystemLoopback,
+                                    _sysSamplesWritten, _sysBytesWritten,
+                                    _sysNaNCount, _sysInfCount, _sysPartialFrameCount)
             End While
 
             SyncLock _systemStream
@@ -454,31 +570,18 @@ Public Class NAudioCaptureEngine
                 Dim frame As AudioFrame = Nothing
                 If Not _micQueue.TryTake(frame, 500) Then Continue While
                 If frame Is Nothing Then Continue While
-                SyncLock _micStream
-                    Try
-                        If _micStream IsNot Nothing AndAlso _micStream.CanWrite Then
-                            _micStream.Write(frame.Buffer, 0, frame.Length)
-                        End If
-                    Catch ex As Exception
-                        System.Diagnostics.Debug.WriteLine("[NAudio] Mic writer error: " & ex.Message)
-                        Exit While
-                    End Try
-                End SyncLock
+                WriteSanitizedFrame(frame, _micStream, AudioSource.Microphone,
+                                    _micSamplesWritten, _micBytesWritten,
+                                    _micNaNCount, _micInfCount, _micPartialFrameCount)
             End While
 
             While _micQueue IsNot Nothing
                 Dim frame As AudioFrame = Nothing
                 If Not _micQueue.TryTake(frame, 0) Then Exit While
                 If frame Is Nothing Then Continue While
-                SyncLock _micStream
-                    Try
-                        If _micStream IsNot Nothing AndAlso _micStream.CanWrite Then
-                            _micStream.Write(frame.Buffer, 0, frame.Length)
-                        End If
-                    Catch
-                        Exit While
-                    End Try
-                End SyncLock
+                WriteSanitizedFrame(frame, _micStream, AudioSource.Microphone,
+                                    _micSamplesWritten, _micBytesWritten,
+                                    _micNaNCount, _micInfCount, _micPartialFrameCount)
             End While
 
             SyncLock _micStream
@@ -490,6 +593,63 @@ Public Class NAudioCaptureEngine
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine("[NAudio] Mic writer loop crashed: " & ex.Message)
         End Try
+    End Sub
+
+    ''' <summary>
+    ''' Validates and writes a single AudioFrame to the output stream.
+    ''' 1. Sanitizes NaN/Infinity float samples → 0.0f (prevents AAC encoder crash)
+    ''' 2. Truncates to complete frame alignment (prevents "Invalid PCM packet" error)
+    ''' 3. Updates diagnostics counters atomically
+    ''' </summary>
+    Private Sub WriteSanitizedFrame(frame As AudioFrame, stream As Stream,
+                                     source As AudioSource,
+                                     ByRef samplesWritten As Long, ByRef bytesWritten As Long,
+                                     ByRef nanCount As Long, ByRef infCount As Long,
+                                     ByRef partialCount As Long)
+        If stream Is Nothing OrElse Not stream.CanWrite Then Return
+        If frame Is Nothing OrElse frame.Buffer Is Nothing OrElse frame.Length = 0 Then Return
+
+        Dim fmt As AudioFormat = frame.Format
+        If fmt Is Nothing Then Return
+
+        Dim bytesPerSample As Integer = (fmt.BitsPerSample \ 8) * fmt.Channels
+        If bytesPerSample < 1 Then bytesPerSample = 4
+
+        ' ── Frame alignment: only write complete frames ──
+        Dim alignedLength As Integer = (frame.Length \ bytesPerSample) * bytesPerSample
+        If alignedLength < frame.Length Then
+            System.Threading.Interlocked.Increment(partialCount)
+        End If
+        If alignedLength = 0 Then Return
+
+        ' ── NaN/Infinity sanitization for f32le ──
+        If fmt.IsFloat AndAlso fmt.BitsPerSample = 32 Then
+            ' Sanitize in-place on a copy to avoid modifying the original buffer
+            Dim buf As Byte() = frame.Buffer
+            Dim numSamples As Integer = alignedLength \ 4
+            For i As Integer = 0 To numSamples - 1
+                Dim offset As Integer = i * 4
+                Dim sample As Single = BitConverter.ToSingle(buf, offset)
+                If Single.IsNaN(sample) Then
+                    System.Threading.Interlocked.Increment(nanCount)
+                    BitConverter.GetBytes(0.0F).CopyTo(buf, offset)
+                ElseIf Single.IsInfinity(sample) Then
+                    System.Threading.Interlocked.Increment(infCount)
+                    BitConverter.GetBytes(0.0F).CopyTo(buf, offset)
+                End If
+            Next
+        End If
+
+        ' ── Write aligned data ──
+        SyncLock stream
+            Try
+                stream.Write(frame.Buffer, 0, alignedLength)
+                System.Threading.Interlocked.Add(samplesWritten, alignedLength \ bytesPerSample)
+                System.Threading.Interlocked.Add(bytesWritten, alignedLength)
+            Catch ex As Exception
+                System.Diagnostics.Debug.WriteLine("[NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
+            End Try
+        End SyncLock
     End Sub
 
     Private Sub OnSystemCaptureStopped(sender As Object, e As StoppedEventArgs)
@@ -543,6 +703,28 @@ Public Class NAudioCaptureEngine
         Catch
         End Try
         Return result
+    End Function
+
+    Public Function GetDiagnostics() As String
+        Dim sb As New Text.StringBuilder()
+        sb.AppendLine("[Audio] SysSamples=" & System.Threading.Interlocked.Read(_sysSamplesReceived))
+        sb.AppendLine("[Audio] SysWritten=" & System.Threading.Interlocked.Read(_sysSamplesWritten))
+        sb.AppendLine("[Audio] SysBytes=" & System.Threading.Interlocked.Read(_sysBytesWritten))
+        sb.AppendLine("[Audio] SysNaN=" & System.Threading.Interlocked.Read(_sysNaNCount))
+        sb.AppendLine("[Audio] SysInf=" & System.Threading.Interlocked.Read(_sysInfCount))
+        sb.AppendLine("[Audio] SysPartial=" & System.Threading.Interlocked.Read(_sysPartialFrameCount))
+        sb.AppendLine("[Audio] MicSamples=" & System.Threading.Interlocked.Read(_micSamplesReceived))
+        sb.AppendLine("[Audio] MicWritten=" & System.Threading.Interlocked.Read(_micSamplesWritten))
+        sb.AppendLine("[Audio] MicBytes=" & System.Threading.Interlocked.Read(_micBytesWritten))
+        sb.AppendLine("[Audio] MicNaN=" & System.Threading.Interlocked.Read(_micNaNCount))
+        sb.AppendLine("[Audio] MicInf=" & System.Threading.Interlocked.Read(_micInfCount))
+        sb.AppendLine("[Audio] MicPartial=" & System.Threading.Interlocked.Read(_micPartialFrameCount))
+        sb.AppendLine("[Audio] ShutdownRequested=" & _audioShutdownRequested.ToString())
+        sb.AppendLine("[Audio] SysProducerStopped=" & _sysProducerStopped.ToString())
+        sb.AppendLine("[Audio] MicProducerStopped=" & _micProducerStopped.ToString())
+        sb.AppendLine("[Audio] SysPipeClosed=" & _sysPipeClosed.ToString())
+        sb.AppendLine("[Audio] MicPipeClosed=" & _micPipeClosed.ToString())
+        Return sb.ToString()
     End Function
 
     Public Sub Dispose() Implements IDisposable.Dispose
