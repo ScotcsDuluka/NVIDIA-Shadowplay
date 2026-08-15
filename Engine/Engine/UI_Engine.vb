@@ -444,6 +444,7 @@ Partial Public Class UI_Engine
                 s.SystemAudioVolume = video.audio.system_volume
                 s.MicVolume = video.audio.mic_volume
                 s.MicDeviceName = video.audio.mic_device
+                s.MicDeviceId = video.audio.mic_device_id
                 s.AudioCapture = s.SystemAudioCapture OrElse s.MicCapture
             End If
 

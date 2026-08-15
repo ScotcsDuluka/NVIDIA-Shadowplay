@@ -48,6 +48,9 @@ Public Class CaptureSettings
     <JsonPropertyName("MicDeviceName")>
     Public Property MicDeviceName As String = ""
 
+    <JsonPropertyName("MicDeviceId")>
+    Public Property MicDeviceId As String = ""
+
     Public Enum AudioTrackModeEnum
         SingleTrack
         SeparateTrack

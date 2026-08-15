@@ -15,6 +15,7 @@ Public Class AudioSettingsForm
     End Sub
 
     Private Sub AudioSettingsForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        cboMic.DisplayMember = "Item2"
         RefreshMicDevices()
         LoadFromSettings()
         UpdateVolumeLabels()
@@ -33,9 +34,15 @@ Public Class AudioSettingsForm
         trkSystemVol.Value = CInt(Math.Max(0, Math.Min(150, _settings.SystemAudioVolume * 100)))
         trkMicVol.Value = CInt(Math.Max(0, Math.Min(150, _settings.MicVolume * 100)))
 
-        If Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
+        Dim micId As String = _settings.MicDeviceId
+        Dim micName As String = _settings.MicDeviceName
+
+        If Not String.IsNullOrEmpty(micId) OrElse Not String.IsNullOrEmpty(micName) Then
             For i As Integer = 0 To cboMic.Items.Count - 1
-                If CStr(cboMic.Items(i)) = _settings.MicDeviceName Then
+                Dim item As Tuple(Of String, String) = TryCast(cboMic.Items(i), Tuple(Of String, String))
+                If item Is Nothing Then Continue For
+                If (Not String.IsNullOrEmpty(micId) AndAlso item.Item1 = micId) OrElse
+                   (Not String.IsNullOrEmpty(micName) AndAlso item.Item2 = micName) Then
                     cboMic.SelectedIndex = i
                     Exit For
                 End If
@@ -60,7 +67,11 @@ Public Class AudioSettingsForm
         _settings.MicVolume = CSng(trkMicVol.Value) / 100.0F
 
         If cboMic.SelectedItem IsNot Nothing Then
-            _settings.MicDeviceName = CStr(cboMic.SelectedItem)
+            Dim item As Tuple(Of String, String) = TryCast(cboMic.SelectedItem, Tuple(Of String, String))
+            If item IsNot Nothing Then
+                _settings.MicDeviceId = item.Item1
+                _settings.MicDeviceName = item.Item2
+            End If
         End If
         _settings.AudioCapture = _settings.SystemAudioCapture OrElse _settings.MicCapture
 
@@ -97,6 +108,7 @@ Public Class AudioSettingsForm
             audio("system_volume") = _settings.SystemAudioVolume
             audio("mic_volume") = _settings.MicVolume
             audio("mic_device") = If(_settings.MicDeviceName, "")
+            audio("mic_device_id") = If(_settings.MicDeviceId, "")
 
             File.WriteAllText(_overlayVideoPath, root.ToString(Newtonsoft.Json.Formatting.Indented))
         Catch ex As Exception
@@ -107,8 +119,8 @@ Public Class AudioSettingsForm
     Private Sub RefreshMicDevices()
         cboMic.Items.Clear()
         Try
-            For Each name As String In NAudioCaptureEngine.ListMicDevices()
-                cboMic.Items.Add(name)
+            For Each dev As Tuple(Of String, String) In NAudioCaptureEngine.ListMicDevices()
+                cboMic.Items.Add(dev)
             Next
         Catch
         End Try
@@ -122,9 +134,14 @@ Public Class AudioSettingsForm
 
     Private Sub btnRefresh_Click(sender As Object, e As EventArgs) Handles btnRefresh.Click
         RefreshMicDevices()
-        If Not String.IsNullOrEmpty(_settings.MicDeviceName) Then
+        Dim micId As String = _settings.MicDeviceId
+        Dim micName As String = _settings.MicDeviceName
+        If Not String.IsNullOrEmpty(micId) OrElse Not String.IsNullOrEmpty(micName) Then
             For i As Integer = 0 To cboMic.Items.Count - 1
-                If CStr(cboMic.Items(i)) = _settings.MicDeviceName Then
+                Dim item As Tuple(Of String, String) = TryCast(cboMic.Items(i), Tuple(Of String, String))
+                If item Is Nothing Then Continue For
+                If (Not String.IsNullOrEmpty(micId) AndAlso item.Item1 = micId) OrElse
+                   (Not String.IsNullOrEmpty(micName) AndAlso item.Item2 = micName) Then
                     cboMic.SelectedIndex = i
                     Exit For
                 End If

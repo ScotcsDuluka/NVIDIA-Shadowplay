@@ -74,7 +74,8 @@ Public Class CaptureEngine
     Private _audioPipeStream As Stream
     Private _micNamedPipe As NamedPipeServerStream
     Private _micNamedPipeStream As Stream
-    Private Const MicPipeName As String = "nvidia_shadowplay_mic"
+    Private _micPipePath As String
+    Private Const MicPipePrefix As String = "nvidia_shadowplay_mic_"
 
     ' ── Properties ────────────────────────────────────────────
 
@@ -429,43 +430,61 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio input ──
-        ' When NAudio capture is enabled, we pipe raw PCM via stdin (pipe:0).
-        ' For Separate mode + mic enabled, also create a named pipe for mic.
+        ' When NAudio capture is enabled, we pipe raw PCM via stdin (pipe:0)
+        ' and (if Separate mode + mic) also via named pipe for mic.
+        ' FFmpeg handles volume scaling and mixing via -filter_complex.
         Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
 
         If hasNAudio Then
-            Dim sampleRate As Integer = 48000
-            Dim channels As Integer = 2
-            Try
-                Using probe As New NAudioCaptureEngine(New NAudioCaptureEngine.AudioConfigValues())
-                    sampleRate = probe.ExpectedSampleRate()
-                    channels = probe.ExpectedChannels()
-                    If channels < 1 Then channels = 2
-                    If sampleRate < 1 Then sampleRate = 48000
-                End Using
-            Catch
-            End Try
+            Dim sysFmt As AudioFormatInfo = DetectSystemFormat()
+            Dim micFmt As AudioFormatInfo = DetectMicFormat(_settings.MicDeviceId, _settings.MicDeviceName)
 
             Dim sysEnabled As Boolean = _settings.SystemAudioCapture
-            Dim micEnabled As Boolean = _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName)
+            Dim micEnabled As Boolean = _settings.MicCapture AndAlso
+                (Not String.IsNullOrEmpty(_settings.MicDeviceId) OrElse
+                 Not String.IsNullOrEmpty(_settings.MicDeviceName)) AndAlso
+                micFmt IsNot Nothing
             Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
 
-            If isSeparate AndAlso micEnabled Then
-                ' Two separate streams: system via pipe:0 (stdin), mic via named pipe
-                If sysEnabled Then
-                    sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac {channels} -i pipe:0 ")
-                End If
-                sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac 1 -i ""\\.\pipe\nvidia_shadowplay_mic"" ")
-            Else
-                ' Single mode (or only one source enabled) — everything via stdin
-                sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac {channels} -i pipe:0 ")
+            If isSeparate AndAlso micEnabled AndAlso sysEnabled Then
+                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_micPipePath}"" ")
+            ElseIf isSeparate AndAlso micEnabled AndAlso Not sysEnabled Then
+                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i pipe:0 ")
+            ElseIf sysEnabled AndAlso micEnabled Then
+                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_micPipePath}"" ")
+            ElseIf sysEnabled Then
+                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i pipe:0 ")
+            ElseIf micEnabled Then
+                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i pipe:0 ")
             End If
         ElseIf _settings.AudioCapture AndAlso Not String.IsNullOrEmpty(_settings.AudioDevice) Then
             sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
         End If
 
         ' ── Video filter chain (-vf) ──
-        If videoFilter.Length > 0 Then
+        ' If audio is enabled and we have 2 inputs, we MUST use -filter_complex
+        ' (not -vf) because amix requires multiple inputs. The video filter gets
+        ' embedded inside -filter_complex as [0:v]<filter>[vout].
+        Dim useFilterComplex As Boolean = hasNAudio AndAlso
+            (_settings.SystemAudioCapture AndAlso
+             _settings.MicCapture AndAlso
+             (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SingleTrack))
+
+        If useFilterComplex Then
+            Dim fc As New StringBuilder()
+            If videoFilter.Length > 0 Then
+                fc.Append("[0:v]" & videoFilter & "[vout];")
+            Else
+                fc.Append("[0:v]null[vout];")
+            End If
+            fc.Append($"[1:a]volume={FormatVolume(_settings.SystemAudioVolume)},aresample=48000,aformat=channel_layouts=stereo[sysv];")
+            fc.Append($"[2:a]volume={FormatVolume(_settings.MicVolume)},aresample=48000,aformat=channel_layouts=stereo[micv];")
+            fc.Append("[sysv][micv]amix=inputs=2:duration=longest:normalize=0[aout] ")
+            sb.Append("-filter_complex """ & fc.ToString() & """ ")
+            sb.Append("-map [vout] -map [aout] ")
+        ElseIf videoFilter.Length > 0 Then
             sb.Append("-vf """ & videoFilter & """ ")
         End If
 
@@ -548,23 +567,30 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio encoding ──
+        ' For Single+sys+mic: -filter_complex amix already sets -map [aout], so we just
+        ' need to specify the encoder for it.
+        ' For Separate+sys+mic: 2 tracks, each gets its own encoder via -c:a:0 / -c:a:1.
+        ' For single-source: just -c:a aac.
         Dim hasAnyAudio As Boolean = hasNAudio OrElse _settings.AudioCapture
         If hasAnyAudio Then
-            Dim isSeparateAndMic As Boolean = hasNAudio AndAlso
+            Dim sysAndMicSeparate As Boolean = hasNAudio AndAlso
                 (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
-                _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName)
+                _settings.SystemAudioCapture AndAlso _settings.MicCapture
 
-            If isSeparateAndMic Then
-                If _settings.SystemAudioCapture Then
-                    sb.Append("-map 0:v -map 1:a -map 2:a ")
-                    sb.Append("-c:a:0 aac -b:a:0 320k -ar 48000 ")
-                    sb.Append("-c:a:1 aac -b:a:1 320k -ar 48000 ")
-                Else
-                    ' System disabled, only mic via stdin (no named pipe needed actually — but kept for symmetry)
-                    sb.Append("-map 0:v -map 1:a ")
-                    sb.Append("-c:a:0 aac -b:a:0 320k -ar 48000 ")
-                End If
+            If useFilterComplex Then
+                ' Single mode + sys + mic: -filter_complex already mapped [aout]
+                sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+            ElseIf sysAndMicSeparate Then
+                ' Need to map each input explicitly + apply volume per track via -af
+                sb.Append("-map 0:v -map 1:a -map 2:a ")
+                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)} ")
+                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)} ")
+                sb.Append("-c:a:0 aac -b:a:0 320k -ar 48000 ")
+                sb.Append("-c:a:1 aac -b:a:1 320k -ar 48000 ")
             Else
+                ' Single source — apply volume via -af and encode AAC
+                Dim vol As Single = If(_settings.SystemAudioCapture, _settings.SystemAudioVolume, _settings.MicVolume)
+                sb.Append($"-af volume={FormatVolume(vol)} ")
                 sb.Append("-c:a aac -b:a 320k -ar 48000 ")
             End If
         End If
@@ -805,7 +831,8 @@ Public Class CaptureEngine
         Try
             Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
                                               _settings.MicCapture AndAlso
-                                              Not String.IsNullOrEmpty(_settings.MicDeviceName)
+                                              (Not String.IsNullOrEmpty(_settings.MicDeviceId) OrElse
+                                               Not String.IsNullOrEmpty(_settings.MicDeviceName))
 
             Dim sysStream As Stream = Nothing
             Dim micStream As Stream = Nothing
@@ -814,7 +841,9 @@ Public Class CaptureEngine
 
             If isSeparateAndMic Then
                 Try
-                    _micNamedPipe = New NamedPipeServerStream(MicPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
+                    _micPipePath = "\\.\pipe\" & MicPipePrefix & Process.GetCurrentProcess().Id.ToString() & "_" & Guid.NewGuid().ToString("N").Substring(0, 8)
+                    Dim pipeNameOnly As String = _micPipePath.Substring(8)
+                    _micNamedPipe = New NamedPipeServerStream(pipeNameOnly, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
                     Task.Run(Sub()
                                  Try
                                      _micNamedPipe.WaitForConnection()
@@ -823,7 +852,7 @@ Public Class CaptureEngine
                              End Sub)
                     _micNamedPipeStream = New BufferedStream(_micNamedPipe, 64 * 1024)
                     micStream = _micNamedPipeStream
-                    LogDebug("[Audio] Separate mode — mic pipe created: \\.\pipe\" & MicPipeName)
+                    LogDebug("[Audio] Separate mode — mic pipe created: " & _micPipePath)
                 Catch ex As Exception
                     LogDebug("[Audio] Mic pipe creation failed: " & ex.Message)
                     WriteDebugLog("[Audio] Mic pipe creation failed: " & ex.Message)

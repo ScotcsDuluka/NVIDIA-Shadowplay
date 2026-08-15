@@ -46,6 +46,7 @@ Public NotInheritable Class OverlayConfig
         Public Property system_volume As Single = 1.0F
         Public Property mic_volume As Single = 1.0F
         Public Property mic_device As String = ""
+        Public Property mic_device_id As String = ""
     End Class
 
     Public Class VideoMyPresetSlot
