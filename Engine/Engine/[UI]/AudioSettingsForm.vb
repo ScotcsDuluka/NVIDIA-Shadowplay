@@ -1,4 +1,5 @@
 Imports System.IO
+Imports System.Runtime.InteropServices
 Imports Newtonsoft.Json.Linq
 
 Public Class AudioSettingsForm
