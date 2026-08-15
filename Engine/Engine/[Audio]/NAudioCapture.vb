@@ -73,6 +73,22 @@ Public Class NAudioCaptureEngine
     Private _micInfCount As Long = 0
     Private _micPartialFrameCount As Long = 0
 
+    ' ── P1-B 4A: Hot path instrumentation ──
+    Private _sysCallbackCount As Long = 0
+    Private _sysBytesPerCallbackTotal As Long = 0
+    Private _sysQueueMaxDepth As Integer = 0
+    Private _sysWriterWriteTicks As Long = 0
+    Private _sysWriterWriteCount As Long = 0
+    Private _sysNaNScanTicks As Long = 0
+    Private _sysNaNScanCount As Long = 0
+    Private _sysBlockCopyTicks As Long = 0
+    Private _sysBlockCopyCount As Long = 0
+    Private _micCallbackCount As Long = 0
+    Private _micBytesPerCallbackTotal As Long = 0
+    Private _micQueueMaxDepth As Integer = 0
+    Private _micWriterWriteTicks As Long = 0
+    Private _micWriterWriteCount As Long = 0
+
     ' ── Shutdown state ──
     Private _audioShutdownRequested As Integer = 0
     Private _sysProducerStopped As Integer = 0
@@ -398,12 +414,13 @@ Public Class NAudioCaptureEngine
         Try
             If _systemQueue Is Nothing OrElse _systemFormat Is Nothing Then Return
 
+            ' P1-B 4A: Instrument callback
+            System.Threading.Interlocked.Increment(_sysCallbackCount)
+            System.Threading.Interlocked.Add(_sysBytesPerCallbackTotal, e.BytesRecorded)
+
             Dim bytesPerSample As Integer = (_systemFormat.BitsPerSample \ 8) * _systemFormat.Channels
             If bytesPerSample < 1 Then bytesPerSample = 4
 
-            ' Block alignment sanity: PCM bytes must divide evenly by block align.
-            ' If not, the buffer is malformed (driver bug / partial read) and we
-            ' should NOT enqueue — would cause FFmpeg to misread sample boundaries.
             If e.BytesRecorded Mod bytesPerSample <> 0 Then
                 System.Threading.Interlocked.Increment(_systemDropCount)
                 Return
@@ -411,10 +428,6 @@ Public Class NAudioCaptureEngine
 
             Dim samplesPerChannel As Integer = e.BytesRecorded \ bytesPerSample
 
-            ' Atomic reservation: increment counter once, derive our startSample
-            ' from the returned new value. This eliminates the race where two
-            ' concurrent callbacks could both Read the same value then both Add
-            ' their counts — which would produce duplicate StartSamples.
             Dim endSample As Long = System.Threading.Interlocked.Add(_systemStartSample, samplesPerChannel)
             Dim startSample As Long = endSample - samplesPerChannel
 
@@ -422,15 +435,23 @@ Public Class NAudioCaptureEngine
 
             Dim ts As TimeSpan = GetSessionTimestamp()
 
+            ' P1-B 4A: Time the BlockCopy
+            Dim bcStart As Long = Stopwatch.GetTimestamp()
             Dim copy(e.BytesRecorded - 1) As Byte
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
+            Dim bcEnd As Long = Stopwatch.GetTimestamp()
+            System.Threading.Interlocked.Add(_sysBlockCopyTicks, bcEnd - bcStart)
+            System.Threading.Interlocked.Increment(_sysBlockCopyCount)
 
             Dim frame As New AudioFrame(copy, e.BytesRecorded, _systemFormat,
                                         AudioSource.SystemLoopback, ts, startSample, samplesPerChannel)
 
-            ' Non-blocking: TryAdd without timeout returns immediately.
-            ' WASAPI callback must NEVER wait — backpressure is handled by
-            ' dropping + telemetry rather than blocking the capture thread.
+            ' P1-B 4A: Track queue depth
+            Dim queueDepth As Integer = _systemQueue.Count
+            If queueDepth > System.Threading.Interlocked.Read(_sysQueueMaxDepth) Then
+                System.Threading.Interlocked.Exchange(_sysQueueMaxDepth, queueDepth)
+            End If
+
             If Not _systemQueue.TryAdd(frame) Then
                 System.Threading.Interlocked.Increment(_systemDropCount)
             End If
@@ -625,16 +646,13 @@ Public Class NAudioCaptureEngine
         If alignedLength = 0 Then Return
 
         ' ── NaN/Infinity sanitization for f32le — BATCH mode ──
-        ' GPT P1 FIX: per-sample BitConverter.ToSingle at 96k samples/sec
-        ' was killing CPU. Now we do a single scan that exits early if no
-        ' bad samples are found (the common case). Only if a bad sample
-        ' is detected do we sanitize the rest.
+        ' P1-B 4A: Time the NaN scan to measure its CPU cost
         If fmt.IsFloat AndAlso fmt.BitsPerSample = 32 Then
+            Dim nanStart As Long = Stopwatch.GetTimestamp()
             Dim buf As Byte() = frame.Buffer
             Dim numFloats As Integer = alignedLength \ 4
             Dim foundBad As Boolean = False
 
-            ' Quick scan — just check if ANY sample is bad
             For i As Integer = 0 To numFloats - 1
                 Dim offset As Integer = i * 4
                 Dim sample As Single = BitConverter.ToSingle(buf, offset)
@@ -644,7 +662,6 @@ Public Class NAudioCaptureEngine
                 End If
             Next
 
-            ' Only sanitize if we found bad samples
             If foundBad Then
                 For i As Integer = 0 To numFloats - 1
                     Dim offset As Integer = i * 4
@@ -658,9 +675,13 @@ Public Class NAudioCaptureEngine
                     End If
                 Next
             End If
+            Dim nanEnd As Long = Stopwatch.GetTimestamp()
+            System.Threading.Interlocked.Add(_sysNaNScanTicks, nanEnd - nanStart)
+            System.Threading.Interlocked.Increment(_sysNaNScanCount)
         End If
 
         ' ── Write aligned data ──
+        Dim writeStart As Long = Stopwatch.GetTimestamp()
         SyncLock stream
             Try
                 stream.Write(frame.Buffer, 0, alignedLength)
@@ -676,6 +697,14 @@ Public Class NAudioCaptureEngine
                 End Try
             End Try
         End SyncLock
+        Dim writeEnd As Long = Stopwatch.GetTimestamp()
+        If source = AudioSource.SystemLoopback Then
+            System.Threading.Interlocked.Add(_sysWriterWriteTicks, writeEnd - writeStart)
+            System.Threading.Interlocked.Increment(_sysWriterWriteCount)
+        Else
+            System.Threading.Interlocked.Add(_micWriterWriteTicks, writeEnd - writeStart)
+            System.Threading.Interlocked.Increment(_micWriterWriteCount)
+        End If
     End Sub
 
     Private Sub OnSystemCaptureStopped(sender As Object, e As StoppedEventArgs)
@@ -733,12 +762,32 @@ Public Class NAudioCaptureEngine
 
     Public Function GetDiagnostics() As String
         Dim sb As New Text.StringBuilder()
+        Dim freq As Double = Stopwatch.Frequency
+
         sb.AppendLine("[Audio] SysSamples=" & System.Threading.Interlocked.Read(_sysSamplesReceived))
         sb.AppendLine("[Audio] SysWritten=" & System.Threading.Interlocked.Read(_sysSamplesWritten))
         sb.AppendLine("[Audio] SysBytes=" & System.Threading.Interlocked.Read(_sysBytesWritten))
         sb.AppendLine("[Audio] SysNaN=" & System.Threading.Interlocked.Read(_sysNaNCount))
         sb.AppendLine("[Audio] SysInf=" & System.Threading.Interlocked.Read(_sysInfCount))
         sb.AppendLine("[Audio] SysPartial=" & System.Threading.Interlocked.Read(_sysPartialFrameCount))
+
+        ' P1-B 4A: Hot path instrumentation
+        Dim cbCount As Long = System.Threading.Interlocked.Read(_sysCallbackCount)
+        Dim bcCount As Long = System.Threading.Interlocked.Read(_sysBlockCopyCount)
+        Dim nsCount As Long = System.Threading.Interlocked.Read(_sysNaNScanCount)
+        Dim wwCount As Long = System.Threading.Interlocked.Read(_sysWriterWriteCount)
+        Dim bcTicks As Long = System.Threading.Interlocked.Read(_sysBlockCopyTicks)
+        Dim nsTicks As Long = System.Threading.Interlocked.Read(_sysNaNScanTicks)
+        Dim wwTicks As Long = System.Threading.Interlocked.Read(_sysWriterWriteTicks)
+        Dim maxDepth As Integer = CInt(System.Threading.Interlocked.Read(_sysQueueMaxDepth))
+
+        sb.AppendLine("[Audio] SysCallbacks=" & cbCount)
+        sb.AppendLine("[Audio] SysBytesPerCallbackAvg=" & If(cbCount > 0, (System.Threading.Interlocked.Read(_sysBytesPerCallbackTotal) / cbCount).ToString("F0"), "0"))
+        sb.AppendLine("[Audio] SysQueueMaxDepth=" & maxDepth)
+        sb.AppendLine("[Audio] SysBlockCopyMs=" & If(bcCount > 0, ((bcTicks / freq) * 1000.0).ToString("F2"), "0") & " (count=" & bcCount & ")")
+        sb.AppendLine("[Audio] SysNaNScanMs=" & If(nsCount > 0, ((nsTicks / freq) * 1000.0).ToString("F2"), "0") & " (count=" & nsCount & ")")
+        sb.AppendLine("[Audio] SysWriterWriteMs=" & If(wwCount > 0, ((wwTicks / freq) * 1000.0).ToString("F2"), "0") & " (count=" & wwCount & ")")
+
         sb.AppendLine("[Audio] MicSamples=" & System.Threading.Interlocked.Read(_micSamplesReceived))
         sb.AppendLine("[Audio] MicWritten=" & System.Threading.Interlocked.Read(_micSamplesWritten))
         sb.AppendLine("[Audio] MicBytes=" & System.Threading.Interlocked.Read(_micBytesWritten))
