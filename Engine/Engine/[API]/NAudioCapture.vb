@@ -12,12 +12,14 @@ Public Class NAudioCaptureEngine
         Public Property SystemAudioVolume As Single = 1.0F
         Public Property MicVolume As Single = 1.0F
         Public Property MicDeviceName As String = ""
+        Public Property TrackMode As CaptureSettings.AudioTrackModeEnum = CaptureSettings.AudioTrackModeEnum.Single
     End Class
 
     Private _config As AudioConfigValues
     Private _systemCapture As WasapiLoopbackCapture
     Private _micCapture As WasapiCapture
-    Private _pipeStream As Stream
+    Private _systemStream As Stream
+    Private _micStream As Stream
     Private _pipeLock As New Object()
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
@@ -60,11 +62,12 @@ Public Class NAudioCaptureEngine
         Return 2
     End Function
 
-    Public Sub Start(pipeStream As Stream)
+    Public Sub Start(systemStream As Stream, micStream As Stream)
         If _disposed Then Throw New ObjectDisposedException(NameOf(NAudioCaptureEngine))
         If _isRunning Then Return
 
-        _pipeStream = pipeStream
+        _systemStream = systemStream
+        _micStream = micStream
         _isRunning = True
 
         If _config.SystemAudioCapture Then
@@ -100,7 +103,8 @@ Public Class NAudioCaptureEngine
         Catch
         End Try
 
-        _pipeStream = Nothing
+        _systemStream = Nothing
+        _micStream = Nothing
     End Sub
 
     Private Sub StartSystemCapture()
@@ -156,14 +160,24 @@ Public Class NAudioCaptureEngine
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         SyncLock _pipeLock
             Try
-                If _pipeStream IsNot Nothing AndAlso _pipeStream.CanWrite Then
-                    If _config.SystemAudioVolume >= 0.999F Then
-                        _pipeStream.Write(e.Buffer, 0, e.BytesRecorded)
-                    Else
-                        Dim adjusted As Byte() = ApplyVolume16(e.Buffer, e.BytesRecorded, _config.SystemAudioVolume)
-                        _pipeStream.Write(adjusted, 0, adjusted.Length)
+                Dim sysVol As Single = Math.Max(0.0F, Math.Min(1.5F, _config.SystemAudioVolume))
+
+                If _config.TrackMode = CaptureSettings.AudioTrackModeEnum.Separate Then
+                    If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
+                        Dim data As Byte() = If(sysVol >= 0.999F,
+                                                CopyBytes(e.Buffer, e.BytesRecorded),
+                                                ScaleBytesF32(e.Buffer, e.BytesRecorded, sysVol))
+                        _systemStream.Write(data, 0, data.Length)
+                        _systemStream.Flush()
                     End If
-                    _pipeStream.Flush()
+                Else
+                    If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
+                        Dim data As Byte() = If(sysVol >= 0.999F,
+                                                CopyBytes(e.Buffer, e.BytesRecorded),
+                                                ScaleBytesF32(e.Buffer, e.BytesRecorded, sysVol))
+                        _systemStream.Write(data, 0, data.Length)
+                        _systemStream.Flush()
+                    End If
                 End If
             Catch
             End Try
@@ -174,31 +188,48 @@ Public Class NAudioCaptureEngine
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         SyncLock _pipeLock
             Try
-                If _pipeStream IsNot Nothing AndAlso _pipeStream.CanWrite Then
-                    If _config.MicVolume >= 0.999F Then
-                        _pipeStream.Write(e.Buffer, 0, e.BytesRecorded)
-                    Else
-                        Dim adjusted As Byte() = ApplyVolume16(e.Buffer, e.BytesRecorded, _config.MicVolume)
-                        _pipeStream.Write(adjusted, 0, adjusted.Length)
+                Dim micVol As Single = Math.Max(0.0F, Math.Min(1.5F, _config.MicVolume))
+
+                If _config.TrackMode = CaptureSettings.AudioTrackModeEnum.Separate Then
+                    If _micStream IsNot Nothing AndAlso _micStream.CanWrite Then
+                        Dim data As Byte() = If(micVol >= 0.999F,
+                                                CopyBytes(e.Buffer, e.BytesRecorded),
+                                                ScaleBytesF32(e.Buffer, e.BytesRecorded, micVol))
+                        _micStream.Write(data, 0, data.Length)
+                        _micStream.Flush()
                     End If
-                    _pipeStream.Flush()
+                Else
+                    If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
+                        Dim data As Byte() = If(micVol >= 0.999F,
+                                                CopyBytes(e.Buffer, e.BytesRecorded),
+                                                ScaleBytesF32(e.Buffer, e.BytesRecorded, micVol))
+                        _systemStream.Write(data, 0, data.Length)
+                        _systemStream.Flush()
+                    End If
                 End If
             Catch
             End Try
         End SyncLock
     End Sub
 
-    Private Function ApplyVolume16(buffer As Byte(), bytesRecorded As Integer, volume As Single) As Byte()
-        Dim out As Byte() = New Byte(bytesRecorded - 1) {}
-        For i As Integer = 0 To bytesRecorded - 1 Step 2
-            If i + 1 >= bytesRecorded Then Exit For
-            Dim sample As Int16 = CShort(buffer(i) Or CShort(buffer(i + 1) << 8))
-            Dim scaled As Integer = CInt(Math.Round(sample * volume))
-            If scaled > Int16.MaxValue Then scaled = Int16.MaxValue
-            If scaled < Int16.MinValue Then scaled = Int16.MinValue
-            Dim v As Int16 = CShort(scaled)
-            out(i) = CByte(v And &HFF)
-            out(i + 1) = CByte((v >> 8) And &HFF)
+    Private Function CopyBytes(buffer As Byte(), length As Integer) As Byte()
+        Dim out As Byte() = New Byte(length - 1) {}
+        Array.Copy(buffer, out, length)
+        Return out
+    End Function
+
+    Private Function ScaleBytesF32(buffer As Byte(), length As Integer, volume As Single) As Byte()
+        Dim out As Byte() = New Byte(length - 1) {}
+        For i As Integer = 0 To length - 1 Step 4
+            If i + 3 >= length Then Exit For
+            Dim sample As Single = BitConverter.ToSingle(buffer, i)
+            sample *= volume
+            If Single.IsNaN(sample) OrElse Single.IsInfinity(sample) Then sample = 0
+            Dim bytes As Byte() = BitConverter.GetBytes(sample)
+            out(i) = bytes(0)
+            out(i + 1) = bytes(1)
+            out(i + 2) = bytes(2)
+            out(i + 3) = bytes(3)
         Next
         Return out
     End Function
@@ -210,6 +241,19 @@ Public Class NAudioCaptureEngine
     Private Sub OnMicCaptureStopped(sender As Object, e As StoppedEventArgs)
         System.Diagnostics.Debug.WriteLine("[NAudio] Mic capture stopped")
     End Sub
+
+    Public Shared Function ListMicDevices() As List(Of String)
+        Dim result As New List(Of String)()
+        Try
+            Using devEnum As New MMDeviceEnumerator()
+                For Each dev As MMDevice In devEnum.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                    result.Add(dev.FriendlyName)
+                Next
+            End Using
+        Catch
+        End Try
+        Return result
+    End Function
 
     Public Sub Dispose() Implements IDisposable.Dispose
         If _disposed Then Return

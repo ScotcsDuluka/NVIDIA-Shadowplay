@@ -1081,4 +1081,26 @@ Partial Public Class UI_Engine
     Private Sub BT_Back_MouseLeave(sender As Object, e As EventArgs) Handles BT_Back.MouseLeave
         BT_Back.BackColor = Color.FromArgb(118, 185, 0)
     End Sub
+
+    Private Sub btnOpenAudioSettings_Click(sender As Object, e As EventArgs) Handles btnOpenAudioSettings.Click
+        Try
+            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+            SyncWithOverlayConfig(s)
+
+            Dim videoJsonPath As String = OverlayConfig.VideoConfigPath
+            If String.IsNullOrEmpty(videoJsonPath) OrElse Not IO.File.Exists(videoJsonPath) Then
+                videoJsonPath = ""
+            End If
+
+            Using frm As New AudioSettingsForm(s, _configPath, videoJsonPath)
+                Dim result As DialogResult = frm.ShowDialog(Me)
+                If result = DialogResult.OK Then
+                    RefreshOverlayConfigUI()
+                End If
+            End Using
+        Catch ex As Exception
+            MessageBox.Show(Me, "Failed to open audio settings: " & ex.Message, "Error",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error)
+        End Try
+    End Sub
 End Class

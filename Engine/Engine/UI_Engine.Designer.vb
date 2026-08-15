@@ -69,6 +69,7 @@ Partial Class UI_Engine
         lblMicVol = New Label()
         trkMicVol = New TrackBar()
         lblMicDevice = New Label()
+        btnOpenAudioSettings = New Button()
         pnlOutput = New Panel()
         lblOutTitle = New Label()
         txtOutputDir = New TextBox()
@@ -400,6 +401,7 @@ Partial Class UI_Engine
         pnlAudio.Controls.Add(lblMicVol)
         pnlAudio.Controls.Add(trkMicVol)
         pnlAudio.Controls.Add(lblMicDevice)
+        pnlAudio.Controls.Add(btnOpenAudioSettings)
         pnlAudio.Location = New Point(47, 559)
         pnlAudio.Name = "pnlAudio"
         pnlAudio.Size = New Size(490, 105)
@@ -482,6 +484,15 @@ Partial Class UI_Engine
         lblMicDevice.Size = New Size(74, 13)
         lblMicDevice.TabIndex = 7
         lblMicDevice.Text = "Mic: (default)"
+        '
+        ' btnOpenAudioSettings
+        '
+        btnOpenAudioSettings.Font = New Font("Segoe UI", 9F)
+        btnOpenAudioSettings.Location = New Point(360, 80)
+        btnOpenAudioSettings.Name = "btnOpenAudioSettings"
+        btnOpenAudioSettings.Size = New Size(120, 22)
+        btnOpenAudioSettings.TabIndex = 8
+        btnOpenAudioSettings.Text = "Audio Settings..."
         ' 
         ' pnlOutput
         ' 
@@ -972,6 +983,7 @@ Partial Class UI_Engine
     Friend WithEvents lblMicVol As Label
     Friend WithEvents trkMicVol As TrackBar
     Friend WithEvents lblMicDevice As Label
+    Friend WithEvents btnOpenAudioSettings As Button
 
     Friend WithEvents pnlGitHub As Panel
     Friend WithEvents lblGitHubTitle As Label

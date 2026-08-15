@@ -48,6 +48,14 @@ Public Class CaptureSettings
     <JsonPropertyName("MicDeviceName")>
     Public Property MicDeviceName As String = ""
 
+    Public Enum AudioTrackModeEnum
+        Single
+        Separate
+    End Enum
+
+    <JsonPropertyName("AudioTrackMode")>
+    Public Property AudioTrackMode As AudioTrackModeEnum = AudioTrackModeEnum.Single
+
     <JsonPropertyName("PixelFormat")>
     Public Property PixelFormat As String = "nv12"
 

@@ -31,6 +31,7 @@
 
 Imports System.Diagnostics
 Imports System.IO
+Imports System.IO.Pipes
 Imports System.Text
 
 Public Class CaptureEngine
@@ -71,6 +72,9 @@ Public Class CaptureEngine
 
     Private _audioEngine As NAudioCaptureEngine
     Private _audioPipeStream As Stream
+    Private _micNamedPipe As NamedPipeServerStream
+    Private _micNamedPipeStream As Stream
+    Private Const MicPipeName As String = "nvidia_shadowplay_mic"
 
     ' ── Properties ────────────────────────────────────────────
 
@@ -426,7 +430,7 @@ Public Class CaptureEngine
 
         ' ── Audio input ──
         ' When NAudio capture is enabled, we pipe raw PCM via stdin (pipe:0).
-        ' Otherwise fall back to legacy -f dshow (kept for backward compat).
+        ' For Separate mode + mic enabled, also create a named pipe for mic.
         Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
 
         If hasNAudio Then
@@ -442,8 +446,20 @@ Public Class CaptureEngine
             Catch
             End Try
 
-            Dim audioInputIdx As Integer = 1
-            sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac {channels} -i pipe:0 ")
+            Dim sysEnabled As Boolean = _settings.SystemAudioCapture
+            Dim micEnabled As Boolean = _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName)
+            Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate)
+
+            If isSeparate AndAlso micEnabled Then
+                ' Two separate streams: system via pipe:0 (stdin), mic via named pipe
+                If sysEnabled Then
+                    sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac {channels} -i pipe:0 ")
+                End If
+                sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac 1 -i ""\\.\pipe\nvidia_shadowplay_mic"" ")
+            Else
+                ' Single mode (or only one source enabled) — everything via stdin
+                sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac {channels} -i pipe:0 ")
+            End If
         ElseIf _settings.AudioCapture AndAlso Not String.IsNullOrEmpty(_settings.AudioDevice) Then
             sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
         End If
@@ -534,7 +550,23 @@ Public Class CaptureEngine
         ' ── Audio encoding ──
         Dim hasAnyAudio As Boolean = hasNAudio OrElse _settings.AudioCapture
         If hasAnyAudio Then
-            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+            Dim isSeparateAndMic As Boolean = hasNAudio AndAlso
+                (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate) AndAlso
+                _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName)
+
+            If isSeparateAndMic Then
+                If _settings.SystemAudioCapture Then
+                    sb.Append("-map 0:v -map 1:a -map 2:a ")
+                    sb.Append("-c:a:0 aac -b:a:0 320k -ar 48000 ")
+                    sb.Append("-c:a:1 aac -b:a:1 320k -ar 48000 ")
+                Else
+                    ' System disabled, only mic via stdin (no named pipe needed actually — but kept for symmetry)
+                    sb.Append("-map 0:v -map 1:a ")
+                    sb.Append("-c:a:0 aac -b:a:0 320k -ar 48000 ")
+                End If
+            Else
+                sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+            End If
         End If
 
         ' ── MP4 faststart: write moov atom at the head so the file is playable
@@ -771,17 +803,50 @@ Public Class CaptureEngine
         If Not hasNAudio Then Return
 
         Try
+            Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate) AndAlso
+                                              _settings.MicCapture AndAlso
+                                              Not String.IsNullOrEmpty(_settings.MicDeviceName)
+
+            Dim sysStream As Stream = Nothing
+            Dim micStream As Stream = Nothing
+
+            sysStream = New BufferedStream(_ffmpegProcess.StandardInput.BaseStream, 64 * 1024)
+
+            If isSeparateAndMic Then
+                Try
+                    _micNamedPipe = New NamedPipeServerStream(MicPipeName, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
+                    Task.Run(Sub()
+                                 Try
+                                     _micNamedPipe.WaitForConnection()
+                                 Catch ex As Exception
+                                     End Try
+                             End Sub)
+                    _micNamedPipeStream = New BufferedStream(_micNamedPipe, 64 * 1024)
+                    micStream = _micNamedPipeStream
+                    LogDebug("[Audio] Separate mode — mic pipe created: \\.\pipe\" & MicPipeName)
+                Catch ex As Exception
+                    LogDebug("[Audio] Mic pipe creation failed: " & ex.Message)
+                    WriteDebugLog("[Audio] Mic pipe creation failed: " & ex.Message)
+                    micStream = sysStream
+                End Try
+            Else
+                micStream = sysStream
+            End If
+
             Dim cfg As New NAudioCaptureEngine.AudioConfigValues() With {
                 .SystemAudioCapture = _settings.SystemAudioCapture,
                 .MicCapture = _settings.MicCapture,
                 .SystemAudioVolume = _settings.SystemAudioVolume,
                 .MicVolume = _settings.MicVolume,
-                .MicDeviceName = _settings.MicDeviceName
+                .MicDeviceName = _settings.MicDeviceName,
+                .TrackMode = _settings.AudioTrackMode
             }
             _audioEngine = New NAudioCaptureEngine(cfg)
-            _audioPipeStream = New BufferedStream(_ffmpegProcess.StandardInput.BaseStream, 64 * 1024)
-            _audioEngine.Start(_audioPipeStream)
-            LogDebug("[Audio] NAudio capture started (system=" & _settings.SystemAudioCapture.ToString() & ", mic=" & _settings.MicCapture.ToString() & ")")
+            _audioPipeStream = sysStream
+            _audioEngine.Start(sysStream, micStream)
+            LogDebug("[Audio] NAudio capture started (mode=" & _settings.AudioTrackMode.ToString() &
+                     ", system=" & _settings.SystemAudioCapture.ToString() &
+                     ", mic=" & _settings.MicCapture.ToString() & ")")
         Catch ex As Exception
             LogDebug("[Audio] NAudio start error: " & ex.Message)
             WriteDebugLog("[Audio] NAudio start error: " & ex.Message)
@@ -804,6 +869,24 @@ Public Class CaptureEngine
                 _audioPipeStream.Flush()
                 _audioPipeStream.Dispose()
                 _audioPipeStream = Nothing
+            End If
+        Catch
+        End Try
+
+        Try
+            If _micNamedPipeStream IsNot Nothing Then
+                _micNamedPipeStream.Flush()
+                _micNamedPipeStream.Dispose()
+                _micNamedPipeStream = Nothing
+            End If
+        Catch
+        End Try
+
+        Try
+            If _micNamedPipe IsNot Nothing Then
+                Try : _micNamedPipe.Disconnect() : Catch : End Try
+                _micNamedPipe.Dispose()
+                _micNamedPipe = Nothing
             End If
         Catch
         End Try
