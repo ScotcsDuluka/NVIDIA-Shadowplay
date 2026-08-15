@@ -29,14 +29,14 @@ Public Class NAudioCaptureEngine
     Private _systemStream As Stream
     Private _micStream As Stream
 
-    Private _systemFormat As AudioFormatInfo
-    Private _micFormat As AudioFormatInfo
+    Private _systemFormat As AudioFormat
+    Private _micFormat As AudioFormat
 
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
 
-    Public Event SystemFormatDetected(format As AudioFormatInfo)
-    Public Event MicFormatDetected(format As AudioFormatInfo)
+    Public Event SystemFormatDetected(format As AudioFormat)
+    Public Event MicFormatDetected(format As AudioFormat)
     Public Event SystemStartFailed(reason As String)
     Public Event MicStartFailed(reason As String)
 
@@ -50,13 +50,13 @@ Public Class NAudioCaptureEngine
         End Get
     End Property
 
-    Public ReadOnly Property SystemFormat As AudioFormatInfo
+    Public ReadOnly Property SystemFormat As AudioFormat
         Get
             Return _systemFormat
         End Get
     End Property
 
-    Public ReadOnly Property MicFormat As AudioFormatInfo
+    Public ReadOnly Property MicFormat As AudioFormat
         Get
             Return _micFormat
         End Get
@@ -344,8 +344,8 @@ Public Class NAudioCaptureEngine
         Try : _micQueue?.CompleteAdding() : Catch : End Try
     End Sub
 
-    Private Function WaveFormatToInfo(wf As WaveFormat) As AudioFormatInfo
-        Dim info As New AudioFormatInfo()
+    Private Function WaveFormatToInfo(wf As WaveFormat) As AudioFormat
+        Dim info As New AudioFormat()
         If wf Is Nothing Then Return info
 
         info.SampleRate = wf.SampleRate
