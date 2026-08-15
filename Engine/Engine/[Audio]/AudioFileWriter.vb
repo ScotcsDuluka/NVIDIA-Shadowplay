@@ -53,14 +53,20 @@ Public Class AudioFileWriter
     ''' <summary>
     ''' Wrapper for queued audio data with priority metadata.
     '''
-    ''' IsSilence=True for synthetic silence (PreFillSilence), False for real PCM.
-    ''' When queue overflows, real audio has priority — silence chunks are
-    ''' dropped first to make room. This prevents the situation where initial
-    ''' silence fills the queue and then real audio gets dropped.
+    ''' Two modes:
+    '''   - Real PCM: Data = byte array, IsSilence = False
+    '''   - Silence descriptor: Data = Nothing, IsSilence = True, SilenceBytes = N
+    '''
+    ''' The silence descriptor mode is critical for performance. PreFillSilence
+    ''' enqueues a SINGLE chunk with metadata only (no allocation of the actual
+    ''' silence bytes). The writer thread later expands the descriptor into
+    ''' zero-filled chunks when writing to disk. This keeps the WASAPI callback
+    ''' lightweight (single TryAdd instead of thousands of allocations).
     ''' </summary>
     Private Class AudioChunk
         Public Property Data As Byte()
         Public Property IsSilence As Boolean
+        Public Property SilenceBytes As Long  ' used only when IsSilence=True and Data=Nothing
     End Class
 
     Private Class TrackState
@@ -357,10 +363,23 @@ Public Class AudioFileWriter
                     Dim silenceBytes As Long = CLng(initialGapSec * track.BytesPerSecond)
                     If track.FrameSize > 0 Then silenceBytes = (silenceBytes \ track.FrameSize) * track.FrameSize
                     If silenceBytes > 0 Then
-                        ' PreFillSilence returns ACTUAL bytes enqueued (may be less if queue full)
-                        Dim writtenBytes As Long = PreFillSilence(track, silenceBytes)
-                        track.InitialSilenceBytes = writtenBytes
-                        track.BytesEnqueued += writtenBytes
+                        ' Enqueue a SINGLE silence descriptor chunk (per GPT P0).
+                        ' The writer thread will expand this into zero-filled bytes
+                        ' when writing to disk. This avoids allocating thousands of
+                        ' 16KB arrays in the WASAPI callback thread.
+                        Dim silenceDescriptor As New AudioChunk With {
+                            .Data = Nothing,
+                            .IsSilence = True,
+                            .SilenceBytes = silenceBytes
+                        }
+                        Try
+                            If track.Queue.TryAdd(silenceDescriptor, 0) Then
+                                track.InitialSilenceBytes = silenceBytes
+                                track.BytesEnqueued += silenceBytes
+                            End If
+                        Catch ex As InvalidOperationException
+                            ' Queue completed during shutdown (shouldn't happen on first callback)
+                        End Try
                     End If
                 End If
             End If
@@ -382,50 +401,64 @@ Public Class AudioFileWriter
             ' PRIORITY DROP POLICY (per GPT P0):
             '   When queue is full and incoming is REAL audio:
             '   - Drop oldest item (TryTake removes from front of FIFO queue)
-            '   - Since PreFillSilence runs BEFORE real audio, silence chunks
-            '     are at the FRONT of the queue → TryTake naturally drops
-            '     silence first (until all silence is consumed/dropped)
+            '   - Since silence descriptor is at FRONT of queue (enqueued by first
+            '     callback before real audio), TryTake naturally drops it first
             '   - Check IsSilence flag on dropped item to update correct counter:
             '     * Silence dropped → decrement InitialSilenceBytes (good, made room)
             '     * Real audio dropped → increment DroppedBytes (data loss)
             '   This prevents synthetic silence from displacing real PCM, AND
             '   keeps diagnostics honest about what was actually dropped.
+            '
+            ' EXACT-SUCCESS TRACKING (per GPT P1):
+            '   BytesEnqueued/CallbackCount only incremented when TryAdd succeeds.
+            '   This keeps BytesEnqueued honest about "actual bytes in queue/WAV".
+            Dim enqueuedSuccess As Boolean = False
             Try
-                If Not track.Queue.TryAdd(realChunk, 0) Then
+                If track.Queue.TryAdd(realChunk, 0) Then
+                    enqueuedSuccess = True
+                Else
                     ' Queue full — drop oldest to make room
                     Dim dropped As AudioChunk = Nothing
                     If track.Queue.TryTake(dropped) Then
                         If dropped.IsSilence Then
-                            ' Dropped silence — this is the preferred outcome.
-                            ' Update InitialSilenceBytes so diagnostics reflect
-                            ' actual WAV content (silence was reclaimed, not lost).
-                            track.InitialSilenceBytes -= dropped.Data.Length
-                            track.DroppedSilenceBytes += dropped.Data.Length
+                            ' Dropped silence — preferred outcome.
+                            ' Use SilenceBytes (descriptor mode) or Data.Length (legacy)
+                            Dim droppedLen As Long = If(dropped.Data IsNot Nothing,
+                                                       dropped.Data.Length,
+                                                       dropped.SilenceBytes)
+                            track.InitialSilenceBytes -= droppedLen
+                            track.DroppedSilenceBytes += droppedLen
                         Else
                             ' Dropped real audio — actual data loss, track it
+                            Dim droppedLen As Long = If(dropped.Data IsNot Nothing,
+                                                       dropped.Data.Length,
+                                                       0)
                             track.DroppedChunks += 1
-                            track.DroppedBytes += dropped.Data.Length
+                            track.DroppedBytes += droppedLen
                             If track.FrameSize > 0 Then
-                                track.DroppedSamples += dropped.Data.Length \ track.FrameSize
+                                track.DroppedSamples += droppedLen \ track.FrameSize
                             End If
                             If track.BytesPerSecond > 0 Then
-                                track.DroppedDurationSec += CDbl(dropped.Data.Length) / track.BytesPerSecond
+                                track.DroppedDurationSec += CDbl(droppedLen) / track.BytesPerSecond
                             End If
                         End If
                         ' Now add the real audio (should succeed since we made room)
-                        track.Queue.TryAdd(realChunk, 0)
+                        enqueuedSuccess = track.Queue.TryAdd(realChunk, 0)
                     End If
                 End If
             Catch ex As InvalidOperationException
                 ' Queue completed during shutdown — drop this chunk silently
-                ' (better than throwing into the WASAPI callback dispatch thread)
+                ' (better than throwing into the WASAPI dispatch thread)
                 Return
             End Try
 
-            track.CallbackCount += 1
-            track.BytesEnqueued += e.BytesRecorded
-            If track.FrameSize > 0 Then
-                track.SamplesEnqueued += e.BytesRecorded \ track.FrameSize
+            ' Only count as enqueued if it actually went into the queue
+            If enqueuedSuccess Then
+                track.CallbackCount += 1
+                track.BytesEnqueued += e.BytesRecorded
+                If track.FrameSize > 0 Then
+                    track.SamplesEnqueued += e.BytesRecorded \ track.FrameSize
+                End If
             End If
         Finally
             System.Threading.Interlocked.Decrement(track.InFlightCallbacks)
@@ -437,14 +470,40 @@ Public Class AudioFileWriter
     ''' This is the ONLY thread that touches WaveFileWriter, so no lock needed.
     ''' Tracks WrittenBytes for diagnostics (separate from BytesEnqueued to
     ''' detect writer thread lag or disk write failures).
+    '''
+    ''' Handles two chunk types:
+    '''   - Real PCM (Data != Nothing): Write directly
+    '''   - Silence descriptor (IsSilence=True, Data=Nothing): Expand into
+    '''     zero-filled chunks and write to disk. This is where the actual
+    '''     allocation happens — NOT in the WASAPI callback. Keeps the callback
+    '''     lightweight (single TryAdd of a metadata chunk).
     ''' </summary>
     Private Sub WriterLoop(track As TrackState)
+        ' Pre-allocate a zero-filled buffer for silence expansion (reused, not GC'd)
+        Const silenceChunkSize As Integer = 16384
+        Dim silenceBuffer As Byte() = New Byte(silenceChunkSize - 1) {}
         Try
             While True
                 Dim chunk As AudioChunk = Nothing
                 If track.Queue.TryTake(chunk, 1000) Then
                     Try
-                        If track.Writer IsNot Nothing AndAlso chunk.Data IsNot Nothing Then
+                        If track.Writer Is Nothing Then Continue While
+
+                        If chunk.IsSilence AndAlso chunk.Data Is Nothing Then
+                            ' Silence descriptor — expand into zero-filled writes
+                            ' This is the actual allocation/expansion work, done
+                            ' here on the writer thread instead of the callback.
+                            Dim remaining As Long = chunk.SilenceBytes
+                            While remaining > 0
+                                Dim size As Integer = CInt(Math.Min(remaining, CLng(silenceChunkSize)))
+                                If track.FrameSize > 0 Then size = (size \ track.FrameSize) * track.FrameSize
+                                If size <= 0 Then Exit While
+                                track.Writer.Write(silenceBuffer, 0, size)
+                                track.WrittenBytes += size
+                                remaining -= size
+                            End While
+                        ElseIf chunk.Data IsNot Nothing Then
+                            ' Real PCM — write directly
                             track.Writer.Write(chunk.Data, 0, chunk.Data.Length)
                             track.WrittenBytes += chunk.Data.Length
                         End If
@@ -459,56 +518,6 @@ Public Class AudioFileWriter
             System.Diagnostics.Debug.WriteLine("[AudioFileWriter] Writer thread crashed: " & ex.Message)
         End Try
     End Sub
-
-    ''' <summary>
-    ''' Pre-fill silence at the start of the WAV file.
-    '''
-    ''' Called ONCE from the first callback, BEFORE any real audio data is
-    ''' enqueued. This ensures WAV sample 0 = StartRecording time, so the
-    ''' file timeline matches the capture timeline.
-    '''
-    ' Without this, if WASAPI loopback doesn't fire for N seconds (no audio
-    ' playing), the WAV file would start at the first callback's time, and
-    ' mux -ss <offset> would CUT real audio instead of skipping leading silence.
-    '''
-    ''' Returns the ACTUAL number of bytes enqueued (may be less than requested
-    ''' if queue is full — diagnostics must reflect reality, not the request).
-    '''
-    ''' Splits into 16KB chunks to avoid huge allocations.
-    ''' </summary>
-    Private Function PreFillSilence(track As TrackState, byteCount As Long) As Long
-        If byteCount <= 0 Then Return 0
-        Const chunkSize As Integer = 16384
-        Dim remaining As Long = byteCount
-        Dim written As Long = 0
-        While remaining > 0
-            Dim size As Integer = CInt(Math.Min(remaining, CLng(chunkSize)))
-            If track.FrameSize > 0 Then size = (size \ track.FrameSize) * track.FrameSize
-            If size <= 0 Then Exit While
-            Dim silence As New AudioChunk With {
-                .Data = New Byte(size - 1) {},
-                .IsSilence = True
-            }
-            Try
-                ' Check TryAdd return value (per GPT P0) — False means queue full,
-                ' we must NOT count this as written or diagnostics will lie.
-                If Not track.Queue.TryAdd(silence, 0) Then
-                    ' Queue full — can't enqueue more silence. Stop here.
-                    ' (Don't drop real audio to make room for silence — that would
-                    ' defeat the purpose. Better to have slightly shorter initial
-                    ' silence than to lose real audio data.)
-                    Exit While
-                End If
-                written += size
-            Catch ex As InvalidOperationException
-                ' Queue completed during shutdown (shouldn't happen on first callback,
-                ' but handle defensively)
-                Exit While
-            End Try
-            remaining -= size
-        End While
-        Return written
-    End Function
 
     ''' <summary>
     ''' Clean up partial state when StartTrack fails partway through.
