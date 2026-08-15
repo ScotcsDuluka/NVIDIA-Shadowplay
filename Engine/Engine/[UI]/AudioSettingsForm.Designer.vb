@@ -8,7 +8,6 @@ Partial Class AudioSettingsForm
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(AudioSettingsForm))
-        lblTitle = New Label()
         grpTrackMode = New GroupBox()
         radSingle = New RadioButton()
         radSeparate = New RadioButton()
@@ -37,8 +36,9 @@ Partial Class AudioSettingsForm
         PictureBox3 = New PictureBox()
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
-        Label4 = New Label()
+        Audio_Capture_Menutext = New Label()
         OPEN_UI = New System.Windows.Forms.Timer(components)
+        Label2 = New Label()
         grpTrackMode.SuspendLayout()
         grpSystem.SuspendLayout()
         CType(trkSystemVol, ComponentModel.ISupportInitialize).BeginInit()
@@ -54,22 +54,13 @@ Partial Class AudioSettingsForm
         CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
-        ' lblTitle
-        ' 
-        lblTitle.AutoSize = True
-        lblTitle.Font = New Font("Segoe UI", 14F, FontStyle.Bold)
-        lblTitle.Location = New Point(682, 377)
-        lblTitle.Name = "lblTitle"
-        lblTitle.Size = New Size(143, 25)
-        lblTitle.TabIndex = 0
-        lblTitle.Text = "Audio Settings"
-        ' 
         ' grpTrackMode
         ' 
         grpTrackMode.Controls.Add(radSingle)
         grpTrackMode.Controls.Add(radSeparate)
         grpTrackMode.Controls.Add(lblModeHint)
-        grpTrackMode.Location = New Point(682, 413)
+        grpTrackMode.ForeColor = Color.White
+        grpTrackMode.Location = New Point(129, 190)
         grpTrackMode.Name = "grpTrackMode"
         grpTrackMode.Size = New Size(488, 95)
         grpTrackMode.TabIndex = 1
@@ -111,7 +102,8 @@ Partial Class AudioSettingsForm
         grpSystem.Controls.Add(chkSystem)
         grpSystem.Controls.Add(trkSystemVol)
         grpSystem.Controls.Add(lblSystemVol)
-        grpSystem.Location = New Point(682, 518)
+        grpSystem.ForeColor = Color.White
+        grpSystem.Location = New Point(129, 295)
         grpSystem.Name = "grpSystem"
         grpSystem.Size = New Size(488, 90)
         grpSystem.TabIndex = 2
@@ -155,7 +147,8 @@ Partial Class AudioSettingsForm
         grpMic.Controls.Add(btnRefresh)
         grpMic.Controls.Add(trkMicVol)
         grpMic.Controls.Add(lblMicVol)
-        grpMic.Location = New Point(682, 618)
+        grpMic.ForeColor = Color.White
+        grpMic.Location = New Point(129, 395)
         grpMic.Name = "grpMic"
         grpMic.Size = New Size(488, 130)
         grpMic.TabIndex = 3
@@ -216,7 +209,8 @@ Partial Class AudioSettingsForm
         ' 
         ' btnApply
         ' 
-        btnApply.Location = New Point(904, 763)
+        btnApply.ForeColor = Color.Black
+        btnApply.Location = New Point(351, 540)
         btnApply.Name = "btnApply"
         btnApply.Size = New Size(85, 30)
         btnApply.TabIndex = 4
@@ -225,7 +219,8 @@ Partial Class AudioSettingsForm
         ' 
         ' btnCancel
         ' 
-        btnCancel.Location = New Point(995, 763)
+        btnCancel.ForeColor = Color.Black
+        btnCancel.Location = New Point(442, 540)
         btnCancel.Name = "btnCancel"
         btnCancel.Size = New Size(85, 30)
         btnCancel.TabIndex = 5
@@ -234,7 +229,8 @@ Partial Class AudioSettingsForm
         ' 
         ' btnTest
         ' 
-        btnTest.Location = New Point(682, 763)
+        btnTest.ForeColor = Color.Black
+        btnTest.Location = New Point(129, 540)
         btnTest.Name = "btnTest"
         btnTest.Size = New Size(85, 30)
         btnTest.TabIndex = 6
@@ -245,7 +241,7 @@ Partial Class AudioSettingsForm
         ' 
         lblStatus.AutoSize = True
         lblStatus.ForeColor = Color.Gray
-        lblStatus.Location = New Point(775, 770)
+        lblStatus.Location = New Point(222, 547)
         lblStatus.Name = "lblStatus"
         lblStatus.Size = New Size(0, 15)
         lblStatus.TabIndex = 7
@@ -288,11 +284,11 @@ Partial Class AudioSettingsForm
         ' 
         settings_menu.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         settings_menu.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        settings_menu.Controls.Add(Label2)
         settings_menu.Controls.Add(PictureBox5)
         settings_menu.Controls.Add(PictureBox4)
         settings_menu.Controls.Add(PictureBox3)
         settings_menu.Controls.Add(PictureBox16)
-        settings_menu.Controls.Add(lblTitle)
         settings_menu.Controls.Add(grpTrackMode)
         settings_menu.Controls.Add(grpSystem)
         settings_menu.Controls.Add(hg2)
@@ -301,7 +297,7 @@ Partial Class AudioSettingsForm
         settings_menu.Controls.Add(btnCancel)
         settings_menu.Controls.Add(btnTest)
         settings_menu.Controls.Add(lblStatus)
-        settings_menu.Controls.Add(Label4)
+        settings_menu.Controls.Add(Audio_Capture_Menutext)
         settings_menu.ForeColor = Color.White
         settings_menu.Location = New Point(80, 160)
         settings_menu.Name = "settings_menu"
@@ -363,20 +359,32 @@ Partial Class AudioSettingsForm
         hg2.TabStop = False
         hg2.Visible = False
         ' 
-        ' Label4
+        ' Audio_Capture_Menutext
         ' 
-        Label4.AutoSize = True
-        Label4.Font = New Font("GeForce", 24F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        Label4.Location = New Point(62, 43)
-        Label4.Name = "Label4"
-        Label4.Size = New Size(210, 42)
-        Label4.TabIndex = 0
-        Label4.Text = "Audio Capture"
+        Audio_Capture_Menutext.AutoSize = True
+        Audio_Capture_Menutext.Font = New Font("Segoe UI", 17F, FontStyle.Bold)
+        Audio_Capture_Menutext.Location = New Point(62, 43)
+        Audio_Capture_Menutext.Name = "Audio_Capture_Menutext"
+        Audio_Capture_Menutext.Size = New Size(169, 31)
+        Audio_Capture_Menutext.TabIndex = 0
+        Audio_Capture_Menutext.Text = "Audio Capture"
         ' 
         ' OPEN_UI
         ' 
         OPEN_UI.Enabled = True
         OPEN_UI.Interval = 1
+        ' 
+        ' Label2
+        ' 
+        Label2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label2.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label2.ForeColor = Color.White
+        Label2.Location = New Point(62, 85)
+        Label2.Name = "Label2"
+        Label2.Size = New Size(61, 67)
+        Label2.TabIndex = 111
+        Label2.Text = ""
+        Label2.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' AudioSettingsForm
         ' 
@@ -419,8 +427,6 @@ Partial Class AudioSettingsForm
         CType(hg2, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
-
-    Friend WithEvents lblTitle As System.Windows.Forms.Label
     Friend WithEvents grpTrackMode As System.Windows.Forms.GroupBox
     Friend WithEvents radSingle As System.Windows.Forms.RadioButton
     Friend WithEvents radSeparate As System.Windows.Forms.RadioButton
@@ -449,6 +455,7 @@ Partial Class AudioSettingsForm
     Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents PictureBox16 As PictureBox
     Friend WithEvents hg2 As PictureBox
-    Friend WithEvents Label4 As Label
+    Friend WithEvents Audio_Capture_Menutext As Label
     Friend WithEvents OPEN_UI As System.Windows.Forms.Timer
+    Friend WithEvents Label2 As Label
 End Class
