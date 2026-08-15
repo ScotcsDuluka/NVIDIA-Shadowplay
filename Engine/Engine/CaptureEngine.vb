@@ -36,21 +36,13 @@ Imports System.Text
 Public Class CaptureEngine
     Implements IDisposable
 
-    ' ── Events ────────────────────────────────────────────────
-
     Public Event StateChanged As Action(Of CaptureState)
     Public Event RecordingStarted As Action(Of String)
     Public Event RecordingStopped As Action(Of String)
     Public Event ErrorOccurred As Action(Of String)
     Public Event FrameCaptured As Action(Of Long)
 
-    ' ✅ P2.9: new event for progress reporting (frame + duration + file size).
-    ' Fired on every FFmpeg stderr progress line (typically 1/sec at 60fps).
-    ' UI_Engine listens and broadcasts to Overlay via TCP.
     Public Event ProgressUpdated As Action(Of Long, TimeSpan, Long)
-
-    ' ── Enums ──────────────────────────────────────────────────
-    ' NOTE: 'Error' is a VB.NET reserved keyword - using 'HasError' instead
 
     Public Enum CaptureState
         Idle
@@ -61,16 +53,12 @@ Public Class CaptureEngine
         HasError
     End Enum
 
-    ' ── Hardware device type enum for filter chain ────────────
-
     Private Enum HwDeviceType
-        None        ' CPU software encoder
-        NVIDIA      ' h264_nvenc, hevc_nvenc (accepts d3d11 directly)
-        IntelQSV    ' h264_qsv, hevc_qsv  (needs hwmap from d3d11)
-        AMD         ' h264_amf, hevc_amf  (accepts d3d11 directly)
+        None
+        NVIDIA
+        IntelQSV
+        AMD
     End Enum
-
-    ' ── Fields ────────────────────────────────────────────────
 
     Private _settings As CaptureSettings
     Private _ffmpegProcess As Process
@@ -79,11 +67,10 @@ Public Class CaptureEngine
     Private _stopwatch As Stopwatch
     Private _logBuffer As StringBuilder
     Private _disposed As Boolean = False
-    ' ✅ P1: Job Object guard — when the Engine process dies for any reason
-    ' (crash, Task Manager kill, logoff), Windows automatically kills every
-    ' process assigned to this job. Prevents orphaned ffmpeg.exe from running
-    ' indefinitely after Engine is gone.
     Private _jobGuard As JobObjectGuard
+
+    Private _audioEngine As NAudioCaptureEngine
+    Private _audioPipeStream As Stream
 
     ' ── Properties ────────────────────────────────────────────
 
@@ -225,6 +212,8 @@ Public Class CaptureEngine
                                      ' Any Stop arriving after this point will correctly see the process.
                                      SetState(CaptureState.Recording)
                                      RaiseEvent RecordingStarted(_outputFile)
+
+                                     StartAudioCaptureIfNeeded()
                                      Return True
 
                                  Catch ex As Exception
@@ -249,6 +238,8 @@ Public Class CaptureEngine
 
         Return Await Task.Run(Function()
                                  Try
+                                     StopAudioCaptureIfNeeded()
+
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                                          Try
                                              _ffmpegProcess.StandardInput.Write("q" & vbLf)
@@ -278,6 +269,8 @@ Public Class CaptureEngine
 
     Public Sub ForceStop()
         Try
+            StopAudioCaptureIfNeeded()
+
             If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                 _ffmpegProcess.Kill()
                 _ffmpegProcess.WaitForExit(5000)
@@ -431,8 +424,27 @@ Public Class CaptureEngine
             End If
         End If
 
-        ' ── Audio input (dshow) ──
-        If _settings.AudioCapture Then
+        ' ── Audio input ──
+        ' When NAudio capture is enabled, we pipe raw PCM via stdin (pipe:0).
+        ' Otherwise fall back to legacy -f dshow (kept for backward compat).
+        Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
+
+        If hasNAudio Then
+            Dim sampleRate As Integer = 48000
+            Dim channels As Integer = 2
+            Try
+                Using probe As New NAudioCaptureEngine(New NAudioCaptureEngine.AudioConfigValues())
+                    sampleRate = probe.ExpectedSampleRate()
+                    channels = probe.ExpectedChannels()
+                    If channels < 1 Then channels = 2
+                    If sampleRate < 1 Then sampleRate = 48000
+                End Using
+            Catch
+            End Try
+
+            Dim audioInputIdx As Integer = 1
+            sb.Append($"-thread_queue_size 1024 -f f32le -ar {sampleRate} -ac {channels} -i pipe:0 ")
+        ElseIf _settings.AudioCapture AndAlso Not String.IsNullOrEmpty(_settings.AudioDevice) Then
             sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
         End If
 
@@ -520,7 +532,8 @@ Public Class CaptureEngine
         End If
 
         ' ── Audio encoding ──
-        If _settings.AudioCapture Then
+        Dim hasAnyAudio As Boolean = hasNAudio OrElse _settings.AudioCapture
+        If hasAnyAudio Then
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         End If
 
@@ -742,9 +755,8 @@ Public Class CaptureEngine
     Protected Overridable Sub Dispose(disposing As Boolean)
         If Not _disposed Then
             If disposing Then
+                StopAudioCaptureIfNeeded()
                 ForceStop()
-                ' ✅ P1: dispose the job guard AFTER ForceStop — closing the job handle
-                ' is what guarantees any straggler ffmpeg is killed.
                 If _jobGuard IsNot Nothing Then
                     _jobGuard.Dispose()
                     _jobGuard = Nothing
@@ -752,6 +764,49 @@ Public Class CaptureEngine
             End If
             _disposed = True
         End If
+    End Sub
+
+    Private Sub StartAudioCaptureIfNeeded()
+        Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
+        If Not hasNAudio Then Return
+
+        Try
+            Dim cfg As New NAudioCaptureEngine.AudioConfigValues() With {
+                .SystemAudioCapture = _settings.SystemAudioCapture,
+                .MicCapture = _settings.MicCapture,
+                .SystemAudioVolume = _settings.SystemAudioVolume,
+                .MicVolume = _settings.MicVolume,
+                .MicDeviceName = _settings.MicDeviceName
+            }
+            _audioEngine = New NAudioCaptureEngine(cfg)
+            _audioPipeStream = New BufferedStream(_ffmpegProcess.StandardInput.BaseStream, 64 * 1024)
+            _audioEngine.Start(_audioPipeStream)
+            LogDebug("[Audio] NAudio capture started (system=" & _settings.SystemAudioCapture.ToString() & ", mic=" & _settings.MicCapture.ToString() & ")")
+        Catch ex As Exception
+            LogDebug("[Audio] NAudio start error: " & ex.Message)
+            WriteDebugLog("[Audio] NAudio start error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub StopAudioCaptureIfNeeded()
+        Try
+            If _audioEngine IsNot Nothing Then
+                _audioEngine.Stop()
+                _audioEngine.Dispose()
+                _audioEngine = Nothing
+                LogDebug("[Audio] NAudio capture stopped")
+            End If
+        Catch
+        End Try
+
+        Try
+            If _audioPipeStream IsNot Nothing Then
+                _audioPipeStream.Flush()
+                _audioPipeStream.Dispose()
+                _audioPipeStream = Nothing
+            End If
+        Catch
+        End Try
     End Sub
 
 End Class
