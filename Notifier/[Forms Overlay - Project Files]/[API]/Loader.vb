@@ -149,7 +149,16 @@ Partial Public Class Loader
                 If dataTok IsNot Nothing Then
                     Dim durTok As Newtonsoft.Json.Linq.JToken = dataTok("replayBufferDuration")
                     If durTok IsNot Nothing Then
-                        Dim durMs As Double = durTok.Value(Of Double)()
+                        Dim durMs As Double
+                        Try
+                            durMs = CDbl(durTok)
+                        Catch
+                            Try
+                                durMs = CType(durTok, Long)
+                            Catch
+                                durMs = 0
+                            End Try
+                        End Try
                         Dim durSec As Integer = CInt(Math.Round(durMs / 1000.0))
                         mins = durSec \ 60
                         secs = durSec Mod 60
