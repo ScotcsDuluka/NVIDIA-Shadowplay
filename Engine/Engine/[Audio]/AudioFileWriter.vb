@@ -50,19 +50,34 @@ Public Class AudioFileWriter
         Draining
     End Enum
 
+    ''' <summary>
+    ''' Wrapper for queued audio data with priority metadata.
+    '''
+    ''' IsSilence=True for synthetic silence (PreFillSilence), False for real PCM.
+    ''' When queue overflows, real audio has priority — silence chunks are
+    ''' dropped first to make room. This prevents the situation where initial
+    ''' silence fills the queue and then real audio gets dropped.
+    ''' </summary>
+    Private Class AudioChunk
+        Public Property Data As Byte()
+        Public Property IsSilence As Boolean
+    End Class
+
     Private Class TrackState
         Public Property Config As TrackConfig
         Public Property Capture As WasapiCapture
         Public Property Writer As WaveFileWriter
-        Public Property Queue As BlockingCollection(Of Byte())
+        Public Property Queue As BlockingCollection(Of AudioChunk)
         Public Property WriterThread As Thread
         Public Property CallbackCount As Long
         Public Property BytesEnqueued As Long
+        Public Property WrittenBytes As Long  ' actually written to disk by writer thread
         Public Property SamplesEnqueued As Long
         Public Property DroppedChunks As Long
         Public Property DroppedBytes As Long
         Public Property DroppedSamples As Long
         Public Property DroppedDurationSec As Double
+        Public Property DroppedSilenceBytes As Long  ' silence dropped to make room for real audio
         Public Property Failed As Boolean
         Public Property FailReason As String
         ' FirstCallbackDispatchTicks: when the first WASAPI callback was dispatched.
@@ -214,7 +229,7 @@ Public Class AudioFileWriter
             ' Bounded queue: 1000 items ≈ 10 seconds of audio.
             ' If writer can't keep up (slow disk), we drop oldest to prevent
             ' blocking the WASAPI capture callback.
-            track.Queue = New BlockingCollection(Of Byte())(1000)
+            track.Queue = New BlockingCollection(Of AudioChunk)(1000)
 
             ' Start writer thread (consumer)
             track.WriterThread = New Thread(Sub() WriterLoop(track)) With {
@@ -353,25 +368,52 @@ Public Class AudioFileWriter
             ' ── Copy audio data + enqueue (NO disk I/O here) ──
             Dim copy As Byte() = New Byte(e.BytesRecorded - 1) {}
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
+            Dim realChunk As New AudioChunk With {
+                .Data = copy,
+                .IsSilence = False
+            }
 
             ' Try to enqueue without blocking. Wrap in Try/Catch because
             ' BlockingCollection.TryAdd throws InvalidOperationException after
             ' CompleteAdding() is called (race during shutdown — see GPT review).
             ' This is a benign shutdown race: the data is lost but the callback
             ' exits cleanly instead of throwing into the WASAPI dispatch thread.
+            '
+            ' PRIORITY DROP POLICY (per GPT P0):
+            '   When queue is full and incoming is REAL audio:
+            '   - Drop oldest item (TryTake removes from front of FIFO queue)
+            '   - Since PreFillSilence runs BEFORE real audio, silence chunks
+            '     are at the FRONT of the queue → TryTake naturally drops
+            '     silence first (until all silence is consumed/dropped)
+            '   - Check IsSilence flag on dropped item to update correct counter:
+            '     * Silence dropped → decrement InitialSilenceBytes (good, made room)
+            '     * Real audio dropped → increment DroppedBytes (data loss)
+            '   This prevents synthetic silence from displacing real PCM, AND
+            '   keeps diagnostics honest about what was actually dropped.
             Try
-                If Not track.Queue.TryAdd(copy, 0) Then
-                    Dim dropped As Byte() = Nothing
+                If Not track.Queue.TryAdd(realChunk, 0) Then
+                    ' Queue full — drop oldest to make room
+                    Dim dropped As AudioChunk = Nothing
                     If track.Queue.TryTake(dropped) Then
-                        track.DroppedChunks += 1
-                        track.DroppedBytes += dropped.Length
-                        If track.FrameSize > 0 Then
-                            track.DroppedSamples += dropped.Length \ track.FrameSize
+                        If dropped.IsSilence Then
+                            ' Dropped silence — this is the preferred outcome.
+                            ' Update InitialSilenceBytes so diagnostics reflect
+                            ' actual WAV content (silence was reclaimed, not lost).
+                            track.InitialSilenceBytes -= dropped.Data.Length
+                            track.DroppedSilenceBytes += dropped.Data.Length
+                        Else
+                            ' Dropped real audio — actual data loss, track it
+                            track.DroppedChunks += 1
+                            track.DroppedBytes += dropped.Data.Length
+                            If track.FrameSize > 0 Then
+                                track.DroppedSamples += dropped.Data.Length \ track.FrameSize
+                            End If
+                            If track.BytesPerSecond > 0 Then
+                                track.DroppedDurationSec += CDbl(dropped.Data.Length) / track.BytesPerSecond
+                            End If
                         End If
-                        If track.BytesPerSecond > 0 Then
-                            track.DroppedDurationSec += CDbl(dropped.Length) / track.BytesPerSecond
-                        End If
-                        track.Queue.TryAdd(copy, 0)
+                        ' Now add the real audio (should succeed since we made room)
+                        track.Queue.TryAdd(realChunk, 0)
                     End If
                 End If
             Catch ex As InvalidOperationException
@@ -391,17 +433,20 @@ Public Class AudioFileWriter
     End Sub
 
     ''' <summary>
-    ''' Writer thread — consumes from queue, writes to disk.
+    ''' Writer thread — consumes AudioChunk from queue, writes to disk.
     ''' This is the ONLY thread that touches WaveFileWriter, so no lock needed.
+    ''' Tracks WrittenBytes for diagnostics (separate from BytesEnqueued to
+    ''' detect writer thread lag or disk write failures).
     ''' </summary>
     Private Sub WriterLoop(track As TrackState)
         Try
             While True
-                Dim chunk As Byte() = Nothing
+                Dim chunk As AudioChunk = Nothing
                 If track.Queue.TryTake(chunk, 1000) Then
                     Try
-                        If track.Writer IsNot Nothing Then
-                            track.Writer.Write(chunk, 0, chunk.Length)
+                        If track.Writer IsNot Nothing AndAlso chunk.Data IsNot Nothing Then
+                            track.Writer.Write(chunk.Data, 0, chunk.Data.Length)
+                            track.WrittenBytes += chunk.Data.Length
                         End If
                     Catch
                         Exit While
@@ -440,7 +485,10 @@ Public Class AudioFileWriter
             Dim size As Integer = CInt(Math.Min(remaining, CLng(chunkSize)))
             If track.FrameSize > 0 Then size = (size \ track.FrameSize) * track.FrameSize
             If size <= 0 Then Exit While
-            Dim silence As Byte() = New Byte(size - 1) {}
+            Dim silence As New AudioChunk With {
+                .Data = New Byte(size - 1) {},
+                .IsSilence = True
+            }
             Try
                 ' Check TryAdd return value (per GPT P0) — False means queue full,
                 ' we must NOT count this as written or diagnostics will lie.
@@ -640,11 +688,17 @@ Public Class AudioFileWriter
             Dim label As String = If(track.Config.IsSystem, "Sys", "Mic")
             sb.AppendLine("[Audio] " & label & "Callbacks=" & track.CallbackCount)
             sb.AppendLine("[Audio] " & label & "BytesEnqueued=" & track.BytesEnqueued)
+            sb.AppendLine("[Audio] " & label & "WrittenBytes=" & track.WrittenBytes)
+            Dim writeLagBytes As Long = track.BytesEnqueued - track.WrittenBytes
+            sb.AppendLine("[Audio] " & label & "WriteLagBytes=" & writeLagBytes)
             sb.AppendLine("[Audio] " & label & "SamplesEnqueued=" & track.SamplesEnqueued)
             sb.AppendLine("[Audio] " & label & "DroppedChunks=" & track.DroppedChunks)
             sb.AppendLine("[Audio] " & label & "DroppedBytes=" & track.DroppedBytes)
             sb.AppendLine("[Audio] " & label & "DroppedSamples=" & track.DroppedSamples)
             sb.AppendLine("[Audio] " & label & "DroppedDurationSec=" & track.DroppedDurationSec.ToString("F3"))
+            sb.AppendLine("[Audio] " & label & "DroppedSilenceBytes=" & track.DroppedSilenceBytes)
+            Dim droppedSilenceSec As Double = If(track.BytesPerSecond > 0, CDbl(track.DroppedSilenceBytes) / track.BytesPerSecond, 0)
+            sb.AppendLine("[Audio] " & label & "DroppedSilenceSec=" & droppedSilenceSec.ToString("F3"))
             sb.AppendLine("[Audio] " & label & "Started=" & track.Started.ToString())
             sb.AppendLine("[Audio] " & label & "StartRecordingTicks=" & track.StartRecordingTicks)
             sb.AppendLine("[Audio] " & label & "FirstCallbackDispatchTicks=" & track.FirstCallbackDispatchTicks)
