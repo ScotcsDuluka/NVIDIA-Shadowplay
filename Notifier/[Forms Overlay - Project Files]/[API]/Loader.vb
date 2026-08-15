@@ -109,30 +109,39 @@ Partial Public Class Loader
     Private Sub OnObsEvent(eventType As String, eventData As Newtonsoft.Json.Linq.JObject, raw As Newtonsoft.Json.Linq.JObject)
         Try
             Debug.WriteLine($"[OBS] OnObsEvent: {eventType}")
-            If Not obsCfg.ShouldForward(eventType) Then
-                Debug.WriteLine($"[OBS]   → skipped by config")
-                Return
-            End If
+            If Not obsCfg.ShouldForward(eventType) Then Return
 
             If eventType = "ReplayBufferSaved" Then
-                If obs IsNot Nothing AndAlso obs.ShouldSuppressDuplicate("l10n.notificationInstantReplaySaved") Then Return
-                If obs IsNot Nothing Then obs.MarkReplaySavedSuppression()
                 HandleReplayBufferSaved()
                 Return
             End If
 
-            If eventType = "ReplayBufferStateChanged" AndAlso obs IsNot Nothing AndAlso obs.IsReplayStateSuppressed() Then
-                Debug.WriteLine($"[OBS]   → ReplayBufferStateChanged suppressed (within save window)")
-                Return
-            End If
-
             Dim mapped = ObsEventMap.TryMap(eventType, eventData)
-            If mapped Is Nothing Then
-                Debug.WriteLine($"[OBS]   → no mapping for {eventType}")
-                Return
+            If mapped Is Nothing Then Return
+
+            Dim now As DateTime = DateTime.Now
+            Dim lastTime As DateTime
+            Dim lastKey As String
+
+            If eventType = "RecordStateChanged" Then
+                lastTime = _lastRecordTime
+                lastKey = _lastRecordKey
+                _lastRecordTime = now
+                _lastRecordKey = mapped.Key
+            ElseIf eventType = "ReplayBufferStateChanged" Then
+                lastTime = _lastReplayTime
+                lastKey = _lastReplayKey
+                _lastReplayTime = now
+                _lastReplayKey = mapped.Key
+            Else
+                lastTime = DateTime.MinValue
+                lastKey = ""
             End If
 
-            If obs IsNot Nothing AndAlso obs.ShouldSuppressDuplicate(mapped.Key) Then Return
+            If mapped.Key = lastKey AndAlso (now - lastTime).TotalMilliseconds < StateDedupWindowMs Then
+                Debug.WriteLine($"[OBS]   → duplicate {mapped.Key} within {StateDedupWindowMs}ms — suppressed")
+                Return
+            End If
 
             Debug.WriteLine($"[OBS]   → mapped to {mapped.Key}")
             Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"
@@ -146,6 +155,12 @@ Partial Public Class Loader
             Debug.WriteLine($"[OBS] OnObsEvent error ({eventType}): {ex.Message}")
         End Try
     End Sub
+
+    Private _lastRecordKey As String = ""
+    Private _lastReplayKey As String = ""
+    Private Const StateDedupWindowMs As Integer = 1500
+    Private _lastRecordTime As DateTime = DateTime.MinValue
+    Private _lastReplayTime As DateTime = DateTime.MinValue
 
     Private Sub HandleReplayBufferSaved()
         Dim mins As Integer = 0

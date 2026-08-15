@@ -28,11 +28,6 @@ Public Class ObsWebSocketClient
 
     Private _isReconnecting As Boolean = False
     Private _reconnectLock As New Object()
-    Private _lastShownKey As String = ""
-    Private _lastShownTime As DateTime = DateTime.MinValue
-    Private Const DedupWindowMs As Integer = 1500
-    Private _suppressReplayStateUntil As DateTime = DateTime.MinValue
-    Private Const ReplaySavedSuppressMs As Integer = 5000
 
     Public Event OnEvent(eventType As String, eventData As JObject, raw As JObject)
     Public Event OnConnected()
@@ -82,27 +77,6 @@ Public Class ObsWebSocketClient
         Disconnect()
         Connect()
     End Sub
-
-    Public Function ShouldSuppressDuplicate(key As String) As Boolean
-        If String.IsNullOrEmpty(key) Then Return False
-        Dim now As DateTime = DateTime.Now
-        If key = _lastShownKey AndAlso (now - _lastShownTime).TotalMilliseconds < DedupWindowMs Then
-            Log("warn", $"Duplicate event suppressed: {key}")
-            Return True
-        End If
-        _lastShownKey = key
-        _lastShownTime = now
-        Return False
-    End Function
-
-    Public Sub MarkReplaySavedSuppression()
-        _suppressReplayStateUntil = DateTime.Now.AddMilliseconds(ReplaySavedSuppressMs)
-        Log("info", $"ReplayBufferSaved received — suppressing replay state events for {ReplaySavedSuppressMs}ms")
-    End Sub
-
-    Public Function IsReplayStateSuppressed() As Boolean
-        Return DateTime.Now < _suppressReplayStateUntil
-    End Function
 
     Public ReadOnly Property IsConnected As Boolean
         Get
