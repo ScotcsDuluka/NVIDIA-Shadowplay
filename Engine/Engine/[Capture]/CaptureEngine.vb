@@ -96,6 +96,33 @@ Partial Public Class CaptureEngine
     Private _stopCompleted As Integer = 0
     Private _muxCompleted As Integer = 0
 
+    ' ── Last-run diagnostics (for stress test runner) ──
+    ' Set during Stop, retained for post-recording analysis.
+    ' LastAudioDiagnostics: full GetDiagnostics() output (multiline string)
+    ' LastFFmpegStatsLine: final "frame=... Lsize=... dup=... drop=... speed=..." line
+    ' LastMuxSummary: mux exit code + duration + offset values
+    Private _lastAudioDiagnostics As String = ""
+    Private _lastFFmpegStatsLine As String = ""
+    Private _lastMuxSummary As String = ""
+
+    Public ReadOnly Property LastAudioDiagnostics As String
+        Get
+            Return _lastAudioDiagnostics
+        End Get
+    End Property
+
+    Public ReadOnly Property LastFFmpegStatsLine As String
+        Get
+            Return _lastFFmpegStatsLine
+        End Get
+    End Property
+
+    Public ReadOnly Property LastMuxSummary As String
+        Get
+            Return _lastMuxSummary
+        End Get
+    End Property
+
     Public ReadOnly Property State As CaptureState
         Get
             Return _state
@@ -368,6 +395,7 @@ Partial Public Class CaptureEngine
                                          ' time (in StartAudioRecorder), no need to re-fetch here.
                                          _audioWriter.Stop()
                                          Dim diagMsg As String = _audioWriter.GetDiagnostics()
+                                         _lastAudioDiagnostics = diagMsg  ' retain for stress test runner
                                          LogDebug(diagMsg)
                                          WriteDebugLog(diagMsg)
                                          _audioWriter.Dispose()
@@ -687,6 +715,14 @@ Partial Public Class CaptureEngine
 
         LogDebug("[stderr] " & e.Data)
         WriteDebugLog("[stderr] " & e.Data)
+
+        ' ── Capture last FFmpeg stats line (for stress test runner) ──
+        ' FFmpeg emits progress lines like:
+        '   frame= 6540 fps=143 q=8.0 size= 94278KiB time=00:00:45.41 bitrate=17005.4kbits/s dup=760 drop=1 speed=0.997x elapsed=0:00:45.55
+        ' The FINAL line has "Lsize=" marker (L = last). Capture it for metrics.
+        If e.Data.Contains("frame=") AndAlso e.Data.Contains("Lsize=") Then
+            _lastFFmpegStatsLine = e.Data
+        End If
 
         ' ── Detect video start (HIGH-PRECISION sync) ──
         ' Instead of using "Output #0" (which appears BEFORE the first frame is
