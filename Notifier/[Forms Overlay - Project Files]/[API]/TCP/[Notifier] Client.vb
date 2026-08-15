@@ -4,6 +4,8 @@ Partial Public Class Loader
     Private tcp As TcpClientHelper
     Private obs As ObsWebSocketClient
     Private obsCfg As ObsConfig
+    Private obsConfigWatcher As System.Windows.Forms.Timer
+    Private Const ObsConfigPollMs As Integer = 2000
 
     Public Class NotificationData
         Public Property Key As String

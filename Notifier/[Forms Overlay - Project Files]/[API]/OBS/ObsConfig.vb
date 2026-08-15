@@ -15,12 +15,59 @@ Public Class ObsConfig
 
     Public Const FileName As String = "notifier_obs.json"
 
+    Private _lastWriteUtc As DateTime = DateTime.MinValue
+
+    Public ReadOnly Property ConfigPath As String
+        Get
+            Return Path.Combine(Application.StartupPath, FileName)
+        End Get
+    End Property
+
     Public Shared Function Load() As ObsConfig
-        Dim cfg As New ObsConfig()
-        Dim configPath As String = Path.Combine(Application.StartupPath, FileName)
+        Return LoadInternal(Nothing)
+    End Function
+
+    Public Function Reload() As Boolean
+        Dim fresh As ObsConfig = LoadInternal(Me)
+        If fresh Is Nothing Then Return False
+
+        Me.Enabled = fresh.Enabled
+        Me.Host = fresh.Host
+        Me.Port = fresh.Port
+        Me.Password = fresh.Password
+        Me.ForwardRecordStateChanged = fresh.ForwardRecordStateChanged
+        Me.ForwardReplayBufferStateChanged = fresh.ForwardReplayBufferStateChanged
+        Me.ForwardReplayBufferSaved = fresh.ForwardReplayBufferSaved
+        Me.ForwardScreenshotSaved = fresh.ForwardScreenshotSaved
+        Me._lastWriteUtc = fresh._lastWriteUtc
+        Return True
+    End Function
+
+    Public Function HasFileChanged() As Boolean
+        Try
+            If Not File.Exists(ConfigPath) Then Return False
+            Dim info As New FileInfo(ConfigPath)
+            Return info.LastWriteTimeUtc <> _lastWriteUtc
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Shared Function LoadInternal(target As ObsConfig) As ObsConfig
+        Dim cfg As ObsConfig
+        If target IsNot Nothing Then
+            cfg = target
+        Else
+            cfg = New ObsConfig()
+        End If
+
+        Dim configPath As String = cfg.ConfigPath
         If Not File.Exists(configPath) Then Return cfg
 
         Try
+            Dim info As New FileInfo(configPath)
+            cfg._lastWriteUtc = info.LastWriteTimeUtc
+
             Dim json As String
             Using fs As New FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
                 Using sr As New StreamReader(fs)
@@ -45,10 +92,12 @@ Public Class ObsConfig
 
             Debug.WriteLine("[ObsConfig] Loaded " & configPath &
                             "  enabled=" & cfg.Enabled.ToString() &
-                            "  host=" & cfg.Host & ":" & cfg.Port.ToString())
+                            "  host=" & cfg.Host & ":" & cfg.Port.ToString() &
+                            "  ts=" & cfg._lastWriteUtc.ToString("HH:mm:ss"))
         Catch ex As Exception
             Debug.WriteLine("[ObsConfig] Failed to load " & configPath &
-                            ": " & ex.Message & "  (using defaults)")
+                            ": " & ex.Message & "  (keeping previous values)")
+            Return Nothing
         End Try
 
         Return cfg

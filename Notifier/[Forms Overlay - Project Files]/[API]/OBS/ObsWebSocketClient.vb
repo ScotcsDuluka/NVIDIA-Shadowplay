@@ -15,9 +15,9 @@ Public Class ObsWebSocketClient
     Private _currentReconnectDelayMs As Integer = 1000
     Private Const MaxReconnectDelayMs As Integer = 30000
 
-    Private ReadOnly _host As String
-    Private ReadOnly _port As Integer
-    Private ReadOnly _password As String
+    Private _host As String
+    Private _port As Integer
+    Private _password As String
 
     Private _receiveBuffer(8 * 1024 - 1) As Byte
     Private _receiveStream As New StringBuilder()
@@ -37,6 +37,40 @@ Public Class ObsWebSocketClient
         _port = port
         _password = password
         _autoReconnect = autoReconnect
+    End Sub
+
+    Public ReadOnly Property CurrentHost As String
+        Get
+            Return _host
+        End Get
+    End Property
+
+    Public ReadOnly Property CurrentPort As Integer
+        Get
+            Return _port
+        End Get
+    End Property
+
+    Public ReadOnly Property CurrentPassword As String
+        Get
+            Return _password
+        End Get
+    End Property
+
+    Public Sub UpdateEndpoint(host As String, port As Integer, Optional password As String = "")
+        If host = _host AndAlso port = _port AndAlso password = _password Then Return
+
+        Log("info", $"Endpoint changed: {_host}:{_port} → {host}:{port} (password {'changed' If password <> _password Else 'unchanged'})")
+
+        _host = host
+        _port = port
+        _password = password
+
+        _isConnected = False
+        _currentReconnectDelayMs = 1000
+
+        Disconnect()
+        Connect()
     End Sub
 
     Public ReadOnly Property IsConnected As Boolean

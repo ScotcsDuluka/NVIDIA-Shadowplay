@@ -47,6 +47,47 @@ Partial Public Class Loader
         If obsCfg.Enabled Then
             StartObsBridge()
         End If
+
+        StartObsConfigWatcher()
+    End Sub
+
+    Private Sub StartObsConfigWatcher()
+        obsConfigWatcher = New System.Windows.Forms.Timer()
+        obsConfigWatcher.Interval = ObsConfigPollMs
+        AddHandler obsConfigWatcher.Tick, AddressOf OnObsConfigWatcherTick
+        obsConfigWatcher.Start()
+        Debug.WriteLine($"[OBS] Config watcher started (every {ObsConfigPollMs}ms)")
+    End Sub
+
+    Private Sub OnObsConfigWatcherTick(sender As Object, e As EventArgs)
+        Try
+            If obsCfg Is Nothing Then Return
+            If Not obsCfg.HasFileChanged() Then Return
+
+            Debug.WriteLine("[OBS] notifier_obs.json changed — reloading…")
+            If Not obsCfg.Reload() Then
+                Debug.WriteLine("[OBS] reload failed — keeping previous config")
+                Return
+            End If
+
+            If Not obsCfg.Enabled Then
+                If obs IsNot Nothing Then
+                    Debug.WriteLine("[OBS] config disabled — stopping OBS bridge")
+                    obs.Dispose()
+                    obs = Nothing
+                End If
+                Return
+            End If
+
+            If obs Is Nothing Then
+                Debug.WriteLine("[OBS] config enabled — starting OBS bridge")
+                StartObsBridge()
+            Else
+                obs.UpdateEndpoint(obsCfg.Host, obsCfg.Port, obsCfg.Password)
+            End If
+        Catch ex As Exception
+            Debug.WriteLine($"[OBS] Config watcher error: {ex.Message}")
+        End Try
     End Sub
 
     Private Sub StartObsBridge()
@@ -285,8 +326,16 @@ Partial Public Class Loader
         Notifier_Sub.Timer1.Start()
     End Sub
 
-    ' แก้: Dispose TCP + OBS ตอน form ปิด
+    ' แก้: Dispose TCP + OBS + watcher ตอน form ปิด
     Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        Try
+            If obsConfigWatcher IsNot Nothing Then
+                obsConfigWatcher.Stop()
+                obsConfigWatcher.Dispose()
+                obsConfigWatcher = Nothing
+            End If
+        Catch
+        End Try
         Try
             If tcp IsNot Nothing Then
                 tcp.Disconnect()
