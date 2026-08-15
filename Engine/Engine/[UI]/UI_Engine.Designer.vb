@@ -487,7 +487,7 @@ Partial Class UI_Engine
         ' btnOpenAudioSettings
         ' 
         btnOpenAudioSettings.Font = New Font("Segoe UI", 9F)
-        btnOpenAudioSettings.Location = New Point(864, 639)
+        btnOpenAudioSettings.Location = New Point(888, 449)
         btnOpenAudioSettings.Name = "btnOpenAudioSettings"
         btnOpenAudioSettings.Size = New Size(120, 22)
         btnOpenAudioSettings.TabIndex = 8

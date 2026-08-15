@@ -387,34 +387,45 @@ Partial Class AudioSettingsForm
         Label2.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' AudioSettingsForm
-        '
-        Me.AutoScaleDimensions = New System.Drawing.SizeF(7.0F, 15.0F)
-        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
-        Me.ClientSize = New System.Drawing.Size(516, 437)
-        Me.Controls.Add(Me.lblTitle)
-        Me.Controls.Add(Me.grpTrackMode)
-        Me.Controls.Add(Me.grpSystem)
-        Me.Controls.Add(Me.grpMic)
-        Me.Controls.Add(Me.btnApply)
-        Me.Controls.Add(Me.btnCancel)
-        Me.Controls.Add(Me.btnTest)
-        Me.Controls.Add(Me.lblStatus)
-        Me.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog
-        Me.MaximizeBox = False
-        Me.MinimizeBox = False
-        Me.Name = "AudioSettingsForm"
-        Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent
-        Me.Text = "Audio Settings — ShadowPlay Engine"
-        Me.grpTrackMode.ResumeLayout(False)
-        Me.grpTrackMode.PerformLayout()
-        Me.grpSystem.ResumeLayout(False)
-        Me.grpSystem.PerformLayout()
-        CType(Me.trkSystemVol, System.ComponentModel.ISupportInitialize).EndInit()
-        Me.grpMic.ResumeLayout(False)
-        Me.grpMic.PerformLayout()
-        CType(Me.trkMicVol, System.ComponentModel.ISupportInitialize).EndInit()
-        Me.ResumeLayout(False)
-        Me.PerformLayout()
+        ' 
+        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleMode = AutoScaleMode.Font
+        BackColor = Color.Coral
+        ClientSize = New Size(1920, 1080)
+        Controls.Add(BT_Back)
+        Controls.Add(settings_top)
+        Controls.Add(settings_menu)
+        Controls.Add(DIMBOX_2)
+        FormBorderStyle = FormBorderStyle.None
+        Icon = CType(resources.GetObject("$this.Icon"), Icon)
+        MaximizeBox = False
+        MinimizeBox = False
+        Name = "AudioSettingsForm"
+        Opacity = 0R
+        ShowInTaskbar = False
+        StartPosition = FormStartPosition.CenterScreen
+        Text = "Audio Settings — ShadowPlay Engine"
+        TopMost = True
+        TransparencyKey = Color.Coral
+        WindowState = FormWindowState.Maximized
+        grpTrackMode.ResumeLayout(False)
+        grpTrackMode.PerformLayout()
+        grpSystem.ResumeLayout(False)
+        grpSystem.PerformLayout()
+        CType(trkSystemVol, ComponentModel.ISupportInitialize).EndInit()
+        grpMic.ResumeLayout(False)
+        grpMic.PerformLayout()
+        CType(trkMicVol, ComponentModel.ISupportInitialize).EndInit()
+        CType(DIMBOX_2, ComponentModel.ISupportInitialize).EndInit()
+        CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
+        settings_menu.ResumeLayout(False)
+        settings_menu.PerformLayout()
+        CType(PictureBox5, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox4, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
+        CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
+        CType(hg2, ComponentModel.ISupportInitialize).EndInit()
+        ResumeLayout(False)
     End Sub
     Friend WithEvents grpTrackMode As System.Windows.Forms.GroupBox
     Friend WithEvents radSingle As System.Windows.Forms.RadioButton
