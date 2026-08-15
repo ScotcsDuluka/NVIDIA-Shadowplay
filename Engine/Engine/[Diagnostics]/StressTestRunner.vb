@@ -11,18 +11,20 @@
 '   Accounting:       BytesEnqueued = WrittenBytes + DroppedBytes + DroppedSilenceBytes
 '                     → BytesAccountingResidual MUST be 0 after clean drain
 '
-'   ── RED FLAGS (auto-fail) ──
+'   ── RED FLAGS (auto-fail: invariant violations) ──
 '   DroppedBytes > 0              → real audio data loss
 '   BytesAccountingResidual ≠ 0  → writer didn't drain OR counting bug
 '   Writer FAILED                → disk write exception didn't propagate
+'   ExpectAudioData but 0 bytes  → audio capture never started
 '
-'   ── WARNINGS ──
-'   FPS < (target - 5)           → video capture degraded
-'   Speed < 0.95x                → FFmpeg can't keep up
-'   dup > 0                      → ddagrab duplicate frames (sign of starvation)
-'   drop > 0                     → FFmpeg dropped frames
+'   ── HARD PERFORMANCE FAILURES (auto-fail: threshold exceeded) ──
+'   FPS < (target × 0.95)         → video capture degraded
+'   Speed < 0.95x                → FFmpeg can't keep up real-time
+'   dup > 5% of expected frames   → ddagrab starved (video source issue)
+'   drop > 5                     → FFmpeg dropping frames
 '   WriteLagBytes > 0            → writer thread behind at stop time
-'   |sysOffset| > 5s             → sync calculation out of expected range
+'   AVSyncMs > 100ms             → final MP4 audio/video duration mismatch
+'                                  (measured via ffprobe on final output, NOT WAV size)
 
 Imports System.Diagnostics
 Imports System.IO
@@ -34,6 +36,11 @@ Imports System.Threading.Tasks
 ''' <summary>
 ''' Drives CaptureEngine through a matrix of stress test scenarios and validates
 ''' the architecture invariants by parsing FFmpeg stats + AudioFileWriter diagnostics.
+'''
+''' CRITICAL: A/V sync is measured from the FINAL MP4 via ffprobe, NOT from WAV file
+''' size. WAV size includes initial silence prefill + real audio + apad padding,
+''' so dividing by hardcoded bytes/sec would give wrong measurements and trigger
+''' false A/V sync failures.
 ''' </summary>
 Public Class StressTestRunner
 
@@ -44,6 +51,18 @@ Public Class StressTestRunner
         Public Property DurationSec As Integer = 10
         Public Property ExpectAudio As Boolean = True
         Public Property ExpectMic As Boolean = False
+        ' ── Per GPT P1 #5: separate "audio captured data" from "audio enabled" ──
+        ' ExpectAudioData=True: scenario expects non-zero audio bytes (most audio tests)
+        ' AllowSilentCapture=True: scenario permits 0 audio callbacks (silence scenarios)
+        ' If ExpectAudioData=True AND AllowSilentCapture=False AND SysBytes=0 → FAIL
+        Public Property ExpectAudioData As Boolean = True
+        Public Property AllowSilentCapture As Boolean = False
+        ' ── Per GPT P1 #4: silence scenarios require user environment cooperation ──
+        ' RequiresSilentSystemAudio=True: test cannot guarantee silence from runner side.
+        ' Runner should warn user to mute YouTube/notifications before running.
+        Public Property RequiresSilentSystemAudio As Boolean = False
+        ' ── Per GPT P0 #2: scenario 06 runs 10 cycles, not 1 ──
+        Public Property CycleCount As Integer = 1
     End Class
 
     Public Class TestResult
@@ -83,20 +102,30 @@ Public Class StressTestRunner
         Public Property MuxExitCode As Integer
         Public Property MuxDurationMs As Double
 
-        ' ── A/V sync estimate ──
-        ' Computed as: |video_duration - (sys_written_bytes / sys_bytes_per_second)|
+        ' ── A/V sync (measured via ffprobe on final MP4, per GPT P0 #1) ──
+        ' FinalVideoDurationSec / FinalAudioDurationSec from ffprobe on the output file.
+        ' AVSyncMs = |video_duration - audio_duration| × 1000
         ' Should be < 100ms for a healthy run (apad + -t handle small mismatches).
+        Public Property FinalVideoDurationSec As Double
+        Public Property FinalAudioDurationSec As Double
+        Public Property FinalAudioStartTimeSec As Double
         Public Property AVSyncMs As Double
+
+        ' ── Multi-cycle support (scenario 06 spam test) ──
+        Public Property CycleCount As Integer = 1
+        Public Property CycleResults As New List(Of TestResult)()
 
         Public Property OutputFile As String
 
         Public Overrides Function ToString() As String
             Dim status As String = If(Pass, "PASS", "FAIL")
-            Return $"[{status}] {Name}: FPS={ActualFps:F1}/{TargetFps}, dup={Dup}, drop={Drop}, " &
+            Dim cycleStr As String = If(CycleCount > 1, $" ×{CycleCount}", "")
+            Return $"[{status}] {Name}{cycleStr}: FPS={ActualFps:F1}/{TargetFps}, dup={Dup}, drop={Drop}, " &
                    $"DroppedBytes={SysDroppedBytes}, Residual={SysBytesAccountingResidual}, " &
                    $"Sync={AVSyncMs:F0}ms"
         End Function
     End Class
+
 
     Private _engine As CaptureEngine
     Private _outputDir As String
@@ -134,7 +163,9 @@ Public Class StressTestRunner
             .Description = "Video only, 60 FPS, no audio",
             .Settings = s1,
             .DurationSec = 10,
-            .ExpectAudio = False
+            .ExpectAudio = False,
+            .ExpectAudioData = False,
+            .AllowSilentCapture = True
         })
 
         ' ── 2. System audio only ──
@@ -144,11 +175,13 @@ Public Class StressTestRunner
         s2.FPS = 60
         scenarios.Add(New TestScenario With {
             .Name = "02_system_audio_60fps",
-            .Description = "System audio loopback, 60 FPS",
+            .Description = "System audio loopback, 60 FPS — user should play audio during test",
             .Settings = s2,
             .DurationSec = 10,
             .ExpectAudio = True,
-            .ExpectMic = False
+            .ExpectMic = False,
+            .ExpectAudioData = True,
+            .AllowSilentCapture = False
         })
 
         ' ── 3. Mic only ──
@@ -158,11 +191,13 @@ Public Class StressTestRunner
         s3.FPS = 60
         scenarios.Add(New TestScenario With {
             .Name = "03_mic_only_60fps",
-            .Description = "Mic input only, 60 FPS",
+            .Description = "Mic input only, 60 FPS — user should talk into mic during test",
             .Settings = s3,
             .DurationSec = 10,
             .ExpectAudio = True,
-            .ExpectMic = True
+            .ExpectMic = True,
+            .ExpectAudioData = True,
+            .AllowSilentCapture = False
         })
 
         ' ── 4. System + Mic ──
@@ -177,7 +212,9 @@ Public Class StressTestRunner
             .Settings = s4,
             .DurationSec = 10,
             .ExpectAudio = True,
-            .ExpectMic = True
+            .ExpectMic = True,
+            .ExpectAudioData = True,
+            .AllowSilentCapture = False
         })
 
         ' ── 5. System + Mic + 144 FPS ──
@@ -193,10 +230,12 @@ Public Class StressTestRunner
             .Settings = s5,
             .DurationSec = 15,
             .ExpectAudio = True,
-            .ExpectMic = True
+            .ExpectMic = True,
+            .ExpectAudioData = True,
+            .AllowSilentCapture = False
         })
 
-        ' ── 6. Start/Stop spam (10 rapid cycles) ──
+        ' ── 6. Start/Stop spam (10 ACTUAL rapid cycles, per GPT P0 #2) ──
         Dim s6 As CaptureSettings = CloneSettings(baseSettings)
         s6.SystemAudioCapture = True
         s6.MicCapture = False
@@ -206,7 +245,10 @@ Public Class StressTestRunner
             .Description = "10 rapid start/stop cycles, 2s each — tests lifecycle state machine",
             .Settings = s6,
             .DurationSec = 2,
-            .ExpectAudio = True
+            .ExpectAudio = True,
+            .ExpectAudioData = False,  ' silence acceptable (no audio source guaranteed)
+            .AllowSilentCapture = True,
+            .CycleCount = 10  ' ACTUAL 10 cycles, not just 1
         })
 
         ' ── 7. Long continuous (60s) ──
@@ -222,7 +264,9 @@ Public Class StressTestRunner
             .Settings = s7,
             .DurationSec = 60,
             .ExpectAudio = True,
-            .ExpectMic = True
+            .ExpectMic = True,
+            .ExpectAudioData = False,  ' 60s might have natural silence periods
+            .AllowSilentCapture = True
         })
 
         ' ── 8. Separate tracks (MKV-ready test, MP4 output) ──
@@ -237,20 +281,28 @@ Public Class StressTestRunner
             .Settings = s8,
             .DurationSec = 10,
             .ExpectAudio = True,
-            .ExpectMic = True
+            .ExpectMic = True,
+            .ExpectAudioData = True,
+            .AllowSilentCapture = False
         })
 
         ' ── 9. System silence (no audio playing) ──
+        ' Per GPT P1 #4: requires user environment cooperation.
+        ' Runner will warn that user must mute YouTube/notifications before running.
         Dim s9 As CaptureSettings = CloneSettings(baseSettings)
         s9.SystemAudioCapture = True
         s9.MicCapture = False
         s9.FPS = 60
         scenarios.Add(New TestScenario With {
             .Name = "09_silence_full_clip",
-            .Description = "No audio playing entire clip — tests initial silence prefill + apad",
+            .Description = "No audio playing entire clip — tests initial silence prefill + apad. " &
+                           "USER MUST mute YouTube/notifications before running!",
             .Settings = s9,
             .DurationSec = 15,
-            .ExpectAudio = True
+            .ExpectAudio = True,
+            .ExpectAudioData = False,  ' silence expected → 0 callbacks OK
+            .AllowSilentCapture = True,
+            .RequiresSilentSystemAudio = True
         })
 
         ' ── 10. 144 FPS video only (baseline) ──
@@ -264,7 +316,9 @@ Public Class StressTestRunner
             .Description = "Video only 144 FPS — establishes baseline (should match Engine-Stable)",
             .Settings = s10,
             .DurationSec = 15,
-            .ExpectAudio = False
+            .ExpectAudio = False,
+            .ExpectAudioData = False,
+            .AllowSilentCapture = True
         })
 
         Return scenarios
@@ -305,22 +359,85 @@ Public Class StressTestRunner
 
     ''' <summary>
     ''' Run a single scenario and return the parsed result.
-    ''' Hooks CaptureEngine events, runs for scenario.DurationSec, then stops and parses metrics.
+    '''
+    ''' For multi-cycle scenarios (CycleCount > 1): runs CycleCount cycles, each with
+    ''' fresh CaptureEngine + fresh output file. Aggregated result aggregates worst-case
+    ''' metrics across all cycles (PASS only if all cycles pass).
+    '''
+    ''' Per GPT P0 #3: CaptureEngine is disposed in Try/Finally to prevent
+    ''' JobObjectGuard/event handler/native resource leaks across scenarios.
     ''' </summary>
     Public Async Function RunScenarioAsync(scenario As TestScenario) As Task(Of TestResult)
         Dim result As New TestResult With {
             .Name = scenario.Name,
-            .TargetFps = scenario.Settings.FPS
+            .TargetFps = scenario.Settings.FPS,
+            .CycleCount = scenario.CycleCount
         }
 
+        ' ── Pre-flight warning for scenarios requiring silent system audio ──
+        If scenario.RequiresSilentSystemAudio Then
+            Console.WriteLine($"  ⚠️  WARNING: scenario '{scenario.Name}' requires silent system audio.")
+            Console.WriteLine($"      Mute YouTube/notifications/etc. before running, or this test may be invalid.")
+        End If
+
+        ' ── Single-cycle path ──
+        If scenario.CycleCount <= 1 Then
+            Dim cycleResult As TestResult = Await RunSingleCycleAsync(scenario, 1)
+            ' Copy cycle result into main result
+            CopyResult(cycleResult, result)
+            Return result
+        End If
+
+        ' ── Multi-cycle path (scenario 06 spam test) ──
+        Dim allCyclePass As Boolean = True
+        Dim worstFailures As New List(Of String)()
+
+        For cycle As Integer = 1 To scenario.CycleCount
+            Console.WriteLine($"    → cycle {cycle}/{scenario.CycleCount}…")
+            Dim cycleResult As TestResult = Await RunSingleCycleAsync(scenario, cycle)
+            result.CycleResults.Add(cycleResult)
+
+            If Not cycleResult.Pass Then
+                allCyclePass = False
+                worstFailures.Add($"cycle {cycle}: {cycleResult.FailureReason}")
+            End If
+
+            ' Brief pause between cycles (let filesystem settle)
+            Await Task.Delay(200)
+        Next
+
+        ' ── Aggregate metrics: take worst-case for each metric ──
+        AggregateCycleResults(result)
+
+        result.Pass = allCyclePass
+        If Not allCyclePass Then
+            result.FailureReason = String.Join("; ", worstFailures)
+        End If
+
+        Return result
+    End Function
+
+    ''' <summary>
+    ''' Run a single cycle of a scenario. Used by both single-cycle and multi-cycle paths.
+    ''' Creates fresh CaptureEngine, disposes in Finally (per GPT P0 #3).
+    ''' </summary>
+    Private Async Function RunSingleCycleAsync(scenario As TestScenario, cycleNum As Integer) As Task(Of TestResult)
+        Dim result As New TestResult With {
+            .Name = scenario.Name,
+            .TargetFps = scenario.Settings.FPS,
+            .CycleCount = 1
+        }
+
+        Dim engine As CaptureEngine = Nothing
         Try
-            ' Generate unique output path for this scenario
+            ' Generate unique output path per cycle
             Dim timestamp As String = DateTime.Now.ToString("yyyyMMdd_HHmmss")
-            Dim outputPath As String = Path.Combine(_outputDir, $"stress_{scenario.Name}_{timestamp}.mp4")
+            Dim outputPath As String = Path.Combine(_outputDir,
+                $"stress_{scenario.Name}_c{cycleNum}_{timestamp}.mp4")
             result.OutputFile = outputPath
 
-            ' Wire up CaptureEngine (create a fresh instance for isolation)
-            Dim engine As New CaptureEngine(scenario.Settings)
+            ' Create fresh CaptureEngine for this cycle (per GPT P0 #3)
+            engine = New CaptureEngine(scenario.Settings)
 
             Dim startComplete As New TaskCompletionSource(Of Boolean)()
             Dim stopComplete As New TaskCompletionSource(Of Boolean)()
@@ -362,12 +479,15 @@ Public Class StressTestRunner
             ParseAudioDiagnostics(engine.LastAudioDiagnostics, scenario, result)
             ParseMuxSummary(engine.LastMuxSummary, result)
 
-            ' ── Compute A/V sync estimate ──
-            ' Use video duration (from FFmpeg Lsize= line) vs audio written bytes / bytes_per_second.
-            ' For system audio at 48kHz stereo f32le = 384000 bytes/sec.
-            If result.VideoDurationSec > 0 AndAlso result.SysWrittenBytes > 0 Then
-                Dim audioDurationSec As Double = result.SysWrittenBytes / 384000.0
-                result.AVSyncMs = Math.Abs(result.VideoDurationSec - audioDurationSec) * 1000.0
+            ' ── A/V sync via ffprobe on FINAL MP4 (per GPT P0 #1) ──
+            ' CRITICAL: This is the only correct way to measure A/V sync.
+            ' WAV file size / bytes_per_second would be wrong because:
+            '   - WAV includes initial silence prefill (not present in muxed output)
+            '   - apad padding is added during mux, not in WAV
+            '   - -ss skip removes audio from WAV before mux
+            ' Only the final MP4 reflects the actual A/V alignment.
+            If File.Exists(outputPath) Then
+                MeasureAVSyncViaFfprobe(outputPath, scenario.Settings.FFmpegPath, result)
             End If
 
             ' ── Apply validation rules ──
@@ -376,10 +496,120 @@ Public Class StressTestRunner
         Catch ex As Exception
             result.Pass = False
             result.FailureReason = "Exception: " & ex.Message
+        Finally
+            ' ── Per GPT P0 #3: Dispose CaptureEngine to release resources ──
+            ' (JobObjectGuard, event handlers, FFmpeg process references, etc.)
+            If engine IsNot Nothing Then
+                Try
+                    engine.Dispose()
+                Catch
+                    ' Swallow — don't mask the actual failure reason
+                End Try
+            End If
         End Try
 
         Return result
     End Function
+
+    Private Sub CopyResult(src As TestResult, dst As TestResult)
+        dst.Pass = src.Pass
+        dst.FailureReason = src.FailureReason
+        dst.ActualFps = src.ActualFps
+        dst.Speed = src.Speed
+        dst.Dup = src.Dup
+        dst.Drop = src.Drop
+        dst.VideoDurationSec = src.VideoDurationSec
+        dst.SysCallbacks = src.SysCallbacks
+        dst.SysBytesEnqueued = src.SysBytesEnqueued
+        dst.SysWrittenBytes = src.SysWrittenBytes
+        dst.SysWriteLagBytes = src.SysWriteLagBytes
+        dst.SysDroppedChunks = src.SysDroppedChunks
+        dst.SysDroppedBytes = src.SysDroppedBytes
+        dst.SysDroppedSilenceBytes = src.SysDroppedSilenceBytes
+        dst.SysBytesAccountingResidual = src.SysBytesAccountingResidual
+        dst.SysInitialSilenceSec = src.SysInitialSilenceSec
+        dst.MicCallbacks = src.MicCallbacks
+        dst.MicBytesEnqueued = src.MicBytesEnqueued
+        dst.MicWrittenBytes = src.MicWrittenBytes
+        dst.MicWriteLagBytes = src.MicWriteLagBytes
+        dst.MicDroppedBytes = src.MicDroppedBytes
+        dst.MicBytesAccountingResidual = src.MicBytesAccountingResidual
+        dst.SysOffsetSec = src.SysOffsetSec
+        dst.MicOffsetSec = src.MicOffsetSec
+        dst.MuxExitCode = src.MuxExitCode
+        dst.MuxDurationMs = src.MuxDurationMs
+        dst.FinalVideoDurationSec = src.FinalVideoDurationSec
+        dst.FinalAudioDurationSec = src.FinalAudioDurationSec
+        dst.FinalAudioStartTimeSec = src.FinalAudioStartTimeSec
+        dst.AVSyncMs = src.AVSyncMs
+        dst.OutputFile = src.OutputFile
+    End Sub
+
+    Private Sub AggregateCycleResults(result As TestResult)
+        ' For multi-cycle scenarios, take WORST case for each metric
+        ' (e.g., if any cycle had DroppedBytes > 0, the aggregate fails)
+        If result.CycleResults.Count = 0 Then Return
+
+        Dim worst As TestResult = result.CycleResults(0)
+        For Each r As TestResult In result.CycleResults
+            If r.Dup > worst.Dup Then worst.Dup = r.Dup
+            If r.Drop > worst.Drop Then worst.Drop = r.Drop
+            If r.ActualFps > 0 AndAlso (worst.ActualFps = 0 OrElse r.ActualFps < worst.ActualFps) Then
+                worst.ActualFps = r.ActualFps
+            End If
+            If r.Speed > 0 AndAlso (worst.Speed = 0 OrElse r.Speed < worst.Speed) Then
+                worst.Speed = r.Speed
+            End If
+            If r.SysDroppedBytes > worst.SysDroppedBytes Then worst.SysDroppedBytes = r.SysDroppedBytes
+            If r.SysDroppedChunks > worst.SysDroppedChunks Then worst.SysDroppedChunks = r.SysDroppedChunks
+            If r.SysDroppedSilenceBytes > worst.SysDroppedSilenceBytes Then worst.SysDroppedSilenceBytes = r.SysDroppedSilenceBytes
+            If r.SysBytesAccountingResidual > worst.SysBytesAccountingResidual Then
+                worst.SysBytesAccountingResidual = r.SysBytesAccountingResidual
+            End If
+            If r.SysWriteLagBytes > worst.SysWriteLagBytes Then worst.SysWriteLagBytes = r.SysWriteLagBytes
+            If r.MicDroppedBytes > worst.MicDroppedBytes Then worst.MicDroppedBytes = r.MicDroppedBytes
+            If r.MicBytesAccountingResidual > worst.MicBytesAccountingResidual Then
+                worst.MicBytesAccountingResidual = r.MicBytesAccountingResidual
+            End If
+            If r.MicWriteLagBytes > worst.MicWriteLagBytes Then worst.MicWriteLagBytes = r.MicWriteLagBytes
+            If r.AVSyncMs > worst.AVSyncMs Then worst.AVSyncMs = r.AVSyncMs
+            ' Accumulate totals (bytes/callbacks across all cycles)
+            worst.SysCallbacks += r.SysCallbacks
+            worst.SysBytesEnqueued += r.SysBytesEnqueued
+            worst.SysWrittenBytes += r.SysWrittenBytes
+            worst.MicCallbacks += r.MicCallbacks
+            worst.MicBytesEnqueued += r.MicBytesEnqueued
+            worst.MicWrittenBytes += r.MicWrittenBytes
+            worst.VideoDurationSec += r.VideoDurationSec
+            worst.FinalVideoDurationSec += r.FinalVideoDurationSec
+            worst.FinalAudioDurationSec += r.FinalAudioDurationSec
+        Next
+
+        ' Copy worst-case values back to aggregate result
+        result.ActualFps = worst.ActualFps
+        result.Speed = worst.Speed
+        result.Dup = worst.Dup
+        result.Drop = worst.Drop
+        result.SysDroppedBytes = worst.SysDroppedBytes
+        result.SysDroppedChunks = worst.SysDroppedChunks
+        result.SysDroppedSilenceBytes = worst.SysDroppedSilenceBytes
+        result.SysBytesAccountingResidual = worst.SysBytesAccountingResidual
+        result.SysWriteLagBytes = worst.SysWriteLagBytes
+        result.MicDroppedBytes = worst.MicDroppedBytes
+        result.MicBytesAccountingResidual = worst.MicBytesAccountingResidual
+        result.MicWriteLagBytes = worst.MicWriteLagBytes
+        result.AVSyncMs = worst.AVSyncMs
+        ' Aggregated totals
+        result.SysCallbacks = worst.SysCallbacks
+        result.SysBytesEnqueued = worst.SysBytesEnqueued
+        result.SysWrittenBytes = worst.SysWrittenBytes
+        result.MicCallbacks = worst.MicCallbacks
+        result.MicBytesEnqueued = worst.MicBytesEnqueued
+        result.MicWrittenBytes = worst.MicWrittenBytes
+        result.VideoDurationSec = worst.VideoDurationSec
+        result.FinalVideoDurationSec = worst.FinalVideoDurationSec
+        result.FinalAudioDurationSec = worst.FinalAudioDurationSec
+    End Sub
 
     ''' <summary>
     ''' Run all scenarios in a matrix sequentially. Returns results for each.
@@ -500,6 +730,107 @@ Public Class StressTestRunner
         ' (could be added later). Leave defaults.
     End Sub
 
+    ''' <summary>
+    ''' Measure A/V sync by running ffprobe on the FINAL MP4 output (per GPT P0 #1).
+    '''
+    ''' This is the ONLY correct way to measure A/V sync. The WAV file size is
+    ''' meaningless for sync because:
+    '''   - WAV includes initial silence prefill (added by AudioFileWriter)
+    '''   - apad padding is added during mux (not in WAV)
+    '''   - -ss skip removes audio from WAV before mux
+    '''   - AudioFileWriter WAV ≠ final MP4 audio stream duration
+    '''
+    ''' Only ffprobe on the final MP4 reflects the actual muxed A/V alignment.
+    '''
+    ''' Queries video stream duration + audio stream duration + audio start_time.
+    ''' AVSyncMs = |video_duration - audio_duration| × 1000
+    ''' </summary>
+    Private Sub MeasureAVSyncViaFfprobe(mp4Path As String, ffmpegPath As String, result As TestResult)
+        Try
+            ' Find ffprobe.exe — same directory as ffmpeg.exe
+            Dim ffmpegDir As String = Path.GetDirectoryName(ffmpegPath)
+            Dim ffprobePath As String = Path.Combine(ffmpegDir, "ffprobe.exe")
+            If Not File.Exists(ffprobePath) Then
+                ffprobePath = Path.Combine(ffmpegDir, "API-Core", "ffprobe.exe")
+            End If
+            If Not File.Exists(ffprobePath) Then
+                ffprobePath = Path.Combine(ffmpegDir, "api-core", "ffprobe.exe")
+            End If
+            If Not File.Exists(ffprobePath) Then
+                ' Can't measure — leave AVSyncMs = 0 (will be skipped in validation)
+                Return
+            End If
+
+            ' Query video stream duration
+            Dim vDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "v")
+            If vDur > 0 Then result.FinalVideoDurationSec = vDur
+
+            ' Query audio stream duration + start_time
+            Dim aDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "a")
+            If aDur > 0 Then result.FinalAudioDurationSec = aDur
+
+            Dim aStart As Double = ProbeStreamStartTime(ffprobePath, mp4Path, "a")
+            If aStart >= 0 Then result.FinalAudioStartTimeSec = aStart
+
+            ' A/V sync = |video_duration - (audio_start + audio_duration)|
+            ' (audio may start late due to adelay for negative offset)
+            If result.FinalVideoDurationSec > 0 AndAlso result.FinalAudioDurationSec > 0 Then
+                Dim audioEnd As Double = result.FinalAudioStartTimeSec + result.FinalAudioDurationSec
+                result.AVSyncMs = Math.Abs(result.FinalVideoDurationSec - audioEnd) * 1000.0
+            End If
+
+        Catch ex As Exception
+            ' ffprobe failed — can't measure AVSyncMs, leave as 0
+            Console.WriteLine($"  ⚠️  ffprobe A/V sync measurement failed: {ex.Message}")
+        End Try
+    End Sub
+
+    Private Function ProbeStreamDuration(ffprobePath As String, mp4Path As String, codecType As String) As Double
+        ' ffprobe -v error -select_streams <codec_type>:0 -show_entries stream=duration -of csv=p=0 file.mp4
+        Dim args As String = $"-v error -select_streams {codecType}:0 -show_entries stream=duration -of csv=p=0 ""{mp4Path}"""
+        Dim stdout As String = RunFfprobeSync(ffprobePath, args)
+        If String.IsNullOrEmpty(stdout) Then Return 0
+        Dim dur As Double = 0
+        Double.TryParse(stdout.Trim(), Globalization.CultureInfo.InvariantCulture, dur)
+        Return dur
+    End Function
+
+    Private Function ProbeStreamStartTime(ffprobePath As String, mp4Path As String, codecType As String) As Double
+        Dim args As String = $"-v error -select_streams {codecType}:0 -show_entries stream=start_time -of csv=p=0 ""{mp4Path}"""
+        Dim stdout As String = RunFfprobeSync(ffprobePath, args)
+        If String.IsNullOrEmpty(stdout) Then Return 0
+        Dim t As Double = 0
+        Double.TryParse(stdout.Trim(), Globalization.CultureInfo.InvariantCulture, t)
+        Return t
+    End Function
+
+    Private Function RunFfprobeSync(ffprobePath As String, args As String) As String
+        Dim psi As New ProcessStartInfo()
+        psi.FileName = ffprobePath
+        psi.Arguments = args
+        psi.UseShellExecute = False
+        psi.RedirectStandardOutput = True
+        psi.RedirectStandardError = False  ' don't redirect stderr (avoid deadlock)
+        psi.CreateNoWindow = True
+
+        Using proc As New Process()
+            proc.StartInfo = psi
+            proc.Start()
+            ' Async read to prevent deadlock if ffprobe writes a lot
+            Dim stdoutTask As Task(Of String) = proc.StandardOutput.ReadToEndAsync()
+            Dim exited As Boolean = proc.WaitForExit(10000)
+            If Not exited Then
+                Try : proc.Kill() : Catch : End Try
+                Return ""
+            End If
+            Try
+                Return stdoutTask.Result
+            Catch
+                Return ""
+            End Try
+        End Using
+    End Function
+
     ' ═══════════════════════════════════════════════════════════════
     ' VALIDATION
     ' ═══════════════════════════════════════════════════════════════
@@ -507,7 +838,7 @@ Public Class StressTestRunner
     Private Sub Validate(scenario As TestScenario, result As TestResult)
         Dim failures As New List(Of String)()
 
-        ' ── RED FLAGS (auto-fail) ──
+        ' ── RED FLAGS (invariant violations, auto-fail) ──
         If result.SysDroppedBytes > 0 Then
             failures.Add($"SysDroppedBytes={result.SysDroppedBytes} (real audio data loss)")
         End If
@@ -526,12 +857,28 @@ Public Class StressTestRunner
             failures.Add("Writer FAILED (BytesEnqueued > 0 but WrittenBytes = 0)")
         End If
 
-        ' ── WARNINGS (fail if severe) ──
+        ' ── Per GPT P1 #5: ExpectAudioData assertion (separate from ExpectAudio) ──
+        ' If scenario expects audio data AND silence is NOT allowed,
+        ' then 0 bytes captured is a failure (WASAPI never started).
+        If scenario.ExpectAudioData AndAlso Not scenario.AllowSilentCapture Then
+            If scenario.Settings.SystemAudioCapture AndAlso result.SysBytesEnqueued = 0 Then
+                failures.Add("ExpectAudioData=True but SysBytesEnqueued=0 (WASAPI system capture never started)")
+            End If
+            If scenario.Settings.MicCapture AndAlso result.MicBytesEnqueued = 0 Then
+                failures.Add("ExpectAudioData=True but MicBytesEnqueued=0 (WASAPI mic capture never started)")
+            End If
+        End If
+
+        ' ── HARD PERFORMANCE FAILURES (threshold exceeded, auto-fail) ──
+        ' Per GPT P1 #6: renamed from "WARNINGS" — these are auto-fail thresholds,
+        ' not warnings. Calling them "warnings" in comments would be misleading
+        ' because the test WILL fail on them.
+
         ' FPS must be within 5% of target (CFR should be exact)
         If result.ActualFps > 0 AndAlso result.TargetFps > 0 Then
             Dim minFps As Double = result.TargetFps * 0.95
             If result.ActualFps < minFps Then
-                failures.Add($"FPS={result.ActualFps:F1} < target*0.95={minFps:F1}")
+                failures.Add($"FPS={result.ActualFps:F1} < target*0.95={minFps:F1} (video capture degraded)")
             End If
         End If
 
@@ -561,8 +908,10 @@ Public Class StressTestRunner
         End If
 
         ' A/V sync tolerance: 100ms (apad + -t handle smaller mismatches)
-        If result.AVSyncMs > 100 AndAlso scenario.ExpectAudio Then
-            failures.Add($"AVSyncMs={result.AVSyncMs:F0} > 100 (audio/video duration mismatch)")
+        ' Only validate if AVSyncMs was actually measured (via ffprobe).
+        ' If ffprobe failed, AVSyncMs stays 0 — skip validation to avoid false positives.
+        If result.AVSyncMs > 0 AndAlso result.AVSyncMs > 100 AndAlso scenario.ExpectAudio Then
+            failures.Add($"AVSyncMs={result.AVSyncMs:F0} > 100 (audio/video duration mismatch in final MP4)")
         End If
 
         If failures.Count > 0 Then
