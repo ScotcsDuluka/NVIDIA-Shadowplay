@@ -67,11 +67,19 @@ Partial Public Class Loader
 
     Private Sub OnObsEvent(eventType As String, eventData As Newtonsoft.Json.Linq.JObject, raw As Newtonsoft.Json.Linq.JObject)
         Try
-            If Not obsCfg.ShouldForward(eventType) Then Return
+            Debug.WriteLine($"[OBS] OnObsEvent: {eventType}")
+            If Not obsCfg.ShouldForward(eventType) Then
+                Debug.WriteLine($"[OBS]   → skipped by config")
+                Return
+            End If
 
             Dim mapped = ObsEventMap.TryMap(eventType, eventData)
-            If mapped Is Nothing Then Return
+            If mapped Is Nothing Then
+                Debug.WriteLine($"[OBS]   → no mapping for {eventType}")
+                Return
+            End If
 
+            Debug.WriteLine($"[OBS]   → mapped to {mapped.Key}")
             Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"
 
             If Me.InvokeRequired Then

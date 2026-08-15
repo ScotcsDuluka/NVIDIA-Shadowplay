@@ -128,6 +128,7 @@ Public Class ObsWebSocketClient
                 Dim eventType As String = eventTypeTok.Value(Of String)()
                 If eventType Is Nothing Then Return
                 Dim eventData As JObject = TryCast(d("eventData"), JObject)
+                Log("info", $"Event received: {eventType}  data={If(eventData?.ToString(Newtonsoft.Json.Formatting.None), "{}")}")
                 RaiseEvent OnEvent(eventType, eventData, msg)
             Case Else
         End Select
@@ -214,8 +215,22 @@ Public Class ObsWebSocketClient
     End Sub
 
     Private Sub Log(level As String, message As String)
-        Debug.WriteLine($"[ObsWS:{level}] {message}")
+        Dim line As String = $"[ObsWS:{level}] {DateTime.Now:HH:mm:ss.fff} {message}"
+        Debug.WriteLine(line)
+        WriteLogFile(line)
         RaiseEvent OnLog(level, message)
+    End Sub
+
+    Private Shared Sub WriteLogFile(line As String)
+        Try
+            Dim logPath As String = System.IO.Path.Combine(Application.StartupPath, "notifier_obs.log")
+            Using fs As New FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
+                Using sw As New StreamWriter(fs)
+                    sw.WriteLine(line)
+                End Using
+            End Using
+        Catch
+        End Try
     End Sub
 
     Public Sub Dispose() Implements IDisposable.Dispose
