@@ -1,1 +1,169 @@
-test
+' JobObjectGuard.vb
+' Tie FFmpeg child process to a Win32 Job Object with KILL_ON_JOB_CLOSE.
+'
+' Problem (P1):
+'   If the Engine process is killed (Task Manager, crash, logoff), the
+'   ffmpeg.exe child keeps running as an orphan — still consuming GPU/CPU,
+'   still holding the output file open, still writing frames to nowhere.
+'
+' Fix:
+'   Create one Job Object per CaptureEngine instance, with
+'   JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE. Assign every spawned ffmpeg to it.
+'   When the Engine process dies for any reason, Windows automatically
+'   kills all processes in the Job → ffmpeg dies with it.
+'
+'   The job handle is held alive by _jobHandle (a SafeHandle) for the
+'   lifetime of the CaptureEngine instance. When CaptureEngine.Dispose
+'   runs (or the Engine process exits and the SafeHandle finalizes),
+'   the handle closes and Windows cleans up the children.
+'
+'   Note: We do NOT set JOB_OBJECT_LIMIT_BREAKAWAY_OK, so ffmpeg cannot
+'   escape the job even if it tried.
+
+Imports System.ComponentModel
+Imports System.Diagnostics
+Imports System.Runtime.InteropServices
+Imports Microsoft.Win32.SafeHandles
+
+Public NotInheritable Class JobObjectGuard
+    Implements IDisposable
+
+    Private _handle As SafeFileHandle = Nothing
+    Private _disposed As Boolean = False
+
+    ' ── P/Invoke ─────────────────────────────────────────────
+
+    Private Const JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE As UInteger = &H2000
+
+    <StructLayout(LayoutKind.Sequential)>
+    Private Structure JOBOBJECT_EXTENDED_LIMIT_INFORMATION
+        Public BasicLimitInformation As JOBOBJECT_BASIC_LIMIT_INFORMATION
+        Public IoInfo As IO_COUNTERS
+        Public ProcessMemoryLimit As UIntPtr
+        Public JobMemoryLimit As UIntPtr
+        Public PeakProcessMemoryUsed As UIntPtr
+        Public PeakJobMemoryUsed As UIntPtr
+    End Structure
+
+    <StructLayout(LayoutKind.Sequential)>
+    Private Structure JOBOBJECT_BASIC_LIMIT_INFORMATION
+        Public PerProcessUserTimeLimit As Int64
+        Public PerJobUserTimeLimit As Int64
+        Public LimitFlags As UInteger
+        Public MinimumWorkingSetSize As UIntPtr
+        Public MaximumWorkingSetSize As UIntPtr
+        Public ActiveProcessLimit As UInteger
+        Public Affinity As UIntPtr
+        Public PriorityClass As UInteger
+        Public SchedulingClass As UInteger
+    End Structure
+
+    <StructLayout(LayoutKind.Sequential)>
+    Private Structure IO_COUNTERS
+        Public ReadOperationCount As ULong
+        Public WriteOperationCount As ULong
+        Public OtherOperationCount As ULong
+        Public ReadTransferCount As ULong
+        Public WriteTransferCount As ULong
+        Public OtherTransferCount As ULong
+    End Structure
+
+    Private Const JobObjectExtendedLimitInformation As Integer = 9
+    Private Const JOB_OBJECT_MSG_EXIT_PROCESS As UInteger = 7
+
+    <DllImport("kernel32.dll", SetLastError:=True, CharSet:=CharSet.Unicode)>
+    Private Shared Function CreateJobObject(lpJobAttributes As IntPtr, lpName As String) As IntPtr
+    End Function
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function SetInformationJobObject(hJob As IntPtr,
+                                                    infoClass As Integer,
+                                                    ByRef lpJobObjectInfo As JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+                                                    cbJobObjectInfoLength As UInteger) As Boolean
+    End Function
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function AssignProcessToJobObject(hJob As IntPtr, hProcess As IntPtr) As Boolean
+    End Function
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function CloseHandle(hObject As IntPtr) As Boolean
+    End Function
+
+    ' ── Public API ───────────────────────────────────────────
+
+    Public Sub New()
+        Dim rawHandle As IntPtr = CreateJobObject(IntPtr.Zero, Nothing)
+        If rawHandle = IntPtr.Zero Then
+            Throw New Win32Exception(Marshal.GetLastWin32Error())
+        End If
+
+        ' Configure KILL_ON_JOB_CLOSE so children die when this handle is closed.
+        Dim info As New JOBOBJECT_EXTENDED_LIMIT_INFORMATION()
+        info.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+
+        If Not SetInformationJobObject(rawHandle, JobObjectExtendedLimitInformation, info, CUInt(Marshal.SizeOf(Of JOBOBJECT_EXTENDED_LIMIT_INFORMATION)())) Then
+            Dim err As Integer = Marshal.GetLastWin32Error()
+            CloseHandle(rawHandle)
+            Throw New Win32Exception(err)
+        End If
+
+        ' Wrap in a SafeFileHandle so finalization closes the handle even if
+        ' Dispose is never called (Engine crash). When the handle closes,
+        ' Windows kills every process assigned to the job.
+        _handle = New SafeFileHandle(rawHandle, ownsHandle:=True)
+    End Sub
+
+    ''' <summary>
+    ''' Assign a process to this job and raise its CPU scheduling priority.
+    '''
+    ''' FFmpeg capture is the realtime-critical path. AboveNormal priority is
+    ''' deliberately used instead of High/Realtime so the OS retains headroom
+    ''' for audio, UI, and system work. The mux FFmpeg process is also assigned
+    ''' this priority, but it starts only after recording has stopped.
+    ''' </summary>
+    Public Sub Assign(process As Process)
+        If _handle Is Nothing OrElse _handle.IsInvalid Then Return
+        If process Is Nothing Then Return
+
+        Dim hProc As IntPtr = IntPtr.Zero
+        Try
+            hProc = process.Handle
+        Catch
+        End Try
+        If hProc = IntPtr.Zero Then Return
+
+        Dim success As Boolean = False
+        Try
+            _handle.DangerousAddRef(success)
+            If Not success Then Return
+            Dim rawHandle As IntPtr = _handle.DangerousGetHandle()
+            AssignProcessToJobObject(rawHandle, hProc)
+        Catch
+            ' Silently swallow — orphan protection is best-effort.
+        Finally
+            If success Then
+                Try
+                    _handle.DangerousRelease()
+                Catch
+                End Try
+            End If
+        End Try
+
+        ' Best-effort priority bump. Failure must never prevent recording.
+        Try
+            process.PriorityClass = ProcessPriorityClass.AboveNormal
+        Catch
+        End Try
+    End Sub
+
+    Public Sub Dispose() Implements IDisposable.Dispose
+        If _disposed Then Return
+        _disposed = True
+        If _handle IsNot Nothing Then
+            _handle.Dispose()
+            _handle = Nothing
+        End If
+    End Sub
+
+End Class
