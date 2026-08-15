@@ -197,37 +197,6 @@ Partial Public Class Loader
             End If
         End If
 
-        Try
-            Dim resp = obs.SendRequest("GetReplayBufferStatus", Nothing, 1500)
-            If resp Is Nothing Then
-                ObsLog("HandleReplayBufferSaved: GetReplayBufferStatus timed out — showing toast with 0/0")
-            Else
-                ObsLog($"HandleReplayBufferSaved: response={resp.ToString(Newtonsoft.Json.Formatting.None)}")
-                Dim dataTok As Newtonsoft.Json.Linq.JToken = resp("responseData")
-                If dataTok IsNot Nothing Then
-                    Dim durTok As Newtonsoft.Json.Linq.JToken = dataTok("replayBufferDuration")
-                    If durTok IsNot Nothing Then
-                        Dim durMs As Double
-                        Try
-                            durMs = CDbl(durTok)
-                        Catch
-                            Try
-                                durMs = CType(durTok, Long)
-                            Catch
-                                durMs = 0
-                            End Try
-                        End Try
-                        Dim durSec As Integer = CInt(Math.Round(durMs / 1000.0))
-                        mins = durSec \ 60
-                        secs = durSec Mod 60
-                        ObsLog($"HandleReplayBufferSaved: durMs={durMs} → {mins}m {secs}s")
-                    End If
-                End If
-            End If
-        Catch ex As Exception
-            ObsLog($"HandleReplayBufferSaved: GetReplayBufferStatus error: {ex.Message}")
-        End Try
-
         Dim msg As String = $"[NVIDIA Overlay]|l10n.notificationInstantReplaySaved"
         Dim args As String() = {mins.ToString(), secs.ToString()}
 
