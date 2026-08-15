@@ -78,6 +78,23 @@
                         <AutoGen>True</AutoGen>
                         <DependentUpon>Application.myapp</DependentUpon>
                 </Compile>
+
+                <!-- WinForms Designer files: must be DependentUpon parent form + have resx.
+                     Without this, SDK auto-glob generates duplicate resource names
+                     (NVIDIA_Capture.AudioSettingsForm.resources from BOTH .vb AND .Designer.vb). -->
+                <Compile Update="Engine\Engine\[UI]\AudioSettingsForm.Designer.vb">
+                        <DependentUpon>AudioSettingsForm.vb</DependentUpon>
+                </Compile>
+                <Compile Update="Engine\Engine\[UI]\UI_Engine.Designer.vb">
+                        <DependentUpon>UI_Engine.vb</DependentUpon>
+                </Compile>
+
+                <EmbeddedResource Update="Engine\Engine\[UI]\AudioSettingsForm.resx">
+                        <DependentUpon>AudioSettingsForm.vb</DependentUpon>
+                </EmbeddedResource>
+                <EmbeddedResource Update="Engine\Engine\[UI]\UI_Engine.resx">
+                        <DependentUpon>UI_Engine.vb</DependentUpon>
+                </EmbeddedResource>
         </ItemGroup>
 
         <ItemGroup>

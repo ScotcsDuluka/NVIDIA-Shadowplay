@@ -73,9 +73,14 @@ Partial Public Class CaptureEngine
 
         Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
 
+        ' Declare outside the If so they're visible to the later -filter_complex
+        ' block (which references sysFmt.ChannelLayout + micFmt.ChannelLayout).
+        Dim sysFmt As AudioFormat = Nothing
+        Dim micFmt As AudioFormat = Nothing
+
         If hasNAudio Then
-            Dim sysFmt As AudioFormat = DetectSystemFormat()
-            Dim micFmt As AudioFormat = DetectMicFormat(_settings.MicDeviceId, _settings.MicDeviceName)
+            sysFmt = DetectSystemFormat()
+            micFmt = DetectMicFormat(_settings.MicDeviceId, _settings.MicDeviceName)
 
             Dim sysEnabled As Boolean = _settings.SystemAudioCapture
             Dim micEnabled As Boolean = _settings.MicCapture AndAlso

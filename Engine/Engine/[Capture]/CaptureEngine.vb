@@ -536,8 +536,8 @@ Partial Public Class CaptureEngine
                 .MicCapture = _settings.MicCapture,
                 .SystemAudioVolume = _settings.SystemAudioVolume,
                 .MicVolume = _settings.MicVolume,
-                .MicDeviceName = _settings.MicDeviceName,
-                .TrackMode = _settings.AudioTrackMode
+                .MicDeviceId = _settings.MicDeviceId,
+                .MicDeviceName = _settings.MicDeviceName
             }
             _audioEngine = New NAudioCaptureEngine(cfg)
             _audioPipeStream = sysStream
