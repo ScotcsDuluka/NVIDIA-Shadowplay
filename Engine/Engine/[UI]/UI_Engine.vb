@@ -91,6 +91,7 @@ Partial Public Class UI_Engine
         AddHandler chkNativeRes.CheckedChanged, AddressOf OnNativeResChanged
         AddHandler btnRecord.Click, AddressOf OnRecordClick
         AddHandler btnStop.Click, AddressOf OnStopClick
+        AddHandler btnStressTest.Click, AddressOf OnStressTestClick
         AddHandler btnBrowse.Click, AddressOf OnBrowseOutput
         AddHandler btnFFmpegBrowse.Click, AddressOf OnBrowseFFmpeg
         AddHandler btnDetect.Click, AddressOf OnDetectClick
@@ -770,6 +771,113 @@ Partial Public Class UI_Engine
             btnRecord.Enabled = True
         Catch
             btnRecord.Enabled = True
+        End Try
+    End Sub
+
+    ' ── Stress Test ────────────────────────────────────────────
+
+    ''' <summary>
+    ''' Run the 10-scenario stress test matrix.
+    ''' Uses current _settings (FFmpegPath, MicDeviceId, etc.) as base, then
+    ''' each scenario clones + modifies specific fields (FPS, audio flags, etc.).
+    '''
+    ''' Pre-test warnings:
+    '''   - Scenario 09 requires SILENT system audio (mute YouTube/notifications)
+    '''   - Scenarios 02-08 expect audio data (play audio + talk into mic)
+    '''
+    ''' Output: written to {OutputDirectory}\StressTest\stress_results_*.txt
+    ''' </summary>
+    Private Async Sub OnStressTestClick(sender As Object, e As EventArgs)
+        If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
+            MessageBox.Show("Cannot run stress test while recording is active. Stop recording first.",
+                          "Stress Test", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Dim outputDir As String = ""
+        Try
+            btnStressTest.Enabled = False
+            btnStressTest.Text = "Running stress test…"
+
+            ' Use current settings as base (FFmpegPath, MicDeviceId, Encoder, etc.)
+            outputDir = Path.Combine(_settings.OutputDirectory, "StressTest")
+            If Not Directory.Exists(outputDir) Then
+                Directory.CreateDirectory(outputDir)
+            End If
+
+            ' Show pre-test instructions
+            Dim proceed As DialogResult = MessageBox.Show(
+                "Stress test will run 10 scenarios (~5 minutes total)." & vbCrLf & vbCrLf &
+                "PRE-TEST INSTRUCTIONS:" & vbCrLf &
+                "  • Scenarios 02-08: PLAY AUDIO + TALK INTO MIC" & vbCrLf &
+                "  • Scenario 09: MUTE YouTube/notifications (silence required)" & vbCrLf &
+                "  • Scenario 06: 10 rapid start/stop cycles (automatic)" & vbCrLf & vbCrLf &
+                "Output will be saved to:" & vbCrLf & outputDir & vbCrLf & vbCrLf &
+                "Continue?",
+                "Stress Test Matrix", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+
+            If proceed <> DialogResult.Yes Then
+                Return
+            End If
+
+            ' Build runner — pass Nothing for engine (RunSingleCycleAsync creates its own)
+            Dim runner As New StressTestRunner(Nothing, outputDir)
+            Dim scenarios As List(Of StressTestRunner.TestScenario) = runner.BuildDefaultMatrix()
+
+            ' Override base settings fields that come from UI config
+            For Each s As StressTestRunner.TestScenario In scenarios
+                s.Settings.FFmpegPath = _settings.FFmpegPath
+                s.Settings.Encoder = _settings.Encoder
+                s.Settings.CaptureMethod = _settings.CaptureMethod
+                s.Settings.UseNativeResolution = _settings.UseNativeResolution
+                s.Settings.CustomWidth = _settings.CustomWidth
+                s.Settings.CustomHeight = _settings.CustomHeight
+                s.Settings.NvencPreset = _settings.NvencPreset
+                s.Settings.PixelFormat = _settings.PixelFormat
+                s.Settings.OutputDirectory = outputDir
+                ' Inherit mic device from UI config (so scenarios 03/04/05/08 use correct device)
+                If s.Settings.MicCapture Then
+                    s.Settings.MicDeviceId = _settings.MicDeviceId
+                    s.Settings.MicDeviceName = _settings.MicDeviceName
+                    s.Settings.MicVolume = _settings.MicVolume
+                End If
+                If s.Settings.SystemAudioCapture Then
+                    s.Settings.SystemAudioVolume = _settings.SystemAudioVolume
+                End If
+            Next
+
+            Console.WriteLine($"Running {scenarios.Count} scenarios…")
+
+            Dim results As List(Of StressTestRunner.TestResult) =
+                Await runner.RunMatrixAsync(scenarios,
+                    Sub(r As StressTestRunner.TestResult, done As Integer, total As Integer)
+                        Console.WriteLine($"  [{done}/{total}] {r}")
+                    End Sub)
+
+            Dim table As String = StressTestRunner.FormatResultTable(results)
+            Console.WriteLine(table)
+
+            ' Save to file
+            Dim timestamp As String = DateTime.Now.ToString("yyyyMMdd_HHmmss")
+            Dim logPath As String = Path.Combine(outputDir, $"stress_results_{timestamp}.txt")
+            File.WriteAllText(logPath, table)
+
+            ' Show summary
+            Dim passCount As Integer = results.Count(Function(r) r.Pass)
+            Dim failCount As Integer = results.Count - passCount
+            Dim summary As String = $"Stress test complete!{vbCrLf}{vbCrLf}" &
+                                   $"Total: {results.Count}  |  Pass: {passCount}  |  Fail: {failCount}{vbCrLf}{vbCrLf}" &
+                                   $"Full results saved to:{vbCrLf}{logPath}"
+            MessageBox.Show(summary, "Stress Test Complete",
+                          MessageBoxButtons.OK,
+                          If(failCount = 0, MessageBoxIcon.Information, MessageBoxIcon.Warning))
+
+        Catch ex As Exception
+            MessageBox.Show($"Stress test failed: {ex.Message}{vbCrLf}{vbCrLf}{ex.StackTrace}",
+                          "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+        Finally
+            btnStressTest.Enabled = True
+            btnStressTest.Text = "Run Stress Test Matrix (10 scenarios)"
         End Try
     End Sub
 

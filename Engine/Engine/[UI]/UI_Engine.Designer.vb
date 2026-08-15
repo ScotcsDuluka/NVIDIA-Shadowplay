@@ -676,6 +676,18 @@ Partial Class UI_Engine
         btnStop.Size = New Size(240, 32)
         btnStop.TabIndex = 10
         btnStop.Text = "Stop"
+        '
+        ' btnStressTest — runs the 10-scenario stress test matrix
+        '
+        btnStressTest.Cursor = Cursors.Hand
+        btnStressTest.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        btnStressTest.ForeColor = Color.White
+        btnStressTest.Location = New Point(47, 670)
+        btnStressTest.Name = "btnStressTest"
+        btnStressTest.Size = New Size(490, 32)
+        btnStressTest.TabIndex = 20
+        btnStressTest.Text = "Run Stress Test Matrix (10 scenarios)"
+        btnStressTest.UseVisualStyleBackColor = True
         ' 
         ' tmrRecording
         ' 
@@ -734,6 +746,7 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(btnStop)
         settings_menu.Controls.Add(pnlRes)
         settings_menu.Controls.Add(btnRecord)
+        settings_menu.Controls.Add(btnStressTest)
         settings_menu.Controls.Add(pnlPerf)
         settings_menu.Controls.Add(lblConfigSource)
         settings_menu.Controls.Add(pnlPreset)
@@ -951,6 +964,7 @@ Partial Class UI_Engine
     Friend WithEvents btnFFmpegBrowse As System.Windows.Forms.Button
     Friend WithEvents btnRecord As System.Windows.Forms.Button
     Friend WithEvents btnStop As System.Windows.Forms.Button
+    Friend WithEvents btnStressTest As System.Windows.Forms.Button
     Friend WithEvents btnDetect As System.Windows.Forms.Button
     Friend WithEvents tmrRecording As System.Windows.Forms.Timer
     Friend WithEvents lblTitle As Label
