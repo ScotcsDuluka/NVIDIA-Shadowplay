@@ -232,31 +232,33 @@ Partial Public Class CaptureEngine
         If hasSystem AndAlso hasMic Then
             If isSeparate Then
                 ' Two separate audio tracks in output
+                ' aresample=async=1:first_pts=0 = sample-accurate start + continuous drift correction
                 sb.Append("-map 0:v -map 1:a -map 2:a ")
-                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)} ")
-                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)} ")
+                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0 ")
+                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0 ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a:0 aac -b:a:0 320k -ar:a:0 48000 ")
                 sb.Append("-c:a:1 aac -b:a:1 320k -ar:a:1 48000 ")
             Else
                 ' Mix system + mic into single track using -filter_complex amix
-                sb.Append("-filter_complex ""[1:a]volume=" & FormatVolume(_settings.SystemAudioVolume) & ",aresample=48000[a0];" &
-                          "[2:a]volume=" & FormatVolume(_settings.MicVolume) & ",aresample=48000[a1];" &
+                ' aresample=async=1:first_pts=0 on each input = sample-accurate start alignment
+                sb.Append("-filter_complex ""[1:a]volume=" & FormatVolume(_settings.SystemAudioVolume) & ",aresample=48000:async=1:first_pts=0[a0];" &
+                          "[2:a]volume=" & FormatVolume(_settings.MicVolume) & ",aresample=48000:async=1:first_pts=0[a1];" &
                           "[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]"" ")
                 sb.Append("-map 0:v -map [aout] ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a aac -b:a 320k -ar 48000 ")
             End If
         ElseIf hasSystem Then
-            ' System only
+            ' System only — aresample=async=1:first_pts=0 for sample-accurate start
             sb.Append("-map 0:v -map 1:a ")
-            sb.Append($"-af volume={FormatVolume(_settings.SystemAudioVolume)} ")
+            sb.Append($"-af volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0 ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         ElseIf hasMic Then
             ' Mic only (system failed/disabled)
             sb.Append("-map 0:v -map 1:a ")
-            sb.Append($"-af volume={FormatVolume(_settings.MicVolume)} ")
+            sb.Append($"-af volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0 ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         Else

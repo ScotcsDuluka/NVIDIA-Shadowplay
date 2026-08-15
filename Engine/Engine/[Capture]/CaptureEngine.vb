@@ -75,13 +75,12 @@ Partial Public Class CaptureEngine
     ' ── High-precision sync timestamps ──
     ' These are used at mux time to align audio with video to sample accuracy.
     ' _audioStartTicks: when AudioFileWriter.Start() was called
-    ' _videoStartTicks: when FFmpeg's "Output #0" was detected (= first frame encoded)
-    ' _stopTicks: when Stop was called
-    ' audioOffset = (_videoStartTicks - _audioStartTicks) / freq → seconds of audio
-    '                to skip at mux time (leading silence before video started)
+    ' _videoStartTicks: when FFmpeg's first frame= status was back-calculated to
+    ' _audioWasapiLatencyMs: WASAPI buffer latency (first sample captured before start)
     Private _audioStartTicks As Long = 0
     Private _videoStartTicks As Long = 0
     Private _videoStartDetected As Boolean = False
+    Private _audioWasapiLatencyMs As Double = 0.0
 
     Private _stopCompleted As Integer = 0
 
@@ -189,6 +188,7 @@ Partial Public Class CaptureEngine
                                          _audioStartTicks = 0
                                          _videoStartTicks = 0
                                          _videoStartDetected = False
+                                         _audioWasapiLatencyMs = 0.0
 
                                          ffmpegOutputPath = _tempVideoPath
                                          LogDebug("[Two-Process] Audio enabled — video → temp, audio → wav, mux at stop")
@@ -351,6 +351,8 @@ Partial Public Class CaptureEngine
                                      If _audioWriter IsNot Nothing Then
                                          LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
                                          WriteDebugLog("[Audio] Stopping audio recorder…")
+                                         ' Capture WASAPI latency BEFORE dispose (needed for mux offset calculation)
+                                         _audioWasapiLatencyMs = Math.Max(_audioWriter.SystemLatencyMs, _audioWriter.MicLatencyMs)
                                          _audioWriter.Stop()
                                          Dim diagMsg As String = _audioWriter.GetDiagnostics()
                                          LogDebug(diagMsg)
@@ -430,10 +432,23 @@ Partial Public Class CaptureEngine
         Dim videoDurationSec As Double = GetVideoDurationSec(_tempVideoPath)
         Dim audioOffsetSec As Double = 0.0
         If _videoStartDetected AndAlso _audioStartTicks > 0 Then
-            audioOffsetSec = (_videoStartTicks - _audioStartTicks) / Stopwatch.Frequency
+            ' ── Compute audio offset with WASAPI latency compensation ──
+            ' audioOffset = time between audio start and video start
+            ' MINUS the WASAPI buffer latency (because the first audio sample in
+            ' the .wav was actually captured 'latencyMs' BEFORE the first callback,
+            ' which means it was captured 'latencyMs' before _audioStartTicks).
+            '
+            ' Without this compensation, audio would be offset by ~10ms too much
+            ' (we'd skip 10ms of audio that actually corresponds to video frame 0).
+            Dim rawOffsetSec As Double = (_videoStartTicks - _audioStartTicks) / Stopwatch.Frequency
+            Dim latencySec As Double = _audioWasapiLatencyMs / 1000.0
+            audioOffsetSec = rawOffsetSec - latencySec
             ' Clamp to reasonable range (0-5s) to avoid malformed -ss values
             If audioOffsetSec < 0 Then audioOffsetSec = 0
             If audioOffsetSec > 5.0 Then audioOffsetSec = 5.0
+
+            LogDebug($"[Mux] rawOffset={rawOffsetSec:F3}s, wasapiLatency={latencySec:F3}s, adjustedOffset={audioOffsetSec:F3}s")
+            WriteDebugLog($"[Mux] rawOffset={rawOffsetSec:F3}s, wasapiLatency={latencySec:F3}s, adjustedOffset={audioOffsetSec:F3}s")
         End If
 
         LogDebug($"[Mux] videoDuration={videoDurationSec:F3}s, audioOffset={audioOffsetSec:F3}s")

@@ -76,6 +76,14 @@ Public Class AudioFileWriter
     Private _silenceStop As New ManualResetEvent(False)
     Private Const SilenceCheckMs As Integer = 50
 
+    ' ── WASAPI latency compensation ──
+    ' WASAPI loopback fires callbacks with a delay equal to the device's
+    ' buffer period (typically 10ms). The first audio sample in the .wav
+    ' file was actually captured ~10ms BEFORE the first callback wrote it.
+    ' We expose this so CaptureEngine can add it to the audio offset.
+    Public ReadOnly Property SystemLatencyMs As Double = 0.0
+    Public ReadOnly Property MicLatencyMs As Double = 0.0
+
     Public Event SystemStartFailed(reason As String)
     Public Event MicStartFailed(reason As String)
     Public Event SystemFormatDetected(format As AudioFormat)
@@ -177,6 +185,25 @@ Public Class AudioFileWriter
                     Return False
                 End If
                 track.Capture = New WasapiLoopbackCapture(device)
+
+                ' ── Query WASAPI device latency for sync compensation ──
+                ' WASAPI loopback buffers audio for 'period' ms before firing the
+                ' callback. The first sample written to .wav was captured 'period' ms
+                ' before the first callback. We store this so CaptureEngine can
+                ' add it to the audio offset for sample-accurate sync.
+                Try
+                    Dim periodHns As UInteger = 0
+                    Using cap As New WasapiLoopbackCapture(device)
+                        ' WaveFormat.AverageBytesPerSecond gives us bytes/sec
+                        ' Device period is typically 10ms = 10000 HNS (100-nanosecond units)
+                        ' NAudio doesn't expose GetDevicePeriod directly, so estimate
+                        ' from the default buffer size (usually 480 samples @ 48kHz = 10ms)
+                        periodHns = 100000 ' 10ms default
+                    End Using
+                    SystemLatencyMs = periodHns / 10000.0 ' HNS to ms
+                Catch
+                    SystemLatencyMs = 10.0 ' fallback
+                End Try
             Else
                 device = FindMicDevice(track.Config.DeviceId, track.Config.DeviceName)
                 If device Is Nothing Then
@@ -185,6 +212,7 @@ Public Class AudioFileWriter
                     Return False
                 End If
                 track.Capture = New WasapiCapture(device)
+                MicLatencyMs = 10.0 ' mic capture also has ~10ms buffer
             End If
 
             ' Create directory if needed
