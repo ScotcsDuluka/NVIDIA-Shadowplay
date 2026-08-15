@@ -507,7 +507,15 @@ Public Class AudioFileWriter
                             track.Writer.Write(chunk.Data, 0, chunk.Data.Length)
                             track.WrittenBytes += chunk.Data.Length
                         End If
-                    Catch
+                    Catch ex As Exception
+                        ' ── Propagate writer failure to track state (per GPT P1) ──
+                        ' Without this, capture continues thinking everything is fine
+                        ' but the WAV file is silently incomplete. Set Failed=True so
+                        ' GetDiagnostics() shows it and the mux stage can decide
+                        ' whether to use the partial WAV or skip it.
+                        track.Failed = True
+                        track.FailReason = "Writer thread: " & ex.Message
+                        System.Diagnostics.Debug.WriteLine("[AudioFileWriter] Writer write FAILED: " & ex.Message)
                         Exit While
                     End Try
                 ElseIf track.Queue.IsCompleted Then
@@ -515,6 +523,9 @@ Public Class AudioFileWriter
                 End If
             End While
         Catch ex As Exception
+            ' Top-level catch (e.g. TryTake threw) — also propagate failure
+            track.Failed = True
+            track.FailReason = "Writer thread (top-level): " & ex.Message
             System.Diagnostics.Debug.WriteLine("[AudioFileWriter] Writer thread crashed: " & ex.Message)
         End Try
     End Sub
@@ -708,6 +719,14 @@ Public Class AudioFileWriter
             sb.AppendLine("[Audio] " & label & "DroppedSilenceBytes=" & track.DroppedSilenceBytes)
             Dim droppedSilenceSec As Double = If(track.BytesPerSecond > 0, CDbl(track.DroppedSilenceBytes) / track.BytesPerSecond, 0)
             sb.AppendLine("[Audio] " & label & "DroppedSilenceSec=" & droppedSilenceSec.ToString("F3"))
+            ' ── Invariant check (per GPT P1 #2) ──
+            ' After writer drains completely (WriteLagBytes ≈ 0):
+            '   BytesEnqueued ≈ WrittenBytes + DroppedBytes + DroppedSilenceBytes
+            ' Any non-zero residual (BytesEnqueued - WrittenBytes - DroppedBytes - DroppedSilenceBytes)
+            ' after Stop() indicates writer did not drain properly OR a counting bug.
+            ' We expose this as BytesAccountingResidual for diagnostics.
+            Dim accountingResidual As Long = track.BytesEnqueued - track.WrittenBytes - track.DroppedBytes - track.DroppedSilenceBytes
+            sb.AppendLine("[Audio] " & label & "BytesAccountingResidual=" & accountingResidual)
             sb.AppendLine("[Audio] " & label & "Started=" & track.Started.ToString())
             sb.AppendLine("[Audio] " & label & "StartRecordingTicks=" & track.StartRecordingTicks)
             sb.AppendLine("[Audio] " & label & "FirstCallbackDispatchTicks=" & track.FirstCallbackDispatchTicks)
