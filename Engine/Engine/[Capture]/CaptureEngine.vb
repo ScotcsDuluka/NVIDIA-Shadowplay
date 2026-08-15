@@ -255,8 +255,11 @@ Partial Public Class CaptureEngine
                                  Try
                                      ' Stop audio capture — drains writer queues first so all
                                      ' buffered PCM reaches FFmpeg stdin before we send q.
+                                     LogDebug("[FFmpeg] Stop requested. State=" & _state.ToString())
                                      LogDebug("[FFmpeg] Stopping audio capture (drain + close stdin)…")
                                      StopAudioCaptureIfNeeded()
+                                     LogDebug("[FFmpeg] Audio capture stopped. FFmpeg HasExited=" &
+                                               If(_ffmpegProcess IsNot Nothing, _ffmpegProcess.HasExited.ToString(), "(process null)"))
 
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                                          LogDebug("[FFmpeg] Sending quit command (q)…")
@@ -269,14 +272,16 @@ Partial Public Class CaptureEngine
 
                                          LogDebug("[FFmpeg] WaitForExit(10000)…")
                                          Dim exited As Boolean = _ffmpegProcess.WaitForExit(10000)
-                                         LogDebug($"[FFmpeg] WaitForExit returned HasExited={_ffmpegProcess.HasExited.ToString()}")
+                                         LogDebug($"[FFmpeg] WaitForExit returned. HasExited={_ffmpegProcess.HasExited.ToString()}")
 
                                          If Not _ffmpegProcess.HasExited Then
                                              LogDebug("[FFmpeg] WaitForExit TIMEOUT → KILL")
                                              Try
                                                  _ffmpegProcess.Kill()
                                                  _ffmpegProcess.WaitForExit(2000)
-                                             Catch
+                                                 LogDebug("[FFmpeg] Kill completed. ExitCode=" & _ffmpegProcess.ExitCode.ToString())
+                                             Catch ex As Exception
+                                                 LogDebug("[FFmpeg] Kill failed: " & ex.Message)
                                              End Try
                                          End If
                                      End If
