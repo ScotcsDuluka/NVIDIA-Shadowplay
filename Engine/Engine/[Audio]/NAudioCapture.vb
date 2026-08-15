@@ -37,9 +37,17 @@ Public Class NAudioCaptureEngine
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
 
-    ' Pre-allocated buffer for WASAPI callback copy (reused, not allocated per callback)
+    ' Pre-allocated buffers (reused, not allocated per callback)
     Private _sysCopyBuffer As Byte()
     Private _micCopyBuffer As Byte()
+
+    ' Silence generator — fills audio gaps when WASAPI loopback doesn't fire
+    Private _silenceThread As Thread
+    Private _silenceStop As New ManualResetEvent(False)
+    Private Const SilenceCheckMs As Integer = 50
+    Private _lastSysCallbackTicks As Long = 0
+    Private _lastMicCallbackTicks As Long = 0
+    Private _silenceBuffer As Byte()
 
     ' Counters (atomic, but minimal — only increment, no locks)
     Private _sysSamplesWritten As Long = 0
@@ -84,18 +92,41 @@ Public Class NAudioCaptureEngine
         _micStream = micStream
         _isRunning = True
 
+        ' Pre-allocate silence buffer: 50ms of 48kHz stereo f32le = 48000 * 0.05 * 2 * 4 = 19200 bytes
+        _silenceBuffer = New Byte(19199) {}
+
         If _config.SystemAudioCapture Then
             StartSystemCapture()
+            _lastSysCallbackTicks = Stopwatch.GetTimestamp()
         End If
 
         If _config.MicCapture AndAlso (Not String.IsNullOrEmpty(_config.MicDeviceId) OrElse
                                        Not String.IsNullOrEmpty(_config.MicDeviceName)) Then
             StartMicCapture()
+            _lastMicCallbackTicks = Stopwatch.GetTimestamp()
         End If
+
+        ' Start silence feeder thread — fills gaps when WASAPI loopback doesn't fire
+        _silenceStop.Reset()
+        _silenceThread = New Thread(AddressOf SilenceFeederLoop) With {
+            .IsBackground = True,
+            .Name = "AudioSilenceFeeder",
+            .Priority = ThreadPriority.AboveNormal
+        }
+        _silenceThread.Start()
     End Sub
 
     Public Sub StopProducers()
         _isRunning = False
+
+        ' Stop silence feeder
+        Try : _silenceStop.Set() : Catch : End Try
+        Try
+            If _silenceThread IsNot Nothing AndAlso _silenceThread.IsAlive Then
+                _silenceThread.Join(2000)
+            End If
+        Catch
+        End Try
 
         Try
             If _systemCapture IsNot Nothing Then
@@ -216,19 +247,41 @@ Public Class NAudioCaptureEngine
     ''' WASAPI callback — writes DIRECTLY to pipe, no queue, no allocation, no context switch.
     ''' This is the same pattern as the synthetic Python test that achieved 144 FPS.
     ''' </summary>
+    Private Sub SilenceFeederLoop()
+        Try
+            While _isRunning AndAlso Not _silenceStop.WaitOne(SilenceCheckMs)
+                If Not _isRunning Then Exit While
+
+                Dim nowTicks As Long = Stopwatch.GetTimestamp()
+
+                If _config.SystemAudioCapture AndAlso _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
+                    Dim msSinceSysCallback As Double = (nowTicks - _lastSysCallbackTicks) * 1000.0 / Stopwatch.Frequency
+                    If msSinceSysCallback > SilenceCheckMs Then
+                        Try
+                            _systemStream.Write(_silenceBuffer, 0, _silenceBuffer.Length)
+                            _sysBytesWritten += _silenceBuffer.Length
+                        Catch
+                        End Try
+                    End If
+                End If
+            End While
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine("[NAudio] Silence feeder crashed: " & ex.Message)
+        End Try
+    End Sub
+
     Private Sub OnSystemDataAvailable(sender As Object, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
             If _systemStream Is Nothing OrElse Not _systemStream.CanWrite Then Return
 
-            ' Copy to pre-allocated buffer (no New Byte() allocation)
+            _lastSysCallbackTicks = Stopwatch.GetTimestamp()
+
             Dim bytesToCopy As Integer = Math.Min(e.BytesRecorded, _sysCopyBuffer.Length)
             Buffer.BlockCopy(e.Buffer, 0, _sysCopyBuffer, 0, bytesToCopy)
 
-            ' Write directly to pipe — no queue, no AudioFrame, no writer thread
             _systemStream.Write(_sysCopyBuffer, 0, bytesToCopy)
 
-            ' Minimal counters (just increment, no Interlocked — single thread)
             _sysCallbackCount += 1
             _sysBytesWritten += bytesToCopy
             Dim bytesPerSample As Integer = (_systemFormat.BitsPerSample \ 8) * _systemFormat.Channels
