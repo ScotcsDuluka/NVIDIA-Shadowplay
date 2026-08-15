@@ -137,7 +137,7 @@ Partial Public Class Loader
     End Sub
 
     Private _lastToastTime As DateTime = DateTime.MinValue
-    Private Const ToastThrottleMs As Integer = 500
+    Private Const ToastThrottleMs As Integer = 300
 
     Private Function ShouldShowToast(key As String) As Boolean
         Dim now As DateTime = DateTime.Now
