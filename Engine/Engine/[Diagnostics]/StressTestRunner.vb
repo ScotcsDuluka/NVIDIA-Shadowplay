@@ -104,12 +104,24 @@ Public Class StressTestRunner
 
         ' ── A/V sync (measured via ffprobe on final MP4, per GPT P0 #1) ──
         ' FinalVideoDurationSec / FinalAudioDurationSec from ffprobe on the output file.
-        ' AVSyncMs = |video_duration - audio_duration| × 1000
-        ' Should be < 100ms for a healthy run (apad + -t handle small mismatches).
+        ' AVSyncMeasured=True only if ffprobe successfully queried both streams.
+        ' If False, validation FAILS the scenario (per GPT P0 #2) — measurement
+        ' unavailable ≠ measurement OK.
+        '
+        ' Per GPT P1 #3: separate StartOffsetMs and EndOffsetMs:
+        '   StartOffsetMs = |audio_start_time - video_start_time| × 1000
+        '     (audio may start late due to adelay for negative offset, or early
+        '      if audio was captured before video and -ss skipped leading silence)
+        '   EndOffsetMs = |video_duration - (audio_start + audio_duration)| × 1000
+        '     (audio may end early/late vs video)
+        '   AVSyncMs = Max(StartOffsetMs, EndOffsetMs) — worst-case
         Public Property FinalVideoDurationSec As Double
         Public Property FinalAudioDurationSec As Double
         Public Property FinalAudioStartTimeSec As Double
-        Public Property AVSyncMs As Double
+        Public Property AVSyncMeasured As Boolean = False
+        Public Property StartOffsetMs As Double
+        Public Property EndOffsetMs As Double
+        Public Property AVSyncMs As Double  ' Max(StartOffsetMs, EndOffsetMs)
 
         ' ── Multi-cycle support (scenario 06 spam test) ──
         Public Property CycleCount As Integer = 1
@@ -470,9 +482,32 @@ Public Class StressTestRunner
             ' ── Wait for duration ──
             Await Task.Delay(scenario.DurationSec * 1000)
 
-            ' ── Stop ──
+            ' ── Stop (per GPT P1 #5: explicit timeout failure) ──
             Dim stopOk As Boolean = Await engine.StopRecordingAsync()
-            Await Task.WhenAny(stopComplete.Task, Task.Delay(30000))  ' 30s max for mux
+            If Not stopOk Then
+                result.Pass = False
+                result.FailureReason = "StopRecordingAsync() returned False (engine rejected stop)"
+                Return result
+            End If
+
+            ' Wait for RecordingStopped event (includes mux completion)
+            ' Per GPT P1 #5: explicit timeout = FAIL with distinct reason
+            Dim stopTimeout As Boolean = Not stopComplete.Task.Wait(30000)
+            If stopTimeout Then
+                result.Pass = False
+                result.FailureReason = "Stop/Mux TIMEOUT (>30s) — RecordingStopped event never fired " &
+                                        "(FFmpeg mux may be hung or output file may be locked)"
+                Return result
+            End If
+
+            ' Check if RecordingStopped fired with error (stopComplete might have been
+            ' set by ErrorOccurred handler with False result)
+            If stopComplete.Task.IsCompleted AndAlso stopComplete.Task.Result = False AndAlso
+               Not String.IsNullOrEmpty(errorMsg) Then
+                result.Pass = False
+                result.FailureReason = $"Stop error: {errorMsg}"
+                Return result
+            End If
 
             ' ── Parse metrics from engine's last-run state ──
             ParseFFmpegStats(engine.LastFFmpegStatsLine, result)
@@ -486,9 +521,15 @@ Public Class StressTestRunner
             '   - apad padding is added during mux, not in WAV
             '   - -ss skip removes audio from WAV before mux
             ' Only the final MP4 reflects the actual A/V alignment.
-            If File.Exists(outputPath) Then
-                MeasureAVSyncViaFfprobe(outputPath, scenario.Settings.FFmpegPath, result)
+            ' Per GPT P1 #5: if output file missing after successful stop,
+            ' that's an explicit failure (not silent skip).
+            If Not File.Exists(outputPath) Then
+                result.Pass = False
+                result.FailureReason = $"Output file missing after Stop: {outputPath} " &
+                                       "(mux completed but file not found — possible filesystem issue)"
+                Return result
             End If
+            MeasureAVSyncViaFfprobe(outputPath, scenario.Settings.FFmpegPath, scenario, result)
 
             ' ── Apply validation rules ──
             Validate(scenario, result)
@@ -541,6 +582,9 @@ Public Class StressTestRunner
         dst.FinalVideoDurationSec = src.FinalVideoDurationSec
         dst.FinalAudioDurationSec = src.FinalAudioDurationSec
         dst.FinalAudioStartTimeSec = src.FinalAudioStartTimeSec
+        dst.AVSyncMeasured = src.AVSyncMeasured
+        dst.StartOffsetMs = src.StartOffsetMs
+        dst.EndOffsetMs = src.EndOffsetMs
         dst.AVSyncMs = src.AVSyncMs
         dst.OutputFile = src.OutputFile
     End Sub
@@ -548,67 +592,108 @@ Public Class StressTestRunner
     Private Sub AggregateCycleResults(result As TestResult)
         ' For multi-cycle scenarios, take WORST case for each metric
         ' (e.g., if any cycle had DroppedBytes > 0, the aggregate fails)
+        '
+        ' CRITICAL (per GPT P0 #1): MUST NOT mutate CycleResults items.
+        ' Old code used `Dim worst = result.CycleResults(0)` which is a
+        ' REFERENCE to cycle 1, then accumulated totals onto it (doubling cycle 1
+        ' contributions, then adding cycles 2..N on top). Now uses a FRESH
+        ' aggregate object — cycle results remain untouched.
         If result.CycleResults.Count = 0 Then Return
 
-        Dim worst As TestResult = result.CycleResults(0)
+        ' ── Initialize aggregate from cycle 1's worst-case candidates ──
+        Dim first As TestResult = result.CycleResults(0)
+        Dim worstDup As Long = first.Dup
+        Dim worstDrop As Long = first.Drop
+        Dim worstFps As Double = first.ActualFps
+        Dim worstSpeed As Double = first.Speed
+        Dim worstSysDroppedBytes As Long = first.SysDroppedBytes
+        Dim worstSysDroppedChunks As Long = first.SysDroppedChunks
+        Dim worstSysDroppedSilenceBytes As Long = first.SysDroppedSilenceBytes
+        Dim worstSysResidual As Long = first.SysBytesAccountingResidual
+        Dim worstSysWriteLag As Long = first.SysWriteLagBytes
+        Dim worstMicDroppedBytes As Long = first.MicDroppedBytes
+        Dim worstMicResidual As Long = first.MicBytesAccountingResidual
+        Dim worstMicWriteLag As Long = first.MicWriteLagBytes
+        Dim worstAVSyncMs As Double = first.AVSyncMs
+
+        ' ── Accumulate totals (start from 0, NOT from cycle 1) ──
+        Dim totalSysCallbacks As Long = 0
+        Dim totalSysBytesEnqueued As Long = 0
+        Dim totalSysWrittenBytes As Long = 0
+        Dim totalMicCallbacks As Long = 0
+        Dim totalMicBytesEnqueued As Long = 0
+        Dim totalMicWrittenBytes As Long = 0
+        Dim totalVideoDuration As Double = 0
+        Dim totalFinalVideoDuration As Double = 0
+        Dim totalFinalAudioDuration As Double = 0
+        Dim allAVSyncMeasured As Boolean = True
+
+        ' ── Iterate all cycles, update worst-case + accumulate totals ──
         For Each r As TestResult In result.CycleResults
-            If r.Dup > worst.Dup Then worst.Dup = r.Dup
-            If r.Drop > worst.Drop Then worst.Drop = r.Drop
-            If r.ActualFps > 0 AndAlso (worst.ActualFps = 0 OrElse r.ActualFps < worst.ActualFps) Then
-                worst.ActualFps = r.ActualFps
+            ' Worst case (max for negative metrics, min for FPS/Speed)
+            If r.Dup > worstDup Then worstDup = r.Dup
+            If r.Drop > worstDrop Then worstDrop = r.Drop
+            If r.ActualFps > 0 AndAlso (worstFps = 0 OrElse r.ActualFps < worstFps) Then
+                worstFps = r.ActualFps
             End If
-            If r.Speed > 0 AndAlso (worst.Speed = 0 OrElse r.Speed < worst.Speed) Then
-                worst.Speed = r.Speed
+            If r.Speed > 0 AndAlso (worstSpeed = 0 OrElse r.Speed < worstSpeed) Then
+                worstSpeed = r.Speed
             End If
-            If r.SysDroppedBytes > worst.SysDroppedBytes Then worst.SysDroppedBytes = r.SysDroppedBytes
-            If r.SysDroppedChunks > worst.SysDroppedChunks Then worst.SysDroppedChunks = r.SysDroppedChunks
-            If r.SysDroppedSilenceBytes > worst.SysDroppedSilenceBytes Then worst.SysDroppedSilenceBytes = r.SysDroppedSilenceBytes
-            If r.SysBytesAccountingResidual > worst.SysBytesAccountingResidual Then
-                worst.SysBytesAccountingResidual = r.SysBytesAccountingResidual
+            If r.SysDroppedBytes > worstSysDroppedBytes Then worstSysDroppedBytes = r.SysDroppedBytes
+            If r.SysDroppedChunks > worstSysDroppedChunks Then worstSysDroppedChunks = r.SysDroppedChunks
+            If r.SysDroppedSilenceBytes > worstSysDroppedSilenceBytes Then worstSysDroppedSilenceBytes = r.SysDroppedSilenceBytes
+            If r.SysBytesAccountingResidual > worstSysResidual Then
+                worstSysResidual = r.SysBytesAccountingResidual
             End If
-            If r.SysWriteLagBytes > worst.SysWriteLagBytes Then worst.SysWriteLagBytes = r.SysWriteLagBytes
-            If r.MicDroppedBytes > worst.MicDroppedBytes Then worst.MicDroppedBytes = r.MicDroppedBytes
-            If r.MicBytesAccountingResidual > worst.MicBytesAccountingResidual Then
-                worst.MicBytesAccountingResidual = r.MicBytesAccountingResidual
+            If r.SysWriteLagBytes > worstSysWriteLag Then worstSysWriteLag = r.SysWriteLagBytes
+            If r.MicDroppedBytes > worstMicDroppedBytes Then worstMicDroppedBytes = r.MicDroppedBytes
+            If r.MicBytesAccountingResidual > worstMicResidual Then
+                worstMicResidual = r.MicBytesAccountingResidual
             End If
-            If r.MicWriteLagBytes > worst.MicWriteLagBytes Then worst.MicWriteLagBytes = r.MicWriteLagBytes
-            If r.AVSyncMs > worst.AVSyncMs Then worst.AVSyncMs = r.AVSyncMs
-            ' Accumulate totals (bytes/callbacks across all cycles)
-            worst.SysCallbacks += r.SysCallbacks
-            worst.SysBytesEnqueued += r.SysBytesEnqueued
-            worst.SysWrittenBytes += r.SysWrittenBytes
-            worst.MicCallbacks += r.MicCallbacks
-            worst.MicBytesEnqueued += r.MicBytesEnqueued
-            worst.MicWrittenBytes += r.MicWrittenBytes
-            worst.VideoDurationSec += r.VideoDurationSec
-            worst.FinalVideoDurationSec += r.FinalVideoDurationSec
-            worst.FinalAudioDurationSec += r.FinalAudioDurationSec
+            If r.MicWriteLagBytes > worstMicWriteLag Then worstMicWriteLag = r.MicWriteLagBytes
+            If r.AVSyncMs > worstAVSyncMs Then worstAVSyncMs = r.AVSyncMs
+
+            ' Track if ALL cycles successfully measured AV sync
+            If Not r.AVSyncMeasured Then allAVSyncMeasured = False
+
+            ' Accumulate totals (every cycle, including cycle 1)
+            totalSysCallbacks += r.SysCallbacks
+            totalSysBytesEnqueued += r.SysBytesEnqueued
+            totalSysWrittenBytes += r.SysWrittenBytes
+            totalMicCallbacks += r.MicCallbacks
+            totalMicBytesEnqueued += r.MicBytesEnqueued
+            totalMicWrittenBytes += r.MicWrittenBytes
+            totalVideoDuration += r.VideoDurationSec
+            totalFinalVideoDuration += r.FinalVideoDurationSec
+            totalFinalAudioDuration += r.FinalAudioDurationSec
         Next
 
-        ' Copy worst-case values back to aggregate result
-        result.ActualFps = worst.ActualFps
-        result.Speed = worst.Speed
-        result.Dup = worst.Dup
-        result.Drop = worst.Drop
-        result.SysDroppedBytes = worst.SysDroppedBytes
-        result.SysDroppedChunks = worst.SysDroppedChunks
-        result.SysDroppedSilenceBytes = worst.SysDroppedSilenceBytes
-        result.SysBytesAccountingResidual = worst.SysBytesAccountingResidual
-        result.SysWriteLagBytes = worst.SysWriteLagBytes
-        result.MicDroppedBytes = worst.MicDroppedBytes
-        result.MicBytesAccountingResidual = worst.MicBytesAccountingResidual
-        result.MicWriteLagBytes = worst.MicWriteLagBytes
-        result.AVSyncMs = worst.AVSyncMs
-        ' Aggregated totals
-        result.SysCallbacks = worst.SysCallbacks
-        result.SysBytesEnqueued = worst.SysBytesEnqueued
-        result.SysWrittenBytes = worst.SysWrittenBytes
-        result.MicCallbacks = worst.MicCallbacks
-        result.MicBytesEnqueued = worst.MicBytesEnqueued
-        result.MicWrittenBytes = worst.MicWrittenBytes
-        result.VideoDurationSec = worst.VideoDurationSec
-        result.FinalVideoDurationSec = worst.FinalVideoDurationSec
-        result.FinalAudioDurationSec = worst.FinalAudioDurationSec
+        ' ── Write worst-case values back to AGGREGATE result (not cycle results) ──
+        result.ActualFps = worstFps
+        result.Speed = worstSpeed
+        result.Dup = worstDup
+        result.Drop = worstDrop
+        result.SysDroppedBytes = worstSysDroppedBytes
+        result.SysDroppedChunks = worstSysDroppedChunks
+        result.SysDroppedSilenceBytes = worstSysDroppedSilenceBytes
+        result.SysBytesAccountingResidual = worstSysResidual
+        result.SysWriteLagBytes = worstSysWriteLag
+        result.MicDroppedBytes = worstMicDroppedBytes
+        result.MicBytesAccountingResidual = worstMicResidual
+        result.MicWriteLagBytes = worstMicWriteLag
+        result.AVSyncMs = worstAVSyncMs
+        result.AVSyncMeasured = allAVSyncMeasured
+
+        ' ── Write accumulated totals ──
+        result.SysCallbacks = totalSysCallbacks
+        result.SysBytesEnqueued = totalSysBytesEnqueued
+        result.SysWrittenBytes = totalSysWrittenBytes
+        result.MicCallbacks = totalMicCallbacks
+        result.MicBytesEnqueued = totalMicBytesEnqueued
+        result.MicWrittenBytes = totalMicWrittenBytes
+        result.VideoDurationSec = totalVideoDuration
+        result.FinalVideoDurationSec = totalFinalVideoDuration
+        result.FinalAudioDurationSec = totalFinalAudioDuration
     End Sub
 
     ''' <summary>
@@ -742,10 +827,20 @@ Public Class StressTestRunner
     '''
     ''' Only ffprobe on the final MP4 reflects the actual muxed A/V alignment.
     '''
-    ''' Queries video stream duration + audio stream duration + audio start_time.
-    ''' AVSyncMs = |video_duration - audio_duration| × 1000
+    ''' Per GPT P0 #2: sets AVSyncMeasured=True ONLY if both video + audio streams
+    ''' were successfully queried. If ffprobe fails or output file missing,
+    ''' AVSyncMeasured stays False → validation FAILS the scenario.
+    '''
+    ''' Per GPT P1 #3: separates StartOffsetMs and EndOffsetMs:
+    '''   StartOffsetMs = |audio_start_time - 0| × 1000  (video starts at 0 by convention)
+    '''   EndOffsetMs = |video_duration - (audio_start + audio_duration)| × 1000
+    '''   AVSyncMs = Max(StartOffsetMs, EndOffsetMs) — worst-case offset
+    '''
+    ''' Per GPT P1 #4: probes ALL audio streams (a:0, a:1, ...) for separate-track
+    ''' scenarios. Takes WORST case across all audio streams.
     ''' </summary>
-    Private Sub MeasureAVSyncViaFfprobe(mp4Path As String, ffmpegPath As String, result As TestResult)
+    Private Sub MeasureAVSyncViaFfprobe(mp4Path As String, ffmpegPath As String,
+                                         scenario As TestScenario, result As TestResult)
         Try
             ' Find ffprobe.exe — same directory as ffmpeg.exe
             Dim ffmpegDir As String = Path.GetDirectoryName(ffmpegPath)
@@ -757,37 +852,97 @@ Public Class StressTestRunner
                 ffprobePath = Path.Combine(ffmpegDir, "api-core", "ffprobe.exe")
             End If
             If Not File.Exists(ffprobePath) Then
-                ' Can't measure — leave AVSyncMs = 0 (will be skipped in validation)
+                ' ffprobe unavailable — AVSyncMeasured stays False (validation will FAIL)
+                Console.WriteLine($"  ⚠️  ffprobe.exe not found — A/V sync measurement unavailable")
                 Return
             End If
 
-            ' Query video stream duration
-            Dim vDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "v")
-            If vDur > 0 Then result.FinalVideoDurationSec = vDur
+            ' ── Query video stream duration + start_time ──
+            ' Video stream typically starts at 0 (master timeline), but query anyway
+            Dim vDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "v", 0)
+            Dim vStart As Double = ProbeStreamStartTime(ffprobePath, mp4Path, "v", 0)
+            If vDur <= 0 Then
+                Console.WriteLine($"  ⚠️  ffprobe: video stream duration unavailable")
+                Return  ' AVSyncMeasured stays False
+            End If
+            result.FinalVideoDurationSec = vDur
+            ' Video start_time defaults to 0 if query returns 0 or fails
 
-            ' Query audio stream duration + start_time
-            Dim aDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "a")
-            If aDur > 0 Then result.FinalAudioDurationSec = aDur
-
-            Dim aStart As Double = ProbeStreamStartTime(ffprobePath, mp4Path, "a")
-            If aStart >= 0 Then result.FinalAudioStartTimeSec = aStart
-
-            ' A/V sync = |video_duration - (audio_start + audio_duration)|
-            ' (audio may start late due to adelay for negative offset)
-            If result.FinalVideoDurationSec > 0 AndAlso result.FinalAudioDurationSec > 0 Then
-                Dim audioEnd As Double = result.FinalAudioStartTimeSec + result.FinalAudioDurationSec
-                result.AVSyncMs = Math.Abs(result.FinalVideoDurationSec - audioEnd) * 1000.0
+            ' ── Query audio streams (per GPT P1 #4: probe ALL audio streams) ──
+            ' For separate-track scenarios (system + mic), we need to check BOTH
+            ' audio streams — if either is out of sync, the test should fail.
+            ' For single-track scenarios, only a:0 exists.
+            Dim audioStreamCount As Integer = CountAudioStreams(ffprobePath, mp4Path)
+            If audioStreamCount = 0 Then
+                Console.WriteLine($"  ⚠️  ffprobe: no audio streams found in {mp4Path}")
+                Return  ' AVSyncMeasured stays False
             End If
 
+            Dim worstStartOffsetMs As Double = 0
+            Dim worstEndOffsetMs As Double = 0
+            Dim worstAudioDur As Double = 0
+            Dim worstAudioStart As Double = 0
+
+            For streamIdx As Integer = 0 To audioStreamCount - 1
+                Dim aDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "a", streamIdx)
+                Dim aStart As Double = ProbeStreamStartTime(ffprobePath, mp4Path, "a", streamIdx)
+
+                If aDur <= 0 Then
+                    Console.WriteLine($"  ⚠️  ffprobe: audio stream a:{streamIdx} duration unavailable")
+                    Return  ' AVSyncMeasured stays False
+                End If
+
+                ' Track worst-case across all audio streams
+                ' StartOffsetMs = |audio_start - video_start|
+                ' (video_start is usually 0; if both 0, StartOffsetMs=0)
+                Dim thisStartOffsetMs As Double = Math.Abs(aStart - vStart) * 1000.0
+                ' EndOffsetMs = |video_duration - (audio_start + audio_duration)|
+                Dim audioEnd As Double = aStart + aDur
+                Dim thisEndOffsetMs As Double = Math.Abs(vDur - audioEnd) * 1000.0
+
+                If thisStartOffsetMs > worstStartOffsetMs Then
+                    worstStartOffsetMs = thisStartOffsetMs
+                    worstAudioStart = aStart
+                End If
+                If thisEndOffsetMs > worstEndOffsetMs Then worstEndOffsetMs = thisEndOffsetMs
+                If aDur > worstAudioDur Then worstAudioDur = aDur
+
+                Console.WriteLine($"  ffprobe: a:{streamIdx} dur={aDur:F3}s start={aStart:F3}s " &
+                                  $"startOffset={thisStartOffsetMs:F0}ms endOffset={thisEndOffsetMs:F0}ms")
+            Next
+
+            ' ── Set aggregate metrics (worst-case across all audio streams) ──
+            result.FinalAudioDurationSec = worstAudioDur
+            result.FinalAudioStartTimeSec = worstAudioStart
+            result.StartOffsetMs = worstStartOffsetMs
+            result.EndOffsetMs = worstEndOffsetMs
+            result.AVSyncMs = Math.Max(worstStartOffsetMs, worstEndOffsetMs)
+            result.AVSyncMeasured = True  ' CRITICAL: mark as measured (per GPT P0 #2)
+
         Catch ex As Exception
-            ' ffprobe failed — can't measure AVSyncMs, leave as 0
+            ' ffprobe threw — AVSyncMeasured stays False (validation will FAIL)
             Console.WriteLine($"  ⚠️  ffprobe A/V sync measurement failed: {ex.Message}")
         End Try
     End Sub
 
-    Private Function ProbeStreamDuration(ffprobePath As String, mp4Path As String, codecType As String) As Double
-        ' ffprobe -v error -select_streams <codec_type>:0 -show_entries stream=duration -of csv=p=0 file.mp4
-        Dim args As String = $"-v error -select_streams {codecType}:0 -show_entries stream=duration -of csv=p=0 ""{mp4Path}"""
+    ''' <summary>
+    ''' Count audio streams in the MP4 (for separate-track scenarios).
+    ''' ffprobe -v error -select_streams a -show_entries stream=index -of csv=p=0
+    ''' Returns one line per audio stream.
+    ''' </summary>
+    Private Function CountAudioStreams(ffprobePath As String, mp4Path As String) As Integer
+        Dim args As String = $"-v error -select_streams a -show_entries stream=index -of csv=p=0 ""{mp4Path}"""
+        Dim stdout As String = RunFfprobeSync(ffprobePath, args)
+        If String.IsNullOrEmpty(stdout) Then Return 0
+        Dim lines As String() = stdout.Split(New Char() {ControlChars.Lf, ControlChars.Cr},
+                                              StringSplitOptions.RemoveEmptyEntries)
+        Return lines.Length
+    End Function
+
+    Private Function ProbeStreamDuration(ffprobePath As String, mp4Path As String,
+                                          codecType As String, streamIdx As Integer) As Double
+        ' ffprobe -v error -select_streams <codec_type>:<idx> -show_entries stream=duration -of csv=p=0 file.mp4
+        Dim args As String = $"-v error -select_streams {codecType}:{streamIdx} -show_entries stream=duration -of csv=p=0 ""{mp4Path}"""
         Dim stdout As String = RunFfprobeSync(ffprobePath, args)
         If String.IsNullOrEmpty(stdout) Then Return 0
         Dim dur As Double = 0
@@ -795,8 +950,9 @@ Public Class StressTestRunner
         Return dur
     End Function
 
-    Private Function ProbeStreamStartTime(ffprobePath As String, mp4Path As String, codecType As String) As Double
-        Dim args As String = $"-v error -select_streams {codecType}:0 -show_entries stream=start_time -of csv=p=0 ""{mp4Path}"""
+    Private Function ProbeStreamStartTime(ffprobePath As String, mp4Path As String,
+                                          codecType As String, streamIdx As Integer) As Double
+        Dim args As String = $"-v error -select_streams {codecType}:{streamIdx} -show_entries stream=start_time -of csv=p=0 ""{mp4Path}"""
         Dim stdout As String = RunFfprobeSync(ffprobePath, args)
         If String.IsNullOrEmpty(stdout) Then Return 0
         Dim t As Double = 0
@@ -907,11 +1063,32 @@ Public Class StressTestRunner
             failures.Add($"MicWriteLagBytes={result.MicWriteLagBytes} > 0 (writer didn't drain)")
         End If
 
-        ' A/V sync tolerance: 100ms (apad + -t handle smaller mismatches)
-        ' Only validate if AVSyncMs was actually measured (via ffprobe).
-        ' If ffprobe failed, AVSyncMs stays 0 — skip validation to avoid false positives.
-        If result.AVSyncMs > 0 AndAlso result.AVSyncMs > 100 AndAlso scenario.ExpectAudio Then
-            failures.Add($"AVSyncMs={result.AVSyncMs:F0} > 100 (audio/video duration mismatch in final MP4)")
+        ' ── A/V sync (per GPT P0 #2 + P1 #3) ──
+        ' CRITICAL: if scenario expects audio, A/V sync MUST be measured.
+        ' If ffprobe failed or output file missing, AVSyncMeasured=False → FAIL.
+        ' This prevents false PASS when measurement is unavailable.
+        If scenario.ExpectAudio Then
+            If Not result.AVSyncMeasured Then
+                failures.Add("A/V sync measurement unavailable (ffprobe failed or output missing) — " &
+                             "cannot validate sync, scenario FAILS rather than falsely PASSing")
+            Else
+                ' Check StartOffsetMs (audio start vs video start)
+                ' 100ms tolerance (apad + -t handle smaller mismatches)
+                If result.StartOffsetMs > 100 Then
+                    failures.Add($"StartOffsetMs={result.StartOffsetMs:F0} > 100 " &
+                                 "(audio starts >100ms after video start — adelay/negative offset issue)")
+                End If
+                ' Check EndOffsetMs (audio end vs video end)
+                If result.EndOffsetMs > 100 Then
+                    failures.Add($"EndOffsetMs={result.EndOffsetMs:F0} > 100 " &
+                                 "(audio ends >100ms before/after video end — apad/-t issue)")
+                End If
+                ' AVSyncMs = Max(StartOffsetMs, EndOffsetMs) — already computed
+                If result.AVSyncMs > 100 Then
+                    failures.Add($"AVSyncMs={result.AVSyncMs:F0} > 100 " &
+                                 "(worst-case A/V sync offset exceeds 100ms tolerance)")
+                End If
+            End If
         End If
 
         If failures.Count > 0 Then
