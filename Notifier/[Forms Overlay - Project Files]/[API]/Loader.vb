@@ -112,6 +112,7 @@ Partial Public Class Loader
             If Not obsCfg.ShouldForward(eventType) Then Return
 
             If eventType = "ReplayBufferSaved" Then
+                If Not ShouldShowToast("l10n.notificationInstantReplaySaved") Then Return
                 Task.Run(Sub() HandleReplayBufferSaved(eventData))
                 Return
             End If
@@ -119,30 +120,9 @@ Partial Public Class Loader
             Dim mapped = ObsEventMap.TryMap(eventType, eventData)
             If mapped Is Nothing Then Return
 
-            Dim now As DateTime = DateTime.Now
-            Dim lastTime As DateTime
-            Dim lastKey As String
+            If Not ShouldShowToast(mapped.Key) Then Return
 
-            If eventType = "RecordStateChanged" Then
-                lastTime = _lastRecordTime
-                lastKey = _lastRecordKey
-                _lastRecordTime = now
-                _lastRecordKey = mapped.Key
-            ElseIf eventType = "ReplayBufferStateChanged" Then
-                lastTime = _lastReplayTime
-                lastKey = _lastReplayKey
-                _lastReplayTime = now
-                _lastReplayKey = mapped.Key
-            Else
-                lastTime = DateTime.MinValue
-                lastKey = ""
-            End If
-
-            If mapped.Key = lastKey AndAlso (now - lastTime).TotalMilliseconds < StateDedupWindowMs Then
-                ObsLog($"  → duplicate {mapped.Key} within {StateDedupWindowMs}ms — suppressed")
-                Return
-            End If
-
+            Debug.WriteLine($"[OBS]   → mapped to {mapped.Key}")
             ObsLog($"  → mapped to {mapped.Key}")
             Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"
 
@@ -155,6 +135,19 @@ Partial Public Class Loader
             ObsLog($"OnObsEvent error ({eventType}): {ex.Message}")
         End Try
     End Sub
+
+    Private _lastToastTime As DateTime = DateTime.MinValue
+    Private Const ToastThrottleMs As Integer = 500
+
+    Private Function ShouldShowToast(key As String) As Boolean
+        Dim now As DateTime = DateTime.Now
+        If (now - _lastToastTime).TotalMilliseconds < ToastThrottleMs Then
+            ObsLog($"  → throttled (within {ToastThrottleMs}ms of last toast) — suppressed: {key}")
+            Return False
+        End If
+        _lastToastTime = now
+        Return True
+    End Function
 
     Private Sub ObsLog(message As String)
         Debug.WriteLine($"[OBS] {message}")
