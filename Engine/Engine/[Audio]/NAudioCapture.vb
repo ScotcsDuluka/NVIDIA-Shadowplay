@@ -1,4 +1,5 @@
 Imports System.Collections.Concurrent
+Imports System.Diagnostics
 Imports System.IO
 Imports System.Threading
 Imports NAudio.CoreAudioApi
@@ -20,8 +21,8 @@ Public Class NAudioCaptureEngine
     Private _systemCapture As WasapiLoopbackCapture
     Private _micCapture As WasapiCapture
 
-    Private _systemQueue As BlockingCollection(Of Byte())
-    Private _micQueue As BlockingCollection(Of Byte())
+    Private _systemQueue As BlockingCollection(Of AudioFrame)
+    Private _micQueue As BlockingCollection(Of AudioFrame)
 
     Private _systemWriterThread As Thread
     Private _micWriterThread As Thread
@@ -32,6 +33,12 @@ Public Class NAudioCaptureEngine
     Private _systemFormat As AudioFormat
     Private _micFormat As AudioFormat
 
+    Private _systemStopwatch As Stopwatch
+    Private _micStopwatch As Stopwatch
+    Private _systemStartSample As Long = 0
+    Private _micStartSample As Long = 0
+    Private Const InterlockedPadding As Integer = 0
+
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
 
@@ -39,6 +46,7 @@ Public Class NAudioCaptureEngine
     Public Event MicFormatDetected(format As AudioFormat)
     Public Event SystemStartFailed(reason As String)
     Public Event MicStartFailed(reason As String)
+    Public Event FrameDropped(source As AudioSource, reason As String)
 
     Public Sub New(config As AudioConfigValues)
         _config = config
@@ -71,17 +79,23 @@ Public Class NAudioCaptureEngine
         _isRunning = True
 
         If _config.SystemAudioCapture Then
-            _systemQueue = New BlockingCollection(Of Byte())(256)
+            _systemQueue = New BlockingCollection(Of AudioFrame)(256)
+            _systemStopwatch = Stopwatch.StartNew()
+            _systemStartSample = 0
             StartSystemCapture()
             StartSystemWriterThread()
         End If
 
         If _config.MicCapture AndAlso Not String.IsNullOrEmpty(_config.MicDeviceId) Then
-            _micQueue = New BlockingCollection(Of Byte())(256)
+            _micQueue = New BlockingCollection(Of AudioFrame)(256)
+            _micStopwatch = Stopwatch.StartNew()
+            _micStartSample = 0
             StartMicCapture()
             StartMicWriterThread()
         ElseIf _config.MicCapture AndAlso Not String.IsNullOrEmpty(_config.MicDeviceName) Then
-            _micQueue = New BlockingCollection(Of Byte())(256)
+            _micQueue = New BlockingCollection(Of AudioFrame)(256)
+            _micStopwatch = Stopwatch.StartNew()
+            _micStartSample = 0
             StartMicCapture()
             StartMicWriterThread()
         End If
@@ -207,11 +221,22 @@ Public Class NAudioCaptureEngine
     Private Sub OnSystemDataAvailable(sender As Object, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
-            If _systemQueue Is Nothing Then Return
+            If _systemQueue Is Nothing OrElse _systemFormat Is Nothing Then Return
             Dim copy(e.BytesRecorded - 1) As Byte
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
-            If Not _systemQueue.TryAdd(copy, 100) Then
-                System.Diagnostics.Debug.WriteLine("[NAudio] System queue full — dropping packet")
+
+            Dim ts As TimeSpan = _systemStopwatch.Elapsed
+            Dim bytesPerSample As Integer = (_systemFormat.BitsPerSample \ 8) * _systemFormat.Channels
+            If bytesPerSample < 1 Then bytesPerSample = 4
+            Dim sampleCount As Integer = e.BytesRecorded \ bytesPerSample
+
+            Dim startSample As Long = System.Threading.Interlocked.Read(_systemStartSample)
+            System.Threading.Interlocked.Add(_systemStartSample, sampleCount)
+
+            Dim frame As New AudioFrame(copy, e.BytesRecorded, _systemFormat,
+                                        AudioSource.SystemLoopback, ts, startSample, sampleCount)
+            If Not _systemQueue.TryAdd(frame, 100) Then
+                RaiseEvent FrameDropped(AudioSource.SystemLoopback, "queue full")
             End If
         Catch
         End Try
@@ -220,11 +245,22 @@ Public Class NAudioCaptureEngine
     Private Sub OnMicDataAvailable(sender As Object, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
-            If _micQueue Is Nothing Then Return
+            If _micQueue Is Nothing OrElse _micFormat Is Nothing Then Return
             Dim copy(e.BytesRecorded - 1) As Byte
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
-            If Not _micQueue.TryAdd(copy, 100) Then
-                System.Diagnostics.Debug.WriteLine("[NAudio] Mic queue full — dropping packet")
+
+            Dim ts As TimeSpan = _micStopwatch.Elapsed
+            Dim bytesPerSample As Integer = (_micFormat.BitsPerSample \ 8) * _micFormat.Channels
+            If bytesPerSample < 1 Then bytesPerSample = 4
+            Dim sampleCount As Integer = e.BytesRecorded \ bytesPerSample
+
+            Dim startSample As Long = System.Threading.Interlocked.Read(_micStartSample)
+            System.Threading.Interlocked.Add(_micStartSample, sampleCount)
+
+            Dim frame As New AudioFrame(copy, e.BytesRecorded, _micFormat,
+                                        AudioSource.Microphone, ts, startSample, sampleCount)
+            If Not _micQueue.TryAdd(frame, 100) Then
+                RaiseEvent FrameDropped(AudioSource.Microphone, "queue full")
             End If
         Catch
         End Try
@@ -249,13 +285,13 @@ Public Class NAudioCaptureEngine
     Private Sub SystemWriterLoop()
         Try
             While _isRunning AndAlso _systemQueue IsNot Nothing
-                Dim chunk As Byte() = Nothing
-                If Not _systemQueue.TryTake(chunk, 500) Then Continue While
-                If chunk Is Nothing Then Continue While
+                Dim frame As AudioFrame = Nothing
+                If Not _systemQueue.TryTake(frame, 500) Then Continue While
+                If frame Is Nothing Then Continue While
                 SyncLock _systemStream
                     Try
                         If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
-                            _systemStream.Write(chunk, 0, chunk.Length)
+                            _systemStream.Write(frame.Buffer, 0, frame.Length)
                         End If
                     Catch ex As Exception
                         System.Diagnostics.Debug.WriteLine("[NAudio] System writer error: " & ex.Message)
@@ -265,13 +301,13 @@ Public Class NAudioCaptureEngine
             End While
 
             While _systemQueue IsNot Nothing
-                Dim chunk As Byte() = Nothing
-                If Not _systemQueue.TryTake(chunk, 0) Then Exit While
-                If chunk Is Nothing Then Continue While
+                Dim frame As AudioFrame = Nothing
+                If Not _systemQueue.TryTake(frame, 0) Then Exit While
+                If frame Is Nothing Then Continue While
                 SyncLock _systemStream
                     Try
                         If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
-                            _systemStream.Write(chunk, 0, chunk.Length)
+                            _systemStream.Write(frame.Buffer, 0, frame.Length)
                         End If
                     Catch
                         Exit While
@@ -293,13 +329,13 @@ Public Class NAudioCaptureEngine
     Private Sub MicWriterLoop()
         Try
             While _isRunning AndAlso _micQueue IsNot Nothing
-                Dim chunk As Byte() = Nothing
-                If Not _micQueue.TryTake(chunk, 500) Then Continue While
-                If chunk Is Nothing Then Continue While
+                Dim frame As AudioFrame = Nothing
+                If Not _micQueue.TryTake(frame, 500) Then Continue While
+                If frame Is Nothing Then Continue While
                 SyncLock _micStream
                     Try
                         If _micStream IsNot Nothing AndAlso _micStream.CanWrite Then
-                            _micStream.Write(chunk, 0, chunk.Length)
+                            _micStream.Write(frame.Buffer, 0, frame.Length)
                         End If
                     Catch ex As Exception
                         System.Diagnostics.Debug.WriteLine("[NAudio] Mic writer error: " & ex.Message)
@@ -309,13 +345,13 @@ Public Class NAudioCaptureEngine
             End While
 
             While _micQueue IsNot Nothing
-                Dim chunk As Byte() = Nothing
-                If Not _micQueue.TryTake(chunk, 0) Then Exit While
-                If chunk Is Nothing Then Continue While
+                Dim frame As AudioFrame = Nothing
+                If Not _micQueue.TryTake(frame, 0) Then Exit While
+                If frame Is Nothing Then Continue While
                 SyncLock _micStream
                     Try
                         If _micStream IsNot Nothing AndAlso _micStream.CanWrite Then
-                            _micStream.Write(chunk, 0, chunk.Length)
+                            _micStream.Write(frame.Buffer, 0, frame.Length)
                         End If
                     Catch
                         Exit While
@@ -355,11 +391,38 @@ Public Class NAudioCaptureEngine
             Dim wfe As WaveFormatExtensible = DirectCast(wf, WaveFormatExtensible)
             info.IsFloat = (wfe.Encoding = WaveFormatEncoding.IeeeFloat)
             info.BitsPerSample = wfe.BitsPerSample
+            info.ChannelLayout = ChannelMaskToLayout(wfe.ChannelMask)
         Else
             info.IsFloat = (wf.Encoding = WaveFormatEncoding.IeeeFloat)
             info.BitsPerSample = wf.BitsPerSample
+            info.ChannelLayout = AudioFormat.LayoutFromChannelCount(wf.Channels)
         End If
         Return info
+    End Function
+
+    Private Shared Function ChannelMaskToLayout(mask As ChannelMask) As String
+        Select Case mask
+            Case ChannelMask.Mono : Return "mono"
+            Case ChannelMask.Stereo : Return "stereo"
+            Case ChannelMask.TwoPointOne : Return "2.1"
+            Case ChannelMask.ThreePointZero, ChannelMask.ThreePointOne : Return "3.0"
+            Case ChannelMask.Quad : Return "quad"
+            Case ChannelMask.FivePointZero, ChannelMask.FivePointZeroBack : Return "5.0"
+            Case ChannelMask.FivePointOne, ChannelMask.FivePointOneBack : Return "5.1"
+            Case ChannelMask.SixPointOne : Return "6.1"
+            Case ChannelMask.SevenPoint1, ChannelMask.SevenPoint1Front : Return "7.1"
+            Case Else : Return AudioFormat.LayoutFromChannelCount(SpeakerConfigurationFromMask(mask))
+        End Select
+    End Function
+
+    Private Shared Function SpeakerConfigurationFromMask(mask As ChannelMask) As Integer
+        Dim count As Integer = 0
+        Dim val As UInteger = CUInt(mask)
+        While val <> 0
+            If (val And 1) <> 0 Then count += 1
+            val = val >> 1
+        End While
+        Return count
     End Function
 
     Public Shared Function ListMicDevices() As List(Of Tuple(Of String, String))
