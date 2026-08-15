@@ -1,3 +1,4 @@
+Imports System.IO
 Imports System.Net.WebSockets
 Imports System.Security.Cryptography
 Imports System.Text
@@ -223,7 +224,7 @@ Public Class ObsWebSocketClient
 
     Private Shared Sub WriteLogFile(line As String)
         Try
-            Dim logPath As String = System.IO.Path.Combine(Application.StartupPath, "notifier_obs.log")
+            Dim logPath As String = Path.Combine(Application.StartupPath, "notifier_obs.log")
             Using fs As New FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
                 Using sw As New StreamWriter(fs)
                     sw.WriteLine(line)
