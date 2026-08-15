@@ -927,7 +927,8 @@ Partial Public Class Base
     End Sub
 
     Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
-        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+        Dim EngineFile = Path.Combine(Application.StartupPath, "Engine.UI")
+        Dim AudioFile = Path.Combine(Application.StartupPath, "Audio.UI")
 
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
         If captureProcess Is Nothing Then
@@ -937,7 +938,16 @@ Partial Public Class Base
         End If
 
 
-        If File.Exists(uiFile) Then
+        If File.Exists(EngineFile) Then
+            Settings_List.Visible = False
+            Base_Settings.Hide()
+        Else
+            Settings_List.Visible = True
+            Base_Settings.Show()
+            Engine_UI.Stop()
+        End If
+
+        If File.Exists(AudioFile) Then
             Settings_List.Visible = False
             Base_Settings.Hide()
         Else
