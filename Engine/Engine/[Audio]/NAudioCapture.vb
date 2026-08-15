@@ -76,7 +76,7 @@ Public Class NAudioCaptureEngine
     ' ── P1-B 4A: Hot path instrumentation ──
     Private _sysCallbackCount As Long = 0
     Private _sysBytesPerCallbackTotal As Long = 0
-    Private _sysQueueMaxDepth As Integer = 0
+    Private _sysQueueMaxDepth As Long = 0
     Private _sysWriterWriteTicks As Long = 0
     Private _sysWriterWriteCount As Long = 0
     Private _sysNaNScanTicks As Long = 0
@@ -448,8 +448,8 @@ Public Class NAudioCaptureEngine
 
             ' P1-B 4A: Track queue depth
             Dim queueDepth As Integer = _systemQueue.Count
-            If queueDepth > CInt(System.Threading.Interlocked.Read(_sysQueueMaxDepth)) Then
-                System.Threading.Interlocked.Exchange(_sysQueueMaxDepth, queueDepth)
+            If queueDepth > System.Threading.Interlocked.Read(_sysQueueMaxDepth) Then
+                System.Threading.Interlocked.Exchange(_sysQueueMaxDepth, CLng(queueDepth))
             End If
 
             If Not _systemQueue.TryAdd(frame) Then
