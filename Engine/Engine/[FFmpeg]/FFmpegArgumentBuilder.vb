@@ -237,6 +237,14 @@ Partial Public Class CaptureEngine
             sb.Append("-movflags +faststart ")
         End If
 
+        ' -shortest: truncate output to the shortest stream duration.
+        ' The silence feeder keeps audio duration ≈ video duration, but
+        ' there may be a few ms difference. -shortest ensures the output
+        ' ends cleanly at the video duration (video is always the master).
+        If hasSystem OrElse hasMic Then
+            sb.Append("-shortest ")
+        End If
+
         sb.Append($"-y ""{outputFile}""")
 
         Return sb.ToString()
