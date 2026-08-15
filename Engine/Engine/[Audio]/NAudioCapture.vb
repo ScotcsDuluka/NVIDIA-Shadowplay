@@ -260,7 +260,7 @@ Public Class NAudioCaptureEngine
             End If
 
             Return Nothing
-        End Function
+        End Using
     End Function
 
     Private Sub OnSystemDataAvailable(sender As Object, e As WaveInEventArgs)
@@ -502,50 +502,34 @@ Public Class NAudioCaptureEngine
         Try : _micQueue?.CompleteAdding() : Catch : End Try
     End Sub
 
+    ''' <summary>
+    ''' Maps an NAudio WaveFormat to our AudioFormat contract.
+    '''
+    ''' NAudio 2.3.0 note: WaveFormatExtensible.ChannelMask is NOT exposed in
+    ''' the 2.x API (only added in NAudio 3 pre-release). So we cannot read the
+    ''' real WASAPI dwChannelMask. We use the channel-count fallback instead:
+    ''' 1ch → mono, 2ch → stereo, 6ch → 5.1, 8ch → 7.1, etc.
+    '''
+    ''' This is acceptable in practice because Windows's standard layouts match
+    ''' the count-based mapping for the common cases (1, 2, 6, 8 channels).
+    ''' For unusual counts (5ch), LayoutFromChannelCount returns "unspecified"
+    ''' rather than guessing a wrong topology.
+    '''
+    ''' If future NAudio upgrade to 3.x happens, this is the ONLY function that
+    ''' needs to change — read wfe.ChannelMask directly and call a real
+    ''' ChannelMaskToLayout function.
+    ''' </summary>
     Private Function WaveFormatToInfo(wf As WaveFormat) As AudioFormat
         Dim info As New AudioFormat()
         If wf Is Nothing Then Return info
 
         info.SampleRate = wf.SampleRate
         info.Channels = wf.Channels
+        info.BitsPerSample = wf.BitsPerSample
+        info.IsFloat = (wf.Encoding = WaveFormatEncoding.IeeeFloat)
+        info.ChannelLayout = AudioFormat.LayoutFromChannelCount(wf.Channels)
 
-        If TypeOf wf Is WaveFormatExtensible Then
-            Dim wfe As WaveFormatExtensible = DirectCast(wf, WaveFormatExtensible)
-            info.IsFloat = (wfe.Encoding = WaveFormatEncoding.IeeeFloat)
-            info.BitsPerSample = wfe.BitsPerSample
-            info.ChannelLayout = ChannelMaskToLayout(wfe.ChannelMask)
-        Else
-            info.IsFloat = (wf.Encoding = WaveFormatEncoding.IeeeFloat)
-            info.BitsPerSample = wf.BitsPerSample
-            info.ChannelLayout = AudioFormat.LayoutFromChannelCount(wf.Channels)
-        End If
         Return info
-    End Function
-
-    Private Shared Function ChannelMaskToLayout(mask As ChannelMask) As String
-        Select Case mask
-            Case ChannelMask.Mono : Return "mono"
-            Case ChannelMask.Stereo : Return "stereo"
-            Case ChannelMask.TwoPointOne : Return "2.1"
-            Case ChannelMask.ThreePointZero : Return "3.0"
-            Case ChannelMask.ThreePointOne : Return "3.1"
-            Case ChannelMask.Quad : Return "quad"
-            Case ChannelMask.FivePointZero, ChannelMask.FivePointZeroBack : Return "5.0"
-            Case ChannelMask.FivePointOne, ChannelMask.FivePointOneBack : Return "5.1"
-            Case ChannelMask.SixPointOne : Return "6.1"
-            Case ChannelMask.SevenPoint1, ChannelMask.SevenPoint1Front : Return "7.1"
-            Case Else : Return AudioFormat.LayoutFromChannelCount(SpeakerConfigurationFromMask(mask))
-        End Select
-    End Function
-
-    Private Shared Function SpeakerConfigurationFromMask(mask As ChannelMask) As Integer
-        Dim count As Integer = 0
-        Dim val As UInteger = CUInt(mask)
-        While val <> 0
-            If (val And 1) <> 0 Then count += 1
-            val = val >> 1
-        End While
-        Return count
     End Function
 
     Public Shared Function ListMicDevices() As List(Of Tuple(Of String, String))
