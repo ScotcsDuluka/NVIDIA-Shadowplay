@@ -4,15 +4,6 @@ Imports System.Text
 Imports System.Threading
 Imports Newtonsoft.Json.Linq
 
-''' <summary>
-''' OBS WebSocket v5 client. Connects to OBS on port 4455, performs the
-''' Hello -> Identify -> Identified handshake (with HMAC-SHA256 auth when a
-''' password is set), then keeps listening for events.
-'''
-''' Events are surfaced through <see cref="OnEvent"/> as raw JObjects, and
-''' through <see cref="OnDisconnected"/> / <see cref="OnReconnecting"/> for
-''' connection state changes.
-''' </summary>
 Public Class ObsWebSocketClient
     Implements IDisposable
 
@@ -124,12 +115,12 @@ Public Class ObsWebSocketClient
         If op Is Nothing Then Return
 
         Select Case op.Value(Of Integer)()
-            Case 0  ' Hello
+            Case 0
                 HandleHello(msg)
-            Case 2  ' Identified
+            Case 2
                 Log("info", "OBS WebSocket identified — listening for events")
                 RaiseEvent OnConnected()
-            Case 5  ' EventReceived
+            Case 5
                 Dim d As JObject = TryCast(msg("d"), JObject)
                 If d Is Nothing Then Return
                 Dim eventTypeTok As JToken = d("eventType")
@@ -139,7 +130,6 @@ Public Class ObsWebSocketClient
                 Dim eventData As JObject = TryCast(d("eventData"), JObject)
                 RaiseEvent OnEvent(eventType, eventData, msg)
             Case Else
-                ' ignore unknown ops
         End Select
     End Sub
 
@@ -165,11 +155,6 @@ Public Class ObsWebSocketClient
         Log("info", "Sent Identify to OBS")
     End Sub
 
-    ''' <summary>
-    ''' OBS WebSocket v5 auth:
-    '''   secret = base64(sha256(password + salt))
-    '''   auth   = base64(sha256(secret + challenge))
-    ''' </summary>
     Private Function BuildAuth(password As String, salt As String, challenge As String) As String
         Dim salted = Encoding.UTF8.GetBytes(password & salt)
         Dim secretBytes As Byte()
@@ -204,7 +189,6 @@ Public Class ObsWebSocketClient
                 Thread.Sleep(_currentReconnectDelayMs)
                 _currentReconnectDelayMs = Math.Min(_currentReconnectDelayMs * 2, MaxReconnectDelayMs)
 
-                ' dispose old
                 If _cts IsNot Nothing Then
                     Try : _cts.Cancel() : Catch : End Try
                     Try : _cts.Dispose() : Catch : End Try

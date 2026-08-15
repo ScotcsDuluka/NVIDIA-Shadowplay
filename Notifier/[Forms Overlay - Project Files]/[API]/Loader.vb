@@ -36,31 +36,19 @@ Partial Public Class Loader
 
     ' Events ฟอร์ม
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' TCP Client
         tcp = New TcpClientHelper("NVIDIA Notifier")
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
-        ' เปิดเชื่อมต่อ TCP (ปรับตามจริง)
-        ' tcp.Connect("127.0.0.1", 12345) ' หรือ .Start()
 
-        ' โหลดภาษาครั้งแรก
         LoadLanguage()
-
-        ' สร้างรายการแจ้งเตือน
         InitNotifications()
-
-        ' ซ่อนจาก Alt+Tab
         HideFromAltTab()
 
-        ' ----- OBS WebSocket bridge -----
-        ' โหลด config จาก notifier_obs.json (ถ้าไม่มีใช้ default 127.0.0.1:4455)
         obsCfg = ObsConfig.Load()
         If obsCfg.Enabled Then
             StartObsBridge()
         End If
     End Sub
 
-    ' สตาร์ท OBS WebSocket client — เชื่อมไป OBS ที่ config ไว้ แล้ว route event ที่ map ได้
-    ' เข้าฟังก์ชัน OnMessage เดิม (เหมือนเสมือนว่าได้รับจาก TCP)
     Private Sub StartObsBridge()
         Try
             obs = New ObsWebSocketClient(obsCfg.Host, obsCfg.Port, obsCfg.Password, autoReconnect:=True)
@@ -77,7 +65,6 @@ Partial Public Class Loader
         End Try
     End Sub
 
-    ' OBS event มา → แมปเป็น notification key → เรียก OnMessage เหมือนรับจาก TCP
     Private Sub OnObsEvent(eventType As String, eventData As Newtonsoft.Json.Linq.JObject, raw As Newtonsoft.Json.Linq.JObject)
         Try
             If Not obsCfg.ShouldForward(eventType) Then Return
@@ -85,12 +72,8 @@ Partial Public Class Loader
             Dim mapped = ObsEventMap.TryMap(eventType, eventData)
             If mapped Is Nothing Then Return
 
-            ' สร้าง message รูปแบบเดียวกับที่ TCP ส่งเข้ามา: "[NVIDIA Overlay]|<key>"
             Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"
 
-            ' หมายเหตุ: เนื่องจากบาง notification (เช่น recording_started) มี localization key
-            ' ต่างจาก key จริง แต่ OnMessage จะเช็ค notifications list ที่ลงทะเบียนไว้
-            ' ใน InitNotifications() อยู่แล้ว — เลยไม่ต้องทำอะไรเพิ่ม แค่ส่ง key ที่ map ได้เข้าไป
             If Me.InvokeRequired Then
                 Me.Invoke(Sub() OnMessage(msg))
             Else

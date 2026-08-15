@@ -2,10 +2,6 @@
 Partial Public Class Loader
 
     Private tcp As TcpClientHelper
-
-    ' OBS WebSocket bridge fields (declared here next to tcp so the whole
-    ' partial class can see them — Loader.vb uses them in Base_Load /
-    ' StartObsBridge / OnObsEvent / Load_FormClosing).
     Private obs As ObsWebSocketClient
     Private obsCfg As ObsConfig
 

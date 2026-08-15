@@ -1,11 +1,6 @@
 Imports System.IO
 Imports Newtonsoft.Json.Linq
 
-''' <summary>
-''' Loads notifier_obs.json (sits next to the Notifier exe). Falls back to
-''' sensible defaults if the file is missing or malformed — the Notifier
-''' should never crash because of a config typo.
-''' </summary>
 Public Class ObsConfig
 
     Public Property Enabled As Boolean = True
@@ -34,8 +29,6 @@ Public Class ObsConfig
 
             Dim root As JObject = JObject.Parse(json)
 
-            ' NOTE: VB.NET does NOT have ?. (null-conditional) or ??
-            ' (null-coalescing) — those are C#-only. Use explicit If() checks.
             cfg.Enabled = ReadBool(root, "enabled", True)
             cfg.Host = ReadString(root, "host", "127.0.0.1")
             cfg.Port = ReadInt(root, "port", 4455)
@@ -59,8 +52,6 @@ Public Class ObsConfig
         Return cfg
     End Function
 
-    ' ---- Safe JSON readers (no ?. / ?? ) ----
-
     Private Shared Function ReadBool(obj As JObject, key As String, defaultValue As Boolean) As Boolean
         If obj Is Nothing Then Return defaultValue
         Dim tok As JToken = obj(key)
@@ -79,7 +70,6 @@ Public Class ObsConfig
         Try
             Return tok.Value(Of Integer)()
         Catch
-            ' Maybe stored as string — try parse
             Dim s As String = Nothing
             Try
                 s = tok.Value(Of String)()
