@@ -1,12 +1,22 @@
 Imports System.Diagnostics
 Imports System.IO
-Imports System.IO.Pipes
 Imports System.Text
-Imports NAudio.CoreAudioApi
-Imports NAudio.Wave
 
 Partial Public Class CaptureEngine
 
+    ''' <summary>
+    ''' Build FFmpeg arguments for VIDEO-ONLY recording.
+    '''
+    ''' This is the Engine-Stable FFmpeg command — NO audio input, NO pipe,
+    ''' NO -filter_complex amix. Just ddagrab → NVENC → output.
+    '''
+    ''' When audio is enabled, the output file is a TEMP .video.mp4 and a
+    ''' separate AudioFileWriter records .wav files. At stop time, MuxVideoAudio
+    ''' combines them into the final file.
+    '''
+    ''' When audio is disabled, output goes directly to the final file
+    ''' (identical to Engine-Stable behavior).
+    ''' </summary>
     Private Function BuildFFmpegArguments(outputFile As String) As String
         Dim sb As StringBuilder = New StringBuilder()
         Dim fpsStr As String = _settings.FPS.ToString()
@@ -58,7 +68,7 @@ Partial Public Class CaptureEngine
                 If hwType = HwDeviceType.NVIDIA OrElse hwType = HwDeviceType.AMD Then
                     If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
                     videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",hwupload"
-                ElseIf hwType = HwDeviceType.IntelQSV
+                ElseIf hwType = HwDeviceType.IntelQSV Then
                     If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
                     videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",hwmap=derive_device=qsv"
                 Else
@@ -71,59 +81,10 @@ Partial Public Class CaptureEngine
             End If
         End If
 
-        Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
-
-        ' Declare outside the If so they're visible to the later -filter_complex
-        ' block (which references sysFmt.ChannelLayout + micFmt.ChannelLayout).
-        Dim sysFmt As AudioFormat = Nothing
-        Dim micFmt As AudioFormat = Nothing
-
-        If hasNAudio Then
-            sysFmt = DetectSystemFormat()
-            micFmt = DetectMicFormat(_settings.MicDeviceId, _settings.MicDeviceName)
-
-            Dim sysEnabled As Boolean = _settings.SystemAudioCapture
-            Dim micEnabled As Boolean = _settings.MicCapture AndAlso
-                (Not String.IsNullOrEmpty(_settings.MicDeviceId) OrElse
-                 Not String.IsNullOrEmpty(_settings.MicDeviceName)) AndAlso
-                micFmt IsNot Nothing
-            Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
-
-            If isSeparate AndAlso micEnabled AndAlso sysEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i ""{_sysPipePath}"" ")
-                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_micPipePath}"" ")
-            ElseIf isSeparate AndAlso micEnabled AndAlso Not sysEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_sysPipePath}"" ")
-            ElseIf sysEnabled AndAlso micEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i ""{_sysPipePath}"" ")
-                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_micPipePath}"" ")
-            ElseIf sysEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i ""{_sysPipePath}"" ")
-            ElseIf micEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_sysPipePath}"" ")
-            End If
-        ElseIf _settings.AudioCapture AndAlso Not String.IsNullOrEmpty(_settings.AudioDevice) Then
-            sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")
-        End If
-
-        Dim useFilterComplex As Boolean = hasNAudio AndAlso
-            (_settings.SystemAudioCapture AndAlso
-             _settings.MicCapture AndAlso
-             (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SingleTrack))
-
-        If useFilterComplex Then
-            Dim fc As New StringBuilder()
-            If videoFilter.Length > 0 Then
-                fc.Append("[0:v]" & videoFilter & "[vout];")
-            Else
-                fc.Append("[0:v]null[vout];")
-            End If
-            fc.Append($"[1:a]volume={FormatVolume(_settings.SystemAudioVolume)},aresample=48000,aformat=channel_layouts={sysFmt.ChannelLayout}[sysv];")
-            fc.Append($"[2:a]volume={FormatVolume(_settings.MicVolume)},aresample=48000,aformat=channel_layouts={micFmt.ChannelLayout}[micv];")
-            fc.Append("[sysv][micv]amix=inputs=2:duration=longest:normalize=0[aout] ")
-            sb.Append("-filter_complex """ & fc.ToString() & """ ")
-            sb.Append("-map [vout] -map [aout] ")
-        ElseIf videoFilter.Length > 0 Then
+        ' ═══ VIDEO FILTER (single input, NO -filter_complex) ═══
+        ' This is the Engine-Stable pattern — single video input means
+        ' FFmpeg has zero audio synchronization overhead.
+        If videoFilter.Length > 0 Then
             sb.Append("-vf """ & videoFilter & """ ")
         End If
 
@@ -182,26 +143,9 @@ Partial Public Class CaptureEngine
             End If
         End If
 
-        Dim hasAnyAudio As Boolean = hasNAudio OrElse _settings.AudioCapture
-        If hasAnyAudio Then
-            Dim sysAndMicSeparate As Boolean = hasNAudio AndAlso
-                (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
-                _settings.SystemAudioCapture AndAlso _settings.MicCapture
-
-            If useFilterComplex Then
-                sb.Append("-c:a aac -b:a 320k -ar 48000 ")
-            ElseIf sysAndMicSeparate Then
-                sb.Append("-map 0:v -map 1:a -map 2:a ")
-                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)} ")
-                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)} ")
-                sb.Append("-c:a:0 aac -b:a:0 320k -ar 48000 ")
-                sb.Append("-c:a:1 aac -b:a:1 320k -ar 48000 ")
-            Else
-                Dim vol As Single = If(_settings.SystemAudioCapture, _settings.SystemAudioVolume, _settings.MicVolume)
-                sb.Append($"-af volume={FormatVolume(vol)} ")
-                sb.Append("-c:a aac -b:a 320k -ar 48000 ")
-            End If
-        End If
+        ' ═══ NO AUDIO CODEC ARGS HERE ═══
+        ' Audio is recorded separately by AudioFileWriter → .wav files.
+        ' At stop time, BuildMuxArguments combines video + audio.
 
         Dim ext As String = Path.GetExtension(outputFile).ToLowerInvariant()
         If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".m4v" Then
@@ -209,6 +153,91 @@ Partial Public Class CaptureEngine
         End If
 
         sb.Append("-y """ & outputFile & """")
+
+        Return sb.ToString()
+    End Function
+
+    ''' <summary>
+    ''' Build FFmpeg arguments for the MUX step — combines video + audio
+    ''' into the final output file.
+    '''
+    ''' Command pattern:
+    '''   ffmpeg -i temp_video.mp4 -i temp_system.wav [-i temp_mic.wav]
+    '''          -map 0:v -map 1:a [-map 2:a]
+    '''          -c:v copy
+    '''          [-af:0 volume=X] [-af:1 volume=Y]
+    '''          -c:a aac -b:a 320k -ar 48000
+    '''          -movflags +faststart -y final.mp4
+    '''
+    ''' Video stream copy = instant (no re-encode). Audio AAC encode is fast.
+    ''' For Separate mode: two audio tracks are kept as separate streams in MP4.
+    ''' For Single mode: amix filter combines system + mic into one track.
+    ''' </summary>
+    Private Function BuildMuxArguments(videoPath As String,
+                                       systemWav As String, hasSystem As Boolean,
+                                       micWav As String, hasMic As Boolean,
+                                       outputFile As String) As String
+        Dim sb As New StringBuilder()
+
+        sb.Append("-hide_banner -loglevel info ")
+
+        ' Input 0: video (temp .video.mp4)
+        sb.Append($"-i ""{videoPath}"" ")
+
+        ' Input 1: system audio (.wav) — only if it has data
+        If hasSystem Then
+            sb.Append($"-i ""{systemWav}"" ")
+        End If
+
+        ' Input 2: mic audio (.wav) — only if it has data
+        If hasMic Then
+            sb.Append($"-i ""{micWav}"" ")
+        End If
+
+        Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
+
+        If hasSystem AndAlso hasMic Then
+            If isSeparate Then
+                ' Two separate audio tracks in output
+                sb.Append("-map 0:v -map 1:a -map 2:a ")
+                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)} ")
+                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)} ")
+                sb.Append("-c:v copy ")
+                sb.Append("-c:a:0 aac -b:a:0 320k -ar:a:0 48000 ")
+                sb.Append("-c:a:1 aac -b:a:1 320k -ar:a:1 48000 ")
+            Else
+                ' Mix system + mic into single track using -filter_complex amix
+                sb.Append("-filter_complex ""[1:a]volume=" & FormatVolume(_settings.SystemAudioVolume) & ",aresample=48000[a0];" &
+                          "[2:a]volume=" & FormatVolume(_settings.MicVolume) & ",aresample=48000[a1];" &
+                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]"" ")
+                sb.Append("-map 0:v -map [aout] ")
+                sb.Append("-c:v copy ")
+                sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+            End If
+        ElseIf hasSystem Then
+            ' System only
+            sb.Append("-map 0:v -map 1:a ")
+            sb.Append($"-af volume={FormatVolume(_settings.SystemAudioVolume)} ")
+            sb.Append("-c:v copy ")
+            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+        ElseIf hasMic Then
+            ' Mic only (system failed/disabled)
+            sb.Append("-map 0:v -map 1:a ")
+            sb.Append($"-af volume={FormatVolume(_settings.MicVolume)} ")
+            sb.Append("-c:v copy ")
+            sb.Append("-c:a aac -b:a 320k -ar 48000 ")
+        Else
+            ' No audio at all — just copy video (shouldn't happen in mux path,
+            ' but handle gracefully)
+            sb.Append("-map 0:v -c:v copy ")
+        End If
+
+        Dim ext As String = Path.GetExtension(outputFile).ToLowerInvariant()
+        If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".m4v" Then
+            sb.Append("-movflags +faststart ")
+        End If
+
+        sb.Append($"-y ""{outputFile}""")
 
         Return sb.ToString()
     End Function
@@ -224,72 +253,6 @@ Partial Public Class CaptureEngine
             Return HwDeviceType.AMD
         End If
         Return HwDeviceType.None
-    End Function
-
-    Private Function DetectSystemFormat() As AudioFormat
-        Try
-            Using devEnum As New MMDeviceEnumerator()
-                Dim defaultOut As MMDevice = devEnum.GetDefaultAudioEndpoint(
-                    DataFlow.Render, Role.Multimedia)
-                If defaultOut IsNot Nothing Then
-                    Using cap As New WasapiLoopbackCapture(defaultOut)
-                        Return WaveFormatToInfo(cap.WaveFormat)
-                    End Using
-                End If
-            End Using
-        Catch
-        End Try
-        Return New AudioFormat()
-    End Function
-
-    Private Function DetectMicFormat(deviceId As String, deviceName As String) As AudioFormat
-        Try
-            Using devEnum As New MMDeviceEnumerator()
-                Dim devices = devEnum.EnumerateAudioEndPoints(
-                    DataFlow.Capture, DeviceState.Active)
-
-                Dim target As MMDevice = Nothing
-                If Not String.IsNullOrEmpty(deviceId) Then
-                    For Each dev As MMDevice In devices
-                        If dev.ID = deviceId Then
-                            target = dev
-                            Exit For
-                        End If
-                    Next
-                End If
-                If target Is Nothing AndAlso Not String.IsNullOrEmpty(deviceName) Then
-                    For Each dev As MMDevice In devices
-                        If String.Equals(dev.FriendlyName, deviceName, StringComparison.Ordinal) Then
-                            target = dev
-                            Exit For
-                        End If
-                    Next
-                End If
-                If target Is Nothing Then Return Nothing
-
-                Using cap As New WasapiCapture(target)
-                    Return WaveFormatToInfo(cap.WaveFormat)
-                End Using
-            End Using
-        Catch
-        End Try
-        Return Nothing
-    End Function
-
-    Private Shared Function WaveFormatToInfo(wf As WaveFormat) As AudioFormat
-        Dim info As New AudioFormat()
-        If wf Is Nothing Then Return info
-        info.SampleRate = wf.SampleRate
-        info.Channels = wf.Channels
-        If TypeOf wf Is WaveFormatExtensible Then
-            Dim wfe As WaveFormatExtensible = DirectCast(wf, WaveFormatExtensible)
-            info.IsFloat = (wfe.Encoding = WaveFormatEncoding.IeeeFloat)
-            info.BitsPerSample = wfe.BitsPerSample
-        Else
-            info.IsFloat = (wf.Encoding = WaveFormatEncoding.IeeeFloat)
-            info.BitsPerSample = wf.BitsPerSample
-        End If
-        Return info
     End Function
 
     Private Shared Function FormatVolume(vol As Single) As String

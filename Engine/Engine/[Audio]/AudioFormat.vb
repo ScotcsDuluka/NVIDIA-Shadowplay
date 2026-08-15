@@ -1,7 +1,6 @@
 ''' <summary>
-''' Audio sample format contract — agreed between NAudio capture (producer)
-''' and FFmpeg input args (consumer). One AudioFormat per source, so System
-''' and Mic can each report their own real WASAPI format.
+''' Audio sample format contract — used by AudioFileWriter (producer) to
+''' report the real WASAPI format, and by CaptureEngine for diagnostics.
 ''' </summary>
 Public Class AudioFormat
 
@@ -13,7 +12,7 @@ Public Class AudioFormat
     ''' <summary>
     ''' Channel layout string — FFmpeg-compatible (e.g. "stereo", "mono",
     ''' "5.1", "7.1"). Defaults to "stereo" since 2-channel PCM is by far
-    ''' the most common case. NAudioCapture fills this from the WASAPI
+    ''' the most common case. AudioFileWriter fills this from the WASAPI
     ''' WaveFormat's channel mask when possible.
     ''' </summary>
     Public Property ChannelLayout As String = "stereo"

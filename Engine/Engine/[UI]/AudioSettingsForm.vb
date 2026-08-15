@@ -119,7 +119,7 @@ Public Class AudioSettingsForm
     Private Sub RefreshMicDevices()
         cboMic.Items.Clear()
         Try
-            For Each dev As Tuple(Of String, String) In NAudioCaptureEngine.ListMicDevices()
+            For Each dev As Tuple(Of String, String) In AudioFileWriter.ListMicDevices()
                 cboMic.Items.Add(dev)
             Next
         Catch

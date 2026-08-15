@@ -1,37 +1,30 @@
 ' CaptureEngine.vb
-' ShadowPlay Engine - FFmpeg Screen Capture Engine
-' Manages FFmpeg process: Start/Stop/ForceStop
-' Builds FFmpeg args based on CaptureSettings
-' Supports: ddagrab, gdigrab, gfxcapture
-' Encoders: NVENC, QSV, AMF, libx264, libx265, SVT-AV1
+' ShadowPlay Engine - Two-Process Recording Architecture
 '
-' ── FFmpeg Official Syntax ──
-'
-' ddagrab (Desktop Duplication via DXGI):
-'   ffmpeg -f lavfi -i "ddagrab=output_idx=0:framerate=60" -c:v h264_nvenc out.mp4
-'   Output: D3D11 hardware frames
-'   -> NVENC/AMF: pass directly (d3d11 -> d3d11)
-'   -> QSV: add -vf "hwmap=derive_device=qsv"
-'   -> CPU: add -vf "hwdownload,format=bgra,format=yuv420p"
-'
-' gfxcapture (Windows.Graphics.Capture):
-'   ffmpeg -f lavfi -i "gfxcapture=monitor_idx=0:max_framerate=60" -vf "fps=60" ...
-'   Output: D3D11 hardware frames (VFR, needs fps filter)
-'
-' gdigrab (GDI Legacy Screen Capture):
-'   ffmpeg -f gdigrab -framerate 60 -i desktop -c:v libx264 out.mp4
-'   Output: System memory frames (BGRA)
-'
-' Audio capture:
-'   -f dshow -i audio="Device Name"
-'
-' IMPORTANT: ddagrab and gfxcapture use -f lavfi -i (NOT -filter_complex alone)
-' because -filter_complex without -i causes stream mapping issues with
-' multiple inputs (audio from dshow). Use -vf for post-filters instead.
+' ┌─────────────────────────────────────────────────────────────────────┐
+' │                    TWO-PROCESS ARCHITECTURE                        │
+' ├─────────────────────────────────────────────────────────────────────┤
+' │                                                                     │
+' │  When audio is DISABLED (VideoOnly):                               │
+' │    FFmpeg(ddagrab → NVENC → final.mp4)                              │
+' │    Direct output, identical to Engine-Stable. Zero audio overhead. │
+' │                                                                     │
+' │  When audio is ENABLED:                                            │
+' │    1. Video FFmpeg: ddagrab → NVENC → temp.video.mp4 (NO audio)    │
+' │    2. AudioFileWriter: WASAPI → temp.system.wav + temp.mic.wav     │
+' │    3. On stop: Mux FFmpeg combines them → final.mp4                │
+' │       ffmpeg -i video.mp4 -i audio.wav -c:v copy -c:a aac out.mp4   │
+' │                                                                     │
+' │  Benefits:                                                          │
+' │    - Video FFmpeg has ZERO audio overhead → guaranteed 144fps      │
+' │    - Audio is isolated → failure never affects video               │
+' │    - No named pipe, no silence feeder, no two-input contention     │
+' │    - Clean shutdown: just stop WASAPI + send 'q' to FFmpeg         │
+' │                                                                     │
+' └─────────────────────────────────────────────────────────────────────┘
 
 Imports System.Diagnostics
 Imports System.IO
-Imports System.IO.Pipes
 Imports System.Text
 
 Partial Public Class CaptureEngine
@@ -42,7 +35,6 @@ Partial Public Class CaptureEngine
     Public Event RecordingStopped As Action(Of String)
     Public Event ErrorOccurred As Action(Of String)
     Public Event FrameCaptured As Action(Of Long)
-
     Public Event ProgressUpdated As Action(Of Long, TimeSpan, Long)
 
     Public Enum CaptureState
@@ -51,6 +43,7 @@ Partial Public Class CaptureEngine
         Recording
         Paused
         Stopping
+        Muxing
         HasError
     End Enum
 
@@ -70,28 +63,16 @@ Partial Public Class CaptureEngine
     Private _disposed As Boolean = False
     Private _jobGuard As JobObjectGuard
 
-    Private _audioEngine As NAudioCaptureEngine
-    Private _audioPipeStream As Stream
-    Private _micNamedPipe As NamedPipeServerStream
-    Private _micNamedPipeStream As Stream
-    Private _micPipePath As String
-    Private Const MicPipePrefix As String = "nvidia_shadowplay_mic_"
+    ' ── Two-process recording state ──
+    ' When audio is enabled, video goes to a temp file and audio goes to .wav
+    ' files. At stop time, MuxVideoAudio() combines them into _outputFile.
+    Private _audioWriter As AudioFileWriter
+    Private _tempVideoPath As String
+    Private _tempSystemWav As String
+    Private _tempMicWav As String
+    Private _useTwoProcess As Boolean = False
 
-    ' System audio named pipe — replaces pipe:0 (stdin) so stdin is free for
-    ' FFmpeg's interactive 'q' command at shutdown.
-    Private _sysNamedPipe As NamedPipeServerStream
-    Private _sysPipePath As String
-    Private Const AudioPipePrefix As String = "nvidia_shadowplay_audio_"
-
-    ''' <summary>
-    ''' Atomic flag (0=not stopped, 1=stop completed) — ensures RecordingStopped
-    ''' fires EXACTLY once across OnExited and StopRecordingAsync. Set to 1 when
-    ''' either of them fires the event, the other one sees non-zero return from
-    ''' Interlocked.Exchange and skips.
-    ''' </summary>
     Private _stopCompleted As Integer = 0
-
-    ' ── Properties ────────────────────────────────────────────
 
     Public ReadOnly Property State As CaptureState
         Get
@@ -120,16 +101,12 @@ Partial Public Class CaptureEngine
         End Get
     End Property
 
-    ' ── Constructor ───────────────────────────────────────────
-
     Public Sub New(settings As CaptureSettings)
         _settings = settings
         _logBuffer = New StringBuilder()
         Try
             _jobGuard = New JobObjectGuard()
         Catch ex As Exception
-            ' Best-effort: if job creation fails (e.g. on Wine/older Windows),
-            ' capture still works — we just lose orphan protection.
             LogDebug("JobObjectGuard init failed: " & ex.Message)
         End Try
     End Sub
@@ -152,17 +129,10 @@ Partial Public Class CaptureEngine
             Directory.CreateDirectory(_settings.OutputDirectory)
         End If
 
-        ' ✅ P1.5: if the caller (Overlay via Hub) supplied a specific output path,
-        ' honor it. Otherwise fall back to settings.GenerateOutputFilename() which
-        ' uses settings.OutputDirectory + timestamp. Old behavior always used the
-        ' settings path, which meant files ended up in Engine's preferred folder
-        ' instead of where the Overlay told the user they'd be saved.
         If Not String.IsNullOrEmpty(overrideOutputPath) Then
-            ' Basic sanity: must end with a known video extension.
             Dim ext As String = Path.GetExtension(overrideOutputPath).ToLowerInvariant()
             If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".mkv" OrElse ext = ".avi" OrElse ext = ".m4v" Then
                 _outputFile = overrideOutputPath
-                ' Make sure parent dir exists.
                 Dim parentDir As String = Path.GetDirectoryName(overrideOutputPath)
                 If Not String.IsNullOrEmpty(parentDir) AndAlso Not Directory.Exists(parentDir) Then
                     Try
@@ -180,47 +150,37 @@ Partial Public Class CaptureEngine
             _outputFile = _settings.GenerateOutputFilename()
         End If
 
-        ' ✅ C5 FIX: do NOT set Recording state until _ffmpegProcess is actually
-        ' assigned inside the Task. Old code called SetState(Recording) here,
-        ' before the Task even started — if StopRecordingAsync arrived in the
-        ' window between SetState and the Task assigning _ffmpegProcess, Stop
-        ' would see _state=Recording but _ffmpegProcess=Nothing → skip FFmpeg
-        ' cleanup, set state back to Idle, raise RecordingStopped. The Task
-        ' would then launch FFmpeg with no one tracking it (orphan).
-        ' Now we set Recording state only AFTER _ffmpegProcess is alive.
-
         Return Await Task.Run(Function()
                                  Try
-                                     ' ─── Pre-create audio named pipes BEFORE BuildFFmpegArguments ───
-                                     ' Using named pipes instead of pipe:0 (stdin) frees up stdin
-                                     ' for FFmpeg's interactive 'q' command at shutdown.
-                                     Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
-                                     If hasNAudio Then
-                                         _sysPipePath = "\\.\pipe\" & AudioPipePrefix & Process.GetCurrentProcess().Id.ToString() & "_" & Guid.NewGuid().ToString("N").Substring(0, 8)
-                                         _sysNamedPipe = New NamedPipeServerStream(_sysPipePath.Substring(8), PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
-                                         Task.Run(Sub()
-                                                      Try : _sysNamedPipe.WaitForConnection() : Catch : End Try
-                                                  End Sub)
-                                         LogDebug("[Audio] System pipe created: " & _sysPipePath)
-                                         WriteDebugLog("[Audio] System pipe created: " & _sysPipePath)
+                                     ' ═══ DETERMINE RECORDING MODE ═══
+                                     ' Two-process mode is used when ANY audio capture is enabled.
+                                     ' This keeps video FFmpeg single-input (= Engine-Stable performance).
+                                     Dim hasAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
+                                     _useTwoProcess = hasAudio
 
-                                         ' Mic pipe for Separate mode
-                                         Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
-                                                                           _settings.MicCapture AndAlso
-                                                                           (Not String.IsNullOrEmpty(_settings.MicDeviceId) OrElse
-                                                                            Not String.IsNullOrEmpty(_settings.MicDeviceName))
-                                         If isSeparateAndMic Then
-                                             _micPipePath = "\\.\pipe\" & MicPipePrefix & Process.GetCurrentProcess().Id.ToString() & "_" & Guid.NewGuid().ToString("N").Substring(0, 8)
-                                             _micNamedPipe = New NamedPipeServerStream(_micPipePath.Substring(8), PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
-                                             Task.Run(Sub()
-                                                          Try : _micNamedPipe.WaitForConnection() : Catch : End Try
-                                                      End Sub)
-                                             LogDebug("[Audio] Mic pipe created: " & _micPipePath)
-                                             WriteDebugLog("[Audio] Mic pipe created: " & _micPipePath)
-                                         End If
+                                     Dim ffmpegOutputPath As String = _outputFile
+
+                                     If _useTwoProcess Then
+                                         ' Video goes to temp file; audio goes to .wav files.
+                                         ' Final mux produces _outputFile at stop time.
+                                         Dim baseDir As String = Path.GetDirectoryName(_outputFile)
+                                         Dim baseName As String = Path.GetFileNameWithoutExtension(_outputFile)
+                                         _tempVideoPath = Path.Combine(baseDir, baseName & ".video.tmp.mp4")
+                                         _tempSystemWav = Path.Combine(baseDir, baseName & ".system.tmp.wav")
+                                         _tempMicWav = Path.Combine(baseDir, baseName & ".mic.tmp.wav")
+
+                                         ' Clean up any stale temp files from previous failed runs
+                                         DeleteTempFile(_tempVideoPath)
+                                         DeleteTempFile(_tempSystemWav)
+                                         DeleteTempFile(_tempMicWav)
+
+                                         ffmpegOutputPath = _tempVideoPath
+                                         LogDebug("[Two-Process] Audio enabled — video → temp, audio → wav, mux at stop")
+                                     Else
+                                         LogDebug("[Single-Process] Video-only — direct output (Engine-Stable mode)")
                                      End If
 
-                                     Dim args As String = BuildFFmpegArguments(_outputFile)
+                                     Dim args As String = BuildFFmpegArguments(ffmpegOutputPath)
                                      LogDebug("FFmpeg command: " & _settings.FFmpegPath & " " & args)
                                      WriteDebugLog("FFmpeg command: " & _settings.FFmpegPath & " " & args)
 
@@ -235,8 +195,6 @@ Partial Public Class CaptureEngine
 
                                      _ffmpegProcess = New Process()
                                      _ffmpegProcess.StartInfo = si
-                                     ' ✅ FIX: Must set EnableRaisingEvents=True BEFORE Start() or the Exited event never fires.
-                                     ' Without this, a crashed FFmpeg looks "still recording" forever.
                                      _ffmpegProcess.EnableRaisingEvents = True
                                      AddHandler _ffmpegProcess.OutputDataReceived, AddressOf OnStdOut
                                      AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
@@ -250,7 +208,6 @@ Partial Public Class CaptureEngine
 
                                      LogDebug($"[FFmpeg] Started PID={_ffmpegProcess.Id}")
 
-                                     ' ✅ P1: tie the FFmpeg child to our Job Object so it dies with us.
                                      If _jobGuard IsNot Nothing Then
                                          _jobGuard.Assign(_ffmpegProcess)
                                      End If
@@ -258,14 +215,18 @@ Partial Public Class CaptureEngine
                                      _ffmpegProcess.BeginOutputReadLine()
                                      _ffmpegProcess.BeginErrorReadLine()
                                      _stopwatch = Stopwatch.StartNew()
-                                     ' Reset stop flag — fresh recording session, no Stop has fired yet.
                                      System.Threading.Interlocked.Exchange(_stopCompleted, 0)
-                                     ' ✅ C5 FIX: now that _ffmpegProcess is alive, set Recording state.
-                                     ' Any Stop arriving after this point will correctly see the process.
                                      SetState(CaptureState.Recording)
                                      RaiseEvent RecordingStarted(_outputFile)
 
-                                     StartAudioCaptureIfNeeded()
+                                     ' ═══ START AUDIO RECORDER (if enabled) ═══
+                                     ' Audio runs completely independently — separate thread, separate
+                                     ' file output. No pipe, no FFmpeg subprocess, no shared state with
+                                     ' the video FFmpeg. Failure here does NOT stop video recording.
+                                     If _useTwoProcess Then
+                                         StartAudioRecorder()
+                                     End If
+
                                      Return True
 
                                  Catch ex As Exception
@@ -281,7 +242,7 @@ Partial Public Class CaptureEngine
     ' ── Stop Recording ────────────────────────────────────────
 
     Public Async Function StopRecordingAsync() As Task(Of Boolean)
-        If _state <> CaptureState.Recording Then
+        If _state <> CaptureState.Recording AndAlso _state <> CaptureState.HasError Then
             Return False
         End If
 
@@ -300,51 +261,33 @@ Partial Public Class CaptureEngine
                                          WriteDebugLog(beforeMsg)
                                      End If
 
-                                     ' ─── SHUTDOWN ORDER (audio EOF before q) ───
-                                     ' GPT P0-4: q must NOT be sent before audio pipe is closed.
-                                     ' FFmpeg needs to see audio EOF first, then receive q to stop video.
+                                     ' ═══ SHUTDOWN ORDER (Two-Process) ═══
+                                     ' 1. Stop audio recorder first — flushes + finalizes .wav files
+                                     '    (WaveFileWriter.Dispose writes correct WAV header)
+                                     ' 2. Send 'q' to video FFmpeg — stops ddagrab, finalizes video.mp4
+                                     ' 3. WaitForExit on video FFmpeg
+                                     ' 4. If two-process: Mux video + audio → final output file
+                                     ' 5. Delete temp files
                                      '
-                                     ' Order:
-                                     ' 1. StopProducers() — stop WASAPI, CompleteAdding on queues
-                                     ' 2. ClosePipes() — drain remaining audio (fast: ~1ms with P0-1 fix),
-                                     '    then close named pipe → FFmpeg sees audio EOF
-                                     ' 3. Send 'q' IMMEDIATELY after audio EOF
-                                     ' 4. WaitForExit → FFmpeg stops ddagrab, finalizes MP4, exits 0
-                                     '
-                                     ' With P0-1 fix (writer checks IsCompleted not _isRunning),
-                                     ' ClosePipes completes in milliseconds, NOT 5 seconds.
+                                     ' Note: NO pipe to close, NO silence feeder to stop.
+                                     ' Shutdown is just "stop audio writer, send q, wait, mux".
 
-                                     If _audioEngine IsNot Nothing Then
-                                         Dim prodMsg As String = "[Audio] Stopping producers…"
-                                         LogDebug(prodMsg)
-                                         WriteDebugLog(prodMsg)
-                                         _audioEngine.StopProducers()
-                                         Dim prodStoppedMsg As String = "[Audio] Producers stopped."
-                                         LogDebug(prodStoppedMsg)
-                                         WriteDebugLog(prodStoppedMsg)
-
-                                         Dim drainStart As DateTime = DateTime.Now
-                                         Dim drainMsg As String = "[Audio] Draining queues + closing pipes…"
-                                         LogDebug(drainMsg)
-                                         WriteDebugLog(drainMsg)
-                                         _audioEngine.ClosePipes()
-                                         Dim drainTime As TimeSpan = DateTime.Now - drainStart
-                                         Dim pipesClosedMsg As String = $"[Audio] Pipes closed (audio EOF sent) in {drainTime.TotalMilliseconds:F0}ms"
-                                         LogDebug(pipesClosedMsg)
-                                         WriteDebugLog(pipesClosedMsg)
-
-                                         Dim diagMsg As String = _audioEngine.GetDiagnostics()
+                                     ' ─── Step 1: Stop audio recorder ───
+                                     If _audioWriter IsNot Nothing Then
+                                         LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
+                                         WriteDebugLog("[Audio] Stopping audio recorder…")
+                                         _audioWriter.Stop()
+                                         Dim diagMsg As String = _audioWriter.GetDiagnostics()
                                          LogDebug(diagMsg)
                                          WriteDebugLog(diagMsg)
-
-                                         _audioEngine.Dispose()
-                                         _audioEngine = Nothing
+                                         _audioWriter.Dispose()
+                                         _audioWriter = Nothing
+                                         LogDebug("[Audio] Audio recorder stopped.")
                                      End If
 
-                                     ' Send 'q' AFTER audio EOF — FFmpeg has seen end of audio stream,
-                                     ' now tell it to stop video (ddagrab) and finalize.
+                                     ' ─── Step 2: Send 'q' to FFmpeg ───
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
-                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q) after audio EOF… PID={_ffmpegProcess.Id}"
+                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
                                          LogDebug(qMsg)
                                          WriteDebugLog(qMsg)
                                          Try
@@ -386,9 +329,12 @@ Partial Public Class CaptureEngine
                                          WriteDebugLog(alreadyMsg)
                                      End If
 
-                                     ' Use Interlocked.Exchange to ensure RecordingStopped fires exactly once
-                                     ' — OnExited may have already fired during WaitForExit, in which case
-                                     ' skip this branch entirely.
+                                     ' ─── Step 3: Mux video + audio (if two-process) ───
+                                     If _useTwoProcess Then
+                                         AwaitOrRunMux()
+                                     End If
+
+                                     ' ─── Step 4: Fire RecordingStopped (exactly once) ───
                                      If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                                          SetState(CaptureState.Idle)
                                          RaiseEvent RecordingStopped(_outputFile)
@@ -404,18 +350,152 @@ Partial Public Class CaptureEngine
                              End Function)
     End Function
 
+    ' ── Mux video + audio ─────────────────────────────────────
+
+    Private Sub AwaitOrRunMux()
+        If Not _useTwoProcess Then Return
+        If String.IsNullOrEmpty(_tempVideoPath) Then Return
+
+        ' Verify temp video exists
+        If Not File.Exists(_tempVideoPath) Then
+            LogDebug("[Mux] Temp video file missing — skipping mux, temp files cleaned")
+            WriteDebugLog("[Mux] Temp video file missing — skipping mux")
+            Return
+        End If
+
+        SetState(CaptureState.Muxing)
+
+        Dim hasSystem As Boolean = AudioFileWriter.HasAudioData(_tempSystemWav)
+        Dim hasMic As Boolean = AudioFileWriter.HasAudioData(_tempMicWav)
+
+        LogDebug($"[Mux] hasSystem={hasSystem}, hasMic={hasMic}")
+        WriteDebugLog($"[Mux] hasSystem={hasSystem}, hasMic={hasMic}")
+
+        If Not hasSystem AndAlso Not hasMic Then
+            ' No audio captured (WASAPI never fired, or mic not connected).
+            ' Just rename the temp video to the final output — no mux needed.
+            LogDebug("[Mux] No audio data — renaming temp video to final output (no mux)")
+            WriteDebugLog("[Mux] No audio data — renaming temp video to final output")
+            Try
+                ' Delete final if exists (stale), then move temp → final
+                If File.Exists(_outputFile) Then File.Delete(_outputFile)
+                File.Move(_tempVideoPath, _outputFile)
+                LogDebug("[Mux] Renamed temp video → " & _outputFile)
+            Catch ex As Exception
+                LogDebug("[Mux] Rename failed: " & ex.Message)
+                WriteDebugLog("[Mux] Rename failed: " & ex.Message)
+            End Try
+            Return
+        End If
+
+        ' Run mux FFmpeg: ffmpeg -i video.mp4 -i system.wav [-i mic.wav] -c:v copy -c:a aac final.mp4
+        Dim muxArgs As String = BuildMuxArguments(_tempVideoPath,
+                                                   _tempSystemWav, hasSystem,
+                                                   _tempMicWav, hasMic,
+                                                   _outputFile)
+
+        LogDebug("[Mux] FFmpeg command: " & _settings.FFmpegPath & " " & muxArgs)
+        WriteDebugLog("[Mux] FFmpeg command: " & _settings.FFmpegPath & " " & muxArgs)
+
+        Dim muxStart As DateTime = DateTime.Now
+        Try
+            Dim muxPsi As New ProcessStartInfo()
+            muxPsi.FileName = _settings.FFmpegPath
+            muxPsi.Arguments = muxArgs
+            muxPsi.UseShellExecute = False
+            muxPsi.RedirectStandardOutput = True
+            muxPsi.RedirectStandardError = True
+            muxPsi.CreateNoWindow = True
+
+            Using muxProc As New Process()
+                muxProc.StartInfo = muxPsi
+                muxProc.Start()
+                If _jobGuard IsNot Nothing Then
+                    _jobGuard.Assign(muxProc)
+                End If
+
+                ' Read stdout/stderr to completion (prevents deadlock on long output)
+                Dim stdoutTask As Task(Of String) = muxProc.StandardOutput.ReadToEndAsync()
+                Dim stderrTask As Task(Of String) = muxProc.StandardError.ReadToEndAsync()
+
+                muxProc.WaitForExit(60000) ' 60s max for mux (should be ~1-5s for stream copy + AAC)
+
+                If Not muxProc.HasExited Then
+                    LogDebug("[Mux] FFmpeg mux TIMEOUT — killing")
+                    Try
+                        muxProc.Kill()
+                        muxProc.WaitForExit(2000)
+                    Catch
+                    End Try
+                End If
+
+                Dim muxTime As TimeSpan = DateTime.Now - muxStart
+                Dim muxExitCode As Integer = -1
+                Try
+                    muxExitCode = muxProc.ExitCode
+                Catch
+                End Try
+
+                LogDebug($"[Mux] FFmpeg mux completed in {muxTime.TotalMilliseconds:F0}ms, ExitCode={muxExitCode}")
+                WriteDebugLog($"[Mux] FFmpeg mux ExitCode={muxExitCode}, duration={muxTime.TotalMilliseconds:F0}ms")
+
+                ' Log mux stderr (for debugging)
+                Dim stderrResult As String = stderrTask.Result
+                If Not String.IsNullOrEmpty(stderrResult) Then
+                    ' Only log first + last 500 chars to avoid spam
+                    If stderrResult.Length > 1000 Then
+                        stderrResult = stderrResult.Substring(0, 500) & "…[truncated]…" & stderrResult.Substring(stderrResult.Length - 500)
+                    End If
+                    WriteDebugLog("[Mux stderr] " & stderrResult)
+                End If
+
+                If muxExitCode <> 0 Then
+                    LogDebug("[Mux] FFmpeg mux FAILED — keeping temp files for inspection")
+                    WriteDebugLog("[Mux] FFmpeg mux FAILED — temp files preserved")
+                    ' Don't delete temp files so user can inspect
+                    Return
+                End If
+            End Using
+
+            ' Mux succeeded — delete temp files
+            DeleteTempFile(_tempVideoPath)
+            DeleteTempFile(_tempSystemWav)
+            DeleteTempFile(_tempMicWav)
+            LogDebug("[Mux] Temp files cleaned up")
+            WriteDebugLog("[Mux] Temp files cleaned up")
+
+        Catch ex As Exception
+            LogDebug("[Mux] Exception: " & ex.Message)
+            WriteDebugLog("[Mux] Exception: " & ex.ToString())
+        End Try
+    End Sub
+
+    Private Sub DeleteTempFile(path As String)
+        If String.IsNullOrEmpty(path) Then Return
+        Try
+            If File.Exists(path) Then File.Delete(path)
+        Catch ex As Exception
+            LogDebug("[Mux] Failed to delete temp file " & path & ": " & ex.Message)
+        End Try
+    End Sub
+
     ' ── Force Stop ────────────────────────────────────────────
 
     Public Sub ForceStop()
         Try
-            LogDebug("[FFmpeg] FORCE STOP — stopping audio capture…")
-            StopAudioCaptureIfNeeded()
+            LogDebug("[FFmpeg] FORCE STOP")
+            StopAudioWriter()
 
             If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                 LogDebug("[FFmpeg] FORCE KILL")
                 _ffmpegProcess.Kill()
                 _ffmpegProcess.WaitForExit(5000)
             End If
+
+            ' Clean up temp files on force stop
+            DeleteTempFile(_tempVideoPath)
+            DeleteTempFile(_tempSystemWav)
+            DeleteTempFile(_tempMicWav)
         Catch
         Finally
             If _ffmpegProcess IsNot Nothing Then
@@ -443,7 +523,7 @@ Partial Public Class CaptureEngine
         LogDebug("[stderr] " & e.Data)
         WriteDebugLog("[stderr] " & e.Data)
 
-        ' Parse frame progress: "frame=  120 fps=60 ..."
+        ' Parse frame progress
         If e.Data.IndexOf("frame=", StringComparison.OrdinalIgnoreCase) >= 0 Then
             Try
                 Dim idx As Integer = e.Data.IndexOf("frame=") + 6
@@ -460,35 +540,25 @@ Partial Public Class CaptureEngine
                     If Long.TryParse(frameStr, frameNum) Then
                         RaiseEvent FrameCaptured(frameNum)
 
-                        ' ✅ P2.9: also parse "time=00:00:42.50" and "size=    8420KiB"
-                        ' and fire ProgressUpdated. Overlay uses this to show real-time
-                        ' recording timer + file size in its UI.
                         Dim duration As TimeSpan = TimeSpan.Zero
                         Dim sizeBytes As Long = 0
 
-                        ' Parse time=HH:MM:SS.mmm
                         Dim timeIdx As Integer = e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase)
                         If timeIdx >= 0 Then
                             Dim timeStr As String = e.Data.Substring(timeIdx + 5).TrimStart()
                             Dim timeEnd As Integer = timeStr.IndexOf(" "c)
                             If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
                             Dim parsed As TimeSpan
-                            ' ✅ C3 FIX: use InvariantCulture so the parser works on
-                            ' machines with non-English locales (de-DE uses ',' as
-                            ' decimal separator, which breaks Double.TryParse for the
-                            ' millisecond portion).
                             If TimeSpan.TryParse(timeStr, Globalization.CultureInfo.InvariantCulture, parsed) Then
                                 duration = parsed
                             End If
                         End If
 
-                        ' Parse size=NNNNKiB or NNNNMiB
                         Dim sizeIdx As Integer = e.Data.IndexOf("size=", StringComparison.OrdinalIgnoreCase)
                         If sizeIdx >= 0 Then
                             Dim sizeStr As String = e.Data.Substring(sizeIdx + 5).TrimStart()
                             Dim sizeEnd As Integer = sizeStr.IndexOf(" "c)
                             If sizeEnd > 0 Then sizeStr = sizeStr.Substring(0, sizeEnd)
-                            ' Strip trailing unit (kB, KiB, MB, MiB, etc.)
                             Dim unitStart As Integer = -1
                             For i As Integer = 0 To sizeStr.Length - 1
                                 If Not (Char.IsDigit(sizeStr(i)) OrElse sizeStr(i) = "."c) Then
@@ -499,7 +569,6 @@ Partial Public Class CaptureEngine
                             Dim numStr As String = If(unitStart >= 0, sizeStr.Substring(0, unitStart), sizeStr)
                             Dim unitStr As String = If(unitStart >= 0, sizeStr.Substring(unitStart).Trim(), "")
                             Dim sizeNum As Double = 0
-                            ' ✅ C3 FIX: InvariantCulture for the same reason.
                             If Double.TryParse(numStr, Globalization.CultureInfo.InvariantCulture, sizeNum) Then
                                 Select Case unitStr.ToUpperInvariant()
                                     Case "B" : sizeBytes = CLng(sizeNum)
@@ -510,7 +579,6 @@ Partial Public Class CaptureEngine
                             End If
                         End If
 
-                        ' Fallback: use stopwatch if FFmpeg's time= is missing.
                         If duration = TimeSpan.Zero AndAlso _stopwatch IsNot Nothing AndAlso _stopwatch.IsRunning Then
                             duration = _stopwatch.Elapsed
                         End If
@@ -522,9 +590,6 @@ Partial Public Class CaptureEngine
             End Try
         End If
 
-        ' Report errors — tightened: only match real FFmpeg error markers.
-        ' Old code matched the substring "error" which fires on benign lines like
-        ' "Error resilience", "errordetect", "max_error_rate", x264 "[error]:" notices, etc.
         Dim low As String = e.Data.ToLowerInvariant()
         Dim isError As Boolean =
             low.Contains("[error]") OrElse
@@ -545,7 +610,6 @@ Partial Public Class CaptureEngine
     End Sub
 
     Private Sub OnExited(sender As Object, e As EventArgs)
-        ' Capture exit code + PID first — _ffmpegProcess may be nulled by ForceStop()/Dispose() concurrently.
         Dim exitCode As String = "?"
         Dim pidStr As String = "?"
         Dim proc As Process = _ffmpegProcess
@@ -560,32 +624,79 @@ Partial Public Class CaptureEngine
         LogDebug($"[FFmpeg] Exited PID={pidStr} ExitCode={exitCode} State={_state.ToString()}")
         WriteDebugLog($"FFmpeg exited with code: {exitCode} (state was {_state.ToString()}, PID={pidStr})")
 
-        ' GPT P0 fix: handle BOTH Recording AND Stopping. Previously only Recording
-        ' was handled — if user pressed Stop (state becomes Stopping) and FFmpeg then
-        ' exited, OnExited would do nothing. That left it up to StopRecordingAsync to
-        ' fire RecordingStopped, but if StopRecordingAsync was blocked on WaitForExit
-        ' and FFmpeg exited with non-zero code, no error event was raised.
-        If _state = CaptureState.Recording OrElse _state = CaptureState.Stopping Then
+        ' Only fire RecordingStopped from OnExited if we're NOT in Stopping state —
+        ' StopRecordingAsync handles the full mux flow + RecordingStopped.
+        ' OnExited only handles unexpected exits (crash during Recording).
+        If _state = CaptureState.Recording Then
             If _stopwatch IsNot Nothing Then _stopwatch.Stop()
 
             If exitCode = "0" Then
-                ' Clean exit. Use Interlocked.Exchange so RecordingStopped fires EXACTLY
-                ' ONCE — either here in OnExited OR in StopRecordingAsync, never both.
+                ' Clean exit during Recording state (shouldn't normally happen unless
+                ' ddagrab finished or user quit via another path). Do mux if needed.
+                If _useTwoProcess Then
+                    AwaitOrRunMux()
+                End If
                 If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                     SetState(CaptureState.Idle)
                     RaiseEvent RecordingStopped(_outputFile)
                 End If
             ElseIf exitCode <> "?" Then
-                ' Non-zero exit code → real error. StopRecordingAsync may have sent q
-                ' but FFmpeg may have crashed mid-write. Surface as error event.
                 If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                     SetState(CaptureState.HasError)
                     RaiseEvent ErrorOccurred($"FFmpeg exited unexpectedly with code {exitCode}")
                 End If
             End If
-            ' exitCode = "?" → couldn't read (process nulled concurrently). Stay silent —
-            ' StopRecordingAsync / ForceStop will handle the rest of the lifecycle.
         End If
+    End Sub
+
+    ' ── Audio Recorder Lifecycle ─────────────────────────────
+
+    Private Sub StartAudioRecorder()
+        Try
+            Dim cfg As New AudioFileWriter.AudioConfigValues() With {
+                .SystemAudioCapture = _settings.SystemAudioCapture,
+                .MicCapture = _settings.MicCapture,
+                .SystemAudioVolume = _settings.SystemAudioVolume,
+                .MicVolume = _settings.MicVolume,
+                .MicDeviceId = _settings.MicDeviceId,
+                .MicDeviceName = _settings.MicDeviceName
+            }
+            _audioWriter = New AudioFileWriter(cfg)
+
+            AddHandler _audioWriter.SystemStartFailed, Sub(reason As String)
+                                                           LogDebug("[Audio] System start failed: " & reason)
+                                                           WriteDebugLog("[Audio] System start failed: " & reason)
+                                                       End Sub
+            AddHandler _audioWriter.MicStartFailed, Sub(reason As String)
+                                                       LogDebug("[Audio] Mic start failed: " & reason)
+                                                       WriteDebugLog("[Audio] Mic start failed: " & reason)
+                                                   End Sub
+
+            Dim ok As Boolean = _audioWriter.Start(_tempSystemWav, _tempMicWav)
+            If ok Then
+                LogDebug("[Audio] AudioFileWriter started (system=" & _settings.SystemAudioCapture.ToString() &
+                         ", mic=" & _settings.MicCapture.ToString() & ")")
+                WriteDebugLog("[Audio] AudioFileWriter started")
+            Else
+                LogDebug("[Audio] AudioFileWriter failed to start — video continues without audio")
+                WriteDebugLog("[Audio] AudioFileWriter failed to start — video continues without audio")
+            End If
+        Catch ex As Exception
+            LogDebug("[Audio] StartAudioRecorder exception: " & ex.Message)
+            WriteDebugLog("[Audio] StartAudioRecorder exception: " & ex.ToString())
+        End Try
+    End Sub
+
+    Private Sub StopAudioWriter()
+        Try
+            If _audioWriter IsNot Nothing Then
+                _audioWriter.Stop()
+                _audioWriter.Dispose()
+                _audioWriter = Nothing
+                LogDebug("[Audio] AudioFileWriter stopped")
+            End If
+        Catch
+        End Try
     End Sub
 
     ' ── Helpers ──────────────────────────────────────────────
@@ -597,9 +708,6 @@ Partial Public Class CaptureEngine
 
     Private Sub LogDebug(message As String)
         Dim line As String = "[" & DateTime.Now.ToString("HH:mm:ss.fff") & "] " & message
-        ' ✅ C8 FIX: StringBuilder is not thread-safe. LogDebug is called from
-        ' FFmpeg stdout, stderr, Exited, UI, and TCP listener threads concurrently.
-        ' Without a lock, concurrent appends can corrupt internal state.
         SyncLock _logBuffer
             _logBuffer.AppendLine(line)
             If _logBuffer.Length > 10240 Then
@@ -608,17 +716,11 @@ Partial Public Class CaptureEngine
         End SyncLock
     End Sub
 
-    ''' <summary>
-    ''' Write debug info to log file on disk for troubleshooting.
-    ''' </summary>
     Private Sub WriteDebugLog(message As String)
         Try
             Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
             Dim logPath As String = Path.Combine(logDir, "capture-engine.log")
             Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] " & message
-            ' ✅ P1: route through BackgroundLogger instead of File.AppendAllText per line.
-            ' FFmpeg progress goes to stderr at up to 60 lines/sec (one per frame); the old
-            ' per-line AppendAllText was a real disk-thrash on long recordings.
             BackgroundLogger.Log(logPath, logLine)
         Catch
         End Try
@@ -634,7 +736,7 @@ Partial Public Class CaptureEngine
     Protected Overridable Sub Dispose(disposing As Boolean)
         If Not _disposed Then
             If disposing Then
-                StopAudioCaptureIfNeeded()
+                StopAudioWriter()
                 ForceStop()
                 If _jobGuard IsNot Nothing Then
                     _jobGuard.Dispose()
@@ -643,139 +745,6 @@ Partial Public Class CaptureEngine
             End If
             _disposed = True
         End If
-    End Sub
-
-    Private Sub StartAudioCaptureIfNeeded()
-        Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
-        If Not hasNAudio Then Return
-
-        Try
-            Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
-                                              _settings.MicCapture AndAlso
-                                              (Not String.IsNullOrEmpty(_settings.MicDeviceId) OrElse
-                                               Not String.IsNullOrEmpty(_settings.MicDeviceName))
-
-            Dim sysStream As Stream = Nothing
-            Dim micStream As Stream = Nothing
-
-            ' ─── CRITICAL: Wait for named pipe connection BEFORE wrapping in BufferedStream ───
-            ' NamedPipeServerStream.Write throws InvalidOperationException if called
-            ' before WaitForConnection returns. FFmpeg connects to the pipe when it
-            ' processes the -i "\\.\pipe\..." argument. We must wait for that connection.
-            If _sysNamedPipe IsNot Nothing Then
-                Dim waitStart As DateTime = DateTime.Now
-                LogDebug("[Audio] Waiting for system pipe connection…")
-                WriteDebugLog("[Audio] Waiting for system pipe connection…")
-                Try
-                    ' WaitForConnection was started as Task.Run in StartRecordingAsync.
-                    ' Give it up to 15 seconds to complete — FFmpeg needs time to start + connect.
-                    Dim waited As Integer = 0
-                    While Not _sysNamedPipe.IsConnected AndAlso waited < 15000
-                        Thread.Sleep(100)
-                        waited += 100
-                    End While
-                    If _sysNamedPipe.IsConnected Then
-                        Dim connectTime As TimeSpan = DateTime.Now - waitStart
-                        LogDebug($"[Audio] System pipe connected after {connectTime.TotalMilliseconds:F0}ms")
-                        WriteDebugLog($"[Audio] System pipe connected after {connectTime.TotalMilliseconds:F0}ms")
-                    Else
-                        LogDebug("[Audio] WARNING: System pipe NOT connected after 15s — audio will fail")
-                        WriteDebugLog("[Audio] WARNING: System pipe NOT connected after 15s — audio will fail")
-                    End If
-                Catch ex As Exception
-                    LogDebug("[Audio] System pipe connection wait error: " & ex.Message)
-                    WriteDebugLog("[Audio] System pipe connection wait error: " & ex.Message)
-                End Try
-            End If
-
-            sysStream = New BufferedStream(_sysNamedPipe, 64 * 1024)
-
-            If isSeparateAndMic Then
-                ' Wait for mic pipe connection too
-                If _micNamedPipe IsNot Nothing Then
-                    Try
-                        Dim micWaited As Integer = 0
-                        While Not _micNamedPipe.IsConnected AndAlso micWaited < 15000
-                            Thread.Sleep(100)
-                            micWaited += 100
-                        End While
-                        LogDebug($"[Audio] Mic pipe connected after {micWaited}ms")
-                    Catch
-                    End Try
-                End If
-                _micNamedPipeStream = New BufferedStream(_micNamedPipe, 64 * 1024)
-                micStream = _micNamedPipeStream
-                LogDebug("[Audio] Separate mode — mic pipe: " & _micPipePath)
-            Else
-                micStream = sysStream
-            End If
-
-            Dim cfg As New NAudioCaptureEngine.AudioConfigValues() With {
-                .SystemAudioCapture = _settings.SystemAudioCapture,
-                .MicCapture = _settings.MicCapture,
-                .SystemAudioVolume = _settings.SystemAudioVolume,
-                .MicVolume = _settings.MicVolume,
-                .MicDeviceId = _settings.MicDeviceId,
-                .MicDeviceName = _settings.MicDeviceName
-            }
-            _audioEngine = New NAudioCaptureEngine(cfg)
-            _audioPipeStream = sysStream
-            _audioEngine.Start(sysStream, micStream)
-            LogDebug("[Audio] NAudio capture started (mode=" & _settings.AudioTrackMode.ToString() &
-                     ", system=" & _settings.SystemAudioCapture.ToString() &
-                     ", mic=" & _settings.MicCapture.ToString() & ")")
-        Catch ex As Exception
-            LogDebug("[Audio] NAudio start error: " & ex.Message)
-            WriteDebugLog("[Audio] NAudio start error: " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub StopAudioCaptureIfNeeded()
-        Try
-            If _audioEngine IsNot Nothing Then
-                _audioEngine.Stop()
-                _audioEngine.Dispose()
-                _audioEngine = Nothing
-                LogDebug("[Audio] NAudio capture stopped")
-            End If
-        Catch
-        End Try
-
-        Try
-            If _audioPipeStream IsNot Nothing Then
-                _audioPipeStream.Flush()
-                _audioPipeStream.Dispose()
-                _audioPipeStream = Nothing
-            End If
-        Catch
-        End Try
-
-        Try
-            If _micNamedPipeStream IsNot Nothing Then
-                _micNamedPipeStream.Flush()
-                _micNamedPipeStream.Dispose()
-                _micNamedPipeStream = Nothing
-            End If
-        Catch
-        End Try
-
-        Try
-            If _micNamedPipe IsNot Nothing Then
-                Try : _micNamedPipe.Disconnect() : Catch : End Try
-                _micNamedPipe.Dispose()
-                _micNamedPipe = Nothing
-            End If
-        Catch
-        End Try
-
-        Try
-            If _sysNamedPipe IsNot Nothing Then
-                Try : _sysNamedPipe.Disconnect() : Catch : End Try
-                _sysNamedPipe.Dispose()
-                _sysNamedPipe = Nothing
-            End If
-        Catch
-        End Try
     End Sub
 
 End Class
