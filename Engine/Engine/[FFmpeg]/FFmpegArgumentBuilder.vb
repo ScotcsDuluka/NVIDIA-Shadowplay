@@ -235,14 +235,13 @@ Partial Public Class CaptureEngine
 
         Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
 
-        ' ── Build per-track filter chains ──
-        ' Each track: [optional adelay for negative offset] + volume + aresample + apad
-        Dim sysFilter As String = BuildAudioFilter(_settings.SystemAudioVolume, sysDelayMs)
-        Dim micFilter As String = BuildAudioFilter(_settings.MicVolume, micDelayMs)
-
         If hasSystem AndAlso hasMic Then
             If isSeparate Then
                 ' Two separate audio tracks in output
+                ' Per-track filter: volume → aresample → adelay → apad
+                ' (apad included per-track for separate mode since each is independent)
+                Dim sysFilter As String = BuildAudioFilter(_settings.SystemAudioVolume, sysDelayMs, True)
+                Dim micFilter As String = BuildAudioFilter(_settings.MicVolume, micDelayMs, True)
                 sb.Append("-map 0:v -map 1:a -map 2:a ")
                 sb.Append($"-af:0 {sysFilter} ")
                 sb.Append($"-af:1 {micFilter} ")
@@ -251,21 +250,27 @@ Partial Public Class CaptureEngine
                 sb.Append("-c:a:1 aac -b:a:1 320k -ar:a:1 48000 ")
             Else
                 ' Mix system + mic into single track using -filter_complex amix
+                ' Per-track filter WITHOUT apad (avoid padding both inputs before mix).
+                ' apad applied to final mix instead.
+                Dim sysFilter As String = BuildAudioFilter(_settings.SystemAudioVolume, sysDelayMs, False)
+                Dim micFilter As String = BuildAudioFilter(_settings.MicVolume, micDelayMs, False)
                 sb.Append("-filter_complex ""[1:a]" & sysFilter & "[a0];" &
                           "[2:a]" & micFilter & "[a1];" &
-                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]"" ")
+                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0,apad[aout]"" ")
                 sb.Append("-map 0:v -map [aout] ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a aac -b:a 320k -ar 48000 ")
             End If
         ElseIf hasSystem Then
             ' System only
+            Dim sysFilter As String = BuildAudioFilter(_settings.SystemAudioVolume, sysDelayMs, True)
             sb.Append("-map 0:v -map 1:a ")
             sb.Append($"-af {sysFilter} ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         ElseIf hasMic Then
             ' Mic only (system failed/disabled)
+            Dim micFilter As String = BuildAudioFilter(_settings.MicVolume, micDelayMs, True)
             sb.Append("-map 0:v -map 1:a ")
             sb.Append($"-af {micFilter} ")
             sb.Append("-c:v copy ")
@@ -298,32 +303,40 @@ Partial Public Class CaptureEngine
 
     ''' <summary>
     ''' Build audio filter chain for a single track.
-    ''' Order: adelay (if negative offset) → volume → aresample → apad
+    ''' Order: volume → aresample → adelay → apad
     '''
-    ''' - adelay: delays audio start (for negative offset — audio started after video)
-    ''' - volume: apply volume multiplier
+    ''' - volume: apply volume multiplier (first — operates on raw input samples)
     ''' - aresample=async=1:first_pts=0: drift correction + sample-aligned start
-    ''' - apad: pad with silence to match video duration
+    '''   (MUST come before adelay so resampler sees clean input first)
+    ''' - adelay: delays audio start (for negative offset — audio started after video)
+    '''   (MUST come after aresample — otherwise first_pts=0 would reset the delay)
+    ''' - apad: pad with silence to match video duration (last — pads final stream)
+    '''
+    ''' For amix mode, apad is applied to the final mix (not per-input) to avoid
+    ''' padding both inputs before mixing (which would extend timeline unnecessarily).
     ''' </summary>
-    Private Function BuildAudioFilter(volume As Single, delayMs As Integer) As String
+    Private Function BuildAudioFilter(volume As Single, delayMs As Integer, includeApad As Boolean) As String
         Dim parts As New List(Of String)()
-
-        ' adelay for negative offset (audio starts after video)
-        ' Format: adelay=500|500 (per-channel ms for stereo)
-        If delayMs > 0 Then
-            parts.Add($"adelay={delayMs}|{delayMs}")
-        End If
 
         ' Volume (skip if 1.0 to save encoding time)
         If Math.Abs(volume - 1.0F) > 0.001F Then
             parts.Add($"volume={FormatVolume(volume)}")
         End If
 
-        ' Drift correction + sample-aligned start
+        ' Drift correction + sample-aligned start (BEFORE adelay)
         parts.Add("aresample=async=1:first_pts=0")
 
-        ' Pad with silence to match video duration
-        parts.Add("apad")
+        ' adelay for negative offset (audio starts after video)
+        ' Format: adelay=500|500 (per-channel ms for stereo)
+        ' MUST come after aresample so first_pts=0 doesn't reset the delay
+        If delayMs > 0 Then
+            parts.Add($"adelay={delayMs}|{delayMs}")
+        End If
+
+        ' Pad with silence to match video duration (last)
+        If includeApad Then
+            parts.Add("apad")
+        End If
 
         Return String.Join(",", parts)
     End Function
