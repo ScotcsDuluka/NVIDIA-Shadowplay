@@ -73,6 +73,11 @@ Partial Public Class Loader
                 Return
             End If
 
+            If eventType = "ReplayBufferSaved" Then
+                HandleReplayBufferSaved()
+                Return
+            End If
+
             Dim mapped = ObsEventMap.TryMap(eventType, eventData)
             If mapped Is Nothing Then
                 Debug.WriteLine($"[OBS]   → no mapping for {eventType}")
@@ -90,6 +95,39 @@ Partial Public Class Loader
         Catch ex As Exception
             Debug.WriteLine($"[OBS] OnObsEvent error ({eventType}): {ex.Message}")
         End Try
+    End Sub
+
+    Private Sub HandleReplayBufferSaved()
+        Dim mins As Integer = 0
+        Dim secs As Integer = 0
+
+        Try
+            Dim resp = obs.SendRequest("GetReplayBufferStatus")
+            If resp IsNot Nothing Then
+                Dim dataTok As Newtonsoft.Json.Linq.JToken = resp("responseData")
+                If dataTok IsNot Nothing Then
+                    Dim durTok As Newtonsoft.Json.Linq.JToken = dataTok("replayBufferDuration")
+                    If durTok IsNot Nothing Then
+                        Dim durMs As Double = durTok.Value(Of Double)()
+                        Dim durSec As Integer = CInt(Math.Round(durMs / 1000.0))
+                        mins = durSec \ 60
+                        secs = durSec Mod 60
+                        Debug.WriteLine($"[OBS]   → ReplayBufferSaved durMs={durMs} → {mins}m {secs}s")
+                    End If
+                End If
+            End If
+        Catch ex As Exception
+            Debug.WriteLine($"[OBS] GetReplayBufferStatus error: {ex.Message}")
+        End Try
+
+        Dim msg As String = $"[NVIDIA Overlay]|l10n.notificationInstantReplaySaved"
+        Dim args As String() = {mins.ToString(), secs.ToString()}
+
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() OnMessageWithArgs(msg, args))
+        Else
+            OnMessageWithArgs(msg, args)
+        End If
     End Sub
 
     Private Sub Form1_Shown(sender As Object, e As EventArgs) Handles Me.Shown
