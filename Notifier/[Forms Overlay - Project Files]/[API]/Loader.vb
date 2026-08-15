@@ -180,10 +180,10 @@ Partial Public Class Loader
         Dim mins As Integer = 0
         Dim secs As Integer = 0
 
+        Dim savedPath As String = ""
         If eventData IsNot Nothing Then
             Dim savedPathTok As Newtonsoft.Json.Linq.JToken = eventData("savedReplayPath")
             If savedPathTok IsNot Nothing Then
-                Dim savedPath As String = Nothing
                 Try
                     savedPath = CType(savedPathTok, String)
                 Catch
@@ -193,8 +193,21 @@ Partial Public Class Loader
                         savedPath = ""
                     End Try
                 End Try
-                ObsLog($"HandleReplayBufferSaved: savedReplayPath={If(String.IsNullOrEmpty(savedPath), "(null)", savedPath)}")
             End If
+        End If
+
+        If Not String.IsNullOrEmpty(savedPath) Then
+            ObsLog($"HandleReplayBufferSaved: savedReplayPath={savedPath}")
+            Dim durSec As Integer = ReadVideoDurationSeconds(savedPath)
+            If durSec > 0 Then
+                mins = durSec \ 60
+                secs = durSec Mod 60
+                ObsLog($"HandleReplayBufferSaved: ffprobe duration={durSec}s → {mins}m {secs}s")
+            Else
+                ObsLog("HandleReplayBufferSaved: could not read duration from video file")
+            End If
+        Else
+            ObsLog("HandleReplayBufferSaved: savedReplayPath empty")
         End If
 
         Dim msg As String = $"[NVIDIA Overlay]|l10n.notificationInstantReplaySaved"
@@ -207,6 +220,53 @@ Partial Public Class Loader
             OnMessageWithArgs(msg, args)
         End If
     End Sub
+
+    Private Function ReadVideoDurationSeconds(videoPath As String) As Integer
+        If String.IsNullOrEmpty(videoPath) Then Return 0
+        If Not File.Exists(videoPath) Then
+            ObsLog($"ReadVideoDurationSeconds: file not found: {videoPath}")
+            Return 0
+        End If
+
+        Try
+            Dim ffmpegDir As String = Path.Combine(Application.StartupPath, "ffmpeg")
+            Dim ffprobePath As String = Path.Combine(ffmpegDir, "ffprobe.exe")
+            If Not File.Exists(ffprobePath) Then
+                ffprobePath = Path.Combine(Application.StartupPath, "ffprobe.exe")
+            End If
+            If Not File.Exists(ffprobePath) Then
+                ObsLog("ReadVideoDurationSeconds: ffprobe.exe not found in app folder or .\ffmpeg\")
+                Return 0
+            End If
+
+            Dim psi As New ProcessStartInfo()
+            psi.FileName = ffprobePath
+            psi.Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ""{videoPath}"""
+            psi.UseShellExecute = False
+            psi.RedirectStandardOutput = True
+            psi.RedirectStandardError = True
+            psi.CreateNoWindow = True
+
+            Using p As Process = Process.Start(psi)
+                Dim stdout As String = p.StandardOutput.ReadToEnd().Trim()
+                p.WaitForExit(3000)
+                If p.ExitCode <> 0 Then
+                    Dim stderr As String = p.StandardError.ReadToEnd().Trim()
+                    ObsLog($"ReadVideoDurationSeconds: ffprobe exit={p.ExitCode} err={stderr}")
+                    Return 0
+                End If
+                ObsLog($"ReadVideoDurationSeconds: ffprobe stdout=""{stdout}""")
+                Dim durSec As Double
+                If Double.TryParse(stdout, durSec) Then
+                    Return CInt(Math.Round(durSec))
+                End If
+            End Using
+        Catch ex As Exception
+            ObsLog($"ReadVideoDurationSeconds error: {ex.Message}")
+        End Try
+
+        Return 0
+    End Function
 
     Private Sub Form1_Shown(sender As Object, e As EventArgs) Handles Me.Shown
         HideFromAltTab()
