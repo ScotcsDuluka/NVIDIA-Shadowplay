@@ -255,29 +255,27 @@ Partial Public Class CaptureEngine
 
         Return Await Task.Run(Function()
                                  Try
-                                     ' Stop audio capture — drains writer queues first so all
-                                     ' buffered PCM reaches FFmpeg stdin before we send q.
                                      Dim stopMsg As String = "[FFmpeg] Stop requested. State=" & _state.ToString()
                                      LogDebug(stopMsg)
                                      WriteDebugLog(stopMsg)
 
                                      If _ffmpegProcess IsNot Nothing Then
-                                         Dim beforeMsg As String = $"[FFmpeg] BeforeAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}"
+                                         Dim beforeMsg As String = $"[FFmpeg] BeforeStop HasExited={_ffmpegProcess.HasExited.ToString()}"
                                          LogDebug(beforeMsg)
                                          WriteDebugLog(beforeMsg)
                                      End If
 
-                                     Dim audioStopMsg As String = "[FFmpeg] Stopping audio capture (drain + close stdin)…"
-                                     LogDebug(audioStopMsg)
-                                     WriteDebugLog(audioStopMsg)
-                                     StopAudioCaptureIfNeeded()
-
-                                     If _ffmpegProcess IsNot Nothing Then
-                                         Dim afterMsg As String = $"[FFmpeg] AfterAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}"
-                                         LogDebug(afterMsg)
-                                         WriteDebugLog(afterMsg)
-                                     End If
-
+                                     ' ─── FIX: Send "q" FIRST, then stop audio ───
+                                     ' Previous order was: StopAudio → send q.
+                                     ' But StopAudio closes the BufferedStream wrapping
+                                     ' StandardInput.BaseStream → StandardInput.Write throws
+                                     ' "Cannot access a closed Stream" → q never reaches FFmpeg
+                                     ' → WaitForExit times out → Kill → exit -1.
+                                     '
+                                     ' New order: send q → wait for FFmpeg to exit → THEN stop audio.
+                                     ' This way FFmpeg receives q, flushes its pipeline, writes the
+                                     ' moov atom (faststart), and exits 0. Audio pipe close after
+                                     ' that is a no-op since FFmpeg already exited.
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                                          Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
                                          LogDebug(qMsg)
@@ -320,6 +318,15 @@ Partial Public Class CaptureEngine
                                          LogDebug(alreadyMsg)
                                          WriteDebugLog(alreadyMsg)
                                      End If
+
+                                     ' Stop audio capture AFTER FFmpeg has exited (or been killed).
+                                     ' NAudio WASAPI capture keeps producing frames during FFmpeg's
+                                     ' shutdown — that's fine, they just get dropped at the closed
+                                     ' pipe end (queue fills + FrameDropped fires, no crash).
+                                     Dim audioStopMsg As String = "[FFmpeg] Stopping audio capture (post-FFmpeg-exit)…"
+                                     LogDebug(audioStopMsg)
+                                     WriteDebugLog(audioStopMsg)
+                                     StopAudioCaptureIfNeeded()
 
                                      ' Use Interlocked.Exchange to ensure RecordingStopped fires exactly once
                                      ' — OnExited may have already fired during WaitForExit, in which case
