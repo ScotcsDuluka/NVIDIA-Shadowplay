@@ -116,7 +116,13 @@ Partial Public Class Loader
 
             If eventType = "ReplayBufferSaved" Then
                 If obs IsNot Nothing AndAlso obs.ShouldSuppressDuplicate("l10n.notificationInstantReplaySaved") Then Return
+                If obs IsNot Nothing Then obs.MarkReplaySavedSuppression()
                 HandleReplayBufferSaved()
+                Return
+            End If
+
+            If eventType = "ReplayBufferStateChanged" AndAlso obs IsNot Nothing AndAlso obs.IsReplayStateSuppressed() Then
+                Debug.WriteLine($"[OBS]   → ReplayBufferStateChanged suppressed (within save window)")
                 Return
             End If
 
