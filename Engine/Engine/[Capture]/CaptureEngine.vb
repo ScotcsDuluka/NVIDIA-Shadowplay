@@ -650,10 +650,51 @@ Partial Public Class CaptureEngine
             Dim sysStream As Stream = Nothing
             Dim micStream As Stream = Nothing
 
+            ' ─── CRITICAL: Wait for named pipe connection BEFORE wrapping in BufferedStream ───
+            ' NamedPipeServerStream.Write throws InvalidOperationException if called
+            ' before WaitForConnection returns. FFmpeg connects to the pipe when it
+            ' processes the -i "\\.\pipe\..." argument. We must wait for that connection.
+            If _sysNamedPipe IsNot Nothing Then
+                Dim waitStart As DateTime = DateTime.Now
+                LogDebug("[Audio] Waiting for system pipe connection…")
+                WriteDebugLog("[Audio] Waiting for system pipe connection…")
+                Try
+                    ' WaitForConnection was started as Task.Run in StartRecordingAsync.
+                    ' Give it up to 15 seconds to complete — FFmpeg needs time to start + connect.
+                    Dim waited As Integer = 0
+                    While Not _sysNamedPipe.IsConnected AndAlso waited < 15000
+                        Thread.Sleep(100)
+                        waited += 100
+                    End While
+                    If _sysNamedPipe.IsConnected Then
+                        Dim connectTime As TimeSpan = DateTime.Now - waitStart
+                        LogDebug($"[Audio] System pipe connected after {connectTime.TotalMilliseconds:F0}ms")
+                        WriteDebugLog($"[Audio] System pipe connected after {connectTime.TotalMilliseconds:F0}ms")
+                    Else
+                        LogDebug("[Audio] WARNING: System pipe NOT connected after 15s — audio will fail")
+                        WriteDebugLog("[Audio] WARNING: System pipe NOT connected after 15s — audio will fail")
+                    End If
+                Catch ex As Exception
+                    LogDebug("[Audio] System pipe connection wait error: " & ex.Message)
+                    WriteDebugLog("[Audio] System pipe connection wait error: " & ex.Message)
+                End Try
+            End If
+
             sysStream = New BufferedStream(_sysNamedPipe, 64 * 1024)
 
             If isSeparateAndMic Then
-                ' Mic pipe was pre-created in StartRecordingAsync
+                ' Wait for mic pipe connection too
+                If _micNamedPipe IsNot Nothing Then
+                    Try
+                        Dim micWaited As Integer = 0
+                        While Not _micNamedPipe.IsConnected AndAlso micWaited < 15000
+                            Thread.Sleep(100)
+                            micWaited += 100
+                        End While
+                        LogDebug($"[Audio] Mic pipe connected after {micWaited}ms")
+                    Catch
+                    End Try
+                End If
                 _micNamedPipeStream = New BufferedStream(_micNamedPipe, 64 * 1024)
                 micStream = _micNamedPipeStream
                 LogDebug("[Audio] Separate mode — mic pipe: " & _micPipePath)

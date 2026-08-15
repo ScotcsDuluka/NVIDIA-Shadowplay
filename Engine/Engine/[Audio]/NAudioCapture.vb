@@ -416,6 +416,8 @@ Public Class NAudioCaptureEngine
             Dim endSample As Long = System.Threading.Interlocked.Add(_systemStartSample, samplesPerChannel)
             Dim startSample As Long = endSample - samplesPerChannel
 
+            System.Threading.Interlocked.Add(_sysSamplesReceived, samplesPerChannel)
+
             Dim ts As TimeSpan = GetSessionTimestamp()
 
             Dim copy(e.BytesRecorded - 1) As Byte
@@ -451,6 +453,8 @@ Public Class NAudioCaptureEngine
 
             Dim endSample As Long = System.Threading.Interlocked.Add(_micStartSample, samplesPerChannel)
             Dim startSample As Long = endSample - samplesPerChannel
+
+            System.Threading.Interlocked.Add(_micSamplesReceived, samplesPerChannel)
 
             Dim ts As TimeSpan = GetSessionTimestamp()
 
@@ -648,6 +652,13 @@ Public Class NAudioCaptureEngine
                 System.Threading.Interlocked.Add(bytesWritten, alignedLength)
             Catch ex As Exception
                 System.Diagnostics.Debug.WriteLine("[NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
+                ' Log to disk so we can see if writer is crashing (e.g. pipe not connected)
+                Try
+                    Dim logDir As String = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+                    Dim logPath As String = System.IO.Path.Combine(logDir, "capture-engine.log")
+                    BackgroundLogger.Log(logPath, "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] [NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
+                Catch
+                End Try
             End Try
         End SyncLock
     End Sub
