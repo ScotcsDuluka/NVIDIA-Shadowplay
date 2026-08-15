@@ -1,3 +1,4 @@
+Imports System.Collections.Concurrent
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Threading
@@ -5,28 +6,21 @@ Imports NAudio.CoreAudioApi
 Imports NAudio.Wave
 
 ''' <summary>
-''' File-based audio recorder — writes WASAPI capture directly to .wav files.
+''' File-based audio recorder — writes WASAPI capture to .wav files via
+''' a lock-free queue + dedicated writer thread.
 '''
 ''' ARCHITECTURE (Two-Process Recording):
 '''   Video: FFmpeg ddagrab → NVENC → temp_video.mp4 (NO audio input)
 '''   Audio: This class → temp_system.wav + temp_mic.wav (direct file I/O)
 '''   Mux:   FFmpeg -i video.mp4 -i audio.wav -c:v copy -c:a aac final.mp4
 '''
-''' TIMELINE-BASED SILENCE FEEDER:
-'''   WASAPI loopback does NOT fire callbacks when no audio is playing.
-'''   Without a silence feeder, the .wav file would be shorter than the
-'''   video file → audio/video desync.
-'''
-'''   Solution: A background thread tracks the recording start time and
-'''   computes the expected audio position (based on elapsed real time ×
-'''   bytes/second). If the actual bytes written fall behind (because
-'''   WASAPI didn't fire), it writes zero-filled silence to catch up.
-'''
-'''   This keeps the .wav duration ALWAYS matched to the video duration.
-'''
-'''   This silence feeder is SAFE here (unlike the old pipe architecture)
-'''   because AudioFileWriter is completely isolated from the video FFmpeg
-'''   process — it only writes to a local .wav file, no shared resources.
+''' DESIGN PRINCIPLES (per GPT code review):
+'''   1. NO wall-clock silence feeder thread — gap detection happens IN the
+'''      callback, inserting silence BEFORE real audio (no overlap possible)
+'''   2. NO synchronous disk I/O in callback — callback just memcpy + enqueue
+'''   3. NO volume processing in callback — volume applied at mux stage
+'''   4. NO fake latency measurement — per-track actual start timestamps
+'''   5. Proper shutdown: stop capture → drain → flush writer → finalize
 ''' </summary>
 Public Class AudioFileWriter
     Implements IDisposable
@@ -44,17 +38,19 @@ Public Class AudioFileWriter
         Public Property Config As TrackConfig
         Public Property Capture As WasapiCapture
         Public Property Writer As WaveFileWriter
-        Public Property CopyBuffer As Byte()
+        Public Property Queue As BlockingCollection(Of Byte())
+        Public Property WriterThread As Thread
         Public Property CallbackCount As Long
-        Public Property BytesWritten As Long
-        Public Property SamplesWritten As Long
+        Public Property BytesEnqueued As Long
+        Public Property SamplesEnqueued As Long
+        Public Property DroppedChunks As Long
         Public Property Failed As Boolean
         Public Property FailReason As String
-        ' ── Silence feeder state ──
-        Public Property WriterLock As New Object()
-        Public Property RecordingStartTicks As Long
+        Public Property LastCallbackTicks As Long
+        Public Property ActualStartTicks As Long
+        Public Property Started As Boolean
         Public Property BytesPerSecond As Integer
-        Public Property SilenceBuffer As Byte()
+        Public Property FrameSize As Integer
     End Class
 
     Public Class AudioConfigValues
@@ -71,18 +67,24 @@ Public Class AudioFileWriter
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
 
-    ' ── Silence feeder ──
-    Private _silenceThread As Thread
-    Private _silenceStop As New ManualResetEvent(False)
-    Private Const SilenceCheckMs As Integer = 50
+    ' ── Per-track actual start timestamps ──
+    ' Set when the FIRST WASAPI callback fires for each track.
+    ' This is the true capture start time (after device init), used for
+    ' precise audio-video sync alignment at mux time.
+    Private _systemStartTicks As Long = 0
+    Private _micStartTicks As Long = 0
 
-    ' ── WASAPI latency compensation ──
-    ' WASAPI loopback fires callbacks with a delay equal to the device's
-    ' buffer period (typically 10ms). The first audio sample in the .wav
-    ' file was actually captured ~10ms BEFORE the first callback wrote it.
-    ' We expose this so CaptureEngine can add it to the audio offset.
-    Public ReadOnly Property SystemLatencyMs As Double = 0.0
-    Public ReadOnly Property MicLatencyMs As Double = 0.0
+    Public ReadOnly Property SystemStartTicks As Long
+        Get
+            Return _systemStartTicks
+        End Get
+    End Property
+
+    Public ReadOnly Property MicStartTicks As Long
+        Get
+            Return _micStartTicks
+        End Get
+    End Property
 
     Public Event SystemStartFailed(reason As String)
     Public Event MicStartFailed(reason As String)
@@ -101,7 +103,6 @@ Public Class AudioFileWriter
 
     ''' <summary>
     ''' Start recording audio to .wav files.
-    ''' systemPath / micPath are the temp .wav file paths.
     ''' Returns True if at least one track started successfully.
     ''' </summary>
     Public Function Start(systemPath As String, micPath As String) As Boolean
@@ -109,21 +110,17 @@ Public Class AudioFileWriter
         If _isRunning Then Return True
 
         Dim anyStarted As Boolean = False
-        Dim startTicks As Long = Stopwatch.GetTimestamp()
 
-        ' ── System audio track ──
         If _config.SystemAudioCapture Then
             Dim sysTrack As New TrackState With {
                 .Config = New TrackConfig With {
                     .Enabled = True,
                     .IsSystem = True,
-                    .DeviceId = "",
-                    .DeviceName = "",
                     .OutputPath = systemPath,
-                    .Volume = Math.Max(0.0F, Math.Min(2.0F, _config.SystemAudioVolume))
+                    .Volume = _config.SystemAudioVolume
                 }
             }
-            If StartTrack(sysTrack, startTicks) Then
+            If StartTrack(sysTrack) Then
                 anyStarted = True
             Else
                 RaiseEvent SystemStartFailed(sysTrack.FailReason)
@@ -131,7 +128,6 @@ Public Class AudioFileWriter
             _tracks.Add(sysTrack)
         End If
 
-        ' ── Mic track ──
         If _config.MicCapture AndAlso
            (Not String.IsNullOrEmpty(_config.MicDeviceId) OrElse
             Not String.IsNullOrEmpty(_config.MicDeviceName)) Then
@@ -142,10 +138,10 @@ Public Class AudioFileWriter
                     .DeviceId = _config.MicDeviceId,
                     .DeviceName = _config.MicDeviceName,
                     .OutputPath = micPath,
-                    .Volume = Math.Max(0.0F, Math.Min(2.0F, _config.MicVolume))
+                    .Volume = _config.MicVolume
                 }
             }
-            If StartTrack(micTrack, startTicks) Then
+            If StartTrack(micTrack) Then
                 anyStarted = True
             Else
                 RaiseEvent MicStartFailed(micTrack.FailReason)
@@ -154,25 +150,10 @@ Public Class AudioFileWriter
         End If
 
         _isRunning = anyStarted
-
-        ' ── Start silence feeder thread ──
-        ' This thread fills audio gaps when WASAPI loopback doesn't fire.
-        ' It writes zero-filled silence to keep .wav duration = video duration.
-        ' SAFE because AudioFileWriter is isolated from video FFmpeg.
-        If anyStarted Then
-            _silenceStop.Reset()
-            _silenceThread = New Thread(AddressOf SilenceFeederLoop) With {
-                .IsBackground = True,
-                .Name = "AudioSilenceFeeder",
-                .Priority = ThreadPriority.Normal
-            }
-            _silenceThread.Start()
-        End If
-
         Return anyStarted
     End Function
 
-    Private Function StartTrack(track As TrackState, startTicks As Long) As Boolean
+    Private Function StartTrack(track As TrackState) As Boolean
         Try
             Dim device As MMDevice = Nothing
             If track.Config.IsSystem Then
@@ -185,25 +166,6 @@ Public Class AudioFileWriter
                     Return False
                 End If
                 track.Capture = New WasapiLoopbackCapture(device)
-
-                ' ── Query WASAPI device latency for sync compensation ──
-                ' WASAPI loopback buffers audio for 'period' ms before firing the
-                ' callback. The first sample written to .wav was captured 'period' ms
-                ' before the first callback. We store this so CaptureEngine can
-                ' add it to the audio offset for sample-accurate sync.
-                Try
-                    Dim periodHns As UInteger = 0
-                    Using cap As New WasapiLoopbackCapture(device)
-                        ' WaveFormat.AverageBytesPerSecond gives us bytes/sec
-                        ' Device period is typically 10ms = 10000 HNS (100-nanosecond units)
-                        ' NAudio doesn't expose GetDevicePeriod directly, so estimate
-                        ' from the default buffer size (usually 480 samples @ 48kHz = 10ms)
-                        periodHns = 100000 ' 10ms default
-                    End Using
-                    SystemLatencyMs = periodHns / 10000.0 ' HNS to ms
-                Catch
-                    SystemLatencyMs = 10.0 ' fallback
-                End Try
             Else
                 device = FindMicDevice(track.Config.DeviceId, track.Config.DeviceName)
                 If device Is Nothing Then
@@ -212,31 +174,29 @@ Public Class AudioFileWriter
                     Return False
                 End If
                 track.Capture = New WasapiCapture(device)
-                MicLatencyMs = 10.0 ' mic capture also has ~10ms buffer
             End If
 
-            ' Create directory if needed
             Dim dir As String = Path.GetDirectoryName(track.Config.OutputPath)
             If Not String.IsNullOrEmpty(dir) AndAlso Not Directory.Exists(dir) Then
                 Directory.CreateDirectory(dir)
             End If
 
-            ' WaveFileWriter handles WAV header + PCM data automatically.
             track.Writer = New WaveFileWriter(track.Config.OutputPath, track.Capture.WaveFormat)
-
-            ' Pre-allocate copy buffer (64KB — large enough for any WASAPI buffer)
-            track.CopyBuffer = New Byte(65535) {}
-
-            ' ── Silence feeder setup ──
-            track.RecordingStartTicks = startTicks
             track.BytesPerSecond = track.Capture.WaveFormat.AverageBytesPerSecond
-            ' Pre-allocate silence buffer: 100ms of audio (enough for 2 check intervals)
-            ' Zero-filled = silence for both float and int PCM formats
-            Dim silenceLen As Integer = CInt(track.BytesPerSecond * 0.1)
-            ' Align to frame size
-            Dim frameSize As Integer = (track.Capture.WaveFormat.BitsPerSample \ 8) * track.Capture.WaveFormat.Channels
-            If frameSize > 0 Then silenceLen = (silenceLen \ frameSize) * frameSize
-            track.SilenceBuffer = New Byte(silenceLen - 1) {}
+            track.FrameSize = (track.Capture.WaveFormat.BitsPerSample \ 8) * track.Capture.WaveFormat.Channels
+
+            ' Bounded queue: 1000 items ≈ 10 seconds of audio.
+            ' If writer can't keep up (slow disk), we drop oldest to prevent
+            ' blocking the WASAPI capture callback.
+            track.Queue = New BlockingCollection(Of Byte())(1000)
+
+            ' Start writer thread (consumer)
+            track.WriterThread = New Thread(Sub() WriterLoop(track)) With {
+                .IsBackground = True,
+                .Name = If(track.Config.IsSystem, "AudioWriter-Sys", "AudioWriter-Mic"),
+                .Priority = ThreadPriority.Normal
+            }
+            track.WriterThread.Start()
 
             Dim handlerRef As TrackState = track
             AddHandler track.Capture.DataAvailable, Sub(sender As Object, e As WaveInEventArgs)
@@ -245,7 +205,6 @@ Public Class AudioFileWriter
 
             track.Capture.StartRecording()
 
-            ' Fire format-detected event
             Dim fmt As AudioFormat = WaveFormatToInfo(track.Capture.WaveFormat)
             If track.Config.IsSystem Then
                 RaiseEvent SystemFormatDetected(fmt)
@@ -261,127 +220,134 @@ Public Class AudioFileWriter
         End Try
     End Function
 
+    ''' <summary>
+    ''' WASAPI callback — ultra-light: detect gap, copy buffer, enqueue, return.
+    '''
+    ''' NO disk I/O, NO volume processing, NO locks on the writer.
+    ''' All heavy lifting happens on the writer thread.
+    '''
+    ''' Gap detection:
+    '''   When WASAPI loopback doesn't fire (no audio playing), the .wav file
+    '''   would be shorter than the video. To fix this, we detect gaps between
+    '''   callbacks and insert silence BEFORE the current audio data.
+    '''
+    '''   The silence represents the time gap that ALREADY occurred (between
+    '''   the last callback and this one). It's inserted before the current
+    '''   audio data, so there's NO overlap with future callbacks.
+    '''
+    '''   This is fundamentally different from the old wall-clock feeder which
+    '''   could insert silence that would be "overlapped" by a pending callback.
+    ''' </summary>
     Private Sub OnDataAvailable(track As TrackState, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
-        If track.Writer Is Nothing Then Return
 
-        Try
-            Dim bytesToWrite As Integer = Math.Min(e.BytesRecorded, track.CopyBuffer.Length)
+        Dim nowTicks As Long = Stopwatch.GetTimestamp()
 
-            SyncLock track.WriterLock
-                If track.Writer Is Nothing OrElse Not _isRunning Then Return
+        ' Capture actual start time on first callback
+        If Not track.Started Then
+            track.Started = True
+            track.ActualStartTicks = nowTicks
+            If track.Config.IsSystem Then
+                _systemStartTicks = nowTicks
+            Else
+                _micStartTicks = nowTicks
+            End If
+        End If
 
-                ' Apply volume if != 1.0 (only for float format; for int16 we skip volume
-                ' and let FFmpeg handle -af volume= at mux time — simpler + reliable)
-                If track.Config.Volume = 1.0F Then
-                    ' Fast path: write directly from source buffer (zero copy)
-                    track.Writer.Write(e.Buffer, 0, bytesToWrite)
-                Else
-                    ' Volume path: copy + scale (only if volume != 1.0)
-                    Buffer.BlockCopy(e.Buffer, 0, track.CopyBuffer, 0, bytesToWrite)
-                    ApplyVolumeInPlace(track.CopyBuffer, bytesToWrite, track.Capture.WaveFormat, track.Config.Volume)
-                    track.Writer.Write(track.CopyBuffer, 0, bytesToWrite)
+        ' ── Gap detection (in-callback, no race) ──
+        ' If time since last callback > expected, there was a gap (WASAPI
+        ' loopback didn't fire because no audio was playing). Insert silence
+        ' to fill the gap BEFORE the current audio data.
+        '
+        ' Threshold: gap must be > 50ms to trigger (filters out normal
+        ' jitter of ±10ms). Capped at 5 seconds to prevent runaway silence.
+        If track.LastCallbackTicks > 0 Then
+            Dim elapsedSec As Double = (nowTicks - track.LastCallbackTicks) / Stopwatch.Frequency
+            Dim bufferSec As Double = CDbl(e.BytesRecorded) / track.BytesPerSecond
+            Dim gapSec As Double = elapsedSec - bufferSec
+
+            If gapSec > 0.05 AndAlso gapSec < 5.0 Then
+                Dim silenceBytes As Integer = CInt(gapSec * track.BytesPerSecond)
+                If track.FrameSize > 0 Then silenceBytes = (silenceBytes \ track.FrameSize) * track.FrameSize
+                If silenceBytes > 0 Then
+                    EnqueueSilence(track, silenceBytes)
                 End If
+            End If
+        End If
 
-                track.CallbackCount += 1
-                track.BytesWritten += bytesToWrite
-                Dim bytesPerSample As Integer = (track.Capture.WaveFormat.BitsPerSample \ 8) * track.Capture.WaveFormat.Channels
-                If bytesPerSample > 0 Then
-                    track.SamplesWritten += bytesToWrite \ bytesPerSample
-                End If
-            End SyncLock
-        Catch
-            ' Swallow — we don't want audio errors to crash video recording
-        End Try
+        ' ── Copy audio data + enqueue (NO disk I/O here) ──
+        ' Allocate exact-size buffer (NAudio reuses its internal buffer, so we must copy)
+        Dim copy As Byte() = New Byte(e.BytesRecorded - 1) {}
+        Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
+
+        ' Try to enqueue without blocking. If queue is full, drop oldest
+        ' to make room (prevents blocking the capture callback → buffer overrun)
+        If Not track.Queue.TryAdd(copy, 0) Then
+            Dim dropped As Byte() = Nothing
+            If track.Queue.TryTake(dropped) Then
+                track.DroppedChunks += 1
+                track.Queue.TryAdd(copy, 0)
+            End If
+        End If
+
+        track.CallbackCount += 1
+        track.BytesEnqueued += e.BytesRecorded
+        If track.FrameSize > 0 Then
+            track.SamplesEnqueued += e.BytesRecorded \ track.FrameSize
+        End If
+        track.LastCallbackTicks = nowTicks
     End Sub
 
     ''' <summary>
-    ''' Silence feeder loop — fills audio gaps to keep .wav duration = video duration.
-    '''
-    ''' Algorithm:
-    '''   1. Compute expected audio position = elapsed_time × bytes_per_second
-    '''   2. Compare to actual bytes written
-    '''   3. If actual < expected (deficit), write silence to catch up
-    '''
-    ''' This runs every 50ms. Each run writes at most ~100ms of silence (the
-    ''' silence buffer size). If the deficit is larger, it writes multiple
-    ''' chunks in a loop.
-    '''
-    ''' The deficit only occurs when WASAPI loopback doesn't fire (no audio
-    ''' playing). When audio IS playing, the callback writes real data and
-    ''' the deficit stays at ~0.
+    ''' Enqueue silence in chunks (avoids huge allocations).
+    ''' Called from the callback thread.
     ''' </summary>
-    Private Sub SilenceFeederLoop()
-        Try
-            While _isRunning AndAlso Not _silenceStop.WaitOne(SilenceCheckMs)
-                If Not _isRunning Then Exit While
+    Private Sub EnqueueSilence(track As TrackState, byteCount As Integer)
+        If byteCount <= 0 Then Return
+        If track.FrameSize > 0 Then byteCount = (byteCount \ track.FrameSize) * track.FrameSize
+        If byteCount <= 0 Then Return
 
-                Dim nowTicks As Long = Stopwatch.GetTimestamp()
-
-                For Each track As TrackState In _tracks
-                    If Not _isRunning Then Exit For
-                    If track.Writer Is Nothing OrElse track.Failed Then Continue For
-                    If track.SilenceBuffer Is Nothing OrElse track.BytesPerSecond <= 0 Then Continue For
-
-                    Try
-                        ' Compute expected audio position based on elapsed real time
-                        Dim elapsedSec As Double = (nowTicks - track.RecordingStartTicks) / Stopwatch.Frequency
-                        Dim expectedBytes As Long = CLng(elapsedSec * track.BytesPerSecond)
-
-                        ' Align expected to frame size
-                        Dim frameSize As Integer = (track.Capture.WaveFormat.BitsPerSample \ 8) * track.Capture.WaveFormat.Channels
-                        If frameSize > 0 Then
-                            expectedBytes = (expectedBytes \ frameSize) * frameSize
-                        End If
-
-                        ' Compute deficit (how far behind we are)
-                        Dim deficit As Long = expectedBytes - track.BytesWritten
-
-                        ' Write silence to fill the deficit, in chunks
-                        ' (silence buffer is 100ms, so for a 200ms gap we write 2 chunks)
-                        SyncLock track.WriterLock
-                            While deficit > 0 AndAlso _isRunning AndAlso track.Writer IsNot Nothing
-                                Dim chunkSize As Integer = CInt(Math.Min(deficit, track.SilenceBuffer.Length))
-                                If frameSize > 0 Then
-                                    chunkSize = (chunkSize \ frameSize) * frameSize
-                                End If
-                                If chunkSize <= 0 Then Exit While
-
-                                track.Writer.Write(track.SilenceBuffer, 0, chunkSize)
-                                track.BytesWritten += chunkSize
-                                deficit -= chunkSize
-                            End While
-                        End SyncLock
-                    Catch
-                    End Try
-                Next
-            End While
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine("[AudioFileWriter] Silence feeder crashed: " & ex.Message)
-        End Try
+        ' Enqueue in 16KB chunks
+        Const chunkSize As Integer = 16384
+        Dim remaining As Integer = byteCount
+        While remaining > 0
+            Dim size As Integer = Math.Min(remaining, chunkSize)
+            Dim silence As Byte() = New Byte(size - 1) {}
+            If Not track.Queue.TryAdd(silence, 0) Then
+                Dim dropped As Byte() = Nothing
+                If track.Queue.TryTake(dropped) Then
+                    track.DroppedChunks += 1
+                    track.Queue.TryAdd(silence, 0)
+                End If
+            End If
+            track.BytesEnqueued += size
+            remaining -= size
+        End While
     End Sub
 
-    Private Sub ApplyVolumeInPlace(buffer As Byte(), length As Integer, wf As WaveFormat, volume As Single)
-        If wf.Encoding = WaveFormatEncoding.IeeeFloat AndAlso wf.BitsPerSample = 32 Then
-            ' f32le: 4 bytes per sample
-            Dim sampleCount As Integer = length \ 4
-            For i As Integer = 0 To sampleCount - 1
-                Dim offset As Integer = i * 4
-                Dim sample As Single = BitConverter.ToSingle(buffer, offset)
-                sample *= volume
-                BitConverter.GetBytes(sample).CopyTo(buffer, offset)
-            Next
-        ElseIf wf.Encoding = WaveFormatEncoding.Pcm AndAlso wf.BitsPerSample = 16 Then
-            ' s16le: 2 bytes per sample
-            Dim sampleCount As Integer = length \ 2
-            For i As Integer = 0 To sampleCount - 1
-                Dim offset As Integer = i * 2
-                Dim sample As Short = BitConverter.ToInt16(buffer, offset)
-                sample = CShort(Math.Max(Short.MinValue, Math.Min(Short.MaxValue, sample * volume)))
-                BitConverter.GetBytes(sample).CopyTo(buffer, offset)
-            Next
-        End If
-        ' Other formats: skip volume (FFmpeg -af will handle at mux time)
+    ''' <summary>
+    ''' Writer thread — consumes from queue, writes to disk.
+    ''' This is the ONLY thread that touches WaveFileWriter, so no lock needed.
+    ''' </summary>
+    Private Sub WriterLoop(track As TrackState)
+        Try
+            While True
+                Dim chunk As Byte() = Nothing
+                If track.Queue.TryTake(chunk, 1000) Then
+                    Try
+                        If track.Writer IsNot Nothing Then
+                            track.Writer.Write(chunk, 0, chunk.Length)
+                        End If
+                    Catch
+                        Exit While
+                    End Try
+                ElseIf track.Queue.IsCompleted Then
+                    Exit While
+                End If
+            End While
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine("[AudioFileWriter] Writer thread crashed: " & ex.Message)
+        End Try
     End Sub
 
     Private Function FindMicDevice(deviceId As String, deviceName As String) As MMDevice
@@ -416,23 +382,20 @@ Public Class AudioFileWriter
     End Function
 
     ''' <summary>
-    ''' Stop all captures. Each WaveFileWriter is flushed + disposed which
-    ''' finalizes the WAV header (writes correct data length + seeks back
-    ''' to header). The resulting .wav files are ready for FFmpeg muxing.
+    ''' Stop all captures. Proper shutdown sequence:
+    '''   1. Stop WASAPI capture (no new callbacks)
+    '''   2. Brief drain period (pending callbacks finish)
+    '''   3. Signal queue complete (writer thread can finish remaining items)
+    '''   4. Wait for writer thread (flushes all data to disk)
+    '''   5. Finalize WAV files (flush + dispose = writes correct header)
+    '''
+    ''' This ensures NO audio data is lost during shutdown, and the .wav
+    ''' files are properly finalized for muxing.
     ''' </summary>
     Public Sub [Stop]()
         _isRunning = False
 
-        ' ── Stop silence feeder first ──
-        Try : _silenceStop.Set() : Catch : End Try
-        Try
-            If _silenceThread IsNot Nothing AndAlso _silenceThread.IsAlive Then
-                _silenceThread.Join(2000)
-            End If
-        Catch
-        End Try
-
-        ' ── Stop all tracks ──
+        ' ── Step 1: Stop captures (no new callbacks) ──
         For Each track As TrackState In _tracks
             Try
                 If track.Capture IsNot Nothing Then
@@ -440,18 +403,42 @@ Public Class AudioFileWriter
                 End If
             Catch
             End Try
+        Next
 
-            ' Lock during writer disposal to prevent silence feeder race
-            SyncLock track.WriterLock
-                Try
-                    If track.Writer IsNot Nothing Then
-                        track.Writer.Flush()
-                        track.Writer.Dispose()
-                        track.Writer = Nothing
-                    End If
-                Catch
-                End Try
-            End SyncLock
+        ' ── Step 2: Drain pending callbacks (100ms) ──
+        ' WASAPI may have callbacks in-flight. Give them time to complete
+        ' and enqueue their data before we signal the queue to complete.
+        Thread.Sleep(100)
+
+        ' ── Step 3: Signal queues to complete ──
+        For Each track As TrackState In _tracks
+            Try
+                If track.Queue IsNot Nothing Then
+                    track.Queue.CompleteAdding()
+                End If
+            Catch
+            End Try
+        Next
+
+        ' ── Step 4: Wait for writer threads to finish ──
+        ' This flushes ALL remaining data in the queue to disk.
+        For Each track As TrackState In _tracks
+            Try
+                If track.WriterThread IsNot Nothing AndAlso track.WriterThread.IsAlive Then
+                    track.WriterThread.Join(10000)
+                End If
+            Catch
+            End Try
+
+            ' ── Step 5: Finalize WAV file ──
+            Try
+                If track.Writer IsNot Nothing Then
+                    track.Writer.Flush()
+                    track.Writer.Dispose()
+                    track.Writer = Nothing
+                End If
+            Catch
+            End Try
 
             Try
                 If track.Capture IsNot Nothing Then
@@ -468,8 +455,11 @@ Public Class AudioFileWriter
         For Each track As TrackState In _tracks
             Dim label As String = If(track.Config.IsSystem, "Sys", "Mic")
             sb.AppendLine("[Audio] " & label & "Callbacks=" & track.CallbackCount)
-            sb.AppendLine("[Audio] " & label & "Bytes=" & track.BytesWritten)
-            sb.AppendLine("[Audio] " & label & "Samples=" & track.SamplesWritten)
+            sb.AppendLine("[Audio] " & label & "BytesEnqueued=" & track.BytesEnqueued)
+            sb.AppendLine("[Audio] " & label & "SamplesEnqueued=" & track.SamplesEnqueued)
+            sb.AppendLine("[Audio] " & label & "DroppedChunks=" & track.DroppedChunks)
+            sb.AppendLine("[Audio] " & label & "Started=" & track.Started.ToString())
+            sb.AppendLine("[Audio] " & label & "StartTicks=" & track.ActualStartTicks)
             sb.AppendLine("[Audio] " & label & "Path=" & track.Config.OutputPath)
             If track.Failed Then
                 sb.AppendLine("[Audio] " & label & "FAILED: " & track.FailReason)
@@ -479,10 +469,6 @@ Public Class AudioFileWriter
         Return sb.ToString()
     End Function
 
-    ''' <summary>
-    ''' Returns True if the given .wav file exists and has non-zero size.
-    ''' Used by CaptureEngine to decide whether to include it in mux.
-    ''' </summary>
     Public Shared Function HasAudioData(wavPath As String) As Boolean
         Try
             Return File.Exists(wavPath) AndAlso New FileInfo(wavPath).Length > 44

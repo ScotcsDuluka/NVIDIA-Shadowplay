@@ -175,28 +175,31 @@ Partial Public Class CaptureEngine
     ''' </summary>
     ''' <summary>
     ''' Build FFmpeg arguments for the MUX step — combines video + audio
-    ''' into the final output file with HIGH-PRECISION sync.
+    ''' into the final output file with PER-TRACK high-precision sync.
     '''
-    ''' High-precision sync parameters:
-    '''   audioOffsetSec: leading audio to skip (recorded before video started).
-    '''                   Applied as -ss before each audio input.
-    '''   videoDurationSec: exact video duration from ffprobe (0.0 if unavailable).
-    '''                     Applied as -t to limit output to exact video length.
+    ''' Per-track sync (per GPT review):
+    '''   systemOffsetSec: leading system audio to skip (recorded before video)
+    '''   micOffsetSec: leading mic audio to skip (INDEPENDENT of system)
+    '''   videoDurationSec: exact video duration from ffprobe
     '''
     ''' Command pattern:
-    '''   ffmpeg -i video.mp4 -ss <offset> -i system.wav [-ss <offset> -i mic.wav]
+    '''   ffmpeg -i video.mp4 -ss <sysOffset> -i system.wav [-ss <micOffset> -i mic.wav]
     '''          -map 0:v -map 1:a [-map 2:a]
+    '''          -af volume=X,aresample=async=1:first_pts=0,apad
     '''          -c:v copy -c:a aac -b:a 320k -ar 48000
     '''          -t <videoDuration> -movflags +faststart -y final.mp4
     '''
-    ''' -ss before audio input: sample-accurate seek (skips leading silence)
-    ''' -t after mapping: limits output to exact video duration
+    ''' Filters:
+    '''   aresample=async=1:first_pts=0 = sample-accurate start + drift correction
+    '''   apad = pad short audio with silence to match video duration
+    '''   -t = trim output to exact video duration
     ''' </summary>
     Private Function BuildMuxArguments(videoPath As String,
                                        systemWav As String, hasSystem As Boolean,
                                        micWav As String, hasMic As Boolean,
                                        outputFile As String,
-                                       audioOffsetSec As Double,
+                                       systemOffsetSec As Double,
+                                       micOffsetSec As Double,
                                        videoDurationSec As Double) As String
         Dim sb As New StringBuilder()
 
@@ -205,24 +208,24 @@ Partial Public Class CaptureEngine
         ' Input 0: video (temp .video.mp4) — NO -ss on video (video is the master timeline)
         sb.Append($"-i ""{videoPath}"" ")
 
-        ' ── Audio offset (-ss before each audio input) ──
-        ' -ss before -i does input-level seek = sample-accurate for WAV/PCM.
-        ' This skips the leading audio that was recorded BEFORE ddagrab started
-        ' producing frames (typically 200-500ms).
-        Dim offsetStr As String = audioOffsetSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
+        ' ── Per-track audio offset (-ss before each audio input) ──
+        ' Each track gets its OWN -ss because system and mic devices start
+        ' capturing at different times (independent WASAPI initialization).
+        Dim sysOffsetStr As String = systemOffsetSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
+        Dim micOffsetStr As String = micOffsetSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
 
         ' Input 1: system audio (.wav) — only if it has data
         If hasSystem Then
-            If audioOffsetSec > 0.001 Then
-                sb.Append($"-ss {offsetStr} ")
+            If systemOffsetSec > 0.001 Then
+                sb.Append($"-ss {sysOffsetStr} ")
             End If
             sb.Append($"-i ""{systemWav}"" ")
         End If
 
         ' Input 2: mic audio (.wav) — only if it has data
         If hasMic Then
-            If audioOffsetSec > 0.001 Then
-                sb.Append($"-ss {offsetStr} ")
+            If micOffsetSec > 0.001 Then
+                sb.Append($"-ss {micOffsetStr} ")
             End If
             sb.Append($"-i ""{micWav}"" ")
         End If
@@ -232,33 +235,34 @@ Partial Public Class CaptureEngine
         If hasSystem AndAlso hasMic Then
             If isSeparate Then
                 ' Two separate audio tracks in output
-                ' aresample=async=1:first_pts=0 = sample-accurate start + continuous drift correction
+                ' aresample=async=1:first_pts=0 = sample-accurate start + drift correction
+                ' apad = pad short audio with silence to match video duration
                 sb.Append("-map 0:v -map 1:a -map 2:a ")
-                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0 ")
-                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0 ")
+                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0,apad ")
+                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0,apad ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a:0 aac -b:a:0 320k -ar:a:0 48000 ")
                 sb.Append("-c:a:1 aac -b:a:1 320k -ar:a:1 48000 ")
             Else
                 ' Mix system + mic into single track using -filter_complex amix
-                ' aresample=async=1:first_pts=0 on each input = sample-accurate start alignment
+                ' apad on final mix = pad with silence to match video duration
                 sb.Append("-filter_complex ""[1:a]volume=" & FormatVolume(_settings.SystemAudioVolume) & ",aresample=48000:async=1:first_pts=0[a0];" &
                           "[2:a]volume=" & FormatVolume(_settings.MicVolume) & ",aresample=48000:async=1:first_pts=0[a1];" &
-                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]"" ")
+                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0,apad[aout]"" ")
                 sb.Append("-map 0:v -map [aout] ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a aac -b:a 320k -ar 48000 ")
             End If
         ElseIf hasSystem Then
-            ' System only — aresample=async=1:first_pts=0 for sample-accurate start
+            ' System only — aresample + apad for sample-accurate start + silence padding
             sb.Append("-map 0:v -map 1:a ")
-            sb.Append($"-af volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0 ")
+            sb.Append($"-af volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0,apad ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         ElseIf hasMic Then
             ' Mic only (system failed/disabled)
             sb.Append("-map 0:v -map 1:a ")
-            sb.Append($"-af volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0 ")
+            sb.Append($"-af volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0,apad ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         Else
@@ -268,9 +272,10 @@ Partial Public Class CaptureEngine
         End If
 
         ' ── -t: exact output duration (from ffprobe) ──
-        ' This is the KEY to 100% precision: trim output to exact video length.
-        ' Audio that's slightly longer (recorded during FFmpeg shutdown) gets cut.
-        ' If ffprobe failed (videoDurationSec=0), fall back to -shortest.
+        ' Trims output to exact video length. Combined with apad, this ensures:
+        ' - Audio shorter than video → padded with silence, then trimmed to video length
+        ' - Audio longer than video → trimmed to video length
+        ' - Perfect duration match every time
         If (hasSystem OrElse hasMic) AndAlso videoDurationSec > 0.001 Then
             Dim durStr As String = videoDurationSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
             sb.Append($"-t {durStr} ")
