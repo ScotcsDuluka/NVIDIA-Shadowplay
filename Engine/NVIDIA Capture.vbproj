@@ -1,107 +1,121 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-        <PropertyGroup>
-                <OutputType>WinExe</OutputType>
-                <RootNamespace>NVIDIA_Capture</RootNamespace>
-                <StartupObject>NVIDIA_Capture.My.MyApplication</StartupObject>
-                <UseWindowsForms>true</UseWindowsForms>
-                <MyType>WindowsForms</MyType>
-                <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
-                <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
-                <Platforms>AnyCPU;x64</Platforms>
-                <OptionExplicit>Off</OptionExplicit>
-                <OptionInfer>Off</OptionInfer>
-                <ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
-                <UserSecretsId>d88fe301-91c6-4beb-a579-370ec911430c</UserSecretsId>
-        </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<RootNamespace>NVIDIA_Capture</RootNamespace>
+		<StartupObject>NVIDIA_Capture.My.MyApplication</StartupObject>
 
-        <ItemGroup>
-                <Content Include="NVIDIA ShadowPlay.ico" />
-        </ItemGroup>
+		<UseWindowsForms>true</UseWindowsForms>
+		<MyType>WindowsForms</MyType>
 
-        <ItemGroup>
-                <Import Include="System" />
-                <Import Include="System.Collections" />
-                <Import Include="System.Collections.Generic" />
-                <Import Include="System.Data" />
-                <Import Include="System.Diagnostics" />
-                <Import Include="System.Drawing" />
-                <Import Include="System.IO" />
-                <Import Include="System.Linq" />
-                <Import Include="System.Net" />
-                <Import Include="System.Net.Sockets" />
-                <Import Include="System.Text" />
-                <Import Include="System.Text.Json" />
-                <Import Include="System.Threading" />
-                <Import Include="System.Threading.Tasks" />
-                <Import Include="System.Windows.Forms" />
-                <Import Include="Microsoft.VisualBasic" />
-        </ItemGroup>
+		<TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
 
-        <ItemGroup>
-          <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.1" />
-          <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
-          <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="8.0.1" />
-          <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.1" />
-          <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="8.0.1" />
-          <PackageReference Include="Microsoft.Extensions.FileProviders.Abstractions" Version="8.0.0" />
-          <PackageReference Include="Microsoft.Extensions.FileProviders.Physical" Version="8.0.1" />
-          <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" Version="8.0.1" />
-          <PackageReference Include="NAudio" Version="2.3.0" />
-          <PackageReference Include="NAudio.Asio" Version="2.3.0" />
-          <PackageReference Include="NAudio.Core" Version="2.3.0" />
-          <PackageReference Include="NAudio.Midi" Version="2.3.0" />
-          <PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
-          <PackageReference Include="NAudio.WinForms" Version="2.3.0" />
-          <PackageReference Include="NAudio.WinMM" Version="2.3.0" />
-          <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-          <PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
-          <PackageReference Include="System.Text.Json" Version="8.0.5" />
-        </ItemGroup>
+		<Platforms>AnyCPU;x64</Platforms>
 
-        <ItemGroup>
-                <None Update="API-Core\ffmpeg.exe">
-                        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-                </None>
-                <None Update="API-Core\ffprobe.exe">
-                        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-                </None>
-        </ItemGroup>
+		<OptionExplicit>Off</OptionExplicit>
+		<OptionInfer>Off</OptionInfer>
 
-        <ItemGroup>
-                <Compile Update="Engine\[API]\[Engine] Client.vb">
-                        <SubType>Form</SubType>
-                </Compile>
+		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
+		<UserSecretsId>d88fe301-91c6-4beb-a579-370ec911430c</UserSecretsId>
+	</PropertyGroup>
 
-                <Compile Update="My Project\Application.Designer.vb">
-                        <DesignTime>True</DesignTime>
-                        <AutoGen>True</AutoGen>
-                        <DependentUpon>Application.myapp</DependentUpon>
-                </Compile>
+	<!-- Application icon -->
+	<ItemGroup>
+		<Content Include="NVIDIA ShadowPlay.ico" />
+	</ItemGroup>
 
-                <!-- WinForms Designer files: must be DependentUpon parent form + have resx.
-                     Without this, SDK auto-glob generates duplicate resource names
-                     (NVIDIA_Capture.AudioSettingsForm.resources from BOTH .vb AND .Designer.vb). -->
-                <Compile Update="Engine\Engine\[UI]\AudioSettingsForm.Designer.vb">
-                        <DependentUpon>AudioSettingsForm.vb</DependentUpon>
-                </Compile>
-                <Compile Update="Engine\Engine\[UI]\UI_Engine.Designer.vb">
-                        <DependentUpon>UI_Engine.vb</DependentUpon>
-                </Compile>
+	<!-- Global VB imports -->
+	<ItemGroup>
+		<Import Include="System" />
+		<Import Include="System.Collections" />
+		<Import Include="System.Collections.Generic" />
+		<Import Include="System.Data" />
+		<Import Include="System.Diagnostics" />
+		<Import Include="System.Drawing" />
+		<Import Include="System.IO" />
+		<Import Include="System.Linq" />
+		<Import Include="System.Net" />
+		<Import Include="System.Net.Sockets" />
+		<Import Include="System.Text" />
+		<Import Include="System.Text.Json" />
+		<Import Include="System.Threading" />
+		<Import Include="System.Threading.Tasks" />
+		<Import Include="System.Windows.Forms" />
+		<Import Include="Microsoft.VisualBasic" />
+	</ItemGroup>
 
-                <EmbeddedResource Update="Engine\Engine\[UI]\AudioSettingsForm.resx">
-                        <DependentUpon>AudioSettingsForm.vb</DependentUpon>
-                </EmbeddedResource>
-                <EmbeddedResource Update="Engine\Engine\[UI]\UI_Engine.resx">
-                        <DependentUpon>UI_Engine.vb</DependentUpon>
-                </EmbeddedResource>
-        </ItemGroup>
+	<!-- NuGet packages -->
+	<ItemGroup>
 
-        <ItemGroup>
-                <None Update="My Project\Application.myapp">
-                        <Generator>MyApplicationCodeGenerator</Generator>
-                        <LastGenOutput>Application.Designer.vb</LastGenOutput>
-                </None>
-        </ItemGroup>
+		<!-- NAudio -->
+		<PackageReference Include="NAudio" Version="2.3.0" />
+		<PackageReference Include="NAudio.Asio" Version="2.3.0" />
+		<PackageReference Include="NAudio.Core" Version="2.3.0" />
+		<PackageReference Include="NAudio.Midi" Version="2.3.0" />
+		<PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
+		<PackageReference Include="NAudio.WinForms" Version="2.3.0" />
+		<PackageReference Include="NAudio.WinMM" Version="2.3.0" />
+
+		<!-- JSON -->
+		<PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+		<PackageReference Include="System.Text.Json" Version="8.0.5" />
+
+		<!-- Keep only if code actually uses System.IO.Pipelines -->
+		<PackageReference Include="System.IO.Pipelines" Version="8.0.0" />
+
+	</ItemGroup>
+
+	<!-- FFmpeg -->
+	<ItemGroup>
+		<None Update="API-Core\ffmpeg.exe">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+
+		<None Update="API-Core\ffprobe.exe">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<!-- WinForms / generated files -->
+	<ItemGroup>
+
+		<Compile Update="Engine\[API]\[Engine] Client.vb">
+			<SubType>Form</SubType>
+		</Compile>
+
+		<Compile Update="My Project\Application.Designer.vb">
+			<DesignTime>True</DesignTime>
+			<AutoGen>True</AutoGen>
+			<DependentUpon>Application.myapp</DependentUpon>
+		</Compile>
+
+		<!-- AudioSettingsForm -->
+		<Compile Update="Engine\Engine\[UI]\AudioSettingsForm.Designer.vb">
+			<DependentUpon>AudioSettingsForm.vb</DependentUpon>
+		</Compile>
+
+		<EmbeddedResource Update="Engine\Engine\[UI]\AudioSettingsForm.resx">
+			<DependentUpon>AudioSettingsForm.vb</DependentUpon>
+		</EmbeddedResource>
+
+		<!-- UI_Engine -->
+		<Compile Update="Engine\Engine\[UI]\UI_Engine.Designer.vb">
+			<DependentUpon>UI_Engine.vb</DependentUpon>
+		</Compile>
+
+		<EmbeddedResource Update="Engine\Engine\[UI]\UI_Engine.resx">
+			<DependentUpon>UI_Engine.vb</DependentUpon>
+		</EmbeddedResource>
+
+	</ItemGroup>
+
+	<!-- Application metadata -->
+	<ItemGroup>
+		<None Update="My Project\Application.myapp">
+			<Generator>MyApplicationCodeGenerator</Generator>
+			<LastGenOutput>Application.Designer.vb</LastGenOutput>
+		</None>
+	</ItemGroup>
 
 </Project>
