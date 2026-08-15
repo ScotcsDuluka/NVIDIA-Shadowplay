@@ -36,21 +36,250 @@ Partial Public Class Loader
 
     ' Events ฟอร์ม
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' TCP Client
         tcp = New TcpClientHelper("NVIDIA Notifier")
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
-        ' เปิดเชื่อมต่อ TCP (ปรับตามจริง)
-        ' tcp.Connect("127.0.0.1", 12345) ' หรือ .Start()
 
-        ' โหลดภาษาครั้งแรก
         LoadLanguage()
-
-        ' สร้างรายการแจ้งเตือน
         InitNotifications()
-
-        ' ซ่อนจาก Alt+Tab
         HideFromAltTab()
+
+        obsCfg = ObsConfig.Load()
+        If obsCfg.Enabled Then
+            StartObsBridge()
+        End If
+
+        StartObsConfigWatcher()
     End Sub
+
+    Private Sub StartObsConfigWatcher()
+        obsConfigWatcher = New System.Windows.Forms.Timer()
+        obsConfigWatcher.Interval = ObsConfigPollMs
+        AddHandler obsConfigWatcher.Tick, AddressOf OnObsConfigWatcherTick
+        obsConfigWatcher.Start()
+        Debug.WriteLine($"[OBS] Config watcher started (every {ObsConfigPollMs}ms)")
+    End Sub
+
+    Private Sub OnObsConfigWatcherTick(sender As Object, e As EventArgs)
+        Try
+            If obsCfg Is Nothing Then Return
+            If Not obsCfg.HasFileChanged() Then Return
+
+            Debug.WriteLine("[OBS] notifier_obs.json changed — reloading…")
+            If Not obsCfg.Reload() Then
+                Debug.WriteLine("[OBS] reload failed — keeping previous config")
+                Return
+            End If
+
+            If Not obsCfg.Enabled Then
+                If obs IsNot Nothing Then
+                    Debug.WriteLine("[OBS] config disabled — stopping OBS bridge")
+                    obs.Dispose()
+                    obs = Nothing
+                End If
+                Return
+            End If
+
+            If obs Is Nothing Then
+                Debug.WriteLine("[OBS] config enabled — starting OBS bridge")
+                StartObsBridge()
+            Else
+                obs.UpdateEndpoint(obsCfg.Host, obsCfg.Port, obsCfg.Password)
+            End If
+        Catch ex As Exception
+            Debug.WriteLine($"[OBS] Config watcher error: {ex.Message}")
+        End Try
+    End Sub
+
+    Private Sub StartObsBridge()
+        Try
+            obs = New ObsWebSocketClient(obsCfg.Host, obsCfg.Port, obsCfg.Password, autoReconnect:=True)
+            AddHandler obs.OnEvent, AddressOf OnObsEvent
+            AddHandler obs.OnConnected, Sub()
+                                            Debug.WriteLine("[OBS] Connected — bridge active")
+                                        End Sub
+            AddHandler obs.OnDisconnected, Sub()
+                                              Debug.WriteLine("[OBS] Disconnected — will auto-reconnect")
+                                          End Sub
+            obs.Connect()
+        Catch ex As Exception
+            Debug.WriteLine($"[OBS] StartObsBridge error: {ex.Message}")
+        End Try
+    End Sub
+
+    Private Sub OnObsEvent(eventType As String, eventData As Newtonsoft.Json.Linq.JObject, raw As Newtonsoft.Json.Linq.JObject)
+        Try
+            ObsLog($"OnObsEvent: {eventType}")
+            If Not obsCfg.ShouldForward(eventType) Then Return
+
+            If eventType = "ReplayBufferSaved" Then
+                If Not ShouldShowToast("l10n.notificationInstantReplaySaved") Then Return
+                Task.Run(Sub() HandleReplayBufferSaved(eventData))
+                Return
+            End If
+
+            Dim mapped = ObsEventMap.TryMap(eventType, eventData)
+            If mapped Is Nothing Then Return
+
+            If Not ShouldShowToast(mapped.Key) Then Return
+
+            Debug.WriteLine($"[OBS]   → mapped to {mapped.Key}")
+            ObsLog($"  → mapped to {mapped.Key}")
+            Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"
+
+            If Me.InvokeRequired Then
+                Me.Invoke(Sub() OnMessage(msg))
+            Else
+                OnMessage(msg)
+            End If
+        Catch ex As Exception
+            ObsLog($"OnObsEvent error ({eventType}): {ex.Message}")
+        End Try
+    End Sub
+
+    Private _lastToastTime As DateTime = DateTime.MinValue
+    Private Const ToastThrottleMs As Integer = 300
+
+    Private Function ShouldShowToast(key As String) As Boolean
+        Dim now As DateTime = DateTime.Now
+        If (now - _lastToastTime).TotalMilliseconds < ToastThrottleMs Then
+            ObsLog($"  → throttled (within {ToastThrottleMs}ms of last toast) — suppressed: {key}")
+            Return False
+        End If
+        _lastToastTime = now
+        Return True
+    End Function
+
+    Private Sub ObsLog(message As String)
+        Debug.WriteLine($"[OBS] {message}")
+        Try
+            Dim logPath As String = Path.Combine(Application.StartupPath, "notifier_obs.log")
+            Using fs As New FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
+                Using sw As New StreamWriter(fs)
+                    sw.WriteLine($"[OBS] {DateTime.Now:HH:mm:ss.fff} {message}")
+                End Using
+            End Using
+        Catch
+        End Try
+    End Sub
+
+    Private _lastRecordKey As String = ""
+    Private _lastReplayKey As String = ""
+    Private Const StateDedupWindowMs As Integer = 1500
+    Private _lastRecordTime As DateTime = DateTime.MinValue
+    Private _lastReplayTime As DateTime = DateTime.MinValue
+
+    Private Sub HandleReplayBufferSaved(eventData As Newtonsoft.Json.Linq.JObject)
+        ObsLog("HandleReplayBufferSaved: start")
+        Dim mins As Integer = 0
+        Dim secs As Integer = 0
+
+        Dim savedPath As String = ""
+        If eventData IsNot Nothing Then
+            Dim savedPathTok As Newtonsoft.Json.Linq.JToken = eventData("savedReplayPath")
+            If savedPathTok IsNot Nothing Then
+                Try
+                    savedPath = CType(savedPathTok, String)
+                Catch
+                    Try
+                        savedPath = CStr(savedPathTok)
+                    Catch
+                        savedPath = ""
+                    End Try
+                End Try
+            End If
+        End If
+
+        If Not String.IsNullOrEmpty(savedPath) Then
+            ObsLog($"HandleReplayBufferSaved: savedReplayPath={savedPath}")
+            Dim durSec As Integer = ReadVideoDurationSeconds(savedPath)
+            If durSec > 0 Then
+                mins = durSec \ 60
+                secs = durSec Mod 60
+                ObsLog($"HandleReplayBufferSaved: ffprobe duration={durSec}s → {mins}m {secs}s")
+            Else
+                ObsLog("HandleReplayBufferSaved: could not read duration from video file")
+            End If
+        Else
+            ObsLog("HandleReplayBufferSaved: savedReplayPath empty")
+        End If
+
+        Dim msg As String = $"[NVIDIA Overlay]|l10n.notificationInstantReplaySaved"
+        Dim args As String() = {mins.ToString(), secs.ToString()}
+
+        ObsLog($"HandleReplayBufferSaved: showing toast with args=[{mins}, {secs}]")
+        If Me.InvokeRequired Then
+            Me.Invoke(Sub() OnMessageWithArgs(msg, args))
+        Else
+            OnMessageWithArgs(msg, args)
+        End If
+    End Sub
+
+    Private Function ReadVideoDurationSeconds(videoPath As String) As Integer
+        If String.IsNullOrEmpty(videoPath) Then Return 0
+        If Not File.Exists(videoPath) Then
+            ObsLog($"ReadVideoDurationSeconds: file not found: {videoPath}")
+            Return 0
+        End If
+
+        Try
+            Dim startupPath As String = Application.StartupPath
+            ObsLog($"ReadVideoDurationSeconds: Application.StartupPath={startupPath}")
+
+            Dim candidates As String() = {
+                Path.Combine(startupPath, "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "ffprobe.exe"),
+                Path.Combine(startupPath, "ffmpeg", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "Release", "net8.0-windows10.0.26100.0", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "x64", "Release", "net8.0-windows10.0.26100.0", "API-Core", "ffprobe.exe")
+            }
+
+            Dim ffprobePath As String = ""
+            For Each c In candidates
+                Dim exists As Boolean = File.Exists(c)
+                ObsLog($"ReadVideoDurationSeconds: trying {c} → {If(exists, "EXISTS", "missing")}")
+                If exists Then
+                    ffprobePath = c
+                    Exit For
+                End If
+            Next
+
+            If String.IsNullOrEmpty(ffprobePath) Then
+                ObsLog("ReadVideoDurationSeconds: ffprobe.exe not found in any candidate path")
+                Return 0
+            End If
+
+            Dim psi As New ProcessStartInfo()
+            psi.FileName = ffprobePath
+            psi.Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ""{videoPath}"""
+            psi.UseShellExecute = False
+            psi.RedirectStandardOutput = True
+            psi.RedirectStandardError = True
+            psi.CreateNoWindow = True
+
+            Using p As Process = Process.Start(psi)
+                Dim stdout As String = p.StandardOutput.ReadToEnd().Trim()
+                p.WaitForExit(3000)
+                If p.ExitCode <> 0 Then
+                    Dim stderr As String = p.StandardError.ReadToEnd().Trim()
+                    ObsLog($"ReadVideoDurationSeconds: ffprobe exit={p.ExitCode} err={stderr}")
+                    Return 0
+                End If
+                ObsLog($"ReadVideoDurationSeconds: ffprobe stdout=""{stdout}""")
+                Dim durSec As Double
+                If Double.TryParse(stdout, durSec) Then
+                    Return CInt(Math.Floor(durSec))
+                End If
+            End Using
+        Catch ex As Exception
+            ObsLog($"ReadVideoDurationSeconds error: {ex.Message}")
+        End Try
+
+        Return 0
+    End Function
 
     Private Sub Form1_Shown(sender As Object, e As EventArgs) Handles Me.Shown
         HideFromAltTab()
@@ -207,12 +436,26 @@ Partial Public Class Loader
         Notifier_Sub.Timer1.Start()
     End Sub
 
-    ' แก้: Dispose TCP ตอน form ปิด
+    ' แก้: Dispose TCP + OBS + watcher ตอน form ปิด
     Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        Try
+            If obsConfigWatcher IsNot Nothing Then
+                obsConfigWatcher.Stop()
+                obsConfigWatcher.Dispose()
+                obsConfigWatcher = Nothing
+            End If
+        Catch
+        End Try
         Try
             If tcp IsNot Nothing Then
                 tcp.Disconnect()
                 tcp.Dispose()
+            End If
+        Catch
+        End Try
+        Try
+            If obs IsNot Nothing Then
+                obs.Dispose()
             End If
         Catch
         End Try

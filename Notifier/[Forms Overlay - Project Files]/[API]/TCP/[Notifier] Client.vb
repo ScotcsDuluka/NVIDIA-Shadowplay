@@ -2,6 +2,10 @@
 Partial Public Class Loader
 
     Private tcp As TcpClientHelper
+    Private obs As ObsWebSocketClient
+    Private obsCfg As ObsConfig
+    Private obsConfigWatcher As System.Windows.Forms.Timer
+    Private Const ObsConfigPollMs As Integer = 2000
 
     Public Class NotificationData
         Public Property Key As String
@@ -135,6 +139,40 @@ Partial Public Class Loader
         ' แสดงผล
         UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
 
+        tcp.SendLog(message)
+    End Sub
+
+    Public Sub OnMessageWithArgs(msg As String, args As String())
+        If InvokeRequired Then
+            Invoke(Sub() OnMessageWithArgs(msg, args))
+            Return
+        End If
+        LoadLanguage()
+        If Not msg.Contains("|") Then Exit Sub
+
+        Dim parts = msg.Split("|"c)
+        Dim key As String = parts(1).Trim().Trim(""""c)
+        If String.IsNullOrEmpty(key) Then Exit Sub
+
+        Dim nd As NotificationData = notifications.FirstOrDefault(
+            Function(n) n.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
+
+        If nd Is Nothing Then
+            Debug.WriteLine($"[Notifier] Unknown key: {key}")
+            Exit Sub
+        End If
+
+        Dim locKey As String = If(String.IsNullOrEmpty(nd.LocalizationKey), nd.Key, nd.LocalizationKey)
+        Dim message As String
+        If args IsNot Nothing AndAlso args.Length > 0 Then
+            message = LangHelper.GetText(locKey, args)
+        Else
+            message = LangHelper.GetText(locKey)
+        End If
+
+        SafeDelete(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", nd.Key))
+        ManageNotifierState()
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
         tcp.SendLog(message)
     End Sub
 
