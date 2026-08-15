@@ -90,17 +90,17 @@ Partial Public Class CaptureEngine
             Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
 
             If isSeparate AndAlso micEnabled AndAlso sysEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i ""{_sysPipePath}"" ")
                 sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_micPipePath}"" ")
             ElseIf isSeparate AndAlso micEnabled AndAlso Not sysEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_sysPipePath}"" ")
             ElseIf sysEnabled AndAlso micEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i ""{_sysPipePath}"" ")
                 sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_micPipePath}"" ")
             ElseIf sysEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {sysFmt.FFmpegFormatArg} -ar {sysFmt.SampleRate} -ac {sysFmt.Channels} -i ""{_sysPipePath}"" ")
             ElseIf micEnabled Then
-                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i pipe:0 ")
+                sb.Append($"-thread_queue_size 1024 -f {micFmt.FFmpegFormatArg} -ar {micFmt.SampleRate} -ac {micFmt.Channels} -i ""{_sysPipePath}"" ")
             End If
         ElseIf _settings.AudioCapture AndAlso Not String.IsNullOrEmpty(_settings.AudioDevice) Then
             sb.Append("-f dshow -i audio=""" & _settings.AudioDevice & """ ")

@@ -77,6 +77,12 @@ Partial Public Class CaptureEngine
     Private _micPipePath As String
     Private Const MicPipePrefix As String = "nvidia_shadowplay_mic_"
 
+    ' System audio named pipe — replaces pipe:0 (stdin) so stdin is free for
+    ' FFmpeg's interactive 'q' command at shutdown.
+    Private _sysNamedPipe As NamedPipeServerStream
+    Private _sysPipePath As String
+    Private Const AudioPipePrefix As String = "nvidia_shadowplay_audio_"
+
     ''' <summary>
     ''' Atomic flag (0=not stopped, 1=stop completed) — ensures RecordingStopped
     ''' fires EXACTLY once across OnExited and StopRecordingAsync. Set to 1 when
@@ -185,6 +191,35 @@ Partial Public Class CaptureEngine
 
         Return Await Task.Run(Function()
                                  Try
+                                     ' ─── Pre-create audio named pipes BEFORE BuildFFmpegArguments ───
+                                     ' Using named pipes instead of pipe:0 (stdin) frees up stdin
+                                     ' for FFmpeg's interactive 'q' command at shutdown.
+                                     Dim hasNAudio As Boolean = (_settings.SystemAudioCapture OrElse _settings.MicCapture)
+                                     If hasNAudio Then
+                                         _sysPipePath = "\\.\pipe\" & AudioPipePrefix & Process.GetCurrentProcess().Id.ToString() & "_" & Guid.NewGuid().ToString("N").Substring(0, 8)
+                                         _sysNamedPipe = New NamedPipeServerStream(_sysPipePath.Substring(8), PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
+                                         Task.Run(Sub()
+                                                      Try : _sysNamedPipe.WaitForConnection() : Catch : End Try
+                                                  End Sub)
+                                         LogDebug("[Audio] System pipe created: " & _sysPipePath)
+                                         WriteDebugLog("[Audio] System pipe created: " & _sysPipePath)
+
+                                         ' Mic pipe for Separate mode
+                                         Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
+                                                                           _settings.MicCapture AndAlso
+                                                                           (Not String.IsNullOrEmpty(_settings.MicDeviceId) OrElse
+                                                                            Not String.IsNullOrEmpty(_settings.MicDeviceName))
+                                         If isSeparateAndMic Then
+                                             _micPipePath = "\\.\pipe\" & MicPipePrefix & Process.GetCurrentProcess().Id.ToString() & "_" & Guid.NewGuid().ToString("N").Substring(0, 8)
+                                             _micNamedPipe = New NamedPipeServerStream(_micPipePath.Substring(8), PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
+                                             Task.Run(Sub()
+                                                          Try : _micNamedPipe.WaitForConnection() : Catch : End Try
+                                                      End Sub)
+                                             LogDebug("[Audio] Mic pipe created: " & _micPipePath)
+                                             WriteDebugLog("[Audio] Mic pipe created: " & _micPipePath)
+                                         End If
+                                     End If
+
                                      Dim args As String = BuildFFmpegArguments(_outputFile)
                                      LogDebug("FFmpeg command: " & _settings.FFmpegPath & " " & args)
                                      WriteDebugLog("FFmpeg command: " & _settings.FFmpegPath & " " & args)
@@ -265,18 +300,15 @@ Partial Public Class CaptureEngine
                                          WriteDebugLog(beforeMsg)
                                      End If
 
-                                     ' ─── NEW SHUTDOWN ORDER (fixes stdin "q" corruption) ───
-                                     ' FFmpeg uses -i pipe:0 for raw PCM audio. The SAME stdin
-                                     ' cannot be used for both PCM data AND the "q" command —
-                                     ' "q\n" bytes would be interpreted as garbage float samples.
+                                     ' ─── SHUTDOWN ORDER (named pipe approach) ───
+                                     ' Audio now uses a named pipe (NOT stdin). stdin is free for
+                                     ' FFmpeg's interactive 'q' command.
                                      '
-                                     ' New order:
-                                     ' 1. Stop audio producers (WASAPI capture stops, no new PCM)
-                                     ' 2. CompleteAdding on queues (writer threads know to drain + exit)
-                                     ' 3. Wait for writer threads to drain remaining PCM to pipe
-                                     ' 4. Close stdin pipe → FFmpeg sees EOF on pipe:0 → finalizes AAC
-                                     ' 5. WaitForExit → FFmpeg writes moov atom + exits 0
-                                     ' 6. Kill only as absolute last resort
+                                     ' 1. Stop audio producers (WASAPI stops, no new PCM)
+                                     ' 2. ClosePipes: drain queue + close named pipe (audio EOF)
+                                     ' 3. Send 'q' through StandardInput (stdin is free!)
+                                     ' 4. WaitForExit → FFmpeg stops ddagrab, finalizes MP4, exits 0
+                                     ' 5. Kill only as absolute last resort
 
                                      If _audioEngine IsNot Nothing Then
                                          Dim prodMsg As String = "[Audio] Stopping producers…"
@@ -287,7 +319,7 @@ Partial Public Class CaptureEngine
                                          LogDebug(prodStoppedMsg)
                                          WriteDebugLog(prodStoppedMsg)
                                          _audioEngine.ClosePipes()
-                                         Dim pipesClosedMsg As String = "[Audio] Pipes closed (FFmpeg stdin EOF sent)."
+                                         Dim pipesClosedMsg As String = "[Audio] Pipes closed (audio named pipe EOF sent)."
                                          LogDebug(pipesClosedMsg)
                                          WriteDebugLog(pipesClosedMsg)
 
@@ -299,8 +331,24 @@ Partial Public Class CaptureEngine
                                          _audioEngine = Nothing
                                      End If
 
+                                     ' Send 'q' through StandardInput — stdin is NOT used for
+                                     ' audio anymore (audio goes through named pipe), so this
+                                     ' tells FFmpeg to stop all inputs (including ddagrab) and
+                                     ' finalize the MP4.
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
-                                         Dim waitMsg As String = $"[FFmpeg] WaitForExit(10000) after stdin EOF… PID={_ffmpegProcess.Id}"
+                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
+                                         LogDebug(qMsg)
+                                         WriteDebugLog(qMsg)
+                                         Try
+                                             _ffmpegProcess.StandardInput.Write("q" & vbLf)
+                                             _ffmpegProcess.StandardInput.Flush()
+                                         Catch ex As Exception
+                                             Dim qErrMsg As String = "[FFmpeg] Failed to send q: " & ex.Message
+                                             LogDebug(qErrMsg)
+                                             WriteDebugLog(qErrMsg)
+                                         End Try
+
+                                         Dim waitMsg As String = $"[FFmpeg] WaitForExit(10000) after q… PID={_ffmpegProcess.Id}"
                                          LogDebug(waitMsg)
                                          WriteDebugLog(waitMsg)
                                          Dim exited As Boolean = _ffmpegProcess.WaitForExit(10000)
@@ -602,27 +650,13 @@ Partial Public Class CaptureEngine
             Dim sysStream As Stream = Nothing
             Dim micStream As Stream = Nothing
 
-            sysStream = New BufferedStream(_ffmpegProcess.StandardInput.BaseStream, 64 * 1024)
+            sysStream = New BufferedStream(_sysNamedPipe, 64 * 1024)
 
             If isSeparateAndMic Then
-                Try
-                    _micPipePath = "\\.\pipe\" & MicPipePrefix & Process.GetCurrentProcess().Id.ToString() & "_" & Guid.NewGuid().ToString("N").Substring(0, 8)
-                    Dim pipeNameOnly As String = _micPipePath.Substring(8)
-                    _micNamedPipe = New NamedPipeServerStream(pipeNameOnly, PipeDirection.Out, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous, 64 * 1024, 64 * 1024)
-                    Task.Run(Sub()
-                                 Try
-                                     _micNamedPipe.WaitForConnection()
-                                 Catch ex As Exception
-                                     End Try
-                             End Sub)
-                    _micNamedPipeStream = New BufferedStream(_micNamedPipe, 64 * 1024)
-                    micStream = _micNamedPipeStream
-                    LogDebug("[Audio] Separate mode — mic pipe created: " & _micPipePath)
-                Catch ex As Exception
-                    LogDebug("[Audio] Mic pipe creation failed: " & ex.Message)
-                    WriteDebugLog("[Audio] Mic pipe creation failed: " & ex.Message)
-                    micStream = sysStream
-                End Try
+                ' Mic pipe was pre-created in StartRecordingAsync
+                _micNamedPipeStream = New BufferedStream(_micNamedPipe, 64 * 1024)
+                micStream = _micNamedPipeStream
+                LogDebug("[Audio] Separate mode — mic pipe: " & _micPipePath)
             Else
                 micStream = sysStream
             End If
@@ -681,6 +715,15 @@ Partial Public Class CaptureEngine
                 Try : _micNamedPipe.Disconnect() : Catch : End Try
                 _micNamedPipe.Dispose()
                 _micNamedPipe = Nothing
+            End If
+        Catch
+        End Try
+
+        Try
+            If _sysNamedPipe IsNot Nothing Then
+                Try : _sysNamedPipe.Disconnect() : Catch : End Try
+                _sysNamedPipe.Dispose()
+                _sysNamedPipe = Nothing
             End If
         Catch
         End Try
