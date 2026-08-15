@@ -300,16 +300,19 @@ Partial Public Class CaptureEngine
                                          WriteDebugLog(beforeMsg)
                                      End If
 
-                                     ' ─── SHUTDOWN ORDER (fast: q first, drain parallel) ───
-                                     ' GPT P0 FIX: Previously ClosePipes() took 5s before
-                                     ' sending q. During those 5s, FFmpeg kept encoding
-                                     ' video from ddagrab → duration mismatch + extra frames.
+                                     ' ─── SHUTDOWN ORDER (audio EOF before q) ───
+                                     ' GPT P0-4: q must NOT be sent before audio pipe is closed.
+                                     ' FFmpeg needs to see audio EOF first, then receive q to stop video.
                                      '
-                                     ' New order:
-                                     ' 1. StopProducers() — stop WASAPI, complete queues
-                                     ' 2. Send 'q' IMMEDIATELY — tells FFmpeg to stop ddagrab
-                                     ' 3. ClosePipes() — drains remaining audio + closes pipe
-                                     ' 4. WaitForExit → FFmpeg finalizes, exits 0
+                                     ' Order:
+                                     ' 1. StopProducers() — stop WASAPI, CompleteAdding on queues
+                                     ' 2. ClosePipes() — drain remaining audio (fast: ~1ms with P0-1 fix),
+                                     '    then close named pipe → FFmpeg sees audio EOF
+                                     ' 3. Send 'q' IMMEDIATELY after audio EOF
+                                     ' 4. WaitForExit → FFmpeg stops ddagrab, finalizes MP4, exits 0
+                                     '
+                                     ' With P0-1 fix (writer checks IsCompleted not _isRunning),
+                                     ' ClosePipes completes in milliseconds, NOT 5 seconds.
 
                                      If _audioEngine IsNot Nothing Then
                                          Dim prodMsg As String = "[Audio] Stopping producers…"
@@ -319,34 +322,14 @@ Partial Public Class CaptureEngine
                                          Dim prodStoppedMsg As String = "[Audio] Producers stopped."
                                          LogDebug(prodStoppedMsg)
                                          WriteDebugLog(prodStoppedMsg)
-                                     End If
 
-                                     ' Send 'q' IMMEDIATELY — don't wait for audio drain.
-                                     ' FFmpeg will stop ddagrab and start finalizing while
-                                     ' audio writer drains in parallel.
-                                     If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
-                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
-                                         LogDebug(qMsg)
-                                         WriteDebugLog(qMsg)
-                                         Try
-                                             _ffmpegProcess.StandardInput.Write("q" & vbLf)
-                                             _ffmpegProcess.StandardInput.Flush()
-                                         Catch ex As Exception
-                                             Dim qErrMsg As String = "[FFmpeg] Failed to send q: " & ex.Message
-                                             LogDebug(qErrMsg)
-                                             WriteDebugLog(qErrMsg)
-                                         End Try
-                                     End If
-
-                                     ' Now drain audio and close pipes (runs in parallel with
-                                     ' FFmpeg finalization). This should complete quickly since
-                                     ' the queue only has a few remaining frames.
-                                     If _audioEngine IsNot Nothing Then
+                                         Dim drainStart As DateTime = DateTime.Now
                                          Dim drainMsg As String = "[Audio] Draining queues + closing pipes…"
                                          LogDebug(drainMsg)
                                          WriteDebugLog(drainMsg)
                                          _audioEngine.ClosePipes()
-                                         Dim pipesClosedMsg As String = "[Audio] Pipes closed (audio named pipe EOF sent)."
+                                         Dim drainTime As TimeSpan = DateTime.Now - drainStart
+                                         Dim pipesClosedMsg As String = $"[Audio] Pipes closed (audio EOF sent) in {drainTime.TotalMilliseconds:F0}ms"
                                          LogDebug(pipesClosedMsg)
                                          WriteDebugLog(pipesClosedMsg)
 
@@ -358,7 +341,21 @@ Partial Public Class CaptureEngine
                                          _audioEngine = Nothing
                                      End If
 
+                                     ' Send 'q' AFTER audio EOF — FFmpeg has seen end of audio stream,
+                                     ' now tell it to stop video (ddagrab) and finalize.
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q) after audio EOF… PID={_ffmpegProcess.Id}"
+                                         LogDebug(qMsg)
+                                         WriteDebugLog(qMsg)
+                                         Try
+                                             _ffmpegProcess.StandardInput.Write("q" & vbLf)
+                                             _ffmpegProcess.StandardInput.Flush()
+                                         Catch ex As Exception
+                                             Dim qErrMsg As String = "[FFmpeg] Failed to send q: " & ex.Message
+                                             LogDebug(qErrMsg)
+                                             WriteDebugLog(qErrMsg)
+                                         End Try
+
                                          Dim waitMsg As String = $"[FFmpeg] WaitForExit(10000)… PID={_ffmpegProcess.Id}"
                                          LogDebug(waitMsg)
                                          WriteDebugLog(waitMsg)

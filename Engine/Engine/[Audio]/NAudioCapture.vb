@@ -206,16 +206,18 @@ Public Class NAudioCaptureEngine
     ''' closes output pipes. Called AFTER StopProducers().
     ''' </summary>
     Public Sub ClosePipes()
-        ' Wait for writer threads to drain remaining queued frames
+        ' Wait for writer threads to drain remaining queued frames.
+        ' P0-1 fix (checking IsCompleted) means writers exit immediately
+        ' after queue drain — typically <50ms. 2000ms is a safety watchdog only.
         Try
             If _systemWriterThread IsNot Nothing AndAlso _systemWriterThread.IsAlive Then
-                _systemWriterThread.Join(5000)
+                _systemWriterThread.Join(2000)
             End If
         Catch
         End Try
         Try
             If _micWriterThread IsNot Nothing AndAlso _micWriterThread.IsAlive Then
-                _micWriterThread.Join(5000)
+                _micWriterThread.Join(2000)
             End If
         Catch
         End Try
