@@ -108,7 +108,7 @@ Partial Public Class Loader
 
     Private Sub OnObsEvent(eventType As String, eventData As Newtonsoft.Json.Linq.JObject, raw As Newtonsoft.Json.Linq.JObject)
         Try
-            Debug.WriteLine($"[OBS] OnObsEvent: {eventType}")
+            ObsLog($"OnObsEvent: {eventType}")
             If Not obsCfg.ShouldForward(eventType) Then Return
 
             If eventType = "ReplayBufferSaved" Then
@@ -139,11 +139,11 @@ Partial Public Class Loader
             End If
 
             If mapped.Key = lastKey AndAlso (now - lastTime).TotalMilliseconds < StateDedupWindowMs Then
-                Debug.WriteLine($"[OBS]   → duplicate {mapped.Key} within {StateDedupWindowMs}ms — suppressed")
+                ObsLog($"  → duplicate {mapped.Key} within {StateDedupWindowMs}ms — suppressed")
                 Return
             End If
 
-            Debug.WriteLine($"[OBS]   → mapped to {mapped.Key}")
+            ObsLog($"  → mapped to {mapped.Key}")
             Dim msg As String = $"[NVIDIA Overlay]|{mapped.Key}"
 
             If Me.InvokeRequired Then
@@ -152,7 +152,20 @@ Partial Public Class Loader
                 OnMessage(msg)
             End If
         Catch ex As Exception
-            Debug.WriteLine($"[OBS] OnObsEvent error ({eventType}): {ex.Message}")
+            ObsLog($"OnObsEvent error ({eventType}): {ex.Message}")
+        End Try
+    End Sub
+
+    Private Sub ObsLog(message As String)
+        Debug.WriteLine($"[OBS] {message}")
+        Try
+            Dim logPath As String = Path.Combine(Application.StartupPath, "notifier_obs.log")
+            Using fs As New FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
+                Using sw As New StreamWriter(fs)
+                    sw.WriteLine($"[OBS] {DateTime.Now:HH:mm:ss.fff} {message}")
+                End Using
+            End Using
+        Catch
         End Try
     End Sub
 
