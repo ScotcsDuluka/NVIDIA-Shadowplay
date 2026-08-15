@@ -66,7 +66,8 @@ Public Class ObsWebSocketClient
     Public Sub UpdateEndpoint(host As String, port As Integer, Optional password As String = "")
         If host = _host AndAlso port = _port AndAlso password = _password Then Return
 
-        Log("info", $"Endpoint changed: {_host}:{_port} → {host}:{port} (password {'changed' If password <> _password Else 'unchanged'})")
+        Dim pwdStatus As String = If(password <> _password, "changed", "unchanged")
+        Log("info", $"Endpoint changed: {_host}:{_port} → {host}:{port} (password {pwdStatus})")
 
         _host = host
         _port = port
