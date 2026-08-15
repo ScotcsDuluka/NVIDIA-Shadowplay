@@ -333,15 +333,19 @@ Public Class AudioFileWriter
                 track.FirstCallbackDispatchTicks = nowTicks
 
                 ' Compute initial gap and pre-fill silence BEFORE real audio
+                ' NO 50ms cutoff (per GPT P1) — initial gap is deterministic
+                ' (StartRecording → first callback), not jitter. Any gap > 0
+                ' must be pre-filled so -ss at mux time skips silence, not real audio.
                 Dim initialGapSec As Double = (nowTicks - track.StartRecordingTicks) / Stopwatch.Frequency
-                If initialGapSec > 0.05 AndAlso initialGapSec < 60.0 Then
+                If initialGapSec > 0.0 AndAlso initialGapSec < 60.0 Then
                     ' Cap at 60s to prevent runaway (shouldn't happen in practice)
                     Dim silenceBytes As Long = CLng(initialGapSec * track.BytesPerSecond)
                     If track.FrameSize > 0 Then silenceBytes = (silenceBytes \ track.FrameSize) * track.FrameSize
                     If silenceBytes > 0 Then
-                        track.InitialSilenceBytes = silenceBytes
-                        PreFillSilence(track, silenceBytes)
-                        track.BytesEnqueued += silenceBytes
+                        ' PreFillSilence returns ACTUAL bytes enqueued (may be less if queue full)
+                        Dim writtenBytes As Long = PreFillSilence(track, silenceBytes)
+                        track.InitialSilenceBytes = writtenBytes
+                        track.BytesEnqueued += writtenBytes
                     End If
                 End If
             End If
@@ -422,19 +426,32 @@ Public Class AudioFileWriter
     ' playing), the WAV file would start at the first callback's time, and
     ' mux -ss <offset> would CUT real audio instead of skipping leading silence.
     '''
+    ''' Returns the ACTUAL number of bytes enqueued (may be less than requested
+    ''' if queue is full — diagnostics must reflect reality, not the request).
+    '''
     ''' Splits into 16KB chunks to avoid huge allocations.
     ''' </summary>
-    Private Sub PreFillSilence(track As TrackState, byteCount As Long)
-        If byteCount <= 0 Then Return
+    Private Function PreFillSilence(track As TrackState, byteCount As Long) As Long
+        If byteCount <= 0 Then Return 0
         Const chunkSize As Integer = 16384
         Dim remaining As Long = byteCount
+        Dim written As Long = 0
         While remaining > 0
             Dim size As Integer = CInt(Math.Min(remaining, CLng(chunkSize)))
             If track.FrameSize > 0 Then size = (size \ track.FrameSize) * track.FrameSize
             If size <= 0 Then Exit While
             Dim silence As Byte() = New Byte(size - 1) {}
             Try
-                track.Queue.TryAdd(silence, 0)
+                ' Check TryAdd return value (per GPT P0) — False means queue full,
+                ' we must NOT count this as written or diagnostics will lie.
+                If Not track.Queue.TryAdd(silence, 0) Then
+                    ' Queue full — can't enqueue more silence. Stop here.
+                    ' (Don't drop real audio to make room for silence — that would
+                    ' defeat the purpose. Better to have slightly shorter initial
+                    ' silence than to lose real audio data.)
+                    Exit While
+                End If
+                written += size
             Catch ex As InvalidOperationException
                 ' Queue completed during shutdown (shouldn't happen on first callback,
                 ' but handle defensively)
@@ -442,7 +459,8 @@ Public Class AudioFileWriter
             End Try
             remaining -= size
         End While
-    End Sub
+        Return written
+    End Function
 
     ''' <summary>
     ''' Clean up partial state when StartTrack fails partway through.
