@@ -7,7 +7,6 @@ Partial Class AudioSettingsForm
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(AudioSettingsForm))
         grpTrackMode = New GroupBox()
         radSingle = New RadioButton()
         radSeparate = New RadioButton()
@@ -31,6 +30,7 @@ Partial Class AudioSettingsForm
         BT_Back = New Label()
         settings_top = New PictureBox()
         settings_menu = New Panel()
+        Label2 = New Label()
         PictureBox5 = New PictureBox()
         PictureBox4 = New PictureBox()
         PictureBox3 = New PictureBox()
@@ -38,7 +38,6 @@ Partial Class AudioSettingsForm
         hg2 = New PictureBox()
         Audio_Capture_Menutext = New Label()
         OPEN_UI = New System.Windows.Forms.Timer(components)
-        Label2 = New Label()
         grpTrackMode.SuspendLayout()
         grpSystem.SuspendLayout()
         CType(trkSystemVol, ComponentModel.ISupportInitialize).BeginInit()
@@ -261,7 +260,7 @@ Partial Class AudioSettingsForm
         ' 
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(80, 110)
         BT_Back.Name = "BT_Back"
@@ -303,6 +302,18 @@ Partial Class AudioSettingsForm
         settings_menu.Name = "settings_menu"
         settings_menu.Size = New Size(1760, 840)
         settings_menu.TabIndex = 98
+        ' 
+        ' Label2
+        ' 
+        Label2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label2.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label2.ForeColor = Color.White
+        Label2.Location = New Point(62, 85)
+        Label2.Name = "Label2"
+        Label2.Size = New Size(61, 67)
+        Label2.TabIndex = 111
+        Label2.Text = ""
+        Label2.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' PictureBox5
         ' 
@@ -362,7 +373,7 @@ Partial Class AudioSettingsForm
         ' Audio_Capture_Menutext
         ' 
         Audio_Capture_Menutext.AutoSize = True
-        Audio_Capture_Menutext.Font = New Font("Segoe UI", 17F, FontStyle.Bold)
+        Audio_Capture_Menutext.Font = New Font("Segoe UI", 17.0F, FontStyle.Bold)
         Audio_Capture_Menutext.Location = New Point(62, 43)
         Audio_Capture_Menutext.Name = "Audio_Capture_Menutext"
         Audio_Capture_Menutext.Size = New Size(169, 31)
@@ -374,21 +385,9 @@ Partial Class AudioSettingsForm
         OPEN_UI.Enabled = True
         OPEN_UI.Interval = 1
         ' 
-        ' Label2
-        ' 
-        Label2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label2.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label2.ForeColor = Color.White
-        Label2.Location = New Point(62, 85)
-        Label2.Name = "Label2"
-        Label2.Size = New Size(61, 67)
-        Label2.TabIndex = 111
-        Label2.Text = ""
-        Label2.TextAlign = ContentAlignment.MiddleLeft
-        ' 
         ' AudioSettingsForm
         ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Coral
         ClientSize = New Size(1920, 1080)
@@ -397,7 +396,6 @@ Partial Class AudioSettingsForm
         Controls.Add(settings_menu)
         Controls.Add(DIMBOX_2)
         FormBorderStyle = FormBorderStyle.None
-        Icon = CType(resources.GetObject("$this.Icon"), Icon)
         MaximizeBox = False
         MinimizeBox = False
         Name = "AudioSettingsForm"

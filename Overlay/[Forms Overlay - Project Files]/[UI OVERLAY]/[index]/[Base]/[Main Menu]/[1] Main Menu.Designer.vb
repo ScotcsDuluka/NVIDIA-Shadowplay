@@ -139,10 +139,14 @@ Partial Class Base
         Settings_List_Text = New Label()
         Settings_index = New PictureBox()
         Settings_List_All = New Panel()
+        Audio_TEXT = New Label()
         Connect_TEXT = New Label()
+        Audio_ICO = New Label()
         HUDLayout_TEXT = New Label()
+        PictureBox8 = New PictureBox()
         Highlights_TEXT = New Label()
         KeyboardShortcuts_TEXT = New Label()
+        Audio_BOX_SUB = New PictureBox()
         VideoCapture_TEXT = New Label()
         VideoCapture_TEXT_SUB = New Label()
         Engine_TEXT = New Label()
@@ -189,6 +193,7 @@ Partial Class Base
         PictureBox6 = New PictureBox()
         ME_CLOSE_BG = New Label()
         Engine_UI = New Timer(components)
+        Audio_UI = New Timer(components)
         CType(Logo, ComponentModel.ISupportInitialize).BeginInit()
         shadowplay.SuspendLayout()
         Menu_Record.SuspendLayout()
@@ -254,6 +259,8 @@ Partial Class Base
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Settings_index, ComponentModel.ISupportInitialize).BeginInit()
         Settings_List_All.SuspendLayout()
+        CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
+        CType(Audio_BOX_SUB, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox14, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox15, ComponentModel.ISupportInitialize).BeginInit()
@@ -1643,10 +1650,14 @@ Partial Class Base
         Settings_List_All.AutoScroll = True
         Settings_List_All.AutoScrollMargin = New Size(0, 1)
         Settings_List_All.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Settings_List_All.Controls.Add(Audio_TEXT)
         Settings_List_All.Controls.Add(Connect_TEXT)
+        Settings_List_All.Controls.Add(Audio_ICO)
         Settings_List_All.Controls.Add(HUDLayout_TEXT)
+        Settings_List_All.Controls.Add(PictureBox8)
         Settings_List_All.Controls.Add(Highlights_TEXT)
         Settings_List_All.Controls.Add(KeyboardShortcuts_TEXT)
+        Settings_List_All.Controls.Add(Audio_BOX_SUB)
         Settings_List_All.Controls.Add(VideoCapture_TEXT)
         Settings_List_All.Controls.Add(VideoCapture_TEXT_SUB)
         Settings_List_All.Controls.Add(Engine_TEXT)
@@ -1685,6 +1696,19 @@ Partial Class Base
         Settings_List_All.Size = New Size(352, 636)
         Settings_List_All.TabIndex = 73
         ' 
+        ' Audio_TEXT
+        ' 
+        Audio_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Audio_TEXT.Cursor = Cursors.Hand
+        Audio_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Audio_TEXT.ForeColor = Color.White
+        Audio_TEXT.Location = New Point(60, 401)
+        Audio_TEXT.Name = "Audio_TEXT"
+        Audio_TEXT.Size = New Size(233, 56)
+        Audio_TEXT.TabIndex = 103
+        Audio_TEXT.Text = "l10n.audio"
+        Audio_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
         ' Connect_TEXT
         ' 
         Connect_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -1698,6 +1722,19 @@ Partial Class Base
         Connect_TEXT.Text = "l10n.connect"
         Connect_TEXT.TextAlign = ContentAlignment.MiddleLeft
         ' 
+        ' Audio_ICO
+        ' 
+        Audio_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Audio_ICO.Cursor = Cursors.Hand
+        Audio_ICO.Font = New Font("nvgcshare", 26F)
+        Audio_ICO.ForeColor = Color.White
+        Audio_ICO.Location = New Point(2, 401)
+        Audio_ICO.Name = "Audio_ICO"
+        Audio_ICO.Size = New Size(64, 56)
+        Audio_ICO.TabIndex = 102
+        Audio_ICO.Text = ""
+        Audio_ICO.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' HUDLayout_TEXT
         ' 
         HUDLayout_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -1710,6 +1747,17 @@ Partial Class Base
         HUDLayout_TEXT.TabIndex = 74
         HUDLayout_TEXT.Text = "l10n.hudLayout"
         HUDLayout_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' PictureBox8
+        ' 
+        PictureBox8.BackColor = Color.Black
+        PictureBox8.Cursor = Cursors.Hand
+        PictureBox8.Location = New Point(0, 459)
+        PictureBox8.Name = "PictureBox8"
+        PictureBox8.Size = New Size(100, 20)
+        PictureBox8.TabIndex = 100
+        PictureBox8.TabStop = False
+        PictureBox8.Visible = False
         ' 
         ' Highlights_TEXT
         ' 
@@ -1736,6 +1784,16 @@ Partial Class Base
         KeyboardShortcuts_TEXT.TabIndex = 78
         KeyboardShortcuts_TEXT.Text = "l10n.keyboardShortcuts"
         KeyboardShortcuts_TEXT.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Audio_BOX_SUB
+        ' 
+        Audio_BOX_SUB.BackColor = Color.DimGray
+        Audio_BOX_SUB.Cursor = Cursors.Hand
+        Audio_BOX_SUB.Location = New Point(0, 399)
+        Audio_BOX_SUB.Name = "Audio_BOX_SUB"
+        Audio_BOX_SUB.Size = New Size(295, 60)
+        Audio_BOX_SUB.TabIndex = 101
+        Audio_BOX_SUB.TabStop = False
         ' 
         ' VideoCapture_TEXT
         ' 
@@ -1768,7 +1826,7 @@ Partial Class Base
         Engine_TEXT.Cursor = Cursors.Hand
         Engine_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Engine_TEXT.ForeColor = Color.White
-        Engine_TEXT.Location = New Point(60, 402)
+        Engine_TEXT.Location = New Point(60, 481)
         Engine_TEXT.Name = "Engine_TEXT"
         Engine_TEXT.Size = New Size(233, 56)
         Engine_TEXT.TabIndex = 98
@@ -1781,7 +1839,7 @@ Partial Class Base
         Notifications_TEXT.Cursor = Cursors.Hand
         Notifications_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         Notifications_TEXT.ForeColor = Color.White
-        Notifications_TEXT.Location = New Point(60, 482)
+        Notifications_TEXT.Location = New Point(60, 561)
         Notifications_TEXT.Name = "Notifications_TEXT"
         Notifications_TEXT.Size = New Size(233, 56)
         Notifications_TEXT.TabIndex = 93
@@ -1794,7 +1852,7 @@ Partial Class Base
         PrivacyControl_TEXT.Cursor = Cursors.Hand
         PrivacyControl_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         PrivacyControl_TEXT.ForeColor = Color.White
-        PrivacyControl_TEXT.Location = New Point(60, 562)
+        PrivacyControl_TEXT.Location = New Point(60, 641)
         PrivacyControl_TEXT.Name = "PrivacyControl_TEXT"
         PrivacyControl_TEXT.Size = New Size(233, 56)
         PrivacyControl_TEXT.TabIndex = 67
@@ -1807,7 +1865,7 @@ Partial Class Base
         About_TEXT.Cursor = Cursors.Hand
         About_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
         About_TEXT.ForeColor = Color.White
-        About_TEXT.Location = New Point(60, 642)
+        About_TEXT.Location = New Point(60, 721)
         About_TEXT.Name = "About_TEXT"
         About_TEXT.Size = New Size(233, 56)
         About_TEXT.TabIndex = 63
@@ -1831,7 +1889,7 @@ Partial Class Base
         Engine_ICO.Cursor = Cursors.Hand
         Engine_ICO.Font = New Font("nvgcshare", 26F)
         Engine_ICO.ForeColor = Color.White
-        Engine_ICO.Location = New Point(2, 402)
+        Engine_ICO.Location = New Point(2, 481)
         Engine_ICO.Name = "Engine_ICO"
         Engine_ICO.Size = New Size(64, 56)
         Engine_ICO.TabIndex = 97
@@ -1842,7 +1900,7 @@ Partial Class Base
         ' 
         PictureBox14.BackColor = Color.Black
         PictureBox14.Cursor = Cursors.Hand
-        PictureBox14.Location = New Point(0, 460)
+        PictureBox14.Location = New Point(0, 539)
         PictureBox14.Name = "PictureBox14"
         PictureBox14.Size = New Size(100, 20)
         PictureBox14.TabIndex = 94
@@ -1855,7 +1913,7 @@ Partial Class Base
         notifications_ICO.Cursor = Cursors.Hand
         notifications_ICO.Font = New Font("nvgcshare", 26F)
         notifications_ICO.ForeColor = Color.White
-        notifications_ICO.Location = New Point(2, 482)
+        notifications_ICO.Location = New Point(2, 561)
         notifications_ICO.Name = "notifications_ICO"
         notifications_ICO.Size = New Size(64, 56)
         notifications_ICO.TabIndex = 92
@@ -1951,7 +2009,7 @@ Partial Class Base
         ' 
         PictureBox9.BackColor = Color.Black
         PictureBox9.Cursor = Cursors.Hand
-        PictureBox9.Location = New Point(0, 540)
+        PictureBox9.Location = New Point(0, 619)
         PictureBox9.Name = "PictureBox9"
         PictureBox9.Size = New Size(100, 20)
         PictureBox9.TabIndex = 71
@@ -1977,7 +2035,7 @@ Partial Class Base
         PrivacyControl_ICO.Cursor = Cursors.Hand
         PrivacyControl_ICO.Font = New Font("nvgcshare", 26F)
         PrivacyControl_ICO.ForeColor = Color.White
-        PrivacyControl_ICO.Location = New Point(2, 562)
+        PrivacyControl_ICO.Location = New Point(2, 641)
         PrivacyControl_ICO.Name = "PrivacyControl_ICO"
         PrivacyControl_ICO.Size = New Size(64, 56)
         PrivacyControl_ICO.TabIndex = 66
@@ -1988,7 +2046,7 @@ Partial Class Base
         ' 
         PictureBox4.BackColor = Color.Black
         PictureBox4.Cursor = Cursors.Hand
-        PictureBox4.Location = New Point(0, 620)
+        PictureBox4.Location = New Point(0, 699)
         PictureBox4.Name = "PictureBox4"
         PictureBox4.Size = New Size(100, 20)
         PictureBox4.TabIndex = 65
@@ -2012,7 +2070,7 @@ Partial Class Base
         About_ICO.Cursor = Cursors.Hand
         About_ICO.Font = New Font("nvgcshare", 26F)
         About_ICO.ForeColor = Color.White
-        About_ICO.Location = New Point(2, 642)
+        About_ICO.Location = New Point(2, 721)
         About_ICO.Name = "About_ICO"
         About_ICO.Size = New Size(64, 56)
         About_ICO.TabIndex = 62
@@ -2073,7 +2131,7 @@ Partial Class Base
         ' 
         Engine_BOX_SUB.BackColor = Color.DimGray
         Engine_BOX_SUB.Cursor = Cursors.Hand
-        Engine_BOX_SUB.Location = New Point(0, 400)
+        Engine_BOX_SUB.Location = New Point(0, 479)
         Engine_BOX_SUB.Name = "Engine_BOX_SUB"
         Engine_BOX_SUB.Size = New Size(295, 60)
         Engine_BOX_SUB.TabIndex = 95
@@ -2083,7 +2141,7 @@ Partial Class Base
         ' 
         Notifications_BOX_SUB.BackColor = Color.DimGray
         Notifications_BOX_SUB.Cursor = Cursors.Hand
-        Notifications_BOX_SUB.Location = New Point(0, 480)
+        Notifications_BOX_SUB.Location = New Point(0, 559)
         Notifications_BOX_SUB.Name = "Notifications_BOX_SUB"
         Notifications_BOX_SUB.Size = New Size(295, 60)
         Notifications_BOX_SUB.TabIndex = 90
@@ -2093,7 +2151,7 @@ Partial Class Base
         ' 
         PrivacyControl_BOX_SUB.BackColor = Color.DimGray
         PrivacyControl_BOX_SUB.Cursor = Cursors.Hand
-        PrivacyControl_BOX_SUB.Location = New Point(0, 560)
+        PrivacyControl_BOX_SUB.Location = New Point(0, 639)
         PrivacyControl_BOX_SUB.Name = "PrivacyControl_BOX_SUB"
         PrivacyControl_BOX_SUB.Size = New Size(295, 60)
         PrivacyControl_BOX_SUB.TabIndex = 48
@@ -2103,7 +2161,7 @@ Partial Class Base
         ' 
         About_BOX_SUB.BackColor = Color.DimGray
         About_BOX_SUB.Cursor = Cursors.Hand
-        About_BOX_SUB.Location = New Point(0, 640)
+        About_BOX_SUB.Location = New Point(0, 719)
         About_BOX_SUB.Name = "About_BOX_SUB"
         About_BOX_SUB.Size = New Size(295, 60)
         About_BOX_SUB.TabIndex = 60
@@ -2112,16 +2170,16 @@ Partial Class Base
         ' Box_FIX_UIMENU
         ' 
         Box_FIX_UIMENU.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        Box_FIX_UIMENU.Location = New Point(-46, -95)
+        Box_FIX_UIMENU.Location = New Point(-31, -104)
         Box_FIX_UIMENU.Name = "Box_FIX_UIMENU"
-        Box_FIX_UIMENU.Size = New Size(386, 898)
+        Box_FIX_UIMENU.Size = New Size(359, 1107)
         Box_FIX_UIMENU.TabIndex = 75
         Box_FIX_UIMENU.TabStop = False
         ' 
         ' BOX_FIX_UIMENU_1
         ' 
         BOX_FIX_UIMENU_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        BOX_FIX_UIMENU_1.Location = New Point(-29, -22)
+        BOX_FIX_UIMENU_1.Location = New Point(-70, -12)
         BOX_FIX_UIMENU_1.Name = "BOX_FIX_UIMENU_1"
         BOX_FIX_UIMENU_1.Size = New Size(411, 803)
         BOX_FIX_UIMENU_1.TabIndex = 100
@@ -2194,6 +2252,10 @@ Partial Class Base
         ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Engine_UI
+        ' 
+        Engine_UI.Interval = 1
+        ' 
+        ' Audio_UI
         ' 
         ' 
         ' Base
@@ -2286,6 +2348,8 @@ Partial Class Base
         CType(Settings_List_Top, ComponentModel.ISupportInitialize).EndInit()
         CType(Settings_index, ComponentModel.ISupportInitialize).EndInit()
         Settings_List_All.ResumeLayout(False)
+        CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
+        CType(Audio_BOX_SUB, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox7, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox14, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox15, ComponentModel.ISupportInitialize).EndInit()
@@ -2472,5 +2536,9 @@ Partial Class Base
     Friend WithEvents Box_FIX_UIMENU As PictureBox
     Friend WithEvents BOX_FIX_UIMENU_1 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
+    Friend WithEvents Audio_TEXT As Label
+    Friend WithEvents Audio_ICO As Label
+    Friend WithEvents Audio_BOX_SUB As PictureBox
+    Friend WithEvents Audio_UI As Timer
 
 End Class

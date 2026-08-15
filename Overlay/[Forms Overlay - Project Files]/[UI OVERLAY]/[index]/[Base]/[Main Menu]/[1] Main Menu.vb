@@ -626,6 +626,7 @@ Partial Public Class Base
         Highlights_TEXT.Text = L("l10n.highlights")
         KeyboardShortcuts_TEXT.Text = L("l10n.keyboardShortcuts")
         VideoCapture_TEXT.Text = L("l10n.videoCapture")
+        Audio_TEXT.Text = L("l10n.audio")
         Engine_TEXT.Text = L("l10n.engine")
         VideoCapture_TEXT_SUB.Text = L("l10n.videoCaptureText")
         Notifications_TEXT.Text = L("l10n.notifications")
@@ -928,7 +929,7 @@ Partial Public Class Base
 
     Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
         Dim EngineFile = Path.Combine(Application.StartupPath, "Engine.UI")
-        Dim AudioFile = Path.Combine(Application.StartupPath, "Audio.UI")
+
 
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
         If captureProcess Is Nothing Then
@@ -947,13 +948,24 @@ Partial Public Class Base
             Engine_UI.Stop()
         End If
 
+
+    End Sub
+
+    Private Sub Audio_UI_Tick(sender As Object, e As EventArgs) Handles Audio_UI.Tick
+        Dim AudioFile = Path.Combine(Application.StartupPath, "Audio.UI")
+        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        If captureProcess Is Nothing Then
+            Audio_UI.Stop()
+            ShowNotifier("notificationErrorEngineNotRunning")
+            Exit Sub
+        End If
         If File.Exists(AudioFile) Then
             Settings_List.Visible = False
             Base_Settings.Hide()
         Else
             Settings_List.Visible = True
             Base_Settings.Show()
-            Engine_UI.Stop()
+            Audio_UI.Stop()
         End If
     End Sub
 End Class

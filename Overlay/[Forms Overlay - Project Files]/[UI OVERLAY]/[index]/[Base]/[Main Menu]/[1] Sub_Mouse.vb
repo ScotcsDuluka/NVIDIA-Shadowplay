@@ -639,7 +639,7 @@ Partial Public Class Base
 
     End Sub
 
-    ' ========== NOTIFICATIONS ==========
+    ' ========== Engine ==========
     Private Sub EngineUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_TEXT.MouseMove, Engine_ICO.MouseMove
         Engine_BOX_SUB.BackColor = greenColor
     End Sub
@@ -665,6 +665,34 @@ Partial Public Class Base
 
         Catch ex As IOException
             ShowNotifier("notificationErrorEngineUIInUse")
+        End Try
+    End Sub
+
+    ' ========== AUDIO ==========
+    Private Sub AuUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Audio_TEXT.MouseMove, Audio_ICO.MouseMove
+        Audio_BOX_SUB.BackColor = greenColor
+    End Sub
+
+    Private Sub AuUI_MouseLeave(sender As Object, e As EventArgs) Handles Audio_TEXT.MouseLeave, Audio_ICO.MouseLeave
+        Audio_BOX_SUB.BackColor = grayColor
+    End Sub
+
+    Private Sub AuUI_Click(sender As Object, e As EventArgs) Handles Audio_TEXT.Click, Audio_ICO.Click
+        Dim uiFile = Path.Combine(Application.StartupPath, "Audio.UI")
+
+        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        If captureProcess Is Nothing Then
+            Audio_UI.Stop()
+            ShowNotifier("notificationErrorEngineNotRunning")
+            Exit Sub
+        End If
+        Try
+            Using fs As FileStream = File.Create(uiFile)
+            End Using
+
+            Audio_UI.Start()
+
+        Catch ex As IOException
         End Try
     End Sub
 
