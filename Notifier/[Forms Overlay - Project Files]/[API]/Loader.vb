@@ -112,7 +112,7 @@ Partial Public Class Loader
             If Not obsCfg.ShouldForward(eventType) Then Return
 
             If eventType = "ReplayBufferSaved" Then
-                HandleReplayBufferSaved()
+                Task.Run(Sub() HandleReplayBufferSaved())
                 Return
             End If
 
@@ -176,12 +176,16 @@ Partial Public Class Loader
     Private _lastReplayTime As DateTime = DateTime.MinValue
 
     Private Sub HandleReplayBufferSaved()
+        ObsLog("HandleReplayBufferSaved: start")
         Dim mins As Integer = 0
         Dim secs As Integer = 0
 
         Try
             Dim resp = obs.SendRequest("GetReplayBufferStatus")
-            If resp IsNot Nothing Then
+            If resp Is Nothing Then
+                ObsLog("HandleReplayBufferSaved: GetReplayBufferStatus returned nothing (timeout/error)")
+            Else
+                ObsLog($"HandleReplayBufferSaved: response={resp.ToString(Newtonsoft.Json.Formatting.None)}")
                 Dim dataTok As Newtonsoft.Json.Linq.JToken = resp("responseData")
                 If dataTok IsNot Nothing Then
                     Dim durTok As Newtonsoft.Json.Linq.JToken = dataTok("replayBufferDuration")
@@ -199,17 +203,22 @@ Partial Public Class Loader
                         Dim durSec As Integer = CInt(Math.Round(durMs / 1000.0))
                         mins = durSec \ 60
                         secs = durSec Mod 60
-                        Debug.WriteLine($"[OBS]   → ReplayBufferSaved durMs={durMs} → {mins}m {secs}s")
+                        ObsLog($"HandleReplayBufferSaved: durMs={durMs} → {mins}m {secs}s")
+                    Else
+                        ObsLog("HandleReplayBufferSaved: replayBufferDuration field missing in responseData")
                     End If
+                Else
+                    ObsLog("HandleReplayBufferSaved: responseData missing in response")
                 End If
             End If
         Catch ex As Exception
-            Debug.WriteLine($"[OBS] GetReplayBufferStatus error: {ex.Message}")
+            ObsLog($"HandleReplayBufferSaved: GetReplayBufferStatus error: {ex.Message}")
         End Try
 
         Dim msg As String = $"[NVIDIA Overlay]|l10n.notificationInstantReplaySaved"
         Dim args As String() = {mins.ToString(), secs.ToString()}
 
+        ObsLog($"HandleReplayBufferSaved: showing toast with args=[{mins}, {secs}]")
         If Me.InvokeRequired Then
             Me.Invoke(Sub() OnMessageWithArgs(msg, args))
         Else
