@@ -168,7 +168,15 @@ Public Class ObsWebSocketClient
         Dim op = msg("op")
         If op Is Nothing Then Return
 
-        Select Case op.Value(Of Integer)()
+        Dim opInt As Integer = op.Value(Of Integer)()
+
+        If opInt = 7 Then
+            Log("info", $"Raw message (op=7 RequestResponse): {msg.ToString(Newtonsoft.Json.Formatting.None)}")
+        ElseIf opInt <> 0 AndAlso opInt <> 2 AndAlso opInt <> 5 Then
+            Log("info", $"Raw message (op={opInt}): {msg.ToString(Newtonsoft.Json.Formatting.None)}")
+        End If
+
+        Select Case opInt
             Case 0
                 HandleHello(msg)
             Case 2
