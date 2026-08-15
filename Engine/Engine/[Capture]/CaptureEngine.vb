@@ -72,6 +72,17 @@ Partial Public Class CaptureEngine
     Private _tempMicWav As String
     Private _useTwoProcess As Boolean = False
 
+    ' ── High-precision sync timestamps ──
+    ' These are used at mux time to align audio with video to sample accuracy.
+    ' _audioStartTicks: when AudioFileWriter.Start() was called
+    ' _videoStartTicks: when FFmpeg's "Output #0" was detected (= first frame encoded)
+    ' _stopTicks: when Stop was called
+    ' audioOffset = (_videoStartTicks - _audioStartTicks) / freq → seconds of audio
+    '                to skip at mux time (leading silence before video started)
+    Private _audioStartTicks As Long = 0
+    Private _videoStartTicks As Long = 0
+    Private _videoStartDetected As Boolean = False
+
     Private _stopCompleted As Integer = 0
 
     Public ReadOnly Property State As CaptureState
@@ -174,6 +185,11 @@ Partial Public Class CaptureEngine
                                          DeleteTempFile(_tempSystemWav)
                                          DeleteTempFile(_tempMicWav)
 
+                                         ' Reset sync timestamps for this recording session
+                                         _audioStartTicks = 0
+                                         _videoStartTicks = 0
+                                         _videoStartDetected = False
+
                                          ffmpegOutputPath = _tempVideoPath
                                          LogDebug("[Two-Process] Audio enabled — video → temp, audio → wav, mux at stop")
                                      Else
@@ -272,20 +288,20 @@ Partial Public Class CaptureEngine
                                      ' Note: NO pipe to close, NO silence feeder to stop.
                                      ' Shutdown is just "stop audio writer, send q, wait, mux".
 
-                                     ' ─── Step 1: Stop audio recorder ───
-                                     If _audioWriter IsNot Nothing Then
-                                         LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
-                                         WriteDebugLog("[Audio] Stopping audio recorder…")
-                                         _audioWriter.Stop()
-                                         Dim diagMsg As String = _audioWriter.GetDiagnostics()
-                                         LogDebug(diagMsg)
-                                         WriteDebugLog(diagMsg)
-                                         _audioWriter.Dispose()
-                                         _audioWriter = Nothing
-                                         LogDebug("[Audio] Audio recorder stopped.")
-                                     End If
+                                     ' ═══ SHUTDOWN ORDER (Two-Process, High-Precision) ═══
+                                     ' 1. Send 'q' to FFmpeg FIRST — video keeps encoding until q is processed
+                                     ' 2. WaitForExit — FFmpeg finalizes video.mp4 (writes moov atom, etc.)
+                                     ' 3. THEN stop audio writer — audio has been recording the ENTIRE video
+                                     '    duration + FFmpeg shutdown time (200-500ms). The extra audio gets
+                                     '    trimmed by -t <video_duration> at mux time.
+                                     ' 4. ffprobe video.mp4 → get exact video duration (to millisecond)
+                                     ' 5. Compute audioOffset = (videoStart - audioStart) / freq
+                                     ' 6. Mux: -ss <audioOffset> -t <videoDuration> → sample-accurate sync
+                                     '
+                                     ' This order is CRITICAL: if we stop audio before sending q, the audio
+                                     ' file is shorter than the video file → audio cuts off at the end.
 
-                                     ' ─── Step 2: Send 'q' to FFmpeg ───
+                                     ' ─── Step 1: Send 'q' to FFmpeg ───
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                                          Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
                                          LogDebug(qMsg)
@@ -327,6 +343,21 @@ Partial Public Class CaptureEngine
                                          Dim alreadyMsg As String = "[FFmpeg] Process already exited."
                                          LogDebug(alreadyMsg)
                                          WriteDebugLog(alreadyMsg)
+                                     End If
+
+                                     ' ─── Step 2: Stop audio recorder (AFTER FFmpeg exited) ───
+                                     ' Audio has been recording through the entire video duration.
+                                     ' The .wav file is slightly longer than the video — mux trims it.
+                                     If _audioWriter IsNot Nothing Then
+                                         LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
+                                         WriteDebugLog("[Audio] Stopping audio recorder…")
+                                         _audioWriter.Stop()
+                                         Dim diagMsg As String = _audioWriter.GetDiagnostics()
+                                         LogDebug(diagMsg)
+                                         WriteDebugLog(diagMsg)
+                                         _audioWriter.Dispose()
+                                         _audioWriter = Nothing
+                                         LogDebug("[Audio] Audio recorder stopped.")
                                      End If
 
                                      ' ─── Step 3: Mux video + audio (if two-process) ───
@@ -388,11 +419,32 @@ Partial Public Class CaptureEngine
             Return
         End If
 
-        ' Run mux FFmpeg: ffmpeg -i video.mp4 -i system.wav [-i mic.wav] -c:v copy -c:a aac final.mp4
+        ' ═══ HIGH-PRECISION SYNC: ffprobe + offset + duration ═══
+        ' 1. Get exact video duration via ffprobe (to millisecond precision)
+        ' 2. Compute audioOffset = (videoStartTicks - audioStartTicks) / freq
+        '    This is the leading audio that was recorded BEFORE video started
+        '    (AudioFileWriter starts at process launch, ddagrab takes ~400ms to init)
+        ' 3. Pass both to BuildMuxArguments → -ss <offset> -t <videoDuration>
+        '    -ss skips the leading silence, -t trims output to exact video length
+
+        Dim videoDurationSec As Double = GetVideoDurationSec(_tempVideoPath)
+        Dim audioOffsetSec As Double = 0.0
+        If _videoStartDetected AndAlso _audioStartTicks > 0 Then
+            audioOffsetSec = (_videoStartTicks - _audioStartTicks) / Stopwatch.Frequency
+            ' Clamp to reasonable range (0-5s) to avoid malformed -ss values
+            If audioOffsetSec < 0 Then audioOffsetSec = 0
+            If audioOffsetSec > 5.0 Then audioOffsetSec = 5.0
+        End If
+
+        LogDebug($"[Mux] videoDuration={videoDurationSec:F3}s, audioOffset={audioOffsetSec:F3}s")
+        WriteDebugLog($"[Mux] videoDuration={videoDurationSec:F3}s, audioOffset={audioOffsetSec:F3}s, videoStartDetected={_videoStartDetected}")
+
+        ' Run mux FFmpeg with high-precision alignment
         Dim muxArgs As String = BuildMuxArguments(_tempVideoPath,
                                                    _tempSystemWav, hasSystem,
                                                    _tempMicWav, hasMic,
-                                                   _outputFile)
+                                                   _outputFile,
+                                                   audioOffsetSec, videoDurationSec)
 
         LogDebug("[Mux] FFmpeg command: " & _settings.FFmpegPath & " " & muxArgs)
         WriteDebugLog("[Mux] FFmpeg command: " & _settings.FFmpegPath & " " & muxArgs)
@@ -479,6 +531,66 @@ Partial Public Class CaptureEngine
         End Try
     End Sub
 
+    ''' <summary>
+    ''' Get exact video duration using ffprobe.
+    ''' Returns duration in seconds (e.g., 5.171000), or 0.0 if ffprobe fails.
+    '''
+    ''' Uses ffprobe.exe which is in the same directory as ffmpeg.exe.
+    ''' Command: ffprobe -v error -show_entries format=duration -of csv=p=0 video.mp4
+    ''' Output: "5.171000\n"
+    ''' </summary>
+    Private Function GetVideoDurationSec(videoPath As String) As Double
+        Try
+            ' Find ffprobe.exe — it's in the same directory as ffmpeg.exe
+            Dim ffmpegDir As String = Path.GetDirectoryName(_settings.FFmpegPath)
+            Dim ffprobePath As String = Path.Combine(ffmpegDir, "ffprobe.exe")
+            If Not File.Exists(ffprobePath) Then
+                ' Try alternative capitalization
+                ffprobePath = Path.Combine(ffmpegDir, "API-Core", "ffprobe.exe")
+                If Not File.Exists(ffprobePath) Then
+                    ffprobePath = Path.Combine(ffmpegDir, "api-core", "ffprobe.exe")
+                End If
+            End If
+            If Not File.Exists(ffprobePath) Then
+                LogDebug("[Mux] ffprobe.exe not found — using -shortest fallback (no -t)")
+                WriteDebugLog("[Mux] ffprobe.exe not found at " & ffprobePath)
+                Return 0.0
+            End If
+
+            Dim probePsi As New ProcessStartInfo()
+            probePsi.FileName = ffprobePath
+            probePsi.Arguments = "-v error -show_entries format=duration -of csv=p=0 """ & videoPath & """"
+            probePsi.UseShellExecute = False
+            probePsi.RedirectStandardOutput = True
+            probePsi.RedirectStandardError = True
+            probePsi.CreateNoWindow = True
+
+            Using probeProc As New Process()
+                probeProc.StartInfo = probePsi
+                probeProc.Start()
+                Dim stdout As String = probeProc.StandardOutput.ReadToEnd().Trim()
+                probeProc.WaitForExit(5000)
+                If Not probeProc.HasExited Then
+                    Try : probeProc.Kill() : Catch : End Try
+                End If
+
+                If Not String.IsNullOrEmpty(stdout) Then
+                    Dim dur As Double = 0.0
+                    If Double.TryParse(stdout, Globalization.CultureInfo.InvariantCulture, dur) AndAlso dur > 0 Then
+                        LogDebug($"[Mux] ffprobe duration = {dur:F3}s")
+                        Return dur
+                    End If
+                End If
+                LogDebug("[Mux] ffprobe returned empty/invalid output: '" & stdout & "'")
+                WriteDebugLog("[Mux] ffprobe output: '" & stdout & "'")
+            End Using
+        Catch ex As Exception
+            LogDebug("[Mux] ffprobe exception: " & ex.Message)
+            WriteDebugLog("[Mux] ffprobe exception: " & ex.ToString())
+        End Try
+        Return 0.0
+    End Function
+
     ' ── Force Stop ────────────────────────────────────────────
 
     Public Sub ForceStop()
@@ -522,6 +634,21 @@ Partial Public Class CaptureEngine
 
         LogDebug("[stderr] " & e.Data)
         WriteDebugLog("[stderr] " & e.Data)
+
+        ' ── Detect video start (high-precision sync) ──
+        ' "Output #0" appears in FFmpeg stderr when the muxer is ready to write,
+        ' which is immediately after the first frame is encoded by ddagrab.
+        ' We use this as the video start timestamp for audio alignment.
+        ' This reduces the audio-video start offset from ~400ms to ~20ms.
+        If Not _videoStartDetected AndAlso _useTwoProcess Then
+            If e.Data.Contains("Output #0") Then
+                _videoStartTicks = Stopwatch.GetTimestamp()
+                _videoStartDetected = True
+                Dim elapsedMs As Double = (_videoStartTicks - _audioStartTicks) * 1000.0 / Stopwatch.Frequency
+                LogDebug($"[Sync] Video start detected. Audio-to-video offset = {elapsedMs:F1}ms")
+                WriteDebugLog($"[Sync] Video start at ticks={_videoStartTicks}, offset from audio={elapsedMs:F1}ms")
+            End If
+        End If
 
         ' Parse frame progress
         If e.Data.IndexOf("frame=", StringComparison.OrdinalIgnoreCase) >= 0 Then
@@ -674,9 +801,11 @@ Partial Public Class CaptureEngine
 
             Dim ok As Boolean = _audioWriter.Start(_tempSystemWav, _tempMicWav)
             If ok Then
+                _audioStartTicks = Stopwatch.GetTimestamp()
+                Dim offsetMsg As String = $"[Audio] AudioFileWriter started at ticks={_audioStartTicks}"
                 LogDebug("[Audio] AudioFileWriter started (system=" & _settings.SystemAudioCapture.ToString() &
                          ", mic=" & _settings.MicCapture.ToString() & ")")
-                WriteDebugLog("[Audio] AudioFileWriter started")
+                WriteDebugLog(offsetMsg)
             Else
                 LogDebug("[Audio] AudioFileWriter failed to start — video continues without audio")
                 WriteDebugLog("[Audio] AudioFileWriter failed to start — video continues without audio")

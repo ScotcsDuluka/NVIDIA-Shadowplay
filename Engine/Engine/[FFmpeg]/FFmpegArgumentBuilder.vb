@@ -173,24 +173,57 @@ Partial Public Class CaptureEngine
     ''' For Separate mode: two audio tracks are kept as separate streams in MP4.
     ''' For Single mode: amix filter combines system + mic into one track.
     ''' </summary>
+    ''' <summary>
+    ''' Build FFmpeg arguments for the MUX step — combines video + audio
+    ''' into the final output file with HIGH-PRECISION sync.
+    '''
+    ''' High-precision sync parameters:
+    '''   audioOffsetSec: leading audio to skip (recorded before video started).
+    '''                   Applied as -ss before each audio input.
+    '''   videoDurationSec: exact video duration from ffprobe (0.0 if unavailable).
+    '''                     Applied as -t to limit output to exact video length.
+    '''
+    ''' Command pattern:
+    '''   ffmpeg -i video.mp4 -ss <offset> -i system.wav [-ss <offset> -i mic.wav]
+    '''          -map 0:v -map 1:a [-map 2:a]
+    '''          -c:v copy -c:a aac -b:a 320k -ar 48000
+    '''          -t <videoDuration> -movflags +faststart -y final.mp4
+    '''
+    ''' -ss before audio input: sample-accurate seek (skips leading silence)
+    ''' -t after mapping: limits output to exact video duration
+    ''' </summary>
     Private Function BuildMuxArguments(videoPath As String,
                                        systemWav As String, hasSystem As Boolean,
                                        micWav As String, hasMic As Boolean,
-                                       outputFile As String) As String
+                                       outputFile As String,
+                                       audioOffsetSec As Double,
+                                       videoDurationSec As Double) As String
         Dim sb As New StringBuilder()
 
         sb.Append("-hide_banner -loglevel info ")
 
-        ' Input 0: video (temp .video.mp4)
+        ' Input 0: video (temp .video.mp4) — NO -ss on video (video is the master timeline)
         sb.Append($"-i ""{videoPath}"" ")
+
+        ' ── Audio offset (-ss before each audio input) ──
+        ' -ss before -i does input-level seek = sample-accurate for WAV/PCM.
+        ' This skips the leading audio that was recorded BEFORE ddagrab started
+        ' producing frames (typically 200-500ms).
+        Dim offsetStr As String = audioOffsetSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
 
         ' Input 1: system audio (.wav) — only if it has data
         If hasSystem Then
+            If audioOffsetSec > 0.001 Then
+                sb.Append($"-ss {offsetStr} ")
+            End If
             sb.Append($"-i ""{systemWav}"" ")
         End If
 
         ' Input 2: mic audio (.wav) — only if it has data
         If hasMic Then
+            If audioOffsetSec > 0.001 Then
+                sb.Append($"-ss {offsetStr} ")
+            End If
             sb.Append($"-i ""{micWav}"" ")
         End If
 
@@ -232,16 +265,22 @@ Partial Public Class CaptureEngine
             sb.Append("-map 0:v -c:v copy ")
         End If
 
+        ' ── -t: exact output duration (from ffprobe) ──
+        ' This is the KEY to 100% precision: trim output to exact video length.
+        ' Audio that's slightly longer (recorded during FFmpeg shutdown) gets cut.
+        ' If ffprobe failed (videoDurationSec=0), fall back to -shortest.
+        If (hasSystem OrElse hasMic) AndAlso videoDurationSec > 0.001 Then
+            Dim durStr As String = videoDurationSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
+            sb.Append($"-t {durStr} ")
+        End If
+
         Dim ext As String = Path.GetExtension(outputFile).ToLowerInvariant()
         If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".m4v" Then
             sb.Append("-movflags +faststart ")
         End If
 
-        ' -shortest: truncate output to the shortest stream duration.
-        ' The silence feeder keeps audio duration ≈ video duration, but
-        ' there may be a few ms difference. -shortest ensures the output
-        ' ends cleanly at the video duration (video is always the master).
-        If hasSystem OrElse hasMic Then
+        ' -shortest as a safety net (only if we don't have -t from ffprobe)
+        If (hasSystem OrElse hasMic) AndAlso videoDurationSec <= 0.001 Then
             sb.Append("-shortest ")
         End If
 
