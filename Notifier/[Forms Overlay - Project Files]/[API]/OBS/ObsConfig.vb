@@ -10,6 +10,7 @@ Public Class ObsConfig
 
     Public Property ForwardRecordStateChanged As Boolean = True
     Public Property ForwardReplayBufferStateChanged As Boolean = True
+    Public Property ForwardReplayBufferSaved As Boolean = True
     Public Property ForwardScreenshotSaved As Boolean = True
 
     Public Const FileName As String = "notifier_obs.json"
@@ -38,6 +39,7 @@ Public Class ObsConfig
             If forward IsNot Nothing Then
                 cfg.ForwardRecordStateChanged = ReadBool(forward, "record_state_changed", True)
                 cfg.ForwardReplayBufferStateChanged = ReadBool(forward, "replay_buffer_state_changed", True)
+                cfg.ForwardReplayBufferSaved = ReadBool(forward, "replay_buffer_saved", True)
                 cfg.ForwardScreenshotSaved = ReadBool(forward, "screenshot_saved", True)
             End If
 
@@ -100,6 +102,8 @@ Public Class ObsConfig
                 Return ForwardRecordStateChanged
             Case "ReplayBufferStateChanged"
                 Return ForwardReplayBufferStateChanged
+            Case "ReplayBufferSaved"
+                Return ForwardReplayBufferSaved
             Case "ScreenshotSaved"
                 Return ForwardScreenshotSaved
             Case Else

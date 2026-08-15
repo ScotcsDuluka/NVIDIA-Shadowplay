@@ -27,6 +27,13 @@ Public Module ObsEventMap
             Case "ReplayBufferStateChanged"
                 Return MapReplayState(eventData)
 
+            Case "ReplayBufferSaved"
+                Return New MappedNotification With {
+                    .Key = "l10n.notificationInstantReplaySaved",
+                    .Ico = "",
+                    .Color = greenColor
+                }
+
             Case "ScreenshotSaved"
                 Return New MappedNotification With {
                     .Key = "l10n.notificationScreenshotSavedToGallery",
