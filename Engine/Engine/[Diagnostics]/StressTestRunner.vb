@@ -615,6 +615,10 @@ Public Class StressTestRunner
         Dim worstMicResidual As Long = first.MicBytesAccountingResidual
         Dim worstMicWriteLag As Long = first.MicWriteLagBytes
         Dim worstAVSyncMs As Double = first.AVSyncMs
+        ' Per GPT P2 #4: also aggregate StartOffsetMs / EndOffsetMs separately
+        ' so diagnostics can show WHICH side of the A/V sync is worst (start vs end)
+        Dim worstStartOffsetMs As Double = first.StartOffsetMs
+        Dim worstEndOffsetMs As Double = first.EndOffsetMs
 
         ' ── Accumulate totals (start from 0, NOT from cycle 1) ──
         Dim totalSysCallbacks As Long = 0
@@ -652,6 +656,8 @@ Public Class StressTestRunner
             End If
             If r.MicWriteLagBytes > worstMicWriteLag Then worstMicWriteLag = r.MicWriteLagBytes
             If r.AVSyncMs > worstAVSyncMs Then worstAVSyncMs = r.AVSyncMs
+            If r.StartOffsetMs > worstStartOffsetMs Then worstStartOffsetMs = r.StartOffsetMs
+            If r.EndOffsetMs > worstEndOffsetMs Then worstEndOffsetMs = r.EndOffsetMs
 
             ' Track if ALL cycles successfully measured AV sync
             If Not r.AVSyncMeasured Then allAVSyncMeasured = False
@@ -682,6 +688,8 @@ Public Class StressTestRunner
         result.MicBytesAccountingResidual = worstMicResidual
         result.MicWriteLagBytes = worstMicWriteLag
         result.AVSyncMs = worstAVSyncMs
+        result.StartOffsetMs = worstStartOffsetMs
+        result.EndOffsetMs = worstEndOffsetMs
         result.AVSyncMeasured = allAVSyncMeasured
 
         ' ── Write accumulated totals ──
@@ -857,16 +865,25 @@ Public Class StressTestRunner
                 Return
             End If
 
-            ' ── Query video stream duration + start_time ──
-            ' Video stream typically starts at 0 (master timeline), but query anyway
-            Dim vDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "v", 0)
-            Dim vStart As Double = ProbeStreamStartTime(ffprobePath, mp4Path, "v", 0)
-            If vDur <= 0 Then
-                Console.WriteLine($"  ⚠️  ffprobe: video stream duration unavailable")
+            ' ── Query video stream duration + start_time (per GPT P0: Try-pattern) ──
+            ' MUST distinguish "ffprobe returned 0" from "ffprobe failed" —
+            ' old code conflated them, leading to false measurement success.
+            Dim vDur As Double = 0
+            Dim vStart As Double = 0
+            Dim vDurOk As Boolean = TryProbeStreamDuration(ffprobePath, mp4Path, "v", 0, vDur)
+            Dim vStartOk As Boolean = TryProbeStreamStartTime(ffprobePath, mp4Path, "v", 0, vStart)
+
+            If Not vDurOk Then
+                Console.WriteLine($"  ⚠️  ffprobe: video stream duration probe failed")
+                Return  ' AVSyncMeasured stays False
+            End If
+            If Not vStartOk Then
+                ' Video start_time is usually 0, but if probe failed entirely that's suspicious.
+                ' Treat as failure — don't fabricate vStart=0 silently.
+                Console.WriteLine($"  ⚠️  ffprobe: video stream start_time probe failed")
                 Return  ' AVSyncMeasured stays False
             End If
             result.FinalVideoDurationSec = vDur
-            ' Video start_time defaults to 0 if query returns 0 or fails
 
             ' ── Query audio streams (per GPT P1 #4: probe ALL audio streams) ──
             ' For separate-track scenarios (system + mic), we need to check BOTH
@@ -884,17 +901,22 @@ Public Class StressTestRunner
             Dim worstAudioStart As Double = 0
 
             For streamIdx As Integer = 0 To audioStreamCount - 1
-                Dim aDur As Double = ProbeStreamDuration(ffprobePath, mp4Path, "a", streamIdx)
-                Dim aStart As Double = ProbeStreamStartTime(ffprobePath, mp4Path, "a", streamIdx)
+                Dim aDur As Double = 0
+                Dim aStart As Double = 0
+                Dim aDurOk As Boolean = TryProbeStreamDuration(ffprobePath, mp4Path, "a", streamIdx, aDur)
+                Dim aStartOk As Boolean = TryProbeStreamStartTime(ffprobePath, mp4Path, "a", streamIdx, aStart)
 
-                If aDur <= 0 Then
-                    Console.WriteLine($"  ⚠️  ffprobe: audio stream a:{streamIdx} duration unavailable")
+                If Not aDurOk Then
+                    Console.WriteLine($"  ⚠️  ffprobe: audio stream a:{streamIdx} duration probe failed")
+                    Return  ' AVSyncMeasured stays False
+                End If
+                If Not aStartOk Then
+                    Console.WriteLine($"  ⚠️  ffprobe: audio stream a:{streamIdx} start_time probe failed")
                     Return  ' AVSyncMeasured stays False
                 End If
 
                 ' Track worst-case across all audio streams
                 ' StartOffsetMs = |audio_start - video_start|
-                ' (video_start is usually 0; if both 0, StartOffsetMs=0)
                 Dim thisStartOffsetMs As Double = Math.Abs(aStart - vStart) * 1000.0
                 ' EndOffsetMs = |video_duration - (audio_start + audio_duration)|
                 Dim audioEnd As Double = aStart + aDur
@@ -939,25 +961,52 @@ Public Class StressTestRunner
         Return lines.Length
     End Function
 
-    Private Function ProbeStreamDuration(ffprobePath As String, mp4Path As String,
-                                          codecType As String, streamIdx As Integer) As Double
-        ' ffprobe -v error -select_streams <codec_type>:<idx> -show_entries stream=duration -of csv=p=0 file.mp4
+    ''' <summary>
+    ''' Try to probe a stream's duration. Returns True if ffprobe ran + parsed successfully,
+    ''' False otherwise. The actual value is returned via ByRef parameter.
+    '''
+    ''' CRITICAL (per GPT P0): must distinguish "ffprobe returned 0.0" from "ffprobe failed".
+    ''' Old code returned 0 on failure, which the caller interpreted as "duration = 0" →
+    ''' false measurement success. Now: Try-pattern with explicit Boolean return.
+    ''' </summary>
+    Private Function TryProbeStreamDuration(ffprobePath As String, mp4Path As String,
+                                             codecType As String, streamIdx As Integer,
+                                             ByRef duration As Double) As Boolean
+        duration = 0
         Dim args As String = $"-v error -select_streams {codecType}:{streamIdx} -show_entries stream=duration -of csv=p=0 ""{mp4Path}"""
         Dim stdout As String = RunFfprobeSync(ffprobePath, args)
-        If String.IsNullOrEmpty(stdout) Then Return 0
+        If String.IsNullOrEmpty(stdout) Then Return False
         Dim dur As Double = 0
-        Double.TryParse(stdout.Trim(), Globalization.CultureInfo.InvariantCulture, dur)
-        Return dur
+        If Not Double.TryParse(stdout.Trim(), Globalization.CultureInfo.InvariantCulture, dur) Then
+            Return False
+        End If
+        ' Negative or zero duration means probe failed or stream is empty
+        If dur <= 0 Then Return False
+        duration = dur
+        Return True
     End Function
 
-    Private Function ProbeStreamStartTime(ffprobePath As String, mp4Path As String,
-                                          codecType As String, streamIdx As Integer) As Double
+    ''' <summary>
+    ''' Try to probe a stream's start_time. Returns True if ffprobe ran + parsed successfully.
+    '''
+    ''' Note: start_time of 0 is a VALID value (audio starts at video start), so we
+    ''' cannot use 0 as a "failure" sentinel. The Boolean return distinguishes them.
+    ''' </summary>
+    Private Function TryProbeStreamStartTime(ffprobePath As String, mp4Path As String,
+                                              codecType As String, streamIdx As Integer,
+                                              ByRef startTime As Double) As Boolean
+        startTime = 0
         Dim args As String = $"-v error -select_streams {codecType}:{streamIdx} -show_entries stream=start_time -of csv=p=0 ""{mp4Path}"""
         Dim stdout As String = RunFfprobeSync(ffprobePath, args)
-        If String.IsNullOrEmpty(stdout) Then Return 0
+        If String.IsNullOrEmpty(stdout) Then Return False
         Dim t As Double = 0
-        Double.TryParse(stdout.Trim(), Globalization.CultureInfo.InvariantCulture, t)
-        Return t
+        If Not Double.TryParse(stdout.Trim(), Globalization.CultureInfo.InvariantCulture, t) Then
+            Return False
+        End If
+        ' start_time of 0 is valid, but negative is suspicious
+        If t < 0 Then Return False
+        startTime = t
+        Return True
     End Function
 
     Private Function RunFfprobeSync(ffprobePath As String, args As String) As String
@@ -1008,14 +1057,23 @@ Public Class StressTestRunner
             failures.Add($"MicBytesAccountingResidual={result.MicBytesAccountingResidual} (invariant violated)")
         End If
 
-        ' Writer FAILED (detected via non-zero bytes enqueued but zero written)
-        If scenario.ExpectAudio AndAlso result.SysBytesEnqueued > 0 AndAlso result.SysWrittenBytes = 0 Then
-            failures.Add("Writer FAILED (BytesEnqueued > 0 but WrittenBytes = 0)")
+        ' ── Writer FAILED check (per GPT P1 #3: separate System + Mic) ──
+        ' If bytes were enqueued but writer wrote 0 bytes, the writer crashed.
+        ' Check each track independently — Mic writer crash shouldn't be masked
+        ' by System writer success.
+        If scenario.Settings.SystemAudioCapture AndAlso
+           result.SysBytesEnqueued > 0 AndAlso result.SysWrittenBytes = 0 Then
+            failures.Add("System Writer FAILED (SysBytesEnqueued > 0 but SysWrittenBytes = 0)")
+        End If
+        If scenario.Settings.MicCapture AndAlso
+           result.MicBytesEnqueued > 0 AndAlso result.MicWrittenBytes = 0 Then
+            failures.Add("Mic Writer FAILED (MicBytesEnqueued > 0 but MicWrittenBytes = 0)")
         End If
 
-        ' ── Per GPT P1 #5: ExpectAudioData assertion (separate from ExpectAudio) ──
+        ' ── Per GPT P1 #2: ExpectAudioData assertion (already separate System + Mic) ──
         ' If scenario expects audio data AND silence is NOT allowed,
         ' then 0 bytes captured is a failure (WASAPI never started).
+        ' This already checks both System and Mic independently (lines below).
         If scenario.ExpectAudioData AndAlso Not scenario.AllowSilentCapture Then
             If scenario.Settings.SystemAudioCapture AndAlso result.SysBytesEnqueued = 0 Then
                 failures.Add("ExpectAudioData=True but SysBytesEnqueued=0 (WASAPI system capture never started)")
