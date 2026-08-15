@@ -445,11 +445,14 @@ Partial Public Class CaptureEngine
         '    micOffset = (videoStart - micStart) / freq
         '    Each track gets its OWN -ss because system and mic devices start
         '    capturing at different times (independent WASAPI initialization).
-        ' 3. apad filter extends short audio with silence to match video duration
-        ' 4. -t trims output to exact video duration
+        ' 3. Positive offset → skip audio (-ss)
+        '    Negative offset → delay audio (adelay filter at mux time)
+        ' 4. apad filter extends short audio with silence to match video duration
+        ' 5. -t trims output to exact video duration
         '
-        ' NO fake WASAPI latency compensation — the aresample=async=1:first_pts=0
-        ' filter at mux time handles sub-frame alignment.
+        ' NO clamping to zero — negative offsets (audio starts after video) are
+        ' supported via adelay filter in BuildMuxArguments.
+        ' Range: -2s to +5s (prevents malformed values from timestamp errors)
 
         Dim videoDurationSec As Double = GetVideoDurationSec(_tempVideoPath)
         Dim systemOffsetSec As Double = 0.0
@@ -458,12 +461,12 @@ Partial Public Class CaptureEngine
         If _videoStartDetected Then
             If _systemStartTicks > 0 Then
                 systemOffsetSec = (_videoStartTicks - _systemStartTicks) / Stopwatch.Frequency
-                If systemOffsetSec < 0 Then systemOffsetSec = 0
+                If systemOffsetSec < -2.0 Then systemOffsetSec = -2.0
                 If systemOffsetSec > 5.0 Then systemOffsetSec = 5.0
             End If
             If _micStartTicks > 0 Then
                 micOffsetSec = (_videoStartTicks - _micStartTicks) / Stopwatch.Frequency
-                If micOffsetSec < 0 Then micOffsetSec = 0
+                If micOffsetSec < -2.0 Then micOffsetSec = -2.0
                 If micOffsetSec > 5.0 Then micOffsetSec = 5.0
             End If
         End If

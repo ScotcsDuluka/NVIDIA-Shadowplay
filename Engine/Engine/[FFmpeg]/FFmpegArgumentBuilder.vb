@@ -178,21 +178,23 @@ Partial Public Class CaptureEngine
     ''' into the final output file with PER-TRACK high-precision sync.
     '''
     ''' Per-track sync (per GPT review):
-    '''   systemOffsetSec: leading system audio to skip (recorded before video)
-    '''   micOffsetSec: leading mic audio to skip (INDEPENDENT of system)
+    '''   systemOffsetSec: positive=skip (-ss), negative=delay (adelay)
+    '''   micOffsetSec: same, INDEPENDENT of system offset
     '''   videoDurationSec: exact video duration from ffprobe
     '''
-    ''' Command pattern:
-    '''   ffmpeg -i video.mp4 -ss <sysOffset> -i system.wav [-ss <micOffset> -i mic.wav]
-    '''          -map 0:v -map 1:a [-map 2:a]
-    '''          -af volume=X,aresample=async=1:first_pts=0,apad
-    '''          -c:v copy -c:a aac -b:a 320k -ar 48000
-    '''          -t <videoDuration> -movflags +faststart -y final.mp4
+    ''' Positive offset (>0): audio started before video → skip leading audio
+    '''   Pattern: -ss <offset> -i audio.wav
     '''
-    ''' Filters:
-    '''   aresample=async=1:first_pts=0 = sample-accurate start + drift correction
+    ''' Negative offset (<0): audio started after video → delay audio
+    '''   Pattern: -i audio.wav, then -af adelay=<ms>|<ms>
+    '''   (adelay takes per-channel ms, e.g. adelay=500|500 for 500ms stereo)
+    '''
+    ''' Filters (always applied):
+    '''   aresample=async=1:first_pts=0 = drift correction
     '''   apad = pad short audio with silence to match video duration
-    '''   -t = trim output to exact video duration
+    '''
+    ''' Duration:
+    '''   -t <videoDuration> = trim output to exact video length
     ''' </summary>
     Private Function BuildMuxArguments(videoPath As String,
                                        systemWav As String, hasSystem As Boolean,
@@ -208,13 +210,14 @@ Partial Public Class CaptureEngine
         ' Input 0: video (temp .video.mp4) — NO -ss on video (video is the master timeline)
         sb.Append($"-i ""{videoPath}"" ")
 
-        ' ── Per-track audio offset (-ss before each audio input) ──
-        ' Each track gets its OWN -ss because system and mic devices start
-        ' capturing at different times (independent WASAPI initialization).
-        Dim sysOffsetStr As String = systemOffsetSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
-        Dim micOffsetStr As String = micOffsetSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
+        ' ── Per-track audio input with positive offset (-ss) ──
+        ' Negative offset is handled via adelay filter AFTER input (see below).
+        Dim sysOffsetStr As String = Math.Max(0, systemOffsetSec).ToString("0.000", Globalization.CultureInfo.InvariantCulture)
+        Dim micOffsetStr As String = Math.Max(0, micOffsetSec).ToString("0.000", Globalization.CultureInfo.InvariantCulture)
+        Dim sysDelayMs As Integer = CInt(Math.Max(0, -systemOffsetSec) * 1000)
+        Dim micDelayMs As Integer = CInt(Math.Max(0, -micOffsetSec) * 1000)
 
-        ' Input 1: system audio (.wav) — only if it has data
+        ' Input 1: system audio (.wav)
         If hasSystem Then
             If systemOffsetSec > 0.001 Then
                 sb.Append($"-ss {sysOffsetStr} ")
@@ -222,7 +225,7 @@ Partial Public Class CaptureEngine
             sb.Append($"-i ""{systemWav}"" ")
         End If
 
-        ' Input 2: mic audio (.wav) — only if it has data
+        ' Input 2: mic audio (.wav)
         If hasMic Then
             If micOffsetSec > 0.001 Then
                 sb.Append($"-ss {micOffsetStr} ")
@@ -232,50 +235,47 @@ Partial Public Class CaptureEngine
 
         Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
 
+        ' ── Build per-track filter chains ──
+        ' Each track: [optional adelay for negative offset] + volume + aresample + apad
+        Dim sysFilter As String = BuildAudioFilter(_settings.SystemAudioVolume, sysDelayMs)
+        Dim micFilter As String = BuildAudioFilter(_settings.MicVolume, micDelayMs)
+
         If hasSystem AndAlso hasMic Then
             If isSeparate Then
                 ' Two separate audio tracks in output
-                ' aresample=async=1:first_pts=0 = sample-accurate start + drift correction
-                ' apad = pad short audio with silence to match video duration
                 sb.Append("-map 0:v -map 1:a -map 2:a ")
-                sb.Append($"-af:0 volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0,apad ")
-                sb.Append($"-af:1 volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0,apad ")
+                sb.Append($"-af:0 {sysFilter} ")
+                sb.Append($"-af:1 {micFilter} ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a:0 aac -b:a:0 320k -ar:a:0 48000 ")
                 sb.Append("-c:a:1 aac -b:a:1 320k -ar:a:1 48000 ")
             Else
                 ' Mix system + mic into single track using -filter_complex amix
-                ' apad on final mix = pad with silence to match video duration
-                sb.Append("-filter_complex ""[1:a]volume=" & FormatVolume(_settings.SystemAudioVolume) & ",aresample=48000:async=1:first_pts=0[a0];" &
-                          "[2:a]volume=" & FormatVolume(_settings.MicVolume) & ",aresample=48000:async=1:first_pts=0[a1];" &
-                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0,apad[aout]"" ")
+                sb.Append("-filter_complex ""[1:a]" & sysFilter & "[a0];" &
+                          "[2:a]" & micFilter & "[a1];" &
+                          "[a0][a1]amix=inputs=2:duration=longest:normalize=0[aout]"" ")
                 sb.Append("-map 0:v -map [aout] ")
                 sb.Append("-c:v copy ")
                 sb.Append("-c:a aac -b:a 320k -ar 48000 ")
             End If
         ElseIf hasSystem Then
-            ' System only — aresample + apad for sample-accurate start + silence padding
+            ' System only
             sb.Append("-map 0:v -map 1:a ")
-            sb.Append($"-af volume={FormatVolume(_settings.SystemAudioVolume)},aresample=async=1:first_pts=0,apad ")
+            sb.Append($"-af {sysFilter} ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         ElseIf hasMic Then
             ' Mic only (system failed/disabled)
             sb.Append("-map 0:v -map 1:a ")
-            sb.Append($"-af volume={FormatVolume(_settings.MicVolume)},aresample=async=1:first_pts=0,apad ")
+            sb.Append($"-af {micFilter} ")
             sb.Append("-c:v copy ")
             sb.Append("-c:a aac -b:a 320k -ar 48000 ")
         Else
-            ' No audio at all — just copy video (shouldn't happen in mux path,
-            ' but handle gracefully)
+            ' No audio at all — just copy video
             sb.Append("-map 0:v -c:v copy ")
         End If
 
         ' ── -t: exact output duration (from ffprobe) ──
-        ' Trims output to exact video length. Combined with apad, this ensures:
-        ' - Audio shorter than video → padded with silence, then trimmed to video length
-        ' - Audio longer than video → trimmed to video length
-        ' - Perfect duration match every time
         If (hasSystem OrElse hasMic) AndAlso videoDurationSec > 0.001 Then
             Dim durStr As String = videoDurationSec.ToString("0.000", Globalization.CultureInfo.InvariantCulture)
             sb.Append($"-t {durStr} ")
@@ -294,6 +294,38 @@ Partial Public Class CaptureEngine
         sb.Append($"-y ""{outputFile}""")
 
         Return sb.ToString()
+    End Function
+
+    ''' <summary>
+    ''' Build audio filter chain for a single track.
+    ''' Order: adelay (if negative offset) → volume → aresample → apad
+    '''
+    ''' - adelay: delays audio start (for negative offset — audio started after video)
+    ''' - volume: apply volume multiplier
+    ''' - aresample=async=1:first_pts=0: drift correction + sample-aligned start
+    ''' - apad: pad with silence to match video duration
+    ''' </summary>
+    Private Function BuildAudioFilter(volume As Single, delayMs As Integer) As String
+        Dim parts As New List(Of String)()
+
+        ' adelay for negative offset (audio starts after video)
+        ' Format: adelay=500|500 (per-channel ms for stereo)
+        If delayMs > 0 Then
+            parts.Add($"adelay={delayMs}|{delayMs}")
+        End If
+
+        ' Volume (skip if 1.0 to save encoding time)
+        If Math.Abs(volume - 1.0F) > 0.001F Then
+            parts.Add($"volume={FormatVolume(volume)}")
+        End If
+
+        ' Drift correction + sample-aligned start
+        parts.Add("aresample=async=1:first_pts=0")
+
+        ' Pad with silence to match video duration
+        parts.Add("apad")
+
+        Return String.Join(",", parts)
     End Function
 
     Private Function DetectHwDeviceType(encoderId As String) As HwDeviceType

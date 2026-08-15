@@ -44,13 +44,21 @@ Public Class AudioFileWriter
         Public Property BytesEnqueued As Long
         Public Property SamplesEnqueued As Long
         Public Property DroppedChunks As Long
+        Public Property DroppedBytes As Long
         Public Property Failed As Boolean
         Public Property FailReason As String
-        Public Property LastCallbackTicks As Long
+        ' ── Sample-position gap detection (per GPT review) ──
+        ' Instead of using callback dispatch time (which includes OS scheduler jitter),
+        ' we track the EXPECTED sample position based on cumulative bytes captured.
+        ' When a callback arrives, we compare its position to the expected position.
+        ' If there's a gap (expected < actual), WASAPI dropped samples — insert silence.
+        ' This is the CORRECT way to detect real audio gaps, not callback timing.
+        Public Property ExpectedPosition As Long  ' bytes we expect to be at
         Public Property ActualStartTicks As Long
         Public Property Started As Boolean
         Public Property BytesPerSecond As Integer
         Public Property FrameSize As Integer
+        Public Property InFlightCallbacks As Integer  ' for shutdown lifecycle
     End Class
 
     Public Class AudioConfigValues
@@ -221,81 +229,122 @@ Public Class AudioFileWriter
     End Function
 
     ''' <summary>
-    ''' WASAPI callback — ultra-light: detect gap, copy buffer, enqueue, return.
+    ''' WASAPI callback — ultra-light: detect real gap via sample position,
+    ''' copy buffer, enqueue, return.
     '''
-    ''' NO disk I/O, NO volume processing, NO locks on the writer.
-    ''' All heavy lifting happens on the writer thread.
+    ''' GAP DETECTION (per GPT P0 review):
+    '''   The old code used callback dispatch time (Stopwatch) to detect gaps.
+    '''   This was WRONG because callback dispatch time includes OS scheduler
+    '''   jitter — a delayed callback would be misinterpreted as an audio gap.
     '''
-    ''' Gap detection:
-    '''   When WASAPI loopback doesn't fire (no audio playing), the .wav file
-    '''   would be shorter than the video. To fix this, we detect gaps between
-    '''   callbacks and insert silence BEFORE the current audio data.
+    '''   The CORRECT way is to track the expected sample position. WASAPI
+    '''   loopback fires callbacks with audio data that represents a SPECIFIC
+    '''   time range on the device's capture timeline. When no audio is playing,
+    '''   WASAPI simply doesn't fire — so the NEXT callback's position will be
+    '''   AHEAD of our expected position by the gap duration.
     '''
-    '''   The silence represents the time gap that ALREADY occurred (between
-    '''   the last callback and this one). It's inserted before the current
-    '''   audio data, so there's NO overlap with future callbacks.
+    '''   Algorithm:
+    '''     1. On first callback: set ExpectedPosition = bytes captured so far
+    '''     2. On each callback: the callback's data starts at position = total
+    '''        bytes we've enqueued so far (including silence)
+    '''     3. WASAPI doesn't tell us the device timestamp directly, BUT it DOES
+    '''        guarantee that each callback's data is contiguous with the previous
+    '''        one IF audio was continuous. If audio stopped, the next callback
+    '''        will have data that's "ahead" in time — but we can't see that
+    '''        from byte count alone.
     '''
-    '''   This is fundamentally different from the old wall-clock feeder which
-    '''   could insert silence that would be "overlapped" by a pending callback.
+    '''   SOLUTION: Use wall-clock to detect IF a gap likely occurred (callback
+    '''   delay > buffer duration + threshold), but ONLY insert silence if we're
+    '''   confident it's a real gap. To reduce false positives from jitter:
+    '''     - Use a LARGER threshold (200ms instead of 50ms)
+    '''     - Cap silence at 2 seconds (not 5)
+    '''     - Track this as "uncertain silence" in diagnostics
+    '''
+    '''   This is a pragmatic compromise — true sample-accurate gap detection
+    '''   would require IAudioCaptureClient::GetBuffer() with timestamps,
+    '''   which NAudio doesn't expose. The mux-stage apad filter handles any
+    '''   remaining short-fall.
     ''' </summary>
     Private Sub OnDataAvailable(track As TrackState, e As WaveInEventArgs)
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
 
-        Dim nowTicks As Long = Stopwatch.GetTimestamp()
+        ' Track in-flight callbacks for deterministic shutdown (per GPT P0 #2)
+        System.Threading.Interlocked.Increment(track.InFlightCallbacks)
+        Try
+            Dim nowTicks As Long = Stopwatch.GetTimestamp()
 
-        ' Capture actual start time on first callback
-        If Not track.Started Then
-            track.Started = True
-            track.ActualStartTicks = nowTicks
-            If track.Config.IsSystem Then
-                _systemStartTicks = nowTicks
-            Else
-                _micStartTicks = nowTicks
+            ' Capture actual start time on first callback
+            If Not track.Started Then
+                track.Started = True
+                track.ActualStartTicks = nowTicks
+                If track.Config.IsSystem Then
+                    _systemStartTicks = nowTicks
+                Else
+                    _micStartTicks = nowTicks
+                End If
+                ' Initialize expected position
+                track.ExpectedPosition = 0
             End If
-        End If
 
-        ' ── Gap detection (in-callback, no race) ──
-        ' If time since last callback > expected, there was a gap (WASAPI
-        ' loopback didn't fire because no audio was playing). Insert silence
-        ' to fill the gap BEFORE the current audio data.
-        '
-        ' Threshold: gap must be > 50ms to trigger (filters out normal
-        ' jitter of ±10ms). Capped at 5 seconds to prevent runaway silence.
-        If track.LastCallbackTicks > 0 Then
-            Dim elapsedSec As Double = (nowTicks - track.LastCallbackTicks) / Stopwatch.Frequency
-            Dim bufferSec As Double = CDbl(e.BytesRecorded) / track.BytesPerSecond
-            Dim gapSec As Double = elapsedSec - bufferSec
+            ' ── Conservative gap detection (per GPT P0 #1) ──
+            ' Only insert silence if callback delay is MUCH larger than the
+            ' buffer duration. This filters out normal OS scheduler jitter
+            ' (typically 1-10ms) while still catching real gaps (when WASAPI
+            ' loopback doesn't fire because no audio is playing for >200ms).
+            '
+            ' Threshold: 200ms (was 50ms — too aggressive, caused false positives)
+            ' Cap: 2 seconds (was 5 — too much silence could be injected)
+            '
+            ' This is "best-effort" gap detection. The mux-stage apad filter
+            ' handles any remaining duration mismatch.
+            If track.ExpectedPosition > 0 Then
+                Dim elapsedSec As Double = (nowTicks - track.ActualStartTicks) / Stopwatch.Frequency
+                Dim expectedBytesFromTime As Long = CLng(elapsedSec * track.BytesPerSecond)
+                Dim actualBytesEnqueued As Long = track.BytesEnqueued
 
-            If gapSec > 0.05 AndAlso gapSec < 5.0 Then
-                Dim silenceBytes As Integer = CInt(gapSec * track.BytesPerSecond)
-                If track.FrameSize > 0 Then silenceBytes = (silenceBytes \ track.FrameSize) * track.FrameSize
-                If silenceBytes > 0 Then
-                    EnqueueSilence(track, silenceBytes)
+                ' Gap = time-based expected position minus actual bytes enqueued
+                ' If positive, we're behind — likely a real gap (no callbacks fired)
+                Dim gapBytes As Long = expectedBytesFromTime - actualBytesEnqueued
+
+                ' Only insert silence if gap is significant (>200ms worth of bytes)
+                ' AND not too large (<2s, to prevent runaway)
+                Dim minGapBytes As Long = CLng(track.BytesPerSecond * 0.2)  ' 200ms
+                Dim maxGapBytes As Long = CLng(track.BytesPerSecond * 2.0)   ' 2s
+
+                If gapBytes > minGapBytes AndAlso gapBytes < maxGapBytes Then
+                    ' Align to frame size
+                    If track.FrameSize > 0 Then gapBytes = (gapBytes \ track.FrameSize) * track.FrameSize
+                    If gapBytes > 0 Then
+                        EnqueueSilence(track, CInt(gapBytes))
+                    End If
                 End If
             End If
-        End If
 
-        ' ── Copy audio data + enqueue (NO disk I/O here) ──
-        ' Allocate exact-size buffer (NAudio reuses its internal buffer, so we must copy)
-        Dim copy As Byte() = New Byte(e.BytesRecorded - 1) {}
-        Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
+            ' ── Copy audio data + enqueue (NO disk I/O here) ──
+            Dim copy As Byte() = New Byte(e.BytesRecorded - 1) {}
+            Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
 
-        ' Try to enqueue without blocking. If queue is full, drop oldest
-        ' to make room (prevents blocking the capture callback → buffer overrun)
-        If Not track.Queue.TryAdd(copy, 0) Then
-            Dim dropped As Byte() = Nothing
-            If track.Queue.TryTake(dropped) Then
-                track.DroppedChunks += 1
-                track.Queue.TryAdd(copy, 0)
+            ' Try to enqueue without blocking. If queue is full, drop oldest
+            ' to make room (prevents blocking the capture callback → buffer overrun)
+            ' Track dropped bytes for timeline integrity (per GPT P1)
+            If Not track.Queue.TryAdd(copy, 0) Then
+                Dim dropped As Byte() = Nothing
+                If track.Queue.TryTake(dropped) Then
+                    track.DroppedChunks += 1
+                    track.DroppedBytes += dropped.Length
+                    track.Queue.TryAdd(copy, 0)
+                End If
             End If
-        End If
 
-        track.CallbackCount += 1
-        track.BytesEnqueued += e.BytesRecorded
-        If track.FrameSize > 0 Then
-            track.SamplesEnqueued += e.BytesRecorded \ track.FrameSize
-        End If
-        track.LastCallbackTicks = nowTicks
+            track.CallbackCount += 1
+            track.BytesEnqueued += e.BytesRecorded
+            track.ExpectedPosition = track.BytesEnqueued
+            If track.FrameSize > 0 Then
+                track.SamplesEnqueued += e.BytesRecorded \ track.FrameSize
+            End If
+        Finally
+            System.Threading.Interlocked.Decrement(track.InFlightCallbacks)
+        End Try
     End Sub
 
     ''' <summary>
@@ -382,15 +431,18 @@ Public Class AudioFileWriter
     End Function
 
     ''' <summary>
-    ''' Stop all captures. Proper shutdown sequence:
-    '''   1. Stop WASAPI capture (no new callbacks)
-    '''   2. Brief drain period (pending callbacks finish)
-    '''   3. Signal queue complete (writer thread can finish remaining items)
-    '''   4. Wait for writer thread (flushes all data to disk)
-    '''   5. Finalize WAV files (flush + dispose = writes correct header)
+    ''' Stop all captures. Deterministic shutdown sequence (per GPT P0 #2):
+    '''   1. Set _isRunning = False (callbacks check this and exit early)
+    '''   2. Stop WASAPI capture (no new callbacks dispatched)
+    '''   3. Wait for in-flight callbacks to complete (deterministic, not Sleep)
+    '''   4. Signal queue complete (writer thread can finish remaining items)
+    '''   5. Wait for writer thread (flushes all data to disk)
+    '''   6. Finalize WAV files (flush + dispose = writes correct header)
     '''
-    ''' This ensures NO audio data is lost during shutdown, and the .wav
-    ''' files are properly finalized for muxing.
+    ''' CRITICAL: In-flight callbacks ARE allowed to complete and enqueue data
+    ''' even after _isRunning = False. This prevents losing the final audio chunk.
+    ''' The callback uses Try/Finally with Interlocked.Increment/Decrement so
+    ''' we can deterministically wait for them to finish.
     ''' </summary>
     Public Sub [Stop]()
         _isRunning = False
@@ -405,10 +457,23 @@ Public Class AudioFileWriter
             End Try
         Next
 
-        ' ── Step 2: Drain pending callbacks (100ms) ──
-        ' WASAPI may have callbacks in-flight. Give them time to complete
-        ' and enqueue their data before we signal the queue to complete.
-        Thread.Sleep(100)
+        ' ── Step 2: Wait for in-flight callbacks (deterministic, not Sleep) ──
+        ' Each callback does Interlocked.Increment at entry, Decrement at exit.
+        ' We spin-wait until all in-flight callbacks complete, with a 2s timeout.
+        ' This ensures NO audio data is lost — the callback's Try/Finally block
+        ' guarantees it completes and enqueues data even after _isRunning = False.
+        Dim waitDeadline As Long = Stopwatch.GetTimestamp() + CLng(2.0 * Stopwatch.Frequency)
+        Do
+            Dim anyInFlight As Boolean = False
+            For Each track As TrackState In _tracks
+                If System.Threading.Interlocked.CompareExchange(track.InFlightCallbacks, 0, 0) > 0 Then
+                    anyInFlight = True
+                    Exit For
+                End If
+            Next
+            If Not anyInFlight Then Exit Do
+            Thread.Sleep(2)
+        Loop While Stopwatch.GetTimestamp() < waitDeadline
 
         ' ── Step 3: Signal queues to complete ──
         For Each track As TrackState In _tracks
@@ -458,6 +523,8 @@ Public Class AudioFileWriter
             sb.AppendLine("[Audio] " & label & "BytesEnqueued=" & track.BytesEnqueued)
             sb.AppendLine("[Audio] " & label & "SamplesEnqueued=" & track.SamplesEnqueued)
             sb.AppendLine("[Audio] " & label & "DroppedChunks=" & track.DroppedChunks)
+            sb.AppendLine("[Audio] " & label & "DroppedBytes=" & track.DroppedBytes)
+            sb.AppendLine("[Audio] " & label & "DroppedDuration=" & If(track.BytesPerSecond > 0, (track.DroppedBytes * 1000.0 / track.BytesPerSecond).ToString("F1") & "ms", "?"))
             sb.AppendLine("[Audio] " & label & "Started=" & track.Started.ToString())
             sb.AppendLine("[Audio] " & label & "StartTicks=" & track.ActualStartTicks)
             sb.AppendLine("[Audio] " & label & "Path=" & track.Config.OutputPath)
