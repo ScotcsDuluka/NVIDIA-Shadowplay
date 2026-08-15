@@ -1,0 +1,14 @@
+{
+  "_comment": "Copy this file to notifier_obs.json (same folder as the Notifier exe) and edit values. The Notifier will fall back to defaults if the file is missing.",
+
+  "enabled": true,
+  "host": "127.0.0.1",
+  "port": 4455,
+  "password": "",
+
+  "forward": {
+    "record_state_changed": true,
+    "replay_buffer_state_changed": true,
+    "screenshot_saved": true
+  }
+}
