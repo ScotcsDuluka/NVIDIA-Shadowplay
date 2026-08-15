@@ -448,7 +448,7 @@ Public Class NAudioCaptureEngine
 
             ' P1-B 4A: Track queue depth
             Dim queueDepth As Integer = _systemQueue.Count
-            If queueDepth > System.Threading.Interlocked.Read(_sysQueueMaxDepth) Then
+            If queueDepth > CInt(System.Threading.Interlocked.Read(_sysQueueMaxDepth)) Then
                 System.Threading.Interlocked.Exchange(_sysQueueMaxDepth, queueDepth)
             End If
 
@@ -779,7 +779,7 @@ Public Class NAudioCaptureEngine
         Dim bcTicks As Long = System.Threading.Interlocked.Read(_sysBlockCopyTicks)
         Dim nsTicks As Long = System.Threading.Interlocked.Read(_sysNaNScanTicks)
         Dim wwTicks As Long = System.Threading.Interlocked.Read(_sysWriterWriteTicks)
-        Dim maxDepth As Integer = CInt(System.Threading.Interlocked.Read(_sysQueueMaxDepth))
+        Dim maxDepth As Long = System.Threading.Interlocked.Read(_sysQueueMaxDepth)
 
         sb.AppendLine("[Audio] SysCallbacks=" & cbCount)
         sb.AppendLine("[Audio] SysBytesPerCallbackAvg=" & If(cbCount > 0, (System.Threading.Interlocked.Read(_sysBytesPerCallbackTotal) / cbCount).ToString("F0"), "0"))
