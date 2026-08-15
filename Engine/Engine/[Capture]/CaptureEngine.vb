@@ -78,16 +78,12 @@ Partial Public Class CaptureEngine
     ' devices initialize independently and may start capturing at different times.
     '
     ' _videoStartTicks: back-calculated from first frame= status line
-    ' _systemStartTicks: when AudioFileWriter called StartRecording (TRUE capture start)
-    ' _micStartTicks: same for mic track
+    ' _systemStartTicks: from AudioFileWriter.SystemStartTicks (first sys callback)
+    ' _micStartTicks: from AudioFileWriter.MicStartTicks (first mic callback)
     '
     ' At mux time, each audio input gets its OWN -ss offset:
     '   systemOffset = (videoStart - systemStart) / freq
     '   micOffset = (videoStart - micStart) / freq
-    '
-    ' NOTE: These are StartRecording call times, NOT first-callback times.
-    ' WASAPI loopback may delay first callback by seconds when no audio plays,
-    ' so first-callback-time would give wrong offsets (saw -10s offset bug).
     Private _videoStartTicks As Long = 0
     Private _videoStartDetected As Boolean = False
     Private _systemStartTicks As Long = 0
@@ -364,8 +360,9 @@ Partial Public Class CaptureEngine
                                      If _audioWriter IsNot Nothing Then
                                          LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
                                          WriteDebugLog("[Audio] Stopping audio recorder…")
-                                         ' _systemStartTicks / _micStartTicks were captured at StartRecording
-                                         ' time (in StartAudioRecorder), no need to re-fetch here.
+                                         ' Capture per-track start timestamps BEFORE dispose
+                                         _systemStartTicks = _audioWriter.SystemStartTicks
+                                         _micStartTicks = _audioWriter.MicStartTicks
                                          _audioWriter.Stop()
                                          Dim diagMsg As String = _audioWriter.GetDiagnostics()
                                          LogDebug(diagMsg)
@@ -894,15 +891,9 @@ Partial Public Class CaptureEngine
 
             Dim ok As Boolean = _audioWriter.Start(_tempSystemWav, _tempMicWav)
             If ok Then
-                ' Capture per-track StartRecording timestamps (set inside AudioFileWriter.StartTrack)
-                ' These are used at mux time to compute per-track audio offset.
-                _systemStartTicks = _audioWriter.SystemStartTicks
-                _micStartTicks = _audioWriter.MicStartTicks
                 LogDebug("[Audio] AudioFileWriter started (system=" & _settings.SystemAudioCapture.ToString() &
-                         ", mic=" & _settings.MicCapture.ToString() &
-                         ", sysStart=" & _systemStartTicks.ToString() &
-                         ", micStart=" & _micStartTicks.ToString() & ")")
-                WriteDebugLog("[Audio] AudioFileWriter started — StartRecording timestamps captured")
+                         ", mic=" & _settings.MicCapture.ToString() & ")")
+                WriteDebugLog("[Audio] AudioFileWriter started — per-track timestamps will be captured on first callback")
             Else
                 LogDebug("[Audio] AudioFileWriter failed to start — video continues without audio")
                 WriteDebugLog("[Audio] AudioFileWriter failed to start — video continues without audio")
