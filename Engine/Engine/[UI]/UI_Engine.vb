@@ -863,7 +863,9 @@ Partial Public Class UI_Engine
             File.WriteAllText(logPath, table)
 
             ' Show summary
-            Dim passCount As Integer = results.Count(Function(r) r.Pass)
+            ' Note: use Enumerable.Count() extension method explicitly to avoid
+            ' ambiguity with List(Of T).Count property (which has no predicate).
+            Dim passCount As Integer = Enumerable.Count(results, Function(r) r.Pass)
             Dim failCount As Integer = results.Count - passCount
             Dim summary As String = $"Stress test complete!{vbCrLf}{vbCrLf}" &
                                    $"Total: {results.Count}  |  Pass: {passCount}  |  Fail: {failCount}{vbCrLf}{vbCrLf}" &

@@ -28,6 +28,7 @@
 
 Imports System.Diagnostics
 Imports System.IO
+Imports System.Linq
 Imports System.Text
 Imports System.Text.RegularExpressions
 Imports System.Threading
@@ -1184,13 +1185,13 @@ Public Class StressTestRunner
         Next
 
         sb.AppendLine("├──────────────────────────────────────────────────────────────────────────────────────┤")
-        Dim passCount As Integer = results.Count(Function(r) r.Pass)
+        Dim passCount As Integer = Enumerable.Count(results, Function(r) r.Pass)
         Dim failCount As Integer = results.Count - passCount
         sb.AppendLine($"│ Total: {results.Count}  |  Pass: {passCount}  |  Fail: {failCount}                                    │")
         sb.AppendLine("└──────────────────────────────────────────────────────────────────────────────────────┘")
 
         ' List failures with reasons
-        Dim failures As List(Of TestResult) = results.Where(Function(r) Not r.Pass).ToList()
+        Dim failures As List(Of TestResult) = Enumerable.Where(results, Function(r) Not r.Pass).ToList()
         If failures.Count > 0 Then
             sb.AppendLine()
             sb.AppendLine("FAILURES:")
