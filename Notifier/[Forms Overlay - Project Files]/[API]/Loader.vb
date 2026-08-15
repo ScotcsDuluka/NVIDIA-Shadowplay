@@ -229,15 +229,28 @@ Partial Public Class Loader
         End If
 
         Try
-            Dim ffprobePath As String = Path.Combine(Application.StartupPath, "API-Core", "ffprobe.exe")
-            If Not File.Exists(ffprobePath) Then
-                ffprobePath = Path.Combine(Application.StartupPath, "ffprobe.exe")
-            End If
-            If Not File.Exists(ffprobePath) Then
-                ffprobePath = Path.Combine(Application.StartupPath, "ffmpeg", "ffprobe.exe")
-            End If
-            If Not File.Exists(ffprobePath) Then
-                ObsLog($"ReadVideoDurationSeconds: ffprobe.exe not found (tried API-Core\, root, ffmpeg\)")
+            Dim startupPath As String = Application.StartupPath
+            ObsLog($"ReadVideoDurationSeconds: Application.StartupPath={startupPath}")
+
+            Dim candidates As String() = {
+                Path.Combine(startupPath, "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "ffprobe.exe"),
+                Path.Combine(startupPath, "ffmpeg", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "API-Core", "ffprobe.exe")
+            }
+
+            Dim ffprobePath As String = ""
+            For Each c In candidates
+                ObsLog($"ReadVideoDurationSeconds: trying {c} → {If(File.Exists(c), "EXISTS", "missing")}")
+                If File.Exists(c) Then
+                    ffprobePath = c
+                    Exit For
+                End If
+            Next
+
+            If String.IsNullOrEmpty(ffprobePath) Then
+                ObsLog("ReadVideoDurationSeconds: ffprobe.exe not found in any candidate path")
                 Return 0
             End If
 
