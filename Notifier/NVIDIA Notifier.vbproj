@@ -58,9 +58,12 @@
                         <DependentUpon>Resources.resx</DependentUpon>
                 </Compile>
                 <Compile Update="[Forms Overlay - Project Files]\[API]\TCP\[Notifier] Client.vb" />
-                <Compile Include="[Forms Overlay - Project Files]\[API]\OBS\ObsWebSocketClient.vb" />
-                <Compile Include="[Forms Overlay - Project Files]\[API]\OBS\ObsEventMap.vb" />
-                <Compile Include="[Forms Overlay - Project Files]\[API]\OBS\ObsConfig.vb" />
+                <!--
+                        Note: the new OBS/*.vb files (ObsWebSocketClient.vb, ObsEventMap.vb,
+                        ObsConfig.vb) are picked up automatically by the .NET SDK's default
+                        Compile glob. Do NOT add <Compile Include> for them — that causes
+                        the "Duplicate 'Compile' items" error.
+                -->
         </ItemGroup>
 
         <ItemGroup>
