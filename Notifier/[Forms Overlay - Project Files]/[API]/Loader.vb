@@ -229,13 +229,15 @@ Partial Public Class Loader
         End If
 
         Try
-            Dim ffmpegDir As String = Path.Combine(Application.StartupPath, "ffmpeg")
-            Dim ffprobePath As String = Path.Combine(ffmpegDir, "ffprobe.exe")
+            Dim ffprobePath As String = Path.Combine(Application.StartupPath, "API-Core", "ffprobe.exe")
             If Not File.Exists(ffprobePath) Then
                 ffprobePath = Path.Combine(Application.StartupPath, "ffprobe.exe")
             End If
             If Not File.Exists(ffprobePath) Then
-                ObsLog("ReadVideoDurationSeconds: ffprobe.exe not found in app folder or .\ffmpeg\")
+                ffprobePath = Path.Combine(Application.StartupPath, "ffmpeg", "ffprobe.exe")
+            End If
+            If Not File.Exists(ffprobePath) Then
+                ObsLog($"ReadVideoDurationSeconds: ffprobe.exe not found (tried API-Core\, root, ffmpeg\)")
                 Return 0
             End If
 
