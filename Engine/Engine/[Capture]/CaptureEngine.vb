@@ -77,6 +77,14 @@ Partial Public Class CaptureEngine
     Private _micPipePath As String
     Private Const MicPipePrefix As String = "nvidia_shadowplay_mic_"
 
+    ''' <summary>
+    ''' Atomic flag (0=not stopped, 1=stop completed) — ensures RecordingStopped
+    ''' fires EXACTLY once across OnExited and StopRecordingAsync. Set to 1 when
+    ''' either of them fires the event, the other one sees non-zero return from
+    ''' Interlocked.Exchange and skips.
+    ''' </summary>
+    Private _stopCompleted As Integer = 0
+
     ' ── Properties ────────────────────────────────────────────
 
     Public ReadOnly Property State As CaptureState
@@ -213,6 +221,8 @@ Partial Public Class CaptureEngine
                                      _ffmpegProcess.BeginOutputReadLine()
                                      _ffmpegProcess.BeginErrorReadLine()
                                      _stopwatch = Stopwatch.StartNew()
+                                     ' Reset stop flag — fresh recording session, no Stop has fired yet.
+                                     System.Threading.Interlocked.Exchange(_stopCompleted, 0)
                                      ' ✅ C5 FIX: now that _ffmpegProcess is alive, set Recording state.
                                      ' Any Stop arriving after this point will correctly see the process.
                                      SetState(CaptureState.Recording)
@@ -243,23 +253,42 @@ Partial Public Class CaptureEngine
 
         Return Await Task.Run(Function()
                                  Try
+                                     ' Stop audio capture — drains writer queues first so all
+                                     ' buffered PCM reaches FFmpeg stdin before we send q.
+                                     LogDebug("[FFmpeg] Stopping audio capture (drain + close stdin)…")
                                      StopAudioCaptureIfNeeded()
 
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                                         LogDebug("[FFmpeg] Sending quit command (q)…")
                                          Try
                                              _ffmpegProcess.StandardInput.Write("q" & vbLf)
                                              _ffmpegProcess.StandardInput.Flush()
-                                         Catch
+                                         Catch ex As Exception
+                                             LogDebug("[FFmpeg] Failed to send q: " & ex.Message)
                                          End Try
 
-                                         If Not _ffmpegProcess.WaitForExit(10000) Then
-                                             _ffmpegProcess.Kill()
+                                         LogDebug("[FFmpeg] WaitForExit(10000)…")
+                                         Dim exited As Boolean = _ffmpegProcess.WaitForExit(10000)
+                                         LogDebug($"[FFmpeg] WaitForExit returned HasExited={_ffmpegProcess.HasExited.ToString()}")
+
+                                         If Not _ffmpegProcess.HasExited Then
+                                             LogDebug("[FFmpeg] WaitForExit TIMEOUT → KILL")
+                                             Try
+                                                 _ffmpegProcess.Kill()
+                                                 _ffmpegProcess.WaitForExit(2000)
+                                             Catch
+                                             End Try
                                          End If
                                      End If
 
-                                     SetState(CaptureState.Idle)
-                                     RaiseEvent RecordingStopped(_outputFile)
-                                     LogDebug("Recording saved: " & _outputFile)
+                                     ' Use Interlocked.Exchange to ensure RecordingStopped fires exactly once
+                                     ' — OnExited may have already fired during WaitForExit, in which case
+                                     ' skip this branch entirely.
+                                     If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
+                                         SetState(CaptureState.Idle)
+                                         RaiseEvent RecordingStopped(_outputFile)
+                                         LogDebug("Recording saved: " & _outputFile)
+                                     End If
                                      Return True
 
                                  Catch ex As Exception
@@ -274,9 +303,11 @@ Partial Public Class CaptureEngine
 
     Public Sub ForceStop()
         Try
+            LogDebug("[FFmpeg] FORCE STOP — stopping audio capture…")
             StopAudioCaptureIfNeeded()
 
             If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                LogDebug("[FFmpeg] FORCE KILL")
                 _ffmpegProcess.Kill()
                 _ffmpegProcess.WaitForExit(5000)
             End If
@@ -419,20 +450,34 @@ Partial Public Class CaptureEngine
             End Try
         End If
 
-        LogDebug("FFmpeg exited with code: " & exitCode)
-        WriteDebugLog("FFmpeg exited with code: " & exitCode)
+        LogDebug($"[FFmpeg] Exit detected. State={_state.ToString()}, ExitCode={exitCode}")
+        WriteDebugLog($"FFmpeg exited with code: {exitCode} (state was {_state.ToString()})")
 
-        If _state = CaptureState.Recording Then
+        ' GPT P0 fix: handle BOTH Recording AND Stopping. Previously only Recording
+        ' was handled — if user pressed Stop (state becomes Stopping) and FFmpeg then
+        ' exited, OnExited would do nothing. That left it up to StopRecordingAsync to
+        ' fire RecordingStopped, but if StopRecordingAsync was blocked on WaitForExit
+        ' and FFmpeg exited with non-zero code, no error event was raised.
+        If _state = CaptureState.Recording OrElse _state = CaptureState.Stopping Then
             If _stopwatch IsNot Nothing Then _stopwatch.Stop()
-            ' Non-zero exit → treat as error (FFmpeg crashed or failed to start).
-            ' This is the path that catches a crashed FFmpeg now that EnableRaisingEvents=True.
-            If exitCode <> "0" AndAlso exitCode <> "?" Then
-                SetState(CaptureState.HasError)
-                RaiseEvent ErrorOccurred("FFmpeg exited unexpectedly with code " & exitCode)
-            Else
-                SetState(CaptureState.Idle)
-                RaiseEvent RecordingStopped(_outputFile)
+
+            If exitCode = "0" Then
+                ' Clean exit. Use Interlocked.Exchange so RecordingStopped fires EXACTLY
+                ' ONCE — either here in OnExited OR in StopRecordingAsync, never both.
+                If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
+                    SetState(CaptureState.Idle)
+                    RaiseEvent RecordingStopped(_outputFile)
+                End If
+            ElseIf exitCode <> "?" Then
+                ' Non-zero exit code → real error. StopRecordingAsync may have sent q
+                ' but FFmpeg may have crashed mid-write. Surface as error event.
+                If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
+                    SetState(CaptureState.HasError)
+                    RaiseEvent ErrorOccurred($"FFmpeg exited unexpectedly with code {exitCode}")
+                End If
             End If
+            ' exitCode = "?" → couldn't read (process nulled concurrently). Stay silent —
+            ' StopRecordingAsync / ForceStop will handle the rest of the lifecycle.
         End If
     End Sub
 
