@@ -112,7 +112,7 @@ Partial Public Class Loader
             If Not obsCfg.ShouldForward(eventType) Then Return
 
             If eventType = "ReplayBufferSaved" Then
-                Task.Run(Sub() HandleReplayBufferSaved())
+                Task.Run(Sub() HandleReplayBufferSaved(eventData))
                 Return
             End If
 
@@ -175,15 +175,23 @@ Partial Public Class Loader
     Private _lastRecordTime As DateTime = DateTime.MinValue
     Private _lastReplayTime As DateTime = DateTime.MinValue
 
-    Private Sub HandleReplayBufferSaved()
+    Private Sub HandleReplayBufferSaved(eventData As Newtonsoft.Json.Linq.JObject)
         ObsLog("HandleReplayBufferSaved: start")
         Dim mins As Integer = 0
         Dim secs As Integer = 0
 
+        If eventData IsNot Nothing Then
+            Dim savedPathTok As Newtonsoft.Json.Linq.JToken = eventData("savedReplayPath")
+            If savedPathTok IsNot Nothing Then
+                Dim savedPath As String = savedPathTok.Value(Of String)()
+                ObsLog($"HandleReplayBufferSaved: savedReplayPath={If(savedPath, "(null)")}")
+            End If
+        End If
+
         Try
-            Dim resp = obs.SendRequest("GetReplayBufferStatus")
+            Dim resp = obs.SendRequest("GetReplayBufferStatus", Nothing, 1500)
             If resp Is Nothing Then
-                ObsLog("HandleReplayBufferSaved: GetReplayBufferStatus returned nothing (timeout/error)")
+                ObsLog("HandleReplayBufferSaved: GetReplayBufferStatus timed out — showing toast with 0/0")
             Else
                 ObsLog($"HandleReplayBufferSaved: response={resp.ToString(Newtonsoft.Json.Formatting.None)}")
                 Dim dataTok As Newtonsoft.Json.Linq.JToken = resp("responseData")
@@ -204,11 +212,7 @@ Partial Public Class Loader
                         mins = durSec \ 60
                         secs = durSec Mod 60
                         ObsLog($"HandleReplayBufferSaved: durMs={durMs} → {mins}m {secs}s")
-                    Else
-                        ObsLog("HandleReplayBufferSaved: replayBufferDuration field missing in responseData")
                     End If
-                Else
-                    ObsLog("HandleReplayBufferSaved: responseData missing in response")
                 End If
             End If
         Catch ex As Exception
