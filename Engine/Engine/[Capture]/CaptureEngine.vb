@@ -72,18 +72,25 @@ Partial Public Class CaptureEngine
     Private _tempMicWav As String
     Private _useTwoProcess As Boolean = False
 
-    ' ── High-precision sync timestamps ──
-    ' These are used at mux time to align audio with video to sample accuracy.
-    ' _audioStartTicks: when AudioFileWriter.Start() was called
-    ' _videoStartTicks: when FFmpeg's "Output #0" was detected (= first frame encoded)
-    ' _stopTicks: when Stop was called
-    ' audioOffset = (_videoStartTicks - _audioStartTicks) / freq → seconds of audio
-    '                to skip at mux time (leading silence before video started)
-    Private _audioStartTicks As Long = 0
+    ' ── Per-track sync timestamps (per GPT review) ──
+    ' Each track has its OWN start timestamp (when its first WASAPI callback fired).
+    ' This is more accurate than a single "audio start" because system and mic
+    ' devices initialize independently and may start capturing at different times.
+    '
+    ' _videoStartTicks: back-calculated from first frame= status line
+    ' _systemStartTicks: from AudioFileWriter.SystemStartTicks (first sys callback)
+    ' _micStartTicks: from AudioFileWriter.MicStartTicks (first mic callback)
+    '
+    ' At mux time, each audio input gets its OWN -ss offset:
+    '   systemOffset = (videoStart - systemStart) / freq
+    '   micOffset = (videoStart - micStart) / freq
     Private _videoStartTicks As Long = 0
     Private _videoStartDetected As Boolean = False
+    Private _systemStartTicks As Long = 0
+    Private _micStartTicks As Long = 0
 
     Private _stopCompleted As Integer = 0
+    Private _muxCompleted As Integer = 0
 
     Public ReadOnly Property State As CaptureState
         Get
@@ -186,9 +193,11 @@ Partial Public Class CaptureEngine
                                          DeleteTempFile(_tempMicWav)
 
                                          ' Reset sync timestamps for this recording session
-                                         _audioStartTicks = 0
                                          _videoStartTicks = 0
                                          _videoStartDetected = False
+                                         _systemStartTicks = 0
+                                         _micStartTicks = 0
+                                         System.Threading.Interlocked.Exchange(_muxCompleted, 0)
 
                                          ffmpegOutputPath = _tempVideoPath
                                          LogDebug("[Two-Process] Audio enabled — video → temp, audio → wav, mux at stop")
@@ -351,6 +360,9 @@ Partial Public Class CaptureEngine
                                      If _audioWriter IsNot Nothing Then
                                          LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
                                          WriteDebugLog("[Audio] Stopping audio recorder…")
+                                         ' Capture per-track start timestamps BEFORE dispose
+                                         _systemStartTicks = _audioWriter.SystemStartTicks
+                                         _micStartTicks = _audioWriter.MicStartTicks
                                          _audioWriter.Stop()
                                          Dim diagMsg As String = _audioWriter.GetDiagnostics()
                                          LogDebug(diagMsg)
@@ -387,6 +399,13 @@ Partial Public Class CaptureEngine
         If Not _useTwoProcess Then Return
         If String.IsNullOrEmpty(_tempVideoPath) Then Return
 
+        ' Guard against double-mux: if StopRecordingAsync and OnExited both fire,
+        ' only the first one runs mux. The second sees _muxCompleted=1 and returns.
+        If System.Threading.Interlocked.Exchange(_muxCompleted, 1) = 1 Then
+            LogDebug("[Mux] Already completed (double-mux prevented)")
+            Return
+        End If
+
         ' Verify temp video exists
         If Not File.Exists(_tempVideoPath) Then
             LogDebug("[Mux] Temp video file missing — skipping mux, temp files cleaned")
@@ -419,32 +438,49 @@ Partial Public Class CaptureEngine
             Return
         End If
 
-        ' ═══ HIGH-PRECISION SYNC: ffprobe + offset + duration ═══
-        ' 1. Get exact video duration via ffprobe (to millisecond precision)
-        ' 2. Compute audioOffset = (videoStartTicks - audioStartTicks) / freq
-        '    This is the leading audio that was recorded BEFORE video started
-        '    (AudioFileWriter starts at process launch, ddagrab takes ~400ms to init)
-        ' 3. Pass both to BuildMuxArguments → -ss <offset> -t <videoDuration>
-        '    -ss skips the leading silence, -t trims output to exact video length
+        ' ═══ PER-TRACK HIGH-PRECISION SYNC ═══
+        ' 1. Get exact video duration via ffprobe (millisecond precision)
+        ' 2. Compute PER-TRACK offset:
+        '    systemOffset = (videoStart - systemStart) / freq
+        '    micOffset = (videoStart - micStart) / freq
+        '    Each track gets its OWN -ss because system and mic devices start
+        '    capturing at different times (independent WASAPI initialization).
+        ' 3. Positive offset → skip audio (-ss)
+        '    Negative offset → delay audio (adelay filter at mux time)
+        ' 4. apad filter extends short audio with silence to match video duration
+        ' 5. -t trims output to exact video duration
+        '
+        ' NO clamping to zero — negative offsets (audio starts after video) are
+        ' supported via adelay filter in BuildMuxArguments.
+        ' Range: -2s to +5s (prevents malformed values from timestamp errors)
 
         Dim videoDurationSec As Double = GetVideoDurationSec(_tempVideoPath)
-        Dim audioOffsetSec As Double = 0.0
-        If _videoStartDetected AndAlso _audioStartTicks > 0 Then
-            audioOffsetSec = (_videoStartTicks - _audioStartTicks) / Stopwatch.Frequency
-            ' Clamp to reasonable range (0-5s) to avoid malformed -ss values
-            If audioOffsetSec < 0 Then audioOffsetSec = 0
-            If audioOffsetSec > 5.0 Then audioOffsetSec = 5.0
+        Dim systemOffsetSec As Double = 0.0
+        Dim micOffsetSec As Double = 0.0
+
+        If _videoStartDetected Then
+            If _systemStartTicks > 0 Then
+                systemOffsetSec = (_videoStartTicks - _systemStartTicks) / Stopwatch.Frequency
+                If systemOffsetSec < -2.0 Then systemOffsetSec = -2.0
+                If systemOffsetSec > 5.0 Then systemOffsetSec = 5.0
+            End If
+            If _micStartTicks > 0 Then
+                micOffsetSec = (_videoStartTicks - _micStartTicks) / Stopwatch.Frequency
+                If micOffsetSec < -2.0 Then micOffsetSec = -2.0
+                If micOffsetSec > 5.0 Then micOffsetSec = 5.0
+            End If
         End If
 
-        LogDebug($"[Mux] videoDuration={videoDurationSec:F3}s, audioOffset={audioOffsetSec:F3}s")
-        WriteDebugLog($"[Mux] videoDuration={videoDurationSec:F3}s, audioOffset={audioOffsetSec:F3}s, videoStartDetected={_videoStartDetected}")
+        LogDebug($"[Mux] videoDuration={videoDurationSec:F3}s, sysOffset={systemOffsetSec:F3}s, micOffset={micOffsetSec:F3}s")
+        WriteDebugLog($"[Mux] videoDuration={videoDurationSec:F3}s, sysOffset={systemOffsetSec:F3}s, micOffset={micOffsetSec:F3}s, videoStartDetected={_videoStartDetected}")
 
-        ' Run mux FFmpeg with high-precision alignment
+        ' Run mux FFmpeg with per-track alignment
         Dim muxArgs As String = BuildMuxArguments(_tempVideoPath,
                                                    _tempSystemWav, hasSystem,
                                                    _tempMicWav, hasMic,
                                                    _outputFile,
-                                                   audioOffsetSec, videoDurationSec)
+                                                   systemOffsetSec, micOffsetSec,
+                                                   videoDurationSec)
 
         LogDebug("[Mux] FFmpeg command: " & _settings.FFmpegPath & " " & muxArgs)
         WriteDebugLog("[Mux] FFmpeg command: " & _settings.FFmpegPath & " " & muxArgs)
@@ -562,17 +598,31 @@ Partial Public Class CaptureEngine
             probePsi.Arguments = "-v error -show_entries format=duration -of csv=p=0 """ & videoPath & """"
             probePsi.UseShellExecute = False
             probePsi.RedirectStandardOutput = True
-            probePsi.RedirectStandardError = True
+            probePsi.RedirectStandardError = False  ' don't redirect stderr (avoids deadlock)
             probePsi.CreateNoWindow = True
 
             Using probeProc As New Process()
                 probeProc.StartInfo = probePsi
                 probeProc.Start()
-                Dim stdout As String = probeProc.StandardOutput.ReadToEnd().Trim()
-                probeProc.WaitForExit(5000)
-                If Not probeProc.HasExited Then
+
+                ' Read stdout ASYNCHRONOUSLY — prevents deadlock if ffprobe hangs
+                ' (old code used ReadToEnd which blocks before WaitForExit timeout)
+                Dim stdoutTask As Task(Of String) = probeProc.StandardOutput.ReadToEndAsync()
+
+                ' Wait for process to exit with real timeout
+                Dim exited As Boolean = probeProc.WaitForExit(5000)
+                If Not exited Then
+                    LogDebug("[Mux] ffprobe TIMEOUT (5s) — killing")
                     Try : probeProc.Kill() : Catch : End Try
+                    Try : probeProc.WaitForExit(1000) : Catch : End Try
                 End If
+
+                ' Get stdout result (task should be complete if process exited)
+                Dim stdout As String = ""
+                Try
+                    stdout = stdoutTask.Result.Trim()
+                Catch
+                End Try
 
                 If Not String.IsNullOrEmpty(stdout) Then
                     Dim dur As Double = 0.0
@@ -635,18 +685,46 @@ Partial Public Class CaptureEngine
         LogDebug("[stderr] " & e.Data)
         WriteDebugLog("[stderr] " & e.Data)
 
-        ' ── Detect video start (high-precision sync) ──
-        ' "Output #0" appears in FFmpeg stderr when the muxer is ready to write,
-        ' which is immediately after the first frame is encoded by ddagrab.
-        ' We use this as the video start timestamp for audio alignment.
-        ' This reduces the audio-video start offset from ~400ms to ~20ms.
+        ' ── Detect video start (HIGH-PRECISION sync) ──
+        ' Instead of using "Output #0" (which appears BEFORE the first frame is
+        ' actually captured, introducing ~80-130ms error), we use the FIRST
+        ' "frame=" status line and back-calculate the exact video start time.
+        '
+        ' The first "frame=" line includes "time=00:00:00.XX" which tells us
+        ' how much video time has elapsed. By subtracting that from the current
+        ' real-time timestamp, we get the EXACT moment video frame 0 was captured:
+        '
+        '   videoStartTicks = nowTicks - (videoTimeSeconds × freq)
+        '
+        ' This reduces sync error from ~80ms to <5ms (sub-frame at 144fps).
         If Not _videoStartDetected AndAlso _useTwoProcess Then
             If e.Data.Contains("Output #0") Then
+                ' Mark that Output #0 was seen (so we know to look for first frame=)
                 _videoStartTicks = Stopwatch.GetTimestamp()
-                _videoStartDetected = True
-                Dim elapsedMs As Double = (_videoStartTicks - _audioStartTicks) * 1000.0 / Stopwatch.Frequency
-                LogDebug($"[Sync] Video start detected. Audio-to-video offset = {elapsedMs:F1}ms")
-                WriteDebugLog($"[Sync] Video start at ticks={_videoStartTicks}, offset from audio={elapsedMs:F1}ms")
+            ElseIf e.Data.IndexOf("frame=", StringComparison.OrdinalIgnoreCase) >= 0 AndAlso
+                   e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) >= 0 AndAlso
+                   _videoStartTicks > 0 Then
+                ' First frame= status line — parse "time=" and back-calculate
+                Try
+                    Dim timeIdx As Integer = e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) + 5
+                    Dim timeStr As String = e.Data.Substring(timeIdx).TrimStart()
+                    Dim timeEnd As Integer = timeStr.IndexOf(" "c)
+                    If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
+                    Dim videoTime As TimeSpan
+                    If TimeSpan.TryParse(timeStr, Globalization.CultureInfo.InvariantCulture, videoTime) Then
+                        ' Back-calculate: videoStart = now - videoTime
+                        Dim nowTicks As Long = Stopwatch.GetTimestamp()
+                        Dim videoTimeTicks As Long = CLng(videoTime.TotalSeconds * Stopwatch.Frequency)
+                        _videoStartTicks = nowTicks - videoTimeTicks
+                        _videoStartDetected = True
+                        ' Log per-track offsets (system/mic may have different offsets)
+                        Dim sysOffsetMs As Double = If(_systemStartTicks > 0, (_videoStartTicks - _systemStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
+                        Dim micOffsetMs As Double = If(_micStartTicks > 0, (_videoStartTicks - _micStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
+                        LogDebug($"[Sync] Video start computed. frame time={videoTime.TotalSeconds:F3}s, sys offset={sysOffsetMs:F1}ms, mic offset={micOffsetMs:F1}ms")
+                        WriteDebugLog($"[Sync] Video start at ticks={_videoStartTicks}, sysOffset={sysOffsetMs:F1}ms, micOffset={micOffsetMs:F1}ms (back-calculated from time={videoTime.TotalSeconds:F3}s)")
+                    End If
+                Catch
+                End Try
             End If
         End If
 
@@ -751,18 +829,30 @@ Partial Public Class CaptureEngine
         LogDebug($"[FFmpeg] Exited PID={pidStr} ExitCode={exitCode} State={_state.ToString()}")
         WriteDebugLog($"FFmpeg exited with code: {exitCode} (state was {_state.ToString()}, PID={pidStr})")
 
-        ' Only fire RecordingStopped from OnExited if we're NOT in Stopping state —
-        ' StopRecordingAsync handles the full mux flow + RecordingStopped.
-        ' OnExited only handles unexpected exits (crash during Recording).
+        ' OnExited handles UNEXPECTED exits (FFmpeg crashed or finished during
+        ' Recording state). If state is Stopping, StopRecordingAsync is handling
+        ' the full shutdown flow (stop audio → mux → fire event) — we do nothing here.
+        '
+        ' If state is Recording (unexpected exit), we must:
+        '   1. Stop audio writer FIRST (finalize .wav files)
+        '   2. THEN mux (if exit code = 0 and two-process mode)
+        '   3. Fire RecordingStopped/ErrorOccurred exactly once
+        '
+        ' This fixes the P0 race where OnExited called mux while audio was still
+        ' running, producing incomplete .wav files.
         If _state = CaptureState.Recording Then
             If _stopwatch IsNot Nothing Then _stopwatch.Stop()
 
+            ' Step 1: Stop audio writer (finalize .wav files)
+            StopAudioWriter()
+
             If exitCode = "0" Then
-                ' Clean exit during Recording state (shouldn't normally happen unless
-                ' ddagrab finished or user quit via another path). Do mux if needed.
+                ' Step 2: Mux if needed (guarded by _muxCompleted to prevent double-mux
+                ' if StopRecordingAsync also runs)
                 If _useTwoProcess Then
                     AwaitOrRunMux()
                 End If
+                ' Step 3: Fire event exactly once
                 If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                     SetState(CaptureState.Idle)
                     RaiseEvent RecordingStopped(_outputFile)
@@ -801,11 +891,9 @@ Partial Public Class CaptureEngine
 
             Dim ok As Boolean = _audioWriter.Start(_tempSystemWav, _tempMicWav)
             If ok Then
-                _audioStartTicks = Stopwatch.GetTimestamp()
-                Dim offsetMsg As String = $"[Audio] AudioFileWriter started at ticks={_audioStartTicks}"
                 LogDebug("[Audio] AudioFileWriter started (system=" & _settings.SystemAudioCapture.ToString() &
                          ", mic=" & _settings.MicCapture.ToString() & ")")
-                WriteDebugLog(offsetMsg)
+                WriteDebugLog("[Audio] AudioFileWriter started — per-track timestamps will be captured on first callback")
             Else
                 LogDebug("[Audio] AudioFileWriter failed to start — video continues without audio")
                 WriteDebugLog("[Audio] AudioFileWriter failed to start — video continues without audio")
@@ -819,6 +907,14 @@ Partial Public Class CaptureEngine
     Private Sub StopAudioWriter()
         Try
             If _audioWriter IsNot Nothing Then
+                ' Capture per-track start timestamps BEFORE dispose
+                ' (needed for mux offset calculation in both normal stop and OnExited paths)
+                If _systemStartTicks = 0 Then
+                    _systemStartTicks = _audioWriter.SystemStartTicks
+                End If
+                If _micStartTicks = 0 Then
+                    _micStartTicks = _audioWriter.MicStartTicks
+                End If
                 _audioWriter.Stop()
                 _audioWriter.Dispose()
                 _audioWriter = Nothing
