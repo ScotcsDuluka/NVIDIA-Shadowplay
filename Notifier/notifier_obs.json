@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "host": "127.0.0.1",
+  "port": 4455,
+  "password": "",
+
+  "forward": {
+    "record_state_changed": true,
+    "replay_buffer_state_changed": true,
+    "replay_buffer_saved": true,
+    "screenshot_saved": true
+  }
+}

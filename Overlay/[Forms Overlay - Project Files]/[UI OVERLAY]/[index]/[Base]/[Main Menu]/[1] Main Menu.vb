@@ -311,7 +311,7 @@ Partial Public Class Base
         _delayTimers.Interval = 500
         AddHandler _delayTimers.Tick, Sub()
                                           _delayTimers.Stop()
-                                          SystemMonitor.StartMonitoring()
+                                          'SystemMonitor.StartMonitoring()
                                       End Sub
         _delayTimers.Start()
 
