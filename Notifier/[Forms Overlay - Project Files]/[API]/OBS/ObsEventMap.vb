@@ -46,13 +46,13 @@ Public Module ObsEventMap
         If outputState Is Nothing Then Return Nothing
 
         Select Case outputState
-            Case OBS_STATE_STARTING, OBS_STATE_STARTED
+            Case OBS_STATE_STARTED
                 Return New MappedNotification With {
                     .Key = "l10n.recording_started",
                     .Ico = "",
                     .Color = greenColor
                 }
-            Case OBS_STATE_STOPPING, OBS_STATE_STOPPED
+            Case OBS_STATE_STOPPED
                 Return New MappedNotification With {
                     .Key = "l10n.recording_saved",
                     .Ico = ""
@@ -69,13 +69,13 @@ Public Module ObsEventMap
         If outputState Is Nothing Then Return Nothing
 
         Select Case outputState
-            Case OBS_STATE_STARTING, OBS_STATE_STARTED
+            Case OBS_STATE_STARTED
                 Return New MappedNotification With {
                     .Key = "l10n.instant_replay_on",
                     .Ico = "",
                     .Color = greenColor
                 }
-            Case OBS_STATE_STOPPING, OBS_STATE_STOPPED
+            Case OBS_STATE_STOPPED
                 Return New MappedNotification With {
                     .Key = "l10n.instant_replay_off",
                     .Ico = ""
