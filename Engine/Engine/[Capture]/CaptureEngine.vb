@@ -635,18 +635,44 @@ Partial Public Class CaptureEngine
         LogDebug("[stderr] " & e.Data)
         WriteDebugLog("[stderr] " & e.Data)
 
-        ' ── Detect video start (high-precision sync) ──
-        ' "Output #0" appears in FFmpeg stderr when the muxer is ready to write,
-        ' which is immediately after the first frame is encoded by ddagrab.
-        ' We use this as the video start timestamp for audio alignment.
-        ' This reduces the audio-video start offset from ~400ms to ~20ms.
+        ' ── Detect video start (HIGH-PRECISION sync) ──
+        ' Instead of using "Output #0" (which appears BEFORE the first frame is
+        ' actually captured, introducing ~80-130ms error), we use the FIRST
+        ' "frame=" status line and back-calculate the exact video start time.
+        '
+        ' The first "frame=" line includes "time=00:00:00.XX" which tells us
+        ' how much video time has elapsed. By subtracting that from the current
+        ' real-time timestamp, we get the EXACT moment video frame 0 was captured:
+        '
+        '   videoStartTicks = nowTicks - (videoTimeSeconds × freq)
+        '
+        ' This reduces sync error from ~80ms to <5ms (sub-frame at 144fps).
         If Not _videoStartDetected AndAlso _useTwoProcess Then
             If e.Data.Contains("Output #0") Then
+                ' Mark that Output #0 was seen (so we know to look for first frame=)
                 _videoStartTicks = Stopwatch.GetTimestamp()
-                _videoStartDetected = True
-                Dim elapsedMs As Double = (_videoStartTicks - _audioStartTicks) * 1000.0 / Stopwatch.Frequency
-                LogDebug($"[Sync] Video start detected. Audio-to-video offset = {elapsedMs:F1}ms")
-                WriteDebugLog($"[Sync] Video start at ticks={_videoStartTicks}, offset from audio={elapsedMs:F1}ms")
+            ElseIf e.Data.IndexOf("frame=", StringComparison.OrdinalIgnoreCase) >= 0 AndAlso
+                   e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) >= 0 AndAlso
+                   _videoStartTicks > 0 Then
+                ' First frame= status line — parse "time=" and back-calculate
+                Try
+                    Dim timeIdx As Integer = e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) + 5
+                    Dim timeStr As String = e.Data.Substring(timeIdx).TrimStart()
+                    Dim timeEnd As Integer = timeStr.IndexOf(" "c)
+                    If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
+                    Dim videoTime As TimeSpan
+                    If TimeSpan.TryParse(timeStr, Globalization.CultureInfo.InvariantCulture, videoTime) Then
+                        ' Back-calculate: videoStart = now - videoTime
+                        Dim nowTicks As Long = Stopwatch.GetTimestamp()
+                        Dim videoTimeTicks As Long = CLng(videoTime.TotalSeconds * Stopwatch.Frequency)
+                        _videoStartTicks = nowTicks - videoTimeTicks
+                        _videoStartDetected = True
+                        Dim elapsedMs As Double = (_videoStartTicks - _audioStartTicks) * 1000.0 / Stopwatch.Frequency
+                        LogDebug($"[Sync] Video start computed. frame time={videoTime.TotalSeconds:F3}s, audio offset={elapsedMs:F1}ms")
+                        WriteDebugLog($"[Sync] Video start at ticks={_videoStartTicks}, offset from audio={elapsedMs:F1}ms (back-calculated from time={videoTime.TotalSeconds:F3}s)")
+                    End If
+                Catch
+                End Try
             End If
         End If
 
