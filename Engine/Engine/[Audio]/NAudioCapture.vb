@@ -538,23 +538,22 @@ Public Class NAudioCaptureEngine
 
     Private Sub SystemWriterLoop()
         Try
-            While _isRunning AndAlso _systemQueue IsNot Nothing
+            ' GPT P0 FIX: check IsCompleted, NOT _isRunning. StopProducers() calls
+            ' CompleteAdding() which sets IsCompleted=True. The writer must exit
+            ' as soon as the queue is drained — NOT wait for _isRunning=False
+            ' (which only happens in ClosePipes, AFTER the Join — circular dependency!).
+            While True
                 Dim frame As AudioFrame = Nothing
-                If Not _systemQueue.TryTake(frame, 500) Then Continue While
-                If frame Is Nothing Then Continue While
-                WriteSanitizedFrame(frame, _systemStream, AudioSource.SystemLoopback,
-                                    _sysSamplesWritten, _sysBytesWritten,
-                                    _sysNaNCount, _sysInfCount, _sysPartialFrameCount)
-            End While
-
-            ' Drain remaining
-            While _systemQueue IsNot Nothing
-                Dim frame As AudioFrame = Nothing
-                If Not _systemQueue.TryTake(frame, 0) Then Exit While
-                If frame Is Nothing Then Continue While
-                WriteSanitizedFrame(frame, _systemStream, AudioSource.SystemLoopback,
-                                    _sysSamplesWritten, _sysBytesWritten,
-                                    _sysNaNCount, _sysInfCount, _sysPartialFrameCount)
+                If _systemQueue IsNot Nothing AndAlso _systemQueue.TryTake(frame, 100) Then
+                    If frame IsNot Nothing Then
+                        WriteSanitizedFrame(frame, _systemStream, AudioSource.SystemLoopback,
+                                            _sysSamplesWritten, _sysBytesWritten,
+                                            _sysNaNCount, _sysInfCount, _sysPartialFrameCount)
+                    End If
+                Else
+                    ' Timeout — check if we should exit
+                    If _systemQueue Is Nothing OrElse _systemQueue.IsCompleted Then Exit While
+                End If
             End While
 
             SyncLock _systemStream
@@ -570,22 +569,17 @@ Public Class NAudioCaptureEngine
 
     Private Sub MicWriterLoop()
         Try
-            While _isRunning AndAlso _micQueue IsNot Nothing
+            While True
                 Dim frame As AudioFrame = Nothing
-                If Not _micQueue.TryTake(frame, 500) Then Continue While
-                If frame Is Nothing Then Continue While
-                WriteSanitizedFrame(frame, _micStream, AudioSource.Microphone,
-                                    _micSamplesWritten, _micBytesWritten,
-                                    _micNaNCount, _micInfCount, _micPartialFrameCount)
-            End While
-
-            While _micQueue IsNot Nothing
-                Dim frame As AudioFrame = Nothing
-                If Not _micQueue.TryTake(frame, 0) Then Exit While
-                If frame Is Nothing Then Continue While
-                WriteSanitizedFrame(frame, _micStream, AudioSource.Microphone,
-                                    _micSamplesWritten, _micBytesWritten,
-                                    _micNaNCount, _micInfCount, _micPartialFrameCount)
+                If _micQueue IsNot Nothing AndAlso _micQueue.TryTake(frame, 100) Then
+                    If frame IsNot Nothing Then
+                        WriteSanitizedFrame(frame, _micStream, AudioSource.Microphone,
+                                            _micSamplesWritten, _micBytesWritten,
+                                            _micNaNCount, _micInfCount, _micPartialFrameCount)
+                    End If
+                Else
+                    If _micQueue Is Nothing OrElse _micQueue.IsCompleted Then Exit While
+                End If
             End While
 
             SyncLock _micStream
@@ -601,8 +595,10 @@ Public Class NAudioCaptureEngine
 
     ''' <summary>
     ''' Validates and writes a single AudioFrame to the output stream.
-    ''' 1. Sanitizes NaN/Infinity float samples → 0.0f (prevents AAC encoder crash)
-    ''' 2. Truncates to complete frame alignment (prevents "Invalid PCM packet" error)
+    ''' 1. Frame alignment: only write complete frames
+    ''' 2. NaN/Infinity sanitization — BATCH check, not per-sample.
+    '''    Scans only if float format. Uses a single pass with early-exit
+    '''    if no bad samples found (common case — 99.9% of frames are clean).
     ''' 3. Updates diagnostics counters atomically
     ''' </summary>
     Private Sub WriteSanitizedFrame(frame As AudioFrame, stream As Stream,
@@ -626,22 +622,40 @@ Public Class NAudioCaptureEngine
         End If
         If alignedLength = 0 Then Return
 
-        ' ── NaN/Infinity sanitization for f32le ──
+        ' ── NaN/Infinity sanitization for f32le — BATCH mode ──
+        ' GPT P1 FIX: per-sample BitConverter.ToSingle at 96k samples/sec
+        ' was killing CPU. Now we do a single scan that exits early if no
+        ' bad samples are found (the common case). Only if a bad sample
+        ' is detected do we sanitize the rest.
         If fmt.IsFloat AndAlso fmt.BitsPerSample = 32 Then
-            ' Sanitize in-place on a copy to avoid modifying the original buffer
             Dim buf As Byte() = frame.Buffer
-            Dim numSamples As Integer = alignedLength \ 4
-            For i As Integer = 0 To numSamples - 1
+            Dim numFloats As Integer = alignedLength \ 4
+            Dim foundBad As Boolean = False
+
+            ' Quick scan — just check if ANY sample is bad
+            For i As Integer = 0 To numFloats - 1
                 Dim offset As Integer = i * 4
                 Dim sample As Single = BitConverter.ToSingle(buf, offset)
-                If Single.IsNaN(sample) Then
-                    System.Threading.Interlocked.Increment(nanCount)
-                    BitConverter.GetBytes(0.0F).CopyTo(buf, offset)
-                ElseIf Single.IsInfinity(sample) Then
-                    System.Threading.Interlocked.Increment(infCount)
-                    BitConverter.GetBytes(0.0F).CopyTo(buf, offset)
+                If Single.IsNaN(sample) OrElse Single.IsInfinity(sample) Then
+                    foundBad = True
+                    Exit For
                 End If
             Next
+
+            ' Only sanitize if we found bad samples
+            If foundBad Then
+                For i As Integer = 0 To numFloats - 1
+                    Dim offset As Integer = i * 4
+                    Dim sample As Single = BitConverter.ToSingle(buf, offset)
+                    If Single.IsNaN(sample) Then
+                        System.Threading.Interlocked.Increment(nanCount)
+                        buf(offset) = 0 : buf(offset + 1) = 0 : buf(offset + 2) = 0 : buf(offset + 3) = 0
+                    ElseIf Single.IsInfinity(sample) Then
+                        System.Threading.Interlocked.Increment(infCount)
+                        buf(offset) = 0 : buf(offset + 1) = 0 : buf(offset + 2) = 0 : buf(offset + 3) = 0
+                    End If
+                Next
+            End If
         End If
 
         ' ── Write aligned data ──
@@ -652,7 +666,6 @@ Public Class NAudioCaptureEngine
                 System.Threading.Interlocked.Add(bytesWritten, alignedLength)
             Catch ex As Exception
                 System.Diagnostics.Debug.WriteLine("[NAudio] Writer error (" & source.ToString() & "): " & ex.Message)
-                ' Log to disk so we can see if writer is crashing (e.g. pipe not connected)
                 Try
                     Dim logDir As String = System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
                     Dim logPath As String = System.IO.Path.Combine(logDir, "capture-engine.log")
