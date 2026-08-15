@@ -183,8 +183,17 @@ Partial Public Class Loader
         If eventData IsNot Nothing Then
             Dim savedPathTok As Newtonsoft.Json.Linq.JToken = eventData("savedReplayPath")
             If savedPathTok IsNot Nothing Then
-                Dim savedPath As String = savedPathTok.Value(Of String)()
-                ObsLog($"HandleReplayBufferSaved: savedReplayPath={If(savedPath, "(null)")}")
+                Dim savedPath As String = Nothing
+                Try
+                    savedPath = CType(savedPathTok, String)
+                Catch
+                    Try
+                        savedPath = CStr(savedPathTok)
+                    Catch
+                        savedPath = ""
+                    End Try
+                End Try
+                ObsLog($"HandleReplayBufferSaved: savedReplayPath={If(String.IsNullOrEmpty(savedPath), "(null)", savedPath)}")
             End If
         End If
 
