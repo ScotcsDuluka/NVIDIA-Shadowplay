@@ -37,7 +37,27 @@ Public Class NAudioCaptureEngine
     Private _micStopwatch As Stopwatch
     Private _systemStartSample As Long = 0
     Private _micStartSample As Long = 0
-    Private Const InterlockedPadding As Integer = 0
+
+    ''' <summary>
+    ''' Shared capture epoch — set ONCE when the engine starts (whichever
+    ''' source starts first establishes T0). All Timestamps are measured
+    ''' against this, so System T=12ms and Mic T=12ms refer to the same
+    ''' wall-clock instant (critical for Separate-track alignment).
+    ''' </summary>
+    Private _sessionStartTicks As Long = 0
+    Private _sessionStartSet As Boolean = False
+
+    ''' <summary>
+    ''' Drop counters — incremented atomically from WASAPI callback.
+    ''' A background telemetry thread polls these counters and fires
+    ''' FrameDropped events OFF the callback thread, so subscribers can
+    ''' safely do disk I/O / WinForms / IPC without blocking capture.
+    ''' </summary>
+    Private _systemDropCount As Long = 0
+    Private _micDropCount As Long = 0
+    Private _telemetryThread As Thread
+    Private _telemetryStop As New ManualResetEvent(False)
+    Private Const TelemetryPollMs As Integer = 250
 
     Private _isRunning As Boolean = False
     Private _disposed As Boolean = False
@@ -78,6 +98,22 @@ Public Class NAudioCaptureEngine
         _micStream = micStream
         _isRunning = True
 
+        ' Establish the shared session epoch ONCE before any source starts.
+        ' Both System and Mic frames will measure their Timestamp against
+        ' this same T0 — that's what makes Separate-track sync possible.
+        If Not _sessionStartSet Then
+            _sessionStartTicks = Stopwatch.GetTimestamp()
+            _sessionStartSet = True
+        End If
+
+        ' Start telemetry thread (fires FrameDropped events off callback thread)
+        _telemetryStop.Reset()
+        _telemetryThread = New Thread(AddressOf TelemetryLoop) With {
+            .IsBackground = True,
+            .Name = "NAudioTelemetry"
+        }
+        _telemetryThread.Start()
+
         If _config.SystemAudioCapture Then
             _systemQueue = New BlockingCollection(Of AudioFrame)(256)
             _systemStopwatch = Stopwatch.StartNew()
@@ -103,6 +139,11 @@ Public Class NAudioCaptureEngine
 
     Public Sub [Stop]()
         _isRunning = False
+
+        ' Signal telemetry thread to stop. Don't Join inside [Stop] — it would
+        ' block the caller up to TelemetryPollMs (250ms). The thread is
+        ' IsBackground=True, so it dies with the process if needed.
+        Try : _telemetryStop.Set() : Catch : End Try
 
         Try
             If _systemQueue IsNot Nothing Then _systemQueue.CompleteAdding()
@@ -147,6 +188,10 @@ Public Class NAudioCaptureEngine
             End If
         Catch
         End Try
+
+        ' Telemetry thread: stop signal was set above, let it exit on its own.
+        ' Don't Join — we don't want to block callers waiting for the 250ms
+        ' poll cycle. Background thread will exit cleanly.
 
         _systemQueue = Nothing
         _micQueue = Nothing
@@ -222,21 +267,40 @@ Public Class NAudioCaptureEngine
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
             If _systemQueue Is Nothing OrElse _systemFormat Is Nothing Then Return
+
+            Dim bytesPerSample As Integer = (_systemFormat.BitsPerSample \ 8) * _systemFormat.Channels
+            If bytesPerSample < 1 Then bytesPerSample = 4
+
+            ' Block alignment sanity: PCM bytes must divide evenly by block align.
+            ' If not, the buffer is malformed (driver bug / partial read) and we
+            ' should NOT enqueue — would cause FFmpeg to misread sample boundaries.
+            If e.BytesRecorded Mod bytesPerSample <> 0 Then
+                System.Threading.Interlocked.Increment(_systemDropCount)
+                Return
+            End If
+
+            Dim samplesPerChannel As Integer = e.BytesRecorded \ bytesPerSample
+
+            ' Atomic reservation: increment counter once, derive our startSample
+            ' from the returned new value. This eliminates the race where two
+            ' concurrent callbacks could both Read the same value then both Add
+            ' their counts — which would produce duplicate StartSamples.
+            Dim endSample As Long = System.Threading.Interlocked.Add(_systemStartSample, samplesPerChannel)
+            Dim startSample As Long = endSample - samplesPerChannel
+
+            Dim ts As TimeSpan = GetSessionTimestamp()
+
             Dim copy(e.BytesRecorded - 1) As Byte
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
 
-            Dim ts As TimeSpan = _systemStopwatch.Elapsed
-            Dim bytesPerSample As Integer = (_systemFormat.BitsPerSample \ 8) * _systemFormat.Channels
-            If bytesPerSample < 1 Then bytesPerSample = 4
-            Dim sampleCount As Integer = e.BytesRecorded \ bytesPerSample
-
-            Dim startSample As Long = System.Threading.Interlocked.Read(_systemStartSample)
-            System.Threading.Interlocked.Add(_systemStartSample, sampleCount)
-
             Dim frame As New AudioFrame(copy, e.BytesRecorded, _systemFormat,
-                                        AudioSource.SystemLoopback, ts, startSample, sampleCount)
-            If Not _systemQueue.TryAdd(frame, 100) Then
-                RaiseEvent FrameDropped(AudioSource.SystemLoopback, "queue full")
+                                        AudioSource.SystemLoopback, ts, startSample, samplesPerChannel)
+
+            ' Non-blocking: TryAdd without timeout returns immediately.
+            ' WASAPI callback must NEVER wait — backpressure is handled by
+            ' dropping + telemetry rather than blocking the capture thread.
+            If Not _systemQueue.TryAdd(frame) Then
+                System.Threading.Interlocked.Increment(_systemDropCount)
             End If
         Catch
         End Try
@@ -246,23 +310,81 @@ Public Class NAudioCaptureEngine
         If Not _isRunning OrElse e.BytesRecorded = 0 Then Return
         Try
             If _micQueue Is Nothing OrElse _micFormat Is Nothing Then Return
+
+            Dim bytesPerSample As Integer = (_micFormat.BitsPerSample \ 8) * _micFormat.Channels
+            If bytesPerSample < 1 Then bytesPerSample = 4
+
+            If e.BytesRecorded Mod bytesPerSample <> 0 Then
+                System.Threading.Interlocked.Increment(_micDropCount)
+                Return
+            End If
+
+            Dim samplesPerChannel As Integer = e.BytesRecorded \ bytesPerSample
+
+            Dim endSample As Long = System.Threading.Interlocked.Add(_micStartSample, samplesPerChannel)
+            Dim startSample As Long = endSample - samplesPerChannel
+
+            Dim ts As TimeSpan = GetSessionTimestamp()
+
             Dim copy(e.BytesRecorded - 1) As Byte
             Buffer.BlockCopy(e.Buffer, 0, copy, 0, e.BytesRecorded)
 
-            Dim ts As TimeSpan = _micStopwatch.Elapsed
-            Dim bytesPerSample As Integer = (_micFormat.BitsPerSample \ 8) * _micFormat.Channels
-            If bytesPerSample < 1 Then bytesPerSample = 4
-            Dim sampleCount As Integer = e.BytesRecorded \ bytesPerSample
-
-            Dim startSample As Long = System.Threading.Interlocked.Read(_micStartSample)
-            System.Threading.Interlocked.Add(_micStartSample, sampleCount)
-
             Dim frame As New AudioFrame(copy, e.BytesRecorded, _micFormat,
-                                        AudioSource.Microphone, ts, startSample, sampleCount)
-            If Not _micQueue.TryAdd(frame, 100) Then
-                RaiseEvent FrameDropped(AudioSource.Microphone, "queue full")
+                                        AudioSource.Microphone, ts, startSample, samplesPerChannel)
+
+            If Not _micQueue.TryAdd(frame) Then
+                System.Threading.Interlocked.Increment(_micDropCount)
             End If
         Catch
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Returns elapsed time since the shared session epoch (T0). Because T0
+    ''' is shared between System and Mic, their Timestamps can be compared
+    ''' directly for Separate-track alignment.
+    ''' </summary>
+    Private Function GetSessionTimestamp() As TimeSpan
+        If Not _sessionStartSet Then Return TimeSpan.Zero
+        Dim elapsedTicks As Long = Stopwatch.GetTimestamp() - _sessionStartTicks
+        Return TimeSpan.FromTicks(elapsedTicks * (TimeSpan.TicksPerSecond \ Stopwatch.Frequency))
+    End Function
+
+    ''' <summary>
+    ''' Background telemetry loop — polls drop counters and fires FrameDropped
+    ''' events OFF the WASAPI callback thread. Subscribers can safely do disk
+    ''' I/O / WinForms / IPC without delaying the capture callback.
+    ''' </summary>
+    Private Sub TelemetryLoop()
+        Dim lastSysDrops As Long = 0
+        Dim lastMicDrops As Long = 0
+        Try
+            While _isRunning AndAlso Not _telemetryStop.WaitOne(TelemetryPollMs)
+                Dim sysDrops As Long = System.Threading.Interlocked.Read(_systemDropCount)
+                Dim micDrops As Long = System.Threading.Interlocked.Read(_micDropCount)
+
+                If sysDrops > lastSysDrops Then
+                    Dim dropped As Long = sysDrops - lastSysDrops
+                    lastSysDrops = sysDrops
+                    Try
+                        RaiseEvent FrameDropped(AudioSource.SystemLoopback,
+                                                $"dropped {dropped} frame(s) (total: {sysDrops})")
+                    Catch
+                    End Try
+                End If
+
+                If micDrops > lastMicDrops Then
+                    Dim dropped As Long = micDrops - lastMicDrops
+                    lastMicDrops = micDrops
+                    Try
+                        RaiseEvent FrameDropped(AudioSource.Microphone,
+                                                $"dropped {dropped} frame(s) (total: {micDrops})")
+                    Catch
+                    End Try
+                End If
+            End While
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine("[NAudio] Telemetry loop crashed: " & ex.Message)
         End Try
     End Sub
 
@@ -405,7 +527,8 @@ Public Class NAudioCaptureEngine
             Case ChannelMask.Mono : Return "mono"
             Case ChannelMask.Stereo : Return "stereo"
             Case ChannelMask.TwoPointOne : Return "2.1"
-            Case ChannelMask.ThreePointZero, ChannelMask.ThreePointOne : Return "3.0"
+            Case ChannelMask.ThreePointZero : Return "3.0"
+            Case ChannelMask.ThreePointOne : Return "3.1"
             Case ChannelMask.Quad : Return "quad"
             Case ChannelMask.FivePointZero, ChannelMask.FivePointZeroBack : Return "5.0"
             Case ChannelMask.FivePointOne, ChannelMask.FivePointOneBack : Return "5.1"

@@ -113,8 +113,8 @@ Partial Public Class CaptureEngine
             Else
                 fc.Append("[0:v]null[vout];")
             End If
-            fc.Append($"[1:a]volume={FormatVolume(_settings.SystemAudioVolume)},aresample=48000,aformat=channel_layouts=stereo[sysv];")
-            fc.Append($"[2:a]volume={FormatVolume(_settings.MicVolume)},aresample=48000,aformat=channel_layouts=stereo[micv];")
+            fc.Append($"[1:a]volume={FormatVolume(_settings.SystemAudioVolume)},aresample=48000,aformat=channel_layouts={sysFmt.ChannelLayout}[sysv];")
+            fc.Append($"[2:a]volume={FormatVolume(_settings.MicVolume)},aresample=48000,aformat=channel_layouts={micFmt.ChannelLayout}[micv];")
             fc.Append("[sysv][micv]amix=inputs=2:duration=longest:normalize=0[aout] ")
             sb.Append("-filter_complex """ & fc.ToString() & """ ")
             sb.Append("-map [vout] -map [aout] ")

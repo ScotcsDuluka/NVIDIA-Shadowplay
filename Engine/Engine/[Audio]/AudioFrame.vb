@@ -17,35 +17,35 @@ Public Class AudioFrame
     Public Property Source As AudioSource
 
     ''' <summary>
-    ''' Wall-clock time when this frame was captured (Stopwatch-based, monotonic).
-    ''' Use for queue latency + drop detection. NOT for A/V sync — that's
-    ''' StartSample's job.
+    ''' Monotonic session-relative timestamp — when this frame was captured,
+    ''' measured against the SHARED capture epoch (not per-source stopwatch).
+    ''' This means System frame T=12ms and Mic frame T=12ms refer to the same
+    ''' wall-clock instant, enabling Separate-track alignment by direct comparison.
     ''' </summary>
     Public Property Timestamp As TimeSpan
 
     ''' <summary>
-    ''' Sample position since capture start — the audio equivalent of PTS.
-    ''' Monotonic per source: starts at 0, increments by SampleCount per frame.
-    ''' Use this for A/V sync + Separate-track alignment.
+    ''' Sample position since capture start (per source, monotonic). This is
+    ''' the audio equivalent of PTS — use for A/V sync.
     ''' </summary>
     Public Property StartSample As Long
 
     ''' <summary>
-    ''' How many samples (NOT bytes) this frame contains. Length (bytes) =
-    ''' SampleCount * Channels * (BitsPerSample / 8). Useful for buffer math
-    ''' without re-deriving from Format every time.
+    ''' Number of samples PER CHANNEL in this frame (NOT total samples across
+    ''' channels — e.g. a stereo frame of 480 bytes @ 32-bit float = 60 samples
+    ''' per channel = 120 total). SampleCount × Channels × (BitsPerSample/8) = Length.
     ''' </summary>
-    Public Property SampleCount As Integer
+    Public Property SamplesPerChannel As Integer
 
     Public Sub New(buffer As Byte(), length As Integer, format As AudioFormat, source As AudioSource,
-                   timestamp As TimeSpan, startSample As Long, sampleCount As Integer)
+                   timestamp As TimeSpan, startSample As Long, samplesPerChannel As Integer)
         Me.Buffer = buffer
         Me.Length = length
         Me.Format = format
         Me.Source = source
         Me.Timestamp = timestamp
         Me.StartSample = startSample
-        Me.SampleCount = sampleCount
+        Me.SamplesPerChannel = samplesPerChannel
     End Sub
 
 End Class
