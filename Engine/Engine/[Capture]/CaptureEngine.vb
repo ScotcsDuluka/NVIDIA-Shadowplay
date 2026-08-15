@@ -257,41 +257,68 @@ Partial Public Class CaptureEngine
                                  Try
                                      ' Stop audio capture — drains writer queues first so all
                                      ' buffered PCM reaches FFmpeg stdin before we send q.
-                                     LogDebug("[FFmpeg] Stop requested. State=" & _state.ToString())
+                                     Dim stopMsg As String = "[FFmpeg] Stop requested. State=" & _state.ToString()
+                                     LogDebug(stopMsg)
+                                     WriteDebugLog(stopMsg)
+
                                      If _ffmpegProcess IsNot Nothing Then
-                                         LogDebug($"[FFmpeg] BeforeAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}")
+                                         Dim beforeMsg As String = $"[FFmpeg] BeforeAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}"
+                                         LogDebug(beforeMsg)
+                                         WriteDebugLog(beforeMsg)
                                      End If
-                                     LogDebug("[FFmpeg] Stopping audio capture (drain + close stdin)…")
+
+                                     Dim audioStopMsg As String = "[FFmpeg] Stopping audio capture (drain + close stdin)…"
+                                     LogDebug(audioStopMsg)
+                                     WriteDebugLog(audioStopMsg)
                                      StopAudioCaptureIfNeeded()
+
                                      If _ffmpegProcess IsNot Nothing Then
-                                         LogDebug($"[FFmpeg] AfterAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}")
+                                         Dim afterMsg As String = $"[FFmpeg] AfterAudioStop HasExited={_ffmpegProcess.HasExited.ToString()}"
+                                         LogDebug(afterMsg)
+                                         WriteDebugLog(afterMsg)
                                      End If
 
                                      If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
-                                         LogDebug($"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}")
+                                         Dim qMsg As String = $"[FFmpeg] Sending quit command (q)… PID={_ffmpegProcess.Id}"
+                                         LogDebug(qMsg)
+                                         WriteDebugLog(qMsg)
                                          Try
                                              _ffmpegProcess.StandardInput.Write("q" & vbLf)
                                              _ffmpegProcess.StandardInput.Flush()
                                          Catch ex As Exception
-                                             LogDebug("[FFmpeg] Failed to send q: " & ex.Message)
+                                             Dim qErrMsg As String = "[FFmpeg] Failed to send q: " & ex.Message
+                                             LogDebug(qErrMsg)
+                                             WriteDebugLog(qErrMsg)
                                          End Try
 
-                                         LogDebug($"[FFmpeg] WaitForExit(10000)… PID={_ffmpegProcess.Id}")
+                                         Dim waitMsg As String = $"[FFmpeg] WaitForExit(10000)… PID={_ffmpegProcess.Id}"
+                                         LogDebug(waitMsg)
+                                         WriteDebugLog(waitMsg)
                                          Dim exited As Boolean = _ffmpegProcess.WaitForExit(10000)
-                                         LogDebug($"[FFmpeg] WaitForExit returned. HasExited={_ffmpegProcess.HasExited.ToString()}")
+                                         Dim waitRetMsg As String = $"[FFmpeg] WaitForExit returned. HasExited={_ffmpegProcess.HasExited.ToString()}"
+                                         LogDebug(waitRetMsg)
+                                         WriteDebugLog(waitRetMsg)
 
                                          If Not _ffmpegProcess.HasExited Then
-                                             LogDebug($"[FFmpeg] WaitForExit TIMEOUT → KILL PID={_ffmpegProcess.Id}")
+                                             Dim killMsg As String = $"[FFmpeg] WaitForExit TIMEOUT → KILL PID={_ffmpegProcess.Id}"
+                                             LogDebug(killMsg)
+                                             WriteDebugLog(killMsg)
                                              Try
                                                  _ffmpegProcess.Kill()
                                                  _ffmpegProcess.WaitForExit(2000)
-                                                 LogDebug($"[FFmpeg] Kill completed. ExitCode={_ffmpegProcess.ExitCode.ToString()}")
+                                                 Dim killDoneMsg As String = $"[FFmpeg] Kill completed. ExitCode={_ffmpegProcess.ExitCode.ToString()}"
+                                                 LogDebug(killDoneMsg)
+                                                 WriteDebugLog(killDoneMsg)
                                              Catch ex As Exception
-                                                 LogDebug("[FFmpeg] Kill failed: " & ex.Message)
+                                                 Dim killFailMsg As String = "[FFmpeg] Kill failed: " & ex.Message
+                                                 LogDebug(killFailMsg)
+                                                 WriteDebugLog(killFailMsg)
                                              End Try
                                          End If
                                      Else
-                                         LogDebug("[FFmpeg] Process already exited before q could be sent.")
+                                         Dim alreadyMsg As String = "[FFmpeg] Process already exited before q could be sent."
+                                         LogDebug(alreadyMsg)
+                                         WriteDebugLog(alreadyMsg)
                                      End If
 
                                      ' Use Interlocked.Exchange to ensure RecordingStopped fires exactly once
