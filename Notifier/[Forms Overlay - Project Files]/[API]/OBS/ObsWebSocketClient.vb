@@ -170,11 +170,7 @@ Public Class ObsWebSocketClient
 
         Dim opInt As Integer = op.Value(Of Integer)()
 
-        If opInt = 7 Then
-            Log("info", $"Raw message (op=7 RequestResponse): {msg.ToString(Newtonsoft.Json.Formatting.None)}")
-        ElseIf opInt <> 0 AndAlso opInt <> 2 AndAlso opInt <> 5 Then
-            Log("info", $"Raw message (op={opInt}): {msg.ToString(Newtonsoft.Json.Formatting.None)}")
-        End If
+        Log("info", $"<< RECV op={opInt}: {msg.ToString(Newtonsoft.Json.Formatting.None)}")
 
         Select Case opInt
             Case 0
@@ -199,6 +195,7 @@ Public Class ObsWebSocketClient
                 If reqIdTok Is Nothing Then Return
                 Dim reqId As String = reqIdTok.Value(Of String)()
                 If reqId Is Nothing Then Return
+                Log("info", $"  → matching requestId={reqId} (pending={_pendingResponses.Count})")
                 SyncLock _pendingLock
                     If _pendingResponses.ContainsKey(reqId) Then
                         _pendingResponses(reqId).TrySetResult(d)
@@ -247,10 +244,14 @@ Public Class ObsWebSocketClient
     End Function
 
     Private Sub SendJson(payload As JObject)
-        If Not IsConnected Then Exit Sub
+        If Not IsConnected Then
+            Log("warn", $"SendJson skipped — not connected (payload={payload.ToString(Newtonsoft.Json.Formatting.None)})")
+            Exit Sub
+        End If
         Try
             Dim json = payload.ToString(Newtonsoft.Json.Formatting.None)
             Dim bytes = Encoding.UTF8.GetBytes(json)
+            Log("info", $">> SEND {json}")
             _ws.SendAsync(New ArraySegment(Of Byte)(bytes), WebSocketMessageType.Text, True, _cts.Token).Wait(2000)
         Catch ex As Exception
             Log("error", $"SendJson failed: {ex.Message}")
@@ -279,7 +280,7 @@ Public Class ObsWebSocketClient
         End If
 
         SendJson(payload)
-        Log("info", $"Sent request: {requestType} (id={id})")
+        Log("info", $"Sent request: {requestType} (id={id})  payload={payload.ToString(Newtonsoft.Json.Formatting.None)}")
 
         If tcs.Task.Wait(timeoutMs) Then
             Return tcs.Task.Result
