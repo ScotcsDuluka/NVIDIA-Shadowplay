@@ -57,7 +57,9 @@ Public Module ObsEventMap
     End Function
 
     Private Function MapRecordState(d As JObject) As MappedNotification
-        Dim outputState = d("outputState")?.Value(Of String)()
+        Dim outputStateTok As JToken = d("outputState")
+        If outputStateTok Is Nothing Then Return Nothing
+        Dim outputState As String = outputStateTok.Value(Of String)()
         If outputState Is Nothing Then Return Nothing
 
         Select Case outputState
@@ -78,7 +80,9 @@ Public Module ObsEventMap
     End Function
 
     Private Function MapReplayState(d As JObject) As MappedNotification
-        Dim outputState = d("outputState")?.Value(Of String)()
+        Dim outputStateTok As JToken = d("outputState")
+        If outputStateTok Is Nothing Then Return Nothing
+        Dim outputState As String = outputStateTok.Value(Of String)()
         If outputState Is Nothing Then Return Nothing
 
         Select Case outputState

@@ -21,44 +21,99 @@ Public Class ObsConfig
 
     Public Shared Function Load() As ObsConfig
         Dim cfg As New ObsConfig()
-        Dim path = Path.Combine(Application.StartupPath, FileName)
-        If Not File.Exists(path) Then Return cfg
+        Dim configPath As String = Path.Combine(Application.StartupPath, FileName)
+        If Not File.Exists(configPath) Then Return cfg
 
         Try
             Dim json As String
-            Using fs As New FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+            Using fs As New FileStream(configPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
                 Using sr As New StreamReader(fs)
                     json = sr.ReadToEnd()
                 End Using
             End Using
 
-            Dim root = JObject.Parse(json)
-            cfg.Enabled = root("enabled")?.Value(Of Boolean)() ?? True
-            cfg.Host = If(root("host")?.Value(Of String)(), "127.0.0.1")
-            cfg.Port = If(root("port")?.Value(Of Integer)(), 4455)
-            cfg.Password = If(root("password")?.Value(Of String)(), "")
+            Dim root As JObject = JObject.Parse(json)
 
-            Dim forward = root("forward")
+            ' NOTE: VB.NET does NOT have ?. (null-conditional) or ??
+            ' (null-coalescing) — those are C#-only. Use explicit If() checks.
+            cfg.Enabled = ReadBool(root, "enabled", True)
+            cfg.Host = ReadString(root, "host", "127.0.0.1")
+            cfg.Port = ReadInt(root, "port", 4455)
+            cfg.Password = ReadString(root, "password", "")
+
+            Dim forward As JObject = TryCast(root("forward"), JObject)
             If forward IsNot Nothing Then
-                cfg.ForwardRecordStateChanged = If(forward("record_state_changed")?.Value(Of Boolean)(), True)
-                cfg.ForwardReplayBufferStateChanged = If(forward("replay_buffer_state_changed")?.Value(Of Boolean)(), True)
-                cfg.ForwardScreenshotSaved = If(forward("screenshot_saved")?.Value(Of Boolean)(), True)
+                cfg.ForwardRecordStateChanged = ReadBool(forward, "record_state_changed", True)
+                cfg.ForwardReplayBufferStateChanged = ReadBool(forward, "replay_buffer_state_changed", True)
+                cfg.ForwardScreenshotSaved = ReadBool(forward, "screenshot_saved", True)
             End If
 
-            Debug.WriteLine($"[ObsConfig] Loaded {path}  enabled={cfg.Enabled}  host={cfg.Host}:{cfg.Port}")
+            Debug.WriteLine("[ObsConfig] Loaded " & configPath &
+                            "  enabled=" & cfg.Enabled.ToString() &
+                            "  host=" & cfg.Host & ":" & cfg.Port.ToString())
         Catch ex As Exception
-            Debug.WriteLine($"[ObsConfig] Failed to load {path}: {ex.Message}  (using defaults)")
+            Debug.WriteLine("[ObsConfig] Failed to load " & configPath &
+                            ": " & ex.Message & "  (using defaults)")
         End Try
 
         Return cfg
     End Function
 
+    ' ---- Safe JSON readers (no ?. / ?? ) ----
+
+    Private Shared Function ReadBool(obj As JObject, key As String, defaultValue As Boolean) As Boolean
+        If obj Is Nothing Then Return defaultValue
+        Dim tok As JToken = obj(key)
+        If tok Is Nothing Then Return defaultValue
+        Try
+            Return tok.Value(Of Boolean)()
+        Catch
+            Return defaultValue
+        End Try
+    End Function
+
+    Private Shared Function ReadInt(obj As JObject, key As String, defaultValue As Integer) As Integer
+        If obj Is Nothing Then Return defaultValue
+        Dim tok As JToken = obj(key)
+        If tok Is Nothing Then Return defaultValue
+        Try
+            Return tok.Value(Of Integer)()
+        Catch
+            ' Maybe stored as string — try parse
+            Dim s As String = Nothing
+            Try
+                s = tok.Value(Of String)()
+            Catch
+            End Try
+            Dim n As Integer
+            If s IsNot Nothing AndAlso Integer.TryParse(s, n) Then Return n
+            Return defaultValue
+        End Try
+    End Function
+
+    Private Shared Function ReadString(obj As JObject, key As String, defaultValue As String) As String
+        If obj Is Nothing Then Return defaultValue
+        Dim tok As JToken = obj(key)
+        If tok Is Nothing Then Return defaultValue
+        Dim s As String = Nothing
+        Try
+            s = tok.Value(Of String)()
+        Catch
+        End Try
+        If String.IsNullOrEmpty(s) Then Return defaultValue
+        Return s
+    End Function
+
     Public Function ShouldForward(eventType As String) As Boolean
         Select Case eventType
-            Case "RecordStateChanged" : Return ForwardRecordStateChanged
-            Case "ReplayBufferStateChanged" : Return ForwardReplayBufferStateChanged
-            Case "ScreenshotSaved" : Return ForwardScreenshotSaved
-            Case Else : Return False
+            Case "RecordStateChanged"
+                Return ForwardRecordStateChanged
+            Case "ReplayBufferStateChanged"
+                Return ForwardReplayBufferStateChanged
+            Case "ScreenshotSaved"
+                Return ForwardScreenshotSaved
+            Case Else
+                Return False
         End Select
     End Function
 

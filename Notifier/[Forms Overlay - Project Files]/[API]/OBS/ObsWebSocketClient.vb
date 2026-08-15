@@ -130,13 +130,14 @@ Public Class ObsWebSocketClient
                 Log("info", "OBS WebSocket identified — listening for events")
                 RaiseEvent OnConnected()
             Case 5  ' EventReceived
-                Dim d = msg("d")
+                Dim d As JObject = TryCast(msg("d"), JObject)
                 If d Is Nothing Then Return
-                Dim eventType = d("eventType")?.Value(Of String)()
-                Dim eventData = TryCast(d("eventData"), JObject)
-                If eventType IsNot Nothing Then
-                    RaiseEvent OnEvent(eventType, eventData, msg)
-                End If
+                Dim eventTypeTok As JToken = d("eventType")
+                If eventTypeTok Is Nothing Then Return
+                Dim eventType As String = eventTypeTok.Value(Of String)()
+                If eventType Is Nothing Then Return
+                Dim eventData As JObject = TryCast(d("eventData"), JObject)
+                RaiseEvent OnEvent(eventType, eventData, msg)
             Case Else
                 ' ignore unknown ops
         End Select
