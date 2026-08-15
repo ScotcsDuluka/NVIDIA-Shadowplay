@@ -448,7 +448,7 @@ Public Class CaptureEngine
 
             Dim sysEnabled As Boolean = _settings.SystemAudioCapture
             Dim micEnabled As Boolean = _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName)
-            Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate)
+            Dim isSeparate As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack)
 
             If isSeparate AndAlso micEnabled Then
                 ' Two separate streams: system via pipe:0 (stdin), mic via named pipe
@@ -551,7 +551,7 @@ Public Class CaptureEngine
         Dim hasAnyAudio As Boolean = hasNAudio OrElse _settings.AudioCapture
         If hasAnyAudio Then
             Dim isSeparateAndMic As Boolean = hasNAudio AndAlso
-                (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate) AndAlso
+                (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
                 _settings.MicCapture AndAlso Not String.IsNullOrEmpty(_settings.MicDeviceName)
 
             If isSeparateAndMic Then
@@ -803,7 +803,7 @@ Public Class CaptureEngine
         If Not hasNAudio Then Return
 
         Try
-            Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate) AndAlso
+            Dim isSeparateAndMic As Boolean = (_settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack) AndAlso
                                               _settings.MicCapture AndAlso
                                               Not String.IsNullOrEmpty(_settings.MicDeviceName)
 

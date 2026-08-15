@@ -12,7 +12,7 @@ Public Class NAudioCaptureEngine
         Public Property SystemAudioVolume As Single = 1.0F
         Public Property MicVolume As Single = 1.0F
         Public Property MicDeviceName As String = ""
-        Public Property TrackMode As CaptureSettings.AudioTrackModeEnum = CaptureSettings.AudioTrackModeEnum.Single
+        Public Property TrackMode As CaptureSettings.AudioTrackModeEnum = CaptureSettings.AudioTrackModeEnum.SingleTrack
     End Class
 
     Private _config As AudioConfigValues
@@ -120,7 +120,7 @@ Public Class NAudioCaptureEngine
             _systemCapture.StartRecording()
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine("[NAudio] System capture start failed: " & ex.Message)
-        End Sub
+        End Try
     End Sub
 
     Private Sub StartMicCapture()
@@ -153,7 +153,7 @@ Public Class NAudioCaptureEngine
             _micCapture.StartRecording()
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine("[NAudio] Mic capture start failed: " & ex.Message)
-        End Sub
+        End Try
     End Sub
 
     Private Sub OnSystemDataAvailable(sender As Object, e As WaveInEventArgs)
@@ -162,7 +162,7 @@ Public Class NAudioCaptureEngine
             Try
                 Dim sysVol As Single = Math.Max(0.0F, Math.Min(1.5F, _config.SystemAudioVolume))
 
-                If _config.TrackMode = CaptureSettings.AudioTrackModeEnum.Separate Then
+                If _config.TrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack Then
                     If _systemStream IsNot Nothing AndAlso _systemStream.CanWrite Then
                         Dim data As Byte() = If(sysVol >= 0.999F,
                                                 CopyBytes(e.Buffer, e.BytesRecorded),
@@ -190,7 +190,7 @@ Public Class NAudioCaptureEngine
             Try
                 Dim micVol As Single = Math.Max(0.0F, Math.Min(1.5F, _config.MicVolume))
 
-                If _config.TrackMode = CaptureSettings.AudioTrackModeEnum.Separate Then
+                If _config.TrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack Then
                     If _micStream IsNot Nothing AndAlso _micStream.CanWrite Then
                         Dim data As Byte() = If(micVol >= 0.999F,
                                                 CopyBytes(e.Buffer, e.BytesRecorded),

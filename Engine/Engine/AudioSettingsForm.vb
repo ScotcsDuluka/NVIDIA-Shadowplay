@@ -1,4 +1,5 @@
 Imports System.IO
+Imports Newtonsoft.Json.Linq
 
 Public Class AudioSettingsForm
 
@@ -20,7 +21,7 @@ Public Class AudioSettingsForm
     End Sub
 
     Private Sub LoadFromSettings()
-        If _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate Then
+        If _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack Then
             radSeparate.Checked = True
         Else
             radSingle.Checked = True
@@ -47,9 +48,9 @@ Public Class AudioSettingsForm
 
     Private Sub SaveToSettings()
         If radSeparate.Checked Then
-            _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Separate
+            _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack
         Else
-            _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.Single
+            _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SingleTrack
         End If
 
         _settings.SystemAudioCapture = chkSystem.Checked
