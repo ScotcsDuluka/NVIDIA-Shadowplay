@@ -147,11 +147,16 @@ Partial Public Class CaptureEngine
         ' Audio is recorded separately by AudioFileWriter → .wav files.
         ' At stop time, BuildMuxArguments combines video + audio.
 
-        Dim ext As String = Path.GetExtension(outputFile).ToLowerInvariant()
-        If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".m4v" Then
-            sb.Append("-movflags +faststart ")
+        ' Per architecture spec: temp .video.tmp.mp4 must NOT use +faststart
+        ' (forces unnecessary moov atom rewrite on intermediate file).
+        ' +faststart is applied by BuildMuxArguments on the FINAL output only.
+        Dim isTempVideo As Boolean = outputFile.Contains(".video.tmp.")
+        If Not isTempVideo Then
+            Dim ext As String = Path.GetExtension(outputFile).ToLowerInvariant()
+            If ext = ".mp4" OrElse ext = ".mov" OrElse ext = ".m4v" Then
+                sb.Append("-movflags +faststart ")
+            End If
         End If
-
         sb.Append("-y """ & outputFile & """")
 
         Return sb.ToString()

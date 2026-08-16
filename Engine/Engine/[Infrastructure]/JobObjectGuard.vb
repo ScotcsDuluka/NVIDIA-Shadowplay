@@ -148,6 +148,16 @@ Public NotInheritable Class JobObjectGuard
                 Catch
                 End Try
             End If
+
+            ' ═══ AboveNormal Priority (per architecture spec) ═══
+            ' Set FFmpeg process priority to AboveNormal so it gets more CPU
+            ' for realtime capture. High/RealTime is intentionally avoided
+            ' so Windows retains scheduler headroom for audio/UI/system work.
+            Try
+                process.PriorityClass = ProcessPriorityClass.AboveNormal
+            Catch
+                ' Best-effort — some systems may not allow priority changes
+            End Try
         End Try
     End Sub
 
