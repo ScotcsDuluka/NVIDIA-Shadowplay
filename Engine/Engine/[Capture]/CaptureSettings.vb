@@ -112,63 +112,43 @@ Public Class CaptureSettings
     Private Const CURRENT_VERSION As Integer = 3
 
     Public Sub Save(configPath As String)
-        ' configPath = config.json path (general settings)
-        ' Engine-specific fields saved into config.json under "engine" section
+        ' Save Engine-specific fields into config.json under "engine" section.
+        ' Uses Newtonsoft.Json for merge (preserves Overlay's existing settings).
         Try
-            Dim options As New JsonSerializerOptions With {.WriteIndented = True}
-
-            ' Read existing config.json (if exists) to preserve other settings
             Dim existingJson As String = "{}"
             If File.Exists(configPath) Then
                 existingJson = File.ReadAllText(configPath)
             End If
 
-            ' Parse existing, update engine section
-            Using doc As JsonDocument = JsonDocument.Parse(existingJson)
-                Dim writer As New Utf8JsonWriter(New MemoryStream())
-                writer.WriteStartObject()
+            Dim root As Newtonsoft.Json.Linq.JObject = Newtonsoft.Json.Linq.JObject.Parse(existingJson)
 
-                ' Copy existing properties except "engine"
-                For Each prop As JsonProperty In doc.RootElement.EnumerateObject()
-                    If prop.Name <> "engine" Then
-                        prop.WriteTo(writer)
-                    End If
-                Next
+            ' Create or update "engine" section
+            Dim engine As Newtonsoft.Json.Linq.JObject = Nothing
+            If root("engine") IsNot Nothing Then
+                engine = DirectCast(root("engine"), Newtonsoft.Json.Linq.JObject)
+            Else
+                engine = New Newtonsoft.Json.Linq.JObject()
+                root("engine") = engine
+            End If
 
-                ' Write engine section
-                writer.WriteStartObject("engine")
-                writer.WriteString("Encoder", Encoder)
-                writer.WriteString("CaptureMethod", CaptureMethod)
-                writer.WriteString("PixelFormat", PixelFormat)
-                writer.WriteString("Preset", Preset)
-                writer.WriteNumber("NvencPreset", NvencPreset)
-                writer.WriteString("RateControl", RateControl)
-                writer.WriteString("FileFormat", FileFormat)
-                writer.WriteString("FFmpegPath", FFmpegPath)
-                writer.WriteString("HotkeyStart", HotkeyStart)
-                writer.WriteString("HotkeyStop", HotkeyStop)
-                writer.WriteString("HotkeyToggle", HotkeyToggle)
-                writer.WriteNumber("CustomWidth", CustomWidth)
-                writer.WriteNumber("CustomHeight", CustomHeight)
-                writer.WriteNumber("AudioTrackMode", CInt(AudioTrackMode))
-                writer.WriteNumber("ConfigVersion", ConfigVersion)
-                writer.WriteEndObject()
+            engine("Encoder") = Encoder
+            engine("CaptureMethod") = CaptureMethod
+            engine("PixelFormat") = PixelFormat
+            engine("Preset") = Preset
+            engine("NvencPreset") = NvencPreset
+            engine("RateControl") = RateControl
+            engine("FileFormat") = FileFormat
+            engine("FFmpegPath") = FFmpegPath
+            engine("HotkeyStart") = HotkeyStart
+            engine("HotkeyStop") = HotkeyStop
+            engine("HotkeyToggle") = HotkeyToggle
+            engine("CustomWidth") = CustomWidth
+            engine("CustomHeight") = CustomHeight
+            engine("AudioTrackMode") = CInt(AudioTrackMode)
+            engine("ConfigVersion") = ConfigVersion
 
-                writer.WriteEndObject()
-                writer.Flush()
-
-                Dim ms As MemoryStream = DirectCast(writer.GetType().GetField("_stream", System.Reflection.BindingFlags.NonPublic Or System.Reflection.BindingFlags.Instance).GetValue(writer), MemoryStream)
-                Dim json As String = System.Text.Encoding.UTF8.GetString(ms.ToArray())
-                File.WriteAllText(configPath, json)
-            End Using
+            File.WriteAllText(configPath, root.ToString(Newtonsoft.Json.Formatting.Indented))
         Catch ex As Exception
-            ' Fallback: save as standalone (old behavior)
-            Try
-                Dim options As New JsonSerializerOptions With {.WriteIndented = True}
-                Dim json As String = JsonSerializer.Serialize(Me, options)
-                File.WriteAllText(configPath, json)
-            Catch
-            End Try
         End Try
     End Sub
 
@@ -191,53 +171,24 @@ Public Class CaptureSettings
             If File.Exists(configPath) Then
                 Dim json As String = File.ReadAllText(configPath)
                 Using doc As JsonDocument = JsonDocument.Parse(json)
-                    If doc.RootElement.TryGetProperty("engine", JsonValueKind.Object) Then
-                        Dim engineSection As JsonElement = doc.RootElement.GetProperty("engine")
-                        If engineSection.TryGetProperty("Encoder", JsonValueKind.String) Then
-                            settings.Encoder = engineSection.GetProperty("Encoder").GetString()
-                        End If
-                        If engineSection.TryGetProperty("CaptureMethod", JsonValueKind.String) Then
-                            settings.CaptureMethod = engineSection.GetProperty("CaptureMethod").GetString()
-                        End If
-                        If engineSection.TryGetProperty("PixelFormat", JsonValueKind.String) Then
-                            settings.PixelFormat = engineSection.GetProperty("PixelFormat").GetString()
-                        End If
-                        If engineSection.TryGetProperty("Preset", JsonValueKind.String) Then
-                            settings.Preset = engineSection.GetProperty("Preset").GetString()
-                        End If
-                        If engineSection.TryGetProperty("NvencPreset", JsonValueKind.Number) Then
-                            settings.NvencPreset = engineSection.GetProperty("NvencPreset").GetInt32()
-                        End If
-                        If engineSection.TryGetProperty("RateControl", JsonValueKind.String) Then
-                            settings.RateControl = engineSection.GetProperty("RateControl").GetString()
-                        End If
-                        If engineSection.TryGetProperty("FileFormat", JsonValueKind.String) Then
-                            settings.FileFormat = engineSection.GetProperty("FileFormat").GetString()
-                        End If
-                        If engineSection.TryGetProperty("FFmpegPath", JsonValueKind.String) Then
-                            settings.FFmpegPath = engineSection.GetProperty("FFmpegPath").GetString()
-                        End If
-                        If engineSection.TryGetProperty("HotkeyStart", JsonValueKind.String) Then
-                            settings.HotkeyStart = engineSection.GetProperty("HotkeyStart").GetString()
-                        End If
-                        If engineSection.TryGetProperty("HotkeyStop", JsonValueKind.String) Then
-                            settings.HotkeyStop = engineSection.GetProperty("HotkeyStop").GetString()
-                        End If
-                        If engineSection.TryGetProperty("HotkeyToggle", JsonValueKind.String) Then
-                            settings.HotkeyToggle = engineSection.GetProperty("HotkeyToggle").GetString()
-                        End If
-                        If engineSection.TryGetProperty("CustomWidth", JsonValueKind.Number) Then
-                            settings.CustomWidth = engineSection.GetProperty("CustomWidth").GetInt32()
-                        End If
-                        If engineSection.TryGetProperty("CustomHeight", JsonValueKind.Number) Then
-                            settings.CustomHeight = engineSection.GetProperty("CustomHeight").GetInt32()
-                        End If
-                        If engineSection.TryGetProperty("AudioTrackMode", JsonValueKind.Number) Then
-                            settings.AudioTrackMode = DirectCast(engineSection.GetProperty("AudioTrackMode").GetInt32(), AudioTrackModeEnum)
-                        End If
-                        If engineSection.TryGetProperty("ConfigVersion", JsonValueKind.Number) Then
-                            settings.ConfigVersion = engineSection.GetProperty("ConfigVersion").GetInt32()
-                        End If
+                    Dim engineProp As JsonElement = Nothing
+                    If doc.RootElement.TryGetProperty("engine", engineProp) Then
+                        Dim p As JsonElement = Nothing
+                        If engineProp.TryGetProperty("Encoder", p) Then settings.Encoder = p.GetString()
+                        If engineProp.TryGetProperty("CaptureMethod", p) Then settings.CaptureMethod = p.GetString()
+                        If engineProp.TryGetProperty("PixelFormat", p) Then settings.PixelFormat = p.GetString()
+                        If engineProp.TryGetProperty("Preset", p) Then settings.Preset = p.GetString()
+                        If engineProp.TryGetProperty("NvencPreset", p) Then settings.NvencPreset = p.GetInt32()
+                        If engineProp.TryGetProperty("RateControl", p) Then settings.RateControl = p.GetString()
+                        If engineProp.TryGetProperty("FileFormat", p) Then settings.FileFormat = p.GetString()
+                        If engineProp.TryGetProperty("FFmpegPath", p) Then settings.FFmpegPath = p.GetString()
+                        If engineProp.TryGetProperty("HotkeyStart", p) Then settings.HotkeyStart = p.GetString()
+                        If engineProp.TryGetProperty("HotkeyStop", p) Then settings.HotkeyStop = p.GetString()
+                        If engineProp.TryGetProperty("HotkeyToggle", p) Then settings.HotkeyToggle = p.GetString()
+                        If engineProp.TryGetProperty("CustomWidth", p) Then settings.CustomWidth = p.GetInt32()
+                        If engineProp.TryGetProperty("CustomHeight", p) Then settings.CustomHeight = p.GetInt32()
+                        If engineProp.TryGetProperty("AudioTrackMode", p) Then settings.AudioTrackMode = DirectCast(p.GetInt32(), AudioTrackModeEnum)
+                        If engineProp.TryGetProperty("ConfigVersion", p) Then settings.ConfigVersion = p.GetInt32()
                     End If
                 End Using
             End If
@@ -334,57 +285,33 @@ Public Class CaptureSettings
                 Dim settings As New CaptureSettings()
 
                 ' Read "current" section (video capture values)
-                If doc.RootElement.TryGetProperty("current", JsonValueKind.Object) Then
-                    Dim current As JsonElement = doc.RootElement.GetProperty("current")
-                    If current.TryGetProperty("fps", JsonValueKind.Number) Then
-                        settings.FPS = current.GetProperty("fps").GetInt32()
-                    End If
-                    If current.TryGetProperty("bitrate", JsonValueKind.Number) Then
-                        settings.Bitrate = current.GetProperty("bitrate").GetInt32() * 1000L  ' Overlay stores in kbps
-                    End If
-                    If current.TryGetProperty("encoder_preset", JsonValueKind.Number) Then
-                        settings.NvencPreset = current.GetProperty("encoder_preset").GetInt32()
-                    End If
-                    If current.TryGetProperty("use_native_resolution", JsonValueKind.False) OrElse
-                       current.TryGetProperty("use_native_resolution", JsonValueKind.True) Then
-                        settings.UseNativeResolution = current.GetProperty("use_native_resolution").GetBoolean()
-                    End If
-                    If current.TryGetProperty("width", JsonValueKind.Number) Then
-                        settings.CustomWidth = current.GetProperty("width").GetInt32()
-                    End If
-                    If current.TryGetProperty("height", JsonValueKind.Number) Then
-                        settings.CustomHeight = current.GetProperty("height").GetInt32()
-                    End If
+                Dim currentProp As JsonElement = Nothing
+                If doc.RootElement.TryGetProperty("current", currentProp) Then
+                    Dim p As JsonElement = Nothing
+                    If currentProp.TryGetProperty("fps", p) Then settings.FPS = p.GetInt32()
+                    If currentProp.TryGetProperty("bitrate", p) Then settings.Bitrate = p.GetInt32() * 1000L
+                    If currentProp.TryGetProperty("encoder_preset", p) Then settings.NvencPreset = p.GetInt32()
+                    If currentProp.TryGetProperty("use_native_resolution", p) Then settings.UseNativeResolution = p.GetBoolean()
+                    If currentProp.TryGetProperty("width", p) Then settings.CustomWidth = p.GetInt32()
+                    If currentProp.TryGetProperty("height", p) Then settings.CustomHeight = p.GetInt32()
                 End If
 
                 ' Read "audio" section
-                If doc.RootElement.TryGetProperty("audio", JsonValueKind.Object) Then
-                    Dim audio As JsonElement = doc.RootElement.GetProperty("audio")
-                    If audio.TryGetProperty("system_enabled", JsonValueKind.False) OrElse
-                       audio.TryGetProperty("system_enabled", JsonValueKind.True) Then
-                        settings.SystemAudioCapture = audio.GetProperty("system_enabled").GetBoolean()
-                    End If
-                    If audio.TryGetProperty("mic_enabled", JsonValueKind.False) OrElse
-                       audio.TryGetProperty("mic_enabled", JsonValueKind.True) Then
-                        settings.MicCapture = audio.GetProperty("mic_enabled").GetBoolean()
-                    End If
-                    If audio.TryGetProperty("system_volume", JsonValueKind.Number) Then
-                        settings.SystemAudioVolume = audio.GetProperty("system_volume").GetSingle()
-                    End If
-                    If audio.TryGetProperty("mic_volume", JsonValueKind.Number) Then
-                        settings.MicVolume = audio.GetProperty("mic_volume").GetSingle()
-                    End If
-                    If audio.TryGetProperty("mic_device", JsonValueKind.String) Then
-                        settings.MicDeviceName = audio.GetProperty("mic_device").GetString()
-                    End If
-                    If audio.TryGetProperty("mic_device_id", JsonValueKind.String) Then
-                        settings.MicDeviceId = audio.GetProperty("mic_device_id").GetString()
-                    End If
+                Dim audioProp As JsonElement = Nothing
+                If doc.RootElement.TryGetProperty("audio", audioProp) Then
+                    Dim p As JsonElement = Nothing
+                    If audioProp.TryGetProperty("system_enabled", p) Then settings.SystemAudioCapture = p.GetBoolean()
+                    If audioProp.TryGetProperty("mic_enabled", p) Then settings.MicCapture = p.GetBoolean()
+                    If audioProp.TryGetProperty("system_volume", p) Then settings.SystemAudioVolume = p.GetSingle()
+                    If audioProp.TryGetProperty("mic_volume", p) Then settings.MicVolume = p.GetSingle()
+                    If audioProp.TryGetProperty("mic_device", p) Then settings.MicDeviceName = p.GetString()
+                    If audioProp.TryGetProperty("mic_device_id", p) Then settings.MicDeviceId = p.GetString()
                 End If
 
                 ' Output directory from video.json if present
-                If doc.RootElement.TryGetProperty("output_directory", JsonValueKind.String) Then
-                    settings.OutputDirectory = doc.RootElement.GetProperty("output_directory").GetString()
+                Dim outputProp As JsonElement = Nothing
+                If doc.RootElement.TryGetProperty("output_directory", outputProp) Then
+                    settings.OutputDirectory = outputProp.GetString()
                 End If
 
                 Return settings
