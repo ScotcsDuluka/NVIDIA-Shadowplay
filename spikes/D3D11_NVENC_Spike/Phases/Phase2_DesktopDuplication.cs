@@ -25,9 +25,10 @@ using Vortice.Direct3D11;
 using Vortice.DXGI;
 using CaptureEngine.Video.Spike.D3D11.Utils;
 
-// Disambiguate Result/ResultCode — both Vortice.DXGI and Vortice.Direct3D11
-// declare these. We want the DXGI versions (DuplicateOutput is a DXGI API).
-using Result = Vortice.DXGI.Result;
+// 'Result' is in SharpGen.Runtime (Vortice is built on SharpGen).
+// 'ResultCode' exists in both Vortice.DXGI and Vortice.Direct3D11 — alias to
+// disambiguate. We want the DXGI versions (DuplicateOutput is a DXGI API).
+using SharpGen.Runtime;
 using ResultCode = Vortice.DXGI.ResultCode;
 
 namespace CaptureEngine.Video.Spike.D3D11.Phases;
