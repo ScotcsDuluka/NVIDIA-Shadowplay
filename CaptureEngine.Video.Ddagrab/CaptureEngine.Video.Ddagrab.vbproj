@@ -1,22 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
     <RootNamespace></RootNamespace>
-    <AssemblyName>CaptureEngine.Video.Tests</AssemblyName>
+    <TargetFramework>net8.0</TargetFramework>
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
     <OptionInfer>On</OptionInfer>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <Description>CaptureEngine.Video contract tests — P1-B.1 (FakeVideoCaptureBackend; no xUnit/NUnit)</Description>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>CaptureEngine.Video.Ddagrab</AssemblyName>
+    <Description>CaptureEngine.Video.Ddagrab — DdagrabBackend skeleton (GLM-1; lifecycle only, no real capture yet)</Description>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
     <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
-    <ProjectReference Include="..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
   </ItemGroup>
 
 </Project>

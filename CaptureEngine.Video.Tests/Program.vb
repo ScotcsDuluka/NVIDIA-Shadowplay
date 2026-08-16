@@ -32,6 +32,12 @@ Namespace CaptureEngine.Video.Tests
             ' ----- Lifecycle tests (§4.3, 11 cases) -----
             BackendLifecycleTests.RunAll(AddressOf RunTest)
 
+            ' ----- P1-B.1 FIX regression tests -----
+            DeadlockRegressionTests.RunAll(AddressOf RunTest)
+
+            ' ----- GLM-1: DdagrabBackend skeleton tests -----
+            DdagrabBackendLifecycleTests.RunAll(AddressOf RunTest)
+
             ' ----- Frame contract tests (FrameAvailable / NoFrame / Error / BGRA8 / diagnostics) -----
             FrameAvailabilityTests.RunAll(AddressOf RunTest)
 
@@ -43,6 +49,9 @@ Namespace CaptureEngine.Video.Tests
 
             ' ----- Replaceability tests -----
             ReplaceabilityTests.RunAll(AddressOf RunTest)
+
+            ' ----- GLM-1: DdagrabBackend replaceability tests -----
+            DdagrabReplaceabilityTests.RunAll(AddressOf RunTest)
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
