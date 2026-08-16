@@ -863,7 +863,7 @@ Partial Public Class UI_Engine
                 progressWriter.WriteLine($"CaptureMethod: {_settings.CaptureMethod}")
                 progressWriter.WriteLine()
 
-                Dim results As List(Of StressTestRunner.TestResult) =
+                Dim stressResults As List(Of StressTestRunner.TestResult) =
                     Await runner.RunMatrixAsync(scenarios,
                         Sub(r As StressTestRunner.TestResult, done As Integer, total As Integer)
                             Dim line As String = $"  [{done}/{total}] {r}"
@@ -882,10 +882,10 @@ Partial Public Class UI_Engine
                             End Try
                         End Sub)
                 progressWriter.WriteLine()
-                progressWriter.WriteLine(StressTestRunner.FormatResultTable(results))
+                progressWriter.WriteLine(StressTestRunner.FormatResultTable(stressResults))
             End Using
 
-            Dim table As String = StressTestRunner.FormatResultTable(results)
+            Dim table As String = StressTestRunner.FormatResultTable(stressResults)
             Console.WriteLine(table)
 
             ' Save to file
@@ -896,10 +896,10 @@ Partial Public Class UI_Engine
             ' Show summary
             ' Note: use Enumerable.Count() extension method explicitly to avoid
             ' ambiguity with List(Of T).Count property (which has no predicate).
-            Dim passCount As Integer = Enumerable.Count(results, Function(r) r.Pass)
-            Dim failCount As Integer = results.Count - passCount
+            Dim passCount As Integer = Enumerable.Count(stressResults, Function(r) r.Pass)
+            Dim failCount As Integer = stressResults.Count - passCount
             Dim summary As String = $"Stress test complete!{vbCrLf}{vbCrLf}" &
-                                   $"Total: {results.Count}  |  Pass: {passCount}  |  Fail: {failCount}{vbCrLf}{vbCrLf}" &
+                                   $"Total: {stressResults.Count}  |  Pass: {passCount}  |  Fail: {failCount}{vbCrLf}{vbCrLf}" &
                                    $"Full results saved to:{vbCrLf}{logPath}"
             MessageBox.Show(summary, "Stress Test Complete",
                           MessageBoxButtons.OK,
