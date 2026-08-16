@@ -91,11 +91,22 @@ public static class NvEncodeAPI
     public const int NV_ENC_BUFFER_FORMAT_ABGR = 0x10000000;     // was 0x00800000 (wrong)
     public const int NV_ENC_BUFFER_FORMAT_ABGR10 = 0x20000000;   // was 0x01000000 (wrong)
 
-    // === Codec GUIDs (predefined by NVIDIA) ===
+    // === Codec GUIDs (verified from nvEncodeAPI.h SDK 13.1.15) ===
+    //
+    // Previous versions of this file had WRONG GUID values copied from FFmpeg
+    // source (which uses an older SDK). The correct values from SDK 13.1:
+    //
+    //   H.264: {6BC82762-4E63-4ca4-AA85-1E50F321F6BF}
+    //   HEVC:  {790CDC88-4522-4d7b-9425-BDA9975F7603}
+    //
+    // The spike output confirmed these — NVENC returned exactly these GUIDs
+    // when we enumerated supported codecs.
     public static readonly Guid NV_ENC_CODEC_H264_GUID =
-        new(0x6bc82762, 0x4e63, 0x4ca4, 0xaa, 0x85, 0x1a, 0x4d, 0x8c, 0x39, 0x44, 0x0c);
+        new(0x6bc82762, 0x4e63, 0x4ca4, 0xaa, 0x85, 0x1e, 0x50, 0xf3, 0x21, 0xf6, 0xbf);
     public static readonly Guid NV_ENC_CODEC_HEVC_GUID =
-        new(0x790cdc88, 0x4522, 0x4ce7, 0x9c, 0x87, 0x14, 0x2b, 0x4c, 0x4c, 0x4a, 0xbc);
+        new(0x790cdc88, 0x4522, 0x4d7b, 0x94, 0x25, 0xbd, 0xa9, 0x97, 0x5f, 0x76, 0x03);
+    // AV1 codec GUID is not in SDK 13.1.15 header — may exist in newer SDKs.
+    // For the spike, we only need H.264, so this is informational only.
     public static readonly Guid NV_ENC_CODEC_AV1_GUID =
         new(0xc24b3f5d, 0x7354, 0x4ca4, 0x9c, 0xa2, 0x6a, 0x2b, 0x55, 0x4d, 0xb0, 0xa8);
 
