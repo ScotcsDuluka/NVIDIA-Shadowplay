@@ -153,17 +153,12 @@ Public Class StressTestRunner
 
     ''' <summary>
     ''' Build the default test matrix (10 scenarios from the user's spec).
-    ''' Each scenario uses a fresh CaptureSettings instance.
+    ''' Uses baseSettings passed from UI (with real FFmpegPath, Encoder, etc.).
     ''' </summary>
-    Public Function BuildDefaultMatrix() As List(Of TestScenario)
+    Public Function BuildDefaultMatrix(baseSettings As CaptureSettings) As List(Of TestScenario)
         Dim scenarios As New List(Of TestScenario)()
 
-        ' Helper to create base settings
-        Dim baseSettings As CaptureSettings = CaptureSettings.Load(Path.Combine(_outputDir, "stress-test-config.json"))
-        If String.IsNullOrEmpty(baseSettings.FFmpegPath) OrElse Not File.Exists(baseSettings.FFmpegPath) Then
-            ' Fallback: use default detection
-            baseSettings = CaptureSettings.CreateDefault(Path.Combine(_outputDir, "stress-test-config.json"))
-        End If
+        ' Use the settings passed from UI (already has FFmpegPath/Encoder/MicDeviceId)
         baseSettings.OutputDirectory = _outputDir
 
         ' ── 1. Video only ──

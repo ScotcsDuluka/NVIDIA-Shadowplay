@@ -822,29 +822,9 @@ Partial Public Class UI_Engine
 
             ' Build runner — pass Nothing for engine (RunSingleCycleAsync creates its own)
             Dim runner As New StressTestRunner(Nothing, outputDir)
-            Dim scenarios As List(Of StressTestRunner.TestScenario) = runner.BuildDefaultMatrix()
-
-            ' Override base settings fields that come from UI config
-            For Each s As StressTestRunner.TestScenario In scenarios
-                s.Settings.FFmpegPath = _settings.FFmpegPath
-                s.Settings.Encoder = _settings.Encoder
-                s.Settings.CaptureMethod = _settings.CaptureMethod
-                s.Settings.UseNativeResolution = _settings.UseNativeResolution
-                s.Settings.CustomWidth = _settings.CustomWidth
-                s.Settings.CustomHeight = _settings.CustomHeight
-                s.Settings.NvencPreset = _settings.NvencPreset
-                s.Settings.PixelFormat = _settings.PixelFormat
-                s.Settings.OutputDirectory = outputDir
-                ' Inherit mic device from UI config (so scenarios 03/04/05/08 use correct device)
-                If s.Settings.MicCapture Then
-                    s.Settings.MicDeviceId = _settings.MicDeviceId
-                    s.Settings.MicDeviceName = _settings.MicDeviceName
-                    s.Settings.MicVolume = _settings.MicVolume
-                End If
-                If s.Settings.SystemAudioCapture Then
-                    s.Settings.SystemAudioVolume = _settings.SystemAudioVolume
-                End If
-            Next
+            ' Pass current UI settings as base — has real FFmpegPath/Encoder/MicDeviceId
+            Dim baseSettings As CaptureSettings = CloneSettingsForStress(_settings)
+            Dim scenarios As List(Of StressTestRunner.TestScenario) = runner.BuildDefaultMatrix(baseSettings)
 
             Console.WriteLine($"Running {scenarios.Count} scenarios…")
 
@@ -1240,4 +1220,38 @@ Partial Public Class UI_Engine
                             MessageBoxButtons.OK, MessageBoxIcon.Error)
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Clone current UI settings for stress test base.
+    ''' Copies all fields needed by scenarios (FFmpegPath, Encoder, MicDeviceId, etc.).
+    ''' </summary>
+    Private Function CloneSettingsForStress(src As CaptureSettings) As CaptureSettings
+        Dim clone As New CaptureSettings()
+        clone.UseNativeResolution = src.UseNativeResolution
+        clone.Encoder = src.Encoder
+        clone.FPS = src.FPS
+        clone.Bitrate = src.Bitrate
+        clone.CaptureMethod = src.CaptureMethod
+        clone.OutputDirectory = src.OutputDirectory
+        clone.SystemAudioCapture = src.SystemAudioCapture
+        clone.MicCapture = src.MicCapture
+        clone.SystemAudioVolume = src.SystemAudioVolume
+        clone.MicVolume = src.MicVolume
+        clone.MicDeviceName = src.MicDeviceName
+        clone.MicDeviceId = src.MicDeviceId
+        clone.AudioTrackMode = src.AudioTrackMode
+        clone.PixelFormat = src.PixelFormat
+        clone.Preset = src.Preset
+        clone.NvencPreset = src.NvencPreset
+        clone.RateControl = src.RateControl
+        clone.FileFormat = src.FileFormat
+        clone.FFmpegPath = src.FFmpegPath
+        clone.HotkeyStart = src.HotkeyStart
+        clone.HotkeyStop = src.HotkeyStop
+        clone.HotkeyToggle = src.HotkeyToggle
+        clone.CustomWidth = src.CustomWidth
+        clone.CustomHeight = src.CustomHeight
+        clone.ConfigVersion = src.ConfigVersion
+        Return clone
+    End Function
 End Class
