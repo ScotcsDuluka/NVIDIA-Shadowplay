@@ -25,8 +25,23 @@ Namespace CaptureEngine.Video
         Sub Start(sink As IVideoFrameSink)
 
         ''' <summary>
-        ''' Stop emitting. Must drain in-flight results per the configured
-        ''' BoundedHandoffPolicy before returning.
+        ''' Stop emitting NEW results. (P1-A v1.3.1 §4 + P1-B.1 FIX change #2.)
+        '''
+        ''' Contract:
+        '''   - Stop stops the producer (the backend's worker thread / capture
+        '''     loop / frame-pool subscription). After Stop returns, the backend
+        '''     MUST NOT push any NEW results into the sink.
+        '''   - Any results ALREADY pushed to the sink (and still queued inside
+        '''     it) remain OWNED BY THE SINK. The sink is responsible for
+        '''     disposing their wrapped frames (on sink eviction / sink Dispose
+        '''     / consumer Take).
+        '''   - The backend MUST NOT require an unbounded drain of the sink's
+        '''     queue during Stop. The backend may flush its own internal
+        '''     in-flight buffers (bounded), but it does NOT wait for the
+        '''     downstream consumer to dequeue every queued result.
+        '''   - Stop must return within a bounded time (the Foundation's
+        '''     existing 2-second budget). If the worker does not acknowledge,
+        '''     the backend logs an error and proceeds to the Stopped state.
         ''' </summary>
         Sub [Stop]()
 

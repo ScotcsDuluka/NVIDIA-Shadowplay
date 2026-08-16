@@ -200,6 +200,21 @@ Namespace CaptureEngine.Video.Backends.Fake
         End Sub
 
         Public Sub Dispose() Implements IDisposable.Dispose
+            ' P0 fix: NEVER wait for the worker thread while holding _sync.
+            ' The worker itself needs _sync on every iteration (to read the script
+            ' and to update diagnostics counters), so holding _sync across
+            ' worker.Join() is a guaranteed deadlock.
+            '
+            ' Pattern (per GPT P1-B.1 FIX change #1):
+            '   1. Capture state under lock; set the stop signal under lock;
+            '      mark _disposed to make Dispose idempotent.
+            '   2. Release the lock.
+            '   3. Join the worker thread OUTSIDE the lock.
+            '   4. Re-acquire the lock ONLY to finalize state to Disposed.
+
+            Dim workerToJoin As Thread = Nothing
+            Dim needJoin As Boolean = False
+
             SyncLock _sync
                 If _disposed Then Return
                 _disposed = True
@@ -209,20 +224,34 @@ Namespace CaptureEngine.Video.Backends.Fake
                 ElseIf _state = FakeBackendState.Running OrElse _state = FakeBackendState.Starting Then
                     _logger.Info("FakeVideoCaptureBackend: Dispose while Running — invoking stop path.")
                     _state = FakeBackendState.Stopping
-                    Try
-                        _stopSignal = True
-                        Dim worker = _workerThread
-                        If worker IsNot Nothing Then
-                            worker.Join(TimeSpan.FromSeconds(2))
-                        End If
-                    Catch ex As Exception
-                        _logger.Error("FakeVideoCaptureBackend: stop path failed during Dispose (will still dispose)", ex)
-                    End Try
-                    _state = FakeBackendState.Stopped
+                    _stopSignal = True
+                    workerToJoin = _workerThread
+                    needJoin = True
                 Else
                     _logger.Info("FakeVideoCaptureBackend: Dispose from state '" & _state.ToString() & "'.")
                 End If
+            End SyncLock
 
+            ' JOIN OUTSIDE THE LOCK — the worker needs _sync on every iteration.
+            If needJoin AndAlso workerToJoin IsNot Nothing Then
+                Try
+                    If Not workerToJoin.Join(TimeSpan.FromSeconds(2)) Then
+                        If _logger IsNot Nothing Then
+                            _logger.Error("FakeVideoCaptureBackend: worker did not acknowledge stop within 2 s", Nothing)
+                        End If
+                    End If
+                Catch ex As Exception
+                    If _logger IsNot Nothing Then
+                        _logger.Error("FakeVideoCaptureBackend: stop path failed during Dispose (will still dispose)", ex)
+                    End If
+                End Try
+            End If
+
+            ' RE-ACQUIRE LOCK ONLY TO FINALIZE STATE.
+            SyncLock _sync
+                If _state = FakeBackendState.Stopping Then
+                    _state = FakeBackendState.Stopped
+                End If
                 _state = FakeBackendState.Disposed
                 _logger.Info("FakeVideoCaptureBackend: disposed")
             End SyncLock

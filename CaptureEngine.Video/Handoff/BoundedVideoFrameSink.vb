@@ -104,8 +104,18 @@ Namespace CaptureEngine.Video.Handoff
         ''' Non-blocking push per the contract. NEVER throws for queue-full;
         ''' returns Dropped (DropNewest policy) or Pushed-with-eviction
         ''' (DropOldest policy, returns Replaced).
+        '''
+        ''' P1-B.1 FIX change #3: evicted frames are extracted under the
+        ''' lock but disposed OUTSIDE the lock. The queue mutation itself
+        ''' (Dequeue/Enqueue + counter increments) stays under lock; the
+        ''' potentially heavy frame.Dispose() call is moved out so that
+        ''' concurrent TryPush / TryTake / Dispose calls are not blocked
+        ''' by an unrelated frame's Dispose (which on GPU frames may
+        ''' synchronously release GPU resources).
         ''' </summary>
         Public Function TryPush(result As FrameAcquisitionResult) As PushOutcome Implements IVideoFrameSink.TryPush
+            Dim toDisposeOutsideLock As IVideoFrame = Nothing
+
             SyncLock _sync
                 If _disposed Then
                     _droppedCount += 1
@@ -122,11 +132,12 @@ Namespace CaptureEngine.Video.Handoff
                 Select Case _policy
                     Case BoundedHandoffPolicy.DropOldest
                         Dim evicted = _queue.Dequeue()
-                        DisposeEvictedFrame(evicted)
+                        ' Extract the evicted frame for disposal outside the lock.
+                        toDisposeOutsideLock = evicted.Frame
                         _queue.Enqueue(result)
                         _pushedCount += 1
                         _replacedCount += 1
-                        Return PushOutcome.Replaced
+                        ' (return value is set after the lock is released)
 
                     Case BoundedHandoffPolicy.DropNewest
                         ' Refuse the new result. Caller retains ownership.
@@ -137,6 +148,13 @@ Namespace CaptureEngine.Video.Handoff
                         Throw New InvalidOperationException("Unknown policy: " & _policy.ToString())
                 End Select
             End SyncLock
+
+            ' DISPOSE THE EVICTED FRAME OUTSIDE THE LOCK.
+            If toDisposeOutsideLock IsNot Nothing Then
+                DisposeFrameSafely(toDisposeOutsideLock)
+            End If
+
+            Return PushOutcome.Replaced
         End Function
 
         ''' <summary>
@@ -156,28 +174,43 @@ Namespace CaptureEngine.Video.Handoff
         End Function
 
         Public Sub Dispose()
+            ' P1-B.1 FIX change #3: drain queued results UNDER the lock (queue
+            ' mutation only), then dispose their frames OUTSIDE the lock.
+            Dim drained As New List(Of IVideoFrame)()
+
             SyncLock _sync
                 If _disposed Then Return
                 _disposed = True
-                ' Drain remaining items and dispose their frames.
+                ' Detach all queued results; collect frames for later disposal.
                 While _queue.Count > 0
                     Dim item = _queue.Dequeue()
-                    DisposeEvictedFrame(item)
+                    If item.Frame IsNot Nothing Then
+                        drained.Add(item.Frame)
+                    End If
                 End While
             End SyncLock
+
+            ' DISPOSE ALL DRAINED FRAMES OUTSIDE THE LOCK.
+            For Each frame In drained
+                DisposeFrameSafely(frame)
+            Next
         End Sub
 
-        Private Sub DisposeEvictedFrame(result As FrameAcquisitionResult)
-            Dim frame = result.Frame
-            If frame IsNot Nothing Then
-                Try
-                    frame.Dispose()
-                Catch ex As Exception
-                    If _logger IsNot Nothing Then
-                        _logger.Error("BoundedVideoFrameSink: error disposing evicted frame", ex)
-                    End If
-                End Try
-            End If
+        ''' <summary>
+        ''' Dispose a frame safely (swallow exceptions; log if a logger is present).
+        ''' Called OUTSIDE the lock. Named differently from the old
+        ''' DisposeEvictedFrame so the call sites make it obvious which path
+        ''' is lock-free.
+        ''' </summary>
+        Private Sub DisposeFrameSafely(frame As IVideoFrame)
+            If frame Is Nothing Then Return
+            Try
+                frame.Dispose()
+            Catch ex As Exception
+                If _logger IsNot Nothing Then
+                    _logger.Error("BoundedVideoFrameSink: error disposing frame outside lock", ex)
+                End If
+            End Try
         End Sub
     End Class
 End Namespace
