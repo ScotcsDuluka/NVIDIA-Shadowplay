@@ -24,7 +24,7 @@ Partial Class Base_RecordingsSet
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_RecordingsSet))
-        ALTZ = New Timer(components)
+        Recoed_IF = New Timer(components)
         setret = New Panel()
         Panel_SetVDO = New Panel()
         text_settings = New Label()
@@ -216,9 +216,9 @@ Partial Class Base_RecordingsSet
         CType(PictureBox22, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
-        ' ALTZ
+        ' Recoed_IF
         ' 
-        ALTZ.Enabled = True
+        Recoed_IF.Enabled = True
         ' 
         ' setret
         ' 
@@ -1867,7 +1867,7 @@ Partial Class Base_RecordingsSet
         ResumeLayout(False)
     End Sub
 
-    Friend WithEvents ALTZ As Timer
+    Friend WithEvents Recoed_IF As Timer
     Friend WithEvents action_fn As Label
     Friend WithEvents Label4 As Label
     Friend WithEvents settings_top As PictureBox

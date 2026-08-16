@@ -2025,7 +2025,7 @@ Public Class Base_RecordingsSet
     End Sub
 
     ' ALTZ Timer
-    Private Sub ALTZ_Tick(sender As Object, e As EventArgs) Handles ALTZ.Tick
+    Private Sub ALTZ_Tick(sender As Object, e As EventArgs) Handles Recoed_IF.Tick
         If Base.ReplayValue OrElse Base.RecordValue Then
             Panel_SET.Visible = False
             Panel_SET.Enabled = False

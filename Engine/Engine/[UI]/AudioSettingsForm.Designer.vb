@@ -30,7 +30,7 @@ Partial Class AudioSettingsForm
         BT_Back = New Label()
         settings_top = New PictureBox()
         settings_menu = New Panel()
-        Label2 = New Label()
+        ICO_MENU1 = New Label()
         PictureBox5 = New PictureBox()
         PictureBox4 = New PictureBox()
         PictureBox3 = New PictureBox()
@@ -38,6 +38,7 @@ Partial Class AudioSettingsForm
         hg2 = New PictureBox()
         Audio_Capture_Menutext = New Label()
         OPEN_UI = New System.Windows.Forms.Timer(components)
+        quality_main = New Label()
         grpTrackMode.SuspendLayout()
         grpSystem.SuspendLayout()
         CType(trkSystemVol, ComponentModel.ISupportInitialize).BeginInit()
@@ -283,7 +284,8 @@ Partial Class AudioSettingsForm
         ' 
         settings_menu.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         settings_menu.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        settings_menu.Controls.Add(Label2)
+        settings_menu.Controls.Add(quality_main)
+        settings_menu.Controls.Add(ICO_MENU1)
         settings_menu.Controls.Add(PictureBox5)
         settings_menu.Controls.Add(PictureBox4)
         settings_menu.Controls.Add(PictureBox3)
@@ -303,17 +305,17 @@ Partial Class AudioSettingsForm
         settings_menu.Size = New Size(1760, 840)
         settings_menu.TabIndex = 98
         ' 
-        ' Label2
+        ' ICO_MENU1
         ' 
-        Label2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label2.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label2.ForeColor = Color.White
-        Label2.Location = New Point(62, 85)
-        Label2.Name = "Label2"
-        Label2.Size = New Size(61, 67)
-        Label2.TabIndex = 111
-        Label2.Text = ""
-        Label2.TextAlign = ContentAlignment.MiddleLeft
+        ICO_MENU1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ICO_MENU1.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ICO_MENU1.ForeColor = Color.White
+        ICO_MENU1.Location = New Point(62, 85)
+        ICO_MENU1.Name = "ICO_MENU1"
+        ICO_MENU1.Size = New Size(61, 67)
+        ICO_MENU1.TabIndex = 111
+        ICO_MENU1.Text = ""
+        ICO_MENU1.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' PictureBox5
         ' 
@@ -373,10 +375,10 @@ Partial Class AudioSettingsForm
         ' Audio_Capture_Menutext
         ' 
         Audio_Capture_Menutext.AutoSize = True
-        Audio_Capture_Menutext.Font = New Font("Segoe UI", 17.0F, FontStyle.Bold)
+        Audio_Capture_Menutext.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
         Audio_Capture_Menutext.Location = New Point(62, 43)
         Audio_Capture_Menutext.Name = "Audio_Capture_Menutext"
-        Audio_Capture_Menutext.Size = New Size(169, 31)
+        Audio_Capture_Menutext.Size = New Size(210, 42)
         Audio_Capture_Menutext.TabIndex = 0
         Audio_Capture_Menutext.Text = "Audio Capture"
         ' 
@@ -384,6 +386,18 @@ Partial Class AudioSettingsForm
         ' 
         OPEN_UI.Enabled = True
         OPEN_UI.Interval = 1
+        ' 
+        ' quality_main
+        ' 
+        quality_main.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        quality_main.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        quality_main.ForeColor = Color.White
+        quality_main.Location = New Point(129, 85)
+        quality_main.Name = "quality_main"
+        quality_main.Size = New Size(515, 67)
+        quality_main.TabIndex = 73
+        quality_main.Text = "Quality:"
+        quality_main.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' AudioSettingsForm
         ' 
@@ -455,5 +469,6 @@ Partial Class AudioSettingsForm
     Friend WithEvents hg2 As PictureBox
     Friend WithEvents Audio_Capture_Menutext As Label
     Friend WithEvents OPEN_UI As System.Windows.Forms.Timer
-    Friend WithEvents Label2 As Label
+    Friend WithEvents ICO_MENU1 As Label
+    Friend WithEvents quality_main As Label
 End Class
