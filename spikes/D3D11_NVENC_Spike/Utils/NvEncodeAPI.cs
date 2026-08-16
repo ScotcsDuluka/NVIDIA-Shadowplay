@@ -268,13 +268,18 @@ public static class NvEncodeAPI
     public delegate int NvEncDestroyEncoderDelegate(IntPtr encoder);
 
     // === P/Invoke for the NVENC loader functions ===
-    // nvEncodeAPI.dll exports only these two functions directly; all other
-    // functions are obtained via the function table.
-    [DllImport("nvEncodeAPI.dll", CallingConvention = CallingConvention.StdCall,
+    // NVIDIA Video Codec SDK 12.x ships the 64-bit DLL as 'nvEncodeAPI64.dll'
+    // (older SDKs named it 'nvEncodeAPI.dll'). This spike builds x64-only, so
+    // we use the 64-bit name directly.
+    //
+    // If you only have nvEncodeAPI.dll on disk (older SDK), either:
+    //   1. Rename the file to nvEncodeAPI64.dll, OR
+    //   2. Change the DllImport strings below back to "nvEncodeAPI.dll"
+    [DllImport("nvEncodeAPI64.dll", CallingConvention = CallingConvention.StdCall,
                SetLastError = false, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     public static extern int NvEncodeAPICreateInstance(ref NV_ENCODE_API_FUNCTION_LIST functionList);
 
-    [DllImport("nvEncodeAPI.dll", CallingConvention = CallingConvention.StdCall,
+    [DllImport("nvEncodeAPI64.dll", CallingConvention = CallingConvention.StdCall,
                SetLastError = false, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     public static extern int NvEncodeAPIGetMaxSupportedVersion(out uint version);
 
@@ -396,10 +401,12 @@ public sealed class NvEncFunctionTable : IDisposable
         }
         catch (DllNotFoundException ex)
         {
-            Console.Error.WriteLine($"ERROR: nvEncodeAPI.dll not found.");
-            Console.Error.WriteLine("  Install NVIDIA Video Codec SDK and copy nvEncodeAPI.dll to:");
+            Console.Error.WriteLine($"ERROR: nvEncodeAPI64.dll not found.");
+            Console.Error.WriteLine("  Install NVIDIA Video Codec SDK 12.x and copy nvEncodeAPI64.dll to:");
             Console.Error.WriteLine("    - This project's bin/x64/Debug/net8.0-windows/ directory, OR");
             Console.Error.WriteLine("    - C:\\Windows\\System32\\");
+            Console.Error.WriteLine("  If you only have nvEncodeAPI.dll (older SDK name), rename it to");
+            Console.Error.WriteLine("  nvEncodeAPI64.dll OR update the DllImport in Utils/NvEncodeAPI.cs.");
             Console.Error.WriteLine($"  Exception: {ex.Message}");
             return false;
         }
