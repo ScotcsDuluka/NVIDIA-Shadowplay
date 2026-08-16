@@ -105,13 +105,30 @@ public static class NvEncodeAPI
 
     /// <summary>
     /// Computes the struct version field per NVENC's convention:
-    ///   version = sizeof(struct) | (NVENCAPI_VERSION << 16)
+    ///
+    ///   version = NVENCAPI_STRUCT_VERSION(structVer)
+    ///          = structVer | (NVENCAPI_VERSION << 16)
+    ///
+    /// Where structVer is the STRUCT's own version number (always 1 for
+    /// current SDK), NOT the struct size. This was a long-standing bug
+    /// in the spike — I incorrectly encoded sizeof(struct) in the low
+    /// bits, which caused NVENC to reject with NV_ENC_ERR_GENERIC.
+    ///
+    /// For SDK 13.0:
+    ///   MakeStructVersion() = 1 | (0xD0 << 16) = 0x00D00001
     /// </summary>
-    public static uint MakeStructVersion<T>() where T : struct
+    public static uint MakeStructVersion()
     {
-        int structSize = Marshal.SizeOf<T>();
-        return (uint)structSize | (NVENCAPI_VERSION << 16);
+        // structVer is always 1 for current NVENC structs.
+        const uint structVer = 1;
+        return structVer | (NVENCAPI_VERSION << 16);
     }
+
+    /// <summary>
+    /// Backward-compatible overload — accepts a type parameter (ignored)
+    /// so existing call sites using MakeStructVersion&lt;T&gt;() still compile.
+    /// </summary>
+    public static uint MakeStructVersion<T>() where T : struct => MakeStructVersion();
 
     // === Structs ===
     //
