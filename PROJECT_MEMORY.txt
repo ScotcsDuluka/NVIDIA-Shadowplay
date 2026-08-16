@@ -1,0 +1,272 @@
+NVIDIA-Shadowplay — PROJECT MEMORY
+===================================
+
+[OWNER]
+
+ชื่อ:
+ScotcsDuluka
+
+สถานะ:
+เจ้าของโปรเจกต์และผู้ตัดสินใจขั้นสุดท้าย
+
+หลัก:
+AI ทุกตัวเป็นผู้ช่วย
+OWNER มีอำนาจตัดสินใจขั้นสุดท้าย
+
+
+[PROJECT]
+
+ชื่อ:
+NVIDIA-Shadowplay
+
+Repository:
+https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
+
+ส่วน ลำดับ ว่า txt นี้มาจาก ai ตัวให้จะเรียงเป็น เราจะเว้น เยอะๆ เพื่อ แยก ข้อมูล ของ แต่ละ ai
+
+
+
+
+
+glm
+
+
+
+deep
+
+
+
+gem
+
+
+
+clde
+
+
+[TECH STACK]
+
+UI:
+- VB.NET WinForms
+
+ENGINE:
+- VB.NET / .NET เป็นหลัก
+- สามารถใช้ C# เพิ่มได้เมื่อเหมาะสม
+
+LANGUAGE POLICY:
+- ไม่จำเป็นต้องย้ายทั้งโปรเจกต์ไป C#
+- เลือกภาษาโดยดูจาก Performance, API Support, Maintainability และ Integration
+- การเพิ่มภาษาใหม่ต้องไม่ทำให้ระบบซับซ้อนโดยไม่จำเป็น
+
+TARGET:
+- Windows
+
+
+[GITHUB ACCESS]
+
+Repository Owner:
+ScotcsDuluka
+
+GitHub Token:
+PROVIDED SEPARATELY
+
+กฎ:
+- ห้ามเก็บ Token / Password / API Key / Secret / Credential ในไฟล์นี้
+- Credential ต้องเก็บแยกในระบบที่ปลอดภัย
+
+
+[AI TEAM]
+
+GPT
+สถานะ: ACTIVE
+บทบาท: CHIEF ENGINEER / DECISION LEAD
+
+หน้าที่:
+- วิเคราะห์ Architecture
+- รวบรวมข้อมูลจากทีม
+- แยก Fact / Hypothesis / Risk / Unknown
+- เปรียบเทียบทางเลือก
+- ช่วย OWNER ตัดสินใจ
+- สรุป Technical Recommendation
+
+
+GLM 5.2
+สถานะ: ACTIVE / ใช้งานเมื่อเข้าถึงได้
+บทบาท: LEAD AGENT / REPO & CODING LEAD
+
+หน้าที่:
+- คุม Repository
+- Coding
+- Refactor
+- งานหลายไฟล์
+- งานขนาดใหญ่
+- Build / Test
+- ใช้ Agent และ Context ขนาดใหญ่ให้คุ้ม
+
+
+Claude
+สถานะ: ACTIVE
+บทบาท: REVIEWER / CHALLENGER
+
+หน้าที่:
+- Review Code / Architecture
+- หา Bug / Edge Case
+- Challenge ข้อสรุปของทีม
+
+คำถามหลัก:
+"มึงแน่ใจเหรอว่ามันถูก?"
+
+
+DeepSeek
+สถานะ: ACTIVE
+บทบาท: REVIEWER / CHALLENGER
+
+หน้าที่:
+- Challenge สมมติฐาน
+- หา Alternative
+- วิเคราะห์ Failure Mode
+- Review GPT / GLM / แนวทางของทีม
+
+คำถามหลัก:
+"มึงแน่ใจเหรอว่ามันถูก?"
+
+
+Gemini Flash
+สถานะ: ACTIVE
+บทบาท: RESEARCH & EVIDENCE ANALYST
+
+หน้าที่:
+- ค้นข้อมูลออนไลน์
+- Documentation
+- Technical References
+- GitHub Issues / Discussions
+- External Code Examples
+- ข้อมูลล่าสุดที่เกี่ยวข้องกับโปรเจกต์
+
+
+[TEAM WORKFLOW]
+
+ScotcsDuluka
+    ↓
+GPT — Decision Lead
+    ↓
+┌──────────────┬──────────────┬──────────────┐
+GLM 5.2        Claude         DeepSeek       Gemini Flash
+Coding/Repo    Review          Challenge      Research
+    └──────────────┴──────────────┴──────────────┘
+                         ↓
+                   Evidence / Tests
+                         ↓
+                  GPT Recommendation
+                         ↓
+                  OWNER Final Decision
+
+
+[PROJECT RULES]
+
+คิดใหม่ เพราะเราต้องใช้โปรเจกต์นี้แบบระยะยาว
+
+- ใช้ Code จริง + Test จริง + Log จริง เป็นหลัก
+- อย่าเดา Root Cause ถ้ายังตรวจสอบได้
+- แยก Fact ออกจาก Hypothesis
+- อย่าเชื่อ AI เพียงเพราะ AI พูดอย่างมั่นใจ
+- ลด Coupling
+- แยก Responsibility
+- ทุกระบบสำคัญควรทดสอบแยกได้
+- อย่าเอา Code เก่ากลับมาใช้เพียงเพราะมันมีอยู่
+- ใช้ของเก่าเฉพาะส่วนที่พิสูจน์แล้วว่าใช้ได้จริง
+- Stability และ Maintainability สำคัญกว่าการแก้ปัญหาเร็ว
+- อย่าผูกโปรเจกต์กับ AI ตัวใดตัวหนึ่ง
+- อย่าผูก Architecture กับ Engine รุ่นใดรุ่นหนึ่ง
+
+
+[CURRENT TECHNICAL FACTS]
+
+จากการทดสอบที่ผ่านมา:
+
+- ddagrab + NVENC สามารถทำงานประมาณ 144 FPS ได้
+- Video-only สามารถทำงานระดับ ~144 FPS ได้
+- Synthetic / lavfi Audio ไม่ได้ทำให้ Video พังแบบ Live WASAPI
+- Named Pipe ไม่ใช่ Root Cause หลักจากการทดสอบ
+- Live WASAPI เคยทำให้ Video FPS ลดลงอย่างรุนแรง
+- Engine-Audio รุ่นก่อนหน้าไม่ควรถูกนำมาเป็น Architecture หลักของ Engine ใหม่
+
+
+[CURRENT ENGINE DIRECTION]
+
+เริ่ม Engine ใหม่จาก 0 ได้
+
+เหตุผล:
+- UI มีอยู่แล้ว
+- Config System มีอยู่แล้ว
+- Video Configuration เก็บใน JSON ได้แล้ว
+- Engine ใหม่สามารถอ่าน JSON โดยไม่ขึ้นกับ UI
+- ไม่จำเป็นต้องแบก Architecture เก่าที่มีปัญหากลับมา
+
+หลัก:
+- Video และ Audio ต้องแยก Pipeline
+- Audio ต้องไม่ Block Video
+- แต่ละ Pipeline ต้อง Test แยกได้
+- Engine ต้องสามารถขยายและเปลี่ยน Implementation ได้ในอนาคต
+
+
+[ENGINE DEVELOPMENT ORDER]
+
+Phase 0:
+Foundation
+- Engine Skeleton
+- Config Reader
+- Logging
+- Error Handling
+- Test Harness
+
+Phase 1:
+Video Pipeline
+- ddagrab
+- Video Capture
+- NVENC
+- Video-only Baseline
+- Performance Metrics
+
+Phase 2:
+Output Pipeline
+
+Phase 3:
+Audio Pipeline
+
+Phase 4:
+Synchronization
+
+Phase 5:
+UI Integration
+
+Phase 6:
+Advanced Features
+
+
+[DECISION RULE]
+
+เมื่อมี Decision สำคัญ:
+
+1. รวบรวม Code / Log / Test / Benchmark
+2. ให้ AI ที่เกี่ยวข้องวิเคราะห์
+3. Gemini หา External Evidence เมื่อจำเป็น
+4. Claude / DeepSeek Challenge
+5. GLM ทดลองหรือ Implement เมื่อ Task ชัด
+6. GPT สรุป Recommendation
+7. OWNER ตัดสินใจ
+8. Implement
+9. Test / Benchmark
+10. บันทึกผลลัพธ์
+
+
+[CURRENT STATUS]
+
+กำลังเตรียมเริ่ม Engine ใหม่จาก 0
+
+เป้าหมายใกล้:
+สร้าง Foundation ที่สะอาด
+จากนั้นพิสูจน์ Video Pipeline ระดับ ~144 FPS
+ก่อนเพิ่ม Audio
+
+เป้าหมายระยะยาว:
+สร้าง Engine ที่เสถียร ดูแลได้หลายปี และขยายต่อได้
