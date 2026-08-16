@@ -1225,6 +1225,15 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub btnOpenAudioSettings_Click(sender As Object, e As EventArgs) Handles btnOpenAudioSettings.Click
+        ' Audio Settings form is controlled by Audio.UI marker file system.
+        ' Overlay (NVIDIA Shadowplay.exe) creates Audio.UI when user clicks Audio icon.
+        ' OPEN_UI timer in AudioSettingsForm polls for Audio.UI:
+        '   - Audio.UI exists → Opacity=1, Maximized, Show()
+        '   - Audio.UI gone → Opacity=0, Minimized
+        ' BT_Back/Cancel in AudioSettingsForm deletes Audio.UI → Overlay shows again.
+        '
+        ' This button just creates the form instance (if not already running).
+        ' The actual show/hide is controlled by the marker file.
         Try
             Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
             SyncWithOverlayConfig(s)
@@ -1234,14 +1243,7 @@ Partial Public Class UI_Engine
                 videoJsonPath = ""
             End If
 
-            ' Create Audio.UI marker file so OPEN_UI timer shows the form
-            Dim uiMarkerPath As String = IO.Path.Combine(Application.StartupPath, "Audio.UI")
-            Try
-                IO.File.WriteAllText(uiMarkerPath, DateTime.Now.ToString())
-            Catch
-            End Try
-
-            ' Use Show() not ShowDialog() — OPEN_UI timer controls visibility via Audio.UI marker
+            ' Just create the form — Overlay creates Audio.UI to trigger show
             Dim frm As New AudioSettingsForm(s, _configPath, videoJsonPath)
             frm.Show(Me)
 
