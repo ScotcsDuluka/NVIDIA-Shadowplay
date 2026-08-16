@@ -1,32 +1,74 @@
 Imports System.IO
-Imports System.Runtime.InteropServices
 Imports Newtonsoft.Json.Linq
 
 Public Class AudioSettingsForm
+    Const WS_EX_TRANSPARENT As Integer = &H20
+
+
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
+    End Function
+
+    Protected Overrides Sub WndProc(ByRef m As Message)
+
+        Const WM_NCHITTEST As Integer = &H84
+        Const HTTRANSPARENT As Integer = -1
+
+        If m.Msg = WM_NCHITTEST Then
+            Dim pos As Point = Me.PointToClient(Cursor.Position)
+
+
+            If Me.GetChildAtPoint(pos) Is Nothing Then
+                m.Result = CType(HTTRANSPARENT, IntPtr)
+                Return
+            End If
+        End If
+
+        MyBase.WndProc(m)
+
+    End Sub
+
+    Private Const GWL_EXSTYLE As Integer = -20
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80
+    Private Const WS_EX_APPWINDOW As Integer = &H40000
+    Private Sub HideFromAltTab()
+
+        If Me.IsDisposed OrElse Me.Disposing Then Return
+        If Not Me.IsHandleCreated Then Return
+
+        Dim style As Integer =
+        GetWindowLong(Me.Handle, GWL_EXSTYLE)
+
+        SetWindowLong(
+        Me.Handle,
+        GWL_EXSTYLE,
+        (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
+    )
+
+    End Sub
 
     Private _settings As CaptureSettings
     Private _configPath As String
     Private _overlayVideoPath As String
-
-    ' ── Audio.UI marker file system ──
-    ' UI_Engine creates "Audio.UI" file → OPEN_UI timer sees it → form shows
-    ' BT_Back/Cancel deletes "Audio.UI" file → OPEN_UI timer sees it's gone → form hides
-    ' This keeps the overlay-style show/hide mechanism working.
-
-    Private _uiMarkerPath As String = ""
 
     Public Sub New(settings As CaptureSettings, configPath As String, overlayVideoPath As String)
         InitializeComponent()
         _settings = settings
         _configPath = configPath
         _overlayVideoPath = overlayVideoPath
-        _uiMarkerPath = Path.Combine(Application.StartupPath, "Audio.UI")
     End Sub
 
     Private Sub AudioSettingsForm_Load(
     sender As Object,
     e As EventArgs
-    ) Handles MyBase.Load
+) Handles MyBase.Load
+
+        HideFromAltTab()
 
         cboMic.DisplayMember = "Item2"
 
@@ -34,7 +76,6 @@ Public Class AudioSettingsForm
         LoadFromSettings()
         UpdateVolumeLabels()
 
-        ' Start OPEN_UI timer to poll for Audio.UI marker file
         OPEN_UI.Start()
 
     End Sub
@@ -98,7 +139,6 @@ Public Class AudioSettingsForm
         Catch ex As Exception
             MessageBox.Show(Me, "Failed to save config: " & ex.Message, "Save error",
                             MessageBoxButtons.OK, MessageBoxIcon.Warning)
-        Catch
         End Try
 
         Try
@@ -177,18 +217,25 @@ Public Class AudioSettingsForm
     End Sub
 
     Private Sub btnApply_Click(sender As Object, e As EventArgs) Handles btnApply.Click
+
         SaveToSettings()
+
         lblStatus.Text = "Saved."
+
     End Sub
 
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
-        ' Delete Audio.UI marker → OPEN_UI timer will hide form
+
+        Dim uiFile As String =
+        Path.Combine(Application.StartupPath, "Audio.UI")
+
         Try
-            If File.Exists(_uiMarkerPath) Then
-                File.Delete(_uiMarkerPath)
+            If File.Exists(uiFile) Then
+                File.Delete(uiFile)
             End If
         Catch
         End Try
+
     End Sub
 
     Private Sub btnTest_Click(sender As Object, e As EventArgs) Handles btnTest.Click
@@ -199,31 +246,31 @@ Public Class AudioSettingsForm
     Private Sub BT_Back_Click(
     sender As Object,
     e As EventArgs
-    ) Handles BT_Back.Click
-        ' Delete Audio.UI marker → OPEN_UI timer will hide form
-        Try
-            If File.Exists(_uiMarkerPath) Then
-                File.Delete(_uiMarkerPath)
-            End If
-        Catch
-        End Try
-    End Sub
+) Handles BT_Back.Click
 
-    ''' <summary>
-    ''' OPEN_UI timer: polls for Audio.UI marker file.
-    ''' If file exists → show form (Opacity=1, Maximized)
-    ''' If file gone → hide form (Opacity=0, Minimized)
-    '''
-    ''' UI_Engine creates Audio.UI to request showing this form.
-    ''' BT_Back/Cancel deletes Audio.UI to request hiding.
-    ''' </summary>
+        Dim uiFile =
+        Path.Combine(Application.StartupPath, "Audio.UI")
+
+        Try
+            If File.Exists(uiFile) Then
+                File.Delete(uiFile)
+            End If
+
+            Me.Hide()
+
+        Catch ex As IOException
+        End Try
+
+    End Sub
     Private Sub OPEN_UI_Tick(sender As Object, e As EventArgs) Handles OPEN_UI.Tick
 
         If Me.IsDisposed OrElse Me.Disposing Then
             Return
         End If
 
-        If File.Exists(_uiMarkerPath) Then
+        Dim uiFile = Path.Combine(Application.StartupPath, "Audio.UI")
+
+        If File.Exists(uiFile) Then
             Me.WindowState = FormWindowState.Maximized
             Me.Opacity = 1
 
@@ -236,6 +283,7 @@ Public Class AudioSettingsForm
         End If
 
     End Sub
+
 
     Private Sub BT_Back_MouseMove(sender As Object, e As MouseEventArgs) Handles BT_Back.MouseMove
         BT_Back.BackColor = Color.Green
