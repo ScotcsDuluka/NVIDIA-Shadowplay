@@ -113,13 +113,15 @@ Public Class AudioSettingsForm
         End If
         _settings.AudioCapture = _settings.SystemAudioCapture OrElse _settings.MicCapture
 
-        Try
-            _settings.Save(_configPath)
-        Catch ex As Exception
-            MessageBox.Show(Me, "Failed to save config: " & ex.Message, "Save error",
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning)
-        End Try
+        ' Save to audio.json (new unified config)
+        Dim audioJsonPath As String = Path.Combine(Application.StartupPath, "audio.json")
+        _settings.SaveAudio(audioJsonPath)
 
+        ' Also save engine settings to engine.json
+        Dim engineJsonPath As String = Path.Combine(Application.StartupPath, "engine.json")
+        _settings.Save(engineJsonPath)
+
+        ' Also save to Overlay's video.json audio section (backward compat with Overlay)
         Try
             SaveToOverlayVideoJson()
         Catch ex As Exception

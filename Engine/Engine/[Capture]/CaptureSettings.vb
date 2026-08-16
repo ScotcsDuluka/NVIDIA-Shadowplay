@@ -1,6 +1,15 @@
 ' CaptureSettings.vb
-' ShadowPlay Engine - Configuration Model
-' JSON config: UseNativeResolution, Encoder, FPS, Bitrate, CaptureMethod, etc.
+' ShadowPlay Engine — Unified 4-file Configuration
+'
+' ┌─────────────────────────────────────────────────────────┐
+' │ config.json  — General (Paths, UI, Hotkeys, GitHub)    │
+' │ video.json   — Video (Encoder, FPS, Bitrate, Presets)  │
+' │ audio.json   — Audio (System/Mic, Volume, TrackMode)    │
+' │ engine.json  — Engine (CaptureMethod, Process, Timing) │
+' └─────────────────────────────────────────────────────────┘
+'
+' Each file has its own ConfigVersion for independent migration.
+' All projects (Overlay + Engine) share the same files.
 
 Imports System.IO
 Imports System.Text.Json
@@ -9,46 +18,27 @@ Imports System.Text.Json.Serialization
 <Serializable()>
 Public Class CaptureSettings
 
-    <JsonPropertyName("UseNativeResolution")>
-    Public Property UseNativeResolution As Boolean = True
+    ' ═══════════════════════════════════════════════════════════════
+    ' FIELDS — merged from video.json + audio.json + engine.json
+    ' ═══════════════════════════════════════════════════════════════
 
-    <JsonPropertyName("Encoder")>
-    Public Property Encoder As String = ""
-
-    <JsonPropertyName("FPS")>
+    ' ── From video.json ──
+    Public Property Encoder As String = "NVENC_H264"
     Public Property FPS As Integer = 60
+    Public Property Bitrate As Long = 20000000
+    Public Property NvencPreset As Integer = 4
+    Public Property UseNativeResolution As Boolean = True
+    Public Property CustomWidth As Integer = 0
+    Public Property CustomHeight As Integer = 0
+    Public Property ReplayDuration As Integer = 60
+    Public Property ActivePreset As String = "Medium"
 
-    <JsonPropertyName("Bitrate")>
-    Public Property Bitrate As Long = 50000000
-
-    <JsonPropertyName("CaptureMethod")>
-    Public Property CaptureMethod As String = "ddagrab"
-
-    <JsonPropertyName("OutputDirectory")>
-    Public Property OutputDirectory As String = ""
-
-    <JsonPropertyName("AudioCapture")>
-    Public Property AudioCapture As Boolean = False
-
-    <JsonPropertyName("AudioDevice")>
-    Public Property AudioDevice As String = ""
-
-    <JsonPropertyName("SystemAudioCapture")>
-    Public Property SystemAudioCapture As Boolean = False
-
-    <JsonPropertyName("MicCapture")>
+    ' ── From audio.json ──
+    Public Property SystemAudioCapture As Boolean = True
     Public Property MicCapture As Boolean = False
-
-    <JsonPropertyName("SystemAudioVolume")>
     Public Property SystemAudioVolume As Single = 1.0F
-
-    <JsonPropertyName("MicVolume")>
     Public Property MicVolume As Single = 1.0F
-
-    <JsonPropertyName("MicDeviceName")>
     Public Property MicDeviceName As String = ""
-
-    <JsonPropertyName("MicDeviceId")>
     Public Property MicDeviceId As String = ""
 
     Public Enum AudioTrackModeEnum
@@ -56,197 +46,265 @@ Public Class CaptureSettings
         SeparateTrack
     End Enum
 
-    <JsonPropertyName("AudioTrackMode")>
     Public Property AudioTrackMode As AudioTrackModeEnum = AudioTrackModeEnum.SingleTrack
 
-    <JsonPropertyName("PixelFormat")>
+    ' ── From engine.json ──
+    Public Property CaptureMethod As String = "ddagrab"
     Public Property PixelFormat As String = "nv12"
-
-    <JsonPropertyName("Preset")>
     Public Property Preset As String = "p4"
-
-    ' ✅ P2.8: NVENC preset as integer 1-7 (from Overlay's encoder_preset).
-    ' Overlay stores this as int, Engine's CaptureEngine maps it to 'p1'..'p7'.
-    <JsonPropertyName("NvencPreset")>
-    Public Property NvencPreset As Integer = 4
-
-    <JsonPropertyName("RateControl")>
     Public Property RateControl As String = "cbr"
-
-    <JsonPropertyName("FileFormat")>
     Public Property FileFormat As String = "mp4"
-
-    <JsonPropertyName("FFmpegPath")>
     Public Property FFmpegPath As String = ""
-
-    <JsonPropertyName("HotkeyStart")>
     Public Property HotkeyStart As String = "Control+Shift+F9"
-
-    <JsonPropertyName("HotkeyStop")>
     Public Property HotkeyStop As String = "Control+Shift+F10"
-
-    <JsonPropertyName("HotkeyToggle")>
     Public Property HotkeyToggle As String = "Control+Shift+F8"
 
-    <JsonPropertyName("CustomWidth")>
-    Public Property CustomWidth As Integer = 0
+    ' ── Legacy (deprecated, kept for backward compat) ──
+    Public Property AudioCapture As Boolean = False
+    Public Property AudioDevice As String = ""
+    Public Property ConfigVersion As Integer = 1
 
-    <JsonPropertyName("CustomHeight")>
-    Public Property CustomHeight As Integer = 0
+    ' ═══════════════════════════════════════════════════════════════
+    ' SAVE / LOAD
+    ' ═══════════════════════════════════════════════════════════════
 
-    ' ── Config version for migration ──
-    <JsonPropertyName("ConfigVersion")>
-    Public Property ConfigVersion As Integer = 2
+    Private Const VIDEO_CONFIG_VERSION As Integer = 1
+    Private Const AUDIO_CONFIG_VERSION As Integer = 1
+    Private Const ENGINE_CONFIG_VERSION As Integer = 1
 
-    ' ── Save / Load ──────────────────────────────────────────
-    '
-    ' Unified config: Engine reads from Overlay's video.json (same as Overlay).
-    ' No more shadowplay-config.json — single source of truth.
-    ' video.json schema (Overlay's VideoConfigClass):
-    '   { "current": { fps, bitrate, encoder_preset, use_native_resolution, ... },
-    '     "audio": { system_enabled, mic_enabled, system_volume, mic_volume, mic_device, mic_device_id } }
-    '
-    ' Engine-specific fields (FFmpegPath, CaptureMethod, OutputDirectory, etc.)
-    ' are stored in config.json (Overlay's general settings, same file for both projects).
-
-    Private Const CURRENT_VERSION As Integer = 3
-
-    Public Sub Save(configPath As String)
-        ' Save Engine-specific fields into config.json under "engine" section.
-        ' Uses Newtonsoft.Json for merge (preserves Overlay's existing settings).
-        Try
-            Dim existingJson As String = "{}"
-            If File.Exists(configPath) Then
-                existingJson = File.ReadAllText(configPath)
-            End If
-
-            Dim root As Newtonsoft.Json.Linq.JObject = Newtonsoft.Json.Linq.JObject.Parse(existingJson)
-
-            ' Create or update "engine" section
-            Dim engine As Newtonsoft.Json.Linq.JObject = Nothing
-            If root("engine") IsNot Nothing Then
-                engine = DirectCast(root("engine"), Newtonsoft.Json.Linq.JObject)
-            Else
-                engine = New Newtonsoft.Json.Linq.JObject()
-                root("engine") = engine
-            End If
-
-            engine("Encoder") = Encoder
-            engine("CaptureMethod") = CaptureMethod
-            engine("PixelFormat") = PixelFormat
-            engine("Preset") = Preset
-            engine("NvencPreset") = NvencPreset
-            engine("RateControl") = RateControl
-            engine("FileFormat") = FileFormat
-            engine("FFmpegPath") = FFmpegPath
-            engine("HotkeyStart") = HotkeyStart
-            engine("HotkeyStop") = HotkeyStop
-            engine("HotkeyToggle") = HotkeyToggle
-            engine("CustomWidth") = CustomWidth
-            engine("CustomHeight") = CustomHeight
-            engine("AudioTrackMode") = CInt(AudioTrackMode)
-            engine("ConfigVersion") = ConfigVersion
-
-            File.WriteAllText(configPath, root.ToString(Newtonsoft.Json.Formatting.Indented))
-        Catch ex As Exception
-        End Try
-    End Sub
-
+    ''' <summary>
+    ''' Load all settings from video.json + audio.json + engine.json.
+    ''' configPath is used as base directory (all files live in same folder).
+    ''' </summary>
     Public Shared Function Load(configPath As String) As CaptureSettings
-        ' configPath = config.json path (unified: general + engine settings)
-        Try
-            ' ── Try reading from video.json first (Overlay's source of truth) ──
-            Dim videoConfigPath As String = FindVideoJsonPath()
-            Dim settings As CaptureSettings = Nothing
+        Dim settings As New CaptureSettings()
+        Dim baseDir As String = Path.GetDirectoryName(configPath)
+        If String.IsNullOrEmpty(baseDir) Then baseDir = AppDomain.CurrentDomain.BaseDirectory
 
-            If Not String.IsNullOrEmpty(videoConfigPath) AndAlso File.Exists(videoConfigPath) Then
-                settings = LoadFromVideoJson(videoConfigPath)
-            End If
+        ' ── Load video.json ──
+        Dim videoPath As String = Path.Combine(baseDir, "video.json")
+        If File.Exists(videoPath) Then
+            LoadVideoSettings(settings, videoPath)
+        End If
 
-            If settings Is Nothing Then
-                settings = New CaptureSettings()
-            End If
+        ' ── Load audio.json ──
+        Dim audioPath As String = Path.Combine(baseDir, "audio.json")
+        If File.Exists(audioPath) Then
+            LoadAudioSettings(settings, audioPath)
+        End If
 
-            ' ── Read engine-specific fields from config.json ──
-            If File.Exists(configPath) Then
-                Dim json As String = File.ReadAllText(configPath)
-                Using doc As JsonDocument = JsonDocument.Parse(json)
-                    Dim engineProp As JsonElement = Nothing
-                    If doc.RootElement.TryGetProperty("engine", engineProp) Then
-                        Dim p As JsonElement = Nothing
-                        If engineProp.TryGetProperty("Encoder", p) Then settings.Encoder = p.GetString()
-                        If engineProp.TryGetProperty("CaptureMethod", p) Then settings.CaptureMethod = p.GetString()
-                        If engineProp.TryGetProperty("PixelFormat", p) Then settings.PixelFormat = p.GetString()
-                        If engineProp.TryGetProperty("Preset", p) Then settings.Preset = p.GetString()
-                        If engineProp.TryGetProperty("NvencPreset", p) Then settings.NvencPreset = p.GetInt32()
-                        If engineProp.TryGetProperty("RateControl", p) Then settings.RateControl = p.GetString()
-                        If engineProp.TryGetProperty("FileFormat", p) Then settings.FileFormat = p.GetString()
-                        If engineProp.TryGetProperty("FFmpegPath", p) Then settings.FFmpegPath = p.GetString()
-                        If engineProp.TryGetProperty("HotkeyStart", p) Then settings.HotkeyStart = p.GetString()
-                        If engineProp.TryGetProperty("HotkeyStop", p) Then settings.HotkeyStop = p.GetString()
-                        If engineProp.TryGetProperty("HotkeyToggle", p) Then settings.HotkeyToggle = p.GetString()
-                        If engineProp.TryGetProperty("CustomWidth", p) Then settings.CustomWidth = p.GetInt32()
-                        If engineProp.TryGetProperty("CustomHeight", p) Then settings.CustomHeight = p.GetInt32()
-                        If engineProp.TryGetProperty("AudioTrackMode", p) Then settings.AudioTrackMode = DirectCast(p.GetInt32(), AudioTrackModeEnum)
-                        If engineProp.TryGetProperty("ConfigVersion", p) Then settings.ConfigVersion = p.GetInt32()
-                    End If
-                End Using
-            End If
+        ' ── Load engine.json ──
+        Dim enginePath As String = Path.Combine(baseDir, "engine.json")
+        If File.Exists(enginePath) Then
+            LoadEngineSettings(settings, enginePath)
+        End If
 
-            ' ── Config migration ──
-            If settings.ConfigVersion < CURRENT_VERSION Then
-                settings.AudioCapture = False
-                settings.AudioDevice = ""
-                settings.ConfigVersion = CURRENT_VERSION
-            End If
+        ' ── Fallback: search parent dirs if files not found ──
+        If Not File.Exists(videoPath) Then
+            Dim foundVideo As String = FindConfigFile("video.json")
+            If Not String.IsNullOrEmpty(foundVideo) Then LoadVideoSettings(settings, foundVideo)
+        End If
+        If Not File.Exists(audioPath) Then
+            Dim foundAudio As String = FindConfigFile("audio.json")
+            If Not String.IsNullOrEmpty(foundAudio) Then LoadAudioSettings(settings, foundAudio)
+        End If
+        If Not File.Exists(enginePath) Then
+            Dim foundEngine As String = FindConfigFile("engine.json")
+            If Not String.IsNullOrEmpty(foundEngine) Then LoadEngineSettings(settings, foundEngine)
+        End If
 
-            ' ── Detect FFmpegPath if still empty ──
-            If String.IsNullOrEmpty(settings.FFmpegPath) OrElse Not File.Exists(settings.FFmpegPath) Then
-                settings.FFmpegPath = FindFFmpegPath()
-            End If
+        ' ── Auto-detect FFmpegPath if empty ──
+        If String.IsNullOrEmpty(settings.FFmpegPath) OrElse Not File.Exists(settings.FFmpegPath) Then
+            settings.FFmpegPath = FindFFmpegPath()
+        End If
 
-            ' ── Default output directory ──
-            If String.IsNullOrEmpty(settings.OutputDirectory) Then
-                settings.OutputDirectory = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
-                    "ShadowPlay Recordings")
-            End If
+        ' ── Default output directory ──
+        If String.IsNullOrEmpty(settings.OutputDirectory) Then
+            settings.OutputDirectory = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.Desktop),
+                "ShadowPlay Recordings")
+        End If
+        If Not Directory.Exists(settings.OutputDirectory) Then
+            Directory.CreateDirectory(settings.OutputDirectory)
+        End If
 
-            If Not Directory.Exists(settings.OutputDirectory) Then
-                Directory.CreateDirectory(settings.OutputDirectory)
-            End If
-
-            Return settings
-        Catch ex As Exception
-            Return CreateDefault(configPath)
-        End Try
+        Return settings
     End Function
 
     ''' <summary>
-    ''' Find video.json path — same logic as OverlayConfig.FindConfigDir.
-    ''' Searches: appdir, then parent dirs for Overlay/bin/Release/*/video.json
+    ''' Save Engine-specific fields to engine.json.
+    ''' Video/Audio settings are saved by their respective forms.
     ''' </summary>
-    Private Shared Function FindVideoJsonPath() As String
+    Public Sub Save(configPath As String)
+        Dim baseDir As String = Path.GetDirectoryName(configPath)
+        If String.IsNullOrEmpty(baseDir) Then baseDir = AppDomain.CurrentDomain.BaseDirectory
+        Dim enginePath As String = Path.Combine(baseDir, "engine.json")
+
+        Try
+            Dim sb As New Text.StringBuilder()
+            sb.AppendLine("{")
+            sb.AppendLine("  ""ConfigVersion"": " & ENGINE_CONFIG_VERSION & ",")
+            sb.AppendLine("  ""CaptureMethod"": """ & JsonEscape(CaptureMethod) & """,")
+            sb.AppendLine("  ""PixelFormat"": """ & JsonEscape(PixelFormat) & """,")
+            sb.AppendLine("  ""Preset"": """ & JsonEscape(Preset) & """,")
+            sb.AppendLine("  ""RateControl"": """ & JsonEscape(RateControl) & """,")
+            sb.AppendLine("  ""FileFormat"": """ & JsonEscape(FileFormat) & """,")
+            sb.AppendLine("  ""FFmpegPath"": """ & JsonEscape(FFmpegPath) & """,")
+            sb.AppendLine("  ""HotkeyStart"": """ & JsonEscape(HotkeyStart) & """,")
+            sb.AppendLine("  ""HotkeyStop"": """ & JsonEscape(HotkeyStop) & """,")
+            sb.AppendLine("  ""HotkeyToggle"": """ & JsonEscape(HotkeyToggle) & """,")
+            sb.AppendLine("  ""UseNativeResolution"": " & UseNativeResolution.ToString().ToLower() & ",")
+            sb.AppendLine("  ""CustomWidth"": " & CustomWidth & ",")
+            sb.AppendLine("  ""CustomHeight"": " & CustomHeight & "")
+            sb.AppendLine("}")
+            File.WriteAllText(enginePath, sb.ToString())
+        Catch
+        End Try
+    End Sub
+
+    ' ═══════════════════════════════════════════════════════════════
+    ' INDIVIDUAL FILE LOADERS
+    ' ═══════════════════════════════════════════════════════════════
+
+    Private Shared Sub LoadVideoSettings(settings As CaptureSettings, filePath As String)
+        Try
+            Dim json As String = File.ReadAllText(filePath)
+            Using doc As JsonDocument = JsonDocument.Parse(json)
+                Dim p As JsonElement = Nothing
+
+                If doc.RootElement.TryGetProperty("Encoder", p) Then settings.Encoder = p.GetString()
+                If doc.RootElement.TryGetProperty("ActivePreset", p) Then settings.ActivePreset = p.GetString()
+                If doc.RootElement.TryGetProperty("ReplayDuration", p) Then settings.ReplayDuration = p.GetInt32()
+                If doc.RootElement.TryGetProperty("APICapture", p) Then
+                    Dim api As String = p.GetString()
+                    If Not String.IsNullOrEmpty(api) Then settings.CaptureMethod = api
+                End If
+
+                ' "Current" section
+                Dim currentProp As JsonElement = Nothing
+                If doc.RootElement.TryGetProperty("Current", currentProp) Then
+                    If currentProp.TryGetProperty("FPS", p) Then settings.FPS = p.GetInt32()
+                    If currentProp.TryGetProperty("Bitrate", p) Then settings.Bitrate = p.GetInt32() * 1000L
+                    If currentProp.TryGetProperty("EncoderPreset", p) Then settings.NvencPreset = p.GetInt32()
+                    If currentProp.TryGetProperty("UseNativeResolution", p) Then settings.UseNativeResolution = p.GetBoolean()
+                    If currentProp.TryGetProperty("Width", p) Then settings.CustomWidth = p.GetInt32()
+                    If currentProp.TryGetProperty("Height", p) Then settings.CustomHeight = p.GetInt32()
+                End If
+
+                ' Also check lowercase "current" (Overlay uses camelCase)
+                If doc.RootElement.TryGetProperty("current", currentProp) Then
+                    If currentProp.TryGetProperty("fps", p) Then settings.FPS = p.GetInt32()
+                    If currentProp.TryGetProperty("bitrate", p) Then settings.Bitrate = p.GetInt32() * 1000L
+                    If currentProp.TryGetProperty("encoder_preset", p) Then settings.NvencPreset = p.GetInt32()
+                    If currentProp.TryGetProperty("use_native_resolution", p) Then settings.UseNativeResolution = p.GetBoolean()
+                    If currentProp.TryGetProperty("width", p) Then settings.CustomWidth = p.GetInt32()
+                    If currentProp.TryGetProperty("height", p) Then settings.CustomHeight = p.GetInt32()
+                End If
+            End Using
+        Catch
+        End Try
+    End Sub
+
+    Private Shared Sub LoadAudioSettings(settings As CaptureSettings, filePath As String)
+        Try
+            Dim json As String = File.ReadAllText(filePath)
+            Using doc As JsonDocument = JsonDocument.Parse(json)
+                Dim p As JsonElement = Nothing
+
+                If doc.RootElement.TryGetProperty("SystemEnabled", p) Then settings.SystemAudioCapture = p.GetBoolean()
+                If doc.RootElement.TryGetProperty("MicEnabled", p) Then settings.MicCapture = p.GetBoolean()
+                If doc.RootElement.TryGetProperty("SystemVolume", p) Then settings.SystemAudioVolume = p.GetSingle()
+                If doc.RootElement.TryGetProperty("MicVolume", p) Then settings.MicVolume = p.GetSingle()
+                If doc.RootElement.TryGetProperty("MicDevice", p) Then settings.MicDeviceName = p.GetString()
+                If doc.RootElement.TryGetProperty("MicDeviceId", p) Then settings.MicDeviceId = p.GetString()
+                If doc.RootElement.TryGetProperty("AudioTrackMode", p) Then
+                    settings.AudioTrackMode = DirectCast(p.GetInt32(), AudioTrackModeEnum)
+                End If
+
+                ' Also check lowercase (Overlay uses snake_case in some places)
+                If doc.RootElement.TryGetProperty("system_enabled", p) Then settings.SystemAudioCapture = p.GetBoolean()
+                If doc.RootElement.TryGetProperty("mic_enabled", p) Then settings.MicCapture = p.GetBoolean()
+                If doc.RootElement.TryGetProperty("system_volume", p) Then settings.SystemAudioVolume = p.GetSingle()
+                If doc.RootElement.TryGetProperty("mic_volume", p) Then settings.MicVolume = p.GetSingle()
+                If doc.RootElement.TryGetProperty("mic_device", p) Then settings.MicDeviceName = p.GetString()
+                If doc.RootElement.TryGetProperty("mic_device_id", p) Then settings.MicDeviceId = p.GetString()
+            End Using
+        Catch
+        End Try
+    End Sub
+
+    Private Shared Sub LoadEngineSettings(settings As CaptureSettings, filePath As String)
+        Try
+            Dim json As String = File.ReadAllText(filePath)
+            Using doc As JsonDocument = JsonDocument.Parse(json)
+                Dim p As JsonElement = Nothing
+
+                If doc.RootElement.TryGetProperty("CaptureMethod", p) Then settings.CaptureMethod = p.GetString()
+                If doc.RootElement.TryGetProperty("PixelFormat", p) Then settings.PixelFormat = p.GetString()
+                If doc.RootElement.TryGetProperty("Preset", p) Then settings.Preset = p.GetString()
+                If doc.RootElement.TryGetProperty("RateControl", p) Then settings.RateControl = p.GetString()
+                If doc.RootElement.TryGetProperty("FileFormat", p) Then settings.FileFormat = p.GetString()
+                If doc.RootElement.TryGetProperty("FFmpegPath", p) Then settings.FFmpegPath = p.GetString()
+                If doc.RootElement.TryGetProperty("HotkeyStart", p) Then settings.HotkeyStart = p.GetString()
+                If doc.RootElement.TryGetProperty("HotkeyStop", p) Then settings.HotkeyStop = p.GetString()
+                If doc.RootElement.TryGetProperty("HotkeyToggle", p) Then settings.HotkeyToggle = p.GetString()
+                If doc.RootElement.TryGetProperty("UseNativeResolution", p) Then settings.UseNativeResolution = p.GetBoolean()
+                If doc.RootElement.TryGetProperty("CustomWidth", p) Then settings.CustomWidth = p.GetInt32()
+                If doc.RootElement.TryGetProperty("CustomHeight", p) Then settings.CustomHeight = p.GetInt32()
+                If doc.RootElement.TryGetProperty("OutputDirectory", p) Then settings.OutputDirectory = p.GetString()
+            End Using
+        Catch
+        End Try
+    End Sub
+
+    ' ═══════════════════════════════════════════════════════════════
+    ' AUDIO.JSON SAVE (called by AudioSettingsForm)
+    ' ═══════════════════════════════════════════════════════════════
+
+    Public Sub SaveAudio(audioFilePath As String)
+        Try
+            Dim sb As New Text.StringBuilder()
+            sb.AppendLine("{")
+            sb.AppendLine("  ""ConfigVersion"": " & AUDIO_CONFIG_VERSION & ",")
+            sb.AppendLine("  ""SystemEnabled"": " & SystemAudioCapture.ToString().ToLower() & ",")
+            sb.AppendLine("  ""MicEnabled"": " & MicCapture.ToString().ToLower() & ",")
+            sb.AppendLine("  ""SystemVolume"": " & SystemAudioVolume.ToString(Globalization.CultureInfo.InvariantCulture) & ",")
+            sb.AppendLine("  ""MicVolume"": " & MicVolume.ToString(Globalization.CultureInfo.InvariantCulture) & ",")
+            sb.AppendLine("  ""MicDevice"": """ & JsonEscape(MicDeviceName) & """,")
+            sb.AppendLine("  ""MicDeviceId"": """ & JsonEscape(MicDeviceId) & """,")
+            sb.AppendLine("  ""AudioTrackMode"": " & CInt(AudioTrackMode).ToString() & "")
+            sb.AppendLine("}")
+            File.WriteAllText(audioFilePath, sb.ToString())
+        Catch
+        End Try
+    End Sub
+
+    ' ═══════════════════════════════════════════════════════════════
+    ' HELPERS
+    ' ═══════════════════════════════════════════════════════════════
+
+    Private Shared Function FindConfigFile(fileName As String) As String
         Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
 
-        ' 1. Same folder as Engine
-        Dim candidate As String = Path.Combine(appDir, "video.json")
+        ' Same folder
+        Dim candidate As String = Path.Combine(appDir, fileName)
         If File.Exists(candidate) Then Return candidate
 
-        ' 2. Parent dirs (for bin\Release\net8.0\... look for video.json in parent)
+        ' Parent dirs
         Dim parentDir As String = appDir
         For depth As Integer = 1 To 5
             Try
-                parentDir = Directory.GetParent(parentDir)?.FullName
-                If String.IsNullOrWhiteSpace(parentDir) Then Exit For
-                candidate = Path.Combine(parentDir, "video.json")
+                Dim parent As DirectoryInfo = Directory.GetParent(parentDir)
+                If parent Is Nothing Then Exit For
+                parentDir = parent.FullName
+                candidate = Path.Combine(parentDir, fileName)
                 If File.Exists(candidate) Then Return candidate
             Catch
                 Exit For
             End Try
         Next
 
-        ' 3. Sibling Overlay folder (running from source)
+        ' Sibling Overlay folder
         Dim engineProjDir As String = appDir
         For depth As Integer = 1 To 6
             Try
@@ -259,7 +317,7 @@ Public Class CaptureSettings
                         Dim configPath_ As String = Path.Combine(overlayBin, configDir)
                         If Directory.Exists(configPath_) Then
                             For Each subDir As String In Directory.GetDirectories(configPath_)
-                                candidate = Path.Combine(subDir, "video.json")
+                                candidate = Path.Combine(subDir, fileName)
                                 If File.Exists(candidate) Then Return candidate
                             Next
                         End If
@@ -274,53 +332,6 @@ Public Class CaptureSettings
         Return ""
     End Function
 
-    ''' <summary>
-    ''' Load capture settings from Overlay's video.json.
-    ''' video.json has nested structure: { "current": {...}, "audio": {...} }
-    ''' </summary>
-    Private Shared Function LoadFromVideoJson(videoJsonPath As String) As CaptureSettings
-        Try
-            Dim json As String = File.ReadAllText(videoJsonPath)
-            Using doc As JsonDocument = JsonDocument.Parse(json)
-                Dim settings As New CaptureSettings()
-
-                ' Read "current" section (video capture values)
-                Dim currentProp As JsonElement = Nothing
-                If doc.RootElement.TryGetProperty("current", currentProp) Then
-                    Dim p As JsonElement = Nothing
-                    If currentProp.TryGetProperty("fps", p) Then settings.FPS = p.GetInt32()
-                    If currentProp.TryGetProperty("bitrate", p) Then settings.Bitrate = p.GetInt32() * 1000L
-                    If currentProp.TryGetProperty("encoder_preset", p) Then settings.NvencPreset = p.GetInt32()
-                    If currentProp.TryGetProperty("use_native_resolution", p) Then settings.UseNativeResolution = p.GetBoolean()
-                    If currentProp.TryGetProperty("width", p) Then settings.CustomWidth = p.GetInt32()
-                    If currentProp.TryGetProperty("height", p) Then settings.CustomHeight = p.GetInt32()
-                End If
-
-                ' Read "audio" section
-                Dim audioProp As JsonElement = Nothing
-                If doc.RootElement.TryGetProperty("audio", audioProp) Then
-                    Dim p As JsonElement = Nothing
-                    If audioProp.TryGetProperty("system_enabled", p) Then settings.SystemAudioCapture = p.GetBoolean()
-                    If audioProp.TryGetProperty("mic_enabled", p) Then settings.MicCapture = p.GetBoolean()
-                    If audioProp.TryGetProperty("system_volume", p) Then settings.SystemAudioVolume = p.GetSingle()
-                    If audioProp.TryGetProperty("mic_volume", p) Then settings.MicVolume = p.GetSingle()
-                    If audioProp.TryGetProperty("mic_device", p) Then settings.MicDeviceName = p.GetString()
-                    If audioProp.TryGetProperty("mic_device_id", p) Then settings.MicDeviceId = p.GetString()
-                End If
-
-                ' Output directory from video.json if present
-                Dim outputProp As JsonElement = Nothing
-                If doc.RootElement.TryGetProperty("output_directory", outputProp) Then
-                    settings.OutputDirectory = outputProp.GetString()
-                End If
-
-                Return settings
-            End Using
-        Catch
-            Return Nothing
-        End Try
-    End Function
-
     Private Shared Function FindFFmpegPath() As String
         Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
         Dim candidates As New List(Of String)()
@@ -328,12 +339,12 @@ Public Class CaptureSettings
         candidates.Add(Path.Combine(appDir, "api-core", "ffmpeg.exe"))
         candidates.Add(Path.Combine(appDir, "ffmpeg.exe"))
 
-        ' Parent dirs
         Dim parentDir As String = appDir
         For depth As Integer = 1 To 5
             Try
-                parentDir = Directory.GetParent(parentDir)?.FullName
-                If String.IsNullOrWhiteSpace(parentDir) Then Exit For
+                Dim parent As DirectoryInfo = Directory.GetParent(parentDir)
+                If parent Is Nothing Then Exit For
+                parentDir = parent.FullName
                 candidates.Add(Path.Combine(parentDir, "API-Core", "ffmpeg.exe"))
                 candidates.Add(Path.Combine(parentDir, "api-core", "ffmpeg.exe"))
                 candidates.Add(Path.Combine(parentDir, "ffmpeg.exe"))
@@ -342,7 +353,6 @@ Public Class CaptureSettings
             End Try
         Next
 
-        ' Sibling Overlay folder
         Try
             Dim engineProjDir As String = appDir
             For depth As Integer = 1 To 6
@@ -369,8 +379,12 @@ Public Class CaptureSettings
         For Each candidate In candidates
             If File.Exists(candidate) Then Return candidate
         Next
-
         Return ""
+    End Function
+
+    Private Shared Function JsonEscape(s As String) As String
+        If String.IsNullOrEmpty(s) Then Return ""
+        Return s.Replace("\", "\\").Replace("""", "\""")
     End Function
 
     Public Shared Function CreateDefault(configPath As String) As CaptureSettings
@@ -387,11 +401,19 @@ Public Class CaptureSettings
             Directory.CreateDirectory(settings.OutputDirectory)
         End If
 
-        settings.ConfigVersion = CURRENT_VERSION
         Return settings
     End Function
 
-    ' ── Helpers ──────────────────────────────────────────────
+    ' ── Output directory (stored in engine.json or config.json) ──
+    Private _outputDirectory As String = ""
+    Public Property OutputDirectory As String
+        Get
+            Return _outputDirectory
+        End Get
+        Set(value As String)
+            _outputDirectory = value
+        End Set
+    End Property
 
     Public Function GetCaptureResolution() As System.ValueTuple(Of Integer, Integer)
         If UseNativeResolution OrElse CustomWidth = 0 OrElse CustomHeight = 0 Then
@@ -405,14 +427,6 @@ Public Class CaptureSettings
         Return Path.Combine(OutputDirectory, "ShadowPlay_" & timestamp & "." & FileFormat)
     End Function
 
-    ''' <summary>
-    ''' ✅ P2.5: ValidationResult — replaced ValueTuple(Of Boolean, String).
-    ''' Old code returned (Valid As Boolean, Message As String) which requires
-    ''' Option Infer On to preserve the named members across method boundaries.
-    ''' Engine's project has OptionInfer=Off, so 'Dim validation = Validate()'
-    ''' produced a plain ValueTuple(Of Boolean, String) without .Valid / .Message
-    ''' → runtime error "Public member 'Valid' on type 'ValueTuple' not found".
-    ''' </summary>
     Public Class ValidationResult
         Public Property Valid As Boolean
         Public Property Message As String
@@ -422,11 +436,6 @@ Public Class CaptureSettings
         End Sub
     End Class
 
-    ''' <summary>
-    ''' Returns ValidationResult — check .Valid and .Message.
-    ''' If AudioCapture is enabled but device name is empty,
-    ''' auto-disable audio capture instead of failing.
-    ''' </summary>
     Public Function Validate() As ValidationResult
         If FPS < 1 OrElse FPS > 240 Then
             Return New ValidationResult(False, "FPS must be between 1 and 240")
@@ -447,11 +456,9 @@ Public Class CaptureSettings
         If String.IsNullOrWhiteSpace(FFmpegPath) OrElse Not File.Exists(FFmpegPath) Then
             Return New ValidationResult(False, "FFmpeg not found at: " & FFmpegPath)
         End If
-
         If MicCapture AndAlso String.IsNullOrWhiteSpace(MicDeviceName) Then
             Return New ValidationResult(False, "Microphone is enabled but no device name is set. Select a microphone in the Overlay settings.")
         End If
-
         Return New ValidationResult(True, "")
     End Function
 

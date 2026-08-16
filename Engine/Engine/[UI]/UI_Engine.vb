@@ -73,7 +73,7 @@ Partial Public Class UI_Engine
     ' ── Form Load / Close ──────────────────────────────────────
 
     Private Sub UI_Engine_Load(sender As Object, e As EventArgs) Handles Me.Load
-        _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "config.json")
+        _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "engine.json")
 
         ' ✅ P2: locate Overlay's config.json + video.json first.
         ' lblConfigSource will show where they were found.
