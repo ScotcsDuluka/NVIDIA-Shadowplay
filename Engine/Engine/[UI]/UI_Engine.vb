@@ -105,6 +105,21 @@ Partial Public Class UI_Engine
         tmrRefresh.Start()
 
         _isLoaded = True
+
+        ' ── Start AudioSettingsForm in background ──
+        ' Form starts invisible (Opacity=0). OPEN_UI timer polls for Audio.UI marker.
+        ' Overlay creates Audio.UI → form shows. BT_Back deletes Audio.UI → form hides.
+        Try
+            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
+            SyncWithOverlayConfig(s)
+            Dim videoJsonPath As String = OverlayConfig.VideoConfigPath
+            If String.IsNullOrEmpty(videoJsonPath) OrElse Not IO.File.Exists(videoJsonPath) Then
+                videoJsonPath = ""
+            End If
+            _audioForm = New AudioSettingsForm(s, _configPath, videoJsonPath)
+            _audioForm.Show(Me)  ' Show() แค่เริ่ม form — Opacity=0 อยู่เพราะยังไม่มี Audio.UI
+        Catch
+        End Try
     End Sub
 
     Private Sub UI_Engine_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
@@ -1228,24 +1243,12 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub btnOpenAudioSettings_Click(sender As Object, e As EventArgs) Handles btnOpenAudioSettings.Click
+        ' AudioSettingsForm runs in background via OPEN_UI timer.
+        ' This button creates Audio.UI marker → timer shows the form.
+        ' Same pattern as Engine.UI marker system.
         Try
-            ' ถ้า form เปิดอยู่แล้ว → ซ่อน/ปิดก่อน
-            If _audioForm IsNot Nothing AndAlso Not _audioForm.IsDisposed Then
-                _audioForm.Close()
-            End If
-
-            Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
-            SyncWithOverlayConfig(s)
-
-            Dim videoJsonPath As String = OverlayConfig.VideoConfigPath
-            If String.IsNullOrEmpty(videoJsonPath) OrElse Not IO.File.Exists(videoJsonPath) Then
-                videoJsonPath = ""
-            End If
-
-            ' สร้าง instance → เก็บใน _audioForm → เรียก .Show()
-            _audioForm = New AudioSettingsForm(s, _configPath, videoJsonPath)
-            _audioForm.Show(Me)
-
+            Dim uiFile As String = IO.Path.Combine(Application.StartupPath, "Audio.UI")
+            IO.File.WriteAllText(uiFile, DateTime.Now.ToString())
         Catch ex As Exception
             MessageBox.Show(Me, "Failed to open audio settings: " & ex.Message, "Error",
                             MessageBoxButtons.OK, MessageBoxIcon.Error)
