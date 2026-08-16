@@ -848,11 +848,37 @@ Partial Public Class UI_Engine
 
             Console.WriteLine($"Running {scenarios.Count} scenarios…")
 
-            Dim results As List(Of StressTestRunner.TestResult) =
-                Await runner.RunMatrixAsync(scenarios,
-                    Sub(r As StressTestRunner.TestResult, done As Integer, total As Integer)
-                        Console.WriteLine($"  [{done}/{total}] {r}")
-                    End Sub)
+            ' Write progress to file so user can see what's happening
+            Dim progressLogPath As String = Path.Combine(outputDir, "stress_progress.txt")
+            Using progressWriter As New StreamWriter(progressLogPath, False)
+                progressWriter.WriteLine($"Stress test started: {DateTime.Now}")
+                progressWriter.WriteLine($"Output directory: {outputDir}")
+                progressWriter.WriteLine($"FFmpegPath: {_settings.FFmpegPath}")
+                progressWriter.WriteLine($"Encoder: {_settings.Encoder}")
+                progressWriter.WriteLine($"CaptureMethod: {_settings.CaptureMethod}")
+                progressWriter.WriteLine()
+
+                Dim results As List(Of StressTestRunner.TestResult) =
+                    Await runner.RunMatrixAsync(scenarios,
+                        Sub(r As StressTestRunner.TestResult, done As Integer, total As Integer)
+                            Dim line As String = $"  [{done}/{total}] {r}"
+                            Console.WriteLine(line)
+                            Try
+                                progressWriter.WriteLine(line)
+                                progressWriter.Flush()
+                            Catch
+                            End Try
+                            ' Update status label in UI
+                            Try
+                                Me.Invoke(Sub()
+                                              lblStatus.Text = $"Stress: [{done}/{total}] {r.Name} — {If(r.Pass, "PASS", "FAIL")}"
+                                          End Sub)
+                            Catch
+                            End Try
+                        End Sub)
+                progressWriter.WriteLine()
+                progressWriter.WriteLine(StressTestRunner.FormatResultTable(results))
+            End Using
 
             Dim table As String = StressTestRunner.FormatResultTable(results)
             Console.WriteLine(table)

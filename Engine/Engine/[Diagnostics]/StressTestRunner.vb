@@ -469,7 +469,19 @@ Public Class StressTestRunner
                                              End Sub
 
             ' ── Start ──
-            Dim startOk As Boolean = Await engine.StartRecordingAsync(outputPath)
+            ' Per P0 fix: add timeout to StartRecordingAsync — if engine hangs on start,
+            ' don't wait forever (was hanging UI silently).
+            Dim startTask As Task(Of Boolean) = engine.StartRecordingAsync(outputPath)
+            Dim startTimeoutTask As Task = Task.Delay(15000)  ' 15s max for start
+            Dim completedTask As Task = Await Task.WhenAny(startTask, startTimeoutTask)
+
+            If completedTask Is startTimeoutTask AndAlso Not startTask.IsCompleted Then
+                result.Pass = False
+                result.FailureReason = "StartRecordingAsync TIMEOUT (>15s) — engine may be hung"
+                Return result
+            End If
+
+            Dim startOk As Boolean = startTask.Result
             If Not startOk Then
                 Await Task.WhenAny(startComplete.Task, Task.Delay(5000))
             End If
