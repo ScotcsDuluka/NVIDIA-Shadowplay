@@ -86,69 +86,66 @@ public static class NvEncodeAPI
 
     // === API version ===
     //
-    // NVIDIA changed the NVENCAPI_VERSION encoding between SDK 12 and SDK 13:
+    // NVIDIA NVENCAPI_VERSION encoding (consistent across all SDK versions
+    // 8.x through 13.x — verified from nvEncodeAPI.h in multiple SDKs):
     //
-    //   SDK 12.x:  NVENCAPI_VERSION = (major << 4) | minor
-    //              → SDK 12.2 = (12 << 4) | 2 = 0x00C2
-    //              → max version 13.0 reported as 0x00D0 = 208
+    //   NVENCAPI_VERSION = NVENCAPI_MAJOR_VERSION | (NVENCAPI_MINOR_VERSION << 24)
     //
-    //   SDK 13.x:  NVENCAPI_VERSION = major | (minor << 24)
-    //              → SDK 13.0 = 13 | (0 << 24) = 0x0000000D
-    //              → SDK 13.1 = 13 | (1 << 24) = 0x0100000D
-    //              → max version 13.0 reported as 0x0000000D = 13
+    //   NVENCAPI_STRUCT_VERSION(ver) =
+    //       NVENCAPI_VERSION | (ver << 16) | (0x7 << 28)
     //
-    // The DLL bundled with the NVIDIA driver (nvEncodeAPI64.dll in System32)
-    // typically uses the SDK 12.x encoding for backwards compatibility, even
-    // when the driver supports newer NVENC features. The DLL shipped with the
-    // Video Codec SDK download uses the SDK 13.x encoding.
+    // The 0x7 magic bits in the top nibble are MANDATORY — without them,
+    // NvEncodeAPICreateInstance fails with NV_ENC_ERR_GENERIC.
     //
-    // We auto-detect which encoding to use based on the value returned by
-    // NvEncodeAPIGetMaxSupportedVersion — if the value is >= 0x100, the DLL
-    // is using the legacy SDK 12.x encoding.
+    // IMPORTANT — NvEncodeAPIGetMaxSupportedVersion is DIFFERENT:
+    //   It returns a PACKED format: (major << 4) | minor
+    //   This is NOT the same as NVENCAPI_VERSION!
     //
-    // OWNER's spike output showed raw=0x000000D0 = 208, which means the DLL
-    // in System32 is using SDK 12.x encoding for SDK 13.0 capability.
+    //   Examples:
+    //     NVENC 12.0 → GetMaxSupportedVersion returns 0xC0 (192)
+    //     NVENC 12.2 → GetMaxSupportedVersion returns 0xC2 (194)
+    //     NVENC 13.0 → GetMaxSupportedVersion returns 0xD0 (208) ← OWNER's DLL
+    //     NVENC 13.1 → GetMaxSupportedVersion returns 0xD1 (209)
     //
-    // We use the legacy encoding to match what the DLL expects.
+    // So we must:
+    //   1. Read GetMaxSupportedVersion → packed format (major<<4)|minor
+    //   2. Extract major/minor from packed format
+    //   3. Compute NVENCAPI_VERSION = major | (minor << 24)
+    //   4. Use NVENCAPI_STRUCT_VERSION(ver) = NVENCAPI_VERSION | (ver<<16) | (0x7<<28)
+    //
+    // My previous attempts confused the two formats — that's why every fix
+    // failed. This version correctly translates between them.
 
-    public const uint NVENCAPI_MAJOR_VERSION = 13;
-    public const uint NVENCAPI_MINOR_VERSION = 0;
-
-    // Detected at runtime in NvEncFunctionTable.TryLoad() — set by the wrapper
-    // before MakeStructVersion() is called.
-    public static bool UseLegacyVersionEncoding { get; set; } = true; // default: legacy (driver DLL)
+    public static uint NVENCAPI_MAJOR_VERSION { get; private set; } = 13;
+    public static uint NVENCAPI_MINOR_VERSION { get; private set; } = 0;
 
     public static uint NVENCAPI_VERSION =>
-        UseLegacyVersionEncoding
-            ? (NVENCAPI_MAJOR_VERSION << 4) | NVENCAPI_MINOR_VERSION            // SDK 12.x: 0x00D0
-            : NVENCAPI_MAJOR_VERSION | (NVENCAPI_MINOR_VERSION << 24);          // SDK 13.x: 0x0000000D
+        NVENCAPI_MAJOR_VERSION | (NVENCAPI_MINOR_VERSION << 24);
 
     /// <summary>
     /// Computes the struct version field per NVENC's convention:
     ///
-    ///   SDK 12.x:  NVENCAPI_STRUCT_VERSION(ver) = ver | (NVENCAPI_VERSION << 16)
-    ///   SDK 13.x:  NVENCAPI_STRUCT_VERSION(ver) = NVENCAPI_VERSION | (ver<<16) | (0x7<<28)
-    ///
-    /// The 0x7 magic bits in the top nibble are SDK 13.x only. The auto-
-    /// detection in TryLoad() sets UseLegacyVersionEncoding based on what
-    /// NvEncodeAPIGetMaxSupportedVersion returns.
+    ///   NVENCAPI_STRUCT_VERSION(ver) = NVENCAPI_VERSION | (ver << 16) | (0x7 << 28)
     /// </summary>
     public static uint MakeStructVersion(uint structVer)
     {
-        if (UseLegacyVersionEncoding)
-        {
-            // SDK 12.x encoding — no magic bits
-            return structVer | (NVENCAPI_VERSION << 16);
-        }
-        else
-        {
-            // SDK 13.x encoding — with magic bits
-            return NVENCAPI_VERSION | (structVer << 16) | (0x7u << 28);
-        }
+        return NVENCAPI_VERSION | (structVer << 16) | (0x7u << 28);
     }
 
-    // === Struct version constants (per nvEncodeAPI.h) ===
-    // These struct version numbers are the same in SDK 12.x and SDK 13.x.
+    /// <summary>
+    /// Sets the requested API version based on what
+    /// NvEncodeAPIGetMaxSupportedVersion returned.
+    ///
+    /// Input is the packed format: (major << 4) | minor
+    /// We extract major/minor and store them for NVENCAPI_VERSION computation.
+    /// </summary>
+    public static void SetVersionFromPacked(uint packed)
+    {
+        NVENCAPI_MAJOR_VERSION = (packed >> 4) & 0xF;
+        NVENCAPI_MINOR_VERSION = packed & 0xF;
+    }
+
+    // === Struct version constants (per nvEncodeAPI.h SDK 13.1) ===
     public const uint NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT = 2;
     public const uint NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER_STRUCT = 1;
     public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 5;
@@ -418,68 +415,33 @@ public sealed class NvEncFunctionTable : IDisposable
             }
             MaxSupportedApiVersion = ver;
 
-            // === Auto-detect SDK 12.x vs SDK 13.x encoding ===
+            // === Translate packed version to NVENCAPI_VERSION ===
             //
-            // SDK 12.x encoding:  NVENCAPI_VERSION = (major << 4) | minor
-            //   Examples:
-            //     SDK 12.0  → 0xC0  = 192
-            //     SDK 12.2  → 0xC2  = 194
-            //     SDK 13.0  → 0xD0  = 208   ← OWNER's DLL reports this
-            //     SDK 13.1  → 0xD1  = 209
-            //   Range: roughly 0xC0-0xFF (192-255) for recent versions.
-            //   For very old SDKs (e.g., 9.x), could be lower.
-            //   Detection: low byte >= 0x40 AND high 24 bits == 0.
+            // NvEncodeAPIGetMaxSupportedVersion returns a PACKED format:
+            //   (major << 4) | minor
             //
-            // SDK 13.x encoding:  NVENCAPI_VERSION = major | (minor << 24)
-            //   Examples:
-            //     SDK 13.0  → 0x0000000D = 13
-            //     SDK 13.1  → 0x0100000D = 268435469
-            //   Range: low byte <= 0x1F (small version numbers), with the
-            //   minor version in the high byte (>> 24).
-            //   Detection: low byte < 0x40 OR high 24 bits != 0.
+            // OWNER's DLL returned 0x000000D0 = 208 = (13 << 4) | 0 → NVENC 13.0
             //
-            // Better heuristic: SDK 12.x encodings always have the low byte
-            // in the range 0x10-0xFF (because major version is at least 1,
-            // shifted by 4). SDK 13.x encodings have the low byte equal to
-            // the major version number (typically 0x0C-0x0F for 12-15).
-            //
-            // We use: if (low byte >= 0x40) → legacy SDK 12.x encoding.
-            // 0x40 covers SDK 4.0+ in legacy encoding (4 << 4 = 0x40),
-            // which is far below any currently supported version.
-            uint lowByte = ver & 0xFF;
-            uint highBytes = ver & 0xFFFFFF00;
-            if (lowByte >= 0x40 && highBytes == 0)
-            {
-                NvEncodeAPI.UseLegacyVersionEncoding = true;
-                uint maxMajor = (ver >> 4) & 0xF;
-                uint maxMinor = ver & 0xF;
-                Console.WriteLine(
-                    $"  NVENC DLL encoding:     SDK 12.x (legacy)");
-                Console.WriteLine(
-                    $"  NVENC max supported API: major={maxMajor}, minor={maxMinor} (raw=0x{ver:X8})");
-            }
-            else
-            {
-                NvEncodeAPI.UseLegacyVersionEncoding = false;
-                uint maxMajor = ver & 0xFF;
-                uint maxMinor = (ver >> 24) & 0xFF;
-                Console.WriteLine(
-                    $"  NVENC DLL encoding:     SDK 13.x (new)");
-                Console.WriteLine(
-                    $"  NVENC max supported API: major={maxMajor}, minor={maxMinor} (raw=0x{ver:X8})");
-            }
-
+            // We extract major/minor and use SetVersionFromPacked to populate
+            // NVENCAPI_MAJOR_VERSION and NVENCAPI_MINOR_VERSION, which are then
+            // used to compute NVENCAPI_VERSION = major | (minor << 24).
+            NvEncodeAPI.SetVersionFromPacked(ver);
+            uint maxMajor = NvEncodeAPI.NVENCAPI_MAJOR_VERSION;
+            uint maxMinor = NvEncodeAPI.NVENCAPI_MINOR_VERSION;
             Console.WriteLine(
-                $"  Spike requests API:     major={NvEncodeAPI.NVENCAPI_MAJOR_VERSION}, " +
-                $"minor={NvEncodeAPI.NVENCAPI_MINOR_VERSION} (raw=0x{NvEncodeAPI.NVENCAPI_VERSION:X8})");
+                $"  NVENC max supported API: major={maxMajor}, minor={maxMinor} (packed=0x{ver:X8})");
+            Console.WriteLine(
+                $"  Spike requests API:     major={maxMajor}, minor={maxMinor} " +
+                $"(NVENCAPI_VERSION=0x{NvEncodeAPI.NVENCAPI_VERSION:X8})");
 
             // Step 2: zero-init the function list and set version field.
             // version = NVENCAPI_STRUCT_VERSION(2) for NV_ENCODE_API_FUNCTION_LIST
+            //        = NVENCAPI_VERSION | (2 << 16) | (0x7 << 28)
             _fnList = default;
             _fnList.version = NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST_VER;
             int fnListSize = System.Runtime.InteropServices.Marshal.SizeOf<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>();
             Console.WriteLine(
-                $"  Function table version: 0x{_fnList.version:X8} (struct size={fnListSize} bytes, encoding={(NvEncodeAPI.UseLegacyVersionEncoding ? "legacy" : "new")})");
+                $"  Function table version: 0x{_fnList.version:X8} (struct size={fnListSize} bytes)");
 
             // Step 3: call NvEncodeAPICreateInstance
             status = NvEncodeAPI.NvEncodeAPICreateInstance(ref _fnList);
@@ -488,11 +450,6 @@ public sealed class NvEncFunctionTable : IDisposable
                 Console.Error.WriteLine(
                     $"NvEncodeAPICreateInstance failed: status={status} " +
                     $"({NvEncodeAPI.NvencStatusToString(status)})");
-                if (status == NvEncodeAPI.NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY)
-                {
-                    Console.Error.WriteLine("  → NVENCAPI_VERSION mismatch.");
-                    Console.Error.WriteLine("    Try toggling UseLegacyVersionEncoding in NvEncodeAPI.cs");
-                }
                 return false;
             }
 
