@@ -800,6 +800,31 @@ Partial Public Class UI_Engine
             btnStressTest.Text = "Running stress test…"
 
             ' Use current settings as base (FFmpegPath, MicDeviceId, Encoder, etc.)
+            ' CRITICAL: _settings.FFmpegPath might be empty if user never synced with Overlay.
+            ' Sync from OverlayConfig if needed (same as HandleEngineRecordStart does).
+            If String.IsNullOrEmpty(_settings.FFmpegPath) OrElse Not File.Exists(_settings.FFmpegPath) Then
+                Try
+                    Dim appCfg As OverlayConfig.AppConfig = OverlayConfig.LoadConfig()
+                    If appCfg IsNot Nothing AndAlso
+                       Not String.IsNullOrEmpty(appCfg.Paths.FFmpegPath) AndAlso
+                       File.Exists(appCfg.Paths.FFmpegPath) Then
+                        _settings.FFmpegPath = appCfg.Paths.FFmpegPath
+                        DebugLog($"[StressTest] synced FFmpegPath from OverlayConfig: {_settings.FFmpegPath}")
+                    End If
+                Catch ex As Exception
+                    DebugLog($"[StressTest] failed to sync FFmpegPath from OverlayConfig: {ex.Message}")
+                End Try
+            End If
+
+            ' Final check — if still empty, can't proceed
+            If String.IsNullOrEmpty(_settings.FFmpegPath) OrElse Not File.Exists(_settings.FFmpegPath) Then
+                MessageBox.Show($"FFmpeg not found!{vbCrLf}{vbCrLf}" &
+                               "Current FFmpegPath: '{_settings.FFmpegPath}'{vbCrLf}{vbCrLf}" &
+                               "Please set FFmpegPath in the UI settings first, or ensure Overlay config has it.",
+                               "Stress Test Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+                Return
+            End If
+
             outputDir = Path.Combine(_settings.OutputDirectory, "StressTest")
             If Not Directory.Exists(outputDir) Then
                 Directory.CreateDirectory(outputDir)
