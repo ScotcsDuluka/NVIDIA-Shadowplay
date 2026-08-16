@@ -264,5 +264,5 @@ public static class Phase2_DesktopDuplication
 public static partial class SpikeSharedContext
 {
     public static ID3D11Texture2D? StagingTexture { get; set; }
-    public static DXGI.OutputDescription? DuplicationDesc { get; set; }
+    public static OutputDescription? DuplicationDesc { get; set; }
 }
