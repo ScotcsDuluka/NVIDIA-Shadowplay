@@ -22,25 +22,15 @@ NVIDIA-Shadowplay
 Repository:
 https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
 
-ส่วน ลำดับ ว่า txt นี้มาจาก ai ตัวให้จะเรียงเป็น เราจะเว้น เยอะๆ เพื่อ แยก ข้อมูล ของ แต่ละ ai
+Repository Size:
+~1.02 GB
+สาเหตุหลัก: legacy binary/media จำนวนมาก
 
+Default Branch:
+Stable
 
-
-
-
-glm
-
-
-
-deep
-
-
-
-gem
-
-
-
-clde
+Development Branch:
+Engine-Rebuild
 
 
 [TECH STACK]
@@ -177,6 +167,8 @@ Coding/Repo    Review          Challenge      Research
 - Stability และ Maintainability สำคัญกว่าการแก้ปัญหาเร็ว
 - อย่าผูกโปรเจกต์กับ AI ตัวใดตัวหนึ่ง
 - อย่าผูก Architecture กับ Engine รุ่นใดรุ่นหนึ่ง
+- อย่า implement ก่อน contract / architecture สำคัญถูก review
+- Unknown ต้องคงเป็น Unknown จนกว่าจะมี Evidence
 
 
 [CURRENT TECHNICAL FACTS]
@@ -191,9 +183,48 @@ Coding/Repo    Review          Challenge      Research
 - Engine-Audio รุ่นก่อนหน้าไม่ควรถูกนำมาเป็น Architecture หลักของ Engine ใหม่
 
 
+[ENGINE-REBUILD FOUNDATION]
+
+Branch:
+Engine-Rebuild
+
+Foundation Commit:
+82d792abf64b58a05296db370fa611fb36366594
+
+สถานะ:
+FOUNDATION FROZEN
+
+Foundation มี:
+- CaptureEngine lifecycle
+- EngineState
+- EngineConfig
+- EngineLogger
+- Test Runner
+- Dispose boundary
+- Internal stop-path testing
+
+Foundation Test:
+- 14/14 PASS
+- Build: 0 warnings / 0 errors
+- No xUnit / NUnit / MSTest
+- No FFmpeg
+- No NAudio
+- No UI modification
+- Legacy Engine/ ไม่ถูกแตะ
+
+สำคัญ:
+- CaptureEngine เป็น Foundation เท่านั้น
+- ยังไม่มี Video Capture
+- ยังไม่มี Audio
+- ยังไม่มี FFmpeg
+- ยังไม่มี NVENC
+- ยังไม่มี ddagrab
+- ยังไม่มี gfxcapture
+
+
 [CURRENT ENGINE DIRECTION]
 
-เริ่ม Engine ใหม่จาก 0 ได้
+เริ่ม Engine ใหม่จาก 0
 
 เหตุผล:
 - UI มีอยู่แล้ว
@@ -209,6 +240,244 @@ Coding/Repo    Review          Challenge      Research
 - Engine ต้องสามารถขยายและเปลี่ยน Implementation ได้ในอนาคต
 
 
+[PHASE 1 — VIDEO PIPELINE]
+
+เป้าหมาย:
+Engine เดียวรองรับ capture backend อย่างน้อย:
+
+- ddagrab
+- gfxcapture
+
+หลัก:
+- Backend ต้องแยกจาก Encoder
+- Encoder ห้ามรู้ implementation ของ backend
+- Output ห้าม consume raw VideoFrame
+- VideoLayer รับผิดชอบ bounded handoff / queue policy
+- Backend ไม่เป็นเจ้าของ queue policy
+- Audio ยังไม่รวมใน Phase นี้
+- UI ยังไม่รวมใน Phase นี้
+
+Approved baseline architecture:
+
+CaptureEngine
+    ↓
+VideoLayer
+    ↓
+Video Backend
+    ↓
+IVideoFrame
+    ↓
+Encoder
+    ↓
+Encoded Packet
+    ↓
+Output
+
+
+[VIDEO BACKENDS]
+
+Backend candidates:
+- DdagrabBackend
+- GfxCaptureBackend
+- FakeVideoCaptureBackend
+
+Goal:
+- backend ต้อง replaceable
+- backend-specific details ต้องไม่ leak เข้า Encoder/Output
+
+ต้องรองรับ:
+- lifecycle
+- frame ownership
+- frame lifetime
+- frame delivery
+- no-frame behavior
+- error propagation
+
+
+[VIDEO FRAME CONTRACT]
+
+Concept:
+- IVideoFrame = frame จริงเท่านั้น
+- ไม่ใช้ fake frame เพื่อแทน dropped frame
+
+Frame acquisition semantic:
+- FrameAvailable
+- NoFrame
+- Error
+
+Dropped frame:
+- ไม่ส่งเป็น downstream frame
+- เก็บผ่าน diagnostics/metrics
+
+Frame contract ต้องพิจารณา:
+- Origin CPU/GPU
+- PixelFormat
+- Dimensions
+- Timestamp
+- Ownership
+- Lifetime
+- GPU resource semantics
+
+
+[THREADING / HANDOFF]
+
+หลัก:
+- Capture backend ต้องไม่ block encoder แบบไม่จำกัดเวลา
+- Handoff ต้อง bounded
+- ห้าม unlimited queue
+- Queue/backpressure policy เป็นความรับผิดชอบของ VideoLayer/Handoff
+- Backend ห้ามอ่านหรือควบคุม queue policy
+
+Current design direction:
+- Bounded queue
+- Default policy: DropOldest / DropNewest
+- ยังไม่ล็อก magic timeout เช่น 5 ms
+- หลีกเลี่ยง synchronous callback ที่สามารถ block capture
+
+
+[TIMESTAMP MODEL]
+
+หลัก:
+- Engine ใช้ QPC-based monotonic time เป็น reference clock
+- WGC SystemRelativeTime เป็น QPC-based time
+- WGC property ถูก expose เป็น TimeSpan
+- TimeSpan.Ticks = 100 ns units
+- Stopwatch.GetTimestamp() = raw QPC counter ticks
+- TimeSpan.Ticks และ Stopwatch.GetTimestamp() ห้ามนำมาลบกันตรง ๆ
+- ต้อง normalize ให้เป็น internal Engine PTS unit เดียว
+- ต้อง document conversion formula
+
+V2:
+- Source clock: QPC
+- Exact normalization: ต้องกำหนด/verify ก่อน production implementation
+
+A/V ในอนาคต:
+- Video และ Audio ควรใช้ QPC clock domain เดียวกัน
+- ห้ามใช้ DateTime clock สำหรับ media synchronization
+
+
+[VIDEO PIXEL FORMAT BASELINE]
+
+Phase 1 baseline:
+- BGRA8
+
+HDR / 10-bit:
+- DEFERRED
+- ไม่ใช่ Phase 1 blocker
+
+
+[VIDEO ARCHITECTURE REVIEW STATUS]
+
+P1-A:
+Version:
+v1.3 FINAL DRAFT
+
+สถานะ:
+ARCHITECTURE BASELINE APPROVED
+แต่ implementation ยังรอ validation
+
+หลักการ:
+- CaptureEngine → VideoLayer → Backend → IVideoFrame → Encoder → Packet → Output
+- No new speculative abstraction
+- Fake backend ต้องมาก่อน production backend
+
+P1-A เอกสาร:
+P1-A_Video_Backend_Contract.md
+
+สถานะ:
+- design only
+- ไม่มี code implementation
+- ไม่แตะ Foundation
+- ไม่ push commit
+
+
+[P1-A VALIDATION BLOCKERS]
+
+V1:
+Cross-device D3D11/NVENC interoperability
+สถานะ: BLOCKER
+
+หลัก:
+- อย่าสมมติว่า zero-copy ข้าม physical GPU ได้
+- อย่าสรุป device ownership จนกว่าจะมี Evidence
+- Phase 1 baseline ควรพยายามใช้ unified/same physical NVIDIA GPU path
+- Multi-GPU topology ยังไม่ใช่ baseline
+
+V2:
+WGC SystemRelativeTime → Engine PTS normalization
+สถานะ: BLOCKER ก่อน timestamp implementation
+
+Known:
+- QPC-based
+- TimeSpan ticks = 100 ns
+- Stopwatch raw ticks ใช้ Stopwatch.Frequency
+
+Unknown:
+- Exact normalization formula / internal Engine PTS unit
+
+V3:
+gfxcapture sustained throughput at 144 FPS
+สถานะ: BLOCKER
+
+สำคัญ:
+- max_framerate=144 เป็น requested maximum / cap
+- ไม่ใช่ guarantee ว่าจะได้ 144 FPS จริง
+- ต้อง benchmark ACHIEVED delivered FPS
+
+V4:
+Default pixel format
+สถานะ: CLOSED
+
+Baseline:
+- Explicit BGRA8
+
+V5:
+Default backend = Ddagrab
+สถานะ:
+HYPOTHESIS / configuration decision
+ไม่ใช่ architecture blocker
+
+
+[CURRENT P1-A ISSUES TO CLOSE]
+
+ก่อน Freeze แบบสมบูรณ์:
+
+1. แก้ wording:
+   "Architecture is FINAL"
+   →
+   "Architecture baseline is APPROVED; implementation details remain gated by V1/V2/V3 validation."
+
+2. เอา hard-coded recovery policy:
+   "3x retry in 1 second"
+   ออกจาก P1-A
+   เพราะ recovery strategy ยังไม่ใช่ Phase 1-A contract
+
+3. แก้:
+   "one-copy fallback always available"
+   ไม่ให้เป็น guarantee
+   ให้ระบุว่า fallback อาจต้องใช้ และ mechanism ขึ้นกับ topology/evidence
+
+
+[PHASE 1 NEXT STEP]
+
+หลัง P1-A wording fixes เสร็จ:
+
+P1-B = Validation / Spike + Contract Tests
+
+ลำดับที่แนะนำ:
+
+1. FakeVideoCaptureBackend
+2. Contract tests
+3. V1 D3D11/NVENC spike
+4. V2 Timestamp normalization spike
+5. V3 gfxcapture 144 FPS benchmark
+6. Final validation
+7. DdagrabBackend
+8. GfxCaptureBackend
+9. NVENC integration
+10. Performance benchmark
+
+
 [ENGINE DEVELOPMENT ORDER]
 
 Phase 0:
@@ -218,14 +487,18 @@ Foundation
 - Logging
 - Error Handling
 - Test Harness
+STATUS: ✅ FROZEN @ 82d792ab
 
 Phase 1:
 Video Pipeline
+- Backend Contract
+- Fake Backend
 - ddagrab
-- Video Capture
+- gfxcapture
 - NVENC
 - Video-only Baseline
 - Performance Metrics
+STATUS: 🟡 Architecture approved, implementation pending validation
 
 Phase 2:
 Output Pipeline
@@ -261,12 +534,35 @@ Advanced Features
 
 [CURRENT STATUS]
 
-กำลังเตรียมเริ่ม Engine ใหม่จาก 0
+Foundation:
+✅ COMPLETE / FROZEN
 
-เป้าหมายใกล้:
-สร้าง Foundation ที่สะอาด
-จากนั้นพิสูจน์ Video Pipeline ระดับ ~144 FPS
-ก่อนเพิ่ม Audio
+P1-A:
+✅ Architecture baseline approved
+🟡 Final wording cleanup pending
+🟡 V1/V2/V3 validation pending
 
-เป้าหมายระยะยาว:
-สร้าง Engine ที่เสถียร ดูแลได้หลายปี และขยายต่อได้
+Production Video Backend:
+❌ ยังไม่เริ่ม
+
+Audio:
+❌ ยังไม่เริ่ม
+
+UI Integration:
+❌ ยังไม่เริ่ม
+
+Immediate Goal:
+ปิด P1-A wording
+→ ทำ P1-B validation + FakeBackend
+→ พิสูจน์ V1/V2/V3
+→ เริ่ม production video backend
+
+Long-term Goal:
+สร้าง Engine ที่:
+- เสถียร
+- maintainable หลายปี
+- รองรับ ddagrab + gfxcapture
+- Video/Audio แยก pipeline
+- เปลี่ยน capture backend/encoder ได้
+- ไม่ผูกกับ Legacy Engine
+- ไม่ผูกกับ AI ตัวใดตัวหนึ่ง
