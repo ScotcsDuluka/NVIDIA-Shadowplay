@@ -20,6 +20,9 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Game Filter]\[2] Sub.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\UI.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[1] Main Menu.vb">
       <SubType>Form</SubType>
     </Compile>
