@@ -39,8 +39,8 @@
       Vortice.Windows — modern, actively maintained D3D11/DXGI bindings for .NET.
       Chosen per Ddagrab_Research.md REC-8 (SharpDX is abandoned since 2019).
     -->
-    <PackageReference Include="Vortice.Direct3D11" Version="3.5.2" />
-    <PackageReference Include="Vortice.DXGI" Version="3.5.2" />
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
+    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
   </ItemGroup>
 
   <!--

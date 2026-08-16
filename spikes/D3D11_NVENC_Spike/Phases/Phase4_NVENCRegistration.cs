@@ -65,12 +65,12 @@ public static class Phase4_NVENCRegistration
 
         var sessionParams = new NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
         {
-            version = (int)(NvEncodeAPI.NVENCAPI_VERSION | 0x10000),  // struct version
+            version = NvEncodeAPI.MakeStructVersion<NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS>(),
             deviceType = NvEncodeAPI.NV_ENC_DEVICE_DIRECTX,
             device = SpikeSharedContext.Device.NativePointer,
             reserved = IntPtr.Zero,
-            event = IntPtr.Zero,
-            fOldApi = null,
+            @event = IntPtr.Zero,        // 'event' is C# keyword — escape with @
+            inputParams = IntPtr.Zero,
             apiVersion = NvEncodeAPI.NVENCAPI_VERSION,
         };
 
@@ -214,15 +214,17 @@ public static class Phase4_NVENCRegistration
 
         var registerParams = new NvEncodeAPI.NV_ENC_REGISTER_RESOURCE
         {
-            version = (int)(NvEncodeAPI.NVENCAPI_VERSION | 0x10000),
+            version = NvEncodeAPI.MakeStructVersion<NvEncodeAPI.NV_ENC_REGISTER_RESOURCE>(),
             resourceType = NvEncodeAPI.NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX,
             width = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width,
             height = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height,
             pitch = 0,  // 0 for D3D11 textures (NVENC queries the texture itself)
             resourceToRegister = SpikeSharedContext.StagingTexture!.NativePointer,
-            registeredResource = IntPtr.Zero,  // OUT
+            registeredResource = IntPtr.Zero,  // OUT — populated by NVENC
             bufferFormat = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_ARGB,
             bufferUsage = 0,
+            reserved2438 = new uint[243],      // initialize reserved padding to zeros
+            p2PDeviceHandle = IntPtr.Zero,
         };
 
         status = nvenc.RegisterResource(encoder, ref registerParams);
