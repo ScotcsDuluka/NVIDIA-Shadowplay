@@ -855,6 +855,8 @@ Partial Public Class UI_Engine
 
             ' Write progress to file so user can see what's happening
             Dim progressLogPath As String = Path.Combine(outputDir, "stress_progress.txt")
+            Dim stressResults As List(Of StressTestRunner.TestResult) = Nothing
+
             Using progressWriter As New StreamWriter(progressLogPath, False)
                 progressWriter.WriteLine($"Stress test started: {DateTime.Now}")
                 progressWriter.WriteLine($"Output directory: {outputDir}")
@@ -863,7 +865,7 @@ Partial Public Class UI_Engine
                 progressWriter.WriteLine($"CaptureMethod: {_settings.CaptureMethod}")
                 progressWriter.WriteLine()
 
-                Dim stressResults As List(Of StressTestRunner.TestResult) =
+                stressResults =
                     Await runner.RunMatrixAsync(scenarios,
                         Sub(r As StressTestRunner.TestResult, done As Integer, total As Integer)
                             Dim line As String = $"  [{done}/{total}] {r}"
