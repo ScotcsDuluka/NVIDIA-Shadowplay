@@ -57,24 +57,39 @@ public static class NvEncodeAPI
     public const int NV_ENC_ERR_RESOURCE_NOT_MAPPED = 20;
 
     // === Device types ===
-    public const int NV_ENC_DEVICE_DIRECTX = 0x01;
-    public const int NV_ENC_DEVICE_CUDA = 0x02;
+    // From nvEncodeAPI.h SDK 13.1:
+    //   typedef enum _NV_ENC_DEVICE_TYPE {
+    //     NV_ENC_DEVICE_TYPE_DIRECTX  = 0x0,   // DirectX 9/11 device
+    //     NV_ENC_DEVICE_TYPE_CUDA     = 0x1,   // CUDA context
+    //     NV_ENC_DEVICE_TYPE_OPENGL   = 0x2    // OpenGL (Linux only)
+    //   } NV_ENC_DEVICE_TYPE;
+    //
+    // IMPORTANT: In previous versions of this file I had NV_ENC_DEVICE_DIRECTX = 0x01,
+    // which is CUDA! That's why NvEncOpenEncodeSessionEx returned
+    // NV_ENC_ERR_UNSUPPORTED_DEVICE — we were telling NVENC the device is CUDA
+    // but passing a D3D11 device pointer.
+    public const int NV_ENC_DEVICE_DIRECTX = 0x00;  // was 0x01 (wrong — that's CUDA)
+    public const int NV_ENC_DEVICE_CUDA = 0x01;     // was 0x02
 
     // === Resource types ===
     public const int NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX = 0x00;
     public const int NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR = 0x01;
 
-    // === Buffer formats (subset) ===
+    // === Buffer formats (from nvEncodeAPI.h SDK 13.1) ===
+    // Note: ARGB and ABGR values differ from what I previously had —
+    // ARGB is 0x01000000 (not 0x00100000), ABGR is 0x10000000 (not 0x00800000).
     public const int NV_ENC_BUFFER_FORMAT_UNDEFINED = 0x00000000;
     public const int NV_ENC_BUFFER_FORMAT_NV12 = 0x00000001;
     public const int NV_ENC_BUFFER_FORMAT_YV12 = 0x00000010;
     public const int NV_ENC_BUFFER_FORMAT_IYUV = 0x00000100;
     public const int NV_ENC_BUFFER_FORMAT_YUV444 = 0x00001000;
-    public const int NV_ENC_BUFFER_FORMAT_ARGB = 0x00100000;
-    public const int NV_ENC_BUFFER_FORMAT_ARGB10 = 0x00200000;
-    public const int NV_ENC_BUFFER_FORMAT_AYUV = 0x00400000;
-    public const int NV_ENC_BUFFER_FORMAT_ABGR = 0x00800000;
-    public const int NV_ENC_BUFFER_FORMAT_ABGR10 = 0x01000000;
+    public const int NV_ENC_BUFFER_FORMAT_YUV420_10BIT = 0x00010000;
+    public const int NV_ENC_BUFFER_FORMAT_YUV444_10BIT = 0x00100000;
+    public const int NV_ENC_BUFFER_FORMAT_ARGB = 0x01000000;     // was 0x00100000 (wrong)
+    public const int NV_ENC_BUFFER_FORMAT_ARGB10 = 0x02000000;   // was 0x00200000 (wrong)
+    public const int NV_ENC_BUFFER_FORMAT_AYUV = 0x04000000;     // was 0x00400000 (wrong)
+    public const int NV_ENC_BUFFER_FORMAT_ABGR = 0x10000000;     // was 0x00800000 (wrong)
+    public const int NV_ENC_BUFFER_FORMAT_ABGR10 = 0x20000000;   // was 0x01000000 (wrong)
 
     // === Codec GUIDs (predefined by NVIDIA) ===
     public static readonly Guid NV_ENC_CODEC_H264_GUID =
