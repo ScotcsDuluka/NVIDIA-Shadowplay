@@ -92,6 +92,10 @@ GLM 5.2
 - Build / Test
 - ใช้ Agent และ Context ขนาดใหญ่ให้คุ้ม
 
+กฎการทำงาน:
+- GLM ทำงานบน Branch ที่ OWNER สั่งเสมอ
+- ปัจจุบัน Branch หลักสำหรับ Engine ใหม่คือ Engine-Rebuild
+
 
 Claude
 สถานะ: ACTIVE
@@ -169,6 +173,7 @@ Coding/Repo    Review          Challenge      Research
 - อย่าผูก Architecture กับ Engine รุ่นใดรุ่นหนึ่ง
 - อย่า implement ก่อน contract / architecture สำคัญถูก review
 - Unknown ต้องคงเป็น Unknown จนกว่าจะมี Evidence
+- ก่อน production integration ต้องผ่าน contract tests และ relevant validation spikes
 
 
 [CURRENT TECHNICAL FACTS]
@@ -334,6 +339,14 @@ Current design direction:
 - ยังไม่ล็อก magic timeout เช่น 5 ms
 - หลีกเลี่ยง synchronous callback ที่สามารถ block capture
 
+P1-B.1 FIX decisions:
+- FakeVideoCaptureBackend.Dispose ห้ามถือ _sync ระหว่าง worker.Join()
+- Queue mutation อยู่ภายใต้ lock
+- Frame disposal สำหรับ evicted/drained frames ต้องเกิดนอก lock
+- Stop หยุด producer
+- Queue ที่ยังค้างอยู่เป็น sink-owned
+- Backend ไม่ต้อง drain queue แบบไม่จำกัดระหว่าง Stop
+
 
 [TIMESTAMP MODEL]
 
@@ -366,15 +379,15 @@ HDR / 10-bit:
 - ไม่ใช่ Phase 1 blocker
 
 
-[VIDEO ARCHITECTURE REVIEW STATUS]
+[P1-A ARCHITECTURE REVIEW STATUS]
 
 P1-A:
 Version:
-v1.3 FINAL DRAFT
+v1.3.1 FINAL WORDING FIX
 
 สถานะ:
 ARCHITECTURE BASELINE APPROVED
-แต่ implementation ยังรอ validation
+implementation details remain gated by V1/V2/V3 validation
 
 หลักการ:
 - CaptureEngine → VideoLayer → Backend → IVideoFrame → Encoder → Packet → Output
@@ -386,9 +399,9 @@ P1-A_Video_Backend_Contract.md
 
 สถานะ:
 - design only
-- ไม่มี code implementation
+- ไม่มี production implementation
 - ไม่แตะ Foundation
-- ไม่ push commit
+- ไม่ push production code
 
 
 [P1-A VALIDATION BLOCKERS]
@@ -403,6 +416,7 @@ Cross-device D3D11/NVENC interoperability
 - Phase 1 baseline ควรพยายามใช้ unified/same physical NVIDIA GPU path
 - Multi-GPU topology ยังไม่ใช่ baseline
 
+
 V2:
 WGC SystemRelativeTime → Engine PTS normalization
 สถานะ: BLOCKER ก่อน timestamp implementation
@@ -413,7 +427,9 @@ Known:
 - Stopwatch raw ticks ใช้ Stopwatch.Frequency
 
 Unknown:
-- Exact normalization formula / internal Engine PTS unit
+- Exact normalization formula
+- Internal Engine PTS unit
+
 
 V3:
 gfxcapture sustained throughput at 144 FPS
@@ -424,12 +440,14 @@ gfxcapture sustained throughput at 144 FPS
 - ไม่ใช่ guarantee ว่าจะได้ 144 FPS จริง
 - ต้อง benchmark ACHIEVED delivered FPS
 
+
 V4:
 Default pixel format
 สถานะ: CLOSED
 
 Baseline:
 - Explicit BGRA8
+
 
 V5:
 Default backend = Ddagrab
@@ -438,44 +456,316 @@ HYPOTHESIS / configuration decision
 ไม่ใช่ architecture blocker
 
 
-[CURRENT P1-A ISSUES TO CLOSE]
+[P1-A CLOSED WORDING FIXES]
 
-ก่อน Freeze แบบสมบูรณ์:
+P1-A v1.3.1 ปรับ wording สุดท้ายแล้ว:
 
-1. แก้ wording:
-   "Architecture is FINAL"
-   →
+1. "Architecture is FINAL"
+   เปลี่ยนเป็น:
    "Architecture baseline is APPROVED; implementation details remain gated by V1/V2/V3 validation."
 
 2. เอา hard-coded recovery policy:
    "3x retry in 1 second"
-   ออกจาก P1-A
-   เพราะ recovery strategy ยังไม่ใช่ Phase 1-A contract
+   ออกจาก contract
 
-3. แก้:
+3. เอา guarantee:
    "one-copy fallback always available"
-   ไม่ให้เป็น guarantee
-   ให้ระบุว่า fallback อาจต้องใช้ และ mechanism ขึ้นกับ topology/evidence
+   ออกจาก contract
+
+ผล:
+- ไม่มี new interface
+- ไม่มี new API
+- ไม่มี implementation behavior เพิ่ม
+- P1-A เป็น design baseline ที่ approved
+
+
+[P1-B.1 — FAKE BACKEND + CONTRACT TESTS]
+
+สถานะ:
+✅ COMPLETE
+
+Commit:
+4ff288bf3f29502d7bb6c15c613c7f4bd324dd17
+
+Parent:
+82d792abf64b58a05296db370fa611fb36366594
+
+Branch:
+Engine-Rebuild
+
+งาน:
+- สร้าง CaptureEngine.Video project
+- สร้าง CaptureEngine.Video.Tests project
+- สร้าง P1-A contract interfaces / enums / structs / exceptions
+- สร้าง FakeVideoCaptureBackend
+- สร้าง FakeVideoFrame
+- สร้าง BoundedVideoFrameSink
+- สร้าง test doubles สำหรับ sink
+- สร้าง lifecycle tests
+- สร้าง frame ownership/lifetime tests
+- สร้าง bounded handoff tests
+- สร้าง replaceability tests
+
+Constraints:
+- ไม่มี ddagrab
+- ไม่มี gfxcapture
+- ไม่มี FFmpeg
+- ไม่มี NVENC
+- ไม่มี Audio
+- ไม่มี UI
+- ไม่มี real D3D11 capture
+- Foundation ไม่ถูกแก้
+
+
+[P1-B.1 INITIAL TEST RESULT]
+
+Initial:
+- 32/32 PASS
+- Build 0 errors / 0 warnings
+- Foundation 14/14 PASS
+
+ต่อมา code review พบ P0:
+- FakeVideoCaptureBackend.Dispose ถือ _sync ระหว่าง worker.Join()
+- มี deadlock potential เพราะ worker ต้องใช้ _sync
+- BoundedVideoFrameSink dispose frame ภายใน lock
+
+
+[P1-B.1 FIX]
+
+สถานะ:
+✅ COMPLETE
+✅ REVIEWED / APPROVED
+
+Latest Commit:
+39da0640d0c626dd6181b53adee55c4439261ae1
+
+Parent:
+348b57e697eff68e86c9619a1deed94c261ee01b
+
+หมายเหตุ:
+Parent 348b57e เป็น PROJECT_MEMORY.txt update ที่ OWNER push หลัง P1-B.1
+Latest FIX commit อยู่บน Engine-Rebuild ต่อจาก parent ดังกล่าว
+
+
+FIX 1 — FakeVideoCaptureBackend.Dispose deadlock:
+- capture state under lock
+- set stop signal under lock
+- mark disposed
+- release lock
+- Join worker outside lock
+- reacquire lock only to finalize Disposed
+
+FIX 2 — Stop contract:
+- Stop stops producer
+- existing queued frames remain sink-owned
+- sink owns disposal of queued frames
+- backend must not require unbounded drain during Stop
+
+FIX 3 — BoundedVideoFrameSink:
+- queue mutation under lock
+- evicted frame extracted under lock
+- frame.Dispose() performed outside lock
+- sink.Dispose() drains queue under lock, then disposes frames outside lock
+
+
+[P1-B.1 FIX TEST RESULT]
+
+- P1-B.1 existing tests: 32/32 PASS
+- Regression tests: 5/5 PASS
+- Total P1-B.1 tests: 37/37 PASS
+- Foundation tests: 14/14 PASS
+- Build: 0 warnings / 0 errors
+
+Regression coverage:
+- Dispose while worker actively running — no deadlock
+- Dispose repeatedly — idempotent
+- Stop while worker active — completes
+- BoundedVideoFrameSink does not dispose frames while holding lock
+- Concurrent Dispose + TryPush — no deadlock
+
+Latest validation:
+✅ P0 deadlock fixed
+✅ No regression detected
+✅ Foundation untouched
+
+
+[P1-B.1 PUBLIC / INTERNAL DESIGN]
+
+CaptureEngine.Video:
+- IVideoCaptureBackend
+- IVideoFrame
+- IVideoFrameSink
+- IVideoBackendDiagnostics
+- IVideoBackendContext
+- IVideoCaptureBackendFactory
+
+Enums / values include:
+- VideoBackendKind: Ddagrab / GfxCapture
+- FrameAcquisitionStatus: FrameAvailable / NoFrame / Error
+- PushOutcome: Pushed / Replaced / Dropped
+- BoundedHandoffPolicy: DropOldest / DropNewest
+- VideoFrameOrigin
+- VideoPixelFormat
+
+Important:
+- No "Dropped" FrameAcquisitionResult
+- Dropped is diagnostics / handoff outcome
+- IVideoFrame represents real frame only
+
+
+[P1-B.1 CURRENT REVIEW DECISION]
+
+GPT Review:
+✅ PASS after FIX
+
+Review findings resolved:
+- P0 deadlock resolved
+- Stop contract ambiguity resolved
+- Frame disposal outside queue lock resolved
+
+Remaining note:
+- Fake backend's thread lifecycle must NOT be blindly copied to production WGC backend
+- Production backend shutdown must respect real API/thread/COM/WGC lifecycle semantics
 
 
 [PHASE 1 NEXT STEP]
 
-หลัง P1-A wording fixes เสร็จ:
+P1-B.2 = Validation / Spike
 
-P1-B = Validation / Spike + Contract Tests
+เป้าหมาย:
+Resolve V1 / V2 / V3 with real evidence before production backend implementation.
 
-ลำดับที่แนะนำ:
+ลำดับ:
+1. V1 D3D11/NVENC spike
+2. V2 WGC timestamp normalization spike
+3. V3 gfxcapture 144 FPS benchmark
+4. Final validation / decision
+5. DdagrabBackend
+6. GfxCaptureBackend
+7. NVENC integration
+8. Video-only baseline
+9. Performance benchmark
 
-1. FakeVideoCaptureBackend
-2. Contract tests
-3. V1 D3D11/NVENC spike
-4. V2 Timestamp normalization spike
-5. V3 gfxcapture 144 FPS benchmark
-6. Final validation
-7. DdagrabBackend
-8. GfxCaptureBackend
-9. NVENC integration
-10. Performance benchmark
+
+[V1 — D3D11 / NVENC SPIKE]
+
+คำถาม:
+- Same D3D11 device requirement
+- Same physical GPU requirement
+- Same adapter, different D3D11 devices
+- DXGI shared handles
+- Cross-adapter behavior
+- FFmpeg d3d11va → NVENC compatibility
+- Zero-copy feasibility
+
+หลัก:
+- ห้าม claim zero-copy ข้าม physical GPU โดยไม่มี evidence
+- Preferred baseline คือ same physical NVIDIA GPU
+- Cross-device / cross-GPU path เป็น fallback/experimental until validated
+
+Evidence direction:
+- NVIDIA NVENC docs
+- CUDA-D3D11 interop
+- Microsoft D3D11/DXGI docs
+- FFmpeg source/docs
+
+
+[V2 — TIMESTAMP SPIKE]
+
+คำถาม:
+- WGC SystemRelativeTime unit
+- TimeSpan.Ticks vs Stopwatch.GetTimestamp()
+- Stopwatch.Frequency
+- normalization formula
+- engine internal PTS unit
+- frame monotonicity
+- zero-based PTS
+
+Hard rule:
+ห้าม:
+TimeSpan.Ticks - Stopwatch.GetTimestamp()
+
+โดยตรง
+
+ต้อง:
+- normalize source time
+- convert to internal Engine PTS unit
+- document conversion
+
+
+[V3 — GFXCAPTURE 144 FPS SPIKE]
+
+หลัก:
+- gfxcapture max_framerate=144 = cap/request
+- ไม่ใช่ delivered-FPS guarantee
+
+ต้องวัด:
+- requested FPS
+- achieved FPS
+- duplicate frames
+- dropped frames
+- latency
+- CPU
+- GPU
+- stability
+- behavior under sustained load
+
+ควรใช้ methodology ใกล้กับ ddagrab 144 FPS baseline เพื่อเทียบอย่างยุติธรรม
+
+
+[PRODUCTION VIDEO BACKENDS]
+
+DdagrabBackend:
+❌ ยังไม่เริ่ม
+
+GfxCaptureBackend:
+❌ ยังไม่เริ่ม
+
+NVENC integration:
+❌ ยังไม่เริ่ม
+
+Real D3D11 resources:
+❌ ยังไม่เริ่ม
+
+Reason:
+ต้องผ่าน P1-B.2 V1/V2/V3 validation ก่อน
+
+
+[OUTPUT]
+
+สถานะ:
+❌ ยังไม่เริ่ม
+
+Phase:
+2
+
+
+[AUDIO]
+
+สถานะ:
+❌ ยังไม่เริ่ม
+
+หลัก:
+- แยก Pipeline จาก Video
+- Audio ต้องไม่ Block Video
+- ต้องใช้ clock domain ที่เหมาะสมกับ Engine synchronization
+- Audio integration อยู่ Phase 3
+
+
+[UI / OVERLAY]
+
+สถานะ:
+❌ ยังไม่ integrate กับ Engine ใหม่
+
+UI:
+- VB.NET WinForms
+
+หลัก:
+- UI / Overlay ต้องแยกจาก Engine
+- Engine ไม่ควร depend on WinForms
+- Overlay มีอิสระในการออกแบบ
+- Win32 / HWND / layered window / click-through เป็น implementation concern ของ UI subsystem
+- UI integration อยู่ Phase 5
 
 
 [ENGINE DEVELOPMENT ORDER]
@@ -487,33 +777,61 @@ Foundation
 - Logging
 - Error Handling
 - Test Harness
-STATUS: ✅ FROZEN @ 82d792ab
+
+STATUS:
+✅ COMPLETE / FROZEN @ 82d792ab
+
 
 Phase 1:
 Video Pipeline
 - Backend Contract
 - Fake Backend
+- Validation Spikes
 - ddagrab
 - gfxcapture
 - NVENC
 - Video-only Baseline
 - Performance Metrics
-STATUS: 🟡 Architecture approved, implementation pending validation
+
+STATUS:
+🟡 Foundation + Contract Tests complete
+🟡 V1/V2/V3 validation pending
+❌ Production video backends not started
+
 
 Phase 2:
 Output Pipeline
 
+STATUS:
+❌ NOT STARTED
+
+
 Phase 3:
 Audio Pipeline
+
+STATUS:
+❌ NOT STARTED
+
 
 Phase 4:
 Synchronization
 
+STATUS:
+❌ NOT STARTED
+
+
 Phase 5:
 UI Integration
 
+STATUS:
+❌ NOT STARTED
+
+
 Phase 6:
 Advanced Features
+
+STATUS:
+❌ NOT STARTED
 
 
 [DECISION RULE]
@@ -536,28 +854,75 @@ Advanced Features
 
 Foundation:
 ✅ COMPLETE / FROZEN
+Commit:
+82d792abf64b58a05296db370fa611fb36366594
 
 P1-A:
+✅ v1.3.1 APPROVED
 ✅ Architecture baseline approved
-🟡 Final wording cleanup pending
-🟡 V1/V2/V3 validation pending
+✅ Final wording fixed
 
-Production Video Backend:
-❌ ยังไม่เริ่ม
+P1-B.1:
+✅ FakeVideoCaptureBackend
+✅ Contract layer
+✅ 37/37 tests
+✅ P0 deadlock fixed
+✅ Stop contract fixed
+✅ Sink disposal lock fix
+✅ Build 0/0
+
+Latest Engine-Rebuild Commit:
+39da0640d0c626dd6181b53adee55c4439261ae1
+
+V1:
+🔴 BLOCKER / PENDING SPIKE
+
+V2:
+🔴 BLOCKER / PENDING SPIKE
+
+V3:
+🔴 BLOCKER / PENDING SPIKE
+
+V4:
+✅ CLOSED / BGRA8 baseline
+
+Production ddagrab:
+❌ NOT STARTED
+
+Production gfxcapture:
+❌ NOT STARTED
+
+NVENC:
+❌ NOT STARTED
+
+Output:
+❌ NOT STARTED
 
 Audio:
-❌ ยังไม่เริ่ม
+❌ NOT STARTED
 
 UI Integration:
-❌ ยังไม่เริ่ม
+❌ NOT STARTED
 
-Immediate Goal:
-ปิด P1-A wording
-→ ทำ P1-B validation + FakeBackend
-→ พิสูจน์ V1/V2/V3
-→ เริ่ม production video backend
 
-Long-term Goal:
+[IMMEDIATE GOAL]
+
+P1-B.2 Validation / Spikes
+
+1. Resolve V1
+2. Resolve V2
+3. Resolve V3
+4. Review evidence
+5. Select implementation strategy
+6. Begin production ddagrab backend
+7. Begin production gfxcapture backend
+8. Integrate NVENC
+9. Run video-only baseline
+10. Benchmark
+
+
+[LONG-TERM GOAL]
+
 สร้าง Engine ที่:
 - เสถียร
 - maintainable หลายปี
@@ -566,3 +931,19 @@ Long-term Goal:
 - เปลี่ยน capture backend/encoder ได้
 - ไม่ผูกกับ Legacy Engine
 - ไม่ผูกกับ AI ตัวใดตัวหนึ่ง
+- ใช้ evidence-driven development
+- สามารถทดสอบระบบสำคัญแยกได้
+- รองรับการขยายในอนาคตโดยไม่สร้าง unnecessary architecture
+
+
+[MEMORY UPDATE RULE]
+
+เมื่อมีการเปลี่ยนแปลงสำคัญ:
+- Update branch
+- Update commit SHA
+- Update phase status
+- Update test result
+- Update known blockers
+- Update immediate goal
+- ห้ามเก็บ Token / Secret / Credential
+- ไม่เปลี่ยน Historical Facts ให้กลายเป็น Current Facts โดยไม่มี evidence
