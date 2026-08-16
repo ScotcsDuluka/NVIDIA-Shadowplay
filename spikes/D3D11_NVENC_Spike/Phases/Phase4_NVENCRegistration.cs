@@ -65,13 +65,13 @@ public static class Phase4_NVENCRegistration
 
         var sessionParams = new NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
         {
-            version = NvEncodeAPI.MakeStructVersion<NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS>(),
+            version = NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER,
             deviceType = NvEncodeAPI.NV_ENC_DEVICE_DIRECTX,
             device = SpikeSharedContext.Device.NativePointer,
             reserved = IntPtr.Zero,
-            @event = IntPtr.Zero,        // 'event' is C# keyword — escape with @
-            inputParams = IntPtr.Zero,
             apiVersion = NvEncodeAPI.NVENCAPI_VERSION,
+            reserved1 = new uint[253],
+            reserved2 = new IntPtr[64],
         };
 
         int status = nvenc.OpenEncodeSessionEx(ref sessionParams, out IntPtr encoder);
@@ -214,18 +214,22 @@ public static class Phase4_NVENCRegistration
 
         var registerParams = new NvEncodeAPI.NV_ENC_REGISTER_RESOURCE
         {
-            version = NvEncodeAPI.MakeStructVersion<NvEncodeAPI.NV_ENC_REGISTER_RESOURCE>(),
+            version = NvEncodeAPI.NV_ENC_REGISTER_RESOURCE_VER,
             resourceType = NvEncodeAPI.NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX,
-            // ModeDescription.Width/Height are uint in Vortice; our struct uses int.
-            width = (int)SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width,
-            height = (int)SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height,
-            pitch = 0,  // 0 for D3D11 textures (NVENC queries the texture itself)
+            // ModeDescription.Width/Height are uint in Vortice; struct field is uint.
+            width = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width,
+            height = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height,
+            pitch = 0,                              // 0 for D3D11 textures
+            subResourceIndex = 0,                   // 0 for non-array textures
             resourceToRegister = SpikeSharedContext.StagingTexture!.NativePointer,
-            registeredResource = IntPtr.Zero,  // OUT — populated by NVENC
+            registeredResource = IntPtr.Zero,       // OUT — populated by NVENC
             bufferFormat = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_ARGB,
             bufferUsage = 0,
-            reserved2438 = new uint[243],      // initialize reserved padding to zeros
-            p2PDeviceHandle = IntPtr.Zero,
+            pInputFencePoint = IntPtr.Zero,         // D3D11 only, not D3D12
+            chromaOffset = new uint[2],             // OUT — set to zeros
+            chromaOffsetIn = new uint[2],           // IN — set to zeros
+            reserved1 = new uint[244],
+            reserved2 = new IntPtr[61],
         };
 
         status = nvenc.RegisterResource(encoder, ref registerParams);
@@ -250,20 +254,20 @@ public static class Phase4_NVENCRegistration
         Console.WriteLine($"         Format: ARGB (BGRA8)");
         Console.WriteLine($"         Resource type: DirectX (D3D11Texture2D)");
 
-        // --- Step 6: Unmap + cleanup ---
-        // NVENC does NOT have an "UnregisterResource" function. To release a
-        // registered resource, call nvEncUnmapInputResource with the
-        // registeredResource handle returned by nvEncRegisterResource.
+        // --- Step 6: Unregister + cleanup ---
+        // nvEncUnregisterResource exists in the SDK 13.x function table at
+        // offset 256 (between nvEncRegisterResource and nvEncReconfigureEncoder).
+        // My earlier assumption that NVENC lacked UnregisterResource was wrong.
         Console.WriteLine();
-        Console.WriteLine("[4.6] Unmapping resource and destroying encoder...");
+        Console.WriteLine("[4.6] Unregistering resource and destroying encoder...");
 
-        if (nvenc.UnmapInputResource != null)
+        if (nvenc.UnregisterResource != null)
         {
-            int unmapStatus = nvenc.UnmapInputResource(encoder, registeredHandle);
-            if (unmapStatus == NvEncodeAPI.NV_ENC_SUCCESS)
-                Console.WriteLine("  PASS: Resource unmapped.");
+            int unregStatus = nvenc.UnregisterResource(encoder, registeredHandle);
+            if (unregStatus == NvEncodeAPI.NV_ENC_SUCCESS)
+                Console.WriteLine("  PASS: Resource unregistered.");
             else
-                Console.Error.WriteLine($"  WARN: UnmapInputResource returned {unmapStatus} — continuing.");
+                Console.Error.WriteLine($"  WARN: UnregisterResource returned {unregStatus} — continuing.");
         }
 
         if (nvenc.DestroyEncoder != null)

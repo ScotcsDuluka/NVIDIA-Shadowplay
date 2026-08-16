@@ -3,30 +3,16 @@
 // P1-B.2-V1 Spike — D3D11/NVENC Interop
 // Minimal P/Invoke declarations for NVIDIA Video Codec SDK (NVENC).
 //
-// This file contains ONLY the declarations needed for Phase 4 of the spike:
-//   1. NvEncodeAPICreateInstance — load the NVENC function table
-//   2. NvEncOpenEncodeSessionEx — open a session bound to a D3D11 device
-//   3. NvEncGetEncodeGUIDCount / NvEncGetEncodeGUIDs — enumerate codecs
-//   4. NvEncGetInputFormatCount / NvEncGetInputFormats — input formats
-//   5. NvEncRegisterResource — register a D3D11 texture as NVENC input
-//   6. NvEncUnmapInputResource — release the registered resource
-//      (there is no "NvEncUnregisterResource" in NVENC's function table —
-//       nvEncUnmapInputResource serves this role)
-//   7. NvEncDestroyEncoder — tear down
+// IMPORTANT — This file was rewritten from scratch to match the actual
+// struct layouts in NVIDIA Video Codec SDK 13.1 header (nvEncodeAPI.h).
+// Previous versions were based on incorrect assumptions and caused
+// NvEncodeAPICreateInstance to fail with NV_ENC_ERR_GENERIC.
 //
 // OWNER must install NVIDIA Video Codec SDK:
 //   1. Download from https://developer.nvidia.com/video-codec-sdk
-//   2. Copy nvEncodeAPI.dll from SDK's Lib/x64/ to:
+//   2. Copy nvEncodeAPI64.dll from SDK's Lib/x64/ to:
 //        - This project's output directory (next to the .exe), OR
 //        - C:\Windows\System32\
-//
-// IMPORTANT — Struct layout notes:
-//   The struct layouts below match NVIDIA Video Codec SDK 12.2.
-//   If you use a different SDK version, you may need to adjust:
-//     - NVENCAPI_VERSION constant
-//     - Field offsets in NV_ENCODE_API_FUNCTION_LIST (function pointer order)
-//     - Reserved array sizes in NV_ENC_REGISTER_RESOURCE
-//   Consult nvEncodeAPI.h in your SDK for the authoritative definition.
 //
 // SPDX-License-Identifier: MIT
 // Spike code — not production.
@@ -90,170 +76,197 @@ public static class NvEncodeAPI
     public static readonly Guid NV_ENC_CODEC_AV1_GUID =
         new(0xc24b3f5d, 0x7354, 0x4ca4, 0x9c, 0xa2, 0x6a, 0x2b, 0x55, 0x4d, 0xb0, 0xa8);
 
-    // === API version ===
-    // NVENCAPI_VERSION = (NVENCAPI_MAJOR_VERSION << 4) | NVENCAPI_MINOR_VERSION
-    // For SDK 13.0: (13 << 4) | 0 = 0xD0 | 0x00 = 0xD0
-    // For SDK 12.2: (12 << 4) | 2 = 0xC0 | 0x02 = 0xC2
+    // === API version (SDK 13.x encoding) ===
     //
-    // IMPORTANT: This MUST match the max supported API reported by
-    // NvEncodeAPIGetMaxSupportedVersion — spike output showed:
-    //   "NVENC max supported API: major=13, minor=0"
-    // so we use SDK 13.0. If you have an older driver that only supports
-    // SDK 12.x, change this back to 0x00C2 (12.2) and verify the struct
-    // sizes still match.
-    public const uint NVENCAPI_VERSION = 0x00D0; // SDK 13.0
+    // SDK 12.x used:    NVENCAPI_VERSION = (major << 4) | minor
+    // SDK 13.x changed: NVENCAPI_VERSION = major | (minor << 24)
+    //
+    // For SDK 13.0: 13 | (0 << 24) = 0x0000000D
+    // For SDK 13.1: 13 | (1 << 24) = 0x0100000D
+    //
+    // NvEncodeAPIGetMaxSupportedVersion returns the max version the DRIVER
+    // supports. The DLL itself may be from a newer SDK.
+    //
+    // OWNER's spike output showed max=13.0 from the driver, but the SDK zip
+    // is 13.1. We try 13.0 first since the driver reports that as the max
+    // supported. If NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY occurs, switch to 13.1.
+    public const uint NVENCAPI_MAJOR_VERSION = 13;
+    public const uint NVENCAPI_MINOR_VERSION = 0;
+    public const uint NVENCAPI_VERSION =
+        NVENCAPI_MAJOR_VERSION | (NVENCAPI_MINOR_VERSION << 24); // 0x0000000D for 13.0
 
     /// <summary>
-    /// Computes the struct version field per NVENC's convention:
+    /// Computes the struct version field per NVENC SDK 13.x convention:
     ///
-    ///   version = NVENCAPI_STRUCT_VERSION(structVer)
-    ///          = structVer | (NVENCAPI_VERSION << 16)
+    ///   NVENCAPI_STRUCT_VERSION(ver) = NVENCAPI_VERSION | (ver << 16) | (0x7 << 28)
     ///
-    /// Where structVer is the STRUCT's own version number (always 1 for
-    /// current SDK), NOT the struct size. This was a long-standing bug
-    /// in the spike — I incorrectly encoded sizeof(struct) in the low
-    /// bits, which caused NVENC to reject with NV_ENC_ERR_GENERIC.
+    /// Note the 0x7 magic bits in the top nibble — this was introduced in
+    /// SDK 13.x. Without these bits, NVENC rejects with NV_ENC_ERR_GENERIC.
     ///
-    /// For SDK 13.0:
-    ///   MakeStructVersion() = 1 | (0xD0 << 16) = 0x00D00001
+    /// Each struct has its own 'ver' number — see NV_ENC_*_VER macros.
     /// </summary>
-    public static uint MakeStructVersion()
+    public static uint MakeStructVersion(uint structVer)
     {
-        // structVer is always 1 for current NVENC structs.
-        const uint structVer = 1;
-        return structVer | (NVENCAPI_VERSION << 16);
+        return NVENCAPI_VERSION | (structVer << 16) | (0x7u << 28);
     }
 
-    /// <summary>
-    /// Backward-compatible overload — accepts a type parameter (ignored)
-    /// so existing call sites using MakeStructVersion&lt;T&gt;() still compile.
-    /// </summary>
-    public static uint MakeStructVersion<T>() where T : struct => MakeStructVersion();
+    // === Struct version constants (per nvEncodeAPI.h SDK 13.1) ===
+    // Each struct has its own version number — these MUST match the SDK.
+    public const uint NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT = 2;       // NVENCAPI_STRUCT_VERSION(2)
+    public const uint NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER_STRUCT = 1; // NVENCAPI_STRUCT_VERSION(1)
+    public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 5;          // NVENCAPI_STRUCT_VERSION(5)
+
+    public static uint NV_ENCODE_API_FUNCTION_LIST_VER =>
+        MakeStructVersion(NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT);
+
+    public static uint NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER =>
+        MakeStructVersion(NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER_STRUCT);
+
+    public static uint NV_ENC_REGISTER_RESOURCE_VER =>
+        MakeStructVersion(NV_ENC_REGISTER_RESOURCE_VER_STRUCT);
 
     // === Structs ===
     //
-    // NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS — minimal layout for the spike.
-    // Field order MUST match nvEncodeAPI.h.
-    // NOTE: 'event' is a C# keyword — escaped as '@event'.
+    // Layouts below match nvEncodeAPI.h from SDK 13.1.15 EXACTLY.
+    // Field order, types, and reserved array sizes are critical — NVENC
+    // validates struct size and rejects with NV_ENC_ERR_GENERIC if wrong.
     //
-    [StructLayout(LayoutKind.Sequential)]
+    // All structs use LayoutKind.Sequential with Pack=1 to avoid implicit
+    // padding — the SDK header uses #pragma pack(push, 1) on some structs.
+
+    //
+    // NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS — from nvEncodeAPI.h:
+    //   typedef struct _NV_ENC_OPEN_ENCODE_SESSIONEX_PARAMS {
+    //     uint32_t            version;          // offset 0
+    //     NV_ENC_DEVICE_TYPE  deviceType;       // offset 4  (enum = int32)
+    //     void*               device;           // offset 8  (8 bytes on x64)
+    //     void*               reserved;         // offset 16
+    //     uint32_t            apiVersion;       // offset 24
+    //     uint32_t            reserved1[253];   // offset 28 - 1039
+    //     void*               reserved2[64];    // offset 1040 - 1552
+    //   }
+    // Total size: 1552 bytes
+    //
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
     {
-        public uint version;             // offset 0
-        public int deviceType;           // offset 4  (NV_ENC_DEVICE_TYPE enum)
-        public IntPtr device;            // offset 8  (void* — 8 bytes on x64)
-        public IntPtr reserved;          // offset 16 (void*)
-        public IntPtr @event;            // offset 24 (void* — 'event' is C# keyword, escape with @)
-        public IntPtr inputParams;       // offset 32 (void* — NV_ENC_OPEN_ENCODE_SESSION_INPUT_PARAMS*)
-        public uint apiVersion;          // offset 40
-        // NOTE: real SDK struct has more reserved fields. For the spike, this
-        // minimal layout should be accepted by NVENC because the version field
-        // encodes our struct size. If NVENC returns NV_ENC_ERR_INVALID_PARAM,
-        // OWNER must consult nvEncodeAPI.h and add the missing reserved fields.
+        public uint version;
+        public int deviceType;             // NV_ENC_DEVICE_TYPE enum
+        public IntPtr device;              // void*
+        public IntPtr reserved;            // void*
+        public uint apiVersion;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 253)]
+        public uint[] reserved1;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
+        public IntPtr[] reserved2;
     }
-    // Expected size: 44 bytes + 4 padding = 48 bytes
 
     //
-    // NV_ENC_REGISTER_RESOURCE — for NvEncRegisterResource.
-    // Matches nvEncodeAPI.h layout for SDK 12.x.
+    // NV_ENC_REGISTER_RESOURCE — from nvEncodeAPI.h:
+    //   typedef struct _NV_ENC_REGISTER_RESOURCE {
+    //     uint32_t                    version;             // offset 0
+    //     NV_ENC_INPUT_RESOURCE_TYPE  resourceType;        // offset 4  (enum)
+    //     uint32_t                    width;               // offset 8
+    //     uint32_t                    height;              // offset 12
+    //     uint32_t                    pitch;               // offset 16
+    //     uint32_t                    subResourceIndex;    // offset 20  *** NEW in SDK 13 ***
+    //     void*                       resourceToRegister;  // offset 24
+    //     NV_ENC_REGISTERED_PTR       registeredResource;  // offset 32 (void*)
+    //     NV_ENC_BUFFER_FORMAT        bufferFormat;        // offset 40 (enum = int32)
+    //     NV_ENC_BUFFER_USAGE         bufferUsage;         // offset 44 (enum = int32)
+    //     NV_ENC_FENCE_POINT_D3D12*   pInputFencePoint;    // offset 48 (void*)
+    //     uint32_t                    chromaOffset[2];     // offset 56
+    //     uint32_t                    chromaOffsetIn[2];   // offset 64
+    //     uint32_t                    reserved1[244];      // offset 72 - 1039
+    //     void*                       reserved2[61];       // offset 1040 - 1528
+    //   }
+    // Total size: 1528 bytes
     //
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_REGISTER_RESOURCE
     {
-        public uint version;                 // offset 0
-        public int resourceType;             // offset 4  (NV_ENC_INPUT_RESOURCE_TYPE enum)
-        public int width;                    // offset 8
-        public int height;                   // offset 12
-        public int pitch;                    // offset 16
-        // 4 bytes padding to align IntPtr to 8-byte boundary
-        public IntPtr resourceToRegister;    // offset 24 (void* — ID3D11Texture2D*)
-        public IntPtr registeredResource;    // offset 32 (void* — OUT, opaque handle from NVENC)
-        public int bufferFormat;             // offset 40 (NV_ENC_BUFFER_FORMAT enum)
-        public int bufferUsage;              // offset 44
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 243)]
-        public uint[] reserved2438;          // offset 48 — 243 × 4 = 972 bytes of reserved padding
-        // padding to align next IntPtr
-        public IntPtr p2PDeviceHandle;       // offset ~1024 (void*)
+        public uint version;
+        public int resourceType;           // NV_ENC_INPUT_RESOURCE_TYPE enum
+        public uint width;
+        public uint height;
+        public uint pitch;
+        public uint subResourceIndex;      // NEW in SDK 13.x
+        public IntPtr resourceToRegister;  // void*
+        public IntPtr registeredResource;  // void* (OUT)
+        public int bufferFormat;           // NV_ENC_BUFFER_FORMAT enum
+        public int bufferUsage;            // NV_ENC_BUFFER_USAGE enum
+        public IntPtr pInputFencePoint;    // NV_ENC_FENCE_POINT_D3D12* (set to IntPtr.Zero)
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public uint[] chromaOffset;        // OUT (set to zeros)
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public uint[] chromaOffsetIn;      // IN (set to zeros)
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
+        public uint[] reserved1;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 61)]
+        public IntPtr[] reserved2;
     }
-    // Expected size: ~1032 bytes (matches SDK 12.x)
 
     //
-    // NV_ENCODE_API_FUNCTION_LIST — function pointer table.
-    // Populated by NvEncodeAPICreateInstance.
+    // NV_ENCODE_API_FUNCTION_LIST — from nvEncodeAPI.h SDK 13.1:
     //
-    // CRITICAL: Field order MUST match nvEncodeAPI.h exactly, because
-    // NvEncodeAPICreateInstance writes function pointers at these offsets.
+    // Field order is CRITICAL — NvEncodeAPICreateInstance writes function
+    // pointers at the offsets defined by this struct. If the order is wrong,
+    // we'll get garbage function pointers and crash or call wrong functions.
     //
-    // Layout below matches NVIDIA Video Codec SDK 12.x.
-    // If using a different SDK version, consult nvEncodeAPI.h for the
-    // correct function pointer order.
+    // Note: NV_ENC_INITIALIZE_PARAMS is intentionally omitted from the spike
+    // (Phase 4 only does register/unregister/destroy, not InitializeEncoder).
     //
-    [StructLayout(LayoutKind.Sequential)]
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENCODE_API_FUNCTION_LIST
     {
         public uint version;                            // offset 0
         public uint reserved;                           // offset 4
-        public IntPtr nvEncOpenEncodeSession;           // offset 8    (NOT Ex — legacy)
+        public IntPtr nvEncOpenEncodeSession;           // offset 8    (legacy, NOT Ex)
         public IntPtr nvEncGetEncodeGUIDCount;          // offset 16
-        public IntPtr nvEncGetEncodeGUIDs;              // offset 24
-        public IntPtr nvEncGetEncodeProfileGUIDCount;   // offset 32
-        public IntPtr nvEncGetEncodeProfileGUIDs;       // offset 40
+        public IntPtr nvEncGetEncodeProfileGUIDCount;   // offset 24
+        public IntPtr nvEncGetEncodeProfileGUIDs;       // offset 32
+        public IntPtr nvEncGetEncodeGUIDs;              // offset 40
         public IntPtr nvEncGetInputFormatCount;         // offset 48
         public IntPtr nvEncGetInputFormats;             // offset 56
         public IntPtr nvEncGetEncodeCaps;               // offset 64
         public IntPtr nvEncGetEncodePresetCount;        // offset 72
         public IntPtr nvEncGetEncodePresetGUIDs;        // offset 80
         public IntPtr nvEncGetEncodePresetConfig;       // offset 88
-        public IntPtr nvEncGetEncodePresetConfigEx;     // offset 96
-        public IntPtr nvEncInitializeEncoder;           // offset 104
-        public IntPtr nvEncRegisterResource;            // offset 112
-        public IntPtr nvEncRegisterResourceEx;          // offset 120  (12.0+)
-        public IntPtr nvEncMapInputResource;            // offset 128
-        public IntPtr nvEncUnmapInputResource;          // offset 136  ★ use this to "unregister"
-        public IntPtr nvEncDestroyEncoder;              // offset 144
-        public IntPtr nvEncInvalidateRefFrames;         // offset 152
-        public IntPtr nvEncEncodePicture;               // offset 160
-        public IntPtr nvEncLockBitstream;               // offset 168
-        public IntPtr nvEncUnlockBitstream;             // offset 176
-        public IntPtr nvEncLockInputBuffer;             // offset 184
-        public IntPtr nvEncUnlockInputBuffer;           // offset 192
-        public IntPtr nvEncGetEncodeStats;              // offset 200
-        public IntPtr nvEncGetSequenceParams;           // offset 208
-        public IntPtr nvEncEventNotify;                 // offset 216
-        public IntPtr nvEncRegisterAsyncEvent;          // offset 224
-        public IntPtr nvEncUnregisterAsyncEvent;        // offset 232
-        public IntPtr nvEncGetLastErrorString;          // offset 240
-        public IntPtr reserved1;                        // offset 248
-        public IntPtr nvEncSetIOCudaStreams;            // offset 256
-        public IntPtr nvEncGetSequenceParamEx;          // offset 264
-        public IntPtr nvEncLookaheadPicture;            // offset 272
-        public IntPtr nvEncGetEncodeBufferGCCount;      // offset 280
-        public IntPtr reserved2;                        // offset 288
-        public IntPtr reserved3;                        // offset 296
-        public IntPtr nvEncReconfigureEncoder;          // offset 304
-        public IntPtr reserved4;                        // offset 312
-        public IntPtr reserved5;                        // offset 320
-        public IntPtr reserved6;                        // offset 328
-        public IntPtr reserved7;                        // offset 336
-        public IntPtr reserved8;                        // offset 344
-        public IntPtr reserved9;                        // offset 352
-        public IntPtr reserved10;                       // offset 360
-        public IntPtr nvEncOpenEncodeSessionEx;         // offset 368  ★ Ex is here
-        public IntPtr reserved11;                       // offset 376
-        public IntPtr reserved12;                       // offset 384
-        public IntPtr reserved13;                       // offset 392
-        public IntPtr reserved14;                       // offset 400
-        public IntPtr reserved15;                       // offset 408
-        public IntPtr reserved16;                       // offset 416
-        public IntPtr reserved17;                       // offset 424
-        public IntPtr reserved18;                       // offset 432
-        public IntPtr reserved19;                       // offset 440
-        public IntPtr reserved20;                       // offset 448
-        public IntPtr reserved21;                       // offset 456
-        public IntPtr reserved22;                       // offset 464
-        public IntPtr reserved23;                       // offset 472
+        public IntPtr nvEncInitializeEncoder;           // offset 96
+        public IntPtr nvEncCreateInputBuffer;           // offset 104
+        public IntPtr nvEncDestroyInputBuffer;          // offset 112
+        public IntPtr nvEncCreateBitstreamBuffer;       // offset 120
+        public IntPtr nvEncDestroyBitstreamBuffer;      // offset 128
+        public IntPtr nvEncEncodePicture;               // offset 136
+        public IntPtr nvEncLockBitstream;               // offset 144
+        public IntPtr nvEncUnlockBitstream;             // offset 152
+        public IntPtr nvEncLockInputBuffer;             // offset 160
+        public IntPtr nvEncUnlockInputBuffer;           // offset 168
+        public IntPtr nvEncGetEncodeStats;              // offset 176
+        public IntPtr nvEncGetSequenceParams;           // offset 184
+        public IntPtr nvEncRegisterAsyncEvent;          // offset 192
+        public IntPtr nvEncUnregisterAsyncEvent;        // offset 200
+        public IntPtr nvEncMapInputResource;            // offset 208
+        public IntPtr nvEncUnmapInputResource;          // offset 216
+        public IntPtr nvEncDestroyEncoder;              // offset 224
+        public IntPtr nvEncInvalidateRefFrames;         // offset 232
+        public IntPtr nvEncOpenEncodeSessionEx;         // offset 240  ★ Ex is HERE (not 368!)
+        public IntPtr nvEncRegisterResource;            // offset 248
+        public IntPtr nvEncUnregisterResource;          // offset 256  ★ EXISTS after all!
+        public IntPtr nvEncReconfigureEncoder;          // offset 264
+        public IntPtr reserved1;                        // offset 272
+        public IntPtr nvEncCreateMVBuffer;              // offset 280
+        public IntPtr nvEncDestroyMVBuffer;             // offset 288
+        public IntPtr nvEncRunMotionEstimationOnly;     // offset 296
+        public IntPtr nvEncGetLastErrorString;          // offset 304
+        public IntPtr nvEncSetIOCudaStreams;            // offset 312
+        public IntPtr nvEncGetEncodePresetConfigEx;     // offset 320
+        public IntPtr nvEncGetSequenceParamEx;          // offset 328
+        public IntPtr nvEncRestoreEncoderState;         // offset 336
+        public IntPtr nvEncLookaheadPicture;            // offset 344
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 275)]
+        public IntPtr[] reserved2;                      // offset 352 - 2552
     }
-    // Expected size: 480 bytes (8 + 59 × 8) — matches SDK 12.x
 
     // === Delegates for function table entries we use ===
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -281,24 +294,19 @@ public static class NvEncodeAPI
     public delegate int NvEncRegisterResourceDelegate(
         IntPtr encoder, ref NV_ENC_REGISTER_RESOURCE registerParams);
 
-    // NVENC function table does NOT have an "UnregisterResource" entry.
-    // To release a registered resource, call nvEncUnmapInputResource with
-    // the registeredResource handle returned by nvEncRegisterResource.
+    // NVENC DOES have nvEncUnregisterResource (offset 256) — my earlier
+    // "use nvEncUnmapInputResource instead" was wrong. nvEncUnmapInputResource
+    // (offset 216) is for unmapping a *mapped* resource, not for unregistering.
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncUnmapInputResourceDelegate(
+    public delegate int NvEncUnregisterResourceDelegate(
         IntPtr encoder, IntPtr registeredResource);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate int NvEncDestroyEncoderDelegate(IntPtr encoder);
 
     // === P/Invoke for the NVENC loader functions ===
-    // NVIDIA Video Codec SDK 12.x ships the 64-bit DLL as 'nvEncodeAPI64.dll'
-    // (older SDKs named it 'nvEncodeAPI.dll'). This spike builds x64-only, so
-    // we use the 64-bit name directly.
-    //
-    // If you only have nvEncodeAPI.dll on disk (older SDK), either:
-    //   1. Rename the file to nvEncodeAPI64.dll, OR
-    //   2. Change the DllImport strings below back to "nvEncodeAPI.dll"
+    // NVIDIA Video Codec SDK 12.x+ ships the 64-bit DLL as 'nvEncodeAPI64.dll'.
+    // This spike builds x64-only, so we use the 64-bit name directly.
     [DllImport("nvEncodeAPI64.dll", CallingConvention = CallingConvention.StdCall,
                SetLastError = false, BestFitMapping = false, ThrowOnUnmappableChar = true)]
     public static extern int NvEncodeAPICreateInstance(ref NV_ENCODE_API_FUNCTION_LIST functionList);
@@ -351,14 +359,13 @@ public sealed class NvEncFunctionTable : IDisposable
     public NvEncodeAPI.NvEncGetInputFormatCountDelegate? GetInputFormatCount { get; private set; }
     public NvEncodeAPI.NvEncGetInputFormatsDelegate? GetInputFormats { get; private set; }
     public NvEncodeAPI.NvEncRegisterResourceDelegate? RegisterResource { get; private set; }
-    public NvEncodeAPI.NvEncUnmapInputResourceDelegate? UnmapInputResource { get; private set; }
+    public NvEncodeAPI.NvEncUnregisterResourceDelegate? UnregisterResource { get; private set; }
     public NvEncodeAPI.NvEncDestroyEncoderDelegate? DestroyEncoder { get; private set; }
 
     public uint MaxSupportedApiVersion { get; private set; }
 
     /// <summary>
     /// Loads the NVENC function table. Returns true on success.
-    /// Throws DllNotFoundException if nvEncodeAPI.dll is not on the path.
     /// </summary>
     public bool TryLoad()
     {
@@ -373,16 +380,22 @@ public sealed class NvEncFunctionTable : IDisposable
                 return false;
             }
             MaxSupportedApiVersion = ver;
+            // SDK 13.x encoding: major = low byte, minor = high byte (>> 24)
+            uint maxMajor = ver & 0xFF;
+            uint maxMinor = (ver >> 24) & 0xFF;
             Console.WriteLine(
-                $"  NVENC max supported API: major={(ver >> 4) & 0xF}, minor={ver & 0xF}");
+                $"  NVENC max supported API: major={maxMajor}, minor={maxMinor} (raw=0x{ver:X8})");
             Console.WriteLine(
-                $"  Spike requests API:     major={(NvEncodeAPI.NVENCAPI_VERSION >> 4) & 0xF}, minor={NvEncodeAPI.NVENCAPI_VERSION & 0xF}");
+                $"  Spike requests API:     major={NvEncodeAPI.NVENCAPI_MAJOR_VERSION}, " +
+                $"minor={NvEncodeAPI.NVENCAPI_MINOR_VERSION} (raw=0x{NvEncodeAPI.NVENCAPI_VERSION:X8})");
 
             // Step 2: zero-init the function list and set version field.
-            // version = sizeof(struct) | (NVENCAPI_VERSION << 16)
+            // version = NVENCAPI_STRUCT_VERSION(2) for NV_ENCODE_API_FUNCTION_LIST
             _fnList = default;
-            _fnList.version = NvEncodeAPI.MakeStructVersion<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>();
-            Console.WriteLine($"  Function table version: 0x{_fnList.version:X8} (size={Marshal.SizeOf<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>()} bytes)");
+            _fnList.version = NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST_VER;
+            int fnListSize = System.Runtime.InteropServices.Marshal.SizeOf<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>();
+            Console.WriteLine(
+                $"  Function table version: 0x{_fnList.version:X8} (struct size={fnListSize} bytes)");
 
             // Step 3: call NvEncodeAPICreateInstance
             status = NvEncodeAPI.NvEncodeAPICreateInstance(ref _fnList);
@@ -391,18 +404,23 @@ public sealed class NvEncFunctionTable : IDisposable
                 Console.Error.WriteLine(
                     $"NvEncodeAPICreateInstance failed: status={status} " +
                     $"({NvEncodeAPI.NvencStatusToString(status)})");
-                Console.Error.WriteLine("  Possible causes:");
-                Console.Error.WriteLine("    - NVENCAPI_VERSION in NvEncodeAPI.cs does not match installed SDK");
-                Console.Error.WriteLine("    - Struct size mismatch (check NV_ENCODE_API_FUNCTION_LIST layout)");
-                Console.Error.WriteLine("    - Driver version too old");
+                if (status == NvEncodeAPI.NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY)
+                {
+                    Console.Error.WriteLine("  → NVENCAPI_VERSION mismatch.");
+                    Console.Error.WriteLine("    Try changing NVENCAPI_MINOR_VERSION in NvEncodeAPI.cs");
+                    Console.Error.WriteLine($"    from {NvEncodeAPI.NVENCAPI_MINOR_VERSION} to {(maxMajor == 13 ? maxMinor : 0)}");
+                }
+                else if (status == NvEncodeAPI.NV_ENC_ERR_GENERIC)
+                {
+                    Console.Error.WriteLine("  → Generic error — struct layout may still be wrong");
+                    Console.Error.WriteLine("    or NVENCAPI_VERSION magic bits missing.");
+                }
                 return false;
             }
 
             // Step 4: marshal function pointers to delegates.
-            // CRITICAL: these field accesses assume the struct layout matches
-            // the NVENC SDK's function pointer order. If you get
-            // NullReferenceException or AccessViolationException here, the
-            // struct layout is wrong — consult nvEncodeAPI.h.
+            // The struct layout above matches SDK 13.1's nvEncodeAPI.h exactly,
+            // so these field accesses read the correct function pointers.
             OpenEncodeSessionEx = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncOpenEncodeSessionExDelegate>(
                 _fnList.nvEncOpenEncodeSessionEx);
             GetEncodeGUIDCount = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncGetEncodeGUIDCountDelegate>(
@@ -415,8 +433,8 @@ public sealed class NvEncFunctionTable : IDisposable
                 _fnList.nvEncGetInputFormats);
             RegisterResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncRegisterResourceDelegate>(
                 _fnList.nvEncRegisterResource);
-            UnmapInputResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncUnmapInputResourceDelegate>(
-                _fnList.nvEncUnmapInputResource);
+            UnregisterResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncUnregisterResourceDelegate>(
+                _fnList.nvEncUnregisterResource);
             DestroyEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncDestroyEncoderDelegate>(
                 _fnList.nvEncDestroyEncoder);
 
@@ -426,11 +444,9 @@ public sealed class NvEncFunctionTable : IDisposable
         catch (DllNotFoundException ex)
         {
             Console.Error.WriteLine($"ERROR: nvEncodeAPI64.dll not found.");
-            Console.Error.WriteLine("  Install NVIDIA Video Codec SDK 12.x and copy nvEncodeAPI64.dll to:");
+            Console.Error.WriteLine("  Install NVIDIA Video Codec SDK 13.x and copy nvEncodeAPI64.dll to:");
             Console.Error.WriteLine("    - This project's bin/x64/Debug/net8.0-windows/ directory, OR");
             Console.Error.WriteLine("    - C:\\Windows\\System32\\");
-            Console.Error.WriteLine("  If you only have nvEncodeAPI.dll (older SDK name), rename it to");
-            Console.Error.WriteLine("  nvEncodeAPI64.dll OR update the DllImport in Utils/NvEncodeAPI.cs.");
             Console.Error.WriteLine($"  Exception: {ex.Message}");
             return false;
         }
@@ -445,6 +461,5 @@ public sealed class NvEncFunctionTable : IDisposable
     {
         if (!_loaded) return;
         _loaded = false;
-        // Function pointers don't need to be freed — they're pointers into nvEncodeAPI.dll
     }
 }
