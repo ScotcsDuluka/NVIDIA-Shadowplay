@@ -383,6 +383,11 @@ Partial Class AudioSettingsForm
         ' 
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
+        '
+        ' OPEN_UI
+        '
+        OPEN_UI.Enabled = True
+        OPEN_UI.Interval = 1
         BackColor = Color.Coral
         ClientSize = New Size(1920, 1080)
         Controls.Add(BT_Back)
@@ -449,4 +454,5 @@ Partial Class AudioSettingsForm
     Friend WithEvents hg2 As PictureBox
     Friend WithEvents Audio_Capture_Menutext As Label
     Friend WithEvents Label2 As Label
+    Friend WithEvents OPEN_UI As System.Windows.Forms.Timer
 End Class
