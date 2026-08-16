@@ -141,11 +141,11 @@ Partial Class Base_KeySet
         ' 
         text_settings.AutoSize = True
         text_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        text_settings.Font = New Font("Segoe UI", 17F, FontStyle.Bold)
+        text_settings.Font = New Font("GeForce", 24F, FontStyle.Bold)
         text_settings.ForeColor = Color.White
         text_settings.Location = New Point(62, 43)
         text_settings.Name = "text_settings"
-        text_settings.Size = New Size(222, 31)
+        text_settings.Size = New Size(279, 42)
         text_settings.TabIndex = 51
         text_settings.Text = "Keyboard Shortcut "
         ' 

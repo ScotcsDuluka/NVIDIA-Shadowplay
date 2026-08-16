@@ -144,11 +144,11 @@ Partial Class Base_Overlay_Hub
         ' 
         Label4.AutoSize = True
         Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New Font("Segoe UI Semibold", 17F, FontStyle.Bold)
+        Label4.Font = New Font("GeForce", 24F, FontStyle.Bold)
         Label4.ForeColor = Color.White
         Label4.Location = New Point(62, 43)
         Label4.Name = "Label4"
-        Label4.Size = New Size(144, 31)
+        Label4.Size = New Size(187, 42)
         Label4.TabIndex = 51
         Label4.Text = "Overlay Hub"
         ' 

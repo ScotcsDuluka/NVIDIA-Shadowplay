@@ -110,7 +110,7 @@ Partial Class Base_Privacy_Control
         ' Label4
         ' 
         Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New Font("Segoe UI", 17F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Label4.Font = New Font("GeForce", 24F, FontStyle.Bold)
         Label4.ForeColor = Color.White
         Label4.Location = New Point(62, 43)
         Label4.Name = "Label4"

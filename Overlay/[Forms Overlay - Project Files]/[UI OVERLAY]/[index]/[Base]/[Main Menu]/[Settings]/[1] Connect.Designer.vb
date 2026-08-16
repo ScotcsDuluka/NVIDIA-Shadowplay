@@ -170,11 +170,11 @@ Partial Class Base_Connect
         ' 
         text_menu.AutoSize = True
         text_menu.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        text_menu.Font = New Font("Segoe UI Semibold", 17F, FontStyle.Bold)
+        text_menu.Font = New Font("GeForce", 24F, FontStyle.Bold)
         text_menu.ForeColor = Color.White
         text_menu.Location = New Point(62, 43)
         text_menu.Name = "text_menu"
-        text_menu.Size = New Size(99, 31)
+        text_menu.Size = New Size(128, 42)
         text_menu.TabIndex = 51
         text_menu.Text = "Connect"
         ' 
