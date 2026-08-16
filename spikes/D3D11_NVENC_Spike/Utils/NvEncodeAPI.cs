@@ -420,16 +420,35 @@ public sealed class NvEncFunctionTable : IDisposable
 
             // === Auto-detect SDK 12.x vs SDK 13.x encoding ===
             //
-            // SDK 12.x encoding:  (major << 4) | minor  → max values are typically
-            //   like 0xC2 (12.2) or 0xD0 (13.0 reported by legacy DLL).
-            //   The high 24 bits are zero, and the low byte is 0x10-0xFF.
+            // SDK 12.x encoding:  NVENCAPI_VERSION = (major << 4) | minor
+            //   Examples:
+            //     SDK 12.0  → 0xC0  = 192
+            //     SDK 12.2  → 0xC2  = 194
+            //     SDK 13.0  → 0xD0  = 208   ← OWNER's DLL reports this
+            //     SDK 13.1  → 0xD1  = 209
+            //   Range: roughly 0xC0-0xFF (192-255) for recent versions.
+            //   For very old SDKs (e.g., 9.x), could be lower.
+            //   Detection: low byte >= 0x40 AND high 24 bits == 0.
             //
-            // SDK 13.x encoding:  major | (minor << 24)  → max values are
-            //   small numbers (0x0D for 13.0, 0x0100000D for 13.1).
-            //   The low byte equals major version (typically 0x0C-0x0F).
+            // SDK 13.x encoding:  NVENCAPI_VERSION = major | (minor << 24)
+            //   Examples:
+            //     SDK 13.0  → 0x0000000D = 13
+            //     SDK 13.1  → 0x0100000D = 268435469
+            //   Range: low byte <= 0x1F (small version numbers), with the
+            //   minor version in the high byte (>> 24).
+            //   Detection: low byte < 0x40 OR high 24 bits != 0.
             //
-            // Heuristic: if ver >= 0x100, the DLL uses legacy SDK 12.x encoding.
-            if (ver >= 0x100)
+            // Better heuristic: SDK 12.x encodings always have the low byte
+            // in the range 0x10-0xFF (because major version is at least 1,
+            // shifted by 4). SDK 13.x encodings have the low byte equal to
+            // the major version number (typically 0x0C-0x0F for 12-15).
+            //
+            // We use: if (low byte >= 0x40) → legacy SDK 12.x encoding.
+            // 0x40 covers SDK 4.0+ in legacy encoding (4 << 4 = 0x40),
+            // which is far below any currently supported version.
+            uint lowByte = ver & 0xFF;
+            uint highBytes = ver & 0xFFFFFF00;
+            if (lowByte >= 0x40 && highBytes == 0)
             {
                 NvEncodeAPI.UseLegacyVersionEncoding = true;
                 uint maxMajor = (ver >> 4) & 0xF;
