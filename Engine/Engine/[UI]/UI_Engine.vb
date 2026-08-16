@@ -1234,12 +1234,17 @@ Partial Public Class UI_Engine
                 videoJsonPath = ""
             End If
 
-            Using frm As New AudioSettingsForm(s, _configPath, videoJsonPath)
-                Dim result As DialogResult = frm.ShowDialog(Me)
-                If result = DialogResult.OK Then
-                    RefreshOverlayConfigUI()
-                End If
-            End Using
+            ' Create Audio.UI marker file so OPEN_UI timer shows the form
+            Dim uiMarkerPath As String = IO.Path.Combine(Application.StartupPath, "Audio.UI")
+            Try
+                IO.File.WriteAllText(uiMarkerPath, DateTime.Now.ToString())
+            Catch
+            End Try
+
+            ' Use Show() not ShowDialog() — OPEN_UI timer controls visibility via Audio.UI marker
+            Dim frm As New AudioSettingsForm(s, _configPath, videoJsonPath)
+            frm.Show(Me)
+
         Catch ex As Exception
             MessageBox.Show(Me, "Failed to open audio settings: " & ex.Message, "Error",
                             MessageBoxButtons.OK, MessageBoxIcon.Error)
