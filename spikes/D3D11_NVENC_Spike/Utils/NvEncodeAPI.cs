@@ -92,9 +92,16 @@ public static class NvEncodeAPI
 
     // === API version ===
     // NVENCAPI_VERSION = (NVENCAPI_MAJOR_VERSION << 4) | NVENCAPI_MINOR_VERSION
+    // For SDK 13.0: (13 << 4) | 0 = 0xD0 | 0x00 = 0xD0
     // For SDK 12.2: (12 << 4) | 2 = 0xC0 | 0x02 = 0xC2
-    // Change this to match your NVENC SDK version.
-    public const uint NVENCAPI_VERSION = 0x00C2; // SDK 12.2
+    //
+    // IMPORTANT: This MUST match the max supported API reported by
+    // NvEncodeAPIGetMaxSupportedVersion — spike output showed:
+    //   "NVENC max supported API: major=13, minor=0"
+    // so we use SDK 13.0. If you have an older driver that only supports
+    // SDK 12.x, change this back to 0x00C2 (12.2) and verify the struct
+    // sizes still match.
+    public const uint NVENCAPI_VERSION = 0x00D0; // SDK 13.0
 
     /// <summary>
     /// Computes the struct version field per NVENC's convention:
