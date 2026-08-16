@@ -1,8 +1,17 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace>CaptureEngine</RootNamespace>
+    <RootNamespace></RootNamespace>
     <TargetFramework>net8.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <OptionCompare>Binary</OptionCompare>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>CaptureEngine</AssemblyName>
+    <Description>CaptureEngine Foundation — lifecycle skeleton (Task 001)</Description>
   </PropertyGroup>
 
 </Project>
