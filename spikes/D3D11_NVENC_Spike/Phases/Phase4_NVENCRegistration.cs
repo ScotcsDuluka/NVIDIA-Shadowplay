@@ -199,11 +199,24 @@ public static class Phase4_NVENCRegistration
         }
         Console.WriteLine("  PASS: ARGB (BGRA8) is supported — zero-copy path possible.");
 
-        // --- Step 5: Register the staging texture ---
+        // --- Step 5: Register a fresh staging texture with NVENC ---
+        //
         // This is the CRITICAL V1 spike step. If NvEncRegisterResource succeeds,
         // zero-copy from D3D11 capture to NVENC is PROVEN.
+        //
+        // We create a FRESH texture here instead of using Phase 2's staging
+        // texture. Reason: Phase 2's staging texture was used with
+        // CopyResource in a capture loop, and the D3D11 device context may
+        // have queued commands referencing it. Registering a fresh texture
+        // eliminates any ambiguity about whether the device/texture state is
+        // valid for NVENC.
+        //
+        // The fresh texture is created with the SAME D3D11 device that
+        // Phase 1 created — so if registration succeeds, it proves that
+        // the device used for capture is the same device that NVENC can use
+        // for encoding. That's the V1 zero-copy claim.
         Console.WriteLine();
-        Console.WriteLine("[4.5] Registering staging texture with NVENC...");
+        Console.WriteLine("[4.5] Registering a fresh staging texture with NVENC...");
 
         if (nvenc.RegisterResource == null)
         {
@@ -212,19 +225,55 @@ public static class Phase4_NVENCRegistration
             return 1;
         }
 
+        // Create a fresh texture on the same device as Phase 1/2.
+        uint texWidth = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width;
+        uint texHeight = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height;
+        Console.WriteLine($"  Creating fresh texture: {texWidth}x{texHeight} BGRA8 on device 0x{SpikeSharedContext.Device.NativePointer.ToInt64():x16}");
+
+        Vortice.Direct3D11.Texture2DDescription freshDesc = new()
+        {
+            Width = texWidth,
+            Height = texHeight,
+            MipLevels = 1,
+            ArraySize = 1,
+            Format = Vortice.DXGI.Format.B8G8R8A8_UNorm,
+            SampleDescription = new Vortice.DXGI.SampleDescription(1, 0),
+            Usage = Vortice.Direct3D11.ResourceUsage.Default,
+            BindFlags = Vortice.Direct3D11.BindFlags.ShaderResource,
+            CPUAccessFlags = Vortice.Direct3D11.CpuAccessFlags.None,
+            MiscFlags = Vortice.Direct3D11.ResourceOptionFlags.None,
+        };
+        Vortice.Direct3D11.ID3D11Texture2D freshTexture =
+            SpikeSharedContext.Device.CreateTexture2D(freshDesc);
+        Console.WriteLine($"  Fresh texture pointer: 0x{freshTexture.NativePointer.ToInt64():x16}");
+
+        // Verify fresh texture is on the same device.
+        Vortice.Direct3D11.ID3D11Device freshTexDevice = freshTexture.Device;
+        long freshTexDevicePtr = freshTexDevice.NativePointer.ToInt64();
+        long phase1DevicePtr = SpikeSharedContext.Device.NativePointer.ToInt64();
+        Console.WriteLine($"  Fresh texture's parent device: 0x{freshTexDevicePtr:x16}");
+        Console.WriteLine($"  Phase 1 device pointer:        0x{phase1DevicePtr:x16}");
+        if (freshTexDevicePtr != phase1DevicePtr)
+        {
+            Console.Error.WriteLine("  FAIL: Fresh texture is NOT on the same device as Phase 1.");
+            freshTexture.Dispose();
+            nvenc.DestroyEncoder?.Invoke(encoder);
+            return 1;
+        }
+        Console.WriteLine("  PASS: Fresh texture is on the same D3D11 device.");
+
         var registerParams = new NvEncodeAPI.NV_ENC_REGISTER_RESOURCE
         {
             version = NvEncodeAPI.NV_ENC_REGISTER_RESOURCE_VER,
             resourceType = NvEncodeAPI.NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX,
-            // ModeDescription.Width/Height are uint in Vortice; struct field is uint.
-            width = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width,
-            height = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height,
+            width = texWidth,
+            height = texHeight,
             pitch = 0,                              // 0 for D3D11 textures
             subResourceIndex = 0,                   // 0 for non-array textures
-            resourceToRegister = SpikeSharedContext.StagingTexture!.NativePointer,
+            resourceToRegister = freshTexture.NativePointer,
             registeredResource = IntPtr.Zero,       // OUT — populated by NVENC
             bufferFormat = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_ARGB,
-            bufferUsage = 0,
+            bufferUsage = 0,                        // NV_ENC_INPUT_IMAGE = 0x0
             pInputFencePoint = IntPtr.Zero,         // D3D11 only, not D3D12
             chromaOffset = new uint[2],             // OUT — set to zeros
             chromaOffsetIn = new uint[2],           // IN — set to zeros
@@ -242,6 +291,8 @@ public static class Phase4_NVENCRegistration
             Console.Error.WriteLine("          - Texture bind flags incompatible (try adding RenderTarget)");
             Console.Error.WriteLine("          - Texture not on the same D3D11 device as the encode session");
             Console.Error.WriteLine("          - Driver version too old");
+            Console.Error.WriteLine("          - D3D11 device context has pending operations");
+            freshTexture.Dispose();
             nvenc.DestroyEncoder?.Invoke(encoder);
             return 1;
         }
@@ -269,6 +320,10 @@ public static class Phase4_NVENCRegistration
             else
                 Console.Error.WriteLine($"  WARN: UnregisterResource returned {unregStatus} — continuing.");
         }
+
+        // Dispose the fresh texture we created in Step 5.
+        freshTexture.Dispose();
+        Console.WriteLine("  PASS: Fresh texture disposed.");
 
         if (nvenc.DestroyEncoder != null)
         {
