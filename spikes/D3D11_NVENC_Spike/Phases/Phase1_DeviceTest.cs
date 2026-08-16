@@ -107,10 +107,20 @@ public static class Phase1_DeviceTest
         {
             // Fully-qualify D3D11 class to avoid ambiguity with our own
             // namespace CaptureEngine.Video.Spike.D3D11.
+            //
+            // Device creation flags:
+            //   BgraSupport   — required for DXGI Desktop Duplication API
+            //   VideoSupport  — required for NVENC interop (D3D11 device must
+            //                   be created with this flag for NvEncRegisterResource
+            //                   to accept textures from this device)
+            //
+            // Without VideoSupport, NvEncRegisterResource returns
+            // NV_ENC_ERR_DEVICE_NOT_EXIST even though the texture is on the
+            // same device as the encode session.
             Vortice.Direct3D11.D3D11.D3D11CreateDevice(
                 targetAdapter,
                 DriverType.Unknown,        // must be Unknown when specifying adapter
-                DeviceCreationFlags.BgraSupport,  // required for Desktop Duplication
+                DeviceCreationFlags.BgraSupport | DeviceCreationFlags.VideoSupport,
                 requestedFeatureLevels,
                 out device,
                 out context).CheckError();
