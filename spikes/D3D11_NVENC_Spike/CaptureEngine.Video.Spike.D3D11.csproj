@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>false</UseWindowsForms>
+    <UseWPF>false</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <RootNamespace>CaptureEngine.Video.Spike.D3D11</RootNamespace>
+    <AssemblyName>CaptureEngine.Video.Spike.D3D11</AssemblyName>
+    <Version>0.1.0-spike</Version>
+
+    <!--
+      SPIKE PROJECT — NOT FOR PRODUCTION
+      This project is intentionally isolated from the main CaptureEngine.Video
+      contract layer. It does NOT reference:
+        - CaptureEngine (Foundation)
+        - CaptureEngine.Video (Contract / FakeBackend / BoundedVideoFrameSink)
+        - CaptureEngine.Video.Tests
+
+      It does NOT modify:
+        - Foundation (Phase 0, frozen at 82d792ab)
+        - IVideoFrame interface
+        - Any production backend
+        - Engine-Rebuild branch
+
+      Its sole purpose is to validate V1 (D3D11/NVENC zero-copy interop)
+      before DdagrabBackend production implementation begins.
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      Vortice.Windows — modern, actively maintained D3D11/DXGI bindings for .NET.
+      Chosen per Ddagrab_Research.md REC-8 (SharpDX is abandoned since 2019).
+    -->
+    <PackageReference Include="Vortice.Direct3D11" Version="3.5.2" />
+    <PackageReference Include="Vortice.DXGI" Version="3.5.2" />
+  </ItemGroup>
+
+  <!--
+    NVIDIA NVENC SDK is NOT a NuGet package.
+    OWNER must download NVIDIA Video Codec SDK from:
+      https://developer.nvidia.com/video-codec-sdk
+    And copy the following to /lib/nvenc/ (relative to project root):
+      - nvEncodeAPI.h        (header)
+      - nvEncodeAPI.dll      (runtime, copy from SDK's Lib/x64/)
+      - nvEncModule.h        (if needed)
+
+    The P/Invoke declarations in Utils/NvEncodeAPI.cs reference nvEncodeAPI.dll
+    via DllImport. The DLL must be in the same directory as the .exe at runtime.
+
+    Alternative: place nvEncodeAPI.dll in C:\Windows\System32\ (system-wide).
+  -->
+
+</Project>

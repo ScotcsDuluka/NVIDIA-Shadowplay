@@ -1,0 +1,28 @@
+# spikes/D3D11_NVENC_Spike/.gitignore
+#
+# Spike-specific gitignore. The root .gitignore already excludes
+# bin/, obj/, x64/, *.pdb, *.user, etc. This file adds spike-specific
+# rules to prevent committing NVIDIA SDK binaries (license-restricted).
+
+# NVIDIA Video Codec SDK — OWNER must download separately from
+# https://developer.nvidia.com/video-codec-sdk
+# DO NOT commit these files (NVIDIA SDK license prohibits redistribution).
+nvEncodeAPI.dll
+nvEncodeAPI.lib
+nvEncodeAPI.pdb
+nvEncodeAPI.h
+nvEncModule.h
+
+# Spike build output (also covered by root .gitignore, but explicit here)
+bin/
+obj/
+*.exe
+*.dll.config
+
+# Spike log files (output from --log flag)
+spike_output.md
+*_output.md
+
+# IDE-specific
+.vs/
+*.user
