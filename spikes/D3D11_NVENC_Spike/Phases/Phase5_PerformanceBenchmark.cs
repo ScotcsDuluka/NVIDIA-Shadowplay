@@ -30,6 +30,11 @@ using Vortice.Direct3D11;
 using Vortice.DXGI;
 using CaptureEngine.Video.Spike.D3D11.Utils;
 
+// Disambiguate Result/ResultCode — both Vortice.DXGI and Vortice.Direct3D11
+// declare these. We want the DXGI versions.
+using Result = Vortice.DXGI.Result;
+using ResultCode = Vortice.DXGI.ResultCode;
+
 namespace CaptureEngine.Video.Spike.D3D11.Phases;
 
 public static class Phase5_PerformanceBenchmark
@@ -65,7 +70,7 @@ public static class Phase5_PerformanceBenchmark
         Console.WriteLine("[5.1] Determining current desktop resolution...");
         IDXGIOutput? primaryOutput = null;
         int outputIdx = 0;
-        while (SpikeSharedContext.TargetAdapter.EnumOutputs(outputIdx, out IDXGIOutput output).Success)
+        while (SpikeSharedContext.TargetAdapter.EnumOutputs((uint)outputIdx, out IDXGIOutput output).Success)
         {
             if (outputIdx == 0) primaryOutput = output;
             else output.Dispose();
@@ -77,8 +82,9 @@ public static class Phase5_PerformanceBenchmark
             return 1;
         }
         var outDesc = primaryOutput.Description;
-        int desktopW = outDesc.DesktopCoordinates.Right - outDesc.DesktopCoordinates.Left;
-        int desktopH = outDesc.DesktopCoordinates.Bottom - outDesc.DesktopCoordinates.Top;
+        // Cast explicit — Vortice's RawRect fields may be uint in some versions.
+        int desktopW = (int)(outDesc.DesktopCoordinates.Right - outDesc.DesktopCoordinates.Left);
+        int desktopH = (int)(outDesc.DesktopCoordinates.Bottom - outDesc.DesktopCoordinates.Top);
         Console.WriteLine($"  Desktop resolution: {desktopW}x{desktopH}");
         Console.WriteLine($"  NOTE: Spike cannot force desktop resolution change.");
         Console.WriteLine($"        Will run benchmarks matching current desktop resolution only.");
@@ -175,7 +181,7 @@ public static class Phase5_PerformanceBenchmark
         using var metrics = new FrameMetrics();
         var sw = Stopwatch.StartNew();
         var cpuCounter = new PerformanceCounterLazy();
-        var gpuCounter = new GpuUsageLazy(SpikeSharedContext.Gpu!.Value.Description);
+        var gpuCounter = new GpuUsageLazy(SpikeSharedContext.Gpu!.Description);
         cpuCounter.Start();
         gpuCounter.Start();
         metrics.Start();

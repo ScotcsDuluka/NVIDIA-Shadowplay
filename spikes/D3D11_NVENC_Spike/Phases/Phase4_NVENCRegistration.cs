@@ -249,17 +249,20 @@ public static class Phase4_NVENCRegistration
         Console.WriteLine($"         Format: ARGB (BGRA8)");
         Console.WriteLine($"         Resource type: DirectX (D3D11Texture2D)");
 
-        // --- Step 6: Unregister + cleanup ---
+        // --- Step 6: Unmap + cleanup ---
+        // NVENC does NOT have an "UnregisterResource" function. To release a
+        // registered resource, call nvEncUnmapInputResource with the
+        // registeredResource handle returned by nvEncRegisterResource.
         Console.WriteLine();
-        Console.WriteLine("[4.6] Unregistering resource and destroying encoder...");
+        Console.WriteLine("[4.6] Unmapping resource and destroying encoder...");
 
-        if (nvenc.UnregisterResource != null)
+        if (nvenc.UnmapInputResource != null)
         {
-            int unregStatus = nvenc.UnregisterResource(encoder, registeredHandle);
-            if (unregStatus == NvEncodeAPI.NV_ENC_SUCCESS)
-                Console.WriteLine("  PASS: Resource unregistered.");
+            int unmapStatus = nvenc.UnmapInputResource(encoder, registeredHandle);
+            if (unmapStatus == NvEncodeAPI.NV_ENC_SUCCESS)
+                Console.WriteLine("  PASS: Resource unmapped.");
             else
-                Console.Error.WriteLine($"  WARN: UnregisterResource returned {unregStatus} — continuing.");
+                Console.Error.WriteLine($"  WARN: UnmapInputResource returned {unmapStatus} — continuing.");
         }
 
         if (nvenc.DestroyEncoder != null)

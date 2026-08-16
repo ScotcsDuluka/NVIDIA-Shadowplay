@@ -136,8 +136,8 @@ public static class Phase3_TextureOwnership
         Console.WriteLine();
         Console.WriteLine("[3.5] Verifying texture's parent device matches Phase 1 device...");
 
-        // Query texture for ID3D11Device through GetDevice()
-        texture.GetDevice(out ID3D11Device textureDevice);
+        // Vortice exposes texture.Device as a property (not a GetDevice method).
+        ID3D11Device textureDevice = texture.Device;
         long textureDevicePtr = textureDevice.NativePointer.ToInt64();
         Console.WriteLine($"  Phase 1 device pointer: 0x{devicePtr:x16}");
         Console.WriteLine($"  Texture's parent device: 0x{textureDevicePtr:x16}");
@@ -148,11 +148,11 @@ public static class Phase3_TextureOwnership
             Console.Error.WriteLine("  FAIL: Texture's parent device does NOT match Phase 1 device.");
             Console.Error.WriteLine("        This indicates the texture was created on a different GPU.");
             Console.Error.WriteLine("        Zero-copy to NVENC on Phase 1's GPU is NOT possible.");
-            textureDevice.Dispose();
             return 1;
         }
         Console.WriteLine("  PASS: Texture lives on the same D3D11 device as Phase 1.");
-        textureDevice.Dispose();
+        // Do NOT dispose textureDevice — it's the same device as SpikeSharedContext.Device,
+        // disposing would invalidate the shared device.
 
         // --- Step 6: Verify ArraySize (NVENC accepts both ArraySize=1 and >1) ---
         Console.WriteLine();

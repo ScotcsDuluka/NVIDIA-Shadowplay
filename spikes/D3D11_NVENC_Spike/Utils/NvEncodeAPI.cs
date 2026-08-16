@@ -9,7 +9,9 @@
 //   3. NvEncGetEncodeGUIDCount / NvEncGetEncodeGUIDs — enumerate codecs
 //   4. NvEncGetInputFormatCount / NvEncGetInputFormats — input formats
 //   5. NvEncRegisterResource — register a D3D11 texture as NVENC input
-//   6. NvEncUnregisterResource — unregister
+//   6. NvEncUnmapInputResource — release the registered resource
+//      (there is no "NvEncUnregisterResource" in NVENC's function table —
+//       nvEncUnmapInputResource serves this role)
 //   7. NvEncDestroyEncoder — tear down
 //
 // OWNER must install NVIDIA Video Codec SDK:
@@ -183,7 +185,7 @@ public static class NvEncodeAPI
         public IntPtr nvEncRegisterResource;            // offset 112
         public IntPtr nvEncRegisterResourceEx;          // offset 120  (12.0+)
         public IntPtr nvEncMapInputResource;            // offset 128
-        public IntPtr nvEncUnmapInputResource;          // offset 136
+        public IntPtr nvEncUnmapInputResource;          // offset 136  ★ use this to "unregister"
         public IntPtr nvEncDestroyEncoder;              // offset 144
         public IntPtr nvEncInvalidateRefFrames;         // offset 152
         public IntPtr nvEncEncodePicture;               // offset 160
@@ -255,8 +257,11 @@ public static class NvEncodeAPI
     public delegate int NvEncRegisterResourceDelegate(
         IntPtr encoder, ref NV_ENC_REGISTER_RESOURCE registerParams);
 
+    // NVENC function table does NOT have an "UnregisterResource" entry.
+    // To release a registered resource, call nvEncUnmapInputResource with
+    // the registeredResource handle returned by nvEncRegisterResource.
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncUnregisterResourceDelegate(
+    public delegate int NvEncUnmapInputResourceDelegate(
         IntPtr encoder, IntPtr registeredResource);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -317,7 +322,7 @@ public sealed class NvEncFunctionTable : IDisposable
     public NvEncodeAPI.NvEncGetInputFormatCountDelegate? GetInputFormatCount { get; private set; }
     public NvEncodeAPI.NvEncGetInputFormatsDelegate? GetInputFormats { get; private set; }
     public NvEncodeAPI.NvEncRegisterResourceDelegate? RegisterResource { get; private set; }
-    public NvEncodeAPI.NvEncUnregisterResourceDelegate? UnregisterResource { get; private set; }
+    public NvEncodeAPI.NvEncUnmapInputResourceDelegate? UnmapInputResource { get; private set; }
     public NvEncodeAPI.NvEncDestroyEncoderDelegate? DestroyEncoder { get; private set; }
 
     public uint MaxSupportedApiVersion { get; private set; }
@@ -381,8 +386,8 @@ public sealed class NvEncFunctionTable : IDisposable
                 _fnList.nvEncGetInputFormats);
             RegisterResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncRegisterResourceDelegate>(
                 _fnList.nvEncRegisterResource);
-            UnregisterResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncUnregisterResourceDelegate>(
-                _fnList.nvEncUnregisterResource);
+            UnmapInputResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncUnmapInputResourceDelegate>(
+                _fnList.nvEncUnmapInputResource);
             DestroyEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncDestroyEncoderDelegate>(
                 _fnList.nvEncDestroyEncoder);
 

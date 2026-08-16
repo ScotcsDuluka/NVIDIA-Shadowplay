@@ -25,6 +25,11 @@ using Vortice.Direct3D11;
 using Vortice.DXGI;
 using CaptureEngine.Video.Spike.D3D11.Utils;
 
+// Disambiguate Result/ResultCode — both Vortice.DXGI and Vortice.Direct3D11
+// declare these. We want the DXGI versions (DuplicateOutput is a DXGI API).
+using Result = Vortice.DXGI.Result;
+using ResultCode = Vortice.DXGI.ResultCode;
+
 namespace CaptureEngine.Video.Spike.D3D11.Phases;
 
 public static class Phase2_DesktopDuplication
@@ -48,7 +53,7 @@ public static class Phase2_DesktopDuplication
         Console.WriteLine("[2.1] Enumerating outputs on NVIDIA adapter...");
         int outputIdx = 0;
         IDXGIOutput? primaryOutput = null;
-        while (SpikeSharedContext.TargetAdapter.EnumOutputs(outputIdx, out IDXGIOutput output).Success)
+        while (SpikeSharedContext.TargetAdapter.EnumOutputs((uint)outputIdx, out IDXGIOutput output).Success)
         {
             var desc = output.Description;
             Console.WriteLine($"  Output {outputIdx}: {desc.DeviceName}  " +
@@ -264,5 +269,10 @@ public static class Phase2_DesktopDuplication
 public static partial class SpikeSharedContext
 {
     public static ID3D11Texture2D? StagingTexture { get; set; }
-    public static OutputDescription? DuplicationDesc { get; set; }
+
+    // IDXGIOutputDuplication.Description returns OutduplDescription (NOT
+    // OutputDescription — that's a different type in Vortice.DXGI, with
+    // different fields). OutduplDescription carries ModeDescription which
+    // we need for width/height/format.
+    public static OutduplDescription? DuplicationDesc { get; set; }
 }

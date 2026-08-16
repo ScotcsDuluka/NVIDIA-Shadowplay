@@ -51,7 +51,7 @@ public static class Phase1_DeviceTest
         var gpus = new List<GpuInfo>();
         int nvidiaIdx = -1;
         int adapterIdx = 0;
-        while (factory.EnumAdapters1(adapterIdx, out IDXGIAdapter1 adapter).Success)
+        while (factory.EnumAdapters1((uint)adapterIdx, out IDXGIAdapter1 adapter).Success)
         {
             var info = GpuInfo.FromAdapter(adapterIdx, adapter);
             gpus.Add(info);
@@ -91,7 +91,7 @@ public static class Phase1_DeviceTest
         Console.WriteLine("[1.3] Creating D3D11 device on NVIDIA adapter...");
 
         IDXGIAdapter1 targetAdapter;
-        factory.EnumAdapters1(nvidiaIdx, out targetAdapter).CheckError();
+        factory.EnumAdapters1((uint)nvidiaIdx, out targetAdapter).CheckError();
 
         FeatureLevel[] requestedFeatureLevels =
         {
@@ -105,7 +105,9 @@ public static class Phase1_DeviceTest
         ID3D11DeviceContext context;
         try
         {
-            D3D11.D3D11CreateDevice(
+            // Fully-qualify D3D11 class to avoid ambiguity with our own
+            // namespace CaptureEngine.Video.Spike.D3D11.
+            Vortice.Direct3D11.D3D11.D3D11CreateDevice(
                 targetAdapter,
                 DriverType.Unknown,        // must be Unknown when specifying adapter
                 DeviceCreationFlags.BgraSupport,  // required for Desktop Duplication
