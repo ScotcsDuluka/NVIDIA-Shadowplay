@@ -110,8 +110,9 @@ public static class Phase5_PerformanceBenchmark
 
         Texture2DDescription stagingDesc = new()
         {
-            Width = desktopW,
-            Height = desktopH,
+            // Texture2DDescription.Width/Height are uint in Vortice 3.6.2.
+            Width = (uint)desktopW,
+            Height = (uint)desktopH,
             MipLevels = 1,
             ArraySize = 1,
             Format = Vortice.DXGI.Format.B8G8R8A8_UNorm,

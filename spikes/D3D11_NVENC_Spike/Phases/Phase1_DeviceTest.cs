@@ -51,7 +51,7 @@ public static class Phase1_DeviceTest
         var gpus = new List<GpuInfo>();
         int nvidiaIdx = -1;
         int adapterIdx = 0;
-        while (factory.EnumAdapters1((uint)adapterIdx, out IDXGIAdapter1 adapter).Success)
+        while (factory!.EnumAdapters1((uint)adapterIdx, out IDXGIAdapter1 adapter).Success)
         {
             var info = GpuInfo.FromAdapter(adapterIdx, adapter);
             gpus.Add(info);

@@ -83,8 +83,10 @@ public static class Phase3_TextureOwnership
         // --- Step 3: Verify dimensions match desktop ---
         Console.WriteLine();
         Console.WriteLine("[3.3] Verifying dimensions match desktop...");
-        int desktopWidth = duplDesc.ModeDescription.Width;
-        int desktopHeight = duplDesc.ModeDescription.Height;
+        // Vortice's ModeDescription.Width/Height are uint — cast to int for
+        // comparison with desc.Width (which is int in Texture2DDescription).
+        int desktopWidth = (int)duplDesc.ModeDescription.Width;
+        int desktopHeight = (int)duplDesc.ModeDescription.Height;
         Console.WriteLine($"  Desktop:  {desktopWidth}x{desktopHeight}");
         Console.WriteLine($"  Texture:  {desc.Width}x{desc.Height}");
         if (desc.Width != desktopWidth || desc.Height != desktopHeight)

@@ -216,8 +216,9 @@ public static class Phase4_NVENCRegistration
         {
             version = NvEncodeAPI.MakeStructVersion<NvEncodeAPI.NV_ENC_REGISTER_RESOURCE>(),
             resourceType = NvEncodeAPI.NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX,
-            width = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width,
-            height = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height,
+            // ModeDescription.Width/Height are uint in Vortice; our struct uses int.
+            width = (int)SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width,
+            height = (int)SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height,
             pitch = 0,  // 0 for D3D11 textures (NVENC queries the texture itself)
             resourceToRegister = SpikeSharedContext.StagingTexture!.NativePointer,
             registeredResource = IntPtr.Zero,  // OUT — populated by NVENC
