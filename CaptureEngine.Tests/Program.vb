@@ -34,7 +34,7 @@ Namespace CaptureEngine.Tests
             RunTest("Initialize -> Stopped", AddressOf Test_Initialize)
             RunTest("Start -> Running", AddressOf Test_Start)
             RunTest("Running (stable)", AddressOf Test_Running)
-            RunTest("Stop -> Stopped", AddressOf Test_Stop)
+            RunTest("Stop -> Stopped (stop path invoked)", AddressOf Test_Stop)
             RunTest("Stopped (stable)", AddressOf Test_Stopped)
             RunTest("Dispose -> Disposed", AddressOf Test_Dispose)
 
@@ -43,6 +43,12 @@ Namespace CaptureEngine.Tests
             RunTest("Start twice (negative)", AddressOf Test_StartTwice)
             RunTest("Stop before Start (negative)", AddressOf Test_StopBeforeStart)
             RunTest("Dispose twice (negative)", AddressOf Test_DisposeTwice)
+            RunTest("Start after Dispose (negative)", AddressOf Test_StartAfterDispose)
+            RunTest("Stop after Dispose (negative)", AddressOf Test_StopAfterDispose)
+            RunTest("Initialize after Dispose (negative)", AddressOf Test_InitializeAfterDispose)
+
+            ' ----- Dispose boundary -----
+            RunTest("Dispose while Running (stop path invoked)", AddressOf Test_DisposeWhileRunning)
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
@@ -122,8 +128,12 @@ Namespace CaptureEngine.Tests
             Dim engine As New CaptureEngineClass()
             engine.Initialize(New EngineConfig())
             engine.Start()
+            Assert(engine.StopPipelineCallCount = 0,
+                   "StopPipelineCallCount must be 0 before Stop() is called.")
             engine.Stop()
             AssertState(engine, EngineState.Stopped)
+            Assert(engine.StopPipelineCallCount = 1,
+                   "StopPipelineCallCount must be 1 after Stop() — proves Stop routes through the stop path.")
             engine.Dispose()
         End Sub
 
@@ -201,6 +211,78 @@ Namespace CaptureEngine.Tests
             ' Third too.
             engine.Dispose()
             AssertState(engine, EngineState.Disposed)
+        End Sub
+
+        ' ===== Post-Dispose negative tests (Fix 2) =====
+
+        Private Sub Test_StartAfterDispose()
+            Dim engine As New CaptureEngineClass()
+            engine.Initialize(New EngineConfig())
+            engine.Dispose()
+            Dim threw As Boolean = False
+            Try
+                engine.Start()
+            Catch ex As ObjectDisposedException
+                threw = True
+            End Try
+            Assert(threw, "Start() after Dispose() must throw ObjectDisposedException.")
+            AssertState(engine, EngineState.Disposed)
+        End Sub
+
+        Private Sub Test_StopAfterDispose()
+            Dim engine As New CaptureEngineClass()
+            engine.Initialize(New EngineConfig())
+            engine.Dispose()
+            Dim threw As Boolean = False
+            Try
+                engine.Stop()
+            Catch ex As ObjectDisposedException
+                threw = True
+            End Try
+            Assert(threw, "Stop() after Dispose() must throw ObjectDisposedException.")
+            AssertState(engine, EngineState.Disposed)
+        End Sub
+
+        Private Sub Test_InitializeAfterDispose()
+            Dim engine As New CaptureEngineClass()
+            engine.Initialize(New EngineConfig())
+            engine.Dispose()
+            Dim threw As Boolean = False
+            Try
+                engine.Initialize(New EngineConfig())
+            Catch ex As ObjectDisposedException
+                threw = True
+            End Try
+            Assert(threw, "Initialize() after Dispose() must throw ObjectDisposedException.")
+            AssertState(engine, EngineState.Disposed)
+        End Sub
+
+        ' ===== Dispose boundary test (Fix 3) =====
+
+        ''' <summary>
+        ''' The critical contract test: calling Dispose while the engine is
+        ''' Running MUST route through the stop path — not just jump state to
+        ''' Disposed. We prove this with the internal StopPipelineCallCount
+        ''' counter (exposed as Friend via InternalsVisibleTo).
+        ''' </summary>
+        Private Sub Test_DisposeWhileRunning()
+            Dim engine As New CaptureEngineClass()
+            engine.Initialize(New EngineConfig())
+            engine.Start()
+            AssertState(engine, EngineState.Running)
+
+            ' Snapshot the counter BEFORE Dispose. Dispose must increment it.
+            Dim countBefore As Integer = engine.StopPipelineCallCount
+
+            engine.Dispose()
+            AssertState(engine, EngineState.Disposed)
+
+            Dim countAfter As Integer = engine.StopPipelineCallCount
+            Assert(countAfter = countBefore + 1,
+                   "Dispose while Running must invoke the stop path exactly once " &
+                   "(before=" & countBefore & ", after=" & countAfter &
+                   "). A jump straight to Disposed without incrementing the counter " &
+                   "would indicate Dispose skipped the shutdown boundary.")
         End Sub
     End Module
 End Namespace

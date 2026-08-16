@@ -27,6 +27,24 @@ Namespace CaptureEngine.Engine
 
         Private _state As EngineState = EngineState.Created
         Private _disposed As Boolean = False
+        Private _stopPipelineCallCount As Integer = 0
+
+        ''' <summary>
+        ''' Test observable: number of times the internal stop path has been invoked.
+        ''' Friend (= internal) — exposed to <c>CaptureEngine.Tests</c> via
+        ''' <c>InternalsVisibleTo</c>, not part of the public API.
+        '''
+        ''' Used by tests to prove that Dispose() actually routed through the
+        ''' stop path when invoked while the engine was Running/Starting,
+        ''' rather than just jumping straight to Disposed.
+        ''' </summary>
+        Friend ReadOnly Property StopPipelineCallCount As Integer
+            Get
+                SyncLock _sync
+                    Return _stopPipelineCallCount
+                End SyncLock
+            End Get
+        End Property
 
         ''' <summary>
         ''' Construct a CaptureEngine.
@@ -130,6 +148,9 @@ Namespace CaptureEngine.Engine
         ''' Idempotent contract:
         '''   - Calling Stop() when the engine is not Running (Stopped / Created /
         '''     Stopping / Faulted) is a no-op that emits a Warning.
+        '''
+        ''' Stop routes through the internal <see cref="StopPipeline"/> boundary
+        ''' (the same path Dispose uses when the engine is still running).
         ''' </summary>
         Public Sub [Stop]()
             ThrowIfDisposed()
@@ -155,7 +176,9 @@ Namespace CaptureEngine.Engine
 
             Try
                 _logger.Info("Stop: begin")
-                ' Foundation: no real capture/encode work to stop yet.
+                ' The stop boundary. Single internal owner of shutdown work.
+                ' Dispose() also routes here when invoked while Running/Starting.
+                StopPipeline()
                 TransitionTo(EngineState.Stopped, EngineState.Stopping)
                 _logger.Info("stopped")
             Catch ex As Exception
@@ -170,6 +193,23 @@ Namespace CaptureEngine.Engine
         ''' multiple times. After Dispose, the engine enters the Disposed state
         ''' and any subsequent Initialize/Start/Stop call throws
         ''' <see cref="ObjectDisposedException"/>.
+        '''
+        ''' Dispose is the shutdown boundary. If the engine is Running or Starting
+        ''' at the time of the call, Dispose routes through the same path as Stop():
+        '''
+        '''   Running / Starting
+        '''       │ Dispose()
+        '''       ▼
+        '''     Stopping
+        '''       │ StopPipeline()  ← shared internal boundary
+        '''       ▼
+        '''     Stopped
+        '''       │
+        '''       ▼
+        '''     Disposed
+        '''
+        ''' From any other state (Created / Initializing / Stopped / Faulted),
+        ''' Dispose jumps directly to Disposed (no stop work needed).
         ''' </summary>
         Public Sub Dispose() Implements IDisposable.Dispose
             Dispose(disposing:=True)
@@ -181,17 +221,50 @@ Namespace CaptureEngine.Engine
                 If _disposed Then Return
                 _disposed = True
 
-                If disposing Then
-                    If _state = EngineState.Disposed Then
-                        ' Defensive: should not happen, but stay silent.
-                    ElseIf _state = EngineState.Running OrElse _state = EngineState.Starting Then
-                        _logger.Info("Dispose: stopping engine in state '" & _state.ToString() & "'.")
-                    Else
-                        _logger.Info("Dispose: engine in state '" & _state.ToString() & "'.")
-                    End If
-                    _state = EngineState.Disposed
-                    _logger.Info("disposed")
-                End If
+                If Not disposing Then Return
+
+                Dim entryState As EngineState = _state
+
+                ' Dispose owns the shutdown boundary. If the engine is Running or
+                ' Starting, we must route through Stopping -> Stopped before
+                ' reaching Disposed so the stop path actually runs.
+                Select Case entryState
+                    Case EngineState.Running, EngineState.Starting
+                        _logger.Info("Dispose: engine was '" & entryState.ToString() &
+                                     "'; invoking stop path.")
+                        _state = EngineState.Stopping
+                        Try
+                            StopPipelineUnsafe()
+                        Catch ex As Exception
+                            ' Dispose must be robust — log the failure but still
+                            ' complete the transition to Disposed.
+                            _logger.Error("Dispose: stop path failed (will still dispose)", ex)
+                        End Try
+                        _state = EngineState.Stopped
+                        _logger.Info("Dispose: stop path complete (state=Stopped).")
+
+                    Case EngineState.Stopping
+                        ' Defensive: another caller is mid-Stop. Ensure the stop path
+                        ' is invoked at least once before disposal completes.
+                        _logger.Warning("Dispose: engine was already Stopping; invoking stop path defensively.")
+                        Try
+                            StopPipelineUnsafe()
+                        Catch ex As Exception
+                            _logger.Error("Dispose: defensive stop path failed (will still dispose)", ex)
+                        End Try
+                        _state = EngineState.Stopped
+
+                    Case EngineState.Created, EngineState.Initializing,
+                         EngineState.Stopped, EngineState.Faulted
+                        _logger.Info("Dispose: engine in state '" & entryState.ToString() &
+                                     "' (no stop needed).")
+
+                    Case EngineState.Disposed
+                        ' Defensive — should not happen since _disposed guard catches this.
+                End Select
+
+                _state = EngineState.Disposed
+                _logger.Info("disposed")
             End SyncLock
         End Sub
 
@@ -204,6 +277,38 @@ Namespace CaptureEngine.Engine
         ''' </summary>
         Private Sub ApplyConfig(config As EngineConfig)
             _logger.Debug("ApplyConfig: LogLevel=" & config.LogLevel.ToString())
+        End Sub
+
+        ''' <summary>
+        ''' The internal stop boundary. Single owner of shutdown work —
+        ''' both <see cref="Stop"/> and <see cref="Dispose"/> route through here
+        ''' when the engine is/was Running.
+        '''
+        ''' Foundation scope: increments an observable counter and logs.
+        ''' Future phases will close handles, drain buffers, release unmanaged
+        ''' resources, etc. here. When real work is added, the caller must NOT
+        ''' hold <c>_sync</c> during heavy operations — see TODO below.
+        ''' </summary>
+        Private Sub StopPipeline()
+            ' Public-from-Stop entry point. Takes the lock to increment safely.
+            SyncLock _sync
+                StopPipelineUnsafe()
+            End SyncLock
+        End Sub
+
+        ''' <summary>
+        ''' Same as <see cref="StopPipeline"/> but assumes the caller already
+        ''' holds <c>_sync</c>. Used by <see cref="Dispose"/> which already
+        ''' acquired the lock before deciding it needs to stop.
+        ''' </summary>
+        Private Sub StopPipelineUnsafe()
+            ' Caller holds _sync.
+            ' TODO (Phase 1+): when real shutdown work is added (handles, buffers),
+            ' release the lock around the heavy work and re-acquire only for
+            ' the final state transition. Foundation work is trivial so the lock
+            ' is held throughout for simplicity and predictability.
+            _stopPipelineCallCount += 1
+            _logger.Info("StopPipeline: invoked (count=" & _stopPipelineCallCount.ToString() & ")")
         End Sub
 
         ''' <summary>
