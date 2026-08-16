@@ -37,7 +37,6 @@ Partial Class AudioSettingsForm
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
         Audio_Capture_Menutext = New Label()
-        OPEN_UI = New System.Windows.Forms.Timer(components)
         grpTrackMode.SuspendLayout()
         grpSystem.SuspendLayout()
         CType(trkSystemVol, ComponentModel.ISupportInitialize).BeginInit()
@@ -380,11 +379,6 @@ Partial Class AudioSettingsForm
         Audio_Capture_Menutext.TabIndex = 0
         Audio_Capture_Menutext.Text = "Audio Capture"
         ' 
-        ' OPEN_UI
-        ' 
-        OPEN_UI.Enabled = True
-        OPEN_UI.Interval = 1
-        ' 
         ' AudioSettingsForm
         ' 
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
@@ -454,6 +448,5 @@ Partial Class AudioSettingsForm
     Friend WithEvents PictureBox16 As PictureBox
     Friend WithEvents hg2 As PictureBox
     Friend WithEvents Audio_Capture_Menutext As Label
-    Friend WithEvents OPEN_UI As System.Windows.Forms.Timer
     Friend WithEvents Label2 As Label
 End Class
