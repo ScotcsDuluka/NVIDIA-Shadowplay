@@ -286,12 +286,48 @@ public static class Phase4_NVENCRegistration
         {
             Console.Error.WriteLine($"  FAIL: NvEncRegisterResource returned {status} " +
                                     $"({NvEncodeAPI.NvencStatusToString(status)}).");
-            Console.Error.WriteLine("        Possible causes:");
-            Console.Error.WriteLine("          - Texture dimensions out of NVENC's supported range");
-            Console.Error.WriteLine("          - Texture bind flags incompatible (try adding RenderTarget)");
-            Console.Error.WriteLine("          - Texture not on the same D3D11 device as the encode session");
-            Console.Error.WriteLine("          - Driver version too old");
-            Console.Error.WriteLine("          - D3D11 device context has pending operations");
+
+            // Query NVENC's last error string for more diagnostic info.
+            if (nvenc.GetLastErrorString != null)
+            {
+                try
+                {
+                    IntPtr errPtr = nvenc.GetLastErrorString(encoder);
+                    if (errPtr != IntPtr.Zero)
+                    {
+                        string? errStr = Marshal.PtrToStringAnsi(errPtr);
+                        if (!string.IsNullOrEmpty(errStr))
+                        {
+                            Console.Error.WriteLine($"  NVENC last error: {errStr}");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"  (Could not query NVENC last error: {ex.Message})");
+                }
+            }
+
+            // Dump the register params for debugging.
+            Console.Error.WriteLine("  Register params:");
+            Console.Error.WriteLine($"    version:           0x{registerParams.version:X8}");
+            Console.Error.WriteLine($"    resourceType:      {registerParams.resourceType} (DIRECTX=0)");
+            Console.Error.WriteLine($"    width:             {registerParams.width}");
+            Console.Error.WriteLine($"    height:            {registerParams.height}");
+            Console.Error.WriteLine($"    pitch:             {registerParams.pitch}");
+            Console.Error.WriteLine($"    subResourceIndex:  {registerParams.subResourceIndex}");
+            Console.Error.WriteLine($"    resourceToRegister:0x{registerParams.resourceToRegister.ToInt64():x16}");
+            Console.Error.WriteLine($"    bufferFormat:      0x{registerParams.bufferFormat:X8} (ARGB=0x01000000)");
+            Console.Error.WriteLine($"    bufferUsage:       {registerParams.bufferUsage} (INPUT_IMAGE=0)");
+
+            Console.Error.WriteLine("  Possible causes:");
+            Console.Error.WriteLine("    - Texture dimensions out of NVENC's supported range");
+            Console.Error.WriteLine("    - Texture bind flags incompatible (try adding RenderTarget)");
+            Console.Error.WriteLine("    - Texture not on the same D3D11 device as the encode session");
+            Console.Error.WriteLine("    - Driver version too old");
+            Console.Error.WriteLine("    - D3D11 device context has pending operations");
+            Console.Error.WriteLine("    - NVENCAPI_STRUCT_VERSION mismatch (struct may be wrong size)");
+
             freshTexture.Dispose();
             nvenc.DestroyEncoder?.Invoke(encoder);
             return 1;

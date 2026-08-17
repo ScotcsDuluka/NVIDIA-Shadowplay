@@ -364,6 +364,12 @@ public static class NvEncodeAPI
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate int NvEncDestroyEncoderDelegate(IntPtr encoder);
 
+    // Returns a human-readable error string for the LAST NVENC API call
+    // from the current thread. Useful for debugging why an API call failed
+    // with a generic status code.
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate IntPtr NvEncGetLastErrorStringDelegate(IntPtr encoder);
+
     // === P/Invoke for the NVENC loader functions ===
     // NVIDIA Video Codec SDK 12.x+ ships the 64-bit DLL as 'nvEncodeAPI64.dll'.
     // This spike builds x64-only, so we use the 64-bit name directly.
@@ -421,6 +427,7 @@ public sealed class NvEncFunctionTable : IDisposable
     public NvEncodeAPI.NvEncRegisterResourceDelegate? RegisterResource { get; private set; }
     public NvEncodeAPI.NvEncUnregisterResourceDelegate? UnregisterResource { get; private set; }
     public NvEncodeAPI.NvEncDestroyEncoderDelegate? DestroyEncoder { get; private set; }
+    public NvEncodeAPI.NvEncGetLastErrorStringDelegate? GetLastErrorString { get; private set; }
 
     public uint MaxSupportedApiVersion { get; private set; }
 
@@ -498,6 +505,8 @@ public sealed class NvEncFunctionTable : IDisposable
                 _fnList.nvEncUnregisterResource);
             DestroyEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncDestroyEncoderDelegate>(
                 _fnList.nvEncDestroyEncoder);
+            GetLastErrorString = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncGetLastErrorStringDelegate>(
+                _fnList.nvEncGetLastErrorString);
 
             _loaded = true;
             return true;
