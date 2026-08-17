@@ -285,40 +285,71 @@ public static class NvEncodeAPI
     //
     // NV_ENC_INITIALIZE_PARAMS — from nvEncodeAPI.h SDK 11
     //
-    // Required to be called BEFORE NvEncRegisterResource, otherwise
-    // NvEncRegisterResource returns NV_ENC_ERR_DEVICE_NOT_EXIST.
+    // CRITICAL: This struct previously used LayoutKind.Explicit with
+    // [MarshalAs] arrays, which causes TypeLoadException in .NET because
+    // [MarshalAs(UnmanagedType.ByValArray)] is NOT supported inside
+    // LayoutKind.Explicit structs.
     //
-    // We use LayoutKind.Explicit with FieldOffset to ensure correct
-    // alignment of pointer fields (privData, encodeConfig, reserved2)
-    // which require 8-byte alignment on x64.
+    // Fix: Use LayoutKind.Sequential with Pack=1 + explicit padding fields
+    // for 8-byte alignment of pointer fields (privData, encodeConfig,
+    // reserved2). The NVENC header has NO pragma pack, so the C compiler
+    // uses default x64 alignment (8 bytes for pointers).
     //
-    [StructLayout(LayoutKind.Explicit, Pack = 1)]
+    // Field offsets (x64, matching C default alignment):
+    //   version               offset 0     (uint32, 4 bytes)
+    //   encodeGUID             offset 4     (GUID, 16 bytes)
+    //   presetGUID             offset 20    (GUID, 16 bytes)
+    //   encodeWidth            offset 36    (uint32, 4 bytes)
+    //   encodeHeight           offset 40    (uint32, 4 bytes)
+    //   darWidth               offset 44    (uint32, 4 bytes)
+    //   darHeight              offset 48    (uint32, 4 bytes)
+    //   frameRateNum           offset 52    (uint32, 4 bytes)
+    //   frameRateDen           offset 56    (uint32, 4 bytes)
+    //   enableEncodeAsync      offset 60    (uint32, 4 bytes)
+    //   enablePTD              offset 64    (uint32, 4 bytes)
+    //   bitFields              offset 68    (uint32, 4 bytes — 5 bit-fields + 27 reserved)
+    //   privDataSize           offset 72    (uint32, 4 bytes)
+    //   _padding1             offset 76    (uint32, 4 bytes — explicit padding for 8-byte alignment)
+    //   privData               offset 80    (void*, 8 bytes — 8-byte aligned ✓)
+    //   encodeConfig           offset 88    (NV_ENC_CONFIG*, 8 bytes — 8-byte aligned ✓)
+    //   maxEncodeWidth         offset 96    (uint32, 4 bytes)
+    //   maxEncodeHeight        offset 100   (uint32, 4 bytes)
+    //   maxMEHintCountsPerBlockL0  offset 104  (uint32, 4 bytes)
+    //   maxMEHintCountsPerBlockL1  offset 108  (uint32, 4 bytes)
+    //   reserved[289]          offset 112   (uint32[289], 1156 bytes, ends at 1268)
+    //   _padding2             offset 1268  (uint32, 4 bytes — explicit padding for 8-byte alignment)
+    //   reserved2[64]          offset 1272  (void*[64], 512 bytes, ends at 1784)
+    // Total size: 1784 bytes
+    //
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_INITIALIZE_PARAMS
     {
-        [FieldOffset(0)]   public uint version;
-        [FieldOffset(4)]   public Guid encodeGUID;
-        [FieldOffset(20)]  public Guid presetGUID;
-        [FieldOffset(36)]  public uint encodeWidth;
-        [FieldOffset(40)]  public uint encodeHeight;
-        [FieldOffset(44)]  public uint darWidth;
-        [FieldOffset(48)]  public uint darHeight;
-        [FieldOffset(52)]  public uint frameRateNum;
-        [FieldOffset(56)]  public uint frameRateDen;
-        [FieldOffset(60)]  public uint enableEncodeAsync;
-        [FieldOffset(64)]  public uint enablePTD;
-        [FieldOffset(68)]  public uint bitFields;              // 5 bit-fields + 27 reserved bits = 32 bits
-        [FieldOffset(72)]  public uint privDataSize;
-        // 4 bytes padding here on x64 (offset 76-79)
-        [FieldOffset(80)]  public IntPtr privData;             // void* (8-byte aligned)
-        [FieldOffset(88)]  public IntPtr encodeConfig;          // NV_ENC_CONFIG* (8-byte aligned)
-        [FieldOffset(96)]  public uint maxEncodeWidth;
-        [FieldOffset(100)] public uint maxEncodeHeight;
-        [FieldOffset(104)] public uint maxMEHintCountsPerBlockL0;  // NVENC_EXTERNAL_ME_HINT_COUNTS_PER_BLOCKTYPE = 4 bytes
-        [FieldOffset(108)] public uint maxMEHintCountsPerBlockL1;
-        [FieldOffset(112)] [MarshalAs(UnmanagedType.ByValArray, SizeConst = 289)] public uint[] reserved;
-        [FieldOffset(1268)] [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)] public IntPtr[] reserved2;
+        public uint version;
+        public Guid encodeGUID;
+        public Guid presetGUID;
+        public uint encodeWidth;
+        public uint encodeHeight;
+        public uint darWidth;
+        public uint darHeight;
+        public uint frameRateNum;
+        public uint frameRateDen;
+        public uint enableEncodeAsync;
+        public uint enablePTD;
+        public uint bitFields;
+        public uint privDataSize;
+        public uint _padding1;           // explicit 4-byte padding for 8-byte alignment of privData
+        public IntPtr privData;          // void* — offset 80 (8-byte aligned)
+        public IntPtr encodeConfig;      // NV_ENC_CONFIG* — offset 88 (8-byte aligned)
+        public uint maxEncodeWidth;
+        public uint maxEncodeHeight;
+        public uint maxMEHintCountsPerBlockL0;
+        public uint maxMEHintCountsPerBlockL1;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 289)]
+        public uint[] reserved;
+        public uint _padding2;           // explicit 4-byte padding for 8-byte alignment of reserved2
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
+        public IntPtr[] reserved2;
     }
-    // Total size: 1780 bytes
 
     //
     // NV_ENCODE_API_FUNCTION_LIST — from nvEncodeAPI.h SDK 11:

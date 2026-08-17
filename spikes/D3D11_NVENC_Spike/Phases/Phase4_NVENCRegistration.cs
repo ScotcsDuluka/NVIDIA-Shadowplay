@@ -200,6 +200,20 @@ public static class Phase4_NVENCRegistration
         }
         Console.WriteLine("  PASS: ARGB (BGRA8) is supported — zero-copy path possible.");
 
+        // === CLR Layout Diagnostic ===
+        // Print Marshal.SizeOf and field offsets for ALL NVENC structs
+        // to verify the CLR layout matches the C header before calling
+        // NvEncInitializeEncoder.
+        Console.WriteLine();
+        Console.WriteLine("[4.4a] CLR struct layout diagnostic:");
+        PrintStructLayout<NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS>("NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS");
+        PrintStructLayout<NvEncodeAPI.NV_ENC_REGISTER_RESOURCE>("NV_ENC_REGISTER_RESOURCE");
+        PrintStructLayout<NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS>("NV_ENC_INITIALIZE_PARAMS");
+        PrintStructLayout<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>("NV_ENCODE_API_FUNCTION_LIST");
+        Console.WriteLine($"  NV_ENC_INITIALIZE_PARAMS_VER: 0x{NvEncodeAPI.MakeStructVersion(5) | (1u << 31):X8}");
+        Console.WriteLine($"  NV_ENC_REGISTER_RESOURCE_VER: 0x{NvEncodeAPI.NV_ENC_REGISTER_RESOURCE_VER:X8}");
+        Console.WriteLine($"  NV_ENCODE_API_FUNCTION_LIST_VER: 0x{NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST_VER:X8}");
+
         // --- Step 4.4b: Initialize encoder ---
         // NVIDIA's NvEncoder sample calls NvEncInitializeEncoder BEFORE
         // NvEncRegisterResource. Without this call, NvEncRegisterResource
@@ -421,5 +435,32 @@ public static class Phase4_NVENCRegistration
         Console.WriteLine("  V1 BLOCKER STATUS: ✅ RESOLVED — zero-copy path PROVEN");
         Console.WriteLine();
         return 0;
+    }
+
+    /// <summary>
+    /// Prints Marshal.SizeOf and field offsets for a blittable struct.
+    /// Uses Marshal.OffsetOf to get the CLR's computed offset for each field,
+    /// which helps verify that the struct layout matches the C header.
+    /// </summary>
+    private static void PrintStructLayout<T>(string structName) where T : struct
+    {
+        int size = Marshal.SizeOf<T>();
+        Console.WriteLine($"  {structName}:");
+        Console.WriteLine($"    Marshal.SizeOf = {size} bytes");
+
+        // Print offsets for key fields
+        var fields = typeof(T).GetFields(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance);
+        foreach (var field in fields)
+        {
+            try
+            {
+                int offset = Marshal.OffsetOf<T>(field.Name).ToInt32();
+                Console.WriteLine($"    {field.Name,-40} offset {offset,4}  ({field.FieldType.Name})");
+            }
+            catch
+            {
+                Console.WriteLine($"    {field.Name,-40} offset ???  ({field.FieldType.Name}) — could not compute");
+            }
+        }
     }
 }
