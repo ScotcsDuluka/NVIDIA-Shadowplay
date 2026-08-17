@@ -279,21 +279,65 @@ public static class NvEncodeAPI
     }
 
     //
-    // NV_ENCODE_API_FUNCTION_LIST — from nvEncodeAPI.h SDK 13.1:
+    // NV_ENCODE_API_FUNCTION_LIST — from nvEncodeAPI.h SDK 11:
     //
-    // Field order is CRITICAL — NvEncodeAPICreateInstance writes function
-    // pointers at the offsets defined by this struct. If the order is wrong,
-    // we'll get garbage function pointers and crash or call wrong functions.
+    // SDK 11 has 38 function pointers + reserved2[281].
+    // SDK 13 has 43 function pointers (adds nvEncGetLastErrorString,
+    // nvEncSetIOCudaStreams, nvEncGetEncodePresetConfigEx,
+    // nvEncGetSequenceParamEx, nvEncRestoreEncoderState,
+    // nvEncLookaheadPicture) + reserved2[275].
     //
-    // Note: NV_ENC_INITIALIZE_PARAMS is intentionally omitted from the spike
-    // (Phase 4 only does register/unregister/destroy, not InitializeEncoder).
+    // OWNER's DLL is SDK 11 — using the SDK 13 layout caused function
+    // pointer offset mismatches: nvEncRegisterResource was at offset 248
+    // in our struct but NVENC wrote it at offset 248 in SDK 11 layout,
+    // so we read a different function pointer (returns Success/no error).
+    //
+    // SDK 11 field order (after version+reserved):
+    //   1. nvEncOpenEncodeSession
+    //   2. nvEncGetEncodeGUIDCount
+    //   3. nvEncGetEncodeProfileGUIDCount
+    //   4. nvEncGetEncodeProfileGUIDs
+    //   5. nvEncGetEncodeGUIDs
+    //   6. nvEncGetInputFormatCount
+    //   7. nvEncGetInputFormats
+    //   8. nvEncGetEncodeCaps
+    //   9. nvEncGetEncodePresetCount
+    //  10. nvEncGetEncodePresetGUIDs
+    //  11. nvEncGetEncodePresetConfig
+    //  12. nvEncInitializeEncoder
+    //  13. nvEncCreateInputBuffer
+    //  14. nvEncDestroyInputBuffer
+    //  15. nvEncCreateBitstreamBuffer
+    //  16. nvEncDestroyBitstreamBuffer
+    //  17. nvEncEncodePicture
+    //  18. nvEncLockBitstream
+    //  19. nvEncUnlockBitstream
+    //  20. nvEncLockInputBuffer
+    //  21. nvEncUnlockInputBuffer
+    //  22. nvEncGetEncodeStats
+    //  23. nvEncGetSequenceParams
+    //  24. nvEncRegisterAsyncEvent
+    //  25. nvEncUnregisterAsyncEvent
+    //  26. nvEncMapInputResource
+    //  27. nvEncUnmapInputResource
+    //  28. nvEncDestroyEncoder
+    //  29. nvEncInvalidateRefFrames
+    //  30. nvEncOpenEncodeSessionEx
+    //  31. nvEncRegisterResource
+    //  32. nvEncUnregisterResource
+    //  33. nvEncReconfigureEncoder
+    //  34. reserved1 (void*)
+    //  35. nvEncCreateMVBuffer
+    //  36. nvEncDestroyMVBuffer
+    //  37. nvEncRunMotionEstimationOnly
+    //  38. reserved2[281]
     //
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENCODE_API_FUNCTION_LIST
     {
         public uint version;                            // offset 0
         public uint reserved;                           // offset 4
-        public IntPtr nvEncOpenEncodeSession;           // offset 8    (legacy, NOT Ex)
+        public IntPtr nvEncOpenEncodeSession;           // offset 8
         public IntPtr nvEncGetEncodeGUIDCount;          // offset 16
         public IntPtr nvEncGetEncodeProfileGUIDCount;   // offset 24
         public IntPtr nvEncGetEncodeProfileGUIDs;       // offset 32
@@ -322,23 +366,18 @@ public static class NvEncodeAPI
         public IntPtr nvEncUnmapInputResource;          // offset 216
         public IntPtr nvEncDestroyEncoder;              // offset 224
         public IntPtr nvEncInvalidateRefFrames;         // offset 232
-        public IntPtr nvEncOpenEncodeSessionEx;         // offset 240  ★ Ex is HERE (not 368!)
-        public IntPtr nvEncRegisterResource;            // offset 248
-        public IntPtr nvEncUnregisterResource;          // offset 256  ★ EXISTS after all!
+        public IntPtr nvEncOpenEncodeSessionEx;         // offset 240  ★ Ex
+        public IntPtr nvEncRegisterResource;            // offset 248  ★ target
+        public IntPtr nvEncUnregisterResource;          // offset 256
         public IntPtr nvEncReconfigureEncoder;          // offset 264
         public IntPtr reserved1;                        // offset 272
         public IntPtr nvEncCreateMVBuffer;              // offset 280
         public IntPtr nvEncDestroyMVBuffer;             // offset 288
         public IntPtr nvEncRunMotionEstimationOnly;     // offset 296
-        public IntPtr nvEncGetLastErrorString;          // offset 304
-        public IntPtr nvEncSetIOCudaStreams;            // offset 312
-        public IntPtr nvEncGetEncodePresetConfigEx;     // offset 320
-        public IntPtr nvEncGetSequenceParamEx;          // offset 328
-        public IntPtr nvEncRestoreEncoderState;         // offset 336
-        public IntPtr nvEncLookaheadPicture;            // offset 344
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 281)]
-        public IntPtr[] reserved2;                      // offset 352 - 2592   SDK 11: 281 (was 275 in SDK 13)
+        public IntPtr[] reserved2;                      // offset 304 - 2544   SDK 11: 281
     }
+    // Total size: 8 + 37*8 + 281*8 = 8 + 296 + 2248 = 2552 bytes
 
     // === Delegates for function table entries we use ===
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -439,7 +478,8 @@ public sealed class NvEncFunctionTable : IDisposable
     public NvEncodeAPI.NvEncRegisterResourceDelegate? RegisterResource { get; private set; }
     public NvEncodeAPI.NvEncUnregisterResourceDelegate? UnregisterResource { get; private set; }
     public NvEncodeAPI.NvEncDestroyEncoderDelegate? DestroyEncoder { get; private set; }
-    public NvEncodeAPI.NvEncGetLastErrorStringDelegate? GetLastErrorString { get; private set; }
+    // NOTE: SDK 11 does NOT have nvEncGetLastErrorString in the function table.
+    // It was added in SDK 12+. We removed it from the struct, so we can't call it.
 
     public uint MaxSupportedApiVersion { get; private set; }
 
@@ -517,8 +557,7 @@ public sealed class NvEncFunctionTable : IDisposable
                 _fnList.nvEncUnregisterResource);
             DestroyEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncDestroyEncoderDelegate>(
                 _fnList.nvEncDestroyEncoder);
-            GetLastErrorString = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncGetLastErrorStringDelegate>(
-                _fnList.nvEncGetLastErrorString);
+            // SDK 11 does NOT have nvEncGetLastErrorString — skip marshalling it.
 
             _loaded = true;
             return true;

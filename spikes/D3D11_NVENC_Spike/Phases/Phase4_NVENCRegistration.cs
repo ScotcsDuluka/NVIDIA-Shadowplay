@@ -226,21 +226,7 @@ public static class Phase4_NVENCRegistration
             return 1;
         }
 
-        // Pre-call NvEncGetLastErrorString to verify the function pointer
-        // is correct — should return "Success" or empty before any failure.
-        if (nvenc.GetLastErrorString != null)
-        {
-            try
-            {
-                IntPtr preErrPtr = nvenc.GetLastErrorString(encoder);
-                if (preErrPtr != IntPtr.Zero)
-                {
-                    string? preErrStr = Marshal.PtrToStringAnsi(preErrPtr);
-                    Console.WriteLine($"  [diagnostic] Pre-register GetLastErrorString: '{preErrStr}'");
-                }
-            }
-            catch { /* ignore */ }
-        }
+        // SDK 11 does NOT have NvEncGetLastErrorString — skip the diagnostic.
 
         // Create a fresh texture on the same device as Phase 1/2.
         uint texWidth = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width;
@@ -302,26 +288,7 @@ public static class Phase4_NVENCRegistration
             Console.Error.WriteLine($"  FAIL: NvEncRegisterResource returned {status} " +
                                     $"({NvEncodeAPI.NvencStatusToString(status)}).");
 
-            // Query NVENC's last error string for more diagnostic info.
-            if (nvenc.GetLastErrorString != null)
-            {
-                try
-                {
-                    IntPtr errPtr = nvenc.GetLastErrorString(encoder);
-                    if (errPtr != IntPtr.Zero)
-                    {
-                        string? errStr = Marshal.PtrToStringAnsi(errPtr);
-                        if (!string.IsNullOrEmpty(errStr))
-                        {
-                            Console.Error.WriteLine($"  NVENC last error: {errStr}");
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.Error.WriteLine($"  (Could not query NVENC last error: {ex.Message})");
-                }
-            }
+            // SDK 11 does NOT have NvEncGetLastErrorString — skip the diagnostic.
 
             // Dump the register params for debugging.
             Console.Error.WriteLine("  Register params:");
