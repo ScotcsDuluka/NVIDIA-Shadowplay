@@ -24,6 +24,7 @@
 //
 // SPDX-License-Identifier: MIT
 
+using System.Runtime.InteropServices;
 using CaptureEngine.Video.Spike.D3D11.Utils;
 
 namespace CaptureEngine.Video.Spike.D3D11.Phases;
