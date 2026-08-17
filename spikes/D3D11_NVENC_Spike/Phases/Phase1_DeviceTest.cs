@@ -137,6 +137,22 @@ public static class Phase1_DeviceTest
         Console.WriteLine($"  Device created. Feature level: {achievedFeatureLevel}");
         Console.WriteLine($"  Device pointer: 0x{device.NativePointer.ToInt64():x16}");
 
+        // Enable multithread protection on the device context.
+        //
+        // D3D11_CREATE_DEVICE_VIDEO_SUPPORT flag implies multithreaded usage
+        // (NVENC may access the device from a different thread). Without
+        // multithread protection enabled, the device context becomes
+        // serialized and DXGI Desktop Duplication performance drops
+        // dramatically — in OWNER's test, FPS went from ~100 to ~3 with
+        // 2606 WAIT_TIMEOUT events.
+        //
+        // ID3D11Multithread::SetMultithreadProtected(TRUE) makes the device
+        // context thread-safe, restoring capture performance.
+        Vortice.Direct3D11.ID3D11Multithread multithread =
+            context.QueryInterface<Vortice.Direct3D11.ID3D11Multithread>();
+        multithread.SetMultithreadProtected(true);
+        Console.WriteLine($"  Multithread protection: ENABLED (required for VideoSupport + Desktop Duplication)");
+
         // --- Step 3: Verify device adapter LUID matches the selected NVIDIA adapter ---
         Console.WriteLine();
         Console.WriteLine("[1.4] Verifying D3D11 device adapter LUID matches selected NVIDIA adapter...");
