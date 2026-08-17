@@ -105,6 +105,10 @@ public static class NvEncodeAPI
         new(0x6bc82762, 0x4e63, 0x4ca4, 0xaa, 0x85, 0x1e, 0x50, 0xf3, 0x21, 0xf6, 0xbf);
     public static readonly Guid NV_ENC_CODEC_HEVC_GUID =
         new(0x790cdc88, 0x4522, 0x4d7b, 0x94, 0x25, 0xbd, 0xa9, 0x97, 0x5f, 0x76, 0x03);
+
+    // === Preset GUIDs (from nvEncodeAPI.h SDK 11) ===
+    public static readonly Guid NV_ENC_PRESET_DEFAULT_GUID =
+        new(0xb2dfb705, 0x4ebd, 0x4c49, 0x9b, 0x5f, 0x24, 0xa7, 0x77, 0xd3, 0xe5, 0x87);
     // AV1 codec GUID is not in SDK 13.1.15 header — may exist in newer SDKs.
     // For the spike, we only need H.264, so this is informational only.
     public static readonly Guid NV_ENC_CODEC_AV1_GUID =
@@ -279,6 +283,43 @@ public static class NvEncodeAPI
     }
 
     //
+    // NV_ENC_INITIALIZE_PARAMS — from nvEncodeAPI.h SDK 11
+    //
+    // Required to be called BEFORE NvEncRegisterResource, otherwise
+    // NvEncRegisterResource returns NV_ENC_ERR_DEVICE_NOT_EXIST.
+    //
+    // We use a minimal layout — encodeConfig = NULL (use preset defaults).
+    //
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct NV_ENC_INITIALIZE_PARAMS
+    {
+        public uint version;
+        public Guid encodeGUID;
+        public Guid presetGUID;
+        public uint encodeWidth;
+        public uint encodeHeight;
+        public uint darWidth;
+        public uint darHeight;
+        public uint frameRateNum;
+        public uint frameRateDen;
+        public uint enableEncodeAsync;
+        public uint enablePTD;
+        public uint bitFields;              // reportSliceOffsets:1 | enableSubFrameWrite:1 | ... (27 bits reserved)
+        public uint privDataSize;
+        public IntPtr privData;
+        public IntPtr encodeConfig;         // NV_ENC_CONFIG* — set to NULL to use preset defaults
+        public uint maxEncodeWidth;
+        public uint maxEncodeHeight;
+        // maxMEHintCountsPerBlock[2] — 2 uint (8 bytes)
+        public uint maxMEHintCountsPerBlockL0;
+        public uint maxMEHintCountsPerBlockL1;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 289)]
+        public uint[] reserved;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
+        public IntPtr[] reserved2;
+    }
+
+    //
     // NV_ENCODE_API_FUNCTION_LIST — from nvEncodeAPI.h SDK 11:
     //
     // SDK 11 has 38 function pointers + reserved2[281].
@@ -415,6 +456,12 @@ public static class NvEncodeAPI
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate int NvEncDestroyEncoderDelegate(IntPtr encoder);
 
+    // NvEncInitializeEncoder — must be called BEFORE NvEncRegisterResource.
+    // Configures codec, preset, frame rate, dimensions, etc.
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncInitializeEncoderDelegate(
+        IntPtr encoder, ref NV_ENC_INITIALIZE_PARAMS initParams);
+
     // Returns a human-readable error string for the LAST NVENC API call
     // from the current thread. Useful for debugging why an API call failed
     // with a generic status code.
@@ -478,6 +525,7 @@ public sealed class NvEncFunctionTable : IDisposable
     public NvEncodeAPI.NvEncRegisterResourceDelegate? RegisterResource { get; private set; }
     public NvEncodeAPI.NvEncUnregisterResourceDelegate? UnregisterResource { get; private set; }
     public NvEncodeAPI.NvEncDestroyEncoderDelegate? DestroyEncoder { get; private set; }
+    public NvEncodeAPI.NvEncInitializeEncoderDelegate? InitializeEncoder { get; private set; }
     // NOTE: SDK 11 does NOT have nvEncGetLastErrorString in the function table.
     // It was added in SDK 12+. We removed it from the struct, so we can't call it.
 
@@ -557,6 +605,8 @@ public sealed class NvEncFunctionTable : IDisposable
                 _fnList.nvEncUnregisterResource);
             DestroyEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncDestroyEncoderDelegate>(
                 _fnList.nvEncDestroyEncoder);
+            InitializeEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncInitializeEncoderDelegate>(
+                _fnList.nvEncInitializeEncoder);
             // SDK 11 does NOT have nvEncGetLastErrorString — skip marshalling it.
 
             _loaded = true;

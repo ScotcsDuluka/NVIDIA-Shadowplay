@@ -200,6 +200,59 @@ public static class Phase4_NVENCRegistration
         }
         Console.WriteLine("  PASS: ARGB (BGRA8) is supported — zero-copy path possible.");
 
+        // --- Step 4.4b: Initialize encoder ---
+        // NVIDIA's NvEncoder sample calls NvEncInitializeEncoder BEFORE
+        // NvEncRegisterResource. Without this call, NvEncRegisterResource
+        // returns NV_ENC_ERR_DEVICE_NOT_EXIST because the encoder session
+        // hasn't been configured yet.
+        Console.WriteLine();
+        Console.WriteLine("[4.4b] Initializing encoder (required before RegisterResource)...");
+
+        if (nvenc.InitializeEncoder == null)
+        {
+            Console.Error.WriteLine("  FAIL: InitializeEncoder delegate is null.");
+            nvenc.DestroyEncoder?.Invoke(encoder);
+            return 1;
+        }
+
+        uint encWidth = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width;
+        uint encHeight = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height;
+
+        var initParams = new NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS
+        {
+            version = NvEncodeAPI.MakeStructVersion(5) | (1u << 31), // NV_ENC_INITIALIZE_PARAMS_VER
+            encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID,
+            presetGUID = NvEncodeAPI.NV_ENC_PRESET_DEFAULT_GUID,
+            encodeWidth = encWidth,
+            encodeHeight = encHeight,
+            darWidth = encWidth,
+            darHeight = encHeight,
+            frameRateNum = 60,
+            frameRateDen = 1,
+            enableEncodeAsync = 0,
+            enablePTD = 1,
+            bitFields = 0,
+            privDataSize = 0,
+            privData = IntPtr.Zero,
+            encodeConfig = IntPtr.Zero,       // NULL = use preset defaults
+            maxEncodeWidth = encWidth,
+            maxEncodeHeight = encHeight,
+            maxMEHintCountsPerBlockL0 = 0,
+            maxMEHintCountsPerBlockL1 = 0,
+            reserved = new uint[289],
+            reserved2 = new IntPtr[64],
+        };
+
+        int initStatus = nvenc.InitializeEncoder(encoder, ref initParams);
+        if (initStatus != NvEncodeAPI.NV_ENC_SUCCESS)
+        {
+            Console.Error.WriteLine($"  FAIL: NvEncInitializeEncoder returned {initStatus} " +
+                                    $"({NvEncodeAPI.NvencStatusToString(initStatus)}).");
+            nvenc.DestroyEncoder?.Invoke(encoder);
+            return 1;
+        }
+        Console.WriteLine($"  PASS: Encoder initialized ({encWidth}x{encHeight} @ 60fps, H.264, Default preset).");
+
         // --- Step 5: Register a fresh staging texture with NVENC ---
         //
         // This is the CRITICAL V1 spike step. If NvEncRegisterResource succeeds,
