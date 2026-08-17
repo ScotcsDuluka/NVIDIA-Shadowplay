@@ -240,7 +240,10 @@ public static class Phase4_NVENCRegistration
             Format = Vortice.DXGI.Format.B8G8R8A8_UNorm,
             SampleDescription = new Vortice.DXGI.SampleDescription(1, 0),
             Usage = Vortice.Direct3D11.ResourceUsage.Default,
-            BindFlags = Vortice.Direct3D11.BindFlags.ShaderResource,
+            // NVENC requires D3D11_BIND_RENDER_TARGET for registered textures.
+            // D3D11_BIND_SHADER_RESOURCE alone is insufficient — NvEncRegisterResource
+            // returns NV_ENC_ERR_DEVICE_NOT_EXIST without RenderTarget flag.
+            BindFlags = Vortice.Direct3D11.BindFlags.RenderTarget,
             CPUAccessFlags = Vortice.Direct3D11.CpuAccessFlags.None,
             MiscFlags = Vortice.Direct3D11.ResourceOptionFlags.None,
         };
