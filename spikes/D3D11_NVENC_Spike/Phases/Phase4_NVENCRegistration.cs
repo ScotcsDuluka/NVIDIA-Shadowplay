@@ -226,6 +226,22 @@ public static class Phase4_NVENCRegistration
             return 1;
         }
 
+        // Pre-call NvEncGetLastErrorString to verify the function pointer
+        // is correct — should return "Success" or empty before any failure.
+        if (nvenc.GetLastErrorString != null)
+        {
+            try
+            {
+                IntPtr preErrPtr = nvenc.GetLastErrorString(encoder);
+                if (preErrPtr != IntPtr.Zero)
+                {
+                    string? preErrStr = Marshal.PtrToStringAnsi(preErrPtr);
+                    Console.WriteLine($"  [diagnostic] Pre-register GetLastErrorString: '{preErrStr}'");
+                }
+            }
+            catch { /* ignore */ }
+        }
+
         // Create a fresh texture on the same device as Phase 1/2.
         uint texWidth = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Width;
         uint texHeight = SpikeSharedContext.DuplicationDesc!.Value.ModeDescription.Height;
@@ -240,10 +256,8 @@ public static class Phase4_NVENCRegistration
             Format = Vortice.DXGI.Format.B8G8R8A8_UNorm,
             SampleDescription = new Vortice.DXGI.SampleDescription(1, 0),
             Usage = Vortice.Direct3D11.ResourceUsage.Default,
-            // NVENC requires D3D11_BIND_RENDER_TARGET for registered textures.
-            // D3D11_BIND_SHADER_RESOURCE alone is insufficient — NvEncRegisterResource
-            // returns NV_ENC_ERR_DEVICE_NOT_EXIST without RenderTarget flag.
-            BindFlags = Vortice.Direct3D11.BindFlags.RenderTarget,
+            // Try both RenderTarget + ShaderResource. NVENC may require both.
+            BindFlags = Vortice.Direct3D11.BindFlags.RenderTarget | Vortice.Direct3D11.BindFlags.ShaderResource,
             CPUAccessFlags = Vortice.Direct3D11.CpuAccessFlags.None,
             MiscFlags = Vortice.Direct3D11.ResourceOptionFlags.None,
         };
