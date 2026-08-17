@@ -333,7 +333,6 @@ public static class Phase4_NVENCRegistration
             Console.Error.WriteLine($"    subResourceIndex:  {registerParams.subResourceIndex}");
             Console.Error.WriteLine($"    resourceToRegister:0x{registerParams.resourceToRegister.ToInt64():x16}");
             Console.Error.WriteLine($"    bufferFormat:      0x{registerParams.bufferFormat:X8} (ARGB=0x01000000)");
-            Console.Error.WriteLine($"    bufferUsage:       {registerParams.bufferUsage} (INPUT_IMAGE=0)");
 
             Console.Error.WriteLine("  Possible causes:");
             Console.Error.WriteLine("    - Texture dimensions out of NVENC's supported range");
