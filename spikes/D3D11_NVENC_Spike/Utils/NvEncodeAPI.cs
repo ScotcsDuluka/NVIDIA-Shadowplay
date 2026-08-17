@@ -288,36 +288,37 @@ public static class NvEncodeAPI
     // Required to be called BEFORE NvEncRegisterResource, otherwise
     // NvEncRegisterResource returns NV_ENC_ERR_DEVICE_NOT_EXIST.
     //
-    // We use a minimal layout — encodeConfig = NULL (use preset defaults).
+    // We use LayoutKind.Explicit with FieldOffset to ensure correct
+    // alignment of pointer fields (privData, encodeConfig, reserved2)
+    // which require 8-byte alignment on x64.
     //
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Explicit, Pack = 1)]
     public struct NV_ENC_INITIALIZE_PARAMS
     {
-        public uint version;
-        public Guid encodeGUID;
-        public Guid presetGUID;
-        public uint encodeWidth;
-        public uint encodeHeight;
-        public uint darWidth;
-        public uint darHeight;
-        public uint frameRateNum;
-        public uint frameRateDen;
-        public uint enableEncodeAsync;
-        public uint enablePTD;
-        public uint bitFields;              // reportSliceOffsets:1 | enableSubFrameWrite:1 | ... (27 bits reserved)
-        public uint privDataSize;
-        public IntPtr privData;
-        public IntPtr encodeConfig;         // NV_ENC_CONFIG* — set to NULL to use preset defaults
-        public uint maxEncodeWidth;
-        public uint maxEncodeHeight;
-        // maxMEHintCountsPerBlock[2] — 2 uint (8 bytes)
-        public uint maxMEHintCountsPerBlockL0;
-        public uint maxMEHintCountsPerBlockL1;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 289)]
-        public uint[] reserved;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
-        public IntPtr[] reserved2;
+        [FieldOffset(0)]   public uint version;
+        [FieldOffset(4)]   public Guid encodeGUID;
+        [FieldOffset(20)]  public Guid presetGUID;
+        [FieldOffset(36)]  public uint encodeWidth;
+        [FieldOffset(40)]  public uint encodeHeight;
+        [FieldOffset(44)]  public uint darWidth;
+        [FieldOffset(48)]  public uint darHeight;
+        [FieldOffset(52)]  public uint frameRateNum;
+        [FieldOffset(56)]  public uint frameRateDen;
+        [FieldOffset(60)]  public uint enableEncodeAsync;
+        [FieldOffset(64)]  public uint enablePTD;
+        [FieldOffset(68)]  public uint bitFields;              // 5 bit-fields + 27 reserved bits = 32 bits
+        [FieldOffset(72)]  public uint privDataSize;
+        // 4 bytes padding here on x64 (offset 76-79)
+        [FieldOffset(80)]  public IntPtr privData;             // void* (8-byte aligned)
+        [FieldOffset(88)]  public IntPtr encodeConfig;          // NV_ENC_CONFIG* (8-byte aligned)
+        [FieldOffset(96)]  public uint maxEncodeWidth;
+        [FieldOffset(100)] public uint maxEncodeHeight;
+        [FieldOffset(104)] public uint maxMEHintCountsPerBlockL0;  // NVENC_EXTERNAL_ME_HINT_COUNTS_PER_BLOCKTYPE = 4 bytes
+        [FieldOffset(108)] public uint maxMEHintCountsPerBlockL1;
+        [FieldOffset(112)] [MarshalAs(UnmanagedType.ByValArray, SizeConst = 289)] public uint[] reserved;
+        [FieldOffset(1268)] [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)] public IntPtr[] reserved2;
     }
+    // Total size: 1780 bytes
 
     //
     // NV_ENCODE_API_FUNCTION_LIST — from nvEncodeAPI.h SDK 11:
