@@ -130,8 +130,17 @@ public static class Phase2_DesktopDuplication
             IDXGIResource? desktopResource = null;
             try
             {
+                // Use 0ms non-blocking poll instead of 100ms blocking wait.
+                //
+                // With D3D11_CREATE_DEVICE_VIDEO_SUPPORT flag enabled, the
+                // device context's blocking behavior changes — AcquireNextFrame
+                // with non-zero timeout would block for the full timeout even
+                // when a frame is available, dropping FPS dramatically.
+                //
+                // Non-blocking poll + Thread.Yield() in the WAIT_TIMEOUT case
+                // lets us spin-wait for the next frame without blocking.
                 hr = duplication.AcquireNextFrame(
-                    timeoutInMilliseconds: 100,  // 100ms — generous; 0 = non-blocking poll
+                    timeoutInMilliseconds: 0,  // 0 = non-blocking poll
                     out var frameInfo,
                     out desktopResource);
             }
@@ -148,6 +157,10 @@ public static class Phase2_DesktopDuplication
             if (hr == ResultCode.WaitTimeout)
             {
                 metrics.RecordWaitTimeout();
+                // Yield CPU to other threads when no frame is available yet.
+                // This prevents busy-loop spinning while waiting for the next
+                // desktop update at the display's refresh rate (75Hz = ~13ms).
+                Thread.Yield();
                 continue;
             }
             if (hr == ResultCode.AccessLost)
