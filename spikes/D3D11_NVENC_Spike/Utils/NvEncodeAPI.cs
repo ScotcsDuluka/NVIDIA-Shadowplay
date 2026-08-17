@@ -171,10 +171,24 @@ public static class NvEncodeAPI
         NVENCAPI_MINOR_VERSION = packed & 0xF;
     }
 
-    // === Struct version constants (per nvEncodeAPI.h SDK 13.1) ===
-    public const uint NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT = 2;
+    // === Struct version constants ===
+    //
+    // OWNER's nvEncodeAPI64.dll has FileDescription "NVIDIA Video Encoder
+    // API, Version 11.0" — meaning the DLL is built against SDK 11 layout,
+    // even though the driver reports max supported API = 13.0.
+    //
+    // SDK 11 struct versions differ from SDK 13:
+    //   SDK 11:  NV_ENCODE_API_FUNCTION_LIST_VER = NVENCAPI_STRUCT_VERSION(1)
+    //            NV_ENC_REGISTER_RESOURCE_VER    = NVENCAPI_STRUCT_VERSION(3)
+    //   SDK 13:  NV_ENCODE_API_FUNCTION_LIST_VER = NVENCAPI_STRUCT_VERSION(2)
+    //            NV_ENC_REGISTER_RESOURCE_VER    = NVENCAPI_STRUCT_VERSION(5)
+    //
+    // OpenEncodeSessionExParams is ver=1 in both SDKs.
+    //
+    // We use SDK 11 versions because that's what the DLL expects.
+    public const uint NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT = 1;       // SDK 11
     public const uint NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER_STRUCT = 1;
-    public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 5;
+    public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 3;          // SDK 11
 
     public static uint NV_ENCODE_API_FUNCTION_LIST_VER =>
         MakeStructVersion(NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT);
@@ -222,25 +236,29 @@ public static class NvEncodeAPI
     }
 
     //
-    // NV_ENC_REGISTER_RESOURCE — from nvEncodeAPI.h:
-    //   typedef struct _NV_ENC_REGISTER_RESOURCE {
+    // NV_ENC_REGISTER_RESOURCE — from nvEncodeAPI.h SDK 11:
+    //
+    // SDK 11 layout is DIFFERENT from SDK 13:
+    //   - No bufferUsage field
+    //   - No pInputFencePoint field
+    //   - No chromaOffset[2] / chromaOffsetIn[2] fields
+    //   - reserved1 size is 248 (not 244)
+    //   - reserved2 size is 62 (not 61)
+    //
+    // typedef struct _NV_ENC_REGISTER_RESOURCE {
     //     uint32_t                    version;             // offset 0
-    //     NV_ENC_INPUT_RESOURCE_TYPE  resourceType;        // offset 4  (enum)
+    //     NV_ENC_INPUT_RESOURCE_TYPE  resourceType;        // offset 4
     //     uint32_t                    width;               // offset 8
     //     uint32_t                    height;              // offset 12
     //     uint32_t                    pitch;               // offset 16
-    //     uint32_t                    subResourceIndex;    // offset 20  *** NEW in SDK 13 ***
+    //     uint32_t                    subResourceIndex;    // offset 20
     //     void*                       resourceToRegister;  // offset 24
     //     NV_ENC_REGISTERED_PTR       registeredResource;  // offset 32 (void*)
     //     NV_ENC_BUFFER_FORMAT        bufferFormat;        // offset 40 (enum = int32)
-    //     NV_ENC_BUFFER_USAGE         bufferUsage;         // offset 44 (enum = int32)
-    //     NV_ENC_FENCE_POINT_D3D12*   pInputFencePoint;    // offset 48 (void*)
-    //     uint32_t                    chromaOffset[2];     // offset 56
-    //     uint32_t                    chromaOffsetIn[2];   // offset 64
-    //     uint32_t                    reserved1[244];      // offset 72 - 1039
-    //     void*                       reserved2[61];       // offset 1040 - 1528
-    //   }
-    // Total size: 1528 bytes
+    //     uint32_t                    reserved1[248];      // offset 44 - 1035
+    //     void*                       reserved2[62];      // offset 1036 - 1532
+    // }
+    // Total size: 1532 bytes
     //
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_REGISTER_RESOURCE
@@ -250,20 +268,14 @@ public static class NvEncodeAPI
         public uint width;
         public uint height;
         public uint pitch;
-        public uint subResourceIndex;      // NEW in SDK 13.x
+        public uint subResourceIndex;      // 0 for non-array textures
         public IntPtr resourceToRegister;  // void*
         public IntPtr registeredResource;  // void* (OUT)
         public int bufferFormat;           // NV_ENC_BUFFER_FORMAT enum
-        public int bufferUsage;            // NV_ENC_BUFFER_USAGE enum
-        public IntPtr pInputFencePoint;    // NV_ENC_FENCE_POINT_D3D12* (set to IntPtr.Zero)
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-        public uint[] chromaOffset;        // OUT (set to zeros)
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
-        public uint[] chromaOffsetIn;      // IN (set to zeros)
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
-        public uint[] reserved1;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 61)]
-        public IntPtr[] reserved2;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 248)]
+        public uint[] reserved1;           // SDK 11: 248 (was 244 in SDK 13)
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 62)]
+        public IntPtr[] reserved2;          // SDK 11: 62 (was 61 in SDK 13)
     }
 
     //
@@ -324,8 +336,8 @@ public static class NvEncodeAPI
         public IntPtr nvEncGetSequenceParamEx;          // offset 328
         public IntPtr nvEncRestoreEncoderState;         // offset 336
         public IntPtr nvEncLookaheadPicture;            // offset 344
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 275)]
-        public IntPtr[] reserved2;                      // offset 352 - 2552
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 281)]
+        public IntPtr[] reserved2;                      // offset 352 - 2592   SDK 11: 281 (was 275 in SDK 13)
     }
 
     // === Delegates for function table entries we use ===

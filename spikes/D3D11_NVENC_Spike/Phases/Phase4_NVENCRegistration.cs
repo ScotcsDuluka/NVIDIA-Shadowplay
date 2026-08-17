@@ -291,12 +291,9 @@ public static class Phase4_NVENCRegistration
             resourceToRegister = freshTexture.NativePointer,
             registeredResource = IntPtr.Zero,       // OUT — populated by NVENC
             bufferFormat = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_ARGB,
-            bufferUsage = 0,                        // NV_ENC_INPUT_IMAGE = 0x0
-            pInputFencePoint = IntPtr.Zero,         // D3D11 only, not D3D12
-            chromaOffset = new uint[2],             // OUT — set to zeros
-            chromaOffsetIn = new uint[2],           // IN — set to zeros
-            reserved1 = new uint[244],
-            reserved2 = new IntPtr[61],
+            // SDK 11 layout: no bufferUsage, no pInputFencePoint, no chromaOffset
+            reserved1 = new uint[248],              // SDK 11: 248
+            reserved2 = new IntPtr[62],              // SDK 11: 62
         };
 
         status = nvenc.RegisterResource(encoder, ref registerParams);
