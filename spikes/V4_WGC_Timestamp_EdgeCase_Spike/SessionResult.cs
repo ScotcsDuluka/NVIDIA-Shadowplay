@@ -25,7 +25,20 @@ internal struct SessionResult
     public int NegativePtsCount;
     public bool TimestampMonotonic;
     public bool PtsMonotonic;
-    public string DisplayConfig;     // e.g. "1680x1050@DISPLAY1"
-    public string LoadCondition;     // "idle" | "static-content" | "active-content" | "stress"
+    public string DisplayConfig;
+    public string LoadCondition;
     public double AchievedFps;
+
+    // === Acquisition counters ===
+    public long FrameArrivedCount;
+    public long TryGetNextFrameCount;
+    public long AcquiredFrameCount;
+    public long ConsumedFrameCount;
+    public long DroppedByHarnessCount;
+    public long SupersededCount;
+
+    // === Derived rates ===
+    public double AcquisitionFps;   // AcquiredFrameCount / WallElapsedSeconds
+    public double ConsumedFps;       // ConsumedFrameCount / WallElapsedSeconds
+    public double HarnessDropRate;   // DroppedByHarnessCount / (double)AcquiredFrameCount
 }

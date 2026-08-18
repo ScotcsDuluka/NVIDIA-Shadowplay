@@ -167,15 +167,28 @@ internal static class Program
         wgc.Setup();
         Console.WriteLine($"  Display: {wgc.DisplayConfig}");
 
-        var frames = wgc.Capture(durationSec, loadCondition);
-
-        // Dispose WGC internals (frame pool + session), but keep D3D device alive for next session
         var sw = Stopwatch.StartNew();
+        var frames = wgc.Capture(durationSec, loadCondition);
+        sw.Stop();
+
         var result = TimestampAnalyzer.ComputeStats(frames, idx);
-        result.WallElapsedSeconds = sw.Elapsed.TotalSeconds + durationSec; // approximate
+        result.WallElapsedSeconds = sw.Elapsed.TotalSeconds;
         result.DisplayConfig = wgc.DisplayConfig;
         result.LoadCondition = loadCondition;
-        result.AchievedFps = frames.Count / (double)durationSec;
+        result.AchievedFps = frames.Count / sw.Elapsed.TotalSeconds;
+
+        // Copy acquisition counters from WgcSession
+        result.FrameArrivedCount = wgc.FrameArrivedCount;
+        result.TryGetNextFrameCount = wgc.TryGetNextFrameCount;
+        result.AcquiredFrameCount = wgc.AcquiredFrameCount;
+        result.ConsumedFrameCount = wgc.ConsumedFrameCount;
+        result.DroppedByHarnessCount = wgc.DroppedByHarnessCount;
+        result.SupersededCount = wgc.SupersededCount;
+        result.AcquisitionFps = wgc.AcquiredFrameCount / sw.Elapsed.TotalSeconds;
+        result.ConsumedFps = wgc.ConsumedFrameCount / sw.Elapsed.TotalSeconds;
+        result.HarnessDropRate = wgc.AcquiredFrameCount > 0
+            ? wgc.DroppedByHarnessCount / (double)wgc.AcquiredFrameCount
+            : 0.0;
 
         // Write evidence
         EvidenceWriter.WriteFramesCsv(evidenceDir, idx, mode, frames);
@@ -188,27 +201,47 @@ internal static class Program
     {
         Console.WriteLine();
         Console.WriteLine($"--- Session {r.SessionIndex} ({r.LoadCondition}) ---");
-        Console.WriteLine($"  Frames:                   {r.FrameCount}");
-        Console.WriteLine($"  Duration:                {r.WallElapsedSeconds:F2} s");
-        Console.WriteLine($"  First SRT:               {r.FirstSrt}");
-        Console.WriteLine($"  Last SRT:                {r.LastSrt}");
-        Console.WriteLine($"  First PTS:               {r.FirstPts}");
-        Console.WriteLine($"  Last PTS:                {r.LastPts} ({r.LastPts / 10_000_000.0:F6} s)");
-        Console.WriteLine($"  Min delta:               {r.MinDelta} ({r.MinDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Max delta:               {r.MaxDelta} ({r.MaxDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Avg delta:               {r.AverageDelta:F1} ({r.AverageDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Median delta:            {r.MedianDelta} ({r.MedianDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  P95 delta:               {r.P95Delta} ({r.P95Delta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  P99 delta:               {r.P99Delta} ({r.P99Delta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Equal timestamps:        {r.EqualTimestampCount}");
-        Console.WriteLine($"  Negative deltas:         {r.NegativeDeltaCount}");
-        Console.WriteLine($"  Negative PTS:            {r.NegativePtsCount}");
-        Console.WriteLine($"  Timestamp monotonic:     {r.TimestampMonotonic}");
-        Console.WriteLine($"  PTS monotonic:           {r.PtsMonotonic}");
-        Console.WriteLine($"  FPS:                     {r.AchievedFps:F2}");
+
+        Console.WriteLine("  === ACQUISITION SUMMARY ===");
+        Console.WriteLine($"    FrameArrived:      {r.FrameArrivedCount}");
+        Console.WriteLine($"    TryGetNextFrame:   {r.TryGetNextFrameCount}");
+        Console.WriteLine($"    Acquired:          {r.AcquiredFrameCount}");
+        Console.WriteLine($"    Consumed:          {r.ConsumedFrameCount}");
+        Console.WriteLine($"    DroppedByHarness:  {r.DroppedByHarnessCount}");
+        Console.WriteLine($"    Superseded:        {r.SupersededCount}");
+
+        Console.WriteLine("  === DELIVERY SUMMARY ===");
+        Console.WriteLine($"    Acquisition FPS:  {r.AcquisitionFps:F2}");
+        Console.WriteLine($"    Consumed FPS:      {r.ConsumedFps:F2}");
+        Console.WriteLine($"    Harness Drop Rate:{r.HarnessDropRate:P2}");
+
+        Console.WriteLine("  === TIMESTAMP SUMMARY ===");
+        Console.WriteLine($"    Frames:            {r.FrameCount}");
+        Console.WriteLine($"    Duration:          {r.WallElapsedSeconds:F2} s");
+        Console.WriteLine($"    First SRT:         {r.FirstSrt}");
+        Console.WriteLine($"    Last SRT:          {r.LastSrt}");
+        Console.WriteLine($"    First PTS:         {r.FirstPts}");
+        Console.WriteLine($"    Last PTS:          {r.LastPts} ({r.LastPts / 10_000_000.0:F6} s)");
+        Console.WriteLine($"    Equal timestamps:  {r.EqualTimestampCount}");
+        Console.WriteLine($"    Negative deltas:   {r.NegativeDeltaCount}");
+        Console.WriteLine($"    Negative PTS:      {r.NegativePtsCount}");
+        Console.WriteLine($"    Timestamp monotonic:{r.TimestampMonotonic}");
+        Console.WriteLine($"    PTS monotonic:     {r.PtsMonotonic}");
+        Console.WriteLine($"    Min delta:         {r.MinDelta} ({r.MinDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"    Median delta:      {r.MedianDelta} ({r.MedianDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"    P95 delta:         {r.P95Delta} ({r.P95Delta / 10_000.0:F3} ms)");
+        Console.WriteLine($"    P99 delta:         {r.P99Delta} ({r.P99Delta / 10_000.0:F3} ms)");
+        Console.WriteLine($"    Max delta:         {r.MaxDelta} ({r.MaxDelta / 10_000.0:F3} ms)");
+
         if (r.EqualTimestampCount > 0)
-            Console.WriteLine($"  Equal timestamp events:  {r.EqualTimestampEvents.Count} (first: {r.EqualTimestampEvents[0]})");
+            Console.WriteLine($"    Equal events:      {r.EqualTimestampEvents.Count} (first: {r.EqualTimestampEvents[0]})");
         if (r.NegativeDeltaCount > 0)
-            Console.WriteLine($"  Regression events:      {r.RegressionEvents.Count} (first: {r.RegressionEvents[0]})");
+            Console.WriteLine($"    Regression events:  {r.RegressionEvents.Count} (first: {r.RegressionEvents[0]})");
+
+        // Invariant check
+        long expected = r.AcquiredFrameCount - r.DroppedByHarnessCount;
+        bool invariantHolds = r.ConsumedFrameCount == expected;
+        Console.WriteLine($"    Invariant (Acquired-Consumed=Dropped): {(invariantHolds ? "HOLDS" : "MISMATCH")} " +
+                          $"[{r.ConsumedFrameCount} == {r.AcquiredFrameCount} - {r.DroppedByHarnessCount} = {expected}]");
     }
 }
