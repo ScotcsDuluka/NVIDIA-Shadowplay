@@ -28,6 +28,7 @@ internal static class Program
         int durationPerSession = 15;
         string condition = "static";
         bool load = false;
+        int repeats = 3;
 
         for (int i = 0; i < args.Length; i++)
         {
@@ -39,6 +40,7 @@ internal static class Program
                 case "--duration-per-session": durationPerSession = int.Parse(args[++i]); break;
                 case "--condition": condition = args[++i]; break;
                 case "--load": load = bool.Parse(args[++i]); break;
+                case "--repeats": repeats = int.Parse(args[++i]); break;
             }
         }
 
@@ -103,6 +105,51 @@ internal static class Program
                     allSessions.Add(sessActive);
                     allFrames.AddRange(framesActive);
                 }
+            }
+
+            if (mode is "v5")
+            {
+                // V5-A / V5-B: Controlled reproduction with repeats
+                // Runs `repeats` sessions of `duration` seconds per session
+                // under the specified `condition` (static or active).
+                Console.WriteLine();
+                Console.WriteLine($"=== V5 CONTROLLED REPRODUCTION ===");
+                Console.WriteLine($"  Condition: {condition}");
+                Console.WriteLine($"  Duration per session: {duration}s");
+                Console.WriteLine($"  Repeats: {repeats}");
+                Console.WriteLine();
+
+                // If condition is "active", spawn a deterministic animation window
+                ActiveContentGenerator? activeGen = null;
+                if (condition == "active")
+                {
+                    activeGen = new ActiveContentGenerator();
+                    activeGen.Start();
+                    Console.WriteLine("  Active content: deterministic animation window started.");
+                    Thread.Sleep(500); // Let animation get going
+                }
+
+                for (int i = 0; i < repeats; i++)
+                {
+                    Console.WriteLine($"\n  --- Repeat {i + 1}/{repeats} ---");
+                    var (sess, frames) = RunSingleSession(
+                        sessionIdx++, $"v5_{condition}", duration, condition, evidenceDir, null);
+                    allSessions.Add(sess);
+                    allFrames.AddRange(frames);
+
+                    Console.WriteLine($"  Repeat {i + 1}: {sess.FrameCount} frames, {sess.AchievedFps:F2} FPS, " +
+                                      $"median={sess.MedianDelta / 10_000.0:F3} ms, max={sess.MaxDelta / 10_000.0:F3} ms, " +
+                                      $"dropped={sess.DroppedByHarnessCount}, invariant={sess.AcquiredFrameCount == sess.ConsumedFrameCount + sess.DroppedByHarnessCount + sess.ShutdownDiscardedCount}");
+
+                    if (i < repeats - 1)
+                    {
+                        Console.WriteLine("  Pausing 2s between runs...");
+                        Thread.Sleep(2000);
+                    }
+                }
+
+                activeGen?.Stop();
+                activeGen?.Dispose();
             }
 
             // === Tests 2, 3, 6 are analysis-only (derived from all sessions) ===
@@ -174,6 +221,7 @@ internal static class Program
         var result = TimestampAnalyzer.ComputeStats(frames, idx);
         result.WallElapsedSeconds = sw.Elapsed.TotalSeconds;
         result.DisplayConfig = wgc.DisplayConfig;
+        result.RefreshRate = wgc.RefreshRate;
         result.LoadCondition = loadCondition;
         result.AchievedFps = frames.Count / sw.Elapsed.TotalSeconds;
 
@@ -234,6 +282,8 @@ internal static class Program
         Console.WriteLine($"    P95 delta:           {r.P95Delta} ({r.P95Delta / 10_000.0:F3} ms)");
         Console.WriteLine($"    P99 delta:           {r.P99Delta} ({r.P99Delta / 10_000.0:F3} ms)");
         Console.WriteLine($"    Max delta:           {r.MaxDelta} ({r.MaxDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"    Display:            {r.DisplayConfig}");
+        Console.WriteLine($"    Refresh rate:       {r.RefreshRate:F2} Hz");
 
         if (r.EqualTimestampCount > 0)
             Console.WriteLine($"    Equal events:        {r.EqualTimestampEvents.Count} (first: {r.EqualTimestampEvents[0]})");

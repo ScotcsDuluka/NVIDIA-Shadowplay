@@ -57,6 +57,7 @@ internal sealed class WgcSession : IDisposable
     private const int QueueCapacity = 16;
 
     public string DisplayConfig { get; private set; } = "";
+    public double RefreshRate { get; private set; }
     public int Width { get; private set; }
     public int Height { get; private set; }
 
@@ -124,7 +125,15 @@ internal sealed class WgcSession : IDisposable
         var desc = _output!.Description;
         Width = (int)(desc.DesktopCoordinates.Right - desc.DesktopCoordinates.Left);
         Height = (int)(desc.DesktopCoordinates.Bottom - desc.DesktopCoordinates.Top);
-        DisplayConfig = $"{Width}x{Height}@{desc.DeviceName}";
+
+        // Query refresh rate from DXGIOutput1
+        IDXGIOutput1 output1 = _output.QueryInterface<IDXGIOutput1>();
+        var modeDesc = output1.FindClosestMatchingMode(new ModeDescription(Width, Height, new Rational(0, 0), Format.B8G8R8A8_UNorm), _d3dDevice);
+        double refreshRate = (double)modeDesc.RefreshRate.Numerator / modeDesc.RefreshRate.Denominator;
+        output1.Dispose();
+
+        DisplayConfig = $"{Width}x{Height}@{refreshRate:F2}Hz@{desc.DeviceName}";
+        RefreshRate = refreshRate;
 
         var rect = new RECT
         {

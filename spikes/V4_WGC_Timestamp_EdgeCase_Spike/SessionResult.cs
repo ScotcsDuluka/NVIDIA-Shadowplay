@@ -26,6 +26,7 @@ internal struct SessionResult
     public bool TimestampMonotonic;
     public bool PtsMonotonic;
     public string DisplayConfig;
+    public double RefreshRate;
     public string LoadCondition;
     public double AchievedFps;
 
