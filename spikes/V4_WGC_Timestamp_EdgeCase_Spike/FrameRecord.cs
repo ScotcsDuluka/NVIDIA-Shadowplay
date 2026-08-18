@@ -10,5 +10,10 @@ internal struct FrameRecord
     public long DeltaFromPreviousSrtTicks;   // long.MinValue sentinel if first frame
     public long Pts;                          // SrtTicks - T0
     public long DeltaFromPreviousPtsTicks;    // same sentinel rule
-    public DateTime WallClockUtcCaptured;     // when harness consumed the frame (NOT a media timestamp)
+
+    /// <summary>When the FrameArrived callback fired (WGC thread). NOT a media timestamp.</summary>
+    public DateTime ArrivalWallClockUtc;
+
+    /// <summary>When the consumer thread processed this frame. NOT a media timestamp.</summary>
+    public DateTime ConsumeWallClockUtc;
 }

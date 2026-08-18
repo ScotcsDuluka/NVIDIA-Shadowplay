@@ -7,15 +7,18 @@
 //   Consumer thread → dequeue → extract timestamp → dispose frame → add to List
 //
 //   Counters:
-//     FrameArrivedCount     — incremented every time FrameArrived fires
-//     TryGetNextFrameCount  — incremented every time TryGetNextFrame is called
-//     AcquiredFrameCount     — incremented when TryGetNextFrame returns non-null
-//     ConsumedFrameCount     — incremented when consumer dequeues + processes a frame
-//     DroppedByHarnessCount  — incremented when queue is full and frame must be dropped
-//     SupersededCount        — incremented when TryGetNextFrame returns null (WGC had no new frame)
+//     FrameArrivedCount       — incremented every time FrameArrived fires
+//     TryGetNextFrameCount    — incremented every time TryGetNextFrame is called
+//     AcquiredFrameCount      — incremented when TryGetNextFrame returns non-null
+//     ConsumedFrameCount      — incremented when consumer dequeues + processes a frame
+//     DroppedByHarnessCount   — incremented when queue is full and frame must be dropped
+//     NoFrameReturnedCount    — incremented when TryGetNextFrame returns null
+//                               (WGC had no new frame to give; does NOT imply supersession)
+//     ShutdownDiscardedCount  — incremented when a frame is acquired but the queue
+//                               has been closed (CompleteAdding) during shutdown
 //
-//   Invariant: AcquiredFrameCount = ConsumedFrameCount + DroppedByHarnessCount
-//   (every acquired frame is either consumed or dropped by the harness — never silently lost)
+//   Invariant: AcquiredFrameCount = ConsumedFrameCount + DroppedByHarnessCount + ShutdownDiscardedCount
+//   (every acquired frame is either consumed, dropped by harness, or discarded during shutdown)
 //
 // SYNCHRONIZATION DESIGN:
 //   Uses BlockingCollection (bounded) — no ManualResetEventSlim, no lost-signal race.
@@ -51,8 +54,6 @@ internal sealed class WgcSession : IDisposable
     private IDXGIOutput? _output;
 
     // Bounded queue capacity — keeps memory usage bounded.
-    // WGC typically delivers at display refresh rate; a queue of 16
-    // provides ample buffer without unbounded growth.
     private const int QueueCapacity = 16;
 
     public string DisplayConfig { get; private set; } = "";
@@ -60,12 +61,24 @@ internal sealed class WgcSession : IDisposable
     public int Height { get; private set; }
 
     // === Acquisition counters (per session) ===
+    // Properties are read-only to external callers; raw fields are used
+    // internally for Interlocked operations.
     public long FrameArrivedCount { get; private set; }
     public long TryGetNextFrameCount { get; private set; }
     public long AcquiredFrameCount { get; private set; }
     public long ConsumedFrameCount { get; private set; }
     public long DroppedByHarnessCount { get; private set; }
-    public long SupersededCount { get; private set; }
+    public long NoFrameReturnedCount { get; private set; }
+    public long ShutdownDiscardedCount { get; private set; }
+
+    // Raw fields for Interlocked — reset at the start of each Capture() call.
+    private long _frameArrivedRaw;
+    private long _tryGetNextFrameRaw;
+    private long _acquiredRaw;
+    private long _consumedRaw;
+    private long _droppedByHarnessRaw;
+    private long _noFrameReturnedRaw;
+    private long _shutdownDiscardedRaw;
 
     [ComImport]
     [Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356")]
@@ -147,31 +160,28 @@ internal sealed class WgcSession : IDisposable
         if (_framePool == null || _session == null)
             throw new InvalidOperationException("WgcSession not set up. Call Setup() first.");
 
-        // Reset counters
-        FrameArrivedCount = 0;
-        TryGetNextFrameCount = 0;
-        AcquiredFrameCount = 0;
-        ConsumedFrameCount = 0;
-        DroppedByHarnessCount = 0;
-        SupersededCount = 0;
+        // === FIX 1: Reset ALL raw counter fields at start of each session ===
+        // Interlocked.Exchange ensures atomic reset even if a stale callback
+        // is still running from a previous session.
+        Interlocked.Exchange(ref _frameArrivedRaw, 0);
+        Interlocked.Exchange(ref _tryGetNextFrameRaw, 0);
+        Interlocked.Exchange(ref _acquiredRaw, 0);
+        Interlocked.Exchange(ref _consumedRaw, 0);
+        Interlocked.Exchange(ref _droppedByHarnessRaw, 0);
+        Interlocked.Exchange(ref _noFrameReturnedRaw, 0);
+        Interlocked.Exchange(ref _shutdownDiscardedRaw, 0);
 
         var frames = new List<FrameRecord>();
         var sw = Stopwatch.StartNew();
         long durationMs = durationSec * 1000L;
 
-        // Bounded queue — producer adds, consumer takes.
-        // Using BlockingCollection with CancellationToken for clean shutdown.
         using var cts = new CancellationTokenSource();
         using var queue = new BlockingCollection<QueuedFrame>(QueueCapacity);
 
         // === PRODUCER: FrameArrived callback ===
-        // Runs on WGC's thread-pool thread (free-threaded frame pool).
-        // Tries to acquire frame, then enqueues. If queue is full, drops + counts.
         _framePool.FrameArrived += (sender, _) =>
         {
             Interlocked.Increment(ref _frameArrivedRaw);
-            // We use a field for the raw count because properties can't be Interlocked'd.
-            // The property returns the field value at the end.
 
             DateTime arrivalUtc = DateTime.UtcNow;
             Interlocked.Increment(ref _tryGetNextFrameRaw);
@@ -189,7 +199,9 @@ internal sealed class WgcSession : IDisposable
 
             if (frame == null)
             {
-                Interlocked.Increment(ref _supersededRaw);
+                // FIX 4: Renamed from "SupersededCount" to "NoFrameReturnedCount"
+                // — does NOT imply supersession; WGC simply returned null.
+                Interlocked.Increment(ref _noFrameReturnedRaw);
                 return;
             }
 
@@ -198,7 +210,6 @@ internal sealed class WgcSession : IDisposable
             var item = new QueuedFrame(frame, arrivalUtc);
             try
             {
-                // Try to add with zero timeout — if queue is full, drop immediately.
                 if (!queue.TryAdd(item, 0))
                 {
                     // Queue full — harness must drop the frame.
@@ -208,7 +219,10 @@ internal sealed class WgcSession : IDisposable
             }
             catch (InvalidOperationException)
             {
-                // Queue has been marked as CompleteAdding — we're shutting down.
+                // FIX 3: Queue has been marked as CompleteAdding during shutdown.
+                // This frame was acquired (AcquiredFrameCount was incremented) but
+                // cannot be enqueued. Track it separately so the invariant holds.
+                Interlocked.Increment(ref _shutdownDiscardedRaw);
                 item.Dispose();
             }
         };
@@ -224,14 +238,10 @@ internal sealed class WgcSession : IDisposable
         long prevPts = 0;
 
         // === CONSUMER: main thread ===
-        // Dequeue from BlockingCollection, extract timestamp, dispose frame.
         while (sw.ElapsedMilliseconds < durationMs)
         {
-            // Blocking take with timeout — no lost-signal race.
-            // If no frame arrives within 500ms, we just loop and check duration.
             if (!queue.TryTake(out QueuedFrame? item, 500, cts.Token))
             {
-                // Timeout — no frame available. Check if we should stop.
                 if (sw.ElapsedMilliseconds >= durationMs)
                     break;
                 continue;
@@ -239,6 +249,8 @@ internal sealed class WgcSession : IDisposable
 
             Interlocked.Increment(ref _consumedRaw);
 
+            // FIX 2: Separate ArrivalWallClockUtc (from QueuedFrame) and
+            // ConsumeWallClockUtc (captured here when consumer processes the frame).
             DateTime consumeUtc = DateTime.UtcNow;
             long srt = item.Frame.SystemRelativeTime.Ticks;
 
@@ -260,7 +272,8 @@ internal sealed class WgcSession : IDisposable
                 DeltaFromPreviousSrtTicks = deltaSrt,
                 Pts = pts,
                 DeltaFromPreviousPtsTicks = deltaPts,
-                WallClockUtcCaptured = consumeUtc,  // when the harness consumed the frame
+                ArrivalWallClockUtc = item.ArrivalWallClockUtc,  // FIX 2: when FrameArrived fired
+                ConsumeWallClockUtc = consumeUtc,                 // FIX 2: when consumer processed
             });
 
             prevSrt = srt;
@@ -269,26 +282,29 @@ internal sealed class WgcSession : IDisposable
             if (frames.Count % 500 == 0)
             {
                 long dropped = Interlocked.Read(ref _droppedByHarnessRaw);
+                long noFrame = Interlocked.Read(ref _noFrameReturnedRaw);
                 Console.WriteLine($"    f{frames.Count,6} | SRT={srt,16} | PTS={pts,12} | d={deltaSrt,8} | " +
-                                  $"dropped={dropped,4} | {sw.Elapsed.TotalSeconds:F1}s");
+                                  $"dropped={dropped,4} | noFrame={noFrame,4} | {sw.Elapsed.TotalSeconds:F1}s");
             }
 
             item.Dispose();
         }
 
         // === Shutdown ===
-        // Signal producers to stop, then drain remaining frames in the queue.
         cts.Cancel();
         queue.CompleteAdding();
 
-        // Drain remaining items (bounded — not unbounded)
+        // Drain remaining items (bounded — max QueueCapacity items)
         while (queue.TryTake(out QueuedFrame? remaining, 0))
         {
             Interlocked.Increment(ref _consumedRaw);
+
+            DateTime consumeUtc = DateTime.UtcNow;
             long srt = remaining.Frame.SystemRelativeTime.Ticks;
             long pts = srt - t0;
             long deltaSrt = frames.Count > 0 ? srt - prevSrt : long.MinValue;
             long deltaPts = frames.Count > 0 ? pts - prevPts : long.MinValue;
+
             frames.Add(new FrameRecord
             {
                 FrameIndex = frames.Count,
@@ -296,7 +312,8 @@ internal sealed class WgcSession : IDisposable
                 DeltaFromPreviousSrtTicks = deltaSrt,
                 Pts = pts,
                 DeltaFromPreviousPtsTicks = deltaPts,
-                WallClockUtcCaptured = DateTime.UtcNow,
+                ArrivalWallClockUtc = remaining.ArrivalWallClockUtc,
+                ConsumeWallClockUtc = consumeUtc,
             });
             prevSrt = srt;
             prevPts = pts;
@@ -309,33 +326,28 @@ internal sealed class WgcSession : IDisposable
         AcquiredFrameCount = Interlocked.Read(ref _acquiredRaw);
         ConsumedFrameCount = Interlocked.Read(ref _consumedRaw);
         DroppedByHarnessCount = Interlocked.Read(ref _droppedByHarnessRaw);
-        SupersededCount = Interlocked.Read(ref _supersededRaw);
+        NoFrameReturnedCount = Interlocked.Read(ref _noFrameReturnedRaw);
+        ShutdownDiscardedCount = Interlocked.Read(ref _shutdownDiscardedRaw);
 
         Console.WriteLine($"  Capture ended: {frames.Count} consumed frames in {sw.Elapsed.TotalSeconds:F2}s");
         Console.WriteLine($"  Arrived={FrameArrivedCount} TryGet={TryGetNextFrameCount} Acquired={AcquiredFrameCount} " +
-                          $"Consumed={ConsumedFrameCount} Dropped={DroppedByHarnessCount} Superseded={SupersededCount}");
+                          $"Consumed={ConsumedFrameCount} Dropped={DroppedByHarnessCount} " +
+                          $"NoFrameReturned={NoFrameReturnedCount} ShutdownDiscarded={ShutdownDiscardedCount}");
 
-        // Verify invariant: Acquired = Consumed + Dropped
-        long expectedConsumedOrDropped = AcquiredFrameCount - DroppedByHarnessCount;
-        if (ConsumedFrameCount != expectedConsumedOrDropped)
+        // Verify invariant: Acquired = Consumed + Dropped + ShutdownDiscarded
+        long accounted = ConsumedFrameCount + DroppedByHarnessCount + ShutdownDiscardedCount;
+        bool invariantHolds = AcquiredFrameCount == accounted;
+        if (!invariantHolds)
         {
-            Console.WriteLine($"  WARNING: Invariant check — Consumed({ConsumedFrameCount}) != " +
-                            $"Acquired({AcquiredFrameCount}) - Dropped({DroppedByHarnessCount}) = {expectedConsumedOrDropped}");
-            Console.WriteLine("    (May occur if frames are still in queue at shutdown — check drain logic)");
+            Console.WriteLine($"  WARNING: Invariant — Acquired({AcquiredFrameCount}) != " +
+                            $"Consumed({ConsumedFrameCount}) + Dropped({DroppedByHarnessCount}) + " +
+                            $"ShutdownDiscarded({ShutdownDiscardedCount}) = {accounted}");
         }
 
         _session.Dispose();
         _framePool.Dispose();
         return frames;
     }
-
-    // Raw fields for Interlocked operations (properties can't be used with Interlocked)
-    private long _frameArrivedRaw;
-    private long _tryGetNextFrameRaw;
-    private long _acquiredRaw;
-    private long _consumedRaw;
-    private long _droppedByHarnessRaw;
-    private long _supersededRaw;
 
     private static GraphicsCaptureItem CreateCaptureItemFromHmonitor(IntPtr hmon)
     {

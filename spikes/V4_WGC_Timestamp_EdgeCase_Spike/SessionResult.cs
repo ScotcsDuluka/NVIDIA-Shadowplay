@@ -35,10 +35,11 @@ internal struct SessionResult
     public long AcquiredFrameCount;
     public long ConsumedFrameCount;
     public long DroppedByHarnessCount;
-    public long SupersededCount;
+    public long NoFrameReturnedCount;       // renamed from SupersededCount
+    public long ShutdownDiscardedCount;      // new: frames acquired during shutdown
 
     // === Derived rates ===
-    public double AcquisitionFps;   // AcquiredFrameCount / WallElapsedSeconds
-    public double ConsumedFps;       // ConsumedFrameCount / WallElapsedSeconds
-    public double HarnessDropRate;   // DroppedByHarnessCount / (double)AcquiredFrameCount
+    public double AcquisitionFps;
+    public double ConsumedFps;
+    public double HarnessDropRate;
 }
