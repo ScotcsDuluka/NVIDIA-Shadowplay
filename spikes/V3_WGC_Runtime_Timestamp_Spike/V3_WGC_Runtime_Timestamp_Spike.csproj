@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <RootNamespace>V3_WGC_Runtime_Timestamp_Spike</RootNamespace>
+    <AssemblyName>V3_WGC_Runtime_Timestamp_Spike</AssemblyName>
+    <Version>0.1.0-spike</Version>
+
+    <!--
+      V3 WGC Runtime Timestamp Capture Spike
+      Requires Windows 10 1903+ (build 19041) for Windows.Graphics.Capture API.
+      This spike captures REAL GraphicsCaptureFrame instances and records
+      SystemRelativeTime.Ticks for evidence.
+
+      Dependencies:
+        - Microsoft.Windows.SDK.Contracts (WinRT types via NuGet)
+        - Vortice.DXGI + Vortice.Direct3D11 (D3D11 device for WGC interop)
+    -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
+    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
+  </ItemGroup>
+
+</Project>

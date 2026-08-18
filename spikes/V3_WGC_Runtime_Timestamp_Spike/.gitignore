@@ -1,0 +1,4 @@
+# Spike-specific gitignore
+bin/
+obj/
+*.user
