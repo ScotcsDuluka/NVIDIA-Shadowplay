@@ -947,3 +947,67 @@ P1-B.2 Validation / Spikes
 - Update immediate goal
 - ห้ามเก็บ Token / Secret / Credential
 - ไม่เปลี่ยน Historical Facts ให้กลายเป็น Current Facts โดยไม่มี evidence
+
+
+
+
+
+[P1-B.2 — V2 TIMESTAMP VALIDATION]
+
+STATUS:
+✅ PASS
+
+Evidence:
+- Gemini research
+- Claude challenge
+- DeepSeek red-team
+- Microsoft API semantics reviewed
+
+V2 RESULT:
+
+WGC GraphicsCaptureFrame.SystemRelativeTime:
+- Source clock: QPC-based
+- Representation: Windows.Foundation.TimeSpan
+- TimeSpan.Ticks: 100 ns
+- Ticks are already normalized time units
+- They are NOT raw QPC counter ticks
+
+Engine Video PTS:
+    PTS = SystemRelativeTime.Ticks - T0
+
+No additional multiplication or QPF conversion is required
+when the source is SystemRelativeTime.Ticks.
+
+INVALID:
+    (Tn - T0) * 100
+
+RAW QPC:
+If an implementation directly consumes raw QPC / Stopwatch ticks,
+conversion to 100-ns units requires QPF/Frequency normalization.
+
+Common clock:
+- WGC timestamps are QPC-derived.
+- Future WASAPI timestamps can be represented on the same
+  QPC-derived 100-ns reference timeline.
+- This establishes timestamp comparability.
+
+IMPORTANT:
+Common QPC reference does NOT guarantee zero long-term
+audio clock drift.
+
+Deferred to Audio / Synchronization phases:
+- drift detection
+- drift compensation
+- audio clock correction
+- discontinuity recovery policy
+- raw QPC conversion implementation details
+- duplicate-frame handling policy
+
+V2 does NOT claim:
+- zero drift
+- guaranteed A/V sync under all hardware
+- duplicate timestamp cause
+- final Audio synchronization policy
+
+V2 CONTRACT:
+✅ PASS
