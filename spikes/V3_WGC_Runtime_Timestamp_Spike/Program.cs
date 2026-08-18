@@ -363,21 +363,28 @@ internal static class Program
     /// </summary>
     private static GraphicsCaptureItem CreateCaptureItemFromHmonitor(IntPtr hmon)
     {
-        // Get the IGraphicsCaptureItemInterop factory
-        var factory = WinRT.WindowsRuntimeMarshal.GetActivationFactory(typeof(GraphicsCaptureItem));
+        // Get the IGraphicsCaptureItemInterop factory via RoGetActivationFactory
+        Guid interopIid = new("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356"); // IGraphicsCaptureItemInterop
+        Guid captureItemClassId = new("79C3F95B-31F7-4EC2-A464-632F5FA72F1B"); // GraphicsCaptureItem CLSID
 
-        var interopGuid = new Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356"); // IGraphicsCaptureItemInterop
-        Marshal.QueryInterface(factory.NativeObject, ref interopGuid, out IntPtr interopPtr);
+        IntPtr factoryPtr = IntPtr.Zero;
+        int hr = RoGetActivationFactory(ref captureItemClassId, ref interopIid, out factoryPtr);
+        if (hr != 0 || factoryPtr == IntPtr.Zero)
+            throw new InvalidOperationException($"RoGetActivationFactory failed: 0x{hr:X8}");
 
-        if (interopPtr == IntPtr.Zero)
-            throw new InvalidOperationException("Could not get IGraphicsCaptureItemInterop.");
-
-        var interop = (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(interopPtr);
+        var interop = (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(factoryPtr);
+        Marshal.Release(factoryPtr);
 
         Guid iid = CaptureItemIid;
         GraphicsCaptureItem item = interop.CreateForMonitor(hmon, ref iid);
         return item;
     }
+
+    [DllImport("combase.dll", PreserveSig = false)]
+    private static extern int RoGetActivationFactory(
+        ref Guid activatableClassId,
+        ref Guid iid,
+        out IntPtr factory);
 
     [ComImport]
     [Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356")]
