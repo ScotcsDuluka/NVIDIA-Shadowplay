@@ -67,18 +67,24 @@ public static class ForbiddenMultiplyTests
     /// Prove that the correct WGC PTS path does NOT multiply by 100.
     /// The correct path is: PTS = SystemRelativeTime.Ticks - T0.
     /// No multiplication, no QPF conversion.
+    ///
+    /// IMPORTANT: Frame 0 (PTS = 0) is EXCLUDED from the wrong-vs-correct
+    /// comparison because 0 × 100 = 0 — the forbidden multiplication
+    /// produces the same result as the correct path when the delta is zero.
+    /// This is a mathematical identity, not a contract violation.
+    /// Only frames with non-zero PTS can distinguish correct from wrong.
     /// </summary>
     private static void Test_NoMultiply()
     {
-        // Simulate 5 WGC frames
+        // Simulate 5 WGC frames at ~60 FPS
         long t0 = 25_000_000_000_000L;
         long[] timestamps =
         {
-            t0,
-            t0 + 166_667,
-            t0 + 333_334,
-            t0 + 500_001,
-            t0 + 666_668,
+            t0,                  // frame 0: PTS = 0 (zero delta — skip comparison)
+            t0 + 166_667,        // frame 1: PTS = 166,667
+            t0 + 333_334,        // frame 2: PTS = 333,334
+            t0 + 500_001,        // frame 3: PTS = 500,001
+            t0 + 666_668,        // frame 4: PTS = 666,668
         };
 
         long[] correctPts = new long[timestamps.Length];
@@ -90,17 +96,41 @@ public static class ForbiddenMultiplyTests
             wrongPts[i] = (timestamps[i] - t0) * 100;       // FORBIDDEN: multiply by 100
         }
 
-        // Verify correct PTS values
+        // Verify correct PTS values for ALL frames (including frame 0)
         long[] expected = { 0, 166_667, 333_334, 500_001, 666_668 };
         for (int i = 0; i < expected.Length; i++)
         {
             Assert(correctPts[i] == expected[i],
                 $"Frame {i}: correct PTS should be {expected[i]}, got {correctPts[i]}");
-            Assert(wrongPts[i] != correctPts[i],
-                $"Frame {i}: wrong PTS should differ from correct");
-            Assert(wrongPts[i] == expected[i] * 100,
-                $"Frame {i}: wrong PTS should be 100x correct");
         }
+
+        // For frames with NON-ZERO PTS (i >= 1), prove that ×100 gives a different (wrong) result.
+        // Frame 0 is excluded because 0 × 100 = 0 — the comparison is vacuous.
+        for (int i = 1; i < timestamps.Length; i++)
+        {
+            Assert(wrongPts[i] != correctPts[i],
+                $"Frame {i}: wrong PTS ({wrongPts[i]}) should differ from correct ({correctPts[i]}) — " +
+                $"×100 must NOT match the correct path for non-zero PTS");
+            Assert(wrongPts[i] == expected[i] * 100,
+                $"Frame {i}: wrong PTS should be 100× correct: {wrongPts[i]} vs {expected[i] * 100}");
+        }
+
+        // Explicit proof using OWNER's example:
+        //   T0 = 10_000_000
+        //   T1 = 10_016_667
+        //   Correct:  T1 - T0 = 16_667
+        //   Forbidden: (T1 - T0) × 100 = 1_666_700
+        long exampleT0 = 10_000_000L;
+        long exampleT1 = 10_016_667L;
+        long exampleCorrect = exampleT1 - exampleT0;
+        long exampleForbidden = (exampleT1 - exampleT0) * 100;
+
+        Assert(exampleCorrect == 16_667L,
+            $"Example: correct PTS should be 16,667, got {exampleCorrect}");
+        Assert(exampleForbidden == 1_666_700L,
+            $"Example: forbidden PTS should be 1,666,700, got {exampleForbidden}");
+        Assert(exampleCorrect != exampleForbidden,
+            $"Example: correct ({exampleCorrect}) must differ from forbidden ({exampleForbidden})");
     }
 
     /// <summary>
