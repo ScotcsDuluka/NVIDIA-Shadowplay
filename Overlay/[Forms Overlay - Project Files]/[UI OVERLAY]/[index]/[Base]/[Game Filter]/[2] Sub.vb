@@ -18,7 +18,8 @@ Public Class Base_Game_Filter_Sub
     Private Const WS_EX_APPWINDOW As Integer = &H40000 ' สถานะสำหรับการแสดงใน Task Switcher
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
+        ' FIX: VB.NET And/Or precedence — And binds tighter than Or. Explicit parens.
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
 #Region "Animation Engine"
@@ -92,7 +93,9 @@ Public Class Base_Game_Filter_Sub
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick
-        HideFromAltTab()
+        ' HideFromAltTab() — removed: WS_EX_TOOLWINDOW is sticky once set in Game_Filter_Sub_Load.
+        '                  Calling it on every 16 ms tick was ~60 redundant
+        '                  GetWindowLong+SetWindowLong P/Invoke pairs per second.
         If Me.Opacity >= 0.78 AndAlso Not hasAnimated Then
             hasAnimated = True
             StartSlideX(BG, -500, 0, 250)

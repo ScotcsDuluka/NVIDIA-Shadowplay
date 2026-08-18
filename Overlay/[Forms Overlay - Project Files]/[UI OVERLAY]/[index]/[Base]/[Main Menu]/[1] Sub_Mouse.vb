@@ -62,6 +62,11 @@ Partial Public Class Base
         Dim t As New Timer With {.Interval = 20}
         AddHandler t.Tick, Sub(s, e)
                                t.Stop()
+                               ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
+                               '      are released immediately, not eventually by GC.
+                               '      Without this, every OpenSettings() click leaked a Timer.
+                               t.Dispose()
+
                                Base_Settings.Opacity = 1
                                Me.Opacity = 1
 
@@ -310,6 +315,10 @@ Partial Public Class Base
         Dim TIME As New Timer With {.Interval = 20}
         AddHandler TIME.Tick, Sub(s, MIEXXXXXXX)
                                   TIME.Stop()
+                                  ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
+                                  '      are released immediately, not eventually by GC.
+                                  '      Without this, every Gallery_Click leaked a Timer.
+                                  TIME.Dispose()
 
                                   AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
                                   Base_Gallery.Opacity = 1
@@ -513,6 +522,10 @@ Partial Public Class Base
 
         AddHandler t.Tick, Sub(s, e)
                                t.Stop()
+                               ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
+                               '      are released immediately, not eventually by GC.
+                               '      Without this, every OpenPanel() click leaked a Timer.
+                               t.Dispose()
 
                                showForm.Opacity = 1
 
@@ -620,6 +633,10 @@ Partial Public Class Base
         Dim t As New Timer With {.Interval = 10}
         AddHandler t.Tick, Sub(s, e)
                                t.Stop()
+                               ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
+                               '      are released immediately, not eventually by GC.
+                               '      Without this, every OpenRecordings() click leaked a Timer.
+                               t.Dispose()
 
                                OpenSettings()
                            End Sub
@@ -628,6 +645,8 @@ Partial Public Class Base
         Dim td As New Timer With {.Interval = 20}
         AddHandler td.Tick, Sub(s, e)
                                 td.Stop()
+                                ' FIX: Dispose one-shot timer (same reason as t above).
+                                td.Dispose()
 
                                 OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
                             End Sub

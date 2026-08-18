@@ -357,16 +357,12 @@ Partial Public Class Base
 
     End Sub
 
-    ' ── เพิ่ม Shown event — form แสดงแล้วค่อยโหลดของหนัก ──
-    Private Sub MainForm_Shown(sender As Object, e As EventArgs) Handles MyBase.Shown
-        Task.Run(Async Function()
-                     Await AppSettings.Instance.LoadGitHubUser()
-                     Me.BeginInvoke(Sub()
-                                        Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
-                                    End Sub)
-                     Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
-                 End Function)
-    End Sub
+    ' FIX: MainForm_Shown removed — it duplicated the exact same GitHub user + avatar
+    '      load already kicked off in MainForm_Load's Task.Run block. Every form open
+    '      was firing 2× network calls + 2× PictureBox.BackgroundImage allocations for
+    '      no reason. If Load's Task.Run fails or is delayed, re-triggering on Shown
+    '      does not help either because both run on the same ThreadPool.
+    '      If a real "retry on shown" is needed later, add it explicitly with backoff.
 
     Private Async Function WaitForConnection(timeoutMs As Integer) As Task
         Dim tcs As New TaskCompletionSource(Of Boolean)()
@@ -574,7 +570,12 @@ Partial Public Class Base
         ' Base Form Controls
         UpdateLocalizedTexts()
         RefreshRuntimeStatusTexts()
-        AppSettings.Instance.Save()
+        ' FIX: Removed AppSettings.Instance.Save() from Lang_Tick.
+        '      Localization refresh must NOT have a disk-write side-effect — config.json
+        '      was being re-serialized on every language refresh even though no setting
+        '      changed. The existing Base_FormClosing handler already saves on shutdown,
+        '      and any code path that actually mutates a setting (e.g. ToggleRecording,
+        '      mic_Click, Base_KeySet.SaveHotkeyValues) already calls Save() itself.
         Lang.Stop()
     End Sub
 
