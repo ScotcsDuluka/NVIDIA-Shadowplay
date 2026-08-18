@@ -134,7 +134,7 @@ internal sealed class WgcSession : IDisposable
         double refreshRate = 0;
         try
         {
-            var modes = _output.GetDisplayModeList(Format.B8G8R8A8_UNorm, DisplayModeEnumerationFlags.None);
+            var modes = _output.GetDisplayModeList(Format.B8G8R8A8_UNorm, (DisplayModeEnumerationFlags)0);
             if (modes != null && modes.Length > 0)
             {
                 // Find the mode with highest refresh rate matching current resolution
