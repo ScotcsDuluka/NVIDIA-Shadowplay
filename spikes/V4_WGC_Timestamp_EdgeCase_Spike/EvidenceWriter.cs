@@ -19,12 +19,12 @@ internal static class EvidenceWriter
     {
         string path = Path.Combine(dir, $"v4_session_{mode}_{sessionIndex}_frames.csv");
         using var sw = new StreamWriter(path, append: false);
-        sw.WriteLine("frameIndex,systemRelativeTimeTicks,deltaFromPreviousSrtTicks,pts,deltaFromPreviousPtsTicks,wallClockUtcCaptured");
+        sw.WriteLine("frameIndex,systemRelativeTimeTicks,deltaFromPreviousSrtTicks,pts,deltaFromPreviousPtsTicks,arrivalWallClockUtc,consumeWallClockUtc");
         foreach (var f in frames)
         {
             string deltaSrt = f.DeltaFromPreviousSrtTicks == long.MinValue ? "FIRST" : f.DeltaFromPreviousSrtTicks.ToString(CultureInfo.InvariantCulture);
             string deltaPts = f.DeltaFromPreviousPtsTicks == long.MinValue ? "FIRST" : f.DeltaFromPreviousPtsTicks.ToString(CultureInfo.InvariantCulture);
-            sw.WriteLine($"{f.FrameIndex},{f.SystemRelativeTimeTicks},{deltaSrt},{f.Pts},{deltaPts},{f.WallClockUtcCaptured:O}");
+            sw.WriteLine($"{f.FrameIndex},{f.SystemRelativeTimeTicks},{deltaSrt},{f.Pts},{deltaPts},{f.ArrivalWallClockUtc:O},{f.ConsumeWallClockUtc:O}");
         }
     }
 
@@ -61,6 +61,17 @@ internal static class EvidenceWriter
             displayConfig = r.DisplayConfig,
             loadCondition = r.LoadCondition,
             achievedFps = r.AchievedFps,
+            // Acquisition counters
+            frameArrivedCount = r.FrameArrivedCount,
+            tryGetNextFrameCount = r.TryGetNextFrameCount,
+            acquiredFrameCount = r.AcquiredFrameCount,
+            consumedFrameCount = r.ConsumedFrameCount,
+            droppedByHarnessCount = r.DroppedByHarnessCount,
+            noFrameReturnedCount = r.NoFrameReturnedCount,
+            shutdownDiscardedCount = r.ShutdownDiscardedCount,
+            acquisitionFps = r.AcquisitionFps,
+            consumedFps = r.ConsumedFps,
+            harnessDropRate = r.HarnessDropRate,
         };
         File.WriteAllText(path, JsonSerializer.Serialize(json, JsonOpts));
     }
@@ -100,6 +111,17 @@ internal static class EvidenceWriter
                 timestampMonotonic = r.TimestampMonotonic,
                 ptsMonotonic = r.PtsMonotonic,
                 achievedFps = r.AchievedFps,
+                // Acquisition counters
+                frameArrivedCount = r.FrameArrivedCount,
+                tryGetNextFrameCount = r.TryGetNextFrameCount,
+                acquiredFrameCount = r.AcquiredFrameCount,
+                consumedFrameCount = r.ConsumedFrameCount,
+                droppedByHarnessCount = r.DroppedByHarnessCount,
+                noFrameReturnedCount = r.NoFrameReturnedCount,
+                shutdownDiscardedCount = r.ShutdownDiscardedCount,
+                acquisitionFps = r.AcquisitionFps,
+                consumedFps = r.ConsumedFps,
+                harnessDropRate = r.HarnessDropRate,
             }),
             aggregateTopGaps = topGapsAll.Select(g => new { frameIdx = g.frameIdx, delta = g.delta, deltaMs = g.delta / 10_000.0 }),
             totalEqualTimestamps = allSessions.Sum(s => s.EqualTimestampCount),
