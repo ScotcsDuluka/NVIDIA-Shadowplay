@@ -126,11 +126,33 @@ internal sealed class WgcSession : IDisposable
         Width = (int)(desc.DesktopCoordinates.Right - desc.DesktopCoordinates.Left);
         Height = (int)(desc.DesktopCoordinates.Bottom - desc.DesktopCoordinates.Top);
 
-        // Query refresh rate from DXGIOutput1
-        IDXGIOutput1 output1 = _output.QueryInterface<IDXGIOutput1>();
-        var modeDesc = output1.FindClosestMatchingMode(new ModeDescription(Width, Height, new Rational(0, 0), Format.B8G8R8A8_UNorm), _d3dDevice);
-        double refreshRate = (double)modeDesc.RefreshRate.Numerator / modeDesc.RefreshRate.Denominator;
-        output1.Dispose();
+        // Query refresh rate via IDXGIOutput.GetDisplayModeList.
+        // Vortice.DXGI 3.6.2 provides IDXGIOutput.GetDisplayModeList(Format, DisplayModeEnumerationFlags)
+        // which returns ModeDescription[] containing RefreshRate (Rational: Numerator/Denominator).
+        // We enumerate BGRA8 modes and find the one matching the current resolution
+        // with the highest refresh rate.
+        double refreshRate = 0;
+        try
+        {
+            var modes = _output.GetDisplayModeList(Format.B8G8R8A8_UNorm, DisplayModeEnumerationFlags.None);
+            if (modes != null && modes.Length > 0)
+            {
+                // Find the mode with highest refresh rate matching current resolution
+                foreach (var mode in modes)
+                {
+                    if (mode.Width == Width && mode.Height == Height)
+                    {
+                        double rate = (double)mode.RefreshRate.Numerator / mode.RefreshRate.Denominator;
+                        if (rate > refreshRate)
+                            refreshRate = rate;
+                    }
+                }
+            }
+        }
+        catch
+        {
+            // If enumeration fails, leave refreshRate = 0 (will show as 0.00 Hz)
+        }
 
         DisplayConfig = $"{Width}x{Height}@{refreshRate:F2}Hz@{desc.DeviceName}";
         RefreshRate = refreshRate;
