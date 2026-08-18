@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using WinRT;
 using Windows.Graphics;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
@@ -358,44 +359,31 @@ internal static class Program
 
     /// <summary>
     /// Creates a GraphicsCaptureItem from an HMONITOR via the IGraphicsCaptureItemInterop
-    /// COM interface. This is required because GraphicsCaptureItem.CreateFromMonitor
-    /// is not directly available in all .NET 8 WinRT projections.
+    /// COM interface. Uses CsWinRT's .As&lt;T&gt;() extension method.
+    ///
+    /// Based on Microsoft's official CaptureHelper from Windows.UI.Composition-Win32-Samples.
     /// </summary>
     private static GraphicsCaptureItem CreateCaptureItemFromHmonitor(IntPtr hmon)
     {
-        // Get the IGraphicsCaptureItemInterop factory via RoGetActivationFactory
-        Guid interopIid = new("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356"); // IGraphicsCaptureItemInterop
-        Guid captureItemClassId = new("79C3F95B-31F7-4EC2-A464-632F5FA72F1B"); // GraphicsCaptureItem CLSID
-
-        IntPtr factoryPtr = IntPtr.Zero;
-        int hr = RoGetActivationFactory(ref captureItemClassId, ref interopIid, out factoryPtr);
-        if (hr != 0 || factoryPtr == IntPtr.Zero)
-            throw new InvalidOperationException($"RoGetActivationFactory failed: 0x{hr:X8}");
-
-        var interop = (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(factoryPtr);
-        Marshal.Release(factoryPtr);
-
-        Guid iid = CaptureItemIid;
-        GraphicsCaptureItem item = interop.CreateForMonitor(hmon, ref iid);
+        var interop = GraphicsCaptureItem.As<IGraphicsCaptureItemInterop>();
+        IntPtr itemPointer = interop.CreateForMonitor(hmon, GraphicsCaptureItemGuid);
+        GraphicsCaptureItem item = GraphicsCaptureItem.FromAbi(itemPointer);
+        Marshal.Release(itemPointer);
         return item;
     }
 
-    [DllImport("combase.dll", PreserveSig = false)]
-    private static extern int RoGetActivationFactory(
-        ref Guid activatableClassId,
-        ref Guid iid,
-        out IntPtr factory);
+    // Microsoft official GUID for GraphicsCaptureItem ABI interface.
+    // NOTE: This is 632EF5D30760, NOT 632F5FA72F1B (which was wrong).
+    private static readonly Guid GraphicsCaptureItemGuid = new("79C3F95B-31F7-4EC2-A464-632EF5D30760");
 
     [ComImport]
     [Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IGraphicsCaptureItemInterop
     {
-        GraphicsCaptureItem CreateForWindow(IntPtr window, ref Guid iid);
-        GraphicsCaptureItem CreateForMonitor(IntPtr monitor, ref Guid iid);
+        IntPtr CreateForWindow([In] IntPtr window, in Guid iid);
+        IntPtr CreateForMonitor([In] IntPtr monitor, in Guid iid);
     }
-
-    private static readonly Guid CaptureItemIid = new("79C3F95B-31F7-4EC2-A464-632F5FA72F1B");
 
     // ================================================================
     // Win32 Helpers
