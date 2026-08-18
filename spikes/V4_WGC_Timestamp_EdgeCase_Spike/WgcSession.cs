@@ -51,9 +51,15 @@ internal sealed class WgcSession : IDisposable
         _factory!.EnumAdapters1(0, out _adapter).CheckError();
 
         FeatureLevel[] levels = { FeatureLevel.Level_11_1, FeatureLevel.Level_11_0 };
+        // Explicit types on all out params to disambiguate overload resolution.
+        // Vortice has multiple overloads; without explicit types the compiler
+        // cannot determine which to call (CS0121 ambiguous overload).
+        ID3D11Device device;
+        ID3D11DeviceContext context;
         Vortice.Direct3D11.D3D11.D3D11CreateDevice(
             _adapter!, DriverType.Unknown, DeviceCreationFlags.BgraSupport,
-            levels, out _d3dDevice, out _).CheckError();
+            levels, out device, out context).CheckError();
+        _d3dDevice = device;
 
         _adapter!.EnumOutputs(0, out _output).CheckError();
         var desc = _output!.Description;
