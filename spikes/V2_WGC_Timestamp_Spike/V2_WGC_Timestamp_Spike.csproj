@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <RootNamespace>V2_WGC_Timestamp_Spike</RootNamespace>
+    <AssemblyName>V2_WGC_Timestamp_Spike</AssemblyName>
+    <Version>0.1.0-spike</Version>
+
+    <!--
+      V2 WGC Timestamp Validation Spike — PURE MATH TESTS
+      Target: net8.0 (NOT net8.0-windows) so it can run on any platform.
+      These tests validate the timestamp arithmetic contract without
+      needing real WGC or Windows Runtime APIs.
+
+      The real WGC capture test is in the RealWGC/ subdirectory as a
+      separate net8.0-windows project.
+    -->
+  </PropertyGroup>
+
+</Project>
