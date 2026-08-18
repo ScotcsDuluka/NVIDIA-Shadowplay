@@ -2,26 +2,15 @@
 //
 // P1-B.2 V3 — Runtime validation of the approved WGC timestamp contract.
 //
-// APPROVED CONTRACT:
-//   GraphicsCaptureFrame.SystemRelativeTime:
-//   - QPC-based timestamp
-//   - Windows.Foundation.TimeSpan
-//   - TimeSpan.Ticks = 100 ns
-//
-//   PTS = SystemRelativeTime.Ticks - T0
-//   T0 = SystemRelativeTime.Ticks of the first accepted WGC frame.
-//
-// DO NOT multiply by 100.
-// DO NOT use Stopwatch.Frequency/QPF on SystemRelativeTime.Ticks.
-//
 // SPDX-License-Identifier: MIT
 // Spike code — not production.
 
 using System.Diagnostics;
+using System.Runtime.InteropServices;
+using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
-
-// WinRT types for Windows.Graphics.Capture
+using Windows.Graphics;
 using Windows.Graphics.Capture;
 using Windows.Graphics.DirectX;
 using Windows.Graphics.DirectX.Direct3D11;
@@ -34,11 +23,9 @@ internal static class Program
     {
         Console.WriteLine("============================================================");
         Console.WriteLine(" V3 WGC Runtime Timestamp Capture Spike");
-        Console.WriteLine(" Branch: Engine-Rebuild (spike — does NOT modify repo)");
         Console.WriteLine("============================================================");
         Console.WriteLine();
 
-        // Parse args
         int captureDurationSec = 30;
         bool doSessionRestart = true;
         for (int i = 0; i < args.Length; i++)
@@ -59,11 +46,7 @@ internal static class Program
             DXGI.CreateDXGIFactory1(out IDXGIFactory1 factory).CheckError();
             factory.EnumAdapters1(0, out IDXGIAdapter1 adapter).CheckError();
 
-            FeatureLevel[] featureLevels =
-            {
-                FeatureLevel.Level_11_1,
-                FeatureLevel.Level_11_0,
-            };
+            FeatureLevel[] featureLevels = { FeatureLevel.Level_11_1, FeatureLevel.Level_11_0 };
 
             ID3D11Device device;
             ID3D11DeviceContext context;
@@ -79,7 +62,7 @@ internal static class Program
             Console.WriteLine($"  Feature level: {device.FeatureLevel}");
             Console.WriteLine();
 
-            // === Get primary monitor for capture ===
+            // === Get primary output ===
             adapter.EnumOutputs(0, out IDXGIOutput output).CheckError();
             var outputDesc = output.Description;
             Console.WriteLine($"  Output: {outputDesc.DeviceName}");
@@ -88,23 +71,41 @@ internal static class Program
             Console.WriteLine($"  Desktop: {desktopW}x{desktopH}");
             Console.WriteLine();
 
-            // === Session A: Capture frames ===
-            Console.WriteLine("=== SESSION A ===");
-            var sessionA = CaptureSession(captureDurationSec, device, output, "A");
+            // === Get HMONITOR ===
+            var rect = new RECT
+            {
+                Left = (int)outputDesc.DesktopCoordinates.Left,
+                Top = (int)outputDesc.DesktopCoordinates.Top,
+                Right = (int)outputDesc.DesktopCoordinates.Right,
+                Bottom = (int)outputDesc.DesktopCoordinates.Bottom,
+            };
+            IntPtr hmon = MonitorFromRect(ref rect, 2 /* MONITOR_DEFAULTTONEAREST */);
+            if (hmon == IntPtr.Zero)
+                throw new InvalidOperationException("Could not get HMONITOR.");
+            Console.WriteLine($"  HMONITOR: 0x{hmon.ToInt64():X16}");
+            Console.WriteLine();
 
-            // === Session B: Restart test (optional) ===
+            // === Create IDirect3DDevice from D3D11 device ===
+            IDXGIDevice dxgiDevice = device.QueryInterface<IDXGIDevice>();
+            IDirect3DDevice d3dDevice = Direct3D11Helper.CreateDirect3DDeviceFromDXGIDevice(dxgiDevice.NativePointer);
+            dxgiDevice.Dispose();
+            Console.WriteLine("  IDirect3DDevice created.");
+            Console.WriteLine();
+
+            // === Session A ===
+            Console.WriteLine("=== SESSION A ===");
+            var sessionA = CaptureSession(captureDurationSec, d3dDevice, hmon, desktopW, desktopH, "A");
+
+            // === Session B (restart) ===
             SessionResult? sessionB = null;
             if (doSessionRestart)
             {
                 Console.WriteLine();
                 Console.WriteLine("=== SESSION B (restart) ===");
                 Console.WriteLine("  Disposing session A...");
-                // Session A resources are cleaned up in CaptureSession.
-                // Small delay to let WGC fully release.
                 Thread.Sleep(1000);
-
                 Console.WriteLine("  Creating session B...");
-                sessionB = CaptureSession(captureDurationSec, device, output, "B");
+                sessionB = CaptureSession(captureDurationSec, d3dDevice, hmon, desktopW, desktopH, "B");
             }
 
             // === Report ===
@@ -116,13 +117,11 @@ internal static class Program
             if (sessionB.HasValue)
                 ReportSession("Session B", sessionB.Value);
 
-            // Cleanup
             context.Dispose();
             device.Dispose();
             output.Dispose();
             adapter.Dispose();
             factory.Dispose();
-
             return 0;
         }
         catch (Exception ex)
@@ -134,7 +133,7 @@ internal static class Program
     }
 
     // ================================================================
-    // Capture Session
+    // Data structures
     // ================================================================
 
     private struct FrameRecord
@@ -162,84 +161,44 @@ internal static class Program
         public int NegativePTSCount;
         public bool TimestampMonotonic;
         public bool PTSMonotonic;
-        public List<FrameRecord> Frames;
     }
 
-    /// <summary>
-    /// Captures WGC frames for the specified duration, recording
-    /// SystemRelativeTime.Ticks for each frame.
-    /// </summary>
+    // ================================================================
+    // Capture Session
+    // ================================================================
+
     private static SessionResult CaptureSession(
         int durationSec,
-        ID3D11Device device,
-        IDXGIOutput output,
+        IDirect3DDevice d3dDevice,
+        IntPtr hmon,
+        int width,
+        int height,
         string label)
     {
         var frames = new List<FrameRecord>();
         var sw = Stopwatch.StartNew();
         long durationMs = durationSec * 1000L;
 
-        // Get the GraphicsCaptureItem for this output
-        var interopFactory = (IGraphicsCaptureItemInterop)WinRT.CastConversion.As<object>(
-            WindowsRuntimeMarshal.GetActivationFactory(typeof(GraphicsCaptureItem)));
-        // Alternative: use HMONITOR interop
-        IntPtr hmon = output.NativePointer; // Not exactly right — need MonitorFromWindow or similar
-
-        // Actually, let's use the HMONITOR from the output's description
-        // WGC requires an HMONITOR, not an IDXGIOutput.
-        // We'll use the Win32 API to get the HMONITOR for the output's coordinates.
-        var outputDesc = output.Description;
-        // Use MonitorFromRect or similar — but we don't have user32.dll import.
-        // Simpler: use the DXGI output's GetDesc to find the monitor handle.
-
-        // For .NET 8 with Windows.Graphics.Capture, we can use the
-        // GraphicsCaptureItem.CreateFromMonitor approach if available, or
-        // the interop approach. Let's use the simplest method.
-
-        // Actually, in .NET 8 with net8.0-windows10.0.19041.0 target,
-        // we might have direct access to GraphicsCaptureItem.CreateFromMonitor.
-        // If not, we'll use the HMONITOR interop.
-
-        Console.WriteLine($"[{label}] Setting up GraphicsCaptureItem...");
-
-        // Get HMONITOR from IDXGIOutput via GetDesc
-        // The IDXGIOutput::GetDesc gives us the desktop coordinates,
-        // but we need the HMONITOR. We can use MonitorFromRect from user32.
-        // However, there's a simpler way: cast IDXGIOutput to IDXGIOutput6 and
-        // use GetDesc1 which includes the monitor handle... but that's not standard.
-        //
-        // The simplest approach for WGC: use the interop method.
-
-        // For now, let's create the capture item via the interop interface
-        GraphicsCaptureItem captureItem = CreateCaptureItemFromOutput(output);
-
+        // Create GraphicsCaptureItem via HMONITOR interop
+        Console.WriteLine($"[{label}] Creating GraphicsCaptureItem...");
+        GraphicsCaptureItem captureItem = CreateCaptureItemFromHmonitor(hmon);
         Console.WriteLine($"[{label}] CaptureItem: {captureItem.Size.Width}x{captureItem.Size.Height}");
 
-        // Create Direct3D11 device for WGC
-        // WGC needs IDirect3DDevice (WinRT), not ID3D11Device (COM).
-        // We need to create an IDirect3DDevice from our ID3D11Device.
-        IDirect3DDevice d3dDevice = CreateDirect3DDeviceFromD3D11Device(device);
-
-        Console.WriteLine($"[{label}] IDirect3DDevice created.");
-
-        // Create a frame pool
-        // Direct3D11CaptureFramePool.Create() gives us real GPU frames
         SizeInt32 size = captureItem.Size;
+
+        // Create frame pool (free-threaded so FrameArrived fires on a thread pool thread)
         var framePool = Direct3D11CaptureFramePool.CreateFreeThreaded(
             d3dDevice,
             DirectXPixelFormat.B8G8R8A8UIntNormalized,
-            2,  // number of buffers
+            2,
             size);
-
         Console.WriteLine($"[{label}] FramePool created: {size.Width}x{size.Height}, 2 buffers");
 
-        // === Capture loop ===
-        // Use a manual event to wait for frames
         var frameReady = new ManualResetEventSlim(false);
         Direct3D11CaptureFrame? latestFrame = null;
         object frameLock = new();
 
-        framePool.FrameArrived += (sender, e) =>
+        framePool.FrameArrived += (sender, _) =>
         {
             lock (frameLock)
             {
@@ -250,7 +209,7 @@ internal static class Program
         };
 
         var session = framePool.CreateCaptureSession(captureItem);
-        Console.WriteLine($"[{label}] Starting capture session...");
+        Console.WriteLine($"[{label}] Starting capture...");
         session.StartCapture();
 
         long t0 = 0;
@@ -261,10 +220,8 @@ internal static class Program
 
         while (sw.ElapsedMilliseconds < durationMs)
         {
-            // Wait for a frame (non-blocking, short timeout for responsiveness)
             if (!frameReady.Wait(50))
                 continue;
-
             frameReady.Reset();
 
             Direct3D11CaptureFrame? frame;
@@ -273,237 +230,172 @@ internal static class Program
                 frame = latestFrame;
                 latestFrame = null;
             }
-
             if (frame == null)
                 continue;
 
             // === THE CRITICAL MEASUREMENT ===
-            // SystemRelativeTime is a Windows.Foundation.TimeSpan
-            // TimeSpan.Ticks = 100-ns units
-            long systemRelativeTimeTicks = frame.SystemRelativeTime.Ticks;
+            long srt = frame.SystemRelativeTime.Ticks;
 
-            // PTS = Tn - T0
             if (!t0Set)
             {
-                t0 = systemRelativeTimeTicks;
+                t0 = srt;
                 t0Set = true;
-                Console.WriteLine($"[{label}] T0 set: {t0} ticks ({t0 / 10_000_000.0:F6} seconds)");
+                Console.WriteLine($"[{label}] T0 = {t0} ticks ({t0 / 10_000_000.0:F6} s)");
             }
 
-            long pts = systemRelativeTimeTicks - t0;
-            long delta = t0Set && frames.Count > 0
-                ? systemRelativeTimeTicks - prevTimestamp
-                : 0;
+            long pts = srt - t0;
+            long delta = frames.Count > 0 ? srt - prevTimestamp : 0;
 
             frames.Add(new FrameRecord
             {
                 Index = frames.Count,
-                SystemRelativeTimeTicks = systemRelativeTimeTicks,
+                SystemRelativeTimeTicks = srt,
                 PTS = pts,
                 Delta = delta,
             });
 
-            prevTimestamp = systemRelativeTimeTicks;
+            prevTimestamp = srt;
 
-            // Progress output every 5 seconds
-            if (frames.Count % (300) == 0 || sw.ElapsedMilliseconds % 5000 < 100)
+            if (frames.Count % 300 == 0)
             {
-                Console.WriteLine($"  [{label}] frame {frames.Count,5} | " +
-                                  $"SRT={systemRelativeTimeTicks,15} | " +
-                                  $"PTS={pts,12} | " +
-                                  $"delta={delta,8} | " +
-                                  $"elapsed={sw.Elapsed.TotalSeconds:F1}s");
+                Console.WriteLine($"  [{label}] f{frames.Count,5} | " +
+                                  $"SRT={srt,15} | PTS={pts,12} | d={delta,8} | " +
+                                  $"{sw.Elapsed.TotalSeconds:F1}s");
             }
 
             frame.Dispose();
         }
 
-        // === Cleanup session ===
-        Console.WriteLine($"[{label}] Stopping capture...");
+        Console.WriteLine($"[{label}] Stopping...");
         session.Dispose();
         framePool.Dispose();
-        captureItem.Dispose();
 
-        // Wait a moment for cleanup
         Thread.Sleep(500);
-
-        // === Compute statistics ===
-        return ComputeSessionResult(label, frames, sw.Elapsed.TotalSeconds, t0Set, t0);
+        return ComputeResult(label, frames, sw.Elapsed.TotalSeconds);
     }
 
-    /// <summary>
-    /// Computes all required statistics from the captured frames.
-    /// </summary>
-    private static SessionResult ComputeSessionResult(
-        string label,
-        List<FrameRecord> frames,
-        double durationSec,
-        bool t0Set,
-        long t0)
+    // ================================================================
+    // Statistics
+    // ================================================================
+
+    private static SessionResult ComputeResult(string label, List<FrameRecord> frames, double durationSec)
     {
-        var result = new SessionResult
-        {
-            Frames = frames,
-            TotalFrames = frames.Count,
-            DurationSec = durationSec,
-        };
+        var r = new SessionResult { TotalFrames = frames.Count, DurationSec = durationSec };
 
         if (frames.Count == 0)
         {
             Console.WriteLine($"[{label}] WARNING: No frames captured!");
-            return result;
+            return r;
         }
 
-        result.FirstTimestamp = frames[0].SystemRelativeTimeTicks;
-        result.LastTimestamp = frames[frames.Count - 1].SystemRelativeTimeTicks;
-        result.FirstPTS = frames[0].PTS;
-        result.LastPTS = frames[frames.Count - 1].PTS;
+        r.FirstTimestamp = frames[0].SystemRelativeTimeTicks;
+        r.LastTimestamp = frames[^1].SystemRelativeTimeTicks;
+        r.FirstPTS = frames[0].PTS;
+        r.LastPTS = frames[^1].PTS;
 
-        // Delta statistics (skip frame 0 which has delta=0)
         var deltas = frames.Skip(1).Select(f => f.Delta).ToList();
         if (deltas.Count > 0)
         {
-            result.MinDelta = deltas.Min();
-            result.MaxDelta = deltas.Max();
-            result.AvgDelta = deltas.Average();
+            r.MinDelta = deltas.Min();
+            r.MaxDelta = deltas.Max();
+            r.AvgDelta = deltas.Average();
             var sorted = deltas.OrderBy(d => d).ToList();
-            result.MedianDelta = sorted[sorted.Count / 2];
+            r.MedianDelta = sorted[sorted.Count / 2];
         }
 
-        // Count equal/negative deltas
-        result.EqualDeltaCount = deltas.Count(d => d == 0);
-        result.NegativeDeltaCount = deltas.Count(d => d < 0);
+        r.EqualDeltaCount = deltas.Count(d => d == 0);
+        r.NegativeDeltaCount = deltas.Count(d => d < 0);
+        r.NegativePTSCount = frames.Count(f => f.PTS < 0);
 
-        // Count negative PTS
-        result.NegativePTSCount = frames.Count(f => f.PTS < 0);
-
-        // Monotonicity checks
-        result.TimestampMonotonic = true;
-        result.PTSMonotonic = true;
+        r.TimestampMonotonic = true;
+        r.PTSMonotonic = true;
         for (int i = 1; i < frames.Count; i++)
         {
             if (frames[i].SystemRelativeTimeTicks < frames[i - 1].SystemRelativeTimeTicks)
-                result.TimestampMonotonic = false;
+                r.TimestampMonotonic = false;
             if (frames[i].PTS < frames[i - 1].PTS)
-                result.PTSMonotonic = false;
+                r.PTSMonotonic = false;
         }
 
-        return result;
+        return r;
     }
 
-    /// <summary>
-    /// Prints the session report with all required metrics.
-    /// </summary>
     private static void ReportSession(string label, SessionResult r)
     {
         Console.WriteLine();
         Console.WriteLine($"--- {label} ---");
         Console.WriteLine($"  Total frames:             {r.TotalFrames}");
-        Console.WriteLine($"  Capture duration:         {r.DurationSec:F2} seconds");
+        Console.WriteLine($"  Capture duration:         {r.DurationSec:F2} s");
         Console.WriteLine($"  First timestamp (SRT):    {r.FirstTimestamp}");
         Console.WriteLine($"  Last timestamp (SRT):     {r.LastTimestamp}");
         Console.WriteLine($"  First PTS:                {r.FirstPTS}");
         Console.WriteLine($"  Last PTS:                 {r.LastPTS}");
         Console.WriteLine($"  Last PTS (seconds):       {r.LastPTS / 10_000_000.0:F6}");
-        Console.WriteLine($"  Min delta:                {r.MinDelta} ticks ({r.MinDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Max delta:                {r.MaxDelta} ticks ({r.MaxDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Average delta:            {r.AvgDelta:F1} ticks ({r.AvgDelta / 10_000.0:F3} ms)");
-        Console.WriteLine($"  Median delta:             {r.MedianDelta:F1} ticks ({r.MedianDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"  Min delta:                {r.MinDelta} ({r.MinDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"  Max delta:                {r.MaxDelta} ({r.MaxDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"  Average delta:            {r.AvgDelta:F1} ({r.AvgDelta / 10_000.0:F3} ms)");
+        Console.WriteLine($"  Median delta:             {r.MedianDelta:F1} ({r.MedianDelta / 10_000.0:F3} ms)");
         Console.WriteLine($"  Equal delta count (=0):   {r.EqualDeltaCount}");
         Console.WriteLine($"  Negative delta count:     {r.NegativeDeltaCount}");
-        Console.WriteLine($"  Negative PTS count:        {r.NegativePTSCount}");
+        Console.WriteLine($"  Negative PTS count:       {r.NegativePTSCount}");
         Console.WriteLine($"  Timestamp monotonic:      {r.TimestampMonotonic}");
         Console.WriteLine($"  PTS monotonic:            {r.PTSMonotonic}");
-
         if (r.TotalFrames > 0)
         {
             Console.WriteLine($"  Achieved FPS:             {r.TotalFrames / r.DurationSec:F2}");
-            Console.WriteLine($"  First frame SRT (seconds):{r.FirstTimestamp / 10_000_000.0:F6}");
-
-            // Report equal timestamps if any
             if (r.EqualDeltaCount > 0)
-            {
-                Console.WriteLine($"  Equal timestamps occurred: YES ({r.EqualDeltaCount} times)");
-                Console.WriteLine("    (This is ALLOWED — no dedup/drop policy applied)");
-            }
+                Console.WriteLine($"  Equal timestamps: YES ({r.EqualDeltaCount}x — ALLOWED, no dedup)");
             else
-            {
-                Console.WriteLine($"  Equal timestamps occurred: NO (all deltas > 0)");
-            }
-
-            // Report regressions if any
+                Console.WriteLine($"  Equal timestamps: NO (all deltas > 0)");
             if (r.NegativeDeltaCount > 0)
-            {
-                Console.WriteLine($"  TIMESTAMP REGRESSION detected: {r.NegativeDeltaCount} times");
-                Console.WriteLine("    (Timestamp went backward — evidence of regression)");
-            }
+                Console.WriteLine($"  REGRESSION detected: {r.NegativeDeltaCount}x");
         }
     }
 
     // ================================================================
-    // WGC Interop Helpers
+    // WGC Interop
     // ================================================================
 
     /// <summary>
-    /// Creates a GraphicsCaptureItem from an IDXGIOutput.
-    /// Uses the HMONITOR interop interface.
+    /// Creates a GraphicsCaptureItem from an HMONITOR via the IGraphicsCaptureItemInterop
+    /// COM interface. This is required because GraphicsCaptureItem.CreateFromMonitor
+    /// is not directly available in all .NET 8 WinRT projections.
     /// </summary>
-    private static GraphicsCaptureItem CreateCaptureItemFromOutput(IDXGIOutput output)
+    private static GraphicsCaptureItem CreateCaptureItemFromHmonitor(IntPtr hmon)
     {
-        // Get the HMONITOR from the IDXGIOutput
-        // We need to find the monitor that matches the output's coordinates.
-        // The simplest way: use MonitorFromRect from user32.dll.
+        // Get the IGraphicsCaptureItemInterop factory
+        var factory = WinRT.WindowsRuntimeMarshal.GetActivationFactory(typeof(GraphicsCaptureItem));
 
-        var desc = output.Description;
-        // Create a RECT from the output's desktop coordinates
-        var left = (int)desc.DesktopCoordinates.Left;
-        var top = (int)desc.DesktopCoordinates.Top;
-        var right = (int)desc.DesktopCoordinates.Right;
-        var bottom = (int)desc.DesktopCoordinates.Bottom;
+        var interopGuid = new Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356"); // IGraphicsCaptureItemInterop
+        Marshal.QueryInterface(factory.NativeObject, ref interopGuid, out IntPtr interopPtr);
 
-        IntPtr hmon = MonitorFromRect(left, top, right, bottom);
-        if (hmon == IntPtr.Zero)
-            throw new InvalidOperationException("Could not get HMONITOR from IDXGIOutput coordinates.");
+        if (interopPtr == IntPtr.Zero)
+            throw new InvalidOperationException("Could not get IGraphicsCaptureItemInterop.");
 
-        return GraphicsCaptureItem.CreateFromMonitor(hmon);
+        var interop = (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(interopPtr);
+
+        GraphicsCaptureItem item = interop.CreateForMonitor(hmon);
+        return item;
     }
 
-    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    [ComImport]
+    [Guid("3628E81B-3CAC-4C60-B7F4-23CE0E0C3356")]
+    [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    private interface IGraphicsCaptureItemInterop
+    {
+        GraphicsCaptureItem CreateForWindow(IntPtr window, ref Guid iid);
+        GraphicsCaptureItem CreateForMonitor(IntPtr monitor, [In] ref Guid iid = ref _defaultIid);
+
+        private static readonly Guid _defaultIid = new("79C3F95B-31F7-4EC2-A464-632F5FA72F1B");
+    }
+
+    // ================================================================
+    // Win32 Helpers
+    // ================================================================
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct RECT { public int Left, Top, Right, Bottom; }
+
+    [DllImport("user32.dll", SetLastError = true)]
     private static extern IntPtr MonitorFromRect(ref RECT lprc, uint dwFlags);
-
-    private struct RECT
-    {
-        public int Left;
-        public int Top;
-        public int Right;
-        public int Bottom;
-    }
-
-    private static IntPtr MonitorFromRect(int left, int top, int right, int bottom)
-    {
-        var rect = new RECT { Left = left, Top = top, Right = right, Bottom = bottom };
-        return MonitorFromRect(ref rect, 2 /* MONITOR_DEFAULTTONEAREST */);
-    }
-
-    /// <summary>
-    /// Creates an IDirect3DDevice (WinRT) from an ID3D11Device (COM).
-    /// WGC requires the WinRT IDirect3DDevice interface.
-    /// </summary>
-    private static IDirect3DDevice CreateDirect3DDeviceFromD3D11Device(ID3D11Device d3d11Device)
-    {
-        // We need to use the IDXGIDevice to create the IDirect3DDevice.
-        // The WinRT CreateDirect3D11DeviceFromDXGIDevice API does this.
-        IDXGIDevice dxgiDevice = d3d11Device.QueryInterface<IDXGIDevice>();
-
-        // Use the WinRT interop to create IDirect3DDevice from IDXGIDevice
-        var dxgiDevicePtr = dxgiDevice.NativePointer;
-        var iid = typeof(IDirect3DDevice).GUID;
-
-        // Use Direct3D11Helper.CreateDirect3DDeviceFromDXGIDevice
-        // This is available via the Windows.Graphics.DirectX.Direct3D11 interop
-        var d3dDevice = Direct3D11Helper.CreateDirect3DDeviceFromDXGIDevice(dxgiDevicePtr);
-
-        dxgiDevice.Dispose();
-        return d3dDevice;
-    }
 }
