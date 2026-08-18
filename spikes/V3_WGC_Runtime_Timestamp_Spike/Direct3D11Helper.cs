@@ -1,7 +1,11 @@
 // Direct3D11Helper.cs — WGC interop helper
 //
 // Based on Microsoft's official Windows.UI.Composition-Win32-Samples.
-// Uses CreateDirect3D11DeviceFromDXGIDevice from d3d11.dll (NOT CoCreateInstance).
+// Uses CreateDirect3D11DeviceFromDXGIDevice from d3d11.dll.
+//
+// IMPORTANT: In .NET 8 with CsWinRT, Marshal.GetObjectForIUnknown returns
+// a raw __ComObject that CsWinRT cannot automatically wrap as a WinRT
+// interface. We must use WinRT.MarshalInspectable<T>.FromAbi() instead.
 //
 // SPDX-License-Identifier: MIT
 
@@ -20,7 +24,11 @@ internal static class Direct3D11Helper
 
     /// <summary>
     /// Creates an IDirect3DDevice (WinRT) from an IDXGIDevice native pointer.
-    /// Uses the d3d11.dll CreateDirect3D11DeviceFromDXGIDevice export directly.
+    ///
+    /// In .NET 8 with CsWinRT, Marshal.GetObjectForIUnknown returns a raw
+    /// __ComObject that cannot be cast to WinRT interfaces. Instead, we
+    /// use WinRT.MarshalInspectable<T>.FromAbi() which properly creates
+    /// the CCW (COM Callable Wrapper) for the WinRT projection.
     /// </summary>
     public static IDirect3DDevice CreateDirect3DDeviceFromDXGIDevice(IntPtr dxgiDevicePtr)
     {
@@ -29,9 +37,17 @@ internal static class Direct3D11Helper
             throw new InvalidOperationException(
                 $"CreateDirect3D11DeviceFromDXGIDevice failed: 0x{hr:X8}");
 
-        var device = Marshal.GetObjectForIUnknown(pUnknown) as IDirect3DDevice;
-        Marshal.Release(pUnknown);
-        return device
-            ?? throw new InvalidOperationException("Failed to get IDirect3DDevice from IUnknown.");
+        try
+        {
+            // Use WinRT marshaler to create a proper WinRT projection object.
+            // Marshal.GetObjectForIUnknown alone returns __ComObject which
+            // CsWinRT cannot cast to IDirect3DDevice.
+            var device = WinRT.MarshalInspectable<IDirect3DDevice>.FromAbi(pUnknown);
+            return device;
+        }
+        finally
+        {
+            Marshal.Release(pUnknown);
+        }
     }
 }
