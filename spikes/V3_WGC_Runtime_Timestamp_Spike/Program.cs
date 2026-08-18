@@ -374,7 +374,8 @@ internal static class Program
 
         var interop = (IGraphicsCaptureItemInterop)Marshal.GetObjectForIUnknown(interopPtr);
 
-        GraphicsCaptureItem item = interop.CreateForMonitor(hmon);
+        Guid iid = CaptureItemIid;
+        GraphicsCaptureItem item = interop.CreateForMonitor(hmon, ref iid);
         return item;
     }
 
@@ -384,10 +385,10 @@ internal static class Program
     private interface IGraphicsCaptureItemInterop
     {
         GraphicsCaptureItem CreateForWindow(IntPtr window, ref Guid iid);
-        GraphicsCaptureItem CreateForMonitor(IntPtr monitor, [In] ref Guid iid = ref _defaultIid);
-
-        private static readonly Guid _defaultIid = new("79C3F95B-31F7-4EC2-A464-632F5FA72F1B");
+        GraphicsCaptureItem CreateForMonitor(IntPtr monitor, ref Guid iid);
     }
+
+    private static readonly Guid CaptureItemIid = new("79C3F95B-31F7-4EC2-A464-632F5FA72F1B");
 
     // ================================================================
     // Win32 Helpers
