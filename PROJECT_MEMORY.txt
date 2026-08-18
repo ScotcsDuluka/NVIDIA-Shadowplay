@@ -1,205 +1,331 @@
 NVIDIA-Shadowplay — PROJECT MEMORY
 ===================================
 
-[OWNER]
-
-ชื่อ:
-ScotcsDuluka
-
-สถานะ:
-เจ้าของโปรเจกต์และผู้ตัดสินใจขั้นสุดท้าย
-
-หลัก:
-AI ทุกตัวเป็นผู้ช่วย
-OWNER มีอำนาจตัดสินใจขั้นสุดท้าย
-
-
 [PROJECT]
 
-ชื่อ:
+Name:
 NVIDIA-Shadowplay
 
 Repository:
 https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
 
-Repository Size:
-~1.02 GB
-สาเหตุหลัก: legacy binary/media จำนวนมาก
-
 Default Branch:
 Stable
 
-Development Branch:
+Primary Development Branch:
 Engine-Rebuild
 
-
-[TECH STACK]
+Target:
+Windows
 
 UI:
-- VB.NET WinForms
+VB.NET WinForms
 
-ENGINE:
-- VB.NET / .NET เป็นหลัก
-- สามารถใช้ C# เพิ่มได้เมื่อเหมาะสม
+Engine:
+VB.NET / .NET เป็นหลัก
+C# สามารถใช้กับงานที่เหมาะสม เช่น spikes / GPU validation
 
-LANGUAGE POLICY:
-- ไม่จำเป็นต้องย้ายทั้งโปรเจกต์ไป C#
-- เลือกภาษาโดยดูจาก Performance, API Support, Maintainability และ Integration
-- การเพิ่มภาษาใหม่ต้องไม่ทำให้ระบบซับซ้อนโดยไม่จำเป็น
-
-TARGET:
-- Windows
-
-
-[GITHUB ACCESS]
-
-Repository Owner:
+OWNER:
 ScotcsDuluka
 
-GitHub Token:
-PROVIDED SEPARATELY
+Owner authority:
+- OWNER เป็นผู้ตัดสินใจขั้นสุดท้าย
+- AI ทุกตัวเป็นผู้ช่วย
+- ห้าม AI เปลี่ยน architecture โดยพลการ
+- ห้ามถือ assumption เป็น fact
 
-กฎ:
-- ห้ามเก็บ Token / Password / API Key / Secret / Credential ในไฟล์นี้
-- Credential ต้องเก็บแยกในระบบที่ปลอดภัย
+
+==================================================
+[PROJECT HISTORY]
+==================================================
+
+- โปรเจกต์เริ่มก่อน GitHub
+- จุดเริ่มต้นของโปรเจกต์คือ version 1.0.0.0
+- Release แรกที่ขึ้น GitHub:
+  NVIDIA ShadowPlay™ 2.47.341-PRE
+  Released: 2024-10-15
+
+หมายเหตุ:
+- GitHub history ไม่ใช่จุดกำเนิดของโปรเจกต์
+- Legacy history มีค่าเป็น evidence/reference
+- Legacy architecture ห้ามนิยาม Engine-Rebuild architecture
 
 
+==================================================
 [AI TEAM]
+==================================================
 
-GPT
-สถานะ: ACTIVE
-บทบาท: CHIEF ENGINEER / DECISION LEAD
+GPT-5.6 Luna
+Role:
+- Chief Engineer
+- Decision Lead
+- Architecture synthesis
+- Evidence synthesis
+- Fact / Interpretation / Unknown / Risk separation
+- Technical recommendation
+- Master project state
 
-หน้าที่:
-- วิเคราะห์ Architecture
-- รวบรวมข้อมูลจากทีม
-- แยก Fact / Hypothesis / Risk / Unknown
-- เปรียบเทียบทางเลือก
-- ช่วย OWNER ตัดสินใจ
-- สรุป Technical Recommendation
+GLM-1
+Role:
+- Hostile Architecture Auditor
+- Dependency graph
+- Architecture boundary
+- Legacy isolation
+- Contract integrity
+- Circular dependency detection
+
+Current status:
+- Architecture audit PASS
+- P0 violations: 0
+- Circular dependency: 0
+- New → Legacy leakage: 0
+- Legacy → New leakage: 0
+- Spike leakage: 0
+- Contract violations: 0
+- Foundation violations: 0
+
+GLM-2
+Role:
+- GPU / WGC Validation Lead
+- V1 D3D11/NVENC
+- V2/V3/V4 WGC validation
+- V5 WGC delivery characterization
+- Evidence generation and interpretation
+
+Current status:
+- V4 CLOSED WITH LIMITATION
+- V5-A / V5-B next
+
+GLM-2SUB
+Role:
+- Independent Challenger
+- Independent evidence review
+- Challenge GLM-2 conclusions
+- Identify methodological flaws / hidden assumptions
+
+Current status:
+- V4 independent review COMPLETE
+- Verdict agrees with:
+  V4 = CLOSED WITH LIMITATION
+
+Important:
+- GLM-2SUB is a fresh/independent chat
+- Must receive enough context before making decisions
+
+GLM-3
+Role:
+- Build / Test / Repository Auditor
+- ProjectReference graph
+- TargetFramework analysis
+- Package/build graph
+- CI risks
+- Test isolation
+- Repository hygiene
+
+Current status:
+- Build graph audited
+- DAG confirmed
+- Production/test isolation PASS
+- Repository cleanup findings remain separate from Engine-Rebuild implementation
+
+GLM-4
+Role:
+- Coding / UI / Refactor Agent
+- Scoped code changes
+- Build verification
+- Commit workflow
+- Overlay optimization
+
+Recent completed work:
+- Overlay Phase 2A
+- Commit: b2a42c2
+- Pushed
+- Runtime verified by OWNER
+- Owner reports Overlay animation feels ~40%+ smoother
+
+Claude Sonnet 5
+Role:
+- Reviewer / Challenger
+- Architecture challenge
+- Evidence review
+- Edge cases
+- Temporary team member
+
+Current status:
+- Available
+- Can be used for senior/adversarial review
+- Not currently owner of any active task
+
+Gemini 3.6 Flash
+Role:
+- External Research / Evidence
+- Microsoft documentation
+- NVIDIA documentation
+- FFmpeg documentation
+- API semantics
+- Licensing / compatibility research
+
+Current status:
+- Available
+
+Gemini Local
+Role:
+- Local repository inspection
+- .vbproj inspection
+- dependency/config inspection
+- fast local source-tree analysis
+
+Current status:
+- Available
+- Previous request hit Vertex/Google 429 Resource Exhausted
+- If 429 occurs, reduce request size / scope or retry later
+
+Other:
+- DeepSeek: available / currently idle
+- Claude: available / currently idle
+- Previous Opus session reached usage limit
 
 
-GLM 5.2
-สถานะ: ACTIVE / ใช้งานเมื่อเข้าถึงได้
-บทบาท: LEAD AGENT / REPO & CODING LEAD
-
-หน้าที่:
-- คุม Repository
-- Coding
-- Refactor
-- งานหลายไฟล์
-- งานขนาดใหญ่
-- Build / Test
-- ใช้ Agent และ Context ขนาดใหญ่ให้คุ้ม
-
-กฎการทำงาน:
-- GLM ทำงานบน Branch ที่ OWNER สั่งเสมอ
-- ปัจจุบัน Branch หลักสำหรับ Engine ใหม่คือ Engine-Rebuild
-
-
-Claude
-สถานะ: ACTIVE
-บทบาท: REVIEWER / CHALLENGER
-
-หน้าที่:
-- Review Code / Architecture
-- หา Bug / Edge Case
-- Challenge ข้อสรุปของทีม
-
-คำถามหลัก:
-"มึงแน่ใจเหรอว่ามันถูก?"
-
-
-DeepSeek
-สถานะ: ACTIVE
-บทบาท: REVIEWER / CHALLENGER
-
-หน้าที่:
-- Challenge สมมติฐาน
-- หา Alternative
-- วิเคราะห์ Failure Mode
-- Review GPT / GLM / แนวทางของทีม
-
-คำถามหลัก:
-"มึงแน่ใจเหรอว่ามันถูก?"
-
-
-Gemini Flash
-สถานะ: ACTIVE
-บทบาท: RESEARCH & EVIDENCE ANALYST
-
-หน้าที่:
-- ค้นข้อมูลออนไลน์
-- Documentation
-- Technical References
-- GitHub Issues / Discussions
-- External Code Examples
-- ข้อมูลล่าสุดที่เกี่ยวข้องกับโปรเจกต์
-
-
+==================================================
 [TEAM WORKFLOW]
+==================================================
 
-ScotcsDuluka
-    ↓
-GPT — Decision Lead
-    ↓
-┌──────────────┬──────────────┬──────────────┐
-GLM 5.2        Claude         DeepSeek       Gemini Flash
-Coding/Repo    Review          Challenge      Research
-    └──────────────┴──────────────┴──────────────┘
-                         ↓
-                   Evidence / Tests
-                         ↓
-                  GPT Recommendation
-                         ↓
-                  OWNER Final Decision
+OWNER
+  ↓
+GPT — synthesis / decision lead
+  ↓
+Specialized agents
+  ↓
+Evidence / tests / benchmarks
+  ↓
+Challenge / review
+  ↓
+GPT recommendation
+  ↓
+OWNER final decision
+  ↓
+Implementation
+  ↓
+Build
+  ↓
+Test
+  ↓
+Benchmark
+  ↓
+Record evidence
 
 
+==================================================
 [PROJECT RULES]
+==================================================
 
-คิดใหม่ เพราะเราต้องใช้โปรเจกต์นี้แบบระยะยาว
-
-- ใช้ Code จริง + Test จริง + Log จริง เป็นหลัก
-- อย่าเดา Root Cause ถ้ายังตรวจสอบได้
-- แยก Fact ออกจาก Hypothesis
-- อย่าเชื่อ AI เพียงเพราะ AI พูดอย่างมั่นใจ
-- ลด Coupling
-- แยก Responsibility
-- ทุกระบบสำคัญควรทดสอบแยกได้
-- อย่าเอา Code เก่ากลับมาใช้เพียงเพราะมันมีอยู่
-- ใช้ของเก่าเฉพาะส่วนที่พิสูจน์แล้วว่าใช้ได้จริง
-- Stability และ Maintainability สำคัญกว่าการแก้ปัญหาเร็ว
-- อย่าผูกโปรเจกต์กับ AI ตัวใดตัวหนึ่ง
-- อย่าผูก Architecture กับ Engine รุ่นใดรุ่นหนึ่ง
-- อย่า implement ก่อน contract / architecture สำคัญถูก review
-- Unknown ต้องคงเป็น Unknown จนกว่าจะมี Evidence
-- ก่อน production integration ต้องผ่าน contract tests และ relevant validation spikes
-
-
-[CURRENT TECHNICAL FACTS]
-
-จากการทดสอบที่ผ่านมา:
-
-- ddagrab + NVENC สามารถทำงานประมาณ 144 FPS ได้
-- Video-only สามารถทำงานระดับ ~144 FPS ได้
-- Synthetic / lavfi Audio ไม่ได้ทำให้ Video พังแบบ Live WASAPI
-- Named Pipe ไม่ใช่ Root Cause หลักจากการทดสอบ
-- Live WASAPI เคยทำให้ Video FPS ลดลงอย่างรุนแรง
-- Engine-Audio รุ่นก่อนหน้าไม่ควรถูกนำมาเป็น Architecture หลักของ Engine ใหม่
+1. Use real code + real logs + real tests + real benchmarks.
+2. Do not guess when evidence can be collected.
+3. UNKNOWN stays UNKNOWN until evidence exists.
+4. Architecture != implementation status.
+5. A file existing does not mean a feature is implemented.
+6. Spike != production implementation.
+7. Legacy implementation != Engine-Rebuild implementation.
+8. Do not redesign architecture without OWNER approval.
+9. Do not add speculative abstractions.
+10. Do not copy legacy implementation just because it already exists.
+11. Production integration requires contract validation and relevant evidence.
+12. Separate:
+    - FACT
+    - INTERPRETATION
+    - UNKNOWN
+    - RISK
+13. Never call a WGC delivery gap a dropped frame.
+14. Never claim WGC internal frame loss without direct evidence.
+15. Do not treat FrameArrived as a guaranteed sustained-FPS signal.
+16. Do not compare runs with different controlled conditions as if they were identical experiments.
+17. Do not push unverified changes.
+18. Build success does not equal behavioral equivalence.
+19. Runtime behavior must be checked for UI/runtime changes.
+20. Keep repository cleanup separate from production-engine work unless required.
 
 
+==================================================
+[CANONICAL ENGINE ARCHITECTURE]
+==================================================
+
+This tree is the canonical architecture.
+
+ScotcsDuluka Capture Engine
+│
+├── Capture Backend
+│   ├── FFmpeg Backend
+│   │   ├── ddagrab
+│   │   ├── gdigrab
+│   │   └── avfoundation (future)
+│   │
+│   └── Native Backend
+│       ├── DXGI Desktop Duplication
+│       ├── Windows Graphics Capture
+│       └── NvFBC (future)
+│
+├── Encoder Backend
+│   ├── NVIDIA NVENC
+│   │   ├── H.264
+│   │   ├── HEVC
+│   │   └── AV1
+│   │
+│   ├── Intel QSV
+│   │   ├── H.264
+│   │   └── HEVC
+│   │
+│   ├── AMD AMF
+│   │
+│   └── Software
+│       ├── libx264
+│       └── libx265
+│
+├── Audio Backend
+│   └── WASAPI
+│       ├── System Audio
+│       ├── Microphone
+│       └── Audio Mixer
+│
+├── Frame Pipeline
+│   ├── Frame Acquisition
+│   ├── Timestamping
+│   ├── Queue / Buffer
+│   ├── Frame Synchronization
+│   └── Backpressure
+│
+├── Output
+│   ├── MP4
+│   ├── MKV
+│   └── Raw / Pipe
+│
+└── Core
+    ├── Capture Session
+    ├── Device Ownership
+    ├── Lifecycle
+    ├── Error Model
+    └── Metrics / Diagnostics
+
+Canonical architecture document:
+docs/ARCHITECTURE.md
+
+Architecture document commit:
+b6294fa72cf40b859e226d1a20405ad7c112d2cc
+
+
+==================================================
 [ENGINE-REBUILD FOUNDATION]
+==================================================
 
 Branch:
 Engine-Rebuild
 
-Foundation Commit:
+Foundation commit:
 82d792abf64b58a05296db370fa611fb36366594
 
-สถานะ:
+Status:
 FOUNDATION FROZEN
 
-Foundation มี:
+Contains:
 - CaptureEngine lifecycle
 - EngineState
 - EngineConfig
@@ -208,61 +334,29 @@ Foundation มี:
 - Dispose boundary
 - Internal stop-path testing
 
-Foundation Test:
+Validation:
 - 14/14 PASS
 - Build: 0 warnings / 0 errors
-- No xUnit / NUnit / MSTest
+
+Foundation constraints:
 - No FFmpeg
 - No NAudio
-- No UI modification
-- Legacy Engine/ ไม่ถูกแตะ
-
-สำคัญ:
-- CaptureEngine เป็น Foundation เท่านั้น
-- ยังไม่มี Video Capture
-- ยังไม่มี Audio
-- ยังไม่มี FFmpeg
-- ยังไม่มี NVENC
-- ยังไม่มี ddagrab
-- ยังไม่มี gfxcapture
+- No NVENC
+- No real capture backend
+- No UI integration
 
 
-[CURRENT ENGINE DIRECTION]
+==================================================
+[P1-A — ARCHITECTURE / CONTRACT]
+==================================================
 
-เริ่ม Engine ใหม่จาก 0
+Status:
+APPROVED
 
-เหตุผล:
-- UI มีอยู่แล้ว
-- Config System มีอยู่แล้ว
-- Video Configuration เก็บใน JSON ได้แล้ว
-- Engine ใหม่สามารถอ่าน JSON โดยไม่ขึ้นกับ UI
-- ไม่จำเป็นต้องแบก Architecture เก่าที่มีปัญหากลับมา
+Version:
+P1-A v1.3.1
 
-หลัก:
-- Video และ Audio ต้องแยก Pipeline
-- Audio ต้องไม่ Block Video
-- แต่ละ Pipeline ต้อง Test แยกได้
-- Engine ต้องสามารถขยายและเปลี่ยน Implementation ได้ในอนาคต
-
-
-[PHASE 1 — VIDEO PIPELINE]
-
-เป้าหมาย:
-Engine เดียวรองรับ capture backend อย่างน้อย:
-
-- ddagrab
-- gfxcapture
-
-หลัก:
-- Backend ต้องแยกจาก Encoder
-- Encoder ห้ามรู้ implementation ของ backend
-- Output ห้าม consume raw VideoFrame
-- VideoLayer รับผิดชอบ bounded handoff / queue policy
-- Backend ไม่เป็นเจ้าของ queue policy
-- Audio ยังไม่รวมใน Phase นี้
-- UI ยังไม่รวมใน Phase นี้
-
-Approved baseline architecture:
+Baseline:
 
 CaptureEngine
     ↓
@@ -278,320 +372,33 @@ Encoded Packet
     ↓
 Output
 
-
-[VIDEO BACKENDS]
-
-Backend candidates:
-- DdagrabBackend
-- GfxCaptureBackend
-- FakeVideoCaptureBackend
-
-Goal:
-- backend ต้อง replaceable
-- backend-specific details ต้องไม่ leak เข้า Encoder/Output
-
-ต้องรองรับ:
-- lifecycle
-- frame ownership
-- frame lifetime
-- frame delivery
-- no-frame behavior
-- error propagation
-
-
-[VIDEO FRAME CONTRACT]
-
-Concept:
-- IVideoFrame = frame จริงเท่านั้น
-- ไม่ใช้ fake frame เพื่อแทน dropped frame
-
-Frame acquisition semantic:
-- FrameAvailable
-- NoFrame
-- Error
-
-Dropped frame:
-- ไม่ส่งเป็น downstream frame
-- เก็บผ่าน diagnostics/metrics
-
-Frame contract ต้องพิจารณา:
-- Origin CPU/GPU
-- PixelFormat
-- Dimensions
-- Timestamp
-- Ownership
-- Lifetime
-- GPU resource semantics
-
-
-[THREADING / HANDOFF]
-
-หลัก:
-- Capture backend ต้องไม่ block encoder แบบไม่จำกัดเวลา
-- Handoff ต้อง bounded
-- ห้าม unlimited queue
-- Queue/backpressure policy เป็นความรับผิดชอบของ VideoLayer/Handoff
-- Backend ห้ามอ่านหรือควบคุม queue policy
-
-Current design direction:
-- Bounded queue
-- Default policy: DropOldest / DropNewest
-- ยังไม่ล็อก magic timeout เช่น 5 ms
-- หลีกเลี่ยง synchronous callback ที่สามารถ block capture
-
-P1-B.1 FIX decisions:
-- FakeVideoCaptureBackend.Dispose ห้ามถือ _sync ระหว่าง worker.Join()
-- Queue mutation อยู่ภายใต้ lock
-- Frame disposal สำหรับ evicted/drained frames ต้องเกิดนอก lock
-- Stop หยุด producer
-- Queue ที่ยังค้างอยู่เป็น sink-owned
-- Backend ไม่ต้อง drain queue แบบไม่จำกัดระหว่าง Stop
-
-
-[TIMESTAMP MODEL]
-
-หลัก:
-- Engine ใช้ QPC-based monotonic time เป็น reference clock
-- WGC SystemRelativeTime เป็น QPC-based time
-- WGC property ถูก expose เป็น TimeSpan
-- TimeSpan.Ticks = 100 ns units
-- Stopwatch.GetTimestamp() = raw QPC counter ticks
-- TimeSpan.Ticks และ Stopwatch.GetTimestamp() ห้ามนำมาลบกันตรง ๆ
-- ต้อง normalize ให้เป็น internal Engine PTS unit เดียว
-- ต้อง document conversion formula
-
-V2:
-- Source clock: QPC
-- Exact normalization: ต้องกำหนด/verify ก่อน production implementation
-
-A/V ในอนาคต:
-- Video และ Audio ควรใช้ QPC clock domain เดียวกัน
-- ห้ามใช้ DateTime clock สำหรับ media synchronization
-
-
-[VIDEO PIXEL FORMAT BASELINE]
-
-Phase 1 baseline:
-- BGRA8
-
-HDR / 10-bit:
-- DEFERRED
-- ไม่ใช่ Phase 1 blocker
-
-
-[P1-A ARCHITECTURE REVIEW STATUS]
-
-P1-A:
-Version:
-v1.3.1 FINAL WORDING FIX
-
-สถานะ:
-ARCHITECTURE BASELINE APPROVED
-implementation details remain gated by V1/V2/V3 validation
-
-หลักการ:
-- CaptureEngine → VideoLayer → Backend → IVideoFrame → Encoder → Packet → Output
-- No new speculative abstraction
-- Fake backend ต้องมาก่อน production backend
-
-P1-A เอกสาร:
-P1-A_Video_Backend_Contract.md
-
-สถานะ:
-- design only
-- ไม่มี production implementation
-- ไม่แตะ Foundation
-- ไม่ push production code
-
-
-[P1-A VALIDATION BLOCKERS]
-
-V1:
-Cross-device D3D11/NVENC interoperability
-สถานะ: BLOCKER
-
-หลัก:
-- อย่าสมมติว่า zero-copy ข้าม physical GPU ได้
-- อย่าสรุป device ownership จนกว่าจะมี Evidence
-- Phase 1 baseline ควรพยายามใช้ unified/same physical NVIDIA GPU path
-- Multi-GPU topology ยังไม่ใช่ baseline
-
-
-V2:
-WGC SystemRelativeTime → Engine PTS normalization
-สถานะ: BLOCKER ก่อน timestamp implementation
-
-Known:
-- QPC-based
-- TimeSpan ticks = 100 ns
-- Stopwatch raw ticks ใช้ Stopwatch.Frequency
-
-Unknown:
-- Exact normalization formula
-- Internal Engine PTS unit
-
-
-V3:
-gfxcapture sustained throughput at 144 FPS
-สถานะ: BLOCKER
-
-สำคัญ:
-- max_framerate=144 เป็น requested maximum / cap
-- ไม่ใช่ guarantee ว่าจะได้ 144 FPS จริง
-- ต้อง benchmark ACHIEVED delivered FPS
-
-
-V4:
-Default pixel format
-สถานะ: CLOSED
-
-Baseline:
-- Explicit BGRA8
-
-
-V5:
-Default backend = Ddagrab
-สถานะ:
-HYPOTHESIS / configuration decision
-ไม่ใช่ architecture blocker
-
-
-[P1-A CLOSED WORDING FIXES]
-
-P1-A v1.3.1 ปรับ wording สุดท้ายแล้ว:
-
-1. "Architecture is FINAL"
-   เปลี่ยนเป็น:
-   "Architecture baseline is APPROVED; implementation details remain gated by V1/V2/V3 validation."
-
-2. เอา hard-coded recovery policy:
-   "3x retry in 1 second"
-   ออกจาก contract
-
-3. เอา guarantee:
-   "one-copy fallback always available"
-   ออกจาก contract
-
-ผล:
-- ไม่มี new interface
-- ไม่มี new API
-- ไม่มี implementation behavior เพิ่ม
-- P1-A เป็น design baseline ที่ approved
-
-
-[P1-B.1 — FAKE BACKEND + CONTRACT TESTS]
-
-สถานะ:
-✅ COMPLETE
-
-Commit:
-4ff288bf3f29502d7bb6c15c613c7f4bd324dd17
-
-Parent:
-82d792abf64b58a05296db370fa611fb36366594
-
-Branch:
-Engine-Rebuild
-
-งาน:
-- สร้าง CaptureEngine.Video project
-- สร้าง CaptureEngine.Video.Tests project
-- สร้าง P1-A contract interfaces / enums / structs / exceptions
-- สร้าง FakeVideoCaptureBackend
-- สร้าง FakeVideoFrame
-- สร้าง BoundedVideoFrameSink
-- สร้าง test doubles สำหรับ sink
-- สร้าง lifecycle tests
-- สร้าง frame ownership/lifetime tests
-- สร้าง bounded handoff tests
-- สร้าง replaceability tests
-
-Constraints:
-- ไม่มี ddagrab
-- ไม่มี gfxcapture
-- ไม่มี FFmpeg
-- ไม่มี NVENC
-- ไม่มี Audio
-- ไม่มี UI
-- ไม่มี real D3D11 capture
-- Foundation ไม่ถูกแก้
-
-
-[P1-B.1 INITIAL TEST RESULT]
-
-Initial:
-- 32/32 PASS
-- Build 0 errors / 0 warnings
-- Foundation 14/14 PASS
-
-ต่อมา code review พบ P0:
-- FakeVideoCaptureBackend.Dispose ถือ _sync ระหว่าง worker.Join()
-- มี deadlock potential เพราะ worker ต้องใช้ _sync
-- BoundedVideoFrameSink dispose frame ภายใน lock
-
-
-[P1-B.1 FIX]
-
-สถานะ:
-✅ COMPLETE
-✅ REVIEWED / APPROVED
-
-Latest Commit:
+Principles:
+- Backend replaceability
+- Encoder/backend separation
+- Backend-specific details do not leak
+- Output does not consume raw VideoFrame directly
+- VideoLayer owns bounded handoff / queue policy
+- Audio outside Phase 1
+
+
+==================================================
+[P1-B.1 — CONTRACT + FAKE BACKEND]
+==================================================
+
+Status:
+COMPLETE
+
+Latest fix:
 39da0640d0c626dd6181b53adee55c4439261ae1
 
-Parent:
-348b57e697eff68e86c9619a1deed94c261ee01b
-
-หมายเหตุ:
-Parent 348b57e เป็น PROJECT_MEMORY.txt update ที่ OWNER push หลัง P1-B.1
-Latest FIX commit อยู่บน Engine-Rebuild ต่อจาก parent ดังกล่าว
-
-
-FIX 1 — FakeVideoCaptureBackend.Dispose deadlock:
-- capture state under lock
-- set stop signal under lock
-- mark disposed
-- release lock
-- Join worker outside lock
-- reacquire lock only to finalize Disposed
-
-FIX 2 — Stop contract:
-- Stop stops producer
-- existing queued frames remain sink-owned
-- sink owns disposal of queued frames
-- backend must not require unbounded drain during Stop
-
-FIX 3 — BoundedVideoFrameSink:
-- queue mutation under lock
-- evicted frame extracted under lock
-- frame.Dispose() performed outside lock
-- sink.Dispose() drains queue under lock, then disposes frames outside lock
-
-
-[P1-B.1 FIX TEST RESULT]
-
-- P1-B.1 existing tests: 32/32 PASS
+Validation:
+- Existing tests: 32/32 PASS
 - Regression tests: 5/5 PASS
-- Total P1-B.1 tests: 37/37 PASS
-- Foundation tests: 14/14 PASS
+- Total: 37/37 PASS
+- Foundation: 14/14 PASS
 - Build: 0 warnings / 0 errors
 
-Regression coverage:
-- Dispose while worker actively running — no deadlock
-- Dispose repeatedly — idempotent
-- Stop while worker active — completes
-- BoundedVideoFrameSink does not dispose frames while holding lock
-- Concurrent Dispose + TryPush — no deadlock
-
-Latest validation:
-✅ P0 deadlock fixed
-✅ No regression detected
-✅ Foundation untouched
-
-
-[P1-B.1 PUBLIC / INTERNAL DESIGN]
-
-CaptureEngine.Video:
+Contract surface:
 - IVideoCaptureBackend
 - IVideoFrame
 - IVideoFrameSink
@@ -599,415 +406,540 @@ CaptureEngine.Video:
 - IVideoBackendContext
 - IVideoCaptureBackendFactory
 
-Enums / values include:
-- VideoBackendKind: Ddagrab / GfxCapture
-- FrameAcquisitionStatus: FrameAvailable / NoFrame / Error
-- PushOutcome: Pushed / Replaced / Dropped
-- BoundedHandoffPolicy: DropOldest / DropNewest
-- VideoFrameOrigin
-- VideoPixelFormat
+Frame acquisition:
+- FrameAvailable
+- NoFrame
+- Error
+
+Handoff:
+- Pushed
+- Replaced
+- Dropped
+
+Policies:
+- DropOldest
+- DropNewest
 
 Important:
-- No "Dropped" FrameAcquisitionResult
-- Dropped is diagnostics / handoff outcome
-- IVideoFrame represents real frame only
+- No fake dropped-frame object
+- IVideoFrame = real frame only
+- Dropped = diagnostics/handoff outcome
+
+Fixes:
+- Dispose lock/deadlock fixed
+- Stop contract fixed
+- Sink frame disposal moved outside lock
 
 
-[P1-B.1 CURRENT REVIEW DECISION]
+==================================================
+[P1-B.2 — VALIDATION]
+==================================================
 
-GPT Review:
-✅ PASS after FIX
+Status:
+IN PROGRESS
 
-Review findings resolved:
-- P0 deadlock resolved
-- Stop contract ambiguity resolved
-- Frame disposal outside queue lock resolved
+Purpose:
+Validate GPU/WGC assumptions before production implementation.
 
-Remaining note:
-- Fake backend's thread lifecycle must NOT be blindly copied to production WGC backend
-- Production backend shutdown must respect real API/thread/COM/WGC lifecycle semantics
-
-
-[PHASE 1 NEXT STEP]
-
-P1-B.2 = Validation / Spike
-
-เป้าหมาย:
-Resolve V1 / V2 / V3 with real evidence before production backend implementation.
-
-ลำดับ:
-1. V1 D3D11/NVENC spike
-2. V2 WGC timestamp normalization spike
-3. V3 gfxcapture 144 FPS benchmark
-4. Final validation / decision
-5. DdagrabBackend
-6. GfxCaptureBackend
-7. NVENC integration
-8. Video-only baseline
-9. Performance benchmark
+Tracks:
+- V1 D3D11/NVENC
+- V2 timestamp normalization
+- V3 runtime behavior
+- V4 WGC edge cases
+- V5 WGC delivery characterization
 
 
-[V1 — D3D11 / NVENC SPIKE]
+==================================================
+[V1 — D3D11 / NVENC]
+==================================================
 
-คำถาม:
-- Same D3D11 device requirement
-- Same physical GPU requirement
-- Same adapter, different D3D11 devices
-- DXGI shared handles
-- Cross-adapter behavior
-- FFmpeg d3d11va → NVENC compatibility
-- Zero-copy feasibility
+Status:
+HARDWARE EVIDENCE PENDING
 
-หลัก:
-- ห้าม claim zero-copy ข้าม physical GPU โดยไม่มี evidence
-- Preferred baseline คือ same physical NVIDIA GPU
-- Cross-device / cross-GPU path เป็น fallback/experimental until validated
+Spike:
+spikes/D3D11_NVENC_Spike
 
-Evidence direction:
-- NVIDIA NVENC docs
-- CUDA-D3D11 interop
-- Microsoft D3D11/DXGI docs
-- FFmpeg source/docs
+Questions:
+- D3D11 device ownership
+- same-device relationship
+- same-physical-GPU relationship
+- Desktop Duplication texture ownership
+- NVENC DirectX registration
+- zero-copy feasibility
+- sustained capture behavior
 
-
-[V2 — TIMESTAMP SPIKE]
-
-คำถาม:
-- WGC SystemRelativeTime unit
-- TimeSpan.Ticks vs Stopwatch.GetTimestamp()
-- Stopwatch.Frequency
-- normalization formula
-- engine internal PTS unit
-- frame monotonicity
-- zero-based PTS
-
-Hard rule:
-ห้าม:
-TimeSpan.Ticks - Stopwatch.GetTimestamp()
-
-โดยตรง
-
-ต้อง:
-- normalize source time
-- convert to internal Engine PTS unit
-- document conversion
+Rule:
+- No V1 PASS claim without real Windows + NVIDIA hardware evidence.
 
 
-[V3 — GFXCAPTURE 144 FPS SPIKE]
+==================================================
+[V4 — WGC EDGE-CASE]
+==================================================
 
-หลัก:
-- gfxcapture max_framerate=144 = cap/request
-- ไม่ใช่ delivered-FPS guarantee
+Status:
+CLOSED WITH LIMITATION
 
-ต้องวัด:
-- requested FPS
-- achieved FPS
-- duplicate frames
-- dropped frames
-- latency
-- CPU
-- GPU
-- stability
-- behavior under sustained load
+Evidence:
+- Test B: 600s
+- Test C: 10 sessions × 15s
+- Total observed frame events: 16,452
 
-ควรใช้ methodology ใกล้กับ ddagrab 144 FPS baseline เพื่อเทียบอย่างยุติธรรม
+Test B:
+- FrameArrived: 12,048
+- Acquired: 12,048
+- Consumed: 12,048
+- DroppedByHarness: 0
+- NoFrameReturned: 0
+- ShutdownDiscarded: 0
+- Average FPS: 20.08
+- Median delta: 26.660 ms
+- P95: 159.959 ms
+- P99: 333.249 ms
+- Max gap: 1.066397s
+- Timestamp monotonic: TRUE
+- PTS monotonic: TRUE
+- Equal timestamps: 1
+- Regressions: 0
+- Negative PTS: 0
+
+Test C:
+- 10 × 15s sessions
+- Aggregate: 4,404 frames
+- DroppedByHarness: 0
+- NoFrameReturned: 0
+- ShutdownDiscarded: 0
+- 0 equal timestamps
+- 0 regressions
+- 0 negative PTS
+- All invariants hold
+- FPS range: 4.20–43.43 FPS
+- Max gap: 2.133333s
+
+Important evidence:
+- FrameArrived == Acquired == Consumed in all observed sessions.
+- Downstream harness loss is eliminated.
+- Harness is NOT proven to have zero upstream influence on WGC delivery.
+- WGC internal pre-FrameArrived behavior remains UNKNOWN.
+- Delivery gaps are delivery gaps, NOT dropped frames.
+- Exact cause of delivery variability is UNKNOWN.
+- Timestamp monotonicity/consistency is validated for tested scope.
+- Timestamp accuracy/fidelity is not independently validated.
+
+Experimental limitation:
+- Test B and Test C used different display configurations.
+- Therefore they are NOT a controlled comparison.
+- Test B resolution/display configuration differs from Test C.
+- Session 8 = 4.20 FPS is a single observed outlier and is not yet proven reproducible.
+
+GLM-2 verdict:
+CLOSED WITH LIMITATION
+
+GLM-2SUB independent verdict:
+CLOSED WITH LIMITATION
+
+GLM-2SUB critical methodological findings:
+- FrameArrived = Acquired only proves downstream harness losslessness.
+- Cannot prove WGC never loses/suppresses frames before FrameArrived.
+- Session 8 low FPS requires reproduction.
+- Content condition was uncontrolled.
+- Resolution mismatch prevents direct cross-comparison.
+- Independent timing reference would improve timestamp fidelity validation.
+
+Closed:
+- Harness downstream losslessness
+- Invariant correctness
+- Timestamp monotonicity/consistency
+- Session lifecycle behavior
+- T0 reset behavior
+
+Not closed:
+- WGC sustained-FPS capability
+- WGC internal pre-event frame loss
+- Exact cause of delivery variability
+- 144 FPS feasibility
+- Long-term stability beyond 10 minutes
+- Suspend/resume
+- Multi-monitor/multi-adapter
+- Other GPU generations/vendors
 
 
-[PRODUCTION VIDEO BACKENDS]
+==================================================
+[V5 — WGC DELIVERY CHARACTERIZATION]
+==================================================
 
-DdagrabBackend:
-❌ ยังไม่เริ่ม
+Status:
+NEXT TASK
 
-GfxCaptureBackend:
-❌ ยังไม่เริ่ม
+Objective:
+Determine whether WGC delivery behavior is consistent with display/content conditions and whether 144 FPS is plausible.
 
-NVENC integration:
-❌ ยังไม่เริ่ม
+V5 is split into:
 
-Real D3D11 resources:
-❌ ยังไม่เริ่ม
+V5-A:
+Controlled reproduction
 
-Reason:
-ต้องผ่าน P1-B.2 V1/V2/V3 validation ก่อน
+V5-B:
+144 Hz feasibility
+
+V5-A controlled requirements:
+- Same Windows build
+- Same GTX 1080 Ti
+- Same display
+- Same DISPLAY1
+- Same resolution: 1920x1080
+- Same refresh rate
+- Same WGC configuration
+- Same evidence harness
+
+Condition A:
+- Static desktop
+
+Condition B:
+- Deterministic active content
+- Prefer controlled animation/test pattern
+- Avoid unpredictable game/video workload
+
+Repeat:
+- At least 3 sessions per condition
+- Prefer 600s where practical
+- Exact duration must be recorded
+
+Measure:
+- FrameArrived
+- Acquired
+- Consumed
+- DroppedByHarness
+- NoFrameReturned
+- ShutdownDiscarded
+- average FPS
+- median delta
+- p95
+- p99
+- max gap
+- timestamp monotonicity
+- PTS monotonicity
+- equal timestamps
+- negative PTS
+
+V5-B:
+- 144 Hz
+- 1920x1080
+- Same controlled active content
+- Same harness
+- At least 3 sessions per condition
+- Prefer 600s where practical
+
+Required determination:
+1. Does WGC delivery approach 144 FPS?
+2. Does active content materially change delivery?
+3. Are multi-second gaps reduced?
+4. Does 144 Hz materially change behavior?
+5. Is 144 FPS plausible?
+6. Does evidence justify production GfxCaptureBackend?
+7. Is 144 FPS validated or merely plausible?
+
+Final V5 classification:
+- PASS
+- PASS WITH LIMITATION
+- INCONCLUSIVE
+- FAIL
+
+No production WGC code until evidence review is complete.
 
 
+==================================================
+[VIDEO PRODUCTION IMPLEMENTATION]
+==================================================
+
+Production Ddagrab:
+NOT COMPLETE
+
+Production GfxCapture:
+NOT COMPLETE
+
+Production NVENC:
+NOT COMPLETE
+
+Real D3D11 resource integration:
+NOT COMPLETE
+
+Video-only production baseline:
+NOT COMPLETE
+
+Important:
+- Legacy ddagrab/NVENC performance evidence is reference evidence only.
+- It is not equivalent to Engine-Rebuild production implementation.
+
+
+==================================================
+[FRAME PIPELINE]
+==================================================
+
+Frame Acquisition:
+CONTRACT COMPLETE / PRODUCTION INTEGRATION PENDING
+
+Timestamping:
+VALIDATION IN PROGRESS
+
+Queue / Buffer:
+CONTRACT + TESTS COMPLETE
+
+Backpressure:
+CONTRACT + TESTS COMPLETE
+
+Frame Synchronization:
+NOT STARTED
+
+Clock:
+- QPC-based monotonic reference
+- WGC SystemRelativeTime is QPC-based
+- Do not subtract TimeSpan.Ticks from raw Stopwatch ticks directly
+- Normalize source timestamps into engine PTS domain
+- Media sync must not use DateTime wall clock
+
+
+==================================================
+[AUDIO]
+==================================================
+
+Architecture:
+WASAPI
+├── System Audio
+├── Microphone
+└── Audio Mixer
+
+Engine-Rebuild status:
+NOT STARTED
+
+Rules:
+- Audio separate from video
+- Audio must not block video
+- Legacy Engine-Audio is not automatically reusable
+- Audio will be addressed after video architecture is sufficiently validated
+
+
+==================================================
 [OUTPUT]
+==================================================
 
-สถานะ:
-❌ ยังไม่เริ่ม
+MP4:
+NOT STARTED
+
+MKV:
+NOT STARTED
+
+Raw / Pipe:
+NOT STARTED
 
 Phase:
 2
 
 
-[AUDIO]
+==================================================
+[SYNCHRONIZATION]
+==================================================
 
-สถานะ:
-❌ ยังไม่เริ่ม
+A/V synchronization:
+NOT STARTED
 
-หลัก:
-- แยก Pipeline จาก Video
-- Audio ต้องไม่ Block Video
-- ต้องใช้ clock domain ที่เหมาะสมกับ Engine synchronization
-- Audio integration อยู่ Phase 3
+Phase:
+4
 
 
+==================================================
 [UI / OVERLAY]
-
-สถานะ:
-❌ ยังไม่ integrate กับ Engine ใหม่
+==================================================
 
 UI:
-- VB.NET WinForms
+VB.NET WinForms
 
-หลัก:
-- UI / Overlay ต้องแยกจาก Engine
-- Engine ไม่ควร depend on WinForms
-- Overlay มีอิสระในการออกแบบ
-- Win32 / HWND / layered window / click-through เป็น implementation concern ของ UI subsystem
-- UI integration อยู่ Phase 5
+Engine rule:
+- UI separate from engine
+- Engine must not depend on WinForms
 
+Recent Overlay commit:
+b2a42c2
+Optimize Overlay update path + fix HideFromAltTab precedence
 
-[ENGINE DEVELOPMENT ORDER]
+Status:
+PUSHED
+BUILD SUCCESS
+RUNTIME VERIFIED
 
-Phase 0:
-Foundation
-- Engine Skeleton
-- Config Reader
-- Logging
-- Error Handling
-- Test Harness
+Changes:
+- Removed redundant HideFromAltTab calls from hot paths
+- Fixed HideFromAltTab precedence
+- Disposed one-shot UI timers
+- Removed duplicate MainForm_Shown GitHub load
+- Removed unnecessary AppSettings.Save() from Lang_Tick
 
-STATUS:
-✅ COMPLETE / FROZEN @ 82d792ab
+Owner runtime observation:
+- Overlay feels substantially smoother
+- Animation smoothness reported ~40%+ improvement
 
-
-Phase 1:
-Video Pipeline
-- Backend Contract
-- Fake Backend
-- Validation Spikes
-- ddagrab
-- gfxcapture
-- NVENC
-- Video-only Baseline
-- Performance Metrics
-
-STATUS:
-🟡 Foundation + Contract Tests complete
-🟡 V1/V2/V3 validation pending
-❌ Production video backends not started
+Important:
+Overlay optimization is separate from Engine-Rebuild production video work.
 
 
-Phase 2:
-Output Pipeline
+==================================================
+[REPOSITORY / BUILD AUDIT]
+==================================================
 
-STATUS:
-❌ NOT STARTED
+GLM-3:
+- Dependency graph is a DAG
+- Production/test isolation PASS
+- No circular dependency found
+- Some stale project metadata exists
+- Some solution files need cleanup
+- Large binary/unrelated files exist
+- Package version drift exists
+- CI coverage is incomplete
 
+Important:
+- Repository hygiene is a separate track.
+- Do not mass-delete files based on unverified findings.
+- NVIDIA SDK/license concerns require external verification before deletion.
 
-Phase 3:
-Audio Pipeline
-
-STATUS:
-❌ NOT STARTED
-
-
-Phase 4:
-Synchronization
-
-STATUS:
-❌ NOT STARTED
-
-
-Phase 5:
-UI Integration
-
-STATUS:
-❌ NOT STARTED
+Known cleanup candidate:
+- FakeVideoCaptureBackend is currently compiled into CaptureEngine.Video assembly.
+- This is non-ideal but not currently treated as a production runtime-path blocker.
 
 
-Phase 6:
-Advanced Features
+==================================================
+[CURRENT GIT / DOCUMENTATION]
+==================================================
 
-STATUS:
-❌ NOT STARTED
+Development branch:
+Engine-Rebuild
+
+Architecture document:
+docs/ARCHITECTURE.md
+
+Architecture document commit:
+b6294fa72cf40b859e226d1a20405ad7c112d2cc
+
+Overlay Phase 2A:
+b2a42c2
+Pushed and runtime verified
+
+Repository should be synchronized before making new work:
+git pull --ff-only origin Engine-Rebuild
+
+Do not force-push normal work.
 
 
-[DECISION RULE]
+==================================================
+[CURRENT STATUS SNAPSHOT]
+==================================================
 
-เมื่อมี Decision สำคัญ:
-
-1. รวบรวม Code / Log / Test / Benchmark
-2. ให้ AI ที่เกี่ยวข้องวิเคราะห์
-3. Gemini หา External Evidence เมื่อจำเป็น
-4. Claude / DeepSeek Challenge
-5. GLM ทดลองหรือ Implement เมื่อ Task ชัด
-6. GPT สรุป Recommendation
-7. OWNER ตัดสินใจ
-8. Implement
-9. Test / Benchmark
-10. บันทึกผลลัพธ์
-
-
-[CURRENT STATUS]
+Architecture:
+🟢 Stable / Approved
 
 Foundation:
-✅ COMPLETE / FROZEN
-Commit:
-82d792abf64b58a05296db370fa611fb36366594
-
-P1-A:
-✅ v1.3.1 APPROVED
-✅ Architecture baseline approved
-✅ Final wording fixed
+🟢 Complete / Frozen
 
 P1-B.1:
-✅ FakeVideoCaptureBackend
-✅ Contract layer
-✅ 37/37 tests
-✅ P0 deadlock fixed
-✅ Stop contract fixed
-✅ Sink disposal lock fix
-✅ Build 0/0
-
-Latest Engine-Rebuild Commit:
-39da0640d0c626dd6181b53adee55c4439261ae1
+🟢 Complete / 37/37
 
 V1:
-🔴 BLOCKER / PENDING SPIKE
-
-V2:
-🔴 BLOCKER / PENDING SPIKE
-
-V3:
-🔴 BLOCKER / PENDING SPIKE
+🟡 Pending hardware evidence
 
 V4:
-✅ CLOSED / BGRA8 baseline
+🟡 Closed with Limitation
 
-Production ddagrab:
-❌ NOT STARTED
+V5-A:
+🔥 NEXT
+Controlled WGC reproduction
 
-Production gfxcapture:
-❌ NOT STARTED
+V5-B:
+⏳ After/alongside V5-A as justified
 
-NVENC:
-❌ NOT STARTED
+Production Ddagrab:
+🔴 Not complete
+
+Production GfxCapture:
+🔴 Not complete
+
+Production NVENC:
+🔴 Not complete
 
 Output:
-❌ NOT STARTED
+🔴 Not started
 
 Audio:
-❌ NOT STARTED
+🔴 Not started
+
+A/V Synchronization:
+🔴 Not started
 
 UI Integration:
-❌ NOT STARTED
+🔴 Not started in the new engine
 
 
-[IMMEDIATE GOAL]
+==================================================
+[IMMEDIATE NEXT ACTION]
+==================================================
 
-P1-B.2 Validation / Spikes
-
-1. Resolve V1
-2. Resolve V2
-3. Resolve V3
-4. Review evidence
-5. Select implementation strategy
-6. Begin production ddagrab backend
-7. Begin production gfxcapture backend
-8. Integrate NVENC
-9. Run video-only baseline
-10. Benchmark
-
-
-[LONG-TERM GOAL]
-
-สร้าง Engine ที่:
-- เสถียร
-- maintainable หลายปี
-- รองรับ ddagrab + gfxcapture
-- Video/Audio แยก pipeline
-- เปลี่ยน capture backend/encoder ได้
-- ไม่ผูกกับ Legacy Engine
-- ไม่ผูกกับ AI ตัวใดตัวหนึ่ง
-- ใช้ evidence-driven development
-- สามารถทดสอบระบบสำคัญแยกได้
-- รองรับการขยายในอนาคตโดยไม่สร้าง unnecessary architecture
+1. Run V5-A controlled WGC reproduction.
+2. Compare static vs deterministic active content.
+3. Repeat conditions for reproducibility.
+4. Analyze results with GLM-2.
+5. Challenge results with GLM-2SUB.
+6. Use Gemini 3.6 Flash for external WGC/API evidence when needed.
+7. Use Claude Sonnet 5 for adversarial review when a decision is ready.
+8. GPT synthesizes.
+9. OWNER makes final decision.
+10. Only then proceed toward V5-B / production WGC or Ddagrab direction.
 
 
-[MEMORY UPDATE RULE]
+==================================================
+[CURRENT TEAM FOCUS]
+==================================================
 
-เมื่อมีการเปลี่ยนแปลงสำคัญ:
-- Update branch
-- Update commit SHA
-- Update phase status
-- Update test result
-- Update known blockers
-- Update immediate goal
-- ห้ามเก็บ Token / Secret / Credential
-- ไม่เปลี่ยน Historical Facts ให้กลายเป็น Current Facts โดยไม่มี evidence
+GLM-1:
+Architecture — monitoring / audit
+
+GLM-2:
+V5-A / V5-B WGC validation
+
+GLM-2SUB:
+Independent evidence challenge
+
+GLM-3:
+Build / repository audit — monitoring / cleanup track
+
+GLM-4:
+Scoped coding / UI — available for approved tasks
+
+Claude Sonnet 5:
+Temporary reviewer / challenger
+
+Gemini 3.6 Flash:
+External evidence / research
+
+Gemini Local:
+Local repository inspection
+
+GPT:
+Synthesis / decision lead
 
 
+==================================================
+[NON-NEGOTIABLE DECISION RULE]
+==================================================
 
+Do not implement because:
+- an AI says it is probably correct
+- a spike compiles
+- a legacy implementation already exists
+- a benchmark looks good once
+- an architecture diagram contains the feature
 
+Implement when:
+- contract is approved
+- relevant blockers are resolved
+- evidence is sufficient
+- challenge/review is complete
+- OWNER approves the decision
 
-[P1-B.2 — V2 TIMESTAMP VALIDATION]
-
-STATUS:
-✅ PASS
-
-Evidence:
-- Gemini research
-- Claude challenge
-- DeepSeek red-team
-- Microsoft API semantics reviewed
-
-V2 RESULT:
-
-WGC GraphicsCaptureFrame.SystemRelativeTime:
-- Source clock: QPC-based
-- Representation: Windows.Foundation.TimeSpan
-- TimeSpan.Ticks: 100 ns
-- Ticks are already normalized time units
-- They are NOT raw QPC counter ticks
-
-Engine Video PTS:
-    PTS = SystemRelativeTime.Ticks - T0
-
-No additional multiplication or QPF conversion is required
-when the source is SystemRelativeTime.Ticks.
-
-INVALID:
-    (Tn - T0) * 100
-
-RAW QPC:
-If an implementation directly consumes raw QPC / Stopwatch ticks,
-conversion to 100-ns units requires QPF/Frequency normalization.
-
-Common clock:
-- WGC timestamps are QPC-derived.
-- Future WASAPI timestamps can be represented on the same
-  QPC-derived 100-ns reference timeline.
-- This establishes timestamp comparability.
-
-IMPORTANT:
-Common QPC reference does NOT guarantee zero long-term
-audio clock drift.
-
-Deferred to Audio / Synchronization phases:
-- drift detection
-- drift compensation
-- audio clock correction
-- discontinuity recovery policy
-- raw QPC conversion implementation details
-- duplicate-frame handling policy
-
-V2 does NOT claim:
-- zero drift
-- guaranteed A/V sync under all hardware
-- duplicate timestamp cause
-- final Audio synchronization policy
-
-V2 CONTRACT:
-✅ PASS
+Unknown stays Unknown until evidence exists.
