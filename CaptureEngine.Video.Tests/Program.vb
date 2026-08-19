@@ -5,6 +5,7 @@ Option Infer On
 Imports System
 Imports System.Collections.Generic
 Imports CaptureEngine.Video.Tests.Delivery
+Imports CaptureEngine.Video.Tests.FFmpeg
 Imports CaptureEngine.Video.Tests.FrameContract
 Imports CaptureEngine.Video.Tests.Lifecycle
 Imports CaptureEngine.Video.Tests.Replaceability
@@ -52,6 +53,11 @@ Namespace CaptureEngine.Video.Tests
 
             ' ----- GLM-1: DdagrabBackend replaceability tests -----
             DdagrabReplaceabilityTests.RunAll(AddressOf RunTest)
+
+            ' ----- FFmpeg backend validation tests -----
+            FFmpegLifecycleTests.RunAll(AddressOf RunTest)
+            FFmpegProcessFailureTests.RunAll(AddressOf RunTest)
+            FFmpegConcurrencyTests.RunAll(AddressOf RunTest)
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
