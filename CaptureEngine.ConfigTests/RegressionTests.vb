@@ -843,49 +843,61 @@ Namespace CaptureEngine.ConfigTests.Regression
             ' Verify V1 and V2 are byte-identical except for exactly 2 documented diffs:
             '   1. bufsize (V1=1× bitrate, V2=2× bitrate)
             '   2. -pix_fmt (V1 omits, V2 appends for ddagrab+NVENC)
+            '
+            ' APPROACH: Instead of positional token comparison (which breaks when
+            ' V2 inserts extra tokens, shifting all subsequent positions), we use
+            ' a normalization-based comparison:
+            '   a. Tokenize both commands
+            '   b. In V1's token list, replace bufsize value "20000000" → "40000000"
+            '      (normalize the documented bufsize fix)
+            '   c. In V2's token list, remove the 2 extra tokens "-pix_fmt" and "nv12"
+            '      (normalize the documented pix_fmt addition)
+            '   d. Now V1 and V2 should be byte-identical token lists
+            ' This proves the ONLY differences are the 2 documented ones.
             Dim v1Cmd As String = BuildDefaultV1Command("out.mp4")
 
             Dim v1 As New ConfigMigrator.V1CaptureSettings()
             Dim v2 As EngineConfigV2 = ConfigMigrator.MigrateFromV1(v1)
             Dim v2Cmd As String = PipelineResolver.BuildFFmpegCommandBuilder(v2).Build("out.mp4")
 
-            ' Tokenize both commands into space-separated tokens for diff
-            Dim v1Tokens As String() = v1Cmd.Split(" "c)
-            Dim v2Tokens As String() = v2Cmd.Split(" "c)
-
-            ' Find diffs (filter out empty tokens from split)
-            Dim v1Filtered As New List(Of String)()
-            For Each t As String In v1Tokens
-                If t.Length > 0 Then v1Filtered.Add(t)
+            ' Tokenize both commands into space-separated tokens (filter empties)
+            Dim v1Tokens As New List(Of String)()
+            For Each t As String In v1Cmd.Split(" "c)
+                If t.Length > 0 Then v1Tokens.Add(t)
             Next
-            Dim v2Filtered As New List(Of String)()
-            For Each t As String In v2Tokens
-                If t.Length > 0 Then v2Filtered.Add(t)
+            Dim v2Tokens As New List(Of String)()
+            For Each t As String In v2Cmd.Split(" "c)
+                If t.Length > 0 Then v2Tokens.Add(t)
             Next
 
-            ' Count differences in non-empty tokens
-            Dim diffCount As Integer = 0
-            Dim maxLen As Integer = Math.Max(v1Filtered.Count, v2Filtered.Count)
-            For i As Integer = 0 To maxLen - 1
-                Dim v1Tok As String = If(i < v1Filtered.Count, v1Filtered(i), "")
-                Dim v2Tok As String = If(i < v2Filtered.Count, v2Filtered(i), "")
-                If v1Tok <> v2Tok Then
-                    diffCount += 1
-                    ' Validate that the diff is one of the 2 documented changes:
-                    '   - "20000000" vs "40000000" (bufsize)
-                    '   - addition of "-pix_fmt" and "nv12"
-                    Dim isBufsizeDiff As Boolean = (v1Tok = "20000000" AndAlso v2Tok = "40000000")
-                    Dim isPixfmtAddition As Boolean = (v1Tok = "-y" AndAlso v2Tok = "-pix_fmt") ' V2 inserts -pix_fmt before -y
-                    Assert(isBufsizeDiff OrElse isPixfmtAddition,
-                           $"Unexpected diff at token {i}: V1='{v1Tok}' V2='{v2Tok}'. " &
-                           "Only bufsize (20000000→40000000) and -pix_fmt insertion are allowed.")
-                End If
-            Next
+            ' Step 1: Normalize V1 bufsize "20000000" → "40000000"
+            '         (V1 uses 1× bitrate for bufsize; V2 uses 2× bitrate — documented fix)
+            Dim v1BufsizeIndex As Integer = v1Tokens.IndexOf("-bufsize")
+            Assert(v1BufsizeIndex >= 0, "V1 must contain -bufsize token")
+            Assert(v1Tokens(v1BufsizeIndex + 1) = "20000000",
+                   "V1 bufsize value should be 20000000 (1× bitrate), got " & v1Tokens(v1BufsizeIndex + 1))
+            v1Tokens(v1BufsizeIndex + 1) = "40000000"
 
-            ' V2 has 2 extra tokens (-pix_fmt nv12) → diffCount = 1 (bufsize) + 2 (insertion gap) + 1 (nv12 trailing)
-            ' Allow reasonable diff count
-            Assert(diffCount >= 1 AndAlso diffCount <= 5,
-                   $"Expected 1-5 token diffs (bufsize + pix_fmt insertion), got {diffCount}. V1={v1Cmd} V2={v2Cmd}")
+            ' Step 2: Remove V2's extra -pix_fmt nv12 tokens
+            '         (V2 appends -pix_fmt nv12 for ddagrab+NVENC — documented fix)
+            Dim v2PixfmtIndex As Integer = v2Tokens.IndexOf("-pix_fmt")
+            Assert(v2PixfmtIndex >= 0, "V2 must contain -pix_fmt token")
+            Assert(v2Tokens(v2PixfmtIndex + 1) = "nv12",
+                   "V2 pix_fmt value should be nv12, got " & v2Tokens(v2PixfmtIndex + 1))
+            v2Tokens.RemoveAt(v2PixfmtIndex + 1)  ' remove "nv12" first (higher index)
+            v2Tokens.RemoveAt(v2PixfmtIndex)     ' then remove "-pix_fmt"
+
+            ' Step 3: Now V1 and V2 should be identical token lists
+            Assert(v1Tokens.Count = v2Tokens.Count,
+                   $"After normalization, V1 has {v1Tokens.Count} tokens but V2 has {v2Tokens.Count}. " &
+                   $"V1=[{String.Join(", ", v1Tokens)}] V2=[{String.Join(", ", v2Tokens)}]")
+
+            For i As Integer = 0 To v1Tokens.Count - 1
+                Assert(v1Tokens(i) = v2Tokens(i),
+                       $"Token {i} differs after normalization: V1='{v1Tokens(i)}' V2='{v2Tokens(i)}'. " &
+                       $"This means V1 and V2 differ in ways OTHER than the 2 documented changes " &
+                       $"(bufsize + pix_fmt). V1=[{String.Join(", ", v1Tokens)}] V2=[{String.Join(", ", v2Tokens)}]")
+            Next
         End Sub
 
         Private Sub Test_H_V2_RejectEmptyPath()

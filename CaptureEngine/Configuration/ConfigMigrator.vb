@@ -34,7 +34,7 @@ Namespace CaptureEngine.Configuration
         Public NotInheritable Class V1CaptureSettings
             ' ── video.json (mapped via OverlayConfig.MapEncoderToFfmpeg at Engine side) ──
             Public Property EncoderKey As String = "NVENC_H264"           ' Overlay's symbolic key
-            Public Property FFmpegCodec As String = "h264_nvenc"           ' Resolved FFmpeg codec name
+            Public Property FFmpegCodec As String = ""                    ' Empty = not yet resolved; migrator will derive from EncoderKey
             Public Property FPS As Integer = 60
             Public Property BitrateBps As Long = 20000000L
             Public Property NvencPreset As Integer = 4                     ' 1-7 (will be migrated to "p1".."p7")
