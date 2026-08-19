@@ -11,22 +11,32 @@ Namespace CaptureEngine.FFmpegBackend
     ''' Manages a single FFmpeg process lifecycle: spawn, stdin 'q' quit,
     ''' stderr redirection, WaitForExit, Kill.
     '''
-    ''' P1-C SKELETON — empty stub. Implementation in next commit.
+    ''' P1-C Commit 2: Full implementation.
     '''
     ''' Thread safety:
-    '''   - Start/Stop/Kill are NOT thread-safe by themselves.
-    '''   - Caller (FFmpegPipelineBackend) must serialize access via SyncLock.
-    '''   - The Exited event fires on a threadpool thread.
+    '''   - This class is NOT internally synchronized.
+    '''   - Caller (FFmpegPipelineBackend) must serialize Start/SendQuit/WaitForExit/Kill
+    '''     via its own SyncLock.
+    '''   - The Exited event fires on a threadpool thread (Process.Exited callback).
+    '''   - The StderrLine event fires on a threadpool thread (ErrorDataReceived callback).
     '''
     ''' Critical rule (per OWNER):
-    '''   ❌ NEVER hold a lock across WaitForExit() / Kill() / Mux() / ffprobe()
-    '''   ✅ Capture state under lock → release lock → call blocking ops → re-acquire
+    '''   ❌ NEVER hold a lock across WaitForExit() / Kill()
+    '''   ✅ These methods are designed to be called OUTSIDE the caller's lock
+    '''
+    ''' Error handling:
+    '''   - Start() throws FileNotFoundException if FFmpegPath doesn't exist
+    '''   - Start() throws InvalidOperationException if already running
+    '''   - SendQuit() swallows exceptions (pipe may already be closed)
+    '''   - Kill() swallows exceptions (process may already be dead)
+    '''   - WaitForExit() returns False on timeout (does NOT throw)
     ''' </summary>
     Public NotInheritable Class FFmpegProcessHost
         Implements IDisposable
 
         Private _process As Process
         Private _disposed As Boolean = False
+        Private _started As Boolean = False
 
         ''' <summary>FFmpeg executable path (set by caller before Start).</summary>
         Public Property FFmpegPath As String = ""
@@ -44,49 +54,187 @@ Namespace CaptureEngine.FFmpegBackend
         Public Event StderrLine As Action(Of String)
 
         ''' <summary>Start the FFmpeg process.</summary>
+        ''' <exception cref="FileNotFoundException">FFmpegPath does not point to an existing file.</exception>
+        ''' <exception cref="InvalidOperationException">Process already started and not yet exited.</exception>
         Public Sub Start()
-            ' TODO (next commit): spawn Process, redirect stderr, wire Exited handler
-            Throw New NotImplementedException("FFmpegProcessHost.Start — skeleton only")
+            If _disposed Then
+                Throw New ObjectDisposedException(NameOf(FFmpegProcessHost))
+            End If
+            If _started AndAlso _process IsNot Nothing AndAlso Not _process.HasExited Then
+                Throw New InvalidOperationException("FFmpegProcessHost: process is already running.")
+            End If
+
+            ' Validate FFmpeg path
+            If String.IsNullOrWhiteSpace(FFmpegPath) Then
+                Throw New FileNotFoundException("FFmpegPath is empty.", "ffmpeg.exe")
+            End If
+            If Not File.Exists(FFmpegPath) Then
+                Throw New FileNotFoundException(
+                    "FFmpeg executable not found at: " & FFmpegPath, FFmpegPath)
+            End If
+
+            ' Create process start info
+            Dim si As New ProcessStartInfo()
+            si.FileName = FFmpegPath
+            si.Arguments = Arguments
+            si.UseShellExecute = False
+            si.RedirectStandardInput = True
+            si.RedirectStandardOutput = True
+            si.RedirectStandardError = True
+            si.CreateNoWindow = True
+
+            ' Create and configure the process
+            _process = New Process()
+            _process.StartInfo = si
+            _process.EnableRaisingEvents = True
+
+            ' Wire the Exited event (fires on threadpool thread when process exits)
+            AddHandler _process.Exited, AddressOf OnProcessExited
+
+            ' Wire stderr redirect (fires on threadpool thread per line)
+            AddHandler _process.ErrorDataReceived, AddressOf OnErrorDataReceived
+
+            ' Start the process
+            If Not _process.Start() Then
+                Throw New InvalidOperationException(
+                    "FFmpegProcessHost: Process.Start() returned False — process did not start.")
+            End If
+
+            _started = True
+
+            ' Begin async stderr reading (must be called AFTER Start)
+            _process.BeginErrorReadLine()
+
+            ' Begin async stdout reading (we don't use stdout for full-pipeline mode,
+            ' but we must drain it to prevent FFmpeg from blocking on a full pipe buffer).
+            _process.BeginOutputReadLine()
         End Sub
 
         ''' <summary>Send 'q' to FFmpeg stdin (graceful stop).</summary>
         Public Sub SendQuit()
-            ' TODO (next commit): write 'q' + LF to stdin, flush
-            Throw New NotImplementedException("FFmpegProcessHost.SendQuit — skeleton only")
+            If _process Is Nothing OrElse _process.HasExited Then Return
+
+            Try
+                _process.StandardInput.Write("q" & vbLf)
+                _process.StandardInput.Flush()
+            Catch ex As Exception
+                ' Pipe may already be closed (process crashed or already exited).
+                ' Swallow — the caller will detect the exit via WaitForExit or Exited event.
+            End Try
         End Sub
 
-        ''' <summary>Wait for FFmpeg to exit (with timeout).</summary>
+        ''' <summary>
+        ''' Wait for FFmpeg to exit (with timeout).
+        ''' Returns True if the process exited within the timeout, False on timeout.
+        ''' Does NOT throw on timeout — caller decides how to handle.
+        ''' </summary>
         Public Function WaitForExit(timeoutMs As Integer) As Boolean
-            ' TODO (next commit): _process.WaitForExit(timeoutMs)
-            Throw New NotImplementedException("FFmpegProcessHost.WaitForExit — skeleton only")
+            If _process Is Nothing Then Return True
+
+            If _process.HasExited Then Return True
+
+            Try
+                Return _process.WaitForExit(timeoutMs)
+            Catch ex As Exception
+                ' Process may have exited between HasExited check and WaitForExit call.
+                Return _process.HasExited
+            End Try
         End Function
 
-        ''' <summary>Force-kill the FFmpeg process.</summary>
+        ''' <summary>
+        ''' Force-kill the FFmpeg process.
+        ''' Swallows all exceptions — the process may already be dead.
+        ''' Waits up to 2000 ms for the process to actually die after Kill().
+        ''' </summary>
         Public Sub Kill()
-            ' TODO (next commit): _process.Kill() + WaitForExit(2000)
-            Throw New NotImplementedException("FFmpegProcessHost.Kill — skeleton only")
+            If _process Is Nothing OrElse _process.HasExited Then Return
+
+            Try
+                _process.Kill()
+                _process.WaitForExit(2000)
+            Catch ex As Exception
+                ' Swallow — process may have exited between the HasExited check and Kill().
+            End Try
         End Sub
 
-        ''' <summary>True if the process has exited.</summary>
+        ''' <summary>True if the process has exited (or was never started).</summary>
         Public ReadOnly Property HasExited As Boolean
             Get
-                Return _process IsNot Nothing AndAlso _process.HasExited
+                Return _process Is Nothing OrElse _process.HasExited
             End Get
         End Property
 
-        ''' <summary>Exit code of the process (valid after HasExited = True).</summary>
+        ''' <summary>Exit code of the process (valid after HasExited = True). Returns -1 if not started or not yet exited.</summary>
         Public ReadOnly Property ExitCode As Integer
             Get
                 If _process Is Nothing OrElse Not _process.HasExited Then Return -1
-                Return _process.ExitCode
+                Try
+                    Return _process.ExitCode
+                Catch
+                    Return -1
+                End Try
             End Get
         End Property
+
+        ''' <summary>Process ID (returns -1 if not started or already disposed).</summary>
+        Public ReadOnly Property ProcessId As Integer
+            Get
+                If _process Is Nothing OrElse _process.HasExited Then Return -1
+                Try
+                    Return _process.Id
+                Catch
+                    Return -1
+                End Try
+            End Get
+        End Property
+
+        ' ===== Private callbacks (fire on threadpool threads) =====
+
+        Private Sub OnProcessExited(sender As Object, e As EventArgs)
+            Dim exitCode As Integer = -1
+            Try
+                If _process IsNot Nothing AndAlso _process.HasExited Then
+                    exitCode = _process.ExitCode
+                End If
+            Catch
+            End Try
+
+            ' Fire event — caller's handler must be thread-safe.
+            ' Per OWNER rule: this event is fired from a threadpool thread.
+            ' The caller (FFmpegPipelineBackend) must NOT hold a lock when
+            ' handling this event.
+            RaiseEvent Exited(exitCode)
+        End Sub
+
+        Private Sub OnErrorDataReceived(sender As Object, e As DataReceivedEventArgs)
+            If e.Data Is Nothing Then Return
+            ' Fire event — caller's StderrParser must be thread-safe (uses SyncLock).
+            RaiseEvent StderrLine(e.Data)
+        End Sub
+
+        ' ===== IDisposable =====
 
         Public Sub Dispose() Implements IDisposable.Dispose
             If _disposed Then Return
             _disposed = True
-            ' TODO (next commit): dispose process + streams
+
             If _process IsNot Nothing Then
+                Try
+                    ' Unhook events to prevent late callbacks during dispose
+                    RemoveHandler _process.Exited, AddressOf OnProcessExited
+                    RemoveHandler _process.ErrorDataReceived, AddressOf OnErrorDataReceived
+                Catch
+                End Try
+
+                ' If process is still alive, kill it (defensive — caller should have stopped first)
+                If Not _process.HasExited Then
+                    Try
+                        _process.Kill()
+                        _process.WaitForExit(2000)
+                    Catch
+                    End Try
+                End If
+
                 _process.Dispose()
                 _process = Nothing
             End If
