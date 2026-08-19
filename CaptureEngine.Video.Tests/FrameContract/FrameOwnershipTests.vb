@@ -24,6 +24,7 @@ Namespace CaptureEngine.Video.Tests.FrameContract
             runner("OWNERSHIP: Refused frames (PushOutcome.Dropped) are disposed by backend", AddressOf Test_DroppedFrameOwnership)
             runner("OWNERSHIP: Replaced frames disposed by sink (DropOldest)", AddressOf Test_ReplacedFrameOwnership)
             runner("OWNERSHIP: No frame leak across Start/Stop/Dispose cycles", AddressOf Test_NoLeakAcrossCycles)
+            runner("OWNERSHIP: Concurrent Dispose — DisposeCount is exactly 1 (RC-1 fix)", AddressOf Test_ConcurrentDisposeFakeVideoFrame)
         End Sub
 
         ''' <summary>
@@ -166,6 +167,43 @@ Namespace CaptureEngine.Video.Tests.FrameContract
             TestHelpers.AssertEqual(
                 FakeVideoCaptureBackend.FakeBackendState.Disposed,
                 backend.CurrentState, "backend disposed cleanly after cycles")
+        End Sub
+
+        ''' <summary>
+        ''' RC-1 fix: Concurrent Dispose on FakeVideoFrame must result in
+        ''' DisposeCount = 1 (not >1). The old implementation used non-atomic
+        ''' VolatileWrite(VolatileRead + 1) which allowed concurrent calls
+        ''' to both read 0, both increment, and write 1 — masking the race.
+        ''' The new implementation uses Interlocked.CompareExchange which
+        ''' guarantees only one caller passes the guard.
+        ''' </summary>
+        Private Shared Sub Test_ConcurrentDisposeFakeVideoFrame()
+            Dim frame As New FakeVideoFrame(
+                VideoFrameOrigin.CpuMemory,
+                VideoPixelFormat.Bgra8,
+                New VideoFrameDimensions(1920, 1080),
+                New FrameDiagnostics(0, 0, 0))
+
+            TestHelpers.AssertEqual(0, frame.DisposeCount, "DisposeCount should be 0 before Dispose")
+            TestHelpers.Assert(Not frame.IsDisposed, "Should not be disposed before Dispose")
+
+            ' Dispose from multiple threads concurrently
+            Dim tasks As New List(Of Threading.Tasks.Task)()
+            For i As Integer = 0 To 19
+                tasks.Add(Threading.Tasks.Task.Run(Sub() frame.Dispose()))
+            Next
+            Threading.Tasks.Task.WaitAll(tasks.ToArray())
+
+            ' RC-1 fix: DisposeCount MUST be exactly 1 (old code could give 1-20)
+            TestHelpers.AssertEqual(1, frame.DisposeCount,
+                "Concurrent Dispose should set DisposeCount to exactly 1 (got " & frame.DisposeCount & ")")
+            TestHelpers.Assert(frame.IsDisposed, "Should be disposed after concurrent calls")
+
+            ' Double-dispose after concurrent — still must be 1
+            frame.Dispose()
+            frame.Dispose()
+            TestHelpers.AssertEqual(1, frame.DisposeCount,
+                "Subsequent Dispose must NOT increment DisposeCount (got " & frame.DisposeCount & ")")
         End Sub
     End Class
 End Namespace

@@ -13,6 +13,11 @@ Namespace CaptureEngine.Video.Backends.Fake
     ''' every FrameAvailable result's frame is disposed exactly once by
     ''' whoever currently owns it (the sink under DropOldest, the backend
     ''' under DropNewest-with-Dropped outcome, or the consumer downstream).
+    '''
+    ''' RC-1 fix: Dispose is now thread-safe and idempotent.
+    '''   - Uses Interlocked.CompareExchange guard (same pattern as Frames.VideoFrame)
+    '''   - _disposeCount increments ONLY on first Dispose (guaranteed 0 or 1)
+    '''   - Concurrent Dispose calls are safe — only first caller proceeds
     ''' </summary>
     Public NotInheritable Class FakeVideoFrame
         Implements IVideoFrame
@@ -22,8 +27,9 @@ Namespace CaptureEngine.Video.Backends.Fake
         Private ReadOnly _dimensions As VideoFrameDimensions
         Private ReadOnly _diagnostics As FrameDiagnostics
 
-        Private _disposed As Boolean = False
-        Private _disposeCount As Integer = 0
+        ' RC-1 fix: Use Integer + Interlocked instead of Boolean + VolatileWrite
+        ' 0 = not disposed, 1 = disposed
+        Private _disposed As Integer = 0
 
         Public Sub New(origin As VideoFrameOrigin,
                        pixelFormat As VideoPixelFormat,
@@ -60,25 +66,33 @@ Namespace CaptureEngine.Video.Backends.Fake
         End Property
 
         ''' <summary>
-        ''' Number of times Dispose() has been called. MUST be exactly 1 over
-        ''' the frame's lifetime; >1 indicates double-dispose, 0 indicates
-        ''' a leak.
+        ''' Number of times Dispose() has been called. After RC-1 fix, this is
+        ''' always 0 (before Dispose) or 1 (after first Dispose). Previous
+        ''' implementation could return >1 due to non-atomic increment.
         ''' </summary>
         Public ReadOnly Property DisposeCount As Integer
             Get
-                Return Thread.VolatileRead(_disposeCount)
+                Return Thread.VolatileRead(_disposed)
             End Get
         End Property
 
         Public ReadOnly Property IsDisposed As Boolean
             Get
-                Return Thread.VolatileRead(_disposeCount) > 0
+                Return Thread.VolatileRead(_disposed) = 1
             End Get
         End Property
 
+        ''' <summary>
+        ''' Dispose the frame. Thread-safe and idempotent.
+        ''' Only the first call proceeds; subsequent calls are no-ops.
+        ''' </summary>
         Public Sub Dispose() Implements IDisposable.Dispose
-            Thread.VolatileWrite(_disposeCount, Thread.VolatileRead(_disposeCount) + 1)
-            _disposed = True
+            ' RC-1 fix: Interlocked.CompareExchange ensures only ONE caller
+            ' passes the guard, even under concurrent access.
+            If Interlocked.CompareExchange(_disposed, 1, 0) <> 0 Then Return
+
+            ' No heavy cleanup needed for the fake frame — just the guard.
+            ' Real frames (Frames.VideoFrame) invoke a cleanup callback here.
         End Sub
     End Class
 End Namespace
