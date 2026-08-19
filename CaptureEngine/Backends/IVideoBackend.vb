@@ -145,8 +145,11 @@ Namespace CaptureEngine.Backends
         ''' <summary>Capturing frames.</summary>
         Running
 
-        ''' <summary>Stop() in progress (drain + finalize).</summary>
+        ''' <summary>Stop() in progress — FFmpeg shutdown + audio stop.</summary>
         Stopping
+
+        ''' <summary>Muxing in progress — combining video + audio into final output.</summary>
+        Muxing
 
         ''' <summary>Stopped — can be started again.</summary>
         Stopped
@@ -154,7 +157,7 @@ Namespace CaptureEngine.Backends
         ''' <summary>Permanently disposed — cannot be restarted.</summary>
         Disposed
 
-        ''' <summary>Backend failed (capture init error, device lost, etc.).</summary>
+        ''' <summary>Backend failed (capture init error, device lost, mux failure, etc.).</summary>
         Faulted
     End Enum
 

@@ -4,6 +4,9 @@ Option Infer On
 
 Imports System
 Imports System.Collections.Generic
+Imports System.Diagnostics
+Imports System.IO
+Imports System.Globalization
 Imports CaptureEngine.Backends
 Imports CaptureEngine.FFmpegBackend
 
@@ -48,6 +51,9 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("AUDIO: Start/Stop lifecycle (stub mode)", AddressOf Test_AudioSidecarStubLifecycle)
             RunTest("AUDIO: HasAudioData returns False (stub)", AddressOf Test_AudioSidecarNoData)
             RunTest("AUDIO: Captures timestamps on Start", AddressOf Test_AudioSidecarTimestamps)
+
+            ' ----- Integration test (requires real ffmpeg.exe) -----
+            RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
@@ -308,6 +314,100 @@ Namespace CaptureEngine.FFmpegTests
             Assert(a.MicStartTicks > 0, "MicStartTicks should be captured")
             a.Stop()
             a.Dispose()
+        End Sub
+
+        ' ===== Integration test (requires real ffmpeg.exe) =====
+
+        Private Sub Test_RealFFmpegIntegration()
+            ' Find ffmpeg.exe — try common paths
+            Dim ffmpegCandidates As String() = {
+                "/usr/bin/ffmpeg",
+                "/usr/local/bin/ffmpeg",
+                IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
+                IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "API-Core", "ffmpeg.exe")
+            }
+            Dim ffmpegPath As String = Nothing
+            For Each c In ffmpegCandidates
+                If IO.File.Exists(c) Then
+                    ffmpegPath = c
+                    Exit For
+                End If
+            Next
+
+            If ffmpegPath Is Nothing Then
+                ' Skip — ffmpeg not available in this environment
+                Console.Write("(SKIP: ffmpeg not found) ")
+                Return
+            End If
+
+            ' Generate a test output path
+            Dim outputDir As String = IO.Path.GetTempPath()
+            Dim outputFile As String = IO.Path.Combine(outputDir, "ffmpeg_integration_test.mp4")
+
+            ' Clean up any stale output
+            If IO.File.Exists(outputFile) Then IO.File.Delete(outputFile)
+
+            ' Use lavfi testsrc as input (generates a test pattern — no display needed)
+            Dim args As String = "-y -f lavfi -i testsrc=duration=3:size=320x240:rate=30 " &
+                                 "-c:v libx264 -preset ultrafast -tune zerolatency " &
+                                 "-b:v 500000 -pix_fmt yuv420p -t 3 " &
+                                 """" & outputFile & """"
+
+            Dim backend As New FFmpegPipelineBackend()
+            backend.WithFFmpegPath(ffmpegPath)
+            backend.WithArguments(args)
+            backend.WithOutputPath(outputFile)
+
+            ' Start
+            backend.Start()
+            Assert(backend.CurrentState = VideoBackendState.Running,
+                   "State should be Running after Start")
+
+            ' Wait for FFmpeg to finish (testsrc with -t 3 should complete in ~1-2s)
+            System.Threading.Thread.Sleep(4000)
+
+            ' Stop
+            backend.Stop()
+
+            ' Verify state
+            Dim finalState = backend.CurrentState
+            Assert(finalState = VideoBackendState.Stopped OrElse finalState = VideoBackendState.Faulted,
+                   "Final state should be Stopped or Faulted (not Running)")
+
+            ' Verify output file exists and has content
+            Assert(IO.File.Exists(outputFile), "Output file should exist")
+            If IO.File.Exists(outputFile) Then
+                Dim sizeBytes = New IO.FileInfo(outputFile).Length
+                Assert(sizeBytes > 0, "Output file should be non-empty (size=" & sizeBytes & ")")
+
+                ' Try to read duration with ffprobe (if available)
+                Dim ffprobePath As String = IO.Path.Combine(IO.Path.GetDirectoryName(ffmpegPath), "ffprobe")
+                If IO.File.Exists(ffprobePath) Then
+                    Dim psi As New ProcessStartInfo()
+                    psi.FileName = ffprobePath
+                    psi.Arguments = "-v error -show_entries format=duration -of csv=p=0 """ & outputFile & """"
+                    psi.UseShellExecute = False
+                    psi.RedirectStandardOutput = True
+                    psi.CreateNoWindow = True
+                    Using proc As New Process()
+                        proc.StartInfo = psi
+                        proc.Start()
+                        Dim dur = proc.StandardOutput.ReadToEnd().Trim()
+                        proc.WaitForExit(5000)
+                        If Not String.IsNullOrEmpty(dur) Then
+                            Dim durVal As Double
+                            If Double.TryParse(dur, Globalization.CultureInfo.InvariantCulture, durVal) Then
+                                Assert(durVal > 0, "Duration should be > 0 (got " & durVal & ")")
+                            End If
+                        End If
+                    End Using
+                End If
+
+                ' Clean up
+                IO.File.Delete(outputFile)
+            End If
+
+            backend.Dispose()
         End Sub
     End Module
 End Namespace

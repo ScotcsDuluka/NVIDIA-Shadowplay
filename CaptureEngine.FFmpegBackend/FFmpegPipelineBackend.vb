@@ -12,7 +12,7 @@ Namespace CaptureEngine.FFmpegBackend
     ''' FFmpegPipelineBackend — the orchestrator. Implements IVideoBackend
     ''' (fire-and-forget model: GetFrame() returns Nothing).
     '''
-    ''' P1-C Commit 4: Full lifecycle implementation.
+    ''' P1-C Commit 5: Generation guard + Mux failure propagation + Muxing state.
     '''
     ''' Lifecycle:
     '''   Created → Starting → Running → Stopping → [Muxing] → Stopped → Disposed
@@ -35,6 +35,10 @@ Namespace CaptureEngine.FFmpegBackend
     '''   🔴 Guard against 3-way race:
     '''       FFmpeg exited (OnExited, threadpool) + Stop() (caller) + Dispose() (caller/finalizer)
     '''       Use Interlocked.Exchange(_stopCompleted, 1) — first wins, others no-op.
+    '''   🔴 Generation guard:
+    '''       Each Start() increments _currentGeneration. Callbacks carry the generation
+    '''       they were created with. If it doesn't match _currentGeneration, the callback
+    '''       is from a stale (previous session) process and must be ignored.
     ''' </summary>
     Public NotInheritable Class FFmpegPipelineBackend
         Implements IVideoBackend
@@ -46,6 +50,9 @@ Namespace CaptureEngine.FFmpegBackend
         Private _disposed As Boolean = False
         Private _stopCompleted As Integer = 0  ' Interlocked guard for 3-way race
         Private _muxCompleted As Integer = 0   ' Guard against double-mux
+
+        ' ── Generation guard (P0 fix) ──
+        Private _currentGeneration As Integer = 0
 
         ' ── Components (owned) ──
         Private _processHost As FFmpegProcessHost
@@ -102,6 +109,9 @@ Namespace CaptureEngine.FFmpegBackend
                         "Start cannot be called from state '" & _state.ToString() & "'.")
                 End If
                 _state = VideoBackendState.Starting
+
+                ' Increment generation for this new session
+                _currentGeneration += 1
             End SyncLock
 
             FireStateChanged(VideoBackendState.Starting)
@@ -109,20 +119,30 @@ Namespace CaptureEngine.FFmpegBackend
             Try
                 ' Create components
                 _stderrParser = New FFmpegStderrParser()
+
+                ' Dispose previous process host if any (from a previous session)
+                If _processHost IsNot Nothing Then
+                    RemoveHandler _processHost.Exited, AddressOf OnProcessExited
+                    RemoveHandler _processHost.StderrLine, AddressOf OnStderrLine
+                    _processHost.Dispose()
+                End If
+
                 _processHost = New FFmpegProcessHost()
                 _processHost.FFmpegPath = _ffmpegPath
                 _processHost.Arguments = _arguments
                 _processHost.OutputPath = If(_useTwoProcess, _tempVideoPath, _outputPath)
 
-                ' Wire events
+                ' Wire events (callbacks carry generation from ProcessHost)
                 AddHandler _processHost.Exited, AddressOf OnProcessExited
                 AddHandler _processHost.StderrLine, AddressOf OnStderrLine
 
-                ' Reset stop guard
+                ' Reset stop guard for this new session
                 Threading.Interlocked.Exchange(_stopCompleted, 0)
                 Threading.Interlocked.Exchange(_muxCompleted, 0)
+                _videoStartDetected = False
+                _videoStartTicks = 0
 
-                ' Start FFmpeg
+                ' Start FFmpeg (ProcessHost increments its own _generation internally)
                 _processHost.Start()
 
                 ' Start audio sidecar (if enabled)
@@ -167,7 +187,7 @@ Namespace CaptureEngine.FFmpegBackend
             SyncLock _sync
                 prevState = _state
                 If prevState = VideoBackendState.Disposed Then Return
-                ' If not Running, Stop is a no-op (matches Foundation + P1-B.1 pattern)
+                ' If not Running, Stop is a no-op
                 If prevState <> VideoBackendState.Running Then Return
                 _state = VideoBackendState.Stopping
             End SyncLock
@@ -191,16 +211,26 @@ Namespace CaptureEngine.FFmpegBackend
             End If
 
             ' ─── Step 3: Mux (if two-process mode) ───
+            Dim muxSucceeded As Boolean = True
             If _useTwoProcess Then
-                RunMux()
+                muxSucceeded = RunMux()
             End If
 
-            ' ─── Step 4: Transition to Stopped ───
-            SyncLock _sync
-                _state = VideoBackendState.Stopped
-            End SyncLock
-            FireStateChanged(VideoBackendState.Stopped)
-            FireRecordingStopped(_outputPath)
+            ' ─── Step 4: Transition to Stopped or Faulted ───
+            ' P0 fix: If mux failed, transition to Faulted and do NOT emit RecordingStopped.
+            If muxSucceeded Then
+                SyncLock _sync
+                    _state = VideoBackendState.Stopped
+                End SyncLock
+                FireStateChanged(VideoBackendState.Stopped)
+                FireRecordingStopped(_outputPath)
+            Else
+                SyncLock _sync
+                    _state = VideoBackendState.Faulted
+                End SyncLock
+                FireStateChanged(VideoBackendState.Faulted)
+                FireErrorOccurred("Mux failed — output file may be incomplete or missing.")
+            End If
         End Sub
 
         Public Function GetDiagnostics() As IReadOnlyDictionary(Of String, Long) Implements IVideoBackend.GetDiagnostics
@@ -299,8 +329,12 @@ Namespace CaptureEngine.FFmpegBackend
 
         ' ===== Private: Mux =====
 
-        Private Sub RunMux()
-            If Threading.Interlocked.Exchange(_muxCompleted, 1) <> 0 Then Return
+        ''' <summary>
+        ''' Run the mux step. Returns True if mux succeeded (or no mux needed);
+        ''' False if mux failed.
+        ''' </summary>
+        Private Function RunMux() As Boolean
+            If Threading.Interlocked.Exchange(_muxCompleted, 1) <> 0 Then Return True
 
             _muxCoordinator = New MuxCoordinator()
             _muxCoordinator.FFmpegPath = _ffmpegPath
@@ -319,7 +353,6 @@ Namespace CaptureEngine.FFmpegBackend
                 If _systemStartTicks > 0 Then
                     _muxCoordinator.SystemOffsetSec =
                         (_videoStartTicks - _systemStartTicks) / Stopwatch.Frequency
-                    ' Clamp
                     _muxCoordinator.SystemOffsetSec = Math.Max(-2.0, Math.Min(5.0, _muxCoordinator.SystemOffsetSec))
                 End If
                 If _micStartTicks > 0 Then
@@ -329,20 +362,18 @@ Namespace CaptureEngine.FFmpegBackend
                 End If
             End If
 
-            ' Transition to Stopping (VideoBackendState enum has no Muxing member —
-            ' the mux happens during the Stopping phase; the Stopping → Stopped
-            ' transition covers the entire stop+mux sequence)
+            ' Transition to Muxing (P1 fix: explicit Muxing state for observability)
             SyncLock _sync
-                _state = VideoBackendState.Stopping
+                _state = VideoBackendState.Muxing
             End SyncLock
-            FireStateChanged(VideoBackendState.Stopping)
+            FireStateChanged(VideoBackendState.Muxing)
 
             ' Check if audio data exists
             Dim hasAudio As Boolean = (_audioSidecar IsNot Nothing AndAlso _audioSidecar.HasAudioData)
 
             If Not hasAudio Then
                 ' No audio data — just rename temp video to final output
-                _muxCoordinator.RenameTempVideoToOutput()
+                Return _muxCoordinator.RenameTempVideoToOutput()
             Else
                 ' Step 1: ffprobe (OUTSIDE lock)
                 _muxCoordinator.ProbeVideoDuration()
@@ -353,13 +384,20 @@ Namespace CaptureEngine.FFmpegBackend
                 If muxOk Then
                     ' Clean up temp files
                     _muxCoordinator.CleanupTempFiles()
+                    Return True
+                Else
+                    ' Mux failed — keep temp files for inspection, return False
+                    Return False
                 End If
             End If
-        End Sub
+        End Function
 
         ' ===== Private: Event handlers =====
 
-        Private Sub OnProcessExited(exitCode As Integer)
+        Private Sub OnProcessExited(gen As Integer, exitCode As Integer)
+            ' P0 fix: Generation guard — ignore stale callbacks from previous sessions
+            If gen <> _currentGeneration Then Return
+
             ' Guard: only first caller of Stop/Dispose/OnExited proceeds
             If Threading.Interlocked.Exchange(_stopCompleted, 1) <> 0 Then Return
 
@@ -369,39 +407,42 @@ Namespace CaptureEngine.FFmpegBackend
             End SyncLock
 
             ' Only handle unexpected exits (state was Running)
-            ' If state is Stopping, Stop() is handling the flow.
             If prevState = VideoBackendState.Running Then
                 ' FFmpeg exited unexpectedly (crash or error)
-                ' Stop audio sidecar
                 If _audioSidecar IsNot Nothing Then
                     _audioSidecar.Stop()
                 End If
 
-                ' If exit code = 0, mux may be possible
+                Dim muxSucceeded As Boolean = True
                 If exitCode = 0 AndAlso _useTwoProcess Then
-                    RunMux()
+                    muxSucceeded = RunMux()
                 End If
 
-                ' Transition to Faulted (if exit was non-zero) or Stopped
-                SyncLock _sync
-                    If exitCode = 0 Then
+                ' P0 fix: If mux failed or exit was non-zero, transition to Faulted
+                If exitCode = 0 AndAlso muxSucceeded Then
+                    SyncLock _sync
                         _state = VideoBackendState.Stopped
-                    Else
-                        _state = VideoBackendState.Faulted
-                    End If
-                End SyncLock
-
-                If exitCode = 0 Then
+                    End SyncLock
                     FireStateChanged(VideoBackendState.Stopped)
                     FireRecordingStopped(_outputPath)
                 Else
+                    SyncLock _sync
+                        _state = VideoBackendState.Faulted
+                    End SyncLock
                     FireStateChanged(VideoBackendState.Faulted)
-                    FireErrorOccurred("FFmpeg exited unexpectedly with code " & exitCode.ToString())
+                    If exitCode <> 0 Then
+                        FireErrorOccurred("FFmpeg exited unexpectedly with code " & exitCode.ToString())
+                    Else
+                        FireErrorOccurred("Mux failed — output file may be incomplete or missing.")
+                    End If
                 End If
             End If
         End Sub
 
-        Private Sub OnStderrLine(line As String)
+        Private Sub OnStderrLine(gen As Integer, line As String)
+            ' P0 fix: Generation guard — ignore stale callbacks
+            If gen <> _currentGeneration Then Return
+
             If _stderrParser IsNot Nothing Then
                 _stderrParser.ProcessLine(line)
             End If

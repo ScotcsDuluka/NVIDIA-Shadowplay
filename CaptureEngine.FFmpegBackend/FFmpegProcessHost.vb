@@ -38,6 +38,15 @@ Namespace CaptureEngine.FFmpegBackend
         Private _disposed As Boolean = False
         Private _started As Boolean = False
 
+        ''' <summary>
+        ''' Process generation ID — incremented on each Start().
+        ''' Captured by Exited/Stderr callbacks to detect stale invocations
+        ''' from a previous session. If the generation doesn't match
+        ''' _currentGeneration, the callback is from an old process and must
+        ''' be ignored.
+        ''' </summary>
+        Private _generation As Integer = 0
+
         ''' <summary>FFmpeg executable path (set by caller before Start).</summary>
         Public Property FFmpegPath As String = ""
 
@@ -47,11 +56,18 @@ Namespace CaptureEngine.FFmpegBackend
         ''' <summary>Output file path (for diagnostics / mux coordination).</summary>
         Public Property OutputPath As String = ""
 
-        ''' <summary>Raised when the FFmpeg process exits (graceful or crash).</summary>
-        Public Event Exited As Action(Of Integer)
+        ''' <summary>Raised when the FFmpeg process exits (graceful or crash). Carries generation ID for staleness check.</summary>
+        Public Event Exited As Action(Of Integer, Integer)
 
-        ''' <summary>Raised for each stderr line (parsed by FFmpegStderrParser).</summary>
-        Public Event StderrLine As Action(Of String)
+        ''' <summary>Raised for each stderr line. Carries generation ID for staleness check.</summary>
+        Public Event StderrLine As Action(Of Integer, String)
+
+        ''' <summary>Current generation ID (incremented on each Start).</summary>
+        Public ReadOnly Property Generation As Integer
+            Get
+                Return _generation
+            End Get
+        End Property
 
         ''' <summary>Start the FFmpeg process.</summary>
         ''' <exception cref="FileNotFoundException">FFmpegPath does not point to an existing file.</exception>
@@ -73,7 +89,9 @@ Namespace CaptureEngine.FFmpegBackend
                     "FFmpeg executable not found at: " & FFmpegPath, FFmpegPath)
             End If
 
-            ' Create process start info
+            ' Increment generation for this session
+            _generation += 1
+            Dim gen As Integer = _generation
             Dim si As New ProcessStartInfo()
             si.FileName = FFmpegPath
             si.Arguments = Arguments
@@ -199,17 +217,14 @@ Namespace CaptureEngine.FFmpegBackend
             Catch
             End Try
 
-            ' Fire event — caller's handler must be thread-safe.
-            ' Per OWNER rule: this event is fired from a threadpool thread.
-            ' The caller (FFmpegPipelineBackend) must NOT hold a lock when
-            ' handling this event.
-            RaiseEvent Exited(exitCode)
+            ' Fire event with generation ID — caller checks for staleness.
+            RaiseEvent Exited(_generation, exitCode)
         End Sub
 
         Private Sub OnErrorDataReceived(sender As Object, e As DataReceivedEventArgs)
             If e.Data Is Nothing Then Return
-            ' Fire event — caller's StderrParser must be thread-safe (uses SyncLock).
-            RaiseEvent StderrLine(e.Data)
+            ' Fire event with generation ID — caller checks for staleness.
+            RaiseEvent StderrLine(_generation, e.Data)
         End Sub
 
         ' ===== IDisposable =====
