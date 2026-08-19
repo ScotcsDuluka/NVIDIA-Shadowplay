@@ -89,6 +89,26 @@ Namespace CaptureEngine.Configuration
                 errors.Add("Video.Encoder.FFmpegCodec is missing (must be e.g. 'h264_nvenc').")
             End If
 
+            ' ── Encoder.Key ↔ FFmpegCodec consistency ──
+            ' STABILIZATION FIX (Phase 1.A): previously both fields were stored
+            ' independently with no consistency check. A user could set
+            ' Key="NVENC_HEVC" + FFmpegCodec="h264_nvenc" and validation
+            ' would pass, producing a config that lies about its encoder.
+            '
+            ' Now we enforce that FFmpegCodec must equal the canonical mapping
+            ' of Key via ConfigMigrator.MapEncoderKeyToFfmpeg(Key). The two
+            ' fields are still both stored (FFmpegCodec is the authoritative
+            ' value used by builders; Key is the symbolic UI label).
+            If Not String.IsNullOrWhiteSpace(v.Encoder.Key) AndAlso
+               Not String.IsNullOrWhiteSpace(v.Encoder.FFmpegCodec) Then
+                Dim expectedCodec As String = ConfigMigrator.MapEncoderKeyToFfmpeg(v.Encoder.Key)
+                If Not String.Equals(expectedCodec, v.Encoder.FFmpegCodec, StringComparison.OrdinalIgnoreCase) Then
+                    errors.Add($"Video.Encoder.FFmpegCodec '{v.Encoder.FFmpegCodec}' does not match canonical " &
+                               $"mapping for Key '{v.Encoder.Key}' (expected '{expectedCodec}'). " &
+                               "Either set Key to match FFmpegCodec, or set FFmpegCodec to match the canonical mapping.")
+                End If
+            End If
+
             ' Preset — NVENC accepts p1..p7, libx264/libx265 accept named presets,
             ' QSV accepts veryfast..veryslow. We do NOT enforce per-codec preset lists
             ' here (FFmpeg will reject invalid presets at runtime with a clear error).
@@ -120,6 +140,46 @@ Namespace CaptureEngine.Configuration
             End If
             If v.Encoder.BufsizeBps < v.Encoder.BitrateBps Then
                 errors.Add($"Video.Encoder.BufsizeBps {v.Encoder.BufsizeBps} must be >= BitrateBps {v.Encoder.BitrateBps}.")
+            End If
+
+            ' ── CBR invariant (Phase 1.B) ──
+            ' For RateControl=cbr, FFmpeg requires strict CBR:
+            '   minrate = maxrate = bitrate
+            ' If minrate/maxrate are set but differ from bitrate, FFmpeg's behavior
+            ' is undefined (may produce VBR with cbr flag, may error out).
+            ' Reject this configuration deterministically.
+            '
+            ' Allowed:
+            '   - BitrateBps > 0
+            '   - MinrateBps = BitrateBps (strict CBR)
+            '   - MaxrateBps = BitrateBps (strict CBR)
+            '   - BufsizeBps >= BitrateBps (checked above)
+            If v.Encoder.RateControl.Equals("cbr", StringComparison.OrdinalIgnoreCase) Then
+                If v.Encoder.BitrateBps <= 0 Then
+                    errors.Add($"Video.Encoder.BitrateBps {v.Encoder.BitrateBps} must be > 0 when RateControl=cbr.")
+                End If
+                If v.Encoder.MinrateBps <> v.Encoder.BitrateBps Then
+                    errors.Add($"Video.Encoder.MinrateBps ({v.Encoder.MinrateBps}) must equal BitrateBps ({v.Encoder.BitrateBps}) when RateControl=cbr (strict CBR). " &
+                               "Use RateControl=vbr if you need asymmetric min/max rate.")
+                End If
+                If v.Encoder.MaxrateBps <> v.Encoder.BitrateBps Then
+                    errors.Add($"Video.Encoder.MaxrateBps ({v.Encoder.MaxrateBps}) must equal BitrateBps ({v.Encoder.BitrateBps}) when RateControl=cbr (strict CBR). " &
+                               "Use RateControl=vbr if you need asymmetric min/max rate.")
+                End If
+            End If
+
+            ' ── VBR sanity check (Phase 1.B) ──
+            ' For RateControl=vbr, FFmpeg accepts:
+            '   minrate <= bitrate <= maxrate
+            ' If minrate > bitrate OR bitrate > maxrate, that's VBR with absurd
+            ' constraints — reject it.
+            If v.Encoder.RateControl.Equals("vbr", StringComparison.OrdinalIgnoreCase) Then
+                If v.Encoder.MinrateBps > v.Encoder.BitrateBps Then
+                    errors.Add($"Video.Encoder.MinrateBps ({v.Encoder.MinrateBps}) > BitrateBps ({v.Encoder.BitrateBps}) when RateControl=vbr — minrate must be <= bitrate.")
+                End If
+                If v.Encoder.MaxrateBps < v.Encoder.BitrateBps Then
+                    errors.Add($"Video.Encoder.MaxrateBps ({v.Encoder.MaxrateBps}) < BitrateBps ({v.Encoder.BitrateBps}) when RateControl=vbr — maxrate must be >= bitrate.")
+                End If
             End If
 
             ' GOP

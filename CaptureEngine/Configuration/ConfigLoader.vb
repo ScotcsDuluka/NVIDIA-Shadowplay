@@ -39,6 +39,35 @@ Namespace CaptureEngine.Configuration
             .WriteIndented = True
         }
 
+        ''' <summary>
+        ''' After deserialization, normalize Runtime.Hotkeys to use the same
+        ''' case-insensitive comparer as a fresh EngineConfigV2 instance.
+        '''
+        ''' STABILIZATION FIX (Phase 1.F):
+        ''' System.Text.Json deserializes Dictionary(Of String, String) using the
+        ''' default ordinal case-sensitive comparer (it does not honor the
+        ''' JsonPropertyNameCaseInsensitive flag for dictionary KEYS — that flag
+        ''' only affects property names). Without this normalization, a config
+        ''' loaded from JSON would have a hotkeys dictionary that does NOT
+        ''' match "ToggleOverlay" vs "toggleoverlay" case-insensitively, even
+        ''' though a fresh New EngineConfigV2() instance does.
+        '''
+        ''' This fix rebuilds the dictionary with the same comparer as the
+        ''' V2 constructor uses (StringComparer.OrdinalIgnoreCase).
+        ''' </summary>
+        Private Shared Sub NormalizeHotkeysComparer(cfg As EngineConfigV2)
+            If cfg?.Runtime?.Hotkeys Is Nothing Then Return
+            If cfg.Runtime.Hotkeys.Comparer Is StringComparer.OrdinalIgnoreCase Then Return
+
+            Dim original As Dictionary(Of String, String) = cfg.Runtime.Hotkeys
+            Dim normalized As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+            For Each kvp As KeyValuePair(Of String, String) In original
+                ' If duplicate keys differ only by case, last one wins (deterministic).
+                normalized(kvp.Key) = kvp.Value
+            Next
+            cfg.Runtime.Hotkeys = normalized
+        End Sub
+
         ''' <summary>Load V2 config from a specific file path. Returns Nothing if file does not exist.</summary>
         Public Shared Function Load(filePath As String) As EngineConfigV2
             If String.IsNullOrEmpty(filePath) Then Return Nothing
@@ -54,6 +83,9 @@ Namespace CaptureEngine.Configuration
             If cfg.Version <> EngineConfigV2.SchemaVersion Then
                 cfg.Version = EngineConfigV2.SchemaVersion
             End If
+
+            ' Phase 1.F: normalize hotkeys dictionary comparer for case-insensitive lookup
+            NormalizeHotkeysComparer(cfg)
 
             Return cfg
         End Function
@@ -106,7 +138,9 @@ Namespace CaptureEngine.Configuration
         ''' </summary>
         Public Shared Function DeserializeFromJson(json As String) As EngineConfigV2
             If String.IsNullOrEmpty(json) Then Throw New ArgumentException("json is empty.", NameOf(json))
-            Return JsonSerializer.Deserialize(Of EngineConfigV2)(json, _jsonOpts)
+            Dim cfg As EngineConfigV2 = JsonSerializer.Deserialize(Of EngineConfigV2)(json, _jsonOpts)
+            NormalizeHotkeysComparer(cfg)
+            Return cfg
         End Function
     End Class
 End Namespace
