@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <RootNamespace>CaptureEngine.Timestamp.Spike</RootNamespace>
+    <AssemblyName>CaptureEngine.Timestamp.Spike</AssemblyName>
+    <Version>0.1.0-spike</Version>
+
+    <!--
+      P1-B.2-V2 Timestamp Spike — Engine timestamp model validation.
+
+      Target: net8.0-windows (QPC behavior is Windows-specific)
+      Platform: x64
+
+      This spike validates:
+        - Stopwatch is backed by QPC (High Resolution Counter)
+        - Timestamps are monotonic (no backward jumps over 100k samples)
+        - WGC SystemRelativeTime → QPC conversion formula is correct
+        - Engine PTS contract (60 FPS, delta ~= Frequency/FPS, jitter < 1%)
+
+      SPIKE-ONLY — does NOT reference CaptureEngine, CaptureEngine.Video,
+      or any production project. Fully isolated.
+    -->
+  </PropertyGroup>
+
+</Project>
