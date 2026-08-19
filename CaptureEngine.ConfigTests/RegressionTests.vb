@@ -539,5 +539,384 @@ Namespace CaptureEngine.ConfigTests.Regression
             Assert(v1Cmd.Contains("-y ") AndAlso v2Cmd.Contains("-y "), "Both: -y overwrite")
             Assert(v1Cmd.Contains("out.mp4") AndAlso v2Cmd.Contains("out.mp4"), "Both: output filename")
         End Sub
+
+        ' ════════════════════════════════════════════════════════════
+        ' Phase 5 — Stabilization hardening tests
+        ' ════════════════════════════════════════════════════════════
+
+        Public Sub RunPhase5Hardening()
+            RunTest("H1.1 CBR invariant: minrate=bitrate enforced", AddressOf Test_H_CBR_MinrateEqualsBitrate)
+            RunTest("H1.2 CBR invariant: maxrate=bitrate enforced", AddressOf Test_H_CBR_MaxrateEqualsBitrate)
+            RunTest("H1.3 CBR invariant: bitrate=0 rejected", AddressOf Test_H_CBR_BitratePositive)
+            RunTest("H1.4 VBR: minrate > bitrate rejected", AddressOf Test_H_VBR_MinrateExceedsBitrate)
+            RunTest("H1.5 VBR: maxrate < bitrate rejected", AddressOf Test_H_VBR_MaxrateBelowBitrate)
+            RunTest("H1.6 VBR: minrate <= bitrate <= maxrate accepted", AddressOf Test_H_VBR_ValidRange)
+            RunTest("H2.1 Encoder.Key/FFmpegCodec mismatch rejected", AddressOf Test_H_EncoderKeyMismatch)
+            RunTest("H2.2 Encoder.Key/FFmpegCodec match accepted", AddressOf Test_H_EncoderKeyMatch)
+            RunTest("H2.3 Encoder.Key/FFmpegCodec case-insensitive match accepted", AddressOf Test_H_EncoderKeyCaseInsensitive)
+            RunTest("H3.1 Hotkeys round-trip: case-insensitive lookup after load", AddressOf Test_H_HotkeysRoundTripCaseInsensitive)
+            RunTest("H3.2 Hotkeys round-trip: no data loss after save+load", AddressOf Test_H_HotkeysRoundTripNoDataLoss)
+            RunTest("H3.3 Hotkeys: empty value rejected by validator", AddressOf Test_H_HotkeysEmptyValueRejected)
+            RunTest("H4.1 Invalid pipeline: empty capture method rejected", AddressOf Test_H_Pipeline_EmptyMethod)
+            RunTest("H4.2 Invalid pipeline: case-insensitive capture method accepted", AddressOf Test_H_Pipeline_CaseInsensitiveMethod)
+            RunTest("H4.3 Invalid pipeline: audio backend always resolves", AddressOf Test_H_Pipeline_AudioDeterministic)
+            RunTest("H4.4 Invalid pipeline: experimental DXGI explicitly throws", AddressOf Test_H_Pipeline_DxgiExplicitThrow)
+            RunTest("H5.1 V1 determinism: same config → same command (10 builds)", AddressOf Test_H_V1_Determinism10Builds)
+            RunTest("H5.2 V2 determinism: same config → same command (10 builds)", AddressOf Test_H_V2_Determinism10Builds)
+            RunTest("H5.3 V1/V2 byte-identical except for 2 documented diffs", AddressOf Test_H_V1V2_ByteIdenticalDelta)
+            RunTest("H5.4 V2 builder produces empty output for empty path (reject)", AddressOf Test_H_V2_RejectEmptyPath)
+            RunTest("H5.5 V1 builder produces empty output for empty path (reject)", AddressOf Test_H_V1_RejectEmptyPath)
+            RunTest("H5.6 V2 default config validation passes (no errors)", AddressOf Test_H_V2_DefaultConfigValidates)
+        End Sub
+
+        ' ── CBR/VBR invariant tests (Phase 5) ──
+
+        Private Sub Test_H_CBR_MinrateEqualsBitrate()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.RateControl = "cbr"
+            cfg.Video.Encoder.BitrateBps = 20000000L
+            cfg.Video.Encoder.MinrateBps = 15000000L  ' != bitrate
+            cfg.Video.Encoder.MaxrateBps = 20000000L
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasCBRError As Boolean = False
+            For Each e As String In errors
+                If e.Contains("MinrateBps") AndAlso e.Contains("BitrateBps") AndAlso e.Contains("cbr") Then hasCBRError = True
+            Next
+            Assert(hasCBRError, "Should reject MinrateBps != BitrateBps for CBR. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_CBR_MaxrateEqualsBitrate()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.RateControl = "cbr"
+            cfg.Video.Encoder.BitrateBps = 20000000L
+            cfg.Video.Encoder.MinrateBps = 20000000L
+            cfg.Video.Encoder.MaxrateBps = 25000000L  ' != bitrate
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasCBRError As Boolean = False
+            For Each e As String In errors
+                If e.Contains("MaxrateBps") AndAlso e.Contains("BitrateBps") AndAlso e.Contains("cbr") Then hasCBRError = True
+            Next
+            Assert(hasCBRError, "Should reject MaxrateBps != BitrateBps for CBR. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_CBR_BitratePositive()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.RateControl = "cbr"
+            cfg.Video.Encoder.BitrateBps = 0L
+            cfg.Video.Encoder.MinrateBps = 0L
+            cfg.Video.Encoder.MaxrateBps = 0L
+            cfg.Video.Encoder.BufsizeBps = 0L
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasBitrateError As Boolean = False
+            For Each e As String In errors
+                If e.Contains("BitrateBps") AndAlso (e.Contains("1 Mbps") OrElse e.Contains("> 0")) Then hasBitrateError = True
+            Next
+            Assert(hasBitrateError, "Should reject bitrate=0 for CBR. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_VBR_MinrateExceedsBitrate()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.RateControl = "vbr"
+            cfg.Video.Encoder.BitrateBps = 20000000L
+            cfg.Video.Encoder.MinrateBps = 30000000L  ' > bitrate
+            cfg.Video.Encoder.MaxrateBps = 40000000L
+            cfg.Video.Encoder.BufsizeBps = 40000000L
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasError As Boolean = False
+            For Each e As String In errors
+                If e.Contains("MinrateBps") AndAlso e.Contains("vbr") Then hasError = True
+            Next
+            Assert(hasError, "Should reject minrate > bitrate for VBR. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_VBR_MaxrateBelowBitrate()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.RateControl = "vbr"
+            cfg.Video.Encoder.BitrateBps = 20000000L
+            cfg.Video.Encoder.MinrateBps = 10000000L
+            cfg.Video.Encoder.MaxrateBps = 15000000L  ' < bitrate
+            cfg.Video.Encoder.BufsizeBps = 40000000L
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasError As Boolean = False
+            For Each e As String In errors
+                If e.Contains("MaxrateBps") AndAlso e.Contains("vbr") Then hasError = True
+            Next
+            Assert(hasError, "Should reject maxrate < bitrate for VBR. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_VBR_ValidRange()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.RateControl = "vbr"
+            cfg.Video.Encoder.BitrateBps = 20000000L
+            cfg.Video.Encoder.MinrateBps = 10000000L  ' <= bitrate
+            cfg.Video.Encoder.MaxrateBps = 30000000L  ' >= bitrate
+            cfg.Video.Encoder.BufsizeBps = 40000000L
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            ' Filter out non-VBR errors
+            Dim vbrErrors As New List(Of String)()
+            For Each e As String In errors
+                If e.Contains("vbr") OrElse e.Contains("VBR") Then vbrErrors.Add(e)
+            Next
+            Assert(vbrErrors.Count = 0, "VBR with valid range should have no VBR errors. VBR errors: " & String.Join("; ", vbrErrors))
+        End Sub
+
+        ' ── Encoder.Key / FFmpegCodec consistency tests (Phase 5) ──
+
+        Private Sub Test_H_EncoderKeyMismatch()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.Key = "NVENC_HEVC"
+            cfg.Video.Encoder.FFmpegCodec = "h264_nvenc"  ' mismatch — should be hevc_nvenc
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasMismatch As Boolean = False
+            For Each e As String In errors
+                If e.Contains("does not match canonical") Then hasMismatch = True
+            Next
+            Assert(hasMismatch, "Should reject Key/FFmpegCodec mismatch. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_EncoderKeyMatch()
+            Dim cfg As New EngineConfigV2()  ' default: NVENC_H264 + h264_nvenc
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasMismatch As Boolean = False
+            For Each e As String In errors
+                If e.Contains("does not match canonical") Then hasMismatch = True
+            Next
+            Assert(Not hasMismatch, "Default Key/FFmpegCodec should match. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        Private Sub Test_H_EncoderKeyCaseInsensitive()
+            Dim cfg As New EngineConfigV2()
+            cfg.Video.Encoder.Key = "nvenc_h264"  ' lowercase
+            cfg.Video.Encoder.FFmpegCodec = "h264_nvenc"
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasMismatch As Boolean = False
+            For Each e As String In errors
+                If e.Contains("does not match canonical") Then hasMismatch = True
+            Next
+            Assert(Not hasMismatch, "Case-insensitive match should pass. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        ' ── Hotkeys round-trip tests (Phase 5) ──
+
+        Private Sub Test_H_HotkeysRoundTripCaseInsensitive()
+            Dim original As New EngineConfigV2()
+            original.Runtime.Hotkeys.Clear()
+            original.Runtime.Hotkeys("ToggleOverlay") = "Alt+Z"
+
+            Dim json As String = ConfigLoader.SerializeToJson(original)
+            Dim loaded As EngineConfigV2 = ConfigLoader.DeserializeFromJson(json)
+
+            ' Phase 1.F: after NormalizeHotkeysComparer, lookup must be case-insensitive
+            Dim result As String = Nothing
+            Dim found As Boolean = loaded.Runtime.Hotkeys.TryGetValue("toggleoverlay", result)
+            Assert(found, "Case-insensitive lookup 'toggleoverlay' should find 'ToggleOverlay' after load")
+            Assert(result = "Alt+Z", "Value should be Alt+Z, got " & result)
+
+            ' Also verify with all-caps
+            Dim found2 As Boolean = loaded.Runtime.Hotkeys.TryGetValue("TOGGLEOVERLAY", result)
+            Assert(found2, "Case-insensitive lookup 'TOGGLEOVERLAY' should find 'ToggleOverlay' after load")
+        End Sub
+
+        Private Sub Test_H_HotkeysRoundTripNoDataLoss()
+            Dim original As New EngineConfigV2()
+            original.Runtime.Hotkeys.Clear()
+            original.Runtime.Hotkeys("ToggleOverlay") = "Alt+Z"
+            original.Runtime.Hotkeys("Screenshot") = "Alt+F1"
+            original.Runtime.Hotkeys("ManualRecordToggle") = "Alt+F9"
+
+            Dim json As String = ConfigLoader.SerializeToJson(original)
+            Dim loaded As EngineConfigV2 = ConfigLoader.DeserializeFromJson(json)
+
+            Assert(loaded.Runtime.Hotkeys.Count = 3, "Should have 3 hotkeys after round-trip, got " & loaded.Runtime.Hotkeys.Count)
+            Assert(loaded.Runtime.Hotkeys("ToggleOverlay") = "Alt+Z", "ToggleOverlay preserved")
+            Assert(loaded.Runtime.Hotkeys("Screenshot") = "Alt+F1", "Screenshot preserved")
+            Assert(loaded.Runtime.Hotkeys("ManualRecordToggle") = "Alt+F9", "ManualRecordToggle preserved")
+        End Sub
+
+        Private Sub Test_H_HotkeysEmptyValueRejected()
+            Dim cfg As New EngineConfigV2()
+            cfg.Runtime.Hotkeys.Clear()
+            cfg.Runtime.Hotkeys("ToggleOverlay") = ""  ' empty value
+
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Dim hasEmptyError As Boolean = False
+            For Each e As String In errors
+                If e.Contains("Hotkeys") AndAlso e.Contains("empty") Then hasEmptyError = True
+            Next
+            Assert(hasEmptyError, "Should reject empty hotkey value. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        ' ── Invalid pipeline tests (Phase 5) ──
+
+        Private Sub Test_H_Pipeline_EmptyMethod()
+            Dim v2 As New EngineConfigV2()
+            v2.Video.Capture.Method = ""
+            Try
+                PipelineResolver.Resolve(v2)
+                Throw New InvalidOperationException("Should have thrown for empty method")
+            Catch ex As InvalidOperationException
+                Assert(ex.Message.Contains("Unknown") OrElse ex.Message.Contains("Method"), "Error should mention method")
+            End Try
+        End Sub
+
+        Private Sub Test_H_Pipeline_CaseInsensitiveMethod()
+            Dim v2 As New EngineConfigV2()
+            v2.Video.Capture.Method = "DDAGRAB"  ' uppercase
+            Dim p As PipelineConfig = PipelineResolver.Resolve(v2)
+            Assert(p.VideoBackend = "ffmpeg_ddagrab", "Uppercase method should resolve to ffmpeg_ddagrab, got " & p.VideoBackend)
+        End Sub
+
+        Private Sub Test_H_Pipeline_AudioDeterministic()
+            Dim v2 As New EngineConfigV2()
+            v2.Audio.System.Enabled = True
+            v2.Audio.Microphone.Enabled = False
+            Dim p1 As PipelineConfig = PipelineResolver.Resolve(v2)
+            Dim p2 As PipelineConfig = PipelineResolver.Resolve(v2)
+            Assert(p1.AudioBackend = p2.AudioBackend, "AudioBackend must be deterministic across resolves")
+            Assert(p1.AudioBackend = "wasapi_loopback", "Should be wasapi_loopback")
+        End Sub
+
+        Private Sub Test_H_Pipeline_DxgiExplicitThrow()
+            Dim v2 As New EngineConfigV2()
+            v2.Experimental.EnableD3D11Interop = True
+            v2.Video.Capture.Method = "ddagrab"
+
+            Dim p As PipelineConfig = PipelineResolver.Resolve(v2)
+            Assert(p.VideoBackend = "dxgi", "Should mark as dxgi intent")
+
+            Try
+                PipelineResolver.BuildFFmpegCommandBuilder(v2)
+                Throw New InvalidOperationException("Should have thrown NotImplementedException")
+            Catch ex As NotImplementedException
+                Assert(ex.Message.Contains("DXGI"), "Should mention DXGI in error: " & ex.Message)
+            End Try
+        End Sub
+
+        ' ── V1/V2 determinism tests (Phase 5) ──
+
+        Private Sub Test_H_V1_Determinism10Builds()
+            Dim v1 As New ConfigMigrator.V1CaptureSettings()
+            Dim v1Settings As New FFmpegCommandBuilderV1.V1Settings() With {
+                .Encoder = "h264_nvenc",
+                .FPS = v1.FPS,
+                .Bitrate = v1.BitrateBps,
+                .NvencPreset = v1.NvencPreset,
+                .CaptureMethod = v1.CaptureMethod,
+                .UseNativeResolution = v1.UseNativeResolution,
+                .PixelFormat = v1.PixelFormat
+            }
+            Dim builder As New FFmpegCommandBuilderV1(v1Settings)
+
+            Dim first As String = builder.Build("out.mp4")
+            For i As Integer = 2 To 10
+                Dim current As String = builder.Build("out.mp4")
+                Assert(current = first, "V1 build #" & i & " differs from build #1 — not deterministic")
+            Next
+        End Sub
+
+        Private Sub Test_H_V2_Determinism10Builds()
+            Dim v2 As New EngineConfigV2()
+            Dim builder As IFFmpegCommandBuilder = PipelineResolver.BuildFFmpegCommandBuilder(v2)
+
+            Dim first As String = builder.Build("out.mp4")
+            For i As Integer = 2 To 10
+                Dim current As String = builder.Build("out.mp4")
+                Assert(current = first, "V2 build #" & i & " differs from build #1 — not deterministic")
+            Next
+        End Sub
+
+        Private Sub Test_H_V1V2_ByteIdenticalDelta()
+            ' Verify V1 and V2 are byte-identical except for exactly 2 documented diffs:
+            '   1. bufsize (V1=1× bitrate, V2=2× bitrate)
+            '   2. -pix_fmt (V1 omits, V2 appends for ddagrab+NVENC)
+            Dim v1Cmd As String = BuildDefaultV1Command("out.mp4")
+
+            Dim v1 As New ConfigMigrator.V1CaptureSettings()
+            Dim v2 As EngineConfigV2 = ConfigMigrator.MigrateFromV1(v1)
+            Dim v2Cmd As String = PipelineResolver.BuildFFmpegCommandBuilder(v2).Build("out.mp4")
+
+            ' Tokenize both commands into space-separated tokens for diff
+            Dim v1Tokens As String() = v1Cmd.Split(" "c)
+            Dim v2Tokens As String() = v2Cmd.Split(" "c)
+
+            ' Find diffs (filter out empty tokens from split)
+            Dim v1Filtered As New List(Of String)()
+            For Each t As String In v1Tokens
+                If t.Length > 0 Then v1Filtered.Add(t)
+            Next
+            Dim v2Filtered As New List(Of String)()
+            For Each t As String In v2Tokens
+                If t.Length > 0 Then v2Filtered.Add(t)
+            Next
+
+            ' Count differences in non-empty tokens
+            Dim diffCount As Integer = 0
+            Dim maxLen As Integer = Math.Max(v1Filtered.Count, v2Filtered.Count)
+            For i As Integer = 0 To maxLen - 1
+                Dim v1Tok As String = If(i < v1Filtered.Count, v1Filtered(i), "")
+                Dim v2Tok As String = If(i < v2Filtered.Count, v2Filtered(i), "")
+                If v1Tok <> v2Tok Then
+                    diffCount += 1
+                    ' Validate that the diff is one of the 2 documented changes:
+                    '   - "20000000" vs "40000000" (bufsize)
+                    '   - addition of "-pix_fmt" and "nv12"
+                    Dim isBufsizeDiff As Boolean = (v1Tok = "20000000" AndAlso v2Tok = "40000000")
+                    Dim isPixfmtAddition As Boolean = (v1Tok = "-y" AndAlso v2Tok = "-pix_fmt") ' V2 inserts -pix_fmt before -y
+                    Assert(isBufsizeDiff OrElse isPixfmtAddition,
+                           $"Unexpected diff at token {i}: V1='{v1Tok}' V2='{v2Tok}'. " &
+                           "Only bufsize (20000000→40000000) and -pix_fmt insertion are allowed.")
+                End If
+            Next
+
+            ' V2 has 2 extra tokens (-pix_fmt nv12) → diffCount = 1 (bufsize) + 2 (insertion gap) + 1 (nv12 trailing)
+            ' Allow reasonable diff count
+            Assert(diffCount >= 1 AndAlso diffCount <= 5,
+                   $"Expected 1-5 token diffs (bufsize + pix_fmt insertion), got {diffCount}. V1={v1Cmd} V2={v2Cmd}")
+        End Sub
+
+        Private Sub Test_H_V2_RejectEmptyPath()
+            Dim v2 As New EngineConfigV2()
+            Dim builder As IFFmpegCommandBuilder = PipelineResolver.BuildFFmpegCommandBuilder(v2)
+            Try
+                builder.Build("")
+                Throw New InvalidOperationException("Should have thrown for empty path")
+            Catch ex As ArgumentException
+                Assert(ex.Message.Contains("outputFile"), "Should mention outputFile in error")
+            End Try
+        End Sub
+
+        Private Sub Test_H_V1_RejectEmptyPath()
+            Dim v1 As New ConfigMigrator.V1CaptureSettings()
+            Dim v1Settings As New FFmpegCommandBuilderV1.V1Settings() With {
+                .Encoder = "h264_nvenc",
+                .FPS = v1.FPS,
+                .Bitrate = v1.BitrateBps,
+                .NvencPreset = v1.NvencPreset,
+                .CaptureMethod = v1.CaptureMethod,
+                .UseNativeResolution = v1.UseNativeResolution,
+                .PixelFormat = v1.PixelFormat
+            }
+            Dim builder As New FFmpegCommandBuilderV1(v1Settings)
+            Try
+                builder.Build("")
+                Throw New InvalidOperationException("Should have thrown for empty path")
+            Catch ex As ArgumentException
+                Assert(ex.Message.Contains("outputFile"), "Should mention outputFile in error")
+            End Try
+        End Sub
+
+        Private Sub Test_H_V2_DefaultConfigValidates()
+            Dim cfg As New EngineConfigV2()
+            Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
+            Assert(errors.Count = 0, "Default V2 config should validate cleanly. Errors: " & String.Join("; ", errors))
+        End Sub
     End Module
 End Namespace

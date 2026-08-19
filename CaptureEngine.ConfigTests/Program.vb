@@ -75,7 +75,22 @@ Namespace CaptureEngine.ConfigTests
 
             RegressionTests.Reset()
             RegressionTests.RunAll()
+            Dim p6Passed As Integer = RegressionTests.Passed
+            Dim p6Failed As Integer = RegressionTests.Failed
+            _passed += p6Passed
+            _failed += p6Failed
+            For Each f As String In RegressionTests.Failures
+                _failures.Add(f)
+            Next
 
+            Console.WriteLine()
+            Console.WriteLine("==================================================")
+            Console.WriteLine(" Phase 5 — Stabilization Hardening Tests")
+            Console.WriteLine("==================================================")
+            Console.WriteLine()
+
+            RegressionTests.Reset()
+            RegressionTests.RunPhase5Hardening()
             _passed += RegressionTests.Passed
             _failed += RegressionTests.Failed
             For Each f As String In RegressionTests.Failures

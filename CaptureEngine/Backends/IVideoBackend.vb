@@ -12,29 +12,54 @@ Namespace CaptureEngine.Backends
     ''' gfxcapture) and future native backends (DXGI Desktop Duplication,
     ''' Windows Graphics Capture, NvFBC).
     '''
-    ''' This is the new architectural slot defined in docs/ARCHITECTURE.md:
+    ''' ══════════════════════════════════════════════════════════════════
+    ''' PHASE 4 STABILIZATION — RELATIONSHIP WITH FOUNDATION
+    ''' ══════════════════════════════════════════════════════════════════
     '''
-    '''   CaptureEngine
-    '''       │
-    '''       ▼
-    '''   VideoLayer (Pipeline resolver)
-    '''       │
-    '''       ▼
-    '''   Backend (implements IVideoBackend)
-    '''       │
-    '''       ▼
-    '''   Encoder
+    ''' Decision: KEEP (with explicit ADAPTER boundary)
     '''
-    ''' Compatibility:
-    '''   - CaptureEngine.Video.IVideoCaptureBackend is the Foundation contract
-    '''     (FROZEN @ 82d792ab). IVideoBackend is a HIGHER-LEVEL interface that
-    '''     lives in the CaptureEngine assembly (NOT CaptureEngine.Video) and
-    '''     is intended for use by the Engine's Pipeline layer.
-    '''   - When a CaptureEngine.Video backend (e.g. DdagrabBackend skeleton)
-    '''     is wired up to IVideoBackend, an adapter class will wrap it.
-    '''   - IVideoBackend intentionally does NOT expose FrameCount /
-    '''     FrameAvailable status (those are Foundation concerns). IVideoBackend
-    '''     is about start/stop/get-frame lifecycle + diagnostics.
+    ''' Foundation (CaptureEngine.Video, frozen @ 82d792ab):
+    '''   - IVideoCaptureBackend (push model: Start(sink), no GetFrame)
+    '''   - IVideoFrame (enum-based: VideoFrameOrigin, VideoPixelFormat)
+    '''   - Sink-owned queue (BoundedVideoFrameSink)
+    '''
+    ''' New (CaptureEngine.Backends):
+    '''   - IVideoBackend (pull model: Start(), GetFrame() → VideoFrame)
+    '''   - VideoFrame (string-based: Origin, PixelFormat)
+    '''   - Caller-owned polling (no internal queue)
+    '''
+    ''' Why both?
+    '''   - Foundation is FROZEN — cannot modify it
+    '''   - Foundation is push-based (sink queue, suitable for high-throughput
+    '''     GPU pipeline). Pull-based model is needed for simpler FFmpeg-wrapping
+    '''     backends where the caller polls Process output.
+    '''   - OWNER explicitly requested IVideoBackend in Phase 5 of original
+    '''     mission ("ต้อง compatible กับ CaptureEngine.Video")
+    '''
+    ''' Adapter boundary (NOT YET IMPLEMENTED — separate future task):
+    '''   A `FoundationToIVideoBackendAdapter` class will:
+    '''     1. Wrap an IVideoCaptureBackend instance
+    '''     2. Internally create a sink queue (BoundedVideoFrameSink)
+    '''     3. Implement IVideoBackend.Start() → call wrappedBackend.Start(sink)
+    '''     4. Implement IVideoBackend.GetFrame() → take from sink (block with
+    '''        bounded timeout, return Nothing on timeout)
+    '''     5. Convert enum VideoFrameOrigin/PixelFormat to string properties
+    '''     6. Implement IVideoBackend.Stop() → wrappedBackend.Stop()
+    '''     7. Implement IVideoBackend.Dispose() → wrappedBackend.Dispose()
+    '''
+    '''   A regression test MUST be added when the adapter is implemented:
+    '''     - Adapter Start → push N frames via fake → caller GetFrame N times
+    '''       must return the same N frames in order
+    '''     - Adapter Dispose-while-Running must route through Stop (Foundation
+    '''       contract P1-B.1 FIX change #1)
+    '''
+    ''' Until adapter is implemented:
+    '''   - IVideoBackend is an empty contract (no concrete implementations)
+    '''   - Production Engine/ path does NOT use IVideoBackend (uses legacy
+    '''     CaptureEngine.BuildFFmpegArguments directly)
+    '''   - This is acceptable: V2 stays opt-in, production stays on V1
+    '''
+    ''' ══════════════════════════════════════════════════════════════════
     '''
     ''' Lifecycle:
     '''   Create → Start → [GetFrame() repeatedly] → Stop → Dispose
