@@ -9,57 +9,164 @@
 ```text
 ScotcsDuluka Capture Engine
 │
-├── Capture Backend
-│   ├── FFmpeg Backend
-│   │   ├── ddagrab
-│   │   ├── gdigrab
-│   │   └── avfoundation (future)
+├── Core Layer ✅ Stable
 │   │
-│   └── Native Backend
-│       ├── DXGI Desktop Duplication
-│       ├── Windows Graphics Capture
-│       └── NvFBC (future)
+│   ├── Capture Session ✅ Done
+│   │   ├── Session lifecycle
+│   │   ├── Start / Stop / Dispose
+│   │   └── Session ownership
+│   │
+│   ├── Device Ownership 🟡 Design Ready
+│   │   ├── GPU ownership
+│   │   ├── Encoder ownership
+│   │   └── Resource lifetime
+│   │
+│   ├── Lifecycle State Machine ✅ Stable
+│   │   ├── Created
+│   │   ├── Starting
+│   │   ├── Running
+│   │   ├── Stopping
+│   │   ├── Muxing
+│   │   ├── Stopped
+│   │   ├── Faulted
+│   │   └── Disposed
+│   │
+│   ├── Error Model 🟡 Partial
+│   │   ├── Backend error
+│   │   ├── Process crash detection
+│   │   ├── Fault propagation
+│   │   └── Recovery path
+│   │
+│   └── Metrics / Diagnostics 🟡 Partial
+│       ├── FPS parser ✅
+│       ├── Frame count ✅
+│       ├── Drop/Duplicate ✅
+│       ├── Performance metrics 🔴
+│       └── Telemetry system 🔴
 │
-├── Encoder Backend
-│   ├── NVIDIA NVENC
+│
+├── Capture Backend 🟡 Framework Ready
+│   │
+│   ├── FFmpeg Backend ✅ Stable Framework
+│   │   │
+│   │   ├── FFmpegProcessHost ✅ Done
+│   │   │   ├── Process.Start
+│   │   │   ├── stdin control
+│   │   │   ├── stderr drain
+│   │   │   ├── Exit handling
+│   │   │   └── Generation Guard
+│   │   │
+│   │   ├── FFmpegStderrParser ✅ Done
+│   │   │   ├── frame=
+│   │   │   ├── fps=
+│   │   │   ├── dup=
+│   │   │   ├── drop=
+│   │   │   ├── speed=
+│   │   │   └── Error detection
+│   │   │
+│   │   ├── FFmpegPipelineBackend ✅ Stable
+│   │   │   ├── Start/Stop lifecycle
+│   │   │   ├── Race protection
+│   │   │   ├── Restart safe
+│   │   │   ├── Mux coordination
+│   │   │   └── Stress tested
+│   │   │
+│   │   ├── MuxCoordinator 🟡 Partial
+│   │   │   ├── ffprobe support ✅
+│   │   │   ├── mux execution ✅
+│   │   │   ├── cleanup ✅
+│   │   │   └── Production validation 🔴
+│   │   │
+│   │   ├── ddagrab 🔴 Not Started
+│   │   │   └── Windows Desktop Capture
+│   │   │
+│   │   ├── gdigrab 🔴 Not Started
+│   │   │   └── Windows fallback
+│   │   │
+│   │   └── avfoundation ⚪ Future
+│   │       └── macOS support
+│   │
+│   └── Native Backend 🔴 Not Started
+│       │
+│       ├── DXGI Desktop Duplication 🟡 Spike Proven
+│       │   ├── Capture test ✅
+│       │   ├── D3D11 device ✅
+│       │   └── Production backend 🔴
+│       │
+│       ├── Windows Graphics Capture 🔴
+│       │
+│       └── NvFBC ⚪ Future
+│
+│
+├── Encoder Backend 🟡 Architecture Only
+│   │
+│   ├── NVIDIA NVENC 🔴 Not Integrated
 │   │   ├── H.264
 │   │   ├── HEVC
 │   │   └── AV1
 │   │
-│   ├── Intel QSV
+│   ├── Intel QSV 🔴 Not Started
 │   │   ├── H.264
 │   │   └── HEVC
 │   │
-│   ├── AMD AMF
+│   ├── AMD AMF 🔴 Not Started
 │   │
-│   └── Software
+│   └── Software Encoder 🟡 Via FFmpeg
 │       ├── libx264
 │       └── libx265
 │
-├── Audio Backend
+│
+├── Audio Backend 🔴 Not Started
+│   │
 │   └── WASAPI
+│       │
 │       ├── System Audio
+│       │
 │       ├── Microphone
+│       │
 │       └── Audio Mixer
 │
-├── Frame Pipeline
+│
+├── Frame Pipeline 🔴 Not Started
+│   │
 │   ├── Frame Acquisition
-│   ├── Timestamping
-│   ├── Queue / Buffer
-│   ├── Frame Synchronization
-│   └── Backpressure
+│   │   └── Capture → Frame object
+│   │
+│   ├── Timestamping 🟡 Research Complete
+│   │   ├── QPC
+│   │   ├── PTS
+│   │   └── Clock normalization
+│   │
+│   ├── Queue / Buffer 🔴
+│   │
+│   ├── Frame Synchronization 🔴
+│   │
+│   └── Backpressure 🔴
+│       ├── Queue limit
+│       ├── Drop policy
+│       └── Adaptive control
 │
-├── Output
-│   ├── MP4
-│   ├── MKV
-│   └── Raw / Pipe
 │
-└── Core
-    ├── Capture Session
-    ├── Device Ownership
-    ├── Lifecycle
-    ├── Error Model
-    └── Metrics / Diagnostics
+├── Output Pipeline 🟡 Partial
+│   │
+│   ├── MP4 🟡
+│   │   ├── FFmpeg output path
+│   │   └── Mux support
+│   │
+│   ├── MKV 🔴
+│   │
+│   └── Raw / Pipe 🔴
+│
+│
+└── UI Integration 🟡 Existing Foundation
+    │
+    ├── JSON Config ✅
+    │
+    ├── Profile System 🟡
+    │
+    ├── Recording Control 🔴
+    │
+    └── Diagnostics UI 🔴
 ```
 
 ## Architectural Rules
