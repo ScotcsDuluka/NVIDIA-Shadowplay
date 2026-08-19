@@ -7,6 +7,7 @@ Imports System.Collections.Generic
 Imports System.IO
 Imports CaptureEngine.Configuration
 Imports CaptureEngine.Configuration.Schema
+Imports CaptureEngine.ConfigTests.Regression
 
 Namespace CaptureEngine.ConfigTests
     ''' <summary>
@@ -65,6 +66,21 @@ Namespace CaptureEngine.ConfigTests
             RunTest("T3.15 Invalid: Realtime priority forbidden → reject", AddressOf Test_Invalid_RealtimePriority)
             RunTest("T3.16 Invalid: nothing config → reject", AddressOf Test_Invalid_NothingConfig)
             RunTest("T3.17 Valid: default config passes validation", AddressOf Test_Valid_DefaultConfig)
+
+            Console.WriteLine()
+            Console.WriteLine("==================================================")
+            Console.WriteLine(" Phase 6 — Regression Tests (lifecycle + FFmpeg snapshot)")
+            Console.WriteLine("==================================================")
+            Console.WriteLine()
+
+            RegressionTests.Reset()
+            RegressionTests.RunAll()
+
+            _passed += RegressionTests.Passed
+            _failed += RegressionTests.Failed
+            For Each f As String In RegressionTests.Failures
+                _failures.Add(f)
+            Next
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
