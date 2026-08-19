@@ -957,9 +957,13 @@ Namespace CaptureEngine.ConfigTests.Regression
             End Sub
 
             ' NOTE: implements [Stop] — VB.NET requires bracket-escape at the
-            ' interface declaration but NOT at the implementation site. The
-            ' Implements clause uses the unbracketed name.
-            Public Sub Stop() Implements IVideoBackend.Stop
+            ' interface declaration AND at the implementation site. The
+            ' Implements clause uses the bracketed name.
+            ' (Earlier comment incorrectly said brackets were not needed at
+            ' the implementation site — that was wrong. BC30183 fires on
+            ' `Sub Stop()` regardless of context because 'Stop' is a
+            ' reserved keyword.)
+            Public Sub [Stop]() Implements IVideoBackend.Stop
                 _state = VideoBackendState.Stopped
             End Sub
 
