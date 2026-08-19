@@ -99,8 +99,14 @@ Namespace CaptureEngine.Backends
         ''' Per P1-A v1.3.1 §4 + P1-B.1 FIX change #2: Stop stops the producer;
         ''' queued frames remain sink-owned; backend does NOT require unbounded
         ''' drain during Stop.
+        '''
+        ''' NOTE: Method name is bracketed as [Stop] because 'Stop' is a VB.NET
+        ''' reserved keyword (suspends execution). The brackets escape it as an
+        ''' identifier — callers invoke as backend.Stop() (no brackets needed at
+        ''' call site). This matches the Foundation's IVideoCaptureBackend.vb
+        ''' pattern (also uses Sub [Stop]()).
         ''' </summary>
-        Sub Stop()
+        Sub [Stop]()
 
         ''' <summary>
         ''' Try to get the next captured frame.

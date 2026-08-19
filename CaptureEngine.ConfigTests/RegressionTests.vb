@@ -5,6 +5,8 @@ Option Infer On
 Imports System
 Imports System.Collections.Generic
 Imports System.IO
+Imports System.Reflection
+Imports CaptureEngine.Backends
 Imports CaptureEngine.Configuration
 Imports CaptureEngine.Configuration.Schema
 Imports CaptureEngine.FFmpeg
@@ -567,6 +569,8 @@ Namespace CaptureEngine.ConfigTests.Regression
             RunTest("H5.4 V2 builder produces empty output for empty path (reject)", AddressOf Test_H_V2_RejectEmptyPath)
             RunTest("H5.5 V1 builder produces empty output for empty path (reject)", AddressOf Test_H_V1_RejectEmptyPath)
             RunTest("H5.6 V2 default config validation passes (no errors)", AddressOf Test_H_V2_DefaultConfigValidates)
+            RunTest("H6.1 IVideoBackend has [Stop] method (BC30183 regression)", AddressOf Test_H_IVideoBackend_StopMethodCompiles)
+            RunTest("H6.2 IVideoBackend has Start, GetFrame, Dispose, CurrentState, GetDiagnostics", AddressOf Test_H_IVideoBackend_FullSurface)
         End Sub
 
         ' ── CBR/VBR invariant tests (Phase 5) ──
@@ -917,6 +921,116 @@ Namespace CaptureEngine.ConfigTests.Regression
             Dim cfg As New EngineConfigV2()
             Dim errors As IReadOnlyList(Of String) = ConfigValidator.Validate(cfg)
             Assert(errors.Count = 0, "Default V2 config should validate cleanly. Errors: " & String.Join("; ", errors))
+        End Sub
+
+        ' ── IVideoBackend compile-time contract tests (Phase 6 — BC30183 regression) ──
+        '
+        ' These tests prove the IVideoBackend interface compiles. If the interface
+        ' signature has a VB.NET keyword conflict (like the original Sub Stop()
+        ' that triggered BC30183), the StubVideoBackend class below will fail to
+        ' compile, which fails the entire test project's build (not just one test).
+        '
+        ' Additionally, H6.1 + H6.2 use reflection to verify the interface surface
+        ' so the tests can give a clear failure message if a method disappears.
+
+        ''' <summary>
+        ''' Stub implementation of IVideoBackend. EXISTS ONLY to prove the interface
+        ''' compiles. If IVideoBackend has a keyword-as-identifier error (BC30183),
+        ''' this class will not compile and the whole project build fails.
+        ''' </summary>
+        Private NotInheritable Class StubVideoBackend
+            Implements IVideoBackend
+
+            Private _state As VideoBackendState = VideoBackendState.Created
+            Private _disposed As Boolean = False
+
+            Public ReadOnly Property CurrentState As VideoBackendState Implements IVideoBackend.CurrentState
+                Get
+                    Return _state
+                End Get
+            End Property
+
+            Public Sub Start() Implements IVideoBackend.Start
+                _state = VideoBackendState.Running
+            End Sub
+
+            ' NOTE: implements [Stop] — VB.NET requires bracket-escape at the
+            ' interface declaration but NOT at the implementation site. The
+            ' Implements clause uses the unbracketed name.
+            Public Sub Stop() Implements IVideoBackend.Stop
+                _state = VideoBackendState.Stopped
+            End Sub
+
+            Public Function GetFrame() As VideoFrame Implements IVideoBackend.GetFrame
+                Return Nothing  ' stub — no frames
+            End Function
+
+            Public Function GetDiagnostics() As IReadOnlyDictionary(Of String, Long) Implements IVideoBackend.GetDiagnostics
+                Return New Dictionary(Of String, Long)()
+            End Function
+
+            Public Sub Dispose() Implements IDisposable.Dispose
+                If _disposed Then Return
+                _disposed = True
+                _state = VideoBackendState.Disposed
+            End Sub
+        End Class
+
+        Private Sub Test_H_IVideoBackend_StopMethodCompiles()
+            ' PROOF 1: StubVideoBackend compiles (if this test runs, the class compiled).
+            '          If IVideoBackend.Stop is broken, the project won't build.
+            Dim backend As New StubVideoBackend()
+            Assert(backend IsNot Nothing, "StubVideoBackend should instantiate")
+
+            ' PROOF 2: Start + Stop + Dispose all callable
+            Assert(backend.CurrentState = VideoBackendState.Created, "Initial state should be Created")
+            backend.Start()
+            Assert(backend.CurrentState = VideoBackendState.Running, "After Start: Running")
+            backend.Stop()
+            Assert(backend.CurrentState = VideoBackendState.Stopped, "After Stop: Stopped")
+            backend.Dispose()
+            Assert(backend.CurrentState = VideoBackendState.Disposed, "After Dispose: Disposed")
+
+            ' PROOF 3: Reflection check — IVideoBackend interface must have a method named "Stop"
+            ' (the bracketed identifier [Stop] is exposed as plain "Stop" in reflection metadata).
+            Dim stopMethod As MethodInfo = GetType(IVideoBackend).GetMethod("Stop")
+            Assert(stopMethod IsNot Nothing,
+                   "IVideoBackend must have a method named 'Stop' (bracketed identifier [Stop] should " &
+                   "appear as 'Stop' in reflection). If this fails, the bracket escape was lost.")
+            Assert(stopMethod.ReturnType Is GetType(Void), "Stop() must return Void")
+        End Sub
+
+        Private Sub Test_H_IVideoBackend_FullSurface()
+            ' Verify the complete IVideoBackend contract surface via reflection.
+            ' If any member is missing or renamed incorrectly, this test fails
+            ' with a clear message instead of a confusing BC30183 build error.
+            Dim t As Type = GetType(IVideoBackend)
+
+            ' Required methods
+            Assert(t.GetMethod("Start") IsNot Nothing, "IVideoBackend must have Start()")
+            Assert(t.GetMethod("Stop") IsNot Nothing, "IVideoBackend must have Stop() — bracketed as [Stop] in source")
+            Assert(t.GetMethod("GetFrame") IsNot Nothing, "IVideoBackend must have GetFrame()")
+            Assert(t.GetMethod("GetDiagnostics") IsNot Nothing, "IVideoBackend must have GetDiagnostics()")
+
+            ' Required property
+            Dim stateProp As PropertyInfo = t.GetProperty("CurrentState")
+            Assert(stateProp IsNot Nothing, "IVideoBackend must have CurrentState property")
+            Assert(stateProp.PropertyType Is GetType(VideoBackendState),
+                   "CurrentState must be of type VideoBackendState, got " & stateProp.PropertyType.Name)
+
+            ' Required base interface (IDisposable → must have Dispose)
+            Assert(GetType(IDisposable).IsAssignableFrom(t),
+                   "IVideoBackend must inherit IDisposable (so Dispose is part of contract)")
+
+            ' GetFrame return type
+            Dim getFrameMethod As MethodInfo = t.GetMethod("GetFrame")
+            Assert(getFrameMethod.ReturnType Is GetType(VideoFrame),
+                   "GetFrame must return VideoFrame, got " & getFrameMethod.ReturnType.Name)
+
+            ' GetDiagnostics return type
+            Dim diagMethod As MethodInfo = t.GetMethod("GetDiagnostics")
+            Assert(diagMethod.ReturnType Is GetType(IReadOnlyDictionary(Of String, Long)),
+                   "GetDiagnostics must return IReadOnlyDictionary(Of String, Long), got " & diagMethod.ReturnType.Name)
         End Sub
     End Module
 End Namespace
