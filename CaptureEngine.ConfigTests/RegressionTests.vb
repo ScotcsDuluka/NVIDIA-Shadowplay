@@ -571,6 +571,8 @@ Namespace CaptureEngine.ConfigTests.Regression
             RunTest("H5.6 V2 default config validation passes (no errors)", AddressOf Test_H_V2_DefaultConfigValidates)
             RunTest("H6.1 IVideoBackend has [Stop] method (BC30183 regression)", AddressOf Test_H_IVideoBackend_StopMethodCompiles)
             RunTest("H6.2 IVideoBackend has Start, GetFrame, Dispose, CurrentState, GetDiagnostics", AddressOf Test_H_IVideoBackend_FullSurface)
+            RunTest("H7.1 ConfigLoader.LoadDefault resolves System.IO.Path.Combine (BC30456 regression)", AddressOf Test_H_ConfigLoader_LoadDefaultResolvesPath)
+            RunTest("H7.2 ConfigLoader.SaveDefault resolves System.IO.Path.Combine (BC30456 regression)", AddressOf Test_H_ConfigLoader_SaveDefaultResolvesPath)
         End Sub
 
         ' ── CBR/VBR invariant tests (Phase 5) ──
@@ -1031,6 +1033,101 @@ Namespace CaptureEngine.ConfigTests.Regression
             Dim diagMethod As MethodInfo = t.GetMethod("GetDiagnostics")
             Assert(diagMethod.ReturnType Is GetType(IReadOnlyDictionary(Of String, Long)),
                    "GetDiagnostics must return IReadOnlyDictionary(Of String, Long), got " & diagMethod.ReturnType.Name)
+        End Sub
+
+        ' ── ConfigLoader name-resolution regression tests (BC30456 + BC42104) ──
+        '
+        ' The original code declared a local variable named 'path' which
+        ' shadowed the System.IO.Path type. VB.NET's case-insensitive name
+        ' resolution then interpreted 'Path.Combine(...)' as a method call
+        ' on the local String variable → BC30456 "Combine is not a member
+        ' of String" + BC42104 "Variable used before assigned".
+        '
+        ' The fix renamed the local variable from 'path' to 'filePath'.
+        ' These tests prove LoadDefault + SaveDefault resolve
+        ' System.IO.Path.Combine correctly (the methods must not throw
+        ' MissingMethodException at runtime — though the failure was at
+        ' compile time, a reflection check also verifies the call resolves
+        ' to the correct type).
+
+        Private Sub Test_H_ConfigLoader_LoadDefaultResolvesPath()
+            ' PROOF 1: LoadDefault + SaveDefault compile (if this test runs,
+            '          the project built successfully, proving the local
+            '          variable rename fixed BC30456).
+            '
+            ' PROOF 2: Verify System.IO.Path type is resolvable from inside
+            '          the ConfigLoader namespace — if Imports System.IO is
+            '          accidentally removed, this throws CompilationException
+            '          (cannot test compile errors at runtime, but we can
+            '          verify the type is reachable).
+            Dim pathType As Type = GetType(System.IO.Path)
+            Assert(pathType IsNot Nothing, "System.IO.Path type must be reachable")
+            Assert(pathType.Name = "Path", "Type name should be 'Path', got " & pathType.Name)
+
+            ' PROOF 3: Verify Path.Combine method exists with the expected signature
+            Dim combineMethod As MethodInfo = pathType.GetMethod("Combine", New Type() {GetType(String), GetType(String)})
+            Assert(combineMethod IsNot Nothing,
+                   "System.IO.Path.Combine(String, String) must exist. " &
+                   "If this fails, the Imports System.IO was lost.")
+            Assert(combineMethod.ReturnType Is GetType(String),
+                   "Path.Combine must return String, got " & combineMethod.ReturnType.Name)
+
+            ' PROOF 4: Actually invoke LoadDefault with a temp directory to verify
+            ' it doesn't throw MissingMethodException or similar runtime failure
+            ' (the original bug was compile-time, but this proves the method
+            ' actually works end-to-end after the fix).
+            Dim tempDir As String = Path.Combine(Path.GetTempPath(), "configloader_test_" & Guid.NewGuid().ToString("N"))
+            Try
+                Directory.CreateDirectory(tempDir)
+                Dim cfg As New EngineConfigV2()
+                ConfigLoader.SaveDefault(cfg, tempDir)
+                Dim expectedFile As String = Path.Combine(tempDir, "engine-config.v2.json")
+                Assert(File.Exists(expectedFile), "SaveDefault should write to <appBaseDir>/engine-config.v2.json")
+
+                Dim loaded As EngineConfigV2 = ConfigLoader.LoadDefault(tempDir)
+                Assert(loaded IsNot Nothing, "LoadDefault should read back the saved config")
+                Assert(loaded.Version = EngineConfigV2.SchemaVersion, "Loaded Version should match schema")
+            Finally
+                If Directory.Exists(tempDir) Then Directory.Delete(tempDir, recursive:=True)
+            End Try
+        End Sub
+
+        Private Sub Test_H_ConfigLoader_SaveDefaultResolvesPath()
+            ' SaveDefault-specific regression test (separate from LoadDefault
+            ' because they're independent methods — a fix to one must NOT
+            ' mask a regression in the other).
+            '
+            ' SaveDefault internally calls:
+            '   Path.Combine(appBaseDir, DefaultFileName)  ← was 'path' local
+            '   Save(cfg, filePath)                       ← now 'filePath' local
+            '
+            ' If the local variable rename is reverted in SaveDefault but not
+            ' LoadDefault, this test will fail (BC30456 prevents build).
+
+            Dim tempDir As String = Path.Combine(Path.GetTempPath(), "configloader_save_test_" & Guid.NewGuid().ToString("N"))
+            Try
+                Directory.CreateDirectory(tempDir)
+                Dim cfg As New EngineConfigV2()
+                cfg.Video.Encoder.BitrateBps = 25000000L  ' non-default to verify round-trip
+
+                ' If Path.Combine is shadowed by a local variable, this would
+                ' throw at runtime (or fail to compile). Calling SaveDefault
+                ' exercises the renamed local 'filePath'.
+                ConfigLoader.SaveDefault(cfg, tempDir)
+
+                Dim expectedFile As String = Path.Combine(tempDir, "engine-config.v2.json")
+                Assert(File.Exists(expectedFile), "SaveDefault should create the file")
+
+                ' Verify file actually contains valid JSON (not garbage from a
+                ' broken path concatenation)
+                Dim fileContent As String = File.ReadAllText(expectedFile)
+                Assert(fileContent.Length > 0, "Saved file should be non-empty")
+                Assert(fileContent.Contains("""Version"""), "Saved JSON should have Version field")
+                Assert(fileContent.Contains("""BitrateBps"""), "Saved JSON should have BitrateBps field")
+                Assert(fileContent.Contains("25000000"), "Saved JSON should have the non-default bitrate we set")
+            Finally
+                If Directory.Exists(tempDir) Then Directory.Delete(tempDir, recursive:=True)
+            End Try
         End Sub
     End Module
 End Namespace

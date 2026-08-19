@@ -112,8 +112,15 @@ Namespace CaptureEngine.Configuration
             If String.IsNullOrEmpty(appBaseDir) Then
                 appBaseDir = AppDomain.CurrentDomain.BaseDirectory
             End If
-            Dim path As String = Path.Combine(appBaseDir, DefaultFileName)
-            Return Load(path)
+            ' FIX (BC30456 + BC42104): local variable was named 'path' which
+            ' shadowed the System.IO.Path type. VB.NET name resolution then
+            ' interpreted 'Path.Combine(...)' as a method call on the local
+            ' String variable (which has no Combine method) → BC30456, and
+            ' the local was used before assignment → BC42104.
+            ' Renaming to 'filePath' (matching the Load/Save parameter names)
+            ' restores System.IO.Path type resolution.
+            Dim filePath As String = Path.Combine(appBaseDir, DefaultFileName)
+            Return Load(filePath)
         End Function
 
         ''' <summary>Save V2 config to the default location next to the Engine binary.</summary>
@@ -121,8 +128,9 @@ Namespace CaptureEngine.Configuration
             If String.IsNullOrEmpty(appBaseDir) Then
                 appBaseDir = AppDomain.CurrentDomain.BaseDirectory
             End If
-            Dim path As String = Path.Combine(appBaseDir, DefaultFileName)
-            Save(cfg, path)
+            ' FIX (BC30456 + BC42104): same shadowing bug as LoadDefault above.
+            Dim filePath As String = Path.Combine(appBaseDir, DefaultFileName)
+            Save(cfg, filePath)
         End Sub
 
         ''' <summary>
