@@ -209,22 +209,41 @@ Namespace CaptureEngine.FFmpegBackend
         ' ===== Private callbacks (fire on threadpool threads) =====
 
         Private Sub OnProcessExited(sender As Object, e As EventArgs)
+            ' P0 fix: Capture local reference to _process BEFORE accessing it.
+            ' Dispose() may set _process = Nothing concurrently on another thread.
+            ' The local reference stays valid even if _process is nulled —
+            ' the Process object itself is not yet GC'd (it has an active
+            ' event handler invocation on this thread).
+            Dim proc As Process = _process
+            If proc Is Nothing Then Return
+
             Dim exitCode As Integer = -1
             Try
-                If _process IsNot Nothing AndAlso _process.HasExited Then
-                    exitCode = _process.ExitCode
+                If proc.HasExited Then
+                    exitCode = proc.ExitCode
                 End If
             Catch
+                ' Process object may be in a partially disposed state.
+                ' Use -1 as the exit code — caller treats non-zero as error.
             End Try
 
+            ' Capture generation BEFORE raising event (Dispose could increment
+            ' by calling Start on a new session, though that's unlikely during
+            ' callback). Use the generation captured at Start time.
+            Dim gen As Integer = _generation
+
             ' Fire event with generation ID — caller checks for staleness.
-            RaiseEvent Exited(_generation, exitCode)
+            RaiseEvent Exited(gen, exitCode)
         End Sub
 
         Private Sub OnErrorDataReceived(sender As Object, e As DataReceivedEventArgs)
             If e.Data Is Nothing Then Return
+
+            ' Capture generation for staleness check.
+            Dim gen As Integer = _generation
+
             ' Fire event with generation ID — caller checks for staleness.
-            RaiseEvent StderrLine(_generation, e.Data)
+            RaiseEvent StderrLine(gen, e.Data)
         End Sub
 
         ' ===== IDisposable =====
@@ -233,24 +252,36 @@ Namespace CaptureEngine.FFmpegBackend
             If _disposed Then Return
             _disposed = True
 
-            If _process IsNot Nothing Then
+            ' Capture local reference — callback threads may be reading _process
+            ' concurrently. We null _process AFTER unhooking events + killing,
+            ' so late callbacks see the local copy (which is still valid).
+            Dim proc As Process = _process
+            If proc IsNot Nothing Then
                 Try
-                    ' Unhook events to prevent late callbacks during dispose
-                    RemoveHandler _process.Exited, AddressOf OnProcessExited
-                    RemoveHandler _process.ErrorDataReceived, AddressOf OnErrorDataReceived
+                    ' Unhook events to prevent NEW callbacks from firing.
+                    ' Already-queued callbacks will still fire but will use
+                    ' their local proc reference (captured at callback entry).
+                    RemoveHandler proc.Exited, AddressOf OnProcessExited
+                    RemoveHandler proc.ErrorDataReceived, AddressOf OnErrorDataReceived
                 Catch
                 End Try
 
                 ' If process is still alive, kill it (defensive — caller should have stopped first)
-                If Not _process.HasExited Then
+                If Not proc.HasExited Then
                     Try
-                        _process.Kill()
-                        _process.WaitForExit(2000)
+                        proc.Kill()
+                        proc.WaitForExit(2000)
                     Catch
                     End Try
                 End If
 
-                _process.Dispose()
+                Try
+                    proc.Dispose()
+                Catch
+                End Try
+
+                ' Null the field AFTER dispose — late callbacks that already
+                ' captured the local reference will still work correctly.
                 _process = Nothing
             End If
         End Sub

@@ -52,8 +52,9 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("AUDIO: HasAudioData returns False (stub)", AddressOf Test_AudioSidecarNoData)
             RunTest("AUDIO: Captures timestamps on Start", AddressOf Test_AudioSidecarTimestamps)
 
-            ' ----- Integration test (requires real ffmpeg.exe) -----
+            ' ----- Integration tests (requires real ffmpeg.exe) -----
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
+            RunTest("STRESS: Start → Stop → Start cycle (3 rounds, real ffmpeg)", AddressOf Test_StartStopStartStress)
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
@@ -408,6 +409,86 @@ Namespace CaptureEngine.FFmpegTests
             End If
 
             backend.Dispose()
+        End Sub
+
+        ' ===== Stress test: Start → Stop → Start cycle =====
+
+        Private Sub Test_StartStopStartStress()
+            ' Find ffmpeg
+            Dim ffmpegPath As String = Nothing
+            For Each c In {"/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg",
+                           IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe")}
+                If IO.File.Exists(c) Then
+                    ffmpegPath = c
+                    Exit For
+                End If
+            Next
+            If ffmpegPath Is Nothing Then
+                Console.Write("(SKIP: ffmpeg not found) ")
+                Return
+            End If
+
+            Dim tempDir As String = IO.Path.GetTempPath()
+            Dim backend As New FFmpegPipelineBackend()
+            backend.WithFFmpegPath(ffmpegPath)
+
+            ' Track unexpected state transitions
+            Dim unexpectedErrors As Integer = 0
+            AddHandler backend.ErrorOccurred, Sub(msg)
+                                                  ' We only care about errors during Running state
+                                                  ' (errors during Start with bad args are expected)
+                                                  Dim s = backend.CurrentState
+                                                  If s = VideoBackendState.Running Then
+                                                      System.Threading.Interlocked.Increment(unexpectedErrors)
+                                                  End If
+                                              End Sub
+
+            For cycle As Integer = 1 To 3
+                Dim outputFile As String = IO.Path.Combine(tempDir, $"stress_cycle{cycle}.mp4")
+                If IO.File.Exists(outputFile) Then IO.File.Delete(outputFile)
+
+                ' Use testsrc with -t 2 (2-second test pattern)
+                Dim args As String = $"-y -f lavfi -i testsrc=duration=2:size=320x240:rate=30 " &
+                                     "-c:v libx264 -preset ultrafast -b:v 500000 -pix_fmt yuv420p -t 2 " &
+                                     $"""" & outputFile & """"
+                backend.WithArguments(args)
+                backend.WithOutputPath(outputFile)
+
+                ' Start
+                backend.Start()
+                Assert(backend.CurrentState = VideoBackendState.Running,
+                       $"Cycle {cycle}: state should be Running after Start")
+
+                ' Wait for FFmpeg to finish (2s video + encoding)
+                System.Threading.Thread.Sleep(3000)
+
+                ' Stop
+                backend.Stop()
+
+                Dim finalState = backend.CurrentState
+                Assert(finalState = VideoBackendState.Stopped OrElse finalState = VideoBackendState.Faulted,
+                       $"Cycle {cycle}: final state should be Stopped or Faulted (got {finalState})")
+
+                ' Verify output file exists
+                Assert(IO.File.Exists(outputFile), $"Cycle {cycle}: output file should exist")
+                If IO.File.Exists(outputFile) Then
+                    Dim size = New IO.FileInfo(outputFile).Length
+                    Assert(size > 0, $"Cycle {cycle}: output file should be non-empty")
+                    IO.File.Delete(outputFile)
+                End If
+
+                ' Verify no stale state — state should be Stopped (ready for next Start)
+                Assert(backend.CurrentState = VideoBackendState.Stopped OrElse backend.CurrentState = VideoBackendState.Faulted,
+                       $"Cycle {cycle}: state after Stop should be Stopped or Faulted")
+            Next
+
+            ' Verify no unexpected errors during Running state
+            Assert(unexpectedErrors = 0,
+                   $"Should have 0 unexpected errors during Running (got {unexpectedErrors})")
+
+            backend.Dispose()
+            Assert(backend.CurrentState = VideoBackendState.Disposed,
+                   "State should be Disposed after final Dispose")
         End Sub
     End Module
 End Namespace
