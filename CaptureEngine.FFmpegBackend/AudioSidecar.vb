@@ -3,13 +3,20 @@ Option Explicit On
 Option Infer On
 
 Imports System
+Imports System.IO
+Imports System.Threading
 
 Namespace CaptureEngine.FFmpegBackend
     ''' <summary>
     ''' Audio sidecar: records WASAPI audio to temp .wav files independently
     ''' of the FFmpeg video process.
     '''
-    ''' P1-C SKELETON — empty stub. Implementation in next commit.
+    ''' P1-C Commit 4: OPTIONAL STUB — no WASAPI implementation.
+    '''
+    ''' This is a lifecycle-safe placeholder. Start() and Stop() are no-ops
+    ''' that set internal state correctly. HasAudioData always returns False.
+    ''' When WASAPI is added (future task), replace the stub bodies with
+    ''' real NAudio.WasapiCapture initialization.
     '''
     ''' Architecture (per Engine-Audio two-process design):
     '''   - Start() is called AFTER FFmpegProcessHost.Start() (video starts first)
@@ -20,7 +27,6 @@ Namespace CaptureEngine.FFmpegBackend
     '''
     ''' Thread safety:
     '''   - Start/Stop are called from the FFmpegPipelineBackend thread (serialized)
-    '''   - WASAPI callbacks fire on threadpool threads
     '''   - Internal state protected by SyncLock
     ''' </summary>
     Public NotInheritable Class AudioSidecar
@@ -42,32 +48,82 @@ Namespace CaptureEngine.FFmpegBackend
         Public Property SystemStartTicks As Long = 0
         Public Property MicStartTicks As Long = 0
 
-        ''' <summary>Start audio recording (WASAPI loopback + optional mic capture).</summary>
+        ''' <summary>
+        ''' Start audio recording (WASAPI loopback + optional mic capture).
+        ''' STUB: no-ops. Sets _started = True and captures QPC timestamps
+        ''' for future mux offset calculation. Does NOT create .wav files.
+        ''' </summary>
         Public Sub Start()
-            If Not (SystemAudioEnabled OrElse MicEnabled) Then Return
-            ' TODO (next commit): initialize WASAPI, create WaveFileWriter(s)
-            Throw New NotImplementedException("AudioSidecar.Start — skeleton only")
+            SyncLock _sync
+                If _disposed Then
+                    Throw New ObjectDisposedException(NameOf(AudioSidecar))
+                End If
+                If _started Then Return
+
+                ' Capture per-track start timestamps (even in stub mode —
+                ' the mux coordinator uses these for offset calculation).
+                If SystemAudioEnabled Then
+                    SystemStartTicks = Stopwatch.GetTimestamp()
+                End If
+                If MicEnabled Then
+                    MicStartTicks = Stopwatch.GetTimestamp()
+                End If
+
+                _started = True
+
+                ' TODO (future task): initialize NAudio WasapiLoopbackCapture
+                ' + WaveFileWriter for each enabled track. Write to temp .wav files.
+                ' For now, this is a no-op stub — no .wav files are created.
+            End SyncLock
         End Sub
 
-        ''' <summary>Stop audio recording + finalize .wav files (write correct WAV headers).</summary>
+        ''' <summary>
+        ''' Stop audio recording + finalize .wav files (write correct WAV headers).
+        ''' STUB: no-ops. Sets _started = False.
+        ''' </summary>
         Public Sub [Stop]()
-            If Not _started Then Return
-            ' TODO (next commit): stop WASAPI, dispose WaveFileWriter(s)
-            Throw New NotImplementedException("AudioSidecar.Stop — skeleton only")
+            SyncLock _sync
+                If Not _started Then Return
+                _started = False
+
+                ' TODO (future task): stop WasapiCapture, dispose WaveFileWriter(s).
+                ' WaveFileWriter.Dispose writes the correct WAV header (data size, etc.)
+                ' For now, this is a no-op stub.
+            End SyncLock
         End Sub
 
-        ''' <summary>True if at least one audio track has data (non-empty .wav).</summary>
+        ''' <summary>
+        ''' True if at least one audio track has data (non-empty .wav).
+        ''' STUB: always returns False (no .wav files created).
+        ''' </summary>
         Public ReadOnly Property HasAudioData As Boolean
             Get
-                ' TODO (next commit): check .wav file sizes > 44 bytes (WAV header)
+                ' TODO (future task): check .wav file sizes > 44 bytes (WAV header)
+                ' For now, stub returns False — no audio data.
                 Return False
             End Get
         End Property
 
+        ''' <summary>True if Start() was called and Stop() has not been called.</summary>
+        Public ReadOnly Property IsRunning As Boolean
+            Get
+                SyncLock _sync
+                    Return _started
+                End SyncLock
+            End Get
+        End Property
+
         Public Sub Dispose() Implements IDisposable.Dispose
-            If _disposed Then Return
-            _disposed = True
-            ' TODO (next commit): dispose WASAPI resources
+            SyncLock _sync
+                If _disposed Then Return
+                _disposed = True
+
+                ' Ensure stopped
+                If _started Then
+                    _started = False
+                    ' TODO (future): dispose WASAPI resources
+                End If
+            End SyncLock
         End Sub
     End Class
 End Namespace

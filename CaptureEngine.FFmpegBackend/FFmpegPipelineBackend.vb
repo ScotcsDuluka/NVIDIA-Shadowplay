@@ -12,7 +12,7 @@ Namespace CaptureEngine.FFmpegBackend
     ''' FFmpegPipelineBackend — the orchestrator. Implements IVideoBackend
     ''' (fire-and-forget model: GetFrame() returns Nothing).
     '''
-    ''' P1-C SKELETON — empty stub. Implementation in next commit.
+    ''' P1-C Commit 4: Full lifecycle implementation.
     '''
     ''' Lifecycle:
     '''   Created → Starting → Running → Stopping → [Muxing] → Stopped → Disposed
@@ -45,6 +45,7 @@ Namespace CaptureEngine.FFmpegBackend
         Private _state As VideoBackendState = VideoBackendState.Created
         Private _disposed As Boolean = False
         Private _stopCompleted As Integer = 0  ' Interlocked guard for 3-way race
+        Private _muxCompleted As Integer = 0   ' Guard against double-mux
 
         ' ── Components (owned) ──
         Private _processHost As FFmpegProcessHost
@@ -56,10 +57,15 @@ Namespace CaptureEngine.FFmpegBackend
         Private _ffmpegPath As String = ""
         Private _arguments As String = ""
         Private _outputPath As String = ""
-        Private _useTwoProcess As Boolean = False  ' True if audio enabled
+        Private _useTwoProcess As Boolean = False
         Private _tempVideoPath As String = ""
         Private _tempSystemWav As String = ""
         Private _tempMicWav As String = ""
+        Private _systemAudioEnabled As Boolean = False
+        Private _micEnabled As Boolean = False
+        Private _systemVolume As Single = 1.0F
+        Private _micVolume As Single = 1.0F
+        Private _separateTracks As Boolean = False
 
         ' ── Sync timestamps ──
         Private _videoStartTicks As Long = 0
@@ -84,17 +90,117 @@ Namespace CaptureEngine.FFmpegBackend
         End Property
 
         Public Sub Start() Implements IVideoBackend.Start
-            Throw New NotImplementedException("FFmpegPipelineBackend.Start — skeleton only")
+            SyncLock _sync
+                If _disposed Then
+                    Throw New ObjectDisposedException(NameOf(FFmpegPipelineBackend))
+                End If
+                If _state = VideoBackendState.Running OrElse _state = VideoBackendState.Starting Then
+                    Return  ' Idempotent — already started
+                End If
+                If _state <> VideoBackendState.Created AndAlso _state <> VideoBackendState.Stopped Then
+                    Throw New InvalidOperationException(
+                        "Start cannot be called from state '" & _state.ToString() & "'.")
+                End If
+                _state = VideoBackendState.Starting
+            End SyncLock
+
+            FireStateChanged(VideoBackendState.Starting)
+
+            Try
+                ' Create components
+                _stderrParser = New FFmpegStderrParser()
+                _processHost = New FFmpegProcessHost()
+                _processHost.FFmpegPath = _ffmpegPath
+                _processHost.Arguments = _arguments
+                _processHost.OutputPath = If(_useTwoProcess, _tempVideoPath, _outputPath)
+
+                ' Wire events
+                AddHandler _processHost.Exited, AddressOf OnProcessExited
+                AddHandler _processHost.StderrLine, AddressOf OnStderrLine
+
+                ' Reset stop guard
+                Threading.Interlocked.Exchange(_stopCompleted, 0)
+                Threading.Interlocked.Exchange(_muxCompleted, 0)
+
+                ' Start FFmpeg
+                _processHost.Start()
+
+                ' Start audio sidecar (if enabled)
+                If _useTwoProcess Then
+                    _audioSidecar = New AudioSidecar()
+                    _audioSidecar.SystemAudioEnabled = _systemAudioEnabled
+                    _audioSidecar.MicEnabled = _micEnabled
+                    _audioSidecar.TempSystemWavPath = _tempSystemWav
+                    _audioSidecar.TempMicWavPath = _tempMicWav
+                    _audioSidecar.Start()
+                    _systemStartTicks = _audioSidecar.SystemStartTicks
+                    _micStartTicks = _audioSidecar.MicStartTicks
+                End If
+
+                ' Transition to Running
+                SyncLock _sync
+                    _state = VideoBackendState.Running
+                End SyncLock
+                FireStateChanged(VideoBackendState.Running)
+                FireRecordingStarted(_outputPath)
+
+            Catch ex As Exception
+                SyncLock _sync
+                    _state = VideoBackendState.Faulted
+                End SyncLock
+                FireStateChanged(VideoBackendState.Faulted)
+                FireErrorOccurred("Start failed: " & ex.Message)
+                Throw
+            End Try
         End Sub
 
         Public Function GetFrame() As VideoFrame Implements IVideoBackend.GetFrame
             ' Full-pipeline backend: FFmpeg writes to file, not to frames.
-            ' GetFrame() always returns Nothing (fire-and-forget model).
             Return Nothing
         End Function
 
         Public Sub [Stop]() Implements IVideoBackend.[Stop]
-            Throw New NotImplementedException("FFmpegPipelineBackend.Stop — skeleton only")
+            ' Guard: only first caller of Stop/Dispose/OnExited proceeds
+            If Threading.Interlocked.Exchange(_stopCompleted, 1) <> 0 Then Return
+
+            Dim prevState As VideoBackendState
+            SyncLock _sync
+                prevState = _state
+                If prevState = VideoBackendState.Disposed Then Return
+                ' If not Running, Stop is a no-op (matches Foundation + P1-B.1 pattern)
+                If prevState <> VideoBackendState.Running Then Return
+                _state = VideoBackendState.Stopping
+            End SyncLock
+            FireStateChanged(VideoBackendState.Stopping)
+
+            ' ─── Step 1: Send 'q' to FFmpeg (OUTSIDE lock) ───
+            If _processHost IsNot Nothing AndAlso Not _processHost.HasExited Then
+                _processHost.SendQuit()
+
+                ' Wait for FFmpeg to exit (OUTSIDE lock — 10s timeout)
+                If Not _processHost.WaitForExit(10000) Then
+                    ' Timeout — kill
+                    _processHost.Kill()
+                    _processHost.WaitForExit(2000)
+                End If
+            End If
+
+            ' ─── Step 2: Stop audio sidecar (AFTER FFmpeg exit) ───
+            If _audioSidecar IsNot Nothing Then
+                _audioSidecar.Stop()
+            End If
+
+            ' ─── Step 3: Mux (if two-process mode) ───
+            If _useTwoProcess Then
+                RunMux()
+            End If
+
+            ' ─── Step 4: Transition to Stopped ───
+            SyncLock _sync
+                _state = VideoBackendState.Stopped
+            End SyncLock
+            FireStateChanged(VideoBackendState.Stopped)
+            FireRecordingStopped(_outputPath)
         End Sub
 
         Public Function GetDiagnostics() As IReadOnlyDictionary(Of String, Long) Implements IVideoBackend.GetDiagnostics
@@ -107,7 +213,47 @@ Namespace CaptureEngine.FFmpegBackend
         ' ===== IDisposable =====
 
         Public Sub Dispose() Implements IDisposable.Dispose
-            Throw New NotImplementedException("FFmpegPipelineBackend.Dispose — skeleton only")
+            Dim needStop As Boolean = False
+
+            SyncLock _sync
+                If _disposed Then Return
+                _disposed = True
+
+                If _state = VideoBackendState.Running OrElse _state = VideoBackendState.Starting Then
+                    needStop = True
+                End If
+            End SyncLock
+
+            ' Stop if running (OUTSIDE lock — calls WaitForExit/Kill/Mux)
+            If needStop Then
+                [Stop]()
+            End If
+
+            ' Dispose components (OUTSIDE lock)
+            If _processHost IsNot Nothing Then
+                RemoveHandler _processHost.Exited, AddressOf OnProcessExited
+                RemoveHandler _processHost.StderrLine, AddressOf OnStderrLine
+                _processHost.Dispose()
+                _processHost = Nothing
+            End If
+
+            If _audioSidecar IsNot Nothing Then
+                _audioSidecar.Dispose()
+                _audioSidecar = Nothing
+            End If
+
+            If _muxCoordinator IsNot Nothing Then
+                _muxCoordinator.Dispose()
+                _muxCoordinator = Nothing
+            End If
+
+            _stderrParser = Nothing
+
+            ' Finalize state
+            SyncLock _sync
+                _state = VideoBackendState.Disposed
+            End SyncLock
+            FireStateChanged(VideoBackendState.Disposed)
         End Sub
 
         ' ===== Configuration (fluent API, called before Start) =====
@@ -138,28 +284,171 @@ Namespace CaptureEngine.FFmpegBackend
             Return Me
         End Function
 
-        ' ===== Internal helpers (to be implemented in next commit) =====
+        Public Function WithAudio(systemEnabled As Boolean,
+                                  micEnabled As Boolean,
+                                  systemVolume As Single,
+                                  micVolume As Single,
+                                  separateTracks As Boolean) As FFmpegPipelineBackend
+            _systemAudioEnabled = systemEnabled
+            _micEnabled = micEnabled
+            _systemVolume = systemVolume
+            _micVolume = micVolume
+            _separateTracks = separateTracks
+            Return Me
+        End Function
 
-        Private Sub TransitionTo(newState As VideoBackendState)
-            ' TODO: thread-safe state transition + fire event OUTSIDE lock
-            Throw New NotImplementedException()
+        ' ===== Private: Mux =====
+
+        Private Sub RunMux()
+            If Threading.Interlocked.Exchange(_muxCompleted, 1) <> 0 Then Return
+
+            _muxCoordinator = New MuxCoordinator()
+            _muxCoordinator.FFmpegPath = _ffmpegPath
+            _muxCoordinator.TempVideoPath = _tempVideoPath
+            _muxCoordinator.TempSystemWavPath = _tempSystemWav
+            _muxCoordinator.TempMicWavPath = _tempMicWav
+            _muxCoordinator.OutputPath = _outputPath
+            _muxCoordinator.HasSystemAudio = _systemAudioEnabled
+            _muxCoordinator.HasMicAudio = _micEnabled
+            _muxCoordinator.SystemVolume = _systemVolume
+            _muxCoordinator.MicVolume = _micVolume
+            _muxCoordinator.SeparateTracks = _separateTracks
+
+            ' Compute per-track offsets
+            If _videoStartDetected Then
+                If _systemStartTicks > 0 Then
+                    _muxCoordinator.SystemOffsetSec =
+                        (_videoStartTicks - _systemStartTicks) / Stopwatch.Frequency
+                    ' Clamp
+                    _muxCoordinator.SystemOffsetSec = Math.Max(-2.0, Math.Min(5.0, _muxCoordinator.SystemOffsetSec))
+                End If
+                If _micStartTicks > 0 Then
+                    _muxCoordinator.MicOffsetSec =
+                        (_videoStartTicks - _micStartTicks) / Stopwatch.Frequency
+                    _muxCoordinator.MicOffsetSec = Math.Max(-2.0, Math.Min(5.0, _muxCoordinator.MicOffsetSec))
+                End If
+            End If
+
+            ' Transition to Stopping (VideoBackendState enum has no Muxing member —
+            ' the mux happens during the Stopping phase; the Stopping → Stopped
+            ' transition covers the entire stop+mux sequence)
+            SyncLock _sync
+                _state = VideoBackendState.Stopping
+            End SyncLock
+            FireStateChanged(VideoBackendState.Stopping)
+
+            ' Check if audio data exists
+            Dim hasAudio As Boolean = (_audioSidecar IsNot Nothing AndAlso _audioSidecar.HasAudioData)
+
+            If Not hasAudio Then
+                ' No audio data — just rename temp video to final output
+                _muxCoordinator.RenameTempVideoToOutput()
+            Else
+                ' Step 1: ffprobe (OUTSIDE lock)
+                _muxCoordinator.ProbeVideoDuration()
+
+                ' Step 2: Run mux FFmpeg (OUTSIDE lock)
+                Dim muxOk As Boolean = _muxCoordinator.Run()
+
+                If muxOk Then
+                    ' Clean up temp files
+                    _muxCoordinator.CleanupTempFiles()
+                End If
+            End If
         End Sub
 
-        Private Sub FireStateChanged(newState As VideoBackendState)
-            ' Fire event OUTSIDE lock (per OWNER rule)
-            RaiseEvent StateChanged(newState)
-        End Sub
+        ' ===== Private: Event handlers =====
 
         Private Sub OnProcessExited(exitCode As Integer)
-            ' TODO: handle FFmpeg exit (graceful or crash)
-            ' Guard against 3-way race via Interlocked.Exchange(_stopCompleted, 1)
-            Throw New NotImplementedException()
+            ' Guard: only first caller of Stop/Dispose/OnExited proceeds
+            If Threading.Interlocked.Exchange(_stopCompleted, 1) <> 0 Then Return
+
+            Dim prevState As VideoBackendState
+            SyncLock _sync
+                prevState = _state
+            End SyncLock
+
+            ' Only handle unexpected exits (state was Running)
+            ' If state is Stopping, Stop() is handling the flow.
+            If prevState = VideoBackendState.Running Then
+                ' FFmpeg exited unexpectedly (crash or error)
+                ' Stop audio sidecar
+                If _audioSidecar IsNot Nothing Then
+                    _audioSidecar.Stop()
+                End If
+
+                ' If exit code = 0, mux may be possible
+                If exitCode = 0 AndAlso _useTwoProcess Then
+                    RunMux()
+                End If
+
+                ' Transition to Faulted (if exit was non-zero) or Stopped
+                SyncLock _sync
+                    If exitCode = 0 Then
+                        _state = VideoBackendState.Stopped
+                    Else
+                        _state = VideoBackendState.Faulted
+                    End If
+                End SyncLock
+
+                If exitCode = 0 Then
+                    FireStateChanged(VideoBackendState.Stopped)
+                    FireRecordingStopped(_outputPath)
+                Else
+                    FireStateChanged(VideoBackendState.Faulted)
+                    FireErrorOccurred("FFmpeg exited unexpectedly with code " & exitCode.ToString())
+                End If
+            End If
         End Sub
 
         Private Sub OnStderrLine(line As String)
             If _stderrParser IsNot Nothing Then
                 _stderrParser.ProcessLine(line)
             End If
+
+            ' Detect video start (first frame= line with time=)
+            If Not _videoStartDetected AndAlso _useTwoProcess Then
+                If line.Contains("frame=") AndAlso line.Contains("time=") Then
+                    Try
+                        Dim timeIdx As Integer = line.IndexOf("time=") + 5
+                        Dim timeStr As String = line.Substring(timeIdx).TrimStart()
+                        Dim timeEnd As Integer = timeStr.IndexOf(" "c)
+                        If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
+
+                        Dim videoTime As TimeSpan
+                        If TimeSpan.TryParse(timeStr, Globalization.CultureInfo.InvariantCulture, videoTime) Then
+                            Dim nowTicks As Long = Stopwatch.GetTimestamp()
+                            Dim videoTimeTicks As Long = CLng(videoTime.TotalSeconds * Stopwatch.Frequency)
+                            _videoStartTicks = nowTicks - videoTimeTicks
+                            _videoStartDetected = True
+                        End If
+                    Catch
+                    End Try
+                End If
+            End If
+
+            ' Fire error event if parser detected an error
+            If _stderrParser IsNot Nothing AndAlso _stderrParser.HasError Then
+                FireErrorOccurred(_stderrParser.LastError)
+            End If
+        End Sub
+
+        ' ===== Private: Event dispatch (ALWAYS outside lock) =====
+
+        Private Sub FireStateChanged(newState As VideoBackendState)
+            RaiseEvent StateChanged(newState)
+        End Sub
+
+        Private Sub FireRecordingStarted(path As String)
+            RaiseEvent RecordingStarted(path)
+        End Sub
+
+        Private Sub FireRecordingStopped(path As String)
+            RaiseEvent RecordingStopped(path)
+        End Sub
+
+        Private Sub FireErrorOccurred(msg As String)
+            RaiseEvent ErrorOccurred(msg)
         End Sub
     End Class
 End Namespace
