@@ -357,13 +357,6 @@ Partial Public Class Base
 
     End Sub
 
-    ' FIX: MainForm_Shown removed — it duplicated the exact same GitHub user + avatar
-    '      load already kicked off in MainForm_Load's Task.Run block. Every form open
-    '      was firing 2× network calls + 2× PictureBox.BackgroundImage allocations for
-    '      no reason. If Load's Task.Run fails or is delayed, re-triggering on Shown
-    '      does not help either because both run on the same ThreadPool.
-    '      If a real "retry on shown" is needed later, add it explicitly with backoff.
-
     Private Async Function WaitForConnection(timeoutMs As Integer) As Task
         Dim tcs As New TaskCompletionSource(Of Boolean)()
         Dim handler As TcpClientHelper.OnMessageReceivedEventHandler = Nothing
@@ -377,7 +370,6 @@ Partial Public Class Base
 
         AddHandler tcp.OnMessageReceived, handler
 
-        ' ตั้ง timeout
         Using timeoutCts As New CancellationTokenSource(timeoutMs)
             Dim reg = timeoutCts.Token.Register(Sub()
                                                     RemoveHandler tcp.OnMessageReceived, handler
