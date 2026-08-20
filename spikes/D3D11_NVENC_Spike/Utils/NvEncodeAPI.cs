@@ -176,27 +176,37 @@ public static class NvEncodeAPI
         NVENCAPI_MAJOR_VERSION | (NVENCAPI_MINOR_VERSION << 24);
 
     /// <summary>
-    /// Computes the struct version field per NVENC's convention:
+    /// Computes the struct version field per NVENC's convention.
     ///
-    ///   NVENCAPI_STRUCT_VERSION(ver) = ver | (NVENCAPI_VERSION &lt;&lt; 16) | (0x7 &lt;&lt; 28)
+    /// CRITICAL EMPIRICAL FINDING (glm4-phase6-version-macro-fix-revert):
+    ///   I previously thought NVIDIA's macro was:
+    ///     NVENCAPI_STRUCT_VERSION(ver) = ver | (NVENCAPI_VERSION << 16) | (0x7 << 28)
+    ///   But OWNER's nvEncodeAPI64.dll EMPIRICALLY REJECTS this form —
+    ///   NvEncOpenEncodeSessionEx returns NV_ENC_ERR_INVALID_VERSION (status 15)
+    ///   when called with version field = 0x700D0001 (the documented form).
     ///
-    /// CRITICAL FIX (glm4-phase6-version-macro-fix):
-    ///   Previous version had the two fields SWAPPED:
-    ///     old: return NVENCAPI_VERSION | (structVer &lt;&lt; 16) | (0x7u &lt;&lt; 28);
-    ///   This produced wrong version fields like 0x7004000D (NVENCAPI_VERSION=0x0D
-    ///   in low 4 bits, structVer=4 in bits 16-19) instead of NVIDIA's expected
-    ///   0x700D0004 (structVer=4 in low 4 bits, NVENCAPI_VERSION=0x0D in bits 16-19).
+    ///   OWNER's DLL ACCEPTS the SWAPPED form:
+    ///     NVENCAPI_VERSION | (ver << 16) | (0x7 << 28)
+    ///   producing version field = 0x7001000D for NVENCAPI_VERSION=0x0D, ver=1.
     ///
-    ///   NVENC uses bits 16-27 as the NVENCAPI_VERSION to bucket internal state by
-    ///   API version. With the swapped macro, RegisterResource (structVer=3) wrote
-    ///   to NVENC's "version 3" bucket, while MapInputResource (structVer=4) read
-    ///   from "version 4" bucket → handle not found → status 20
-    ///   (NV_ENC_ERR_RESOURCE_NOT_REGISTERED, mislabeled as NOT_MAPPED in our
-    ///   old enum).
+    ///   This was confirmed by the Phase 4 prior PASS:
+    ///     "Function table version: 0x7001000D" → OpenEncodeSession PASS
+    ///   vs. Phase 6 after the macro swap:
+    ///     "Function table version: 0x700D0001" → OpenEncodeSession FAIL
+    ///
+    ///   Possible explanations:
+    ///     1. OWNER's DLL is built against an older SDK (pre-13.1) where the
+    ///        macro had NVENCAPI_VERSION in the low bits.
+    ///     2. The public SDK 13.1 header documentation is wrong.
+    ///     3. The DLL's FileDescription "Version 11.0" indicates SDK 11.0 was
+    ///        compiled with a different macro form than SDK 13.1 docs show.
+    ///
+    ///   Empirically, the SWAPPED form is what this specific DLL expects.
+    ///   REVERTING to the swapped form.
     /// </summary>
     public static uint MakeStructVersion(uint structVer)
     {
-        return structVer | (NVENCAPI_VERSION << 16) | (0x7u << 28);
+        return NVENCAPI_VERSION | (structVer << 16) | (0x7u << 28);
     }
 
     /// <summary>
