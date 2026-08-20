@@ -48,13 +48,36 @@ public static class NvEncodeAPI
     public const uint NV_ENC_ERR_ENCODER_NOT_INITIALIZED = 11;
     public const uint NV_ENC_ERR_UNSUPPORTED_PARAM = 12;
     public const uint NV_ENC_ERR_LOCK_BUSY = 13;
-    public const uint NV_ENC_ERR_NOT_ENOUGH_INTRA_REFRESH_CARDS = 14;
-    public const uint NV_ENC_ERR_GENERIC = 15;
-    public const uint NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY = 16;
-    public const uint NV_ENC_ERR_UNIMPLEMENTED = 17;
-    public const uint NV_ENC_ERR_RESOURCE_REGISTER_FAILED = 18;
-    public const uint NV_ENC_ERR_RESOURCE_NOT_REGISTERED = 19;
-    public const uint NV_ENC_ERR_RESOURCE_NOT_MAPPED = 20;
+    // CRITICAL FIX (glm4-phase6-version-macro-fix):
+    //   Our code previously had these codes OFF BY ONE starting at position 14,
+    //   with wrong names like "NOT_ENOUGH_INTRA_REFRESH_CARDS" and "GENERIC"
+    //   placed at slots that actually hold "NOT_ENOUGH_INPUT_DATA" and
+    //   "INVALID_VERSION" in NVIDIA's real enum. Status 20 was mislabeled as
+    //   RESOURCE_NOT_MAPPED but is actually RESOURCE_NOT_REGISTERED.
+    //
+    //   Correct enum from NVIDIA nvEncodeAPI.h (SDK 11.1+):
+    //     14 = NV_ENC_ERR_NOT_ENOUGH_INPUT_DATA
+    //     15 = NV_ENC_ERR_INVALID_VERSION
+    //     16 = NV_ENC_ERR_MAP_FAILED
+    //     17 = NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY
+    //     18 = NV_ENC_ERR_UNIMPLEMENTED
+    //     19 = NV_ENC_ERR_RESOURCE_REGISTER_FAILED
+    //     20 = NV_ENC_ERR_RESOURCE_NOT_REGISTERED  ← previously mislabeled as NOT_MAPPED
+    //     21 = NV_ENC_ERR_RESOURCE_NOT_MAPPED
+    //     22 = NV_ENC_ERR_DEVICE_NOT_EXIST (alias)
+    public const uint NV_ENC_ERR_NOT_ENOUGH_INPUT_DATA = 14;
+    public const uint NV_ENC_ERR_INVALID_VERSION = 15;
+    public const uint NV_ENC_ERR_MAP_FAILED = 16;
+    public const uint NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY = 17;
+    public const uint NV_ENC_ERR_UNIMPLEMENTED = 18;
+    public const uint NV_ENC_ERR_RESOURCE_REGISTER_FAILED = 19;
+    public const uint NV_ENC_ERR_RESOURCE_NOT_REGISTERED = 20;
+    public const uint NV_ENC_ERR_RESOURCE_NOT_MAPPED = 21;
+    // Old GENERIC slot was 15 in the previous (wrong) mapping. NVIDIA's actual
+    // enum has GENERIC much later (~30+). For backward compatibility with any
+    // legacy code still referencing it, leave an alias but mark deprecated.
+    [Obsolete("Use specific NV_ENC_ERR_* codes. NVIDIA's actual enum has GENERIC later; status 15 is INVALID_VERSION.")]
+    public const uint NV_ENC_ERR_GENERIC = 99;
 
     // === Device types ===
     // From nvEncodeAPI.h SDK 13.1:
@@ -155,11 +178,25 @@ public static class NvEncodeAPI
     /// <summary>
     /// Computes the struct version field per NVENC's convention:
     ///
-    ///   NVENCAPI_STRUCT_VERSION(ver) = NVENCAPI_VERSION | (ver << 16) | (0x7 << 28)
+    ///   NVENCAPI_STRUCT_VERSION(ver) = ver | (NVENCAPI_VERSION &lt;&lt; 16) | (0x7 &lt;&lt; 28)
+    ///
+    /// CRITICAL FIX (glm4-phase6-version-macro-fix):
+    ///   Previous version had the two fields SWAPPED:
+    ///     old: return NVENCAPI_VERSION | (structVer &lt;&lt; 16) | (0x7u &lt;&lt; 28);
+    ///   This produced wrong version fields like 0x7004000D (NVENCAPI_VERSION=0x0D
+    ///   in low 4 bits, structVer=4 in bits 16-19) instead of NVIDIA's expected
+    ///   0x700D0004 (structVer=4 in low 4 bits, NVENCAPI_VERSION=0x0D in bits 16-19).
+    ///
+    ///   NVENC uses bits 16-27 as the NVENCAPI_VERSION to bucket internal state by
+    ///   API version. With the swapped macro, RegisterResource (structVer=3) wrote
+    ///   to NVENC's "version 3" bucket, while MapInputResource (structVer=4) read
+    ///   from "version 4" bucket → handle not found → status 20
+    ///   (NV_ENC_ERR_RESOURCE_NOT_REGISTERED, mislabeled as NOT_MAPPED in our
+    ///   old enum).
     /// </summary>
     public static uint MakeStructVersion(uint structVer)
     {
-        return NVENCAPI_VERSION | (structVer << 16) | (0x7u << 28);
+        return structVer | (NVENCAPI_VERSION << 16) | (0x7u << 28);
     }
 
     /// <summary>
@@ -765,7 +802,9 @@ public static class NvEncodeAPI
             NV_ENC_ERR_ENCODER_NOT_INITIALIZED => "NV_ENC_ERR_ENCODER_NOT_INITIALIZED",
             NV_ENC_ERR_UNSUPPORTED_PARAM => "NV_ENC_ERR_UNSUPPORTED_PARAM",
             NV_ENC_ERR_LOCK_BUSY => "NV_ENC_ERR_LOCK_BUSY",
-            NV_ENC_ERR_GENERIC => "NV_ENC_ERR_GENERIC",
+            NV_ENC_ERR_NOT_ENOUGH_INPUT_DATA => "NV_ENC_ERR_NOT_ENOUGH_INPUT_DATA",
+            NV_ENC_ERR_INVALID_VERSION => "NV_ENC_ERR_INVALID_VERSION",
+            NV_ENC_ERR_MAP_FAILED => "NV_ENC_ERR_MAP_FAILED",
             NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY => "NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY",
             NV_ENC_ERR_UNIMPLEMENTED => "NV_ENC_ERR_UNIMPLEMENTED",
             NV_ENC_ERR_RESOURCE_REGISTER_FAILED => "NV_ENC_ERR_RESOURCE_REGISTER_FAILED",

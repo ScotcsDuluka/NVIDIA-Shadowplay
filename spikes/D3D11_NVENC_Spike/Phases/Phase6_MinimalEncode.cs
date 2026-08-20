@@ -254,6 +254,12 @@ public static class Phase6_MinimalEncode
                 reserved2 = new IntPtr[62],
             };
 
+            // DIAGNOSTIC: print version field so we can verify the MakeStructVersion
+            // macro is producing the correct value (NVIDIA expects 0x700D0003 for
+            // NV_ENC_REGISTER_RESOURCE_VER with API version 13.0).
+            Console.WriteLine($"  RegisterResource version field: 0x{registerParams.version:X8} " +
+                              $"(expected 0x700D0003 for API 13.0)");
+
             uint regStatus = nvenc.RegisterResource(encoder, ref registerParams);
             if (regStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
@@ -284,6 +290,20 @@ public static class Phase6_MinimalEncode
                 reserved1 = new IntPtr[246],
                 reserved2 = new IntPtr[63],
             };
+
+            // DIAGNOSTIC: print version field + handle being passed, to verify
+            // both that the macro is correct (expected 0x700D0004 for API 13.0)
+            // and that the registered handle is exactly what RegisterResource returned.
+            Console.WriteLine($"  MapInputResource version field:  0x{mapParams.version:X8} " +
+                              $"(expected 0x700D0004 for API 13.0)");
+            Console.WriteLine($"  MapInputResource inputResource:  0x{mapParams.inputResource.ToInt64():x16}");
+            Console.WriteLine($"  (Should match registeredResource handle above.)");
+
+            // Flush the D3D11 context to ensure the ClearRenderTargetView command
+            // has completed before NVENC tries to map the texture. NVIDIA samples
+            // don't always do this, but it's defensive — if the GPU command queue
+            // has pending work, MapInputResource might fail.
+            device.ImmediateContext.Flush();
 
             uint mapStatus = nvenc.MapInputResource(encoder, ref mapParams);
             if (mapStatus != NvEncodeAPI.NV_ENC_SUCCESS)
