@@ -242,27 +242,27 @@ public static class NvEncodeAPI
     public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 3;          // SDK 11
 
     // Phase 6 struct version constants
-    // CRITICAL (glm4-phase6-structver-test):
-    //   OWNER's nvEncodeAPI64.dll reports max API 13.0 via GetMaxSupportedVersion,
-    //   but FileDescription says "Version 11.0". Empirically, RegisterResource
-    //   with structVer=3 (SDK 11 value) PASSES, but MapInputResource with
-    //   structVer=4 (SDK 11 value) FAILS with NV_ENC_ERR_RESOURCE_NOT_REGISTERED.
+    // VERIFIED via FFmpeg/nv-codec-headers (mirror of NVIDIA nvEncodeAPI.h):
+    //   https://github.com/FFmpeg/nv-codec-headers/blob/sdk/11.0/include/ffnvcodec/nvEncodeAPI.h
+    //   https://github.com/FFmpeg/nv-codec-headers/blob/sdk/13.0/include/ffnvcodec/nvEncodeAPI.h
     //
-    //   Hypothesis: the DLL is actually SDK 12+ (API 13.0), which uses:
-    //     - NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 5 (not 4)
-    //   The struct LAYOUT for NV_ENC_MAP_INPUT_RESOURCE is identical between
-    //   SDK 11 and SDK 13 — only the structVer value changed from 4 to 5.
-    //   So changing just the structVer is safe (no struct layout change needed).
+    // SDK 11.x structVers:
+    //   NV_ENC_CREATE_BITSTREAM_BUFFER_VER: 1
+    //   NV_ENC_MAP_INPUT_RESOURCE_VER:    4
+    //   NV_ENC_PIC_PARAMS_VER:            4   (with 1u<<31 flag)
+    //   NV_ENC_LOCK_BITSTREAM_VER:        1
     //
-    //   This commit changes NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT from 4 to 5
-    //   as a test. If MapInputResource passes, the DLL is SDK 12+ and we should
-    //   also update NV_ENC_REGISTER_RESOURCE_VER_STRUCT to 4 (SDK 12) or 5
-    //   (SDK 13), which DOES require updating the struct layout (adds
-    //   bufferUsage, pInputFencePoint, chromaOffset fields).
-    public const uint NV_ENC_CREATE_BITSTREAM_BUFFER_VER_STRUCT = 1;    // SDK 11
-    public const uint NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 5;         // SDK 12+ (was 4 for SDK 11)
-    public const uint NV_ENC_PIC_PARAMS_VER_STRUCT = 1;                // SDK 11
-    public const uint NV_ENC_LOCK_BITSTREAM_VER_STRUCT = 1;             // SDK 11
+    // SDK 13.x structVers:
+    //   NV_ENC_CREATE_BITSTREAM_BUFFER_VER: 1
+    //   NV_ENC_MAP_INPUT_RESOURCE_VER:    4   (UNCHANGED from SDK 11!)
+    //   NV_ENC_PIC_PARAMS_VER:            7   (with 1u<<31 flag)
+    //   NV_ENC_LOCK_BITSTREAM_VER:        2   (with 1u<<31 flag)
+    //
+    // MapInputResource is structVer=4 in BOTH SDK 11 and SDK 13 — no ambiguity.
+    public const uint NV_ENC_CREATE_BITSTREAM_BUFFER_VER_STRUCT = 1;    // same in SDK 11 and 13
+    public const uint NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 4;         // same in SDK 11 and 13 (was wrongly 5)
+    public const uint NV_ENC_PIC_PARAMS_VER_STRUCT = 4;                // SDK 11 (SDK 13 uses 7)
+    public const uint NV_ENC_LOCK_BITSTREAM_VER_STRUCT = 1;             // SDK 11 (SDK 13 uses 2)
 
     public static uint NV_ENC_CREATE_BITSTREAM_BUFFER_VER =>
         MakeStructVersion(NV_ENC_CREATE_BITSTREAM_BUFFER_VER_STRUCT);

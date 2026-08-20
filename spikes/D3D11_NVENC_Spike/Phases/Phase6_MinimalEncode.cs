@@ -23,6 +23,8 @@
 // SPDX-License-Identifier: MIT
 // Spike code — not production.
 
+using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
@@ -260,6 +262,23 @@ public static class Phase6_MinimalEncode
             Console.WriteLine($"  RegisterResource version field: 0x{registerParams.version:X8} " +
                               $"(expected 0x700D0003 for API 13.0)");
 
+            // DIAGNOSTIC: dump full struct layout + raw bytes before native call.
+            // VERIFIED expected layout from NVIDIA nvEncodeAPI.h (both SDK 11 and 13):
+            //   offset 0:   version (4)
+            //   offset 4:   resourceType (4)
+            //   offset 8:   width (4)
+            //   offset 12:  height (4)
+            //   offset 16:  pitch (4)
+            //   offset 20:  subResourceIndex (4)
+            //   offset 24:  resourceToRegister (8)
+            //   offset 32:  registeredResource (8, OUT)
+            //   offset 40:  bufferFormat (4)
+            //   offset 44:  bufferUsage (4)  ← WE DON'T HAVE THIS FIELD
+            //   offset 48:  reserved1[247] (988)
+            //   offset 1040: reserved2[62] (496)
+            // Total: 1536 bytes (we have 1532)
+            DumpStruct("NV_ENC_REGISTER_RESOURCE (before native call)", ref registerParams, 80);
+
             uint regStatus = nvenc.RegisterResource(encoder, ref registerParams);
             if (regStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
@@ -299,6 +318,19 @@ public static class Phase6_MinimalEncode
             Console.WriteLine($"  MapInputResource inputResource:  0x{mapParams.inputResource.ToInt64():x16}");
             Console.WriteLine($"  (Should match registeredResource handle above.)");
 
+            // DIAGNOSTIC: dump full struct layout + raw bytes before native call.
+            // VERIFIED expected layout from NVIDIA nvEncodeAPI.h (BOTH SDK 11 and 13 are identical):
+            //   offset 0:   version (4)
+            //   offset 4:   subResourceIndex (4)
+            //   offset 8:   inputResource (8)  ← NV_ENC_REGISTERED_PTR
+            //   offset 16:  registeredResource (8)  ← WE DON'T HAVE THIS FIELD
+            //   offset 24:  mappedResource (8, OUT)  ← WE HAVE THIS AT WRONG OFFSET (16)
+            //   offset 32:  mappedBufferFmt (4)  ← WE DON'T HAVE THIS FIELD
+            //   offset 36:  reserved1[251] (1004)
+            //   offset 1040: reserved2[63] (504)
+            // Total: 1544 bytes (we have 2496 — WAY too big!)
+            DumpStruct("NV_ENC_MAP_INPUT_RESOURCE (before native call)", ref mapParams, 80);
+
             // Flush the D3D11 context to ensure the ClearRenderTargetView command
             // has completed before NVENC tries to map the texture. NVIDIA samples
             // don't always do this, but it's defensive — if the GPU command queue
@@ -310,6 +342,15 @@ public static class Phase6_MinimalEncode
             {
                 Console.Error.WriteLine($"  FAIL: NvEncMapInputResource returned {mapStatus} " +
                                         $"({NvEncodeAPI.NvencStatusToString(mapStatus)}).");
+                Console.Error.WriteLine("  Likely cause (based on verified NVIDIA header):");
+                Console.Error.WriteLine("    Our NV_ENC_MAP_INPUT_RESOURCE struct is 2496 bytes but NVIDIA expects 1544.");
+                Console.Error.WriteLine("    We are missing the registeredResource field at offset 16,");
+                Console.Error.WriteLine("    the mappedBufferFmt field at offset 32, and our mappedInputResource");
+                Console.Error.WriteLine("    field is at the wrong offset (16 vs NVIDIA's 24).");
+                Console.Error.WriteLine("    NVENC reads our mappedInputResource bytes (mostly zeros since we set it");
+                Console.Error.WriteLine("    to IntPtr.Zero) as if it were the registeredResource field — finding");
+                Console.Error.WriteLine("    NULL instead of the actual registered handle — and returns");
+                Console.Error.WriteLine("    NV_ENC_ERR_RESOURCE_NOT_REGISTERED (status 20).");
                 return 1;
             }
             mappedInputResource = mapParams.mappedInputResource;
@@ -618,5 +659,112 @@ public static class Phase6_MinimalEncode
         Console.WriteLine($"    NV_ENC_MAP_INPUT_RESOURCE_VER:            0x{NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE_VER:X8}");
         Console.WriteLine($"    NV_ENC_PIC_PARAMS_VER:                    0x{NvEncodeAPI.NV_ENC_PIC_PARAMS_VER:X8}");
         Console.WriteLine($"    NV_ENC_LOCK_BITSTREAM_VER:                0x{NvEncodeAPI.NV_ENC_LOCK_BITSTREAM_VER:X8}");
+    }
+
+    /// <summary>
+    /// Dumps a struct for diagnostic purposes:
+    ///   - Marshal.SizeOf (actual managed struct size)
+    ///   - Marshal.OffsetOf for every public field (with type)
+    ///   - Field values (best-effort string representation)
+    ///   - First N raw bytes (in hex) of the marshalled struct
+    ///
+    /// This is used before NvEncRegisterResource and NvEncMapInputResource
+    /// so we can verify the struct layout and bytes being sent to NVENC.
+    /// </summary>
+    private static void DumpStruct<T>(string label, ref T structure, int dumpByteCount = 64) where T : struct
+    {
+        Console.WriteLine($"  --- DUMP: {label} ---");
+        Type t = typeof(T);
+        int managedSize = Marshal.SizeOf<T>();
+        Console.WriteLine($"  Managed type:      {t.Name}");
+        Console.WriteLine($"  Marshal.SizeOf:    {managedSize} bytes");
+
+        // Use reflection to enumerate public fields in declaration order
+        FieldInfo[] fields = t.GetFields(BindingFlags.Public | BindingFlags.Instance);
+        Console.WriteLine($"  Field count:       {fields.Length}");
+        Console.WriteLine($"  Field offsets:");
+        foreach (FieldInfo f in fields)
+        {
+            // Marshal.OffsetOf throws for some marshalled array fields; catch and continue
+            long offset;
+            try
+            {
+                offset = (long)Marshal.OffsetOf<T>(f.Name);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"    ???  : {f.Name,-25} (offset query failed: {ex.GetType().Name})");
+                continue;
+            }
+
+            string typeName;
+            if (f.FieldType.IsArray)
+            {
+                Type? elemType = f.FieldType.GetElementType();
+                string elemName = elemType?.Name ?? "?";
+                int arrLen = -1;
+                try
+                {
+                    Array? arr = (Array?)f.GetValue(structure);
+                    arrLen = arr?.Length ?? -1;
+                }
+                catch { }
+                typeName = $"{elemName}[{arrLen}]";
+            }
+            else
+            {
+                typeName = f.FieldType.Name;
+            }
+
+            string valStr;
+            try
+            {
+                object? val = f.GetValue(structure);
+                valStr = val switch
+                {
+                    IntPtr p => $"0x{p.ToInt64():x16}",
+                    uint u => $"0x{u:X8} ({u})",
+                    int i => $"{i}",
+                    ulong ul => $"0x{ul:X16}",
+                    long l => $"{l}",
+                    null => "<null>",
+                    _ => val.ToString() ?? "<toString returned null>"
+                };
+            }
+            catch (Exception ex)
+            {
+                valStr = $"<getValue failed: {ex.GetType().Name}>";
+            }
+            Console.WriteLine($"    offset {offset,4}: {f.Name,-25} ({typeName,-25}) = {valStr}");
+        }
+
+        // Dump raw bytes of the marshalled struct
+        IntPtr buf = Marshal.AllocHGlobal(managedSize);
+        try
+        {
+            Marshal.StructureToPtr(structure, buf, false);
+            int dumpLen = Math.Min(dumpByteCount, managedSize);
+            byte[] bytes = new byte[dumpLen];
+            Marshal.Copy(buf, bytes, 0, dumpLen);
+
+            Console.WriteLine($"  First {dumpLen} raw bytes (hex):");
+            for (int i = 0; i < dumpLen; i += 16)
+            {
+                int lineLen = Math.Min(16, dumpLen - i);
+                string hexPart = BitConverter.ToString(bytes, i, lineLen).Replace("-", " ");
+                string asciiPart = new string(bytes.Skip(i).Take(lineLen)
+                    .Select(b => (b >= 0x20 && b < 0x7F) ? (char)b : '.').ToArray());
+                Console.WriteLine($"    {i,4:X4}: {hexPart,-48} | {asciiPart}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"  Raw byte dump failed: {ex.GetType().Name}: {ex.Message}");
+        }
+        finally
+        {
+            Marshal.FreeHGlobal(buf);
+        }
+        Console.WriteLine($"  --- END DUMP: {label} ---");
     }
 }
