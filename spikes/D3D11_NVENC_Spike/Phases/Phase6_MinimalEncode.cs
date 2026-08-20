@@ -305,30 +305,38 @@ public static class Phase6_MinimalEncode
                 version = NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE_VER,
                 subResourceIndex = 0,
                 inputResource = registeredResource,
-                mappedInputResource = IntPtr.Zero,
-                reserved1 = new IntPtr[246],
+                // VERIFIED per NVIDIA nvEncodeAPI.h: registeredResource field at offset 16
+                // is an INPUT field that echoes the inputResource handle. NVIDIA's
+                // NvEncMapInputResource uses this field (not inputResource) to look up
+                // the registered handle. Setting it to inputResource's value is required.
+                registeredResource = registeredResource,
+                mappedResource = IntPtr.Zero,
+                mappedBufferFmt = 0,
+                reserved1 = new uint[251],
                 reserved2 = new IntPtr[63],
             };
 
             // DIAGNOSTIC: print version field + handle being passed, to verify
             // both that the macro is correct (expected 0x700D0004 for API 13.0)
             // and that the registered handle is exactly what RegisterResource returned.
-            Console.WriteLine($"  MapInputResource version field:  0x{mapParams.version:X8} " +
+            Console.WriteLine($"  MapInputResource version field:     0x{mapParams.version:X8} " +
                               $"(expected 0x700D0004 for API 13.0)");
-            Console.WriteLine($"  MapInputResource inputResource:  0x{mapParams.inputResource.ToInt64():x16}");
-            Console.WriteLine($"  (Should match registeredResource handle above.)");
+            Console.WriteLine($"  MapInputResource inputResource:     0x{mapParams.inputResource.ToInt64():x16}");
+            Console.WriteLine($"  MapInputResource registeredResource:0x{mapParams.registeredResource.ToInt64():x16} " +
+                              $"(must match inputResource — NVENC reads THIS field, not inputResource)");
+            Console.WriteLine($"  (Both should match the registered handle from [6.5] above.)");
 
             // DIAGNOSTIC: dump full struct layout + raw bytes before native call.
             // VERIFIED expected layout from NVIDIA nvEncodeAPI.h (BOTH SDK 11 and 13 are identical):
             //   offset 0:   version (4)
             //   offset 4:   subResourceIndex (4)
-            //   offset 8:   inputResource (8)  ← NV_ENC_REGISTERED_PTR
-            //   offset 16:  registeredResource (8)  ← WE DON'T HAVE THIS FIELD
-            //   offset 24:  mappedResource (8, OUT)  ← WE HAVE THIS AT WRONG OFFSET (16)
-            //   offset 32:  mappedBufferFmt (4)  ← WE DON'T HAVE THIS FIELD
+            //   offset 8:   inputResource (8)         ← NV_ENC_REGISTERED_PTR (input)
+            //   offset 16:  registeredResource (8)    ← NV_ENC_REGISTERED_PTR (input echo)
+            //   offset 24:  mappedResource (8, OUT)   ← NV_ENC_INPUT_PTR
+            //   offset 32:  mappedBufferFmt (4, OUT)  ← NV_ENC_BUFFER_FORMAT
             //   offset 36:  reserved1[251] (1004)
             //   offset 1040: reserved2[63] (504)
-            // Total: 1544 bytes (we have 2496 — WAY too big!)
+            // Total: 1544 bytes (NOW CORRECT after this commit)
             DumpStruct("NV_ENC_MAP_INPUT_RESOURCE (before native call)", ref mapParams, 80);
 
             // Flush the D3D11 context to ensure the ClearRenderTargetView command
@@ -342,19 +350,17 @@ public static class Phase6_MinimalEncode
             {
                 Console.Error.WriteLine($"  FAIL: NvEncMapInputResource returned {mapStatus} " +
                                         $"({NvEncodeAPI.NvencStatusToString(mapStatus)}).");
-                Console.Error.WriteLine("  Likely cause (based on verified NVIDIA header):");
-                Console.Error.WriteLine("    Our NV_ENC_MAP_INPUT_RESOURCE struct is 2496 bytes but NVIDIA expects 1544.");
-                Console.Error.WriteLine("    We are missing the registeredResource field at offset 16,");
-                Console.Error.WriteLine("    the mappedBufferFmt field at offset 32, and our mappedInputResource");
-                Console.Error.WriteLine("    field is at the wrong offset (16 vs NVIDIA's 24).");
-                Console.Error.WriteLine("    NVENC reads our mappedInputResource bytes (mostly zeros since we set it");
-                Console.Error.WriteLine("    to IntPtr.Zero) as if it were the registeredResource field — finding");
-                Console.Error.WriteLine("    NULL instead of the actual registered handle — and returns");
-                Console.Error.WriteLine("    NV_ENC_ERR_RESOURCE_NOT_REGISTERED (status 20).");
+                Console.Error.WriteLine("  Diagnostic checklist:");
+                Console.Error.WriteLine("    1. Verify struct size from DumpStruct above = 1544 bytes");
+                Console.Error.WriteLine("    2. Verify registeredResource field offset = 16 (not 24)");
+                Console.Error.WriteLine("    3. Verify mappedResource field offset = 24 (not 16)");
+                Console.Error.WriteLine("    4. Verify registeredResource value matches inputResource exactly");
+                Console.Error.WriteLine("    5. Verify raw bytes at offset 16 show the registered handle");
                 return 1;
             }
-            mappedInputResource = mapParams.mappedInputResource;
+            mappedInputResource = mapParams.mappedResource;
             Console.WriteLine($"  PASS: Input resource mapped. Handle: 0x{mappedInputResource.ToInt64():x16}");
+            Console.WriteLine($"  Mapped buffer format: 0x{mapParams.mappedBufferFmt:X8}");
 
             // ─── Step 7: Encode picture ───
             Console.WriteLine();

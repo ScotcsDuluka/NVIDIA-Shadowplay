@@ -398,42 +398,53 @@ public static class NvEncodeAPI
         public IntPtr[] reserved4;
     }
 
-    // NV_ENC_MAP_INPUT_RESOURCE — from nvEncodeAPI.h SDK 11:
+    // NV_ENC_MAP_INPUT_RESOURCE — from nvEncodeAPI.h (VERIFIED via FFmpeg mirror):
+    //   https://github.com/FFmpeg/nv-codec-headers/blob/sdk/11.0/include/ffnvcodec/nvEncodeAPI.h
+    //   https://github.com/FFmpeg/nv-codec-headers/blob/sdk/13.0/include/ffnvcodec/nvEncodeAPI.h
+    //
+    // CRITICAL: NV_ENC_MAP_INPUT_RESOURCE is BYTE-IDENTICAL in SDK 11.x and SDK 13.x
+    // (structVer stays at 4 in both). Only the size differs from what we had before.
     //
     // typedef struct _NV_ENC_MAP_INPUT_RESOURCE {
-    //     uint32_t              version;             // offset 0
-    //     uint32_t              subResourceIndex;   // offset 4
-    //     NV_ENC_REGISTERED_PTR inputResource;      // offset 8  (void*, 8 bytes)
-    //     NV_ENC_INPUT_PTR      mappedInputResource; // offset 16 (void*, 8 bytes, OUT)
-    //     void*                 reserved1[246];     // offset 24 (void*[246], 1968 bytes)
-    //     void*                 reserved2[63];       // offset 1992 (void*[63], 504 bytes)
+    //     uint32_t              version;             // offset 0    (4 bytes)
+    //     uint32_t              subResourceIndex;   // offset 4    (4 bytes)
+    //     NV_ENC_REGISTERED_PTR inputResource;      // offset 8    (void*, 8 bytes) — input
+    //     NV_ENC_REGISTERED_PTR registeredResource; // offset 16   (void*, 8 bytes) — input (echo)
+    //     NV_ENC_INPUT_PTR      mappedResource;      // offset 24   (void*, 8 bytes, OUT)
+    //     NV_ENC_BUFFER_FORMAT mappedBufferFmt;      // offset 32   (uint32, 4 bytes, OUT)
+    //     uint32_t              reserved1[251];      // offset 36   (1004 bytes)
+    //     void*                 reserved2[63];       // offset 1040 (504 bytes)
     // }
-    // Total: 24 + 1968 + 504 = 2496 bytes
+    // Total size: 36 + 1004 + 504 = 1544 bytes
     //
-    // CRITICAL FIX (glm4-phase6-map-struct-fix):
-    //   Previous version had 3 bugs:
-    //     1. _padding field between inputResource and mappedInputResource — UNNECESSARY,
-    //        because inputResource@8 ends at offset 16 which is already 8-byte aligned.
-    //        The _padding pushed mappedInputResource to offset 20, but NVENC writes its
-    //        output to offset 16 → C# would read garbage even if MapInputResource succeeded.
-    //     2. reserved1 declared as uint[246] (4 bytes/elem, 984 bytes total) — WRONG.
-    //        NVIDIA SDK 11 nvEncodeAPI.h declares it as void*[246] (8 bytes/elem, 1968 bytes).
-    //     3. reserved2 declared as IntPtr[59] (472 bytes) — WRONG size.
-    //        NVIDIA SDK 11 declares it as void*[63] (504 bytes).
-    //   Previous size: 1484 bytes (Marshal.SizeOf reported 1484 in run output).
-    //   NVIDIA expected: 2496 bytes — discrepancy of 1012 bytes.
-    //   This caused NvEncMapInputResource to return NV_ENC_ERR_RESOURCE_NOT_MAPPED (20).
+    // CRITICAL FIX HISTORY (glm4-phase6-map-struct-layout-verified):
+    //   Previous attempts had wrong layouts:
+    //     v1 (original): had _padding + mappedInputResource@20, reserved1=uint[246] (1484 bytes)
+    //     v2 (struct-size fix): removed _padding but kept missing registeredResource,
+    //                          made reserved1=IntPtr[246] instead of uint[251] (2496 bytes — TOO BIG)
+    //
+    //   ROOT CAUSE of MapInputResource failing with NV_ENC_ERR_RESOURCE_NOT_REGISTERED:
+    //     NVENC reads the bytes at offset 16 (where registeredResource should be)
+    //     and uses that to look up the registered handle. Our struct had
+    //     mappedInputResource at offset 16 (which we set to IntPtr.Zero), so
+    //     NVENC found NULL instead of the registered handle → RESOURCE_NOT_REGISTERED.
+    //
+    //   FIX: Add registeredResource at offset 16, move mappedResource to offset 24,
+    //        add mappedBufferFmt at offset 32, change reserved1 back to uint[251]
+    //        (not IntPtr[246]) and reserved2 stays IntPtr[63].
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_MAP_INPUT_RESOURCE
     {
-        public uint version;                // offset 0
-        public uint subResourceIndex;        // offset 4
-        public IntPtr inputResource;         // offset 8  — NV_ENC_REGISTERED_PTR (from RegisterResource)
-        public IntPtr mappedInputResource;   // offset 16 — OUT, NV_ENC_INPUT_PTR (for EncodePicture)
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 246)]
-        public IntPtr[] reserved1;           // offset 24 — void*[246]
+        public uint version;                // offset 0   — NVENCAPI_STRUCT_VERSION(4)
+        public uint subResourceIndex;        // offset 4   — 0 for non-array textures
+        public IntPtr inputResource;         // offset 8   — IN: NV_ENC_REGISTERED_PTR (from RegisterResource)
+        public IntPtr registeredResource;    // offset 16  — IN: NV_ENC_REGISTERED_PTR (echo of inputResource)
+        public IntPtr mappedResource;        // offset 24  — OUT: NV_ENC_INPUT_PTR (for EncodePicture)
+        public uint mappedBufferFmt;         // offset 32  — OUT: NV_ENC_BUFFER_FORMAT enum
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 251)]
+        public uint[] reserved1;             // offset 36  — uint32_t[251], 1004 bytes
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
-        public IntPtr[] reserved2;           // offset 1992 — void*[63]
+        public IntPtr[] reserved2;           // offset 1040 — void*[63], 504 bytes
     }
 
     // NV_ENC_PIC_PARAMS — from nvEncodeAPI.h SDK 11:
