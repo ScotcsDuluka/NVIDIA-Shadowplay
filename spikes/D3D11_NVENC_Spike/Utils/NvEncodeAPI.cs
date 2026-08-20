@@ -335,36 +335,41 @@ public static class NvEncodeAPI
     }
 
     // NV_ENC_MAP_INPUT_RESOURCE — from nvEncodeAPI.h SDK 11:
-    //   typedef struct _NV_ENC_MAP_INPUT_RESOURCE {
-    //       uint32_t              version;             // offset 0
-    //       uint32_t              subResourceIndex;   // offset 4
-    //       uint32_t              inputResource;      // offset 8 (wait — this is a pointer in SDK 11?)
-    //   }
-    // Actually in SDK 11, inputResource is NV_ENC_REGISTERED_PTR (void*),
-    // and mappedInputResource is also a struct (NV_ENC_MAP_INPUT_RESOURCE's
-    // output is a pointer to NV_ENC_INPUT_PTR which is void*).
     //
-    // Layout (SDK 11, x64):
-    //   version               offset 0   (uint32)
-    //   subResourceIndex      offset 4   (uint32)
-    //   inputResource         offset 8   (void* — NV_ENC_REGISTERED_PTR, 8 bytes)
-    //   _padding              offset 16  (uint32 — explicit pad for 8-byte alignment)
-    //   mappedInputResource   offset 24  (void* — NV_ENC_INPUT_PTR, OUT, 8 bytes)
-    //   reserved1[246]        offset 32  (uint32[246])
-    //   reserved2[59]         offset 1016 (void*[59])
-    // Total: 32 + 246*4 + 59*8 = 32 + 984 + 472 = 1488 bytes
+    // typedef struct _NV_ENC_MAP_INPUT_RESOURCE {
+    //     uint32_t              version;             // offset 0
+    //     uint32_t              subResourceIndex;   // offset 4
+    //     NV_ENC_REGISTERED_PTR inputResource;      // offset 8  (void*, 8 bytes)
+    //     NV_ENC_INPUT_PTR      mappedInputResource; // offset 16 (void*, 8 bytes, OUT)
+    //     void*                 reserved1[246];     // offset 24 (void*[246], 1968 bytes)
+    //     void*                 reserved2[63];       // offset 1992 (void*[63], 504 bytes)
+    // }
+    // Total: 24 + 1968 + 504 = 2496 bytes
+    //
+    // CRITICAL FIX (glm4-phase6-map-struct-fix):
+    //   Previous version had 3 bugs:
+    //     1. _padding field between inputResource and mappedInputResource — UNNECESSARY,
+    //        because inputResource@8 ends at offset 16 which is already 8-byte aligned.
+    //        The _padding pushed mappedInputResource to offset 20, but NVENC writes its
+    //        output to offset 16 → C# would read garbage even if MapInputResource succeeded.
+    //     2. reserved1 declared as uint[246] (4 bytes/elem, 984 bytes total) — WRONG.
+    //        NVIDIA SDK 11 nvEncodeAPI.h declares it as void*[246] (8 bytes/elem, 1968 bytes).
+    //     3. reserved2 declared as IntPtr[59] (472 bytes) — WRONG size.
+    //        NVIDIA SDK 11 declares it as void*[63] (504 bytes).
+    //   Previous size: 1484 bytes (Marshal.SizeOf reported 1484 in run output).
+    //   NVIDIA expected: 2496 bytes — discrepancy of 1012 bytes.
+    //   This caused NvEncMapInputResource to return NV_ENC_ERR_RESOURCE_NOT_MAPPED (20).
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_MAP_INPUT_RESOURCE
     {
-        public uint version;
-        public uint subResourceIndex;
-        public IntPtr inputResource;       // NV_ENC_REGISTERED_PTR (from RegisterResource)
-        public uint _padding;             // explicit pad for 8-byte alignment
-        public IntPtr mappedInputResource; // OUT — NV_ENC_INPUT_PTR (for EncodePicture)
+        public uint version;                // offset 0
+        public uint subResourceIndex;        // offset 4
+        public IntPtr inputResource;         // offset 8  — NV_ENC_REGISTERED_PTR (from RegisterResource)
+        public IntPtr mappedInputResource;   // offset 16 — OUT, NV_ENC_INPUT_PTR (for EncodePicture)
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 246)]
-        public uint[] reserved1;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 59)]
-        public IntPtr[] reserved2;
+        public IntPtr[] reserved1;           // offset 24 — void*[246]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
+        public IntPtr[] reserved2;           // offset 1992 — void*[63]
     }
 
     // NV_ENC_PIC_PARAMS — from nvEncodeAPI.h SDK 11:
@@ -479,6 +484,7 @@ public static class NvEncodeAPI
         public ulong inputDuration;          // OUT
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 221)]
         public uint[] reserved2;
+        public uint _padding4;              // explicit pad for 8-byte alignment of reserved3
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
         public IntPtr[] reserved3;
     }

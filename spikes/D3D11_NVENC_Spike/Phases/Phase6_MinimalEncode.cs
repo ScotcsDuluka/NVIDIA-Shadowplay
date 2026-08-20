@@ -280,10 +280,9 @@ public static class Phase6_MinimalEncode
                 version = NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE_VER,
                 subResourceIndex = 0,
                 inputResource = registeredResource,
-                _padding = 0,
                 mappedInputResource = IntPtr.Zero,
-                reserved1 = new uint[246],
-                reserved2 = new IntPtr[59],
+                reserved1 = new IntPtr[246],
+                reserved2 = new IntPtr[63],
             };
 
             uint mapStatus = nvenc.MapInputResource(encoder, ref mapParams);
@@ -366,6 +365,7 @@ public static class Phase6_MinimalEncode
                 inputTimeStamp = 0,  // OUT
                 inputDuration = 0,   // OUT
                 reserved2 = new uint[221],
+                _padding4 = 0,
                 reserved3 = new IntPtr[63],
             };
 
