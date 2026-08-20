@@ -88,7 +88,7 @@ public static class Phase6_MinimalEncode
             reserved2 = new IntPtr[64],
         };
 
-        int status = nvenc.OpenEncodeSessionEx(ref sessionParams, out IntPtr encoder);
+        uint status = nvenc.OpenEncodeSessionEx(ref sessionParams, out IntPtr encoder);
         if (status != NvEncodeAPI.NV_ENC_SUCCESS)
         {
             Console.Error.WriteLine($"  FAIL: NvEncOpenEncodeSessionEx returned {status} " +
@@ -140,7 +140,7 @@ public static class Phase6_MinimalEncode
                 reserved2 = new IntPtr[64],
             };
 
-            int initStatus = nvenc.InitializeEncoder(encoder, ref initParams);
+            uint initStatus = nvenc.InitializeEncoder(encoder, ref initParams);
             if (initStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncInitializeEncoder returned {initStatus} " +
@@ -173,7 +173,7 @@ public static class Phase6_MinimalEncode
                 reserved4 = new IntPtr[64],
             };
 
-            int bsStatus = nvenc.CreateBitstreamBuffer(encoder, ref bstreamParams);
+            uint bsStatus = nvenc.CreateBitstreamBuffer(encoder, ref bstreamParams);
             if (bsStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncCreateBitstreamBuffer returned {bsStatus} " +
@@ -231,7 +231,7 @@ public static class Phase6_MinimalEncode
                 reserved2 = new IntPtr[62],
             };
 
-            int regStatus = nvenc.RegisterResource(encoder, ref registerParams);
+            uint regStatus = nvenc.RegisterResource(encoder, ref registerParams);
             if (regStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncRegisterResource returned {regStatus} " +
@@ -263,7 +263,7 @@ public static class Phase6_MinimalEncode
                 reserved2 = new IntPtr[59],
             };
 
-            int mapStatus = nvenc.MapInputResource(encoder, ref mapParams);
+            uint mapStatus = nvenc.MapInputResource(encoder, ref mapParams);
             if (mapStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncMapInputResource returned {mapStatus} " +
@@ -305,7 +305,7 @@ public static class Phase6_MinimalEncode
                 reserved2 = new IntPtr[63],
             };
 
-            int encStatus = nvenc.EncodePicture(encoder, ref picParams);
+            uint encStatus = nvenc.EncodePicture(encoder, ref picParams);
             if (encStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncEncodePicture returned {encStatus} " +
@@ -346,7 +346,7 @@ public static class Phase6_MinimalEncode
                 reserved3 = new IntPtr[63],
             };
 
-            int lockStatus = nvenc.LockBitstream(encoder, ref lockParams);
+            uint lockStatus = nvenc.LockBitstream(encoder, ref lockParams);
             if (lockStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncLockBitstream returned {lockStatus} " +
@@ -430,7 +430,7 @@ public static class Phase6_MinimalEncode
                 return 1;
             }
 
-            int unlockStatus = nvenc.UnlockBitstream(encoder, bitstreamBuffer);
+            uint unlockStatus = nvenc.UnlockBitstream(encoder, bitstreamBuffer);
             if (unlockStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncUnlockBitstream returned {unlockStatus} " +
@@ -449,7 +449,7 @@ public static class Phase6_MinimalEncode
                 return 1;
             }
 
-            int unmapStatus = nvenc.UnmapInputResource(encoder, mappedInputResource);
+            uint unmapStatus = nvenc.UnmapInputResource(encoder, mappedInputResource);
             if (unmapStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncUnmapInputResource returned {unmapStatus} " +
@@ -469,7 +469,7 @@ public static class Phase6_MinimalEncode
                 return 1;
             }
 
-            int unregStatus = nvenc.UnregisterResource(encoder, registeredResource);
+            uint unregStatus = nvenc.UnregisterResource(encoder, registeredResource);
             if (unregStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncUnregisterResource returned {unregStatus} " +
@@ -489,7 +489,7 @@ public static class Phase6_MinimalEncode
                 return 1;
             }
 
-            int destroyBsStatus = nvenc.DestroyBitstreamBuffer(encoder, bitstreamBuffer);
+            uint destroyBsStatus = nvenc.DestroyBitstreamBuffer(encoder, bitstreamBuffer);
             if (destroyBsStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncDestroyBitstreamBuffer returned {destroyBsStatus} " +

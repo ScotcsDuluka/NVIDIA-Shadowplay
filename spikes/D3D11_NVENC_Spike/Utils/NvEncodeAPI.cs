@@ -34,27 +34,27 @@ public static class NvEncodeAPI
     // actually means NV_ENC_ERR_UNSUPPORTED_DEVICE — the device passed to
     // NvEncOpenEncodeSessionEx is not supported (likely because the D3D11
     // device was created without NVENC-compatible flags or the DLL is older).
-    public const int NV_ENC_SUCCESS = 0;
-    public const int NV_ENC_ERR_NO_ENCODE_DEVICE = 1;
-    public const int NV_ENC_ERR_UNSUPPORTED_DEVICE = 2;
-    public const int NV_ENC_ERR_INVALID_ENCODERDEVICE = 3;
-    public const int NV_ENC_ERR_INVALID_DEVICE = 4;
-    public const int NV_ENC_ERR_DEVICE_NOT_EXIST = 5;
-    public const int NV_ENC_ERR_INVALID_PTR = 6;
-    public const int NV_ENC_ERR_INVALID_EVENT = 7;
-    public const int NV_ENC_ERR_INVALID_PARAM = 8;
-    public const int NV_ENC_ERR_INVALID_CALL = 9;
-    public const int NV_ENC_ERR_OUT_OF_MEMORY = 10;
-    public const int NV_ENC_ERR_ENCODER_NOT_INITIALIZED = 11;
-    public const int NV_ENC_ERR_UNSUPPORTED_PARAM = 12;
-    public const int NV_ENC_ERR_LOCK_BUSY = 13;
-    public const int NV_ENC_ERR_NOT_ENOUGH_INTRA_REFRESH_CARDS = 14;
-    public const int NV_ENC_ERR_GENERIC = 15;
-    public const int NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY = 16;
-    public const int NV_ENC_ERR_UNIMPLEMENTED = 17;
-    public const int NV_ENC_ERR_RESOURCE_REGISTER_FAILED = 18;
-    public const int NV_ENC_ERR_RESOURCE_NOT_REGISTERED = 19;
-    public const int NV_ENC_ERR_RESOURCE_NOT_MAPPED = 20;
+    public const uint NV_ENC_SUCCESS = 0;
+    public const uint NV_ENC_ERR_NO_ENCODE_DEVICE = 1;
+    public const uint NV_ENC_ERR_UNSUPPORTED_DEVICE = 2;
+    public const uint NV_ENC_ERR_INVALID_ENCODERDEVICE = 3;
+    public const uint NV_ENC_ERR_INVALID_DEVICE = 4;
+    public const uint NV_ENC_ERR_DEVICE_NOT_EXIST = 5;
+    public const uint NV_ENC_ERR_INVALID_PTR = 6;
+    public const uint NV_ENC_ERR_INVALID_EVENT = 7;
+    public const uint NV_ENC_ERR_INVALID_PARAM = 8;
+    public const uint NV_ENC_ERR_INVALID_CALL = 9;
+    public const uint NV_ENC_ERR_OUT_OF_MEMORY = 10;
+    public const uint NV_ENC_ERR_ENCODER_NOT_INITIALIZED = 11;
+    public const uint NV_ENC_ERR_UNSUPPORTED_PARAM = 12;
+    public const uint NV_ENC_ERR_LOCK_BUSY = 13;
+    public const uint NV_ENC_ERR_NOT_ENOUGH_INTRA_REFRESH_CARDS = 14;
+    public const uint NV_ENC_ERR_GENERIC = 15;
+    public const uint NV_ENC_ERR_INCOMPATIBLE_CLIENT_KEY = 16;
+    public const uint NV_ENC_ERR_UNIMPLEMENTED = 17;
+    public const uint NV_ENC_ERR_RESOURCE_REGISTER_FAILED = 18;
+    public const uint NV_ENC_ERR_RESOURCE_NOT_REGISTERED = 19;
+    public const uint NV_ENC_ERR_RESOURCE_NOT_MAPPED = 20;
 
     // === Device types ===
     // From nvEncodeAPI.h SDK 13.1:
@@ -68,28 +68,28 @@ public static class NvEncodeAPI
     // which is CUDA! That's why NvEncOpenEncodeSessionEx returned
     // NV_ENC_ERR_UNSUPPORTED_DEVICE — we were telling NVENC the device is CUDA
     // but passing a D3D11 device pointer.
-    public const int NV_ENC_DEVICE_DIRECTX = 0x00;  // was 0x01 (wrong — that's CUDA)
-    public const int NV_ENC_DEVICE_CUDA = 0x01;     // was 0x02
+    public const uint NV_ENC_DEVICE_DIRECTX = 0x00;  // was 0x01 (wrong — that's CUDA)
+    public const uint NV_ENC_DEVICE_CUDA = 0x01;     // was 0x02
 
     // === Resource types ===
-    public const int NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX = 0x00;
-    public const int NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR = 0x01;
+    public const uint NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX = 0x00;
+    public const uint NV_ENC_INPUT_RESOURCE_TYPE_CUDADEVICEPTR = 0x01;
 
     // === Buffer formats (from nvEncodeAPI.h SDK 13.1) ===
     // Note: ARGB and ABGR values differ from what I previously had —
     // ARGB is 0x01000000 (not 0x00100000), ABGR is 0x10000000 (not 0x00800000).
-    public const int NV_ENC_BUFFER_FORMAT_UNDEFINED = 0x00000000;
-    public const int NV_ENC_BUFFER_FORMAT_NV12 = 0x00000001;
-    public const int NV_ENC_BUFFER_FORMAT_YV12 = 0x00000010;
-    public const int NV_ENC_BUFFER_FORMAT_IYUV = 0x00000100;
-    public const int NV_ENC_BUFFER_FORMAT_YUV444 = 0x00001000;
-    public const int NV_ENC_BUFFER_FORMAT_YUV420_10BIT = 0x00010000;
-    public const int NV_ENC_BUFFER_FORMAT_YUV444_10BIT = 0x00100000;
-    public const int NV_ENC_BUFFER_FORMAT_ARGB = 0x01000000;     // was 0x00100000 (wrong)
-    public const int NV_ENC_BUFFER_FORMAT_ARGB10 = 0x02000000;   // was 0x00200000 (wrong)
-    public const int NV_ENC_BUFFER_FORMAT_AYUV = 0x04000000;     // was 0x00400000 (wrong)
-    public const int NV_ENC_BUFFER_FORMAT_ABGR = 0x10000000;     // was 0x00800000 (wrong)
-    public const int NV_ENC_BUFFER_FORMAT_ABGR10 = 0x20000000;   // was 0x01000000 (wrong)
+    public const uint NV_ENC_BUFFER_FORMAT_UNDEFINED = 0x00000000;
+    public const uint NV_ENC_BUFFER_FORMAT_NV12 = 0x00000001;
+    public const uint NV_ENC_BUFFER_FORMAT_YV12 = 0x00000010;
+    public const uint NV_ENC_BUFFER_FORMAT_IYUV = 0x00000100;
+    public const uint NV_ENC_BUFFER_FORMAT_YUV444 = 0x00001000;
+    public const uint NV_ENC_BUFFER_FORMAT_YUV420_10BIT = 0x00010000;
+    public const uint NV_ENC_BUFFER_FORMAT_YUV444_10BIT = 0x00100000;
+    public const uint NV_ENC_BUFFER_FORMAT_ARGB = 0x01000000;     // was 0x00100000 (wrong)
+    public const uint NV_ENC_BUFFER_FORMAT_ARGB10 = 0x02000000;   // was 0x00200000 (wrong)
+    public const uint NV_ENC_BUFFER_FORMAT_AYUV = 0x04000000;     // was 0x00400000 (wrong)
+    public const uint NV_ENC_BUFFER_FORMAT_ABGR = 0x10000000;     // was 0x00800000 (wrong)
+    public const uint NV_ENC_BUFFER_FORMAT_ABGR10 = 0x20000000;   // was 0x01000000 (wrong)
 
     // === Codec GUIDs (verified from nvEncodeAPI.h SDK 13.1.15) ===
     //
@@ -244,7 +244,7 @@ public static class NvEncodeAPI
     public struct NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
     {
         public uint version;
-        public int deviceType;             // NV_ENC_DEVICE_TYPE enum
+        public uint deviceType;             // NV_ENC_DEVICE_TYPE enum
         public IntPtr device;              // void*
         public IntPtr reserved;            // void*
         public uint apiVersion;
@@ -283,14 +283,14 @@ public static class NvEncodeAPI
     public struct NV_ENC_REGISTER_RESOURCE
     {
         public uint version;
-        public int resourceType;           // NV_ENC_INPUT_RESOURCE_TYPE enum
+        public uint resourceType;           // NV_ENC_INPUT_RESOURCE_TYPE enum
         public uint width;
         public uint height;
         public uint pitch;
         public uint subResourceIndex;      // 0 for non-array textures
         public IntPtr resourceToRegister;  // void*
         public IntPtr registeredResource;  // void* (OUT)
-        public int bufferFormat;           // NV_ENC_BUFFER_FORMAT enum
+        public uint bufferFormat;           // NV_ENC_BUFFER_FORMAT enum
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 248)]
         public uint[] reserved1;           // SDK 11: 248 (was 244 in SDK 13)
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 62)]
@@ -422,8 +422,8 @@ public static class NvEncodeAPI
         public uint _padding1;
         public IntPtr outputBitstream;       // NV_ENC_OUTPUT_PTR (bitstream buffer handle)
         public IntPtr inputBuffer;           // NV_ENC_INPUT_PTR (mapped input resource)
-        public int bufferFmt;               // NV_ENC_BUFFER_FORMAT enum
-        public int picStruct;               // NV_ENC_PIC_STRUCT enum
+        public uint bufferFmt;               // NV_ENC_BUFFER_FORMAT enum
+        public uint picStruct;               // NV_ENC_PIC_STRUCT enum
         public uint picType;                // OUT
         public uint _padding2;
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
@@ -488,31 +488,31 @@ public static class NvEncodeAPI
     // ════════════════════════════════════════════════════════════════
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncCreateBitstreamBufferDelegate(
+    public delegate uint NvEncCreateBitstreamBufferDelegate(
         IntPtr encoder, ref NV_ENC_CREATE_BITSTREAM_BUFFER createParams);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncDestroyBitstreamBufferDelegate(
+    public delegate uint NvEncDestroyBitstreamBufferDelegate(
         IntPtr encoder, IntPtr bitstreamBuffer);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncMapInputResourceDelegate(
+    public delegate uint NvEncMapInputResourceDelegate(
         IntPtr encoder, ref NV_ENC_MAP_INPUT_RESOURCE mapParams);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncUnmapInputResourceDelegate(
+    public delegate uint NvEncUnmapInputResourceDelegate(
         IntPtr encoder, IntPtr mappedInputResource);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncEncodePictureDelegate(
+    public delegate uint NvEncEncodePictureDelegate(
         IntPtr encoder, ref NV_ENC_PIC_PARAMS picParams);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncLockBitstreamDelegate(
+    public delegate uint NvEncLockBitstreamDelegate(
         IntPtr encoder, ref NV_ENC_LOCK_BITSTREAM lockParams);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncUnlockBitstreamDelegate(
+    public delegate uint NvEncUnlockBitstreamDelegate(
         IntPtr encoder, IntPtr bitstreamBuffer);
     //
     // CRITICAL: This struct previously used LayoutKind.Explicit with
@@ -684,44 +684,44 @@ public static class NvEncodeAPI
 
     // === Delegates for function table entries we use ===
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncOpenEncodeSessionExDelegate(
+    public delegate uint NvEncOpenEncodeSessionExDelegate(
         ref NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS sessionParams,
         out IntPtr encoder);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncGetEncodeGUIDCountDelegate(
+    public delegate uint NvEncGetEncodeGUIDCountDelegate(
         IntPtr encoder, out int count);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncGetEncodeGUIDsDelegate(
+    public delegate uint NvEncGetEncodeGUIDsDelegate(
         IntPtr encoder, [Out] Guid[] guidArray, int arraySize, out int actualCount);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncGetInputFormatCountDelegate(
+    public delegate uint NvEncGetInputFormatCountDelegate(
         IntPtr encoder, Guid encodeGUID, out int count);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncGetInputFormatsDelegate(
+    public delegate uint NvEncGetInputFormatsDelegate(
         IntPtr encoder, Guid encodeGUID, [Out] int[] formatArray, int arraySize, out int actualCount);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncRegisterResourceDelegate(
+    public delegate uint NvEncRegisterResourceDelegate(
         IntPtr encoder, ref NV_ENC_REGISTER_RESOURCE registerParams);
 
     // NVENC DOES have nvEncUnregisterResource (offset 256) — my earlier
     // "use nvEncUnmapInputResource instead" was wrong. nvEncUnmapInputResource
     // (offset 216) is for unmapping a *mapped* resource, not for unregistering.
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncUnregisterResourceDelegate(
+    public delegate uint NvEncUnregisterResourceDelegate(
         IntPtr encoder, IntPtr registeredResource);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncDestroyEncoderDelegate(IntPtr encoder);
+    public delegate uint NvEncDestroyEncoderDelegate(IntPtr encoder);
 
     // NvEncInitializeEncoder — must be called BEFORE NvEncRegisterResource.
     // Configures codec, preset, frame rate, dimensions, etc.
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    public delegate int NvEncInitializeEncoderDelegate(
+    public delegate uint NvEncInitializeEncoderDelegate(
         IntPtr encoder, ref NV_ENC_INITIALIZE_PARAMS initParams);
 
     // Returns a human-readable error string for the LAST NVENC API call
@@ -735,13 +735,13 @@ public static class NvEncodeAPI
     // This spike builds x64-only, so we use the 64-bit name directly.
     [DllImport("nvEncodeAPI64.dll", CallingConvention = CallingConvention.StdCall,
                SetLastError = false, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-    public static extern int NvEncodeAPICreateInstance(ref NV_ENCODE_API_FUNCTION_LIST functionList);
+    public static extern uint NvEncodeAPICreateInstance(ref NV_ENCODE_API_FUNCTION_LIST functionList);
 
     [DllImport("nvEncodeAPI64.dll", CallingConvention = CallingConvention.StdCall,
                SetLastError = false, BestFitMapping = false, ThrowOnUnmappableChar = true)]
-    public static extern int NvEncodeAPIGetMaxSupportedVersion(out uint version);
+    public static extern uint NvEncodeAPIGetMaxSupportedVersion(out uint version);
 
-    public static string NvencStatusToString(int status)
+    public static string NvencStatusToString(uint status)
     {
         return status switch
         {
@@ -810,7 +810,7 @@ public sealed class NvEncFunctionTable : IDisposable
         try
         {
             // Step 1: query max supported version
-            int status = NvEncodeAPI.NvEncodeAPIGetMaxSupportedVersion(out uint ver);
+            uint status = NvEncodeAPI.NvEncodeAPIGetMaxSupportedVersion(out uint ver);
             if (status != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine(
@@ -843,7 +843,7 @@ public sealed class NvEncFunctionTable : IDisposable
             //        = NVENCAPI_VERSION | (2 << 16) | (0x7 << 28)
             _fnList = default;
             _fnList.version = NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST_VER;
-            int fnListSize = System.Runtime.InteropServices.Marshal.SizeOf<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>();
+            int fnListSize = System.Runtime.InteropServices.Marshal.SizeOf<NvEncodeAPI.NV_ENCODE_API_FUNCTION_LIST>(); // Marshal.SizeOf returns int, not uint — this is correct
             Console.WriteLine(
                 $"  Function table version: 0x{_fnList.version:X8} (struct size={fnListSize} bytes)");
 

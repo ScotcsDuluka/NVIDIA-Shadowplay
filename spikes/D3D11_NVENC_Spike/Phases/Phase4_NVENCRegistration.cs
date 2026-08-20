@@ -75,7 +75,7 @@ public static class Phase4_NVENCRegistration
             reserved2 = new IntPtr[64],
         };
 
-        int status = nvenc.OpenEncodeSessionEx(ref sessionParams, out IntPtr encoder);
+        uint status = nvenc.OpenEncodeSessionEx(ref sessionParams, out IntPtr encoder);
         if (status != NvEncodeAPI.NV_ENC_SUCCESS)
         {
             Console.Error.WriteLine($"  FAIL: NvEncOpenEncodeSessionEx returned {status} " +
@@ -257,7 +257,7 @@ public static class Phase4_NVENCRegistration
             reserved2 = new IntPtr[64],
         };
 
-        int initStatus = nvenc.InitializeEncoder(encoder, ref initParams);
+        uint initStatus = nvenc.InitializeEncoder(encoder, ref initParams);
         if (initStatus != NvEncodeAPI.NV_ENC_SUCCESS)
         {
             Console.Error.WriteLine($"  FAIL: NvEncInitializeEncoder returned {initStatus} " +
