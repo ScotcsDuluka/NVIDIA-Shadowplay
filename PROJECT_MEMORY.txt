@@ -1,7 +1,12 @@
 NVIDIA-Shadowplay — PROJECT MEMORY
 ===================================
 
+Version:
+Updated after Engine-Rebuild validation progress
+
+==================================================
 [PROJECT]
+==================================================
 
 Name:
 NVIDIA-Shadowplay
@@ -23,16 +28,23 @@ VB.NET WinForms
 
 Engine:
 VB.NET / .NET เป็นหลัก
-C# สามารถใช้กับงานที่เหมาะสม เช่น spikes / GPU validation
+
+C#:
+สามารถใช้กับงานที่เหมาะสม เช่น
+- GPU validation
+- spikes
+- native interop experiments
 
 OWNER:
 ScotcsDuluka
+
 
 Owner authority:
 - OWNER เป็นผู้ตัดสินใจขั้นสุดท้าย
 - AI ทุกตัวเป็นผู้ช่วย
 - ห้าม AI เปลี่ยน architecture โดยพลการ
-- ห้ามถือ assumption เป็น fact
+- ห้าม assumption กลายเป็น fact
+- การตัดสินใจ production ต้องผ่าน evidence
 
 
 ==================================================
@@ -41,22 +53,34 @@ Owner authority:
 
 - โปรเจกต์เริ่มก่อน GitHub
 - จุดเริ่มต้นของโปรเจกต์คือ version 1.0.0.0
-- Release แรกที่ขึ้น GitHub:
-  NVIDIA ShadowPlay™ 2.47.341-PRE
-  Released: 2024-10-15
+
+GitHub Release แรก:
+
+NVIDIA ShadowPlay™ 2.47.341-PRE
+
+Released:
+2024-10-15
+
 
 หมายเหตุ:
+
 - GitHub history ไม่ใช่จุดกำเนิดของโปรเจกต์
 - Legacy history มีค่าเป็น evidence/reference
-- Legacy architecture ห้ามนิยาม Engine-Rebuild architecture
+- Legacy architecture ไม่สามารถนิยาม Engine-Rebuild architecture
+- Legacy implementation ไม่เท่ากับ Engine-Rebuild implementation
 
 
 ==================================================
 [AI TEAM]
 ==================================================
 
+
+--------------------------------------------------
 GPT-5.6 Luna
+--------------------------------------------------
+
 Role:
+
 - Chief Engineer
 - Decision Lead
 - Architecture synthesis
@@ -65,16 +89,40 @@ Role:
 - Technical recommendation
 - Master project state
 
+
+Responsibility:
+
+- รวมผลจาก agent ทั้งหมด
+- ตรวจสอบความสอดคล้องของ architecture
+- สรุป decision ให้ OWNER
+- ห้าม implement แทน OWNER
+
+
+--------------------------------------------------
 GLM-1
+--------------------------------------------------
+
 Role:
-- Hostile Architecture Auditor
+
+Hostile Architecture Auditor
+
+
+Responsibilities:
+
 - Dependency graph
 - Architecture boundary
 - Legacy isolation
 - Contract integrity
 - Circular dependency detection
 
-Current status:
+
+Current Status:
+
+PASS
+
+
+Validated:
+
 - Architecture audit PASS
 - P0 violations: 0
 - Circular dependency: 0
@@ -84,37 +132,79 @@ Current status:
 - Contract violations: 0
 - Foundation violations: 0
 
+
+--------------------------------------------------
 GLM-2
+--------------------------------------------------
+
 Role:
-- GPU / WGC Validation Lead
+
+GPU / WGC Validation Lead
+
+
+Responsibilities:
+
 - V1 D3D11/NVENC
-- V2/V3/V4 WGC validation
+- V2 Timestamp validation
+- V3 runtime behavior
+- V4 WGC edge cases
 - V5 WGC delivery characterization
-- Evidence generation and interpretation
 
-Current status:
+
+Current Status:
+
+- V1 hardware validation COMPLETE
 - V4 CLOSED WITH LIMITATION
-- V5-A / V5-B next
+- V5-A NEXT
 
+
+--------------------------------------------------
 GLM-2SUB
+--------------------------------------------------
+
 Role:
-- Independent Challenger
+
+Independent Challenger
+
+
+Responsibilities:
+
 - Independent evidence review
 - Challenge GLM-2 conclusions
-- Identify methodological flaws / hidden assumptions
+- Find hidden assumptions
+- Identify methodological flaws
 
-Current status:
-- V4 independent review COMPLETE
-- Verdict agrees with:
-  V4 = CLOSED WITH LIMITATION
+
+Current Status:
+
+V4 independent review COMPLETE
+
+
+Verdict:
+
+Agrees with:
+
+V4 = CLOSED WITH LIMITATION
+
 
 Important:
-- GLM-2SUB is a fresh/independent chat
-- Must receive enough context before making decisions
 
+- GLM-2SUB เป็น independent chat
+- ต้องได้รับ context ก่อนตัดสินใจ
+- ไม่ใช้ assumption จาก GLM-2
+
+
+--------------------------------------------------
 GLM-3
+--------------------------------------------------
+
 Role:
-- Build / Test / Repository Auditor
+
+Build / Test / Repository Auditor
+
+
+Responsibilities:
+
 - ProjectReference graph
 - TargetFramework analysis
 - Package/build graph
@@ -122,68 +212,160 @@ Role:
 - Test isolation
 - Repository hygiene
 
-Current status:
+
+Current Status:
+
+PASS
+
+
+Validated:
+
 - Build graph audited
 - DAG confirmed
 - Production/test isolation PASS
-- Repository cleanup findings remain separate from Engine-Rebuild implementation
+- Repository cleanup แยกจาก Engine-Rebuild
 
+
+Remaining:
+
+- Repository hygiene เป็น separate track
+- ไม่ mass delete โดยไม่มี evidence
+
+
+--------------------------------------------------
 GLM-4
+--------------------------------------------------
+
 Role:
-- Coding / UI / Refactor Agent
+
+Coding / UI / Refactor Agent
+
+
+Responsibilities:
+
 - Scoped code changes
 - Build verification
 - Commit workflow
 - Overlay optimization
 
-Recent completed work:
-- Overlay Phase 2A
-- Commit: b2a42c2
-- Pushed
-- Runtime verified by OWNER
-- Owner reports Overlay animation feels ~40%+ smoother
 
+Completed:
+
+Overlay Phase 2A
+
+
+Commit:
+
+b2a42c2
+
+
+Status:
+
+- Pushed
+- Build success
+- Runtime verified by OWNER
+
+
+Owner observation:
+
+Overlay animation smoother ประมาณ 40%+
+
+
+--------------------------------------------------
 Claude Sonnet 5
+--------------------------------------------------
+
 Role:
-- Reviewer / Challenger
+
+Reviewer / Challenger
+
+
+Responsibilities:
+
 - Architecture challenge
 - Evidence review
 - Edge cases
-- Temporary team member
 
-Current status:
-- Available
-- Can be used for senior/adversarial review
-- Not currently owner of any active task
 
+Status:
+
+Available
+
+
+Use:
+
+- Senior review
+- Adversarial review
+
+
+--------------------------------------------------
 Gemini 3.6 Flash
+--------------------------------------------------
+
 Role:
-- External Research / Evidence
+
+External Research / Evidence
+
+
+Responsibilities:
+
 - Microsoft documentation
 - NVIDIA documentation
 - FFmpeg documentation
 - API semantics
 - Licensing / compatibility research
 
-Current status:
-- Available
 
+Status:
+
+Available
+
+
+--------------------------------------------------
 Gemini Local
+--------------------------------------------------
+
 Role:
-- Local repository inspection
+
+Local repository inspection
+
+
+Responsibilities:
+
 - .vbproj inspection
-- dependency/config inspection
-- fast local source-tree analysis
+- dependency inspection
+- config inspection
+- source tree analysis
 
-Current status:
-- Available
-- Previous request hit Vertex/Google 429 Resource Exhausted
-- If 429 occurs, reduce request size / scope or retry later
 
-Other:
-- DeepSeek: available / currently idle
-- Claude: available / currently idle
-- Previous Opus session reached usage limit
+Status:
+
+Available
+
+
+Previous:
+
+- Vertex/Google 429 Resource Exhausted
+- Reduce scope if required
+
+
+--------------------------------------------------
+Other Agents
+--------------------------------------------------
+
+DeepSeek:
+
+Available / Idle
+
+
+Claude:
+
+Available / Idle
+
+
+Previous Opus:
+
+Usage limit reached
 
 
 ==================================================
@@ -191,28 +373,55 @@ Other:
 ==================================================
 
 OWNER
-  ↓
-GPT — synthesis / decision lead
-  ↓
-Specialized agents
-  ↓
-Evidence / tests / benchmarks
-  ↓
-Challenge / review
-  ↓
-GPT recommendation
-  ↓
-OWNER final decision
-  ↓
+
+↓
+
+GPT
+(Synthesis / Decision Lead)
+
+↓
+
+Specialized Agents
+
+↓
+
+Evidence
+- Code
+- Logs
+- Tests
+- Benchmarks
+
+↓
+
+Challenge / Review
+
+↓
+
+GPT Recommendation
+
+↓
+
+OWNER Final Decision
+
+↓
+
 Implementation
-  ↓
+
+↓
+
 Build
-  ↓
+
+↓
+
 Test
-  ↓
+
+↓
+
 Benchmark
-  ↓
-Record evidence
+
+↓
+
+Record Evidence
 
 
 ==================================================
@@ -220,96 +429,170 @@ Record evidence
 ==================================================
 
 1. Use real code + real logs + real tests + real benchmarks.
+
 2. Do not guess when evidence can be collected.
+
 3. UNKNOWN stays UNKNOWN until evidence exists.
+
 4. Architecture != implementation status.
-5. A file existing does not mean a feature is implemented.
+
+5. File exists does not mean feature implemented.
+
 6. Spike != production implementation.
+
 7. Legacy implementation != Engine-Rebuild implementation.
+
 8. Do not redesign architecture without OWNER approval.
+
 9. Do not add speculative abstractions.
-10. Do not copy legacy implementation just because it already exists.
-11. Production integration requires contract validation and relevant evidence.
+
+10. Do not copy legacy implementation because it already exists.
+
+11. Production integration requires:
+    - Contract validation
+    - Relevant evidence
+
 12. Separate:
-    - FACT
-    - INTERPRETATION
-    - UNKNOWN
-    - RISK
-13. Never call a WGC delivery gap a dropped frame.
-14. Never claim WGC internal frame loss without direct evidence.
-15. Do not treat FrameArrived as a guaranteed sustained-FPS signal.
-16. Do not compare runs with different controlled conditions as if they were identical experiments.
+
+    FACT
+
+    INTERPRETATION
+
+    UNKNOWN
+
+    RISK
+
+
+13. WGC delivery gap ≠ dropped frame.
+
+14. Do not claim WGC internal frame loss without direct evidence.
+
+15. FrameArrived is not guaranteed sustained FPS.
+
+16. Do not compare uncontrolled experiments.
+
 17. Do not push unverified changes.
-18. Build success does not equal behavioral equivalence.
-19. Runtime behavior must be checked for UI/runtime changes.
-20. Keep repository cleanup separate from production-engine work unless required.
+
+18. Build success != behavioral equivalence.
+
+19. Runtime behavior must be verified.
+
+20. Repository cleanup must remain separate unless required.
 
 
+==================================================
+END PART 1/3
+==================================================
 ==================================================
 [CANONICAL ENGINE ARCHITECTURE]
 ==================================================
 
-This tree is the canonical architecture.
+This tree is the approved Engine-Rebuild architecture.
 
 ScotcsDuluka Capture Engine
+
 │
 ├── Capture Backend
+│
 │   ├── FFmpeg Backend
+│   │
 │   │   ├── ddagrab
+│   │   │
 │   │   ├── gdigrab
-│   │   └── avfoundation (future)
+│   │   │
+│   │   └── avfoundation
+│   │       (future)
 │   │
 │   └── Native Backend
+│
 │       ├── DXGI Desktop Duplication
+│       │
 │       ├── Windows Graphics Capture
-│       └── NvFBC (future)
+│       │
+│       └── NvFBC
+│           (future)
+│
 │
 ├── Encoder Backend
+│
 │   ├── NVIDIA NVENC
+│   │
 │   │   ├── H.264
+│   │   │
 │   │   ├── HEVC
+│   │   │
 │   │   └── AV1
 │   │
 │   ├── Intel QSV
+│   │
 │   │   ├── H.264
+│   │   │
 │   │   └── HEVC
 │   │
 │   ├── AMD AMF
 │   │
-│   └── Software
+│   └── Software Encoder
+│
 │       ├── libx264
+│       │
 │       └── libx265
 │
+│
 ├── Audio Backend
+│
 │   └── WASAPI
+│
 │       ├── System Audio
+│       │
 │       ├── Microphone
+│       │
 │       └── Audio Mixer
 │
+│
 ├── Frame Pipeline
+│
 │   ├── Frame Acquisition
+│   │
 │   ├── Timestamping
+│   │
 │   ├── Queue / Buffer
+│   │
 │   ├── Frame Synchronization
+│   │
 │   └── Backpressure
 │
+│
 ├── Output
+│
 │   ├── MP4
+│   │
 │   ├── MKV
+│   │
 │   └── Raw / Pipe
 │
+│
 └── Core
+
     ├── Capture Session
+    │
     ├── Device Ownership
+    │
     ├── Lifecycle
+    │
     ├── Error Model
+    │
     └── Metrics / Diagnostics
 
-Canonical architecture document:
+
+Canonical document:
+
 docs/ARCHITECTURE.md
 
-Architecture document commit:
+
+Architecture commit:
+
 b6294fa72cf40b859e226d1a20405ad7c112d2cc
+
 
 
 ==================================================
@@ -317,15 +600,22 @@ b6294fa72cf40b859e226d1a20405ad7c112d2cc
 ==================================================
 
 Branch:
+
 Engine-Rebuild
 
-Foundation commit:
+
+Foundation Commit:
+
 82d792abf64b58a05296db370fa611fb36366594
 
+
 Status:
+
 FOUNDATION FROZEN
 
+
 Contains:
+
 - CaptureEngine lifecycle
 - EngineState
 - EngineConfig
@@ -334,16 +624,36 @@ Contains:
 - Dispose boundary
 - Internal stop-path testing
 
-Validation:
-- 14/14 PASS
-- Build: 0 warnings / 0 errors
 
-Foundation constraints:
-- No FFmpeg
-- No NAudio
-- No NVENC
-- No real capture backend
-- No UI integration
+Validation:
+
+PASS
+
+Tests:
+
+14/14 PASS
+
+
+Build:
+
+0 warnings
+0 errors
+
+
+Foundation Constraints:
+
+No:
+
+- FFmpeg
+- NAudio
+- NVENC
+- Real capture backend
+- UI integration
+
+
+Purpose:
+
+สร้าง stable core ก่อนต่อ hardware implementation
 
 
 ==================================================
@@ -351,34 +661,59 @@ Foundation constraints:
 ==================================================
 
 Status:
+
 APPROVED
 
+
 Version:
+
 P1-A v1.3.1
+
 
 Baseline:
 
+
 CaptureEngine
-    ↓
+
+↓
+
 VideoLayer
-    ↓
+
+↓
+
 Video Backend
-    ↓
+
+↓
+
 IVideoFrame
-    ↓
+
+↓
+
 Encoder
-    ↓
+
+↓
+
 Encoded Packet
-    ↓
+
+↓
+
 Output
 
+
+
 Principles:
+
 - Backend replaceability
+
 - Encoder/backend separation
-- Backend-specific details do not leak
-- Output does not consume raw VideoFrame directly
-- VideoLayer owns bounded handoff / queue policy
-- Audio outside Phase 1
+
+- Backend details ไม่ leak
+
+- Output ไม่ consume raw VideoFrame โดยตรง
+
+- VideoLayer owns bounded handoff policy
+
+- Audio แยกออกจาก Phase 1
 
 
 ==================================================
@@ -386,48 +721,111 @@ Principles:
 ==================================================
 
 Status:
+
 COMPLETE
 
-Latest fix:
+
+Latest Fix Commit:
+
 39da0640d0c626dd6181b53adee55c4439261ae1
 
-Validation:
-- Existing tests: 32/32 PASS
-- Regression tests: 5/5 PASS
-- Total: 37/37 PASS
-- Foundation: 14/14 PASS
-- Build: 0 warnings / 0 errors
 
-Contract surface:
+Validation:
+
+Existing tests:
+
+32/32 PASS
+
+
+Regression tests:
+
+5/5 PASS
+
+
+Total:
+
+37/37 PASS
+
+
+Foundation:
+
+14/14 PASS
+
+
+Build:
+
+0 warnings
+0 errors
+
+
+--------------------------------------------------
+Contract Surface
+--------------------------------------------------
+
+Interfaces:
+
 - IVideoCaptureBackend
+
 - IVideoFrame
+
 - IVideoFrameSink
+
 - IVideoBackendDiagnostics
+
 - IVideoBackendContext
+
 - IVideoCaptureBackendFactory
 
-Frame acquisition:
-- FrameAvailable
-- NoFrame
-- Error
 
-Handoff:
+
+--------------------------------------------------
+Frame Acquisition
+--------------------------------------------------
+
+States:
+
+FrameAvailable
+
+NoFrame
+
+Error
+
+
+
+--------------------------------------------------
+Handoff
+--------------------------------------------------
+
+Results:
+
 - Pushed
 - Replaced
 - Dropped
 
+
+
 Policies:
+
 - DropOldest
 - DropNewest
 
+
+
 Important:
-- No fake dropped-frame object
+
+- ไม่มี fake dropped frame object
+
 - IVideoFrame = real frame only
-- Dropped = diagnostics/handoff outcome
+
+- Dropped = diagnostics/handoff result
+
 
 Fixes:
+
 - Dispose lock/deadlock fixed
+
 - Stop contract fixed
+
 - Sink frame disposal moved outside lock
 
 
@@ -436,131 +834,388 @@ Fixes:
 ==================================================
 
 Status:
+
 IN PROGRESS
 
+
 Purpose:
-Validate GPU/WGC assumptions before production implementation.
+
+Validate GPU/WGC assumptions ก่อน production implementation
+
 
 Tracks:
-- V1 D3D11/NVENC
-- V2 timestamp normalization
-- V3 runtime behavior
-- V4 WGC edge cases
-- V5 WGC delivery characterization
+
+
+V1:
+D3D11 / NVENC
+
+
+V2:
+Timestamp normalization
+
+
+V3:
+Runtime behavior
+
+
+V4:
+WGC edge cases
+
+
+V5:
+WGC delivery characterization
+
 
 
 ==================================================
-[V1 — D3D11 / NVENC]
+[V1 — D3D11 / NVENC VALIDATION]
 ==================================================
 
 Status:
-HARDWARE EVIDENCE PENDING
+
+RESOLVED WITH HARDWARE EVIDENCE
+
 
 Spike:
+
 spikes/D3D11_NVENC_Spike
 
-Questions:
-- D3D11 device ownership
-- same-device relationship
-- same-physical-GPU relationship
-- Desktop Duplication texture ownership
-- NVENC DirectX registration
-- zero-copy feasibility
-- sustained capture behavior
 
-Rule:
-- No V1 PASS claim without real Windows + NVIDIA hardware evidence.
+
+Hardware:
+
+- NVIDIA GeForce GTX 1080 Ti
+- Real Windows hardware
+
+
+Validated:
+
+PASS:
+
+✓ D3D11 device creation
+
+✓ Desktop Duplication capture
+
+✓ GPU resource ownership path
+
+✓ NVENC DirectX registration
+
+✓ BGRA8 input support
+
+✓ Zero-copy feasibility
+
+
+
+Capture test:
+
+1000 frames captured successfully
+
+
+
+Benchmark:
+
+Resolution:
+
+1680x1050
+
+
+
+60 FPS Target:
+
+PASS
+
+Achieved:
+
+~80 FPS
+
+
+
+120 FPS Target:
+
+FAIL
+
+Achieved:
+
+~74 FPS
+
+
+
+144 FPS Target:
+
+FAIL
+
+Achieved:
+
+~77 FPS
+
+
+
+Conclusion:
+
+FACT:
+
+- D3D11 → NVENC path technically works
+- Zero-copy architecture assumption validated
+
+
+NOT CLOSED:
+
+- Sustained 144 FPS production capture
+- Long-duration production behavior
+- Full production encoder integration
+
+
+Remaining risk:
+
+V3 / V5 performance characterization
 
 
 ==================================================
-[V4 — WGC EDGE-CASE]
+[CURRENT VALIDATION STATE]
+==================================================
+
+P1-B.2:
+
+Active
+
+
+Completed:
+
+🟢 V1 Hardware feasibility
+
+
+Remaining:
+
+🟡 V2 Timestamp validation
+
+🟡 V3 Runtime performance
+
+🟡 V5 WGC delivery characterization
+
+
+==================================================
+END PART 2/3
+==================================================
+==================================================
+[V4 — WGC EDGE-CASE VALIDATION]
 ==================================================
 
 Status:
+
 CLOSED WITH LIMITATION
+
+
+Purpose:
+
+ตรวจสอบ:
+- Frame lifecycle
+- Acquire behavior
+- Timestamp consistency
+- Shutdown behavior
+- Harness correctness
+
 
 Evidence:
-- Test B: 600s
-- Test C: 10 sessions × 15s
-- Total observed frame events: 16,452
 
 Test B:
-- FrameArrived: 12,048
-- Acquired: 12,048
-- Consumed: 12,048
-- DroppedByHarness: 0
-- NoFrameReturned: 0
-- ShutdownDiscarded: 0
-- Average FPS: 20.08
-- Median delta: 26.660 ms
-- P95: 159.959 ms
-- P99: 333.249 ms
-- Max gap: 1.066397s
-- Timestamp monotonic: TRUE
-- PTS monotonic: TRUE
-- Equal timestamps: 1
-- Regressions: 0
-- Negative PTS: 0
 
-Test C:
-- 10 × 15s sessions
-- Aggregate: 4,404 frames
-- DroppedByHarness: 0
-- NoFrameReturned: 0
-- ShutdownDiscarded: 0
-- 0 equal timestamps
-- 0 regressions
-- 0 negative PTS
-- All invariants hold
-- FPS range: 4.20–43.43 FPS
-- Max gap: 2.133333s
+Duration:
+600 seconds
 
-Important evidence:
-- FrameArrived == Acquired == Consumed in all observed sessions.
-- Downstream harness loss is eliminated.
-- Harness is NOT proven to have zero upstream influence on WGC delivery.
-- WGC internal pre-FrameArrived behavior remains UNKNOWN.
-- Delivery gaps are delivery gaps, NOT dropped frames.
-- Exact cause of delivery variability is UNKNOWN.
-- Timestamp monotonicity/consistency is validated for tested scope.
-- Timestamp accuracy/fidelity is not independently validated.
 
-Experimental limitation:
-- Test B and Test C used different display configurations.
-- Therefore they are NOT a controlled comparison.
-- Test B resolution/display configuration differs from Test C.
-- Session 8 = 4.20 FPS is a single observed outlier and is not yet proven reproducible.
+Results:
+
+FrameArrived:
+12,048
+
+Acquired:
+12,048
+
+Consumed:
+12,048
+
+DroppedByHarness:
+0
+
+NoFrameReturned:
+0
+
+ShutdownDiscarded:
+0
+
+
+Average FPS:
+
+20.08 FPS
+
+
+Timing:
+
+Median delta:
+
+26.660 ms
+
+
+P95:
+
+159.959 ms
+
+
+P99:
+
+333.249 ms
+
+
+Maximum gap:
+
+1.066397s
+
+
+
+Timestamp:
+
+Monotonic:
+TRUE
+
+
+PTS monotonic:
+TRUE
+
+
+Equal timestamps:
+
+1
+
+
+Regressions:
+
+0
+
+
+Negative PTS:
+
+0
+
+
+
+--------------------------------------------------
+Test C
+--------------------------------------------------
+
+Sessions:
+
+10 × 15 seconds
+
+
+Aggregate frames:
+
+4,404
+
+
+Results:
+
+DroppedByHarness:
+
+0
+
+
+NoFrameReturned:
+
+0
+
+
+ShutdownDiscarded:
+
+0
+
+
+Equal timestamps:
+
+0
+
+
+Regressions:
+
+0
+
+
+Negative PTS:
+
+0
+
+
+
+FPS Range:
+
+4.20 - 43.43 FPS
+
+
+Maximum gap:
+
+2.133333s
+
+
+
+--------------------------------------------------
+V4 Conclusions
+--------------------------------------------------
+
+FACT:
+
+- FrameArrived == Acquired == Consumed
+  ในทุก session ที่ทดสอบ
+
+- Downstream harness loss ถูกกำจัด
+
+- Timestamp monotonicity validated
+
+
+UNKNOWN:
+
+- WGC มี frame loss ก่อน FrameArrived หรือไม่
+
+- สาเหตุ delivery variability
+
+- Sustained FPS capability
+
+
+RISK:
+
+- FrameArrived ไม่ใช่ guaranteed FPS source
+
+- ไม่สามารถสรุป WGC internal behavior จาก harness ได้
+
+
+Important:
+
+Delivery gap ≠ dropped frame
+
+
+--------------------------------------------------
+Independent Review
+--------------------------------------------------
 
 GLM-2 verdict:
+
 CLOSED WITH LIMITATION
 
-GLM-2SUB independent verdict:
+
+GLM-2SUB verdict:
+
 CLOSED WITH LIMITATION
 
-GLM-2SUB critical methodological findings:
-- FrameArrived = Acquired only proves downstream harness losslessness.
-- Cannot prove WGC never loses/suppresses frames before FrameArrived.
-- Session 8 low FPS requires reproduction.
-- Content condition was uncontrolled.
-- Resolution mismatch prevents direct cross-comparison.
-- Independent timing reference would improve timestamp fidelity validation.
 
-Closed:
-- Harness downstream losslessness
-- Invariant correctness
-- Timestamp monotonicity/consistency
-- Session lifecycle behavior
-- T0 reset behavior
 
-Not closed:
-- WGC sustained-FPS capability
-- WGC internal pre-event frame loss
-- Exact cause of delivery variability
-- 144 FPS feasibility
-- Long-term stability beyond 10 minutes
-- Suspend/resume
-- Multi-monitor/multi-adapter
-- Other GPU generations/vendors
+GLM-2SUB findings:
+
+- FrameArrived = Acquired
+  พิสูจน์เฉพาะ downstream losslessness
+
+- ไม่สามารถพิสูจน์ WGC ไม่ suppress frame ก่อน event
+
+- Session FPS ต่ำต้อง reproduce
+
+- Controlled condition ยังไม่ครบ
 
 
 ==================================================
@@ -568,107 +1223,230 @@ Not closed:
 ==================================================
 
 Status:
+
 NEXT TASK
 
+
 Objective:
-Determine whether WGC delivery behavior is consistent with display/content conditions and whether 144 FPS is plausible.
 
-V5 is split into:
+หาความสามารถจริงของ WGC delivery
 
-V5-A:
-Controlled reproduction
+โดยควบคุม:
 
-V5-B:
-144 Hz feasibility
+- Display
+- Resolution
+- Refresh rate
+- Content
 
-V5-A controlled requirements:
-- Same Windows build
-- Same GTX 1080 Ti
-- Same display
-- Same DISPLAY1
-- Same resolution: 1920x1080
-- Same refresh rate
-- Same WGC configuration
-- Same evidence harness
+
+--------------------------------------------------
+V5-A Controlled Reproduction
+--------------------------------------------------
+
+Environment:
+
+ต้องเหมือนกัน:
+
+- Windows build เดิม
+
+- GTX 1080 Ti เดิม
+
+- Display เดิม
+
+- DISPLAY1 เดิม
+
+- Resolution 1920x1080
+
+- Refresh rate เดิม
+
+- WGC configuration เดิม
+
+- Evidence harness เดิม
+
+
+
+Conditions:
+
 
 Condition A:
-- Static desktop
+
+Static Desktop
+
 
 Condition B:
-- Deterministic active content
-- Prefer controlled animation/test pattern
-- Avoid unpredictable game/video workload
+
+Deterministic Active Content
+
+ตัวอย่าง:
+
+- Test pattern
+- Controlled animation
+
+
+Avoid:
+
+- Game workload
+- Video playback ที่ควบคุมไม่ได้
+
+
 
 Repeat:
-- At least 3 sessions per condition
-- Prefer 600s where practical
-- Exact duration must be recorded
+
+ขั้นต่ำ:
+
+3 sessions / condition
+
+
+Preferred:
+
+600 seconds
+
 
 Measure:
+
+
 - FrameArrived
+
 - Acquired
+
 - Consumed
+
 - DroppedByHarness
+
 - NoFrameReturned
+
 - ShutdownDiscarded
-- average FPS
-- median delta
-- p95
-- p99
-- max gap
-- timestamp monotonicity
+
+- Average FPS
+
+- Median delta
+
+- P95
+
+- P99
+
+- Maximum gap
+
+- Timestamp monotonicity
+
 - PTS monotonicity
-- equal timestamps
-- negative PTS
 
-V5-B:
-- 144 Hz
+- Equal timestamps
+
+- Negative PTS
+
+
+
+--------------------------------------------------
+V5-B 144Hz Feasibility
+--------------------------------------------------
+
+หลัง V5-A
+
+
+Configuration:
+
 - 1920x1080
-- Same controlled active content
+
+- 144Hz
+
+- Same controlled content
+
 - Same harness
-- At least 3 sessions per condition
-- Prefer 600s where practical
 
-Required determination:
-1. Does WGC delivery approach 144 FPS?
-2. Does active content materially change delivery?
-3. Are multi-second gaps reduced?
-4. Does 144 Hz materially change behavior?
-5. Is 144 FPS plausible?
-6. Does evidence justify production GfxCaptureBackend?
-7. Is 144 FPS validated or merely plausible?
 
-Final V5 classification:
+Questions:
+
+1.
+WGC delivery เข้าใกล้ 144 FPS หรือไม่
+
+
+2.
+Active content เปลี่ยน delivery หรือไม่
+
+
+3.
+Multi-second gap ลดลงหรือไม่
+
+
+4.
+144Hz มีผลหรือไม่
+
+
+5.
+144 FPS เป็นไปได้จริงหรือไม่
+
+
+6.
+Production GfxCaptureBackend เหมาะสมหรือไม่
+
+
+
+Final classification:
+
 - PASS
+
 - PASS WITH LIMITATION
+
 - INCONCLUSIVE
+
 - FAIL
 
-No production WGC code until evidence review is complete.
+
+
+Rule:
+
+ยังไม่มี production WGC code
+จนกว่า evidence review เสร็จ
+
 
 
 ==================================================
 [VIDEO PRODUCTION IMPLEMENTATION]
 ==================================================
 
+Status:
+
+
 Production Ddagrab:
+
 NOT COMPLETE
+
 
 Production GfxCapture:
+
 NOT COMPLETE
+
 
 Production NVENC:
+
 NOT COMPLETE
+
 
 Real D3D11 resource integration:
+
 NOT COMPLETE
 
-Video-only production baseline:
+
+Video-only baseline:
+
 NOT COMPLETE
+
+
 
 Important:
-- Legacy ddagrab/NVENC performance evidence is reference evidence only.
-- It is not equivalent to Engine-Rebuild production implementation.
+
+Legacy performance evidence
+
+=
+
+Reference only
+
+
+ไม่เท่ากับ
+
+Engine-Rebuild production implementation
+
 
 
 ==================================================
@@ -676,26 +1454,56 @@ Important:
 ==================================================
 
 Frame Acquisition:
-CONTRACT COMPLETE / PRODUCTION INTEGRATION PENDING
+
+CONTRACT COMPLETE
+
+Production integration pending
+
+
 
 Timestamping:
+
 VALIDATION IN PROGRESS
 
+
+
 Queue / Buffer:
-CONTRACT + TESTS COMPLETE
+
+CONTRACT COMPLETE
+
+Tests PASS
+
+
 
 Backpressure:
-CONTRACT + TESTS COMPLETE
+
+CONTRACT COMPLETE
+
+Tests PASS
+
+
 
 Frame Synchronization:
+
 NOT STARTED
 
+
+
 Clock:
-- QPC-based monotonic reference
-- WGC SystemRelativeTime is QPC-based
-- Do not subtract TimeSpan.Ticks from raw Stopwatch ticks directly
-- Normalize source timestamps into engine PTS domain
-- Media sync must not use DateTime wall clock
+
+QPC-based monotonic reference
+
+
+Rules:
+
+- WGC SystemRelativeTime ใช้ QPC
+
+- ห้าม subtract TimeSpan.Ticks กับ Stopwatch ticks โดยตรง
+
+- Normalize timestamp เข้า engine PTS domain
+
+- ห้ามใช้ DateTime wall clock สำหรับ media sync
+
 
 
 ==================================================
@@ -703,47 +1511,84 @@ Clock:
 ==================================================
 
 Architecture:
-WASAPI
-├── System Audio
-├── Microphone
-└── Audio Mixer
 
-Engine-Rebuild status:
+WASAPI
+
+
+Components:
+
+- System Audio
+
+- Microphone
+
+- Audio Mixer
+
+
+
+Engine-Rebuild Status:
+
 NOT STARTED
 
+
+
 Rules:
-- Audio separate from video
-- Audio must not block video
-- Legacy Engine-Audio is not automatically reusable
-- Audio will be addressed after video architecture is sufficiently validated
+
+- Audio แยกจาก Video
+
+- Audio ห้าม block Video
+
+- Legacy Engine-Audio ไม่ reusable โดยอัตโนมัติ
+
+- เริ่ม Audio หลัง Video architecture stable
+
 
 
 ==================================================
 [OUTPUT]
 ==================================================
 
-MP4:
-NOT STARTED
-
-MKV:
-NOT STARTED
-
-Raw / Pipe:
-NOT STARTED
-
 Phase:
+
 2
+
+
+Status:
+
+NOT STARTED
+
+
+Targets:
+
+- MP4
+
+- MKV
+
+- Raw / Pipe
+
 
 
 ==================================================
 [SYNCHRONIZATION]
 ==================================================
 
-A/V synchronization:
+Phase:
+
+4
+
+
+Status:
+
 NOT STARTED
 
-Phase:
-4
+
+Scope:
+
+- Audio/video synchronization
+
+- Clock alignment
+
+- PTS management
+
 
 
 ==================================================
@@ -751,81 +1596,129 @@ Phase:
 ==================================================
 
 UI:
+
 VB.NET WinForms
 
-Engine rule:
-- UI separate from engine
-- Engine must not depend on WinForms
 
-Recent Overlay commit:
+Rule:
+
+UI แยก Engine
+
+
+Engine:
+
+ห้าม depend WinForms
+
+
+
+Recent Work:
+
+Overlay Phase 2A
+
+
+Commit:
+
 b2a42c2
-Optimize Overlay update path + fix HideFromAltTab precedence
+
+
 
 Status:
-PUSHED
-BUILD SUCCESS
-RUNTIME VERIFIED
+
+- Pushed
+
+- Build success
+
+- Runtime verified
+
+
 
 Changes:
-- Removed redundant HideFromAltTab calls from hot paths
-- Fixed HideFromAltTab precedence
-- Disposed one-shot UI timers
-- Removed duplicate MainForm_Shown GitHub load
-- Removed unnecessary AppSettings.Save() from Lang_Tick
 
-Owner runtime observation:
-- Overlay feels substantially smoother
-- Animation smoothness reported ~40%+ improvement
+- Removed redundant HideFromAltTab hot paths
+
+- Fixed HideFromAltTab precedence
+
+- Disposed one-shot UI timers
+
+- Removed duplicate MainForm_Shown GitHub load
+
+- Removed unnecessary AppSettings.Save()
+
+
+Owner observation:
+
+Overlay smoothness improved
+
+ประมาณ 40%+
+
+
 
 Important:
-Overlay optimization is separate from Engine-Rebuild production video work.
+
+Overlay optimization
+
+แยกจาก
+
+Engine-Rebuild video production
+
 
 
 ==================================================
 [REPOSITORY / BUILD AUDIT]
 ==================================================
 
-GLM-3:
-- Dependency graph is a DAG
+GLM-3 findings:
+
+
+PASS:
+
+- Dependency graph = DAG
+
 - Production/test isolation PASS
-- No circular dependency found
-- Some stale project metadata exists
-- Some solution files need cleanup
-- Large binary/unrelated files exist
-- Package version drift exists
-- CI coverage is incomplete
 
-Important:
-- Repository hygiene is a separate track.
-- Do not mass-delete files based on unverified findings.
-- NVIDIA SDK/license concerns require external verification before deletion.
-
-Known cleanup candidate:
-- FakeVideoCaptureBackend is currently compiled into CaptureEngine.Video assembly.
-- This is non-ideal but not currently treated as a production runtime-path blocker.
+- No circular dependency
 
 
-==================================================
-[CURRENT GIT / DOCUMENTATION]
-==================================================
 
-Development branch:
-Engine-Rebuild
+Remaining:
 
-Architecture document:
-docs/ARCHITECTURE.md
+- Stale project metadata
 
-Architecture document commit:
-b6294fa72cf40b859e226d1a20405ad7c112d2cc
+- Solution cleanup
 
-Overlay Phase 2A:
-b2a42c2
-Pushed and runtime verified
+- Large binary files
 
-Repository should be synchronized before making new work:
-git pull --ff-only origin Engine-Rebuild
+- Package drift
 
-Do not force-push normal work.
+- CI coverage
+
+
+
+Rule:
+
+Repository hygiene
+
+=
+
+Separate track
+
+
+
+Known candidate:
+
+FakeVideoCaptureBackend
+
+Currently compiled in:
+
+CaptureEngine.Video assembly
+
+
+Status:
+
+Non-ideal
+
+แต่ยังไม่ production blocker
+
 
 
 ==================================================
@@ -833,95 +1726,139 @@ Do not force-push normal work.
 ==================================================
 
 Architecture:
+
 🟢 Stable / Approved
 
+
 Foundation:
+
 🟢 Complete / Frozen
 
+
 P1-B.1:
-🟢 Complete / 37/37
+
+🟢 Complete
+
+37/37 PASS
+
+
 
 V1:
-🟡 Pending hardware evidence
+
+🟢 Resolved
+
+Hardware evidence complete
+
 
 V4:
-🟡 Closed with Limitation
+
+🟡 Closed With Limitation
+
 
 V5-A:
+
 🔥 NEXT
+
 Controlled WGC reproduction
 
+
 V5-B:
-⏳ After/alongside V5-A as justified
+
+⏳ After V5-A
+
+
 
 Production Ddagrab:
+
 🔴 Not complete
+
 
 Production GfxCapture:
+
 🔴 Not complete
+
 
 Production NVENC:
+
 🔴 Not complete
 
+
 Output:
+
 🔴 Not started
+
 
 Audio:
+
 🔴 Not started
 
-A/V Synchronization:
+
+A/V Sync:
+
 🔴 Not started
+
 
 UI Integration:
-🔴 Not started in the new engine
+
+🔴 Not started in new Engine
+
 
 
 ==================================================
 [IMMEDIATE NEXT ACTION]
 ==================================================
 
-1. Run V5-A controlled WGC reproduction.
-2. Compare static vs deterministic active content.
-3. Repeat conditions for reproducibility.
-4. Analyze results with GLM-2.
-5. Challenge results with GLM-2SUB.
-6. Use Gemini 3.6 Flash for external WGC/API evidence when needed.
-7. Use Claude Sonnet 5 for adversarial review when a decision is ready.
-8. GPT synthesizes.
-9. OWNER makes final decision.
-10. Only then proceed toward V5-B / production WGC or Ddagrab direction.
+1.
+Run V5-A controlled WGC reproduction
 
 
-==================================================
-[CURRENT TEAM FOCUS]
-==================================================
+2.
+Compare:
 
-GLM-1:
-Architecture — monitoring / audit
+Static desktop
 
-GLM-2:
-V5-A / V5-B WGC validation
+vs
 
-GLM-2SUB:
-Independent evidence challenge
+Deterministic active content
 
-GLM-3:
-Build / repository audit — monitoring / cleanup track
 
-GLM-4:
-Scoped coding / UI — available for approved tasks
+3.
+Repeat for reproducibility
 
-Claude Sonnet 5:
-Temporary reviewer / challenger
 
-Gemini 3.6 Flash:
-External evidence / research
+4.
+Analyze with GLM-2
 
-Gemini Local:
-Local repository inspection
 
-GPT:
-Synthesis / decision lead
+5.
+Challenge with GLM-2SUB
+
+
+6.
+Use Gemini 3.6 Flash for external evidence
+
+
+7.
+Use Claude Sonnet 5 for adversarial review
+
+
+8.
+GPT synthesizes
+
+
+9.
+OWNER final decision
+
+
+10.
+Proceed to:
+
+- V5-B
+
+or
+
+- Production backend direction
+
 
 
 ==================================================
@@ -929,17 +1866,36 @@ Synthesis / decision lead
 ==================================================
 
 Do not implement because:
-- an AI says it is probably correct
-- a spike compiles
-- a legacy implementation already exists
-- a benchmark looks good once
-- an architecture diagram contains the feature
 
-Implement when:
-- contract is approved
-- relevant blockers are resolved
-- evidence is sufficient
-- challenge/review is complete
-- OWNER approves the decision
+- AI says probably correct
 
-Unknown stays Unknown until evidence exists.
+- Spike compile
+
+- Legacy implementation exists
+
+- One benchmark looks good
+
+- Architecture diagram contains feature
+
+
+Implement only when:
+
+- Contract approved
+
+- Blocker resolved
+
+- Evidence sufficient
+
+- Review complete
+
+- OWNER approves
+
+
+UNKNOWN stays UNKNOWN
+
+until evidence exists.
+
+
+==================================================
+END PROJECT_MEMORY_UPDATED.txt
+==================================================
