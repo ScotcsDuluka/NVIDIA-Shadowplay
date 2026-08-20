@@ -116,17 +116,39 @@ public static class Phase6_MinimalEncode
         uint status = nvenc.OpenEncodeSessionEx(ref sessionParams, out IntPtr encoder);
         if (status != NvEncodeAPI.NV_ENC_SUCCESS)
         {
+            // Defensive: NVENC may populate the out-handle even on failure paths.
+            // If non-zero, destroy it to avoid leaking the session.
+            if (encoder != IntPtr.Zero && nvenc.DestroyEncoder != null)
+            {
+                try { nvenc.DestroyEncoder(encoder); }
+                catch { }
+                Console.WriteLine("  (Encoder handle defensively destroyed after OpenEncodeSessionEx failure.)");
+            }
             Console.Error.WriteLine($"  FAIL: NvEncOpenEncodeSessionEx returned {status} " +
                                     $"({NvEncodeAPI.NvencStatusToString(status)}).");
             return 1;
         }
         Console.WriteLine($"  PASS: Encode session opened. Encoder: 0x{encoder.ToInt64():x16}");
 
-        // Track resources for cleanup
+        // Track resources for cleanup.
+        //
+        // Resource-lifetime tracking (P1-F Phase 6 hardening):
+        //   - freshTexture: declared OUTSIDE the try-block so the finally
+        //     block can always dispose it on every failure path.
+        //   - bitstreamLocked: separate flag tracking whether LockBitstream
+        //     has succeeded — finally block MUST call UnlockBitstream before
+        //     DestroyBitstreamBuffer if this is true.
+        //   - encoderOpened: tracks whether OpenEncodeSessionEx has succeeded.
+        //     The finally block MUST call DestroyEncoder if this is true,
+        //     independent of whether InitializeEncoder succeeded (the previous
+        //     code used an encoderInitialized flag which leaked the encoder
+        //     handle if InitializeEncoder failed).
+        ID3D11Texture2D? freshTexture = null;
         IntPtr bitstreamBuffer = IntPtr.Zero;
         IntPtr registeredResource = IntPtr.Zero;
         IntPtr mappedInputResource = IntPtr.Zero;
-        bool encoderInitialized = false;
+        bool bitstreamLocked = false;
+        bool encoderOpened = true;   // OpenEncodeSessionEx just succeeded above
 
         try
         {
@@ -172,7 +194,6 @@ public static class Phase6_MinimalEncode
                                         $"({NvEncodeAPI.NvencStatusToString(initStatus)}).");
                 return 1;
             }
-            encoderInitialized = true;
             Console.WriteLine($"  PASS: Encoder initialized ({texWidth}x{texHeight} @ 60fps, H.264, Default preset).");
 
             // ─── Step 4: Create bitstream buffer ───
@@ -218,7 +239,9 @@ public static class Phase6_MinimalEncode
                 return 1;
             }
 
-            // Create a fresh BGRA8 texture (same as Phase 4 Step 5)
+            // Create a fresh BGRA8 texture (same as Phase 4 Step 5).
+            // Note: freshTexture is declared in outer scope (before try) so the
+            // finally block can dispose it on every failure path.
             Texture2DDescription freshDesc = new()
             {
                 Width = texWidth,
@@ -232,7 +255,7 @@ public static class Phase6_MinimalEncode
                 CPUAccessFlags = CpuAccessFlags.None,
                 MiscFlags = ResourceOptionFlags.None,
             };
-            ID3D11Texture2D freshTexture = device.CreateTexture2D(freshDesc);
+            freshTexture = device.CreateTexture2D(freshDesc);
             Console.WriteLine($"  Fresh texture: {texWidth}x{texHeight} BGRA8, ptr=0x{freshTexture.NativePointer.ToInt64():x16}");
 
             // Fill texture with a simple pattern (solid blue) so NVENC has real data to encode
@@ -284,7 +307,8 @@ public static class Phase6_MinimalEncode
             {
                 Console.Error.WriteLine($"  FAIL: NvEncRegisterResource returned {regStatus} " +
                                         $"({NvEncodeAPI.NvencStatusToString(regStatus)}).");
-                freshTexture.Dispose();
+                // freshTexture.Dispose() is handled by the finally block — do not
+                // dispose here, or it would be disposed twice.
                 return 1;
             }
             registeredResource = registerParams.registeredResource;
@@ -516,6 +540,11 @@ public static class Phase6_MinimalEncode
             uint bsSize = lockParams.bitstreamSizeInBytes;
             IntPtr bsPtr = lockParams.bitstreamBufferPtr;
 
+            // LockBitstream succeeded — set the flag so the finally block knows
+            // to call UnlockBitstream before DestroyBitstreamBuffer on any
+            // subsequent failure path.
+            bitstreamLocked = true;
+
             Console.WriteLine($"  PASS: NvEncLockBitstream returned NV_ENC_SUCCESS.");
             Console.WriteLine($"  Bitstream pointer: 0x{bsPtr.ToInt64():x16}");
             Console.WriteLine($"  Bitstream size:    {bsSize} bytes");
@@ -599,6 +628,7 @@ public static class Phase6_MinimalEncode
                                         $"({NvEncodeAPI.NvencStatusToString(unlockStatus)}).");
                 return 1;
             }
+            bitstreamLocked = false;  // cleared — finally block will not double-unlock
             Console.WriteLine("  PASS: Bitstream unlocked.");
 
             // ─── Step 11: Unmap input resource ───
@@ -661,9 +691,8 @@ public static class Phase6_MinimalEncode
             bitstreamBuffer = IntPtr.Zero;  // cleared
             Console.WriteLine("  PASS: Bitstream buffer destroyed.");
 
-            // Dispose the fresh texture
-            freshTexture.Dispose();
-            Console.WriteLine("  PASS: Fresh texture disposed.");
+            // freshTexture.Dispose() is handled by the finally block — do not
+            // dispose here, or it would be disposed twice.
 
             // ─── Phase 6 Result ───
             Console.WriteLine();
@@ -685,10 +714,32 @@ public static class Phase6_MinimalEncode
         }
         finally
         {
-            // Cleanup (best-effort, don't throw)
+            // Cleanup (best-effort, don't throw).
+            //
+            // Resource-lifetime hardening (P1-F Phase 6 cleanup):
+            //   - freshTexture is ALWAYS disposed if non-null. This plugs the
+            //     D3D11 texture leak on every failure path (Map/Encode/Lock).
+            //   - bitstreamLocked flag tracks whether LockBitstream succeeded.
+            //     If true, UnlockBitstream MUST be called before
+            //     DestroyBitstreamBuffer (per NVIDIA docs, destroying a locked
+            //     bitstream is undefined behavior).
+            //   - encoderOpened flag tracks whether OpenEncodeSessionEx
+            //     succeeded. If true, DestroyEncoder MUST be called even if
+            //     InitializeEncoder failed (otherwise encoder handle leaks).
             Console.WriteLine();
             Console.WriteLine("[6.cleanup] Best-effort cleanup...");
 
+            // (1) Dispose the fresh D3D11 texture — ALWAYS, if non-null.
+            //     This is independent of NVENC state. Safe to call after
+            //     UnregisterResource (which is the NVENC-side release).
+            if (freshTexture != null)
+            {
+                try { freshTexture.Dispose(); }
+                catch { }
+                Console.WriteLine("  Fresh texture disposed (cleanup).");
+            }
+
+            // (2) Unmap the mapped input resource, if mapped.
             if (mappedInputResource != IntPtr.Zero && nvenc.UnmapInputResource != null)
             {
                 try { nvenc.UnmapInputResource(encoder, mappedInputResource); }
@@ -696,6 +747,7 @@ public static class Phase6_MinimalEncode
                 Console.WriteLine("  Mapped input resource unmapped (cleanup).");
             }
 
+            // (3) Unregister the registered resource, if registered.
             if (registeredResource != IntPtr.Zero && nvenc.UnregisterResource != null)
             {
                 try { nvenc.UnregisterResource(encoder, registeredResource); }
@@ -703,6 +755,17 @@ public static class Phase6_MinimalEncode
                 Console.WriteLine("  Registered resource unregistered (cleanup).");
             }
 
+            // (4) Unlock the bitstream, if locked. MUST happen BEFORE
+            //     DestroyBitstreamBuffer (see comment above).
+            if (bitstreamLocked && bitstreamBuffer != IntPtr.Zero && nvenc.UnlockBitstream != null)
+            {
+                try { nvenc.UnlockBitstream(encoder, bitstreamBuffer); }
+                catch { }
+                bitstreamLocked = false;
+                Console.WriteLine("  Bitstream unlocked (cleanup).");
+            }
+
+            // (5) Destroy the bitstream buffer, if created.
             if (bitstreamBuffer != IntPtr.Zero && nvenc.DestroyBitstreamBuffer != null)
             {
                 try { nvenc.DestroyBitstreamBuffer(encoder, bitstreamBuffer); }
@@ -710,7 +773,12 @@ public static class Phase6_MinimalEncode
                 Console.WriteLine("  Bitstream buffer destroyed (cleanup).");
             }
 
-            if (encoderInitialized && nvenc.DestroyEncoder != null)
+            // (6) Destroy the encoder session, if opened.
+            //     Note: decision is based on encoderOpened, NOT on whether
+            //     InitializeEncoder succeeded. OpenEncodeSessionEx succeeded
+            //     before the try-block, so the encoder handle MUST be destroyed
+            //     regardless of subsequent failures.
+            if (encoderOpened && nvenc.DestroyEncoder != null)
             {
                 try { nvenc.DestroyEncoder(encoder); }
                 catch { }
