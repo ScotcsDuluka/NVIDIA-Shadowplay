@@ -48,6 +48,7 @@ public static class Phase6_MinimalEncode
 
         var device = SpikeSharedContext.Device;
         var duplDesc = SpikeSharedContext.DuplicationDesc.Value;
+        // Vortice's ModeDescription.Width returns uint on OWNER's version
         uint texWidth = duplDesc.ModeDescription.Width;
         uint texHeight = duplDesc.ModeDescription.Height;
 
@@ -120,10 +121,10 @@ public static class Phase6_MinimalEncode
                 version = NvEncodeAPI.MakeStructVersion(5) | (1u << 31),
                 encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID,
                 presetGUID = NvEncodeAPI.NV_ENC_PRESET_DEFAULT_GUID,
-                encodeWidth = texWidth,
-                encodeHeight = texHeight,
-                darWidth = texWidth,
-                darHeight = texHeight,
+                encodeWidth = (uint)texWidth,
+                encodeHeight = (uint)texHeight,
+                darWidth = (uint)texWidth,
+                darHeight = (uint)texHeight,
                 frameRateNum = 60,
                 frameRateDen = 1,
                 enableEncodeAsync = 0,   // synchronous mode
@@ -132,8 +133,8 @@ public static class Phase6_MinimalEncode
                 privDataSize = 0,
                 privData = IntPtr.Zero,
                 encodeConfig = IntPtr.Zero,  // NULL = use preset defaults
-                maxEncodeWidth = texWidth,
-                maxEncodeHeight = texHeight,
+                maxEncodeWidth = (uint)texWidth,
+                maxEncodeHeight = (uint)texHeight,
                 maxMEHintCountsPerBlockL0 = 0,
                 maxMEHintCountsPerBlockL1 = 0,
                 reserved = new uint[289],
@@ -196,8 +197,8 @@ public static class Phase6_MinimalEncode
             // Create a fresh BGRA8 texture (same as Phase 4 Step 5)
             Texture2DDescription freshDesc = new()
             {
-                Width = (int)texWidth,
-                Height = (int)texHeight,
+                Width = texWidth,
+                Height = texHeight,
                 MipLevels = 1,
                 ArraySize = 1,
                 Format = Format.B8G8R8A8_UNorm,
@@ -220,8 +221,8 @@ public static class Phase6_MinimalEncode
             {
                 version = NvEncodeAPI.NV_ENC_REGISTER_RESOURCE_VER,
                 resourceType = NvEncodeAPI.NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX,
-                width = texWidth,
-                height = texHeight,
+                width = (uint)texWidth,
+                height = (uint)texHeight,
                 pitch = 0,  // 0 for textures
                 subResourceIndex = 0,
                 resourceToRegister = freshTexture.NativePointer,
