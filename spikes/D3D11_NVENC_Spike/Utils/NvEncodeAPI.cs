@@ -702,7 +702,7 @@ public static class NvEncodeAPI
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate uint NvEncGetInputFormatsDelegate(
-        IntPtr encoder, Guid encodeGUID, [Out] int[] formatArray, int arraySize, out int actualCount);
+        IntPtr encoder, Guid encodeGUID, [Out] uint[] formatArray, int arraySize, out int actualCount);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     public delegate uint NvEncRegisterResourceDelegate(

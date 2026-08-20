@@ -159,7 +159,7 @@ public static class Phase4_NVENCRegistration
         }
         Console.WriteLine($"  H.264 supports {formatCount} input formats.");
 
-        var formats = new int[formatCount];
+        var formats = new uint[formatCount];
         status = nvenc.GetInputFormats(encoder, NvEncodeAPI.NV_ENC_CODEC_H264_GUID, formats, formats.Length, out int actualFormatCount);
         if (status != NvEncodeAPI.NV_ENC_SUCCESS)
         {
@@ -172,7 +172,7 @@ public static class Phase4_NVENCRegistration
         Console.WriteLine("  H.264 input formats:");
         for (int i = 0; i < actualFormatCount; i++)
         {
-            int fmt = formats[i];
+            uint fmt = formats[i];
             string name = fmt switch
             {
                 NvEncodeAPI.NV_ENC_BUFFER_FORMAT_NV12 => "NV12",
@@ -398,7 +398,7 @@ public static class Phase4_NVENCRegistration
 
         if (nvenc.UnregisterResource != null)
         {
-            int unregStatus = nvenc.UnregisterResource(encoder, registeredHandle);
+            uint unregStatus = nvenc.UnregisterResource(encoder, registeredHandle);
             if (unregStatus == NvEncodeAPI.NV_ENC_SUCCESS)
                 Console.WriteLine("  PASS: Resource unregistered.");
             else
@@ -411,7 +411,7 @@ public static class Phase4_NVENCRegistration
 
         if (nvenc.DestroyEncoder != null)
         {
-            int destroyStatus = nvenc.DestroyEncoder(encoder);
+            uint destroyStatus = nvenc.DestroyEncoder(encoder);
             if (destroyStatus == NvEncodeAPI.NV_ENC_SUCCESS)
                 Console.WriteLine("  PASS: Encoder destroyed.");
             else
