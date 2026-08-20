@@ -270,10 +270,10 @@ Namespace CaptureEngine.Encoder.Backends.Fake
             ' Drain in-flight packets (OUTSIDE lock — sink callback may be slow)
             If needFlush Then
                 Try
-                    Flush(Function(p)
+                    Flush(Sub(p)
                               ' Dispose immediately — we're stopping, no consumer
                               p.Dispose()
-                          End Function)
+                          End Sub)
                 Catch ex As Exception
                     _logger.Error("FakeEncoderBackend: drain during Stop failed", ex)
                 End Try
@@ -297,7 +297,7 @@ Namespace CaptureEngine.Encoder.Backends.Fake
 
                 If _state = EncoderState.Disposed Then
                     Return
-                ElseIf _state = EncoderState.Running OrElse _state = EncoderState.Starting OrElse
+                ElseIf _state = EncoderState.Running OrElse
                        _state = EncoderState.Flushing OrElse _state = EncoderState.Stopping Then
                     _logger.Info("FakeEncoderBackend: Dispose while " & _state.ToString() & " — invoking stop path.")
                     _state = EncoderState.Stopping

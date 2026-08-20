@@ -23,23 +23,6 @@ Namespace CaptureEngine.Encoder.Tests.Contract
             runner("PACKET: PacketMetadata null codecKey → empty string", AddressOf Test_NullCodecKey)
         End Sub
 
-        Private Function CreateTestPacket(Optional seq As Long = 0, Optional pts As Long = 0) As EncodedPacket
-            Dim metadata As New PacketMetadata(
-                sequence:=seq,
-                presentationTimeTicks:=pts,
-                decodingTimeTicks:=pts,
-                durationTicks:=166667L,
-                isKeyFrame:=True,
-                isReferenceFrame:=True,
-                codecKey:="NVENC_H264",
-                codecSpecificFlags:=0)
-            Dim payload(31) As Byte
-            For i As Integer = 0 To 31
-                payload(i) = CByte(i)
-            Next
-            Return New EncodedPacket(metadata, payload, 32)
-        End Function
-
         Private Shared Sub Test_ConstructValid()
             Dim metadata As New PacketMetadata(0, 0, 0, 100, True, True, "NVENC_H264", 0)
             Dim payload As Byte() = New Byte(63) {}
@@ -52,7 +35,10 @@ Namespace CaptureEngine.Encoder.Tests.Contract
         Private Shared Sub Test_NothingPayload()
             Dim metadata As New PacketMetadata(0, 0, 0, 0, True, True, "NVENC_H264", 0)
             TestHelpers.AssertThrows(Of ArgumentNullException)(
-                Sub() Dim p As New EncodedPacket(metadata, Nothing, 0),
+                Sub()
+                    Dim p As EncodedPacket
+                    p = New EncodedPacket(metadata, Nothing, 0)
+                End Sub,
                 "Nothing payload must throw ArgumentNullException")
         End Sub
 
@@ -60,7 +46,10 @@ Namespace CaptureEngine.Encoder.Tests.Contract
             Dim metadata As New PacketMetadata(0, 0, 0, 0, True, True, "NVENC_H264", 0)
             Dim payload As Byte() = New Byte(15) {}
             TestHelpers.AssertThrows(Of ArgumentOutOfRangeException)(
-                Sub() Dim p As New EncodedPacket(metadata, payload, -1),
+                Sub()
+                    Dim p As EncodedPacket
+                    p = New EncodedPacket(metadata, payload, -1)
+                End Sub,
                 "negative payloadLength must throw ArgumentOutOfRangeException")
         End Sub
 
@@ -68,7 +57,10 @@ Namespace CaptureEngine.Encoder.Tests.Contract
             Dim metadata As New PacketMetadata(0, 0, 0, 0, True, True, "NVENC_H264", 0)
             Dim payload As Byte() = New Byte(15) {}
             TestHelpers.AssertThrows(Of ArgumentOutOfRangeException)(
-                Sub() Dim p As New EncodedPacket(metadata, payload, 20),
+                Sub()
+                    Dim p As EncodedPacket
+                    p = New EncodedPacket(metadata, payload, 20)
+                End Sub,
                 "payloadLength > payload.Length must throw ArgumentOutOfRangeException")
         End Sub
 

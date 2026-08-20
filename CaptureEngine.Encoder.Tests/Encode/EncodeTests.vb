@@ -209,7 +209,7 @@ Namespace CaptureEngine.Encoder.Tests.Encode
 
         Private Shared Sub Test_FlushEmptyQueue()
             Dim enc = CreateRunningEncoder()
-            Dim count As Integer = enc.Flush(Function(p) p.Dispose())
+            Dim count As Integer = enc.Flush(Sub(p) p.Dispose())
             TestHelpers.AssertEqual(0, count, "Flush on empty queue should return 0")
             enc.Stop()
             enc.Dispose()
