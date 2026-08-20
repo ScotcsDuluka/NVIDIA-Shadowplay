@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace></RootNamespace>
+    <AssemblyName>CaptureEngine.Encoder.Tests</AssemblyName>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Description>CaptureEngine.Encoder contract tests — P1-F (FakeEncoderBackend; no xUnit/NUnit)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
+    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+  </ItemGroup>
+
+</Project>
