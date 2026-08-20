@@ -378,21 +378,47 @@ public static class Phase6_MinimalEncode
                 inputWidth = texWidth,
                 inputHeight = texHeight,
                 inputPitch = 0,
-                encodePicFlags = 0,  // normal encode
+                encodePicFlags = 0,  // normal encode (NV_ENC_PIC_FLAG_* bit values, all 0 = default)
                 frameIdx = 0,
                 inputTimeStamp = 0,  // no timestamp for spike
                 inputDuration = 0,
-                codecPicHints_bitfield = 0,
+                // VERIFIED per NVIDIA header: inputBuffer comes BEFORE outputBitstream
+                inputBuffer = mappedInputResource,       // NV_ENC_INPUT_PTR (from MapInputResource)
+                outputBitstream = bitstreamBuffer,        // NV_ENC_OUTPUT_PTR (from CreateBitstreamBuffer)
+                completionEvent = IntPtr.Zero,             // sync mode — no event needed
+                bufferFmt = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_ARGB,  // matches RegisterResource
+                pictureStruct = 1,  // NV_ENC_PIC_STRUCT_FRAME = 1
+                pictureType = 0,    // OUT — NVENC will fill this
                 _padding1 = 0,
-                outputBitstream = bitstreamBuffer,
-                inputBuffer = mappedInputResource,
-                bufferFmt = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_ARGB,
-                picStruct = 1,  // NV_ENC_PIC_STRUCT_FRAME = 1
-                picType = 0,  // OUT
+                codecPicParams = new byte[1536],          // union, all zeros (use preset defaults)
+                meHintCountsPerBlock = new byte[32],       // NVENC_EXTERNAL_ME_HINT_COUNTS_PER_BLOCKTYPE[2]
+                meExternalHints = IntPtr.Zero,
+                reserved1 = new uint[6],
+                reserved2 = new IntPtr[2],
+                qpDeltaMap = IntPtr.Zero,
+                qpDeltaMapSize = 0,
+                reservedBitFields = 0,
+                meHintRefPicDist = new ushort[2],
                 _padding2 = 0,
-                reserved1 = new uint[244],
-                reserved2 = new IntPtr[63],
+                alphaBuffer = IntPtr.Zero,
+                reserved3 = new uint[286],
+                reserved4 = new IntPtr[59],
             };
+
+            // DIAGNOSTIC: print key field values for verification.
+            Console.WriteLine($"  PicParams version field:     0x{picParams.version:X8} " +
+                              $"(expected 0xF004000D for API 13.0 with SDK 11 structVer=4 + 1u<<31)");
+            Console.WriteLine($"  PicParams inputBuffer:      0x{picParams.inputBuffer.ToInt64():x16} " +
+                              $"(should match mappedResource from [6.6])");
+            Console.WriteLine($"  PicParams outputBitstream:   0x{picParams.outputBitstream.ToInt64():x16} " +
+                              $"(should match bitstreamBuffer from [6.4])");
+            Console.WriteLine($"  PicParams bufferFmt:         0x{picParams.bufferFmt:X8} " +
+                              $"(ARGB = 0x01000000)");
+            Console.WriteLine($"  PicParams pictureStruct:     {picParams.pictureStruct} " +
+                              $"(1 = NV_ENC_PIC_STRUCT_FRAME)");
+
+            // DIAGNOSTIC: dump full struct layout + raw bytes before native call.
+            DumpStruct("NV_ENC_PIC_PARAMS (before native call)", ref picParams, 96);
 
             uint encStatus = nvenc.EncodePicture(encoder, ref picParams);
             if (encStatus != NvEncodeAPI.NV_ENC_SUCCESS)

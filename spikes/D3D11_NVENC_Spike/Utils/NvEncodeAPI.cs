@@ -269,7 +269,7 @@ public static class NvEncodeAPI
     public static uint NV_ENC_MAP_INPUT_RESOURCE_VER =>
         MakeStructVersion(NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT);
     public static uint NV_ENC_PIC_PARAMS_VER =>
-        MakeStructVersion(NV_ENC_PIC_PARAMS_VER_STRUCT);
+        MakeStructVersion(NV_ENC_PIC_PARAMS_VER_STRUCT) | (1u << 31);  // SDK 11 requires 1u<<31 flag
     public static uint NV_ENC_LOCK_BITSTREAM_VER =>
         MakeStructVersion(NV_ENC_LOCK_BITSTREAM_VER_STRUCT);
 
@@ -447,69 +447,101 @@ public static class NvEncodeAPI
         public IntPtr[] reserved2;           // offset 1040 — void*[63], 504 bytes
     }
 
-    // NV_ENC_PIC_PARAMS — from nvEncodeAPI.h SDK 11:
+    // NV_ENC_PIC_PARAMS — VERIFIED via FFmpeg/nv-codec-headers mirror:
+    //   https://github.com/FFmpeg/nv-codec-headers/blob/sdk/11.0/include/ffnvcodec/nvEncodeAPI.h
     //
-    // This is the most complex struct. In SDK 11 it contains:
-    //   version, inputWidth, inputHeight, inputPitch, encodePicFlags,
-    //   frameIdx, inputTimeStamp, inputDuration, codecPicHints (struct with bitfields),
-    //   outputBitstream (void*), inputBuffer (void* — NV_ENC_INPUT_PTR),
-    //   bufferFmt (enum), picParamsRC, reserved1[244], reserved2[63]
+    // Verified by compiling the actual NVIDIA header with gcc -m64 and measuring
+    // sizeof() and offsetof() for every field. Total SDK 11.0 size = 3344 bytes.
     //
-    // The codecPicHints struct uses C bitfields which don't map cleanly to C#.
-    // We use a single uint32 to hold the bitfield area (same approach as
-    // NV_ENC_INITIALIZE_PARAMS.bitFields).
+    // NVENCAPI_STRUCT_VERSION macro is Form B (current macro is correct).
+    // NV_ENC_PIC_PARAMS_VER = NVENCAPI_STRUCT_VERSION(4) | (1u<<31)
+    //                       = 0x7004000D | 0x80000000 = 0xF004000D for API 13.0
     //
-    // Layout (SDK 11, x64, Pack=1):
-    //   version               offset 0    (uint32, 4 bytes)
-    //   inputWidth             offset 4    (uint32, 4 bytes)
-    //   inputHeight            offset 8    (uint32, 4 bytes)
-    //   inputPitch             offset 12  (uint32, 4 bytes)
-    //   encodePicFlags         offset 16  (uint32, 4 bytes — 0 = normal encode)
-    //   frameIdx               offset 20  (uint32, 4 bytes)
-    //   inputTimeStamp         offset 24  (uint64, 8 bytes)
-    //   inputDuration          offset 32  (uint64, 8 bytes)
-    //   codecPicHints_bitfield offset 40  (uint32, 4 bytes — C bitfields packed)
-    //   _padding1              offset 44  (uint32, explicit pad for 8-byte alignment)
-    //   outputBitstream        offset 48  (void*, 8 bytes — NV_ENC_OUTPUT_PTR)
-    //   inputBuffer            offset 56  (void*, 8 bytes — NV_ENC_INPUT_PTR)
-    //   bufferFmt              offset 64  (int32, enum NV_ENC_BUFFER_FORMAT)
-    //   picStruct              offset 68  (int32, enum)
-    //   picType                offset 72  (uint32 — OUT)
-    //   _padding2              offset 76  (uint32, explicit pad)
-    //   reserved1[244]         offset 80  (uint32[244])
-    //   reserved2[63]          offset 1056 (void*[63])
-    // Total: 80 + 244*4 + 63*8 = 80 + 976 + 504 = 1560 bytes
+    // Field layout (SDK 11.0, x64, NO #pragma pack, default alignment):
+    //   offset    0: version              (uint32_t, 4 bytes)
+    //   offset    4: inputWidth           (uint32_t, 4 bytes)
+    //   offset    8: inputHeight          (uint32_t, 4 bytes)
+    //   offset   12: inputPitch           (uint32_t, 4 bytes)
+    //   offset   16: encodePicFlags       (uint32_t, 4 bytes)
+    //   offset   20: frameIdx             (uint32_t, 4 bytes)
+    //   offset   24: inputTimeStamp       (uint64_t, 8 bytes)
+    //   offset   32: inputDuration        (uint64_t, 8 bytes)
+    //   offset   40: inputBuffer          (void*, 8 bytes)  — NV_ENC_INPUT_PTR
+    //   offset   48: outputBitstream     (void*, 8 bytes)  — NV_ENC_OUTPUT_PTR
+    //   offset   56: completionEvent      (void*, 8 bytes)
+    //   offset   64: bufferFmt            (uint32, 4 bytes) — NV_ENC_BUFFER_FORMAT enum
+    //   offset   68: pictureStruct        (uint32, 4 bytes) — NV_ENC_PIC_STRUCT enum
+    //   offset   72: pictureType          (uint32, 4 bytes) — NV_ENC_PIC_TYPE enum (OUT)
+    //   offset   76: <4 bytes padding for 8-byte alignment of next union>
+    //   offset   80: codecPicParams       (NV_ENC_CODEC_PIC_PARAMS union, 1536 bytes)
+    //   offset 1616: meHintCountsPerBlock (16 bytes [2])
+    //   offset 1648: meExternalHints       (void*, 8 bytes)
+    //   offset 1656: reserved1            (uint32_t[6], 24 bytes)
+    //   offset 1680: reserved2            (void*[2], 16 bytes)
+    //   offset 1696: qpDeltaMap           (void*, 8 bytes)
+    //   offset 1704: qpDeltaMapSize       (uint32, 4 bytes)
+    //   offset 1708: reservedBitFields    (uint32, 4 bytes)
+    //   offset 1712: meHintRefPicDist     (uint16_t[2], 4 bytes)
+    //   offset 1716: <4 bytes padding for 8-byte alignment of next pointer>
+    //   offset 1720: alphaBuffer          (void*, 8 bytes)
+    //   offset 1728: reserved3            (uint32_t[286], 1144 bytes)
+    //   offset 2872: reserved4            (void*[59], 472 bytes)
+    //   Total: 3344 bytes
     //
-    // IMPORTANT: The exact size must match what NVENC expects for SDK 11.
-    // If size is wrong, NvEncEncodePicture returns NV_ENC_ERR_INVALID_PARAM.
-    // The reserved array sizes (244, 63) are derived from the SDK 11 header
-    // by subtracting the known field sizes from the total struct size.
-    // These MUST be verified at runtime by checking Marshal.SizeOf matches
-    // what NVENC expects (if it returns NV_ENC_ERR_INVALID_PARAM, the size
-    // is wrong).
+    // CRITICAL FIX (glm4-phase6-picparams-layout-verified):
+    //   Previous struct was 1560 bytes — missing MANY fields including:
+    //     - completionEvent, codecPicParams (1536-byte union), meHintCountsPerBlock,
+    //       meExternalHints, qpDeltaMap, qpDeltaMapSize, reservedBitFields,
+    //       meHintRefPicDist, alphaBuffer
+    //   Field order was also wrong (outputBitstream before inputBuffer).
+    //   Field names were wrong (picStruct → pictureStruct, picType → pictureType).
+    //   This caused NvEncEncodePicture to return NV_ENC_ERR_INVALID_PARAM (8).
+    //
+    // We use [MarshalAs(UnmanagedType.ByValArray, SizeConst=N)] for fixed-size
+    // arrays. The codecPicParams union is declared as a 1536-byte uint array
+    // (we don't use it — encodeConfig is IntPtr.Zero in InitializeEncoder).
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_PIC_PARAMS
     {
-        public uint version;
-        public uint inputWidth;
-        public uint inputHeight;
-        public uint inputPitch;
-        public uint encodePicFlags;
-        public uint frameIdx;
-        public ulong inputTimeStamp;
-        public ulong inputDuration;
-        public uint codecPicHints_bitfield;
-        public uint _padding1;
-        public IntPtr outputBitstream;       // NV_ENC_OUTPUT_PTR (bitstream buffer handle)
-        public IntPtr inputBuffer;           // NV_ENC_INPUT_PTR (mapped input resource)
-        public uint bufferFmt;               // NV_ENC_BUFFER_FORMAT enum
-        public uint picStruct;               // NV_ENC_PIC_STRUCT enum
-        public uint picType;                // OUT
-        public uint _padding2;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
-        public uint[] reserved1;
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
-        public IntPtr[] reserved2;
+        public uint version;             // offset 0
+        public uint inputWidth;          // offset 4
+        public uint inputHeight;         // offset 8
+        public uint inputPitch;          // offset 12
+        public uint encodePicFlags;      // offset 16
+        public uint frameIdx;            // offset 20
+        public ulong inputTimeStamp;     // offset 24
+        public ulong inputDuration;      // offset 32
+        public IntPtr inputBuffer;       // offset 40  — NV_ENC_INPUT_PTR (mapped input resource)
+        public IntPtr outputBitstream;   // offset 48  — NV_ENC_OUTPUT_PTR (bitstream buffer handle)
+        public IntPtr completionEvent;   // offset 56  — set to IntPtr.Zero for sync mode
+        public uint bufferFmt;           // offset 64  — NV_ENC_BUFFER_FORMAT enum
+        public uint pictureStruct;       // offset 68  — NV_ENC_PIC_STRUCT enum
+        public uint pictureType;         // offset 72  — NV_ENC_PIC_TYPE enum (OUT)
+        public uint _padding1;            // offset 76  — explicit pad for 8-byte alignment of codecPicParams
+        // NV_ENC_CODEC_PIC_PARAMS union — 1536 bytes for SDK 11.
+        // We don't use it (codec params come from preset), declared as raw bytes.
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 1536)]
+        public byte[] codecPicParams;
+        // NVENC_EXTERNAL_ME_HINT_COUNTS_PER_BLOCKTYPE[2] — 16 bytes each, 32 bytes total
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 32)]
+        public byte[] meHintCountsPerBlock;
+        public IntPtr meExternalHints;   // offset 1648 — set to IntPtr.Zero
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 6)]
+        public uint[] reserved1;          // offset 1656 — uint32_t[6]
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public IntPtr[] reserved2;       // offset 1680 — void*[2]
+        public IntPtr qpDeltaMap;         // offset 1696 — set to IntPtr.Zero
+        public uint qpDeltaMapSize;       // offset 1704
+        public uint reservedBitFields;    // offset 1708
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 2)]
+        public ushort[] meHintRefPicDist; // offset 1712 — uint16_t[2], 4 bytes
+        public uint _padding2;            // offset 1716 — explicit pad for 8-byte alignment of alphaBuffer
+        public IntPtr alphaBuffer;       // offset 1720 — set to IntPtr.Zero
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 286)]
+        public uint[] reserved3;          // offset 1728 — uint32_t[286], 1144 bytes
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 59)]
+        public IntPtr[] reserved4;       // offset 2872 — void*[59], 472 bytes
+        // Total size: 3344 bytes (verified by gcc -m64 sizeof())
     }
 
     // NV_ENC_LOCK_BITSTREAM — from nvEncodeAPI.h SDK 11:
