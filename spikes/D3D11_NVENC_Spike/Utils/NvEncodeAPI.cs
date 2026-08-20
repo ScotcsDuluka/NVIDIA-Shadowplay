@@ -241,9 +241,26 @@ public static class NvEncodeAPI
     public const uint NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER_STRUCT = 1;
     public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 3;          // SDK 11
 
-    // Phase 6 struct version constants (SDK 11)
+    // Phase 6 struct version constants
+    // CRITICAL (glm4-phase6-structver-test):
+    //   OWNER's nvEncodeAPI64.dll reports max API 13.0 via GetMaxSupportedVersion,
+    //   but FileDescription says "Version 11.0". Empirically, RegisterResource
+    //   with structVer=3 (SDK 11 value) PASSES, but MapInputResource with
+    //   structVer=4 (SDK 11 value) FAILS with NV_ENC_ERR_RESOURCE_NOT_REGISTERED.
+    //
+    //   Hypothesis: the DLL is actually SDK 12+ (API 13.0), which uses:
+    //     - NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 5 (not 4)
+    //   The struct LAYOUT for NV_ENC_MAP_INPUT_RESOURCE is identical between
+    //   SDK 11 and SDK 13 — only the structVer value changed from 4 to 5.
+    //   So changing just the structVer is safe (no struct layout change needed).
+    //
+    //   This commit changes NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT from 4 to 5
+    //   as a test. If MapInputResource passes, the DLL is SDK 12+ and we should
+    //   also update NV_ENC_REGISTER_RESOURCE_VER_STRUCT to 4 (SDK 12) or 5
+    //   (SDK 13), which DOES require updating the struct layout (adds
+    //   bufferUsage, pInputFencePoint, chromaOffset fields).
     public const uint NV_ENC_CREATE_BITSTREAM_BUFFER_VER_STRUCT = 1;    // SDK 11
-    public const uint NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 4;         // SDK 11
+    public const uint NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 5;         // SDK 12+ (was 4 for SDK 11)
     public const uint NV_ENC_PIC_PARAMS_VER_STRUCT = 1;                // SDK 11
     public const uint NV_ENC_LOCK_BITSTREAM_VER_STRUCT = 1;             // SDK 11
 

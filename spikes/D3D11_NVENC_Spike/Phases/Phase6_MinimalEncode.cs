@@ -603,9 +603,20 @@ public static class Phase6_MinimalEncode
     private static void PrintStructSizes()
     {
         Console.WriteLine("  Struct sizes (Marshal.SizeOf):");
-        Console.WriteLine($"    NV_ENC_CREATE_BITSTREAM_BUFFER: {Marshal.SizeOf<NvEncodeAPI.NV_ENC_CREATE_BITSTREAM_BUFFER>()} bytes");
-        Console.WriteLine($"    NV_ENC_MAP_INPUT_RESOURCE:      {Marshal.SizeOf<NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE>()} bytes");
-        Console.WriteLine($"    NV_ENC_PIC_PARAMS:               {Marshal.SizeOf<NvEncodeAPI.NV_ENC_PIC_PARAMS>()} bytes");
-        Console.WriteLine($"    NV_ENC_LOCK_BITSTREAM:           {Marshal.SizeOf<NvEncodeAPI.NV_ENC_LOCK_BITSTREAM>()} bytes");
+        Console.WriteLine($"    NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS: {Marshal.SizeOf<NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS>()} bytes");
+        Console.WriteLine($"    NV_ENC_INITIALIZE_PARAMS:              {Marshal.SizeOf<NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS>()} bytes");
+        Console.WriteLine($"    NV_ENC_REGISTER_RESOURCE:               {Marshal.SizeOf<NvEncodeAPI.NV_ENC_REGISTER_RESOURCE>()} bytes");
+        Console.WriteLine($"    NV_ENC_CREATE_BITSTREAM_BUFFER:         {Marshal.SizeOf<NvEncodeAPI.NV_ENC_CREATE_BITSTREAM_BUFFER>()} bytes");
+        Console.WriteLine($"    NV_ENC_MAP_INPUT_RESOURCE:              {Marshal.SizeOf<NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE>()} bytes");
+        Console.WriteLine($"    NV_ENC_PIC_PARAMS:                      {Marshal.SizeOf<NvEncodeAPI.NV_ENC_PIC_PARAMS>()} bytes");
+        Console.WriteLine($"    NV_ENC_LOCK_BITSTREAM:                  {Marshal.SizeOf<NvEncodeAPI.NV_ENC_LOCK_BITSTREAM>()} bytes");
+        Console.WriteLine("  Version field values (with OLD macro):");
+        Console.WriteLine($"    NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER: 0x{NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER:X8}");
+        Console.WriteLine($"    NV_ENC_INITIALIZE_PARAMS_VER:             0x{(NvEncodeAPI.MakeStructVersion(5) | (1u << 31)):X8}");
+        Console.WriteLine($"    NV_ENC_REGISTER_RESOURCE_VER:             0x{NvEncodeAPI.NV_ENC_REGISTER_RESOURCE_VER:X8}");
+        Console.WriteLine($"    NV_ENC_CREATE_BITSTREAM_BUFFER_VER:       0x{NvEncodeAPI.NV_ENC_CREATE_BITSTREAM_BUFFER_VER:X8}");
+        Console.WriteLine($"    NV_ENC_MAP_INPUT_RESOURCE_VER:            0x{NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE_VER:X8}");
+        Console.WriteLine($"    NV_ENC_PIC_PARAMS_VER:                    0x{NvEncodeAPI.NV_ENC_PIC_PARAMS_VER:X8}");
+        Console.WriteLine($"    NV_ENC_LOCK_BITSTREAM_VER:                0x{NvEncodeAPI.NV_ENC_LOCK_BITSTREAM_VER:X8}");
     }
 }
