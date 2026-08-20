@@ -39,10 +39,32 @@ public static class Phase6_MinimalEncode
         Console.WriteLine("============================================================");
         Console.WriteLine();
 
-        // Verify Phase 1-3 context is available
+        // Auto-run Phases 1-3 if not already done (Phase 6 depends on their shared context)
         if (SpikeSharedContext.Device == null || SpikeSharedContext.DuplicationDesc == null)
         {
-            Console.Error.WriteLine("  FAIL: Phase 1-3 must run first to establish D3D11 device + duplication.");
+            Console.WriteLine("  Phase 1-3 not yet run — auto-running them now...");
+            Console.WriteLine();
+
+            int p1 = Phase1_DeviceTest.Run();
+            if (p1 != 0) { Console.Error.WriteLine("  FAIL: Phase 1 failed — cannot proceed."); return 1; }
+
+            int p2 = Phase2_DesktopDuplication.Run();
+            if (p2 != 0) { Console.Error.WriteLine("  FAIL: Phase 2 failed — cannot proceed."); return 1; }
+
+            int p3 = Phase3_TextureOwnership.Run();
+            if (p3 != 0) { Console.Error.WriteLine("  FAIL: Phase 3 failed — cannot proceed."); return 1; }
+
+            Console.WriteLine();
+            Console.WriteLine("============================================================");
+            Console.WriteLine(" Phase 6 — Minimal H.264 Encode (continuing after Phase 1-3)");
+            Console.WriteLine("============================================================");
+            Console.WriteLine();
+        }
+
+        // Now verify context is available
+        if (SpikeSharedContext.Device == null || SpikeSharedContext.DuplicationDesc == null)
+        {
+            Console.Error.WriteLine("  FAIL: Phase 1-3 context still missing after auto-run.");
             return 1;
         }
 
