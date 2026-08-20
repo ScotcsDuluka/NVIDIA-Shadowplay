@@ -1894,7 +1894,18 @@ Implement only when:
 UNKNOWN stays UNKNOWN
 
 until evidence exists.
+P1-B.2-V1 STATUS:
+COMPLETE
 
+Evidence:
+- GTX 1080 Ti
+- DXGI Desktop Duplication PASS
+- Same D3D11 device PASS
+- NvEncRegisterResource PASS
+- Zero-copy D3D11 -> NVENC proven
+
+Remaining:
+- V3 144FPS sustained capture unresolved
 
 ==================================================
 END PROJECT_MEMORY_UPDATED.txt
