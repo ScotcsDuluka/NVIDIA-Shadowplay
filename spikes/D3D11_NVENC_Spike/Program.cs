@@ -41,7 +41,7 @@ internal static class Program
             }
             else if (a.StartsWith("phase", StringComparison.Ordinal))
             {
-                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 5)
+                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 6)
                     phasesToRun.Add(n);
                 else
                 {
@@ -63,7 +63,7 @@ internal static class Program
         }
 
         if (phasesToRun.Count == 0)
-            phasesToRun = new() { 1, 2, 3, 4, 5 };
+            phasesToRun = new() { 1, 2, 3, 4, 5, 6 };
 
         // Optionally tee output to a log file
         TextWriter? logWriter = null;
@@ -93,6 +93,7 @@ internal static class Program
                     3 => Phase3_TextureOwnership.Run(),
                     4 => Phase4_NVENCRegistration.Run(),
                     5 => Phase5_PerformanceBenchmark.Run(),
+                    6 => Phase6_MinimalEncode.Run(),
                     _ => 1,
                 };
                 if (result != 0)

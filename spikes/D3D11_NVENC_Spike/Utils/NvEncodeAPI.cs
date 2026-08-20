@@ -194,6 +194,21 @@ public static class NvEncodeAPI
     public const uint NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS_VER_STRUCT = 1;
     public const uint NV_ENC_REGISTER_RESOURCE_VER_STRUCT = 3;          // SDK 11
 
+    // Phase 6 struct version constants (SDK 11)
+    public const uint NV_ENC_CREATE_BITSTREAM_BUFFER_VER_STRUCT = 1;    // SDK 11
+    public const uint NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT = 4;         // SDK 11
+    public const uint NV_ENC_PIC_PARAMS_VER_STRUCT = 1;                // SDK 11
+    public const uint NV_ENC_LOCK_BITSTREAM_VER_STRUCT = 1;             // SDK 11
+
+    public static uint NV_ENC_CREATE_BITSTREAM_BUFFER_VER =>
+        MakeStructVersion(NV_ENC_CREATE_BITSTREAM_BUFFER_VER_STRUCT);
+    public static uint NV_ENC_MAP_INPUT_RESOURCE_VER =>
+        MakeStructVersion(NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT);
+    public static uint NV_ENC_PIC_PARAMS_VER =>
+        MakeStructVersion(NV_ENC_PIC_PARAMS_VER_STRUCT);
+    public static uint NV_ENC_LOCK_BITSTREAM_VER =>
+        MakeStructVersion(NV_ENC_LOCK_BITSTREAM_VER_STRUCT);
+
     public static uint NV_ENCODE_API_FUNCTION_LIST_VER =>
         MakeStructVersion(NV_ENCODE_API_FUNCTION_LIST_VER_STRUCT);
 
@@ -282,8 +297,223 @@ public static class NvEncodeAPI
         public IntPtr[] reserved2;          // SDK 11: 62 (was 61 in SDK 13)
     }
 
+    // ════════════════════════════════════════════════════════════════
+    // Phase 6 structs — SDK 11 layouts
+    // ════════════════════════════════════════════════════════════════
+
+    // NV_ENC_CREATE_BITSTREAM_BUFFER — from nvEncodeAPI.h SDK 11:
+    //   typedef struct _NV_ENC_CREATE_BITSTREAM_BUFFER {
+    //       uint32_t  version;            // offset 0
+    //       uint32_t  size;               // offset 4 (0 = default)
+    //       uint32_t  memoryHeap;         // offset 8 (reserved, set to 0)
+    //       void*     bitstreamBuffer;    // offset 16 (8-byte aligned, OUT)
+    //       void*     reserved1;          // offset 24
+    //       void*     reserved2;          // offset 32
+    //       uint32_t  reserved3[226];     // offset 40
+    //       void*     reserved4[64];      // offset 944
+    //   }
+    // Total size: ~1456 bytes
     //
-    // NV_ENC_INITIALIZE_PARAMS — from nvEncodeAPI.h SDK 11
+    // NOTE: The exact reserved array sizes must match SDK 11's header.
+    // SDK 11 uses reserved3[226] + reserved4[64] per the NVIDIA sample code.
+    // If this struct size is wrong, NvEncCreateBitstreamBuffer will fail
+    // with NV_ENC_ERR_INVALID_PARAM.
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct NV_ENC_CREATE_BITSTREAM_BUFFER
+    {
+        public uint version;
+        public uint size;
+        public uint memoryHeap;
+        public uint _padding;              // explicit 4-byte pad for 8-byte alignment of bitstreamBuffer
+        public IntPtr bitstreamBuffer;    // OUT — handle to bitstream buffer
+        public IntPtr reserved1;
+        public IntPtr reserved2;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 226)]
+        public uint[] reserved3;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
+        public IntPtr[] reserved4;
+    }
+
+    // NV_ENC_MAP_INPUT_RESOURCE — from nvEncodeAPI.h SDK 11:
+    //   typedef struct _NV_ENC_MAP_INPUT_RESOURCE {
+    //       uint32_t              version;             // offset 0
+    //       uint32_t              subResourceIndex;   // offset 4
+    //       uint32_t              inputResource;      // offset 8 (wait — this is a pointer in SDK 11?)
+    //   }
+    // Actually in SDK 11, inputResource is NV_ENC_REGISTERED_PTR (void*),
+    // and mappedInputResource is also a struct (NV_ENC_MAP_INPUT_RESOURCE's
+    // output is a pointer to NV_ENC_INPUT_PTR which is void*).
+    //
+    // Layout (SDK 11, x64):
+    //   version               offset 0   (uint32)
+    //   subResourceIndex      offset 4   (uint32)
+    //   inputResource         offset 8   (void* — NV_ENC_REGISTERED_PTR, 8 bytes)
+    //   _padding              offset 16  (uint32 — explicit pad for 8-byte alignment)
+    //   mappedInputResource   offset 24  (void* — NV_ENC_INPUT_PTR, OUT, 8 bytes)
+    //   reserved1[246]        offset 32  (uint32[246])
+    //   reserved2[59]         offset 1016 (void*[59])
+    // Total: 32 + 246*4 + 59*8 = 32 + 984 + 472 = 1488 bytes
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct NV_ENC_MAP_INPUT_RESOURCE
+    {
+        public uint version;
+        public uint subResourceIndex;
+        public IntPtr inputResource;       // NV_ENC_REGISTERED_PTR (from RegisterResource)
+        public uint _padding;             // explicit pad for 8-byte alignment
+        public IntPtr mappedInputResource; // OUT — NV_ENC_INPUT_PTR (for EncodePicture)
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 246)]
+        public uint[] reserved1;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 59)]
+        public IntPtr[] reserved2;
+    }
+
+    // NV_ENC_PIC_PARAMS — from nvEncodeAPI.h SDK 11:
+    //
+    // This is the most complex struct. In SDK 11 it contains:
+    //   version, inputWidth, inputHeight, inputPitch, encodePicFlags,
+    //   frameIdx, inputTimeStamp, inputDuration, codecPicHints (struct with bitfields),
+    //   outputBitstream (void*), inputBuffer (void* — NV_ENC_INPUT_PTR),
+    //   bufferFmt (enum), picParamsRC, reserved1[244], reserved2[63]
+    //
+    // The codecPicHints struct uses C bitfields which don't map cleanly to C#.
+    // We use a single uint32 to hold the bitfield area (same approach as
+    // NV_ENC_INITIALIZE_PARAMS.bitFields).
+    //
+    // Layout (SDK 11, x64, Pack=1):
+    //   version               offset 0    (uint32, 4 bytes)
+    //   inputWidth             offset 4    (uint32, 4 bytes)
+    //   inputHeight            offset 8    (uint32, 4 bytes)
+    //   inputPitch             offset 12  (uint32, 4 bytes)
+    //   encodePicFlags         offset 16  (uint32, 4 bytes — 0 = normal encode)
+    //   frameIdx               offset 20  (uint32, 4 bytes)
+    //   inputTimeStamp         offset 24  (uint64, 8 bytes)
+    //   inputDuration          offset 32  (uint64, 8 bytes)
+    //   codecPicHints_bitfield offset 40  (uint32, 4 bytes — C bitfields packed)
+    //   _padding1              offset 44  (uint32, explicit pad for 8-byte alignment)
+    //   outputBitstream        offset 48  (void*, 8 bytes — NV_ENC_OUTPUT_PTR)
+    //   inputBuffer            offset 56  (void*, 8 bytes — NV_ENC_INPUT_PTR)
+    //   bufferFmt              offset 64  (int32, enum NV_ENC_BUFFER_FORMAT)
+    //   picStruct              offset 68  (int32, enum)
+    //   picType                offset 72  (uint32 — OUT)
+    //   _padding2              offset 76  (uint32, explicit pad)
+    //   reserved1[244]         offset 80  (uint32[244])
+    //   reserved2[63]          offset 1056 (void*[63])
+    // Total: 80 + 244*4 + 63*8 = 80 + 976 + 504 = 1560 bytes
+    //
+    // IMPORTANT: The exact size must match what NVENC expects for SDK 11.
+    // If size is wrong, NvEncEncodePicture returns NV_ENC_ERR_INVALID_PARAM.
+    // The reserved array sizes (244, 63) are derived from the SDK 11 header
+    // by subtracting the known field sizes from the total struct size.
+    // These MUST be verified at runtime by checking Marshal.SizeOf matches
+    // what NVENC expects (if it returns NV_ENC_ERR_INVALID_PARAM, the size
+    // is wrong).
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct NV_ENC_PIC_PARAMS
+    {
+        public uint version;
+        public uint inputWidth;
+        public uint inputHeight;
+        public uint inputPitch;
+        public uint encodePicFlags;
+        public uint frameIdx;
+        public ulong inputTimeStamp;
+        public ulong inputDuration;
+        public uint codecPicHints_bitfield;
+        public uint _padding1;
+        public IntPtr outputBitstream;       // NV_ENC_OUTPUT_PTR (bitstream buffer handle)
+        public IntPtr inputBuffer;           // NV_ENC_INPUT_PTR (mapped input resource)
+        public int bufferFmt;               // NV_ENC_BUFFER_FORMAT enum
+        public int picStruct;               // NV_ENC_PIC_STRUCT enum
+        public uint picType;                // OUT
+        public uint _padding2;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 244)]
+        public uint[] reserved1;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
+        public IntPtr[] reserved2;
+    }
+
+    // NV_ENC_LOCK_BITSTREAM — from nvEncodeAPI.h SDK 11:
+    //
+    // Layout (SDK 11, x64, Pack=1):
+    //   version               offset 0    (uint32)
+    //   doNotWait             offset 4    (uint32 — 0 = blocking)
+    //   _padding1             offset 8    (uint32 — pad for 8-byte alignment)
+    //   ltrFrameIdx            offset 12   (uint32)
+    //   reserved1              offset 16   (uint32)
+    //   _padding2              offset 20   (uint32 — pad for 8-byte alignment)
+    //   outputBitstream        offset 24   (void* — NV_ENC_OUTPUT_PTR, 8 bytes)
+    //   sliceType              offset 32   (uint32 — OUT)
+    //   picType                offset 36   (uint32 — OUT)
+    //   picIdx                 offset 40   (uint32 — OUT)
+    //   _padding3              offset 44   (uint32 — pad)
+    //   bitstreamBufferPtr     offset 48   (void* — OUT, pointer to encoded data)
+    //   bitstreamSizeInBytes   offset 56   (uint32 — OUT)
+    //   _padding4              offset 60   (uint32 — pad)
+    //   frameIdx               offset 64   (uint32 — OUT)
+    //   inputTimeStamp         offset 72   (uint64 — OUT, echoes input)
+    //   inputDuration          offset 80   (uint64 — OUT)
+    //   reserved2[221]         offset 88   (uint32[221])
+    //   reserved3[63]          offset 972  (void*[63])
+    // Total: 88 + 221*4 + 63*8 = 88 + 884 + 504 = 1476 bytes
+    //
+    // NOTE: The reserved array sizes MUST match SDK 11. If wrong,
+    // NvEncLockBitstream returns NV_ENC_ERR_INVALID_PARAM.
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    public struct NV_ENC_LOCK_BITSTREAM
+    {
+        public uint version;
+        public uint doNotWait;
+        public uint ltrFrameIdx;
+        public uint reserved1;
+        public IntPtr outputBitstream;       // NV_ENC_OUTPUT_PTR (bitstream buffer handle)
+        public uint sliceType;               // OUT
+        public uint picType;                 // OUT
+        public uint picIdx;                 // OUT
+        public uint _padding;
+        public IntPtr bitstreamBufferPtr;    // OUT — pointer to encoded H.264 data
+        public uint bitstreamSizeInBytes;    // OUT — size of encoded data
+        public uint _padding2;
+        public uint frameIdx;               // OUT
+        public uint _padding3;
+        public ulong inputTimeStamp;         // OUT — echoes EncodePicture timestamp
+        public ulong inputDuration;          // OUT
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 221)]
+        public uint[] reserved2;
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
+        public IntPtr[] reserved3;
+    }
+
+    // ════════════════════════════════════════════════════════════════
+    // Phase 6 delegates
+    // ════════════════════════════════════════════════════════════════
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncCreateBitstreamBufferDelegate(
+        IntPtr encoder, ref NV_ENC_CREATE_BITSTREAM_BUFFER createParams);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncDestroyBitstreamBufferDelegate(
+        IntPtr encoder, IntPtr bitstreamBuffer);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncMapInputResourceDelegate(
+        IntPtr encoder, ref NV_ENC_MAP_INPUT_RESOURCE mapParams);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncUnmapInputResourceDelegate(
+        IntPtr encoder, IntPtr mappedInputResource);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncEncodePictureDelegate(
+        IntPtr encoder, ref NV_ENC_PIC_PARAMS picParams);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncLockBitstreamDelegate(
+        IntPtr encoder, ref NV_ENC_LOCK_BITSTREAM lockParams);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    public delegate int NvEncUnlockBitstreamDelegate(
+        IntPtr encoder, IntPtr bitstreamBuffer);
     //
     // CRITICAL: This struct previously used LayoutKind.Explicit with
     // [MarshalAs] arrays, which causes TypeLoadException in .NET because
@@ -561,6 +791,15 @@ public sealed class NvEncFunctionTable : IDisposable
     // NOTE: SDK 11 does NOT have nvEncGetLastErrorString in the function table.
     // It was added in SDK 12+. We removed it from the struct, so we can't call it.
 
+    // Phase 6 delegates
+    public NvEncodeAPI.NvEncCreateBitstreamBufferDelegate? CreateBitstreamBuffer { get; private set; }
+    public NvEncodeAPI.NvEncDestroyBitstreamBufferDelegate? DestroyBitstreamBuffer { get; private set; }
+    public NvEncodeAPI.NvEncMapInputResourceDelegate? MapInputResource { get; private set; }
+    public NvEncodeAPI.NvEncUnmapInputResourceDelegate? UnmapInputResource { get; private set; }
+    public NvEncodeAPI.NvEncEncodePictureDelegate? EncodePicture { get; private set; }
+    public NvEncodeAPI.NvEncLockBitstreamDelegate? LockBitstream { get; private set; }
+    public NvEncodeAPI.NvEncUnlockBitstreamDelegate? UnlockBitstream { get; private set; }
+
     public uint MaxSupportedApiVersion { get; private set; }
 
     /// <summary>
@@ -640,6 +879,22 @@ public sealed class NvEncFunctionTable : IDisposable
             InitializeEncoder = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncInitializeEncoderDelegate>(
                 _fnList.nvEncInitializeEncoder);
             // SDK 11 does NOT have nvEncGetLastErrorString — skip marshalling it.
+
+            // Phase 6: marshal the encode pipeline function pointers
+            CreateBitstreamBuffer = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncCreateBitstreamBufferDelegate>(
+                _fnList.nvEncCreateBitstreamBuffer);
+            DestroyBitstreamBuffer = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncDestroyBitstreamBufferDelegate>(
+                _fnList.nvEncDestroyBitstreamBuffer);
+            MapInputResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncMapInputResourceDelegate>(
+                _fnList.nvEncMapInputResource);
+            UnmapInputResource = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncUnmapInputResourceDelegate>(
+                _fnList.nvEncUnmapInputResource);
+            EncodePicture = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncEncodePictureDelegate>(
+                _fnList.nvEncEncodePicture);
+            LockBitstream = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncLockBitstreamDelegate>(
+                _fnList.nvEncLockBitstream);
+            UnlockBitstream = Marshal.GetDelegateForFunctionPointer<NvEncodeAPI.NvEncUnlockBitstreamDelegate>(
+                _fnList.nvEncUnlockBitstream);
 
             _loaded = true;
             return true;
