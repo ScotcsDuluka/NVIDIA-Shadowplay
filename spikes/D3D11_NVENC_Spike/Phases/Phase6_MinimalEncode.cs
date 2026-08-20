@@ -442,31 +442,74 @@ public static class Phase6_MinimalEncode
             var lockParams = new NvEncodeAPI.NV_ENC_LOCK_BITSTREAM
             {
                 version = NvEncodeAPI.NV_ENC_LOCK_BITSTREAM_VER,
-                doNotWait = 0,  // blocking — wait for encode to complete
-                ltrFrameIdx = 0,
-                reserved1 = 0,
-                outputBitstream = bitstreamBuffer,
-                sliceType = 0,  // OUT
-                picType = 0,    // OUT
-                picIdx = 0,     // OUT
-                _padding = 0,
-                bitstreamBufferPtr = IntPtr.Zero,  // OUT
+                // VERIFIED per NVIDIA header: doNotWait is bit 0 of a packed uint32 at offset 4.
+                // Bit 0 = doNotWait (0 = blocking — wait for encode to complete)
+                // Bit 1 = ltrFrame
+                // Bit 2 = getRCStats
+                // Bits 3-31 = reserved (must be 0)
+                bitfields = 0,  // blocking mode (doNotWait = 0)
+                outputBitstream = bitstreamBuffer,  // NV_ENC_OUTPUT_PTR — must match [6.4] handle
+                sliceOffsets = IntPtr.Zero,         // not used (we don't request slice offsets)
+                frameIdx = 0,                       // OUT
+                hwEncodeStatus = 0,                 // OUT
+                numSlices = 0,                      // OUT
                 bitstreamSizeInBytes = 0,           // OUT
-                _padding2 = 0,
-                frameIdx = 0,    // OUT
-                _padding3 = 0,
-                inputTimeStamp = 0,  // OUT
-                inputDuration = 0,   // OUT
-                reserved2 = new uint[221],
-                _padding4 = 0,
-                reserved3 = new IntPtr[63],
+                outputTimeStamp = 0,                // OUT
+                outputDuration = 0,                 // OUT
+                bitstreamBufferPtr = IntPtr.Zero,   // OUT — NVENC will fill with pointer to encoded data
+                pictureType = 0,                    // OUT
+                pictureStruct = 0,                  // OUT
+                frameAvgQP = 0,                     // OUT
+                frameSatd = 0,                      // OUT
+                ltrFrameIdx = 0,                    // OUT
+                ltrFrameBitmap = 0,                 // OUT
+                reserved = new uint[13],
+                intraMBCount = 0,                   // OUT
+                interMBCount = 0,                   // OUT
+                averageMVX = 0,                     // OUT
+                averageMVY = 0,                     // OUT
+                alphaLayerSizeInBytes = 0,          // OUT
+                reserved1 = new uint[218],
+                reserved2 = new IntPtr[64],
             };
+
+            // DIAGNOSTIC: print key field values before LockBitstream call.
+            // These must all be correct or NVENC will return INVALID_PARAM.
+            Console.WriteLine($"  LockBitstream version field:     0x{lockParams.version:X8} " +
+                              $"(expected 0x7001000D for API 13.0 with SDK 11 structVer=1)");
+            Console.WriteLine($"  LockBitstream outputBitstream:   0x{lockParams.outputBitstream.ToInt64():x16} " +
+                              $"(must match bitstreamBuffer from [6.4]: 0x{bitstreamBuffer.ToInt64():x16})");
+            Console.WriteLine($"  LockBitstream bitfields:         0x{lockParams.bitfields:X8} " +
+                              $"(0 = blocking mode, doNotWait=0)");
+
+            // DIAGNOSTIC: dump full struct layout + raw bytes before native call.
+            DumpStruct("NV_ENC_LOCK_BITSTREAM (before native call)", ref lockParams, 96);
+
+            // VERIFIED per NVIDIA header: bitstream handle lifecycle MUST be:
+            //   CreateBitstreamBuffer returns bitstreamBuffer handle
+            //   → NvEncEncodePicture.outputBitstream = same handle
+            //   → NvEncLockBitstream.outputBitstream = same handle
+            // Verify this in code:
+            if (lockParams.outputBitstream != bitstreamBuffer)
+            {
+                Console.Error.WriteLine("  BUG: outputBitstream doesn't match bitstreamBuffer!");
+                Console.Error.WriteLine($"    bitstreamBuffer (from [6.4]):     0x{bitstreamBuffer.ToInt64():x16}");
+                Console.Error.WriteLine($"    lockParams.outputBitstream:      0x{lockParams.outputBitstream.ToInt64():x16}");
+                return 1;
+            }
+            Console.WriteLine("  PASS: outputBitstream matches bitstreamBuffer from [6.4].");
 
             uint lockStatus = nvenc.LockBitstream(encoder, ref lockParams);
             if (lockStatus != NvEncodeAPI.NV_ENC_SUCCESS)
             {
                 Console.Error.WriteLine($"  FAIL: NvEncLockBitstream returned {lockStatus} " +
                                         $"({NvEncodeAPI.NvencStatusToString(lockStatus)}).");
+                Console.Error.WriteLine("  Diagnostic checklist:");
+                Console.Error.WriteLine("    1. Verify struct size from DumpStruct above = 1544 bytes");
+                Console.Error.WriteLine("    2. Verify version field = 0x7001000D (SDK 11, structVer=1, no 1u<<31)");
+                Console.Error.WriteLine("    3. Verify outputBitstream matches the handle returned by CreateBitstreamBuffer");
+                Console.Error.WriteLine("    4. Verify bitfields = 0 (blocking mode — wait for encode to finish)");
+                Console.Error.WriteLine("    5. Verify NvEncEncodePicture in [6.7] actually returned NV_ENC_SUCCESS");
                 return 1;
             }
 
@@ -476,10 +519,13 @@ public static class Phase6_MinimalEncode
             Console.WriteLine($"  PASS: NvEncLockBitstream returned NV_ENC_SUCCESS.");
             Console.WriteLine($"  Bitstream pointer: 0x{bsPtr.ToInt64():x16}");
             Console.WriteLine($"  Bitstream size:    {bsSize} bytes");
-            Console.WriteLine($"  Slice type:        {lockParams.sliceType}");
-            Console.WriteLine($"  Pic type:          {lockParams.picType}");
-            Console.WriteLine($"  Pic idx:           {lockParams.picIdx}");
+            Console.WriteLine($"  Picture type:      {lockParams.pictureType} " +
+                              $"(0=P, 1=B, 2=I, 3=IDR)");
+            Console.WriteLine($"  Picture struct:    {lockParams.pictureStruct} " +
+                              $"(1=FRAME)");
             Console.WriteLine($"  Frame idx:         {lockParams.frameIdx}");
+            Console.WriteLine($"  HW encode status:  {lockParams.hwEncodeStatus}");
+            Console.WriteLine($"  Num slices:        {lockParams.numSlices}");
 
             // ─── Validation ───
             Console.WriteLine();

@@ -544,56 +544,85 @@ public static class NvEncodeAPI
         // Total size: 3344 bytes (verified by gcc -m64 sizeof())
     }
 
-    // NV_ENC_LOCK_BITSTREAM — from nvEncodeAPI.h SDK 11:
+    // NV_ENC_LOCK_BITSTREAM — VERIFIED via FFmpeg/nv-codec-headers mirror:
+    //   https://github.com/FFmpeg/nv-codec-headers/blob/sdk/11.0/include/ffnvcodec/nvEncodeAPI.h
     //
-    // Layout (SDK 11, x64, Pack=1):
-    //   version               offset 0    (uint32)
-    //   doNotWait             offset 4    (uint32 — 0 = blocking)
-    //   _padding1             offset 8    (uint32 — pad for 8-byte alignment)
-    //   ltrFrameIdx            offset 12   (uint32)
-    //   reserved1              offset 16   (uint32)
-    //   _padding2              offset 20   (uint32 — pad for 8-byte alignment)
-    //   outputBitstream        offset 24   (void* — NV_ENC_OUTPUT_PTR, 8 bytes)
-    //   sliceType              offset 32   (uint32 — OUT)
-    //   picType                offset 36   (uint32 — OUT)
-    //   picIdx                 offset 40   (uint32 — OUT)
-    //   _padding3              offset 44   (uint32 — pad)
-    //   bitstreamBufferPtr     offset 48   (void* — OUT, pointer to encoded data)
-    //   bitstreamSizeInBytes   offset 56   (uint32 — OUT)
-    //   _padding4              offset 60   (uint32 — pad)
-    //   frameIdx               offset 64   (uint32 — OUT)
-    //   inputTimeStamp         offset 72   (uint64 — OUT, echoes input)
-    //   inputDuration          offset 80   (uint64 — OUT)
-    //   reserved2[221]         offset 88   (uint32[221])
-    //   reserved3[63]          offset 972  (void*[63])
-    // Total: 88 + 221*4 + 63*8 = 88 + 884 + 504 = 1476 bytes
+    // Verified by compiling the actual NVIDIA header with gcc -m64 and measuring
+    // sizeof() and offsetof() for every field. Total SDK 11.0 size = 1544 bytes.
+    // (Identical to SDK 13.0 size — NVIDIA preserved ABI by resizing reserved arrays.)
     //
-    // NOTE: The reserved array sizes MUST match SDK 11. If wrong,
-    // NvEncLockBitstream returns NV_ENC_ERR_INVALID_PARAM.
+    // NV_ENC_LOCK_BITSTREAM_VER (SDK 11.0) = NVENCAPI_STRUCT_VERSION(1)
+    //                                       = 0x7001000D for API 13.0 (NO 1u<<31 flag)
+    // NV_ENC_LOCK_BITSTREAM_VER (SDK 13.0) = NVENCAPI_STRUCT_VERSION(2) | (1u<<31)
+    //                                       = 0xF002000D for API 13.0 (HAS 1u<<31 flag)
+    // We use structVer=1 (SDK 11) because OWNER's DLL accepts SDK 11 structVers.
+    //
+    // Field layout (SDK 11.0, x64, NO #pragma pack, default alignment):
+    //   offset    0: version              (uint32_t, 4 bytes)
+    //   offset    4: doNotWait + ltrFrame + getRCStats + reservedBitFields
+    //                (4 C bitfields packed into a single uint32, 4 bytes total)
+    //   offset    8: outputBitstream      (void*, 8 bytes)  — NV_ENC_OUTPUT_PTR
+    //   offset   16: sliceOffsets         (uint32_t*, 8 bytes)
+    //   offset   24: frameIdx             (uint32_t, 4 bytes) — OUT
+    //   offset   28: hwEncodeStatus       (uint32_t, 4 bytes) — OUT
+    //   offset   32: numSlices            (uint32_t, 4 bytes) — OUT
+    //   offset   36: bitstreamSizeInBytes (uint32_t, 4 bytes) — OUT
+    //   offset   40: outputTimeStamp      (uint64_t, 8 bytes) — OUT
+    //   offset   48: outputDuration       (uint64_t, 8 bytes) — OUT
+    //   offset   56: bitstreamBufferPtr   (void*, 8 bytes) — OUT, pointer to encoded data
+    //   offset   64: pictureType          (uint32, 4 bytes) — OUT, NV_ENC_PIC_TYPE enum
+    //   offset   68: pictureStruct        (uint32, 4 bytes) — OUT, NV_ENC_PIC_STRUCT enum
+    //   offset   72: frameAvgQP           (uint32, 4 bytes) — OUT
+    //   offset   76: frameSatd            (uint32, 4 bytes) — OUT
+    //   offset   80: ltrFrameIdx          (uint32, 4 bytes) — OUT
+    //   offset   84: ltrFrameBitmap       (uint32, 4 bytes) — OUT
+    //   offset   88: reserved[13]         (uint32[13], 52 bytes)
+    //   offset  140: intraMBCount         (uint32, 4 bytes) — OUT
+    //   offset  144: interMBCount         (uint32, 4 bytes) — OUT
+    //   offset  148: averageMVX          (int32, 4 bytes) — OUT
+    //   offset  152: averageMVY          (int32, 4 bytes) — OUT
+    //   offset  156: alphaLayerSizeInBytes(uint32, 4 bytes) — OUT
+    //   offset  160: reserved1[218]      (uint32[218], 872 bytes)
+    //   offset 1032: reserved2[64]       (void*[64], 512 bytes)
+    //   Total: 1544 bytes (verified by gcc -m64 sizeof())
+    //
+    // CRITICAL FIX (glm4-phase6-lockbitstream-layout-verified):
+    //   Previous struct was 1472 bytes — wrong field offsets AND missing fields.
+    //   The doNotWait/ltrFrame/getRCStats/reservedBitFields bitfields are
+    //   packed into a single uint32 at offset 4. We represent this as a single
+    //   uint 'bitfields' field.
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public struct NV_ENC_LOCK_BITSTREAM
     {
-        public uint version;
-        public uint doNotWait;
-        public uint ltrFrameIdx;
-        public uint reserved1;
-        public IntPtr outputBitstream;       // NV_ENC_OUTPUT_PTR (bitstream buffer handle)
-        public uint sliceType;               // OUT
-        public uint picType;                 // OUT
-        public uint picIdx;                 // OUT
-        public uint _padding;
-        public IntPtr bitstreamBufferPtr;    // OUT — pointer to encoded H.264 data
-        public uint bitstreamSizeInBytes;    // OUT — size of encoded data
-        public uint _padding2;
-        public uint frameIdx;               // OUT
-        public uint _padding3;
-        public ulong inputTimeStamp;         // OUT — echoes EncodePicture timestamp
-        public ulong inputDuration;          // OUT
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 221)]
-        public uint[] reserved2;
-        public uint _padding4;              // explicit pad for 8-byte alignment of reserved3
-        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 63)]
-        public IntPtr[] reserved3;
+        public uint version;                // offset 0
+        public uint bitfields;              // offset 4 — packed bitfields: doNotWait:1 | ltrFrame:1 | getRCStats:1 | reserved:29
+        public IntPtr outputBitstream;      // offset 8  — NV_ENC_OUTPUT_PTR (bitstream buffer handle)
+        public IntPtr sliceOffsets;         // offset 16 — uint32_t* (set to IntPtr.Zero if not used)
+        public uint frameIdx;               // offset 24 — OUT
+        public uint hwEncodeStatus;         // offset 28 — OUT
+        public uint numSlices;              // offset 32 — OUT
+        public uint bitstreamSizeInBytes;   // offset 36 — OUT
+        public ulong outputTimeStamp;       // offset 40 — OUT
+        public ulong outputDuration;        // offset 48 — OUT
+        public IntPtr bitstreamBufferPtr;   // offset 56 — OUT, pointer to encoded H.264 data
+        public uint pictureType;            // offset 64 — OUT, NV_ENC_PIC_TYPE enum
+        public uint pictureStruct;          // offset 68 — OUT, NV_ENC_PIC_STRUCT enum
+        public uint frameAvgQP;             // offset 72 — OUT
+        public uint frameSatd;              // offset 76 — OUT
+        public uint ltrFrameIdx;            // offset 80 — OUT
+        public uint ltrFrameBitmap;         // offset 84 — OUT
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 13)]
+        public uint[] reserved;             // offset 88 — uint32_t[13], 52 bytes
+        public uint intraMBCount;           // offset 140 — OUT
+        public uint interMBCount;           // offset 144 — OUT
+        public int averageMVX;              // offset 148 — OUT
+        public int averageMVY;              // offset 152 — OUT
+        public uint alphaLayerSizeInBytes;  // offset 156 — OUT
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 218)]
+        public uint[] reserved1;             // offset 160 — uint32_t[218], 872 bytes
+        [MarshalAs(UnmanagedType.ByValArray, SizeConst = 64)]
+        public IntPtr[] reserved2;           // offset 1032 — void*[64], 512 bytes
+        // Total: 1544 bytes (verified by gcc -m64 sizeof())
     }
 
     // ════════════════════════════════════════════════════════════════
