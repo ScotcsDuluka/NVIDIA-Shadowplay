@@ -2,7 +2,8 @@
 //
 // P1-B.2-V1 Spike — D3D11/NVENC Interop Validation
 //
-// Entry point. Runs phases 1-5 in sequence, with the option to run a single phase.
+// Entry point. Runs phases 1-6 in sequence, with the option to run a single phase.
+// Phase 7 is opt-in (full pipeline 60s benchmark).
 //
 // Usage:
 //   CaptureEngine.Video.Spike.D3D11.exe                # run all phases 1-5
@@ -41,7 +42,7 @@ internal static class Program
             }
             else if (a.StartsWith("phase", StringComparison.Ordinal))
             {
-                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 6)
+                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 7)
                     phasesToRun.Add(n);
                 else
                 {
@@ -63,7 +64,7 @@ internal static class Program
         }
 
         if (phasesToRun.Count == 0)
-            phasesToRun = new() { 1, 2, 3, 4, 5, 6 };
+            phasesToRun = new() { 1, 2, 3, 4, 5, 6 };  // Phase 7 is opt-in
 
         // Optionally tee output to a log file
         TextWriter? logWriter = null;
@@ -94,6 +95,7 @@ internal static class Program
                     4 => Phase4_NVENCRegistration.Run(),
                     5 => Phase5_PerformanceBenchmark.Run(),
                     6 => Phase6_MinimalEncode.Run(),
+                    7 => Phase7_FullPipelineLoop.Run(),
                     _ => 1,
                 };
                 if (result != 0)
@@ -143,6 +145,8 @@ internal static class Program
         Console.WriteLine("  phase3     Run Phase 3 (Texture Ownership Test)");
         Console.WriteLine("  phase4     Run Phase 4 (NVENC Registration Test)");
         Console.WriteLine("  phase5     Run Phase 5 (Performance Benchmark)");
+        Console.WriteLine("  phase6     Run Phase 6 (Minimal H.264 Encode)");
+        Console.WriteLine("  phase7     Run Phase 7 (Full Pipeline 60s Loop + Metrics)");
         Console.WriteLine("  --log F    Tee output to file F (in addition to console)");
         Console.WriteLine("  --help     Show this help");
         Console.WriteLine();
