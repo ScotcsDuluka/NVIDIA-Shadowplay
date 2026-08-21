@@ -89,7 +89,7 @@ public static class Phase10_RealRecording
     private delegate int ImmDevice_GetDefaultAudioEndpoint(IntPtr thisPtr, int dataFlow, int role, out IntPtr endpoint);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    private delegate int ImmDeviceActivator_Activate(IntPtr thisPtr, IntPtr iidPtr, uint dwClsCtx, IntPtr pActivationParams, out IntPtr ppv);
+    private delegate int ImmDeviceActivator_Activate(IntPtr thisPtr, ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, out IntPtr ppv);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int AudioClient_Initialize(IntPtr thisPtr, int shareMode, int streamFlags, long hnsBufferDuration, long hnsPeriodicity, IntPtr pFormat, ref Guid audioSessionGuid);
@@ -141,7 +141,9 @@ public static class Phase10_RealRecording
             else if (args[i] == "--duration" && int.TryParse(args[++i], out int d)) s_durationSeconds = d;
         }
         s_outputPath ??= "phase10_recording.mp4";
-        s_ffmpegPath ??= FindFFmpeg() ?? "ffmpeg";
+        s_ffmpegPath ??= "ffmpeg";
+        var resolvedFfmpeg = FindFFmpeg();
+        if (resolvedFfmpeg != null) s_ffmpegPath = resolvedFfmpeg;
 
         Console.WriteLine($"  Output:     {s_outputPath}");
         Console.WriteLine($"  FFmpeg:     {s_ffmpegPath}");
@@ -468,7 +470,7 @@ public static class Phase10_RealRecording
     {
         try
         {
-            CoInitializeEx(IntPtr.Zero, 2);
+            CoInitializeEx(IntPtr.Zero, 0); // COINIT_MULTITHREADED — required for WASAPI
 
             Guid clsid = CLSID_MMDeviceEnumerator;
             Guid iid = IID_IMMDeviceEnumerator;
@@ -510,38 +512,32 @@ public static class Phase10_RealRecording
 
                     Console.WriteLine($"  Audio: pEndpoint = 0x{pEndpoint.ToInt64():x16}");
                     Console.WriteLine($"  Audio: IID_IAudioClient = {{{iidAudioClient}}}");
+                    Console.WriteLine($"  Audio: CLSCTX = 0x1 (CLSCTX_INPROC_SERVER)");
 
-                    // Pin the Guid in memory and pass its address as IntPtr
-                    // (avoids CLR ref-Guid marshalling ambiguity on x64)
-                    IntPtr iidPtr = Marshal.AllocHGlobal(16);
-                    Marshal.StructureToPtr(iidAudioClient, iidPtr, false);
-                    Console.WriteLine($"  Audio: iidPtr = 0x{iidPtr.ToInt64():x16}");
+                    // Try NULL pActivationParams first (per MSDN: "Set this parameter to NULL")
+                    Console.WriteLine("  Audio: trying Activate with pActivationParams=NULL...");
+                    hr = activate(pEndpoint, ref iidAudioClient, 1, IntPtr.Zero, out IntPtr pAudioClient);
+                    Console.WriteLine($"  Audio: Activate(NULL) HRESULT = 0x{hr:X8}");
 
-                    // Strategy 1: CLSCTX_INPROC_SERVER + NULL
-                    Console.WriteLine("  Audio: [1] CLSCTX_INPROC_SERVER + NULL...");
-                    hr = activate(pEndpoint, iidPtr, 1, IntPtr.Zero, out IntPtr pAudioClient);
-                    Console.WriteLine($"  Audio: [1] HRESULT = 0x{hr:X8}");
-
-                    // Strategy 2: CLSCTX_ALL + NULL
-                    if (hr != 0)
-                    {
-                        Console.WriteLine("  Audio: [2] CLSCTX_ALL + NULL...");
-                        hr = activate(pEndpoint, iidPtr, 0x17, IntPtr.Zero, out pAudioClient);
-                        Console.WriteLine($"  Audio: [2] HRESULT = 0x{hr:X8}");
-                    }
-
-                    // Strategy 3: CLSCTX_INPROC_SERVER + VT_EMPTY
+                    // If NULL fails, try VT_EMPTY PROPVARIANT
                     if (hr != 0)
                     {
                         IntPtr pPropVar = Marshal.AllocHGlobal(16);
                         for (int i = 0; i < 16; i++) Marshal.WriteByte(pPropVar, i, 0);
-                        Console.WriteLine("  Audio: [3] CLSCTX_INPROC_SERVER + VT_EMPTY...");
-                        hr = activate(pEndpoint, iidPtr, 1, pPropVar, out pAudioClient);
+                        Console.WriteLine($"  Audio: trying Activate with VT_EMPTY PROPVARIANT at 0x{pPropVar.ToInt64():x16}...");
+                        hr = activate(pEndpoint, ref iidAudioClient, 1, pPropVar, out pAudioClient);
                         Marshal.FreeHGlobal(pPropVar);
-                        Console.WriteLine($"  Audio: [3] HRESULT = 0x{hr:X8}");
+                        Console.WriteLine($"  Audio: Activate(VT_EMPTY) HRESULT = 0x{hr:X8}");
                     }
 
-                    Marshal.FreeHGlobal(iidPtr);
+                    // If both fail, try CLSCTX_ALL (0x17) — some drivers need it
+                    if (hr != 0)
+                    {
+                        Console.WriteLine("  Audio: trying Activate with CLSCTX_ALL (0x17)...");
+                        hr = activate(pEndpoint, ref iidAudioClient, 0x17, IntPtr.Zero, out pAudioClient);
+                        Console.WriteLine($"  Audio: Activate(CLSCTX_ALL, NULL) HRESULT = 0x{hr:X8}");
+                    }
+
                     Console.WriteLine($"  Audio: pAudioClient = 0x{pAudioClient.ToInt64():x16}");
 
                     if (hr != 0)
