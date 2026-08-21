@@ -274,7 +274,7 @@ public static class Phase7_FullPipelineLoop
             for (int i = 0; i < WarmupFrames; i++)
             {
                 if (!EncodeOneFrame(device, duplication, encoder, nvenc, encoderTexture,
-                    registeredResource, bitstreamBuffer, texWidth, texHeight, out long _))
+                    registeredResource, bitstreamBuffer, texWidth, texHeight, out int _))
                     continue;
                 warmupEncoded++;
             }
@@ -397,7 +397,7 @@ public static class Phase7_FullPipelineLoop
         var acquireResult = duplication.AcquireNextFrame(AcquireTimeoutMs, out var frameInfo, out var desktopResource);
         if (acquireResult.Failure)
         {
-            if (acquireResult.Code == ResultCode.WaitTimeout)
+            if (acquireResult.Code == Vortice.DXGI.ResultCode.WaitTimeout)
             {
                 bsLen = -1;
                 return false;
