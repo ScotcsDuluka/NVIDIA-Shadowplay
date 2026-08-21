@@ -392,7 +392,7 @@ public static class Phase10_RealRecording
             videoFile.Flush();
             videoFile.Dispose();
             Console.WriteLine();
-            Console.WriteLine($"  Video capture complete: {framesEncoded} frames, {totalVideoByte} bytes");
+            Console.WriteLine($"  Video capture complete: {framesEncoded} frames, {totalVideoBytes} bytes");
         }
 
         // ─── Stop Audio ───
@@ -450,7 +450,7 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  frames_encoded:          {framesEncoded}");
         Console.WriteLine($"  dropped_count:           {drops}");
         Console.WriteLine($"  nvenc_errors:            {nvencErrors}");
-        Console.WriteLine($"  total_video_bytes:       {totalVideoByte}");
+        Console.WriteLine($"  total_video_bytes:       {totalVideoBytes}");
         Console.WriteLine($"  audio_samples:           {audioCtx.TotalSamples}");
         Console.WriteLine($"  audio_bytes:             {audioCtx.TotalBytes}");
         Console.WriteLine($"  output_file:             {s_outputPath}");
