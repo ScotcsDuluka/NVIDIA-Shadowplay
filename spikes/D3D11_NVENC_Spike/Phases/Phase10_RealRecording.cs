@@ -508,21 +508,34 @@ public static class Phase10_RealRecording
                     var activate = Marshal.GetDelegateForFunctionPointer<ImmDeviceActivator_Activate>(
                         ComSlot(pEndpoint, 3));
 
-                    // Allocate a zeroed PROPVARIANT (16 bytes on x64) — some drivers
-                    // reject NULL pActivationParams. Passing a valid VT_EMPTY PROPVARIANT
-                    // is the safe approach per MSDN.
-                    IntPtr pPropVar = Marshal.AllocHGlobal(16); // sizeof(PROPVARIANT) on x64
-                    for (int i = 0; i < 16; i++) Marshal.WriteByte(pPropVar, i, 0);
-
                     Console.WriteLine($"  Audio: pEndpoint = 0x{pEndpoint.ToInt64():x16}");
                     Console.WriteLine($"  Audio: IID_IAudioClient = {{{iidAudioClient}}}");
                     Console.WriteLine($"  Audio: CLSCTX = 0x1 (CLSCTX_INPROC_SERVER)");
-                    Console.WriteLine($"  Audio: pPropVar = 0x{pPropVar.ToInt64():x16} (VT_EMPTY)");
 
-                    hr = activate(pEndpoint, ref iidAudioClient, 1 /* CLSCTX_INPROC_SERVER */, pPropVar, out IntPtr pAudioClient);
-                    Marshal.FreeHGlobal(pPropVar);
+                    // Try NULL pActivationParams first (per MSDN: "Set this parameter to NULL")
+                    Console.WriteLine("  Audio: trying Activate with pActivationParams=NULL...");
+                    hr = activate(pEndpoint, ref iidAudioClient, 1, IntPtr.Zero, out IntPtr pAudioClient);
+                    Console.WriteLine($"  Audio: Activate(NULL) HRESULT = 0x{hr:X8}");
 
-                    Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
+                    // If NULL fails, try VT_EMPTY PROPVARIANT
+                    if (hr != 0)
+                    {
+                        IntPtr pPropVar = Marshal.AllocHGlobal(16);
+                        for (int i = 0; i < 16; i++) Marshal.WriteByte(pPropVar, i, 0);
+                        Console.WriteLine($"  Audio: trying Activate with VT_EMPTY PROPVARIANT at 0x{pPropVar.ToInt64():x16}...");
+                        hr = activate(pEndpoint, ref iidAudioClient, 1, pPropVar, out pAudioClient);
+                        Marshal.FreeHGlobal(pPropVar);
+                        Console.WriteLine($"  Audio: Activate(VT_EMPTY) HRESULT = 0x{hr:X8}");
+                    }
+
+                    // If both fail, try CLSCTX_ALL (0x17) — some drivers need it
+                    if (hr != 0)
+                    {
+                        Console.WriteLine("  Audio: trying Activate with CLSCTX_ALL (0x17)...");
+                        hr = activate(pEndpoint, ref iidAudioClient, 0x17, IntPtr.Zero, out pAudioClient);
+                        Console.WriteLine($"  Audio: Activate(CLSCTX_ALL, NULL) HRESULT = 0x{hr:X8}");
+                    }
+
                     Console.WriteLine($"  Audio: pAudioClient = 0x{pAudioClient.ToInt64():x16}");
 
                     if (hr != 0)
