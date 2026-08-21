@@ -469,16 +469,71 @@ public static class Phase10_RealRecording
             {
                 var getDev = Marshal.GetDelegateForFunctionPointer<ImmDevice_GetDefaultAudioEndpoint>(
                     ComSlot(pEnum, 4));
+                Console.WriteLine($"  Audio: pEnum = 0x{pEnum.ToInt64():x16}");
+                Console.WriteLine($"  Audio: calling GetDefaultAudioEndpoint(eRender=0, eConsole=0)...");
                 hr = getDev(pEnum, 0, 0, out IntPtr pEndpoint);
+                Console.WriteLine($"  Audio: GetDefaultAudioEndpoint HRESULT = 0x{hr:X8}, pEndpoint = 0x{pEndpoint.ToInt64():x16}");
                 if (hr != 0) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint failed: 0x{hr:X8}"); return; }
+                if (pEndpoint == IntPtr.Zero) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint returned null endpoint"); return; }
+
+                // Verify pEndpoint is a valid COM object by calling AddRef (slot 1) then Release (slot 2)
+                var addRef = Marshal.GetDelegateForFunctionPointer<ComVTable.AddRefDelegate>(ComVTable.GetSlot(pEndpoint, 1));
+                var relDelegate = Marshal.GetDelegateForFunctionPointer<ComVTable.ReleaseDelegate>(ComVTable.GetSlot(pEndpoint, 2));
+                uint refCount = addRef(pEndpoint);
+                Console.WriteLine($"  Audio: IMMDevice AddRef OK (refCount={refCount}), QI for IUnknown to verify...");
+                // Don't release yet — the outer finally does it.
+
+                    // Diagnostic: try QI for IAudioClient first to see if the object supports it at all
+                    Guid qiIid = IID_IAudioClient;
+                    IntPtr qiResult = ComVTable.QueryInterface(pEndpoint, ref qiIid);
+                    Console.WriteLine($"  Audio: QI(IAudioClient) result = 0x{qiResult.ToInt64():x16} (0 = not supported)");
+
+
 
                 try
                 {
                     Guid iidAudioClient = IID_IAudioClient;
                     var activate = Marshal.GetDelegateForFunctionPointer<ImmDeviceActivator_Activate>(
                         ComSlot(pEndpoint, 3));
-                    hr = activate(pEndpoint, ref iidAudioClient, CLSCTX_ALL, IntPtr.Zero, out IntPtr pAudioClient);
-                    if (hr != 0) { Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}"); return; }
+
+                    // Allocate a zeroed PROPVARIANT (16 bytes on x64) — some drivers
+                    // reject NULL pActivationParams. Passing a valid VT_EMPTY PROPVARIANT
+                    // is the safe approach per MSDN.
+                    IntPtr pPropVar = Marshal.AllocHGlobal(16); // sizeof(PROPVARIANT) on x64
+                    for (int i = 0; i < 16; i++) Marshal.WriteByte(pPropVar, i, 0);
+
+                    Console.WriteLine($"  Audio: pEndpoint = 0x{pEndpoint.ToInt64():x16}");
+                    Console.WriteLine($"  Audio: IID_IAudioClient = {{{iidAudioClient}}}");
+                    Console.WriteLine($"  Audio: CLSCTX = 0x{CLSCTX_ALL:X}");
+                    Console.WriteLine($"  Audio: pPropVar = 0x{pPropVar.ToInt64():x16} (VT_EMPTY)");
+
+                    hr = activate(pEndpoint, ref iidAudioClient, CLSCTX_ALL, pPropVar, out IntPtr pAudioClient);
+                    Marshal.FreeHGlobal(pPropVar);
+
+                    Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
+                    Console.WriteLine($"  Audio: pAudioClient = 0x{pAudioClient.ToInt64():x16}");
+
+                    if (hr != 0)
+                    {
+                        string hrName = hr switch
+                        {
+                            unchecked((int)0x80004002) => "E_NOINTERFACE",
+                            unchecked((int)0x80070057) => "E_INVALIDARG",
+                            unchecked((int)0x80004005) => "E_FAIL",
+                            unchecked((int)0x8007000E) => "E_OUTOFMEMORY",
+                            _ => "UNKNOWN"
+                        };
+                        Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8} ({hrName})");
+                        Console.Error.WriteLine($"  Audio: Diagnostic checklist:");
+                        Console.Error.WriteLine($"    1. Is pEndpoint a valid IMMDevice? (should be non-zero)");
+                        Console.Error.WriteLine($"    2. Is IID_IAudioClient correct? (1CB9AD4C-DBFA-4c32-B178-C2F568A703D2)");
+                        Console.Error.WriteLine($"    3. Is CLSCTX_ALL correct? (0x17 = INPROC_SERVER|INPROC_HANDLER|LOCAL_SERVER)");
+                        Console.Error.WriteLine($"    4. Is pPropVar valid? (should be VT_EMPTY PROPVARIANT)");
+                        Console.Error.WriteLine($"    5. Was CoInitializeEx called on this thread? (should be COINIT_MULTITHREADED)");
+                        Console.Error.WriteLine($"    6. Was GetDefaultAudioEndpoint successful? (HRESULT should be 0)");
+                        Console.Error.WriteLine($"    7. Try calling pEndpoint->QueryInterface(IID_IAudioClient) to see if QI also fails");
+                        return;
+                    }
 
                     try
                     {
