@@ -524,170 +524,73 @@ public static class Phase10_RealRecording
     {
         try
         {
-            CoInitializeEx(IntPtr.Zero, 0); // COINIT_MULTITHREADED — required for WASAPI
+            CoInitializeEx(IntPtr.Zero, 0); // COINIT_MULTITHREADED
 
-            Guid clsid = CLSID_MMDeviceEnumerator;
-            Guid iid = IID_IMMDeviceEnumerator;
-            int hr = CoCreateInstance(ref clsid, IntPtr.Zero, CLSCTX_ALL, ref iid, out IntPtr pEnum);
-            if (hr != 0) { Console.Error.WriteLine($"  Audio: CoCreateInstance failed: 0x{hr:X8}"); return; }
+            // Use .NET COM interop instead of manual vtable invocation
+            Type enumType = Type.GetTypeFromCLSID(CLSID_MMDeviceEnumerator)!;
+            var enumObj = (IMMDeviceEnumeratorEx)Activator.CreateInstance(enumType)!;
+            Console.WriteLine("  Audio: IMMDeviceEnumerator created via COM interop");
 
-            try
+            int hr = enumObj.GetDefaultAudioEndpoint(0 /*eRender*/, 0 /*eConsole*/, out IMMDeviceEx endpoint);
+            Console.WriteLine($"  Audio: GetDefaultAudioEndpoint HRESULT = 0x{hr:X8}");
+            if (hr != 0) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint failed: 0x{hr:X8}"); return; }
+
+            Console.WriteLine("  Audio: IMMDevice obtained. Calling Activate(IAudioClient)...");
+            Guid iidAudioClient = IID_IAudioClient;
+            hr = endpoint.Activate(ref iidAudioClient, 1 /*CLSCTX_INPROC_SERVER*/, IntPtr.Zero, out object audioClientObj);
+            Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
+            if (hr != 0) { Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}"); return; }
+
+            var audioClient = (IAudioClient)audioClientObj;
+            Console.WriteLine("  Audio: IAudioClient obtained successfully!");
+
+            hr = audioClient.GetMixFormat(out IntPtr pFormat);
+            if (hr != 0) { Console.Error.WriteLine($"  Audio: GetMixFormat failed: 0x{hr:X8}"); return; }
+            var wfx = Marshal.PtrToStructure<WAVEFORMATEX>(pFormat);
+            ctx.SampleRate = (int)wfx.nSamplesPerSec;
+            ctx.Channels = wfx.nChannels;
+            ctx.BitsPerSample = wfx.wBitsPerSample;
+            Console.WriteLine($"  Audio: {wfx.nChannels}ch {wfx.nSamplesPerSec}Hz {wfx.wBitsPerSample}bit (mix format)");
+
+            hr = audioClient.Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK,
+                10000000, 0, pFormat, ref Guid.Empty);
+            if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
+
+            Guid iidCapture = IID_IAudioCaptureClient;
+            hr = audioClient.GetService(ref iidCapture, out object captureObj);
+            if (hr != 0) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
+            var capture = (IAudioCaptureClient)captureObj;
+
+            audioClient.Start();
+            Console.WriteLine("  Audio: Capture started.");
+
+            using var wav = new BinaryWriter(File.Create(wavPath));
+            WriteWavHeader(wav, ctx.SampleRate, ctx.Channels, ctx.BitsPerSample);
+
+            while (!ctx.StopSignal)
             {
-                var getDev = Marshal.GetDelegateForFunctionPointer<ImmDevice_GetDefaultAudioEndpoint>(
-                    ComSlot(pEnum, 4));
-                Console.WriteLine($"  Audio: pEnum = 0x{pEnum.ToInt64():x16}");
-                Console.WriteLine($"  Audio: calling GetDefaultAudioEndpoint(eRender=0, eConsole=0)...");
-                hr = getDev(pEnum, 0, 0, out IntPtr pEndpoint);
-                Console.WriteLine($"  Audio: GetDefaultAudioEndpoint HRESULT = 0x{hr:X8}, pEndpoint = 0x{pEndpoint.ToInt64():x16}");
-                if (hr != 0) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint failed: 0x{hr:X8}"); return; }
-                if (pEndpoint == IntPtr.Zero) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint returned null endpoint"); return; }
-
-                // Verify pEndpoint is a valid COM object by calling AddRef (slot 1) then Release (slot 2)
-                var addRefFn = Marshal.GetDelegateForFunctionPointer<AddRefDel>(ComSlot(pEndpoint, 1));
-                var relFn = Marshal.GetDelegateForFunctionPointer<RelDel>(ComSlot(pEndpoint, 2));
-                uint refCount = addRefFn(pEndpoint);
-                Console.WriteLine($"  Audio: IMMDevice AddRef OK (refCount={refCount})");
-                // Don't release yet — the outer finally does it.
-
-                    // Diagnostic: try QI for IAudioClient first to see if the object supports it at all
-                    Guid qiIid = IID_IAudioClient;
-                    var qiFn = Marshal.GetDelegateForFunctionPointer<QIDel>(ComSlot(pEndpoint, 0));
-                    IntPtr qiResult;
-                    int qiHr = qiFn(pEndpoint, ref qiIid, out qiResult);
-                    Console.WriteLine($"  Audio: QI(IAudioClient) HRESULT=0x{qiHr:X8}, result=0x{qiResult.ToInt64():x16}");
-
-
-
-                try
+                Thread.Sleep(10);
+                hr = capture.GetBuffer(out IntPtr pData, out uint numFrames, out int flags, out long pos, out long qpcPos);
+                if (hr == 0 && numFrames > 0 && pData != IntPtr.Zero)
                 {
-                    Guid iidAudioClient = IID_IAudioClient;
-                    var activate = Marshal.GetDelegateForFunctionPointer<ImmDeviceActivator_Activate>(
-                        ComSlot(pEndpoint, 3));
-
-                    Console.WriteLine($"  Audio: pEndpoint = 0x{pEndpoint.ToInt64():x16}");
-                    Console.WriteLine($"  Audio: IID_IAudioClient = {{{iidAudioClient}}}");
-                    Console.WriteLine($"  Audio: CLSCTX = 0x1 (CLSCTX_INPROC_SERVER)");
-
-                    // Try NULL pActivationParams first (per MSDN: "Set this parameter to NULL")
-                    Console.WriteLine("  Audio: trying Activate with pActivationParams=NULL...");
-                    IntPtr iidPtr = Marshal.AllocHGlobal(Marshal.SizeOf<Guid>());
-                    Marshal.StructureToPtr(iidAudioClient, iidPtr, false);
-                    hr = activate(pEndpoint, iidPtr, 1, IntPtr.Zero, out IntPtr pAudioClient);
-                    Console.WriteLine($"  Audio: Activate(NULL) HRESULT = 0x{hr:X8}");
-
-                    // If NULL fails, try VT_EMPTY PROPVARIANT
-                    if (hr != 0)
-                    {
-                        IntPtr pPropVar = Marshal.AllocHGlobal(16);
-                        for (int i = 0; i < 16; i++) Marshal.WriteByte(pPropVar, i, 0);
-                        Console.WriteLine($"  Audio: trying Activate with VT_EMPTY PROPVARIANT at 0x{pPropVar.ToInt64():x16}...");
-                        hr = activate(pEndpoint, iidPtr, 1, pPropVar, out pAudioClient);
-                        Marshal.FreeHGlobal(pPropVar);
-                        Console.WriteLine($"  Audio: Activate(VT_EMPTY) HRESULT = 0x{hr:X8}");
-                    }
-
-                    // If both fail, try CLSCTX_ALL (0x17) — some drivers need it
-                    if (hr != 0)
-                    {
-                        Console.WriteLine("  Audio: trying Activate with CLSCTX_ALL (0x17)...");
-                        hr = activate(pEndpoint, iidPtr, 0x17, IntPtr.Zero, out pAudioClient);
-                        Console.WriteLine($"  Audio: Activate(CLSCTX_ALL, NULL) HRESULT = 0x{hr:X8}");
-                    }
-
-                    Marshal.FreeHGlobal(iidPtr);
-                    Console.WriteLine($"  Audio: pAudioClient = 0x{pAudioClient.ToInt64():x16}");
-
-                    if (hr != 0)
-                    {
-                        string hrName = hr switch
-                        {
-                            unchecked((int)0x80004002) => "E_NOINTERFACE",
-                            unchecked((int)0x80070057) => "E_INVALIDARG",
-                            unchecked((int)0x80004005) => "E_FAIL",
-                            unchecked((int)0x8007000E) => "E_OUTOFMEMORY",
-                            _ => "UNKNOWN"
-                        };
-                        Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8} ({hrName})");
-                        Console.Error.WriteLine($"  Audio: Diagnostic checklist:");
-                        Console.Error.WriteLine($"    1. Is pEndpoint a valid IMMDevice? (should be non-zero)");
-                        Console.Error.WriteLine($"    2. Is IID_IAudioClient correct? (1CB9AD4C-DBFA-4c32-B178-C2F568A703D2)");
-                        Console.Error.WriteLine($"    3. CLSCTX = 0x1 (CLSCTX_INPROC_SERVER — correct for audio)");
-                        Console.Error.WriteLine($"    4. Is pPropVar valid? (should be VT_EMPTY PROPVARIANT)");
-                        Console.Error.WriteLine($"    5. Was CoInitializeEx called on this thread? (should be COINIT_MULTITHREADED)");
-                        Console.Error.WriteLine($"    6. Was GetDefaultAudioEndpoint successful? (HRESULT should be 0)");
-                        Console.Error.WriteLine($"    7. Try calling pEndpoint->QueryInterface(IID_IAudioClient) to see if QI also fails");
-                        return;
-                    }
-
-                    try
-                    {
-                        var getMix = Marshal.GetDelegateForFunctionPointer<AudioClient_GetMixFormat>(ComSlot(pAudioClient, 8));
-                        hr = getMix(pAudioClient, out IntPtr pFormat);
-                        if (hr != 0) { Console.Error.WriteLine($"  Audio: GetMixFormat failed: 0x{hr:X8}"); return; }
-
-                        var wfx = Marshal.PtrToStructure<WAVEFORMATEX>(pFormat);
-                        ctx.SampleRate = (int)wfx.nSamplesPerSec;
-                        ctx.Channels = wfx.nChannels;
-                        ctx.BitsPerSample = wfx.wBitsPerSample;
-                        Console.WriteLine($"  Audio: {wfx.nChannels}ch {wfx.nSamplesPerSec}Hz {wfx.wBitsPerSample}bit (mix format)");
-
-                        var init = Marshal.GetDelegateForFunctionPointer<AudioClient_Initialize>(ComSlot(pAudioClient, 3));
-                        Guid audioSessionGuid = Guid.Empty;
-                        hr = init(pAudioClient, AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK,
-                                 10000000, 0, pFormat, ref audioSessionGuid);
-                        if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
-
-                        Guid iidCapture = IID_IAudioCaptureClient;
-                        var getService = Marshal.GetDelegateForFunctionPointer<AudioClient_GetService>(ComSlot(pAudioClient, 14));
-                        hr = getService(pAudioClient, ref iidCapture, out IntPtr pCapture);
-                        if (hr != 0) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
-
-                        try
-                        {
-                            var start = Marshal.GetDelegateForFunctionPointer<AudioClient_Start>(ComSlot(pAudioClient, 10));
-                            start(pAudioClient);
-
-                            using var wav = new BinaryWriter(File.Create(wavPath));
-                            WriteWavHeader(wav, ctx.SampleRate, ctx.Channels, ctx.BitsPerSample);
-
-                            var getBuf = Marshal.GetDelegateForFunctionPointer<AudioCapture_GetBuffer>(ComSlot(pCapture, 3));
-                            var relBuf = Marshal.GetDelegateForFunctionPointer<AudioCapture_ReleaseBuffer>(ComSlot(pCapture, 4));
-
-                            while (!ctx.StopSignal)
-                            {
-                                Thread.Sleep(10);
-
-                                hr = getBuf(pCapture, out IntPtr pData, out uint numFrames, out int flags,
-                                            out long pos, out long qpcPos);
-                                if (hr == 0 && numFrames > 0 && pData != IntPtr.Zero)
-                                {
-                                    int bytesToRead = checked((int)(numFrames * wfx.nBlockAlign));
-                                    byte[] buf = new byte[bytesToRead];
-                                    Marshal.Copy(pData, buf, 0, bytesToRead);
-                                    wav.Write(buf, 0, bytesToRead);
-                                    ctx.TotalSamples += numFrames;
-                                    ctx.TotalBytes += bytesToRead;
-                                    relBuf(pCapture, numFrames);
-                                }
-                            }
-
-                            var stop = Marshal.GetDelegateForFunctionPointer<AudioClient_Stop>(ComSlot(pAudioClient, 11));
-                            stop(pAudioClient);
-
-                            wav.Flush();
-                            wav.BaseStream.Seek(4, SeekOrigin.Begin);
-                            wav.Write((int)(wav.BaseStream.Length - 8));
-                            wav.BaseStream.Seek(40, SeekOrigin.Begin);
-                            wav.Write((int)ctx.TotalBytes);
-                            wav.Flush();
-                        }
-                        finally { Marshal.Release(pCapture); }
-                    }
-                    finally { Marshal.Release(pAudioClient); }
+                    int bytesToRead = (int)(numFrames * wfx.nBlockAlign);
+                    byte[] buf = new byte[bytesToRead];
+                    Marshal.Copy(pData, buf, 0, bytesToRead);
+                    wav.Write(buf, 0, bytesToRead);
+                    ctx.TotalSamples += numFrames;
+                    ctx.TotalBytes += bytesToRead;
+                    capture.ReleaseBuffer(numFrames);
                 }
-                finally { Marshal.Release(pEndpoint); }
             }
-            finally { Marshal.Release(pEnum); }
+
+            audioClient.Stop();
+            wav.Flush();
+            wav.BaseStream.Seek(4, SeekOrigin.Begin);
+            wav.Write((int)(wav.BaseStream.Length - 8));
+            wav.BaseStream.Seek(40, SeekOrigin.Begin);
+            wav.Write((int)ctx.TotalBytes);
+            wav.Flush();
+            Console.WriteLine($"  Audio: Stopped. {ctx.TotalSamples} samples, {ctx.TotalBytes} bytes.");
         }
         catch (Exception ex)
         {
