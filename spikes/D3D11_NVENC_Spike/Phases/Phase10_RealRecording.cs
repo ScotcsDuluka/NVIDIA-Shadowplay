@@ -83,7 +83,7 @@ public static class Phase10_RealRecording
     internal interface IMMDeviceEx
     {
         [PreserveSig] int Activate([In] ref Guid iid, uint dwClsCtx, IntPtr pActivationParams,
-            [Out, MarshalAs(UnmanagedType.Interface)] out object ppInterface);
+            [Out, MarshalAs(UnmanagedType.Interface)] out IAudioClient ppInterface);
         [PreserveSig] int OpenPropertyStore(int access, out IntPtr properties);
         [PreserveSig] int GetId([Out, MarshalAs(UnmanagedType.LPWStr)] out string id);
         [PreserveSig] int GetState(out int state);
@@ -105,7 +105,7 @@ public static class Phase10_RealRecording
         [PreserveSig] int Stop();
         [PreserveSig] int Reset();
         [PreserveSig] int SetEventHandle(IntPtr eventHandle);
-        [PreserveSig] int GetService([In] ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out object ppService);
+        [PreserveSig] int GetService([In] ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out IAudioCaptureClient ppService);
     }
 
     [ComImport, Guid("C8ADBD64-E71E-48a0-A4DE-185C395CD317"),
@@ -537,11 +537,11 @@ public static class Phase10_RealRecording
 
             Console.WriteLine("  Audio: IMMDevice obtained. Calling Activate(IAudioClient)...");
             Guid iidAudioClient = IID_IAudioClient;
-            hr = endpoint.Activate(ref iidAudioClient, 1 /*CLSCTX_INPROC_SERVER*/, IntPtr.Zero, out object audioClientObj);
+            hr = endpoint.Activate(ref iidAudioClient, 1 /*CLSCTX_INPROC_SERVER*/, IntPtr.Zero, out IAudioClient audioClient);
             Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
             if (hr != 0) { Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}"); return; }
 
-            var audioClient = (IAudioClient)audioClientObj;
+            // audioClient is already typed as IAudioClient from the out param
             Console.WriteLine("  Audio: IAudioClient obtained successfully!");
 
             hr = audioClient.GetMixFormat(out IntPtr pFormat);
@@ -558,9 +558,9 @@ public static class Phase10_RealRecording
             if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
 
             Guid iidCapture = IID_IAudioCaptureClient;
-            hr = audioClient.GetService(ref iidCapture, out object captureObj);
+            hr = audioClient.GetService(ref iidCapture, out IAudioCaptureClient capture);
             if (hr != 0) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
-            var capture = (IAudioCaptureClient)captureObj;
+            // capture is already typed as IAudioCaptureClient from the out param
 
             audioClient.Start();
             Console.WriteLine("  Audio: Capture started.");
