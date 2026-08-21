@@ -449,7 +449,17 @@ public static class Phase10_RealRecording
         Console.WriteLine();
 
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
-        string ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+        bool hasAudio = audioCtx.TotalBytes > 0 && File.Exists(tempWav);
+        string ffmpegArgs;
+        if (hasAudio)
+        {
+            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+        }
+        else
+        {
+            Console.WriteLine("  WARNING: No audio — muxing video-only.");
+            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
+        }
         Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
         var muxPsi = new ProcessStartInfo
         {
