@@ -169,7 +169,7 @@ public static class Phase9_SynchronizationIsolation
 
             // Compare experiments
             Console.WriteLine("  Experiment comparison:");
-            Console.WriteLine($"    {'Exp':<15} {'FPS':>8} {'Frames':>8} {'Drops':>6} {'Errors':>7} {'LockAvg':>10} {'EncAvg':>10} {'AcqAvg':>10}");
+            Console.WriteLine("    Exp                  FPS   Frames  Drops  Errors   LockAvg    EncAvg    AcqAvg");
             PrintExpRow("A (cap-only)", expA);
             PrintExpRow("B (nvenc-only)", expB);
             PrintExpRow("C (full+flush)", expC);
@@ -181,7 +181,7 @@ public static class Phase9_SynchronizationIsolation
 
             Console.WriteLine();
             Console.WriteLine("  Queue depth comparison:");
-            Console.WriteLine($"    {'Depth':>6} {'FPS':>8} {'LockAvg':>10} {'LockP95':>10} {'LockP99':>10} {'EncAvg':>10} {'AcqAvg':>10} {'Drops':>6}");
+            Console.WriteLine("    Depth      FPS   LockAvg    LockP95    LockP99    EncAvg    AcqAvg  Drops");
             PrintQueueRow(1, expE1);
             PrintQueueRow(2, expE2);
             PrintQueueRow(4, expE4);
@@ -853,7 +853,7 @@ public static class Phase9_SynchronizationIsolation
         Console.WriteLine($"  Wait timeouts: {r.waitTimeouts}");
         Console.WriteLine($"  Total bytes: {r.totalBytes}");
         Console.WriteLine();
-        Console.WriteLine($"  {'Stage':<25} {'min':>8} {'avg':>8} {'P50':>8} {'P95':>8} {'P99':>8} {'max':>8}");
+        Console.WriteLine("  Stage                       min      avg      P50      P95      P99      max");
         Console.WriteLine($"  {new string('-', 25)} {new string('-', 8)} {new string('-', 8)} {new string('-', 8)} {new string('-', 8)} {new string('-', 8)} {new string('-', 8)}");
         for (int s = 0; s < NUM_STAGES; s++)
         {
