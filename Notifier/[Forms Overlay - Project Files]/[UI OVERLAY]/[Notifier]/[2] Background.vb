@@ -1,4 +1,4 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
@@ -42,16 +42,18 @@ Public Class Notifier
 
 #Region "Animation Engine"
 
-    Private animStart As DateTime
-    Private animDuration As Double
-    Private startX As Integer
-    Private targetX As Integer
-    Private startY As Integer
-    Private targetY As Integer
-    Private currentPanel As Control
-    Private animationRunning As Boolean = False
-    Private onComplete As Action
-    Private isSlideX As Boolean
+    Private Class AnimState
+        Public Sw As Stopwatch
+        Public Duration As Double
+        Public StartX As Integer
+        Public TargetX As Integer
+        Public StartY As Integer
+        Public TargetY As Integer
+        Public IsSlideX As Boolean
+        Public OnComplete As Action
+    End Class
+
+    Private ReadOnly _activeAnims As New Dictionary(Of Control, AnimState)()
 
     Private Delegate Sub MMTimerProc(uID As UInteger, uMsg As UInteger,
                                       dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
@@ -78,12 +80,13 @@ Public Class Notifier
 
     Private mmTimerId As UInteger = 0
     Private mmCallback As MMTimerProc
-    Private sw As Stopwatch
 
-    ' ★★★ ใหม่: ป้องกันบักกดรัวๆ — คิว BeginInvoke ไม่ให้ต่อซ้อน ★★★
+    ' Guards against BeginInvoke calls stacking up if a UI-thread tick is still
+    ' processing when the next 1ms MM tick fires.
     Private _invokePending As Boolean = False
 
     Private Sub Animation_Engine_Start()
+        If mmTimerId <> 0 Then Return ' already running — nothing to do
         timeBeginPeriod(1)
         mmCallback = New MMTimerProc(AddressOf OnMMTick)
         mmTimerId = timeSetEvent(1, 1, mmCallback, UIntPtr.Zero,
@@ -101,7 +104,6 @@ Public Class Notifier
         Debug.WriteLine("[Notifier.MM] Timer stopped")
     End Sub
 
-    ' ★★★ แก้: throttle — ถ้า tick ก่อนหน้ายังรออยู่ในคิว ข้ามไป ★★★
     Private Sub OnMMTick(uID As UInteger, uMsg As UInteger,
                           dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
         If Me.IsDisposed OrElse Me.Disposing Then Return
@@ -120,38 +122,38 @@ Public Class Notifier
         End Try
     End Sub
 
+    ''' <summary>
+    ''' Slides a control's Left between two X positions. If the same control
+    ''' already has an animation running, that one is replaced — but any OTHER
+    ''' control's in-flight animation is left untouched.
+    ''' </summary>
     Public Sub StartSlide(panel As Control,
                            fromX As Integer,
                            toX As Integer,
                            duration As Double,
                            Optional completed As Action = Nothing)
 
-
         Debug.WriteLine("[Notifier] StartSlide: " & panel.Name &
                         " X " & fromX & "→" & toX &
-                        " dur=" & duration & "ms" &
-                        " wasRunning=" & animationRunning)
+                        " dur=" & duration & "ms")
         TopMost = True
-        If animationRunning Then
-            Animation_Engine_Stop()
-            animationRunning = False
-        End If
 
-        currentPanel = panel
-        startX = fromX
-        targetX = toX
-        animDuration = duration
-        onComplete = completed
-        isSlideX = True
+        Dim state As New AnimState With {
+            .Sw = Stopwatch.StartNew(),
+            .Duration = duration,
+            .StartX = fromX,
+            .TargetX = toX,
+            .IsSlideX = True,
+            .OnComplete = completed
+        }
 
         panel.Left = fromX
-        animStart = DateTime.Now
-        sw = Stopwatch.StartNew()
-        animationRunning = True
+        _activeAnims(panel) = state ' replaces only THIS control's animation, if any
 
         Animation_Engine_Start()
     End Sub
 
+    ''' <summary>Same as <see cref="StartSlide"/> but for a control's Top (Y axis).</summary>
     Public Sub StartSlideY(panel As Control,
                            fromY As Integer,
                            toY As Integer,
@@ -160,68 +162,84 @@ Public Class Notifier
 
         Debug.WriteLine("[Notifier] StartSlideY: " & panel.Name &
                         " Y " & fromY & "→" & toY &
-                        " dur=" & duration & "ms" &
-                        " wasRunning=" & animationRunning)
+                        " dur=" & duration & "ms")
         TopMost = True
-        If animationRunning Then
-            Animation_Engine_Stop()
-            animationRunning = False
-        End If
 
-        currentPanel = panel
-        startY = fromY
-        targetY = toY
-        animDuration = duration
-        onComplete = completed
-        isSlideX = False
+        Dim state As New AnimState With {
+            .Sw = Stopwatch.StartNew(),
+            .Duration = duration,
+            .StartY = fromY,
+            .TargetY = toY,
+            .IsSlideX = False,
+            .OnComplete = completed
+        }
 
         panel.Top = fromY
-        animStart = DateTime.Now
-        sw = Stopwatch.StartNew()
-        animationRunning = True
+        _activeAnims(panel) = state
 
         Animation_Engine_Start()
     End Sub
 
+    ''' <summary>Cancels every in-flight animation without invoking their completion callbacks. Used on form close/hide.</summary>
+    Private Sub Animation_Engine_CancelAll()
+        _activeAnims.Clear()
+        Animation_Engine_Stop()
+    End Sub
+
     Private Sub Animation_Engine_Tick()
-        If Not animationRunning Then Return
-
-        Dim elapsed = sw.Elapsed.TotalMilliseconds
-        Dim t As Double = elapsed / animDuration
-
-        If t >= 1 Then
-            t = 1
-            animationRunning = False
+        If _activeAnims.Count = 0 Then
             Animation_Engine_Stop()
-
-            If isSlideX Then
-                currentPanel.Left = targetX
-            Else
-                currentPanel.Top = targetY
-            End If
-
-            Debug.WriteLine("[Notifier] Animation COMPLETE " &
-                            If(isSlideX, "X=" & targetX, "Y=" & targetY))
-
-            Dim callback As Action = onComplete
-            onComplete = Nothing
-
-            If callback IsNot Nothing Then
-                Try
-                    callback.Invoke()
-                Catch ex As Exception
-                    Debug.WriteLine("[Notifier] onComplete ERROR: " & ex.Message)
-                End Try
-            End If
-        Else
-            Dim eased As Double = 1 - Math.Pow(1 - t, 3)
-
-            If isSlideX Then
-                currentPanel.Left = CInt(startX + (targetX - startX) * eased)
-            Else
-                currentPanel.Top = CInt(startY + (targetY - startY) * eased)
-            End If
+            Return
         End If
+
+        ' Snapshot the keys — callbacks fired below may add/replace entries in _activeAnims.
+        Dim controls As New List(Of Control)(_activeAnims.Keys)
+        Dim finishedCallbacks As New List(Of Action)()
+
+        For Each panel In controls
+            Dim state As AnimState = Nothing
+            If Not _activeAnims.TryGetValue(panel, state) Then Continue For ' removed mid-loop
+
+            Dim elapsed = state.Sw.Elapsed.TotalMilliseconds
+            Dim t As Double = elapsed / state.Duration
+
+            If t >= 1 Then
+                t = 1
+                If state.IsSlideX Then
+                    panel.Left = state.TargetX
+                Else
+                    panel.Top = state.TargetY
+                End If
+
+                Debug.WriteLine("[Notifier] Animation COMPLETE " & panel.Name & " " &
+                                If(state.IsSlideX, "X=" & state.TargetX, "Y=" & state.TargetY))
+
+                _activeAnims.Remove(panel)
+                If state.OnComplete IsNot Nothing Then finishedCallbacks.Add(state.OnComplete)
+            Else
+                Dim eased As Double = 1 - Math.Pow(1 - t, 3)
+
+                If state.IsSlideX Then
+                    panel.Left = CInt(state.StartX + (state.TargetX - state.StartX) * eased)
+                Else
+                    panel.Top = CInt(state.StartY + (state.TargetY - state.StartY) * eased)
+                End If
+            End If
+        Next
+
+        If _activeAnims.Count = 0 Then
+            Animation_Engine_Stop()
+        End If
+
+        ' Fire completion callbacks after bookkeeping is consistent, so a callback
+        ' that immediately starts another animation sees clean state.
+        For Each cb In finishedCallbacks
+            Try
+                cb.Invoke()
+            Catch ex As Exception
+                Debug.WriteLine("[Notifier] onComplete ERROR: " & ex.Message)
+            End Try
+        Next
     End Sub
 
 #End Region
@@ -239,8 +257,6 @@ Public Class Notifier
             _delayTimer.Dispose()
             _delayTimer = Nothing
         End If
-        ' ✅ M3 FIX: also dispose _delayTimers (plural) — was never disposed.
-        ' Each toast show cycle created a new one without disposing the old.
         If _delayTimers IsNot Nothing Then
             _delayTimers.Stop()
             _delayTimers.Dispose()
@@ -260,14 +276,9 @@ Public Class Notifier
 
 #Region "Form Load"
 
-
-
     Private Sub Form1_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
         HideFromAltTab()
-
-        ' Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
-
 
         Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
@@ -283,8 +294,6 @@ Public Class Notifier
         Notifier_green.Size = New Size(300, 90)
         Notifier_black.Size = New Size(300, 90)
 
-
-
         _delayTimers = New System.Windows.Forms.Timer()
         _delayTimers.Interval = 300
         AddHandler _delayTimers.Tick, Sub()
@@ -294,14 +303,6 @@ Public Class Notifier
                                           Opacity = 1
                                           StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
                                           StopDelayTimer()
-
-
-
-
-
-
-
-
 
                                           _delayTimer = New Timer()
                                           _delayTimer.Interval = 250
@@ -324,12 +325,6 @@ Public Class Notifier
                                           TopMost = True
                                           Debug.WriteLine("[Notifier] ===== Form Load Done =====")
 
-
-
-
-
-
-
                                       End Sub
         _delayTimers.Start()
 
@@ -343,8 +338,7 @@ Public Class Notifier
 
     Private Sub Notifier_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         Debug.WriteLine("[Notifier] FormClosing — cleanup")
-        animationRunning = False
-        Animation_Engine_Stop()
+        Animation_Engine_CancelAll()
         autoClose.Stop()
         StopDelayTimer()
         StopCloseTimer()
@@ -361,8 +355,9 @@ Public Class Notifier
         Notifier_Sub.Close()
         Notifier_green_stop.Visible = False
 
+        ' Both panels now animate independently — Notifier_green's slide (started
+        ' 200ms later, below) no longer interrupts Notifier_black's in-flight one.
         StartSlide(Notifier_black, Notifier_black.Left, Me.Width + 300, 600)
-
 
         StopDelayTimer()
         _delayTimer = New Timer()

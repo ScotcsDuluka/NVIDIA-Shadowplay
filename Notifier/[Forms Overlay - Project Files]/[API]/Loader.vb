@@ -460,8 +460,4 @@ Partial Public Class Loader
         Catch
         End Try
     End Sub
-
-    Private Sub RUN_API_Tick(sender As Object, e As EventArgs) Handles RUN_API.Tick
-
-    End Sub
 End Class
