@@ -271,7 +271,7 @@ public static class Phase8_Profiling
             Console.WriteLine($"  bitrate_mbps:           {bitrateBps / 1_000_000:F3}");
             Console.WriteLine();
             Console.WriteLine("─── Per-Stage Timing (microseconds) ───");
-            Console.WriteLine($"  {'Stage':<25} {'min':>8} {'avg':>8} {'P50':>8} {'P95':>8} {'P99':>8} {'max':>8}");
+            Console.WriteLine($"  {new string('-',25)} {new string('-',8)} {new string('-',8)} {new string('-',8)} {new string('-',8)} {new string('-',8)} {new string('-',8)}");
             Console.WriteLine($"  {'─'*25} {'─'*8} {'─'*8} {'─'*8} {'─'*8} {'─'*8} {'─'*8}");
 
             for (int s = 0; s < NUM_STAGES; s++)
