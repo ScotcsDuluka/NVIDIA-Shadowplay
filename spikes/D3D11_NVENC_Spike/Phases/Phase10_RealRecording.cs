@@ -534,7 +534,12 @@ public static class Phase10_RealRecording
         Console.WriteLine("============================================================");
 
         if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
-            Console.WriteLine("  Phase 10: PASS — recording produced.");
+        if (framesEncoded > 0 && nvencErrors == 0 && fi.Exists && fi.Length > 0 && audioCtx.TotalSamples > 0)
+            Console.WriteLine("  Phase 10: PASS — video + audio recording produced.");
+        else if (framesEncoded > 0 && nvencErrors == 0 && fi.Exists && fi.Length > 0)
+            Console.WriteLine("  Phase 10: PARTIAL — video only (audio failed: 0 samples). NOT PASS.");
+        else
+            Console.WriteLine("  Phase 10: FAIL");
         else
             Console.WriteLine("  Phase 10: FAIL");
         Console.WriteLine();
