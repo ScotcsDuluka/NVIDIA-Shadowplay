@@ -65,6 +65,60 @@ public static class Phase10_RealRecording
     private const int AUDCLNT_SHAREMODE_SHARED = 0;
     private const int WAVE_FORMAT_PCM = 1;
 
+    // ─── COM interop interfaces for WASAPI (CLR handles marshalling) ───
+
+    [ComImport, Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+    internal interface IMMDeviceEnumerator { }
+
+    [ComImport, Guid("A95664D2-9614-4F35-A746-DE8DB63617E6"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDeviceEnumeratorEx
+    {
+        [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr collection);
+        [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, [Out, MarshalAs(UnmanagedType.Interface)] out IMMDeviceEx endpoint);
+    }
+
+    [ComImport, Guid("D666063F-1587-4E43-81F1-B948E807363F"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IMMDeviceEx
+    {
+        [PreserveSig] int Activate([In] ref Guid iid, uint dwClsCtx, IntPtr pActivationParams,
+            [Out, MarshalAs(UnmanagedType.Interface)] out object ppInterface);
+        [PreserveSig] int OpenPropertyStore(int access, out IntPtr properties);
+        [PreserveSig] int GetId([Out, MarshalAs(UnmanagedType.LPWStr)] out string id);
+        [PreserveSig] int GetState(out int state);
+    }
+
+    [ComImport, Guid("1CB9AD4C-DBFA-4c32-B178-C2F568A703D2"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioClient
+    {
+        [PreserveSig] int Initialize(int shareMode, int streamFlags, long hnsBufferDuration,
+            long hnsPeriodicity, IntPtr pFormat, ref Guid audioSessionGuid);
+        [PreserveSig] int GetBufferSize(out uint pNumBufferFrames);
+        [PreserveSig] int GetStreamLatency(out long phnsLatency);
+        [PreserveSig] int GetCurrentPadding(out uint pNumPaddingFrames);
+        [PreserveSig] int IsFormatSupported(int shareMode, IntPtr pFormat, out IntPtr pClosestMatch);
+        [PreserveSig] int GetMixFormat(out IntPtr ppFormat);
+        [PreserveSig] int GetDevicePeriod(out long phnsDefaultDevicePeriod, out long phnsMinimumDevicePeriod);
+        [PreserveSig] int Start();
+        [PreserveSig] int Stop();
+        [PreserveSig] int Reset();
+        [PreserveSig] int SetEventHandle(IntPtr eventHandle);
+        [PreserveSig] int GetService([In] ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out object ppService);
+    }
+
+    [ComImport, Guid("C8ADBD64-E71E-48a0-A4DE-185C395CD317"),
+     InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    internal interface IAudioCaptureClient
+    {
+        [PreserveSig] int GetBuffer(out IntPtr ppData, out uint pNumFrames, out int pdwFlags,
+            out long pu64Position, out long pu64QPCPosition);
+        [PreserveSig] int ReleaseBuffer(uint numFramesRead);
+        [PreserveSig] int GetNextPacketSize(out uint pNumFramesInNextPacket);
+    }
+
+
     [StructLayout(LayoutKind.Sequential)]
     private struct WAVEFORMATEX
     {
