@@ -574,16 +574,33 @@ public static class Phase10_RealRecording
 
             Console.WriteLine("  Audio: IMMDevice obtained. Calling Activate(IAudioClient)...");
             Guid iidAudioClient = IID_IAudioClient;
+            // Get raw IUnknown pointer from the ComImport object
+            // Then call Activate via manual vtable (bypasses CLR ComImport marshalling)
+            IntPtr pEndpoint = Marshal.GetIUnknownForObject(endpoint);
+            Console.WriteLine($"  Audio: Raw IMMDevice ptr = 0x{pEndpoint.ToInt64():x16}");
+
+            // Read vtable: slot 0=QI, 1=AddRef, 2=Release, 3=Activate
+            IntPtr vtable = Marshal.ReadIntPtr(pEndpoint);
+            IntPtr activateFnPtr = Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size);
+            var activateFn = Marshal.GetDelegateForFunctionPointer<RawActivateDelegate>(activateFnPtr);
+
+            // Call Activate via raw vtable — CLR does NOT intercept this
+            Guid localIid = IID_IAudioClient;
             IntPtr audioClientPtr = IntPtr.Zero;
-            hr = endpoint.Activate(ref iidAudioClient, 0x17, IntPtr.Zero, out audioClientPtr);
+            hr = activateFn(pEndpoint, ref localIid, 0x17, IntPtr.Zero, out audioClientPtr);
             Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
+
             if (hr != 0 || audioClientPtr == IntPtr.Zero)
             {
                 Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}");
+                Marshal.Release(pEndpoint);
                 return;
             }
+            Marshal.Release(pEndpoint); // Release the IUnknown ref we got
+
+            // Wrap the raw IAudioClient pointer
             IAudioClient audioClient = (IAudioClient)Marshal.GetObjectForIUnknown(audioClientPtr);
-            Marshal.Release(audioClientPtr);
+            Marshal.Release(audioClientPtr); // Release the raw ref, RCW holds its own
             Console.WriteLine("  Audio: IAudioClient obtained successfully!");
 
             hr = audioClient.GetMixFormat(out IntPtr pFormat);
