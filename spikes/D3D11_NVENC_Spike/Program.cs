@@ -40,6 +40,20 @@ internal static class Program
             {
                 logFile = args[++i];
             }
+            else if (a == "--output" && i + 1 < args.Length)
+            {
+                // Phase 10 consumes recording options from Environment.GetCommandLineArgs().
+                // Program must accept and forward these options rather than rejecting them.
+                i++;
+            }
+            else if (a == "--ffmpeg" && i + 1 < args.Length)
+            {
+                i++;
+            }
+            else if (a == "--duration" && i + 1 < args.Length)
+            {
+                i++;
+            }
             else if (a.StartsWith("phase", StringComparison.Ordinal))
             {
                 if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 10)
@@ -153,6 +167,9 @@ internal static class Program
         Console.WriteLine("  phase8     Run Phase 8 (Per-Stage Performance Profiling)");
         Console.WriteLine("  phase9     Run Phase 9 (Pipeline Synchronization Isolation)");
         Console.WriteLine("  phase10    Run Phase 10 (Real Recording Integration — Video+Audio→MP4)");
+        Console.WriteLine("  --output F Output MP4 path (Phase 10)");
+        Console.WriteLine("  --ffmpeg F FFmpeg executable path (Phase 10)");
+        Console.WriteLine("  --duration N Recording duration in seconds (Phase 10)");
         Console.WriteLine("  --log F    Tee output to file F (in addition to console)");
         Console.WriteLine("  --help     Show this help");
         Console.WriteLine();
