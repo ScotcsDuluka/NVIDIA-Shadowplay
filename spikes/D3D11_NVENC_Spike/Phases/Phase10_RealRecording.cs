@@ -510,7 +510,20 @@ public static class Phase10_RealRecording
         Console.WriteLine("  audio_codec:             AAC (FFmpeg)");
         Console.WriteLine("  container:               MP4");
         FileInfo fileInfo = new(s_outputPath!);
-        Console.WriteLine($"  file_size:               {fileInfo.Length} bytes ({fileInfo.Length / 1024.0 / 1024.0:F2} MB)");
+        if (fileInfo.Exists)
+        {
+            Console.WriteLine($"  file_size: {fileInfo.Length} bytes ({fileInfo.Length / 1024.0 / 1024.0:F2} MB)");
+        }
+        else
+        {
+            Console.WriteLine("  file_size: N/A (file not created)");
+            if (File.Exists(tempH264))
+            {
+                string h264Out = s_outputPath + ".h264";
+                File.Copy(tempH264, h264Out, true);
+                Console.WriteLine($"  video_only_output: {h264Out}");
+            }
+        }
         Console.WriteLine($"  file_exists:             {fileInfo.Exists}");
         Console.WriteLine("============================================================");
 
