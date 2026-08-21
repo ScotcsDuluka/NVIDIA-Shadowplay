@@ -83,7 +83,7 @@ public static class Phase10_RealRecording
     internal interface IMMDeviceEx
     {
         [PreserveSig] int Activate([In] ref Guid iid, uint dwClsCtx, IntPtr pActivationParams,
-            [Out, MarshalAs(UnmanagedType.Interface)] out IAudioClient ppInterface);
+            out IntPtr ppInterface);
         [PreserveSig] int OpenPropertyStore(int access, out IntPtr properties);
         [PreserveSig] int GetId([Out, MarshalAs(UnmanagedType.LPWStr)] out string id);
         [PreserveSig] int GetState(out int state);
@@ -105,7 +105,7 @@ public static class Phase10_RealRecording
         [PreserveSig] int Stop();
         [PreserveSig] int Reset();
         [PreserveSig] int SetEventHandle(IntPtr eventHandle);
-        [PreserveSig] int GetService([In] ref Guid iid, [Out, MarshalAs(UnmanagedType.Interface)] out IAudioCaptureClient ppService);
+        [PreserveSig] int GetService([In] ref Guid iid, out IntPtr ppService);
     }
 
     [ComImport, Guid("C8ADBD64-E71E-48a0-A4DE-185C395CD317"),
@@ -449,16 +449,22 @@ public static class Phase10_RealRecording
         Console.WriteLine();
 
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
+        // Calculate actual FPS from capture
+        double actualFps = framesEncoded / elapsedSec;
+        int fpsRounded = (int)Math.Round(actualFps);
+        if (fpsRounded < 1) fpsRounded = 30;
+        Console.WriteLine($"  Actual capture FPS: {actualFps:F2} (using {fpsRounded} for mux)");
+
         bool hasAudio = audioCtx.TotalBytes > 0 && File.Exists(tempWav);
         string ffmpegArgs;
         if (hasAudio)
         {
-            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
         }
         else
         {
             Console.WriteLine("  WARNING: No audio — muxing video-only.");
-            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
         }
         Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
         var muxPsi = new ProcessStartInfo
@@ -622,8 +628,11 @@ public static class Phase10_RealRecording
             if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
 
             Guid iidCapture = IID_IAudioCaptureClient;
-            hr = audioClient.GetService(ref iidCapture, out IAudioCaptureClient capture);
-            if (hr != 0) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
+            IntPtr capturePtr = IntPtr.Zero;
+            hr = audioClient.GetService(ref iidCapture, out capturePtr);
+            if (hr != 0 || capturePtr == IntPtr.Zero) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
+            IAudioCaptureClient capture = (IAudioCaptureClient)Marshal.GetObjectForIUnknown(capturePtr);
+            Marshal.Release(capturePtr);
             // capture is already typed as IAudioCaptureClient from the out param
 
             audioClient.Start();
