@@ -18,12 +18,11 @@
 //   │ NVENC Encode     │        │   ↓              │     │ Stop Audio  │
 //   │   ↓              │        │ Wait Stop signal │     │   ↓         │
 //   │ LockBitstream    │        │   ↓              │     │ Stop Video  │
-//   │   ↓              │        │ Close WAV file   │     │   ↓         │
-//   │ Write NAL to     │        └──────────────────┘     │ FFmpeg Mux  │
-//   │   FFmpeg stdin   │                                  │   ↓         │
-//   │   ↓              │                                  │ Finalize    │
-//   │ Unlock/Unmap     │                                  └─────────────┘
-//   │   ↓              │
+//   │ Write NAL to     │        │ Close WAV file   │     │   ↓         │
+//   │ FFmpeg stdin     │        └──────────────────┘     │ FFmpeg Mux  │
+//   │   ↓              │                                  │   ↓         │
+//   │ Unlock/Unmap     │                                  │ Finalize    │
+//   │   ↓              │                                  └─────────────┘
 //   │ Wait Stop signal │
 //   │   ↓              │
 //   │ Close FFmpeg     │
@@ -58,7 +57,6 @@ namespace CaptureEngine.Video.Spike.D3D11.Phases;
 
 public static class Phase10_RealRecording
 {
-    // WASAPI P/Invoke (minimal — loopback capture only)
     [DllImport("ole32.dll")]
     private static extern int CoInitializeEx(IntPtr pvReserved, uint dwCoInit);
 
@@ -82,13 +80,11 @@ public static class Phase10_RealRecording
     [DllImport("ole32.dll")]
     private static extern int CoCreateInstance(ref Guid clsid, IntPtr pUnkOuter, uint dwClsContext, ref Guid iid, out IntPtr ppv);
 
-    // IMMDeviceEnumerator
     private static readonly Guid CLSID_MMDeviceEnumerator = new("BCDE0395-E52F-467C-8E3D-C4579291692E");
     private static readonly Guid IID_IMMDeviceEnumerator = new("A95664D2-9614-4F35-A746-DE8DB63617E6");
     private static readonly Guid IID_IAudioClient = new("1CB9AD4C-DBFA-4c32-B178-C2F568A703D2");
     private static readonly Guid IID_IAudioCaptureClient = new("C8ADBD64-E71E-48a0-A4DE-185C395CD317");
 
-    // Minimal COM vtable invocation for WASAPI
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int ImmDevice_GetDefaultAudioEndpoint(IntPtr thisPtr, int dataFlow, int role, out IntPtr endpoint);
 
@@ -116,7 +112,6 @@ public static class Phase10_RealRecording
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int AudioCapture_ReleaseBuffer(IntPtr thisPtr, uint numFramesRead);
 
-    // Recording parameters
     private static string? s_outputPath;
     private static string? s_ffmpegPath;
     private static int s_durationSeconds = 30;
@@ -128,7 +123,6 @@ public static class Phase10_RealRecording
         Console.WriteLine("============================================================");
         Console.WriteLine();
 
-        // Parse args: --output PATH --ffmpeg PATH --duration N
         string[] args = Environment.GetCommandLineArgs();
         for (int i = 0; i < args.Length - 1; i++)
         {
@@ -144,7 +138,6 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  Duration:   {s_durationSeconds}s");
         Console.WriteLine();
 
-        // Auto-run Phases 1-3 if not already done
         if (SpikeSharedContext.Device == null || SpikeSharedContext.DuplicationDesc == null)
         {
             Console.WriteLine("  Phase 1-3 not yet run — auto-running...");
@@ -159,10 +152,9 @@ public static class Phase10_RealRecording
         uint texW = duplDesc.ModeDescription.Width;
         uint texH = duplDesc.ModeDescription.Height;
         Console.WriteLine($"  Video: {texW}x{texH} H.264 NVENC");
-        Console.WriteLine($"  Audio: WASAPI Loopback → PCM → AAC (via FFmpeg)");
+        Console.WriteLine("  Audio: WASAPI Loopback → PCM → AAC (via FFmpeg)");
         Console.WriteLine();
 
-        // Run the recording
         return RunRecording(device, texW, texH);
     }
 
@@ -171,7 +163,6 @@ public static class Phase10_RealRecording
         string tempWav = Path.ChangeExtension(s_outputPath!, ".tmp.wav");
         string tempH264 = Path.ChangeExtension(s_outputPath!, ".tmp.h264");
 
-        // ─── Setup NVENC ───
         Console.WriteLine("[10.1] Setting up NVENC encoder...");
         using var nvenc = new NvEncFunctionTable();
         if (!nvenc.TryLoad()) { Console.Error.WriteLine("  FAIL: NVENC load."); return 1; }
@@ -195,7 +186,7 @@ public static class Phase10_RealRecording
             encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID,
             presetGUID = NvEncodeAPI.NV_ENC_PRESET_DEFAULT_GUID,
             encodeWidth = texW, encodeHeight = texH, darWidth = texW, darHeight = texH,
-            frameRateNum = (uint)(s_durationSeconds > 0 ? 30 : 30), frameRateDen = 1,
+            frameRateNum = 30, frameRateDen = 1,
             enableEncodeAsync = 0, enablePTD = 1, bitFields = 0,
             privDataSize = 0, privData = IntPtr.Zero, encodeConfig = IntPtr.Zero,
             maxEncodeWidth = texW, maxEncodeHeight = texH,
@@ -215,7 +206,6 @@ public static class Phase10_RealRecording
         if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: BS: {status}"); return 1; }
         IntPtr bitstreamBuffer = bsParams.bitstreamBuffer;
 
-        // Encoder texture (GPU-resident)
         var texDesc = new Texture2DDescription
         {
             Width = texW, Height = texH, MipLevels = 1, ArraySize = 1,
@@ -240,7 +230,6 @@ public static class Phase10_RealRecording
         Console.WriteLine("  PASS: NVENC ready.");
         Console.WriteLine();
 
-        // ─── Create duplication ───
         Console.WriteLine("[10.2] Creating DXGI Output Duplication...");
         IDXGIOutput? primaryOutput = null;
         int outIdx = 0;
@@ -255,15 +244,11 @@ public static class Phase10_RealRecording
         Console.WriteLine("  PASS: Duplication ready.");
         Console.WriteLine();
 
-        // ─── Start FFmpeg subprocess for video (raw H.264 → stdin) ───
         Console.WriteLine("[10.3] Starting FFmpeg video pipe (raw H.264 → file)...");
-        // Strategy: write raw H.264 to temp file first, then mux with audio at Stop.
-        // This is simpler + more robust than piping to FFmpeg stdin (avoids blocking).
         var videoFile = new FileStream(tempH264, FileMode.Create, FileAccess.Write);
         Console.WriteLine($"  Writing raw H.264 to: {tempH264}");
         Console.WriteLine();
 
-        // ─── Start Audio Thread ───
         Console.WriteLine("[10.4] Starting WASAPI audio capture thread...");
         var audioCtx = new AudioContext();
         var audioThread = new Thread(() => AudioCaptureLoop(audioCtx, tempWav))
@@ -275,7 +260,6 @@ public static class Phase10_RealRecording
         Console.WriteLine("  Audio thread started.");
         Console.WriteLine();
 
-        // ─── Video Capture + Encode Loop ───
         Console.WriteLine($"[10.5] Recording for {s_durationSeconds}s...");
         Console.WriteLine();
         var deviceCtx = device.ImmediateContext;
@@ -293,8 +277,7 @@ public static class Phase10_RealRecording
                 long frameStart = Stopwatch.GetTimestamp();
                 if (videoStartTicks == 0) videoStartTicks = frameStart;
 
-                // AcquireNextFrame
-                var acq = duplication.AcquireNextFrame(100, out var fi, out var dr);
+                var acq = duplication.AcquireNextFrame(100, out var frameInfo, out var dr);
                 if (acq.Failure)
                 {
                     if (acq.Code != Vortice.DXGI.ResultCode.WaitTimeout) drops++;
@@ -306,12 +289,10 @@ public static class Phase10_RealRecording
                 var dt = dr.QueryInterface<ID3D11Texture2D>();
                 dr.Dispose();
 
-                // CopyResource
                 deviceCtx.CopyResource(encoderTexture, dt);
                 duplication.ReleaseFrame();
                 dt.Dispose();
 
-                // MapInputResource
                 var mapParams = new NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE
                 {
                     version = NvEncodeAPI.NV_ENC_MAP_INPUT_RESOURCE_VER,
@@ -325,7 +306,6 @@ public static class Phase10_RealRecording
 
                 try
                 {
-                    // EncodePicture
                     var picParams = new NvEncodeAPI.NV_ENC_PIC_PARAMS
                     {
                         version = NvEncodeAPI.NV_ENC_PIC_PARAMS_VER,
@@ -348,7 +328,6 @@ public static class Phase10_RealRecording
                     uint encStatus = nvenc.EncodePicture!(encoder, ref picParams);
                     if (encStatus != NvEncodeAPI.NV_ENC_SUCCESS) { nvencErrors++; drops++; continue; }
 
-                    // LockBitstream → read encoded bytes → write to file
                     var lockParams = new NvEncodeAPI.NV_ENC_LOCK_BITSTREAM
                     {
                         version = NvEncodeAPI.NV_ENC_LOCK_BITSTREAM_VER,
@@ -388,21 +367,18 @@ public static class Phase10_RealRecording
         }
         finally
         {
-            // Close video file
             videoFile.Flush();
             videoFile.Dispose();
             Console.WriteLine();
             Console.WriteLine($"  Video capture complete: {framesEncoded} frames, {totalVideoBytes} bytes");
         }
 
-        // ─── Stop Audio ───
         Console.WriteLine("[10.6] Stopping audio capture...");
         audioCtx.StopSignal = true;
         audioThread.Join(TimeSpan.FromSeconds(5));
         Console.WriteLine($"  Audio stopped. {audioCtx.TotalSamples} samples, {audioCtx.TotalBytes} bytes.");
         Console.WriteLine();
 
-        // ─── Mux Video + Audio → MP4 ───
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
         string ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
         Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
@@ -426,7 +402,6 @@ public static class Phase10_RealRecording
         }
         Console.WriteLine();
 
-        // ─── Cleanup NVENC ───
         Console.WriteLine("[10.8] Cleaning up NVENC...");
         try { if (registeredResource != IntPtr.Zero) nvenc.UnregisterResource!(encoder, registeredResource); } catch { }
         try { if (bitstreamBuffer != IntPtr.Zero) nvenc.DestroyBitstreamBuffer!(encoder, bitstreamBuffer); } catch { }
@@ -435,11 +410,9 @@ public static class Phase10_RealRecording
         try { duplication.Dispose(); } catch { }
         Console.WriteLine("  Cleanup done.");
 
-        // ─── Clean temp files ───
         try { File.Delete(tempH264); } catch { }
         try { File.Delete(tempWav); } catch { }
 
-        // ─── Report ───
         double elapsedSec = sw.Elapsed.TotalSeconds;
         Console.WriteLine();
         Console.WriteLine("============================================================");
@@ -454,24 +427,22 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  audio_samples:           {audioCtx.TotalSamples}");
         Console.WriteLine($"  audio_bytes:             {audioCtx.TotalBytes}");
         Console.WriteLine($"  output_file:             {s_outputPath}");
-        Console.WriteLine($"  video_codec:             H.264 (NVENC)");
-        Console.WriteLine($"  audio_codec:             AAC (FFmpeg)");
-        Console.WriteLine($"  container:               MP4");
-        FileInfo fi = new(s_outputPath!);
-        Console.WriteLine($"  file_size:               {fi.Length} bytes ({fi.Length / 1024.0 / 1024.0:F2} MB)");
-        Console.WriteLine($"  file_exists:             {fi.Exists}");
+        Console.WriteLine("  video_codec:             H.264 (NVENC)");
+        Console.WriteLine("  audio_codec:             AAC (FFmpeg)");
+        Console.WriteLine("  container:               MP4");
+        FileInfo fileInfo = new(s_outputPath!);
+        Console.WriteLine($"  file_size:               {fileInfo.Length} bytes ({fileInfo.Length / 1024.0 / 1024.0:F2} MB)");
+        Console.WriteLine($"  file_exists:             {fileInfo.Exists}");
         Console.WriteLine("============================================================");
 
-        if (framesEncoded > 0 && nvencErrors == 0 && fi.Exists && fi.Length > 0)
+        if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
             Console.WriteLine("  Phase 10: PASS — recording produced.");
         else
             Console.WriteLine("  Phase 10: FAIL");
         Console.WriteLine();
 
-        return (framesEncoded > 0 && fi.Exists) ? 0 : 1;
+        return (framesEncoded > 0 && fileInfo.Exists) ? 0 : 1;
     }
-
-    // ═══ Audio Capture via WASAPI Loopback ═══
 
     private class AudioContext
     {
@@ -487,9 +458,8 @@ public static class Phase10_RealRecording
     {
         try
         {
-            CoInitializeEx(IntPtr.Zero, 2); // COINIT_MULTITHREADED
+            CoInitializeEx(IntPtr.Zero, 2);
 
-            // Create IMMDeviceEnumerator
             Guid clsid = CLSID_MMDeviceEnumerator;
             Guid iid = IID_IMMDeviceEnumerator;
             int hr = CoCreateInstance(ref clsid, IntPtr.Zero, CLSCTX_ALL, ref iid, out IntPtr pEnum);
@@ -497,25 +467,22 @@ public static class Phase10_RealRecording
 
             try
             {
-                // GetDefaultAudioEndpoint(eRender, eConsole)
                 var getDev = Marshal.GetDelegateForFunctionPointer<ImmDevice_GetDefaultAudioEndpoint>(
-                    ComSlot(pEnum, 3)); // IMMDeviceEnumerator::GetDefaultAudioEndpoint is vtable slot 3
-                hr = getDev(pEnum, 0 /*eRender*/, 0 /*eConsole*/, out IntPtr pEndpoint);
+                    ComSlot(pEnum, 3));
+                hr = getDev(pEnum, 0, 0, out IntPtr pEndpoint);
                 if (hr != 0) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint failed: 0x{hr:X8}"); return; }
 
                 try
                 {
-                    // Activate IAudioClient
                     Guid iidAudioClient = IID_IAudioClient;
                     var activate = Marshal.GetDelegateForFunctionPointer<ImmDeviceActivator_Activate>(
-                        ComSlot(pEndpoint, 3)); // IMMDevice::Activate is vtable slot 3
+                        ComSlot(pEndpoint, 3));
                     Guid dummyCtx = Guid.Empty;
                     hr = activate(pEndpoint, ref iidAudioClient, IntPtr.Zero, ref dummyCtx, out IntPtr pAudioClient);
                     if (hr != 0) { Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}"); return; }
 
                     try
                     {
-                        // GetMixFormat
                         var getMix = Marshal.GetDelegateForFunctionPointer<AudioClient_GetMixFormat>(ComSlot(pAudioClient, 8));
                         hr = getMix(pAudioClient, out IntPtr pFormat);
                         if (hr != 0) { Console.Error.WriteLine($"  Audio: GetMixFormat failed: 0x{hr:X8}"); return; }
@@ -526,13 +493,12 @@ public static class Phase10_RealRecording
                         ctx.BitsPerSample = wfx.wBitsPerSample;
                         Console.WriteLine($"  Audio: {wfx.nChannels}ch {wfx.nSamplesPerSec}Hz {wfx.wBitsPerSample}bit (mix format)");
 
-                        // Initialize (shared mode, loopback)
-                        var init = Marshal.GetDelegateForFunctionPointer<AudioClient_Initialize>(ComSlot(pAudioClient, 1));
+                        var init = Marshal.GetDelegateForFunctionPointer<AudioClient_Initialize>(ComSlot(pAudioClient, 3));
+                        Guid audioSessionGuid = Guid.Empty;
                         hr = init(pAudioClient, AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK,
-                                 10000000 /*1s buffer*/, 0, pFormat, ref Guid.Empty);
+                                 10000000, 0, pFormat, ref audioSessionGuid);
                         if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
 
-                        // GetService(IAudioCaptureClient)
                         Guid iidCapture = IID_IAudioCaptureClient;
                         var getService = Marshal.GetDelegateForFunctionPointer<AudioClient_GetService>(ComSlot(pAudioClient, 5));
                         hr = getService(pAudioClient, ref iidCapture, out IntPtr pCapture);
@@ -540,27 +506,24 @@ public static class Phase10_RealRecording
 
                         try
                         {
-                            // Start
                             var start = Marshal.GetDelegateForFunctionPointer<AudioClient_Start>(ComSlot(pAudioClient, 3));
                             start(pAudioClient);
 
-                            // Write WAV header
                             using var wav = new BinaryWriter(File.Create(wavPath));
                             WriteWavHeader(wav, ctx.SampleRate, ctx.Channels, ctx.BitsPerSample);
 
-                            // Capture loop
                             var getBuf = Marshal.GetDelegateForFunctionPointer<AudioCapture_GetBuffer>(ComSlot(pCapture, 3));
                             var relBuf = Marshal.GetDelegateForFunctionPointer<AudioCapture_ReleaseBuffer>(ComSlot(pCapture, 4));
 
                             while (!ctx.StopSignal)
                             {
-                                Thread.Sleep(10); // poll every 10ms
+                                Thread.Sleep(10);
 
                                 hr = getBuf(pCapture, out IntPtr pData, out uint numFrames, out int flags,
                                             out long pos, out long qpcPos);
                                 if (hr == 0 && numFrames > 0 && pData != IntPtr.Zero)
                                 {
-                                    int bytesToRead = (int)(numFrames * wfx.nBlockAlign);
+                                    int bytesToRead = checked((int)(numFrames * wfx.nBlockAlign));
                                     byte[] buf = new byte[bytesToRead];
                                     Marshal.Copy(pData, buf, 0, bytesToRead);
                                     wav.Write(buf, 0, bytesToRead);
@@ -570,11 +533,9 @@ public static class Phase10_RealRecording
                                 }
                             }
 
-                            // Stop
                             var stop = Marshal.GetDelegateForFunctionPointer<AudioClient_Stop>(ComSlot(pAudioClient, 4));
                             stop(pAudioClient);
 
-                            // Patch WAV header with actual data size
                             wav.Flush();
                             wav.BaseStream.Seek(4, SeekOrigin.Begin);
                             wav.Write((int)(wav.BaseStream.Length - 8));
@@ -601,10 +562,10 @@ public static class Phase10_RealRecording
         int blockAlign = channels * bitsPerSample / 8;
         int avgBytesPerSec = sampleRate * blockAlign;
 
-        w.Write(System.Text.Encoding.ASCII.GetBytes("RIFF"));
-        w.Write(0); // placeholder for file size
-        w.Write(System.Text.Encoding.ASCII.GetBytes("WAVE"));
-        w.Write(System.Text.Encoding.ASCII.GetBytes("fmt "));
+        w.Write(Encoding.ASCII.GetBytes("RIFF"));
+        w.Write(0);
+        w.Write(Encoding.ASCII.GetBytes("WAVE"));
+        w.Write(Encoding.ASCII.GetBytes("fmt "));
         w.Write(16);
         w.Write((short)WAVE_FORMAT_PCM);
         w.Write((short)channels);
@@ -612,8 +573,8 @@ public static class Phase10_RealRecording
         w.Write(avgBytesPerSec);
         w.Write((short)blockAlign);
         w.Write((short)bitsPerSample);
-        w.Write(System.Text.Encoding.ASCII.GetBytes("data"));
-        w.Write(0); // placeholder for data size
+        w.Write(Encoding.ASCII.GetBytes("data"));
+        w.Write(0);
     }
 
     private static IntPtr ComSlot(IntPtr obj, int slot)
