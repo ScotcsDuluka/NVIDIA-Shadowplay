@@ -390,14 +390,7 @@ public static class Phase10_RealRecording
         Console.WriteLine();
 
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
-        string ffmpegArgs;
-        if (audioCtx.TotalBytes > 0)
-            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
-        else
-        {
-            Console.WriteLine("  WARNING: Audio has 0 bytes — muxing video-only.");
-            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
-        }
+        string ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
         Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
         var muxPsi = new ProcessStartInfo
         {
@@ -407,9 +400,7 @@ public static class Phase10_RealRecording
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
-        Process? muxProc = null;
-        try { muxProc = Process.Start(muxPsi); }
-        catch (Exception ex) { Console.Error.WriteLine($"  FAIL: Could not start FFmpeg: {ex.Message}"); return 1; }
+        var muxProc = Process.Start(muxPsi);
         if (muxProc == null) { Console.Error.WriteLine("  FAIL: Could not start FFmpeg."); return 1; }
         string muxErr = muxProc.StandardError.ReadToEnd();
         muxProc.WaitForExit(30000);
@@ -525,10 +516,10 @@ public static class Phase10_RealRecording
 
                     Console.WriteLine($"  Audio: pEndpoint = 0x{pEndpoint.ToInt64():x16}");
                     Console.WriteLine($"  Audio: IID_IAudioClient = {{{iidAudioClient}}}");
-                    Console.WriteLine($"  Audio: CLSCTX = 0x{CLSCTX_ALL:X}");
+                    Console.WriteLine($"  Audio: CLSCTX = 0x1 (CLSCTX_INPROC_SERVER)");
                     Console.WriteLine($"  Audio: pPropVar = 0x{pPropVar.ToInt64():x16} (VT_EMPTY)");
 
-                    hr = activate(pEndpoint, ref iidAudioClient, 1, pPropVar, out IntPtr pAudioClient);
+                    hr = activate(pEndpoint, ref iidAudioClient, 1 /* CLSCTX_INPROC_SERVER */, pPropVar, out IntPtr pAudioClient);
                     Marshal.FreeHGlobal(pPropVar);
 
                     Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
@@ -548,7 +539,7 @@ public static class Phase10_RealRecording
                         Console.Error.WriteLine($"  Audio: Diagnostic checklist:");
                         Console.Error.WriteLine($"    1. Is pEndpoint a valid IMMDevice? (should be non-zero)");
                         Console.Error.WriteLine($"    2. Is IID_IAudioClient correct? (1CB9AD4C-DBFA-4c32-B178-C2F568A703D2)");
-                        Console.Error.WriteLine($"    3. Is CLSCTX_ALL correct? (0x17 = INPROC_SERVER|INPROC_HANDLER|LOCAL_SERVER)");
+                        Console.Error.WriteLine($"    3. CLSCTX = 0x1 (CLSCTX_INPROC_SERVER — correct for audio)");
                         Console.Error.WriteLine($"    4. Is pPropVar valid? (should be VT_EMPTY PROPVARIANT)");
                         Console.Error.WriteLine($"    5. Was CoInitializeEx called on this thread? (should be COINIT_MULTITHREADED)");
                         Console.Error.WriteLine($"    6. Was GetDefaultAudioEndpoint successful? (HRESULT should be 0)");
