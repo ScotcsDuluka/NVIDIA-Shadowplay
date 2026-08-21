@@ -112,6 +112,16 @@ public static class Phase10_RealRecording
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int AudioCapture_ReleaseBuffer(IntPtr thisPtr, uint numFramesRead);
 
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int QIDel(IntPtr thisPtr, ref Guid iid, out IntPtr ppv);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate uint AddRefDel(IntPtr thisPtr);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate uint RelDel(IntPtr thisPtr);
+
+
     private static string? s_outputPath;
     private static string? s_ffmpegPath;
     private static int s_durationSeconds = 30;
@@ -477,16 +487,18 @@ public static class Phase10_RealRecording
                 if (pEndpoint == IntPtr.Zero) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint returned null endpoint"); return; }
 
                 // Verify pEndpoint is a valid COM object by calling AddRef (slot 1) then Release (slot 2)
-                var addRef = Marshal.GetDelegateForFunctionPointer<ComVTable.AddRefDelegate>(ComVTable.GetSlot(pEndpoint, 1));
-                var relDelegate = Marshal.GetDelegateForFunctionPointer<ComVTable.ReleaseDelegate>(ComVTable.GetSlot(pEndpoint, 2));
-                uint refCount = addRef(pEndpoint);
-                Console.WriteLine($"  Audio: IMMDevice AddRef OK (refCount={refCount}), QI for IUnknown to verify...");
+                var addRefFn = Marshal.GetDelegateForFunctionPointer<AddRefDel>(ComSlot(pEndpoint, 1));
+                var relFn = Marshal.GetDelegateForFunctionPointer<RelDel>(ComSlot(pEndpoint, 2));
+                uint refCount = addRefFn(pEndpoint);
+                Console.WriteLine($"  Audio: IMMDevice AddRef OK (refCount={refCount})");
                 // Don't release yet — the outer finally does it.
 
                     // Diagnostic: try QI for IAudioClient first to see if the object supports it at all
                     Guid qiIid = IID_IAudioClient;
-                    IntPtr qiResult = ComVTable.QueryInterface(pEndpoint, ref qiIid);
-                    Console.WriteLine($"  Audio: QI(IAudioClient) result = 0x{qiResult.ToInt64():x16} (0 = not supported)");
+                    var qiFn = Marshal.GetDelegateForFunctionPointer<QIDel>(ComSlot(pEndpoint, 0));
+                    IntPtr qiResult;
+                    int qiHr = qiFn(pEndpoint, ref qiIid, out qiResult);
+                    Console.WriteLine($"  Audio: QI(IAudioClient) HRESULT=0x{qiHr:X8}, result=0x{qiResult.ToInt64():x16}");
 
 
 
