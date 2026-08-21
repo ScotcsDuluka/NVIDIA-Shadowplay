@@ -450,6 +450,7 @@ public static class Phase10_RealRecording
 
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
         // Calculate actual FPS from capture
+        double elapsedSec = sw.Elapsed.TotalSeconds;
         double actualFps = framesEncoded / elapsedSec;
         int fpsRounded = (int)Math.Round(actualFps);
         if (fpsRounded < 1) fpsRounded = 30;
@@ -498,7 +499,6 @@ public static class Phase10_RealRecording
         try { File.Delete(tempH264); } catch { }
         try { File.Delete(tempWav); } catch { }
 
-        double elapsedSec = sw.Elapsed.TotalSeconds;
         Console.WriteLine();
         Console.WriteLine("============================================================");
         Console.WriteLine(" Phase 10 — Recording Report");
@@ -534,9 +534,9 @@ public static class Phase10_RealRecording
         Console.WriteLine("============================================================");
 
         if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
-        if (framesEncoded > 0 && nvencErrors == 0 && fi.Exists && fi.Length > 0 && audioCtx.TotalSamples > 0)
+        if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0 && audioCtx.TotalSamples > 0)
             Console.WriteLine("  Phase 10: PASS — video + audio recording produced.");
-        else if (framesEncoded > 0 && nvencErrors == 0 && fi.Exists && fi.Length > 0)
+        else if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
             Console.WriteLine("  Phase 10: PARTIAL — video only (audio failed: 0 samples). NOT PASS.");
         else
             Console.WriteLine("  Phase 10: FAIL");
@@ -574,7 +574,7 @@ public static class Phase10_RealRecording
 
             Console.WriteLine("  Audio: IMMDevice obtained. Calling Activate(IAudioClient)...");
             Guid iidAudioClient = IID_IAudioClient;
-            hr = endpoint.Activate(ref iidAudioClient, 0x17 /*CLSCTX_ALL*/, IntPtr.Zero, out IAudioClient audioClient);
+            hr = endpoint.Activate(ref iidAudioClient, 0x17 /*CLSCTX_ALL*/, IntPtr.Zero, out IntPtr audioClientPtr);
             Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
             if (hr != 0)
             {
