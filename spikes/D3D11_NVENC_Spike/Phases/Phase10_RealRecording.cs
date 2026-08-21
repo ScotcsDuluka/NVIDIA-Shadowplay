@@ -552,8 +552,9 @@ public static class Phase10_RealRecording
             ctx.BitsPerSample = wfx.wBitsPerSample;
             Console.WriteLine($"  Audio: {wfx.nChannels}ch {wfx.nSamplesPerSec}Hz {wfx.wBitsPerSample}bit (mix format)");
 
+            Guid sessionGuid = Guid.Empty;
             hr = audioClient.Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK,
-                10000000, 0, pFormat, ref Guid.Empty);
+                10000000, 0, pFormat, ref sessionGuid);
             if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
 
             Guid iidCapture = IID_IAudioCaptureClient;
