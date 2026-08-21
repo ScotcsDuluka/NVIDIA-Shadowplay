@@ -390,7 +390,14 @@ public static class Phase10_RealRecording
         Console.WriteLine();
 
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
-        string ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+        string ffmpegArgs;
+        if (audioCtx.TotalBytes > 0)
+            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+        else
+        {
+            Console.WriteLine("  WARNING: Audio has 0 bytes — muxing video-only.");
+            ffmpegArgs = $"-y -f h264 -r 30 -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
+        }
         Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
         var muxPsi = new ProcessStartInfo
         {
@@ -400,7 +407,9 @@ public static class Phase10_RealRecording
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
-        var muxProc = Process.Start(muxPsi);
+        Process? muxProc = null;
+        try { muxProc = Process.Start(muxPsi); }
+        catch (Exception ex) { Console.Error.WriteLine($"  FAIL: Could not start FFmpeg: {ex.Message}"); return 1; }
         if (muxProc == null) { Console.Error.WriteLine("  FAIL: Could not start FFmpeg."); return 1; }
         string muxErr = muxProc.StandardError.ReadToEnd();
         muxProc.WaitForExit(30000);
@@ -519,7 +528,7 @@ public static class Phase10_RealRecording
                     Console.WriteLine($"  Audio: CLSCTX = 0x{CLSCTX_ALL:X}");
                     Console.WriteLine($"  Audio: pPropVar = 0x{pPropVar.ToInt64():x16} (VT_EMPTY)");
 
-                    hr = activate(pEndpoint, ref iidAudioClient, CLSCTX_ALL, pPropVar, out IntPtr pAudioClient);
+                    hr = activate(pEndpoint, ref iidAudioClient, 1, pPropVar, out IntPtr pAudioClient);
                     Marshal.FreeHGlobal(pPropVar);
 
                     Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
