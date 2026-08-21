@@ -89,7 +89,7 @@ public static class Phase10_RealRecording
     private delegate int ImmDevice_GetDefaultAudioEndpoint(IntPtr thisPtr, int dataFlow, int role, out IntPtr endpoint);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
-    private delegate int ImmDeviceActivator_Activate(IntPtr thisPtr, ref Guid iid, IntPtr pUnkOuter, ref Guid ctx, out IntPtr ppv);
+    private delegate int ImmDeviceActivator_Activate(IntPtr thisPtr, ref Guid iid, uint dwClsCtx, IntPtr pActivationParams, out IntPtr ppv);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int AudioClient_Initialize(IntPtr thisPtr, int shareMode, int streamFlags, long hnsBufferDuration, long hnsPeriodicity, IntPtr pFormat, ref Guid audioSessionGuid);
@@ -468,7 +468,7 @@ public static class Phase10_RealRecording
             try
             {
                 var getDev = Marshal.GetDelegateForFunctionPointer<ImmDevice_GetDefaultAudioEndpoint>(
-                    ComSlot(pEnum, 3));
+                    ComSlot(pEnum, 4));
                 hr = getDev(pEnum, 0, 0, out IntPtr pEndpoint);
                 if (hr != 0) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint failed: 0x{hr:X8}"); return; }
 
@@ -477,8 +477,7 @@ public static class Phase10_RealRecording
                     Guid iidAudioClient = IID_IAudioClient;
                     var activate = Marshal.GetDelegateForFunctionPointer<ImmDeviceActivator_Activate>(
                         ComSlot(pEndpoint, 3));
-                    Guid dummyCtx = Guid.Empty;
-                    hr = activate(pEndpoint, ref iidAudioClient, IntPtr.Zero, ref dummyCtx, out IntPtr pAudioClient);
+                    hr = activate(pEndpoint, ref iidAudioClient, CLSCTX_ALL, IntPtr.Zero, out IntPtr pAudioClient);
                     if (hr != 0) { Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}"); return; }
 
                     try
@@ -500,13 +499,13 @@ public static class Phase10_RealRecording
                         if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
 
                         Guid iidCapture = IID_IAudioCaptureClient;
-                        var getService = Marshal.GetDelegateForFunctionPointer<AudioClient_GetService>(ComSlot(pAudioClient, 5));
+                        var getService = Marshal.GetDelegateForFunctionPointer<AudioClient_GetService>(ComSlot(pAudioClient, 14));
                         hr = getService(pAudioClient, ref iidCapture, out IntPtr pCapture);
                         if (hr != 0) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
 
                         try
                         {
-                            var start = Marshal.GetDelegateForFunctionPointer<AudioClient_Start>(ComSlot(pAudioClient, 3));
+                            var start = Marshal.GetDelegateForFunctionPointer<AudioClient_Start>(ComSlot(pAudioClient, 10));
                             start(pAudioClient);
 
                             using var wav = new BinaryWriter(File.Create(wavPath));
@@ -533,7 +532,7 @@ public static class Phase10_RealRecording
                                 }
                             }
 
-                            var stop = Marshal.GetDelegateForFunctionPointer<AudioClient_Stop>(ComSlot(pAudioClient, 4));
+                            var stop = Marshal.GetDelegateForFunctionPointer<AudioClient_Stop>(ComSlot(pAudioClient, 11));
                             stop(pAudioClient);
 
                             wav.Flush();
