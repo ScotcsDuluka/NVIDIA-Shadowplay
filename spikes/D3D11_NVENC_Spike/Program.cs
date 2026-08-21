@@ -42,7 +42,7 @@ internal static class Program
             }
             else if (a.StartsWith("phase", StringComparison.Ordinal))
             {
-                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 8)
+                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 9)
                     phasesToRun.Add(n);
                 else
                 {
@@ -97,6 +97,7 @@ internal static class Program
                     6 => Phase6_MinimalEncode.Run(),
                     7 => Phase7_FullPipelineLoop.Run(),
                     8 => Phase8_Profiling.Run(),
+                    9 => Phase9_SynchronizationIsolation.Run(),
                     _ => 1,
                 };
                 if (result != 0)
@@ -149,6 +150,7 @@ internal static class Program
         Console.WriteLine("  phase6     Run Phase 6 (Minimal H.264 Encode)");
         Console.WriteLine("  phase7     Run Phase 7 (Full Pipeline 60s Loop + Metrics)");
         Console.WriteLine("  phase8     Run Phase 8 (Per-Stage Performance Profiling)");
+        Console.WriteLine("  phase9     Run Phase 9 (Pipeline Synchronization Isolation)");
         Console.WriteLine("  --log F    Tee output to file F (in addition to console)");
         Console.WriteLine("  --help     Show this help");
         Console.WriteLine();
