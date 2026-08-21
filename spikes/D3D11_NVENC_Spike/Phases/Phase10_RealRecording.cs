@@ -170,6 +170,9 @@ public static class Phase10_RealRecording
     private delegate int QIDel(IntPtr thisPtr, ref Guid iid, out IntPtr ppv);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int RawActivateDelegate(IntPtr thisPtr, ref Guid iid, uint dwClsCtx, IntPtr pActParams, out IntPtr ppv);
+
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate uint AddRefDel(IntPtr thisPtr);
 
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
@@ -537,9 +540,47 @@ public static class Phase10_RealRecording
 
             Console.WriteLine("  Audio: IMMDevice obtained. Calling Activate(IAudioClient)...");
             Guid iidAudioClient = IID_IAudioClient;
-            hr = endpoint.Activate(ref iidAudioClient, 1 /*CLSCTX_INPROC_SERVER*/, IntPtr.Zero, out IAudioClient audioClient);
+            hr = endpoint.Activate(ref iidAudioClient, 0x17 /*CLSCTX_ALL*/, IntPtr.Zero, out IAudioClient audioClient);
             Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
-            if (hr != 0) { Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}"); return; }
+            if (hr != 0)
+            {
+                Console.Error.WriteLine($"  Audio: Activate(CLSCTX_ALL) failed: 0x{hr:X8}");
+                Console.Error.WriteLine("  Audio: Trying raw COM approach...");
+
+                // Fallback: get raw IUnknown pointer and call Activate manually
+                // via the correct ABI (using Marshal.GetComInterfaceForObject)
+                IntPtr pUnk = Marshal.GetIUnknownForObject(endpoint);
+                Console.WriteLine($"  Audio: IUnknown = 0x{pUnk.ToInt64():x16}");
+
+                // Get the vtable pointer
+                IntPtr vtable = Marshal.ReadIntPtr(pUnk);
+                // Activate is slot 3 (after QI=0, AddRef=1, Release=2)
+                IntPtr activatePtr = Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size);
+
+                // Use the delegate approach but with the ComImport object's vtable
+                // This should be the SAME vtable as the manual approach, but now
+                // we're getting it from the ComImport object (which the CLR has
+                // already verified supports IMMDeviceEx).
+                var activateFn = Marshal.GetDelegateForFunctionPointer<RawActivateDelegate>(activatePtr);
+
+                // Allocate a local Guid and pass by ref
+                Guid localIid = IID_IAudioClient;
+                IntPtr ppAudioClient = IntPtr.Zero;
+                hr = activateFn(pUnk, ref localIid, 0x17, IntPtr.Zero, out ppAudioClient);
+                Console.WriteLine($"  Audio: Raw Activate HRESULT = 0x{hr:X8}");
+
+                if (hr == 0 && ppAudioClient != IntPtr.Zero)
+                {
+                    // Wrap the raw pointer in a COM object
+                    audioClient = (IAudioClient)Marshal.GetObjectForIUnknown(ppAudioClient);
+                    Console.WriteLine("  Audio: IAudioClient obtained via raw COM!");
+                }
+                else
+                {
+                    Console.Error.WriteLine($"  Audio: Raw Activate also failed: 0x{hr:X8}");
+                    return;
+                }
+            }
 
             // audioClient is already typed as IAudioClient from the out param
             Console.WriteLine("  Audio: IAudioClient obtained successfully!");
