@@ -7,11 +7,20 @@ Public Class Base
         tcp = New TcpClientHelper("NVIDIA Overlay")
 
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
+
+        ' Auto-spawn NVIDIA Capture.exe if not running (reuse if it is).
+        ' Engine connects to the Hub by itself and broadcasts engine_ready —
+        ' the existing engine_ready handler re-sends PREWARM, so wiring is
+        ' automatic after spawn. Monitor thread handles respawn on crash.
+        EngineProcessSupervisor.EnsureEngineRunning()
     End Sub
 
     ' Dispose TCP on form close
     Private Sub Base_TestFormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         Try
+            ' Stop supervising (does NOT kill the engine — it may still be muxing).
+            EngineProcessSupervisor.Shutdown()
+
             If tcp IsNot Nothing Then
                 tcp.Disconnect()
                 tcp.Dispose()
