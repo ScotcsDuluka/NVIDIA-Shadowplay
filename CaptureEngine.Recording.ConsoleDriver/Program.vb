@@ -2,38 +2,56 @@ Option Strict On
 Option Explicit On
 Option Infer On
 
-' Program.vb — Phase 12a-5 Console Test
+' Program.vb — Phase 12b Production Validation Driver (Windows)
 '
-' Tests RecordingEngine orchestration:
-'   Session 1: 10s recording → MP4 with video + audio
-'   Session 2: 10s recording → MP4 with video + audio (same engine, reused backends)
+' Exercises the REAL production stack — RecordingEngine + CaptureSession with
+' D3D11/ddagrab capture, native NVENC, WASAPI sidecar, H.264 wrap, and the
+' MuxCoordinator — across the same lifecycle matrix that failed in Phase 11:
+'
+'   Test A — Normal:      3 × 10s sessions, back-to-back
+'   Test B — Early stop:  1s / 5s / 10s sessions (stop-path stress)
+'   Test C — Restart:     5 × 3s immediate restarts (resource reuse)
+'
+' Per session it validates the Phase 12b Definition of Done:
+'   ✔ valid MP4 with video AND audio streams
+'   ✔ WAV sidecar accounting (enqueued = written + dropped)
+'   ✔ A/V sync offset evidence recorded
+'   ✔ no orphan ffmpeg after the session completes
+'   ✔ engine returns to Idle (backends reusable, no re-init)
 '
 ' Usage:
-'   dotnet run -c Release -- --ffmpeg "C:\My Project\NVIDIA-Shadowplay\Overlay\API-Core\ffmpeg.exe"
+'   dotnet run -c Release -- --ffmpeg "C:\...\Overlay\API-Core\ffmpeg.exe"
+'   dotnet run -c Release -- --ffmpeg <path> --quick     (2 sessions only)
+'   dotnet run -c Release -- --ffmpeg <path> --single 15 (one 15s session)
+'
+' Writes evidence to: evidence\phase-12b-validation-<timestamp>.md
 '
 ' IMPORTANT: Play audio on your system during each session!
 
+Imports System.Diagnostics
 Imports System.IO
+Imports System.Text
 Imports CaptureEngine.Diagnostics
 Imports CaptureEngine.Recording
 
 Module Program
 
+    Private _evidence As New StringBuilder()
+    Private _passCount As Integer = 0
+    Private _failCount As Integer = 0
+
     Public Function Main(args As String()) As Integer
         Console.OutputEncoding = System.Text.Encoding.UTF8
-        Console.WriteLine("============================================================")
-        Console.WriteLine(" Phase 12a-5 — RecordingEngine Orchestration Test")
-        Console.WriteLine(" 2 sessions × 10s → MP4 with video + audio")
-        Console.WriteLine("============================================================")
-        Console.WriteLine()
 
-        ' Parse --ffmpeg arg
         Dim ffmpegPath As String = "ffmpeg"
+        Dim quick As Boolean = False
+        Dim singleSec As Integer = 0
         For i As Integer = 0 To args.Length - 2
             If args(i) = "--ffmpeg" Then ffmpegPath = args(i + 1)
+            If args(i) = "--quick" Then quick = True
+            If args(i) = "--single" Then Integer.TryParse(args(i + 1), singleSec)
         Next
 
-        ' Try to find ffmpeg in API-Core
         If ffmpegPath = "ffmpeg" Then
             Dim candidates As String() = {
                 Path.Combine(AppContext.BaseDirectory, "API-Core", "ffmpeg.exe"),
@@ -44,75 +62,212 @@ Module Program
                 If File.Exists(c) Then ffmpegPath = c : Exit For
             Next
         End If
-        Console.WriteLine($"  FFmpeg: {ffmpegPath}")
-        Console.WriteLine()
 
+        Console.WriteLine("============================================================")
+        Console.WriteLine(" Phase 12b — Production Validation (RecordingEngine matrix)")
+        Console.WriteLine("============================================================")
+        Console.WriteLine($"  FFmpeg:  {ffmpegPath}")
+        Console.WriteLine($"  Orphan baseline: {CountFFmpeg()} ffmpeg processes")
+        Console.WriteLine()
         Console.WriteLine(">>> IMPORTANT: PLAY AUDIO on your system during each session!")
         Console.WriteLine()
 
-        Dim logger As New EngineLogger("Test", EngineLogger.LogLevel.Info, AddressOf Console.WriteLine)
-        Dim overallOk As Boolean = True
-        Dim result1 As SessionResult = Nothing
-        Dim result2 As SessionResult = Nothing
+        If Not File.Exists(ffmpegPath) AndAlso ffmpegPath = "ffmpeg" Then
+            Console.Error.WriteLine("*** FATAL: ffmpeg not found — pass --ffmpeg <path>")
+            Return 2
+        End If
 
-        ' ─── Create RecordingEngine ──────────────────────────────────
-        Console.WriteLine(">>> Creating RecordingEngine...")
+        Ev("# Phase 12b Production Validation Evidence")
+        Ev("")
+        Ev($"**Date:** {DateTime.Now:yyyy-MM-dd HH:mm:ss}")
+        Ev($"**Machine:** {Environment.MachineName}  ·  **OS:** {Environment.OSVersion}")
+        Ev($"**FFmpeg:** `{ffmpegPath}`")
+        Ev("")
+
+        Dim baselineOrphans As Integer = CountFFmpeg()
+        Dim logger As New EngineLogger("Validate", EngineLogger.LogLevel.Info, AddressOf Console.WriteLine)
+        Dim overallOk As Boolean = True
+
+        Console.WriteLine(">>> Creating RecordingEngine (persistent D3D11 + DXGI + NVENC)...")
         Dim engine As New RecordingEngine(logger)
 
         Try
+            Dim swTotal As Stopwatch = Stopwatch.StartNew()
+            Dim memBefore As Long = Environment.WorkingSet
             engine.Initialize()
-            Console.WriteLine(">>> RecordingEngine initialized (Idle)")
-            Console.WriteLine()
+            Ev($"- Engine.Initialize: OK (working set {memBefore / 1048576L:F0} → {Environment.WorkingSet / 1048576L:F0} MB)")
 
-            ' ─── Session 1 ────────────────────────────────────────────
-            Console.WriteLine(">>> Session 1: 10s recording → session1.mp4")
-            Console.WriteLine("    >>> PLAY AUDIO NOW! <<<")
-            Console.WriteLine()
-            Dim config1 As New SessionConfig() With {
-                .OutputPath = "session1.mp4",
-                .DurationSeconds = 10,
-                .FFmpegPath = ffmpegPath
-            }
-            result1 = engine.StartSession(config1)
-            PrintSessionResult("Session 1", result1)
-            overallOk = overallOk AndAlso result1.Pass
-            Console.WriteLine()
+            If singleSec > 0 Then
+                overallOk = RunSession(engine, "Single", singleSec, ffmpegPath, baselineOrphans, verbose:=True)
+            ElseIf quick Then
+                overallOk = RunSession(engine, "Quick1", 10, ffmpegPath, baselineOrphans, verbose:=True)
+                overallOk = RunSession(engine, "Quick2", 10, ffmpegPath, baselineOrphans, verbose:=True) AndAlso overallOk
+            Else
+                ' Test A — Normal
+                Dim aOk As Boolean = True
+                For i As Integer = 1 To 3
+                    aOk = RunSession(engine, $"A{i}", 10, ffmpegPath, baselineOrphans, verbose:=True) AndAlso aOk
+                Next
+                Ev($"- **Test A (3 × 10s normal): {If(aOk, "PASS", "FAIL")}**")
+                overallOk = overallOk AndAlso aOk
 
-            ' ─── Session 2 (same engine — backends reused) ────────────
-            Console.WriteLine(">>> Session 2: 10s recording → session2.mp4 (same engine)")
-            Console.WriteLine("    >>> PLAY AUDIO NOW! <<<")
-            Console.WriteLine()
-            Dim config2 As New SessionConfig() With {
-                .OutputPath = "session2.mp4",
-                .DurationSeconds = 10,
-                .FFmpegPath = ffmpegPath
-            }
-            result2 = engine.StartSession(config2)
-            PrintSessionResult("Session 2", result2)
-            overallOk = overallOk AndAlso result2.Pass
-            Console.WriteLine()
+                ' Test B — Early stop
+                Dim bOk As Boolean = True
+                For Each sec As Integer In New Integer() {1, 5, 10}
+                    bOk = RunSession(engine, $"B{sec}s", sec, ffmpegPath, baselineOrphans, verbose:=True) AndAlso bOk
+                Next
+                Ev($"- **Test B (early stop 1/5/10s): {If(bOk, "PASS", "FAIL")}**")
+                overallOk = overallOk AndAlso bOk
+
+                ' Test C — Immediate restart
+                Dim cOk As Boolean = True
+                For i As Integer = 1 To 5
+                    cOk = RunSession(engine, $"C{i}", 3, ffmpegPath, baselineOrphans, verbose:=True) AndAlso cOk
+                Next
+                Ev($"- **Test C (5 × 3s immediate restart): {If(cOk, "PASS", "FAIL")}**")
+                overallOk = overallOk AndAlso cOk
+
+                Dim memAfter As Long = Environment.WorkingSet
+                Ev($"- Memory: {memBefore / 1048576L:F0} MB → {memAfter / 1048576L:F0} MB across the full matrix")
+                Ev($"- Matrix wall time: {swTotal.Elapsed.TotalMinutes:F1} min")
+            End If
 
         Catch ex As Exception
             Console.Error.WriteLine($"*** FATAL: {ex.Message}")
             Console.Error.WriteLine(ex.StackTrace)
+            Ev($"- **FATAL: {ex.Message}**")
             overallOk = False
         Finally
             engine.Dispose()
+            Ev("- Engine.Dispose: OK")
         End Try
 
+        ' Final orphan check — must equal baseline after engine dispose
+        Dim finalOrphans As Integer = CountFFmpeg()
+        Dim orphanOk As Boolean = (finalOrphans = baselineOrphans)
+        Ev($"- Orphan ffmpeg check: baseline {baselineOrphans} → final {finalOrphans} = {If(orphanOk, "PASS", "FAIL")}")
+        overallOk = overallOk AndAlso orphanOk
+
         ' ─── Verdict ────────────────────────────────────────────────
-        Console.WriteLine("============================================================")
-        Console.WriteLine(" PHASE 12a-5 VERDICT")
-        Console.WriteLine("============================================================")
-        Console.WriteLine($"  Session 1: {If(result1?.Pass = True, "PASS", "FAIL")}")
-        Console.WriteLine($"  Session 2: {If(result2?.Pass = True, "PASS", "FAIL")}")
-        Console.WriteLine($"  Resource reuse: {If(overallOk, "PROVEN", "UNPROVEN")}")
-        Console.WriteLine($"  MP4 with video+audio: {If(overallOk, "PROVEN", "UNPROVEN")}")
         Console.WriteLine()
-        Console.WriteLine($"  OVERALL: {If(overallOk, "PASS", "FAIL")}")
+        Console.WriteLine("============================================================")
+        Console.WriteLine($" PHASE 12B VERDICT: {If(overallOk, "PASS", "FAIL")}  ({_passCount} sessions pass / {_failCount} fail)")
         Console.WriteLine("============================================================")
 
+        Ev("")
+        Ev($"## Overall: {If(overallOk, "PASS ✅", "FAIL ❌")}")
+        Ev("")
+        Ev($"Sessions passed: {_passCount} · failed: {_failCount}")
+
+        Try
+            Directory.CreateDirectory("evidence")
+            Dim evPath As String = System.IO.Path.Combine("evidence",
+                $"phase-12b-validation-{DateTime.Now:yyyyMMdd-HHmmss}.md")
+            File.WriteAllText(evPath, _evidence.ToString())
+            Console.WriteLine($" Evidence written: {System.IO.Path.GetFullPath(evPath)}")
+        Catch ex As Exception
+            Console.WriteLine($" Evidence write failed: {ex.Message}")
+        End Try
+
         Return If(overallOk, 0, 1)
+    End Function
+
+    ' ─── One session + full DoD validation ───────────────────────────
+
+    Private Function RunSession(engine As RecordingEngine,
+                                label As String,
+                                durationSec As Integer,
+                                ffmpegPath As String,
+                                baselineOrphans As Integer,
+                                verbose As Boolean) As Boolean
+        Console.WriteLine()
+        Console.WriteLine($">>> [{label}] {durationSec}s session → {label}.mp4")
+        Console.WriteLine("    >>> PLAY AUDIO NOW! <<<")
+        Console.WriteLine()
+
+        Dim outPath As String = $"{label}.mp4"
+        Dim config As New SessionConfig() With {
+            .OutputPath = outPath,
+            .DurationSeconds = durationSec,
+            .FFmpegPath = ffmpegPath,
+            .AudioEnabled = True,
+            .SystemVolume = 1.0F
+        }
+
+        Dim r As SessionResult = engine.StartSession(config)
+        PrintSessionResult(label, r)
+
+        ' ── DoD assertions ──
+        Dim ok As Boolean = r.Pass
+        Dim notes As New List(Of String)()
+
+        If Not r.Pass Then notes.Add("session result FAIL")
+        If Not r.AudioAccountingOk Then
+            ok = False
+            notes.Add($"audio accounting residual (dropped {r.AudioDroppedBytes:N0}B)")
+        ElseIf r.AudioDroppedBytes > 0 Then
+            notes.Add($"WARN dropped {r.AudioDroppedBytes:N0}B under backpressure")
+        End If
+
+        Dim orphans As Integer = CountFFmpeg()
+        If orphans > baselineOrphans Then
+            ok = False
+            notes.Add($"ORPHAN ffmpeg: {orphans} > baseline {baselineOrphans}")
+        End If
+
+        Dim status As EngineStatus = engine.GetStatus()
+        If status.State <> RecordingEngineState.Idle Then
+            ok = False
+            notes.Add($"engine not Idle after session: {status.State}")
+        End If
+
+        ' Leftover temp files?
+        Dim tmpH264 As String = Path.ChangeExtension(outPath, ".tmp.h264")
+        Dim tmpVideo As String = Path.ChangeExtension(outPath, ".tmp.video.mp4")
+        Dim tmpWav As String = Path.ChangeExtension(outPath, ".tmp.wav")
+        Dim leftovers As New List(Of String)()
+        For Each t As String In {tmpH264, tmpVideo, tmpWav}
+            If File.Exists(t) Then leftovers.Add(Path.GetFileName(t))
+        Next
+        If leftovers.Count > 0 Then notes.Add("WARN leftover temp: " & String.Join(", ", leftovers))
+
+        If ok Then _passCount += 1 Else _failCount += 1
+
+        Ev($"### [{label}] {durationSec}s — {If(ok, "PASS ✅", "FAIL ❌")}")
+        Ev("")
+        Ev($"| metric | value |")
+        Ev($"|---|---|")
+        Ev($"| duration (actual / mux) | {r.ActualDurationSec:0.00}s / {r.MuxVideoDurationSec:0.00}s |")
+        Ev($"| frames captured / encoded | {r.FramesCaptured:N0} / {r.FramesEncoded:N0} |")
+        Ev($"| nvenc errors | {r.NvencErrors:N0} |")
+        Ev($"| audio bytes (written / dropped) | {r.AudioBytes:N0} / {r.AudioDroppedBytes:N0} |")
+        Ev($"| audio accounting ok | {r.AudioAccountingOk} |")
+        Ev($"| A/V sync offset | {r.SystemOffsetSec:0.000}s |")
+        Ev($"| streams (video / audio) | {r.VideoStreamFound} / {r.AudioStreamFound} |")
+        Ev($"| file size | {r.FileSize:N0} B |")
+        Ev($"| orphan ffmpeg (baseline {baselineOrphans}) | {orphans} |")
+        Ev($"| engine state after | {status.State} |")
+        If notes.Count > 0 Then
+            Ev("")
+            For Each n As String In notes
+                Ev($"- note: {n}")
+            Next
+        End If
+        Ev("")
+
+        If verbose Then
+            Console.WriteLine($"    → [{label}] {If(ok, "PASS", "FAIL")} {If(notes.Count > 0, "(" & String.Join("; ", notes) & ")", "")}")
+        End If
+
+        Return ok
+    End Function
+
+    Private Function CountFFmpeg() As Integer
+        Try
+            Return Process.GetProcessesByName("ffmpeg").Length
+        Catch
+            Return 0
+        End Try
     End Function
 
     Private Sub PrintSessionResult(label As String, r As SessionResult)
@@ -120,22 +275,26 @@ Module Program
         Console.WriteLine($" {label} — Result")
         Console.WriteLine($"────────────────────────────────────────────────────────────")
         Console.WriteLine($"  output:               {r.OutputPath}")
-        Console.WriteLine($"  duration:              {r.ActualDurationSec:F2}s (target {r.RequestedDurationSec}s)")
+        Console.WriteLine($"  duration:              {r.ActualDurationSec:F2}s (mux {r.MuxVideoDurationSec:F2}s, target {r.RequestedDurationSec}s)")
         Console.WriteLine($"  frames_captured:      {r.FramesCaptured}")
         Console.WriteLine($"  frames_encoded:       {r.FramesEncoded}")
         Console.WriteLine($"  nvenc_errors:          {r.NvencErrors}")
         Console.WriteLine($"  video_bytes:          {r.TotalVideoBytes:N0}")
-        Console.WriteLine($"  audio_samples:        {r.AudioSamples:N0}")
-        Console.WriteLine($"  audio_bytes:          {r.AudioBytes:N0}")
+        Console.WriteLine($"  audio_bytes:          {r.AudioBytes:N0} (dropped {r.AudioDroppedBytes:N0})")
+        Console.WriteLine($"  audio_accounting:     {r.AudioAccountingOk}")
+        Console.WriteLine($"  sync_offset:          {r.SystemOffsetSec:F3}s")
         Console.WriteLine($"  video_stream:         {If(r.VideoStreamFound, "FOUND", "MISSING")}")
         Console.WriteLine($"  audio_stream:         {If(r.AudioStreamFound, "FOUND", "MISSING")}")
-        Console.WriteLine($"  file_exists:          {r.FileExists}")
         Console.WriteLine($"  file_size:            {r.FileSize:N0} bytes ({r.FileSize / 1024.0 / 1024.0:F2} MB)")
         If Not String.IsNullOrEmpty(r.ErrorMessage) Then
             Console.WriteLine($"  error:                {r.ErrorMessage}")
         End If
         Console.WriteLine($"  pass:                  {r.Pass}")
         Console.WriteLine($"────────────────────────────────────────────────────────────")
+    End Sub
+
+    Private Sub Ev(line As String)
+        _evidence.AppendLine(line)
     End Sub
 
 End Module

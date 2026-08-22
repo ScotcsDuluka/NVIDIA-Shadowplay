@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CaptureEngine.Recording.Tests</RootNamespace>
+    <TargetFramework>net8.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>CaptureEngine.Recording.Tests</AssemblyName>
+    <Description>Phase 12b tests — SyncMath + WavSidecarWriter units + real-ffmpeg A/V sync runtime validation (runs on Windows AND Linux)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+  </ItemGroup>
+
+</Project>
