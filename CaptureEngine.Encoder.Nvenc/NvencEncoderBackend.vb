@@ -309,13 +309,20 @@ Namespace CaptureEngine.Encoder.Nvenc
             Interlocked.Increment(_submittedFrames)
 
             ' ─── Extract frame texture via ID3D11VideoFrame contract ─────
-            ' Foundation IVideoFrame does NOT expose native resource handles.
-            ' We defined ID3D11VideoFrame in CaptureEngine.Encoder.Nvenc to
-            ' extend IVideoFrame with NativeTexture — D3D11-producing backends
+            ' CaptureEngine.Video.IVideoFrame does NOT expose native resource
+            ' handles. The ID3D11VideoFrame extension interface lives in
+            ' CaptureEngine.Video (contract layer) — D3D11-producing backends
             ' (DdagrabBackend) emit frames implementing both interfaces.
             '
             ' This DirectCast is type-safe at compile time (no reflection,
             ' no TryCast hack — per OWNER requirement).
+            '
+            ' Dependency graph (verified — no circular reference):
+            '   CaptureEngine.Video (contract: ID3D11VideoFrame)
+            '     ↑ implemented by
+            '   CaptureEngine.Video.Ddagrab (D3D11VideoFrame class)
+            '     ↓ consumed by
+            '   CaptureEngine.Encoder.Nvenc (NvencEncoderBackend.Encode)
             Dim d3d11Frame As ID3D11VideoFrame = Nothing
             Try
                 d3d11Frame = DirectCast(frame, ID3D11VideoFrame)
