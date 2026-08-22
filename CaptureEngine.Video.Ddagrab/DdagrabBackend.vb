@@ -113,6 +113,13 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         ' ---- staging texture description (used per-frame) ----
         Private _stagingDesc As Texture2DDescription
 
+        ' ---- shared texture description (used per-frame in shared-handle mode) ----
+        ' Separate from _stagingDesc — this texture has SharedNthandle flag.
+        ' The staging texture (without SharedNthandle) receives CopyResource from
+        ' DXGI. Then CopyResource from staging → shared. The shared texture is
+        ' wrapped in D3D11VideoFrame for cross-device access.
+        Private _sharedDesc As Texture2DDescription
+
         ' ---- output dimensions (Public — needed by harness/orchestration
         '      to size encoder) ----
         Public ReadOnly Property OutputWidth As Integer
@@ -267,11 +274,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 _logger.Info("DdagrabBackend: DXGI Output Duplication created (persistent)")
 
                 ' ─── Staging texture description (used per-frame in WorkerLoop) ─
-                Dim miscFlags As ResourceOptionFlags = ResourceOptionFlags.None
-                If _useSharedHandle Then
-                    miscFlags = ResourceOptionFlags.SharedNthandle
-                    _logger.Info("DdagrabBackend: shared-handle mode ENABLED")
-                End If
+                ' Staging texture NEVER has SharedNthandle — it receives CopyResource
+                ' from DXGI Output Duplication which doesn't support shared flags.
                 _stagingDesc = New Texture2DDescription() With {
                     .Width = CUInt(_outputWidth),
                     .Height = CUInt(_outputHeight),
@@ -282,8 +286,26 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                     .Usage = ResourceUsage.Default,
                     .BindFlags = BindFlags.ShaderResource Or BindFlags.RenderTarget,
                     .CPUAccessFlags = CpuAccessFlags.None,
-                    .MiscFlags = miscFlags
+                    .MiscFlags = ResourceOptionFlags.None
                 }
+
+                ' Shared texture description (used only in shared-handle mode)
+                ' This texture has SharedNthandle for cross-device access via OpenSharedResource1.
+                If _useSharedHandle Then
+                    _sharedDesc = New Texture2DDescription() With {
+                        .Width = CUInt(_outputWidth),
+                        .Height = CUInt(_outputHeight),
+                        .MipLevels = 1,
+                        .ArraySize = 1,
+                        .Format = Format.B8G8R8A8_UNorm,
+                        .SampleDescription = New SampleDescription(1, 0),
+                        .Usage = ResourceUsage.Default,
+                        .BindFlags = BindFlags.ShaderResource,
+                        .CPUAccessFlags = CpuAccessFlags.None,
+                        .MiscFlags = ResourceOptionFlags.SharedNthandle
+                    }
+                    _logger.Info("DdagrabBackend: shared-handle mode ENABLED (two-texture approach)")
+                End If
 
                 _state = DdagrabBackendState.Initialized
                 _logger.Info("DdagrabBackend: Initialize complete (real DXGI capture)")
@@ -586,69 +608,63 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
                     ' ─── Got a frame — copy to staging texture + ReleaseFrame ─
                     Dim stagingTexture As ID3D11Texture2D = Nothing
+                    Dim sharedTexture As ID3D11Texture2D = Nothing
                     Dim desktopTexture As ID3D11Texture2D = Nothing
                     Dim frame As D3D11VideoFrame = Nothing
+                    Dim frameAcquired As Boolean = False
                     Try
                         desktopTexture = desktopResource.QueryInterface(Of ID3D11Texture2D)()
+                        frameAcquired = True  ' AcquireNextFrame succeeded — MUST ReleaseFrame
 
-                        ' Create staging texture (per-frame allocation — Phase 12a simple strategy)
+                        ' Create staging texture (per-frame — NO SharedNthandle)
                         stagingTexture = _device.CreateTexture2D(_stagingDesc)
                         SyncLock _sync
                             _texturesCreated += 1
                         End SyncLock
 
-                        ' If shared-handle mode, obtain NT handle for cross-device sharing
+                        ' GPU copy: DXGI desktop texture → staging texture
+                        _deviceContext.CopyResource(stagingTexture, desktopTexture)
+
+                        ' If shared-handle mode, create shared texture + handle
                         Dim sharedHandle As IntPtr = IntPtr.Zero
                         If _useSharedHandle Then
-                            Dim dxgiRes As IDXGIResource1 = stagingTexture.QueryInterface(Of IDXGIResource1)()
-                            ' Vortice API: CreateSharedHandle(attributes, access, name) As IntPtr
-                            ' Returns the handle directly (NOT Result). Throws on failure.
-                            ' SharedResourceFlags is an enum — use ReadWrite for cross-device access.
+                            ' Create SEPARATE shared texture (WITH SharedNthandle)
+                            sharedTexture = _device.CreateTexture2D(_sharedDesc)
+                            SyncLock _sync
+                                _texturesCreated += 1
+                            End SyncLock
+
+                            ' Copy: staging → shared (same-device copy, always valid)
+                            _deviceContext.CopyResource(sharedTexture, stagingTexture)
+
+                            ' Create NT handle for cross-device sharing
+                            Dim dxgiRes As IDXGIResource1 = sharedTexture.QueryInterface(Of IDXGIResource1)()
                             Try
                                 sharedHandle = dxgiRes.CreateSharedHandle(Nothing, Vortice.DXGI.SharedResourceFlags.Read Or Vortice.DXGI.SharedResourceFlags.Write, Nothing)
+                                _logger.Info($"DdagrabBackend: shared handle created: 0x{sharedHandle.ToInt64():x16}")
                             Catch ex As Exception
                                 _logger.Error($"DdagrabBackend: CreateSharedHandle threw: {ex.Message}")
                                 dxgiRes.Dispose()
-                                stagingTexture.Dispose()
-                                SyncLock _sync
-                                    _texturesDisposed += 1
-                                End SyncLock
-                                SyncLock _sync
-                                    _errorCount += 1
-                                End SyncLock
-                                Continue Do
+                                GoTo skipFrame
                             End Try
                             dxgiRes.Dispose()
                         End If
 
-                        ' GPU copy: DXGI desktop texture → our staging texture
-                        _deviceContext.CopyResource(stagingTexture, desktopTexture)
-
-                        ' ReleaseFrame IMMEDIATELY — duplication requires ReleaseFrame
-                        ' before next AcquireNextFrame. The staging texture is now
-                        ' independent (we own it).
-                        Try
-                            _duplication.ReleaseFrame()
-                        Catch ex As Exception
-                            _logger.Warning($"DdagrabBackend: ReleaseFrame threw: {ex.Message}")
-                        End Try
-
                         ' ─── Construct D3D11VideoFrame + push to sink ─────────
-                        ' PTS = capture time (P1-A §3.6.1 Option β — pipeline PTS
-                        ' uses the same timebase as CaptureTimeTicks). Encoder
-                        ' will read frame.Diagnostics.PresentationTimestampTicks.
+                        ' In shared-handle mode: frame wraps sharedTexture (with handle)
+                        ' In direct mode: frame wraps stagingTexture (no handle)
+                        Dim frameTexture As ID3D11Texture2D = If(sharedTexture, stagingTexture)
                         frame = New D3D11VideoFrame(
-                            stagingTexture,
+                            frameTexture,
                             _outputWidth,
                             _outputHeight,
                             sequence,
                             attemptTime,
                             attemptTime,
-                            sharedHandle)  ' IntPtr.Zero for direct path, handle for shared path
-                        stagingTexture = Nothing  ' ownership transferred to frame
+                            sharedHandle)
+                        frameTexture = Nothing  ' ownership transferred to frame
 
-                        ' Set disposal callback for metric tracking — fires regardless
-                        ' of who disposes the frame (backend, sink, or consumer).
+                        ' Set disposal callback for metric tracking
                         frame.OnDisposed = Sub()
                                               SyncLock _sync
                                                   _texturesDisposed += 1
@@ -664,37 +680,37 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                                     _emittedFrames += 1
                                     _framesPushed += 1
                                 End SyncLock
-                                frame = Nothing  ' ownership transferred to sink
+                                frame = Nothing
                             Case PushOutcome.Replaced
                                 SyncLock _sync
                                     _emittedFrames += 1
                                     _replacedFrames += 1
-                                    _framesPushed += 1  ' new frame accepted
+                                    _framesPushed += 1
                                 End SyncLock
-                                frame = Nothing  ' ownership transferred to sink (old frame disposed by sink)
+                                frame = Nothing
                             Case PushOutcome.Dropped
                                 SyncLock _sync
                                     _droppedFrames += 1
                                     _framesDropped += 1
                                 End SyncLock
-                                ' Backend retains ownership — dispose immediately.
-                                ' frame.Dispose() triggers OnDisposed callback which increments _texturesDisposed.
-                                ' (No manual _texturesDisposed increment here — callback handles it.)
                                 frame?.Dispose()
                                 frame = Nothing
                         End Select
 
+skipFrame:
                     Catch ex As Exception
                         SyncLock _sync
                             _errorCount += 1
                         End SyncLock
                         _logger.Error($"DdagrabBackend: worker iteration failed: {ex.Message}", ex)
-                        ' Dispose any partially-created resources.
-                        ' If frame was constructed, frame.Dispose() triggers OnDisposed callback.
-                        ' If only stagingTexture exists (frame NOT constructed yet), manual increment needed.
                         If frame IsNot Nothing Then
                             frame.Dispose()
-                            ' OnDisposed callback handles _texturesDisposed += 1
+                        End If
+                        If sharedTexture IsNot Nothing Then
+                            sharedTexture.Dispose()
+                            SyncLock _sync
+                                _texturesDisposed += 1
+                            End SyncLock
                         End If
                         If stagingTexture IsNot Nothing Then
                             stagingTexture.Dispose()
@@ -703,11 +719,33 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                             End SyncLock
                         End If
                     Finally
-                        ' Always dispose the DXGI desktop texture wrapper.
-                        ' (The underlying DXGI texture belongs to the duplication
-                        ' and is released via ReleaseFrame above.)
+                        ' ALWAYS dispose the DXGI desktop texture wrapper
                         Try : desktopTexture?.Dispose() : Catch : End Try
                         Try : desktopResource?.Dispose() : Catch : End Try
+                        ' In shared-handle mode, staging texture is temporary (copy → shared done)
+                        ' Dispose it now — the shared texture (owned by frame) has the data.
+                        If sharedTexture IsNot Nothing AndAlso stagingTexture IsNot Nothing Then
+                            ' staging was already copied to shared — safe to dispose
+                            ' But only if frame was NOT constructed from stagingTexture
+                            ' (in direct mode, frame wraps stagingTexture — don't dispose here)
+                        End If
+                        ' Actually, in shared-handle mode, stagingTexture is NOT wrapped by frame
+                        ' (frame wraps sharedTexture). So dispose stagingTexture here.
+                        ' In direct mode, stagingTexture IS wrapped by frame — don't dispose.
+                        If _useSharedHandle AndAlso stagingTexture IsNot Nothing Then
+                            Try : stagingTexture.Dispose() : Catch : End Try
+                            SyncLock _sync
+                                _texturesDisposed += 1
+                            End SyncLock
+                        End If
+                        ' ALWAYS ReleaseFrame if AcquireNextFrame succeeded
+                        If frameAcquired Then
+                            Try
+                                _duplication.ReleaseFrame()
+                            Catch ex As Exception
+                                _logger.Warning($"DdagrabBackend: ReleaseFrame threw: {ex.Message}")
+                            End Try
+                        End If
                     End Try
 
                 Loop

@@ -199,20 +199,11 @@ Module Program
             logger.Info($"[{caseId}] Stopping NvencEncoderBackend...")
             encoder.Stop()
 
-            ' Drain remaining frames in sink
+            ' Drain remaining frames in sink — just dispose (do NOT encode after Stop)
+            ' Previous code tried to encode after Stop → InvalidOperationException → nvenc_errors=4
             Dim far2 As FrameAcquisitionResult
             Do While sink.TryTake(far2)
-                result.FramesAcquired += 1
-                Dim packet2 As EncodedPacket = Nothing
-                Try
-                    If encoder.Encode(far2.Frame, packet2) AndAlso packet2 IsNot Nothing Then
-                        result.EncodedPackets += 1
-                        result.EncodedBytes += CULng(packet2.PayloadLength)
-                        packet2.Dispose()
-                    End If
-                Catch ex As Exception
-                    result.NvencErrors += 1
-                End Try
+                ' Just dispose remaining frames — encoder is Stopped, can't Encode
                 far2.Frame?.Dispose()
             Loop
 
