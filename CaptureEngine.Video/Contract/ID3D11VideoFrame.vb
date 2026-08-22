@@ -75,14 +75,13 @@ Namespace CaptureEngine.Video
         Inherits IVideoFrame
 
         ''' <summary>
-        ''' Native ID3D11Texture2D pointer. The encoder wraps this via
-        ''' Vortice.Direct3D11.ID3D11Texture2D.FromPointer (does NOT take
-        ''' ownership — the wrapper is GC-eligible, the texture lives as
-        ''' long as the frame).
+        ''' The D3D11 texture object (boxed as Object to avoid leaking Vortice
+        ''' into the CaptureEngine.Video contract). The encoder casts this
+        ''' back to ID3D11Texture2D via DirectCast.
         '''
-        ''' Returns IntPtr.Zero only if the frame has been disposed (defensive).
+        ''' Returns Nothing if the frame has been disposed (defensive).
         ''' </summary>
-        ReadOnly Property NativeTexture As IntPtr
+        ReadOnly Property NativeTexture As Object
 
     End Interface
 

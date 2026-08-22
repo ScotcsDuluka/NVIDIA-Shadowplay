@@ -338,33 +338,21 @@ Namespace CaptureEngine.Encoder.Nvenc
                     $"Encoder cannot access the D3D11 texture for encoding.", ex)
             End Try
 
-            Dim texPtr As IntPtr = d3d11Frame.NativeTexture
-            If texPtr = IntPtr.Zero Then
-                RecordError("runtime", "Frame's NativeTexture is IntPtr.Zero (frame disposed?).")
-                TransitionToFaulted("Frame NativeTexture is Zero")
+            Dim texObj As Object = d3d11Frame.NativeTexture
+            If texObj Is Nothing Then
+                RecordError("runtime", "Frame's NativeTexture is Nothing (frame disposed?).")
+                TransitionToFaulted("Frame NativeTexture is Nothing")
                 Throw New EncoderRuntimeException(
-                    "Frame NativeTexture is IntPtr.Zero — frame may have been disposed " &
-                    "or backend failed to populate the texture pointer.")
+                    "Frame NativeTexture is Nothing — frame may have been disposed " &
+                    "or backend failed to populate the texture object.")
             End If
 
-            ' Wrap the native pointer in a Vortice ID3D11Texture2D wrapper.
-            ' This does NOT take ownership — the wrapper is GC-eligible, the
-            ' underlying texture lives as long as the frame (frame is BORROWED).
-            '
-            ' Vortice's COM types inherit from SharpGen.Runtime.ComObject.
-            ' ComObject.FromPointer(Of T)(IntPtr) is the PUBLIC factory method
-            ' that wraps an existing native COM pointer WITHOUT calling AddRef.
-            ' The caller is responsible for keeping the pointer alive —
-            ' D3D11VideoFrame guarantees this until its Dispose().
-            '
-            ' Previous attempts:
-            '   - ID3D11Texture2D.FromPointer — doesn't exist in Vortice 3.6.2
-            '   - Marshal.GetObjectForIUnknown + DirectCast — returns __ComObject
-            '     which can't be cast to Vortice's SharpGen-generated class type
-            '   - MarshaledPointer<T>.FromPointer — not a public API
-            '
-            ' ComObject.FromPointer<T> is the correct SharpGen API for this.
-            Dim frameTexture As ID3D11Texture2D = ComObject.FromPointer(Of ID3D11Texture2D)(texPtr)
+            ' DirectCast the boxed Object back to ID3D11Texture2D.
+            ' D3D11VideoFrame stores the actual Vortice ID3D11Texture2D object
+            ' (not just a pointer) — so this cast is type-safe and avoids the
+            ' COM wrapper creation problem (Marshal.GetObjectForIUnknown returns
+            ' __ComObject which can't be cast to Vortice's class type).
+            Dim frameTexture As ID3D11Texture2D = DirectCast(texObj, ID3D11Texture2D)
 
             ' ─── ENCODE HOT PATH (mirrors spike Phase 10) ────────────────
             ' All operations happen OUTSIDE _sync (no lock contention during encoding).

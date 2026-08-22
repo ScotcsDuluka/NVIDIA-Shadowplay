@@ -66,7 +66,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         ' ---- Native resource (released on Dispose) ----
         Private ReadOnly _stagingTexture As ID3D11Texture2D
-        Private _nativeTexturePtr As IntPtr  ' cached pointer (zeroed on Dispose)
+        Private _nativeTextureObj As Object  ' cached ID3D11Texture2D (Object type to avoid contract leak)
 
         ' ---- Disposal guard (0 = alive, 1 = disposed) ----
         Private _disposedState As Integer = 0
@@ -94,7 +94,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             If height <= 0 Then Throw New ArgumentOutOfRangeException(NameOf(height))
 
             _stagingTexture = stagingTexture
-            _nativeTexturePtr = stagingTexture.NativePointer
+            _nativeTextureObj = stagingTexture  ' store the actual Vortice object
             _origin = VideoFrameOrigin.GpuD3D11Texture
             _pixelFormat = VideoPixelFormat.Bgra8
             _dimensions = New VideoFrameDimensions(width, height)
@@ -129,15 +129,12 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         ' ---- ID3D11VideoFrame extension property ----
 
-        Public ReadOnly Property NativeTexture As IntPtr Implements ID3D11VideoFrame.NativeTexture
+        Public ReadOnly Property NativeTexture As Object Implements ID3D11VideoFrame.NativeTexture
             Get
-                ' Return zero if disposed (defensive — encoder checks for this).
-                ' Interlocked.Read ensures memory barrier; we use VolatileRead
-                ' via Thread.VolatileRead on the int guard.
                 If Thread.VolatileRead(_disposedState) <> 0 Then
-                    Return IntPtr.Zero
+                    Return Nothing
                 End If
-                Return _nativeTexturePtr
+                Return _nativeTextureObj
             End Get
         End Property
 
@@ -176,8 +173,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 ' Swallow — never throw from Dispose (per P1-B.1 FIX lesson #3).
             End Try
 
-            ' Clear the cached pointer (defensive — readers see Zero).
-            _nativeTexturePtr = IntPtr.Zero
+            ' Clear the cached reference (defensive — readers see Nothing).
+            _nativeTextureObj = Nothing
         End Sub
 
     End Class
