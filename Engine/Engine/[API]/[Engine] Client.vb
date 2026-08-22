@@ -217,9 +217,17 @@ Partial Public Class UI_Engine
         Try
             Select Case cmd
                 Case "engine_record_start"
-                    Await HandleEngineRecordStart(value, reqId)
+                    If _useNewEngine AndAlso _recordingEngine IsNot Nothing Then
+                        Await HandleRecordingStart(value, reqId)
+                    Else
+                        Await HandleEngineRecordStart(value, reqId)
+                    End If
                 Case "engine_record_stop"
-                    Await HandleEngineRecordStop(reqId)
+                    If _useNewEngine AndAlso _recordingEngine IsNot Nothing Then
+                        Await HandleRecordingStop(reqId)
+                    Else
+                        Await HandleEngineRecordStop(reqId)
+                    End If
                 Case "engine_replay_start"
                     HandleEngineReplayStart(value, reqId)
                 Case "engine_replay_stop"
@@ -227,7 +235,11 @@ Partial Public Class UI_Engine
                 Case "engine_replay_save"
                     HandleEngineReplaySave(value, reqId)
                 Case "engine_get_status"
-                    HandleEngineGetStatus(reqId)
+                    If _useNewEngine AndAlso _recordingEngine IsNot Nothing Then
+                        HandleRecordingGetStatus(reqId)
+                    Else
+                        HandleEngineGetStatus(reqId)
+                    End If
                 Case "engine_load_config"
                     HandleEngineLoadConfig(reqId)
                 Case "engine_set_encoder"

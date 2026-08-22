@@ -84,6 +84,7 @@ Partial Public Class UI_Engine
 
         LoadSettings()
         InitializeEngine()
+        InitializeRecordingEngine()  ' Phase 12b: initialize new RecordingEngine
         DetectEncoders()
 
         ' เชื่อมกับ API Hub
@@ -126,6 +127,7 @@ Partial Public Class UI_Engine
         If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
             _captureEngine.ForceStop()
         End If
+        DisposeRecordingEngine()  ' Phase 12b: dispose new RecordingEngine
         SaveSettings()
         If tcp IsNot Nothing Then
             tcp.Disconnect()
