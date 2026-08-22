@@ -31,7 +31,7 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
             runner("DDAGRAB LIFECYCLE: Initialize after Dispose (ObjectDisposedException)", AddressOf Test_InitializeAfterDispose)
             runner("DDAGRAB LIFECYCLE: Initialize twice (second is failure)", AddressOf Test_InitializeTwice)
             runner("DDAGRAB LIFECYCLE: Initialize wrong BackendKind (negative)", AddressOf Test_InitializeWrongBackendKind)
-            runner("DDAGRAB LIFECYCLE: Skeleton NoFrameCount increments while running", AddressOf Test_NoFrameCountIncrements)
+            runner("DDAGRAB LIFECYCLE: Worker loop progresses (real DXGI)", AddressOf Test_NoFrameCountIncrements)
             runner("DDAGRAB LIFECYCLE: Factory returns DdagrabBackend for Ddagrab kind", AddressOf Test_FactoryReturnsDdagrabBackend)
             runner("DDAGRAB LIFECYCLE: Factory throws for non-Ddagrab kind", AddressOf Test_FactoryThrowsForNonDdagrabKind)
             runner("DDAGRAB LIFECYCLE: DdagrabFrame disposable + dispose-counted", AddressOf Test_DdagrabFrameDisposable)
@@ -202,28 +202,42 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
         End Sub
 
         Private Shared Sub Test_NoFrameCountIncrements()
+            ' Phase 12b: updated from the skeleton-era contract to REAL DXGI.
+            ' The old asserts (NoFrameCount >= 5 fast-spin + EmittedFrames = 0)
+            ' assumed the removed NoFrame skeleton worker. With real Output
+            ' Duplication: an ACTIVE desktop delivers frames (EmittedFrames
+            ' grows) while a QUIET desktop times out AcquireNextFrame(100ms)
+            ' (NoFrameCount grows). Worker liveness = either counter moving.
+            ' Windows evidence 2026-08-23: quiet assert failed with NoFrame=2
+            ' BECAUSE frames were being emitted — then the leaked Running
+            ' backend (no Try/Finally) caused E_INVALIDARG cascade (Phase-11
+            ' lesson #2: one duplication per output per process).
             Dim backend = CreateDefaultBackend()
             backend.WithInterAttemptDelayMs(1)
             backend.Initialize(CreateDdagrabContext())
-            backend.Start(New RecordingVideoFrameSink())
+            Dim sink As New RecordingVideoFrameSink()
 
-            ' Wait for the skeleton worker to spin a few iterations.
-            TestHelpers.Assert(
-                TestHelpers.SpinWaitFor(Function() backend.Diagnostics.NoFrameCount >= 5, 1000),
-                "Expected NoFrameCount >= 5 within 1 s (skeleton worker should spin). Was: " &
-                backend.Diagnostics.NoFrameCount)
+            Dim progressed As Boolean
+            Try
+                backend.Start(sink)
 
-            backend.Stop()
-            backend.Dispose()
+                progressed = TestHelpers.SpinWaitFor(
+                    Function() backend.Diagnostics.NoFrameCount + backend.Diagnostics.EmittedFrames >= 1,
+                    3000)
+                TestHelpers.Assert(
+                    progressed,
+                    "Worker loop must progress within 3 s (real DXGI: active desktop emits frames, " &
+                    "quiet desktop accumulates NoFrame). Was: noFrame=" & backend.Diagnostics.NoFrameCount &
+                    ", emitted=" & backend.Diagnostics.EmittedFrames)
+            Finally
+                ' Ownership rule (Phase-11 lesson #2): ALWAYS release the output
+                ' duplication — even when an assert throws mid-test.
+                Try : backend.Stop() : Catch : End Try
+                Try : backend.Dispose() : Catch : End Try
+            End Try
 
-            ' Skeleton emits NoFrame forever — no frames should be pushed.
-            TestHelpers.AssertEqual(0L, backend.Diagnostics.EmittedFrames, "EmittedFrames must be 0 (skeleton)")
-            TestHelpers.AssertEqual(0L, backend.Diagnostics.DroppedFrames, "DroppedFrames must be 0 (skeleton)")
-            TestHelpers.AssertEqual(0L, backend.Diagnostics.ReplacedFrames, "ReplacedFrames must be 0 (skeleton)")
-            TestHelpers.AssertEqual(0L, backend.Diagnostics.ErrorCount, "ErrorCount must be 0 (skeleton)")
-            TestHelpers.Assert(
-                backend.Diagnostics.NoFrameCount >= 5,
-                "NoFrameCount >= 5 after Stop. Was: " & backend.Diagnostics.NoFrameCount)
+            ' Health: real DXGI interaction must be error-free.
+            TestHelpers.AssertEqual(0L, backend.Diagnostics.ErrorCount, "ErrorCount must be 0 (healthy DXGI run)")
         End Sub
 
         Private Shared Sub Test_FactoryReturnsDdagrabBackend()
@@ -273,8 +287,13 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
             Dim backend = CreateDefaultBackend()
             backend.WithInterAttemptDelayMs(0)  ' hot-loop the worker
             backend.Initialize(CreateDdagrabContext())
-            backend.Start(New RecordingVideoFrameSink())
-            Thread.Sleep(20)  ' let the worker spin briefly
+            Try
+                backend.Start(New RecordingVideoFrameSink())
+                Thread.Sleep(20)  ' let the worker spin briefly
+            Finally
+                ' Even if Start itself throws, release the duplication.
+                Try : backend.Dispose() : Catch : End Try
+            End Try
 
             Dim sw = Stopwatch.StartNew()
             backend.Dispose()
@@ -294,8 +313,12 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
             Dim backend = CreateDefaultBackend()
             backend.WithInterAttemptDelayMs(0)
             backend.Initialize(CreateDdagrabContext())
-            backend.Start(New RecordingVideoFrameSink())
-            Thread.Sleep(10)
+            Try
+                backend.Start(New RecordingVideoFrameSink())
+                Thread.Sleep(10)
+            Finally
+                Try : backend.Dispose() : Catch : End Try
+            End Try
 
             Dim sw = Stopwatch.StartNew()
             For i As Integer = 1 To 100

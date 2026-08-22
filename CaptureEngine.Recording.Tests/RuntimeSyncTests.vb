@@ -62,6 +62,23 @@ Namespace CaptureEngine.Recording.Tests
 
         ' ─── FFmpeg discovery ──────────────────────────────────────────
 
+        ''' <summary>
+        ''' Phase 12b: walk up from the test bin dir to the repo root and
+        ''' find the production deployment at Overlay\API-Core. Without this
+        ''' the runtime sync suite SKIPs on Windows even though the real
+        ''' ffmpeg exists there (first Windows validation 2026-08-23).
+        ''' </summary>
+        Private Function FindRepoRootFFmpeg() As String
+            Dim dir As New DirectoryInfo(AppDomain.CurrentDomain.BaseDirectory)
+            For i As Integer = 1 To 8
+                If dir Is Nothing Then Return Nothing
+                Dim candidate As String = Path.Combine(dir.FullName, "Overlay", "API-Core", "ffmpeg.exe")
+                If File.Exists(candidate) Then Return candidate
+                dir = dir.Parent
+            Next
+            Return Nothing
+        End Function
+
         Private Function DiscoverFFmpeg() As Boolean
             Dim root As String = Environment.GetEnvironmentVariable("RRT_FFMPEG")
             Dim candidates As New List(Of String)
@@ -73,6 +90,7 @@ Namespace CaptureEngine.Recording.Tests
             candidates.Add("/usr/bin/ffmpeg")       ' Linux CI box
             candidates.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"))
             candidates.Add(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "API-Core", "ffmpeg.exe"))
+            candidates.Add(FindRepoRootFFmpeg())    ' Windows repo checkout → Overlay\API-Core
 
             Dim found As String = Nothing
             For Each c As String In candidates

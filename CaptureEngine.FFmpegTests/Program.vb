@@ -319,13 +319,30 @@ Namespace CaptureEngine.FFmpegTests
 
         ' ===== Integration test (requires real ffmpeg.exe) =====
 
+        ' Phase 12b: walk up from the test bin dir to the repo root and
+        ' find the production deployment at Overlay\API-Core\ffmpeg.exe
+        ' (Windows: C:\My Project\NVIDIA-Shadowplay\Overlay\API-Core\ffmpeg.exe).
+        ' Without this, integration tests SKIP on Windows even though the
+        ' production ffmpeg exists (first Windows validation 2026-08-23).
+        Private Function FindRepoFFmpeg() As String
+            Dim dir As New IO.DirectoryInfo(System.AppDomain.CurrentDomain.BaseDirectory)
+            For i As Integer = 1 To 8
+                If dir Is Nothing Then Return Nothing
+                Dim candidate As String = IO.Path.Combine(dir.FullName, "Overlay", "API-Core", "ffmpeg.exe")
+                If IO.File.Exists(candidate) Then Return candidate
+                dir = dir.Parent
+            Next
+            Return Nothing
+        End Function
+
         Private Sub Test_RealFFmpegIntegration()
             ' Find ffmpeg.exe — try common paths
             Dim ffmpegCandidates As String() = {
                 "/usr/bin/ffmpeg",
                 "/usr/local/bin/ffmpeg",
                 IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
-                IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "API-Core", "ffmpeg.exe")
+                IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "API-Core", "ffmpeg.exe"),
+                FindRepoFFmpeg()
             }
             Dim ffmpegPath As String = Nothing
             For Each c In ffmpegCandidates
@@ -417,7 +434,8 @@ Namespace CaptureEngine.FFmpegTests
             ' Find ffmpeg
             Dim ffmpegPath As String = Nothing
             For Each c In {"/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg",
-                           IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe")}
+                           IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
+                           FindRepoFFmpeg()}
                 If IO.File.Exists(c) Then
                     ffmpegPath = c
                     Exit For
