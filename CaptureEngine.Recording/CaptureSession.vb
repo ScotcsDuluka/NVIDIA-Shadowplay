@@ -93,7 +93,7 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] Audio: {waveFormat.Channels}ch {waveFormat.SampleRate}Hz {waveFormat.BitsPerSample}bit")
                 wavWriter = New WaveFileWriter(tempWav, waveFormat)
 
-                audioCapture.DataAvailable += Sub(s, e)
+                AddHandler audioCapture.DataAvailable, Sub(s, e)
                     If e.BytesRecorded > 0 Then
                         wavWriter.Write(e.Buffer, 0, e.BytesRecorded)
                         totalAudioBytes += e.BytesRecorded
@@ -104,7 +104,7 @@ Namespace CaptureEngine.Recording
                     End If
                 End Sub
 
-                audioCapture.RecordingStopped += Sub(s, e)
+                AddHandler audioCapture.RecordingStopped, Sub(s, e)
                     wavWriter.Flush()
                     wavWriter.Dispose()
                 End Sub
@@ -187,7 +187,7 @@ Namespace CaptureEngine.Recording
 
                 ' ─── 9. FFmpeg mux → MP4 ─────────────────────────────────
                 _logger.Info("[session] Muxing video + audio → MP4...")
-                Dim mux As New MuxCoordinator(_logger) With {
+                Dim mux As New MuxCoordinator() With {
                     .FFmpegPath = _config.FFmpegPath,
                     .TempVideoPath = tempH264,
                     .TempSystemWavPath = tempWav,
