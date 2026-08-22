@@ -2,10 +2,32 @@
 //
 // Phase 11: Recording Session Lifecycle & Repeated Start/Stop Stability
 //
+// ═══════════════════════════════════════════════════════════════════════
+// STATUS: INTENTIONAL FAIL — see Phase11_PostMortem.md
+// ═══════════════════════════════════════════════════════════════════════
+//
 // Phase 10 proved: DXGI → NVENC H.264 + NAudio WASAPI Loopback → AAC → MP4
 // produces a real recording with both Video + Audio streams.
 //
-// Phase 11 proves: the session lifecycle is STABLE across:
+// Phase 11 attempted to prove the spike's session lifecycle is STABLE across
+// multi-session scenarios. It FAILED, and that failure is the intended
+// outcome of this phase — see Phase11_PostMortem.md for the full analysis.
+//
+// Three resource ownership flaws were discovered:
+//   1. FFmpeg path resolution relies on PATH (production needs deployment-root)
+//   2. DXGI OutputDuplication cannot be re-created per session (Windows
+//      limits 1 duplication per output per process; needs persistent owner)
+//   3. NVENC encoder sessions cannot be re-opened per session (driver limit
+//      of ~3-5 concurrent encoders on GeForce; needs persistent owner)
+//
+// These flaws are NOT bugs to fix in the spike. They are architectural
+// findings that inform Phase 12 (Production RecordingEngine Architecture).
+//
+// Do NOT modify this file to make Phase 11 PASS. The FAIL is the contract.
+//
+// ═══════════════════════════════════════════════════════════════════════
+//
+// Test matrix (still executes for evidence):
 //   - 3 × 30s normal repeated recordings (Test A)
 //   - 1s / 5s / 10s early-stop recordings (Test B)
 //   - 5 × immediate Start→Stop→Start→Stop cycles (Test C)
