@@ -68,6 +68,7 @@ Namespace CaptureEngine.Recording
 
             ' ─── Temp file paths ─────────────────────────────────────────
             Dim tempH264 As String = Path.ChangeExtension(_config.OutputPath, ".tmp.h264")
+            Dim tempVideoMp4 As String = Path.ChangeExtension(_config.OutputPath, ".tmp.video.mp4")
             Dim tempWav As String = Path.ChangeExtension(_config.OutputPath, ".tmp.wav")
 
             ' ─── Resources ───────────────────────────────────────────────
@@ -181,6 +182,34 @@ Namespace CaptureEngine.Recording
                 videoFile.Dispose()
                 videoFile = Nothing
 
+                ' ─── 8b. Wrap raw H.264 into MP4 container ─────────────
+                ' MuxCoordinator expects a container file (MP4), not raw H.264.
+                ' FFmpeg reads raw H.264 with -f h264 -r <fps> and outputs MP4.
+                _logger.Info("[session] Wrapping H.264 into MP4 container...")
+                Dim displayRefreshHz As Double = If(result.ActualDurationSec > 0,
+                    result.FramesEncoded / result.ActualDurationSec, 60.0)
+                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {CInt(Math.Round(displayRefreshHz))} -i \"{tempH264}\" -c:v copy \"{tempVideoMp4}\""
+                Dim wrapPsi As New ProcessStartInfo With {
+                    .FileName = _config.FFmpegPath,
+                    .Arguments = wrapArgs,
+                    .UseShellExecute = False,
+                    .RedirectStandardError = True,
+                    .CreateNoWindow = True
+                }
+                Try
+                    Using wrapProc As Process = Process.Start(wrapPsi)
+                        wrapProc.StandardError.ReadToEnd()
+                        wrapProc.WaitForExit(30000)
+                        If wrapProc.ExitCode <> 0 Then
+                            _logger.Error($"[session] H.264 wrap failed: exit code {wrapProc.ExitCode}")
+                        Else
+                            _logger.Info("[session] H.264 wrap succeeded")
+                        End If
+                    End Using
+                Catch ex As Exception
+                    _logger.Error($"[session] H.264 wrap threw: {ex.Message}")
+                End Try
+
                 result.AudioSamples = totalAudioSamples
                 result.AudioBytes = totalAudioBytes
                 result.ActualDurationSec = sw.Elapsed.TotalSeconds
@@ -189,7 +218,7 @@ Namespace CaptureEngine.Recording
                 _logger.Info("[session] Muxing video + audio → MP4...")
                 Dim mux As New MuxCoordinator() With {
                     .FFmpegPath = _config.FFmpegPath,
-                    .TempVideoPath = tempH264,
+                    .TempVideoPath = tempVideoMp4,
                     .TempSystemWavPath = tempWav,
                     .OutputPath = _config.OutputPath,
                     .HasSystemAudio = True,
@@ -202,6 +231,9 @@ Namespace CaptureEngine.Recording
                 If muxOk Then
                     _logger.Info("[session] Mux succeeded — cleaning temp files")
                     mux.CleanupTempFiles()
+                    ' Also delete raw H.264 + temp video MP4
+                    Try : File.Delete(tempH264) : Catch : End Try
+                    Try : File.Delete(tempVideoMp4) : Catch : End Try
                 Else
                     _logger.Error("[session] Mux FAILED — keeping temp files for debugging")
                 End If
