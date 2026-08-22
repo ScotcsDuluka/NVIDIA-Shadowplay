@@ -259,6 +259,17 @@ Module Program
                 result.LeakInvariant = (result.TexturesCreated = result.TexturesDisposed)
             End If
 
+            ' ─── Re-evaluate Pass with FINAL metrics ──────────────────────
+            ' (LeakInvariant is only valid after sink.Dispose() drains all frames)
+            If String.IsNullOrEmpty(result.ErrorMessage) Then
+                result.Pass =
+                    result.FramesAcquired > 0 AndAlso
+                    result.EncodedPackets > 0 AndAlso
+                    result.EncodedBytes > 0 AndAlso
+                    result.NvencErrors = 0 AndAlso
+                    result.LeakInvariant
+            End If
+
             Try : backend?.Dispose() : Catch ex As Exception : logger.Warning($"backend.Dispose: {ex.Message}") : End Try
         End Try
 
