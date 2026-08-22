@@ -535,10 +535,13 @@ public static class Phase10_RealRecording
 
 
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
-        // Calculate actual FPS from capture
+        // Calculate actual FPS from capture — pull refresh rate from shared context
+        // (duplDesc is local to Run(); RunRecording is a separate method so we
+        //  must re-read from SpikeSharedContext.DuplicationDesc here.)
         double elapsedSec = sw.Elapsed.TotalSeconds;
-        double displayRefreshHz = (double)duplDesc.ModeDescription.RefreshRate.Numerator /
-                                  Math.Max(1.0, duplDesc.ModeDescription.RefreshRate.Denominator);
+        var muxDuplDesc = SpikeSharedContext.DuplicationDesc!.Value;
+        double displayRefreshHz = (double)muxDuplDesc.ModeDescription.RefreshRate.Numerator /
+                                  Math.Max(1.0, muxDuplDesc.ModeDescription.RefreshRate.Denominator);
         int fpsRounded = (int)Math.Round(displayRefreshHz);
         if (fpsRounded < 1) fpsRounded = 30;
         Console.WriteLine($"  Display refresh: {displayRefreshHz:F2} Hz (using {fpsRounded} fps for mux)");
