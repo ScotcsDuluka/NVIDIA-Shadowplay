@@ -458,10 +458,26 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  Actual capture FPS: {actualFps:F2} (using {fpsRounded} for mux)");
 
         bool hasAudio = audioCtx.TotalBytes > 0 && File.Exists(tempWav);
+
+        // A2: Validate WAV before mux
+        if (hasAudio)
+        {
+            Console.WriteLine($"  Audio WAV: {audioCtx.TotalBytes} bytes, {audioCtx.TotalSamples} samples");
+            var wavInfo = new FileInfo(tempWav);
+            Console.WriteLine($"  Audio WAV file size: {wavInfo.Length} bytes");
+            if (wavInfo.Length < 44)
+            {
+                Console.WriteLine("  WARNING: WAV file too small — likely invalid header only.");
+                hasAudio = false;
+            }
+        }
+
+        // A3: Use explicit stream mapping
         string ffmpegArgs;
         if (hasAudio)
         {
-            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+            // Explicit -map to ensure both streams are included
+            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
         }
         else
         {
@@ -497,8 +513,9 @@ public static class Phase10_RealRecording
         try { duplication.Dispose(); } catch { }
         Console.WriteLine("  Cleanup done.");
 
-        try { File.Delete(tempH264); } catch { }
-        try { File.Delete(tempWav); } catch { }
+        // Keep temp files until MP4 is verified
+        // try { File.Delete(tempH264); } catch { }
+        // try { File.Delete(tempWav); } catch { }
 
         Console.WriteLine();
         Console.WriteLine("============================================================");
@@ -517,6 +534,38 @@ public static class Phase10_RealRecording
         Console.WriteLine("  audio_codec:             AAC (FFmpeg)");
         Console.WriteLine("  container:               MP4");
         FileInfo fileInfo = new(s_outputPath!);
+
+        // A4: Verify MP4 streams using FFmpeg
+        Console.WriteLine();
+        Console.WriteLine("[10.8] Verifying MP4 streams...");
+        var verifyPsi = new ProcessStartInfo
+        {
+            FileName = s_ffmpegPath,
+            Arguments = $"-i \"{s_outputPath}\" -f null -",
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        try
+        {
+            var verifyProc = Process.Start(verifyPsi);
+            if (verifyProc != null)
+            {
+                string verifyErr = verifyProc.StandardError.ReadToEnd();
+                verifyProc.WaitForExit(10000);
+                bool hasVideoStream = verifyErr.Contains("Stream #0:0") && verifyErr.Contains("Video:");
+                bool hasAudioStream = verifyErr.Contains("Stream #0:") && verifyErr.Contains("Audio:");
+                Console.WriteLine($"  Video stream: {(hasVideoStream ? "FOUND" : "MISSING")}");
+                Console.WriteLine($"  Audio stream: {(hasAudioStream ? "FOUND" : "MISSING")}");
+                // Print stream lines
+                foreach (var line in verifyErr.Split('\n'))
+                {
+                    if (line.Contains("Stream #") || line.Contains("Duration:"))
+                        Console.WriteLine($"  FFmpeg: {line.Trim()}");
+                }
+            }
+        }
+        catch { }
         if (fileInfo.Exists)
         {
             Console.WriteLine($"  file_size: {fileInfo.Length} bytes ({fileInfo.Length / 1024.0 / 1024.0:F2} MB)");
