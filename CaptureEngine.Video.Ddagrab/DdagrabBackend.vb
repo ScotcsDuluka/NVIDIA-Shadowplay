@@ -605,7 +605,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                             ' Returns the handle directly (NOT Result). Throws on failure.
                             ' SharedResourceFlags is an enum — use ReadWrite for cross-device access.
                             Try
-                                sharedHandle = dxgiRes.CreateSharedHandle(Nothing, Vortice.DXGI.SharedResourceFlags.ReadWrite, Nothing)
+                                sharedHandle = dxgiRes.CreateSharedHandle(Nothing, Vortice.DXGI.SharedResourceFlags.Read Or Vortice.DXGI.SharedResourceFlags.Write, Nothing)
                             Catch ex As Exception
                                 _logger.Error($"DdagrabBackend: CreateSharedHandle threw: {ex.Message}")
                                 dxgiRes.Dispose()
