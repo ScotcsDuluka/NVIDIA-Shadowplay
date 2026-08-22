@@ -58,6 +58,61 @@ namespace CaptureEngine.Video.Spike.D3D11.Phases;
 
 public static class Phase10_RealRecording
 {
+    // ─── SessionResult ───────────────────────────────────────────────────
+    // Structured return from RunRecording so Phase 11 can aggregate results
+    // without parsing console output. All fields are value types or strings
+    // so the struct is safe to copy.
+    public sealed class SessionResult
+    {
+        public string OutputPath = "";
+        public string LogPrefix = "10";
+        public int RequestedDurationSec;
+        public double ActualDurationSec;
+
+        // Video
+        public long FramesCaptured;
+        public long FramesEncoded;
+        public long Drops;
+        public long NvencErrors;
+        public long TotalVideoBytes;
+        public bool VideoStreamFound;
+
+        // Audio
+        public long AudioSamples;
+        public long AudioBytes;
+        public bool AudioCaptured;
+        public bool AudioStreamFound;
+
+        // Output file
+        public bool FileExists;
+        public long FileSize;
+        public string ErrorMessage = "";
+
+        // Verdict
+        public bool Pass =>
+            FramesEncoded > 0 &&
+            NvencErrors == 0 &&
+            FileExists &&
+            FileSize > 0 &&
+            VideoStreamFound &&
+            AudioCaptured &&
+            AudioStreamFound;
+
+        public string VerdictReason =>
+            (FramesEncoded == 0, NvencErrors != 0, !FileExists, !VideoStreamFound, !AudioCaptured, !AudioStreamFound) switch
+            {
+                (true, _, _, _, _, _) => "FAIL: no frames encoded",
+                (_, true, _, _, _, _) => $"FAIL: NVENC errors ({NvencErrors})",
+                (_, _, true, _, _, _) => "FAIL: output file not created",
+                (_, _, _, true, _, _) => "FAIL: video stream missing from MP4",
+                (_, _, _, _, true, _) => "FAIL: audio capture failed (0 samples)",
+                (_, _, _, _, _, true) => "FAIL: audio stream missing from MP4 (mux failed)",
+                _ => "PASS — video + audio recording produced",
+            };
+
+        public static SessionResult Failure(string msg) => new() { ErrorMessage = msg };
+    }
+
     [DllImport("ole32.dll")]
     private static extern int CoInitializeEx(IntPtr pvReserved, uint dwCoInit);
 
@@ -184,6 +239,46 @@ public static class Phase10_RealRecording
     private static string? s_ffmpegPath;
     private static int s_durationSeconds = 30;
 
+    // ─── Public entry point for Phase 11 (and any future caller) ─────────
+    // Runs one full recording session and returns a structured result.
+    // Reuses SpikeSharedContext (D3D11 device + adapter) — caller must
+    // ensure Phase 1-3 have run at least once before calling this.
+    //
+    // If SpikeSharedContext.Device is null (Phase 1-3 not yet run), this
+    // method auto-runs Phase 1-3 first. Subsequent calls reuse the shared
+    // device — only per-session resources (NVENC encoder, duplication, audio
+    // capture, FFmpeg process) are created and destroyed per call.
+    public static SessionResult RunOne(string outputPath, string ffmpegPath, int durationSeconds, string logPrefix = "10")
+    {
+        if (string.IsNullOrWhiteSpace(outputPath))
+            return SessionResult.Failure("outputPath is null or empty");
+        if (durationSeconds < 1)
+            return SessionResult.Failure($"durationSeconds={durationSeconds} must be >= 1");
+
+        // Resolve FFmpeg if not provided
+        if (string.IsNullOrWhiteSpace(ffmpegPath))
+        {
+            var found = FindFFmpeg();
+            ffmpegPath = found ?? "ffmpeg";
+        }
+
+        // Ensure Phase 1-3 shared context exists (no-op if already done)
+        if (SpikeSharedContext.Device == null || SpikeSharedContext.DuplicationDesc == null)
+        {
+            Console.WriteLine($"  [{logPrefix}] Phase 1-3 not yet run — auto-running...");
+            int p1 = Phase1_DeviceTest.Run(); if (p1 != 0) return SessionResult.Failure("Phase 1 failed");
+            int p2 = Phase2_DesktopDuplication.Run(); if (p2 != 0) return SessionResult.Failure("Phase 2 failed");
+            int p3 = Phase3_TextureOwnership.Run(); if (p3 != 0) return SessionResult.Failure("Phase 3 failed");
+        }
+
+        var device = SpikeSharedContext.Device!;
+        var duplDesc = SpikeSharedContext.DuplicationDesc!.Value;
+        uint texW = duplDesc.ModeDescription.Width;
+        uint texH = duplDesc.ModeDescription.Height;
+
+        return RunRecording(device, texW, texH, outputPath, ffmpegPath, durationSeconds, logPrefix);
+    }
+
     public static int Run()
     {
         Console.WriteLine("============================================================");
@@ -199,43 +294,43 @@ public static class Phase10_RealRecording
             else if (args[i] == "--duration" && int.TryParse(args[++i], out int d)) s_durationSeconds = d;
         }
         s_outputPath ??= "phase10_recording.mp4";
-        s_ffmpegPath ??= "ffmpeg";
-        var resolvedFfmpeg = FindFFmpeg();
-        if (resolvedFfmpeg != null) s_ffmpegPath = resolvedFfmpeg;
+        s_ffmpegPath ??= FindFFmpeg() ?? "ffmpeg";
 
         Console.WriteLine($"  Output:     {s_outputPath}");
         Console.WriteLine($"  FFmpeg:     {s_ffmpegPath}");
         Console.WriteLine($"  Duration:   {s_durationSeconds}s");
         Console.WriteLine();
 
-        if (SpikeSharedContext.Device == null || SpikeSharedContext.DuplicationDesc == null)
-        {
-            Console.WriteLine("  Phase 1-3 not yet run — auto-running...");
-            int p1 = Phase1_DeviceTest.Run(); if (p1 != 0) { Console.Error.WriteLine("  FAIL: Phase 1."); return 1; }
-            int p2 = Phase2_DesktopDuplication.Run(); if (p2 != 0) { Console.Error.WriteLine("  FAIL: Phase 2."); return 1; }
-            int p3 = Phase3_TextureOwnership.Run(); if (p3 != 0) { Console.Error.WriteLine("  FAIL: Phase 3."); return 1; }
-            Console.WriteLine();
-        }
+        var result = RunOne(s_outputPath, s_ffmpegPath, s_durationSeconds, logPrefix: "10");
 
-        var device = SpikeSharedContext.Device!;
-        var duplDesc = SpikeSharedContext.DuplicationDesc!.Value;
-        uint texW = duplDesc.ModeDescription.Width;
-        uint texH = duplDesc.ModeDescription.Height;
-        Console.WriteLine($"  Video: {texW}x{texH} H.264 NVENC");
-        Console.WriteLine("  Audio: WASAPI Loopback → PCM → AAC (via FFmpeg)");
+        // Verdict — printed here (not in RunOne) so Phase 11 controls its own verdict printing.
+        Console.WriteLine();
+        Console.WriteLine($"  Phase 10: {result.VerdictReason}");
         Console.WriteLine();
 
-        return RunRecording(device, texW, texH);
+        return result.Pass ? 0 : 1;
     }
 
-    private static int RunRecording(ID3D11Device device, uint texW, uint texH)
+    // ─── Core recording session (now public + parameterized) ─────────────
+    // Returns SessionResult so callers (Phase 10 wrapper, Phase 11 matrix)
+    // can aggregate without parsing console output.
+    public static SessionResult RunRecording(ID3D11Device device, uint texW, uint texH,
+                                              string outputPath, string ffmpegPath,
+                                              int durationSec, string logPrefix)
     {
-        string tempWav = Path.ChangeExtension(s_outputPath!, ".tmp.wav");
-        string tempH264 = Path.ChangeExtension(s_outputPath!, ".tmp.h264");
+        var result = new SessionResult
+        {
+            OutputPath = outputPath,
+            LogPrefix = logPrefix,
+            RequestedDurationSec = durationSec,
+        };
 
-        Console.WriteLine("[10.1] Setting up NVENC encoder...");
+        string tempWav = Path.ChangeExtension(outputPath, ".tmp.wav");
+        string tempH264 = Path.ChangeExtension(outputPath, ".tmp.h264");
+
+        Console.WriteLine($"[{logPrefix}.1] Setting up NVENC encoder...");
         using var nvenc = new NvEncFunctionTable();
-        if (!nvenc.TryLoad()) { Console.Error.WriteLine("  FAIL: NVENC load."); return 1; }
+        if (!nvenc.TryLoad()) { Console.Error.WriteLine("  FAIL: NVENC load."); result.ErrorMessage = "NVENC load failed"; return result; }
 
         var sessionParams = new NvEncodeAPI.NV_ENC_OPEN_ENCODE_SESSION_EX_PARAMS
         {
@@ -248,7 +343,7 @@ public static class Phase10_RealRecording
             reserved2 = new IntPtr[64],
         };
         uint status = nvenc.OpenEncodeSessionEx!(ref sessionParams, out IntPtr encoder);
-        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: OpenSession: {status}"); return 1; }
+        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: OpenSession: {status}"); result.ErrorMessage = $"OpenSession: {status}"; return result; }
 
         var initParams = new NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS
         {
@@ -264,7 +359,7 @@ public static class Phase10_RealRecording
             reserved = new uint[289], reserved2 = new IntPtr[64],
         };
         status = nvenc.InitializeEncoder!(encoder, ref initParams);
-        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: Init: {status}"); return 1; }
+        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: Init: {status}"); result.ErrorMessage = $"Init: {status}"; return result; }
 
         var bsParams = new NvEncodeAPI.NV_ENC_CREATE_BITSTREAM_BUFFER
         {
@@ -273,7 +368,7 @@ public static class Phase10_RealRecording
             reserved3 = new uint[226], reserved4 = new IntPtr[64],
         };
         status = nvenc.CreateBitstreamBuffer!(encoder, ref bsParams);
-        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: BS: {status}"); return 1; }
+        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: BS: {status}"); result.ErrorMessage = $"BS: {status}"; return result; }
         IntPtr bitstreamBuffer = bsParams.bitstreamBuffer;
 
         var texDesc = new Texture2DDescription
@@ -295,12 +390,12 @@ public static class Phase10_RealRecording
             reserved1 = new uint[248], reserved2 = new IntPtr[62],
         };
         status = nvenc.RegisterResource!(encoder, ref regParams);
-        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: Register: {status}"); return 1; }
+        if (status != NvEncodeAPI.NV_ENC_SUCCESS) { Console.Error.WriteLine($"  FAIL: Register: {status}"); result.ErrorMessage = $"Register: {status}"; return result; }
         IntPtr registeredResource = regParams.registeredResource;
         Console.WriteLine("  PASS: NVENC ready.");
         Console.WriteLine();
 
-        Console.WriteLine("[10.2] Creating DXGI Output Duplication...");
+        Console.WriteLine($"[{logPrefix}.2] Creating DXGI Output Duplication...");
         IDXGIOutput? primaryOutput = null;
         int outIdx = 0;
         while (SpikeSharedContext.TargetAdapter!.EnumOutputs((uint)outIdx, out IDXGIOutput out_).Success)
@@ -314,13 +409,13 @@ public static class Phase10_RealRecording
         Console.WriteLine("  PASS: Duplication ready.");
         Console.WriteLine();
 
-        Console.WriteLine("[10.3] Starting FFmpeg video pipe (raw H.264 → file)...");
+        Console.WriteLine($"[{logPrefix}.3] Starting FFmpeg video pipe (raw H.264 → file)...");
         var videoFile = new FileStream(tempH264, FileMode.Create, FileAccess.Write);
         Console.WriteLine($"  Writing raw H.264 to: {tempH264}");
         Console.WriteLine();
 
-        Console.WriteLine("[10.4] Starting WASAPI audio capture thread...");
-        var audioCtx = new AudioContext();
+        Console.WriteLine($"[{logPrefix}.4] Starting WASAPI audio capture thread...");
+        var audioCtx = new AudioContext { DurationSeconds = durationSec };
         var audioThread = new Thread(() => AudioCaptureLoop(audioCtx, tempWav))
         {
             IsBackground = true,
@@ -330,11 +425,11 @@ public static class Phase10_RealRecording
         Console.WriteLine("  Audio thread started.");
         Console.WriteLine();
 
-        Console.WriteLine($"[10.5] Recording for {s_durationSeconds}s...");
+        Console.WriteLine($"[{logPrefix}.5] Recording for {durationSec}s...");
         Console.WriteLine();
         var deviceCtx = device.ImmediateContext;
         var sw = Stopwatch.StartNew();
-        var duration = TimeSpan.FromSeconds(s_durationSeconds);
+        var duration = TimeSpan.FromSeconds(durationSec);
 
         long framesCaptured = 0, framesEncoded = 0, drops = 0, nvencErrors = 0;
         long totalVideoBytes = 0;
@@ -443,7 +538,7 @@ public static class Phase10_RealRecording
             Console.WriteLine($"  Video capture complete: {framesEncoded} frames, {totalVideoBytes} bytes");
         }
 
-        Console.WriteLine("[10.6] Stopping audio capture...");
+        Console.WriteLine($"[{logPrefix}.6] Stopping audio capture...");
         audioCtx.StopSignal = true;
         // Give the audio thread up to 15 seconds to finish flushing the WAV
         // writer. The previous 5-second budget was too tight when there was
@@ -461,12 +556,12 @@ public static class Phase10_RealRecording
 
         // P10-06A Step 2: Validate WAV file independently
         Console.WriteLine();
-        Console.WriteLine("[10.6b] Validating WAV file...");
+        Console.WriteLine($"[{logPrefix}.6b] Validating WAV file...");
         string wavValidateArgs = $"-hide_banner -i \"{tempWav}\" -af volumedetect -f null NUL";
-        Console.WriteLine($"  FFmpeg WAV validate: {s_ffmpegPath} {wavValidateArgs}");
+        Console.WriteLine($"  FFmpeg WAV validate: {ffmpegPath} {wavValidateArgs}");
         var wavPsi = new ProcessStartInfo
         {
-            FileName = s_ffmpegPath,
+            FileName = ffmpegPath,
             Arguments = wavValidateArgs,
             UseShellExecute = false,
             RedirectStandardError = true,
@@ -499,13 +594,13 @@ public static class Phase10_RealRecording
         if (wavValid)
         {
             Console.WriteLine();
-            Console.WriteLine("[10.6c] Creating audio_test.m4a (isolated AAC encode)...");
-            string audioTestPath = Path.ChangeExtension(s_outputPath!, ".audio_test.m4a");
+            Console.WriteLine($"[{logPrefix}.6c] Creating audio_test.m4a (isolated AAC encode)...");
+            string audioTestPath = Path.ChangeExtension(outputPath, ".audio_test.m4a");
             string audioTestArgs = $"-y -i \"{tempWav}\" -c:a aac -b:a 192k \"{audioTestPath}\"";
-            Console.WriteLine($"  FFmpeg AAC: {s_ffmpegPath} {audioTestArgs}");
+            Console.WriteLine($"  FFmpeg AAC: {ffmpegPath} {audioTestArgs}");
             var aacPsi = new ProcessStartInfo
             {
-                FileName = s_ffmpegPath,
+                FileName = ffmpegPath,
                 Arguments = audioTestArgs,
                 UseShellExecute = false,
                 RedirectStandardError = true,
@@ -543,7 +638,7 @@ public static class Phase10_RealRecording
         }
 
 
-        Console.WriteLine("[10.7] Muxing video + audio → MP4...");
+        Console.WriteLine($"[{logPrefix}.7] Muxing video + audio → MP4...");
         // Calculate actual FPS from capture — pull refresh rate from shared context
         // (duplDesc is local to Run(); RunRecording is a separate method so we
         //  must re-read from SpikeSharedContext.DuplicationDesc here.)
@@ -593,24 +688,24 @@ public static class Phase10_RealRecording
         if (hasAudio)
         {
             // Explicit -map to ensure both streams are included
-            ffmpegArgs = $"-y -hide_banner -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -hide_banner -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k \"{outputPath}\"";
         }
         else
         {
             Console.WriteLine("  WARNING: No audio — muxing video-only.");
-            ffmpegArgs = $"-y -hide_banner -f h264 -r {fpsRounded} -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -hide_banner -f h264 -r {fpsRounded} -i \"{tempH264}\" -c:v copy \"{outputPath}\"";
         }
-        Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
+        Console.WriteLine($"  FFmpeg: {ffmpegPath} {ffmpegArgs}");
         var muxPsi = new ProcessStartInfo
         {
-            FileName = s_ffmpegPath,
+            FileName = ffmpegPath,
             Arguments = ffmpegArgs,
             UseShellExecute = false,
             RedirectStandardError = true,
             CreateNoWindow = true,
         };
         var muxProc = Process.Start(muxPsi);
-        if (muxProc == null) { Console.Error.WriteLine("  FAIL: Could not start FFmpeg."); return 1; }
+        if (muxProc == null) { Console.Error.WriteLine("  FAIL: Could not start FFmpeg."); result.ErrorMessage = "Could not start FFmpeg"; return result; }
         string muxErr = muxProc.StandardError.ReadToEnd();
         muxProc.WaitForExit(60000);
         int muxRC = muxProc.ExitCode;
@@ -631,7 +726,7 @@ public static class Phase10_RealRecording
         }
         Console.WriteLine();
 
-        Console.WriteLine("[10.8] Cleaning up NVENC...");
+        Console.WriteLine($"[{logPrefix}.8] Cleaning up NVENC...");
         try { if (registeredResource != IntPtr.Zero) nvenc.UnregisterResource!(encoder, registeredResource); } catch { }
         try { if (bitstreamBuffer != IntPtr.Zero) nvenc.DestroyBitstreamBuffer!(encoder, bitstreamBuffer); } catch { }
         try { encoderTexture.Dispose(); } catch { }
@@ -655,17 +750,19 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  total_video_bytes:       {totalVideoBytes}");
         Console.WriteLine($"  audio_samples:           {audioCtx.TotalSamples}");
         Console.WriteLine($"  audio_bytes:             {audioCtx.TotalBytes}");
-        Console.WriteLine($"  output_file:             {s_outputPath}");
+        Console.WriteLine($"  output_file:             {outputPath}");
         Console.WriteLine("  video_codec:             H.264 (NVENC)");
         Console.WriteLine("  audio_codec:             AAC (FFmpeg)");
         Console.WriteLine("  container:               MP4");
-        FileInfo fileInfo = new(s_outputPath!);
+        FileInfo fileInfo = new(outputPath);
         fileInfo.Refresh();
+        result.FileExists = fileInfo.Exists;
+        result.FileSize = fileInfo.Exists ? fileInfo.Length : 0;
 
         // Print sizes of all temp files for diagnostics
         Console.WriteLine();
-        Console.WriteLine("[10.8] Pre-verify file diagnostics...");
-        foreach (var p in new[] { s_outputPath!, tempH264, Path.ChangeExtension(s_outputPath!, ".tmp.wav"), Path.ChangeExtension(s_outputPath!, ".audio_test.m4a") })
+        Console.WriteLine($"[{logPrefix}.8] Pre-verify file diagnostics...");
+        foreach (var p in new[] { outputPath, tempH264, Path.ChangeExtension(outputPath, ".tmp.wav"), Path.ChangeExtension(outputPath, ".audio_test.m4a") })
         {
             try
             {
@@ -683,11 +780,11 @@ public static class Phase10_RealRecording
         // stream info lines from stderr, causing false-negative stream
         // detection. Info mode prints all stream lines cleanly.
         Console.WriteLine();
-        Console.WriteLine("[10.8] Verifying MP4 streams...");
+        Console.WriteLine($"[{logPrefix}.8] Verifying MP4 streams...");
         var verifyPsi = new ProcessStartInfo
         {
-            FileName = s_ffmpegPath,
-            Arguments = $"-hide_banner -i \"{s_outputPath}\"",
+            FileName = ffmpegPath,
+            Arguments = $"-hide_banner -i \"{outputPath}\"",
             UseShellExecute = false,
             RedirectStandardError = true,
             CreateNoWindow = true,
@@ -721,7 +818,7 @@ public static class Phase10_RealRecording
             Console.WriteLine("  file_size: N/A (file not created)");
             if (File.Exists(tempH264))
             {
-                string h264Out = s_outputPath + ".h264";
+                string h264Out = outputPath + ".h264";
                 File.Copy(tempH264, h264Out, true);
                 Console.WriteLine($"  video_only_output: {h264Out}");
             }
@@ -729,22 +826,22 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  file_exists:             {fileInfo.Exists}");
         Console.WriteLine("============================================================");
 
-        bool audioInMp4 = hasAudioStreamVar;
-        bool audioCaptured = audioCtx.TotalSamples > 0;
+        // Populate SessionResult fields so callers can aggregate without parsing console output.
+        result.ActualDurationSec = elapsedSec;
+        result.FramesCaptured = framesCaptured;
+        result.FramesEncoded = framesEncoded;
+        result.Drops = drops;
+        result.NvencErrors = nvencErrors;
+        result.TotalVideoBytes = totalVideoBytes;
+        result.VideoStreamFound = hasVideoStream;
+        result.AudioSamples = audioCtx.TotalSamples;
+        result.AudioBytes = audioCtx.TotalBytes;
+        result.AudioCaptured = audioCtx.TotalSamples > 0;
+        result.AudioStreamFound = hasAudioStreamVar;
+        result.FileExists = fileInfo.Exists;
+        result.FileSize = fileInfo.Exists ? fileInfo.Length : 0;
 
-        if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0
-            && audioCaptured && audioInMp4)
-            Console.WriteLine("  Phase 10: PASS — video + audio recording produced.");
-        else if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0
-                 && audioCaptured && !audioInMp4)
-            Console.WriteLine("  Phase 10: FAIL — audio captured but MISSING from MP4. Mux failed.");
-        else if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
-            Console.WriteLine("  Phase 10: PARTIAL — video only (audio failed: 0 samples). NOT PASS.");
-        else
-            Console.WriteLine("  Phase 10: FAIL");
-        Console.WriteLine();
-
-        return (framesEncoded > 0 && fileInfo.Exists) ? 0 : 1;
+        return result;
     }
 
     private class AudioContext
@@ -755,6 +852,7 @@ public static class Phase10_RealRecording
         public int SampleRate;
         public int Channels;
         public int BitsPerSample;
+        public int DurationSeconds = 30;  // For AudioCaptureLoop wait timeout
     }
 
     private static void AudioCaptureLoop(AudioContext ctx, string wavPath)
@@ -803,7 +901,7 @@ public static class Phase10_RealRecording
             Console.WriteLine("  Audio: Capture started.");
 
             // Wait until stopped
-            captureDone.Wait(TimeSpan.FromSeconds(s_durationSeconds + 10));
+            captureDone.Wait(TimeSpan.FromSeconds(ctx.DurationSeconds + 10));
 
             writer.Flush();
             writer.Dispose();

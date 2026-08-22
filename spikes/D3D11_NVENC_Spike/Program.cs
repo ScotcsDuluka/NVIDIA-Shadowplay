@@ -54,9 +54,19 @@ internal static class Program
             {
                 i++;
             }
+            else if (a == "--output-dir" && i + 1 < args.Length)
+            {
+                // Phase 11 consumes this option from Environment.GetCommandLineArgs().
+                i++;
+            }
+            else if (a == "--warmup" && i + 1 < args.Length)
+            {
+                // Phase 11 audio warmup seconds.
+                i++;
+            }
             else if (a.StartsWith("phase", StringComparison.Ordinal))
             {
-                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 10)
+                if (int.TryParse(a.AsSpan("phase".Length), out int n) && n >= 1 && n <= 11)
                     phasesToRun.Add(n);
                 else
                 {
@@ -113,6 +123,7 @@ internal static class Program
                     8 => Phase8_Profiling.Run(),
                     9 => Phase9_SynchronizationIsolation.Run(),
                     10 => Phase10_RealRecording.Run(),
+                    11 => Phase11_SessionLifecycle.Run(),
                     _ => 1,
                 };
                 if (result != 0)
@@ -167,9 +178,12 @@ internal static class Program
         Console.WriteLine("  phase8     Run Phase 8 (Per-Stage Performance Profiling)");
         Console.WriteLine("  phase9     Run Phase 9 (Pipeline Synchronization Isolation)");
         Console.WriteLine("  phase10    Run Phase 10 (Real Recording Integration — Video+Audio→MP4)");
+        Console.WriteLine("  phase11    Run Phase 11 (Session Lifecycle & Repeated Start/Stop Stability)");
         Console.WriteLine("  --output F Output MP4 path (Phase 10)");
-        Console.WriteLine("  --ffmpeg F FFmpeg executable path (Phase 10)");
+        Console.WriteLine("  --ffmpeg F FFmpeg executable path (Phase 10, 11)");
         Console.WriteLine("  --duration N Recording duration in seconds (Phase 10)");
+        Console.WriteLine("  --output-dir D Output directory for Phase 11 results");
+        Console.WriteLine("  --warmup N   Audio warmup seconds before each Phase 11 session (default 2)");
         Console.WriteLine("  --log F    Tee output to file F (in addition to console)");
         Console.WriteLine("  --help     Show this help");
         Console.WriteLine();
