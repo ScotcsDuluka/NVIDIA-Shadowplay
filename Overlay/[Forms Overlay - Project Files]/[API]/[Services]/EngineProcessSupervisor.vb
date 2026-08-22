@@ -63,6 +63,24 @@ Public NotInheritable Class EngineProcessSupervisor
     ' returns. Concurrent callers skip — the monitor re-checks next cycle.
     Private Shared _spawnInFlight As Boolean = False
 
+    ' ★ Runtime evidence log (first Windows T0-T3 run showed Debug.WriteLine
+    ' is invisible outside a debugger). Append-only, thread-safe, best-effort
+    ' — logging failures must never break supervision.
+    Private Shared ReadOnly _logLock As New Object()
+    Private Shared ReadOnly LogFilePath As String =
+        Path.Combine(Path.GetTempPath(), "NVIDIA-Shadowplay-Supervisor.log")
+
+    Private Shared Sub Log(message As String)
+        Debug.WriteLine(message)
+        Try
+            SyncLock _logLock
+                File.AppendAllText(LogFilePath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {message}{Environment.NewLine}")
+            End SyncLock
+        Catch
+        End Try
+    End Sub
+
     Private Sub New()
     End Sub
 
@@ -83,7 +101,7 @@ Public NotInheritable Class EngineProcessSupervisor
         Try
             SpawnIfNotRunning(reason:="startup")
         Catch ex As Exception
-            Debug.WriteLine($"[EngineSupervisor] startup spawn failed: {ex.Message}")
+            Log($"[EngineSupervisor] startup spawn failed: {ex.Message}")
         End Try
 
         _monitorThread = New Thread(AddressOf MonitorLoop) With {
@@ -125,14 +143,14 @@ Public NotInheritable Class EngineProcessSupervisor
             ' external user-start during our pre-spawn window is covered by
             ' the process check below plus the engine's own SingleInstance.)
             If _spawnInFlight Then
-                Debug.WriteLine($"[EngineSupervisor] spawn already in flight — skip ({reason})")
+                Log($"[EngineSupervisor] spawn already in flight — skip ({reason})")
                 Return
             End If
 
             Using existing As Process = FindEngineProcess()
                 If existing IsNot Nothing Then
                     _lastSpawnedPid = existing.Id
-                    Debug.WriteLine($"[EngineSupervisor] engine already running (pid {_lastSpawnedPid}) — reuse ({reason})")
+                    Log($"[EngineSupervisor] engine already running (pid {_lastSpawnedPid}) — reuse ({reason})")
                     Return
                 End If
             End Using
@@ -144,7 +162,7 @@ Public NotInheritable Class EngineProcessSupervisor
         Try
             exePath = ResolveEngineExePath()
             If exePath Is Nothing Then
-                Debug.WriteLine($"[EngineSupervisor] {ExeFileName} not found — cannot spawn ({reason})")
+                Log($"[EngineSupervisor] {ExeFileName} not found — cannot spawn ({reason})")
                 Return
             End If
 
@@ -159,12 +177,12 @@ Public NotInheritable Class EngineProcessSupervisor
                         _lastSpawnedPid = p.Id
                         _lastSpawnAt = DateTime.Now
                     End SyncLock
-                    Debug.WriteLine($"[EngineSupervisor] spawned engine pid {p.Id} from {exePath} ({reason})")
+                    Log($"[EngineSupervisor] spawned engine pid {p.Id} from {exePath} ({reason})")
                 End If
             End Using
 
         Catch ex As Exception
-            Debug.WriteLine($"[EngineSupervisor] spawn failed ({reason}): {ex.Message}")
+            Log($"[EngineSupervisor] spawn failed ({reason}): {ex.Message}")
         Finally
             SyncLock _sync
                 _spawnInFlight = False
@@ -198,7 +216,7 @@ Public NotInheritable Class EngineProcessSupervisor
                 dir = dir.Parent
             Next
         Catch ex As Exception
-            Debug.WriteLine($"[EngineSupervisor] resolve error: {ex.Message}")
+            Log($"[EngineSupervisor] resolve error: {ex.Message}")
         End Try
         Return Nothing
     End Function
@@ -227,7 +245,7 @@ Public NotInheritable Class EngineProcessSupervisor
                            (DateTime.Now - _lastSpawnAt).TotalMilliseconds >= StableRunMs AndAlso
                            _respawnDelayMs > RespawnBaseDelayMs Then
                             _respawnDelayMs = RespawnBaseDelayMs
-                            Debug.WriteLine("[EngineSupervisor] engine stable — respawn backoff reset")
+                            Log("[EngineSupervisor] engine stable — respawn backoff reset")
                         End If
                         lastSeenAlive = DateTime.Now
                     End If
@@ -239,7 +257,7 @@ Public NotInheritable Class EngineProcessSupervisor
                 If aliveNow Then
                     Dim procs As Process() = Process.GetProcessesByName(ProcessName)
                     If procs IsNot Nothing AndAlso procs.Length > 1 Then
-                        Debug.WriteLine($"[EngineSupervisor] WARNING — {procs.Length} engine processes observed " &
+                        Log($"[EngineSupervisor] WARNING — {procs.Length} engine processes observed " &
                                         "(external start raced us; engine SingleInstance will collapse it)")
                     End If
                     For Each ap As Process In procs
@@ -254,7 +272,7 @@ Public NotInheritable Class EngineProcessSupervisor
                     waitMs = _respawnDelayMs
                 End SyncLock
 
-                Debug.WriteLine("[EngineSupervisor] engine not running (last seen " &
+                Log("[EngineSupervisor] engine not running (last seen " &
                                 $"{If(lastSeenAlive = DateTime.MinValue, "never", lastSeenAlive.ToString("HH:mm:ss"))}) " &
                                 $"— respawn in {waitMs \ 1000}s")
 
@@ -280,12 +298,12 @@ Public NotInheritable Class EngineProcessSupervisor
                 End If
 
             Catch ex As Exception
-                Debug.WriteLine($"[EngineSupervisor] monitor error: {ex.Message}")
+                Log($"[EngineSupervisor] monitor error: {ex.Message}")
                 Thread.Sleep(5000)
             End Try
         End While
 
-        Debug.WriteLine("[EngineSupervisor] monitor stopped")
+        Log("[EngineSupervisor] monitor stopped")
     End Sub
 
 End Class
