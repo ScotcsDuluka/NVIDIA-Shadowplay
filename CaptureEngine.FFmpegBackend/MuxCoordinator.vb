@@ -61,6 +61,15 @@ Namespace CaptureEngine.FFmpegBackend
         Public Property SeparateTracks As Boolean = False
 
         ''' <summary>
+        ''' Phase 12b: optional hook invoked right after every spawned ffmpeg/
+        ''' ffprobe process starts. The production host uses this to assign the
+        ''' child to its JobObjectGuard (KILL_ON_JOB_CLOSE) so a host crash can
+        ''' never leave an orphan ffmpeg behind. Additive — Nothing keeps the
+        ''' proven behavior unchanged.
+        ''' </summary>
+        Public Property OnProcessStarted As Action(Of Process) = Nothing
+
+        ''' <summary>
         ''' Get exact video duration via ffprobe (ms precision).
         ''' Returns duration in seconds, or 0.0 if ffprobe fails.
         ''' Does NOT throw — failures are logged and return 0.0.
@@ -91,6 +100,9 @@ Namespace CaptureEngine.FFmpegBackend
                 Using proc As New Process()
                     proc.StartInfo = psi
                     proc.Start()
+
+                    ' Phase 12b: give the host a chance to assign ffprobe to its job object.
+                    Try : OnProcessStarted?.Invoke(proc) : Catch : End Try
 
                     Dim stdoutTask As Task(Of String) = proc.StandardOutput.ReadToEndAsync()
 
@@ -155,6 +167,10 @@ Namespace CaptureEngine.FFmpegBackend
                 Using proc As New Process()
                     proc.StartInfo = psi
                     proc.Start()
+
+                    ' Phase 12b: give the host a chance to assign the mux ffmpeg
+                    ' to its job object (no-orphan-ffmpeg acceptance criterion).
+                    Try : OnProcessStarted?.Invoke(proc) : Catch : End Try
 
                     Dim stdoutTask As Task(Of String) = proc.StandardOutput.ReadToEndAsync()
                     Dim stderrTask As Task(Of String) = proc.StandardError.ReadToEndAsync()

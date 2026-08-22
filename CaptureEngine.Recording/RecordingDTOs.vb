@@ -4,6 +4,8 @@ Option Infer On
 
 ' DTOs for CaptureEngine.Recording
 
+Imports System.Diagnostics
+
 Namespace CaptureEngine.Recording
 
     ''' <summary>
@@ -22,6 +24,8 @@ Namespace CaptureEngine.Recording
 
     ''' <summary>
     ''' Configuration for a single recording session.
+    ''' Per-session concerns only — codec/bitrate/GOP are process-lifetime
+    ''' (persistent encoder owner) and live in EngineStartupConfig.
     ''' </summary>
     Public NotInheritable Class SessionConfig
         Public Property OutputPath As String = ""
@@ -30,6 +34,34 @@ Namespace CaptureEngine.Recording
 
         ' FFmpeg path (from EngineConfigV2.Runtime.FFmpegPath or CLI override)
         Public Property FFmpegPath As String = ""
+
+        ' ── Phase 12b: audio per-session options ──
+        ''' <summary>Record system-audio loopback into the WAV sidecar.</summary>
+        Public Property AudioEnabled As Boolean = True
+        ''' <summary>System-audio volume applied at mux (0..2, 1 = unchanged).</summary>
+        Public Property SystemVolume As Single = 1.0F
+
+        ' ── Phase 12b: process-lifecycle hook (no-orphan-FFmpeg criterion) ──
+        ''' <summary>
+        ''' Invoked right after CaptureSession spawns any child process
+        ''' (H.264 wrap, verify). The host assigns the child to its
+        ''' JobObjectGuard here. Additive — Nothing = previous behavior.
+        ''' </summary>
+        Public Property OnProcessStarted As Action(Of Process) = Nothing
+    End Class
+
+    ''' <summary>
+    ''' Phase 12b: process-lifetime engine startup options — consumed once by
+    ''' RecordingEngine.Initialize (the persistent NVENC session is expensive
+    ''' to rebuild, so codec/bitrate/GOP cannot change per session).
+    ''' Values mirror the proven legacy defaults when unset.
+    ''' </summary>
+    Public NotInheritable Class EngineStartupConfig
+        Public Property CodecKey As String = "NVENC_H264"
+        Public Property BitrateBps As Long = 20_000_000L
+        Public Property GopSize As Integer = 60
+        Public Property RateControl As String = "cbr"
+        Public Property Preset As String = "p4"
     End Class
 
     ''' <summary>
@@ -51,6 +83,16 @@ Namespace CaptureEngine.Recording
         Public Property FileExists As Boolean
         Public Property FileSize As Long
         Public Property ErrorMessage As String = ""
+
+        ' ── Phase 12b: sync + accounting evidence ──
+        ''' <summary>System-audio offset applied at mux (sec; &gt;0 = audio head skipped, &lt;0 = audio delayed).</summary>
+        Public Property SystemOffsetSec As Double
+        ''' <summary>Video duration used for mux -t (ffprobe of wrapped MP4, fallback wall-clock).</summary>
+        Public Property MuxVideoDurationSec As Double
+        ''' <summary>WAV sidecar accounting is consistent (enqueued = written + dropped).</summary>
+        Public Property AudioAccountingOk As Boolean
+        ''' <summary>WAV sidecar bytes dropped under backpressure (0 = healthy run).</summary>
+        Public Property AudioDroppedBytes As Long
 
         Public ReadOnly Property Pass As Boolean
             Get

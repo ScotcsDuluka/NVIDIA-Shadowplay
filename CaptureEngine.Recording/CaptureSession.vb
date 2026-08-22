@@ -6,28 +6,40 @@ Option Infer On
 '
 ' Per-session resource owner. Composes:
 '   - BoundedVideoFrameSink (frame queue)
-'   - AudioFileWriter (NAudio WASAPI loopback → temp WAV)
-'   - FFmpeg subprocess (raw H.264 → temp video file)
-'   - MuxCoordinator (video + audio → final MP4)
+'   - System audio → WavSidecarWriter (bounded queue + writer thread)
+'   - Raw H.264 file (native NVENC packets)
+'   - FFmpeg wrap (raw H.264 → temp MP4 @ display refresh rate)
+'   - MuxCoordinator (video + audio → final MP4, A/V sync offsets)
 '
 ' Lifecycle (per session):
-'   1. Start audio capture
-'   2. Start video capture (DdagrabBackend.Start(sink))
-'   3. Start encoder (NvencEncoderBackend.Start())
-'   4. Capture/encode loop: sink.Take → encoder.Encode → write H.264 to file
-'   5. Stop video → drain sink → stop encoder
-'   6. Stop audio → finalize WAV
-'   7. FFmpeg mux → MP4
-'   8. Verify MP4 streams
-'   9. Return SessionResult
+'   1. Start audio sidecar (WASAPI loopback → WavSidecarWriter queue)
+'   2. Start video capture (DdagrabBackend.Start(sink)) + encoder
+'   3. Capture/encode loop: sink.Take → encoder.Encode → write H.264 to file
+'   4. Stop video → drain sink → stop encoder
+'   5. Stop audio → event-driven WAV finalize (accounting invariant)
+'   6. FFmpeg wrap: H.264 → temp MP4 at DISPLAY REFRESH RATE
+'   7. ffprobe temp MP4 → exact video duration
+'   8. FFmpeg mux with SyncMath offsets → final MP4
+'   9. Verify MP4 streams → SessionResult
+'
+' Phase 12b audio model (AUDIO hard-blocker rework):
+'   PRODUCER  : WASAPI DataAvailable callback → copy → enqueue. NO disk I/O
+'               on the callback thread (proven AudioFileWriter lesson).
+'   CONSUMER  : WavSidecarWriter dedicated thread drains bounded queue.
+'   ACCOUNTING: enqueued = written + dropped (residual must be 0).
+'   SYNC      : systemStartTicks captured at StartRecording() CALL time
+'               (NOT first callback — avoids the historical -10s bug);
+'               videoStartTicks at first frame taken from the sink;
+'               offset = (videoStart - systemStart)/freq clamped [-2,+5]
+'               (proven legacy model, extracted into SyncMath).
+'   FINALIZE  : RecordingStopped event → ManualResetEvent wait (no Sleep).
 '
 ' Ownership:
 '   - BORROWS _capture + _encoder from RecordingEngine (does NOT dispose)
-'   - OWNS BoundedVideoFrameSink + audio + FFmpeg + mux + temp files
+'   - OWNS sink + sidecar writer + audio capture + H.264 file + temp files
 
 Imports System.Diagnostics
 Imports System.IO
-Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports NAudio.Wave
 Imports CaptureEngine.Diagnostics
@@ -49,6 +61,10 @@ Namespace CaptureEngine.Recording
         Private ReadOnly _logger As EngineLogger
         Private _stopSignal As Boolean = False
         Private _disposed As Boolean = False
+
+        ' Sync timeline (Stopwatch ticks)
+        Private _systemStartTicks As Long = 0
+        Private _videoStartTicks As Long = 0
 
         Public Sub New(capture As DdagrabBackend,
                       encoder As NvencEncoderBackend,
@@ -74,11 +90,11 @@ Namespace CaptureEngine.Recording
             ' ─── Resources ───────────────────────────────────────────────
             Dim sink As BoundedVideoFrameSink = Nothing
             Dim audioCapture As WasapiLoopbackCapture = Nothing
-            Dim wavWriter As WaveFileWriter = Nothing
+            Dim wavStoppedEvent As New ManualResetEvent(False)
+            Dim wavWriter As WavSidecarWriter = Nothing
+            Dim wavReport As WavFinalizeReport = Nothing
             Dim videoFile As FileStream = Nothing
-            Dim audioThread As Thread = Nothing
-            Dim totalAudioBytes As Long = 0
-            Dim totalAudioSamples As Long = 0
+            Dim waveFormat As WaveFormat = Nothing
 
             Dim sw As Stopwatch = Stopwatch.StartNew()
             Dim duration As TimeSpan = TimeSpan.FromSeconds(_config.DurationSeconds)
@@ -87,31 +103,49 @@ Namespace CaptureEngine.Recording
                 ' ─── 1. Create sink ──────────────────────────────────────
                 sink = New BoundedVideoFrameSink(4, BoundedHandoffPolicy.DropOldest, _logger)
 
-                ' ─── 2. Start audio capture (NAudio WasapiLoopbackCapture) ─
-                _logger.Info("[session] Starting audio capture...")
-                audioCapture = New WasapiLoopbackCapture()
-                Dim waveFormat = audioCapture.WaveFormat
-                _logger.Info($"[session] Audio: {waveFormat.Channels}ch {waveFormat.SampleRate}Hz {waveFormat.BitsPerSample}bit")
-                wavWriter = New WaveFileWriter(tempWav, waveFormat)
+                ' ─── 2. Start audio sidecar ─────────────────────────────
+                If _config.AudioEnabled Then
+                    _logger.Info("[session] Starting audio sidecar...")
+                    audioCapture = New WasapiLoopbackCapture()
+                    waveFormat = audioCapture.WaveFormat
+                    _logger.Info($"[session] Audio: {waveFormat.Channels}ch {waveFormat.SampleRate}Hz {waveFormat.BitsPerSample}bit {waveFormat.Encoding}")
 
-                AddHandler audioCapture.DataAvailable, Sub(s, e)
-                    If e.BytesRecorded > 0 Then
-                        wavWriter.Write(e.Buffer, 0, e.BytesRecorded)
-                        totalAudioBytes += e.BytesRecorded
-                        totalAudioSamples += e.BytesRecorded \ (waveFormat.Channels * waveFormat.BitsPerSample \ 8)
-                    End If
-                    If _stopSignal OrElse sw.Elapsed >= duration Then
-                        audioCapture.StopRecording()
-                    End If
-                End Sub
+                    ' WavSidecarWriter is PCM (16/24/32). WASAPI loopback on
+                    ' shared mode is typically IeeeFloat 32-bit → convert to
+                    ' PCM16 here so the sidecar stays a plain PCM WAV.
+                    Dim srcFloat As Boolean = (waveFormat.Encoding = WaveFormatEncoding.IeeeFloat)
+                    Dim sidecarBits As Integer = If(srcFloat, 32, waveFormat.BitsPerSample)
+                    ' NOTE: 32-bit int PCM is NOT the same as float — WavSidecarWriter
+                    ' takes raw frames; for float sources we convert below and keep 16-bit.
+                    If srcFloat Then sidecarBits = 16
 
-                AddHandler audioCapture.RecordingStopped, Sub(s, e)
-                    wavWriter.Flush()
-                    wavWriter.Dispose()
-                End Sub
+                    wavWriter = New WavSidecarWriter(tempWav, waveFormat.Channels, waveFormat.SampleRate, sidecarBits)
+                    wavWriter.Start()
 
-                audioCapture.StartRecording()
-                _logger.Info("[session] Audio capture started")
+                    AddHandler audioCapture.DataAvailable, Sub(s, e)
+                                                                If e.BytesRecorded > 0 Then
+                                                                    If srcFloat Then
+                                                                        Dim pcm As Byte() = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
+                                                                        wavWriter.EnqueueChunk(pcm, pcm.Length)
+                                                                    Else
+                                                                        wavWriter.EnqueueChunk(e.Buffer, e.BytesRecorded)
+                                                                    End If
+                                                                End If
+                                                                If _stopSignal OrElse sw.Elapsed >= duration Then
+                                                                    Try : audioCapture.StopRecording() : Catch : End Try
+                                                                End If
+                                                            End Sub
+
+                    AddHandler audioCapture.RecordingStopped, Sub(s, e) wavStoppedEvent.Set()
+
+                    ' PROVEN MODEL: capture the StartRecording CALL time —
+                    ' NOT the first-callback time (historical -10s offset bug).
+                    audioCapture.StartRecording()
+                    _systemStartTicks = Stopwatch.GetTimestamp()
+                    _logger.Info("[session] Audio sidecar started (bounded queue + writer thread)")
+                Else
+                    _logger.Info("[session] Audio DISABLED by config — video-only session")
+                End If
 
                 ' ─── 3. Start video capture + encoder ─────────────────────
                 _logger.Info("[session] Starting video capture...")
@@ -127,6 +161,8 @@ Namespace CaptureEngine.Recording
                 Do While sw.Elapsed < duration AndAlso Not _stopSignal
                     Dim far As FrameAcquisitionResult
                     If sink.TryTake(far) Then
+                        ' Video timeline origin = FIRST captured frame.
+                        If _videoStartTicks = 0 Then _videoStartTicks = Stopwatch.GetTimestamp()
                         result.FramesCaptured += 1
                         Dim packet As EncodedPacket = Nothing
                         Try
@@ -170,23 +206,44 @@ Namespace CaptureEngine.Recording
                 _logger.Info("[session] Stopping encoder...")
                 _encoder.Stop()
 
-                ' ─── 7. Stop audio ───────────────────────────────────────
-                _logger.Info("[session] Stopping audio capture...")
-                _stopSignal = True
-                audioCapture.StopRecording()
-                ' Wait for RecordingStopped event (finalizes WAV)
-                Thread.Sleep(500)
-
-                ' ─── 8. Close video file ────────────────────────────────
+                ' ─── 7. Close video file ────────────────────────────────
                 videoFile.Flush()
                 videoFile.Dispose()
                 videoFile = Nothing
 
-                ' ─── 8b. Wrap raw H.264 into MP4 container ─────────────
-                ' MuxCoordinator expects a container file (MP4), not raw H.264.
-                ' FFmpeg reads raw H.264 with -f h264 -r <fps> and outputs MP4.
-                _logger.Info("[session] Wrapping H.264 into MP4 container...")
-                Dim refreshRate As Integer = 75  ' display refresh rate (TODO: expose from DdagrabBackend)
+                ' ─── 8. Stop audio → event-driven WAV finalize ──────────
+                If audioCapture IsNot Nothing Then
+                    _logger.Info("[session] Stopping audio sidecar...")
+                    _stopSignal = True
+                    Try : audioCapture.StopRecording() : Catch : End Try
+
+                    ' Event-driven wait — replaces the old Thread.Sleep(500)
+                    ' race. WASAPI fires RecordingStopped exactly once.
+                    If Not wavStoppedEvent.WaitOne(3000) Then
+                        _logger.Warning("[session] RecordingStopped event timeout (3s) — finalizing anyway")
+                    End If
+
+                    wavReport = wavWriter.Complete(5000)
+                    _logger.Info("[session] " & wavReport.ToString())
+
+                    result.AudioBytes = wavReport.BytesWritten
+                    result.AudioDroppedBytes = wavReport.BytesDropped
+                    result.AudioAccountingOk = wavReport.AccountingOk
+                    result.AudioSamples = If(waveFormat IsNot Nothing,
+                                             wavReport.BytesWritten \ (waveFormat.Channels * waveFormat.BitsPerSample \ 8),
+                                             0)
+                End If
+
+                result.ActualDurationSec = sw.Elapsed.TotalSeconds
+
+                ' ─── 9. Wrap raw H.264 into MP4 @ display refresh rate ──
+                ' OWNER decision (commit 20932aa): use the DISPLAY REFRESH
+                ' RATE for the wrap -r, NOT the achieved FPS. The rate comes
+                ' from DdagrabBackend.OutputRefreshRate (DXGI display mode);
+                ' legacy hardcode (75) was a TODO placeholder.
+                Dim refreshRate As Integer = _capture.OutputRefreshRate
+                If refreshRate <= 0 Then refreshRate = 60 ' defensive fallback only
+                _logger.Info($"[session] Wrapping H.264 into MP4 container @ {refreshRate}Hz...")
                 Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {refreshRate} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
                 _logger.Info($"[session] Wrap command: {_config.FFmpegPath} {wrapArgs}")
                 Dim wrapPsi As New ProcessStartInfo With {
@@ -198,8 +255,14 @@ Namespace CaptureEngine.Recording
                 }
                 Try
                     Using wrapProc As Process = Process.Start(wrapPsi)
+                        ' Phase 12b: no-orphan-FFmpeg — assign to host job object.
+                        Try : _config.OnProcessStarted?.Invoke(wrapProc) : Catch : End Try
+
                         Dim wrapStderr As String = wrapProc.StandardError.ReadToEnd()
-                        wrapProc.WaitForExit(30000)
+                        If Not wrapProc.WaitForExit(30000) Then
+                            Try : wrapProc.Kill() : Catch : End Try
+                            _logger.Error("[session] H.264 wrap TIMEOUT (30s) — killed")
+                        End If
                         If wrapProc.ExitCode <> 0 Then
                             _logger.Error($"[session] H.264 wrap failed: exit code {wrapProc.ExitCode}" &
                                           Environment.NewLine & "FFmpeg stderr:" & Environment.NewLine & wrapStderr)
@@ -211,41 +274,55 @@ Namespace CaptureEngine.Recording
                     _logger.Error($"[session] H.264 wrap threw: {ex.Message}")
                 End Try
 
-                result.AudioSamples = totalAudioSamples
-                result.AudioBytes = totalAudioBytes
-                result.ActualDurationSec = sw.Elapsed.TotalSeconds
-
-                ' ─── 9. FFmpeg mux → MP4 ─────────────────────────────────
-                _logger.Info("[session] Muxing video + audio → MP4...")
+                ' ─── 10. Probe wrapped MP4 for exact duration ───────────
+                ' The mux -t must use the CONTAINER duration (frame-accurate),
+                ' not the wall-clock session time (which includes encoder
+                ' spin-up and stop latency).
                 Dim mux As New MuxCoordinator() With {
                     .FFmpegPath = _config.FFmpegPath,
                     .TempVideoPath = tempVideoMp4,
                     .TempSystemWavPath = tempWav,
                     .OutputPath = _config.OutputPath,
-                    .HasSystemAudio = True,
-                    .SystemVolume = 1.0F
+                    .HasSystemAudio = (_config.AudioEnabled AndAlso wavReport IsNot Nothing AndAlso wavReport.BytesWritten > 0),
+                    .SystemVolume = _config.SystemVolume,
+                    .OnProcessStarted = _config.OnProcessStarted
                 }
 
-                ' Probe video duration
-                mux.VideoDurationSec = result.ActualDurationSec
+                Dim probedDuration As Double = mux.ProbeVideoDuration()
+                If probedDuration > 0.001 Then
+                    mux.VideoDurationSec = probedDuration
+                    _logger.Info($"[session] ffprobe video duration: {probedDuration:0.000}s (container-accurate)")
+                Else
+                    mux.VideoDurationSec = result.ActualDurationSec
+                    _logger.Warning($"[session] ffprobe failed — falling back to wall-clock {result.ActualDurationSec:0.000}s")
+                End If
+                result.MuxVideoDurationSec = mux.VideoDurationSec
+
+                ' ─── 11. A/V sync offset (proven model) ──────────────────
+                Dim systemOffset As Double = SyncMath.ComputeAudioOffsetSec(
+                    _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                mux.SystemOffsetSec = systemOffset
+                result.SystemOffsetSec = systemOffset
+                _logger.Info($"[session] Sync: videoStart={_videoStartTicks} sysStart={_systemStartTicks} " &
+                             $"offset={systemOffset:0.000}s ({If(systemOffset > 0.001, "skip audio head", If(systemOffset < -0.001, "delay audio", "aligned"))})")
+
+                ' ─── 12. Mux ─────────────────────────────────────────────
+                _logger.Info("[session] Muxing video + audio → MP4...")
                 Dim muxOk As Boolean = mux.Run()
                 If muxOk Then
                     _logger.Info("[session] Mux succeeded — cleaning temp files")
                     mux.CleanupTempFiles()
-                    ' Also delete raw H.264 + temp video MP4
                     Try : File.Delete(tempH264) : Catch : End Try
-                    Try : File.Delete(tempVideoMp4) : Catch : End Try
                 Else
                     _logger.Error("[session] Mux FAILED — keeping temp files for debugging")
                 End If
 
-                ' ─── 10. Verify MP4 ─────────────────────────────────────
+                ' ─── 13. Verify MP4 ─────────────────────────────────────
                 Dim fi As New FileInfo(_config.OutputPath)
                 result.FileExists = fi.Exists
                 result.FileSize = If(fi.Exists, fi.Length, 0)
 
                 If fi.Exists Then
-                    ' Verify streams via FFmpeg -i (info mode)
                     Dim verifyPsi As New ProcessStartInfo With {
                         .FileName = _config.FFmpegPath,
                         .Arguments = $"-hide_banner -i ""{_config.OutputPath}""",
@@ -255,6 +332,7 @@ Namespace CaptureEngine.Recording
                     }
                     Try
                         Using verifyProc As Process = Process.Start(verifyPsi)
+                            Try : _config.OnProcessStarted?.Invoke(verifyProc) : Catch : End Try
                             Dim stderr As String = verifyProc.StandardError.ReadToEnd()
                             verifyProc.WaitForExit(5000)
                             result.VideoStreamFound = stderr.Contains("Stream #") AndAlso stderr.Contains("Video:")
@@ -265,7 +343,8 @@ Namespace CaptureEngine.Recording
                 End If
 
                 _logger.Info($"[session] Result: pass={result.Pass}, frames={result.FramesEncoded}, " &
-                             $"video_bytes={result.TotalVideoBytes}, audio_samples={result.AudioSamples}, " &
+                             $"video_bytes={result.TotalVideoBytes}, audio_bytes={result.AudioBytes}, " &
+                             $"dropped={result.AudioDroppedBytes}, offset={result.SystemOffsetSec:0.000}s, " &
                              $"file_size={result.FileSize}")
 
             Catch ex As Exception
@@ -276,9 +355,33 @@ Namespace CaptureEngine.Recording
                 Try : wavWriter?.Dispose() : Catch : End Try
                 Try : audioCapture?.Dispose() : Catch : End Try
                 Try : sink?.Dispose() : Catch : End Try
+                Try : wavStoppedEvent.Dispose() : Catch : End Try
             End Try
 
             Return result
+        End Function
+
+        ''' <summary>
+        ''' Convert IEEE-float32 interleaved PCM into signed 16-bit PCM.
+        ''' Allocation per chunk is acceptable: chunks are ~10ms and the copy
+        ''' already happens once (buffer ownership rule).
+        ''' </summary>
+        Private Shared Function ConvertFloatToPcm16(buffer As Byte(), bytesRecorded As Integer) As Byte()
+            Dim sampleCount As Integer = bytesRecorded \ 4
+            Dim out(sampleCount * 2 - 1) As Byte
+            For i As Integer = 0 To sampleCount - 1
+                Dim f As Single = BitConverter.ToSingle(buffer, i * 4)
+                If Single.IsNaN(f) OrElse Single.IsInfinity(f) Then f = 0.0F
+                If f > 1.0F Then f = 1.0F
+                If f < -1.0F Then f = -1.0F
+                Dim v As Integer = CInt(Math.Round(f * 32767.0F))
+                If v > 32767 Then v = 32767
+                If v < -32768 Then v = -32768
+                Dim u As UShort = CUShort(v And &HFFFFI)
+                out(i * 2) = CByte(u And &HFFUI)
+                out(i * 2 + 1) = CByte((u >> 8) And &HFFUI)
+            Next
+            Return out
         End Function
 
         Public Sub [Stop]()

@@ -134,6 +134,23 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End Get
         End Property
 
+        ' ---- Phase 12b: display refresh rate (Public — the H.264→MP4 wrap
+        '      needs the true display cadence; OWNER decision commit 20932aa:
+        '      wrap -r uses DISPLAY REFRESH RATE, not achieved FPS) ----
+        Private _outputRefreshRate As Integer = 0
+
+        ''' <summary>
+        ''' Display refresh rate in Hz (rounded from the DXGI rational rate,
+        ''' e.g. 59950/1000 → 60). Populated during Initialize() from the
+        ''' display mode list matching the desktop resolution. 0 when the
+        ''' probe failed — callers must fall back defensively.
+        ''' </summary>
+        Public ReadOnly Property OutputRefreshRate As Integer
+            Get
+                Return _outputRefreshRate
+            End Get
+        End Property
+
         ' ---- adapter LUID (Public — for cross-device comparison in harness) ----
         Public ReadOnly Property AdapterLuidLow As UInteger
             Get
@@ -263,6 +280,32 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 _outputHeight = outDesc.DesktopCoordinates.Bottom - outDesc.DesktopCoordinates.Top
                 _logger.Info($"DdagrabBackend: output #{outIdx}: {outDesc.DeviceName} " &
                              $"({_outputWidth}x{_outputHeight})")
+
+                ' ─── Phase 12b: resolve display refresh rate ────────────
+                ' Best-effort — failure leaves 0 and callers fall back.
+                ' Vortice convenience overload returns the mode array directly.
+                ' Flags 0 = progressive modes (the enum has no None member).
+                Try
+                    Dim modes As ModeDescription() = _output.GetDisplayModeList(
+                        Format.B8G8R8A8_UNorm, CType(0, DisplayModeEnumerationFlags))
+                    Dim bestHz As Integer = 0
+                    If modes IsNot Nothing Then
+                        For Each m As ModeDescription In modes
+                            If CDbl(m.Width) = CDbl(_outputWidth) AndAlso CDbl(m.Height) = CDbl(_outputHeight) Then
+                                Dim denom As Double = CDbl(m.RefreshRate.Denominator)
+                                Dim hz As Integer = 0
+                                If denom > 0 Then
+                                    hz = CInt(Math.Round(CDbl(m.RefreshRate.Numerator) / denom))
+                                End If
+                                If hz > bestHz Then bestHz = hz
+                            End If
+                        Next
+                    End If
+                    _outputRefreshRate = bestHz
+                    _logger.Info($"DdagrabBackend: display refresh rate = {_outputRefreshRate}Hz")
+                Catch ex As Exception
+                    _logger.Warning($"DdagrabBackend: refresh-rate probe failed: {ex.Message}")
+                End Try
 
                 ' ─── DuplicateOutput (persistent — 1 per output per process) ─
                 ' Phase 11 root cause #2: Windows limits 1 duplication per output

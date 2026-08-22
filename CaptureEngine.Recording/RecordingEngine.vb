@@ -43,8 +43,21 @@ Namespace CaptureEngine.Recording
         ''' <summary>
         ''' Initialize persistent GPU resources (D3D11 + DXGI + NVENC).
         ''' Called ONCE at process start. Subsequent calls throw.
+        ''' Uses the proven default startup config (NVENC_H264 / 20 Mbps / GOP 60 / p4).
         ''' </summary>
         Public Sub Initialize()
+            Initialize(New EngineStartupConfig())
+        End Sub
+
+        ''' <summary>
+        ''' Phase 12b: initialize with host-provided startup options
+        ''' (codec / bitrate / GOP / preset come from Overlay settings).
+        ''' The encoder session is process-lifetime — these values cannot
+        ''' change per session without an engine rebuild.
+        ''' </summary>
+        Public Sub Initialize(startup As EngineStartupConfig)
+            If startup Is Nothing Then startup = New EngineStartupConfig()
+
             SyncLock _sync
                 If _disposed Then Throw New ObjectDisposedException(NameOf(RecordingEngine))
                 If _state <> RecordingEngineState.Created Then
@@ -58,24 +71,25 @@ Namespace CaptureEngine.Recording
                 _capture = New DdagrabBackend(_logger)
                 Dim ctx As New BackendContext(_logger)
                 _capture.Initialize(ctx)
-                _logger.Info($"RecordingEngine: DdagrabBackend initialized — {_capture.OutputWidth}x{_capture.OutputHeight}")
+                _logger.Info($"RecordingEngine: DdagrabBackend initialized — {_capture.OutputWidth}x{_capture.OutputHeight} @ {_capture.OutputRefreshRate}Hz")
 
                 ' ─── Initialize NvencEncoderBackend (creates D3D11 + NVENC session) ─
                 _encoder = New NvencEncoderBackend(_logger)
+                Dim gop As Integer = If(startup.GopSize > 0, startup.GopSize, 60)
                 Dim encConfig As New EncoderConfig() With {
-                    .CodecKey = "NVENC_H264",
-                    .BitrateBps = 20_000_000L,
-                    .MinrateBps = 20_000_000L,
-                    .MaxrateBps = 20_000_000L,
-                    .BufsizeBps = 40_000_000L,
-                    .GopSize = 60,
-                    .RateControl = "cbr",
-                    .Preset = "p4",
+                    .CodecKey = If(String.IsNullOrEmpty(startup.CodecKey), "NVENC_H264", startup.CodecKey),
+                    .BitrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
+                    .MinrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
+                    .MaxrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
+                    .BufsizeBps = If(startup.BitrateBps > 0, startup.BitrateBps * 2, 40_000_000L),
+                    .GopSize = gop,
+                    .RateControl = If(String.IsNullOrEmpty(startup.RateControl), "cbr", startup.RateControl),
+                    .Preset = If(String.IsNullOrEmpty(startup.Preset), "p4", startup.Preset),
                     .ExpectedWidth = _capture.OutputWidth,
                     .ExpectedHeight = _capture.OutputHeight
                 }
                 _encoder.Initialize(encConfig)
-                _logger.Info("RecordingEngine: NvencEncoderBackend initialized")
+                _logger.Info($"RecordingEngine: NvencEncoderBackend initialized ({encConfig.CodecKey}, {encConfig.BitrateBps} bps, GOP {encConfig.GopSize}, preset {encConfig.Preset})")
 
                 _state = RecordingEngineState.Idle
                 _logger.Info("RecordingEngine: ready (Idle)")
@@ -111,6 +125,7 @@ Namespace CaptureEngine.Recording
                     _capture, _encoder, config, _logger)
                 result = _currentSession.Run()
                 _currentSession = Nothing
+                _lastSessionResult = result
             Catch ex As Exception
                 _logger.Error($"RecordingEngine: session failed: {ex.Message}", ex)
                 result = New SessionResult() With {
@@ -139,10 +154,13 @@ Namespace CaptureEngine.Recording
             SyncLock _sync
                 Return New EngineStatus() With {
                     .State = _state,
-                    .CurrentSessionId = If(_currentSession IsNot Nothing, "active", Nothing)
+                    .CurrentSessionId = If(_currentSession IsNot Nothing, "active", Nothing),
+                    .LastSessionResult = _lastSessionResult
                 }
             End SyncLock
         End Function
+
+        Private _lastSessionResult As SessionResult = Nothing
 
         Public Sub Dispose() Implements IDisposable.Dispose
             SyncLock _sync
