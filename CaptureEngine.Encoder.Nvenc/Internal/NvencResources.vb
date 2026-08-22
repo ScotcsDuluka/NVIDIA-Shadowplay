@@ -80,8 +80,8 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
 
             ' ─── Create encoder texture ──────────────────────────────────────
             Dim texDesc As New Texture2DDescription() With {
-                .Width = CInt(width),
-                .Height = CInt(height),
+                .Width = CUInt(width),
+                .Height = CUInt(height),
                 .MipLevels = 1,
                 .ArraySize = 1,
                 .Format = Format.B8G8R8A8_UNorm,

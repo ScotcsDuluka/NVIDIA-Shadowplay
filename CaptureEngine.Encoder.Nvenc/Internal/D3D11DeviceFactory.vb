@@ -21,6 +21,7 @@ Option Infer On
 Imports Vortice.Direct3D
 Imports Vortice.Direct3D11
 Imports Vortice.DXGI
+Imports SharpGen.Runtime
 Imports CaptureEngine.Diagnostics
 
 Namespace CaptureEngine.Encoder.Nvenc.Internal
@@ -103,7 +104,10 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             ' ─── Step 1: enumerate DXGI adapters, find first NVIDIA ─────────
             Dim factory As IDXGIFactory1 = Nothing
             Try
-                DXGI.CreateDXGIFactory1(Of IDXGIFactory1)().CheckError()
+                ' CreateDXGIFactory1(Of T)() returns T directly (NOT Result).
+                ' The previous .CheckError() call was incorrect — it was a C#
+                ' pattern from spike that doesn't apply here since Vortice's
+                ' API returns the factory directly and throws on failure.
                 factory = DXGI.CreateDXGIFactory1(Of IDXGIFactory1)()
             Catch ex As Exception
                 _logger.Error($"CreateDXGIFactory1 threw: {ex.GetType().Name}: {ex.Message}", ex)
@@ -151,7 +155,12 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             ' ─── Step 2: create D3D11 device on NVIDIA adapter ─────────────
             Dim targetAdapter As IDXGIAdapter1 = Nothing
             Try
-                factory.EnumAdapters1(CUInt(nvidiaIdx), targetAdapter).CheckError()
+                Dim r As Result = factory.EnumAdapters1(CUInt(nvidiaIdx), targetAdapter)
+                If Not r.Success Then
+                    _logger.Error($"EnumAdapters1(NVIDIA) failed: hr=0x{r.Code:x8}")
+                    factory.Dispose()
+                    Return Nothing
+                End If
             Catch ex As Exception
                 _logger.Error($"EnumAdapters1(NVIDIA) threw: {ex.GetType().Name}: {ex.Message}", ex)
                 factory.Dispose()
@@ -174,13 +183,19 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
                 '   VideoSupport — required for NVENC interop
                 Dim flags As DeviceCreationFlags = DeviceCreationFlags.BgraSupport Or
                                                     DeviceCreationFlags.VideoSupport
-                D3D11.D3D11CreateDevice(
+                Dim r As Result = D3D11.D3D11CreateDevice(
                     targetAdapter,
                     DriverType.Unknown,
                     flags,
                     requestedFeatureLevels,
                     device,
-                    context).CheckError()
+                    context)
+                If Not r.Success Then
+                    _logger.Error($"D3D11CreateDevice failed: hr=0x{r.Code:x8}")
+                    targetAdapter.Dispose()
+                    factory.Dispose()
+                    Return Nothing
+                End If
                 achievedFeatureLevel = device.FeatureLevel
             Catch ex As Exception
                 _logger.Error($"D3D11CreateDevice threw: {ex.GetType().Name}: {ex.Message}", ex)

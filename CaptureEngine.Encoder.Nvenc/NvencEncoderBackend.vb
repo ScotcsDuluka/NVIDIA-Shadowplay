@@ -37,6 +37,7 @@ Imports System.Threading
 Imports Vortice.Direct3D11
 Imports CaptureEngine.Video
 Imports CaptureEngine.Diagnostics
+Imports CaptureEngine.Encoder.Nvenc.Internal  ' NvEncodeAPI + D3D11DeviceFactory + NvencResources + NvEncFunctionTable
 
 Namespace CaptureEngine.Encoder.Nvenc
 
@@ -277,9 +278,9 @@ Namespace CaptureEngine.Encoder.Nvenc
                     Throw New InvalidOperationException(
                         $"Encode() called from state {_state} (must be Running).")
                 End If
-                If frame.IsDisposed Then
-                    Throw New ArgumentException("frame has been disposed (frame.IsDisposed).")
-                End If
+                ' Note: Foundation IVideoFrame does NOT expose IsDisposed.
+                ' We rely on the D3D11VideoFrame.NativeTexture defensive check below
+                ' (returns IntPtr.Zero if frame has been disposed).
             End SyncLock
 
             ' ─── Validate frame format + dimensions ──────────────────────
@@ -348,7 +349,27 @@ Namespace CaptureEngine.Encoder.Nvenc
             ' Wrap the native pointer in a Vortice ID3D11Texture2D wrapper.
             ' This does NOT take ownership — the wrapper is GC-eligible, the
             ' underlying texture lives as long as the frame (frame is BORROWED).
-            Dim frameTexture As ID3D11Texture2D = ID3D11Texture2D.FromPointer(texPtr)
+            '
+            ' Vortice 3.6.2 uses SharpGen.Runtime.ComObject as its base class
+            ' for COM interfaces. To wrap an existing native pointer into a
+            ' managed Vortice ID3D11Texture2D, we use Marshal.GetObjectForIUnknown
+            ' (standard .NET COM interop) + DirectCast to ID3D11Texture2D.
+            '
+            ' This creates a Runtime Callable Wrapper (RCW) around the native
+            ' pointer WITHOUT calling AddRef (Marshal.GetObjectForIUnknown does
+            ' NOT increment the refcount — the existing refcount is preserved).
+            ' The D3D11VideoFrame keeps the texture alive until its Dispose();
+            ' the RCW becomes invalid after Dispose() but the encoder's
+            ' DirectCast + CopyResource call will have already completed by then.
+            '
+            ' Alternative considered: change ID3D11VideoFrame.NativeTexture to
+            ' return IDXGIResource instead of IntPtr. Rejected because:
+            '   - IDXGIResource is a Vortice type (would leak Vortice into the
+            '     contract that's supposed to be backend-agnostic).
+            '   - Frame ownership model already guarantees the texture stays
+            '     alive — IntPtr + RCW is sufficient.
+            Dim frameTexture As ID3D11Texture2D =
+                DirectCast(Marshal.GetObjectForIUnknown(texPtr), ID3D11Texture2D)
 
             ' ─── ENCODE HOT PATH (mirrors spike Phase 10) ────────────────
             ' All operations happen OUTSIDE _sync (no lock contention during encoding).
@@ -588,7 +609,13 @@ Namespace CaptureEngine.Encoder.Nvenc
 
         Public ReadOnly Property CurrentState As EncoderState Implements IEncoderBackend.CurrentState
             Get
-                Return Thread.VolatileRead(_state)  ' VB: _state is a value type — VolatileRead on field
+                ' Volatile.Read(Of T)(ByRef T) is the modern .NET API
+                ' (System.Threading.Volatile — imported at top of file as
+                ' Imports System.Threading). _state is EncoderState enum
+                ' (which is Integer-backed). Volatile.Read(Of EncoderState)
+                ' reads the field with a memory barrier, ensuring cross-thread
+                ' visibility of the latest write.
+                Return Volatile.Read(Of EncoderState)(_state)
             End Get
         End Property
 
