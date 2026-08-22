@@ -185,10 +185,14 @@ Namespace CaptureEngine.Recording
                 ' ─── 8b. Wrap raw H.264 into MP4 container ─────────────
                 ' MuxCoordinator expects a container file (MP4), not raw H.264.
                 ' FFmpeg reads raw H.264 with -f h264 -r <fps> and outputs MP4.
+                '
+                ' IMPORTANT: -r must match the DISPLAY refresh rate (75Hz), NOT
+                ' the achieved capture FPS (which varies and can be higher).
+                ' Using achieved FPS causes FFmpeg to misinterpret frame timing
+                ' → corrupt MP4 → mux fails (Session 2 bug).
                 _logger.Info("[session] Wrapping H.264 into MP4 container...")
-                Dim displayRefreshHz As Double = If(result.ActualDurationSec > 0,
-                    result.FramesEncoded / result.ActualDurationSec, 60.0)
-                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {CInt(Math.Round(displayRefreshHz))} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
+                Dim refreshRate As Integer = 75  ' TODO: get from DdagrabBackend.OutputRefreshRate
+                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {refreshRate} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
                 Dim wrapPsi As New ProcessStartInfo With {
                     .FileName = _config.FFmpegPath,
                     .Arguments = wrapArgs,
