@@ -670,7 +670,6 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  file_exists:             {fileInfo.Exists}");
         Console.WriteLine("============================================================");
 
-        if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
         bool audioInMp4 = hasAudioStreamVar;
         bool audioCaptured = audioCtx.TotalSamples > 0;
 
@@ -682,8 +681,6 @@ public static class Phase10_RealRecording
             Console.WriteLine("  Phase 10: FAIL — audio captured but MISSING from MP4. Mux failed.");
         else if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
             Console.WriteLine("  Phase 10: PARTIAL — video only (audio failed: 0 samples). NOT PASS.");
-        else
-            Console.WriteLine("  Phase 10: FAIL");
         else
             Console.WriteLine("  Phase 10: FAIL");
         Console.WriteLine();
