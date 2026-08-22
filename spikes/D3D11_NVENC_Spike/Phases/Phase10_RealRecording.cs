@@ -477,7 +477,7 @@ public static class Phase10_RealRecording
         if (hasAudio)
         {
             // Explicit -map to ensure both streams are included
-            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -af aresample=async=1 -shortest \"{s_outputPath}\"";
         }
         else
         {
@@ -535,6 +535,7 @@ public static class Phase10_RealRecording
         Console.WriteLine("  container:               MP4");
         FileInfo fileInfo = new(s_outputPath!);
 
+        bool hasAudioStreamVar = false;
         // A4: Verify MP4 streams using FFmpeg
         Console.WriteLine();
         Console.WriteLine("[10.8] Verifying MP4 streams...");
@@ -554,9 +555,9 @@ public static class Phase10_RealRecording
                 string verifyErr = verifyProc.StandardError.ReadToEnd();
                 verifyProc.WaitForExit(10000);
                 bool hasVideoStream = verifyErr.Contains("Stream #0:0") && verifyErr.Contains("Video:");
-                bool hasAudioStream = verifyErr.Contains("Stream #0:") && verifyErr.Contains("Audio:");
+                hasAudioStreamVar = verifyErr.Contains("Stream #0:") && verifyErr.Contains("Audio:");
                 Console.WriteLine($"  Video stream: {(hasVideoStream ? "FOUND" : "MISSING")}");
-                Console.WriteLine($"  Audio stream: {(hasAudioStream ? "FOUND" : "MISSING")}");
+                Console.WriteLine($"  Audio stream: {(hasAudioStreamVar ? "FOUND" : "MISSING")}");
                 // Print stream lines
                 foreach (var line in verifyErr.Split('\n'))
                 {
@@ -584,8 +585,15 @@ public static class Phase10_RealRecording
         Console.WriteLine("============================================================");
 
         if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
-        if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0 && audioCtx.TotalSamples > 0)
+        bool audioInMp4 = hasAudioStreamVar;
+        bool audioCaptured = audioCtx.TotalSamples > 0;
+
+        if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0
+            && audioCaptured && audioInMp4)
             Console.WriteLine("  Phase 10: PASS — video + audio recording produced.");
+        else if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0
+                 && audioCaptured && !audioInMp4)
+            Console.WriteLine("  Phase 10: FAIL — audio captured but MISSING from MP4. Mux failed.");
         else if (framesEncoded > 0 && nvencErrors == 0 && fileInfo.Exists && fileInfo.Length > 0)
             Console.WriteLine("  Phase 10: PARTIAL — video only (audio failed: 0 samples). NOT PASS.");
         else
