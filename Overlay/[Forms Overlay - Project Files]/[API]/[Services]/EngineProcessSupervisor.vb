@@ -58,6 +58,11 @@ Public NotInheritable Class EngineProcessSupervisor
     Private Shared _lastSpawnAt As DateTime = DateTime.MinValue
     Private Shared _respawnDelayMs As Integer = RespawnBaseDelayMs
 
+    ' ★ Race invariant (GPT challenge): "At most 1 spawn attempt in flight".
+    ' Checked+set atomically under _sync; cleared in Finally after Process.Start
+    ' returns. Concurrent callers skip — the monitor re-checks next cycle.
+    Private Shared _spawnInFlight As Boolean = False
+
     Private Sub New()
     End Sub
 
@@ -115,6 +120,15 @@ Public NotInheritable Class EngineProcessSupervisor
         SyncLock _sync
             If _shuttingDown Then Return
 
+            ' ★ Race invariant: only ONE spawn attempt may be in flight.
+            ' (startup path and monitor respawn path both land here; an
+            ' external user-start during our pre-spawn window is covered by
+            ' the process check below plus the engine's own SingleInstance.)
+            If _spawnInFlight Then
+                Debug.WriteLine($"[EngineSupervisor] spawn already in flight — skip ({reason})")
+                Return
+            End If
+
             Using existing As Process = FindEngineProcess()
                 If existing IsNot Nothing Then
                     _lastSpawnedPid = existing.Id
@@ -122,15 +136,18 @@ Public NotInheritable Class EngineProcessSupervisor
                     Return
                 End If
             End Using
+
+            _spawnInFlight = True
         End SyncLock
 
-        Dim exePath As String = ResolveEngineExePath()
-        If exePath Is Nothing Then
-            Debug.WriteLine($"[EngineSupervisor] {ExeFileName} not found — cannot spawn ({reason})")
-            Return
-        End If
-
+        Dim exePath As String = Nothing
         Try
+            exePath = ResolveEngineExePath()
+            If exePath Is Nothing Then
+                Debug.WriteLine($"[EngineSupervisor] {ExeFileName} not found — cannot spawn ({reason})")
+                Return
+            End If
+
             Dim psi As New ProcessStartInfo With {
                 .FileName = exePath,
                 .UseShellExecute = True,          ' normal launch, like a user opening it
@@ -145,8 +162,13 @@ Public NotInheritable Class EngineProcessSupervisor
                     Debug.WriteLine($"[EngineSupervisor] spawned engine pid {p.Id} from {exePath} ({reason})")
                 End If
             End Using
+
         Catch ex As Exception
             Debug.WriteLine($"[EngineSupervisor] spawn failed ({reason}): {ex.Message}")
+        Finally
+            SyncLock _sync
+                _spawnInFlight = False
+            End SyncLock
         End Try
     End Sub
 
@@ -211,7 +233,20 @@ Public NotInheritable Class EngineProcessSupervisor
                     End If
                 End Using
 
-                If aliveNow Then Continue While
+                ' Duplicate watch (race-window evidence): if an external start
+                ' slipped past the pre-spawn check, we may briefly see >1 engine.
+                ' The engine's SingleInstance=true collapses it — we just log it.
+                If aliveNow Then
+                    Dim procs As Process() = Process.GetProcessesByName(ProcessName)
+                    If procs IsNot Nothing AndAlso procs.Length > 1 Then
+                        Debug.WriteLine($"[EngineSupervisor] WARNING — {procs.Length} engine processes observed " &
+                                        "(external start raced us; engine SingleInstance will collapse it)")
+                    End If
+                    For Each ap As Process In procs
+                        Try : ap.Dispose() : Catch : End Try
+                    Next
+                    Continue While
+                End If
 
                 ' Engine is gone. Wait out the backoff, then respawn.
                 Dim waitMs As Integer
