@@ -80,6 +80,13 @@ Namespace CaptureEngine.Encoder.Nvenc
         Private _frameRateNum As UInteger = 60
         Private _frameRateDen As UInteger = 1
 
+        ' ─── Session boundary tracking ─────────────────────────────────
+        ' When True, the next Encode() call will set FORCEIDR + OUTPUT_SPSPPS
+        ' to create a clean H.264 access point (IDR frame + SPS/PPS headers).
+        ' This is essential when reusing the NVENC session across recording
+        ' sessions — each new raw H.264 file must start with SPS/PPS.
+        Private _firstFrameOfSession As Boolean = False
+
         Private ReadOnly _logger As EngineLogger
 
         Public Sub New(logger As EngineLogger)
@@ -256,6 +263,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                         $"Start() called from state {_state} (must be Initialized or Stopped).")
                 End If
                 _state = EncoderState.Running
+                _firstFrameOfSession = True  ' Next Encode() will force IDR + SPS/PPS
             End SyncLock
             _logger.Info("NvencEncoderBackend: started.")
         End Sub
@@ -419,7 +427,17 @@ Namespace CaptureEngine.Encoder.Nvenc
                     picParams.inputWidth = _width
                     picParams.inputHeight = _height
                     picParams.inputPitch = 0
-                    picParams.encodePicFlags = 0
+                    ' First frame of session: force IDR + output SPS/PPS for clean
+                    ' H.264 access point. Subsequent frames: normal encoding.
+                    If _firstFrameOfSession Then
+                        picParams.encodePicFlags =
+                            NvEncodeAPI.NV_ENC_PIC_FLAG_FORCEIDR Or
+                            NvEncodeAPI.NV_ENC_PIC_FLAG_OUTPUT_SPSPPS
+                        _firstFrameOfSession = False
+                        _logger.Info("NvencEncoderBackend: first frame of session — FORCEIDR + SPS/PPS")
+                    Else
+                        picParams.encodePicFlags = 0
+                    End If
                     picParams.frameIdx = 0
                     picParams.inputTimeStamp = CULng(pts)  ' pipeline PTS (NOT Stopwatch — frame contract)
                     picParams.inputDuration = 0

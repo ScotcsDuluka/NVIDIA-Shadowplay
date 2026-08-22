@@ -185,14 +185,10 @@ Namespace CaptureEngine.Recording
                 ' ─── 8b. Wrap raw H.264 into MP4 container ─────────────
                 ' MuxCoordinator expects a container file (MP4), not raw H.264.
                 ' FFmpeg reads raw H.264 with -f h264 -r <fps> and outputs MP4.
-                '
-                ' IMPORTANT: -r must match the DISPLAY refresh rate (75Hz), NOT
-                ' the achieved capture FPS (which varies and can be higher).
-                ' Using achieved FPS causes FFmpeg to misinterpret frame timing
-                ' → corrupt MP4 → mux fails (Session 2 bug).
                 _logger.Info("[session] Wrapping H.264 into MP4 container...")
-                Dim refreshRate As Integer = 75  ' TODO: get from DdagrabBackend.OutputRefreshRate
+                Dim refreshRate As Integer = 75  ' display refresh rate (TODO: expose from DdagrabBackend)
                 Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {refreshRate} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
+                _logger.Info($"[session] Wrap command: {_config.FFmpegPath} {wrapArgs}")
                 Dim wrapPsi As New ProcessStartInfo With {
                     .FileName = _config.FFmpegPath,
                     .Arguments = wrapArgs,
@@ -202,10 +198,11 @@ Namespace CaptureEngine.Recording
                 }
                 Try
                     Using wrapProc As Process = Process.Start(wrapPsi)
-                        wrapProc.StandardError.ReadToEnd()
+                        Dim wrapStderr As String = wrapProc.StandardError.ReadToEnd()
                         wrapProc.WaitForExit(30000)
                         If wrapProc.ExitCode <> 0 Then
-                            _logger.Error($"[session] H.264 wrap failed: exit code {wrapProc.ExitCode}")
+                            _logger.Error($"[session] H.264 wrap failed: exit code {wrapProc.ExitCode}" &
+                                          Environment.NewLine & "FFmpeg stderr:" & Environment.NewLine & wrapStderr)
                         Else
                             _logger.Info("[session] H.264 wrap succeeded")
                         End If

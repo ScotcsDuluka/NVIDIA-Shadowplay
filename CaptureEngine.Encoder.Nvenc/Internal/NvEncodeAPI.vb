@@ -70,6 +70,12 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         Public Const NV_ENC_BUFFER_FORMAT_ABGR As UInteger = &H10000000UI
         Public Const NV_ENC_BUFFER_FORMAT_ABGR10 As UInteger = &H20000000UI
 
+        ' === Encode pic flags (NV_ENC_PIC_FLAG_*) ===
+        Public Const NV_ENC_PIC_FLAG_FORCEINTRA As UInteger = &H1UI
+        Public Const NV_ENC_PIC_FLAG_FORCEIDR As UInteger = &H2UI
+        Public Const NV_ENC_PIC_FLAG_OUTPUT_SPSPPS As UInteger = &H4UI
+        Public Const NV_ENC_PIC_FLAG_EOS As UInteger = &H8UI
+
         ' === Codec GUIDs ===
         Public Shared ReadOnly NV_ENC_CODEC_H264_GUID As Guid =
             New Guid(&H6BC82762UI, &H4E63US, &H4CA4US, &HAA, &H85, &H1E, &H50, &HF3, &H21, &HF6, &HBF)
