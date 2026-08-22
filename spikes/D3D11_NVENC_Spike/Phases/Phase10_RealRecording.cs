@@ -452,11 +452,12 @@ public static class Phase10_RealRecording
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
         // Calculate actual FPS from capture
         double elapsedSec = sw.Elapsed.TotalSeconds;
-        double actualFps = framesEncoded / elapsedSec;
-        int fpsRounded = (int)Math.Round(actualFps);
+        double displayRefreshHz = (double)duplDesc.ModeDescription.RefreshRate.Numerator /
+                                  Math.Max(1.0, duplDesc.ModeDescription.RefreshRate.Denominator);
+        int fpsRounded = (int)Math.Round(displayRefreshHz);
         if (fpsRounded < 1) fpsRounded = 30;
-        Console.WriteLine($"  Actual capture FPS: {actualFps:F2} (using {fpsRounded} for mux)");
-
+        Console.WriteLine($"  Display refresh: {displayRefreshHz:F2} Hz (using {fpsRounded} fps for mux)");
+        Console.WriteLine($"  Computed throughput: {framesEncoded / elapsedSec:F2} fps (includes duplicates)");
         bool hasAudio = audioCtx.TotalBytes > 0 && File.Exists(tempWav);
 
         // A2: Validate WAV before mux
