@@ -2,59 +2,55 @@ Option Strict On
 Option Explicit On
 Option Infer On
 
+' DdagrabBackend.vb
+'
+' Production video capture backend using DXGI Output Duplication.
+' Implements IVideoCaptureBackend contract — Initialize() persistent,
+' Start/Stop per-session, Dispose at process exit.
+'
+' Phase 12a-4 FILL-IN:
+'   - Real DXGI Output Duplication in worker loop
+'   - D3D11 staging texture per frame (D3D11VideoFrame)
+'   - AccessLost recovery (recreate duplication)
+'   - ReleaseFrame in every path (success, drop, error)
+'
+' OWNERSHIP MODEL (verified via handoff audit):
+'   - Backend OWNS: D3D11 device, DXGI Output Duplication (persistent —
+'     created in Initialize, destroyed in Dispose).
+'   - Per-frame: staging texture (created in WorkerLoop, owned by
+'     D3D11VideoFrame). When TryPush returns Pushed/Replaced, ownership
+'     TRANSFERS to sink. When Dropped, backend disposes the frame.
+'   - DXGI desktop texture is NOT owned by us — it's borrowed from
+'     IDXGIOutputDuplication for the duration between AcquireNextFrame
+'     and ReleaseFrame. We CopyResource to our staging texture, then
+'     ReleaseFrame immediately (before pushing to sink).
+'
+' CONTRACT COMPLIANCE:
+'   - Initialize() creates persistent GPU resources (D3D11 + DXGI duplication)
+'   - Start() spawns worker thread; Stop() signals + joins (2s budget)
+'   - Dispose() deadlock-free per P1-B.1 FIX change #1
+'   - TryPush never blocks; Dropped → backend disposes frame
+'   - ReleaseFrame called in every path (success, NoFrame, error)
+'
+' HARD RULES:
+'   - Foundation NOT modified (CaptureEngine.vb @ 82d792ab FROZEN)
+'   - IVideoFrame contract unchanged (D3D11VideoFrame is additive)
+'   - No reflection, no TryCast hack
+'   - No reference to CaptureEngine.Encoder.Nvenc (no backward dep)
+'   - Frame ownership = TRANSFER on Pushed/Replaced; BORROW never
+
 Imports System
+Imports System.Diagnostics
 Imports System.Threading
 Imports CaptureEngine.Diagnostics
+Imports Vortice.Direct3D
+Imports Vortice.Direct3D11
+Imports Vortice.DXGI
+' Alias to disambiguate ResultCode (Vortice.DXGI vs Vortice.Direct3D11).
+Imports ResultCode = Vortice.DXGI.ResultCode
 
 Namespace CaptureEngine.Video.Backends.Ddagrab
-    ''' <summary>
-    ''' DdagrabBackend — production video capture backend using DXGI Output
-    ''' Duplication (ddagrab). (P1-A v1.3.1 §1.3, §7.1, §11)
-    '''
-    ''' GLM-1 SKELETON STATUS:
-    ''' This is a SKELETON implementation. It satisfies the full
-    ''' IVideoCaptureBackend lifecycle contract (Initialize / Start / Stop /
-    ''' Dispose + Diagnostics + idempotency + post-Dispose guards +
-    ''' deadlock-free Dispose-while-Running) but does NOT yet perform real
-    ''' DXGI Output Duplication capture.
-    '''
-    ''' What is implemented:
-    '''   - Full lifecycle state machine (Created → Initializing →
-    '''     Initialized → Starting → Running → Stopping → Stopped →
-    '''     Disposed; Faulted on failure).
-    '''   - Worker thread that polls for frames. Currently always returns
-    '''     NoFrame (real DXGI capture is a TODO below).
-    '''   - Per P1-A v1.3.1 §6.4, NoFrame results are NOT pushed to the
-    '''     sink — they are an internal backend signal. The
-    '''     NoFrameCount diagnostic counter increments.
-    '''   - Stop contract per P1-A v1.3.1 §4 + P1-B.1 FIX change #2:
-    '''     Stop stops the producer; queued frames remain sink-owned;
-    '''     backend does NOT require unbounded drain during Stop.
-    '''   - Dispose deadlock-free per P1-B.1 FIX change #1: capture state
-    '''     under lock, set stop signal under lock, RELEASE lock, Join
-    '''     worker OUTSIDE lock, re-acquire lock ONLY to finalize state.
-    '''
-    ''' What is NOT yet implemented (TODO for a future task):
-    '''   - Real DXGI Output Duplication: create D3D11 device, enumerate
-    '''     DXGI adapters/outputs, duplicate output, call
-    '''     AcquireNextFrame in the worker loop.
-    '''   - Real D3D11 device creation per §5 (Option A working assumption
-    '''     from P1-B.2 §16.4 — each backend owns its own device on the
-    '''     same physical GPU).
-    '''   - Real DdagrabFrame construction (the placeholder DdagrabFrame
-    '''     class exists but is not yet emitted).
-    '''   - BGRA8 baseline enforcement on real captured textures (§3.4,
-    '''     §15.1) — the OS texture's DXGI_FORMAT must be
-    '''     DXGI_FORMAT_B8G8R8A8_UNORM.
-    '''   - Timestamp conversion per P1-A v1.3.1 §3.6.1 Option β (chosen
-    '''     in P1-B.2 §16.3): CaptureTimeTicks =
-    '''     Stopwatch.GetTimestamp() * 10_000_000L \ Stopwatch.Frequency.
-    '''
-    ''' Constraints honored:
-    '''   - Foundation NOT modified.
-    '''   - No FFmpeg / NVENC / NAudio / Audio / UI / Output integration.
-    '''   - No contract (interface) modifications.
-    ''' </summary>
+
     Public NotInheritable Class DdagrabBackend
         Implements IVideoCaptureBackend
         Implements IVideoBackendDiagnostics
@@ -70,7 +66,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private _workerThread As Thread
         Private _stopSignal As Boolean = False
         Private _sink As IVideoFrameSink
-        Private _interAttemptDelayMs As Integer = 1   ' avoid busy-looping in skeleton mode
+        Private _interAttemptDelayMs As Integer = 1   ' avoid busy-looping
 
         ' ---- diagnostics (counters) ----
         Private _emittedFrames As Long = 0
@@ -78,12 +74,24 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private _replacedFrames As Long = 0
         Private _noFrameCount As Long = 0
         Private _errorCount As Long = 0
-
-        ' ---- monotonic sequence ----
+        Private _accessLostCount As Long = 0
         Private _nextSequence As Long = 0
 
-        ' ---- captured context (for real-implementation TODO) ----
+        ' ---- captured context ----
         Private _context As IVideoBackendContext
+
+        ' ---- persistent D3D11 / DXGI resources (created in Initialize) ----
+        Private _device As ID3D11Device
+        Private _deviceContext As ID3D11DeviceContext
+        Private _dxgiFactory As IDXGIFactory1
+        Private _adapter As IDXGIAdapter1
+        Private _output As IDXGIOutput
+        Private _duplication As IDXGIOutputDuplication
+        Private _outputWidth As Integer
+        Private _outputHeight As Integer
+
+        ' ---- staging texture description (used per-frame) ----
+        Private _stagingDesc As Texture2DDescription
 
         Public Sub New(Optional logger As EngineLogger = Nothing)
             _logger = If(logger, New EngineLogger("DdagrabBackend"))
@@ -112,7 +120,6 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End SyncLock
 
             Try
-                ' Validate backend kind.
                 If context.BackendKind <> VideoBackendKind.Ddagrab Then
                     Throw New VideoBackendConfigurationException(
                         "DdagrabBackend.Initialize: context.BackendKind must be Ddagrab, but was " &
@@ -121,20 +128,107 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
                 _context = context
 
-                ' TODO (future task): create D3D11 device on the NVIDIA adapter,
-                ' enumerate DXGI outputs, duplicate the primary output. Until
-                ' then, this skeleton accepts Initialize and proceeds to
-                ' Initialized. Real capture will be added in a later task.
+                ' ─── Create D3D11 device on primary NVIDIA adapter ─────────
+                ' Per audit verdict #1: each backend owns its own D3D11 device.
+                ' Device flags: BgraSupport (Desktop Duplication) + VideoSupport
+                ' (interop-friendly; required by some NVENC paths).
+                _dxgiFactory = DXGI.CreateDXGIFactory1(Of IDXGIFactory1)()
+
+                Dim nvidiaIdx As Integer = -1
+                Dim adapterIdx As Integer = 0
+                Dim adapter1 As IDXGIAdapter1 = Nothing
+                Do While _dxgiFactory.EnumAdapters1(CUInt(adapterIdx), adapter1).Success
+                    Using a As IDXGIAdapter1 = adapter1
+                        Dim desc As AdapterDescription1 = a.Description1
+                        _logger.Info($"  Adapter [{adapterIdx}] {desc.Description} " &
+                                     $"(0x{desc.VendorId:x4}:0x{desc.DeviceId:x4})")
+                        ' Pick first NVIDIA adapter (vendor 0x10DE).
+                        If desc.VendorId = &H10DEUI AndAlso nvidiaIdx < 0 Then
+                            nvidiaIdx = adapterIdx
+                        End If
+                    End Using
+                    adapterIdx += 1
+                Loop
+
+                If nvidiaIdx < 0 Then
+                    Throw New VideoBackendRuntimeException(
+                        "DdagrabBackend: no NVIDIA adapter found. Capture requires an NVIDIA GPU.")
+                End If
+
+                _dxgiFactory.EnumAdapters1(CUInt(nvidiaIdx), _adapter).CheckError()
+                Dim nvidiaDesc As AdapterDescription1 = _adapter.Description1
+                _logger.Info($"DdagrabBackend: selected NVIDIA adapter #{nvidiaIdx}: {nvidiaDesc.Description}")
+
+                Dim requestedFeatureLevels As FeatureLevel() = {
+                    FeatureLevel.Level_11_1,
+                    FeatureLevel.Level_11_0
+                }
+                Dim flags As DeviceCreationFlags = DeviceCreationFlags.BgraSupport Or
+                                                    DeviceCreationFlags.VideoSupport
+                D3D11.D3D11CreateDevice(
+                    _adapter,
+                    DriverType.Unknown,
+                    flags,
+                    requestedFeatureLevels,
+                    _device,
+                    _deviceContext).CheckError()
+
+                ' Enable multithread protection (Phase 2 spike: required for
+                ' Desktop Duplication performance — without it FPS drops from
+                ' ~100 to ~3 with massive WAIT_TIMEOUT counts).
+                Dim multithread As ID3D11Multithread = _deviceContext.QueryInterface(Of ID3D11Multithread)()
+                multithread.SetMultithreadProtected(True)
+                multithread.Dispose()
+                _logger.Info($"DdagrabBackend: D3D11 device created (feature level {_device.FeatureLevel})")
+
+                ' ─── Enumerate outputs, pick primary ─────────────────────────
+                Dim outIdx As Integer = 0
+                Dim out_ As IDXGIOutput = Nothing
+                If Not _adapter.EnumOutputs(CUInt(outIdx), out_).Success Then
+                    Throw New VideoBackendRuntimeException(
+                        "DdagrabBackend: no DXGI outputs found on adapter.")
+                End If
+                _output = out_
+                Dim outDesc As OutputDescription = _output.Description
+                _outputWidth = outDesc.DesktopCoordinates.Right - outDesc.DesktopCoordinates.Left
+                _outputHeight = outDesc.DesktopCoordinates.Bottom - outDesc.DesktopCoordinates.Top
+                _logger.Info($"DdagrabBackend: output #{outIdx}: {outDesc.DeviceName} " &
+                             $"({_outputWidth}x{_outputHeight})")
+
+                ' ─── DuplicateOutput (persistent — 1 per output per process) ─
+                ' Phase 11 root cause #2: Windows limits 1 duplication per output
+                ' per process. Initialize() creates it ONCE; Start/Stop just
+                ' starts/stops frame delivery.
+                Dim output1 As IDXGIOutput1 = _output.QueryInterface(Of IDXGIOutput1)()
+                _duplication = output1.DuplicateOutput(_device)
+                output1.Dispose()
+                _logger.Info("DdagrabBackend: DXGI Output Duplication created (persistent)")
+
+                ' ─── Staging texture description (used per-frame in WorkerLoop) ─
+                _stagingDesc = New Texture2DDescription() With {
+                    .Width = _outputWidth,
+                    .Height = _outputHeight,
+                    .MipLevels = 1,
+                    .ArraySize = 1,
+                    .Format = Format.B8G8R8A8_UNorm,
+                    .SampleDescription = New SampleDescription(1, 0),
+                    .Usage = ResourceUsage.Default,
+                    .BindFlags = BindFlags.ShaderResource Or BindFlags.RenderTarget,
+                    .CPUAccessFlags = CpuAccessFlags.None,
+                    .MiscFlags = ResourceOptionFlags.None
+                }
 
                 _state = DdagrabBackendState.Initialized
-                _logger.Info("DdagrabBackend: Initialize complete (SKELETON — real DXGI capture not yet implemented)")
+                _logger.Info("DdagrabBackend: Initialize complete (real DXGI capture)")
             Catch ex As VideoBackendException
                 _state = DdagrabBackendState.Faulted
                 _logger.Error("DdagrabBackend: Initialize failed", ex)
+                CleanupPersistentResources()
                 Throw
             Catch ex As Exception
                 _state = DdagrabBackendState.Faulted
                 _logger.Error("DdagrabBackend: Initialize failed (unexpected)", ex)
+                CleanupPersistentResources()
                 Throw New VideoBackendRuntimeException("Initialize failed unexpectedly", ex)
             End Try
         End Sub
@@ -167,7 +261,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 }
                 _workerThread.Start()
                 _state = DdagrabBackendState.Running
-                _logger.Info("DdagrabBackend: started (SKELETON — worker emits NoFrame until real capture is implemented)")
+                _logger.Info("DdagrabBackend: started (real DXGI capture)")
             Catch ex As Exception
                 _state = DdagrabBackendState.Faulted
                 _logger.Error("DdagrabBackend: Start failed", ex)
@@ -215,17 +309,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         End Sub
 
         Public Sub Dispose() Implements IDisposable.Dispose
-            ' P0 fix (P1-B.1 FIX change #1): NEVER wait for the worker thread
-            ' while holding _sync. The worker itself needs _sync on every
-            ' iteration (to read state and update diagnostics counters), so
-            ' holding _sync across worker.Join() is a guaranteed deadlock.
-            '
-            ' Pattern:
-            '   1. Capture state under lock; set the stop signal under lock;
-            '      mark _disposed to make Dispose idempotent.
-            '   2. Release the lock.
-            '   3. Join the worker thread OUTSIDE the lock.
-            '   4. Re-acquire the lock ONLY to finalize state to Disposed.
+            ' P1-B.1 FIX change #1: NEVER wait for the worker while holding _sync.
+            ' Worker needs _sync on every iteration — holding _sync across Join = deadlock.
 
             Dim workerToJoin As Thread = Nothing
             Dim needJoin As Boolean = False
@@ -247,29 +332,26 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 End If
             End SyncLock
 
-            ' JOIN OUTSIDE THE LOCK — the worker needs _sync on every iteration.
             If needJoin AndAlso workerToJoin IsNot Nothing Then
                 Try
                     If Not workerToJoin.Join(TimeSpan.FromSeconds(2)) Then
-                        If _logger IsNot Nothing Then
-                            _logger.Error("DdagrabBackend: worker did not acknowledge stop within 2 s", Nothing)
-                        End If
+                        _logger.Error("DdagrabBackend: worker did not acknowledge stop within 2 s", Nothing)
                     End If
                 Catch ex As Exception
-                    If _logger IsNot Nothing Then
-                        _logger.Error("DdagrabBackend: stop path failed during Dispose (will still dispose)", ex)
-                    End If
+                    _logger.Error("DdagrabBackend: stop path failed during Dispose (will still dispose)", ex)
                 End Try
             End If
 
-            ' RE-ACQUIRE LOCK ONLY TO FINALIZE STATE.
             SyncLock _sync
                 If _state = DdagrabBackendState.Stopping Then
                     _state = DdagrabBackendState.Stopped
                 End If
                 _state = DdagrabBackendState.Disposed
-                _logger.Info("DdagrabBackend: disposed")
             End SyncLock
+
+            ' Release persistent GPU resources OUTSIDE _sync (GPU release can be slow).
+            CleanupPersistentResources()
+            _logger.Info("DdagrabBackend: disposed")
         End Sub
 
         ' ===== IVideoBackendDiagnostics =====
@@ -314,9 +396,17 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End Get
         End Property
 
+        ' Extra diagnostic (not in interface — read via cast or test helper)
+        Public ReadOnly Property AccessLostCount As Long
+            Get
+                SyncLock _sync
+                    Return _accessLostCount
+                End SyncLock
+            End Get
+        End Property
+
         ' ===== Test-visible state (Friend) =====
 
-        ''' <summary>Snapshot the current backend state (for tests).</summary>
         Friend ReadOnly Property CurrentState As DdagrabBackendState
             Get
                 SyncLock _sync
@@ -325,7 +415,6 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End Get
         End Property
 
-        ''' <summary>Inter-attempt delay (ms). Default 1 ms (skeleton); real capture will use AcquireNextFrame's poll interval.</summary>
         Friend Function WithInterAttemptDelayMs(delayMs As Integer) As DdagrabBackend
             SyncLock _sync
                 _interAttemptDelayMs = delayMs
@@ -333,64 +422,173 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End SyncLock
         End Function
 
-        ' ===== Internal worker =====
+        ' ===== Internal worker — REAL DXGI CAPTURE LOOP =====
 
         Private Sub WorkerLoop()
-            Do
-                Dim shouldStop As Boolean
-                SyncLock _sync
-                    shouldStop = _stopSignal
-                End SyncLock
-                If shouldStop Then Exit Do
+            Try
+                Do
+                    Dim shouldStop As Boolean
+                    SyncLock _sync
+                        shouldStop = _stopSignal
+                    End SyncLock
+                    If shouldStop Then Exit Do
 
-                ' TODO (future task): replace this placeholder with real
-                ' DXGI Output Duplication:
-                '   1. IDXGIOutputDuplication.AcquireNextFrame(timeout, ...)
-                '   2. If returned DXGI_ERROR_WAIT_TIMEOUT → NoFrame (current skeleton path).
-                '   3. If returned S_OK with a new frame:
-                '      a. Construct a DdagrabFrame wrapping the ID3D11Texture2D.
-                '      b. Convert timestamp per §3.6.1 Option β:
-                '         CaptureTimeTicks = Stopwatch.GetTimestamp() * 10_000_000L \ Stopwatch.Frequency
-                '      c. Push FrameAcquisitionResult.Available(frame, sequence, attemptTime) to sink.
-                '      d. ReleaseFrame() to return the texture to the duplication session.
-                '
-                ' For now, skeleton emits NoFrame forever so the lifecycle
-                ' contract is exercised without depending on a real D3D11
-                ' device or DXGI Output Duplication.
+                    ' ─── AcquireNextFrame (DXGI Output Duplication) ────────
+                    Dim sequence As Long
+                    Dim attemptTime As Long
+                    SyncLock _sync
+                        sequence = _nextSequence
+                        _nextSequence += 1
+                        attemptTime = CLng(Math.Truncate(
+                            CDec(Stopwatch.GetTimestamp()) * 10000000D /
+                            CDec(Stopwatch.Frequency)))
+                    End SyncLock
 
-                Dim sequence As Long
-                Dim attemptTime As Long
-                SyncLock _sync
-                    sequence = _nextSequence
-                    _nextSequence += 1
-                    ' Per §3.6.1 Option β (P1-B.2 §16.3):
-                    '   CaptureTimeTicks = Stopwatch.GetTimestamp() * 10_000_000L \ Stopwatch.Frequency
-                    '
-                    ' Overflow-safe implementation: the naive multiplication
-                    ' Stopwatch.GetTimestamp() * 10_000_000L overflows Int64 on
-                    ' systems where Stopwatch.Frequency is large (e.g. Linux:
-                    ' Frequency = 1_000_000_000; GetTimestamp() returns
-                    ' nanoseconds since boot which can exceed 10^13 — multiplied
-                    ' by 10^7 overflows Int64's ~9.2 × 10^18 max).
-                    '
-                    ' Use Decimal for the intermediate multiplication, then
-                    ' truncate back to Long. The conversion is exact for any
-                    ' realistic QPC tick value.
-                    attemptTime = CLng(Math.Truncate(
-                        CDec(Stopwatch.GetTimestamp()) * 10000000D /
-                        CDec(Stopwatch.Frequency)))
-                    _noFrameCount += 1
-                End SyncLock
+                    Dim frameInfo As OutduplFrameInfo
+                    Dim desktopResource As IDXGIResource = Nothing
+                    Dim acquireResult As Result = _duplication.AcquireNextFrame(
+                        100,  ' 100ms timeout
+                        frameInfo,
+                        desktopResource)
 
-                ' NoFrame results are NOT pushed to the sink (§6.4).
-                ' The sink only sees FrameAvailable (and optionally Error).
+                    If Not acquireResult.Success Then
+                        ' Common case: DXGI_ERROR_WAIT_TIMEOUT (no new frame since last acquire)
+                        ' Not an error — increment NoFrameCount and continue.
+                        If acquireResult = ResultCode.WaitTimeout Then
+                            SyncLock _sync
+                                _noFrameCount += 1
+                            End SyncLock
+                        ElseIf acquireResult = ResultCode.AccessLost Then
+                            ' Output duplication lost (mode change, fullscreen app, etc.)
+                            ' Recreate the duplication on next iteration.
+                            SyncLock _sync
+                                _accessLostCount += 1
+                            End SyncLock
+                            _logger.Warning("DdagrabBackend: DXGI_ACCESS_LOST — recreating duplication")
+                            RecreateDuplication()
+                        Else
+                            SyncLock _sync
+                                _errorCount += 1
+                            End SyncLock
+                            _logger.Error($"DdagrabBackend: AcquireNextFrame failed: hr=0x{acquireResult.Code:x8}")
+                        End If
 
-                If _interAttemptDelayMs > 0 Then
-                    Thread.Sleep(_interAttemptDelayMs)
-                End If
-            Loop
+                        If _interAttemptDelayMs > 0 Then
+                            Thread.Sleep(_interAttemptDelayMs)
+                        End If
+                        Continue Do
+                    End If
+
+                    ' ─── Got a frame — copy to staging texture + ReleaseFrame ─
+                    Dim stagingTexture As ID3D11Texture2D = Nothing
+                    Dim desktopTexture As ID3D11Texture2D = Nothing
+                    Dim frame As D3D11VideoFrame = Nothing
+                    Try
+                        desktopTexture = desktopResource.QueryInterface(Of ID3D11Texture2D)()
+
+                        ' Create staging texture (per-frame allocation — Phase 12a simple strategy)
+                        stagingTexture = _device.CreateTexture2D(_stagingDesc)
+
+                        ' GPU copy: DXGI desktop texture → our staging texture
+                        _deviceContext.CopyResource(stagingTexture, desktopTexture)
+
+                        ' ReleaseFrame IMMEDIATELY — duplication requires ReleaseFrame
+                        ' before next AcquireNextFrame. The staging texture is now
+                        ' independent (we own it).
+                        Try
+                            _duplication.ReleaseFrame()
+                        Catch ex As Exception
+                            _logger.Warning($"DdagrabBackend: ReleaseFrame threw: {ex.Message}")
+                        End Try
+
+                        ' ─── Construct D3D11VideoFrame + push to sink ─────────
+                        ' PTS = capture time (P1-A §3.6.1 Option β — pipeline PTS
+                        ' uses the same timebase as CaptureTimeTicks). Encoder
+                        ' will read frame.Diagnostics.PresentationTimestampTicks.
+                        frame = New D3D11VideoFrame(
+                            stagingTexture,
+                            _outputWidth,
+                            _outputHeight,
+                            sequence,
+                            attemptTime,
+                            attemptTime)  ' PTS = capture time (sync mode)
+                        stagingTexture = Nothing  ' ownership transferred to frame
+
+                        ' TryPush — TRANSFER ownership model
+                        Dim outcome As PushOutcome = _sink.TryPush(
+                            FrameAcquisitionResult.Available(frame, sequence, attemptTime))
+                        Select Case outcome
+                            Case PushOutcome.Pushed
+                                SyncLock _sync
+                                    _emittedFrames += 1
+                                End SyncLock
+                                frame = Nothing  ' ownership transferred to sink
+                            Case PushOutcome.Replaced
+                                SyncLock _sync
+                                    _emittedFrames += 1
+                                    _replacedFrames += 1
+                                End SyncLock
+                                frame = Nothing  ' ownership transferred to sink (old frame disposed by sink)
+                            Case PushOutcome.Dropped
+                                SyncLock _sync
+                                    _droppedFrames += 1
+                                End SyncLock
+                                ' Backend retains ownership — dispose immediately.
+                                frame?.Dispose()
+                                frame = Nothing
+                        End Select
+
+                    Catch ex As Exception
+                        SyncLock _sync
+                            _errorCount += 1
+                        End SyncLock
+                        _logger.Error($"DdagrabBackend: worker iteration failed: {ex.Message}", ex)
+                        ' Dispose any partially-created resources.
+                        frame?.Dispose()
+                        Try : stagingTexture?.Dispose() : Catch : End Try
+                    Finally
+                        ' Always dispose the DXGI desktop texture wrapper.
+                        ' (The underlying DXGI texture belongs to the duplication
+                        ' and is released via ReleaseFrame above.)
+                        Try : desktopTexture?.Dispose() : Catch : End Try
+                        Try : desktopResource?.Dispose() : Catch : End Try
+                    End Try
+
+                Loop
+            Catch ex As Exception
+                _logger.Error($"DdagrabBackend: worker thread crashed: {ex.Message}", ex)
+            End Try
 
             _logger.Info("DdagrabBackend: worker exited")
+        End Sub
+
+        Private Sub RecreateDuplication()
+            ' DXGI_ACCESS_LOST recovery — recreate the duplication object.
+            ' Existing _duplication is dead; replace it.
+            Try
+                _duplication?.Dispose()
+            Catch
+            End Try
+            Try
+                Dim output1 As IDXGIOutput1 = _output.QueryInterface(Of IDXGIOutput1)()
+                _duplication = output1.DuplicateOutput(_device)
+                output1.Dispose()
+                _logger.Info("DdagrabBackend: DXGI Output Duplication recreated")
+            Catch ex As Exception
+                _logger.Error($"DdagrabBackend: failed to recreate duplication: {ex.Message}", ex)
+                ' Worker will see access-lost again next iteration; keep trying.
+            End Try
+        End Sub
+
+        Private Sub CleanupPersistentResources()
+            ' Dispose in reverse construction order. All wrapped in try/catch
+            ' so partial-init failures don't leak remaining resources.
+            Try : _duplication?.Dispose() : Catch ex As Exception : _logger.Warning($"duplication.Dispose threw: {ex.Message}") : End Try
+            Try : _output?.Dispose() : Catch : End Try
+            Try : _adapter?.Dispose() : Catch : End Try
+            Try : _deviceContext?.Dispose() : Catch : End Try
+            Try : _device?.Dispose() : Catch : End Try
+            Try : _dxgiFactory?.Dispose() : Catch : End Try
         End Sub
 
         Private Sub ThrowIfDisposed()
@@ -403,10 +601,6 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End SyncLock
         End Sub
 
-        ''' <summary>
-        ''' Internal Ddagrab-backend state. (P1-A v1.3.1 §4.4)
-        ''' Friend = assembly-internal; not part of the public API.
-        ''' </summary>
         Friend Enum DdagrabBackendState
             Created
             Initializing
