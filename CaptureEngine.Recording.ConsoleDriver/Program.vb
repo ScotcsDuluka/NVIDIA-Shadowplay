@@ -52,6 +52,8 @@ Module Program
 
         Dim logger As New EngineLogger("Test", EngineLogger.LogLevel.Info, AddressOf Console.WriteLine)
         Dim overallOk As Boolean = True
+        Dim result1 As SessionResult = Nothing
+        Dim result2 As SessionResult = Nothing
 
         ' ─── Create RecordingEngine ──────────────────────────────────
         Console.WriteLine(">>> Creating RecordingEngine...")
@@ -102,8 +104,8 @@ Module Program
         Console.WriteLine("============================================================")
         Console.WriteLine(" PHASE 12a-5 VERDICT")
         Console.WriteLine("============================================================")
-        Console.WriteLine($"  Session 1: {If(result1.Pass, "PASS", "FAIL")}")
-        Console.WriteLine($"  Session 2: {If(result2.Pass, "PASS", "FAIL")}")
+        Console.WriteLine($"  Session 1: {If(result1?.Pass = True, "PASS", "FAIL")}")
+        Console.WriteLine($"  Session 2: {If(result2?.Pass = True, "PASS", "FAIL")}")
         Console.WriteLine($"  Resource reuse: {If(overallOk, "PROVEN", "UNPROVEN")}")
         Console.WriteLine($"  MP4 with video+audio: {If(overallOk, "PROVEN", "UNPROVEN")}")
         Console.WriteLine()
