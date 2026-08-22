@@ -51,6 +51,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
+using NAudio.Wave;
 using CaptureEngine.Video.Spike.D3D11.Utils;
 
 namespace CaptureEngine.Video.Spike.D3D11.Phases;
@@ -563,97 +564,55 @@ public static class Phase10_RealRecording
         {
             CoInitializeEx(IntPtr.Zero, 0); // COINIT_MULTITHREADED
 
-            // Use .NET COM interop instead of manual vtable invocation
-            Type enumType = Type.GetTypeFromCLSID(CLSID_MMDeviceEnumerator)!;
-            var enumObj = (IMMDeviceEnumeratorEx)Activator.CreateInstance(enumType)!;
-            Console.WriteLine("  Audio: IMMDeviceEnumerator created via COM interop");
+            // Use NAudio WasapiLoopbackCapture — handles all WASAPI COM internally
+            var capture = new WasapiLoopbackCapture();
+            var waveFormat = capture.WaveFormat;
+            ctx.SampleRate = waveFormat.SampleRate;
+            ctx.Channels = waveFormat.Channels;
+            ctx.BitsPerSample = waveFormat.BitsPerSample;
 
-            int hr = enumObj.GetDefaultAudioEndpoint(0 /*eRender*/, 0 /*eConsole*/, out IMMDeviceEx endpoint);
-            Console.WriteLine($"  Audio: GetDefaultAudioEndpoint HRESULT = 0x{hr:X8}");
-            if (hr != 0) { Console.Error.WriteLine($"  Audio: GetDefaultAudioEndpoint failed: 0x{hr:X8}"); return; }
+            Console.WriteLine($"  Audio: NAudio WasapiLoopbackCapture");
+            Console.WriteLine($"  Audio: {waveFormat.Channels}ch {waveFormat.SampleRate}Hz {waveFormat.BitsPerSample}bit");
+            Console.WriteLine($"  Audio: WaveFormat: {waveFormat}");
 
-            Console.WriteLine("  Audio: IMMDevice obtained. Calling Activate(IAudioClient)...");
-            Guid iidAudioClient = IID_IAudioClient;
-            // Get raw IUnknown pointer from the ComImport object
-            // Then call Activate via manual vtable (bypasses CLR ComImport marshalling)
-            IntPtr pEndpoint = Marshal.GetIUnknownForObject(endpoint);
-            Console.WriteLine($"  Audio: Raw IMMDevice ptr = 0x{pEndpoint.ToInt64():x16}");
+            // Open WAV writer
+            var writer = new WaveFileWriter(wavPath, waveFormat);
+            long totalBytes = 0;
+            long totalSamples = 0;
+            var captureDone = new System.Threading.ManualResetEventSlim(false);
 
-            // Read vtable: slot 0=QI, 1=AddRef, 2=Release, 3=Activate
-            IntPtr vtable = Marshal.ReadIntPtr(pEndpoint);
-            IntPtr activateFnPtr = Marshal.ReadIntPtr(vtable, 3 * IntPtr.Size);
-            var activateFn = Marshal.GetDelegateForFunctionPointer<RawActivateDelegate>(activateFnPtr);
-
-            // Call Activate via raw vtable — CLR does NOT intercept this
-            Guid localIid = IID_IAudioClient;
-            IntPtr audioClientPtr = IntPtr.Zero;
-            hr = activateFn(pEndpoint, ref localIid, 0x17, IntPtr.Zero, out audioClientPtr);
-            Console.WriteLine($"  Audio: Activate HRESULT = 0x{hr:X8}");
-
-            if (hr != 0 || audioClientPtr == IntPtr.Zero)
+            capture.DataAvailable += (s, e) =>
             {
-                Console.Error.WriteLine($"  Audio: Activate failed: 0x{hr:X8}");
-                Marshal.Release(pEndpoint);
-                return;
-            }
-            Marshal.Release(pEndpoint); // Release the IUnknown ref we got
+                if (e.BytesRecorded > 0)
+                {
+                    writer.Write(e.Buffer, 0, e.BytesRecorded);
+                    totalBytes += e.BytesRecorded;
+                    totalSamples += e.BytesRecorded / (waveFormat.Channels * waveFormat.BitsPerSample / 8);
+                }
+                if (ctx.StopSignal)
+                {
+                    capture.StopRecording();
+                }
+            };
 
-            // Wrap the raw IAudioClient pointer
-            IAudioClient audioClient = (IAudioClient)Marshal.GetObjectForIUnknown(audioClientPtr);
-            Marshal.Release(audioClientPtr); // Release the raw ref, RCW holds its own
-            Console.WriteLine("  Audio: IAudioClient obtained successfully!");
+            capture.RecordingStopped += (s, e) =>
+            {
+                captureDone.Set();
+            };
 
-            hr = audioClient.GetMixFormat(out IntPtr pFormat);
-            if (hr != 0) { Console.Error.WriteLine($"  Audio: GetMixFormat failed: 0x{hr:X8}"); return; }
-            var wfx = Marshal.PtrToStructure<WAVEFORMATEX>(pFormat);
-            ctx.SampleRate = (int)wfx.nSamplesPerSec;
-            ctx.Channels = wfx.nChannels;
-            ctx.BitsPerSample = wfx.wBitsPerSample;
-            Console.WriteLine($"  Audio: {wfx.nChannels}ch {wfx.nSamplesPerSec}Hz {wfx.wBitsPerSample}bit (mix format)");
-
-            Guid sessionGuid = Guid.Empty;
-            hr = audioClient.Initialize(AUDCLNT_SHAREMODE_SHARED, AUDCLNT_STREAMFLAGS_LOOPBACK,
-                10000000, 0, pFormat, ref sessionGuid);
-            if (hr != 0) { Console.Error.WriteLine($"  Audio: Initialize failed: 0x{hr:X8}"); return; }
-
-            Guid iidCapture = IID_IAudioCaptureClient;
-            IntPtr capturePtr = IntPtr.Zero;
-            hr = audioClient.GetService(ref iidCapture, out capturePtr);
-            if (hr != 0 || capturePtr == IntPtr.Zero) { Console.Error.WriteLine($"  Audio: GetService failed: 0x{hr:X8}"); return; }
-            IAudioCaptureClient capture = (IAudioCaptureClient)Marshal.GetObjectForIUnknown(capturePtr);
-            Marshal.Release(capturePtr);
-            // capture is already typed as IAudioCaptureClient from the out param
-
-            audioClient.Start();
+            capture.StartRecording();
             Console.WriteLine("  Audio: Capture started.");
 
-            using var wav = new BinaryWriter(File.Create(wavPath));
-            WriteWavHeader(wav, ctx.SampleRate, ctx.Channels, ctx.BitsPerSample);
+            // Wait until stopped
+            captureDone.Wait(TimeSpan.FromSeconds(s_durationSeconds + 10));
 
-            while (!ctx.StopSignal)
-            {
-                Thread.Sleep(10);
-                hr = capture.GetBuffer(out IntPtr pData, out uint numFrames, out int flags, out long pos, out long qpcPos);
-                if (hr == 0 && numFrames > 0 && pData != IntPtr.Zero)
-                {
-                    int bytesToRead = (int)(numFrames * wfx.nBlockAlign);
-                    byte[] buf = new byte[bytesToRead];
-                    Marshal.Copy(pData, buf, 0, bytesToRead);
-                    wav.Write(buf, 0, bytesToRead);
-                    ctx.TotalSamples += numFrames;
-                    ctx.TotalBytes += bytesToRead;
-                    capture.ReleaseBuffer(numFrames);
-                }
-            }
+            writer.Flush();
+            writer.Dispose();
+            capture.Dispose();
 
-            audioClient.Stop();
-            wav.Flush();
-            wav.BaseStream.Seek(4, SeekOrigin.Begin);
-            wav.Write((int)(wav.BaseStream.Length - 8));
-            wav.BaseStream.Seek(40, SeekOrigin.Begin);
-            wav.Write((int)ctx.TotalBytes);
-            wav.Flush();
-            Console.WriteLine($"  Audio: Stopped. {ctx.TotalSamples} samples, {ctx.TotalBytes} bytes.");
+            ctx.TotalSamples = totalSamples;
+            ctx.TotalBytes = totalBytes;
+            Console.WriteLine($"  Audio: Stopped. {totalSamples} samples, {totalBytes} bytes.");
         }
         catch (Exception ex)
         {
