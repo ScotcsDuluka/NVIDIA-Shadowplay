@@ -449,6 +449,91 @@ public static class Phase10_RealRecording
         Console.WriteLine($"  Audio stopped. {audioCtx.TotalSamples} samples, {audioCtx.TotalBytes} bytes.");
         Console.WriteLine();
 
+
+        // P10-06A Step 2: Validate WAV file independently
+        Console.WriteLine();
+        Console.WriteLine("[10.6b] Validating WAV file...");
+        string wavValidateArgs = $"-hide_banner -i \"{tempWav}\" -af volumedetect -f null NUL";
+        Console.WriteLine($"  FFmpeg WAV validate: {s_ffmpegPath} {wavValidateArgs}");
+        var wavPsi = new ProcessStartInfo
+        {
+            FileName = s_ffmpegPath,
+            Arguments = wavValidateArgs,
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+        };
+        bool wavValid = false;
+        try
+        {
+            var wavProc = Process.Start(wavPsi);
+            if (wavProc != null)
+            {
+                string wavErr = wavProc.StandardError.ReadToEnd();
+                wavProc.WaitForExit(15000);
+                Console.WriteLine($"  WAV validate exit code: {wavProc.ExitCode}");
+                foreach (var line in wavErr.Split('\n'))
+                {
+                    var trimmed = line.Trim();
+                    if (trimmed.Contains("Duration:") || trimmed.Contains("Audio:") || 
+                        trimmed.Contains("mean_volume") || trimmed.Contains("max_volume") ||
+                        trimmed.Contains("Stream #"))
+                        Console.WriteLine($"  WAV: {trimmed}");
+                }
+                wavValid = wavProc.ExitCode == 0 && wavErr.Contains("Audio:");
+                Console.WriteLine($"  WAV valid: {wavValid}");
+            }
+        }
+        catch (Exception ex) { Console.Error.WriteLine($"  WAV validate failed: {ex.Message}"); }
+
+        // P10-06A Step 3: Create audio_test.m4a separately
+        if (wavValid)
+        {
+            Console.WriteLine();
+            Console.WriteLine("[10.6c] Creating audio_test.m4a (isolated AAC encode)...");
+            string audioTestPath = Path.ChangeExtension(s_outputPath!, ".audio_test.m4a");
+            string audioTestArgs = $"-y -i \"{tempWav}\" -c:a aac -b:a 192k \"{audioTestPath}\"";
+            Console.WriteLine($"  FFmpeg AAC: {s_ffmpegPath} {audioTestArgs}");
+            var aacPsi = new ProcessStartInfo
+            {
+                FileName = s_ffmpegPath,
+                Arguments = audioTestArgs,
+                UseShellExecute = false,
+                RedirectStandardError = true,
+                CreateNoWindow = true,
+            };
+            bool aacValid = false;
+            try
+            {
+                var aacProc = Process.Start(aacPsi);
+                if (aacProc != null)
+                {
+                    string aacErr = aacProc.StandardError.ReadToEnd();
+                    aacProc.WaitForExit(30000);
+                    Console.WriteLine($"  AAC encode exit code: {aacProc.ExitCode}");
+                    foreach (var line in aacErr.Split('\n'))
+                    {
+                        var trimmed = line.Trim();
+                        if (trimmed.Contains("Duration:") || trimmed.Contains("Audio:") ||
+                            trimmed.Contains("Stream #"))
+                            Console.WriteLine($"  AAC: {trimmed}");
+                    }
+                    aacValid = aacProc.ExitCode == 0 && aacErr.Contains("aac");
+                    Console.WriteLine($"  AAC valid: {aacValid}");
+
+                    // If AAC is valid, use the .m4a for mux instead of raw WAV
+                    // This isolates the audio path from the mux path
+                    if (aacValid && File.Exists(audioTestPath))
+                    {
+                        Console.WriteLine("  Using audio_test.m4a for final mux (isolated audio path).");
+                        tempWav = audioTestPath; // Switch to pre-encoded AAC
+                    }
+                }
+            }
+            catch (Exception ex) { Console.Error.WriteLine($"  AAC encode failed: {ex.Message}"); }
+        }
+
+
         Console.WriteLine("[10.7] Muxing video + audio → MP4...");
         // Calculate actual FPS from capture
         double elapsedSec = sw.Elapsed.TotalSeconds;
@@ -478,7 +563,7 @@ public static class Phase10_RealRecording
         if (hasAudio)
         {
             // Explicit -map to ensure both streams are included
-            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -af aresample=async=1 -shortest \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy -shortest \"{s_outputPath}\"";
         }
         else
         {
