@@ -77,6 +77,16 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private _accessLostCount As Long = 0
         Private _nextSequence As Long = 0
 
+        ' ---- Phase 12a-5 metrics (per OWNER request) ----
+        ' These metrics let 12a-6/12a-8 observe GPU resource lifecycle and
+        ' detect slow leaks. Do NOT optimize (e.g. pool staging textures)
+        ' based on these numbers yet — the ownership model is new and must
+        ' be validated first.
+        Private _texturesCreated As Long = 0
+        Private _texturesDisposed As Long = 0
+        Private _framesPushed As Long = 0      ' sink accepted (Pushed+Replaced)
+        Private _framesDropped As Long = 0      ' sink refused (Dropped — backend disposed)
+
         ' ---- captured context ----
         Private _context As IVideoBackendContext
 
@@ -405,6 +415,44 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End Get
         End Property
 
+        ' ===== Phase 12a-5 metrics (per OWNER request) =====
+        ' GPU resource lifecycle counters. At steady state with no leak:
+        '   _texturesDisposed ~= _texturesCreated (after some lag)
+        '   _framesPushed + _framesDropped = _emittedFrames
+        ' If _texturesCreated - _texturesDisposed grows unboundedly → leak.
+
+        Public ReadOnly Property TexturesCreated As Long
+            Get
+                SyncLock _sync
+                    Return _texturesCreated
+                End SyncLock
+            End Get
+        End Property
+
+        Public ReadOnly Property TexturesDisposed As Long
+            Get
+                SyncLock _sync
+                    Return _texturesDisposed
+                End SyncLock
+            End Get
+        End Property
+
+        Public ReadOnly Property FramesPushed As Long
+            Get
+                SyncLock _sync
+                    Return _framesPushed
+                End SyncLock
+            End Get
+        End Property
+
+        Public ReadOnly Property FramesDropped As Long
+            Get
+                SyncLock _sync
+                    Return _framesDropped
+                End SyncLock
+            End Get
+        End Property
+
         ' ===== Test-visible state (Friend) =====
 
         Friend ReadOnly Property CurrentState As DdagrabBackendState
@@ -488,6 +536,9 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
                         ' Create staging texture (per-frame allocation — Phase 12a simple strategy)
                         stagingTexture = _device.CreateTexture2D(_stagingDesc)
+                        SyncLock _sync
+                            _texturesCreated += 1
+                        End SyncLock
 
                         ' GPU copy: DXGI desktop texture → our staging texture
                         _deviceContext.CopyResource(stagingTexture, desktopTexture)
@@ -521,20 +572,26 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                             Case PushOutcome.Pushed
                                 SyncLock _sync
                                     _emittedFrames += 1
+                                    _framesPushed += 1
                                 End SyncLock
                                 frame = Nothing  ' ownership transferred to sink
                             Case PushOutcome.Replaced
                                 SyncLock _sync
                                     _emittedFrames += 1
                                     _replacedFrames += 1
+                                    _framesPushed += 1  ' new frame accepted
                                 End SyncLock
                                 frame = Nothing  ' ownership transferred to sink (old frame disposed by sink)
                             Case PushOutcome.Dropped
                                 SyncLock _sync
                                     _droppedFrames += 1
+                                    _framesDropped += 1
                                 End SyncLock
                                 ' Backend retains ownership — dispose immediately.
                                 frame?.Dispose()
+                                SyncLock _sync
+                                    _texturesDisposed += 1  ' frame.Dispose released staging texture
+                                End SyncLock
                                 frame = Nothing
                         End Select
 
@@ -544,8 +601,18 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         End SyncLock
                         _logger.Error($"DdagrabBackend: worker iteration failed: {ex.Message}", ex)
                         ' Dispose any partially-created resources.
-                        frame?.Dispose()
-                        Try : stagingTexture?.Dispose() : Catch : End Try
+                        If frame IsNot Nothing Then
+                            frame.Dispose()
+                            SyncLock _sync
+                                _texturesDisposed += 1
+                            End SyncLock
+                        End If
+                        If stagingTexture IsNot Nothing Then
+                            stagingTexture.Dispose()
+                            SyncLock _sync
+                                _texturesDisposed += 1
+                            End SyncLock
+                        End If
                     Finally
                         ' Always dispose the DXGI desktop texture wrapper.
                         ' (The underlying DXGI texture belongs to the duplication
