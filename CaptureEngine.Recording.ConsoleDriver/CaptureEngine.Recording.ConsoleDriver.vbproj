@@ -1,36 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <RootNamespace></RootNamespace>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>CaptureEngine.Recording.ConsoleDriver</RootNamespace>
+    <AssemblyName>CaptureEngine.Recording.ConsoleDriver</AssemblyName>
     <TargetFramework>net8.0-windows</TargetFramework>
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
     <OptionInfer>On</OptionInfer>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
-    <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <AssemblyName>CaptureEngine.Recording</AssemblyName>
-    <Description>CaptureEngine.Recording — Phase 12a-5 orchestration (RecordingEngine + CaptureSession)</Description>
+    <Description>CaptureEngine.Recording.ConsoleDriver — Phase 12a-5 orchestration test (2-session MP4 lifecycle)</Description>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Foundation -->
+    <!-- Recording orchestration (transitively pulls in all backends) -->
+    <ProjectReference Include="..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+    <!-- Foundation (for EngineLogger — used directly in Program.vb) -->
     <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
-    <!-- Video contract + ID3D11VideoFrame -->
-    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
-    <!-- DdagrabBackend (video capture) -->
-    <ProjectReference Include="..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
-    <!-- Encoder contract (IEncoderBackend + EncodedPacket) -->
-    <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
-    <!-- NvencEncoderBackend (H.264 encoding) -->
-    <ProjectReference Include="..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
-    <!-- FFmpeg stack (MuxCoordinator + FFmpegProcessHost) -->
-    <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <!-- NAudio for WASAPI loopback audio capture (same as spike Phase 10) -->
-    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
   </ItemGroup>
 
 </Project>
