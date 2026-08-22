@@ -161,7 +161,7 @@ Namespace CaptureEngine.Encoder.Nvenc
             sessionParams.reserved1 = Nothing
             sessionParams.reserved2 = Nothing
 
-            Dim openStatus As UInteger = _nvenc.OpenEncodeSessionEx(sessionParams, _encoderHandle)
+            Dim openStatus As UInteger = _nvenc.OpenEncodeSessionEx.Invoke(sessionParams, _encoderHandle)
             If openStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                 Dim msg As String = $"NvEncOpenEncodeSessionEx failed: status={openStatus} " &
                                     $"({NvEncodeAPI.NvencStatusToString(openStatus)})"
@@ -198,12 +198,12 @@ Namespace CaptureEngine.Encoder.Nvenc
             initParams.reserved = Nothing
             initParams.reserved2 = Nothing
 
-            Dim initStatus As UInteger = _nvenc.InitializeEncoder(_encoderHandle, initParams)
+            Dim initStatus As UInteger = _nvenc.InitializeEncoder.Invoke(_encoderHandle, initParams)
             If initStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                 Dim msg As String = $"NvEncInitializeEncoder failed: status={initStatus} " &
                                     $"({NvEncodeAPI.NvencStatusToString(initStatus)})"
                 _logger.Error(msg)
-                Try : _nvenc.DestroyEncoder(_encoderHandle) : Catch : End Try
+                Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
                 _nvenc.Dispose()
                 _deviceResult.Dispose()
                 _deviceResult = Nothing
@@ -219,7 +219,7 @@ Namespace CaptureEngine.Encoder.Nvenc
             Catch ex As Exception
                 Dim msg As String = $"NvencResources.Create failed: {ex.Message}"
                 _logger.Error(msg, ex)
-                Try : _nvenc.DestroyEncoder(_encoderHandle) : Catch : End Try
+                Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
                 _nvenc.Dispose()
                 _deviceResult.Dispose()
                 _deviceResult = Nothing
@@ -390,7 +390,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                 mapParams.reserved1 = Nothing
                 mapParams.reserved2 = Nothing
 
-                Dim mapStatus As UInteger = _nvenc.MapInputResource(_encoderHandle, mapParams)
+                Dim mapStatus As UInteger = _nvenc.MapInputResource.Invoke(_encoderHandle, mapParams)
                 If mapStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                     Dim msg As String = $"NvEncMapInputResource failed: status={mapStatus} " &
                                         $"({NvEncodeAPI.NvencStatusToString(mapStatus)})"
@@ -434,7 +434,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                     picParams.reserved3 = Nothing
                     picParams.reserved4 = Nothing
 
-                    Dim encStatus As UInteger = _nvenc.EncodePicture(_encoderHandle, picParams)
+                    Dim encStatus As UInteger = _nvenc.EncodePicture.Invoke(_encoderHandle, picParams)
                     If encStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                         Dim msg As String = $"NvEncEncodePicture failed: status={encStatus} " &
                                             $"({NvEncodeAPI.NvencStatusToString(encStatus)})"
@@ -458,7 +458,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                     lockParams.reserved1 = Nothing
                     lockParams.reserved2 = Nothing
 
-                    Dim lockStatus As UInteger = _nvenc.LockBitstream(_encoderHandle, lockParams)
+                    Dim lockStatus As UInteger = _nvenc.LockBitstream.Invoke(_encoderHandle, lockParams)
                     If lockStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                         Dim msg As String = $"NvEncLockBitstream failed: status={lockStatus} " &
                                             $"({NvEncodeAPI.NvencStatusToString(lockStatus)})"
@@ -480,7 +480,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                     End If
 
                     ' 6. UnlockBitstream: release the bitstream for re-use
-                    Dim unlockStatus As UInteger = _nvenc.UnlockBitstream(_encoderHandle, _resources.BitstreamBuffer)
+                    Dim unlockStatus As UInteger = _nvenc.UnlockBitstream.Invoke(_encoderHandle, _resources.BitstreamBuffer)
                     If unlockStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                         _logger.Warning($"NvEncUnlockBitstream returned {unlockStatus} " &
                                         $"({NvEncodeAPI.NvencStatusToString(unlockStatus)}) — ignoring")
@@ -488,7 +488,7 @@ Namespace CaptureEngine.Encoder.Nvenc
 
                     ' 7. Build EncodedPacket (caller-owned)
                     Dim sequence As Long = Interlocked.Increment(_encodedPackets) - 1
-                    Dim isKeyFrame As Boolean = (sequence Mod CLong(_encoderConfig.GopSize)) = 0
+                    Dim isKeyFrame As Boolean = (sequence Mod CLng(_encoderConfig.GopSize)) = 0
                     Dim metadata As New PacketMetadata(
                         sequence:=sequence,
                         presentationTimeTicks:=pts,
@@ -505,7 +505,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                     ' 8. UnmapInputResource — always, even if EncodePicture threw
                     If mappedInput <> IntPtr.Zero Then
                         Try
-                            Dim unmapStatus As UInteger = _nvenc.UnmapInputResource(_encoderHandle, mappedInput)
+                            Dim unmapStatus As UInteger = _nvenc.UnmapInputResource.Invoke(_encoderHandle, mappedInput)
                             If unmapStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
                                 _logger.Warning($"NvEncUnmapInputResource returned {unmapStatus} — ignoring")
                             End If
@@ -609,13 +609,11 @@ Namespace CaptureEngine.Encoder.Nvenc
 
         Public ReadOnly Property CurrentState As EncoderState Implements IEncoderBackend.CurrentState
             Get
-                ' Volatile.Read(Of T)(ByRef T) is the modern .NET API
-                ' (System.Threading.Volatile — imported at top of file as
-                ' Imports System.Threading). _state is EncoderState enum
-                ' (which is Integer-backed). Volatile.Read(Of EncoderState)
-                ' reads the field with a memory barrier, ensuring cross-thread
-                ' visibility of the latest write.
-                Return Volatile.Read(Of EncoderState)(_state)
+                ' Use SyncLock for cross-thread visibility (simplest VB pattern;
+                ' Volatile.Read(Of T) doesn't resolve correctly in VB).
+                SyncLock _sync
+                    Return _state
+                End SyncLock
             End Get
         End Property
 
@@ -642,7 +640,7 @@ Namespace CaptureEngine.Encoder.Nvenc
 
             If _encoderHandle <> IntPtr.Zero AndAlso _nvenc?.DestroyEncoder IsNot Nothing Then
                 Try
-                    Dim status As UInteger = _nvenc.DestroyEncoder(_encoderHandle)
+                    Dim status As UInteger = _nvenc.DestroyEncoder.Invoke(_encoderHandle)
                     If status <> NvEncodeAPI.NV_ENC_SUCCESS Then
                         _logger.Warning($"NvEncDestroyEncoder returned {status} — ignoring")
                     End If

@@ -68,7 +68,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             bsParams.memoryHeap = 0
             ' _padding, bitstreamBuffer (OUT), reserved1, reserved2 = zero (default Nothing)
 
-            Dim status As UInteger = _nvenc.CreateBitstreamBuffer(_encoder, bsParams)
+            Dim status As UInteger = _nvenc.CreateBitstreamBuffer.Invoke(_encoder, bsParams)
             If status <> NvEncodeAPI.NV_ENC_SUCCESS Then
                 _logger.Error($"NvEncCreateBitstreamBuffer failed: status={status} " &
                               $"({NvEncodeAPI.NvencStatusToString(status)})")
@@ -108,14 +108,14 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             regParams.reserved1 = Nothing  ' VB default for arrays — marshalled as Nothing
             regParams.reserved2 = Nothing
 
-            status = _nvenc.RegisterResource(_encoder, regParams)
+            status = _nvenc.RegisterResource.Invoke(_encoder, regParams)
             If status <> NvEncodeAPI.NV_ENC_SUCCESS Then
                 _logger.Error($"NvEncRegisterResource failed: status={status} " &
                               $"({NvEncodeAPI.NvencStatusToString(status)})")
                 ' Clean up partially-created resources
                 Try
                     If _BitstreamBuffer <> IntPtr.Zero Then
-                        _nvenc.DestroyBitstreamBuffer(_encoder, _BitstreamBuffer)
+                        _nvenc.DestroyBitstreamBuffer.Invoke(_encoder, _BitstreamBuffer)
                     End If
                 Catch
                 End Try
@@ -134,7 +134,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             ' Unregister resource (offset 256 = NvEncUnregisterResource)
             If _RegisteredResource <> IntPtr.Zero AndAlso _nvenc?.UnregisterResource IsNot Nothing Then
                 Try
-                    Dim status As UInteger = _nvenc.UnregisterResource(_encoder, _RegisteredResource)
+                    Dim status As UInteger = _nvenc.UnregisterResource.Invoke(_encoder, _RegisteredResource)
                     If status <> NvEncodeAPI.NV_ENC_SUCCESS Then
                         _logger.Warning($"NvEncUnregisterResource returned {status} " &
                                         $"({NvEncodeAPI.NvencStatusToString(status)}) — ignoring")
@@ -147,7 +147,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             ' Destroy bitstream buffer
             If _BitstreamBuffer <> IntPtr.Zero AndAlso _nvenc?.DestroyBitstreamBuffer IsNot Nothing Then
                 Try
-                    Dim status As UInteger = _nvenc.DestroyBitstreamBuffer(_encoder, _BitstreamBuffer)
+                    Dim status As UInteger = _nvenc.DestroyBitstreamBuffer.Invoke(_encoder, _BitstreamBuffer)
                     If status <> NvEncodeAPI.NV_ENC_SUCCESS Then
                         _logger.Warning($"NvEncDestroyBitstreamBuffer returned {status} " &
                                         $"({NvEncodeAPI.NvencStatusToString(status)}) — ignoring")

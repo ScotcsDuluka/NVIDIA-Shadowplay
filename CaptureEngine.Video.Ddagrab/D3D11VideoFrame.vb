@@ -134,7 +134,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 ' Return zero if disposed (defensive — encoder checks for this).
                 ' Interlocked.Read ensures memory barrier; we use VolatileRead
                 ' via Thread.VolatileRead on the int guard.
-                If Volatile.Read(Of Integer)(_disposedState) <> 0 Then
+                If Thread.VolatileRead(_disposedState) <> 0 Then
                     Return IntPtr.Zero
                 End If
                 Return _nativeTexturePtr
@@ -145,14 +145,14 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         Public ReadOnly Property IsDisposed As Boolean
             Get
-                Return Volatile.Read(Of Integer)(_disposedState) <> 0
+                Return Thread.VolatileRead(_disposedState) <> 0
             End Get
         End Property
 
         Public ReadOnly Property DisposeCount As Integer
             Get
                 ' Always 0 or 1 (CompareExchange guarantees atomic one-shot).
-                Return Volatile.Read(Of Integer)(_disposedState)
+                Return Thread.VolatileRead(_disposedState)
             End Get
         End Property
 
