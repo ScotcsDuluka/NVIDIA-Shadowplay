@@ -43,6 +43,7 @@ Imports System
 Imports System.Diagnostics
 Imports System.Threading
 Imports CaptureEngine.Diagnostics
+Imports SharpGen.Runtime
 Imports Vortice.Direct3D
 Imports Vortice.Direct3D11
 Imports Vortice.DXGI
@@ -230,8 +231,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
                 ' ─── Staging texture description (used per-frame in WorkerLoop) ─
                 _stagingDesc = New Texture2DDescription() With {
-                    .Width = _outputWidth,
-                    .Height = _outputHeight,
+                    .Width = CUInt(_outputWidth),
+                    .Height = CUInt(_outputHeight),
                     .MipLevels = 1,
                     .ArraySize = 1,
                     .Format = Format.B8G8R8A8_UNorm,

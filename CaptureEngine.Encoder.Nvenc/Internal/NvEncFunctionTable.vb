@@ -41,7 +41,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         Public Property UnlockBitstream As NvEncodeAPI.NvEncUnlockBitstreamDelegate
 
         Public ReadOnly Property MaxSupportedApiVersion As UInteger
-            Public Get
+            Get
                 Return _maxSupportedApiVersion
             End Get
         End Property
