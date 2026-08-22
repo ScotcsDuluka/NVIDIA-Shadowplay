@@ -470,7 +470,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         ' ===== Test-visible state (Friend) =====
 
-        Friend ReadOnly Property CurrentState As DdagrabBackendState
+        Public ReadOnly Property CurrentState As DdagrabBackendState
             Get
                 SyncLock _sync
                     Return _state
@@ -683,7 +683,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End SyncLock
         End Sub
 
-        Friend Enum DdagrabBackendState
+        Public Enum DdagrabBackendState
             Created
             Initializing
             Initialized

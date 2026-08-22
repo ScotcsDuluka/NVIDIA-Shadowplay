@@ -29,6 +29,7 @@ Option Infer On
 '     Dispose() of the first run.
 
 Imports System.Diagnostics
+Imports System.Threading
 Imports CaptureEngine.Diagnostics
 Imports CaptureEngine.Video
 Imports CaptureEngine.Video.Backends.Ddagrab
