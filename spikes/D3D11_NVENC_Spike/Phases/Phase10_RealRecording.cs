@@ -580,21 +580,25 @@ public static class Phase10_RealRecording
         }
 
         // A3: Use explicit stream mapping
-        // CRITICAL FIX: use -c:a aac (encode inline) instead of -c:a copy.
-        // The WAV from NAudio is pcm_f32le (IEEE Float). MP4 does NOT support
-        // pcm_f32le, so -c:a copy silently drops the audio stream even though
-        // FFmpeg exits 0. Encoding to AAC inline avoids the intermediate m4a
-        // file (which was getting lost) and works regardless of WAV format.
+        // CRITICAL FIX 1: use -c:a aac (encode inline) instead of -c:a copy.
+        //   The WAV from NAudio is pcm_f32le (IEEE Float). MP4 does NOT support
+        //   pcm_f32le, so -c:a copy silently drops the audio stream even though
+        //   FFmpeg exits 0. Encoding to AAC inline works regardless of WAV format.
+        // CRITICAL FIX 2: REMOVE -shortest flag. With raw h264 input (which
+        //   reports Duration: N/A), -shortest behavior is undefined and has
+        //   been observed to silently drop the audio stream from the output.
+        //   Without -shortest, FFmpeg encodes until the longest input ends,
+        //   which is correct here (both video and audio are ~30s).
         string ffmpegArgs;
         if (hasAudio)
         {
             // Explicit -map to ensure both streams are included
-            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -hide_banner -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k \"{s_outputPath}\"";
         }
         else
         {
             Console.WriteLine("  WARNING: No audio — muxing video-only.");
-            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -hide_banner -f h264 -r {fpsRounded} -i \"{tempH264}\" -c:v copy \"{s_outputPath}\"";
         }
         Console.WriteLine($"  FFmpeg: {s_ffmpegPath} {ffmpegArgs}");
         var muxPsi = new ProcessStartInfo
@@ -611,20 +615,16 @@ public static class Phase10_RealRecording
         muxProc.WaitForExit(60000);
         int muxRC = muxProc.ExitCode;
         Console.WriteLine($"  FFmpeg exit code: {muxRC}");
-        // ALWAYS print relevant stderr lines (not just on failure) — this is
-        // critical for diagnosing silent stream drops. Filter to lines that
-        // mention Stream, Duration, Audio, Video, Error, ormap.
+        // Print FULL mux stderr (no filter) — silent stream drops are hard
+        // to diagnose without seeing every line.
+        Console.WriteLine("  --- mux stderr (full) ---");
         foreach (var line in muxErr.Split('\n'))
         {
-            var trimmed = line.Trim();
+            var trimmed = line.TrimEnd();
             if (trimmed.Length == 0) continue;
-            if (trimmed.Contains("Stream #") || trimmed.Contains("Duration:") ||
-                trimmed.Contains("Audio:") || trimmed.Contains("Video:") ||
-                trimmed.Contains("Error") || trimmed.Contains("error") ||
-                trimmed.Contains("map") || trimmed.Contains("aac") ||
-                trimmed.Contains("Discarded") || trimmed.Contains("output"))
-                Console.WriteLine($"  mux: {trimmed}");
+            Console.WriteLine($"  mux: {trimmed}");
         }
+        Console.WriteLine("  --- end mux stderr ---");
         if (muxRC != 0)
         {
             Console.Error.WriteLine($"  FFmpeg stderr (last 1000 chars): {muxErr[^1000..]}");
@@ -660,15 +660,34 @@ public static class Phase10_RealRecording
         Console.WriteLine("  audio_codec:             AAC (FFmpeg)");
         Console.WriteLine("  container:               MP4");
         FileInfo fileInfo = new(s_outputPath!);
+        fileInfo.Refresh();
+
+        // Print sizes of all temp files for diagnostics
+        Console.WriteLine();
+        Console.WriteLine("[10.8] Pre-verify file diagnostics...");
+        foreach (var p in new[] { s_outputPath!, tempH264, Path.ChangeExtension(s_outputPath!, ".tmp.wav"), Path.ChangeExtension(s_outputPath!, ".audio_test.m4a") })
+        {
+            try
+            {
+                var fi = new FileInfo(p);
+                fi.Refresh();
+                Console.WriteLine($"  {Path.GetFileName(p),-32} exists={fi.Exists,-5} size={(fi.Exists ? fi.Length.ToString("N0") : "N/A"),12} bytes");
+            }
+            catch (Exception ex) { Console.WriteLine($"  {Path.GetFileName(p),-32} ERROR: {ex.Message}"); }
+        }
 
         bool hasAudioStreamVar = false;
         // A4: Verify MP4 streams using FFmpeg
+        // CRITICAL FIX: use just '-i file' (info mode), NOT '-i file -f null -'
+        // (decode mode). The decode mode in some FFmpeg builds filters out
+        // stream info lines from stderr, causing false-negative stream
+        // detection. Info mode prints all stream lines cleanly.
         Console.WriteLine();
         Console.WriteLine("[10.8] Verifying MP4 streams...");
         var verifyPsi = new ProcessStartInfo
         {
             FileName = s_ffmpegPath,
-            Arguments = $"-i \"{s_outputPath}\" -f null -",
+            Arguments = $"-hide_banner -i \"{s_outputPath}\"",
             UseShellExecute = false,
             RedirectStandardError = true,
             CreateNoWindow = true,
