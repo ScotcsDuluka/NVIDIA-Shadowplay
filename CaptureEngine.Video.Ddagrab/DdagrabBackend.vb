@@ -103,6 +103,20 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         ' ---- staging texture description (used per-frame) ----
         Private _stagingDesc As Texture2DDescription
 
+        ' ---- output dimensions (Public — needed by harness/orchestration
+        '      to size encoder) ----
+        Public ReadOnly Property OutputWidth As Integer
+            Get
+                Return _outputWidth
+            End Get
+        End Property
+
+        Public ReadOnly Property OutputHeight As Integer
+            Get
+                Return _outputHeight
+            End Get
+        End Property
+
         Public Sub New(Optional logger As EngineLogger = Nothing)
             _logger = If(logger, New EngineLogger("DdagrabBackend"))
         End Sub
