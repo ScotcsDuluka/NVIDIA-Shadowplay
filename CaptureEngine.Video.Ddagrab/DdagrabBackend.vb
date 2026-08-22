@@ -300,9 +300,9 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         .Format = Format.B8G8R8A8_UNorm,
                         .SampleDescription = New SampleDescription(1, 0),
                         .Usage = ResourceUsage.Default,
-                        .BindFlags = BindFlags.ShaderResource,
+                        .BindFlags = BindFlags.None,
                         .CPUAccessFlags = CpuAccessFlags.None,
-                        .MiscFlags = ResourceOptionFlags.SharedNthandle
+                        .MiscFlags = ResourceOptionFlags.Shared Or ResourceOptionFlags.SharedNthandle
                     }
                     _logger.Info("DdagrabBackend: shared-handle mode ENABLED (two-texture approach)")
                 End If
