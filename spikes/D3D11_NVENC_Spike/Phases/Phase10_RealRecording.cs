@@ -445,8 +445,17 @@ public static class Phase10_RealRecording
 
         Console.WriteLine("[10.6] Stopping audio capture...");
         audioCtx.StopSignal = true;
-        audioThread.Join(TimeSpan.FromSeconds(5));
-        Console.WriteLine($"  Audio stopped. {audioCtx.TotalSamples} samples, {audioCtx.TotalBytes} bytes.");
+        // Give the audio thread up to 15 seconds to finish flushing the WAV
+        // writer. The previous 5-second budget was too tight when there was
+        // a lot of buffered audio data to flush to disk.
+        bool audioJoined = audioThread.Join(TimeSpan.FromSeconds(15));
+        if (!audioJoined)
+        {
+            Console.WriteLine("  WARNING: audio thread did not exit within 15s — file may be incomplete.");
+        }
+        // Force a fresh disk stat — Windows file system caching can return stale sizes.
+        try { (new FileInfo(tempWav)).Refresh(); } catch { }
+        Console.WriteLine($"  Audio stopped. {audioCtx.TotalSamples} samples, {audioCtx.TotalBytes} bytes. (thread joined: {audioJoined})");
         Console.WriteLine();
 
 
@@ -551,22 +560,36 @@ public static class Phase10_RealRecording
         // A2: Validate WAV before mux
         if (hasAudio)
         {
-            Console.WriteLine($"  Audio WAV: {audioCtx.TotalBytes} bytes, {audioCtx.TotalSamples} samples");
+            // Refresh FileInfo (force fresh disk read — Windows may cache).
             var wavInfo = new FileInfo(tempWav);
-            Console.WriteLine($"  Audio WAV file size: {wavInfo.Length} bytes");
+            wavInfo.Refresh();
+            Console.WriteLine($"  Audio WAV: counter={audioCtx.TotalBytes} bytes, samples={audioCtx.TotalSamples}");
+            Console.WriteLine($"  Audio WAV file size on disk: {wavInfo.Length} bytes");
+            Console.WriteLine($"  Audio WAV last write: {wavInfo.LastWriteTime:HH:mm:ss.fff}");
             if (wavInfo.Length < 44)
             {
                 Console.WriteLine("  WARNING: WAV file too small — likely invalid header only.");
                 hasAudio = false;
             }
+            // Sanity check: if the on-disk size is much smaller than what the
+            // counter claims, the writer may not have flushed. Warn but proceed.
+            if (wavInfo.Length < audioCtx.TotalBytes / 2)
+            {
+                Console.WriteLine($"  WARNING: on-disk size ({wavInfo.Length}) < counter ({audioCtx.TotalBytes}) — possible flush issue.");
+            }
         }
 
         // A3: Use explicit stream mapping
+        // CRITICAL FIX: use -c:a aac (encode inline) instead of -c:a copy.
+        // The WAV from NAudio is pcm_f32le (IEEE Float). MP4 does NOT support
+        // pcm_f32le, so -c:a copy silently drops the audio stream even though
+        // FFmpeg exits 0. Encoding to AAC inline avoids the intermediate m4a
+        // file (which was getting lost) and works regardless of WAV format.
         string ffmpegArgs;
         if (hasAudio)
         {
             // Explicit -map to ensure both streams are included
-            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a copy -shortest \"{s_outputPath}\"";
+            ffmpegArgs = $"-y -f h264 -r {fpsRounded} -i \"{tempH264}\" -i \"{tempWav}\" -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -shortest \"{s_outputPath}\"";
         }
         else
         {
@@ -585,12 +608,26 @@ public static class Phase10_RealRecording
         var muxProc = Process.Start(muxPsi);
         if (muxProc == null) { Console.Error.WriteLine("  FAIL: Could not start FFmpeg."); return 1; }
         string muxErr = muxProc.StandardError.ReadToEnd();
-        muxProc.WaitForExit(30000);
+        muxProc.WaitForExit(60000);
         int muxRC = muxProc.ExitCode;
         Console.WriteLine($"  FFmpeg exit code: {muxRC}");
+        // ALWAYS print relevant stderr lines (not just on failure) — this is
+        // critical for diagnosing silent stream drops. Filter to lines that
+        // mention Stream, Duration, Audio, Video, Error, ormap.
+        foreach (var line in muxErr.Split('\n'))
+        {
+            var trimmed = line.Trim();
+            if (trimmed.Length == 0) continue;
+            if (trimmed.Contains("Stream #") || trimmed.Contains("Duration:") ||
+                trimmed.Contains("Audio:") || trimmed.Contains("Video:") ||
+                trimmed.Contains("Error") || trimmed.Contains("error") ||
+                trimmed.Contains("map") || trimmed.Contains("aac") ||
+                trimmed.Contains("Discarded") || trimmed.Contains("output"))
+                Console.WriteLine($"  mux: {trimmed}");
+        }
         if (muxRC != 0)
         {
-            Console.Error.WriteLine($"  FFmpeg stderr (last 500 chars): {muxErr[^500..]}");
+            Console.Error.WriteLine($"  FFmpeg stderr (last 1000 chars): {muxErr[^1000..]}");
         }
         Console.WriteLine();
 
