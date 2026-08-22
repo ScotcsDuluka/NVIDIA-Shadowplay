@@ -64,6 +64,9 @@
                         <SubType>Form</SubType>
                 </Compile>
 
+                <!-- Phase 12b: RecordingEngine integration (auto-globbed by SDK) -->
+                <!-- Engine\Engine\[API]\RecordingEngineHost.vb is picked up automatically -->
+
                 <Compile Update="My Project\Application.Designer.vb">
                         <DesignTime>True</DesignTime>
                         <AutoGen>True</AutoGen>
@@ -86,6 +89,11 @@
                 <EmbeddedResource Update="Engine\Engine\[UI]\UI_Engine.resx">
                         <DependentUpon>UI_Engine.vb</DependentUpon>
                 </EmbeddedResource>
+        </ItemGroup>
+
+        <!-- Phase 12b: RecordingEngine + all transitive dependencies -->
+        <ItemGroup>
+                <ProjectReference Include="..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
         </ItemGroup>
 
         <ItemGroup>
