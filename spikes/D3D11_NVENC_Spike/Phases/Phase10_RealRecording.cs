@@ -774,6 +774,7 @@ public static class Phase10_RealRecording
         }
 
         bool hasAudioStreamVar = false;
+        bool hasVideoStream = false;
         // A4: Verify MP4 streams using FFmpeg
         // CRITICAL FIX: use just '-i file' (info mode), NOT '-i file -f null -'
         // (decode mode). The decode mode in some FFmpeg builds filters out
@@ -796,7 +797,7 @@ public static class Phase10_RealRecording
             {
                 string verifyErr = verifyProc.StandardError.ReadToEnd();
                 verifyProc.WaitForExit(10000);
-                bool hasVideoStream = verifyErr.Contains("Stream #0:0") && verifyErr.Contains("Video:");
+                hasVideoStream = verifyErr.Contains("Stream #0:0") && verifyErr.Contains("Video:");
                 hasAudioStreamVar = verifyErr.Contains("Stream #0:") && verifyErr.Contains("Audio:");
                 Console.WriteLine($"  Video stream: {(hasVideoStream ? "FOUND" : "MISSING")}");
                 Console.WriteLine($"  Audio stream: {(hasAudioStreamVar ? "FOUND" : "MISSING")}");
