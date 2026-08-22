@@ -1,4 +1,5 @@
 ﻿Imports System.Drawing
+Imports System.IO
 Partial Public Class Base
 
 #Region "Hotkey Event Handlers"
@@ -32,7 +33,11 @@ Partial Public Class Base
 
     Private Sub Mode1() Handles _hotkeyService.Key_CaptureScreen
         If IF_OpenShare = False Then Return
-        CaptureScreen()
+        If AppSettings.Instance.UI.UseWindowsSnip Then
+            SnipWithWindows()
+        Else
+            CaptureScreen()
+        End If
     End Sub
 
     Private Sub Mode2() Handles _hotkeyService.Key_PhotosToggle
@@ -44,11 +49,6 @@ Partial Public Class Base
         If IF_OpenShare = False Then Return
         ToggleGameFilter()
     End Sub
-
-
-
-
-
 
 
 
@@ -163,5 +163,7 @@ Partial Public Class Base
     End Sub
 
 #End Region
+
+
 
 End Class

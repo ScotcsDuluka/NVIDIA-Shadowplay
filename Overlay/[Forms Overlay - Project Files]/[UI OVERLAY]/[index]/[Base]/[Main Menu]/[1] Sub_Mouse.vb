@@ -39,7 +39,11 @@ Partial Public Class Base
     End Sub
 
     Private Sub Screenshot_Click(sender As Object, e As EventArgs) Handles Logo_Mode1.Click, Bg_Mode1.Click, Text_Mode1.Click, Key_Mode1.Click
-        CaptureScreen()
+        If AppSettings.Instance.UI.UseWindowsSnip Then
+            SnipWithWindows()
+        Else
+            CaptureScreen()
+        End If
     End Sub
 
 #End Region

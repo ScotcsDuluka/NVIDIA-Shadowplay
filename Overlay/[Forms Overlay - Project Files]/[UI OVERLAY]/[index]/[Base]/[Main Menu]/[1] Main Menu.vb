@@ -151,7 +151,23 @@ Partial Public Class Base
     Private Const WS_EX_APPWINDOW As Integer = &H40000
     Private Const WM_SETREDRAW As Integer = &HB
 
+    Private Const WM_CLIPBOARDUPDATE As Integer = &H31D
+    Private _snipPending As Boolean = False
+
+    <DllImport("user32.dll")>
+    Private Shared Function AddClipboardFormatListener(hWnd As IntPtr) As Boolean
+    End Function
+
+    <DllImport("user32.dll")>
+    Private Shared Function RemoveClipboardFormatListener(hWnd As IntPtr) As Boolean
+    End Function
+
     Protected Overrides Sub WndProc(ByRef m As Message)
+        If m.Msg = WM_CLIPBOARDUPDATE AndAlso _snipPending Then
+            SnipFinished()
+            Return
+        End If
+
         If m.Msg = WinAPI.WM_HOTKEY Then
             If _hotkeyService IsNot Nothing Then
                 _hotkeyService.ProcessHotkey(m.WParam.ToInt32())
@@ -168,6 +184,79 @@ Partial Public Class Base
         End If
 
         MyBase.WndProc(m)
+    End Sub
+
+
+#End Region
+
+#Region "KEYBOARD HOOK — จับ Esc ระหว่าง snip"
+
+    Private Const WH_KEYBOARD_LL As Integer = 13
+    Private Const WM_KEYDOWN As Integer = &H100
+    Private Const WM_SYSKEYDOWN As Integer = &H104
+    Private Const VK_ESCAPE As Integer = &H1B
+
+    Private Structure KBDLLHOOKSTRUCT
+        Public vkCode As UInteger
+        Public scanCode As UInteger
+        Public flags As UInteger
+        Public time As UInteger
+        Public dwExtraInfo As IntPtr
+    End Structure
+
+    Private Delegate Function LowLevelKeyboardProc(
+        nCode As Integer, wParam As IntPtr, lParam As IntPtr) As IntPtr
+
+    Private _kbHook As IntPtr = IntPtr.Zero
+    ' ★ สำคัญ: ต้องเก็บ reference ไว้ ไม่งั้น GC เก็บ delegate ทิ้ง → crash ทั้งโปรแกรม
+    Private _kbProc As LowLevelKeyboardProc
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function SetWindowsHookEx(idHook As Integer, lpfn As LowLevelKeyboardProc,
+        hMod As IntPtr, dwThreadId As UInteger) As IntPtr
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function UnhookWindowsHookEx(hhk As IntPtr) As Boolean
+    End Function
+
+    <DllImport("user32.dll")>
+    Private Shared Function CallNextHookEx(hhk As IntPtr, nCode As Integer,
+        wParam As IntPtr, lParam As IntPtr) As IntPtr
+    End Function
+
+    <DllImport("kernel32.dll", CharSet:=CharSet.Auto)>
+    Private Shared Function GetModuleHandle(lpModuleName As String) As IntPtr
+    End Function
+
+    Private Function KeyboardHookProc(nCode As Integer, wParam As IntPtr, lParam As IntPtr) As IntPtr
+        If nCode >= 0 AndAlso _snipPending Then
+            If wParam.ToInt32() = WM_KEYDOWN OrElse wParam.ToInt32() = WM_SYSKEYDOWN Then
+                Dim kb As KBDLLHOOKSTRUCT =
+                    CType(Marshal.PtrToStructure(lParam, GetType(KBDLLHOOKSTRUCT)), KBDLLHOOKSTRUCT)
+
+                If kb.vkCode = VK_ESCAPE Then
+                    ' ยกเลิก snip → ถอดทุกอย่างทันที
+                    _snipPending = False
+                    RemoveClipboardFormatListener(Me.Handle)
+                    Me.BeginInvoke(Sub() UnhookKeyboard())
+                End If
+            End If
+        End If
+        Return CallNextHookEx(_kbHook, nCode, wParam, lParam)
+    End Function
+
+    Private Sub HookKeyboard()
+        If _kbHook <> IntPtr.Zero Then Return
+        _kbProc = AddressOf KeyboardHookProc
+        _kbHook = SetWindowsHookEx(WH_KEYBOARD_LL, _kbProc, GetModuleHandle(Nothing), 0)
+    End Sub
+
+    Private Sub UnhookKeyboard()
+        If _kbHook <> IntPtr.Zero Then
+            UnhookWindowsHookEx(_kbHook)
+            _kbHook = IntPtr.Zero
+        End If
     End Sub
 
 #End Region
@@ -568,7 +657,6 @@ Partial Public Class Base
 
         ' Settings home
         With Base_Settings
-            .text_sub.Text = L("l10n.selectmenu")
             .action_fn.Text = L("l10n.done")
             .ch.Text = L("l10n.checkForUpdates")
         End With

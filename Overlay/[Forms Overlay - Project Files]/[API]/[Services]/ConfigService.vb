@@ -9,6 +9,7 @@ Imports System.Security.Cryptography
 Imports System.Text
 
 Public Class AppSettings
+
     Private Shared ReadOnly NvidiaKeywords As String() = {"NVIDIA", "GEFORCE", "GTX", "RTX"}
     Private Shared ReadOnly AmdKeywords As String() = {"AMD", "RADEON", "RX "}
     Private Shared ReadOnly IntelKeywords As String() = {"INTEL"}
@@ -72,10 +73,12 @@ Public Class AppSettings
     Public Class UISettingsClass
         Public Property Language As String = "en-US"
         Public Property Theme As String = "Dark"
+        Public Property UseWindowsSnip As Boolean = False
 
         Public Sub New()
         End Sub
     End Class
+
 
     ''' <summary>
     ''' Audio settings: system audio, microphone, volume
@@ -616,7 +619,7 @@ Public Class AppSettings
 
     Private Sub ApplyUISettings(loadedUI As UISettingsClass)
         If loadedUI Is Nothing Then Return
-
+        UI.UseWindowsSnip = loadedUI.UseWindowsSnip
         UI.Language = loadedUI.Language
         UI.Theme = loadedUI.Theme
     End Sub

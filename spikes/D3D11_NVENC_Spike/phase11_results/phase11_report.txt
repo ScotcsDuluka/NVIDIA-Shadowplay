@@ -1,0 +1,197 @@
+============================================================
+PHASE 11 — SESSION LIFECYCLE RESULTS
+============================================================
+
+Generated: 2026-08-22 15:26:15
+Output dir: C:\My Project\NVIDIA-Shadowplay\spikes\D3D11_NVENC_Spike\phase11_results
+
+Normal Sessions:
+  A1: FAIL — exception: Win32Exception
+  A2: FAIL — exception: SharpGenException
+  A3: FAIL — exception: SharpGenException
+
+Early Stop:
+  1s:  FAIL — exception: SharpGenException
+  5s:  FAIL — exception: SharpGenException
+  10s:  FAIL — exception: SharpGenException
+
+Immediate Restart:
+  0/5 PASS
+    C1: FAIL — exception: SharpGenException
+    C2: FAIL — exception: SharpGenException
+    C3: FAIL — Phase10: FAIL: no frames encoded; output validation failed; audio lifecycle failed; video lifecycle failed; temp file issue
+    C4: FAIL — Phase10: FAIL: no frames encoded; output validation failed; audio lifecycle failed; video lifecycle failed; temp file issue
+    C5: FAIL — Phase10: FAIL: no frames encoded; output validation failed; audio lifecycle failed; video lifecycle failed; temp file issue
+
+FFmpeg orphan process (total across all sessions): 0
+NVENC errors (total):                              0
+Audio capture failures:                            3
+Video capture failures:                             11
+Output validation:                                 FAIL
+
+Memory:
+  SUSPECTED GROWTH (+6140.0%)
+  baseline (before any session)            8.01 MB
+  after C3                                 499.61 MB
+  after C4                                 499.68 MB
+  after C5                                 499.68 MB
+  final (after all sessions)               499.68 MB
+
+============================================================
+PER-SESSION DETAIL
+============================================================
+
+--- A1 (Normal) ---
+  Output:            phase11_results\session_01.mp4
+  Requested:          30s
+  Pass:                False
+  Fail reason:         exception: Win32Exception
+  FFmpeg orphans:      0
+  Memory before:       7.58 MB
+  Memory after:        233.08 MB
+  Memory delta:        230916 KB
+
+--- A2 (Normal) ---
+  Output:            phase11_results\session_02.mp4
+  Requested:          30s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       233.08 MB
+  Memory after:        272.44 MB
+  Memory delta:        40300 KB
+
+--- A3 (Normal) ---
+  Output:            phase11_results\session_03.mp4
+  Requested:          30s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       272.44 MB
+  Memory after:        311.23 MB
+  Memory delta:        39728 KB
+
+--- B1(1s) (EarlyStop) ---
+  Output:            phase11_results\early_01s.mp4
+  Requested:          1s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       311.23 MB
+  Memory after:        349.68 MB
+  Memory delta:        39368 KB
+
+--- B2(5s) (EarlyStop) ---
+  Output:            phase11_results\early_05s.mp4
+  Requested:          5s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       350.22 MB
+  Memory after:        386.84 MB
+  Memory delta:        37500 KB
+
+--- B3(10s) (EarlyStop) ---
+  Output:            phase11_results\early_10s.mp4
+  Requested:          10s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       386.84 MB
+  Memory after:        424.93 MB
+  Memory delta:        39000 KB
+
+--- C1 (ImmediateRestart) ---
+  Output:            phase11_results\immediate_01.mp4
+  Requested:          3s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       424.93 MB
+  Memory after:        461.44 MB
+  Memory delta:        37388 KB
+
+--- C2 (ImmediateRestart) ---
+  Output:            phase11_results\immediate_02.mp4
+  Requested:          3s
+  Pass:                False
+  Fail reason:         exception: SharpGenException
+  FFmpeg orphans:      0
+  Memory before:       461.44 MB
+  Memory after:        498.98 MB
+  Memory delta:        38444 KB
+
+--- C3 (ImmediateRestart) ---
+  Output:            phase11_results\immediate_03.mp4
+  Requested:          3s
+  Actual duration:    0.000s
+  Frames captured:   0
+  Frames encoded:     0
+  Drops:               0
+  NVENC errors:        0
+  Video bytes:         0
+  Audio samples:       0
+  Audio bytes:         0
+  Video stream:        MISSING
+  Audio stream:        MISSING
+  File exists:         False
+  File size:           0 bytes (0.00 MB)
+  Error message:       OpenSession: 21
+  Pass:                False
+  Fail reason:         Phase10: FAIL: no frames encoded; output validation failed; audio lifecycle failed; video lifecycle failed; temp file issue
+  FFmpeg orphans:      0
+  Memory before:       498.99 MB
+  Memory after:        499.07 MB
+  Memory delta:        76 KB
+
+--- C4 (ImmediateRestart) ---
+  Output:            phase11_results\immediate_04.mp4
+  Requested:          3s
+  Actual duration:    0.000s
+  Frames captured:   0
+  Frames encoded:     0
+  Drops:               0
+  NVENC errors:        0
+  Video bytes:         0
+  Audio samples:       0
+  Audio bytes:         0
+  Video stream:        MISSING
+  Audio stream:        MISSING
+  File exists:         False
+  File size:           0 bytes (0.00 MB)
+  Error message:       OpenSession: 21
+  Pass:                False
+  Fail reason:         Phase10: FAIL: no frames encoded; output validation failed; audio lifecycle failed; video lifecycle failed; temp file issue
+  FFmpeg orphans:      0
+  Memory before:       499.61 MB
+  Memory after:        499.68 MB
+  Memory delta:        76 KB
+
+--- C5 (ImmediateRestart) ---
+  Output:            phase11_results\immediate_05.mp4
+  Requested:          3s
+  Actual duration:    0.000s
+  Frames captured:   0
+  Frames encoded:     0
+  Drops:               0
+  NVENC errors:        0
+  Video bytes:         0
+  Audio samples:       0
+  Audio bytes:         0
+  Video stream:        MISSING
+  Audio stream:        MISSING
+  File exists:         False
+  File size:           0 bytes (0.00 MB)
+  Error message:       OpenSession: 21
+  Pass:                False
+  Fail reason:         Phase10: FAIL: no frames encoded; output validation failed; audio lifecycle failed; video lifecycle failed; temp file issue
+  FFmpeg orphans:      0
+  Memory before:       499.68 MB
+  Memory after:        499.68 MB
+  Memory delta:        0 KB
+
+============================================================
+FINAL VERDICT
+============================================================
+PHASE 11: FAIL
+============================================================

@@ -71,8 +71,12 @@ Public Class Base_Settings
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
+        ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
     End Sub
-
+    Private Sub ToggleUseWindowsSnip_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUseWindowsSnip.ValueChanged
+        AppSettings.Instance.UI.UseWindowsSnip = ToggleUseWindowsSnip.IsOn
+        AppSettings.Instance.Save()
+    End Sub
     Private Sub Back_btn_Click(sender As Object, e As EventArgs)
         Hide()
     End Sub
