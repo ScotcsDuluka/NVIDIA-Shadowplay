@@ -308,64 +308,40 @@ Namespace CaptureEngine.Encoder.Nvenc
 
             Interlocked.Increment(_submittedFrames)
 
-            ' ─── Extract frame texture + copy to encoder texture ─────────
-            ' The frame is a GPU texture — query ID3D11Texture2D interface.
-            Dim frameTexture As ID3D11Texture2D = Nothing
+            ' ─── Extract frame texture via ID3D11VideoFrame contract ─────
+            ' Foundation IVideoFrame does NOT expose native resource handles.
+            ' We defined ID3D11VideoFrame in CaptureEngine.Encoder.Nvenc to
+            ' extend IVideoFrame with NativeTexture — D3D11-producing backends
+            ' (DdagrabBackend) emit frames implementing both interfaces.
+            '
+            ' This DirectCast is type-safe at compile time (no reflection,
+            ' no TryCast hack — per OWNER requirement).
+            Dim d3d11Frame As ID3D11VideoFrame = Nothing
             Try
-                ' IVideoFrame doesn't directly expose the D3D11 texture — we must
-                ' query it via the underlying NativePointer (frame is opaque).
-                ' For Phase 12 we cast the frame's "implementation-specific"
-                ' surface pointer to ID3D11Texture2D via QueryInterface.
-                '
-                ' NOTE: This assumes the IVideoFrame implementation provides a
-                ' GetNativeSurface() or similar method. The DdagrabBackend fill-in
-                ' (12a-4) will provide this. For now, we use the same pattern as
-                ' spike Phase 10: cast the frame's "Origin" object.
-                '
-                ' Phase 12 TODO: extend IVideoFrame with NativeSurfacePointer property
-                ' OR have DdagrabBackend emit a D3D11VideoFrame subclass.
-                '
-                ' For now: use a duck-typed approach via reflection (slow but works).
-                ' This is acceptable for Phase 12a — will be replaced with a proper
-                ' interface extension in 12a-4 when we own the DdagrabBackend frame type.
-                '
-                ' The proper fix is to extend CaptureEngine.Video with a new interface
-                ' IVideoFrameNativeSurface that exposes the D3D11 pointer — but that
-                ' requires a Foundation change which is OUT OF SCOPE per HARD RULES.
-                '
-                ' Workaround: cast frame to a known DdagrabBackend frame type at runtime.
-                ' This is brittle but unblocks 12a. 12b will refactor properly.
-                frameTexture = TryCast(frame, ID3D11Texture2D)
-                If frameTexture Is Nothing Then
-                    ' Fall back: try to get a property called "NativeTexture" via reflection
-                    Dim prop = frame.GetType().GetProperty("NativeTexture")
-                    If prop Is Nothing Then
-                        prop = frame.GetType().GetProperty("Texture")
-                    End If
-                    If prop Is Nothing Then
-                        prop = frame.GetType().GetProperty("NativePointer")
-                    End If
-                    If prop Is Nothing Then
-                        RecordError("runtime", "Frame does not expose a D3D11 texture property.")
-                        TransitionToFaulted("Frame missing D3D11 texture access")
-                        Throw New EncoderRuntimeException(
-                            "IVideoFrame implementation does not expose NativeTexture/Texture/NativePointer. " &
-                            "Encoder cannot access the D3D11 texture for encoding.")
-                    End If
-                    Dim texPtr As IntPtr = DirectCast(prop.GetValue(frame), IntPtr)
-                    If texPtr = IntPtr.Zero Then
-                        RecordError("runtime", "Frame's texture pointer is Zero.")
-                        TransitionToFaulted("Frame texture pointer is Zero")
-                        Throw New EncoderRuntimeException("Frame texture pointer is IntPtr.Zero.")
-                    End If
-                    ' Wrap the native pointer in a Vortice ID3D11Texture2D (does NOT take ownership)
-                    frameTexture = ID3D11Texture2D.FromPointer(Of ID3D11Texture2D)(texPtr)
-                End If
-            Catch ex As Exception
-                RecordError("runtime", $"Failed to access frame texture: {ex.Message}")
-                TransitionToFaulted($"Frame texture access failed: {ex.Message}")
-                Throw New EncoderRuntimeException($"Failed to access frame D3D11 texture: {ex.Message}", ex)
+                d3d11Frame = DirectCast(frame, ID3D11VideoFrame)
+            Catch ex As InvalidCastException
+                RecordError("runtime",
+                    $"Frame type {frame.GetType().Name} does not implement ID3D11VideoFrame. " &
+                    $"NvencEncoderBackend requires D3D11-producing backends (DdagrabBackend).")
+                TransitionToFaulted($"Frame missing ID3D11VideoFrame: {frame.GetType().Name}")
+                Throw New EncoderRuntimeException(
+                    $"Frame type {frame.GetType().Name} does not implement ID3D11VideoFrame. " &
+                    $"Encoder cannot access the D3D11 texture for encoding.", ex)
             End Try
+
+            Dim texPtr As IntPtr = d3d11Frame.NativeTexture
+            If texPtr = IntPtr.Zero Then
+                RecordError("runtime", "Frame's NativeTexture is IntPtr.Zero (frame disposed?).")
+                TransitionToFaulted("Frame NativeTexture is Zero")
+                Throw New EncoderRuntimeException(
+                    "Frame NativeTexture is IntPtr.Zero — frame may have been disposed " &
+                    "or backend failed to populate the texture pointer.")
+            End If
+
+            ' Wrap the native pointer in a Vortice ID3D11Texture2D wrapper.
+            ' This does NOT take ownership — the wrapper is GC-eligible, the
+            ' underlying texture lives as long as the frame (frame is BORROWED).
+            Dim frameTexture As ID3D11Texture2D = ID3D11Texture2D.FromPointer(texPtr)
 
             ' ─── ENCODE HOT PATH (mirrors spike Phase 10) ────────────────
             ' All operations happen OUTSIDE _sync (no lock contention during encoding).
@@ -512,14 +488,14 @@ Namespace CaptureEngine.Encoder.Nvenc
                 End Try
 
             Finally
-                ' Release the frame texture wrapper if we created it via FromPointer.
-                ' If we got it via TryCast, we do NOT own it (frame owns it).
-                ' We can't tell the difference here, so we leak the wrapper — Vortice
-                ' handles refcount via COM AddRef/Release under the hood. The wrapper
-                ' object itself is GC-eligible.
+                ' The ID3D11Texture2D wrapper created via FromPointer is GC-eligible
+                ' (does NOT take COM ownership — Vortice's wrapper just holds the
+                ' pointer; the underlying texture lives as long as the frame owns
+                ' it, which is the frame's responsibility, not the encoder's).
                 '
-                ' This is acceptable for Phase 12a. 12a-4 will provide a cleaner
-                ' IVideoFrame contract that exposes the texture directly.
+                ' Frame is BORROWED — encoder MUST NOT dispose the frame or its
+                ' texture. The DdagrabBackend (frame owner) disposes both when
+                ' the frame is disposed.
             End Try
         End Function
 
