@@ -73,7 +73,7 @@ Module Program
                 .DurationSeconds = 10,
                 .FFmpegPath = ffmpegPath
             }
-            Dim result1 As SessionResult = engine.StartSession(config1)
+            result1 = engine.StartSession(config1)
             PrintSessionResult("Session 1", result1)
             overallOk = overallOk AndAlso result1.Pass
             Console.WriteLine()
@@ -87,7 +87,7 @@ Module Program
                 .DurationSeconds = 10,
                 .FFmpegPath = ffmpegPath
             }
-            Dim result2 As SessionResult = engine.StartSession(config2)
+            result2 = engine.StartSession(config2)
             PrintSessionResult("Session 2", result2)
             overallOk = overallOk AndAlso result2.Pass
             Console.WriteLine()
