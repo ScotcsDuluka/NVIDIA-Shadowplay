@@ -70,6 +70,10 @@ Namespace CaptureEngine.Encoder.Nvenc
         Private _lastErrorMessage As String = ""
         Private _lastErrorType As String = ""
 
+        ' ─── NVENC error detail log (Phase 12a-5c) ──────────────────────
+        ' Records every error with stage + status code for post-mortem analysis.
+        Private ReadOnly _errorDetails As New List(Of String)()
+
         ' ─── Encoder constants (from EncoderConfig at Initialize) ──────────
         Private _width As UInteger
         Private _height As UInteger
@@ -339,20 +343,43 @@ Namespace CaptureEngine.Encoder.Nvenc
             End Try
 
             Dim texObj As Object = d3d11Frame.NativeTexture
-            If texObj Is Nothing Then
-                RecordError("runtime", "Frame's NativeTexture is Nothing (frame disposed?).")
-                TransitionToFaulted("Frame NativeTexture is Nothing")
-                Throw New EncoderRuntimeException(
-                    "Frame NativeTexture is Nothing — frame may have been disposed " &
-                    "or backend failed to populate the texture object.")
-            End If
+            Dim sharedHandle As IntPtr = d3d11Frame.SharedHandle
 
-            ' DirectCast the boxed Object back to ID3D11Texture2D.
-            ' D3D11VideoFrame stores the actual Vortice ID3D11Texture2D object
-            ' (not just a pointer) — so this cast is type-safe and avoids the
-            ' COM wrapper creation problem (Marshal.GetObjectForIUnknown returns
-            ' __ComObject which can't be cast to Vortice's class type).
-            Dim frameTexture As ID3D11Texture2D = DirectCast(texObj, ID3D11Texture2D)
+            Dim frameTexture As ID3D11Texture2D
+            Dim disposeFrameTexture As Boolean = False
+
+            If sharedHandle <> IntPtr.Zero Then
+                ' ── Shared-handle path (Phase 12a-5c) ──────────────────────
+                ' Open the shared resource on the ENCODER's device via
+                ' ID3D11Device1.OpenSharedResource1. This is the D3D11-
+                ' contract-valid path for cross-device resource sharing.
+                ' The opened texture lives on the encoder's device, so
+                ' CopyResource is same-device (always valid).
+                Try
+                    Dim device1 As ID3D11Device1 = _deviceResult.Device.QueryInterface(Of ID3D11Device1)()
+                    frameTexture = device1.OpenSharedResource1(Of ID3D11Texture2D)(sharedHandle)
+                    device1.Dispose()
+                    disposeFrameTexture = True  ' we created this wrapper — dispose after use
+                Catch ex As Exception
+                    RecordError("runtime", $"OpenSharedResource1 failed: {ex.Message}")
+                    TransitionToFaulted($"OpenSharedResource1 failed: {ex.Message}")
+                    Throw New EncoderRuntimeException(
+                        $"OpenSharedResource1 failed for shared handle 0x{sharedHandle.ToInt64():x16}: {ex.Message}", ex)
+                End Try
+            Else
+                ' ── Direct path (baseline — cross-device, driver-dependent) ─
+                ' Uses the texture directly from Ddagrab's device. Works on
+                ' NVIDIA same-GPU but NOT contractually valid per D3D11 spec.
+                ' Phase 12a-5c compares this with the shared-handle path.
+                If texObj Is Nothing Then
+                    RecordError("runtime", "Frame's NativeTexture is Nothing (frame disposed?).")
+                    TransitionToFaulted("Frame NativeTexture is Nothing")
+                    Throw New EncoderRuntimeException(
+                        "Frame NativeTexture is Nothing — frame may have been disposed.")
+                End If
+                frameTexture = DirectCast(texObj, ID3D11Texture2D)
+                disposeFrameTexture = False  ' frame owns the texture — do NOT dispose
+            End If
 
             ' ─── ENCODE HOT PATH (mirrors spike Phase 10) ────────────────
             ' All operations happen OUTSIDE _sync (no lock contention during encoding).
@@ -499,14 +526,12 @@ Namespace CaptureEngine.Encoder.Nvenc
                 End Try
 
             Finally
-                ' The ID3D11Texture2D wrapper created via FromPointer is GC-eligible
-                ' (does NOT take COM ownership — Vortice's wrapper just holds the
-                ' pointer; the underlying texture lives as long as the frame owns
-                ' it, which is the frame's responsibility, not the encoder's).
-                '
-                ' Frame is BORROWED — encoder MUST NOT dispose the frame or its
-                ' texture. The DdagrabBackend (frame owner) disposes both when
-                ' the frame is disposed.
+                ' If shared-handle path was used, dispose the opened shared resource.
+                ' This releases the Vortice wrapper (NOT the shared resource itself —
+                ' that's owned by D3D11VideoFrame's staging texture).
+                If disposeFrameTexture Then
+                    Try : frameTexture?.Dispose() : Catch : End Try
+                End If
             End Try
         End Function
 
@@ -654,6 +679,9 @@ Namespace CaptureEngine.Encoder.Nvenc
             Interlocked.Increment(_errorCount)
             _lastErrorMessage = message
             _lastErrorType = errorType
+            SyncLock _errorDetails
+                _errorDetails.Add($"[{errorType}] {message}")
+            End SyncLock
         End Sub
 
         ' ─── Atomic counter accessors (for NvencEncoderDiagnostics) ────────
@@ -696,6 +724,31 @@ Namespace CaptureEngine.Encoder.Nvenc
         Friend ReadOnly Property LastErrorTypeValue As String
             Get
                 Return _lastErrorType
+            End Get
+        End Property
+
+        ' ─── Phase 12a-5c: NVENC error details + adapter LUID ────────────
+
+        ''' <summary>List of all NVENC errors with stage + status code (for post-mortem).</summary>
+        Public ReadOnly Property ErrorDetails As IReadOnlyList(Of String)
+            Get
+                SyncLock _errorDetails
+                    Return _errorDetails.ToList().AsReadOnly()
+                End SyncLock
+            End Get
+        End Property
+
+        ''' <summary>Adapter LUID low part (for cross-device comparison).</summary>
+        Public ReadOnly Property AdapterLuidLow As UInteger
+            Get
+                Return If(_deviceResult?.LuidLow, 0UI)
+            End Get
+        End Property
+
+        ''' <summary>Adapter LUID high part (for cross-device comparison).</summary>
+        Public ReadOnly Property AdapterLuidHigh As Integer
+            Get
+                Return If(_deviceResult?.LuidHigh, 0)
             End Get
         End Property
 

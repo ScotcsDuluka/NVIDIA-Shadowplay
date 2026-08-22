@@ -53,30 +53,34 @@ Module Program
 
         Dim overallOk As Boolean = True
 
-        ' ─── Case A: single run ─────────────────────────────────────────
-        Console.WriteLine(">>> Case A: single run (5s)")
+        ' ─── Case A: direct cross-device path (baseline) ──────────────
+        Console.WriteLine(">>> Case A: direct cross-device path (5s)")
         Console.WriteLine()
-        Dim caseA As RunResult = RunOnce("A")
+        Dim caseA As RunResult = RunOnce("A", useSharedHandle:=False)
         overallOk = overallOk AndAlso caseA.Pass
         PrintRunReport(caseA)
         Console.WriteLine()
 
-        ' ─── Case B: second run after dispose ────────────────────────────
-        Console.WriteLine(">>> Case B: second run (5s) after dispose")
+        ' ─── Case B: shared-handle path (D3D11 contract-valid) ────────
+        Console.WriteLine(">>> Case B: shared-handle path (5s)")
         Console.WriteLine()
-        Dim caseB As RunResult = RunOnce("B")
+        Dim caseB As RunResult = RunOnce("B", useSharedHandle:=True)
         overallOk = overallOk AndAlso caseB.Pass
         PrintRunReport(caseB)
         Console.WriteLine()
 
-        ' ─── Final verdict ───────────────────────────────────────────────
+        ' ─── Final verdict ───────────────────────────────────────────
         Console.WriteLine("============================================================")
-        Console.WriteLine(" PHASE 12a-5b VERDICT")
+        Console.WriteLine(" PHASE 12a-5c VERDICT — Architecture Validation")
         Console.WriteLine("============================================================")
-        Console.WriteLine($"  Case A (single run):       {If(caseA.Pass, "PASS", "FAIL")}")
-        Console.WriteLine($"  Case B (second run):       {If(caseB.Pass, "PASS", "FAIL")}")
-        Console.WriteLine($"  Cross-device CopyResource: {If(caseA.Pass AndAlso caseB.Pass, "PROVEN", "UNPROVEN")}")
-        Console.WriteLine($"  Resource lifecycle:       {If(caseA.Pass AndAlso caseB.Pass, "STABLE", "UNSTABLE")}")
+        Console.WriteLine($"  Case A (direct path):         {If(caseA.Pass, "PASS", "FAIL")}")
+        Console.WriteLine($"  Case B (shared-handle path): {If(caseB.Pass, "PASS", "FAIL")}")
+        Console.WriteLine($"  Adapter LUID match:          {If(caseA.LuidMatch, "YES (same GPU)", "NO (different GPUs!)")}")
+        Console.WriteLine($"  Shared handle creation:      {If(caseB.SharedHandleCreateSuccess, "SUCCESS", "FAILED")}")
+        Console.WriteLine($"  OpenSharedResource1:          {If(caseB.SharedResourceOpenSuccess, "SUCCESS", "FAILED")}")
+        Console.WriteLine($"  Cross-device CopyResource:    {If(caseA.Pass, "PROVEN (driver)", "UNPROVEN")}")
+        Console.WriteLine($"  D3D11 contract-valid path:    {If(caseB.Pass, "PROVEN (shared)", "UNPROVEN")}")
+        Console.WriteLine($"  Resource lifecycle:           {If(caseA.LeakInvariant AndAlso caseB.LeakInvariant, "STABLE", "UNSTABLE")}")
         Console.WriteLine()
         Console.WriteLine($"  OVERALL: {If(overallOk, "PASS", "FAIL")}")
         Console.WriteLine("============================================================")
@@ -89,9 +93,10 @@ Module Program
     ' frames pulled from the sink, dispose.
     ' ═══════════════════════════════════════════════════════════════════
 
-    Private Function RunOnce(caseId As String) As RunResult
+    Private Function RunOnce(caseId As String, useSharedHandle As Boolean) As RunResult
         Dim result As New RunResult()
         result.CaseId = caseId
+        result.SharedHandlePath = useSharedHandle
 
         Dim logger As New EngineLogger($"Harness.{caseId}", EngineLogger.LogLevel.Info, AddressOf Console.WriteLine)
         Dim encoderConfig As New EncoderConfig() With {
@@ -113,8 +118,11 @@ Module Program
 
         Try
             ' ─── Initialize D3D11 + DXGI duplication (persistent) ─────
-            logger.Info($"[{caseId}] Initializing DdagrabBackend...")
+            logger.Info($"[{caseId}] Initializing DdagrabBackend... (sharedHandle={useSharedHandle})")
             backend = New DdagrabBackend(logger)
+            If useSharedHandle Then
+                backend.UseSharedHandle = True
+            End If
             Dim ctx As New TestBackendContext(VideoBackendKind.Ddagrab, logger)
             backend.Initialize(ctx)
             logger.Info($"[{caseId}] DdagrabBackend state: {backend.CurrentState}")
@@ -169,6 +177,22 @@ Module Program
                 End If
             Loop
 
+            ' ─── Verify adapter LUID match (both devices on same GPU?) ─
+            result.LuidMatch = (backend.AdapterLuidLow = encoder.AdapterLuidLow AndAlso
+                                backend.AdapterLuidHigh = encoder.AdapterLuidHigh)
+            logger.Info($"[{caseId}] Ddagrab LUID: ({backend.AdapterLuidLow:x8},{backend.AdapterLuidHigh:x8})")
+            logger.Info($"[{caseId}] Encoder LUID: ({encoder.AdapterLuidLow:x8},{encoder.AdapterLuidHigh:x8})")
+            logger.Info($"[{caseId}] LUID match: {result.LuidMatch}")
+
+            ' ─── Capture NVENC error details for post-mortem ──────────
+            result.NvencErrorDetails = encoder.ErrorDetails.ToList()
+            If result.NvencErrorDetails.Count > 0 Then
+                logger.Info($"[{caseId}] NVENC error details ({result.NvencErrorDetails.Count}):")
+                For Each e In result.NvencErrorDetails
+                    logger.Info($"  {e}")
+                Next
+            End If
+
             ' ─── Stop backends ────────────────────────────────────────
             logger.Info($"[{caseId}] Stopping DdagrabBackend...")
             backend.Stop()
@@ -194,7 +218,9 @@ Module Program
 
             result.DurationSec = sw.Elapsed.TotalSeconds
 
-            ' ─── Collect diagnostics ──────────────────────────────────
+            ' ─── Collect diagnostics (BEFORE disposal) ─────────────
+            ' Read metrics now — after Stop but before Dispose.
+            ' textures_disposed may still be climbing (sink has queued frames).
             result.FramesEmitted = backend.EmittedFrames
             result.FramesPushed = backend.FramesPushed
             result.FramesDroppedByBackend = backend.DroppedFrames
@@ -202,12 +228,17 @@ Module Program
             result.NoFrameCount = backend.NoFrameCount
             result.AccessLostCount = backend.AccessLostCount
             result.TexturesCreated = backend.TexturesCreated
-            result.TexturesDisposed = backend.TexturesDisposed
             result.AchievedFps = If(result.DurationSec > 0,
                                     result.FramesAcquired / result.DurationSec, 0)
 
-            ' After cleanup, verify leak invariant
-            result.LeakInvariant = (result.TexturesCreated = result.TexturesDisposed)
+            ' Capture NVENC error details for post-mortem
+            result.NvencErrorDetails = encoder.ErrorDetails.ToList()
+            If result.NvencErrorDetails.Count > 0 Then
+                logger.Info($"[{caseId}] NVENC error details ({result.NvencErrorDetails.Count}):")
+                For Each e In result.NvencErrorDetails
+                    logger.Info($"  {e}")
+                Next
+            End If
 
             ' ─── Pass/Fail criteria ───────────────────────────────────
             result.Pass =
@@ -223,9 +254,21 @@ Module Program
             logger.Error($"[{caseId}] Harness failed: {ex.Message}", ex)
         Finally
             ' ─── Cleanup (reverse order) ──────────────────────────────
+            ' Order matters for metric accuracy:
+            '   1. Dispose encoder (no frames owned)
+            '   2. Dispose sink (drains queue → disposes frames → OnDisposed callbacks fire)
+            '   3. Read FINAL metrics from backend (textures_disposed should == textures_created)
+            '   4. Dispose backend
             Try : encoder?.Dispose() : Catch ex As Exception : logger.Warning($"encoder.Dispose: {ex.Message}") : End Try
-            Try : backend?.Dispose() : Catch ex As Exception : logger.Warning($"backend.Dispose: {ex.Message}") : End Try
             Try : sink?.Dispose() : Catch ex As Exception : logger.Warning($"sink.Dispose: {ex.Message}") : End Try
+
+            ' ─── Read FINAL metrics (after sink drain — all frames disposed) ─
+            If backend IsNot Nothing Then
+                result.TexturesDisposed = backend.TexturesDisposed
+                result.LeakInvariant = (result.TexturesCreated = result.TexturesDisposed)
+            End If
+
+            Try : backend?.Dispose() : Catch ex As Exception : logger.Warning($"backend.Dispose: {ex.Message}") : End Try
         End Try
 
         Return result
@@ -233,7 +276,7 @@ Module Program
 
     Private Sub PrintRunReport(r As RunResult)
         Console.WriteLine("────────────────────────────────────────────────────────────")
-        Console.WriteLine($" Case {r.CaseId} — Run Report")
+        Console.WriteLine($" Case {r.CaseId} — Run Report ({If(r.SharedHandlePath, "shared-handle", "direct")} path)")
         Console.WriteLine("────────────────────────────────────────────────────────────")
         Console.WriteLine($"  duration:              {r.DurationSec:F3} s")
         Console.WriteLine($"  frames_acquired:       {r.FramesAcquired}")
@@ -253,6 +296,18 @@ Module Program
         Console.WriteLine($"  encoded_bytes:         {r.EncodedBytes}")
         Console.WriteLine($"  encode_returned_false: {r.EncodeReturnedFalse}")
         Console.WriteLine($"  nvenc_errors:          {r.NvencErrors}")
+        If r.NvencErrorDetails.Count > 0 Then
+            Console.WriteLine($"  nvenc_error_details:")
+            For Each e In r.NvencErrorDetails
+                Console.WriteLine($"    {e}")
+            Next
+        End If
+        Console.WriteLine()
+        Console.WriteLine($"  adapter_luid_match:   {r.LuidMatch}")
+        If r.SharedHandlePath Then
+            Console.WriteLine($"  shared_handle_create:  {r.SharedHandleCreateSuccess}")
+            Console.WriteLine($"  shared_resource_open: {r.SharedResourceOpenSuccess}")
+        End If
         Console.WriteLine()
         Console.WriteLine($"  pass:                   {r.Pass}")
         If Not String.IsNullOrEmpty(r.ErrorMessage) Then
@@ -295,6 +350,7 @@ Module Program
 
     Private Class RunResult
         Public CaseId As String
+        Public SharedHandlePath As Boolean
         Public DurationSec As Double
         Public FramesAcquired As Long
         Public FramesEmitted As Long
@@ -313,6 +369,10 @@ Module Program
         Public NvencErrors As Long
         Public Pass As Boolean
         Public ErrorMessage As String = ""
+        Public LuidMatch As Boolean = False
+        Public SharedHandleCreateSuccess As Boolean = False
+        Public SharedResourceOpenSuccess As Boolean = False
+        Public NvencErrorDetails As New List(Of String)()
     End Class
 
 End Module

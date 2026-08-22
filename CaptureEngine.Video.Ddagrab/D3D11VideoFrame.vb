@@ -45,6 +45,7 @@ Option Infer On
 
 Imports System.Threading
 Imports Vortice.Direct3D11
+Imports Vortice.DXGI
 Imports CaptureEngine.Video
 
 Namespace CaptureEngine.Video.Backends.Ddagrab
@@ -67,6 +68,13 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         ' ---- Native resource (released on Dispose) ----
         Private ReadOnly _stagingTexture As ID3D11Texture2D
         Private _nativeTextureObj As Object  ' cached ID3D11Texture2D (Object type to avoid contract leak)
+        Private ReadOnly _sharedHandle As IntPtr  ' IntPtr.Zero = direct path; non-zero = shared-handle path
+
+        ' ---- Disposal callback (for metric tracking) ----
+        ' When set, called exactly once during Dispose(). Used by DdagrabBackend
+        ' to increment _texturesDisposed counter regardless of who disposes the frame
+        ' (backend on Dropped, sink on eviction, consumer after Encode).
+        Private _onDisposed As Action
 
         ' ---- Disposal guard (0 = alive, 1 = disposed) ----
         Private _disposedState As Integer = 0
@@ -86,7 +94,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                        height As Integer,
                        sequence As Long,
                        captureTimeTicks As Long,
-                       presentationTimestampTicks As Long)
+                       presentationTimestampTicks As Long,
+                       Optional sharedHandle As IntPtr = Nothing)
             If stagingTexture Is Nothing Then
                 Throw New ArgumentNullException(NameOf(stagingTexture))
             End If
@@ -95,11 +104,19 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
             _stagingTexture = stagingTexture
             _nativeTextureObj = stagingTexture  ' store the actual Vortice object
+            _sharedHandle = sharedHandle  ' IntPtr.Zero for direct path
             _origin = VideoFrameOrigin.GpuD3D11Texture
             _pixelFormat = VideoPixelFormat.Bgra8
             _dimensions = New VideoFrameDimensions(width, height)
             _diagnostics = New FrameDiagnostics(sequence, captureTimeTicks, presentationTimestampTicks)
         End Sub
+
+        ''' <summary>Set a callback to invoke when Dispose() runs (for metric tracking).</summary>
+        Public WriteOnly Property OnDisposed As Action
+            Set(value As Action)
+                _onDisposed = value
+            End Set
+        End Property
 
         ' ---- IVideoFrame properties ----
 
@@ -138,6 +155,15 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End Get
         End Property
 
+        Public ReadOnly Property SharedHandle As IntPtr Implements ID3D11VideoFrame.SharedHandle
+            Get
+                If Thread.VolatileRead(_disposedState) <> 0 Then
+                    Return IntPtr.Zero
+                End If
+                Return _sharedHandle
+            End Get
+        End Property
+
         ' ---- Disposal diagnostics (test-visible) ----
 
         Public ReadOnly Property IsDisposed As Boolean
@@ -162,11 +188,6 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
             ' Release the staging texture. This is a GPU resource release —
             ' Vortice handles the COM Release under the hood.
-            '
-            ' IMPORTANT: this happens OUTSIDE the DdagrabBackend._sync lock
-            ' (BoundedVideoFrameSink.DisposeFrameSafely also runs evicted-frame
-            ' disposal outside its own lock — same pattern for the same reason:
-            ' GPU release can be slow and shouldn't block unrelated operations).
             Try
                 _stagingTexture?.Dispose()
             Catch
@@ -175,6 +196,16 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
             ' Clear the cached reference (defensive — readers see Nothing).
             _nativeTextureObj = Nothing
+
+            ' Fire disposal callback (for metric tracking).
+            ' This lets DdagrabBackend increment _texturesDisposed regardless
+            ' of who disposes the frame (backend on Dropped, sink on eviction,
+            ' consumer after Encode). Fixes the leak_invariant metric bug.
+            Try
+                _onDisposed?.Invoke()
+            Catch
+                ' Swallow — never throw from Dispose.
+            End Try
         End Sub
 
     End Class

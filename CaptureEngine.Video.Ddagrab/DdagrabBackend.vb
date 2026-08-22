@@ -101,6 +101,15 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private _outputWidth As Integer
         Private _outputHeight As Integer
 
+        ' ---- adapter LUID (for cross-device comparison) ----
+        Private _adapterLuidLow As UInteger
+        Private _adapterLuidHigh As Integer
+
+        ' ---- shared-handle mode (Phase 12a-5c) ----
+        ' When True, staging textures are created with SharedNthandle flag and
+        ' a shared handle is obtained for cross-device resource sharing.
+        Private _useSharedHandle As Boolean = False
+
         ' ---- staging texture description (used per-frame) ----
         Private _stagingDesc As Texture2DDescription
 
@@ -116,6 +125,32 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             Get
                 Return _outputHeight
             End Get
+        End Property
+
+        ' ---- adapter LUID (Public — for cross-device comparison in harness) ----
+        Public ReadOnly Property AdapterLuidLow As UInteger
+            Get
+                Return _adapterLuidLow
+            End Get
+        End Property
+
+        Public ReadOnly Property AdapterLuidHigh As Integer
+            Get
+                Return _adapterLuidHigh
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' Enable shared-handle mode for cross-device resource sharing.
+        ''' Must be set BEFORE Initialize(). When True, staging textures are
+        ''' created with D3D11_RESOURCE_MISC_SHARED_NTHANDLE and a shared NT
+        ''' handle is obtained for each frame. The encoder opens the shared
+        ''' resource via ID3D11Device1.OpenSharedResource1.
+        ''' </summary>
+        Public WriteOnly Property UseSharedHandle As Boolean
+            Set(value As Boolean)
+                _useSharedHandle = value
+            End Set
         End Property
 
         Public Sub New(Optional logger As EngineLogger = Nothing)
@@ -182,6 +217,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
                 _dxgiFactory.EnumAdapters1(CUInt(nvidiaIdx), _adapter).CheckError()
                 Dim nvidiaDesc As AdapterDescription1 = _adapter.Description1
+                _adapterLuidLow = nvidiaDesc.Luid.LowPart
+                _adapterLuidHigh = nvidiaDesc.Luid.HighPart
                 _logger.Info($"DdagrabBackend: selected NVIDIA adapter #{nvidiaIdx}: {nvidiaDesc.Description}")
 
                 Dim requestedFeatureLevels As FeatureLevel() = {
@@ -230,6 +267,11 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 _logger.Info("DdagrabBackend: DXGI Output Duplication created (persistent)")
 
                 ' ─── Staging texture description (used per-frame in WorkerLoop) ─
+                Dim miscFlags As ResourceOptionFlags = ResourceOptionFlags.None
+                If _useSharedHandle Then
+                    miscFlags = ResourceOptionFlags.SharedNthandle
+                    _logger.Info("DdagrabBackend: shared-handle mode ENABLED")
+                End If
                 _stagingDesc = New Texture2DDescription() With {
                     .Width = CUInt(_outputWidth),
                     .Height = CUInt(_outputHeight),
@@ -240,7 +282,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                     .Usage = ResourceUsage.Default,
                     .BindFlags = BindFlags.ShaderResource Or BindFlags.RenderTarget,
                     .CPUAccessFlags = CpuAccessFlags.None,
-                    .MiscFlags = ResourceOptionFlags.None
+                    .MiscFlags = miscFlags
                 }
 
                 _state = DdagrabBackendState.Initialized
@@ -555,6 +597,25 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                             _texturesCreated += 1
                         End SyncLock
 
+                        ' If shared-handle mode, obtain NT handle for cross-device sharing
+                        Dim sharedHandle As IntPtr = IntPtr.Zero
+                        If _useSharedHandle Then
+                            Dim dxgiRes As IDXGIResource1 = stagingTexture.QueryInterface(Of IDXGIResource1)()
+                            Dim r As Result = dxgiRes.CreateSharedHandle(Nothing, &H80000000UI, Nothing, sharedHandle)
+                            dxgiRes.Dispose()
+                            If Not r.Success Then
+                                _logger.Error($"DdagrabBackend: CreateSharedHandle failed: hr=0x{r.Code:x8}")
+                                stagingTexture.Dispose()
+                                SyncLock _sync
+                                    _texturesDisposed += 1
+                                End SyncLock
+                                SyncLock _sync
+                                    _errorCount += 1
+                                End SyncLock
+                                Continue Do
+                            End If
+                        End If
+
                         ' GPU copy: DXGI desktop texture → our staging texture
                         _deviceContext.CopyResource(stagingTexture, desktopTexture)
 
@@ -577,8 +638,17 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                             _outputHeight,
                             sequence,
                             attemptTime,
-                            attemptTime)  ' PTS = capture time (sync mode)
+                            attemptTime,
+                            sharedHandle)  ' IntPtr.Zero for direct path, handle for shared path
                         stagingTexture = Nothing  ' ownership transferred to frame
+
+                        ' Set disposal callback for metric tracking — fires regardless
+                        ' of who disposes the frame (backend, sink, or consumer).
+                        frame.OnDisposed = Sub()
+                                              SyncLock _sync
+                                                  _texturesDisposed += 1
+                                              End SyncLock
+                                          End Sub
 
                         ' TryPush — TRANSFER ownership model
                         Dim outcome As PushOutcome = _sink.TryPush(
@@ -603,10 +673,9 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                                     _framesDropped += 1
                                 End SyncLock
                                 ' Backend retains ownership — dispose immediately.
+                                ' frame.Dispose() triggers OnDisposed callback which increments _texturesDisposed.
+                                ' (No manual _texturesDisposed increment here — callback handles it.)
                                 frame?.Dispose()
-                                SyncLock _sync
-                                    _texturesDisposed += 1  ' frame.Dispose released staging texture
-                                End SyncLock
                                 frame = Nothing
                         End Select
 
@@ -616,11 +685,11 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         End SyncLock
                         _logger.Error($"DdagrabBackend: worker iteration failed: {ex.Message}", ex)
                         ' Dispose any partially-created resources.
+                        ' If frame was constructed, frame.Dispose() triggers OnDisposed callback.
+                        ' If only stagingTexture exists (frame NOT constructed yet), manual increment needed.
                         If frame IsNot Nothing Then
                             frame.Dispose()
-                            SyncLock _sync
-                                _texturesDisposed += 1
-                            End SyncLock
+                            ' OnDisposed callback handles _texturesDisposed += 1
                         End If
                         If stagingTexture IsNot Nothing Then
                             stagingTexture.Dispose()

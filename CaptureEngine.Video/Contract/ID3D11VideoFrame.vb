@@ -83,6 +83,15 @@ Namespace CaptureEngine.Video
         ''' </summary>
         ReadOnly Property NativeTexture As Object
 
+        ''' <summary>
+        ''' Shared NT handle for cross-device resource sharing.
+        ''' IntPtr.Zero = direct path (NativeTexture used directly).
+        ''' Non-zero = shared-handle path (encoder opens via OpenSharedResource1).
+        '''
+        ''' Phase 12a-5c: validates D3D11 shared-resource contract.
+        ''' </summary>
+        ReadOnly Property SharedHandle As IntPtr
+
     End Interface
 
 End Namespace
