@@ -601,10 +601,14 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         Dim sharedHandle As IntPtr = IntPtr.Zero
                         If _useSharedHandle Then
                             Dim dxgiRes As IDXGIResource1 = stagingTexture.QueryInterface(Of IDXGIResource1)()
-                            Dim r As Result = dxgiRes.CreateSharedHandle(Nothing, &H80000000UI, Nothing, sharedHandle)
-                            dxgiRes.Dispose()
-                            If Not r.Success Then
-                                _logger.Error($"DdagrabBackend: CreateSharedHandle failed: hr=0x{r.Code:x8}")
+                            ' Vortice API: CreateSharedHandle(attributes, access, name) As IntPtr
+                            ' Returns the handle directly (NOT Result). Throws on failure.
+                            ' SharedResourceFlags is an enum — use ReadWrite for cross-device access.
+                            Try
+                                sharedHandle = dxgiRes.CreateSharedHandle(Nothing, SharedResourceFlags.ReadWrite, Nothing)
+                            Catch ex As Exception
+                                _logger.Error($"DdagrabBackend: CreateSharedHandle threw: {ex.Message}")
+                                dxgiRes.Dispose()
                                 stagingTexture.Dispose()
                                 SyncLock _sync
                                     _texturesDisposed += 1
@@ -613,7 +617,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                                     _errorCount += 1
                                 End SyncLock
                                 Continue Do
-                            End If
+                            End Try
+                            dxgiRes.Dispose()
                         End If
 
                         ' GPU copy: DXGI desktop texture → our staging texture
