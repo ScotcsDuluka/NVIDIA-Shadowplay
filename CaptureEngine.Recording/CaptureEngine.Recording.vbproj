@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <AssemblyName>CaptureEngine.Recording</AssemblyName>
+    <Description>CaptureEngine.Recording — Phase 12a-5 orchestration (RecordingEngine + CaptureSession)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Foundation -->
+    <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <!-- Video contract + ID3D11VideoFrame -->
+    <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <!-- DdagrabBackend (video capture) -->
+    <ProjectReference Include="..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
+    <!-- Encoder contract (IEncoderBackend + EncodedPacket) -->
+    <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
+    <!-- NvencEncoderBackend (H.264 encoding) -->
+    <ProjectReference Include="..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
+    <!-- FFmpeg stack (MuxCoordinator + FFmpegProcessHost) -->
+    <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- NAudio for WASAPI loopback audio capture (same as spike Phase 10) -->
+    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+  </ItemGroup>
+
+</Project>
