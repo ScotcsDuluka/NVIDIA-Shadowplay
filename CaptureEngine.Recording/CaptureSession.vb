@@ -188,7 +188,7 @@ Namespace CaptureEngine.Recording
                 _logger.Info("[session] Wrapping H.264 into MP4 container...")
                 Dim displayRefreshHz As Double = If(result.ActualDurationSec > 0,
                     result.FramesEncoded / result.ActualDurationSec, 60.0)
-                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {CInt(Math.Round(displayRefreshHz))} -i \"{tempH264}\" -c:v copy \"{tempVideoMp4}\""
+                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {CInt(Math.Round(displayRefreshHz))} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
                 Dim wrapPsi As New ProcessStartInfo With {
                     .FileName = _config.FFmpegPath,
                     .Arguments = wrapArgs,
