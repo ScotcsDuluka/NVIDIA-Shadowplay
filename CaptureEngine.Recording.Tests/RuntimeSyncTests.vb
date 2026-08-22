@@ -26,6 +26,7 @@ Option Infer On
 Imports System
 Imports System.Diagnostics
 Imports System.Globalization
+Imports System.Threading
 Imports System.IO
 Imports CaptureEngine.FFmpegBackend
 
@@ -49,7 +50,7 @@ Namespace CaptureEngine.Recording.Tests
             End If
 
             If Not PrepareSharedMedia() Then
-                TestRunner.RunSkip("SYNC-RT: *all*", "could not generate test video (libx264 unavailable?)")
+                TestRunner.RunSkip("SYNC-RT: *all*", "no H.264 encoder available (tried libx264/h264_nvenc/h264_qsv/h264_amf)")
                 Return
             End If
 
@@ -142,12 +143,25 @@ Namespace CaptureEngine.Recording.Tests
             _videoMp4 = Path.Combine(_sandbox, "video.mp4")
 
             ' Raw H.264 @60fps for 5s — mirrors the NVENC output the session writes.
-            Dim genOk As Boolean = RunFFmpeg(
-                $"-y -hide_banner -loglevel error -f lavfi -i testsrc=size=320x240:rate=60:duration=5 " &
-                "-c:v libx264 -preset ultrafast -pix_fmt yuv420p -f h264 """ & _videoH264 & """", 30000)
-            If Not genOk OrElse Not File.Exists(_videoH264) OrElse New FileInfo(_videoH264).Length < 1000 Then
-                Return False
-            End If
+            ' Encoder fallback chain: the production Overlay\API-Core ffmpeg on
+            ' Windows ships WITHOUT libx264 (NVIDIA-curated build) — the first
+            ' Windows validation run skipped SYNC-RT for exactly this reason
+            ' even though h264_nvenc is present. Software encoder first
+            ' (hermetic), then hardware.
+            Dim encoders() As String = {"libx264", "h264_nvenc", "h264_qsv", "h264_amf"}
+            Dim genOk As Boolean = False
+            For Each enc As String In encoders
+                genOk = RunFFmpeg(
+                    $"-y -hide_banner -loglevel error -f lavfi -i testsrc=size=320x240:rate=60:duration=5 " &
+                    $"-c:v {enc} -preset ultrafast -pix_fmt yuv420p -f h264 """ & _videoH264 & """", 30000)
+                If genOk AndAlso File.Exists(_videoH264) AndAlso New FileInfo(_videoH264).Length >= 1000 Then
+                    Console.WriteLine($"      video encoder: {enc}")
+                    Exit For
+                End If
+                genOk = False
+                Try : File.Delete(_videoH264) : Catch : End Try
+            Next
+            If Not genOk Then Return False
 
             ' Wrap — EXACT CaptureSession wrap arguments (display rate = 60 here).
             Dim wrapOk As Boolean = RunFFmpeg(
@@ -293,6 +307,12 @@ Namespace CaptureEngine.Recording.Tests
                         chunk = New Byte(480 * 4 - 1) {}               ' silence
                     End If
                     w.EnqueueChunk(chunk, chunk.Length)
+                    ' Pace like a real WASAPI producer. A no-sleep tight loop
+                    ' floods the bounded queue faster than any writer can drain
+                    ' (Release-mode enqueue hit exactly the 240-chunk cap →
+                    ' 2.4s WAV). 1 ms/chunk = 10× real-time — well inside the
+                    ' sidecar's design target — and keeps the test under 1 s.
+                    Thread.Sleep(1)
                 Next
                 Return w.Complete(5000)
             End Using

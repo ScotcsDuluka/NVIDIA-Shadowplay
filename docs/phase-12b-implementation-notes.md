@@ -6,6 +6,43 @@
 
 ---
 
+## ⭐ Windows runtime validation — PASS (2026-08-23 06:24–06:27)
+
+`scripts\validate-phase12b.ps1` on the owner's machine
+(`C:\My Project\NVIDIA-Shadowplay`, NVIDIA GPU, 75 Hz display, audio playing):
+
+| Stage | Result |
+|---|---|
+| Whole-solution clean build (20 projects) | BUILD OK |
+| Test suites | 14 + 24 + 8 + 91 + 45 + **61** (Video.Tests incl. real-DDXGI DDAGRAB set) = **243 PASS / 0 FAIL** |
+| Test A — 3 × 10 s normal | **3/3 PASS** — e.g. A2: 756 frames, audio 1,921,920 B, dropped 0, accounting OK, offset **0.002 s** |
+| Test B — early stop 1 s / 5 s / 10 s | **3/3 PASS** |
+| Test C — 5 × 3 s immediate restarts | **5/5 PASS** (engine returns to Idle every session) |
+| **Crash test** (taskkill /F mid-session) | **PASS — 0 orphan ffmpeg after kill** (baseline 0) |
+| **OVERALL** | **PHASE 12b RUNTIME VALIDATION: PASS — 11/11 sessions** |
+
+Evidence files on the owner's machine:
+`evidence\phase-12b-crash-20260823-062705.txt`,
+`CaptureEngine.Recording.ConsoleDriver\evidence\phase-12b-validation-*.md`.
+
+Definition of Done — every criterion now has Windows runtime evidence:
+Single session ✅ · Second session ✅ · Repeated sessions ✅ · Video+audio ✅ ·
+A/V sync ✅ (0.002 s steady-state) · No orphan FFmpeg ✅ · Clean shutdown ✅ ·
+Crash-safe cleanup ✅ · Build whole solution ✅
+
+Notes from the run:
+- First-session offset 0.349 s vs 0.002 s afterwards is the NVENC/warm-up first
+  capture only — mux compensated correctly each time (that is what the offset
+  model is for).
+- SYNC-RT still skipped on Windows: the Overlay\API-Core ffmpeg build ships
+  without libx264. Fixed after the run: encoder fallback chain
+  libx264 → h264_nvenc → h264_qsv → h264_amf. Runs on Linux keep using libx264.
+- Test harness fixes made during triage (no production code changed):
+  real-DXGI DDAGRAB test contract + leak-proof Finally ownership; WAV test
+  producer pacing (1 ms/chunk) so Release-mode floods don't false-fail.
+
+---
+
 ## What changed and why
 
 ### AUDIO — hard blocker (CaptureSession rework)
