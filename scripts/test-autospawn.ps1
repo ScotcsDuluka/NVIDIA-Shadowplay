@@ -156,40 +156,74 @@ if ($spProc.HasExited) {
     $code = $spProc.ExitCode
     Write-Host ("  ERROR — new ShadowPlay exited immediately (pid {0}, exit code {1})." -f $spProc.Id, $code) -ForegroundColor Red
 
-    # ── DIAG 0: capture the APPHOST's own stderr via cmd redirect ──
-    # hostfxr-level failures ("You must install .NET Desktop Runtime",
-    # "hostfxr.dll could not be found", runtimeconfig parse errors) are
-    # printed to stderr BEFORE managed code runs. This is the exact reason
-    # an apphost can fail while 'dotnet app.dll' succeeds (the SDK's dotnet
-    # resolves its own runtimes; the apphost searches the registry/DOTNET_ROOT).
-    Write-Host "`n>>> DIAG 0: apphost stderr (cmd /c redirect)..." -ForegroundColor Cyan
-    $hostLog = Join-Path $env:TEMP "sp-apphost-err.txt"
-    cmd /c "`"$spExe`" 2>&1" | Out-File -FilePath $hostLog -Encoding Unicode
-    $hostText = ""
-    if (Test-Path $hostLog) { $hostText = Get-Content $hostLog -Raw }
-    if (-not [string]::IsNullOrWhiteSpace($hostText)) {
-        Write-Host "  ── apphost output (first 30 lines) ──" -ForegroundColor Yellow
-        $hostText -split "`r?`n" | Select-Object -First 30 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
-    } else {
-        Write-Host "  (apphost printed nothing — silent host failure)" -ForegroundColor DarkGray
-    }
-
-    # ── DIAG 0b: runtime presence + runtimeconfig content ──
-    Write-Host "`n>>> DIAG 0b: installed .NET runtimes (is WindowsDesktop 8.x present?)..." -ForegroundColor Cyan
+    # ── DIAG 0 (v6): stderr via REAL PIPE ─────────────────────────
+    # ShadowPlay is WinExe (GUI subsystem): launched from a console it gets
+    # NO console handles at all, so 'cmd /c ... 2>&1' can never see its
+    # output (that is why run #4's DIAG 0 was silent). Start-Process
+    # -Redirect* passes actual pipe handles — .NET writes unhandled
+    # exceptions to them.
+    Write-Host "`n>>> DIAG 0: launching exe with piped stderr/stdout (GUI-safe)..." -ForegroundColor Cyan
+    $pipeErr = Join-Path $env:TEMP "sp-exe-err.txt"
+    $pipeOut = Join-Path $env:TEMP "sp-exe-out.txt"
     try {
-        $rts = & dotnet --list-runtimes 2>$null
-        $desk = @($rts | Where-Object { $_ -match "Microsoft.WindowsDesktop.App" })
-        if ($desk.Count -gt 0) { $desk | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray } }
-        else { Write-Host "    *** NO Microsoft.WindowsDesktop.App runtime found — apphost cannot start WinForms apps!" -ForegroundColor Red }
-        $rc = Join-Path $overlayBin "NVIDIA ShadowPlay.runtimeconfig.json"
-        if (Test-Path $rc) {
-            Write-Host "    runtimeconfig:" -ForegroundColor DarkGray
-            Get-Content $rc | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
+        $p2 = Start-Process -FilePath $spExe -WorkingDirectory $overlayBin -PassThru `
+            -RedirectStandardError $pipeErr -RedirectStandardOutput $pipeOut
+        if (-not $p2.WaitForExit(15000)) {
+            Write-Host "  >>> exe SURVIVES when launched with pipe handles (15s+)" -ForegroundColor Yellow
+            Write-Host "      → the app is fine; the plain launch dies from something external (AV/environment)" -ForegroundColor Yellow
+            try { $p2 | Stop-Process -Force } catch { }
+            try { Get-Process -Name "NVIDIA ShadowPlay" -ErrorAction SilentlyContinue | Stop-Process -Force } catch { }
         } else {
-            Write-Host "    *** runtimeconfig.json MISSING for ShadowPlay!" -ForegroundColor Red
+            Write-Host ("  >>> exe died again under pipe launch, exit code {0}" -f $p2.ExitCode) -ForegroundColor Yellow
         }
     } catch {
-        Write-Host "    (dotnet probe failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+        Write-Host "  (pipe launch failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+    }
+    foreach ($pair in @(@("stderr", $pipeErr), @("stdout", $pipeOut))) {
+        $label = $pair[0]; $pathx = $pair[1]
+        if (Test-Path $pathx) {
+            $t = Get-Content $pathx -Raw -ErrorAction SilentlyContinue
+            If (-not [string]::IsNullOrWhiteSpace($t)) {
+                Write-Host "  ── $label (first 40 lines) ──" -ForegroundColor Yellow
+                $t -split "`r?`n" | Select-Object -First 40 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+            } else {
+                Write-Host "  ($label empty)" -ForegroundColor DarkGray
+            }
+        }
+    }
+
+    # ── DIAG 0b: exe sanity (size + MZ header) vs the WORKING sibling ──
+    Write-Host "`n>>> DIAG 0b: exe sanity (vs working NVIDIA API.exe)..." -ForegroundColor Cyan
+    try {
+        $spInfo = Get-Item $spExe
+        $apiInfo = Get-Item $hubExe
+        Write-Host ("    ShadowPlay.exe: {0:N0} bytes" -f $spInfo.Length)
+        Write-Host ("    API.exe (works): {0:N0} bytes" -f $apiInfo.Length)
+        $fs = [System.IO.File]::OpenRead($spExe)
+        Try { $b0 = $fs.ReadByte(); $b1 = $fs.ReadByte() } Finally { $fs.Close() }
+        if ($b0 -eq 0x4D -and $b1 -eq 0x5A) { Write-Host "    ShadowPlay.exe PE header: MZ OK" }
+        else { Write-Host ("    ShadowPlay.exe PE header: INVALID ({0:X2} {1:X2}) — corrupt exe!" -f $b0, $b1) -ForegroundColor Red }
+    } catch {
+        Write-Host "    (sanity probe failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+    }
+
+    # ── DIAG 0c: Defender detections (fresh unsigned exes get blocked) ──
+    Write-Host "`n>>> DIAG 0c: Windows Defender detections mentioning our exes..." -ForegroundColor Cyan
+    try {
+        $dets = Get-MpThreatDetection -ErrorAction SilentlyContinue |
+            Where-Object { ($_.Resources -join ";") -match "ShadowPlay|NVIDIA Capture|NVIDIA API" } |
+            Select-Object -First 5
+        if ($dets) {
+            foreach ($d in $dets) {
+                Write-Host ("  [{0}] threat {1}" -f $d.InitialDetectionTime, $d.ThreatID) -ForegroundColor Red
+                $d.Resources | Select-Object -First 3 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+            }
+            Write-Host "  >>> check Windows Security → Protection history — a detection here IS the cause" -ForegroundColor Red
+        } else {
+            Write-Host "  (no matching Defender detections)" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Host "  (Defender query failed: $($_.Exception.Message))" -ForegroundColor DarkGray
     }
 
     # ── DIAG 1: relaunch via dotnet host with captured stderr/stdout ──
