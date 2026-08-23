@@ -74,7 +74,17 @@ Partial Public Class UI_Engine
                          Dim startup As New EngineStartupConfig()
                          If settingsSnapshot IsNot Nothing Then
                              If Not String.IsNullOrEmpty(settingsSnapshot.Encoder) Then
-                                 startup.CodecKey = settingsSnapshot.Encoder
+                                 ' Fallback-fix: CaptureSettings.Encoder may hold a
+                                 ' FFMPEG name ('h264_nvenc') — the encoder contract
+                                 ' wants the internal key ('NVENC_H264'). Normalize
+                                 ' BOTH directions (owner log 20:01:46 showed the
+                                 ' engine silently falling back to legacy for a
+                                 ' whole day because of exactly this).
+                                 Dim internalKey As String = OverlayConfig.MapEncoderToInternal(settingsSnapshot.Encoder)
+                                 If Not String.Equals(internalKey, settingsSnapshot.Encoder, StringComparison.OrdinalIgnoreCase) Then
+                                     DebugLog($"[RecordingEngine] encoder name normalized: '{settingsSnapshot.Encoder}' → '{internalKey}'")
+                                 End If
+                                 startup.CodecKey = internalKey
                              End If
                              If settingsSnapshot.Bitrate > 0 Then
                                  startup.BitrateBps = settingsSnapshot.Bitrate

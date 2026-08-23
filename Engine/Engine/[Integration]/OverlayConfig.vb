@@ -377,6 +377,32 @@ Public NotInheritable Class OverlayConfig
         End Select
     End Function
 
+    ''' <summary>
+    ''' Fallback-fix (owner log 2026-08-23 20:01:46: Initialize FAILED CodecKey
+    ''' h264_nvenc is not supported). CaptureSettings.Encoder may arrive as a
+    ''' FFMPEG codec name (MapEncoderToFfmpeg output / unified config.json feed)
+    ''' while the NvencEncoderBackend contract expects the internal key
+    ''' (NVENC_H264). Translate both directions so no caller has to know which
+    ''' convention the other side uses.
+    ''' </summary>
+    Public Shared Function MapEncoderToInternal(ffmpegOrOverlayEncoder As String) As String
+        If String.IsNullOrEmpty(ffmpegOrOverlayEncoder) Then Return "NVENC_H264"
+        Select Case ffmpegOrOverlayEncoder.ToLowerInvariant()
+            Case "h264_nvenc" : Return "NVENC_H264"
+            Case "hevc_nvenc" : Return "NVENC_HEVC"
+            Case "av1_nvenc" : Return "NVENC_AV1"
+            Case "h264_qsv" : Return "QUICKSYNC_H264"
+            Case "hevc_qsv" : Return "QUICKSYNC_HEVC"
+            Case "h264_amf" : Return "AMF_H264"
+            Case "hevc_amf" : Return "AMF_HEVC"
+            Case "libx264" : Return "LIBX264"
+            Case "libx265" : Return "LIBX265"
+            Case "nvenc_h264", "nvenc_hevc", "nvenc_av1", "quicksync_h264", "quicksync_hevc", "amf_h264", "amf_hevc"
+                Return ffmpegOrOverlayEncoder.ToUpperInvariant()
+            Case Else : Return "NVENC_H264"
+        End Select
+    End Function
+
     Public Shared Function MapEncoderToLabel(overlayEncoder As String) As String
         If String.IsNullOrEmpty(overlayEncoder) Then Return "NVIDIA NVENC H.264"
         Select Case overlayEncoder.ToUpperInvariant()

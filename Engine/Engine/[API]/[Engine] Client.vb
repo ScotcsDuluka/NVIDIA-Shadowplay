@@ -247,6 +247,7 @@ Partial Public Class UI_Engine
                     If _useNewEngine AndAlso _recordingEngine IsNot Nothing Then
                         Await HandleRecordingStart(value, reqId)
                     Else
+                        DebugLog("⚠ recording via LEGACY pipeline (new engine unavailable) — OBS-style live-mux NOT active")
                         Await HandleEngineRecordStart(value, reqId)
                     End If
                 Case "engine_record_stop"
