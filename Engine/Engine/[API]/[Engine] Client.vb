@@ -45,6 +45,15 @@ Partial Public Class UI_Engine
             AddHandler tcp.OnMessageReceived, AddressOf OnTcpMessage
             AddHandler tcp.OnDisconnected, AddressOf OnTcpDisconnected
             AddHandler tcp.OnReconnecting, AddressOf OnTcpReconnecting
+            ' ★ v9 evidence fix: after a reconnect (e.g. hub restart), re-register
+            ' and re-broadcast engine_ready. Previously register/engine_ready ran
+            ' only once at app start — an engine that started BEFORE the hub (or
+            ' survived a hub restart) stayed silently connected forever: the hub
+            ' client list showed Unknown, and the Overlay never re-sent
+            ' PREWARM_FFMPEG (it keys off engine_ready). Found by test-autospawn
+            ' v9 Phase P (engine_ready never arrived for an engine spawned while
+            ' the hub was down).
+            AddHandler tcp.OnReconnected, AddressOf OnTcpReconnected
             DebugLog("TCP client starting...")
         Catch ex As Exception
             DebugLog("TCP client error: " & ex.Message)
@@ -62,6 +71,24 @@ Partial Public Class UI_Engine
 
     Private Sub OnTcpReconnecting()
         ' Could log; for now keep silent to avoid log spam every retry.
+    End Sub
+
+    ''' <summary>
+    ''' ★ v9 evidence fix: TCP just reconnected (hub came back / restarted).
+    ''' Re-register our name and re-broadcast engine_ready so the hub client
+    ''' list is correct and the Overlay re-sends PREWARM_FFMPEG. Marshal to the
+    ''' UI thread via BeginUiInvoke (fire-and-forget) — ReconnectLoop thread
+    ''' must not block on UI.
+    ''' </summary>
+    Private Sub OnTcpReconnected()
+        BeginUiInvoke(Sub()
+                          Try
+                              BroadcastEngineReady()
+                              DebugLog("[Engine] reconnected → re-broadcast engine_ready")
+                          Catch ex As Exception
+                              DebugLog("[Engine] reconnect broadcast failed: " & ex.Message)
+                          End Try
+                      End Sub)
     End Sub
 
     ''' <summary>

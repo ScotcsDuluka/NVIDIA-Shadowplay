@@ -121,8 +121,26 @@ try { Remove-Item $supLog -ErrorAction SilentlyContinue } catch { }
 Write-Host "`n>>> S0: clean baseline (hub DOWN, family killed)..." -ForegroundColor Cyan
 Remove-Item $marker -Force -ErrorAction SilentlyContinue   # no marker in phase S
 Kill-Family
-Start-Sleep -Seconds 2
-Check "S0 baseline: family clean" ((Count-Engine -eq 0) -and ((Get-OverlayPid) -eq 0))
+$leftover = @()
+$clean = $false
+$deadline = (Get-Date).AddSeconds(15)
+while ((Get-Date) -lt $deadline) {
+    $leftover = @()
+    foreach ($n in $familyNames) {
+        $leftover += @(Get-Process -Name $n -ErrorAction SilentlyContinue)
+    }
+    if ($leftover.Count -eq 0) { $clean = $true; break }
+    Start-Sleep -Milliseconds 500
+}
+if (-not $clean) {
+    foreach ($p in $leftover) {
+        $pathx = "(path unavailable)"
+        try { $pathx = $p.Path } catch { }
+        Write-Host ("  still alive: {0} pid {1}  <-  {2}" -f $p.ProcessName, $p.Id, $pathx) -ForegroundColor Yellow
+    }
+    Write-Host "  (path tells us whether it's our bin or another deployment)" -ForegroundColor DarkGray
+}
+Check "S0 baseline: family clean" $clean
 
 Write-Host "`n>>> S1: start ShadowPlay.exe (hub down) — supervisor must spawn the engine..." -ForegroundColor Cyan
 Start-Process -FilePath $spExe -WorkingDirectory $overlayBin | Out-Null
@@ -156,8 +174,8 @@ Write-Host "`n>>> P1: hub watchdog should now keep the family alive..." -Foregro
 Start-Sleep -Seconds 5   # hub spawns missing family members within ~1s ticks
 Check "P1 engine alive (hub-spawned or supervisor)" ((Get-EnginePid) -ne 0)
 
-Write-Host "`n>>> P2: waiting for engine_ready broadcast via hub..." -ForegroundColor Cyan
-$ready1 = Wait-HubBroadcast "engine_ready" 45
+Write-Host "`n>>> P2: waiting for engine_ready broadcast via hub (60s — engine reconnect backoff caps at 30s)..." -ForegroundColor Cyan
+$ready1 = Wait-HubBroadcast "engine_ready" 60
 Check "P2 engine_ready received (IPC works end-to-end)" ($null -ne $ready1)
 if ($ready1) { Write-Host "      evidence: $ready1" -ForegroundColor DarkGray }
 
@@ -177,7 +195,7 @@ while ((Get-Date) -lt $deadline -and $newPid -eq 0) {
 }
 Check "P3 engine respawned with NEW pid ($killPid -> $newPid)" ($newPid -ne 0 -and $newPid -ne $killPid)
 
-$ready2 = Wait-HubBroadcast "engine_ready" 45
+$ready2 = Wait-HubBroadcast "engine_ready" 60
 Check "P4 engine_ready received again after respawn" ($null -ne $ready2)
 if ($ready2) { Write-Host "      evidence: $ready2" -ForegroundColor DarkGray }
 

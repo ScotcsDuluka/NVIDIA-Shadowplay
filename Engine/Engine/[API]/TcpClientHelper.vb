@@ -23,6 +23,16 @@ Public Class TcpClientHelper
     Public Event OnDisconnected()
     Public Event OnReconnecting()
 
+    ''' <summary>
+    ''' ★ v9 evidence fix: raised ONCE after a reconnect succeeds (ReconnectLoop).
+    ''' The initial successful Connect() does NOT raise this (handlers wire at
+    ''' construction and run their own first-time setup).
+    ''' Consumers re-register / re-announce on this event — e.g. the Engine
+    ''' re-broadcasts engine_ready, which makes the Overlay re-send
+    ''' PREWARM_FFMPEG after a hub restart.
+    ''' </summary>
+    Public Event OnReconnected()
+
     Public Sub New(appName As String,
                    Optional host As String = "127.0.0.1",
                    Optional port As Integer = 5000,
@@ -199,6 +209,16 @@ Public Class TcpClientHelper
 
                 Task.Run(AddressOf ListenLoop)
                 Task.Run(AddressOf PingLoop)
+
+                ' ★ v9 evidence fix: announce the reconnect so consumers can
+                ' re-register / re-announce (Engine → engine_ready, which also
+                ' triggers the Overlay's PREWARM_FFMPEG re-send). Without this,
+                ' a hub restart left the engine silently connected forever.
+                Try
+                    RaiseEvent OnReconnected()
+                Catch ex As Exception
+                    Debug.WriteLine($"TcpClientHelper.OnReconnected handler error ({_appName}): {ex.Message}")
+                End Try
                 Return
 
             Catch ex As Exception
