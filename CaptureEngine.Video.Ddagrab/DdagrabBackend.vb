@@ -387,6 +387,23 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             Try
                 _sink = sink
                 _stopSignal = False
+
+                ' ★ Session-start frame fix (owner: 'opened the clip, heard music
+                ' before I started playing any'). Root cause: AcquireNextFrame
+                ' only fires when screen CONTENT CHANGES — on a static screen a
+                ' new session got NO first frame until the screen changed (could
+                ' be many seconds), while audio recorded from t=0. The sync
+                ' offset then skipped the audio head, dropping the silent lead-in
+                ' and pulling later audio to the front.
+                ' Fix: recreate the duplication at Start(). DXGI guarantees the
+                ' FIRST AcquireNextFrame after DuplicateOutput returns the
+                ' CURRENT desktop image immediately — the session now has a real
+                ' frame at t≈0 and video/audio timelines start together.
+                ' Same dispose-then-create pattern as the proven AccessLost
+                ' recovery (one live duplication per output per process).
+                _logger.Info("DdagrabBackend: recreating duplication for session-start frame")
+                RecreateDuplication()
+
                 _workerThread = New Thread(AddressOf WorkerLoop) With {
                     .IsBackground = True,
                     .Name = "DdagrabBackend.Worker"
@@ -616,6 +633,18 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
                     Dim frameInfo As OutduplFrameInfo
                     Dim desktopResource As IDXGIResource = Nothing
+
+                    ' ★ Self-heal: if the duplication is Nothing (creation failed
+                    ' at Start or after AccessLost), recreate instead of throwing
+                    ' NullReference on every iteration.
+                    If _duplication Is Nothing Then
+                        RecreateDuplication()
+                        If _duplication Is Nothing Then
+                            Thread.Sleep(250)   ' brief backoff; retry next loop
+                            Continue Do
+                        End If
+                    End If
+
                     Dim acquireResult As Result = _duplication.AcquireNextFrame(
                         100,  ' 100ms timeout
                         frameInfo,
