@@ -17,7 +17,7 @@ Public Class Base_AudioSet
 
     ''' <summary>Push AppSettings audio model → controls (same semantics as the old Engine form).</summary>
     Private Sub LoadFromSettings()
-        Dim audio As AudioSettingsClass = AppSettings.Instance.Audio
+        Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
 
         If audio.TrackMode = 1 Then
             radSeparate.Checked = True
@@ -36,7 +36,7 @@ Public Class Base_AudioSet
 
     ''' <summary>Select the saved mic (by Id first, then by name) — mirrors old form logic.</summary>
     Private Sub SelectCurrentMic()
-        Dim audio As AudioSettingsClass = AppSettings.Instance.Audio
+        Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
         Dim micId As String = audio.MicDeviceId
         Dim micName As String = audio.MicDeviceName
 
@@ -84,7 +84,7 @@ Public Class Base_AudioSet
     ''' form produced, now owned by the Overlay.
     ''' </summary>
     Private Sub SaveToSettings()
-        Dim audio As AudioSettingsClass = AppSettings.Instance.Audio
+        Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
 
         audio.TrackMode = If(radSeparate.Checked, 1, 0)
         audio.SystemAudioEnabled = chkSystem.Checked
