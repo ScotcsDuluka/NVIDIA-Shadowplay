@@ -219,7 +219,14 @@ Namespace CaptureEngine.FFmpegBackend
                 Dim v As Single = Math.Max(0.0F, Math.Min(2.0F, volume))
                 parts.Add($"volume={v.ToString("0.000", CultureInfo.InvariantCulture)}")
             End If
-            parts.Add("aresample=async=1:first_pts=0")
+            ' ★ NOISE FIX: aresample=async=1 REMOVED. It was inherited from the
+            ' MuxCoordinator era (post-hoc mux of a WAV with its own timeline).
+            ' With AudioTap the pipe stream is ALREADY wall-clock true; async
+            ' mode 'stretches' audio by adding/dropping samples based on PTS
+            ' drift it perceives — on a raw-PCM pipe (no timestamps, pacing =
+            ' arrival rate) it manufactured constant time-stretch = the
+            ' full-session noise the owner kept hearing. first_pts=0 also
+            ' fought the pipe's origin offset. Volume + apad only.
             If includeApad Then parts.Add("apad")
             Return String.Join(",", parts)
         End Function
