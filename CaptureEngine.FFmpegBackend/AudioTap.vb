@@ -71,6 +71,12 @@ Namespace CaptureEngine.FFmpegBackend
         Private _lastSteerCheckTicks As Long = 0
         Private _steerCorrections As Integer = 0
 
+        ' ★ 02:24 FIX: bytes at the last steering check — a check where the
+        ' stream delivered (almost) nothing is a GAP (device idle), not drift.
+        ' Correcting on gaps produced ±14-21s bogus 'corrections' in the
+        ' owner's log. Steering only runs when data actually flowed.
+        Private _lastSteerCheckBytes As Long = 0
+
         ' ★ SELF-AUDIT FIX: steering must correct only GROWING drift. The
         ' owner's 01:08 run showed a CONSTANT ~80ms 'behind' every check —
         ' that is the first-buffer placement offset (a constant), NOT crystal
@@ -178,10 +184,21 @@ Namespace CaptureEngine.FFmpegBackend
             ' cannot slam the timeline.
             If _lastSteerCheckTicks = 0 Then _lastSteerCheckTicks = _originTicks
             If (nowT - _lastSteerCheckTicks) / Stopwatch.Frequency >= SteeringIntervalSec Then
+                Dim bytesNow As Long = Interlocked.Read(_silenceInsertedBytes) + Interlocked.Read(_dataBytes)
+                Dim bytesSinceLastCheck As Long = bytesNow - _lastSteerCheckBytes
+                _lastSteerCheckBytes = bytesNow
                 _lastSteerCheckTicks = nowT
                 Dim elapsedSecS As Double = (nowT - _originTicks) / Stopwatch.Frequency
-                Dim streamSecS As Double = (Interlocked.Read(_silenceInsertedBytes) + Interlocked.Read(_dataBytes)) / CDbl(_bytesPerSec)
+                Dim streamSecS As Double = bytesNow / CDbl(_bytesPerSec)
                 Dim driftSecS As Double = elapsedSecS - streamSecS
+
+                ' ★ data-flow gate: no meaningful data since the last check =
+                ' the device was idle (a gap). The gap math already handles it
+                ' via the next buffer's silence insertion; steering must NOT
+                ' touch the timeline on gaps (02:24: ±14-21s false swings).
+                If bytesSinceLastCheck < CLng(_bytesPerSec * 0.5) Then
+                    GoTo SteerDone
+                End If
 
                 If Not _driftBaselineSet Then
                     ' First check: record the CONSTANT offset (first-buffer
@@ -200,6 +217,7 @@ Namespace CaptureEngine.FFmpegBackend
                         _evidence?.Invoke($"[tap:{_name}] steering: drift changed {deltaSecS * 1000.0:0}ms beyond baseline, correcting via next gap (#{_steerCorrections})")
                     End If
                 End If
+SteerDone:
             End If
 
             Dim arrivalGapSec As Double = (nowT - _lastTicks) / Stopwatch.Frequency

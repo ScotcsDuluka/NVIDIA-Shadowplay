@@ -663,6 +663,17 @@ Namespace CaptureEngine.FFmpegBackend
                     Try : _pipe.Dispose() : Catch : End Try
                     Try : _writer.Join(2000) : Catch : End Try
                 End If
+
+                ' ★ 02:23 FIX ('Error opening input: No such file'): on very
+                ' short recordings Stop() arrives while ffmpeg is STILL probing
+                ' the video pipe and has not yet OPENED this audio pipe. Disposing
+                ' now deletes the pipe server → ffmpeg's later open fails → the
+                ' whole output dies (-2) with NO audio in the file. Wait (bounded)
+                ' for ffmpeg to connect to THIS pipe first; if it never does
+                ' (crashed), the timeout still closes cleanly.
+                If Not _pipe.IsConnected Then
+                    WaitHandle.WaitAny(New WaitHandle() {_connectedEvent, _stopWriter}, 3000)
+                End If
                 Try : _pipe.Dispose() : Catch : End Try
             End Sub
 
