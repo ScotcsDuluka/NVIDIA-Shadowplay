@@ -442,8 +442,12 @@ Namespace CaptureEngine.FFmpegBackend
 
                     ' 2. wait for the timeline to begin (video t0) — pre-t0
                     '    chunks stay queued (bounded; overflow drops oldest,
-                    '    which is pre-video data destined for discard anyway)
-                    WaitHandle.WaitAny(New WaitHandle() {_timelineStarted, _stopWriter})
+                    '    which is pre-video data destined for discard anyway).
+                    '    SAFETY NET: 5s cap — if t0 never arrives (bug upstream),
+                    '    start writing anyway with zero alignment rather than
+                    '    starving ffmpeg of this stream for the whole session
+                    '    (owner run 20:58: a=0B → exit -22 'nothing was written').
+                    WaitHandle.WaitAny(New WaitHandle() {_timelineStarted, _stopWriter}, 5000)
 
                     ' 3. initial alignment: pad silence first, then discard head
                     WritePadIfAny()

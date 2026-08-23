@@ -365,6 +365,16 @@ Namespace CaptureEngine.Recording
                         End If
                         _videoStartTicks = Stopwatch.GetTimestamp()
                         nextTick = _videoStartTicks
+
+                        ' ★ OBS-model alignment: SyncMath offsets applied at FEED time.
+                        ' (Owner run 20:58 showed a=0B + exit -22: this call was lost
+                        ' in a merge — the audio PipeFeed waited forever for the
+                        ' timeline event, nothing was ever written, ffmpeg died.)
+                        Dim sysOff As Double = SyncMath.ComputeAudioOffsetSec(
+                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                        Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
+                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
+                        _liveMux?.BeginTimelines(sysOff, micOff)
                     End If
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
