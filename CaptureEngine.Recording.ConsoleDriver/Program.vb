@@ -278,6 +278,7 @@ Module Program
         Console.WriteLine($"  duration:              {r.ActualDurationSec:F2}s (mux {r.MuxVideoDurationSec:F2}s, target {r.RequestedDurationSec}s)")
         Console.WriteLine($"  frames_captured:      {r.FramesCaptured}")
         Console.WriteLine($"  frames_encoded:       {r.FramesEncoded}")
+        Console.WriteLine($"  frames_duplicated:    {r.FramesDuplicated}   (CFR pacing: static-screen ticks re-encoded)")
         Console.WriteLine($"  nvenc_errors:          {r.NvencErrors}")
         Console.WriteLine($"  video_bytes:          {r.TotalVideoBytes:N0}")
         Console.WriteLine($"  audio_bytes:          {r.AudioBytes:N0} (dropped {r.AudioDroppedBytes:N0})")

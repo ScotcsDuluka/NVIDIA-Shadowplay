@@ -91,6 +91,13 @@ Namespace CaptureEngine.Recording
         Public Property ActualDurationSec As Double
         Public Property FramesCaptured As Long
         Public Property FramesEncoded As Long
+        ''' <summary>
+        ''' ★ CFR pacing evidence: ticks where the screen was static and the
+        ''' LAST frame was re-encoded (a duplicate P-frame). High values on idle
+        ''' desktops are EXPECTED and correct (DXGI delivers no frames when the
+        ''' screen does not change). dup ≈ 0 during full-motion capture.
+        ''' </summary>
+        Public Property FramesDuplicated As Long
         Public Property Drops As Long
         Public Property NvencErrors As Long
         Public Property TotalVideoBytes As Long

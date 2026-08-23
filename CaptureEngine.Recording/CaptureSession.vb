@@ -219,55 +219,150 @@ Namespace CaptureEngine.Recording
                 videoFile = New FileStream(tempH264, FileMode.Create, FileAccess.Write)
                 _logger.Info($"[session] Writing H.264 to: {tempH264}")
 
-                ' ─── 5. Capture/encode loop ─────────────────────────────
-                _logger.Info($"[session] Recording for {_config.DurationSeconds}s...")
+                ' ─── 5. CFR-paced capture/encode loop ────────────────
+                ' ★ AUDIT FIX (owner: 'video still looks weird'). Full-path audit
+                ' from zero found the core defect: DXGI Desktop Duplication only
+                ' delivers frames when the screen CHANGES (0..refreshRate fps —
+                ' inherently VFR). Raw H.264 cannot carry timestamps, so a
+                ' constant-rate wrap of a VFR stream SMEARS content: a 10s static
+                ' scene (≈5 frames) + 20s of motion (≈1500 frames) becomes
+                ' 1505 uniformly-spaced frames — static compressed to ~0.1s,
+                ' motion stretched to ~30s. No -r choice can fix that.
+                '
+                ' Fix = CFR pacing (what real ShadowPlay / OBS CFR / the legacy
+                ' engine's DuplicateFrames do): pace encoding at a CONSTANT rate
+                ' (display refresh). Each tick encodes the FRESHEST captured
+                ' frame; when the screen was static (no new frame), re-encode the
+                ' last frame → a tiny P-frame duplicate. Result: true CFR stream,
+                ' exact wall-clock timing at every point, static scenes simply
+                ' repeat frames like normal video. Re-encoding is safe: the
+                ' encoder CopyResources the frame texture into its own texture
+                ' on every Encode call.
+                Dim targetFps As Integer = _capture.OutputRefreshRate
+                If targetFps <= 0 Then targetFps = 60
+                Dim tickIntervalTicks As Long = CLng(Stopwatch.Frequency / targetFps)
+                Dim nextTick As Long = 0                     ' 0 = t0 not established yet
+                Dim pendingFrame As IVideoFrame = Nothing     ' freshest captured, not yet displayed
+                Dim pendingSeq As Long = -1
+                Dim lastFrame As IVideoFrame = Nothing        ' last displayed (for duplicates)
+
+                _logger.Info($"[session] Recording for {_config.DurationSeconds}s @ CFR {targetFps}fps...")
+
                 Do While sw.Elapsed < duration AndAlso Not _stopSignal
+                    ' Refresh 'pending' with the freshest frame (drop older).
                     Dim far As FrameAcquisitionResult
-                    If sink.TryTake(far) Then
-                        ' Video timeline origin = FIRST captured frame.
-                        If _videoStartTicks = 0 Then _videoStartTicks = Stopwatch.GetTimestamp()
+                    While sink.TryTake(far)
                         result.FramesCaptured += 1
-                        Dim packet As EncodedPacket = Nothing
-                        Try
-                            If _encoder.Encode(far.Frame, packet) AndAlso packet IsNot Nothing Then
-                                videoFile.Write(packet.Payload, 0, packet.PayloadLength)
-                                result.TotalVideoBytes += packet.PayloadLength
-                                result.FramesEncoded += 1
-                                packet.Dispose()
+                        Dim f As IVideoFrame = far.Frame
+                        If f Is Nothing Then Continue While
+                        If far.Sequence > pendingSeq Then
+                            pendingFrame?.Dispose()
+                            pendingFrame = f
+                            pendingSeq = far.Sequence
+                        Else
+                            f.Dispose()   ' out-of-order older frame
+                        End If
+                    End While
+
+                    ' t0 = first REAL captured frame (video timeline origin).
+                    If _videoStartTicks = 0 Then
+                        If pendingFrame Is Nothing Then
+                            Thread.Sleep(1)
+                            Continue Do
+                        End If
+                        _videoStartTicks = Stopwatch.GetTimestamp()
+                        nextTick = _videoStartTicks
+                    End If
+
+                    Dim nowTicks As Long = Stopwatch.GetTimestamp()
+                    If nowTicks >= nextTick Then
+                        ' ── Tick: encode freshest frame, or duplicate the last ──
+                        Dim encodeFrame As IVideoFrame = If(pendingFrame, lastFrame)
+                        Dim isDuplicate As Boolean = (pendingFrame Is Nothing AndAlso lastFrame IsNot Nothing)
+
+                        If encodeFrame IsNot Nothing Then
+                            Dim packet As EncodedPacket = Nothing
+                            Try
+                                If _encoder.Encode(encodeFrame, packet) AndAlso packet IsNot Nothing Then
+                                    videoFile.Write(packet.Payload, 0, packet.PayloadLength)
+                                    result.TotalVideoBytes += packet.PayloadLength
+                                    result.FramesEncoded += 1
+                                    packet.Dispose()
+                                End If
+                            Catch ex As Exception
+                                result.NvencErrors += 1
+                                _logger.Error($"[session] Encode error: {ex.Message}")
+                            End Try
+
+                            ' Ownership handoff: pending → last (old last disposed).
+                            If pendingFrame IsNot Nothing Then
+                                lastFrame?.Dispose()
+                                lastFrame = pendingFrame
+                                pendingFrame = Nothing
+                                pendingSeq = -1
+                            ElseIf isDuplicate Then
+                                result.FramesDuplicated += 1
                             End If
-                        Catch ex As Exception
-                            result.NvencErrors += 1
-                            _logger.Error($"[session] Encode error: {ex.Message}")
-                        End Try
-                        far.Frame?.Dispose()
+                        End If
+
+                        ' Advance the schedule. If we fell behind badly (encode
+                        ' stall), skip missed ticks instead of burst-catch-up
+                        ' (bursting would recreate the smear locally).
+                        nextTick += tickIntervalTicks
+                        If Stopwatch.GetTimestamp() >= nextTick + tickIntervalTicks Then
+                            nextTick = Stopwatch.GetTimestamp()
+                        End If
                     Else
-                        Thread.Sleep(1)
+                        ' Sleep toward the next tick (keep ~2ms spin margin for
+                        ' Stop() responsiveness and tick precision).
+                        Dim waitMs As Double = (nextTick - nowTicks) * 1000.0 / Stopwatch.Frequency
+                        If waitMs > 2.5 Then Thread.Sleep(CInt(waitMs - 2.0))
                     End If
                 Loop
 
-                ' ─── 6. Stop video → drain sink → stop encoder ──────────
+                ' ─── 6. Stop video → final fresh frame → stop encoder ──
                 _logger.Info("[session] Stopping video capture...")
                 _capture.Stop()
-                _logger.Info("[session] Draining remaining frames...")
-                Dim far2 As FrameAcquisitionResult
-                Do While sink.TryTake(far2)
+
+                ' Drain: keep only the FRESHEST leftover frame (stale ones just
+                ' dispose — the CFR stream already displayed newer states).
+                Dim farDrain As FrameAcquisitionResult
+                While sink.TryTake(farDrain)
                     result.FramesCaptured += 1
-                    Dim packet2 As EncodedPacket = Nothing
+                    Dim f As IVideoFrame = farDrain.Frame
+                    If f Is Nothing Then Continue While
+                    If farDrain.Sequence > pendingSeq Then
+                        pendingFrame?.Dispose()
+                        pendingFrame = f
+                        pendingSeq = farDrain.Sequence
+                    Else
+                        f.Dispose()
+                    End If
+                End While
+
+                ' Encode the final fresh frame (if any) as the last frame.
+                If pendingFrame IsNot Nothing Then
+                    Dim packetF As EncodedPacket = Nothing
                     Try
-                        If _encoder.Encode(far2.Frame, packet2) AndAlso packet2 IsNot Nothing Then
-                            videoFile.Write(packet2.Payload, 0, packet2.PayloadLength)
-                            result.TotalVideoBytes += packet2.PayloadLength
+                        If _encoder.Encode(pendingFrame, packetF) AndAlso packetF IsNot Nothing Then
+                            videoFile.Write(packetF.Payload, 0, packetF.PayloadLength)
+                            result.TotalVideoBytes += packetF.PayloadLength
                             result.FramesEncoded += 1
-                            packet2.Dispose()
+                            packetF.Dispose()
                         End If
                     Catch
                         result.NvencErrors += 1
                     End Try
-                    far2.Frame?.Dispose()
-                Loop
+                    pendingFrame.Dispose()
+                    pendingFrame = Nothing
+                End If
+
+                pendingFrame = Nothing   ' nothing left to dispose
+                lastFrame?.Dispose()
+                lastFrame = Nothing
 
                 ' ★ Sync fix (real-world drift): timestamp the END of frame
-                ' delivery — after the drain loop, before encoder teardown.
+                ' delivery — after the final frame, before encoder teardown.
                 ' Together with _videoStartTicks (first frame) this gives the
                 ' true wall-clock span the encoded frames represent.
                 Dim captureEndTicks As Long = Stopwatch.GetTimestamp()
@@ -472,7 +567,8 @@ Namespace CaptureEngine.Recording
                     End Try
                 End If
 
-                _logger.Info($"[session] Result: pass={result.Pass}, frames={result.FramesEncoded}, " &
+                _logger.Info($"[session] Result: pass={result.Pass}, frames={result.FramesEncoded} " &
+                             $"(captured={result.FramesCaptured}, dup={result.FramesDuplicated}), " &
                              $"video_bytes={result.TotalVideoBytes}, audio_bytes={result.AudioBytes}, " &
                              $"dropped={result.AudioDroppedBytes}, offset={result.SystemOffsetSec:0.000}s, " &
                              $"wrapFps={result.WrapFps:0.000}, muxDur={result.MuxVideoDurationSec:0.000}s, " &
