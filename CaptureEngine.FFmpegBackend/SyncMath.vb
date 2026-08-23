@@ -47,9 +47,12 @@ Namespace CaptureEngine.FFmpegBackend
     ' runs ~100ms BEHIND video in the final file (WASAPI shared-mode buffering
     ' + loopback delivery latency). Feeding the audio pipes this much EARLIER
     ' compensates the bias: positive = shift audio earlier (audio was late).
-    ' Calibrated: +0.100s. Re-measure with scripts\sync-verify.ps1 after changes.
-    Public Const SystemAudioLeadSec As Double = 0.1
-    Public Const MicAudioLeadSec As Double = 0.1
+    ' Calibrated 2026-08-24: owner measured the stream 50ms AHEAD with
+    ' lead=100ms ('ไวเกินไป 50ms') → device latency ≈ 50ms on this machine.
+    ' lead=50ms. Re-measure with scripts\sync-verify.ps1 after changes:
+    '   still ahead by X → lead -= X;  behind by X → lead += X.
+    Public Const SystemAudioLeadSec As Double = 0.05
+    Public Const MicAudioLeadSec As Double = 0.05
 
         Private Sub New()
         End Sub
