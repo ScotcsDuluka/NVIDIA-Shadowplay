@@ -1167,7 +1167,9 @@ Public Class Base_RecordingsSet
                 {"mic_enabled", AppSettings.Instance.Audio.MicEnabled},
                 {"system_volume", AppSettings.Instance.Audio.SystemAudioVolume},
                 {"mic_volume", AppSettings.Instance.Audio.MicVolume},
-                {"mic_device", AppSettings.Instance.Audio.MicDeviceName}
+                {"mic_device", AppSettings.Instance.Audio.MicDeviceName},
+                {"mic_device_id", AppSettings.Instance.Audio.MicDeviceId},
+                {"track_mode", AppSettings.Instance.Audio.TrackMode}
             }
 
             Dim myPresets As New Dictionary(Of String, Object) From {
@@ -1252,6 +1254,8 @@ Public Class Base_RecordingsSet
                     If aud.TryGetProperty("system_volume", Nothing) Then AppSettings.Instance.Audio.SystemAudioVolume = aud("system_volume").GetSingle()
                     If aud.TryGetProperty("mic_volume", Nothing) Then AppSettings.Instance.Audio.MicVolume = aud("mic_volume").GetSingle()
                     If aud.TryGetProperty("mic_device", Nothing) Then AppSettings.Instance.Audio.MicDeviceName = aud("mic_device").GetString()
+                    If aud.TryGetProperty("mic_device_id", Nothing) Then AppSettings.Instance.Audio.MicDeviceId = aud("mic_device_id").GetString()
+                    If aud.TryGetProperty("track_mode", Nothing) Then AppSettings.Instance.Audio.TrackMode = aud("track_mode").GetInt32()
                 End If
             End If
 

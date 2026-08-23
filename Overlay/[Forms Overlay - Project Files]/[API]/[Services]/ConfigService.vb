@@ -109,6 +109,20 @@ Public Class AppSettings
         ''' </summary>
         Public Property MicDeviceName As String = ""
 
+        ''' <summary>
+        ''' Microphone device ID (NAudio MMDevice ID — stable across renames).
+        ''' Ported from Engine's AudioSettingsForm so the Overlay audio page can
+        ''' persist the exact device the Engine selects by ID.
+        ''' </summary>
+        Public Property MicDeviceId As String = ""
+
+        ''' <summary>
+        ''' Audio track mode: 0 = Single (mixed), 1 = Separate mic track.
+        ''' Mirrors CaptureSettings.AudioTrackModeEnum consumed by the Engine
+        ''' via audio.json (AudioTrackMode).
+        ''' </summary>
+        Public Property TrackMode As Integer = 0
+
         ' ═══════════════════════════════════════════════════════════════════════
         ' Legacy properties for backward compatibility with old config.json
         ' ═══════════════════════════════════════════════════════════════════════
@@ -733,6 +747,8 @@ Public Class AppSettings
         Public Property SystemVolume As Single = 1.0F
         Public Property MicVolume As Single = 1.0F
         Public Property MicDevice As String = ""
+        Public Property MicDeviceId As String = ""
+        Public Property TrackMode As Integer = 0
 
         Public Sub New()
         End Sub
@@ -886,6 +902,8 @@ Public Class AppSettings
         video.Audio.SystemVolume = Audio.SystemAudioVolume
         video.Audio.MicVolume = Audio.MicVolume
         video.Audio.MicDevice = Audio.MicDeviceName
+        video.Audio.MicDeviceId = Audio.MicDeviceId
+        video.Audio.TrackMode = Audio.TrackMode
 
         ' ═══ My Preset saved values (nested) ═══
         video.MyPresets.Low.FPS = Recording.MyLowFPS
@@ -948,6 +966,8 @@ Public Class AppSettings
         Audio.SystemAudioVolume = video.Audio.SystemVolume
         Audio.MicVolume = video.Audio.MicVolume
         Audio.MicDeviceName = video.Audio.MicDevice
+        Audio.MicDeviceId = video.Audio.MicDeviceId
+        Audio.TrackMode = video.Audio.TrackMode
 
         ' ═══ My Preset values (nested) ═══
         Recording.MyLowFPS = video.MyPresets.Low.FPS

@@ -508,7 +508,8 @@ Partial Public Class Base
         Base_Privacy_Control,
         Base_Overlay_Hub,
         Base_KeySet,
-        Base_RecordingsSet
+        Base_RecordingsSet,
+        Base_AudioSet
     }
 
     ' ========== HELPER METHOD ==========
@@ -701,22 +702,11 @@ Partial Public Class Base
     End Sub
 
     Private Sub AuUI_Click(sender As Object, e As EventArgs) Handles Audio_TEXT.Click, Audio_ICO.Click
-        Dim uiFile = Path.Combine(Application.StartupPath, "Audio.UI")
-
-        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
-        If captureProcess Is Nothing Then
-            Audio_UI.Stop()
-            ShowNotifier("notificationErrorEngineNotRunning")
-            Exit Sub
-        End If
-        Try
-            Using fs As FileStream = File.Create(uiFile)
-            End Using
-
-            Audio_UI.Start()
-
-        Catch ex As IOException
-        End Try
+        ' ✅ GLM/6: Audio UI now lives in the Overlay ([6] Audio Capture page) —
+        ' no more "Audio.UI" marker file round-trip to the Engine process.
+        ' The old Engine AudioSettingsForm is dormant (nothing creates the
+        ' marker) and can be removed in a follow-up commit.
+        OpenPanel(Base_AudioSet, Base_AudioSet.setret)
     End Sub
 
     ' ========== NOTIFICATIONS ==========
