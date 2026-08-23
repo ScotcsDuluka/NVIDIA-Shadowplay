@@ -107,6 +107,13 @@ Namespace CaptureEngine.Recording
         Public Property SystemOffsetSec As Double
         ''' <summary>Video duration used for mux -t (ffprobe of wrapped MP4, fallback wall-clock).</summary>
         Public Property MuxVideoDurationSec As Double
+        ''' <summary>
+        ''' ★ Sync-fix evidence: frame rate used for the raw-H.264→MP4 wrap.
+        ''' Measured average (framesEncoded / capture span) — NOT the display rate.
+        ''' If this differs from the display Hz by more than a few percent, the old
+        ''' fixed-rate wrap would have time-compressed the video (progressive drift).
+        ''' </summary>
+        Public Property WrapFps As Double
         ''' <summary>WAV sidecar accounting is consistent (enqueued = written + dropped).</summary>
         Public Property AudioAccountingOk As Boolean
         ''' <summary>WAV sidecar bytes dropped under backpressure (0 = healthy run).</summary>

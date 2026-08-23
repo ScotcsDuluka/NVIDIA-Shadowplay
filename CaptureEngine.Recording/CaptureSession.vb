@@ -266,6 +266,12 @@ Namespace CaptureEngine.Recording
                     far2.Frame?.Dispose()
                 Loop
 
+                ' ★ Sync fix (real-world drift): timestamp the END of frame
+                ' delivery — after the drain loop, before encoder teardown.
+                ' Together with _videoStartTicks (first frame) this gives the
+                ' true wall-clock span the encoded frames represent.
+                Dim captureEndTicks As Long = Stopwatch.GetTimestamp()
+
                 _logger.Info("[session] Stopping encoder...")
                 _encoder.Stop()
 
@@ -319,15 +325,44 @@ Namespace CaptureEngine.Recording
 
                 result.ActualDurationSec = sw.Elapsed.TotalSeconds
 
-                ' ─── 9. Wrap raw H.264 into MP4 @ display refresh rate ──
-                ' OWNER decision (commit 20932aa): use the DISPLAY REFRESH
-                ' RATE for the wrap -r, NOT the achieved FPS. The rate comes
-                ' from DdagrabBackend.OutputRefreshRate (DXGI display mode);
-                ' legacy hardcode (75) was a TODO placeholder.
+                ' ─── 9. Wrap raw H.264 into MP4 ─────────────────────
+                ' ★ REAL-WORLD SYNC FIX (owner test: recorded real music, lyrics
+                ' desynced). Raw H.264 carries NO timestamps — the wrap's -r
+                ' DEFINES playback speed. Old behavior (-r display refresh rate,
+                ' decision 20932aa) assumed capture paced at exactly the display
+                ' rate. Evidence says otherwise (12b sessions: 63-75fps on 75Hz;
+                ' desktop-activity-dependent). Wrapping variable capture at a
+                ' fixed 75 time-compresses the video: e.g. 68fps avg → ~9% fast
+                ' → ~2.8s drift over 30s. Audio (wall-clock sidecar) cannot match.
+                '
+                ' Fix: wrap at the MEASURED average fps (framesEncoded / span).
+                ' That preserves the wall-clock duration the audio also followed,
+                ' so A/V stay aligned for the whole file. Display rate stays as
+                ' fallback when the measurement is unavailable/absurd.
+                ' (Long-term: per-frame PTS in a VFR container — Instant Replay
+                ' research workstream; do-not-break rule says minimal fix now.)
                 Dim refreshRate As Integer = _capture.OutputRefreshRate
                 If refreshRate <= 0 Then refreshRate = 60 ' defensive fallback only
-                _logger.Info($"[session] Wrapping H.264 into MP4 container @ {refreshRate}Hz...")
-                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {refreshRate} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
+
+                Dim captureSpanSec As Double = 0.0
+                Dim wrapFps As Double = refreshRate
+                If _videoStartTicks > 0 AndAlso captureEndTicks > _videoStartTicks AndAlso result.FramesEncoded > 1 Then
+                    captureSpanSec = (captureEndTicks - _videoStartTicks) / Stopwatch.Frequency
+                    Dim measured As Double = result.FramesEncoded / captureSpanSec
+                    If measured >= 1.0 AndAlso measured <= 500.0 Then
+                        wrapFps = measured
+                    End If
+                    If refreshRate > 0 AndAlso Math.Abs(measured - refreshRate) / refreshRate > 0.05 Then
+                        _logger.Warning($"[session] measured avg {measured:0.0}fps differs from display {refreshRate}Hz " &
+                                        $"— old wrap would have drifted {((measured / refreshRate) - 1.0) * 100.0:0.0}% over time")
+                    End If
+                End If
+                result.WrapFps = wrapFps
+                Dim fpsArg As String = wrapFps.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
+
+                _logger.Info($"[session] Wrapping H.264 into MP4 @ {fpsArg}fps " &
+                             $"(measured: {result.FramesEncoded} frames / {captureSpanSec:0.000}s; display: {refreshRate}Hz)")
+                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {fpsArg} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
                 _logger.Info($"[session] Wrap command: {_config.FFmpegPath} {wrapArgs}")
                 Dim wrapPsi As New ProcessStartInfo With {
                     .FileName = _config.FFmpegPath,
@@ -440,6 +475,7 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] Result: pass={result.Pass}, frames={result.FramesEncoded}, " &
                              $"video_bytes={result.TotalVideoBytes}, audio_bytes={result.AudioBytes}, " &
                              $"dropped={result.AudioDroppedBytes}, offset={result.SystemOffsetSec:0.000}s, " &
+                             $"wrapFps={result.WrapFps:0.000}, muxDur={result.MuxVideoDurationSec:0.000}s, " &
                              $"file_size={result.FileSize}")
 
             Catch ex As Exception
