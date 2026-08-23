@@ -548,7 +548,20 @@ Namespace CaptureEngine.Encoder.Nvenc
 
                     ' 7. Build EncodedPacket (caller-owned)
                     Dim sequence As Long = Interlocked.Increment(_encodedPackets) - 1
-                    Dim isKeyFrame As Boolean = (sequence Mod CLng(_encoderConfig.GopSize)) = 0
+
+                    ' ★ GLM/6 audit #1: read the REAL picture type from the locked
+                    ' bitstream instead of guessing (sequence Mod GopSize). The old
+                    ' guess desynced from the actual IDR cadence (_framesSinceIdr
+                    ' counter) by one frame after every forced IDR — critical for
+                    ' Instant Replay, which must trust IsKeyFrame to cut segments.
+                    ' NVENC pic types: 1=NV_ENC_PIC_TYPE_IDR, 2=I, 3=P, 4=B,
+                    ' 5=BI, 6=SKIP; anything <=2 is a keyframe/random-access point.
+                    Dim realPicType As UInteger = lockParams.pictureType
+                    Dim isKeyFrame As Boolean = (realPicType = 1UI OrElse realPicType = 2UI)
+                    If isKeyFrame AndAlso sequence > 0 Then
+                        _logger.Info($"NvencEncoderBackend: keyframe at seq {sequence} (picType={realPicType})")
+                    End If
+
                     Dim metadata As New PacketMetadata(
                         sequence:=sequence,
                         presentationTimeTicks:=pts,

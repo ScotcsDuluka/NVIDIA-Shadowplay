@@ -558,30 +558,9 @@ Namespace CaptureEngine.FFmpegBackend
                         Continue While
                     End If
 
-                    ' ★ RESILIENT WRITE (the 01:08 killer): the old code declared
-                    ' the pipe permanently dead on the FIRST exception — the
-                    ' owner's log proved it: one write failure at ~49s silently
-                    ' dropped the remaining 19.1MB (100 seconds of music).
-                    ' Retry with backoff; only sustained failure breaks the pipe.
-                    Dim attempts As Integer = 0
-                    Dim writtenOk As Boolean = False
-                    While Not writtenOk
-                        Try
-                            _pipe.Write(chunk, 0, chunk.Length)
-                            Interlocked.Add(_bytesWritten, chunk.Length)
-                            writtenOk = True
-                        Catch ex As Exception
-                            attempts += 1
-                            If attempts >= 5 Then
-                                _pipeBroken = True
-                                _log?.Invoke($"[live-mux:{Name}] pipe write FAILED x{attempts}: {ex.Message} — stream broken, further data dropped")
-                                Interlocked.Add(_droppedBytes, chunk.Length)
-                                Exit While
-                            End If
-                            _log?.Invoke($"[live-mux:{Name}] pipe write attempt {attempts} failed: {ex.Message} — retrying in 100ms")
-                            Thread.Sleep(100)
-                        End Try
-                    End While
+                    ' ★ RESILIENT WRITE (the 01:08 killer): one failure used to
+                    ' kill the pipe permanently — 19MB of music vanished silently.
+                    WriteChunkResilient(chunk)
                 End While
             End Sub
 
@@ -619,33 +598,59 @@ Namespace CaptureEngine.FFmpegBackend
                 Dim disc As Long
                 SyncLock _sync
                     disc = _discardBytes
+                    _discardBytes = 0
                 End SyncLock
                 If disc <= 0 Then Return
                 Dim chunk As Byte() = Nothing
                 While disc > 0 AndAlso _queue.TryDequeue(chunk)
+                    Interlocked.Add(_bytesQueued, -CLng(chunk.Length))
                     If chunk.Length <= disc Then
                         disc -= chunk.Length
                         Interlocked.Add(_droppedBytes, chunk.Length)
                     Else
-                        ' partial chunk: write the tail, drop the head
+                        ' ★ GLM/6 audit #4: partial-chunk head drop must be
+                        ' BLOCK-ALIGNED — cutting at an arbitrary byte offset
+                        ' shifts every later PCM sample into noise (same rule
+                        ' as the audio drop path). Round the skip to whole
+                        ' frames; the sub-frame residual stays in the stream
+                        ' (sub-millisecond, imperceptible).
                         Dim skip As Integer = CInt(disc)
+                        skip -= (skip Mod _blockAlign)
+                        If skip <= 0 Then
+                            ' alignment made the skip empty — write the whole chunk
+                            If Not _pipeBroken Then WriteChunkResilient(chunk)
+                            disc = 0
+                            Continue While
+                        End If
                         Dim keep As Byte() = New Byte(chunk.Length - skip - 1) {}
                         Array.Copy(chunk, skip, keep, 0, keep.Length)
-                        If Not _pipeBroken Then
-                            Try
-                                _pipe.Write(keep, 0, keep.Length)
-                                Interlocked.Add(_bytesWritten, keep.Length)
-                            Catch
-                                _pipeBroken = True
-                            End Try
-                        End If
+                        Interlocked.Add(_droppedBytes, skip)
+                        If Not _pipeBroken Then WriteChunkResilient(keep)
                         disc = 0
                     End If
                 End While
-                SyncLock _sync
-                    _discardBytes = Math.Max(0, disc)   ' not enough data yet; discard rest later? keep simple: stop discarding
-                    _discardBytes = 0
-                End SyncLock
+            End Sub
+
+            ''' <summary>Single resilient write point (retry x5, logs failures).</summary>
+            Private Sub WriteChunkResilient(chunk As Byte())
+                Dim attempts As Integer = 0
+                While True
+                    Try
+                        _pipe.Write(chunk, 0, chunk.Length)
+                        Interlocked.Add(_bytesWritten, chunk.Length)
+                        Return
+                    Catch ex As Exception
+                        attempts += 1
+                        If attempts >= 5 Then
+                            _pipeBroken = True
+                            _log?.Invoke($"[live-mux:{Name}] pipe write FAILED x{attempts}: {ex.Message} — stream broken")
+                            Interlocked.Add(_droppedBytes, chunk.Length)
+                            Return
+                        End If
+                        _log?.Invoke($"[live-mux:{Name}] pipe write attempt {attempts} failed: {ex.Message} — retrying")
+                        Thread.Sleep(100)
+                    End Try
+                End While
             End Sub
 
             ''' <summary>Signal stop, drain, then dispose the pipe → FFmpeg reads EOF.</summary>
