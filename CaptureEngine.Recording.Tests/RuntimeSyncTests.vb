@@ -233,21 +233,67 @@ Namespace CaptureEngine.Recording.Tests
             _sandbox = Path.Combine(Path.GetTempPath(), "RRT_RT_" & Guid.NewGuid().ToString("N").Substring(0, 8))
             Directory.CreateDirectory(_sandbox)
             _ffmpegExe = Path.Combine(_sandbox, "ffmpeg.exe")
-            CopyOrLink(found, _ffmpegExe)
-            CopyOrLink(ffprobeFound, Path.Combine(_sandbox, "ffprobe.exe"))
+            ' ★ Windows-run fix: ALWAYS copy (never symlink). A symlinked exe
+            ' can be silently blocked (Zone-ADS/SmartScreen) or fail to launch
+            ' depending on privileges — that produced 'encoder attempt failed:'
+            ' with EMPTY stderr on the owner's machine. A plain copy is
+            ' deterministic. Binaries are tens of MB — acceptable for a test run.
+            TryCopyFile(found, _ffmpegExe)
+            TryCopyFile(ffprobeFound, Path.Combine(_sandbox, "ffprobe.exe"))
+
+            ' Unblock the copies (remove Zone.Identifier ADS that blocks downloads)
+            Try : Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(_ffmpegExe & ":Zone.Identifier") : Catch : End Try
+            Try : Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(Path.Combine(_sandbox, "ffprobe.exe") & ":Zone.Identifier") : Catch : End Try
+
+            ' ★ Verify the sandboxed ffmpeg actually RUNS (-version) — fail loudly
+            ' with the real reason instead of empty-stderr mystery downstream.
+            If Not SandboxFfmpegWorks() Then Return False
 
             Console.WriteLine($"      ffmpeg: {found}")
             Console.WriteLine($"      sandbox: {_sandbox}")
             Return True
         End Function
 
-        Private Sub CopyOrLink(src As String, dst As String)
+        Private Sub TryCopyFile(src As String, dst As String)
             Try
-                File.CreateSymbolicLink(dst, src)
-            Catch
                 File.Copy(src, dst, overwrite:=True)
+            Catch ex As Exception
+                Console.WriteLine($"      WARN copy {Path.GetFileName(src)} failed: {ex.Message}")
             End Try
         End Sub
+
+        ''' <summary>Runs sandbox\ffmpeg.exe -version; prints why if it cannot start.</summary>
+        Private Function SandboxFfmpegWorks() As Boolean
+            Try
+                Dim psi As New ProcessStartInfo With {
+                    .FileName = _ffmpegExe,
+                    .Arguments = "-version",
+                    .UseShellExecute = False,
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True,
+                    .CreateNoWindow = True
+                }
+                Using p As Process = Process.Start(psi)
+                    Dim outTask = p.StandardOutput.ReadToEndAsync()
+                    If Not p.WaitForExit(10000) Then
+                        Try : p.Kill() : Catch : End Try
+                        Console.WriteLine("      FATAL: sandboxed ffmpeg.exe hung on -version")
+                        Return False
+                    End If
+                    Dim firstLine As String = ""
+                    Try : firstLine = outTask.Result.Split({ControlChars.Cr, ControlChars.Lf})(0) : Catch : End Try
+                    If p.ExitCode = 0 Then
+                        Console.WriteLine($"      sandbox ffmpeg OK: {firstLine}")
+                        Return True
+                    End If
+                    Console.WriteLine($"      FATAL: sandboxed ffmpeg.exe -version exit={p.ExitCode}")
+                    Return False
+                End Using
+            Catch ex As Exception
+                Console.WriteLine($"      FATAL: cannot START sandboxed ffmpeg.exe: {ex.Message}")
+                Return False
+            End Try
+        End Function
 
         ' ─── Shared media (generated once per run) ─────────────────────
 
