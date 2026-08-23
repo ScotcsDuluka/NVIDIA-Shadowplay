@@ -1,33 +1,8 @@
-Option Strict On
-Option Explicit On
-
-' [6] Audio Capture.vb — Audio settings page (Overlay-owned)
-'
-' PORTED FROM: Engine's AudioSettingsForm (Engine/Engine/[UI]/AudioSettingsForm.vb).
-'
-' WHY: the capture host (NVIDIA Capture.exe) is being made headless — UI
-' belongs in the Overlay. The old flow (Overlay click → create "Audio.UI"
-' marker file → Engine polls it → Engine pops its own fullscreen window)
-' crossed process boundaries through the filesystem. The new flow keeps
-' everything in the Overlay:
-'
-'   AuUI_Click → OpenPanel(Base_AudioSet) → user edits → Apply →
-'     1) AppSettings.Instance.Audio.* (config.json)
-'     2) video.json "audio" section (snake_case — the schema the Engine's
-'        OverlayConfig reads, incl. mic_device_id)
-'     3) audio.json (PascalCase — the schema CaptureSettings.LoadAudioSettings
-'        reads, incl. AudioTrackMode)
-'     4) broadcast engine_config_changed → Engine reloads immediately
-'
-' Mic enumeration reuses the Engine project's AudioFileWriter.ListMicDevices
-' (NAudio MMDeviceEnumerator) via the existing ProjectReference — no new
-' protocol, no audio-capture implementation changes (M1 belongs to GLM/5).
-'
-' The Engine's AudioSettingsForm stays in the tree (dormant — nothing creates
-' the Audio.UI marker anymore) until the follow-up removal commit.
+' NOTE: no 'Option Strict On' here — the Overlay project compiles with
+' strict OFF (project-wide convention). This file follows the same
+' convention as every other Overlay form.
 
 Imports System.IO
-Imports Newtonsoft.Json.Linq
 
 Public Class Base_AudioSet
 
@@ -42,7 +17,7 @@ Public Class Base_AudioSet
 
     ''' <summary>Push AppSettings audio model → controls (same semantics as the old Engine form).</summary>
     Private Sub LoadFromSettings()
-        Dim audio = AppSettings.Instance.Audio
+        Dim audio As AudioSettingsClass = AppSettings.Instance.Audio
 
         If audio.TrackMode = 1 Then
             radSeparate.Checked = True
@@ -61,7 +36,7 @@ Public Class Base_AudioSet
 
     ''' <summary>Select the saved mic (by Id first, then by name) — mirrors old form logic.</summary>
     Private Sub SelectCurrentMic()
-        Dim audio = AppSettings.Instance.Audio
+        Dim audio As AudioSettingsClass = AppSettings.Instance.Audio
         Dim micId As String = audio.MicDeviceId
         Dim micName As String = audio.MicDeviceName
 
@@ -109,7 +84,7 @@ Public Class Base_AudioSet
     ''' form produced, now owned by the Overlay.
     ''' </summary>
     Private Sub SaveToSettings()
-        Dim audio = AppSettings.Instance.Audio
+        Dim audio As AudioSettingsClass = AppSettings.Instance.Audio
 
         audio.TrackMode = If(radSeparate.Checked, 1, 0)
         audio.SystemAudioEnabled = chkSystem.Checked
