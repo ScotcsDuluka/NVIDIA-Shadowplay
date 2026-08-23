@@ -69,6 +69,11 @@ Namespace CaptureEngine.Recording
         ' differ from system loopback — never share or derive one from other)
         Private _micStartTicks As Long = 0
 
+        ' ★ Loopback gap-fill state (system audio): timestamp of the LAST
+        ' received callback. 0 = no audio yet. Shared with the tail-padding
+        ' step at stop time so WAV duration == wall-clock audio span.
+        Private _sysLastAudioTicks As Long = 0
+
         Public Sub New(capture As DdagrabBackend,
                       encoder As NvencEncoderBackend,
                       config As SessionConfig,
@@ -134,14 +139,67 @@ Namespace CaptureEngine.Recording
                     wavWriter = New WavSidecarWriter(tempWav, waveFormat.Channels, waveFormat.SampleRate, sidecarBits)
                     wavWriter.Start()
 
+                    ' ★ WASAPI loopback gap-filling (real-bug fix, owner evidence
+                    ' 2026-08-23 18:42: 16.28s session but WAV had only 3.54s —
+                    '  loopback delivers callbacks ONLY while sound is actually
+                    '  playing; silence = NO data at all. A naive byte-concat WAV
+                    ' is 3.5s of sound taped together — the mux then places that
+                    ' audio at the file start: 'music before I played any'.
+                    '  Fix (same model as legacy AudioPipe pre-roll/gap logic):
+                    '  track the last filled timestamp; when a callback arrives
+                    '  after a gap, insert silence for the elapsed gap FIRST,
+                    '  then the real audio. WAV duration == wall-clock duration,
+                    '  so mux offsets hold for the entire file.
+                    Dim bytesPerSecSys As Integer = waveFormat.Channels * waveFormat.SampleRate * (sidecarBits \ 8)
+                    Dim silenceBufSys As Byte() = Nothing
+                    Dim silenceLenSys As Integer = 0
+                    _sysLastAudioTicks = 0
+
+                    Dim sysCallback As Action(Of Byte(), Integer) =
+                        Sub(rawPcm, rawLen)
+                            ' Convert once (float→pcm16 or passthrough)
+                            Dim data As Byte() = If(srcFloat, ConvertFloatToPcm16(rawPcm, rawLen), Nothing)
+                            Dim len As Integer = If(srcFloat, data.Length, rawLen)
+                            If Not srcFloat Then data = rawPcm
+
+                            If _sysLastAudioTicks = 0 Then
+                                ' First sound: audio content t0. A silent lead-in
+                                ' (music started later) stays silent — correct.
+                                _sysLastAudioTicks = Stopwatch.GetTimestamp()
+                                wavWriter.EnqueueChunk(data, len)
+                                Return
+                            End If
+
+                            Dim nowT As Long = Stopwatch.GetTimestamp()
+                            Dim gapSec As Double = (nowT - _sysLastAudioTicks) / Stopwatch.Frequency
+                            _sysLastAudioTicks = nowT
+
+                            ' Fill the gap with silence so the timeline stays
+                            ' wall-clock true (cap at 2s per event — huge gaps
+                            ' mean something unusual; audio clamps at apad anyway).
+                            If gapSec > 0.02 AndAlso gapSec <= 2.0 Then
+                                Dim silBytes As Integer = CInt(gapSec * bytesPerSecSys)
+                                silBytes -= (silBytes Mod Math.Max(1, waveFormat.BlockAlign))
+                                If silBytes > 0 Then
+                                    If silenceBufSys Is Nothing OrElse silenceLenSys < silBytes Then
+                                        silenceLenSys = Math.Max(silBytes, 65536)
+                                        silenceBufSys = New Byte(silenceLenSys - 1) {}
+                                    End If
+                                    Dim off As Integer = 0
+                                    While off < silBytes
+                                        Dim n As Integer = Math.Min(silBytes - off, silenceBufSys.Length)
+                                        wavWriter.EnqueueChunk(silenceBufSys, n)
+                                        off += n
+                                    End While
+                                End If
+                            End If
+
+                            wavWriter.EnqueueChunk(data, len)
+                        End Sub
+
                     AddHandler audioCapture.DataAvailable, Sub(s, e)
                                                                 If e.BytesRecorded > 0 Then
-                                                                    If srcFloat Then
-                                                                        Dim pcm As Byte() = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
-                                                                        wavWriter.EnqueueChunk(pcm, pcm.Length)
-                                                                    Else
-                                                                        wavWriter.EnqueueChunk(e.Buffer, e.BytesRecorded)
-                                                                    End If
+                                                                    sysCallback(e.Buffer, e.BytesRecorded)
                                                                 End If
                                                                 If _stopSignal OrElse sw.Elapsed >= duration Then
                                                                     Try : audioCapture.StopRecording() : Catch : End Try
@@ -385,6 +443,27 @@ Namespace CaptureEngine.Recording
                     ' race. WASAPI fires RecordingStopped exactly once.
                     If Not wavStoppedEvent.WaitOne(3000) Then
                         _logger.Warning("[session] RecordingStopped event timeout (3s) — finalizing anyway")
+                    End If
+
+                    ' ★ Gap-fill TAIL: if sound stopped before recording ended
+                    ' (music off, then user hit stop), pad silence from the last
+                    ' callback to now so WAV duration == wall-clock audio span
+                    ' (gap-filling in the callback only covers gaps BETWEEN
+                    ' callbacks; the tail after the LAST callback is filled here).
+                    If _sysLastAudioTicks > 0 AndAlso waveFormat IsNot Nothing Then
+                        Dim tailSec As Double = (Stopwatch.GetTimestamp() - _sysLastAudioTicks) / Stopwatch.Frequency
+                        If tailSec > 0.02 AndAlso tailSec <= 5.0 Then
+                            Dim bps As Integer = waveFormat.Channels * waveFormat.SampleRate * (If(waveFormat.Encoding = WaveFormatEncoding.IeeeFloat, 2, waveFormat.BitsPerSample \ 8))
+                            Dim silBytes As Integer = CInt(tailSec * bps)
+                            Dim zeros(65535) As Byte
+                            Dim off As Integer = 0
+                            While off < silBytes
+                                Dim n As Integer = Math.Min(silBytes - off, zeros.Length)
+                                wavWriter.EnqueueChunk(zeros, n)
+                                off += n
+                            End While
+                            _logger.Info($"[session] audio tail gap padded with {tailSec:0.00}s silence (sound stopped before record stop)")
+                        End If
                     End If
 
                     wavReport = wavWriter.Complete(5000)
