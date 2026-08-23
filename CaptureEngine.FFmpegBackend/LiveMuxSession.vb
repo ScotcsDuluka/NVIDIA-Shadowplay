@@ -60,7 +60,7 @@ Namespace CaptureEngine.FFmpegBackend
 
         Private Const PipeBufferBytes As Integer = 1024 * 1024
         Private Const ConnectTimeoutMs As Integer = 15000
-        Private Const QueueChunkCap As Integer = 256
+        Private Const QueueChunkCap As Integer = 512   ' ★ raised: silence bursts (pre-roll up to 60s) + probe delay headroom
 
         Private ReadOnly _ffmpegPath As String
         Private ReadOnly _finalPath As String

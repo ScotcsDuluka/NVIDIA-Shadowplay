@@ -79,6 +79,9 @@ Namespace CaptureEngine.Recording
         ' step at stop time so WAV duration == wall-clock audio span.
         Private _sysLastAudioTicks As Long = 0
 
+        ' ★ Gap-fill v2 evidence: total silence bytes inserted (pre-roll + gaps).
+        Private _sysSilenceInsertedBytes As Long = 0
+
         Public Sub New(capture As DdagrabBackend,
                       encoder As NvencEncoderBackend,
                       config As SessionConfig,
@@ -157,6 +160,24 @@ Namespace CaptureEngine.Recording
                     Dim silenceLenSys As Integer = 0
                     _sysLastAudioTicks = 0
 
+                    ' ★ Gap-fill v2 (owner evidence 21:47: 35s session → WAV 58.8s
+                    '   [v1 over-padded] AND pipe got a=4.3MB of pure music chunks
+                    '   taped together [v1 fed silence to the WAV only, never to the
+                    '   live-mux pipe — the MP4 literally contained only the loud
+                    '   parts, exactly as the owner described]).
+                    '   v2 rules:
+                    '   1. silenceNeeded = arrivalGap − bufferDuration. The arriving
+                    '      buffer ALREADY CONTAINS the audio for the gap (WASAPI
+                    '      accumulates while we wait) — v1 padded the full gap AND
+                    '      wrote the buffer, inflating the timeline 1.68x.
+                    '   2. Every silence byte goes to BOTH the WAV sidecar AND the
+                    '      live-mux pipe. Same timeline everywhere.
+                    '   3. Pre-roll from StartRecording: this machine's loopback
+                    '      delivers the first callback ~5.7s late (legacy logged
+                    '      SysFirstCallbackDelayMs=5756) — the silent head before
+                    '      the first sound is real wall-clock silence and must be
+                    '      inserted, else music shifts to t=0 ('music before I
+                    '      played any').
                     Dim sysCallback As Action(Of Byte(), Integer) =
                         Sub(rawPcm, rawLen)
                             ' Convert once (float→pcm16 or passthrough)
@@ -164,23 +185,17 @@ Namespace CaptureEngine.Recording
                             Dim len As Integer = If(srcFloat, data.Length, rawLen)
                             If Not srcFloat Then data = rawPcm
 
+                            Dim nowT As Long = Stopwatch.GetTimestamp()
                             If _sysLastAudioTicks = 0 Then
-                                ' First sound: audio content t0. A silent lead-in
-                                ' (music started later) stays silent — correct.
-                                _sysLastAudioTicks = Stopwatch.GetTimestamp()
-                                wavWriter.EnqueueChunk(data, len)
-                                Return
+                                _sysLastAudioTicks = If(_systemStartTicks > 0, _systemStartTicks, nowT)
                             End If
 
-                            Dim nowT As Long = Stopwatch.GetTimestamp()
-                            Dim gapSec As Double = (nowT - _sysLastAudioTicks) / Stopwatch.Frequency
-                            _sysLastAudioTicks = nowT
+                            Dim arrivalGapSec As Double = (nowT - _sysLastAudioTicks) / Stopwatch.Frequency
+                            Dim bufferDurSec As Double = len / CDbl(bytesPerSecSys)
+                            Dim silenceNeededSec As Double = arrivalGapSec - bufferDurSec
 
-                            ' Fill the gap with silence so the timeline stays
-                            ' wall-clock true (cap at 2s per event — huge gaps
-                            ' mean something unusual; audio clamps at apad anyway).
-                            If gapSec > 0.02 AndAlso gapSec <= 2.0 Then
-                                Dim silBytes As Integer = CInt(gapSec * bytesPerSecSys)
+                            If silenceNeededSec > 0.05 AndAlso silenceNeededSec <= 60.0 Then
+                                Dim silBytes As Integer = CInt(silenceNeededSec * bytesPerSecSys)
                                 silBytes -= (silBytes Mod Math.Max(1, waveFormat.BlockAlign))
                                 If silBytes > 0 Then
                                     If silenceBufSys Is Nothing OrElse silenceLenSys < silBytes Then
@@ -191,11 +206,14 @@ Namespace CaptureEngine.Recording
                                     While off < silBytes
                                         Dim n As Integer = Math.Min(silBytes - off, silenceBufSys.Length)
                                         wavWriter.EnqueueChunk(silenceBufSys, n)
+                                        _liveMux?.FeedSystemAudio(silenceBufSys, n)
                                         off += n
                                     End While
+                                    Interlocked.Add(_sysSilenceInsertedBytes, silBytes)
                                 End If
                             End If
 
+                            _sysLastAudioTicks = nowT
                             wavWriter.EnqueueChunk(data, len)
                             _liveMux?.FeedSystemAudio(data, len)
                         End Sub
@@ -484,9 +502,16 @@ Namespace CaptureEngine.Recording
                     ' callback to now so WAV duration == wall-clock audio span
                     ' (gap-filling in the callback only covers gaps BETWEEN
                     ' callbacks; the tail after the LAST callback is filled here).
+                    If _sysLastAudioTicks = 0 AndAlso _systemStartTicks > 0 AndAlso waveFormat IsNot Nothing Then
+                        ' ★ No callback fired the entire session (loopback device
+                        ' never delivered anything — fully silent session). The
+                        ' stream still needs wall-clock silence or ffmpeg gets
+                        ' zero audio packets (exit -22). Pad the whole span.
+                        _sysLastAudioTicks = _systemStartTicks
+                    End If
                     If _sysLastAudioTicks > 0 AndAlso waveFormat IsNot Nothing Then
                         Dim tailSec As Double = (Stopwatch.GetTimestamp() - _sysLastAudioTicks) / Stopwatch.Frequency
-                        If tailSec > 0.02 AndAlso tailSec <= 5.0 Then
+                        If tailSec > 0.02 AndAlso tailSec <= 60.0 Then
                             Dim bps As Integer = waveFormat.Channels * waveFormat.SampleRate * (If(waveFormat.Encoding = WaveFormatEncoding.IeeeFloat, 2, waveFormat.BitsPerSample \ 8))
                             Dim silBytes As Integer = CInt(tailSec * bps)
                             Dim zeros(65535) As Byte
@@ -500,6 +525,10 @@ Namespace CaptureEngine.Recording
                             _logger.Info($"[session] audio tail gap padded with {tailSec:0.00}s silence (sound stopped before record stop)")
                         End If
                     End If
+
+                    Dim evBits As Integer = If(waveFormat.Encoding = WaveFormatEncoding.IeeeFloat, 16, waveFormat.BitsPerSample)
+                    Dim silenceTotalSec As Double = Interlocked.Read(_sysSilenceInsertedBytes) / CDbl(waveFormat.Channels * waveFormat.SampleRate * (evBits \ 8))
+                    _logger.Info($"[session] gap-fill inserted {silenceTotalSec:0.00}s of wall-clock silence")
 
                     wavReport = wavWriter.Complete(5000)
                     _logger.Info("[session] " & wavReport.ToString())
