@@ -233,17 +233,28 @@ Namespace CaptureEngine.Recording.Tests
             _sandbox = Path.Combine(Path.GetTempPath(), "RRT_RT_" & Guid.NewGuid().ToString("N").Substring(0, 8))
             Directory.CreateDirectory(_sandbox)
             _ffmpegExe = Path.Combine(_sandbox, "ffmpeg.exe")
-            ' ★ Windows-run fix: ALWAYS copy (never symlink). A symlinked exe
-            ' can be silently blocked (Zone-ADS/SmartScreen) or fail to launch
-            ' depending on privileges — that produced 'encoder attempt failed:'
-            ' with EMPTY stderr on the owner's machine. A plain copy is
-            ' deterministic. Binaries are tens of MB — acceptable for a test run.
-            TryCopyFile(found, _ffmpegExe)
-            TryCopyFile(ffprobeFound, Path.Combine(_sandbox, "ffprobe.exe"))
-
-            ' Unblock the copies (remove Zone.Identifier ADS that blocks downloads)
-            Try : Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(_ffmpegExe & ":Zone.Identifier") : Catch : End Try
-            Try : Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(Path.Combine(_sandbox, "ffprobe.exe") & ":Zone.Identifier") : Catch : End Try
+            ' ★ Windows-run fix #3 (THE REAL ONE): copy the WHOLE ffmpeg folder.
+            ' ffmpeg.exe is not standalone — on the owner's deployment it needs
+            ' avdevice-62.dll, avcodec-62.dll, avutil-60.dll, ... beside it. The
+            ' previous single-file copy produced 'The code execution cannot
+            ' proceed because avdevice-62.dll was not found' (Win32 loader dialog
+            ' → empty stderr → every encoder attempt 'failed' silently).
+            ' Guard: only folder-copy when the source dir actually contains dlls
+            ' (a deployment folder). /usr/bin on Linux has no dlls → single copy.
+            Dim srcDir As New DirectoryInfo(Path.GetDirectoryName(found))
+            Dim hasDlls As Boolean = srcDir.GetFiles("*.dll").Length > 0
+            If hasDlls Then
+                For Each f As FileInfo In srcDir.GetFiles()
+                    Dim ext As String = f.Extension.ToLowerInvariant()
+                    If ext = ".exe" OrElse ext = ".dll" Then
+                        TryCopyFile(f.FullName, Path.Combine(_sandbox, f.Name))
+                        Try : Microsoft.VisualBasic.FileIO.FileSystem.DeleteFile(Path.Combine(_sandbox, f.Name) & ":Zone.Identifier") : Catch : End Try
+                    End If
+                Next
+            Else
+                TryCopyFile(found, _ffmpegExe)
+                TryCopyFile(ffprobeFound, Path.Combine(_sandbox, "ffprobe.exe"))
+            End If
 
             ' ★ Verify the sandboxed ffmpeg actually RUNS (-version) — fail loudly
             ' with the real reason instead of empty-stderr mystery downstream.
