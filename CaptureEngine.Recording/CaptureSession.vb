@@ -74,6 +74,11 @@ Namespace CaptureEngine.Recording
         ' no post-hoc wrap/mux, wall-clock-true by construction.
         Private _liveMux As LiveMuxSession
 
+        ' ★ OBS trick: render endless silence to the loopback device while
+        ' recording so WASAPI delivers callbacks CONTINUOUSLY (silence included).
+        ' Kills gap-fill/steering/noise-at-silence at the source.
+        Private _silenceKeepAlive As SilenceKeepAlive
+
         ' ★ AudioTap instances (single gap-fill engine for both tracks)
         Private _sysTap As AudioTap
         Private _micTap As AudioTap
@@ -214,6 +219,13 @@ Namespace CaptureEngine.Recording
                                                             End Sub
 
                     AddHandler audioCapture.RecordingStopped, Sub(s, e) wavStoppedEvent.Set()
+
+                    ' ★ Keep-alive BEFORE capture start: rendering silence now
+                    ' means the loopback's FIRST callback arrives within ~10ms
+                    ' (the mixer is already active) — the 5.7s warm-up gap and
+                    ' its pre-roll reconstruction never happen.
+                    _silenceKeepAlive = New SilenceKeepAlive()
+                    _logger.Info($"[session] silence keep-alive: {If(_silenceKeepAlive.IsActive, "ACTIVE on " & _silenceKeepAlive.DeviceName, "unavailable — tap gap-fill remains active")} (OBS-style continuous loopback)")
 
                     ' PROVEN MODEL: capture the StartRecording CALL time —
                     ' NOT the first-callback time (historical -10s offset bug).
@@ -511,6 +523,16 @@ Namespace CaptureEngine.Recording
                         _logger.Warning("[session] RecordingStopped event timeout (3s) — finalizing anyway")
                     End If
 
+                    ' Stop the keep-alive FIRST (stop rendering silence), then
+                    ' finalize the tap (the tail-pad still covers the last ~ms).
+                    Try
+                        If _silenceKeepAlive IsNot Nothing Then
+                            _silenceKeepAlive.Dispose()
+                            _silenceKeepAlive = Nothing
+                        End If
+                    Catch
+                    End Try
+
                     ' ★ AudioTap closes the timeline: tail-pad from the last
                     ' callback to now (covers 'music stopped before stop was
                     ' pressed'), or the FULL span if the device never delivered
@@ -644,6 +666,7 @@ Namespace CaptureEngine.Recording
                 result.ErrorMessage = ex.Message
                 _logger.Error($"[session] Failed: {ex.Message}", ex)
             Finally
+                Try : _silenceKeepAlive?.Dispose() : Catch : End Try
                 Try : _liveMux?.Dispose() : Catch : End Try
                 Try : wavWriter?.Dispose() : Catch : End Try
                 Try : audioCapture?.Dispose() : Catch : End Try
