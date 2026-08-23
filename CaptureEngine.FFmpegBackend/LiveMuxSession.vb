@@ -354,6 +354,7 @@ Namespace CaptureEngine.FFmpegBackend
             Private ReadOnly _signal As New AutoResetEvent(False)
             Private ReadOnly _stopWriter As New ManualResetEvent(False)
             Private ReadOnly _timelineStarted As New ManualResetEvent(False)
+            Private ReadOnly _connectedEvent As New ManualResetEvent(False)
             Private ReadOnly _sync As New Object()
 
             Private _writer As Thread
@@ -390,6 +391,7 @@ Namespace CaptureEngine.FFmpegBackend
                                  _pipe.WaitForConnection()
                              Catch
                              End Try
+                             _connectedEvent.Set()
                          End Sub)
             End Sub
 
@@ -433,8 +435,21 @@ Namespace CaptureEngine.FFmpegBackend
 
             Private Sub WriterLoop()
                 Try
-                    ' 1. wait for FFmpeg to connect (or stop)
-                    WaitHandle.WaitAny(New WaitHandle() {_stopWriter}, ConnectTimeoutMs)
+                    ' 1. wait for FFmpeg to connect — on the REAL connection event,
+                    '    NOT a blind sleep. Owner run 21:15 (a=0B, exit -22):
+                    '    the old blind 15s sleep deadlocked with ffmpeg's SERIAL
+                    '    input opening. ffmpeg opens input 0 (video pipe) and blocks
+                    '    probing until video data arrives; the video writer was also
+                    '    blind-sleeping, so no data for 15s; ffmpeg therefore opened
+                    '    the AUDIO pipe only at ~15.1s — but the audio writer checked
+                    '    IsConnected ONCE at 15.0s, saw nothing, and exited forever
+                    '    (queue silently held everything; 254 chunks < cap so not even
+                    '    drops were counted). Waiting on the event fixes both sides:
+                    '    video writes the moment ffmpeg connects → probe finishes
+                    '    fast → ffmpeg opens the audio pipe promptly → the audio
+                    '    writer is still waiting on its event and proceeds.
+                    Dim connectWait() As WaitHandle = {_connectedEvent, _stopWriter}
+                    WaitHandle.WaitAny(connectWait, 30000)
                     If Not _pipe.IsConnected Then
                         DrainDiscardOnly()
                         Return
@@ -565,6 +580,7 @@ Namespace CaptureEngine.FFmpegBackend
                 Try : _signal.Dispose() : Catch : End Try
                 Try : _stopWriter.Dispose() : Catch : End Try
                 Try : _timelineStarted.Dispose() : Catch : End Try
+                Try : _connectedEvent.Dispose() : Catch : End Try
             End Sub
         End Class
 
