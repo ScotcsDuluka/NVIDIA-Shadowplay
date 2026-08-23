@@ -153,9 +153,65 @@ $spProc = Start-Process -FilePath $spExe -WorkingDirectory $overlayBin -PassThru
 Start-Sleep -Seconds 4
 
 if ($spProc.HasExited) {
-    Write-Host ("  ERROR — new ShadowPlay exited immediately (pid {0})." -f $spProc.Id) -ForegroundColor Red
-    Write-Host "  SingleInstance forwarding to a stale instance is the usual cause —" -ForegroundColor Red
-    Write-Host "  but T0 says the family was clean. Check supervisor log below." -ForegroundColor Red
+    $code = $spProc.ExitCode
+    Write-Host ("  ERROR — new ShadowPlay exited immediately (pid {0}, exit code {1})." -f $spProc.Id, $code) -ForegroundColor Red
+
+    # ── DIAG 1: relaunch via dotnet host with captured stderr/stdout ──
+    # WinForms unhandled exceptions surface on the console this way.
+    # Timeout 15s: if the app SURVIVES under the dotnet host, the apphost
+    # exe itself is the problem (packaging), not the app.
+    Write-Host "`n>>> DIAG: relaunching via 'dotnet NVIDIA ShadowPlay.dll' (15s probe)..." -ForegroundColor Cyan
+    $outLog = Join-Path $env:TEMP "sp-diag-out.txt"
+    $errLog = Join-Path $env:TEMP "sp-diag-err.txt"
+    $diag = Start-Process -FilePath "dotnet" `
+        -ArgumentList "`"$overlayBin\NVIDIA ShadowPlay.dll`"" `
+        -WorkingDirectory $overlayBin -PassThru -NoNewWindow `
+        -RedirectStandardOutput $outLog -RedirectStandardError $errLog
+    # (Wait-Process with timeout would block; we simply poll HasExited after a sleep.)
+    Start-Sleep -Seconds 15
+    if (-not $diag.HasExited) {
+        Write-Host "  >>> app RUNS fine under the dotnet host — the .exe apphost/runtimeconfig is the problem" -ForegroundColor Yellow
+        try { $diag | Stop-Process -Force } catch { }
+        try { Get-Process -Name "NVIDIA ShadowPlay" -ErrorAction SilentlyContinue | Stop-Process -Force } catch { }
+    } else {
+        Write-Host ("  dotnet exit code: {0}" -f $diag.ExitCode) -ForegroundColor Yellow
+    }
+    if (Test-Path $errLog) {
+        $errText = Get-Content $errLog -Raw
+        if ($errText.Trim().Length -gt 0) {
+            Write-Host "  ── stderr (first 40 lines) ──" -ForegroundColor Yellow
+            $errText -split "`r?`n" | Select-Object -First 40 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+        }
+    }
+    if (Test-Path $outLog) {
+        $outText = Get-Content $outLog -Raw
+        if ($outText.Trim().Length -gt 0) {
+            Write-Host "  ── stdout (first 20 lines) ──" -ForegroundColor Yellow
+            $outText -split "`r?`n" | Select-Object -First 20 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        }
+    }
+
+    # ── DIAG 2: Windows Application event log — .NET crashes in the last 3 min ──
+    Write-Host "`n>>> DIAG: recent .NET crash events (Application log, last 3 min)..." -ForegroundColor Cyan
+    try {
+        $since = (Get-Date).AddMinutes(-3)
+        $events = Get-WinEvent -FilterHashtable @{
+            LogName = "Application"; StartTime = $since
+        } -ErrorAction SilentlyContinue |
+            Where-Object { $_.ProviderName -match " NET Runtime|Application Error|Windows Error" -or $_.LevelDisplayName -eq "Error" } |
+            Select-Object -First 6
+        if ($events) {
+            foreach ($ev in $events) {
+                Write-Host ("  [{0}] {1}" -f $ev.TimeCreated, $ev.ProviderName) -ForegroundColor Yellow
+                $msg = ($ev.Message -split "`r?`n") | Select-Object -First 8
+                $msg | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+            }
+        } else {
+            Write-Host "  (no error events found)" -ForegroundColor DarkGray
+        }
+    } catch {
+        Write-Host "  (event log query failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+    }
 }
 Check "T1 new ShadowPlay instance alive" (-not $spProc.HasExited)
 
@@ -165,6 +221,17 @@ Check "T1 engine spawned (pid $t1pid)" ($t1pid -ne 0)
 Check "T1 engine_ready broadcast received via hub (IPC works)" ($null -ne $readyLine)
 if ($readyLine) { Write-Host "      evidence: $readyLine" -ForegroundColor DarkGray }
 Check "T1 exactly one engine" ((Count-Engine) -eq 1)
+
+# If the app cannot even stay alive, later stages are meaningless noise.
+if ($spProc.HasExited) {
+    Write-Host "`n  >>> ShadowPlay cannot start — aborting T2/T3 (collect diagnostics above and report)." -ForegroundColor Red
+    Write-Host ""
+    Write-Host "=================================================="
+    Write-Host " AUTOSPAWN RESULT: $pass passed / $fail failed (ABORTED — startup crash)"
+    Write-Host "=================================================="
+    if (-not $KeepOpen) { Kill-Family }
+    exit 3
+}
 
 # ── T2: engine already running → same PID, no new instance ───────
 Write-Host "`n>>> T2: supervisor must reuse the running engine (same PID)..." -ForegroundColor Cyan
