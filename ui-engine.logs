@@ -1,0 +1,77 @@
+[2026-08-23 20:57:58] [RecordingEngine] encoder name normalized: 'h264_nvenc' → 'NVENC_H264'
+[2026-08-23 20:57:58] TCP client starting...
+[2026-08-23 20:57:58] [2026-08-23 20:57:58.609] [INFO] RecordingEngine   Adapter [0] NVIDIA GeForce GTX 1080 Ti (0x10de:0x1b06)
+[2026-08-23 20:57:58] [2026-08-23 20:57:58.615] [INFO] RecordingEngine   Adapter [1] NVIDIA GeForce GTX 1080 Ti (0x10de:0x1b06)
+[2026-08-23 20:57:58] [2026-08-23 20:57:58.615] [INFO] RecordingEngine   Adapter [2] NVIDIA GeForce GTX 1080 Ti (0x10de:0x1b06)
+[2026-08-23 20:57:58] [2026-08-23 20:57:58.615] [INFO] RecordingEngine   Adapter [3] Microsoft Basic Render Driver (0x1414:0x008c)
+[2026-08-23 20:57:58] [2026-08-23 20:57:58.616] [INFO] RecordingEngine DdagrabBackend: selected NVIDIA adapter #0: NVIDIA GeForce GTX 1080 Ti
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.053] [INFO] RecordingEngine DdagrabBackend: D3D11 device created (feature level Level_11_1)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.054] [INFO] RecordingEngine DdagrabBackend: output #0: \\.\DISPLAY1 (1680x1050)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.057] [INFO] RecordingEngine DdagrabBackend: display refresh rate = 75Hz
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.063] [INFO] RecordingEngine DdagrabBackend: DXGI Output Duplication created (persistent)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.063] [INFO] RecordingEngine DdagrabBackend: Initialize complete (real DXGI capture)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.063] [INFO] RecordingEngine RecordingEngine: DdagrabBackend initialized — 1680x1050 @ 75Hz
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.071] [INFO] RecordingEngine   Adapter [0] NVIDIA GeForce GTX 1080 Ti (0x10de:0x1b06) LUID=(0000ce4d,00000000)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.071] [INFO] RecordingEngine   Adapter [1] NVIDIA GeForce GTX 1080 Ti (0x10de:0x1b06) LUID=(00b40ae4,00000000)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.072] [INFO] RecordingEngine   Adapter [2] NVIDIA GeForce GTX 1080 Ti (0x10de:0x1b06) LUID=(00018b5f,00000000)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.072] [INFO] RecordingEngine   Adapter [3] Microsoft Basic Render Driver (0x1414:0x008c) LUID=(0000eb04,00000000)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.072] [INFO] RecordingEngine Selected NVIDIA adapter #0: NVIDIA GeForce GTX 1080 Ti
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.072] [INFO] RecordingEngine   VendorId: 0x10de
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.072] [INFO] RecordingEngine   DeviceId: 0x1b06
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.072] [INFO] RecordingEngine   LUID:     (0000ce4d,00000000)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.134] [INFO] RecordingEngine Device created. Feature level: Level_11_1
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.136] [INFO] RecordingEngine   Device pointer: 0x000002bf0d355860
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.136] [INFO] RecordingEngine Multithread protection: ENABLED
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.137] [INFO] RecordingEngine Device's parent adapter: NVIDIA GeForce GTX 1080 Ti
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.137] [INFO] RecordingEngine   VendorId: 0x10de
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.137] [INFO] RecordingEngine   DeviceId: 0x1b06
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.137] [INFO] RecordingEngine   LUID:     (0000ce4d,00000000)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.143] [INFO] RecordingEngine NVENC max supported API: major=13, minor=0 (packed=0x000000D0)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.143] [INFO] RecordingEngine Encoder requests API: major=13, minor=0 (NVENCAPI_VERSION=0x0000000D)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.143] [INFO] RecordingEngine Function table version: 0x7001000D (struct size=2552 bytes)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.161] [INFO] RecordingEngine NVENC encoder session opened: 0x000002bf0d61b680
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.255] [INFO] RecordingEngine NVENC encoder initialized: 1680x1050 H.264 CBR 17000000 bps
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.263] [INFO] RecordingEngine Bitstream buffer created: 0x000002bf0d62db30
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.269] [INFO] RecordingEngine Encoder texture created: 1680x1050 BGRA8 on device 0x000002bf0d355860
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.270] [INFO] RecordingEngine Texture registered with NVENC: 0x000002bf01126520
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.271] [INFO] RecordingEngine NvencEncoderBackend: Initialize complete.
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.271] [INFO] RecordingEngine RecordingEngine: NvencEncoderBackend initialized (NVENC_H264, 17000000 bps, GOP 240, preset p4)
+[2026-08-23 20:57:59] [2026-08-23 20:57:59.271] [INFO] RecordingEngine RecordingEngine: ready (Idle)
+[2026-08-23 20:57:59] [RecordingEngine] initialized — Idle (background thread)
+[2026-08-23 20:58:00] [Engine] broadcast engine_ready
+[2026-08-23 20:58:00] [Engine] Overlay config changed (config=True, video=False) → refreshing UI
+[2026-08-23 20:58:00] [Engine] PREWARM_FFMPEG received: C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\api-core\ffmpeg.exe
+[2026-08-23 20:58:00] [Engine] PREWARM_FFMPEG: already have valid FFmpegPath: C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\api-core\ffmpeg.exe
+[2026-08-23 20:58:03] [Engine] PREWARM_FFMPEG received: C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\api-core\ffmpeg.exe
+[2026-08-23 20:58:03] [Engine] PREWARM_FFMPEG: already have valid FFmpegPath: C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\api-core\ffmpeg.exe
+[2026-08-23 20:58:04] [Engine] Overlay config changed (config=True, video=False) → refreshing UI
+[2026-08-23 20:58:08] [Engine] Overlay config changed (config=True, video=False) → refreshing UI
+[2026-08-23 20:58:09] [Engine] Received: engine_record_start=C:\Users\ScotcsDuluka\Videos\Shadowplay\Gallery\Record_2026-08-23_20-58-09.mp4
+[2026-08-23 20:58:09] [RecordingEngine] ffmpeg resolved: C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net8.0-windows10.0.26100.0\api-core\ffmpeg.exe
+[2026-08-23 20:58:09] [RecordingEngine] starting session: path=C:\Users\ScotcsDuluka\Videos\Shadowplay\Gallery\Record_2026-08-23_20-58-09.mp4, audio=True, mic=False
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.491] [INFO] RecordingEngine [session] Starting audio sidecar...
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.510] [INFO] RecordingEngine [session] Audio: 2ch 48000Hz 32bit IeeeFloat
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.531] [INFO] RecordingEngine [session] Audio sidecar started (bounded queue + writer thread)
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.557] [INFO] RecordingEngine [live-mux] started ffmpeg pid 27852 @ 75fps, sys 48000Hz/2ch, mic off
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.557] [INFO] RecordingEngine [session] Starting video capture...
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.557] [INFO] RecordingEngine NvencEncoderBackend: started.
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.558] [INFO] RecordingEngine DdagrabBackend: recreating duplication for session-start frame
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.562] [INFO] RecordingEngine DdagrabBackend: DXGI Output Duplication recreated
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.563] [INFO] RecordingEngine DdagrabBackend: started (real DXGI capture)
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.563] [INFO] RecordingEngine [session] Recording for 3600s @ CFR 75fps...
+[2026-08-23 20:58:10] [2026-08-23 20:58:10.922] [INFO] RecordingEngine NvencEncoderBackend: first frame of session — FORCEIDR + SPS/PPS
+[2026-08-23 20:58:43] [Engine] Received: engine_record_stop=
+[2026-08-23 20:58:43] [RecordingEngine] stopping...
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.135] [INFO] RecordingEngine [session] Stopping video capture...
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.153] [INFO] RecordingEngine DdagrabBackend: worker exited
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.156] [INFO] RecordingEngine DdagrabBackend: stopped
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.159] [INFO] RecordingEngine [session] Stopping encoder...
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.160] [INFO] RecordingEngine NvencEncoderBackend: stopped.
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.160] [INFO] RecordingEngine [session] Stopping audio sidecar...
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.161] [INFO] RecordingEngine [session] audio tail gap padded with 0.03s silence (sound stopped before record stop)
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.167] [INFO] RecordingEngine [session] WavSidecar: ok=True enqueued=11,221,822 written=11,221,822 dropped=0 (chunks=0) residual=0 duration=58.447s file=11,221,866B
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.349] [INFO] RecordingEngine [live-mux] LiveMux: ok=False exit=-22 v=9,977,133B a=0B mic=0B dropped=73,925,043B faststart=False err= ffmpeg exit=-22 [af#0:1 @ 000001af75970f40] Task finished with error code: -22 (Invalid argument) | [af#0:1 @ 000001af75970f40] Terminating thread with return code -22 (Invalid argument) | [out#0/mp4 @ 000001af759370c0] Nothing was written into output file, because at least one of its streams received no packets.
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.349] [INFO] RecordingEngine [session] LiveMux: ok=False exit=-22 v=9,977,133B a=0B mic=0B dropped=73,925,043B faststart=False err= ffmpeg exit=-22 [af#0:1 @ 000001af75970f40] Task finished with error code: -22 (Invalid argument) | [af#0:1 @ 000001af75970f40] Terminating thread with return code -22 (Invalid argument) | [out#0/mp4 @ 000001af759370c0] Nothing was written into output file, because at least one of its streams received no packets.
+[2026-08-23 20:58:43] [2026-08-23 20:58:43.534] [INFO] RecordingEngine [session] Result: pass=False, frames=1972 (captured=3060, dup=46), video_bytes=81640416, audio_bytes=11221822, dropped=0, offset=0.386s, cfrFps=75, duration=0.000s, file_size=0
+[2026-08-23 20:58:43] [RecordingEngine] stopped: pass=False, file=C:\Users\ScotcsDuluka\Videos\Shadowplay\Gallery\Record_2026-08-23_20-58-09.mp4
+[2026-08-23 20:58:43] [RecordingEngine] evidence: frames=1972, audioBytes=11221822, dropped=0, accountingOk=True, offset=0.386s, muxDur=0.000s

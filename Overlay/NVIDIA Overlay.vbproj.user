@@ -62,6 +62,9 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[2] Overlay Hub.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[6] Audio Capture.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[7] Privacy Control.vb">
       <SubType>Form</SubType>
     </Compile>
