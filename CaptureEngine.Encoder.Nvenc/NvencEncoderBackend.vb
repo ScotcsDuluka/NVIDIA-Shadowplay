@@ -95,6 +95,12 @@ Namespace CaptureEngine.Encoder.Nvenc
         Private _framesSinceIdr As Integer = 0
         Private _gopSize As Integer = 60
 
+        ' ★ real-bitrate evidence counters (exposes the encodeConfig gap:
+        ' configured values are ASPIRATIONAL until NV_ENC_CONFIG interop lands)
+        Private _framesEncoded As Long = 0
+        Private _bytesEncoded As Long = 0
+        Private _encodeStopwatch As Stopwatch = Nothing
+
         Private ReadOnly _logger As EngineLogger
 
         Public Sub New(logger As EngineLogger)
@@ -274,6 +280,9 @@ Namespace CaptureEngine.Encoder.Nvenc
                 _state = EncoderState.Running
                 _firstFrameOfSession = True  ' Next Encode() will force IDR + SPS/PPS
                 _framesSinceIdr = 0
+                Interlocked.Exchange(_framesEncoded, 0)
+                Interlocked.Exchange(_bytesEncoded, 0)
+                _encodeStopwatch = Nothing
             End SyncLock
             _logger.Info("NvencEncoderBackend: started.")
         End Sub
@@ -532,6 +541,11 @@ Namespace CaptureEngine.Encoder.Nvenc
                                         $"({NvEncodeAPI.NvencStatusToString(unlockStatus)}) — ignoring")
                     End If
 
+                    ' ★ real-bitrate evidence (bsSize is the ground truth)
+                    Interlocked.Increment(_framesEncoded)
+                    Interlocked.Add(_bytesEncoded, CLng(bsSize))
+                    If _encodeStopwatch Is Nothing Then _encodeStopwatch = Stopwatch.StartNew()
+
                     ' 7. Build EncodedPacket (caller-owned)
                     Dim sequence As Long = Interlocked.Increment(_encodedPackets) - 1
                     Dim isKeyFrame As Boolean = (sequence Mod CLng(_encoderConfig.GopSize)) = 0
@@ -612,6 +626,18 @@ Namespace CaptureEngine.Encoder.Nvenc
         End Function
 
         Public Sub [Stop]() Implements IEncoderBackend.Stop
+            ' ★ real-bitrate evidence — exposes the encodeConfig=IntPtr.Zero gap
+            Try
+                If _encodeStopwatch IsNot Nothing Then
+                    _encodeStopwatch.Stop()
+                    Dim secsD As Double = _encodeStopwatch.Elapsed.TotalSeconds
+                    If _framesEncoded > 0 AndAlso _bytesEncoded > 0 AndAlso secsD > 0.5 Then
+                        _logger.Info($"NvencEncoderBackend: REAL bitrate {_bytesEncoded * 8.0 / secsD / 1000000.0:0.0} Mbps over {secsD:0.0}s ({_framesEncoded} frames) — configured {_encoderConfig.BitrateBps / 1000000.0:0.0} Mbps is ASPIRATIONAL (encodeConfig=IntPtr.Zero)")
+                    End If
+                End If
+            Catch
+            End Try
+
             SyncLock _sync
                 If _disposed Then
                     Throw New ObjectDisposedException(NameOf(NvencEncoderBackend))
