@@ -73,28 +73,54 @@ Public Class CaptureSettings
     Private Const ENGINE_CONFIG_VERSION As Integer = 1
 
     ''' <summary>
-    ''' Load all settings from video.json + audio.json + engine.json.
+    ''' Load all settings.
     ''' configPath is used as base directory (all files live in same folder).
+    '''
+    ''' GLM/6 UNIFIED CONFIG ORDER (config.json is the ONE user-facing file):
+    '''   1. engine.json          — Engine-internal knobs only (PixelFormat,
+    '''                             RateControl, FileFormat, Hotkeys...) until
+    '''                             the host goes fully headless.
+    '''   2. Overlay config.json  — unified user settings (encoder/fps/bitrate/
+    '''                             resolution/audio/paths). WINS when present.
+    '''   3. LEGACY video.json + audio.json — only when (2) is unavailable
+    '''                             (old installs / source-tree runs).
     ''' </summary>
     Public Shared Function Load(configPath As String) As CaptureSettings
         Dim settings As New CaptureSettings()
         Dim baseDir As String = Path.GetDirectoryName(configPath)
         If String.IsNullOrEmpty(baseDir) Then baseDir = AppDomain.CurrentDomain.BaseDirectory
 
-        ' ── Load video.json ──
+        Dim enginePath As String = Path.Combine(baseDir, "engine.json")
+
+        ' ── 1) UNIFIED: Overlay config.json (single source of truth) ──
+        ' Load engine.json FIRST (Engine-only knobs: PixelFormat/RateControl/
+        ' FileFormat/Hotkeys), THEN apply unified on top so user settings WIN
+        ' any overlap (engine.json may contain stale baked-in values).
+        If OverlayConfig.IsAvailable Then
+            If File.Exists(enginePath) Then
+                LoadEngineSettings(settings, enginePath)
+            Else
+                Dim foundEngine As String = FindConfigFile("engine.json")
+                If Not String.IsNullOrEmpty(foundEngine) Then LoadEngineSettings(settings, foundEngine)
+            End If
+
+            If OverlayConfig.ApplyUnifiedToCaptureSettings(settings) Then
+                Return settings
+            End If
+        End If
+
+        ' ── 2) LEGACY fallback (old installs): original precedence ──
+        ' video.json → audio.json → engine.json (video wins over engine).
         Dim videoPath As String = Path.Combine(baseDir, "video.json")
         If File.Exists(videoPath) Then
             LoadVideoSettings(settings, videoPath)
         End If
 
-        ' ── Load audio.json ──
         Dim audioPath As String = Path.Combine(baseDir, "audio.json")
         If File.Exists(audioPath) Then
             LoadAudioSettings(settings, audioPath)
         End If
 
-        ' ── Load engine.json ──
-        Dim enginePath As String = Path.Combine(baseDir, "engine.json")
         If File.Exists(enginePath) Then
             LoadEngineSettings(settings, enginePath)
         End If

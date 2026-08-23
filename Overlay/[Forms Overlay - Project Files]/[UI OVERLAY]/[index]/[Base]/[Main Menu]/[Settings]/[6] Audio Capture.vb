@@ -125,28 +125,15 @@ Public Class Base_AudioSet
             End If
         End If
 
-        ' 1) Overlay's own config.json
+        ' 1) Overlay's unified config.json — THE single config file
+        ' (GLM/6: Recording + Audio + Paths all persist here)
         Try
             AppSettings.Instance.Save()
         Catch ex As Exception
             Debug.WriteLine("[AudioSet] AppSettings.Save error: " & ex.Message)
         End Try
 
-        ' 2) video.json audio section (snake_case — Engine's OverlayConfig schema)
-        Try
-            WriteAudioToVideoJson()
-        Catch ex As Exception
-            Debug.WriteLine("[AudioSet] video.json audio update error: " & ex.Message)
-        End Try
-
-        ' 3) audio.json (PascalCase — CaptureSettings.LoadAudioSettings schema)
-        Try
-            WriteAudioJson()
-        Catch ex As Exception
-            Debug.WriteLine("[AudioSet] audio.json write error: " & ex.Message)
-        End Try
-
-        ' 4) Tell the Engine to reload now (don't wait for its file poll)
+        ' 2) Tell the Engine to reload now (don't wait for its file poll)
         Try
             If Base.tcp IsNot Nothing AndAlso Base.tcp.IsConnected Then
                 Base.tcp.Send("engine_config_changed", "video")
@@ -156,62 +143,8 @@ Public Class Base_AudioSet
         End Try
     End Sub
 
-    ''' <summary>
-    ''' Patch ONLY the "audio" object inside video.json (snake_case keys) and
-    ''' leave every other section untouched. Normalizes away any PascalCase
-    ''' "Audio" duplicate that a different writer may have produced.
-    ''' </summary>
-    Private Sub WriteAudioToVideoJson()
-        Dim path As String = Path.Combine(Application.StartupPath, "video.json")
+ 
 
-        Dim root As JObject
-        If File.Exists(path) Then
-            Try
-                root = JObject.Parse(File.ReadAllText(path))
-            Catch
-                root = New JObject()
-            End Try
-        Else
-            root = New JObject()
-        End If
-
-        ' Remove any existing audio object (both historical casings).
-        If root.Property("audio") IsNot Nothing Then root.Remove("audio")
-        If root.Property("Audio") IsNot Nothing Then root.Remove("Audio")
-
-        Dim audio = AppSettings.Instance.Audio
-        root("audio") = New JObject From {
-            {"system_enabled", audio.SystemAudioEnabled},
-            {"mic_enabled", audio.MicEnabled},
-            {"system_volume", audio.SystemAudioVolume},
-            {"mic_volume", audio.MicVolume},
-            {"mic_device", If(audio.MicDeviceName, "")},
-            {"mic_device_id", If(audio.MicDeviceId, "")},
-            {"track_mode", audio.TrackMode}
-        }
-
-        File.WriteAllText(path, root.ToString(Newtonsoft.Json.Formatting.Indented))
-        Debug.WriteLine("[AudioSet] video.json audio section updated: " & path)
-    End Sub
-
-    ''' <summary>Write audio.json with the schema CaptureSettings.LoadAudioSettings reads.</summary>
-    Private Sub WriteAudioJson()
-        Dim path As String = Path.Combine(Application.StartupPath, "audio.json")
-        Dim audio = AppSettings.Instance.Audio
-
-        Dim o As New JObject From {
-            {"SystemEnabled", audio.SystemAudioEnabled},
-            {"MicEnabled", audio.MicEnabled},
-            {"SystemVolume", audio.SystemAudioVolume},
-            {"MicVolume", audio.MicVolume},
-            {"MicDevice", If(audio.MicDeviceName, "")},
-            {"MicDeviceId", If(audio.MicDeviceId, "")},
-            {"AudioTrackMode", audio.TrackMode}
-        }
-
-        File.WriteAllText(path, o.ToString(Newtonsoft.Json.Formatting.Indented))
-        Debug.WriteLine("[AudioSet] audio.json written: " & path)
-    End Sub
 
 #End Region
 

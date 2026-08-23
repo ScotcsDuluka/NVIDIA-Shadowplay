@@ -120,6 +120,9 @@ Public NotInheritable Class OverlayConfig
         Public Property SystemAudioVolume As Single = 1.0F
         Public Property MicVolume As Single = 1.0F
         Public Property MicDeviceName As String = ""
+        ' Unified config.json (GLM/6): matches Overlay AudioSettingsClass
+        Public Property MicDeviceId As String = ""
+        Public Property TrackMode As Integer = 0
     End Class
 
     Public Class GitHubUser
@@ -289,6 +292,70 @@ Public NotInheritable Class OverlayConfig
             Return ConfigPath.Length > 0 AndAlso File.Exists(ConfigPath)
         End Get
     End Property
+
+    ''' <summary>
+    ''' GLM/6 UNIFIED CONFIG: apply the Overlay's single config.json onto
+    ''' CaptureSettings. Returns True when a usable config.json exists
+    ''' (config.json is now the ONE user-facing config file; video.json /
+    ''' audio.json are legacy fallbacks only).
+    '''
+    ''' Mapping mirrors the proven SyncWithOverlayConfig semantics:
+    '''   - Encoder: Overlay 'NVENC_H264' → FFmpeg 'h264_nvenc'
+    '''   - Bitrate: Overlay stores kbps, CaptureSettings expects bps
+    '''   - Resolution: UseNativeResolution or custom W/H
+    '''   - Audio: incl. MicDeviceId + TrackMode
+    '''   - Paths: FFmpegPath (when the file exists), OutputDirectory
+    ''' </summary>
+    Public Shared Function ApplyUnifiedToCaptureSettings(s As CaptureSettings) As Boolean
+        If Not IsAvailable Then Return False
+
+        Dim cfg As AppConfig = LoadConfig()
+        If cfg Is Nothing Then Return False
+
+        Dim r As RecordingSettings = cfg.Recording
+        If r IsNot Nothing Then
+            If Not String.IsNullOrEmpty(r.Encoder) Then
+                s.Encoder = MapEncoderToFfmpeg(r.Encoder)
+            End If
+            If r.FPS > 0 AndAlso r.FPS <= 240 Then s.FPS = r.FPS
+            If r.Bitrate > 0 Then s.Bitrate = r.Bitrate * 1000L   ' kbps → bps
+            s.UseNativeResolution = r.UseNativeResolution
+            If Not r.UseNativeResolution Then
+                s.CustomWidth = r.Width
+                s.CustomHeight = r.Height
+            End If
+            s.ActivePreset = r.Preset
+            s.ReplayDuration = r.ReplayDuration
+            If Not String.IsNullOrEmpty(r.APICapture) Then
+                s.CaptureMethod = r.APICapture.ToLowerInvariant()
+            End If
+        End If
+
+        Dim a As AudioSettings = cfg.Audio
+        If a IsNot Nothing Then
+            s.SystemAudioCapture = a.SystemAudioEnabled
+            s.MicCapture = a.MicEnabled
+            s.SystemAudioVolume = a.SystemAudioVolume
+            s.MicVolume = a.MicVolume
+            s.MicDeviceName = a.MicDeviceName
+            s.MicDeviceId = a.MicDeviceId
+            s.AudioTrackMode = If(a.TrackMode = 1,
+                                  CaptureSettings.AudioTrackModeEnum.SeparateTrack,
+                                  CaptureSettings.AudioTrackModeEnum.SingleTrack)
+            s.AudioCapture = s.SystemAudioCapture OrElse s.MicCapture
+        End If
+
+        If cfg.Paths IsNot Nothing Then
+            If Not String.IsNullOrEmpty(cfg.Paths.FFmpegPath) AndAlso File.Exists(cfg.Paths.FFmpegPath) Then
+                s.FFmpegPath = cfg.Paths.FFmpegPath
+            End If
+            Dim outDir As String = cfg.Paths.GalleryPath
+            If String.IsNullOrEmpty(outDir) Then outDir = cfg.Paths.SavePath
+            If Not String.IsNullOrEmpty(outDir) Then s.OutputDirectory = outDir
+        End If
+
+        Return True
+    End Function
 
 #End Region
 

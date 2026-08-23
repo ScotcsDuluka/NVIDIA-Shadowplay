@@ -462,8 +462,12 @@ Public Class AppSettings
     Private _configPath As String = Nothing
     Private _videoConfigPath As String = Nothing
 
+    ''' <summary>True when config.json did NOT exist at the last Load() — legacy files must be migrated in.</summary>
+    Private _configWasMissingOnLoad As Boolean = False
+
     ''' <summary>
-    ''' Path to config.json (general overlay settings)
+    ''' Path to config.json — THE single user-facing config file (GLM/6 unified
+    ''' config: Paths + UI + Recording + Audio + Hotkeys all live here).
     ''' </summary>
     Private ReadOnly Property ConfigPath As String
         Get
@@ -475,7 +479,8 @@ Public Class AppSettings
     End Property
 
     ''' <summary>
-    ''' Path to video.json (video capture settings — saved on exit from Video Capture page)
+    ''' Path to legacy video.json — READ ONCE for migration only. Nothing writes
+    ''' it anymore; after a successful migration it is renamed to video.json.legacy.
     ''' </summary>
     Public ReadOnly Property VideoConfigPath As String
         Get
@@ -537,9 +542,15 @@ Public Class AppSettings
                 End If
             Else
                 ' Create default config
+                _configWasMissingOnLoad = True
                 Save()
                 Debug.WriteLine("AppSettings.Load: Created default config")
             End If
+
+            ' GLM/6 UNIFIED CONFIG: one-time legacy migration (video.json +
+            ' audio.json → config.json). Runs only when config.json was just
+            ' created (first run / fresh install next to old files).
+            MigrateLegacyConfigFiles()
 
         Catch ex As Exception
             Debug.WriteLine("AppSettings.Load Error: " & ex.Message)
@@ -787,7 +798,83 @@ Public Class AppSettings
     End Class
 
     ''' <summary>
-    ''' โหลด video settings จาก video.json
+    ''' GLM/6 UNIFIED CONFIG — one-time legacy migration:
+    '''   video.json + audio.json → config.json (the ONE config file).
+    '''
+    ''' Runs when config.json was just created (fresh install beside old files).
+    ''' Import order: video.json (richest, includes audio) then audio.json
+    ''' (audio-specific fields win if both exist). After a successful import +
+    ''' save, legacy files are renamed to *.legacy (best-effort, non-destructive).
+    ''' Stale video.json on an install that already has config.json is ALSO
+    ''' renamed away — nothing reads it anymore and config.json always wins.
+    ''' </summary>
+    Private Sub MigrateLegacyConfigFiles()
+        Try
+            Dim imported As Boolean = False
+
+            If _configWasMissingOnLoad Then
+                ' ── Import video.json (video + audio + presets) ──
+                If File.Exists(VideoConfigPath) Then
+                    Dim video = LoadVideoSettings()
+                    If video IsNot Nothing Then
+                        ApplyVideoConfig(video)
+                        imported = True
+                        Debug.WriteLine("[Migrate] imported legacy video.json → config.json")
+                    End If
+                End If
+
+                ' ── Import audio.json (audio-specific schema wins if present) ──
+                Dim audioPath As String = Path.Combine(Application.StartupPath, "audio.json")
+                If File.Exists(audioPath) Then
+                    Try
+                        Dim json As String = File.ReadAllText(audioPath)
+                        Using doc As JsonDocument = JsonDocument.Parse(json)
+                            Dim p As JsonElement
+                            Dim a = AppSettings.Instance.Audio
+                            If doc.RootElement.TryGetProperty("SystemEnabled", p) Then a.SystemAudioEnabled = p.GetBoolean()
+                            If doc.RootElement.TryGetProperty("MicEnabled", p) Then a.MicEnabled = p.GetBoolean()
+                            If doc.RootElement.TryGetProperty("SystemVolume", p) Then a.SystemAudioVolume = p.GetSingle()
+                            If doc.RootElement.TryGetProperty("MicVolume", p) Then a.MicVolume = p.GetSingle()
+                            If doc.RootElement.TryGetProperty("MicDevice", p) Then a.MicDeviceName = p.GetString()
+                            If doc.RootElement.TryGetProperty("MicDeviceId", p) Then a.MicDeviceId = p.GetString()
+                            If doc.RootElement.TryGetProperty("AudioTrackMode", p) Then a.TrackMode = p.GetInt32()
+                            imported = True
+                            Debug.WriteLine("[Migrate] imported legacy audio.json → config.json")
+                        End Using
+                    Catch ex As Exception
+                        Debug.WriteLine("[Migrate] audio.json import failed: " & ex.Message)
+                    End Try
+                End If
+
+                If imported Then Save()
+            End If
+
+            ' ── Rename stale legacy files out of the way (best-effort) ──
+            RenameLegacyAway(VideoConfigPath, "video.json")
+            RenameLegacyAway(Path.Combine(Application.StartupPath, "audio.json"), "audio.json")
+
+        Catch ex As Exception
+            Debug.WriteLine("[Migrate] legacy migration error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub RenameLegacyAway(path As String, baseName As String)
+        Try
+            If File.Exists(path) Then
+                Dim dest As String = path & ".legacy"
+                If File.Exists(dest) Then File.Delete(dest)
+                File.Move(path, dest)
+                Debug.WriteLine($"[Migrate] renamed {baseName} → {baseName}.legacy")
+            End If
+        Catch ex As Exception
+            ' Engine may hold a read at this exact moment — retry next boot.
+            Debug.WriteLine($"[Migrate] rename {baseName} deferred: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' โหลด video settings จาก video.json — LEGACY: migration source only.
+    ''' New code must read AppSettings.Instance.Recording (config.json).
     ''' </summary>
     Public Function LoadVideoSettings() As VideoConfigClass
         Try
@@ -828,24 +915,14 @@ Public Class AppSettings
     ''' Save video settings to video.json — เรียกตอนออกจาก Video Capture page
     ''' </summary>
     Public Sub SaveVideoSettings(video As VideoConfigClass)
+        ' GLM/6 UNIFIED CONFIG: config.json is the ONE file. The old video.json
+        ' write is retired — Recording + Audio already live in AppSettings and
+        ' Save() persists everything. Kept (signature intact) for callers.
         Try
-            If video Is Nothing Then Return
+            Save()
 
-            Dim options As New JsonSerializerOptions With {
-                .WriteIndented = True,
-                .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            }
-
-            Dim json As String = JsonSerializer.Serialize(video, options)
-            File.WriteAllText(VideoConfigPath, json)
-
-            Debug.WriteLine("AppSettings.SaveVideoSettings: Saved to " & VideoConfigPath)
-            Debug.WriteLine($"  Encoder: {video.Encoder}, ActivePreset: {video.ActivePreset}")
-            Debug.WriteLine($"  FPS: {video.Current.FPS}, Bitrate: {video.Current.Bitrate}")
-
-            ' ✅ P2: broadcast engine_config_changed so the Engine can reload
-            ' its UI immediately (instead of waiting up to 2s for the file poll).
-            ' Engine's tmrRefresh will also pick this up via LastWriteTime change.
+            ' ✅ P2: broadcast engine_config_changed so the Engine reloads now
+            ' (instead of waiting up to 2s for the file poll).
             Try
                 If Base.tcp IsNot Nothing Then
                     Base.tcp.Send("engine_config_changed", "video")
@@ -860,85 +937,19 @@ Public Class AppSettings
     End Sub
 
     ''' <summary>
-    ''' Sync current Recording + Audio settings → VideoConfigClass and save to video.json
-    ''' เรียกจาก Video Capture page เมื่อกดปิด/ออก
-    ''' 
-    ''' Produces JSON:
-    ''' {
-    '''   "encoder": "NVENC_H264",
-    '''   "active_preset": "MyMedium",
-    '''   "current": { "fps": 60, "bitrate": 9000, "encoder_preset": 4, ... },
-    '''   "replay_duration": 60,
-    '''   "audio": { "system_enabled": true, ... },
-    '''   "my_presets": { "low": {...}, "medium": {...}, "high": {...} }
-    ''' }
+    ''' GLM/6 UNIFIED CONFIG: persist everything to config.json (the ONE file)
+    ''' and broadcast the change. The old video.json shadow copy is retired.
     ''' </summary>
     Public Sub SyncAndSaveVideoConfig()
-        Dim video As New VideoConfigClass()
-
-        ' ═══ Top-level ═══
-        video.Encoder = Recording.Encoder
-        video.EncoderNow = Recording.EncoderNow
-        video.ActivePreset = Recording.Preset
-        video.ReplayDuration = Recording.ReplayDuration
-
-        ' ═══ My Preset name ═══
-        video.MyPresets.Name = Recording.MyPresetName
-
-        ' ═══ API Capture ═══
-        video.APICapture = Recording.APICapture
-
-        ' ═══ Current values (nested) ═══
-        video.Current.FPS = Recording.FPS
-        video.Current.Bitrate = Recording.Bitrate
-        video.Current.EncoderPreset = Recording.EncoderPreset
-        video.Current.UseNativeResolution = Recording.UseNativeResolution
-        video.Current.Width = Recording.Width
-        video.Current.Height = Recording.Height
-
-        ' ═══ Audio settings (nested) ═══
-        video.Audio.SystemEnabled = Audio.SystemAudioEnabled
-        video.Audio.MicEnabled = Audio.MicEnabled
-        video.Audio.SystemVolume = Audio.SystemAudioVolume
-        video.Audio.MicVolume = Audio.MicVolume
-        video.Audio.MicDevice = Audio.MicDeviceName
-        video.Audio.MicDeviceId = Audio.MicDeviceId
-        video.Audio.TrackMode = Audio.TrackMode
-
-        ' ═══ My Preset saved values (nested) ═══
-        video.MyPresets.Low.FPS = Recording.MyLowFPS
-        video.MyPresets.Low.Bitrate = Recording.MyLowBitrate
-        video.MyPresets.Low.EncoderPreset = Recording.MyLowEncoderPreset
-
-        video.MyPresets.Medium.FPS = Recording.MyMediumFPS
-        video.MyPresets.Medium.Bitrate = Recording.MyMediumBitrate
-        video.MyPresets.Medium.EncoderPreset = Recording.MyMediumEncoderPreset
-
-        video.MyPresets.High.FPS = Recording.MyHighFPS
-        video.MyPresets.High.Bitrate = Recording.MyHighBitrate
-        video.MyPresets.High.EncoderPreset = Recording.MyHighEncoderPreset
-
-        ' Save to video.json
-        SaveVideoSettings(video)
-
-        ' Also update config.json (keeps both in sync)
-        Save()
+        SaveVideoSettings(Nothing)   ' unified save + engine_config_changed broadcast
     End Sub
 
     ''' <summary>
-    ''' Load video.json and apply to Recording + Audio properties
-    ''' เรียกจาก Video Capture page เมื่อเปิดหน้า
-    ''' 
-    ''' Reads nested JSON:
-    ''' { "encoder", "active_preset", "current": {...}, "replay_duration", "audio": {...}, "my_presets": {...} }
+    ''' LEGACY migration helper: apply a video.json payload onto Recording + Audio.
+    ''' Called by MigrateLegacyConfigFiles on first run after upgrade.
     ''' </summary>
-    Public Sub LoadAndApplyVideoConfig()
-        Dim video = LoadVideoSettings()
-
-        If video Is Nothing Then
-            Debug.WriteLine("LoadAndApplyVideoConfig: No video.json, using current config.json values")
-            Return
-        End If
+    Public Sub ApplyVideoConfig(video As VideoConfigClass)
+        If video Is Nothing Then Return
 
         ' ═══ Top-level fields ═══
         Recording.Encoder = video.Encoder
@@ -982,10 +993,18 @@ Public Class AppSettings
         Recording.MyHighBitrate = video.MyPresets.High.Bitrate
         Recording.MyHighEncoderPreset = video.MyPresets.High.EncoderPreset
 
-        ' Also save to config.json (keeps both in sync)
-        Save()
+        Debug.WriteLine("ApplyVideoConfig: applied legacy video payload → Recording + Audio")
+    End Sub
 
-        Debug.WriteLine("LoadAndApplyVideoConfig: Applied video.json → Recording + Audio properties")
+    ''' <summary>
+    ''' LEGACY: import video.json once (if present) into the unified config.json.
+    ''' Normal flow reads AppSettings directly — video.json is not consulted.
+    ''' </summary>
+    Public Sub LoadAndApplyVideoConfig()
+        Dim video = LoadVideoSettings()
+        If video Is Nothing Then Return
+        ApplyVideoConfig(video)
+        Save()
     End Sub
 
 #End Region

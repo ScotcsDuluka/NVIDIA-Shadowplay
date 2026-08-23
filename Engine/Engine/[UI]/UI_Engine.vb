@@ -429,6 +429,14 @@ Partial Public Class UI_Engine
     ''' </summary>
     Private Sub SyncWithOverlayConfig(s As CaptureSettings)
         Try
+            ' GLM/6 UNIFIED: Overlay's config.json is the single user-facing
+            ' config — apply it directly (encoder/fps/bitrate/resolution/audio/
+            ' paths, incl. MicDeviceId + TrackMode). Legacy video.json is only
+            ' consulted when config.json is unavailable (old installs).
+            If OverlayConfig.ApplyUnifiedToCaptureSettings(s) Then
+                Return
+            End If
+
             Dim video As OverlayConfig.VideoConfig = OverlayConfig.LoadVideoConfig()
             Dim appCfg As OverlayConfig.AppConfig = OverlayConfig.LoadConfig()
 

@@ -550,8 +550,8 @@ Public Class Base_RecordingsSet
             End If
             Debug.WriteLine($"Hardware: NVIDIA={AppSettings.HasNvidia}, Intel={AppSettings.HasIntel}, AMD={AppSettings.HasAMD}")
 
-            ' Load video.json first (before UI initialization)
-            LoadVideoJson()
+            ' GLM/6 unified config: config.json is the single source. Legacy
+            ' video.json is imported once by AppSettings migration at startup.
 
             Dim ffmpegPath As String = FindFFmpegPath()
             If Not String.IsNullOrEmpty(ffmpegPath) Then
@@ -637,8 +637,12 @@ Public Class Base_RecordingsSet
             End If
 
             SaveCurrentSettings()
-            SaveVideoJson()
+            ' GLM/6 unified: one file — AppSettings.Save() persists everything.
             AppSettings.Instance.Save()
+            Try
+                If Base.tcp IsNot Nothing Then Base.tcp.Send("engine_config_changed", "video")
+            Catch
+            End Try
         Catch ex As Exception
             Debug.WriteLine("FormClosing Save Error: " & ex.Message)
         End Try
@@ -1146,158 +1150,11 @@ Public Class Base_RecordingsSet
     End Sub
 
 #Region "video.json Save/Load"
-    Private Function GetVideoJsonPath() As String
-        Return Path.Combine(Application.StartupPath, "video.json")
-    End Function
+ ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
 
-    Private Sub SaveVideoJson()
-        Try
-            ' ═══ Build clean nested JSON structure ═══
-            Dim currentValues As New Dictionary(Of String, Object) From {
-                {"fps", GetCurrentFPS()},
-                {"bitrate", If(TrackBar_BITRATE IsNot Nothing, TrackBar_BITRATE.Value * 100, AppSettings.Instance.Recording.Bitrate)},
-                {"encoder_preset", AppSettings.Instance.Recording.EncoderPreset},
-                {"use_native_resolution", AppSettings.Instance.Recording.UseNativeResolution},
-                {"width", AppSettings.Instance.Recording.Width},
-                {"height", AppSettings.Instance.Recording.Height}
-            }
+ ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
 
-            Dim audioValues As New Dictionary(Of String, Object) From {
-                {"system_enabled", AppSettings.Instance.Audio.SystemAudioEnabled},
-                {"mic_enabled", AppSettings.Instance.Audio.MicEnabled},
-                {"system_volume", AppSettings.Instance.Audio.SystemAudioVolume},
-                {"mic_volume", AppSettings.Instance.Audio.MicVolume},
-                {"mic_device", AppSettings.Instance.Audio.MicDeviceName},
-                {"mic_device_id", AppSettings.Instance.Audio.MicDeviceId},
-                {"track_mode", AppSettings.Instance.Audio.TrackMode}
-            }
-
-            Dim myPresets As New Dictionary(Of String, Object) From {
-                {"name", AppSettings.Instance.Recording.MyPresetName},
-                {"low", If(AppSettings.Instance.Recording.MyLowFPS.HasValue,
-                    New Dictionary(Of String, Object) From {
-                        {"fps", AppSettings.Instance.Recording.MyLowFPS.Value},
-                        {"bitrate", AppSettings.Instance.Recording.MyLowBitrate.Value},
-                        {"encoder_preset", AppSettings.Instance.Recording.MyLowEncoderPreset.Value}
-                    }, Nothing)},
-                {"medium", If(AppSettings.Instance.Recording.MyMediumFPS.HasValue,
-                    New Dictionary(Of String, Object) From {
-                        {"fps", AppSettings.Instance.Recording.MyMediumFPS.Value},
-                        {"bitrate", AppSettings.Instance.Recording.MyMediumBitrate.Value},
-                        {"encoder_preset", AppSettings.Instance.Recording.MyMediumEncoderPreset.Value}
-                    }, Nothing)},
-                {"high", If(AppSettings.Instance.Recording.MyHighFPS.HasValue,
-                    New Dictionary(Of String, Object) From {
-                        {"fps", AppSettings.Instance.Recording.MyHighFPS.Value},
-                        {"bitrate", AppSettings.Instance.Recording.MyHighBitrate.Value},
-                        {"encoder_preset", AppSettings.Instance.Recording.MyHighEncoderPreset.Value}
-                    }, Nothing)}
-            }
-
-            Dim data As New Dictionary(Of String, Object) From {
-                {"encoder", If(Not String.IsNullOrEmpty(_currentEncoderName), _currentEncoderName, "")},
-                {"encoder_now", AppSettings.Instance.Recording.EncoderNow},
-                {"active_preset", AppSettings.Instance.Recording.Preset},
-                {"current", currentValues},
-                {"replay_duration", AppSettings.Instance.Recording.ReplayDuration},
-                {"audio", audioValues},
-                {"my_presets", myPresets}
-            }
-
-            Dim json As String = JsonSerializer.Serialize(data, New JsonSerializerOptions With {.WriteIndented = True, .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull})
-            File.WriteAllText(GetVideoJsonPath(), json)
-            Debug.WriteLine("SaveVideoJson OK: " & GetVideoJsonPath())
-        Catch ex As Exception
-            Debug.WriteLine("SaveVideoJson Error: " & ex.Message)
-        End Try
-    End Sub
-
-    Private Sub LoadVideoJson()
-        Try
-            Dim path As String = GetVideoJsonPath()
-            If Not File.Exists(path) Then
-                Debug.WriteLine("LoadVideoJson: video.json not found, skipping")
-                Return
-            End If
-
-            Dim json As String = File.ReadAllText(path)
-            Dim data As Dictionary(Of String, JsonElement) = JsonSerializer.Deserialize(Of Dictionary(Of String, JsonElement))(json)
-            If data Is Nothing Then Return
-
-            Dim rec = AppSettings.Instance.Recording
-
-            ' ═══ Top-level fields ═══
-            If data.ContainsKey("encoder") Then rec.Encoder = data("encoder").GetString()
-            If data.ContainsKey("encoder_now") Then rec.EncoderNow = data("encoder_now").GetString()
-            If data.ContainsKey("active_preset") Then rec.Preset = data("active_preset").GetString()
-            If data.ContainsKey("replay_duration") Then rec.ReplayDuration = data("replay_duration").GetInt32()
-
-            ' ═══ Current values (nested) ═══
-            If data.ContainsKey("current") Then
-                Dim cur = data("current")
-                If cur.ValueKind = JsonValueKind.Object Then
-                    If cur.TryGetProperty("fps", Nothing) Then rec.FPS = cur("fps").GetInt32()
-                    If cur.TryGetProperty("bitrate", Nothing) Then rec.Bitrate = cur("bitrate").GetInt32()
-                    If cur.TryGetProperty("encoder_preset", Nothing) Then rec.EncoderPreset = cur("encoder_preset").GetInt32()
-                    If cur.TryGetProperty("use_native_resolution", Nothing) Then rec.UseNativeResolution = cur("use_native_resolution").GetBoolean()
-                    If cur.TryGetProperty("width", Nothing) Then rec.Width = cur("width").GetInt32()
-                    If cur.TryGetProperty("height", Nothing) Then rec.Height = cur("height").GetInt32()
-                End If
-            End If
-
-            ' ═══ Audio settings (nested) ═══
-            If data.ContainsKey("audio") Then
-                Dim aud = data("audio")
-                If aud.ValueKind = JsonValueKind.Object Then
-                    If aud.TryGetProperty("system_enabled", Nothing) Then AppSettings.Instance.Audio.SystemAudioEnabled = aud("system_enabled").GetBoolean()
-                    If aud.TryGetProperty("mic_enabled", Nothing) Then AppSettings.Instance.Audio.MicEnabled = aud("mic_enabled").GetBoolean()
-                    If aud.TryGetProperty("system_volume", Nothing) Then AppSettings.Instance.Audio.SystemAudioVolume = aud("system_volume").GetSingle()
-                    If aud.TryGetProperty("mic_volume", Nothing) Then AppSettings.Instance.Audio.MicVolume = aud("mic_volume").GetSingle()
-                    If aud.TryGetProperty("mic_device", Nothing) Then AppSettings.Instance.Audio.MicDeviceName = aud("mic_device").GetString()
-                    If aud.TryGetProperty("mic_device_id", Nothing) Then AppSettings.Instance.Audio.MicDeviceId = aud("mic_device_id").GetString()
-                    If aud.TryGetProperty("track_mode", Nothing) Then AppSettings.Instance.Audio.TrackMode = aud("track_mode").GetInt32()
-                End If
-            End If
-
-            ' ═══ My Presets (nested) ═══
-            If data.ContainsKey("my_presets") Then
-                Dim mp = data("my_presets")
-                If mp.ValueKind = JsonValueKind.Object Then
-                    ' Preset name
-                    If mp.TryGetProperty("name", Nothing) Then rec.MyPresetName = mp("name").GetString()
-                    ' Low
-                    If mp.TryGetProperty("low", Nothing) AndAlso mp("low").ValueKind = JsonValueKind.Object Then
-                        Dim p = mp("low")
-                        rec.MyLowFPS = If(p.TryGetProperty("fps", Nothing), p("fps").GetInt32(), Nothing)
-                        rec.MyLowBitrate = If(p.TryGetProperty("bitrate", Nothing), p("bitrate").GetInt32(), Nothing)
-                        rec.MyLowEncoderPreset = If(p.TryGetProperty("encoder_preset", Nothing), p("encoder_preset").GetInt32(), Nothing)
-                    End If
-                    ' Medium
-                    If mp.TryGetProperty("medium", Nothing) AndAlso mp("medium").ValueKind = JsonValueKind.Object Then
-                        Dim p = mp("medium")
-                        rec.MyMediumFPS = If(p.TryGetProperty("fps", Nothing), p("fps").GetInt32(), Nothing)
-                        rec.MyMediumBitrate = If(p.TryGetProperty("bitrate", Nothing), p("bitrate").GetInt32(), Nothing)
-                        rec.MyMediumEncoderPreset = If(p.TryGetProperty("encoder_preset", Nothing), p("encoder_preset").GetInt32(), Nothing)
-                    End If
-                    ' High
-                    If mp.TryGetProperty("high", Nothing) AndAlso mp("high").ValueKind = JsonValueKind.Object Then
-                        Dim p = mp("high")
-                        rec.MyHighFPS = If(p.TryGetProperty("fps", Nothing), p("fps").GetInt32(), Nothing)
-                        rec.MyHighBitrate = If(p.TryGetProperty("bitrate", Nothing), p("bitrate").GetInt32(), Nothing)
-                        rec.MyHighEncoderPreset = If(p.TryGetProperty("encoder_preset", Nothing), p("encoder_preset").GetInt32(), Nothing)
-                    End If
-                End If
-            End If
-
-            ' Sync encoder_now if not in file
-            If Not data.ContainsKey("encoder_now") Then rec.EncoderNow = rec.Encoder
-
-            AppSettings.Instance.Save()
-            Debug.WriteLine("LoadVideoJson OK: loaded new nested format")
-        Catch ex As Exception
-            Debug.WriteLine("LoadVideoJson Error: " & ex.Message)
-        End Try
-    End Sub
+ ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
 #End Region
 
 #Region "Save Settings"
@@ -1366,7 +1223,6 @@ Public Class Base_RecordingsSet
             End Select
 
             AppSettings.Instance.Save()
-            SaveVideoJson()
         Catch ex As Exception
             Debug.WriteLine("SaveSettingsNow Error: " & ex.Message)
         End Try
