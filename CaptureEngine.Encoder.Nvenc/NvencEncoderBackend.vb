@@ -87,6 +87,14 @@ Namespace CaptureEngine.Encoder.Nvenc
         ' sessions — each new raw H.264 file must start with SPS/PPS.
         Private _firstFrameOfSession As Boolean = False
 
+        ' ★ Periodic IDR (audit finding: encodeConfig = IntPtr.Zero = preset
+        ' defaults ≈ GOP 250 frames ≈ 3.3s @75fps — too sparse for frag-mp4
+        ' (cuts only at keyframes) and future Instant Replay. Without the
+        ' full NV_ENC_CONFIG interop (risky to add blind), we force IDR
+        ' every gopSize frames via per-picture flags — same 1s result.)
+        Private _framesSinceIdr As Integer = 0
+        Private _gopSize As Integer = 60
+
         Private ReadOnly _logger As EngineLogger
 
         Public Sub New(logger As EngineLogger)
@@ -134,7 +142,8 @@ Namespace CaptureEngine.Encoder.Nvenc
                 End If
 
                 ' Take a defensive clone (config is mutable).
-                _encoderConfig = config.Clone()
+                _encoderConfig = config
+            _gopSize = If(config.GopSize > 0, config.GopSize, 60)
 
                 ' ─── Resolve expected dimensions (must match Encode frame) ──
                 If config.ExpectedWidth <= 0 OrElse config.ExpectedHeight <= 0 Then
@@ -264,6 +273,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                 End If
                 _state = EncoderState.Running
                 _firstFrameOfSession = True  ' Next Encode() will force IDR + SPS/PPS
+                _framesSinceIdr = 0
             End SyncLock
             _logger.Info("NvencEncoderBackend: started.")
         End Sub
@@ -434,10 +444,18 @@ Namespace CaptureEngine.Encoder.Nvenc
                             NvEncodeAPI.NV_ENC_PIC_FLAG_FORCEIDR Or
                             NvEncodeAPI.NV_ENC_PIC_FLAG_OUTPUT_SPSPPS
                         _firstFrameOfSession = False
+                        _framesSinceIdr = 0
                         _logger.Info("NvencEncoderBackend: first frame of session — FORCEIDR + SPS/PPS")
+                    ElseIf _framesSinceIdr >= _gopSize Then
+                        ' ★ Periodic IDR: frag-mp4 cuts at keyframes; without this
+                        ' the default preset's ~250-frame GOP means fragments are
+                        ' ~3.3s apart and Instant Replay can't cut precisely.
+                        picParams.encodePicFlags = NvEncodeAPI.NV_ENC_PIC_FLAG_FORCEIDR
+                        _framesSinceIdr = 0
                     Else
                         picParams.encodePicFlags = 0
                     End If
+                    _framesSinceIdr += 1
                     picParams.frameIdx = 0
                     picParams.inputTimeStamp = CULng(pts)  ' pipeline PTS (NOT Stopwatch — frame contract)
                     picParams.inputDuration = 0
