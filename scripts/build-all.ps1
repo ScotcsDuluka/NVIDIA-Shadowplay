@@ -24,7 +24,24 @@ Write-Host "=================================================="
 
 # ── 1. Clean (BUILD_PROTOCOL: prevents stale DLLs) ────────────────
 if (-not $Fast) {
-    Write-Host "`n>>> Cleaning bin/obj for all projects..." -ForegroundColor Cyan
+    Write-Host "`n>>> Killing app family (a running NVIDIA app locks DLLs and breaks clean)..." -ForegroundColor Cyan
+    # ★ Root-cause lesson: HandleAppsSmart in the hub spawns/keeps the family
+    # alive; any running instance (incl. Diag builds) locks bin DLLs →
+    # 'Access denied' during Remove-Item. Kill FIRST, always, before clean.
+    foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
+                     "NVIDIA Experience", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost")) {
+        Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+    }
+    Start-Sleep -Seconds 2
+
+    Write-Host ">>> Cleaning bin/obj for all projects..." -ForegroundColor Cyan
+    # Diag/scratch outputs from startup-crash investigation are one-shot
+    # artifacts — delete them outright so clean never trips on them again.
+    foreach ($d in @("Overlay\bin\DiagB1", "Overlay\bin\DiagB2", "Overlay\bin\DiagE")) {
+        if (Test-Path (Join-Path $repo $d)) {
+            Remove-Item -Recurse -Force (Join-Path $repo $d) -ErrorAction SilentlyContinue
+        }
+    }
     Get-ChildItem -Directory -Filter "CaptureEngine*" | ForEach-Object {
         foreach ($d in "bin", "obj") {
             $p = Join-Path $_.FullName $d
