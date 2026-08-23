@@ -82,6 +82,10 @@ Namespace CaptureEngine.Recording
         ' ★ Gap-fill v2 evidence: total silence bytes inserted (pre-roll + gaps).
         Private _sysSilenceInsertedBytes As Long = 0
 
+        ' ★ Mic gap-fill v2 state (mirrors system audio)
+        Private _micLastAudioTicks As Long = 0
+        Private _micSilenceInsertedBytes As Long = 0
+
         Public Sub New(capture As DdagrabBackend,
                       encoder As NvencEncoderBackend,
                       config As SessionConfig,
@@ -259,23 +263,59 @@ Namespace CaptureEngine.Recording
                         micWriter = New WavSidecarWriter(tempMicWav, micWaveFormat.Channels, micWaveFormat.SampleRate, micBits)
                         micWriter.Start()
 
+                        ' ★ AUDIT FIX (GLM/6 #1+#2): the old callback had a nested
+                        ' unreachable branch — when micSrcFloat (the WASAPI default!)
+                        ' the float path wrote the WAV but NEVER called FeedMicAudio,
+                        ' silently dropping the mic track from the MP4 entirely.
+                        ' Rewritten as ONE clean path + gap-fill v2 (same model as
+                        ' system audio): silence goes to BOTH the WAV and the pipe.
+                        Dim micBytesPerSec As Integer = micWaveFormat.Channels * micWaveFormat.SampleRate * (micBits \ 8)
+                        Dim micSilenceBuf As Byte() = Nothing
+                        Dim micSilenceLen As Integer = 0
+                        _micLastAudioTicks = 0
+
+                        Dim micCallback As Action(Of Byte(), Integer) =
+                            Sub(rawPcm, rawLen)
+                                Dim data As Byte() = If(micSrcFloat, ConvertFloatToPcm16(rawPcm, rawLen), Nothing)
+                                Dim len As Integer = If(micSrcFloat, data.Length, rawLen)
+                                If Not micSrcFloat Then data = rawPcm
+
+                                Dim nowT As Long = Stopwatch.GetTimestamp()
+                                If _micLastAudioTicks = 0 Then
+                                    _micLastAudioTicks = If(_micStartTicks > 0, _micStartTicks, nowT)
+                                End If
+
+                                Dim arrivalGapSec As Double = (nowT - _micLastAudioTicks) / Stopwatch.Frequency
+                                Dim bufferDurSec As Double = len / CDbl(micBytesPerSec)
+                                Dim silenceNeededSec As Double = arrivalGapSec - bufferDurSec
+
+                                If silenceNeededSec > 0.05 AndAlso silenceNeededSec <= 60.0 Then
+                                    Dim silBytes As Integer = CInt(silenceNeededSec * micBytesPerSec)
+                                    silBytes -= (silBytes Mod Math.Max(1, micWaveFormat.BlockAlign))
+                                    If silBytes > 0 Then
+                                        If micSilenceBuf Is Nothing OrElse micSilenceLen < silBytes Then
+                                            micSilenceLen = Math.Max(silBytes, 65536)
+                                            micSilenceBuf = New Byte(micSilenceLen - 1) {}
+                                        End If
+                                        Dim off As Integer = 0
+                                        While off < silBytes
+                                            Dim n As Integer = Math.Min(silBytes - off, micSilenceBuf.Length)
+                                            micWriter.EnqueueChunk(micSilenceBuf, n)
+                                            _liveMux?.FeedMicAudio(micSilenceBuf, n)
+                                            off += n
+                                        End While
+                                        Interlocked.Add(_micSilenceInsertedBytes, silBytes)
+                                    End If
+                                End If
+
+                                _micLastAudioTicks = nowT
+                                micWriter.EnqueueChunk(data, len)
+                                _liveMux?.FeedMicAudio(data, len)
+                            End Sub
+
                         AddHandler micCapture.DataAvailable, Sub(s, e)
                                                                   If e.BytesRecorded > 0 Then
-                                                                      If micSrcFloat Then
-                                                                          Dim pcm As Byte() = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
-                                                                          micWriter.EnqueueChunk(pcm, pcm.Length)
-                                                                      Else
-                                                                          Dim micData As Byte() = e.Buffer
-                                                                          Dim micLen As Integer = e.BytesRecorded
-                                                                          If micSrcFloat Then
-                                                                              micData = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
-                                                                              micLen = micData.Length
-                                                                              micWriter.EnqueueChunk(micData, micLen)
-                                                                          Else
-                                                                              micWriter.EnqueueChunk(e.Buffer, e.BytesRecorded)
-                                                                          End If
-                                                                          _liveMux?.FeedMicAudio(micData, micLen)
-                                                                      End If
+                                                                      micCallback(e.Buffer, e.BytesRecorded)
                                                                   End If
                                                                   If _stopSignal OrElse sw.Elapsed >= duration Then
                                                                       Try : micCapture.StopRecording() : Catch : End Try
@@ -388,12 +428,15 @@ Namespace CaptureEngine.Recording
                         ' (Owner run 20:58 showed a=0B + exit -22: this call was lost
                         ' in a merge — the audio PipeFeed waited forever for the
                         ' timeline event, nothing was ever written, ffmpeg died.)
-                        Dim sysOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
-                        Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency) + SyncMath.MicAudioLeadSec
+                        ' ★ AUDIT FIX #3 (GLM/6): single-owner timeline. The gap-fill
+                        ' callbacks (system + mic) are now the ONLY source of stream
+                        ' alignment — they insert wall-clock silence at feed time
+                        ' with correct math. Passing SyncMath offsets here too would
+                        ' double-compensate (pre-roll from StartRecording + discard
+                        ' computed from the same origin). Only the constant systemic
+                        ' calibration lead remains (bias, not alignment).
                         _logger.Info($"[session] audio calibration applied: sys +{SyncMath.SystemAudioLeadSec:0.000}s, mic +{SyncMath.MicAudioLeadSec:0.000}s (owner-measured bias)")
-                        _liveMux?.BeginTimelines(sysOff, micOff)
+                        _liveMux?.BeginTimelines(SyncMath.SystemAudioLeadSec, SyncMath.MicAudioLeadSec)
                     End If
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()

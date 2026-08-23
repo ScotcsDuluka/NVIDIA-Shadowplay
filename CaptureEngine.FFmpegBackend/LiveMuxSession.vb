@@ -60,7 +60,17 @@ Namespace CaptureEngine.FFmpegBackend
 
         Private Const PipeBufferBytes As Integer = 1024 * 1024
         Private Const ConnectTimeoutMs As Integer = 15000
-        Private Const QueueChunkCap As Integer = 512   ' ★ raised: silence bursts (pre-roll up to 60s) + probe delay headroom
+        ' ★ AUDIT FIX #5 (GLM/6): chunk-count caps were meaningless across
+        ' streams (video chunks 30-200KB, audio ~5KB). Byte-bound now:
+        '   video 96MB (~0.5-4s depending on bitrate) — BLOCKS the producer
+        '   with timeout (audit #4: dropping H.264 packets mid-GOP corrupts
+        '   the stream; OBS lets the encoder lag instead of dropping)
+        '   audio 8MB (~20s) — drops oldest, but BLOCK-ALIGNED (audit #6:
+        '   dropping PCM at arbitrary byte offsets turns the remainder into
+        '   noise; round to whole samples)
+        Private Const VideoQueueByteCap As Long = 96L * 1024 * 1024
+        Private Const AudioQueueByteCap As Long = 8L * 1024 * 1024
+        Private Const ProducerBlockTimeoutMs As Integer = 10000
 
         Private ReadOnly _ffmpegPath As String
         Private ReadOnly _finalPath As String
@@ -124,9 +134,9 @@ Namespace CaptureEngine.FFmpegBackend
         Public Function Start() As Boolean
             Dim id As String = Guid.NewGuid().ToString("N").Substring(0, 10)
             Try
-                _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False)
-                _audio = New PipeFeed("sp_a_" & id, waitForTimeline:=True)
-                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True), Nothing)
+                _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False, blockProducer:=True, blockAlign:=1)
+                _audio = New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_sysChannels * 2)
+                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_micChannels * 2), Nothing)
 
                 _video.StartListening()
                 _audio.StartListening()
@@ -364,9 +374,12 @@ Namespace CaptureEngine.FFmpegBackend
             Private _discardBytes As Long
             Private _padBytes As Long
 
-            Friend Sub New(pipeName As String, waitForTimeline As Boolean)
+            Friend Sub New(pipeName As String, waitForTimeline As Boolean, blockProducer As Boolean, blockAlign As Integer)
                 Name = pipeName
                 _waitForTimeline = waitForTimeline
+                _blockProducer = blockProducer
+                _blockAlign = Math.Max(1, blockAlign)
+                _byteCap = If(blockProducer, VideoQueueByteCap, AudioQueueByteCap)
                 _pipe = New NamedPipeServerStream(pipeName, PipeDirection.Out, 1,
                                                   PipeTransmissionMode.Byte,
                                                   PipeOptions.Asynchronous,
@@ -374,6 +387,10 @@ Namespace CaptureEngine.FFmpegBackend
             End Sub
 
             Private ReadOnly _waitForTimeline As Boolean
+            Private ReadOnly _blockProducer As Boolean
+            Private ReadOnly _blockAlign As Integer
+            Private ReadOnly _byteCap As Long
+            Private _bytesQueued As Long = 0
 
             Friend ReadOnly Property BytesWritten As Long
                 Get
@@ -424,15 +441,47 @@ Namespace CaptureEngine.FFmpegBackend
                 If count <= 0 OrElse count > data.Length Then Return
                 Dim copy(count - 1) As Byte
                 Array.Copy(data, copy, count)
-                While _queue.Count >= QueueChunkCap
-                    Dim dropped As Byte() = Nothing
-                    If _queue.TryDequeue(dropped) Then
-                        Interlocked.Add(_droppedBytes, dropped.Length)
-                    Else
-                        Exit While
-                    End If
-                End While
-                _queue.Enqueue(copy)
+
+                If _blockProducer Then
+                    ' ★ VIDEO: never drop — blocking bounded queue. A dropped
+                    ' H.264 packet corrupts the stream until the next IDR.
+                    ' Wait (bounded by ProducerBlockTimeoutMs) for the writer
+                    ' to drain; on timeout fail hard — the consumer is gone
+                    ' and silence-video is worse than a clean failure.
+                    Dim swFeed As New Stopwatch()
+                    swFeed.Start()
+                    While Interlocked.Read(_bytesQueued) + count > _byteCap
+                        _signal.Set()
+                        If _stopWriter.WaitOne(0) OrElse swFeed.ElapsedMilliseconds > ProducerBlockTimeoutMs Then
+                            Interlocked.Add(_droppedBytes, count)
+                            Return
+                        End If
+                        Thread.Sleep(5)
+                    End While
+                    _queue.Enqueue(copy)
+                    Interlocked.Add(_bytesQueued, count)
+                Else
+                    ' ★ AUDIO: drop-oldest under pressure, BLOCK-ALIGNED.
+                    ' Dropping at a non-frame boundary shifts every later
+                    ' sample into noise; round the drop to whole frames.
+                    While Interlocked.Read(_bytesQueued) + count > _byteCap
+                        Dim dropped As Byte() = Nothing
+                        If Not _queue.TryDequeue(dropped) Then Exit While
+                        Dim dropLen As Integer = dropped.Length
+                        dropLen -= (dropLen Mod _blockAlign)
+                        If dropLen < dropped.Length Then
+                            ' keep the aligned tail as a tiny residual chunk
+                            Dim tail As Byte() = New Byte(dropped.Length - dropLen - 1) {}
+                            Array.Copy(dropped, dropLen, tail, 0, tail.Length)
+                            _queue.Enqueue(tail)
+                            Interlocked.Add(_bytesQueued, tail.Length)
+                        End If
+                        Interlocked.Add(_droppedBytes, dropLen)
+                        Interlocked.Add(_bytesQueued, -CLng(dropped.Length))
+                    End While
+                    _queue.Enqueue(copy)
+                    Interlocked.Add(_bytesQueued, count)
+                End If
                 _signal.Set()
             End Sub
 
@@ -490,6 +539,7 @@ Namespace CaptureEngine.FFmpegBackend
             Private Sub DrainQueue()
                 Dim chunk As Byte() = Nothing
                 While _queue.TryDequeue(chunk)
+                    Interlocked.Add(_bytesQueued, -CLng(chunk.Length))
                     If _pipeBroken Then
                         Interlocked.Add(_droppedBytes, chunk.Length)
                         Continue While
@@ -507,6 +557,7 @@ Namespace CaptureEngine.FFmpegBackend
             Private Sub DrainDiscardOnly()
                 Dim chunk As Byte() = Nothing
                 While _queue.TryDequeue(chunk)
+                    Interlocked.Add(_bytesQueued, -CLng(chunk.Length))
                     Interlocked.Add(_droppedBytes, chunk.Length)
                 End While
             End Sub
