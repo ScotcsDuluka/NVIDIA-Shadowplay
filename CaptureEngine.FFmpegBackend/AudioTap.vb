@@ -58,6 +58,18 @@ Namespace CaptureEngine.FFmpegBackend
 
         Private _originTicks As Long = 0        ' 0 = no buffer yet (set on first)
         Private _lastTicks As Long = 0
+
+        ' ★ Clock steering (GLM/6 round 3): the device crystal drifts vs the
+        ' Stopwatch (~50ppm = 30ms per 10 minutes) — long recordings slowly
+        ' desync. Every SteeringIntervalSec we compare accumulated BYTES
+        ' against WALL-CLOCK elapsed since origin; a deviation beyond
+        ' tolerance is corrected by adjusting _lastTicks (which feeds the gap
+        ' math), so the NEXT gap absorbs the correction as extra/less silence,
+        ' block-aligned. Converts permanent drift into bounded drift.
+        Private Const SteeringIntervalSec As Double = 5.0
+        Private Const SteeringToleranceSec As Double = 0.015   ' +/-15ms
+        Private _lastSteerCheckTicks As Long = 0
+        Private _steerCorrections As Integer = 0
         Private _silenceBuf As Byte() = Nothing
         Private _silenceCap As Integer = 0
         Private _silenceInsertedBytes As Long = 0
@@ -141,6 +153,31 @@ Namespace CaptureEngine.FFmpegBackend
                 _lastTicks = _startRequestedTicks
                 _evidence?.Invoke($"[tap:{_name}] first callback +{_firstCallbackDelayMs:0}ms warm-up; buffer {count / CDbl(_bytesPerSec) * 1000.0:0}ms")
                 ' (fall through: pre-roll silence inserted by the common path)
+            End If
+
+            ' ★ Clock steering check (every SteeringIntervalSec):
+            '   streamSec = total bytes fed / nominal rate
+            '   elapsedSec = wall clock since origin
+            '   drift = elapsed - stream
+            '   drift > tolerance  → stream is SHORT → shift _lastTicks BACK
+            '     (arrivalGap grows → next gap inserts MORE silence)
+            '   drift < -tolerance → stream is LONG → shift _lastTicks FORWARD
+            '     (arrivalGap shrinks — possibly negative → clamped to no
+            '     silence; the excess decays over subsequent corrections)
+            ' Corrections are capped at 100ms per interval so a single glitch
+            ' cannot slam the timeline.
+            If _lastSteerCheckTicks = 0 Then _lastSteerCheckTicks = _originTicks
+            If (nowT - _lastSteerCheckTicks) / Stopwatch.Frequency >= SteeringIntervalSec Then
+                _lastSteerCheckTicks = nowT
+                Dim elapsedSecS As Double = (nowT - _originTicks) / Stopwatch.Frequency
+                Dim streamSecS As Double = (Interlocked.Read(_silenceInsertedBytes) + Interlocked.Read(_dataBytes)) / CDbl(_bytesPerSec)
+                Dim driftSecS As Double = elapsedSecS - streamSecS
+                If Math.Abs(driftSecS) > SteeringToleranceSec Then
+                    Dim corrSec As Double = Math.Max(-0.1, Math.Min(0.1, driftSecS))
+                    _lastTicks -= CLng(corrSec * Stopwatch.Frequency)
+                    _steerCorrections += 1
+                    _evidence?.Invoke($"[tap:{_name}] steering: stream {If(driftSecS > 0, "BEHIND", "AHEAD")} {Math.Abs(driftSecS) * 1000.0:0}ms, correcting {-corrSec * 1000.0:0}ms via next gap (#{_steerCorrections})")
+                End If
             End If
 
             Dim arrivalGapSec As Double = (nowT - _lastTicks) / Stopwatch.Frequency
