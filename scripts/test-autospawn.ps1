@@ -187,15 +187,21 @@ if ($spProc.HasExited) {
     $code = $spProc.ExitCode
     Write-Host ("  ERROR — new ShadowPlay exited immediately (pid {0}, exit code {1})." -f $spProc.Id, $code) -ForegroundColor Red
 
-    # ── DIAG 0 (v6): stderr via REAL PIPE ─────────────────────────
-    # ShadowPlay is WinExe (GUI subsystem): launched from a console it gets
-    # NO console handles at all, so 'cmd /c ... 2>&1' can never see its
-    # output (that is why run #4's DIAG 0 was silent). Start-Process
-    # -Redirect* passes actual pipe handles — .NET writes unhandled
-    # exceptions to them.
-    Write-Host "`n>>> DIAG 0: launching exe with piped stderr/stdout (GUI-safe)..." -ForegroundColor Cyan
+    # ── DIAG 0 (v8): piped stderr + COREHOST_TRACE (the .NET host's own debug trace) ──
+    # Exit code -1 (0xFFFFFFFF) = apphost StatusHostFailure: the host died
+    # BEFORE managed code. The .NET host has a built-in trace for exactly
+    # this — COREHOST_TRACE=1 makes hostfxr log every resolution step and
+    # the exact failure line, even when stderr stays empty (GUI app).
+    # Run #5 evidence: clean build, MZ ok, no Defender, no .NET events,
+    # stderr empty even via pipes, sibling API.exe works → host-level,
+    # app-specific. This trace will name the failing step verbatim.
+    Write-Host "`n>>> DIAG 0: launching exe with piped stderr + COREHOST_TRACE..." -ForegroundColor Cyan
     $pipeErr = Join-Path $env:TEMP "sp-exe-err.txt"
     $pipeOut = Join-Path $env:TEMP "sp-exe-out.txt"
+    $traceFile = Join-Path $env:TEMP "sp-corehost-trace.log"
+    if (Test-Path $traceFile) { Remove-Item $traceFile -Force -ErrorAction SilentlyContinue }
+    $env:COREHOST_TRACE = "1"
+    $env:COREHOST_TRACE_FILE = $traceFile
     try {
         $p2 = Start-Process -FilePath $spExe -WorkingDirectory $overlayBin -PassThru `
             -RedirectStandardError $pipeErr -RedirectStandardOutput $pipeOut
@@ -209,6 +215,9 @@ if ($spProc.HasExited) {
         }
     } catch {
         Write-Host "  (pipe launch failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+    } finally {
+        Remove-Item Env:COREHOST_TRACE -ErrorAction SilentlyContinue
+        Remove-Item Env:COREHOST_TRACE_FILE -ErrorAction SilentlyContinue
     }
     foreach ($pair in @(@("stderr", $pipeErr), @("stdout", $pipeOut))) {
         $label = $pair[0]; $pathx = $pair[1]
@@ -221,6 +230,42 @@ if ($spProc.HasExited) {
                 Write-Host "  ($label empty)" -ForegroundColor DarkGray
             }
         }
+    }
+    # ── THE trace: last 60 lines contain the failure reason ──
+    if (Test-Path $traceFile) {
+        $tl = Get-Content $traceFile -ErrorAction SilentlyContinue
+        Write-Host "`n  ── COREHOST TRACE (last 60 lines of $($tl.Count)) ──" -ForegroundColor Yellow
+        $tl | Select-Object -Last 60 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+        # Highlight the lines that usually contain the verdict
+        $hits = @($tl | Where-Object { $_ -match "fail|error|not found|invalid" })
+        if ($hits.Count -gt 0) {
+            Write-Host "  ── TRACE VERDICT LINES ──" -ForegroundColor Red
+            $hits | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+        }
+    } else {
+        Write-Host "`n  (no COREHOST trace file was written — hostfxr was never reached!)" -ForegroundColor Red
+    }
+
+    # ── DIAG 0e: mitigation probe — launch with explicit DOTNET_ROOT ──
+    # If the app SURVIVES with DOTNET_ROOT pinned to the installed runtime,
+    # runtime RESOLUTION is confirmed as the failing step AND we have an
+    # immediate workaround for production (set the var before spawning).
+    Write-Host "`n>>> DIAG 0e: launching with DOTNET_ROOT pinned to 'C:\Program Files\dotnet'..." -ForegroundColor Cyan
+    $env:DOTNET_ROOT = "C:\Program Files\dotnet"
+    try {
+        $p3 = Start-Process -FilePath $spExe -WorkingDirectory $overlayBin -PassThru `
+            -RedirectStandardError (Join-Path $env:TEMP "sp-root-err.txt") -RedirectStandardOutput (Join-Path $env:TEMP "sp-root-out.txt")
+        if (-not $p3.WaitForExit(10000)) {
+            Write-Host "  >>> SURVIVES with DOTNET_ROOT set — runtime resolution confirmed + workaround available" -ForegroundColor Green
+            try { $p3 | Stop-Process -Force } catch { }
+            try { Get-Process -Name "NVIDIA ShadowPlay" -ErrorAction SilentlyContinue | Stop-Process -Force } catch { }
+        } else {
+            Write-Host ("  >>> still dies with DOTNET_ROOT set (exit {0}) — not a simple resolution issue" -f $p3.ExitCode) -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "  (DOTNET_ROOT probe failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+    } finally {
+        Remove-Item Env:DOTNET_ROOT -ErrorAction SilentlyContinue
     }
 
     # ── DIAG 0b: exe sanity (size + MZ header) vs the WORKING sibling ──
