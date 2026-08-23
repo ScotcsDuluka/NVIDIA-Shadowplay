@@ -156,6 +156,42 @@ if ($spProc.HasExited) {
     $code = $spProc.ExitCode
     Write-Host ("  ERROR — new ShadowPlay exited immediately (pid {0}, exit code {1})." -f $spProc.Id, $code) -ForegroundColor Red
 
+    # ── DIAG 0: capture the APPHOST's own stderr via cmd redirect ──
+    # hostfxr-level failures ("You must install .NET Desktop Runtime",
+    # "hostfxr.dll could not be found", runtimeconfig parse errors) are
+    # printed to stderr BEFORE managed code runs. This is the exact reason
+    # an apphost can fail while 'dotnet app.dll' succeeds (the SDK's dotnet
+    # resolves its own runtimes; the apphost searches the registry/DOTNET_ROOT).
+    Write-Host "`n>>> DIAG 0: apphost stderr (cmd /c redirect)..." -ForegroundColor Cyan
+    $hostLog = Join-Path $env:TEMP "sp-apphost-err.txt"
+    cmd /c "`"$spExe`" 2>&1" | Out-File -FilePath $hostLog -Encoding Unicode
+    $hostText = ""
+    if (Test-Path $hostLog) { $hostText = Get-Content $hostLog -Raw }
+    if (-not [string]::IsNullOrWhiteSpace($hostText)) {
+        Write-Host "  ── apphost output (first 30 lines) ──" -ForegroundColor Yellow
+        $hostText -split "`r?`n" | Select-Object -First 30 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+    } else {
+        Write-Host "  (apphost printed nothing — silent host failure)" -ForegroundColor DarkGray
+    }
+
+    # ── DIAG 0b: runtime presence + runtimeconfig content ──
+    Write-Host "`n>>> DIAG 0b: installed .NET runtimes (is WindowsDesktop 8.x present?)..." -ForegroundColor Cyan
+    try {
+        $rts = & dotnet --list-runtimes 2>$null
+        $desk = @($rts | Where-Object { $_ -match "Microsoft.WindowsDesktop.App" })
+        if ($desk.Count -gt 0) { $desk | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray } }
+        else { Write-Host "    *** NO Microsoft.WindowsDesktop.App runtime found — apphost cannot start WinForms apps!" -ForegroundColor Red }
+        $rc = Join-Path $overlayBin "NVIDIA ShadowPlay.runtimeconfig.json"
+        if (Test-Path $rc) {
+            Write-Host "    runtimeconfig:" -ForegroundColor DarkGray
+            Get-Content $rc | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
+        } else {
+            Write-Host "    *** runtimeconfig.json MISSING for ShadowPlay!" -ForegroundColor Red
+        }
+    } catch {
+        Write-Host "    (dotnet probe failed: $($_.Exception.Message))" -ForegroundColor DarkGray
+    }
+
     # ── DIAG 1: relaunch via dotnet host with captured stderr/stdout ──
     # WinForms unhandled exceptions surface on the console this way.
     # Timeout 15s: if the app SURVIVES under the dotnet host, the apphost
@@ -177,15 +213,15 @@ if ($spProc.HasExited) {
         Write-Host ("  dotnet exit code: {0}" -f $diag.ExitCode) -ForegroundColor Yellow
     }
     if (Test-Path $errLog) {
-        $errText = Get-Content $errLog -Raw
-        if ($errText.Trim().Length -gt 0) {
+        $errText = Get-Content $errLog -Raw -ErrorAction SilentlyContinue
+        If (-not [string]::IsNullOrWhiteSpace($errText)) {
             Write-Host "  ── stderr (first 40 lines) ──" -ForegroundColor Yellow
             $errText -split "`r?`n" | Select-Object -First 40 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
         }
     }
     if (Test-Path $outLog) {
-        $outText = Get-Content $outLog -Raw
-        if ($outText.Trim().Length -gt 0) {
+        $outText = Get-Content $outLog -Raw -ErrorAction SilentlyContinue
+        If (-not [string]::IsNullOrWhiteSpace($outText)) {
             Write-Host "  ── stdout (first 20 lines) ──" -ForegroundColor Yellow
             $outText -split "`r?`n" | Select-Object -First 20 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
         }
