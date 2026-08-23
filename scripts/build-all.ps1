@@ -29,7 +29,8 @@ if (-not $Fast) {
     # alive; any running instance (incl. Diag builds) locks bin DLLs →
     # 'Access denied' during Remove-Item. Kill FIRST, always, before clean.
     foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
-                     "NVIDIA Experience", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost")) {
+                     "NVIDIA Experience", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost",
+                     "ffmpeg", "ffprobe", "ffplay")) {
         Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     }
     Start-Sleep -Seconds 2
