@@ -69,6 +69,11 @@ Namespace CaptureEngine.Recording
         ' differ from system loopback — never share or derive one from other)
         Private _micStartTicks As Long = 0
 
+        ' ★ OBS-style live mux (owner directive): one FFmpeg process receives
+        ' video+audio through named pipes while recording — no temp files,
+        ' no post-hoc wrap/mux, wall-clock-true by construction.
+        Private _liveMux As LiveMuxSession
+
         ' ★ Loopback gap-fill state (system audio): timestamp of the LAST
         ' received callback. 0 = no audio yet. Shared with the tail-padding
         ' step at stop time so WAV duration == wall-clock audio span.
@@ -91,8 +96,6 @@ Namespace CaptureEngine.Recording
             }
 
             ' ─── Temp file paths ─────────────────────────────────────────
-            Dim tempH264 As String = Path.ChangeExtension(_config.OutputPath, ".tmp.h264")
-            Dim tempVideoMp4 As String = Path.ChangeExtension(_config.OutputPath, ".tmp.video.mp4")
             Dim tempWav As String = Path.ChangeExtension(_config.OutputPath, ".tmp.wav")
             Dim tempMicWav As String = Path.ChangeExtension(_config.OutputPath, ".tmp.mic.wav")
 
@@ -102,7 +105,6 @@ Namespace CaptureEngine.Recording
             Dim wavStoppedEvent As New ManualResetEvent(False)
             Dim wavWriter As WavSidecarWriter = Nothing
             Dim wavReport As WavFinalizeReport = Nothing
-            Dim videoFile As FileStream = Nothing
             Dim waveFormat As WaveFormat = Nothing
 
             ' ★ M1: mic sidecar — mirror of the system sidecar, fully independent
@@ -195,6 +197,7 @@ Namespace CaptureEngine.Recording
                             End If
 
                             wavWriter.EnqueueChunk(data, len)
+                            _liveMux?.FeedSystemAudio(data, len)
                         End Sub
 
                     AddHandler audioCapture.DataAvailable, Sub(s, e)
@@ -244,7 +247,16 @@ Namespace CaptureEngine.Recording
                                                                           Dim pcm As Byte() = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
                                                                           micWriter.EnqueueChunk(pcm, pcm.Length)
                                                                       Else
-                                                                          micWriter.EnqueueChunk(e.Buffer, e.BytesRecorded)
+                                                                          Dim micData As Byte() = e.Buffer
+                                                                          Dim micLen As Integer = e.BytesRecorded
+                                                                          If micSrcFloat Then
+                                                                              micData = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
+                                                                              micLen = micData.Length
+                                                                              micWriter.EnqueueChunk(micData, micLen)
+                                                                          Else
+                                                                              micWriter.EnqueueChunk(e.Buffer, e.BytesRecorded)
+                                                                          End If
+                                                                          _liveMux?.FeedMicAudio(micData, micLen)
                                                                       End If
                                                                   End If
                                                                   If _stopSignal OrElse sw.Elapsed >= duration Then
@@ -268,14 +280,37 @@ Namespace CaptureEngine.Recording
                     End Try
                 End If
 
+                ' ─── 2b. ★ OBS-style LIVE MUX: one FFmpeg, both streams, wall clock ──
+                ' OWNER directive: record video+audio together, both follow the
+                ' clock, both end together (replaces temp-H.264 + WAV + wrap + mux).
+                Dim refreshRate As Integer = _capture.OutputRefreshRate
+                If refreshRate <= 0 Then refreshRate = 60
+
+                Dim micRate As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.SampleRate, 0)
+                Dim micCh As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.Channels, 0)
+                Dim sysRate As Integer = If(waveFormat IsNot Nothing, waveFormat.SampleRate, 48000)
+                Dim sysCh As Integer = If(waveFormat IsNot Nothing, waveFormat.Channels, 2)
+
+                _liveMux = New LiveMuxSession(
+                    _config.FFmpegPath,
+                    _config.OutputPath,
+                    refreshRate,
+                    sysRate, sysCh,
+                    micRate, micCh,
+                    _config.MicSeparateTracks,
+                    _config.SystemVolume,
+                    _config.MicVolume,
+                    Sub(m) _logger.Info(m))
+                If Not _liveMux.Start() Then
+                    Throw New Exception("LiveMux failed to start (ffmpeg) — session aborted")
+                End If
+
                 ' ─── 3. Start video capture + encoder ─────────────────────
                 _logger.Info("[session] Starting video capture...")
                 _encoder.Start()
                 _capture.Start(sink)
 
-                ' ─── 4. Open video output file ───────────────────────────
-                videoFile = New FileStream(tempH264, FileMode.Create, FileAccess.Write)
-                _logger.Info($"[session] Writing H.264 to: {tempH264}")
+                ' ─── 4. (video bytes now stream into the live-mux pipe) ──
 
                 ' ─── 5. CFR-paced capture/encode loop ────────────────
                 ' ★ AUDIT FIX (owner: 'video still looks weird'). Full-path audit
@@ -342,7 +377,7 @@ Namespace CaptureEngine.Recording
                             Dim packet As EncodedPacket = Nothing
                             Try
                                 If _encoder.Encode(encodeFrame, packet) AndAlso packet IsNot Nothing Then
-                                    videoFile.Write(packet.Payload, 0, packet.PayloadLength)
+                                    _liveMux?.FeedVideo(packet.Payload, packet.PayloadLength)
                                     result.TotalVideoBytes += packet.PayloadLength
                                     result.FramesEncoded += 1
                                     packet.Dispose()
@@ -403,7 +438,7 @@ Namespace CaptureEngine.Recording
                     Dim packetF As EncodedPacket = Nothing
                     Try
                         If _encoder.Encode(pendingFrame, packetF) AndAlso packetF IsNot Nothing Then
-                            videoFile.Write(packetF.Payload, 0, packetF.PayloadLength)
+                            _liveMux?.FeedVideo(packetF.Payload, packetF.PayloadLength)
                             result.TotalVideoBytes += packetF.PayloadLength
                             result.FramesEncoded += 1
                             packetF.Dispose()
@@ -419,19 +454,8 @@ Namespace CaptureEngine.Recording
                 lastFrame?.Dispose()
                 lastFrame = Nothing
 
-                ' ★ Sync fix (real-world drift): timestamp the END of frame
-                ' delivery — after the final frame, before encoder teardown.
-                ' Together with _videoStartTicks (first frame) this gives the
-                ' true wall-clock span the encoded frames represent.
-                Dim captureEndTicks As Long = Stopwatch.GetTimestamp()
-
                 _logger.Info("[session] Stopping encoder...")
                 _encoder.Stop()
-
-                ' ─── 7. Close video file ────────────────────────────────
-                videoFile.Flush()
-                videoFile.Dispose()
-                videoFile = Nothing
 
                 ' ─── 8. Stop audio → event-driven WAV finalize ──────────
                 If audioCapture IsNot Nothing Then
@@ -460,6 +484,7 @@ Namespace CaptureEngine.Recording
                             While off < silBytes
                                 Dim n As Integer = Math.Min(silBytes - off, zeros.Length)
                                 wavWriter.EnqueueChunk(zeros, n)
+                                _liveMux?.FeedSystemAudio(zeros, n)
                                 off += n
                             End While
                             _logger.Info($"[session] audio tail gap padded with {tailSec:0.00}s silence (sound stopped before record stop)")
@@ -499,127 +524,49 @@ Namespace CaptureEngine.Recording
 
                 result.ActualDurationSec = sw.Elapsed.TotalSeconds
 
-                ' ─── 9. Wrap raw H.264 into MP4 ─────────────────────
-                ' ★ REAL-WORLD SYNC FIX (owner test: recorded real music, lyrics
-                ' desynced). Raw H.264 carries NO timestamps — the wrap's -r
-                ' DEFINES playback speed. Old behavior (-r display refresh rate,
-                ' decision 20932aa) assumed capture paced at exactly the display
-                ' rate. Evidence says otherwise (12b sessions: 63-75fps on 75Hz;
-                ' desktop-activity-dependent). Wrapping variable capture at a
-                ' fixed 75 time-compresses the video: e.g. 68fps avg → ~9% fast
-                ' → ~2.8s drift over 30s. Audio (wall-clock sidecar) cannot match.
-                '
-                ' Fix: wrap at the MEASURED average fps (framesEncoded / span).
-                ' That preserves the wall-clock duration the audio also followed,
-                ' so A/V stay aligned for the whole file. Display rate stays as
-                ' fallback when the measurement is unavailable/absurd.
-                ' (Long-term: per-frame PTS in a VFR container — Instant Replay
-                ' research workstream; do-not-break rule says minimal fix now.)
-                Dim refreshRate As Integer = _capture.OutputRefreshRate
-                If refreshRate <= 0 Then refreshRate = 60 ' defensive fallback only
+                ' ★ OBS-model: finalize the LIVE MUX (drain pipes → FFmpeg EOF
+                ' → finalize fragmented MP4 → +faststart remux). The declared CFR
+                ' rate and the wall-clock audio feed already define the timeline;
+                ' no wrap step, no post-hoc offsets.
+                result.WrapFps = refreshRate
+                Dim liveRes As LiveMuxResult = _liveMux.[Stop](30000)
+                _logger.Info("[session] " & liveRes.ToString())
 
-                Dim captureSpanSec As Double = 0.0
-                Dim wrapFps As Double = refreshRate
-                If _videoStartTicks > 0 AndAlso captureEndTicks > _videoStartTicks AndAlso result.FramesEncoded > 1 Then
-                    captureSpanSec = (captureEndTicks - _videoStartTicks) / Stopwatch.Frequency
-                    Dim measured As Double = result.FramesEncoded / captureSpanSec
-                    If measured >= 1.0 AndAlso measured <= 500.0 Then
-                        wrapFps = measured
-                    End If
-                    If refreshRate > 0 AndAlso Math.Abs(measured - refreshRate) / refreshRate > 0.05 Then
-                        _logger.Warning($"[session] measured avg {measured:0.0}fps differs from display {refreshRate}Hz " &
-                                        $"— old wrap would have drifted {((measured / refreshRate) - 1.0) * 100.0:0.0}% over time")
-                    End If
-                End If
-                result.WrapFps = wrapFps
-                Dim fpsArg As String = wrapFps.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)
-
-                _logger.Info($"[session] Wrapping H.264 into MP4 @ {fpsArg}fps " &
-                             $"(measured: {result.FramesEncoded} frames / {captureSpanSec:0.000}s; display: {refreshRate}Hz)")
-                Dim wrapArgs As String = $"-y -hide_banner -f h264 -r {fpsArg} -i ""{tempH264}"" -c:v copy ""{tempVideoMp4}"""
-                _logger.Info($"[session] Wrap command: {_config.FFmpegPath} {wrapArgs}")
-                Dim wrapPsi As New ProcessStartInfo With {
+                ' ─── 10. Probe final MP4 duration (evidence) ─────────────
+                Dim probePsi As New ProcessStartInfo With {
                     .FileName = _config.FFmpegPath,
-                    .Arguments = wrapArgs,
+                    .Arguments = "-hide_banner -i """ & _config.OutputPath & """",
                     .UseShellExecute = False,
                     .RedirectStandardError = True,
                     .CreateNoWindow = True
                 }
                 Try
-                    Using wrapProc As Process = Process.Start(wrapPsi)
-                        ' Phase 12b: no-orphan-FFmpeg — assign to host job object.
-                        Try : _config.OnProcessStarted?.Invoke(wrapProc) : Catch : End Try
-
-                        Dim wrapStderr As String = wrapProc.StandardError.ReadToEnd()
-                        If Not wrapProc.WaitForExit(30000) Then
-                            Try : wrapProc.Kill() : Catch : End Try
-                            _logger.Error("[session] H.264 wrap TIMEOUT (30s) — killed")
-                        End If
-                        If wrapProc.ExitCode <> 0 Then
-                            _logger.Error($"[session] H.264 wrap failed: exit code {wrapProc.ExitCode}" &
-                                          Environment.NewLine & "FFmpeg stderr:" & Environment.NewLine & wrapStderr)
-                        Else
-                            _logger.Info("[session] H.264 wrap succeeded")
+                    Using probeProc As Process = Process.Start(probePsi)
+                        Dim probeErr As String = probeProc.StandardError.ReadToEnd()
+                        probeProc.WaitForExit(5000)
+                        Dim m As System.Text.RegularExpressions.Match =
+                            System.Text.RegularExpressions.Regex.Match(probeErr, "Duration:\s*(\d+):(\d+):(\d+\.?\d*)")
+                        If m.Success Then
+                            result.MuxVideoDurationSec =
+                                CInt(m.Groups(1).Value) * 3600 + CInt(m.Groups(2).Value) * 60 + CDbl(m.Groups(3).Value)
                         End If
                     End Using
-                Catch ex As Exception
-                    _logger.Error($"[session] H.264 wrap threw: {ex.Message}")
+                Catch
                 End Try
 
-                ' ─── 10. Probe wrapped MP4 for exact duration ───────────
-                ' The mux -t must use the CONTAINER duration (frame-accurate),
-                ' not the wall-clock session time (which includes encoder
-                ' spin-up and stop latency).
-                Dim mux As New MuxCoordinator() With {
-                    .FFmpegPath = _config.FFmpegPath,
-                    .TempVideoPath = tempVideoMp4,
-                    .TempSystemWavPath = tempWav,
-                    .OutputPath = _config.OutputPath,
-                    .HasSystemAudio = (_config.AudioEnabled AndAlso wavReport IsNot Nothing AndAlso wavReport.BytesWritten > 0),
-                    .SystemVolume = _config.SystemVolume,
-                    .TempMicWavPath = tempMicWav,
-                    .HasMicAudio = (micReport IsNot Nothing AndAlso micReport.BytesWritten > 0),
-                    .MicVolume = _config.MicVolume,
-                    .SeparateTracks = _config.MicSeparateTracks,
-                    .OnProcessStarted = _config.OnProcessStarted
-                } ' M1: mic track wiring — MuxCoordinator already supports TempMicWavPath/HasMicAudio/MicOffsetSec/MicVolume
-
-                Dim probedDuration As Double = mux.ProbeVideoDuration()
-                If probedDuration > 0.001 Then
-                    mux.VideoDurationSec = probedDuration
-                    _logger.Info($"[session] ffprobe video duration: {probedDuration:0.000}s (container-accurate)")
-                Else
-                    mux.VideoDurationSec = result.ActualDurationSec
-                    _logger.Warning($"[session] ffprobe failed — falling back to wall-clock {result.ActualDurationSec:0.000}s")
-                End If
-                result.MuxVideoDurationSec = mux.VideoDurationSec
-
-                ' ─── 11. A/V sync offset (proven model) ──────────────────
+                ' Evidence: system audio offset that the live feed applied
                 Dim systemOffset As Double = SyncMath.ComputeAudioOffsetSec(
                     _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
-                mux.SystemOffsetSec = systemOffset
                 result.SystemOffsetSec = systemOffset
-                _logger.Info($"[session] Sync: videoStart={_videoStartTicks} sysStart={_systemStartTicks} " &
-                             $"offset={systemOffset:0.000}s ({If(systemOffset > 0.001, "skip audio head", If(systemOffset < -0.001, "delay audio", "aligned"))})")
-
-                ' ★ M1: mic offset — SAME proven model, mic's OWN timeline ──
                 Dim micOffset As Double = SyncMath.ComputeAudioOffsetSec(
                     _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
-                mux.MicOffsetSec = micOffset
                 result.MicOffsetSec = micOffset
-                _logger.Info($"[session] Mic sync: micStart={_micStartTicks} " &
-                             $"offset={micOffset:0.000}s ({If(micOffset > 0.001, "skip mic head", If(micOffset < -0.001, "delay mic", "aligned"))})")
 
-                ' ─── 12. Mux ─────────────────────────────────────────────
-                _logger.Info("[session] Muxing video + audio → MP4...")
-                Dim muxOk As Boolean = mux.Run()
-                If muxOk Then
-                    _logger.Info("[session] Mux succeeded — cleaning temp files")
-                    mux.CleanupTempFiles()
-                    Try : File.Delete(tempH264) : Catch : End Try
-                Else
-                    _logger.Error("[session] Mux FAILED — keeping temp files for debugging")
+                ' Clean the evidence WAV on success (keep on failure for debug)
+                If liveRes.Succeeded Then
+                    Try : File.Delete(tempWav) : Catch : End Try
                 End If
+
 
                 ' ─── 13. Verify MP4 ─────────────────────────────────────
                 Dim fi As New FileInfo(_config.OutputPath)
@@ -650,14 +597,14 @@ Namespace CaptureEngine.Recording
                              $"(captured={result.FramesCaptured}, dup={result.FramesDuplicated}), " &
                              $"video_bytes={result.TotalVideoBytes}, audio_bytes={result.AudioBytes}, " &
                              $"dropped={result.AudioDroppedBytes}, offset={result.SystemOffsetSec:0.000}s, " &
-                             $"wrapFps={result.WrapFps:0.000}, muxDur={result.MuxVideoDurationSec:0.000}s, " &
+                             $"cfrFps={result.WrapFps:0.###}, duration={result.MuxVideoDurationSec:0.000}s, " &
                              $"file_size={result.FileSize}")
 
             Catch ex As Exception
                 result.ErrorMessage = ex.Message
                 _logger.Error($"[session] Failed: {ex.Message}", ex)
             Finally
-                Try : videoFile?.Dispose() : Catch : End Try
+                Try : _liveMux?.Dispose() : Catch : End Try
                 Try : wavWriter?.Dispose() : Catch : End Try
                 Try : audioCapture?.Dispose() : Catch : End Try
                 ' ★ M1: mic sidecar cleanup mirrors the system sidecar
