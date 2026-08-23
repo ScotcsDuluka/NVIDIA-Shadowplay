@@ -128,12 +128,19 @@ Namespace CaptureEngine.FFmpegBackend
             If _originTicks = 0 Then
                 ' First buffer: establish the origin AND measure the device's
                 ' first-callback delay (evidence for latency calibration).
+                ' ★ REGRESSION FIX (self-audit): the original v2 code inserted
+                ' PRE-ROLL silence on the first callback (the device warm-up —
+                ' this machine ≈ 5.7s loopback). The first AudioTap version
+                ' forwarded the buffer immediately, dropping the pre-roll and
+                ' shifting the music back to t=0 ('music before I played any'
+                ' again). Fix: anchor _lastTicks at the ORIGIN and FALL THROUGH
+                ' to the common gap math — the arrival gap of the first buffer
+                ' IS the warm-up, and the common math inserts it as silence.
                 _firstCallbackDelayMs = (nowT - _startRequestedTicks) * 1000.0 / Stopwatch.Frequency
                 _originTicks = _startRequestedTicks
-                _lastTicks = nowT
+                _lastTicks = _startRequestedTicks
                 _evidence?.Invoke($"[tap:{_name}] first callback +{_firstCallbackDelayMs:0}ms warm-up; buffer {count / CDbl(_bytesPerSec) * 1000.0:0}ms")
-                Forward(buffer, count)
-                Return
+                ' (fall through: pre-roll silence inserted by the common path)
             End If
 
             Dim arrivalGapSec As Double = (nowT - _lastTicks) / Stopwatch.Frequency

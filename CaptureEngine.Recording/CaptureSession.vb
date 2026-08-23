@@ -372,15 +372,26 @@ Namespace CaptureEngine.Recording
                         ' (Owner run 20:58 showed a=0B + exit -22: this call was lost
                         ' in a merge — the audio PipeFeed waited forever for the
                         ' timeline event, nothing was ever written, ffmpeg died.)
-                        ' ★ AUDIT FIX #3 (GLM/6): single-owner timeline. The gap-fill
-                        ' callbacks (system + mic) are now the ONLY source of stream
-                        ' alignment — they insert wall-clock silence at feed time
-                        ' with correct math. Passing SyncMath offsets here too would
-                        ' double-compensate (pre-roll from StartRecording + discard
-                        ' computed from the same origin). Only the constant systemic
-                        ' calibration lead remains (bias, not alignment).
-                        _logger.Info($"[session] audio calibration applied: sys +{SyncMath.SystemAudioLeadSec:0.000}s, mic +{SyncMath.MicAudioLeadSec:0.000}s (owner-measured bias)")
-                        _liveMux?.BeginTimelines(SyncMath.SystemAudioLeadSec, SyncMath.MicAudioLeadSec)
+                        ' ★ SELF-AUDIT FIX (regression in 342f808): I removed the
+                        ' SyncMath offset here believing it double-compensated with
+                        ' the tap's pre-roll. Sign analysis over the whole chain
+                        ' proves the OPPOSITE — the two steps are complementary:
+                        '   tap pre-roll builds the stream from AUDIO START
+                        '   (wall-clock true, device-latency lead applied inside)
+                        '   this discard trims the head to VIDEO t0 so both pipes
+                        '   share the same origin (video pipe t0 = first frame).
+                        ' Without it the audio runs EARLY by the variable
+                        ' audio-start→video-t0 delta (0.05-0.5s per session logs)
+                        ' — the residual 'not stable' the owner kept reporting.
+                        ' Division of labor: AudioTap applies the device-latency
+                        ' LEAD (its ctor param); the pipe applies the ORIGIN
+                        ' OFFSET (SyncMath). One value each, no overlap.
+                        Dim sysOff As Double = SyncMath.ComputeAudioOffsetSec(
+                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                        Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
+                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
+                        _logger.Info($"[session] timeline origin: sys offset={sysOff:0.000}s mic offset={micOff:0.000}s (audio-start→video-t0 trim; lead {SyncMath.SystemAudioLeadSec:0.000}s applied inside tap)")
+                        _liveMux?.BeginTimelines(sysOff, micOff)
                     End If
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
