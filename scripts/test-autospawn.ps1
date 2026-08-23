@@ -117,6 +117,16 @@ Write-Host "=================================================="
 # Fresh supervisor evidence for this run
 try { Remove-Item $supLog -ErrorAction SilentlyContinue } catch { }
 
+# ★ v9.2: the engine writes its own evidence log (BackgroundLogger flushes
+# ~250ms) at {engine dir}\Logs\ui-engine.log. Capture its current line count
+# so the report can show ONLY this run's lines — tells us exactly what the
+# engine's TCP lifecycle did (start / reconnect / broadcast engine_ready).
+$engineLog = Join-Path $overlayBin "Logs\ui-engine.log"
+$engineLogLinesBefore = 0
+if (Test-Path $engineLog) {
+    $engineLogLinesBefore = @(Get-Content $engineLog -ErrorAction SilentlyContinue).Count
+}
+
 # ═════════ PHASE S — supervisor validation, hub DOWN ═════════
 Write-Host "`n>>> S0: clean baseline (hub DOWN, family killed)..." -ForegroundColor Cyan
 Remove-Item $marker -Force -ErrorAction SilentlyContinue   # no marker in phase S
@@ -242,6 +252,26 @@ if (Test-Path $supLog) {
     Get-Content $supLog | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
 } else {
     Write-Host "    (no supervisor log — supervisor never acted in this run)" -ForegroundColor DarkGray
+}
+
+# ★ v9.2: engine-side evidence — what did the engine's TCP actually do?
+Write-Host "`n>>> Engine log (this run only — ui-engine.log):" -ForegroundColor Cyan
+if (Test-Path $engineLog) {
+    $newLines = @(Get-Content $engineLog | Select-Object -Skip $engineLogLinesBefore)
+    if ($newLines.Count -eq 0) {
+        Write-Host "    (no new engine log lines this run — engine log silent?)" -ForegroundColor Yellow
+    } else {
+        $tcpLines = @($newLines | Where-Object { $_ -match "TCP|reconnect|engine_ready|register|[Hh]ub|PREWARM" })
+        Write-Host ("    {0} new lines total; TCP-lifecycle lines:" -f $newLines.Count) -ForegroundColor DarkGray
+        if ($tcpLines.Count -gt 0) {
+            $tcpLines | Select-Object -Last 30 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkYellow }
+        } else {
+            Write-Host "    (none matched TCP/reconnect/engine_ready — showing last 10 lines for context)" -ForegroundColor Yellow
+            $newLines | Select-Object -Last 10 | ForEach-Object { Write-Host "    $_" -ForegroundColor DarkGray }
+        }
+    }
+} else {
+    Write-Host "    (engine log not found at $engineLog)" -ForegroundColor Yellow
 }
 
 # ═════════ Cleanup (restore machine state) ═════════
