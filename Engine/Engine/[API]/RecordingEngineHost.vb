@@ -187,17 +187,23 @@ Partial Public Class UI_Engine
                 Return
             End If
 
-            ' Create session config (full Phase 12b mapping)
+            ' Create session config (full Phase 12b mapping + M1 mic mapping from audio.json)
             Dim config As New SessionConfig() With {
                 .OutputPath = value,
                 .DurationSeconds = 3600,          ' no fixed duration — stop via command
                 .FFmpegPath = ffmpegPath,
                 .AudioEnabled = (_settings Is Nothing) OrElse _settings.SystemAudioCapture,
                 .SystemVolume = If(_settings IsNot Nothing, _settings.SystemAudioVolume, 1.0F),
+                .MicEnabled = (_settings IsNot Nothing) AndAlso _settings.MicCapture,
+                .MicVolume = If(_settings IsNot Nothing, _settings.MicVolume, 1.0F),
+                .MicDeviceId = If(_settings IsNot Nothing, _settings.MicDeviceId, ""),
+                .MicDeviceName = If(_settings IsNot Nothing, _settings.MicDeviceName, ""),
+                .MicSeparateTracks = (_settings IsNot Nothing) AndAlso
+                                     _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack,
                 .OnProcessStarted = AddressOf AssignChildToJob
             }
 
-            DebugLog($"[RecordingEngine] starting session: path={value}, audio={config.AudioEnabled}")
+            DebugLog($"[RecordingEngine] starting session: path={value}, audio={config.AudioEnabled}, mic={config.MicEnabled}")
 
             ' Start on background thread — StartSession blocks until done
             _recordingTask = Task.Run(Function() _recordingEngine.StartSession(config))

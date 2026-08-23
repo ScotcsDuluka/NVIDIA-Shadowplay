@@ -41,6 +41,24 @@ Namespace CaptureEngine.Recording
         ''' <summary>System-audio volume applied at mux (0..2, 1 = unchanged).</summary>
         Public Property SystemVolume As Single = 1.0F
 
+        ' ── M1: microphone second track (two independent WavSidecarWriter
+        '    instances — per GPT standing design: separate queue/writer/
+        '    accounting/start-timestamp per track; NO merged queues) ──
+        ''' <summary>Record the microphone into a second WAV sidecar.</summary>
+        Public Property MicEnabled As Boolean = False
+        ''' <summary>Mic volume applied at mux (0..2, 1 = unchanged).</summary>
+        Public Property MicVolume As Single = 1.0F
+        ''' <summary>Preferred mic device id (NAudio MMDevice ID). Empty = default capture device.</summary>
+        Public Property MicDeviceId As String = ""
+        ''' <summary>Preferred mic device name (fallback when the id does not match).</summary>
+        Public Property MicDeviceName As String = ""
+        ''' <summary>
+        ''' Mux mode when BOTH system + mic are present: True = two separate output
+        ''' tracks (-map 0:v -map 1:a -map 2:a), False = amix single track.
+        ''' Mirrors the legacy AudioTrackMode behavior.
+        ''' </summary>
+        Public Property MicSeparateTracks As Boolean = False
+
         ' ── Phase 12b: process-lifecycle hook (no-orphan-FFmpeg criterion) ──
         ''' <summary>
         ''' Invoked right after CaptureSession spawns any child process
@@ -93,6 +111,18 @@ Namespace CaptureEngine.Recording
         Public Property AudioAccountingOk As Boolean
         ''' <summary>WAV sidecar bytes dropped under backpressure (0 = healthy run).</summary>
         Public Property AudioDroppedBytes As Long
+
+        ' ── M1: mic track evidence (independent accounting) ──
+        ''' <summary>Mic track bytes written to the mic sidecar WAV.</summary>
+        Public Property MicBytes As Long
+        ''' <summary>Mic sidecar dropped bytes (0 = healthy run).</summary>
+        Public Property MicDroppedBytes As Long
+        ''' <summary>Mic sidecar accounting invariant holds.</summary>
+        Public Property MicAccountingOk As Boolean
+        ''' <summary>Mic sample count (per the MIC device's own format).</summary>
+        Public Property MicSamples As Long
+        ''' <summary>Mic A/V offset applied at mux (own timeline, proven model).</summary>
+        Public Property MicOffsetSec As Double
 
         Public ReadOnly Property Pass As Boolean
             Get

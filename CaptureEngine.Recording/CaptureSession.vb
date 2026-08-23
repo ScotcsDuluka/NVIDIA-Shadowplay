@@ -65,6 +65,9 @@ Namespace CaptureEngine.Recording
         ' Sync timeline (Stopwatch ticks)
         Private _systemStartTicks As Long = 0
         Private _videoStartTicks As Long = 0
+        ' ★ M1: mic has its own independent timeline (device clock/cadence
+        ' differ from system loopback — never share or derive one from other)
+        Private _micStartTicks As Long = 0
 
         Public Sub New(capture As DdagrabBackend,
                       encoder As NvencEncoderBackend,
@@ -86,6 +89,7 @@ Namespace CaptureEngine.Recording
             Dim tempH264 As String = Path.ChangeExtension(_config.OutputPath, ".tmp.h264")
             Dim tempVideoMp4 As String = Path.ChangeExtension(_config.OutputPath, ".tmp.video.mp4")
             Dim tempWav As String = Path.ChangeExtension(_config.OutputPath, ".tmp.wav")
+            Dim tempMicWav As String = Path.ChangeExtension(_config.OutputPath, ".tmp.mic.wav")
 
             ' ─── Resources ───────────────────────────────────────────────
             Dim sink As BoundedVideoFrameSink = Nothing
@@ -95,6 +99,14 @@ Namespace CaptureEngine.Recording
             Dim wavReport As WavFinalizeReport = Nothing
             Dim videoFile As FileStream = Nothing
             Dim waveFormat As WaveFormat = Nothing
+
+            ' ★ M1: mic sidecar — mirror of the system sidecar, fully independent
+            ' (own device, own queue, own writer, own accounting, own timeline)
+            Dim micCapture As NAudio.CoreAudioApi.WasapiCapture = Nothing
+            Dim micStoppedEvent As New ManualResetEvent(False)
+            Dim micWriter As WavSidecarWriter = Nothing
+            Dim micWaveFormat As WaveFormat = Nothing
+            Dim micReport As WavFinalizeReport = Nothing
 
             Dim sw As Stopwatch = Stopwatch.StartNew()
             Dim duration As TimeSpan = TimeSpan.FromSeconds(_config.DurationSeconds)
@@ -145,6 +157,57 @@ Namespace CaptureEngine.Recording
                     _logger.Info("[session] Audio sidecar started (bounded queue + writer thread)")
                 Else
                     _logger.Info("[session] Audio DISABLED by config — video-only session")
+                End If
+
+                ' ★ M1: Start MIC sidecar (independent #2) ──────────────────
+                ' Mirror of the system sidecar. Hard rules (GPT standing design):
+                '   - own WasapiCapture (device-selected), own WavSidecarWriter
+                '   - own start timestamp (micStartTicks) — never derived from
+                '     system ticks; the two devices have independent clocks
+                '   - failure to open the mic must NOT kill the session — the
+                '     track is dropped and logged (system audio continues)
+                If _config.MicEnabled Then
+                    Try
+                        _logger.Info("[session] Starting mic sidecar...")
+                        Dim micDevice As NAudio.CoreAudioApi.MMDevice = FindMicDevice(_config.MicDeviceId, _config.MicDeviceName)
+                        micCapture = If(micDevice IsNot Nothing, New NAudio.CoreAudioApi.WasapiCapture(micDevice), New NAudio.CoreAudioApi.WasapiCapture())
+                        micWaveFormat = micCapture.WaveFormat
+                        _logger.Info($"[session] Mic: {micWaveFormat.Channels}ch {micWaveFormat.SampleRate}Hz {micWaveFormat.BitsPerSample}bit {micWaveFormat.Encoding}")
+
+                        Dim micSrcFloat As Boolean = (micWaveFormat.Encoding = WaveFormatEncoding.IeeeFloat)
+                        Dim micBits As Integer = If(micSrcFloat, 16, micWaveFormat.BitsPerSample)
+
+                        micWriter = New WavSidecarWriter(tempMicWav, micWaveFormat.Channels, micWaveFormat.SampleRate, micBits)
+                        micWriter.Start()
+
+                        AddHandler micCapture.DataAvailable, Sub(s, e)
+                                                                  If e.BytesRecorded > 0 Then
+                                                                      If micSrcFloat Then
+                                                                          Dim pcm As Byte() = ConvertFloatToPcm16(e.Buffer, e.BytesRecorded)
+                                                                          micWriter.EnqueueChunk(pcm, pcm.Length)
+                                                                      Else
+                                                                          micWriter.EnqueueChunk(e.Buffer, e.BytesRecorded)
+                                                                      End If
+                                                                  End If
+                                                                  If _stopSignal OrElse sw.Elapsed >= duration Then
+                                                                      Try : micCapture.StopRecording() : Catch : End Try
+                                                                  End If
+                                                              End Sub
+
+                        AddHandler micCapture.RecordingStopped, Sub(s, e) micStoppedEvent.Set()
+
+                        micCapture.StartRecording()
+                        _micStartTicks = Stopwatch.GetTimestamp()
+                        _logger.Info("[session] Mic sidecar started (independent writer)")
+                    Catch ex As Exception
+                        ' Mic is a second track — its failure degrades, never kills.
+                        _logger.Warning($"[session] Mic sidecar FAILED to start (track dropped): {ex.Message}")
+                        Try : micCapture?.Dispose() : Catch : End Try
+                        micCapture = Nothing
+                        Try : micWriter?.Dispose() : Catch : End Try
+                        micWriter = Nothing
+                        _micStartTicks = 0
+                    End Try
                 End If
 
                 ' ─── 3. Start video capture + encoder ─────────────────────
@@ -234,6 +297,26 @@ Namespace CaptureEngine.Recording
                                              0)
                 End If
 
+                ' ★ M1: stop + finalize mic sidecar (independent #2) ──────
+                If micCapture IsNot Nothing Then
+                    _logger.Info("[session] Stopping mic sidecar...")
+                    Try : micCapture.StopRecording() : Catch : End Try
+
+                    If Not micStoppedEvent.WaitOne(3000) Then
+                        _logger.Warning("[session] Mic RecordingStopped event timeout (3s) — finalizing anyway")
+                    End If
+
+                    micReport = micWriter.Complete(5000)
+                    _logger.Info("[session] Mic " & micReport.ToString())
+
+                    result.MicBytes = micReport.BytesWritten
+                    result.MicDroppedBytes = micReport.BytesDropped
+                    result.MicAccountingOk = micReport.AccountingOk
+                    result.MicSamples = If(micWaveFormat IsNot Nothing,
+                                           micReport.BytesWritten \ (micWaveFormat.Channels * micWaveFormat.BitsPerSample \ 8),
+                                           0)
+                End If
+
                 result.ActualDurationSec = sw.Elapsed.TotalSeconds
 
                 ' ─── 9. Wrap raw H.264 into MP4 @ display refresh rate ──
@@ -285,8 +368,12 @@ Namespace CaptureEngine.Recording
                     .OutputPath = _config.OutputPath,
                     .HasSystemAudio = (_config.AudioEnabled AndAlso wavReport IsNot Nothing AndAlso wavReport.BytesWritten > 0),
                     .SystemVolume = _config.SystemVolume,
+                    .TempMicWavPath = tempMicWav,
+                    .HasMicAudio = (micReport IsNot Nothing AndAlso micReport.BytesWritten > 0),
+                    .MicVolume = _config.MicVolume,
+                    .SeparateTracks = _config.MicSeparateTracks,
                     .OnProcessStarted = _config.OnProcessStarted
-                }
+                } ' M1: mic track wiring — MuxCoordinator already supports TempMicWavPath/HasMicAudio/MicOffsetSec/MicVolume
 
                 Dim probedDuration As Double = mux.ProbeVideoDuration()
                 If probedDuration > 0.001 Then
@@ -305,6 +392,14 @@ Namespace CaptureEngine.Recording
                 result.SystemOffsetSec = systemOffset
                 _logger.Info($"[session] Sync: videoStart={_videoStartTicks} sysStart={_systemStartTicks} " &
                              $"offset={systemOffset:0.000}s ({If(systemOffset > 0.001, "skip audio head", If(systemOffset < -0.001, "delay audio", "aligned"))})")
+
+                ' ★ M1: mic offset — SAME proven model, mic's OWN timeline ──
+                Dim micOffset As Double = SyncMath.ComputeAudioOffsetSec(
+                    _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
+                mux.MicOffsetSec = micOffset
+                result.MicOffsetSec = micOffset
+                _logger.Info($"[session] Mic sync: micStart={_micStartTicks} " &
+                             $"offset={micOffset:0.000}s ({If(micOffset > 0.001, "skip mic head", If(micOffset < -0.001, "delay mic", "aligned"))})")
 
                 ' ─── 12. Mux ─────────────────────────────────────────────
                 _logger.Info("[session] Muxing video + audio → MP4...")
@@ -354,11 +449,43 @@ Namespace CaptureEngine.Recording
                 Try : videoFile?.Dispose() : Catch : End Try
                 Try : wavWriter?.Dispose() : Catch : End Try
                 Try : audioCapture?.Dispose() : Catch : End Try
+                ' ★ M1: mic sidecar cleanup mirrors the system sidecar
+                Try : micWriter?.Dispose() : Catch : End Try
+                Try : micCapture?.Dispose() : Catch : End Try
                 Try : sink?.Dispose() : Catch : End Try
                 Try : wavStoppedEvent.Dispose() : Catch : End Try
+                Try : micStoppedEvent.Dispose() : Catch : End Try
             End Try
 
             Return result
+        End Function
+
+        ''' <summary>
+        ''' ★ M1: resolve the microphone MMDevice (id first, then FriendlyName).
+        ''' Ported from the PROVEN legacy AudioFileWriter.FindMicDevice — same
+        ''' resolution order (exact ID match → exact FriendlyName match → Nothing).
+        ''' Nothing = caller falls back to the default capture device.
+        ''' </summary>
+        Private Shared Function FindMicDevice(deviceId As String, deviceName As String) As NAudio.CoreAudioApi.MMDevice
+            Using devEnum As New NAudio.CoreAudioApi.MMDeviceEnumerator()
+                Dim devices As NAudio.CoreAudioApi.MMDeviceCollection =
+                    devEnum.EnumerateAudioEndPoints(NAudio.CoreAudioApi.DataFlow.Capture,
+                                                    NAudio.CoreAudioApi.DeviceState.Active)
+
+                If Not String.IsNullOrEmpty(deviceId) Then
+                    For Each dev As NAudio.CoreAudioApi.MMDevice In devices
+                        If dev.ID = deviceId Then Return dev
+                    Next
+                End If
+
+                If Not String.IsNullOrEmpty(deviceName) Then
+                    For Each dev As NAudio.CoreAudioApi.MMDevice In devices
+                        If String.Equals(dev.FriendlyName, deviceName, StringComparison.Ordinal) Then Return dev
+                    Next
+                End If
+
+                Return Nothing
+            End Using
         End Function
 
         ''' <summary>

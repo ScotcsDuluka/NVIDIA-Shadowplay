@@ -62,6 +62,7 @@ Namespace CaptureEngine.Recording.Tests
             SyncMathTests.RunAll()
             WavSidecarTests.RunAll()
             RuntimeSyncTests.RunAll()
+            DualTrackTests.RunAll()   ' ★ M1: system + mic second track
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")

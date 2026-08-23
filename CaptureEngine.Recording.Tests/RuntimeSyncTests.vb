@@ -34,8 +34,39 @@ Namespace CaptureEngine.Recording.Tests
 
     Friend Module RuntimeSyncTests
 
-        Private _sandbox As String = Nothing        ' dir with ffmpeg.exe/ffprobe.exe + shared media
-        Private _ffmpegExe As String = Nothing      ' sandbox\ffmpeg.exe
+        Friend _sandbox As String = Nothing        ' dir with ffmpeg.exe/ffprobe.exe + shared media
+        Friend _ffmpegExe As String = Nothing      ' sandbox\ffmpeg.exe
+
+        ''' <summary>★ M1 dual-track tests reuse the same shared media (exposed).</summary>
+        Friend ReadOnly Property SandboxDir As String
+            Get
+                Return _sandbox
+            End Get
+        End Property
+
+        Friend ReadOnly Property FfmpegExe As String
+            Get
+                Return _ffmpegExe
+            End Get
+        End Property
+
+        Friend ReadOnly Property SharedVideoMp4 As String
+            Get
+                Return _videoMp4
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' ★ M1: one-shot media setup shared by the single-track and dual-track
+        ''' suites. Returns True when sandbox + wrapped video are ready.
+        ''' </summary>
+        Friend Function EnsureMediaForDual() As Boolean
+            If _sandbox Is Nothing OrElse Not File.Exists(_videoMp4) Then
+                If Not DiscoverFFmpeg() Then Return False
+                If Not PrepareSharedMedia() Then Return False
+            End If
+            Return _sandbox IsNot Nothing AndAlso File.Exists(_videoMp4)
+        End Function
         Private _videoH264 As String = Nothing
         Private _videoMp4 As String = Nothing
         Private _videoDuration As Double = 0.0
