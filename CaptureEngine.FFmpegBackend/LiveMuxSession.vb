@@ -124,6 +124,10 @@ Namespace CaptureEngine.FFmpegBackend
             _log?.Invoke(msg)
         End Sub
 
+        Private Sub LogPipe(msg As String)
+            _log?.Invoke(msg)
+        End Sub
+
         ' ─── lifecycle ──────────────────────────────────────────────
 
         ''' <summary>
@@ -134,9 +138,9 @@ Namespace CaptureEngine.FFmpegBackend
         Public Function Start() As Boolean
             Dim id As String = Guid.NewGuid().ToString("N").Substring(0, 10)
             Try
-                _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False, blockProducer:=True, blockAlign:=1)
-                _audio = New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_sysChannels * 2)
-                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_micChannels * 2), Nothing)
+                _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False, blockProducer:=True, blockAlign:=1, log:=AddressOf LogPipe)
+                _audio = New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_sysChannels * 2, log:=AddressOf LogPipe)
+                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_micChannels * 2, log:=AddressOf LogPipe), Nothing)
 
                 _video.StartListening()
                 _audio.StartListening()
@@ -374,11 +378,12 @@ Namespace CaptureEngine.FFmpegBackend
             Private _discardBytes As Long
             Private _padBytes As Long
 
-            Friend Sub New(pipeName As String, waitForTimeline As Boolean, blockProducer As Boolean, blockAlign As Integer)
+            Friend Sub New(pipeName As String, waitForTimeline As Boolean, blockProducer As Boolean, blockAlign As Integer, Optional log As Action(Of String) = Nothing)
                 Name = pipeName
                 _waitForTimeline = waitForTimeline
                 _blockProducer = blockProducer
                 _blockAlign = Math.Max(1, blockAlign)
+                _log = log
                 _byteCap = If(blockProducer, VideoQueueByteCap, AudioQueueByteCap)
                 _pipe = New NamedPipeServerStream(pipeName, PipeDirection.Out, 1,
                                                   PipeTransmissionMode.Byte,
@@ -387,6 +392,7 @@ Namespace CaptureEngine.FFmpegBackend
             End Sub
 
             Private ReadOnly _waitForTimeline As Boolean
+            Private ReadOnly _log As Action(Of String)
             Private ReadOnly _blockProducer As Boolean
             Private ReadOnly _blockAlign As Integer
             Private ReadOnly _byteCap As Long
@@ -544,13 +550,31 @@ Namespace CaptureEngine.FFmpegBackend
                         Interlocked.Add(_droppedBytes, chunk.Length)
                         Continue While
                     End If
-                    Try
-                        _pipe.Write(chunk, 0, chunk.Length)
-                        Interlocked.Add(_bytesWritten, chunk.Length)
-                    Catch
-                        _pipeBroken = True
-                        Interlocked.Add(_droppedBytes, chunk.Length)
-                    End Try
+
+                    ' ★ RESILIENT WRITE (the 01:08 killer): the old code declared
+                    ' the pipe permanently dead on the FIRST exception — the
+                    ' owner's log proved it: one write failure at ~49s silently
+                    ' dropped the remaining 19.1MB (100 seconds of music).
+                    ' Retry with backoff; only sustained failure breaks the pipe.
+                    Dim attempts As Integer = 0
+                    Dim writtenOk As Boolean = False
+                    While Not writtenOk
+                        Try
+                            _pipe.Write(chunk, 0, chunk.Length)
+                            Interlocked.Add(_bytesWritten, chunk.Length)
+                            writtenOk = True
+                        Catch ex As Exception
+                            attempts += 1
+                            If attempts >= 5 Then
+                                _pipeBroken = True
+                                _log?.Invoke($"[live-mux:{Name}] pipe write FAILED x{attempts}: {ex.Message} — stream broken, further data dropped")
+                                Interlocked.Add(_droppedBytes, chunk.Length)
+                                Exit While
+                            End If
+                            _log?.Invoke($"[live-mux:{Name}] pipe write attempt {attempts} failed: {ex.Message} — retrying in 100ms")
+                            Thread.Sleep(100)
+                        End Try
+                    End While
                 End While
             End Sub
 

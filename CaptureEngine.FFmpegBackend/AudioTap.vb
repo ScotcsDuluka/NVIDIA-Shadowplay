@@ -70,6 +70,16 @@ Namespace CaptureEngine.FFmpegBackend
         Private Const SteeringToleranceSec As Double = 0.015   ' +/-15ms
         Private _lastSteerCheckTicks As Long = 0
         Private _steerCorrections As Integer = 0
+
+        ' ★ SELF-AUDIT FIX: steering must correct only GROWING drift. The
+        ' owner's 01:08 run showed a CONSTANT ~80ms 'behind' every check —
+        ' that is the first-buffer placement offset (a constant), NOT crystal
+        ' drift. Correcting it every 5s would have injected 80ms of fake
+        ' silence per interval and shredded the audio. Baseline model:
+        ' the first check records the constant offset; only the CHANGE from
+        ' the baseline is ever corrected.
+        Private _driftBaselineSec As Double = 0.0
+        Private _driftBaselineSet As Boolean = False
         Private _silenceBuf As Byte() = Nothing
         Private _silenceCap As Integer = 0
         Private _silenceInsertedBytes As Long = 0
@@ -172,26 +182,36 @@ Namespace CaptureEngine.FFmpegBackend
                 Dim elapsedSecS As Double = (nowT - _originTicks) / Stopwatch.Frequency
                 Dim streamSecS As Double = (Interlocked.Read(_silenceInsertedBytes) + Interlocked.Read(_dataBytes)) / CDbl(_bytesPerSec)
                 Dim driftSecS As Double = elapsedSecS - streamSecS
-                If Math.Abs(driftSecS) > SteeringToleranceSec Then
-                    Dim corrSec As Double = Math.Max(-0.1, Math.Min(0.1, driftSecS))
-                    _lastTicks -= CLng(corrSec * Stopwatch.Frequency)
-                    _steerCorrections += 1
-                    _evidence?.Invoke($"[tap:{_name}] steering: stream {If(driftSecS > 0, "BEHIND", "AHEAD")} {Math.Abs(driftSecS) * 1000.0:0}ms, correcting {-corrSec * 1000.0:0}ms via next gap (#{_steerCorrections})")
+
+                If Not _driftBaselineSet Then
+                    ' First check: record the CONSTANT offset (first-buffer
+                    ' placement + dispatch latency). Never correct it here —
+                    ' it is a bias, absorbed by the lead calibration at the pipe.
+                    _driftBaselineSec = driftSecS
+                    _driftBaselineSet = True
+                    _evidence?.Invoke($"[tap:{_name}] steering baseline: {driftSecS * 1000.0:0}ms constant offset (bias — handled by pipe lead, not corrected)")
+                Else
+                    Dim deltaSecS As Double = driftSecS - _driftBaselineSec
+                    If Math.Abs(deltaSecS) > SteeringToleranceSec Then
+                        Dim corrSec As Double = Math.Max(-0.1, Math.Min(0.1, deltaSecS))
+                        _lastTicks -= CLng(corrSec * Stopwatch.Frequency)
+                        _driftBaselineSec = driftSecS
+                        _steerCorrections += 1
+                        _evidence?.Invoke($"[tap:{_name}] steering: drift changed {deltaSecS * 1000.0:0}ms beyond baseline, correcting via next gap (#{_steerCorrections})")
+                    End If
                 End If
             End If
 
             Dim arrivalGapSec As Double = (nowT - _lastTicks) / Stopwatch.Frequency
             Dim bufferDurSec As Double = count / CDbl(_bytesPerSec)
 
-            ' Device-latency lead: the buffer content is _leadSec older than its
-            ' arrival → the silence before it must be REDUCED by the lead.
-            Dim silenceNeededSec As Double = arrivalGapSec - bufferDurSec - _leadSec
-            If _leadSec <> 0.0 AndAlso silenceNeededSec < 0.0 AndAlso arrivalGapSec - bufferDurSec > 0.0 Then
-                ' Buffer fully covers the gap AND the lead — skip head bytes?
-                ' (rare, tiny): approximate by clamping to zero; the residual
-                ' is sub-millisecond and bounded by the lead.
-                silenceNeededSec = 0.0
-            End If
+            ' ★ SELF-AUDIT FIX: the lead was subtracted from EVERY gap here —
+            ' mathematically wrong (the lead is a one-time stream shift, not a
+            ' per-gap discount). It also suppressed ALL silence insertion
+            ' whenever gaps were under bufferDur+lead, which silently defeated
+            ' the steering corrections too. The lead now lives in exactly ONE
+            ' place: the pipe origin (BeginTimelines offsets in CaptureSession).
+            Dim silenceNeededSec As Double = arrivalGapSec - bufferDurSec
 
             If silenceNeededSec > 0.05 AndAlso silenceNeededSec <= 60.0 Then
                 Dim silBytes As Integer = CInt(silenceNeededSec * _bytesPerSec)

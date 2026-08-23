@@ -201,7 +201,7 @@ Namespace CaptureEngine.Recording
                         waveFormat.Channels,
                         sysTapBits,
                         New AudioTapSinkDual(wavWriter, AddressOf SysPipeFeed),
-                        SyncMath.SystemAudioLeadSec,
+                        0.0,
                         Sub(m) _logger.Info("[session] " & m))
 
                     AddHandler audioCapture.DataAvailable, Sub(s, e)
@@ -271,7 +271,7 @@ Namespace CaptureEngine.Recording
                             micWaveFormat.Channels,
                             micBits,
                             New AudioTapSinkDual(micWriter, AddressOf MicPipeFeed),
-                            SyncMath.MicAudioLeadSec,
+                            0.0,
                             Sub(m) _logger.Info("[session] " & m))
 
                         AddHandler micCapture.DataAvailable, Sub(s, e)
@@ -409,11 +409,15 @@ Namespace CaptureEngine.Recording
                         ' Division of labor: AudioTap applies the device-latency
                         ' LEAD (its ctor param); the pipe applies the ORIGIN
                         ' OFFSET (SyncMath). One value each, no overlap.
+                        ' ★ Lead lives HERE now (single place): the tap builds a pure
+                        ' wall-clock stream (lead 0); the pipe origin offset carries
+                        ' BOTH the audio-start→video-t0 trim AND the systemic
+                        ' device-latency lead.
                         Dim sysOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
                         Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
-                        _logger.Info($"[session] timeline origin: sys offset={sysOff:0.000}s mic offset={micOff:0.000}s (audio-start→video-t0 trim; lead {SyncMath.SystemAudioLeadSec:0.000}s applied inside tap)")
+                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency) + SyncMath.MicAudioLeadSec
+                        _logger.Info($"[session] timeline origin: sys offset={sysOff:0.000}s mic offset={micOff:0.000}s (t0 trim + lead {SyncMath.SystemAudioLeadSec:0.000}s)")
                         _liveMux?.BeginTimelines(sysOff, micOff)
                     End If
 
