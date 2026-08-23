@@ -59,6 +59,12 @@ Namespace CaptureEngine.Recording
         ''' </summary>
         Public Property MicSeparateTracks As Boolean = False
 
+        ' ── GLM/6 audit #7: WAV sidecars are evidence/debug artifacts (the live
+        '    mux is the real output). Three parallel disk writes per session is
+        '    wasted I/O in steady state — default OFF now that live-mux is
+        '    runtime-validated. Set True to bring back debug WAVs.
+        Public Property EvidenceSidecar As Boolean = False
+
         ' ── Phase 12b: process-lifecycle hook (no-orphan-FFmpeg criterion) ──
         ''' <summary>
         ''' Invoked right after CaptureSession spawns any child process

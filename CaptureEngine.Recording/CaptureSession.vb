@@ -86,7 +86,8 @@ Namespace CaptureEngine.Recording
             _liveMux?.FeedMicAudio(data, count)
         End Sub
 
-        ' Dual sink: one stream to WAV sidecar + live-mux pipe (same timeline everywhere).
+        ' Dual sink: one stream to live-mux pipe (+ optional WAV evidence sidecar
+        ' — disabled by default per audit #7; the pipe is the real output).
         Private Class AudioTapSinkDual
             Implements IAudioTapSink
 
@@ -94,12 +95,12 @@ Namespace CaptureEngine.Recording
             Private ReadOnly _pipe As Action(Of Byte(), Integer)
 
             Public Sub New(wav As WavSidecarWriter, pipe As Action(Of Byte(), Integer))
-                _wav = wav
+                _wav = wav          ' may be Nothing (evidence sidecar disabled)
                 _pipe = pipe
             End Sub
 
             Public Sub Write(data As Byte(), count As Integer) Implements IAudioTapSink.Write
-                _wav.EnqueueChunk(data, count)
+                _wav?.EnqueueChunk(data, count)
                 _pipe?.Invoke(data, count)
             End Sub
         End Class
@@ -163,8 +164,12 @@ Namespace CaptureEngine.Recording
                     ' takes raw frames; for float sources we convert below and keep 16-bit.
                     If srcFloat Then sidecarBits = 16
 
-                    wavWriter = New WavSidecarWriter(tempWav, waveFormat.Channels, waveFormat.SampleRate, sidecarBits)
-                    wavWriter.Start()
+                    If _config.EvidenceSidecar Then
+                        wavWriter = New WavSidecarWriter(tempWav, waveFormat.Channels, waveFormat.SampleRate, sidecarBits)
+                        wavWriter.Start()
+                    Else
+                        _logger.Info("[session] evidence WAV sidecar disabled (live-mux is the output)")
+                    End If
 
                     ' ★ WASAPI loopback gap-filling (real-bug fix, owner evidence
                     ' 2026-08-23 18:42: 16.28s session but WAV had only 3.54s —
@@ -238,8 +243,10 @@ Namespace CaptureEngine.Recording
                         Dim micSrcFloat As Boolean = (micWaveFormat.Encoding = WaveFormatEncoding.IeeeFloat)
                         Dim micBits As Integer = If(micSrcFloat, 16, micWaveFormat.BitsPerSample)
 
-                        micWriter = New WavSidecarWriter(tempMicWav, micWaveFormat.Channels, micWaveFormat.SampleRate, micBits)
-                        micWriter.Start()
+                        If _config.EvidenceSidecar Then
+                            micWriter = New WavSidecarWriter(tempMicWav, micWaveFormat.Channels, micWaveFormat.SampleRate, micBits)
+                            micWriter.Start()
+                        End If
 
                         ' ★ AUDIT FIX consolidated via AudioTap (same engine as system)
                         _micTap = New AudioTap(
@@ -435,8 +442,16 @@ Namespace CaptureEngine.Recording
                     Else
                         ' Sleep toward the next tick (keep ~2ms spin margin for
                         ' Stop() responsiveness and tick precision).
+                        ' ★ AUDIT FIX: at 240fps (4.17ms interval) waitMs is
+                        ' ALWAYS < 2.5 → Thread.Sleep never fires → a full CPU
+                        ' core spins at 100%. Use SpinWait for the sub-2.5ms
+                        ' remainder instead of a hot loop.
                         Dim waitMs As Double = (nextTick - nowTicks) * 1000.0 / Stopwatch.Frequency
-                        If waitMs > 2.5 Then Thread.Sleep(CInt(waitMs - 2.0))
+                        If waitMs > 2.5 Then
+                            Thread.Sleep(CInt(waitMs - 2.0))
+                        ElseIf waitMs > 0.2 Then
+                            Thread.SpinWait(50)   ' ~sub-ms yield, keeps core free-ish
+                        End If
                     End If
                 Loop
 
@@ -503,15 +518,21 @@ Namespace CaptureEngine.Recording
                     ' Warm-up + silence totals are logged as calibration evidence.
                     _sysTap?.FinalizeToNow()
 
-                    wavReport = wavWriter.Complete(5000)
-                    _logger.Info("[session] " & wavReport.ToString())
+                    If wavWriter IsNot Nothing Then
+                        wavReport = wavWriter.Complete(5000)
+                        _logger.Info("[session] " & wavReport.ToString())
 
-                    result.AudioBytes = wavReport.BytesWritten
-                    result.AudioDroppedBytes = wavReport.BytesDropped
-                    result.AudioAccountingOk = wavReport.AccountingOk
-                    result.AudioSamples = If(waveFormat IsNot Nothing,
-                                             wavReport.BytesWritten \ (waveFormat.Channels * waveFormat.BitsPerSample \ 8),
-                                             0)
+                        result.AudioBytes = wavReport.BytesWritten
+                        result.AudioDroppedBytes = wavReport.BytesDropped
+                        result.AudioAccountingOk = wavReport.AccountingOk
+                        result.AudioSamples = If(waveFormat IsNot Nothing,
+                                                 wavReport.BytesWritten \ (waveFormat.Channels * waveFormat.BitsPerSample \ 8),
+                                                 0)
+                    Else
+                        ' Evidence disabled: report the tap totals instead.
+                        result.AudioBytes = If(_sysTap IsNot Nothing, _sysTap.DataBytes, 0)
+                        result.AudioAccountingOk = True
+                    End If
                 End If
 
                 ' ★ M1: stop + finalize mic sidecar (independent #2) ──────
@@ -525,15 +546,20 @@ Namespace CaptureEngine.Recording
 
                     _micTap?.FinalizeToNow()
 
-                    micReport = micWriter.Complete(5000)
-                    _logger.Info("[session] Mic " & micReport.ToString())
+                    If micWriter IsNot Nothing Then
+                        micReport = micWriter.Complete(5000)
+                        _logger.Info("[session] Mic " & micReport.ToString())
 
-                    result.MicBytes = micReport.BytesWritten
-                    result.MicDroppedBytes = micReport.BytesDropped
-                    result.MicAccountingOk = micReport.AccountingOk
-                    result.MicSamples = If(micWaveFormat IsNot Nothing,
-                                           micReport.BytesWritten \ (micWaveFormat.Channels * micWaveFormat.BitsPerSample \ 8),
-                                           0)
+                        result.MicBytes = micReport.BytesWritten
+                        result.MicDroppedBytes = micReport.BytesDropped
+                        result.MicAccountingOk = micReport.AccountingOk
+                        result.MicSamples = If(micWaveFormat IsNot Nothing,
+                                               micReport.BytesWritten \ (micWaveFormat.Channels * micWaveFormat.BitsPerSample \ 8),
+                                               0)
+                    Else
+                        result.MicBytes = If(_micTap IsNot Nothing, _micTap.DataBytes, 0)
+                        result.MicAccountingOk = True
+                    End If
                 End If
 
                 result.ActualDurationSec = sw.Elapsed.TotalSeconds
