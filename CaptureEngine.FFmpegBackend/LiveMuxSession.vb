@@ -124,9 +124,9 @@ Namespace CaptureEngine.FFmpegBackend
         Public Function Start() As Boolean
             Dim id As String = Guid.NewGuid().ToString("N").Substring(0, 10)
             Try
-                _video = New PipeFeed("sp_v_" & id)
-                _audio = New PipeFeed("sp_a_" & id)
-                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id), Nothing)
+                _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False)
+                _audio = New PipeFeed("sp_a_" & id, waitForTimeline:=True)
+                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True), Nothing)
 
                 _video.StartListening()
                 _audio.StartListening()
@@ -364,13 +364,16 @@ Namespace CaptureEngine.FFmpegBackend
             Private _discardBytes As Long
             Private _padBytes As Long
 
-            Friend Sub New(pipeName As String)
+            Friend Sub New(pipeName As String, waitForTimeline As Boolean)
                 Name = pipeName
+                _waitForTimeline = waitForTimeline
                 _pipe = New NamedPipeServerStream(pipeName, PipeDirection.Out, 1,
                                                   PipeTransmissionMode.Byte,
                                                   PipeOptions.Asynchronous,
                                                   PipeBufferBytes, PipeBufferBytes)
             End Sub
+
+            Private ReadOnly _waitForTimeline As Boolean
 
             Friend ReadOnly Property BytesWritten As Long
                 Get
@@ -455,14 +458,17 @@ Namespace CaptureEngine.FFmpegBackend
                         Return
                     End If
 
-                    ' 2. wait for the timeline to begin (video t0) — pre-t0
-                    '    chunks stay queued (bounded; overflow drops oldest,
-                    '    which is pre-video data destined for discard anyway).
-                    '    SAFETY NET: 5s cap — if t0 never arrives (bug upstream),
-                    '    start writing anyway with zero alignment rather than
-                    '    starving ffmpeg of this stream for the whole session
-                    '    (owner run 20:58: a=0B → exit -22 'nothing was written').
-                    WaitHandle.WaitAny(New WaitHandle() {_timelineStarted, _stopWriter}, 5000)
+                    ' 2. AUDIO pipes wait for the timeline (video t0) — the
+                    '    discard/pad alignment needs to know t0 first.
+                    '    VIDEO pipe does NOT wait: it IS the timeline, and waiting
+                    '    here caused the 21:36 failure — during the 5s blind wait
+                    '    the queue overflowed (256 chunks) and drop-oldest threw
+                    '    away the FIRST encoded frames including SPS/PPS, leaving
+                    '    ffmpeg with 'non-existing PPS 0 referenced' and a dead
+                    '    output. Video starts writing the moment it connects.
+                    If _waitForTimeline Then
+                        WaitHandle.WaitAny(New WaitHandle() {_timelineStarted, _stopWriter}, 5000)
+                    End If
 
                     ' 3. initial alignment: pad silence first, then discard head
                     WritePadIfAny()
