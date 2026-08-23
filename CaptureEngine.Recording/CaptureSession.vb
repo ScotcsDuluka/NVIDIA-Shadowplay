@@ -389,9 +389,10 @@ Namespace CaptureEngine.Recording
                         ' in a merge — the audio PipeFeed waited forever for the
                         ' timeline event, nothing was ever written, ffmpeg died.)
                         Dim sysOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
                         Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
+                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency) + SyncMath.MicAudioLeadSec
+                        _logger.Info($"[session] audio calibration applied: sys +{SyncMath.SystemAudioLeadSec:0.000}s, mic +{SyncMath.MicAudioLeadSec:0.000}s (owner-measured bias)")
                         _liveMux?.BeginTimelines(sysOff, micOff)
                     End If
 

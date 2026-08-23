@@ -43,6 +43,14 @@ Namespace CaptureEngine.FFmpegBackend
         ''' <summary>Upper clamp for per-track audio offsets (seconds). Proven value.</summary>
         Public Const MaxOffsetSec As Double = 5.0
 
+    ' ★ Audio calibration (owner-measured 2026-08-23): the system-audio path
+    ' runs ~100ms BEHIND video in the final file (WASAPI shared-mode buffering
+    ' + loopback delivery latency). Feeding the audio pipes this much EARLIER
+    ' compensates the bias: positive = shift audio earlier (audio was late).
+    ' Calibrated: +0.100s. Re-measure with scripts\sync-verify.ps1 after changes.
+    Public Const SystemAudioLeadSec As Double = 0.1
+    Public Const MicAudioLeadSec As Double = 0.1
+
         Private Sub New()
         End Sub
 
