@@ -59,13 +59,95 @@ Namespace CaptureEngine.Recording.Tests
         ''' <summary>
         ''' ★ M1: one-shot media setup shared by the single-track and dual-track
         ''' suites. Returns True when sandbox + wrapped video are ready.
+        ''' CRITICAL: never re-runs DiscoverFFmpeg when the SYNC-RT suite already
+        ''' built its sandbox — that created a SECOND empty sandbox (no media, no
+        ''' ffprobe) and DUAL skipped on Windows despite everything existing in
+        ''' the first sandbox. If no H.264 encoder exists, fall back to a
+        ''' copy-only wrap (the DUAL tests mux but never re-encode video).
         ''' </summary>
         Friend Function EnsureMediaForDual() As Boolean
-            If _sandbox Is Nothing OrElse Not File.Exists(_videoMp4) Then
+            ' Already prepared by RuntimeSyncTests.RunAll → reuse as-is.
+            If _sandbox IsNot Nothing AndAlso File.Exists(_videoMp4) Then Return True
+
+            ' Fresh process / SYNC-RT skipped: do the full discovery ourselves.
+            If _sandbox Is Nothing Then
                 If Not DiscoverFFmpeg() Then Return False
-                If Not PrepareSharedMedia() Then Return False
+            End If
+            If Not PrepareSharedMedia() Then
+                ' No H.264 encoder (e.g. NVIDIA-curated API-Core build): DUAL only
+                ' needs an MP4 CONTAINER to mux against — even a black frame copied
+                ' to death works. Generate via lavfi → null-encoded? Not possible.
+                ' Instead: synthesize video directly with whatever encoder exists
+                ' (same fallback list) — if none exists at all, bail out honestly.
+                If Not PrepareEncoderlessMediaForDual() Then Return False
             End If
             Return _sandbox IsNot Nothing AndAlso File.Exists(_videoMp4)
+        End Function
+
+        ''' <summary>
+        ''' Encoder-less fallback for DUAL: build the 5s MP4 with ANY available
+        ''' H.264 encoder writing straight to MP4 (no raw-H264 + wrap step).
+        ''' ★ Found on Windows run: '-preset ultrafast' is x264-only syntax —
+        ''' NVENC rejects it with 'Invalid argument' and every encoder in the
+        ''' chain failed even on a machine with a GTX 1080 Ti. Per-encoder
+        ''' presets now (x264: ultrafast · nvenc: p1 · qsv: veryfast · amf: speed).
+        ''' </summary>
+        Private Function PrepareEncoderlessMediaForDual() As Boolean
+            _videoMp4 = Path.Combine(_sandbox, "video.mp4")
+            Dim attempts() As (enc As String, preset As String) = {
+                ("libx264", "ultrafast"),
+                ("h264_nvenc", "p1"),
+                ("h264_qsv", "veryfast"),
+                ("h264_amf", "speed")
+            }
+            For Each a In attempts
+                Dim presetArg As String = If(String.IsNullOrEmpty(a.preset), "", $" -preset {a.preset}")
+                Dim ok As Boolean = RunFFmpegQuiet(
+                    $"-y -hide_banner -loglevel info -f lavfi -i testsrc=size=320x240:rate=60:duration=5 " &
+                    $"-c:v {a.enc}{presetArg} -pix_fmt yuv420p ""{_videoMp4}""", 30000)
+                If ok AndAlso File.Exists(_videoMp4) AndAlso New FileInfo(_videoMp4).Length > 1000 Then
+                    Console.WriteLine($"      [DUAL] video encoder: {a.enc} (preset {a.preset})")
+                    Return True
+                End If
+                Try : File.Delete(_videoMp4) : Catch : End Try
+            Next
+            Console.WriteLine("      [DUAL] no H.264 encoder available at all — cannot prepare media")
+            Return False
+        End Function
+
+        ''' <summary>Run ffmpeg, print the stderr TAIL on failure (encoder diagnosis).</summary>
+        Private Function RunFFmpegQuiet(args As String, timeoutMs As Integer) As Boolean
+            Try
+                Dim psi As New ProcessStartInfo With {
+                    .FileName = _ffmpegExe,
+                    .Arguments = args,
+                    .UseShellExecute = False,
+                    .RedirectStandardError = True,
+                    .RedirectStandardOutput = True,
+                    .CreateNoWindow = True
+                }
+                Using p As Process = Process.Start(psi)
+                    Dim errTask = p.StandardError.ReadToEndAsync()
+                    Dim outTask = p.StandardOutput.ReadToEndAsync()
+                    If Not p.WaitForExit(timeoutMs) Then
+                        Try : p.Kill() : Catch : End Try
+                        Return False
+                    End If
+                    errTask.Wait(2000) : outTask.Wait(2000)
+                    If p.ExitCode <> 0 Then
+                        Dim tail As String = ""
+                        Try
+                            Dim lines As String() = errTask.Result.Split(New Char() {ControlChars.Lf}, StringSplitOptions.RemoveEmptyEntries)
+                            tail = String.Join(" | ", lines.Skip(Math.Max(0, lines.Length - 2)).ToArray())
+                        Catch
+                        End Try
+                        Console.WriteLine($"      [DUAL] encoder attempt failed: {tail}")
+                    End If
+                    Return p.ExitCode = 0
+                End Using
+            Catch
+                Return False
+            End Try
         End Function
         Private _videoH264 As String = Nothing
         Private _videoMp4 As String = Nothing
@@ -179,14 +261,23 @@ Namespace CaptureEngine.Recording.Tests
             ' Windows validation run skipped SYNC-RT for exactly this reason
             ' even though h264_nvenc is present. Software encoder first
             ' (hermetic), then hardware.
-            Dim encoders() As String = {"libx264", "h264_nvenc", "h264_qsv", "h264_amf"}
+            ' ★ Windows-run fix: '-preset ultrafast' is x264-only syntax — NVENC
+            ' rejects it ('Invalid argument') even on a real GTX 1080 Ti, which
+            ' made the whole chain fail. Per-encoder presets now.
+            Dim attempts() As (enc As String, preset As String) = {
+                ("libx264", "ultrafast"),
+                ("h264_nvenc", "p1"),
+                ("h264_qsv", "veryfast"),
+                ("h264_amf", "speed")
+            }
             Dim genOk As Boolean = False
-            For Each enc As String In encoders
+            For Each a In attempts
+                Dim presetArg As String = If(String.IsNullOrEmpty(a.preset), "", $" -preset {a.preset}")
                 genOk = RunFFmpeg(
                     $"-y -hide_banner -loglevel error -f lavfi -i testsrc=size=320x240:rate=60:duration=5 " &
-                    $"-c:v {enc} -preset ultrafast -pix_fmt yuv420p -f h264 """ & _videoH264 & """", 30000)
+                    $"-c:v {a.enc}{presetArg} -pix_fmt yuv420p -f h264 """ & _videoH264 & """", 30000)
                 If genOk AndAlso File.Exists(_videoH264) AndAlso New FileInfo(_videoH264).Length >= 1000 Then
-                    Console.WriteLine($"      video encoder: {enc}")
+                    Console.WriteLine($"      video encoder: {a.enc} (preset {a.preset})")
                     Exit For
                 End If
                 genOk = False
