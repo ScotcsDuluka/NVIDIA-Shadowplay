@@ -25,6 +25,11 @@ Partial Class Base_Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
         Main_Menu_SET = New Panel()
         Panel = New Panel()
+        Label4 = New Label()
+        ToggleUseWindowsSnip = New ToggleSwitch()
+        Desc_UseWindowsSnip = New Label()
+        Desc_UseWindowsSnip_SUB = New Label()
+        Label3 = New Label()
         settings_top = New PictureBox()
         Block_AM = New PictureBox()
         action_fn = New Label()
@@ -34,11 +39,6 @@ Partial Class Base_Settings
         PictureBox1 = New PictureBox()
         btnExportSettings = New Label()
         btnImportSettings = New Label()
-        ToggleUseWindowsSnip = New ToggleSwitch()
-        Desc_UseWindowsSnip = New Label()
-        Label3 = New Label()
-        Desc_UseWindowsSnip_SUB = New Label()
-        Label4 = New Label()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -70,6 +70,69 @@ Partial Class Base_Settings
         Panel.Name = "Panel"
         Panel.Size = New Size(1000, 586)
         Panel.TabIndex = 74
+        ' 
+        ' Label4
+        ' 
+        Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label4.Font = New Font("GeForce", 24F, FontStyle.Bold)
+        Label4.ForeColor = Color.White
+        Label4.Location = New Point(62, 43)
+        Label4.Name = "Label4"
+        Label4.Size = New Size(514, 60)
+        Label4.TabIndex = 80
+        Label4.Text = "General"
+        ' 
+        ' ToggleUseWindowsSnip
+        ' 
+        ToggleUseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ToggleUseWindowsSnip.ForeColor = Color.Aquamarine
+        ToggleUseWindowsSnip.ImeMode = ImeMode.Off
+        ToggleUseWindowsSnip.IsOn = False
+        ToggleUseWindowsSnip.Location = New Point(71, 111)
+        ToggleUseWindowsSnip.Name = "ToggleUseWindowsSnip"
+        ToggleUseWindowsSnip.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ToggleUseWindowsSnip.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ToggleUseWindowsSnip.ShowGlow = False
+        ToggleUseWindowsSnip.Size = New Size(48, 24)
+        ToggleUseWindowsSnip.TabIndex = 79
+        ToggleUseWindowsSnip.Text = "ToggleSwitch"
+        ' 
+        ' Desc_UseWindowsSnip
+        ' 
+        Desc_UseWindowsSnip.AutoSize = True
+        Desc_UseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Desc_UseWindowsSnip.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Desc_UseWindowsSnip.ForeColor = Color.White
+        Desc_UseWindowsSnip.Location = New Point(125, 107)
+        Desc_UseWindowsSnip.Name = "Desc_UseWindowsSnip"
+        Desc_UseWindowsSnip.Size = New Size(362, 28)
+        Desc_UseWindowsSnip.TabIndex = 76
+        Desc_UseWindowsSnip.Text = "Take screenshots with Windows - Beta"
+        ' 
+        ' Desc_UseWindowsSnip_SUB
+        ' 
+        Desc_UseWindowsSnip_SUB.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Desc_UseWindowsSnip_SUB.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Desc_UseWindowsSnip_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
+        Desc_UseWindowsSnip_SUB.ForeColor = Color.White
+        Desc_UseWindowsSnip_SUB.Location = New Point(151, 125)
+        Desc_UseWindowsSnip_SUB.Name = "Desc_UseWindowsSnip_SUB"
+        Desc_UseWindowsSnip_SUB.Size = New Size(596, 91)
+        Desc_UseWindowsSnip_SUB.TabIndex = 78
+        Desc_UseWindowsSnip_SUB.Text = "Screenshots are taken with Windows (Win+Shift+S), letting you select the area to capture."
+        Desc_UseWindowsSnip_SUB.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Label3
+        ' 
+        Label3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label3.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label3.ForeColor = Color.White
+        Label3.Location = New Point(106, 125)
+        Label3.Name = "Label3"
+        Label3.Size = New Size(39, 91)
+        Label3.TabIndex = 77
+        Label3.Text = ""
+        Label3.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' settings_top
         ' 
@@ -177,69 +240,6 @@ Partial Class Base_Settings
         btnImportSettings.TabIndex = 94
         btnImportSettings.Text = "Import Settings"
         btnImportSettings.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' ToggleUseWindowsSnip
-        ' 
-        ToggleUseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ToggleUseWindowsSnip.ForeColor = Color.Aquamarine
-        ToggleUseWindowsSnip.ImeMode = ImeMode.Off
-        ToggleUseWindowsSnip.IsOn = False
-        ToggleUseWindowsSnip.Location = New Point(71, 111)
-        ToggleUseWindowsSnip.Name = "ToggleUseWindowsSnip"
-        ToggleUseWindowsSnip.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ToggleUseWindowsSnip.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ToggleUseWindowsSnip.ShowGlow = False
-        ToggleUseWindowsSnip.Size = New Size(48, 24)
-        ToggleUseWindowsSnip.TabIndex = 79
-        ToggleUseWindowsSnip.Text = "ToggleSwitch"
-        ' 
-        ' Desc_UseWindowsSnip
-        ' 
-        Desc_UseWindowsSnip.AutoSize = True
-        Desc_UseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Desc_UseWindowsSnip.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        Desc_UseWindowsSnip.ForeColor = Color.White
-        Desc_UseWindowsSnip.Location = New Point(125, 107)
-        Desc_UseWindowsSnip.Name = "Desc_UseWindowsSnip"
-        Desc_UseWindowsSnip.Size = New Size(302, 28)
-        Desc_UseWindowsSnip.TabIndex = 76
-        Desc_UseWindowsSnip.Text = "Take screenshots with Windows"
-        ' 
-        ' Label3
-        ' 
-        Label3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label3.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label3.ForeColor = Color.White
-        Label3.Location = New Point(106, 125)
-        Label3.Name = "Label3"
-        Label3.Size = New Size(39, 91)
-        Label3.TabIndex = 77
-        Label3.Text = ""
-        Label3.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Desc_UseWindowsSnip_SUB
-        ' 
-        Desc_UseWindowsSnip_SUB.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Desc_UseWindowsSnip_SUB.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Desc_UseWindowsSnip_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
-        Desc_UseWindowsSnip_SUB.ForeColor = Color.White
-        Desc_UseWindowsSnip_SUB.Location = New Point(151, 125)
-        Desc_UseWindowsSnip_SUB.Name = "Desc_UseWindowsSnip_SUB"
-        Desc_UseWindowsSnip_SUB.Size = New Size(596, 91)
-        Desc_UseWindowsSnip_SUB.TabIndex = 78
-        Desc_UseWindowsSnip_SUB.Text = "Screenshots are taken with Windows (Win+Shift+S), letting you select the area to capture."
-        Desc_UseWindowsSnip_SUB.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label4
-        ' 
-        Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label4.Font = New Font("GeForce", 24F, FontStyle.Bold)
-        Label4.ForeColor = Color.White
-        Label4.Location = New Point(62, 43)
-        Label4.Name = "Label4"
-        Label4.Size = New Size(514, 60)
-        Label4.TabIndex = 80
-        Label4.Text = "General"
         ' 
         ' Base_Settings
         ' 
