@@ -65,6 +65,14 @@ Namespace CaptureEngine.Recording
         '    runtime-validated. Set True to bring back debug WAVs.
         Public Property EvidenceSidecar As Boolean = False
 
+        ' ★ OBS keep-alive switch: renders endless silence to the loopback
+        ' device so WASAPI delivers a continuous stream. Owner reported FULL-
+        ' SCALE NOISE with it active on their machine (format mismatch between
+        ' the WasapiOut render and the loopback capture, most likely) —
+        ' default OFF until the root cause is proven. AudioTap gap-fill
+        ' (proven stable in the 21:47 run) remains the primary mechanism.
+        Public Property SilenceKeepAlive As Boolean = False
+
         ' ── Phase 12b: process-lifecycle hook (no-orphan-FFmpeg criterion) ──
         ''' <summary>
         ''' Invoked right after CaptureSession spawns any child process

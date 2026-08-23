@@ -224,8 +224,12 @@ Namespace CaptureEngine.Recording
                     ' means the loopback's FIRST callback arrives within ~10ms
                     ' (the mixer is already active) — the 5.7s warm-up gap and
                     ' its pre-roll reconstruction never happen.
-                    _silenceKeepAlive = New SilenceKeepAlive()
-                    _logger.Info($"[session] silence keep-alive: {If(_silenceKeepAlive.IsActive, "ACTIVE on " & _silenceKeepAlive.DeviceName, "unavailable — tap gap-fill remains active")} (OBS-style continuous loopback)")
+                    If _config.SilenceKeepAlive Then
+                        _silenceKeepAlive = New SilenceKeepAlive()
+                        _logger.Info($"[session] silence keep-alive: {If(_silenceKeepAlive.IsActive, "ACTIVE on " & _silenceKeepAlive.DeviceName, "unavailable — tap gap-fill remains active")} (OBS-style continuous loopback)")
+                    Else
+                        _logger.Info("[session] silence keep-alive disabled by config — AudioTap gap-fill active (proven path)")
+                    End If
 
                     ' PROVEN MODEL: capture the StartRecording CALL time —
                     ' NOT the first-callback time (historical -10s offset bug).
