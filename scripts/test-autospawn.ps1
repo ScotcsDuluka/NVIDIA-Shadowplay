@@ -41,12 +41,43 @@ $familyNames = @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
 
 if (-not $SkipBuild) {
     Write-Host ">>> Building solution..." -ForegroundColor Cyan
-    & powershell -ExecutionPolicy Bypass -File "scripts\build-all.ps1" -Fast
+    # CLEAN build (not -Fast): bin/ of this repo has been built from BOTH
+    # Linux (EnableWindowsTargeting cross-compile — produces a non-Windows
+    # apphost named 'NVIDIA ShadowPlay' with no .exe) and Windows. A stale/
+    # mixed apphost is the prime suspect for 'exe exits -1 silently while
+    # dotnet dll runs fine'. Clean removes that whole class of failure.
+    & powershell -ExecutionPolicy Bypass -File "scripts\build-all.ps1"
     if ($LASTEXITCODE -ne 0) { Write-Host "BUILD FAILED" -ForegroundColor Red; exit 1 }
 }
 
 foreach ($f in @($spExe, $capExe, $hubExe)) {
     if (-not (Test-Path $f)) { Write-Host "Missing $f" -ForegroundColor Red; exit 1 }
+}
+
+# ── T-1: binary freshness audit (exe vs dll timestamps) ────────────
+# If the apphost exe is older than the app dll, the exe is stale — the
+# classic mixed-bin failure. Report loudly BEFORE wasting a test run.
+Write-Host "`n>>> T-1: binary freshness audit..." -ForegroundColor Cyan
+foreach ($base in @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API")) {
+    $exe = Join-Path $overlayBin "$base.exe"
+    $dll = Join-Path $overlayBin "$base.dll"
+    if ((Test-Path $exe) -and (Test-Path $dll)) {
+        $exeT = (Get-Item $exe).LastWriteTime
+        $dllT = (Get-Item $dll).LastWriteTime
+        $delta = ($dllT - $exeT).TotalSeconds
+        if ($delta -gt 5) {
+            Write-Host ("  [STALE] {0}.exe is {1:N0}s OLDER than its dll — mixed bin!" -f $base, $delta) -ForegroundColor Red
+        } else {
+            Write-Host ("  [OK] {0}.exe {1:HH:mm:ss} (dll {2:HH:mm:ss})" -f $base, $exeT, $dllT) -ForegroundColor DarkGray
+        }
+    }
+}
+# Also flag the Linux-style extensionless apphost if present — it means a
+# cross-compile artifact is sitting in this bin.
+$linuxHost = Join-Path $overlayBin "NVIDIA ShadowPlay"
+if (Test-Path $linuxHost) {
+    Write-Host "  [WARN] extensionless 'NVIDIA ShadowPlay' (Linux cross-compile apphost) exists in bin — removing" -ForegroundColor Yellow
+    Remove-Item $linuxHost -Force
 }
 
 function Count-Engine  { @(Get-Process -Name "NVIDIA Capture"  -ErrorAction SilentlyContinue).Count }
