@@ -40,6 +40,7 @@ Option Infer On
 
 Imports System.Diagnostics
 Imports System.IO
+Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports NAudio.Wave
 Imports CaptureEngine.Diagnostics
@@ -54,6 +55,25 @@ Namespace CaptureEngine.Recording
 
     Public NotInheritable Class CaptureSession
         Implements IDisposable
+
+        ' ★ CFR PACING FIX (the 60fps bug): Thread.Sleep on Windows has a
+        ' ~15.6ms quantum unless some process raised the system timer
+        ' resolution. Our CFR loop targets 13.3ms ticks (75fps) but slept
+        ' 15.6ms per tick = EXACTLY 60fps — proven by three owner runs:
+        '   2138 frames / 35.66s = 59.95fps  (21:47)
+        '    788 frames / 12.10s = 65.1fps   (01:49)
+        ' The video pipe declares -framerate 75 up front, so a 60fps delivery
+        ' compresses the video timeline by 20% — desync that GROWS with clip
+        ' length and no lead calibration can fix. While a game runs, the game
+        ' itself raises the resolution (why it 'sometimes worked'). We now
+        ' raise it ourselves for the session's duration.
+        <DllImport("winmm.dll")>
+        Private Shared Function timeBeginPeriod(period As UInteger) As Integer
+        End Function
+
+        <DllImport("winmm.dll")>
+        Private Shared Function timeEndPeriod(period As UInteger) As Integer
+        End Function
 
         Private ReadOnly _capture As DdagrabBackend
         Private ReadOnly _encoder As NvencEncoderBackend
@@ -150,7 +170,10 @@ Namespace CaptureEngine.Recording
             Dim duration As TimeSpan = TimeSpan.FromSeconds(_config.DurationSeconds)
 
             Try
-                ' ─── 1. Create sink ──────────────────────────────────────
+                ' ★ Timer resolution: 1ms for the whole session (CFR pacing
+                ' needs sub-15.6ms sleeps — see the winmm declarations above).
+                timeBeginPeriod(1UI)
+                _logger.Info("[session] timer resolution set to 1ms (CFR pacing)")
                 sink = New BoundedVideoFrameSink(4, BoundedHandoffPolicy.DropOldest, _logger)
 
                 ' ─── 2. Start audio sidecar ─────────────────────────────
@@ -674,6 +697,7 @@ Namespace CaptureEngine.Recording
                 result.ErrorMessage = ex.Message
                 _logger.Error($"[session] Failed: {ex.Message}", ex)
             Finally
+                Try : timeEndPeriod(1UI) : Catch : End Try
                 Try : _silenceKeepAlive?.Dispose() : Catch : End Try
                 Try : _liveMux?.Dispose() : Catch : End Try
                 Try : wavWriter?.Dispose() : Catch : End Try

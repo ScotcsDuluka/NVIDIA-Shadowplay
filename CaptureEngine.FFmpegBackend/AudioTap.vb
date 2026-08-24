@@ -231,7 +231,10 @@ SteerDone:
             ' place: the pipe origin (BeginTimelines offsets in CaptureSession).
             Dim silenceNeededSec As Double = arrivalGapSec - bufferDurSec
 
-            If silenceNeededSec > 0.05 AndAlso silenceNeededSec <= 60.0 Then
+            ' ★ cap raised 60s → 3600s: a music pause longer than 60s used to
+            ' skip the fill ENTIRELY (owner's 02:24 run had a 48.78s tail —
+            ' one second longer and the whole track would have shifted).
+            If silenceNeededSec > 0.05 AndAlso silenceNeededSec <= 3600.0 Then
                 Dim silBytes As Integer = CInt(silenceNeededSec * _bytesPerSec)
                 silBytes -= (silBytes Mod _bytesPerFrame)
                 If silBytes > 0 Then
@@ -289,7 +292,7 @@ SteerDone:
             End If
 
             Dim tailSec As Double = (Stopwatch.GetTimestamp() - _lastTicks) / Stopwatch.Frequency
-            If tailSec > 0.02 AndAlso tailSec <= 60.0 Then
+            If tailSec > 0.02 AndAlso tailSec <= 3600.0 Then
                 PadSilence(tailSec)
             End If
             _evidence?.Invoke($"[tap:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s")
