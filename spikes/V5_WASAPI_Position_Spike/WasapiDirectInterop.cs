@@ -63,12 +63,16 @@ namespace V5_WASAPI_Position_Spike
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         public interface IAudioClient
         {
+            // pFormat: pass the RAW pointer from GetMixFormat — do NOT round-
+            // trip through a WAVEFORMATEX struct copy. The modern mix format
+            // is WAVE_FORMAT_EXTENSIBLE (tag=65534, cbSize=22 => 40 bytes);
+            // a struct-copy buffer would be 18 bytes => E_INVALIDARG.
             void Initialize(int shareMode, int streamFlags, long bufferDuration100ns,
-                            long periodicity100ns, ref WAVEFORMATEX format, ref Guid sessionGuid);
+                            long periodicity100ns, IntPtr pFormat, ref Guid sessionGuid);
             void GetBufferSize(out uint bufferFrames);
             void GetStreamLatency(out long latency100ns);
             void GetCurrentPadding(out uint paddingFrames);
-            void IsFormatSupported(int shareMode, ref WAVEFORMATEX format, out IntPtr closestMatch);
+            void IsFormatSupported(int shareMode, IntPtr pFormat, out IntPtr closestMatch);
             void GetMixFormat(out IntPtr ppFormat);
             void GetDevicePeriod(out long defaultPeriod100ns, out long minPeriod100ns);
             void Start();

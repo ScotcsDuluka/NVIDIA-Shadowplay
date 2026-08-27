@@ -135,13 +135,19 @@ namespace V5_WASAPI_Position_Spike
             client.GetMixFormat(out fmtPtr);
             var fmt = (WasapiDirectInterop.WAVEFORMATEX)Marshal.PtrToStructure(
                 fmtPtr, typeof(WasapiDirectInterop.WAVEFORMATEX));
-            Marshal.FreeCoTaskMem(fmtPtr);
-            mixInfo = WasapiDirectInterop.FormatToString(fmt);
+            mixInfo = WasapiDirectInterop.FormatToString(fmt) +
+                      (fmt.wFormatTag == 0xFFFE
+                          ? " (EXTENSIBLE cbSize=" + fmt.cbSize + ")"
+                          : "");
             Console.WriteLine("mix    : " + mixInfo);
 
             Guid empty = Guid.Empty;
+            // Pass the RAW mix-format pointer — the format is EXTENSIBLE on
+            // every modern machine; a struct copy would be undersized and
+            // Initialize would return E_INVALIDARG. Free only AFTER Initialize.
             client.Initialize(0 /* shared */, flags, 1_000_000 /* 100ms in 100ns */, 0,
-                              ref fmt, ref empty);
+                              fmtPtr, ref empty);
+            Marshal.FreeCoTaskMem(fmtPtr);
             var capture = WasapiDirectInterop.GetCaptureClient(client);
 
             var rows = new List<Row>();
