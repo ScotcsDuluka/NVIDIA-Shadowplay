@@ -70,6 +70,18 @@ Direct capture loop over the WASAPI COM interfaces:
 
 ### 3.2 REWRITE — `AudioTap` v3 (gap-fill from measured time)
 
+> **P13.1 UPDATE (2026-08-27, v6 silence test on OWNER machine):** loopback
+> silence is a **non-event** — through 40 s of total silence the endpoint
+> kept delivering 100 packets/s with `devicePosition` advancing exactly
+> 480 frames/packet at 48 000 fps (**Model S**: the engine renders silence;
+> the timeline advances on its own). The SILENT flag appears only on the
+> stream-start packet, never on quiet-phase packets — silence math must
+> key off `qpcPosition` deltas, never off the flag bit. Consequences:
+> `SilenceKeepAlive` is **not required** and joins the deletion list
+> below; the qpcPosition gap formula stays as the safety net for
+> pathological drivers. Evidence: `spikes/V5_WASAPI_Position_Spike/
+> evidence/ANALYSIS.md` addendum.
+
 `Feed(buffer, count, qpcPos100ns)` — silence math becomes:
 
 ```

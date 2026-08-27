@@ -1,0 +1,19 @@
+=== V5 SUMMARY ===
+config  : source=loopback via=interop duration=60s packets=5999 SILENCE-TEST
+init    : Initialize attempt #1 (flags=0x20000, duration=100ms)
+mix     : 2ch 48000Hz 32bit tag=65534 blockAlign=8 (EXTENSIBLE cbSize=22)
+freq    : Stopwatch.Frequency=10000000 (100ns domain=10000000)
+unit    : qpcPosition -> QPC ticks (same unit as Stopwatch)
+          delta qpc / delta sw = 1.000186
+devpos  : delta devicePosition / sum frames = 1.000000 (expected ~1.0 if devicePosition is in sample FRAMES)
+latency : mean read-lag behind hardware stamp = -24.98 ms  (packets >40ms late: 0/5998)
+          (read-lag is read-loop latency, NOT clock drift)
+fit     : OLS over 5999 packets — clock skew = +5.8 ppm  (gate: |skew| < 200 ppm)
+stable  : 6-chunk offset spread = 0.39 ms  (gate: < 5.00 ms) — the P13.4 anchoring error budget
+jitter  : arrival residual p95 = 7.09 ms — OUR 5 ms-poll jitter, not stamp noise (informational)
+driftEP : crude endpoint drift = -11.18 ms (v4 metric, arrival-phase sensitive — informational only)
+flags   : silent=1 discontinuity=0 timestampError=0  (SILENT=0x1 TSERR=0x2 DISCONT=0x4)
+gaps    : longest no-packet window = 34 ms — continuous
+phases  : quiet=2000 pkts | sound=2000 pkts | quiet=1999 pkts
+silence : Model S — engine rendered SILENT packets while quiet (timeline advanced on its own); emit zeros per packet, SilenceKeepAlive not required
+VERDICT: PASS — hardware stamps usable as the single master clock (P13.1 gate met)

@@ -25,6 +25,16 @@ for the P13 audio redesign (`docs/PHASE-13-SHADOWPLAY-CLOCK.md`).
    handler printed the exact stack (`WriteCsv` → `StringBuilder
    .ExpandByABlock`). `[PreserveSig]` + manual HRESULT checks stay:
    failures must always name their call.
+4. **v6 silence test (OWNER run 2026-08-27 20:40): silence is a
+   non-event for loopback.** 60 s quiet/sound/quiet: packet flow stayed
+   100/s in ALL three phases, `devicePosition` stepped exactly 480 frames
+   through silence at 48 000 fps — **Model S** (engine renders silence,
+   timeline advances on its own). The one SILENT flag was row 0
+   (stream start); quiet-phase packets are genuine zero buffers WITHOUT
+   the flag. → SilenceKeepAlive not required; AudioTap v3 keys silence
+   math off qpcPosition deltas, never off the flag bit. Skew +5.8 ppm,
+   chunk spread 0.39 ms — gate margins intact through silence (see
+   `evidence/ANALYSIS.md` addendum).
 
 ## Prerequisites
 - Windows 10+ (WASAPI loopback)
