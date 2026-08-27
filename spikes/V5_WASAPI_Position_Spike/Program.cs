@@ -1,14 +1,27 @@
 // Program.cs — V5 WASAPI Position Spike (PHASE 13.1)
 //
 // GOAL (per docs/PHASE-13-SHADOWPLAY-CLOCK.md, phase P13.1):
-//   1. Prove per-packet (devicePosition, qpcPosition) is readable for BOTH
-//      capture paths (loopback + mic), via two transports:
-//        --via interop (default) : direct COM declarations in this spike
-//        --via naudio            : NAudio 2.2.1 AudioCaptureClient wrapper
+//   1. Prove per-packet (devicePosition, qpcPosition) is readable from a
+//      direct WASAPI COM interop capture loop (loopback or mic).
 //   2. Measure QPC <-> Stopwatch agreement (same time base? what drift?).
 //   3. Empirically determine the UNIT of qpcPosition (QPC ticks vs 100ns)
 //      because SDK docs are ambiguous — evidence beats documentation.
 //   4. Produce CSV evidence + a summary the OWNER can eyeball in 30 seconds.
+//
+// v3 HARDENING (after "Out of memory." on OWNER's machine):
+//   * every WASAPI call is PreserveSig + manual HRESULT check, so failures
+//     print call name + hex code + decoded AUDCLNT_E_* (v2 let the CLR's
+//     HRESULT map rename E_OUTOFMEMORY into a bare "Out of memory.",
+//     hiding which call failed);
+//   * Initialize runs a 3-step fallback ladder (100ms -> 0ms -> +NOPERSIST)
+//     and logs every attempt's HRESULT;
+//   * every init step prints as it happens, so a mid-init failure is
+//     locatable from the console alone;
+//   * the capture loop records which call broke it and STILL writes
+//     partial evidence instead of dying;
+//   * fixed v2 analysis bug: flag bit constants were shifted
+//     (SILENT=0x1, DATA_DISCONTINUITY=0x4, TIMESTAMP_ERROR=0x2 —
+//     v2 had them rotated, mislabeling counts and the verdict gate).
 //
 // This spike never touches audio SAMPLES — only stamps. Safe to run while
 // music plays, and equally informative when the room is silent.
@@ -26,6 +39,12 @@ namespace V5_WASAPI_Position_Spike
 {
     internal static class Program
     {
+        // AUDCLNT_BUFFERFLAGS_* — verified against audioclient.h (v2 had
+        // these rotated; THAT bug would have mislabeled the verdict).
+        private const int FLAG_SILENT = 0x1;
+        private const int FLAG_TIMESTAMP_ERROR = 0x2;
+        private const int FLAG_DATA_DISCONTINUITY = 0x4;
+
         private struct Row
         {
             public long SwTicks;      // Stopwatch.GetTimestamp() at GetBuffer return
@@ -39,11 +58,26 @@ namespace V5_WASAPI_Position_Spike
         {
             public int DurationSec = 60;
             public string Source = "loopback";   // loopback | mic
-            public string Via = "interop";       // interop | naudio
+            public string Via = "interop";       // interop only (see FINDINGS)
             public string OutDir = "out";
         }
 
         private static int Main(string[] args)
+        {
+            // Top-level net: nothing may die with an ambiguous message again.
+            try
+            {
+                return Run(args);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine("FATAL: " + ex.GetType().Name + ": " + ex.Message);
+                Console.Error.WriteLine(ex.StackTrace);
+                return 4;
+            }
+        }
+
+        private static int Run(string[] args)
         {
             var cfg = new Config();
             for (int i = 0; i + 1 < args.Length; i += 2)
@@ -51,38 +85,44 @@ namespace V5_WASAPI_Position_Spike
                 string k = args[i], v = args[i + 1];
                 if (k == "--duration") cfg.DurationSec = int.Parse(v, CultureInfo.InvariantCulture);
                 else if (k == "--source") cfg.Source = v.ToLowerInvariant();
-                else if (k == "--via") cfg.Via = v.ToLowerInvariant();
+                else if (k == "--via") cfg.Via = v.ToLowerInvariant();   // ignored; interop only
                 else if (k == "--out") cfg.OutDir = v;
             }
 
-            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1) ===");
+            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v3) ===");
             Console.WriteLine("source=" + cfg.Source + " via=" + cfg.Via +
                               " duration=" + cfg.DurationSec + "s" +
                               " stopwatchFreq=" + Stopwatch.Frequency);
 
-            List<Row> rows;
-            string mixInfo;
-            if (cfg.Via == "naudio")
+            if (cfg.Via != "interop")
             {
                 Console.Error.WriteLine(
                     "--via naudio was REMOVED: compile-verified that NAudio 2.2.1 " +
                     "cannot expose positions (wrapper drops them; raw interface is internal). " +
                     "See README 'Findings'. Running --via interop instead.");
-                cfg.Via = "interop";
             }
+
+            List<Row> rows;
+            string mixInfo;
+            string initInfo;
             try
             {
-                rows = CaptureViaInterop(cfg, out mixInfo);
+                rows = CaptureViaInterop(cfg, out mixInfo, out initInfo);
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine("CAPTURE FAILED: " + ex.Message);
+                Console.Error.WriteLine("hint: close apps holding the device exclusively " +
+                    "(ASIO, voice chat), switch default device, or test --source mic. " +
+                    "If it persists, send the full console output above to the OWNER log.");
                 return 3;
             }
 
             if (rows.Count < 10)
             {
-                Console.Error.WriteLine("Too few packets (" + rows.Count + ") — play some audio and retry.");
+                Console.Error.WriteLine("Too few packets (" + rows.Count + ") — " +
+                    "PLAY SOME AUDIO during the run (loopback sees nothing when the " +
+                    "endpoint is idle), then retry.");
                 return 3;
             }
 
@@ -92,7 +132,7 @@ namespace V5_WASAPI_Position_Spike
             string sumPath = Path.Combine(cfg.OutDir, "summary_" + stamp + ".txt");
             WriteCsv(csvPath, rows);
 
-            string summary = AnalyzeAndSummarize(cfg, rows, mixInfo);
+            string summary = AnalyzeAndSummarize(cfg, rows, mixInfo, initInfo);
             File.WriteAllText(sumPath, summary);
             Console.WriteLine();
             Console.WriteLine(summary);
@@ -116,64 +156,127 @@ namespace V5_WASAPI_Position_Spike
         //      accessible (CS1061).
         //   => NAudio cannot hand over devicePosition/qpcPosition in any
         //      form. P13.2 WasapiPositionCapture ships the direct interop
-        //      from WasapiDirectInterop.cs (~150 lines, zero deps).
+        //      from WasapiDirectInterop.cs (~200 lines, zero deps).
         // ─────────────────────────────────────────────────────────────────
-        private static List<Row> CaptureViaInterop(Config cfg, out string mixInfo)
+        private static List<Row> CaptureViaInterop(Config cfg, out string mixInfo, out string initInfo)
         {
             int flow = cfg.Source == "mic" ? WasapiDirectInterop.eCapture
                                            : WasapiDirectInterop.eRender;
-            int flags = cfg.Source == "mic" ? 0
-                                            : WasapiDirectInterop.AUDCLNT_STREAMFLAGS_LOOPBACK;
+            bool loopback = cfg.Source != "mic";
 
             var device = WasapiDirectInterop.GetDefaultDevice(flow);
-            string deviceId;
-            device.GetId(out deviceId);
-            Console.WriteLine("device : " + deviceId);
+            WasapiDirectInterop.Check(device.GetId(out string deviceId), "IMMDevice.GetId");
+            Console.WriteLine("[init] device  : " + deviceId);
 
             var client = WasapiDirectInterop.ActivateAudioClient(device);
-            IntPtr fmtPtr;
-            client.GetMixFormat(out fmtPtr);
+            Console.WriteLine("[init] AudioClient activated");
+
+            WasapiDirectInterop.Check(client.GetMixFormat(out IntPtr fmtPtr), "IAudioClient.GetMixFormat");
             var fmt = (WasapiDirectInterop.WAVEFORMATEX)Marshal.PtrToStructure(
                 fmtPtr, typeof(WasapiDirectInterop.WAVEFORMATEX));
             mixInfo = WasapiDirectInterop.FormatToString(fmt) +
                       (fmt.wFormatTag == 0xFFFE
                           ? " (EXTENSIBLE cbSize=" + fmt.cbSize + ")"
                           : "");
-            Console.WriteLine("mix    : " + mixInfo);
+            Console.WriteLine("[init] mix     : " + mixInfo);
 
-            Guid empty = Guid.Empty;
-            // Pass the RAW mix-format pointer — the format is EXTENSIBLE on
-            // every modern machine; a struct copy would be undersized and
-            // Initialize would return E_INVALIDARG. Free only AFTER Initialize.
-            client.Initialize(0 /* shared */, flags, 1_000_000 /* 100ms in 100ns */, 0,
-                              fmtPtr, ref empty);
-            Marshal.FreeCoTaskMem(fmtPtr);
+            // ── Initialize fallback ladder ───────────────────────────────
+            // Different drivers are picky about buffer duration / flags in
+            // loopback. Try the standard request first, then looser ones.
+            // Every attempt's HRESULT is printed — no more silent mysteries.
+            int[] flagOpts = loopback
+                ? new[] { WasapiDirectInterop.AUDCLNT_STREAMFLAGS_LOOPBACK,
+                          WasapiDirectInterop.AUDCLNT_STREAMFLAGS_LOOPBACK,
+                          WasapiDirectInterop.AUDCLNT_STREAMFLAGS_LOOPBACK |
+                          WasapiDirectInterop.AUDCLNT_STREAMFLAGS_NOPERSIST }
+                : new[] { 0, 0, 0 };
+            long[] durOpts = { 1_000_000, 0, 0 };              // 100ms, engine default, engine default
+            string[] durName = { "100ms", "0 (engine default)", "0 (engine default)" };
+
+            int hrInit = -1;
+            int usedAttempt = -1;
+            for (int attempt = 0; attempt < flagOpts.Length; attempt++)
+            {
+                Console.Write("[init] Initialize(shared, flags=0x" +
+                              flagOpts[attempt].ToString("X") + ", duration=" +
+                              durName[attempt] + ") -> ");
+                hrInit = client.Initialize(0, flagOpts[attempt], durOpts[attempt], 0,
+                                           fmtPtr, IntPtr.Zero);
+                Console.WriteLine(WasapiDirectInterop.HrName(hrInit));
+                if (hrInit >= 0) { usedAttempt = attempt; break; }
+            }
+            Marshal.FreeCoTaskMem(fmtPtr);   // engine copied what it needs (or refused)
+            if (hrInit < 0)
+            {
+                throw new InvalidOperationException(
+                    "IAudioClient.Initialize failed on ALL fallback attempts (last " +
+                    WasapiDirectInterop.HrName(hrInit) + "). The Windows audio engine " +
+                    "refused to create this capture stream.");
+            }
+            initInfo = "Initialize attempt #" + (usedAttempt + 1) +
+                       " (flags=0x" + flagOpts[usedAttempt].ToString("X") +
+                       ", duration=" + durName[usedAttempt] + ")";
+
+            WasapiDirectInterop.Check(client.GetBufferSize(out uint bufferFrames),
+                                      "IAudioClient.GetBufferSize");
+            Console.WriteLine("[init] buffer  : " + bufferFrames + " frames");
+
             var capture = WasapiDirectInterop.GetCaptureClient(client);
+            Console.WriteLine("[init] capture service OK");
+
+            WasapiDirectInterop.Check(client.Start(), "IAudioClient.Start");
+            Console.WriteLine("[capture] started for " + cfg.DurationSec + "s — " +
+                              (loopback ? "PLAY SOME AUDIO (anything)" : "make some noise"));
 
             var rows = new List<Row>();
-            client.Start();
             long start = Stopwatch.GetTimestamp();
             long limit = (long)((double)cfg.DurationSec * Stopwatch.Frequency);
-            while (Stopwatch.GetTimestamp() - start < limit)
+            int nextHeartbeat = Math.Min(10, cfg.DurationSec);
+            string loopError = null;
+
+            while (true)
             {
-                int pending;
-                capture.GetNextPacketSize(out pending);
+                long now = Stopwatch.GetTimestamp();
+                if (now - start >= limit) break;
+                double elapsed = (now - start) / (double)Stopwatch.Frequency;
+                if (elapsed >= nextHeartbeat)
+                {
+                    Console.WriteLine("[capture] " + nextHeartbeat + "s: " +
+                                      rows.Count + " packets");
+                    nextHeartbeat += 10;
+                }
+
+                int hrN = capture.GetNextPacketSize(out int pending);
+                if (hrN < 0) { loopError = "GetNextPacketSize: " + WasapiDirectInterop.HrName(hrN); break; }
+                if (pending < 0)
+                { loopError = "GetNextPacketSize returned negative frames: " + pending; break; }
                 if (pending == 0) { Thread.Sleep(5); continue; }
 
-                IntPtr data; int frames; int fl; long devPos, qpcPos;
-                capture.GetBuffer(out data, out frames, out fl, out devPos, out qpcPos);
-                var row = new Row
+                int hrG = capture.GetBuffer(out IntPtr data, out int frames, out int fl,
+                                            out long devPos, out long qpcPos);
+                if (hrG < 0) { loopError = "GetBuffer: " + WasapiDirectInterop.HrName(hrG); break; }
+                long swNow = Stopwatch.GetTimestamp();
+
+                int hrR = capture.ReleaseBuffer(0);
+                if (hrR < 0)
+                { loopError = "ReleaseBuffer: " + WasapiDirectInterop.HrName(hrR); break; }
+
+                rows.Add(new Row
                 {
-                    SwTicks = Stopwatch.GetTimestamp(),
+                    SwTicks = swNow,
                     QpcPosition = qpcPos,
                     DevicePosition = devPos,
                     Frames = frames,
                     Flags = fl
-                };
-                capture.ReleaseBuffer(0);
-                rows.Add(row);
+                });
             }
-            client.Stop();
+
+            int hrStop = client.Stop();
+            if (hrStop < 0) Console.WriteLine("[capture] warn: Stop -> " +
+                                              WasapiDirectInterop.HrName(hrStop));
+            if (loopError != null)
+                Console.WriteLine("[capture] stopped early: " + loopError +
+                                  " — " + rows.Count + " packets collected (kept as partial evidence)");
             return rows;
         }
 
@@ -196,12 +299,14 @@ namespace V5_WASAPI_Position_Spike
             File.WriteAllText(path, sb.ToString());
         }
 
-        private static string AnalyzeAndSummarize(Config cfg, List<Row> rows, string mixInfo)
+        private static string AnalyzeAndSummarize(Config cfg, List<Row> rows,
+                                                  string mixInfo, string initInfo)
         {
             var sb = new StringBuilder();
             sb.AppendLine("=== V5 SUMMARY ===");
             sb.AppendLine("config  : source=" + cfg.Source + " via=" + cfg.Via +
                           " duration=" + cfg.DurationSec + "s packets=" + rows.Count);
+            sb.AppendLine("init    : " + initInfo);
             sb.AppendLine("mix     : " + mixInfo);
             sb.AppendLine("freq    : Stopwatch.Frequency=" + Stopwatch.Frequency +
                           " (100ns domain=10000000)");
@@ -268,16 +373,17 @@ namespace V5_WASAPI_Position_Spike
                 driftMs.ToString("0.00", CultureInfo.InvariantCulture) + " ms" +
                 "  (gate: |drift| < 5.00 ms)");
 
-            // ── 5. Health flags ──────────────────────────────────────────
+            // ── 5. Health flags (constants verified against audioclient.h) ─
             int silent = 0, discontinuous = 0, timestampErr = 0;
             for (int i = 0; i < rows.Count; i++)
             {
-                if ((rows[i].Flags & 0x2) != 0) silent++;         // AUDCLNT_BUFFERFLAGS_SILENT
-                if ((rows[i].Flags & 0x1) != 0) discontinuous++;  // AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY
-                if ((rows[i].Flags & 0x4) != 0) timestampErr++;   // AUDCLNT_BUFFERFLAGS_TIMESTAMP_ERROR
+                if ((rows[i].Flags & FLAG_SILENT) != 0) silent++;
+                if ((rows[i].Flags & FLAG_DATA_DISCONTINUITY) != 0) discontinuous++;
+                if ((rows[i].Flags & FLAG_TIMESTAMP_ERROR) != 0) timestampErr++;
             }
             sb.AppendLine("flags   : silent=" + silent + " discontinuity=" + discontinuous +
-                          " timestampError=" + timestampErr);
+                          " timestampError=" + timestampErr +
+                          "  (SILENT=0x1 TSERR=0x2 DISCONT=0x4)");
 
             bool pass = Math.Abs(driftMs) < 5.0 && timestampErr == 0 &&
                         !unit.StartsWith("UNRECOGNIZED", StringComparison.Ordinal);

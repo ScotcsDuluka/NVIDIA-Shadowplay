@@ -3,14 +3,21 @@
 // WHY: NAudio's WasapiLoopbackCapture drops devicePosition/qpcPosition.
 // This file declares just enough WASAPI to read them directly, so the spike
 // can prove the DATA independent of any wrapper library. If the direct path
-// works here, the P13.2 engine class can either keep this (~150 lines) or
-// switch to NAudio's raw interface wrapper (see Program.cs --via naudio).
+// works here, the P13.2 engine class can either keep this (~200 lines) or
+// wrap it behind WasapiPositionCapture.
 //
-// All methods are declared void => runtime marshals HRESULT to COMException.
-// That is intentional: a failed Initialize surfaces its AUDCLNT_E_* code
-// directly in the exception message, which is exactly the evidence a spike wants.
+// v3 CHANGE — EVERY method is [PreserveSig] int, every HRESULT checked here.
+// Rationale (learned the hard way on OWNER's machine): with plain 'void'
+// declarations the CLR converts failing HRESULTs into exception TYPES via
+// its fixed HRESULT map — E_OUTOFMEMORY (0x8007000E) becomes
+// System.OutOfMemoryException("Out of memory.") even when the real failure
+// is the audio engine refusing stream creation for a parameter reason.
+// That mapping named the CLR table, not the failing call, and cost a whole
+// debugging round-trip. Now: every failure prints "CallName: 0xHHHHHHHH
+// (DECODED_NAME)".
 
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace V5_WASAPI_Position_Spike
@@ -18,11 +25,12 @@ namespace V5_WASAPI_Position_Spike
     internal static class WasapiDirectInterop
     {
         // ── Constants ────────────────────────────────────────────────────
-        public const int CLSCTX_ALL = 0x17;                    // INPROC_SERVER|INPROC_HANDLER|LOCAL_SERVER|REMOTE_SERVER
+        public const int CLSCTX_ALL = 0x17;                    // INPROC|LOCAL|REMOTE
         public const int eRender = 0;                          // DATA_FLOW
         public const int eCapture = 1;
         public const int eConsole = 0;                         // ROLE
         public const int AUDCLNT_STREAMFLAGS_LOOPBACK = 0x00020000;
+        public const int AUDCLNT_STREAMFLAGS_NOPERSIST = 0x00080000;
 
         public static readonly Guid CLSID_MMDeviceEnumerator =
             new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E");
@@ -37,11 +45,11 @@ namespace V5_WASAPI_Position_Spike
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         public interface IMMDeviceEnumerator
         {
-            void EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices); // vtable slot 0 (unused)
-            void GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice device);
-            void GetDevice(IntPtr reserved);                                           // slot 2 (unused)
-            void RegisterEndpointNotificationCallback(IntPtr callback);                // slot 3 (unused)
-            void UnregisterEndpointNotificationCallback(IntPtr callback);              // slot 4 (unused)
+            [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices); // slot 0 (unused)
+            [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice device);
+            [PreserveSig] int GetDevice(IntPtr reserved);                                          // slot 2 (unused)
+            [PreserveSig] int RegisterEndpointNotificationCallback(IntPtr callback);               // slot 3 (unused)
+            [PreserveSig] int UnregisterEndpointNotificationCallback(IntPtr callback);             // slot 4 (unused)
         }
 
         // ── IMMDevice ────────────────────────────────────────────────────
@@ -50,11 +58,11 @@ namespace V5_WASAPI_Position_Spike
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
         public interface IMMDevice
         {
-            void Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams,
+            [PreserveSig] int Activate(ref Guid iid, int dwClsCtx, IntPtr pActivationParams,
                           [MarshalAs(UnmanagedType.IUnknown)] out object iface);
-            void OpenPropertyStore(IntPtr reserved);                                   // slot 1 (unused)
-            void GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
-            void GetState(out int state);
+            [PreserveSig] int OpenPropertyStore(IntPtr reserved);                                  // slot 1 (unused)
+            [PreserveSig] int GetId([MarshalAs(UnmanagedType.LPWStr)] out string id);
+            [PreserveSig] int GetState(out int state);
         }
 
         // ── IAudioClient ─────────────────────────────────────────────────
@@ -67,19 +75,20 @@ namespace V5_WASAPI_Position_Spike
             // trip through a WAVEFORMATEX struct copy. The modern mix format
             // is WAVE_FORMAT_EXTENSIBLE (tag=65534, cbSize=22 => 40 bytes);
             // a struct-copy buffer would be 18 bytes => E_INVALIDARG.
-            void Initialize(int shareMode, int streamFlags, long bufferDuration100ns,
-                            long periodicity100ns, IntPtr pFormat, ref Guid sessionGuid);
-            void GetBufferSize(out uint bufferFrames);
-            void GetStreamLatency(out long latency100ns);
-            void GetCurrentPadding(out uint paddingFrames);
-            void IsFormatSupported(int shareMode, IntPtr pFormat, out IntPtr closestMatch);
-            void GetMixFormat(out IntPtr ppFormat);
-            void GetDevicePeriod(out long defaultPeriod100ns, out long minPeriod100ns);
-            void Start();
-            void Stop();
-            void Reset();
-            void SetEventHandle(IntPtr handle);
-            void GetService(ref Guid iid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
+            // sessionGuid: IntPtr so we can pass NULL (documented as legal).
+            [PreserveSig] int Initialize(int shareMode, int streamFlags, long bufferDuration100ns,
+                            long periodicity100ns, IntPtr pFormat, IntPtr sessionGuid);
+            [PreserveSig] int GetBufferSize(out uint bufferFrames);
+            [PreserveSig] int GetStreamLatency(out long latency100ns);
+            [PreserveSig] int GetCurrentPadding(out uint paddingFrames);
+            [PreserveSig] int IsFormatSupported(int shareMode, IntPtr pFormat, out IntPtr closestMatch);
+            [PreserveSig] int GetMixFormat(out IntPtr ppFormat);
+            [PreserveSig] int GetDevicePeriod(out long defaultPeriod100ns, out long minPeriod100ns);
+            [PreserveSig] int Start();
+            [PreserveSig] int Stop();
+            [PreserveSig] int Reset();
+            [PreserveSig] int SetEventHandle(IntPtr handle);
+            [PreserveSig] int GetService(ref Guid iid, [MarshalAs(UnmanagedType.IUnknown)] out object service);
         }
 
         // ── IAudioCaptureClient ──────────────────────────────────────────
@@ -93,10 +102,10 @@ namespace V5_WASAPI_Position_Spike
             // qpcPosition    : performance counter when the device read that
             //                  position (unit verified empirically by the
             //                  spike — QPC ticks vs 100ns, see README)
-            void GetBuffer(out IntPtr data, out int framesInPacket, out int flags,
+            [PreserveSig] int GetBuffer(out IntPtr data, out int framesInPacket, out int flags,
                            out long devicePosition, out long qpcPosition);
-            void ReleaseBuffer(int bytesWritten);   // capture side passes 0
-            void GetNextPacketSize(out int numFramesInNextPacket);
+            [PreserveSig] int ReleaseBuffer(int framesRead);   // capture side passes 0
+            [PreserveSig] int GetNextPacketSize(out int numFramesInNextPacket);
         }
 
         // ── WAVEFORMATEX ─────────────────────────────────────────────────
@@ -119,28 +128,78 @@ namespace V5_WASAPI_Position_Spike
         {
             var type = Type.GetTypeFromCLSID(CLSID_MMDeviceEnumerator);
             var enumerator = (IMMDeviceEnumerator)Activator.CreateInstance(type);
-            IMMDevice device;
-            enumerator.GetDefaultAudioEndpoint(dataFlow, eConsole, out device);
+            Check(enumerator.GetDefaultAudioEndpoint(dataFlow, eConsole, out IMMDevice device),
+                  "IMMDeviceEnumerator.GetDefaultAudioEndpoint");
             return device;
         }
 
         /// <summary>Activate IAudioClient on a device.</summary>
         public static IAudioClient ActivateAudioClient(IMMDevice device)
         {
-            object raw;
             var iid = IID_IAudioClient;
-            device.Activate(ref iid, CLSCTX_ALL, IntPtr.Zero, out raw);
+            Check(device.Activate(ref iid, CLSCTX_ALL, IntPtr.Zero, out object raw),
+                  "IMMDevice.Activate(IAudioClient)");
             return (IAudioClient)raw;
         }
 
         /// <summary>Get the capture service from an initialized client.</summary>
         public static IAudioCaptureClient GetCaptureClient(IAudioClient client)
         {
-            object raw;
             var iid = IID_IAudioCaptureClient;
-            client.GetService(ref iid, out raw);
+            Check(client.GetService(ref iid, out object raw),
+                  "IAudioClient.GetService(IAudioCaptureClient)");
             return (IAudioCaptureClient)raw;
         }
+
+        /// <summary>
+        /// Throw an InvalidOperationException naming the exact call and the
+        /// decoded HRESULT. Never rely on the CLR's HRESULT->exception map:
+        /// it turned E_OUTOFMEMORY into a misleading "Out of memory." here.
+        /// </summary>
+        public static void Check(int hr, string call)
+        {
+            if (hr >= 0) return;
+            throw new InvalidOperationException(
+                call + " failed: " + HrName(hr));
+        }
+
+        /// <summary>Human-readable HRESULT suffix (empty when unknown).</summary>
+        public static string HrName(int hr)
+        {
+            string name;
+            return "0x" + hr.ToString("X8") + (Known.TryGetValue(hr, out name) ? " (" + name + ")" : "");
+        }
+
+        // Common WASAPI failures (mmdeviceapi.h / audioclient.h aud-clnt codes).
+        private static readonly Dictionary<int, string> Known = new Dictionary<int, string>
+        {
+            { unchecked((int)0x88890001), "AUDCLNT_E_NOT_INITIALIZED" },
+            { unchecked((int)0x88890002), "AUDCLNT_E_ALREADY_INITIALIZED" },
+            { unchecked((int)0x88890003), "AUDCLNT_E_WRONG_ENDPOINT_TYPE" },
+            { unchecked((int)0x88890004), "AUDCLNT_E_DEVICE_INVALIDATED" },
+            { unchecked((int)0x88890005), "AUDCLNT_E_NOT_STOPPED" },
+            { unchecked((int)0x88890006), "AUDCLNT_E_BUFFER_TOO_LARGE" },
+            { unchecked((int)0x88890007), "AUDCLNT_E_OUT_OF_ORDER" },
+            { unchecked((int)0x88890008), "AUDCLNT_E_UNSUPPORTED_FORMAT" },
+            { unchecked((int)0x88890009), "AUDCLNT_E_INVALID_DEVICE_PERIOD" },
+            { unchecked((int)0x8889000A), "AUDCLNT_E_INVALID_STREAM_FLAGS" },
+            { unchecked((int)0x8889000B), "AUDCLNT_E_BUFFER_SIZE_NOT_ALIGNED" },
+            { unchecked((int)0x8889000D), "AUDCLNT_E_EVENTHANDLE_NOT_EXPECTED" },
+            { unchecked((int)0x8889000E), "AUDCLNT_E_ENDPOINT_CREATE_FAILED" },
+            { unchecked((int)0x8889000F), "AUDCLNT_E_SERVICE_NOT_RUNNING" },
+            { unchecked((int)0x88890013), "AUDCLNT_E_EVENTHANDLE_NOT_SET" },
+            { unchecked((int)0x88890014), "AUDCLNT_E_INCORRECT_BUFFER_SIZE" },
+            { unchecked((int)0x88890015), "AUDCLNT_E_BUFFER_SIZE_ERROR" },
+            { unchecked((int)0x88890016), "AUDCLNT_E_CPUUSAGE_EXCEEDED" },
+            { unchecked((int)0x88890017), "AUDCLNT_E_BUFFER_ERROR" },
+            { unchecked((int)0x88890018), "AUDCLNT_E_DEVICE_IN_USE" },
+            { unchecked((int)0x8007000E), "E_OUTOFMEMORY" },
+            { unchecked((int)0x80070057), "E_INVALIDARG" },
+            { unchecked((int)0x80070005), "E_ACCESSDENIED" },
+            { unchecked((int)0x80070006), "E_HANDLE" },
+            { unchecked((int)0x80004005), "E_FAIL" },
+            { unchecked((int)0x80004001), "E_NOTIMPL" },
+        };
 
         public static string FormatToString(WAVEFORMATEX f)
         {

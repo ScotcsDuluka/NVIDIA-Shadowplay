@@ -17,6 +17,12 @@ for the P13 audio redesign (`docs/PHASE-13-SHADOWPLAY-CLOCK.md`).
 2. This spike **builds clean** cross-compiling `net8.0-windows10.0.19041.0`
    on Linux (`-p:EnableWindowsTargeting=true`): 0 warnings, 0 errors.
    Runtime evidence still requires a Windows box (below).
+3. **v2 runtime lesson (OWNER's machine): a bare `Out of memory.` is NOT a
+   memory bug.** With `void` COM declarations the CLR maps failing HRESULTs
+   to exception types — `E_OUTOFMEMORY` (0x8007000E) becomes
+   `System.OutOfMemoryException("Out of memory.")`, hiding which call
+   failed and why. v3 makes every call `[PreserveSig]` + manual HRESULT
+   check, so failures print `CallName: 0xNNNNNNNN (AUDCLNT_E_*)`.
 
 ## Prerequisites
 - Windows 10+ (WASAPI loopback)
@@ -59,6 +65,24 @@ dotnet run -c Release -- --duration 600
 2. One `out\position_log_<ts>.csv` (any run) — spot-check 3 rows:
    qpc deltas should grow ~linearly with sw_ticks deltas
 
+## Troubleshooting
+
+- **Bare `Out of memory.` (v2 and earlier)**: fixed in v3 — that was the
+  CLR renaming an `E_OUTOFMEMORY` HRESULT from `IAudioClient::Initialize`.
+  v3 prints the real call + hex + decoded name.
+- **`Initialize failed on ALL fallback attempts (last 0x8007000E
+  E_OUTOFMEMORY)`**: the audio engine refused stream creation. Known
+  causes: an app holds the endpoint in EXCLUSIVE mode (ASIO, some voice
+  chat), a Bluetooth headset mid-call (HFP profile switch), or a wedged
+  audio driver. Fixes: close suspect apps, `Restart-Service audiosrv`
+  (admin), replug/switch the default device, or run `--source mic` to
+  prove the other path.
+- **`Too few packets`**: loopback only sees the engine when the endpoint
+  is rendering. Play any audio (YouTube is fine) during the run.
+- **`stopped early: GetNextPacketSize: 0x88890004 ...`**: device was
+  invalidated mid-run (unplug/default-device switch). Partial evidence is
+  still written — send it along.
+
 ## Expected outcomes & contingencies
 
 - **qpcPosition in QPC ticks** (most likely): Stopwatch is QPC on Windows →
@@ -75,3 +99,15 @@ dotnet run -c Release -- --duration 600
 
 - No audio samples are read or written (stamps only).
 - No engine code is modified (spike only, per P13.1 gate definition).
+
+## Version history
+
+- **v1** — NAudio routes (closed at compile time; see FINDINGS #1).
+- **v2** — direct interop with `void` COM declarations; died on OWNER's
+  machine with a bare `Out of memory.` (CLR HRESULT map renamed an
+  `E_OUTOFMEMORY` from Initialize).
+- **v3** — `[PreserveSig]` + manual HRESULT checks with decoded names,
+  3-step Initialize fallback ladder (100ms -> engine default ->
+  +NOPERSIST), per-step init logging, 10s heartbeats, partial evidence
+  kept on loop errors, corrected AUDCLNT_BUFFERFLAGS constants (v2 had
+  SILENT/TSERR/DISCONT rotated, which would have mislabeled the verdict).
