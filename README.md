@@ -15,7 +15,7 @@ Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadow
 > [!IMPORTANT]
 > **Runtime Dependency:** This application requires **.NET 8.0 Desktop Runtime** and **4.8** installed on your system. The program will not launch without it.<br><br>
 > **OS Requirement:** **Windows 8 / Server 2012 or newer is required.** It will not work on Windows 7. <br>
-> ## **API Captrue**
+> ## **API Capture**
 > - Windows.Graphics.Capture
 > - Desktop Duplication API
 > - GDI screen grabber
@@ -26,7 +26,7 @@ Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadow
 
 > [!CAUTION]
 > **Exclusive Fullscreen Limitation:** Due to the no-hook design, capturing "Exclusive Fullscreen" applications is not supported on older Windows builds. Please use "Borderless Windowed" mode in your games for reliable recording.<br>
-> # !! Requirement Resolution at 1920 x 1080 !!
+> **Recommended capture resolution: 1920 x 1080**
 
 > [!TIP]
 > For the best performance, it is highly recommended to use NVIDIA hardware encoders (e.g., `h264_nvenc`) via FFmpeg.
@@ -44,6 +44,17 @@ Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadow
 - This project is inspired by NVIDIA ShadowPlay.<br>
 - Built over 3 years focusing on animation system, overlay UX, and performance.<br>
 - บางทีก็อัดได้ บางทีก็ไม่… แล้วแต่ดวง 555555665
+
+---
+
+## Development
+
+| Branch | Purpose |
+|--------|---------|
+| **`Stable`** | Default branch — last known-good build |
+| **`Engine-Rebuild-Stabilization`** | Active development — modular capture engine rewrite, sync/audio stabilization |
+
+Engine docs live in [`docs/`](docs/) (start at `docs/PHASE_PLAN.md`), the module map in [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md), and build/diagnostic entry points in [`scripts/`](scripts/).
 
 ---
 

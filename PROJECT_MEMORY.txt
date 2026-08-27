@@ -2,7 +2,7 @@ NVIDIA-Shadowplay — PROJECT MEMORY
 ===================================
 
 Version:
-Updated after Engine-Rebuild validation progress
+Updated after Engine-Rebuild-Stabilization maintenance pass (2026-08-28)
 
 ==================================================
 [PROJECT]
@@ -18,7 +18,7 @@ Default Branch:
 Stable
 
 Primary Development Branch:
-Engine-Rebuild
+Engine-Rebuild-Stabilization
 
 Target:
 Windows
