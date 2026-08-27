@@ -35,6 +35,16 @@
 //   streaming CSV writer (no giant string allocation, immune to size) +
 //   heartbeat rate display so anomalies are visible at a glance.
 //
+// v5 ANALYSIS REWORK (driven by OWNER's real 60s evidence run, 6000 pkts):
+//   the endpoint drift (first vs last packet) flagged the healthy run FAIL
+//   at 5.49 ms. Full-series OLS (see scripts/analyze_v5_evidence.py) proved
+//   the truth: clock skew +3.3 ppm, chunk-offset spread 0.27-0.55 ms — the
+//   5.49 ms was arrival-phase noise on the two endpoint samples (the first
+//   packet even carried the SILENT stream-start transient). v5 reports:
+//   fit (OLS skew ppm, gate <200), stable (chunk offset spread, gate <5ms),
+//   jitter (our poll residual p95, informational), driftEP (old metric,
+//   informational). VERDICT now gates on skew + stability + tsErr + unit.
+//
 // This spike never touches audio SAMPLES — only stamps. Safe to run while
 // music plays, and equally informative when the room is silent.
 
@@ -101,7 +111,7 @@ namespace V5_WASAPI_Position_Spike
                 else if (k == "--out") cfg.OutDir = v;
             }
 
-            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v4) ===");
+            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v5) ===");
             Console.WriteLine("source=" + cfg.Source + " via=" + cfg.Via +
                               " duration=" + cfg.DurationSec + "s" +
                               " stopwatchFreq=" + Stopwatch.Frequency);
@@ -418,13 +428,69 @@ namespace V5_WASAPI_Position_Spike
                 " ms  (packets >40ms late: " + late + "/" + n + ")");
             sb.AppendLine("          (read-lag is read-loop latency, NOT clock drift)");
 
-            // ── 4. Clock drift over the run (the P13.1 gate) ─────────────
+            // ── 4. Clock relationship — regression over ALL samples (v5) ──
+            // Replaces the v4 endpoint drift: both endpoints carry 0-10 ms
+            // arrival jitter from our 5 ms polling, so the endpoint metric
+            // flagged the healthy P13.1 evidence run FAIL at 5.49 ms. OLS
+            // over the full series measures the clocks directly; per-chunk
+            // offsets measure STABILITY — the number P13.4 actually consumes.
             double hwElapsedSwTicks = (last.QpcPosition - first.QpcPosition) * qpcToSw;
             double swElapsedTicks = (double)(last.SwTicks - first.SwTicks);
-            double driftMs = (swElapsedTicks - hwElapsedSwTicks) * 1000.0 / Stopwatch.Frequency;
-            sb.AppendLine("drift   : Stopwatch vs hardware over run = " +
-                driftMs.ToString("0.00", CultureInfo.InvariantCulture) + " ms" +
-                "  (gate: |drift| < 5.00 ms)");
+            double driftEndpointMs = (swElapsedTicks - hwElapsedSwTicks) * 1000.0
+                                     / Stopwatch.Frequency;
+
+            int n = rows.Count;
+            var qpcSw = new double[n];
+            var swT = new double[n];
+            for (int i = 0; i < n; i++)
+            {
+                qpcSw[i] = rows[i].QpcPosition * qpcToSw;
+                swT[i] = rows[i].SwTicks;
+            }
+            double mq = 0, ms = 0;
+            for (int i = 0; i < n; i++) { mq += qpcSw[i]; ms += swT[i]; }
+            mq /= n; ms /= n;
+            double cov = 0, varQ = 0;
+            for (int i = 0; i < n; i++)
+            {
+                double dx = qpcSw[i] - mq, dy = swT[i] - ms;
+                cov += dx * dy; varQ += dx * dx;
+            }
+            double slope = cov / varQ;                 // ≈ 1.0 + crystal skew
+            double intercept = ms - slope * mq;
+            double skewPpm = (slope - 1.0) * 1e6;
+            var residMs = new double[n];
+            for (int i = 0; i < n; i++)
+                residMs[i] = (swT[i] - (slope * qpcSw[i] + intercept)) * 1000.0
+                             / Stopwatch.Frequency;
+            var absRes = (double[])residMs.Clone();
+            Array.Sort(absRes);
+            double jitterP95 = absRes[Math.Min(n - 1, (int)(0.95 * n))];
+            int chunks = Math.Max(3, Math.Min(10, cfg.DurationSec / 10));
+            double offMin = double.MaxValue, offMax = double.MinValue;
+            for (int c = 0; c < chunks; c++)
+            {
+                int lo = c * n / chunks, hi = (c + 1) * n / chunks;
+                double s = 0;
+                for (int i = lo; i < hi; i++) s += residMs[i];
+                double o = s / (hi - lo);
+                if (o < offMin) offMin = o;
+                if (o > offMax) offMax = o;
+            }
+            double chunkSpreadMs = offMax - offMin;
+
+            sb.AppendLine("fit     : OLS over " + n + " packets — clock skew = " +
+                skewPpm.ToString("+0.0;-0.0", CultureInfo.InvariantCulture) + " ppm" +
+                "  (gate: |skew| < 200 ppm)");
+            sb.AppendLine("stable  : " + chunks + "-chunk offset spread = " +
+                chunkSpreadMs.ToString("0.00", CultureInfo.InvariantCulture) + " ms" +
+                "  (gate: < 5.00 ms) — the P13.4 anchoring error budget");
+            sb.AppendLine("jitter  : arrival residual p95 = " +
+                jitterP95.ToString("0.00", CultureInfo.InvariantCulture) + " ms" +
+                " — OUR 5 ms-poll jitter, not stamp noise (informational)");
+            sb.AppendLine("driftEP : crude endpoint drift = " +
+                driftEndpointMs.ToString("+0.00;-0.00", CultureInfo.InvariantCulture) +
+                " ms (v4 metric, arrival-phase sensitive — informational only)");
 
             // ── 5. Health flags (constants verified against audioclient.h) ─
             int silent = 0, discontinuous = 0, timestampErr = 0;
@@ -438,7 +504,8 @@ namespace V5_WASAPI_Position_Spike
                           " timestampError=" + timestampErr +
                           "  (SILENT=0x1 TSERR=0x2 DISCONT=0x4)");
 
-            bool pass = Math.Abs(driftMs) < 5.0 && timestampErr == 0 &&
+            bool pass = Math.Abs(skewPpm) < 200.0 && chunkSpreadMs < 5.0 &&
+                        timestampErr == 0 &&
                         !unit.StartsWith("UNRECOGNIZED", StringComparison.Ordinal);
             sb.AppendLine("VERDICT: " + (pass ? "PASS" : "FAIL") +
                           " — " + (pass

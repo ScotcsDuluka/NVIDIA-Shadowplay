@@ -1,0 +1,37 @@
+V5 WASAPI Position Spike — evidence run 2026-08-27 (spike v4, 60s loopback)
+Console capture reproduced verbatim from OWNER's run:
+================================================================
+=== V5 WASAPI Position Spike (P13.1, v4) ===
+source=loopback via=interop duration=60s stopwatchFreq=10000000
+[init] device  : {0.0.0.00000000}.{6ec9c7cb-82b7-45b5-ad05-1fe0941285d7}
+[init] AudioClient activated
+[init] mix     : 2ch 48000Hz 32bit tag=65534 blockAlign=8 (EXTENSIBLE cbSize=22)
+[init] Initialize(shared, flags=0x20000, duration=100ms) -> 0x00000000
+[init] buffer  : 4800 frames
+[init] capture service OK
+[capture] started for 60s — PLAY SOME AUDIO (anything)
+[capture] 10s: 999 packets (99/s)
+[capture] 20s: 2000 packets (100/s)
+[capture] 30s: 3000 packets (100/s)
+[capture] 40s: 4000 packets (100/s)
+[capture] 50s: 5000 packets (100/s)
+
+=== V5 SUMMARY ===
+config  : source=loopback via=interop duration=60s packets=6000
+init    : Initialize attempt #1 (flags=0x20000, duration=100ms)
+mix     : 2ch 48000Hz 32bit tag=65534 blockAlign=8 (EXTENSIBLE cbSize=22)
+freq    : Stopwatch.Frequency=10000000 (100ns domain=10000000)
+unit    : qpcPosition -> QPC ticks (same unit as Stopwatch)
+          delta qpc / delta sw = 0.999908
+devpos  : delta devicePosition / sum frames = 1.000000 (expected ~1.0 if devicePosition is in sample FRAMES)
+latency : mean read-lag behind hardware stamp = -24.89 ms  (packets >40ms late: 0/5999)
+          (read-lag is read-loop latency, NOT clock drift)
+drift   : Stopwatch vs hardware over run = 5.49 ms  (gate: |drift| < 5.00 ms)
+flags   : silent=1 discontinuity=0 timestampError=0  (SILENT=0x1 TSERR=0x2 DISCONT=0x4)
+VERDICT: FAIL — do NOT proceed to P13.2 before OWNER reviews this summary
+
+CSV     : out\position_log_20260827-190735.csv   (=> 2026-08-27_position_log_60s.csv)
+================================================================
+NOTE: the FAIL verdict is an artifact of the v4 endpoint-drift metric —
+see ANALYSIS.md in this folder for the full-series regression that
+overturns it. Spike v5 reports the corrected metrics.

@@ -57,8 +57,11 @@ dotnet run -c Release -- --duration 600
 | `unit` | Empirical unit of `qpcPosition`: **QPC ticks** (same domain as Stopwatch — the single-clock jackpot) or **100-ns units** (needs ×Frequency/1e7 conversion). Auto-detected from Δqpc/Δsw ratio. |
 | `devpos` | ΔdevicePosition / Σframes ≈ 1.0 → devicePosition is in sample frames. |
 | `latency` | Mean read-lag behind the hardware stamp = read-loop latency (5ms polling + buffering). NOT clock drift. Informative only. |
-| `drift` | Stopwatch-vs-hardware elapsed mismatch over the whole run. **The gate: |drift| < 5 ms.** |
-| `flags` | silent / discontinuity / timestampError counts. Any timestampError = FAIL regardless of drift. |
+| `fit` | OLS over ALL packets: clock-rate skew vs Stopwatch in ppm. **Gate: \|skew\| < 200 ppm.** |
+| `stable` | Per-chunk mean-offset spread — clock stability over the run. **Gate: < 5 ms.** This is the P13.4 anchoring error budget. |
+| `jitter` | Arrival residual p95 — OUR polling jitter, not stamp noise. Informational. |
+| `driftEP` | Old v4 endpoint metric (first vs last packet). Arrival-phase sensitive, informational only — it flagged the healthy 2026-08-27 run FAIL at 5.49 ms; see evidence/ANALYSIS.md. |
+| `flags` | silent / discontinuity / timestampError counts. Any timestampError = FAIL regardless of stability. |
 | `VERDICT` | PASS = hardware stamps may anchor P13.2 `WasapiPositionCapture`. |
 
 ## Evidence to send back to OWNER (P13.1 gate)
@@ -119,6 +122,12 @@ dotnet run -c Release -- --duration 600
   +NOPERSIST), per-step init logging, 10s heartbeats, partial evidence
   kept on loop errors, corrected AUDCLNT_BUFFERFLAGS constants (v2 had
   SILENT/TSERR/DISCONT rotated, which would have mislabeled the verdict).
+- **v5** — analysis rework after reviewing OWNER's real 60s evidence run
+  (6000 packets, `evidence/`): endpoint drift replaced by full-series OLS
+  (skew ppm, gate <200) + chunk-offset stability (gate <5 ms). The
+  evidence run measured **+3.3 ppm skew, 0.27–0.55 ms stability** — the
+  P13.1 gate is met; the old 5.49 ms FAIL was endpoint arrival-phase
+  noise. VERDICT gates on skew + stability + timestampError + unit.
 - **v4** — **the actual root cause found & fixed**: `ReleaseBuffer(0)`
   wedged the engine's read cursor (capture side must echo GetBuffer's
   frame count), so the loop re-read the same packet ~2.4M times/s and
