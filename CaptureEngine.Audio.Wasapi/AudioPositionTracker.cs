@@ -22,6 +22,11 @@
 //   assumes continuity (stamp = lastEnd), flags it, never fabricates gaps.
 //   Backwards stamps: flagged as monotonicity violations; timeline never
 //   rewinds (max policy), hole clamped to zero.
+//   Re-anchor rule (stability pass): if the ANCHOR packet itself was
+//   stampless (anchored at 0), the first REAL stamp re-anchors the
+//   timeline with no hole — the pre-reanchor absolute positions were
+//   never known, so "measuring" a hole there would fabricate one the
+//   size of the whole stream (AudioTap would pad seconds of silence).
 
 using System;
 
@@ -50,6 +55,12 @@ namespace CaptureEngine.Audio.Wasapi
         /// content ended (overlap/backwards). Timeline did NOT rewind.</summary>
         public bool MonotonicViolation;
 
+        /// <summary>A real hardware stamp arrived after a fallback
+        /// (zero-stamp) anchor: the timeline re-anchored onto it. No gap
+        /// is measurable across a re-anchor — absolute positions before
+        /// it were unknown.</summary>
+        public bool ReAnchoredNow;
+
         /// <summary>Timeline END after absorbing this packet.</summary>
         public long LastEnd100ns;
     }
@@ -61,6 +72,7 @@ namespace CaptureEngine.Audio.Wasapi
         private long _lastEnd;
         private long _firstQpc;
         private bool _anchored;
+        private bool _anchorWasFallback;
 
         /// <summary>Sample rate of the device mix format (frames → time).</summary>
         public int SampleRate { get { return (int)_sampleRate; } }
@@ -68,7 +80,9 @@ namespace CaptureEngine.Audio.Wasapi
         /// <summary>True once the first packet anchored the timeline.</summary>
         public bool Anchored { get { return _anchored; } }
 
-        /// <summary>Hardware stamp of the first packet (100ns), 0 until anchored.</summary>
+        /// <summary>Hardware stamp the timeline is anchored on (100ns):
+        /// the first packet's stamp — or, if that packet was stampless,
+        /// the first REAL stamp seen (re-anchor). 0 until anchored.</summary>
         public long FirstQpc100ns { get { return _firstQpc; } }
 
         /// <summary>END of the last absorbed packet's content (100ns).</summary>
@@ -113,6 +127,11 @@ namespace CaptureEngine.Audio.Wasapi
         /// the owner of the packet stream calls this serially.</summary>
         public AudioGapReport Feed(int frames, long qpcPosition100ns)
         {
+            if (frames < 0)
+                throw new ArgumentOutOfRangeException(nameof(frames),
+                    "frames must be >= 0 (got " + frames + ") — a negative " +
+                    "count would silently corrupt the evidence counters");
+
             var r = new AudioGapReport();
             long dur = Duration100ns(frames);
             r.BufferDur100ns = dur;
@@ -130,6 +149,7 @@ namespace CaptureEngine.Audio.Wasapi
                     // and treat content as starting the timeline.
                     r.StampFallbackUsed = true;
                     StampFallbacks++;
+                    _anchorWasFallback = true;
                 }
                 _lastEnd = qpcPosition100ns + dur;
                 r.AnchoredNow = true;
@@ -146,6 +166,22 @@ namespace CaptureEngine.Audio.Wasapi
                 StampFallbacks++;
                 r.Hole100ns = 0;
                 _lastEnd = _lastEnd + dur;
+                r.LastEnd100ns = _lastEnd;
+                return r;
+            }
+
+            if (_anchorWasFallback)
+            {
+                // Stability pass: the anchor was a zero-stamp fallback, so
+                // _lastEnd sits on a fictitious 0-based timeline. Comparing
+                // a REAL stamp against it would report a hole the size of
+                // the whole stream. Re-anchor instead: packet 1's absolute
+                // position was never known, so no gap is measurable there.
+                _anchorWasFallback = false;
+                _firstQpc = qpcPosition100ns;
+                r.ReAnchoredNow = true;
+                r.Hole100ns = 0;
+                _lastEnd = qpcPosition100ns + dur;
                 r.LastEnd100ns = _lastEnd;
                 return r;
             }
@@ -177,6 +213,7 @@ namespace CaptureEngine.Audio.Wasapi
             _anchored = false;
             _lastEnd = 0;
             _firstQpc = 0;
+            _anchorWasFallback = false;
         }
     }
 }

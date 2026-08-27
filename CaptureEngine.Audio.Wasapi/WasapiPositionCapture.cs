@@ -14,6 +14,11 @@
 //   5. Runaway tripwire: 1000 consecutive identical stamps = cursor wedge
 //      → terminal error, loop exits, memory survives.
 //   6. client.Stop() even on error paths; CoTaskMemFree for the format.
+//   7. (stability pass) Exception containment: the capture thread must
+//      NEVER die with an unhandled exception — under .NET that kills the
+//      WHOLE PROCESS. Marshal.Copy failures, allocation failures, and
+//      PacketReady subscriber bugs are caught, the WASAPI stream is
+//      stopped, and StoppedWithError carries the report instead.
 //
 // Runtime platform: Windows only (guarded in Start()); everything else in
 // this assembly is pure and Linux-testable (AudioPositionTracker).
@@ -43,8 +48,10 @@ namespace CaptureEngine.Audio.Wasapi
         private volatile bool _running;
 
         /// <summary>Raised per packet ON THE CAPTURE THREAD. Keep handlers
-        /// fast (AudioTap v3 copies and returns); exceptions propagate and
-        /// terminate the capture loop — do not throw here.</summary>
+        /// fast (AudioTap v3 copies and returns). A handler exception now
+        /// TERMINATES THE CAPTURE LOOP but is contained: the WASAPI stream
+        /// is stopped and StoppedWithError fires — the process survives
+        /// (stability pass; an unhandled thread exception would end it).</summary>
         public event Action<WasapiPacket> PacketReady;
 
         /// <summary>Raised once when the loop terminates on an error
@@ -98,6 +105,12 @@ namespace CaptureEngine.Audio.Wasapi
                 "WasapiPositionCapture requires Windows (WASAPI COM). " +
                 "This is '" + RuntimeInformation.OSDescription + "' — use " +
                 nameof(AudioPositionTracker) + " for the testable logic.");
+            if (_opt.PollIntervalMs < 0) throw new ArgumentOutOfRangeException(
+                nameof(WasapiCaptureOptions.PollIntervalMs),
+                "PollIntervalMs must be >= 0 (got " + _opt.PollIntervalMs + ")");
+            if (_opt.BufferDuration100ns < 0) throw new ArgumentOutOfRangeException(
+                nameof(WasapiCaptureOptions.BufferDuration100ns),
+                "BufferDuration100ns must be >= 0 (got " + _opt.BufferDuration100ns + ")");
 
             // Device + client + mix format.
             int flow = _opt.Loopback ? Interop.eRender : Interop.eCapture;
@@ -106,6 +119,39 @@ namespace CaptureEngine.Audio.Wasapi
             DeviceId = deviceId;
 
             _client = Interop.ActivateAudioClient(_device);
+            try
+            {
+                // Everything from here on can throw with a live stream
+                // open. HARDENED (stability pass): on any failure we
+                // best-effort Stop() the client and drop every COM
+                // reference, so a retry with a fresh instance cannot trip
+                // over residue (device-in-use style failures).
+                OpenAndStartStream();
+            }
+            catch
+            {
+                try { if (_client != null) _client.Stop(); }
+                catch { } // best effort — the original exception must win
+                _capture = null;
+                _client = null;
+                _device = null;
+                throw;
+            }
+
+            _running = true;
+            _thread = new Thread(CaptureLoop)
+            {
+                IsBackground = true,
+                Name = "WasapiPositionCapture",
+            };
+            _thread.Start();
+        }
+
+        /// <summary>Mix-format read, the Initialize ladder, buffer/capture
+        /// setup, IAudioClient.Start — split out so Start() can wrap the
+        /// whole live-stream section in one cleanup handler.</summary>
+        private void OpenAndStartStream()
+        {
             Interop.Check(_client.GetMixFormat(out IntPtr fmtPtr),
                           "IAudioClient.GetMixFormat");
             var fmt = (Interop.WAVEFORMATEX)Marshal.PtrToStructure(
@@ -154,14 +200,6 @@ namespace CaptureEngine.Audio.Wasapi
 
             _capture = Interop.GetCaptureClient(_client);
             Interop.Check(_client.Start(), "IAudioClient.Start");
-
-            _running = true;
-            _thread = new Thread(CaptureLoop)
-            {
-                IsBackground = true,
-                Name = "WasapiPositionCapture",
-            };
-            _thread.Start();
         }
 
         // ── The loop ─────────────────────────────────────────────────────
@@ -173,65 +211,81 @@ namespace CaptureEngine.Audio.Wasapi
             long lastQpc = 0, lastDev = 0;
             bool haveLast = false;
 
-            while (_running)
+            // RULE #7 (stability pass) — the catch below is the backstop.
+            // Anything escaping the loop on this background thread would
+            // otherwise TERMINATE THE PROCESS (.NET unhandled-thread
+            // semantics). Contained instead: stream stopped, instance
+            // spent, StoppedWithError carries the full report.
+            try
             {
-                int hrN = _capture.GetNextPacketSize(out int pending);
-                if (hrN < 0) { error = "GetNextPacketSize: " + Interop.HrName(hrN); break; }
-                if (pending < 0)
-                { error = "GetNextPacketSize returned negative frames: " + pending; break; }
-                if (pending == 0) { Thread.Sleep(_opt.PollIntervalMs); continue; }
-
-                int hrG = _capture.GetBuffer(out IntPtr data, out int frames,
-                                             out int flags, out long devPos,
-                                             out long qpcPos);
-                if (hrG < 0) { error = "GetBuffer: " + Interop.HrName(hrG); break; }
-
-                // RULE #4 — never 0. The P13.1 OOM was this exact line.
-                int hrR = _capture.ReleaseBuffer(frames);
-                if (hrR < 0)
+                while (_running)
                 {
-                    error = "ReleaseBuffer(" + frames + "): " + Interop.HrName(hrR);
-                    break;
-                }
+                    int hrN = _capture.GetNextPacketSize(out int pending);
+                    if (hrN < 0) { error = "GetNextPacketSize: " + Interop.HrName(hrN); break; }
+                    if (pending < 0)
+                    { error = "GetNextPacketSize returned negative frames: " + pending; break; }
+                    if (pending == 0) { Thread.Sleep(_opt.PollIntervalMs); continue; }
 
-                // RULE #5 — runaway tripwire (the v3 pathology detector).
-                if (haveLast && qpcPos == lastQpc && devPos == lastDev)
-                {
-                    dupRun++;
-                    if (dupRun >= 1000)
+                    int hrG = _capture.GetBuffer(out IntPtr data, out int frames,
+                                                 out int flags, out long devPos,
+                                                 out long qpcPos);
+                    if (hrG < 0) { error = "GetBuffer: " + Interop.HrName(hrG); break; }
+
+                    // RULE #4 — never 0. The P13.1 OOM was this exact line.
+                    int hrR = _capture.ReleaseBuffer(frames);
+                    if (hrR < 0)
                     {
-                        error = "runaway capture loop: 1000 consecutive identical " +
-                                "stamps (read cursor not advancing)";
+                        error = "ReleaseBuffer(" + frames + "): " + Interop.HrName(hrR);
                         break;
                     }
-                }
-                else dupRun = 0;
-                lastQpc = qpcPos; lastDev = devPos; haveLast = true;
 
-                var pkt = new WasapiPacket
-                {
-                    RawQpcTicks = qpcPos,
-                    QpcPosition100ns = QpcTicksTo100ns(qpcPos),
-                    DevicePositionFrames = devPos,
-                    Frames = frames,
-                    Flags = flags,
-                    Data = null,
-                };
-                if (_opt.IncludePcm && frames > 0)
-                {
-                    int bytes = frames * BlockAlign;
-                    var buf = new byte[bytes];
-                    Marshal.Copy(data, buf, 0, bytes);
-                    pkt.Data = buf;
-                }
+                    // RULE #5 — runaway tripwire (the v3 pathology detector).
+                    if (haveLast && qpcPos == lastQpc && devPos == lastDev)
+                    {
+                        dupRun++;
+                        if (dupRun >= 1000)
+                        {
+                            error = "runaway capture loop: 1000 consecutive identical " +
+                                    "stamps (read cursor not advancing)";
+                            break;
+                        }
+                    }
+                    else dupRun = 0;
+                    lastQpc = qpcPos; lastDev = devPos; haveLast = true;
 
-                var handler = PacketReady;
-                if (handler != null) handler(pkt);
+                    var pkt = new WasapiPacket
+                    {
+                        RawQpcTicks = qpcPos,
+                        QpcPosition100ns = QpcTicksTo100ns(qpcPos),
+                        DevicePositionFrames = devPos,
+                        Frames = frames,
+                        Flags = flags,
+                        Data = null,
+                    };
+                    if (_opt.IncludePcm && frames > 0)
+                    {
+                        int bytes = frames * BlockAlign;
+                        var buf = new byte[bytes];
+                        Marshal.Copy(data, buf, 0, bytes);
+                        pkt.Data = buf;
+                    }
+
+                    var handler = PacketReady;
+                    if (handler != null) handler(pkt);
+                }
+            }
+            catch (Exception ex)
+            {
+                error = "capture loop exception (contained): " + ex;
             }
 
-            int hrStop = _client.Stop();
-            if (hrStop < 0 && error == null)
-                error = "IAudioClient.Stop: " + Interop.HrName(hrStop);
+            var client = _client;
+            if (client != null)
+            {
+                int hrStop = client.Stop();
+                if (hrStop < 0 && error == null)
+                    error = "IAudioClient.Stop: " + Interop.HrName(hrStop);
+            }
             _running = false;
 
             if (error != null)

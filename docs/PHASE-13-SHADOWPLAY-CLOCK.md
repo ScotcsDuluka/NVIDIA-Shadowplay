@@ -68,6 +68,28 @@ CFR loop ─ticks→ NVENC → pipe       →      CFR loop ─ticks→ NVENC �
 > deterministic, Linux-run), suite 35/35 PASS; Recording cross-compiles
 > with the reference (0 warnings).
 
+> **P13.2 HARDENING PASS (2026-08-28, OWNER directive "ดีที่สุด stable
+> ที่สุด"):** three stability gaps closed, all pre-consumer (AudioTap v3
+> not wired yet):
+> 1. **Exception containment in the capture loop** — a `PacketReady`
+>    subscriber throwing (or a `Marshal.Copy` failure) used to escape as
+>    an unhandled background-thread exception, which TERMINATES the whole
+>    .NET process. Now contained: loop exits, `IAudioClient.Stop()` runs,
+>    `StoppedWithError` carries the full report, process survives.
+> 2. **Partial-failure cleanup in `Start()`** — a throw after
+>    `ActivateAudioClient` (GetMixFormat / Initialize ladder /
+>    GetBufferSize / Start) now best-effort stops the client and drops
+>    every COM reference, so a retry with a fresh instance cannot trip
+>    over residue. Options (`PollIntervalMs`, `BufferDuration100ns`) are
+>    validated up front.
+> 3. **Tracker hygiene** — `Feed(frames < 0)` throws instead of silently
+>    corrupting counters, and a first REAL stamp after a zero-stamp
+>    fallback anchor RE-ANCHORS the timeline (`ReAnchoredNow` in the
+>    report) instead of "measuring" a hole the size of the whole stream
+>    (which would have made AudioTap v3 pad seconds of silence on a
+>    stampless-then-stamping driver).
+> Suite: 13 WPOS tests, 37/37 PASS; all three projects 0 warnings.
+
 > **P13.1 UPDATE (2026-08-28, compile-verified in V5 spike):** NAudio 2.2.1
 > cannot expose positions — high-level wrapper lacks the overload (CS1501);
 > raw `Interfaces.IAudioCaptureClient` is internal (CS0122). The class

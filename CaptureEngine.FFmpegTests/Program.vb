@@ -58,6 +58,8 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("WPOS: Continuous stream has zero holes", AddressOf Test_WPosContinuous)
             RunTest("WPOS: Silence hole measured exactly", AddressOf Test_WPosHole)
             RunTest("WPOS: Zero stamp falls back to continuity (Risk #2)", AddressOf Test_WPosZeroStamp)
+            RunTest("WPOS: Negative frames rejected (counter hygiene)", AddressOf Test_WPosNegativeFrames)
+            RunTest("WPOS: First real stamp re-anchors after fallback anchor", AddressOf Test_WPosReanchor)
             RunTest("WPOS: Backwards stamp flagged, timeline not rewound", AddressOf Test_WPosBackwards)
             RunTest("WPOS: Variable packet sizes, END-to-START exact", AddressOf Test_WPosVariableSizes)
             RunTest("WPOS: 1-hour synthetic run — zero drift, integer-exact", AddressOf Test_WPosOneHour)
@@ -383,6 +385,49 @@ Namespace CaptureEngine.FFmpegTests
             Assert(rep.Hole100ns = 0L, "fallback assumes continuity — no hole")
             Assert(t.LastEnd100ns = before + Pkt10ms, "lastEnd advanced by packet dur")
             Assert(t.StampFallbacks = 1L, "fallback counted")
+        End Sub
+
+        Private Sub Test_WPosNegativeFrames()
+            Dim t As New AudioPositionTracker(48000)
+            Dim threw As Boolean = False
+            Try
+                t.Feed(-1, T0)
+            Catch ex As ArgumentOutOfRangeException
+                threw = True
+            End Try
+            Assert(threw, "negative frames must throw, not corrupt counters")
+            Assert(t.Packets = 0L, "rejected feed must not bump Packets")
+            Assert(t.Frames = 0L, "rejected feed must not touch Frames")
+            Assert(Not t.Anchored, "rejected feed must not anchor the timeline")
+            ' Zero frames is DEGENERATE but legal — must not throw.
+            Dim rep = t.Feed(0, T0)
+            Assert(rep.AnchoredNow, "0-frame packet still anchors")
+        End Sub
+
+        Private Sub Test_WPosReanchor()
+            Dim t As New AudioPositionTracker(48000)
+            ' Pathological driver: FIRST packet has no stamp -> fallback
+            ' anchor at 0. Without the re-anchor rule, the first REAL stamp
+            ' would "measure" a hole the size of the whole stream (T0 ~
+            ' 27h of QPC) and AudioTap v3 would pad seconds of silence.
+            Dim r1 = t.Feed(480, 0L)
+            Assert(r1.StampFallbackUsed, "fallback anchor flagged")
+            Assert(t.FirstQpc100ns = 0L, "anchored at 0 pending a real stamp")
+            Dim r2 = t.Feed(480, 0L)   ' still stampless — continuity
+            Assert(r2.StampFallbackUsed, "stampless packet still fallback")
+            Assert(r2.Hole100ns = 0L, "continuity — no hole")
+            Dim qpcReal As Long = T0 + 2L * Pkt10ms
+            Dim r3 = t.Feed(480, qpcReal)   ' first REAL stamp
+            Assert(r3.ReAnchoredNow, "must re-anchor on first real stamp")
+            Assert(Not r3.StampFallbackUsed, "a real stamp is not a fallback")
+            Assert(r3.Hole100ns = 0L, "NO bogus hole across re-anchor")
+            Assert(t.FirstQpc100ns = qpcReal, "FirstQpc now the real stamp")
+            Assert(t.LastEnd100ns = qpcReal + Pkt10ms, "timeline on real stamps")
+            Dim r4 = t.Feed(480, qpcReal + Pkt10ms)
+            Assert(r4.Hole100ns = 0L AndAlso Not r4.MonotonicViolation,
+                   "post-reanchor continuity normal")
+            Assert(Not r4.ReAnchoredNow, "re-anchor fires exactly once")
+            Assert(t.StampFallbacks = 2L, "fallbacks still counted for evidence")
         End Sub
 
         Private Sub Test_WPosBackwards()
