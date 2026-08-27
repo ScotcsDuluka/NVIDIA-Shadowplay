@@ -23,6 +23,18 @@
 //     (SILENT=0x1, DATA_DISCONTINUITY=0x4, TIMESTAMP_ERROR=0x2 —
 //     v2 had them rotated, mislabeling counts and the verdict gate).
 //
+// v4 FIX (the real v2/v3 killer, exposed by v3's heartbeats):
+//   the loop called ReleaseBuffer(0); a capture-side ReleaseBuffer must be
+//   passed the frame count GetBuffer reported, otherwise the engine never
+//   advances the read cursor. Result: GetNextPacketSize re-served the same
+//   packet forever, the loop spun at ~2.4M iters/s, collected ~120M
+//   duplicate rows in 60s, and WriteCsv's single giant StringBuilder (>2.1G
+//   chars) threw the OutOfMemoryException. Heartbeats printed 21M/45M/70M
+//   "packets" — physically impossible for a ~10ms engine period.
+//   v4: ReleaseBuffer(frames) + duplicate-stamp tripwire + hard row cap +
+//   streaming CSV writer (no giant string allocation, immune to size) +
+//   heartbeat rate display so anomalies are visible at a glance.
+//
 // This spike never touches audio SAMPLES — only stamps. Safe to run while
 // music plays, and equally informative when the room is silent.
 
@@ -89,7 +101,7 @@ namespace V5_WASAPI_Position_Spike
                 else if (k == "--out") cfg.OutDir = v;
             }
 
-            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v3) ===");
+            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v4) ===");
             Console.WriteLine("source=" + cfg.Source + " via=" + cfg.Via +
                               " duration=" + cfg.DurationSec + "s" +
                               " stopwatchFreq=" + Stopwatch.Frequency);
@@ -233,6 +245,10 @@ namespace V5_WASAPI_Position_Spike
             long limit = (long)((double)cfg.DurationSec * Stopwatch.Frequency);
             int nextHeartbeat = Math.Min(10, cfg.DurationSec);
             string loopError = null;
+            int dupRun = 0;
+            // Sane ceiling: real shared-mode engines deliver ~100-500 pkt/s
+            // (~10ms period). 10k/s sustained would already be pathological.
+            long maxRows = (long)cfg.DurationSec * 10000 + 10000;
 
             while (true)
             {
@@ -242,8 +258,15 @@ namespace V5_WASAPI_Position_Spike
                 if (elapsed >= nextHeartbeat)
                 {
                     Console.WriteLine("[capture] " + nextHeartbeat + "s: " +
-                                      rows.Count + " packets");
+                                      rows.Count + " packets (" +
+                                      (rows.Count / nextHeartbeat) + "/s)");
                     nextHeartbeat += 10;
+                }
+                if (rows.Count >= maxRows)
+                {
+                    loopError = "hard row cap (" + maxRows + ") hit — implausible " +
+                                "packet rate; breaking to protect memory";
+                    break;
                 }
 
                 int hrN = capture.GetNextPacketSize(out int pending);
@@ -257,9 +280,34 @@ namespace V5_WASAPI_Position_Spike
                 if (hrG < 0) { loopError = "GetBuffer: " + WasapiDirectInterop.HrName(hrG); break; }
                 long swNow = Stopwatch.GetTimestamp();
 
-                int hrR = capture.ReleaseBuffer(0);
+                // v4 THE FIX: report the frames we consumed. Passing 0 (v3)
+                // wedged the engine's read cursor and spun this loop forever.
+                int hrR = capture.ReleaseBuffer(frames);
                 if (hrR < 0)
-                { loopError = "ReleaseBuffer: " + WasapiDirectInterop.HrName(hrR); break; }
+                {
+                    loopError = "ReleaseBuffer(" + frames + "): " +
+                                WasapiDirectInterop.HrName(hrR);
+                    break;
+                }
+
+                // Runaway tripwire: identical consecutive stamps mean the read
+                // cursor is not advancing (the v3 pathology). Distinct packets
+                // always have increasing devicePosition — 1000 identical in a
+                // row is never legitimate.
+                if (rows.Count > 0 &&
+                    qpcPos == rows[rows.Count - 1].QpcPosition &&
+                    devPos == rows[rows.Count - 1].DevicePosition)
+                {
+                    dupRun++;
+                    if (dupRun >= 1000)
+                    {
+                        loopError = "runaway capture loop: " + dupRun +
+                                    " consecutive identical stamps (read cursor not " +
+                                    "advancing); breaking to protect memory";
+                        break;
+                    }
+                }
+                else dupRun = 0;
 
                 rows.Add(new Row
                 {
@@ -282,21 +330,26 @@ namespace V5_WASAPI_Position_Spike
 
         // ─────────────────────────────────────────────────────────────────
 
+        // Streaming writer: one line at a time, no giant in-memory string.
+        // (v3 built the whole CSV in a StringBuilder — with a runaway loop
+        // that string exceeded StringBuilder's ~2.1G-char limit => OOM.)
         private static void WriteCsv(string path, List<Row> rows)
         {
-            var sb = new StringBuilder();
-            sb.AppendLine("index,sw_ticks,qpc_position,device_position,frames,flags");
-            for (int i = 0; i < rows.Count; i++)
+            using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
-                var r = rows[i];
-                sb.Append(i.ToString(CultureInfo.InvariantCulture)).Append(',')
-                  .Append(r.SwTicks.ToString(CultureInfo.InvariantCulture)).Append(',')
-                  .Append(r.QpcPosition.ToString(CultureInfo.InvariantCulture)).Append(',')
-                  .Append(r.DevicePosition.ToString(CultureInfo.InvariantCulture)).Append(',')
-                  .Append(r.Frames.ToString(CultureInfo.InvariantCulture)).Append(',')
-                  .Append(r.Flags.ToString(CultureInfo.InvariantCulture)).Append('\n');
+                w.WriteLine("index,sw_ticks,qpc_position,device_position,frames,flags");
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    var r = rows[i];
+                    w.WriteLine(string.Concat(
+                        i.ToString(CultureInfo.InvariantCulture), ",",
+                        r.SwTicks.ToString(CultureInfo.InvariantCulture), ",",
+                        r.QpcPosition.ToString(CultureInfo.InvariantCulture), ",",
+                        r.DevicePosition.ToString(CultureInfo.InvariantCulture), ",",
+                        r.Frames.ToString(CultureInfo.InvariantCulture), ",",
+                        r.Flags.ToString(CultureInfo.InvariantCulture)));
+                }
             }
-            File.WriteAllText(path, sb.ToString());
         }
 
         private static string AnalyzeAndSummarize(Config cfg, List<Row> rows,

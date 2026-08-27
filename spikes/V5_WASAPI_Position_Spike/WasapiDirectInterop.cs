@@ -104,7 +104,13 @@ namespace V5_WASAPI_Position_Spike
             //                  spike — QPC ticks vs 100ns, see README)
             [PreserveSig] int GetBuffer(out IntPtr data, out int framesInPacket, out int flags,
                            out long devicePosition, out long qpcPosition);
-            [PreserveSig] int ReleaseBuffer(int framesRead);   // capture side passes 0
+            // v4 FIX: capture-side ReleaseBuffer MUST receive the frame count
+            // GetBuffer just reported. v3 passed 0 here (a render-side habit
+            // that leaked into capture code) — the engine then NEVER advanced
+            // the read cursor, GetNextPacketSize kept re-serving the same
+            // packet, the loop spun at ~2.4M iters/s and piled up ~120M
+            // duplicate rows until the CSV writer died with OutOfMemory.
+            [PreserveSig] int ReleaseBuffer(int framesRead);
             [PreserveSig] int GetNextPacketSize(out int numFramesInNextPacket);
         }
 

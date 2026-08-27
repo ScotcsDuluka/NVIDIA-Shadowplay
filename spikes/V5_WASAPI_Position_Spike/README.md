@@ -17,12 +17,14 @@ for the P13 audio redesign (`docs/PHASE-13-SHADOWPLAY-CLOCK.md`).
 2. This spike **builds clean** cross-compiling `net8.0-windows10.0.19041.0`
    on Linux (`-p:EnableWindowsTargeting=true`): 0 warnings, 0 errors.
    Runtime evidence still requires a Windows box (below).
-3. **v2 runtime lesson (OWNER's machine): a bare `Out of memory.` is NOT a
-   memory bug.** With `void` COM declarations the CLR maps failing HRESULTs
-   to exception types — `E_OUTOFMEMORY` (0x8007000E) becomes
-   `System.OutOfMemoryException("Out of memory.")`, hiding which call
-   failed and why. v3 makes every call `[PreserveSig]` + manual HRESULT
-   check, so failures print `CallName: 0xNNNNNNNN (AUDCLNT_E_*)`.
+3. **v2/v3 runtime lesson (OWNER's machine): the bare `Out of memory.` was
+   a REAL managed OOM caused by `ReleaseBuffer(0)` wedging the read
+   cursor (see Version history v4) — not the CLR's HRESULT map.** What
+   actually found it: v3's instrumentation — heartbeats exposed a
+   physically impossible packet rate (21M packets/10s) and the FATAL
+   handler printed the exact stack (`WriteCsv` → `StringBuilder
+   .ExpandByABlock`). `[PreserveSig]` + manual HRESULT checks stay:
+   failures must always name their call.
 
 ## Prerequisites
 - Windows 10+ (WASAPI loopback)
@@ -67,9 +69,10 @@ dotnet run -c Release -- --duration 600
 
 ## Troubleshooting
 
-- **Bare `Out of memory.` (v2 and earlier)**: fixed in v3 — that was the
-  CLR renaming an `E_OUTOFMEMORY` HRESULT from `IAudioClient::Initialize`.
-  v3 prints the real call + hex + decoded name.
+- **Bare `Out of memory.` (v2/v3)**: root cause was `ReleaseBuffer(0)`
+  wedging the read cursor → ~120M duplicate rows → oversized CSV string
+  → real OOM. Fixed in v4 (`ReleaseBuffer(frames)` + streaming CSV +
+  tripwires).
 - **`Initialize failed on ALL fallback attempts (last 0x8007000E
   E_OUTOFMEMORY)`**: the audio engine refused stream creation. Known
   causes: an app holds the endpoint in EXCLUSIVE mode (ASIO, some voice
@@ -82,6 +85,10 @@ dotnet run -c Release -- --duration 600
 - **`stopped early: GetNextPacketSize: 0x88890004 ...`**: device was
   invalidated mid-run (unplug/default-device switch). Partial evidence is
   still written — send it along.
+- **`runaway capture loop: N consecutive identical stamps` / `hard row cap
+  hit`**: the read cursor stopped advancing (v3 pathology — ReleaseBuffer
+  must echo GetBuffer's frame count). v4 fixes the cause and these guards
+  remain as tripwires; if either fires in v4+, send the full output.
 
 ## Expected outcomes & contingencies
 
@@ -104,10 +111,20 @@ dotnet run -c Release -- --duration 600
 
 - **v1** — NAudio routes (closed at compile time; see FINDINGS #1).
 - **v2** — direct interop with `void` COM declarations; died on OWNER's
-  machine with a bare `Out of memory.` (CLR HRESULT map renamed an
-  `E_OUTOFMEMORY` from Initialize).
+  machine with a bare `Out of memory.`. (Initial blame on the CLR's
+  HRESULT->exception map was WRONG — Initialize returned S_OK all along;
+  the true culprit was `ReleaseBuffer(0)`, see v4.)
 - **v3** — `[PreserveSig]` + manual HRESULT checks with decoded names,
   3-step Initialize fallback ladder (100ms -> engine default ->
   +NOPERSIST), per-step init logging, 10s heartbeats, partial evidence
   kept on loop errors, corrected AUDCLNT_BUFFERFLAGS constants (v2 had
   SILENT/TSERR/DISCONT rotated, which would have mislabeled the verdict).
+- **v4** — **the actual root cause found & fixed**: `ReleaseBuffer(0)`
+  wedged the engine's read cursor (capture side must echo GetBuffer's
+  frame count), so the loop re-read the same packet ~2.4M times/s and
+  60s of "capture" was ~120M duplicate rows; the giant single-string CSV
+  write then threw OutOfMemory. v4: `ReleaseBuffer(frames)`, duplicate-
+  stamp tripwire (1000 identical stamps => break), hard row cap
+  (10k/s), streaming CSV writer, heartbeat rate display. Lesson for
+  P13.2: the capture loop contract is GetBuffer -> process ->
+  ReleaseBuffer(framesRead), never 0.
