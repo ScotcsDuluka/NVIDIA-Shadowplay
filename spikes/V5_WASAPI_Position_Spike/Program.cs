@@ -45,6 +45,19 @@
 //   jitter (our poll residual p95, informational), driftEP (old metric,
 //   informational). VERDICT now gates on skew + stability + tsErr + unit.
 //
+// v6 SILENCE TEST (OWNER question: "what if there is NO sound?"):
+//   --silence-test splits the run into 3 equal phases: quiet -> sound ->
+//   quiet, tags every row with its phase, and reports per-phase packet
+//   counts plus a gap analysis (longest no-packet window, what happened
+//   to devicePosition/qpcPosition across it, DISCONTINUITY flag on the
+//   resume packet). This measures WHICH silence model the machine uses:
+//   Model S (engine renders SILENT packets, timeline keeps advancing)
+//   or Model I (endpoint idles, timeline freezes, resume stamped exactly
+//   by qpcPosition -> the P13 gap formula fills it without guessing).
+//   The gap analysis runs in EVERY mode — silence gaps are always evidence.
+//   Also fixes a latent v5 compile bug: local 'n' was declared twice in
+//   AnalyzeAndSummarize (CS0128) — the latency counter is now 'nLat'.
+//
 // This spike never touches audio SAMPLES — only stamps. Safe to run while
 // music plays, and equally informative when the room is silent.
 
@@ -74,6 +87,7 @@ namespace V5_WASAPI_Position_Spike
             public long DevicePosition;
             public int Frames;
             public int Flags;
+            public int Phase;         // silence-test phase (0 quiet / 1 sound / 2 quiet; 0 when disabled)
         }
 
         private sealed class Config
@@ -82,6 +96,7 @@ namespace V5_WASAPI_Position_Spike
             public string Source = "loopback";   // loopback | mic
             public string Via = "interop";       // interop only (see FINDINGS)
             public string OutDir = "out";
+            public bool SilenceTest = false;
         }
 
         private static int Main(string[] args)
@@ -102,18 +117,23 @@ namespace V5_WASAPI_Position_Spike
         private static int Run(string[] args)
         {
             var cfg = new Config();
-            for (int i = 0; i + 1 < args.Length; i += 2)
+            for (int i = 0; i < args.Length; i++)
             {
-                string k = args[i], v = args[i + 1];
+                string k = args[i];
+                if (k == "--silence-test") { cfg.SilenceTest = true; continue; }
+                if (i + 1 >= args.Length) break;
+                string v = args[i + 1];
                 if (k == "--duration") cfg.DurationSec = int.Parse(v, CultureInfo.InvariantCulture);
                 else if (k == "--source") cfg.Source = v.ToLowerInvariant();
                 else if (k == "--via") cfg.Via = v.ToLowerInvariant();   // ignored; interop only
                 else if (k == "--out") cfg.OutDir = v;
+                i++; // consumed the value
             }
 
-            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v5) ===");
+            Console.WriteLine("=== V5 WASAPI Position Spike (P13.1, v6) ===");
             Console.WriteLine("source=" + cfg.Source + " via=" + cfg.Via +
                               " duration=" + cfg.DurationSec + "s" +
+                              (cfg.SilenceTest ? " SILENCE-TEST(quiet/sound/quiet)" : "") +
                               " stopwatchFreq=" + Stopwatch.Frequency);
 
             if (cfg.Via != "interop")
@@ -144,7 +164,8 @@ namespace V5_WASAPI_Position_Spike
             {
                 Console.Error.WriteLine("Too few packets (" + rows.Count + ") — " +
                     "PLAY SOME AUDIO during the run (loopback sees nothing when the " +
-                    "endpoint is idle), then retry.");
+                    "endpoint is idle; in --silence-test that means the middle phase), " +
+                    "then retry.");
                 return 3;
             }
 
@@ -247,8 +268,12 @@ namespace V5_WASAPI_Position_Spike
             Console.WriteLine("[init] capture service OK");
 
             WasapiDirectInterop.Check(client.Start(), "IAudioClient.Start");
+            int phaseSec = cfg.SilenceTest ? Math.Max(5, cfg.DurationSec / 3) : cfg.DurationSec;
             Console.WriteLine("[capture] started for " + cfg.DurationSec + "s — " +
-                              (loopback ? "PLAY SOME AUDIO (anything)" : "make some noise"));
+                (cfg.SilenceTest
+                    ? "phases: QUIET " + phaseSec + "s -> SOUND " + phaseSec +
+                      "s -> QUIET " + phaseSec + "s"
+                    : (loopback ? "PLAY SOME AUDIO (anything)" : "make some noise")));
 
             var rows = new List<Row>();
             long start = Stopwatch.GetTimestamp();
@@ -256,6 +281,7 @@ namespace V5_WASAPI_Position_Spike
             int nextHeartbeat = Math.Min(10, cfg.DurationSec);
             string loopError = null;
             int dupRun = 0;
+            int currentPhase = -1;
             // Sane ceiling: real shared-mode engines deliver ~100-500 pkt/s
             // (~10ms period). 10k/s sustained would already be pathological.
             long maxRows = (long)cfg.DurationSec * 10000 + 10000;
@@ -272,6 +298,23 @@ namespace V5_WASAPI_Position_Spike
                                       (rows.Count / nextHeartbeat) + "/s)");
                     nextHeartbeat += 10;
                 }
+
+                // Silence-test phase tracking (v6): time-based, so banners
+                // print even when NO packets arrive (that is the point).
+                int ph = cfg.SilenceTest ? Math.Min(2, (int)(elapsed / phaseSec)) : 0;
+                if (ph != currentPhase)
+                {
+                    currentPhase = ph;
+                    if (cfg.SilenceTest)
+                    {
+                        string what = ph == 0 ? "STAY SILENT — close anything playing audio"
+                                    : ph == 1 ? "PLAY AUDIO NOW (keep it running)"
+                                    : "SILENT AGAIN — stop the audio";
+                        Console.WriteLine("[phase] ===== " + (ph * phaseSec) + "-" +
+                                          ((ph + 1) * phaseSec) + "s: " + what + " =====");
+                    }
+                }
+
                 if (rows.Count >= maxRows)
                 {
                     loopError = "hard row cap (" + maxRows + ") hit — implausible " +
@@ -325,7 +368,8 @@ namespace V5_WASAPI_Position_Spike
                     QpcPosition = qpcPos,
                     DevicePosition = devPos,
                     Frames = frames,
-                    Flags = fl
+                    Flags = fl,
+                    Phase = currentPhase
                 });
             }
 
@@ -347,7 +391,7 @@ namespace V5_WASAPI_Position_Spike
         {
             using (var w = new StreamWriter(path, false, new UTF8Encoding(false)))
             {
-                w.WriteLine("index,sw_ticks,qpc_position,device_position,frames,flags");
+                w.WriteLine("index,sw_ticks,qpc_position,device_position,frames,flags,phase");
                 for (int i = 0; i < rows.Count; i++)
                 {
                     var r = rows[i];
@@ -357,7 +401,8 @@ namespace V5_WASAPI_Position_Spike
                         r.QpcPosition.ToString(CultureInfo.InvariantCulture), ",",
                         r.DevicePosition.ToString(CultureInfo.InvariantCulture), ",",
                         r.Frames.ToString(CultureInfo.InvariantCulture), ",",
-                        r.Flags.ToString(CultureInfo.InvariantCulture)));
+                        r.Flags.ToString(CultureInfo.InvariantCulture), ",",
+                        r.Phase.ToString(CultureInfo.InvariantCulture)));
                 }
             }
         }
@@ -368,7 +413,8 @@ namespace V5_WASAPI_Position_Spike
             var sb = new StringBuilder();
             sb.AppendLine("=== V5 SUMMARY ===");
             sb.AppendLine("config  : source=" + cfg.Source + " via=" + cfg.Via +
-                          " duration=" + cfg.DurationSec + "s packets=" + rows.Count);
+                          " duration=" + cfg.DurationSec + "s packets=" + rows.Count +
+                          (cfg.SilenceTest ? " SILENCE-TEST" : ""));
             sb.AppendLine("init    : " + initInfo);
             sb.AppendLine("mix     : " + mixInfo);
             sb.AppendLine("freq    : Stopwatch.Frequency=" + Stopwatch.Frequency +
@@ -410,7 +456,8 @@ namespace V5_WASAPI_Position_Spike
 
             // ── 3. Read latency: hardware stamp vs arrival ───────────────
             // How far behind hardware time are we reading? (packet end -> now)
-            double sumMs = 0; int n = 0, late = 0;
+            // (v6: counter renamed nLat — v5 had 'int n' here AND in §4 => CS0128.)
+            double sumMs = 0; int nLat = 0, late = 0;
             for (int i = 1; i < rows.Count; i++)
             {
                 double ticksPerFrame = SwTicksPerFrame(rows, i);
@@ -419,13 +466,13 @@ namespace V5_WASAPI_Position_Spike
                 double lagMs = (rows[i].SwTicks - hwEndSw) * 1000.0 / Stopwatch.Frequency;
                 if (lagMs > -50 && lagMs < 5000)
                 {
-                    sumMs += lagMs; n++;
+                    sumMs += lagMs; nLat++;
                     if (lagMs > 40) late++;
                 }
             }
             sb.AppendLine("latency : mean read-lag behind hardware stamp = " +
-                (n > 0 ? (sumMs / n).ToString("0.00", CultureInfo.InvariantCulture) : "n/a") +
-                " ms  (packets >40ms late: " + late + "/" + n + ")");
+                (nLat > 0 ? (sumMs / nLat).ToString("0.00", CultureInfo.InvariantCulture) : "n/a") +
+                " ms  (packets >40ms late: " + late + "/" + nLat + ")");
             sb.AppendLine("          (read-lag is read-loop latency, NOT clock drift)");
 
             // ── 4. Clock relationship — regression over ALL samples (v5) ──
@@ -503,6 +550,65 @@ namespace V5_WASAPI_Position_Spike
             sb.AppendLine("flags   : silent=" + silent + " discontinuity=" + discontinuous +
                           " timestampError=" + timestampErr +
                           "  (SILENT=0x1 TSERR=0x2 DISCONT=0x4)");
+
+            // ── 6. Gaps & silence model (v6) ─────────────────────────────
+            // Longest stretch with NO packets, and what the stamps say
+            // happened across it. This is how we learn the machine's
+            // silence behavior instead of believing the docs.
+            long maxGapSw = 0; int maxGapAt = -1;
+            for (int i = 1; i < rows.Count; i++)
+            {
+                long g = rows[i].SwTicks - rows[i - 1].SwTicks;
+                if (g > maxGapSw) { maxGapSw = g; maxGapAt = i; }
+            }
+            double maxGapMs = maxGapSw * 1000.0 / Stopwatch.Frequency;
+            if (maxGapAt > 0 && maxGapMs > 200)
+            {
+                var pkBefore = rows[maxGapAt - 1];
+                var pkAfter = rows[maxGapAt];
+                double gapSec = maxGapMs / 1000.0;
+                long devJump = pkAfter.DevicePosition - pkBefore.DevicePosition;
+                double fpsMeasured = swElapsedTicks > 0 && dDev != 0
+                    ? dDev / (swElapsedTicks / Stopwatch.Frequency) : 48000.0;
+                sb.AppendLine("gaps    : longest no-packet window = " +
+                    maxGapMs.ToString("0", CultureInfo.InvariantCulture) +
+                    " ms (packet " + (maxGapAt - 1) + " -> " + maxGapAt + ")");
+                sb.AppendLine("          resume: devicePosition jumped " + devJump +
+                    " frames (expect ~" + (long)(fpsMeasured * gapSec) +
+                    " if the device kept counting through the gap)");
+                sb.AppendLine("          resume flags: discont=" +
+                    (((pkAfter.Flags & FLAG_DATA_DISCONTINUITY) != 0) ? "1" : "0") +
+                    " silent=" + (((pkAfter.Flags & FLAG_SILENT) != 0) ? "1" : "0") +
+                    " — qpcPosition pins the resume point exactly either way");
+            }
+            else
+            {
+                sb.AppendLine("gaps    : longest no-packet window = " +
+                    maxGapMs.ToString("0", CultureInfo.InvariantCulture) + " ms — continuous");
+            }
+
+            if (cfg.SilenceTest)
+            {
+                int p0 = 0, p1 = 0, p2 = 0;
+                for (int i = 0; i < rows.Count; i++)
+                {
+                    if (rows[i].Phase == 0) p0++;
+                    else if (rows[i].Phase == 1) p1++;
+                    else p2++;
+                }
+                sb.AppendLine("phases  : quiet=" + p0 + " pkts | sound=" + p1 +
+                              " pkts | quiet=" + p2 + " pkts");
+                if (p0 > 100 && p2 > 100)
+                    sb.AppendLine("silence : Model S — engine rendered SILENT packets while quiet " +
+                                  "(timeline advanced on its own); emit zeros per packet, " +
+                                  "SilenceKeepAlive not required");
+                else if (p0 < 50 && p2 < 50)
+                    sb.AppendLine("silence : Model I — endpoint idled while quiet (timeline froze); " +
+                                  "the P13 gap formula fills from qpcPosition exactly — keep " +
+                                  "SilenceKeepAlive OR handle gaps via the formula");
+                else
+                    sb.AppendLine("silence : MIXED — inspect the gaps above");
+            }
 
             bool pass = Math.Abs(skewPpm) < 200.0 && chunkSpreadMs < 5.0 &&
                         timestampErr == 0 &&

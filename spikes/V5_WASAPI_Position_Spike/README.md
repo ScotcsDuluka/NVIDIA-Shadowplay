@@ -47,6 +47,10 @@ dotnet run -c Release -- --duration 30 --source mic
 :: 3) long-run drift (the interesting one — crystal drift vs Stopwatch)
 dotnet run -c Release -- --duration 600
 
+:: 4) silence behavior: 20s quiet -> 20s sound -> 20s quiet
+::    (answers "what happens when there is NO audio?")
+dotnet run -c Release -- --duration 60 --silence-test
+
 :: (--via naudio is gone — see FINDINGS; passing it falls back to interop)
 ```
 
@@ -62,6 +66,8 @@ dotnet run -c Release -- --duration 600
 | `jitter` | Arrival residual p95 — OUR polling jitter, not stamp noise. Informational. |
 | `driftEP` | Old v4 endpoint metric (first vs last packet). Arrival-phase sensitive, informational only — it flagged the healthy 2026-08-27 run FAIL at 5.49 ms; see evidence/ANALYSIS.md. |
 | `flags` | silent / discontinuity / timestampError counts. Any timestampError = FAIL regardless of stability. |
+| `gaps` | Longest no-packet window + what the stamps say across it (devicePosition jump vs expectation, resume flags). Runs in EVERY mode. |
+| `phases`/`silence` | Silence-test only: per-phase packet counts and the machine's silence model (Model S = engine renders silent packets; Model I = endpoint idles, resume stamped exactly by qpcPosition). |
 | `VERDICT` | PASS = hardware stamps may anchor P13.2 `WasapiPositionCapture`. |
 
 ## Evidence to send back to OWNER (P13.1 gate)
@@ -122,12 +128,6 @@ dotnet run -c Release -- --duration 600
   +NOPERSIST), per-step init logging, 10s heartbeats, partial evidence
   kept on loop errors, corrected AUDCLNT_BUFFERFLAGS constants (v2 had
   SILENT/TSERR/DISCONT rotated, which would have mislabeled the verdict).
-- **v5** — analysis rework after reviewing OWNER's real 60s evidence run
-  (6000 packets, `evidence/`): endpoint drift replaced by full-series OLS
-  (skew ppm, gate <200) + chunk-offset stability (gate <5 ms). The
-  evidence run measured **+3.3 ppm skew, 0.27–0.55 ms stability** — the
-  P13.1 gate is met; the old 5.49 ms FAIL was endpoint arrival-phase
-  noise. VERDICT gates on skew + stability + timestampError + unit.
 - **v4** — **the actual root cause found & fixed**: `ReleaseBuffer(0)`
   wedged the engine's read cursor (capture side must echo GetBuffer's
   frame count), so the loop re-read the same packet ~2.4M times/s and
@@ -137,3 +137,19 @@ dotnet run -c Release -- --duration 600
   (10k/s), streaming CSV writer, heartbeat rate display. Lesson for
   P13.2: the capture loop contract is GetBuffer -> process ->
   ReleaseBuffer(framesRead), never 0.
+- **v5** — analysis rework after reviewing OWNER's real 60s evidence run
+  (6000 packets, `evidence/`): endpoint drift replaced by full-series OLS
+  (skew ppm, gate <200) + chunk-offset stability (gate <5 ms). The
+  evidence run measured **+3.3 ppm skew, 0.27–0.55 ms stability** — the
+  P13.1 gate is met; the old 5.49 ms FAIL was endpoint arrival-phase
+  noise. VERDICT gates on skew + stability + timestampError + unit.
+- **v6** — silence test (OWNER question: "what if there is NO sound?"):
+  `--silence-test` (quiet -> sound -> quiet phases, per-phase packet
+  counts) + gap analysis in every run (longest no-packet window, what
+  devicePosition/qpcPosition did across it, DISCONTINUITY on resume).
+  Classifies the machine's silence model: Model S (engine renders silent
+  packets — timeline advances by itself) vs Model I (endpoint idles —
+  timeline freezes, resume stamped exactly by qpcPosition, gap formula
+  fills it). Also fixes a latent v5 compile bug: local `n` was declared
+  twice in AnalyzeAndSummarize (CS0128) — v5 never shipped to a machine;
+  caught during v6 reconstruction. Latency counter renamed `nLat`.
