@@ -52,6 +52,22 @@ CFR loop ─ticks→ NVENC → pipe       →      CFR loop ─ticks→ NVENC �
 
 ### 3.1 NEW — `WasapiPositionCapture` (in `CaptureEngine.Recording`)
 
+> **P13.2 UPDATE (2026-08-28, SHIPPED):** the class lives in a new C#
+> library **`CaptureEngine.Audio.Wasapi`** (plain `net8.0`) instead of the
+> VB project — the proven COM interop must not be hand-translated, and a
+> plain-net8.0 lib is referenceable from BOTH `net8.0-windows` consumers
+> (Recording) and the Linux CI test project (FFmpegTests, plain net8.0).
+> Contents: `WasapiDirectInterop.cs` (verbatim from the spike; only the
+> namespace changed), `WasapiPositionCapture` (Start/Stop + PacketReady on
+> a capture thread; Windows-guarded; ladder + `ReleaseBuffer(frames)`
+> + runaway tripwire all verbatim), `WasapiPacket` (stamps normalized to
+> 100ns at source — `QpcTicksTo100ns` is overflow-safe for QPC > 29 days),
+> `AudioPositionTracker` (PURE stamp math: holes, Risk-#2 zero-stamp
+> fallback, backwards-stamp max-policy, `Reset()` for device switch).
+> Gate: FFmpegTests green — 11 new WPOS tests (synthetic positions,
+> deterministic, Linux-run), suite 35/35 PASS; Recording cross-compiles
+> with the reference (0 warnings).
+
 > **P13.1 UPDATE (2026-08-28, compile-verified in V5 spike):** NAudio 2.2.1
 > cannot expose positions — high-level wrapper lacks the overload (CS1501);
 > raw `Interfaces.IAudioCaptureClient` is internal (CS0122). The class
@@ -83,6 +99,15 @@ Direct capture loop over the WASAPI COM interfaces:
 > evidence/ANALYSIS.md` addendum.
 
 `Feed(buffer, count, qpcPos100ns)` — silence math becomes:
+
+> **P13.2 precision note:** `lastEnd100ns` is the previous packet's **END**
+> (`lastQpc + lastDur`), so `gap = qpc − lastEnd` is exactly the silence
+> AudioTap pads before writing this packet's bytes — valid for variable
+> packet sizes too (the pseudo-code below predates the spike and measured
+> from the previous START; keep END-to-START semantics). Backwards stamps
+> are flagged and absorbed with `max(prevEnd, newEnd)` — never rewind.
+> Reference implementation + 11 synthetic-position tests:
+> `CaptureEngine.Audio.Wasapi/AudioPositionTracker.cs`.
 
 ```
 gap100ns      = qpcPos100ns − lastEnd100ns      ' measured by hardware

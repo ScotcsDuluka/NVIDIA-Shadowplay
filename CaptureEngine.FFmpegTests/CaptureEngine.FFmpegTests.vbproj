@@ -14,5 +14,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
     <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+    <!-- P13.2: synthetic-position tests for AudioPositionTracker (Linux-safe) -->
+    <ProjectReference Include="..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
   </ItemGroup>
 </Project>

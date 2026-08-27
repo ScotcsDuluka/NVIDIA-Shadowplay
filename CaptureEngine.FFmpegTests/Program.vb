@@ -9,6 +9,7 @@ Imports System.IO
 Imports System.Globalization
 Imports CaptureEngine.Backends
 Imports CaptureEngine.FFmpegBackend
+Imports CaptureEngine.Audio.Wasapi
 
 Namespace CaptureEngine.FFmpegTests
     Friend Module Program
@@ -51,6 +52,19 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("AUDIO: Start/Stop lifecycle (stub mode)", AddressOf Test_AudioSidecarStubLifecycle)
             RunTest("AUDIO: HasAudioData returns False (stub)", AddressOf Test_AudioSidecarNoData)
             RunTest("AUDIO: Captures timestamps on Start", AddressOf Test_AudioSidecarTimestamps)
+
+            ' ----- P13.2 AudioPositionTracker tests (synthetic positions) -----
+            RunTest("WPOS: First packet anchors (no gap)", AddressOf Test_WPosAnchor)
+            RunTest("WPOS: Continuous stream has zero holes", AddressOf Test_WPosContinuous)
+            RunTest("WPOS: Silence hole measured exactly", AddressOf Test_WPosHole)
+            RunTest("WPOS: Zero stamp falls back to continuity (Risk #2)", AddressOf Test_WPosZeroStamp)
+            RunTest("WPOS: Backwards stamp flagged, timeline not rewound", AddressOf Test_WPosBackwards)
+            RunTest("WPOS: Variable packet sizes, END-to-START exact", AddressOf Test_WPosVariableSizes)
+            RunTest("WPOS: 1-hour synthetic run — zero drift, integer-exact", AddressOf Test_WPosOneHour)
+            RunTest("WPOS: Duration math floors deterministically", AddressOf Test_WPosDurationFloor)
+            RunTest("WPOS: Reset clears anchor (device switch)", AddressOf Test_WPosReset)
+            RunTest("WPOS: QpcTicksTo100ns is frequency-independent", AddressOf Test_WPosQpcConversion)
+            RunTest("WPOS: Start() guards non-Windows platforms", AddressOf Test_WPosPlatformGuard)
 
             ' ----- Integration tests (requires real ffmpeg.exe) -----
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
@@ -315,6 +329,163 @@ Namespace CaptureEngine.FFmpegTests
             Assert(a.MicStartTicks > 0, "MicStartTicks should be captured")
             a.Stop()
             a.Dispose()
+        End Sub
+
+        ' ===== P13.2 AudioPositionTracker tests =====
+        ' All positions are SYNTHETIC 100ns-domain values — deterministic,
+        ' no audio hardware, runs on Linux CI exactly like on Windows.
+        ' Reference: 1 ms = 10,000 units; 10ms packet = 100,000; 1 h = 3.6e10.
+
+        Private Const T0 As Long = 987654321000000L
+        Private Const Pkt10ms As Long = 100000L
+
+        Private Sub Test_WPosAnchor()
+            Dim t As New AudioPositionTracker(48000)
+            Assert(Not t.Anchored, "should start unanchored")
+            Dim rep = t.Feed(480, T0)
+            Assert(rep.AnchoredNow, "first packet must anchor")
+            Assert(t.Anchored, "Anchored after first packet")
+            Assert(t.FirstQpc100ns = T0, "FirstQpc100ns = first stamp")
+            Assert(rep.Hole100ns = 0L, "no hole on anchor")
+            Assert(rep.LastEnd100ns = T0 + Pkt10ms, "lastEnd = qpc + 10ms")
+        End Sub
+
+        Private Sub Test_WPosContinuous()
+            Dim t As New AudioPositionTracker(48000)
+            For i As Integer = 0 To 299
+                Dim rep = t.Feed(480, T0 + i * Pkt10ms)
+                Assert(rep.Hole100ns = 0L, "continuous stream, hole at i=" & i)
+                Assert(Not rep.MonotonicViolation, "no violation at i=" & i)
+            Next
+            Assert(t.Packets = 300L, "300 packets fed")
+            Assert(t.GapPackets = 0L, "zero gap packets")
+            Assert(t.LastEnd100ns = T0 + 300L * Pkt10ms, "lastEnd exact after 3s")
+        End Sub
+
+        Private Sub Test_WPosHole()
+            Dim t As New AudioPositionTracker(48000)
+            t.Feed(480, T0)
+            ' Next packet arrives 290ms after the previous content ends.
+            Dim qpc As Long = T0 + Pkt10ms + 2900000L
+            Dim rep = t.Feed(480, qpc)
+            Assert(rep.Hole100ns = 2900000L, "hole must be exactly 290ms, got " & rep.Hole100ns)
+            Assert(t.GapPackets = 1L, "one gap packet")
+            Assert(t.TotalHole100ns = 2900000L, "total hole = 290ms")
+            Assert(rep.LastEnd100ns = qpc + Pkt10ms, "lastEnd resumes from new stamp")
+        End Sub
+
+        Private Sub Test_WPosZeroStamp()
+            Dim t As New AudioPositionTracker(48000)
+            t.Feed(480, T0)
+            Dim before As Long = t.LastEnd100ns
+            Dim rep = t.Feed(480, 0L)   ' doc §5 Risk #2: stampless packet
+            Assert(rep.StampFallbackUsed, "fallback must be flagged")
+            Assert(rep.Hole100ns = 0L, "fallback assumes continuity — no hole")
+            Assert(t.LastEnd100ns = before + Pkt10ms, "lastEnd advanced by packet dur")
+            Assert(t.StampFallbacks = 1L, "fallback counted")
+        End Sub
+
+        Private Sub Test_WPosBackwards()
+            Dim t As New AudioPositionTracker(48000)
+            t.Feed(480, T0)
+            Dim before As Long = t.LastEnd100ns
+            ' Stamp 5ms IN THE PAST (overlapping content: [50ms, 150ms) vs
+            ' previous [0ms, 100ms)). Violation flagged, no hole, and the
+            ' timeline takes max(prevEnd, newEnd) — absorbs the forward
+            ' extension, NEVER rewinds.
+            Dim rep = t.Feed(480, T0 + Pkt10ms - 50000L)
+            Assert(rep.MonotonicViolation, "violation must be flagged")
+            Assert(rep.Hole100ns = 0L, "no hole on overlap")
+            Assert(t.LastEnd100ns = T0 + 150000L, "lastEnd = max(prevEnd, newEnd)")
+            Assert(t.LastEnd100ns >= before, "timeline must NOT rewind")
+            Assert(t.MonotonicViolations = 1L, "violation counted")
+        End Sub
+
+        Private Sub Test_WPosVariableSizes()
+            Dim t As New AudioPositionTracker(48000)
+            ' Stamps crafted so each packet starts exactly where the previous
+            ' ended — continuity must hold for VARIABLE frame counts.
+            t.Feed(480, T0)                          ' 10ms -> ends T0+100000
+            Dim r2 = t.Feed(960, T0 + 100000L)       ' 20ms -> ends T0+300000
+            Dim r3 = t.Feed(240, T0 + 300000L)       ' 5ms  -> ends T0+350000
+            Dim r4 = t.Feed(480, T0 + 350000L)       ' 10ms -> ends T0+450000
+            Assert(r2.Hole100ns = 0L AndAlso r3.Hole100ns = 0L AndAlso r4.Hole100ns = 0L,
+                   "all variable-size transitions continuous")
+            Assert(t.LastEnd100ns = T0 + 450000L, "final lastEnd exact")
+            Assert(t.GapPackets = 0L, "no gaps counted")
+        End Sub
+
+        Private Sub Test_WPosOneHour()
+            Dim t As New AudioPositionTracker(48000)
+            ' 360,000 packets x 10ms = exactly 1 hour. Integer math must
+            ' land EXACTLY — this is the no-drift guarantee behind P13.4.
+            For i As Long = 0 To 359999L
+                t.Feed(480, T0 + i * Pkt10ms)
+            Next
+            Assert(t.Packets = 360000L, "packet count")
+            Assert(t.GapPackets = 0L, "zero gaps over 1h")
+            Assert(t.MonotonicViolations = 0L, "zero violations over 1h")
+            Assert(t.LastEnd100ns = T0 + 360000L * Pkt10ms,
+                   "lastEnd must be EXACTLY t0 + 1h (integer-exact, no drift)")
+        End Sub
+
+        Private Sub Test_WPosDurationFloor()
+            Dim t As New AudioPositionTracker(48000)
+            Assert(t.Duration100ns(480) = 100000L, "480 frames = 10ms exact")
+            Assert(t.Duration100ns(1) = 208L, "1 frame floors to 208 (208.33)")
+            Assert(t.Duration100ns(479) = 99791L, "479 frames floors to 99791")
+            Assert(t.Duration100ns(0) = 0L, "0 frames = 0")
+            Assert(t.Duration100ns(-5) = 0L, "negative frames = 0")
+        End Sub
+
+        Private Sub Test_WPosReset()
+            Dim t As New AudioPositionTracker(48000)
+            t.Feed(480, T0)
+            t.Reset()
+            Assert(Not t.Anchored, "Reset clears anchor")
+            Dim rep = t.Feed(480, T0 + 987654321L)
+            Assert(rep.AnchoredNow, "next packet re-anchors (device switch)")
+            Assert(t.FirstQpc100ns = T0 + 987654321L, "new anchor stamp")
+            Assert(rep.Hole100ns = 0L, "no hole across reset — new timeline")
+        End Sub
+
+        Private Sub Test_WPosQpcConversion()
+            ' Property, not constants: N ticks at Stopwatch.Frequency = N/freq
+            ' seconds = N/freq x 1e7 units of 100ns. Must hold for ANY freq.
+            Dim freq As Long = Stopwatch.Frequency
+            Assert(WasapiPositionCapture.QpcTicksTo100ns(freq) = 10000000L,
+                   "1 freq-worth of ticks = exactly 1 second = 1e7")
+            Assert(WasapiPositionCapture.QpcTicksTo100ns(2L * freq) = 20000000L,
+                   "2 seconds exact")
+            Assert(WasapiPositionCapture.QpcTicksTo100ns(freq \ 2) = 5000000L,
+                   "half a second exact")
+            Assert(WasapiPositionCapture.QpcTicksTo100ns(0L) = 0L, "0 ticks = 0")
+            ' ~29 days of QPC (the naive product overflows here).
+            ' VB precedence trap: '*' binds TIGHTER than '\', so every
+            ' integer division needs explicit parentheses.
+            Dim huge As Long = 2500000000000000L
+            Dim expect As Long = (huge \ freq) * 10000000L +
+                                 ((huge Mod freq) * 10000000L \ freq)
+            Assert(WasapiPositionCapture.QpcTicksTo100ns(huge) = expect,
+                   "overflow-safe split math matches reference")
+        End Sub
+
+        Private Sub Test_WPosPlatformGuard()
+            ' On Linux CI the guard MUST throw; on Windows Start() would open
+            ' the real device — skip instead (same policy as ffmpeg tests).
+            If WasapiPositionCapture.IsWindowsPlatform Then
+                Console.Write("(SKIP: Windows) ")
+                Return
+            End If
+            Dim threw As Boolean = False
+            Try
+                Dim c As New WasapiPositionCapture()
+                c.Start()
+                c.Stop()   ' unreachable — Start must throw off-Windows
+            Catch ex As InvalidOperationException
+                threw = True
+            End Try
+            Assert(threw, "Start() off-Windows must throw InvalidOperationException")
         End Sub
 
         ' ===== Integration test (requires real ffmpeg.exe) =====

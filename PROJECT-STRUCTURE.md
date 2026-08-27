@@ -43,6 +43,10 @@ Core pipeline:
   FFmpeg process plumbing: audio taps, sidecars, live muxing.
 - `CaptureEngine.Recording/`
   Recording session state machine (start/stop/pause, instant replay).
+- `CaptureEngine.Audio.Wasapi/`
+  P13.2 position-aware WASAPI capture: direct COM interop (verbatim from the
+  P13.1 spike) + `WasapiPositionCapture` (Windows runtime) +
+  `AudioPositionTracker` (pure, Linux-testable stamp math).
 - `CaptureEngine.Recording.ConsoleDriver/`
   Console host for driving recording sessions headless (tests / diagnostics).
 
