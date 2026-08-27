@@ -52,17 +52,21 @@ CFR loop ─ticks→ NVENC → pipe       →      CFR loop ─ticks→ NVENC �
 
 ### 3.1 NEW — `WasapiPositionCapture` (in `CaptureEngine.Recording`)
 
-Own capture loop using NAudio's COM layer — **no new dependencies**:
+> **P13.1 UPDATE (2026-08-28, compile-verified in V5 spike):** NAudio 2.2.1
+> cannot expose positions — high-level wrapper lacks the overload (CS1501);
+> raw `Interfaces.IAudioCaptureClient` is internal (CS0122). The class
+> therefore ships **direct WASAPI COM interop** ported from
+> `spikes/V5_WASAPI_Position_Spike/WasapiDirectInterop.cs` (~150 lines,
+> zero new dependencies, exception-on-HRESULT so AUDCLNT codes surface).
 
-- `MMDeviceEnumerator` → device → `AudioClient` (same init pattern the
-  existing `SilenceKeepAlive` already uses: `target.AudioClient.MixFormat`).
-- Event-driven read loop calling NAudio's raw interface wrapper
-  `IAudioCaptureClient.GetBuffer(data, frames, flags,
-  devicePosition, qpcPosition)` — NAudio exposes this overload today;
-  `WasapiLoopbackCapture` simply never forwards the last two args.
-- Raises `DataAvailable(buffer, count, devicePosition, qpcPosition)`.
-- Spike first (P13.1) to verify the wrapper signature on net8.0-windows
-  and record a 60s run of qpcPosition values as evidence.
+Direct capture loop over the WASAPI COM interfaces:
+
+- Default render device → `IAudioClient.Initialize(Shared, LOOPBACK)` with
+  the mix format, then a polling loop of
+  `GetNextPacketSize → GetBuffer → ReleaseBuffer(0)`.
+- Every packet raises `DataAvailable(buffer, count, devicePosition, qpcPosition)`.
+- V5 spike already builds this exact loop (0 warnings / 0 errors
+  cross-compiling on Linux); P13.1 runtime evidence is the remaining gate.
 
 ### 3.2 REWRITE — `AudioTap` v3 (gap-fill from measured time)
 
@@ -127,10 +131,11 @@ offsetSec = (videoT0Qpc − firstAudioQpc) / QpcFrequency   ' exact
 
 ## 5. Risks
 
-1. **NAudio wrapper surface** — if the exposed `IAudioCaptureClient`
+1. ~~**NAudio wrapper surface** — if the exposed `IAudioCaptureClient`
    overload is missing/incomplete in the pinned NAudio version, fall back
-   to ~150 lines of direct WASAPI COM interop (pattern already proven in
-   `WinAPIHelper.vb` culture).
+   to ~150 lines of direct WASAPI COM interop~~ **RESOLVED (P13.1,
+   compile-verified)**: both NAudio routes are closed; direct interop
+   (`WasapiDirectInterop.cs` → engine port) is the chosen path.
 2. **qpcPosition = 0** on some drivers when flags say silent/discontinuity
    → treat as "no stamp" and fall back to lastEnd + bufferDur for that
    packet only.
