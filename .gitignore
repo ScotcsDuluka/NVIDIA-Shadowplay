@@ -25,8 +25,26 @@ desktop.ini
 Thumbs.db
 .DS_Store
 
-# Logs
+# Logs and ad-hoc output captures
 *.log
+output.txt
+spike_output.md
+
+# Local-only artifacts (prevent history bloat accidents — see 2026-08 'heavyweight artifacts' cleanup)
+# Note: FFmpeg binaries ship via Overlay/API-Core (ignored dir), never as tracked archives
+*.lnk
+*.mcworld
+*.zip
+*.7z
+*.msi
+Video_Codec_Interface_13.1.15/
+test_*.zip
+
+# Test/spike run outputs
+spikes/**/out/
+spikes/**/logs/
+**/TestResults/
+**/*.trx
 
 # App/runtime data that should stay local
 Overlay/build.txt
