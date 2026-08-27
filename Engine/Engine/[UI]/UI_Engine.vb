@@ -1,4 +1,4 @@
-' UI_Engine.vb
+﻿' UI_Engine.vb
 ' ShadowPlay Engine - Main Form Logic
 ' TCP Hub Client Mode — เชื่อม API Hub (port 5000) รับ engine_* commands
 '
@@ -73,7 +73,7 @@ Partial Public Class UI_Engine
     ' ── Form Load / Close ──────────────────────────────────────
 
     Private Sub UI_Engine_Load(sender As Object, e As EventArgs) Handles Me.Load
-        _configPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "engine.json")
+        _configPath = AppLayout.P("Config", "engine.json")
 
         ' ✅ P2: locate Overlay's config.json + video.json first.
         ' lblConfigSource will show where they were found.
@@ -1167,10 +1167,10 @@ Partial Public Class UI_Engine
             dlg.Filter = "FFmpeg (ffmpeg.exe)|ffmpeg.exe"
             dlg.FileName = "ffmpeg.exe"
 
-            Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim appDir As String = AppLayout.Dir
             If File.Exists(txtFFmpegPath.Text) Then
                 dlg.InitialDirectory = Path.GetDirectoryName(txtFFmpegPath.Text)
-            ElseIf Directory.Exists(Path.Combine(appDir, "API-Core")) Then
+            ElseIf Directory.Exists(AppLayout.P("FFmpeg")) Then
                 dlg.InitialDirectory = Path.Combine(appDir, "API-Core")
             ElseIf appDir.Contains("bin" & IO.Path.DirectorySeparatorChar) Then
                 Dim parentDir As String = appDir
@@ -1211,7 +1211,7 @@ Partial Public Class UI_Engine
 
     Private Sub DebugLog(message As String)
         Try
-            Dim logDir As String = IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+            Dim logDir As String = AppLayout.P("Logs")
             Dim logPath As String = IO.Path.Combine(logDir, "ui-engine.log")
             Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & "] " & message
             ' ✅ P1: route through BackgroundLogger instead of File.AppendAllText per line.
@@ -1220,7 +1220,7 @@ Partial Public Class UI_Engine
         End Try
     End Sub
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
-        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+        Dim uiFile = AppLayout.P("Flags", "Engine.UI")
 
         Try
             If File.Exists(uiFile) Then
@@ -1233,7 +1233,7 @@ Partial Public Class UI_Engine
     Private Sub OPEN_UI_Tick(sender As Object, e As EventArgs) Handles OPEN_UI.Tick
         HideFromAltTab()
 
-        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+        Dim uiFile = AppLayout.P("Flags", "Engine.UI")
 
         If File.Exists(uiFile) Then
             Me.WindowState = FormWindowState.Maximized
@@ -1257,7 +1257,7 @@ Partial Public Class UI_Engine
         ' This button creates Audio.UI marker → timer shows the form.
         ' Same pattern as Engine.UI marker system.
         Try
-            Dim uiFile As String = IO.Path.Combine(Application.StartupPath, "Audio.UI")
+            Dim uiFile As String = AppLayout.P("Flags", "Audio.UI")
             IO.File.WriteAllText(uiFile, DateTime.Now.ToString())
         Catch ex As Exception
             MessageBox.Show(Me, "Failed to open audio settings: " & ex.Message, "Error",

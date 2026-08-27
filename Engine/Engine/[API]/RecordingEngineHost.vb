@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -62,7 +62,7 @@ Partial Public Class UI_Engine
         End Try
 
         Dim settingsSnapshot As CaptureSettings = _settings
-        Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+        Dim baseDir As String = AppLayout.Dir
 
         Task.Run(Sub()
                      Try
@@ -153,7 +153,8 @@ Partial Public Class UI_Engine
         Dim settingsPath As String = _settings?.FFmpegPath
         If Not String.IsNullOrEmpty(settingsPath) Then candidates.Add(settingsPath)
 
-        Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+        Dim baseDir As String = AppLayout.Dir
+        candidates.Add(AppLayout.P("FFmpeg", "ffmpeg.exe"))
         candidates.Add(Path.Combine(baseDir, "API-Core", "ffmpeg.exe"))
         candidates.Add(Path.Combine(baseDir, "ffmpeg.exe"))
 

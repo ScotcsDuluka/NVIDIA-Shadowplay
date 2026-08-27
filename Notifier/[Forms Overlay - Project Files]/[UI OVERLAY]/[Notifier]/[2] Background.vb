@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
@@ -281,7 +281,7 @@ Public Class Notifier
         HideFromAltTab()
 
         Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
+        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             Me.Location = New Point(w - Me.Width, 205)
             Debug.WriteLine("[Notifier] Position Y=205")
         Else
@@ -401,7 +401,7 @@ Public Class Notifier
         Debug.WriteLine("[Notifier] IF_N tick → StartSlideY")
         StartSlideY(Me, Me.Top, 105, 200)
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If Not My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
+        If Not My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             IF_N.Stop()
             Debug.WriteLine("[Notifier] IF_N stopped")
         End If

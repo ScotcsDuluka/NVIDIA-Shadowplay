@@ -7,10 +7,16 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1              # build only
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -RunTests    # build + tests
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -Fast        # skip clean
+#   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -StageLayout # ALSO stage the
+#       # root-fixed "NVIDIA ShadowPlay" tree into dist\ (see docs/APP-LAYOUT.md):
+#       # Application\ hosts -> Services\ dlls, Engine\ libs, FFmpeg\, Config\,
+#       # Languages\, Data\, Flags\... Runtime assembly resolution is handled by
+#       # Common/AppLayout.vb compiled into every app.
 
 param(
     [switch]$RunTests,
-    [switch]$Fast
+    [switch]$Fast,
+    [switch]$StageLayout
 )
 
 $ErrorActionPreference = "Stop"
@@ -100,3 +106,16 @@ if ($RunTests) {
 }
 
 Write-Host "`nDONE." -ForegroundColor Green
+
+# ── 5. Stage the root-fixed layout (dist\NVIDIA ShadowPlay) ────────
+if ($StageLayout) {
+    Write-Host "`n>>> STAGING root-fixed layout..." -ForegroundColor Cyan
+    dotnet msbuild "scripts\layout.proj" -p:Configuration=Release -nologo
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "LAYOUT STAGE FAILED" -ForegroundColor Red
+        exit 3
+    }
+    Write-Host "LAYOUT STAGED OK -> $(Join-Path $repo 'dist\NVIDIA ShadowPlay')" -ForegroundColor Green
+}
+
+Write-Host "`nALL DONE." -ForegroundColor Green

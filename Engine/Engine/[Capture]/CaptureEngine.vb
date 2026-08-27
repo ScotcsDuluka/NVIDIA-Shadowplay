@@ -1,4 +1,4 @@
-' CaptureEngine.vb
+﻿' CaptureEngine.vb
 ' ShadowPlay Engine - Two-Process Recording Architecture
 '
 ' ┌─────────────────────────────────────────────────────────────────────┐
@@ -988,7 +988,7 @@ Partial Public Class CaptureEngine
 
     Private Sub WriteDebugLog(message As String)
         Try
-            Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+            Dim logDir As String = AppLayout.P("Logs")
             Dim logPath As String = Path.Combine(logDir, "capture-engine.log")
             Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") & "] " & message
             BackgroundLogger.Log(logPath, logLine)

@@ -1,4 +1,4 @@
-Imports System.Diagnostics
+﻿Imports System.Diagnostics
 Imports System.Collections.Generic
 Imports System.IO
 Imports System.Net.Http.Headers
@@ -310,7 +310,7 @@ Public Class AppSettings
 
         Try
             ' พยายามโหลดจาก cache ก่อน
-            Dim avatarPath As String = Path.Combine(Application.StartupPath, "avatar.png")
+            Dim avatarPath As String = AppLayout.P("avatar.png")
             If File.Exists(avatarPath) Then
                 Try
                     ' ✅ ใช้ MemoryStream เพื่อหลีกเลี่ยง file lock
@@ -356,7 +356,7 @@ Public Class AppSettings
     ''' </summary>
     Public Sub SaveAvatarFromBytes(avatarBytes As Byte())
         Try
-            Dim avatarPath As String = Path.Combine(Application.StartupPath, "avatar.png")
+            Dim avatarPath As String = AppLayout.P("avatar.png")
             File.WriteAllBytes(avatarPath, avatarBytes)
             Debug.WriteLine($"SaveAvatarFromBytes: Saved to {avatarPath}")
         Catch ex As Exception
@@ -472,7 +472,7 @@ Public Class AppSettings
     Private ReadOnly Property ConfigPath As String
         Get
             If _configPath Is Nothing Then
-                _configPath = Path.Combine(Application.StartupPath, "config.json")
+                _configPath = AppLayout.P("Config", "config.json")
             End If
             Return _configPath
         End Get
@@ -485,7 +485,7 @@ Public Class AppSettings
     Public ReadOnly Property VideoConfigPath As String
         Get
             If _videoConfigPath Is Nothing Then
-                _videoConfigPath = Path.Combine(Application.StartupPath, "video.json")
+                _videoConfigPath = AppLayout.P("Config", "video.json")
             End If
             Return _videoConfigPath
         End Get
@@ -824,7 +824,7 @@ Public Class AppSettings
                 End If
 
                 ' ── Import audio.json (audio-specific schema wins if present) ──
-                Dim audioPath As String = Path.Combine(Application.StartupPath, "audio.json")
+                Dim audioPath As String = AppLayout.P("Config", "audio.json")
                 If File.Exists(audioPath) Then
                     Try
                         Dim json As String = File.ReadAllText(audioPath)
@@ -851,7 +851,7 @@ Public Class AppSettings
 
             ' ── Rename stale legacy files out of the way (best-effort) ──
             RenameLegacyAway(VideoConfigPath, "video.json")
-            RenameLegacyAway(Path.Combine(Application.StartupPath, "audio.json"), "audio.json")
+            RenameLegacyAway(AppLayout.P("Config", "audio.json"), "audio.json")
 
         Catch ex As Exception
             Debug.WriteLine("[Migrate] legacy migration error: " & ex.Message)

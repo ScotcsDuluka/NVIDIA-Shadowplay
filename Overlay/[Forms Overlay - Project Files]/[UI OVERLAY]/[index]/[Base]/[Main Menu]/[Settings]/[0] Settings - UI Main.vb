@@ -143,7 +143,7 @@ Public Class Base_Settings
     End Sub
 
     Private Function GetLanguageFolderPath() As String
-        Return Path.Combine(Application.StartupPath, LanguageFolderName)
+        Return AppLayout.P(LanguageFolderName)
     End Function
 
     Private Function GetCurrentLanguageCode(langFolder As String) As String

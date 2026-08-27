@@ -50,7 +50,7 @@ Partial Public Class Base
         UpdateReplayStatus()
         UpdateRecordStatus()
         UpdateMicStatus()
-        Dim filePaths As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")
+        Dim filePaths As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")
 
         Try
             ' If 'Notifier.Visible Then
@@ -260,7 +260,7 @@ Partial Public Class Base
     ''' with the platform-correct separator.
     ''' </summary>
     Private Function IsPrivacyEnabled() As Boolean
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
+        Dim privacyPath As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
         Return My.Computer.FileSystem.FileExists(privacyPath)
     End Function
 

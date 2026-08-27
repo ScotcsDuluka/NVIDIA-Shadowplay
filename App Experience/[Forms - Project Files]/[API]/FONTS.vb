@@ -30,7 +30,11 @@ Public NotInheritable Class FontHelper
         ' ถ้ามีแล้ว → คืนค่า True
         If File.Exists(fontPath) Then Return True
 
-        Dim sourcePath As String = Path.Combine(Application.StartupPath, fontFile)
+        ' Root-fixed layout: font ships in Resources\ (legacy app-dir fallback).
+        Dim sourcePath As String = AppLayout.P("Resources", fontFile)
+        If Not File.Exists(sourcePath) Then
+            sourcePath = Path.Combine(Application.StartupPath, fontFile)
+        End If
         If Not File.Exists(sourcePath) Then
             MessageBox.Show("Font file not found in application folder: " & fontFile, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
             Return False

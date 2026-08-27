@@ -41,7 +41,7 @@ Public Class API_RUN
     End Sub
     Private Sub API_RUN_Load(sender As Object, e As EventArgs) Handles Me.Load
         SetupLogCopy()
-        Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
+        Dim overlayExists As Boolean = File.Exists(AppLayout.P("Flags", "Dev"))
         If overlayExists Then
             ToggleAltTabVisibility(False)
             Opacity = 1
@@ -127,17 +127,20 @@ Public Class API_RUN
             "NVIDIA Capture.exe"
         }
 
-        Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Use_Overlay"))
+        Dim overlayExists As Boolean = File.Exists(AppLayout.P("Flags", "Use_Overlay"))
 
         For Each app In apps
-            Dim exePath As String = Path.Combine(Application.StartupPath, app)
+            ' Root-fixed layout: service hosts live in Application\, the
+            ' overlay host in Overlay\.
+            Dim appSubDir As String = If(app = "NVIDIA ShadowPlay.exe", "Overlay", "Application")
+            Dim exePath As String = Path.Combine(AppLayout.Dir, appSubDir, app)
             Dim processName As String = Path.GetFileNameWithoutExtension(app)
 
             ' ✅ M4 FIX: dispose every Process object. HandleAppsSmart runs every 1s
             ' and Process.GetProcessesByName returns Process objects that hold
             ' SafeProcessHandle. Without disposal, handles accumulate over hours
             ' until GC finalizes them — slow leak.
-            Dim running = Process.GetProcessesByName(processName)
+            Dim running As Process() = Process.GetProcessesByName(processName)
 
             If overlayExists Then
                 If running.Length = 0 AndAlso File.Exists(exePath) Then
@@ -148,21 +151,21 @@ Public Class API_RUN
                     End Try
                 End If
             Else
-                For Each p In running
+                For Each proc As Process In running
                     Try
-                        p.Kill()
-                        p.WaitForExit()
+                        proc.Kill()
+                        proc.WaitForExit()
                     Catch ex As Exception
                         Console.WriteLine("Cannot kill " & processName & ": " & ex.Message)
                     Finally
-                        Try : p.Dispose() : Catch : End Try
+                        Try : proc.Dispose() : Catch : End Try
                     End Try
                 Next
             End If
 
             ' Dispose the rest (the ones we didn't kill).
-            For Each p In running
-                Try : p.Dispose() : Catch : End Try
+            For Each proc As Process In running
+                Try : proc.Dispose() : Catch : End Try
             Next
         Next
     End Sub

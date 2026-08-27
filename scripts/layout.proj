@@ -1,0 +1,201 @@
+<Project DefaultTargets="Stage" InitialTargets="Prepare">
+
+  <!-- ============================================================================
+       scripts/layout.proj — assembles the root-fixed "NVIDIA ShadowPlay" tree
+       ============================================================================
+       Invoked by build-all.ps1 -StageLayout, or directly:
+
+         dotnet msbuild scripts/layout.proj [-p:Configuration=Release]
+                                            [-p:LayoutRoot=C:\abs\path]
+
+       Pipeline:
+         1. Prepare  — wipe the target tree
+         2. BuildAll — classic builds of every product project, each with
+                       StageLayout=true + AppLayoutRoot set, so the
+                       per-project targets in Directory.Build.targets run
+                       (family lib staging + Application\ split hosts)
+         3. Stage    — copy app payloads / engine libs / content into the tree
+         4. Manifest — hard-fail on any required file that is missing
+
+       Normal development NEVER runs this file: classic builds go to bin\ as
+       always. The deployed tree is a pure product of this orchestrator.
+       ============================================================================ -->
+
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
+    <LayoutRoot Condition="'$(LayoutRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\dist\NVIDIA ShadowPlay'))</LayoutRoot>
+    <Repo Condition="'$(Repo)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))/</Repo>
+    <AppBin>bin/$(Configuration)/net8.0-windows10.0.26100.0</AppBin>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Engine libraries (Engine\ folder) -->
+    <EngineLib Include="$(Repo)CaptureEngine/CaptureEngine.vbproj;$(Repo)CaptureEngine.Encoder/CaptureEngine.Encoder.vbproj;
+                        $(Repo)CaptureEngine.Video/CaptureEngine.Video.vbproj;$(Repo)CaptureEngine.Video.Ddagrab/CaptureEngine.Video.Ddagrab.vbproj;
+                        $(Repo)CaptureEngine.Encoder.Nvenc/CaptureEngine.Encoder.Nvenc.vbproj;
+                        $(Repo)CaptureEngine.FFmpegBackend/CaptureEngine.FFmpegBackend.vbproj;
+                        $(Repo)CaptureEngine.Audio.Wasapi/CaptureEngine.Audio.Wasapi.csproj;
+                        $(Repo)CaptureEngine.Recording/CaptureEngine.Recording.vbproj" />
+    <!-- Apps -->
+    <AppProject Include="$(Repo)App Experience/NVIDIA Experience.vbproj;$(Repo)Overlay/NVIDIA Overlay.vbproj;
+                         $(Repo)API/NVIDIA API.vbproj;$(Repo)Engine/NVIDIA Capture.vbproj;$(Repo)Notifier/NVIDIA Notifier.vbproj" />
+    <AllProjects Include="@(EngineLib);@(AppProject)" />
+
+    <!-- App payloads now carry absolute repo-rooted paths (see above).
+         Exe items are separate: on Linux the Windows apphost is not
+         produced, so each exe copy is Exists-gated (the Manifest target
+         enforces their presence on Windows). -->
+    <ExperiencePayload Include="$(Repo)App Experience\$(AppBin)\NVIDIA Experience.dll;
+                                $(Repo)App Experience\$(AppBin)\NVIDIA Experience.deps.json;
+                                $(Repo)App Experience\$(AppBin)\NVIDIA Experience.runtimeconfig.json" />
+    <ExperienceExe Include="$(Repo)App Experience\$(AppBin)\NVIDIA Experience.exe" />
+    <OverlayPayload Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.dll;
+                             $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.deps.json;
+                             $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json" />
+    <OverlayExe Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.exe" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ServiceNames Include="NVIDIA API;NVIDIA Capture;NVIDIA Notifier" />
+    <!-- NVIDIA_Shadowplay_Data tree (collected here, transformed in Stage) -->
+    <DataFiles Include="$(Repo)Overlay/NVIDIA_Shadowplay_Data/**/*" />
+    <!-- Content globs (task parameters cannot expand wildcards; items can) -->
+    <OverlayLanguages Include="$(Repo)Overlay/Languages/*" />
+    <OverlayFfmpeg Include="$(Repo)Overlay/API-Core/*" />
+  </ItemGroup>
+
+  <Target Name="Prepare">
+    <RemoveDir Directories="$(LayoutRoot)" Condition="Exists('$(LayoutRoot)')" />
+    <Message Text="layout root: $(LayoutRoot)" Importance="high" />
+  </Target>
+
+  <Target Name="BuildAll" Outputs="%(AllProjects.Identity)">
+    <Message Text="building %(AllProjects.Identity)" Importance="high" />
+    <MSBuild Projects="%(AllProjects.Identity)"
+             Properties="Configuration=$(Configuration);StageLayout=true;AppLayoutRoot=$(LayoutRoot)" />
+  </Target>
+
+  <Target Name="Stage" DependsOnTargets="BuildAll">
+
+    <!-- Root app: NVIDIA Experience -->
+    <Copy SourceFiles="@(ExperiencePayload)"
+          DestinationFiles="@(ExperiencePayload->'$([System.IO.Path]::Combine('$(LayoutRoot)', '%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(ExperienceExe)"
+          DestinationFiles="@(ExperienceExe->'$([System.IO.Path]::Combine('$(LayoutRoot)', '%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true"
+          Condition="Exists('%(ExperienceExe.Identity)')" />
+
+    <!-- Overlay app -->
+    <Copy SourceFiles="@(OverlayPayload)"
+          DestinationFiles="@(OverlayPayload->'$([System.IO.Path]::Combine('$(LayoutRoot)', 'Overlay', '%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(OverlayExe)"
+          DestinationFiles="@(OverlayExe->'$([System.IO.Path]::Combine('$(LayoutRoot)', 'Overlay', '%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true"
+          Condition="Exists('%(OverlayExe.Identity)')" />
+
+    <!-- Services: managed payloads only (hosts land in Application\) -->
+    <Copy SourceFiles="$(Repo)API/$(AppBin)\NVIDIA API.dll"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA API.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)API/$(AppBin)\NVIDIA API.deps.json"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA API.deps.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)API/$(AppBin)\NVIDIA API.runtimeconfig.json"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA API.runtimeconfig.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\NVIDIA Capture.dll"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Capture.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\NVIDIA Capture.deps.json"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Capture.deps.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\NVIDIA Capture.runtimeconfig.json"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Capture.runtimeconfig.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Notifier/$(AppBin)\NVIDIA Notifier.dll"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Notifier.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Notifier/$(AppBin)\NVIDIA Notifier.deps.json"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Notifier.deps.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Notifier/$(AppBin)\NVIDIA Notifier.runtimeconfig.json"
+          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Notifier.runtimeconfig.json" SkipUnchangedFiles="true" />
+
+    <!-- Engine libraries (wildcard TFM: libs mix net8.0 / net8.0-windows) -->
+    <Copy SourceFiles="$(Repo)CaptureEngine/bin/$(Configuration)/net8.0/CaptureEngine.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.Encoder/bin/$(Configuration)/net8.0/CaptureEngine.Encoder.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Encoder.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.Video/bin/$(Configuration)/net8.0/CaptureEngine.Video.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Video.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.Video.Ddagrab/bin/$(Configuration)/net8.0-windows/CaptureEngine.Video.Ddagrab.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Video.Ddagrab.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.Encoder.Nvenc/bin/$(Configuration)/net8.0-windows/CaptureEngine.Encoder.Nvenc.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Encoder.Nvenc.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.FFmpegBackend/bin/$(Configuration)/net8.0/CaptureEngine.FFmpegBackend.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.FFmpegBackend.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.Audio.Wasapi/bin/$(Configuration)/net8.0/CaptureEngine.Audio.Wasapi.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Audio.Wasapi.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)CaptureEngine.Recording/bin/$(Configuration)/net8.0-windows/CaptureEngine.Recording.dll"
+          DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Recording.dll" SkipUnchangedFiles="true" />
+
+    <!-- Content: Overlay carries the product content -->
+    <Copy SourceFiles="@(OverlayLanguages)" DestinationFolder="$(LayoutRoot)/Languages" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(OverlayFfmpeg)" DestinationFolder="$(LayoutRoot)/FFmpeg" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(DataFiles)"
+          DestinationFiles="@(DataFiles->'$(LayoutRoot)/Data\NVIDIA_Shadowplay_Data\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Overlay/_Redist/64bit.runtime.exe"
+          DestinationFiles="$(LayoutRoot)/Redist\64bit.runtime.exe" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Overlay/nvgcshare.ttf"
+          DestinationFiles="$(LayoutRoot)/Resources\nvgcshare.ttf" SkipUnchangedFiles="true" />
+
+    <!-- Content: Notifier OBS config -->
+    <Copy SourceFiles="$(Repo)Notifier/notifier_obs.json"
+          DestinationFiles="$(LayoutRoot)/Config\notifier_obs.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Notifier/notifier_obs.example.json"
+          DestinationFiles="$(LayoutRoot)/Config\notifier_obs.example.json" SkipUnchangedFiles="true"
+          Condition="Exists('$(Repo)Notifier/notifier_obs.example.json')" />
+
+  </Target>
+
+  <Target Name="Manifest" DependsOnTargets="Stage">
+    <ItemGroup>
+      <Required Include="$(LayoutRoot)/NVIDIA Experience.dll" />
+      <Required Include="$(LayoutRoot)/NVIDIA Experience.deps.json" />
+      <Required Include="$(LayoutRoot)/NVIDIA Experience.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.exe" />
+      <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.dll" />
+      <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.deps.json" />
+      <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA API.dll" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA API.deps.json" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA API.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA Capture.dll" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA Capture.deps.json" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA Capture.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.dll" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.deps.json" />
+      <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Encoder.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Encoder.Nvenc.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.FFmpegBackend.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Recording.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Video.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Video.Ddagrab.dll" />
+      <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Audio.Wasapi.dll" />
+      <Required Include="$(LayoutRoot)/Config\notifier_obs.json" />
+      <Required Include="$(LayoutRoot)/Languages\en-US.json" />
+      <Required Include="$(LayoutRoot)/Languages\current.txt" />
+      <Required Include="$(LayoutRoot)/Data\NVIDIA_Shadowplay_Data\on" />
+      <Required Include="$(LayoutRoot)/Redist\64bit.runtime.exe" />
+      <Required Include="$(LayoutRoot)/Resources\nvgcshare.ttf" />
+    </ItemGroup>
+
+    <Warning Text="missing (expected on Linux): %(Required.Identity)"
+             Condition="!Exists('%(Required.Identity)') And '$(OS)' != 'Windows_NT'" />
+    <Error Text="LAYOUT MANIFEST MISSING: %(Required.Identity)"
+           Condition="!Exists('%(Required.Identity)') And '$(OS)' == 'Windows_NT'" />
+
+    <Warning Text="FFmpeg\ffmpeg.exe not staged — Overlay\API-Core is local-only; copy it manually if absent"
+             Condition="!Exists('$(LayoutRoot)/FFmpeg\ffmpeg.exe')" />
+
+    <Message Text="LAYOUT STAGED OK -> $(LayoutRoot)" Importance="high" />
+  </Target>
+
+</Project>

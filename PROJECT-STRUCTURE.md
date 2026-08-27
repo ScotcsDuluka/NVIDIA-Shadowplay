@@ -3,6 +3,12 @@
 This repository is split into several app modules and a modular capture-engine
 solution that lives beside them.
 
+> **Root-fixed product layout:** the deployable tree ("NVIDIA ShadowPlay")
+> is assembled by `scripts/layout.proj` (`build-all.ps1 -StageLayout`) —
+> see **`docs/APP-LAYOUT.md`** for the tree, the runtime assembly-resolution
+> design (`Common/AppLayout.vb`), and the path-mapping table. Classic
+> `bin\` builds are unaffected.
+
 ## Applications (VB.NET WinForms)
 
 - `API/`

@@ -41,4 +41,10 @@
 	  </Compile>
 	</ItemGroup>
 
+        <!-- Root-fixed layout support (linked shared sources) -->
+        <ItemGroup>
+                <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
+                <Compile Include="..\Common\AppLayoutStartup.vb" Link="AppLayoutStartup.vb" />
+        </ItemGroup>
+
 </Project>

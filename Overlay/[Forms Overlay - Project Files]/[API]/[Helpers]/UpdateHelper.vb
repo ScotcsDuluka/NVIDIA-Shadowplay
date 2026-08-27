@@ -23,7 +23,7 @@ Module UpdateHelper
                 Dim currentVer As New Version(Assembly.GetExecutingAssembly().GetName().Version.ToString())
 
 
-                Dim dataFolder As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data")
+                Dim dataFolder As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data")
                 If Not Directory.Exists(dataFolder) Then Directory.CreateDirectory(dataFolder)
 
                 If currentVer < latestVer Then
@@ -39,7 +39,7 @@ Module UpdateHelper
 
         Catch ex As Exception
             ' เกิด Error
-            Dim dataFolder As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data")
+            Dim dataFolder As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data")
             If Not Directory.Exists(dataFolder) Then Directory.CreateDirectory(dataFolder)
             Base.ShowNotifier("notificationErrorGeneral")
         End Try

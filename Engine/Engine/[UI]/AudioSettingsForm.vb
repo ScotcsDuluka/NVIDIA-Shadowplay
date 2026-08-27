@@ -1,4 +1,4 @@
-Imports System.IO
+﻿Imports System.IO
 Imports System.Runtime.InteropServices
 Imports Newtonsoft.Json.Linq
 
@@ -114,11 +114,11 @@ Public Class AudioSettingsForm
         _settings.AudioCapture = _settings.SystemAudioCapture OrElse _settings.MicCapture
 
         ' Save to audio.json (new unified config)
-        Dim audioJsonPath As String = Path.Combine(Application.StartupPath, "audio.json")
+        Dim audioJsonPath As String = AppLayout.P("Config", "audio.json")
         _settings.SaveAudio(audioJsonPath)
 
         ' Also save engine settings to engine.json
-        Dim engineJsonPath As String = Path.Combine(Application.StartupPath, "engine.json")
+        Dim engineJsonPath As String = AppLayout.P("Config", "engine.json")
         _settings.Save(engineJsonPath)
 
         ' Also save to Overlay's video.json audio section (backward compat with Overlay)
@@ -203,7 +203,7 @@ Public Class AudioSettingsForm
     End Sub
 
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
-        Dim uiFile = Path.Combine(Application.StartupPath, "Audio.UI")
+        Dim uiFile = AppLayout.P("Flags", "Audio.UI")
         Try
             If File.Exists(uiFile) Then
                 File.Delete(uiFile)
@@ -218,7 +218,7 @@ Public Class AudioSettingsForm
     End Sub
 
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
-        Dim uiFile = Path.Combine(Application.StartupPath, "Audio.UI")
+        Dim uiFile = AppLayout.P("Flags", "Audio.UI")
         Try
             If File.Exists(uiFile) Then
                 File.Delete(uiFile)
@@ -230,7 +230,7 @@ Public Class AudioSettingsForm
     Private Sub OPEN_UI_Tick(sender As Object, e As EventArgs) Handles OPEN_UI.Tick
         HideFromAltTab()
 
-        Dim uiFile = Path.Combine(Application.StartupPath, "Audio.UI")
+        Dim uiFile = AppLayout.P("Flags", "Audio.UI")
 
         If File.Exists(uiFile) Then
             Me.WindowState = FormWindowState.Maximized

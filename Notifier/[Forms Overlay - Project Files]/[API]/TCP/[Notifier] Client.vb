@@ -131,7 +131,7 @@ Partial Public Class Loader
         End If
 
         ' ลบไฟล์ trigger (ถ้ามี)
-        SafeDelete(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", nd.Key))
+        SafeDelete(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", nd.Key))
 
         ' จัดการสถานะ Notifier
         ManageNotifierState()
@@ -170,7 +170,7 @@ Partial Public Class Loader
             message = LangHelper.GetText(locKey)
         End If
 
-        SafeDelete(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", nd.Key))
+        SafeDelete(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", nd.Key))
         ManageNotifierState()
         UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
         tcp.SendLog(message)

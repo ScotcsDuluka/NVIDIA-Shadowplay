@@ -1,4 +1,4 @@
-Imports System.Diagnostics
+﻿Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
 Imports System.Drawing.Text
@@ -416,7 +416,7 @@ Partial Public Class Base
             ShowNotifier("notificationErrorResolution")
         End If
         ' ===== UI is ready — signal "Ready" =====
-        File.Create(Path.Combine(Application.StartupPath, "Ready")).Dispose()
+        File.Create(AppLayout.P("Flags", "Ready")).Dispose()
 
         ' ===== Heavier work runs in the background (does not block the UI) =====
         Task.Run(Async Function()
@@ -458,7 +458,7 @@ Partial Public Class Base
         _delayTimers.Start()
 
 #If DEBUG Then
-        Dim overlayExists As Boolean = File.Exists(Path.Combine(Application.StartupPath, "Dev"))
+        Dim overlayExists As Boolean = File.Exists(AppLayout.P("Flags", "Dev"))
         If overlayExists Then
             Debug_UI.Show()
         End If
@@ -479,7 +479,7 @@ Partial Public Class Base
 
     ''' <summary>Loads the saved language file (falls back to en-US) and applies it to the UI.</summary>
     Private Sub LoadCurrentLanguage()
-        Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
+        Dim langFolder As String = AppLayout.P("Languages")
         Dim currentFile As String = Path.Combine(langFolder, "current.txt")
 
         Dim currentLang As String = "en-US"
@@ -495,7 +495,7 @@ Partial Public Class Base
     ''' <summary>Launches the companion "NVIDIA Notifier.exe" process used for toast notifications.</summary>
     Private Sub InitializeNotifierAPI()
         Try
-            Dim exePath As String = Path.Combine(Application.StartupPath, "NVIDIA Notifier.exe")
+            Dim exePath As String = AppLayout.P("Application", "NVIDIA Notifier.exe")
             If Not File.Exists(exePath) Then
                 MessageBox.Show(
                     "NVIDIA Notifier Service Could Not Be Started!" & vbCrLf &
@@ -780,7 +780,7 @@ Partial Public Class Base
 
     ''' <summary>Ensures the Replay/Record/Live/mic state folders exist under the app data directory.</summary>
     Private Sub CreateDataDirectories()
-        Dim basePath As String = Path.Combine(Application.StartupPath, DataDirectoryName)
+        Dim basePath As String = AppLayout.P("Data", DataDirectoryName)
         Dim subdirectories As String() = {"Replay", "Record", "Live", "mic"}
 
         For Each subdir As String In subdirectories
@@ -790,7 +790,7 @@ Partial Public Class Base
 
     ''' <summary>Syncs the Privacy Control toggle with whether the privacy marker file exists on disk.</summary>
     Private Sub CheckPrivacyControl()
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)
+        Dim privacyPath As String = AppLayout.P("Data", DataDirectoryName, PrivacyFile)
         Base_Privacy_Control.TogglePrivacy.IsOn = File.Exists(privacyPath)
     End Sub
 
@@ -800,7 +800,7 @@ Partial Public Class Base
 
     ''' <summary>Takes a full-screen screenshot and saves it to the configured gallery path (unless privacy control is active).</summary>
     Private Sub CaptureScreen()
-        If Not My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, DataDirectoryName, PrivacyFile)) Then
+        If Not My.Computer.FileSystem.FileExists(AppLayout.P("Data", DataDirectoryName, PrivacyFile)) Then
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
             ShowMainPanel()
             For Each f In allForms
@@ -850,7 +850,7 @@ Partial Public Class Base
     ''' <summary>Sends a localized notification message to the notifier process over TCP.</summary>
     Public Sub ShowNotifier(message As String)
         tcp.Send("l10n." & message)
-        Dim folderPath As String = Path.Combine(Application.StartupPath, DataDirectoryName)
+        Dim folderPath As String = AppLayout.P("Data", DataDirectoryName)
 
         '  If Not Directory.Exists(folderPath) Then
         '      Directory.CreateDirectory(folderPath)
@@ -1049,7 +1049,7 @@ Partial Public Class Base
 
     ''' <summary>Shows/hides the Engine settings page depending on whether "Engine.UI" marker file exists; stops itself if the capture process died.</summary>
     Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
-        Dim EngineFile = Path.Combine(Application.StartupPath, "Engine.UI")
+        Dim EngineFile = AppLayout.P("Flags", "Engine.UI")
 
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
         If captureProcess Is Nothing Then
@@ -1070,7 +1070,7 @@ Partial Public Class Base
 
     ''' <summary>Shows/hides the Audio settings page depending on whether "Audio.UI" marker file exists; stops itself if the capture process died.</summary>
     Private Sub Audio_UI_Tick(sender As Object, e As EventArgs) Handles Audio_UI.Tick
-        Dim AudioFile = Path.Combine(Application.StartupPath, "Audio.UI")
+        Dim AudioFile = AppLayout.P("Flags", "Audio.UI")
 
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
         If captureProcess Is Nothing Then

@@ -673,7 +673,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub EngineUI_Click(sender As Object, e As EventArgs) Handles Engine_TEXT.Click, Engine_ICO.Click
-        Dim uiFile = Path.Combine(Application.StartupPath, "Engine.UI")
+        Dim uiFile = AppLayout.P("Flags", "Engine.UI")
 
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
         If captureProcess Is Nothing Then

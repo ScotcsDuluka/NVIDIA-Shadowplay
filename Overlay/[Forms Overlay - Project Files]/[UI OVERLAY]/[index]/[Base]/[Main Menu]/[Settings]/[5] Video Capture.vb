@@ -1,4 +1,4 @@
-Imports System.Drawing
+﻿Imports System.Drawing
 Imports System.IO
 Imports System.Linq
 Imports System.Runtime.InteropServices
@@ -601,6 +601,7 @@ Public Class Base_RecordingsSet
 
     Private Function FindFFmpegPath() As String
         Dim possiblePaths As String() = {
+            AppLayout.P("FFmpeg", "ffmpeg.exe"),
             Path.Combine(Application.StartupPath, "api-core", "ffmpeg.exe"),
             Path.Combine(Application.StartupPath, "ffmpeg.exe"),
             Path.Combine(Application.StartupPath, "bin", "ffmpeg.exe")

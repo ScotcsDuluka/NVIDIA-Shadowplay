@@ -1,4 +1,4 @@
-' OverlayConfig.vb
+﻿' OverlayConfig.vb
 ' Engine-side mirror of Overlay's config.json + video.json.
 '
 ' Why this exists:
@@ -197,11 +197,15 @@ Public NotInheritable Class OverlayConfig
     End Sub
 
     Private Shared Function ResolveConfigDir() As String
-        Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
+        Dim appDir As String = AppLayout.Dir
 
-        ' 1. Explicit override file: <appdir>/overlay-config-path.txt
-        '    Single line containing the absolute path to the Overlay bin folder.
-        Dim overrideFile As String = Path.Combine(appDir, "overlay-config-path.txt")
+        ' 1. Explicit override file: <root>/Config/overlay-config-path.txt
+        '    (legacy: same probe next to the exe) — single line containing
+        '    the absolute path to the folder holding config.json.
+        Dim overrideFile As String = Path.Combine(appDir, "Config", "overlay-config-path.txt")
+        If Not File.Exists(overrideFile) Then
+            overrideFile = Path.Combine(appDir, "overlay-config-path.txt")
+        End If
         If File.Exists(overrideFile) Then
             Try
                 Dim overridePath As String = File.ReadAllText(overrideFile).Trim()
@@ -212,7 +216,13 @@ Public NotInheritable Class OverlayConfig
             End Try
         End If
 
-        ' 2. Same folder as Engine (config.json lives next to Engine.exe)
+        ' 2. ROOT-FIXED LAYOUT: the unified tree keeps config at <root>\Config
+        Dim layoutConfigDir As String = Path.Combine(appDir, "Config")
+        If File.Exists(Path.Combine(layoutConfigDir, "config.json")) Then
+            Return layoutConfigDir
+        End If
+
+        ' 2b. Same folder as Engine (legacy dev layout: config.json next to exe)
         If File.Exists(Path.Combine(appDir, "config.json")) Then
             Return appDir
         End If

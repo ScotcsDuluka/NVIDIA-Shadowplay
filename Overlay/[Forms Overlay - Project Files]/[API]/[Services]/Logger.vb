@@ -1,4 +1,4 @@
-Imports System.IO
+﻿Imports System.IO
 Imports System.Runtime.InteropServices
 
 Public Module Logger
@@ -249,7 +249,7 @@ Public Module Logger
     ''' </summary>
     Public Sub AutoStart(Optional title As String = "Logger")
         Try
-            Dim cfg As String = IO.Path.Combine(Application.StartupPath, "config.json")
+            Dim cfg As String = AppLayout.P("Config", "config.json")
             If IO.File.Exists(cfg) Then
                 Dim json As String = IO.File.ReadAllText(cfg)
 

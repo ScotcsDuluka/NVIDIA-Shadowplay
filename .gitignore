@@ -57,3 +57,8 @@ Overlay/API-Core/
 !.dev.vars.example
 .env*
 !.env.example
+dist/
+scripts/apphost_test/out*
+scripts/apphost_test/bin/
+scripts/apphost_test/obj/
+scripts/apphost_test/out_final

@@ -84,7 +84,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
 
     Private Sub IF_APP_Tick(sender As Object, e As EventArgs) Handles IF_APP.Tick
         Dim ShadowPlay As Boolean = Process.GetProcessesByName("NVIDIA ShadowPlay").Length > 0
-        Dim Ready_Use As String = Path.Combine(Application.StartupPath, "Ready")
+        Dim Ready_Use As String = AppLayout.P("Flags", "Ready")
         Dim isReady As Boolean = File.Exists(Ready_Use)
 
         ' ── NVIDIA ShadowPlay + Overlay API ──
@@ -110,7 +110,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
             NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped)
 
         ' ── Overlay toggle file ──
-        Dim overlayPath As String = Path.Combine(Application.StartupPath, "Use_Overlay")
+        Dim overlayPath As String = AppLayout.P("Flags", "Use_Overlay")
         If Use_Overlay.IsOn Then
             If Not File.Exists(overlayPath) Then
                 File.Create(overlayPath).Dispose()
@@ -123,7 +123,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     End Sub
 
     Public Sub OpenApp()
-        Dim exePath As String = Application.StartupPath & "\NVIDIA API.exe"
+        Dim exePath As String = AppLayout.P("Application", "NVIDIA API.exe")
         Try
             Process.Start(exePath)
 

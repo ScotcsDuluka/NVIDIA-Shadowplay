@@ -152,7 +152,7 @@ Partial Public Class Loader
     Private Sub ObsLog(message As String)
         Debug.WriteLine($"[OBS] {message}")
         Try
-            Dim logPath As String = Path.Combine(Application.StartupPath, "notifier_obs.log")
+            Dim logPath As String = AppLayout.P("Logs", "notifier_obs.log")
             Using fs As New FileStream(logPath, FileMode.Append, FileAccess.Write, FileShare.ReadWrite)
                 Using sw As New StreamWriter(fs)
                     sw.WriteLine($"[OBS] {DateTime.Now:HH:mm:ss.fff} {message}")
@@ -222,10 +222,11 @@ Partial Public Class Loader
         End If
 
         Try
-            Dim startupPath As String = Application.StartupPath
-            ObsLog($"ReadVideoDurationSeconds: Application.StartupPath={startupPath}")
+            Dim startupPath As String = AppLayout.Dir
+            ObsLog($"ReadVideoDurationSeconds: layout root={startupPath}")
 
             Dim candidates As String() = {
+                AppLayout.P("FFmpeg", "ffprobe.exe"),
                 Path.Combine(startupPath, "API-Core", "ffprobe.exe"),
                 Path.Combine(startupPath, "ffprobe.exe"),
                 Path.Combine(startupPath, "ffmpeg", "ffprobe.exe"),
@@ -286,7 +287,7 @@ Partial Public Class Loader
     End Sub
 
     Private Sub LoadLanguage(Optional langCode As String = Nothing)
-        Dim langFolder As String = Path.Combine(Application.StartupPath, "Languages")
+        Dim langFolder As String = AppLayout.P("Languages")
         Dim currentFile As String = Path.Combine(langFolder, "current.txt")
         Dim currentLang As String = If(langCode, "en-US")
         If String.IsNullOrEmpty(langCode) AndAlso File.Exists(currentFile) Then
@@ -348,7 +349,7 @@ Partial Public Class Loader
 
     ' ฟังก์ชัน GetSavedReplayDuration
     Public Function GetSavedReplayDuration() As (minutes As Integer, seconds As Integer)
-        Dim dataDir As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
+        Dim dataDir As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "Replay")
         Dim minutes As Integer = 0
         Dim seconds As Integer = 0
         Try
@@ -384,7 +385,7 @@ Partial Public Class Loader
 
     ' จัดการไฟล์ Replay หลังอ่าน
     Public Sub DeleteReplayFiles()
-        Dim replayDir = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data\Replay")
+        Dim replayDir = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "Replay")
         Try
             If Directory.Exists(replayDir) Then
                 For Each f In Directory.GetFiles(replayDir)
@@ -400,7 +401,7 @@ Partial Public Class Loader
 
     ' จัดการสถานะ Notifier
     Public Sub ManageNotifierState()
-        Dim dataDir = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data")
+        Dim dataDir = AppLayout.P("Data", "NVIDIA_Shadowplay_Data")
         Dim notifierFile = Path.Combine(dataDir, "notifier")
         Dim mainOffFile = Path.Combine(dataDir, "notifiermainoff")
         Try

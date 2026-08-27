@@ -1,4 +1,4 @@
-' EncoderDetector.vb
+﻿' EncoderDetector.vb
 ' ShadowPlay Engine - Detect Available FFmpeg Encoders
 ' Parses ffmpeg -encoders to find NVENC, QSV, AMF, CPU encoders
 '
@@ -521,7 +521,7 @@ Public Class EncoderDetector
     Private Sub DebugLog(message As String)
         _lastError = message
         Try
-            Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+            Dim logDir As String = AppLayout.P("Logs")
             Dim logPath As String = Path.Combine(logDir, "encoder-detect.log")
             Dim logLine As String = "[" & DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") & "] " & message
             ' ✅ P1: route through BackgroundLogger instead of File.AppendAllText per line.

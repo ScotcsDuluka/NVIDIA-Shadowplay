@@ -42,14 +42,14 @@ Public Class Base_Privacy_Control
         Base.Settings_List.Visible = True
     End Sub
     Private Sub Base_Privacy_Control_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
+        Dim privacyPath As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
 
         ' เช็กว่ามีไฟล์ไหม ถ้ามีให้ Toggle ชี้ที่ On
         TogglePrivacy.IsOn = File.Exists(privacyPath)
     End Sub
     Private Sub TogglePrivacy_ValueChanged(sender As Object, e As EventArgs) Handles TogglePrivacy.ValueChanged
         ' แก้ Path ให้ถูกต้อง (เดิมขาด \ ด้านหลัง StartupPath)
-        Dim privacyPath As String = Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "privacy")
+        Dim privacyPath As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
 
         If TogglePrivacy.IsOn Then
             ' เปิด

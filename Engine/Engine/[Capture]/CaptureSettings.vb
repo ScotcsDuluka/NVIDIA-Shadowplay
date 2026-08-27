@@ -1,4 +1,4 @@
-' CaptureSettings.vb
+﻿' CaptureSettings.vb
 ' ShadowPlay Engine — Unified 4-file Configuration
 '
 ' ┌─────────────────────────────────────────────────────────┐
@@ -88,7 +88,7 @@ Public Class CaptureSettings
     Public Shared Function Load(configPath As String) As CaptureSettings
         Dim settings As New CaptureSettings()
         Dim baseDir As String = Path.GetDirectoryName(configPath)
-        If String.IsNullOrEmpty(baseDir) Then baseDir = AppDomain.CurrentDomain.BaseDirectory
+        If String.IsNullOrEmpty(baseDir) Then baseDir = AppLayout.Dir
 
         Dim enginePath As String = Path.Combine(baseDir, "engine.json")
 
@@ -163,7 +163,7 @@ Public Class CaptureSettings
     ''' </summary>
     Public Sub Save(configPath As String)
         Dim baseDir As String = Path.GetDirectoryName(configPath)
-        If String.IsNullOrEmpty(baseDir) Then baseDir = AppDomain.CurrentDomain.BaseDirectory
+        If String.IsNullOrEmpty(baseDir) Then baseDir = AppLayout.Dir
         Dim enginePath As String = Path.Combine(baseDir, "engine.json")
 
         Try
@@ -310,9 +310,13 @@ Public Class CaptureSettings
     ' ═══════════════════════════════════════════════════════════════
 
     Private Shared Function FindConfigFile(fileName As String) As String
-        Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
+        Dim appDir As String = AppLayout.Dir
 
-        ' Same folder
+        ' ROOT-FIXED LAYOUT: Config\ owns *.json in the deployed tree
+        Dim layoutCandidate As String = Path.Combine(appDir, "Config", fileName)
+        If File.Exists(layoutCandidate) Then Return layoutCandidate
+
+        ' Same folder (legacy dev layout)
         Dim candidate As String = Path.Combine(appDir, fileName)
         If File.Exists(candidate) Then Return candidate
 
@@ -359,8 +363,9 @@ Public Class CaptureSettings
     End Function
 
     Private Shared Function FindFFmpegPath() As String
-        Dim appDir As String = AppDomain.CurrentDomain.BaseDirectory
+        Dim appDir As String = AppLayout.Dir
         Dim candidates As New List(Of String)()
+        candidates.Add(AppLayout.P("FFmpeg", "ffmpeg.exe"))
         candidates.Add(Path.Combine(appDir, "API-Core", "ffmpeg.exe"))
         candidates.Add(Path.Combine(appDir, "api-core", "ffmpeg.exe"))
         candidates.Add(Path.Combine(appDir, "ffmpeg.exe"))

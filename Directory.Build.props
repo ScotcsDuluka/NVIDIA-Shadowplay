@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Directory.Build.props — repo-wide defaults (evaluated early). -->
+
+  <!-- Allows the .NET SDK to restore/build the -windows TFM WinForms apps
+       on non-Windows machines (Linux compile verification). Harmless on
+       Windows. -->
+  <PropertyGroup>
+    <EnableWindowsTargeting Condition="'$(EnableWindowsTargeting)' == ''">true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+</Project>

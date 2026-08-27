@@ -1,4 +1,4 @@
-Imports System.IO
+﻿Imports System.IO
 Imports Newtonsoft.Json.Linq
 
 Public Class ObsConfig
@@ -19,7 +19,7 @@ Public Class ObsConfig
 
     Public ReadOnly Property ConfigPath As String
         Get
-            Return Path.Combine(Application.StartupPath, FileName)
+            Return AppLayout.P("Config", FileName)
         End Get
     End Property
 

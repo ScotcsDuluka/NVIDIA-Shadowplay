@@ -22,7 +22,7 @@ Namespace My
                 e As UnhandledExceptionEventArgs) Handles Me.UnhandledException
 
             Try
-                Dim logDir As String = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Logs")
+                Dim logDir As String = AppLayout.P("Logs")
                 If Not Directory.Exists(logDir) Then Directory.CreateDirectory(logDir)
                 Dim logPath As String = Path.Combine(logDir, "api-crash.log")
                 Dim logLine As String =

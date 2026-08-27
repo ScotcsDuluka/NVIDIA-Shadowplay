@@ -37,7 +37,7 @@ Public Class Shadow
         Debug.WriteLine("[Shadow] ===== Form Load =====")
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If My.Computer.FileSystem.FileExists(Path.Combine(Application.StartupPath, "NVIDIA_Shadowplay_Data", "notifier_main")) Then
+        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             Me.Location = New Point(screenWidth - Me.Width, 205)
             Debug.WriteLine("[Shadow] Position Y=205")
         Else

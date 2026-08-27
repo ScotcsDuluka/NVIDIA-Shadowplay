@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -197,9 +197,13 @@ Public NotInheritable Class EngineProcessSupervisor
     ''' </summary>
     Private Shared Function ResolveEngineExePath() As String
         Try
-            Dim baseDir As String = AppDomain.CurrentDomain.BaseDirectory
+            Dim baseDir As String = AppLayout.Dir
 
-            ' 1. Deployment: engine exe sits next to the Overlay exe
+            ' 0. ROOT-FIXED LAYOUT: the engine host lives in Application\
+            Dim layoutCandidate As String = Path.Combine(baseDir, "Application", ExeFileName)
+            If File.Exists(layoutCandidate) Then Return layoutCandidate
+
+            ' 1. Legacy deployment: engine exe sits next to the Overlay exe
             Dim candidate As String = Path.Combine(baseDir, ExeFileName)
             If File.Exists(candidate) Then Return candidate
 

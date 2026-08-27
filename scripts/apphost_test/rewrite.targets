@@ -1,0 +1,10 @@
+<Project>
+  <UsingTask TaskName="CreateAppHost" AssemblyFile="$(MicrosoftNETBuildTasksAssembly)" />
+  <Target Name="Rewrite1" AfterTargets="Build">
+    <CreateAppHost
+      AppHostSourcePath="/home/z/.dotnet/packs/Microsoft.NETCore.App.Host.linux-x64/8.0.30/runtimes/linux-x64/native/apphost"
+      AppHostDestinationPath="$(MSBuildProjectDirectory)\out_final"
+      AppBinaryName="..\Services\hosttest.dll"
+      IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')" />
+  </Target>
+</Project>

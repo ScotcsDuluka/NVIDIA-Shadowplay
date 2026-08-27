@@ -1,4 +1,4 @@
-Imports System.Diagnostics
+﻿Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Net
 Imports System.Net.Http
@@ -446,7 +446,7 @@ Public Class Base_Connect
                 USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
 
                 ' ✅ โหลด avatar
-                Dim avatarPath As String = Path.Combine(Application.StartupPath, "avatar.png")
+                Dim avatarPath As String = AppLayout.P("avatar.png")
                 If File.Exists(avatarPath) Then
                     Try
                         ' ✅ อ่าน bytes และสร้าง image ใหม่เพื่อหลีกเลี่ยง file lock
@@ -480,7 +480,7 @@ Public Class Base_Connect
             AppSettings.Instance.ClearGitHubUser()
 
             ' ✅ Delete avatar cache
-            Dim avatarPath As String = Path.Combine(Application.StartupPath, "avatar.png")
+            Dim avatarPath As String = AppLayout.P("avatar.png")
             If File.Exists(avatarPath) Then
                 File.Delete(avatarPath)
             End If

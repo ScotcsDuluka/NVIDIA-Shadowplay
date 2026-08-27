@@ -1,0 +1,99 @@
+<Project>
+
+  <!-- ============================================================================
+       Directory.Build.targets — ROOT-FIXED LAYOUT SUPPORT ("NVIDIA ShadowPlay")
+       ============================================================================
+       The deployed tree is assembled by scripts/layout.proj (invoked from
+       build-all.ps1 -StageLayout). Normal builds NEVER hit the layout code:
+       everything here is gated on the StageLayout=true property that only
+       layout.proj passes, so dev workflows (VS F5, classic bin\) are untouched.
+
+       Per-app staging targets below (they run INSIDE each app's own build,
+       where the SDK exposes AppHostSourcePath and RuntimeCopyLocalItems):
+
+         _StageRuntimeLibs — sorts every package assembly into the OWNER's
+           family folders: Audio\ (NAudio), Graphics\ (Vortice),
+           Libraries\ (Newtonsoft.Json), Core\ (System.*/Microsoft.*/SharpGen/
+           WinRT), Runtimes\<rid-relative> (rid-specific assets).
+
+         _StageSplitAppHost — stamps Application\<app>.exe whose embedded
+           app path is ..\Services\<app>.dll (mechanism verified in
+           scripts/apphost_test: CreateAppHost embeds the parent-relative
+           path verbatim, copies the icon from the managed dll, and hostfxr
+           resolves it against the host's own directory).
+       ============================================================================ -->
+
+  <!-- ── Runtime-lib staging: Audio\ Graphics\ Libraries\ Core\ Runtimes\ ── -->
+  <Target Name="_StageRuntimeLibs"
+          AfterTargets="Build"
+          Condition="'$(StageLayout)' == 'true' And '$(AppLayoutRoot)' != '' And
+                     ('$(AssemblyName)' == 'NVIDIA API' Or
+                      '$(AssemblyName)' == 'NVIDIA Capture' Or
+                      '$(AssemblyName)' == 'NVIDIA Notifier' Or
+                      '$(AssemblyName)' == 'NVIDIA Experience')">
+
+    <ItemGroup>
+      <!-- Family classification by EXPLICIT filename equality — deliberate:
+           MSBuild property functions cannot take %(Metadata) in item
+           Conditions (MSB4092), and equality chains always parse. The
+           families are the OWNER's fixed tree (docs/APP-LAYOUT.md). -->
+      <_StageAudio Include="@(RuntimeCopyLocalItems)"
+                   Condition="'%(RuntimeCopyLocalItems.DestinationSubDirectory)' == '' And
+                              ('%(Filename)' == 'NAudio' Or '%(Filename)' == 'NAudio.Asio' Or
+                               '%(Filename)' == 'NAudio.Core' Or '%(Filename)' == 'NAudio.Midi' Or
+                               '%(Filename)' == 'NAudio.Wasapi' Or '%(Filename)' == 'NAudio.WinForms' Or
+                               '%(Filename)' == 'NAudio.WinMM')" />
+      <_StageGraphics Include="@(RuntimeCopyLocalItems)"
+                      Condition="'%(RuntimeCopyLocalItems.DestinationSubDirectory)' == '' And
+                                 ('%(Filename)' == 'Vortice.Direct3D11' Or '%(Filename)' == 'Vortice.DXGI' Or
+                                  '%(Filename)' == 'Vortice.DirectX' Or '%(Filename)' == 'Vortice.Mathematics' Or
+                                  '%(Filename)' == 'Vortice.Direct3D11.Win32' Or '%(Filename)' == 'Vortice.DirectX.Win32' Or
+                                  '%(Filename)' == 'Vortice.D3DCompiler')" />
+      <_StageLibs Include="@(RuntimeCopyLocalItems)"
+                  Condition="'%(RuntimeCopyLocalItems.DestinationSubDirectory)' == '' And
+                             '%(Filename)' == 'Newtonsoft.Json'" />
+      <!-- Core = every remaining flat assembly (System.*, Microsoft.*,
+           SharpGen.*, WinRT.*). NOT-chain over the other three families. -->
+      <_StageCore Include="@(RuntimeCopyLocalItems)"
+                  Condition="'%(RuntimeCopyLocalItems.DestinationSubDirectory)' == '' And
+                             '%(Filename)' != 'NAudio' And '%(Filename)' != 'NAudio.Asio' And
+                             '%(Filename)' != 'NAudio.Core' And '%(Filename)' != 'NAudio.Midi' And
+                             '%(Filename)' != 'NAudio.Wasapi' And '%(Filename)' != 'NAudio.WinForms' And
+                             '%(Filename)' != 'NAudio.WinMM' And
+                             '%(Filename)' != 'Vortice.Direct3D11' And '%(Filename)' != 'Vortice.DXGI' And
+                             '%(Filename)' != 'Vortice.DirectX' And '%(Filename)' != 'Vortice.Mathematics' And
+                             '%(Filename)' != 'Vortice.Direct3D11.Win32' And '%(Filename)' != 'Vortice.DirectX.Win32' And
+                             '%(Filename)' != 'Vortice.D3DCompiler' And
+                             '%(Filename)' != 'Newtonsoft.Json'" />
+      <!-- rid-specific -> keep standard runtimes\ layout -->
+      <_StageRuntimes Include="@(RuntimeCopyLocalItems)"
+                      Condition="'%(RuntimeCopyLocalItems.DestinationSubDirectory)' != ''" />
+    </ItemGroup>
+
+    <Copy SourceFiles="@(_StageAudio)"    DestinationFiles="@(_StageAudio->'$(AppLayoutRoot)\Audio\%(Filename)%(Extension)')"        SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_StageGraphics)" DestinationFiles="@(_StageGraphics->'$(AppLayoutRoot)\Graphics\%(Filename)%(Extension)')"  SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_StageLibs)"     DestinationFiles="@(_StageLibs->'$(AppLayoutRoot)\Libraries\%(Filename)%(Extension)')"     SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_StageCore)"     DestinationFiles="@(_StageCore->'$(AppLayoutRoot)\Core\%(Filename)%(Extension)')"          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_StageRuntimes)" DestinationFiles="@(_StageRuntimes->'$([System.IO.Path]::Combine('$(AppLayoutRoot)', '%(DestinationSubDirectory)', '%(Filename)%(Extension)'))')" SkipUnchangedFiles="true" />
+
+  </Target>
+
+  <!-- ── Split-service hosts: Application\<app>.exe -> ..\Services\<app>.dll ── -->
+  <Target Name="_StageSplitAppHost"
+          AfterTargets="Build"
+          Condition="'$(StageLayout)' == 'true' And '$(AppLayoutRoot)' != '' And
+                     '$(OS)' == 'Windows_NT' And '$(UseAppHost)' == 'true' And
+                     '$(AppHostSourcePath)' != '' And
+                     ('$(AssemblyName)' == 'NVIDIA API' Or
+                      '$(AssemblyName)' == 'NVIDIA Capture' Or
+                      '$(AssemblyName)' == 'NVIDIA Notifier')">
+    <MakeDir Directories="$([System.IO.Path]::Combine('$(AppLayoutRoot)', 'Application'))" />
+    <CreateAppHost
+      AppHostSourcePath="$(AppHostSourcePath)"
+      AppHostDestinationPath="$([System.IO.Path]::Combine('$(AppLayoutRoot)', 'Application', '$(AssemblyName)$(TargetExt)'))"
+      AppBinaryName="..\Services\$(AssemblyName).dll"
+      IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')"
+      WindowsGraphicalUserInterface="true" />
+  </Target>
+
+</Project>
