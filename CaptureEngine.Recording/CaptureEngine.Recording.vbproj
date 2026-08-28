@@ -32,7 +32,7 @@
 
   <ItemGroup>
     <!-- NAudio for WASAPI loopback audio capture (same as spike Phase 10) -->
-    <PackageReference Include="NAudio.Wasapi" Version="2.2.1" />
+    <PackageReference Include="NAudio.Wasapi" Version="2.3.0" />
   </ItemGroup>
 
 </Project>
