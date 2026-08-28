@@ -7,13 +7,26 @@ still produce self-contained `bin\` outputs (the dev bin is additionally
 auto-completed into a runnable family by `_DevLayoutComplete` in
 `Directory.Build.targets`).
 
-**-StageLayout ends by APPLYING the staged tree onto
-`Overlay\bin\Release\net10.0-windows10.0.26100.0\` (robocopy /E, never
-purge)** — per OWNER, the dev bin IS the main tree: after staging, that one
-folder runs the whole family (flat dev exes AND the staged
-Application/Services/Engine/... structure coexist; `AppLayout.Dir` and
-`ExePath` resolve correctly from both). `dist\NVIDIA ShadowPlay` remains
-the clean deployment artifact the apply step copies from.
+**-StageLayout ends by MIRRORING the staged tree onto
+`Overlay\bin\Release\net10.0-windows10.0.26100.0\` (robocopy /MIR — the
+dev-flat clutter is purged: referenced dlls, companion exe/deps/
+runtimeconfig files, API-Core\, _Redist\, the unprefixed
+NVIDIA_Shadowplay_Data\, root notifier_obs.json / nvgcshare.ttf / .ico).
+The four runtime-writable dirs are EXCLUDED from the mirror and
+preserved: **Config\, Data\, Logs\, Flags\** — user/app settings
+(config.json, engine.json, audio.json), data state, diagnostics and
+session sentinels survive every stage. They are seeded by the plain
+build's `_DevLayoutComplete`, so a fresh bin still gets their staged
+defaults.
+
+Per OWNER, the dev bin IS the main tree: after -StageLayout that folder
+is the clean product tree — `NVIDIA Experience.exe` at the root,
+`NVIDIA ShadowPlay.exe` in Overlay\, hosts in Application\, family
+folders (Engine\Core\Audio\Graphics\Libraries\Runtimes) for the
+resolver. A subsequent plain build re-creates its flat dev files
+(MSBuild convention — VS F5 needs them); re-run -StageLayout to clean
+again. `dist\NVIDIA ShadowPlay` remains the clean deployment artifact
+the mirror copies from.
 
 ```
 NVIDIA ShadowPlay\                    <- dist\NVIDIA ShadowPlay (default)
@@ -132,9 +145,9 @@ assume" style.
 2. `powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -StageLayout`
    → expect `LAYOUT STAGED OK -> ...\dist\NVIDIA ShadowPlay` followed by
    `STAGED TREE APPLIED OK -> ...\Overlay\bin\Release\net10.0-windows10.0.26100.0`
-3. Inspect the bin folder against the tree above (the staged subfolders now
-   live INSIDE it); confirm `Application\NVIDIA API.exe` exists (apphost
-   stamping is Windows-only) and has the ShadowPlay icon.
+3. The bin folder is now the CLEAN tree above (no flat dev clutter);
+   confirm `Application\NVIDIA API.exe` exists (apphost stamping is
+   Windows-only) and has the ShadowPlay icon.
 4. Run `Overlay\bin\Release\net10.0-windows10.0.26100.0\NVIDIA Experience.exe`
    → click its API launcher; then run `...\Application\NVIDIA API.exe`
    directly — the tray hub must come up (this proves the `..\Services\`
