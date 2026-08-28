@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # build-all.sh — Phase 12b compile verification on Linux CI.
 #
-# net8.0-windows projects cannot RUN here (D3D11/NVENC/WASAPI), but they
+# net10.0-windows projects cannot RUN here (D3D11/NVENC/WASAPI), but they
 # MUST COMPILE. dotnet supports cross-targeting via EnableWindowsTargeting.
 # The pure net8.0 test suites DO run (with real ffmpeg) — that is the
 # runtime evidence half available on Linux; GPU-path evidence must come
@@ -16,7 +16,7 @@ echo "=================================================="
 dotnet build "Overlay/NVIDIA Overlay.sln" -c Release \
     -p:EnableWindowsTargeting=true --nologo -v q
 
-echo "BUILD OK (all projects, including net8.0-windows)"
+echo "BUILD OK (all projects, including net10.0-windows)"
 
 SUITES="CaptureEngine.Tests CaptureEngine.FFmpegTests CaptureEngine.FrameContractTests CaptureEngine.ConfigTests CaptureEngine.Encoder.Tests CaptureEngine.Recording.Tests"
 FAILED=0

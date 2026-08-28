@@ -25,7 +25,8 @@ param([int]$Iterations = 10)
 $ErrorActionPreference = "Continue"
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
-$overlayBin = Join-Path $repo "Overlay\bin\Release\net8.0-windows10.0.26100.0"
+$overlayBin = Join-Path $repo "OverlaybinRelease
+et10.0-windows10.0.26100.0"
 $spExe   = Join-Path $overlayBin "NVIDIA ShadowPlay.exe"
 $hubExe  = Join-Path $overlayBin "NVIDIA API.exe"
 $b1Dir   = Join-Path $repo "Overlay\bin\DiagB1"

@@ -57,7 +57,8 @@ Write-Host ("  video: {0}" -f ($vPts -join ", "))
 Write-Host ("  audio: {0}" -f ($aPts -join ", "))
 
 # ── the engine log that produced this file ─────────────────────────
-$engineLog = Join-Path $repo "Overlay\bin\Release\net8.0-windows10.0.26100.0\Logs\ui-engine.log"
+$engineLog = Join-Path $repo "OverlaybinRelease
+et10.0-windows10.0.26100.0\Logs\ui-engine.log"
 Write-Host "`n── engine log: last session's key lines ──" -ForegroundColor Cyan
 if (Test-Path $engineLog) {
     $lines = Get-Content $engineLog -ErrorAction SilentlyContinue

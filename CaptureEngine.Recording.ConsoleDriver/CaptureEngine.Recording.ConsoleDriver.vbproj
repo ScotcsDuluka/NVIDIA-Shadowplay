@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>CaptureEngine.Recording.ConsoleDriver</RootNamespace>
     <AssemblyName>CaptureEngine.Recording.ConsoleDriver</AssemblyName>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
     <OptionInfer>On</OptionInfer>

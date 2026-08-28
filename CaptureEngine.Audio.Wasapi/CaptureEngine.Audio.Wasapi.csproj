@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <!-- Plain net8.0 ON PURPOSE: FFmpegTests (Linux CI, synthetic positions)
-         targets net8.0 and must reference this project. Pure [ComImport]
+    <!-- Plain net10.0 ON PURPOSE: FFmpegTests (Linux CI, synthetic positions)
+         targets net10.0 and must reference this project. Pure [ComImport]
          interop COMPILES cross-platform; the WASAPI runtime path is guarded
          by WasapiPositionCapture.Start() (Windows-only, throws elsewhere). -->
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>

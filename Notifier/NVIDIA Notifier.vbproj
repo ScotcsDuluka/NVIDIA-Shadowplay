@@ -7,7 +7,12 @@
                 <UseWindowsForms>true</UseWindowsForms>
                 <MyType>WindowsForms</MyType>
                 <ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
-                <TargetFramework>net8.0-windows10.0.26100.0</TargetFramework>
+                <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <!-- WFO1000: net9+ WinForms designer-serialization analyzer. These
+         legacy forms are hand-managed (Designer.vb sets the custom control
+         properties at runtime); VS designer round-tripping is not used.
+         Runtime behavior is identical. -->
+    <NoWarn>$(NoWarn);WFO1000</NoWarn>
                 <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
                 <Platforms>AnyCPU;x64</Platforms>
         </PropertyGroup>
@@ -43,9 +48,8 @@
         </ItemGroup>
 
         <ItemGroup>
-                <PackageReference Include="Microsoft.Win32.Registry" Version="5.0.0" />
                 <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
-                <PackageReference Include="System.Text.Json" Version="9.0.0" />
+                
         </ItemGroup>
 
         <ItemGroup>

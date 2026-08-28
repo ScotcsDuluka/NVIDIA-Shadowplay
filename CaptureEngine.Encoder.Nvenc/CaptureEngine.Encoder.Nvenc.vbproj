@@ -2,9 +2,9 @@
 
   <PropertyGroup>
     <RootNamespace></RootNamespace>
-    <!-- net8.0-windows because Vortice packages (D3D11 + DXGI) require it
+    <!-- net10.0-windows because Vortice packages (D3D11 + DXGI) require it
          and we use ID3D11Texture2D + D3D11 device types in NvencEncoderBackend. -->
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net10.0-windows</TargetFramework>
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
     <OptionInfer>On</OptionInfer>
