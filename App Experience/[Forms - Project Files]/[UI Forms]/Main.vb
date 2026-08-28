@@ -127,7 +127,9 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     End Sub
 
     Public Sub OpenApp()
-        Dim exePath As String = AppLayout.P("Application", "NVIDIA API.exe")
+        ' ExePath: Application\<name> in the staged tree, layout root in a dev
+        ' bin\ (where the API exe builds flat — Application\ does not exist).
+        Dim exePath As String = AppLayout.ExePath("NVIDIA API.exe")
         Try
             Process.Start(exePath)
 

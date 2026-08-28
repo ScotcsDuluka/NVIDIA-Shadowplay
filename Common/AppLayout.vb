@@ -101,6 +101,19 @@ Public Module AppLayout
         Return acc
     End Function
 
+    ''' <summary>
+    ''' Full path of a companion app executable. Deployed tree: Application\&lt;name&gt;.
+    ''' Dev bin\: all app exes build FLAT into one output folder (no Application\
+    ''' subdir), so fall back to the layout root when the staged location does
+    ''' not exist. Callers keep their own final File.Exists guards — this only
+    ''' picks WHERE to look first.
+    ''' </summary>
+    Public Function ExePath(appExeName As String) As String
+        Dim staged As String = P("Application", appExeName)
+        If File.Exists(staged) Then Return staged
+        Return P(appExeName)
+    End Function
+
     ''' <summary>Call once at startup: CWD = root + install the assembly
     ''' resolver. Idempotent and safe to call again.</summary>
     Public Sub Initialize()

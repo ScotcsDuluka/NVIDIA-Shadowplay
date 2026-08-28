@@ -495,7 +495,10 @@ Partial Public Class Base
     ''' <summary>Launches the companion "NVIDIA Notifier.exe" process used for toast notifications.</summary>
     Private Sub InitializeNotifierAPI()
         Try
-            Dim exePath As String = AppLayout.P("Application", "NVIDIA Notifier.exe")
+            ' ExePath: Application\<name> in the staged tree, layout root in a
+            ' dev bin\ (where the Notifier exe builds flat — this used to pop
+            ' "Could Not Be Started" on every bin-layout run).
+            Dim exePath As String = AppLayout.ExePath("NVIDIA Notifier.exe")
             If Not File.Exists(exePath) Then
                 MessageBox.Show(
                     "NVIDIA Notifier Service Could Not Be Started!" & vbCrLf &
