@@ -234,8 +234,8 @@ Partial Public Class Loader
                 Path.Combine(startupPath, "..", "..", "API-Core", "ffprobe.exe"),
                 Path.Combine(startupPath, "..", "..", "..", "API-Core", "ffprobe.exe"),
                 Path.Combine(startupPath, "..", "..", "..", "..", "API-Core", "ffprobe.exe"),
-                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "Release", "net8.0-windows10.0.26100.0", "API-Core", "ffprobe.exe"),
-                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "x64", "Release", "net8.0-windows10.0.26100.0", "API-Core", "ffprobe.exe")
+                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "Release", "net10.0-windows10.0.26100.0", "API-Core", "ffprobe.exe"),
+                Path.Combine(startupPath, "..", "..", "..", "..", "..", "Overlay", "bin", "x64", "Release", "net10.0-windows10.0.26100.0", "API-Core", "ffprobe.exe")
             }
 
             Dim ffprobePath As String = ""

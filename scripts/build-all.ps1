@@ -79,6 +79,14 @@ if (Test-Path $dll) {
     Write-Host "    timestamp: $((Get-Item $dll).LastWriteTime)  (must be 'now')"
 }
 
+# ── 3b. Dev bin is auto-complete (build = runnable, no staging needed) ──
+$devBin = "Overlay\bin\Release\net10.0-windows10.0.26100.0"
+if (Test-Path "$devBin\NVIDIA ShadowPlay.dll") {
+    Write-Host "`n>>> DEV BIN auto-complete: $devBin" -ForegroundColor Green
+    Write-Host "    -> run NVIDIA ShadowPlay.exe (or NVIDIA Experience.exe) right from there."
+    Write-Host "    -> exes, engine libs, FFmpeg\API-Core, Languages, Data, Config all land automatically."
+}
+
 # ── 4. Tests ──────────────────────────────────────────────────────
 if ($RunTests) {
     Write-Host "`n>>> Running test suites..." -ForegroundColor Cyan

@@ -96,4 +96,41 @@
       WindowsGraphicalUserInterface="true" />
   </Target>
 
+  <!-- ── Dev-bin auto-complete: a plain build leaves a runnable product ──
+       OWNER request: after ANY normal build, Overlay\bin\<cfg>\<tfm>\ must
+       be the complete app family — no manual copies, no -StageLayout.
+       Most of it already flows there automatically:
+         - the 4 companion apps ride in via Overlay's ProjectReferences
+           (exe + payload dll + deps/runtimeconfig, engine libs transitively)
+         - NuGet assemblies copy flat next to the exe
+         - the vbproj None items carry API-Core\, Languages\, the fonts,
+           _Redist\ and NVIDIA ShadowPlay.ico
+       What never flowed (staged-tree-only until now):
+         - Config\notifier_obs.json   (ObsConfig reads Config\<file>)
+         - Data\NVIDIA_Shadowplay_Data\  (readers use the Data\-prefixed
+           staged path; the None items land the folder WITHOUT the prefix,
+           so bin-layout reads silently missed every data file)
+       This target mirrors layout.proj's content step into the dev bin and
+       pre-creates the runtime dirs. Runs only for the Overlay app in
+       normal builds; every copy is Exists-gated so local-only files
+       (API-Core\, highlights\) can never fail a build. -->
+  <Target Name="_DevLayoutComplete"
+          AfterTargets="Build"
+          Condition="'$(StageLayout)' != 'true' And '$(AssemblyName)' == 'NVIDIA ShadowPlay'">
+    <MakeDir Directories="$(TargetDir)Flags;$(TargetDir)Logs;$(TargetDir)Data;$(TargetDir)Config" />
+    <ItemGroup>
+      <_DevDataFiles Include="$(MSBuildThisFileDirectory)Overlay\NVIDIA_Shadowplay_Data\**\*" />
+      <_DevConfigFiles Include="$(MSBuildThisFileDirectory)Notifier\notifier_obs.json" />
+      <_DevConfigFiles Include="$(MSBuildThisFileDirectory)Notifier\notifier_obs.example.json"
+                       Condition="Exists('$(MSBuildThisFileDirectory)Notifier\notifier_obs.example.json')" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_DevDataFiles)"
+          DestinationFiles="@(_DevDataFiles->'$(TargetDir)Data\NVIDIA_Shadowplay_Data\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_DevConfigFiles)"
+          DestinationFiles="@(_DevConfigFiles->'$(TargetDir)Config\%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+    <Message Text="dev layout complete -> $(TargetDir)" Importance="high" />
+  </Target>
+
 </Project>
