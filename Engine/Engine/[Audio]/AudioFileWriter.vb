@@ -4,6 +4,7 @@ Imports System.IO
 Imports System.Threading
 Imports NAudio.CoreAudioApi
 Imports NAudio.Wave
+Imports CaptureEngine.FFmpegBackend
 
 ''' <summary>
 ''' File-based audio recorder — writes WASAPI capture to .wav files via
@@ -67,6 +68,10 @@ Public Class AudioFileWriter
         Public Property Data As Byte()
         Public Property IsSilence As Boolean
         Public Property SilenceBytes As Long  ' used only when IsSilence=True and Data=Nothing
+        ''' <summary>True for the FIRST gap (StartRecording → first callback).
+        ''' Keeps InitialSilenceBytes accounting honest when the queue-full
+        ''' drop policy discards silence descriptors mid-stream.</summary>
+        Public Property IsInitial As Boolean
     End Class
 
     Private Class TrackState
@@ -93,6 +98,14 @@ Public Class AudioFileWriter
         Public Property FirstCallbackDispatchTicks As Long
         Public Property StartRecordingTicks As Long  ' TRUE capture start time (sync anchor)
         Public Property InitialSilenceBytes As Long  ' silence pre-filled to align WAV with capture timeline
+        ' ── P13-AUDIO-TIMELINE (2026-08-28): OBS-model gap repair ──
+        ' The old "GAP DETECTION REMOVED entirely" design concatenated only
+        ' the sounded spans → [speech][speech][apad-silence] files. Silence
+        ' is TIME: every callback gap is repaired inline BEFORE the buffer
+        ' (AudioTimelineRepair — same owner-validated model as AudioTap v2).
+        Public Property Repair As AudioTimelineRepair
+        Public Property RepairInsertedBytes As Long  ' silence enqueued into the queue
+        Public Property RepairDroppedBytes As Long   ' silence descriptors dropped under queue pressure (timeline compression — logged)
         Public Property Started As Boolean
         Public Property BytesPerSecond As Integer
         Public Property FrameSize As Integer
@@ -271,6 +284,12 @@ Public Class AudioFileWriter
                 _micStartTicks = startRecordingTicks
             End If
 
+            ' ── P13-AUDIO-TIMELINE: wall-clock gap repair anchor ──
+            ' Anchored at the StartRecording CALL time (proven model — NOT
+            ' first-callback time): the first OnCallback measures exactly
+            ' the device warm-up and returns it as the prefill silence.
+            track.Repair = New AudioTimelineRepair(track.BytesPerSecond, track.FrameSize, startRecordingTicks)
+
             track.Capture.StartRecording()
 
             Dim fmt As AudioFormat = WaveFormatToInfo(track.Capture.WaveFormat)
@@ -336,52 +355,49 @@ Public Class AudioFileWriter
 
             Dim nowTicks As Long = Stopwatch.GetTimestamp()
 
-            ' ── First-callback initialization: pre-fill initial silence ──
-            ' WAV sample 0 = StartRecording time, NOT first callback time.
-            ' When WASAPI loopback doesn't fire for N seconds (no audio playing),
-            ' we must insert N seconds of silence at the START of the WAV file
-            ' so that the file's timeline matches the capture timeline.
-            '
-            ' Without this, mux -ss <offset> would CUT real audio (the first
-            ' callback's data) instead of skipping leading silence.
-            '
-            ' initialGap = FirstCallback - StartRecording
-            ' This is "best-effort" (callback dispatch time includes WASAPI
-            ' buffer latency of ~10ms), but it's far better than losing the
-            ' entire initial gap.
-            If Not track.Started Then
+            ' ── P13-AUDIO-TIMELINE: OBS-model silence repair (2026-08-28) ──
+            ' Silence is part of the timeline (OBS rule — owner-confirmed via
+            ' GPT analysis). Every callback computes the silence that belongs
+            ' BEFORE its buffer:
+            '   first callback → StartRecording→now warm-up (prefill rule:
+            '     deterministic, no 50ms cutoff — WASAPI loopback does not
+            '     fire while nothing plays, so the head gap is real time)
+            '   later callbacks → (now − last) − bufferDuration, 50ms
+            '     threshold, 3600s cap, block-aligned (proven AudioTap v2)
+            ' Without this the WAV concatenates only the sounded spans and
+            ' the mux's apad moves ALL the session's silence to the file end
+            ' — the exact [speech][speech][long silence] owner evidence.
+            Dim isFirstCallback As Boolean = Not track.Started
+            If isFirstCallback Then
                 track.Started = True
                 track.FirstCallbackDispatchTicks = nowTicks
+            End If
 
-                ' Compute initial gap and pre-fill silence BEFORE real audio
-                ' NO 50ms cutoff (per GPT P1) — initial gap is deterministic
-                ' (StartRecording → first callback), not jitter. Any gap > 0
-                ' must be pre-filled so -ss at mux time skips silence, not real audio.
-                Dim initialGapSec As Double = (nowTicks - track.StartRecordingTicks) / Stopwatch.Frequency
-                If initialGapSec > 0.0 AndAlso initialGapSec < 60.0 Then
-                    ' Cap at 60s to prevent runaway (shouldn't happen in practice)
-                    Dim silenceBytes As Long = CLng(initialGapSec * track.BytesPerSecond)
-                    If track.FrameSize > 0 Then silenceBytes = (silenceBytes \ track.FrameSize) * track.FrameSize
-                    If silenceBytes > 0 Then
-                        ' Enqueue a SINGLE silence descriptor chunk (per GPT P0).
-                        ' The writer thread will expand this into zero-filled bytes
-                        ' when writing to disk. This avoids allocating thousands of
-                        ' 16KB arrays in the WASAPI callback thread.
-                        Dim silenceDescriptor As New AudioChunk With {
-                            .Data = Nothing,
-                            .IsSilence = True,
-                            .SilenceBytes = silenceBytes
-                        }
-                        Try
-                            If track.Queue.TryAdd(silenceDescriptor, 0) Then
-                                track.InitialSilenceBytes = silenceBytes
-                                track.BytesEnqueued += silenceBytes
-                            End If
-                        Catch ex As InvalidOperationException
-                            ' Queue completed during shutdown (shouldn't happen on first callback)
-                        End Try
+            Dim repairSilence As Long = 0
+            If track.Repair IsNot Nothing Then
+                repairSilence = track.Repair.OnCallback(nowTicks, e.BytesRecorded)
+            End If
+
+            If repairSilence > 0 Then
+                ' Enqueue a SINGLE silence descriptor chunk (per GPT P0).
+                ' The writer thread expands it into zero-filled bytes on
+                ' disk — no allocation in the WASAPI callback thread.
+                Dim silenceDescriptor As New AudioChunk With {
+                    .Data = Nothing,
+                    .IsSilence = True,
+                    .SilenceBytes = repairSilence,
+                    .IsInitial = isFirstCallback
+                }
+                Try
+                    If track.Queue.TryAdd(silenceDescriptor, 0) Then
+                        If isFirstCallback Then track.InitialSilenceBytes += repairSilence
+                        track.BytesEnqueued += repairSilence
+                        track.RepairInsertedBytes += repairSilence
                     End If
-                End If
+                Catch ex As InvalidOperationException
+                    ' Queue completed during shutdown — silence lost, real
+                    ' audio below still attempts its own TryAdd.
+                End Try
             End If
 
             ' ── Copy audio data + enqueue (NO disk I/O here) ──
@@ -421,12 +437,17 @@ Public Class AudioFileWriter
                     Dim dropped As AudioChunk = Nothing
                     If track.Queue.TryTake(dropped) Then
                         If dropped.IsSilence Then
-                            ' Dropped silence — preferred outcome.
-                            ' Use SilenceBytes (descriptor mode) or Data.Length (legacy)
+                            ' Dropped silence — preferred outcome (real PCM is
+                            ' protected). NOTE: dropping MID-STREAM silence
+                            ' compresses the timeline (the span vanishes) —
+                            ' counted separately so diagnostics can flag it.
                             Dim droppedLen As Long = If(dropped.Data IsNot Nothing,
                                                        dropped.Data.Length,
                                                        dropped.SilenceBytes)
-                            track.InitialSilenceBytes -= droppedLen
+                            If dropped.IsInitial Then
+                                track.InitialSilenceBytes = Math.Max(0, track.InitialSilenceBytes - droppedLen)
+                            End If
+                            track.RepairDroppedBytes += droppedLen
                             track.DroppedSilenceBytes += droppedLen
                         Else
                             ' Dropped real audio — actual data loss, track it

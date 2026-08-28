@@ -41,6 +41,10 @@ Partial Public Class UI_Engine
     Private _recordingTask As Task(Of SessionResult)
     Private _useNewEngine As Boolean = True  ' True = use RecordingEngine, False = legacy
     Private _engineReady As Boolean = False  ' set once off-thread Initialize succeeds
+    ' ★ P13-AUDIO-TIMELINE: WHY the new engine is unavailable (shown on
+    ' every legacy-pipeline record start — ends the "which pipeline ran?"
+    ' mystery that kept the [speech][speech][apad-silence] bug invisible).
+    Private _engineInitFailReason As String = ""
 
     ' Phase 12b: one job object owns every child ffmpeg this host spawns
     ' (recording pipeline + legacy path guards). KILL_ON_JOB_CLOSE means
@@ -107,6 +111,7 @@ Partial Public Class UI_Engine
                          DebugLog("[RecordingEngine] initialized — Idle (background thread)")
                      Catch ex As Exception
                          DebugLog($"[RecordingEngine] Initialize FAILED: {ex.Message}")
+                         _engineInitFailReason = ex.Message
                          _recordingEngine = Nothing
                          _engineReady = False
                          _useNewEngine = False

@@ -247,7 +247,15 @@ Partial Public Class UI_Engine
                     If _useNewEngine AndAlso _recordingEngine IsNot Nothing Then
                         Await HandleRecordingStart(value, reqId)
                     Else
-                        DebugLog("⚠ recording via LEGACY pipeline (new engine unavailable) — OBS-style live-mux NOT active")
+                        ' ★ P13-AUDIO-TIMELINE: loud, greppable pipeline marker.
+                        ' Every legacy-pipeline recording MUST announce itself —
+                        ' the [speech][speech][apad-silence] owner evidence was
+                        ' produced by THIS branch while the live-mux fixes were
+                        ' invisible (fallback happened silently at startup).
+                        Dim reasonTxt As String = If(String.IsNullOrEmpty(_engineInitFailReason),
+                                                     "",
+                                                     " — init failed: " & _engineInitFailReason)
+                        DebugLog($"★★ PIPELINE = LEGACY CaptureEngine (live-mux NOT active{reasonTxt}) — audio = WAV + apad mux ★★")
                         Await HandleEngineRecordStart(value, reqId)
                     End If
                 Case "engine_record_stop"

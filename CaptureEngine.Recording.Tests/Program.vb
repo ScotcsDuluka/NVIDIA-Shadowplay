@@ -61,6 +61,7 @@ Namespace CaptureEngine.Recording.Tests
 
             SyncMathTests.RunAll()
             WavSidecarTests.RunAll()
+            AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
             RuntimeSyncTests.RunAll()
             DualTrackTests.RunAll()   ' ★ M1: system + mic second track
 

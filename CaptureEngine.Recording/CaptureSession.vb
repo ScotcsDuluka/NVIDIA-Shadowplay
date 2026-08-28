@@ -137,7 +137,9 @@ Namespace CaptureEngine.Recording
         ''' handler. All inputs are frozen stamps, so time-of-call is
         ''' irrelevant; the mux queues audio bytes until the timeline event
         ''' (8 MB cap — orders above the sub-100 ms window) and its writer
-        ''' tolerates a 5 s timeline wait, so deferring is safe by contract.
+        ''' waits UNBOUNDED for the timeline event (or stop — P13-AUDIO-
+        ''' TIMELINE: the old 5s fall-through skipped the head pad/discard),
+        ''' so deferring is safe by contract.
         ''' </summary>
         Private Sub BeginTimelinesOnce()
             If _liveMux Is Nothing Then Return

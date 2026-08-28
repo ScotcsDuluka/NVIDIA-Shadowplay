@@ -528,8 +528,19 @@ Namespace CaptureEngine.FFmpegBackend
                     '    away the FIRST encoded frames including SPS/PPS, leaving
                     '    ffmpeg with 'non-existing PPS 0 referenced' and a dead
                     '    output. Video starts writing the moment it connects.
+                    '    ★ P13-AUDIO-TIMELINE (2026-08-28): the old 5s timeout
+                    '    silently FELL THROUGH unaligned — and a BeginTimeline
+                    '    arriving later could no longer apply pad/discard (the
+                    '    alignment step had already run), so the Device-clock
+                    '    head pad was lost whenever the first sound came after
+                    '    the 5s window. The wait is now UNBOUNDED on
+                    '    {_timelineStarted, _stopWriter}: RequestStopAndDrain()
+                    '    sets both events and Dispose() sets _stopWriter, so
+                    '    this cannot deadlock — the alignment contract (pad
+                    '    before ANY real byte, discard from the queue head)
+                    '    always holds.
                     If _waitForTimeline Then
-                        WaitHandle.WaitAny(New WaitHandle() {_timelineStarted, _stopWriter}, 5000)
+                        WaitHandle.WaitAny(New WaitHandle() {_timelineStarted, _stopWriter})
                     End If
 
                     ' 3. initial alignment: pad silence first, then discard head
