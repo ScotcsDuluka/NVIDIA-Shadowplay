@@ -141,8 +141,10 @@
     <!-- Content: Overlay carries the product content -->
     <!-- Runtime-created dirs: pre-create so first-run writers never hit a
          missing parent (Flags\Ready delete/create, Logs\Config writers).
-         AppLayout.EnsureParentDir covers the rest; these four are the hot ones. -->
-    <MakeDir Directories="$(LayoutRoot)/Flags;$(LayoutRoot)/Logs;$(LayoutRoot)/Data;$(LayoutRoot)/Config" />
+         AppLayout.EnsureParentDir covers the rest; these are the hot ones.
+         Runtimes\ is pre-created to match the OWNER's tree sketch (no-RID
+         builds stage rid-specific libs into the family folders instead). -->
+    <MakeDir Directories="$(LayoutRoot)/Flags;$(LayoutRoot)/Logs;$(LayoutRoot)/Data;$(LayoutRoot)/Config;$(LayoutRoot)/Runtimes" />
     <Copy SourceFiles="@(OverlayLanguages)" DestinationFolder="$(LayoutRoot)/Languages" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(OverlayFfmpeg)" DestinationFolder="$(LayoutRoot)/FFmpeg" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(DataFiles)"
@@ -152,6 +154,9 @@
           DestinationFiles="$(LayoutRoot)/Redist\64bit.runtime.exe" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(Repo)Overlay/nvgcshare.ttf"
           DestinationFiles="$(LayoutRoot)/Resources\nvgcshare.ttf" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Overlay/NVIDIA ShadowPlay.ico"
+          DestinationFiles="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.ico" SkipUnchangedFiles="true"
+          Condition="Exists('$(Repo)Overlay/NVIDIA ShadowPlay.ico')" />
 
     <!-- Content: Notifier OBS config -->
     <Copy SourceFiles="$(Repo)Notifier/notifier_obs.json"
@@ -159,6 +164,35 @@
     <Copy SourceFiles="$(Repo)Notifier/notifier_obs.example.json"
           DestinationFiles="$(LayoutRoot)/Config\notifier_obs.example.json" SkipUnchangedFiles="true"
           Condition="Exists('$(Repo)Notifier/notifier_obs.example.json')" />
+
+    <!-- Content: ConfigApp — OWNER directive: EVERY .json present in the
+         staged tree at build time, collected into one folder. These are
+         COPIES with the real files left in place: hostfxr requires
+         deps/runtimeconfig adjacent to their app dlls and the apps read
+         Config\ + Languages\ through AppLayout — never move the originals.
+         Mapping: root app + notifier configs flat, per-app jsons kept in
+         Overlay\/Services\/Languages\ subfolders (runtimeconfig.json ×5
+         would collide if fully flattened). Evaluated AFTER all staging
+         copies above, and dist is wiped by Prepare each run — no
+         self-recursion. "ConfigApp" never collides with the mirror's /XD
+         Config exclusion (robocopy matches full names only). -->
+    <ItemGroup>
+      <_CfgRoot Include="$(LayoutRoot)/*.json" />
+      <_CfgOverlay Include="$(LayoutRoot)/Overlay/*.json" />
+      <_CfgServices Include="$(LayoutRoot)/Services/*.json" />
+      <_CfgLanguages Include="$(LayoutRoot)/Languages/*.json" />
+      <_CfgConfig Include="$(LayoutRoot)/Config/notifier_obs*.json" />
+    </ItemGroup>
+    <Copy SourceFiles="@(_CfgRoot)"
+          DestinationFiles="@(_CfgRoot->'$(LayoutRoot)/ConfigApp\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CfgOverlay)"
+          DestinationFiles="@(_CfgOverlay->'$(LayoutRoot)/ConfigApp\Overlay\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CfgServices)"
+          DestinationFiles="@(_CfgServices->'$(LayoutRoot)/ConfigApp\Services\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CfgLanguages)"
+          DestinationFiles="@(_CfgLanguages->'$(LayoutRoot)/ConfigApp\Languages\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_CfgConfig)"
+          DestinationFiles="@(_CfgConfig->'$(LayoutRoot)/ConfigApp\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
 
   </Target>
 
@@ -189,6 +223,10 @@
       <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Video.Ddagrab.dll" />
       <Required Include="$(LayoutRoot)/Engine\CaptureEngine.Audio.Wasapi.dll" />
       <Required Include="$(LayoutRoot)/Config\notifier_obs.json" />
+      <Required Include="$(LayoutRoot)/ConfigApp\notifier_obs.json" />
+      <Required Include="$(LayoutRoot)/ConfigApp\NVIDIA Experience.deps.json" />
+      <Required Include="$(LayoutRoot)/ConfigApp\Services\NVIDIA API.deps.json" />
+      <Required Include="$(LayoutRoot)/ConfigApp\Languages\en-US.json" />
       <Required Include="$(LayoutRoot)/Languages\en-US.json" />
       <Required Include="$(LayoutRoot)/Languages\current.txt" />
       <Required Include="$(LayoutRoot)/Data\NVIDIA_Shadowplay_Data\on" />

@@ -44,6 +44,8 @@ NVIDIA ShadowPlay\                    <- dist\NVIDIA ShadowPlay (default)
 ├── Libraries\              Newtonsoft.Json.dll
 ├── FFmpeg\                 ffmpeg/ffplay/ffprobe + av*-62/-11/-60/-6/-9 dlls
 ├── Languages\              <locale>.json + current.txt
+├── ConfigApp\              EVERY .json present at build time, one folder
+│                           (COPIES — see below; originals stay in place)
 ├── Config\                 config.json (runtime), engine.json, audio.json,
 │                           notifier_obs.json, overlay-config-path.txt
 ├── Logs\                   *.log (api-crash, notifier_obs, ui-engine, encoder-detect, ...)
@@ -57,6 +59,22 @@ NVIDIA ShadowPlay\                    <- dist\NVIDIA ShadowPlay (default)
 Note: `Overlay.Engine.dll` in the OWNER sketch is **reserved** for a future
 overlay-engine split — no such assembly exists today (the Overlay app is a
 single assembly, `NVIDIA ShadowPlay`).
+
+## ConfigApp\ — all build-time .json in one folder (OWNER directive)
+
+`layout.proj`'s Stage target collects every `.json` present in the staged
+tree into `ConfigApp\`: root app + notifier configs flat
+(`NVIDIA Experience.deps.json/.runtimeconfig.json`, `notifier_obs.json`),
+per-app jsons in `Overlay\`/`Services\`/`Languages\` subfolders (five
+`runtimeconfig.json` would collide if fully flattened).
+
+These are **copies** — the originals MUST stay where they are: hostfxr
+requires deps/runtimeconfig adjacent to their app dlls, and the apps read
+`Config\`/`Languages\` through `AppLayout`. Edit `Config\notifier_obs.json`
+(the real one); `ConfigApp\` is the read-everything view. The folder is
+regenerated fresh on every stage (dist is wiped by Prepare) and rides the
+mirror into bin — the mirror's `/XD Config` exclusion only matches that
+exact directory name, so `ConfigApp\`'s inner subfolders are unaffected.
 
 ## How .NET is told where the DLLs are
 
