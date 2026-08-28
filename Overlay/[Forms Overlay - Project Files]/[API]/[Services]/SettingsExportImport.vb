@@ -178,6 +178,11 @@ Public Class SettingsExportImport
         clone.SystemAudioVolume = src.SystemAudioVolume
         clone.MicVolume = src.MicVolume
         clone.MicDeviceName = src.MicDeviceName
+        ' Keep the field-copy complete (GLM/6 class additions) — the export
+        ' file must round-trip everything the class persists.
+        clone.MicDeviceId = src.MicDeviceId
+        clone.TrackMode = src.TrackMode
+        clone.AudioClockMode = src.AudioClockMode
         Return clone
     End Function
 
@@ -229,7 +234,10 @@ Public Class SettingsExportImport
         aud.MicEnabled = imported.MicEnabled
         aud.SystemAudioVolume = imported.SystemAudioVolume
         aud.MicVolume = imported.MicVolume
-        ' Do NOT import MicDeviceName — it's machine-specific
+        ' Do NOT import MicDeviceName/MicDeviceId — they're machine-specific.
+        ' TrackMode + AudioClockMode are plain prefs — import them.
+        aud.TrackMode = imported.TrackMode
+        aud.AudioClockMode = imported.AudioClockMode
     End Sub
 #End Region
 

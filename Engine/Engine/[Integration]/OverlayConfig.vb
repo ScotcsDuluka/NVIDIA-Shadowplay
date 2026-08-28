@@ -123,6 +123,12 @@ Public NotInheritable Class OverlayConfig
         ' Unified config.json (GLM/6): matches Overlay AudioSettingsClass
         Public Property MicDeviceId As String = ""
         Public Property TrackMode As Integer = 0
+        ' ★ P13.4 plumbing fix (unified-config gap): the P13.3/13.4 Device-clock
+        ' A/B flag rides the ONE config file now. "Device" = hardware-stamped
+        ' system-audio timeline, "Legacy" = proven v2 tap. Normalized on apply
+        ' (ApplyUnifiedToCaptureSettings) — anything but "Device" means Legacy.
+        ' Temporary knob: the whole flag is deleted at P13.5.
+        Public Property AudioClockMode As String = "Legacy"
     End Class
 
     Public Class GitHubUser
@@ -352,6 +358,14 @@ Public NotInheritable Class OverlayConfig
             s.AudioTrackMode = If(a.TrackMode = 1,
                                   CaptureSettings.AudioTrackModeEnum.SeparateTrack,
                                   CaptureSettings.AudioTrackModeEnum.SingleTrack)
+            ' P13.4 plumbing fix: without this mapping the Device-clock flag was
+            ' UNREACHABLE on real installs — CaptureSettings.Load returns right
+            ' after ApplyUnifiedToCaptureSettings, so the legacy audio.json
+            ' fallback (which did read AudioClockMode) never runs once
+            ' config.json exists (i.e. always, on any install with the Overlay).
+            Dim clock As String = If(a.AudioClockMode, "").Trim()
+            s.AudioClockMode = If(String.Equals(clock, "Device", StringComparison.OrdinalIgnoreCase),
+                                  "Device", "Legacy")
             s.AudioCapture = s.SystemAudioCapture OrElse s.MicCapture
         End If
 

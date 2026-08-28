@@ -123,6 +123,17 @@ Public Class AppSettings
         ''' </summary>
         Public Property TrackMode As Integer = 0
 
+        ''' <summary>
+        ''' ★ P13.3/P13.4 A/B flag (unified-config plumbing fix): "Device" =
+        ''' hardware-stamped system-audio timeline, "Legacy" = proven v2 tap.
+        ''' Consumed by the Engine through unified config.json (normalized
+        ''' there — anything but "Device" means Legacy). Temporary knob:
+        ''' the whole flag is deleted at P13.5. Declared here so a
+        ''' hand-edited config.json value survives Overlay saves (without
+        ''' this property the serializer would silently erase the key).
+        ''' </summary>
+        Public Property AudioClockMode As String = "Legacy"
+
         ' ═══════════════════════════════════════════════════════════════════════
         ' Legacy properties for backward compatibility with old config.json
         ' ═══════════════════════════════════════════════════════════════════════
@@ -657,6 +668,13 @@ Public Class AppSettings
         Audio.SystemAudioVolume = loadedAudio.SystemAudioVolume
         Audio.MicVolume = loadedAudio.MicVolume
         Audio.MicDeviceName = loadedAudio.MicDeviceName
+        ' GLM/6 unification added MicDeviceId + TrackMode to the class but this
+        ' field-copy was never updated — every app start silently dropped both
+        ' (mic selection reset in the Overlay UI; the Engine was unaffected
+        ' because it reads config.json itself). AudioClockMode rides the fix.
+        Audio.MicDeviceId = loadedAudio.MicDeviceId
+        Audio.TrackMode = loadedAudio.TrackMode
+        Audio.AudioClockMode = loadedAudio.AudioClockMode
     End Sub
 
     Private Sub ApplyGitHubUserSettings(loadedGitHubUser As GitHubUserClass)
@@ -838,6 +856,13 @@ Public Class AppSettings
                             If doc.RootElement.TryGetProperty("MicDevice", p) Then a.MicDeviceName = p.GetString()
                             If doc.RootElement.TryGetProperty("MicDeviceId", p) Then a.MicDeviceId = p.GetString()
                             If doc.RootElement.TryGetProperty("AudioTrackMode", p) Then a.TrackMode = p.GetInt32()
+                            ' P13.4 plumbing: carry the Device-clock flag across
+                            ' the legacy → unified migration (normalized).
+                            If doc.RootElement.TryGetProperty("AudioClockMode", p) Then
+                                Dim clock As String = If(p.GetString(), "").Trim()
+                                a.AudioClockMode = If(String.Equals(clock, "Device", StringComparison.OrdinalIgnoreCase),
+                                                      "Device", "Legacy")
+                            End If
                             imported = True
                             Debug.WriteLine("[Migrate] imported legacy audio.json → config.json")
                         End Using

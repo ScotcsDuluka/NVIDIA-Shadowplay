@@ -161,7 +161,7 @@ Public Class Base_KeySet
 
     Private Function IsDuplicateBinding(actionKey As String, binding As String) As Boolean
         For Each kvp In _keyLabels
-            If kvp.Key.Equals(actionKey, StringComparison.OrdinalIgnoreCase) Then Continue For
+            If String.Equals(kvp.Key, actionKey, StringComparison.OrdinalIgnoreCase) Then Continue For
             If String.Equals(kvp.Value.Text, binding, StringComparison.OrdinalIgnoreCase) Then Return True
         Next
         Return False
