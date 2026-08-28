@@ -245,3 +245,37 @@ offsetSec = (videoT0Qpc − firstAudioQpc) / QpcFrequency   ' exact
 - All FFmpegTests green on Linux CI (synthetic positions).
 - `docs/` band-aid inventory in §3.2 marked as removed in
   PROJECT_MEMORY.
+
+## 7. P13.4.1 — BeginTimelines race fix (pre-OWNER-test hardening)
+
+**Found during the pre-Windows-test code review (container session,
+2026-08-28).** The mux timelines were begun exactly once at video t0 —
+the first captured frame on the tick thread. The first WASAPI packet
+arrives on the capture thread. The two are independent: if the first
+video frame won the race, `_sysTap3` was still `Nothing`/unanchored, and
+the fallback branch applied **legacy stopwatch math** to a Device-clock
+stream — the exact guess v2 anchors were built to eliminate, sticking
+for the whole session and showing up as random ~10-30 ms per-session
+error. The stop-path evidence also reported the stopwatch estimate even
+when the v2 offset had been applied.
+
+**Fix (CaptureSession):** `BeginTimelinesOnce()` — callable from both
+sides (video-t0 tick, Device packet handler post-Feed), fires once the
+LAST needed input exists, under `_timelineLock`. Safe-by-contract:
+
+- pipe `Feed` only enqueues (FIFO preserved; 8 MB audio cap is orders
+  above the sub-100 ms window), the audio writer waits on the timeline
+  event (5 s timeout), and video never waits — so deferring costs
+  nothing and changes no write order.
+- all offset inputs are frozen stamps (video t0 ticks, tap
+  `FirstQpc100ns`), so time-of-call is mathematically irrelevant.
+- Legacy path fires at video t0 exactly as before — byte-identical
+  behavior; Device path either fires at t0 (already anchored) or on the
+  first packet, always with exact v2 anchors.
+- `result.SystemOffsetSec` now reports the value ACTUALLY applied
+  (`_appliedSysOffsetSec`) on the Device path instead of the stopwatch
+  re-estimate — sync-verify evidence now matches reality.
+
+Gates: all 6 suites 229/229 (FFmpeg 51, Recording 20, Config 91,
+Encoder 45, Tests 14, FrameContract 8); Recording project clean rebuild
+0W/0E.

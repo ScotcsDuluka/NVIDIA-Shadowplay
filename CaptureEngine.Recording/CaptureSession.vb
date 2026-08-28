@@ -114,12 +114,63 @@ Namespace CaptureEngine.Recording
         Private _deviceClockSys As Boolean = False
         Private _sessionStartQpc100ns As Long = 0
 
+        ' ★ P13.4-race fix: video t0 (first frame, tick thread) and the first
+        ' audio packet (capture thread) are independent — either may win. The
+        ' mux timelines need BOTH inputs, so BeginTimelinesOnce() is callable
+        ' from BOTH sides and fires the moment the last needed input exists.
+        ' The applied sys offset is kept for the stop-path evidence report.
+        Private _timelinesBegun As Boolean = False
+        Private ReadOnly _timelineLock As New Object()
+        Private _appliedSysOffsetSec As Double = Double.NaN
+
         Private Sub SysPipeFeed(data As Byte(), count As Integer)
             _liveMux?.FeedSystemAudio(data, count)
         End Sub
 
         Private Sub MicPipeFeed(data As Byte(), count As Integer)
             _liveMux?.FeedMicAudio(data, count)
+        End Sub
+
+        ''' <summary>
+        ''' Begin the live-mux audio timelines EXACTLY ONCE. Two callers race
+        ''' legitimately: the video-t0 tick and the Device-clock packet
+        ''' handler. All inputs are frozen stamps, so time-of-call is
+        ''' irrelevant; the mux queues audio bytes until the timeline event
+        ''' (8 MB cap — orders above the sub-100 ms window) and its writer
+        ''' tolerates a 5 s timeline wait, so deferring is safe by contract.
+        ''' </summary>
+        Private Sub BeginTimelinesOnce()
+            If _liveMux Is Nothing Then Return
+            SyncLock _timelineLock
+                If _timelinesBegun Then Return
+                If _videoStartTicks = 0 Then Return              ' no video origin yet
+                If _deviceClockSys AndAlso
+                   (_sysTap3 Is Nothing OrElse Not _sysTap3.Anchored) Then
+                    Return                                       ' defer to the anchor
+                End If
+
+                Dim sysOff As Double
+                If _deviceClockSys Then
+                    ' P13.4 — SyncMath v2: exact QPC anchor arithmetic.
+                    ' The reconstructed stream BEGINS at the first fed packet's
+                    ' hardware stamp — anchor-to-anchor, no call-time guess,
+                    ' no pre-roll estimate; the lead is ZERO by default
+                    ' (SystemAudioLeadDeviceSec; residual goes in only if
+                    ' sync-verify measures it).
+                    Dim videoT0100ns As Long = CLng(_videoStartTicks * 10000000.0 / Stopwatch.Frequency)
+                    sysOff = SyncMath.ComputeAudioOffsetSecFromAnchors(
+                        videoT0100ns, _sysTap3.FirstQpc100ns) + SyncMath.SystemAudioLeadDeviceSec
+                Else
+                    sysOff = SyncMath.ComputeAudioOffsetSec(
+                        _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
+                End If
+                Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
+                    _videoStartTicks, _micStartTicks, Stopwatch.Frequency) + SyncMath.MicAudioLeadSec
+                _logger.Info($"[session] timeline origin: sys offset={sysOff:0.000}s mic offset={micOff:0.000}s ({If(_deviceClockSys, "device QPC anchor", "stopwatch t0 trim")} + lead {SyncMath.SystemAudioLeadSec:0.000}s)")
+                _liveMux.BeginTimelines(sysOff, micOff)
+                _appliedSysOffsetSec = sysOff
+                _timelinesBegun = True
+            End SyncLock
         End Sub
 
         ' Dual sink: one stream to live-mux pipe (+ optional WAV evidence sidecar
@@ -249,6 +300,11 @@ Namespace CaptureEngine.Recording
                                     Dim rawBytes As Integer = pkt.Frames * Math.Max(1, _sysPosCapture.Channels) * Math.Max(1, _sysPosCapture.BitsPerSample \ 8)
                                     _sysTap3.Feed(pkt.Data, Math.Min(rawBytes, pkt.Data.Length), pkt.QpcPosition100ns)
                                 End If
+
+                                ' The moment this tap anchors, the v2 offset math
+                                ' can run (video t0 may already exist, or will —
+                                ' the helper handles both orders; no-op if begun).
+                                If _sysTap3.Anchored Then BeginTimelinesOnce()
                             End If
                         End Sub
 
@@ -535,25 +591,18 @@ Namespace CaptureEngine.Recording
                         ' wall-clock stream (lead 0); the pipe origin offset carries
                         ' BOTH the audio-start→video-t0 trim AND the systemic
                         ' device-latency lead.
-                        Dim sysOff As Double
-                        If _deviceClockSys AndAlso _sysTap3 IsNot Nothing AndAlso _sysTap3.Anchored Then
-                            ' P13.4 — SyncMath v2: exact QPC anchor arithmetic.
-                            ' The reconstructed stream BEGINS at the first fed
-                            ' packet's hardware stamp — anchor-to-anchor, no
-                            ' call-time guess, no pre-roll estimate, and the
-                            ' lead is ZERO by default (SystemAudioLeadDeviceSec;
-                            ' residual goes in only if sync-verify measures it).
-                            Dim videoT0100ns As Long = CLng(_videoStartTicks * 10000000.0 / Stopwatch.Frequency)
-                            sysOff = SyncMath.ComputeAudioOffsetSecFromAnchors(
-                                videoT0100ns, _sysTap3.FirstQpc100ns) + SyncMath.SystemAudioLeadDeviceSec
-                        Else
-                            sysOff = SyncMath.ComputeAudioOffsetSec(
-                                _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
+                        ' ★ Timelines begin via BeginTimelinesOnce(): Legacy
+                        ' mode fires here (stopwatch math is exact for that
+                        ' path). Device mode fires HERE if the tap already
+                        ' anchored, otherwise defers to the first packet —
+                        ' whichever input arrives last wins; the mux queues
+                        ' audio bytes meanwhile (8 MB cap ≫ the sub-100 ms
+                        ' window) and its writer waits on the timeline event.
+                        If _deviceClockSys AndAlso Not _timelinesBegun AndAlso
+                           (_sysTap3 Is Nothing OrElse Not _sysTap3.Anchored) Then
+                            _logger.Info("[session] video t0 before first audio anchor — deferring mux timelines to the device anchor (exact v2 math)")
                         End If
-                        Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _micStartTicks, Stopwatch.Frequency) + SyncMath.MicAudioLeadSec
-                        _logger.Info($"[session] timeline origin: sys offset={sysOff:0.000}s mic offset={micOff:0.000}s (t0 trim + lead {SyncMath.SystemAudioLeadSec:0.000}s)")
-                        _liveMux?.BeginTimelines(sysOff, micOff)
+                        BeginTimelinesOnce()
                     End If
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
@@ -781,9 +830,16 @@ Namespace CaptureEngine.Recording
                 Catch
                 End Try
 
-                ' Evidence: system audio offset that the live feed applied
-                Dim systemOffset As Double = SyncMath.ComputeAudioOffsetSec(
-                    _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                ' Evidence: the system audio offset that the live feed ACTUALLY
+                ' applied — the v2 anchor value on the Device path (whatever
+                ' BeginTimelinesOnce computed), stopwatch estimate otherwise.
+                Dim systemOffset As Double
+                If _deviceClockSys AndAlso Not Double.IsNaN(_appliedSysOffsetSec) Then
+                    systemOffset = _appliedSysOffsetSec
+                Else
+                    systemOffset = SyncMath.ComputeAudioOffsetSec(
+                        _videoStartTicks, _systemStartTicks, Stopwatch.Frequency)
+                End If
                 result.SystemOffsetSec = systemOffset
                 Dim micOffset As Double = SyncMath.ComputeAudioOffsetSec(
                     _videoStartTicks, _micStartTicks, Stopwatch.Frequency)
