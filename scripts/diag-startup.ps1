@@ -26,7 +26,7 @@ param([switch]$SkipRef)
 $ErrorActionPreference = "Continue"
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
-$overlayBin = Join-Path $repo "Overlay\bin\Release\net8.0-windows10.0.26100.0"
+$overlayBin = Join-Path $repo "Overlay\bin\Release\net10.0-windows10.0.26100.0"
 $spExe  = Join-Path $overlayBin "NVIDIA ShadowPlay.exe"
 $apiExe = Join-Path $overlayBin "NVIDIA API.exe"
 
@@ -89,7 +89,7 @@ try {
     Push-Location $b0Dir
     & dotnet new winforms -n ScratchHost --force 2>&1 | Out-Null
     & dotnet build ScratchHost -c Release -v q --nologo 2>&1 | Out-Null
-    $b0exe = Join-Path $b0Dir "ScratchHost\bin\Release\net8.0-windows\ScratchHost.exe"
+    $b0exe = Join-Path $b0Dir "ScratchHost\bin\Release\net10.0-windows\ScratchHost.exe"
     if (Test-Path $b0exe) {
         $b0 = Trace-Launch $b0exe 6 "B0"
         if ($b0.Alive) { Write-Host "  [PASS] trivial winforms apphost RUNS → machine OK, problem is Overlay-specific" -ForegroundColor Green }

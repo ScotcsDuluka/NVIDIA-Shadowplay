@@ -73,7 +73,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "BUILD OK" -ForegroundColor Green
 
 # ── 3. Timestamp sanity (BUILD_PROTOCOL) ───────────────────────────
-$dll = "Overlay\bin\Release\net8.0-windows10.0.26100.0\NVIDIA Capture.dll"
+$dll = "Overlay\bin\Release\net10.0-windows10.0.26100.0\NVIDIA Capture.dll"
 if (Test-Path $dll) {
     Write-Host "`n>>> Runtime DLL: $dll"
     Write-Host "    timestamp: $((Get-Item $dll).LastWriteTime)  (must be 'now')"

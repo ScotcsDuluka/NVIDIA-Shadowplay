@@ -25,7 +25,7 @@
     <Configuration Condition="'$(Configuration)' == ''">Release</Configuration>
     <LayoutRoot Condition="'$(LayoutRoot)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\dist\NVIDIA ShadowPlay'))</LayoutRoot>
     <Repo Condition="'$(Repo)' == ''">$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..'))/</Repo>
-    <AppBin>bin/$(Configuration)/net8.0-windows10.0.26100.0</AppBin>
+    <AppBin>bin/$(Configuration)/net10.0-windows10.0.26100.0</AppBin>
   </PropertyGroup>
 
   <ItemGroup>
@@ -115,22 +115,22 @@
     <Copy SourceFiles="$(Repo)Notifier/$(AppBin)\NVIDIA Notifier.runtimeconfig.json"
           DestinationFiles="$(LayoutRoot)/Services\NVIDIA Notifier.runtimeconfig.json" SkipUnchangedFiles="true" />
 
-    <!-- Engine libraries (wildcard TFM: libs mix net8.0 / net8.0-windows) -->
-    <Copy SourceFiles="$(Repo)CaptureEngine/bin/$(Configuration)/net8.0/CaptureEngine.dll"
+    <!-- Engine libraries (wildcard TFM: libs mix net10.0 / net10.0-windows) -->
+    <Copy SourceFiles="$(Repo)CaptureEngine/bin/$(Configuration)/net10.0/CaptureEngine.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.Encoder/bin/$(Configuration)/net8.0/CaptureEngine.Encoder.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.Encoder/bin/$(Configuration)/net10.0/CaptureEngine.Encoder.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Encoder.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.Video/bin/$(Configuration)/net8.0/CaptureEngine.Video.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.Video/bin/$(Configuration)/net10.0/CaptureEngine.Video.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Video.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.Video.Ddagrab/bin/$(Configuration)/net8.0-windows/CaptureEngine.Video.Ddagrab.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.Video.Ddagrab/bin/$(Configuration)/net10.0-windows/CaptureEngine.Video.Ddagrab.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Video.Ddagrab.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.Encoder.Nvenc/bin/$(Configuration)/net8.0-windows/CaptureEngine.Encoder.Nvenc.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.Encoder.Nvenc/bin/$(Configuration)/net10.0-windows/CaptureEngine.Encoder.Nvenc.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Encoder.Nvenc.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.FFmpegBackend/bin/$(Configuration)/net8.0/CaptureEngine.FFmpegBackend.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.FFmpegBackend/bin/$(Configuration)/net10.0/CaptureEngine.FFmpegBackend.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.FFmpegBackend.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.Audio.Wasapi/bin/$(Configuration)/net8.0/CaptureEngine.Audio.Wasapi.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.Audio.Wasapi/bin/$(Configuration)/net10.0/CaptureEngine.Audio.Wasapi.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Audio.Wasapi.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)CaptureEngine.Recording/bin/$(Configuration)/net8.0-windows/CaptureEngine.Recording.dll"
+    <Copy SourceFiles="$(Repo)CaptureEngine.Recording/bin/$(Configuration)/net10.0-windows/CaptureEngine.Recording.dll"
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Recording.dll" SkipUnchangedFiles="true" />
 
     <!-- Content: Overlay carries the product content -->

@@ -28,7 +28,7 @@ param([switch]$SkipBuild)
 $ErrorActionPreference = "Continue"
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
-$overlayBin = Join-Path $repo "Overlay\bin\Release\net8.0-windows10.0.26100.0"
+$overlayBin = Join-Path $repo "Overlay\bin\Release\net10.0-windows10.0.26100.0"
 
 $spExe   = Join-Path $overlayBin "NVIDIA ShadowPlay.exe"
 $capExe  = Join-Path $overlayBin "NVIDIA Capture.exe"

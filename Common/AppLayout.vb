@@ -135,7 +135,7 @@ Public Module AppLayout
         folders.Add(P("Audio"))
         folders.Add(P("Graphics"))
         folders.Add(P("Libraries"))
-        folders.Add(P("Runtimes", "win", "lib", "net8.0"))
+        folders.Add(P("Runtimes", "win", "lib", "net10.0"))
         folders.Add(ExeDir)
         Return folders
     End Function
