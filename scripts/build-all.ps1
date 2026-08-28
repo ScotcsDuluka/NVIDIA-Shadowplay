@@ -12,9 +12,12 @@
 #       # and then MIRROR it onto Overlay\bin\Release\net10.0-windows10.0.26100.0\
 #       # (OWNER: the dev bin IS the main tree, CLEAN — dev clutter purged;
 #       # runtime dirs Config\Data\Logs\Flags excluded and preserved).
-#       # Application\ hosts -> Services\ dlls, Engine\ libs, FFmpeg\, Config\,
-#       # Languages\, Data\, Flags\... Runtime assembly resolution is handled by
-#       # Common/AppLayout.vb compiled into every app.
+#       # NOTE: a PLAIN solution build already sweeps its bin into the same
+#       # product tree (_ProductTreeBin in Directory.Build.targets) —
+#       # -StageLayout adds the wipe-and-verify dist artifact + a /MIR deep
+#       # clean of accumulated junk. All .NET deployment json lives in
+#       # .NET Deployment\; runtimeconfig.json also stays beside each app dll
+#       # (hostfxr hard requirement).
 
 param(
     [switch]$RunTests,
@@ -82,12 +85,13 @@ if (Test-Path $dll) {
     Write-Host "    timestamp: $((Get-Item $dll).LastWriteTime)  (must be 'now')"
 }
 
-# ── 3b. Dev bin is auto-complete (build = runnable, no staging needed) ──
+# ── 3b. Dev bin is auto-complete AND auto-staged (build = product tree) ──
 $devBin = "Overlay\bin\Release\net10.0-windows10.0.26100.0"
-if (Test-Path "$devBin\NVIDIA ShadowPlay.dll") {
-    Write-Host "`n>>> DEV BIN auto-complete: $devBin" -ForegroundColor Green
-    Write-Host "    -> run NVIDIA ShadowPlay.exe (or NVIDIA Experience.exe) right from there."
-    Write-Host "    -> exes, engine libs, FFmpeg\API-Core, Languages, Data, Config all land automatically."
+if (Test-Path "$devBin\Overlay\NVIDIA ShadowPlay.dll") {
+    Write-Host "`n>>> DEV BIN = PRODUCT TREE: $devBin" -ForegroundColor Green
+    Write-Host "    -> run NVIDIA Experience.exe from the root, NVIDIA ShadowPlay.exe from Overlay\."
+    Write-Host "    -> hosts in Application\, deployment json in .NET Deployment\ — swept automatically"
+    Write-Host "       by the plain build (_ProductTreeBin)."
 }
 
 # ── 4. Tests ──────────────────────────────────────────────────────
@@ -162,18 +166,45 @@ if ($StageLayout) {
     # (Config/Data entries are supplied by _DevLayoutComplete, not the
     # mirror — see the /XD exclusions above.)
     $mustExist = @(
-        "NVIDIA Experience.dll",
+        # root — Experience.exe/.dll/.runtimeconfig.json (deps.json moved)
         "NVIDIA Experience.exe",
+        "NVIDIA Experience.dll",
+        "NVIDIA Experience.runtimeconfig.json",
+        # .NET Deployment\ — the complete 10-file metadata set
+        ".NET Deployment\NVIDIA Experience.deps.json",
+        ".NET Deployment\NVIDIA Experience.runtimeconfig.json",
+        ".NET Deployment\NVIDIA ShadowPlay.deps.json",
+        ".NET Deployment\NVIDIA ShadowPlay.runtimeconfig.json",
+        ".NET Deployment\NVIDIA API.deps.json",
+        ".NET Deployment\NVIDIA API.runtimeconfig.json",
+        ".NET Deployment\NVIDIA Capture.deps.json",
+        ".NET Deployment\NVIDIA Capture.runtimeconfig.json",
+        ".NET Deployment\NVIDIA Notifier.deps.json",
+        ".NET Deployment\NVIDIA Notifier.runtimeconfig.json",
+        # Application\ split hosts (Windows apphost — this script is Windows-only)
+        "Application\NVIDIA API.exe",
+        "Application\NVIDIA Capture.exe",
+        "Application\NVIDIA Notifier.exe",
+        # Services: dll + runtimeconfig (loader hard requirement beside dll)
+        "Services\NVIDIA API.dll",
+        "Services\NVIDIA API.runtimeconfig.json",
+        "Services\NVIDIA Capture.dll",
+        "Services\NVIDIA Capture.runtimeconfig.json",
+        "Services\NVIDIA Notifier.dll",
+        "Services\NVIDIA Notifier.runtimeconfig.json",
+        # Overlay app
         "Overlay\NVIDIA ShadowPlay.exe",
         "Overlay\NVIDIA ShadowPlay.dll",
-        "Services\NVIDIA API.dll",
-        "Services\NVIDIA Capture.dll",
-        "Services\NVIDIA Notifier.dll",
+        "Overlay\NVIDIA ShadowPlay.ico",
+        "Overlay\NVIDIA ShadowPlay.runtimeconfig.json",
+        # engine
         "Engine\CaptureEngine.dll",
         "Engine\CaptureEngine.Recording.dll",
+        # content + runtime dirs
         "Config\notifier_obs.json",
         "Data\NVIDIA_Shadowplay_Data\on",
-        "Redist\64bit.runtime.exe"
+        "Redist\64bit.runtime.exe",
+        "Resources\nvgcshare.ttf"
     )
     $missing = @($mustExist | Where-Object { -not (Test-Path (Join-Path $bin $_)) })
     if ($missing.Count -gt 0) {
@@ -183,9 +214,10 @@ if ($StageLayout) {
     }
     Write-Host "STAGED TREE APPLIED OK -> $bin" -ForegroundColor Green
     Write-Host "    -> bin is now the CLEAN product tree: NVIDIA Experience.exe at" -ForegroundColor Green
-    Write-Host "       the root, NVIDIA ShadowPlay.exe in Overlay\, hosts in Application\." -ForegroundColor Green
-    Write-Host "    -> the next plain build re-creates its flat dev files (MSBuild" -ForegroundColor Green
-    Write-Host "       convention); re-run -StageLayout to clean again." -ForegroundColor Green
+    Write-Host "       the root, NVIDIA ShadowPlay.exe in Overlay\, hosts in Application\," -ForegroundColor Green
+    Write-Host "       deployment json in .NET Deployment\." -ForegroundColor Green
+    Write-Host "    -> plain builds now self-maintain this tree (_ProductTreeBin);" -ForegroundColor Green
+    Write-Host "       -StageLayout remains the deep-clean + verify path." -ForegroundColor Green
 }
 
 Write-Host "`nALL DONE." -ForegroundColor Green

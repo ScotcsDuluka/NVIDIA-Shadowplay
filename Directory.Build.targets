@@ -4,9 +4,11 @@
        Directory.Build.targets — ROOT-FIXED LAYOUT SUPPORT ("NVIDIA ShadowPlay")
        ============================================================================
        The deployed tree is assembled by scripts/layout.proj (invoked from
-       build-all.ps1 -StageLayout). Normal builds NEVER hit the layout code:
-       everything here is gated on the StageLayout=true property that only
-       layout.proj passes, so dev workflows (VS F5, classic bin\) are untouched.
+       build-all.ps1 -StageLayout). Everything layout-related is gated on the
+       StageLayout=true property that only layout.proj passes, EXCEPT
+       _ProductTreeBin/_ProductTreeExpBin below: since the OWNER's directive
+       "Build ปกติ" (plain build must work), a NORMAL solution build now
+       sweeps its own bin into the same product shape — no separate step.
 
        Per-app staging targets below (they run INSIDE each app's own build,
        where the SDK exposes AppHostSourcePath and RuntimeCopyLocalItems):
@@ -21,6 +23,14 @@
            scripts/apphost_test: CreateAppHost embeds the parent-relative
            path verbatim, copies the icon from the managed dll, and hostfxr
            resolves it against the host's own directory).
+
+         _ProductTreeBin — normal builds only: re-organizes Overlay's bin
+           (which receives every app's payload via ProjectReference) into
+           the product tree. See the target comment for the loader facts
+           that fix where deps.json/runtimeconfig.json may live. There is
+           deliberately NO Experience-side sweep: a lone Experience build
+           keeps its own classic flat bin (VS F5), and its deps.json must
+           stay there for Overlay's ProjectReference copy (MSB3030).
        ============================================================================ -->
 
   <!-- ── Runtime-lib staging: Audio\ Graphics\ Libraries\ Core\ Runtimes\ ── -->
@@ -132,5 +142,275 @@
           SkipUnchangedFiles="true" />
     <Message Text="dev layout complete -> $(TargetDir)" Importance="high" />
   </Target>
+
+  <!-- ── _ProductTreeBin — normal builds sweep the bin into the product ──
+       OWNER: "Build ปกติ" must leave the CLEAN tree (same shape as the
+       -StageLayout dist tree), with all .NET deployment json collected in
+       .NET Deployment\. Runs inside the NVIDIA ShadowPlay build, which
+       ProjectReferences all four other apps and therefore builds LAST in
+       every solution build — by then every project has finished copying
+       its flat payload here. Idempotent: after the first pass the root
+       globs come up empty and every Copy/Delete no-ops.
+
+       Loader facts (verified by experiment, scripts/lab-netreloc.sh,
+       Linux hostfxr — same hostpolicy code as the Windows apphosts):
+         - <app>.runtimeconfig.json MUST sit next to the app dll: missing
+           = "Failed to run as a self-contained app" — FATAL, before any
+           managed code (so no in-app handler can save it). Therefore
+           root\, Overlay\ and Services\ KEEP their runtimeconfig.json.
+         - <app>.deps.json is OPTIONAL at load: without it hostpolicy
+           falls back to app-dir probing, and AppLayout's Resolving
+           handler (Common/AppLayout.vb, installed at Startup before any
+           form code) supplies every cross-folder dependency. Therefore
+           ALL 5 deps.json MOVE to .NET Deployment\.
+       Unpatched service apphosts at the root are deleted and re-stamped
+       into Application\ via CreateAppHost with ..\Services\<app>.dll
+       embedded (Windows only — Linux builds produce no Windows apphosts).
+
+       Family classification follows _StageRuntimeLibs: EXPLICIT filename
+       equality (metadata property functions break with MSB4092); the
+       Core\ NOT-chain is the catch-all for System.*/Microsoft.*/WinRT.*. -->
+  <Target Name="_ProductTreeBin"
+          AfterTargets="Build"
+          Condition="'$(StageLayout)' != 'true' And '$(AssemblyName)' == 'NVIDIA ShadowPlay'">
+
+    <PropertyGroup>
+      <_PtRoot>$(TargetDir)</_PtRoot>
+      <_PtNetDep>$([System.IO.Path]::Combine('$(TargetDir)', '.NET Deployment'))</_PtNetDep>
+      <_PtOverlay>$([System.IO.Path]::Combine('$(TargetDir)', 'Overlay'))</_PtOverlay>
+      <_PtServices>$([System.IO.Path]::Combine('$(TargetDir)', 'Services'))</_PtServices>
+      <_PtEngine>$([System.IO.Path]::Combine('$(TargetDir)', 'Engine'))</_PtEngine>
+      <_PtAppHosts>$([System.IO.Path]::Combine('$(TargetDir)', 'Application'))</_PtAppHosts>
+      <_PtWin Condition="'$(OS)' == 'Windows_NT'">true</_PtWin>
+      <!-- legacy content dirs (source side of the content moves). Exists()
+           conditions cannot host $([..]) functions (MSB4092) → precompute. -->
+      <_PtApiCoreDir>$([System.IO.Path]::Combine('$(TargetDir)', 'API-Core'))</_PtApiCoreDir>
+      <_PtRedistSrcDir>$([System.IO.Path]::Combine('$(TargetDir)', '_Redist'))</_PtRedistSrcDir>
+      <_PtDataSrcDir>$([System.IO.Path]::Combine('$(TargetDir)', 'NVIDIA_Shadowplay_Data'))</_PtDataSrcDir>
+      <_PtRidSrcDir>$([System.IO.Path]::Combine('$(TargetDir)', 'runtimes'))</_PtRidSrcDir>
+      <_PtCfgAppDir>$([System.IO.Path]::Combine('$(TargetDir)', 'ConfigApp'))</_PtCfgAppDir>
+    </PropertyGroup>
+
+    <!-- 1. classify the flat root — item groups evaluate HERE, before any
+         move, so the globs always see the pre-sweep state.
+         Metadata rules that cost real debugging time:
+           - %(Filename) strips only the LAST extension: "NVIDIA
+             API.deps.json" -> "NVIDIA API.deps" (NOT "NVIDIA API") — the
+             .deps/.runtimeconfig comparisons below must carry that suffix.
+           - inside a target, filter with QUALIFIED source metadata
+             (%(_PtDll.Filename)); unqualified %(Filename) on an
+             Include="@(_List)" element evaluates empty on this SDK.
+           - Linux apphosts have NO extension ("NVIDIA API" — copied here
+             by the ProjectReference), so the exe-side lists include the
+             extensionless literals too (Exists-gated: literal Includes of
+             missing files would create phantom items). -->
+    <ItemGroup>
+      <_PtDll Include="$(_PtRoot)*.dll" />
+      <_PtPdb Include="$(_PtRoot)*.pdb" />
+      <_PtXml Include="$(_PtRoot)*.xml" />
+      <_PtExe Include="$(_PtRoot)*.exe" />
+      <_PtDepsJson Include="$(_PtRoot)*.deps.json" />
+      <_PtRtCfg Include="$(_PtRoot)*.runtimeconfig.json" />
+
+      <!-- services: managed payload -> Services\ -->
+      <_PtSvcManaged Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+                     Condition="'%(_PtDll.Filename)' == 'NVIDIA API' Or '%(_PtDll.Filename)' == 'NVIDIA Capture' Or '%(_PtDll.Filename)' == 'NVIDIA Notifier' Or
+                                '%(_PtPdb.Filename)' == 'NVIDIA API' Or '%(_PtPdb.Filename)' == 'NVIDIA Capture' Or '%(_PtPdb.Filename)' == 'NVIDIA Notifier' Or
+                                '%(_PtXml.Filename)' == 'NVIDIA API' Or '%(_PtXml.Filename)' == 'NVIDIA Capture' Or '%(_PtXml.Filename)' == 'NVIDIA Notifier'" />
+      <_PtSvcRtCfg Include="@(_PtRtCfg)"
+                   Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig'" />
+      <_PtSvcExe Include="@(_PtExe)"
+                 Condition="'%(_PtExe.Filename)' == 'NVIDIA API' Or '%(_PtExe.Filename)' == 'NVIDIA Capture' Or '%(_PtExe.Filename)' == 'NVIDIA Notifier'" />
+      <_PtSvcExe Include="$(_PtRoot)NVIDIA API" Condition="Exists('$(_PtRoot)NVIDIA API')" />
+      <_PtSvcExe Include="$(_PtRoot)NVIDIA Capture" Condition="Exists('$(_PtRoot)NVIDIA Capture')" />
+      <_PtSvcExe Include="$(_PtRoot)NVIDIA Notifier" Condition="Exists('$(_PtRoot)NVIDIA Notifier')" />
+
+      <!-- overlay app -> Overlay\ -->
+      <_PtOvlManaged Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+                     Condition="'%(_PtDll.Filename)' == 'NVIDIA ShadowPlay' Or '%(_PtPdb.Filename)' == 'NVIDIA ShadowPlay' Or '%(_PtXml.Filename)' == 'NVIDIA ShadowPlay'" />
+      <_PtOvlExe Include="@(_PtExe)" Condition="'%(_PtExe.Filename)' == 'NVIDIA ShadowPlay'" />
+      <_PtOvlExe Include="$(_PtRoot)NVIDIA ShadowPlay" Condition="Exists('$(_PtRoot)NVIDIA ShadowPlay')" />
+      <_PtOvlRtCfg Include="@(_PtRtCfg)" Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA ShadowPlay.runtimeconfig'" />
+      <_PtOvlIco Include="$(_PtRoot)NVIDIA ShadowPlay.ico" Condition="Exists('$(_PtRoot)NVIDIA ShadowPlay.ico')" />
+
+      <!-- engine libraries -> Engine\ -->
+      <_PtEngineLibs Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+                     Condition="'%(_PtDll.Filename)' == 'CaptureEngine' Or '%(_PtDll.Filename)' == 'CaptureEngine.Audio.Wasapi' Or
+                                '%(_PtDll.Filename)' == 'CaptureEngine.Encoder' Or '%(_PtDll.Filename)' == 'CaptureEngine.Encoder.Nvenc' Or
+                                '%(_PtDll.Filename)' == 'CaptureEngine.FFmpegBackend' Or '%(_PtDll.Filename)' == 'CaptureEngine.Recording' Or
+                                '%(_PtDll.Filename)' == 'CaptureEngine.Video' Or '%(_PtDll.Filename)' == 'CaptureEngine.Video.Ddagrab' Or
+                                '%(_PtPdb.Filename)' == 'CaptureEngine' Or '%(_PtPdb.Filename)' == 'CaptureEngine.Audio.Wasapi' Or
+                                '%(_PtPdb.Filename)' == 'CaptureEngine.Encoder' Or '%(_PtPdb.Filename)' == 'CaptureEngine.Encoder.Nvenc' Or
+                                '%(_PtPdb.Filename)' == 'CaptureEngine.FFmpegBackend' Or '%(_PtPdb.Filename)' == 'CaptureEngine.Recording' Or
+                                '%(_PtPdb.Filename)' == 'CaptureEngine.Video' Or '%(_PtPdb.Filename)' == 'CaptureEngine.Video.Ddagrab'" />
+
+      <!-- package families (same classification as _StageRuntimeLibs) -->
+      <_PtAudio Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+                Condition="'%(_PtDll.Filename)' == 'NAudio' Or '%(_PtDll.Filename)' == 'NAudio.Asio' Or '%(_PtDll.Filename)' == 'NAudio.Core' Or
+                           '%(_PtDll.Filename)' == 'NAudio.Midi' Or '%(_PtDll.Filename)' == 'NAudio.Wasapi' Or '%(_PtDll.Filename)' == 'NAudio.WinForms' Or
+                           '%(_PtDll.Filename)' == 'NAudio.WinMM'" />
+      <_PtGraphics Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+                   Condition="'%(_PtDll.Filename)' == 'Vortice.Direct3D11' Or '%(_PtDll.Filename)' == 'Vortice.DXGI' Or '%(_PtDll.Filename)' == 'Vortice.DirectX' Or
+                              '%(_PtDll.Filename)' == 'Vortice.Mathematics' Or '%(_PtDll.Filename)' == 'Vortice.Direct3D11.Win32' Or
+                              '%(_PtDll.Filename)' == 'Vortice.DirectX.Win32' Or '%(_PtDll.Filename)' == 'Vortice.D3DCompiler'" />
+      <_PtSharpCore Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+                    Condition="'%(_PtDll.Filename)' == 'SharpGen.Runtime' Or '%(_PtDll.Filename)' == 'SharpGen.Runtime.COM'" />
+      <_PtLibraries Include="@(_PtDll);@(_PtPdb);@(_PtXml)" Condition="'%(_PtDll.Filename)' == 'Newtonsoft.Json'" />
+      <!-- Core\ = every remaining flat assembly (System.*, Microsoft.*, WinRT.*) -->
+      <_PtCore Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
+               Condition="'%(_PtDll.Filename)' != 'NVIDIA Experience' And '%(_PtDll.Filename)' != 'NVIDIA ShadowPlay' And
+                          '%(_PtDll.Filename)' != 'NVIDIA API' And '%(_PtDll.Filename)' != 'NVIDIA Capture' And '%(_PtDll.Filename)' != 'NVIDIA Notifier' And
+                          '%(_PtDll.Filename)' != 'CaptureEngine' And '%(_PtDll.Filename)' != 'CaptureEngine.Audio.Wasapi' And
+                          '%(_PtDll.Filename)' != 'CaptureEngine.Encoder' And '%(_PtDll.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
+                          '%(_PtDll.Filename)' != 'CaptureEngine.FFmpegBackend' And '%(_PtDll.Filename)' != 'CaptureEngine.Recording' And
+                          '%(_PtDll.Filename)' != 'CaptureEngine.Video' And '%(_PtDll.Filename)' != 'CaptureEngine.Video.Ddagrab' And
+                          '%(_PtDll.Filename)' != 'NAudio' And '%(_PtDll.Filename)' != 'NAudio.Asio' And '%(_PtDll.Filename)' != 'NAudio.Core' And
+                          '%(_PtDll.Filename)' != 'NAudio.Midi' And '%(_PtDll.Filename)' != 'NAudio.Wasapi' And '%(_PtDll.Filename)' != 'NAudio.WinForms' And
+                          '%(_PtDll.Filename)' != 'NAudio.WinMM' And
+                          '%(_PtDll.Filename)' != 'Vortice.Direct3D11' And '%(_PtDll.Filename)' != 'Vortice.DXGI' And '%(_PtDll.Filename)' != 'Vortice.DirectX' And
+                          '%(_PtDll.Filename)' != 'Vortice.Mathematics' And '%(_PtDll.Filename)' != 'Vortice.Direct3D11.Win32' And
+                          '%(_PtDll.Filename)' != 'Vortice.DirectX.Win32' And '%(_PtDll.Filename)' != 'Vortice.D3DCompiler' And
+                          '%(_PtDll.Filename)' != 'Newtonsoft.Json' And '%(_PtDll.Filename)' != 'SharpGen.Runtime' And '%(_PtDll.Filename)' != 'SharpGen.Runtime.COM' And
+                          '%(_PtPdb.Filename)' != 'NVIDIA Experience' And '%(_PtPdb.Filename)' != 'NVIDIA ShadowPlay' And
+                          '%(_PtPdb.Filename)' != 'NVIDIA API' And '%(_PtPdb.Filename)' != 'NVIDIA Capture' And '%(_PtPdb.Filename)' != 'NVIDIA Notifier' And
+                          '%(_PtPdb.Filename)' != 'CaptureEngine' And '%(_PtPdb.Filename)' != 'CaptureEngine.Audio.Wasapi' And
+                          '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder' And '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
+                          '%(_PtPdb.Filename)' != 'CaptureEngine.FFmpegBackend' And '%(_PtPdb.Filename)' != 'CaptureEngine.Recording' And
+                          '%(_PtPdb.Filename)' != 'CaptureEngine.Video' And '%(_PtPdb.Filename)' != 'CaptureEngine.Video.Ddagrab' And
+                          '%(_PtPdb.Filename)' != 'NAudio' And '%(_PtPdb.Filename)' != 'NAudio.Asio' And '%(_PtPdb.Filename)' != 'NAudio.Core' And
+                          '%(_PtPdb.Filename)' != 'NAudio.Midi' And '%(_PtPdb.Filename)' != 'NAudio.Wasapi' And '%(_PtPdb.Filename)' != 'NAudio.WinForms' And
+                          '%(_PtPdb.Filename)' != 'NAudio.WinMM' And
+                          '%(_PtPdb.Filename)' != 'Vortice.Direct3D11' And '%(_PtPdb.Filename)' != 'Vortice.DXGI' And '%(_PtPdb.Filename)' != 'Vortice.DirectX' And
+                          '%(_PtPdb.Filename)' != 'Vortice.Mathematics' And '%(_PtPdb.Filename)' != 'Vortice.Direct3D11.Win32' And
+                          '%(_PtPdb.Filename)' != 'Vortice.DirectX.Win32' And '%(_PtPdb.Filename)' != 'Vortice.D3DCompiler' And
+                          '%(_PtPdb.Filename)' != 'Newtonsoft.Json' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime.COM' And
+                          '%(_PtXml.Filename)' != 'NVIDIA Experience' And '%(_PtXml.Filename)' != 'NVIDIA ShadowPlay' And
+                          '%(_PtXml.Filename)' != 'NVIDIA API' And '%(_PtXml.Filename)' != 'NVIDIA Capture' And '%(_PtXml.Filename)' != 'NVIDIA Notifier' And
+                          '%(_PtXml.Filename)' != 'Newtonsoft.Json'" />
+
+      <!-- .NET Deployment\: every app deps.json moves here (Filename
+           carries the ".deps" suffix — two-dot file!); every app
+           runtimeconfig.json gets a copy here (originals stay beside the
+           dlls — loader requirement). -->
+      <_PtDepsToNetDep Include="@(_PtDepsJson)"
+                       Condition="'%(_PtDepsJson.Filename)' == 'NVIDIA Experience.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA ShadowPlay.deps' Or
+                                  '%(_PtDepsJson.Filename)' == 'NVIDIA API.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Capture.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Notifier.deps'" />
+      <_PtRtCfgToNetDep Include="@(_PtRtCfg)"
+                        Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA Experience.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA ShadowPlay.runtimeconfig' Or
+                                   '%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig'" />
+
+      <!-- content -->
+      <_PtFont Include="$(_PtRoot)nvgcshare.ttf" Condition="Exists('$(_PtRoot)nvgcshare.ttf')" />
+      <_PtApiCore Include="$(_PtRoot)API-Core\**\*" />
+      <_PtRedist Include="$(_PtRoot)_Redist\**\*" />
+      <_PtDataSeed Include="$(_PtRoot)NVIDIA_Shadowplay_Data\**\*" />
+      <_PtRidNative Include="$(_PtRoot)runtimes\**\*" />
+      <!-- stray root OBS config (belongs to Config\; _DevLayoutComplete
+           seeds the real one) -->
+      <_PtObsCfg Include="$(_PtRoot)notifier_obs.json" Condition="Exists('$(_PtRoot)notifier_obs.json')" />
+      <_PtObsCfg Include="$(_PtRoot)notifier_obs.example.json" Condition="Exists('$(_PtRoot)notifier_obs.example.json')" />
+    </ItemGroup>
+
+    <!-- 2. destination folders -->
+    <MakeDir Directories="$(_PtNetDep);$(_PtOverlay);$(_PtServices);$(_PtEngine);
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Audio'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Graphics'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Core'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Libraries'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'FFmpeg'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Resources'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Redist'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Data'));
+                          $([System.IO.Path]::Combine('$(TargetDir)', 'Runtimes'))" />
+    <MakeDir Directories="$(_PtAppHosts)" Condition="'$(_PtWin)' == 'true'" />
+
+    <!-- 3. content folders -> product folders, then remove the source dirs -->
+    <Copy SourceFiles="@(_PtApiCore)"
+          DestinationFiles="@(_PtApiCore->'$([System.IO.Path]::Combine('$(TargetDir)', 'FFmpeg', '%(RecursiveDir)%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtRedist)"
+          DestinationFiles="@(_PtRedist->'$([System.IO.Path]::Combine('$(TargetDir)', 'Redist', '%(RecursiveDir)%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtDataSeed)"
+          DestinationFiles="@(_PtDataSeed->'$([System.IO.Path]::Combine('$(TargetDir)', 'Data\NVIDIA_Shadowplay_Data', '%(RecursiveDir)%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtRidNative)"
+          DestinationFiles="@(_PtRidNative->'$([System.IO.Path]::Combine('$(TargetDir)', 'Runtimes', '%(RecursiveDir)%(Filename)%(Extension)'))')"
+          SkipUnchangedFiles="true" />
+    <RemoveDir Directories="$(_PtApiCoreDir)" Condition="Exists('$(_PtApiCoreDir)')" />
+    <RemoveDir Directories="$(_PtRedistSrcDir)" Condition="Exists('$(_PtRedistSrcDir)')" />
+    <RemoveDir Directories="$(_PtDataSrcDir)" Condition="Exists('$(_PtDataSrcDir)')" />
+    <RemoveDir Directories="$(_PtRidSrcDir)" Condition="Exists('$(_PtRidSrcDir)')" />
+
+    <!-- 4. payload moves (copy into the product slot, then delete the flat
+         original; the next build re-copies it flat and this target
+         re-sweeps — self-maintaining) -->
+    <Copy SourceFiles="@(_PtSvcManaged)"  DestinationFiles="@(_PtSvcManaged->'$(_PtServices)\%(Filename)%(Extension)')"  SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtSvcRtCfg)"    DestinationFiles="@(_PtSvcRtCfg->'$(_PtServices)\%(Filename)%(Extension)')"    SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtOvlManaged)"  DestinationFiles="@(_PtOvlManaged->'$(_PtOverlay)\%(Filename)%(Extension)')"  SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtOvlExe)"      DestinationFiles="@(_PtOvlExe->'$(_PtOverlay)\%(Filename)%(Extension)')"      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtOvlRtCfg)"    DestinationFiles="@(_PtOvlRtCfg->'$(_PtOverlay)\%(Filename)%(Extension)')"    SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtOvlIco)"      DestinationFiles="@(_PtOvlIco->'$(_PtOverlay)\%(Filename)%(Extension)')"      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtEngineLibs)"  DestinationFiles="@(_PtEngineLibs->'$(_PtEngine)\%(Filename)%(Extension)')"  SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtAudio)"       DestinationFiles="@(_PtAudio->'$([System.IO.Path]::Combine('$(TargetDir)', 'Audio'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtGraphics)"    DestinationFiles="@(_PtGraphics->'$([System.IO.Path]::Combine('$(TargetDir)', 'Graphics'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtSharpCore)"   DestinationFiles="@(_PtSharpCore->'$([System.IO.Path]::Combine('$(TargetDir)', 'Core'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtLibraries)"   DestinationFiles="@(_PtLibraries->'$([System.IO.Path]::Combine('$(TargetDir)', 'Libraries'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtCore)"        DestinationFiles="@(_PtCore->'$([System.IO.Path]::Combine('$(TargetDir)', 'Core'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtDepsToNetDep)" DestinationFiles="@(_PtDepsToNetDep->'$(_PtNetDep)\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtRtCfgToNetDep)" DestinationFiles="@(_PtRtCfgToNetDep->'$(_PtNetDep)\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtFont)"        DestinationFiles="@(_PtFont->'$([System.IO.Path]::Combine('$(TargetDir)', 'Resources'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+
+    <Delete Files="@(_PtSvcManaged);@(_PtSvcRtCfg);@(_PtOvlManaged);@(_PtOvlExe);@(_PtOvlRtCfg);@(_PtOvlIco);
+                   @(_PtEngineLibs);@(_PtAudio);@(_PtGraphics);@(_PtSharpCore);@(_PtLibraries);@(_PtCore);
+                   @(_PtDepsToNetDep);@(_PtFont)" />
+
+    <!-- 5. service hosts: delete the unpatched root apphosts (their embedded
+         path is same-dir, broken after the dll moved to Services\; on
+         Linux they are the extensionless apphosts) and re-stamp patched
+         ones into Application\ (Windows only). -->
+    <Delete Files="@(_PtSvcExe)" />
+    <Copy SourceFiles="@(_PtObsCfg)" DestinationFiles="@(_PtObsCfg->'$([System.IO.Path]::Combine('$(TargetDir)', 'Config'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
+    <Delete Files="@(_PtObsCfg)" />
+    <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)"
+                   AppHostDestinationPath="$(_PtAppHosts)\NVIDIA API.exe"
+                   AppBinaryName="..\Services\NVIDIA API.dll"
+                   IntermediateAssembly="$(_PtServices)\NVIDIA API.dll"
+                   WindowsGraphicalUserInterface="true"
+                   Condition="'$(_PtWin)' == 'true' And '$(UseAppHost)' == 'true' And '$(AppHostSourcePath)' != ''" />
+    <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)"
+                   AppHostDestinationPath="$(_PtAppHosts)\NVIDIA Capture.exe"
+                   AppBinaryName="..\Services\NVIDIA Capture.dll"
+                   IntermediateAssembly="$(_PtServices)\NVIDIA Capture.dll"
+                   WindowsGraphicalUserInterface="true"
+                   Condition="'$(_PtWin)' == 'true' And '$(UseAppHost)' == 'true' And '$(AppHostSourcePath)' != ''" />
+    <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)"
+                   AppHostDestinationPath="$(_PtAppHosts)\NVIDIA Notifier.exe"
+                   AppBinaryName="..\Services\NVIDIA Notifier.dll"
+                   IntermediateAssembly="$(_PtServices)\NVIDIA Notifier.dll"
+                   WindowsGraphicalUserInterface="true"
+                   Condition="'$(_PtWin)' == 'true' And '$(UseAppHost)' == 'true' And '$(AppHostSourcePath)' != ''" />
+
+    <Message Text="product tree staged in bin -> $(_PtRoot)  (.NET Deployment\ holds the deployment json; hosts in Application\)" Importance="high" />
+
+    <!-- 6. stale-layout cleanup — files the PREVIOUS tree revisions put in
+         product folders and this revision moved to .NET Deployment\
+         (deleting them here means a plain build self-heals an old bin
+         without needing -StageLayout). -->
+    <ItemGroup>
+      <_PtStaleDeps Include="$(_PtServices)/*.deps.json" />
+      <_PtStaleOvlDeps Include="$(_PtOverlay)/NVIDIA ShadowPlay.deps.json" />
+      <_PtStaleRootCfg Include="$(_PtRoot)*.deps.json" />
+    </ItemGroup>
+    <Delete Files="@(_PtStaleDeps);@(_PtStaleOvlDeps);@(_PtStaleRootCfg)" />
+    <RemoveDir Directories="$(_PtCfgAppDir)" Condition="Exists('$(_PtCfgAppDir)')" />
+  </Target>
+
+  <!-- NOTE: there is deliberately NO Experience-side sweep. A lone
+       Experience build (VS startup project) writes only Experience's OWN
+       bin, which stays the classic flat dev layout (F5 needs its
+       deps.json there — Overlay's ProjectReference copies it from that
+       exact path; deleting it = MSB3030). The product tree lives in
+       Overlay's bin and is maintained by _ProductTreeBin alone. -->
 
 </Project>

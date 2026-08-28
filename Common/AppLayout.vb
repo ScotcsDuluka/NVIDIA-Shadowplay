@@ -3,15 +3,17 @@
 ' The deployed product tree is:
 '
 '   NVIDIA ShadowPlay\
-'     NVIDIA Experience.*            (root app, exe+dll adjacent)
+'     NVIDIA Experience.*            (root app, exe+dll+runtimeconfig adjacent)
 '     Application\*.exe              (thin native hosts for the 3 services)
-'     Services\*.dll + deps/runtimeconfig   (the 3 services' managed apps)
+'     Services\*.dll + runtimeconfig       (the 3 services' managed apps;
+'                                       their deps.json lives in .NET Deployment\)
 '     Overlay\NVIDIA ShadowPlay.*    (overlay app)
 '     Engine\   CaptureEngine.*.dll  (engine libraries)
 '     Core\     System.*/WinRT/SharpGen runtime libs
 '     Audio\    NAudio.*
 '     Graphics\ Vortice.*
 '     Libraries\ Newtonsoft.Json
+'     .NET Deployment\  every *.deps.json / *.runtimeconfig.json (owner tree)
 '     FFmpeg\ Config\ Logs\ Data\ Languages\ Resources\ Redist\ Flags\ Runtimes\
 '
 ' This module (one copy LINKED into every app project) provides:
@@ -24,9 +26,14 @@
 '   2. Assembly resolution — the native host starts ..\Services\<app>.dll
 '      fine (hostfxr combines host dir + embedded relative path), but the
 '      default context only probes the app dir for dependency assemblies.
-'      Shared-family folders (Engine/Core/Audio/Graphics/Libraries) are
-'      found by the Resolving handler below. Zero config, no probing
-'      XML: the folder map IS the layout.
+'      Shared-family folders (Engine/Services/Core/Audio/Graphics/
+'      Libraries) are found by the Resolving handler below. Zero config,
+'      no probing XML: the folder map IS the layout. This also makes the
+'      app *.deps.json files relocatable (OWNER tree: they live in
+'      .NET Deployment\, NOT next to the dlls) — hostpolicy falls back
+'      to app-dir probing and this handler supplies every cross-folder
+'      dependency. Only runtimeconfig.json is NOT relocatable: hostfxr
+'      hard-requires it beside the app dll before any managed code runs.
 '
 '   3. Initialize() — call once at app startup (MyApplication.Startup):
 '      installs the resolver and points the process CWD at the root so
@@ -163,7 +170,10 @@ Public Module AppLayout
     End Sub
 
     ''' <summary>Family folders probed for dependency assemblies, in order.
-    ''' The last entry keeps DEV runs (plain bin\) working unchanged.</summary>
+    ''' Services\ matters for the Overlay app, which calls the NVIDIA API
+    ''' types in-process while the staged tree keeps those dlls in
+    ''' Services\. The last entry keeps DEV runs (plain bin\) working
+    ''' unchanged.</summary>
     Private Function ProbeFolders() As List(Of String)
         Dim folders As New List(Of String)(8)
         folders.Add(P("Engine"))
@@ -171,6 +181,7 @@ Public Module AppLayout
         folders.Add(P("Audio"))
         folders.Add(P("Graphics"))
         folders.Add(P("Libraries"))
+        folders.Add(P("Services"))
         folders.Add(P("Runtimes", "win", "lib", "net10.0"))
         folders.Add(ExeDir)
         Return folders
