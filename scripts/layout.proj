@@ -52,7 +52,7 @@
                         $(Repo)CaptureEngine.Audio.Wasapi/CaptureEngine.Audio.Wasapi.csproj;
                         $(Repo)CaptureEngine.Recording/CaptureEngine.Recording.vbproj" />
     <!-- Apps -->
-    <AppProject Include="$(Repo)App Experience/NVIDIA Experience.vbproj;$(Repo)Overlay/NVIDIA Overlay.vbproj;
+    <AppProject Include="$(Repo)Launcher/NVIDIA Experience.vbproj;$(Repo)Overlay/NVIDIA Overlay.vbproj;
                          $(Repo)API/NVIDIA API.vbproj;$(Repo)Engine/NVIDIA Capture.vbproj;$(Repo)Notifier/NVIDIA Notifier.vbproj" />
     <AllProjects Include="@(EngineLib);@(AppProject)" />
 
@@ -63,16 +63,16 @@
     <!-- Root app: NVIDIA Experience — exe+dll+runtimeconfig (deps.json
          lives in .NET Deployment\; runtimeconfig is a hostfxr hard
          requirement beside the dll, see header). -->
-    <ExperiencePayload Include="$(Repo)App Experience\$(AppBin)\NVIDIA Experience.dll;
-                                $(Repo)App Experience\$(AppBin)\NVIDIA Experience.runtimeconfig.json" />
-    <ExperienceExe Include="$(Repo)App Experience\$(AppBin)\NVIDIA Experience.exe" />
+    <ExperiencePayload Include="$(Repo)Launcher\$(AppBin)\NVIDIA Experience.dll;
+                                $(Repo)Launcher\$(AppBin)\NVIDIA Experience.runtimeconfig.json" />
+    <ExperienceExe Include="$(Repo)Launcher\$(AppBin)\NVIDIA Experience.exe" />
     <OverlayPayload Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.dll;
                              $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json" />
     <OverlayExe Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.exe" />
     <!-- .NET Deployment\ — the complete deployment-metadata set (OWNER
          tree): every app's deps.json + runtimeconfig.json, one folder. -->
-    <NetDepJson Include="$(Repo)App Experience\$(AppBin)\NVIDIA Experience.deps.json;
-                          $(Repo)App Experience\$(AppBin)\NVIDIA Experience.runtimeconfig.json;
+    <NetDepJson Include="$(Repo)Launcher\$(AppBin)\NVIDIA Experience.deps.json;
+                          $(Repo)Launcher\$(AppBin)\NVIDIA Experience.runtimeconfig.json;
                           $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.deps.json;
                           $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json;
                           $(Repo)API\$(AppBin)\NVIDIA API.deps.json;

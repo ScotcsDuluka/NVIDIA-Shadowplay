@@ -13,8 +13,8 @@ solution that lives beside them.
 
 - `API/`
   Windows capture API host and related WinForms UI files.
-- `App Experience/`
-  Main desktop app experience and helper UI.
+- `Launcher/`
+  Main desktop app (NVIDIA Experience) — the family launcher UI.
 - `Engine/`
   Legacy runtime capture engine — FFmpeg process management, capture settings,
   encoder detection, and Engine UI.
