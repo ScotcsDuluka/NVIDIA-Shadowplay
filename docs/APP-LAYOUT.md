@@ -3,8 +3,17 @@
 OWNER's product tree. The assembler is **`scripts/layout.proj`**, invoked by
 `build-all.ps1 -StageLayout` (or `dotnet msbuild scripts/layout.proj`).
 Classic builds (`dotnet build`, VS F5) are **completely untouched** — they
-still produce self-contained `bin\` outputs. The tree below is a pure
-staging product.
+still produce self-contained `bin\` outputs (the dev bin is additionally
+auto-completed into a runnable family by `_DevLayoutComplete` in
+`Directory.Build.targets`).
+
+**-StageLayout ends by APPLYING the staged tree onto
+`Overlay\bin\Release\net10.0-windows10.0.26100.0\` (robocopy /E, never
+purge)** — per OWNER, the dev bin IS the main tree: after staging, that one
+folder runs the whole family (flat dev exes AND the staged
+Application/Services/Engine/... structure coexist; `AppLayout.Dir` and
+`ExePath` resolve correctly from both). `dist\NVIDIA ShadowPlay` remains
+the clean deployment artifact the apply step copies from.
 
 ```
 NVIDIA ShadowPlay\                    <- dist\NVIDIA ShadowPlay (default)
@@ -121,12 +130,13 @@ assume" style.
 
 1. `git pull`
 2. `powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -StageLayout`
-   → expect `LAYOUT STAGED OK -> ...\dist\NVIDIA ShadowPlay`
-3. Inspect `dist\NVIDIA ShadowPlay` against the tree above; confirm
-   `Application\NVIDIA API.exe` exists (apphost stamping is Windows-only)
-   and has the ShadowPlay icon.
-4. Run `dist\NVIDIA ShadowPlay\NVIDIA Experience.exe` → click its API
-   launcher; then run `dist\NVIDIA ShadowPlay\Application\NVIDIA API.exe`
+   → expect `LAYOUT STAGED OK -> ...\dist\NVIDIA ShadowPlay` followed by
+   `STAGED TREE APPLIED OK -> ...\Overlay\bin\Release\net10.0-windows10.0.26100.0`
+3. Inspect the bin folder against the tree above (the staged subfolders now
+   live INSIDE it); confirm `Application\NVIDIA API.exe` exists (apphost
+   stamping is Windows-only) and has the ShadowPlay icon.
+4. Run `Overlay\bin\Release\net10.0-windows10.0.26100.0\NVIDIA Experience.exe`
+   → click its API launcher; then run `...\Application\NVIDIA API.exe`
    directly — the tray hub must come up (this proves the `..\Services\`
    host mechanism end-to-end).
 5. Start a recording; confirm `Config\config.json` is picked up and

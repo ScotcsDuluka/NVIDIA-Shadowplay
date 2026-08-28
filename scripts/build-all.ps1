@@ -8,7 +8,9 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -RunTests    # build + tests
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -Fast        # skip clean
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -StageLayout # ALSO stage the
-#       # root-fixed "NVIDIA ShadowPlay" tree into dist\ (see docs/APP-LAYOUT.md):
+#       # root-fixed "NVIDIA ShadowPlay" tree into dist\ (see docs/APP-LAYOUT.md)
+#       # and then APPLY it onto Overlay\bin\Release\net10.0-windows10.0.26100.0\
+#       # (OWNER: the dev bin IS the main tree — one folder runs the family).
 #       # Application\ hosts -> Services\ dlls, Engine\ libs, FFmpeg\, Config\,
 #       # Languages\, Data\, Flags\... Runtime assembly resolution is handled by
 #       # Common/AppLayout.vb compiled into every app.
@@ -124,6 +126,51 @@ if ($StageLayout) {
         exit 3
     }
     Write-Host "LAYOUT STAGED OK -> $(Join-Path $repo 'dist\NVIDIA ShadowPlay')" -ForegroundColor Green
+
+    # ── 5b. Apply the staged tree onto the dev bin (OWNER: bin IS the tree) ──
+    # Overlay-copy semantics, NEVER purge: the bin also carries dev-flat build
+    # outputs and runtime-created files (Data\ Config\ Logs\ Flags\) that the
+    # staged tree must not delete. /R:2 /W:2 = fail fast on locked files
+    # (robocopy's default is 1,000,000 retries x 30 s — unacceptable here).
+    # EAP is dropped to Continue around the call: with -ErrorActionPreference
+    # "Stop" a stray robocopy stderr line can kill the script mid-copy.
+    $dist = Join-Path $repo "dist\NVIDIA ShadowPlay"
+    $bin  = Join-Path $repo "Overlay\bin\Release\net10.0-windows10.0.26100.0"
+    Write-Host "`n>>> APPLYING staged tree -> $bin ..." -ForegroundColor Cyan
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    robocopy $dist $bin /E /R:2 /W:2 /NJH /NP /NDL /NFL /NS /NC
+    $ErrorActionPreference = $prevEap
+    if ($LASTEXITCODE -ge 8) {
+        Write-Host "STAGED TREE APPLY FAILED (robocopy exit $LASTEXITCODE — a running app may be locking files; kill the family and re-run)" -ForegroundColor Red
+        exit 4
+    }
+    # Manifest-lite on the APPLIED tree: the same files layout.proj's Manifest
+    # hard-fails on, re-checked where the OWNER actually runs them.
+    $mustExist = @(
+        "NVIDIA Experience.dll",
+        "NVIDIA Experience.exe",
+        "Overlay\NVIDIA ShadowPlay.exe",
+        "Overlay\NVIDIA ShadowPlay.dll",
+        "Services\NVIDIA API.dll",
+        "Services\NVIDIA Capture.dll",
+        "Services\NVIDIA Notifier.dll",
+        "Engine\CaptureEngine.dll",
+        "Engine\CaptureEngine.Recording.dll",
+        "Config\notifier_obs.json",
+        "Data\NVIDIA_Shadowplay_Data\on",
+        "Redist\64bit.runtime.exe"
+    )
+    $missing = @($mustExist | Where-Object { -not (Test-Path (Join-Path $bin $_)) })
+    if ($missing.Count -gt 0) {
+        Write-Host "APPLY MANIFEST MISSING in bin:" -ForegroundColor Red
+        $missing | ForEach-Object { Write-Host "  - $_" -ForegroundColor Red }
+        exit 4
+    }
+    Write-Host "STAGED TREE APPLIED OK -> $bin" -ForegroundColor Green
+    Write-Host "    -> this folder is now the MAIN tree: run NVIDIA Experience.exe" -ForegroundColor Green
+    Write-Host "       (root) or NVIDIA ShadowPlay.exe (root or Overlay\); hosts in Application\." -ForegroundColor Green
+    Write-Host "    -> dist\NVIDIA ShadowPlay remains the clean deployment artifact." -ForegroundColor Green
 }
 
 Write-Host "`nALL DONE." -ForegroundColor Green

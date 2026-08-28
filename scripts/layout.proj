@@ -19,6 +19,9 @@
 
        Normal development NEVER runs this file: classic builds go to bin\ as
        always. The deployed tree is a pure product of this orchestrator.
+       build-all.ps1 -StageLayout then APPLIES this tree onto
+       Overlay\bin\<cfg>\<tfm>\ (OWNER: the dev bin is the main tree) —
+       the apply step lives there; this file stays a pure dist producer.
        ============================================================================ -->
 
   <PropertyGroup>
