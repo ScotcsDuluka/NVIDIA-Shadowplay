@@ -27,9 +27,17 @@ Option Infer On
 ' backwards-stamp max policy (never rewind), fallback-anchor re-anchor rule
 ' (no stream-sized fake hole on stampless-then-stamping drivers).
 '
-' KEPT from legacy (proven rules): block-align clamp, >0.05s minimum-gap
-' threshold, 3600s cap, zero silence buffer, evidence logging, dual sink
-' (WAV sidecar + live-mux pipe).
+' KEPT from legacy (proven rules): block-align clamp, 3600s cap, zero
+' silence buffer, evidence logging, dual sink (WAV sidecar + live-mux pipe).
+'
+' ★ P13.4b (field evidence, OWNER run 2026-08-28): the legacy 50ms
+' minimum-gap threshold is GONE from the padding policy. In v3 a hole is
+' HARDWARE-MEASURED (qpc END→START) — every hole is real elapsed device
+' time whose content the endpoint did not deliver. Dropping sub-50ms
+' holes silently COMPRESSED the track (~5% on the OWNER's machine:
+' 335 holes / 7s tap, sync-verify drift −50ms/s accelerating). The
+' threshold survives only as the per-hole EVIDENCE log filter (holes
+' ≤ 50ms are counted + summed and reported in the close line instead).
 '
 ' DELETED (impossible by construction here): clock steering, drift
 ' baseline, idle gate, Stopwatch arrival logic, MarkStart pre-roll
@@ -50,13 +58,18 @@ Namespace CaptureEngine.FFmpegBackend
     ''' </summary>
     Public NotInheritable Class AudioTapDeviceClock
 
-        ''' <summary>Holes shorter than this are ignored (packet jitter,
-        ''' sub-threshold scheduler noise). Proven legacy value.</summary>
-        Public Const MinGapSec As Double = 0.05
-
         ''' <summary>Holes longer than this are dropped entirely (a stalled
-        ''' device is a log event, not minutes of padding). Proven value.</summary>
+        ''' device is a log event, not minutes of padding). Proven value.
+        ''' Everything between 0 and this cap is PADDED — P13.4b: a hole is
+        ''' hardware-measured real time; dropping any of it compresses the
+        ''' track (the sync-verify −50ms/s drift).</summary>
         Public Const MaxGapSec As Double = 3600.0
+
+        ''' <summary>Holes at or below this are padded but NOT individually
+        ''' logged (evidence noise filter — the OWNER machine fired 335
+        ''' sub-50ms holes per 7s; they are counted and summed for the
+        ''' close line instead). NOT a padding policy anymore.</summary>
+        Public Const MinLogGapSec As Double = 0.05
 
         Private ReadOnly _name As String
         Private ReadOnly _bytesPerFrame As Integer        ' block align
@@ -69,6 +82,9 @@ Namespace CaptureEngine.FFmpegBackend
         Private _silenceCap As Integer = 0
         Private _silenceInsertedBytes As Long = 0
         Private _dataBytes As Long = 0
+        Private _subThresholdHoles As Long = 0
+        Private _subThresholdHole100ns As Long = 0
+        Private _violationEvents As Long = 0
 
         ''' <summary>
         ''' Create the tap. The (sampleRate, channels, bitsPerSample) triple
@@ -150,6 +166,24 @@ Namespace CaptureEngine.FFmpegBackend
             End Get
         End Property
 
+        ''' <summary>Measured holes at or below the log threshold — padded
+        ''' like every other hole (P13.4b) but only counted, not logged.
+        ''' The gap between HolePackets and (HolePackets − SubThresholdHoles)
+        ''' is what the old 50ms policy silently DROPPED.</summary>
+        Public ReadOnly Property SubThresholdHoles As Long
+            Get
+                Return Interlocked.Read(_subThresholdHoles)
+            End Get
+        End Property
+
+        ''' <summary>Sum of the sub-threshold holes, 100ns — real device time
+        ''' the old policy would have dropped from the track.</summary>
+        Public ReadOnly Property SubThresholdHole100ns As Long
+            Get
+                Return Interlocked.Read(_subThresholdHole100ns)
+            End Get
+        End Property
+
         Public ReadOnly Property TotalHole100ns As Long
             Get
                 Return _tracker.TotalHole100ns
@@ -191,24 +225,38 @@ Namespace CaptureEngine.FFmpegBackend
                 _evidence?.Invoke($"[tap3:{_name}] anchored at qpc {report.LastEnd100ns - report.BufferDur100ns} (100ns); buffer {report.BufferDur100ns / 100000.0:0.0}ms")
             End If
 
-            ' The hole (END→START) IS the silence. Same thresholds as the
-            ' proven legacy tap: ignore sub-50ms jitter, drop >1h craters.
+            ' The hole (END→START) IS the silence. P13.4b: EVERY measured
+            ' hole is padded — the hardware said that time elapsed; dropping
+            ' it desyncs the track against the video. Only the log line is
+            ' thresholded (MinLogGapSec), never the padding.
             If report.Hole100ns > 0 Then
                 Dim holeSec As Double = report.Hole100ns / 10000000.0
-                If holeSec > MinGapSec AndAlso holeSec <= MaxGapSec Then
-                    Dim silBytes As Integer = CInt(holeSec * _bytesPerSec)
+                If holeSec <= MaxGapSec Then
+                    Dim silBytes As Long = CLng(holeSec * _bytesPerSec)
                     silBytes -= (silBytes Mod _bytesPerFrame)
                     If silBytes > 0 Then
-                        WriteSilence(silBytes)
-                        _evidence?.Invoke($"[tap3:{_name}] measured hole {holeSec * 1000.0:0}ms → padded {silBytes}B silence")
+                        WriteSilence(CInt(silBytes))
+                        If holeSec > MinLogGapSec Then
+                            _evidence?.Invoke($"[tap3:{_name}] measured hole {holeSec * 1000.0:0}ms → padded {silBytes}B silence")
+                        Else
+                            Interlocked.Increment(_subThresholdHoles)
+                            Interlocked.Add(_subThresholdHole100ns, report.Hole100ns)
+                        End If
+                    ElseIf holeSec <= MinLogGapSec Then
+                        Interlocked.Increment(_subThresholdHoles)
+                        Interlocked.Add(_subThresholdHole100ns, report.Hole100ns)
                     End If
-                ElseIf holeSec > MaxGapSec Then
+                Else
                     _evidence?.Invoke($"[tap3:{_name}] hole {holeSec:0.0}s exceeds {MaxGapSec:0}s cap — NOT padded (device stall?)")
                 End If
             End If
 
             If report.MonotonicViolation Then
-                _evidence?.Invoke($"[tap3:{_name}] backwards stamp absorbed (no rewind)")
+                Dim ev As Long = Interlocked.Increment(_violationEvents)
+                ' Throttle: the OWNER machine fired 135 of these per session.
+                If ev = 1L OrElse ev Mod 50L = 0L Then
+                    _evidence?.Invoke($"[tap3:{_name}] backwards stamp absorbed (no rewind) — event #{ev}")
+                End If
             End If
             If report.StampFallbackUsed Then
                 _evidence?.Invoke($"[tap3:{_name}] zero-stamp packet — continuity assumed (no hole)")
@@ -240,7 +288,7 @@ Namespace CaptureEngine.FFmpegBackend
             If tail100ns > 0 Then
                 PadSilence(tail100ns / 10000000.0, "tail to session end")
             End If
-            _evidence?.Invoke($"[tap3:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s holes={HolePackets} fallbacks={StampFallbacks} violations={MonotonicViolations}")
+            _evidence?.Invoke($"[tap3:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s holes={HolePackets} (sub-50ms: {Interlocked.Read(_subThresholdHoles)} = {Interlocked.Read(_subThresholdHole100ns) / 100000.0:0.0}ms) fallbacks={StampFallbacks} violations={MonotonicViolations}")
         End Sub
 
         ' ── Internals ───────────────────────────────────────────────────

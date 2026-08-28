@@ -37,11 +37,27 @@ Namespace CaptureEngine.FFmpegBackend
     ''' </summary>
     Public NotInheritable Class SyncMath
 
-        ''' <summary>Lower clamp for per-track audio offsets (seconds). Proven value.</summary>
+        ''' <summary>Lower clamp for per-track audio offsets (seconds).
+        ''' LEGACY call-time path ONLY — those stamps are StartRecording CALL
+        ''' times whose guesses can be wildly wrong; the clamp is the proven
+        ''' safety net there.</summary>
         Public Const MinOffsetSec As Double = -2.0
 
-        ''' <summary>Upper clamp for per-track audio offsets (seconds). Proven value.</summary>
+        ''' <summary>Upper clamp for per-track audio offsets (seconds).
+        ''' LEGACY call-time path ONLY (see MinOffsetSec).</summary>
         Public Const MaxOffsetSec As Double = 5.0
+
+        ' ★ P13.4b (field evidence, OWNER run 2026-08-28): the Device-anchor
+        ' offset used to inherit the legacy [-2s,+5s] clamp — and an endpoint
+        ' idle at session start anchors the tap ~5s late, the raw offset went
+        ' below -2s, got clamped (log: offset=-2.000s) and the audio track
+        ' was permanently misplaced. The live mux expresses ANY offset
+        ' byte-exactly (head discard/pad — LiveMuxSession.BeginTimelines), so
+        ' the anchor path needs a SANITY bound against unanchored garbage,
+        ' not a policy clamp. Bound = the tap's MaxGapSec (an honest session
+        ' never exceeds it; a stalled device is a different failure mode).
+        Public Const MinAnchorOffsetSec As Double = -3600.0
+        Public Const MaxAnchorOffsetSec As Double = 3600.0
 
     ' ★ Audio calibration (owner-measured 2026-08-23): the system-audio path
     ' runs ~100ms BEHIND video in the final file (WASAPI shared-mode buffering
@@ -101,16 +117,24 @@ Namespace CaptureEngine.FFmpegBackend
         ''' normalized to 100ns; firstAudioQpc = the first WASAPI packet's
         ''' qpcPosition100ns (WasapiPositionCapture). No call-time guessing,
         ''' no pre-roll estimation — anchor-to-anchor subtraction.
+        '''
+        ''' P13.4b: bounded by ±3600s SANITY only — NOT the legacy [-2,+5]
+        ''' clamp. The mux pads/discards the head byte-exactly for any value.
         ''' </summary>
         ''' <param name="videoT0Qpc100ns">First video frame's stamp, 100ns. 0 = no video timeline (returns 0).</param>
         ''' <param name="firstAudioQpc100ns">First audio packet's device stamp, 100ns. 0 = no audio anchor (returns 0).</param>
         Public Shared Function ComputeAudioOffsetSecFromAnchors(videoT0Qpc100ns As Long,
                                                                 firstAudioQpc100ns As Long) As Double
             If videoT0Qpc100ns <= 0 OrElse firstAudioQpc100ns <= 0 Then Return 0.0
-            Return ClampOffsetSec((videoT0Qpc100ns - firstAudioQpc100ns) / 10000000.0)
+            Dim raw As Double = (videoT0Qpc100ns - firstAudioQpc100ns) / 10000000.0
+            If raw < MinAnchorOffsetSec Then Return MinAnchorOffsetSec
+            If raw > MaxAnchorOffsetSec Then Return MaxAnchorOffsetSec
+            Return raw
         End Function
 
-        ''' <summary>Clamp a raw offset into the proven [-2s, +5s] window.</summary>
+        ''' <summary>Clamp a raw offset into the proven [-2s, +5s] window.
+        ''' LEGACY call-time path only — the Device-anchor path uses the
+        ''' ±3600s sanity bound inside ComputeAudioOffsetSecFromAnchors.</summary>
         Public Shared Function ClampOffsetSec(rawOffsetSec As Double) As Double
             If rawOffsetSec < MinOffsetSec Then Return MinOffsetSec
             If rawOffsetSec > MaxOffsetSec Then Return MaxOffsetSec

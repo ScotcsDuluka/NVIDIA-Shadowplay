@@ -246,6 +246,29 @@ offsetSec = (videoT0Qpc − firstAudioQpc) / QpcFrequency   ' exact
 - `docs/` band-aid inventory in §3.2 marked as removed in
   PROJECT_MEMORY.
 
+### 6.1 P13.4b — field evidence vs the Model S assumption (2026-08-28)
+
+First OWNER sync-verify run on real hardware broke two §3.2 assumptions:
+
+1. **"Sub-50ms gaps are jitter" (legacy threshold) is FALSE in v3.** The
+   endpoint fired 335 holes per 7s tap (sub-50ms each, 135 backwards
+   stamps) — every hole is hardware-measured real time. Dropping them
+   compressed the track ~5% → sync-verify drift −50ms/s accelerating
+   (+5.9/+13.8ms at t≈3-6s → −183/−475ms by t≈9-13s).
+   **Fix:** AudioTapDeviceClock pads EVERY measured hole; the 50ms level
+   is now only the evidence-log filter (`MinLogGapSec`), with sub-threshold
+   holes counted + summed in the close line.
+2. **"The endpoint renders silence through quiet phases" does not hold at
+   session start.** With nothing playing when record starts, the first
+   packet anchors seconds late → raw anchor offset < −2s → the inherited
+   legacy clamp fired (log: `offset=-2.000s`) and misplaced the track.
+   **Fix:** the Device-anchor path is bounded by ±3600s sanity only
+   (`Min/MaxAnchorOffsetSec`); the mux pads/discards the head byte-exactly
+   for any offset. The legacy call-time path keeps the proven [-2,+5] clamp.
+
+Regression suite: `ATDC: Many 1ms holes — track == wall-clock span`,
+`ATDC: Sub-50ms hole padded + counted`, `SYNC2: Anchor guards ±3600s`.
+
 ## 7. P13.4.1 — BeginTimelines race fix (pre-OWNER-test hardening)
 
 **Found during the pre-Windows-test code review (container session,

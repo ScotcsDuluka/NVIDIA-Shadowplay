@@ -70,7 +70,7 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("ATDC: Anchor on first packet, no silence", AddressOf Test_ATDCAnchor)
             RunTest("ATDC: Continuous stream — zero silence inserted", AddressOf Test_ATDCContinuous)
             RunTest("ATDC: Measured hole padded exactly (END→START)", AddressOf Test_ATDCHole)
-            RunTest("ATDC: Sub-50ms hole ignored (jitter threshold)", AddressOf Test_ATDCSmallHole)
+            RunTest("ATDC: Sub-50ms hole padded + counted (P13.4b)", AddressOf Test_ATDCSmallHole)
             RunTest("ATDC: >1h hole dropped, no pad, no throw", AddressOf Test_ATDCHugeHole)
             RunTest("ATDC: Backwards stamp — no pad, no rewind", AddressOf Test_ATDCBackwards)
             RunTest("ATDC: Zero stamp mid-stream — continuity, no hole", AddressOf Test_ATDCZeroStamp)
@@ -79,8 +79,9 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("ATDC: Finalize pads exact QPC tail", AddressOf Test_ATDCFinalizeTail)
             RunTest("ATDC: Finalize never-anchored pads full span", AddressOf Test_ATDCFinalizeEmpty)
             RunTest("ATDC: A/B equivalence — silence == tracker oracle", AddressOf Test_ATDCAbEquivalence)
+            RunTest("ATDC: Many 1ms holes — track == wall-clock span (P13.4b)", AddressOf Test_ATDCManySmallHoles)
             RunTest("SYNC2: Exact QPC anchor offset arithmetic", AddressOf Test_Sync2AnchorOffset)
-            RunTest("SYNC2: Anchor guards + safety-net clamp", AddressOf Test_Sync2AnchorGuards)
+            RunTest("SYNC2: Anchor guards + ±3600s sanity bound (P13.4b)", AddressOf Test_Sync2AnchorGuards)
 
             ' ----- Integration tests (requires real ffmpeg.exe) -----
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
@@ -550,7 +551,9 @@ Namespace CaptureEngine.FFmpegTests
         ' ===== ATDC — AudioTapDeviceClock (P13.3, position-driven gap-fill) =====
         ' Oracle for every test: the P13.2-proven AudioPositionTracker. The
         ' tap MUST insert exactly the silence the tracker measures (minus
-        ' the proven 50ms/3600s threshold policy), and forward every byte.
+        ' the over-cap policy — P13.4b: sub-50ms holes are PADDED too, the
+        ' old 50ms floor compressed the track on real hardware), and
+        ' forward every byte.
 
         ''' <summary>Collects everything the tap writes (silence + data).</summary>
         Private Class SinkCollector
@@ -627,9 +630,15 @@ Namespace CaptureEngine.FFmpegTests
             Dim b0 As Byte() = MakeBuf(480)
             tap.Feed(b0, b0.Length, T0)
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 300000L)  ' 30ms hole (< 50ms)
-            Assert(tap.SilenceInsertedBytes = 0L, "sub-threshold hole: no pad")
+            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 300000L)  ' 30ms hole
+            ' P13.4b: sub-50ms holes are PADDED — hardware-measured time is
+            ' real time; the old 50ms floor compressed the track (field
+            ' evidence: −50ms/s drift on the OWNER machine).
+            Dim expected As Long = 300000L * 192000L \ 10000000L   ' 5760B
+            Assert(tap.SilenceInsertedBytes = expected, $"sub-50ms hole padded: {tap.SilenceInsertedBytes} vs {expected}")
             Assert(tap.HolePackets = 1L, "hole still counted in evidence")
+            Assert(tap.SubThresholdHoles = 1L, "counted in the sub-threshold evidence")
+            Assert(tap.SubThresholdHole100ns = 300000L, "sub-threshold sum matches")
         End Sub
 
         Private Sub Test_ATDCHugeHole()
@@ -724,8 +733,9 @@ Namespace CaptureEngine.FFmpegTests
             ' A/B gate (P13.3): drive the tap through a mixed stress timeline
             ' (gaps, jitter, stampless packets, backwards packet) and demand
             ' that the silence INSERTED equals the tracker-measured total
-            ' MINUS the policy-excluded holes (sub-50ms + over-cap). This is
-            ' the position-driven replacement of the legacy gap-driven suite.
+            ' MINUS the policy-excluded holes. P13.4b: the ONLY exclusion
+            ' left is the over-cap crater (sub-50ms holes are PADDED now —
+            ' the old exclusion was the track-compression bug).
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim oracle As New AudioPositionTracker(48000)
@@ -737,7 +747,7 @@ Namespace CaptureEngine.FFmpegTests
             For i As Integer = 1 To 29
                 Dim gapTicks As Long = Pkt10ms
                 If i = 11 Then gapTicks += 2000000L       ' 200ms hole → pad
-                If i = 21 Then gapTicks += 300000L        ' 30ms hole → skip
+                If i = 21 Then gapTicks += 300000L        ' 30ms hole → pad (P13.4b)
                 stamps(i) = stamps(i - 1) + gapTicks
             Next
             stamps(25) = 0L                                ' stampless
@@ -748,10 +758,7 @@ Namespace CaptureEngine.FFmpegTests
                 Dim b As Byte() = MakeBuf(480)
                 tap.Feed(b, b.Length, stamps(i))
                 Dim rep = oracle.Feed(480, stamps(i))
-                If rep.Hole100ns > 0 AndAlso
-                   (rep.Hole100ns <= 500000L OrElse rep.Hole100ns > 36000000000L) Then
-                    policyExcluded += rep.Hole100ns
-                End If
+                If rep.Hole100ns > 36000000000L Then policyExcluded += rep.Hole100ns
             Next
 
             Dim expectedSilenceTicks As Long = oracle.TotalHole100ns - policyExcluded
@@ -761,6 +768,30 @@ Namespace CaptureEngine.FFmpegTests
             Assert(tap.MonotonicViolations = oracle.MonotonicViolations, "violation counts agree")
             Assert(tap.SilenceInsertedBytes = expectedBytes,
                    $"A/B: inserted {tap.SilenceInsertedBytes}B == policy-filtered oracle {expectedBytes}B")
+        End Sub
+
+        Private Sub Test_ATDCManySmallHoles()
+            ' P13.4b REGRESSION (the OWNER-machine pathology): many tiny
+            ' holes (1ms each) between packets. The old 50ms policy dropped
+            ' every one of them — a 1.1s wall-clock span produced a 1.0s
+            ' track (~9% compression). The track duration must now equal
+            ' the wall-clock span EXACTLY.
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Const N As Integer = 100
+            For i As Integer = 0 To N - 1
+                Dim b As Byte() = MakeBuf(480)
+                tap.Feed(b, b.Length, T0 + i * (Pkt10ms + 10000L))  ' 10ms data + 1ms hole
+            Next
+            ' N−1 holes: the FIRST packet anchors the timeline (no hole).
+            ' 1ms = 10,000 ticks (100ns) → 192B of silence per hole.
+            Dim expectedHoleBytes As Long = CLng(N - 1) * 10000L * 192000L \ 10000000L
+            Assert(tap.SilenceInsertedBytes = expectedHoleBytes,
+                   $"every 1ms hole padded: {tap.SilenceInsertedBytes} vs {expectedHoleBytes}")
+            Assert(tap.SubThresholdHoles = CLng(N - 1), "all holes sub-threshold → counted")
+            ' Track duration == wall-clock span: 99×(10+1)ms + 10ms = 1.099s.
+            Assert(Math.Abs(tap.TotalDurationSec - 1.099) < 0.0001,
+                   $"track duration == wall-clock span: {tap.TotalDurationSec}")
         End Sub
 
         ' ===== SYNC2 — SyncMath v2 exact QPC anchors (P13.4) =====
@@ -782,12 +813,21 @@ Namespace CaptureEngine.FFmpegTests
         Private Sub Test_Sync2AnchorGuards()
             Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(0L, 100L) = 0.0, "missing video timeline → 0")
             Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(100L, 0L) = 0.0, "missing audio anchor → 0")
-            ' Clamp [-2s,+5s] stays ONLY as the safety net vs pathological runs:
-            ' audio anchored 10s before video → raw +10 clamps to +5.
+            ' P13.4b: the anchor path is NOT clamped to [-2,+5] anymore — an
+            ' endpoint idle at session start anchors the tap late and the raw
+            ' offset goes past -2s legitimately (field evidence: -5s → the
+            ' -2.000s clamp misplaced the whole track). The mux pads/discards
+            ' byte-exactly for any value; only a ±3600s SANITY bound remains.
             Dim off As Double = SyncMath.ComputeAudioOffsetSecFromAnchors(110_000_000L, 10_000_000L)
-            Assert(off = SyncMath.MaxOffsetSec, "safety-net clamp at MaxOffsetSec")
+            Assert(Math.Abs(off - 10.0) < 0.0000001, "+10s passes through unclamped")
             Dim off2 As Double = SyncMath.ComputeAudioOffsetSecFromAnchors(10_000_000L, 130_000_000L)
-            Assert(off2 = SyncMath.MinOffsetSec, "safety-net clamp at MinOffsetSec")
+            Assert(Math.Abs(off2 + 12.0) < 0.0000001, "-12s passes through unclamped")
+            Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(1L, 1L + 40000000000L) = SyncMath.MinAnchorOffsetSec,
+                   "pathological -4000s → sanity bound")
+            Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(1L + 40000000000L, 1L) = SyncMath.MaxAnchorOffsetSec,
+                   "pathological +4000s → sanity bound")
+            ' The legacy call-time path KEEPS the proven [-2,+5] clamp.
+            Assert(SyncMath.ClampOffsetSec(-99.0) = SyncMath.MinOffsetSec, "legacy path clamp intact")
         End Sub
 
         ' ===== Integration test (requires real ffmpeg.exe) =====
