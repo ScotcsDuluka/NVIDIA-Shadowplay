@@ -123,7 +123,7 @@ Namespace CaptureEngine.Video.Frames
 
         Public ReadOnly Property IsDisposed As Boolean Implements IVideoFrame.IsDisposed
             Get
-                Return Thread.VolatileRead(_disposed) = 1
+                Return Volatile.Read(_disposed) = 1
             End Get
         End Property
 

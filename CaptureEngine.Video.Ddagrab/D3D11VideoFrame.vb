@@ -148,7 +148,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         Public ReadOnly Property NativeTexture As Object Implements ID3D11VideoFrame.NativeTexture
             Get
-                If Thread.VolatileRead(_disposedState) <> 0 Then
+                If Volatile.Read(_disposedState) <> 0 Then
                     Return Nothing
                 End If
                 Return _nativeTextureObj
@@ -157,7 +157,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         Public ReadOnly Property SharedHandle As IntPtr Implements ID3D11VideoFrame.SharedHandle
             Get
-                If Thread.VolatileRead(_disposedState) <> 0 Then
+                If Volatile.Read(_disposedState) <> 0 Then
                     Return IntPtr.Zero
                 End If
                 Return _sharedHandle
@@ -168,14 +168,14 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
 
         Public ReadOnly Property IsDisposed As Boolean
             Get
-                Return Thread.VolatileRead(_disposedState) <> 0
+                Return Volatile.Read(_disposedState) <> 0
             End Get
         End Property
 
         Public ReadOnly Property DisposeCount As Integer
             Get
                 ' Always 0 or 1 (CompareExchange guarantees atomic one-shot).
-                Return Thread.VolatileRead(_disposedState)
+                Return Volatile.Read(_disposedState)
             End Get
         End Property
 

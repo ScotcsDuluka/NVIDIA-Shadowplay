@@ -120,18 +120,18 @@ Namespace CaptureEngine.Encoder.Tests
 
         Public ReadOnly Property DisposeCount As Integer
             Get
-                Return Thread.VolatileRead(_disposeCount)
+                Return Volatile.Read(_disposeCount)
             End Get
         End Property
 
         Public ReadOnly Property IsDisposed As Boolean
             Get
-                Return Thread.VolatileRead(_disposeCount) > 0
+                Return Volatile.Read(_disposeCount) > 0
             End Get
         End Property
 
         Public Sub Dispose() Implements IDisposable.Dispose
-            Thread.VolatileWrite(_disposeCount, Thread.VolatileRead(_disposeCount) + 1)
+            Volatile.Write(_disposeCount, Volatile.Read(_disposeCount) + 1)
         End Sub
     End Class
 End Namespace

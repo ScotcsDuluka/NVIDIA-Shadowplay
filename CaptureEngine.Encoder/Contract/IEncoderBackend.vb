@@ -58,7 +58,7 @@ Namespace CaptureEngine.Encoder
     ''' THREAD MODEL:
     '''   - _sync protects: _state, _disposed, counter writes
     '''   - _sync does NOT protect: worker.Join, encoding, packet delivery
-    '''   - CurrentState: implementations MUST use Thread.VolatileRead
+    '''   - CurrentState: implementations MUST use Volatile.Read
     '''   - Counters: implementations MUST use Interlocked.Read + Interlocked.Increment
     '''   - Heavy operations (Join) MUST happen OUTSIDE _sync lock
     ''' </summary>

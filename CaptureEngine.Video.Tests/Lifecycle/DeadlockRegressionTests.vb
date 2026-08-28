@@ -198,7 +198,7 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
                 Sub()
                     Try
                         Dim seq As Long = 0
-                        Do While Thread.VolatileRead(stopSignal) = 0
+                        Do While Volatile.Read(stopSignal) = 0
                             Dim f = MakeFastFrame(seq)
                             Dim r = FrameAcquisitionResult.Available(f, seq, 1_000_000 + seq * 10_000)
                             Dim outcome = sink.TryPush(r)
@@ -225,7 +225,7 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
             sink.Dispose()
             sw.Stop()
 
-            Thread.VolatileWrite(stopSignal, 1)
+            Volatile.Write(stopSignal, 1)
             pusher.Join(TimeSpan.FromSeconds(2))
 
             TestHelpers.Assert(

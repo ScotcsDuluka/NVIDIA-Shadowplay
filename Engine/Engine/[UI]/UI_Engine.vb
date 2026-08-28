@@ -1057,10 +1057,12 @@ Partial Public Class UI_Engine
         Try
             If Me.IsDisposed OrElse Not Me.IsHandleCreated Then Return
             Me.BeginInvoke(action)
-        Catch ex As InvalidOperationException
-            ' Form handle not created yet — drop the update.
+        ' Most-derived exception first: ObjectDisposedException INHERITS
+        ' InvalidOperationException, so the reverse order was unreachable (BC42029).
         Catch ex As ObjectDisposedException
             ' Form already disposed — drop the update.
+        Catch ex As InvalidOperationException
+            ' Form handle not created yet — drop the update.
         Catch
         End Try
     End Sub

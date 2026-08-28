@@ -100,7 +100,7 @@ Namespace CaptureEngine.Encoder
         ''' <summary>True if this packet has been disposed. Safe to call from any thread.</summary>
         Public ReadOnly Property IsDisposed As Boolean
             Get
-                Return Thread.VolatileRead(_disposeCount) > 0
+                Return Volatile.Read(_disposeCount) > 0
             End Get
         End Property
 
@@ -111,7 +111,7 @@ Namespace CaptureEngine.Encoder
         ''' </summary>
         Public ReadOnly Property DisposeCount As Integer
             Get
-                Return Thread.VolatileRead(_disposeCount)
+                Return Volatile.Read(_disposeCount)
             End Get
         End Property
 

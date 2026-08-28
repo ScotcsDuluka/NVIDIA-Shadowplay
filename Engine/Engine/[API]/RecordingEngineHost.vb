@@ -178,6 +178,10 @@ Partial Public Class UI_Engine
     ''' Start recording using RecordingEngine. Non-blocking — starts a
     ''' background task that runs StartSession() and responds immediately.
     ''' </summary>
+    ' Async signature kept for handler-family symmetry with HandleRecordingStop
+    ' (which truly Awaits the session task); this handler dispatches work via
+    ' Task.Run and returns without awaiting anything — by design.
+#Disable Warning BC42356 ' Deliberately await-less (see comment above)
     Private Async Function HandleRecordingStart(value As String, reqId As String) As Task
         Try
             If Not _engineReady OrElse _recordingEngine Is Nothing Then
@@ -239,6 +243,7 @@ Partial Public Class UI_Engine
             SendResponse("engine_record_start", "error", ex.Message, reqId)
         End Try
     End Function
+#Enable Warning BC42356
 
     ''' <summary>
     ''' Stop recording. Signals RecordingEngine.Stop() and waits for the

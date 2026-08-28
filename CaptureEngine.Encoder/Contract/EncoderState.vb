@@ -25,7 +25,7 @@ Namespace CaptureEngine.Encoder
     ''' Thread-safety: state reads are observable via CurrentState. State
     ''' mutations MUST be performed under the encoder's _sync lock (see
     ''' IEncoderBackend implementer contract). Reads from other threads
-    ''' MUST use Thread.VolatileRead to ensure visibility.
+    ''' MUST use Volatile.Read to ensure visibility.
     ''' </summary>
     Public Enum EncoderState
         ''' <summary>Constructed; Initialize() not yet called.</summary>

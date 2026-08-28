@@ -291,7 +291,9 @@ Public Class EncoderDetector
                         ' Don't add duplicates
                         Dim alreadyHave As Boolean = False
                         For Each d In _captureDevices
-                            If d.ID.Equals(deviceId, StringComparison.OrdinalIgnoreCase) Then
+                            ' Shared String.Equals call (instance form trips BC42025
+                            ' under the .NET 10 SDK's VB compiler); identical semantics.
+                            If String.Equals(d.ID, deviceId, StringComparison.OrdinalIgnoreCase) Then
                                 alreadyHave = True : Exit For
                             End If
                         Next
@@ -386,7 +388,9 @@ Public Class EncoderDetector
         If String.IsNullOrWhiteSpace(deviceName) Then Return False
         Dim devices As List(Of String) = DetectAudioDevices()
         For Each d In devices
-            If d.Equals(deviceName, StringComparison.OrdinalIgnoreCase) Then Return True
+            ' Shared String.Equals call (instance form trips BC42025
+            ' under the .NET 10 SDK's VB compiler); identical semantics.
+            If String.Equals(d, deviceName, StringComparison.OrdinalIgnoreCase) Then Return True
         Next
         ' Partial match (some devices have truncated names)
         For Each d In devices

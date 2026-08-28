@@ -204,7 +204,11 @@ Partial Public Class API_RUN
         If _isShuttingDown Then Return
 
         _heartbeatCts = New CancellationTokenSource()
+        ' Deliberate fire-and-forget: HeartbeatMonitor exits via CTS cancellation
+        ' and logs its own failures; awaiting it here would stall the accept loop.
+#Disable Warning BC42358 ' Fire-and-forget by design (see comment above)
         Task.Run(Sub() HeartbeatMonitor(_heartbeatCts.Token), _heartbeatCts.Token)
+#Enable Warning BC42358
         While Not _isShuttingDown
             Try
                 Dim client = Await listener.AcceptTcpClientAsync()
@@ -228,7 +232,12 @@ Partial Public Class API_RUN
                 End SyncLock
 
                 Log("[Log] NVIDIA API", $"client_connected_{clients.Count}")
+                ' Deliberate fire-and-forget: HandleClientAsync owns its own
+                ' try/catch and per-client lifetime; the accept loop must not
+                ' wait on it or one slow client would block all others.
+#Disable Warning BC42358 ' Fire-and-forget by design (see comment above)
                 Task.Run(Function() HandleClientAsync(info))
+#Enable Warning BC42358
             Catch ex As Exception
                 If Not _isShuttingDown Then
                     Log("[Error] NVIDIA API", $"accept_failed_{ex.Message}")

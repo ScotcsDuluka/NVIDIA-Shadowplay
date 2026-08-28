@@ -72,13 +72,13 @@ Namespace CaptureEngine.Video.Backends.Fake
         ''' </summary>
         Public ReadOnly Property DisposeCount As Integer
             Get
-                Return Thread.VolatileRead(_disposed)
+                Return Volatile.Read(_disposed)
             End Get
         End Property
 
         Public ReadOnly Property IsDisposed As Boolean
             Get
-                Return Thread.VolatileRead(_disposed) = 1
+                Return Volatile.Read(_disposed) = 1
             End Get
         End Property
 
