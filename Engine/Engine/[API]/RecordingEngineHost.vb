@@ -199,6 +199,9 @@ Partial Public Class UI_Engine
             End If
 
             ' Create session config (full Phase 12b mapping + M1 mic mapping from audio.json)
+            ' P13.4: AudioClockMode plumbing — audio.json "AudioClockMode":
+            ' "Device" = hardware-stamped timeline (WasapiPositionCapture +
+            ' AudioTapDeviceClock), "Legacy" = proven v2 path.
             Dim config As New SessionConfig() With {
                 .OutputPath = value,
                 .DurationSeconds = 3600,          ' no fixed duration — stop via command
@@ -211,6 +214,7 @@ Partial Public Class UI_Engine
                 .MicDeviceName = If(_settings IsNot Nothing, _settings.MicDeviceName, ""),
                 .MicSeparateTracks = (_settings IsNot Nothing) AndAlso
                                      _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack,
+                .AudioClockMode = If(_settings IsNot Nothing, _settings.AudioClockMode, "Legacy"),
                 .OnProcessStarted = AddressOf AssignChildToJob
             }
 

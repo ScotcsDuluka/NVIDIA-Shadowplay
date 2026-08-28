@@ -41,6 +41,12 @@ Public Class CaptureSettings
     Public Property MicDeviceName As String = ""
     Public Property MicDeviceId As String = ""
 
+    ' ★ P13.4: audio clock selection (doc PHASE-13 §4) — "Legacy" = proven
+    ' AudioTap v2 (Stopwatch); "Device" = WasapiPositionCapture + AudioTap
+    ' v3 with exact QPC anchors and ZERO calibration lead. Persisted in
+    ' audio.json so OWNER can A/B on real runs without a rebuild.
+    Public Property AudioClockMode As String = "Legacy"
+
     Public Enum AudioTrackModeEnum
         SingleTrack
         SeparateTrack
@@ -246,6 +252,10 @@ Public Class CaptureSettings
                 If doc.RootElement.TryGetProperty("AudioTrackMode", p) Then
                     settings.AudioTrackMode = DirectCast(p.GetInt32(), AudioTrackModeEnum)
                 End If
+                If doc.RootElement.TryGetProperty("AudioClockMode", p) Then
+                    Dim v As String = p.GetString()
+                    If Not String.IsNullOrEmpty(v) Then settings.AudioClockMode = v.Trim()
+                End If
 
                 ' Also check lowercase (Overlay uses snake_case in some places)
                 If doc.RootElement.TryGetProperty("system_enabled", p) Then settings.SystemAudioCapture = p.GetBoolean()
@@ -298,7 +308,8 @@ Public Class CaptureSettings
             sb.AppendLine("  ""MicVolume"": " & MicVolume.ToString(Globalization.CultureInfo.InvariantCulture) & ",")
             sb.AppendLine("  ""MicDevice"": """ & JsonEscape(MicDeviceName) & """,")
             sb.AppendLine("  ""MicDeviceId"": """ & JsonEscape(MicDeviceId) & """,")
-            sb.AppendLine("  ""AudioTrackMode"": " & CInt(AudioTrackMode).ToString() & "")
+            sb.AppendLine("  ""AudioTrackMode"": " & CInt(AudioTrackMode).ToString() & ",")
+            sb.AppendLine("  ""AudioClockMode"": """ & JsonEscape(AudioClockMode) & """")
             sb.AppendLine("}")
             File.WriteAllText(audioFilePath, sb.ToString())
         Catch

@@ -173,6 +173,20 @@ counters reset with the device; log it, don't bridge it).
 
 ### 3.3 SIMPLIFY — `SyncMath` v2
 
+> **P13.4 SHIPPED (2026-08-28, code side):** `SyncMath.ComputeAudioOffsetSecFromAnchors(videoT0Qpc100ns, firstAudioQpc100ns)`
+> — exact 100ns QPC subtraction with the `[-2s, +5s]` clamp kept only as
+> the safety net. `SystemAudioLeadDeviceSec / MicAudioLeadDeviceSec = 0.0`
+> are the Device-mode leads (zero by default; the knob is for a MEASURED
+> sync-verify residual, never by ear). Legacy mode keeps the historical
+> call-time math + 50ms leads untouched. Config plumbing shipped:
+> `Config\audio.json` key `"AudioClockMode"` ("Device" | "Legacy",
+> default Legacy) → `CaptureSettings` → `RecordingEngineHost` →
+> `SessionConfig`, so OWNER can A/B on real runs without a rebuild.
+> `scripts/sync-verify.ps1` now also finds ffmpeg under the new
+> `FFmpeg\` folder. Gate on OWNER's machine: sync-verify ×5 runs within
+> ±15ms with zero calibration, then the 3-recording listen test
+> (including a 30-minute long-run).
+
 Video t0 = QPC (Stopwatch) of first encoded frame — unchanged.
 Audio stream start = first packet's `qpcPosition` — **was** a
 `StartRecording()` call-time guess with a hand-calibrated 50ms lead.

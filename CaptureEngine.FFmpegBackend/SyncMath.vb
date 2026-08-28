@@ -54,6 +54,13 @@ Namespace CaptureEngine.FFmpegBackend
     Public Const SystemAudioLeadSec As Double = 0.05
     Public Const MicAudioLeadSec As Double = 0.05
 
+    ' ★ P13.4 (doc §3.3): with Device-clock ANCHORS the offset is exact —
+    ' leads are ZERO by default. The knob is retained for a MEASURED
+    ' residual (loopback read-lag via scripts\sync-verify.ps1), never by
+    ' ear, never hand-calibrated per machine.
+    Public Const SystemAudioLeadDeviceSec As Double = 0.0
+    Public Const MicAudioLeadDeviceSec As Double = 0.0
+
         Private Sub New()
         End Sub
 
@@ -82,6 +89,25 @@ Namespace CaptureEngine.FFmpegBackend
 
             Dim raw As Double = (videoStartTicks - audioStartTicks) / stopwatchFrequency
             Return ClampOffsetSec(raw)
+        End Function
+
+        ''' <summary>
+        ''' P13.4 — SyncMath v2: exact QPC anchor arithmetic.
+        '''
+        ''' offsetSec = (videoT0Qpc − firstAudioQpc) / 10⁷   ' both in 100ns
+        '''
+        ''' Both stamps come from the SAME hardware counter domain (QPC):
+        ''' videoT0 = Stopwatch.GetTimestamp() at the first encoded frame,
+        ''' normalized to 100ns; firstAudioQpc = the first WASAPI packet's
+        ''' qpcPosition100ns (WasapiPositionCapture). No call-time guessing,
+        ''' no pre-roll estimation — anchor-to-anchor subtraction.
+        ''' </summary>
+        ''' <param name="videoT0Qpc100ns">First video frame's stamp, 100ns. 0 = no video timeline (returns 0).</param>
+        ''' <param name="firstAudioQpc100ns">First audio packet's device stamp, 100ns. 0 = no audio anchor (returns 0).</param>
+        Public Shared Function ComputeAudioOffsetSecFromAnchors(videoT0Qpc100ns As Long,
+                                                                firstAudioQpc100ns As Long) As Double
+            If videoT0Qpc100ns <= 0 OrElse firstAudioQpc100ns <= 0 Then Return 0.0
+            Return ClampOffsetSec((videoT0Qpc100ns - firstAudioQpc100ns) / 10000000.0)
         End Function
 
         ''' <summary>Clamp a raw offset into the proven [-2s, +5s] window.</summary>

@@ -36,7 +36,7 @@ param(
 $ErrorActionPreference = "Continue"
 
 function Find-Ffmpeg {
-    $c = @("Overlay\API-Core\ffmpeg.exe", "$env:TEMP\ffmpeg.exe")
+    $c = @("FFmpeg\ffmpeg.exe", "Overlay\API-Core\ffmpeg.exe", "$env:TEMP\ffmpeg.exe")
     $repo = Split-Path -Parent $PSScriptRoot
     foreach ($p in @((Join-Path $repo "Overlay\API-Core\ffmpeg.exe"))) {
         if (Test-Path $p) { return $p }

@@ -79,6 +79,8 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("ATDC: Finalize pads exact QPC tail", AddressOf Test_ATDCFinalizeTail)
             RunTest("ATDC: Finalize never-anchored pads full span", AddressOf Test_ATDCFinalizeEmpty)
             RunTest("ATDC: A/B equivalence — silence == tracker oracle", AddressOf Test_ATDCAbEquivalence)
+            RunTest("SYNC2: Exact QPC anchor offset arithmetic", AddressOf Test_Sync2AnchorOffset)
+            RunTest("SYNC2: Anchor guards + safety-net clamp", AddressOf Test_Sync2AnchorGuards)
 
             ' ----- Integration tests (requires real ffmpeg.exe) -----
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
@@ -759,6 +761,33 @@ Namespace CaptureEngine.FFmpegTests
             Assert(tap.MonotonicViolations = oracle.MonotonicViolations, "violation counts agree")
             Assert(tap.SilenceInsertedBytes = expectedBytes,
                    $"A/B: inserted {tap.SilenceInsertedBytes}B == policy-filtered oracle {expectedBytes}B")
+        End Sub
+
+        ' ===== SYNC2 — SyncMath v2 exact QPC anchors (P13.4) =====
+
+        Private Sub Test_Sync2AnchorOffset()
+            ' Both stamps in the SAME QPC domain (100ns). Video t0 2.5s
+            ' AFTER the audio anchor → offset +2.5 (audio began first →
+            ' mux skips the audio head). Exact subtraction, no estimation.
+            Dim off As Double = SyncMath.ComputeAudioOffsetSecFromAnchors(35_000_000L, 10_000_000L)
+            Assert(Math.Abs(off - 2.5) < 0.0000001, "positive branch: exact 100ns subtraction")
+            ' Audio starts 0.25s AFTER video → negative offset (adelay).
+            Dim off2 As Double = SyncMath.ComputeAudioOffsetSecFromAnchors(10_000_000L, 12_500_000L)
+            Assert(Math.Abs(off2 + 0.25) < 0.0000001, "negative branch: exact")
+            ' Simultaneous anchors → 0 (start-perfect session).
+            Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(7_777_777L, 7_777_777L) = 0.0,
+                   "equal anchors → zero offset")
+        End Sub
+
+        Private Sub Test_Sync2AnchorGuards()
+            Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(0L, 100L) = 0.0, "missing video timeline → 0")
+            Assert(SyncMath.ComputeAudioOffsetSecFromAnchors(100L, 0L) = 0.0, "missing audio anchor → 0")
+            ' Clamp [-2s,+5s] stays ONLY as the safety net vs pathological runs:
+            ' audio anchored 10s before video → raw +10 clamps to +5.
+            Dim off As Double = SyncMath.ComputeAudioOffsetSecFromAnchors(110_000_000L, 10_000_000L)
+            Assert(off = SyncMath.MaxOffsetSec, "safety-net clamp at MaxOffsetSec")
+            Dim off2 As Double = SyncMath.ComputeAudioOffsetSecFromAnchors(10_000_000L, 130_000_000L)
+            Assert(off2 = SyncMath.MinOffsetSec, "safety-net clamp at MinOffsetSec")
         End Sub
 
         ' ===== Integration test (requires real ffmpeg.exe) =====

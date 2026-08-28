@@ -537,15 +537,15 @@ Namespace CaptureEngine.Recording
                         ' device-latency lead.
                         Dim sysOff As Double
                         If _deviceClockSys AndAlso _sysTap3 IsNot Nothing AndAlso _sysTap3.Anchored Then
-                            ' P13.3 Device mode: exact QPC anchor arithmetic
-                            ' (doc §3.3). The reconstructed stream BEGINS at the
-                            ' first fed packet's hardware stamp — anchor-to-
-                            ' anchor, no call-time guess, no pre-roll estimate.
-                            ' The +lead stays for now: residual loopback
-                            ' read-lag knob until P13.4 measures it away.
+                            ' P13.4 — SyncMath v2: exact QPC anchor arithmetic.
+                            ' The reconstructed stream BEGINS at the first fed
+                            ' packet's hardware stamp — anchor-to-anchor, no
+                            ' call-time guess, no pre-roll estimate, and the
+                            ' lead is ZERO by default (SystemAudioLeadDeviceSec;
+                            ' residual goes in only if sync-verify measures it).
                             Dim videoT0100ns As Long = CLng(_videoStartTicks * 10000000.0 / Stopwatch.Frequency)
-                            sysOff = SyncMath.ClampOffsetSec(
-                                (videoT0100ns - _sysTap3.FirstQpc100ns) / 10000000.0) + SyncMath.SystemAudioLeadSec
+                            sysOff = SyncMath.ComputeAudioOffsetSecFromAnchors(
+                                videoT0100ns, _sysTap3.FirstQpc100ns) + SyncMath.SystemAudioLeadDeviceSec
                         Else
                             sysOff = SyncMath.ComputeAudioOffsetSec(
                                 _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
