@@ -73,6 +73,15 @@ Namespace CaptureEngine.Recording
         ' (proven stable in the 21:47 run) remains the primary mechanism.
         Public Property SilenceKeepAlive As Boolean = False
 
+        ' ★ P13.3 clock-mode switch (docs/PHASE-13-SHADOWPLAY-CLOCK.md §4):
+        '   "Legacy" = the proven AudioTap v2 (Stopwatch arrival gap-fill +
+        '   SilenceKeepAlive switch as configured). "Device" = AudioTap v3 +
+        '   WasapiPositionCapture: the system track's timeline comes from
+        '   WASAPI qpcPosition stamps (hardware-measured gaps, exact QPC
+        '   anchor at the mux). Unknown values normalize to "Legacy".
+        '   The mic track stays on the legacy tap in both modes this phase.
+        Public Property AudioClockMode As String = "Legacy"
+
         ' ── Phase 12b: process-lifecycle hook (no-orphan-FFmpeg criterion) ──
         ''' <summary>
         ''' Invoked right after CaptureSession spawns any child process

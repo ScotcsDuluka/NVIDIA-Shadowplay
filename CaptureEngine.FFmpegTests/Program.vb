@@ -67,6 +67,18 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("WPOS: Reset clears anchor (device switch)", AddressOf Test_WPosReset)
             RunTest("WPOS: QpcTicksTo100ns is frequency-independent", AddressOf Test_WPosQpcConversion)
             RunTest("WPOS: Start() guards non-Windows platforms", AddressOf Test_WPosPlatformGuard)
+            RunTest("ATDC: Anchor on first packet, no silence", AddressOf Test_ATDCAnchor)
+            RunTest("ATDC: Continuous stream — zero silence inserted", AddressOf Test_ATDCContinuous)
+            RunTest("ATDC: Measured hole padded exactly (END→START)", AddressOf Test_ATDCHole)
+            RunTest("ATDC: Sub-50ms hole ignored (jitter threshold)", AddressOf Test_ATDCSmallHole)
+            RunTest("ATDC: >1h hole dropped, no pad, no throw", AddressOf Test_ATDCHugeHole)
+            RunTest("ATDC: Backwards stamp — no pad, no rewind", AddressOf Test_ATDCBackwards)
+            RunTest("ATDC: Zero stamp mid-stream — continuity, no hole", AddressOf Test_ATDCZeroStamp)
+            RunTest("ATDC: Re-anchor after fallback anchor — no fake hole", AddressOf Test_ATDCReanchor)
+            RunTest("ATDC: Block alignment floors the pad", AddressOf Test_ATDCBlockAlign)
+            RunTest("ATDC: Finalize pads exact QPC tail", AddressOf Test_ATDCFinalizeTail)
+            RunTest("ATDC: Finalize never-anchored pads full span", AddressOf Test_ATDCFinalizeEmpty)
+            RunTest("ATDC: A/B equivalence — silence == tracker oracle", AddressOf Test_ATDCAbEquivalence)
 
             ' ----- Integration tests (requires real ffmpeg.exe) -----
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
@@ -531,6 +543,222 @@ Namespace CaptureEngine.FFmpegTests
                 threw = True
             End Try
             Assert(threw, "Start() off-Windows must throw InvalidOperationException")
+        End Sub
+
+        ' ===== ATDC — AudioTapDeviceClock (P13.3, position-driven gap-fill) =====
+        ' Oracle for every test: the P13.2-proven AudioPositionTracker. The
+        ' tap MUST insert exactly the silence the tracker measures (minus
+        ' the proven 50ms/3600s threshold policy), and forward every byte.
+
+        ''' <summary>Collects everything the tap writes (silence + data).</summary>
+        Private Class SinkCollector
+            Implements CaptureEngine.FFmpegBackend.IAudioTapSink
+            Public Total As Long = 0
+            Public Chunks As New List(Of Byte())
+            Public Sub Write(data As Byte(), count As Integer) Implements CaptureEngine.FFmpegBackend.IAudioTapSink.Write
+                Dim copy(count - 1) As Byte
+                Array.Copy(data, copy, count)
+                Chunks.Add(copy)
+                Total += count
+            End Sub
+        End Class
+
+        ''' <summary>48kHz stereo PCM16 → 4 bytes/frame, 192,000 bytes/sec.</summary>
+        Private Function MakeBuf(frames As Integer) As Byte()
+            Return New Byte(frames * 4 - 1) {}
+        End Function
+
+        Private Function NewTap(collector As SinkCollector) As CaptureEngine.FFmpegBackend.AudioTapDeviceClock
+            Return New CaptureEngine.FFmpegBackend.AudioTapDeviceClock(
+                "test", 48000, 2, 16, collector,
+                Sub(m) Console.WriteLine("      [evidence] " & m))
+        End Function
+
+        Private Sub Test_ATDCAnchor()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Assert(Not tap.Anchored, "starts unanchored")
+            tap.Feed(MakeBuf(480), MakeBuf(480).Length, T0)
+            Assert(tap.Anchored, "anchored after first feed")
+            Assert(tap.FirstQpc100ns = T0, "FirstQpc100ns = first stamp")
+            Assert(tap.SilenceInsertedBytes = 0L, "anchor inserts no silence")
+            Assert(tap.DataBytes = 480L * 4L, "all data bytes forwarded")
+            Assert(col.Total = tap.DataBytes, "sink got exactly the data")
+        End Sub
+
+        Private Sub Test_ATDCContinuous()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            For i As Integer = 0 To 299
+                Dim b As Byte() = MakeBuf(480)
+                tap.Feed(b, b.Length, T0 + i * Pkt10ms)
+            Next
+            Assert(tap.SilenceInsertedBytes = 0L, "continuous stream: zero silence")
+            Assert(tap.Packets = 300L, "300 packets")
+            Assert(tap.LastEnd100ns = T0 + 300L * Pkt10ms, "lastEnd exact after 3s")
+            Assert(col.Total = 300L * 480L * 4L, "all bytes forwarded once")
+        End Sub
+
+        Private Sub Test_ATDCHole()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            ' 250ms gap: next packet starts at T0 + 10ms + 250ms.
+            Dim holeQpc As Long = T0 + Pkt10ms + 2500000L
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, holeQpc)
+            ' Expected pad = 250ms at 192,000 B/s = 480,000 bytes (frame-
+            ' aligned: a multiple of 4).
+            Dim expected As Long = 2500000L * 192000L \ 10000000L
+            Assert(tap.SilenceInsertedBytes = expected, $"pad exactly the hole: {tap.SilenceInsertedBytes} vs {expected}")
+            Assert(tap.HolePackets = 1L, "one hole packet")
+            Assert(tap.TotalHole100ns = 2500000L, "hole total matches")
+            Assert(col.Total = expected + 2L * 480L * 4L, "sink got silence + both packets")
+            ' Total timeline: 10ms + 250ms + 10ms of audio content.
+            Assert(Math.Abs(tap.TotalDurationSec - 0.27) < 0.0001, "duration == wall-clock span")
+        End Sub
+
+        Private Sub Test_ATDCSmallHole()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 300000L)  ' 30ms hole (< 50ms)
+            Assert(tap.SilenceInsertedBytes = 0L, "sub-threshold hole: no pad")
+            Assert(tap.HolePackets = 1L, "hole still counted in evidence")
+        End Sub
+
+        Private Sub Test_ATDCHugeHole()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 72000000000L)  ' 2h gap
+            Assert(tap.SilenceInsertedBytes = 0L, "over-cap hole: NOT padded")
+            Assert(col.Total = 2L * 480L * 4L, "only the two packets written")
+        End Sub
+
+        Private Sub Test_ATDCBackwards()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            Dim b1 As Byte() = MakeBuf(480)
+            ' Starts 10ms BEFORE the previous end (overlap).
+            tap.Feed(b1, b1.Length, T0 - Pkt10ms)
+            Assert(tap.MonotonicViolations = 1L, "violation reported")
+            Assert(tap.SilenceInsertedBytes = 0L, "no silence on backwards stamp")
+            Assert(tap.LastEnd100ns = T0 + Pkt10ms, "timeline not rewound (max policy)")
+        End Sub
+
+        Private Sub Test_ATDCZeroStamp()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, 0L)   ' Risk #2: stampless packet
+            Assert(tap.StampFallbacks = 1L, "fallback counted")
+            Assert(tap.SilenceInsertedBytes = 0L, "continuity — no hole")
+            Assert(tap.LastEnd100ns = T0 + 2L * Pkt10ms, "timeline advanced by duration")
+        End Sub
+
+        Private Sub Test_ATDCReanchor()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, 0L)   ' stampless ANCHOR (fallback anchor)
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, T0)   ' first REAL stamp
+            Assert(tap.FirstQpc100ns = T0, "re-anchored at the real stamp")
+            Assert(tap.SilenceInsertedBytes = 0L, "NO stream-sized fake hole")
+            Dim b2 As Byte() = MakeBuf(480)
+            tap.Feed(b2, b2.Length, T0 + Pkt10ms)
+            Assert(tap.SilenceInsertedBytes = 0L, "continuity after re-anchor")
+            Assert(tap.StampFallbacks = 1L, "fallback counted once (not re-corrupted)")
+        End Sub
+
+        Private Sub Test_ATDCBlockAlign()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            ' Hole of 1234567 ticks (123.4567ms) — not a whole number of
+            ' 4-byte frames. Semantics = the proven legacy tap: CInt ROUND
+            ' to bytes (banker's), then floor to the frame grid.
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 1234567L)
+            Dim expected As Long = (CLng(1234567L / 10000000.0 * 192000.0) \ 4L) * 4L
+            Assert(tap.SilenceInsertedBytes = expected, $"floored to frame grid: {tap.SilenceInsertedBytes} vs {expected}")
+            Assert(tap.SilenceInsertedBytes Mod 4L = 0L, "pad is frame-aligned")
+        End Sub
+
+        Private Sub Test_ATDCFinalizeTail()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, T0)
+            ' Session ends 800ms after the packet's end.
+            Dim endQpc As Long = T0 + Pkt10ms + 8000000L
+            tap.FinalizeTo100ns(T0 - 500000L, endQpc)
+            Dim expected As Long = 8000000L * 192000L \ 10000000L
+            Assert(tap.SilenceInsertedBytes = expected, $"exact QPC tail: {tap.SilenceInsertedBytes} vs {expected}")
+        End Sub
+
+        Private Sub Test_ATDCFinalizeEmpty()
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            ' Nothing ever arrived — pad the full session span so the mux
+            ' still gets a valid silent track (ffmpeg zero-packets guard).
+            tap.FinalizeTo100ns(T0, T0 + 50000000L)
+            Assert(tap.SilenceInsertedBytes = 5L * 192000L, "full-span silence (5s @ 192kB/s)")
+            Assert(Not tap.Anchored, "still unanchored")
+        End Sub
+
+        Private Sub Test_ATDCAbEquivalence()
+            ' A/B gate (P13.3): drive the tap through a mixed stress timeline
+            ' (gaps, jitter, stampless packets, backwards packet) and demand
+            ' that the silence INSERTED equals the tracker-measured total
+            ' MINUS the policy-excluded holes (sub-50ms + over-cap). This is
+            ' the position-driven replacement of the legacy gap-driven suite.
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim oracle As New AudioPositionTracker(48000)
+
+            ' Build: 30 packets, hole of 200ms after #10, 30ms jitter-hole
+            ' after #20, stampless packet at #25, backwards at #28.
+            Dim stamps(29) As Long
+            stamps(0) = T0
+            For i As Integer = 1 To 29
+                Dim gapTicks As Long = Pkt10ms
+                If i = 11 Then gapTicks += 2000000L       ' 200ms hole → pad
+                If i = 21 Then gapTicks += 300000L        ' 30ms hole → skip
+                stamps(i) = stamps(i - 1) + gapTicks
+            Next
+            stamps(25) = 0L                                ' stampless
+            stamps(28) = stamps(27) - Pkt10ms              ' backwards
+
+            Dim policyExcluded As Long = 0
+            For i As Integer = 0 To 29
+                Dim b As Byte() = MakeBuf(480)
+                tap.Feed(b, b.Length, stamps(i))
+                Dim rep = oracle.Feed(480, stamps(i))
+                If rep.Hole100ns > 0 AndAlso
+                   (rep.Hole100ns <= 500000L OrElse rep.Hole100ns > 36000000000L) Then
+                    policyExcluded += rep.Hole100ns
+                End If
+            Next
+
+            Dim expectedSilenceTicks As Long = oracle.TotalHole100ns - policyExcluded
+            Dim expectedBytes As Long = expectedSilenceTicks * 192000L \ 10000000L
+            Assert(tap.TotalHole100ns = oracle.TotalHole100ns, "tap sees exactly the tracker's holes")
+            Assert(tap.StampFallbacks = oracle.StampFallbacks, "fallback counts agree")
+            Assert(tap.MonotonicViolations = oracle.MonotonicViolations, "violation counts agree")
+            Assert(tap.SilenceInsertedBytes = expectedBytes,
+                   $"A/B: inserted {tap.SilenceInsertedBytes}B == policy-filtered oracle {expectedBytes}B")
         End Sub
 
         ' ===== Integration test (requires real ffmpeg.exe) =====

@@ -50,6 +50,7 @@ Imports CaptureEngine.Video.Handoff
 Imports CaptureEngine.Encoder
 Imports CaptureEngine.Encoder.Nvenc
 Imports CaptureEngine.FFmpegBackend
+Imports CaptureEngine.Audio.Wasapi
 
 Namespace CaptureEngine.Recording
 
@@ -102,6 +103,16 @@ Namespace CaptureEngine.Recording
         ' ★ AudioTap instances (single gap-fill engine for both tracks)
         Private _sysTap As AudioTap
         Private _micTap As AudioTap
+
+        ' ★ P13.3: Device-clock path for the SYSTEM track (AudioClockMode=Device).
+        ' One WasapiPositionCapture (hardware qpcPosition stamps) + one
+        ' AudioTapDeviceClock (measured-gap fill). The legacy fields above
+        ' stay Nothing on this path — the two modes never mix in a session.
+        ' The mic track stays on the legacy tap in BOTH modes this phase.
+        Private _sysPosCapture As WasapiPositionCapture
+        Private _sysTap3 As AudioTapDeviceClock
+        Private _deviceClockSys As Boolean = False
+        Private _sessionStartQpc100ns As Long = 0
 
         Private Sub SysPipeFeed(data As Byte(), count As Integer)
             _liveMux?.FeedSystemAudio(data, count)
@@ -179,8 +190,91 @@ Namespace CaptureEngine.Recording
                 ' ─── 2. Start audio sidecar ─────────────────────────────
                 If _config.AudioEnabled Then
                     _logger.Info("[session] Starting audio sidecar...")
-                    audioCapture = New WasapiLoopbackCapture()
-                    waveFormat = audioCapture.WaveFormat
+
+                    ' ★ P13.3 clock-mode selection (docs/PHASE-13-SHADOWPLAY-
+                    ' CLOCK.md §4): "Device" → WasapiPositionCapture +
+                    ' AudioTapDeviceClock (hardware-stamped timeline). Anything
+                    ' else → the proven legacy path, byte-for-byte unchanged.
+                    Dim deviceRequested As Boolean = String.Equals(
+                        If(_config.AudioClockMode, "").Trim(), "Device",
+                        StringComparison.OrdinalIgnoreCase)
+                    _deviceClockSys = deviceRequested AndAlso WasapiPositionCapture.IsWindowsPlatform
+                    If deviceRequested AndAlso Not WasapiPositionCapture.IsWindowsPlatform Then
+                        _logger.Warning("[session] AudioClockMode=Device on non-Windows — falling back to Legacy tap")
+                    End If
+
+                    If _deviceClockSys Then
+                        ' ── DEVICE-CLOCK PATH (v3) ──────────────────────────
+                        ' One-time setup happens lazily on the capture thread's
+                        ' FIRST PacketReady: by then the mix format is known
+                        ' (Start() completed synchronously), so the sidecar
+                        ' writer and the tap are built from the REAL device
+                        ' format — no drops, no handler/format race.
+                        Dim sysSetupDone As Boolean = False
+                        _sysPosCapture = New WasapiPositionCapture(New WasapiCaptureOptions() With {
+                            .Loopback = True,
+                            .IncludePcm = True
+                        })
+
+                        AddHandler _sysPosCapture.PacketReady, Sub(pkt)
+                            If _stopSignal OrElse sw.Elapsed >= duration Then
+                                Try : _sysPosCapture.Stop() : Catch : End Try
+                            End If
+                            If pkt.Data Is Nothing OrElse pkt.Frames <= 0 Then Return
+
+                            If Not sysSetupDone Then
+                                sysSetupDone = True
+                                Dim dch As Integer = Math.Max(1, _sysPosCapture.Channels)
+                                Dim dfloat As Boolean = (_sysPosCapture.BitsPerSample = 32)
+                                Dim dbits As Integer = If(dfloat, 16, _sysPosCapture.BitsPerSample)
+                                _logger.Info($"[session] Audio (Device clock): {pkt.Frames}f packets @ {_sysPosCapture.SampleRate}Hz {dch}ch {_sysPosCapture.BitsPerSample}bit mix → PCM{dbits} feed")
+                                If _config.EvidenceSidecar Then
+                                    wavWriter = New WavSidecarWriter(tempWav, dch, _sysPosCapture.SampleRate, dbits)
+                                    wavWriter.Start()
+                                End If
+                                _sysTap3 = New AudioTapDeviceClock("sys", _sysPosCapture.SampleRate, dch, dbits,
+                                    New AudioTapSinkDual(wavWriter, AddressOf SysPipeFeed),
+                                    Sub(m) _logger.Info("[session] " & m))
+                            End If
+
+                            ' Convert the float mix format exactly like the
+                            ' legacy handler, then feed WITH the hardware stamp
+                            ' (frame count is invariant under the conversion).
+                            If _sysTap3 IsNot Nothing Then
+                                If _sysPosCapture.BitsPerSample = 32 Then
+                                    Dim srcBytes As Integer = pkt.Frames * Math.Max(1, _sysPosCapture.Channels) * 4
+                                    Dim pcm As Byte() = ConvertFloatToPcm16(pkt.Data, Math.Min(srcBytes, pkt.Data.Length))
+                                    _sysTap3.Feed(pcm, pcm.Length, pkt.QpcPosition100ns)
+                                Else
+                                    Dim rawBytes As Integer = pkt.Frames * Math.Max(1, _sysPosCapture.Channels) * Math.Max(1, _sysPosCapture.BitsPerSample \ 8)
+                                    _sysTap3.Feed(pkt.Data, Math.Min(rawBytes, pkt.Data.Length), pkt.QpcPosition100ns)
+                                End If
+                            End If
+                        End Sub
+
+                        AddHandler _sysPosCapture.StoppedWithError, Sub(err)
+                            ' Hardening contract: containment — this must NEVER
+                            ' take the process down; the track degrades, the
+                            ' session (video) continues.
+                            _logger.Error("[session] Device-clock capture STOPPED WITH ERROR (track ended, session continues): " & err)
+                        End Sub
+
+                        ' Session start stamp (100ns QPC) for the tap's tail
+                        ' close — replaces the legacy MarkStart wall-clock trick.
+                        _sessionStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(Stopwatch.GetTimestamp())
+                        _sysPosCapture.Start()
+                        _systemStartTicks = Stopwatch.GetTimestamp()
+
+                        ' Model S (P13.1 v6 evidence): the endpoint renders
+                        ' silence through quiet phases — the timeline advances
+                        ' on its own. The keep-alive render trick is NOT needed
+                        ' on this path (and stays Legacy-only after the owner's
+                        ' full-scale-noise report anyway).
+                        _logger.Info("[session] Audio sidecar started (Device clock: WasapiPositionCapture + AudioTapDeviceClock; keep-alive not required)")
+                    Else
+                        ' ── LEGACY PATH (proven AudioTap v2, unchanged) ─────
+                        audioCapture = New WasapiLoopbackCapture()
+                        waveFormat = audioCapture.WaveFormat
                     _logger.Info($"[session] Audio: {waveFormat.Channels}ch {waveFormat.SampleRate}Hz {waveFormat.BitsPerSample}bit {waveFormat.Encoding}")
 
                     ' WavSidecarWriter is PCM (16/24/32). WASAPI loopback on
@@ -260,6 +354,7 @@ Namespace CaptureEngine.Recording
                     audioCapture.StartRecording()
                     _systemStartTicks = Stopwatch.GetTimestamp()
                     _logger.Info("[session] Audio sidecar started (bounded queue + writer thread)")
+                    End If ' device-clock vs legacy system-audio path
                 Else
                     _logger.Info("[session] Audio DISABLED by config — video-only session")
                 End If
@@ -336,8 +431,12 @@ Namespace CaptureEngine.Recording
 
                 Dim micRate As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.SampleRate, 0)
                 Dim micCh As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.Channels, 0)
-                Dim sysRate As Integer = If(waveFormat IsNot Nothing, waveFormat.SampleRate, 48000)
-                Dim sysCh As Integer = If(waveFormat IsNot Nothing, waveFormat.Channels, 2)
+                Dim sysRate As Integer = If(_deviceClockSys AndAlso _sysPosCapture IsNot Nothing AndAlso _sysPosCapture.SampleRate > 0,
+                                            _sysPosCapture.SampleRate,
+                                            If(waveFormat IsNot Nothing, waveFormat.SampleRate, 48000))
+                Dim sysCh As Integer = If(_deviceClockSys AndAlso _sysPosCapture IsNot Nothing AndAlso _sysPosCapture.Channels > 0,
+                                          _sysPosCapture.Channels,
+                                          If(waveFormat IsNot Nothing, waveFormat.Channels, 2))
 
                 _liveMux = New LiveMuxSession(
                     _config.FFmpegPath,
@@ -436,8 +535,21 @@ Namespace CaptureEngine.Recording
                         ' wall-clock stream (lead 0); the pipe origin offset carries
                         ' BOTH the audio-start→video-t0 trim AND the systemic
                         ' device-latency lead.
-                        Dim sysOff As Double = SyncMath.ComputeAudioOffsetSec(
-                            _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
+                        Dim sysOff As Double
+                        If _deviceClockSys AndAlso _sysTap3 IsNot Nothing AndAlso _sysTap3.Anchored Then
+                            ' P13.3 Device mode: exact QPC anchor arithmetic
+                            ' (doc §3.3). The reconstructed stream BEGINS at the
+                            ' first fed packet's hardware stamp — anchor-to-
+                            ' anchor, no call-time guess, no pre-roll estimate.
+                            ' The +lead stays for now: residual loopback
+                            ' read-lag knob until P13.4 measures it away.
+                            Dim videoT0100ns As Long = CLng(_videoStartTicks * 10000000.0 / Stopwatch.Frequency)
+                            sysOff = SyncMath.ClampOffsetSec(
+                                (videoT0100ns - _sysTap3.FirstQpc100ns) / 10000000.0) + SyncMath.SystemAudioLeadSec
+                        Else
+                            sysOff = SyncMath.ComputeAudioOffsetSec(
+                                _videoStartTicks, _systemStartTicks, Stopwatch.Frequency) + SyncMath.SystemAudioLeadSec
+                        End If
                         Dim micOff As Double = SyncMath.ComputeAudioOffsetSec(
                             _videoStartTicks, _micStartTicks, Stopwatch.Frequency) + SyncMath.MicAudioLeadSec
                         _logger.Info($"[session] timeline origin: sys offset={sysOff:0.000}s mic offset={micOff:0.000}s (t0 trim + lead {SyncMath.SystemAudioLeadSec:0.000}s)")
@@ -543,19 +655,29 @@ Namespace CaptureEngine.Recording
                 _encoder.Stop()
 
                 ' ─── 8. Stop audio → event-driven WAV finalize ──────────
-                If audioCapture IsNot Nothing Then
+                If _deviceClockSys OrElse audioCapture IsNot Nothing Then
                     _logger.Info("[session] Stopping audio sidecar...")
                     _stopSignal = True
-                    Try : audioCapture.StopRecording() : Catch : End Try
 
-                    ' Event-driven wait — replaces the old Thread.Sleep(500)
-                    ' race. WASAPI fires RecordingStopped exactly once.
-                    If Not wavStoppedEvent.WaitOne(3000) Then
-                        _logger.Warning("[session] RecordingStopped event timeout (3s) — finalizing anyway")
+                    If _deviceClockSys Then
+                        ' v3: Stop() joins the capture thread (2s cap) — after
+                        ' it returns no more packets race the finalize below.
+                        Try : _sysPosCapture?.Stop() : Catch : End Try
+                    Else
+                        Try : audioCapture.StopRecording() : Catch : End Try
+
+                        ' Event-driven wait — replaces the old Thread.Sleep(500)
+                        ' race. WASAPI fires RecordingStopped exactly once.
+                        If Not wavStoppedEvent.WaitOne(3000) Then
+                            _logger.Warning("[session] RecordingStopped event timeout (3s) — finalizing anyway")
+                        End If
                     End If
 
                     ' Stop the keep-alive FIRST (stop rendering silence), then
                     ' finalize the tap (the tail-pad still covers the last ~ms).
+                    ' (Legacy path only — the Device-clock path never creates a
+                    ' keep-alive: Model S proved the endpoint renders silence
+                    ' through quiet phases on its own.)
                     Try
                         If _silenceKeepAlive IsNot Nothing Then
                             _silenceKeepAlive.Dispose()
@@ -564,12 +686,18 @@ Namespace CaptureEngine.Recording
                     Catch
                     End Try
 
-                    ' ★ AudioTap closes the timeline: tail-pad from the last
-                    ' callback to now (covers 'music stopped before stop was
-                    ' pressed'), or the FULL span if the device never delivered
-                    ' (fully silent session — else ffmpeg gets zero packets).
-                    ' Warm-up + silence totals are logged as calibration evidence.
-                    _sysTap?.FinalizeToNow()
+                    ' ★ The tap closes the timeline: tail-pad from the last
+                    ' packet to session end, or the FULL span if nothing ever
+                    ' arrived (fully silent session — else ffmpeg gets zero
+                    ' packets for this input and aborts).
+                    If _deviceClockSys AndAlso _sysTap3 IsNot Nothing Then
+                        ' v3: exact QPC tail — pad to the session-end stamp,
+                        ' no wall-clock estimation, no FinalizeToNow guess.
+                        _sysTap3.FinalizeTo100ns(_sessionStartQpc100ns,
+                            WasapiPositionCapture.QpcTicksTo100ns(Stopwatch.GetTimestamp()))
+                    Else
+                        _sysTap?.FinalizeToNow()
+                    End If
 
                     If wavWriter IsNot Nothing Then
                         wavReport = wavWriter.Complete(5000)
@@ -578,12 +706,18 @@ Namespace CaptureEngine.Recording
                         result.AudioBytes = wavReport.BytesWritten
                         result.AudioDroppedBytes = wavReport.BytesDropped
                         result.AudioAccountingOk = wavReport.AccountingOk
-                        result.AudioSamples = If(waveFormat IsNot Nothing,
-                                                 wavReport.BytesWritten \ (waveFormat.Channels * waveFormat.BitsPerSample \ 8),
-                                                 0)
+                        If _deviceClockSys AndAlso _sysPosCapture IsNot Nothing Then
+                            ' v3 sidecar is always PCM16 in the device's layout.
+                            result.AudioSamples = wavReport.BytesWritten \ (Math.Max(1, _sysPosCapture.Channels) * 2)
+                        Else
+                            result.AudioSamples = If(waveFormat IsNot Nothing,
+                                                     wavReport.BytesWritten \ (waveFormat.Channels * waveFormat.BitsPerSample \ 8),
+                                                     0)
+                        End If
                     Else
                         ' Evidence disabled: report the tap totals instead.
-                        result.AudioBytes = If(_sysTap IsNot Nothing, _sysTap.DataBytes, 0)
+                        result.AudioBytes = If(_sysTap3 IsNot Nothing, _sysTap3.DataBytes,
+                                               If(_sysTap IsNot Nothing, _sysTap.DataBytes, 0))
                         result.AudioAccountingOk = True
                     End If
                 End If
@@ -772,6 +906,9 @@ Namespace CaptureEngine.Recording
             If _disposed Then Return
             _disposed = True
             _stopSignal = True
+            ' P13.3: the Device-clock capture is session-owned — release it
+            ' here so an abnormal teardown cannot leave the WASAPI stream open.
+            Try : _sysPosCapture?.Dispose() : Catch : End Try
             ' NOTE: does NOT dispose _capture or _encoder — those are owned by RecordingEngine
         End Sub
 

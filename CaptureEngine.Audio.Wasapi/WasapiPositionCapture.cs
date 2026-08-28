@@ -70,6 +70,14 @@ namespace CaptureEngine.Audio.Wasapi
         /// <summary>Mix format sample rate (from the format header).</summary>
         public int SampleRate { get; private set; }
 
+        /// <summary>Mix-format channel count (P13.3: consumers convert the
+        /// float mix format to PCM16 and need the channel count).</summary>
+        public int Channels { get; private set; }
+
+        /// <summary>Mix-format bits per sample (typically 32 = IeeeFloat on
+        /// shared-mode endpoints).</summary>
+        public int BitsPerSample { get; private set; }
+
         /// <summary>Mix format blockAlign — bytes per frame (PCM sizing).</summary>
         public int BlockAlign { get; private set; }
 
@@ -158,6 +166,8 @@ namespace CaptureEngine.Audio.Wasapi
                 fmtPtr, typeof(Interop.WAVEFORMATEX));
             SampleRate = (int)fmt.nSamplesPerSec;
             BlockAlign = (int)fmt.nBlockAlign;
+            Channels = (int)fmt.nChannels;
+            BitsPerSample = (int)fmt.wBitsPerSample;
             MixFormatInfo = Interop.FormatToString(fmt) +
                             (fmt.wFormatTag == 0xFFFE
                                 ? " (EXTENSIBLE cbSize=" + fmt.cbSize + ")"

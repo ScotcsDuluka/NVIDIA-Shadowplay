@@ -108,6 +108,24 @@ Direct capture loop over the WASAPI COM interfaces:
 
 ### 3.2 REWRITE — `AudioTap` v3 (gap-fill from measured time)
 
+> **P13.3 SHIPPED (2026-08-28):** `AudioTapDeviceClock` lives in
+> `CaptureEngine.FFmpegBackend` (`AudioTapDeviceClock.vb`) — one track's
+> v3 tap, delegating all stamp math to the P13.2 `AudioPositionTracker`.
+> Wired into `CaptureSession` behind `SessionConfig.AudioClockMode`:
+> `"Device"` → `WasapiPositionCapture` (loopback) + v3 tap + exact QPC
+> anchor offset `(videoT0 − firstQpc)` at BeginTimelines; `"Legacy"` →
+> the v2 path byte-for-byte unchanged. Mic stays on the legacy tap in
+> both modes this phase (WasapiPositionCapture device selection is
+> default-capture-device only until the interop grows an id override).
+> Setup is lazy on the capture thread's first PacketReady (no
+> handler/format race, no dropped packets); keep-alive is never created
+> on the v3 path (Model S: the endpoint renders silence by itself);
+> tail close = `FinalizeTo100ns(sessionStartQpc, sessionEndQpc)` —
+> exact, no wall-clock estimation. Gate: 12 new ATDC tests in
+> FFmpegTests (anchor/holes/thresholds/backwards/stampless/re-anchor/
+> block-align/finalize + **A/B equivalence vs the tracker oracle on a
+> mixed stress timeline**) — 49/49 PASS, all projects 0 warnings.
+
 > **P13.1 UPDATE (2026-08-27, v6 silence test on OWNER machine):** loopback
 > silence is a **non-event** — through 40 s of total silence the endpoint
 > kept delivering 100 packets/s with `devicePosition` advancing exactly
