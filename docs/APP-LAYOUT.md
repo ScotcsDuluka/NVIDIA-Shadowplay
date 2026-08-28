@@ -105,6 +105,14 @@ assume" style.
 - `scripts/build-all.ps1` — `-StageLayout` switch.
 - Path-site rewrites across API / App Experience / Notifier / Engine /
   Overlay (~40 sites; test projects and `Load.old` untouched).
+- Post-rewrite full-code audit (2026-08-28) caught 3 late CWD-relative
+  sites in `App Experience/Main.vb` — the `Use_Overlay` toggle READ at
+  form load (writer had moved to `Flags\`, reader had not → toggle reset
+  to OFF and the next tick deleted the real flag), the kill-restart
+  DELETE (missed the flag → overlay survived the kill), and
+  `kill_error.log` (now `Logs\`). Library layer is deliberately
+  layout-agnostic: `AppLayout.vb` is linked only into the 5 app
+  projects; libraries take explicit base-dir parameters instead.
 - Latent-bug fixes found by first-ever Linux compile of the legacy apps:
   `NVIDIA API.vb` BC30068 (`p` loop-variable collision), `AppLayout.vb`
   BC42104 (VB case-insensitive self-shadowing of `ExeDir`).

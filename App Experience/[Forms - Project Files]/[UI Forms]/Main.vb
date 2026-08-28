@@ -69,7 +69,11 @@ Partial Public Class NVIDIA_Shadowplay_Helper
             Return
         End If
 
-        If IO.File.Exists("Use_Overlay") Then
+        ' ROOT-FIXED LAYOUT: the flag lives in <root>\Flags\ (writer:
+        ' IF_APP_Tick below). Reading the bare CWD-relative name here made
+        ' the toggle show OFF on every start of the staged tree, and the
+        ' next tick then DELETED the real flag (silent overlay reset).
+        If IO.File.Exists(AppLayout.P("Flags", "Use_Overlay")) Then
             Use_Overlay.IsOn = True
         Else
             Use_Overlay.IsOn = False
@@ -153,8 +157,11 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     End Sub
 
     Private Sub RadioButton2_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton2.Click
-        If File.Exists("Use_Overlay") Then
-            File.Delete("Use_Overlay")
+        ' ROOT-FIXED LAYOUT: delete the real flag under <root>\Flags\ —
+        ' the CWD-relative name missed it and overlay survived the kill.
+        Dim useOverlayFlag As String = AppLayout.P("Flags", "Use_Overlay")
+        If File.Exists(useOverlayFlag) Then
+            File.Delete(useOverlayFlag)
         End If
         Dim apps = {
         "NVIDIA Notifier.exe",
@@ -170,7 +177,11 @@ Partial Public Class NVIDIA_Shadowplay_Helper
                 Try
                     proc.Kill()
                 Catch ex As Exception
-                    File.AppendAllText("kill_error.log", $"{proc.ProcessName} : {ex.Message}" & Environment.NewLine)
+                    ' ROOT-FIXED LAYOUT: error log belongs in <root>\Logs\.
+                    Dim logsDir As String = AppLayout.P("Logs")
+                    If Not Directory.Exists(logsDir) Then Directory.CreateDirectory(logsDir)
+                    File.AppendAllText(IO.Path.Combine(logsDir, "kill_error.log"),
+                        $"{proc.ProcessName} : {ex.Message}" & Environment.NewLine)
                 End Try
             Next
         Next
