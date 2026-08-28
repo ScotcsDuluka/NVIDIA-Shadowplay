@@ -413,7 +413,7 @@
         <!-- Project references -->
         <ItemGroup>
                 <ProjectReference Include="..\API\NVIDIA API.vbproj" />
-                <ProjectReference Include="..\App Experience\NVIDIA Experience.vbproj" />
+                <ProjectReference Include="..\Launcher\NVIDIA Experience.vbproj" />
                 <ProjectReference Include="..\Engine\NVIDIA Capture.vbproj" />
                 <ProjectReference Include="..\Notifier\NVIDIA Notifier.vbproj" />
         </ItemGroup>

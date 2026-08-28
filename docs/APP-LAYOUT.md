@@ -152,10 +152,10 @@ assume" style.
   `_StageSplitAppHost`), both gated on `StageLayout=true` (set only by
   layout.proj) + `AppLayoutRoot`.
 - `scripts/build-all.ps1` — `-StageLayout` switch.
-- Path-site rewrites across API / App Experience / Notifier / Engine /
+- Path-site rewrites across API / Launcher (NVIDIA Experience) / Notifier / Engine /
   Overlay (~40 sites; test projects and `Load.old` untouched).
 - Post-rewrite full-code audit (2026-08-28) caught 3 late CWD-relative
-  sites in `App Experience/Main.vb` — the `Use_Overlay` toggle READ at
+  sites in `Launcher/Main.vb` — the `Use_Overlay` toggle READ at
   form load (writer had moved to `Flags\`, reader had not → toggle reset
   to OFF and the next tick deleted the real flag), the kill-restart
   DELETE (missed the flag → overlay survived the kill), and

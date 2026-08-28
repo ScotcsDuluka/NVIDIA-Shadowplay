@@ -61,7 +61,7 @@ if (-not $Fast) {
             if (Test-Path $p) { Remove-Item -Recurse -Force $p }
         }
     }
-    foreach ($proj in "Engine", "Overlay", "API", "Notifier", "App Experience") {
+    foreach ($proj in "Engine", "Overlay", "API", "Notifier", "Launcher") {
         foreach ($d in "bin", "obj") {
             $p = Join-Path $repo "$proj\$d"
             if (Test-Path $p) { Remove-Item -Recurse -Force $p }
