@@ -1260,6 +1260,7 @@ Partial Public Class UI_Engine
         ' Same pattern as Engine.UI marker system.
         Try
             Dim uiFile As String = AppLayout.P("Flags", "Audio.UI")
+            AppLayout.EnsureParentDir(uiFile)   ' Flags\ is runtime-created
             IO.File.WriteAllText(uiFile, DateTime.Now.ToString())
         Catch ex As Exception
             MessageBox.Show(Me, "Failed to open audio settings: " & ex.Message, "Error",

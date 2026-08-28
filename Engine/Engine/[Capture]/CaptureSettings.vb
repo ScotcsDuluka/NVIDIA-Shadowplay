@@ -189,6 +189,7 @@ Public Class CaptureSettings
             sb.AppendLine("  ""CustomWidth"": " & CustomWidth & ",")
             sb.AppendLine("  ""CustomHeight"": " & CustomHeight & "")
             sb.AppendLine("}")
+            AppLayout.EnsureParentDir(enginePath)   ' Config\ is runtime-created
             File.WriteAllText(enginePath, sb.ToString())
         Catch
         End Try
@@ -311,6 +312,7 @@ Public Class CaptureSettings
             sb.AppendLine("  ""AudioTrackMode"": " & CInt(AudioTrackMode).ToString() & ",")
             sb.AppendLine("  ""AudioClockMode"": """ & JsonEscape(AudioClockMode) & """")
             sb.AppendLine("}")
+            AppLayout.EnsureParentDir(audioFilePath)   ' Config\ is runtime-created
             File.WriteAllText(audioFilePath, sb.ToString())
         Catch
         End Try

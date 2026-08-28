@@ -416,7 +416,11 @@ Partial Public Class Base
             ShowNotifier("notificationErrorResolution")
         End If
         ' ===== UI is ready — signal "Ready" =====
-        File.Create(AppLayout.P("Flags", "Ready")).Dispose()
+        ' Flags\ is runtime-created (never staged) — make it on demand,
+        ' else a fresh staged tree crashes here on first run.
+        Dim readyFlag As String = AppLayout.P("Flags", "Ready")
+        AppLayout.EnsureParentDir(readyFlag)
+        File.Create(readyFlag).Dispose()
 
         ' ===== Heavier work runs in the background (does not block the UI) =====
         Task.Run(Async Function()

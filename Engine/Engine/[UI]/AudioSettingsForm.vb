@@ -150,6 +150,7 @@ Public Class AudioSettingsForm
             audio("mic_device") = If(_settings.MicDeviceName, "")
             audio("mic_device_id") = If(_settings.MicDeviceId, "")
 
+            AppLayout.EnsureParentDir(_overlayVideoPath)   ' Config\ is runtime-created
             File.WriteAllText(_overlayVideoPath, root.ToString(Newtonsoft.Json.Formatting.Indented))
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine("[AudioSettingsForm] SaveToOverlayVideoJson error: " & ex.Message)

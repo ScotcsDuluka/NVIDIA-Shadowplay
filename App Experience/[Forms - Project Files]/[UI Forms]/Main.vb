@@ -105,7 +105,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         API_OVERLAY.Checked = notifierRunning
         NvStatusDot_NVNOTIFIER.Status = If(notifierRunning,
             NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped)
-        If Not notifierRunning Then File.Delete(Ready_Use)
+        If Not notifierRunning Then AppLayout.DeleteFileIfExists(Ready_Use)
 
         ' ── NVIDIA API ──
         Dim apiRunning As Boolean = Process.GetProcessesByName("NVIDIA API").Length > 0
@@ -117,6 +117,8 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         Dim overlayPath As String = AppLayout.P("Flags", "Use_Overlay")
         If Use_Overlay.IsOn Then
             If Not File.Exists(overlayPath) Then
+                ' Flags\ is runtime-created (never staged) — make it on demand.
+                AppLayout.EnsureParentDir(overlayPath)
                 File.Create(overlayPath).Dispose()
             End If
             overlay_text.ForeColor = Color.White

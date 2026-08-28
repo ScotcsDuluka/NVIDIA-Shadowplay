@@ -114,6 +114,42 @@ Public Module AppLayout
         Return P(appExeName)
     End Function
 
+    ''' <summary>
+    ''' Creates the parent directory of <paramref name="filePath"/> on demand.
+    ''' Flags\Config\Logs\Data are runtime-created — never staged — so every
+    ''' writer of a root-fixed file calls this first. Never throws.
+    ''' </summary>
+    ''' <remarks>The parameter is deliberately named <c>filePath</c>, NOT
+    ''' <c>path</c>: VB is case-insensitive and a <c>path</c> parameter would
+    ''' shadow the System.IO.Path TYPE inside this body (BC30456).</remarks>
+    Public Sub EnsureParentDir(filePath As String)
+        Try
+            If String.IsNullOrEmpty(filePath) Then Return
+            Dim parent As String = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(filePath))
+            If Not String.IsNullOrEmpty(parent) AndAlso Not Directory.Exists(parent) Then
+                Directory.CreateDirectory(parent)
+            End If
+        Catch
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' Deletes a root-fixed file when both the file AND its folder exist.
+    ''' File.Delete on a path whose DIRECTORY is missing throws
+    ''' DirectoryNotFoundException (the Flags\ first-run crash) — this call
+    ''' never throws for a missing file or folder.
+    ''' </summary>
+    ''' <remarks>Same <c>filePath</c> naming rule as EnsureParentDir — a
+    ''' <c>path</c> parameter would shadow the System.IO.Path type.</remarks>
+    Public Sub DeleteFileIfExists(filePath As String)
+        Try
+            If Not String.IsNullOrEmpty(filePath) AndAlso File.Exists(filePath) Then
+                File.Delete(filePath)
+            End If
+        Catch
+        End Try
+    End Sub
+
     ''' <summary>Call once at startup: CWD = root + install the assembly
     ''' resolver. Idempotent and safe to call again.</summary>
     Public Sub Initialize()

@@ -134,6 +134,10 @@
           DestinationFiles="$(LayoutRoot)/Engine\CaptureEngine.Recording.dll" SkipUnchangedFiles="true" />
 
     <!-- Content: Overlay carries the product content -->
+    <!-- Runtime-created dirs: pre-create so first-run writers never hit a
+         missing parent (Flags\Ready delete/create, Logs\Config writers).
+         AppLayout.EnsureParentDir covers the rest; these four are the hot ones. -->
+    <MakeDir Directories="$(LayoutRoot)/Flags;$(LayoutRoot)/Logs;$(LayoutRoot)/Data;$(LayoutRoot)/Config" />
     <Copy SourceFiles="@(OverlayLanguages)" DestinationFolder="$(LayoutRoot)/Languages" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(OverlayFfmpeg)" DestinationFolder="$(LayoutRoot)/FFmpeg" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(DataFiles)"
