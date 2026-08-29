@@ -8,9 +8,6 @@
     <Compile Update="[Forms Overlay - Project Files]\[API]\[Helpers]\SnipWithWindows.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="[Forms Overlay - Project Files]\[API]\[Models]\ToggleSwitch.vb">
-      <SubType>Component</SubType>
-    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[API]\[Services]\TCP\[Overlay] Client.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -53,6 +50,9 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Gallery]\[1] Main.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[0.1] Empty.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect.vb">
       <SubType>Form</SubType>
     </Compile>
@@ -68,7 +68,7 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[6] Audio Capture.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[7] Privacy Control.vb">
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[10] Privacy Control.vb">
       <SubType>Form</SubType>
     </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[5] Video Capture.vb">
