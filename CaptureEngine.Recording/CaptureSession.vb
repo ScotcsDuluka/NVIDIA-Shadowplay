@@ -297,10 +297,10 @@ Namespace CaptureEngine.Recording
                                 If _sysPosCapture.BitsPerSample = 32 Then
                                     Dim srcBytes As Integer = pkt.Frames * Math.Max(1, _sysPosCapture.Channels) * 4
                                     Dim pcm As Byte() = ConvertFloatToPcm16(pkt.Data, Math.Min(srcBytes, pkt.Data.Length))
-                                    _sysTap3.Feed(pcm, pcm.Length, pkt.QpcPosition100ns)
+                                    _sysTap3.Feed(pcm, pcm.Length, pkt.DevicePositionFrames, pkt.QpcPosition100ns)
                                 Else
                                     Dim rawBytes As Integer = pkt.Frames * Math.Max(1, _sysPosCapture.Channels) * Math.Max(1, _sysPosCapture.BitsPerSample \ 8)
-                                    _sysTap3.Feed(pkt.Data, Math.Min(rawBytes, pkt.Data.Length), pkt.QpcPosition100ns)
+                                    _sysTap3.Feed(pkt.Data, Math.Min(rawBytes, pkt.Data.Length), pkt.DevicePositionFrames, pkt.QpcPosition100ns)
                                 End If
 
                                 ' The moment this tap anchors, the v2 offset math

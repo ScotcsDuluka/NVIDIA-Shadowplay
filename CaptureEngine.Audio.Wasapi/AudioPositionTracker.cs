@@ -1,32 +1,37 @@
 // AudioPositionTracker.cs — P13.2: the PURE, Linux-testable half of the
 // position design (no COM, no threads, deterministic).
 //
-// Consumes (frames, qpcPosition100ns) per packet and maintains the packet
-// timeline the way AudioTap v3 (P13.3) will consume it:
+// ★ P13.4c (field evidence, OWNER runs 2026-08-28/29): the timeline moved
+// from qpcPosition deltas to DevicePositionFrames deltas. The OWNER's
+// endpoint fired 933 BACKWARDS qpc stamps in one 38s session and the
+// qpc-delta timeline lost 5.65s of device time (track 32.93s vs session
+// 38.56s) — qpcPosition measures WHEN the position was SAMPLED, not where
+// the content is; sampling jitter (and lying drivers: USB/BT/DSP) makes
+// qpc deltas useless as a content clock. DevicePositionFrames is the
+// RENDER CURSOR — it advances with rendered content (silence included),
+// which is exactly the content timeline this tracker exists to build.
+// qpcPosition is demoted to the WALL ANCHOR (FirstQpc100ns → SyncMath)
+// plus an anomaly counter (QpcAnomalies — evidence, no timeline impact).
 //
-//   lastEnd100ns  = END of the last packet's content  (lastQpc + lastDur)
-//   hole100ns     = qpc − lastEnd                     (MEASURED by hardware)
-//   bufferDur     = frames × 10^7 / sampleRate        (this packet's span)
+// Consumes (frames, devicePositionFrames, qpcPosition100ns) per packet:
 //
-// Semantics note: PHASE-13-SHADOWPLAY-CLOCK.md §3.2's pseudo-code measured
-// lastEnd as the previous packet's START; the tracker uses END-to-START
-// (hole is exactly the silence AudioTap must pad before writing the packet's
-// bytes). For uniform 10ms packets the two agree; for variable sizes END-to-
-// START is the correct one. The doc gets a precision pass in P13.3.
+//   lastDevPosEnd = devPos + frames        (render cursor, END of content)
+//   hole100ns     = (devPos − lastDevPosEnd) × 10⁷ / rate   (CONTENT time!)
+//   bufferDur     = frames × 10⁷ / rate
+//   lastEnd100ns  = FirstQpc + (lastDevPosEnd − firstDevPos) × 10⁷ / rate
+//                   (content end mapped into the QPC wall domain)
 //
-// All arithmetic is integer 100ns — no drift can accumulate because lastEnd
-// is recomputed from each packet's OWN stamp, never by summing increments.
+// Hardening (doc §5 Risks, adapted to devPos):
+//   Risk #2 — devicePositionFrames == 0 mid-stream ("no cursor"): assume
+//   continuity (devPos = lastDevPosEnd), flag it, never fabricate gaps.
+//   Backwards devPos (device re-init / endpoint switch): flagged as
+//   monotonicity violations; timeline NEVER rewinds (max policy).
+//   Re-anchor rule: if the ANCHOR packet had devPos == 0, the first REAL
+//   cursor re-anchors with no hole (pre-reanchor absolute positions were
+//   never known — a measured gap there would be stream-sized fiction).
 //
-// Hardening covered (doc §5 Risks):
-//   Risk #2 — qpcPosition == 0 on some drivers ("no stamp"): the tracker
-//   assumes continuity (stamp = lastEnd), flags it, never fabricates gaps.
-//   Backwards stamps: flagged as monotonicity violations; timeline never
-//   rewinds (max policy), hole clamped to zero.
-//   Re-anchor rule (stability pass): if the ANCHOR packet itself was
-//   stampless (anchored at 0), the first REAL stamp re-anchors the
-//   timeline with no hole — the pre-reanchor absolute positions were
-//   never known, so "measuring" a hole there would fabricate one the
-//   size of the whole stream (AudioTap would pad seconds of silence).
+// All arithmetic is integer 100ns/frames — no drift accumulates because
+// the hole recomputes from each packet's OWN cursor, never by summing.
 
 using System;
 
@@ -35,44 +40,54 @@ namespace CaptureEngine.Audio.Wasapi
     /// <summary>Outcome of feeding one packet to the tracker.</summary>
     public struct AudioGapReport
     {
-        /// <summary>True for the first packet: it anchors the timeline
-        /// (FirstQpc100ns becomes meaningful, no gap is possible).</summary>
+        /// <summary>True for the first packet: it anchors the timeline.</summary>
         public bool AnchoredNow;
 
-        /// <summary>Hole between the previous packet's END and this
-        /// packet's START, in 100ns (0 when continuous). Raw measurement —
-        /// consumers apply policy (AudioTap's 0.05s minimum threshold).</summary>
+        /// <summary>CONTENT gap between the previous packet's cursor end and
+        /// this packet's cursor start, in 100ns (0 when continuous). Consumers
+        /// apply policy (AudioTap pads every hole; logs only > 50ms).</summary>
         public long Hole100ns;
 
         /// <summary>Duration of THIS packet, in 100ns.</summary>
         public long BufferDur100ns;
 
-        /// <summary>This packet's stamp was missing (0) and continuity was
+        /// <summary>This packet's cursor was missing (0) and continuity was
         /// assumed instead (doc §5 Risk #2 fallback).</summary>
         public bool StampFallbackUsed;
 
-        /// <summary>This packet's stamp started before the previous
-        /// content ended (overlap/backwards). Timeline did NOT rewind.</summary>
+        /// <summary>This packet's cursor started before the previous content
+        /// ended (overlap/re-init). Timeline did NOT rewind.</summary>
         public bool MonotonicViolation;
 
-        /// <summary>A real hardware stamp arrived after a fallback
-        /// (zero-stamp) anchor: the timeline re-anchored onto it. No gap
-        /// is measurable across a re-anchor — absolute positions before
-        /// it were unknown.</summary>
+        /// <summary>A real cursor arrived after a fallback (zero-cursor)
+        /// anchor: the timeline re-anchored onto it. No gap is measurable
+        /// across a re-anchor.</summary>
         public bool ReAnchoredNow;
 
-        /// <summary>Timeline END after absorbing this packet.</summary>
+        /// <summary>The packet's qpcPosition went backwards vs the previous
+        /// packet's — WALL-DOMAIN noise only (the OWNER machine: 933/session).
+        /// Evidence counter; ZERO timeline impact since P13.4c.</summary>
+        public bool QpcAnomaly;
+
+        /// <summary>Cursor END after absorbing this packet (frames).</summary>
+        public long LastDevPosEnd;
+
+        /// <summary>Content end mapped into the QPC wall domain (100ns).</summary>
         public long LastEnd100ns;
     }
 
-    /// <summary>Packet-timeline tracker over hardware stamps (pure logic).</summary>
+    /// <summary>Packet-timeline tracker over the device render cursor
+    /// (DevicePositionFrames) — pure logic, serially fed.</summary>
     public sealed class AudioPositionTracker
     {
         private readonly long _sampleRate;
-        private long _lastEnd;
+        private long _firstDevPos;
+        private long _lastDevPosEnd;
         private long _firstQpc;
+        private long _lastQpc;
         private bool _anchored;
         private bool _anchorWasFallback;
+        private long _framesSinceAnchor;
 
         /// <summary>Sample rate of the device mix format (frames → time).</summary>
         public int SampleRate { get { return (int)_sampleRate; } }
@@ -80,13 +95,21 @@ namespace CaptureEngine.Audio.Wasapi
         /// <summary>True once the first packet anchored the timeline.</summary>
         public bool Anchored { get { return _anchored; } }
 
-        /// <summary>Hardware stamp the timeline is anchored on (100ns):
-        /// the first packet's stamp — or, if that packet was stampless,
-        /// the first REAL stamp seen (re-anchor). 0 until anchored.</summary>
+        /// <summary>Wall anchor: the anchor packet's qpcPosition (100ns).
+        /// 0 while the anchor is a zero-cursor fallback awaiting re-anchor.
+        /// SyncMath maps video t0 against this.</summary>
         public long FirstQpc100ns { get { return _firstQpc; } }
 
-        /// <summary>END of the last absorbed packet's content (100ns).</summary>
-        public long LastEnd100ns { get { return _lastEnd; } }
+        /// <summary>Cursor of the anchor packet (frames). Deltas are taken
+        /// from here — absolute cursor values are meaningless, only spans.</summary>
+        public long FirstDevPos { get { return _firstDevPos; } }
+
+        /// <summary>END of the last absorbed packet's cursor span (frames).</summary>
+        public long LastDevPosEnd { get { return _lastDevPosEnd; } }
+
+        /// <summary>Content end mapped into the QPC wall domain (100ns):
+        /// FirstQpc + (LastDevPosEnd − FirstDevPos) × 10⁷ / rate.</summary>
+        public long LastEnd100ns { get; private set; }
 
         /// <summary>Total packets fed.</summary>
         public long Packets { get; private set; }
@@ -100,11 +123,17 @@ namespace CaptureEngine.Audio.Wasapi
         /// <summary>Sum of all measured holes, 100ns.</summary>
         public long TotalHole100ns { get; private set; }
 
-        /// <summary>Packets that needed the zero-stamp fallback (Risk #2).</summary>
+        /// <summary>Packets that needed the zero-cursor fallback (Risk #2).</summary>
         public long StampFallbacks { get; private set; }
 
-        /// <summary>Packets whose stamp violated monotonicity.</summary>
+        /// <summary>Packets whose CURSOR violated monotonicity (overlap or
+        /// device re-init). Timeline never rewinds.</summary>
         public long MonotonicViolations { get; private set; }
+
+        /// <summary>Packets whose qpcPosition went backwards — wall-domain
+        /// sampling noise. Evidence only (P13.4c: the timeline no longer
+        /// consumes qpc deltas at all).</summary>
+        public long QpcAnomalies { get; private set; }
 
         public AudioPositionTracker(int sampleRate)
         {
@@ -114,8 +143,8 @@ namespace CaptureEngine.Audio.Wasapi
             _sampleRate = sampleRate;
         }
 
-        /// <summary>frames × 10^7 / sampleRate, floored. Exact for real
-        /// packets (480 @ 48000 = 10,000,000). Sub-100ns remainders floor;
+        /// <summary>frames × 10⁷ / sampleRate, floored. Exact for real
+        /// packets (480 @ 48000 = 100,000). Sub-100ns remainders floor;
         /// consumer gap thresholds absorb the ≤1-tick jitter.</summary>
         public long Duration100ns(int frames)
         {
@@ -123,9 +152,18 @@ namespace CaptureEngine.Audio.Wasapi
             return frames * 10_000_000L / _sampleRate;
         }
 
+        /// <summary>cursorFrames × 10⁷ / sampleRate — content span in 100ns.
+        /// Positive cursor deltas can be huge (36,000,000 frames/h); the
+        /// intermediate product fits Int64 up to ~9.2e18 (≈ 4.4e13 frames).</summary>
+        private long FramesTo100ns(long frames)
+        {
+            return frames / _sampleRate * 10_000_000L
+                 + frames % _sampleRate * 10_000_000L / _sampleRate;
+        }
+
         /// <summary>Feed one packet. Pure and thread-unsafe by design —
         /// the owner of the packet stream calls this serially.</summary>
-        public AudioGapReport Feed(int frames, long qpcPosition100ns)
+        public AudioGapReport Feed(int frames, long devicePositionFrames, long qpcPosition100ns)
         {
             if (frames < 0)
                 throw new ArgumentOutOfRangeException(nameof(frames),
@@ -138,71 +176,104 @@ namespace CaptureEngine.Audio.Wasapi
             Packets++;
             Frames += frames;
 
+            // qpc anomaly evidence — wall-domain noise, no timeline effect.
+            if (Packets > 1 && qpcPosition100ns < _lastQpc)
+            {
+                r.QpcAnomaly = true;
+                QpcAnomalies++;
+            }
+            if (qpcPosition100ns > 0) _lastQpc = qpcPosition100ns;
+
             if (!_anchored)
             {
                 // First packet: anchor, no gap possible.
                 _anchored = true;
+                _firstDevPos = devicePositionFrames;
                 _firstQpc = qpcPosition100ns;
-                if (qpcPosition100ns == 0)
+                if (devicePositionFrames == 0)
                 {
-                    // Pathological: first packet has no stamp. Anchor at 0
-                    // and treat content as starting the timeline.
+                    // Pathological: first packet has no cursor. The qpc is
+                    // still the true wall position of this content — anchor
+                    // on it; the cursor base is backfilled on the first
+                    // real cursor (the re-anchor branch below).
                     r.StampFallbackUsed = true;
                     StampFallbacks++;
                     _anchorWasFallback = true;
+                    _framesSinceAnchor = frames;
                 }
-                _lastEnd = qpcPosition100ns + dur;
+                _lastDevPosEnd = devicePositionFrames + frames;
+                LastEnd100ns = _firstQpc + dur;
                 r.AnchoredNow = true;
                 r.Hole100ns = 0;
-                r.LastEnd100ns = _lastEnd;
+                r.LastDevPosEnd = _lastDevPosEnd;
+                r.LastEnd100ns = LastEnd100ns;
                 return r;
             }
 
-            if (qpcPosition100ns == 0)
+            if (devicePositionFrames == 0)
             {
-                // Risk #2: "no stamp". Assume continuity — this packet's
+                // Risk #2: "no cursor". Assume continuity — this packet's
                 // content starts exactly where the last one ended.
                 r.StampFallbackUsed = true;
                 StampFallbacks++;
                 r.Hole100ns = 0;
-                _lastEnd = _lastEnd + dur;
-                r.LastEnd100ns = _lastEnd;
+                _lastDevPosEnd += frames;
+                LastEnd100ns += dur;
+                _framesSinceAnchor += frames;
+                r.LastDevPosEnd = _lastDevPosEnd;
+                r.LastEnd100ns = LastEnd100ns;
                 return r;
             }
 
             if (_anchorWasFallback)
             {
-                // Stability pass: the anchor was a zero-stamp fallback, so
-                // _lastEnd sits on a fictitious 0-based timeline. Comparing
-                // a REAL stamp against it would report a hole the size of
-                // the whole stream. Re-anchor instead: packet 1's absolute
-                // position was never known, so no gap is measurable there.
+                // First REAL cursor after a cursorless anchor. The anchor's
+                // qpc IS the true wall position of the first content (the
+                // packet existed — only its cursor was missing), so the
+                // anchor stays; the cursor base is BACKFILLED from the
+                // first real cursor assuming continuity:
+                //   impliedFirstDevPos = devPos − Σ(cursorless frames)
+                // After the backfill the normal cursor-delta logic runs —
+                // an honest driver yields hole=0 here; a driver that jumped
+                // yields a REAL hole that MUST be padded.
                 _anchorWasFallback = false;
-                _firstQpc = qpcPosition100ns;
+                long implied = devicePositionFrames - _framesSinceAnchor;
+                _firstDevPos = implied >= 0 ? implied : 0;
+                // Rebase the continuity-maintained end onto the real cursor
+                // domain, or the delta below would fabricate an `implied`
+                // sized hole. Continuity is the assumption here — the cursor
+                // was absent, so no gap is measurable across the streak.
+                _lastDevPosEnd = devicePositionFrames;
                 r.ReAnchoredNow = true;
                 r.Hole100ns = 0;
-                _lastEnd = qpcPosition100ns + dur;
-                r.LastEnd100ns = _lastEnd;
-                return r;
+                // fall through to the normal cursor-delta logic below
+            }
+            else
+            {
+                r.Hole100ns = 0;
             }
 
-            long hole = qpcPosition100ns - _lastEnd;
-            if (hole < 0)
+            long holeFrames = devicePositionFrames - _lastDevPosEnd;
+            if (holeFrames < 0)
             {
-                // Backwards/overlapping stamp: report it, never rewind.
+                // Backwards/overlapping cursor (device re-init): report it,
+                // never rewind — max policy on the cursor end.
                 r.MonotonicViolation = true;
                 MonotonicViolations++;
                 r.Hole100ns = 0;
-                long end = qpcPosition100ns + dur;
-                if (end > _lastEnd) _lastEnd = end;
-                r.LastEnd100ns = _lastEnd;
-                return r;
+                long newEnd = devicePositionFrames + frames;
+                if (newEnd > _lastDevPosEnd) _lastDevPosEnd = newEnd;
+            }
+            else
+            {
+                r.Hole100ns = FramesTo100ns(holeFrames);
+                if (holeFrames > 0) { GapPackets++; TotalHole100ns += r.Hole100ns; }
+                _lastDevPosEnd = devicePositionFrames + frames;
             }
 
-            r.Hole100ns = hole;
-            if (hole > 0) { GapPackets++; TotalHole100ns += hole; }
-            _lastEnd = qpcPosition100ns + dur;
-            r.LastEnd100ns = _lastEnd;
+            LastEnd100ns = _firstQpc + FramesTo100ns(_lastDevPosEnd - _firstDevPos);
+            r.LastDevPosEnd = _lastDevPosEnd;
+            r.LastEnd100ns = LastEnd100ns;
             return r;
         }
 
@@ -211,9 +282,11 @@ namespace CaptureEngine.Audio.Wasapi
         public void Reset()
         {
             _anchored = false;
-            _lastEnd = 0;
+            _firstDevPos = 0;
+            _lastDevPosEnd = 0;
             _firstQpc = 0;
             _anchorWasFallback = false;
+            _framesSinceAnchor = 0;
         }
     }
 }
