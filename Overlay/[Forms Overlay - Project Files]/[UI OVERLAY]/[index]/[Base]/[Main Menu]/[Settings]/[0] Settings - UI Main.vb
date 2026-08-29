@@ -27,6 +27,10 @@ Public Class Base_Settings
     Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
     End Function
 
+    <DllImport("user32.dll")>
+    Private Shared Function HideCaret(hWnd As IntPtr) As Boolean
+    End Function
+
     Private Const GWL_EXSTYLE As Integer = -20
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
@@ -68,8 +72,38 @@ Public Class Base_Settings
 
     End Sub
 
+    ' ====================================================================
+    ' Caret-free text boxes (HOST_BOX / PORT_BOX / KEY_BOX)
+    '
+    ' These fields are styled as flat value displays (nvgcshare, no
+    ' border, centered), so the blinking text caret reads as noise —
+    ' it blinks exactly where the user clicked. HideCaret() only flips
+    ' the Win32 caret visibility: editing, selection and the Leave-based
+    ' save below are untouched.
+    '
+    ' The EDIT control re-creates/re-shows the caret on focus, mouse
+    ' down and while typing, so every one of those events schedules
+    ' another hide — deferred with BeginInvoke so it runs AFTER the
+    ' message that showed the caret has fully completed.
+    ' ====================================================================
+    Private Sub HideBoxCaret(sender As Object, e As EventArgs)
+        Dim box As Control = TryCast(sender, Control)
+        If box Is Nothing OrElse Not box.IsHandleCreated Then Return
+        box.BeginInvoke(New Action(Sub() HideCaret(box.Handle)))
+    End Sub
+
+    Private Sub ApplyCaretFree(box As TextBox)
+        AddHandler box.GotFocus, AddressOf HideBoxCaret
+        AddHandler box.MouseDown, AddressOf HideBoxCaret
+        AddHandler box.KeyUp, AddressOf HideBoxCaret
+        AddHandler box.TextChanged, AddressOf HideBoxCaret
+    End Sub
+
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
+        ApplyCaretFree(HOST_BOX)
+        ApplyCaretFree(PORT_BOX)
+        ApplyCaretFree(KEY_BOX)
         ' Guard: the toggle's instance lives in the Designer.vb and can be
         ' stripped by hand edits — never let that NRE the whole page.
         If ToggleUseWindowsSnip IsNot Nothing Then ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
