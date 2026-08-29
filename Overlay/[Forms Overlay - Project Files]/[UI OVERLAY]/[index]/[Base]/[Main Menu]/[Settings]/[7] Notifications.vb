@@ -93,6 +93,86 @@ Public Class Base_Notifications
         _notiLoading = False
     End Sub
 
+    ' Bulk switch (Enable all / Disable all buttons): flips every switch
+    ' under the same _notiLoading gate so no per-toggle save fires mid
+    ' loop, then writes the config section directly and saves once.
+    Private Sub SetAllNotifications(value As Boolean)
+        _notiLoading = True
+        ' RECORDING
+        If ToggleRecordingStarted IsNot Nothing Then ToggleRecordingStarted.IsOn = value
+        If ToggleRecordingSaved IsNot Nothing Then ToggleRecordingSaved.IsOn = value
+        If ToggleRecordingError IsNot Nothing Then ToggleRecordingError.IsOn = value
+        ' INSTANT REPLAY
+        If ToggleReplaySaved IsNot Nothing Then ToggleReplaySaved.IsOn = value
+        If ToggleInstantReplayOn IsNot Nothing Then ToggleInstantReplayOn.IsOn = value
+        If ToggleInstantReplayOff IsNot Nothing Then ToggleInstantReplayOff.IsOn = value
+        If ToggleReplayTurnOn IsNot Nothing Then ToggleReplayTurnOn.IsOn = value
+        If ToggleReplayError IsNot Nothing Then ToggleReplayError.IsOn = value
+        ' SCREENSHOTS
+        If ToggleScreenshotSaved IsNot Nothing Then ToggleScreenshotSaved.IsOn = value
+        If ToggleValidSavePath IsNot Nothing Then ToggleValidSavePath.IsOn = value
+        ' SHARE OVERLAY
+        If ToggleOpenShare IsNot Nothing Then ToggleOpenShare.IsOn = value
+        ' SYSTEM MONITOR
+        If ToggleRamWarning IsNot Nothing Then ToggleRamWarning.IsOn = value
+        If ToggleRamWarning95 IsNot Nothing Then ToggleRamWarning95.IsOn = value
+        If ToggleRamCritical IsNot Nothing Then ToggleRamCritical.IsOn = value
+        If ToggleCpuWarning IsNot Nothing Then ToggleCpuWarning.IsOn = value
+        If ToggleDiskSpaceLow IsNot Nothing Then ToggleDiskSpaceLow.IsOn = value
+        ' UPDATES
+        If ToggleUpdateAvailable IsNot Nothing Then ToggleUpdateAvailable.IsOn = value
+        If ToggleVersionLatest IsNot Nothing Then ToggleVersionLatest.IsOn = value
+        If ToggleUpdateError IsNot Nothing Then ToggleUpdateError.IsOn = value
+        ' ERRORS & FEEDBACK
+        If ToggleAccountConfirmError IsNot Nothing Then ToggleAccountConfirmError.IsOn = value
+        If ToggleExtensionNotFound IsNot Nothing Then ToggleExtensionNotFound.IsOn = value
+        If ToggleFeatureNotReady IsNot Nothing Then ToggleFeatureNotReady.IsOn = value
+        If ToggleGpuRequired IsNot Nothing Then ToggleGpuRequired.IsOn = value
+        If ToggleEngineNotRunning IsNot Nothing Then ToggleEngineNotRunning.IsOn = value
+        If ToggleEngineUIInUse IsNot Nothing Then ToggleEngineUIInUse.IsOn = value
+        If ToggleErrorResolution IsNot Nothing Then ToggleErrorResolution.IsOn = value
+        If ToggleDesktopCaptureDisabled IsNot Nothing Then ToggleDesktopCaptureDisabled.IsOn = value
+        _notiLoading = False
+        With AppSettings.Instance.Notifications
+            .RecordingStarted = value
+            .RecordingSaved = value
+            .RecordingError = value
+            .ReplaySaved = value
+            .InstantReplayOn = value
+            .InstantReplayOff = value
+            .ReplayTurnOn = value
+            .ReplayError = value
+            .ScreenshotSaved = value
+            .ValidSavePath = value
+            .OpenShare = value
+            .RamWarning = value
+            .RamWarning95 = value
+            .RamCritical = value
+            .CpuWarning = value
+            .DiskSpaceLow = value
+            .UpdateAvailable = value
+            .VersionLatest = value
+            .UpdateError = value
+            .AccountConfirmError = value
+            .ExtensionNotFound = value
+            .FeatureNotReady = value
+            .GpuRequired = value
+            .EngineNotRunning = value
+            .EngineUIInUse = value
+            .ErrorResolution = value
+            .DesktopCaptureDisabled = value
+        End With
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub BT_EnableAll_Click(sender As Object, e As EventArgs) Handles BT_EnableAll.Click
+        SetAllNotifications(True)
+    End Sub
+
+    Private Sub BT_DisableAll_Click(sender As Object, e As EventArgs) Handles BT_DisableAll.Click
+        SetAllNotifications(False)
+    End Sub
+
     ' RECORDING
     Private Sub ToggleRecordingStarted_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecordingStarted.ValueChanged
         If _notiLoading Then Return
