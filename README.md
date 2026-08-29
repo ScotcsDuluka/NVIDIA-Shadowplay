@@ -13,8 +13,8 @@ Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadow
 > Still under active development.
 
 > [!IMPORTANT]
-> **Runtime Dependency:** This application requires **.NET 8.0 Desktop Runtime** and **4.8** installed on your system. The program will not launch without it.<br><br>
-> **OS Requirement:** **Windows 8 / Server 2012 or newer is required.** It will not work on Windows 7. <br>
+> **Runtime Dependency:** This application requires the **.NET 10.0 Desktop Runtime** installed on your system. The program will not launch without it.<br><br>
+> **OS Requirement:** **Windows 10 / Server 2016 or newer is required.** (.NET 10 does not support Windows 7/8/8.1.) <br>
 > ## **API Capture**
 > - Windows.Graphics.Capture
 > - Desktop Duplication API
@@ -83,7 +83,7 @@ DISCLAIMER
 | [Newtonsoft.Json](https://www.newtonsoft.com/json) | MIT | James Newton-King | Newtonsoft.Json.dll |
 | [libmp3lame](https://lame.sourceforge.io/) | LGPL-2.0 | The LAME Project | libmp3lame.32.dll, libmp3lame.64.dll |
 | [FFmpeg](https://ffmpeg.org/) | LGPL/GPL | FFmpeg Developers | Encoding Pipeline |
-| [.NET 8 Runtime](https://dotnet.microsoft.com/) | MIT | Microsoft | Microsoft.Windows.SDK.NET.dll |
+| [.NET 10 Runtime](https://dotnet.microsoft.com/) | MIT | Microsoft | Microsoft.Windows.SDK.NET.dll |
 | [Windows SDK.NET](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | MIT | Microsoft | WinRT.Runtime.dll |
 
 See full attribution: **[LICENSE.NOTICE](LICENSE.NOTICE)** ← Click!
