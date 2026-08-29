@@ -12,7 +12,7 @@ Imports System.Text
 Imports System.Threading
 
 Public Class Base_Connect
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
 
     ' ═══════════════════════════════════════════════════════════════════════════════
     ' ✅ GitHub App Configuration

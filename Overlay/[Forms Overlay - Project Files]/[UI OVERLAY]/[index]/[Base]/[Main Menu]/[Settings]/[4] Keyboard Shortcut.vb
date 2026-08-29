@@ -3,7 +3,7 @@ Imports System.Drawing
 Imports System.Linq
 
 Public Class Base_KeySet
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
 
     Private _captureActionKey As String = Nothing
     Private ReadOnly _keyLabels As New Dictionary(Of String, Label)(StringComparer.OrdinalIgnoreCase)

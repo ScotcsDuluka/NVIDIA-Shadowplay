@@ -3,7 +3,7 @@ Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 
 Public Class Base_Game_Filter
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
 
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer

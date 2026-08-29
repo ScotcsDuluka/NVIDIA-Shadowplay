@@ -2,7 +2,7 @@
 Imports System.Drawing
 Imports System.Runtime.InteropServices
 Public Class Base_Privacy_Control
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
     Protected Overrides Sub WndProc(ByRef m As Message)
 
         Const WM_NCHITTEST As Integer = &H84

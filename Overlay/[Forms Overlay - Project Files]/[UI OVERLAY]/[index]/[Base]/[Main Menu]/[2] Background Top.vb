@@ -4,7 +4,7 @@ Imports System.Diagnostics
 Imports System.Windows.Forms
 Imports System.Management
 Public Class Base_Background_Top
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
 
 #Region "Animation Engine"
 

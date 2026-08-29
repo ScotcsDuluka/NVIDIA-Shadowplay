@@ -3,7 +3,7 @@ Imports System.Drawing
 Imports System.Runtime.InteropServices
 Imports Newtonsoft.Json.Linq
 Public Class Base_Settings
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
     Private Const LanguageFolderName As String = "Languages"
     Private Const CurrentLanguageFileName As String = "current.txt"
     Private Const DefaultLanguageCode As String = "en-US"

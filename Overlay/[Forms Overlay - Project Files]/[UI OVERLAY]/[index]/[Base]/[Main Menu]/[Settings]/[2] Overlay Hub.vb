@@ -2,7 +2,7 @@
 Imports System.Runtime.InteropServices
 
 Public Class Base_Overlay_Hub
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
     Const WS_EX_TRANSPARENT As Integer = &H20
 
 

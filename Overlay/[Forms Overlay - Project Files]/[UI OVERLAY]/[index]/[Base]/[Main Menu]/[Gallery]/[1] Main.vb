@@ -5,7 +5,7 @@ Imports System.Windows.Forms.VisualStyles.VisualStyleElement
 Imports Notifier_API
 
 Public Class Base_Gallery
-    Inherits NoCloseForm
+    Inherits System.Windows.Forms.Form
 
     Public Sub InitForm()
     End Sub
