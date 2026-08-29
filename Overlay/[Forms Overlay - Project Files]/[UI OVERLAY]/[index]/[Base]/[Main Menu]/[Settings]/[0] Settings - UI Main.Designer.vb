@@ -50,6 +50,7 @@ Partial Class Base_Settings
         btnImportSettings = New Label()
         Label9 = New Label()
         ObsEnabledToggle = New ToggleSwitch()
+        ToggleUseWindowsSnip = New ToggleSwitch()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         Panel1.SuspendLayout()
@@ -80,6 +81,7 @@ Partial Class Base_Settings
         Panel.Controls.Add(Label4)
         Panel.Controls.Add(Desc_UseWindowsSnip)
         Panel.Controls.Add(Desc_UseWindowsSnip_SUB)
+        Panel.Controls.Add(ToggleUseWindowsSnip)
         Panel.Controls.Add(Label3)
         Panel.Location = New Point(0, -7)
         Panel.Name = "Panel"
@@ -284,6 +286,21 @@ Partial Class Base_Settings
         Desc_UseWindowsSnip_SUB.TabIndex = 78
         Desc_UseWindowsSnip_SUB.Text = "Screenshots are taken with Windows (Win+Shift+S), letting you select the area to capture."
         Desc_UseWindowsSnip_SUB.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' ToggleUseWindowsSnip
+        ' 
+        ToggleUseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ToggleUseWindowsSnip.ForeColor = Color.Aquamarine
+        ToggleUseWindowsSnip.ImeMode = ImeMode.Off
+        ToggleUseWindowsSnip.IsOn = False
+        ToggleUseWindowsSnip.Location = New Point(900, 140)
+        ToggleUseWindowsSnip.Name = "ToggleUseWindowsSnip"
+        ToggleUseWindowsSnip.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ToggleUseWindowsSnip.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ToggleUseWindowsSnip.ShowGlow = False
+        ToggleUseWindowsSnip.Size = New Size(48, 24)
+        ToggleUseWindowsSnip.TabIndex = 79
+        ToggleUseWindowsSnip.Text = "ToggleSwitch"
         ' 
         ' Label3
         ' 
