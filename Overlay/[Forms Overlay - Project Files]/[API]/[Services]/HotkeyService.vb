@@ -86,7 +86,8 @@ Public Class HotkeyService
     End Sub
 
     Private Sub Register(id As Integer, modifiers As Integer, key As Keys, action As Action)
-        If WinAPI.RegisterHotKey(_hwnd, id, modifiers, CInt(key)) Then
+        ' MOD_NOREPEAT: ไม่งั้น auto-repeat ของ OS จะยิง action รัวต่อเนื่องตอนกดค้าง
+        If WinAPI.RegisterHotKey(_hwnd, id, modifiers Or WinAPI.MOD_NOREPEAT, CInt(key)) Then
             _actions(id) = action
         End If
     End Sub
