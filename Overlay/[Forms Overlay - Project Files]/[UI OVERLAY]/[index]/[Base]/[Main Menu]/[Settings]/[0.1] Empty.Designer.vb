@@ -55,9 +55,9 @@ Partial Class Base_Empty
         Menu_Text.ForeColor = Color.White
         Menu_Text.Location = New Point(62, 43)
         Menu_Text.Name = "Menu_Text"
-        Menu_Text.Size = New Size(128, 42)
+        Menu_Text.Size = New Size(107, 42)
         Menu_Text.TabIndex = 51
-        Menu_Text.Text = "Connect"
+        Menu_Text.Text = "Empty"
         ' 
         ' Menu_Top_Dim
         ' 
