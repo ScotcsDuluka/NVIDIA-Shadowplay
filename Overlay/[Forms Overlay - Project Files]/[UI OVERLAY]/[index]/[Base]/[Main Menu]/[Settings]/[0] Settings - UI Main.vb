@@ -87,7 +87,14 @@ Public Class Base_Settings
     Private _obsLoading As Boolean
 
     Private Sub LoadObsSettings()
+        ' ObsConfig.Load() returns Nothing when notifier_obs.json exists but
+        ' can't be read/parsed (it never throws). Falling back to a fresh
+        ' default instance keeps this page alive — the form used to crash
+        ' with NullReferenceException right here on first show, which made
+        ' the whole Settings window appear to never open. The next Save()
+        ' from any control rebuilds the file as valid JSON.
         _obsCfg = ObsConfig.Load()
+        If _obsCfg Is Nothing Then _obsCfg = New ObsConfig()
         _obsLoading = True
         ObsEnabledToggle.IsOn = _obsCfg.Enabled
         HOST_BOX.Text = _obsCfg.Host
