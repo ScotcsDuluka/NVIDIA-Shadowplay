@@ -47,9 +47,10 @@ Public Module AppConfigShared
     ''' </summary>
     Public Function ReadBool(sectionName As String, keyName As String, fallback As Boolean) As Boolean
         Try
-            If Not File.Exists(ConfigPath()) Then Return fallback
+            Dim rootObj As JsonObject = LoadRootObject()
+            If rootObj Is Nothing Then Return fallback
 
-            Dim sectionObj As JsonObject = FindSection(sectionName)
+            Dim sectionObj As JsonObject = FindSection(rootObj, sectionName)
             If sectionObj Is Nothing Then Return fallback
 
             Dim valueNode As JsonNode = FindMember(sectionObj, keyName)
@@ -72,9 +73,10 @@ Public Module AppConfigShared
     ''' </summary>
     Public Function ReadString(sectionName As String, keyName As String, fallback As String) As String
         Try
-            If Not File.Exists(ConfigPath()) Then Return fallback
+            Dim rootObj As JsonObject = LoadRootObject()
+            If rootObj Is Nothing Then Return fallback
 
-            Dim sectionObj As JsonObject = FindSection(sectionName)
+            Dim sectionObj As JsonObject = FindSection(rootObj, sectionName)
             If sectionObj Is Nothing Then Return fallback
 
             Dim valueNode As JsonNode = FindMember(sectionObj, keyName)
@@ -98,12 +100,12 @@ Public Module AppConfigShared
     ''' </summary>
     Public Sub WriteBool(sectionName As String, keyName As String, value As Boolean)
         Try
-            Dim configPath As String = ConfigPath()
-            AppLayout.EnsureParentDir(configPath)
+            Dim targetPath As String = ConfigPath()
+            AppLayout.EnsureParentDir(targetPath)
 
             Dim rootObj As JsonObject = Nothing
-            If File.Exists(configPath) Then
-                Dim jsonText As String = File.ReadAllText(configPath)
+            If File.Exists(targetPath) Then
+                Dim jsonText As String = File.ReadAllText(targetPath)
                 If Not String.IsNullOrWhiteSpace(jsonText) Then
                     rootObj = TryCast(JsonNode.Parse(jsonText), JsonObject)
                 End If
@@ -119,12 +121,27 @@ Public Module AppConfigShared
             sectionObj(keyName) = value
 
             Dim options As New JsonSerializerOptions With {.WriteIndented = True}
-            File.WriteAllText(configPath, rootObj.ToJsonString(options))
+            File.WriteAllText(targetPath, rootObj.ToJsonString(options))
         Catch
             ' config.json being locked/corrupt must never take the caller down
             ' (the Launcher tick and the API hub call this on a timer).
         End Try
     End Sub
+
+    ''' <summary>
+    ''' Loads and parses the CURRENT config.json content. Returns Nothing when
+    ''' the file is missing, empty, or not a JSON object — callers fall back.
+    ''' </summary>
+    Private Function LoadRootObject() As JsonObject
+        Try
+            If Not File.Exists(ConfigPath()) Then Return Nothing
+            Dim jsonText As String = File.ReadAllText(ConfigPath())
+            If String.IsNullOrWhiteSpace(jsonText) Then Return Nothing
+            Return TryCast(JsonNode.Parse(jsonText), JsonObject)
+        Catch
+            Return Nothing
+        End Try
+    End Function
 
     ''' <summary>Finds [section] at the root, tolerating casing differences.</summary>
     Private Function FindSection(rootObj As JsonObject, sectionName As String) As JsonObject
