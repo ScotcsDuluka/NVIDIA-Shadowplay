@@ -26,6 +26,11 @@ Partial Class Base_Settings
         Main_Menu_SET = New Panel()
         Panel = New Panel()
         Panel1 = New Panel()
+        Label8 = New Label()
+        HOST_BOX = New TextBox()
+        Label7 = New Label()
+        Label6 = New Label()
+        KEY_BOX = New TextBox()
         PORT_BOX = New TextBox()
         Label1 = New Label()
         Label2 = New Label()
@@ -43,13 +48,6 @@ Partial Class Base_Settings
         PictureBox1 = New PictureBox()
         btnExportSettings = New Label()
         btnImportSettings = New Label()
-        KEY_BOX = New TextBox()
-        Label6 = New Label()
-        Label7 = New Label()
-        Label8 = New Label()
-        TextBox1 = New TextBox()
-        ObsEnabledToggle = New ToggleSwitch()
-        Label9 = New Label()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         Panel1.SuspendLayout()
@@ -90,17 +88,84 @@ Partial Class Base_Settings
         ' 
         Panel1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Panel1.Controls.Add(Label8)
-        Panel1.Controls.Add(TextBox1)
+        Panel1.Controls.Add(HOST_BOX)
         Panel1.Controls.Add(Label7)
         Panel1.Controls.Add(Label6)
         Panel1.Controls.Add(KEY_BOX)
         Panel1.Controls.Add(PORT_BOX)
-        Panel1.Controls.Add(Label9)
-        Panel1.Controls.Add(ObsEnabledToggle)
         Panel1.Location = New Point(106, 323)
         Panel1.Name = "Panel1"
         Panel1.Size = New Size(774, 188)
         Panel1.TabIndex = 84
+        ' 
+        ' Label8
+        ' 
+        Label8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label8.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label8.ForeColor = Color.White
+        Label8.Location = New Point(19, 84)
+        Label8.Name = "Label8"
+        Label8.Size = New Size(89, 27)
+        Label8.TabIndex = 143
+        Label8.Text = "HOST"
+        Label8.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' HOST_BOX
+        ' 
+        HOST_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        HOST_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        HOST_BOX.BorderStyle = BorderStyle.None
+        HOST_BOX.Font = New Font("nvgcshare", 20F)
+        HOST_BOX.ForeColor = Color.White
+        HOST_BOX.Location = New Point(19, 114)
+        HOST_BOX.Multiline = True
+        HOST_BOX.Name = "HOST_BOX"
+        HOST_BOX.Size = New Size(218, 34)
+        HOST_BOX.TabIndex = 144
+        HOST_BOX.Text = "HOST"
+        HOST_BOX.TextAlign = HorizontalAlignment.Center
+        ' 
+        ' Label7
+        ' 
+        Label7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label7.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label7.ForeColor = Color.White
+        Label7.Location = New Point(121, 17)
+        Label7.Name = "Label7"
+        Label7.Size = New Size(116, 27)
+        Label7.TabIndex = 142
+        Label7.Text = "Key/Password"
+        Label7.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Label6
+        ' 
+        Label6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label6.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label6.ForeColor = Color.White
+        Label6.Location = New Point(19, 17)
+        Label6.Name = "Label6"
+        Label6.Size = New Size(89, 27)
+        Label6.TabIndex = 85
+        Label6.Text = "PORT"
+        Label6.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' KEY_BOX
+        ' 
+        KEY_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        KEY_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        KEY_BOX.BorderStyle = BorderStyle.None
+        KEY_BOX.Font = New Font("nvgcshare", 20F)
+        KEY_BOX.ForeColor = Color.White
+        KEY_BOX.Location = New Point(121, 47)
+        KEY_BOX.Multiline = True
+        KEY_BOX.Name = "KEY_BOX"
+        KEY_BOX.Size = New Size(633, 34)
+        KEY_BOX.TabIndex = 141
+        KEY_BOX.Text = "Key"
+        KEY_BOX.TextAlign = HorizontalAlignment.Center
         ' 
         ' PORT_BOX
         ' 
@@ -125,9 +190,9 @@ Partial Class Base_Settings
         Label1.ForeColor = Color.White
         Label1.Location = New Point(125, 216)
         Label1.Name = "Label1"
-        Label1.Size = New Size(329, 28)
+        Label1.Size = New Size(389, 28)
         Label1.TabIndex = 81
-        Label1.Text = "OBS Studio WebSocket Integration"
+        Label1.Text = "OBS Studio WebSocket Integration - Beta"
         ' 
         ' Label2
         ' 
@@ -309,102 +374,6 @@ Partial Class Base_Settings
         btnImportSettings.Text = "Import Settings"
         btnImportSettings.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' KEY_BOX
-        ' 
-        KEY_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        KEY_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        KEY_BOX.BorderStyle = BorderStyle.None
-        KEY_BOX.Font = New Font("nvgcshare", 20F)
-        KEY_BOX.ForeColor = Color.White
-        KEY_BOX.Location = New Point(121, 47)
-        KEY_BOX.Multiline = True
-        KEY_BOX.Name = "KEY_BOX"
-        KEY_BOX.Size = New Size(633, 34)
-        KEY_BOX.TabIndex = 141
-        KEY_BOX.Text = "Key"
-        KEY_BOX.TextAlign = HorizontalAlignment.Center
-        ' 
-        ' Label6
-        ' 
-        Label6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label6.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label6.ForeColor = Color.White
-        Label6.Location = New Point(19, 17)
-        Label6.Name = "Label6"
-        Label6.Size = New Size(89, 27)
-        Label6.TabIndex = 85
-        Label6.Text = "PORT"
-        Label6.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label7
-        ' 
-        Label7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Label7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label7.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label7.ForeColor = Color.White
-        Label7.Location = New Point(121, 17)
-        Label7.Name = "Label7"
-        Label7.Size = New Size(116, 27)
-        Label7.TabIndex = 142
-        Label7.Text = "Key/Password"
-        Label7.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label8
-        ' 
-        Label8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Label8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label8.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label8.ForeColor = Color.White
-        Label8.Location = New Point(19, 84)
-        Label8.Name = "Label8"
-        Label8.Size = New Size(89, 27)
-        Label8.TabIndex = 143
-        Label8.Text = "HOST"
-        Label8.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' TextBox1
-        ' 
-        TextBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        TextBox1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        TextBox1.BorderStyle = BorderStyle.None
-        TextBox1.Font = New Font("nvgcshare", 20F)
-        TextBox1.ForeColor = Color.White
-        TextBox1.Location = New Point(19, 114)
-        TextBox1.Multiline = True
-        TextBox1.Name = "TextBox1"
-        TextBox1.Size = New Size(218, 34)
-        TextBox1.TabIndex = 144
-        TextBox1.Text = "HOST"
-        TextBox1.TextAlign = HorizontalAlignment.Center
-        ' 
-        ' Label9
-        ' 
-        Label9.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label9.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label9.ForeColor = Color.White
-        Label9.Location = New Point(243, 84)
-        Label9.Name = "Label9"
-        Label9.Size = New Size(89, 27)
-        Label9.TabIndex = 145
-        Label9.Text = "ENABLED"
-        Label9.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' ObsEnabledToggle
-        ' 
-        ObsEnabledToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ObsEnabledToggle.ImeMode = ImeMode.Off
-        ObsEnabledToggle.IsOn = False
-        ObsEnabledToggle.Location = New Point(247, 118)
-        ObsEnabledToggle.Name = "ObsEnabledToggle"
-        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ObsEnabledToggle.ShowGlow = False
-        ObsEnabledToggle.Size = New Size(48, 24)
-        ObsEnabledToggle.TabIndex = 146
-        ObsEnabledToggle.Text = "ToggleSwitch"
-        ' 
         ' Base_Settings
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -463,10 +432,9 @@ Partial Class Base_Settings
     Friend WithEvents Panel1 As Panel
     Friend WithEvents PORT_BOX As TextBox
     Friend WithEvents Label8 As Label
-    Friend WithEvents TextBox1 As TextBox
+    Friend WithEvents HOST_BOX As TextBox
     Friend WithEvents Label7 As Label
     Friend WithEvents Label6 As Label
     Friend WithEvents KEY_BOX As TextBox
-    Friend WithEvents Label9 As Label
     Friend WithEvents ObsEnabledToggle As ToggleSwitch
 End Class

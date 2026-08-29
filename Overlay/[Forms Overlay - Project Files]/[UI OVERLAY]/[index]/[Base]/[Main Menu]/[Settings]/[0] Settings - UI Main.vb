@@ -90,23 +90,23 @@ Public Class Base_Settings
         _obsCfg = ObsConfig.Load()
         _obsLoading = True
         ObsEnabledToggle.IsOn = _obsCfg.Enabled
-        TextBox1.Text = _obsCfg.Host
+        HOST_BOX.Text = _obsCfg.Host
         PORT_BOX.Text = _obsCfg.Port.ToString()
         KEY_BOX.Text = _obsCfg.Password
         _obsLoading = False
     End Sub
 
-    Private Sub ObsEnabledToggle_ValueChanged(sender As Object, e As EventArgs) Handles ObsEnabledToggle.ValueChanged
+    Private Sub ObsEnabledToggle_ValueChanged(sender As Object, e As EventArgs)
         If _obsLoading OrElse _obsCfg Is Nothing Then Return
         _obsCfg.Enabled = ObsEnabledToggle.IsOn
         _obsCfg.Save()
     End Sub
 
-    Private Sub TextBox1_Leave(sender As Object, e As EventArgs) Handles TextBox1.Leave
+    Private Sub TextBox1_Leave(sender As Object, e As EventArgs) Handles HOST_BOX.Leave
         If _obsLoading OrElse _obsCfg Is Nothing Then Return
-        Dim host As String = TextBox1.Text.Trim()
+        Dim host As String = HOST_BOX.Text.Trim()
         If host.Length = 0 Then
-            TextBox1.Text = _obsCfg.Host
+            HOST_BOX.Text = _obsCfg.Host
             Return
         End If
         If host = _obsCfg.Host Then Return
