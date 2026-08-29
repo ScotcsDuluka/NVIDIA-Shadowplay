@@ -5,6 +5,10 @@ Imports System.Windows.Forms
 Imports System.Runtime.InteropServices
 Imports System.Diagnostics
 
+' ToolboxItem(True) is the default for public Control-derived classes; it is
+' spelled out here so the toolbox population of the .NET (Core) WinForms
+' designer has no ambiguity about this control being user-visible.
+<ToolboxItem(True)>
 <DefaultEvent("ValueChanged")>
 Public Class ToggleSwitch
     Inherits Control
