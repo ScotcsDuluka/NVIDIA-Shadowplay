@@ -148,13 +148,12 @@ Public Class Notifier_Sub2
         currentPanel.Top = newY
     End Sub
 
-    ''' <summary>T27: glides this content form vertically. The Loader's router
-    ''' calls it in lockstep with the background form when the bottom toast
-    ''' moves up into the top slot (reflow) — the shadow follows the bg form
-    ''' on its own.</summary>
-    Public Sub GlideTo(targetY As Integer, durationMs As Integer)
-        StartSlideY(Me, Me.Top, targetY, durationMs)
-    End Sub
+    ' T27.1: GlideTo was removed — the reflow no longer asks this form to
+    ' animate itself (its WinForms WM_TIMER starves on a loaded UI thread
+    ' and the overlay missed the glide = "ICO + Text vanished"). The card's
+    ' MM engine now drags this form as a Y-rider in the same tick it moves
+    ' the card — single clock, cannot desync. StartSlideY stays for the
+    ' legacy "main off" recovery path (Timer1).
 
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         If Me.IsDisposed Then

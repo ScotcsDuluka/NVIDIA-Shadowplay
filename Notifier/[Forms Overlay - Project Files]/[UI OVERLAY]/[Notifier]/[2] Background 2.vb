@@ -42,6 +42,50 @@ Public Class Notifier2
     ' Set at SlideOutAll start; a fresh default instance resets it naturally.
     Private _isClosing As Boolean = False
 
+    ' ===== T27.1: Y-riders — one animation clock for the whole toast =====
+    ' A toast is 3 stacked windows (card / content overlay / shadow) and they
+    ' used to be animated by 3 independent clocks (MM timer / WM_TIMER /
+    ' 16ms sync poll). On a loaded UI thread the overlay's WM_TIMER starves
+    ' and misses the reflow glide — OWNER saw "ICO + Text vanish while
+    ' sliding up" — and the shadow lagged the card ("ตามไม่ทัน เห็นนิดๆ").
+    ' Now every Y move of THIS form drags both riders in the SAME engine
+    ' tick: same clock, same easing, atomic alignment.
+    ' Strong refs only — never touch the VB default instances here, so a
+    ' closed rider is detected via IsDisposed instead of silently
+    ' auto-recreated as a hidden ghost form.
+    Private ContentOverlay As Form = Nothing
+    Private ShadowRider As Form = Nothing
+
+    Private Sub MoveRidersToY(y As Integer)
+        If ContentOverlay IsNot Nothing AndAlso Not ContentOverlay.IsDisposed Then
+            ContentOverlay.Top = y
+        End If
+        If ShadowRider IsNot Nothing AndAlso Not ShadowRider.IsDisposed Then
+            ShadowRider.Top = y
+        End If
+    End Sub
+
+    ''' <summary>T27.1: runs when a Y animation of this card completes.
+    ''' Pins the riders to the final Y; if the content overlay died mid-show
+    ''' (the OWNER-visible vanish) it is resurrected — re-anchored to the
+    ''' card and faded back in by its own Form_Load.</summary>
+    Public Sub SettleRiders()
+        If _isClosing Then Return
+        If ContentOverlay IsNot Nothing AndAlso Not ContentOverlay.IsDisposed Then
+            ContentOverlay.Top = Me.Top
+        Else
+            Try
+                Notifier_Sub2.Show()
+                ContentOverlay = Notifier_Sub2
+            Catch
+                ' overlay default instance unavailable — leave the bare card
+            End Try
+        End If
+        If ShadowRider IsNot Nothing AndAlso Not ShadowRider.IsDisposed Then
+            ShadowRider.Top = Me.Top
+        End If
+    End Sub
+
 #Region "WinAPI"
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
@@ -211,6 +255,7 @@ Public Class Notifier2
 
         panel.Top = fromY
         _activeAnims(panel) = state
+        If panel Is Me Then MoveRidersToY(fromY) ' T27.1: riders glued from frame one
 
         Animation_Engine_Start()
     End Sub
@@ -244,6 +289,7 @@ Public Class Notifier2
                     panel.Left = state.TargetX
                 Else
                     panel.Top = state.TargetY
+                    If panel Is Me Then MoveRidersToY(state.TargetY) ' T27.1
                 End If
 
                 Debug.WriteLine("[Notifier] Animation COMPLETE " & panel.Name & " " &
@@ -257,7 +303,9 @@ Public Class Notifier2
                 If state.IsSlideX Then
                     panel.Left = CInt(state.StartX + (state.TargetX - state.StartX) * eased)
                 Else
-                    panel.Top = CInt(state.StartY + (state.TargetY - state.StartY) * eased)
+                    Dim newY As Integer = CInt(state.StartY + (state.TargetY - state.StartY) * eased)
+                    panel.Top = newY
+                    If panel Is Me Then MoveRidersToY(newY) ' T27.1: same tick, same easing
                 End If
             End If
         Next
@@ -319,6 +367,7 @@ Public Class Notifier2
         ' T27: row-aware — the router may place this unit on row 0 or row 1
         Me.Location = New Point(w - Me.Width, BaseRowY() + RowOffsetY)
         Debug.WriteLine($"[Notifier2] Position Y={Me.Top} (row {CurrentRow})")
+        ContentOverlay = Notifier_Sub2   ' T27.1: strong ref to this cycle's overlay
 
         Notifier_black.Location = New Point(Me.Width, 0)
         Notifier_green.Location = New Point(Me.Width, 0)
@@ -331,6 +380,7 @@ Public Class Notifier2
                                           _delayTimers.Stop()
 
                                           Shadow2.Show()
+                                          ShadowRider = Shadow2   ' T27.1
                                           Opacity = 1
                                           StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
                                           StopDelayTimer()
@@ -374,6 +424,8 @@ Public Class Notifier2
         autoClose.Stop()
         StopDelayTimer()
         StopCloseTimer()
+        ContentOverlay = Nothing   ' T27.1
+        ShadowRider = Nothing      ' T27.1
     End Sub
 
     ' T27: the router waits for this to free the slot / serve the queue

@@ -529,7 +529,7 @@ Partial Public Class Loader
             _reflowTimer = Nothing
         End If
         _reflowTimer = New Timer()
-        _reflowTimer.Interval = 250   ' let the top toast clear out first
+        _reflowTimer.Interval = 320   ' let the top toast clear out first
         AddHandler _reflowTimer.Tick,
             Sub()
                 _reflowTimer.Stop()
@@ -544,18 +544,21 @@ Partial Public Class Loader
     End Sub
 
     ''' <summary>OWNER spec: the bottom toast glides up into the freed top slot.
-    ''' Background + content glide in lockstep; the shadow follows its bg form
-    ''' on its own sync timer.</summary>
+    ''' T27.1: single-clock glide — the card's MM engine drags the content
+    ''' overlay + shadow as Y-riders in the same tick (same easing), so a
+    ''' loaded UI thread can no longer desync them (OWNER saw "ICO + Text
+    ''' vanish while sliding up" + the shadow lagging behind). SettleRiders
+    ''' pins the riders to the final Y — or resurrects a dead overlay.</summary>
     Private Sub ReflowUp(s As SlotState)
         s.Row = 0
         Dim targetY As Integer = Notifier.BaseRowY()
         Debug.WriteLine($"[Router] reflow: unit {s.Id} glides up to row 0 (Y={targetY})")
         If s.Id = 1 Then
-            Notifier.StartSlideY(Notifier, Notifier.Top, targetY, 250)
-            Notifier_Sub.GlideTo(targetY, 250)
+            Notifier.CurrentRow = 0   ' T27.1: sync the unit's own row state too (IF_N base)
+            Notifier.StartSlideY(Notifier, Notifier.Top, targetY, 420, AddressOf Notifier.SettleRiders)
         Else
-            Notifier2.StartSlideY(Notifier2, Notifier2.Top, targetY, 250)
-            Notifier_Sub2.GlideTo(targetY, 250)
+            Notifier2.CurrentRow = 0
+            Notifier2.StartSlideY(Notifier2, Notifier2.Top, targetY, 420, AddressOf Notifier2.SettleRiders)
         End If
     End Sub
 
