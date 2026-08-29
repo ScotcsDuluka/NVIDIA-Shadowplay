@@ -44,11 +44,25 @@ Friend Module OverlayCloseBehaviorGuard
     ''' (Base + Base_Background + Base_Background_Top). Also clears the Game
     ''' Filter toggle flag (isFunctionActive_f3), mirroring the open_overlay
     ''' handler, so the next hotkey toggle starts from a clean state.</summary>
+    ''' <remarks>Gated by IF_OpenShare: when the overlay is disengaged (a
+    ''' sub-page like Settings / Gallery / Recordings is active, the flag is
+    ''' False) this does NOTHING — the exact same guard every hotkey handler
+    ''' in Sub_Hotkey.vb uses ("If IF_OpenShare = False Then Return").</remarks>
     Public Sub HideOverlay(f As Form)
+        If Base.IF_OpenShare = False Then Return
         f.Hide()
         Base.isFunctionActive_f3 = False
         Base.HideAllControls()
     End Sub
+
+    ''' <summary>True when the main Share panel is the active surface.
+    ''' Single authority for reading Base.IF_OpenShare — cross-class reads go
+    ''' through here so no partial relies on cross-class name resolution.
+    ''' When False, a sub-page (Settings / Gallery / Recordings) is active and
+    ''' every hotkey handler in Sub_Hotkey.vb returns early; hide does too.</summary>
+    Public Function IsOverlayEngaged() As Boolean
+        Return Base.IF_OpenShare
+    End Function
 
     ''' <summary>True for a bare ESC press (no Ctrl/Alt/Shift modifiers).</summary>
     Public Function IsEscape(keyData As Keys) As Boolean
@@ -68,6 +82,7 @@ Partial Class Base
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -87,6 +102,7 @@ Partial Class Base_Background_Top
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -106,6 +122,7 @@ Partial Class Base_Background
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -125,6 +142,7 @@ Partial Class Base_Overlay_Hub
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -144,6 +162,7 @@ Partial Class Base_Connect
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -163,6 +182,7 @@ Partial Class Base_Settings
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -182,6 +202,7 @@ Partial Class Base_Gallery
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -201,6 +222,7 @@ Partial Class Base_Game_Filter
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -220,6 +242,7 @@ Partial Class Base_Game_Filter_Sub
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -239,6 +262,7 @@ Partial Class Base_Privacy_Control
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
@@ -260,6 +284,7 @@ Partial Class Base_KeySet
 
     Protected Overrides Function ProcessCmdKey(ByRef msg As Message, keyData As Keys) As Boolean
         If OverlayCloseBehaviorGuard.IsEscape(keyData) AndAlso String.IsNullOrEmpty(_captureActionKey) Then
+            If OverlayCloseBehaviorGuard.IsOverlayEngaged() = False Then Return MyBase.ProcessCmdKey(msg, keyData)
             OverlayCloseBehaviorGuard.HideOverlay(Me)
             Return True
         End If
