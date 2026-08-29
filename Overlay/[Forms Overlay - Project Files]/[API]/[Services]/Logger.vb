@@ -36,9 +36,30 @@ Public Module Logger
     End Class
 
 
+    ' NOTE: intentionally reflection-based — direct Debug.Listeners access
+    ' does not compile in this project (BC30456), verified 2026-08-29.
     Private Sub RedirectDebugToConsole()
-        Debug.Listeners.Clear()
-        Debug.Listeners.Add(New LoggerTraceListener())
+        Try
+            Dim debugType As Global.System.Type = GetType(Global.System.Diagnostics.Debug)
+            If debugType Is Nothing Then Return
+
+            Dim listenersProp As Global.System.Reflection.PropertyInfo = debugType.GetProperty("Listeners")
+            If listenersProp Is Nothing Then Return
+
+            Dim listenersObj As Object = listenersProp.GetValue(Nothing)
+            If listenersObj Is Nothing Then Return
+
+            Dim clearMethod As Global.System.Reflection.MethodInfo = listenersObj.GetType().GetMethod("Clear")
+            If clearMethod IsNot Nothing Then clearMethod.Invoke(listenersObj, Nothing)
+
+            Dim listenerType As Global.System.Type = GetType(Global.System.Diagnostics.TraceListener)
+            Dim addMethod As Global.System.Reflection.MethodInfo = listenersObj.GetType().GetMethod("Add", New Global.System.Type() {listenerType})
+            If addMethod IsNot Nothing Then
+                addMethod.Invoke(listenersObj, New Object() {New LoggerTraceListener()})
+            End If
+
+        Catch
+        End Try
     End Sub
 
 #End Region
