@@ -502,7 +502,8 @@ Partial Public Class Base
         Base_Overlay_Hub,
         Base_KeySet,
         Base_RecordingsSet,
-        Base_AudioSet
+        Base_AudioSet,
+        Base_Notifications
     }
 
     ' One-shot delay helper: runs <action> on the UI thread after <intervalMs>.
@@ -697,15 +698,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub Notifications_Click(sender As Object, e As EventArgs) Handles Notifications_TEXT.Click, notifications_ICO.Click
-        If isNotiOn = True Then
-            notifications_ICO.ForeColor = Color.White
-            Notifications_TEXT.ForeColor = Color.White
-            isNotiOn = False
-        Else
-            notifications_ICO.ForeColor = Color.Gray
-            Notifications_TEXT.ForeColor = Color.Gray
-            isNotiOn = True
-        End If
+        OpenPanel(Base_Notifications, Base_Notifications.Menu_Settings)
     End Sub
 
     ' ========== ABOUT ==========

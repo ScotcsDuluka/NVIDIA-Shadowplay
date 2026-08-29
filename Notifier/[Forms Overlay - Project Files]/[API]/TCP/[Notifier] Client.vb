@@ -133,6 +133,11 @@ Partial Public Class Loader
         ' ลบไฟล์ trigger (ถ้ามี)
         SafeDelete(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", nd.Key))
 
+        ' Settings → Notifications: per-category switch (config.json).
+        ' A suppressed toast still cleans up its trigger file above,
+        ' but never touches the notifier window.
+        If Not NotificationAllowed(key) Then Exit Sub
+
         ' จัดการสถานะ Notifier
         ManageNotifierState()
 
@@ -171,9 +176,57 @@ Partial Public Class Loader
         End If
 
         SafeDelete(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", nd.Key))
+
+        ' Same per-category gate as OnMessage (see NotificationAllowed).
+        If Not NotificationAllowed(key) Then Exit Sub
+
         ManageNotifierState()
         UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
         tcp.SendLog(message)
     End Sub
+
+    ' ====================================================================
+    ' Settings → Notifications gates
+    '
+    ' Every toast funnels through OnMessage / OnMessageWithArgs, so the
+    ' per-category switches from the Overlay's Notifications page
+    ' (config.json section "Notifications", written by AppSettings) are
+    ' checked here — once — at the display choke point. Keys are mapped
+    ' explicitly; unknown/future keys always show (fail-open) so a new
+    ' notification can never be silently swallowed by a stale mapping.
+    ' ====================================================================
+    Private Function NotificationAllowed(key As String) As Boolean
+        Dim category As String = NotificationCategory(key)
+        If category Is Nothing Then Return True
+        Return AppConfigShared.ReadBool("Notifications", category, True)
+    End Function
+
+    ''' <summary>Returns the Settings→Notifications category for a toast key, or Nothing when the key has no category.</summary>
+    Private Shared Function NotificationCategory(key As String) As String
+        If key.StartsWith("l10n.", StringComparison.OrdinalIgnoreCase) Then key = key.Substring(5)
+        Dim k As String = key.ToLowerInvariant()
+        Select Case k
+            Case "recording_started", "recording_saved", "recording_error"
+                Return "Recording"
+            Case "instant_replay_on", "instant_replay_off", "replay_turn_on", "replay_error", _
+                 "notificationinstantreplaysaved", "saved_last_15"
+                Return "InstantReplay"
+            Case "notificationscreenshotsavedtogallery", "validsavepath"
+                Return "Screenshots"
+            Case "notificationopenshare"
+                Return "ShareOverlay"
+            Case "ramwram", "ramwram95", "ramwramcritical", "cpuwram", "diskspacelow"
+                Return "SystemMonitor"
+            Case "update_available", "version_latest", "notificationerrorgeneral"
+                Return "Updates"
+            Case "account_confirm_error", "extension_not_found", "feature_not_ready", _
+                 "notificationwarningnvidiagpurequired", "notificationerrorenginenotrunning", _
+                 "notificationerrorengineuiinuse", "notificationerrorresolution", _
+                 "notificationwarningdesktopcapturedisabled"
+                Return "Errors"
+            Case Else
+                Return Nothing
+        End Select
+    End Function
 
 End Class

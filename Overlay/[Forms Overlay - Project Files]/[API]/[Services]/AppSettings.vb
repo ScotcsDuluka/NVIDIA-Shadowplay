@@ -177,6 +177,23 @@ Partial Public Class AppSettings
     End Class
 
     ''' <summary>
+    ''' Per-category notification switches (Settings → Notifications page).
+    ''' All default True — missing keys/sections show as before, so the
+    ''' pre-toggles behavior is unchanged. The Notifier reads the same
+    ''' keys via AppConfigShared at display time (the single choke point
+    ''' every toast passes through: the TCP path AND the OBS bridge).
+    ''' </summary>
+    Public Class NotificationsSettingsClass
+        Public Property Recording As Boolean = True
+        Public Property InstantReplay As Boolean = True
+        Public Property Screenshots As Boolean = True
+        Public Property ShareOverlay As Boolean = True
+        Public Property SystemMonitor As Boolean = True
+        Public Property Updates As Boolean = True
+        Public Property Errors As Boolean = True
+    End Class
+
+    ''' <summary>
     ''' GitHub User settings - เก็บข้อมูลผู้ใช้ GitHub
     ''' </summary>
     Public Class GitHubUserClass
@@ -250,6 +267,7 @@ Partial Public Class AppSettings
     Public Property Audio As New AudioSettingsClass()
     Public Property Privacy As New PrivacySettingsClass()
     Public Property Overlay As New OverlaySettingsClass()
+    Public Property Notifications As New NotificationsSettingsClass()
 
     Public Property Hotkeys As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
 #End Region
@@ -500,6 +518,7 @@ Partial Public Class AppSettings
         ApplyGitHubUserSettings(loaded.GitHubUser)
         ApplyPrivacySettings(loaded.Privacy)
         ApplyOverlaySettings(loaded.Overlay)
+        ApplyNotificationsSettings(loaded.Notifications)
 
         If loaded.Hotkeys IsNot Nothing Then
             Hotkeys = New Dictionary(Of String, String)(loaded.Hotkeys, StringComparer.OrdinalIgnoreCase)
@@ -592,6 +611,17 @@ Partial Public Class AppSettings
     Private Sub ApplyOverlaySettings(loadedOverlay As OverlaySettingsClass)
         If loadedOverlay Is Nothing Then Return
         Overlay.UseOverlayEnabled = loadedOverlay.UseOverlayEnabled
+    End Sub
+
+    Private Sub ApplyNotificationsSettings(loadedNotifications As NotificationsSettingsClass)
+        If loadedNotifications Is Nothing Then Return
+        Notifications.Recording = loadedNotifications.Recording
+        Notifications.InstantReplay = loadedNotifications.InstantReplay
+        Notifications.Screenshots = loadedNotifications.Screenshots
+        Notifications.ShareOverlay = loadedNotifications.ShareOverlay
+        Notifications.SystemMonitor = loadedNotifications.SystemMonitor
+        Notifications.Updates = loadedNotifications.Updates
+        Notifications.Errors = loadedNotifications.Errors
     End Sub
 
     ''' <summary>

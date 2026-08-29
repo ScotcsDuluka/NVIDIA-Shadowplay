@@ -899,6 +899,7 @@ Partial Public Class Base
         Base_RecordingsSet.setret.Location = New Point(80, marginTop)
         Base_Overlay_Hub.settings_1.Location = New Point(80, marginTop)
         Base_KeySet.keyset.Location = New Point(80, marginTop)
+        Base_Notifications.Menu_Settings.Location = New Point(80, marginTop)
     End Sub
 
 #End Region
