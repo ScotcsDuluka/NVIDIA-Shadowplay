@@ -2,6 +2,12 @@
 ' thing only: importing an old video.json / audio.json into config.json on
 ' first run (MigrateLegacyConfigFiles, called from AppSettings.Load).
 ' New code reads AppSettings.Instance.Recording / .Audio — never video.json.
+'
+' NOTE: the nested video.json shape below (current / my_presets / audio) is
+' ALSO the live shape of config.json's Recording section since the detailed
+' file schema (ConfigFileDto in AppSettings.vb) — old video.json and the new
+' section are the same layout, so a migration is a straight field-for-field
+' copy onto the flat model.
 
 Imports System.Diagnostics
 Imports System.IO

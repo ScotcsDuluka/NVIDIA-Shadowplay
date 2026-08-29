@@ -1,23 +1,29 @@
 ﻿' OverlayConfig.vb
-' Engine-side mirror of Overlay's config.json + video.json.
+' Engine-side mirror of Overlay's config.json (+ legacy video.json).
 '
 ' Why this exists:
 '   The Overlay is the source of truth for capture settings. It owns
-'   config.json (general settings) and video.json (video capture profile).
-'   The Engine used to have its own shadowplay-config.json that drifted
-'   out of sync with Overlay's config — users would change a setting in
-'   the Overlay and the Engine would still use the old value.
+'   config.json — THE single user-facing config file since the GLM/6
+'   unification (its Recording section is stored in the nested
+'   video.json-shaped layout: current / my_presets). The Engine used to
+'   have its own shadowplay-config.json that drifted out of sync with
+'   Overlay's config — users would change a setting in the Overlay and
+'   the Engine would still use the old value.
 '
-'   This module reads the SAME files the Overlay reads, using the SAME
-'   schema. The Engine's UI now displays the live values from Overlay's
-'   config, so the user can see at a glance what the Engine will actually
-'   use when RECORD_START comes in.
+'   This module reads the SAME file the Overlay reads, using the SAME
+'   schema — both generations of it: the nested Recording section
+'   (current files) and the flat Recording keys (legacy files from
+'   before the detailed schema, read until the Overlay upgrades them).
+'   The Engine's UI displays the live values from Overlay's config, so
+'   the user can see at a glance what the Engine will actually use when
+'   RECORD_START comes in.
 '
 ' File locations:
-'   Engine looks for config.json + video.json in this order:
+'   Engine looks for config.json (+ a legacy video.json next to it) in
+'   this order:
 '     1. Path stored in <appdir>/overlay-config-path.txt (if present)
-'     2. <appdir>/config.json + <appdir>/video.json (if Engine and
-'        Overlay share an output folder)
+'     2. <appdir>/config.json (if Engine and Overlay share an output
+'        folder)
 '     3. <appdir>/../../Overlay/bin/Release/<tfm>/config.json
 '        (when running from source)
 '   The path that was found is cached in _resolvedConfigDir so all
@@ -161,6 +167,12 @@ Public NotInheritable Class OverlayConfig
     Private Shared _resolvedConfigPath As String = Nothing
     Private Shared ReadOnly _resolveLock As New Object()
 
+    ' Nested (video.json-shaped) Recording section of the LAST loaded
+    ' config.json — Nothing when the file is the legacy flat shape.
+    ' The flat RecordingSettings mirror above binds nothing from a nested
+    ' file, so ApplyUnifiedToCaptureSettings reads values from here first.
+    Private Shared _lastNestedRecording As VideoConfig = Nothing
+
     ''' <summary>
     ''' Find the directory that contains Overlay's config.json + video.json.
     ''' Cached after first successful resolution. Returns "" if not found.
@@ -199,6 +211,7 @@ Public NotInheritable Class OverlayConfig
             _resolvedConfigDir = Nothing
             _resolvedConfigPath = Nothing
             _resolvedVideoConfigPath = Nothing
+            _lastNestedRecording = Nothing
         End SyncLock
     End Sub
 
@@ -276,31 +289,128 @@ Public NotInheritable Class OverlayConfig
 
     ''' <summary>Load Overlay's config.json. Returns Nothing on failure.</summary>
     Public Shared Function LoadConfig() As AppConfig
+        _lastNestedRecording = Nothing
         Dim p As String = ConfigPath
         If p.Length = 0 OrElse Not File.Exists(p) Then Return New AppConfig()
         Try
             Dim json As String = File.ReadAllText(p)
             If String.IsNullOrWhiteSpace(json) Then Return New AppConfig()
-            Return JsonSerializer.Deserialize(Of AppConfig)(json, _jsonOpts)
+            Dim cfg As AppConfig = JsonSerializer.Deserialize(Of AppConfig)(json, _jsonOpts)
+            ' Nested-shape upgrade: when the Recording section is stored
+            ' video.json-shaped (current / my_presets) the flat
+            ' RecordingSettings mirror above binds nothing — parse the
+            ' section into VideoConfig so ApplyUnifiedToCaptureSettings has
+            ' the real values. Nothing = legacy flat file (fields bound
+            ' normally into cfg.Recording).
+            _lastNestedRecording = TryParseNestedRecording(json)
+            Return cfg
         Catch ex As Exception
             System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadConfig error: {ex.Message}")
             Return New AppConfig()
         End Try
     End Function
 
-    ''' <summary>Load Overlay's video.json. Returns Nothing on failure.</summary>
+    ''' <summary>
+    ''' Parse the nested (video.json-shaped) Recording section out of
+    ''' config.json. Returns Nothing when the file is the legacy flat shape
+    ''' or unreadable. The section shape matches VideoConfig 1:1 (same
+    ''' snake_case keys the old video.json used).
+    ''' </summary>
+    Private Shared Function TryParseNestedRecording(json As String) As VideoConfig
+        Try
+            Dim docOpts As New JsonDocumentOptions With {
+                .AllowTrailingCommas = True,
+                .CommentHandling = JsonCommentHandling.Skip
+            }
+            Using doc As JsonDocument = JsonDocument.Parse(json, docOpts)
+                Dim root As JsonElement = doc.RootElement
+                If root.ValueKind <> JsonValueKind.Object Then Return Nothing
+                Dim sec As JsonElement
+                If Not root.TryGetProperty("Recording", sec) AndAlso
+                   Not root.TryGetProperty("recording", sec) Then Return Nothing
+                If sec.ValueKind <> JsonValueKind.Object Then Return Nothing
+                Dim cur As JsonElement
+                If Not sec.TryGetProperty("current", cur) Then Return Nothing
+                If cur.ValueKind <> JsonValueKind.Object Then Return Nothing
+                Return JsonSerializer.Deserialize(Of VideoConfig)(sec.GetRawText(), _jsonOpts)
+            End Using
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"OverlayConfig.TryParseNestedRecording error: {ex.Message}")
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Load Overlay's video settings. Legacy video.json first (old installs
+    ''' that still have it); when it does not exist — the normal case since
+    ''' the GLM/6 unification — build the SAME shape from config.json's
+    ''' nested Recording section + top-level Audio section, so the Engine UI
+    ''' mirror shows LIVE values instead of the defaults it displayed while
+    ''' the file was gone. Always returns a usable VideoConfig.
+    ''' </summary>
     Public Shared Function LoadVideoConfig() As VideoConfig
         Dim p As String = VideoConfigPath
-        If p.Length = 0 OrElse Not File.Exists(p) Then Return New VideoConfig()
+        If p.Length > 0 AndAlso File.Exists(p) Then
+            Try
+                Dim json As String = File.ReadAllText(p)
+                If Not String.IsNullOrWhiteSpace(json) Then
+                    Return JsonSerializer.Deserialize(Of VideoConfig)(json, _jsonOpts)
+                End If
+            Catch ex As Exception
+                System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig error: {ex.Message}")
+                Return New VideoConfig()
+            End Try
+        End If
+
+        ' video.json absent → derive from config.json (nested Recording + Audio)
+        Dim cp As String = ConfigPath
+        If cp.Length = 0 OrElse Not File.Exists(cp) Then Return New VideoConfig()
         Try
-            Dim json As String = File.ReadAllText(p)
+            Dim json As String = File.ReadAllText(cp)
             If String.IsNullOrWhiteSpace(json) Then Return New VideoConfig()
-            Return JsonSerializer.Deserialize(Of VideoConfig)(json, _jsonOpts)
+            Dim vc As VideoConfig = TryParseNestedRecording(json)
+            If vc Is Nothing Then vc = New VideoConfig()
+            MapTopLevelAudioIntoVideoConfig(json, vc)
+            Return vc
         Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig error: {ex.Message}")
+            System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig(config.json) error: {ex.Message}")
             Return New VideoConfig()
         End Try
     End Function
+
+    ''' <summary>
+    ''' The unified config keeps Audio as its OWN top-level section (flat
+    ''' PascalCase keys) — map it onto the nested VideoAudioConfig fields so
+    ''' consumers of the video-shaped view (Engine UI mirror) see real
+    ''' values. Skipped silently when the Audio section is absent.
+    ''' </summary>
+    Private Shared Sub MapTopLevelAudioIntoVideoConfig(configJson As String, vc As VideoConfig)
+        Try
+            Dim docOpts As New JsonDocumentOptions With {
+                .AllowTrailingCommas = True,
+                .CommentHandling = JsonCommentHandling.Skip
+            }
+            Using doc As JsonDocument = JsonDocument.Parse(configJson, docOpts)
+                Dim root As JsonElement = doc.RootElement
+                If root.ValueKind <> JsonValueKind.Object Then Return
+                Dim aEl As JsonElement
+                If Not root.TryGetProperty("Audio", aEl) AndAlso
+                   Not root.TryGetProperty("audio", aEl) Then Return
+                If aEl.ValueKind <> JsonValueKind.Object Then Return
+                Dim a As AudioSettings = JsonSerializer.Deserialize(Of AudioSettings)(aEl.GetRawText(), _jsonOpts)
+                If a Is Nothing Then Return
+                If vc.audio Is Nothing Then vc.audio = New VideoAudioConfig()
+                vc.audio.system_enabled = a.SystemAudioEnabled
+                vc.audio.mic_enabled = a.MicEnabled
+                vc.audio.system_volume = a.SystemAudioVolume
+                vc.audio.mic_volume = a.MicVolume
+                vc.audio.mic_device = a.MicDeviceName
+                vc.audio.mic_device_id = a.MicDeviceId
+            End Using
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"OverlayConfig.MapTopLevelAudioIntoVideoConfig error: {ex.Message}")
+        End Try
+    End Sub
 
     ''' <summary>Quick check: do the Overlay config files exist?</summary>
     Public Shared ReadOnly Property IsAvailable As Boolean
@@ -328,22 +438,45 @@ Public NotInheritable Class OverlayConfig
         Dim cfg As AppConfig = LoadConfig()
         If cfg Is Nothing Then Return False
 
-        Dim r As RecordingSettings = cfg.Recording
-        If r IsNot Nothing Then
-            If Not String.IsNullOrEmpty(r.Encoder) Then
-                s.Encoder = MapEncoderToFfmpeg(r.Encoder)
+        ' ── Recording: nested shape (current files) ──
+        Dim nested As VideoConfig = _lastNestedRecording
+        If nested IsNot Nothing Then
+            If Not String.IsNullOrEmpty(nested.encoder) Then
+                s.Encoder = MapEncoderToFfmpeg(nested.encoder)
             End If
-            If r.FPS > 0 AndAlso r.FPS <= 240 Then s.FPS = r.FPS
-            If r.Bitrate > 0 Then s.Bitrate = r.Bitrate * 1000L   ' kbps → bps
-            s.UseNativeResolution = r.UseNativeResolution
-            If Not r.UseNativeResolution Then
-                s.CustomWidth = r.Width
-                s.CustomHeight = r.Height
+            If nested.current IsNot Nothing Then
+                If nested.current.fps > 0 AndAlso nested.current.fps <= 240 Then s.FPS = nested.current.fps
+                If nested.current.bitrate > 0 Then s.Bitrate = nested.current.bitrate * 1000L   ' kbps → bps
+                s.UseNativeResolution = nested.current.use_native_resolution
+                If Not nested.current.use_native_resolution Then
+                    s.CustomWidth = nested.current.width
+                    s.CustomHeight = nested.current.height
+                End If
             End If
-            s.ActivePreset = r.Preset
-            s.ReplayDuration = r.ReplayDuration
-            If Not String.IsNullOrEmpty(r.APICapture) Then
-                s.CaptureMethod = r.APICapture.ToLowerInvariant()
+            If Not String.IsNullOrEmpty(nested.active_preset) Then s.ActivePreset = nested.active_preset
+            If nested.replay_duration > 0 Then s.ReplayDuration = nested.replay_duration
+            If Not String.IsNullOrEmpty(nested.api_capture) Then
+                s.CaptureMethod = nested.api_capture.ToLowerInvariant()
+            End If
+        Else
+            ' ── Recording: legacy flat shape (pre-detailed-schema files) ──
+            Dim r As RecordingSettings = cfg.Recording
+            If r IsNot Nothing Then
+                If Not String.IsNullOrEmpty(r.Encoder) Then
+                    s.Encoder = MapEncoderToFfmpeg(r.Encoder)
+                End If
+                If r.FPS > 0 AndAlso r.FPS <= 240 Then s.FPS = r.FPS
+                If r.Bitrate > 0 Then s.Bitrate = r.Bitrate * 1000L   ' kbps → bps
+                s.UseNativeResolution = r.UseNativeResolution
+                If Not r.UseNativeResolution Then
+                    s.CustomWidth = r.Width
+                    s.CustomHeight = r.Height
+                End If
+                s.ActivePreset = r.Preset
+                s.ReplayDuration = r.ReplayDuration
+                If Not String.IsNullOrEmpty(r.APICapture) Then
+                    s.CaptureMethod = r.APICapture.ToLowerInvariant()
+                End If
             End If
         End If
 

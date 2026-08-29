@@ -312,6 +312,77 @@ Partial Public Class AppSettings
     End Property
 #End Region
 
+#Region "Config file DTO — Recording stored video.json-shaped (the detailed file schema)"
+    ' The in-memory model stays FLAT (Recording.FPS / Recording.MyLowFPS …) so
+    ' every Settings page, the TCP payload and the Engine sync code keep
+    ' working untouched. Only the FILE shape is nested: config.json's
+    ' Recording section keeps the old video.json layout — current { fps,
+    ' bitrate, … } / my_presets { low, medium, high } — the "detailed"
+    ' structure the flat 20-key section had replaced. Mapping happens
+    ' exclusively in BuildRecordingDto (save) / ApplyRecordingDto (load).
+    ' Property names ARE the JSON keys: snake_case inside the section,
+    ' PascalCase section names — same convention as the Engine-side mirror's
+    ' OverlayConfig.VideoConfig classes, which parse this exact shape.
+
+    ''' <summary>Nested under "current" — the values actually in use.</summary>
+    Public Class VideoCurrentDto
+        Public Property fps As Integer = 60
+        Public Property bitrate As Integer = 20000
+        Public Property encoder_preset As Integer = 4
+        Public Property use_native_resolution As Boolean = True
+        Public Property width As Integer = 1920
+        Public Property height As Integer = 1080
+    End Class
+
+    ''' <summary>One MY preset slot — null = use NVIDIA defaults.</summary>
+    Public Class MyPresetSlotDto
+        Public Property fps As Integer? = Nothing
+        Public Property bitrate As Integer? = Nothing
+        Public Property encoder_preset As Integer? = Nothing
+    End Class
+
+    Public Class MyPresetsDto
+        ''' <summary>Custom renameable name for MY preset group (e.g. "P4", "P6")</summary>
+        Public Property name As String = "MY"
+        Public Property low As MyPresetSlotDto = New MyPresetSlotDto()
+        Public Property medium As MyPresetSlotDto = New MyPresetSlotDto()
+        Public Property high As MyPresetSlotDto = New MyPresetSlotDto()
+    End Class
+
+    Public Class RecordingSectionDto
+        ''' <summary>Encoder string: NVENC_H264, NVENC_HEVC, QuickSync_H264, etc.</summary>
+        Public Property encoder As String = "NVENC_H264"
+        ''' <summary>Encoder currently in use (may differ during transitions)</summary>
+        Public Property encoder_now As String = "NVENC_H264"
+        ''' <summary>Currently selected preset name (e.g. "Medium", "MyLow", "Custom")</summary>
+        Public Property active_preset As String = "Medium"
+        Public Property current As VideoCurrentDto = New VideoCurrentDto()
+        ''' <summary>Replay buffer duration in seconds</summary>
+        Public Property replay_duration As Integer = 60
+        Public Property my_presets As MyPresetsDto = New MyPresetsDto()
+        ''' <summary>Capture API: ddagrab, gfxcapture, GDIGrab, or null (auto)</summary>
+        Public Property api_capture As String = Nothing
+    End Class
+
+    ''' <summary>
+    ''' Full config.json file shape — Recording nested, everything else
+    ''' identical to the model (the same classes → the same keys as today).
+    ''' Declaration order = key order in the file.
+    ''' </summary>
+    Public Class ConfigFileDto
+        Public Property Recording As RecordingSectionDto = New RecordingSectionDto()
+        Public Property Paths As PathSettingsClass
+        Public Property UI As UISettingsClass
+        Public Property Audio As AudioSettingsClass
+        Public Property Privacy As PrivacySettingsClass
+        Public Property Overlay As OverlaySettingsClass
+        Public Property Notifications As NotificationsSettingsClass
+        Public Property Hotkeys As Dictionary(Of String, String)
+        Public Property GitHubUser As GitHubUserClass
+        Public Property GitHubTokenEncrypted As String
+    End Class
+#End Region
+
 #Region "Singleton"
     Private Shared _instance As AppSettings = Nothing
     Private Shared ReadOnly _lock As New Object()
@@ -408,7 +479,10 @@ Partial Public Class AppSettings
 
 #Region "config.json — Load / Save"
     ''' <summary>
-    ''' Load settings from config.json
+    ''' Load settings from config.json. Accepts BOTH file schema generations:
+    ''' nested Recording (current — video.json-shaped) and flat Recording
+    ''' (legacy files from before the detailed schema); a legacy-shaped file
+    ''' is rewritten once in the nested shape right after a successful read.
     ''' </summary>
     Public Sub Load()
         Try
@@ -417,54 +491,60 @@ Partial Public Class AppSettings
 
             If File.Exists(ConfigPath) Then
                 Dim json As String = File.ReadAllText(ConfigPath)
-                Dim loaded As AppSettings = Nothing
+                Dim applied As Boolean = False
                 Dim recoveredFromBackup As Boolean = False
 
                 If Not String.IsNullOrWhiteSpace(json) Then
-                    loaded = TryDeserializeConfig(json)
+                    applied = TryApplyConfigJson(json)
                 End If
 
                 ' Crash-proofing: a truncated config.json (hard kill / power
                 ' loss mid-Save) must not silently reset the user to defaults.
                 ' Every atomic save keeps the previous good content as
                 ' config.json.bak — try it before giving up.
-                If loaded Is Nothing Then
-                    loaded = TryRecoverFromBackup(json)
-                    recoveredFromBackup = loaded IsNot Nothing
+                If Not applied Then
+                    Dim bakJson As String = TryReadBackupText()
+                    If bakJson IsNot Nothing Then
+                        applied = TryApplyConfigJson(bakJson)
+                        If applied Then
+                            json = bakJson
+                            recoveredFromBackup = True
+                        End If
+                    End If
                 End If
 
-                If loaded IsNot Nothing Then
-                    ApplyLoadedSettings(loaded)
-
-                        ' ✅ P1: Migration — if the JSON on disk still has a legacy
-                        ' plain-text GitHubToken field (from before DPAPI encryption),
-                        ' encrypt it and store it as GitHubTokenEncrypted, then trigger
-                        ' a save so the plain-text field is wiped from disk.
-                        ' The <JsonIgnore> on the GitHubToken setter means it never
-                        ' deserializes directly — we have to peek at the raw JSON.
-                        Dim legacyPlainToken As String = TryGetLegacyPlainToken(json)
-                        If Not String.IsNullOrEmpty(legacyPlainToken) Then
-                            GitHubToken = legacyPlainToken  ' triggers EncryptToken via setter
-                            Debug.WriteLine("AppSettings.Load: migrated legacy plain-text GitHubToken → encrypted")
-                            Try
-                                Save()  ' persist the encrypted form and wipe the plain-text field
-                            Catch ex As Exception
-                                Debug.WriteLine("AppSettings.Load: migration save failed: " & ex.Message)
-                            End Try
-                        End If
-
-                        If recoveredFromBackup Then
-                            ' Rewrite the recovered content over the corrupt
-                            ' file right away so the bad state never spreads.
-                            Save()
-                        End If
-
-                        Debug.WriteLine("AppSettings.Load: SUCCESS")
-                        Debug.WriteLine($"  GitHub User: {GitHubUser.Username}")
-                        Debug.WriteLine($"  GitHub Logged In: {GitHubUser.IsLoggedIn}")
-                    Else
-                        Debug.WriteLine("AppSettings.Load: config.json unreadable and no usable .bak — running on defaults")
+                If applied Then
+                    ' One-time schema upgrade + crash repair: a file read in
+                    ' the legacy flat shape is rewritten once in the nested
+                    ' shape; a file recovered from .bak is rewritten over the
+                    ' corrupt one right away so the bad state never spreads.
+                    If recoveredFromBackup OrElse Not ConfigJsonIsNested(json) Then
+                        Save()
                     End If
+
+                    ' ✅ P1: Migration — if the JSON on disk still has a legacy
+                    ' plain-text GitHubToken field (from before DPAPI encryption),
+                    ' encrypt it and store it as GitHubTokenEncrypted, then trigger
+                    ' a save so the plain-text field is wiped from disk.
+                    ' The <JsonIgnore> on the GitHubToken setter means it never
+                    ' deserializes directly — we have to peek at the raw JSON.
+                    Dim legacyPlainToken As String = TryGetLegacyPlainToken(json)
+                    If Not String.IsNullOrEmpty(legacyPlainToken) Then
+                        GitHubToken = legacyPlainToken  ' triggers EncryptToken via setter
+                        Debug.WriteLine("AppSettings.Load: migrated legacy plain-text GitHubToken → encrypted")
+                        Try
+                            Save()  ' persist the encrypted form and wipe the plain-text field
+                        Catch ex As Exception
+                            Debug.WriteLine("AppSettings.Load: migration save failed: " & ex.Message)
+                        End Try
+                    End If
+
+                    Debug.WriteLine("AppSettings.Load: SUCCESS")
+                    Debug.WriteLine($"  GitHub User: {GitHubUser.Username}")
+                    Debug.WriteLine($"  GitHub Logged In: {GitHubUser.IsLoggedIn}")
+                Else
+                    Debug.WriteLine("AppSettings.Load: config.json unreadable and no usable .bak — running on defaults")
+                End If
             Else
                 ' Create default config
                 _configWasMissingOnLoad = True
@@ -585,26 +665,185 @@ Partial Public Class AppSettings
     End Function
 
     ''' <summary>
-    ''' Last-resort recovery: deserialize config.json.bak (kept by every
-    ''' atomic save). On success jsonUsed is replaced with the backup text
-    ''' so the legacy-token migration inspects the content we applied.
+    ''' Parse + apply config.json content in EITHER schema generation:
+    ''' nested (current — Recording stored video.json-shaped) or legacy flat
+    ''' (Recording as 20 PascalCase keys). Returns False when the text is not
+    ''' usable JSON in either shape — the caller may then try the .bak.
     ''' </summary>
-    Private Function TryRecoverFromBackup(ByRef jsonUsed As String) As AppSettings
+    Private Function TryApplyConfigJson(json As String) As Boolean
+        If ConfigJsonIsNested(json) Then
+            Dim dto As ConfigFileDto = TryDeserializeConfigDto(json)
+            If dto Is Nothing Then Return False
+            ApplyDtoSettings(dto)
+        Else
+            Dim loaded As AppSettings = TryDeserializeConfig(json)
+            If loaded Is Nothing Then Return False
+            ApplyLoadedSettings(loaded)
+        End If
+        Return True
+    End Function
+
+    ''' <summary>
+    ''' True when the Recording section is in the nested (video.json-shaped)
+    ''' schema — detected by the "current" child object, which the legacy flat
+    ''' generation never had. Tolerates casing, comments and trailing commas.
+    ''' </summary>
+    Private Shared Function ConfigJsonIsNested(json As String) As Boolean
+        Try
+            Dim docOpts As New JsonDocumentOptions With {
+                .AllowTrailingCommas = True,
+                .CommentHandling = JsonCommentHandling.Skip
+            }
+            Using doc As JsonDocument = JsonDocument.Parse(json, docOpts)
+                Dim root As JsonElement = doc.RootElement
+                If root.ValueKind <> JsonValueKind.Object Then Return False
+                Dim sec As JsonElement
+                If Not root.TryGetProperty("Recording", sec) AndAlso
+                   Not root.TryGetProperty("recording", sec) Then Return False
+                If sec.ValueKind <> JsonValueKind.Object Then Return False
+                Dim cur As JsonElement
+                Return sec.TryGetProperty("current", cur) AndAlso cur.ValueKind = JsonValueKind.Object
+            End Using
+        Catch
+            Return False
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Parse config.json content into the nested-shape file DTO with the
+    ''' tolerant options set. Returns Nothing when the text is not usable.
+    ''' </summary>
+    Private Shared Function TryDeserializeConfigDto(json As String) As ConfigFileDto
+        Try
+            Dim options As New JsonSerializerOptions With {
+                .PropertyNameCaseInsensitive = True,
+                .AllowTrailingCommas = True,
+                .ReadCommentHandling = JsonCommentHandling.Skip
+            }
+            Return JsonSerializer.Deserialize(Of ConfigFileDto)(json, options)
+        Catch ex As Exception
+            Debug.WriteLine("AppSettings.Load: config.json (nested) parse failed: " & ex.Message)
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Last-resort recovery source: config.json.bak (kept by every atomic
+    ''' save). Returns the raw backup text (Nothing when absent/unreadable) —
+    ''' the caller runs the same dual-shape apply on it as on the live file.
+    ''' </summary>
+    Private Function TryReadBackupText() As String
         Try
             Dim bakPath As String = ConfigPath & ".bak"
             If Not File.Exists(bakPath) Then Return Nothing
             Dim bakJson As String = File.ReadAllText(bakPath)
             If String.IsNullOrWhiteSpace(bakJson) Then Return Nothing
-            Dim loaded As AppSettings = TryDeserializeConfig(bakJson)
-            If loaded Is Nothing Then Return Nothing
-            jsonUsed = bakJson
-            Debug.WriteLine("AppSettings.Load: config.json corrupt — recovered from config.json.bak")
-            Return loaded
+            Return bakJson
         Catch ex As Exception
-            Debug.WriteLine("AppSettings.Load: backup recovery failed: " & ex.Message)
+            Debug.WriteLine("AppSettings.Load: backup read failed: " & ex.Message)
             Return Nothing
         End Try
     End Function
+
+    ''' <summary>Apply a nested-shape ConfigFileDto onto the flat in-memory model.</summary>
+    Private Sub ApplyDtoSettings(dto As ConfigFileDto)
+        If dto Is Nothing Then Return
+
+        ApplyRecordingDto(dto.Recording)
+        ApplyPathSettings(dto.Paths)
+        ApplyUISettings(dto.UI)
+        ApplyAudioSettings(dto.Audio)
+        ApplyGitHubUserSettings(dto.GitHubUser)
+        ApplyPrivacySettings(dto.Privacy)
+        ApplyOverlaySettings(dto.Overlay)
+        ApplyNotificationsSettings(dto.Notifications)
+
+        If dto.Hotkeys IsNot Nothing Then
+            Hotkeys = New Dictionary(Of String, String)(dto.Hotkeys, StringComparer.OrdinalIgnoreCase)
+        End If
+
+        ' ✅ P1: copy the encrypted token directly (same contract as
+        ' ApplyLoadedSettings — no decrypt-then-encrypt round-trip).
+        GitHubTokenEncrypted = dto.GitHubTokenEncrypted
+    End Sub
+
+    ' ═══ Flat model → nested DTO (save) ═══
+
+    ''' <summary>Flat in-memory Recording → nested (video.json-shaped) DTO.</summary>
+    Private Function BuildRecordingDto() As RecordingSectionDto
+        Dim d As New RecordingSectionDto()
+        d.encoder = Recording.Encoder
+        d.encoder_now = Recording.EncoderNow
+        d.active_preset = Recording.Preset
+        d.current = New VideoCurrentDto With {
+            .fps = Recording.FPS,
+            .bitrate = Recording.Bitrate,
+            .encoder_preset = Recording.EncoderPreset,
+            .use_native_resolution = Recording.UseNativeResolution,
+            .width = Recording.Width,
+            .height = Recording.Height
+        }
+        d.replay_duration = Recording.ReplayDuration
+        d.my_presets = New MyPresetsDto With {
+            .name = Recording.MyPresetName,
+            .low = BuildPresetSlotDto(Recording.MyLowFPS, Recording.MyLowBitrate, Recording.MyLowEncoderPreset),
+            .medium = BuildPresetSlotDto(Recording.MyMediumFPS, Recording.MyMediumBitrate, Recording.MyMediumEncoderPreset),
+            .high = BuildPresetSlotDto(Recording.MyHighFPS, Recording.MyHighBitrate, Recording.MyHighEncoderPreset)
+        }
+        d.api_capture = Recording.APICapture
+        Return d
+    End Function
+
+    Private Shared Function BuildPresetSlotDto(fps As Integer?, bitrate As Integer?, encoderPreset As Integer?) As MyPresetSlotDto
+        Return New MyPresetSlotDto With {.fps = fps, .bitrate = bitrate, .encoder_preset = encoderPreset}
+    End Function
+
+    ' ═══ Nested DTO → flat model (load) ═══
+
+    ''' <summary>
+    ''' Nested (video.json-shaped) DTO → flat in-memory Recording. Missing
+    ''' keys keep their defaults — same semantics as ApplyLoadedSettings.
+    ''' </summary>
+    Private Sub ApplyRecordingDto(d As RecordingSectionDto)
+        If d Is Nothing Then Return
+
+        If Not String.IsNullOrEmpty(d.encoder) Then Recording.Encoder = d.encoder
+        If Not String.IsNullOrEmpty(d.encoder_now) Then Recording.EncoderNow = d.encoder_now
+        If Not String.IsNullOrEmpty(d.active_preset) Then Recording.Preset = d.active_preset
+
+        If d.current IsNot Nothing Then
+            If d.current.fps > 0 Then Recording.FPS = d.current.fps
+            If d.current.bitrate > 0 Then Recording.Bitrate = d.current.bitrate
+            If d.current.encoder_preset > 0 Then Recording.EncoderPreset = d.current.encoder_preset
+            Recording.UseNativeResolution = d.current.use_native_resolution
+            If d.current.width > 0 Then Recording.Width = d.current.width
+            If d.current.height > 0 Then Recording.Height = d.current.height
+        End If
+
+        If d.replay_duration > 0 Then Recording.ReplayDuration = d.replay_duration
+
+        If d.my_presets IsNot Nothing Then
+            If Not String.IsNullOrEmpty(d.my_presets.name) Then Recording.MyPresetName = d.my_presets.name
+            If d.my_presets.low IsNot Nothing Then
+                Recording.MyLowFPS = d.my_presets.low.fps
+                Recording.MyLowBitrate = d.my_presets.low.bitrate
+                Recording.MyLowEncoderPreset = d.my_presets.low.encoder_preset
+            End If
+            If d.my_presets.medium IsNot Nothing Then
+                Recording.MyMediumFPS = d.my_presets.medium.fps
+                Recording.MyMediumBitrate = d.my_presets.medium.bitrate
+                Recording.MyMediumEncoderPreset = d.my_presets.medium.encoder_preset
+            End If
+            If d.my_presets.high IsNot Nothing Then
+                Recording.MyHighFPS = d.my_presets.high.fps
+                Recording.MyHighBitrate = d.my_presets.high.bitrate
+                Recording.MyHighEncoderPreset = d.my_presets.high.encoder_preset
+            End If
+        End If
+
+        ' Nothing = auto — direct assignment preserves the nullable semantics.
+        Recording.APICapture = d.api_capture
+    End Sub
 
     ''' <summary>
     ''' Atomic config write: write a per-PID temp file, keep the current
@@ -786,13 +1025,32 @@ Partial Public Class AppSettings
                     .WriteIndented = True
                 }
                 ' NOTE: no DefaultIgnoreCondition — null fields are written
-                ' explicitly (e.g. "MyLowFPS": null) so config.json always
-                ' shows the FULL schema: every section, every key, in a
-                ' stable order. All readers are null-tolerant (typed mirror
-                ' models on the Overlay/Engine sides, TryGetValue fallbacks
-                ' in AppConfigShared, and value-type keys are never null).
+                ' explicitly (e.g. "fps": null in a MY preset slot) so
+                ' config.json always shows the FULL schema: every section,
+                ' every key, in a stable order. All readers are null-tolerant
+                ' (typed mirror models on the Overlay/Engine sides, TryGetValue
+                ' fallbacks in AppConfigShared, and value-type keys are never
+                ' null).
 
-                Dim json As String = JsonSerializer.Serialize(Me, options)
+                ' The FILE schema nests Recording video.json-style (current /
+                ' my_presets — the "detailed" layout); the in-memory model
+                ' stays flat. ConfigFileDto is that file shape: Recording is
+                ' built from the flat model, every other section is written
+                ' as-is (the same classes the model uses → same keys).
+                Dim dto As New ConfigFileDto With {
+                    .Recording = BuildRecordingDto(),
+                    .Paths = Paths,
+                    .UI = UI,
+                    .Audio = Audio,
+                    .Privacy = Privacy,
+                    .Overlay = Overlay,
+                    .Notifications = Notifications,
+                    .Hotkeys = Hotkeys,
+                    .GitHubUser = GitHubUser,
+                    .GitHubTokenEncrypted = GitHubTokenEncrypted
+                }
+
+                Dim json As String = JsonSerializer.Serialize(dto, options)
                 WriteConfigFileAtomic(json)
                 Debug.WriteLine("AppSettings.Save: Saved to " & ConfigPath)
             End SyncLock
