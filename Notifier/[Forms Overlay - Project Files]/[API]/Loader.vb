@@ -295,6 +295,73 @@ Partial Public Class Loader
         LangHelper.LoadLang(langFile)
     End Sub
 
+    ' ==== Toast slot routing (OWNER spec) ====
+    ' Rapid bursts — a toast arriving within FastArrivalWindowMs of the previous
+    ' one — go to the first FREE slot instead of clobbering the showing one.
+    ' Slot 1 = main toast (original flow, below). Slots 2/3 = copies stacking
+    ' below the main toast with a 10px vertical gap (see the slot forms).
+    ' If every slot is busy, fall back to the classic replace dance on slot 1.
+    Private _lastToastArrival As DateTime = DateTime.MinValue
+    Private Const FastArrivalWindowMs As Integer = 500
+
+    Private Function MainSlotBusy() As Boolean
+        Return Notifier.Visible OrElse Notifier.Notifier_green_stop.Visible
+    End Function
+
+    Private Function TryShowInFreeSideSlot(message As String, showImage As Boolean, icon As String, iconColor As Color) As Boolean
+        If Not SideSlotBusy(Notifier2) Then
+            ShowSideSlot(Notifier2, Notifier_Sub2, message, showImage, icon, iconColor)
+            Return True
+        End If
+        If Not SideSlotBusy(Notifier3) Then
+            ShowSideSlot(Notifier3, Notifier_Sub3, message, showImage, icon, iconColor)
+            Return True
+        End If
+        Return False
+    End Function
+
+    ' A side slot is busy from the moment its unit form is shown (the whole
+    ' slide-in dance) until its SlideOutAll closes it — Visible covers exactly
+    ' that window, green_stop.Visible alone would miss the dance.
+    Private Function SideSlotBusy(unit As Notifier2) As Boolean
+        Return unit.Visible OrElse unit.Notifier_green_stop.Visible
+    End Function
+
+    Private Function SideSlotBusy(unit As Notifier3) As Boolean
+        Return unit.Visible OrElse unit.Notifier_green_stop.Visible
+    End Function
+
+    ' Mirrors the main toast's fresh-show path: Show() runs the Form_Load
+    ' slide-in dance; content is set up front exactly like the main path does.
+    ' NOTE: no autoClose.Start() here — a fresh unit's Timer still has the 100ms
+    ' default Interval until its Form_Load dance sets 6000, so starting it here
+    ' would auto-close the toast mid-dance. Form_Load owns the timer instead.
+    Private Sub ShowSideSlot(unit As Notifier2, content As Notifier_Sub2, message As String, showImage As Boolean, icon As String, iconColor As Color)
+        unit.autoClose.Stop()
+        content.TopMost = True
+        unit.Show()
+        With content.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        content.text_n.Text = message
+        content.PictureBox1.Visible = showImage
+    End Sub
+
+    Private Sub ShowSideSlot(unit As Notifier3, content As Notifier_Sub3, message As String, showImage As Boolean, icon As String, iconColor As Color)
+        unit.autoClose.Stop()
+        content.TopMost = True
+        unit.Show()
+        With content.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        content.text_n.Text = message
+        content.PictureBox1.Visible = showImage
+    End Sub
+
     ' ฟังก์ชัน UpdateNotifier (จัดการ UI)
     Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color)
         If Me.InvokeRequired Then
@@ -304,8 +371,25 @@ Partial Public Class Loader
 
         ' tcp.SendLog("notifier_show") ' ถ้าต้องการ
 
-        Notifier.autoClose.Stop()
-        Notifier.autoClose.Start()
+        Dim now As DateTime = DateTime.Now
+        Dim fastArrival As Boolean = (now - _lastToastArrival).TotalMilliseconds <= FastArrivalWindowMs
+        _lastToastArrival = now
+
+        ' Rapid burst + main slot busy → route to the first free side slot.
+        ' When the main slot is free we fall through to the normal fresh-show
+        ' path below (slot preference order: main → 2 → 3). If ALL slots are
+        ' busy we also fall through into the classic replace dance.
+        If fastArrival AndAlso MainSlotBusy() Then
+            If TryShowInFreeSideSlot(message, showImage, icon, iconColor) Then Exit Sub
+        End If
+
+        ' Refresh the close window only while a toast is actually showing —
+        ' on a fresh show Form_Load owns autoClose (and its Interval), so
+        ' starting the timer here would fire AutoClose at the 100ms default.
+        If Notifier.Notifier_green_stop.Visible Then
+            Notifier.autoClose.Stop()
+            Notifier.autoClose.Start()
+        End If
         Notifier_Sub.TopMost = True
 
         ' Logic เดิมเรื่องการสไลด์
