@@ -56,55 +56,209 @@ Public Class Base_Notifications
         _notiLoading = True
         ' Guards: the instances live in the Designer.vb and can be stripped
         ' by hand edits — never let that NRE the whole page.
-        If ToggleRecording IsNot Nothing Then ToggleRecording.IsOn = AppSettings.Instance.Notifications.Recording
-        If ToggleInstantReplay IsNot Nothing Then ToggleInstantReplay.IsOn = AppSettings.Instance.Notifications.InstantReplay
-        If ToggleScreenshots IsNot Nothing Then ToggleScreenshots.IsOn = AppSettings.Instance.Notifications.Screenshots
-        If ToggleShareOverlay IsNot Nothing Then ToggleShareOverlay.IsOn = AppSettings.Instance.Notifications.ShareOverlay
-        If ToggleSystemMonitor IsNot Nothing Then ToggleSystemMonitor.IsOn = AppSettings.Instance.Notifications.SystemMonitor
-        If ToggleUpdates IsNot Nothing Then ToggleUpdates.IsOn = AppSettings.Instance.Notifications.Updates
-        If ToggleErrors IsNot Nothing Then ToggleErrors.IsOn = AppSettings.Instance.Notifications.Errors
+        ' RECORDING
+        If ToggleRecordingStarted IsNot Nothing Then ToggleRecordingStarted.IsOn = AppSettings.Instance.Notifications.RecordingStarted
+        If ToggleRecordingSaved IsNot Nothing Then ToggleRecordingSaved.IsOn = AppSettings.Instance.Notifications.RecordingSaved
+        If ToggleRecordingError IsNot Nothing Then ToggleRecordingError.IsOn = AppSettings.Instance.Notifications.RecordingError
+        ' INSTANT REPLAY
+        If ToggleReplaySaved IsNot Nothing Then ToggleReplaySaved.IsOn = AppSettings.Instance.Notifications.ReplaySaved
+        If ToggleInstantReplayOn IsNot Nothing Then ToggleInstantReplayOn.IsOn = AppSettings.Instance.Notifications.InstantReplayOn
+        If ToggleInstantReplayOff IsNot Nothing Then ToggleInstantReplayOff.IsOn = AppSettings.Instance.Notifications.InstantReplayOff
+        If ToggleReplayTurnOn IsNot Nothing Then ToggleReplayTurnOn.IsOn = AppSettings.Instance.Notifications.ReplayTurnOn
+        If ToggleReplayError IsNot Nothing Then ToggleReplayError.IsOn = AppSettings.Instance.Notifications.ReplayError
+        ' SCREENSHOTS
+        If ToggleScreenshotSaved IsNot Nothing Then ToggleScreenshotSaved.IsOn = AppSettings.Instance.Notifications.ScreenshotSaved
+        If ToggleValidSavePath IsNot Nothing Then ToggleValidSavePath.IsOn = AppSettings.Instance.Notifications.ValidSavePath
+        ' SHARE OVERLAY
+        If ToggleOpenShare IsNot Nothing Then ToggleOpenShare.IsOn = AppSettings.Instance.Notifications.OpenShare
+        ' SYSTEM MONITOR
+        If ToggleRamWarning IsNot Nothing Then ToggleRamWarning.IsOn = AppSettings.Instance.Notifications.RamWarning
+        If ToggleRamWarning95 IsNot Nothing Then ToggleRamWarning95.IsOn = AppSettings.Instance.Notifications.RamWarning95
+        If ToggleRamCritical IsNot Nothing Then ToggleRamCritical.IsOn = AppSettings.Instance.Notifications.RamCritical
+        If ToggleCpuWarning IsNot Nothing Then ToggleCpuWarning.IsOn = AppSettings.Instance.Notifications.CpuWarning
+        If ToggleDiskSpaceLow IsNot Nothing Then ToggleDiskSpaceLow.IsOn = AppSettings.Instance.Notifications.DiskSpaceLow
+        ' UPDATES
+        If ToggleUpdateAvailable IsNot Nothing Then ToggleUpdateAvailable.IsOn = AppSettings.Instance.Notifications.UpdateAvailable
+        If ToggleVersionLatest IsNot Nothing Then ToggleVersionLatest.IsOn = AppSettings.Instance.Notifications.VersionLatest
+        If ToggleUpdateError IsNot Nothing Then ToggleUpdateError.IsOn = AppSettings.Instance.Notifications.UpdateError
+        ' ERRORS & FEEDBACK
+        If ToggleAccountConfirmError IsNot Nothing Then ToggleAccountConfirmError.IsOn = AppSettings.Instance.Notifications.AccountConfirmError
+        If ToggleExtensionNotFound IsNot Nothing Then ToggleExtensionNotFound.IsOn = AppSettings.Instance.Notifications.ExtensionNotFound
+        If ToggleFeatureNotReady IsNot Nothing Then ToggleFeatureNotReady.IsOn = AppSettings.Instance.Notifications.FeatureNotReady
+        If ToggleGpuRequired IsNot Nothing Then ToggleGpuRequired.IsOn = AppSettings.Instance.Notifications.GpuRequired
+        If ToggleEngineNotRunning IsNot Nothing Then ToggleEngineNotRunning.IsOn = AppSettings.Instance.Notifications.EngineNotRunning
+        If ToggleEngineUIInUse IsNot Nothing Then ToggleEngineUIInUse.IsOn = AppSettings.Instance.Notifications.EngineUIInUse
+        If ToggleErrorResolution IsNot Nothing Then ToggleErrorResolution.IsOn = AppSettings.Instance.Notifications.ErrorResolution
+        If ToggleDesktopCaptureDisabled IsNot Nothing Then ToggleDesktopCaptureDisabled.IsOn = AppSettings.Instance.Notifications.DesktopCaptureDisabled
         _notiLoading = False
     End Sub
 
-    Private Sub ToggleRecording_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecording.ValueChanged
+    ' RECORDING
+    Private Sub ToggleRecordingStarted_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecordingStarted.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.Recording = ToggleRecording.IsOn
+        AppSettings.Instance.Notifications.RecordingStarted = ToggleRecordingStarted.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    Private Sub ToggleInstantReplay_ValueChanged(sender As Object, e As EventArgs) Handles ToggleInstantReplay.ValueChanged
+    Private Sub ToggleRecordingSaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecordingSaved.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.InstantReplay = ToggleInstantReplay.IsOn
+        AppSettings.Instance.Notifications.RecordingSaved = ToggleRecordingSaved.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    Private Sub ToggleScreenshots_ValueChanged(sender As Object, e As EventArgs) Handles ToggleScreenshots.ValueChanged
+    Private Sub ToggleRecordingError_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecordingError.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.Screenshots = ToggleScreenshots.IsOn
+        AppSettings.Instance.Notifications.RecordingError = ToggleRecordingError.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    Private Sub ToggleShareOverlay_ValueChanged(sender As Object, e As EventArgs) Handles ToggleShareOverlay.ValueChanged
+    ' INSTANT REPLAY
+    Private Sub ToggleReplaySaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleReplaySaved.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.ShareOverlay = ToggleShareOverlay.IsOn
+        AppSettings.Instance.Notifications.ReplaySaved = ToggleReplaySaved.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    Private Sub ToggleSystemMonitor_ValueChanged(sender As Object, e As EventArgs) Handles ToggleSystemMonitor.ValueChanged
+    Private Sub ToggleInstantReplayOn_ValueChanged(sender As Object, e As EventArgs) Handles ToggleInstantReplayOn.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.SystemMonitor = ToggleSystemMonitor.IsOn
+        AppSettings.Instance.Notifications.InstantReplayOn = ToggleInstantReplayOn.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    Private Sub ToggleUpdates_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUpdates.ValueChanged
+    Private Sub ToggleInstantReplayOff_ValueChanged(sender As Object, e As EventArgs) Handles ToggleInstantReplayOff.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.Updates = ToggleUpdates.IsOn
+        AppSettings.Instance.Notifications.InstantReplayOff = ToggleInstantReplayOff.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    Private Sub ToggleErrors_ValueChanged(sender As Object, e As EventArgs) Handles ToggleErrors.ValueChanged
+    Private Sub ToggleReplayTurnOn_ValueChanged(sender As Object, e As EventArgs) Handles ToggleReplayTurnOn.ValueChanged
         If _notiLoading Then Return
-        AppSettings.Instance.Notifications.Errors = ToggleErrors.IsOn
+        AppSettings.Instance.Notifications.ReplayTurnOn = ToggleReplayTurnOn.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleReplayError_ValueChanged(sender As Object, e As EventArgs) Handles ToggleReplayError.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.ReplayError = ToggleReplayError.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    ' SCREENSHOTS
+    Private Sub ToggleScreenshotSaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleScreenshotSaved.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.ScreenshotSaved = ToggleScreenshotSaved.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleValidSavePath_ValueChanged(sender As Object, e As EventArgs) Handles ToggleValidSavePath.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.ValidSavePath = ToggleValidSavePath.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    ' SHARE OVERLAY
+    Private Sub ToggleOpenShare_ValueChanged(sender As Object, e As EventArgs) Handles ToggleOpenShare.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.OpenShare = ToggleOpenShare.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    ' SYSTEM MONITOR
+    Private Sub ToggleRamWarning_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRamWarning.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.RamWarning = ToggleRamWarning.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleRamWarning95_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRamWarning95.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.RamWarning95 = ToggleRamWarning95.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleRamCritical_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRamCritical.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.RamCritical = ToggleRamCritical.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleCpuWarning_ValueChanged(sender As Object, e As EventArgs) Handles ToggleCpuWarning.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.CpuWarning = ToggleCpuWarning.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleDiskSpaceLow_ValueChanged(sender As Object, e As EventArgs) Handles ToggleDiskSpaceLow.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.DiskSpaceLow = ToggleDiskSpaceLow.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    ' UPDATES
+    Private Sub ToggleUpdateAvailable_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUpdateAvailable.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.UpdateAvailable = ToggleUpdateAvailable.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleVersionLatest_ValueChanged(sender As Object, e As EventArgs) Handles ToggleVersionLatest.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.VersionLatest = ToggleVersionLatest.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleUpdateError_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUpdateError.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.UpdateError = ToggleUpdateError.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    ' ERRORS & FEEDBACK
+    Private Sub ToggleAccountConfirmError_ValueChanged(sender As Object, e As EventArgs) Handles ToggleAccountConfirmError.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.AccountConfirmError = ToggleAccountConfirmError.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleExtensionNotFound_ValueChanged(sender As Object, e As EventArgs) Handles ToggleExtensionNotFound.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.ExtensionNotFound = ToggleExtensionNotFound.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleFeatureNotReady_ValueChanged(sender As Object, e As EventArgs) Handles ToggleFeatureNotReady.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.FeatureNotReady = ToggleFeatureNotReady.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleGpuRequired_ValueChanged(sender As Object, e As EventArgs) Handles ToggleGpuRequired.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.GpuRequired = ToggleGpuRequired.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleEngineNotRunning_ValueChanged(sender As Object, e As EventArgs) Handles ToggleEngineNotRunning.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.EngineNotRunning = ToggleEngineNotRunning.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleEngineUIInUse_ValueChanged(sender As Object, e As EventArgs) Handles ToggleEngineUIInUse.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.EngineUIInUse = ToggleEngineUIInUse.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleErrorResolution_ValueChanged(sender As Object, e As EventArgs) Handles ToggleErrorResolution.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.ErrorResolution = ToggleErrorResolution.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleDesktopCaptureDisabled_ValueChanged(sender As Object, e As EventArgs) Handles ToggleDesktopCaptureDisabled.ValueChanged
+        If _notiLoading Then Return
+        AppSettings.Instance.Notifications.DesktopCaptureDisabled = ToggleDesktopCaptureDisabled.IsOn
         AppSettings.Instance.Save()
     End Sub
 

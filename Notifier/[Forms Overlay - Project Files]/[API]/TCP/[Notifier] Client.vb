@@ -201,29 +201,72 @@ Partial Public Class Loader
         Return AppConfigShared.ReadBool("Notifications", category, True)
     End Function
 
-    ''' <summary>Returns the Settings→Notifications category for a toast key, or Nothing when the key has no category.</summary>
+    ''' <summary>Returns the config key (Settings→Notifications) for a toast key, or Nothing when the key has no toggle.</summary>
     Private Shared Function NotificationCategory(key As String) As String
         If key.StartsWith("l10n.", StringComparison.OrdinalIgnoreCase) Then key = key.Substring(5)
         Dim k As String = key.ToLowerInvariant()
         Select Case k
-            Case "recording_started", "recording_saved", "recording_error"
-                Return "Recording"
-            Case "instant_replay_on", "instant_replay_off", "replay_turn_on", "replay_error", _
-                 "notificationinstantreplaysaved", "saved_last_15"
-                Return "InstantReplay"
-            Case "notificationscreenshotsavedtogallery", "validsavepath"
-                Return "Screenshots"
+            ' RECORDING
+            Case "recording_started"
+                Return "RecordingStarted"
+            Case "recording_saved"
+                Return "RecordingSaved"
+            Case "recording_error"
+                Return "RecordingError"
+            ' INSTANT REPLAY
+            Case "instant_replay_on"
+                Return "InstantReplayOn"
+            Case "instant_replay_off"
+                Return "InstantReplayOff"
+            Case "replay_turn_on"
+                Return "ReplayTurnOn"
+            Case "replay_error"
+                Return "ReplayError"
+            Case "notificationinstantreplaysaved", "saved_last_15"
+                Return "ReplaySaved"
+            ' SCREENSHOTS
+            Case "notificationscreenshotsavedtogallery"
+                Return "ScreenshotSaved"
+            Case "validsavepath"
+                Return "ValidSavePath"
+            ' SHARE OVERLAY
             Case "notificationopenshare"
-                Return "ShareOverlay"
-            Case "ramwram", "ramwram95", "ramwramcritical", "cpuwram", "diskspacelow"
-                Return "SystemMonitor"
-            Case "update_available", "version_latest", "notificationerrorgeneral"
-                Return "Updates"
-            Case "account_confirm_error", "extension_not_found", "feature_not_ready", _
-                 "notificationwarningnvidiagpurequired", "notificationerrorenginenotrunning", _
-                 "notificationerrorengineuiinuse", "notificationerrorresolution", _
-                 "notificationwarningdesktopcapturedisabled"
-                Return "Errors"
+                Return "OpenShare"
+            ' SYSTEM MONITOR
+            Case "ramwram"
+                Return "RamWarning"
+            Case "ramwram95"
+                Return "RamWarning95"
+            Case "ramwramcritical"
+                Return "RamCritical"
+            Case "cpuwram"
+                Return "CpuWarning"
+            Case "diskspacelow"
+                Return "DiskSpaceLow"
+            ' UPDATES
+            Case "update_available"
+                Return "UpdateAvailable"
+            Case "version_latest"
+                Return "VersionLatest"
+            Case "notificationerrorgeneral"
+                Return "UpdateError"
+            ' ERRORS & FEEDBACK
+            Case "account_confirm_error"
+                Return "AccountConfirmError"
+            Case "extension_not_found"
+                Return "ExtensionNotFound"
+            Case "feature_not_ready"
+                Return "FeatureNotReady"
+            Case "notificationwarningnvidiagpurequired"
+                Return "GpuRequired"
+            Case "notificationerrorenginenotrunning"
+                Return "EngineNotRunning"
+            Case "notificationerrorengineuiinuse"
+                Return "EngineUIInUse"
+            Case "notificationerrorresolution"
+                Return "ErrorResolution"
+            Case "notificationwarningdesktopcapturedisabled"
+                Return "DesktopCaptureDisabled"
             Case Else
                 Return Nothing
         End Select

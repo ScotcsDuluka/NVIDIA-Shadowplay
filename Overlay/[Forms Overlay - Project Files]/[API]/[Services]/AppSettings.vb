@@ -177,20 +177,47 @@ Partial Public Class AppSettings
     End Class
 
     ''' <summary>
-    ''' Per-category notification switches (Settings → Notifications page).
-    ''' All default True — missing keys/sections show as before, so the
-    ''' pre-toggles behavior is unchanged. The Notifier reads the same
+    ''' Per-notification switches (Settings → Notifications page) — one key
+    ''' PER toast, grouped in the UI under static headers. All default True
+    ''' — missing keys/sections show as before. The Notifier reads the same
     ''' keys via AppConfigShared at display time (the single choke point
     ''' every toast passes through: the TCP path AND the OBS bridge).
     ''' </summary>
     Public Class NotificationsSettingsClass
-        Public Property Recording As Boolean = True
-        Public Property InstantReplay As Boolean = True
-        Public Property Screenshots As Boolean = True
-        Public Property ShareOverlay As Boolean = True
-        Public Property SystemMonitor As Boolean = True
-        Public Property Updates As Boolean = True
-        Public Property Errors As Boolean = True
+        ' RECORDING
+        Public Property RecordingStarted As Boolean = True
+        Public Property RecordingSaved As Boolean = True
+        Public Property RecordingError As Boolean = True
+        ' INSTANT REPLAY
+        Public Property ReplaySaved As Boolean = True
+        Public Property InstantReplayOn As Boolean = True
+        Public Property InstantReplayOff As Boolean = True
+        Public Property ReplayTurnOn As Boolean = True
+        Public Property ReplayError As Boolean = True
+        ' SCREENSHOTS
+        Public Property ScreenshotSaved As Boolean = True
+        Public Property ValidSavePath As Boolean = True
+        ' SHARE OVERLAY
+        Public Property OpenShare As Boolean = True
+        ' SYSTEM MONITOR
+        Public Property RamWarning As Boolean = True
+        Public Property RamWarning95 As Boolean = True
+        Public Property RamCritical As Boolean = True
+        Public Property CpuWarning As Boolean = True
+        Public Property DiskSpaceLow As Boolean = True
+        ' UPDATES
+        Public Property UpdateAvailable As Boolean = True
+        Public Property VersionLatest As Boolean = True
+        Public Property UpdateError As Boolean = True
+        ' ERRORS & FEEDBACK
+        Public Property AccountConfirmError As Boolean = True
+        Public Property ExtensionNotFound As Boolean = True
+        Public Property FeatureNotReady As Boolean = True
+        Public Property GpuRequired As Boolean = True
+        Public Property EngineNotRunning As Boolean = True
+        Public Property EngineUIInUse As Boolean = True
+        Public Property ErrorResolution As Boolean = True
+        Public Property DesktopCaptureDisabled As Boolean = True
     End Class
 
     ''' <summary>
@@ -615,13 +642,40 @@ Partial Public Class AppSettings
 
     Private Sub ApplyNotificationsSettings(loadedNotifications As NotificationsSettingsClass)
         If loadedNotifications Is Nothing Then Return
-        Notifications.Recording = loadedNotifications.Recording
-        Notifications.InstantReplay = loadedNotifications.InstantReplay
-        Notifications.Screenshots = loadedNotifications.Screenshots
-        Notifications.ShareOverlay = loadedNotifications.ShareOverlay
-        Notifications.SystemMonitor = loadedNotifications.SystemMonitor
-        Notifications.Updates = loadedNotifications.Updates
-        Notifications.Errors = loadedNotifications.Errors
+        ' RECORDING
+        Notifications.RecordingStarted = loadedNotifications.RecordingStarted
+        Notifications.RecordingSaved = loadedNotifications.RecordingSaved
+        Notifications.RecordingError = loadedNotifications.RecordingError
+        ' INSTANT REPLAY
+        Notifications.ReplaySaved = loadedNotifications.ReplaySaved
+        Notifications.InstantReplayOn = loadedNotifications.InstantReplayOn
+        Notifications.InstantReplayOff = loadedNotifications.InstantReplayOff
+        Notifications.ReplayTurnOn = loadedNotifications.ReplayTurnOn
+        Notifications.ReplayError = loadedNotifications.ReplayError
+        ' SCREENSHOTS
+        Notifications.ScreenshotSaved = loadedNotifications.ScreenshotSaved
+        Notifications.ValidSavePath = loadedNotifications.ValidSavePath
+        ' SHARE OVERLAY
+        Notifications.OpenShare = loadedNotifications.OpenShare
+        ' SYSTEM MONITOR
+        Notifications.RamWarning = loadedNotifications.RamWarning
+        Notifications.RamWarning95 = loadedNotifications.RamWarning95
+        Notifications.RamCritical = loadedNotifications.RamCritical
+        Notifications.CpuWarning = loadedNotifications.CpuWarning
+        Notifications.DiskSpaceLow = loadedNotifications.DiskSpaceLow
+        ' UPDATES
+        Notifications.UpdateAvailable = loadedNotifications.UpdateAvailable
+        Notifications.VersionLatest = loadedNotifications.VersionLatest
+        Notifications.UpdateError = loadedNotifications.UpdateError
+        ' ERRORS & FEEDBACK
+        Notifications.AccountConfirmError = loadedNotifications.AccountConfirmError
+        Notifications.ExtensionNotFound = loadedNotifications.ExtensionNotFound
+        Notifications.FeatureNotReady = loadedNotifications.FeatureNotReady
+        Notifications.GpuRequired = loadedNotifications.GpuRequired
+        Notifications.EngineNotRunning = loadedNotifications.EngineNotRunning
+        Notifications.EngineUIInUse = loadedNotifications.EngineUIInUse
+        Notifications.ErrorResolution = loadedNotifications.ErrorResolution
+        Notifications.DesktopCaptureDisabled = loadedNotifications.DesktopCaptureDisabled
     End Sub
 
     ''' <summary>
