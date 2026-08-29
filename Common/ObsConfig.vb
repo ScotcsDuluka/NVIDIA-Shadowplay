@@ -1,6 +1,20 @@
 ﻿Imports System.IO
 Imports Newtonsoft.Json.Linq
 
+' ObsConfig.vb — SHARED notifier_obs.json schema/access.
+'
+' Lives in Common\ and is linked into both projects that touch OBS settings:
+'
+'   NVIDIA Notifier  — Load() + 2s hot-reload watcher (HasFileChanged/Reload);
+'                      owns the actual OBS WebSocket bridge (ObsWebSocketClient).
+'   NVIDIA Overlay   — Settings → General page edits Enabled/Host/Port/Password
+'                      and calls Save(); the Notifier picks the file change up
+'                      within ~2 seconds.
+'
+' Write policy mirrors AppConfigShared: Save() is a read-modify-write against
+' the CURRENT file content, so the "forward" section and any unknown keys
+' survive untouched.
+
 Public Class ObsConfig
 
     Public Property Enabled As Boolean = True
@@ -41,6 +55,40 @@ Public Class ObsConfig
         Me.ForwardScreenshotSaved = fresh.ForwardScreenshotSaved
         Me._lastWriteUtc = fresh._lastWriteUtc
         Return True
+    End Function
+
+    ''' <summary>
+    ''' Persists Enabled/Host/Port/Password using read-modify-write on the
+    ''' CURRENT file content, so the "forward" section (and unknown keys)
+    ''' survive. Never throws; returns False when the write failed.
+    ''' </summary>
+    Public Function Save() As Boolean
+        Try
+            Dim root As JObject = Nothing
+            If File.Exists(ConfigPath) Then
+                Try
+                    root = TryCast(JObject.Parse(File.ReadAllText(ConfigPath)), JObject)
+                Catch
+                    root = Nothing
+                End Try
+            End If
+            If root Is Nothing Then root = New JObject()
+
+            root("enabled") = Enabled
+            root("host") = Host
+            root("port") = Port
+            root("password") = Password
+
+            AppLayout.EnsureParentDir(ConfigPath)
+            File.WriteAllText(ConfigPath, root.ToString(Newtonsoft.Json.Formatting.Indented),
+                              New System.Text.UTF8Encoding(False))
+
+            Dim info As New FileInfo(ConfigPath)
+            _lastWriteUtc = info.LastWriteTimeUtc
+            Return True
+        Catch
+            Return False
+        End Try
     End Function
 
     Public Function HasFileChanged() As Boolean

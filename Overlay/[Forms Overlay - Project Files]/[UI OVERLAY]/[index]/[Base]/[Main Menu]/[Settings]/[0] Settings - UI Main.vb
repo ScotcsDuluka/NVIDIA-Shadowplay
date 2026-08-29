@@ -70,11 +70,67 @@ Public Class Base_Settings
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
-        ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
+        LoadObsSettings()
     End Sub
-    Private Sub ToggleUseWindowsSnip_ValueChanged(sender As Object, e As EventArgs)
-        AppSettings.Instance.UI.UseWindowsSnip = ToggleUseWindowsSnip.IsOn
-        AppSettings.Instance.Save
+
+    ' ====================================================================
+    ' OBS Studio WebSocket integration (Settings → General)
+    '
+    ' The Notifier owns the actual OBS connection: it watches
+    ' Config\notifier_obs.json and hot-reloads it every 2 seconds
+    ' (start/stop the bridge, reconnect on endpoint changes). This page
+    ' is only the editor: it loads the shared ObsConfig and writes the
+    ' file back when the user changes a value — the Overlay never talks
+    ' to OBS directly.
+    ' ====================================================================
+    Private _obsCfg As ObsConfig
+    Private _obsLoading As Boolean
+
+    Private Sub LoadObsSettings()
+        _obsCfg = ObsConfig.Load()
+        _obsLoading = True
+        ObsEnabledToggle.IsOn = _obsCfg.Enabled
+        TextBox1.Text = _obsCfg.Host
+        PORT_BOX.Text = _obsCfg.Port.ToString()
+        KEY_BOX.Text = _obsCfg.Password
+        _obsLoading = False
+    End Sub
+
+    Private Sub ObsEnabledToggle_ValueChanged(sender As Object, e As EventArgs) Handles ObsEnabledToggle.ValueChanged
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        _obsCfg.Enabled = ObsEnabledToggle.IsOn
+        _obsCfg.Save()
+    End Sub
+
+    Private Sub TextBox1_Leave(sender As Object, e As EventArgs) Handles TextBox1.Leave
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        Dim host As String = TextBox1.Text.Trim()
+        If host.Length = 0 Then
+            TextBox1.Text = _obsCfg.Host
+            Return
+        End If
+        If host = _obsCfg.Host Then Return
+        _obsCfg.Host = host
+        _obsCfg.Save()
+    End Sub
+
+    Private Sub PORT_BOX_Leave(sender As Object, e As EventArgs) Handles PORT_BOX.Leave
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        Dim port As Integer
+        If Not Integer.TryParse(PORT_BOX.Text.Trim(), port) OrElse port < 1 OrElse port > 65535 Then
+            PORT_BOX.Text = _obsCfg.Port.ToString()
+            Return
+        End If
+        If port = _obsCfg.Port Then Return
+        _obsCfg.Port = port
+        _obsCfg.Save()
+    End Sub
+
+    Private Sub KEY_BOX_Leave(sender As Object, e As EventArgs) Handles KEY_BOX.Leave
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        If KEY_BOX.Text = _obsCfg.Password Then Return
+        _obsCfg.Password = KEY_BOX.Text
+        _obsCfg.Save()
     End Sub
     Private Sub Back_btn_Click(sender As Object, e As EventArgs)
         Hide()

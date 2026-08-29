@@ -200,6 +200,10 @@
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s2.vb">
                         <SubType>Form</SubType>
                 </Compile>
+
+                <Compile Update="[Forms Overlay - Project Files]\[API]\[Models]\ToggleSwitch.vb">
+                        <SubType>Component</SubType>
+                </Compile>
         </ItemGroup>
 
         <!-- Resources -->
@@ -449,6 +453,7 @@
                 <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
                 <Compile Include="..\Common\AppLayoutStartup.vb" Link="AppLayoutStartup.vb" />
                 <Compile Include="..\Common\AppConfigShared.vb" Link="AppConfigShared.vb" />
+                <Compile Include="..\Common\ObsConfig.vb" Link="ObsConfig.vb" />
         </ItemGroup>
 
 </Project>
