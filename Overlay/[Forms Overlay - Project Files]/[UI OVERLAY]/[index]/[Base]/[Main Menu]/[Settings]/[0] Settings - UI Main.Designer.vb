@@ -25,8 +25,10 @@ Partial Class Base_Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
         Main_Menu_SET = New Panel()
         Panel = New Panel()
+        Label1 = New Label()
+        Label2 = New Label()
+        Label5 = New Label()
         Label4 = New Label()
-        ToggleUseWindowsSnip = New ToggleSwitch()
         Desc_UseWindowsSnip = New Label()
         Desc_UseWindowsSnip_SUB = New Label()
         Label3 = New Label()
@@ -39,6 +41,7 @@ Partial Class Base_Settings
         PictureBox1 = New PictureBox()
         btnExportSettings = New Label()
         btnImportSettings = New Label()
+        Panel1 = New Panel()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
@@ -61,8 +64,11 @@ Partial Class Base_Settings
         ' 
         Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Panel.Controls.Add(Panel1)
+        Panel.Controls.Add(Label1)
+        Panel.Controls.Add(Label2)
+        Panel.Controls.Add(Label5)
         Panel.Controls.Add(Label4)
-        Panel.Controls.Add(ToggleUseWindowsSnip)
         Panel.Controls.Add(Desc_UseWindowsSnip)
         Panel.Controls.Add(Desc_UseWindowsSnip_SUB)
         Panel.Controls.Add(Label3)
@@ -70,6 +76,43 @@ Partial Class Base_Settings
         Panel.Name = "Panel"
         Panel.Size = New Size(1000, 586)
         Panel.TabIndex = 74
+        ' 
+        ' Label1
+        ' 
+        Label1.AutoSize = True
+        Label1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label1.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Label1.ForeColor = Color.White
+        Label1.Location = New Point(125, 216)
+        Label1.Name = "Label1"
+        Label1.Size = New Size(329, 28)
+        Label1.TabIndex = 81
+        Label1.Text = "OBS Studio WebSocket Integration"
+        ' 
+        ' Label2
+        ' 
+        Label2.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label2.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label2.ForeColor = Color.White
+        Label2.Location = New Point(151, 234)
+        Label2.Name = "Label2"
+        Label2.Size = New Size(596, 91)
+        Label2.TabIndex = 83
+        Label2.Text = "Allow Notifier to connect to the OBS Studio WebSocket and display notifications based on OBS Studio states or events."
+        Label2.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Label5
+        ' 
+        Label5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label5.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label5.ForeColor = Color.White
+        Label5.Location = New Point(106, 234)
+        Label5.Name = "Label5"
+        Label5.Size = New Size(39, 91)
+        Label5.TabIndex = 82
+        Label5.Text = ""
+        Label5.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Label4
         ' 
@@ -81,21 +124,6 @@ Partial Class Base_Settings
         Label4.Size = New Size(514, 60)
         Label4.TabIndex = 80
         Label4.Text = "General"
-        ' 
-        ' ToggleUseWindowsSnip
-        ' 
-        ToggleUseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ToggleUseWindowsSnip.ForeColor = Color.Aquamarine
-        ToggleUseWindowsSnip.ImeMode = ImeMode.Off
-        ToggleUseWindowsSnip.IsOn = False
-        ToggleUseWindowsSnip.Location = New Point(71, 111)
-        ToggleUseWindowsSnip.Name = "ToggleUseWindowsSnip"
-        ToggleUseWindowsSnip.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ToggleUseWindowsSnip.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ToggleUseWindowsSnip.ShowGlow = False
-        ToggleUseWindowsSnip.Size = New Size(48, 24)
-        ToggleUseWindowsSnip.TabIndex = 79
-        ToggleUseWindowsSnip.Text = "ToggleSwitch"
         ' 
         ' Desc_UseWindowsSnip
         ' 
@@ -241,6 +269,13 @@ Partial Class Base_Settings
         btnImportSettings.Text = "Import Settings"
         btnImportSettings.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' Panel1
+        ' 
+        Panel1.Location = New Point(106, 323)
+        Panel1.Name = "Panel1"
+        Panel1.Size = New Size(774, 188)
+        Panel1.TabIndex = 84
+        ' 
         ' Base_Settings
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -291,4 +326,8 @@ Partial Class Base_Settings
     Friend WithEvents Desc_UseWindowsSnip_SUB As Label
     Friend WithEvents Label3 As Label
     Friend WithEvents Label4 As Label
+    Friend WithEvents Label1 As Label
+    Friend WithEvents Label2 As Label
+    Friend WithEvents Label5 As Label
+    Friend WithEvents Panel1 As Panel
 End Class
