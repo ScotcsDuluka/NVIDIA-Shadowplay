@@ -70,7 +70,15 @@ Public Class Base_Settings
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
+        ' Guard: the toggle's instance lives in the Designer.vb and can be
+        ' stripped by hand edits — never let that NRE the whole page.
+        If ToggleUseWindowsSnip IsNot Nothing Then ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
         LoadObsSettings()
+    End Sub
+
+    Private Sub ToggleUseWindowsSnip_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUseWindowsSnip.ValueChanged
+        AppSettings.Instance.UI.UseWindowsSnip = ToggleUseWindowsSnip.IsOn
+        AppSettings.Instance.Save()
     End Sub
 
     ' ====================================================================

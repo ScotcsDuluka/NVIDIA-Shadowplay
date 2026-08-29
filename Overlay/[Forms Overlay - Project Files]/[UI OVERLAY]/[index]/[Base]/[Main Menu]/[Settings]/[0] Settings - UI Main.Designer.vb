@@ -38,7 +38,6 @@ Partial Class Base_Settings
         Label4 = New Label()
         Desc_UseWindowsSnip = New Label()
         Desc_UseWindowsSnip_SUB = New Label()
-        ObsEnabledToggle = New ToggleSwitch()
         Label3 = New Label()
         settings_top = New PictureBox()
         Block_AM = New PictureBox()
@@ -49,6 +48,9 @@ Partial Class Base_Settings
         PictureBox1 = New PictureBox()
         btnExportSettings = New Label()
         btnImportSettings = New Label()
+        Label9 = New Label()
+        ObsEnabledToggle = New ToggleSwitch()
+        ToggleUseWindowsSnip = New ToggleSwitch()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
         Panel1.SuspendLayout()
@@ -72,7 +74,6 @@ Partial Class Base_Settings
         ' 
         Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Panel.Controls.Add(ObsEnabledToggle)
         Panel.Controls.Add(Panel1)
         Panel.Controls.Add(Label1)
         Panel.Controls.Add(Label2)
@@ -80,6 +81,7 @@ Partial Class Base_Settings
         Panel.Controls.Add(Label4)
         Panel.Controls.Add(Desc_UseWindowsSnip)
         Panel.Controls.Add(Desc_UseWindowsSnip_SUB)
+        Panel.Controls.Add(ToggleUseWindowsSnip)
         Panel.Controls.Add(Label3)
         Panel.Location = New Point(0, -7)
         Panel.Name = "Panel"
@@ -95,6 +97,8 @@ Partial Class Base_Settings
         Panel1.Controls.Add(Label6)
         Panel1.Controls.Add(KEY_BOX)
         Panel1.Controls.Add(PORT_BOX)
+        Panel1.Controls.Add(Label9)
+        Panel1.Controls.Add(ObsEnabledToggle)
         Panel1.Location = New Point(106, 323)
         Panel1.Name = "Panel1"
         Panel1.Size = New Size(774, 188)
@@ -184,6 +188,32 @@ Partial Class Base_Settings
         PORT_BOX.Text = "Port"
         PORT_BOX.TextAlign = HorizontalAlignment.Center
         ' 
+        ' Label9
+        ' 
+        Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label9.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label9.ForeColor = Color.White
+        Label9.Location = New Point(243, 84)
+        Label9.Name = "Label9"
+        Label9.Size = New Size(120, 27)
+        Label9.TabIndex = 145
+        Label9.Text = "ENABLED"
+        Label9.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' ObsEnabledToggle
+        ' 
+        ObsEnabledToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ObsEnabledToggle.ImeMode = ImeMode.Off
+        ObsEnabledToggle.IsOn = False
+        ObsEnabledToggle.Location = New Point(247, 118)
+        ObsEnabledToggle.Name = "ObsEnabledToggle"
+        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ObsEnabledToggle.ShowGlow = False
+        ObsEnabledToggle.Size = New Size(48, 24)
+        ObsEnabledToggle.TabIndex = 146
+        ObsEnabledToggle.Text = "ToggleSwitch"
+        ' 
         ' Label1
         ' 
         Label1.AutoSize = True
@@ -257,19 +287,20 @@ Partial Class Base_Settings
         Desc_UseWindowsSnip_SUB.Text = "Screenshots are taken with Windows (Win+Shift+S), letting you select the area to capture."
         Desc_UseWindowsSnip_SUB.TextAlign = ContentAlignment.MiddleLeft
         ' 
-        ' ObsEnabledToggle
+        ' ToggleUseWindowsSnip
         ' 
-        ObsEnabledToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ObsEnabledToggle.ImeMode = ImeMode.Off
-        ObsEnabledToggle.IsOn = False
-        ObsEnabledToggle.Location = New Point(71, 220)
-        ObsEnabledToggle.Name = "ObsEnabledToggle"
-        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ObsEnabledToggle.ShowGlow = False
-        ObsEnabledToggle.Size = New Size(48, 24)
-        ObsEnabledToggle.TabIndex = 146
-        ObsEnabledToggle.Text = "ToggleSwitch"
+        ToggleUseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ToggleUseWindowsSnip.ForeColor = Color.Aquamarine
+        ToggleUseWindowsSnip.ImeMode = ImeMode.Off
+        ToggleUseWindowsSnip.IsOn = False
+        ToggleUseWindowsSnip.Location = New Point(900, 140)
+        ToggleUseWindowsSnip.Name = "ToggleUseWindowsSnip"
+        ToggleUseWindowsSnip.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ToggleUseWindowsSnip.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ToggleUseWindowsSnip.ShowGlow = False
+        ToggleUseWindowsSnip.Size = New Size(48, 24)
+        ToggleUseWindowsSnip.TabIndex = 79
+        ToggleUseWindowsSnip.Text = "ToggleSwitch"
         ' 
         ' Label3
         ' 
@@ -452,5 +483,6 @@ Partial Class Base_Settings
     Friend WithEvents Label7 As Label
     Friend WithEvents Label6 As Label
     Friend WithEvents KEY_BOX As TextBox
+    Friend WithEvents Label9 As Label
     Friend WithEvents ObsEnabledToggle As ToggleSwitch
 End Class
