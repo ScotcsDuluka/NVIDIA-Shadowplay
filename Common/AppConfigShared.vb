@@ -25,6 +25,7 @@
 ' project — same contract as AppLayout.vb.
 
 Imports System
+Imports System.Diagnostics
 Imports System.IO
 Imports System.Text.Json
 Imports System.Text.Json.Nodes
@@ -121,7 +122,20 @@ Public Module AppConfigShared
             sectionObj(keyName) = value
 
             Dim options As New JsonSerializerOptions With {.WriteIndented = True}
-            File.WriteAllText(targetPath, rootObj.ToJsonString(options))
+            Dim finalJson As String = rootObj.ToJsonString(options)
+
+            ' Atomic swap with a per-PID temp name: a crash mid-write can no
+            ' longer leave a truncated config.json behind, and two processes
+            ' saving at once can never interleave inside one shared temp
+            ' file. The previous content is kept as .bak — same recovery
+            ' contract as the Overlay's AppSettings.WriteConfigFileAtomic.
+            Dim tmpPath As String = targetPath & "." & Process.GetCurrentProcess().Id.ToString() & ".tmp"
+            Dim bakPath As String = targetPath & ".bak"
+            File.WriteAllText(tmpPath, finalJson)
+            If File.Exists(targetPath) Then
+                File.Copy(targetPath, bakPath, True)
+            End If
+            File.Move(tmpPath, targetPath, True)
         Catch
             ' config.json being locked/corrupt must never take the caller down
             ' (the Launcher tick and the API hub call this on a timer).

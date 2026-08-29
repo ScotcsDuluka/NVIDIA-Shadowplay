@@ -302,6 +302,11 @@ Partial Public Class AppSettings
 #Region "Singleton"
     Private Shared _instance As AppSettings = Nothing
     Private Shared ReadOnly _lock As New Object()
+    ' Serializes Save() — two threads saving at once could otherwise
+    ' interleave the read-modify-write guard below or trip over each
+    ' other's temp file. (Instance creation uses _lock; saves get their
+    ' own gate so a long save never blocks first access.)
+    Private Shared ReadOnly _saveLock As New Object()
     Private Shared _isLoaded As Boolean = False
 
     ' Hardware detection flag
@@ -399,18 +404,24 @@ Partial Public Class AppSettings
 
             If File.Exists(ConfigPath) Then
                 Dim json As String = File.ReadAllText(ConfigPath)
+                Dim loaded As AppSettings = Nothing
+                Dim recoveredFromBackup As Boolean = False
 
                 If Not String.IsNullOrWhiteSpace(json) Then
-                    Dim options As New JsonSerializerOptions With {
-                        .PropertyNameCaseInsensitive = True,
-                        .AllowTrailingCommas = True,
-                        .ReadCommentHandling = JsonCommentHandling.Skip
-                    }
+                    loaded = TryDeserializeConfig(json)
+                End If
 
-                    Dim loaded As AppSettings = JsonSerializer.Deserialize(Of AppSettings)(json, options)
+                ' Crash-proofing: a truncated config.json (hard kill / power
+                ' loss mid-Save) must not silently reset the user to defaults.
+                ' Every atomic save keeps the previous good content as
+                ' config.json.bak — try it before giving up.
+                If loaded Is Nothing Then
+                    loaded = TryRecoverFromBackup(json)
+                    recoveredFromBackup = loaded IsNot Nothing
+                End If
 
-                    If loaded IsNot Nothing Then
-                        ApplyLoadedSettings(loaded)
+                If loaded IsNot Nothing Then
+                    ApplyLoadedSettings(loaded)
 
                         ' ✅ P1: Migration — if the JSON on disk still has a legacy
                         ' plain-text GitHubToken field (from before DPAPI encryption),
@@ -429,11 +440,18 @@ Partial Public Class AppSettings
                             End Try
                         End If
 
+                        If recoveredFromBackup Then
+                            ' Rewrite the recovered content over the corrupt
+                            ' file right away so the bad state never spreads.
+                            Save()
+                        End If
+
                         Debug.WriteLine("AppSettings.Load: SUCCESS")
                         Debug.WriteLine($"  GitHub User: {GitHubUser.Username}")
                         Debug.WriteLine($"  GitHub Logged In: {GitHubUser.IsLoggedIn}")
+                    Else
+                        Debug.WriteLine("AppSettings.Load: config.json unreadable and no usable .bak — running on defaults")
                     End If
-                End If
             Else
                 ' Create default config
                 _configWasMissingOnLoad = True
@@ -534,6 +552,65 @@ Partial Public Class AppSettings
         End Try
         Return ""
     End Function
+
+    ''' <summary>
+    ''' Parse + deserialize config.json content with the tolerant options set.
+    ''' Returns Nothing when the text is not usable JSON — caller may recover.
+    ''' </summary>
+    Private Function TryDeserializeConfig(json As String) As AppSettings
+        Try
+            Dim options As New JsonSerializerOptions With {
+                .PropertyNameCaseInsensitive = True,
+                .AllowTrailingCommas = True,
+                .ReadCommentHandling = JsonCommentHandling.Skip
+            }
+            Return JsonSerializer.Deserialize(Of AppSettings)(json, options)
+        Catch ex As Exception
+            Debug.WriteLine("AppSettings.Load: config.json parse failed: " & ex.Message)
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Last-resort recovery: deserialize config.json.bak (kept by every
+    ''' atomic save). On success jsonUsed is replaced with the backup text
+    ''' so the legacy-token migration inspects the content we applied.
+    ''' </summary>
+    Private Function TryRecoverFromBackup(ByRef jsonUsed As String) As AppSettings
+        Try
+            Dim bakPath As String = ConfigPath & ".bak"
+            If Not File.Exists(bakPath) Then Return Nothing
+            Dim bakJson As String = File.ReadAllText(bakPath)
+            If String.IsNullOrWhiteSpace(bakJson) Then Return Nothing
+            Dim loaded As AppSettings = TryDeserializeConfig(bakJson)
+            If loaded Is Nothing Then Return Nothing
+            jsonUsed = bakJson
+            Debug.WriteLine("AppSettings.Load: config.json corrupt — recovered from config.json.bak")
+            Return loaded
+        Catch ex As Exception
+            Debug.WriteLine("AppSettings.Load: backup recovery failed: " & ex.Message)
+            Return Nothing
+        End Try
+    End Function
+
+    ''' <summary>
+    ''' Atomic config write: write a per-PID temp file, keep the current
+    ''' content as config.json.bak, then rename the temp over config.json
+    ''' (same volume — atomic on NTFS). A crash mid-save can only cost the
+    ''' newest change, never the whole file. The per-PID temp name stops two
+    ''' processes (Overlay save vs Launcher WriteBool) from clobbering one
+    ''' shared temp file mid-write.
+    ''' </summary>
+    Private Sub WriteConfigFileAtomic(json As String)
+        Dim tmpPath As String = ConfigPath & "." & Process.GetCurrentProcess().Id.ToString() & ".tmp"
+        Dim bakPath As String = ConfigPath & ".bak"
+        AppLayout.EnsureParentDir(ConfigPath)
+        File.WriteAllText(tmpPath, json)
+        If File.Exists(ConfigPath) Then
+            File.Copy(ConfigPath, bakPath, True)
+        End If
+        File.Move(tmpPath, ConfigPath, True)
+    End Sub
 
     Private Sub ApplyLoadedSettings(loaded As AppSettings)
         If loaded Is Nothing Then Return
@@ -683,22 +760,24 @@ Partial Public Class AppSettings
     ''' </summary>
     Public Sub Save()
         Try
-            ' Foreign-key guard: Overlay.UseOverlayEnabled is owned by the
-            ' NVIDIA Experience toggle (Launcher) and enforced by the API hub
-            ' every second. Refresh it from the file right before serializing
-            ' so an Overlay save can never clobber a toggle flip that happened
-            ' after our Load(). (Privacy/UI.Language are Overlay-owned — no
-            ' other process writes them.)
-            Overlay.UseOverlayEnabled = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", Overlay.UseOverlayEnabled)
+            SyncLock _saveLock
+                ' Foreign-key guard: Overlay.UseOverlayEnabled is owned by the
+                ' NVIDIA Experience toggle (Launcher) and enforced by the API hub
+                ' every second. Refresh it from the file right before serializing
+                ' so an Overlay save can never clobber a toggle flip that happened
+                ' after our Load(). (Privacy/UI.Language are Overlay-owned — no
+                ' other process writes them.)
+                Overlay.UseOverlayEnabled = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", Overlay.UseOverlayEnabled)
 
-            Dim options As New JsonSerializerOptions With {
-                .WriteIndented = True,
-                .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            }
+                Dim options As New JsonSerializerOptions With {
+                    .WriteIndented = True,
+                    .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                }
 
-            Dim json As String = JsonSerializer.Serialize(Me, options)
-            File.WriteAllText(ConfigPath, json)
-            Debug.WriteLine("AppSettings.Save: Saved to " & ConfigPath)
+                Dim json As String = JsonSerializer.Serialize(Me, options)
+                WriteConfigFileAtomic(json)
+                Debug.WriteLine("AppSettings.Save: Saved to " & ConfigPath)
+            End SyncLock
 
         Catch ex As Exception
             Debug.WriteLine("AppSettings.Save Error: " & ex.Message)
