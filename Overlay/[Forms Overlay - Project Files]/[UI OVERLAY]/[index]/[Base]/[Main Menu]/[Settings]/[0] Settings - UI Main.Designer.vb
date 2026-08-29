@@ -25,6 +25,8 @@ Partial Class Base_Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
         Main_Menu_SET = New Panel()
         Panel = New Panel()
+        Panel1 = New Panel()
+        PORT_BOX = New TextBox()
         Label1 = New Label()
         Label2 = New Label()
         Label5 = New Label()
@@ -41,9 +43,14 @@ Partial Class Base_Settings
         PictureBox1 = New PictureBox()
         btnExportSettings = New Label()
         btnImportSettings = New Label()
-        Panel1 = New Panel()
+        KEY_BOX = New TextBox()
+        Label6 = New Label()
+        Label7 = New Label()
+        Label8 = New Label()
+        TextBox1 = New TextBox()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
+        Panel1.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
@@ -76,6 +83,34 @@ Partial Class Base_Settings
         Panel.Name = "Panel"
         Panel.Size = New Size(1000, 586)
         Panel.TabIndex = 74
+        ' 
+        ' Panel1
+        ' 
+        Panel1.Controls.Add(Label8)
+        Panel1.Controls.Add(TextBox1)
+        Panel1.Controls.Add(Label7)
+        Panel1.Controls.Add(Label6)
+        Panel1.Controls.Add(KEY_BOX)
+        Panel1.Controls.Add(PORT_BOX)
+        Panel1.Location = New Point(106, 323)
+        Panel1.Name = "Panel1"
+        Panel1.Size = New Size(774, 188)
+        Panel1.TabIndex = 84
+        ' 
+        ' PORT_BOX
+        ' 
+        PORT_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        PORT_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        PORT_BOX.BorderStyle = BorderStyle.None
+        PORT_BOX.Font = New Font("nvgcshare", 20F)
+        PORT_BOX.ForeColor = Color.White
+        PORT_BOX.Location = New Point(19, 47)
+        PORT_BOX.Multiline = True
+        PORT_BOX.Name = "PORT_BOX"
+        PORT_BOX.Size = New Size(96, 34)
+        PORT_BOX.TabIndex = 140
+        PORT_BOX.Text = "Port"
+        PORT_BOX.TextAlign = HorizontalAlignment.Center
         ' 
         ' Label1
         ' 
@@ -269,12 +304,74 @@ Partial Class Base_Settings
         btnImportSettings.Text = "Import Settings"
         btnImportSettings.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' Panel1
+        ' KEY_BOX
         ' 
-        Panel1.Location = New Point(106, 323)
-        Panel1.Name = "Panel1"
-        Panel1.Size = New Size(774, 188)
-        Panel1.TabIndex = 84
+        KEY_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        KEY_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        KEY_BOX.BorderStyle = BorderStyle.None
+        KEY_BOX.Font = New Font("nvgcshare", 20F)
+        KEY_BOX.ForeColor = Color.White
+        KEY_BOX.Location = New Point(121, 47)
+        KEY_BOX.Multiline = True
+        KEY_BOX.Name = "KEY_BOX"
+        KEY_BOX.Size = New Size(633, 34)
+        KEY_BOX.TabIndex = 141
+        KEY_BOX.Text = "Key"
+        KEY_BOX.TextAlign = HorizontalAlignment.Center
+        ' 
+        ' Label6
+        ' 
+        Label6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label6.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label6.ForeColor = Color.White
+        Label6.Location = New Point(19, 17)
+        Label6.Name = "Label6"
+        Label6.Size = New Size(89, 27)
+        Label6.TabIndex = 85
+        Label6.Text = "PORT"
+        Label6.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Label7
+        ' 
+        Label7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label7.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label7.ForeColor = Color.White
+        Label7.Location = New Point(121, 17)
+        Label7.Name = "Label7"
+        Label7.Size = New Size(116, 27)
+        Label7.TabIndex = 142
+        Label7.Text = "Key/Password"
+        Label7.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Label8
+        ' 
+        Label8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Label8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label8.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label8.ForeColor = Color.White
+        Label8.Location = New Point(19, 84)
+        Label8.Name = "Label8"
+        Label8.Size = New Size(89, 27)
+        Label8.TabIndex = 143
+        Label8.Text = "HOST"
+        Label8.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' TextBox1
+        ' 
+        TextBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        TextBox1.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        TextBox1.BorderStyle = BorderStyle.None
+        TextBox1.Font = New Font("nvgcshare", 20F)
+        TextBox1.ForeColor = Color.White
+        TextBox1.Location = New Point(19, 114)
+        TextBox1.Multiline = True
+        TextBox1.Name = "TextBox1"
+        TextBox1.Size = New Size(218, 34)
+        TextBox1.TabIndex = 144
+        TextBox1.Text = "HOST"
+        TextBox1.TextAlign = HorizontalAlignment.Center
         ' 
         ' Base_Settings
         ' 
@@ -303,6 +400,8 @@ Partial Class Base_Settings
         Main_Menu_SET.ResumeLayout(False)
         Panel.ResumeLayout(False)
         Panel.PerformLayout()
+        Panel1.ResumeLayout(False)
+        Panel1.PerformLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
@@ -330,4 +429,10 @@ Partial Class Base_Settings
     Friend WithEvents Label2 As Label
     Friend WithEvents Label5 As Label
     Friend WithEvents Panel1 As Panel
+    Friend WithEvents PORT_BOX As TextBox
+    Friend WithEvents Label8 As Label
+    Friend WithEvents TextBox1 As TextBox
+    Friend WithEvents Label7 As Label
+    Friend WithEvents Label6 As Label
+    Friend WithEvents KEY_BOX As TextBox
 End Class
