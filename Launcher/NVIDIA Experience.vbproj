@@ -40,9 +40,6 @@
 
 	<ItemGroup>
 	  <Compile Update="[Forms - Project Files]\[API]\TCP\[APP] Client.vb" />
-	  <Compile Update="[Forms - Project Files]\[API]\UI\ToggleSwitch.vb">
-	    <SubType>Component</SubType>
-	  </Compile>
 	</ItemGroup>
 
         <!-- Root-fixed layout support (linked shared sources) -->
