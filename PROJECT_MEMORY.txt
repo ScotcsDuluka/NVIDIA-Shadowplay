@@ -2,7 +2,11 @@ NVIDIA-Shadowplay — PROJECT MEMORY
 ===================================
 
 Version:
-Updated after Engine-Rebuild-Stabilization maintenance pass (2026-08-28)
+Updated after Engine-Rebuild-Stabilization maintenance pass (2026-08-30)
+
+This update covers:
+T13–T20 Overlay/Notifier maintenance chain (2026-08-29 → 2026-08-30)
+Commits: 311de11 → c2ef4db
 
 ==================================================
 [PROJECT]
@@ -269,6 +273,35 @@ Status:
 Owner observation:
 
 Overlay animation smoother ประมาณ 40%+
+
+
+--------------------------------------------------
+TeamSub (Z)
+--------------------------------------------------
+
+Role:
+
+- Coding / UI / Notifier Agent
+- Overlay + Notifier maintenance lane
+- Runs in Linux container; OWNER runs/verifies on Windows
+
+Responsibilities:
+
+- Scoped code changes (Overlay, Notifier)
+- Build verification (dotnet build, 0W/0E gate)
+- Direct push to Engine-Rebuild-Stabilization (no approval gate)
+- git pull --rebase ก่อน push ทุกครั้ง (OWNER push ได้ทุกเมื่อ)
+
+Completed chain (T-series):
+
+- T13  Settings NRE on corrupt notifier_obs.json — 311de11
+- T14  explicit ToolboxItem(True) on ToggleSwitch — d346d0c
+- T15  ObsEnabledToggle re-instantiate after RE restyle — 1fcf84a
+- T17  ToggleUseWindowsSnip row restore — 1ffa6d1
+- T18  caret-free HOST/PORT/KEY boxes — 11b9514
+- T19  Notifications system (form fix + toggles + menu wiring) — cfc11ad
+- T19.1 per-notification toggles (27 switches) — 324bfc3
+- T20  3-slot toast system — c2ef4db
 
 
 --------------------------------------------------
@@ -1653,6 +1686,70 @@ Overlay smoothness improved
 
 
 
+Recent Work (2026-08-29 → 2026-08-30 maintenance chain):
+
+Settings:
+
+- T13 Settings NRE on corrupt notifier_obs.json — 311de11
+
+- T15 ObsEnabledToggle re-instantiate after RE restyle — 1fcf84a
+
+- T17 ToggleUseWindowsSnip row restore — 1ffa6d1
+
+- T18 caret-free HOST/PORT/KEY boxes (HideCaret) — 11b9514
+
+- OBS Studio WebSocket integration wired into Settings > General — c6c9135
+
+- scattered settings folded into single config.json — 4a56a7e
+
+
+Notifications system (T19):
+
+- [7] Notifications form rebuilt (class conflict fixed) — cfc11ad
+
+- per-notification toggles: 27 switches under group headers — 324bfc3
+
+- config.json section "Notifications", all default True
+
+- gate at [Notifier] Client.vb OnMessage / OnMessageWithArgs (choke point)
+
+- fail-open: unknown toast key → never suppressed
+
+- SafeDelete trigger file runs BEFORE the gate (suppressed toasts still clean up)
+
+
+Notifier toast slots (T20):
+
+- 3-slot system — c2ef4db
+
+- trio duplicated: Notifier2/Sub2/Shadow2, Notifier3/Sub3/Shadow3
+
+- slot 2 = baseY+100, slot 3 = baseY+200 (gap 10px, unit height 90)
+
+- routing: arrival ≤500ms after previous + main busy → first free slot (2→3);
+  all busy → classic replace dance on slot 1; main free → normal path
+
+- fixed: autoClose refresh now only while showing (100ms default Interval
+  race could kill the first toast after launch)
+
+- KNOWN LIMIT: notifiermainoff reposition moves only slot 1;
+  side slots keep Y until expiry (≤6s)
+
+
+Resolved:
+
+- T16 ToggleSwitch missing from Toolbox — OWNER confirmed showing
+  ("ขึ้นแล้วๆ") — NVIDIA Controls classlib 4fe90ae
+
+
+Verification status (Rule 18):
+
+- builds 0W/0E on container
+
+- Windows runtime verification by OWNER: PENDING for T17/T18/T19/T20
+
+
+
 Important:
 
 Overlay optimization
@@ -1801,6 +1898,16 @@ A/V Sync:
 UI Integration:
 
 🔴 Not started in new Engine
+
+
+
+Overlay UI track (separate lane):
+
+🟢 Active maintenance
+
+T13–T20 chain complete (commits 311de11 → c2ef4db)
+
+OWNER runtime verification pending (Rule 18)
 
 
 
