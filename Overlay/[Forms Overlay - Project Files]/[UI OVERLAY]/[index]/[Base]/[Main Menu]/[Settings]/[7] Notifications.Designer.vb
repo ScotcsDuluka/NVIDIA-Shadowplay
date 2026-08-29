@@ -1,5 +1,5 @@
 ﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
-Partial Class Base_Empty
+Partial Class Base_Notifications
     Inherits System.Windows.Forms.Form
 
     'Form overrides dispose to clean up the component list.
@@ -22,7 +22,7 @@ Partial Class Base_Empty
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Empty))
+        Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Notifications))
         Menu_Settings = New Panel()
         Menu_Text = New Label()
         Menu_Top_Dim = New PictureBox()
@@ -55,9 +55,9 @@ Partial Class Base_Empty
         Menu_Text.ForeColor = Color.White
         Menu_Text.Location = New Point(62, 43)
         Menu_Text.Name = "Menu_Text"
-        Menu_Text.Size = New Size(128, 42)
+        Menu_Text.Size = New Size(193, 42)
         Menu_Text.TabIndex = 51
-        Menu_Text.Text = "Connect"
+        Menu_Text.Text = "Notifications"
         ' 
         ' Menu_Top_Dim
         ' 
@@ -113,7 +113,7 @@ Partial Class Base_Empty
         Dim_2.TabStop = False
         Dim_2.Visible = False
         ' 
-        ' Base_Empty
+        ' Base_Notifications
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
@@ -127,7 +127,7 @@ Partial Class Base_Empty
         Controls.Add(Dim_Top)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
-        Name = "Base_Empty"
+        Name = "Base_Notifications"
         ShowInTaskbar = False
         SizeGripStyle = SizeGripStyle.Hide
         Text = "Overlay"
