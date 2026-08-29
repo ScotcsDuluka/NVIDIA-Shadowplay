@@ -200,10 +200,6 @@
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s2.vb">
                         <SubType>Form</SubType>
                 </Compile>
-
-                <Compile Update="[Forms Overlay - Project Files]\[API]\[Models]\ToggleSwitch.vb">
-                        <SubType>Component</SubType>
-                </Compile>
         </ItemGroup>
 
         <!-- Resources -->
@@ -420,6 +416,7 @@
                 <ProjectReference Include="..\Launcher\NVIDIA Experience.vbproj" />
                 <ProjectReference Include="..\Engine\NVIDIA Capture.vbproj" />
                 <ProjectReference Include="..\Notifier\NVIDIA Notifier.vbproj" />
+                <ProjectReference Include="..\NVIDIA Controls\NVIDIA Controls.vbproj" />
         </ItemGroup>
 
         <ProjectExtensions>

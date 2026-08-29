@@ -42,6 +42,10 @@
 	  <Compile Update="[Forms - Project Files]\[API]\TCP\[APP] Client.vb" />
 	</ItemGroup>
 
+	<ItemGroup>
+		<ProjectReference Include="..\NVIDIA Controls\NVIDIA Controls.vbproj" />
+	</ItemGroup>
+
         <!-- Root-fixed layout support (linked shared sources) -->
         <ItemGroup>
                 <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
