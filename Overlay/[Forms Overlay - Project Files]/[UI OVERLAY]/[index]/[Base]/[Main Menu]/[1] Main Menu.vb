@@ -33,12 +33,10 @@ Partial Public Class Base
     Private ReadOnly greenColor As System.Drawing.Color = ColorTranslator.FromHtml("#76B900")
 
     Private Const DataDirectoryName As String = "NVIDIA_Shadowplay_Data"
-
     Private Const ReplayOnFile As String = "Replay/on"
     Private Const ReplayOffFile As String = "Replay/off"
     Private Const MicOnFile As String = "mic/mic_on"
     Private Const MicOffFile As String = "mic/mic_off"
-    Private Const PrivacyFile As String = "privacy"
 
     ' --- hotkey / toggle state flags ---
     Private isFunctionActive As Boolean = False
@@ -481,13 +479,13 @@ Partial Public Class Base
         Privacy_control.Start()
     End Sub
 
-    ''' <summary>Loads the saved language file (falls back to en-US) and applies it to the UI.</summary>
+    ''' <summary>Loads the saved language (config.json UI.Language; falls back to en-US) and applies it to the UI.</summary>
     Private Sub LoadCurrentLanguage()
+        ' Single-source config: the selected language lives in config.json
+        ' UI.Language (was: the Languages/current.txt pointer file).
         Dim langFolder As String = AppLayout.P("Languages")
-        Dim currentFile As String = Path.Combine(langFolder, "current.txt")
 
-        Dim currentLang As String = "en-US"
-        If File.Exists(currentFile) Then currentLang = File.ReadAllText(currentFile).Trim()
+        Dim currentLang As String = AppSettings.Instance.UI.Language
 
         Dim langFile As String = Path.Combine(langFolder, currentLang & ".json")
         If Not File.Exists(langFile) Then langFile = Path.Combine(langFolder, "en-US.json")
@@ -795,10 +793,9 @@ Partial Public Class Base
         Next
     End Sub
 
-    ''' <summary>Syncs the Privacy Control toggle with whether the privacy marker file exists on disk.</summary>
+    ''' <summary>Syncs the Privacy Control toggle with the saved desktop-capture consent in config.json.</summary>
     Private Sub CheckPrivacyControl()
-        Dim privacyPath As String = AppLayout.P("Data", DataDirectoryName, PrivacyFile)
-        Base_Privacy_Control.TogglePrivacy.IsOn = File.Exists(privacyPath)
+        Base_Privacy_Control.TogglePrivacy.IsOn = AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Sub
 
 #End Region
@@ -807,7 +804,7 @@ Partial Public Class Base
 
     ''' <summary>Takes a full-screen screenshot and saves it to the configured gallery path (unless privacy control is active).</summary>
     Private Sub CaptureScreen()
-        If Not My.Computer.FileSystem.FileExists(AppLayout.P("Data", DataDirectoryName, PrivacyFile)) Then
+        If Not AppSettings.Instance.Privacy.DesktopCaptureEnabled Then
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
             ShowMainPanel()
             For Each f In allForms

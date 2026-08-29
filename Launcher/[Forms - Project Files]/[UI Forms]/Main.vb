@@ -69,15 +69,10 @@ Partial Public Class NVIDIA_Shadowplay_Helper
             Return
         End If
 
-        ' ROOT-FIXED LAYOUT: the flag lives in <root>\Flags\ (writer:
-        ' IF_APP_Tick below). Reading the bare CWD-relative name here made
-        ' the toggle show OFF on every start of the staged tree, and the
-        ' next tick then DELETED the real flag (silent overlay reset).
-        If IO.File.Exists(AppLayout.P("Flags", "Use_Overlay")) Then
-            Use_Overlay.IsOn = True
-        Else
-            Use_Overlay.IsOn = False
-        End If
+        ' Single-source config: the toggle state lives in config.json
+        ' Overlay.UseOverlayEnabled (was: the Flags\Use_Overlay marker file;
+        ' reading the CWD-relative name used to silently reset the overlay).
+        Use_Overlay.IsOn = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", False)
         OpenApp()
         Timer1.Start()
     End Sub
@@ -113,18 +108,21 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         NvStatusDot_NVAPI.Status = If(apiRunning,
             NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped)
 
-        ' ── Overlay toggle file ──
-        Dim overlayPath As String = AppLayout.P("Flags", "Use_Overlay")
+        ' ── Overlay toggle (config.json Overlay.UseOverlayEnabled) ──
+        ' Writes only on mismatch: parse-patch-write of the CURRENT file, so
+        ' sections owned by other processes survive; the API hub enforces the
+        ' value every second (start/keep-alive vs kill the overlay stack).
+        Dim overlayEnabledStored As Boolean = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", False)
         If Use_Overlay.IsOn Then
-            If Not File.Exists(overlayPath) Then
-                ' Flags\ is runtime-created (never staged) — make it on demand.
-                AppLayout.EnsureParentDir(overlayPath)
-                File.Create(overlayPath).Dispose()
+            If Not overlayEnabledStored Then
+                AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", True)
             End If
             overlay_text.ForeColor = Color.White
         Else
+            If overlayEnabledStored Then
+                AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", False)
+            End If
             overlay_text.ForeColor = Color.DimGray
-            If File.Exists(overlayPath) Then File.Delete(overlayPath)
         End If
     End Sub
 
@@ -161,12 +159,10 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     End Sub
 
     Private Sub RadioButton2_CheckedChanged(sender As Object, e As EventArgs) Handles RadioButton2.Click
-        ' ROOT-FIXED LAYOUT: delete the real flag under <root>\Flags\ —
-        ' the CWD-relative name missed it and overlay survived the kill.
-        Dim useOverlayFlag As String = AppLayout.P("Flags", "Use_Overlay")
-        If File.Exists(useOverlayFlag) Then
-            File.Delete(useOverlayFlag)
-        End If
+        ' Single-source config: clear the overlay switch in config.json
+        ' (was: delete the Flags\Use_Overlay marker — the CWD-relative name
+        ' missed it and the overlay survived the kill).
+        AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", False)
         Dim apps = {
         "NVIDIA Notifier.exe",
         "NVIDIA ShadowPlay.exe",

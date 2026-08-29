@@ -5,7 +5,6 @@ Imports Newtonsoft.Json.Linq
 Public Class Base_Settings
     Inherits System.Windows.Forms.Form
     Private Const LanguageFolderName As String = "Languages"
-    Private Const CurrentLanguageFileName As String = "current.txt"
     Private Const DefaultLanguageCode As String = "en-US"
 
     Protected Overrides Sub WndProc(ByRef m As Message)
@@ -106,9 +105,12 @@ Public Class Base_Settings
     End Sub
 
     Private Sub SelectLang(langCode As String)
+        ' Single-source config: the selected language lives in config.json
+        ' UI.Language (was: the Languages/current.txt pointer file). The
+        ' AppSettings.Save() calls below persist it.
+        AppSettings.Instance.UI.Language = langCode
+
         Dim langFolder As String = GetLanguageFolderPath()
-        Dim currentFile As String = Path.Combine(langFolder, CurrentLanguageFileName)
-        File.WriteAllText(currentFile, langCode)
 
         Dim langFile = Path.Combine(langFolder, langCode & ".json")
         LangHelper.LoadLang(langFile)
@@ -146,13 +148,11 @@ Public Class Base_Settings
         Return AppLayout.P(LanguageFolderName)
     End Function
 
+    ''' <summary>Returns the saved language code (config.json UI.Language; default en-US).</summary>
     Private Function GetCurrentLanguageCode(langFolder As String) As String
-        Dim currentFile As String = Path.Combine(langFolder, CurrentLanguageFileName)
-        If File.Exists(currentFile) Then
-            Return File.ReadAllText(currentFile).Trim()
-        End If
-
-        Return DefaultLanguageCode
+        Dim saved As String = AppSettings.Instance.UI.Language
+        If String.IsNullOrWhiteSpace(saved) Then saved = DefaultLanguageCode
+        Return saved
     End Function
 
     Private Function CreateLanguageMenu() As ContextMenuStrip
