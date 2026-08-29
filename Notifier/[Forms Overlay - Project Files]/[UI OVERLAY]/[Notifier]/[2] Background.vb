@@ -7,6 +7,43 @@ Imports System.Windows.Forms
 Public Class Notifier
     Inherits Form
 
+    ' ===== T27: dynamic slot geometry (OWNER spec) =====
+    ' A "slot" is a SCREEN ROW, not a fixed form: row 0 = top toast,
+    ' row 1 = the toast below it. The Loader's router assigns CurrentRow
+    ' before Show(); when the row-0 toast slides out, the router glides
+    ' the row-1 toast up and flips its row to 0.
+    Private Const SlotGapPx As Integer = 10
+
+    Public CurrentRow As Integer = 0
+    Public UnitId As Integer = 0
+
+    Private ReadOnly Property RowOffsetY As Integer
+        Get
+            Return CurrentRow * (Me.Height + SlotGapPx)
+        End Get
+    End Property
+
+    ''' <summary>Base Y of row 0 — 205 when the in-game "main" notifier block
+    ''' is up (notifier_main flag), 105 otherwise. Shared: the Loader's router
+    ''' reflow uses it as the glide target, too.</summary>
+    Public Shared Function BaseRowY() As Integer
+        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
+            Return 205
+        End If
+        Return 105
+    End Function
+
+    ' ===== T27: slot lifecycle signals =====
+    ' Shared on purpose — toast forms are VB default instances, recreated
+    ' after every close, so per-instance subscriptions would die with them.
+    ' The Loader subscribes ONCE and routes on these.
+    Public Shared Event SlideOutStarted(sender As Form)
+    Public Shared Event DanceCompleted(sender As Form)
+    Public Shared Event UnitClosed(sender As Form)
+
+    ' Set at SlideOutAll start; a fresh default instance resets it naturally.
+    Private _isClosing As Boolean = False
+
 #Region "WinAPI"
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
@@ -281,13 +318,9 @@ Public Class Notifier
         HideFromAltTab()
 
         Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            Me.Location = New Point(w - Me.Width, 205)
-            Debug.WriteLine("[Notifier] Position Y=205")
-        Else
-            Me.Location = New Point(w - Me.Width, 105)
-            Debug.WriteLine("[Notifier] Position Y=105")
-        End If
+        ' T27: row-aware — the router may place this unit on row 0 or row 1
+        Me.Location = New Point(w - Me.Width, BaseRowY() + RowOffsetY)
+        Debug.WriteLine($"[Notifier] Position Y={Me.Top} (row {CurrentRow})")
 
         Notifier_black.Location = New Point(Me.Width, 0)
         Notifier_green.Location = New Point(Me.Width, 0)
@@ -313,6 +346,7 @@ Public Class Notifier
                                                                                Sub()
                                                                                    Notifier_Sub.Show()
                                                                                    Notifier_green_stop.Visible = True
+                                                                                   RaiseEvent DanceCompleted(Me)
                                                                                End Sub)
                                                                        End Sub
                                           _delayTimer.Start()
@@ -344,12 +378,22 @@ Public Class Notifier
         StopCloseTimer()
     End Sub
 
+    ' T27: the router waits for this to free the slot / serve the queue
+    Protected Overrides Sub OnFormClosed(e As FormClosedEventArgs)
+        MyBase.OnFormClosed(e)
+        RaiseEvent UnitClosed(Me)
+    End Sub
+
 #End Region
 
 #Region "Slide Out"
 
     Private Sub SlideOutAll()
+        ' T27: idempotent — a click racing the auto-close must not re-enter
+        If _isClosing Then Return
+        _isClosing = True
         Debug.WriteLine("[Notifier] SlideOutAll")
+        RaiseEvent SlideOutStarted(Me)
 
         Shadow.Close()
         Notifier_Sub.Close()
@@ -382,14 +426,16 @@ Public Class Notifier
 
 #Region "Click Events"
 
+    ' T27: clicking a toast dismisses ONLY that toast (clean slide-out).
+    ' The old Application.Restart() nuked both slots and the pending queue.
     Public Sub DoCloseClick()
-        Debug.WriteLine("[Notifier] DoCloseClick → Restart")
-        Application.Restart()
+        Debug.WriteLine("[Notifier] DoCloseClick → dismiss this toast")
+        SlideOutAll()
     End Sub
 
     Private Sub Notifier_green_Click(sender As Object, e As EventArgs) Handles Notifier_green.Click, text_n.Click, icon_n.Click, Notifier_black.Click, Notifier_green_stop.Click
-        Debug.WriteLine("[Notifier] Click → Restart")
-        Application.Restart()
+        Debug.WriteLine("[Notifier] Click → dismiss this toast")
+        SlideOutAll()
     End Sub
 
     Private Sub IF_N_Tick(sender As Object, e As EventArgs) Handles IF_N.Tick
@@ -399,7 +445,8 @@ Public Class Notifier
         End If
 
         Debug.WriteLine("[Notifier] IF_N tick → StartSlideY")
-        StartSlideY(Me, Me.Top, 105, 200)
+        ' T27: back to this unit's own row Y (base 105 — main block is gone)
+        StartSlideY(Me, Me.Top, 105 + RowOffsetY, 200)
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If Not My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             IF_N.Stop()

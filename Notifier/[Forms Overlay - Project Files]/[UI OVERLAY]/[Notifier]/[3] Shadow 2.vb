@@ -4,16 +4,8 @@ Imports System.Runtime.InteropServices
 Public Class Shadow2
     Inherits Form
 
-    ' ===== Toast slot geometry (OWNER spec) =====
-    ' Must match the sibling Notifier2 unit: slot 2 = one pitch below slot 1.
-    Private Const SlotIndex As Integer = 2
-    Private Const SlotGapPx As Integer = 10
-
-    Private ReadOnly Property SlotOffsetY As Integer
-        Get
-            Return (SlotIndex - 1) * (Me.Height + SlotGapPx)
-        End Get
-    End Property
+    ' T27: slot geometry lives in the background forms (CurrentRow) — this
+    ' shadow just follows its parent's position via the sync timer below.
 
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
@@ -48,16 +40,17 @@ Public Class Shadow2
         Debug.WriteLine("[Shadow2] ===== Form Load =====")
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        Dim baseY As Integer
-        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            baseY = 205
-            Debug.WriteLine("[Shadow2] Base Y=205 (notifier_main present)")
-        Else
-            baseY = 105
-            Debug.WriteLine("[Shadow2] Base Y=105")
-        End If
-        Me.Location = New Point(screenWidth - Me.Width, baseY + SlotOffsetY)
-        Debug.WriteLine("[Shadow2] Position Y=" & Me.Top & " (slot " & SlotIndex & ")")
+        ' T27: spawn at the background form's CURRENT row position — the
+        ' router may have placed it on row 0 or row 1. The sync timer below
+        ' keeps it glued to the bg form afterwards.
+        Dim y As Integer
+        Try
+            y = Notifier2.Top
+        Catch
+            y = Notifier2.BaseRowY()
+        End Try
+        Me.Location = New Point(screenWidth - Me.Width, y)
+        Debug.WriteLine($"[Shadow2] Position Y={Me.Top}")
         Me.SetStyle(ControlStyles.ResizeRedraw, True)
         HideFromAltTab()
     End Sub

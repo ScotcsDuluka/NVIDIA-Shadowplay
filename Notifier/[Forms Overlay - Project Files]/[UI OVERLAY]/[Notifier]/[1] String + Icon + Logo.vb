@@ -145,13 +145,27 @@ Public Class Notifier_Sub
         currentPanel.Top = newY
     End Sub
 
+    ''' <summary>T27: glides this content form vertically. The Loader's router
+    ''' calls it in lockstep with the background form when the bottom toast
+    ''' moves up into the top slot (reflow) — the shadow follows the bg form
+    ''' on its own.</summary>
+    Public Sub GlideTo(targetY As Integer, durationMs As Integer)
+        StartSlideY(Me, Me.Top, targetY, durationMs)
+    End Sub
+
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         If Me.IsDisposed Then
             Timer1.Stop()
             Return
         End If
         Debug.WriteLine("[Notifier_Sub] Timer1 tick → StartSlideY")
-        StartSlideY(Me, Me.Top, 105, 200)
+        ' T27: legacy "main off" recovery — follow the background form's
+        ' CURRENT position (row-aware) instead of the old hardcoded Y=105.
+        Try
+            StartSlideY(Me, Me.Top, Notifier.Top, 200)
+        Catch
+            ' background default instance disposed — nothing to sync to
+        End Try
     End Sub
 
     Private Sub Notifier_Sub_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing

@@ -39,7 +39,7 @@ Public Class Base_Overlay_Hub
     Private Const WS_EX_APPWINDOW As Integer = &H40000
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
     Private Sub hub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()

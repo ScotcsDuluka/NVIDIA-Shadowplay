@@ -37,13 +37,17 @@ Public Class Shadow
         Debug.WriteLine("[Shadow] ===== Form Load =====")
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            Me.Location = New Point(screenWidth - Me.Width, 205)
-            Debug.WriteLine("[Shadow] Position Y=205")
-        Else
-            Me.Location = New Point(screenWidth - Me.Width, 105)
-            Debug.WriteLine("[Shadow] Position Y=105")
-        End If
+        ' T27: spawn at the background form's CURRENT row position — the
+        ' router may have placed it on row 0 or row 1. The sync timer below
+        ' keeps it glued to the bg form afterwards.
+        Dim y As Integer
+        Try
+            y = Notifier.Top
+        Catch
+            y = Notifier.BaseRowY()
+        End Try
+        Me.Location = New Point(screenWidth - Me.Width, y)
+        Debug.WriteLine($"[Shadow] Position Y={Me.Top}")
         Me.SetStyle(ControlStyles.ResizeRedraw, True)
         HideFromAltTab()
     End Sub

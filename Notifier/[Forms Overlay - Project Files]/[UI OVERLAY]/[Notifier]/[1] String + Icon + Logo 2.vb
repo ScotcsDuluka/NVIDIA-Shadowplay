@@ -7,16 +7,8 @@ Imports Microsoft.VisualBasic.Logging
 Public Class Notifier_Sub2
     Inherits Form
 
-    ' ===== Toast slot geometry (OWNER spec) =====
-    ' Must match the sibling Notifier2 unit: slot 2 = one pitch below slot 1.
-    Private Const SlotIndex As Integer = 2
-    Private Const SlotGapPx As Integer = 10
-
-    Private ReadOnly Property SlotOffsetY As Integer
-        Get
-            Return (SlotIndex - 1) * (Me.Height + SlotGapPx)
-        End Get
-    End Property
+    ' T27: slot geometry lives in the background forms (CurrentRow) — this
+    ' content form just follows its parent's Y, wherever the router puts it.
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000
@@ -156,13 +148,27 @@ Public Class Notifier_Sub2
         currentPanel.Top = newY
     End Sub
 
+    ''' <summary>T27: glides this content form vertically. The Loader's router
+    ''' calls it in lockstep with the background form when the bottom toast
+    ''' moves up into the top slot (reflow) — the shadow follows the bg form
+    ''' on its own.</summary>
+    Public Sub GlideTo(targetY As Integer, durationMs As Integer)
+        StartSlideY(Me, Me.Top, targetY, durationMs)
+    End Sub
+
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         If Me.IsDisposed Then
             Timer1.Stop()
             Return
         End If
         Debug.WriteLine("[Notifier_Sub2] Timer1 tick → StartSlideY")
-        StartSlideY(Me, Me.Top, 105 + SlotOffsetY, 200)
+        ' T27: legacy "main off" recovery — follow the background form's
+        ' CURRENT position (row-aware) instead of the old hardcoded Y=205.
+        Try
+            StartSlideY(Me, Me.Top, Notifier2.Top, 200)
+        Catch
+            ' background default instance disposed — nothing to sync to
+        End Try
     End Sub
 
     Private Sub Notifier_Sub_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
