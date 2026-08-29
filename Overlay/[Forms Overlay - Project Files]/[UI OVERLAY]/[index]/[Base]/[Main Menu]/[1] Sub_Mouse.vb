@@ -1,27 +1,31 @@
 ﻿Imports System.Drawing
 Imports System.IO
 
+' Base (mouse) — click / hover wiring for the main menu: screenshot, settings,
+' replay / record menus, gallery, and every settings-panel entry point.
+' Pure UI event handlers — recording logic lives in the other Base partials.
+
 Partial Public Class Base
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - SCREENSHOT"
+#Region "Screenshot (Mode 1)"
 
-    Private Sub bg_sh_MouseMove(sender As Object, e As MouseEventArgs) Handles Bg_Mode1.MouseMove, Logo_Mode1.MouseMove
+    Private Sub ScreenshotBg_MouseMove(sender As Object, e As MouseEventArgs) Handles Bg_Mode1.MouseMove, Logo_Mode1.MouseMove
         SetScreenshotBorder(True)
         Base_Background_Top.Bg_Mode1.Visible = True
     End Sub
 
-    Private Sub bg_sh_MouseLeave(sender As Object, e As EventArgs) Handles Bg_Mode1.MouseLeave, Logo_Mode1.MouseLeave
+    Private Sub ScreenshotBg_MouseLeave(sender As Object, e As EventArgs) Handles Bg_Mode1.MouseLeave, Logo_Mode1.MouseLeave
         ResetScreenshotColors()
         SetScreenshotBorder(False)
         Base_Background_Top.Bg_Mode1.Visible = False
     End Sub
 
-    Private Sub sh_MouseMove(sender As Object, e As MouseEventArgs) Handles Text_Mode1.MouseMove, Key_Mode1.MouseMove
+    Private Sub ScreenshotText_MouseMove(sender As Object, e As MouseEventArgs) Handles Text_Mode1.MouseMove, Key_Mode1.MouseMove
         SetScreenshotBorder(True)
         Base_Background_Top.Bg_Mode1.Visible = True
     End Sub
 
-    Private Sub sh_MouseLeave(sender As Object, e As EventArgs) Handles Text_Mode1.MouseLeave, Key_Mode1.MouseLeave
+    Private Sub ScreenshotText_MouseLeave(sender As Object, e As EventArgs) Handles Text_Mode1.MouseLeave, Key_Mode1.MouseLeave
         SetScreenshotBorder(False)
         Base_Background_Top.Bg_Mode1.Visible = False
     End Sub
@@ -48,7 +52,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - SETTINGS"
+#Region "Settings page"
     Public Sub OpenSettings()
         Me.Opacity = 0
         Base_Settings.Opacity = 0
@@ -57,36 +61,31 @@ Partial Public Class Base
         Base_Background_Top.Bg_SET3.Visible = False
         ME_CLOSE_BG.Visible = False
         clickThrough = True
-        a_1.Visible = False : a_2.Visible = False : a_3.Visible = False
+        a_1.Visible = False
+        a_2.Visible = False
+        a_3.Visible = False
         Settings_List.Visible = True
         shadowplay.Visible = False
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
 
-        Dim t As New Timer With {.Interval = 20}
-        AddHandler t.Tick, Sub(s, e)
-                               t.Stop()
-                               ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
-                               '      are released immediately, not eventually by GC.
-                               '      Without this, every OpenSettings() click leaked a Timer.
-                               t.Dispose()
-
-                               Base_Settings.Opacity = 1
-                               Me.Opacity = 1
-
-                               AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
-                           End Sub
-        t.Start()
+        ' Let the settings form finish showing, then fade in and animate the menu.
+        RunAfterDelay(20,
+            Sub()
+                Base_Settings.Opacity = 1
+                Me.Opacity = 1
+                AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+            End Sub)
     End Sub
-    Private Sub set_to_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click, Settings_Box.Click, Settings_Text.Click
+    Private Sub SettingsLogo_Click(sender As Object, e As EventArgs) Handles Settings_Logo.Click, Settings_Box.Click, Settings_Text.Click
         OpenSettings()
         IF_OpenShare = False
     End Sub
-    Private Sub set_to_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove
+    Private Sub SettingsLogo_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove
         SetSettingsBorder(True)
     End Sub
 
-    Private Sub set_to_MouseLeave(sender As Object, e As EventArgs) Handles Settings_Logo.MouseLeave
+    Private Sub SettingsLogo_MouseLeave(sender As Object, e As EventArgs) Handles Settings_Logo.MouseLeave
         SetSettingsBorder(False)
     End Sub
 
@@ -99,7 +98,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - PRIVACY/CONNECT"
+#Region "Connect (double-registered with the panel handlers below — kept, see note)"
 
     Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_TEXT.MouseMove, Connect_ICO.MouseMove
         Connect_BOX_SUB.BackColor = greenColor
@@ -109,20 +108,24 @@ Partial Public Class Base
         Connect_BOX_SUB.BackColor = System.Drawing.Color.Gray
     End Sub
 
+    ' NOTE (kept as-is): this handler is double-registered with Connect_Click
+    ' below — both fire on Connect_TEXT.Click / Connect_ICO.Click, so a click
+    ' currently shows the error notifier AND opens the Connect panel.
+    ' Removing either side changes user-visible behavior — OWNER's call.
     Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_TEXT.Click, Connect_ICO.Click
         ShowNotifier("account_confirm_error")
     End Sub
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY"
+#Region "Replay menu"
 
-    Private Sub replay_on_MouseMove(sender As Object, e As MouseEventArgs) Handles Replay_Logo.MouseMove, Replay_Text.MouseMove, Replay_Stats.MouseMove
+    Private Sub ReplayMenu_MouseMove(sender As Object, e As MouseEventArgs) Handles Replay_Logo.MouseMove, Replay_Text.MouseMove, Replay_Stats.MouseMove
         SetReplayBorder(Not Menu_Replay.Visible)
         Base_Background_Top.b1.Visible = True
     End Sub
 
-    Private Sub replay_on_MouseLeave(sender As Object, e As EventArgs) Handles Replay_Logo.MouseLeave, Replay_Text.MouseLeave, Replay_Stats.MouseLeave
+    Private Sub ReplayMenu_MouseLeave(sender As Object, e As EventArgs) Handles Replay_Logo.MouseLeave, Replay_Text.MouseLeave, Replay_Stats.MouseLeave
         SetReplayBorder(False)
         Base_Background_Top.b1.Visible = False
         SetReplayControlBorder(False)
@@ -135,8 +138,8 @@ Partial Public Class Base
         a_1b.Visible = isVisible
     End Sub
 
-    Private Sub replay_on_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
-        'AMY(Menu_Replay, -200, 3, 150)
+    ' Shared by Click + MouseHover: flip the replay menu open/closed.
+    Private Sub ToggleReplayMenu()
         ShadowLoad()
         Menu_Replay.Visible = Not Menu_Replay.Visible
         Menu_Record.Visible = False
@@ -145,16 +148,14 @@ Partial Public Class Base
         a_3.Visible = False
         SetReplayControlBorder(True)
     End Sub
-    Private Sub logo_replay_MouseHover(sender As Object, e As EventArgs) Handles Replay_Logo.MouseHover, Replay_Text.MouseHover, Replay_Stats.MouseHover
+
+    Private Sub ReplayMenu_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
+        ToggleReplayMenu()
+    End Sub
+
+    Private Sub ReplayMenu_MouseHover(sender As Object, e As EventArgs) Handles Replay_Logo.MouseHover, Replay_Text.MouseHover, Replay_Stats.MouseHover
         If Base_Background_Top.b2_all.Visible = True Then
-            'AMY(Menu_Replay, -200, 3, 150)
-            ShadowLoad()
-            Menu_Replay.Visible = Not Menu_Replay.Visible
-            Menu_Record.Visible = False
-            a_1.Visible = Not a_1.Visible
-            a_2.Visible = False
-            a_3.Visible = False
-            SetReplayControlBorder(True)
+            ToggleReplayMenu()
         End If
     End Sub
 
@@ -162,14 +163,14 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - RECORD"
+#Region "Record menu"
 
-    Private Sub logo_record_MouseMove(sender As Object, e As MouseEventArgs) Handles Record_Logo.MouseMove, Record_Text.MouseMove, Record_Stats.MouseMove
+    Private Sub RecordMenu_MouseMove(sender As Object, e As MouseEventArgs) Handles Record_Logo.MouseMove, Record_Text.MouseMove, Record_Stats.MouseMove
         SetRecordBorder(Not Menu_Record.Visible)
         Base_Background_Top.b2.Visible = True
     End Sub
 
-    Private Sub logo_record_MouseLeave(sender As Object, e As EventArgs) Handles Record_Logo.MouseLeave, Record_Text.MouseLeave, Record_Stats.MouseLeave
+    Private Sub RecordMenu_MouseLeave(sender As Object, e As EventArgs) Handles Record_Logo.MouseLeave, Record_Text.MouseLeave, Record_Stats.MouseLeave
         SetRecordBorder(False)
         SetRecordControlBorder(False)
         Base_Background_Top.b2.Visible = False
@@ -182,8 +183,8 @@ Partial Public Class Base
         a_2b.Visible = isVisible
     End Sub
 
-    Private Sub logo_record_Click(sender As Object, e As EventArgs) Handles Record_Logo.Click, Record_Text.Click, Record_Stats.Click
-        ' AMY(Menu_Record, -200, 3, 150)
+    ' Shared by Click + MouseHover: flip the record menu open/closed.
+    Private Sub ToggleRecordMenu()
         ShadowLoad()
         Menu_Record.Visible = Not Menu_Record.Visible
         Menu_Replay.Visible = False
@@ -192,24 +193,22 @@ Partial Public Class Base
         a_3.Visible = False
         SetRecordControlBorder(True)
     End Sub
-    Private Sub logo_record_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
+
+    Private Sub RecordMenu_Click(sender As Object, e As EventArgs) Handles Record_Logo.Click, Record_Text.Click, Record_Stats.Click
+        ToggleRecordMenu()
+    End Sub
+
+    Private Sub RecordMenu_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
         If Base_Background_Top.b1_all.Visible = True Then
-            'AMY(Menu_Record, -200, 3, 150)
-            ShadowLoad()
-            Menu_Record.Visible = Not Menu_Record.Visible
-            Menu_Replay.Visible = False
-            a_2.Visible = True
-            a_1.Visible = False
-            a_3.Visible = False
-            SetRecordControlBorder(True)
+            ToggleRecordMenu()
         End If
     End Sub
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - LIVE STREAM"
+#Region "Live stream"
 
-    Private Sub logo_live_MouseMove(sender As Object, e As MouseEventArgs) Handles Live_Logo.MouseMove, Live_Text.MouseMove, Live_Stats.MouseMove
+    Private Sub LiveMenu_MouseMove(sender As Object, e As MouseEventArgs) Handles Live_Logo.MouseMove, Live_Text.MouseMove, Live_Stats.MouseMove
         a_3.Visible = True
         a_3r.Visible = True
         a_3l.Visible = True
@@ -217,7 +216,7 @@ Partial Public Class Base
         Base_Background_Top.b3.Visible = True
     End Sub
 
-    Private Sub logo_live_MouseLeave(sender As Object, e As EventArgs) Handles Live_Logo.MouseLeave, Live_Text.MouseLeave, Live_Stats.MouseLeave
+    Private Sub LiveMenu_MouseLeave(sender As Object, e As EventArgs) Handles Live_Logo.MouseLeave, Live_Text.MouseLeave, Live_Stats.MouseLeave
         a_3.Visible = False
         a_3r.Visible = False
         a_3l.Visible = False
@@ -226,7 +225,7 @@ Partial Public Class Base
         Live_Logo.ForeColor = System.Drawing.Color.White
     End Sub
 
-    Private Sub logo_live_Click(sender As Object, e As EventArgs) Handles Live_Logo.Click, Live_Text.Click, Live_Stats.Click
+    Private Sub LiveMenu_Click(sender As Object, e As EventArgs) Handles Live_Logo.Click, Live_Text.Click, Live_Stats.Click
         ShowNotifier("feature_not_ready")
         Menu_Replay.Visible = False
         a_1.Visible = False
@@ -236,15 +235,17 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - MICROPHONE & VIDEO"
+#Region "Microphone & video"
 
-    Private Sub mic_MouseMove(sender As Object, e As MouseEventArgs) Handles MIC_ICO.MouseMove
+    Private Sub Mic_MouseMove(sender As Object, e As MouseEventArgs) Handles MIC_ICO.MouseMove
         MIC_ICO.ForeColor = System.Drawing.Color.Gray
     End Sub
 
-    Private Sub mic_MouseLeave(sender As Object, e As EventArgs) Handles MIC_ICO.MouseLeave
+    Private Sub Mic_MouseLeave(sender As Object, e As EventArgs) Handles MIC_ICO.MouseLeave
         MIC_ICO.ForeColor = System.Drawing.Color.White
     End Sub
+    ' MIC_ICO.Text holds PUA glyphs from the bundled icon font — they look
+    ' invisible in source but are meaningful; never retype or trim them.
     Public Sub LoadMicState()
         If AppSettings.Instance.Audio.MicEnabled = True Then
             MIC_ICO.Text = ""
@@ -252,7 +253,7 @@ Partial Public Class Base
             MIC_ICO.Text = ""
         End If
     End Sub
-    Private Sub mic_Click(sender As Object, e As EventArgs) Handles MIC_ICO.Click
+    Private Sub Mic_Click(sender As Object, e As EventArgs) Handles MIC_ICO.Click
         MIC_ICO.Text = If(MIC_ICO.Text = "", "", "")
         If MIC_ICO.Text = "" Then
             AppSettings.Instance.Audio.MicEnabled = True
@@ -265,21 +266,21 @@ Partial Public Class Base
     End Sub
 
 
-    Private Sub vdo_MouseMove(sender As Object, e As MouseEventArgs) Handles vdo.MouseMove
+    Private Sub VideoInfo_MouseMove(sender As Object, e As MouseEventArgs) Handles vdo.MouseMove
         vdo.ForeColor = System.Drawing.Color.Gray
     End Sub
 
-    Private Sub vdo_MouseLeave(sender As Object, e As EventArgs) Handles vdo.MouseLeave
+    Private Sub VideoInfo_MouseLeave(sender As Object, e As EventArgs) Handles vdo.MouseLeave
         vdo.ForeColor = System.Drawing.Color.White
     End Sub
 
-    Private Sub vdo_Click(sender As Object, e As EventArgs) Handles vdo.Click
+    Private Sub VideoInfo_Click(sender As Object, e As EventArgs) Handles vdo.Click
         ShowNotifier("extension_not_found")
     End Sub
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - GALLERY"
+#Region "Gallery"
 
     Private Sub SetGalleryColors(color As System.Drawing.Color)
         Gallery_Logo.ForeColor = color
@@ -316,24 +317,18 @@ Partial Public Class Base
         Base_Gallery.Show()
 
 
-        Dim TIME As New Timer With {.Interval = 20}
-        AddHandler TIME.Tick, Sub(s, MIEXXXXXXX)
-                                  TIME.Stop()
-                                  ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
-                                  '      are released immediately, not eventually by GC.
-                                  '      Without this, every Gallery_Click leaked a Timer.
-                                  TIME.Dispose()
-
-                                  AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
-                                  Base_Gallery.Opacity = 1
-                              End Sub
-        TIME.Start()
+        ' Fade the gallery in after it has finished showing.
+        RunAfterDelay(20,
+            Sub()
+                AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
+                Base_Gallery.Opacity = 1
+            End Sub)
 
     End Sub
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY CONTROLS"
+#Region "Replay controls (instant replay)"
 
     Private Sub ReplayControl_MouseMove(sender As Object, e As MouseEventArgs) Handles Menu_Replay_key.MouseMove, Menu_Replay_Box1.MouseMove, Menu_Replay_text.MouseMove
         SetReplayControlBorder(True)
@@ -351,14 +346,12 @@ Partial Public Class Base
     End Sub
 
     Private Sub ReplayControl_Click(sender As Object, e As EventArgs) Handles Menu_Replay_key.Click, Menu_Replay_Box1.Click, Menu_Replay_text.Click
-        'a_1.Visible = False
         ToggleInstantReplay()
-        'Menu_Replay.Visible = False
     End Sub
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - REPLAY SAVE CONTROLS"
+#Region "Replay save controls"
 
     Private Sub ReplaySave_MouseMove(sender As Object, e As MouseEventArgs) Handles Menu_Replay_Box2.MouseMove, Menu_Replay_save_text.MouseMove, Menu_Replay_save_key.MouseMove
         SetReplaySaveBorder(True)
@@ -381,7 +374,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - RECORD CONTROLS"
+#Region "Record controls"
 
     Private Sub RecordControl_MouseMove(sender As Object, e As MouseEventArgs) Handles Menu_Record_key.MouseMove, Menu_Record_Box1.MouseMove, Menu_Record_text.MouseMove
         SetRecordControlBorder(True)
@@ -406,7 +399,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - PHOTO MODE"
+#Region "Photo mode (Mode 2)"
 
     Private Sub SetPhotoColors(color As System.Drawing.Color)
         Logo_Mode2.ForeColor = color
@@ -438,7 +431,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - GAME FILTER"
+#Region "Game filter (Mode 3)"
 
     Private Sub SetGameColors(color As System.Drawing.Color)
         Logo_Mode3.ForeColor = color
@@ -471,7 +464,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "============================================================================ MOUSE EVENT HANDLERS - UPLOAD/SHARE"
+#Region "Upload / share"
 
     Private Sub SetUploadBorder(isVisible As Boolean)
         h1.Visible = isVisible
@@ -496,7 +489,7 @@ Partial Public Class Base
 
 #End Region
 
-#Region "==================== MOUSE EVENT HANDLERS"
+#Region "Menu panel — settings pages & system entries"
 
     ' ========== SHARED COLORS ==========
     Private ReadOnly grayColor As Color = Color.Gray
@@ -512,31 +505,33 @@ Partial Public Class Base
         Base_AudioSet
     }
 
+    ' One-shot delay helper: runs <action> on the UI thread after <intervalMs>.
+    ' The timer disposes itself inside Tick — without that Dispose the GCHandle
+    ' plus Tick delegate chain stay alive until GC (this used to leak per click).
+    Private Sub RunAfterDelay(intervalMs As Integer, action As Action)
+        Dim t As New Timer With {.Interval = intervalMs}
+        AddHandler t.Tick,
+            Sub(s, e)
+                t.Stop()
+                t.Dispose()
+                action()
+            End Sub
+        t.Start()
+    End Sub
+
     ' ========== HELPER METHOD ==========
     Private Sub OpenPanel(showForm As Form, settingsCtrl As Control)
         IF_OpenShare = False
         For Each f In allForms
-            If f IsNot showForm Then f?.Hide()
+            If f IsNot showForm Then f.Hide()
         Next
         Settings_List.Visible = False
         showForm.Opacity = 0
         showForm.Show()
         settingsCtrl.Location = New Point(80, 160)
 
-        Dim t As New Timer With {.Interval = 1}
-
-        AddHandler t.Tick, Sub(s, e)
-                               t.Stop()
-                               ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
-                               '      are released immediately, not eventually by GC.
-                               '      Without this, every OpenPanel() click leaked a Timer.
-                               t.Dispose()
-
-                               showForm.Opacity = 1
-
-                           End Sub
-
-        t.Start()
+        ' Show the panel only after it is fully on screen (avoids a flash).
+        RunAfterDelay(1, Sub() showForm.Opacity = 1)
     End Sub
 
     ' ========== SETTINGS PANEL ==========
@@ -564,15 +559,15 @@ Partial Public Class Base
     End Sub
 
     ' ========== PRIVACY SETTINGS ==========
-    Private Sub Saved_MouseMove(sender As Object, e As MouseEventArgs) Handles PrivacyControl_TEXT.MouseMove, PrivacyControl_ICO.MouseMove
+    Private Sub PrivacyControl_MouseMove(sender As Object, e As MouseEventArgs) Handles PrivacyControl_TEXT.MouseMove, PrivacyControl_ICO.MouseMove
         PrivacyControl_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Saved_MouseLeave(sender As Object, e As EventArgs) Handles PrivacyControl_TEXT.MouseLeave, PrivacyControl_ICO.MouseLeave
+    Private Sub PrivacyControl_MouseLeave(sender As Object, e As EventArgs) Handles PrivacyControl_TEXT.MouseLeave, PrivacyControl_ICO.MouseLeave
         PrivacyControl_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Saved_Click(sender As Object, e As EventArgs) Handles PrivacyControl_TEXT.Click, PrivacyControl_ICO.Click
+    Private Sub PrivacyControl_Click(sender As Object, e As EventArgs) Handles PrivacyControl_TEXT.Click, PrivacyControl_ICO.Click
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
@@ -590,15 +585,15 @@ Partial Public Class Base
     End Sub
 
     ' ========== KEYBOARD SHORTCUTS ==========
-    Private Sub K1_MouseMove(sender As Object, e As MouseEventArgs) Handles KeyboardShortcuts_TEXT.MouseMove, KeyboardShortcuts_ICO.MouseMove
+    Private Sub KeyboardShortcuts_MouseMove(sender As Object, e As MouseEventArgs) Handles KeyboardShortcuts_TEXT.MouseMove, KeyboardShortcuts_ICO.MouseMove
         KeyboardShortcuts_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub K1_MouseLeave(sender As Object, e As EventArgs) Handles KeyboardShortcuts_TEXT.MouseLeave, KeyboardShortcuts_ICO.MouseLeave
+    Private Sub KeyboardShortcuts_MouseLeave(sender As Object, e As EventArgs) Handles KeyboardShortcuts_TEXT.MouseLeave, KeyboardShortcuts_ICO.MouseLeave
         KeyboardShortcuts_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub K1_Click(sender As Object, e As EventArgs) Handles KeyboardShortcuts_TEXT.Click, KeyboardShortcuts_ICO.Click
+    Private Sub KeyboardShortcuts_Click(sender As Object, e As EventArgs) Handles KeyboardShortcuts_TEXT.Click, KeyboardShortcuts_ICO.Click
         OpenPanel(Base_KeySet, Base_KeySet.keyset)
     End Sub
 
@@ -616,11 +611,11 @@ Partial Public Class Base
     End Sub
 
     ' ========== VIDEO CAPTURE SETTINGS ==========
-    Private Sub vd1_MouseMove(sender As Object, e As MouseEventArgs) Handles VideoCapture_TEXT_SUB.MouseMove, VideoCapture_TEXT.MouseMove, VideoCapture_ICO.MouseMove
+    Private Sub VideoCapture_MouseMove(sender As Object, e As MouseEventArgs) Handles VideoCapture_TEXT_SUB.MouseMove, VideoCapture_TEXT.MouseMove, VideoCapture_ICO.MouseMove
         VideoCapture_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub vd1_MouseLeave(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.MouseLeave, VideoCapture_TEXT.MouseLeave, VideoCapture_ICO.MouseLeave
+    Private Sub VideoCapture_MouseLeave(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.MouseLeave, VideoCapture_TEXT.MouseLeave, VideoCapture_ICO.MouseLeave
         VideoCapture_BOX_SUB.BackColor = grayColor
     End Sub
 
@@ -635,30 +630,13 @@ Partial Public Class Base
         sha3.Hide()
         sha4.Hide()
 
-        Dim t As New Timer With {.Interval = 10}
-        AddHandler t.Tick, Sub(s, e)
-                               t.Stop()
-                               ' FIX: Dispose one-shot timer so its GCHandle + Tick delegate chain
-                               '      are released immediately, not eventually by GC.
-                               '      Without this, every OpenRecordings() click leaked a Timer.
-                               t.Dispose()
-
-                               OpenSettings()
-                           End Sub
-        t.Start()
-
-        Dim td As New Timer With {.Interval = 20}
-        AddHandler td.Tick, Sub(s, e)
-                                td.Stop()
-                                ' FIX: Dispose one-shot timer (same reason as t above).
-                                td.Dispose()
-
-                                OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
-                            End Sub
-        td.Start()
+        ' Sequence: OpenSettings() rebuilds the settings shell first; the
+        ' recordings panel opens on top of it 10 ms later.
+        RunAfterDelay(10, Sub() OpenSettings())
+        RunAfterDelay(20, Sub() OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret))
     End Sub
 
-    Private Sub vd1_Click(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.Click, VideoCapture_TEXT.Click, VideoCapture_ICO.Click
+    Private Sub VideoCapture_Click(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.Click, VideoCapture_TEXT.Click, VideoCapture_ICO.Click
         OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret)
 
     End Sub
@@ -693,15 +671,15 @@ Partial Public Class Base
     End Sub
 
     ' ========== AUDIO ==========
-    Private Sub AuUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Audio_TEXT.MouseMove, Audio_ICO.MouseMove
+    Private Sub AudioUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Audio_TEXT.MouseMove, Audio_ICO.MouseMove
         Audio_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub AuUI_MouseLeave(sender As Object, e As EventArgs) Handles Audio_TEXT.MouseLeave, Audio_ICO.MouseLeave
+    Private Sub AudioUI_MouseLeave(sender As Object, e As EventArgs) Handles Audio_TEXT.MouseLeave, Audio_ICO.MouseLeave
         Audio_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub AuUI_Click(sender As Object, e As EventArgs) Handles Audio_TEXT.Click, Audio_ICO.Click
+    Private Sub AudioUI_Click(sender As Object, e As EventArgs) Handles Audio_TEXT.Click, Audio_ICO.Click
         ' ✅ GLM/6: Audio UI now lives in the Overlay ([6] Audio Capture page) —
         ' no more "Audio.UI" marker file round-trip to the Engine process.
         ' The old Engine AudioSettingsForm is dormant (nothing creates the
@@ -710,15 +688,15 @@ Partial Public Class Base
     End Sub
 
     ' ========== NOTIFICATIONS ==========
-    Private Sub Noti_MouseMove(sender As Object, e As MouseEventArgs) Handles Notifications_TEXT.MouseMove, notifications_ICO.MouseMove
+    Private Sub Notifications_MouseMove(sender As Object, e As MouseEventArgs) Handles Notifications_TEXT.MouseMove, notifications_ICO.MouseMove
         Notifications_BOX_SUB.BackColor = greenColor
     End Sub
 
-    Private Sub Noti_MouseLeave(sender As Object, e As EventArgs) Handles Notifications_TEXT.MouseLeave, notifications_ICO.MouseLeave
+    Private Sub Notifications_MouseLeave(sender As Object, e As EventArgs) Handles Notifications_TEXT.MouseLeave, notifications_ICO.MouseLeave
         Notifications_BOX_SUB.BackColor = grayColor
     End Sub
 
-    Private Sub Noti_Click(sender As Object, e As EventArgs) Handles Notifications_TEXT.Click, notifications_ICO.Click
+    Private Sub Notifications_Click(sender As Object, e As EventArgs) Handles Notifications_TEXT.Click, notifications_ICO.Click
         If isNotiOn = True Then
             notifications_ICO.ForeColor = Color.White
             Notifications_TEXT.ForeColor = Color.White
@@ -740,7 +718,7 @@ Partial Public Class Base
     End Sub
 
 #End Region
-    Private Sub PictureBox1_Click(sender As Object, e As EventArgs) Handles About_TEXT.Click, About_ICO.Click
+    Private Sub About_Click(sender As Object, e As EventArgs) Handles About_TEXT.Click, About_ICO.Click
         ShowNotifier("feature_not_ready")
     End Sub
 
