@@ -250,18 +250,13 @@ Partial Public Class Base
 
     ''' <summary>
     ''' Phase 5: Relocated from Sub_Record.vb.
-    ''' Returns True if the privacy consent file exists, meaning the user has
-    ''' explicitly opted in to desktop capture.
-    '''
-    ''' FIX #2 (preserved): Path used to be
-    '''   Application.StartupPath & "NVIDIA_Shadowplay_Data\privacy"
-    ''' which produced "C:\AppNVIDIA_Shadowplay_Data\privacy" (no backslash
-    ''' before the folder name). Now uses Path.Combine which always joins
-    ''' with the platform-correct separator.
+    ''' Returns True when the user has explicitly opted in to desktop capture
+    ''' (config.json Privacy.DesktopCaptureEnabled; previously the
+    ''' Data/NVIDIA_Shadowplay_Data/privacy marker file — see
+    ''' AppSettings.MigrateLegacyMarkerFiles for the one-time import).
     ''' </summary>
     Private Function IsPrivacyEnabled() As Boolean
-        Dim privacyPath As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
-        Return My.Computer.FileSystem.FileExists(privacyPath)
+        Return AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Function
 
 #End Region

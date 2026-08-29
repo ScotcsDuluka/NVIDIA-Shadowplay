@@ -155,6 +155,28 @@ Partial Public Class AppSettings
     End Class
 
     ''' <summary>
+    ''' Privacy settings — user consent flags that used to live as the marker
+    ''' file Data/NVIDIA_Shadowplay_Data/privacy. Imported once by
+    ''' MigrateLegacyMarkerFiles, then config.json is the only source.
+    ''' </summary>
+    Public Class PrivacySettingsClass
+        ''' <summary>Desktop capture allowed (was: privacy marker file exists).</summary>
+        Public Property DesktopCaptureEnabled As Boolean = False
+    End Class
+
+    ''' <summary>
+    ''' Overlay stack switch that used to live as the Flags\Use_Overlay marker
+    ''' file. OWNED by the NVIDIA Experience (Launcher) toggle; the NVIDIA API
+    ''' hub reads it every second to start/keep-alive or kill the overlay
+    ''' stack. The Overlay itself only carries the value here so its
+    ''' full-model Save() cannot erase a Launcher-written flip (see Save()).
+    ''' </summary>
+    Public Class OverlaySettingsClass
+        ''' <summary>Overlay stack enabled (was: Flags/Use_Overlay exists).</summary>
+        Public Property UseOverlayEnabled As Boolean = False
+    End Class
+
+    ''' <summary>
     ''' GitHub User settings - เก็บข้อมูลผู้ใช้ GitHub
     ''' </summary>
     Public Class GitHubUserClass
@@ -221,11 +243,13 @@ Partial Public Class AppSettings
     End Function
 #End Region
 
-#Region "Config Sections (Recording / Paths / UI / Audio / Hotkeys)"
+#Region "Config Sections (Recording / Paths / UI / Audio / Privacy / Overlay / Hotkeys)"
     Public Property Recording As New RecordingSettingsClass()
     Public Property Paths As New PathSettingsClass()
     Public Property UI As New UISettingsClass()
     Public Property Audio As New AudioSettingsClass()
+    Public Property Privacy As New PrivacySettingsClass()
+    Public Property Overlay As New OverlaySettingsClass()
 
     Public Property Hotkeys As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
 #End Region
@@ -377,10 +401,69 @@ Partial Public Class AppSettings
             ' created (first run / fresh install next to old files).
             MigrateLegacyConfigFiles()
 
+            ' One-time import of the last settings that lived OUTSIDE
+            ' config.json (privacy marker, Use_Overlay flag, current.txt).
+            MigrateLegacyMarkerFiles()
+
         Catch ex As Exception
             Debug.WriteLine("AppSettings.Load Error: " & ex.Message)
         End Try
     End Sub
+
+#Region "Legacy marker-file migration (privacy / Use_Overlay / current.txt)"
+    ''' <summary>
+    ''' One-time import of user settings that used to live OUTSIDE config.json:
+    '''   Data/NVIDIA_Shadowplay_Data/privacy → Privacy.DesktopCaptureEnabled
+    '''   Flags/Use_Overlay                   → Overlay.UseOverlayEnabled
+    '''   Languages/current.txt               → UI.Language
+    ''' Each source is imported once and then deleted, so config.json becomes
+    ''' the single source of truth. Runs on every Load() but is a no-op once
+    ''' the legacy files are gone.
+    ''' </summary>
+    Private Sub MigrateLegacyMarkerFiles()
+        Dim changed As Boolean = False
+
+        ' ── Privacy consent marker (existence = user opted in) ──
+        Dim privacyMarker As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
+        If File.Exists(privacyMarker) Then
+            Privacy.DesktopCaptureEnabled = True
+            AppLayout.DeleteFileIfExists(privacyMarker)
+            changed = True
+            Debug.WriteLine("[Migrate] privacy marker → config.json Privacy.DesktopCaptureEnabled = True")
+        End If
+
+        ' ── Overlay stack toggle (Flags/Use_Overlay) ──
+        Dim useOverlayFlag As String = AppLayout.P("Flags", "Use_Overlay")
+        If File.Exists(useOverlayFlag) Then
+            Overlay.UseOverlayEnabled = True
+            AppLayout.DeleteFileIfExists(useOverlayFlag)
+            changed = True
+            Debug.WriteLine("[Migrate] Flags/Use_Overlay → config.json Overlay.UseOverlayEnabled = True")
+        End If
+
+        ' ── Current language pointer ──
+        ' Import only when the code maps to an existing Languages\<code>.json
+        ' (defends against a hand-edited/garbage pointer); the pointer file is
+        ' removed either way so the migration always completes.
+        Dim currentTxt As String = AppLayout.P("Languages", "current.txt")
+        If File.Exists(currentTxt) Then
+            Try
+                Dim code As String = File.ReadAllText(currentTxt).Trim()
+                Dim langJson As String = AppLayout.P("Languages", code & ".json")
+                If code.Length > 0 AndAlso code.IndexOfAny(Path.GetInvalidFileNameChars()) < 0 AndAlso File.Exists(langJson) Then
+                    UI.Language = code
+                    Debug.WriteLine("[Migrate] Languages/current.txt → config.json UI.Language = " & code)
+                End If
+            Catch ex As Exception
+                Debug.WriteLine("[Migrate] current.txt import failed: " & ex.Message)
+            End Try
+            AppLayout.DeleteFileIfExists(currentTxt)
+            changed = True
+        End If
+
+        If changed Then Save()
+    End Sub
+#End Region
 
     ''' <summary>
     ''' Peek at the raw JSON to find a legacy plain-text "GitHubToken" field.
@@ -415,6 +498,8 @@ Partial Public Class AppSettings
         ApplyUISettings(loaded.UI)
         ApplyAudioSettings(loaded.Audio)
         ApplyGitHubUserSettings(loaded.GitHubUser)
+        ApplyPrivacySettings(loaded.Privacy)
+        ApplyOverlaySettings(loaded.Overlay)
 
         If loaded.Hotkeys IsNot Nothing Then
             Hotkeys = New Dictionary(Of String, String)(loaded.Hotkeys, StringComparer.OrdinalIgnoreCase)
@@ -499,11 +584,29 @@ Partial Public Class AppSettings
         GitHubUser.LastLogin = loadedGitHubUser.LastLogin
     End Sub
 
+    Private Sub ApplyPrivacySettings(loadedPrivacy As PrivacySettingsClass)
+        If loadedPrivacy Is Nothing Then Return
+        Privacy.DesktopCaptureEnabled = loadedPrivacy.DesktopCaptureEnabled
+    End Sub
+
+    Private Sub ApplyOverlaySettings(loadedOverlay As OverlaySettingsClass)
+        If loadedOverlay Is Nothing Then Return
+        Overlay.UseOverlayEnabled = loadedOverlay.UseOverlayEnabled
+    End Sub
+
     ''' <summary>
     ''' Save settings to config.json
     ''' </summary>
     Public Sub Save()
         Try
+            ' Foreign-key guard: Overlay.UseOverlayEnabled is owned by the
+            ' NVIDIA Experience toggle (Launcher) and enforced by the API hub
+            ' every second. Refresh it from the file right before serializing
+            ' so an Overlay save can never clobber a toggle flip that happened
+            ' after our Load(). (Privacy/UI.Language are Overlay-owned — no
+            ' other process writes them.)
+            Overlay.UseOverlayEnabled = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", Overlay.UseOverlayEnabled)
+
             Dim options As New JsonSerializerOptions With {
                 .WriteIndented = True,
                 .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull

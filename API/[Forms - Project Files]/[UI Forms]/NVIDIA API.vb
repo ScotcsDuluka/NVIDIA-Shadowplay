@@ -127,7 +127,10 @@ Public Class API_RUN
             "NVIDIA Capture.exe"
         }
 
-        Dim overlayExists As Boolean = File.Exists(AppLayout.P("Flags", "Use_Overlay"))
+        ' Single-source config: the overlay stack switch lives in config.json
+        ' Overlay.UseOverlayEnabled (was: the Flags\Use_Overlay marker file).
+        ' Read every tick: True → start/keep-alive the stack, False → kill it.
+        Dim overlayEnabled As Boolean = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", False)
 
         For Each app In apps
             ' Root-fixed layout: service hosts live in Application\, the
@@ -142,7 +145,7 @@ Public Class API_RUN
             ' until GC finalizes them — slow leak.
             Dim running As Process() = Process.GetProcessesByName(processName)
 
-            If overlayExists Then
+            If overlayEnabled Then
                 If running.Length = 0 AndAlso File.Exists(exePath) Then
                     Try
                         Process.Start(exePath)

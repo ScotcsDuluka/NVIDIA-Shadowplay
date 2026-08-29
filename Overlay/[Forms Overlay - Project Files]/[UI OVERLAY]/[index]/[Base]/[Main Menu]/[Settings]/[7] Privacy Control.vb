@@ -42,22 +42,16 @@ Public Class Base_Privacy_Control
         Base.Settings_List.Visible = True
     End Sub
     Private Sub Base_Privacy_Control_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Dim privacyPath As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
-
-        ' เช็กว่ามีไฟล์ไหม ถ้ามีให้ Toggle ชี้ที่ On
-        TogglePrivacy.IsOn = File.Exists(privacyPath)
+        ' Single-source config: consent lives in config.json
+        ' Privacy.DesktopCaptureEnabled (was: the marker file
+        ' Data/NVIDIA_Shadowplay_Data/privacy).
+        TogglePrivacy.IsOn = AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Sub
     Private Sub TogglePrivacy_ValueChanged(sender As Object, e As EventArgs) Handles TogglePrivacy.ValueChanged
-        ' แก้ Path ให้ถูกต้อง (เดิมขาด \ ด้านหลัง StartupPath)
-        Dim privacyPath As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
-
-        If TogglePrivacy.IsOn Then
-            ' เปิด
-            File.Create(privacyPath).Dispose()
-        Else
-            ' ปิด
-            If File.Exists(privacyPath) Then File.Delete(privacyPath)
-        End If
+        ' Single-source config: persist the consent flag in config.json
+        ' Privacy.DesktopCaptureEnabled (was: create/delete the marker file).
+        AppSettings.Instance.Privacy.DesktopCaptureEnabled = TogglePrivacy.IsOn
+        AppSettings.Instance.Save()
     End Sub
 
     Private Sub IF_Use_Engine_Tick(sender As Object, e As EventArgs) Handles IF_Use_Engine.Tick

@@ -288,11 +288,9 @@ Partial Public Class Loader
 
     Private Sub LoadLanguage(Optional langCode As String = Nothing)
         Dim langFolder As String = AppLayout.P("Languages")
-        Dim currentFile As String = Path.Combine(langFolder, "current.txt")
-        Dim currentLang As String = If(langCode, "en-US")
-        If String.IsNullOrEmpty(langCode) AndAlso File.Exists(currentFile) Then
-            currentLang = File.ReadAllText(currentFile).Trim()
-        End If
+        ' Single-source config: the current language lives in config.json
+        ' UI.Language (was: the Languages/current.txt pointer file).
+        Dim currentLang As String = If(langCode, AppConfigShared.ReadString("UI", "Language", "en-US"))
         Dim langFile As String = Path.Combine(langFolder, currentLang & ".json")
         LangHelper.LoadLang(langFile)
     End Sub
