@@ -56,8 +56,9 @@ Namespace CaptureEngine.FFmpegTests
             ' ----- P13.2 AudioPositionTracker tests (synthetic positions) -----
             RunTest("WPOS: First packet anchors (no gap)", AddressOf Test_WPosAnchor)
             RunTest("WPOS: Continuous stream has zero holes", AddressOf Test_WPosContinuous)
+            RunTest("WPOS: qpc jitter immunity — cursor timeline unmoved (P13.4c)", AddressOf Test_WPosQpcLies)
             RunTest("WPOS: Silence hole measured exactly", AddressOf Test_WPosHole)
-            RunTest("WPOS: Zero stamp falls back to continuity (Risk #2)", AddressOf Test_WPosZeroStamp)
+            RunTest("WPOS: Zero cursor falls back to continuity (Risk #2)", AddressOf Test_WPosZeroCursor)
             RunTest("WPOS: Negative frames rejected (counter hygiene)", AddressOf Test_WPosNegativeFrames)
             RunTest("WPOS: First real stamp re-anchors after fallback anchor", AddressOf Test_WPosReanchor)
             RunTest("WPOS: Backwards stamp flagged, timeline not rewound", AddressOf Test_WPosBackwards)
@@ -72,14 +73,15 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("ATDC: Measured hole padded exactly (END→START)", AddressOf Test_ATDCHole)
             RunTest("ATDC: Sub-50ms hole padded + counted (P13.4b)", AddressOf Test_ATDCSmallHole)
             RunTest("ATDC: >1h hole dropped, no pad, no throw", AddressOf Test_ATDCHugeHole)
-            RunTest("ATDC: Backwards stamp — no pad, no rewind", AddressOf Test_ATDCBackwards)
-            RunTest("ATDC: Zero stamp mid-stream — continuity, no hole", AddressOf Test_ATDCZeroStamp)
+            RunTest("ATDC: Backwards cursor — no pad, no rewind", AddressOf Test_ATDCBackwards)
+            RunTest("ATDC: Zero cursor mid-stream — continuity, no hole", AddressOf Test_ATDCZeroStamp)
             RunTest("ATDC: Re-anchor after fallback anchor — no fake hole", AddressOf Test_ATDCReanchor)
             RunTest("ATDC: Block alignment floors the pad", AddressOf Test_ATDCBlockAlign)
             RunTest("ATDC: Finalize pads exact QPC tail", AddressOf Test_ATDCFinalizeTail)
             RunTest("ATDC: Finalize never-anchored pads full span", AddressOf Test_ATDCFinalizeEmpty)
             RunTest("ATDC: A/B equivalence — silence == tracker oracle", AddressOf Test_ATDCAbEquivalence)
             RunTest("ATDC: Many 1ms holes — track == wall-clock span (P13.4b)", AddressOf Test_ATDCManySmallHoles)
+            RunTest("ATDC: qpc jitter immunity — cursor timeline unmoved (P13.4c)", AddressOf Test_ATDCQpcJitterImmunity)
             RunTest("SYNC2: Exact QPC anchor offset arithmetic", AddressOf Test_Sync2AnchorOffset)
             RunTest("SYNC2: Anchor guards + ±3600s sanity bound (P13.4b)", AddressOf Test_Sync2AnchorGuards)
 
@@ -349,53 +351,85 @@ Namespace CaptureEngine.FFmpegTests
         End Sub
 
         ' ===== P13.2 AudioPositionTracker tests =====
-        ' All positions are SYNTHETIC 100ns-domain values — deterministic,
-        ' no audio hardware, runs on Linux CI exactly like on Windows.
-        ' Reference: 1 ms = 10,000 units; 10ms packet = 100,000; 1 h = 3.6e10.
+        ' ★ P13.4c: the timeline consumes DevicePositionFrames (the RENDER
+        ' CURSOR — content time, silence included). qpcPosition100ns is the
+        ' WALL ANCHOR + anomaly evidence only — feeding it jitter must NOT
+        ' move the timeline (Test_WPosQpcLies is the regression lock).
+        ' All positions are SYNTHETIC — deterministic, no audio hardware.
+        ' Reference: 1 ms = 10,000 × 100ns; 10ms packet @48k = 480 frames.
 
         Private Const T0 As Long = 987654321000000L
         Private Const Pkt10ms As Long = 100000L
+        Private Const DevBase As Long = 5000000L   ' arbitrary render cursor
 
         Private Sub Test_WPosAnchor()
             Dim t As New AudioPositionTracker(48000)
             Assert(Not t.Anchored, "should start unanchored")
-            Dim rep = t.Feed(480, T0)
+            Dim rep = t.Feed(480, DevBase, T0)
             Assert(rep.AnchoredNow, "first packet must anchor")
             Assert(t.Anchored, "Anchored after first packet")
-            Assert(t.FirstQpc100ns = T0, "FirstQpc100ns = first stamp")
+            Assert(t.FirstQpc100ns = T0, "FirstQpc100ns = first stamp (wall anchor)")
+            Assert(t.FirstDevPos = DevBase, "FirstDevPos = first cursor")
             Assert(rep.Hole100ns = 0L, "no hole on anchor")
-            Assert(rep.LastEnd100ns = T0 + Pkt10ms, "lastEnd = qpc + 10ms")
+            Assert(rep.LastDevPosEnd = DevBase + 480L, "cursor end = devPos + 480")
+            Assert(rep.LastEnd100ns = T0 + Pkt10ms, "lastEnd = qpc + 10ms (content mapped)")
         End Sub
 
         Private Sub Test_WPosContinuous()
             Dim t As New AudioPositionTracker(48000)
             For i As Integer = 0 To 299
-                Dim rep = t.Feed(480, T0 + i * Pkt10ms)
+                Dim rep = t.Feed(480, DevBase + i * 480L, T0 + i * Pkt10ms)
                 Assert(rep.Hole100ns = 0L, "continuous stream, hole at i=" & i)
                 Assert(Not rep.MonotonicViolation, "no violation at i=" & i)
             Next
             Assert(t.Packets = 300L, "300 packets fed")
             Assert(t.GapPackets = 0L, "zero gap packets")
+            Assert(t.LastDevPosEnd = DevBase + 300L * 480L, "cursor end exact")
             Assert(t.LastEnd100ns = T0 + 300L * Pkt10ms, "lastEnd exact after 3s")
+        End Sub
+
+        Private Sub Test_WPosQpcLies()
+            ' ★ P13.4c REGRESSION (the OWNER machine): 933 backwards qpc
+            ' stamps per session and the qpc-delta timeline lost 5.65s.
+            ' The cursor timeline must be IMMUNE: qpc bouncing wildly
+            ' (backwards, forwards, minutes off) changes NOTHING — content
+            ' time comes from DevicePositionFrames, and the qpc noise is
+            ' only counted as evidence.
+            Dim t As New AudioPositionTracker(48000)
+            Dim lies() As Long = {T0, T0 - 500000000L, T0 + 1000000000L,
+                                  T0 - 3000000000L, T0 + 250000000L,
+                                  T0 - 10000000L, T0 + 40000000L}
+            For i As Integer = 0 To 99
+                Dim rep = t.Feed(480, DevBase + i * 480L, lies(i Mod lies.Length))
+                Assert(rep.Hole100ns = 0L, "qpc lie must NOT create a hole at i=" & i)
+                Assert(Not rep.MonotonicViolation, "qpc lie is not a cursor violation at i=" & i)
+            Next
+            Assert(t.GapPackets = 0L, "zero gaps despite qpc lies")
+            Assert(t.MonotonicViolations = 0L, "zero cursor violations")
+            Assert(t.LastEnd100ns = T0 + 100L * Pkt10ms, "timeline exact despite qpc lies")
+            Assert(t.QpcAnomalies > 0L, "qpc noise still COUNTED as evidence")
         End Sub
 
         Private Sub Test_WPosHole()
             Dim t As New AudioPositionTracker(48000)
-            t.Feed(480, T0)
-            ' Next packet arrives 290ms after the previous content ends.
-            Dim qpc As Long = T0 + Pkt10ms + 2900000L
-            Dim rep = t.Feed(480, qpc)
+            t.Feed(480, DevBase, T0)
+            ' Cursor jumps 290ms of content (13,920 frames @48k) before the
+            ' next packet — the hole is CONTENT time, measured in frames.
+            Dim holeFrames As Long = 13920L
+            Dim rep = t.Feed(480, DevBase + 480L + holeFrames, T0 + Pkt10ms + 2900000L)
             Assert(rep.Hole100ns = 2900000L, "hole must be exactly 290ms, got " & rep.Hole100ns)
             Assert(t.GapPackets = 1L, "one gap packet")
             Assert(t.TotalHole100ns = 2900000L, "total hole = 290ms")
-            Assert(rep.LastEnd100ns = qpc + Pkt10ms, "lastEnd resumes from new stamp")
+            Assert(rep.LastDevPosEnd = DevBase + 480L + holeFrames + 480L, "cursor end resumes")
+            Assert(rep.LastEnd100ns = T0 + Pkt10ms + 2900000L + Pkt10ms,
+                   "lastEnd = wall anchor + full content span (incl. the hole)")
         End Sub
 
-        Private Sub Test_WPosZeroStamp()
+        Private Sub Test_WPosZeroCursor()
             Dim t As New AudioPositionTracker(48000)
-            t.Feed(480, T0)
+            t.Feed(480, DevBase, T0)
             Dim before As Long = t.LastEnd100ns
-            Dim rep = t.Feed(480, 0L)   ' doc §5 Risk #2: stampless packet
+            Dim rep = t.Feed(480, 0L, T0 + Pkt10ms)   ' doc §5 Risk #2: no cursor
             Assert(rep.StampFallbackUsed, "fallback must be flagged")
             Assert(rep.Hole100ns = 0L, "fallback assumes continuity — no hole")
             Assert(t.LastEnd100ns = before + Pkt10ms, "lastEnd advanced by packet dur")
@@ -406,7 +440,7 @@ Namespace CaptureEngine.FFmpegTests
             Dim t As New AudioPositionTracker(48000)
             Dim threw As Boolean = False
             Try
-                t.Feed(-1, T0)
+                t.Feed(-1, DevBase, T0)
             Catch ex As ArgumentOutOfRangeException
                 threw = True
             End Try
@@ -415,30 +449,31 @@ Namespace CaptureEngine.FFmpegTests
             Assert(t.Frames = 0L, "rejected feed must not touch Frames")
             Assert(Not t.Anchored, "rejected feed must not anchor the timeline")
             ' Zero frames is DEGENERATE but legal — must not throw.
-            Dim rep = t.Feed(0, T0)
+            Dim rep = t.Feed(0, DevBase, T0)
             Assert(rep.AnchoredNow, "0-frame packet still anchors")
         End Sub
 
         Private Sub Test_WPosReanchor()
             Dim t As New AudioPositionTracker(48000)
-            ' Pathological driver: FIRST packet has no stamp -> fallback
-            ' anchor at 0. Without the re-anchor rule, the first REAL stamp
-            ' would "measure" a hole the size of the whole stream (T0 ~
-            ' 27h of QPC) and AudioTap v3 would pad seconds of silence.
-            Dim r1 = t.Feed(480, 0L)
+            ' Pathological driver: FIRST packet has no cursor -> fallback
+            ' anchor. Without the re-anchor rule, the first REAL cursor
+            ' would "measure" a hole the size of the whole stream and
+            ' AudioTap v3 would pad seconds of silence.
+            Dim r1 = t.Feed(480, 0L, T0)
             Assert(r1.StampFallbackUsed, "fallback anchor flagged")
-            Assert(t.FirstQpc100ns = 0L, "anchored at 0 pending a real stamp")
-            Dim r2 = t.Feed(480, 0L)   ' still stampless — continuity
-            Assert(r2.StampFallbackUsed, "stampless packet still fallback")
+            Assert(t.FirstQpc100ns = T0, "anchor keeps the packet's REAL wall stamp (content exists)")
+            Dim r2 = t.Feed(480, 0L, T0 + Pkt10ms)   ' still cursorless
+            Assert(r2.StampFallbackUsed, "cursorless packet still fallback")
             Assert(r2.Hole100ns = 0L, "continuity — no hole")
             Dim qpcReal As Long = T0 + 2L * Pkt10ms
-            Dim r3 = t.Feed(480, qpcReal)   ' first REAL stamp
-            Assert(r3.ReAnchoredNow, "must re-anchor on first real stamp")
-            Assert(Not r3.StampFallbackUsed, "a real stamp is not a fallback")
+            Dim r3 = t.Feed(480, DevBase, qpcReal)   ' first REAL cursor
+            Assert(r3.ReAnchoredNow, "must re-anchor on first real cursor")
+            Assert(Not r3.StampFallbackUsed, "a real cursor is not a fallback")
             Assert(r3.Hole100ns = 0L, "NO bogus hole across re-anchor")
-            Assert(t.FirstQpc100ns = qpcReal, "FirstQpc now the real stamp")
-            Assert(t.LastEnd100ns = qpcReal + Pkt10ms, "timeline on real stamps")
-            Dim r4 = t.Feed(480, qpcReal + Pkt10ms)
+            Assert(t.FirstQpc100ns = T0, "wall anchor PRESERVED (track starts at T0)")
+            Assert(t.FirstDevPos = DevBase - 960L, "cursor base backfilled (implied, continuity)")
+            Assert(t.LastEnd100ns = qpcReal + Pkt10ms, "timeline on the real cursor")
+            Dim r4 = t.Feed(480, DevBase + 480L, qpcReal + Pkt10ms)
             Assert(r4.Hole100ns = 0L AndAlso Not r4.MonotonicViolation,
                    "post-reanchor continuity normal")
             Assert(Not r4.ReAnchoredNow, "re-anchor fires exactly once")
@@ -447,31 +482,30 @@ Namespace CaptureEngine.FFmpegTests
 
         Private Sub Test_WPosBackwards()
             Dim t As New AudioPositionTracker(48000)
-            t.Feed(480, T0)
+            t.Feed(480, DevBase, T0)
             Dim before As Long = t.LastEnd100ns
-            ' Stamp 5ms IN THE PAST (overlapping content: [50ms, 150ms) vs
-            ' previous [0ms, 100ms)). Violation flagged, no hole, and the
-            ' timeline takes max(prevEnd, newEnd) — absorbs the forward
-            ' extension, NEVER rewinds.
-            Dim rep = t.Feed(480, T0 + Pkt10ms - 50000L)
+            ' Cursor 10ms IN THE PAST (overlap: [DevBase-480, DevBase) vs
+            ' previous [DevBase, DevBase+480)). Violation flagged, no hole,
+            ' cursor end takes max(prevEnd, newEnd) — NEVER rewinds.
+            Dim rep = t.Feed(480, DevBase - 480L, T0 + Pkt10ms)
             Assert(rep.MonotonicViolation, "violation must be flagged")
             Assert(rep.Hole100ns = 0L, "no hole on overlap")
-            Assert(t.LastEnd100ns = T0 + 150000L, "lastEnd = max(prevEnd, newEnd)")
-            Assert(t.LastEnd100ns >= before, "timeline must NOT rewind")
+            Assert(rep.LastDevPosEnd = DevBase + 480L, "cursor end = max(prevEnd, newEnd)")
+            Assert(t.LastEnd100ns = before, "timeline must NOT rewind")
             Assert(t.MonotonicViolations = 1L, "violation counted")
         End Sub
 
         Private Sub Test_WPosVariableSizes()
             Dim t As New AudioPositionTracker(48000)
-            ' Stamps crafted so each packet starts exactly where the previous
+            ' Cursor crafted so each packet starts exactly where the previous
             ' ended — continuity must hold for VARIABLE frame counts.
-            t.Feed(480, T0)                          ' 10ms -> ends T0+100000
-            Dim r2 = t.Feed(960, T0 + 100000L)       ' 20ms -> ends T0+300000
-            Dim r3 = t.Feed(240, T0 + 300000L)       ' 5ms  -> ends T0+350000
-            Dim r4 = t.Feed(480, T0 + 350000L)       ' 10ms -> ends T0+450000
+            t.Feed(480, DevBase, T0)                          ' 10ms -> 480
+            Dim r2 = t.Feed(960, DevBase + 480L, T0 + 100000L)   ' 20ms -> 1440
+            Dim r3 = t.Feed(240, DevBase + 1440L, T0 + 300000L)  ' 5ms  -> 1680
+            Dim r4 = t.Feed(480, DevBase + 1680L, T0 + 350000L)  ' 10ms -> 2160
             Assert(r2.Hole100ns = 0L AndAlso r3.Hole100ns = 0L AndAlso r4.Hole100ns = 0L,
                    "all variable-size transitions continuous")
-            Assert(t.LastEnd100ns = T0 + 450000L, "final lastEnd exact")
+            Assert(t.LastEnd100ns = T0 + 450000L, "final lastEnd exact (45ms of content)")
             Assert(t.GapPackets = 0L, "no gaps counted")
         End Sub
 
@@ -480,7 +514,7 @@ Namespace CaptureEngine.FFmpegTests
             ' 360,000 packets x 10ms = exactly 1 hour. Integer math must
             ' land EXACTLY — this is the no-drift guarantee behind P13.4.
             For i As Long = 0 To 359999L
-                t.Feed(480, T0 + i * Pkt10ms)
+                t.Feed(480, DevBase + i * 480L, T0 + i * Pkt10ms)
             Next
             Assert(t.Packets = 360000L, "packet count")
             Assert(t.GapPackets = 0L, "zero gaps over 1h")
@@ -500,12 +534,13 @@ Namespace CaptureEngine.FFmpegTests
 
         Private Sub Test_WPosReset()
             Dim t As New AudioPositionTracker(48000)
-            t.Feed(480, T0)
+            t.Feed(480, DevBase, T0)
             t.Reset()
             Assert(Not t.Anchored, "Reset clears anchor")
-            Dim rep = t.Feed(480, T0 + 987654321L)
+            Dim rep = t.Feed(480, DevBase + 987654321L, T0 + 987654321L)
             Assert(rep.AnchoredNow, "next packet re-anchors (device switch)")
             Assert(t.FirstQpc100ns = T0 + 987654321L, "new anchor stamp")
+            Assert(t.FirstDevPos = DevBase + 987654321L, "new cursor base")
             Assert(rep.Hole100ns = 0L, "no hole across reset — new timeline")
         End Sub
 
@@ -583,7 +618,7 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Assert(Not tap.Anchored, "starts unanchored")
-            tap.Feed(MakeBuf(480), MakeBuf(480).Length, T0)
+            tap.Feed(MakeBuf(480), MakeBuf(480).Length, DevBase, T0)
             Assert(tap.Anchored, "anchored after first feed")
             Assert(tap.FirstQpc100ns = T0, "FirstQpc100ns = first stamp")
             Assert(tap.SilenceInsertedBytes = 0L, "anchor inserts no silence")
@@ -596,7 +631,7 @@ Namespace CaptureEngine.FFmpegTests
             Dim tap = NewTap(col)
             For i As Integer = 0 To 299
                 Dim b As Byte() = MakeBuf(480)
-                tap.Feed(b, b.Length, T0 + i * Pkt10ms)
+                tap.Feed(b, b.Length, DevBase + i * 480L, T0 + i * Pkt10ms)
             Next
             Assert(tap.SilenceInsertedBytes = 0L, "continuous stream: zero silence")
             Assert(tap.Packets = 300L, "300 packets")
@@ -608,11 +643,11 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
-            ' 250ms gap: next packet starts at T0 + 10ms + 250ms.
-            Dim holeQpc As Long = T0 + Pkt10ms + 2500000L
+            tap.Feed(b0, b0.Length, DevBase, T0)
+            ' 250ms CONTENT gap: the cursor jumps 12,000 frames (250ms @48k).
+            Dim holeFrames As Long = 12000L
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, holeQpc)
+            tap.Feed(b1, b1.Length, DevBase + 480L + holeFrames, T0 + Pkt10ms + 2500000L)
             ' Expected pad = 250ms at 192,000 B/s = 480,000 bytes (frame-
             ' aligned: a multiple of 4).
             Dim expected As Long = 2500000L * 192000L \ 10000000L
@@ -628,9 +663,9 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
+            tap.Feed(b0, b0.Length, DevBase, T0)
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 300000L)  ' 30ms hole
+            tap.Feed(b1, b1.Length, DevBase + 480L + 1440L, T0 + Pkt10ms + 300000L)  ' 30ms hole (1440 frames)
             ' P13.4b: sub-50ms holes are PADDED — hardware-measured time is
             ' real time; the old 50ms floor compressed the track (field
             ' evidence: −50ms/s drift on the OWNER machine).
@@ -645,9 +680,9 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
+            tap.Feed(b0, b0.Length, DevBase, T0)
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 72000000000L)  ' 2h gap
+            tap.Feed(b1, b1.Length, DevBase + 480L + 345600000L, T0 + Pkt10ms)  ' 2h cursor jump
             Assert(tap.SilenceInsertedBytes = 0L, "over-cap hole: NOT padded")
             Assert(col.Total = 2L * 480L * 4L, "only the two packets written")
         End Sub
@@ -656,12 +691,13 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
+            tap.Feed(b0, b0.Length, DevBase, T0)
             Dim b1 As Byte() = MakeBuf(480)
-            ' Starts 10ms BEFORE the previous end (overlap).
-            tap.Feed(b1, b1.Length, T0 - Pkt10ms)
+            ' Cursor 10ms IN THE PAST (overlap). Violation flagged, no hole,
+            ' timeline takes max(prevEnd, newEnd) — NEVER rewinds.
+            tap.Feed(b1, b1.Length, DevBase - 480L, T0 - Pkt10ms)
             Assert(tap.MonotonicViolations = 1L, "violation reported")
-            Assert(tap.SilenceInsertedBytes = 0L, "no silence on backwards stamp")
+            Assert(tap.SilenceInsertedBytes = 0L, "no silence on backwards cursor")
             Assert(tap.LastEnd100ns = T0 + Pkt10ms, "timeline not rewound (max policy)")
         End Sub
 
@@ -669,9 +705,9 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
+            tap.Feed(b0, b0.Length, DevBase, T0)
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, 0L)   ' Risk #2: stampless packet
+            tap.Feed(b1, b1.Length, 0L, T0 + Pkt10ms)   ' Risk #2: cursorless packet
             Assert(tap.StampFallbacks = 1L, "fallback counted")
             Assert(tap.SilenceInsertedBytes = 0L, "continuity — no hole")
             Assert(tap.LastEnd100ns = T0 + 2L * Pkt10ms, "timeline advanced by duration")
@@ -681,28 +717,33 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, 0L)   ' stampless ANCHOR (fallback anchor)
+            tap.Feed(b0, b0.Length, 0L, T0)   ' cursorless ANCHOR (fallback anchor)
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, T0)   ' first REAL stamp
-            Assert(tap.FirstQpc100ns = T0, "re-anchored at the real stamp")
-            Assert(tap.SilenceInsertedBytes = 0L, "NO stream-sized fake hole")
+            tap.Feed(b1, b1.Length, 0L, T0 + Pkt10ms)   ' still cursorless
             Dim b2 As Byte() = MakeBuf(480)
-            tap.Feed(b2, b2.Length, T0 + Pkt10ms)
+            tap.Feed(b2, b2.Length, DevBase, T0 + 2L * Pkt10ms)   ' first REAL cursor
+            Assert(tap.FirstQpc100ns = T0, "wall anchor PRESERVED (track starts at T0)")
+            Assert(tap.SilenceInsertedBytes = 0L, "NO stream-sized fake hole")
+            Dim b3 As Byte() = MakeBuf(480)
+            tap.Feed(b3, b3.Length, DevBase + 480L, T0 + 3L * Pkt10ms)
             Assert(tap.SilenceInsertedBytes = 0L, "continuity after re-anchor")
-            Assert(tap.StampFallbacks = 1L, "fallback counted once (not re-corrupted)")
+            Assert(tap.StampFallbacks = 2L, "fallbacks counted once each (not re-corrupted)")
         End Sub
 
         Private Sub Test_ATDCBlockAlign()
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
-            ' Hole of 1234567 ticks (123.4567ms) — not a whole number of
-            ' 4-byte frames. Semantics = the proven legacy tap: CInt ROUND
-            ' to bytes (banker's), then floor to the frame grid.
+            tap.Feed(b0, b0.Length, DevBase, T0)
+            ' Cursor jump of 5926 frames — its content time (frames×1e7/48000
+            ' = 1,234,583 ticks) is NOT a whole number of 4-byte frames.
+            ' Semantics = the proven legacy tap: floor to the frame grid.
+            Dim holeFrames As Long = 5926L
+            Dim holeTicks As Long = holeFrames * 10000000L \ 48000L
             Dim b1 As Byte() = MakeBuf(480)
-            tap.Feed(b1, b1.Length, T0 + Pkt10ms + 1234567L)
-            Dim expected As Long = (CLng(1234567L / 10000000.0 * 192000.0) \ 4L) * 4L
+            tap.Feed(b1, b1.Length, DevBase + 480L + holeFrames, T0 + Pkt10ms + holeTicks)
+            Dim expected As Long = CLng(holeTicks / 10000000.0 * 192000.0)
+            expected -= expected Mod 4L
             Assert(tap.SilenceInsertedBytes = expected, $"floored to frame grid: {tap.SilenceInsertedBytes} vs {expected}")
             Assert(tap.SilenceInsertedBytes Mod 4L = 0L, "pad is frame-aligned")
         End Sub
@@ -711,7 +752,7 @@ Namespace CaptureEngine.FFmpegTests
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Dim b0 As Byte() = MakeBuf(480)
-            tap.Feed(b0, b0.Length, T0)
+            tap.Feed(b0, b0.Length, DevBase, T0)
             ' Session ends 800ms after the packet's end.
             Dim endQpc As Long = T0 + Pkt10ms + 8000000L
             tap.FinalizeTo100ns(T0 - 500000L, endQpc)
@@ -740,24 +781,28 @@ Namespace CaptureEngine.FFmpegTests
             Dim tap = NewTap(col)
             Dim oracle As New AudioPositionTracker(48000)
 
-            ' Build: 30 packets, hole of 200ms after #10, 30ms jitter-hole
-            ' after #20, stampless packet at #25, backwards at #28.
-            Dim stamps(29) As Long
-            stamps(0) = T0
+            ' Build: 30 packets, cursor hole of 200ms (9600 frames) after
+            ' #10, 30ms (1440 frames) after #20, cursorless packet at #25,
+            ' backwards cursor at #28.
+            Dim devPos(29) As Long
+            Dim qpcs(29) As Long
+            devPos(0) = DevBase
+            qpcs(0) = T0
             For i As Integer = 1 To 29
-                Dim gapTicks As Long = Pkt10ms
-                If i = 11 Then gapTicks += 2000000L       ' 200ms hole → pad
-                If i = 21 Then gapTicks += 300000L        ' 30ms hole → pad (P13.4b)
-                stamps(i) = stamps(i - 1) + gapTicks
+                Dim gapFrames As Long = 480L
+                If i = 11 Then gapFrames += 9600L        ' 200ms hole → pad
+                If i = 21 Then gapFrames += 1440L        ' 30ms hole → pad (P13.4b)
+                devPos(i) = devPos(i - 1) + gapFrames
+                qpcs(i) = T0 + i * Pkt10ms
             Next
-            stamps(25) = 0L                                ' stampless
-            stamps(28) = stamps(27) - Pkt10ms              ' backwards
+            devPos(25) = 0L                                ' cursorless
+            devPos(28) = devPos(27) - 480L                 ' backwards cursor
 
             Dim policyExcluded As Long = 0
             For i As Integer = 0 To 29
                 Dim b As Byte() = MakeBuf(480)
-                tap.Feed(b, b.Length, stamps(i))
-                Dim rep = oracle.Feed(480, stamps(i))
+                tap.Feed(b, b.Length, devPos(i), qpcs(i))
+                Dim rep = oracle.Feed(480, devPos(i), qpcs(i))
                 If rep.Hole100ns > 36000000000L Then policyExcluded += rep.Hole100ns
             Next
 
@@ -772,19 +817,19 @@ Namespace CaptureEngine.FFmpegTests
 
         Private Sub Test_ATDCManySmallHoles()
             ' P13.4b REGRESSION (the OWNER-machine pathology): many tiny
-            ' holes (1ms each) between packets. The old 50ms policy dropped
-            ' every one of them — a 1.1s wall-clock span produced a 1.0s
-            ' track (~9% compression). The track duration must now equal
-            ' the wall-clock span EXACTLY.
+            ' holes (1ms = 48 frames each) between packets. The old 50ms
+            ' policy dropped every one of them — a 1.1s wall-clock span
+            ' produced a 1.0s track (~9% compression). The track duration
+            ' must now equal the wall-clock span EXACTLY.
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
             Const N As Integer = 100
             For i As Integer = 0 To N - 1
                 Dim b As Byte() = MakeBuf(480)
-                tap.Feed(b, b.Length, T0 + i * (Pkt10ms + 10000L))  ' 10ms data + 1ms hole
+                tap.Feed(b, b.Length, DevBase + i * 528L, T0 + i * 110000L)  ' 10ms data + 1ms hole
             Next
             ' N−1 holes: the FIRST packet anchors the timeline (no hole).
-            ' 1ms = 10,000 ticks (100ns) → 192B of silence per hole.
+            ' 1ms = 48 frames @48k → 192B of silence per hole.
             Dim expectedHoleBytes As Long = CLng(N - 1) * 10000L * 192000L \ 10000000L
             Assert(tap.SilenceInsertedBytes = expectedHoleBytes,
                    $"every 1ms hole padded: {tap.SilenceInsertedBytes} vs {expectedHoleBytes}")
@@ -792,6 +837,25 @@ Namespace CaptureEngine.FFmpegTests
             ' Track duration == wall-clock span: 99×(10+1)ms + 10ms = 1.099s.
             Assert(Math.Abs(tap.TotalDurationSec - 1.099) < 0.0001,
                    $"track duration == wall-clock span: {tap.TotalDurationSec}")
+        End Sub
+
+        Private Sub Test_ATDCQpcJitterImmunity()
+            ' ★ P13.4c REGRESSION at the tap level: the OWNER machine fired
+            ' 933 backwards qpc stamps per session. With the cursor timeline
+            ' the qpc noise must produce ZERO silence and leave the timeline
+            ' exact — only the anomaly counter moves.
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim lies() As Long = {T0, T0 - 500000000L, T0 + 1000000000L,
+                                  T0 - 3000000000L, T0 + 250000000L}
+            For i As Integer = 0 To 99
+                Dim b As Byte() = MakeBuf(480)
+                tap.Feed(b, b.Length, DevBase + i * 480L, lies(i Mod lies.Length))
+            Next
+            Assert(tap.SilenceInsertedBytes = 0L, "qpc jitter → zero silence padded")
+            Assert(tap.QpcAnomalies > 0L, "jitter still counted as evidence")
+            Assert(tap.LastEnd100ns = T0 + 100L * Pkt10ms, "timeline exact despite qpc lies")
+            Assert(col.Total = 100L * 480L * 4L, "all data bytes forwarded once")
         End Sub
 
         ' ===== SYNC2 — SyncMath v2 exact QPC anchors (P13.4) =====

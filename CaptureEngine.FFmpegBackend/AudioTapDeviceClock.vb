@@ -12,15 +12,19 @@ Option Infer On
 '                drift baselines, idle gates — a graveyard of band-aids for
 '                one missing timestamp.
 '
-'   v3 (this file): Feed(buffer, count, qpcPosition100ns) — WASAPI already
-'                stamps every packet with the device's QPC of its first
-'                frame (P13.1 evidence). The gap between packets is measured
-'                by HARDWARE, not guessed: hole = qpc − lastEnd (END→START,
-'                valid for variable packet sizes — P13.2 precision note).
-'                Silence math keys off qpcPosition deltas ONLY — never off
-'                the SILENT flag bit (Model S: the flag appears only on the
-'                stream-start packet; the endpoint renders silence through
-'                quiet phases and the timeline advances on its own).
+'   v3 (this file): Feed(buffer, count, devicePositionFrames, qpcPosition100ns)
+'                — WASAPI stamps every packet with the RENDER CURSOR of its
+'                first frame (DevicePositionFrames — P13.1 evidence) plus
+'                the qpc of the SAMPLING moment. The gap between packets is
+'                measured on the CURSOR (content time — silence included),
+'                hole = devPos − lastEnd (END→START, valid for variable
+'                packet sizes). Silence math keys off CURSOR deltas ONLY —
+'                ★ P13.4c: the OLD qpc-delta math was wrong in principle —
+'                qpcPosition is WHEN the position was sampled, not where the
+'                content is; the OWNER machine fired 933 backwards qpc stamps
+'                per 38s session and the qpc timeline lost 5.65s of device
+'                time. The qpc survives as the WALL ANCHOR (FirstQpc100ns →
+'                SyncMath) + anomaly counter (evidence, no timeline effect).
 '
 ' Delegated to AudioPositionTracker (P13.2, 13 synthetic-position tests):
 ' hole measurement, Risk-#2 zero-stamp fallback (continuity, no bogus gap),
@@ -85,6 +89,7 @@ Namespace CaptureEngine.FFmpegBackend
         Private _subThresholdHoles As Long = 0
         Private _subThresholdHole100ns As Long = 0
         Private _violationEvents As Long = 0
+        Private _qpcAnomalyEvents As Long = 0
 
         ''' <summary>
         ''' Create the tap. The (sampleRate, channels, bitsPerSample) triple
@@ -202,27 +207,37 @@ Namespace CaptureEngine.FFmpegBackend
             End Get
         End Property
 
+        ''' <summary>qpcPosition backwards events — wall-domain sampling noise,
+        ''' ZERO timeline effect since P13.4c (evidence only).</summary>
+        Public ReadOnly Property QpcAnomalies As Long
+            Get
+                Return _tracker.QpcAnomalies
+            End Get
+        End Property
+
         ' ── The v3 entry point ──────────────────────────────────────────
 
         ''' <summary>
-        ''' Feed one raw PCM buffer together with the WASAPI hardware stamp
-        ''' of its first frame (100ns domain, as normalized by
-        ''' WasapiPositionCapture). Inserts measured-gap silence BEFORE the
-        ''' buffer, then forwards both to the sink. Call from the packet
-        ''' delivery thread, serially.
+        ''' Feed one raw PCM buffer together with the WASAPI stamps of its
+        ''' first frame: the RENDER CURSOR (DevicePositionFrames — the content
+        ''' timeline, P13.4c) and the wall anchor (qpcPosition100ns, consumed
+        ''' only for FirstQpc100ns + anomaly evidence). Inserts measured-gap
+        ''' silence BEFORE the buffer, then forwards both to the sink. Call
+        ''' from the packet delivery thread, serially.
         ''' </summary>
-        Public Sub Feed(buffer As Byte(), count As Integer, qpcPosition100ns As Long)
+        Public Sub Feed(buffer As Byte(), count As Integer,
+                        devicePositionFrames As Long, qpcPosition100ns As Long)
             If buffer Is Nothing OrElse count <= 0 OrElse count > buffer.Length Then Return
 
             Dim frames As Integer = count \ _bytesPerFrame
             If frames <= 0 Then Return
 
-            Dim report As AudioGapReport = _tracker.Feed(frames, qpcPosition100ns)
+            Dim report As AudioGapReport = _tracker.Feed(frames, devicePositionFrames, qpcPosition100ns)
 
             If report.ReAnchoredNow Then
                 _evidence?.Invoke($"[tap3:{_name}] re-anchored after fallback anchor (driver began stamping) — no hole fabricated")
             ElseIf report.AnchoredNow Then
-                _evidence?.Invoke($"[tap3:{_name}] anchored at qpc {report.LastEnd100ns - report.BufferDur100ns} (100ns); buffer {report.BufferDur100ns / 100000.0:0.0}ms")
+                _evidence?.Invoke($"[tap3:{_name}] anchored at qpc {report.LastEnd100ns - report.BufferDur100ns} (100ns); buffer {report.BufferDur100ns / 10000.0:0.0}ms")
             End If
 
             ' The hole (END→START) IS the silence. P13.4b: EVERY measured
@@ -253,9 +268,15 @@ Namespace CaptureEngine.FFmpegBackend
 
             If report.MonotonicViolation Then
                 Dim ev As Long = Interlocked.Increment(_violationEvents)
-                ' Throttle: the OWNER machine fired 135 of these per session.
+                ' Throttle: the OWNER machine fired 933 of these per session.
                 If ev = 1L OrElse ev Mod 50L = 0L Then
-                    _evidence?.Invoke($"[tap3:{_name}] backwards stamp absorbed (no rewind) — event #{ev}")
+                    _evidence?.Invoke($"[tap3:{_name}] cursor backwards/overlap absorbed (no rewind) — event #{ev}")
+                End If
+            End If
+            If report.QpcAnomaly Then
+                Dim qe As Long = Interlocked.Increment(_qpcAnomalyEvents)
+                If qe = 1L OrElse qe Mod 50L = 0L Then
+                    _evidence?.Invoke($"[tap3:{_name}] qpc jitter (wall-domain noise, no timeline effect) — event #{qe}")
                 End If
             End If
             If report.StampFallbackUsed Then
@@ -288,7 +309,7 @@ Namespace CaptureEngine.FFmpegBackend
             If tail100ns > 0 Then
                 PadSilence(tail100ns / 10000000.0, "tail to session end")
             End If
-            _evidence?.Invoke($"[tap3:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s holes={HolePackets} (sub-50ms: {Interlocked.Read(_subThresholdHoles)} = {Interlocked.Read(_subThresholdHole100ns) / 100000.0:0.0}ms) fallbacks={StampFallbacks} violations={MonotonicViolations}")
+            _evidence?.Invoke($"[tap3:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s holes={HolePackets} (sub-50ms: {Interlocked.Read(_subThresholdHoles)} = {Interlocked.Read(_subThresholdHole100ns) / 100000.0:0.0}ms) fallbacks={StampFallbacks} cursorViolations={MonotonicViolations} qpcJitter={QpcAnomalies}")
         End Sub
 
         ' ── Internals ───────────────────────────────────────────────────

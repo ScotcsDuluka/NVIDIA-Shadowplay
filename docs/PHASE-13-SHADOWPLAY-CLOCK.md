@@ -269,6 +269,40 @@ First OWNER sync-verify run on real hardware broke two §3.2 assumptions:
 Regression suite: `ATDC: Many 1ms holes — track == wall-clock span`,
 `ATDC: Sub-50ms hole padded + counted`, `SYNC2: Anchor guards ±3600s`.
 
+### 6.2 P13.4c — qpc deltas are NOT a content clock (2026-08-29)
+
+Second OWNER run (post-P13.4b) still failed: mean −48.3ms, spread 471ms,
+audio 32.93s vs video 38.56s. The log decoded it: session 38.56s REAL
+(video honest — 2312 frames @ container 60fps), tap closed at 32.66s →
+**5.65s of device time missing even with every hole padded**, and
+`violations=933` — the endpoint's qpcPosition went BACKWARDS 24×/second.
+
+Root cause (design-level): `qpcPosition` from GetBuffer is WHEN the device
+position was SAMPLED (wall domain), not where the content is. Sampling
+jitter + lying drivers (USB/BT/DSP paths) make qpc DELTAS useless as a
+content timeline: backwards jumps get absorbed (max policy — no pad), and
+stale qpc values shrink the mapped span. The P13.3 "device clock" was
+misnamed — it consumed the wall clock.
+
+**Fix: the timeline now consumes `DevicePositionFrames`** — the RENDER
+CURSOR, which advances with rendered content (silence included):
+`hole = (devPos − lastDevPosEnd) × 10⁷ / rate` in CONTENT time. qpc is
+demoted to (a) the wall anchor `FirstQpc100ns` for SyncMath and (b) an
+anomaly counter (`QpcAnomalies` — evidence only, zero timeline effect).
+Cursorless packets (devPos=0, Risk #2) keep continuity; a cursorless
+ANCHOR is resolved by BACKFILLING the implied cursor base
+(`devPos − Σ(cursorless frames)`) on the first real cursor — the qpc wall
+anchor of the first packet is preserved, so the track still starts at the
+true session start. Regression suites: `WPOS: qpc jitter immunity`,
+`ATDC: qpc jitter immunity` (wild qpc lies ±minutes → zero holes, exact
+timeline, anomalies counted).
+
+Video note from the same evidence: the CFR loop targets `_capture.Output
+RefreshRate` (75Hz on this machine) but Thread.Sleep quantization delivers
+~59.96fps while the container declares 60 — the two agree, so the video
+timeline stays wall-honest (accidentally correct); frame RATE quality at
+75Hz displays is a separate, non-sync issue.
+
 ## 7. P13.4.1 — BeginTimelines race fix (pre-OWNER-test hardening)
 
 **Found during the pre-Windows-test code review (container session,
