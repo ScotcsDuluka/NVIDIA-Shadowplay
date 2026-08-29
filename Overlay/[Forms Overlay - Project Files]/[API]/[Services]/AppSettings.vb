@@ -128,9 +128,13 @@ Partial Public Class AppSettings
         ' ═══════════════════════════════════════════════════════════════════════
 
         ''' <summary>
-        ''' Legacy: Mic volume as integer (0-100) - converted to MicVolume
+        ''' Legacy: Mic volume as integer (0-100) - converted to MicVolume.
+        ''' Computed duplicate — never persisted (JsonIgnore): it exists only
+        ''' so old callers can keep passing percent values; config.json
+        ''' carries the real MicVolume only.
         ''' </summary>
         <Obsolete("Use MicVolume instead")>
+        <JsonIgnore>
         Public Property MicVolumePercent As Integer
             Get
                 Return CInt(MicVolume * 100)
@@ -141,9 +145,11 @@ Partial Public Class AppSettings
         End Property
 
         ''' <summary>
-        ''' Legacy: System volume as integer (0-100) - converted to SystemAudioVolume
+        ''' Legacy: System volume as integer (0-100) - converted to SystemAudioVolume.
+        ''' Computed duplicate — never persisted (JsonIgnore), same as MicVolumePercent.
         ''' </summary>
         <Obsolete("Use SystemAudioVolume instead")>
+        <JsonIgnore>
         Public Property SystemVolumePercent As Integer
             Get
                 Return CInt(SystemAudioVolume * 100)
@@ -230,36 +236,9 @@ Partial Public Class AppSettings
         Public Property LastLogin As DateTime = DateTime.MinValue
     End Class
 
-    ''' <summary>
-    ''' GitHub Token สำหรับ OAuth
-    ''' ✅ P1: stored encrypted (DPAPI, CurrentUser scope) in config.json as
-    ''' GitHubTokenEncrypted. Never written to disk as plain text. The plain
-    ''' GitHubToken property below is computed (decrypt-on-read) and only
-    ''' exists in memory. On first load after upgrade, an old plain-text
-    ''' GitHubToken value is automatically migrated to encrypted form.
-    ''' </summary>
-    Public Property GitHubUser As New GitHubUserClass()
-
-    ''' <summary>Encrypted GitHub token (Base64 of DPAPI-protected bytes). Persisted.</summary>
-    <JsonPropertyName("GitHubTokenEncrypted")>
-    Public Property GitHubTokenEncrypted As String = ""
-
-    ''' <summary>
-    ''' Plain-text GitHub token. NOT serialized to JSON (JsonIgnore on the
-    ''' backing field below). Reading it decrypts GitHubTokenEncrypted; writing
-    ''' it encrypts and stores in GitHubTokenEncrypted. On failed decrypt the
-    ''' getter returns "" (treats token as missing).
-    ''' </summary>
-    <JsonIgnore>
-    Public Property GitHubToken As String
-        Get
-            Return DecryptToken(GitHubTokenEncrypted)
-        End Get
-        Set(value As String)
-            GitHubTokenEncrypted = EncryptToken(value)
-        End Set
-    End Property
-
+    ' ── GitHub account + token persistence — declared in the Config
+    ' Sections region AFTER Hotkeys, so serialization order keeps config.json
+    ' in Settings-page order with the account block last.
     ' ── DPAPI helpers ─────────────────────────────────────────
     Private Shared Function EncryptToken(plain As String) As String
         If String.IsNullOrEmpty(plain) Then Return ""
@@ -297,6 +276,40 @@ Partial Public Class AppSettings
     Public Property Notifications As New NotificationsSettingsClass()
 
     Public Property Hotkeys As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
+
+    ' ── GitHub account block LAST — declaration order = config.json key
+    ' order, so the file opens with the app sections (Recording → Hotkeys)
+    ' and closes with the account block.
+
+    ''' <summary>
+    ''' GitHub account + token persistence.
+    ''' ✅ P1: token stored encrypted (DPAPI, CurrentUser scope) in config.json
+    ''' as GitHubTokenEncrypted. Never written to disk as plain text. The
+    ''' plain GitHubToken property below is computed (decrypt-on-read) and
+    ''' only exists in memory. On first load after upgrade, an old plain-text
+    ''' GitHubToken value is automatically migrated to encrypted form.
+    ''' </summary>
+    Public Property GitHubUser As New GitHubUserClass()
+
+    ''' <summary>Encrypted GitHub token (Base64 of DPAPI-protected bytes). Persisted.</summary>
+    <JsonPropertyName("GitHubTokenEncrypted")>
+    Public Property GitHubTokenEncrypted As String = ""
+
+    ''' <summary>
+    ''' Plain-text GitHub token. NOT serialized to JSON (JsonIgnore on the
+    ''' backing field below). Reading it decrypts GitHubTokenEncrypted; writing
+    ''' it encrypts and stores in GitHubTokenEncrypted. On failed decrypt the
+    ''' getter returns "" (treats token as missing).
+    ''' </summary>
+    <JsonIgnore>
+    Public Property GitHubToken As String
+        Get
+            Return DecryptToken(GitHubTokenEncrypted)
+        End Get
+        Set(value As String)
+            GitHubTokenEncrypted = EncryptToken(value)
+        End Set
+    End Property
 #End Region
 
 #Region "Singleton"
@@ -770,9 +783,14 @@ Partial Public Class AppSettings
                 Overlay.UseOverlayEnabled = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", Overlay.UseOverlayEnabled)
 
                 Dim options As New JsonSerializerOptions With {
-                    .WriteIndented = True,
-                    .DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+                    .WriteIndented = True
                 }
+                ' NOTE: no DefaultIgnoreCondition — null fields are written
+                ' explicitly (e.g. "MyLowFPS": null) so config.json always
+                ' shows the FULL schema: every section, every key, in a
+                ' stable order. All readers are null-tolerant (typed mirror
+                ' models on the Overlay/Engine sides, TryGetValue fallbacks
+                ' in AppConfigShared, and value-type keys are never null).
 
                 Dim json As String = JsonSerializer.Serialize(Me, options)
                 WriteConfigFileAtomic(json)
