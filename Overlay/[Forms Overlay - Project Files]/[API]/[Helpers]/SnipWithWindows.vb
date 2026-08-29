@@ -5,12 +5,7 @@ Partial Public Class Base
     Private OverlayOpen As Boolean = False
 
     Private Async Sub SnipWithWindows()
-        If Me.Opacity = 0 Then
-            OverlayOpen = False
-        Else
-            OverlayOpen = True
-
-        End If
+        OverlayOpen = (Me.Opacity <> 0)
         HideAllControls()
         For Each s In shas
             If s IsNot Nothing Then s.Hide()
@@ -19,11 +14,7 @@ Partial Public Class Base
 
         _snipPending = True
         AddClipboardFormatListener(Me.Handle)
-        _snipPending = True
-        AddClipboardFormatListener(Me.Handle)
         HookKeyboard()
-        Process.Start(New ProcessStartInfo("ms-screenclip:") With {.UseShellExecute = True})
-
         Process.Start(New ProcessStartInfo("ms-screenclip:") With {.UseShellExecute = True})
     End Sub
 

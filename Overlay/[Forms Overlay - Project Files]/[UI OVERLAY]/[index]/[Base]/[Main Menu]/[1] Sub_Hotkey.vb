@@ -91,14 +91,6 @@ Partial Public Class Base
     Private Sub TestNotifier() Handles _hotkeyService.Key_TestNotifier
         If IF_OpenShare = False Then Return
         ShowNotifier("notificationOpenShare")
-
-
-
-    End Sub
-
-    Private Sub Run_Web() Handles _hotkeyService.Key_Web
-        If IF_OpenShare = False Then Return
-
     End Sub
 
 #End Region

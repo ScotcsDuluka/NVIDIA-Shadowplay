@@ -1,5 +1,6 @@
 ﻿Imports System.IO
 Imports System.Runtime.InteropServices
+Imports System.Text.RegularExpressions
 
 Public Module Logger
 
@@ -27,7 +28,6 @@ Public Module Logger
                     Console.Write(ts & " ")
                     Console.ForegroundColor = ConsoleColor.White
                     Console.WriteLine(message)
-                    Console.ForegroundColor = ConsoleColor.White
                 Catch
                 End Try
             End SyncLock
@@ -37,31 +37,8 @@ Public Module Logger
 
 
     Private Sub RedirectDebugToConsole()
-        Try
-            ' ★ VB.NET GetType() keyword = compile-time type lookup — ไม่พึ่ง string/assembly
-            Dim debugType As Global.System.Type = GetType(Global.System.Diagnostics.Debug)
-            If debugType Is Nothing Then Return
-
-            ' ดึง Property "Listeners" แบบ Reflection
-            Dim listenersProp As Global.System.Reflection.PropertyInfo = debugType.GetProperty("Listeners")
-            If listenersProp Is Nothing Then Return
-
-            Dim listenersObj As Object = listenersProp.GetValue(Nothing)
-            If listenersObj Is Nothing Then Return
-
-            ' Clear เดิมออก
-            Dim clearMethod As Global.System.Reflection.MethodInfo = listenersObj.GetType().GetMethod("Clear")
-            If clearMethod IsNot Nothing Then clearMethod.Invoke(listenersObj, Nothing)
-
-            ' Add LoggerTraceListener เข้าไป
-            Dim listenerType As Global.System.Type = GetType(Global.System.Diagnostics.TraceListener)
-            Dim addMethod As Global.System.Reflection.MethodInfo = listenersObj.GetType().GetMethod("Add", New Global.System.Type() {listenerType})
-            If addMethod IsNot Nothing Then
-                addMethod.Invoke(listenersObj, New Object() {New LoggerTraceListener()})
-            End If
-
-        Catch
-        End Try
+        Debug.Listeners.Clear()
+        Debug.Listeners.Add(New LoggerTraceListener())
     End Sub
 
 #End Region
@@ -154,7 +131,6 @@ Public Module Logger
                 _ctrlHandler = New HandlerRoutine(AddressOf ConsoleCtrlHandler)
                 SetConsoleCtrlHandler(_ctrlHandler, True)
 
-                ' ★ Redirect Debug.WriteLine มา console ด้วย Reflection ★
                 RedirectDebugToConsole()
 
                 _isStarted = True
@@ -243,37 +219,24 @@ Public Module Logger
         End Get
     End Property
 
-    ''' <summary>
-    ''' อ่านค่า DebugEnabled จาก config.json แล้วเปิด console อัตโนมัติ
-    ''' เรียกครั้งเดียวตอน app start: Logger.AutoStart()
-    ''' </summary>
+    ''' <summary>Auto-start the console unless config.json says DebugEnabled = false.</summary>
     Public Sub AutoStart(Optional title As String = "Logger")
         Try
+            Dim enabled As Boolean = True   ' default: console on
             Dim cfg As String = AppLayout.P("Config", "config.json")
             If IO.File.Exists(cfg) Then
                 Dim json As String = IO.File.ReadAllText(cfg)
-
-                ' ค้นหา "DebugEnabled" : true / false แบบง่ายๆ ไม่พึ่ง JsonDocument
-                If json.Contains("DebugEnabled") Then
-                    Dim enabled As Boolean = True ' default
-
-                    ' หา pattern: "DebugEnabled" : false หรือ "DebugEnabled": false
-                    If System.Text.RegularExpressions.Regex.IsMatch(json, """DebugEnabled""\s*:\s*false", System.Text.RegularExpressions.RegexOptions.IgnoreCase) Then
-                        enabled = False
-                    End If
-
-                    If enabled Then
-                        Start(title)
-                        D("Logger", "AutoStart: DebugEnabled = true")
-                        Return
-                    Else
-                        D("Logger", "AutoStart: DebugEnabled = false — console disabled")
-                        Return
-                    End If
+                If Regex.IsMatch(json, """DebugEnabled""\s*:\s*false", RegexOptions.IgnoreCase) Then
+                    enabled = False
                 End If
             End If
-            ' ไม่มี config หรือไม่มี key → เปิดเลย (default)
-            Start(title)
+
+            If enabled Then
+                Start(title)
+                D("Logger", "AutoStart: DebugEnabled = true")
+            Else
+                D("Logger", "AutoStart: DebugEnabled = false — console disabled")
+            End If
         Catch
             Start(title)
         End Try

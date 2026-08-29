@@ -19,7 +19,6 @@ Module UpdateHelper
 
                 Dim latestVer As New Version(If(json("version") IsNot Nothing, json("version").ToString(), "0.0.0.0"))
                 Dim downloadUrl As String = If(json("download_url") IsNot Nothing, json("download_url").ToString(), "")
-                Dim versionStats As String = If(json("version_stats") IsNot Nothing, json("version_stats").ToString(), "")
                 Dim currentVer As New Version(Assembly.GetExecutingAssembly().GetName().Version.ToString())
 
 
@@ -38,7 +37,6 @@ Module UpdateHelper
             End Using
 
         Catch ex As Exception
-            ' เกิด Error
             Dim dataFolder As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data")
             If Not Directory.Exists(dataFolder) Then Directory.CreateDirectory(dataFolder)
             Base.ShowNotifier("notificationErrorGeneral")
