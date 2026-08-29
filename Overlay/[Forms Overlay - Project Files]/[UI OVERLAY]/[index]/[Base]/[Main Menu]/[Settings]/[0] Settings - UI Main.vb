@@ -96,14 +96,16 @@ Public Class Base_Settings
         _obsCfg = ObsConfig.Load()
         If _obsCfg Is Nothing Then _obsCfg = New ObsConfig()
         _obsLoading = True
-        ObsEnabledToggle.IsOn = _obsCfg.Enabled
+        ' Guard: the toggle's instance lives in the Designer.vb and can be
+        ' stripped by hand edits — never let that NRE the whole page.
+        If ObsEnabledToggle IsNot Nothing Then ObsEnabledToggle.IsOn = _obsCfg.Enabled
         HOST_BOX.Text = _obsCfg.Host
         PORT_BOX.Text = _obsCfg.Port.ToString()
         KEY_BOX.Text = _obsCfg.Password
         _obsLoading = False
     End Sub
 
-    Private Sub ObsEnabledToggle_ValueChanged(sender As Object, e As EventArgs)
+    Private Sub ObsEnabledToggle_ValueChanged(sender As Object, e As EventArgs) Handles ObsEnabledToggle.ValueChanged
         If _obsLoading OrElse _obsCfg Is Nothing Then Return
         _obsCfg.Enabled = ObsEnabledToggle.IsOn
         _obsCfg.Save()
