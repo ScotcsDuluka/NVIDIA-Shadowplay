@@ -54,19 +54,11 @@
         <!-- Build number / assembly version -->
         <Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
 
-                <WriteLinesToFile
-            File="$(MSBuildProjectDirectory)\build.txt"
-            Lines="100"
-            Overwrite="false"
-            Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
+                <WriteLinesToFile File="$(MSBuildProjectDirectory)\build.txt" Lines="100" Overwrite="false" Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
 
-                <Exec
-            Command="bash $(MSBuildProjectDirectory)/inc_build.sh $(MSBuildProjectDirectory)/build.txt"
-            Condition=" '$(OS)' != 'Windows_NT'" />
+                <Exec Command="bash $(MSBuildProjectDirectory)/inc_build.sh $(MSBuildProjectDirectory)/build.txt" Condition=" '$(OS)' != 'Windows_NT'" />
 
-                <Exec
-            Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$f='$(MSBuildProjectDirectory)\build.txt'; $n=[int](Get-Content $f -Raw).Trim(); Set-Content $f ($n+1)&quot;"
-            Condition=" '$(OS)' == 'Windows_NT'" />
+                <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$f='$(MSBuildProjectDirectory)\build.txt'; $n=[int](Get-Content $f -Raw).Trim(); Set-Content $f ($n+1)&quot;" Condition=" '$(OS)' == 'Windows_NT'" />
 
                 <ReadLinesFromFile File="$(MSBuildProjectDirectory)\build.txt">
                         <Output TaskParameter="Lines" PropertyName="BuildNumber" />
@@ -200,6 +192,12 @@
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\Shadow\s2.vb">
                         <SubType>Form</SubType>
                 </Compile>
+
+                <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[7] Notifications.vb">
+                  <SubType>Form</SubType>
+                </Compile>
+
+                <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[0.1] Empty.vb" />
         </ItemGroup>
 
         <!-- Resources -->
@@ -435,13 +433,9 @@
         <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
                 <!-- Keep old cleanup for symbols/docs only -->
-                <Exec
-            Command="rm -f $(TargetDir)*.pdb $(TargetDir)*.xml"
-            Condition=" '$(OS)' != 'Windows_NT'" />
+                <Exec Command="rm -f $(TargetDir)*.pdb $(TargetDir)*.xml" Condition=" '$(OS)' != 'Windows_NT'" />
 
-                <Exec
-            Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;"
-            Condition=" '$(OS)' == 'Windows_NT'" />
+                <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;" Condition=" '$(OS)' == 'Windows_NT'" />
 
         </Target>
 
