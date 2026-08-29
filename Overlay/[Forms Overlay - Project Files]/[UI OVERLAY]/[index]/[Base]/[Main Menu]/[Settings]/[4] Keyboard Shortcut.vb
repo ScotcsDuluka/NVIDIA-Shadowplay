@@ -26,7 +26,7 @@ Public Class Base_KeySet
 
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        SetWindowLong(Me.Handle, GWL_EXSTYLE, style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW)
+        SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
@@ -75,7 +75,13 @@ Public Class Base_KeySet
         Next
     End Sub
 
+    ' กัน AddHandler ซ้ำ: WireEvents ถูกเรียก 2 ที่ (Main Menu startup + set_key_Load)
+    ' AddHandler ไม่ dedupe — ลงทะเบียนซ้ำ = click label ครั้งเดียว handler ยิงสองรอบ
+    Private _wiredEvents As Boolean = False
+
     Public Sub WireEvents()
+        If _wiredEvents Then Return
+        _wiredEvents = True
         For Each kvp In _keyLabels
             Dim lbl As Label = kvp.Value
             AddHandler lbl.Click, AddressOf HotkeyLabel_Click
