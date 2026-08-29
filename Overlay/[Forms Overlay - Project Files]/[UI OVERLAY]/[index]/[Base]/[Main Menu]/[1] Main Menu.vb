@@ -238,6 +238,7 @@ Partial Public Class Base
                     _snipPending = False
                     RemoveClipboardFormatListener(Me.Handle)
                     Me.BeginInvoke(Sub() UnhookKeyboard())
+                    KillSnipHostAfterDelay(_snipSessionId)   ' เก็บโปรเซส Snipping Tool ทิ้งด้วย
                 End If
             End If
         End If
@@ -541,6 +542,12 @@ Partial Public Class Base
     End Function
 
     Private Sub Base_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        If _snipPending Then
+            ' ปิดแอปตอน snip ยังค้างอยู่ → เก็บ host ของ Windows ทิ้งด้วย
+            ' (sync ได้เพราะแอปกำลังปิดอยู่แล้ว; แต่ถ้าผู้ใช้เปิด Snipping Tool เองอยู่จะไม่ถูกแตะ)
+            _snipPending = False
+            KillSnipHostProcesses()
+        End If
         AppSettings.Instance.Save()
         _hotkeyService?.UnregisterAll()
     End Sub
