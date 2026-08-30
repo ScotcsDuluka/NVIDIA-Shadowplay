@@ -25,8 +25,9 @@ Partial Class Base_Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
         Main_Menu_SET = New Panel()
         Panel = New Panel()
+        Label9 = New Label()
         ObsEnabledToggle = New ToggleSwitch()
-        Panel1 = New Panel()
+        Panel_OBS = New Panel()
         Label8 = New Label()
         HOST_BOX = New TextBox()
         Label7 = New Label()
@@ -57,7 +58,7 @@ Partial Class Base_Settings
         btnImportSettings = New Label()
         Main_Menu_SET.SuspendLayout()
         Panel.SuspendLayout()
-        Panel1.SuspendLayout()
+        Panel_OBS.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
@@ -78,8 +79,9 @@ Partial Class Base_Settings
         ' 
         Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Panel.Controls.Add(Label9)
         Panel.Controls.Add(ObsEnabledToggle)
-        Panel.Controls.Add(Panel1)
+        Panel.Controls.Add(Panel_OBS)
         Panel.Controls.Add(Label1)
         Panel.Controls.Add(Label2)
         Panel.Controls.Add(Label5)
@@ -98,6 +100,18 @@ Partial Class Base_Settings
         Panel.Size = New Size(1135, 817)
         Panel.TabIndex = 74
         ' 
+        ' Label9
+        ' 
+        Label9.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label9.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Label9.ForeColor = Color.White
+        Label9.Location = New Point(106, 610)
+        Label9.Name = "Label9"
+        Label9.Size = New Size(39, 91)
+        Label9.TabIndex = 147
+        Label9.Text = ""
+        Label9.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' ObsEnabledToggle
         ' 
         ObsEnabledToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -112,19 +126,19 @@ Partial Class Base_Settings
         ObsEnabledToggle.TabIndex = 146
         ObsEnabledToggle.Text = "ToggleSwitch"
         ' 
-        ' Panel1
+        ' Panel_OBS
         ' 
-        Panel1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Panel1.Controls.Add(Label8)
-        Panel1.Controls.Add(HOST_BOX)
-        Panel1.Controls.Add(Label7)
-        Panel1.Controls.Add(Label6)
-        Panel1.Controls.Add(KEY_BOX)
-        Panel1.Controls.Add(PORT_BOX)
-        Panel1.Location = New Point(106, 323)
-        Panel1.Name = "Panel1"
-        Panel1.Size = New Size(774, 188)
-        Panel1.TabIndex = 84
+        Panel_OBS.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Panel_OBS.Controls.Add(Label8)
+        Panel_OBS.Controls.Add(HOST_BOX)
+        Panel_OBS.Controls.Add(Label7)
+        Panel_OBS.Controls.Add(Label6)
+        Panel_OBS.Controls.Add(KEY_BOX)
+        Panel_OBS.Controls.Add(PORT_BOX)
+        Panel_OBS.Location = New Point(106, 323)
+        Panel_OBS.Name = "Panel_OBS"
+        Panel_OBS.Size = New Size(774, 188)
+        Panel_OBS.TabIndex = 84
         ' 
         ' Label8
         ' 
@@ -329,7 +343,7 @@ Partial Class Base_Settings
         Desc_ToastSlots_SUB.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Desc_ToastSlots_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
         Desc_ToastSlots_SUB.ForeColor = Color.White
-        Desc_ToastSlots_SUB.Location = New Point(151, 540)
+        Desc_ToastSlots_SUB.Location = New Point(160, 641)
         Desc_ToastSlots_SUB.Name = "Desc_ToastSlots_SUB"
         Desc_ToastSlots_SUB.Size = New Size(700, 32)
         Desc_ToastSlots_SUB.TabIndex = 87
@@ -342,7 +356,7 @@ Partial Class Base_Settings
         ToggleToastSlot3.ForeColor = Color.Aquamarine
         ToggleToastSlot3.ImeMode = ImeMode.Off
         ToggleToastSlot3.IsOn = False
-        ToggleToastSlot3.Location = New Point(470, 515)
+        ToggleToastSlot3.Location = New Point(354, 517)
         ToggleToastSlot3.Name = "ToggleToastSlot3"
         ToggleToastSlot3.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
         ToggleToastSlot3.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -356,9 +370,9 @@ Partial Class Base_Settings
         Desc_ToastSlots3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Desc_ToastSlots3.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Desc_ToastSlots3.ForeColor = Color.White
-        Desc_ToastSlots3.Location = New Point(524, 511)
+        Desc_ToastSlots3.Location = New Point(408, 513)
         Desc_ToastSlots3.Name = "Desc_ToastSlots3"
-        Desc_ToastSlots3.Size = New Size(271, 28)
+        Desc_ToastSlots3.Size = New Size(201, 28)
         Desc_ToastSlots3.TabIndex = 89
         Desc_ToastSlots3.Text = "Use a third toast slot"
         ' 
@@ -509,8 +523,8 @@ Partial Class Base_Settings
         Main_Menu_SET.ResumeLayout(False)
         Panel.ResumeLayout(False)
         Panel.PerformLayout()
-        Panel1.ResumeLayout(False)
-        Panel1.PerformLayout()
+        Panel_OBS.ResumeLayout(False)
+        Panel_OBS.PerformLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).EndInit()
         CType(Block_AM, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox9, ComponentModel.ISupportInitialize).EndInit()
@@ -542,7 +556,7 @@ Partial Class Base_Settings
     Friend WithEvents Label1 As Label
     Friend WithEvents Label2 As Label
     Friend WithEvents Label5 As Label
-    Friend WithEvents Panel1 As Panel
+    Friend WithEvents Panel_OBS As Panel
     Friend WithEvents PORT_BOX As TextBox
     Friend WithEvents Label8 As Label
     Friend WithEvents HOST_BOX As TextBox
@@ -550,4 +564,5 @@ Partial Class Base_Settings
     Friend WithEvents Label6 As Label
     Friend WithEvents KEY_BOX As TextBox
     Friend WithEvents ObsEnabledToggle As ToggleSwitch
+    Friend WithEvents Label9 As Label
 End Class
