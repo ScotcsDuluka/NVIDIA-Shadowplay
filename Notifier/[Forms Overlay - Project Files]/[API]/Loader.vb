@@ -43,6 +43,9 @@ Partial Public Class Loader
         InitNotifications()
         HideFromAltTab()
 
+        ' T30 RaiseStack: 100ms heartbeat drives reflow / queue / topmost.
+        StartStackHeartbeat()
+
         obsCfg = ObsConfig.Load()
         If obsCfg.Enabled Then
             StartObsBridge()
@@ -477,8 +480,17 @@ Partial Public Class Loader
 
     ' ฟังก์ชัน UpdateNotifier (จัดการ UI)
     ' group = the notification group this toast belongs to (recording /
-    ' replay / per-key fallback - see NotificationGroup). A group that is
-    ' already live updates its own slot; a new group takes a free slot.
+    ' replay / per-key fallback - see NotificationGroup). Routing (T29.3
+    ' slots + T29.4 anti-spam + T30 RaiseStack):
+    '   1. A group steadily showing on a side slot -> Updater UI dance there.
+    '   2. A NEW group + main busy -> first FREE configured side slot; when
+    '      EVERY configured slot is busy -> T30 QUEUE (FIFO, capped,
+    '      same-group dedup) instead of stealing a slot or dropping.
+    '   2b. A group live on a side slot but not steady yet (mid-dance /
+    '       mid-entrance / mid-exit) -> coalesce onto that unit, or queue
+    '       if the unit is sliding out (the pending Close() would eat it).
+    '   3. Main slot -> fresh show at the BOTTOM of the active stack (T30
+    '      reflow glides the rest up), same-group dance, or coalesce.
     Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color, Optional group As String = Nothing)
         If Me.InvokeRequired Then
             Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor, group))
@@ -486,6 +498,11 @@ Partial Public Class Loader
         End If
 
         ' tcp.SendLog("notifier_show") ' ถ้าต้องการ
+
+        ' T30: reconcile stack bookkeeping with the live forms BEFORE any
+        ' routing decision - after a close, the freed slot must leave the
+        ' stack order immediately, never one heartbeat tick later.
+        UpdateSlotLiveness()
 
         Dim slotCount As Integer = ConfiguredSlotCount()
 
@@ -502,26 +519,71 @@ Partial Public Class Loader
             Exit Sub
         End If
 
-        ' 2) New group + main busy -> the first FREE configured side slot
-        '    gets a fresh show (OWNER example: Record start/stop living in
-        '    slot 2, Replay start/stop arrives -> it takes the free slot).
-        '    Slot 3 only enters this in 3-slot mode, as the overflow.
-        If MainSlotBusy() Then
+        Dim groupLiveSomewhere As Boolean =
+            SameToastGroup(_mainGroup, group) OrElse
+            (slotCount >= 2 AndAlso SameToastGroup(_side2Group, group)) OrElse
+            (slotCount >= 3 AndAlso SameToastGroup(_side3Group, group))
+
+        ' 2) A NEW group while the main toast is up -> the first FREE
+        '    configured side slot gets a fresh show (OWNER example: Record
+        '    start/stop living in slot 2, Replay start/stop arrives -> it
+        '    takes the free slot). Every configured slot busy -> T30 QUEUE:
+        '    the toast waits and surfaces on the first slot that frees -
+        '    never dropped, never stealing another group's slot. A group
+        '    already live somewhere skips this branch so its own slot's
+        '    dance (below) keeps updating where it lives.
+        If MainSlotBusy() AndAlso Not groupLiveSomewhere Then
             If slotCount >= 2 AndAlso Not SideSlotBusy(Notifier2) Then
+                AssignUnitY(2)
                 ShowSideSlot(Notifier_Sub2, message, showImage, icon, iconColor, group)
+                RegisterActiveSlot(2)
                 Exit Sub
             End If
             If slotCount >= 3 AndAlso Not SideSlotBusy(Notifier3) Then
+                AssignUnitY(3)
                 ShowSideSlot3(Notifier_Sub3, message, showImage, icon, iconColor, group)
+                RegisterActiveSlot(3)
                 Exit Sub
             End If
+            EnqueueToast(message, showImage, icon, iconColor, group)
+            Exit Sub
         End If
 
-        ' 3) Everything else goes through the MAIN slot - a fresh show when
-        '    it is free, the Updater UI replace dance when it is showing
-        '    (its own group's toggles land here too). This also covers
-        '    1-slot mode and the all-slots-busy fallback.
+        ' 2b) The group lives on a side slot but is NOT steady (mid-dance /
+        '     mid-entrance). Coalesce onto that unit's rider - or, if the
+        '     unit is sliding out to close, queue instead of painting a
+        '     corpse (T29.4 lesson: the pending Me.Close() eats the toast).
+        If slotCount >= 2 AndAlso SideSlotBusy(Notifier2) AndAlso SameToastGroup(_side2Group, group) Then
+            If Notifier2.InTransition Then
+                EnqueueToast(message, showImage, icon, iconColor, group)
+            Else
+                DanceSideToast(message, showImage, icon, iconColor, group)
+            End If
+            Exit Sub
+        End If
+        If slotCount >= 3 AndAlso SideSlotBusy(Notifier3) AndAlso SameToastGroup(_side3Group, group) Then
+            If Notifier3.InTransition Then
+                EnqueueToast(message, showImage, icon, iconColor, group)
+            Else
+                DanceSideToast3(message, showImage, icon, iconColor, group)
+            End If
+            Exit Sub
+        End If
+
+        ' 3) The main slot. Fresh show at the BOTTOM of the active stack
+        '    (T30 reflow glides the others up), the Updater UI replace dance
+        '    when it is showing, T29.4 coalescing while a dance is running.
+        '    This also covers 1-slot mode.
+        If Notifier.InTransition Then
+            ' Main is sliding out to close - anything painted now dies with
+            ' it. Queue the toast; the heartbeat shows it on the next free
+            ' slot (often this very one, about a second later).
+            EnqueueToast(message, showImage, icon, iconColor, group)
+            Exit Sub
+        End If
+        AssignUnitY(1)
         ShowOnMain(message, showImage, icon, iconColor, group)
+        RegisterActiveSlot(1)
     End Sub
 
     ' The main toast, original flow: refresh the close window while showing,
@@ -593,6 +655,245 @@ Partial Public Class Loader
 
         Notifier.Show()
         paintSub()
+    End Sub
+
+    ' ==== T30 RaiseStack — stack manager (reflow + queue + topmost) ====
+    ' OWNER spec T30 "RaiseStack":
+    '   A) When a toast closes, the toasts BELOW it glide up (StartSlideY
+    '      per unit: card + content, shadow rides its 16ms sync timer) to
+    '      fill the gap - a compact vertical stack, Windows-style.
+    '   B) The whole stack is re-asserted HWND_TOPMOST (SWP_NOACTIVATE -
+    '      no focus steal) every ~2s while visible, so fullscreen
+    '      borderless games / other topmost apps can never bury it.
+    '   C) A toast arriving when EVERY configured slot is busy is QUEUED
+    '      (FIFO, capped, same-group dedup) instead of being dropped or
+    '      stealing another group's slot - the heartbeat surfaces it the
+    '      moment a slot frees.
+    ' Explosion-proofing (OWNER request - "กัน Users ระเบิด แอป"):
+    '   - The heartbeat is idempotent: EVERY tick recomputes the truth
+    '     from the live forms (liveness, ranks, free slots). Any race -
+    '     burst spam, settings flip, mid-animation close - self-heals
+    '     within 100ms instead of stacking up.
+    '   - The whole tick body is wrapped in Try/Catch: a heartbeat error
+    '     logs and returns, it can never kill the app.
+    '   - Animations refuse disposed targets ("never animate a corpse"):
+    '     unit engines drop panels/forms closed mid-flight instead of
+    '     throwing ObjectDisposedException on the UI thread.
+    '   - Queue caps at MaxPendingToasts; overflow drops the OLDEST and
+    '     logs - memory stays bounded no matter how hard users spam.
+    '   - A fresh show never pokes a unit mid-transition (T29.4 guard
+    '     extended): mid-exit toasts are queued, not painted.
+    Private Class PendingToast
+        Public Message As String
+        Public ShowImage As Boolean
+        Public Icon As String
+        Public IconColor As Color
+        Public Group As String
+    End Class
+
+    Private ReadOnly _pendingToasts As New Queue(Of PendingToast)()
+    Private Const MaxPendingToasts As Integer = 8
+    Private Const StackPitchPx As Integer = 100      ' card 90px + 10px gap (matches SlotOffsetY)
+    Private Const StackReflowMs As Integer = 250
+    Private ReadOnly _slotOrder As New List(Of Integer)()   ' active slots, first = top of the stack
+    Private ReadOnly _wasAlive(3) As Boolean
+    Private _stackTimer As System.Windows.Forms.Timer
+    Private _raiseCounter As Integer
+
+    ' Base Y of the stack - identical rule the unit forms use on a legacy
+    ' show (notifier_main shifts everything one notch down).
+    Private Function StackBaseY() As Integer
+        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then Return 205
+        Return 105
+    End Function
+
+    Private Sub StartStackHeartbeat()
+        If _stackTimer IsNot Nothing Then Return
+        _stackTimer = New System.Windows.Forms.Timer()
+        _stackTimer.Interval = 100
+        AddHandler _stackTimer.Tick, AddressOf OnStackHeartbeat
+        _stackTimer.Start()
+        Debug.WriteLine("[Stack] heartbeat started (100ms)")
+    End Sub
+
+    Private Sub OnStackHeartbeat(sender As Object, e As EventArgs)
+        If Me.IsDisposed OrElse Me.Disposing Then
+            If _stackTimer IsNot Nothing Then _stackTimer.Stop()
+            Return
+        End If
+        Try
+            UpdateSlotLiveness()       ' deaths -> leave the stack order + clear group
+            CompactStack()             ' glide every unit to its rank (no-op when aligned)
+            TryDequeueIntoFreeSlot()   ' T30-C: surface queued toasts
+            _raiseCounter += 1
+            If _raiseCounter >= 20 Then
+                _raiseCounter = 0
+                RaiseVisibleStack()    ' T30-B: HWND_TOPMOST re-assert (~2s cadence)
+            End If
+        Catch ex As Exception
+            ' NEVER let the heartbeat kill the app - log and try again.
+            Debug.WriteLine("[Stack] heartbeat error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Function SlotIsAlive(slotIdx As Integer) As Boolean
+        Select Case slotIdx
+            Case 1 : Return Notifier.Visible OrElse Notifier.Notifier_green_stop.Visible
+            Case 2 : Return Notifier2.Visible OrElse Notifier2.Notifier_green_stop.Visible
+            Case 3 : Return Notifier3.Visible OrElse Notifier3.Notifier_green_stop.Visible
+        End Select
+        Return False
+    End Function
+
+    ' A fully idle unit: not showing AND not mid-dance/mid-exit. Only then
+    ' may a queued toast reuse it for a fresh show (T29.4: never poke a
+    ' unit mid-transition - its pending Me.Close() eats the toast).
+    Private Function SlotIsIdle(slotIdx As Integer) As Boolean
+        If SlotIsAlive(slotIdx) Then Return False
+        Select Case slotIdx
+            Case 1 : Return Not Notifier.InTransition
+            Case 2 : Return Not Notifier2.InTransition
+            Case 3 : Return Not Notifier3.InTransition
+        End Select
+        Return False
+    End Function
+
+    Private Sub ClearSlotGroup(slotIdx As Integer)
+        Select Case slotIdx
+            Case 1 : _mainGroup = ""
+            Case 2 : _side2Group = ""
+            Case 3 : _side3Group = ""
+        End Select
+    End Sub
+
+    Private Sub UpdateSlotLiveness()
+        For i As Integer = 1 To 3
+            Dim alive As Boolean = SlotIsAlive(i)
+            If _wasAlive(i) AndAlso Not alive Then
+                _slotOrder.Remove(i)
+                ClearSlotGroup(i)
+                Debug.WriteLine("[Stack] slot " & i & " freed")
+            End If
+            _wasAlive(i) = alive
+        Next
+    End Sub
+
+    ' Called after a successful FRESH show. Slots already in the order
+    ' keep their rank (a dance/coalesce never re-ranks the stack).
+    Private Sub RegisterActiveSlot(slotIdx As Integer)
+        If _slotOrder.Contains(slotIdx) Then Return
+        _slotOrder.Add(slotIdx)   ' newest toast = bottom of the stack
+        _wasAlive(slotIdx) = True
+    End Sub
+
+    ' Assign the next show Y for a unit: its rank is the number of slots
+    ' currently active (0-based), so a new toast always enters at the
+    ' BOTTOM of the stack. Idle slots keep their legacy resting spot.
+    Private Sub AssignUnitY(slotIdx As Integer)
+        Dim y As Integer = StackBaseY() + _slotOrder.Count * StackPitchPx
+        Select Case slotIdx
+            Case 1 : Notifier.UnitTargetY = y
+            Case 2 : Notifier2.UnitTargetY = y
+            Case 3 : Notifier3.UnitTargetY = y
+        End Select
+        Debug.WriteLine("[Stack] slot " & slotIdx & " assigned Y=" & y & " (rank " & _slotOrder.Count & ")")
+    End Sub
+
+    ' T30-A: compact the stack - every active unit glides to
+    ' baseY + rank * pitch. Idempotent and self-healing: running it every
+    ' heartbeat tick fixes any drift (post-dance, post-exit, base shift,
+    ' aborted animation) without dedicated bookkeeping. Units mid-dance or
+    ' mid-exit are skipped this tick; the next tick catches them.
+    Private Sub CompactStack()
+        Dim baseY As Integer = StackBaseY()
+        For rank As Integer = 0 To _slotOrder.Count - 1
+            Dim slot As Integer = _slotOrder(rank)
+            Dim target As Integer = baseY + rank * StackPitchPx
+            Select Case slot
+                Case 1
+                    If Notifier.Visible AndAlso Not Notifier.InTransition AndAlso Notifier.Top <> target Then
+                        Notifier.ReflowTo(target, StackReflowMs)
+                    End If
+                Case 2
+                    If Notifier2.Visible AndAlso Not Notifier2.InTransition AndAlso Notifier2.Top <> target Then
+                        Notifier2.ReflowTo(target, StackReflowMs)
+                    End If
+                Case 3
+                    If Notifier3.Visible AndAlso Not Notifier3.InTransition AndAlso Notifier3.Top <> target Then
+                        Notifier3.ReflowTo(target, StackReflowMs)
+                    End If
+            End Select
+        Next
+    End Sub
+
+    ' T30-C: FIFO queue with same-group dedup (a repeat toast refreshes
+    ' its queued copy in place) and a hard cap - overflow drops the OLDEST
+    ' and logs, so spamming can grow memory or starve the stack forever.
+    Private Sub EnqueueToast(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
+        For Each p As PendingToast In _pendingToasts
+            If SameToastGroup(p.Group, group) Then
+                p.Message = message
+                p.ShowImage = showImage
+                p.Icon = icon
+                p.IconColor = iconColor
+                Debug.WriteLine("[Stack] queue: refreshed pending group " & group)
+                Return
+            End If
+        Next
+        If _pendingToasts.Count >= MaxPendingToasts Then
+            Dim dropped As PendingToast = _pendingToasts.Dequeue()
+            Debug.WriteLine("[Stack] queue FULL (" & MaxPendingToasts & ") - dropped oldest group " & dropped.Group)
+        End If
+        _pendingToasts.Enqueue(New PendingToast With {
+            .Message = message, .ShowImage = showImage,
+            .Icon = icon, .IconColor = iconColor, .Group = group})
+        Debug.WriteLine("[Stack] queued group " & group & " (depth " & _pendingToasts.Count & ")")
+    End Sub
+
+    Private Sub TryDequeueIntoFreeSlot()
+        If _pendingToasts.Count = 0 Then Return
+
+        Dim slotCount As Integer = ConfiguredSlotCount()
+        Dim target As Integer = 0
+        If SlotIsIdle(1) Then
+            target = 1
+        ElseIf slotCount >= 2 AndAlso SlotIsIdle(2) Then
+            target = 2
+        ElseIf slotCount >= 3 AndAlso SlotIsIdle(3) Then
+            target = 3
+        End If
+        If target = 0 Then Return
+
+        Dim p As PendingToast = _pendingToasts.Dequeue()
+        UpdateSlotLiveness()   ' refresh ranks with the CURRENT liveness
+        AssignUnitY(target)
+        Debug.WriteLine("[Stack] dequeue group " & p.Group & " -> slot " & target)
+        Select Case target
+            Case 1
+                ShowOnMain(p.Message, p.ShowImage, p.Icon, p.IconColor, p.Group)
+                RegisterActiveSlot(1)
+            Case 2
+                ShowSideSlot(Notifier_Sub2, p.Message, p.ShowImage, p.Icon, p.IconColor, p.Group)
+                RegisterActiveSlot(2)
+            Case 3
+                ShowSideSlot3(Notifier_Sub3, p.Message, p.ShowImage, p.Icon, p.IconColor, p.Group)
+                RegisterActiveSlot(3)
+        End Select
+    End Sub
+
+    ' T30-B: re-assert topmost on every window of every visible unit.
+    ' RaiseUnit uses SetWindowPos + SWP_NOACTIVATE - nothing can steal
+    ' focus or yank the user out of a game.
+    Private Sub RaiseVisibleStack()
+        For i As Integer = 1 To 3
+            If SlotIsAlive(i) Then
+                Select Case i
+                    Case 1 : Notifier.RaiseUnit()
+                    Case 2 : Notifier2.RaiseUnit()
+                    Case 3 : Notifier3.RaiseUnit()
+                End Select
+            End If
+        Next
     End Sub
 
     ' Test buttons - go through the REAL UpdateNotifier with a stable fake
@@ -692,6 +993,14 @@ Partial Public Class Loader
 
     ' แก้: Dispose TCP + OBS + watcher ตอน form ปิด
     Private Sub Load_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
+        Try
+            If _stackTimer IsNot Nothing Then
+                _stackTimer.Stop()
+                _stackTimer.Dispose()
+                _stackTimer = Nothing
+            End If
+        Catch
+        End Try
         Try
             If obsConfigWatcher IsNot Nothing Then
                 obsConfigWatcher.Stop()

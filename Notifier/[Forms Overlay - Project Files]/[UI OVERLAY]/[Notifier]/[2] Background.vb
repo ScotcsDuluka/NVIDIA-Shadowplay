@@ -7,6 +7,13 @@ Imports System.Windows.Forms
 Public Class Notifier
     Inherits Form
 
+    ' ===== T30 RaiseStack =====
+    ' Explicit Y for the NEXT show, assigned by the Loader stack manager
+    ' (the unit's rank in the active toast stack; newest = bottom).
+    ' -1 = legacy behaviour: rest at the classic slot 1 position
+    ' (105, or 205 while notifier_main exists). Consumed once by Form_Load.
+    Public Property UnitTargetY As Integer = -1
+
 #Region "WinAPI"
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
@@ -133,6 +140,8 @@ Public Class Notifier
                            duration As Double,
                            Optional completed As Action = Nothing)
 
+        If panel Is Nothing OrElse panel.IsDisposed OrElse panel.Disposing Then Return ' T30: never animate a corpse
+
         Debug.WriteLine("[Notifier] StartSlide: " & panel.Name &
                         " X " & fromX & "→" & toX &
                         " dur=" & duration & "ms")
@@ -159,6 +168,8 @@ Public Class Notifier
                            toY As Integer,
                            duration As Double,
                            Optional completed As Action = Nothing)
+
+        If panel Is Nothing OrElse panel.IsDisposed OrElse panel.Disposing Then Return ' T30: never animate a corpse
 
         Debug.WriteLine("[Notifier] StartSlideY: " & panel.Name &
                         " Y " & fromY & "→" & toY &
@@ -199,6 +210,14 @@ Public Class Notifier
         For Each panel In controls
             Dim state As AnimState = Nothing
             If Not _activeAnims.TryGetValue(panel, state) Then Continue For ' removed mid-loop
+
+            ' T30: a rider form (content/shadow) can be closed mid-flight by
+            ' a dance or slide-out - drop its animation instead of writing
+            ' .Top/.Left into a disposed form (would throw on the UI thread).
+            If panel.IsDisposed OrElse panel.Disposing Then
+                _activeAnims.Remove(panel)
+                Continue For
+            End If
 
             Dim elapsed = state.Sw.Elapsed.TotalMilliseconds
             Dim t As Double = elapsed / state.Duration
@@ -281,7 +300,15 @@ Public Class Notifier
         HideFromAltTab()
 
         Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
+        If UnitTargetY >= 0 Then
+            ' T30: the Loader stack manager picked this unit's rank in the
+            ' active stack - show exactly there, then consume the value so
+            ' a later legacy show falls back to the classic position.
+            Dim stackY As Integer = UnitTargetY
+            UnitTargetY = -1
+            Me.Location = New Point(w - Me.Width, stackY)
+            Debug.WriteLine("[Notifier] Position Y=" & stackY & " (stack-assigned)")
+        ElseIf My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             Me.Location = New Point(w - Me.Width, 205)
             Debug.WriteLine("[Notifier] Position Y=205")
         Else
@@ -372,6 +399,64 @@ Public Class Notifier
     ' The router calls this when the slide-in back completed.
     Public Sub EndDance()
         _inTransition = False
+    End Sub
+
+#End Region
+
+#Region "T30 RaiseStack - Unit Move / Z-Order"
+
+    ''' <summary>
+    ''' T30 RaiseStack: glide the whole unit (card + content form) to a new Y
+    ''' so the stack can compact when a toast above closes. The shadow rides
+    ''' its own 16ms position-sync timer. Safe on any state - per-control
+    ''' animation replace means the last call wins, never two writes per tick.
+    ''' </summary>
+    Public Sub ReflowTo(targetY As Integer, Optional durationMs As Integer = 250)
+        If Me.IsDisposed OrElse Me.Disposing Then Return
+        If Me.Top = targetY Then Return
+
+        StartSlideY(Me, Me.Top, targetY, durationMs)
+
+        If Notifier_Sub IsNot Nothing AndAlso Not Notifier_Sub.IsDisposed Then
+            StartSlideY(Notifier_Sub, Notifier_Sub.Top, targetY, durationMs)
+        End If
+    End Sub
+
+    ' T30: re-assert HWND_TOPMOST for every window of the unit WITHOUT
+    ' stealing focus. Form.TopMost = True can activate the toast and yank
+    ' the user out of a game; SetWindowPos + SWP_NOACTIVATE never does.
+    Private Const SWP_NOSIZE_FLAG As Integer = &H1
+    Private Const SWP_NOMOVE_FLAG As Integer = &H2
+    Private Const SWP_NOACTIVATE_FLAG As Integer = &H10
+    Private Shared ReadOnly HwndTopmost As New IntPtr(-1)
+
+    <DllImport("user32.dll")>
+    Private Shared Function SetWindowPos(hWnd As IntPtr, hWndInsertAfter As IntPtr,
+                                         x As Integer, y As Integer,
+                                         cx As Integer, cy As Integer,
+                                         uFlags As Integer) As Boolean
+    End Function
+
+    ''' <summary>T30: raise the whole unit (card + content + shadow) above
+    ''' other topmost windows - fullscreen borderless games included -
+    ''' without activation.</summary>
+    Public Sub RaiseUnit()
+        Try
+            RaiseWindow(Me.Handle)
+            If Notifier_Sub IsNot Nothing AndAlso Not Notifier_Sub.IsDisposed AndAlso Notifier_Sub.IsHandleCreated Then
+                RaiseWindow(Notifier_Sub.Handle)
+            End If
+            If Shadow IsNot Nothing AndAlso Not Shadow.IsDisposed AndAlso Shadow.IsHandleCreated Then
+                RaiseWindow(Shadow.Handle)
+            End If
+        Catch ex As Exception
+            Debug.WriteLine("[Notifier] RaiseUnit error: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub RaiseWindow(h As IntPtr)
+        SetWindowPos(h, HwndTopmost, 0, 0, 0, 0,
+                     SWP_NOSIZE_FLAG Or SWP_NOMOVE_FLAG Or SWP_NOACTIVATE_FLAG)
     End Sub
 
 #End Region

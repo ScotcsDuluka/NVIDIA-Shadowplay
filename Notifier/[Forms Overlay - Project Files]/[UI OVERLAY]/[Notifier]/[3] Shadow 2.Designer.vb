@@ -36,7 +36,7 @@ Partial Class Shadow2
         ' HideShadow
         ' 
         HideShadow.Enabled = True
-        HideShadow.Interval = 1
+        HideShadow.Interval = 2000 ' T30: was 1ms - 1000x/s P/Invoke for nothing; topmost re-assert moved to RaiseUnit (Loader heartbeat)
         ' 
         ' Shadow2
         ' 
