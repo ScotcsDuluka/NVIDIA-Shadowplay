@@ -18,6 +18,10 @@ Namespace CaptureEngine.Recording.Tests
         Friend _passed As Integer = 0
         Friend _failed As Integer = 0
         Friend _skipped As Integer = 0
+        ' ★ P13-A: contract tests that are EXPECTED to fail until a pending
+        ' fix lands. A known-fail never breaks the exit code; the moment the
+        ' fix lands it starts passing and shows up in _passed as verified.
+        Friend _knownFails As Integer = 0
         Friend ReadOnly _failures As New List(Of String)()
 
         Friend Sub RunTest(name As String, test As Action)
@@ -31,6 +35,23 @@ Namespace CaptureEngine.Recording.Tests
                 Console.WriteLine($"      → {ex.Message}")
                 _failures.Add(name & ": " & ex.Message)
                 _failed += 1
+            End Try
+        End Sub
+
+        ''' <summary>Run a contract test that pins a KNOWN bug. Throw today
+        ''' = deterministic bug reproduction (logged, does NOT fail the
+        ''' suite); pass = the fix landed, reported as verified.</summary>
+        Friend Sub RunKnownFail(name As String, test As Action, note As String)
+            Console.Write($"  {name} ... ")
+            Try
+                test()
+                Console.WriteLine("PASS — fix verified")
+                _passed += 1
+            Catch ex As Exception
+                Console.WriteLine("KNOWN-FAIL (expected until fix)")
+                Console.WriteLine($"      → {ex.Message}")
+                Console.WriteLine($"      note: {note}")
+                _knownFails += 1
             End Try
         End Sub
 
@@ -62,12 +83,13 @@ Namespace CaptureEngine.Recording.Tests
             SyncMathTests.RunAll()
             WavSidecarTests.RunAll()
             AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
+            AudioTimelineDeviceClockTests.RunAll()   ' ★ P13-A: OWNER-spec deterministic sample timeline (no hardware)
             RuntimeSyncTests.RunAll()
             DualTrackTests.RunAll()   ' ★ M1: system + mic second track
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
-            Console.WriteLine($" RESULT: {TestRunner._passed} passed, {TestRunner._failed} failed, {TestRunner._skipped} skipped")
+            Console.WriteLine($" RESULT: {TestRunner._passed} passed, {TestRunner._failed} failed, {TestRunner._skipped} skipped, {TestRunner._knownFails} known-fail (pending fix)")
             If TestRunner._failures.Count > 0 Then
                 Console.WriteLine(" Failures:")
                 For Each f As String In TestRunner._failures
