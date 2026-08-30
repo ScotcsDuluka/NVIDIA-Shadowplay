@@ -619,6 +619,10 @@ Public Class Base_RecordingsSet
     End Function
 
     Public Sub Base_RecordingsSet_Load(sender As Object, e As EventArgs) Handles Me.Load
+        ' OWNER rule: every Form sets WS_EX_TOOLWINDOW in its Load handler (sticky, once).
+        ' Previously this only ran via LoadAPIRECORD's try block — an early exception
+        ' there silently skipped it and leaked this form into Alt-Tab/taskbar.
+        HideFromAltTab()
         LoadAPIRECORD()
     End Sub
 
