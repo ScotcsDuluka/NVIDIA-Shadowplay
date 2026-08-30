@@ -4,8 +4,22 @@ Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 
 
-Public Class Notifier
+Public Class Notifier3
     Inherits Form
+
+    ' ===== Toast slot geometry (OWNER spec) =====
+    ' Slot 1 = the main toast ([2] Background.vb) — position unchanged.
+    ' Slots 2/3 are copies stacking BELOW slot 1 with a 10px vertical gap.
+    ' Pitch = unit design height (300x90, all three forms of a unit share it)
+    ' + 10px gap, so slot 2 sits +100px and slot 3 +200px below slot 1.
+    Private Const SlotIndex As Integer = 3
+    Private Const SlotGapPx As Integer = 10
+
+    Private ReadOnly Property SlotOffsetY As Integer
+        Get
+            Return (SlotIndex - 1) * (Me.Height + SlotGapPx)
+        End Get
+    End Property
 
 #Region "WinAPI"
 
@@ -281,13 +295,17 @@ Public Class Notifier
         HideFromAltTab()
 
         Dim w As Integer = Screen.PrimaryScreen.WorkingArea.Width
+        Dim baseY As Integer
         If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            Me.Location = New Point(w - Me.Width, 205)
-            Debug.WriteLine("[Notifier] Position Y=205")
+            baseY = 205
+            Debug.WriteLine("[Notifier3] Base Y=205 (notifier_main present)")
         Else
-            Me.Location = New Point(w - Me.Width, 105)
-            Debug.WriteLine("[Notifier] Position Y=105")
+            baseY = 105
+            Debug.WriteLine("[Notifier3] Base Y=105")
         End If
+        ' Slot 3 = two pitches below the main toast position
+        Me.Location = New Point(w - Me.Width, baseY + SlotOffsetY)
+        Debug.WriteLine("[Notifier3] Position Y=" & Me.Top & " (slot " & SlotIndex & ")")
 
         Notifier_black.Location = New Point(Me.Width, 0)
         Notifier_green.Location = New Point(Me.Width, 0)
@@ -299,7 +317,7 @@ Public Class Notifier
         AddHandler _delayTimers.Tick, Sub()
                                           _delayTimers.Stop()
 
-                                          Shadow.Show()
+                                          Shadow3.Show()
                                           Opacity = 1
                                           StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
                                           StopDelayTimer()
@@ -311,7 +329,7 @@ Public Class Notifier
 
                                                                            StartSlide(Notifier_black, Me.Width, Me.Width - 300, 300,
                                                                                Sub()
-                                                                                   Notifier_Sub.Show()
+                                                                                   Notifier_Sub3.Show()
                                                                                    Notifier_green_stop.Visible = True
                                                                                End Sub)
                                                                        End Sub
@@ -323,7 +341,7 @@ Public Class Notifier
                                           autoClose.Start()
 
                                           TopMost = True
-                                          Debug.WriteLine("[Notifier] ===== Form Load Done =====")
+                                          Debug.WriteLine("[Notifier3] ===== Form Load Done =====")
 
                                       End Sub
         _delayTimers.Start()
@@ -331,13 +349,13 @@ Public Class Notifier
     End Sub
 
     Private Sub AutoClose_Tick(sender As Object, e As EventArgs)
-        Debug.WriteLine("[Notifier] AutoClose triggered")
+        Debug.WriteLine("[Notifier3] AutoClose triggered")
         autoClose.Stop()
         SlideOutAll()
     End Sub
 
     Private Sub Notifier_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        Debug.WriteLine("[Notifier] FormClosing — cleanup")
+        Debug.WriteLine("[Notifier3] FormClosing — cleanup")
         Animation_Engine_CancelAll()
         autoClose.Stop()
         StopDelayTimer()
@@ -349,10 +367,10 @@ Public Class Notifier
 #Region "Slide Out"
 
     Private Sub SlideOutAll()
-        Debug.WriteLine("[Notifier] SlideOutAll")
+        Debug.WriteLine("[Notifier3] SlideOutAll")
 
-        Shadow.Close()
-        Notifier_Sub.Close()
+        Shadow3.Close()
+        Notifier_Sub3.Close()
         Notifier_green_stop.Visible = False
 
         ' Both panels now animate independently — Notifier_green's slide (started
@@ -383,12 +401,12 @@ Public Class Notifier
 #Region "Click Events"
 
     Public Sub DoCloseClick()
-        Debug.WriteLine("[Notifier] DoCloseClick → Restart")
+        Debug.WriteLine("[Notifier3] DoCloseClick → Restart")
         Application.Restart()
     End Sub
 
     Private Sub Notifier_green_Click(sender As Object, e As EventArgs) Handles Notifier_green.Click, text_n.Click, icon_n.Click, Notifier_black.Click, Notifier_green_stop.Click
-        Debug.WriteLine("[Notifier] Click → Restart")
+        Debug.WriteLine("[Notifier3] Click → Restart")
         Application.Restart()
     End Sub
 
@@ -398,12 +416,12 @@ Public Class Notifier
             Return
         End If
 
-        Debug.WriteLine("[Notifier] IF_N tick → StartSlideY")
-        StartSlideY(Me, Me.Top, 105, 200)
+        Debug.WriteLine("[Notifier3] IF_N tick → StartSlideY")
+        StartSlideY(Me, Me.Top, 105 + SlotOffsetY, 200)
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If Not My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
             IF_N.Stop()
-            Debug.WriteLine("[Notifier] IF_N stopped")
+            Debug.WriteLine("[Notifier3] IF_N stopped")
         End If
     End Sub
 

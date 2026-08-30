@@ -4,12 +4,12 @@ Imports System.Runtime.InteropServices
 Imports System.Windows.Forms.AxHost
 Imports Microsoft.VisualBasic.Logging
 
-Public Class Notifier_Sub2
+Public Class Notifier_Sub3
     Inherits Form
 
     ' ===== Toast slot geometry (OWNER spec) =====
-    ' Must match the sibling Notifier2 unit: slot 2 = one pitch below slot 1.
-    Private Const SlotIndex As Integer = 2
+    ' Must match the sibling Notifier3 unit: slot 3 = two pitches below slot 1.
+    Private Const SlotIndex As Integer = 3
     Private Const SlotGapPx As Integer = 10
 
     Private ReadOnly Property SlotOffsetY As Integer
@@ -31,11 +31,11 @@ Public Class Notifier_Sub2
 
     <Browsable(False)>
     <DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)>
-    Public Property ShadowForm As Shadow2
+    Public Property ShadowForm As Shadow3
 
     <Browsable(False)>
     <DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)>
-    Public Property ParentNotifier As Notifier2
+    Public Property ParentNotifier As Notifier3
 
     Private fadeTimer As New Timer()
     <DllImport("user32.dll", SetLastError:=True)>
@@ -57,11 +57,11 @@ Public Class Notifier_Sub2
     End Sub
 
     Private Sub Notifier_Sub_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Debug.WriteLine("[Notifier_Sub2] ===== Form Load =====")
+        Debug.WriteLine("[Notifier_Sub3] ===== Form Load =====")
 
         HideFromAltTab()
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        Me.Location = New Point(screenWidth - Me.Width, Notifier2.Location.Y)
+        Me.Location = New Point(screenWidth - Me.Width, Notifier3.Location.Y)
 
         Me.Opacity = 0
         Me.Show()
@@ -70,7 +70,7 @@ Public Class Notifier_Sub2
         AddHandler fadeTimer.Tick, AddressOf FadeIn
         fadeTimer.Start()
 
-        Debug.WriteLine("[Notifier_Sub2] Fade in started")
+        Debug.WriteLine("[Notifier_Sub3] Fade in started")
     End Sub
 
     Private Sub FadeIn(sender As Object, e As EventArgs)
@@ -81,18 +81,18 @@ Public Class Notifier_Sub2
 
         Me.Opacity = 1
 
-        If Shadow2.Opacity < 1 Then
-            Shadow2.Opacity += 0.05
+        If Shadow3.Opacity < 1 Then
+            Shadow3.Opacity += 0.05
         Else
-            Shadow2.Opacity = 1
+            Shadow3.Opacity = 1
             fadeTimer.Stop()
-            Debug.WriteLine("[Notifier_Sub2] Fade complete")
+            Debug.WriteLine("[Notifier_Sub3] Fade complete")
         End If
     End Sub
 
     Private Sub text_n_Click_1(sender As Object, e As EventArgs) Handles MyBase.Click, text_n.Click, Notifier_black.Click, PictureBox1.Click, icon_n.Click
-        Debug.WriteLine("[Notifier_Sub2] Click → DoCloseClick")
-        Notifier2.DoCloseClick()
+        Debug.WriteLine("[Notifier_Sub3] Click → DoCloseClick")
+        Notifier3.DoCloseClick()
     End Sub
 
     Private animStart As DateTime
@@ -112,7 +112,7 @@ Public Class Notifier_Sub2
                        duration As Double,
                        Optional completed As Action = Nothing)
 
-        Debug.WriteLine("[Notifier_Sub2] StartSlideY: " & LOS.Name &
+        Debug.WriteLine("[Notifier_Sub3] StartSlideY: " & LOS.Name &
                         " Y " & fromY & "→" & toY &
                         " dur=" & duration & "ms" &
                         " wasRunning=" & animationRunning)
@@ -142,7 +142,7 @@ Public Class Notifier_Sub2
             animationRunning = False
             Animation_Engine.Stop()
 
-            Debug.WriteLine("[Notifier_Sub2] Animation COMPLETE → Y=" & targetY)
+            Debug.WriteLine("[Notifier_Sub3] Animation COMPLETE → Y=" & targetY)
 
             If onComplete IsNot Nothing Then
                 onComplete.Invoke()
@@ -161,12 +161,12 @@ Public Class Notifier_Sub2
             Timer1.Stop()
             Return
         End If
-        Debug.WriteLine("[Notifier_Sub2] Timer1 tick → StartSlideY")
+        Debug.WriteLine("[Notifier_Sub3] Timer1 tick → StartSlideY")
         StartSlideY(Me, Me.Top, 105 + SlotOffsetY, 200)
     End Sub
 
     Private Sub Notifier_Sub_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        Debug.WriteLine("[Notifier_Sub2] FormClosing — cleanup")
+        Debug.WriteLine("[Notifier_Sub3] FormClosing — cleanup")
         animationRunning = False
         Animation_Engine.Stop()
         fadeTimer.Stop()

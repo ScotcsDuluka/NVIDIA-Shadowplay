@@ -1,8 +1,19 @@
 ﻿Imports System.IO
 Imports System.Runtime.InteropServices
 
-Public Class Shadow
+Public Class Shadow3
     Inherits Form
+
+    ' ===== Toast slot geometry (OWNER spec) =====
+    ' Must match the sibling Notifier3 unit: slot 3 = two pitches below slot 1.
+    Private Const SlotIndex As Integer = 3
+    Private Const SlotGapPx As Integer = 10
+
+    Private ReadOnly Property SlotOffsetY As Integer
+        Get
+            Return (SlotIndex - 1) * (Me.Height + SlotGapPx)
+        End Get
+    End Property
 
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
@@ -34,16 +45,19 @@ Public Class Shadow
     End Sub
 
     Private Sub Shadow_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        Debug.WriteLine("[Shadow] ===== Form Load =====")
+        Debug.WriteLine("[Shadow3] ===== Form Load =====")
 
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
+        Dim baseY As Integer
         If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then
-            Me.Location = New Point(screenWidth - Me.Width, 205)
-            Debug.WriteLine("[Shadow] Position Y=205")
+            baseY = 205
+            Debug.WriteLine("[Shadow3] Base Y=205 (notifier_main present)")
         Else
-            Me.Location = New Point(screenWidth - Me.Width, 105)
-            Debug.WriteLine("[Shadow] Position Y=105")
+            baseY = 105
+            Debug.WriteLine("[Shadow3] Base Y=105")
         End If
+        Me.Location = New Point(screenWidth - Me.Width, baseY + SlotOffsetY)
+        Debug.WriteLine("[Shadow3] Position Y=" & Me.Top & " (slot " & SlotIndex & ")")
         Me.SetStyle(ControlStyles.ResizeRedraw, True)
         HideFromAltTab()
     End Sub
@@ -51,7 +65,7 @@ Public Class Shadow
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
         HideFromAltTab()
         Try
-            If Me.IsDisposed OrElse Notifier.IsDisposed Then
+            If Me.IsDisposed OrElse Notifier3.IsDisposed Then
                 Timer1.Stop()
                 Return
             End If
@@ -61,10 +75,10 @@ Public Class Shadow
             ' and TopMost is set in the Designer. Calling them 1000x/second was
             ' pure CPU waste (Win32 P/Invoke per tick).
             ' Only sync position — that's the only thing that needs updating.
-            Me.Left = Notifier.Left
-            Me.Top = Notifier.Top
+            Me.Left = Notifier3.Left
+            Me.Top = Notifier3.Top
         Catch ex As Exception
-            Debug.WriteLine("[Shadow] Timer1 ERROR: " & ex.Message)
+            Debug.WriteLine("[Shadow3] Timer1 ERROR: " & ex.Message)
         End Try
     End Sub
 
@@ -94,7 +108,7 @@ Public Class Shadow
 
     Protected Overrides Sub OnHandleCreated(e As EventArgs)
         MyBase.OnHandleCreated(e)
-        Debug.WriteLine("[Shadow] Handle created → DWM setup")
+        Debug.WriteLine("[Shadow3] Handle created → DWM setup")
 
         Dim attrValue As Integer = 2
         DwmSetWindowAttribute(Me.Handle, 2, attrValue, 4)
@@ -109,7 +123,7 @@ Public Class Shadow
         DwmExtendFrameIntoClientArea(Me.Handle, margins)
     End Sub
     Private Sub Shadow_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
-        Debug.WriteLine("[Shadow] FormClosing — cleanup")
+        Debug.WriteLine("[Shadow3] FormClosing — cleanup")
         Timer1.Stop()
     End Sub
 

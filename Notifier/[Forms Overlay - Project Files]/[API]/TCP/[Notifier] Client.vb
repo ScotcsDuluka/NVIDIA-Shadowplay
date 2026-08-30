@@ -141,9 +141,8 @@ Partial Public Class Loader
         ' จัดการสถานะ Notifier
         ManageNotifierState()
 
-        ' แสดงผล — T27: identity = canonical l10n key (aliases collapse),
-        ' ดังนั้นการยิง key เดิมซ้ำจะกลายเป็น toggle-update ที่ toast เดิม
-        RouteToast(locKey, message, nd.Png, nd.Ico, nd.Color)
+        ' แสดงผล
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
 
         tcp.SendLog(message)
     End Sub
@@ -182,7 +181,7 @@ Partial Public Class Loader
         If Not NotificationAllowed(key) Then Exit Sub
 
         ManageNotifierState()
-        RouteToast(locKey, message, nd.Png, nd.Ico, nd.Color)
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
         tcp.SendLog(message)
     End Sub
 
