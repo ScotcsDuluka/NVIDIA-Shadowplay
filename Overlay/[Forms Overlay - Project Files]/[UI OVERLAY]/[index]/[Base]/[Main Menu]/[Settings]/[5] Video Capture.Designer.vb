@@ -1702,7 +1702,7 @@ Partial Class Base_RecordingsSet
         ' Quality
         ' 
         Quality.Enabled = True
-        Quality.Interval = 1
+        Quality.Interval = 200
         ' 
         ' PictureBox9
         ' 

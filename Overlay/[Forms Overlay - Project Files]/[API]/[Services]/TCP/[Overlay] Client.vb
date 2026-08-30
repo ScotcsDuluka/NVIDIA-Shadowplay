@@ -4,9 +4,14 @@ Public Class Base
     Public Shared tcp As TcpClientHelper
 
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
+        ' ★ FIX (startup): the ctor no longer connects — do it in the background
+        ' so the UI thread never blocks inside TcpClient.Connect. The
+        ' engine_ready handler re-sends PREWARM, so late connection is fine.
         tcp = New TcpClientHelper("NVIDIA Overlay")
 
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
+
+        tcp.ConnectAsync()
 
         ' Auto-spawn NVIDIA Capture.exe if not running (reuse if it is).
         ' Engine connects to the Hub by itself and broadcasts engine_ready —
@@ -32,7 +37,15 @@ Public Class Base
 
     Public Sub OnMessage(msg As String)
         If InvokeRequired Then
-            Invoke(Sub() OnMessage(msg))
+            ' ★ FIX: BeginInvoke (async) — blocking Invoke from the socket read
+            ' thread stalled the reader and queued every engine message behind
+            ' whatever the UI was doing. Message order is still preserved.
+            If Not IsHandleCreated Then Return
+            Try
+                BeginInvoke(Sub() OnMessage(msg))
+            Catch
+                ' Handle destroyed mid-dispatch (form closing) — drop it.
+            End Try
             Return
         End If
 

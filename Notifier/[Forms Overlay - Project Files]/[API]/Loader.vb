@@ -366,22 +366,32 @@ Partial Public Class Loader
     ' Updater UI on slot 3 - mirror of DanceSideToast on the slot 3 unit:
     ' slide out -> swap content -> slide back in. Guarded by
     ' green_stop.Visible (steady showing), never mid-exit-slide.
+    ' T29.4: same in-flight coalescing as slot 2.
     Private Sub DanceSideToast3(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
         _side3Group = group
         Notifier3.autoClose.Stop()
         Notifier3.autoClose.Start()
         Notifier_Sub3.TopMost = True
 
+        Dim paintSub = Sub()
+                           With Notifier_Sub3.icon_n
+                               .Font = New Font(.Font.FontFamily, 35)
+                               .ForeColor = iconColor
+                               .Text = icon
+                           End With
+                           Notifier_Sub3.text_n.Text = message
+                           Notifier_Sub3.PictureBox1.Visible = showImage
+                       End Sub
+
+        If Not Notifier3.BeginDance() Then
+            paintSub()
+            Exit Sub
+        End If
+
         Notifier_Sub3.Close()
         Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Notifier_black.Left, Notifier3.Width + 300, 600)
 
-        With Notifier_Sub3.icon_n
-            .Font = New Font(.Font.FontFamily, 35)
-            .ForeColor = iconColor
-            .Text = icon
-        End With
-        Notifier_Sub3.text_n.Text = message
-        Notifier_Sub3.PictureBox1.Visible = showImage
+        paintSub()
 
         Dim delay As New Timer()
         delay.Interval = 200
@@ -389,7 +399,10 @@ Partial Public Class Loader
                                    delay.Stop()
                                    delay.Dispose()
                                    Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Width, Notifier3.Width - 300, 300,
-                                       Sub() Notifier_Sub3.Show())
+                                       Sub()
+                                           Notifier_Sub3.Show()
+                                           Notifier3.EndDance()
+                                       End Sub)
                                End Sub
         delay.Start()
     End Sub
@@ -417,22 +430,36 @@ Partial Public Class Loader
     ' Updater UI on slot 2 - mirrors ShowOnMain's replace dance on the side
     ' unit: slide out -> swap content -> slide back in. Guarded by
     ' green_stop.Visible (steady showing), never mid-exit-slide.
+    ' T29.4: a dance already in flight COALESCES the content instead of
+    ' stacking a second overlapping animation (OWNER 20ms-spam glitch).
     Private Sub DanceSideToast(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
         _side2Group = group
         Notifier2.autoClose.Stop()
         Notifier2.autoClose.Start()
         Notifier_Sub2.TopMost = True
 
+        Dim paintSub = Sub()
+                           With Notifier_Sub2.icon_n
+                               .Font = New Font(.Font.FontFamily, 35)
+                               .ForeColor = iconColor
+                               .Text = icon
+                           End With
+                           Notifier_Sub2.text_n.Text = message
+                           Notifier_Sub2.PictureBox1.Visible = showImage
+                       End Sub
+
+        If Not Notifier2.BeginDance() Then
+            ' A dance is already in flight on slot 2 - the rider is hidden
+            ' mid-dance; overwrite its content and the running dance
+            ' re-shows it with the latest message (latest wins).
+            paintSub()
+            Exit Sub
+        End If
+
         Notifier_Sub2.Close()
         Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Notifier_black.Left, Notifier2.Width + 300, 600)
 
-        With Notifier_Sub2.icon_n
-            .Font = New Font(.Font.FontFamily, 35)
-            .ForeColor = iconColor
-            .Text = icon
-        End With
-        Notifier_Sub2.text_n.Text = message
-        Notifier_Sub2.PictureBox1.Visible = showImage
+        paintSub()
 
         Dim delay As New Timer()
         delay.Interval = 200
@@ -440,7 +467,10 @@ Partial Public Class Loader
                                    delay.Stop()
                                    delay.Dispose()
                                    Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Width, Notifier2.Width - 300, 300,
-                                       Sub() Notifier_Sub2.Show())
+                                       Sub()
+                                           Notifier_Sub2.Show()
+                                           Notifier2.EndDance()
+                                       End Sub)
                                End Sub
         delay.Start()
     End Sub
@@ -496,6 +526,9 @@ Partial Public Class Loader
 
     ' The main toast, original flow: refresh the close window while showing,
     ' then the classic slide dance if a toast is up, else a plain fresh show.
+    ' T29.4 anti-spam: a 20ms burst never stacks a second dance on a unit
+    ' that is already dancing or sliding out - content is coalesced onto
+    ' the rider and the running animation surfaces it (latest wins).
     Private Sub ShowOnMain(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
         _mainGroup = group
 
@@ -508,41 +541,58 @@ Partial Public Class Loader
         End If
         Notifier_Sub.TopMost = True
 
+        Dim paintSub = Sub()
+                           With Notifier_Sub.icon_n
+                               .Font = New Font(.Font.FontFamily, 35)
+                               .ForeColor = iconColor
+                               .Text = icon
+                           End With
+                           Notifier_Sub.text_n.Text = message
+                           Notifier_Sub.PictureBox1.Visible = showImage
+                       End Sub
+
         ' Logic เดิมเรื่องการสไลด์
         If Notifier.Notifier_green_stop.Visible Then
-            Notifier_Sub.Close()
             ' แก้: เอา Application.DoEvents() ออก — กัน reentrancy
+            If Notifier.BeginDance() Then
+                Notifier_Sub.Close()
 
-            Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
+                Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
 
-            With Notifier_Sub.icon_n
-                .Font = New Font(.Font.FontFamily, 35)
-                .ForeColor = iconColor
-                .Text = icon
-            End With
-            Notifier_Sub.text_n.Text = message
-            Notifier_Sub.PictureBox1.Visible = showImage
+                paintSub()
 
-            Dim delay As New Timer()
-            delay.Interval = 200
-            AddHandler delay.Tick, Sub()
-                                       delay.Stop()
-                                       delay.Dispose()
-                                       Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
-                                           Sub() Notifier_Sub.Show())
-                                   End Sub
-            delay.Start()
+                Dim delay As New Timer()
+                delay.Interval = 200
+                AddHandler delay.Tick, Sub()
+                                           delay.Stop()
+                                           delay.Dispose()
+                                           Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
+                                               Sub()
+                                                   Notifier_Sub.Show()
+                                                   Notifier.EndDance()
+                                               End Sub)
+                                       End Sub
+                delay.Start()
+            Else
+                ' A dance is already in flight - the rider is hidden
+                ' mid-dance; overwriting its content makes the running
+                ' dance re-show it with the latest message.
+                paintSub()
+            End If
+            Exit Sub
+        End If
+
+        ' Fresh show - only on a unit that is free or still running its
+        ' entrance (its Form_Load dance surfaces the content). NEVER poke
+        ' a unit that is sliding out to close: its pending Me.Close()
+        ' would eat the toast right after showing it.
+        If Notifier.InTransition Then
+            paintSub()
             Exit Sub
         End If
 
         Notifier.Show()
-        With Notifier_Sub.icon_n
-            .Font = New Font(.Font.FontFamily, 35)
-            .ForeColor = iconColor
-            .Text = icon
-        End With
-        Notifier_Sub.text_n.Text = message
-        Notifier_Sub.PictureBox1.Visible = showImage
+        paintSub()
     End Sub
 
     ' Test buttons - go through the REAL UpdateNotifier with a stable fake

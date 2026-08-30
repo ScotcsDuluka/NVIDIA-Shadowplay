@@ -364,10 +364,41 @@ Public Class Notifier2
 
 #End Region
 
+#Region "Transition Guard"
+
+    ' True while a replace dance or a slide-out exit is in flight. The
+    ' router checks this so a 20ms notification burst can never start a
+    ' second overlapping sequence on this unit - it coalesces the content
+    ' onto the hidden rider instead, and whatever animation is already
+    ' running surfaces it (latest wins, zero overlap).
+    Private _inTransition As Boolean = False
+
+    Public ReadOnly Property InTransition As Boolean
+        Get
+            Return _inTransition
+        End Get
+    End Property
+
+    ' The router starts a replace dance through here. False = a dance is
+    ' already running or the unit is sliding out - coalesce instead.
+    Public Function BeginDance() As Boolean
+        If _inTransition Then Return False
+        _inTransition = True
+        Return True
+    End Function
+
+    ' The router calls this when the slide-in back completed.
+    Public Sub EndDance()
+        _inTransition = False
+    End Sub
+
+#End Region
+
 #Region "Slide Out"
 
     Private Sub SlideOutAll()
         Debug.WriteLine("[Notifier2] SlideOutAll")
+        _inTransition = True
 
         Shadow2.Close()
         Notifier_Sub2.Close()
