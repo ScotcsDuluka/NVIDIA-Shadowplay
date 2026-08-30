@@ -1,4 +1,4 @@
-Imports System.IO
+﻿Imports System.IO
 Imports System.Runtime.InteropServices
 
 Partial Public Class Loader
@@ -391,16 +391,21 @@ Partial Public Class Loader
             Exit Sub
         End If
 
-        Notifier_Sub3.Close()
+        ' T30.2: the rider STAYS alive and rides the slide-out with the card
+        ' (the engine carries it in the same tick). It used to be Closed at
+        ' the dance start - the text blinked off, the card slid out empty,
+        ' slid back empty and the text faded in after the stop.
         Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Notifier_black.Left, Notifier3.Width + 300, 600)
-
-        paintSub()
 
         Dim delay As New Timer()
         delay.Interval = 200
         AddHandler delay.Tick, Sub()
                                    delay.Stop()
                                    delay.Dispose()
+                                   ' T30.2: swap the content at the TURNAROUND - the
+                                   ' card is fully offscreen here, so the new text/ico
+                                   ' is already riding back in with it (no pop, no fade).
+                                   paintSub()
                                    Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Width, Notifier3.Width - 300, 300,
                                        Sub()
                                            Notifier_Sub3.Show()
@@ -453,23 +458,28 @@ Partial Public Class Loader
                        End Sub
 
         If Not Notifier2.BeginDance() Then
-            ' A dance is already in flight on slot 2 - the rider is hidden
-            ' mid-dance; overwrite its content and the running dance
-            ' re-shows it with the latest message (latest wins).
+            ' A dance is already in flight on slot 2 - overwrite the live
+            ' rider's content; the running dance surfaces the latest
+            ' message (latest wins).
             paintSub()
             Exit Sub
         End If
 
-        Notifier_Sub2.Close()
+        ' T30.2: the rider STAYS alive and rides the slide-out with the card
+        ' (the engine carries it in the same tick). It used to be Closed at
+        ' the dance start - the text blinked off, the card slid out empty,
+        ' slid back empty and the text faded in after the stop.
         Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Notifier_black.Left, Notifier2.Width + 300, 600)
-
-        paintSub()
 
         Dim delay As New Timer()
         delay.Interval = 200
         AddHandler delay.Tick, Sub()
                                    delay.Stop()
                                    delay.Dispose()
+                                   ' T30.2: swap the content at the TURNAROUND - the
+                                   ' card is fully offscreen here, so the new text/ico
+                                   ' is already riding back in with it (no pop, no fade).
+                                   paintSub()
                                    Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Width, Notifier2.Width - 300, 300,
                                        Sub()
                                            Notifier_Sub2.Show()
@@ -619,17 +629,22 @@ Partial Public Class Loader
         If Notifier.Notifier_green_stop.Visible Then
             ' แก้: เอา Application.DoEvents() ออก — กัน reentrancy
             If Notifier.BeginDance() Then
-                Notifier_Sub.Close()
-
+                ' T30.2: the rider STAYS alive and rides the slide-out with
+                ' the card (the engine carries it in the same tick). It used
+                ' to be Closed at the dance start - the text blinked off, the
+                ' card slid out empty, slid back empty and the text faded in
+                ' after the stop: the whole sequence read as flicker.
                 Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
-
-                paintSub()
 
                 Dim delay As New Timer()
                 delay.Interval = 200
                 AddHandler delay.Tick, Sub()
                                            delay.Stop()
                                            delay.Dispose()
+                                           ' T30.2: swap the content at the TURNAROUND - the
+                                           ' card is fully offscreen here, so the new text/ico
+                                           ' is already riding back in with it (no pop, no fade).
+                                           paintSub()
                                            Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
                                                Sub()
                                                    Notifier_Sub.Show()
@@ -639,9 +654,8 @@ Partial Public Class Loader
                                        End Sub
                 delay.Start()
             Else
-                ' A dance is already in flight - the rider is hidden
-                ' mid-dance; overwriting its content makes the running
-                ' dance re-show it with the latest message.
+                ' A dance is already in flight - overwrite the live rider's
+                ' content; the running dance surfaces the latest message.
                 paintSub()
             End If
             Exit Sub

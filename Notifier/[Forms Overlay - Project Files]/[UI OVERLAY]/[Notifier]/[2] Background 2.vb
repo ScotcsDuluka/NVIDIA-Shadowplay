@@ -81,6 +81,7 @@ Public Class Notifier2
         Public TargetY As Integer
         Public IsSlideX As Boolean
         Public OnComplete As Action
+        Public LastApplyMs As Double = -1000.0
     End Class
 
     Private ReadOnly _activeAnims As New Dictionary(Of Control, AnimState)()
@@ -117,7 +118,7 @@ Public Class Notifier2
 
     Private Sub Animation_Engine_Start()
         If mmTimerId <> 0 Then Return ' already running — nothing to do
-        timeBeginPeriod(1)
+        UnitClockRes.Acquire() ' T30.2: refcounted - timeBeginPeriod is process-global
         mmCallback = New MMTimerProc(AddressOf OnMMTick)
         mmTimerId = timeSetEvent(1, 1, mmCallback, UIntPtr.Zero,
                                   TIME_PERIODIC Or TIME_KILL_SYNCHRONOUS)
@@ -129,7 +130,7 @@ Public Class Notifier2
             timeKillEvent(mmTimerId)
             mmTimerId = 0
         End If
-        timeEndPeriod(1)
+        UnitClockRes.Release() ' T30.2: only the LAST idle engine drops 1 ms
         _invokePending = False
         Debug.WriteLine("[Notifier.MM] Timer stopped")
     End Sub
@@ -249,11 +250,11 @@ Public Class Notifier2
             If t >= 1 Then
                 t = 1
                 If state.IsSlideX Then
-                    panel.Left = state.TargetX
-                    SyncFollowersX(panel)
+                    ApplySlideX(panel, state.TargetX)
+                ElseIf panel Is Me Then
+                    ApplyUnitY(state.TargetY)
                 Else
                     panel.Top = state.TargetY
-                    SyncFollowersY(panel.Top)
                 End If
 
                 Debug.WriteLine("[Notifier] Animation COMPLETE " & panel.Name & " " &
@@ -262,14 +263,23 @@ Public Class Notifier2
                 _activeAnims.Remove(panel)
                 If state.OnComplete IsNot Nothing Then finishedCallbacks.Add(state.OnComplete)
             Else
+                ' T30.2: the 1 ms MM clock stays the master timeline (the
+                ' easing is computed from the stopwatch on EVERY tick), but
+                ' positions are WRITTEN at most every ~8 ms - faster than
+                ' any display refresh. The in-between writes at 1000 Hz were
+                ' never visible; they only flooded the UI thread and the
+                ' compositor, which is exactly what read as stutter.
+                If elapsed - state.LastApplyMs < MinApplyIntervalMs Then Continue For
+                state.LastApplyMs = elapsed
+
                 Dim eased As Double = 1 - Math.Pow(1 - t, 3)
 
                 If state.IsSlideX Then
-                    panel.Left = CInt(state.StartX + (state.TargetX - state.StartX) * eased)
-                    SyncFollowersX(panel)
+                    ApplySlideX(panel, CInt(state.StartX + (state.TargetX - state.StartX) * eased))
+                ElseIf panel Is Me Then
+                    ApplyUnitY(CInt(state.StartY + (state.TargetY - state.StartY) * eased))
                 Else
                     panel.Top = CInt(state.StartY + (state.TargetY - state.StartY) * eased)
-                    SyncFollowersY(panel.Top)
                 End If
             End If
         Next
@@ -388,7 +398,11 @@ Public Class Notifier2
                                           AddHandler autoClose.Tick, AddressOf AutoClose_Tick
                                           autoClose.Start()
 
-                                          TopMost = True
+                                          ' T30.2: no Form.TopMost here. It is SetWindowPos(HWND_TOPMOST)
+                                          ' without SWP_NOACTIVATE - it can activate the toast and it
+                                          ' lifts the BG above the rider/shadow until the heartbeat
+                                          ' re-sorts the band (the z-order flap seen as flicker).
+                                          ' RaiseUnit()/FadeInShadow own the z-order, activation-free.
                                           Debug.WriteLine("[Notifier2] ===== Form Load Done =====")
 
                                       End Sub
@@ -463,24 +477,94 @@ Public Class Notifier2
     ' starts, so it never needs its own position-sync timer.
     Private _shadowFade As System.Windows.Forms.Timer
 
-    Private Sub SyncFollowersX(panel As Control)
-        If Notifier_Sub2 IsNot Nothing AndAlso Not Notifier_Sub2.IsDisposed AndAlso Notifier_Sub2.Visible Then
-            Notifier_Sub2.Left = Me.Left + panel.Left
-        End If
-        If Shadow2 IsNot Nothing AndAlso Not Shadow2.IsDisposed AndAlso Shadow2.Visible Then
-            Shadow2.Left = Me.Left
-            Shadow2.Top = Me.Top
-        End If
+    ' ===== T30.2: one atomic move per engine apply =====
+    ' BeginDeferWindowPos/EndDeferWindowPos applies every window position
+    ' update in a SINGLE compositor pass - DWM can never snapshot the card
+    ' with the rider (Text+ICO) or the shadow still a frame behind (the
+    ' "swimming text" tearing). Everything still lands inside the same
+    ' 1 ms engine tick and now inside the same displayed frame too.
+    Private Structure PendingMove
+        Public Hwnd As IntPtr
+        Public X As Integer
+        Public Y As Integer
+    End Structure
+
+    Private Const SWP_NOZORDER_FLAG As Integer = &H4
+    Private Const MinApplyIntervalMs As Double = 8.0
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function BeginDeferWindowPos(nCount As Integer) As IntPtr
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function DeferWindowPos(hWinPosInfo As IntPtr, hWnd As IntPtr,
+                                           hWndInsertAfter As IntPtr,
+                                           x As Integer, y As Integer,
+                                           cx As Integer, cy As Integer,
+                                           uFlags As Integer) As IntPtr
+    End Function
+
+    <DllImport("user32.dll", SetLastError:=True)>
+    Private Shared Function EndDeferWindowPos(hWinPosInfo As IntPtr) As Boolean
+    End Function
+
+    Private Sub FlushMoves(moves As List(Of PendingMove))
+        If moves.Count = 0 Then Return
+        Try
+            Dim h As IntPtr = BeginDeferWindowPos(moves.Count)
+            If h = IntPtr.Zero Then Throw New InvalidOperationException("BeginDeferWindowPos failed")
+            For Each m As PendingMove In moves
+                h = DeferWindowPos(h, m.Hwnd, IntPtr.Zero, m.X, m.Y, 0, 0,
+                                   SWP_NOSIZE_FLAG Or SWP_NOZORDER_FLAG Or SWP_NOACTIVATE_FLAG)
+                If h = IntPtr.Zero Then Throw New InvalidOperationException("DeferWindowPos failed")
+            Next
+            EndDeferWindowPos(h)
+        Catch ex As Exception
+            ' Defensive fallback: plain per-window moves - identical end state.
+            For Each m As PendingMove In moves
+                SetWindowPos(m.Hwnd, IntPtr.Zero, m.X, m.Y, 0, 0,
+                             SWP_NOSIZE_FLAG Or SWP_NOZORDER_FLAG Or SWP_NOACTIVATE_FLAG)
+            Next
+        End Try
     End Sub
 
-    Private Sub SyncFollowersY(newTop As Integer)
+    ' X slide (entrance/dance): the card PANEL is the driver; the rider
+    ' follows at the panel's absolute X; the shadow only realigns with the
+    ' (stationary) form when it needs to.
+    Private Sub ApplySlideX(panel As Control, newX As Integer)
+        Dim moves As New List(Of PendingMove)()
+        If panel.Left <> newX Then
+            moves.Add(New PendingMove With {.Hwnd = panel.Handle, .X = newX, .Y = panel.Top})
+        End If
         If Notifier_Sub2 IsNot Nothing AndAlso Not Notifier_Sub2.IsDisposed AndAlso Notifier_Sub2.Visible Then
-            Notifier_Sub2.Top = newTop
+            Dim riderX As Integer = Me.Left + newX
+            If Notifier_Sub2.Left <> riderX Then
+                moves.Add(New PendingMove With {.Hwnd = Notifier_Sub2.Handle, .X = riderX, .Y = Notifier_Sub2.Top})
+            End If
         End If
         If Shadow2 IsNot Nothing AndAlso Not Shadow2.IsDisposed AndAlso Shadow2.Visible Then
-            Shadow2.Top = newTop
-            Shadow2.Left = Me.Left
+            If Shadow2.Left <> Me.Left OrElse Shadow2.Top <> Me.Top Then
+                moves.Add(New PendingMove With {.Hwnd = Shadow2.Handle, .X = Me.Left, .Y = Me.Top})
+            End If
         End If
+        FlushMoves(moves)
+    End Sub
+
+    ' Y reflow (stack compact): this FORM is the driver; the rider and the
+    ' shadow ride to the same new top inside the same atomic batch.
+    Private Sub ApplyUnitY(newTop As Integer)
+        Dim moves As New List(Of PendingMove)()
+        If Me.Top <> newTop Then
+            moves.Add(New PendingMove With {.Hwnd = Me.Handle, .X = Me.Left, .Y = newTop})
+        End If
+        If Notifier_Sub2 IsNot Nothing AndAlso Not Notifier_Sub2.IsDisposed AndAlso Notifier_Sub2.Visible AndAlso Notifier_Sub2.Top <> newTop Then
+            moves.Add(New PendingMove With {.Hwnd = Notifier_Sub2.Handle, .X = Notifier_Sub2.Left, .Y = newTop})
+        End If
+        If Shadow2 IsNot Nothing AndAlso Not Shadow2.IsDisposed AndAlso Shadow2.Visible AndAlso
+           (Shadow2.Top <> newTop OrElse Shadow2.Left <> Me.Left) Then
+            moves.Add(New PendingMove With {.Hwnd = Shadow2.Handle, .X = Me.Left, .Y = newTop})
+        End If
+        FlushMoves(moves)
     End Sub
 
     ' T30.1 OWNER rule: the slot's opening slide finishes ("done") -> the

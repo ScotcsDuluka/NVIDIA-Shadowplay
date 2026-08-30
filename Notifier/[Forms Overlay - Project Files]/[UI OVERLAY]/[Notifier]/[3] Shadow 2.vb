@@ -50,6 +50,10 @@ Public Class Shadow2
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
         Dim newStyle As Integer = (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW
+        ' T30.2: only write when the style actually changes. Rewriting the
+        ' EX style of a visible layered window every 2 s (the old HideShadow
+        ' tick) makes DWM rebuild the surface = periodic flicker.
+        If newStyle = style Then Return
         SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
     End Sub
 
@@ -137,6 +141,8 @@ Public Class Shadow2
     End Sub
 
     Private Sub HideShadow_Tick(sender As Object, e As EventArgs) Handles HideShadow.Tick
+        ' T30.2: nothing to do while the shadow is not on screen.
+        If Me.IsDisposed OrElse Not Me.Visible Then Return
         HideFromAltTab()
     End Sub
 End Class
