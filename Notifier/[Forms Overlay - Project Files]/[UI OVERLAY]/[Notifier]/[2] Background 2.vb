@@ -81,7 +81,6 @@ Public Class Notifier2
         Public TargetY As Integer
         Public IsSlideX As Boolean
         Public OnComplete As Action
-        Public LastApplyMs As Double = -1000.0
     End Class
 
     Private ReadOnly _activeAnims As New Dictionary(Of Control, AnimState)()
@@ -116,8 +115,26 @@ Public Class Notifier2
     ' processing when the next 1ms MM tick fires.
     Private _invokePending As Boolean = False
 
+    ' ===== T30.5 FPS FIX: engine-wide frame clock =====
+    ' The OLD code marshalled every 1 ms MM tick into a BeginInvoke post -
+    ' 1000 posted messages/s per animating card flooding the UI thread's
+    ' message pump, while the UI side wrote positions at most every 8 ms.
+    ' Under game load each pump round trip stretched into tens of ms, the
+    ' pending-guard started dropping ticks, and the effective write rate
+    ' collapsed to ~20 Hz - exactly the "20 FPS" look on real hardware.
+    ' Now the MM thread checks the frame clock FIRST: a tick that is not
+    ' due a frame costs NOTHING (no post, no allocation, no UI wakeup) and
+    ' the UI thread is woken at most once per frame window.
+    ' 6 ms = ~167 frames/s, above every common display refresh, so DWM
+    ' never presents a repeated position.
+    Private ReadOnly _engineSw As New Stopwatch()
+    Private _lastFrameMs As Integer = -1000000
+    Private Const FrameIntervalMs As Integer = 6
+
     Private Sub Animation_Engine_Start()
         If mmTimerId <> 0 Then Return ' already running — nothing to do
+        _engineSw.Restart()     ' T30.5: new frame-clock epoch for this run
+        _lastFrameMs = -1000000 ' first frame applies immediately
         UnitClockRes.Acquire() ' T30.2: refcounted - timeBeginPeriod is process-global
         mmCallback = New MMTimerProc(AddressOf OnMMTick)
         mmTimerId = timeSetEvent(1, 1, mmCallback, UIntPtr.Zero,
@@ -138,6 +155,11 @@ Public Class Notifier2
     Private Sub OnMMTick(uID As UInteger, uMsg As UInteger,
                           dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
         If Me.IsDisposed OrElse Me.Disposing Then Return
+
+        ' T30.5: gate on the MM thread - only wake the UI thread when a
+        ' frame is actually due. Integer reads/writes are atomic, so the
+        ' cross-thread access below is safe (a stale read costs one tick).
+        If CInt(_engineSw.Elapsed.TotalMilliseconds) - _lastFrameMs < FrameIntervalMs Then Return
 
         If _invokePending Then Return
         _invokePending = True
@@ -232,6 +254,11 @@ Public Class Notifier2
         Dim controls As New List(Of Control)(_activeAnims.Keys)
         Dim finishedCallbacks As New List(Of Action)()
 
+        ' T30.5: engine-wide frame gate (see the frame-clock note above).
+        Dim nowMs As Integer = CInt(_engineSw.Elapsed.TotalMilliseconds)
+        Dim frameDue As Boolean = nowMs - _lastFrameMs >= FrameIntervalMs
+        Dim wroteAny As Boolean = False
+
         For Each panel In controls
             Dim state As AnimState = Nothing
             If Not _activeAnims.TryGetValue(panel, state) Then Continue For ' removed mid-loop
@@ -263,14 +290,11 @@ Public Class Notifier2
                 _activeAnims.Remove(panel)
                 If state.OnComplete IsNot Nothing Then finishedCallbacks.Add(state.OnComplete)
             Else
-                ' T30.2: the 1 ms MM clock stays the master timeline (the
-                ' easing is computed from the stopwatch on EVERY tick), but
-                ' positions are WRITTEN at most every ~8 ms - faster than
-                ' any display refresh. The in-between writes at 1000 Hz were
-                ' never visible; they only flooded the UI thread and the
-                ' compositor, which is exactly what read as stutter.
-                If elapsed - state.LastApplyMs < MinApplyIntervalMs Then Continue For
-                state.LastApplyMs = elapsed
+                ' T30.5: ONE engine-wide frame cadence (was per-anim ~8 ms
+                ' checked at 1000 Hz). Easing is still computed from each
+                ' anim's stopwatch, so motion speed stays time-correct even
+                ' if a frame is dropped under load.
+                If Not frameDue Then Continue For
 
                 Dim eased As Double = 1 - Math.Pow(1 - t, 3)
 
@@ -281,8 +305,12 @@ Public Class Notifier2
                 Else
                     panel.Top = CInt(state.StartY + (state.TargetY - state.StartY) * eased)
                 End If
+
+                wroteAny = True
             End If
         Next
+
+        If wroteAny Then _lastFrameMs = nowMs ' T30.5: frame applied
 
         If _activeAnims.Count = 0 Then
             Animation_Engine_Stop()
@@ -511,7 +539,6 @@ Public Class Notifier2
     End Structure
 
     Private Const SWP_NOZORDER_FLAG As Integer = &H4
-    Private Const MinApplyIntervalMs As Double = 8.0
 
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function BeginDeferWindowPos(nCount As Integer) As IntPtr
