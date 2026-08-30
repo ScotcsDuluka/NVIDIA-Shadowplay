@@ -23,6 +23,10 @@ Public Class Base_Notifications
     Private Shared Function GetWindowLong(hWnd As IntPtr, nIndex As Integer) As Integer
     End Function
 
+    <DllImport("user32.dll")>
+    Private Shared Function HideCaret(hWnd As IntPtr) As Boolean
+    End Function
+
     Protected Overrides Sub WndProc(ByRef m As Message)
         Const WM_NCHITTEST As Integer = &H84
         Const HTTRANSPARENT As Integer = -1
@@ -345,6 +349,153 @@ Public Class Base_Notifications
     Private Sub Base_Connect_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
         LoadNotificationToggles()
+        ApplyCaretFree(HOST_BOX)
+        ApplyCaretFree(PORT_BOX)
+        ApplyCaretFree(KEY_BOX)
+        LoadToastSlotToggles()
+        LoadObsSettings()
+    End Sub
+
+    ' ====================================================================
+    ' Toast slots (1..3) — moved here from Settings → General
+    '
+    ' "Use a second toast slot" + "Use a third toast slot" encode the
+    ' count: both off = 1, second on = 2, second + third on = 3.
+    ' OFF/OFF = 1 slot: every toast funnels through the main toast — a
+    '     repeat of the same notification group updates it in place
+    '     (Updater UI dance), anything else replaces it. Nothing stacks.
+    ' Second ON = 2 slots: a NEW notification group enters the free slot
+    '     instead of replacing the showing one (Record start/stop lives
+    '     in slot 2, Replay start/stop arrives → slot 1).
+    ' Third ON = 3 slots: slot 3 joins as the overflow for a new group
+    '     when main AND slot 2 are both busy. It needs the second slot:
+    '     flipping it on brings the second along, killing the second
+    '     takes the third with it.
+    ' The Notifier reads Notifications.SlotCount from config.json at
+    ' every toast, so changes apply live — no restart needed.
+    ' ====================================================================
+    Private _toastSlotsLoading As Boolean
+
+    Private Sub LoadToastSlotToggles()
+        _toastSlotsLoading = True
+        ' Guards: the instances live in the Designer.vb and can be stripped
+        ' by hand edits — never let that NRE the whole page.
+        If ToggleToastSlot2 IsNot Nothing Then ToggleToastSlot2.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 2)
+        If ToggleToastSlot3 IsNot Nothing Then ToggleToastSlot3.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 3)
+        _toastSlotsLoading = False
+    End Sub
+
+    Private Sub SyncToastSlotCount()
+        If _toastSlotsLoading Then Exit Sub
+        ' Slot 3 depends on slot 2 — keep the toggle pair consistent.
+        If ToggleToastSlot3.IsOn AndAlso Not ToggleToastSlot2.IsOn Then ToggleToastSlot2.IsOn = True
+        If Not ToggleToastSlot2.IsOn AndAlso ToggleToastSlot3.IsOn Then ToggleToastSlot3.IsOn = False
+        AppSettings.Instance.Notifications.SlotCount = If(ToggleToastSlot2.IsOn, If(ToggleToastSlot3.IsOn, 3, 2), 1)
+        AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleToastSlot2_ValueChanged(sender As Object, e As EventArgs) Handles ToggleToastSlot2.ValueChanged
+        SyncToastSlotCount()
+    End Sub
+
+    Private Sub ToggleToastSlot3_ValueChanged(sender As Object, e As EventArgs) Handles ToggleToastSlot3.ValueChanged
+        SyncToastSlotCount()
+    End Sub
+
+    ' ====================================================================
+    ' OBS Studio WebSocket integration — moved here from Settings → General
+    '
+    ' The Notifier owns the actual OBS connection: it watches
+    ' Config\notifier_obs.json and hot-reloads it every 2 seconds
+    ' (start/stop the bridge, reconnect on endpoint changes). This page
+    ' is only the editor: it loads the shared ObsConfig and writes the
+    ' file back when the user changes a value — the Overlay never talks
+    ' to OBS directly.
+    ' ====================================================================
+    Private _obsCfg As ObsConfig
+    Private _obsLoading As Boolean
+
+    Private Sub LoadObsSettings()
+        ' ObsConfig.Load() returns Nothing when notifier_obs.json exists but
+        ' can't be read/parsed (it never throws). Falling back to a fresh
+        ' default instance keeps this page alive — the form used to crash
+        ' with NullReferenceException right here on first show, which made
+        ' the whole Settings window appear to never open. The next Save()
+        ' from any control rebuilds the file as valid JSON.
+        _obsCfg = ObsConfig.Load()
+        If _obsCfg Is Nothing Then _obsCfg = New ObsConfig()
+        _obsLoading = True
+        ' Guard: the toggle's instance lives in the Designer.vb and can be
+        ' stripped by hand edits — never let that NRE the whole page.
+        If ObsEnabledToggle IsNot Nothing Then ObsEnabledToggle.IsOn = _obsCfg.Enabled
+        HOST_BOX.Text = _obsCfg.Host
+        PORT_BOX.Text = _obsCfg.Port.ToString()
+        KEY_BOX.Text = _obsCfg.Password
+        _obsLoading = False
+    End Sub
+
+    Private Sub ObsEnabledToggle_ValueChanged(sender As Object, e As EventArgs) Handles ObsEnabledToggle.ValueChanged
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        _obsCfg.Enabled = ObsEnabledToggle.IsOn
+        _obsCfg.Save()
+    End Sub
+
+    Private Sub HOST_BOX_Leave(sender As Object, e As EventArgs) Handles HOST_BOX.Leave
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        Dim host As String = HOST_BOX.Text.Trim()
+        If host.Length = 0 Then
+            HOST_BOX.Text = _obsCfg.Host
+            Return
+        End If
+        If host = _obsCfg.Host Then Return
+        _obsCfg.Host = host
+        _obsCfg.Save()
+    End Sub
+
+    Private Sub PORT_BOX_Leave(sender As Object, e As EventArgs) Handles PORT_BOX.Leave
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        Dim port As Integer
+        If Not Integer.TryParse(PORT_BOX.Text.Trim(), port) OrElse port < 1 OrElse port > 65535 Then
+            PORT_BOX.Text = _obsCfg.Port.ToString()
+            Return
+        End If
+        If port = _obsCfg.Port Then Return
+        _obsCfg.Port = port
+        _obsCfg.Save()
+    End Sub
+
+    Private Sub KEY_BOX_Leave(sender As Object, e As EventArgs) Handles KEY_BOX.Leave
+        If _obsLoading OrElse _obsCfg Is Nothing Then Return
+        If KEY_BOX.Text = _obsCfg.Password Then Return
+        _obsCfg.Password = KEY_BOX.Text
+        _obsCfg.Save()
+    End Sub
+
+    ' ====================================================================
+    ' Caret-free text boxes (HOST_BOX / PORT_BOX / KEY_BOX)
+    '
+    ' These fields are styled as flat value displays (nvgcshare, no
+    ' border, centered), so the blinking text caret reads as noise —
+    ' it blinks exactly where the user clicked. HideCaret() only flips
+    ' the Win32 caret visibility: editing, selection and the Leave-based
+    ' save below are untouched.
+    '
+    ' The EDIT control re-creates/re-shows the caret on focus, mouse
+    ' down and while typing, so every one of those events schedules
+    ' another hide — deferred with BeginInvoke so it runs AFTER the
+    ' message that showed the caret has fully completed.
+    ' ====================================================================
+    Private Sub HideBoxCaret(sender As Object, e As EventArgs)
+        Dim box As Control = TryCast(sender, Control)
+        If box Is Nothing OrElse Not box.IsHandleCreated Then Return
+        box.BeginInvoke(New Action(Sub() HideCaret(box.Handle)))
+    End Sub
+
+    Private Sub ApplyCaretFree(box As TextBox)
+        AddHandler box.GotFocus, AddressOf HideBoxCaret
+        AddHandler box.MouseDown, AddressOf HideBoxCaret
+        AddHandler box.KeyUp, AddressOf HideBoxCaret
+        AddHandler box.TextChanged, AddressOf HideBoxCaret
     End Sub
 
     Private Sub Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
