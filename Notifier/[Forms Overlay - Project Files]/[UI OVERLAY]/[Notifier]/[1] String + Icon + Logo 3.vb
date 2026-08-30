@@ -79,11 +79,42 @@ Public Class Notifier_Sub3
         Me.Opacity = 0
         Me.Show()
 
-        fadeTimer.Interval = 10
-        AddHandler fadeTimer.Tick, AddressOf FadeIn
-        fadeTimer.Start()
+        StartFade()
 
         Debug.WriteLine("[Notifier_Sub3] Fade in started")
+    End Sub
+
+    ' T30.7: the rider is ONE instance for the whole unit lifetime now.
+    ' BeginDance/SlideOutAll HIDE it - Close() DISPOSES the form, so the
+    ' reveal's Show() used to throw ObjectDisposedException inside the
+    ' engine callback, silently skipping EndDance + FadeInShadow: the unit
+    ' went zombie and the shadow only popped back after the whole unit was
+    ' reborn (the blinking Shadow form). Load runs once per instance, so
+    ' every reveal after the first re-anchors on the parked card and
+    ' re-fades HERE.
+    Public Sub Reveal(bgLeft As Integer, bgTop As Integer, cardPanelLeft As Integer)
+        If Me.IsDisposed OrElse Me.Disposing Then Return
+        If Not Me.IsHandleCreated Then
+            Me.Show() ' first birth - Notifier_Sub3_Load anchors + fades
+            Return
+        End If
+        Me.Location = New Point(bgLeft + cardPanelLeft, bgTop)
+        If Me.Visible Then Return
+        Me.Opacity = 0R
+        StartFade()
+        Me.Show()
+    End Sub
+
+    Private Sub StartFade()
+        ' T30.7: fadeTimer is set to Nothing in FormClosing after Dispose,
+        ' so a Nothing-check is the full liveness guard (Timer has no
+        ' public IsDisposed).
+        If fadeTimer IsNot Nothing Then
+            RemoveHandler fadeTimer.Tick, AddressOf FadeIn ' never double-subscribe across reveals
+            AddHandler fadeTimer.Tick, AddressOf FadeIn
+            fadeTimer.Interval = 10
+            fadeTimer.Start()
+        End If
     End Sub
 
     Private Sub FadeIn(sender As Object, e As EventArgs)
@@ -116,8 +147,11 @@ Public Class Notifier_Sub3
 
     Private Sub Notifier_Sub_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         Debug.WriteLine("[Notifier_Sub3] FormClosing — cleanup")
-        fadeTimer.Stop()
-        fadeTimer.Dispose()
+        If fadeTimer IsNot Nothing Then
+            fadeTimer.Stop()
+            fadeTimer.Dispose()
+            fadeTimer = Nothing
+        End If
         Timer1.Stop()
     End Sub
 End Class

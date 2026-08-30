@@ -408,7 +408,9 @@ Partial Public Class Loader
                                    paintSub()
                                    Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Width, Notifier3.Width - 300, 300,
                                        Sub()
-                                           Notifier_Sub3.Show()
+                                           ' T30.7: Reveal = re-anchor on the parked card + re-fade.
+                                           ' The rider is hidden (never closed) during the dance now.
+                                           Notifier_Sub3.Reveal(Notifier3.Left, Notifier3.Top, Notifier3.Notifier_black.Left)
                                            Notifier3.EndDance()
                                            Notifier3.FadeInShadow()
                                        End Sub)
@@ -482,7 +484,9 @@ Partial Public Class Loader
                                    paintSub()
                                    Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Width, Notifier2.Width - 300, 300,
                                        Sub()
-                                           Notifier_Sub2.Show()
+                                           ' T30.7: Reveal = re-anchor on the parked card + re-fade.
+                                           ' The rider is hidden (never closed) during the dance now.
+                                           Notifier_Sub2.Reveal(Notifier2.Left, Notifier2.Top, Notifier2.Notifier_black.Left)
                                            Notifier2.EndDance()
                                            Notifier2.FadeInShadow()
                                        End Sub)
@@ -660,7 +664,9 @@ Partial Public Class Loader
                                            paintSub()
                                            Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
                                                Sub()
-                                                   Notifier_Sub.Show()
+                                                   ' T30.7: Reveal = re-anchor on the parked card + re-fade.
+                                                   ' The rider is hidden (never closed) during the dance now.
+                                                   Notifier_Sub.Reveal(Notifier.Left, Notifier.Top, Notifier.Notifier_black.Left)
                                                    Notifier.EndDance()
                                                    Notifier.FadeInShadow()
                                                End Sub)

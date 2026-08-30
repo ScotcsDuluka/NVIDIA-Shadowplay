@@ -358,7 +358,7 @@ Public Class Notifier
                                                                            StartSlide(Notifier_black, Me.Width, Me.Width - 300, 300,
                                                                                Sub()
                                                                                    Notifier_green_stop.Visible = True
-                                                                                   Notifier_Sub.Show()
+                                                                                   Notifier_Sub.Reveal(Me.Left, Me.Top, Me.Notifier_black.Left)
                                                                                    FadeInShadow()
                                                                                End Sub)
                                                                        End Sub
@@ -443,7 +443,13 @@ Public Class Notifier
         _isDancing = True
         _activeReflowTarget = Integer.MinValue ' T30.6: the dance owns the Y axis now
         CloseShadowNow()
-        Notifier_Sub.Close()
+        ' T30.7: Hide, never Close. Form.Close() DISPOSES the form - the
+        ' reveal's Show() then threw ObjectDisposedException inside the
+        ' engine callback, silently skipping EndDance/FadeInShadow: zombie
+        ' unit, shadow gone until the whole unit got reborn (the blinking
+        ' Shadow form). A hidden rider keeps its handle and is reborn by
+        ' Reveal() instead.
+        Notifier_Sub.Hide()
         Return True
     End Function
 
@@ -550,17 +556,27 @@ Public Class Notifier
     ' T30.1 OWNER rule: the slot's opening slide finishes ("done") -> the
     ' shadow fades in. Positioned under THIS unit's card (stack-aware Y),
     ' shown without activation, z-order fixed to Shadow < BG < Rider.
+    ' T30.7: the shadow is HIDDEN (never Closed) while the unit lives, so
+    ' this works after every dance - the old IsDisposed early-out silently
+    ' killed it forever after the first dance.
     Public Sub FadeInShadow()
         Try
-            If Shadow.IsDisposed OrElse Shadow.Disposing Then Return
-            Shadow.Opacity = 0R
-            Shadow.Show()
-            Shadow.Location = New Point(Me.Left, Me.Top)
-            RaiseUnit()
+            If Shadow Is Nothing OrElse Shadow.IsDisposed OrElse Shadow.Disposing Then Return
+            ' Already steady at full opacity and no fade running -> nothing to do.
+            If Shadow.Visible AndAlso Shadow.Opacity >= 1R AndAlso _shadowFade Is Nothing Then Return
             If _shadowFade IsNot Nothing Then
                 _shadowFade.Stop()
                 _shadowFade.Dispose()
+                _shadowFade = Nothing
             End If
+            Shadow.Opacity = 0R
+            ' T30.7: position BEFORE Show - the first frame that can ever be
+            ' seen is already on the card, never at the Load-time default spot.
+            Shadow.Location = New Point(Me.Left, Me.Top)
+            Shadow.Show()
+            ' T30.7: atomic z-sort - the shadow must sit UNDER the card
+            ' before its first visible fade frame (see RaiseUnit).
+            RaiseUnit()
             _shadowFade = New System.Windows.Forms.Timer() With {.Interval = 15}
             AddHandler _shadowFade.Tick, Sub()
                                              If Shadow.IsDisposed OrElse Shadow.Disposing Then
@@ -570,6 +586,8 @@ Public Class Notifier
                                              If Shadow.Opacity >= 1 Then
                                                  Shadow.Opacity = 1R
                                                  _shadowFade.Stop()
+                                                 _shadowFade.Dispose()
+                                                 _shadowFade = Nothing
                                                  RaiseUnit()
                                              Else
                                                  Shadow.Opacity = Math.Min(1R, Shadow.Opacity + 0.1R)
@@ -582,11 +600,20 @@ Public Class Notifier
     End Sub
 
     ' T30.1 OWNER rule: the moment a closing slide starts - in every case -
-    ' the shadow closes. No fade-out, no sync, just gone.
+    ' the shadow goes. No fade-out, no sync, just gone.
+    ' T30.7: HIDE, never Close(). Close() disposes the instance and the
+    ' next FadeInShadow() silently died on IsDisposed - the shadow only
+    ' came back after the whole unit was reborn (the "Shadow แว้บๆ" blink).
     Public Sub CloseShadowNow()
         Try
+            If _shadowFade IsNot Nothing Then
+                _shadowFade.Stop()
+                _shadowFade.Dispose()
+                _shadowFade = Nothing
+            End If
             If Shadow IsNot Nothing AndAlso Not Shadow.IsDisposed AndAlso Not Shadow.Disposing Then
-                Shadow.Close()
+                Shadow.Opacity = 0R
+                Shadow.Hide()
             End If
         Catch ex As Exception
             Debug.WriteLine("[Notifier] CloseShadowNow error: " & ex.Message)
@@ -635,13 +662,48 @@ Public Class Notifier
 
     ''' <summary>T30: raise the whole unit (card + content + shadow) above
     ''' other topmost windows - fullscreen borderless games included -
-    ''' without activation.</summary>
+    ''' without activation.
+    ''' T30.7: ONE atomic commit. Three separate SetWindowPos calls each
+    ''' move a window to the top of the topmost band and DWM can composite
+    ''' BETWEEN them - one frame with the shadow above the card = the
+    ''' "Shadow แว้บๆ" blink. BeginDeferWindowPos applies the whole chain
+    ''' (Shadow &lt; BG &lt; Rider) in a single compositor update.</summary>
     Public Sub RaiseUnit()
         Try
-            ' T30.1 OWNER z-order spec, bottom -> top:
-            '   1. Shadow   2. BG (this form)   3. Text+ICO (rider on top)
-            ' Each HWND_TOPMOST call moves the window to the TOP of the
-            ' topmost band, so the LAST call ends up on top of the unit.
+            Dim hasShadow As Boolean = Shadow IsNot Nothing AndAlso Not Shadow.IsDisposed AndAlso
+                                       Shadow.Visible AndAlso Shadow.IsHandleCreated
+            Dim hasRider As Boolean = Notifier_Sub IsNot Nothing AndAlso Not Notifier_Sub.IsDisposed AndAlso
+                                      Notifier_Sub.Visible AndAlso Notifier_Sub.IsHandleCreated
+            Dim count As Integer = 1
+            If hasShadow Then count += 1
+            If hasRider Then count += 1
+
+            Dim h As IntPtr = BeginDeferWindowPos(count)
+            If h <> IntPtr.Zero Then
+                ' Chain bottom -> top (OWNER spec 1.Shadow 2.BG 3.Text+ico):
+                ' rider first (top of band), BG below it, shadow below BG.
+                Dim prev As IntPtr = HwndTopmost
+                If hasRider Then
+                    h = DeferWindowPos(h, Notifier_Sub.Handle, prev, 0, 0, 0, 0,
+                                       SWP_NOSIZE_FLAG Or SWP_NOMOVE_FLAG Or SWP_NOACTIVATE_FLAG)
+                    If h <> IntPtr.Zero Then prev = Notifier_Sub.Handle
+                End If
+                If h <> IntPtr.Zero Then
+                    h = DeferWindowPos(h, Me.Handle, prev, 0, 0, 0, 0,
+                                       SWP_NOSIZE_FLAG Or SWP_NOMOVE_FLAG Or SWP_NOACTIVATE_FLAG)
+                    If h <> IntPtr.Zero Then prev = Me.Handle
+                End If
+                If h <> IntPtr.Zero AndAlso hasShadow Then
+                    h = DeferWindowPos(h, Shadow.Handle, prev, 0, 0, 0, 0,
+                                       SWP_NOSIZE_FLAG Or SWP_NOMOVE_FLAG Or SWP_NOACTIVATE_FLAG)
+                End If
+                If h <> IntPtr.Zero AndAlso EndDeferWindowPos(h) Then Return
+            End If
+        Catch ex As Exception
+            Debug.WriteLine("[Notifier] RaiseUnit defer error: " & ex.Message)
+        End Try
+        ' Fallback: plain per-window raises - identical final order.
+        Try
             If Shadow IsNot Nothing AndAlso Not Shadow.IsDisposed AndAlso Shadow.IsHandleCreated Then
                 RaiseWindow(Shadow.Handle)
             End If
@@ -670,11 +732,13 @@ Public Class Notifier
         _activeReflowTarget = Integer.MinValue ' T30.6: the exit owns the Y axis now
 
         ' T30.1/T30.3 OWNER rules: the closing slide STARTS first - the
-        ' shadow closes this instant, in every case. The rider (Text+ICO)
+        ' shadow goes this instant, in every case. The rider (Text+ICO)
         ' is still too: it never rides out, it goes the same instant and
         ' the card slides out alone.
-        Shadow.Close()
-        Notifier_Sub.Close()
+        ' T30.7: Hide, never Close - the unit is still alive during the
+        ' exit slide; disposal happens when Me.Close() lands.
+        CloseShadowNow()
+        Notifier_Sub.Hide()
         Notifier_green_stop.Visible = False
 
         ' Both panels now animate independently — Notifier_green's slide (started
