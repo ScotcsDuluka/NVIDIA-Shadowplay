@@ -20,12 +20,21 @@ Public Class Notifier_Sub2
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000
+    ' T30.1: never take focus - not on Show, not on click, not ever.
+    Private Const WS_EX_NOACTIVATE As Integer = &H8000000
 
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
             Dim cp As CreateParams = MyBase.CreateParams
-            cp.ExStyle = cp.ExStyle Or WS_EX_TRANSPARENT Or WS_EX_LAYERED
+            cp.ExStyle = cp.ExStyle Or WS_EX_TRANSPARENT Or WS_EX_LAYERED Or WS_EX_NOACTIVATE
             Return cp
+        End Get
+    End Property
+
+    ' T30.1: WinForms-level half of the no-focus guarantee (covers Show()).
+    Protected Overrides ReadOnly Property ShowWithoutActivation As Boolean
+        Get
+            Return True
         End Get
     End Property
 
@@ -60,8 +69,10 @@ Public Class Notifier_Sub2
         Debug.WriteLine("[Notifier_Sub2] ===== Form Load =====")
 
         HideFromAltTab()
-        Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
-        Me.Location = New Point(screenWidth - Me.Width, Notifier2.Location.Y)
+        ' T30.1: born where the card panel currently IS - offscreen while
+        ' riding in with the entrance slide, on the card while steady. The
+        ' unit's MM engine drives this form's X from the first frame.
+        Me.Location = New Point(Notifier2.Left + Notifier2.Notifier_black.Left, Notifier2.Location.Y)
 
         Me.Opacity = 0
         Me.Show()
@@ -81,13 +92,10 @@ Public Class Notifier_Sub2
 
         Me.Opacity = 1
 
-        If Shadow2.Opacity < 1 Then
-            Shadow2.Opacity += 0.05
-        Else
-            Shadow2.Opacity = 1
-            fadeTimer.Stop()
-            Debug.WriteLine("[Notifier_Sub2] Fade complete")
-        End If
+        ' T30.1: the shadow is NOT the rider's business anymore - the unit's
+        ' Background form fades it in when the slide-in completes.
+        fadeTimer.Stop()
+        Debug.WriteLine("[Notifier_Sub2] Fade complete")
     End Sub
 
     Private Sub text_n_Click_1(sender As Object, e As EventArgs) Handles MyBase.Click, text_n.Click, Notifier_black.Click, PictureBox1.Click, icon_n.Click

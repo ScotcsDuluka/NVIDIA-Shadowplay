@@ -32,12 +32,21 @@ Public Class Notifier3
 
     Private Const WS_EX_TRANSPARENT As Integer = &H20
     Private Const WS_EX_LAYERED As Integer = &H80000
+    ' T30.1: never take focus - not on Show, not on click, not ever.
+    Private Const WS_EX_NOACTIVATE As Integer = &H8000000
 
     Protected Overrides ReadOnly Property CreateParams As CreateParams
         Get
             Dim cp As CreateParams = MyBase.CreateParams
-            cp.ExStyle = cp.ExStyle Or WS_EX_TRANSPARENT Or WS_EX_LAYERED
+            cp.ExStyle = cp.ExStyle Or WS_EX_TRANSPARENT Or WS_EX_LAYERED Or WS_EX_NOACTIVATE
             Return cp
+        End Get
+    End Property
+
+    ' T30.1: WinForms-level half of the no-focus guarantee (covers Show()).
+    Protected Overrides ReadOnly Property ShowWithoutActivation As Boolean
+        Get
+            Return True
         End Get
     End Property
 
@@ -159,7 +168,8 @@ Public Class Notifier3
         Debug.WriteLine("[Notifier] StartSlide: " & panel.Name &
                         " X " & fromX & "→" & toX &
                         " dur=" & duration & "ms")
-        TopMost = True
+        ' T30.1: no TopMost setter here - it can activate the form. The
+        ' no-activate z-order guarantee is RaiseUnit()'s job.
 
         Dim state As New AnimState With {
             .Sw = Stopwatch.StartNew(),
@@ -188,7 +198,7 @@ Public Class Notifier3
         Debug.WriteLine("[Notifier] StartSlideY: " & panel.Name &
                         " Y " & fromY & "→" & toY &
                         " dur=" & duration & "ms")
-        TopMost = True
+        ' T30.1: no TopMost setter here (can activate) - see StartSlide.
 
         Dim state As New AnimState With {
             .Sw = Stopwatch.StartNew(),
@@ -240,8 +250,10 @@ Public Class Notifier3
                 t = 1
                 If state.IsSlideX Then
                     panel.Left = state.TargetX
+                    SyncFollowersX(panel)
                 Else
                     panel.Top = state.TargetY
+                    SyncFollowersY(panel.Top)
                 End If
 
                 Debug.WriteLine("[Notifier] Animation COMPLETE " & panel.Name & " " &
@@ -254,8 +266,10 @@ Public Class Notifier3
 
                 If state.IsSlideX Then
                     panel.Left = CInt(state.StartX + (state.TargetX - state.StartX) * eased)
+                    SyncFollowersX(panel)
                 Else
                     panel.Top = CInt(state.StartY + (state.TargetY - state.StartY) * eased)
+                    SyncFollowersY(panel.Top)
                 End If
             End If
         Next
@@ -346,7 +360,8 @@ Public Class Notifier3
         AddHandler _delayTimers.Tick, Sub()
                                           _delayTimers.Stop()
 
-                                          Shadow3.Show()
+                                          ' T30.1: no shadow during the slide - it fades in when
+                                          ' the entrance COMPLETES (OWNER spec).
                                           Opacity = 1
                                           StartSlide(Notifier_green, Me.Width, Me.Width - 300, 200)
                                           StopDelayTimer()
@@ -356,10 +371,14 @@ Public Class Notifier3
                                           AddHandler _delayTimer.Tick, Sub()
                                                                            _delayTimer.Stop()
 
+                                                                           ' T30.1: the rider (Text+ICO) is visible from the
+                                                                           ' first frame of the card slide and rides it -
+                                                                           ' the engine carries it in the same 1 ms tick.
+                                                                           Notifier_Sub3.Show()
                                                                            StartSlide(Notifier_black, Me.Width, Me.Width - 300, 300,
                                                                                Sub()
-                                                                                   Notifier_Sub3.Show()
                                                                                    Notifier_green_stop.Visible = True
+                                                                                   FadeInShadow()
                                                                                End Sub)
                                                                        End Sub
                                           _delayTimer.Start()
@@ -389,6 +408,11 @@ Public Class Notifier3
         autoClose.Stop()
         StopDelayTimer()
         StopCloseTimer()
+        If _shadowFade IsNot Nothing Then
+            _shadowFade.Stop()
+            _shadowFade.Dispose()
+            _shadowFade = Nothing
+        End If
     End Sub
 
 #End Region
@@ -410,9 +434,13 @@ Public Class Notifier3
 
     ' The router starts a replace dance through here. False = a dance is
     ' already running or the unit is sliding out - coalesce instead.
+    ' T30.1: a dance slides the card away, so the shadow dies the moment
+    ' the dance starts (OWNER rule) and is faded back in when the
+    ' slide-in completes (Loader calls FadeInShadow in that callback).
     Public Function BeginDance() As Boolean
         If _inTransition Then Return False
         _inTransition = True
+        CloseShadowNow()
         Return True
     End Function
 
@@ -425,21 +453,95 @@ Public Class Notifier3
 
 #Region "T30 RaiseStack - Unit Move / Z-Order"
 
+    ' ===== T30.1: single-clock followers (OWNER: play the animation once,
+    ' everything else syncs at 1 ms - simultaneously) =====
+    ' The MM engine is the ONLY clock. Every tick that writes the card's
+    ' position writes the rider (Text+ICO) and the shadow in the SAME tick,
+    ' so all windows of a unit move as one rigid body - no follower can lag
+    ' a frame behind. The shadow only exists while the unit is steady: it
+    ' fades in AFTER a slide-in completes and closes the moment a slide-out
+    ' starts, so it never needs its own position-sync timer.
+    Private _shadowFade As System.Windows.Forms.Timer
+
+    Private Sub SyncFollowersX(panel As Control)
+        If Notifier_Sub3 IsNot Nothing AndAlso Not Notifier_Sub3.IsDisposed AndAlso Notifier_Sub3.Visible Then
+            Notifier_Sub3.Left = Me.Left + panel.Left
+        End If
+        If Shadow3 IsNot Nothing AndAlso Not Shadow3.IsDisposed AndAlso Shadow3.Visible Then
+            Shadow3.Left = Me.Left
+            Shadow3.Top = Me.Top
+        End If
+    End Sub
+
+    Private Sub SyncFollowersY(newTop As Integer)
+        If Notifier_Sub3 IsNot Nothing AndAlso Not Notifier_Sub3.IsDisposed AndAlso Notifier_Sub3.Visible Then
+            Notifier_Sub3.Top = newTop
+        End If
+        If Shadow3 IsNot Nothing AndAlso Not Shadow3.IsDisposed AndAlso Shadow3.Visible Then
+            Shadow3.Top = newTop
+            Shadow3.Left = Me.Left
+        End If
+    End Sub
+
+    ' T30.1 OWNER rule: the slot's opening slide finishes ("done") -> the
+    ' shadow fades in. Positioned under THIS unit's card (stack-aware Y),
+    ' shown without activation, z-order fixed to Shadow < BG < Rider.
+    Public Sub FadeInShadow()
+        Try
+            If Shadow3.IsDisposed OrElse Shadow3.Disposing Then Return
+            Shadow3.Opacity = 0R
+            Shadow3.Show()
+            Shadow3.Location = New Point(Me.Left, Me.Top)
+            RaiseUnit()
+            If _shadowFade IsNot Nothing Then
+                _shadowFade.Stop()
+                _shadowFade.Dispose()
+            End If
+            _shadowFade = New System.Windows.Forms.Timer() With {.Interval = 15}
+            AddHandler _shadowFade.Tick, Sub()
+                                             If Shadow3.IsDisposed OrElse Shadow3.Disposing Then
+                                                 _shadowFade.Stop()
+                                                 Return
+                                             End If
+                                             If Shadow3.Opacity >= 1 Then
+                                                 Shadow3.Opacity = 1R
+                                                 _shadowFade.Stop()
+                                                 RaiseUnit()
+                                             Else
+                                                 Shadow3.Opacity = Math.Min(1R, Shadow3.Opacity + 0.1R)
+                                             End If
+                                         End Sub
+            _shadowFade.Start()
+        Catch ex As Exception
+            Debug.WriteLine("[Notifier3] FadeInShadow error: " & ex.Message)
+        End Try
+    End Sub
+
+    ' T30.1 OWNER rule: the moment a closing slide starts - in every case -
+    ' the shadow closes. No fade-out, no sync, just gone.
+    Public Sub CloseShadowNow()
+        Try
+            If Shadow3 IsNot Nothing AndAlso Not Shadow3.IsDisposed AndAlso Not Shadow3.Disposing Then
+                Shadow3.Close()
+            End If
+        Catch ex As Exception
+            Debug.WriteLine("[Notifier3] CloseShadowNow error: " & ex.Message)
+        End Try
+    End Sub
+
     ''' <summary>
-    ''' T30 RaiseStack: glide the whole unit (card + content form) to a new Y
-    ''' so the stack can compact when a toast above closes. The shadow rides
-    ''' its own 16ms position-sync timer. Safe on any state - per-control
-    ''' animation replace means the last call wins, never two writes per tick.
+    ''' T30/T30.1: glide the unit to a new Y so the stack can compact when a
+    ''' toast above closes. Single clock: this form animates; the rider and
+    ''' the shadow are carried along by the same 1 ms engine tick. Safe on
+    ''' any state - per-control animation replace means the last call wins.
     ''' </summary>
     Public Sub ReflowTo(targetY As Integer, Optional durationMs As Integer = 250)
         If Me.IsDisposed OrElse Me.Disposing Then Return
         If Me.Top = targetY Then Return
 
+        ' T30.1: animate THIS form only - the engine tick carries the rider
+        ' and the shadow along in the same tick (single clock, no drift).
         StartSlideY(Me, Me.Top, targetY, durationMs)
-
-        If Notifier_Sub3 IsNot Nothing AndAlso Not Notifier_Sub3.IsDisposed Then
-            StartSlideY(Notifier_Sub3, Notifier_Sub3.Top, targetY, durationMs)
-        End If
     End Sub
 
     ' T30: re-assert HWND_TOPMOST for every window of the unit WITHOUT
@@ -461,12 +563,16 @@ Public Class Notifier3
     ''' without activation.</summary>
     Public Sub RaiseUnit()
         Try
+            ' T30.1 OWNER z-order spec, bottom -> top:
+            '   1. Shadow   2. BG (this form)   3. Text+ICO (rider on top)
+            ' Each HWND_TOPMOST call moves the window to the TOP of the
+            ' topmost band, so the LAST call ends up on top of the unit.
+            If Shadow3 IsNot Nothing AndAlso Not Shadow3.IsDisposed AndAlso Shadow3.IsHandleCreated Then
+                RaiseWindow(Shadow3.Handle)
+            End If
             RaiseWindow(Me.Handle)
             If Notifier_Sub3 IsNot Nothing AndAlso Not Notifier_Sub3.IsDisposed AndAlso Notifier_Sub3.IsHandleCreated Then
                 RaiseWindow(Notifier_Sub3.Handle)
-            End If
-            If Shadow3 IsNot Nothing AndAlso Not Shadow3.IsDisposed AndAlso Shadow3.IsHandleCreated Then
-                RaiseWindow(Shadow3.Handle)
             End If
         Catch ex As Exception
             Debug.WriteLine("[Notifier3] RaiseUnit error: " & ex.Message)
@@ -486,8 +592,11 @@ Public Class Notifier3
         Debug.WriteLine("[Notifier3] SlideOutAll")
         _inTransition = True
 
+        ' T30.1 OWNER rule: the closing slide STARTS first - the shadow is
+        ' closed this instant, in every case. The rider (Text+ICO) is NOT
+        ' closed here anymore: it rides the slide-out (the engine carries
+        ' it) and is closed together with the unit below.
         Shadow3.Close()
-        Notifier_Sub3.Close()
         Notifier_green_stop.Visible = False
 
         ' Both panels now animate independently — Notifier_green's slide (started
@@ -506,6 +615,7 @@ Public Class Notifier3
                                          _closeTimer.Interval = 200
                                          AddHandler _closeTimer.Tick, Sub()
                                                                           _closeTimer.Stop()
+                                                                          Notifier_Sub3.Close()
                                                                           Me.Close()
                                                                       End Sub
                                          _closeTimer.Start()

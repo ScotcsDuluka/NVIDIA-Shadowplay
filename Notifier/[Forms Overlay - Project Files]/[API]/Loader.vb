@@ -355,7 +355,7 @@ Partial Public Class Loader
     Private Sub ShowSideSlot3(content As Notifier_Sub3, message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
         _side3Group = group
         Notifier3.autoClose.Stop()
-        content.TopMost = True
+        ' T30.1: no TopMost setter (can activate) - RaiseUnit()/heartbeat own z-order.
         Notifier3.Show()
         With content.icon_n
             .Font = New Font(.Font.FontFamily, 35)
@@ -374,7 +374,7 @@ Partial Public Class Loader
         _side3Group = group
         Notifier3.autoClose.Stop()
         Notifier3.autoClose.Start()
-        Notifier_Sub3.TopMost = True
+        ' T30.1: no TopMost setter (can activate) - see ShowSideSlot3.
 
         Dim paintSub = Sub()
                            With Notifier_Sub3.icon_n
@@ -405,6 +405,7 @@ Partial Public Class Loader
                                        Sub()
                                            Notifier_Sub3.Show()
                                            Notifier3.EndDance()
+                                           Notifier3.FadeInShadow()
                                        End Sub)
                                End Sub
         delay.Start()
@@ -419,7 +420,7 @@ Partial Public Class Loader
     Private Sub ShowSideSlot(content As Notifier_Sub2, message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
         _side2Group = group
         Notifier2.autoClose.Stop()
-        content.TopMost = True
+        ' T30.1: no TopMost setter (can activate) - RaiseUnit()/heartbeat own z-order.
         Notifier2.Show()
         With content.icon_n
             .Font = New Font(.Font.FontFamily, 35)
@@ -439,7 +440,7 @@ Partial Public Class Loader
         _side2Group = group
         Notifier2.autoClose.Stop()
         Notifier2.autoClose.Start()
-        Notifier_Sub2.TopMost = True
+        ' T30.1: no TopMost setter (can activate) - see ShowSideSlot.
 
         Dim paintSub = Sub()
                            With Notifier_Sub2.icon_n
@@ -473,6 +474,7 @@ Partial Public Class Loader
                                        Sub()
                                            Notifier_Sub2.Show()
                                            Notifier2.EndDance()
+                                           Notifier2.FadeInShadow()
                                        End Sub)
                                End Sub
         delay.Start()
@@ -601,7 +603,7 @@ Partial Public Class Loader
             Notifier.autoClose.Stop()
             Notifier.autoClose.Start()
         End If
-        Notifier_Sub.TopMost = True
+        ' T30.1: no TopMost setter (can activate) - see ShowSideSlot.
 
         Dim paintSub = Sub()
                            With Notifier_Sub.icon_n
@@ -632,6 +634,7 @@ Partial Public Class Loader
                                                Sub()
                                                    Notifier_Sub.Show()
                                                    Notifier.EndDance()
+                                                   Notifier.FadeInShadow()
                                                End Sub)
                                        End Sub
                 delay.Start()

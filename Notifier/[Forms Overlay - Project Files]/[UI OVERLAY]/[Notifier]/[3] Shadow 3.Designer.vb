@@ -30,7 +30,11 @@ Partial Class Shadow3
         ' 
         ' Timer1
         ' 
-        Timer1.Enabled = True
+        ' T30.1: DISABLED - the shadow only exists while the unit is steady
+        ' (fades in after the slide-in completes, closes the moment a
+        ' slide-out starts). During a reflow glide the unit's MM engine
+        ' carries the shadow in the same 1 ms tick - no 16ms sync needed.
+        Timer1.Enabled = False
         Timer1.Interval = 16
         ' 
         ' HideShadow
