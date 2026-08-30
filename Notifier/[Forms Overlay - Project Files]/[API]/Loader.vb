@@ -334,6 +334,11 @@ Partial Public Class Loader
         Public Phase As SlotPhase = SlotPhase.Free
         Public Row As Integer = 0
         Public Key As String = ""
+        ''' <summary>T27.2: strong ref to the form this slot last showed.
+        ''' Deliberately NOT the VB default instance — touching that auto-
+        ''' recreates a disposed form, which hides exactly the liveness we
+        ''' need to inspect. Liveness checks must read IsDisposed on THIS ref.</summary>
+        Public FormRef As Form
     End Class
 
     Private ReadOnly S1 As New SlotState With {.Id = 1}
@@ -366,6 +371,11 @@ Partial Public Class Loader
             Me.Invoke(Sub() RouteToast(key, message, showImage, icon, iconColor))
             Return
         End If
+
+        ' 0) T27.2: self-heal FIRST — a slot wedged at Entering/Showing/Closing
+        ' with a disposed form (any historical race) must not eat this toast
+        ' into a dead unit or a phantom toggle match.
+        HealStaleSlots()
 
         ' 1) toggle — refresh the live unit already showing this key
         Dim live = FindLiveByKey(key)
@@ -420,6 +430,19 @@ Partial Public Class Loader
     End Function
 
     Private Sub ShowFresh(s As SlotState, key As String, message As String, showImage As Boolean, icon As String, iconColor As Color)
+        ' T27.2: hard reset — if the slot's previous form is somehow still
+        ' alive (wedged phase from an older race), silently dispose it, or
+        ' the default-instance getter hands us that zombie and Show()
+        ' re-opens it WITHOUT its Form_Load dance (no dance → no autoClose
+        ' → a stuck toast that nothing will ever close).
+        Try
+            If s.FormRef IsNot Nothing AndAlso Not s.FormRef.IsDisposed Then
+                Debug.WriteLine($"[Router] unit {s.Id}: disposing stale form before fresh show")
+                s.FormRef.Dispose()
+            End If
+        Catch
+        End Try
+
         s.Row = LowestFreeRow(s)
         s.Key = key
         s.Phase = SlotPhase.Entering
@@ -429,13 +452,31 @@ Partial Public Class Loader
             Notifier.CurrentRow = s.Row
             Notifier.UnitId = 1
             Notifier.Show()   ' Form_Load runs the slide-in dance, owns autoClose
+            s.FormRef = Notifier   ' T27.2: liveness anchor (strong ref)
             SetContent(Notifier_Sub, message, showImage, icon, iconColor)
         Else
             Notifier2.CurrentRow = s.Row
             Notifier2.UnitId = 2
             Notifier2.Show()
+            s.FormRef = Notifier2   ' T27.2
             SetContent(Notifier_Sub2, message, showImage, icon, iconColor)
         End If
+    End Sub
+
+    ''' <summary>T27.2: a slot stuck at Entering/Showing/Closing whose form is
+    ''' gone can never serve a toast again — every arrival toggles a dead unit
+    ''' or queues forever (OWNER: "toast จบแล้ว ค้างเลย"). Reads FormRef only —
+    ''' never the default instance, which would auto-recreate the very ghost
+    ''' we are checking for.</summary>
+    Private Sub HealStaleSlots()
+        For Each s In {S1, S2}
+            If s.Phase = SlotPhase.Free Then Continue For
+            If s.FormRef Is Nothing OrElse s.FormRef.IsDisposed Then
+                Debug.WriteLine($"[Router] heal: unit {s.Id} phase={s.Phase} but form gone → Free")
+                s.Phase = SlotPhase.Free
+                s.Key = ""
+            End If
+        Next
     End Sub
 
     ' Both content form classes expose the same controls — one overload each.
@@ -550,6 +591,15 @@ Partial Public Class Loader
     ''' vanish while sliding up" + the shadow lagging behind). SettleRiders
     ''' pins the riders to the final Y — or resurrects a dead overlay.</summary>
     Private Sub ReflowUp(s As SlotState)
+        ' T27.2: never glide a dead unit — if its form is already gone,
+        ' heal the slot and bail instead of animating a freshly
+        ' auto-recreated (hidden) default instance.
+        If s.FormRef Is Nothing OrElse s.FormRef.IsDisposed Then
+            Debug.WriteLine($"[Router] reflow: unit {s.Id} form gone — heal + skip")
+            s.Phase = SlotPhase.Free
+            s.Key = ""
+            Return
+        End If
         s.Row = 0
         Dim targetY As Integer = Notifier.BaseRowY()
         Debug.WriteLine($"[Router] reflow: unit {s.Id} glides up to row 0 (Y={targetY})")
@@ -568,7 +618,19 @@ Partial Public Class Loader
         s.Phase = SlotPhase.Free
         s.Key = ""
         Debug.WriteLine($"[Router] unit {s.Id} closed → free")
-        TryDequeueNext()
+
+        ' T27.2: DEFER the dequeue. UnitClosed fires inside Form.Close()'s
+        ' call stack, BEFORE the dying form is disposed. Dequeuing here made
+        ' ShowFresh grab that not-yet-disposed default instance (its getter
+        ' only recreates on IsDisposed) → Show() reopened the corpse, the
+        ' pending Dispose killed it, and the slot froze at Entering forever
+        ' — every later toast starved in the queue (OWNER: "toast จบแล้ว
+        ' ค้างเลย"). BeginInvoke lands on a clean stack after Close() returns.
+        Try
+            Me.BeginInvoke(Sub() TryDequeueNext())
+        Catch
+            ' Loader tearing down — nothing left to serve
+        End Try
     End Sub
 
     Private Function StateOf(sender As Form) As SlotState

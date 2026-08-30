@@ -198,6 +198,11 @@ Public Class Notifier2
         Catch ex As ObjectDisposedException
             _invokePending = False
             Debug.WriteLine("[Notifier.MM] BeginInvoke failed — disposed")
+        Catch ex As InvalidOperationException
+            ' T27.2: handle already destroyed (mid-close race) — an unhandled
+            ' exception on the winmm callback thread would kill the process.
+            _invokePending = False
+            Debug.WriteLine("[Notifier.MM] BeginInvoke failed — no handle")
         End Try
     End Sub
 
@@ -458,16 +463,16 @@ Public Class Notifier2
         _delayTimer.Interval = 200
         AddHandler _delayTimer.Tick, Sub()
                                          _delayTimer.Stop()
-                                         StartSlide(Notifier_green, Notifier_green.Left, Me.Width + 300, 600)
-
-                                         StopCloseTimer()
-                                         _closeTimer = New Timer()
-                                         _closeTimer.Interval = 200
-                                         AddHandler _closeTimer.Tick, Sub()
-                                                                          _closeTimer.Stop()
-                                                                          Me.Close()
-                                                                      End Sub
-                                         _closeTimer.Start()
+                                         ' T27.2: close the card when the green panel is
+                                         ' FULLY out — the old +200ms close timer fired while
+                                         ' the exit slide was mid-flight (green only ~1/3 out),
+                                         ' so CancelAll froze it and the toast popped out of
+                                         ' existence. Completion-callback close = smooth exit,
+                                         ' and UnitClosed lands after the visible exit ends.
+                                         StartSlide(Notifier_green, Notifier_green.Left, Me.Width + 300, 600,
+                                                    Sub()
+                                                        Me.Close()
+                                                    End Sub)
                                      End Sub
         _delayTimer.Start()
     End Sub
