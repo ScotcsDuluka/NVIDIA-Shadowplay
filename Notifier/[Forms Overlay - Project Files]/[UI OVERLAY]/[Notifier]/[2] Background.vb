@@ -421,6 +421,18 @@ Public Class Notifier
     ' running surfaces it (latest wins, zero overlap).
     Private _inTransition As Boolean = False
 
+    ' T30.4 OWNER rule "key ซ้ำ ให้ใช้ Updater UI > Slot นั้นๆ": True for the
+    ' whole replace-dance window (BeginDance..EndDance). Routing uses it to
+    ' tell a DANCE (unit survives - a same-key repeat coalesces onto the
+    ' dance already in flight and surfaces on THIS slot) apart from a
+    ' mid-EXIT (unit is dying - queue instead of painting a corpse).
+    Public ReadOnly Property IsDancing As Boolean
+        Get
+            Return _isDancing
+        End Get
+    End Property
+    Private _isDancing As Boolean = False
+
     Public ReadOnly Property InTransition As Boolean
         Get
             Return _inTransition
@@ -438,6 +450,7 @@ Public Class Notifier
     Public Function BeginDance() As Boolean
         If _inTransition Then Return False
         _inTransition = True
+        _isDancing = True
         CloseShadowNow()
         Notifier_Sub.Close()
         Return True
@@ -446,6 +459,7 @@ Public Class Notifier
     ' The router calls this when the slide-in back completed.
     Public Sub EndDance()
         _inTransition = False
+        _isDancing = False
     End Sub
 
 #End Region
@@ -652,6 +666,7 @@ Public Class Notifier
     Private Sub SlideOutAll()
         Debug.WriteLine("[Notifier] SlideOutAll")
         _inTransition = True
+        _isDancing = False ' an exit always wins - routing must queue, not coalesce
 
         ' T30.1/T30.3 OWNER rules: the closing slide STARTS first - the
         ' shadow closes this instant, in every case. The rider (Text+ICO)

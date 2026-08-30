@@ -498,9 +498,10 @@ Partial Public Class Loader
     '   2. A NEW group + main busy -> first FREE configured side slot; when
     '      EVERY configured slot is busy -> T30 QUEUE (FIFO, capped,
     '      same-group dedup) instead of stealing a slot or dropping.
-    '   2b. A group live on a side slot but not steady yet (mid-dance /
-    '       mid-entrance / mid-exit) -> coalesce onto that unit, or queue
-    '       if the unit is sliding out (the pending Close() would eat it).
+    '   2b. A group live on a side slot but not steady yet -> mid-dance /
+    '       mid-entrance coalesce onto that unit (T30.4 OWNER rule: a key
+    '       repeat ALWAYS surfaces on the slot where the key lives);
+    '       mid-exit queues instead (the pending Close() would eat it).
     '   3. Main slot -> fresh show at the BOTTOM of the active stack (T30
     '      reflow glides the rest up), same-group dance, or coalesce.
     Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color, Optional group As String = Nothing)
@@ -566,17 +567,25 @@ Partial Public Class Loader
         '     unit is sliding out to close, queue instead of painting a
         '     corpse (T29.4 lesson: the pending Me.Close() eats the toast).
         If slotCount >= 2 AndAlso SideSlotBusy(Notifier2) AndAlso SameToastGroup(_side2Group, group) Then
-            If Notifier2.InTransition Then
+            If Notifier2.InTransition AndAlso Not Notifier2.IsDancing Then
+                ' Mid-EXIT to close - the pending Me.Close() would eat the
+                ' toast. Queue; never paint a corpse (T29.4).
                 EnqueueToast(message, showImage, icon, iconColor, group)
             Else
+                ' Steady OR mid-dance -> the Updater UI dance on THIS slot
+                ' (T30.4 OWNER: key ซ้ำ stays on the slot where it lives).
+                ' A running dance coalesces - BeginDance returns False and
+                ' the latest content rides the dance already in flight.
                 DanceSideToast(message, showImage, icon, iconColor, group)
             End If
             Exit Sub
         End If
         If slotCount >= 3 AndAlso SideSlotBusy(Notifier3) AndAlso SameToastGroup(_side3Group, group) Then
-            If Notifier3.InTransition Then
+            If Notifier3.InTransition AndAlso Not Notifier3.IsDancing Then
+                ' Mid-EXIT to close - see the slot 2 branch above.
                 EnqueueToast(message, showImage, icon, iconColor, group)
             Else
+                ' Steady OR mid-dance -> dance on THIS slot (T30.4).
                 DanceSideToast3(message, showImage, icon, iconColor, group)
             End If
             Exit Sub
@@ -586,10 +595,14 @@ Partial Public Class Loader
         '    (T30 reflow glides the others up), the Updater UI replace dance
         '    when it is showing, T29.4 coalescing while a dance is running.
         '    This also covers 1-slot mode.
-        If Notifier.InTransition Then
+        If Notifier.InTransition AndAlso Not Notifier.IsDancing Then
             ' Main is sliding out to close - anything painted now dies with
             ' it. Queue the toast; the heartbeat shows it on the next free
             ' slot (often this very one, about a second later).
+            ' T30.4 OWNER rule "key ซ้ำ ให้ใช้ Updater UI > Slot นั้นๆ": a
+            ' mid-DANCE main is NOT queued - it falls through to ShowOnMain,
+            ' which coalesces the repeat onto the dance already running, so
+            ' the key keeps surfacing on the slot where it lives.
             EnqueueToast(message, showImage, icon, iconColor, group)
             Exit Sub
         End If
