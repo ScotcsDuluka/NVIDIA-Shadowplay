@@ -2187,7 +2187,7 @@ Partial Class Base
         ' 
         ' Load_App
         ' 
-        Load_App.Interval = 1
+        Load_App.Interval = 50
         ' 
         ' not_save
         ' 
@@ -2200,7 +2200,7 @@ Partial Class Base
         ' GAMES_IN
         ' 
         GAMES_IN.Enabled = True
-        GAMES_IN.Interval = 600
+        GAMES_IN.Interval = 1000
         ' 
         ' Lang
         ' 
@@ -2208,7 +2208,7 @@ Partial Class Base
         ' 
         ' GAMESFORM
         ' 
-        GAMESFORM.Enabled = True
+        GAMESFORM.Enabled = False
         GAMESFORM.Interval = 1
         ' 
         ' Animation_Engine

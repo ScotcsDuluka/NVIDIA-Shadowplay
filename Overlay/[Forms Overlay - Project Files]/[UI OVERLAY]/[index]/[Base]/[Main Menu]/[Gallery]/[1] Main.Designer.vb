@@ -430,7 +430,7 @@ Partial Class Base_Gallery
         ' Timer1
         ' 
         Timer1.Enabled = True
-        Timer1.Interval = 1
+        Timer1.Interval = 100
         ' 
         ' Base_Gallery
         ' 
