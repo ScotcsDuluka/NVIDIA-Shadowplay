@@ -142,7 +142,7 @@ Partial Public Class Loader
         ManageNotifierState()
 
         ' แสดงผล
-        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color, key)
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color, NotificationGroup(key))
 
         tcp.SendLog(message)
     End Sub
@@ -181,7 +181,7 @@ Partial Public Class Loader
         If Not NotificationAllowed(key) Then Exit Sub
 
         ManageNotifierState()
-        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color, key)
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color, NotificationGroup(key))
         tcp.SendLog(message)
     End Sub
 
@@ -269,6 +269,33 @@ Partial Public Class Loader
                 Return "DesktopCaptureDisabled"
             Case Else
                 Return Nothing
+        End Select
+    End Function
+
+    ' ====================================================================
+    ' Notification GROUPS (toast slot routing, T29.2)
+    '
+    ' The router slots toasts by GROUP, not by raw key — a start/stop
+    ' pair of the same feature are DIFFERENT keys but ONE group, so its
+    ' on/off toasts update each other in place (Updater UI dance)
+    ' instead of stacking:
+    '   recording start + saved + error  → "recording"
+    '   replay on/off/turn-on/error/saved → "replay"
+    ' Everything else is its own group (the config category name), and
+    ' totally unknown keys fall back to the raw key — so a future
+    ' notification still groups with itself without any code change.
+    ' ====================================================================
+    Private Shared Function NotificationGroup(key As String) As String
+        If String.IsNullOrEmpty(key) Then Return Nothing
+        Dim category As String = NotificationCategory(key)
+        If category Is Nothing Then Return key
+        Select Case category
+            Case "RecordingStarted", "RecordingSaved", "RecordingError"
+                Return "recording"
+            Case "InstantReplayOn", "InstantReplayOff", "ReplayTurnOn", "ReplayError", "ReplaySaved"
+                Return "replay"
+            Case Else
+                Return category
         End Select
     End Function
 

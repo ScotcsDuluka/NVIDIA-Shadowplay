@@ -107,11 +107,30 @@ Public Class Base_Settings
         ' Guard: the toggle's instance lives in the Designer.vb and can be
         ' stripped by hand edits — never let that NRE the whole page.
         If ToggleUseWindowsSnip IsNot Nothing Then ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
+        ' Toast slots (1 or 2) — the toggle IS "use a second toast slot".
+        If ToggleToastSlot2 IsNot Nothing Then ToggleToastSlot2.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 2)
         LoadObsSettings()
     End Sub
 
     Private Sub ToggleUseWindowsSnip_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUseWindowsSnip.ValueChanged
         AppSettings.Instance.UI.UseWindowsSnip = ToggleUseWindowsSnip.IsOn
+        AppSettings.Instance.Save()
+    End Sub
+
+    ' ====================================================================
+    ' Toast slots (Settings → General)
+    '
+    ' OFF = 1 slot: every toast funnels through the main toast — a repeat
+    '       of the same notification group updates it in place (Updater
+    '       UI dance), anything else replaces it. Nothing ever stacks.
+    ' ON  = 2 slots: a NEW notification group enters the free slot
+    '       instead of replacing the showing one (e.g. Record start/stop
+    '       lives in slot 2, Replay start/stop arrives → slot 1).
+    ' The Notifier reads Notifications.SlotCount from config.json at
+    ' every toast, so changes apply live — no restart needed.
+    ' ====================================================================
+    Private Sub ToggleToastSlot2_ValueChanged(sender As Object, e As EventArgs) Handles ToggleToastSlot2.ValueChanged
+        AppSettings.Instance.Notifications.SlotCount = If(ToggleToastSlot2.IsOn, 2, 1)
         AppSettings.Instance.Save()
     End Sub
 

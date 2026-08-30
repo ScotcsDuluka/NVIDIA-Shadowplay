@@ -224,6 +224,11 @@ Partial Public Class AppSettings
         Public Property EngineUIInUse As Boolean = True
         Public Property ErrorResolution As Boolean = True
         Public Property DesktopCaptureDisabled As Boolean = True
+        ' TOAST SLOTS — how many simultaneous toast slots the Notifier uses
+        ' (1 = every toast funnels through the main slot; 2 = a new
+        ' notification group enters the free slot instead of replacing the
+        ' showing one). Settings → General "second toast slot" toggle.
+        Public Property SlotCount As Integer = 2
     End Class
 
     ''' <summary>
@@ -1005,6 +1010,9 @@ Partial Public Class AppSettings
         Notifications.EngineUIInUse = loadedNotifications.EngineUIInUse
         Notifications.ErrorResolution = loadedNotifications.ErrorResolution
         Notifications.DesktopCaptureDisabled = loadedNotifications.DesktopCaptureDisabled
+        ' TOAST SLOTS - clamp to the supported range (1 or 2 slots); a
+        ' hand-edited config can never push the router out of bounds.
+        Notifications.SlotCount = Math.Min(2, Math.Max(1, loadedNotifications.SlotCount))
     End Sub
 
     ''' <summary>

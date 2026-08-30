@@ -69,6 +69,32 @@ Public Module AppConfigShared
     End Function
 
     ''' <summary>
+    ''' Reads an integer key from [section]. Falls back when the file, the
+    ''' section, or the key is missing — or when the value is not a number.
+    ''' </summary>
+    Public Function ReadInt(sectionName As String, keyName As String, fallback As Integer) As Integer
+        Try
+            Dim rootObj As JsonObject = LoadRootObject()
+            If rootObj Is Nothing Then Return fallback
+
+            Dim sectionObj As JsonObject = FindSection(rootObj, sectionName)
+            If sectionObj Is Nothing Then Return fallback
+
+            Dim valueNode As JsonNode = FindMember(sectionObj, keyName)
+            If valueNode Is Nothing Then Return fallback
+
+            Dim value As JsonValue = TryCast(valueNode, JsonValue)
+            Dim result As Integer = fallback
+            If value IsNot Nothing AndAlso value.TryGetValue(Of Integer)(result) Then
+                Return result
+            End If
+            Return fallback
+        Catch
+            Return fallback
+        End Try
+    End Function
+
+    ''' <summary>
     ''' Reads a string key from [section]. Falls back when the file, the
     ''' section, or the key is missing — or when the value is not a string.
     ''' </summary>
