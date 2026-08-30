@@ -361,13 +361,14 @@ Public Class Notifier
                                           AddHandler _delayTimer.Tick, Sub()
                                                                            _delayTimer.Stop()
 
-                                                                           ' T30.1: the rider (Text+ICO) is visible from the
-                                                                           ' first frame of the card slide and rides it -
-                                                                           ' the engine carries it in the same 1 ms tick.
-                                                                           Notifier_Sub.Show()
+                                                                           ' T30.3 OWNER: the rider (Text+ICO) is a STILL
+                                                                           ' window - it never rides. It is revealed only
+                                                                           ' when the card is PARKED, reborn anchored on it
+                                                                           ' (its Load) and stays still for life.
                                                                            StartSlide(Notifier_black, Me.Width, Me.Width - 300, 300,
                                                                                Sub()
                                                                                    Notifier_green_stop.Visible = True
+                                                                                   Notifier_Sub.Show()
                                                                                    FadeInShadow()
                                                                                End Sub)
                                                                        End Sub
@@ -431,10 +432,14 @@ Public Class Notifier
     ' T30.1: a dance slides the card away, so the shadow dies the moment
     ' the dance starts (OWNER rule) and is faded back in when the
     ' slide-in completes (Loader calls FadeInShadow in that callback).
+    ' T30.3 OWNER: the still rider never rides the dance either - it is
+    ' closed the instant the card leaves; the reveal Show()s it fresh,
+    ' reborn anchored on the parked card and fading in in place.
     Public Function BeginDance() As Boolean
         If _inTransition Then Return False
         _inTransition = True
         CloseShadowNow()
+        Notifier_Sub.Close()
         Return True
     End Function
 
@@ -447,14 +452,16 @@ Public Class Notifier
 
 #Region "T30 RaiseStack - Unit Move / Z-Order"
 
-    ' ===== T30.1: single-clock followers (OWNER: play the animation once,
-    ' everything else syncs at 1 ms - simultaneously) =====
-    ' The MM engine is the ONLY clock. Every tick that writes the card's
-    ' position writes the rider (Text+ICO) and the shadow in the SAME tick,
-    ' so all windows of a unit move as one rigid body - no follower can lag
-    ' a frame behind. The shadow only exists while the unit is steady: it
-    ' fades in AFTER a slide-in completes and closes the moment a slide-out
-    ' starts, so it never needs its own position-sync timer.
+    ' ===== T30.1/T30.3: single-clock unit (OWNER) =====
+    ' The MM engine is the ONLY clock, and each axis has ONE leader:
+    '   X (entrance/dance/exit slides): the CARD leads - it is the only
+    '       thing that moves. The rider (Text+ICO) is a still window that
+    '       exists only while the card is parked; the shadow is only alive
+    '       while steady - neither is ever written during an X slide.
+    '   Y (stack reflow): THIS FORM leads and the rider + shadow are
+    '       carried in the SAME tick (ApplyUnitY) - one rigid body.
+    ' The shadow fades in AFTER a slide-in completes and closes the moment
+    ' a slide-out starts, so it never needs its own position-sync timer.
     Private _shadowFade As System.Windows.Forms.Timer
 
     ' ===== T30.2: one atomic move per engine apply =====
@@ -508,25 +515,14 @@ Public Class Notifier
         End Try
     End Sub
 
-    ' X slide (entrance/dance): the card PANEL is the driver; the rider
-    ' follows at the panel's absolute X; the shadow only realigns with the
-    ' (stationary) form when it needs to.
+    ' T30.3 OWNER: the card (BG) is the ONLY thing that moves on the X
+    ' axis - it is the lead. The rider (Text+ICO) is a STILL window that
+    ' exists only while the card is parked, and the shadow is only alive
+    ' while steady, so nothing else is ever written during an X slide.
     Private Sub ApplySlideX(panel As Control, newX As Integer)
+        If panel.Left = newX Then Return
         Dim moves As New List(Of PendingMove)()
-        If panel.Left <> newX Then
-            moves.Add(New PendingMove With {.Hwnd = panel.Handle, .X = newX, .Y = panel.Top})
-        End If
-        If Notifier_Sub IsNot Nothing AndAlso Not Notifier_Sub.IsDisposed AndAlso Notifier_Sub.Visible Then
-            Dim riderX As Integer = Me.Left + newX
-            If Notifier_Sub.Left <> riderX Then
-                moves.Add(New PendingMove With {.Hwnd = Notifier_Sub.Handle, .X = riderX, .Y = Notifier_Sub.Top})
-            End If
-        End If
-        If Shadow IsNot Nothing AndAlso Not Shadow.IsDisposed AndAlso Shadow.Visible Then
-            If Shadow.Left <> Me.Left OrElse Shadow.Top <> Me.Top Then
-                moves.Add(New PendingMove With {.Hwnd = Shadow.Handle, .X = Me.Left, .Y = Me.Top})
-            End If
-        End If
+        moves.Add(New PendingMove With {.Hwnd = panel.Handle, .X = newX, .Y = panel.Top})
         FlushMoves(moves)
     End Sub
 
@@ -657,11 +653,12 @@ Public Class Notifier
         Debug.WriteLine("[Notifier] SlideOutAll")
         _inTransition = True
 
-        ' T30.1 OWNER rule: the closing slide STARTS first - the shadow is
-        ' closed this instant, in every case. The rider (Text+ICO) is NOT
-        ' closed here anymore: it rides the slide-out (the engine carries
-        ' it) and is closed together with the unit below.
+        ' T30.1/T30.3 OWNER rules: the closing slide STARTS first - the
+        ' shadow closes this instant, in every case. The rider (Text+ICO)
+        ' is still too: it never rides out, it goes the same instant and
+        ' the card slides out alone.
         Shadow.Close()
+        Notifier_Sub.Close()
         Notifier_green_stop.Visible = False
 
         ' Both panels now animate independently — Notifier_green's slide (started

@@ -391,10 +391,10 @@ Partial Public Class Loader
             Exit Sub
         End If
 
-        ' T30.2: the rider STAYS alive and rides the slide-out with the card
-        ' (the engine carries it in the same tick). It used to be Closed at
-        ' the dance start - the text blinked off, the card slid out empty,
-        ' slid back empty and the text faded in after the stop.
+        ' T30.3 OWNER: the STILL rider was closed by BeginDance() the instant
+        ' the card left - the card slides out alone, the content swaps at the
+        ' turnaround (rider hidden) and the reveal Show()s it reborn:
+        ' anchored on the parked card, fading in in place.
         Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Notifier_black.Left, Notifier3.Width + 300, 600)
 
         Dim delay As New Timer()
@@ -402,9 +402,9 @@ Partial Public Class Loader
         AddHandler delay.Tick, Sub()
                                    delay.Stop()
                                    delay.Dispose()
-                                   ' T30.2: swap the content at the TURNAROUND - the
-                                   ' card is fully offscreen here, so the new text/ico
-                                   ' is already riding back in with it (no pop, no fade).
+                                   ' Swap the content at the TURNAROUND - the card is
+                                   ' fully offscreen here, so the rider surfaces the
+                                   ' new text/ico when it is revealed after the park.
                                    paintSub()
                                    Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Width, Notifier3.Width - 300, 300,
                                        Sub()
@@ -465,10 +465,10 @@ Partial Public Class Loader
             Exit Sub
         End If
 
-        ' T30.2: the rider STAYS alive and rides the slide-out with the card
-        ' (the engine carries it in the same tick). It used to be Closed at
-        ' the dance start - the text blinked off, the card slid out empty,
-        ' slid back empty and the text faded in after the stop.
+        ' T30.3 OWNER: the STILL rider was closed by BeginDance() the instant
+        ' the card left - the card slides out alone, the content swaps at the
+        ' turnaround (rider hidden) and the reveal Show()s it reborn:
+        ' anchored on the parked card, fading in in place.
         Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Notifier_black.Left, Notifier2.Width + 300, 600)
 
         Dim delay As New Timer()
@@ -476,9 +476,9 @@ Partial Public Class Loader
         AddHandler delay.Tick, Sub()
                                    delay.Stop()
                                    delay.Dispose()
-                                   ' T30.2: swap the content at the TURNAROUND - the
-                                   ' card is fully offscreen here, so the new text/ico
-                                   ' is already riding back in with it (no pop, no fade).
+                                   ' Swap the content at the TURNAROUND - the card is
+                                   ' fully offscreen here, so the rider surfaces the
+                                   ' new text/ico when it is revealed after the park.
                                    paintSub()
                                    Notifier2.StartSlide(Notifier2.Notifier_black, Notifier2.Width, Notifier2.Width - 300, 300,
                                        Sub()
@@ -629,11 +629,11 @@ Partial Public Class Loader
         If Notifier.Notifier_green_stop.Visible Then
             ' แก้: เอา Application.DoEvents() ออก — กัน reentrancy
             If Notifier.BeginDance() Then
-                ' T30.2: the rider STAYS alive and rides the slide-out with
-                ' the card (the engine carries it in the same tick). It used
-                ' to be Closed at the dance start - the text blinked off, the
-                ' card slid out empty, slid back empty and the text faded in
-                ' after the stop: the whole sequence read as flicker.
+                ' T30.3 OWNER: the STILL rider was closed by BeginDance() the
+                ' instant the card left - the card slides out ALONE (only the
+                ' BG animates on X), swaps its content at the turnaround and
+                ' the reveal Show()s the rider reborn: anchored on the parked
+                ' card, fading in in place.
                 Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
 
                 Dim delay As New Timer()
@@ -641,9 +641,9 @@ Partial Public Class Loader
                 AddHandler delay.Tick, Sub()
                                            delay.Stop()
                                            delay.Dispose()
-                                           ' T30.2: swap the content at the TURNAROUND - the
-                                           ' card is fully offscreen here, so the new text/ico
-                                           ' is already riding back in with it (no pop, no fade).
+                                           ' Swap the content at the TURNAROUND - the card is
+                                           ' fully offscreen here, so the rider surfaces the
+                                           ' new text/ico when it is revealed after the park.
                                            paintSub()
                                            Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
                                                Sub()
@@ -986,8 +986,10 @@ Partial Public Class Loader
         Try
             If File.Exists(mainOffFile) Then
                 File.Delete(mainOffFile)
+                ' T30.3: IF_N is enough - the BG engine (ApplyUnitY) carries
+                ' the rider + shadow in Y in the same tick. The rider has no
+                ' self-slide timer anymore.
                 Notifier.IF_N.Start()
-                Notifier_Sub.Timer1.Start()
             End If
         Catch
         End Try
@@ -1004,8 +1006,9 @@ Partial Public Class Loader
         Notifier_Sub.Show()
     End Sub
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
+        ' T30.3: IF_N only - the rider has no self-slide timer anymore; the
+        ' BG engine carries it in Y (ApplyUnitY, same tick as the card).
         Notifier.IF_N.Start()
-        Notifier_Sub.Timer1.Start()
     End Sub
 
     ' แก้: Dispose TCP + OBS + watcher ตอน form ปิด

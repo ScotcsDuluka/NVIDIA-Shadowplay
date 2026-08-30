@@ -69,9 +69,11 @@ Public Class Notifier_Sub3
         Debug.WriteLine("[Notifier_Sub3] ===== Form Load =====")
 
         HideFromAltTab()
-        ' T30.1: born where the card panel currently IS - offscreen while
-        ' riding in with the entrance slide, on the card while steady. The
-        ' unit's MM engine drives this form's X from the first frame.
+        ' T30.3 OWNER: born ANCHORED on the parked card - this form is only
+        ' ever shown AFTER the card's slide-in completed (never mid-slide).
+        ' It is a still window for its whole life: the BG engine carries it
+        ' in Y (ApplyUnitY, same tick as the card + shadow) and NOTHING
+        ' ever animates it in X.
         Me.Location = New Point(Notifier3.Left + Notifier3.Notifier_black.Left, Notifier3.Location.Y)
 
         Me.Opacity = 0
@@ -103,80 +105,17 @@ Public Class Notifier_Sub3
         Notifier3.DoCloseClick()
     End Sub
 
-    Private animStart As DateTime
-    Private animDuration As Double
-    Private startX As Integer
-    Private targetX As Integer
-    Private startY As Integer
-    Private targetY As Integer
-    Private currentPanel As Control
-    Private animationRunning As Boolean = False
-    Private onComplete As Action
-    Private isSlideX As Boolean = False
-
-    Private Sub StartSlideY(LOS As Control,
-                       fromY As Integer,
-                       toY As Integer,
-                       duration As Double,
-                       Optional completed As Action = Nothing)
-
-        Debug.WriteLine("[Notifier_Sub3] StartSlideY: " & LOS.Name &
-                        " Y " & fromY & "→" & toY &
-                        " dur=" & duration & "ms" &
-                        " wasRunning=" & animationRunning)
-
-        currentPanel = LOS
-        startY = fromY
-        targetY = toY
-        animDuration = duration
-        onComplete = completed
-
-        LOS.Top = fromY
-        animStart = DateTime.Now
-        animationRunning = True
-
-        Animation_Engine.Interval = 15
-        Animation_Engine.Start()
-    End Sub
-
-    Private Sub Animation_Engine_Tick(sender As Object, e As EventArgs) Handles Animation_Engine.Tick
-        If Not animationRunning Then Return
-
-        Dim elapsed = (DateTime.Now - animStart).TotalMilliseconds
-        Dim t As Double = elapsed / animDuration
-
-        If t >= 1 Then
-            t = 1
-            animationRunning = False
-            Animation_Engine.Stop()
-
-            Debug.WriteLine("[Notifier_Sub3] Animation COMPLETE → Y=" & targetY)
-
-            If onComplete IsNot Nothing Then
-                onComplete.Invoke()
-                onComplete = Nothing
-            End If
-        End If
-
-        Dim eased As Double = 1 - Math.Pow(1 - t, 3)
-
-        Dim newY As Integer = startY + (targetY - startY) * eased
-        currentPanel.Top = newY
-    End Sub
-
+    ' T30.3 OWNER: the rider NEVER moves itself. On the Y axis the BG form
+    ' is the single clock - its engine (ApplyUnitY) carries the card, this
+    ' rider and the shadow in the SAME tick, and nothing ever animates the
+    ' rider on X. The old self-slide engine is deleted; this handler only
+    ' drains a stray external .Start() so it can never fight the clock.
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        If Me.IsDisposed Then
-            Timer1.Stop()
-            Return
-        End If
-        Debug.WriteLine("[Notifier_Sub3] Timer1 tick → StartSlideY")
-        StartSlideY(Me, Me.Top, 105 + SlotOffsetY, 200)
+        Timer1.Stop()
     End Sub
 
     Private Sub Notifier_Sub_FormClosing(sender As Object, e As FormClosingEventArgs) Handles MyBase.FormClosing
         Debug.WriteLine("[Notifier_Sub3] FormClosing — cleanup")
-        animationRunning = False
-        Animation_Engine.Stop()
         fadeTimer.Stop()
         fadeTimer.Dispose()
         Timer1.Stop()
