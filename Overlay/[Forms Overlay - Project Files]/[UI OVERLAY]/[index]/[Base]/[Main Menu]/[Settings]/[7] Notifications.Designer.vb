@@ -28,11 +28,6 @@ Partial Class Base_Notifications
         Menu_SubText = New Label()
         BT_EnableAll = New Label()
         BT_DisableAll = New Label()
-        Menu_Top_Dim = New PictureBox()
-        BT_Back = New Label()
-        Dim_Top = New PictureBox()
-        Dim_1 = New PictureBox()
-        Dim_2 = New PictureBox()
         Card_Recording = New Panel()
         Accent_Recording = New Panel()
         Header_Recording = New Label()
@@ -108,6 +103,11 @@ Partial Class Base_Notifications
         ToggleErrorResolution = New ToggleSwitch()
         Desc_DesktopCaptureDisabled = New Label()
         ToggleDesktopCaptureDisabled = New ToggleSwitch()
+        Menu_Top_Dim = New PictureBox()
+        BT_Back = New Label()
+        Dim_Top = New PictureBox()
+        Dim_1 = New PictureBox()
+        Dim_2 = New PictureBox()
         Menu_Settings.SuspendLayout()
         Card_Recording.SuspendLayout()
         Card_Screenshots.SuspendLayout()
@@ -122,18 +122,24 @@ Partial Class Base_Notifications
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
-        ' BT_Back
+        ' Menu_Settings
         ' 
-        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
-        BT_Back.ForeColor = Color.White
-        BT_Back.Location = New Point(80, 110)
-        BT_Back.Name = "BT_Back"
-        BT_Back.Size = New Size(200, 50)
-        BT_Back.TabIndex = 58
-        BT_Back.Text = "Back"
-        BT_Back.TextAlign = ContentAlignment.MiddleCenter
+        Menu_Settings.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Menu_Settings.AutoScroll = True
+        Menu_Settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Menu_Settings.Controls.Add(Menu_Text)
+        Menu_Settings.Controls.Add(Menu_SubText)
+        Menu_Settings.Controls.Add(Card_Recording)
+        Menu_Settings.Controls.Add(Card_Screenshots)
+        Menu_Settings.Controls.Add(Card_ShareOverlay)
+        Menu_Settings.Controls.Add(Card_InstantReplay)
+        Menu_Settings.Controls.Add(Card_SystemMonitor)
+        Menu_Settings.Controls.Add(Card_Updates)
+        Menu_Settings.Controls.Add(Card_Errors)
+        Menu_Settings.Location = New Point(80, 160)
+        Menu_Settings.Name = "Menu_Settings"
+        Menu_Settings.Size = New Size(1760, 840)
+        Menu_Settings.TabIndex = 45
         ' 
         ' Menu_Text
         ' 
@@ -155,7 +161,7 @@ Partial Class Base_Notifications
         Menu_SubText.ForeColor = Color.FromArgb(CByte(154), CByte(160), CByte(166))
         Menu_SubText.Location = New Point(64, 92)
         Menu_SubText.Name = "Menu_SubText"
-        Menu_SubText.Size = New Size(300, 23)
+        Menu_SubText.Size = New Size(273, 19)
         Menu_SubText.TabIndex = 55
         Menu_SubText.Text = "Choose which notifications appear in-game"
         ' 
@@ -165,7 +171,7 @@ Partial Class Base_Notifications
         BT_EnableAll.Cursor = Cursors.Hand
         BT_EnableAll.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         BT_EnableAll.ForeColor = Color.White
-        BT_EnableAll.Location = New Point(1400, 44)
+        BT_EnableAll.Location = New Point(286, 116)
         BT_EnableAll.Name = "BT_EnableAll"
         BT_EnableAll.Size = New Size(160, 44)
         BT_EnableAll.TabIndex = 56
@@ -178,74 +184,12 @@ Partial Class Base_Notifications
         BT_DisableAll.Cursor = Cursors.Hand
         BT_DisableAll.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         BT_DisableAll.ForeColor = Color.White
-        BT_DisableAll.Location = New Point(1576, 44)
+        BT_DisableAll.Location = New Point(452, 121)
         BT_DisableAll.Name = "BT_DisableAll"
         BT_DisableAll.Size = New Size(160, 44)
         BT_DisableAll.TabIndex = 57
         BT_DisableAll.Text = "Disable all"
         BT_DisableAll.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Menu_Top_Dim
-        ' 
-        Menu_Top_Dim.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Menu_Top_Dim.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        Menu_Top_Dim.Location = New Point(80, 160)
-        Menu_Top_Dim.Name = "Menu_Top_Dim"
-        Menu_Top_Dim.Size = New Size(1760, 5)
-        Menu_Top_Dim.TabIndex = 0
-        Menu_Top_Dim.TabStop = False
-        ' 
-        ' Dim_Top
-        ' 
-        Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        Dim_Top.Location = New Point(-24, -16)
-        Dim_Top.Name = "Dim_Top"
-        Dim_Top.Size = New Size(1913, 176)
-        Dim_Top.TabIndex = 46
-        Dim_Top.TabStop = False
-        ' 
-        ' Dim_1
-        ' 
-        Dim_1.BackColor = Color.Blue
-        Dim_1.BackgroundImageLayout = ImageLayout.None
-        Dim_1.Location = New Point(0, 203)
-        Dim_1.Name = "Dim_1"
-        Dim_1.Size = New Size(80, 80)
-        Dim_1.TabIndex = 93
-        Dim_1.TabStop = False
-        Dim_1.Visible = False
-        ' 
-        ' Dim_2
-        ' 
-        Dim_2.BackColor = Color.Blue
-        Dim_2.BackgroundImageLayout = ImageLayout.None
-        Dim_2.Location = New Point(1840, 166)
-        Dim_2.Name = "Dim_2"
-        Dim_2.Size = New Size(80, 80)
-        Dim_2.TabIndex = 94
-        Dim_2.TabStop = False
-        Dim_2.Visible = False
-        ' 
-        ' Menu_Settings
-        ' 
-        Menu_Settings.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
-        Menu_Settings.AutoScroll = True
-        Menu_Settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Menu_Settings.Controls.Add(Menu_Text)
-        Menu_Settings.Controls.Add(Menu_SubText)
-        Menu_Settings.Controls.Add(BT_EnableAll)
-        Menu_Settings.Controls.Add(BT_DisableAll)
-        Menu_Settings.Controls.Add(Card_Recording)
-        Menu_Settings.Controls.Add(Card_Screenshots)
-        Menu_Settings.Controls.Add(Card_ShareOverlay)
-        Menu_Settings.Controls.Add(Card_InstantReplay)
-        Menu_Settings.Controls.Add(Card_SystemMonitor)
-        Menu_Settings.Controls.Add(Card_Updates)
-        Menu_Settings.Controls.Add(Card_Errors)
-        Menu_Settings.Location = New Point(80, 160)
-        Menu_Settings.Name = "Menu_Settings"
-        Menu_Settings.Size = New Size(1760, 840)
-        Menu_Settings.TabIndex = 45
         ' 
         ' Card_Recording
         ' 
@@ -260,7 +204,7 @@ Partial Class Base_Notifications
         Card_Recording.Controls.Add(ToggleRecordingError)
         Card_Recording.Location = New Point(20, 140)
         Card_Recording.Name = "Card_Recording"
-        Card_Recording.Size = New Size(848, 180)
+        Card_Recording.Size = New Size(495, 180)
         Card_Recording.TabIndex = 10
         ' 
         ' Accent_Recording
@@ -279,7 +223,7 @@ Partial Class Base_Notifications
         Header_Recording.ForeColor = Color.White
         Header_Recording.Location = New Point(34, 18)
         Header_Recording.Name = "Header_Recording"
-        Header_Recording.Size = New Size(126, 28)
+        Header_Recording.Size = New Size(122, 28)
         Header_Recording.TabIndex = 1
         Header_Recording.Text = "RECORDING"
         ' 
@@ -291,7 +235,7 @@ Partial Class Base_Notifications
         Desc_RecordingStarted.ForeColor = Color.White
         Desc_RecordingStarted.Location = New Point(78, 64)
         Desc_RecordingStarted.Name = "Desc_RecordingStarted"
-        Desc_RecordingStarted.Size = New Size(300, 27)
+        Desc_RecordingStarted.Size = New Size(142, 21)
         Desc_RecordingStarted.TabIndex = 2
         Desc_RecordingStarted.Text = "Recording started"
         ' 
@@ -317,7 +261,7 @@ Partial Class Base_Notifications
         Desc_RecordingSaved.ForeColor = Color.White
         Desc_RecordingSaved.Location = New Point(78, 102)
         Desc_RecordingSaved.Name = "Desc_RecordingSaved"
-        Desc_RecordingSaved.Size = New Size(300, 27)
+        Desc_RecordingSaved.Size = New Size(132, 21)
         Desc_RecordingSaved.TabIndex = 4
         Desc_RecordingSaved.Text = "Recording saved"
         ' 
@@ -343,7 +287,7 @@ Partial Class Base_Notifications
         Desc_RecordingError.ForeColor = Color.White
         Desc_RecordingError.Location = New Point(78, 140)
         Desc_RecordingError.Name = "Desc_RecordingError"
-        Desc_RecordingError.Size = New Size(300, 27)
+        Desc_RecordingError.Size = New Size(127, 21)
         Desc_RecordingError.TabIndex = 6
         Desc_RecordingError.Text = "Recording error"
         ' 
@@ -370,7 +314,7 @@ Partial Class Base_Notifications
         Card_Screenshots.Controls.Add(ToggleScreenshotSaved)
         Card_Screenshots.Controls.Add(Desc_ValidSavePath)
         Card_Screenshots.Controls.Add(ToggleValidSavePath)
-        Card_Screenshots.Location = New Point(892, 140)
+        Card_Screenshots.Location = New Point(521, 140)
         Card_Screenshots.Name = "Card_Screenshots"
         Card_Screenshots.Size = New Size(848, 142)
         Card_Screenshots.TabIndex = 11
@@ -391,7 +335,7 @@ Partial Class Base_Notifications
         Header_Screenshots.ForeColor = Color.White
         Header_Screenshots.Location = New Point(34, 18)
         Header_Screenshots.Name = "Header_Screenshots"
-        Header_Screenshots.Size = New Size(133, 28)
+        Header_Screenshots.Size = New Size(144, 28)
         Header_Screenshots.TabIndex = 1
         Header_Screenshots.Text = "SCREENSHOTS"
         ' 
@@ -403,7 +347,7 @@ Partial Class Base_Notifications
         Desc_ScreenshotSaved.ForeColor = Color.White
         Desc_ScreenshotSaved.Location = New Point(78, 64)
         Desc_ScreenshotSaved.Name = "Desc_ScreenshotSaved"
-        Desc_ScreenshotSaved.Size = New Size(300, 27)
+        Desc_ScreenshotSaved.Size = New Size(213, 21)
         Desc_ScreenshotSaved.TabIndex = 2
         Desc_ScreenshotSaved.Text = "Screenshot saved to Gallery"
         ' 
@@ -429,7 +373,7 @@ Partial Class Base_Notifications
         Desc_ValidSavePath.ForeColor = Color.White
         Desc_ValidSavePath.Location = New Point(78, 102)
         Desc_ValidSavePath.Name = "Desc_ValidSavePath"
-        Desc_ValidSavePath.Size = New Size(300, 27)
+        Desc_ValidSavePath.Size = New Size(193, 21)
         Desc_ValidSavePath.TabIndex = 4
         Desc_ValidSavePath.Text = "Invalid save path warning"
         ' 
@@ -454,9 +398,9 @@ Partial Class Base_Notifications
         Card_ShareOverlay.Controls.Add(Header_ShareOverlay)
         Card_ShareOverlay.Controls.Add(Desc_OpenShare)
         Card_ShareOverlay.Controls.Add(ToggleOpenShare)
-        Card_ShareOverlay.Location = New Point(20, 344)
+        Card_ShareOverlay.Location = New Point(20, 326)
         Card_ShareOverlay.Name = "Card_ShareOverlay"
-        Card_ShareOverlay.Size = New Size(848, 104)
+        Card_ShareOverlay.Size = New Size(495, 104)
         Card_ShareOverlay.TabIndex = 12
         ' 
         ' Accent_ShareOverlay
@@ -475,7 +419,7 @@ Partial Class Base_Notifications
         Header_ShareOverlay.ForeColor = Color.White
         Header_ShareOverlay.Location = New Point(34, 18)
         Header_ShareOverlay.Name = "Header_ShareOverlay"
-        Header_ShareOverlay.Size = New Size(152, 28)
+        Header_ShareOverlay.Size = New Size(163, 28)
         Header_ShareOverlay.TabIndex = 1
         Header_ShareOverlay.Text = "SHARE OVERLAY"
         ' 
@@ -487,7 +431,7 @@ Partial Class Base_Notifications
         Desc_OpenShare.ForeColor = Color.White
         Desc_OpenShare.Location = New Point(78, 64)
         Desc_OpenShare.Name = "Desc_OpenShare"
-        Desc_OpenShare.Size = New Size(300, 27)
+        Desc_OpenShare.Size = New Size(224, 21)
         Desc_OpenShare.TabIndex = 2
         Desc_OpenShare.Text = "Share overlay opened (Alt+Z)"
         ' 
@@ -520,7 +464,7 @@ Partial Class Base_Notifications
         Card_InstantReplay.Controls.Add(ToggleReplayTurnOn)
         Card_InstantReplay.Controls.Add(Desc_ReplayError)
         Card_InstantReplay.Controls.Add(ToggleReplayError)
-        Card_InstantReplay.Location = New Point(892, 306)
+        Card_InstantReplay.Location = New Point(521, 288)
         Card_InstantReplay.Name = "Card_InstantReplay"
         Card_InstantReplay.Size = New Size(848, 256)
         Card_InstantReplay.TabIndex = 13
@@ -541,7 +485,7 @@ Partial Class Base_Notifications
         Header_InstantReplay.ForeColor = Color.White
         Header_InstantReplay.Location = New Point(34, 18)
         Header_InstantReplay.Name = "Header_InstantReplay"
-        Header_InstantReplay.Size = New Size(158, 28)
+        Header_InstantReplay.Size = New Size(167, 28)
         Header_InstantReplay.TabIndex = 1
         Header_InstantReplay.Text = "INSTANT REPLAY"
         ' 
@@ -553,7 +497,7 @@ Partial Class Base_Notifications
         Desc_ReplaySaved.ForeColor = Color.White
         Desc_ReplaySaved.Location = New Point(78, 64)
         Desc_ReplaySaved.Name = "Desc_ReplaySaved"
-        Desc_ReplaySaved.Size = New Size(300, 27)
+        Desc_ReplaySaved.Size = New Size(159, 21)
         Desc_ReplaySaved.TabIndex = 2
         Desc_ReplaySaved.Text = "Instant Replay saved"
         ' 
@@ -579,7 +523,7 @@ Partial Class Base_Notifications
         Desc_InstantReplayOn.ForeColor = Color.White
         Desc_InstantReplayOn.Location = New Point(78, 102)
         Desc_InstantReplayOn.Name = "Desc_InstantReplayOn"
-        Desc_InstantReplayOn.Size = New Size(300, 27)
+        Desc_InstantReplayOn.Size = New Size(136, 21)
         Desc_InstantReplayOn.TabIndex = 4
         Desc_InstantReplayOn.Text = "Instant Replay on"
         ' 
@@ -605,7 +549,7 @@ Partial Class Base_Notifications
         Desc_InstantReplayOff.ForeColor = Color.White
         Desc_InstantReplayOff.Location = New Point(78, 140)
         Desc_InstantReplayOff.Name = "Desc_InstantReplayOff"
-        Desc_InstantReplayOff.Size = New Size(300, 27)
+        Desc_InstantReplayOff.Size = New Size(139, 21)
         Desc_InstantReplayOff.TabIndex = 6
         Desc_InstantReplayOff.Text = "Instant Replay off"
         ' 
@@ -631,7 +575,7 @@ Partial Class Base_Notifications
         Desc_ReplayTurnOn.ForeColor = Color.White
         Desc_ReplayTurnOn.Location = New Point(78, 178)
         Desc_ReplayTurnOn.Name = "Desc_ReplayTurnOn"
-        Desc_ReplayTurnOn.Size = New Size(300, 27)
+        Desc_ReplayTurnOn.Size = New Size(195, 21)
         Desc_ReplayTurnOn.TabIndex = 8
         Desc_ReplayTurnOn.Text = "Turning on Instant Replay"
         ' 
@@ -657,7 +601,7 @@ Partial Class Base_Notifications
         Desc_ReplayError.ForeColor = Color.White
         Desc_ReplayError.Location = New Point(78, 216)
         Desc_ReplayError.Name = "Desc_ReplayError"
-        Desc_ReplayError.Size = New Size(300, 27)
+        Desc_ReplayError.Size = New Size(154, 21)
         Desc_ReplayError.TabIndex = 10
         Desc_ReplayError.Text = "Instant Replay error"
         ' 
@@ -690,9 +634,9 @@ Partial Class Base_Notifications
         Card_SystemMonitor.Controls.Add(ToggleCpuWarning)
         Card_SystemMonitor.Controls.Add(Desc_DiskSpaceLow)
         Card_SystemMonitor.Controls.Add(ToggleDiskSpaceLow)
-        Card_SystemMonitor.Location = New Point(20, 472)
+        Card_SystemMonitor.Location = New Point(20, 436)
         Card_SystemMonitor.Name = "Card_SystemMonitor"
-        Card_SystemMonitor.Size = New Size(848, 256)
+        Card_SystemMonitor.Size = New Size(495, 256)
         Card_SystemMonitor.TabIndex = 14
         ' 
         ' Accent_SystemMonitor
@@ -711,7 +655,7 @@ Partial Class Base_Notifications
         Header_SystemMonitor.ForeColor = Color.White
         Header_SystemMonitor.Location = New Point(34, 18)
         Header_SystemMonitor.Name = "Header_SystemMonitor"
-        Header_SystemMonitor.Size = New Size(180, 28)
+        Header_SystemMonitor.Size = New Size(182, 28)
         Header_SystemMonitor.TabIndex = 1
         Header_SystemMonitor.Text = "SYSTEM MONITOR"
         ' 
@@ -723,7 +667,7 @@ Partial Class Base_Notifications
         Desc_RamWarning.ForeColor = Color.White
         Desc_RamWarning.Location = New Point(78, 64)
         Desc_RamWarning.Name = "Desc_RamWarning"
-        Desc_RamWarning.Size = New Size(300, 27)
+        Desc_RamWarning.Size = New Size(155, 21)
         Desc_RamWarning.TabIndex = 2
         Desc_RamWarning.Text = "RAM usage warning"
         ' 
@@ -749,7 +693,7 @@ Partial Class Base_Notifications
         Desc_RamWarning95.ForeColor = Color.White
         Desc_RamWarning95.Location = New Point(78, 102)
         Desc_RamWarning95.Name = "Desc_RamWarning95"
-        Desc_RamWarning95.Size = New Size(300, 27)
+        Desc_RamWarning95.Size = New Size(128, 21)
         Desc_RamWarning95.TabIndex = 4
         Desc_RamWarning95.Text = "RAM usage 95%"
         ' 
@@ -775,7 +719,7 @@ Partial Class Base_Notifications
         Desc_RamCritical.ForeColor = Color.White
         Desc_RamCritical.Location = New Point(78, 140)
         Desc_RamCritical.Name = "Desc_RamCritical"
-        Desc_RamCritical.Size = New Size(300, 27)
+        Desc_RamCritical.Size = New Size(145, 21)
         Desc_RamCritical.TabIndex = 6
         Desc_RamCritical.Text = "RAM usage critical"
         ' 
@@ -801,7 +745,7 @@ Partial Class Base_Notifications
         Desc_CpuWarning.ForeColor = Color.White
         Desc_CpuWarning.Location = New Point(78, 178)
         Desc_CpuWarning.Name = "Desc_CpuWarning"
-        Desc_CpuWarning.Size = New Size(300, 27)
+        Desc_CpuWarning.Size = New Size(149, 21)
         Desc_CpuWarning.TabIndex = 8
         Desc_CpuWarning.Text = "CPU usage warning"
         ' 
@@ -827,7 +771,7 @@ Partial Class Base_Notifications
         Desc_DiskSpaceLow.ForeColor = Color.White
         Desc_DiskSpaceLow.Location = New Point(78, 216)
         Desc_DiskSpaceLow.Name = "Desc_DiskSpaceLow"
-        Desc_DiskSpaceLow.Size = New Size(300, 27)
+        Desc_DiskSpaceLow.Size = New Size(116, 21)
         Desc_DiskSpaceLow.TabIndex = 10
         Desc_DiskSpaceLow.Text = "Disk space low"
         ' 
@@ -856,7 +800,7 @@ Partial Class Base_Notifications
         Card_Updates.Controls.Add(ToggleVersionLatest)
         Card_Updates.Controls.Add(Desc_UpdateError)
         Card_Updates.Controls.Add(ToggleUpdateError)
-        Card_Updates.Location = New Point(892, 586)
+        Card_Updates.Location = New Point(521, 550)
         Card_Updates.Name = "Card_Updates"
         Card_Updates.Size = New Size(848, 180)
         Card_Updates.TabIndex = 15
@@ -877,7 +821,7 @@ Partial Class Base_Notifications
         Header_Updates.ForeColor = Color.White
         Header_Updates.Location = New Point(34, 18)
         Header_Updates.Name = "Header_Updates"
-        Header_Updates.Size = New Size(99, 28)
+        Header_Updates.Size = New Size(96, 28)
         Header_Updates.TabIndex = 1
         Header_Updates.Text = "UPDATES"
         ' 
@@ -889,7 +833,7 @@ Partial Class Base_Notifications
         Desc_UpdateAvailable.ForeColor = Color.White
         Desc_UpdateAvailable.Location = New Point(78, 64)
         Desc_UpdateAvailable.Name = "Desc_UpdateAvailable"
-        Desc_UpdateAvailable.Size = New Size(300, 27)
+        Desc_UpdateAvailable.Size = New Size(131, 21)
         Desc_UpdateAvailable.TabIndex = 2
         Desc_UpdateAvailable.Text = "Update available"
         ' 
@@ -915,7 +859,7 @@ Partial Class Base_Notifications
         Desc_VersionLatest.ForeColor = Color.White
         Desc_VersionLatest.Location = New Point(78, 102)
         Desc_VersionLatest.Name = "Desc_VersionLatest"
-        Desc_VersionLatest.Size = New Size(300, 27)
+        Desc_VersionLatest.Size = New Size(218, 21)
         Desc_VersionLatest.TabIndex = 4
         Desc_VersionLatest.Text = "Already on the latest version"
         ' 
@@ -941,7 +885,7 @@ Partial Class Base_Notifications
         Desc_UpdateError.ForeColor = Color.White
         Desc_UpdateError.Location = New Point(78, 140)
         Desc_UpdateError.Name = "Desc_UpdateError"
-        Desc_UpdateError.Size = New Size(300, 27)
+        Desc_UpdateError.Size = New Size(151, 21)
         Desc_UpdateError.TabIndex = 6
         Desc_UpdateError.Text = "Update check error"
         ' 
@@ -980,9 +924,9 @@ Partial Class Base_Notifications
         Card_Errors.Controls.Add(ToggleErrorResolution)
         Card_Errors.Controls.Add(Desc_DesktopCaptureDisabled)
         Card_Errors.Controls.Add(ToggleDesktopCaptureDisabled)
-        Card_Errors.Location = New Point(20, 790)
+        Card_Errors.Location = New Point(20, 698)
         Card_Errors.Name = "Card_Errors"
-        Card_Errors.Size = New Size(1720, 218)
+        Card_Errors.Size = New Size(1349, 384)
         Card_Errors.TabIndex = 16
         ' 
         ' Accent_Errors
@@ -1001,7 +945,7 @@ Partial Class Base_Notifications
         Header_Errors.ForeColor = Color.White
         Header_Errors.Location = New Point(34, 18)
         Header_Errors.Name = "Header_Errors"
-        Header_Errors.Size = New Size(197, 28)
+        Header_Errors.Size = New Size(189, 28)
         Header_Errors.TabIndex = 1
         Header_Errors.Text = "ERRORS & FEEDBACK"
         ' 
@@ -1013,7 +957,7 @@ Partial Class Base_Notifications
         Desc_AccountConfirmError.ForeColor = Color.White
         Desc_AccountConfirmError.Location = New Point(78, 64)
         Desc_AccountConfirmError.Name = "Desc_AccountConfirmError"
-        Desc_AccountConfirmError.Size = New Size(300, 27)
+        Desc_AccountConfirmError.Size = New Size(210, 21)
         Desc_AccountConfirmError.TabIndex = 2
         Desc_AccountConfirmError.Text = "Account confirmation error"
         ' 
@@ -1039,7 +983,7 @@ Partial Class Base_Notifications
         Desc_ExtensionNotFound.ForeColor = Color.White
         Desc_ExtensionNotFound.Location = New Point(78, 102)
         Desc_ExtensionNotFound.Name = "Desc_ExtensionNotFound"
-        Desc_ExtensionNotFound.Size = New Size(300, 27)
+        Desc_ExtensionNotFound.Size = New Size(222, 21)
         Desc_ExtensionNotFound.TabIndex = 4
         Desc_ExtensionNotFound.Text = "Browser extension not found"
         ' 
@@ -1065,7 +1009,7 @@ Partial Class Base_Notifications
         Desc_FeatureNotReady.ForeColor = Color.White
         Desc_FeatureNotReady.Location = New Point(78, 140)
         Desc_FeatureNotReady.Name = "Desc_FeatureNotReady"
-        Desc_FeatureNotReady.Size = New Size(300, 27)
+        Desc_FeatureNotReady.Size = New Size(139, 21)
         Desc_FeatureNotReady.TabIndex = 6
         Desc_FeatureNotReady.Text = "Feature not ready"
         ' 
@@ -1091,7 +1035,7 @@ Partial Class Base_Notifications
         Desc_GpuRequired.ForeColor = Color.White
         Desc_GpuRequired.Location = New Point(78, 178)
         Desc_GpuRequired.Name = "Desc_GpuRequired"
-        Desc_GpuRequired.Size = New Size(300, 27)
+        Desc_GpuRequired.Size = New Size(166, 21)
         Desc_GpuRequired.TabIndex = 8
         Desc_GpuRequired.Text = "NVIDIA GPU required"
         ' 
@@ -1117,7 +1061,7 @@ Partial Class Base_Notifications
         Desc_EngineNotRunning.ForeColor = Color.White
         Desc_EngineNotRunning.Location = New Point(938, 64)
         Desc_EngineNotRunning.Name = "Desc_EngineNotRunning"
-        Desc_EngineNotRunning.Size = New Size(300, 27)
+        Desc_EngineNotRunning.Size = New Size(148, 21)
         Desc_EngineNotRunning.TabIndex = 10
         Desc_EngineNotRunning.Text = "Engine not running"
         ' 
@@ -1143,7 +1087,7 @@ Partial Class Base_Notifications
         Desc_EngineUIInUse.ForeColor = Color.White
         Desc_EngineUIInUse.Location = New Point(938, 102)
         Desc_EngineUIInUse.Name = "Desc_EngineUIInUse"
-        Desc_EngineUIInUse.Size = New Size(300, 27)
+        Desc_EngineUIInUse.Size = New Size(182, 21)
         Desc_EngineUIInUse.TabIndex = 12
         Desc_EngineUIInUse.Text = "Engine UI already in use"
         ' 
@@ -1169,7 +1113,7 @@ Partial Class Base_Notifications
         Desc_ErrorResolution.ForeColor = Color.White
         Desc_ErrorResolution.Location = New Point(938, 140)
         Desc_ErrorResolution.Name = "Desc_ErrorResolution"
-        Desc_ErrorResolution.Size = New Size(300, 27)
+        Desc_ErrorResolution.Size = New Size(129, 21)
         Desc_ErrorResolution.TabIndex = 14
         Desc_ErrorResolution.Text = "Resolution error"
         ' 
@@ -1195,7 +1139,7 @@ Partial Class Base_Notifications
         Desc_DesktopCaptureDisabled.ForeColor = Color.White
         Desc_DesktopCaptureDisabled.Location = New Point(938, 178)
         Desc_DesktopCaptureDisabled.Name = "Desc_DesktopCaptureDisabled"
-        Desc_DesktopCaptureDisabled.Size = New Size(300, 27)
+        Desc_DesktopCaptureDisabled.Size = New Size(197, 21)
         Desc_DesktopCaptureDisabled.TabIndex = 16
         Desc_DesktopCaptureDisabled.Text = "Desktop capture disabled"
         ' 
@@ -1213,6 +1157,60 @@ Partial Class Base_Notifications
         ToggleDesktopCaptureDisabled.TabIndex = 17
         ToggleDesktopCaptureDisabled.Text = "ToggleSwitch"
         ' 
+        ' Menu_Top_Dim
+        ' 
+        Menu_Top_Dim.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Menu_Top_Dim.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Menu_Top_Dim.Location = New Point(80, 160)
+        Menu_Top_Dim.Name = "Menu_Top_Dim"
+        Menu_Top_Dim.Size = New Size(1760, 5)
+        Menu_Top_Dim.TabIndex = 0
+        Menu_Top_Dim.TabStop = False
+        ' 
+        ' BT_Back
+        ' 
+        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_Back.Cursor = Cursors.Hand
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        BT_Back.ForeColor = Color.White
+        BT_Back.Location = New Point(80, 110)
+        BT_Back.Name = "BT_Back"
+        BT_Back.Size = New Size(200, 50)
+        BT_Back.TabIndex = 58
+        BT_Back.Text = "Back"
+        BT_Back.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' Dim_Top
+        ' 
+        Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Dim_Top.Location = New Point(-24, -16)
+        Dim_Top.Name = "Dim_Top"
+        Dim_Top.Size = New Size(1913, 176)
+        Dim_Top.TabIndex = 46
+        Dim_Top.TabStop = False
+        ' 
+        ' Dim_1
+        ' 
+        Dim_1.BackColor = Color.Blue
+        Dim_1.BackgroundImageLayout = ImageLayout.None
+        Dim_1.Location = New Point(0, 203)
+        Dim_1.Name = "Dim_1"
+        Dim_1.Size = New Size(80, 80)
+        Dim_1.TabIndex = 93
+        Dim_1.TabStop = False
+        Dim_1.Visible = False
+        ' 
+        ' Dim_2
+        ' 
+        Dim_2.BackColor = Color.Blue
+        Dim_2.BackgroundImageLayout = ImageLayout.None
+        Dim_2.Location = New Point(1840, 166)
+        Dim_2.Name = "Dim_2"
+        Dim_2.Size = New Size(80, 80)
+        Dim_2.TabIndex = 94
+        Dim_2.TabStop = False
+        Dim_2.Visible = False
+        ' 
         ' Base_Notifications
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -1221,6 +1219,8 @@ Partial Class Base_Notifications
         ClientSize = New Size(1920, 1080)
         Controls.Add(BT_Back)
         Controls.Add(Dim_2)
+        Controls.Add(BT_DisableAll)
+        Controls.Add(BT_EnableAll)
         Controls.Add(Dim_1)
         Controls.Add(Menu_Top_Dim)
         Controls.Add(Menu_Settings)
@@ -1255,7 +1255,6 @@ Partial Class Base_Notifications
         CType(Dim_1, ComponentModel.ISupportInitialize).EndInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
-        PerformLayout()
     End Sub
 
     Friend WithEvents Menu_Settings As Panel

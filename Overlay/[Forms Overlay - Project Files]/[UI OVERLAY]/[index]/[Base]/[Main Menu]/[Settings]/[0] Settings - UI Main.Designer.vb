@@ -25,6 +25,7 @@ Partial Class Base_Settings
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
         Main_Menu_SET = New Panel()
         Panel = New Panel()
+        ObsEnabledToggle = New ToggleSwitch()
         Panel1 = New Panel()
         Label8 = New Label()
         HOST_BOX = New TextBox()
@@ -32,7 +33,6 @@ Partial Class Base_Settings
         Label6 = New Label()
         KEY_BOX = New TextBox()
         PORT_BOX = New TextBox()
-        ObsEnabledToggle = New ToggleSwitch()
         Label1 = New Label()
         Label2 = New Label()
         Label5 = New Label()
@@ -69,7 +69,7 @@ Partial Class Base_Settings
         Main_Menu_SET.Controls.Add(Panel)
         Main_Menu_SET.Location = New Point(465, 160)
         Main_Menu_SET.Name = "Main_Menu_SET"
-        Main_Menu_SET.Size = New Size(1000, 579)
+        Main_Menu_SET.Size = New Size(1135, 810)
         Main_Menu_SET.TabIndex = 44
         ' 
         ' Panel
@@ -91,8 +91,22 @@ Partial Class Base_Settings
         Panel.Controls.Add(Label3)
         Panel.Location = New Point(0, -7)
         Panel.Name = "Panel"
-        Panel.Size = New Size(1000, 586)
+        Panel.Size = New Size(1135, 817)
         Panel.TabIndex = 74
+        ' 
+        ' ObsEnabledToggle
+        ' 
+        ObsEnabledToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ObsEnabledToggle.ImeMode = ImeMode.Off
+        ObsEnabledToggle.IsOn = False
+        ObsEnabledToggle.Location = New Point(71, 220)
+        ObsEnabledToggle.Name = "ObsEnabledToggle"
+        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ObsEnabledToggle.ShowGlow = False
+        ObsEnabledToggle.Size = New Size(48, 24)
+        ObsEnabledToggle.TabIndex = 146
+        ObsEnabledToggle.Text = "ToggleSwitch"
         ' 
         ' Panel1
         ' 
@@ -192,20 +206,6 @@ Partial Class Base_Settings
         PORT_BOX.Text = "Port"
         PORT_BOX.TextAlign = HorizontalAlignment.Center
         ' 
-        ' ObsEnabledToggle
-        ' 
-        ObsEnabledToggle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ObsEnabledToggle.ImeMode = ImeMode.Off
-        ObsEnabledToggle.IsOn = False
-        ObsEnabledToggle.Location = New Point(71, 220)
-        ObsEnabledToggle.Name = "ObsEnabledToggle"
-        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ObsEnabledToggle.ShowGlow = False
-        ObsEnabledToggle.Size = New Size(48, 24)
-        ObsEnabledToggle.TabIndex = 146
-        ObsEnabledToggle.Text = "ToggleSwitch"
-        ' 
         ' Label1
         ' 
         Label1.AutoSize = True
@@ -226,7 +226,7 @@ Partial Class Base_Settings
         Label2.ForeColor = Color.White
         Label2.Location = New Point(151, 234)
         Label2.Name = "Label2"
-        Label2.Size = New Size(596, 91)
+        Label2.Size = New Size(731, 91)
         Label2.TabIndex = 83
         Label2.Text = "Allow Notifier to connect to the OBS Studio WebSocket and display notifications based on OBS Studio states or events."
         Label2.TextAlign = ContentAlignment.MiddleLeft
@@ -274,7 +274,7 @@ Partial Class Base_Settings
         Desc_UseWindowsSnip_SUB.ForeColor = Color.White
         Desc_UseWindowsSnip_SUB.Location = New Point(151, 125)
         Desc_UseWindowsSnip_SUB.Name = "Desc_UseWindowsSnip_SUB"
-        Desc_UseWindowsSnip_SUB.Size = New Size(596, 91)
+        Desc_UseWindowsSnip_SUB.Size = New Size(731, 91)
         Desc_UseWindowsSnip_SUB.TabIndex = 78
         Desc_UseWindowsSnip_SUB.Text = "Screenshots are taken with Windows (Win+Shift+S), letting you select the area to capture."
         Desc_UseWindowsSnip_SUB.TextAlign = ContentAlignment.MiddleLeft
@@ -292,6 +292,7 @@ Partial Class Base_Settings
         ToggleUseWindowsSnip.ShowGlow = False
         ToggleUseWindowsSnip.Size = New Size(48, 24)
         ToggleUseWindowsSnip.TabIndex = 79
+        ToggleUseWindowsSnip.Text = "ToggleSwitch"
         ' 
         ' ToggleToastSlot2
         ' 
@@ -315,7 +316,7 @@ Partial Class Base_Settings
         Desc_ToastSlots.ForeColor = Color.White
         Desc_ToastSlots.Location = New Point(125, 511)
         Desc_ToastSlots.Name = "Desc_ToastSlots"
-        Desc_ToastSlots.Size = New Size(280, 28)
+        Desc_ToastSlots.Size = New Size(223, 28)
         Desc_ToastSlots.TabIndex = 86
         Desc_ToastSlots.Text = "Use a second toast slot"
         ' 
@@ -330,7 +331,6 @@ Partial Class Base_Settings
         Desc_ToastSlots_SUB.TabIndex = 87
         Desc_ToastSlots_SUB.Text = "A new notification enters the free slot instead of replacing the showing one. Turn off to route every toast through the main slot only."
         Desc_ToastSlots_SUB.TextAlign = ContentAlignment.MiddleLeft
-        ToggleUseWindowsSnip.Text = "ToggleSwitch"
         ' 
         ' Label3
         ' 
@@ -350,7 +350,7 @@ Partial Class Base_Settings
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(465, 160)
         settings_top.Name = "settings_top"
-        settings_top.Size = New Size(1000, 5)
+        settings_top.Size = New Size(1135, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
         ' 
@@ -359,7 +359,7 @@ Partial Class Base_Settings
         Block_AM.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Block_AM.Location = New Point(-3, -16)
         Block_AM.Name = "Block_AM"
-        Block_AM.Size = New Size(1796, 176)
+        Block_AM.Size = New Size(1931, 176)
         Block_AM.TabIndex = 73
         Block_AM.TabStop = False
         ' 
@@ -407,7 +407,7 @@ Partial Class Base_Settings
         PictureBox9.Anchor = AnchorStyles.Bottom
         PictureBox9.BackColor = Color.Blue
         PictureBox9.BackgroundImageLayout = ImageLayout.None
-        PictureBox9.Location = New Point(1220, 739)
+        PictureBox9.Location = New Point(1288, 970)
         PictureBox9.Name = "PictureBox9"
         PictureBox9.Size = New Size(80, 80)
         PictureBox9.TabIndex = 91
@@ -416,9 +416,10 @@ Partial Class Base_Settings
         ' 
         ' PictureBox1
         ' 
+        PictureBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PictureBox1.BackColor = Color.Blue
         PictureBox1.BackgroundImageLayout = ImageLayout.None
-        PictureBox1.Location = New Point(1465, 279)
+        PictureBox1.Location = New Point(1600, 279)
         PictureBox1.Name = "PictureBox1"
         PictureBox1.Size = New Size(80, 80)
         PictureBox1.TabIndex = 92
@@ -456,7 +457,7 @@ Partial Class Base_Settings
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
-        ClientSize = New Size(1545, 819)
+        ClientSize = New Size(1680, 1050)
         Controls.Add(btnImportSettings)
         Controls.Add(btnExportSettings)
         Controls.Add(PictureBox1)
