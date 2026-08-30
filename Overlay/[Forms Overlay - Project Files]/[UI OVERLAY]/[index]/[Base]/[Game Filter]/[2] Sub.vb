@@ -91,6 +91,10 @@ Public Class Base_Game_Filter_Sub
 
         ANIME.Start()
 
+        ' WS_EX_TOOLWINDOW is sticky — set ONCE here (must come AFTER FormBorderStyle, which can recreate the handle).
+        ' Do NOT move this back into ANIME_Tick: b2a42c2 removed the tick call assuming Load set it, but it never did,
+        ' which leaked this form into Alt-Tab/taskbar since 18 Aug.
+        HideFromAltTab()
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick

@@ -88,6 +88,11 @@ Public Class Base_Game_Filter
         Me.Opacity = 0
         ANIME.Start()
         ANIME.Interval = 16 ' ★ this tick IS the slide trigger (Opacity jumps 0→1 instantly, no fade tween) — poll latency = visible open delay, keep at 60fps
+
+        ' WS_EX_TOOLWINDOW is sticky — set ONCE here (must come AFTER FormBorderStyle, which can recreate the handle).
+        ' Do NOT move this back into ANIME_Tick: b2a42c2 removed the tick call assuming Load set it, but it never did,
+        ' which leaked both Game Filter forms into Alt-Tab/taskbar since 18 Aug.
+        HideFromAltTab()
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick
