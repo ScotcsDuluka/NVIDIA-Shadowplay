@@ -76,13 +76,6 @@
         </ItemGroup>
 
         <ItemGroup>
-                <!-- T28: toast logo drawn by ToastUnit (embedded, designer-free) -->
-                <EmbeddedResource Include="Resources\notifier_logo.png">
-                        <LogicalName>Notifier.logo.png</LogicalName>
-                </EmbeddedResource>
-        </ItemGroup>
-
-        <ItemGroup>
                 <EmbeddedResource Update="My Project\Resources.resx">
                         <CustomToolNamespace>My.Resources</CustomToolNamespace>
                         <Generator>VbMyResourcesResXFileCodeGenerator</Generator>
