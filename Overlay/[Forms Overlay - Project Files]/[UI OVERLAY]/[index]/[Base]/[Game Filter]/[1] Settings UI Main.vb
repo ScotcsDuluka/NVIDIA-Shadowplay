@@ -87,7 +87,7 @@ Public Class Base_Game_Filter
         Main_Filter.Location = New Point(-500, 0)
         Me.Opacity = 0
         ANIME.Start()
-        ANIME.Interval = 50 ' ★ poll only detects show/hide + reset; the slide itself runs on AnimationTimer (15ms)
+        ANIME.Interval = 16 ' ★ this tick IS the slide trigger (Opacity jumps 0→1 instantly, no fade tween) — poll latency = visible open delay, keep at 60fps
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick

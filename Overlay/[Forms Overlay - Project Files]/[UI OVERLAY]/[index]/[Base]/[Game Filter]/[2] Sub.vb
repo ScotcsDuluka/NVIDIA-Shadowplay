@@ -32,8 +32,8 @@ Public Class Base_Game_Filter_Sub
     Private currentControl As Control
 
     Private WithEvents AnimationTimer As New Timer With {.Interval = 15}
-    ' ★ poll only detects show/hide + reset; the slide itself runs on AnimationTimer (15ms)
-    Private WithEvents ANIME As New Timer With {.Interval = 50}
+    ' ★ this tick IS the slide trigger (Opacity jumps 0→1 instantly, no fade tween) — poll latency = visible open delay, keep at 60fps
+    Private WithEvents ANIME As New Timer With {.Interval = 15}
 
     Private Sub StartSlideX(ctrl As Control, fromX As Integer, toX As Integer, duration As Double)
 
