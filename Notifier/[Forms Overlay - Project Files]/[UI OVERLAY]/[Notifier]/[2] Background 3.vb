@@ -85,94 +85,56 @@ Public Class Notifier3
 
     Private ReadOnly _activeAnims As New Dictionary(Of Control, AnimState)()
 
-    Private Delegate Sub MMTimerProc(uID As UInteger, uMsg As UInteger,
-                                      dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
-    Private Const TIME_PERIODIC As Integer = 1
-    Private Const TIME_KILL_SYNCHRONOUS As Integer = &H100
-
-    <DllImport("winmm.dll")>
-    Private Shared Function timeSetEvent(uDelay As UInteger, uResolution As UInteger,
-                                         fptc As MMTimerProc, dwUser As UIntPtr,
-                                         fuEvent As UInteger) As UInteger
-    End Function
-
-    <DllImport("winmm.dll")>
-    Private Shared Function timeKillEvent(uTimerID As UInteger) As Integer
-    End Function
-
-    <DllImport("winmm.dll")>
-    Private Shared Function timeBeginPeriod(uPeriod As UInteger) As UInteger
-    End Function
-
-    <DllImport("winmm.dll")>
-    Private Shared Function timeEndPeriod(uPeriod As UInteger) As UInteger
-    End Function
-
-    Private mmTimerId As UInteger = 0
-    Private mmCallback As MMTimerProc
-
-    ' Guards against BeginInvoke calls stacking up if a UI-thread tick is still
-    ' processing when the next 1ms MM tick fires.
-    Private _invokePending As Boolean = False
-
-    ' ===== T30.5 FPS FIX: engine-wide frame clock =====
-    ' The OLD code marshalled every 1 ms MM tick into a BeginInvoke post -
-    ' 1000 posted messages/s per animating card flooding the UI thread's
-    ' message pump, while the UI side wrote positions at most every 8 ms.
-    ' Under game load each pump round trip stretched into tens of ms, the
-    ' pending-guard started dropping ticks, and the effective write rate
-    ' collapsed to ~20 Hz - exactly the "20 FPS" look on real hardware.
-    ' Now the MM thread checks the frame clock FIRST: a tick that is not
-    ' due a frame costs NOTHING (no post, no allocation, no UI wakeup) and
-    ' the UI thread is woken at most once per frame window.
-    ' 6 ms = ~167 frames/s, above every common display refresh, so DWM
-    ' never presents a repeated position.
+    ' ===== T30.6 FPS FIX: the frame pump lives ON the UI thread =====
+    ' History: T30.2 marshalled every 1 ms MM tick into a BeginInvoke post
+    ' (pump flood, ~20 fps on real hardware). T30.5 gated the post on the
+    ' MM thread (6 ms) - better, but the cross-thread hop itself remained:
+    ' under game load each round trip (MM thread -> posted message -> UI
+    ' dispatch) still stretched into tens of ms, so positions landed at
+    ' only ~30 Hz. The T29-era engine applied INLINE on the UI thread and
+    ' was smooth on the same machine - so the hop is what had to go.
+    ' Now one UI-thread pump timer (Interval=1; UnitClockRes holds 1 ms
+    ' system resolution while the engine runs) checks the frame clock and
+    ' applies every animation INLINE:
+    '   - no cross-thread hop left that can stretch under game load
+    '   - WM_TIMER never backlogs (it only fires when the queue is empty),
+    '     so a stalled pump self-heals on the next tick with time-correct
+    '     easing - no burst, no backlog, no invoke-pending bookkeeping
+    '   - easing stays stopwatch-based; the 6 ms gate = ~167 writes/s,
+    '     above every common display refresh
     Private ReadOnly _engineSw As New Stopwatch()
     Private _lastFrameMs As Integer = -1000000
     Private Const FrameIntervalMs As Integer = 6
+    Private _uiPump As System.Windows.Forms.Timer
 
     Private Sub Animation_Engine_Start()
-        If mmTimerId <> 0 Then Return ' already running — nothing to do
-        _engineSw.Restart()     ' T30.5: new frame-clock epoch for this run
+        If _uiPump IsNot Nothing Then Return ' already running — nothing to do
+        _engineSw.Restart()     ' new frame-clock epoch for this run
         _lastFrameMs = -1000000 ' first frame applies immediately
         UnitClockRes.Acquire() ' T30.2: refcounted - timeBeginPeriod is process-global
-        mmCallback = New MMTimerProc(AddressOf OnMMTick)
-        mmTimerId = timeSetEvent(1, 1, mmCallback, UIntPtr.Zero,
-                                  TIME_PERIODIC Or TIME_KILL_SYNCHRONOUS)
-        Debug.WriteLine("[Notifier.MM] Timer started, ID=" & mmTimerId)
+        _uiPump = New System.Windows.Forms.Timer()
+        _uiPump.Interval = 1
+        AddHandler _uiPump.Tick, AddressOf UiPump_Tick
+        _uiPump.Start()
+        Debug.WriteLine("[Notifier.MM] UI-thread frame pump started")
     End Sub
 
     Private Sub Animation_Engine_Stop()
-        If mmTimerId <> 0 Then
-            timeKillEvent(mmTimerId)
-            mmTimerId = 0
+        If _uiPump IsNot Nothing Then
+            _uiPump.Stop()
+            _uiPump.Dispose()
+            _uiPump = Nothing
         End If
         UnitClockRes.Release() ' T30.2: only the LAST idle engine drops 1 ms
-        _invokePending = False
-        Debug.WriteLine("[Notifier.MM] Timer stopped")
+        Debug.WriteLine("[Notifier.MM] UI-thread frame pump stopped")
     End Sub
 
-    Private Sub OnMMTick(uID As UInteger, uMsg As UInteger,
-                          dwUser As UIntPtr, dw1 As UInteger, dw2 As UInteger)
+    ' Runs on the UI thread. A not-due tick costs one stopwatch compare; a
+    ' due tick applies every active animation inline (zero marshalling).
+    Private Sub UiPump_Tick(sender As Object, e As EventArgs)
         If Me.IsDisposed OrElse Me.Disposing Then Return
-
-        ' T30.5: gate on the MM thread - only wake the UI thread when a
-        ' frame is actually due. Integer reads/writes are atomic, so the
-        ' cross-thread access below is safe (a stale read costs one tick).
         If CInt(_engineSw.Elapsed.TotalMilliseconds) - _lastFrameMs < FrameIntervalMs Then Return
-
-        If _invokePending Then Return
-        _invokePending = True
-
-        Try
-            Me.BeginInvoke(Sub()
-                               _invokePending = False
-                               Animation_Engine_Tick()
-                           End Sub)
-        Catch ex As ObjectDisposedException
-            _invokePending = False
-            Debug.WriteLine("[Notifier.MM] BeginInvoke failed — disposed")
-        End Try
+        Animation_Engine_Tick()
     End Sub
 
     ''' <summary>
@@ -499,6 +461,7 @@ Public Class Notifier3
         If _inTransition Then Return False
         _inTransition = True
         _isDancing = True
+        _activeReflowTarget = Integer.MinValue ' T30.6: the dance owns the Y axis now
         CloseShadowNow()
         Notifier_Sub3.Close()
         Return True
@@ -661,6 +624,14 @@ Public Class Notifier3
         End Try
     End Sub
 
+    ' T30.6: re-entry guard. CompactStack runs every 100 ms and used to
+    ' RESTART the in-flight glide (StartSlideY replaces animations), which
+    ' reset the ease-out velocity to full on every heartbeat - the glide
+    ' pulsed and crawled instead of easing into place. Same-target reflows
+    ' are ignored while one is already in flight; BeginDance/SlideOutAll/
+    ' IF_N clear the memory when they take the Y axis.
+    Private _activeReflowTarget As Integer = Integer.MinValue
+
     ''' <summary>
     ''' T30/T30.1: glide the unit to a new Y so the stack can compact when a
     ''' toast above closes. Single clock: this form animates; the rider and
@@ -670,9 +641,11 @@ Public Class Notifier3
     Public Sub ReflowTo(targetY As Integer, Optional durationMs As Integer = 250)
         If Me.IsDisposed OrElse Me.Disposing Then Return
         If Me.Top = targetY Then Return
+        If _activeReflowTarget = targetY AndAlso _activeAnims.ContainsKey(Me) Then Return
 
         ' T30.1: animate THIS form only - the engine tick carries the rider
         ' and the shadow along in the same tick (single clock, no drift).
+        _activeReflowTarget = targetY
         StartSlideY(Me, Me.Top, targetY, durationMs)
     End Sub
 
@@ -724,6 +697,7 @@ Public Class Notifier3
         Debug.WriteLine("[Notifier3] SlideOutAll")
         _inTransition = True
         _isDancing = False ' an exit always wins - routing must queue, not coalesce
+        _activeReflowTarget = Integer.MinValue ' T30.6: the exit owns the Y axis now
 
         ' T30.1/T30.3 OWNER rules: the closing slide STARTS first - the
         ' shadow closes this instant, in every case. The rider (Text+ICO)
@@ -778,6 +752,7 @@ Public Class Notifier3
         End If
 
         Debug.WriteLine("[Notifier3] IF_N tick → StartSlideY")
+        _activeReflowTarget = Integer.MinValue ' T30.6: IF_N owns the Y axis now
         StartSlideY(Me, Me.Top, 105 + SlotOffsetY, 200)
         Dim screenWidth As Integer = Screen.PrimaryScreen.WorkingArea.Width
         If Not My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then

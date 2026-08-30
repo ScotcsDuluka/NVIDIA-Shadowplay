@@ -732,9 +732,23 @@ Partial Public Class Loader
 
     ' Base Y of the stack - identical rule the unit forms use on a legacy
     ' show (notifier_main shifts everything one notch down).
+    ' T30.6: cache the sentinel probe. This ran on EVERY 100 ms heartbeat
+    ' tick and FileExists latency (AV filter, cold metadata) stole
+    ' UI-thread time right in the middle of reflow animations. The file
+    ' only flips through this app's own notifier main show/hide path, so
+    ' a 2 s TTL keeps the stack base effectively live at 1/20th of the
+    ' filesystem traffic.
+    Private _stackBaseYCache As Integer = -1
+    Private _stackBaseYProbedAt As DateTime = DateTime.MinValue
+
     Private Function StackBaseY() As Integer
-        If My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")) Then Return 205
-        Return 105
+        Dim now As DateTime = DateTime.UtcNow
+        If _stackBaseYCache >= 0 AndAlso (now - _stackBaseYProbedAt).TotalMilliseconds < 2000 Then
+            Return _stackBaseYCache
+        End If
+        _stackBaseYProbedAt = now
+        _stackBaseYCache = If(My.Computer.FileSystem.FileExists(AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")), 205, 105)
+        Return _stackBaseYCache
     End Function
 
     Private Sub StartStackHeartbeat()
