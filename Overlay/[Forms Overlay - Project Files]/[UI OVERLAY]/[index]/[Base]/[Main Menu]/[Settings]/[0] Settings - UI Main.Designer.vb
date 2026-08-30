@@ -43,6 +43,8 @@ Partial Class Base_Settings
         ToggleToastSlot2 = New ToggleSwitch()
         Desc_ToastSlots = New Label()
         Desc_ToastSlots_SUB = New Label()
+        ToggleToastSlot3 = New ToggleSwitch()
+        Desc_ToastSlots3 = New Label()
         Label3 = New Label()
         settings_top = New PictureBox()
         Block_AM = New PictureBox()
@@ -88,6 +90,8 @@ Partial Class Base_Settings
         Panel.Controls.Add(ToggleToastSlot2)
         Panel.Controls.Add(Desc_ToastSlots)
         Panel.Controls.Add(Desc_ToastSlots_SUB)
+        Panel.Controls.Add(ToggleToastSlot3)
+        Panel.Controls.Add(Desc_ToastSlots3)
         Panel.Controls.Add(Label3)
         Panel.Location = New Point(0, -7)
         Panel.Name = "Panel"
@@ -329,8 +333,34 @@ Partial Class Base_Settings
         Desc_ToastSlots_SUB.Name = "Desc_ToastSlots_SUB"
         Desc_ToastSlots_SUB.Size = New Size(700, 32)
         Desc_ToastSlots_SUB.TabIndex = 87
-        Desc_ToastSlots_SUB.Text = "A new notification enters the free slot instead of replacing the showing one. Turn off to route every toast through the main slot only."
+        Desc_ToastSlots_SUB.Text = "A new notification enters a free slot instead of replacing the showing one. Turn the second off to route every toast through the main slot only."
         Desc_ToastSlots_SUB.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' ToggleToastSlot3
+        ' 
+        ToggleToastSlot3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ToggleToastSlot3.ForeColor = Color.Aquamarine
+        ToggleToastSlot3.ImeMode = ImeMode.Off
+        ToggleToastSlot3.IsOn = False
+        ToggleToastSlot3.Location = New Point(470, 515)
+        ToggleToastSlot3.Name = "ToggleToastSlot3"
+        ToggleToastSlot3.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ToggleToastSlot3.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ToggleToastSlot3.ShowGlow = False
+        ToggleToastSlot3.Size = New Size(48, 24)
+        ToggleToastSlot3.TabIndex = 88
+        ' 
+        ' Desc_ToastSlots3
+        ' 
+        Desc_ToastSlots3.AutoSize = True
+        Desc_ToastSlots3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Desc_ToastSlots3.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Desc_ToastSlots3.ForeColor = Color.White
+        Desc_ToastSlots3.Location = New Point(524, 511)
+        Desc_ToastSlots3.Name = "Desc_ToastSlots3"
+        Desc_ToastSlots3.Size = New Size(271, 28)
+        Desc_ToastSlots3.TabIndex = 89
+        Desc_ToastSlots3.Text = "Use a third toast slot"
         ' 
         ' Label3
         ' 
@@ -505,6 +535,8 @@ Partial Class Base_Settings
     Friend WithEvents ToggleToastSlot2 As ToggleSwitch
     Friend WithEvents Desc_ToastSlots As Label
     Friend WithEvents Desc_ToastSlots_SUB As Label
+    Friend WithEvents ToggleToastSlot3 As ToggleSwitch
+    Friend WithEvents Desc_ToastSlots3 As Label
     Friend WithEvents Label3 As Label
     Friend WithEvents Label4 As Label
     Friend WithEvents Label1 As Label

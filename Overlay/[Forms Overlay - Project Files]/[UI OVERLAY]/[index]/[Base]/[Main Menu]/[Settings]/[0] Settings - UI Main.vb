@@ -107,8 +107,13 @@ Public Class Base_Settings
         ' Guard: the toggle's instance lives in the Designer.vb and can be
         ' stripped by hand edits — never let that NRE the whole page.
         If ToggleUseWindowsSnip IsNot Nothing Then ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
-        ' Toast slots (1 or 2) — the toggle IS "use a second toast slot".
+        ' Toast slots (1..3) — the toggles ARE "use a second/third toast
+        ' slot". Programmatic IsOn sets fire ValueChanged, so guard the
+        ' load-time sync or the cascade below would fight the config.
+        _toastSlotsLoading = True
         If ToggleToastSlot2 IsNot Nothing Then ToggleToastSlot2.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 2)
+        If ToggleToastSlot3 IsNot Nothing Then ToggleToastSlot3.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 3)
+        _toastSlotsLoading = False
         LoadObsSettings()
     End Sub
 
@@ -118,20 +123,40 @@ Public Class Base_Settings
     End Sub
 
     ' ====================================================================
-    ' Toast slots (Settings → General)
+    ' Toast slots (Settings → General) — 1, 2 or 3 slots
     '
-    ' OFF = 1 slot: every toast funnels through the main toast — a repeat
-    '       of the same notification group updates it in place (Updater
-    '       UI dance), anything else replaces it. Nothing ever stacks.
-    ' ON  = 2 slots: a NEW notification group enters the free slot
-    '       instead of replacing the showing one (e.g. Record start/stop
-    '       lives in slot 2, Replay start/stop arrives → slot 1).
+    ' "Use a second toast slot" + "Use a third toast slot" encode the
+    ' count: both off = 1, second on = 2, second + third on = 3.
+    ' OFF/OFF = 1 slot: every toast funnels through the main toast — a
+    '     repeat of the same notification group updates it in place
+    '     (Updater UI dance), anything else replaces it. Nothing stacks.
+    ' Second ON = 2 slots: a NEW notification group enters the free slot
+    '     instead of replacing the showing one (Record start/stop lives
+    '     in slot 2, Replay start/stop arrives → slot 1).
+    ' Third ON = 3 slots: slot 3 joins as the overflow for a new group
+    '     when main AND slot 2 are both busy. It needs the second slot:
+    '     flipping it on brings the second along, killing the second
+    '     takes the third with it.
     ' The Notifier reads Notifications.SlotCount from config.json at
     ' every toast, so changes apply live — no restart needed.
     ' ====================================================================
-    Private Sub ToggleToastSlot2_ValueChanged(sender As Object, e As EventArgs) Handles ToggleToastSlot2.ValueChanged
-        AppSettings.Instance.Notifications.SlotCount = If(ToggleToastSlot2.IsOn, 2, 1)
+    Private _toastSlotsLoading As Boolean
+
+    Private Sub SyncToastSlotCount()
+        If _toastSlotsLoading Then Exit Sub
+        ' Slot 3 depends on slot 2 — keep the toggle pair consistent.
+        If ToggleToastSlot3.IsOn AndAlso Not ToggleToastSlot2.IsOn Then ToggleToastSlot2.IsOn = True
+        If Not ToggleToastSlot2.IsOn AndAlso ToggleToastSlot3.IsOn Then ToggleToastSlot3.IsOn = False
+        AppSettings.Instance.Notifications.SlotCount = If(ToggleToastSlot2.IsOn, If(ToggleToastSlot3.IsOn, 3, 2), 1)
         AppSettings.Instance.Save()
+    End Sub
+
+    Private Sub ToggleToastSlot2_ValueChanged(sender As Object, e As EventArgs) Handles ToggleToastSlot2.ValueChanged
+        SyncToastSlotCount()
+    End Sub
+
+    Private Sub ToggleToastSlot3_ValueChanged(sender As Object, e As EventArgs) Handles ToggleToastSlot3.ValueChanged
+        SyncToastSlotCount()
     End Sub
 
     ' ====================================================================

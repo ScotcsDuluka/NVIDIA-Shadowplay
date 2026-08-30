@@ -295,12 +295,13 @@ Partial Public Class Loader
         LangHelper.LoadLang(langFile)
     End Sub
 
-    ' ==== Toast slot routing (OWNER spec T29.2) ====
+    ' ==== Toast slot routing (OWNER spec T29.2/T29.3) ====
     ' Slot COUNT is user-configurable: config.json Notifications.SlotCount,
-    ' 1 or 2 (Settings - General "Use a second toast slot"; default 2).
-    ' The Notifier re-reads it on EVERY toast, so flipping the toggle in
-    ' Settings applies live - no restart. (The old third slot is retired;
-    ' its forms stay in the project but are never routed to.)
+    ' 1, 2 or 3 (Settings - General: "Use a second toast slot" + "Use a
+    ' third toast slot"; default 2). The Notifier re-reads it on EVERY
+    ' toast, so flipping the toggles in Settings applies live - no
+    ' restart. Slot 3 is the overflow slot: it only joins the routing in
+    ' 3-slot mode, taking a new group when main AND slot 2 are both busy.
     '
     ' Group model - toasts carry a GROUP (recording start/stop = ONE group,
     ' replay start/stop = another - see NotificationGroup in the TCP client):
@@ -315,6 +316,7 @@ Partial Public Class Loader
     '      the main toast - a new toast is never dropped silently.
     Private _mainGroup As String = ""
     Private _side2Group As String = ""
+    Private _side3Group As String = ""
 
     Private Shared Function SameToastGroup(a As String, b As String) As Boolean
         Return Not String.IsNullOrEmpty(a) AndAlso
@@ -328,7 +330,7 @@ Partial Public Class Loader
     Private Shared Function ConfiguredSlotCount() As Integer
         Dim n As Integer = AppConfigShared.ReadInt("Notifications", "SlotCount", 2)
         If n < 1 Then n = 1
-        If n > 2 Then n = 2
+        If n > 3 Then n = 3
         Return n
     End Function
 
@@ -338,6 +340,59 @@ Partial Public Class Loader
     Private Function SideSlotBusy(unit As Notifier2) As Boolean
         Return unit.Visible OrElse unit.Notifier_green_stop.Visible
     End Function
+
+    ' Same liveness test for the slot 3 unit (T29.3: 3-slot mode).
+    Private Function SideSlotBusy(unit As Notifier3) As Boolean
+        Return unit.Visible OrElse unit.Notifier_green_stop.Visible
+    End Function
+
+    ' Fresh show on slot 3 - mirror of ShowSideSlot (see the notes there:
+    ' Form_Load owns the autoClose timer on a fresh unit, so starting it
+    ' here would auto-close the toast mid-dance).
+    Private Sub ShowSideSlot3(content As Notifier_Sub3, message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
+        _side3Group = group
+        Notifier3.autoClose.Stop()
+        content.TopMost = True
+        Notifier3.Show()
+        With content.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        content.text_n.Text = message
+        content.PictureBox1.Visible = showImage
+    End Sub
+
+    ' Updater UI on slot 3 - mirror of DanceSideToast on the slot 3 unit:
+    ' slide out -> swap content -> slide back in. Guarded by
+    ' green_stop.Visible (steady showing), never mid-exit-slide.
+    Private Sub DanceSideToast3(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
+        _side3Group = group
+        Notifier3.autoClose.Stop()
+        Notifier3.autoClose.Start()
+        Notifier_Sub3.TopMost = True
+
+        Notifier_Sub3.Close()
+        Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Notifier_black.Left, Notifier3.Width + 300, 600)
+
+        With Notifier_Sub3.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        Notifier_Sub3.text_n.Text = message
+        Notifier_Sub3.PictureBox1.Visible = showImage
+
+        Dim delay As New Timer()
+        delay.Interval = 200
+        AddHandler delay.Tick, Sub()
+                                   delay.Stop()
+                                   delay.Dispose()
+                                   Notifier3.StartSlide(Notifier3.Notifier_black, Notifier3.Width, Notifier3.Width - 300, 300,
+                                       Sub() Notifier_Sub3.Show())
+                               End Sub
+        delay.Start()
+    End Sub
 
     ' Fresh show on slot 2. Mirrors the main toast's fresh-show path:
     ' Show() runs the Form_Load slide-in dance; content is set up front.
@@ -404,26 +459,38 @@ Partial Public Class Loader
 
         Dim slotCount As Integer = ConfiguredSlotCount()
 
-        ' 1) The group is already live on slot 2 and steadily showing ->
-        '    Updater UI dance in slot 2 itself.
+        ' 1) The group is already live on a side slot and steadily showing ->
+        '    Updater UI dance in that slot itself.
         If slotCount >= 2 AndAlso Notifier2.Notifier_green_stop.Visible AndAlso
            SideSlotBusy(Notifier2) AndAlso SameToastGroup(_side2Group, group) Then
             DanceSideToast(message, showImage, icon, iconColor, group)
             Exit Sub
         End If
-
-        ' 2) New group + main busy + slot 2 free (2-slot mode) -> fresh show
-        '    in slot 2 (OWNER example: Record start/stop living in slot 2,
-        '    Replay start/stop arrives -> it takes the free slot).
-        If slotCount >= 2 AndAlso MainSlotBusy() AndAlso Not SideSlotBusy(Notifier2) Then
-            ShowSideSlot(Notifier_Sub2, message, showImage, icon, iconColor, group)
+        If slotCount >= 3 AndAlso Notifier3.Notifier_green_stop.Visible AndAlso
+           SideSlotBusy(Notifier3) AndAlso SameToastGroup(_side3Group, group) Then
+            DanceSideToast3(message, showImage, icon, iconColor, group)
             Exit Sub
+        End If
+
+        ' 2) New group + main busy -> the first FREE configured side slot
+        '    gets a fresh show (OWNER example: Record start/stop living in
+        '    slot 2, Replay start/stop arrives -> it takes the free slot).
+        '    Slot 3 only enters this in 3-slot mode, as the overflow.
+        If MainSlotBusy() Then
+            If slotCount >= 2 AndAlso Not SideSlotBusy(Notifier2) Then
+                ShowSideSlot(Notifier_Sub2, message, showImage, icon, iconColor, group)
+                Exit Sub
+            End If
+            If slotCount >= 3 AndAlso Not SideSlotBusy(Notifier3) Then
+                ShowSideSlot3(Notifier_Sub3, message, showImage, icon, iconColor, group)
+                Exit Sub
+            End If
         End If
 
         ' 3) Everything else goes through the MAIN slot - a fresh show when
         '    it is free, the Updater UI replace dance when it is showing
         '    (its own group's toggles land here too). This also covers
-        '    1-slot mode and the both-slots-busy fallback.
+        '    1-slot mode and the all-slots-busy fallback.
         ShowOnMain(message, showImage, icon, iconColor, group)
     End Sub
 
