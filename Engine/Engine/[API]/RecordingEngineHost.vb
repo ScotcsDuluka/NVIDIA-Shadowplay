@@ -199,7 +199,35 @@ Partial Public Class UI_Engine
                 Return
             End If
 
-            ' Resolve FFmpeg path (deployment contract — Phase 11 lesson #1)
+            ' ── FIX-1 (PHASE 0 CONFIG TRUTH): reload effective config ────
+            ' Pre-fix this handler built SessionConfig from UI_Engine._settings
+            ' — a CaptureSettings loaded ONCE at form init (UI_Engine.vb:616,
+            ' called from :85) — so any setting changed after process start
+            ' never reached the new-engine path (PHASE 0 audit, HEAD fae0e6a:
+            ' "change setting → record immediately" still used the OLD values).
+            ' Mirror the legacy fresh-reload exactly (HandleEngineRecordStart,
+            ' UI_Engine.vb:369-371): Load + SyncWithOverlayConfig + publish.
+            ' The unified Overlay config.json WINS inside CaptureSettings.Load
+            ' (CaptureSettings.vb:101-116), so the reloaded object IS the
+            ' effective config. Runs on the UI thread (BeginUiInvoke
+            ' marshaling — [Engine] Client.vb:216), same as the legacy path.
+            Dim effective As CaptureSettings = CaptureSettings.Load(_configPath)
+            SyncWithOverlayConfig(effective)
+            _settings = effective
+
+            ' Config echo (CONFIG TRUTH acceptance layer 2 — runtime log):
+            ' one greppable line stating what the NEXT recording will use.
+            Dim sepTracks As Boolean =
+                effective.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack
+            DebugLog($"[RecordingEngine] effective config (fresh reload): " &
+                     $"audio={effective.SystemAudioCapture}, sysVol={effective.SystemAudioVolume}, " &
+                     $"mic={effective.MicCapture}, micVol={effective.MicVolume}, " &
+                     $"micId='{effective.MicDeviceId}', micName='{effective.MicDeviceName}', " &
+                     $"separateTracks={sepTracks}, clock={effective.AudioClockMode}")
+
+            ' Resolve FFmpeg path (deployment contract — Phase 11 lesson #1).
+            ' AFTER the reload above — so a fresh FFmpegPath from config is
+            ' honored, not the process-start snapshot.
             Dim ffmpegPath As String = ResolveFFmpegPath()
             If ffmpegPath = "ffmpeg" AndAlso _settings?.FFmpegPath IsNot Nothing AndAlso _settings.FFmpegPath.Length > 0 Then
                 ' Settings named a path that does not exist — surface it.
@@ -207,25 +235,16 @@ Partial Public Class UI_Engine
                 Return
             End If
 
-            ' Create session config (full Phase 12b mapping + M1 mic mapping from audio.json)
-            ' P13.4: AudioClockMode plumbing — audio.json "AudioClockMode":
-            ' "Device" = hardware-stamped timeline (WasapiPositionCapture +
-            ' AudioTapDeviceClock), "Legacy" = proven v2 path.
-            Dim config As New SessionConfig() With {
-                .OutputPath = value,
-                .DurationSeconds = 3600,          ' no fixed duration — stop via command
-                .FFmpegPath = ffmpegPath,
-                .AudioEnabled = (_settings Is Nothing) OrElse _settings.SystemAudioCapture,
-                .SystemVolume = If(_settings IsNot Nothing, _settings.SystemAudioVolume, 1.0F),
-                .MicEnabled = (_settings IsNot Nothing) AndAlso _settings.MicCapture,
-                .MicVolume = If(_settings IsNot Nothing, _settings.MicVolume, 1.0F),
-                .MicDeviceId = If(_settings IsNot Nothing, _settings.MicDeviceId, ""),
-                .MicDeviceName = If(_settings IsNot Nothing, _settings.MicDeviceName, ""),
-                .MicSeparateTracks = (_settings IsNot Nothing) AndAlso
-                                     _settings.AudioTrackMode = CaptureSettings.AudioTrackModeEnum.SeparateTrack,
-                .AudioClockMode = If(_settings IsNot Nothing, _settings.AudioClockMode, "Legacy"),
-                .OnProcessStarted = AddressOf AssignChildToJob
-            }
+            ' Session config: the mapping moved VERBATIM to NextRecordingConfig
+            ' (Engine\[API]\NextRecordingConfig.vb) so Engine.ConfigTruth.Tests
+            ' (CT-4) executes the SAME composition on Linux. Only the settings
+            ' SOURCE changed (process-start snapshot → fresh reload above);
+            ' field-for-field mapping semantics are unchanged.
+            ' P13.4: AudioClockMode plumbing — "Device" = hardware-stamped
+            ' timeline (WasapiPositionCapture + AudioTapDeviceClock),
+            ' "Legacy" = proven v2 path.
+            Dim config As SessionConfig =
+                NextRecordingConfig.MapSessionConfig(effective, value, ffmpegPath, AddressOf AssignChildToJob)
 
             DebugLog($"[RecordingEngine] starting session: path={value}, audio={config.AudioEnabled}, mic={config.MicEnabled}")
 

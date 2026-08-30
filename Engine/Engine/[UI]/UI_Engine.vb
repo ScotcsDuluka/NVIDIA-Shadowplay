@@ -604,6 +604,23 @@ Partial Public Class UI_Engine
             DebugLog($"[Engine] engine_config_changed received (scope={scope})")
             ' Force path re-resolution in case Overlay moved files
             OverlayConfig.ResetResolvedPath()
+
+            ' ── FIX-2 (PHASE 0 CONFIG TRUTH): reload _settings for real ──
+            ' Pre-fix this handler refreshed ONLY the UI mirror
+            ' (_overlayConfig/_overlayVideo via RefreshOverlayConfigUI);
+            ' _settings kept the process-start snapshot until restart, so
+            ' every _settings consumer stayed stale (PHASE 0 audit finding).
+            ' Same fresh-reload the legacy record path uses
+            ' (UI_Engine.vb:369-371: Load + SyncWithOverlayConfig + publish).
+            ' We are on the UI thread (BeginUiInvoke marshaling —
+            ' [Engine] Client.vb:181), matching the legacy threading model.
+            Dim fresh As CaptureSettings = CaptureSettings.Load(_configPath)
+            SyncWithOverlayConfig(fresh)
+            _settings = fresh
+            DebugLog($"[Engine] effective config reloaded (engine_config_changed): " &
+                     $"audio={fresh.SystemAudioCapture}, mic={fresh.MicCapture}, " &
+                     $"clock={fresh.AudioClockMode}, encoder={If(fresh.Encoder, "(empty)")}, bitrate={fresh.Bitrate}")
+
             ' Refresh UI (we're on the UI thread already).
             RefreshOverlayConfigUI()
         Catch ex As Exception

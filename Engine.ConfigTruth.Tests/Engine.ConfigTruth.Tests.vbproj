@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Engine.ConfigTruth.Tests</AssemblyName>
+    <Description>PHASE 0 CONFIG TRUTH — CT-4 stale-config-reload contract (deterministic, no hardware). LINKS the real Engine production files (CaptureSettings / OverlayConfig / NextRecordingConfig / AppLayout) so the config truth chain executes on Linux. The Engine form itself (net10.0-windows + WinForms) stays out of scope here by design.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- SessionConfig DTO — the runtime contract the next recording runs
+         with. RecordingDTOs.vb is self-contained (System.Diagnostics only),
+         so it is LINKED directly instead of pulling CaptureEngine.Recording
+         (net10.0-windows + D3D11/NVENC/NAudio graph) into a Linux build.
+         Same source file the Engine compiles → same contract, zero drift.
+         If the DTO ever grows non-DTO dependencies this link breaks loudly
+         at build time (desired). -->
+    <Compile Include="..\CaptureEngine.Recording\RecordingDTOs.vb" Link="RecordingDTOs.vb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Real production files, LINKED (not copied) — the contract runs on
+         the SAME source the Engine compiles on Windows. The [ ] folder
+         names are literal for MSBuild (no character-class globbing). -->
+    <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
+    <Compile Include="..\Engine\Engine\[Capture]\CaptureSettings.vb" Link="CaptureSettings.vb" />
+    <Compile Include="..\Engine\Engine\[Integration]\OverlayConfig.vb" Link="OverlayConfig.vb" />
+    <Compile Include="..\Engine\Engine\[API]\NextRecordingConfig.vb" Link="NextRecordingConfig.vb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- VB project-level namespace imports matching what the linked
+         production files expect from the Engine project. NOTE:
+         System.Windows.Forms does not exist on Linux — the TestShims.vb
+         Screen shim (namespace Shims, imported below) covers the single
+         bare `Screen` reference in CaptureSettings.vb:464 instead. -->
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.Drawing" />
+    <Import Include="System.IO" />
+    <Import Include="System.Linq" />
+    <Import Include="Shims" />
+  </ItemGroup>
+
+</Project>
