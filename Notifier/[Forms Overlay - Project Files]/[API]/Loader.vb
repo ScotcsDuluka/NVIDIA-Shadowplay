@@ -306,14 +306,11 @@ Partial Public Class Loader
     ' OWNER spec: rapid = a toast arriving within 400ms of the previous one.
     Private Const FastArrivalWindowMs As Integer = 400
 
-    ' Which notification key each slot is currently showing. A repeat of the
-    ' same key while that toast is still live = a toggle → refresh the live
-    ' toast IN PLACE (content swap + restart the 6s close window) instead of
-    ' spawning a new toast or running the slide-out/slide-in dance.
-    ' ("Updater UI" style — same behavior the T27 router had, on the old forms.)
+    ' The notification key the main toast is currently showing. A repeat of
+    ' the same key while it is still live = a toggle → it must take the
+    ' classic slide-out/slide-in dance on the main toast, NOT the fast-arrival
+    ' side-slot routing (OWNER spec: toggle สไลด์ออก-เข้า แบบที่เราทำ).
     Private _mainToastKey As String = ""
-    Private _side2ToastKey As String = ""
-    Private _side3ToastKey As String = ""
 
     Private Shared Function SameToastKey(a As String, b As String) As Boolean
         Return Not String.IsNullOrEmpty(a) AndAlso
@@ -324,13 +321,13 @@ Partial Public Class Loader
         Return Notifier.Visible OrElse Notifier.Notifier_green_stop.Visible
     End Function
 
-    Private Function TryShowInFreeSideSlot(message As String, showImage As Boolean, icon As String, iconColor As Color, key As String) As Boolean
+    Private Function TryShowInFreeSideSlot(message As String, showImage As Boolean, icon As String, iconColor As Color) As Boolean
         If Not SideSlotBusy(Notifier2) Then
-            ShowSideSlot(Notifier2, Notifier_Sub2, message, showImage, icon, iconColor, key)
+            ShowSideSlot(Notifier2, Notifier_Sub2, message, showImage, icon, iconColor)
             Return True
         End If
         If Not SideSlotBusy(Notifier3) Then
-            ShowSideSlot(Notifier3, Notifier_Sub3, message, showImage, icon, iconColor, key)
+            ShowSideSlot(Notifier3, Notifier_Sub3, message, showImage, icon, iconColor)
             Return True
         End If
         Return False
@@ -352,11 +349,10 @@ Partial Public Class Loader
     ' NOTE: no autoClose.Start() here — a fresh unit's Timer still has the 100ms
     ' default Interval until its Form_Load dance sets 6000, so starting it here
     ' would auto-close the toast mid-dance. Form_Load owns the timer instead.
-    Private Sub ShowSideSlot(unit As Notifier2, content As Notifier_Sub2, message As String, showImage As Boolean, icon As String, iconColor As Color, key As String)
+    Private Sub ShowSideSlot(unit As Notifier2, content As Notifier_Sub2, message As String, showImage As Boolean, icon As String, iconColor As Color)
         unit.autoClose.Stop()
         content.TopMost = True
         unit.Show()
-        _side2ToastKey = key
         With content.icon_n
             .Font = New Font(.Font.FontFamily, 35)
             .ForeColor = iconColor
@@ -366,11 +362,10 @@ Partial Public Class Loader
         content.PictureBox1.Visible = showImage
     End Sub
 
-    Private Sub ShowSideSlot(unit As Notifier3, content As Notifier_Sub3, message As String, showImage As Boolean, icon As String, iconColor As Color, key As String)
+    Private Sub ShowSideSlot(unit As Notifier3, content As Notifier_Sub3, message As String, showImage As Boolean, icon As String, iconColor As Color)
         unit.autoClose.Stop()
         content.TopMost = True
         unit.Show()
-        _side3ToastKey = key
         With content.icon_n
             .Font = New Font(.Font.FontFamily, 35)
             .ForeColor = iconColor
@@ -382,7 +377,8 @@ Partial Public Class Loader
 
     ' ฟังก์ชัน UpdateNotifier (จัดการ UI)
     ' key = the notification key this toast belongs to (l10n.* / raw key).
-    ' Same key arriving again while its toast is still live → in-place refresh.
+    ' Same key arriving while the main toast is live = a toggle → the classic
+    ' slide-out/slide-in dance (แบบที่เราทำ), never a stacked side-slot copy.
     Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color, Optional key As String = Nothing)
         If Me.InvokeRequired Then
             Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor, key))
@@ -395,59 +391,20 @@ Partial Public Class Loader
         Dim fastArrival As Boolean = (now - _lastToastArrival).TotalMilliseconds <= FastArrivalWindowMs
         _lastToastArrival = now
 
-        ' 1) TOGGLE — same key already live on a slot → refresh that toast IN
-        '    PLACE ("Updater UI"): swap content + restart the 6s close window.
-        '    No new toast, no slide dance, nothing moves.
-        If Not String.IsNullOrEmpty(key) Then
-            If MainSlotBusy() AndAlso SameToastKey(_mainToastKey, key) Then
-                With Notifier_Sub.icon_n
-                    .Font = New Font(.Font.FontFamily, 35)
-                    .ForeColor = iconColor
-                    .Text = icon
-                End With
-                Notifier_Sub.text_n.Text = message
-                Notifier_Sub.PictureBox1.Visible = showImage
-                If Notifier.Notifier_green_stop.Visible Then
-                    Notifier.autoClose.Stop()
-                    Notifier.autoClose.Start()
-                End If
-                Exit Sub
-            End If
-            If SideSlotBusy(Notifier2) AndAlso SameToastKey(_side2ToastKey, key) Then
-                With Notifier_Sub2.icon_n
-                    .Font = New Font(.Font.FontFamily, 35)
-                    .ForeColor = iconColor
-                    .Text = icon
-                End With
-                Notifier_Sub2.text_n.Text = message
-                Notifier_Sub2.PictureBox1.Visible = showImage
-                Notifier2.autoClose.Stop()
-                Notifier2.autoClose.Start()
-                Exit Sub
-            End If
-            If SideSlotBusy(Notifier3) AndAlso SameToastKey(_side3ToastKey, key) Then
-                With Notifier_Sub3.icon_n
-                    .Font = New Font(.Font.FontFamily, 35)
-                    .ForeColor = iconColor
-                    .Text = icon
-                End With
-                Notifier_Sub3.text_n.Text = message
-                Notifier_Sub3.PictureBox1.Visible = showImage
-                Notifier3.autoClose.Stop()
-                Notifier3.autoClose.Start()
-                Exit Sub
-            End If
-        End If
-
-        ' 2) Rapid burst + main slot busy → route to the first free side slot.
+        ' 1) Rapid burst + main slot busy → route to the first free side slot.
         ' When the main slot is free we fall through to the normal fresh-show
         ' path below (slot preference order: main → 2 → 3). If ALL slots are
         ' busy we also fall through into the classic replace dance.
-        If fastArrival AndAlso MainSlotBusy() Then
-            If TryShowInFreeSideSlot(message, showImage, icon, iconColor, key) Then Exit Sub
+        '
+        ' EXCEPT a toggle — same key as the live main toast: a toggle ALWAYS
+        ' takes the classic slide-out/slide-in dance on the main toast
+        ' (OWNER: toggle ต้องสไลด์ออก-เข้า แบบที่เราทำ) — never a stacked
+        ' duplicate in a side slot, even inside the 400ms burst window.
+        If fastArrival AndAlso MainSlotBusy() AndAlso Not SameToastKey(_mainToastKey, key) Then
+            If TryShowInFreeSideSlot(message, showImage, icon, iconColor) Then Exit Sub
         End If
 
-        ' 3) Classic single-slot flow (fresh show / replace dance on the main
+        ' 2) Classic single-slot flow (fresh show / replace dance on the main
         ' toast) — this slot now owns `key` for toggle matching.
         _mainToastKey = key
 
