@@ -41,9 +41,6 @@ Partial Public Class Loader
 
         LoadLanguage()
         InitNotifications()
-        ' T28: slot router state lives here; toast units are explicit new
-        ' ToastUnit() instances created per show — no Shared events, no
-        ' default instances to resurrect.
         HideFromAltTab()
 
         obsCfg = ObsConfig.Load()
@@ -298,286 +295,169 @@ Partial Public Class Loader
         LangHelper.LoadLang(langFile)
     End Sub
 
-    ' ====================================================================
-    ' T27 + T28: 2-slot toast router
-    '
-    ' Slot model — a "slot" is a SCREEN ROW, not a fixed form:
-    '   row 0 = top toast, row 1 = the toast below it.
-    ' A toast is ONE self-contained window (ToastUnit — T28): shadow,
-    ' accent, icon, text rendered into a single per-pixel-alpha surface.
-    ' No rider windows, no default instances, nothing to desync.
-    '
-    ' Routing rules, in order:
-    '   0. HEAL   — a slot stuck non-Free with a disposed unit self-heals
-    '               to Free (T27.2 defense, FormRef-based).
-    '   1. TOGGLE — same notification key already live (entering/showing)
-    '               → refresh that unit's content in place + restart its
-    '               6s window. No new toast, no slide.
-    '   2. FREE   — a new explicit ToastUnit → fresh show in the lowest
-    '               free row.
-    '   3. QUEUE  — both busy → the toast waits (max 4, same key merges
-    '               into its queued twin) and is served the moment a unit
-    '               closes — DEFERRED out of the Close() stack (T27.2).
-    '
-    ' Reflow (OWNER spec): when the row-0 toast slides out, the row-1
-    ' toast glides up and takes row 0 — a slot is a position, so the
-    ' next fresh toast enters at the bottom row.
-    ' ====================================================================
-    Private Enum SlotPhase
-        Free
-        Entering
-        Showing
-        Closing
-    End Enum
+    ' ==== Toast slot routing (OWNER spec) ====
+    ' Rapid bursts — a toast arriving within FastArrivalWindowMs of the previous
+    ' one — go to the first FREE slot instead of clobbering the showing one.
+    ' Slot 1 = main toast (original flow, below). Slots 2/3 = copies stacking
+    ' below the main toast with a 10px vertical gap (see the slot forms).
+    ' If every slot is busy, fall back to the classic replace dance on slot 1.
+    Private _lastToastArrival As DateTime = DateTime.MinValue
 
-    Private Class SlotState
-        Public Id As Integer
-        Public Phase As SlotPhase = SlotPhase.Free
-        Public Row As Integer = 0
-        Public Key As String = ""
-        ''' <summary>T27.2: strong ref to the unit this slot last showed.
-        ''' Explicit instance — checking liveness on it can never
-        ''' auto-recreate a ghost the way a VB default instance would.</summary>
-        Public FormRef As ToastUnit
-    End Class
+    ' OWNER spec: rapid = a toast arriving within 400ms of the previous one.
+    Private Const FastArrivalWindowMs As Integer = 400
 
-    Private ReadOnly S1 As New SlotState With {.Id = 1}
-    Private ReadOnly S2 As New SlotState With {.Id = 2}
+    ' The notification key the main toast is currently showing. A repeat of
+    ' the same key while it is still live = a toggle → it must take the
+    ' classic slide-out/slide-in dance on the main toast, NOT the fast-arrival
+    ' side-slot routing (OWNER spec: toggle สไลด์ออก-เข้า แบบที่เราทำ).
+    Private _mainToastKey As String = ""
 
-    Private Class PendingToast
-        Public Key As String
-        Public Message As String
-        Public Png As Boolean
-        Public Ico As String
-        Public Color As Color
-    End Class
+    Private Shared Function SameToastKey(a As String, b As String) As Boolean
+        Return Not String.IsNullOrEmpty(a) AndAlso
+               String.Equals(a, b, StringComparison.OrdinalIgnoreCase)
+    End Function
 
-    Private ReadOnly _pendingToasts As New List(Of PendingToast)()
-    Private Const MaxPendingToasts As Integer = 4
-    Private _reflowTimer As Timer
+    Private Function MainSlotBusy() As Boolean
+        Return Notifier.Visible OrElse Notifier.Notifier_green_stop.Visible
+    End Function
 
-    ' ---- single entry point: one toast, already localized ----
-    Public Sub RouteToast(key As String, message As String, showImage As Boolean, icon As String, iconColor As Color)
+    Private Function TryShowInFreeSideSlot(message As String, showImage As Boolean, icon As String, iconColor As Color) As Boolean
+        If Not SideSlotBusy(Notifier2) Then
+            ShowSideSlot(Notifier2, Notifier_Sub2, message, showImage, icon, iconColor)
+            Return True
+        End If
+        If Not SideSlotBusy(Notifier3) Then
+            ShowSideSlot(Notifier3, Notifier_Sub3, message, showImage, icon, iconColor)
+            Return True
+        End If
+        Return False
+    End Function
+
+    ' A side slot is busy from the moment its unit form is shown (the whole
+    ' slide-in dance) until its SlideOutAll closes it — Visible covers exactly
+    ' that window, green_stop.Visible alone would miss the dance.
+    Private Function SideSlotBusy(unit As Notifier2) As Boolean
+        Return unit.Visible OrElse unit.Notifier_green_stop.Visible
+    End Function
+
+    Private Function SideSlotBusy(unit As Notifier3) As Boolean
+        Return unit.Visible OrElse unit.Notifier_green_stop.Visible
+    End Function
+
+    ' Mirrors the main toast's fresh-show path: Show() runs the Form_Load
+    ' slide-in dance; content is set up front exactly like the main path does.
+    ' NOTE: no autoClose.Start() here — a fresh unit's Timer still has the 100ms
+    ' default Interval until its Form_Load dance sets 6000, so starting it here
+    ' would auto-close the toast mid-dance. Form_Load owns the timer instead.
+    Private Sub ShowSideSlot(unit As Notifier2, content As Notifier_Sub2, message As String, showImage As Boolean, icon As String, iconColor As Color)
+        unit.autoClose.Stop()
+        content.TopMost = True
+        unit.Show()
+        With content.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        content.text_n.Text = message
+        content.PictureBox1.Visible = showImage
+    End Sub
+
+    Private Sub ShowSideSlot(unit As Notifier3, content As Notifier_Sub3, message As String, showImage As Boolean, icon As String, iconColor As Color)
+        unit.autoClose.Stop()
+        content.TopMost = True
+        unit.Show()
+        With content.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        content.text_n.Text = message
+        content.PictureBox1.Visible = showImage
+    End Sub
+
+    ' ฟังก์ชัน UpdateNotifier (จัดการ UI)
+    ' key = the notification key this toast belongs to (l10n.* / raw key).
+    ' Same key arriving while the main toast is live = a toggle → the classic
+    ' slide-out/slide-in dance (แบบที่เราทำ), never a stacked side-slot copy.
+    Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color, Optional key As String = Nothing)
         If Me.InvokeRequired Then
-            Me.Invoke(Sub() RouteToast(key, message, showImage, icon, iconColor))
+            Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor, key))
             Return
         End If
 
-        ' 0) T27.2: self-heal FIRST — a slot wedged at Entering/Showing/Closing
-        ' with a disposed form (any historical race) must not eat this toast
-        ' into a dead unit or a phantom toggle match.
-        HealStaleSlots()
+        ' tcp.SendLog("notifier_show") ' ถ้าต้องการ
 
-        ' 1) toggle — refresh the live unit already showing this key
-        Dim live = FindLiveByKey(key)
-        If live IsNot Nothing Then
-            UpdateInPlace(live, message, showImage, icon, iconColor)
-            Return
+        Dim now As DateTime = DateTime.Now
+        Dim fastArrival As Boolean = (now - _lastToastArrival).TotalMilliseconds <= FastArrivalWindowMs
+        _lastToastArrival = now
+
+        ' 1) Rapid burst + main slot busy → route to the first free side slot.
+        ' When the main slot is free we fall through to the normal fresh-show
+        ' path below (slot preference order: main → 2 → 3). If ALL slots are
+        ' busy we also fall through into the classic replace dance.
+        '
+        ' EXCEPT a toggle — same key as the live main toast: a toggle ALWAYS
+        ' takes the classic slide-out/slide-in dance on the main toast
+        ' (OWNER: toggle ต้องสไลด์ออก-เข้า แบบที่เราทำ) — never a stacked
+        ' duplicate in a side slot, even inside the 400ms burst window.
+        If fastArrival AndAlso MainSlotBusy() AndAlso Not SameToastKey(_mainToastKey, key) Then
+            If TryShowInFreeSideSlot(message, showImage, icon, iconColor) Then Exit Sub
         End If
 
-        ' 2) free unit — fresh show in the lowest free row
-        Dim free = FindFreeUnit()
-        If free IsNot Nothing Then
-            ShowFresh(free, key, message, showImage, icon, iconColor)
-            Return
+        ' 2) Classic single-slot flow (fresh show / replace dance on the main
+        ' toast) — this slot now owns `key` for toggle matching.
+        _mainToastKey = key
+
+        ' Refresh the close window only while a toast is actually showing —
+        ' on a fresh show Form_Load owns autoClose (and its Interval), so
+        ' starting the timer here would fire AutoClose at the 100ms default.
+        If Notifier.Notifier_green_stop.Visible Then
+            Notifier.autoClose.Stop()
+            Notifier.autoClose.Start()
+        End If
+        Notifier_Sub.TopMost = True
+
+        ' Logic เดิมเรื่องการสไลด์
+        If Notifier.Notifier_green_stop.Visible Then
+            Notifier_Sub.Close()
+            ' แก้: เอา Application.DoEvents() ออก — กัน reentrancy
+
+            Notifier.StartSlide(Notifier.Notifier_black, Notifier.Notifier_black.Left, Notifier.Width + 300, 600)
+
+            With Notifier_Sub.icon_n
+                .Font = New Font(.Font.FontFamily, 35)
+                .ForeColor = iconColor
+                .Text = icon
+            End With
+            Notifier_Sub.text_n.Text = message
+            Notifier_Sub.PictureBox1.Visible = showImage
+
+            Dim delay As New Timer()
+            delay.Interval = 200
+            AddHandler delay.Tick, Sub()
+                                       delay.Stop()
+                                       delay.Dispose()
+                                       Notifier.StartSlide(Notifier.Notifier_black, Notifier.Width, Notifier.Width - 300, 300,
+                                           Sub() Notifier_Sub.Show())
+                                   End Sub
+            delay.Start()
+            Exit Sub
         End If
 
-        ' 3) both busy — wait in the queue
-        Enqueue(key, message, showImage, icon, iconColor)
+        Notifier.Show()
+        With Notifier_Sub.icon_n
+            .Font = New Font(.Font.FontFamily, 35)
+            .ForeColor = iconColor
+            .Text = icon
+        End With
+        Notifier_Sub.text_n.Text = message
+        Notifier_Sub.PictureBox1.Visible = showImage
     End Sub
 
-    Private Function FindLiveByKey(key As String) As SlotState
-        For Each s In {S1, S2}
-            If (s.Phase = SlotPhase.Entering OrElse s.Phase = SlotPhase.Showing) AndAlso
-               String.Equals(s.Key, key, StringComparison.Ordinal) Then
-                Return s
-            End If
-        Next
-        Return Nothing
-    End Function
-
-    Private Function FindFreeUnit() As SlotState
-        ' prefer the free unit already sitting on the lowest row;
-        ' ties (both free) go to unit 1 — the original main toast
-        Dim best As SlotState = Nothing
-        For Each s In {S1, S2}
-            If s.Phase <> SlotPhase.Free Then Continue For
-            If best Is Nothing OrElse s.Row < best.Row Then best = s
-        Next
-        Return best
-    End Function
-
-    Private Function LowestFreeRow(exclude As SlotState) As Integer
-        ' rows held by any unit that is not Free — a CLOSING unit still owns
-        ' its row until it is really gone, so a fresh toast never lands on
-        ' a dying one
-        Dim used As New HashSet(Of Integer)()
-        For Each s In {S1, S2}
-            If s Is exclude OrElse s.Phase = SlotPhase.Free Then Continue For
-            used.Add(s.Row)
-        Next
-        If Not used.Contains(0) Then Return 0
-        Return 1
-    End Function
-
-    Private Sub ShowFresh(s As SlotState, key As String, message As String, showImage As Boolean, icon As String, iconColor As Color)
-        ' T27.2: hard reset — if the slot's previous unit is somehow still
-        ' alive (wedged phase from an older race), silently dispose it.
-        Try
-            If s.FormRef IsNot Nothing AndAlso Not s.FormRef.IsDisposed Then
-                Debug.WriteLine($"[Router] unit {s.Id}: disposing stale form before fresh show")
-                s.FormRef.Dispose()
-            End If
-        Catch
-        End Try
-
-        s.Row = LowestFreeRow(s)
-        s.Key = key
-        s.Phase = SlotPhase.Entering
-        Debug.WriteLine($"[Router] fresh show key={key} unit={s.Id} row={s.Row}")
-
-        ' T28: explicit fresh instance per toast — clean state guaranteed
-        ' by construction, not by default-instance resurrection timing.
-        Dim u As New ToastUnit(s.Id)
-        s.FormRef = u
-        AddHandler u.DanceCompleted, AddressOf OnUnitDanceCompleted
-        AddHandler u.SlideOutStarted, AddressOf OnUnitSlideOutStarted
-        AddHandler u.UnitClosed, AddressOf OnUnitClosed
-        u.ShowToast(s.Row, message, showImage, icon, iconColor)
-    End Sub
-
-    ''' <summary>T27.2: a slot stuck at Entering/Showing/Closing whose form is
-    ''' gone can never serve a toast again — every arrival toggles a dead unit
-    ''' or queues forever (OWNER: "toast จบแล้ว ค้างเลย"). Reads FormRef only —
-    ''' never the default instance, which would auto-recreate the very ghost
-    ''' we are checking for.</summary>
-    Private Sub HealStaleSlots()
-        For Each s In {S1, S2}
-            If s.Phase = SlotPhase.Free Then Continue For
-            If s.FormRef Is Nothing OrElse s.FormRef.IsDisposed Then
-                Debug.WriteLine($"[Router] heal: unit {s.Id} phase={s.Phase} but form gone → Free")
-                s.Phase = SlotPhase.Free
-                s.Key = ""
-            End If
-        Next
-    End Sub
-
-    Private Sub UpdateInPlace(s As SlotState, message As String, showImage As Boolean, icon As String, iconColor As Color)
-        Debug.WriteLine($"[Router] toggle-update key={s.Key} unit={s.Id} phase={s.Phase}")
-        Dim u As ToastUnit = s.FormRef
-        If u Is Nothing OrElse u.IsDisposed Then
-            HealStaleSlots()
-            Return
-        End If
-        ' the unit restarts its own 6s window only when Showing — during
-        ' the entrance the entrance owns the timer (T27 rule preserved)
-        u.UpdateContent(message, showImage, icon, iconColor)
-    End Sub
-
-    Private Sub Enqueue(key As String, message As String, showImage As Boolean, icon As String, iconColor As Color)
-        Dim twin = _pendingToasts.Find(Function(p) p.Key = key)
-        If twin IsNot Nothing Then
-            twin.Message = message
-            twin.Png = showImage
-            twin.Ico = icon
-            twin.Color = iconColor
-            Debug.WriteLine($"[Router] queue: merged into pending twin key={key}")
-            Return
-        End If
-        If _pendingToasts.Count >= MaxPendingToasts Then
-            _pendingToasts.RemoveAt(0)   ' oldest loses its seat — newest wins
-        End If
-        _pendingToasts.Add(New PendingToast With {.Key = key, .Message = message, .Png = showImage, .Ico = icon, .Color = iconColor})
-        Debug.WriteLine($"[Router] queue: waiting ({_pendingToasts.Count}/{MaxPendingToasts}) key={key}")
-    End Sub
-
-    Private Sub TryDequeueNext()
-        If _pendingToasts.Count = 0 Then Return
-        Dim nextToast = _pendingToasts(0)
-        _pendingToasts.RemoveAt(0)
-        Debug.WriteLine($"[Router] dequeue key={nextToast.Key} (remaining {_pendingToasts.Count})")
-        RouteToast(nextToast.Key, nextToast.Message, nextToast.Png, nextToast.Ico, nextToast.Color)
-    End Sub
-
-    ' ---- unit lifecycle events (instance events, subscribed per unit in ShowFresh) ----
-    Private Sub OnUnitDanceCompleted(u As ToastUnit)
-        Dim s = StateOf(u)
-        If s Is Nothing Then Return
-        If s.Phase = SlotPhase.Entering Then s.Phase = SlotPhase.Showing
-    End Sub
-
-    Private Sub OnUnitSlideOutStarted(u As ToastUnit)
-        Dim s = StateOf(u)
-        If s Is Nothing Then Return
-        s.Phase = SlotPhase.Closing
-        Debug.WriteLine($"[Router] unit {s.Id} closing (row {s.Row})")
-
-        ' Reflow: only the top row's exit pulls the bottom toast up
-        If s.Row <> 0 Then Return
-        Dim below = If(s Is S1, S2, S1)
-        If below.Phase <> SlotPhase.Showing AndAlso below.Phase <> SlotPhase.Entering Then Return
-        If below.Row <> 1 Then Return
-
-        If _reflowTimer IsNot Nothing Then
-            _reflowTimer.Stop()
-            _reflowTimer.Dispose()
-            _reflowTimer = Nothing
-        End If
-        _reflowTimer = New Timer()
-        _reflowTimer.Interval = 320   ' let the top toast clear out first
-        AddHandler _reflowTimer.Tick,
-            Sub()
-                _reflowTimer.Stop()
-                _reflowTimer.Dispose()
-                _reflowTimer = Nothing
-                ' re-check at fire time — the picture may have changed
-                If below.Phase <> SlotPhase.Showing AndAlso below.Phase <> SlotPhase.Entering Then Return
-                If below.Row <> 1 Then Return
-                ReflowUp(below)
-            End Sub
-        _reflowTimer.Start()
-    End Sub
-
-    ''' <summary>OWNER spec: the bottom toast glides up into the freed top
-    ''' slot. T28: the unit is ONE window — GlideToRow moves everything at
-    ''' once; no riders, no SettleRiders, nothing to desync.</summary>
-    Private Sub ReflowUp(s As SlotState)
-        ' T27.2: never glide a dead unit — if its form is already gone,
-        ' heal the slot and bail instead of animating a ghost.
-        If s.FormRef Is Nothing OrElse s.FormRef.IsDisposed Then
-            Debug.WriteLine($"[Router] reflow: unit {s.Id} form gone — heal + skip")
-            s.Phase = SlotPhase.Free
-            s.Key = ""
-            Return
-        End If
-        s.Row = 0
-        s.FormRef.GlideToRow(0)
-    End Sub
-
-    Private Sub OnUnitClosed(u As ToastUnit)
-        Dim s = StateOf(u)
-        If s Is Nothing Then Return
-        s.Phase = SlotPhase.Free
-        s.Key = ""
-        Debug.WriteLine($"[Router] unit {s.Id} closed → free")
-
-        ' T27.2: DEFER the dequeue. UnitClosed fires inside Form.Close()'s
-        ' call stack, BEFORE the dying form is disposed. Dequeuing here made
-        ' the old default-instance router grab the not-yet-disposed corpse
-        ' and the slot froze at Entering forever (OWNER: "toast จบแล้ว
-        ' ค้างเลย"). BeginInvoke lands on a clean stack after Close() returns.
-        Try
-            Me.BeginInvoke(Sub() TryDequeueNext())
-        Catch
-            ' Loader tearing down — nothing left to serve
-        End Try
-    End Sub
-
-    Private Function StateOf(u As ToastUnit) As SlotState
-        If u.UnitId = 1 Then Return S1
-        If u.UnitId = 2 Then Return S2
-        Return Nothing
-    End Function
+    ' Test buttons — go through the REAL UpdateNotifier with a stable fake key,
+    ' so double-pressing Button1 demos the toggle in-place refresh exactly like
+    ' a real repeat notification does.
+    Private Const TestButtonKey As String = "l10n.testbutton"
 
     ' ฟังก์ชัน GetSavedReplayDuration
     Public Function GetSavedReplayDuration() As (minutes As Integer, seconds As Integer)
@@ -631,18 +511,13 @@ Partial Public Class Loader
         End Try
     End Sub
 
-    ' จัดการสถานะ Notifier — T28: liveness อ่านจาก FormRef (explicit unit)
+    ' จัดการสถานะ Notifier
     Public Sub ManageNotifierState()
         Dim dataDir = AppLayout.P("Data", "NVIDIA_Shadowplay_Data")
         Dim notifierFile = Path.Combine(dataDir, "notifier")
         Dim mainOffFile = Path.Combine(dataDir, "notifiermainoff")
         Try
-            Dim anyVisible As Boolean = False
-            For Each s In {S1, S2}
-                Dim u = s.FormRef
-                If u IsNot Nothing AndAlso Not u.IsDisposed AndAlso u.Visible Then anyVisible = True
-            Next
-            If anyVisible Then
+            If Notifier.Visible Then
                 If Not File.Exists(notifierFile) Then File.Create(notifierFile).Dispose()
             Else
                 If File.Exists(notifierFile) Then File.Delete(notifierFile)
@@ -652,29 +527,26 @@ Partial Public Class Loader
         Try
             If File.Exists(mainOffFile) Then
                 File.Delete(mainOffFile)
-                For Each s In {S1, S2}
-                    Dim u = s.FormRef
-                    If u IsNot Nothing AndAlso Not u.IsDisposed Then u.StartMainOffRecovery()
-                Next
+                Notifier.IF_N.Start()
+                Notifier_Sub.Timer1.Start()
             End If
         Catch
         End Try
     End Sub
 
-    ' ปุ่มทดสอบ — every button goes through the REAL router, so toggle /
-    ' slot / queue / reflow behavior is exactly what a TCP toast gets.
-    ' Button1 twice in a row = toggle-update demo (same key refreshed in place).
+    ' ปุ่มทดสอบ
     Private Sub Button1_Click(sender As Object, e As EventArgs) Handles Button1.Click
-        RouteToast("l10n.debug.a", "Press Alt + Z to use Shadowplay Experience in-game overlay", True, "", greenColor)
+        ' Real router path — press twice fast: first press = fresh show,
+        ' second press within 6s = toggle in-place refresh (no dance).
+        UpdateNotifier("Press Alt + Z to use Shadowplay Experience in-game overlay",
+                       True, "", Color.White, TestButtonKey)
     End Sub
     Private Sub Button2_Click(sender As Object, e As EventArgs) Handles Button2.Click
-        RouteToast("l10n.debug.b", "Second toast — fills the free slot while slot 1 is busy", False, "", greenColor)
+        Notifier_Sub.Show()
     End Sub
     Private Sub Button3_Click(sender As Object, e As EventArgs) Handles Button3.Click
-        ' T28: legacy "main off" recovery trigger on the live slot-1 unit
-        If S1.FormRef IsNot Nothing AndAlso Not S1.FormRef.IsDisposed Then
-            S1.FormRef.StartMainOffRecovery()
-        End If
+        Notifier.IF_N.Start()
+        Notifier_Sub.Timer1.Start()
     End Sub
 
     ' แก้: Dispose TCP + OBS + watcher ตอน form ปิด
