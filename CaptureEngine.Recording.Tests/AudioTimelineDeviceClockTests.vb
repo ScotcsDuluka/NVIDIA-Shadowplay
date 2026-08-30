@@ -23,6 +23,17 @@ Option Infer On
 ' audio2 [1920000,1921920) silence [1921920,2880000) audio3 [2880000,2881920)
 ' total = 2881920 bytes.
 '
+' FIXTURE RULE (first real run on 4023b9f, Linux dotnet 10.0.400 — OWNER
+' gate 2026-08-31): the device cursor base MUST be non-zero. 0 is the
+' tracker's "no cursor" sentinel (AudioPositionTracker Risk #2 fallback):
+' an anchor with devPos=0 engages the fallback-re-anchor path, whose
+' "no hole fabricated" rule then MASKS gap1 entirely (first run: A failed
+' at byte 1920 with audio sitting there, stream total coincidentally
+' exact). A real loopback cursor is free-running — it is never 0 past
+' device init — so CursorBase below models reality and keeps the sentinel
+' path out of these scenarios. The sentinel itself is proven by P13.2
+' tests elsewhere and is NOT a bug.
+'
 ' Scenarios (the two silence models the endpoint actually exhibits —
 ' docs/PHASE-13-SHADOWPLAY-CLOCK.md):
 '
@@ -75,6 +86,11 @@ Namespace CaptureEngine.Recording.Tests
 
         Private Const AudioFill As Byte = &HAAI                 ' tone marker
         Private Const SilenceFill As Byte = &H0I
+
+        ''' <summary>Free-running cursor base — a real endpoint's first packet
+        ''' carries an arbitrary non-zero render position. MUST NOT be 0:
+        ''' devPos=0 is the tracker's no-cursor sentinel (see header).</summary>
+        Private ReadOnly CursorBase As Long = 1_000_000L
 
         Public Sub RunAll()
             Console.WriteLine()
@@ -182,12 +198,12 @@ Namespace CaptureEngine.Recording.Tests
             Dim tap As New AudioTapDeviceClock("sys", Rate, Channels, Bits, sink)
             Dim t0 As Long = 800_000_000L        ' arbitrary wall anchor (80s), all math relative
 
-            ' t=0s: audio1, cursor [0, 480)
-            tap.Feed(MakePacket(AudioFill), Bytes10ms, 0L, t0)
-            ' t=10s: audio2, cursor jumped to 480000 (=10s * 48000) — 9.99s hole measured
-            tap.Feed(MakePacket(AudioFill), Bytes10ms, 480_000L, t0 + 100_000_000L)
-            ' t=15s: audio3, cursor at 720000 — 4.99s hole measured
-            tap.Feed(MakePacket(AudioFill), Bytes10ms, 720_000L, t0 + 150_000_000L)
+            ' t=0s: audio1, cursor [base, base+480)
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase, t0)
+            ' t=10s: audio2, cursor jumped to base+480000 — 9.99s hole measured
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 480_000L, t0 + 100_000_000L)
+            ' t=15s: audio3, cursor at base+720000 — 4.99s hole measured
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 720_000L, t0 + 150_000_000L)
             ' session end = 15.01s; last cursor end = 720480 frames = 15.01s → zero tail
             tap.FinalizeTo100ns(t0, t0 + SessionLen100ns)
 
@@ -209,12 +225,15 @@ Namespace CaptureEngine.Recording.Tests
             Dim t0 As Long = 800_000_000L
             Dim zeros As Byte() = MakePacket(SilenceFill)
 
-            For i As Integer = 0 To 1499        ' 0ms .. 14990ms, cursor i*480
-                tap.Feed(zeros, Bytes10ms, CLng(i) * Frames, t0 + CLng(i) * TenMs)
+            For i As Integer = 0 To 1499        ' 0ms .. 14990ms, cursor base+i*480
+                tap.Feed(zeros, Bytes10ms, CursorBase + CLng(i) * Frames, t0 + CLng(i) * TenMs)
             Next
             tap.FinalizeTo100ns(t0, t0 + 150_000_000L)   ' exactly 15.00s
 
-            TestRunner.Assert(sink.Stream.Length = 150_000_000L \ 10_000_000L * BytesPerSec,
+            ' VB operator precedence: * binds TIGHTER than \ — without the
+            ' parens this evaluated 150M \ (10M * 192000) = 0 and failed a
+            ' stream that was byte-exact (first real run on 4023b9f).
+            TestRunner.Assert(sink.Stream.Length = (150_000_000L \ 10_000_000L) * BytesPerSec,
                               $"A2: stream must be 1500 packets = 2,880,000 bytes, got {sink.Stream.Length:N0}")
             TestRunner.Assert(tap.SilenceInsertedBytes = 0,
                               $"A2: cursor accounted for ALL time — synthesized silence must be 0, got {tap.SilenceInsertedBytes:N0}")
@@ -229,17 +248,18 @@ Namespace CaptureEngine.Recording.Tests
         ''' <summary>P13.4b field model: while nothing plays, the loopback
         ''' endpoint delivers NOTHING and its render cursor does not move.
         ''' qpcPosition still advances (it is WHEN the position was sampled).
-        ''' Current build: hole = 480 − 480 = 0 → no mid-gap silence → audio2
-        ''' lands at 0.010s → Finalize pads everything to the tail.
+        ''' Current build: feed2 hole = 480−480 = 0, feed3 hole = 480−960 =
+        ''' −480 (monotonic violation, absorbed) → no mid-gap silence → audio2
+        ''' lands at 0.010s → Finalize pads 14.99s to the tail (stream 2,883,840).
         ''' Contract (Phase-A fix): audio2 MUST start at 10.000s.</summary>
         Private Sub Test_B_CursorFrozen()
             Dim sink As New CollectingSink()
             Dim tap As New AudioTapDeviceClock("sys", Rate, Channels, Bits, sink)
             Dim t0 As Long = 800_000_000L
 
-            tap.Feed(MakePacket(AudioFill), Bytes10ms, 0L, t0)              ' t=0s,  cursor [0,480)
-            tap.Feed(MakePacket(AudioFill), Bytes10ms, 480L, t0 + 100_000_000L)   ' t=10s, cursor STILL 480 (idle)
-            tap.Feed(MakePacket(AudioFill), Bytes10ms, 480L, t0 + 150_000_000L)   ' t=15s, cursor STILL 480
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase, t0)              ' t=0s,  cursor [base, base+480)
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 480L, t0 + 100_000_000L)   ' t=10s, cursor STILL base+480 (idle)
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 480L, t0 + 150_000_000L)   ' t=15s, cursor STILL base+480
             tap.FinalizeTo100ns(t0, t0 + SessionLen100ns)
 
             AssertOwnerContract(BytesOf(sink), tap, "B")
