@@ -142,7 +142,7 @@ Partial Public Class Loader
         ManageNotifierState()
 
         ' แสดงผล
-        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color, key)
 
         tcp.SendLog(message)
     End Sub
@@ -181,7 +181,7 @@ Partial Public Class Loader
         If Not NotificationAllowed(key) Then Exit Sub
 
         ManageNotifierState()
-        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color)
+        UpdateNotifier(message, nd.Png, nd.Ico, nd.Color, key)
         tcp.SendLog(message)
     End Sub
 
