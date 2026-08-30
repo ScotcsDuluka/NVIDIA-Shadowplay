@@ -36,7 +36,7 @@ Partial Class Shadow2
         ' HideShadow
         ' 
         HideShadow.Enabled = True
-        HideShadow.Interval = 2000
+        HideShadow.Interval = 1
         ' 
         ' Shadow2
         ' 
