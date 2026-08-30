@@ -215,6 +215,24 @@ Namespace CaptureEngine.FFmpegBackend
             End Get
         End Property
 
+        ''' <summary>Gaps reconstructed from QPC wall evidence while the
+        ''' device cursor was frozen (Phase-A case 2) — the silent-clip bug
+        ''' fix surface. Cursor-proven gaps are NOT counted here.</summary>
+        Public ReadOnly Property IdleGapPackets As Long
+            Get
+                Return _tracker.IdleGapPackets
+            End Get
+        End Property
+
+        ''' <summary>Packets whose gap judgment was suppressed because they
+        ''' carried TimestampError (Phase-A: a known-error stamp judges
+        ''' nothing).</summary>
+        Public ReadOnly Property TimestampErrorPackets As Long
+            Get
+                Return _tracker.TimestampErrorPackets
+            End Get
+        End Property
+
         ' ── The v3 entry point ──────────────────────────────────────────
 
         ''' <summary>
@@ -224,15 +242,19 @@ Namespace CaptureEngine.FFmpegBackend
         ''' only for FirstQpc100ns + anomaly evidence). Inserts measured-gap
         ''' silence BEFORE the buffer, then forwards both to the sink. Call
         ''' from the packet delivery thread, serially.
+        ''' packetFlags: AUDCLNT_BUFFERFLAGS bits (WasapiPacketFlags) —
+        ''' Phase-A: TimestampError suppresses ALL gap judgment for the
+        ''' packet (OWNER rule). Legacy 4-arg callers default to 0.
         ''' </summary>
         Public Sub Feed(buffer As Byte(), count As Integer,
-                        devicePositionFrames As Long, qpcPosition100ns As Long)
+                        devicePositionFrames As Long, qpcPosition100ns As Long,
+                        Optional packetFlags As Integer = 0)
             If buffer Is Nothing OrElse count <= 0 OrElse count > buffer.Length Then Return
 
             Dim frames As Integer = count \ _bytesPerFrame
             If frames <= 0 Then Return
 
-            Dim report As AudioGapReport = _tracker.Feed(frames, devicePositionFrames, qpcPosition100ns)
+            Dim report As AudioGapReport = _tracker.Feed(frames, devicePositionFrames, qpcPosition100ns, packetFlags)
 
             If report.ReAnchoredNow Then
                 _evidence?.Invoke($"[tap3:{_name}] re-anchored after fallback anchor (driver began stamping) — no hole fabricated")
@@ -243,7 +265,9 @@ Namespace CaptureEngine.FFmpegBackend
             ' The hole (END→START) IS the silence. P13.4b: EVERY measured
             ' hole is padded — the hardware said that time elapsed; dropping
             ' it desyncs the track against the video. Only the log line is
-            ' thresholded (MinLogGapSec), never the padding.
+            ' thresholded (MinLogGapSec), never the padding. Phase-A: the
+            ' hole may come from the cursor (case 1) or — when the cursor
+            ' froze — from QPC wall evidence (case 2, the silent-clip fix).
             If report.Hole100ns > 0 Then
                 Dim holeSec As Double = report.Hole100ns / 10000000.0
                 If holeSec <= MaxGapSec Then
@@ -252,7 +276,9 @@ Namespace CaptureEngine.FFmpegBackend
                     If silBytes > 0 Then
                         WriteSilence(CInt(silBytes))
                         If holeSec > MinLogGapSec Then
-                            _evidence?.Invoke($"[tap3:{_name}] measured hole {holeSec * 1000.0:0}ms → padded {silBytes}B silence")
+                            Dim kind As String = If(report.IdleGapUsedQpc,
+                                "idle hole (cursor frozen, qpc evidence)", "measured hole")
+                            _evidence?.Invoke($"[tap3:{_name}] {kind} {holeSec * 1000.0:0}ms → padded {silBytes}B silence")
                         Else
                             Interlocked.Increment(_subThresholdHoles)
                             Interlocked.Add(_subThresholdHole100ns, report.Hole100ns)
@@ -282,6 +308,9 @@ Namespace CaptureEngine.FFmpegBackend
             If report.StampFallbackUsed Then
                 _evidence?.Invoke($"[tap3:{_name}] zero-stamp packet — continuity assumed (no hole)")
             End If
+            If report.TimestampErrorSuppressed Then
+                _evidence?.Invoke($"[tap3:{_name}] TimestampError packet — gap judgment suppressed (continuity)")
+            End If
 
             _sink.Write(buffer, count)
             Interlocked.Add(_dataBytes, count)
@@ -309,7 +338,7 @@ Namespace CaptureEngine.FFmpegBackend
             If tail100ns > 0 Then
                 PadSilence(tail100ns / 10000000.0, "tail to session end")
             End If
-            _evidence?.Invoke($"[tap3:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s holes={HolePackets} (sub-50ms: {Interlocked.Read(_subThresholdHoles)} = {Interlocked.Read(_subThresholdHole100ns) / 100000.0:0.0}ms) fallbacks={StampFallbacks} cursorViolations={MonotonicViolations} qpcJitter={QpcAnomalies}")
+            _evidence?.Invoke($"[tap3:{_name}] closed: data={Interlocked.Read(_dataBytes):N0}B silence={Interlocked.Read(_silenceInsertedBytes):N0}B total={TotalDurationSec:0.00}s holes={HolePackets} idle={IdleGapPackets} (sub-50ms: {Interlocked.Read(_subThresholdHoles)} = {Interlocked.Read(_subThresholdHole100ns) / 100000.0:0.0}ms) fallbacks={StampFallbacks} cursorViolations={MonotonicViolations} qpcJitter={QpcAnomalies} tsErr={TimestampErrorPackets}")
         End Sub
 
         ' ── Internals ───────────────────────────────────────────────────

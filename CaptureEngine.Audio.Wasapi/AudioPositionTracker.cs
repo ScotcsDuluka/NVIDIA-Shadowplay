@@ -21,6 +21,43 @@
 //   lastEnd100ns  = FirstQpc + (lastDevPosEnd − firstDevPos) × 10⁷ / rate
 //                   (content end mapped into the QPC wall domain)
 //
+// ★ PHASE A (OWNER-approved 2026-08-31) — the frozen-cursor rule. P13.4b
+// field evidence: while nothing plays, the loopback endpoint delivers
+// NOTHING and its render cursor FREEZES (devPos == prev end), so case-1
+// sees hole = 0 and the whole idle span migrated to the track tail
+// ([voice][voice][long tail silence]). The OWNER's refined gap policy:
+//
+//   devPos = MASTER TIMELINE, qpc = WALL-CLOCK ANCHOR / GAP DETECTOR
+//
+//   1) virtualPos > virtual end        → cursor-PROVEN hole (content time).
+//      Unchanged P13.4c behavior — always padded, qpc never consulted.
+//   2) cursor made NO forward progress (devPos ≤ prev raw end) AND the
+//      wall proves elapsed time beyond the previous packet's own span
+//      plus a jitter tolerance → IDLE gap: reconstruct silence from
+//      (wallGap − prevDur) at THIS position. qpcDelta is never the raw
+//      length (OWNER: "ห้ามเอา qpcDelta มาใช้เป็นระยะ silence ตรง ๆ") —
+//      the packet's own duration is subtracted first.
+//   3) otherwise → legacy semantics: continuity (hole=0) or overlap
+//      max-policy (violation, never rewind) — P13.2 contracts preserved.
+//
+//   TimestampError packets judge NO gap at all (OWNER rule): continuity
+//   placement, no wall-base update (their stamps are known-error),
+//   evidence counter only.
+//
+// Why a monotonic wall base: the OWNER machine fired 933 BACKWARDS qpc
+// stamps per 38s session. wallGap is measured against max(all qpc seen)
+// so backwards noise yields wallGap ≤ 0 → no idle fabrication. The
+// residual exposure is a huge FORWARD stamp lie under a frozen cursor —
+// physically implausible (QPC is monotonic hardware) and bounded by the
+// tap's 3600s cap; backwards noise — the documented real failure — is
+// fully immune.
+//
+// Rebase: an idle pad advances the VIRTUAL timeline past the device's
+// (frozen) cursor domain. _rebaseFrames accumulates the divergence so
+// every later raw devPos maps back onto the virtual timeline — after the
+// episode, normal cursor-delta math resumes seamlessly (proven by the
+// Timeline-C freeze→resume test).
+//
 // Hardening (doc §5 Risks, adapted to devPos):
 //   Risk #2 — devicePositionFrames == 0 mid-stream ("no cursor"): assume
 //   continuity (devPos = lastDevPosEnd), flag it, never fabricate gaps.
@@ -69,6 +106,16 @@ namespace CaptureEngine.Audio.Wasapi
         /// Evidence counter; ZERO timeline impact since P13.4c.</summary>
         public bool QpcAnomaly;
 
+        /// <summary>The gap before this packet was reconstructed from QPC
+        /// wall evidence because the device cursor was frozen (Phase-A
+        /// case 2). Cursor-proven gaps leave this false.</summary>
+        public bool IdleGapUsedQpc;
+
+        /// <summary>The packet carried TimestampError: by OWNER rule it was
+        /// NOT allowed to judge any gap (continuity placement, wall base
+        /// untouched).</summary>
+        public bool TimestampErrorSuppressed;
+
         /// <summary>Cursor END after absorbing this packet (frames).</summary>
         public long LastDevPosEnd;
 
@@ -80,6 +127,12 @@ namespace CaptureEngine.Audio.Wasapi
     /// (DevicePositionFrames) — pure logic, serially fed.</summary>
     public sealed class AudioPositionTracker
     {
+        /// <summary>Wall evidence must exceed the previous packet's span by
+        /// more than this before an idle gap is believed (50ms — the same
+        /// magnitude as the proven MinLogGapSec noise floor; qpc sampling
+        /// jitter is ms-scale, real idle gaps are seconds).</summary>
+        public const long IdleEvidenceTolerance100ns = 500_000;
+
         private readonly long _sampleRate;
         private long _firstDevPos;
         private long _lastDevPosEnd;
@@ -88,6 +141,24 @@ namespace CaptureEngine.Audio.Wasapi
         private bool _anchored;
         private bool _anchorWasFallback;
         private long _framesSinceAnchor;
+
+        // ── Phase-A state (frozen-cursor idle reconstruction) ──────────
+        /// <summary>raw→virtual cursor offset: accumulates the divergence
+        /// created by idle pads (device cursor frozen while the virtual
+        /// timeline advances). virtualPos = devPos + _rebaseFrames.</summary>
+        private long _rebaseFrames;
+        /// <summary>Raw device-domain END of the last real-cursor packet —
+        /// the frozen-cursor comparator (devPos ≤ this ⇒ no forward motion).</summary>
+        private long _lastRawDevPosEnd;
+        /// <summary>Frames of the last accepted packet (bounds the
+        /// far-backwards violation evidence in the idle branch).</summary>
+        private long _lastFrames;
+        /// <summary>Duration of the last accepted packet (100ns) — the idle
+        /// gap is wallGap MINUS this (the packet's own content time).</summary>
+        private long _lastDur100ns;
+        /// <summary>Monotonic max of trusted qpc stamps — the wall-gap base.
+        /// max() absorbs the documented BACKWARDS stamp noise entirely.</summary>
+        private long _wallGapBaseQpc;
 
         /// <summary>Sample rate of the device mix format (frames → time).</summary>
         public int SampleRate { get { return (int)_sampleRate; } }
@@ -135,6 +206,15 @@ namespace CaptureEngine.Audio.Wasapi
         /// consumes qpc deltas at all).</summary>
         public long QpcAnomalies { get; private set; }
 
+        /// <summary>Gaps reconstructed from QPC wall evidence while the
+        /// device cursor was frozen (Phase-A case 2).</summary>
+        public long IdleGapPackets { get; private set; }
+
+        /// <summary>Packets whose gap judgment was suppressed because they
+        /// carried TimestampError (Phase-A: a known-error stamp judges
+        /// nothing).</summary>
+        public long TimestampErrorPackets { get; private set; }
+
         public AudioPositionTracker(int sampleRate)
         {
             if (sampleRate <= 0)
@@ -162,8 +242,11 @@ namespace CaptureEngine.Audio.Wasapi
         }
 
         /// <summary>Feed one packet. Pure and thread-unsafe by design —
-        /// the owner of the packet stream calls this serially.</summary>
-        public AudioGapReport Feed(int frames, long devicePositionFrames, long qpcPosition100ns)
+        /// the owner of the packet stream calls this serially.
+        /// flags: AUDCLNT_BUFFERFLAGS bits (WasapiPacketFlags) — optional;
+        /// only TimestampError changes policy (the packet judges no gap).
+        /// Legacy 3-arg callers default to flags = 0.</summary>
+        public AudioGapReport Feed(int frames, long devicePositionFrames, long qpcPosition100ns, int flags = 0)
         {
             if (frames < 0)
                 throw new ArgumentOutOfRangeException(nameof(frames),
@@ -207,6 +290,11 @@ namespace CaptureEngine.Audio.Wasapi
                 r.Hole100ns = 0;
                 r.LastDevPosEnd = _lastDevPosEnd;
                 r.LastEnd100ns = LastEnd100ns;
+                // Phase-A bookkeeping: the anchor is a trusted packet.
+                _lastRawDevPosEnd = devicePositionFrames + frames;
+                _lastFrames = frames;
+                _lastDur100ns = dur;
+                if (qpcPosition100ns > 0) _wallGapBaseQpc = qpcPosition100ns;
                 return r;
             }
 
@@ -214,17 +302,24 @@ namespace CaptureEngine.Audio.Wasapi
             {
                 // Risk #2: "no cursor". Assume continuity — this packet's
                 // content starts exactly where the last one ended.
+                // Phase-A: the raw cursor bookkeeping is left untouched
+                // (there IS no cursor); the wall base still advances — the
+                // stamp itself is real, only the position is missing.
                 r.StampFallbackUsed = true;
                 StampFallbacks++;
                 r.Hole100ns = 0;
                 _lastDevPosEnd += frames;
                 LastEnd100ns += dur;
                 _framesSinceAnchor += frames;
+                _lastFrames = frames;
+                _lastDur100ns = dur;
+                if (qpcPosition100ns > _wallGapBaseQpc) _wallGapBaseQpc = qpcPosition100ns;
                 r.LastDevPosEnd = _lastDevPosEnd;
                 r.LastEnd100ns = LastEnd100ns;
                 return r;
             }
 
+            bool forceContinuity = false;
             if (_anchorWasFallback)
             {
                 // First REAL cursor after a cursorless anchor. The anchor's
@@ -243,42 +338,122 @@ namespace CaptureEngine.Audio.Wasapi
                 // domain, or the delta below would fabricate an `implied`
                 // sized hole. Continuity is the assumption here — the cursor
                 // was absent, so no gap is measurable across the streak.
+                // Phase-A: rawEnd is set to the packet START — the fall-
+                // through continuity path completes it with `frames`.
                 _lastDevPosEnd = devicePositionFrames;
+                _lastRawDevPosEnd = devicePositionFrames;
                 r.ReAnchoredNow = true;
                 r.Hole100ns = 0;
-                // fall through to the normal cursor-delta logic below
+                // ★ Phase-A: no gap is measurable across a re-anchor — the
+                // cursorless streak was already absorbed by continuity. The
+                // wall gap here (streak length) must NOT trigger an idle pad.
+                forceContinuity = true;
+                // fall through to the gap policy below
+            }
+
+            // ── Phase-A gap policy ──────────────────────────────────────
+            bool tsError = (flags & WasapiPacketFlags.TimestampError) != 0;
+            if (tsError)
+            {
+                // OWNER rule: a known-error stamp judges NO gap. Continuity
+                // placement (the content is real, its timing is not); the
+                // wall base is NOT advanced (the stamp is untrusted) and the
+                // raw cursor bookkeeping is NOT rewritten (devPos untrusted).
+                TimestampErrorPackets++;
+                r.TimestampErrorSuppressed = true;
+                r.Hole100ns = 0;
+                _lastDevPosEnd += frames;
+                LastEnd100ns += dur;
+                _lastFrames = frames;
+                _lastDur100ns = dur;
+                r.LastDevPosEnd = _lastDevPosEnd;
+                r.LastEnd100ns = LastEnd100ns;
+                return r;
+            }
+
+            long virtualPos = devicePositionFrames + _rebaseFrames;
+            long contentHoleFrames = virtualPos - _lastDevPosEnd;
+
+            if (contentHoleFrames > 0)
+            {
+                // Case 1 — cursor-PROVEN gap (content time, master evidence).
+                // P13.4c behavior unchanged: padded, qpc never consulted.
+                r.Hole100ns = FramesTo100ns(contentHoleFrames);
+                GapPackets++;
+                TotalHole100ns += r.Hole100ns;
+                _lastDevPosEnd = virtualPos + frames;
+                LastEnd100ns = _firstQpc + FramesTo100ns(_lastDevPosEnd - _firstDevPos);
+                _lastRawDevPosEnd = devicePositionFrames + frames;
             }
             else
             {
-                r.Hole100ns = 0;
+                // The cursor gave no forward progress. Consult the WALL —
+                // but only against TRUSTED stamps (monotonic max base) and
+                // only when the elapsed time exceeds the previous packet's
+                // own span plus the jitter tolerance.
+                long wallGap = -1L;
+                if (_wallGapBaseQpc > 0 && qpcPosition100ns > _wallGapBaseQpc)
+                    wallGap = qpcPosition100ns - _wallGapBaseQpc;
+
+                if (!forceContinuity && wallGap - _lastDur100ns > IdleEvidenceTolerance100ns)
+                {
+                    // Case 2 — IDLE gap: the endpoint froze (P13.4b) while
+                    // wall time passed. Reconstruct (wallGap − prevDur) of
+                    // silence at THIS position, advance the virtual timeline,
+                    // and rebase the raw cursor domain onto it.
+                    long idle100ns = wallGap - _lastDur100ns;
+                    r.Hole100ns = idle100ns;
+                    r.IdleGapUsedQpc = true;
+                    IdleGapPackets++;
+                    TotalHole100ns += idle100ns;
+                    long idleFrames = idle100ns * _sampleRate / 10_000_000L;
+                    _lastDevPosEnd += idleFrames + frames;
+                    LastEnd100ns = _firstQpc + FramesTo100ns(_lastDevPosEnd - _firstDevPos);
+                    _rebaseFrames = _lastDevPosEnd - (devicePositionFrames + frames);
+                    // A far-backwards cursor (beyond one packet) is still
+                    // anomaly evidence — but the idle reconstruction stands
+                    // (a frozen/re-inited cursor does not un-spend the time).
+                    if (devicePositionFrames < _lastRawDevPosEnd - _lastFrames)
+                    {
+                        r.MonotonicViolation = true;
+                        MonotonicViolations++;
+                    }
+                    _lastRawDevPosEnd = devicePositionFrames + frames;
+                }
+                else if (devicePositionFrames < _lastRawDevPosEnd)
+                {
+                    // Case 3a — backwards/overlapping cursor (device re-init):
+                    // report it, never rewind — max policy on the virtual end.
+                    r.MonotonicViolation = true;
+                    MonotonicViolations++;
+                    r.Hole100ns = 0;
+                    long newEnd = virtualPos + frames;
+                    if (newEnd > _lastDevPosEnd) _lastDevPosEnd = newEnd;
+                    LastEnd100ns = _firstQpc + FramesTo100ns(_lastDevPosEnd - _firstDevPos);
+                    _lastRawDevPosEnd = devicePositionFrames + frames;
+                }
+                else
+                {
+                    // Case 3b — continuity (no trustworthy elapsed evidence,
+                    // or the wall accounted for exactly the packet span).
+                    r.Hole100ns = 0;
+                    _lastDevPosEnd = virtualPos + frames;
+                    LastEnd100ns = _firstQpc + FramesTo100ns(_lastDevPosEnd - _firstDevPos);
+                    _lastRawDevPosEnd = devicePositionFrames + frames;
+                }
             }
 
-            long holeFrames = devicePositionFrames - _lastDevPosEnd;
-            if (holeFrames < 0)
-            {
-                // Backwards/overlapping cursor (device re-init): report it,
-                // never rewind — max policy on the cursor end.
-                r.MonotonicViolation = true;
-                MonotonicViolations++;
-                r.Hole100ns = 0;
-                long newEnd = devicePositionFrames + frames;
-                if (newEnd > _lastDevPosEnd) _lastDevPosEnd = newEnd;
-            }
-            else
-            {
-                r.Hole100ns = FramesTo100ns(holeFrames);
-                if (holeFrames > 0) { GapPackets++; TotalHole100ns += r.Hole100ns; }
-                _lastDevPosEnd = devicePositionFrames + frames;
-            }
-
-            LastEnd100ns = _firstQpc + FramesTo100ns(_lastDevPosEnd - _firstDevPos);
+            _lastFrames = frames;
+            _lastDur100ns = dur;
+            if (qpcPosition100ns > _wallGapBaseQpc) _wallGapBaseQpc = qpcPosition100ns;
             r.LastDevPosEnd = _lastDevPosEnd;
             r.LastEnd100ns = LastEnd100ns;
             return r;
         }
 
         /// <summary>Forget the timeline (device switch / hot-unplug —
-        /// doc §3.2: "log it, don't bridge it"). Counters stay for evidence.</summary>
+        /// doc §3.2: "log it, don't bridge it"). Counters stay for evidence.
+        /// Phase-A state is cleared with it — a new timeline starts clean.</summary>
         public void Reset()
         {
             _anchored = false;
@@ -287,6 +462,11 @@ namespace CaptureEngine.Audio.Wasapi
             _firstQpc = 0;
             _anchorWasFallback = false;
             _framesSinceAnchor = 0;
+            _rebaseFrames = 0;
+            _lastRawDevPosEnd = 0;
+            _lastFrames = 0;
+            _lastDur100ns = 0;
+            _wallGapBaseQpc = 0;
         }
     }
 }

@@ -57,6 +57,8 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("WPOS: First packet anchors (no gap)", AddressOf Test_WPosAnchor)
             RunTest("WPOS: Continuous stream has zero holes", AddressOf Test_WPosContinuous)
             RunTest("WPOS: qpc jitter immunity — cursor timeline unmoved (P13.4c)", AddressOf Test_WPosQpcLies)
+            RunTest("WPOS: Idle gap from QPC when cursor frozen (Phase-A)", AddressOf Test_WPosIdleQpcEvidence)
+            RunTest("WPOS: TimestampError stamp judges no gap (Phase-A)", AddressOf Test_WPosTimestampError)
             RunTest("WPOS: Silence hole measured exactly", AddressOf Test_WPosHole)
             RunTest("WPOS: Zero cursor falls back to continuity (Risk #2)", AddressOf Test_WPosZeroCursor)
             RunTest("WPOS: Negative frames rejected (counter hygiene)", AddressOf Test_WPosNegativeFrames)
@@ -82,6 +84,7 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("ATDC: A/B equivalence — silence == tracker oracle", AddressOf Test_ATDCAbEquivalence)
             RunTest("ATDC: Many 1ms holes — track == wall-clock span (P13.4b)", AddressOf Test_ATDCManySmallHoles)
             RunTest("ATDC: qpc jitter immunity — cursor timeline unmoved (P13.4c)", AddressOf Test_ATDCQpcJitterImmunity)
+            RunTest("ATDC: Idle gap padded at real position + rebase (Phase-A)", AddressOf Test_ATDCIdleGap)
             RunTest("SYNC2: Exact QPC anchor offset arithmetic", AddressOf Test_Sync2AnchorOffset)
             RunTest("SYNC2: Anchor guards + ±3600s sanity bound (P13.4b)", AddressOf Test_Sync2AnchorGuards)
 
@@ -391,23 +394,91 @@ Namespace CaptureEngine.FFmpegTests
         Private Sub Test_WPosQpcLies()
             ' ★ P13.4c REGRESSION (the OWNER machine): 933 backwards qpc
             ' stamps per session and the qpc-delta timeline lost 5.65s.
-            ' The cursor timeline must be IMMUNE: qpc bouncing wildly
-            ' (backwards, forwards, minutes off) changes NOTHING — content
-            ' time comes from DevicePositionFrames, and the qpc noise is
-            ' only counted as evidence.
+            ' The cursor timeline must be IMMUNE to the documented noise:
+            ' BACKWARDS stamps of any magnitude and forward jitter within
+            ' the Phase-A idle tolerance (50ms) change NOTHING — content
+            ' time comes from DevicePositionFrames; the noise is only
+            ' counted as evidence.
+            ' ★ PHASE-A refinement (OWNER-approved 2026-08-31): a LARGE
+            ' forward stamp under a FROZEN cursor is no longer "noise" —
+            ' it is the idle-gap evidence (Test_WPosIdleQpcEvidence). The
+            ' two are indistinguishable from stamps alone; the policy
+            ' boundary is the tolerance + the physical argument (QPC is
+            ' monotonic hardware — the documented real noise is backwards).
             Dim t As New AudioPositionTracker(48000)
-            Dim lies() As Long = {T0, T0 - 500000000L, T0 + 1000000000L,
-                                  T0 - 3000000000L, T0 + 250000000L,
-                                  T0 - 10000000L, T0 + 40000000L}
+            Dim lies() As Long = {T0, T0 - 500000000L, T0 + 400000L,
+                                  T0 - 3000000000L, T0 + 250000L,
+                                  T0 - 10000000L, T0 + 200000L}
             For i As Integer = 0 To 99
                 Dim rep = t.Feed(480, DevBase + i * 480L, lies(i Mod lies.Length))
                 Assert(rep.Hole100ns = 0L, "qpc lie must NOT create a hole at i=" & i)
                 Assert(Not rep.MonotonicViolation, "qpc lie is not a cursor violation at i=" & i)
             Next
             Assert(t.GapPackets = 0L, "zero gaps despite qpc lies")
+            Assert(t.IdleGapPackets = 0L, "zero idle gaps from within-tolerance jitter")
             Assert(t.MonotonicViolations = 0L, "zero cursor violations")
             Assert(t.LastEnd100ns = T0 + 100L * Pkt10ms, "timeline exact despite qpc lies")
             Assert(t.QpcAnomalies > 0L, "qpc noise still COUNTED as evidence")
+        End Sub
+
+        Private Sub Test_WPosIdleQpcEvidence()
+            ' ★ PHASE-A (OWNER-approved 2026-08-31): the frozen-cursor rule.
+            ' P13.4b field model: while nothing plays the endpoint delivers
+            ' NOTHING and its render cursor FREEZES — case 1 sees hole=0 and
+            ' the idle span migrated to the track tail ([voice][voice][long
+            ' tail silence]). Policy: devPos = MASTER TIMELINE, qpc = WALL
+            ' ANCHOR / GAP DETECTOR. Frozen cursor + wall evidence beyond
+            ' the previous packet's span + tolerance → IDLE gap =
+            ' wallGap − prevDur (qpcDelta is NEVER the raw length), padded
+            ' at THIS position; the rebase keeps later packets seamless.
+            Dim t As New AudioPositionTracker(48000)
+            Dim rep1 = t.Feed(480, DevBase, T0)
+            Assert(Not rep1.IdleGapUsedQpc, "anchor is not an idle gap")
+            ' t=10s: cursor STILL DevBase+480 (frozen), wall advanced 10s.
+            Dim rep2 = t.Feed(480, DevBase + 480L, T0 + 100000000L)
+            Assert(rep2.Hole100ns = 99900000L,
+                   "idle gap = wallGap(10s) − prevDur(10ms) = 9.99s, got " & rep2.Hole100ns)
+            Assert(rep2.IdleGapUsedQpc, "gap came from QPC wall evidence")
+            Assert(t.IdleGapPackets = 1L, "one idle-gap packet")
+            Assert(t.GapPackets = 0L, "cursor-proven gap counter untouched")
+            Assert(rep2.LastDevPosEnd = DevBase + 480L + 479520L + 480L,
+                   "virtual end = frozen end + idle frames + packet")
+            Assert(rep2.LastEnd100ns = T0 + 100100000L, "wall mapping advanced to 10.01s")
+            ' The rebase: a packet whose raw cursor CONTINUES from the
+            ' frozen spot maps back onto the virtual timeline — zero hole.
+            Dim rep3 = t.Feed(480, DevBase + 960L, T0 + 100100000L)
+            Assert(rep3.Hole100ns = 0L, "post-idle continuity via rebase, got " & rep3.Hole100ns)
+            Assert(Not rep3.MonotonicViolation, "rebase must not fabricate a violation")
+            Assert(t.LastEnd100ns = T0 + 100200000L, "timeline advanced 10ms only")
+            ' Backwards qpc noise (the OWNER machine: 933/session) must NOT
+            ' fabricate an idle gap while the cursor walks normally.
+            Dim rep4 = t.Feed(480, DevBase + 1440L, T0 - 3000000000L)
+            Assert(rep4.Hole100ns = 0L, "backwards qpc → no gap")
+            Assert(Not rep4.IdleGapUsedQpc, "backwards qpc is not idle evidence")
+        End Sub
+
+        Private Sub Test_WPosTimestampError()
+            ' ★ PHASE-A OWNER rule: "ถ้า TimestampError → ห้ามใช้ packet นี้
+            ' ตัดสิน gap". A known-error stamp may not: judge a gap, advance
+            ' the wall base (its qpc is untrusted), or rewrite the cursor
+            ' bookkeeping. The packet's CONTENT still exists — continuity
+            ' placement (its 10ms may land displaced; that is the honest
+            ' cost of an untrustworthy stamp, bounded by one packet).
+            Dim t As New AudioPositionTracker(48000)
+            t.Feed(480, DevBase, T0)
+            ' t=10s: frozen cursor + TimestampError → MUST NOT pad.
+            Dim rep2 = t.Feed(480, DevBase + 480L, T0 + 100000000L, WasapiPacketFlags.TimestampError)
+            Assert(rep2.TimestampErrorSuppressed, "suppression flagged")
+            Assert(rep2.Hole100ns = 0L, "no gap judged from an error stamp")
+            Assert(t.IdleGapPackets = 0L, "no idle gap counted")
+            Assert(t.LastEnd100ns = T0 + 200000L, "content advanced by duration only")
+            ' The next GOOD packet judges against the last TRUSTED anchor
+            ' (T0 — the error stamp did not advance the wall base):
+            ' wallGap = 15s, idle = 15s − 10ms(prevDur) = 14.99s.
+            Dim rep3 = t.Feed(480, DevBase + 480L, T0 + 150000000L)
+            Assert(rep3.Hole100ns = 149900000L,
+                   "good packet pads from the trusted anchor, got " & rep3.Hole100ns)
+            Assert(rep3.IdleGapUsedQpc, "idle evidence used by the good packet only")
         End Sub
 
         Private Sub Test_WPosHole()
@@ -842,20 +913,50 @@ Namespace CaptureEngine.FFmpegTests
         Private Sub Test_ATDCQpcJitterImmunity()
             ' ★ P13.4c REGRESSION at the tap level: the OWNER machine fired
             ' 933 backwards qpc stamps per session. With the cursor timeline
-            ' the qpc noise must produce ZERO silence and leave the timeline
-            ' exact — only the anomaly counter moves.
+            ' the documented noise (backwards stamps, forward jitter within
+            ' the Phase-A tolerance) must produce ZERO silence and leave the
+            ' timeline exact — only the anomaly counter moves.
+            ' ★ PHASE-A: a LARGE forward stamp under a frozen cursor is idle
+            ' EVIDENCE now (Test_WPosIdleQpcEvidence) — the lie set below
+            ' keeps only the documented noise classes.
             Dim col As New SinkCollector()
             Dim tap = NewTap(col)
-            Dim lies() As Long = {T0, T0 - 500000000L, T0 + 1000000000L,
-                                  T0 - 3000000000L, T0 + 250000000L}
+            Dim lies() As Long = {T0, T0 - 500000000L, T0 + 400000L,
+                                  T0 - 3000000000L, T0 + 250000L}
             For i As Integer = 0 To 99
                 Dim b As Byte() = MakeBuf(480)
                 tap.Feed(b, b.Length, DevBase + i * 480L, lies(i Mod lies.Length))
             Next
             Assert(tap.SilenceInsertedBytes = 0L, "qpc jitter → zero silence padded")
+            Assert(tap.IdleGapPackets = 0L, "within-tolerance jitter is not idle evidence")
             Assert(tap.QpcAnomalies > 0L, "jitter still counted as evidence")
             Assert(tap.LastEnd100ns = T0 + 100L * Pkt10ms, "timeline exact despite qpc lies")
             Assert(col.Total = 100L * 480L * 4L, "all data bytes forwarded once")
+        End Sub
+
+        Private Sub Test_ATDCIdleGap()
+            ' ★ PHASE-A at the tap level: frozen cursor + wall evidence →
+            ' silence is padded at the REAL position (the silent-clip bug
+            ' fix), and the next packet continues on the rebased virtual
+            ' timeline with zero double-pad.
+            Dim col As New SinkCollector()
+            Dim tap = NewTap(col)
+            Dim b0 As Byte() = MakeBuf(480)
+            tap.Feed(b0, b0.Length, DevBase, T0)
+            ' t=10s: cursor STILL DevBase+480 (endpoint idle), wall 10s.
+            Dim b1 As Byte() = MakeBuf(480)
+            tap.Feed(b1, b1.Length, DevBase + 480L, T0 + 100000000L)
+            Dim idleBytes As Long = 99900000L * 192000L \ 10000000L   ' 1,918,080B
+            Assert(tap.SilenceInsertedBytes = idleBytes,
+                   $"idle pad exactly 9.99s: {tap.SilenceInsertedBytes} vs {idleBytes}")
+            Assert(tap.IdleGapPackets = 1L, "idle gap counted")
+            ' Continuation on the rebased timeline: raw cursor resumes, zero pad.
+            Dim b2 As Byte() = MakeBuf(480)
+            tap.Feed(b2, b2.Length, DevBase + 960L, T0 + 100100000L)
+            Assert(tap.SilenceInsertedBytes = idleBytes, "no double-pad after rebase")
+            Assert(tap.IdleGapPackets = 1L, "still one idle gap")
+            ' The stream so far: silence + three packets in delivery order.
+            Assert(col.Total = idleBytes + 3L * 480L * 4L, "sink got silence + packets")
         End Sub
 
         ' ===== SYNC2 — SyncMath v2 exact QPC anchors (P13.4) =====

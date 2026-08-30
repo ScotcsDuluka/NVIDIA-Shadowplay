@@ -51,14 +51,26 @@ Option Infer On
 '      (P13.4b field evidence: "the first packet anchors seconds late";
 '      the OWNER's real-time [silence][voice][silence][voice] becomes
 '      [voice][voice][long tail silence] in the file). KNOWN-FAIL on the
-'      current build — the failure message IS the deterministic bug
+'      pre-fix build — the failure message IS the deterministic bug
 '      reproduction. It flips to PASS automatically the moment the
 '      Phase-A fix lands, and that PASS line is the fix's acceptance
 '      evidence.
+'
+'   C  "freeze → resume cycles" — locks the Phase-A REBASE rule: after
+'      an idle reconstruction the raw cursor domain is stale by the
+'      synthesized amount; packets resuming from the frozen spot must
+'      land exactly on the virtual timeline (zero hole, zero violation,
+'      zero double-pad) across MULTIPLE idle episodes.
+'
+'   D  "TimestampError judges no gap" — the OWNER rule: a packet with a
+'      known-error stamp is placed by continuity and never used as gap
+'      evidence; the next TRUSTED stamp pads from the last trusted
+'      wall anchor.
 
 Imports System
 Imports System.Collections.Generic
 Imports System.IO
+Imports CaptureEngine.Audio.Wasapi
 Imports CaptureEngine.FFmpegBackend
 
 Namespace CaptureEngine.Recording.Tests
@@ -102,6 +114,10 @@ Namespace CaptureEngine.Recording.Tests
             TestRunner.RunKnownFail("TIMELINE B: cursor freezes (endpoint idle) → gap silence still lands at REAL position",
                                     AddressOf Test_B_CursorFrozen,
                                     "Phase-A fix target — deterministic repro of [voice][voice][long tail silence]")
+            TestRunner.RunTest("TIMELINE C: freeze → resume → freeze → resume (rebase continuity)",
+                               AddressOf Test_C_FreezeResumeCycle)
+            TestRunner.RunTest("TIMELINE D: TimestampError packet judges no gap (OWNER rule)",
+                               AddressOf Test_D_TimestampErrorSuppressed)
         End Sub
 
         ' ── Harness ─────────────────────────────────────────────────────
@@ -263,6 +279,96 @@ Namespace CaptureEngine.Recording.Tests
             tap.FinalizeTo100ns(t0, t0 + SessionLen100ns)
 
             AssertOwnerContract(BytesOf(sink), tap, "B")
+        End Sub
+
+        ' ── Scenario C: freeze → resume cycles (rebase continuity) ──────
+
+        ''' <summary>The Phase-A idle reconstruction advances the VIRTUAL
+        ''' timeline past the device's frozen cursor domain. This scenario
+        ''' drives two full idle episodes and demands that packets whose raw
+        ''' cursor resumes from the frozen spot land EXACTLY on the virtual
+        ''' timeline afterwards (the rebase rule) — plus the full byte
+        ''' contract at every position. Total: 20.02s = 3,843,840 bytes.</summary>
+        Private Sub Test_C_FreezeResumeCycle()
+            Dim sink As New CollectingSink()
+            Dim tap As New AudioTapDeviceClock("sys", Rate, Channels, Bits, sink)
+            Dim t0 As Long = 800_000_000L
+
+            ' t=0s: audio1, cursor [base, base+480)
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase, t0)
+            ' t=10s: IDLE episode 1 — cursor frozen at base+480 → pad 9.99s;
+            ' audio2 lands at [10.000s, 10.010s); rebase = 479,520 frames.
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 480L, t0 + 100_000_000L)
+            ' t=15s: cursor RESUMED (device rendered audio2 at raw [480,960))
+            ' but still idle since — wall says 5s passed → pad 4.99s; audio3
+            ' at [15.000s, 15.010s); rebase rewritten to 719,520.
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 960L, t0 + 150_000_000L)
+            ' t=20s: IDLE episode 3 — cursor frozen again at base+1440 → pad
+            ' 4.99s; audio4 at [20.000s, 20.010s); rebase rewritten to 959,040.
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 1440L, t0 + 200_000_000L)
+            ' t=20.01s: cursor resumed (rendered audio4) — wall gap == the
+            ' packet's own span → plain continuity, ZERO pad; audio5 at
+            ' [20.010s, 20.020s).
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 1920L, t0 + 200_100_000L)
+            ' Session ends exactly at audio5's end → zero tail.
+            tap.FinalizeTo100ns(t0, t0 + 200_200_000L)
+
+            Dim b As Byte() = BytesOf(sink)
+            ' bytes = ticks × B/s ÷ 1e7 (multiply FIRST: 20.02s is not a
+            ' whole second and \ floors — and * binds tighter than \ anyway).
+            Dim total As Long = 200_200_000L * BytesPerSec \ 10_000_000L   ' 3,843,840
+            TestRunner.Assert(b.Length = total,
+                              $"C: stream must be {total:N0} bytes (20.02s), got {b.Length:N0}")
+            ExpectAudioSpan(b, 0L, "C: audio1 @0.000s")
+            ExpectSilenceSpan(b, Bytes10ms, 1_920_000L, "C: gap1 @0.010–10.000s")
+            ExpectAudioSpan(b, 1_920_000L, "C: audio2 @10.000s")
+            ExpectSilenceSpan(b, 1_921_920L, 2_880_000L, "C: gap2 @10.010–15.000s")
+            ExpectAudioSpan(b, 2_880_000L, "C: audio3 @15.000s")
+            ExpectSilenceSpan(b, 2_881_920L, 3_840_000L, "C: gap3 @15.010–20.000s")
+            ExpectAudioSpan(b, 3_840_000L, "C: audio4 @20.000s")
+            ExpectAudioSpan(b, 3_841_920L, "C: audio5 @20.010s (contiguous after resume)")
+            TestRunner.Assert(tap.HolePackets = 0, "C: all gaps were idle-reconstructed, cursor-proven = 0")
+            TestRunner.Assert(tap.IdleGapPackets = 3, $"C: exactly 3 idle gaps, got {tap.IdleGapPackets}")
+            TestRunner.Assert(tap.SilenceInsertedBytes = 3_834_240L,
+                              $"C: silence = 9.99+4.99+4.99s, got {tap.SilenceInsertedBytes:N0}")
+            TestRunner.Assert(tap.MonotonicViolations = 0,
+                              "C: a frozen cursor is not a rewind — zero violations")
+        End Sub
+
+        ' ── Scenario D: TimestampError judges no gap (OWNER rule) ───────
+
+        ''' <summary>A TimestampError stamp may not judge any gap (OWNER:
+        ''' "ห้ามใช้ packet นี้ตัดสิน gap"). The packet's content still
+        ''' exists — continuity placement — and the NEXT good packet pads
+        ''' from the last TRUSTED wall anchor. The honest cost: the error
+        ''' packet's 10ms is displaced; the timeline length and every
+        ''' trusted position stay exact. Total = contract + one packet.</summary>
+        Private Sub Test_D_TimestampErrorSuppressed()
+            Dim sink As New CollectingSink()
+            Dim tap As New AudioTapDeviceClock("sys", Rate, Channels, Bits, sink)
+            Dim t0 As Long = 800_000_000L
+
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase, t0)
+            ' t=10s: frozen cursor + TimestampError → NO pad may fire.
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 480L,
+                     t0 + 100_000_000L, WasapiPacketFlags.TimestampError)
+            ' t=15s: GOOD stamp — judges against the trusted anchor (t0):
+            ' idle = 15s − 10ms(prev dur) = 14.99s → audio3 at 15.010s.
+            tap.Feed(MakePacket(AudioFill), Bytes10ms, CursorBase + 480L, t0 + 150_000_000L)
+            tap.FinalizeTo100ns(t0, t0 + SessionLen100ns)
+
+            Dim b As Byte() = BytesOf(sink)
+            TestRunner.Assert(b.Length = 2_883_840L,
+                              $"D: stream = contract + the error packet (2,883,840), got {b.Length:N0}")
+            ExpectAudioSpan(b, 0L, "D: audio1 @0.000s")
+            ExpectAudioSpan(b, 1_920L, "D: audio2 placed by continuity (error stamp judged nothing)")
+            ExpectSilenceSpan(b, 3_840L, 2_881_920L, "D: idle silence from the TRUSTED anchor only")
+            ExpectAudioSpan(b, 2_881_920L, "D: audio3 @15.010s (displaced exactly one packet)")
+            TestRunner.Assert(tap.TimestampErrorPackets = 1, "D: error packet counted")
+            TestRunner.Assert(tap.IdleGapPackets = 1, $"D: exactly one idle gap (from the good packet), got {tap.IdleGapPackets}")
+            TestRunner.Assert(tap.SilenceInsertedBytes = 2_878_080L,
+                              $"D: silence = 14.99s, got {tap.SilenceInsertedBytes:N0}")
+            TestRunner.Assert(tap.MonotonicViolations = 0, "D: no violation fabricated")
         End Sub
 
     End Module
