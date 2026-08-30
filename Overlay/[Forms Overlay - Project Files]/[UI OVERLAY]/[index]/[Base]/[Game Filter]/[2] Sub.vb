@@ -121,7 +121,9 @@ Public Class Base_Game_Filter_Sub
         Base_Game_Filter.TopMost = True
     End Sub
 
-    Private Sub BG_MouseHover(sender As Object, e As EventArgs) Handles BG.MouseHover
+    ' OWNER UX rule: instant response — MouseHover has a built-in ~400 ms delay,
+    ' so TopMost re-assertion now happens on MouseEnter (fires immediately).
+    Private Sub BG_MouseEnter(sender As Object, e As EventArgs) Handles BG.MouseEnter
         Base_Game_Filter.TopMost = True
     End Sub
 

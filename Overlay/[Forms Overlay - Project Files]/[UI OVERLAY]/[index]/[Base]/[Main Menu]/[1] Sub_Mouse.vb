@@ -149,17 +149,15 @@ Partial Public Class Base
         SetReplayControlBorder(True)
     End Sub
 
+    ' OWNER UX rule: menu toggling is CLICK-ONLY.
+    ' The old MouseHover handlers toggled the menu after WinForms' built-in
+    ' ~400 ms hover delay — hover would open it, then the click flipped it
+    ' back, so a normal press randomly looked like a no-op depending on
+    ' hand speed. Hover highlight lives in MouseMove/MouseLeave below.
+
     Private Sub ReplayMenu_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
         ToggleReplayMenu()
     End Sub
-
-    Private Sub ReplayMenu_MouseHover(sender As Object, e As EventArgs) Handles Replay_Logo.MouseHover, Replay_Text.MouseHover, Replay_Stats.MouseHover
-        If Base_Background_Top.b2_all.Visible = True Then
-            ToggleReplayMenu()
-        End If
-    End Sub
-
-
 
 #End Region
 
@@ -198,11 +196,7 @@ Partial Public Class Base
         ToggleRecordMenu()
     End Sub
 
-    Private Sub RecordMenu_MouseHover(sender As Object, e As EventArgs) Handles Record_Logo.MouseHover, Record_Text.MouseHover, Record_Stats.MouseHover
-        If Base_Background_Top.b1_all.Visible = True Then
-            ToggleRecordMenu()
-        End If
-    End Sub
+    ' (RecordMenu_MouseHover removed — see OWNER UX rule at ReplayMenu_Click.)
 
 #End Region
 

@@ -1296,6 +1296,14 @@ Public Class Base_RecordingsSet
         ActiveMyPresetLevel = ""
         AppSettings.Instance.Recording.Preset = "Custom"
         AppSettings.Instance.Save()
+        ' OWNER UX rule: paint the Custom highlight NOW. Every other preset
+        ' click repaints colors immediately (UpdateControlsFromPreset /
+        ' ApplyMyXxxPreset -> UpdatePresetColors), but Custom relied on the
+        ' 200ms Quality poll — its active color showed up to 200ms late.
+        ResetAllPresetColors()
+        If C_BG IsNot Nothing Then C_BG.BackColor = COLOR_ACTIVE
+        If C_ICO IsNot Nothing Then C_ICO.BackColor = COLOR_ACTIVE
+        If C_TEXT IsNot Nothing Then C_TEXT.BackColor = COLOR_ACTIVE
         EnableCustomControls(True)
         UpdateBitrateLimits()
     End Sub
