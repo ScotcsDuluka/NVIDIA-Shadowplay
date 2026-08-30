@@ -133,7 +133,7 @@ Partial Class Base_Background_Top
         ' ANIME
         ' 
         ANIME.Enabled = True
-        ANIME.Interval = 16
+        ANIME.Interval = 50
         ' 
         ' Main_menu_list
         ' 

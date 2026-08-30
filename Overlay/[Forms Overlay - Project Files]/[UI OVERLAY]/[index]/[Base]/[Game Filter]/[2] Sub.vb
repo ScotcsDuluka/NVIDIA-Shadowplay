@@ -32,7 +32,8 @@ Public Class Base_Game_Filter_Sub
     Private currentControl As Control
 
     Private WithEvents AnimationTimer As New Timer With {.Interval = 15}
-    Private WithEvents ANIME As New Timer With {.Interval = 15}
+    ' ★ poll only detects show/hide + reset; the slide itself runs on AnimationTimer (15ms)
+    Private WithEvents ANIME As New Timer With {.Interval = 50}
 
     Private Sub StartSlideX(ctrl As Control, fromX As Integer, toX As Integer, duration As Double)
 

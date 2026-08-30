@@ -37,9 +37,16 @@ Public Class LangHelper
         Dim text As String = template
         For i = 0 To args.Length - 1
             text = text.Replace("{{arg" & (i + 1) & "}}", args(i))
-            text = text.Replace("{{minutesToSave}}", args(i))
-
         Next
+
+        ' ★ FIX: {{minutesToSave}} used to be replaced inside the loop, so with
+        ' multiple args it always ended up holding the LAST argument instead of
+        ' the minutes value. It maps to the first argument — replace once here.
+        ' Current caller: "l10n.saveLastNMins" passes minutes as args(0).
+        If args.Length > 0 Then
+            text = text.Replace("{{minutesToSave}}", args(0))
+        End If
+
         Return text
     End Function
 End Class
