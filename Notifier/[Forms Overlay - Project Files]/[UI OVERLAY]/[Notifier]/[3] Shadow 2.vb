@@ -56,11 +56,7 @@ Public Class Shadow2
     End Sub
 
     Private Sub Timer1_Tick(sender As Object, e As EventArgs) Handles Timer1.Tick
-        ' T27.2: HideFromAltTab() ran here at 62.5Hz (2 P/Invokes per tick,
-        ' per Shadow, forever) BEFORE the disposed check — and Me.Handle on a
-        ' constructed-but-hidden form force-creates a window handle. It is
-        ' already applied once in Shadow_Load and re-applied by the 2s
-        ' HideShadow poll; this tick only syncs position.
+        HideFromAltTab()
         Try
             If Me.IsDisposed OrElse Notifier2.IsDisposed Then
                 Timer1.Stop()
