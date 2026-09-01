@@ -63,11 +63,16 @@ Write-Host "FFmpeg: $FFmpeg"
 $driverProj = Join-Path $repoRoot "CaptureEngine.Recording.ConsoleDriver\CaptureEngine.Recording.ConsoleDriver.vbproj"
 dotnet build $driverProj -c $Config -v q --nologo
 if ($LASTEXITCODE -ne 0) { Write-Error "driver build FAILED"; exit 2 }
-$driverExe = Join-Path $repoRoot "CaptureEngine.Recording.ConsoleDriver\bin\$Config\net10.0-windows\CaptureEngine.Recording.ConsoleDriver.exe"
-if (-not (Test-Path $driverExe)) {
-    $driverDll = Join-Path $repoRoot "CaptureEngine.Recording.ConsoleDriver\bin\$Config\net10.0-windows\CaptureEngine.Recording.ConsoleDriver.dll"
-    if (Test-Path $driverDll) { $driverExe = "dotnet"; $driverArg = $driverDll } else { Write-Error "driver output not found"; exit 2 }
-} else { $driverArg = $driverExe }
+$driverBin = Join-Path $repoRoot "CaptureEngine.Recording.ConsoleDriver\bin\$Config\net10.0-windows\CaptureEngine.Recording.ConsoleDriver.dll"
+if (-not (Test-Path $driverBin)) { Write-Error "driver output not found: $driverBin"; exit 2 }
+
+# ── ffprobe (sibling of ffmpeg.exe, or PATH) ────────────────────────────────
+$ffprobe = $null
+$ffDir = Split-Path -Parent $FFmpeg
+if ($ffDir -and (Test-Path (Join-Path $ffDir "ffprobe.exe"))) { $ffprobe = Join-Path $ffDir "ffprobe.exe" }
+else { $cmd = Get-Command ffprobe -ErrorAction SilentlyContinue; if ($cmd) { $ffprobe = $cmd.Source } }
+if (-not $ffprobe) { Write-Error "ffprobe.exe not found next to ffmpeg or on PATH"; exit 2 }
+Write-Host "ffprobe: $ffprobe"
 
 # ── primary screen dims (for S2 native assert) ──────────────────────────────
 Add-Type -AssemblyName System.Windows.Forms
@@ -110,16 +115,31 @@ function Invoke-Scenario {
     $mp4 = Join-Path $OutDir "$Name.mp4"
     $log = Join-Path $OutDir "$Name.log"
     if (Test-Path $mp4) { Remove-Item $mp4 -Force }
+    # ISOLATED APP ROOT: NVIDIA_SHADOWPLAY_APP_ROOT pins AppLayout.Dir
+    # (AppLayout.vb:78 env override) to a barren dir under TEMP — no
+    # config.json anywhere, and nothing to walk up to — so
+    # OverlayConfig.IsAvailable = False and CaptureSettings.Load takes the
+    # LEGACY tier from THIS scenario's video.json/engine.json. The user's
+    # real config.json can never leak into a scenario, and the scenario
+    # can never write to the user's config.
+    $appRoot = Join-Path $env:TEMP "phase1-video-$Name"
+    New-Item -ItemType Directory -Force -Path (Join-Path $appRoot "Config") | Out-Null
+    $prevRoot = $env:NVIDIA_SHADOWPLAY_APP_ROOT
+    $env:NVIDIA_SHADOWPLAY_APP_ROOT = $appRoot
     Write-Host ""
     Write-Host "=== $Name ==="
-    & $driverArg $driverExe --videocheck --config $CfgDir --out $mp4 --seconds $Seconds --ffmpeg $FFmpeg @ExtraArgs 2>&1 | Tee-Object -FilePath $log
+    # NOTE: --config receives the engine.json FILE path (CaptureSettings.Load
+    # derives the config directory from its parent).
+    & dotnet $driverBin --videocheck --config (Join-Path $CfgDir "engine.json") --out $mp4 --seconds $Seconds --ffmpeg $FFmpeg @ExtraArgs 2>&1 | Tee-Object -FilePath $log
+    if ($null -ne $prevRoot) { $env:NVIDIA_SHADOWPLAY_APP_ROOT = $prevRoot }
+    else { Remove-Item Env:\NVIDIA_SHADOWPLAY_APP_ROOT -ErrorAction SilentlyContinue }
     return @{ Mp4 = $mp4; Log = $log; Exit = $LASTEXITCODE }
 }
 
 function Invoke-FFProbe {
     param([string]$Mp4)
     if (-not (Test-Path $Mp4)) { return $null }
-    $json = & $FFmpeg.Replace("ffmpeg.exe", "ffprobe.exe") -v error -select_streams v:0 `
+    $json = & $ffprobe -v error -select_streams v:0 `
         -show_entries stream=codec_name,width,height,avg_frame_rate,bit_rate `
         -of json $Mp4 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $json) { return $null }
