@@ -115,6 +115,25 @@ Namespace CaptureEngine.Recording
                 }
                 _encoder.Initialize(encConfig)
                 _startupEcho = startup
+
+                ' ★ PHASE 1 (task §9): requested → selected → actual capture
+                ' method. The New Engine has exactly ONE production backend;
+                ' anything else requested is a recorded GAP, never a silent
+                ' substitute and never a fake selector.
+                Dim requestedMethod As String = If(startup.RequestedCaptureMethod, "").Trim()
+                If requestedMethod.Length = 0 OrElse String.Equals(requestedMethod, "ddagrab", StringComparison.OrdinalIgnoreCase) Then
+                    _logger.Info($"[RecordingEngine] capture method: requested='{If(requestedMethod.Length = 0, "(default)", requestedMethod)}' → selected=DdagrabBackend → actual=DdagrabBackend (DXGI Desktop Duplication)")
+                Else
+                    _logger.Warning($"[RecordingEngine] capture method: requested='{requestedMethod}' → GAP: '{requestedMethod}' is not implemented in the New Engine (only production backend = ddagrab) — running DdagrabBackend. Gap recorded, NOT silently accepted.")
+                End If
+
+                ' ★ PHASE 1 (task §8): pixel format truth line. The pipeline is
+                ' BGRA (D3D11) → NVENC ARGB. A config nv12 would need a GPU
+                ' conversion layer between capture and NVENC — NOT implemented
+                ' (BLOCKER P1-PIXFMT); the config value is reported honestly,
+                ' no fake pass.
+                _logger.Info($"[RecordingEngine] pixel format: config='{If(String.IsNullOrEmpty(startup.RequestedPixelFormat), "(default nv12)", startup.RequestedPixelFormat)}' → runtime=BGRA8 (D3D11 capture) → NVENC input=ARGB — nv12 conversion NOT implemented (BLOCKER P1-PIXFMT); recording continues BGRA/ARGB")
+
                 Dim fpsEcho As String = If(startup.Fps > 0, startup.Fps.ToString(), "unset (60 default)")
                 _logger.Info($"RecordingEngine: NvencEncoderBackend initialized ({encConfig.CodecKey}, {encConfig.BitrateBps} bps, GOP {encConfig.GopSize}, preset {encConfig.Preset})")
                 _logger.Info($"[RecordingEngine] effective video config (startup): codec={encConfig.CodecKey}, fps={fpsEcho}, bitrate={encConfig.BitrateBps} bps, rc={encConfig.RateControl}, preset={encConfig.Preset}, gop={encConfig.GopSize} (GOP independent of FPS — PHASE 1)")

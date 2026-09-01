@@ -150,6 +150,22 @@ Namespace CaptureEngine.Recording
         Public Property RequestedHeight As Integer = 0
 
         ''' <summary>
+        ''' CaptureMethod requested by config (engine.json CaptureMethod,
+        ''' mirrored from config.json Recording.api_capture by the unified
+        ''' apply). Evidence only — the New Engine has exactly one
+        ''' production backend (DdagrabBackend); requested→selected→actual
+        ''' is logged at init.
+        ''' </summary>
+        Public Property RequestedCaptureMethod As String = ""
+
+        ''' <summary>
+        ''' PixelFormat requested by config (engine.json PixelFormat).
+        ''' Evidence only — the runtime pipeline is BGRA/ARGB end-to-end;
+        ''' nv12 conversion is NOT implemented (BLOCKER, logged loudly).
+        ''' </summary>
+        Public Property RequestedPixelFormat As String = ""
+
+        ''' <summary>
         ''' V-CT2: resolve the ENCODE dimensions from the request and the actual
         ''' capture size. Pure function — deterministic and testable.
         '''

@@ -171,6 +171,12 @@ Public NotInheritable Class NextRecordingConfig
                 startup.RequestedWidth = settings.CustomWidth
                 startup.RequestedHeight = settings.CustomHeight
             End If
+
+            ' Capture method + pixel format: evidence plumbing (task §8/§9 —
+            ' requested→selected→actual must be traceable, never silently
+            ' substituted).
+            startup.RequestedCaptureMethod = If(settings.CaptureMethod, "")
+            startup.RequestedPixelFormat = If(settings.PixelFormat, "")
         End If
         Return startup
     End Function

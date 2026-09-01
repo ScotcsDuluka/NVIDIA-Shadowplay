@@ -68,12 +68,12 @@ change (wire / unify / move). "Source" = file that owns the key today.
 | `encoder` | config.json | ✅ New Engine | B (init) | config.json | ✅ Keep | `AppSettings.vb:361` → `OverlayConfig.vb:435` → `CaptureSettings.vb:26` → `RecordingEngineHost.vb:60-106` → `RecordingEngine.vb:80` |
 | `encoder_now` | config.json | ❓ UI/runtime state | — | config.json | ⚠️ ตรวจว่าเป็น state หรือ config | write: `AppSettings.vb:363,783` · read: `:818` — transition mirror, confirm nothing runtime depends on it |
 | `active_preset` | config.json | ⚠️ duplicate of `my_presets`+`current` selection | — | config.json | 🟡 Keep as product preset | `AppSettings.vb:365,784,819`; audit: dead in engine path |
-| `current.fps` | config.json | ❌ New Engine uses display refresh | C | config.json | 🔴 ต้อง wire | persisted `AppSettings.vb:336`; runtime ignores: `RecordingEngine.vb:71` + `CaptureSession.vb:541-543` (`targetFps = _capture.OutputRefreshRate`) |
-| `current.bitrate` | config.json | ⚠️ runtime mapping exists but NVENC never re-reads it | B | config.json | 🔴 ต้อง wire | persisted `AppSettings.vb:337`; consumed only at init: `CaptureSettings.vb:28` → `RecordingEngine.vb:81` |
-| `current.encoder_preset` | config.json | ⚠️ duplicated by engine.json `Preset` | B | config.json | 🔴 Unify | persisted `AppSettings.vb:338`; engine.json twin `CaptureSettings.vb:60` → `RecordingEngine.vb:87` |
-| `current.use_native_resolution` | config.json | ❌ New Engine doesn't consume | C | config.json | 🔴 ต้อง wire | persisted `AppSettings.vb:339`; backend auto-sizes: `RecordingEngine.vb:71,92` |
-| `current.width` | config.json | ❌ ignored when native | C | config.json | 🟡 ใช้เมื่อ custom | persisted `AppSettings.vb:340` |
-| `current.height` | config.json | ❌ ignored when native | C | config.json | 🟡 ใช้เมื่อ custom | persisted `AppSettings.vb:341` |
+| `current.fps` | config.json | ✅ WIRED (PHASE 1) — pacing + mux + NVENC frameRateNum | A→B | config.json | ✅ Wired @ PHASE 1 | `NextRecordingConfig.MapSessionConfig` (TargetFps) + `MapStartupConfig` (Fps); pacing `CaptureSession.vb` CFR loop; NVENC `NvEncParamBuilder.BuildInitializeParams`; tests V-CT1/1b/1c; pre-wiring bug: `CaptureSession.vb:489/:541` used display refresh |
+| `current.bitrate` | config.json | ✅ WIRED (PHASE 1) — into NV_ENC_CONFIG.rcParams.averageBitRate | A→B | config.json | ✅ Wired @ PHASE 1 | loader kbps→bps `CaptureSettings.vb:230` → `MapStartupConfig` → `EncoderConfig.BitrateBps` → `NvEncParamBuilder.ApplyVideoSettings` (native struct); tests V-CT3/3b/5d; pre-wiring: encodeConfig=IntPtr.Zero |
+| `current.encoder_preset` | config.json | ✅ WIRED (PHASE 1) — single mapper → p1-p7 GUID | A→B | config.json | ✅ Unified @ PHASE 1 | unified apply `OverlayConfig.ApplyUnifiedToCaptureSettings` (encoder_preset → NvencPreset, was DEAD) → `MapStartupConfig` via `ConfigMigrator.MapNvencPresetInteger` (single mapper) → `NvEncodeAPI.PresetGuidForKey`; tests V-CT4/4b/5f; engine.json `Preset` = compat fallback only |
+| `current.use_native_resolution` | config.json | ✅ WIRED (PHASE 1) — native/custom branch | A→B | config.json | ✅ Wired @ PHASE 1 | `MapStartupConfig` → `EngineStartupConfig.ResolveEncodeDimensions` → `EncoderConfig.EncodeWidth/Height` → NVENC encodeWidth/Height (GPU scale, maxEncode=input); tests V-CT2/2b/2c |
+| `current.width` | config.json | ✅ WIRED (PHASE 1) when native=false | A→B | config.json | ✅ Wired @ PHASE 1 | same path as use_native_resolution; oversized → loud ArgumentException (no silent desktop fallback) |
+| `current.height` | config.json | ✅ WIRED (PHASE 1) when native=false | A→B | config.json | ✅ Wired @ PHASE 1 | same path as use_native_resolution |
 | `replay_duration` | config.json | ❌ Replay not implemented | — | config.json | 🟡 Reserved | persisted `AppSettings.vb:368` |
 | `my_presets.*` | config.json | ✅ UI preset data | — | config.json | ✅ Keep | `AppSettings.vb:351-357,369,794-847` |
 
@@ -81,16 +81,16 @@ change (wire / unify / move). "Source" = file that owns the key today.
 
 | Field | Current Source | Current Runtime Use | Regime | Proposed Owner | Status | Evidence |
 |---|---|---|---|---|---|---|
-| `CaptureMethod` | engine.json | ❌ New path hardwired / backend-selected | C | config.json | 🔴 Move/Map | engine.json model `CaptureSettings.vb:58` (`ddagrab`), parsed `:283`-family; runtime always `DdagrabBackend` `RecordingEngine.vb:71` |
-| `PixelFormat` | engine.json | ❌ New NV12 ignored / BGRA fixed | C | config.json | 🔴 Move/Map | engine.json `CaptureSettings.vb:59`; V1-only (snapshot REG S1.4, ConfigTests) |
-| `FPS` | split | ❌ display-driven | C | config.json | 🔴 Single owner | config.json `AppSettings.vb:336` vs runtime `CaptureSession.vb:541-543` |
+| `CaptureMethod` | engine.json | ⚠️ requested→selected→actual logged (PHASE 1); only production backend = ddagrab | C | config.json | 🟡 Echo + gap recorded | unified apply maps `Recording.api_capture` → `CaptureMethod` (`OverlayConfig.vb:458-460`) → `MapStartupConfig.RequestedCaptureMethod` → evidence log `RecordingEngine.vb` (gfxcapture = recorded GAP, not silently accepted) |
+| `PixelFormat` | engine.json | ❌ config nv12 NOT honored — runtime BGRA/ARGB (BLOCKER P1-PIXFMT, logged) | C | config.json | 🔴 BLOCKER recorded | engine.json `CaptureSettings.vb:59`; runtime chain BGRA8 (D3D11 capture) → NVENC `NV_ENC_BUFFER_FORMAT_ARGB` (`NvencResources.vb:107`); conversion layer (capture→NVENC input) not implemented in PHASE 1 — truth line logged, no fake pass |
+| `FPS` | split | ✅ config.json is the single FPS owner (PHASE 1) | A→B | config.json | ✅ Wired @ PHASE 1 | config.json `AppSettings.vb:336` → unified apply → `MapSessionConfig.TargetFps` + `MapStartupConfig.Fps`; display refresh demoted to diagnostics; FPS→GOP mapping REMOVED (`RecordingEngineHost.vb:96-98` pre-wiring bug) |
 
 ### Encoder
 
 | Field | Current Source | Current Runtime Use | Regime | Proposed Owner | Status | Evidence |
 |---|---|---|---|---|---|---|
-| `Preset` | engine.json | ⚠️ `p4` (init-time) | B | config.json | 🔴 Duplicate | `CaptureSettings.vb:60` default `p4` → `RecordingEngine.vb:87`; V2 twin `ConfigMigrator.vb` preset mapping |
-| `RateControl` | engine.json | ✅ init-time | B | config.json | 🟡 Move later | `CaptureSettings.vb:61` → `RecordingEngine.vb:86`; **still read by New Engine — do NOT delete engine.json key yet** |
+| `Preset` | engine.json | ⚠️ compat fallback only (PHASE 1) — config `encoder_preset` wins via the single mapper | B | config.json | 🟡 Fallback (delete later per §6.6) | `CaptureSettings.vb:60` → `MapStartupConfig` fallback branch; config owner wired @ PHASE 1 (V-CT4) |
+| `RateControl` | engine.json | ✅ WIRED (PHASE 1) — mode into NV_ENC_CONFIG.rcParams.rateControlMode | B | config.json | 🟡 Move later | `CaptureSettings.vb:61` → `RecordingEngine.vb` → `NvEncParamBuilder.ApplyVideoSettings`; **still read from engine.json — do NOT delete engine.json key yet** |
 
 ### Output
 
