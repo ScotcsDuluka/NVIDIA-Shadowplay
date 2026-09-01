@@ -76,6 +76,11 @@ Public NotInheritable Class NextRecordingConfig
     ''' every Nothing-settings fallback are preserved exactly; only the
     ''' host hook became a parameter so the mapping is testable without a
     ''' WinForms form.
+    '''
+    ''' PHASE 1 VIDEO RUNTIME WIRING (V-CT1): TargetFps maps the canonical
+    ''' config.json Recording.current.fps (CaptureSettings.FPS after the
+    ''' unified apply). Display refresh rate is NEVER consulted here —
+    ''' the capture backend's refresh rate is diagnostics-only.
     ''' </summary>
     Public Shared Function MapSessionConfig(settings As CaptureSettings,
                                             outputPath As String,
@@ -85,6 +90,7 @@ Public NotInheritable Class NextRecordingConfig
             .OutputPath = outputPath,
             .DurationSeconds = 3600,          ' no fixed duration — stop via command
             .FFmpegPath = ffmpegPath,
+            .TargetFps = If(settings IsNot Nothing AndAlso settings.FPS > 0, settings.FPS, 0),
             .AudioEnabled = (settings Is Nothing) OrElse settings.SystemAudioCapture,
             .SystemVolume = If(settings IsNot Nothing, settings.SystemAudioVolume, 1.0F),
             .MicEnabled = (settings IsNot Nothing) AndAlso settings.MicCapture,
@@ -96,6 +102,50 @@ Public NotInheritable Class NextRecordingConfig
             .AudioClockMode = If(settings IsNot Nothing, settings.AudioClockMode, "Legacy"),
             .OnProcessStarted = onProcessStarted
         }
+    End Function
+
+    ''' <summary>
+    ''' PHASE 1 VIDEO RUNTIME WIRING: the EngineStartupConfig the engine
+    ''' initializes its persistent encoder with, mapped from the effective
+    ''' (fresh-reload) CaptureSettings. Extracted from the inline mapping in
+    ''' InitializeRecordingEngine (RecordingEngineHost.vb:78-105) so the
+    ''' startup mapping is testable on Linux (same pattern as CT-4).
+    '''
+    ''' OWNERSHIP (docs/CONFIG_OWNERSHIP_MATRIX.md):
+    '''   CodecKey     ← config.json Recording.encoder (normalized both ways)
+    '''   BitrateBps   ← config.json Recording.current.bitrate (kbps→bps in loader)
+    '''   Fps          ← config.json Recording.current.fps
+    '''   RateControl  ← engine.json RateControl (owner unchanged — do NOT delete)
+    '''   Preset       ← engine.json Preset (owner unchanged this phase)
+    '''   GopSize      ← engine default (60) — NEVER derived from FPS. The
+    '''                  pre-wiring host mapped settingsSnapshot.FPS → GOP
+    '''                  (RecordingEngineHost.vb:96-98); that accidental
+    '''                  coupling is removed by this mapping.
+    ''' </summary>
+    Public Shared Function MapStartupConfig(settings As CaptureSettings) As EngineStartupConfig
+        Dim startup As New EngineStartupConfig()
+        If settings IsNot Nothing Then
+            If Not String.IsNullOrEmpty(settings.Encoder) Then
+                ' Fallback-fix (verbatim from the pre-extraction host code):
+                ' CaptureSettings.Encoder may hold an FFmpeg name
+                ' ('h264_nvenc') — the encoder contract wants the internal
+                ' key ('NVENC_H264'). Normalize BOTH directions.
+                startup.CodecKey = OverlayConfig.MapEncoderToInternal(settings.Encoder)
+            End If
+            If settings.Bitrate > 0 Then
+                startup.BitrateBps = settings.Bitrate
+            End If
+            If settings.FPS > 0 Then
+                startup.Fps = settings.FPS          ' V-CT1: FPS lives here — NOT in GopSize
+            End If
+            If Not String.IsNullOrEmpty(settings.RateControl) Then
+                startup.RateControl = settings.RateControl
+            End If
+            If Not String.IsNullOrEmpty(settings.Preset) Then
+                startup.Preset = settings.Preset
+            End If
+        End If
+        Return startup
     End Function
 
 End Class

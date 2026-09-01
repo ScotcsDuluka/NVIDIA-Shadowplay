@@ -486,8 +486,18 @@ Namespace CaptureEngine.Recording
                 ' ─── 2b. ★ OBS-style LIVE MUX: one FFmpeg, both streams, wall clock ──
                 ' OWNER directive: record video+audio together, both follow the
                 ' clock, both end together (replaces temp-H.264 + WAV + wrap + mux).
-                Dim refreshRate As Integer = _capture.OutputRefreshRate
-                If refreshRate <= 0 Then refreshRate = 60
+                '
+                ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT1): the declared mux rate
+                ' and the CFR pacing rate are the CONFIG FPS — the same value,
+                ' from config.json Recording.current.fps (SessionConfig.TargetFps).
+                ' BEFORE (HEAD ab89372): both read _capture.OutputRefreshRate
+                ' (display refresh) — config FPS never reached the runtime.
+                Dim targetFps As Integer = _config.TargetFps
+                If targetFps <= 0 Then
+                    targetFps = 60
+                    _logger.Warning("[session] TargetFps missing/invalid in effective config — fallback 60fps (config FPS is the only valid source; display refresh is NEVER used)")
+                End If
+                _logger.Info($"[session] video: fps source = config.json Recording.current.fps = {targetFps} (display refresh {_capture.OutputRefreshRate}Hz is diagnostics-only)")
 
                 Dim micRate As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.SampleRate, 0)
                 Dim micCh As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.Channels, 0)
@@ -501,7 +511,7 @@ Namespace CaptureEngine.Recording
                 _liveMux = New LiveMuxSession(
                     _config.FFmpegPath,
                     _config.OutputPath,
-                    refreshRate,
+                    targetFps,
                     sysRate, sysCh,
                     micRate, micCh,
                     _config.MicSeparateTracks,
@@ -538,8 +548,11 @@ Namespace CaptureEngine.Recording
                 ' repeat frames like normal video. Re-encoding is safe: the
                 ' encoder CopyResources the frame texture into its own texture
                 ' on every Encode call.
-                Dim targetFps As Integer = _capture.OutputRefreshRate
-                If targetFps <= 0 Then targetFps = 60
+                ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT1): targetFps comes from
+                ' the effective config (mapped above) — NOT from the display.
+                ' The pre-wiring line was:
+                '     Dim targetFps As Integer = _capture.OutputRefreshRate
+                '     If targetFps <= 0 Then targetFps = 60
                 Dim tickIntervalTicks As Long = CLng(Stopwatch.Frequency / targetFps)
                 Dim nextTick As Long = 0                     ' 0 = t0 not established yet
                 Dim pendingFrame As IVideoFrame = Nothing     ' freshest captured, not yet displayed
@@ -808,7 +821,9 @@ Namespace CaptureEngine.Recording
                 ' → finalize fragmented MP4 → +faststart remux). The declared CFR
                 ' rate and the wall-clock audio feed already define the timeline;
                 ' no wrap step, no post-hoc offsets.
-                result.WrapFps = refreshRate
+                ' WrapFps evidence = the CONFIG fps the session actually ran at
+                ' (pacing + mux declared rate), no longer the display rate.
+                result.WrapFps = targetFps
                 Dim liveRes As LiveMuxResult = _liveMux.[Stop](30000)
                 _logger.Info("[session] " & liveRes.ToString())
 

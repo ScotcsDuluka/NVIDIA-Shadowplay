@@ -35,6 +35,16 @@ Namespace CaptureEngine.Recording
         ' FFmpeg path (from EngineConfigV2.Runtime.FFmpegPath or CLI override)
         Public Property FFmpegPath As String = ""
 
+        ' ── PHASE 1 VIDEO RUNTIME WIRING (V-CT1): per-session video values ──
+        ''' <summary>
+        ''' Target CFR rate for the session (config.json Recording.current.fps).
+        ''' The ONLY FPS source for pacing + live-mux declared rate. Display
+        ''' refresh rate is NEVER used as FPS (HEAD ab89372 bug:
+        ''' CaptureSession.vb:489/:541 read _capture.OutputRefreshRate).
+        ''' 0 = unset → CaptureSession falls back to 60 with a loud warning.
+        ''' </summary>
+        Public Property TargetFps As Integer = 0
+
         ' ── Phase 12b: audio per-session options ──
         ''' <summary>Record system-audio loopback into the WAV sidecar.</summary>
         Public Property AudioEnabled As Boolean = True
@@ -103,6 +113,16 @@ Namespace CaptureEngine.Recording
         Public Property GopSize As Integer = 60
         Public Property RateControl As String = "cbr"
         Public Property Preset As String = "p4"
+
+        ' ── PHASE 1 VIDEO RUNTIME WIRING ──
+        ''' <summary>
+        ''' FPS from config.json Recording.current.fps at engine init. Drives
+        ''' NVENC frameRateNum (init-time, commit 3) and init-time evidence.
+        ''' NEVER mapped into GopSize — FPS and GOP are independent settings
+        ''' (HEAD ab89372 bug: RecordingEngineHost.vb:96-98 mapped FPS→GOP).
+        ''' 0 = unset → encoder uses its default frame rate.
+        ''' </summary>
+        Public Property Fps As Integer = 0
     End Class
 
     ''' <summary>

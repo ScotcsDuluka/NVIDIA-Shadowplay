@@ -75,33 +75,22 @@ Partial Public Class UI_Engine
 
                          ' Startup config from Overlay settings (persistent
                          ' encoder session — codec/bitrate/GOP are one-shot).
-                         Dim startup As New EngineStartupConfig()
-                         If settingsSnapshot IsNot Nothing Then
-                             If Not String.IsNullOrEmpty(settingsSnapshot.Encoder) Then
-                                 ' Fallback-fix: CaptureSettings.Encoder may hold a
-                                 ' FFMPEG name ('h264_nvenc') — the encoder contract
-                                 ' wants the internal key ('NVENC_H264'). Normalize
-                                 ' BOTH directions (owner log 20:01:46 showed the
-                                 ' engine silently falling back to legacy for a
-                                 ' whole day because of exactly this).
-                                 Dim internalKey As String = OverlayConfig.MapEncoderToInternal(settingsSnapshot.Encoder)
-                                 If Not String.Equals(internalKey, settingsSnapshot.Encoder, StringComparison.OrdinalIgnoreCase) Then
-                                     DebugLog($"[RecordingEngine] encoder name normalized: '{settingsSnapshot.Encoder}' → '{internalKey}'")
-                                 End If
-                                 startup.CodecKey = internalKey
-                             End If
-                             If settingsSnapshot.Bitrate > 0 Then
-                                 startup.BitrateBps = settingsSnapshot.Bitrate
-                             End If
-                             If settingsSnapshot.FPS > 0 Then
-                                 startup.GopSize = settingsSnapshot.FPS
-                             End If
-                             If Not String.IsNullOrEmpty(settingsSnapshot.RateControl) Then
-                                 startup.RateControl = settingsSnapshot.RateControl
-                             End If
-                             If Not String.IsNullOrEmpty(settingsSnapshot.Preset) Then
-                                 startup.Preset = settingsSnapshot.Preset
-                             End If
+                         ' PHASE 1 VIDEO RUNTIME WIRING: the mapping moved
+                         ' VERBATIM to NextRecordingConfig.MapStartupConfig so
+                         ' Engine.ConfigTruth.Tests executes the SAME
+                         ' composition on Linux (CT-4 / V-CT pattern).
+                         ' ★ V-CT1 REGRESSION FIX: the pre-wiring mapping set
+                         ' startup.GopSize = settingsSnapshot.FPS here
+                         ' (RecordingEngineHost.vb:96-98) — an accidental
+                         ' FPS→GOP coupling. MapStartupConfig keeps GOP at
+                         ' the engine default and maps FPS independently.
+                         Dim startup As EngineStartupConfig =
+                             NextRecordingConfig.MapStartupConfig(settingsSnapshot)
+
+                         If settingsSnapshot IsNot Nothing AndAlso
+                            Not String.Equals(OverlayConfig.MapEncoderToInternal(settingsSnapshot.Encoder),
+                                              settingsSnapshot.Encoder, StringComparison.OrdinalIgnoreCase) Then
+                             DebugLog($"[RecordingEngine] encoder name normalized: '{settingsSnapshot.Encoder}' → '{startup.CodecKey}'")
                          End If
 
                          engine.Initialize(startup)

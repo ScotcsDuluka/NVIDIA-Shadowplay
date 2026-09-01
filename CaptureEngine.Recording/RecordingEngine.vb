@@ -89,7 +89,9 @@ Namespace CaptureEngine.Recording
                     .ExpectedHeight = _capture.OutputHeight
                 }
                 _encoder.Initialize(encConfig)
+                Dim fpsEcho As String = If(startup.Fps > 0, startup.Fps.ToString(), "unset (60 default)")
                 _logger.Info($"RecordingEngine: NvencEncoderBackend initialized ({encConfig.CodecKey}, {encConfig.BitrateBps} bps, GOP {encConfig.GopSize}, preset {encConfig.Preset})")
+                _logger.Info($"[RecordingEngine] effective video config (startup): codec={encConfig.CodecKey}, fps={fpsEcho}, bitrate={encConfig.BitrateBps} bps, rc={encConfig.RateControl}, preset={encConfig.Preset}, gop={encConfig.GopSize} (GOP independent of FPS — PHASE 1)")
 
                 _state = RecordingEngineState.Idle
                 _logger.Info("RecordingEngine: ready (Idle)")
