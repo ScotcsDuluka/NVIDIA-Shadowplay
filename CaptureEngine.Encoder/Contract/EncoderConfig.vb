@@ -98,6 +98,18 @@ Namespace CaptureEngine.Encoder
         Public Property ExpectedInputFormat As CaptureEngine.Video.VideoPixelFormat =
             CaptureEngine.Video.VideoPixelFormat.Bgra8
 
+        ' ── PHASE 1 VIDEO RUNTIME WIRING (V-CT2) ──
+        ''' <summary>
+        ''' Encode width (output resolution). 0 = same as ExpectedWidth.
+        ''' When smaller than the input, a GPU scaler (NVENC native scaling)
+        ''' downsizes the frame. Never larger than the input — NVENC cannot
+        ''' upscale, and a silent desktop-resolution fallback is forbidden.
+        ''' </summary>
+        Public Property EncodeWidth As Integer = 0
+
+        ''' <summary>Encode height (output resolution). 0 = same as ExpectedHeight.</summary>
+        Public Property EncodeHeight As Integer = 0
+
         ' ---- threading / latency ----
 
         ''' <summary>Maximum in-flight Encode() calls before backpressure is applied.</summary>

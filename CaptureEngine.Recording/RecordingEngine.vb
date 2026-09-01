@@ -33,6 +33,11 @@ Namespace CaptureEngine.Recording
         Private _state As RecordingEngineState = RecordingEngineState.Created
         Private _disposed As Boolean = False
 
+        ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT2): the effective startup values
+        ' this engine was initialized with — the immutable per-session echo
+        ' source for requested-vs-actual evidence.
+        Private _startupEcho As EngineStartupConfig
+
         ' ─── Current session ─────────────────────────────────────────────
         Private _currentSession As CaptureSession
 
@@ -76,6 +81,23 @@ Namespace CaptureEngine.Recording
                 ' ─── Initialize NvencEncoderBackend (creates D3D11 + NVENC session) ─
                 _encoder = New NvencEncoderBackend(_logger)
                 Dim gop As Integer = If(startup.GopSize > 0, startup.GopSize, 60)
+
+                ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT2): resolution group.
+                ' The capture backend grabs the DESKTOP at its native size;
+                ' the encode size follows config.json:
+                '   use_native_resolution=true            → desktop size
+                '   use_native_resolution=false + w/h     → NVENC scales (GPU)
+                ' Oversized requests fail LOUDLY (no silent desktop fallback).
+                Dim encodeDims As Tuple(Of Integer, Integer) =
+                    EngineStartupConfig.ResolveEncodeDimensions(
+                        _capture.OutputWidth, _capture.OutputHeight,
+                        startup.UseNativeResolution, startup.RequestedWidth, startup.RequestedHeight)
+                If encodeDims.Item1 <> _capture.OutputWidth OrElse encodeDims.Item2 <> _capture.OutputHeight Then
+                    _logger.Info($"[RecordingEngine] resolution: requested {startup.RequestedWidth}x{startup.RequestedHeight} (use_native_resolution=False) → NVENC encode {encodeDims.Item1}x{encodeDims.Item2} from capture {_capture.OutputWidth}x{_capture.OutputHeight}")
+                Else
+                    _logger.Info($"[RecordingEngine] resolution: native (use_native_resolution=True or unset) → encode {_capture.OutputWidth}x{_capture.OutputHeight}")
+                End If
+
                 Dim encConfig As New EncoderConfig() With {
                     .CodecKey = If(String.IsNullOrEmpty(startup.CodecKey), "NVENC_H264", startup.CodecKey),
                     .BitrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
@@ -86,9 +108,12 @@ Namespace CaptureEngine.Recording
                     .RateControl = If(String.IsNullOrEmpty(startup.RateControl), "cbr", startup.RateControl),
                     .Preset = If(String.IsNullOrEmpty(startup.Preset), "p4", startup.Preset),
                     .ExpectedWidth = _capture.OutputWidth,
-                    .ExpectedHeight = _capture.OutputHeight
+                    .ExpectedHeight = _capture.OutputHeight,
+                    .EncodeWidth = encodeDims.Item1,
+                    .EncodeHeight = encodeDims.Item2
                 }
                 _encoder.Initialize(encConfig)
+                _startupEcho = startup
                 Dim fpsEcho As String = If(startup.Fps > 0, startup.Fps.ToString(), "unset (60 default)")
                 _logger.Info($"RecordingEngine: NvencEncoderBackend initialized ({encConfig.CodecKey}, {encConfig.BitrateBps} bps, GOP {encConfig.GopSize}, preset {encConfig.Preset})")
                 _logger.Info($"[RecordingEngine] effective video config (startup): codec={encConfig.CodecKey}, fps={fpsEcho}, bitrate={encConfig.BitrateBps} bps, rc={encConfig.RateControl}, preset={encConfig.Preset}, gop={encConfig.GopSize} (GOP independent of FPS — PHASE 1)")
@@ -123,6 +148,18 @@ Namespace CaptureEngine.Recording
 
             Dim result As SessionResult = Nothing
             Try
+                ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT2): stamp the ACTUAL
+                ' encode dimensions the persistent encoder runs with, so the
+                ' session evidence always shows requested vs actual.
+                ' (The encoder dims are init-time; the per-session request is
+                ' preserved in the echo fields.)
+                Dim echo As EngineStartupConfig = If(_startupEcho, New EngineStartupConfig())
+                config.UseNativeResolution = echo.UseNativeResolution
+                config.RequestedWidth = echo.RequestedWidth
+                config.RequestedHeight = echo.RequestedHeight
+                config.EncodeWidth = _encoder.EncodeWidthOutput
+                config.EncodeHeight = _encoder.EncodeHeightOutput
+
                 _currentSession = New CaptureSession(
                     _capture, _encoder, config, _logger)
                 result = _currentSession.Run()

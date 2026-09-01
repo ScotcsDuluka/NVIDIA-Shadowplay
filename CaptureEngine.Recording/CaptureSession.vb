@@ -498,6 +498,7 @@ Namespace CaptureEngine.Recording
                     _logger.Warning("[session] TargetFps missing/invalid in effective config — fallback 60fps (config FPS is the only valid source; display refresh is NEVER used)")
                 End If
                 _logger.Info($"[session] video: fps source = config.json Recording.current.fps = {targetFps} (display refresh {_capture.OutputRefreshRate}Hz is diagnostics-only)")
+                _logger.Info($"[session] video: requested resolution = {If(_config.UseNativeResolution, $"native (use_native_resolution=true)", $"{_config.RequestedWidth}x{_config.RequestedHeight} (use_native_resolution=false)")} → capture {_capture.OutputWidth}x{_capture.OutputHeight} → encode {_config.EncodeWidth}x{_config.EncodeHeight}")
 
                 Dim micRate As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.SampleRate, 0)
                 Dim micCh As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.Channels, 0)

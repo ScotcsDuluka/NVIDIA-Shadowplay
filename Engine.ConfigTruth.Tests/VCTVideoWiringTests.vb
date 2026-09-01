@@ -87,6 +87,15 @@ Friend Module VCTVideoWiringTests
         TestRunner.RunTest(
             "V-CT1c MapSessionConfig Nothing-settings → TargetFps=0 (explicit unset, not display)",
             AddressOf VCT1c_NothingSettings_TargetFpsUnset)
+        TestRunner.RunTest(
+            "V-CT2 config 1280x720 native=false → effective encode 1280x720",
+            AddressOf VCT2_CustomResolution_ReachesEncodeDims)
+        TestRunner.RunTest(
+            "V-CT2b native=true → encode = capture dims (no scaler)",
+            AddressOf VCT2b_NativeResolution_UsesCaptureDims)
+        TestRunner.RunTest(
+            "V-CT2c custom dims LARGER than capture → loud failure (no silent fallback)",
+            AddressOf VCT2c_OversizedCustom_FailsLoudly)
     End Sub
 
     ''' <summary>
@@ -150,6 +159,70 @@ Friend Module VCTVideoWiringTests
                           $"startup.Fps expected 0 (unset), got {startup.Fps}")
         TestRunner.Assert(startup.GopSize = 60,
                           $"GopSize default expected 60, got {startup.GopSize}")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT2: native=false + width=1280/height=720 → the effective startup
+    ''' config carries 1280x720 and the dimension resolver returns exactly
+    ''' that for a 1920x1080 capture (NVENC GPU scaling path).
+    ''' </summary>
+    Private Sub VCT2_CustomResolution_ReachesEncodeDims()
+        WriteVideoConfig(VideoConfigJson(60, 17000, 4, False, 1280, 720))
+
+        Dim settings As CaptureSettings =
+            CaptureSettings.Load(NextRecordingConfig.EngineConfigPath())
+        TestRunner.Assert(settings.UseNativeResolution = False,
+                          $"control: UseNativeResolution expected False, got {settings.UseNativeResolution}")
+        TestRunner.Assert(settings.CustomWidth = 1280 AndAlso settings.CustomHeight = 720,
+                          $"control: CustomWidth/Height expected 1280/720, got {settings.CustomWidth}/{settings.CustomHeight}")
+
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+        TestRunner.Assert(startup.UseNativeResolution = False,
+                          $"effective: UseNativeResolution expected False, got {startup.UseNativeResolution}")
+        TestRunner.Assert(startup.RequestedWidth = 1280 AndAlso startup.RequestedHeight = 720,
+                          $"effective: RequestedWidth/Height expected 1280/720, got {startup.RequestedWidth}/{startup.RequestedHeight}")
+
+        Dim dims As Tuple(Of Integer, Integer) =
+            EngineStartupConfig.ResolveEncodeDimensions(1920, 1080, startup.UseNativeResolution,
+                                                        startup.RequestedWidth, startup.RequestedHeight)
+        TestRunner.Assert(dims.Item1 = 1280 AndAlso dims.Item2 = 720,
+                          $"encode dims expected 1280x720, got {dims.Item1}x{dims.Item2} — custom resolution did not reach the encoder")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT2b: native=true → encode dims = capture dims (today's proven
+    ''' behavior preserved as the explicit native branch).
+    ''' </summary>
+    Private Sub VCT2b_NativeResolution_UsesCaptureDims()
+        WriteVideoConfig(VideoConfigJson(60, 17000, 4, True, 1920, 1080))
+
+        Dim settings As CaptureSettings =
+            CaptureSettings.Load(NextRecordingConfig.EngineConfigPath())
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+        TestRunner.Assert(startup.UseNativeResolution = True,
+                          $"UseNativeResolution expected True, got {startup.UseNativeResolution}")
+
+        Dim dims As Tuple(Of Integer, Integer) =
+            EngineStartupConfig.ResolveEncodeDimensions(1920, 1080, startup.UseNativeResolution,
+                                                        startup.RequestedWidth, startup.RequestedHeight)
+        TestRunner.Assert(dims.Item1 = 1920 AndAlso dims.Item2 = 1080,
+                          $"native encode dims expected 1920x1080 (capture), got {dims.Item1}x{dims.Item2}")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT2c: a custom resolution larger than the capture must FAIL LOUDLY
+    ''' — NVENC cannot upscale, and a silent desktop-resolution fallback is
+    ''' forbidden by the phase law (no fake wiring).
+    ''' </summary>
+    Private Sub VCT2c_OversizedCustom_FailsLoudly()
+        Dim threw As Boolean = False
+        Try
+            EngineStartupConfig.ResolveEncodeDimensions(1280, 720, False, 1920, 1080)
+        Catch ex As ArgumentException
+            threw = True
+        End Try
+        TestRunner.Assert(threw,
+                          "oversized custom resolution must throw ArgumentException (loud failure), not silently fall back to the desktop size")
     End Sub
 
 End Module

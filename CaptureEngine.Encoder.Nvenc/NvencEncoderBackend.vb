@@ -75,10 +75,30 @@ Namespace CaptureEngine.Encoder.Nvenc
         Private ReadOnly _errorDetails As New List(Of String)()
 
         ' ─── Encoder constants (from EncoderConfig at Initialize) ──────────
+        ' _width/_height      = INPUT frame size (capture desktop size — the
+        '                       registered texture + per-picture input params).
+        ' _encodeWidth/Height = OUTPUT size (V-CT2: config resolution group;
+        '                       NVENC GPU-scales when smaller than input).
         Private _width As UInteger
         Private _height As UInteger
+        Private _encodeWidth As UInteger
+        Private _encodeHeight As UInteger
         Private _frameRateNum As UInteger = 60
         Private _frameRateDen As UInteger = 1
+
+        ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT2): output-resolution accessors
+        ' for the engine's per-session evidence echo (requested vs actual).
+        Public ReadOnly Property EncodeWidthOutput As Integer
+            Get
+                Return CInt(_encodeWidth)
+            End Get
+        End Property
+
+        Public ReadOnly Property EncodeHeightOutput As Integer
+            Get
+                Return CInt(_encodeHeight)
+            End Get
+        End Property
 
         ' ─── Session boundary tracking ─────────────────────────────────
         ' When True, the next Encode() call will set FORCEIDR + OUTPUT_SPSPPS
@@ -159,6 +179,19 @@ Namespace CaptureEngine.Encoder.Nvenc
                 End If
                 _width = CUInt(config.ExpectedWidth)
                 _height = CUInt(config.ExpectedHeight)
+
+                ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT2): output dims.
+                ' 0 = encode at the input size; larger than input = loud config
+                ' error (NVENC cannot upscale — silent desktop fallback forbidden).
+                Dim encW As Integer = If(config.EncodeWidth > 0, config.EncodeWidth, config.ExpectedWidth)
+                Dim encH As Integer = If(config.EncodeHeight > 0, config.EncodeHeight, config.ExpectedHeight)
+                If encW > config.ExpectedWidth OrElse encH > config.ExpectedHeight Then
+                    Throw New EncoderConfigurationException(
+                        $"EncodeWidth/Height ({encW}x{encH}) must not exceed the input " &
+                        $"({config.ExpectedWidth}x{config.ExpectedHeight}) — NVENC cannot upscale.")
+                End If
+                _encodeWidth = CUInt(encW)
+                _encodeHeight = CUInt(encH)
             End SyncLock
 
             ' ─── Create D3D11 device (no lock — factory is independent) ───
@@ -206,10 +239,10 @@ Namespace CaptureEngine.Encoder.Nvenc
             initParams.version = NvEncodeAPI.MakeStructVersion(5) Or (1UI << 31)
             initParams.encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID
             initParams.presetGUID = NvEncodeAPI.NV_ENC_PRESET_DEFAULT_GUID
-            initParams.encodeWidth = _width
-            initParams.encodeHeight = _height
-            initParams.darWidth = _width
-            initParams.darHeight = _height
+            initParams.encodeWidth = _encodeWidth
+            initParams.encodeHeight = _encodeHeight
+            initParams.darWidth = _encodeWidth
+            initParams.darHeight = _encodeHeight
             initParams.frameRateNum = _frameRateNum
             initParams.frameRateDen = _frameRateDen
             initParams.enableEncodeAsync = 0  ' synchronous mode
@@ -237,7 +270,10 @@ Namespace CaptureEngine.Encoder.Nvenc
                 TransitionToFaulted(msg)
                 Throw New EncoderRuntimeException(msg)
             End If
-            _logger.Info($"NVENC encoder initialized: {_width}x{_height} H.264 CBR {_encoderConfig.BitrateBps} bps")
+            Dim resEcho As String = If(_encodeWidth = _width AndAlso _encodeHeight = _height,
+                                       $"{_width}x{_height}",
+                                       $"{_width}x{_height} → encode {_encodeWidth}x{_encodeHeight}")
+            _logger.Info($"NVENC encoder initialized: {resEcho} H.264 {_encoderConfig.RateControl.ToUpperInvariant()} {_encoderConfig.BitrateBps} bps")
 
             ' ─── Create bitstream buffer + register encoder texture ─────────
             _resources = New Internal.NvencResources(_logger)
