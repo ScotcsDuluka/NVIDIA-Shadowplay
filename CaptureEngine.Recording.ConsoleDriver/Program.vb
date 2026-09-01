@@ -46,10 +46,23 @@ Module Program
         Dim ffmpegPath As String = "ffmpeg"
         Dim quick As Boolean = False
         Dim singleSec As Integer = 0
+        ' PHASE 1 VIDEO VALIDATION (--videocheck):
+        '   --videocheck           run the real-record validation driver
+        '   --config <engine.json> explicit config path (empty = default chain)
+        '   --out <mp4>            output file for the validation recording
+        '   --seconds N            session duration (default 8)
+        Dim videoCheck As Boolean = False
+        Dim configArg As String = ""
+        Dim outArg As String = "videocheck.mp4"
+        Dim checkSec As Integer = 8
         For i As Integer = 0 To args.Length - 2
             If args(i) = "--ffmpeg" Then ffmpegPath = args(i + 1)
             If args(i) = "--quick" Then quick = True
             If args(i) = "--single" Then Integer.TryParse(args(i + 1), singleSec)
+            If args(i) = "--videocheck" Then videoCheck = True
+            If args(i) = "--config" Then configArg = args(i + 1)
+            If args(i) = "--out" Then outArg = args(i + 1)
+            If args(i) = "--seconds" Then Integer.TryParse(args(i + 1), checkSec)
         Next
 
         If ffmpegPath = "ffmpeg" Then
@@ -61,6 +74,11 @@ Module Program
             For Each c In candidates
                 If File.Exists(c) Then ffmpegPath = c : Exit For
             Next
+        End If
+
+        ' ── PHASE 1 VIDEO RUNTIME VALIDATION driver (canonical config chain) ──
+        If videoCheck Then
+            Return RunVideoCheck(configArg, outArg, checkSec, ffmpegPath)
         End If
 
         Console.WriteLine("============================================================")
@@ -293,6 +311,70 @@ Module Program
         Console.WriteLine($"  pass:                  {r.Pass}")
         Console.WriteLine($"────────────────────────────────────────────────────────────")
     End Sub
+
+    ' ═══ PHASE 1 VIDEO RUNTIME VALIDATION (--videocheck) ═══
+    '
+    ' Drives the CANONICAL config chain exactly as Engine.ConfigTruth.Tests
+    ' does and exactly as RecordingEngineHost does on Windows:
+    '
+    '   NextRecordingConfig.LoadEffectiveSettings(configPath)
+    '     → NextRecordingConfig.MapStartupConfig(settings)
+    '     → RecordingEngine.Initialize(startup)
+    '     → NextRecordingConfig.BuildSessionConfig(out, ffmpeg, configPath)
+    '     → RecordingEngine.StartSession(config)
+    '
+    ' The caller (scripts/windows-phase1-video-validation.ps1) writes the
+    ' config variants and ffprobe-asserts the produced MP4. This driver
+    ' only runs the REAL pipeline and echoes the effective startup values
+    ' — no config invented here, no result faked.
+    Private Function RunVideoCheck(configPath As String, outPath As String, seconds As Integer, ffmpegPath As String) As Integer
+        Console.WriteLine("============================================================")
+        Console.WriteLine(" PHASE 1 VIDEO — Windows real-record validation (--videocheck)")
+        Console.WriteLine("============================================================")
+        Console.WriteLine($"  config:  {If(String.IsNullOrWhiteSpace(configPath), "(default resolution chain)", configPath)}")
+        Console.WriteLine($"  output:  {outPath}")
+        Console.WriteLine($"  seconds: {seconds}")
+        Console.WriteLine($"  FFmpeg:  {ffmpegPath}")
+        Console.WriteLine()
+
+        Dim cfg As String = If(String.IsNullOrWhiteSpace(configPath), Nothing, configPath)
+        Dim baselineOrphans As Integer = CountFFmpeg()
+        Dim logger As New EngineLogger("VideoCheck", EngineLogger.LogLevel.Info, AddressOf Console.WriteLine)
+        Dim engine As New RecordingEngine(logger)
+
+        Try
+            ' ── canonical chain: effective settings → startup mapping ──
+            Dim settings As CaptureSettings = NextRecordingConfig.LoadEffectiveSettings(cfg)
+            Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+
+            Console.WriteLine("  effective startup (requested values from config):")
+            Console.WriteLine($"    encoder='{startup.CodecKey}' fps={startup.Fps} bitrate={startup.BitrateBps} bps")
+            Console.WriteLine($"    rc='{startup.RateControl}' preset='{startup.Preset}' gop={startup.GopSize}")
+            Console.WriteLine($"    native={startup.UseNativeResolution} custom={startup.RequestedWidth}x{startup.RequestedHeight}")
+            Console.WriteLine($"    capture='{If(Not String.IsNullOrEmpty(startup.RequestedCaptureMethod), startup.RequestedCaptureMethod, "(default ddagrab)")}' pixfmt='{If(Not String.IsNullOrEmpty(startup.RequestedPixelFormat), startup.RequestedPixelFormat, "(default)")}'")
+            Console.WriteLine()
+
+            ' ── persistent engine init (one-shot: codec/bitrate/fps/preset/GOP/resolution) ──
+            engine.Initialize(startup)
+
+            ' ── session config from a FRESH reload (CT-4 contract) → real record ──
+            Dim sessionCfg As SessionConfig = NextRecordingConfig.BuildSessionConfig(outPath, ffmpegPath, Nothing, cfg)
+            sessionCfg.DurationSeconds = seconds
+            Dim r As SessionResult = engine.StartSession(sessionCfg)
+            PrintSessionResult("VideoCheck", r)
+
+            Dim orphans As Integer = CountFFmpeg()
+            Dim orphanOk As Boolean = orphans <= baselineOrphans
+            Console.WriteLine($"  orphan ffmpeg: baseline {baselineOrphans} → final {orphans} = {If(orphanOk, "OK", "FAIL")}")
+            Return If(r.Pass AndAlso orphanOk, 0, 1)
+        Catch ex As Exception
+            Console.Error.WriteLine($"*** VIDEOCHECK FATAL: {ex.Message}")
+            Console.Error.WriteLine(ex.StackTrace)
+            Return 3
+        Finally
+            Try : engine.Dispose() : Catch : End Try
+        End Try
+    End Function
 
     Private Sub Ev(line As String)
         _evidence.AppendLine(line)
