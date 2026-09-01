@@ -151,6 +151,31 @@ Namespace CaptureEngine.Recording
         End Sub
 
         ''' <summary>
+        ''' PHASE 3 UI diagnostics: the startup config this engine was
+        ''' initialized with (init-time immutable). Nothing before
+        ''' Initialize succeeds — callers must handle Nothing.
+        ''' Read-only echo for the Effective Runtime panel (UI spec §12);
+        ''' no runtime semantics.
+        ''' </summary>
+        Public ReadOnly Property StartupEcho As EngineStartupConfig
+            Get
+                Return _startupEcho
+            End Get
+        End Property
+
+        ''' <summary>
+        ''' PHASE 3 UI diagnostics: actual capture backend geometry
+        ''' ("WxH @ NNNHz"), init-time immutable. Empty string before the
+        ''' backend exists. Read-only echo, no runtime semantics.
+        ''' </summary>
+        Public ReadOnly Property CaptureGeometry As String
+            Get
+                If _capture Is Nothing Then Return ""
+                Return $"{_capture.OutputWidth}x{_capture.OutputHeight} @ {_capture.OutputRefreshRate}Hz"
+            End Get
+        End Property
+
+        ''' <summary>
         ''' Start a new recording session. Blocks until session completes
         ''' (duration elapsed or Stop() called). Returns SessionResult.
         ''' Only ONE active session at a time.

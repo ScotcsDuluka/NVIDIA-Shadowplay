@@ -10,6 +10,7 @@ Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Windows.Forms
 Imports System.Xml
+Imports CaptureEngine.Recording
 
 Partial Public Class UI_Engine
     Const WS_EX_TRANSPARENT As Integer = &H20
@@ -70,6 +71,18 @@ Partial Public Class UI_Engine
     Private _lastConfigWrite As DateTime = DateTime.MinValue
     Private _lastVideoWrite As DateTime = DateTime.MinValue
 
+    ' ── PHASE 3 UI CONTRACT (docs/UI_CONFIG_ARCHITECTURE.md §9/§14.1) ──
+    ' Engine WinForms = DIAGNOSTIC/OPERATOR console. It no longer persists
+    ' engine.json from UI controls — the second-writer divergence is
+    ' resolved (CONFIG_RUNTIME_CONTRACT v1.0 §1: config.json is the
+    ' user-facing store; engine.json = engine-internal + declared compat
+    ' writers only). Remaining engine.json writers: SyncWithOverlayConfig
+    ' legacy-branch fallback + PREWARM — both declared compat writers.
+    ' Diagnostics panel state (UI spec §12):
+    Private _lastSessionConfig As SessionConfig
+    Private _lastMeasuredFps As Double = 0.0
+    Private _lastActualMbps As Double = 0.0
+
     ' ── Form Load / Close ──────────────────────────────────────
 
     Private Sub UI_Engine_Load(sender As Object, e As EventArgs) Handles Me.Load
@@ -90,16 +103,24 @@ Partial Public Class UI_Engine
         ' เชื่อมกับ API Hub
         StartHubClient()
 
-        AddHandler chkNativeRes.CheckedChanged, AddressOf OnNativeResChanged
+        ' ✅ PHASE 3 UI CONTRACT: the mirror controls (nudFPS, nudBitrate,
+        ' chkNativeRes, cboResolution, cboCaptureMethod, cboEncoder,
+        ' nudReplayDuration, txtOutputDir, txtFFmpegPath) are READ-ONLY
+        ' (Designer: Enabled=False / ReadOnly=True). Their change handlers and
+        ' the browse-button write paths were removed — config.json is the only
+        ' user-writable store (contract v1.0 §1); this window is diagnostic.
         AddHandler btnRecord.Click, AddressOf OnRecordClick
         AddHandler btnStop.Click, AddressOf OnStopClick
         AddHandler btnStressTest.Click, AddressOf OnStressTestClick
-        AddHandler btnBrowse.Click, AddressOf OnBrowseOutput
-        AddHandler btnFFmpegBrowse.Click, AddressOf OnBrowseFFmpeg
         AddHandler btnDetect.Click, AddressOf OnDetectClick
         AddHandler tmrRecording.Tick, AddressOf OnTimerTick
-        AddHandler cboEncoder.SelectedIndexChanged, AddressOf OnEncoderChanged
-        AddHandler cboCaptureMethod.SelectedIndexChanged, AddressOf OnCaptureMethodChanged
+
+        ' PHASE 3: dead write paths — the browse buttons wrote engine.json
+        ' (OutputDirectory was silently NOT persisted by CaptureSettings.Save
+        ' at all; FFmpegPath duplicated the canonical Paths.FFmpegPath).
+        ' Hide the buttons; the textboxes stay as read-only effective-value mirrors.
+        btnBrowse.Visible = False
+        btnFFmpegBrowse.Visible = False
 
         ' ✅ P2: refresh Overlay config every 2s to detect changes
         AddHandler tmrRefresh.Tick, AddressOf OnRefreshTick
@@ -110,14 +131,12 @@ Partial Public Class UI_Engine
         ' ── Start AudioSettingsForm in background ──
         ' Form starts invisible (Opacity=0). OPEN_UI timer polls for Audio.UI marker.
         ' Overlay creates Audio.UI → form shows. BT_Back deletes Audio.UI → form hides.
+        ' ✅ PHASE 3: the form is now operator-view + legacy audio.json fallback
+        ' only (it no longer writes engine.json/video.json — triple-write killed).
         Try
             Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
             SyncWithOverlayConfig(s)
-            Dim videoJsonPath As String = OverlayConfig.VideoConfigPath
-            If String.IsNullOrEmpty(videoJsonPath) OrElse Not IO.File.Exists(videoJsonPath) Then
-                videoJsonPath = ""
-            End If
-            _audioForm = New AudioSettingsForm(s, _configPath, videoJsonPath)
+            _audioForm = New AudioSettingsForm(s)
             _audioForm.Show(Me)  ' Show() แค่เริ่ม form — Opacity=0 อยู่เพราะยังไม่มี Audio.UI
         Catch
         End Try
@@ -128,7 +147,9 @@ Partial Public Class UI_Engine
             _captureEngine.ForceStop()
         End If
         DisposeRecordingEngine()  ' Phase 12b: dispose new RecordingEngine
-        SaveSettings()
+        ' ✅ PHASE 3: SaveSettings() removed — the Engine UI no longer persists
+        ' engine.json from UI controls (second-writer divergence resolved;
+        ' CONFIG_RUNTIME_CONTRACT v1.0 §1 stores law).
         If tcp IsNot Nothing Then
             tcp.Disconnect()
             tcp.Dispose()
@@ -200,7 +221,9 @@ Partial Public Class UI_Engine
 
                 ' Resolution
                 chkNativeRes.Checked = _overlayVideo.current.use_native_resolution
-                cboResolution.Enabled = Not _overlayVideo.current.use_native_resolution
+                ' ✅ PHASE 3: cboResolution is a read-only mirror (no longer
+                ' enabled/disabled by the native flag — the control cannot be
+                ' edited from this window at all).
                 If Not _overlayVideo.current.use_native_resolution AndAlso _overlayVideo.current.width > 0 Then
                     lblNvencPreset.Text &= $" | {_overlayVideo.current.width}x{_overlayVideo.current.height}"
                 End If
@@ -323,6 +346,10 @@ Partial Public Class UI_Engine
 
             ' Update Hub status panel
             UpdateHubStatusUI()
+
+            ' ✅ PHASE 3: Effective Runtime panel (UI spec §12) — refreshed on
+            ' the same 2s cadence so init-completion and config edits show up.
+            UpdateDiagnosticsPanel()
         Catch ex As Exception
             ' Don't let timer exceptions crash the form
             DebugLog("OnRefreshTick error: " & ex.Message)
@@ -623,6 +650,7 @@ Partial Public Class UI_Engine
 
             ' Refresh UI (we're on the UI thread already).
             RefreshOverlayConfigUI()
+            UpdateDiagnosticsPanel()
         Catch ex As Exception
             DebugLog($"[Engine] engine_config_changed error: {ex.Message}")
         End Try
@@ -633,6 +661,8 @@ Partial Public Class UI_Engine
     Private Sub LoadSettings()
         _settings = CaptureSettings.Load(_configPath)
 
+        ' ✅ PHASE 3: this is now a pure mirror fill — the controls are
+        ' read-only (Designer) and nothing here writes engine.json.
         chkNativeRes.Checked = _settings.UseNativeResolution
         nudFPS.Value = Math.Max(1, Math.Min(240, _settings.FPS))
         nudBitrate.Value = Math.Max(1, Math.Min(200, CLng(_settings.Bitrate / 1000000)))
@@ -649,22 +679,13 @@ Partial Public Class UI_Engine
         ValidateFFmpegPath()
     End Sub
 
-    Private Sub SaveSettings()
-        If _settings Is Nothing Then Return
-        _settings.UseNativeResolution = chkNativeRes.Checked
-        _settings.FPS = CInt(nudFPS.Value)
-        _settings.Bitrate = CLng(nudBitrate.Value) * 1000000
-        _settings.OutputDirectory = txtOutputDir.Text
-        _settings.FFmpegPath = txtFFmpegPath.Text
-
-        Select Case cboCaptureMethod.SelectedIndex
-            Case 0 : _settings.CaptureMethod = "ddagrab"
-            Case 1 : _settings.CaptureMethod = "gdigrab"
-            Case 2 : _settings.CaptureMethod = "gfxcapture"
-        End Select
-
-        _settings.Save(_configPath)
-    End Sub
+    ' ✅ PHASE 3 UI CONTRACT: SaveSettings() REMOVED (was at :652-667).
+    ' It copied control values (FPS/Bitrate/UseNativeResolution/OutputDirectory/
+    ' FFmpegPath/CaptureMethod) into _settings and persisted engine.json —
+    ' making this window a second writer for values config.json already owns
+    ' (CONFIG_RUNTIME_CONTRACT v1.0 §1 stores law; UI spec §9 REMOVE list).
+    ' engine.json writes that remain are the declared compat writers only:
+    ' SyncWithOverlayConfig legacy-branch fallback + PREWARM handler.
 
     Private Sub InitializeEngine()
         _captureEngine = New CaptureEngine(_settings)
@@ -773,7 +794,8 @@ Partial Public Class UI_Engine
     ' and wraps exceptions in AggregateException (misleading error messages).
 
     Private Async Sub OnRecordClick(sender As Object, e As EventArgs)
-        SaveSettings()
+        ' ✅ PHASE 3: SaveSettings() call removed — record path reloads the
+        ' effective config from disk below (Load + SyncWithOverlayConfig).
         btnRecord.Enabled = False
         btnStop.Enabled = True
 
@@ -1126,6 +1148,8 @@ Partial Public Class UI_Engine
                                    ' Actual bitrate (size / duration)
                                    If duration.TotalSeconds > 0 Then
                                        Dim actualMbps As Double = (sizeBytes * 8.0) / (duration.TotalSeconds * 1000000.0)
+                                       _lastMeasuredFps = frames / duration.TotalSeconds
+                                       _lastActualMbps = actualMbps
                                        Dim targetStr As String = ""
                                        If _settings IsNot Nothing AndAlso _settings.Bitrate > 0 Then
                                            targetStr = $" / target {(_settings.Bitrate / 1000000.0):F1}"
@@ -1134,6 +1158,9 @@ Partial Public Class UI_Engine
                                    End If
                                End Sub)
             End If
+
+            ' ✅ PHASE 3: live Actual telemetry into the diagnostics panel (~1/s).
+            UpdateDiagnosticsPanel()
 
             ' Broadcast to Overlay.
             If tcp IsNot Nothing AndAlso tcp.IsConnected Then
@@ -1147,85 +1174,32 @@ Partial Public Class UI_Engine
 
     ' ── UI Change Handlers ─────────────────────────────────────
 
-    Private Sub OnNativeResChanged(sender As Object, e As EventArgs)
-        cboResolution.Enabled = Not chkNativeRes.Checked
-    End Sub
-
-    Private Sub OnEncoderChanged(sender As Object, e As EventArgs)
-        If Not _isLoaded Then Return
-        Dim selected As String = cboEncoder.Text.Trim()
-        Dim parts As String() = selected.Split(New Char() {" "c}, StringSplitOptions.RemoveEmptyEntries)
-        If parts.Length > 0 Then
-            _settings.Encoder = parts(0).Trim()
-        End If
-    End Sub
-
-    Private Sub OnCaptureMethodChanged(sender As Object, e As EventArgs)
-        If Not _isLoaded Then Return
-        Select Case cboCaptureMethod.SelectedIndex
-            Case 0 : _settings.CaptureMethod = "ddagrab"
-            Case 1 : _settings.CaptureMethod = "gdigrab"
-            Case 2 : _settings.CaptureMethod = "gfxcapture"
-        End Select
-    End Sub
-
-    Private Sub OnBrowseOutput(sender As Object, e As EventArgs)
-        Using dlg As New FolderBrowserDialog()
-            dlg.Description = "Select recording output folder"
-            dlg.SelectedPath = txtOutputDir.Text
-            If dlg.ShowDialog() = DialogResult.OK Then
-                txtOutputDir.Text = dlg.SelectedPath
-                _settings.OutputDirectory = dlg.SelectedPath
-            End If
-        End Using
-    End Sub
-
-    Private Sub OnBrowseFFmpeg(sender As Object, e As EventArgs)
-        Using dlg As New OpenFileDialog()
-            dlg.Title = "Select ffmpeg.exe"
-            dlg.Filter = "FFmpeg (ffmpeg.exe)|ffmpeg.exe"
-            dlg.FileName = "ffmpeg.exe"
-
-            Dim appDir As String = AppLayout.Dir
-            If File.Exists(txtFFmpegPath.Text) Then
-                dlg.InitialDirectory = Path.GetDirectoryName(txtFFmpegPath.Text)
-            ElseIf Directory.Exists(AppLayout.P("FFmpeg")) Then
-                dlg.InitialDirectory = Path.Combine(appDir, "API-Core")
-            ElseIf appDir.Contains("bin" & IO.Path.DirectorySeparatorChar) Then
-                Dim parentDir As String = appDir
-                For depth As Integer = 1 To 5
-                    Try
-                        parentDir = System.IO.Directory.GetParent(parentDir)?.FullName
-                        If String.IsNullOrWhiteSpace(parentDir) Then Exit For
-                        Dim apiCoreDir As String = Path.Combine(parentDir, "API-Core")
-                        If Directory.Exists(apiCoreDir) Then
-                            dlg.InitialDirectory = apiCoreDir
-                            Exit For
-                        End If
-                    Catch
-                        Exit For
-                    End Try
-                Next
-            End If
-
-            If dlg.ShowDialog() = DialogResult.OK Then
-                txtFFmpegPath.Text = dlg.FileName
-                _settings.FFmpegPath = dlg.FileName
-                ValidateFFmpegPath()
-                DetectEncoders()
-            End If
-        End Using
-    End Sub
+    ' ✅ PHASE 3 UI CONTRACT: removed the control write-handlers
+    ' (OnNativeResChanged / OnEncoderChanged / OnCaptureMethodChanged /
+    ' OnBrowseOutput / OnBrowseFFmpeg). The mirror controls are read-only;
+    ' user settings are edited in the Overlay and persisted to config.json
+    ' via AppSettings.Save (UI spec §10.1 canonical chain; contract v1.0 §1).
 
     Private Sub OnDetectClick(sender As Object, e As EventArgs)
-        SaveSettings()
+        ' ✅ PHASE 3: SaveSettings() call removed (no user-config writes from
+        ' this window). Re-running detection is a legitimate operator action.
         DetectEncoders()
     End Sub
 
+    ''' <summary>
+    ''' ✅ PHASE 3: implemented honestly (was an empty body — both branches
+    ''' empty, UI spec §9). Colors the read-only effective-path mirror:
+    ''' green = file exists, red = missing. Pure display — no config writes.
+    ''' </summary>
     Private Sub ValidateFFmpegPath()
-        If File.Exists(txtFFmpegPath.Text) Then
-        Else
-        End If
+        Try
+            If File.Exists(txtFFmpegPath.Text) Then
+                txtFFmpegPath.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+            Else
+                txtFFmpegPath.ForeColor = Drawing.Color.FromArgb(200, 50, 50)
+            End If
+        Catch
+        End Try
     End Sub
 
     Private Sub DebugLog(message As String)
@@ -1317,5 +1291,178 @@ Partial Public Class UI_Engine
         clone.CustomHeight = src.CustomHeight
         clone.ConfigVersion = src.ConfigVersion
         Return clone
+    End Function
+
+    ' ═══════════════════════════════════════════════════════════════════════
+    ' ✅ PHASE 3: Effective Runtime / Diagnostics panel
+    ' (docs/UI_CONFIG_ARCHITECTURE.md §12 — "open one panel and know what the
+    '  Engine is actually recording with right now")
+    '
+    ' Rows carry the truth layers where they exist in-process:
+    '   REQUESTED  = config.json value (the Overlay's mirror caches)
+    '   EFFECTIVE  = post-mapper CaptureSettings / startup echo / SessionConfig
+    '   ACTUAL     = runtime telemetry (init echo, live progress, SessionResult)
+    '   OUTPUT     = last SessionResult file truth (ffprobe confirmation stays
+    '                the acceptance-layer job — the panel only reports it)
+    '
+    ' READ-ONLY by design: this panel manufactures no state and writes no
+    ' config. Regime labels come from CONFIG_RUNTIME_CONTRACT v1.0 §4 (locked
+    ' regime table); gap texts (P1-PIXFMT / Q4, aspirational bitrate) are
+    ' quoted verbatim from the runtime truth lines the contract registers.
+    ' ═══════════════════════════════════════════════════════════════════════
+
+    ''' <summary>Refresh the read-only diagnostics textbox. Safe from any thread via SafeInvoke.</summary>
+    Private Sub UpdateDiagnosticsPanel()
+        SafeInvoke(Sub()
+                       Try
+                           txtDiagnostics.Text = BuildDiagnosticsText()
+                           txtDiagnostics.SelectionStart = txtDiagnostics.Text.Length
+                           txtDiagnostics.ScrollToCaret()
+                       Catch
+                           ' Panel must never crash the host window.
+                       End Try
+                   End Sub)
+    End Sub
+
+    Private Function BuildDiagnosticsText() As String
+        Dim sb As New Text.StringBuilder()
+
+        ' ── shared state ──
+        Dim status As EngineStatus = Nothing
+        If _recordingEngine IsNot Nothing Then
+            Try : status = _recordingEngine.GetStatus() : Catch : End Try
+        End If
+        Dim echo As EngineStartupConfig = Nothing
+        If _recordingEngine IsNot Nothing Then
+            Try : echo = _recordingEngine.StartupEcho : Catch : End Try
+        End If
+        Dim geometry As String = ""
+        If _recordingEngine IsNot Nothing Then
+            Try : geometry = _recordingEngine.CaptureGeometry : Catch : End Try
+        End If
+        Dim lastResult As SessionResult = If(status?.LastSessionResult, Nothing)
+
+        ' ══ Engine pipeline ══
+        sb.AppendLine("== ENGINE PIPELINE ==")
+        sb.AppendLine(" requested : (auto — no canonical key; contract v1.0 Q1: open OWNER decision)")
+        If _useNewEngine Then
+            sb.AppendLine(" effective : New Engine (native D3D11 + NVENC, in-proc)")
+            sb.AppendLine($" actual    : {(If(_engineReady, "READY", "initializing..."))}" &
+                          If(status IsNot Nothing, $" — state={status.State}", ""))
+        Else
+            sb.AppendLine(" effective : LEGACY CaptureEngine (FFmpeg subprocess)")
+            sb.AppendLine($" actual    : fallback — init failed: {_engineInitFailReason}")
+        End If
+        sb.AppendLine()
+
+        ' ══ Capture API ══
+        Dim reqApi As String = "" ' config.json Recording.api_capture (nested mirror first, flat fallback)
+        If _overlayVideo IsNot Nothing AndAlso Not String.IsNullOrEmpty(_overlayVideo.api_capture) Then
+            reqApi = _overlayVideo.api_capture
+        ElseIf _overlayConfig?.Recording IsNot Nothing AndAlso Not String.IsNullOrEmpty(_overlayConfig.Recording.APICapture) Then
+            reqApi = _overlayConfig.Recording.APICapture
+        End If
+        sb.AppendLine("== CAPTURE API (contract v1.0 §4: regime C · echo-only) ==")
+        sb.AppendLine($" requested : {If(If(reqApi, "").Length = 0, "(default/auto)", reqApi)}   (config.json Recording.api_capture — no UI writer; Q2 open)")
+        sb.AppendLine($" effective : {If(_settings IsNot Nothing, _settings.CaptureMethod, "?")}   (CaptureSettings.CaptureMethod)")
+        sb.AppendLine($" actual    : DdagrabBackend (DXGI duplication){If(geometry.Length > 0, $" — {geometry}", "")}")
+        sb.AppendLine("           : single production backend; non-ddagrab request = recorded GAP, never silently accepted")
+        sb.AppendLine()
+
+        ' ══ FPS ══
+        Dim reqFps As Integer = If(_overlayVideo?.current?.fps, 0)
+        sb.AppendLine("== FPS (regime A — live per record, V-CT1) ==")
+        sb.AppendLine($" requested : {If(reqFps > 0, reqFps.ToString(), "(default 60)")}   (config.json Recording.current.fps)")
+        sb.AppendLine($" effective : {If(_settings IsNot Nothing, _settings.FPS.ToString(), "?")}   (CaptureSettings.FPS)")
+        Dim targetFps As Integer = If(_lastSessionConfig?.TargetFps, 0)
+        sb.AppendLine($" actual    : SessionConfig.TargetFps={If(targetFps > 0, targetFps.ToString(), "(no session yet)")}" &
+                      If(_lastMeasuredFps > 0, $" — measured {_lastMeasuredFps:F1} fps", ""))
+        If lastResult IsNot Nothing AndAlso lastResult.WrapFps > 0 Then
+            sb.AppendLine($"           : last session wrap {lastResult.WrapFps:F1} fps (measured, not display rate)")
+        End If
+        sb.AppendLine()
+
+        ' ══ Resolution ══
+        Dim cur As OverlayConfig.VideoCurrentValues = If(_overlayVideo?.current, Nothing)
+        sb.AppendLine("== RESOLUTION (engine init contract — V-CT2) ==")
+        If cur IsNot Nothing Then
+            If cur.use_native_resolution Then
+                sb.AppendLine(" requested : native")
+            Else
+                sb.AppendLine($" requested : {cur.width}x{cur.height} (custom)")
+            End If
+        End If
+        If echo IsNot Nothing Then
+            sb.AppendLine($" effective : use_native={echo.UseNativeResolution}" &
+                          If(Not echo.UseNativeResolution AndAlso echo.RequestedWidth > 0,
+                             $" → {echo.RequestedWidth}x{echo.RequestedHeight}", ""))
+        End If
+        Dim encW As Integer = If(_lastSessionConfig?.EncodeWidth, 0)
+        Dim encH As Integer = If(_lastSessionConfig?.EncodeHeight, 0)
+        sb.AppendLine($" actual    : {If(encW > 0, $"encode {encW}x{encH}", If(geometry.Length > 0, $"capture {geometry}", "(no session yet)"))}")
+        sb.AppendLine()
+
+        ' ══ Encoder ══
+        Dim reqEnc As String = If(_overlayVideo?.encoder, "")
+        sb.AppendLine("== ENCODER (regime B — engine init; restart required) ==")
+        sb.AppendLine($" requested : {If(reqEnc.Length > 0, reqEnc, "(default NVENC_H264)")}   (config.json Recording.encoder)")
+        sb.AppendLine($" effective : {If(_settings IsNot Nothing, _settings.Encoder, "?")} → internal {OverlayConfig.MapEncoderToInternal(If(_settings?.Encoder, ""))}")
+        sb.AppendLine($" actual    : {If(echo IsNot Nothing, echo.CodecKey, "(pending init)")}   (NVENC_H264 = only implemented codec; others → legacy fallback)")
+        sb.AppendLine()
+
+        ' ══ Pixel Format ══
+        sb.AppendLine("== PIXEL FORMAT (BLOCKER P1-PIXFMT — contract v1.0 Q4) ==")
+        sb.AppendLine($" requested : {If(_settings IsNot Nothing AndAlso Not String.IsNullOrEmpty(_settings.PixelFormat), _settings.PixelFormat, "(default nv12)")}   (engine.json PixelFormat — legacy key)")
+        sb.AppendLine(" actual    : BGRA8 (D3D11 capture) → NVENC ARGB — config NOT honored (no conversion layer)")
+        sb.AppendLine()
+
+        ' ══ Preset ══
+        Dim reqPreset As Integer = If(cur?.encoder_preset, 0)
+        sb.AppendLine("== NVENC PRESET (regime B payload — V-CT4 single mapper) ==")
+        sb.AppendLine($" requested : {If(reqPreset >= 1 AndAlso reqPreset <= 7, reqPreset.ToString(), "(default 4)")}   (config.json Recording.current.encoder_preset)")
+        sb.AppendLine($" effective : {If(_settings IsNot Nothing, OverlayConfig.MapNvencPreset(_settings.NvencPreset), "?")}   (MapNvencPreset; engine.json Preset = fallback only)")
+        sb.AppendLine($" actual    : {If(echo IsNot Nothing, echo.Preset, "(pending init)")}")
+        sb.AppendLine()
+
+        ' ══ Bitrate ══
+        Dim reqBitrate As Integer = If(cur?.bitrate, 0)
+        sb.AppendLine("== BITRATE (regime B payload — aspirational until NVENC RC lands) ==")
+        sb.AppendLine($" requested : {If(reqBitrate > 0, reqBitrate.ToString() & " kbps", "(default 20000)")}   (config.json Recording.current.bitrate)")
+        sb.AppendLine($" effective : {If(_settings IsNot Nothing AndAlso _settings.Bitrate > 0, (_settings.Bitrate \ 1000).ToString() & " kbps (" & _settings.Bitrate.ToString() & " bps)", "?")}")
+        sb.AppendLine($" actual    : {If(_lastActualMbps > 0, _lastActualMbps.ToString("F1") & " Mbps (live, size/duration)", If(lastResult IsNot Nothing AndAlso lastResult.TotalVideoBytes > 0, "see last session", "(no session yet)"))}")
+        sb.AppendLine()
+
+        ' ══ Audio ══
+        sb.AppendLine("== AUDIO (regime A — fresh per record) ==")
+        Dim a As OverlayConfig.AudioSettings = If(_overlayConfig?.Audio, Nothing)
+        If a IsNot Nothing Then
+            sb.AppendLine($" requested : sys={a.SystemAudioEnabled} ({a.SystemAudioVolume * 100.0F:F0}%), mic={a.MicEnabled} ({a.MicVolume * 100.0F:F0}%), tracks={If(a.TrackMode = 1, "separate", "single")}, clock={a.AudioClockMode}")
+        End If
+        If _settings IsNot Nothing Then
+            sb.AppendLine($" effective : sys={_settings.SystemAudioCapture} ({_settings.SystemAudioVolume * 100.0F:F0}%), mic={_settings.MicCapture} ({_settings.MicVolume * 100.0F:F0}%), clock={_settings.AudioClockMode}")
+        End If
+        If lastResult IsNot Nothing Then
+            sb.AppendLine($" actual    : sysAudio={lastResult.AudioBytes} B, mic={lastResult.MicBytes} B, accountingOk={lastResult.AudioAccountingOk}, dropped={lastResult.AudioDroppedBytes}")
+        Else
+            sb.AppendLine(" actual    : (no session yet)")
+        End If
+        sb.AppendLine()
+
+        ' ══ Output ══
+        sb.AppendLine("== OUTPUT (dir decided by Overlay at record start) ==")
+        Dim paths As OverlayConfig.PathSettings = If(_overlayConfig?.Paths, Nothing)
+        If paths IsNot Nothing Then
+            Dim outDir As String = paths.GalleryPath
+            If String.IsNullOrEmpty(outDir) Then outDir = paths.SavePath
+            sb.AppendLine($" requested : {If(String.IsNullOrEmpty(outDir), "(not set)", outDir)}")
+        End If
+        If _lastSessionConfig IsNot Nothing AndAlso Not String.IsNullOrEmpty(_lastSessionConfig.OutputPath) Then
+            sb.AppendLine($" effective : {_lastSessionConfig.OutputPath}")
+        End If
+        If lastResult IsNot Nothing Then
+            sb.AppendLine($" output    : pass={lastResult.Pass}, file={If(lastResult.FileExists, lastResult.FileSize.ToString() & " B", "MISSING")}, frames={lastResult.FramesEncoded}")
+        End If
+
+        Return sb.ToString()
     End Function
 End Class

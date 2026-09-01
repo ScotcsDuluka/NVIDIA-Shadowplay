@@ -1,6 +1,5 @@
 ﻿Imports System.IO
 Imports System.Runtime.InteropServices
-Imports Newtonsoft.Json.Linq
 
 Public Class AudioSettingsForm
     Const WS_EX_TRANSPARENT As Integer = &H20
@@ -41,14 +40,17 @@ Public Class AudioSettingsForm
     End Sub
 
     Private _settings As CaptureSettings
-    Private _configPath As String
-    Private _overlayVideoPath As String
 
-    Public Sub New(settings As CaptureSettings, configPath As String, overlayVideoPath As String)
+    ' ✅ PHASE 3 UI CONTRACT (docs/UI_CONFIG_ARCHITECTURE.md §14.1):
+    ' the ctor no longer takes engine.json/video.json paths — this form no
+    ' longer writes them. Overlay [6] Audio Capture is the sole user-facing
+    ' audio writer (config.json via AppSettings.Save — confirmed by
+    ' Sub_Mouse.vb AudioUI_Click comment); this Engine-side form is an
+    ' operator view + legacy audio.json fallback writer only
+    ' (CONFIG_RUNTIME_CONTRACT v1.0 §1: config.json = the user-facing store).
+    Public Sub New(settings As CaptureSettings)
         InitializeComponent()
         _settings = settings
-        _configPath = configPath
-        _overlayVideoPath = overlayVideoPath
     End Sub
 
     Private Sub AudioSettingsForm_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -56,6 +58,7 @@ Public Class AudioSettingsForm
         RefreshMicDevices()
         LoadFromSettings()
         UpdateVolumeLabels()
+        lblStatus.Text = "Operator view — user settings: Overlay → Audio"
         OPEN_UI.Start()
     End Sub
 
@@ -69,8 +72,8 @@ Public Class AudioSettingsForm
         chkSystem.Checked = _settings.SystemAudioCapture
         chkMic.Checked = _settings.MicCapture
 
-        trkSystemVol.Value = CInt(Math.Max(0, Math.Min(150, _settings.SystemAudioVolume * 100)))
-        trkMicVol.Value = CInt(Math.Max(0, Math.Min(150, _settings.MicVolume * 100)))
+        trkSystemVol.Value = CInt(Math.Max(0, Math.Min(100, _settings.SystemAudioVolume * 100)))
+        trkMicVol.Value = CInt(Math.Max(0, Math.Min(100, _settings.MicVolume * 100)))
 
         Dim micId As String = _settings.MicDeviceId
         Dim micName As String = _settings.MicDeviceName
@@ -113,48 +116,16 @@ Public Class AudioSettingsForm
         End If
         _settings.AudioCapture = _settings.SystemAudioCapture OrElse _settings.MicCapture
 
-        ' Save to audio.json (new unified config)
+        ' ✅ PHASE 3 UI CONTRACT: SINGLE write — legacy audio.json fallback
+        ' only. The engine.json write (second writer for unified-owned audio)
+        ' and the Overlay video.json write (backward-compat shadow) were
+        ' REMOVED here — the triple-write divergence is resolved.
+        ' Contract (CONFIG_RUNTIME_CONTRACT v1.0 §1): config.json is the ONLY
+        ' user-facing store; audio.json is consulted only when config.json
+        ' is absent (legacy tier, CaptureSettings.Load :118-146). User audio
+        ' settings are edited in Overlay → [6] Audio Capture.
         Dim audioJsonPath As String = AppLayout.P("Config", "audio.json")
         _settings.SaveAudio(audioJsonPath)
-
-        ' Also save engine settings to engine.json
-        Dim engineJsonPath As String = AppLayout.P("Config", "engine.json")
-        _settings.Save(engineJsonPath)
-
-        ' Also save to Overlay's video.json audio section (backward compat with Overlay)
-        Try
-            SaveToOverlayVideoJson()
-        Catch ex As Exception
-        End Try
-    End Sub
-
-    Private Sub SaveToOverlayVideoJson()
-        If String.IsNullOrEmpty(_overlayVideoPath) OrElse Not File.Exists(_overlayVideoPath) Then Return
-
-        Try
-            Dim json As String = File.ReadAllText(_overlayVideoPath)
-            Dim root As Newtonsoft.Json.Linq.JObject = Newtonsoft.Json.Linq.JObject.Parse(json)
-
-            Dim audioTok As Newtonsoft.Json.Linq.JToken = root("audio")
-            If audioTok Is Nothing Then
-                audioTok = New Newtonsoft.Json.Linq.JObject()
-                root("audio") = audioTok
-            End If
-            Dim audio As Newtonsoft.Json.Linq.JObject = TryCast(audioTok, Newtonsoft.Json.Linq.JObject)
-            If audio Is Nothing Then Return
-
-            audio("system_enabled") = _settings.SystemAudioCapture
-            audio("mic_enabled") = _settings.MicCapture
-            audio("system_volume") = _settings.SystemAudioVolume
-            audio("mic_volume") = _settings.MicVolume
-            audio("mic_device") = If(_settings.MicDeviceName, "")
-            audio("mic_device_id") = If(_settings.MicDeviceId, "")
-
-            AppLayout.EnsureParentDir(_overlayVideoPath)   ' Config\ is runtime-created
-            File.WriteAllText(_overlayVideoPath, root.ToString(Newtonsoft.Json.Formatting.Indented))
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine("[AudioSettingsForm] SaveToOverlayVideoJson error: " & ex.Message)
-        End Try
     End Sub
 
     Private Sub RefreshMicDevices()
@@ -200,7 +171,7 @@ Public Class AudioSettingsForm
 
     Private Sub btnApply_Click(sender As Object, e As EventArgs) Handles btnApply.Click
         SaveToSettings()
-        lblStatus.Text = "Saved."
+        lblStatus.Text = "Saved to legacy audio.json (fallback) — user config: Overlay → Audio"
     End Sub
 
     Private Sub btnCancel_Click(sender As Object, e As EventArgs) Handles btnCancel.Click
@@ -215,7 +186,7 @@ Public Class AudioSettingsForm
 
     Private Sub btnTest_Click(sender As Object, e As EventArgs) Handles btnTest.Click
         SaveToSettings()
-        lblStatus.Text = "Settings saved. Start recording to test."
+        lblStatus.Text = "Saved (legacy audio.json). Start recording to test."
     End Sub
 
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click

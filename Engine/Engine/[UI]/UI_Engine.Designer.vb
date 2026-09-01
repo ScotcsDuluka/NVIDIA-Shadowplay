@@ -105,6 +105,11 @@ Partial Class UI_Engine
         lblRecBitrate = New Label()
         OPEN_UI = New System.Windows.Forms.Timer(components)
         btnStressTest = New Button()
+        ' ✅ PHASE 3: Effective Runtime diagnostics panel + mirror note
+        pnlDiag = New Panel()
+        lblDiagTitle = New Label()
+        txtDiagnostics = New TextBox()
+        lblMirrorNote = New Label()
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
@@ -128,6 +133,7 @@ Partial Class UI_Engine
         CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
         CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
         pnlStatus.SuspendLayout()
+        pnlDiag.SuspendLayout()
         SuspendLayout()
         ' 
         ' lblTitle
@@ -182,6 +188,7 @@ Partial Class UI_Engine
         ' cboCaptureMethod
         ' 
         cboCaptureMethod.DropDownStyle = ComboBoxStyle.DropDownList
+        cboCaptureMethod.Enabled = False
         cboCaptureMethod.Font = New Font("Segoe UI", 9.0F)
         cboCaptureMethod.Items.AddRange(New Object() {"ddagrab - Desktop Duplication (DXGI)", "gdigrab - GDI Screen Capture", "gfxcapture - DXGI Desktop Dup (NV)"})
         cboCaptureMethod.Location = New Point(12, 30)
@@ -212,6 +219,7 @@ Partial Class UI_Engine
         ' cboEncoder
         ' 
         cboEncoder.DropDownStyle = ComboBoxStyle.DropDownList
+        cboEncoder.Enabled = False
         cboEncoder.Font = New Font("Segoe UI", 9.0F)
         cboEncoder.Items.AddRange(New Object() {"Auto (Recommended)", "h264_nvenc - NVIDIA H.264", "hevc_nvenc - NVIDIA H.265", "h264_qsv - Intel QuickSync", "hevc_qsv - Intel QuickSync H.265", "h264_amf - AMD AMF H.264", "libx264 - CPU H.264", "libx265 - CPU H.265", "libsvtav1 - CPU SVT-AV1"})
         cboEncoder.Location = New Point(12, 30)
@@ -244,6 +252,7 @@ Partial Class UI_Engine
         chkNativeRes.BackColor = Color.Transparent
         chkNativeRes.Checked = True
         chkNativeRes.CheckState = CheckState.Checked
+        chkNativeRes.Enabled = False
         chkNativeRes.Font = New Font("Segoe UI", 9.0F)
         chkNativeRes.Location = New Point(12, 8)
         chkNativeRes.Name = "chkNativeRes"
@@ -288,6 +297,7 @@ Partial Class UI_Engine
         ' nudFPS
         ' 
         nudFPS.BorderStyle = BorderStyle.FixedSingle
+        nudFPS.Enabled = False
         nudFPS.Location = New Point(12, 30)
         nudFPS.Maximum = New Decimal(New Integer() {240, 0, 0, 0})
         nudFPS.Minimum = New Decimal(New Integer() {1, 0, 0, 0})
@@ -309,6 +319,7 @@ Partial Class UI_Engine
         ' nudBitrate
         ' 
         nudBitrate.BorderStyle = BorderStyle.FixedSingle
+        nudBitrate.Enabled = False
         nudBitrate.Increment = New Decimal(New Integer() {5, 0, 0, 0})
         nudBitrate.Location = New Point(150, 30)
         nudBitrate.Maximum = New Decimal(New Integer() {200, 0, 0, 0})
@@ -383,6 +394,7 @@ Partial Class UI_Engine
         ' nudReplayDuration
         ' 
         nudReplayDuration.BorderStyle = BorderStyle.FixedSingle
+        nudReplayDuration.Enabled = False
         nudReplayDuration.Location = New Point(140, 30)
         nudReplayDuration.Maximum = New Decimal(New Integer() {1200, 0, 0, 0})
         nudReplayDuration.Minimum = New Decimal(New Integer() {15, 0, 0, 0})
@@ -548,6 +560,7 @@ Partial Class UI_Engine
         txtFFmpegPath.BorderStyle = BorderStyle.FixedSingle
         txtFFmpegPath.Location = New Point(15, 156)
         txtFFmpegPath.Name = "txtFFmpegPath"
+        txtFFmpegPath.ReadOnly = True
         txtFFmpegPath.Size = New Size(383, 23)
         txtFFmpegPath.TabIndex = 1
         ' 
@@ -742,6 +755,9 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(pnlAudio)
         settings_menu.Controls.Add(pnlGitHub)
         settings_menu.Controls.Add(pnlOutput)
+        ' ✅ PHASE 3: diagnostics panel + mirror-boundary note
+        settings_menu.Controls.Add(pnlDiag)
+        settings_menu.Controls.Add(lblMirrorNote)
         settings_menu.Controls.Add(lblTitle)
         settings_menu.Controls.Add(pnlStatus)
         settings_menu.ForeColor = Color.White
@@ -821,6 +837,52 @@ Partial Class UI_Engine
         pnlStatus.Name = "pnlStatus"
         pnlStatus.Size = New Size(463, 200)
         pnlStatus.TabIndex = 90
+        ' 
+        ' pnlDiag
+        ' 
+        pnlDiag.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
+        pnlDiag.BorderStyle = BorderStyle.FixedSingle
+        pnlDiag.Controls.Add(lblDiagTitle)
+        pnlDiag.Controls.Add(txtDiagnostics)
+        pnlDiag.Location = New Point(1288, 336)
+        pnlDiag.Name = "pnlDiag"
+        pnlDiag.Size = New Size(460, 490)
+        pnlDiag.TabIndex = 91
+        ' 
+        ' lblDiagTitle
+        ' 
+        lblDiagTitle.AutoSize = True
+        lblDiagTitle.ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        lblDiagTitle.Location = New Point(8, 6)
+        lblDiagTitle.Name = "lblDiagTitle"
+        lblDiagTitle.Size = New Size(380, 15)
+        lblDiagTitle.TabIndex = 0
+        lblDiagTitle.Text = "EFFECTIVE RUNTIME (read-only) — requested → effective → actual"
+        ' 
+        ' txtDiagnostics
+        ' 
+        txtDiagnostics.BackColor = Color.FromArgb(CByte(24), CByte(24), CByte(28))
+        txtDiagnostics.BorderStyle = BorderStyle.None
+        txtDiagnostics.Font = New Font("Consolas", 8.25F)
+        txtDiagnostics.ForeColor = Color.FromArgb(CByte(200), CByte(200), CByte(200))
+        txtDiagnostics.Location = New Point(8, 26)
+        txtDiagnostics.Multiline = True
+        txtDiagnostics.Name = "txtDiagnostics"
+        txtDiagnostics.ReadOnly = True
+        txtDiagnostics.ScrollBars = ScrollBars.Vertical
+        txtDiagnostics.Size = New Size(440, 452)
+        txtDiagnostics.TabIndex = 1
+        txtDiagnostics.Text = "(initializing...)"
+        ' 
+        ' lblMirrorNote
+        ' 
+        lblMirrorNote.AutoSize = True
+        lblMirrorNote.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
+        lblMirrorNote.Location = New Point(543, 392)
+        lblMirrorNote.Name = "lblMirrorNote"
+        lblMirrorNote.Size = New Size(420, 15)
+        lblMirrorNote.TabIndex = 92
+        lblMirrorNote.Text = "Mirrors are read-only — user settings: Overlay → Settings (config.json)"
         ' 
         ' lblRecState
         ' 
@@ -940,6 +1002,8 @@ Partial Class UI_Engine
         CType(hg2, ComponentModel.ISupportInitialize).EndInit()
         pnlStatus.ResumeLayout(False)
         pnlStatus.PerformLayout()
+        pnlDiag.ResumeLayout(False)
+        pnlDiag.PerformLayout()
         ResumeLayout(False)
     End Sub
 
@@ -1024,5 +1088,11 @@ Partial Class UI_Engine
     Friend WithEvents lblRecFrames As Label
     Friend WithEvents lblRecBitrate As Label
     Friend WithEvents btnStressTest As Button
+
+    ' ✅ PHASE 3: Effective Runtime diagnostics panel + mirror note
+    Friend WithEvents pnlDiag As Panel
+    Friend WithEvents lblDiagTitle As Label
+    Friend WithEvents txtDiagnostics As TextBox
+    Friend WithEvents lblMirrorNote As Label
 
 End Class

@@ -153,14 +153,20 @@ Partial Public Class Base
         _lastReplayValue = ReplayValue
     End Sub
 
+    ' PHASE 3 UI CONTRACT (spec section 10 violation #3): config.json
+    ' Audio.MicEnabled is the ONLY state source. The old body derived the
+    ' config value FROM the icon glyph text and wrote it back — classic
+    ' UI-guessed-state (manufactured state). Now this method is display-sync
+    ' only: the glyph is re-derived from the canonical bool via LoadMicState
+    ' (Sub_Mouse.vb) and config is NEVER written here.
     Private Sub UpdateMicStatus(Optional force As Boolean = False)
-        Dim micEnabledNow As Boolean = (MIC_ICO.Text = "")
+        Dim micEnabledNow As Boolean = AppSettings.Instance.Audio.MicEnabled
 
         If Not force AndAlso _lastMicEnabled.HasValue AndAlso _lastMicEnabled.Value = micEnabledNow Then
             Return
         End If
 
-        AppSettings.Instance.Audio.MicEnabled = micEnabledNow
+        LoadMicState()
         _lastMicEnabled = micEnabledNow
     End Sub
 
@@ -210,16 +216,12 @@ Partial Public Class Base
         End If
     End Sub
 
-    Private Sub save_sc_Click(sender As Object, e As EventArgs)
-        Using folderDlg As New FolderBrowserDialog
-            folderDlg.Description = "Select the folder to save the capture."
-            If folderDlg.ShowDialog = DialogResult.OK Then
-                Base_Gallery.txtFilePath.Text = folderDlg.SelectedPath
-                AppSettings.Instance.Paths.GalleryPath = folderDlg.SelectedPath
-                AppSettings.Instance.Save()
-            End If
-        End Using
-    End Sub
+    ' ✅ PHASE 3 UI CONTRACT (UI spec §14.3 — Paths unify, one picker per path):
+    ' the dead save_sc_Click that used to live here was REMOVED. It had NO
+    ' Handles clause (never invoked — the live handler is
+    ' [Gallery]/[1] Main.vb save_sc_Click) and duplicated the GalleryPath
+    ' writer. Paths.GalleryPath now has exactly ONE UI writer:
+    ' Base_Gallery.save_sc_Click ([Gallery]/[1] Main.vb:54-65).
     Private Sub ME_CLOSE_BG_MouseMove(sender As Object, e As MouseEventArgs) Handles ME_CLOSE_BG.MouseMove
         Base_Background_Top.ME_CLOSE_BG_GRE.BackColor = greenColor
     End Sub

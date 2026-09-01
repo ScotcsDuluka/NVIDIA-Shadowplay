@@ -124,7 +124,7 @@ Partial Class AudioSettingsForm
         ' trkSystemVol
         ' 
         trkSystemVol.Location = New Point(15, 45)
-        trkSystemVol.Maximum = 150
+        trkSystemVol.Maximum = 100
         trkSystemVol.Name = "trkSystemVol"
         trkSystemVol.Size = New Size(360, 45)
         trkSystemVol.TabIndex = 1
@@ -192,7 +192,7 @@ Partial Class AudioSettingsForm
         ' trkMicVol
         ' 
         trkMicVol.Location = New Point(15, 80)
-        trkMicVol.Maximum = 150
+        trkMicVol.Maximum = 100
         trkMicVol.Name = "trkMicVol"
         trkMicVol.Size = New Size(360, 45)
         trkMicVol.TabIndex = 4

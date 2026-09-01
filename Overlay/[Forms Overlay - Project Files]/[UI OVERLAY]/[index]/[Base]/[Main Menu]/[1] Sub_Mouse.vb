@@ -247,14 +247,15 @@ Partial Public Class Base
             MIC_ICO.Text = ""
         End If
     End Sub
+    ' PHASE 3 UI CONTRACT (spec section 10 violation #3): the toggle decision
+    ' reads the CANONICAL bool (config.json Audio.MicEnabled), not the icon
+    ' glyph. The glyph is re-derived AFTER the write via LoadMicState() —
+    ' pure display, zero glyph comparison (the old body decided by comparing
+    ' MIC_ICO.Text PUA glyphs and could manufacture state).
     Private Sub Mic_Click(sender As Object, e As EventArgs) Handles MIC_ICO.Click
-        MIC_ICO.Text = If(MIC_ICO.Text = "", "", "")
-        If MIC_ICO.Text = "" Then
-            AppSettings.Instance.Audio.MicEnabled = True
-        Else
-            AppSettings.Instance.Audio.MicEnabled = False
-        End If
+        AppSettings.Instance.Audio.MicEnabled = Not AppSettings.Instance.Audio.MicEnabled
         AppSettings.Instance.Save()
+        LoadMicState()
 
         Debug.WriteLine("Mic Enabled: " & AppSettings.Instance.Audio.MicEnabled)
     End Sub

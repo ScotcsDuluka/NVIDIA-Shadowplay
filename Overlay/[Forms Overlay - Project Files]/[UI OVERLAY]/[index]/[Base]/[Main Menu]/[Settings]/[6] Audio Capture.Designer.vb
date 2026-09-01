@@ -172,7 +172,7 @@ Partial Class Base_AudioSet
         ' 
         trkSystemVol.LargeChange = 10
         trkSystemVol.Location = New Point(80, 283)
-        trkSystemVol.Maximum = 150
+        trkSystemVol.Maximum = 100
         trkSystemVol.Name = "trkSystemVol"
         trkSystemVol.Size = New Size(400, 56)
         trkSystemVol.SmallChange = 1
@@ -221,7 +221,7 @@ Partial Class Base_AudioSet
         ' 
         trkMicVol.LargeChange = 10
         trkMicVol.Location = New Point(80, 423)
-        trkMicVol.Maximum = 150
+        trkMicVol.Maximum = 100
         trkMicVol.Name = "trkMicVol"
         trkMicVol.Size = New Size(400, 56)
         trkMicVol.SmallChange = 1

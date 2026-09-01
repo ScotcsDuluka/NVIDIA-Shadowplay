@@ -1916,15 +1916,26 @@ Public Class Base_RecordingsSet
 #End Region
 
 #Region "Command Preview"
+    ' ✅ PHASE 3 (UI spec §12/§14.4): the old preview sent "GET_FFMPEG_ARGS" —
+    ' a command NO engine handler implements ([Engine] Client.vb:245-283
+    ' dispatches engine_* commands only; GET_FFMPEG_ARGS fell into Case Else)
+    ' — so this box forever showed "engine not connected" (dead feature,
+    ' never worked). Replaced with a truthful LOCAL summary of the Requested
+    ' layer (config.json model) + regime labels. The live
+    ' Requested→Effective→Actual view is the Engine WinForms diagnostics
+    ' panel (UI_Engine txtDiagnostics, PHASE 3).
     Public Sub UpdateCommandPreview()
         If prearg IsNot Nothing Then
             Try
-                ' Engine sends ffmpeg args via OnMessageReceived (async response)
-                ' For now, show placeholder — Engine will push args when ready
-                Base.tcp.Send("GET_FFMPEG_ARGS")
-                prearg.Text = LangHelper.GetText("l10n.engineNotConnected")
+                Dim r As AppSettings.RecordingSettingsClass = AppSettings.Instance.Recording
+                Dim presetText As String = "p" & Math.Max(1, Math.Min(7, r.EncoderPreset)).ToString()
+                Dim resText As String = If(r.UseNativeResolution, "native", String.Format("{0}x{1}", r.Width, r.Height))
+                Dim apiText As String = If(String.IsNullOrEmpty(r.APICapture), "ddagrab (built-in)", r.APICapture)
+                prearg.Text = String.Format(
+                    "Requested (config.json): {0} · {1} fps (live per record) · {2} kbps (engine restart) · {3} (engine restart) · preset {4} (engine restart) · Capture API: {5}",
+                    r.Encoder, r.FPS, r.Bitrate, resText, presetText, apiText)
             Catch ex As Exception
-                prearg.Text = LangHelper.GetText("l10n.engineNotConnected")
+                prearg.Text = "(config not loaded)"
             End Try
         End If
     End Sub

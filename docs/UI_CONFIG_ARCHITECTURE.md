@@ -518,3 +518,30 @@ WAIT FOR CONFIG  (v1.1 — เงื่อนไขแคบลงมากจ�
 
 
 
+
+## STATUS — PHASE 3 IMPLEMENTATION WAVE 1 (landed after `8fc7212`)
+
+Scope applied (OWNER order): regime-A groups + duplicate-surface cleanup + Effective
+Runtime panel. Video page `[5]` selector surface NOT touched beyond the dead-command
+removal; Engine selector / Capture API selector / PixelFormat selector / Duluka Capture /
+gfxcapture NOT built (per contract v1.0 — Q1/Q2/Q4 remain open OWNER decisions; no
+runtime behind them). No new config keys introduced (amendment protocol respected).
+
+| §14 item | What landed | Pinned by |
+|---|---|---|
+| 14.1 freeze duplicates | Engine UI: `SaveSettings` removed (control→engine.json writes gone), mirrors read-only (`nudFPS`, `nudBitrate`, `chkNativeRes`, `cboResolution`, `cboCaptureMethod`, `cboEncoder`, `nudReplayDuration` disabled; `txtOutputDir`, `txtFFmpegPath` ReadOnly; browse buttons hidden), `ValidateFFmpegPath` implemented (color truth). AudioSettingsForm: engine.json + video.json writes removed → single legacy audio.json fallback write; ctor takes only `CaptureSettings`. | P3-UICT1/2/3 |
+| 14.2 mic state fix | `Mic_Click` toggles the canonical bool then re-derives the glyph (`LoadMicState`); `UpdateMicStatus` is display-sync only, never writes config. PUA glyph literals untouched (line-splice edit). | P3-UICT5 |
+| 14.3 paths unify | Dead never-wired `save_sc_Click` duplicate removed from `Sub_Misc.vb`; `Paths.GalleryPath` single writer = `Base_Gallery.save_sc_Click`. | P3-UICT6 |
+| 14.4 diagnostics panel | Engine WinForms `pnlDiag`/`txtDiagnostics` (read-only): ENGINE PIPELINE / CAPTURE API / FPS / RESOLUTION / ENCODER / PIXEL FORMAT (P1-PIXFMT honesty, Q4) / PRESET / BITRATE (aspirational honesty) / AUDIO / OUTPUT rows from Requested (mirror caches) → Effective (`CaptureSettings`, `StartupEcho`) → Actual (`SessionConfig` echo, live progress, `SessionResult`). New read-only accessors: `RecordingEngine.StartupEcho`, `RecordingEngine.CaptureGeometry`. Dead `GET_FFMPEG_ARGS` send removed; `[5]` preview shows a truthful local Requested summary. | P3-UICT2/7 |
+| 15.6 volume decision | UI capped at 100% = model contract 0.0–1.0 (`AppSettings.vb:86-94`); stored >1.0 values still load (runtime 0–2 clamp unchanged). **Documented decision — the range debate stays open per contract v1.0; choosing the 1.5 option later = raising the slider max.** | P3-UICT4 |
+
+Also added: `lblMirrorNote` boundary label in the Engine window; AudioSettingsForm honest
+status texts ("Operator view — user settings: Overlay → Audio"). Declared engine.json
+compat writers kept per contract v1.0 §1: `SyncWithOverlayConfig` legacy-branch fallback +
+`PREWARM_FFMPEG` handler.
+
+Test evidence: `Engine.ConfigTruth.Tests` = 20 passed / 0 failed (CT-4 + V-CT1..5 +
+P3-UICT1..8); regression suites unchanged and green: ConfigTests 91/0, Recording.Tests
+33/0, FFmpegTests 57/0, Encoder.Tests 52/0, CaptureEngine.Tests 14/0. (Video.Tests 43/18
+on Linux — all 18 are pre-existing `dxgi.dll` Windows-only device tests, unrelated to this
+wave.) Full-solution build 0W/0E with `-p:EnableWindowsTargeting=true`.

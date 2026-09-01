@@ -51,8 +51,13 @@ Public Class Base_AudioSet
         chkSystem.Checked = audio.SystemAudioEnabled
         chkMic.Checked = audio.MicEnabled
 
-        trkSystemVol.Value = CInt(Math.Max(0, Math.Min(150, audio.SystemAudioVolume * 100.0F)))
-        trkMicVol.Value = CInt(Math.Max(0, Math.Min(150, audio.MicVolume * 100.0F)))
+        ' ✅ PHASE 3 (UI spec §15.6 — documented decision; range debate open per
+        ' contract v1.0): UI implements the MODEL contract 0.0–1.0
+        ' (AppSettings.vb:86-94). Legacy >100% configs still load (runtime
+        ' clamps 0–2 at the mux) but the slider offers the cap. If OWNER later
+        ' picks the 1.5 option, raising the slider max here is the whole change.
+        trkSystemVol.Value = CInt(Math.Max(0, Math.Min(100, audio.SystemAudioVolume * 100.0F)))
+        trkMicVol.Value = CInt(Math.Max(0, Math.Min(100, audio.MicVolume * 100.0F)))
 
         SelectCurrentMic()
     End Sub
@@ -102,9 +107,10 @@ Public Class Base_AudioSet
 #Region "Save"
 
     ''' <summary>
-    ''' Controls → AppSettings → config.json + video.json(audio) + audio.json +
-    ''' engine_config_changed broadcast. Same persistence set the old Engine
-    ''' form produced, now owned by the Overlay.
+    ''' Controls → AppSettings → config.json (AppSettings.Save, atomic) +
+    ''' engine_config_changed broadcast. PHASE 3: this is the SOLE
+    ''' user-facing audio writer (config.json) — the Engine AudioSettingsForm
+    ''' no longer writes engine.json/video.json (triple-write resolved).
     ''' </summary>
     Private Sub SaveToSettings()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio

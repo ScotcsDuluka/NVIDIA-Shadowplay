@@ -234,6 +234,10 @@ Partial Public Class UI_Engine
             ' "Legacy" = proven v2 path.
             Dim config As SessionConfig =
                 NextRecordingConfig.MapSessionConfig(effective, value, ffmpegPath, AddressOf AssignChildToJob)
+            ' ✅ PHASE 3: keep the session seam visible to the Effective
+            ' Runtime panel (the engine stamps the ACTUAL encode dims into
+            ' this object at session start — RecordingEngine.StartSession).
+            _lastSessionConfig = config
 
             DebugLog($"[RecordingEngine] starting session: path={value}, audio={config.AudioEnabled}, mic={config.MicEnabled}")
 
@@ -290,6 +294,9 @@ Partial Public Class UI_Engine
                           btnRecord.Enabled = True
                           btnStop.Enabled = False
                       End Sub)
+
+            ' ✅ PHASE 3: Output-layer truth (SessionResult) into the panel.
+            UpdateDiagnosticsPanel()
 
             If result.Pass Then
                 SendResponse("engine_record_stop", "ok", result.OutputPath, reqId)
