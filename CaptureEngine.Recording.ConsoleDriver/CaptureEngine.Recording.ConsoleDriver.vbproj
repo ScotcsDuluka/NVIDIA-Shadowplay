@@ -5,6 +5,7 @@
     <RootNamespace>CaptureEngine.Recording.ConsoleDriver</RootNamespace>
     <AssemblyName>CaptureEngine.Recording.ConsoleDriver</AssemblyName>
     <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
     <OptionStrict>On</OptionStrict>
     <OptionExplicit>On</OptionExplicit>
     <OptionInfer>On</OptionInfer>
@@ -18,6 +19,32 @@
     <ProjectReference Include="..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
     <!-- Foundation (for EngineLogger — used directly in Program.vb) -->
     <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- PHASE 1 VIDEO VALIDATION (videocheck mode): the canonical config
+         chain, LINKED (not copied) — same source the Engine compiles on
+         Windows, same composition Engine.ConfigTruth.Tests executes on
+         Linux. The Engine form itself stays out of scope by design.
+         The [ ] folder names are literal for MSBuild (no globbing). -->
+    <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
+    <Compile Include="..\Engine\Engine\[Capture]\CaptureSettings.vb" Link="CaptureSettings.vb" />
+    <Compile Include="..\Engine\Engine\[Integration]\OverlayConfig.vb" Link="OverlayConfig.vb" />
+    <Compile Include="..\Engine\Engine\[API]\NextRecordingConfig.vb" Link="NextRecordingConfig.vb" />
+    <!-- The single preset mapper lives in the foundation's ConfigMigrator. -->
+    <Compile Include="..\CaptureEngine\Configuration\ConfigMigrator.vb" Link="ConfigMigrator.vb" />
+    <Compile Include="..\CaptureEngine\Configuration\EngineConfigV2.vb" Link="EngineConfigV2.vb" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- VB project-level namespace imports for the linked Engine files
+         (CaptureSettings.vb:464 probes Screen.PrimaryScreen — real
+         WinForms on net10.0-windows, no shim needed). -->
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Drawing" />
+    <Import Include="System.Linq" />
+    <Import Include="System.Windows.Forms" />
   </ItemGroup>
 
 </Project>
