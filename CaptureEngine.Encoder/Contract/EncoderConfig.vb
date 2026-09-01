@@ -80,6 +80,14 @@ Namespace CaptureEngine.Encoder
         ''' <summary>Output pixel format hint (e.g. "nv12", "yuv420p", "p010le").</summary>
         Public Property OutputPixelFormat As String = "nv12"
 
+        ''' <summary>
+        ''' PHASE 1 VIDEO RUNTIME WIRING: frame rate the NVENC session is
+        ''' initialized with (frameRateNum/frameRateDen = fps/1). Init-time —
+        ''' the per-session pacing rate lives in SessionConfig.TargetFps.
+        ''' 0 = encoder default (60).
+        ''' </summary>
+        Public Property FrameRateFps As Integer = 0
+
         ' ---- frame I/O contract ----
 
         ''' <summary>

@@ -116,7 +116,8 @@ Public NotInheritable Class NextRecordingConfig
     '''   BitrateBps   ← config.json Recording.current.bitrate (kbps→bps in loader)
     '''   Fps          ← config.json Recording.current.fps
     '''   RateControl  ← engine.json RateControl (owner unchanged — do NOT delete)
-    '''   Preset       ← engine.json Preset (owner unchanged this phase)
+    '''   Preset       ← config.json Recording.current.encoder_preset via the
+    '''                  single mapper (engine.json Preset = compat fallback)
     '''   GopSize      ← engine default (60) — NEVER derived from FPS. The
     '''                  pre-wiring host mapped settingsSnapshot.FPS → GOP
     '''                  (RecordingEngineHost.vb:96-98); that accidental
@@ -143,7 +144,20 @@ Public NotInheritable Class NextRecordingConfig
             If Not String.IsNullOrEmpty(settings.RateControl) Then
                 startup.RateControl = settings.RateControl
             End If
-            If Not String.IsNullOrEmpty(settings.Preset) Then
+
+            ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT4): preset unification.
+            ' ONE canonical source: config.json Recording.current.encoder_preset
+            ' (CaptureSettings.NvencPreset, int 1-7) — mapped with THE existing
+            ' single mapper (ConfigMigrator.MapNvencPresetInteger, 1-7 →
+            ' "p1".."p7", invalid → "p4"). The engine.json Preset string is
+            ' kept ONLY as a compat fallback while the field has no config
+            ' value (ownership matrix §8 item 3 — duplicates die LATER, after
+            ' real-record evidence; engine.json is never deleted this phase).
+            If settings.NvencPreset >= 1 AndAlso settings.NvencPreset <= 7 Then
+                ' Global. prefix — the legacy CaptureEngine CLASS shadows the
+                ' CaptureEngine namespace inside the Engine project compile.
+                startup.Preset = Global.CaptureEngine.Configuration.ConfigMigrator.MapNvencPresetInteger(settings.NvencPreset)
+            ElseIf Not String.IsNullOrEmpty(settings.Preset) Then
                 startup.Preset = settings.Preset
             End If
 

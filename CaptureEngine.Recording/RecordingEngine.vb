@@ -107,6 +107,7 @@ Namespace CaptureEngine.Recording
                     .GopSize = gop,
                     .RateControl = If(String.IsNullOrEmpty(startup.RateControl), "cbr", startup.RateControl),
                     .Preset = If(String.IsNullOrEmpty(startup.Preset), "p4", startup.Preset),
+                    .FrameRateFps = startup.Fps,
                     .ExpectedWidth = _capture.OutputWidth,
                     .ExpectedHeight = _capture.OutputHeight,
                     .EncodeWidth = encodeDims.Item1,

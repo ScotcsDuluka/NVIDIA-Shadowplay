@@ -14,6 +14,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- PHASE 1 V-CT5: the pure NVENC param builder + its interop struct
+         definitions, LINKED so the init-params contract runs on Linux
+         (no native NVENC, no D3D11 — System only). -->
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvEncodeAPI.vb" Link="NvEncodeAPI.vb" />
+    <Compile Include="..\CaptureEngine.Encoder.Nvenc\Internal\NvEncParamBuilder.vb" Link="NvEncParamBuilder.vb" />
     <ProjectReference Include="..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
     <ProjectReference Include="..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
     <ProjectReference Include="..\CaptureEngine\CaptureEngine.vbproj" />

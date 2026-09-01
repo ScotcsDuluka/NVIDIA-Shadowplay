@@ -32,6 +32,10 @@
     <Compile Include="..\Engine\Engine\[Capture]\CaptureSettings.vb" Link="CaptureSettings.vb" />
     <Compile Include="..\Engine\Engine\[Integration]\OverlayConfig.vb" Link="OverlayConfig.vb" />
     <Compile Include="..\Engine\Engine\[API]\NextRecordingConfig.vb" Link="NextRecordingConfig.vb" />
+    <!-- PHASE 1 V-CT4: the single preset mapper lives in the foundation's
+         ConfigMigrator — linked so the runtime mapping runs unmodified. -->
+    <Compile Include="..\CaptureEngine\Configuration\ConfigMigrator.vb" Link="ConfigMigrator.vb" />
+    <Compile Include="..\CaptureEngine\Configuration\EngineConfigV2.vb" Link="EngineConfigV2.vb" />
   </ItemGroup>
 
   <ItemGroup>

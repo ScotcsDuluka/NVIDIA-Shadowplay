@@ -86,6 +86,90 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         Public Shared ReadOnly NV_ENC_CODEC_AV1_GUID As Guid =
             New Guid(&HC24B3F5DUI, &H7354US, &H4CA4US, &H9C, &HA2, &H6A, &H2B, &H55, &H4D, &HB0, &HA8)
 
+        ' === Preset GUIDs (PHASE 1 VIDEO RUNTIME WIRING) ===
+        ' VERBATIM from nvEncodeAPI.h SDK 13.0 (nv-codec-headers n13.0.19.0
+        ' lines 226-252). p1..p7 exist since SDK 12 — the driver already
+        ' negotiated API 13.0 (NVENCAPI_VERSION), so these are safe.
+        Public Shared ReadOnly NV_ENC_PRESET_P1_GUID As Guid =
+            New Guid(&HFC0A8D3EUI, &H45F8US, &H4CF8US, &H80, &HC7, &H29, &H88, &H71, &H59, &HE0, &HBF)
+        Public Shared ReadOnly NV_ENC_PRESET_P2_GUID As Guid =
+            New Guid(&HF581CFB8UI, &H88D6US, &H4381US, &H93, &HF0, &HDF, &H13, &HF9, &HC2, &H7D, &HAB)
+        Public Shared ReadOnly NV_ENC_PRESET_P3_GUID As Guid =
+            New Guid(&H36850110UI, &H3A07US, &H441FUS, &H94, &HD5, &H36, &H70, &H63, &H1F, &H91, &HF6)
+        Public Shared ReadOnly NV_ENC_PRESET_P4_GUID As Guid =
+            New Guid(&H90A7B826UI, &HDF06US, &H4862US, &HB9, &HD2, &HCD, &H6D, &H73, &HA0, &H86, &H81)
+        Public Shared ReadOnly NV_ENC_PRESET_P5_GUID As Guid =
+            New Guid(&H21C6E6B4UI, &H297AUS, &H4CBAUS, &H99, &H8F, &HB6, &HCB, &HDE, &H72, &HAD, &HE3)
+        Public Shared ReadOnly NV_ENC_PRESET_P6_GUID As Guid =
+            New Guid(&H8E75C279UI, &H6299US, &H4AB6US, &H83, &H02, &H0B, &H21, &H5A, &H33, &H5C, &HF5)
+        Public Shared ReadOnly NV_ENC_PRESET_P7_GUID As Guid =
+            New Guid(&H84848C12UI, &H6F71US, &H4C13US, &H93, &H1B, &H53, &HE2, &H83, &HF5, &H79, &H74)
+
+        ''' <summary>
+        ''' NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID (SDK 13.0 line 162-163).
+        ''' </summary>
+        Public Shared ReadOnly NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID As Guid =
+            New Guid(&HBFD6F8E7UI, &H233CUS, &H4341US, &H8B, &H3E, &H48, &H18, &H52, &H38, &H03, &HF4)
+
+        ''' <summary>
+        ''' THE single preset-key → NVENC GUID mapper (PHASE 1 task §6 — one
+        ''' mapper, one runtime source). Accepts "p1".."p7" (case-insensitive)
+        ''' and "default". Anything else → p4 (the product default) so a bad
+        ''' value can never silently fall back to DEFAULT-preset semantics.
+        ''' </summary>
+        Public Shared Function PresetGuidForKey(key As String) As Guid
+            If String.IsNullOrWhiteSpace(key) Then Return NV_ENC_PRESET_P4_GUID
+            Select Case key.Trim().ToLowerInvariant()
+                Case "p1" : Return NV_ENC_PRESET_P1_GUID
+                Case "p2" : Return NV_ENC_PRESET_P2_GUID
+                Case "p3" : Return NV_ENC_PRESET_P3_GUID
+                Case "p4" : Return NV_ENC_PRESET_P4_GUID
+                Case "p5" : Return NV_ENC_PRESET_P5_GUID
+                Case "p6" : Return NV_ENC_PRESET_P6_GUID
+                Case "p7" : Return NV_ENC_PRESET_P7_GUID
+                Case "default" : Return NV_ENC_PRESET_DEFAULT_GUID
+                Case Else : Return NV_ENC_PRESET_P4_GUID
+            End Select
+        End Function
+
+        ''' <summary>True when the key names a concrete p1..p7 preset.</summary>
+        Public Shared Function IsNamedPresetKey(key As String) As Boolean
+            If String.IsNullOrWhiteSpace(key) Then Return False
+            Dim k As String = key.Trim().ToLowerInvariant()
+            If k.Length <> 2 OrElse k(0) <> "p"c Then Return False
+            Dim n As Integer
+            If Not Integer.TryParse(k(1).ToString(), n) Then Return False
+            Return n >= 1 AndAlso n <= 7
+        End Function
+
+        ' === Rate-control modes (PHASE 1 VIDEO RUNTIME WIRING) ===
+        ' NV_ENC_PARAMS_RC_MODE enum, SDK 13.0 lines 271-276.
+        Public Const NV_ENC_PARAMS_RC_CONSTQP As UInteger = &H0UI
+        Public Const NV_ENC_PARAMS_RC_VBR As UInteger = &H1UI
+        Public Const NV_ENC_PARAMS_RC_CBR As UInteger = &H2UI
+
+        ''' <summary>
+        ''' THE single rate-control-key → NVENC mode mapper. Accepts
+        ''' "cbr", "vbr", "constqp"/"cq" (case-insensitive); anything else →
+        ''' CBR (the product default) with IsKnownRateControlKey=False so the
+        ''' caller can log the substitution.
+        ''' </summary>
+        Public Shared Function RateControlModeForKey(key As String, ByRef known As Boolean) As UInteger
+            known = True
+            If String.IsNullOrWhiteSpace(key) Then
+                known = False
+                Return NV_ENC_PARAMS_RC_CBR
+            End If
+            Select Case key.Trim().ToLowerInvariant()
+                Case "cbr" : Return NV_ENC_PARAMS_RC_CBR
+                Case "vbr" : Return NV_ENC_PARAMS_RC_VBR
+                Case "constqp", "cq" : Return NV_ENC_PARAMS_RC_CONSTQP
+                Case Else
+                    known = False
+                    Return NV_ENC_PARAMS_RC_CBR
+            End Select
+        End Function
+
         ' === API version ===
         Public Shared Property NVENCAPI_MAJOR_VERSION As UInteger = 13UI
         Public Shared Property NVENCAPI_MINOR_VERSION As UInteger = 0UI
@@ -113,6 +197,14 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         Public Const NV_ENC_MAP_INPUT_RESOURCE_VER_STRUCT As UInteger = 4UI
         Public Const NV_ENC_PIC_PARAMS_VER_STRUCT As UInteger = 4UI
         Public Const NV_ENC_LOCK_BITSTREAM_VER_STRUCT As UInteger = 1UI
+
+        ' PHASE 1 VIDEO RUNTIME WIRING — struct versions from the SDK 13.0
+        ' header: NV_ENC_CONFIG_VER = NVENCAPI_STRUCT_VERSION(9) | 1<<31,
+        ' NV_ENC_PRESET_CONFIG_VER = NVENCAPI_STRUCT_VERSION(5) | 1<<31,
+        ' NV_ENC_RC_PARAMS_VER = NVENCAPI_STRUCT_VERSION(1) (NO 1<<31 flag).
+        Public Const NV_ENC_CONFIG_VER_STRUCT As UInteger = 9UI
+        Public Const NV_ENC_PRESET_CONFIG_VER_STRUCT As UInteger = 5UI
+        Public Const NV_ENC_RC_PARAMS_VER_STRUCT As UInteger = 1UI
 
         Public Shared ReadOnly Property NV_ENC_CREATE_BITSTREAM_BUFFER_VER As UInteger
             Get
@@ -153,6 +245,24 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         Public Shared ReadOnly Property NV_ENC_REGISTER_RESOURCE_VER As UInteger
             Get
                 Return MakeStructVersion(NV_ENC_REGISTER_RESOURCE_VER_STRUCT)
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property NV_ENC_CONFIG_VER As UInteger
+            Get
+                Return MakeStructVersion(NV_ENC_CONFIG_VER_STRUCT) Or (1UI << 31)
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property NV_ENC_PRESET_CONFIG_VER As UInteger
+            Get
+                Return MakeStructVersion(NV_ENC_PRESET_CONFIG_VER_STRUCT) Or (1UI << 31)
+            End Get
+        End Property
+
+        Public Shared ReadOnly Property NV_ENC_RC_PARAMS_VER As UInteger
+            Get
+                Return MakeStructVersion(NV_ENC_RC_PARAMS_VER_STRUCT)
             End Get
         End Property
 
@@ -362,6 +472,97 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             Public reserved2 As IntPtr()
         End Structure
 
+        ' ═══ PHASE 1 VIDEO RUNTIME WIRING — encoder-config structs ═══
+        ' VERBATIM layout from nvEncodeAPI.h SDK 13.0
+        ' (nv-codec-headers n13.0.19.0). Sizes/offsets were mechanically
+        ' derived from that header (scripts/sizeof_nvenc.py, MSVC x64 rules)
+        ' and are pinned by contract tests:
+        '   sizeof(NV_ENC_RC_PARAMS)     = 128   align 4
+        '   sizeof(NV_ENC_CODEC_CONFIG)  = 1792  (h264 1792 / av1 1688 / hevc 1560)
+        '   sizeof(NV_ENC_CONFIG)        = 3584  align 8
+        '   sizeof(NV_ENC_PRESET_CONFIG) = 5128  align 8
+        ' Pack:=4 reproduces the native layout exactly for every field (the
+        ' largest member alignment below is 4 except the trailing pointer
+        ' arrays, whose offsets are 8-aligned anyway).
+
+        <StructLayout(LayoutKind.Sequential, Pack:=4)>
+        Public Structure NV_ENC_RC_PARAMS
+            Public version As UInteger                 ' +0   NV_ENC_RC_PARAMS_VER
+            Public rateControlMode As UInteger         ' +4   NV_ENC_PARAMS_RC_*
+            Public qpInterP As UInteger                ' +8   NV_ENC_QP constQP (flattened)
+            Public qpInterB As UInteger                ' +12
+            Public qpIntra As UInteger                 ' +16
+            Public averageBitRate As UInteger          ' +20  bits/sec
+            Public maxBitRate As UInteger              ' +24  bits/sec
+            Public vbvBufferSize As UInteger           ' +28  bits
+            Public vbvInitialDelay As UInteger         ' +32  bits
+            Public bitFields As UInteger               ' +36  enableMinQP..reservedBitFields (all 0)
+            Public minQpInterP As UInteger             ' +40  NV_ENC_QP minQP (unused)
+            Public minQpInterB As UInteger             ' +44
+            Public minQpIntra As UInteger              ' +48
+            Public maxQpInterP As UInteger             ' +52  NV_ENC_QP maxQP (unused)
+            Public maxQpInterB As UInteger             ' +56
+            Public maxQpIntra As UInteger              ' +60
+            Public initQpInterP As UInteger            ' +64  NV_ENC_QP initialRCQP (unused)
+            Public initQpInterB As UInteger            ' +68
+            Public initQpIntra As UInteger             ' +72
+            Public temporallayerIdxMask As UInteger    ' +76
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=8)>
+            Public temporalLayerQP As Byte()           ' +80
+            Public targetQuality As Byte               ' +88
+            Public targetQualityLSB As Byte            ' +89
+            Public lookaheadDepth As UShort            ' +90
+            Public lowDelayKeyFrameScale As Byte       ' +92
+            Public yDcQPIndexOffset As SByte           ' +93
+            Public uDcQPIndexOffset As SByte           ' +94
+            Public vDcQPIndexOffset As SByte           ' +95
+            Public qpMapMode As UInteger               ' +96
+            Public multiPass As UInteger               ' +100
+            Public alphaLayerBitrateRatio As UInteger  ' +104
+            Public cbQPIndexOffset As SByte            ' +108
+            Public crQPIndexOffset As SByte            ' +109
+            Public reserved2 As UShort                 ' +110
+            Public lookaheadLevel As UInteger          ' +112
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=7)>
+            Public viewBitrateRatios As Byte()         ' +116 (MAX_NUM_VIEWS_MINUS_1)
+            Public reserved3 As Byte                   ' +123
+            Public reserved1 As UInteger               ' +124
+            ' total 128
+        End Structure
+
+        <StructLayout(LayoutKind.Sequential, Pack:=4)>
+        Public Structure NV_ENC_CONFIG
+            Public version As UInteger                 ' +0   NV_ENC_CONFIG_VER
+            Public profileGUID As Guid                 ' +4   AUTOSELECT = fine
+            Public gopLength As UInteger               ' +20
+            Public frameIntervalP As Integer           ' +24  0=I 1=IPP 2=IBP 3=IBBP
+            Public monoChromeEncoding As UInteger      ' +28
+            Public frameFieldMode As UInteger          ' +32
+            Public mvPrecision As UInteger             ' +36
+            Public rcParams As NV_ENC_RC_PARAMS        ' +40  (128 bytes)
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=1792)>
+            Public encodeCodecConfig As Byte()         ' +168 NV_ENC_CODEC_CONFIG union
+                                                       '       h264 idrPeriod at +8
+                                                       '       (abs +176)
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=278)>
+            Public reserved As UInteger()              ' +1960
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=64)>
+            Public reserved2 As IntPtr()               ' +3072
+            ' total 3584
+        End Structure
+
+        <StructLayout(LayoutKind.Sequential, Pack:=4)>
+        Public Structure NV_ENC_PRESET_CONFIG
+            Public version As UInteger                 ' +0   NV_ENC_PRESET_CONFIG_VER
+            Public reserved As UInteger                ' +4
+            Public presetCfg As NV_ENC_CONFIG          ' +8   driver-filled
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=256)>
+            Public reserved1 As UInteger()             ' +3592
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=64)>
+            Public reserved2 As IntPtr()               ' +4616
+            ' total 5128
+        End Structure
+
         ' === Delegates ===
         <UnmanagedFunctionPointer(CallingConvention.StdCall)>
         Public Delegate Function NvEncOpenEncodeSessionExDelegate(
@@ -438,6 +639,21 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         <UnmanagedFunctionPointer(CallingConvention.StdCall)>
         Public Delegate Function NvEncUnlockBitstreamDelegate(
             encoder As IntPtr, bitstreamBuffer As IntPtr) As UInteger
+
+        ''' <summary>
+        ''' PHASE 1 VIDEO RUNTIME WIRING: NvEncGetEncodePresetConfig — the
+        ''' driver fills NV_ENC_PRESET_CONFIG.presetCfg with the preset's own
+        ''' NV_ENC_CONFIG. This is the SAFE way to obtain a real
+        ''' NV_ENC_CONFIG (the struct memory comes from the driver itself;
+        ''' only whitelisted fields are patched afterwards by
+        ''' NvEncParamBuilder.ApplyVideoSettings).
+        ''' C: NVENCSTATUS nvEncGetEncodePresetConfig(void* encoder,
+        '''        GUID encodeGUID, GUID presetGUID, NV_ENC_PRESET_CONFIG*);
+        ''' </summary>
+        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
+        Public Delegate Function NvEncGetEncodePresetConfigDelegate(
+            encoder As IntPtr, encodeGUID As Guid, presetGUID As Guid,
+            ByRef presetConfig As NV_ENC_PRESET_CONFIG) As UInteger
 
         ' === P/Invoke loader functions ===
         <DllImport("nvEncodeAPI64.dll", CallingConvention:=CallingConvention.StdCall,

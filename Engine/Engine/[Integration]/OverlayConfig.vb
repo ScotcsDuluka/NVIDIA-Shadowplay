@@ -447,6 +447,14 @@ Public NotInheritable Class OverlayConfig
             If nested.current IsNot Nothing Then
                 If nested.current.fps > 0 AndAlso nested.current.fps <= 240 Then s.FPS = nested.current.fps
                 If nested.current.bitrate > 0 Then s.Bitrate = nested.current.bitrate * 1000L   ' kbps → bps
+                ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT4): Recording.current.
+                ' encoder_preset (1-7) is the canonical preset owner — map it
+                ' into NvencPreset so the engine's preset unification reads
+                ' the config value. Pre-wiring this field was parsed into
+                ' VideoCurrentValues but NEVER applied here (dead value).
+                If nested.current.encoder_preset >= 1 AndAlso nested.current.encoder_preset <= 7 Then
+                    s.NvencPreset = nested.current.encoder_preset
+                End If
                 s.UseNativeResolution = nested.current.use_native_resolution
                 If Not nested.current.use_native_resolution Then
                     s.CustomWidth = nested.current.width
@@ -471,6 +479,10 @@ Public NotInheritable Class OverlayConfig
                 If Not r.UseNativeResolution Then
                     s.CustomWidth = r.Width
                     s.CustomHeight = r.Height
+                End If
+                ' PHASE 1 (V-CT4): flat-shape parity for the preset owner.
+                If r.EncoderPreset >= 1 AndAlso r.EncoderPreset <= 7 Then
+                    s.NvencPreset = r.EncoderPreset
                 End If
                 s.ActivePreset = r.Preset
                 s.ReplayDuration = r.ReplayDuration

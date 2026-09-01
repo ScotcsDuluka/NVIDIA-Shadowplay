@@ -40,6 +40,9 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         Public Property LockBitstream As NvEncodeAPI.NvEncLockBitstreamDelegate
         Public Property UnlockBitstream As NvEncodeAPI.NvEncUnlockBitstreamDelegate
 
+        ' PHASE 1 VIDEO RUNTIME WIRING: driver-side preset config retrieval
+        Public Property GetPresetConfig As NvEncodeAPI.NvEncGetEncodePresetConfigDelegate
+
         Public ReadOnly Property MaxSupportedApiVersion As UInteger
             Get
                 Return _maxSupportedApiVersion
@@ -122,6 +125,8 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
                     Of NvEncodeAPI.NvEncLockBitstreamDelegate)(_fnList.nvEncLockBitstream)
                 UnlockBitstream = Marshal.GetDelegateForFunctionPointer(
                     Of NvEncodeAPI.NvEncUnlockBitstreamDelegate)(_fnList.nvEncUnlockBitstream)
+                GetPresetConfig = Marshal.GetDelegateForFunctionPointer(
+                    Of NvEncodeAPI.NvEncGetEncodePresetConfigDelegate)(_fnList.nvEncGetEncodePresetConfig)
 
                 _loaded = True
                 Return True

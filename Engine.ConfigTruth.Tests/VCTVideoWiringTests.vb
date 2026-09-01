@@ -96,6 +96,18 @@ Friend Module VCTVideoWiringTests
         TestRunner.RunTest(
             "V-CT2c custom dims LARGER than capture → loud failure (no silent fallback)",
             AddressOf VCT2c_OversizedCustom_FailsLoudly)
+        TestRunner.RunTest(
+            "V-CT3 config bitrate 10200 kbps → 10,200,000 bps through every layer",
+            AddressOf VCT3_BitrateKbps_ToBps_AllLayers)
+        TestRunner.RunTest(
+            "V-CT3b bitrate reaches EncoderConfig unchanged (engine mapping)",
+            AddressOf VCT3b_Bitrate_ReachesEncoderStartupConfig)
+        TestRunner.RunTest(
+            "V-CT4 config encoder_preset=7 → internal preset 'p7' (single mapper)",
+            AddressOf VCT4_EncoderPreset_MappedToInternalPreset)
+        TestRunner.RunTest(
+            "V-CT4b encoder_preset out of range → engine.json fallback → p4",
+            AddressOf VCT4b_Preset_FallbackChain)
     End Sub
 
     ''' <summary>
@@ -223,6 +235,91 @@ Friend Module VCTVideoWiringTests
         End Try
         TestRunner.Assert(threw,
                           "oversized custom resolution must throw ArgumentException (loud failure), not silently fall back to the desktop size")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT3: the owner sets bitrate=10200 (kbps) in config.json →
+    ''' CaptureSettings.Bitrate = 10,200,000 bps (kbps→bps in the unified
+    ''' apply) → EngineStartupConfig.BitrateBps = 10,200,000 — bit-exact at
+    ''' every layer, no kbps/bps drift.
+    ''' </summary>
+    Private Sub VCT3_BitrateKbps_ToBps_AllLayers()
+        WriteVideoConfig(VideoConfigJson(60, 10200, 4, True, 1920, 1080))
+
+        Dim settings As CaptureSettings =
+            CaptureSettings.Load(NextRecordingConfig.EngineConfigPath())
+        TestRunner.Assert(settings.Bitrate = 10200000L,
+                          $"layer 1 (CaptureSettings.Bitrate): expected 10,200,000 bps (10200 kbps × 1000), got {settings.Bitrate}")
+
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+        TestRunner.Assert(startup.BitrateBps = 10200000L,
+                          $"layer 2 (EngineStartupConfig.BitrateBps): expected 10,200,000 bps, got {startup.BitrateBps}")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT3b: the engine's EncoderConfig mapping preserves the bitrate
+    ''' exactly (RecordingEngine.Initialize maps startup → EncoderConfig with
+    ''' minrate = maxrate = bitrate for CBR; verified here at the mapping
+    ''' expression level by re-running the same If() logic the engine uses —
+    ''' the NVENC-side consumption is proven by V-CT5 in Encoder.Tests).
+    ''' </summary>
+    Private Sub VCT3b_Bitrate_ReachesEncoderStartupConfig()
+        WriteVideoConfig(VideoConfigJson(60, 10200, 4, True, 1920, 1080))
+
+        Dim startup As EngineStartupConfig =
+            NextRecordingConfig.MapStartupConfig(
+                CaptureSettings.Load(NextRecordingConfig.EngineConfigPath()))
+
+        ' Same mapping expression RecordingEngine.Initialize applies:
+        Dim encBitrate As Long = If(startup.BitrateBps > 0, startup.BitrateBps, 20000000L)
+        TestRunner.Assert(encBitrate = 10200000L,
+                          $"EncoderConfig.BitrateBps mapping: expected 10,200,000, got {encBitrate}")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT4: config.json Recording.current.encoder_preset=7 → the internal
+    ''' preset key 'p7' via the SINGLE existing mapper
+    ''' (ConfigMigrator.MapNvencPresetInteger). Pre-wiring this config value
+    ''' was dead in the unified apply path — the engine always used the
+    ''' engine.json Preset string.
+    ''' </summary>
+    Private Sub VCT4_EncoderPreset_MappedToInternalPreset()
+        WriteVideoConfig(VideoConfigJson(60, 17000, 7, True, 1920, 1080))
+
+        Dim settings As CaptureSettings =
+            CaptureSettings.Load(NextRecordingConfig.EngineConfigPath())
+        TestRunner.Assert(settings.NvencPreset = 7,
+                          $"control: CaptureSettings.NvencPreset expected 7 (config encoder_preset), got {settings.NvencPreset} — unified apply does not map encoder_preset")
+
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+        TestRunner.Assert(startup.Preset = "p7",
+                          $"effective: EngineStartupConfig.Preset expected 'p7' (single mapper), got '{startup.Preset}'")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT4b: fallback chain — an out-of-range encoder_preset is NOT
+    ''' applied by the unified apply (stays at the model default 4 → 'p4'),
+    ''' and a manually-built settings object with an invalid int + an
+    ''' engine.json-style string falls back to that string. No third preset
+    ''' source exists.
+    ''' </summary>
+    Private Sub VCT4b_Preset_FallbackChain()
+        ' (a) config encoder_preset=99 → unified apply rejects it → default 4 → 'p4'
+        WriteVideoConfig(VideoConfigJson(60, 17000, 99, True, 1920, 1080))
+
+        Dim settings As CaptureSettings =
+            CaptureSettings.Load(NextRecordingConfig.EngineConfigPath())
+        TestRunner.Assert(settings.NvencPreset = 4,
+                          $"(a) out-of-range encoder_preset must be rejected by the unified apply (default 4 kept), got {settings.NvencPreset}")
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+        TestRunner.Assert(startup.Preset = "p4",
+                          $"(a) fallback preset expected 'p4', got '{startup.Preset}'")
+
+        ' (b) engine.json-style compat fallback: invalid int + explicit string
+        Dim s2 As New CaptureSettings() With {.NvencPreset = 0, .Preset = "p2"}
+        Dim startup2 As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(s2)
+        TestRunner.Assert(startup2.Preset = "p2",
+                          $"(b) engine.json Preset compat fallback expected 'p2', got '{startup2.Preset}'")
     End Sub
 
 End Module

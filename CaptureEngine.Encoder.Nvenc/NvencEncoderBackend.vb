@@ -115,8 +115,9 @@ Namespace CaptureEngine.Encoder.Nvenc
         Private _framesSinceIdr As Integer = 0
         Private _gopSize As Integer = 60
 
-        ' ★ real-bitrate evidence counters (exposes the encodeConfig gap:
-        ' configured values are ASPIRATIONAL until NV_ENC_CONFIG interop lands)
+        ' ★ real-bitrate evidence counters (PHASE 1: NV_ENC_CONFIG interop
+        ' landed — configured values now REACH the encoder; this still
+        ' measures the ACTUAL produced bitrate vs the configured one)
         Private _framesEncoded As Long = 0
         Private _bytesEncoded As Long = 0
         Private _encodeStopwatch As Stopwatch = Nothing
@@ -234,46 +235,102 @@ Namespace CaptureEngine.Encoder.Nvenc
             End If
             _logger.Info($"NVENC encoder session opened: 0x{_encoderHandle.ToInt64():x16}")
 
-            ' ─── Initialize encoder (codec + preset + dimensions + bitrate) ─
-            Dim initParams As NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS = Nothing
-            initParams.version = NvEncodeAPI.MakeStructVersion(5) Or (1UI << 31)
-            initParams.encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID
-            initParams.presetGUID = NvEncodeAPI.NV_ENC_PRESET_DEFAULT_GUID
-            initParams.encodeWidth = _encodeWidth
-            initParams.encodeHeight = _encodeHeight
-            initParams.darWidth = _encodeWidth
-            initParams.darHeight = _encodeHeight
-            initParams.frameRateNum = _frameRateNum
-            initParams.frameRateDen = _frameRateDen
-            initParams.enableEncodeAsync = 0  ' synchronous mode
-            initParams.enablePTD = 1  ' presentation order = decode order (default)
-            initParams.bitFields = 0
-            initParams.privDataSize = 0
-            initParams.privData = IntPtr.Zero
-            initParams.encodeConfig = IntPtr.Zero  ' use preset defaults
-            initParams.maxEncodeWidth = _width
-            initParams.maxEncodeHeight = _height
-            initParams.maxMEHintCountsPerBlockL0 = 0
-            initParams.maxMEHintCountsPerBlockL1 = 0
-            initParams.reserved = Nothing
-            initParams.reserved2 = Nothing
+            ' ─── Initialize encoder (codec + preset + dims + bitrate) ─────
+            ' ★ PHASE 1 VIDEO RUNTIME WIRING: the user's video config now
+            ' reaches the native NVENC structures. BEFORE (HEAD ab89372):
+            '   presetGUID = NV_ENC_PRESET_DEFAULT_GUID, encodeConfig =
+            '   IntPtr.Zero, frameRateNum = 60 hardcoded — bitrate / rate
+            '   control / preset / GOP were ASPIRATIONAL (logged, never sent).
+            ' AFTER: preset GUID via the single mapper, frame rate from the
+            ' config FPS, and a REAL NV_ENC_CONFIG carrying bitrate / rate
+            ' control / GOP / no-B-frames.
+            Dim encodeConfigPtr As IntPtr = IntPtr.Zero
+            Dim encodeConfigBytes As Long = 0
+            Try
+                Dim presetKey As String = _encoderConfig.Preset
+                Dim initParams As NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS =
+                    Internal.NvEncParamBuilder.BuildInitializeParams(
+                        _width, _height, _encodeWidth, _encodeHeight,
+                        _encoderConfig.FrameRateFps, presetKey)
+                _frameRateNum = initParams.frameRateNum
+                _frameRateDen = initParams.frameRateDen
 
-            Dim initStatus As UInteger = _nvenc.InitializeEncoder.Invoke(_encoderHandle, initParams)
-            If initStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
-                Dim msg As String = $"NvEncInitializeEncoder failed: status={initStatus} " &
-                                    $"({NvEncodeAPI.NvencStatusToString(initStatus)})"
-                _logger.Error(msg)
-                Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
-                _nvenc.Dispose()
-                _deviceResult.Dispose()
-                _deviceResult = Nothing
-                TransitionToFaulted(msg)
-                Throw New EncoderRuntimeException(msg)
-            End If
+                ' ── Build the NV_ENC_CONFIG ──
+                ' PRIMARY: ask the DRIVER for the chosen preset's own config
+                ' (NvEncGetEncodePresetConfig) and patch only the whitelisted
+                ' user fields — every unconfigured field stays exactly what
+                ' the preset intends. FALLBACK: an explicitly-built minimal
+                ' config (logged loudly — never presented as preset behavior).
+                Dim presetCfg As New NvEncodeAPI.NV_ENC_PRESET_CONFIG()
+                Dim gotPreset As Boolean = False
+                If _nvenc.GetPresetConfig IsNot Nothing Then
+                    presetCfg.version = NvEncodeAPI.NV_ENC_PRESET_CONFIG_VER
+                    Dim pcStatus As UInteger = _nvenc.GetPresetConfig.Invoke(
+                        _encoderHandle, NvEncodeAPI.NV_ENC_CODEC_H264_GUID,
+                        initParams.presetGUID, presetCfg)
+                    gotPreset = (pcStatus = NvEncodeAPI.NV_ENC_SUCCESS)
+                    If Not gotPreset Then
+                        _logger.Warning($"NvEncGetEncodePresetConfig failed: status={pcStatus} ({NvEncodeAPI.NvencStatusToString(pcStatus)}) — building an explicit minimal NV_ENC_CONFIG instead of preset defaults")
+                    End If
+                Else
+                    _logger.Warning("NvEncGetEncodePresetConfig unavailable in the driver function table — building an explicit minimal NV_ENC_CONFIG")
+                End If
+
+                Dim encodeCfg As NvEncodeAPI.NV_ENC_CONFIG
+                If gotPreset Then
+                    encodeCfg = presetCfg.presetCfg
+                    Internal.NvEncParamBuilder.EnsureArrays(encodeCfg)
+                Else
+                    encodeCfg = Internal.NvEncParamBuilder.BuildDefaultEncodeConfig(
+                        _encoderConfig.BitrateBps, _encoderConfig.MaxrateBps,
+                        _encoderConfig.BufsizeBps, _encoderConfig.RateControl,
+                        _encoderConfig.GopSize)
+                End If
+
+                ' ★ THE wiring: bitrate / rate control / GOP / frame rate →
+                ' native NV_ENC_CONFIG fields.
+                Internal.NvEncParamBuilder.ApplyVideoSettings(encodeCfg,
+                    _encoderConfig.BitrateBps, _encoderConfig.MaxrateBps,
+                    _encoderConfig.BufsizeBps, _encoderConfig.RateControl,
+                    _encoderConfig.GopSize)
+
+                encodeConfigPtr = Marshal.AllocHGlobal(Internal.NvEncParamBuilder.SIZEOF_NV_ENC_CONFIG)
+                Marshal.StructureToPtr(encodeCfg, encodeConfigPtr, False)
+                initParams.encodeConfig = encodeConfigPtr
+                encodeConfigBytes = Internal.NvEncParamBuilder.SIZEOF_NV_ENC_CONFIG
+
+                Dim rcEcho As String = If(NvEncodeAPI.IsNamedPresetKey(presetKey), presetKey.Trim().ToLowerInvariant(), "p4 (fallback)")
+                _logger.Info($"NVENC init: preset='{presetKey}' → {rcEcho} GUID, frameRate={initParams.frameRateNum}/{initParams.frameRateDen}, encode {_encodeWidth}x{_encodeHeight} (input {_width}x{_height}), encodeConfig={encodeConfigBytes}B ({If(gotPreset, "driver preset + user patch", "explicit minimal")}), rc={_encoderConfig.RateControl}, bitrate={_encoderConfig.BitrateBps} bps, gop={_encoderConfig.GopSize}")
+
+                Dim initStatus As UInteger = _nvenc.InitializeEncoder.Invoke(_encoderHandle, initParams)
+                If initStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then
+                    Dim msg As String = $"NvEncInitializeEncoder failed: status={initStatus} " &
+                                        $"({NvEncodeAPI.NvencStatusToString(initStatus)})"
+                    _logger.Error(msg)
+                    If encodeConfigPtr <> IntPtr.Zero Then
+                        Marshal.FreeHGlobal(encodeConfigPtr)
+                        encodeConfigPtr = IntPtr.Zero
+                    End If
+                    Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
+                    _nvenc.Dispose()
+                    _deviceResult.Dispose()
+                    _deviceResult = Nothing
+                    TransitionToFaulted(msg)
+                    Throw New EncoderRuntimeException(msg)
+                End If
+
+                ' Config has been consumed by NvEncInitializeEncoder.
+                Marshal.FreeHGlobal(encodeConfigPtr)
+                encodeConfigPtr = IntPtr.Zero
+            Catch ex As Exception
+                If encodeConfigPtr <> IntPtr.Zero Then Marshal.FreeHGlobal(encodeConfigPtr)
+                Throw
+            End Try
+
             Dim resEcho As String = If(_encodeWidth = _width AndAlso _encodeHeight = _height,
                                        $"{_width}x{_height}",
                                        $"{_width}x{_height} → encode {_encodeWidth}x{_encodeHeight}")
-            _logger.Info($"NVENC encoder initialized: {resEcho} H.264 {_encoderConfig.RateControl.ToUpperInvariant()} {_encoderConfig.BitrateBps} bps")
+            _logger.Info($"NVENC encoder initialized: {resEcho} H.264 {_encoderConfig.RateControl.ToUpperInvariant()} {_encoderConfig.BitrateBps} bps (native NV_ENC_CONFIG active — no longer aspirational)")
 
             ' ─── Create bitstream buffer + register encoder texture ─────────
             _resources = New Internal.NvencResources(_logger)
@@ -681,7 +738,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                     _encodeStopwatch.Stop()
                     Dim secsD As Double = _encodeStopwatch.Elapsed.TotalSeconds
                     If _framesEncoded > 0 AndAlso _bytesEncoded > 0 AndAlso secsD > 0.5 Then
-                        _logger.Info($"NvencEncoderBackend: REAL bitrate {_bytesEncoded * 8.0 / secsD / 1000000.0:0.0} Mbps over {secsD:0.0}s ({_framesEncoded} frames) — configured {_encoderConfig.BitrateBps / 1000000.0:0.0} Mbps is ASPIRATIONAL (encodeConfig=IntPtr.Zero)")
+                        _logger.Info($"NvencEncoderBackend: ACTUAL bitrate {_bytesEncoded * 8.0 / secsD / 1000000.0:0.0} Mbps over {secsD:0.0}s ({_framesEncoded} frames) — configured {_encoderConfig.BitrateBps / 1000000.0:0.0} Mbps (NV_ENC_CONFIG rcParams.averageBitRate)")
                     End If
                 End If
             Catch

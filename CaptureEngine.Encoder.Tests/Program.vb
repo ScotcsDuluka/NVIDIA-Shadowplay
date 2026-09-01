@@ -36,6 +36,9 @@ Namespace CaptureEngine.Encoder.Tests
             ' ----- Concurrency tests -----
             Concurrency.EncoderConcurrencyTests.RunAll(AddressOf RunTest)
 
+            ' ----- PHASE 1 VIDEO RUNTIME WIRING (V-CT5) -----
+            NvEncParamBuilderTests.RunAll(AddressOf RunTest)
+
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
             Console.WriteLine(" Result: " & _passed & " passed, " & _failed & " failed, " & (_passed + _failed) & " total")
