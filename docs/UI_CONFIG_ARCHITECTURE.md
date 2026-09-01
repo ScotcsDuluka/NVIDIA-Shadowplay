@@ -1,10 +1,14 @@
 # UI CONFIG ARCHITECTURE — NVIDIA ShadowPlay
 
 - Route: **PHASE 3 — UI CONFIG ARCHITECTURE & SPEC** (read-only audit + design spec; no production code touched)
-- Anchored at commit: **`ab89372`** (`docs(config): CONFIG_OWNERSHIP_MATRIX`, parent `99a5dc0` PHASE 0 CONFIG TRUTH fix wave)
+- Anchored at commit: **`06667e9`** (v1.1 — re-anchored after PHASE 1 video wiring `867aae3..06667e9`; v1.0 audited at `ab89372`, parent `99a5dc0` PHASE 0 CONFIG TRUTH fix wave)
 - Owner: ScotcsDuluka · drafted by GLM/3
 - Companion doc (source of truth for field ownership): **`docs/CONFIG_OWNERSHIP_MATRIX.md`** — this document does not re-decide ownership; it maps the UI layer onto that matrix and specifies the target UI.
-- Method: every finding below was traced from real source at `ab89372`. Format: `path · method/control · line`. Where the repo does not contain something, it is reported `NOT IMPLEMENTED` / `UNKNOWN` — never invented.
+- Method: every finding below was traced from real source. Format: `path · method/control · line`. Where the repo does not contain something, it is reported `NOT IMPLEMENTED` / `UNKNOWN` — never invented.
+
+### Revisions
+- **v1.0** — audited at `ab89372`. All line citations valid at that commit.
+- **v1.1 (this)** — re-anchored at **`06667e9`** after PHASE 1 video wiring landed (`867aae3..06667e9`, V-CT1–5). Updated with fresh source evidence: FPS per-record `NextRecordingConfig.vb:93` → `CaptureSession.vb:495-500`; bitrate/preset/RC/engine-init `NextRecordingConfig.vb:139,156-159` → `RecordingEngine.vb:103-112`; resolution dims `RecordingEngine.vb:88-99`; preset unified mapper NOW EXISTS `OverlayConfig.vb:455-456`; capture-method echo `RecordingEngine.vb:123-127` (gfxcapture = recorded GAP); pixel-format BLOCKER truth line `RecordingEngine.vb:130-135`; backend still hardcoded `RecordingEngine.vb:76`; NVENC backend still unconditional `:82`; validation caps unchanged (`CaptureSettings.Validate()` FPS 1–240, bitrate 1–200 Mbps). Files NOT touched by PHASE 1 (UI_Engine.vb, AppSettings.vb, CaptureSettings.vb, all Overlay forms) keep valid v1.0 citations.
 
 ---
 
@@ -82,17 +86,17 @@ What each group actually has today. "W" = UI writer exists, "M" = mirror/display
 
 ### Capture (ddagrab / gfxcapture / native)
 - `ddagrab`/`gdigrab`/`gfxcapture` are legacy-FFmpeg capture methods: whitelist `CaptureSettings.Validate():493-496`, builder `CaptureEngine/FFmpeg/FFmpegCommandBuilderV2.vb:79-96`, V1 `:94-110`, validator `CaptureEngine/Configuration/ConfigValidator.vb:57`.
-- New Engine **hardcodes** native `DdagrabBackend`: `CaptureEngine.Recording/RecordingEngine.vb:71` (`New DdagrabBackend(_logger)`, no args). `VideoBackendKind` enum has `Ddagrab, GfxCapture` (`CaptureEngine.Video/Contract/VideoBackendKind.vb:11-12`) but **no native GfxCaptureBackend exists** — `IVideoCaptureBackend.vb:8` says "Implemented by DdagrabBackend, GfxCaptureBackend (future)". → **gfxcapture (native) = NOT IMPLEMENTED**.
+- New Engine **hardcodes** native `DdagrabBackend`: `CaptureEngine.Recording/RecordingEngine.vb:76` (`New DdagrabBackend(_logger)`, no args). `VideoBackendKind` enum has `Ddagrab, GfxCapture` (`CaptureEngine.Video/Contract/VideoBackendKind.vb:11-12`) but **no native GfxCaptureBackend exists** — `IVideoCaptureBackend.vb:8` says "Implemented by DdagrabBackend, GfxCaptureBackend (future)". → **gfxcapture (native) = NOT IMPLEMENTED**. PHASE 1 adds an honesty echo: `requested → selected → actual` logged at `RecordingEngine.vb:123-127`; a non-ddagrab request is a **recorded GAP**, not silently accepted.
 - "Duluka Capture" as a literal option: **NOT IMPLEMENTED** — the string exists nowhere in `.vb` source (only as the GitHub owner name `ScotcsDuluka` in docs/README). The real two pipelines in code are *New Engine (native D3D11+NVENC)* vs *Legacy Engine (FFmpeg subprocess)*.
 
 ### Video (FPS / Resolution / Bitrate / Encoder / Preset / Rate Control / Pixel Format)
-- FPS: Overlay `FPS_BOX` (`[5]:2043`, caps `MIN/MAX_FPS_GLOBAL 1–800` `:17-18`, dynamic limits `UpdateFPSLimit:1007`) → `Recording.current.fps` (`SaveSettingsNow:1194`). Engine mirror-edit: `nudFPS` 1–240 (`Designer:292-293`).
-- Resolution: `Resolution_BOX` + `Native` key (`[5]:26, 2082, LoadResolutionBox:1040, ApplyResolutionSelection:1092-1126`) → `current.use_native_resolution/width/height`.
-- Bitrate: `TrackBar_BITRATE` (`[5]:979-1004`, caps 500–150000 kbps `:13-14`) → `current.bitrate` (`:1195`).
+- FPS: Overlay `FPS_BOX` (`[5]:2043`, caps `MIN/MAX_FPS_GLOBAL 1–800` `:17-18`, dynamic limits `UpdateFPSLimit:1007`) → `Recording.current.fps` (`SaveSettingsNow:1194`). Engine mirror-edit: `nudFPS` 1–240 (`Designer:292-293`). **PHASE 1: config FPS is the ONLY fps source** — per record `NextRecordingConfig.vb:93` → `CaptureSession.vb:495` (fallback 60 + loud warning `:498`); display refresh demoted to diagnostics (`:500`).
+- Resolution: `Resolution_BOX` + `Native` key (`[5]:26, 2082, LoadResolutionBox:1040, ApplyResolutionSelection:1092-1126`) → `current.use_native_resolution/width/height`. **PHASE 1: WIRED at engine init** — `ResolveEncodeDimensions` → NVENC encode dims, GPU scale, oversized fails loudly (`RecordingEngine.vb:88-99`).
+- Bitrate: `TrackBar_BITRATE` (`[5]:979-1004`, caps 500–150000 kbps `:13-14`) → `current.bitrate` (`:1195`). **PHASE 1: lands in NVENC `averageBitRate` at engine init** (`NextRecordingConfig.vb:139` → `RecordingEngine.vb:104-106`).
 - Encoder: `cmbEncoder` population `[5]:734-767` (NVENC_H264/HEVC, NVENC_AV1 if supported `:743-745`, QuickSync_H264/HEVC, LibX264/265; **AMF commented out** `:753-757`); ffmpeg probe `EncoderService.CheckAvailability:56`.
-- NVENC preset: preset buttons Low/Medium/High/Custom/MyLow/Medium/High/Recommended/Maximum (`[5]:1265-1354`) → `current.encoder_preset` (`:1198`); `PresetNameToIndex:2009`.
-- **Rate Control: no UI anywhere.** engine.json only (`CaptureSettings.vb:61`, consumed `RecordingEngine.vb:86`).
-- **Pixel Format: no UI anywhere.** engine.json only (`CaptureSettings.vb:59`); V1-only per matrix.
+- NVENC preset: preset buttons Low/Medium/High/Custom/MyLow/Medium/High/Recommended/Maximum (`[5]:1265-1354`) → `current.encoder_preset` (`:1198`); `PresetNameToIndex:2009`. **PHASE 1: the v1.0 mapper gap is CLOSED** — unified apply now maps `encoder_preset → NvencPreset` (`OverlayConfig.vb:455-456`) and a single mapper reaches the NVENC preset GUID (`NextRecordingConfig.vb:156-159`); engine.json `Preset` = compat fallback only.
+- **Rate Control: no UI anywhere.** engine.json only (`CaptureSettings.vb:61`); PHASE 1 applies it into NVENC `rateControlMode` at init (`RecordingEngine.vb:110`). Matrix: move key to config.json later.
+- **Pixel Format: no UI anywhere.** engine.json only (`CaptureSettings.vb:59`). **PHASE 1 truth: config nv12 NOT honored** — runtime is BGRA8 (D3D11) → NVENC ARGB; conversion layer NOT implemented (**BLOCKER P1-PIXFMT**), reported honestly in the truth line `RecordingEngine.vb:130-135`.
 
 ### Audio (System / Mic / Devices / Volume / Tracks / Clock)
 - System+Mic+Volumes+Device+Tracks: Overlay `[6] Audio Capture` (writer) AND Engine `AudioSettingsForm` (writer) AND overlay quick mic toggle `MIC_ICO` (`Sub_Mouse:250`) — three surfaces.
@@ -125,22 +129,22 @@ Classification traced from real usage (not names). Legend: USER / INTERNAL / DIA
 | `Recording.encoder` | **USER** | UI writer `[5]:817-818`; runtime: new engine init `RecordingEngineHost.vb:80-91`, legacy `OverlayConfig.vb:445` |
 | `Recording.encoder_now` | **DIAGNOSTIC** (transition mirror) | written `[5]:818,1191`; engine ignores it at record time (matrix ⚠️; consumed only by `SelectSavedOrBestEncoder:787`) |
 | `Recording.active_preset` | **USER** (preset selection) | `[5]` preset buttons; `ApplyUnified:456` → `ActivePreset` (display/legacy preset name) |
-| `Recording.current.fps` | **USER but not honored by New Engine** (regime C) | persisted `[5]:1194`; new engine display-driven `CaptureSession.vb:541-543`; legacy consumes `OverlayConfig.vb:448` |
-| `Recording.current.bitrate` | **USER, init-frozen** (regime B) | `[5]:1195` → `RecordingEngineHost.vb:93-95` → `RecordingEngine.vb:81-84` one-shot |
-| `Recording.current.encoder_preset` | **USER, duplicated** (engine.json `Preset` is the consumed twin, regime B) | `[5]:1198`; unified apply does NOT map it (`OverlayConfig.vb:447-460`); runtime reads engine.json `Preset` (`RecordingEngineHost.vb:102-104`) |
-| `Recording.current.use_native_resolution` | **USER, not honored by New Engine** (regime C) | `[5]:1201-1212`; backend auto-sizes `RecordingEngine.vb:74,88-89` |
-| `current.width` / `current.height` | **USER, custom-only** | same evidence as native flag |
+| `Recording.current.fps` | **USER, WIRED per record (PHASE 1)** | persisted `[5]:1194`; per-record `NextRecordingConfig.vb:93` → `CaptureSession.vb:495` (fallback 60 + warning `:498`); display refresh diagnostics-only `:500` |
+| `Recording.current.bitrate` | **USER, engine-init contract — lands in NVENC struct (PHASE 1)** | `[5]:1195` → `NextRecordingConfig.vb:139` → `RecordingEngine.vb:104-106` (`averageBitRate`); not re-read per record |
+| `Recording.current.encoder_preset` | **USER, WIRED via single mapper (PHASE 1)** | `[5]:1198` → unified apply `OverlayConfig.vb:455-456` (v1.0 gap CLOSED) → `NextRecordingConfig.vb:156-159` (`MapNvencPresetInteger`) → NVENC preset GUID; engine.json `Preset` = fallback only |
+| `Recording.current.use_native_resolution` | **USER, WIRED at engine init (PHASE 1)** | `[5]:1201-1212` → `ResolveEncodeDimensions` → NVENC encode dims (`RecordingEngine.vb:88-99`); oversized fails loudly |
+| `current.width` / `current.height` | **USER, custom-only (WIRED PHASE 1)** | GPU scale via `ResolveEncodeDimensions` (`RecordingEngine.vb:88-99`); oversized → loud error, no silent fallback |
 | `Recording.replay_duration` | **USER, RESERVED** (replay NOT IMPLEMENTED at engine) | UI `[5]:289,593-596` + replay commands rejected `UI_Engine.vb:524-534` |
 | `Recording.my_presets.*` | **USER** | `[5]:1215-1228`; model `AppSettings.vb:344-357` |
-| `Recording.api_capture` | **LEGACY-ONLY** (persisted, no UI writer, new engine ignores) | model `AppSettings.vb:50,371`; consumed `OverlayConfig.vb:458-460` → legacy `Validate():493` |
-| engine.json `CaptureMethod` | **LEGACY-ONLY** (Engine-UI-writable) | `UI_Engine.vb:1163-1170`, `SaveSettings:660-664`; new engine never reads (`RecordingEngine.vb:71`) |
-| engine.json `PixelFormat` | **LEGACY-ONLY / DEAD in New path** | `CaptureSettings.vb:59`; V1-only (matrix) |
-| engine.json `Preset` | **INTERNAL (consumed)** — duplicate of `encoder_preset` | `:60` → `RecordingEngine.vb:87` |
-| engine.json `RateControl` | **INTERNAL (consumed)** | `:61` → `RecordingEngine.vb:86` |
+| `Recording.api_capture` | **LEGACY-ONLY writer + PHASE 1 echo** (persisted, still no UI writer) | model `AppSettings.vb:50,371`; mapped `OverlayConfig.vb:466-467` → `RequestedCaptureMethod` (`NextRecordingConfig.vb:178`); New Engine logs gap for non-ddagrab (`RecordingEngine.vb:123-127`); legacy consumes `Validate():493` |
+| engine.json `CaptureMethod` | **LEGACY-ONLY writer + DIAGNOSTIC echo (PHASE 1)** | `UI_Engine.vb:1163-1170`, `SaveSettings:660-664`; New Engine: requested→selected→actual log only (`RecordingEngine.vb:123-127`), runtime still ddagrab |
+| engine.json `PixelFormat` | **LEGACY-ONLY + BLOCKER P1-PIXFMT recorded (PHASE 1)** | `CaptureSettings.vb:59`; runtime BGRA8 → NVENC ARGB, nv12 conversion NOT implemented — truth line `RecordingEngine.vb:130-135` |
+| engine.json `Preset` | **INTERNAL compat fallback** (config `encoder_preset` wins since PHASE 1) | `:60` → fallback branch `NextRecordingConfig.vb:156-159`; delete later per matrix §6.6 |
+| engine.json `RateControl` | **INTERNAL (consumed, now lands in NVENC struct)** | `:61` → `RecordingEngine.vb:110` (`rateControlMode`); matrix: move to config.json later |
 | engine.json `FileFormat` | **LEGACY-ONLY** | `:62`; only consumer `GenerateOutputFilename:469-472` |
 | engine.json `FFmpegPath` | **INTERNAL copy** (config.json `Paths.FFmpegPath` is the owner) | `:63`; engine copy should die (matrix 🔴) |
 | engine.json `HotkeyStart/Stop/Toggle` | **DEAD** | `:64-66`; live system reads config.json dict (`HotkeyService.vb:41,49`) |
-| `Audio.*` (all 8 keys) | **USER** (canonical, regime A) | writers `[6]`, `Sub_Mouse:250`, `AudioSettingsForm`; runtime fresh per record `NextRecordingConfig.vb:88-96` |
+| `Audio.*` (all 8 keys) | **USER** (canonical, regime A) | writers `[6]`, `Sub_Mouse:250`, `AudioSettingsForm`; runtime fresh per record `NextRecordingConfig.vb:94-102` |
 | `Audio.AudioClockMode` | **INTERNAL/DIAGNOSTIC** (A/B knob, no UI) | `AppSettings.vb:115-124`; normalized `OverlayConfig.vb:499-501` |
 | `Paths.GalleryPath` / `Paths.SavePath` | **USER** | writers `Sub_Misc:218`, `Gallery/Main:62`; consumed `Sub_Record.vb:94-126`, `OverlayConfig.vb:509-511` |
 | `Paths.FFmpegPath` | **USER** | writer `[5]:558`; fresh after FIX-1 (`RecordingEngineHost.vb:231`) |
@@ -168,11 +172,12 @@ Real graph at `ab89372` (no invented nodes):
      engine.json first → unified config.json WINS (:105-116) → legacy video/audio.json fallback
         |
         +--> [NEW ENGINE path]  _useNewEngine=True (RecordingEngineHost.vb:42)
-        |      RecordingEngine.Initialize(EngineStartupConfig)   ← encoder group, ONE-SHOT (:78-105)
-        |      New DdagrabBackend(_logger)  ← capture API HARDCODED (RecordingEngine.vb:71)
-        |      NvencEncoderBackend.Initialize(EncoderConfig)     ← codec/bitrate/GOP/preset/RC (:77-92)
-        |      StartSession(SessionConfig)  ← audio-only per-record values (NextRecordingConfig.vb:80-99)
-        |      CaptureSession.Run()         ← targetFps = display refresh (CaptureSession.vb:541-543)
+        |      RecordingEngine.Initialize(EngineStartupConfig)   ← encoder group at INIT (:82-112)
+        |      New DdagrabBackend(_logger)  ← capture API HARDCODED (RecordingEngine.vb:76)
+        |      NvencEncoderBackend.Initialize(EncoderConfig)     ← codec/bitrate/preset/RC/GOP/dims (:82,88-112)
+        |      StartSession(SessionConfig)  ← audio + TargetFps per record (NextRecordingConfig.vb:85-102)
+        |      CaptureSession.Run()         ← targetFps = SessionConfig.TargetFps (CaptureSession.vb:495;
+        |                                      display refresh = diagnostics-only :500; PHASE 1 V-CT1)
         |
         +--> [LEGACY path]  _useNewEngine=False (init failure) or btnRecord (UI_Engine.vb:775-807)
                New CaptureEngine(_settings) (UI_Engine.vb:396,787)
@@ -184,13 +189,13 @@ Real graph at `ab89372` (no invented nodes):
 
 | Parent selection | Child control effect | Reason (evidence) |
 |---|---|---|
-| Engine = New (native) | Capture API selector **meaningless** → disable + show "ddagrab (built-in)" | `RecordingEngine.vb:71` hardcodes backend; `VideoBackendKind.GfxCapture` has no native implementation (`IVideoCaptureBackend.vb:8`) |
+| Engine = New (native) | Capture API selector **meaningless** → disable + show "ddagrab (built-in)" | `RecordingEngine.vb:76` hardcodes backend; `VideoBackendKind.GfxCapture` has no native implementation (`IVideoCaptureBackend.vb:8`) |
 | Engine = Legacy (FFmpeg) | Capture API selector **active**: ddagrab / gdigrab / gfxcapture | whitelist `CaptureSettings.vb:493-496`; builders `FFmpegCommandBuilderV2.vb:79-96` |
-| Engine = New | FPS / Resolution / PixelFormat controls are **display-only promises** until VIDEO phase wires them | `CaptureSession.vb:541-543`, `RecordingEngine.vb:74,88-89` (regime C) |
-| Engine = New | Bitrate / Encoder / NVENC preset apply at **next engine restart**, not next recording | NVENC one-shot `RecordingEngine.vb:58,78-92` (regime B) |
+| Engine = New (native) | FPS / Resolution now **live** (PHASE 1); PixelFormat control would be a **labeled lie** until BLOCKER P1-PIXFMT is resolved — must show "runtime BGRA/ARGB" | `CaptureSession.vb:495`, `RecordingEngine.vb:88-99,130-135` |
+| Engine = New | Bitrate / Encoder / NVENC preset / RC apply at **next engine restart** (init contract); FPS is the exception — **per record** | NVENC init `RecordingEngine.vb:82,103-112`; per-record FPS `NextRecordingConfig.vb:93` |
 | Engine = Legacy | FPS / Resolution / Bitrate / Preset / PixelFormat / FileFormat all live | `FFmpegCommandBuilderV1/V2` read them per record |
 | Engine init failed | Engine silently falls back to legacy + logs `★★ PIPELINE = LEGACY` | `[Engine] Client.vb:255-259`, `RecordingEngineHost.vb:112-118` |
-| Encoder = non-NVENC (QuickSync/LibX) on New Engine | **Not supported by NVENC backend** — must route to legacy or be blocked | `RecordingEngine.vb:77` constructs `NvencEncoderBackend` unconditionally; `CaptureEngine.Encoder.Nvenc` is the only real backend (`CaptureEngine.Encoder/Backends/Fake/FakeEncoderBackend.vb` = test fake) |
+| Encoder = non-NVENC (QuickSync/LibX) on New Engine | **Not supported by NVENC backend** — must route to legacy or be blocked | `RecordingEngine.vb:82` constructs `NvencEncoderBackend` unconditionally; `CaptureEngine.Encoder.Nvenc` is the only real backend (`CaptureEngine.Encoder/Backends/Fake/FakeEncoderBackend.vb` = test fake) |
 | NVENC_AV1 | shown only when `AppSettings.SupportsNVENCAV1` | `[5]:743-745`, detection `AppSettings.HardwareDetection.vb` |
 | `chkNativeRes` checked | resolution dropdown disabled | `UI_Engine.vb:1150-1152` (Engine side), `[5]:1092+` (Overlay side) |
 | Mic OFF | mic device/volume/tracks controls irrelevant for the record | `SessionConfig.MicEnabled` gate `NextRecordingConfig.vb:90` |
@@ -205,9 +210,10 @@ Target matrix for the settings UI. Values are grounded in what the repo supports
 
 | PARENT | VALUE | CONTROL | VISIBLE | ENABLED | REQUIRED | DEFAULT | REASON |
 |---|---|---|---|---|---|---|---|
-| Engine | New (native) | Capture API group | yes | **disabled** ("ddagrab built-in") | — | ddagrab | `RecordingEngine.vb:71` |
-| Engine | New (native) | FPS / Resolution / PixelFormat | yes | enabled but flagged "applies to Legacy engine / VIDEO phase" | no | from config | regime C — runtime ignores (`CaptureSession.vb:541-543`) |
-| Engine | New (native) | Bitrate / Encoder / Preset | yes | enabled, labeled "engine restart required" | yes | NVENC_H264 / 20000 kbps / p4 | regime B one-shot `RecordingEngine.vb:78-92` |
+| Engine | New (native) | Capture API group | yes | **disabled** ("ddagrab built-in"; request echo logged honestly `RecordingEngine.vb:123-127`) | — | ddagrab | `RecordingEngine.vb:76` |
+| Engine | New (native) | FPS / Resolution | yes | FPS enabled (live per record), Resolution enabled (applies at engine init — label it) | yes | from config | `CaptureSession.vb:495`, `RecordingEngine.vb:88-99` (PHASE 1) |
+| Engine | New (native) | Pixel Format | yes | enabled but flagged "BLOCKER P1-PIXFMT: runtime BGRA/ARGB, config not honored" | no | nv12 | `RecordingEngine.vb:130-135` |
+| Engine | New (native) | Bitrate / Encoder / Preset | yes | enabled, labeled "engine restart required" | yes | NVENC_H264 / 20000 kbps / p4 | NVENC init `RecordingEngine.vb:82,103-112` (regime B) |
 | Engine | Legacy (FFmpeg) | Capture API: ddagrab | yes | yes | yes | ddagrab | `ConfigValidator.vb:57`, `FFmpegCommandBuilderV2.vb:79` |
 | Engine | Legacy (FFmpeg) | Capture API: gdigrab | yes | yes | no | — | `FFmpegCommandBuilderV2.vb:91-92` (CPU capture fallback) |
 | Engine | Legacy (FFmpeg) | Capture API: gfxcapture | yes | yes | no | — | `FFmpegCommandBuilderV2.vb:95-96` (ffmpeg filter exists; **native** gfxcapture = NOT IMPLEMENTED) |
@@ -232,24 +238,24 @@ Uses `docs/CONFIG_OWNERSHIP_MATRIX.md` as ownership source of truth. No new keys
 
 | UI CONTROL (writer) | config.json key | MAPPER | EFFECTIVE RUNTIME FIELD | REGIME |
 |---|---|---|---|---|
-| `[5] FPS_BOX` → `SaveSettingsNow:1194` | `Recording.current.fps` | `ApplyUnifiedToCaptureSettings` `OverlayConfig.vb:448` | `CaptureSettings.FPS` → **legacy** ffmpeg framerate; New Engine **ignores** (`CaptureSession.vb:541-543`) | C |
-| `[5] TrackBar_BITRATE` → `:1195` | `Recording.current.bitrate` | `:449` (kbps→bps) | `CaptureSettings.Bitrate` → `EngineStartupConfig.BitrateBps` (`RecordingEngineHost.vb:93-95`) → NVENC init (`RecordingEngine.vb:81-84`); legacy `-b:v` | B |
-| `[5]` preset buttons → `:1198` | `Recording.current.encoder_preset` | **no unified mapper** (`OverlayConfig.vb:447-460` skips it); legacy video.json only (`CaptureSettings.vb:231`) | New Engine reads engine.json twin `Preset` (`RecordingEngineHost.vb:102-104` → `RecordingEngine.vb:87`) | B (twin) |
-| `[5] Resolution_BOX` → `:1201-1212` | `current.use_native_resolution` / `width` / `height` | `:450-454` | legacy ffmpeg scale; New Engine **ignores** (auto-size `RecordingEngine.vb:74,88-89`) | C |
-| `[5] cmbEncoder` → `:817-818,1190-1191` | `Recording.encoder` (+`encoder_now`) | legacy: `MapEncoderToFfmpeg` `:445,521-535`; new: `MapEncoderToInternal` `RecordingEngineHost.vb:87` | `EngineStartupConfig.CodecKey` → `EncoderConfig.CodecKey` (`RecordingEngine.vb:80`); legacy ffmpeg `-c:v` | B |
+| `[5] FPS_BOX` → `SaveSettingsNow:1194` | `Recording.current.fps` | `ApplyUnifiedToCaptureSettings` `OverlayConfig.vb:448` + `MapSessionConfig` `NextRecordingConfig.vb:93` | `SessionConfig.TargetFps` → CFR pacing + NVENC frameRateNum — **per record, PHASE 1 (V-CT1)**; legacy ffmpeg framerate unchanged | A→B |
+| `[5] TrackBar_BITRATE` → `:1195` | `Recording.current.bitrate` | `:449` (kbps→bps) → `MapStartupConfig` `NextRecordingConfig.vb:139` | `EncoderConfig.BitrateBps` → NVENC `averageBitRate` at engine init (**PHASE 1, V-CT3**); legacy `-b:v` | B |
+| `[5]` preset buttons → `:1198` | `Recording.current.encoder_preset` | **mapper NOW EXISTS (PHASE 1, V-CT4)**: `OverlayConfig.vb:455-456` → `NvencPreset` → `NextRecordingConfig.vb:156-159` (`MapNvencPresetInteger`) → NVENC preset GUID | runtime consumes config value; engine.json `Preset` = fallback only | A→B |
+| `[5] Resolution_BOX` → `:1201-1212` | `current.use_native_resolution` / `width` / `height` | `:450-454` → `MapStartupConfig` → `ResolveEncodeDimensions` | NVENC encode dims at engine init (**PHASE 1, V-CT2**, GPU scale `RecordingEngine.vb:88-99`); legacy ffmpeg scale unchanged | A→B |
+| `[5] cmbEncoder` → `:817-818,1190-1191` | `Recording.encoder` (+`encoder_now`) | legacy: `MapEncoderToFfmpeg` `:445,521-535`; new: `MapEncoderToInternal` `RecordingEngineHost.vb:91` | `EngineStartupConfig.CodecKey` → `EncoderConfig.CodecKey` (`RecordingEngine.vb:102`); legacy ffmpeg `-c:v` | B |
 | `[5] TrackBar_Replaylast` → `:289` | `Recording.replay_duration` | none | **no runtime consumer** (replay NOT IMPLEMENTED, `UI_Engine.vb:524-534`) | — |
-| `[6] chkSystem/chkMic/trk*/cboMic/rad*` → `SaveToSettings:109-142` | `Audio.*` (8 keys) | `ApplyUnifiedToCaptureSettings` `:483-503` (incl. `AudioClockMode:499-501`) | `SessionConfig` audio fields `NextRecordingConfig.vb:88-96` | **A (fresh)** |
+| `[6] chkSystem/chkMic/trk*/cboMic/rad*` → `SaveToSettings:109-142` | `Audio.*` (8 keys) | `ApplyUnifiedToCaptureSettings` `:483-503` (incl. `AudioClockMode:511-512`) | `SessionConfig` audio fields `NextRecordingConfig.vb:94-102` | **A (fresh)** |
 | `MIC_ICO` overlay toggle (`Sub_Mouse.vb:250-260`) | `Audio.MicEnabled` | same as above | same as above | A |
 | `[4]` labels (`SaveBinding:176-182`) | `Hotkeys.<ActionKey>` (10 keys) | `HotkeyService.Get/Set` `:40-53` | `RegisterAll` OS hotkeys `:74-86` | LIVE |
 | `[9] TogglePrivacy` → `:53-54` | `Privacy.DesktopCaptureEnabled` | `Sub_Record` guard `IsPrivacyEnabled` | record gate | LIVE |
 | Launcher `Use_Overlay` (`Main.vb:115-123`) | `Overlay.UseOverlayEnabled` | `AppConfigShared` shared readers | API hub keep-alive (`NVIDIA API.vb:131-133`) | LIVE |
 | `[7]` toggles/slots | `Notifications.*`, `SlotCount` | `AppConfigShared` at display time (single choke point, `AppSettings.vb:186-191`) | Notifier toasts | LIVE |
-| `[5]` auto-detect (`:558`) | `Paths.FFmpegPath` | `ApplyUnified:506-508` + FIX-1 reload `RecordingEngineHost.vb:214-231` | `SessionConfig.FFmpegPath` / ffmpeg args | **A** |
+| `[5]` auto-detect (`:558`) | `Paths.FFmpegPath` | `ApplyUnified:506-508` + FIX-1 reload `RecordingEngineHost.vb:191-211` | `SessionConfig.FFmpegPath` / ffmpeg args | **A** |
 | `Sub_Misc:218` / `Gallery/Main:62` | `Paths.GalleryPath` / `SavePath` | `ApplyUnified:509-511` | `SessionConfig` output dir / `GetOutputDirectory:94-126` | A |
-| `UI_Engine cboCaptureMethod` → engine.json | engine.json `CaptureMethod` | `LoadEngineSettings:279` | **legacy only** (`Validate:493`, V1/V2 builders); New Engine ignores | LEGACY |
+| `UI_Engine cboCaptureMethod` → engine.json | engine.json `CaptureMethod` | `LoadEngineSettings:279` | **legacy only** (`Validate:493`, V1/V2 builders); New Engine: echo log only (`RecordingEngine.vb:123-127`) | LEGACY |
 | `UI_Engine nudFPS/nudBitrate/chkNativeRes/txtOutputDir/txtFFmpegPath` → engine.json (`SaveSettings:652-667`) | engine.json keys | `LoadEngineSettings:273-295` | legacy path; New Engine: only FFmpegPath via fresh reload | LEGACY/B |
 
-**Key gap made visible by this table:** `Recording.current.encoder_preset` (the value the user actually edits) has no unified mapper into `CaptureSettings.NvencPreset`; the New Engine consumes its engine.json twin `Preset` frozen at init. Any UI that lets the user change preset and expects next-recording effect is currently a "UI guessed state".
+**Key gap status (v1.1): CLOSED by PHASE 1.** v1.0 flagged that `Recording.current.encoder_preset` had no unified mapper and the New Engine consumed its engine.json twin frozen at init. Since `06667e9` the config value flows through a single mapper path (`OverlayConfig.vb:455-456` → `NextRecordingConfig.vb:156-159`). Remaining init-contract caveat: bitrate/preset/RC/resolution apply at ENGINE INIT, not per record — the UI must still label them "engine restart required"; FPS is per-record since PHASE 1 (V-CT1).
 
 ---
 
@@ -372,8 +378,9 @@ Existing validation facts to build on:
 Goal: open one panel and know **what the Engine is actually recording with right now**. Four columns per row: `Requested` (config.json) → `Effective` (post-mapper CaptureSettings/SessionConfig) → `Actual` (runtime telemetry) → `Output` (file truth via ffprobe).
 
 Existing building blocks (reuse, don't reinvent):
-- Requested↔Effective echo already exists in logs: `[RecordingEngine] effective config (fresh reload): …` (`RecordingEngineHost.vb:222-226`) and `RecordingEngineHost` FIX-1 publish.
-- Actual telemetry exists: `OnEngineProgress` frames/size/actual-bitrate (`UI_Engine.vb:1105-1146`), NVENC init line (`RecordingEngine.vb:92`), capture init line (`:74`).
+- Requested↔Effective echo already exists in logs: `[RecordingEngine] effective config (fresh reload): …` (`RecordingEngineHost.vb:211`) and `RecordingEngineHost` FIX-1 publish.
+- **PHASE 1 added three first-class truth lines** (the panel's first rows are already logged): capture-method `requested → selected → actual` with GAP marking (`RecordingEngine.vb:123-127`), pixel-format truth incl. BLOCKER P1-PIXFMT (`:130-135`), fps source line (`CaptureSession.vb:500`), plus resolution echo (`RecordingEngine.vb:101-105`).
+- Actual telemetry exists: `OnEngineProgress` frames/size/actual-bitrate (`UI_Engine.vb:1105-1146`), NVENC init line, capture init line (`RecordingEngine.vb:79`).
 - Output truth: ffprobe acceptance layer (matrix §3, Configuration Truth Rule) + `SessionResult` (`RecordingEngineHost.vb:290-293`).
 - A legacy command preview already exists but is DEAD: `GET_FFMPEG_ARGS` sent by `[5]:1924` has **no engine handler** (`[Engine] Client.vb` ignores non-`engine_*` commands `:196`) — `prearg` always shows "engine not connected". The new panel should replace it.
 
@@ -382,13 +389,14 @@ Panel spec:
 | ROW | REQUESTED (config.json) | EFFECTIVE (mapper output) | ACTUAL (runtime) | OUTPUT (file) |
 |---|---|---|---|---|
 | Engine | — | `_useNewEngine` + reason (`RecordingEngineHost.vb:47,117`) | pipeline marker per record (`[Engine] Client.vb:258`) | which mux wrote the file |
-| Capture API | `api_capture` / engine.json `CaptureMethod` | resolved backend (`Ddagrab` native or `ffmpeg_*`) | `DdagrabBackend initialized … @ Hz` (`RecordingEngine.vb:74`) | ffprobe codec/dimensions |
-| FPS | `current.fps` | regime flag: display-refresh (C) or configured | CFR target `@ {targetFps}fps` (`CaptureSession.vb:549`) + measured fps | ffprobe r_frame_rate |
-| Resolution | `current.use_native_resolution` + W×H | native output size (`RecordingEngine.vb:74,88-89`) | encoded size per frame | ffprobe width/height |
-| Encoder | `Recording.encoder` | internal key after `MapEncoderToInternal` (`RecordingEngineHost.vb:87-91`) | NVENC init line (`RecordingEngine.vb:92`) | ffprobe codec_name |
+| Capture API | `api_capture` / engine.json `CaptureMethod` | resolved backend — PHASE 1 echo: requested→selected→actual (`RecordingEngine.vb:123-127`) | `DdagrabBackend initialized … @ Hz` (`RecordingEngine.vb:79`) | ffprobe codec/dimensions |
+| FPS | `current.fps` | PHASE 1: config is the single owner — `SessionConfig.TargetFps` (`NextRecordingConfig.vb:93`) | CFR target `@ {targetFps}fps` (`CaptureSession.vb:500,549`) + measured fps | ffprobe r_frame_rate |
+| Resolution | `current.use_native_resolution` + W×H | `ResolveEncodeDimensions` output (`RecordingEngine.vb:88-99`) | encoded size per frame | ffprobe width/height |
+| Encoder | `Recording.encoder` | internal key after `MapEncoderToInternal` (`RecordingEngineHost.vb:91`) | NVENC init line (`RecordingEngine.vb:102-112`) | ffprobe codec_name |
+| Pixel Format | engine.json `PixelFormat` | truth: config not honored (BLOCKER P1-PIXFMT, `RecordingEngine.vb:130-135`) | BGRA8 capture → ARGB NVENC input | ffprobe pix_fmt |
 | Preset | `current.encoder_preset` | `MapNvencPreset` result (`OverlayConfig.vb:582-593`) | preset in init line | — |
 | Bitrate | `current.bitrate` | bps after ×1000 (`:449`) | `Actual: X Mbps / target Y` (`UI_Engine.vb:1128-1133`) | ffprobe bit_rate |
-| Audio | `Audio.*` | `SessionConfig` audio fields (`NextRecordingConfig.vb:88-96`) + clock mode | `effective config` echo (`:222-226`), `SessionResult` audio counters (`:291-293`) | ffprobe audio streams |
+| Audio | `Audio.*` | `SessionConfig` audio fields (`NextRecordingConfig.vb:94-102`) + clock mode | `effective config` echo (`RecordingEngineHost.vb:211`), `SessionResult` audio counters (`:291-293`) | ffprobe audio streams |
 | Output | `Paths.GalleryPath/SavePath` | `SessionConfig.OutputPath` | file size live (`UI_Engine.vb:1112-1123`) | ffprobe duration/streams |
 
 Placement: this panel belongs in the Engine WinForms (diagnostic role, §9) mirrored read-only into the Overlay's engine-status area; data transported over the existing TCP channel (`engine_recording_progress` precedent, `UI_Engine.vb:1139-1143`).
@@ -407,17 +415,18 @@ SETTINGS (Overlay — S1, writes config.json only)
 │  │     runtime truth: RecordingEngineHost.vb:42,117 · [Engine] Client.vb:247-259
 │  └─ Capture API (ddagrab | gdigrab | gfxcapture)
 │        owner: config.json Recording.api_capture (key exists: AppSettings.vb:371;
-│        consumed: OverlayConfig.vb:458-460 → legacy builders; New Engine: built-in ddagrab
-│        RecordingEngine.vb:71 — control disabled there, no GfxCapture native backend)
+│        mapped: OverlayConfig.vb:466-467 → legacy builders; New Engine: built-in ddagrab
+│        RecordingEngine.vb:76 — control disabled there; non-ddagrab request = honest GAP echo
+│        RecordingEngine.vb:123-127; no GfxCapture native backend)
 │
 ├─ VIDEO                          ← page [5] (Base_RecordingsSet), owner of Recording.*
-│  ├─ FPS                → Recording.current.fps            (regime C today)
-│  ├─ Resolution         → current.use_native_resolution/width/height (C)
-│  ├─ Encoder            → Recording.encoder                (B)
-│  ├─ Preset             → current.encoder_preset           (B, unify with engine.json Preset per matrix)
-│  ├─ Bitrate            → current.bitrate                  (B)
-│  ├─ Rate Control       → engine.json RateControl today; move to config.json per matrix 🟡
-│  └─ Pixel Format       → engine.json PixelFormat today; move per matrix 🔴 (VIDEO phase)
+│  ├─ FPS                → Recording.current.fps            (WIRED PHASE 1 — per record ✅ V-CT1)
+│  ├─ Resolution         → current.use_native_resolution/width/height (WIRED PHASE 1 — engine init, label it ✅ V-CT2)
+│  ├─ Encoder            → Recording.encoder                (B — init contract)
+│  ├─ Preset             → current.encoder_preset           (WIRED PHASE 1 — single mapper ✅ V-CT4)
+│  ├─ Bitrate            → current.bitrate                  (WIRED PHASE 1 — engine init, label it V-CT3)
+│  ├─ Rate Control       → engine.json RateControl (lands in NVENC struct); move to config.json per matrix 🟡
+│  └─ Pixel Format       → engine.json PixelFormat; BLOCKER P1-PIXFMT — UI must show "runtime BGRA/ARGB" 🔴
 │
 ├─ AUDIO                          ← page [6] (Base_AudioSet), owner of Audio.* (regime A ✅)
 │  ├─ System Audio (+volume 0–100 spec; 150% UI overshoot fixed per §11)
@@ -452,8 +461,8 @@ Ordered so that no step creates a second apply-path or breaks a working group (r
 3. **Paths unify** — `Paths.FFmpegPath` single owner (matrix wire item #1); remove GalleryPath double-writer (`Gallery/Main.vb:62` vs `Sub_Misc.vb:218`).
 4. **Diagnostics panel (§12)** — buildable NOW: it only reads existing echoes/logs/progress events; also removes the dead `GET_FFMPEG_ARGS` feature (`[5]:1924`).
 5. **ENGINE + Capture API section** — after Phase 0 lands a canonical key for engine selection (does NOT exist today — must be added by OWNER/Phase 0, not invented by UI) and `api_capture` is wired (matrix wire item #5). Until then show read-only pipeline status only.
-6. **VIDEO-phase wiring** — `current.fps`, resolution group, `CaptureMethod`, `PixelFormat` (matrix wire items #5–7); UI keeps regime labels ("display-driven") until each lands, gated by real-record ffprobe evidence.
-7. **Encoder group** — per-record NVENC re-init or explicit restart contract (matrix wire item #7, Phase 4); then `[5]` preset/encoder can promise next-recording effect.
+6. **VIDEO-phase wiring** — ✅ FPS + resolution group WIRED (PHASE 1, V-CT1/2, verified `CaptureSession.vb:495`, `RecordingEngine.vb:88-99`); remaining: PixelFormat (BLOCKER P1-PIXFMT — needs GPU conversion layer), native gfxcapture backend, `api_capture` UI writer on config.json. UI labels: FPS "live per record"; resolution/bitrate/preset "engine restart required"; PixelFormat honest "runtime BGRA/ARGB".
+7. **Encoder group** — bitrate/preset/RC land in native NVENC structs at INIT (V-CT3/4/5, verified `RecordingEngine.vb:102-112`); remaining: per-record NVENC re-init OR explicit restart contract + UI badge before `[5]` preset/encoder can promise next-recording effect.
 8. **Replay** — UI stays disabled until engine implements `engine_replay_*` (today `not_implemented`, `UI_Engine.vb:524-534`); `replay_duration` stays "reserved".
 9. **Cleanup** — delete engine.json dead twins (HotkeyStart/Stop/Toggle, PixelFormat if retired) only after 1–6 are green per matrix §6.6.
 
@@ -466,12 +475,12 @@ For this spec to be considered implemented (future phases, each with path+method
 1. `config.json` is the only user-writable store: grep-level proof that no UI control writes `engine.json`/`video.json`/`audio.json` (today: `UI_Engine.vb:493,581,666`; `AudioSettingsForm.vb:117-128`).
 2. One UI writer per setting (§7 duplicate table resolved); mic state no longer derived from icon text (`Sub_Mouse.vb:251-255`).
 3. Engine WinForms shows Requested/Effective/Actual/Output with no writable config controls; pipeline (new/legacy + fallback reason) visible without reading logs.
-4. Every regime-B/C control displays its regime (restart-required / display-driven badge) — no control promises an effect the runtime does not deliver (matrix §2 regimes).
-5. Validation caps unified: Overlay UI caps == `CaptureSettings.Validate()` caps (FPS 240, bitrate 200 Mbps) with tests.
+4. Every regime-B control displays its regime (restart-required badge) and every BLOCKER-honoring control displays its blocker (PixelFormat) — no control promises an effect the runtime does not deliver (matrix §2 regimes).
+5. Validation caps unified: Overlay UI caps == `CaptureSettings.Validate()` caps (FPS 240, bitrate 200 Mbps) with tests — caps themselves unchanged by PHASE 1 (verified at `06667e9`).
 6. Volume UI range matches model contract (0–100% or model updated to 1.5) — one decision, documented.
-7. `Recording.current.encoder_preset` has a single mapper path into the runtime (unified apply, `OverlayConfig.vb:447-460` gap closed) before the preset control is presented as live.
+7. ~~`Recording.current.encoder_preset` has a single mapper path into the runtime~~ ✅ **SATISFIED by PHASE 1** (`OverlayConfig.vb:455-456` → `NextRecordingConfig.vb:156-159`, tests V-CT4/4b/5f) — remaining: the preset control may go "live" only together with the restart-contract badge (item 4).
 8. Replay UI disabled until `engine_replay_start` stops returning `not_implemented` (`UI_Engine.vb:524-526`).
-9. Non-NVENC encoder selection either routes to legacy explicitly or is blocked with reason (never silently fails at `RecordingEngine.vb:91`).
+9. Non-NVENC encoder selection either routes to legacy explicitly or is blocked with reason (never silently fails — `NvencEncoderBackend` still constructed unconditionally at `RecordingEngine.vb:82`).
 10. All changes ship with ConfigTruth-style tests (CT pattern, FAIL-first) + real-record ffprobe confirmation (matrix §9).
 
 ---
@@ -493,19 +502,19 @@ For this spec to be considered implemented (future phases, each with path+method
 **Diagnostic/operator UI เป็นหลัก** — เก็บ record/stop, status panel, stress test, hub status, diagnostics panel (§12); ถอน writable config ออกทั้งหมด (§9) เพราะ (a) มันเขียน engine.json ทับความหมายเดียวกับ config.json, (b) `cboEncoder` ไม่เคยถูก persist (`Save():176-191`), (c) `txtOutputDir` เขียนแล้วหาย (`Save():176-191` ไม่มี OutputDirectory), (d) `ValidateFFmpegPath:1225-1229` เป็น empty body — ปัจจุบันมันเป็น config surface ที่ "โกหก" ผู้ใช้
 
 **4) หลัง Phase 0 config contract นิ่งแล้ว UI สามารถสร้างจาก canonical config เดียวได้หรือยัง?**
-**ได้ บางกลุ่ม — และยังไม่ได้ทั้งหมด:**
-- พร้อมตอนนี้ (regime A, wired): Audio ทั้งกลุ่ม (`NextRecordingConfig.vb:88-96`), Paths (FFmpegPath fresh หลัง FIX-1 `RecordingEngineHost.vb:214-231`), Hotkeys, Privacy, Overlay, Notifications, UI
-- ต้องรอ wiring (regime B): Encoder/Bitrate/Preset — NVENC one-shot (`RecordingEngine.vb:58,78-92`), ต้องมี restart-contract หรือ per-record re-init ก่อน (Phase 4)
-- ต้องรอ wiring (regime C): FPS, Resolution, CaptureMethod, PixelFormat — runtime ไม่อ่านเลย (`CaptureSession.vb:541-543`, `RecordingEngine.vb:71,74`) = VIDEO phase
-- ไม่มี key เลย: engine selection — ต้องให้ Phase 0/OWNER ออกแบบก่อน
+**ได้กลุ่มใหญ่ขึ้นมากแล้วตั้งแต่ PHASE 1 (v1.1) — เหลือ 3 จุดที่ยังรอ:**
+- พร้อมตอนนี้ (regime A, wired): Audio ทั้งกลุ่ม (`NextRecordingConfig.vb:94-102`), Paths (FFmpegPath fresh หลัง FIX-1 `RecordingEngineHost.vb:191-211`), Hotkeys, Privacy, Overlay, Notifications, UI
+- **WIRED แล้วตั้งแต่ PHASE 1 (V-CT1–5, ยืนยันที่ `06667e9`)**: FPS (per record `NextRecordingConfig.vb:93` → `CaptureSession.vb:495`), Resolution (engine init `RecordingEngine.vb:88-99`), Bitrate/Preset/RC (engine init `:102-112` + `NextRecordingConfig.vb:139,156-159`) — UI สร้างได้จาก canonical config เดียว แต่กลุ่ม init-contract ต้องติด label "engine restart required"
+- ยังติด: **PixelFormat** (BLOCKER P1-PIXFMT — runtime BGRA/ARGB ไม่มี conversion layer `RecordingEngine.vb:130-135`), **gfxcapture native** (recorded GAP `:123-127`), `api_capture` ยังไม่มี UI writer บน config.json
+- ยังไม่มี key เลย: **engine selection** — ต้องให้ Phase 0/OWNER ออกแบบก่อน (runtime ยังเลือกเองที่ `RecordingEngineHost.vb:42`)
 
 ## VERDICT
 
 ```text
-WAIT FOR CONFIG
+WAIT FOR CONFIG  (v1.1 — เงื่อนไขแคบลงมากจาก v1.0)
 ```
-เหตุผล: สถาปัตยกรรม UI และ ownership พร้อมแล้ว (matrix `ab89372` + เอกสารนี้), กลุ่ม A สร้างจาก canonical config เดียวได้ทันที — แต่ user-facing video controls หลัก (FPS/Resolution/CaptureMethod/Preset) ยังเป็น regime B/C (UI ตั้งแล้ว runtime ไม่ใช้) และ engine selection ยังไม่มี canonical key การสร้าง UI ฉบับเต็มก่อน wire checklist ของ matrix เสร็จ = สร้าง "UI guessed state" ซ้ำขึ้นมาใหม่
-ข้อยกเว้นที่เริ่มได้ทันทีโดยไม่ติด config: (1) ทำ mirror ฝั่ง Engine เป็น read-only, (2) Diagnostics panel §12, (3) mic-state fix, (4) ลบ duplicate writers — ทั้งหมดเป็นการลด UI-guessed state ไม่ใช่เพิ่ม
+เหตุผล (อัปเดตที่ `06667e9`): กลุ่มวิดีโอหลัก (FPS/Resolution/Bitrate/Preset/RC) wired เข้า runtime จริงแล้วตั้งแต่ PHASE 1 (V-CT1–5) — UI สร้างกลุ่มนี้จาก canonical config เดียวได้ (ติด label init-contract ให้ถูก) แต่ยังต้องรอ 3 อย่างก่อนสร้าง UI ฉบับเต็ม: (1) **engine selection ยังไม่มี canonical key** — runtime เลือกเอง (`RecordingEngineHost.vb:42`), (2) **PixelFormat BLOCKER P1-PIXFMT** (`RecordingEngine.vb:130-135`), (3) **UI validation caps ยังไม่ unify** (FPS 1–800 บน Overlay vs 1–240 `CaptureSettings.Validate()`) — การสร้างก่อนครบ = สร้าง "UI guessed state" ซ้ำขึ้นมาใหม่
+เริ่มได้ทันทีโดยไม่ติด config: กลุ่ม A ทั้งหมด + กลุ่ม VIDEO ที่ wired + งานลด UI-guessed state ของ v1.0 (mirror ฝั่ง Engine read-only, diagnostics panel §12, mic-state fix, ลบ duplicate writers)
 
 
 
