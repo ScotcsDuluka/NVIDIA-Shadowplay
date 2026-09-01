@@ -26,8 +26,6 @@ Partial Class Base_Notifications
         Menu_Settings = New Panel()
         Menu_Text = New Label()
         Menu_SubText = New Label()
-        BT_EnableAll = New Label()
-        BT_DisableAll = New Label()
         Card_Recording = New Panel()
         Accent_Recording = New Panel()
         Header_Recording = New Label()
@@ -84,6 +82,26 @@ Partial Class Base_Notifications
         ToggleVersionLatest = New ToggleSwitch()
         Desc_UpdateError = New Label()
         ToggleUpdateError = New ToggleSwitch()
+        Card_ToastSlots = New Panel()
+        Accent_ToastSlots = New Panel()
+        Header_ToastSlots = New Label()
+        ToggleToastSlot3 = New ToggleSwitch()
+        Desc_ToastSlots_SUB = New Label()
+        Desc_ToastSlots3 = New Label()
+        ToggleToastSlot2 = New ToggleSwitch()
+        Desc_ToastSlots = New Label()
+        Card_OBS = New Panel()
+        Accent_OBS = New Panel()
+        Header_OBS = New Label()
+        ObsEnabledToggle = New ToggleSwitch()
+        Desc_OBS = New Label()
+        Panel_OBS = New Panel()
+        Label6 = New Label()
+        PORT_BOX = New TextBox()
+        Label7 = New Label()
+        KEY_BOX = New TextBox()
+        Label8 = New Label()
+        HOST_BOX = New TextBox()
         Card_Errors = New Panel()
         Accent_Errors = New Panel()
         Header_Errors = New Label()
@@ -103,27 +121,8 @@ Partial Class Base_Notifications
         ToggleErrorResolution = New ToggleSwitch()
         Desc_DesktopCaptureDisabled = New Label()
         ToggleDesktopCaptureDisabled = New ToggleSwitch()
-        Card_ToastSlots = New Panel()
-        Accent_ToastSlots = New Panel()
-        Header_ToastSlots = New Label()
-        ToggleToastSlot2 = New ToggleSwitch()
-        Desc_ToastSlots = New Label()
-        Desc_ToastSlots_SUB = New Label()
-        ToggleToastSlot3 = New ToggleSwitch()
-        Desc_ToastSlots3 = New Label()
-        Card_OBS = New Panel()
-        Accent_OBS = New Panel()
-        Header_OBS = New Label()
-        ObsEnabledToggle = New ToggleSwitch()
-        Desc_OBS = New Label()
-        Panel_OBS = New Panel()
-        Label6 = New Label()
-        PORT_BOX = New TextBox()
-        KEY_BOX = New TextBox()
-        Label7 = New Label()
-        Label8 = New Label()
-        HOST_BOX = New TextBox()
-        Label9 = New Label()
+        BT_EnableAll = New Label()
+        BT_DisableAll = New Label()
         Menu_Top_Dim = New PictureBox()
         BT_Back = New Label()
         Dim_Top = New PictureBox()
@@ -136,10 +135,10 @@ Partial Class Base_Notifications
         Card_InstantReplay.SuspendLayout()
         Card_SystemMonitor.SuspendLayout()
         Card_Updates.SuspendLayout()
-        Card_Errors.SuspendLayout()
         Card_ToastSlots.SuspendLayout()
         Card_OBS.SuspendLayout()
         Panel_OBS.SuspendLayout()
+        Card_Errors.SuspendLayout()
         CType(Menu_Top_Dim, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
@@ -159,7 +158,6 @@ Partial Class Base_Notifications
         Menu_Settings.Controls.Add(Card_InstantReplay)
         Menu_Settings.Controls.Add(Card_SystemMonitor)
         Menu_Settings.Controls.Add(Card_Updates)
-        Menu_Settings.Controls.Add(Card_Errors)
         Menu_Settings.Controls.Add(Card_ToastSlots)
         Menu_Settings.Controls.Add(Card_OBS)
         Menu_Settings.Location = New Point(80, 160)
@@ -171,7 +169,7 @@ Partial Class Base_Notifications
         ' 
         Menu_Text.AutoSize = True
         Menu_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Menu_Text.Font = New Font("GeForce", 24F, FontStyle.Bold)
+        Menu_Text.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
         Menu_Text.ForeColor = Color.White
         Menu_Text.Location = New Point(62, 43)
         Menu_Text.Name = "Menu_Text"
@@ -183,39 +181,13 @@ Partial Class Base_Notifications
         ' 
         Menu_SubText.AutoSize = True
         Menu_SubText.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Menu_SubText.Font = New Font("Segoe UI", 10F)
+        Menu_SubText.Font = New Font("Segoe UI", 10.0F)
         Menu_SubText.ForeColor = Color.FromArgb(CByte(154), CByte(160), CByte(166))
         Menu_SubText.Location = New Point(64, 92)
         Menu_SubText.Name = "Menu_SubText"
         Menu_SubText.Size = New Size(273, 19)
         Menu_SubText.TabIndex = 55
         Menu_SubText.Text = "Choose which notifications appear in-game"
-        ' 
-        ' BT_EnableAll
-        ' 
-        BT_EnableAll.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        BT_EnableAll.Cursor = Cursors.Hand
-        BT_EnableAll.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
-        BT_EnableAll.ForeColor = Color.White
-        BT_EnableAll.Location = New Point(286, 116)
-        BT_EnableAll.Name = "BT_EnableAll"
-        BT_EnableAll.Size = New Size(160, 44)
-        BT_EnableAll.TabIndex = 56
-        BT_EnableAll.Text = "Enable all"
-        BT_EnableAll.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' BT_DisableAll
-        ' 
-        BT_DisableAll.BackColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        BT_DisableAll.Cursor = Cursors.Hand
-        BT_DisableAll.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
-        BT_DisableAll.ForeColor = Color.White
-        BT_DisableAll.Location = New Point(452, 121)
-        BT_DisableAll.Name = "BT_DisableAll"
-        BT_DisableAll.Size = New Size(160, 44)
-        BT_DisableAll.TabIndex = 57
-        BT_DisableAll.Text = "Disable all"
-        BT_DisableAll.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Card_Recording
         ' 
@@ -238,14 +210,14 @@ Partial Class Base_Notifications
         Accent_Recording.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Recording.Location = New Point(20, 22)
         Accent_Recording.Name = "Accent_Recording"
-        Accent_Recording.Size = New Size(4, 20)
+        Accent_Recording.Size = New Size(4, 25)
         Accent_Recording.TabIndex = 0
         ' 
         ' Header_Recording
         ' 
         Header_Recording.AutoSize = True
         Header_Recording.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_Recording.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_Recording.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_Recording.ForeColor = Color.White
         Header_Recording.Location = New Point(34, 18)
         Header_Recording.Name = "Header_Recording"
@@ -342,7 +314,7 @@ Partial Class Base_Notifications
         Card_Screenshots.Controls.Add(ToggleValidSavePath)
         Card_Screenshots.Location = New Point(521, 140)
         Card_Screenshots.Name = "Card_Screenshots"
-        Card_Screenshots.Size = New Size(848, 142)
+        Card_Screenshots.Size = New Size(398, 142)
         Card_Screenshots.TabIndex = 11
         ' 
         ' Accent_Screenshots
@@ -350,14 +322,14 @@ Partial Class Base_Notifications
         Accent_Screenshots.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Screenshots.Location = New Point(20, 22)
         Accent_Screenshots.Name = "Accent_Screenshots"
-        Accent_Screenshots.Size = New Size(4, 20)
+        Accent_Screenshots.Size = New Size(4, 25)
         Accent_Screenshots.TabIndex = 0
         ' 
         ' Header_Screenshots
         ' 
         Header_Screenshots.AutoSize = True
         Header_Screenshots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_Screenshots.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_Screenshots.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_Screenshots.ForeColor = Color.White
         Header_Screenshots.Location = New Point(34, 18)
         Header_Screenshots.Name = "Header_Screenshots"
@@ -434,14 +406,14 @@ Partial Class Base_Notifications
         Accent_ShareOverlay.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_ShareOverlay.Location = New Point(20, 22)
         Accent_ShareOverlay.Name = "Accent_ShareOverlay"
-        Accent_ShareOverlay.Size = New Size(4, 20)
+        Accent_ShareOverlay.Size = New Size(4, 25)
         Accent_ShareOverlay.TabIndex = 0
         ' 
         ' Header_ShareOverlay
         ' 
         Header_ShareOverlay.AutoSize = True
         Header_ShareOverlay.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_ShareOverlay.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_ShareOverlay.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_ShareOverlay.ForeColor = Color.White
         Header_ShareOverlay.Location = New Point(34, 18)
         Header_ShareOverlay.Name = "Header_ShareOverlay"
@@ -492,7 +464,7 @@ Partial Class Base_Notifications
         Card_InstantReplay.Controls.Add(ToggleReplayError)
         Card_InstantReplay.Location = New Point(521, 288)
         Card_InstantReplay.Name = "Card_InstantReplay"
-        Card_InstantReplay.Size = New Size(848, 256)
+        Card_InstantReplay.Size = New Size(398, 256)
         Card_InstantReplay.TabIndex = 13
         ' 
         ' Accent_InstantReplay
@@ -500,14 +472,14 @@ Partial Class Base_Notifications
         Accent_InstantReplay.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_InstantReplay.Location = New Point(20, 22)
         Accent_InstantReplay.Name = "Accent_InstantReplay"
-        Accent_InstantReplay.Size = New Size(4, 20)
+        Accent_InstantReplay.Size = New Size(4, 25)
         Accent_InstantReplay.TabIndex = 0
         ' 
         ' Header_InstantReplay
         ' 
         Header_InstantReplay.AutoSize = True
         Header_InstantReplay.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_InstantReplay.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_InstantReplay.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_InstantReplay.ForeColor = Color.White
         Header_InstantReplay.Location = New Point(34, 18)
         Header_InstantReplay.Name = "Header_InstantReplay"
@@ -647,6 +619,7 @@ Partial Class Base_Notifications
         ' 
         ' Card_SystemMonitor
         ' 
+        Card_SystemMonitor.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         Card_SystemMonitor.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_SystemMonitor.Controls.Add(Accent_SystemMonitor)
         Card_SystemMonitor.Controls.Add(Header_SystemMonitor)
@@ -662,7 +635,7 @@ Partial Class Base_Notifications
         Card_SystemMonitor.Controls.Add(ToggleDiskSpaceLow)
         Card_SystemMonitor.Location = New Point(20, 436)
         Card_SystemMonitor.Name = "Card_SystemMonitor"
-        Card_SystemMonitor.Size = New Size(495, 256)
+        Card_SystemMonitor.Size = New Size(495, 384)
         Card_SystemMonitor.TabIndex = 14
         ' 
         ' Accent_SystemMonitor
@@ -670,14 +643,14 @@ Partial Class Base_Notifications
         Accent_SystemMonitor.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_SystemMonitor.Location = New Point(20, 22)
         Accent_SystemMonitor.Name = "Accent_SystemMonitor"
-        Accent_SystemMonitor.Size = New Size(4, 20)
+        Accent_SystemMonitor.Size = New Size(4, 25)
         Accent_SystemMonitor.TabIndex = 0
         ' 
         ' Header_SystemMonitor
         ' 
         Header_SystemMonitor.AutoSize = True
         Header_SystemMonitor.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_SystemMonitor.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_SystemMonitor.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_SystemMonitor.ForeColor = Color.White
         Header_SystemMonitor.Location = New Point(34, 18)
         Header_SystemMonitor.Name = "Header_SystemMonitor"
@@ -817,6 +790,7 @@ Partial Class Base_Notifications
         ' 
         ' Card_Updates
         ' 
+        Card_Updates.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         Card_Updates.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_Updates.Controls.Add(Accent_Updates)
         Card_Updates.Controls.Add(Header_Updates)
@@ -828,7 +802,7 @@ Partial Class Base_Notifications
         Card_Updates.Controls.Add(ToggleUpdateError)
         Card_Updates.Location = New Point(521, 550)
         Card_Updates.Name = "Card_Updates"
-        Card_Updates.Size = New Size(848, 180)
+        Card_Updates.Size = New Size(398, 270)
         Card_Updates.TabIndex = 15
         ' 
         ' Accent_Updates
@@ -836,14 +810,14 @@ Partial Class Base_Notifications
         Accent_Updates.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Updates.Location = New Point(20, 22)
         Accent_Updates.Name = "Accent_Updates"
-        Accent_Updates.Size = New Size(4, 20)
+        Accent_Updates.Size = New Size(4, 25)
         Accent_Updates.TabIndex = 0
         ' 
         ' Header_Updates
         ' 
         Header_Updates.AutoSize = True
         Header_Updates.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_Updates.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_Updates.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_Updates.ForeColor = Color.White
         Header_Updates.Location = New Point(34, 18)
         Header_Updates.Name = "Header_Updates"
@@ -929,6 +903,263 @@ Partial Class Base_Notifications
         ToggleUpdateError.TabIndex = 7
         ToggleUpdateError.Text = "ToggleSwitch"
         ' 
+        ' Card_ToastSlots
+        ' 
+        Card_ToastSlots.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Card_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Card_ToastSlots.Controls.Add(Accent_ToastSlots)
+        Card_ToastSlots.Controls.Add(Header_ToastSlots)
+        Card_ToastSlots.Controls.Add(ToggleToastSlot3)
+        Card_ToastSlots.Controls.Add(Desc_ToastSlots_SUB)
+        Card_ToastSlots.Controls.Add(Desc_ToastSlots3)
+        Card_ToastSlots.Controls.Add(ToggleToastSlot2)
+        Card_ToastSlots.Controls.Add(Desc_ToastSlots)
+        Card_ToastSlots.Location = New Point(925, 476)
+        Card_ToastSlots.Name = "Card_ToastSlots"
+        Card_ToastSlots.Size = New Size(815, 344)
+        Card_ToastSlots.TabIndex = 17
+        ' 
+        ' Accent_ToastSlots
+        ' 
+        Accent_ToastSlots.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Accent_ToastSlots.Location = New Point(20, 22)
+        Accent_ToastSlots.Name = "Accent_ToastSlots"
+        Accent_ToastSlots.Size = New Size(4, 75)
+        Accent_ToastSlots.TabIndex = 0
+        ' 
+        ' Header_ToastSlots
+        ' 
+        Header_ToastSlots.AutoSize = True
+        Header_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Header_ToastSlots.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_ToastSlots.ForeColor = Color.White
+        Header_ToastSlots.Location = New Point(34, 18)
+        Header_ToastSlots.Name = "Header_ToastSlots"
+        Header_ToastSlots.Size = New Size(134, 28)
+        Header_ToastSlots.TabIndex = 1
+        Header_ToastSlots.Text = "TOAST SLOTS"
+        ' 
+        ' ToggleToastSlot3
+        ' 
+        ToggleToastSlot3.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        ToggleToastSlot3.ForeColor = Color.Aquamarine
+        ToggleToastSlot3.ImeMode = ImeMode.Off
+        ToggleToastSlot3.IsOn = False
+        ToggleToastSlot3.Location = New Point(20, 160)
+        ToggleToastSlot3.Name = "ToggleToastSlot3"
+        ToggleToastSlot3.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ToggleToastSlot3.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ToggleToastSlot3.ShowGlow = False
+        ToggleToastSlot3.Size = New Size(48, 24)
+        ToggleToastSlot3.TabIndex = 4
+        ' 
+        ' Desc_ToastSlots_SUB
+        ' 
+        Desc_ToastSlots_SUB.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Desc_ToastSlots_SUB.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Desc_ToastSlots_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
+        Desc_ToastSlots_SUB.ForeColor = Color.White
+        Desc_ToastSlots_SUB.Location = New Point(34, 46)
+        Desc_ToastSlots_SUB.Name = "Desc_ToastSlots_SUB"
+        Desc_ToastSlots_SUB.Size = New Size(760, 52)
+        Desc_ToastSlots_SUB.TabIndex = 6
+        Desc_ToastSlots_SUB.Text = "A new notification enters a free slot instead of replacing the showing one. Turn the second off to route every toast through the main slot only."
+        Desc_ToastSlots_SUB.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Desc_ToastSlots3
+        ' 
+        Desc_ToastSlots3.AutoSize = True
+        Desc_ToastSlots3.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Desc_ToastSlots3.Font = New Font("Segoe UI Semibold", 11.8F)
+        Desc_ToastSlots3.ForeColor = Color.White
+        Desc_ToastSlots3.Location = New Point(78, 160)
+        Desc_ToastSlots3.Name = "Desc_ToastSlots3"
+        Desc_ToastSlots3.Size = New Size(160, 21)
+        Desc_ToastSlots3.TabIndex = 5
+        Desc_ToastSlots3.Text = "Use a third toast slot"
+        ' 
+        ' ToggleToastSlot2
+        ' 
+        ToggleToastSlot2.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        ToggleToastSlot2.ForeColor = Color.Aquamarine
+        ToggleToastSlot2.ImeMode = ImeMode.Off
+        ToggleToastSlot2.IsOn = False
+        ToggleToastSlot2.Location = New Point(20, 117)
+        ToggleToastSlot2.Name = "ToggleToastSlot2"
+        ToggleToastSlot2.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ToggleToastSlot2.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ToggleToastSlot2.ShowGlow = False
+        ToggleToastSlot2.Size = New Size(48, 24)
+        ToggleToastSlot2.TabIndex = 2
+        ' 
+        ' Desc_ToastSlots
+        ' 
+        Desc_ToastSlots.AutoSize = True
+        Desc_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Desc_ToastSlots.Font = New Font("Segoe UI Semibold", 11.8F)
+        Desc_ToastSlots.ForeColor = Color.White
+        Desc_ToastSlots.Location = New Point(78, 116)
+        Desc_ToastSlots.Name = "Desc_ToastSlots"
+        Desc_ToastSlots.Size = New Size(178, 21)
+        Desc_ToastSlots.TabIndex = 3
+        Desc_ToastSlots.Text = "Use a second toast slot"
+        ' 
+        ' Card_OBS
+        ' 
+        Card_OBS.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Card_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Card_OBS.Controls.Add(Accent_OBS)
+        Card_OBS.Controls.Add(Header_OBS)
+        Card_OBS.Controls.Add(ObsEnabledToggle)
+        Card_OBS.Controls.Add(Desc_OBS)
+        Card_OBS.Controls.Add(Panel_OBS)
+        Card_OBS.Location = New Point(925, 140)
+        Card_OBS.Name = "Card_OBS"
+        Card_OBS.Size = New Size(815, 330)
+        Card_OBS.TabIndex = 18
+        ' 
+        ' Accent_OBS
+        ' 
+        Accent_OBS.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Accent_OBS.Location = New Point(20, 22)
+        Accent_OBS.Name = "Accent_OBS"
+        Accent_OBS.Size = New Size(4, 75)
+        Accent_OBS.TabIndex = 0
+        ' 
+        ' Header_OBS
+        ' 
+        Header_OBS.AutoSize = True
+        Header_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Header_OBS.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_OBS.ForeColor = Color.White
+        Header_OBS.Location = New Point(34, 18)
+        Header_OBS.Name = "Header_OBS"
+        Header_OBS.Size = New Size(389, 28)
+        Header_OBS.TabIndex = 1
+        Header_OBS.Text = "OBS Studio WebSocket Integration - Beta"
+        ' 
+        ' ObsEnabledToggle
+        ' 
+        ObsEnabledToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        ObsEnabledToggle.BackColor = Color.Transparent
+        ObsEnabledToggle.ImeMode = ImeMode.Off
+        ObsEnabledToggle.IsOn = False
+        ObsEnabledToggle.Location = New Point(746, 32)
+        ObsEnabledToggle.Name = "ObsEnabledToggle"
+        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
+        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        ObsEnabledToggle.ShowGlow = False
+        ObsEnabledToggle.Size = New Size(48, 24)
+        ObsEnabledToggle.TabIndex = 2
+        ObsEnabledToggle.Text = "ToggleSwitch"
+        ' 
+        ' Desc_OBS
+        ' 
+        Desc_OBS.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Desc_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
+        Desc_OBS.Font = New Font("Segoe UI Semibold", 11.8F)
+        Desc_OBS.ForeColor = Color.White
+        Desc_OBS.Location = New Point(34, 45)
+        Desc_OBS.Name = "Desc_OBS"
+        Desc_OBS.Size = New Size(700, 52)
+        Desc_OBS.TabIndex = 3
+        Desc_OBS.Text = "Allow Notifier to connect to the OBS Studio WebSocket and display notifications based on OBS Studio states or events."
+        Desc_OBS.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' Panel_OBS
+        ' 
+        Panel_OBS.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Panel_OBS.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Panel_OBS.Controls.Add(Label6)
+        Panel_OBS.Controls.Add(PORT_BOX)
+        Panel_OBS.Controls.Add(Label7)
+        Panel_OBS.Controls.Add(KEY_BOX)
+        Panel_OBS.Controls.Add(Label8)
+        Panel_OBS.Controls.Add(HOST_BOX)
+        Panel_OBS.Location = New Point(20, 108)
+        Panel_OBS.Name = "Panel_OBS"
+        Panel_OBS.Size = New Size(774, 196)
+        Panel_OBS.TabIndex = 4
+        ' 
+        ' Label6
+        ' 
+        Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label6.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label6.ForeColor = Color.White
+        Label6.Location = New Point(19, 17)
+        Label6.Name = "Label6"
+        Label6.Size = New Size(89, 27)
+        Label6.TabIndex = 0
+        Label6.Text = "PORT"
+        Label6.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' PORT_BOX
+        ' 
+        PORT_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        PORT_BOX.BorderStyle = BorderStyle.None
+        PORT_BOX.Font = New Font("nvgcshare", 20.0F)
+        PORT_BOX.ForeColor = Color.White
+        PORT_BOX.Location = New Point(19, 47)
+        PORT_BOX.Multiline = True
+        PORT_BOX.Name = "PORT_BOX"
+        PORT_BOX.Size = New Size(96, 34)
+        PORT_BOX.TabIndex = 1
+        PORT_BOX.Text = "Port"
+        PORT_BOX.TextAlign = HorizontalAlignment.Center
+        ' 
+        ' Label7
+        ' 
+        Label7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label7.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label7.ForeColor = Color.White
+        Label7.Location = New Point(121, 17)
+        Label7.Name = "Label7"
+        Label7.Size = New Size(116, 27)
+        Label7.TabIndex = 2
+        Label7.Text = "Key/Password"
+        Label7.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' KEY_BOX
+        ' 
+        KEY_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        KEY_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        KEY_BOX.BorderStyle = BorderStyle.None
+        KEY_BOX.Font = New Font("nvgcshare", 20.0F)
+        KEY_BOX.ForeColor = Color.White
+        KEY_BOX.Location = New Point(121, 47)
+        KEY_BOX.Multiline = True
+        KEY_BOX.Name = "KEY_BOX"
+        KEY_BOX.Size = New Size(633, 34)
+        KEY_BOX.TabIndex = 3
+        KEY_BOX.Text = "Key"
+        KEY_BOX.TextAlign = HorizontalAlignment.Center
+        ' 
+        ' Label8
+        ' 
+        Label8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Label8.Font = New Font("Segoe UI Semibold", 11.8F)
+        Label8.ForeColor = Color.White
+        Label8.Location = New Point(19, 84)
+        Label8.Name = "Label8"
+        Label8.Size = New Size(89, 27)
+        Label8.TabIndex = 4
+        Label8.Text = "HOST"
+        Label8.TextAlign = ContentAlignment.MiddleLeft
+        ' 
+        ' HOST_BOX
+        ' 
+        HOST_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        HOST_BOX.BorderStyle = BorderStyle.None
+        HOST_BOX.Font = New Font("nvgcshare", 20.0F)
+        HOST_BOX.ForeColor = Color.White
+        HOST_BOX.Location = New Point(19, 114)
+        HOST_BOX.Multiline = True
+        HOST_BOX.Name = "HOST_BOX"
+        HOST_BOX.Size = New Size(218, 34)
+        HOST_BOX.TabIndex = 5
+        HOST_BOX.Text = "HOST"
+        HOST_BOX.TextAlign = HorizontalAlignment.Center
+        ' 
         ' Card_Errors
         ' 
         Card_Errors.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
@@ -950,10 +1181,11 @@ Partial Class Base_Notifications
         Card_Errors.Controls.Add(ToggleErrorResolution)
         Card_Errors.Controls.Add(Desc_DesktopCaptureDisabled)
         Card_Errors.Controls.Add(ToggleDesktopCaptureDisabled)
-        Card_Errors.Location = New Point(20, 698)
+        Card_Errors.Location = New Point(35, 1006)
         Card_Errors.Name = "Card_Errors"
-        Card_Errors.Size = New Size(1349, 384)
+        Card_Errors.Size = New Size(495, 384)
         Card_Errors.TabIndex = 16
+        Card_Errors.Visible = False
         ' 
         ' Accent_Errors
         ' 
@@ -967,7 +1199,7 @@ Partial Class Base_Notifications
         ' 
         Header_Errors.AutoSize = True
         Header_Errors.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_Errors.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Header_Errors.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Header_Errors.ForeColor = Color.White
         Header_Errors.Location = New Point(34, 18)
         Header_Errors.Name = "Header_Errors"
@@ -1085,7 +1317,7 @@ Partial Class Base_Notifications
         Desc_EngineNotRunning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_EngineNotRunning.Font = New Font("Segoe UI Semibold", 11.8F)
         Desc_EngineNotRunning.ForeColor = Color.White
-        Desc_EngineNotRunning.Location = New Point(938, 64)
+        Desc_EngineNotRunning.Location = New Point(78, 217)
         Desc_EngineNotRunning.Name = "Desc_EngineNotRunning"
         Desc_EngineNotRunning.Size = New Size(148, 21)
         Desc_EngineNotRunning.TabIndex = 10
@@ -1096,7 +1328,7 @@ Partial Class Base_Notifications
         ToggleEngineNotRunning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleEngineNotRunning.ImeMode = ImeMode.Off
         ToggleEngineNotRunning.IsOn = False
-        ToggleEngineNotRunning.Location = New Point(880, 65)
+        ToggleEngineNotRunning.Location = New Point(20, 218)
         ToggleEngineNotRunning.Name = "ToggleEngineNotRunning"
         ToggleEngineNotRunning.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
         ToggleEngineNotRunning.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -1111,7 +1343,7 @@ Partial Class Base_Notifications
         Desc_EngineUIInUse.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_EngineUIInUse.Font = New Font("Segoe UI Semibold", 11.8F)
         Desc_EngineUIInUse.ForeColor = Color.White
-        Desc_EngineUIInUse.Location = New Point(938, 102)
+        Desc_EngineUIInUse.Location = New Point(78, 255)
         Desc_EngineUIInUse.Name = "Desc_EngineUIInUse"
         Desc_EngineUIInUse.Size = New Size(182, 21)
         Desc_EngineUIInUse.TabIndex = 12
@@ -1122,7 +1354,7 @@ Partial Class Base_Notifications
         ToggleEngineUIInUse.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleEngineUIInUse.ImeMode = ImeMode.Off
         ToggleEngineUIInUse.IsOn = False
-        ToggleEngineUIInUse.Location = New Point(880, 103)
+        ToggleEngineUIInUse.Location = New Point(20, 256)
         ToggleEngineUIInUse.Name = "ToggleEngineUIInUse"
         ToggleEngineUIInUse.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
         ToggleEngineUIInUse.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -1137,7 +1369,7 @@ Partial Class Base_Notifications
         Desc_ErrorResolution.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ErrorResolution.Font = New Font("Segoe UI Semibold", 11.8F)
         Desc_ErrorResolution.ForeColor = Color.White
-        Desc_ErrorResolution.Location = New Point(938, 140)
+        Desc_ErrorResolution.Location = New Point(78, 293)
         Desc_ErrorResolution.Name = "Desc_ErrorResolution"
         Desc_ErrorResolution.Size = New Size(129, 21)
         Desc_ErrorResolution.TabIndex = 14
@@ -1148,7 +1380,7 @@ Partial Class Base_Notifications
         ToggleErrorResolution.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleErrorResolution.ImeMode = ImeMode.Off
         ToggleErrorResolution.IsOn = False
-        ToggleErrorResolution.Location = New Point(880, 141)
+        ToggleErrorResolution.Location = New Point(20, 294)
         ToggleErrorResolution.Name = "ToggleErrorResolution"
         ToggleErrorResolution.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
         ToggleErrorResolution.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -1163,7 +1395,7 @@ Partial Class Base_Notifications
         Desc_DesktopCaptureDisabled.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_DesktopCaptureDisabled.Font = New Font("Segoe UI Semibold", 11.8F)
         Desc_DesktopCaptureDisabled.ForeColor = Color.White
-        Desc_DesktopCaptureDisabled.Location = New Point(938, 178)
+        Desc_DesktopCaptureDisabled.Location = New Point(78, 331)
         Desc_DesktopCaptureDisabled.Name = "Desc_DesktopCaptureDisabled"
         Desc_DesktopCaptureDisabled.Size = New Size(197, 21)
         Desc_DesktopCaptureDisabled.TabIndex = 16
@@ -1174,7 +1406,7 @@ Partial Class Base_Notifications
         ToggleDesktopCaptureDisabled.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleDesktopCaptureDisabled.ImeMode = ImeMode.Off
         ToggleDesktopCaptureDisabled.IsOn = False
-        ToggleDesktopCaptureDisabled.Location = New Point(880, 179)
+        ToggleDesktopCaptureDisabled.Location = New Point(20, 332)
         ToggleDesktopCaptureDisabled.Name = "ToggleDesktopCaptureDisabled"
         ToggleDesktopCaptureDisabled.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
         ToggleDesktopCaptureDisabled.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -1183,268 +1415,33 @@ Partial Class Base_Notifications
         ToggleDesktopCaptureDisabled.TabIndex = 17
         ToggleDesktopCaptureDisabled.Text = "ToggleSwitch"
         ' 
-        ' Card_ToastSlots
+        ' BT_EnableAll
         ' 
-        Card_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Card_ToastSlots.Controls.Add(Accent_ToastSlots)
-        Card_ToastSlots.Controls.Add(Header_ToastSlots)
-        Card_ToastSlots.Controls.Add(ToggleToastSlot2)
-        Card_ToastSlots.Controls.Add(Desc_ToastSlots)
-        Card_ToastSlots.Controls.Add(ToggleToastSlot3)
-        Card_ToastSlots.Controls.Add(Desc_ToastSlots3)
-        Card_ToastSlots.Controls.Add(Desc_ToastSlots_SUB)
-        Card_ToastSlots.Controls.Add(Label9)
-        Card_ToastSlots.Location = New Point(20, 1098)
-        Card_ToastSlots.Name = "Card_ToastSlots"
-        Card_ToastSlots.Size = New Size(848, 200)
-        Card_ToastSlots.TabIndex = 17
+        BT_EnableAll.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        BT_EnableAll.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_EnableAll.Cursor = Cursors.Hand
+        BT_EnableAll.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
+        BT_EnableAll.ForeColor = Color.White
+        BT_EnableAll.Location = New Point(1640, 110)
+        BT_EnableAll.Name = "BT_EnableAll"
+        BT_EnableAll.Size = New Size(200, 50)
+        BT_EnableAll.TabIndex = 56
+        BT_EnableAll.Text = "Enable all"
+        BT_EnableAll.TextAlign = ContentAlignment.MiddleCenter
         ' 
-        ' Accent_ToastSlots
+        ' BT_DisableAll
         ' 
-        Accent_ToastSlots.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        Accent_ToastSlots.Location = New Point(20, 22)
-        Accent_ToastSlots.Name = "Accent_ToastSlots"
-        Accent_ToastSlots.Size = New Size(4, 20)
-        Accent_ToastSlots.TabIndex = 0
-        ' 
-        ' Header_ToastSlots
-        ' 
-        Header_ToastSlots.AutoSize = True
-        Header_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_ToastSlots.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        Header_ToastSlots.ForeColor = Color.White
-        Header_ToastSlots.Location = New Point(34, 18)
-        Header_ToastSlots.Name = "Header_ToastSlots"
-        Header_ToastSlots.Size = New Size(148, 28)
-        Header_ToastSlots.TabIndex = 1
-        Header_ToastSlots.Text = "TOAST SLOTS"
-        ' 
-        ' ToggleToastSlot2
-        ' 
-        ToggleToastSlot2.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        ToggleToastSlot2.ForeColor = Color.Aquamarine
-        ToggleToastSlot2.ImeMode = ImeMode.Off
-        ToggleToastSlot2.IsOn = False
-        ToggleToastSlot2.Location = New Point(20, 65)
-        ToggleToastSlot2.Name = "ToggleToastSlot2"
-        ToggleToastSlot2.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ToggleToastSlot2.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ToggleToastSlot2.ShowGlow = False
-        ToggleToastSlot2.Size = New Size(48, 24)
-        ToggleToastSlot2.TabIndex = 2
-        ' 
-        ' Desc_ToastSlots
-        ' 
-        Desc_ToastSlots.AutoSize = True
-        Desc_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Desc_ToastSlots.Font = New Font("Segoe UI Semibold", 11.8F)
-        Desc_ToastSlots.ForeColor = Color.White
-        Desc_ToastSlots.Location = New Point(78, 64)
-        Desc_ToastSlots.Name = "Desc_ToastSlots"
-        Desc_ToastSlots.Size = New Size(223, 21)
-        Desc_ToastSlots.TabIndex = 3
-        Desc_ToastSlots.Text = "Use a second toast slot"
-        ' 
-        ' ToggleToastSlot3
-        ' 
-        ToggleToastSlot3.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        ToggleToastSlot3.ForeColor = Color.Aquamarine
-        ToggleToastSlot3.ImeMode = ImeMode.Off
-        ToggleToastSlot3.IsOn = False
-        ToggleToastSlot3.Location = New Point(354, 65)
-        ToggleToastSlot3.Name = "ToggleToastSlot3"
-        ToggleToastSlot3.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ToggleToastSlot3.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ToggleToastSlot3.ShowGlow = False
-        ToggleToastSlot3.Size = New Size(48, 24)
-        ToggleToastSlot3.TabIndex = 4
-        ' 
-        ' Desc_ToastSlots3
-        ' 
-        Desc_ToastSlots3.AutoSize = True
-        Desc_ToastSlots3.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Desc_ToastSlots3.Font = New Font("Segoe UI Semibold", 11.8F)
-        Desc_ToastSlots3.ForeColor = Color.White
-        Desc_ToastSlots3.Location = New Point(408, 64)
-        Desc_ToastSlots3.Name = "Desc_ToastSlots3"
-        Desc_ToastSlots3.Size = New Size(195, 21)
-        Desc_ToastSlots3.TabIndex = 5
-        Desc_ToastSlots3.Text = "Use a third toast slot"
-        ' 
-        ' Desc_ToastSlots_SUB
-        ' 
-        Desc_ToastSlots_SUB.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Desc_ToastSlots_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
-        Desc_ToastSlots_SUB.ForeColor = Color.White
-        Desc_ToastSlots_SUB.Location = New Point(74, 128)
-        Desc_ToastSlots_SUB.Name = "Desc_ToastSlots_SUB"
-        Desc_ToastSlots_SUB.Size = New Size(700, 32)
-        Desc_ToastSlots_SUB.TabIndex = 6
-        Desc_ToastSlots_SUB.Text = "A new notification enters a free slot instead of replacing the showing one. Turn the second off to route every toast through the main slot only."
-        Desc_ToastSlots_SUB.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Label9
-        ' 
-        Label9.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Label9.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        Label9.ForeColor = Color.White
-        Label9.Location = New Point(20, 96)
-        Label9.Name = "Label9"
-        Label9.Size = New Size(39, 91)
-        Label9.TabIndex = 7
-        Label9.Text = ""
-        Label9.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Card_OBS
-        ' 
-        Card_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Card_OBS.Controls.Add(Accent_OBS)
-        Card_OBS.Controls.Add(Header_OBS)
-        Card_OBS.Controls.Add(ObsEnabledToggle)
-        Card_OBS.Controls.Add(Desc_OBS)
-        Card_OBS.Controls.Add(Panel_OBS)
-        Card_OBS.Location = New Point(20, 1314)
-        Card_OBS.Name = "Card_OBS"
-        Card_OBS.Size = New Size(848, 330)
-        Card_OBS.TabIndex = 18
-        ' 
-        ' Accent_OBS
-        ' 
-        Accent_OBS.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        Accent_OBS.Location = New Point(20, 22)
-        Accent_OBS.Name = "Accent_OBS"
-        Accent_OBS.Size = New Size(4, 20)
-        Accent_OBS.TabIndex = 0
-        ' 
-        ' Header_OBS
-        ' 
-        Header_OBS.AutoSize = True
-        Header_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Header_OBS.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
-        Header_OBS.ForeColor = Color.White
-        Header_OBS.Location = New Point(34, 18)
-        Header_OBS.Name = "Header_OBS"
-        Header_OBS.Size = New Size(389, 28)
-        Header_OBS.TabIndex = 1
-        Header_OBS.Text = "OBS Studio WebSocket Integration - Beta"
-        ' 
-        ' ObsEnabledToggle
-        ' 
-        ObsEnabledToggle.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        ObsEnabledToggle.ImeMode = ImeMode.Off
-        ObsEnabledToggle.IsOn = False
-        ObsEnabledToggle.Location = New Point(20, 65)
-        ObsEnabledToggle.Name = "ObsEnabledToggle"
-        ObsEnabledToggle.OffColor = Color.FromArgb(CByte(60), CByte(63), CByte(67))
-        ObsEnabledToggle.OnColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        ObsEnabledToggle.ShowGlow = False
-        ObsEnabledToggle.Size = New Size(48, 24)
-        ObsEnabledToggle.TabIndex = 2
-        ObsEnabledToggle.Text = "ToggleSwitch"
-        ' 
-        ' Desc_OBS
-        ' 
-        Desc_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Desc_OBS.Font = New Font("Segoe UI Semibold", 11.8F)
-        Desc_OBS.ForeColor = Color.White
-        Desc_OBS.Location = New Point(78, 60)
-        Desc_OBS.Name = "Desc_OBS"
-        Desc_OBS.Size = New Size(640, 40)
-        Desc_OBS.TabIndex = 3
-        Desc_OBS.Text = "Allow Notifier to connect to the OBS Studio WebSocket and display notifications based on OBS Studio states or events."
-        Desc_OBS.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' Panel_OBS
-        ' 
-        Panel_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Panel_OBS.Controls.Add(Label6)
-        Panel_OBS.Controls.Add(PORT_BOX)
-        Panel_OBS.Controls.Add(Label7)
-        Panel_OBS.Controls.Add(KEY_BOX)
-        Panel_OBS.Controls.Add(Label8)
-        Panel_OBS.Controls.Add(HOST_BOX)
-        Panel_OBS.Location = New Point(20, 116)
-        Panel_OBS.Name = "Panel_OBS"
-        Panel_OBS.Size = New Size(774, 188)
-        Panel_OBS.TabIndex = 4
-        ' 
-        ' Label6
-        ' 
-        Label6.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Label6.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label6.ForeColor = Color.White
-        Label6.Location = New Point(19, 17)
-        Label6.Name = "Label6"
-        Label6.Size = New Size(89, 27)
-        Label6.TabIndex = 0
-        Label6.Text = "PORT"
-        Label6.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' PORT_BOX
-        ' 
-        PORT_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        PORT_BOX.BorderStyle = BorderStyle.None
-        PORT_BOX.Font = New Font("nvgcshare", 20F)
-        PORT_BOX.ForeColor = Color.White
-        PORT_BOX.Location = New Point(19, 47)
-        PORT_BOX.Multiline = True
-        PORT_BOX.Name = "PORT_BOX"
-        PORT_BOX.Size = New Size(96, 34)
-        PORT_BOX.TabIndex = 1
-        PORT_BOX.Text = "Port"
-        PORT_BOX.TextAlign = HorizontalAlignment.Center
-        ' 
-        ' Label7
-        ' 
-        Label7.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Label7.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label7.ForeColor = Color.White
-        Label7.Location = New Point(121, 17)
-        Label7.Name = "Label7"
-        Label7.Size = New Size(116, 27)
-        Label7.TabIndex = 2
-        Label7.Text = "Key/Password"
-        Label7.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' KEY_BOX
-        ' 
-        KEY_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        KEY_BOX.BorderStyle = BorderStyle.None
-        KEY_BOX.Font = New Font("nvgcshare", 20F)
-        KEY_BOX.ForeColor = Color.White
-        KEY_BOX.Location = New Point(121, 47)
-        KEY_BOX.Multiline = True
-        KEY_BOX.Name = "KEY_BOX"
-        KEY_BOX.Size = New Size(633, 34)
-        KEY_BOX.TabIndex = 3
-        KEY_BOX.Text = "Key"
-        KEY_BOX.TextAlign = HorizontalAlignment.Center
-        ' 
-        ' Label8
-        ' 
-        Label8.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
-        Label8.Font = New Font("Segoe UI Semibold", 11.8F)
-        Label8.ForeColor = Color.White
-        Label8.Location = New Point(19, 84)
-        Label8.Name = "Label8"
-        Label8.Size = New Size(89, 27)
-        Label8.TabIndex = 4
-        Label8.Text = "HOST"
-        Label8.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' HOST_BOX
-        ' 
-        HOST_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        HOST_BOX.BorderStyle = BorderStyle.None
-        HOST_BOX.Font = New Font("nvgcshare", 20F)
-        HOST_BOX.ForeColor = Color.White
-        HOST_BOX.Location = New Point(19, 114)
-        HOST_BOX.Multiline = True
-        HOST_BOX.Name = "HOST_BOX"
-        HOST_BOX.Size = New Size(218, 34)
-        HOST_BOX.TabIndex = 5
-        HOST_BOX.Text = "HOST"
-        HOST_BOX.TextAlign = HorizontalAlignment.Center
+        BT_DisableAll.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        BT_DisableAll.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        BT_DisableAll.Cursor = Cursors.Hand
+        BT_DisableAll.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
+        BT_DisableAll.ForeColor = Color.White
+        BT_DisableAll.Location = New Point(1434, 115)
+        BT_DisableAll.Name = "BT_DisableAll"
+        BT_DisableAll.Size = New Size(200, 50)
+        BT_DisableAll.TabIndex = 57
+        BT_DisableAll.Text = "Disable all"
+        BT_DisableAll.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Menu_Top_Dim
         ' 
@@ -1460,7 +1457,7 @@ Partial Class Base_Notifications
         ' 
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(80, 110)
         BT_Back.Name = "BT_Back"
@@ -1502,7 +1499,7 @@ Partial Class Base_Notifications
         ' 
         ' Base_Notifications
         ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1080)
@@ -1514,6 +1511,7 @@ Partial Class Base_Notifications
         Controls.Add(Menu_Top_Dim)
         Controls.Add(Menu_Settings)
         Controls.Add(Dim_Top)
+        Controls.Add(Card_Errors)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_Notifications"
@@ -1537,14 +1535,14 @@ Partial Class Base_Notifications
         Card_SystemMonitor.PerformLayout()
         Card_Updates.ResumeLayout(False)
         Card_Updates.PerformLayout()
-        Card_Errors.ResumeLayout(False)
-        Card_Errors.PerformLayout()
         Card_ToastSlots.ResumeLayout(False)
         Card_ToastSlots.PerformLayout()
         Card_OBS.ResumeLayout(False)
         Card_OBS.PerformLayout()
         Panel_OBS.ResumeLayout(False)
         Panel_OBS.PerformLayout()
+        Card_Errors.ResumeLayout(False)
+        Card_Errors.PerformLayout()
         CType(Menu_Top_Dim, ComponentModel.ISupportInitialize).EndInit()
         CType(Dim_Top, ComponentModel.ISupportInitialize).EndInit()
         CType(Dim_1, ComponentModel.ISupportInitialize).EndInit()
@@ -1657,5 +1655,4 @@ Partial Class Base_Notifications
     Friend WithEvents KEY_BOX As TextBox
     Friend WithEvents Label8 As Label
     Friend WithEvents HOST_BOX As TextBox
-    Friend WithEvents Label9 As Label
 End Class
