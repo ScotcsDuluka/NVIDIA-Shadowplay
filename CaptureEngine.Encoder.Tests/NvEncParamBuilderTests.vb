@@ -41,6 +41,8 @@ Friend Class NvEncParamBuilderTests
                 AddressOf EncodeConfig_IdrPeriod_Patched)
         runTest("V-CT5f preset mapper: unknown key → p4 (never DEFAULT)",
                 AddressOf PresetMapper_UnknownKey_FallsToP4)
+        runTest("V-CT5g preset GUID literals match SDK 13.0 header strings (P1..P7)",
+                AddressOf PresetGuids_MatchSdkLiterals)
     End Sub
 
     Private Shared Sub StructSizes_MatchSdkHeader()
@@ -131,6 +133,36 @@ Friend Class NvEncParamBuilderTests
                "unknown key → p4 — must NEVER fall back to NV_ENC_PRESET_DEFAULT_GUID")
         Assert(NvEncodeAPI.PresetGuidForKey("garbage") <> NvEncodeAPI.NV_ENC_PRESET_DEFAULT_GUID,
                "unknown key must not map to the DEFAULT preset")
+    End Sub
+
+    ' GLM/2 cross-review BLOCKER regression: NV_ENC_PRESET_P1_GUID was
+    ' transcribed with byte 0x0E swapped to 0xE0 — header "...590EBF"
+    ' became "...59E0BF". A managed-symbol ↔ managed-symbol comparison
+    ' cannot catch that (both sides carry the same transcription error),
+    ' so this test pins the managed fields to the VERBATIM string literals
+    ' from nvEncodeAPI.h SDK 13.0 (nv-codec-headers n13.0.19.0, lines
+    ' 225-252). Any byte-level drift in any preset GUID fails here.
+    Private Shared Sub PresetGuids_MatchSdkLiterals()
+        Dim sdkLiterals As String() = {
+            "{FC0A8D3E-45F8-4CF8-80C7-298871590EBF}", ' P1 — nvEncodeAPI.h:225
+            "{F581CFB8-88D6-4381-93F0-DF13F9C27DAB}", ' P2 — nvEncodeAPI.h:229
+            "{36850110-3A07-441F-94D5-3670631F91F6}", ' P3 — nvEncodeAPI.h:233
+            "{90A7B826-DF06-4862-B9D2-CD6D73A08681}", ' P4 — nvEncodeAPI.h:237
+            "{21C6E6B4-297A-4CBA-998F-B6CBDE72ADE3}", ' P5 — nvEncodeAPI.h:241
+            "{8E75C279-6299-4AB6-8302-0B215A335CF5}", ' P6 — nvEncodeAPI.h:245
+            "{84848C12-6F71-4C13-931B-53E283F57974}"  ' P7 — nvEncodeAPI.h:249
+        }
+        Dim managed As Guid() = {
+            NvEncodeAPI.NV_ENC_PRESET_P1_GUID, NvEncodeAPI.NV_ENC_PRESET_P2_GUID,
+            NvEncodeAPI.NV_ENC_PRESET_P3_GUID, NvEncodeAPI.NV_ENC_PRESET_P4_GUID,
+            NvEncodeAPI.NV_ENC_PRESET_P5_GUID, NvEncodeAPI.NV_ENC_PRESET_P6_GUID,
+            NvEncodeAPI.NV_ENC_PRESET_P7_GUID
+        }
+        For i As Integer = 0 To sdkLiterals.Length - 1
+            Dim actual As String = managed(i).ToString("B").ToUpperInvariant()
+            Assert(actual = sdkLiterals(i),
+                   $"preset P{i + 1} GUID literal drift: expected {sdkLiterals(i)} (SDK 13.0 header), got {actual}")
+        Next
     End Sub
 
     Private Shared Sub Assert(cond As Boolean, message As String)

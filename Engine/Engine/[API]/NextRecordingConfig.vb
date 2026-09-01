@@ -181,42 +181,4 @@ Public NotInheritable Class NextRecordingConfig
         Return startup
     End Function
 
-    ''' <summary>
-    ''' V-CT2: resolve the ENCODE dimensions from the request and the actual
-    ''' capture size. Pure function — deterministic and testable.
-    '''
-    '''   native=true (or invalid custom dims)  → (captureW, captureH)
-    '''   native=false + valid custom dims      → (requestedW, requestedH)
-    '''   custom dims LARGER than the capture    → ArgumentException (loud
-    '''       failure — NVENC cannot upscale beyond the input; a silent
-    '''       desktop-resolution fallback is forbidden by the phase law)
-    '''
-    ''' The backend captures the DESKTOP at its native size (DdagrabBackend
-    ''' has no scaler); downscaling happens inside NVENC (encodeWidth/Height
-    ''' < input, maxEncodeWidth/Height = input size).
-    ''' </summary>
-    Public Shared Function ResolveEncodeDimensions(captureWidth As Integer,
-                                                   captureHeight As Integer,
-                                                   useNativeResolution As Boolean,
-                                                   requestedWidth As Integer,
-                                                   requestedHeight As Integer) As Tuple(Of Integer, Integer)
-        If captureWidth <= 0 OrElse captureHeight <= 0 Then
-            Throw New ArgumentException(
-                $"capture dimensions must be positive — got {captureWidth}x{captureHeight}")
-        End If
-
-        If useNativeResolution OrElse requestedWidth <= 0 OrElse requestedHeight <= 0 Then
-            Return Tuple.Create(captureWidth, captureHeight)
-        End If
-
-        If requestedWidth > captureWidth OrElse requestedHeight > captureHeight Then
-            Throw New ArgumentException(
-                $"requested encode resolution {requestedWidth}x{requestedHeight} exceeds the " &
-                $"captured desktop {captureWidth}x{captureHeight} — NVENC cannot upscale; " &
-                "reduce the requested resolution or enable use_native_resolution")
-        End If
-
-        Return Tuple.Create(requestedWidth, requestedHeight)
-    End Function
-
 End Class

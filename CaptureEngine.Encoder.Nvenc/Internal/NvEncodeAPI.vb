@@ -91,7 +91,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
         ' lines 226-252). p1..p7 exist since SDK 12 — the driver already
         ' negotiated API 13.0 (NVENCAPI_VERSION), so these are safe.
         Public Shared ReadOnly NV_ENC_PRESET_P1_GUID As Guid =
-            New Guid(&HFC0A8D3EUI, &H45F8US, &H4CF8US, &H80, &HC7, &H29, &H88, &H71, &H59, &HE0, &HBF)
+            New Guid(&HFC0A8D3EUI, &H45F8US, &H4CF8US, &H80, &HC7, &H29, &H88, &H71, &H59, &HE, &HBF)
         Public Shared ReadOnly NV_ENC_PRESET_P2_GUID As Guid =
             New Guid(&HF581CFB8UI, &H88D6US, &H4381US, &H93, &HF0, &HDF, &H13, &HF9, &HC2, &H7D, &HAB)
         Public Shared ReadOnly NV_ENC_PRESET_P3_GUID As Guid =
