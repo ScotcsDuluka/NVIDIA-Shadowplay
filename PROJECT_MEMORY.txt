@@ -2142,3 +2142,40 @@ OWNER PREFERENCES / WORK STYLE
 HANDOFF RULE
 - In next chat, read this file first, then inspect git status/log and current NVENC files before making any new change.
 - Assume nothing about temporary probe changes until verified from current working tree.
+
+==================================================
+[CHAT CHECKPOINT 2026-09-02 — DDAGRAB -> NVENC]
+==================================================
+
+Latest commits:
+- 135ae18 = Fix NVENC explicit config ABI path
+- 73191e7 = Fix Ddagrab refusing-sink liveness test
+
+Ddagrab validation:
+- CaptureEngine.Video.Ddagrab real DXGI implementation builds 0W/0E.
+- CaptureEngine.Video.Tests = 61/61 PASS, 0 failed.
+- Refusing-sink test failure was a test predicate bug; fixed to count DroppedFrames as worker progress.
+
+Real integration spike:
+- Spike: spikes/Ddagrab_Nvenc_Integration_Spike
+- Evidence: spikes/Ddagrab_Nvenc_Integration_Spike/EVIDENCE.md
+- Real path: DXGI Desktop Duplication -> D3D11VideoFrame -> bounded sink -> NVENC H.264.
+- Resource mode: D3D11 shared NT handle / OpenSharedResource1.
+- Hardware: GTX 1080 Ti, 1680x1050 @ 75Hz.
+- Duration: 8.014s.
+- Capture emitted: 673; no-frame=7; capture dropped=0; capture errors=0; AccessLost=0.
+- Frames consumed by encoder: 596.
+- Encoded packets: 596; encode failures=0.
+- Encoded FPS: 74.37.
+- Explicit NVENC config: 3584B; NvEncInitializeEncoder PASS.
+- GPU textures created/disposed: 1346/1346 (balanced).
+- Verdict: PASS for Ddagrab -> NVENC frame/packet integration.
+
+Important limitation:
+- This spike does NOT close long-duration production recording, mux/output integration, or 144-FPS feasibility.
+- Measured encoded bitrate on static desktop was ~4.40 Mbps despite configured CBR 20 Mbps; treat bitrate behavior as a separate validation item, not as proof of strict 20 Mbps delivery.
+- Keep GfxCaptureBackend blocked pending proper 120/144Hz evidence.
+
+Cleanup:
+- Temporary display/WGC probe files removed.
+- Working tree should contain only intentional validation artifacts plus the new spike; do not delete existing A1..C5/evidence artifacts blindly.

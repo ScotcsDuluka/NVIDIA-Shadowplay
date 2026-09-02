@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
+  </ItemGroup>
+</Project>
