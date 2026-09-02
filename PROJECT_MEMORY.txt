@@ -2259,3 +2259,18 @@ Verdicts:
 - No Ddagrab/NVENC spike process remained after completion.
 - Interpretation: the shared NT handle lifetime fix is supported by controlled runtime evidence and removes the prior observed failure mode in this short verification window. Do not claim long-duration leak closure from this alone.
 ============================================================
+============================================================
+[CHAT CHECKPOINT 2026-09-02 — POST-LEAK PRODUCTION MATRIX]
+============================================================
+- Production Validation Driver was run after commit 25d981c shared NT-handle lifetime fix.
+- Full Phase 12b matrix completed (the driver treated standalone --quick as default/full matrix because its parser requires paired args).
+- Test A: 3 x 10s normal = PASS (A1 705/530, A2 716/559, A3 741/573; NVENC errors 0; audio dropped 0; video+audio present; Idle each session; orphan ffmpeg 0).
+- Test B: 1s / 5s / 10s early stop = PASS; NVENC errors 0; audio dropped 0; video+audio present; Idle each session; orphan ffmpeg 0.
+- Test C: 5 x 3s immediate restart = PASS; NVENC errors 0; audio dropped 0; video+audio present; Idle each session; orphan ffmpeg 0.
+- Full matrix: 11/11 sessions PASS; Engine.Dispose OK; orphan ffmpeg baseline 0 -> final 0.
+- Audio accounting remained true with 0 dropped bytes across all 11 production sessions.
+- A/V sync offsets observed approximately 0.013-0.117s for the matrix sessions.
+- Working set reported 27 MB -> 105 MB across the full matrix; this is an observation only, not proof of a leak because process terminated cleanly and no long-run memory trend was measured.
+- Evidence: evidence/phase-12b-validation-20260902-220533.md
+- Note: Single 10s post-fix run at 22:03:49-22:04:00 also PASS; mux 9.46s, audio accounting true, NVENC errors 0, video/audio streams present.
+============================================================
