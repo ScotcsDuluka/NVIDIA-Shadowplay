@@ -2274,3 +2274,138 @@ Verdicts:
 - Evidence: evidence/phase-12b-validation-20260902-220533.md
 - Note: Single 10s post-fix run at 22:03:49-22:04:00 also PASS; mux 9.46s, audio accounting true, NVENC errors 0, video/audio streams present.
 ============================================================
+
+
+==================================================
+[HANDOFF — 2026-09-02 LATE SESSION]
+==================================================
+
+Current branch:
+Engine-Rebuild-Stabilization
+
+Current HEAD:
+9ec870a — Record Phase 1 Windows video validation evidence
+
+Important recent commits:
+25d981c — Fix shared NT handle lifetime
+98cdffe — Enable strict CBR filler padding
+5b02d94 — Record post-leak production validation
+8df5ab6 — Record shared handle leak verification
+52c6d01 — Fix CFR video duration drift
+5920d04 — Add A/V duration acceptance check
+9ec870a — Record Phase 1 Windows video validation evidence
+
+==================================================
+[VIDEO / NVENC — VERIFIED]
+==================================================
+
+Production video path currently verified:
+Ddagrab → D3D11 shared resource → NVENC H.264 → EncodedPacket → LiveMux → FFmpeg → MP4
+
+Ddagrab production validation:
+- Windows Phase 1 S1–S7 = 7/7 PASS.
+- 60 FPS validation = PASS.
+- Native 1680x1050 = PASS.
+- Custom 1280x720 = PASS.
+- H.264 NVENC = PASS.
+- Preset 7 = PASS.
+- CBR 10.2 Mbps runtime validation = ~10.17 Mbps.
+
+CBR 20 Mbps:
+- Root cause for under-target static/dynamic content was missing H.264 filler-data insertion.
+- Native config uses CBR, averageBitRate 20,000,000, maxBitRate 20,000,000, VBV 40,000,000.
+- Filler insertion enabled for CBR.
+- Real production 30s evidence: NVENC ~19.7 Mbps; ffprobe MP4 ~19,999,992 bps.
+- Treat 20 Mbps CBR conformance as verified on tested hardware/content.
+
+Shared NT handle fix:
+- Ddagrab creates shared NT handle per frame.
+- D3D11VideoFrame.Dispose() now closes owned HANDLE exactly once.
+- Failure before ownership transfer also closes created HANDLE.
+- Controlled runtime after fix: 3x5s passed, no E_OUTOFMEMORY, 2214/2214 textures balanced.
+- Do NOT reintroduce stress loop 10x10s blindly; earlier stress probe drove CPU/RAM/NVMe pressure and produced E_OUTOFMEMORY.
+
+==================================================
+[VIDEO TIMING / A-V — VERIFIED]
+==================================================
+
+Root cause of old video drift:
+- CFR scheduler reset nextTick after a stall, effectively discarding timeline ticks.
+- Result was video shorter than wall-clock/audio, e.g. old Single.mp4: video ~8.97s vs audio ~9.46s.
+
+Fix @ 52c6d01:
+- Keep monotonic CFR timeline instead of resetting it after stalls.
+- Tail-fill final frame to expected CFR frame count.
+- 10s test after fix: 600/600 frames, video ~10.02s; audio ~10.04s.
+- Multi-session validation after fix: 10s sessions consistently produced full 600 frames; 3s sessions full 180; 1s full 60.
+
+A/V acceptance:
+- Validation now checks video/audio duration delta.
+- Current acceptance threshold is <= 200 ms.
+- Latest production validation example: video 8.021s / audio 8.045s / delta 24 ms.
+- This replaces the old misleading practice of checking only initial sync offset.
+
+Audio gap behavior:
+- AudioTap gap-repair logic verified directly.
+- Real gap simulation showed silence insertion during missing audio callbacks.
+- Silent/empty audio capture can still produce a valid audio timeline.
+- Production audio stream is AAC LC, 48 kHz stereo in tested MP4s.
+
+==================================================
+[RECORDING / UI STATUS — IMPORTANT]
+==================================================
+
+Recording engine production stack is implemented and previously passed 11/11 production matrix sessions under console/diagnostic driver.
+
+IMPORTANT CURRENT REAL-WORLD STATUS:
+- User reported that the newly launched ShadowPlay build is NOT yet confirmed usable from the actual UI.
+- Engine initialization alone is NOT sufficient proof.
+- A previous UI live-record attempt was inconclusive because FFmpeg was manually stopped by the user; resulting broken-pipe evidence MUST NOT be treated as an engine bug.
+- Next live acceptance must be: launch actual ShadowPlay UI → start recording → DO NOT touch FFmpeg → stop recording via UI → verify MP4 + audio + duration + Engine Idle.
+- Do not claim “ready for real use” until that exact UI path passes.
+
+==================================================
+[PIXEL FORMAT / ARCHITECTURE]
+==================================================
+
+Current architecture truth:
+- Phase 1 video input contract is BGRA8.
+- NVENC native tested resource path is ARGB from the D3D11 texture.
+- EncoderConfig.OutputPixelFormat / nv12 is treated as output/codec hint, not capture texture format.
+- Do NOT add a fake BGRA→NV12 conversion layer without an explicit architecture decision.
+
+==================================================
+[GFXCAPTURE]
+==================================================
+
+GfxCapture remains not implemented as a production backend.
+GAP behavior is represented/truthful in validation.
+Do not block actual ShadowPlay usability on GfxCapture unless the user explicitly requires it.
+
+==================================================
+[CURRENT WORKTREE]
+==================================================
+
+Current git status at handoff:
+- M Overlay/build.txt
+- Multiple untracked validation MP4/evidence artifacts remain.
+- Do not mass-delete validation artifacts.
+- Do not commit temp probes, MP4s, stress artifacts, or harness changes unless explicitly intended.
+- Keep validation evidence separate from production source.
+
+Current source baseline should be treated as clean except for known Overlay/build.txt modification until inspected.
+
+==================================================
+[NEXT ACTION — PRIORITY]
+==================================================
+
+1) Inspect why actual ShadowPlay UI Start/Stop path is not yet proven.
+2) Check logs around engine_record_start / engine_record_stop and FFmpeg lifecycle.
+3) Run one clean UI recording without manually touching FFmpeg.
+4) Verify produced MP4 with ffprobe: duration, 60fps frame count, H.264, AAC, A/V delta <= 200ms.
+5) If that passes, mark UI recording acceptance closed and package/install the usable build.
+
+Do not jump to NV12/GfxCapture/performance soak before live UI recording acceptance passes.
+
+Security:
+- PAT must be rotated; never write the PAT/token into repo memory or logs.
