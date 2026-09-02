@@ -2208,3 +2208,14 @@ Verdicts:
 - Multi-session throughput stability: OPEN; observed 100.10 -> 80.02 -> 49.72 FPS.
 - Production recording/mux/output: NOT CLOSED.
 - 144-FPS feasibility: NOT CLOSED; current display is 75Hz.
+==================================================
+[CHAT CHECKPOINT 2026-09-02 — DDAGRAB/NVENC RESTART FOLLOW-UP]
+==================================================
+- Commit e40e6b1 added 3-session restart/bitrate characterization.
+- 3-session result: all sessions PASS for restart correctness; 0 encode failures, 0 capture errors, 0 AccessLost, textures balanced.
+- 10-session micro-restart characterization (same Ddagrab + NVENC backend instances, fresh sink per session, 2s/session): sessions 1-7 stayed ~73.9-74.2 FPS; session 8=68.91, 9=65.20, 10=64.25 FPS; aggregate bitrate 10.60 Mbps.
+- Interpretation: sustained-load throughput degradation remains OPEN; evidence does not establish GPU throttling, a resource leak, or a restart correctness defect.
+- Bitrate remains OPEN: measured output below configured 20 Mbps on uncontrolled desktop content; do not call this a strict CBR defect without controlled complexity/content test.
+- Program constants restored to 3 sessions x 5 seconds after micro-characterization; evidence retains the 10-session finding.
+- Next likely step: controlled dynamic-content bitrate test and/or sustained-load performance instrumentation before production wiring.
+==================================================

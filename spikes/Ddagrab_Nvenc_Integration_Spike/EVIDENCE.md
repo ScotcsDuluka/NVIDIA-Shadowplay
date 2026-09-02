@@ -37,6 +37,32 @@ both backends with a fresh bounded sink.
 Restart result: PASS — all three sessions initialized, captured and encoded
 without capture errors, NVENC failures, or AccessLost events.
 
+## Run 3 — ten-session micro-restart characterization
+
+The same backend instances were reused for 10 sessions of 2.0 s each.
+All sessions encoded every consumed frame with zero encode failures,
+capture errors and AccessLost events.
+
+| Session | Encoded FPS | Measured bitrate |
+|---|---:|---:|
+| 1 | 73.87 | 9.72 Mbps |
+| 2 | 74.19 | 11.02 Mbps |
+| 3 | 74.02 | 10.76 Mbps |
+| 4 | 74.01 | 10.96 Mbps |
+| 5 | 74.14 | 10.89 Mbps |
+| 6 | 74.11 | 11.10 Mbps |
+| 7 | 73.96 | 11.16 Mbps |
+| 8 | 68.91 | 10.27 Mbps |
+| 9 | 65.20 | 9.67 Mbps |
+| 10 | 64.25 | 9.91 Mbps |
+| Aggregate | — | 10.60 Mbps |
+
+Observed throughput remained near 74 FPS for sessions 1–7, then declined
+to 68.91 / 65.20 / 64.25 FPS in sessions 8–10. This strengthens the
+finding that sustained-load throughput is an open performance investigation,
+not a restart correctness failure. GPU throttling or another runtime factor
+is not established by this test.
+
 ## Timestamp
 
 First PTS: 7500401644562
