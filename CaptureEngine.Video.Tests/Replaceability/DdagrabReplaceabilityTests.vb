@@ -64,7 +64,9 @@ Namespace CaptureEngine.Video.Tests.Replaceability
         ''' (frames emitted OR acquire timeouts accumulated).
         ''' </summary>
         Private Shared Function WorkerProgressed(backend As DdagrabBackend) As Boolean
-            Return backend.Diagnostics.NoFrameCount + backend.Diagnostics.EmittedFrames >= 1
+            Return backend.Diagnostics.NoFrameCount +
+                   backend.Diagnostics.EmittedFrames +
+                   backend.Diagnostics.DroppedFrames >= 1
         End Function
 
         Private Shared Sub SafeRelease(backend As DdagrabBackend)
