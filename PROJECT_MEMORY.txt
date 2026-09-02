@@ -2246,3 +2246,16 @@ Verdicts:
 - Ddagrab and NVENC project builds both pass with 0 warnings / 0 errors after the fix.
 - Runtime stress test has NOT been repeated; do not claim the leak is experimentally closed until a controlled follow-up verifies resource stability.
 ==================================================
+============================================================
+[CHAT CHECKPOINT 2026-09-02 ? SHARED HANDLE LEAK VERIFICATION]
+============================================================
+- Controlled post-fix verification ran the existing Ddagrab -> NVENC integration spike once, using the restored 3 sessions x 5 seconds configuration.
+- Hardware: GTX 1080 Ti, 1680x1050 @ 75Hz.
+- S1: 5.026s, 343 consumed/encoded, 0 failures, 68.25 FPS, 18.20 Mbps, capture errors 0, AccessLost 0, textures 710/710. PASS.
+- S2: 5.010s, 366 consumed/encoded, 0 failures, 73.05 FPS, 19.48 Mbps, capture errors 0, AccessLost 0, textures 1462/1462. PASS.
+- S3: 5.009s, 359 consumed/encoded, 0 failures, 71.68 FPS, 19.11 Mbps, capture errors 0, AccessLost 0, textures 2214/2214. PASS.
+- Aggregate: 1068 consumed, 1068 encoded, 0 failures, 18.99 Mbps, capture errors 0, AccessLost 0, textures 2214/2214. VERDICT PASS.
+- No E_OUTOFMEMORY appeared during the post-fix 15.0s runtime verification.
+- No Ddagrab/NVENC spike process remained after completion.
+- Interpretation: the shared NT handle lifetime fix is supported by controlled runtime evidence and removes the prior observed failure mode in this short verification window. Do not claim long-duration leak closure from this alone.
+============================================================
