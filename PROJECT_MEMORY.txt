@@ -2219,3 +2219,30 @@ Verdicts:
 - Program constants restored to 3 sessions x 5 seconds after micro-characterization; evidence retains the 10-session finding.
 - Next likely step: controlled dynamic-content bitrate test and/or sustained-load performance instrumentation before production wiring.
 ==================================================
+==================================================
+[CHAT CHECKPOINT 2026-09-02 — CBR CLOSED / TEMP STRESS RECOVERY]
+==================================================
+- Commit 98cdffe: enabled NVENC H.264 CBR filler-data insertion (bit 17 / 0x20000).
+- 30s production run on GTX 1080 Ti, 1680x1050 @75Hz, H.264 p4, 60 FPS, CBR 20 Mbps.
+- Result: 1,769 encoded frames, 0 NVENC errors, LiveMux exit 0, audio/video present, sync 0.054s, engine Idle.
+- ffprobe video bitrate: 19,999,992 bps; strict 20 Mbps CBR acceptance is CLOSED for this hardware/config/run.
+- Limitation: CBR conformance evidence is one 30s run; do not generalize beyond tested config without more evidence.
+- A temporary 10-session x 10s sustained-load probe was mistakenly launched and caused severe host resource pressure; Ddagrab later logged E_OUTOFMEMORY (0x8007000E).
+- The temporary process PID 38280 is no longer running.
+- Temp patch in spikes/Ddagrab_Nvenc_Integration_Spike/Program.cs was restored from Program.cs.bak-sustained to the original 3-session x 5s state; backup removed.
+- Verified Program.cs has no tracked diff after restoration; git diff --check is clean.
+- Do NOT repeat the 10x10s stress test. Future resource investigation must use an isolated, short, controlled probe with explicit limits and instrumentation.
+- Current branch: Engine-Rebuild-Stabilization, ahead 8; latest commit 98cdffe.
+- Existing untracked MP4/evidence files remain intentionally untouched; do not delete blindly.
+==================================================
+==================================================
+[CHAT CHECKPOINT 2026-09-02 — SHARED NT HANDLE LIFETIME FIX]
+==================================================
+- Source audit found a real lifetime gap in shared-handle mode: DdagrabBackend calls IDXGIResource1.CreateSharedHandle once per shared texture/frame.
+- Microsoft documentation states the returned NT handle must be closed with CloseHandle when no longer needed to avoid memory leaks.
+- D3D11VideoFrame.Dispose previously released only the ID3D11Texture2D and never closed the _sharedHandle.
+- This is a credible direct mechanism for handle/resource growth during sustained shared-handle capture and is consistent with the observed E_OUTOFMEMORY episode from the temporary stress probe.
+- Fix applied: D3D11VideoFrame now P/Invokes kernel32 CloseHandle and closes a non-zero shared handle exactly once from Dispose(), protected by the existing Interlocked disposal guard.
+- Ddagrab and NVENC project builds both pass with 0 warnings / 0 errors after the fix.
+- Runtime stress test has NOT been repeated; do not claim the leak is experimentally closed until a controlled follow-up verifies resource stability.
+==================================================

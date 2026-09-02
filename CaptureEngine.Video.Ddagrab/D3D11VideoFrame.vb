@@ -44,6 +44,7 @@ Option Infer On
 '   - NativeTexture returns IntPtr.Zero after Dispose (defensive).
 
 Imports System.Threading
+Imports System.Runtime.InteropServices
 Imports Vortice.Direct3D11
 Imports Vortice.DXGI
 Imports CaptureEngine.Video
@@ -69,6 +70,10 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private ReadOnly _stagingTexture As ID3D11Texture2D
         Private _nativeTextureObj As Object  ' cached ID3D11Texture2D (Object type to avoid contract leak)
         Private ReadOnly _sharedHandle As IntPtr  ' IntPtr.Zero = direct path; non-zero = shared-handle path
+
+        <DllImport("kernel32.dll", SetLastError:=True)>
+        Private Shared Function CloseHandle(hObject As IntPtr) As Boolean
+        End Function
 
         ' ---- Disposal callback (for metric tracking) ----
         ' When set, called exactly once during Dispose(). Used by DdagrabBackend
@@ -193,6 +198,16 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             Catch
                 ' Swallow — never throw from Dispose (per P1-B.1 FIX lesson #3).
             End Try
+
+            ' CreateSharedHandle returns an NT HANDLE. The frame owns it for the
+            ' lifetime of the shared resource handle and must close it exactly once.
+            If _sharedHandle <> IntPtr.Zero Then
+                Try
+                    CloseHandle(_sharedHandle)
+                Catch
+                    ' Swallow — never throw from Dispose.
+                End Try
+            End If
 
             ' Clear the cached reference (defensive — readers see Nothing).
             _nativeTextureObj = Nothing
