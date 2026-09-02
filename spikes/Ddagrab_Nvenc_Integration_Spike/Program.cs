@@ -25,10 +25,12 @@ internal static class Program
         Console.WriteLine("============================================================");
         Console.WriteLine(" Ddagrab -> NVENC Integration Spike");
         Console.WriteLine(" Real DXGI frame -> D3D11VideoFrame -> native NVENC");
+        Console.WriteLine(" Restart + bitrate characterization");
         Console.WriteLine("============================================================");
 
-        const int durationSeconds = 8;
-        var logger = new EngineLogger("IntegrationSpike", EngineLogger.LogLevel.Info);
+        const int sessionCount = 3;
+        const int durationSeconds = 5;
+        var logger = new EngineLogger("IntegrationSpike", EngineLogger.LogLevel.Warning);
         var context = new IntegrationContext(VideoBackendKind.Ddagrab);
 
         using var capture = new DdagrabBackend(logger);
@@ -59,100 +61,117 @@ internal static class Program
 
         using var encoder = new NvencEncoderBackend(logger);
         encoder.Initialize(config);
-        encoder.Start();
 
-        var sink = new BoundedVideoFrameSink(
-            4, BoundedHandoffPolicy.DropOldest, logger);
-        capture.Start(sink);
+        long totalEncoded = 0;
+        long totalBytes = 0;
+        long totalConsumed = 0;
+        long totalFailures = 0;
+        bool allPass = true;
 
-        var sw = Stopwatch.StartNew();
-        long encoded = 0;
-        long packetsBytes = 0;
-        long consumed = 0;
-        long encodeFailures = 0;
-        long framesSeen = 0;
-        long firstPts = -1;
-        long lastPts = -1;
-
-        try
+        for (int session = 1; session <= sessionCount; session++)
         {
-            while (sw.Elapsed < TimeSpan.FromSeconds(durationSeconds))
+            var sink = new BoundedVideoFrameSink(4, BoundedHandoffPolicy.DropOldest, logger);
+            encoder.Start();
+            capture.Start(sink);
+
+            var sw = Stopwatch.StartNew();
+            long encoded = 0;
+            long bytes = 0;
+            long consumed = 0;
+            long failures = 0;
+            long firstPts = -1;
+            long lastPts = -1;
+
+            try
             {
-                FrameAcquisitionResult result = default;
-                if (!sink.TryTake(ref result))
+                while (sw.Elapsed < TimeSpan.FromSeconds(durationSeconds))
                 {
-                    Thread.Sleep(1);
-                    continue;
-                }
-
-                consumed++;
-                var frame = result.Frame;
-                if (frame == null)
-                    continue;
-
-                framesSeen++;
-                long pts = frame.Diagnostics.PresentationTimestampTicks;
-                if (firstPts < 0) firstPts = pts;
-                lastPts = pts;
-
-                try
-                {
-                    EncodedPacket packet = null!;
-                    if (encoder.Encode(frame, ref packet) && packet != null)
+                    FrameAcquisitionResult result = default;
+                    if (!sink.TryTake(ref result))
                     {
-                        encoded++;
-                        packetsBytes += packet.PayloadLength;
+                        Thread.Sleep(1);
+                        continue;
                     }
-                    else
+
+                    consumed++;
+                    var frame = result.Frame;
+                    if (frame == null)
+                        continue;
+
+                    long pts = frame.Diagnostics.PresentationTimestampTicks;
+                    if (firstPts < 0) firstPts = pts;
+                    lastPts = pts;
+
+                    try
                     {
-                        encodeFailures++;
+                        EncodedPacket packet = null!;
+                        if (encoder.Encode(frame, ref packet) && packet != null)
+                        {
+                            encoded++;
+                            bytes += packet.PayloadLength;
+                        }
+                        else
+                        {
+                            failures++;
+                        }
                     }
-                }
-                finally
-                {
-                    frame.Dispose();
+                    finally
+                    {
+                        frame.Dispose();
+                    }
                 }
             }
-        }
-        finally
-        {
-            capture.Stop();
-            encoder.Stop();
-            sink.Dispose();
+            finally
+            {
+                capture.Stop();
+                encoder.Stop();
+                sink.Dispose();
+            }
+
+            sw.Stop();
+            double elapsed = sw.Elapsed.TotalSeconds;
+            double encodeFps = encoded / elapsed;
+            double mbps = bytes * 8.0 / elapsed / 1_000_000.0;
+            bool sessionPass = encoded > 0 && failures == 0 &&
+                               capture.Diagnostics.ErrorCount == 0 &&
+                               capture.TexturesCreated == capture.TexturesDisposed;
+            allPass &= sessionPass;
+            totalEncoded += encoded;
+            totalBytes += bytes;
+            totalConsumed += consumed;
+            totalFailures += failures;
+
+            Console.WriteLine();
+            Console.WriteLine($"--- SESSION {session}/{sessionCount} ---");
+            Console.WriteLine($"Elapsed:              {elapsed:F3}s");
+            Console.WriteLine($"Frames consumed:      {consumed}");
+            Console.WriteLine($"Encoded packets:      {encoded}");
+            Console.WriteLine($"Encode failures:      {failures}");
+            Console.WriteLine($"Encoded FPS:          {encodeFps:F2}");
+            Console.WriteLine($"Encoded bytes:        {bytes}");
+            Console.WriteLine($"Measured bitrate:     {mbps:F2} Mbps");
+            Console.WriteLine($"PTS span:             {(lastPts >= firstPts && firstPts >= 0 ? (lastPts - firstPts) / 10_000_000.0 : 0):F3}s");
+            Console.WriteLine($"Capture errors:       {capture.Diagnostics.ErrorCount}");
+            Console.WriteLine($"AccessLost:           {capture.AccessLostCount}");
+            Console.WriteLine($"Textures:             {capture.TexturesCreated}/{capture.TexturesDisposed}");
+            Console.WriteLine($"SESSION VERDICT:      {(sessionPass ? "PASS" : "FAIL")}");
         }
 
-        sw.Stop();
-        double elapsed = sw.Elapsed.TotalSeconds;
-        double fps = framesSeen / elapsed;
-        double encodeFps = encoded / elapsed;
-        double mbps = packetsBytes * 8.0 / elapsed / 1_000_000.0;
-
+        double aggregateMbps = totalBytes * 8.0 /
+                               (durationSeconds * sessionCount) /
+                               1_000_000.0;
         Console.WriteLine();
-        Console.WriteLine("=== RESULT ===");
-        Console.WriteLine($"Elapsed:              {elapsed:F3}s");
-        Console.WriteLine($"Frames consumed:      {consumed}");
-        Console.WriteLine($"Frames seen:          {framesSeen}");
-        Console.WriteLine($"Capture emitted:      {capture.Diagnostics.EmittedFrames}");
-        Console.WriteLine($"Capture dropped:      {capture.Diagnostics.DroppedFrames}");
-        Console.WriteLine($"Capture no-frame:     {capture.Diagnostics.NoFrameCount}");
-        Console.WriteLine($"Capture errors:       {capture.Diagnostics.ErrorCount}");
-        Console.WriteLine($"AccessLost:           {capture.AccessLostCount}");
-        Console.WriteLine($"Textures created:     {capture.TexturesCreated}");
-        Console.WriteLine($"Textures disposed:    {capture.TexturesDisposed}");
-        Console.WriteLine($"Encoded packets:      {encoded}");
-        Console.WriteLine($"Encode failures:      {encodeFailures}");
-        Console.WriteLine($"Encoded FPS:          {encodeFps:F2}");
-        Console.WriteLine($"Input FPS:            {fps:F2}");
-        Console.WriteLine($"Encoded bytes:        {packetsBytes}");
-        Console.WriteLine($"Measured bitrate:     {mbps:F2} Mbps");
-        Console.WriteLine($"First PTS:            {firstPts}");
-        Console.WriteLine($"Last PTS:             {lastPts}");
-        Console.WriteLine($"PTS span:             {(lastPts >= firstPts && firstPts >= 0 ? (lastPts - firstPts) / 10_000_000.0 : 0):F3}s");
-
-        bool pass = encoded > 0 && encodeFailures == 0 && capture.Diagnostics.ErrorCount == 0;
-        pass &= capture.TexturesCreated == capture.TexturesDisposed + sink.Count;
-        Console.WriteLine($"VERDICT: {(pass ? "PASS" : "FAIL")}");
-        return pass ? 0 : 1;
+        Console.WriteLine("=== AGGREGATE ===");
+        Console.WriteLine($"Sessions:             {sessionCount}");
+        Console.WriteLine($"Frames consumed:      {totalConsumed}");
+        Console.WriteLine($"Encoded packets:      {totalEncoded}");
+        Console.WriteLine($"Encode failures:      {totalFailures}");
+        Console.WriteLine($"Aggregate bitrate:    {aggregateMbps:F2} Mbps");
+        Console.WriteLine($"Final capture errors: {capture.Diagnostics.ErrorCount}");
+        Console.WriteLine($"Final AccessLost:     {capture.AccessLostCount}");
+        Console.WriteLine($"Final textures:       {capture.TexturesCreated}/{capture.TexturesDisposed}");
+        Console.WriteLine($"VERDICT:              {(allPass ? "PASS" : "FAIL")}");
+        return allPass ? 0 : 1;
     }
 }
 

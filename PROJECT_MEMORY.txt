@@ -2179,3 +2179,32 @@ Important limitation:
 Cleanup:
 - Temporary display/WGC probe files removed.
 - Working tree should contain only intentional validation artifacts plus the new spike; do not delete existing A1..C5/evidence artifacts blindly.
+
+
+==================================================
+[CHAT CHECKPOINT 2026-09-02 — DDAGRAB/NVENC RESTART]
+==================================================
+
+Restart + bitrate characterization completed after integration spike.
+
+- Test spike: spikes/Ddagrab_Nvenc_Integration_Spike
+- Build: 0 warnings, 0 errors
+- Encoder contract tests: 52/52 PASS
+- Same DdagrabBackend + NvencEncoderBackend instances reused across 3 sessions.
+- Fresh BoundedVideoFrameSink created per session.
+- Hardware: GTX 1080 Ti, 1680x1050 @ 75Hz.
+
+Session results:
+- S1: 5.005s, 501 encoded, 100.10 FPS, 14.24 Mbps, 0 failures, 0 capture errors, 0 AccessLost.
+- S2: 5.011s, 401 encoded, 80.02 FPS, 11.94 Mbps, 0 failures, 0 capture errors, 0 AccessLost.
+- S3: 5.028s, 250 encoded, 49.72 FPS, 8.44 Mbps, 0 failures, 0 capture errors, 0 AccessLost.
+- Aggregate: 1152 encoded, 0 failures, 0 capture errors, 0 AccessLost, 11.57 Mbps.
+- Texture lifecycle: 2776 created / 2776 disposed.
+
+Verdicts:
+- Restart correctness: PASS.
+- Ddagrab -> NVENC frame/packet integration: PASS.
+- Strict 20 Mbps bitrate conformance: OPEN; content complexity was uncontrolled.
+- Multi-session throughput stability: OPEN; observed 100.10 -> 80.02 -> 49.72 FPS.
+- Production recording/mux/output: NOT CLOSED.
+- 144-FPS feasibility: NOT CLOSED; current display is 75Hz.
