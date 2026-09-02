@@ -20,16 +20,12 @@ Option Infer On
 '   * BuildInitializeParams    — NV_ENC_INITIALIZE_PARAMS with the preset
  '                               GUID from the config and frameRateNum
 '                               from the config FPS.
-'   * ApplyVideoSettings       — patches a DRIVER-FILLED NV_ENC_CONFIG
-'                               (from NvEncGetEncodePresetConfig) with the
-'                               user values. Driver-filled = every field we
-'                               do not understand stays exactly what the
-'                               preset intends (no hand-declared layout risk
-'                               for the codec-specific union).
-'   * BuildDefaultEncodeConfig — fallback when the driver preset query is
-'                               unavailable: a minimal, explicitly-built
-'                               config (zeros are valid: idrPeriod 0 follows
-'                               gopLength per the SDK header doc).
+'   * ApplyVideoSettings       — writes user values into the explicit NV_ENC_CONFIG
+'                               configuration. Unused fields remain zeroed;
+'                               the explicit config path is canonical and ABI-pinned.
+'   * BuildDefaultEncodeConfig — builds the canonical explicit config;
+'                               the codec-specific union is zeroed except
+'                               for fields patched by ApplyVideoSettings.
 '
 ' This file is LINKED into CaptureEngine.Encoder.Tests (V-CT5) — it must
 ' stay free of Windows-only dependencies (System only).
@@ -77,7 +73,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
                                                      frameRateFps As Integer,
                                                      presetKey As String) As NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS
             Dim initParams As NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS = Nothing
-            initParams.version = NvEncodeAPI.MakeStructVersion(5) Or (1UI << 31)
+            initParams.version = NvEncodeAPI.MakeStructVersion(7) Or (1UI << 31)
             initParams.encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID
             ' ★ THE preset the user configured — never NV_ENC_PRESET_DEFAULT_GUID.
             initParams.presetGUID = NvEncodeAPI.PresetGuidForKey(presetKey)
@@ -95,12 +91,16 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             initParams.privDataSize = 0UI
             initParams.privData = IntPtr.Zero
             initParams.encodeConfig = IntPtr.Zero
-            initParams.maxEncodeWidth = width
-            initParams.maxEncodeHeight = height
-            initParams.maxMEHintCountsPerBlockL0 = 0UI
-            initParams.maxMEHintCountsPerBlockL1 = 0UI
-            initParams.reserved = Nothing
-            initParams.reserved2 = Nothing
+            initParams.maxEncodeWidth = 0UI
+            initParams.maxEncodeHeight = 0UI
+            initParams.maxMEHintCountsPerBlockL0 = New Byte(15) {}
+            initParams.maxMEHintCountsPerBlockL1 = New Byte(15) {}
+            initParams.tuningInfo = 2UI
+            initParams.bufferFormat = NvEncodeAPI.NV_ENC_BUFFER_FORMAT_UNDEFINED
+            initParams.numStateBuffers = 0UI
+            initParams.outputStatsLevel = 0UI
+            initParams.reserved1 = New UInteger(283) {}
+            initParams.reserved2 = New IntPtr(63) {}
             Return initParams
         End Function
 
@@ -126,7 +126,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             cfg.version = NvEncodeAPI.NV_ENC_CONFIG_VER
             cfg.profileGUID = NvEncodeAPI.NV_ENC_CODEC_PROFILE_AUTOSELECT_GUID
             cfg.monoChromeEncoding = 0UI
-            cfg.frameFieldMode = 0UI
+            cfg.frameFieldMode = 1UI
             cfg.mvPrecision = 0UI
 
             ' GOP: both the NV_ENC_CONFIG level and the H.264 idrPeriod level

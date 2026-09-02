@@ -398,7 +398,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             Public reserved2 As IntPtr()
         End Structure
 
-        <StructLayout(LayoutKind.Sequential, Pack:=1)>
+        <StructLayout(LayoutKind.Sequential, Pack:=8)>
         Public Structure NV_ENC_INITIALIZE_PARAMS
             Public version As UInteger
             Public encodeGUID As Guid
@@ -411,18 +411,25 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             Public frameRateDen As UInteger
             Public enableEncodeAsync As UInteger
             Public enablePTD As UInteger
+            ' reportSliceOffsets..reservedBitFields (SDK bitfield word)
             Public bitFields As UInteger
             Public privDataSize As UInteger
-            Public _padding1 As UInteger
+            Public reserved As UInteger
             Public privData As IntPtr
             Public encodeConfig As IntPtr
             Public maxEncodeWidth As UInteger
             Public maxEncodeHeight As UInteger
-            Public maxMEHintCountsPerBlockL0 As UInteger
-            Public maxMEHintCountsPerBlockL1 As UInteger
-            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=289)>
-            Public reserved As UInteger()
-            Public _padding2 As UInteger
+            ' NVENC_EXTERNAL_ME_HINT_COUNTS_PER_BLOCKTYPE[2] (16 bytes each)
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=16)>
+            Public maxMEHintCountsPerBlockL0 As Byte()
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=16)>
+            Public maxMEHintCountsPerBlockL1 As Byte()
+            Public tuningInfo As UInteger
+            Public bufferFormat As UInteger
+            Public numStateBuffers As UInteger
+            Public outputStatsLevel As UInteger
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=284)>
+            Public reserved1 As UInteger()
             <MarshalAs(UnmanagedType.ByValArray, SizeConst:=64)>
             Public reserved2 As IntPtr()
         End Structure

@@ -256,11 +256,10 @@ Namespace CaptureEngine.Encoder.Nvenc
                 _frameRateDen = initParams.frameRateDen
 
                 ' ── Build the NV_ENC_CONFIG ──
-                ' PRIMARY: ask the DRIVER for the chosen preset's own config
-                ' (NvEncGetEncodePresetConfig) and patch only the whitelisted
-                ' user fields — every unconfigured field stays exactly what
-                ' the preset intends. FALLBACK: an explicitly-built minimal
-                ' config (logged loudly — never presented as preset behavior).
+                ' Primary path: ask the driver for the selected preset config
+                ' and patch the returned native-compatible structure. The
+                ' current driver may reject this query with INVALID_VERSION;
+                ' in that case fall back to the explicit config builder.
                 Dim presetCfg As New NvEncodeAPI.NV_ENC_PRESET_CONFIG()
                 Dim gotPreset As Boolean = False
                 If _nvenc.GetPresetConfig IsNot Nothing Then
@@ -270,7 +269,7 @@ Namespace CaptureEngine.Encoder.Nvenc
                         initParams.presetGUID, presetCfg)
                     gotPreset = (pcStatus = NvEncodeAPI.NV_ENC_SUCCESS)
                     If Not gotPreset Then
-                        _logger.Warning($"NvEncGetEncodePresetConfig failed: status={pcStatus} ({NvEncodeAPI.NvencStatusToString(pcStatus)}) — building an explicit minimal NV_ENC_CONFIG instead of preset defaults")
+                        _logger.Warning($"NvEncGetEncodePresetConfig failed: status={pcStatus} ({NvEncodeAPI.NvencStatusToString(pcStatus)}) — building an explicit minimal NV_ENC_CONFIG")
                     End If
                 Else
                     _logger.Warning("NvEncGetEncodePresetConfig unavailable in the driver function table — building an explicit minimal NV_ENC_CONFIG")
@@ -293,14 +292,15 @@ Namespace CaptureEngine.Encoder.Nvenc
                     _encoderConfig.BitrateBps, _encoderConfig.MaxrateBps,
                     _encoderConfig.BufsizeBps, _encoderConfig.RateControl,
                     _encoderConfig.GopSize)
-
-                encodeConfigPtr = Marshal.AllocHGlobal(Internal.NvEncParamBuilder.SIZEOF_NV_ENC_CONFIG)
-                Marshal.StructureToPtr(encodeCfg, encodeConfigPtr, False)
+                Dim rawConfig As Byte() = Internal.NvEncConfigSerializer.Serialize(encodeCfg)
+                encodeConfigPtr = Marshal.AllocHGlobal(rawConfig.Length)
+                Marshal.Copy(rawConfig, 0, encodeConfigPtr, rawConfig.Length)
+                ' Explicit-config production path: pass the serialized native NV_ENC_CONFIG.
                 initParams.encodeConfig = encodeConfigPtr
-                encodeConfigBytes = Internal.NvEncParamBuilder.SIZEOF_NV_ENC_CONFIG
+                encodeConfigBytes = rawConfig.Length
 
                 Dim rcEcho As String = If(NvEncodeAPI.IsNamedPresetKey(presetKey), presetKey.Trim().ToLowerInvariant(), "p4 (fallback)")
-                _logger.Info($"NVENC init: preset='{presetKey}' → {rcEcho} GUID, frameRate={initParams.frameRateNum}/{initParams.frameRateDen}, encode {_encodeWidth}x{_encodeHeight} (input {_width}x{_height}), encodeConfig={encodeConfigBytes}B ({If(gotPreset, "driver preset + user patch", "explicit minimal")}), rc={_encoderConfig.RateControl}, bitrate={_encoderConfig.BitrateBps} bps, gop={_encoderConfig.GopSize}")
+                _logger.Info($"NVENC init: preset='{presetKey}' → {rcEcho} GUID, frameRate={initParams.frameRateNum}/{initParams.frameRateDen}, encode {_encodeWidth}x{_encodeHeight} (input {_width}x{_height}), encodeConfig={encodeConfigBytes}B (explicit native config), rc={_encoderConfig.RateControl}, bitrate={_encoderConfig.BitrateBps} bps, gop={_encoderConfig.GopSize}")
 
                 Dim initStatus As UInteger = _nvenc.InitializeEncoder.Invoke(_encoderHandle, initParams)
                 If initStatus <> NvEncodeAPI.NV_ENC_SUCCESS Then

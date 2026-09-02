@@ -77,8 +77,10 @@ Friend Class NvEncParamBuilderTests
                "encodeConfig must start Zero (caller attaches the native NV_ENC_CONFIG)")
         Assert(p.encodeWidth = 1280UI AndAlso p.encodeHeight = 720UI,
                $"encodeWidth/Height expected 1280/720 (V-CT2 encode dims), got {p.encodeWidth}/{p.encodeHeight}")
-        Assert(p.maxEncodeWidth = 1920UI AndAlso p.maxEncodeHeight = 1080UI,
-               $"maxEncode expected input 1920/1080, got {p.maxEncodeWidth}/{p.maxEncodeHeight}")
+        ' Validated native path leaves optional maxEncode bounds unset (0/0);
+        ' the actual encode dimensions are carried by encodeWidth/encodeHeight.
+        Assert(p.maxEncodeWidth = 0UI AndAlso p.maxEncodeHeight = 0UI,
+               $"maxEncode expected native default 0/0, got {p.maxEncodeWidth}/{p.maxEncodeHeight}")
         Assert(p.encodeGUID = NvEncodeAPI.NV_ENC_CODEC_H264_GUID, "encodeGUID must be H264")
         Assert(p.enableEncodeAsync = 0UI, "synchronous mode contract (enableEncodeAsync=0)")
     End Sub

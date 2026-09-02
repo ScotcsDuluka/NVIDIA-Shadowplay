@@ -2017,3 +2017,128 @@ Remaining:
 ==================================================
 END PROJECT_MEMORY_UPDATED.txt
 ==================================================
+
+=== CHAT HANDOFF 2026-09-02 — NVENC / MULTI-AGENT STATE ===
+Purpose: context checkpoint for next chat after chat-limit reset.
+
+PROJECT
+- Repo: C:\My Project\NVIDIA-Shadowplay
+- Main branch in active work: Engine-Rebuild-Stabilization
+- Baseline: ab89372
+- Important pushed checkpoints:
+  - 06667e9 = GLM/1 Phase 1 video wiring + P1 GUID fix/test
+  - c5062ac = GLM/2 UI config architecture v1.1
+  - 5b2a8a0 = CONFIG_RUNTIME_CONTRACT v1.0
+  - 8fc7212 = merge point before GLM/3 wave
+  - 7f43cb2 = GLM/3 UI Phase 3 wave 1
+  - cf47732 / 35ad7b4 = Windows validation kit + fixes
+- Current repo contains docs, evidence, MP4 test artifacts; do NOT delete unrelated user files.
+- Overlay/build.txt is sensitive: build may auto-increment it; restore it before clean commits.
+
+MULTI-AGENT STATUS
+- GLM/1: Phase 1 video runtime wiring pushed; later real Windows validation exposed NVENC ABI/init issues; currently mostly waiting / no new feature task.
+- GLM/2: CONFIG_RUNTIME_CONTRACT finalization pushed at 5b2a8a0; Q1-Q6 are OWNER decisions; no feature implementation pending unless instructed.
+- GLM/3: UI Phase 3 Wave 1 pushed at 7f43cb2; Engine UI demoted to diagnostic/operator UI; effective-runtime panel added; audio UI writes reduced; mic/path cleanup done.
+- Owner is currently driving NVENC debugging directly through Remote Desktop Commander because GLM agents are idle / chat limits happen.
+
+REMOTE DESKTOP COMMANDER
+- Connected Windows device: DESKTOP-DULUKA (device id seen in session: 2858d623-adc7-4122-82dc-426ab862ff22)
+- Can run PowerShell/dotnet/build/test, read/edit local files, inspect processes, and run real hardware validation.
+- User explicitly trusts direct machine work; still protect unrelated files and avoid blind force resets.
+
+REAL HARDWARE
+- GPU: NVIDIA GeForce GTX 1080 Ti, device id 0x1b06
+- Multiple adapters enumerate, selected NVIDIA adapter #0
+- D3D11 feature level: 11_1
+- Display: 1680x1050 @ 75Hz
+- NVENC max API observed: 13.0
+- Windows project target includes net10.0-windows for ConsoleDriver.
+
+NVENC DEBUGGING — WHAT IS PROVEN
+1. Initial failure before investigation:
+   - D3D11/DXGI capture initialized correctly.
+   - NVENC session opened correctly.
+   - NvEncGetEncodePresetConfig returned status=15 NV_ENC_ERR_INVALID_VERSION.
+   - NvEncInitializeEncoder with explicit config returned status=8 NV_ENC_ERR_INVALID_PARAM.
+   - Dispose could then hit 0xC0000005 after failed init.
+2. Known-good control:
+   - encodeConfig = NULL can initialize and encode on real GTX 1080 Ti.
+   - A prior Phase 12b full matrix achieved 11/11 sessions PASS, nvenc_errors=0, real MP4 with audio+video, restart/early-stop/cleanup passing.
+3. Explicit custom config:
+   - A temporary raw/native byte-buffer implementation was made in temp worktree.
+   - After ABI/value fixes, explicit config also achieved real NvEncInitializeEncoder success and actual encode in short probes.
+4. Strong ABI findings:
+   - Marshal.StructureToPtr(NV_ENC_CONFIG) was producing a misleadingly-correct Marshal.SizeOf(3584) while nested codec union content was shifted versus native layout; observed examples included idrPeriod expected around +176 but marshalled much later in one probe.
+   - maxMEHintCountsPerBlock array representation in the VB interop was wrong at one point; native SDK uses two small struct elements, not two 16-byte Byte arrays / mismatched scalar layout.
+   - NV_ENC_INITIALIZE_PARAMS layout/version was stale; SDK 13 needs the newer layout (version 7 in current header) and fields such as tuningInfo etc. A version-only bump caused another status=12, but the full updated layout + tuningInfo worked in successful probes.
+   - For RGB/frame input, frameFieldMode must be FRAME (1), not zero.
+   - H.264 custom config needs valid codec-specific values; successful probes used sane defaults including numTemporalLayers=1, chromaFormatIDC=1, input/output bit depth 8.
+5. Very important current architecture conclusion:
+   - Do NOT trust Marshal.StructureToPtr for the native NV_ENC_CONFIG path until byte-level/native-layout parity is proven.
+   - Prefer a dedicated native serializer/raw byte buffer if that is what passes hardware validation.
+6. GetEncodePresetConfig:
+   - On this driver/API combination it repeatedly reports NV_ENC_ERR_INVALID_VERSION.
+   - Do not make production correctness depend on this legacy query without confirming driver/API support.
+   - Modern API/FFmpeg uses newer preset/config flows, but the exact Ex interop was probed and did not behave as a simple drop-in on this driver; do not blindly replace working code.
+
+VALIDATION ARTIFACTS
+- Current repo contains:
+  - A1.mp4 A2.mp4 A3.mp4
+  - B1s.mp4 B5s.mp4 B10s.mp4
+  - C1.mp4..C5.mp4
+  - nvenc-null-control.mp4
+  - evidence/phase-12b-validation-20260902-170031.md
+  - evidence/phase-12b-validation-20260902-170405.md
+  - evidence/phase-12b-validation-20260902-171138.md
+  - evidence/phase-12b-validation-20260902-171532.md
+- Console driver location: CaptureEngine.Recording.ConsoleDriver\bin\...\CaptureEngine.Recording.ConsoleDriver.dll
+- Validation script: scripts\validate-phase12b.ps1
+
+CURRENT IMMEDIATE TASK
+- Continue NVENC explicit-config debugging.
+- Goal: production-quality explicit NV_ENC_CONFIG path with real hardware PASS.
+- First prove raw serializer byte layout against SDK 13 header; then compare bytes to managed Marshal output.
+- Build before runtime test; never rely on stale binaries.
+- After any successful production-path change: run short smoke (5-10s) first, then full Phase 12b matrix, then full contract tests.
+- Do not commit/push temporary probes. Only commit the minimal proven fix after clean diff/build/tests.
+
+CODE AREAS
+- CaptureEngine.Encoder.Nvenc\NvencEncoderBackend.vb
+- CaptureEngine.Encoder.Nvenc\Internal\NvEncodeAPI.vb
+- CaptureEngine.Encoder.Nvenc\Internal\NvEncFunctionTable.vb
+- CaptureEngine.Encoder.Nvenc\Internal\NvEncParamBuilder.vb
+- CaptureEngine.Encoder.Nvenc\Internal\NvEncConfigSerializer.vb (temporary/experimental work may exist; verify before using)
+- CaptureEngine.Encoder.Tests\NvEncParamBuilderTests.vb
+- CaptureEngine.Encoder.Tests\MarshalProbe.vb
+- CaptureEngine.Recording.ConsoleDriver\Program.vb
+
+TEST BASELINES
+- ConfigTruth: 20/20 after UI wave; earlier 12/12 before P3 tests
+- Encoder.Tests: 52/52 PASS (includes V-CT5g literal GUID test)
+- ConfigTests: 91/91 PASS
+- Recording.Tests: 33/33 PASS
+- FFmpegTests: 57/57 PASS
+- FrameContractTests: 8/8 PASS
+- CaptureEngine.Tests / Tests: 14/14 PASS
+- Video.Tests under Linux: 43/61 with 18 dxgi.dll failures; baseline identical, environment limitation
+- Full solution build previously verified 0W/0E in known-good states
+
+UI / CONFIG TRUTH
+- config.json is canonical user-facing config source.
+- UI_Engine is now intended as diagnostic/operator surface; SaveSettings writing engine.json was removed in GLM/3 wave.
+- CONFIG_RUNTIME_CONTRACT says one canonical field -> one persistence owner -> one mapping -> one actual consumer.
+- Engine selection is currently implementation/fallback decision, not a user config key.
+- api_capture remains transitional/reserved until GfxCaptureBackend is actually production-capable.
+- Video fields wired by Phase 1: FPS, Resolution, Bitrate, Preset; PixelFormat remains a blocker/decision.
+
+SECURITY
+- A PAT appeared in earlier chats. Treat it as compromised and rotate/revoke it. Never write tokens into .git/config or project files.
+
+OWNER PREFERENCES / WORK STYLE
+- User wants direct execution through Remote Desktop Commander when possible, especially real hardware/debug tasks.
+- User is managing many roles: backend + frontend + Web + GitHub + server + school + time/life/finance, and uses a personal 'Mapping Memory' / 'Angular Clock' tagging technique for fast recall.
+- For this project, keep agent work isolated and avoid creating duplicate/stale docs or parallel incompatible implementations.
+
+HANDOFF RULE
+- In next chat, read this file first, then inspect git status/log and current NVENC files before making any new change.
+- Assume nothing about temporary probe changes until verified from current working tree.
