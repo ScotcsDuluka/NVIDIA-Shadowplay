@@ -115,3 +115,21 @@ produce the real numbers.
    optional future work; preset runtime evidence is currently the init
    echo + struct-level mapping, which the kit captures from the driver
    log.
+
+## 7. UPDATE — 2026-09-02 Windows runtime evidence
+
+The Windows validation kit was executed against the real NVIDIA/D3D11/NVENC pipeline.
+
+- S1 FPS: **PASS** — 58.53 fps average, within the existing ±2 fps acceptance.
+- S2 Native resolution: **PASS** — 1680x1050.
+- S3 Custom resolution: **PASS** — 1280x720.
+- S4 Bitrate: **PASS** — 10.17 Mbps for a 10.2 Mbps CBR target.
+- S5 Preset: **PASS** — startup and NVENC init both report `p7`.
+- S6 Encoder: **PASS** — ffprobe reports H.264.
+- S7 gfxcapture: **PASS as documented GAP** — warning emitted and DdagrabBackend ran; no silent substitution.
+
+**Runtime/Hardware/Output verification: S1-S7 = 7/7 PASS.** Evidence: `evidence/phase1-video/report.md`.
+
+The first kit run produced false FAILs for S4/S5 because the scenario writer emitted camelCase `Current.fps`, `Current.bitrate`, and `Current.encoder_preset`, while the legacy loader accepts `FPS`, `Bitrate`, and `EncoderPreset` in that section. A corrected targeted run proved the runtime accepted 10.2 Mbps and p7, and the corrected full kit then passed 7/7.
+
+**PixelFormat B2 remains an OWNER architecture decision:** Phase 1 encoder contract defines `ExpectedInputFormat=Bgra8`; `OutputPixelFormat` is an output-format hint. The native production path is BGRA8 capture → NVENC ARGB input → H.264 yuv420p output. No BGRA→NV12 conversion layer is implemented.
