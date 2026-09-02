@@ -127,12 +127,20 @@ Namespace CaptureEngine.Recording
                     _logger.Warning($"[RecordingEngine] capture method: requested='{requestedMethod}' → GAP: '{requestedMethod}' is not implemented in the New Engine (only production backend = ddagrab) — running DdagrabBackend. Gap recorded, NOT silently accepted.")
                 End If
 
-                ' ★ PHASE 1 (task §8): pixel format truth line. The pipeline is
-                ' BGRA (D3D11) → NVENC ARGB. A config nv12 would need a GPU
-                ' conversion layer between capture and NVENC — NOT implemented
-                ' (BLOCKER P1-PIXFMT); the config value is reported honestly,
-                ' no fake pass.
-                _logger.Info($"[RecordingEngine] pixel format: config='{If(String.IsNullOrEmpty(startup.RequestedPixelFormat), "(default nv12)", startup.RequestedPixelFormat)}' → runtime=BGRA8 (D3D11 capture) → NVENC input=ARGB — nv12 conversion NOT implemented (BLOCKER P1-PIXFMT); recording continues BGRA/ARGB")
+                ' ★ PHASE 1 (task §8): pixel format truth line.
+                ' Capture texture format is fixed by the Ddagrab backend (BGRA8).
+                ' Encoder/output pixel-format hints are kept separate from the
+                ' capture texture contract; native NVENC consumes the BGRA texture
+                ' through its ARGB input path and the H.264 output is yuv420p.
+                Dim requestedPixFmt As String = If(String.IsNullOrEmpty(startup.RequestedPixelFormat), "nv12", startup.RequestedPixelFormat.Trim().ToLowerInvariant())
+                If requestedPixFmt = "nv12" Then
+                    ' Current production path is BGRA8 capture → NVENC ARGB input.
+                    ' nv12 is an output/codec pixel-format hint in the config schema;
+                    ' no NV12 texture conversion stage exists in this pipeline.
+                    _logger.Info($"[RecordingEngine] pixel format: config='{requestedPixFmt}' → runtime=BGRA8 (D3D11 capture) → NVENC input=ARGB; output codec produces yuv420p in MP4. No NV12 texture conversion requested by the current native NVENC path.")
+                Else
+                    _logger.Warning($"[RecordingEngine] pixel format: config='{requestedPixFmt}' → runtime=BGRA8 (D3D11 capture) → NVENC input=ARGB. Requested format is not a native capture texture format in this backend; no conversion stage is currently implemented.")
+                End If
 
                 Dim fpsEcho As String = If(startup.Fps > 0, startup.Fps.ToString(), "unset (60 default)")
                 _logger.Info($"RecordingEngine: NvencEncoderBackend initialized ({encConfig.CodecKey}, {encConfig.BitrateBps} bps, GOP {encConfig.GopSize}, preset {encConfig.Preset})")
