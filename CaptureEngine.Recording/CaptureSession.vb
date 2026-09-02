@@ -654,13 +654,14 @@ Namespace CaptureEngine.Recording
                             End If
                         End If
 
-                        ' Advance the schedule. If we fell behind badly (encode
-                        ' stall), skip missed ticks instead of burst-catch-up
-                        ' (bursting would recreate the smear locally).
+                        ' Advance the schedule strictly on the CFR timeline.
+                        ' Never reset nextTick to wall-clock time: doing so discards
+                        ' missed presentation ticks and shortens the video stream.
+                        ' When an encode stalls, the loop remains behind and emits
+                        ' the latest frame again for every missed CFR tick until the
+                        ' timeline catches up. The output frame count therefore tracks
+                        ' elapsed recording time instead of compressing it.
                         nextTick += tickIntervalTicks
-                        If Stopwatch.GetTimestamp() >= nextTick + tickIntervalTicks Then
-                            nextTick = Stopwatch.GetTimestamp()
-                        End If
                     Else
                         ' Sleep toward the next tick (keep ~2ms spin margin for
                         ' Stop() responsiveness and tick precision).
@@ -697,23 +698,61 @@ Namespace CaptureEngine.Recording
                     End If
                 End While
 
-                ' Encode the final fresh frame (if any) as the last frame.
-                If pendingFrame IsNot Nothing Then
-                    Dim packetF As EncodedPacket = Nothing
-                    Try
-                        If _encoder.Encode(pendingFrame, packetF) AndAlso packetF IsNot Nothing Then
-                            _liveMux?.FeedVideo(packetF.Payload, packetF.PayloadLength)
-                            result.TotalVideoBytes += packetF.PayloadLength
-                            result.FramesEncoded += 1
-                            packetF.Dispose()
-                        End If
-                    Catch
-                        result.NvencErrors += 1
-                    End Try
-                    pendingFrame.Dispose()
-                    pendingFrame = Nothing
-                End If
+                ' Encode the final fresh frame (if any), then tail-fill the
+                ' CFR timeline to the configured session duration. A real encode
+                ' can occasionally finish just below target FPS (for example
+                ' 594/600 frames); ending with only those frames shortens video
+                ' time while audio continues. Repeating the last frame for the
+                ' missing presentation slots preserves wall-clock duration.
+                Dim finalFrame As IVideoFrame = pendingFrame
+                If finalFrame Is Nothing Then finalFrame = lastFrame
 
+
+                If finalFrame IsNot Nothing Then
+                    If pendingFrame IsNot Nothing Then
+                        Dim packetF As EncodedPacket = Nothing
+                        Try
+                            If _encoder.Encode(pendingFrame, packetF) AndAlso packetF IsNot Nothing Then
+                                _liveMux?.FeedVideo(packetF.Payload, packetF.PayloadLength)
+                                result.TotalVideoBytes += packetF.PayloadLength
+                                result.FramesEncoded += 1
+                                packetF.Dispose()
+
+                                ' Transfer ownership before tail-fill; finalFrame
+                                ' must never point at a disposed pending frame.
+                                lastFrame?.Dispose()
+                                lastFrame = pendingFrame
+                                pendingFrame = Nothing
+                                finalFrame = lastFrame
+                            End If
+                        Catch
+                            result.NvencErrors += 1
+                        End Try
+                    End If
+
+                    Dim targetFrames As Long = CLng(Math.Ceiling(duration.TotalSeconds * targetFps))
+                    Dim fillBefore As Long = result.FramesEncoded
+                    While result.FramesEncoded < targetFrames AndAlso finalFrame IsNot Nothing
+                        Dim packetPad As EncodedPacket = Nothing
+                        Try
+                            If Not _encoder.Encode(finalFrame, packetPad) OrElse packetPad Is Nothing Then
+                                result.NvencErrors += 1
+                                Exit While
+                            End If
+                            _liveMux?.FeedVideo(packetPad.Payload, packetPad.PayloadLength)
+                            result.TotalVideoBytes += packetPad.PayloadLength
+                            result.FramesEncoded += 1
+                            result.FramesDuplicated += 1
+                            packetPad.Dispose()
+                        Catch
+                            result.NvencErrors += 1
+                            Exit While
+                        End Try
+                    End While
+                    If result.FramesEncoded > fillBefore Then
+                        _logger.Info($"[session] CFR tail-fill: +{result.FramesEncoded - fillBefore} frames (target {targetFrames})")
+                    End If
+                End If
                 pendingFrame = Nothing   ' nothing left to dispose
                 lastFrame?.Dispose()
                 lastFrame = Nothing
