@@ -109,5 +109,27 @@ sessions (100.10 -> 80.02 -> 49.72 FPS). No correctness errors were observed,
 but sustained multi-session throughput is OPEN and requires longer controlled
 investigation before production sign-off.
 
+## Run 4 — controlled dynamic desktop characterization
+
+A deterministic animated canvas was displayed full-window to make the desktop
+content substantially more dynamic than the prior static-content baseline.
+Configuration remained CBR 20,000,000 bps, p4, GOP 75.
+
+| Session | Duration | Frames | Encoded | FPS | Measured bitrate | Errors | AccessLost | Textures |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1 | 5.012 s | 404 | 404 | 80.60 | 6.79 Mbps | 0 | 0 | 1046/1046 |
+| 2 | 5.011 s | 335 | 335 | 66.86 | 10.37 Mbps | 0 | 0 | 1794/1794 |
+| 3 | 5.014 s | 372 | 372 | 74.19 | 10.73 Mbps | 0 | 0 | 2544/2544 |
+| Aggregate | 15.037 s | 1111 | 1111 | — | 9.32 Mbps | 0 | 0 | 2544/2544 |
+
+Interpretation: dynamic content still did not approach the configured 20 Mbps,
+but output bitrate varied materially with content/session state. This is not
+sufficient evidence of a strict CBR defect because the test does not measure
+NVENC VBV behavior against a controlled rate target over a sufficiently long
+window. Treat bitrate conformance as OPEN.
+
+Throughput remained within the same broad range as prior runs; no encode or
+capture correctness regression was observed.
+
 This is an integration spike only. It does not by itself close long-duration,
 production-session, mux/output, or 144-FPS requirements.
