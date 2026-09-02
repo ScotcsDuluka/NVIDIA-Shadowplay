@@ -26,6 +26,9 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             ' Keep this byte-level layout independent from managed union
             ' marshalling; the SDK-11-compatible H.264 VUI placement is part
             ' of the validated ABI for this specific DLL.
+            Dim h264Flags As UInteger = If(cfg.rcParams.rateControlMode = NvEncodeAPI.NV_ENC_PARAMS_RC_CBR, &H20000UI, 0UI)
+            W32(b, 168, h264Flags)  ' H.264 enableFillerDataInsertion (bit 17)
+
             Dim gop As UInteger = cfg.gopLength
             W32(b, 172, 0UI)    ' level = AUTOSELECT
             W32(b, 176, gop)    ' idrPeriod
