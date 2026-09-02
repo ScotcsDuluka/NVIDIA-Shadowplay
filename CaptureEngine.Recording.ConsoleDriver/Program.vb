@@ -39,6 +39,7 @@ Module Program
     Private _evidence As New StringBuilder()
     Private _passCount As Integer = 0
     Private _failCount As Integer = 0
+    Private Const AvDurationToleranceSec As Double = 0.200
 
     Public Function Main(args As String()) As Integer
         Console.OutputEncoding = System.Text.Encoding.UTF8
@@ -220,6 +221,22 @@ Module Program
         Dim notes As New List(Of String)()
 
         If Not r.Pass Then notes.Add("session result FAIL")
+        ' A/V duration acceptance: same ~200ms tolerance documented by scripts/diag-recording.ps1.
+        Dim videoDur As Double = ProbeStreamDuration(ffmpegPath, outPath, "v:0")
+        Dim audioDur As Double = ProbeStreamDuration(ffmpegPath, outPath, "a:0")
+        If videoDur > 0 AndAlso audioDur > 0 Then
+            Dim avDelta As Double = Math.Abs(videoDur - audioDur)
+            Ev($"| A/V stream duration (video / audio) | {videoDur:0.000}s / {audioDur:0.000}s |")
+            Ev($"| A/V duration delta | {avDelta * 1000.0:0}ms (limit {AvDurationToleranceSec * 1000.0:0}ms) |")
+            If avDelta > AvDurationToleranceSec Then
+                ok = False
+                notes.Add($"A/V duration delta {avDelta * 1000.0:0}ms exceeds {AvDurationToleranceSec * 1000.0:0}ms")
+            End If
+        Else
+            ok = False
+            notes.Add("could not probe both video/audio stream durations")
+        End If
+
         If Not r.AudioAccountingOk Then
             ok = False
             notes.Add($"audio accounting residual (dropped {r.AudioDroppedBytes:N0}B)")
@@ -278,6 +295,29 @@ Module Program
         End If
 
         Return ok
+    End Function
+
+    Private Function ProbeStreamDuration(ffmpegPath As String, mp4Path As String, streamSelector As String) As Double
+        Try
+            Dim ffprobe As String = Path.Combine(Path.GetDirectoryName(ffmpegPath), "ffprobe.exe")
+            If Not File.Exists(ffprobe) Then ffprobe = "ffprobe"
+            Dim psi As New ProcessStartInfo With {
+                .FileName = ffprobe,
+                .Arguments = $"-v error -select_streams {streamSelector} -show_entries stream=duration -of csv=p=0 ""{mp4Path}""",
+                .UseShellExecute = False,
+                .RedirectStandardOutput = True,
+                .RedirectStandardError = True,
+                .CreateNoWindow = True
+            }
+            Using proc As Process = Process.Start(psi)
+                Dim output As String = proc.StandardOutput.ReadToEnd().Trim()
+                proc.WaitForExit(5000)
+                Dim value As Double
+                If Double.TryParse(output, Globalization.NumberStyles.Float, Globalization.CultureInfo.InvariantCulture, value) Then Return value
+            End Using
+        Catch
+        End Try
+        Return 0.0
     End Function
 
     Private Function CountFFmpeg() As Integer
