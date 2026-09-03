@@ -262,7 +262,7 @@ Namespace CaptureEngine.Recording
                 ' needs sub-15.6ms sleeps — see the winmm declarations above).
                 timeBeginPeriod(1UI)
                 _logger.Info("[session] timer resolution set to 1ms (CFR pacing)")
-                sink = New BoundedVideoFrameSink(4, BoundedHandoffPolicy.DropOldest, _logger)
+                sink = New BoundedVideoFrameSink(16, BoundedHandoffPolicy.DropNewest, _logger)
 
                 ' ─── 2. Shared Audio Engine (single owner) ─────────────
                 ' UI authority is Overlay [6] Audio Capture.vb. SessionConfig
@@ -629,20 +629,17 @@ Namespace CaptureEngine.Recording
 
                 Dim durationTicks As Long = CLng(duration.TotalSeconds * Stopwatch.Frequency)
                 Do While (Stopwatch.GetTimestamp() - _timelineStartTicks) < durationTicks AndAlso Not Threading.Volatile.Read(_stopSignal)
-                    ' Refresh 'pending' with the freshest frame (drop older).
-                    Dim far As FrameAcquisitionResult
-                    While sink.TryTake(far)
-                        result.FramesCaptured += 1
-                        Dim f As IVideoFrame = far.Frame
-                        If f Is Nothing Then Continue While
-                        If far.Sequence > pendingSeq Then
-                            pendingFrame?.Dispose()
-                            pendingFrame = f
+                    ' Pull only the next chronological source frame. Do NOT drain the whole
+                    ' queue and keep the newest; that skips temporal history and can make
+                    ' motion appear accelerated during capture bursts.
+                    If pendingFrame Is Nothing Then
+                        Dim far As FrameAcquisitionResult
+                        If sink.TryTake(far) Then
+                            result.FramesCaptured += 1
+                            pendingFrame = far.Frame
                             pendingSeq = far.Sequence
-                        Else
-                            f.Dispose()   ' out-of-order older frame
                         End If
-                    End While
+                    End If
 
                     ' The recording timeline has one owner: common T0 reserved before any
                     ' producer started. A frame arriving before T0 is only warm-up data.
@@ -653,9 +650,33 @@ Namespace CaptureEngine.Recording
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
                     If nowTicks >= nextTick Then
-                        ' ── Tick: encode freshest frame, or duplicate the last ──
-                        Dim encodeFrame As IVideoFrame = If(pendingFrame, lastFrame)
-                        Dim isDuplicate As Boolean = (pendingFrame Is Nothing AndAlso lastFrame IsNot Nothing)
+                        ' ── Tick: choose the newest source frame at/before this timeline tick. ──
+                        ' Future frames remain pending; never jump ahead in visual time.
+                        Dim targetQpc100ns As Long = _timelineStartQpc100ns +
+                            (CLng(Math.Max(0L, nextTick - _timelineStartTicks)) * 10000000L \ Stopwatch.Frequency)
+                        Dim selectedFrame As IVideoFrame = Nothing
+
+                        While pendingFrame IsNot Nothing AndAlso
+                              pendingFrame.Diagnostics.CaptureTimeTicks <= targetQpc100ns
+                            selectedFrame = pendingFrame
+                            pendingFrame = Nothing
+                            pendingSeq = -1
+
+                            Dim nextSource As FrameAcquisitionResult
+                            If sink.TryTake(nextSource) Then
+                                result.FramesCaptured += 1
+                                pendingFrame = nextSource.Frame
+                                pendingSeq = nextSource.Sequence
+                            End If
+                        End While
+
+                        If selectedFrame IsNot Nothing Then
+                            lastFrame?.Dispose()
+                            lastFrame = selectedFrame
+                        End If
+
+                        Dim encodeFrame As IVideoFrame = lastFrame
+                        Dim isDuplicate As Boolean = (selectedFrame Is Nothing AndAlso lastFrame IsNot Nothing)
 
                         If encodeFrame IsNot Nothing Then
                             Dim packet As EncodedPacket = Nothing
@@ -671,13 +692,7 @@ Namespace CaptureEngine.Recording
                                 _logger.Error($"[session] Encode error: {ex.Message}")
                             End Try
 
-                            ' Ownership handoff: pending → last (old last disposed).
-                            If pendingFrame IsNot Nothing Then
-                                lastFrame?.Dispose()
-                                lastFrame = pendingFrame
-                                pendingFrame = Nothing
-                                pendingSeq = -1
-                            ElseIf isDuplicate Then
+                            If isDuplicate Then
                                 result.FramesDuplicated += 1
                             End If
                         End If

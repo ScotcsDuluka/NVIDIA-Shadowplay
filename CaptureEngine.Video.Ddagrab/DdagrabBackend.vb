@@ -684,7 +684,9 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                     ' time this frame was acquired; on a static desktop it can
                     ' legitimately be stale and must not become the recording
                     ' timeline origin.
-                    Dim acquiredQpc100ns As Long = QpcTicksTo100ns(Stopwatch.GetTimestamp())
+                    Dim acquireQpcTicks As Long = Stopwatch.GetTimestamp()
+                    Dim sourceQpcTicks As Long = If(frameInfo.LastPresentTime > 0, frameInfo.LastPresentTime, acquireQpcTicks)
+                    Dim acquiredQpc100ns As Long = QpcTicksTo100ns(sourceQpcTicks)
                     ' ─── Got a frame — copy to staging texture + ReleaseFrame ─
                     Dim stagingTexture As ID3D11Texture2D = Nothing
                     Dim sharedTexture As ID3D11Texture2D = Nothing
