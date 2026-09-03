@@ -26,7 +26,9 @@
     <ProjectReference Include="..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
     <!-- FFmpeg stack (MuxCoordinator + FFmpegProcessHost) -->
     <ProjectReference Include="..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
-    <!-- P13.2: position-aware WASAPI capture (direct COM interop, zero deps) -->
+    <!-- Shared Audio Engine: one audio owner for every video engine -->
+    <ProjectReference Include="..\CaptureEngine.Audio\CaptureEngine.Audio.csproj" />
+    <!-- Low-level WASAPI driver remains an implementation dependency -->
     <ProjectReference Include="..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
   </ItemGroup>
 

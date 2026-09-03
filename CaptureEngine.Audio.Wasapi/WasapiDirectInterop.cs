@@ -55,7 +55,7 @@ namespace CaptureEngine.Audio.Wasapi
         {
             [PreserveSig] int EnumAudioEndpoints(int dataFlow, int stateMask, out IntPtr devices); // slot 0 (unused)
             [PreserveSig] int GetDefaultAudioEndpoint(int dataFlow, int role, out IMMDevice device);
-            [PreserveSig] int GetDevice(IntPtr reserved);                                          // slot 2 (unused)
+            [PreserveSig] int GetDevice([MarshalAs(UnmanagedType.LPWStr)] string id, out IMMDevice device);
             [PreserveSig] int RegisterEndpointNotificationCallback(IntPtr callback);               // slot 3 (unused)
             [PreserveSig] int UnregisterEndpointNotificationCallback(IntPtr callback);             // slot 4 (unused)
         }
@@ -138,14 +138,22 @@ namespace CaptureEngine.Audio.Wasapi
         // ── Helpers ──────────────────────────────────────────────────────
 
         /// <summary>Default device (render for loopback, capture for mic).</summary>
-        public static IMMDevice GetDefaultDevice(int dataFlow)
+        public static IMMDevice GetDevice(int dataFlow, string deviceId)
         {
             var type = Type.GetTypeFromCLSID(CLSID_MMDeviceEnumerator);
             var enumerator = (IMMDeviceEnumerator)Activator.CreateInstance(type);
+            if (!string.IsNullOrWhiteSpace(deviceId))
+            {
+                Check(enumerator.GetDevice(deviceId, out IMMDevice selected),
+                      "IMMDeviceEnumerator.GetDevice(" + deviceId + ")");
+                return selected;
+            }
             Check(enumerator.GetDefaultAudioEndpoint(dataFlow, eConsole, out IMMDevice device),
                   "IMMDeviceEnumerator.GetDefaultAudioEndpoint");
             return device;
         }
+
+        public static IMMDevice GetDefaultDevice(int dataFlow) => GetDevice(dataFlow, "");
 
         /// <summary>Activate IAudioClient on a device.</summary>
         public static IAudioClient ActivateAudioClient(IMMDevice device)

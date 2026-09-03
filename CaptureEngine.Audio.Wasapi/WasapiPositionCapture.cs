@@ -122,7 +122,7 @@ namespace CaptureEngine.Audio.Wasapi
 
             // Device + client + mix format.
             int flow = _opt.Loopback ? Interop.eRender : Interop.eCapture;
-            _device = Interop.GetDefaultDevice(flow);
+            _device = Interop.GetDevice(flow, _opt.DeviceId);
             Interop.Check(_device.GetId(out string deviceId), "IMMDevice.GetId");
             DeviceId = deviceId;
 

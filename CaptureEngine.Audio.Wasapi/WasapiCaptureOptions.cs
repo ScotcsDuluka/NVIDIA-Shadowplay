@@ -18,6 +18,9 @@ namespace CaptureEngine.Audio.Wasapi
         /// both normalize into the same QPC domain (doc §5 Risk #4).</summary>
         public bool Loopback = true;
 
+        /// <summary>Optional endpoint ID. Empty = default endpoint.</summary>
+        public string DeviceId = "";
+
         /// <summary>Copy each packet's PCM bytes into WasapiPacket.Data.
         /// False = stamp-only packets (zero alloc, P13.1-style position
         /// logging); AudioTap v3 needs bytes, so leave true for recording.</summary>
