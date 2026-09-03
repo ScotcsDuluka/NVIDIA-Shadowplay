@@ -26,6 +26,8 @@
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Text
+Imports CaptureEngine.Audio
+Imports CaptureEngine.Audio.Wasapi
 
 Partial Public Class CaptureEngine
     Implements IDisposable
@@ -67,6 +69,10 @@ Partial Public Class CaptureEngine
     ' When audio is enabled, video goes to a temp file and audio goes to .wav
     ' files. At stop time, MuxVideoAudio() combines them into _outputFile.
     Private _audioWriter As AudioFileWriter
+    Private _audioEngine As AudioEngineSession
+    Private _systemAudioSink As AudioTimelineWavSink
+    Private _micAudioSink As AudioTimelineWavSink
+    Private _audioStopTicks As Long = 0
     Private _tempVideoPath As String
     Private _tempSystemWav As String
     Private _tempMicWav As String
@@ -228,6 +234,7 @@ Partial Public Class CaptureEngine
                                          _videoStartDetected = False
                                          _systemStartTicks = 0
                                          _micStartTicks = 0
+                                         _audioStopTicks = 0
                                          System.Threading.Interlocked.Exchange(_muxCompleted, 0)
 
                                          ffmpegOutputPath = _tempVideoPath
@@ -303,6 +310,7 @@ Partial Public Class CaptureEngine
         End If
 
         SetState(CaptureState.Stopping)
+        _audioStopTicks = Stopwatch.GetTimestamp()
         _stopwatch?.Stop()
 
         Return Await Task.Run(Function()
@@ -486,24 +494,13 @@ Partial Public Class CaptureEngine
         ' Range: -2s to +5s (prevents malformed values from timestamp errors)
 
         Dim videoDurationSec As Double = GetVideoDurationSec(_tempVideoPath)
+        ' Audio Engine already aligns both tracks to the same video QPC origin.
+        ' Legacy mux must therefore apply ZERO additional head trim/delay.
         Dim systemOffsetSec As Double = 0.0
         Dim micOffsetSec As Double = 0.0
 
-        If _videoStartDetected Then
-            If _systemStartTicks > 0 Then
-                systemOffsetSec = (_videoStartTicks - _systemStartTicks) / Stopwatch.Frequency
-                If systemOffsetSec < -2.0 Then systemOffsetSec = -2.0
-                If systemOffsetSec > 5.0 Then systemOffsetSec = 5.0
-            End If
-            If _micStartTicks > 0 Then
-                micOffsetSec = (_videoStartTicks - _micStartTicks) / Stopwatch.Frequency
-                If micOffsetSec < -2.0 Then micOffsetSec = -2.0
-                If micOffsetSec > 5.0 Then micOffsetSec = 5.0
-            End If
-        End If
-
-        LogDebug($"[Mux] videoDuration={videoDurationSec:F3}s, sysOffset={systemOffsetSec:F3}s, micOffset={micOffsetSec:F3}s")
-        WriteDebugLog($"[Mux] videoDuration={videoDurationSec:F3}s, sysOffset={systemOffsetSec:F3}s, micOffset={micOffsetSec:F3}s, videoStartDetected={_videoStartDetected}")
+        LogDebug($"[Mux] videoDuration={videoDurationSec:F3}s, shared-audio offsets=0.000s (alignment owned by AudioEngine)")
+        WriteDebugLog($"[Mux] videoDuration={videoDurationSec:F3}s, shared-audio offsets=0.000s, videoStartDetected={_videoStartDetected}")
 
         ' Run mux FFmpeg with per-track alignment
         Dim muxArgs As String = BuildMuxArguments(_tempVideoPath,
@@ -756,6 +753,15 @@ Partial Public Class CaptureEngine
                         Dim videoTimeTicks As Long = CLng(videoTime.TotalSeconds * Stopwatch.Frequency)
                         _videoStartTicks = nowTicks - videoTimeTicks
                         _videoStartDetected = True
+                        ' Shared Audio Engine owns the capture clock. Publish the
+                        ' exact video t0 so every audio track aligns to this origin.
+                        If _audioEngine IsNot Nothing Then
+                            Dim videoT0Qpc100ns As Long = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
+                            _audioEngine.SetVideoStartQpc100ns(videoT0Qpc100ns)
+                            _systemAudioSink?.SetVideoStart(videoT0Qpc100ns)
+                            _micAudioSink?.SetVideoStart(videoT0Qpc100ns)
+                            LogDebug("[Audio] Shared timeline anchored to video t0 QPC=" & videoT0Qpc100ns.ToString())
+                        End If
                         ' Log per-track offsets (system/mic may have different offsets)
                         Dim sysOffsetMs As Double = If(_systemStartTicks > 0, (_videoStartTicks - _systemStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
                         Dim micOffsetMs As Double = If(_micStartTicks > 0, (_videoStartTicks - _micStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
@@ -909,63 +915,52 @@ Partial Public Class CaptureEngine
 
     Private Sub StartAudioRecorder()
         Try
-            Dim cfg As New AudioFileWriter.AudioConfigValues() With {
-                .SystemAudioCapture = _settings.SystemAudioCapture,
-                .MicCapture = _settings.MicCapture,
-                .SystemAudioVolume = _settings.SystemAudioVolume,
-                .MicVolume = _settings.MicVolume,
-                .MicDeviceId = _settings.MicDeviceId,
-                .MicDeviceName = _settings.MicDeviceName
-            }
-            _audioWriter = New AudioFileWriter(cfg)
+            _audioEngine = New AudioEngineSession(New AudioEngineConfig With {
+                .SystemEnabled = _settings.SystemAudioCapture,
+                .MicrophoneEnabled = _settings.MicCapture,
+                .MicrophoneDeviceId = If(_settings.MicDeviceId, ""),
+                .MicrophoneDeviceName = If(_settings.MicDeviceName, "")
+            }, AddressOf LogDebug)
 
-            AddHandler _audioWriter.SystemStartFailed, Sub(reason As String)
-                                                           LogDebug("[Audio] System start failed: " & reason)
-                                                           WriteDebugLog("[Audio] System start failed: " & reason)
-                                                       End Sub
-            AddHandler _audioWriter.MicStartFailed, Sub(reason As String)
-                                                       LogDebug("[Audio] Mic start failed: " & reason)
-                                                       WriteDebugLog("[Audio] Mic start failed: " & reason)
-                                                   End Sub
-
-            Dim ok As Boolean = _audioWriter.Start(_tempSystemWav, _tempMicWav)
-            If ok Then
-                ' Capture per-track StartRecording timestamps (set inside AudioFileWriter.StartTrack)
-                ' These are used at mux time to compute per-track audio offset.
-                _systemStartTicks = _audioWriter.SystemStartTicks
-                _micStartTicks = _audioWriter.MicStartTicks
-                LogDebug("[Audio] AudioFileWriter started (system=" & _settings.SystemAudioCapture.ToString() &
-                         ", mic=" & _settings.MicCapture.ToString() &
-                         ", sysStart=" & _systemStartTicks.ToString() &
-                         ", micStart=" & _micStartTicks.ToString() & ")")
-                WriteDebugLog("[Audio] AudioFileWriter started — StartRecording timestamps captured")
-            Else
-                LogDebug("[Audio] AudioFileWriter failed to start — video continues without audio")
-                WriteDebugLog("[Audio] AudioFileWriter failed to start — video continues without audio")
+            If _settings.SystemAudioCapture Then
+                _systemAudioSink = New AudioTimelineWavSink(_tempSystemWav)
+                _audioEngine.AddSink(AudioTrackKind.System, _systemAudioSink)
             End If
+            If _settings.MicCapture Then
+                _micAudioSink = New AudioTimelineWavSink(_tempMicWav)
+                _audioEngine.AddSink(AudioTrackKind.Microphone, _micAudioSink)
+            End If
+
+            _audioEngine.Start()
+            LogDebug("[Audio] AudioEngine started (shared owner): system=" & _settings.SystemAudioCapture.ToString() &
+                     ", mic=" & _settings.MicCapture.ToString())
+            WriteDebugLog("[Audio] AudioEngine started — shared WASAPI/device-clock timeline")
         Catch ex As Exception
             LogDebug("[Audio] StartAudioRecorder exception: " & ex.Message)
             WriteDebugLog("[Audio] StartAudioRecorder exception: " & ex.ToString())
+            _audioEngine = Nothing
         End Try
     End Sub
 
     Private Sub StopAudioWriter()
         Try
-            If _audioWriter IsNot Nothing Then
-                ' Capture per-track start timestamps BEFORE dispose
-                ' (needed for mux offset calculation in both normal stop and OnExited paths)
-                If _systemStartTicks = 0 Then
-                    _systemStartTicks = _audioWriter.SystemStartTicks
-                End If
-                If _micStartTicks = 0 Then
-                    _micStartTicks = _audioWriter.MicStartTicks
-                End If
-                _audioWriter.Stop()
-                _audioWriter.Dispose()
-                _audioWriter = Nothing
-                LogDebug("[Audio] AudioFileWriter stopped")
+            If _audioEngine IsNot Nothing Then
+                Dim endTicks As Long = If(_audioStopTicks > 0, _audioStopTicks, Stopwatch.GetTimestamp())
+                Dim endQpc As Long = WasapiPositionCapture.QpcTicksTo100ns(endTicks)
+                _audioEngine.Stop(endQpc)
+                _systemAudioSink?.Complete(endQpc)
+                _micAudioSink?.Complete(endQpc)
+                _lastAudioDiagnostics = _audioEngine.Diagnostics.ToString()
+                LogDebug(_lastAudioDiagnostics)
+                WriteDebugLog(_lastAudioDiagnostics)
+                _systemAudioSink = Nothing
+                _micAudioSink = Nothing
+                _audioEngine.Dispose()
+                _audioEngine = Nothing
+                LogDebug("[Audio] AudioEngine stopped")
             End If
-        Catch
+        Catch ex As Exception
+            LogDebug("[Audio] AudioEngine stop exception: " & ex.Message)
         End Try
     End Sub
 
