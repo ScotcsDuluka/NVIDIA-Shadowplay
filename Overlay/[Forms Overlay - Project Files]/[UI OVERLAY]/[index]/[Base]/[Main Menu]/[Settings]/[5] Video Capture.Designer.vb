@@ -379,7 +379,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' Engine_Mode3_BgSub
         ' 
-        Engine_Mode3_BgSub.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Engine_Mode3_BgSub.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Engine_Mode3_BgSub.Cursor = Cursors.Hand
         Engine_Mode3_BgSub.Location = New Point(385, 82)
         Engine_Mode3_BgSub.Name = "Engine_Mode3_BgSub"
@@ -402,7 +402,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' Engine_Mode2_BgSub
         ' 
-        Engine_Mode2_BgSub.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Engine_Mode2_BgSub.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Engine_Mode2_BgSub.Cursor = Cursors.Hand
         Engine_Mode2_BgSub.Location = New Point(226, 82)
         Engine_Mode2_BgSub.Name = "Engine_Mode2_BgSub"
@@ -425,7 +425,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' Engine_Mode1_BgSub
         ' 
-        Engine_Mode1_BgSub.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Engine_Mode1_BgSub.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Engine_Mode1_BgSub.Cursor = Cursors.Hand
         Engine_Mode1_BgSub.Location = New Point(67, 82)
         Engine_Mode1_BgSub.Name = "Engine_Mode1_BgSub"

@@ -141,6 +141,8 @@ namespace CaptureEngine.Audio.Wasapi
         private bool _anchored;
         private bool _anchorWasFallback;
         private long _framesSinceAnchor;
+        private bool _sessionPrimed;
+        private long _sessionStartQpc;
 
         // ── Phase-A state (frozen-cursor idle reconstruction) ──────────
         /// <summary>raw→virtual cursor offset: accumulates the divergence
@@ -162,6 +164,19 @@ namespace CaptureEngine.Audio.Wasapi
 
         /// <summary>Sample rate of the device mix format (frames → time).</summary>
         public int SampleRate { get { return (int)_sampleRate; } }
+
+        /// <summary>
+        /// Primes the tracker with the session's wall-clock origin before the
+        /// first packet arrives. The first packet can therefore contribute a
+        /// measured initial silent lead instead of becoming the track origin.
+        /// </summary>
+        public void PrimeSessionStart(long sessionStartQpc100ns)
+        {
+            if (sessionStartQpc100ns <= 0 || _anchored)
+                return;
+            _sessionPrimed = true;
+            _sessionStartQpc = sessionStartQpc100ns;
+        }
 
         /// <summary>True once the first packet anchored the timeline.</summary>
         public bool Anchored { get { return _anchored; } }
@@ -269,10 +284,27 @@ namespace CaptureEngine.Audio.Wasapi
 
             if (!_anchored)
             {
-                // First packet: anchor, no gap possible.
+                // First packet: normally anchor to the packet stamp. When the
+                // session origin was primed, preserve the real wall lead-in:
+                // [session start ... packet start) is measured silence, not
+                // the beginning of the audio track.
+                long anchorQpc = qpcPosition100ns;
+                long initialHole100ns = 0;
+                long initialHoleFrames = 0;
+
+                if (_sessionPrimed && qpcPosition100ns > _sessionStartQpc)
+                {
+                    long elapsed100ns = qpcPosition100ns - _sessionStartQpc;
+                    initialHole100ns = elapsed100ns > dur ? elapsed100ns - dur : 0;
+                    initialHoleFrames = (initialHole100ns * _sampleRate) / 10_000_000L;
+                    if (initialHoleFrames > devicePositionFrames)
+                        initialHoleFrames = devicePositionFrames;
+                    anchorQpc = _sessionStartQpc;
+                }
+
                 _anchored = true;
-                _firstDevPos = devicePositionFrames;
-                _firstQpc = qpcPosition100ns;
+                _firstDevPos = devicePositionFrames - initialHoleFrames;
+                _firstQpc = anchorQpc;
                 if (devicePositionFrames == 0)
                 {
                     // Pathological: first packet has no cursor. The qpc is
@@ -285,9 +317,14 @@ namespace CaptureEngine.Audio.Wasapi
                     _framesSinceAnchor = frames;
                 }
                 _lastDevPosEnd = devicePositionFrames + frames;
-                LastEnd100ns = _firstQpc + dur;
+                LastEnd100ns = _firstQpc + initialHole100ns + dur;
                 r.AnchoredNow = true;
-                r.Hole100ns = 0;
+                r.Hole100ns = initialHole100ns;
+                if (initialHole100ns > 0)
+                {
+                    GapPackets++;
+                    TotalHole100ns += initialHole100ns;
+                }
                 r.LastDevPosEnd = _lastDevPosEnd;
                 r.LastEnd100ns = LastEnd100ns;
                 // Phase-A bookkeeping: the anchor is a trusted packet.

@@ -368,7 +368,7 @@ Partial Public Class AppSettings
         Public Property replay_duration As Integer = 60
         Public Property my_presets As MyPresetsDto = New MyPresetsDto()
         ''' <summary>Capture API: ddagrab, gfxcapture, GDIGrab, or null (auto)</summary>
-        Public Property api_capture As String = Nothing
+        Public Property api_capture As Integer = 1
     End Class
 
     ''' <summary>

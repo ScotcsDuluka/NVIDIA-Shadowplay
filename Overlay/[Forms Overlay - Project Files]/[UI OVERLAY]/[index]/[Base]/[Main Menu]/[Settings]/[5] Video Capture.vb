@@ -570,6 +570,7 @@ Public Class Base_RecordingsSet
             LoadResolutionBox()
             LoadSettings()
             UpdateUIFromPreset()
+            UpdateEngineModeUI()
             UpdateCommandPreview()
 
             Quality.Enabled = True
@@ -2242,28 +2243,86 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Sub Engine_Mode1_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode1_BgSub.MouseMove, Engine_Mode1_Text.MouseMove
-        Engine_Mode1_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+        If Not IsEngineModeSelected("ffmpeg") Then Engine_Mode1_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode1_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.MouseLeave, Engine_Mode1_BgSub.MouseLeave
-        Engine_Mode1_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+        Engine_Mode1_BgSub.BackColor = If(IsEngineModeSelected("ffmpeg"), COLOR_ACTIVE, COLOR_INACTIVE)
     End Sub
 
+    Private Sub Engine_Mode1_Click(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.Click, Engine_Mode1_BgSub.Click
+        ApplyEngineMode("ffmpeg", "FFmpeg Capture")
+    End Sub
 
     Private Sub Engine_Mode2_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode2_BgSub.MouseMove, Engine_Mode2_Text.MouseMove
-        Engine_Mode2_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+        If Not IsEngineModeSelected("ddagrab") Then Engine_Mode2_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode2_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.MouseLeave, Engine_Mode2_BgSub.MouseLeave
-        Engine_Mode2_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+        Engine_Mode2_BgSub.BackColor = If(IsEngineModeSelected("ddagrab"), COLOR_ACTIVE, COLOR_INACTIVE)
+    End Sub
+
+    Private Sub Engine_Mode2_Click(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.Click, Engine_Mode2_BgSub.Click
+        ApplyEngineMode("ddagrab", "Duluka Capture")
     End Sub
 
     Private Sub Engine_Mode3_BgSub_MouseMove(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseMove, Engine_Mode3_Text.MouseMove
-        Engine_Mode3_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+        If Not IsEngineModeSelected("obs") Then Engine_Mode3_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode3_BgSub_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseLeave, Engine_Mode3_Text.MouseLeave
-        Engine_Mode3_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+        Engine_Mode3_BgSub.BackColor = If(IsEngineModeSelected("obs"), COLOR_ACTIVE, COLOR_INACTIVE)
+    End Sub
+
+    Private Sub Engine_Mode3_Click(sender As Object, e As EventArgs) Handles Engine_Mode3_Text.Click, Engine_Mode3_BgSub.Click
+        ApplyEngineMode("obs", "OBS Capture")
+    End Sub
+
+    Private Function GetEngineModeKey() As String
+        Dim api As String = If(AppSettings.Instance.Recording.APICapture, "").Trim().ToLowerInvariant()
+        If api = "ffmpeg" OrElse api = "ddagrab" OrElse api = "gfxcapture" OrElse api = "obs" Then Return api
+        Return "ddagrab"
+    End Function
+
+    Private Function IsEngineModeSelected(modeKey As String) As Boolean
+        Return String.Equals(GetEngineModeKey(), modeKey, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Sub UpdateEngineModeUI()
+        Dim selected As String = GetEngineModeKey()
+
+        If Engine_Mode1_BgSub IsNot Nothing Then Engine_Mode1_BgSub.BackColor = If(selected = "ffmpeg", COLOR_ACTIVE, COLOR_INACTIVE)
+        If Engine_Mode1_Text IsNot Nothing Then Engine_Mode1_Text.BackColor = If(selected = "ffmpeg", COLOR_ACTIVE, COLOR_INACTIVE)
+
+        If Engine_Mode2_BgSub IsNot Nothing Then Engine_Mode2_BgSub.BackColor = If(selected = "ddagrab", COLOR_ACTIVE, COLOR_INACTIVE)
+        If Engine_Mode2_Text IsNot Nothing Then Engine_Mode2_Text.BackColor = If(selected = "ddagrab", COLOR_ACTIVE, COLOR_INACTIVE)
+
+        If Engine_Mode3_BgSub IsNot Nothing Then Engine_Mode3_BgSub.BackColor = If(selected = "obs", COLOR_ACTIVE, COLOR_INACTIVE)
+        If Engine_Mode3_Text IsNot Nothing Then Engine_Mode3_Text.BackColor = If(selected = "obs", COLOR_ACTIVE, COLOR_INACTIVE)
+    End Sub
+
+    Private Sub ApplyEngineMode(modeKey As String, displayName As String)
+        Select Case modeKey.ToLowerInvariant()
+            Case "ffmpeg"
+                AppSettings.Instance.Recording.APICapture = "ffmpeg"
+            Case "ddagrab"
+                AppSettings.Instance.Recording.APICapture = "ddagrab"
+            Case "obs"
+                AppSettings.Instance.Recording.APICapture = "obs"
+            Case Else
+                Return
+        End Select
+
+        Debug.WriteLine($"[Video Capture] Engine mode → {displayName} ({modeKey})")
+        AppSettings.Instance.Save()
+        UpdateEngineModeUI()
+        UpdateCommandPreview()
+
+        Try
+            Base.tcp.Send("engine_config_changed", "video")
+        Catch ex As Exception
+            Debug.WriteLine("Engine mode TCP Error: " & ex.Message)
+        End Try
     End Sub
 #End Region
 End Class
