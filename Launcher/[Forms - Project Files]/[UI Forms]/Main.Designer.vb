@@ -363,7 +363,7 @@ Partial Class NVIDIA_Shadowplay_Helper
         Label2.Name = "Label2"
         Label2.Size = New Size(185, 38)
         Label2.TabIndex = 61
-        Label2.Text = "NVIDIA Experience"
+        Label2.Text = "Launcher.exe"
         Label2.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' RadioButton1

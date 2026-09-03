@@ -1,10 +1,10 @@
-' AppConfigShared.vb — SHARED config.json ACCESS FOR NON-OVERLAY PROCESSES
+﻿' AppConfigShared.vb — SHARED config.json ACCESS FOR NON-OVERLAY PROCESSES
 '
 ' config.json (Config\config.json) is THE single user-facing settings file.
 ' The full typed model lives in the Overlay project (AppSettings), but three
 ' other processes need to touch individual keys without owning the schema:
 '
-'   NVIDIA Experience (Launcher)  — writes Overlay.UseOverlayEnabled (toggle)
+'   Launcher.exe  — writes Overlay.UseOverlayEnabled (toggle)
 '   NVIDIA API (hub)              — reads  Overlay.UseOverlayEnabled every
 '                                   second to start/keep-alive or kill the
 '                                   overlay stack (Notifier/ShadowPlay/Capture)

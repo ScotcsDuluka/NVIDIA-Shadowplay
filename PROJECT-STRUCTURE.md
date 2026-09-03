@@ -1,4 +1,4 @@
-# Project Structure
+﻿# Project Structure
 
 This repository is split into several app modules and a modular capture-engine
 solution that lives beside them.
@@ -14,7 +14,7 @@ solution that lives beside them.
 - `API/`
   Windows capture API host and related WinForms UI files.
 - `Launcher/`
-  Main desktop app (NVIDIA Experience) — the family launcher UI.
+  Main desktop app (Launcher.exe) — the family launcher UI.
 - `Engine/`
   Legacy runtime capture engine — FFmpeg process management, capture settings,
   encoder detection, and Engine UI.

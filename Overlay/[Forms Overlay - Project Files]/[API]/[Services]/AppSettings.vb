@@ -172,7 +172,7 @@ Partial Public Class AppSettings
 
     ''' <summary>
     ''' Overlay stack switch that used to live as the Flags\Use_Overlay marker
-    ''' file. OWNED by the NVIDIA Experience (Launcher) toggle; the NVIDIA API
+    ''' file. OWNED by the Launcher.exe toggle; the NVIDIA API
     ''' hub reads it every second to start/keep-alive or kill the overlay
     ''' stack. The Overlay itself only carries the value here so its
     ''' full-model Save() cannot erase a Launcher-written flip (see Save()).
@@ -1024,7 +1024,7 @@ Partial Public Class AppSettings
         Try
             SyncLock _saveLock
                 ' Foreign-key guard: Overlay.UseOverlayEnabled is owned by the
-                ' NVIDIA Experience toggle (Launcher) and enforced by the API hub
+                ' Launcher.exe toggle and enforced by the API hub
                 ' every second. Refresh it from the file right before serializing
                 ' so an Overlay save can never clobber a toggle flip that happened
                 ' after our Load(). (Privacy/UI.Language are Overlay-owned — no
