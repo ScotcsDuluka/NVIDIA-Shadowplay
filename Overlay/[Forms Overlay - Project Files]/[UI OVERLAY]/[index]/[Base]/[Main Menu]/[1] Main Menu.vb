@@ -460,7 +460,9 @@ Partial Public Class Base
         _delayTimers.Interval = 500
         AddHandler _delayTimers.Tick, Sub()
                                           _delayTimers.Stop()
-                                          'SystemMonitor.StartMonitoring()
+                                          ' ★ FIX: เปิดระบบตรวจ RAM/CPU/Disk — เดิมถูกคอมเมนต์ไว้
+                                          ' ทำให้ SystemMonitor เป็น dead code ทั้งคลาส (ไม่เคย monitor)
+                                          SystemMonitor.StartMonitoring()
                                       End Sub
         _delayTimers.Start()
 
@@ -554,6 +556,9 @@ Partial Public Class Base
         End If
         AppSettings.Instance.Save()
         _hotkeyService?.UnregisterAll()
+        ' ★ FIX: ปิด monitor ที่เปิดใน Base_Load แล้ว (timer + PerformanceCounter)
+        ' เดิม StopMonitoring ไม่มี caller เลย — ปิดแอปแล้ว resources ค้างจน process ตาย
+        SystemMonitor.StopMonitoring()
     End Sub
 
 #End Region

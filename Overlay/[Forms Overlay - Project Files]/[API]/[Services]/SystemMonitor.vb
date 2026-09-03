@@ -37,6 +37,10 @@ Public Class SystemMonitor
     Private cpuWarned As Boolean = False
     Private diskLastWarn As DateTime = DateTime.MinValue
 
+    ' ★ FIX: one-shot guard สำหรับพาธดิสก์ที่เสีย — tick ทุก 1 วินาที ถ้าไม่กัน
+    ' จะรายงานซ้ำไม่หยุด; รายงานครั้งเดียวต่อการ "เข้าสถานะเสีย" แล้วรีเซ็ตเมื่อตรวจสำเร็จ
+    Private diskPathFailLogged As Boolean = False
+
     ' Path ที่จะตรวจพื้นที่
     Public MonitorDiskPath As String = ""
 
@@ -92,9 +96,12 @@ Public Class SystemMonitor
 
             ElseIf ramPercent >= RamThreshold95 Then
                 ' 95-99% — repeat every 10s so the user knows it's still bad.
+                ' ★ FIX: ใช้ key "ramwram95" (RAM ใกล้เต็ม) — เดิมส่ง
+                ' "ramwramcritical" (RAM เต็ม) ทำให้ severity เกินจริงตั้งแต่ 95%
+                ' และ key l10n.ramwram95 ใน Overlay/Languages/*.json กลายเป็น dead key
                 Dim now As DateTime = DateTime.Now
                 If (now - ramCriticalLastWarn).TotalSeconds >= 10 Then
-                    Base.ShowNotifier("ramwramcritical")
+                    Base.ShowNotifier("ramwram95")
                     ramCriticalLastWarn = now
                 End If
                 ram80Warned = True
@@ -140,8 +147,18 @@ Public Class SystemMonitor
             Dim path As String = MonitorDiskPath
             If String.IsNullOrEmpty(path) Then path = "C:\"
 
-            Dim drive As New IO.DriveInfo(path)
+            ' ★ FIX: DriveInfo รับเฉพาะ drive ROOT ("C:\") เท่านั้น — ถ้า
+            ' MonitorDiskPath เป็น folder ธรรมดา (เช่น "D:\Videos") constructor
+            ' โยน ArgumentException ทุก tick แล้ว Catch เดิมกลืนเงียบ ทำให้
+            ' เตือน disk-low ตายถาวรโดยไม่มี log แม้บรรทัดเดียว
+            Dim root As String = IO.Path.GetPathRoot(IO.Path.GetFullPath(path))
+            If root Is Nothing OrElse root.Length < 2 OrElse root(1) <> ":"c Then
+                Throw New ArgumentException("MonitorDiskPath has no drive root: " & path)
+            End If
+
+            Dim drive As New IO.DriveInfo(root)
             Dim freeGB As Double = drive.AvailableFreeSpace / (1024 * 1024 * 1024)
+            diskPathFailLogged = False
 
             If freeGB < DiskThresholdGB Then
                 ' ===== เตือนทุก 10 วินาที =====
@@ -154,7 +171,16 @@ Public Class SystemMonitor
                 diskLastWarn = DateTime.MinValue
             End If
         Catch ex As Exception
-            ' ถ้าไม่เจอ Drive ข้ามไป
+            ' ถ้าไม่เจอ Drive ข้ามไป — แต่รายงานครั้งเดียวต่อสถานะเสีย (เดิม: เงียบ)
+            If Not diskPathFailLogged Then
+                diskPathFailLogged = True
+                Try
+                    If Base.tcp IsNot Nothing Then
+                        Base.tcp.Send("[SystemMonitor] disk check skipped: " & ex.Message)
+                    End If
+                Catch
+                End Try
+            End If
         End Try
     End Sub
 
@@ -188,7 +214,13 @@ Public Class SystemMonitor
             Dim path As String = MonitorDiskPath
             If String.IsNullOrEmpty(path) Then path = "C:\"
 
-            Dim drive As New IO.DriveInfo(path)
+            ' ★ FIX: root เดียวกับ CheckDiskSpace — folder ธรรมดาต้อง map เป็น drive root
+            Dim root As String = IO.Path.GetPathRoot(IO.Path.GetFullPath(path))
+            If root Is Nothing OrElse root.Length < 2 OrElse root(1) <> ":"c Then
+                Return (0, 0)
+            End If
+
+            Dim drive As New IO.DriveInfo(root)
             Return (
                 drive.AvailableFreeSpace / (1024 * 1024 * 1024),
                 drive.TotalSize / (1024 * 1024 * 1024)
