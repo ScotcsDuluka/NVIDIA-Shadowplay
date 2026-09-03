@@ -665,6 +665,10 @@ Namespace CaptureEngine.Recording
 
                             While pendingFrame IsNot Nothing AndAlso
                                   pendingFrame.Diagnostics.CaptureTimeTicks <= targetQpc100ns
+                                ' Keep only the newest eligible source frame. The
+                                ' previously selected frame is obsolete now and must
+                                ' be disposed immediately; D3D11VideoFrame has no finalizer.
+                                selectedFrame?.Dispose()
                                 selectedFrame = pendingFrame
                                 pendingFrame = Nothing
                                 pendingSeq = -1
@@ -737,8 +741,11 @@ Namespace CaptureEngine.Recording
                 ' Everything downstream must use this immutable stop snapshot.
                 ' Tail-fill and encoder shutdown can take seconds and must never
                 ' extend the audio/video timeline after the user pressed Stop.
-                Dim stopElapsedSeconds As Double = Math.Min(duration.TotalSeconds, Math.Max(0.0, (Stopwatch.GetTimestamp() - _timelineStartTicks) / CDbl(Stopwatch.Frequency)))
-                Dim stopQpcTicks As Long = Stopwatch.GetTimestamp()
+                ' Use the exact user Stop() request timestamp when one exists.
+                ' Natural duration expiry has no latched request, so sample QPC now.
+                Dim stopQpcTicks As Long = Interlocked.Read(_stopRequestedTicks)
+                If stopQpcTicks <= 0 Then stopQpcTicks = Stopwatch.GetTimestamp()
+                Dim stopElapsedSeconds As Double = Math.Min(duration.TotalSeconds, Math.Max(0.0, (stopQpcTicks - _timelineStartTicks) / CDbl(Stopwatch.Frequency)))
 
                 _logger.Info($"[session] Stop snapshot: elapsed={stopElapsedSeconds:F3}s")
                 _logger.Info("[session] Stopping video capture...")

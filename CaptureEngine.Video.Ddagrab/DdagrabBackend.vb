@@ -77,6 +77,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private _errorCount As Long = 0
         Private _accessLostCount As Long = 0
         Private _nextSequence As Long = 0
+        Private _lastSourceQpcTicks As Long = 0
+        Private _timestampFallbackCount As Long = 0
 
         ' ---- Phase 12a-5 metrics (per OWNER request) ----
         ' These metrics let 12a-6/12a-8 observe GPU resource lifecycle and
@@ -387,6 +389,8 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             Try
                 _sink = sink
                 _stopSignal = False
+                _lastSourceQpcTicks = 0
+                _timestampFallbackCount = 0
 
                 ' ★ Session-start frame fix (owner: 'opened the clip, heard music
                 ' before I started playing any'). Root cause: AcquireNextFrame
@@ -685,7 +689,20 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                     ' legitimately be stale and must not become the recording
                     ' timeline origin.
                     Dim acquireQpcTicks As Long = Stopwatch.GetTimestamp()
-                    Dim sourceQpcTicks As Long = If(frameInfo.LastPresentTime > 0, frameInfo.LastPresentTime, acquireQpcTicks)
+                    Dim sourceQpcTicks As Long = frameInfo.LastPresentTime
+                    If sourceQpcTicks <= 0 OrElse
+                       (_lastSourceQpcTicks > 0 AndAlso sourceQpcTicks < _lastSourceQpcTicks) Then
+                        ' DXGI should expose a monotonic QPC presentation stamp, but
+                        ' do not let a malformed/backward stamp move the recording
+                        ' timeline backwards. Fall back to the acquisition QPC for
+                        ' this frame and keep source ordering monotonic.
+                        sourceQpcTicks = acquireQpcTicks
+                        Interlocked.Increment(_timestampFallbackCount)
+                    End If
+                    If sourceQpcTicks < _lastSourceQpcTicks Then
+                        sourceQpcTicks = _lastSourceQpcTicks
+                    End If
+                    _lastSourceQpcTicks = sourceQpcTicks
                     Dim acquiredQpc100ns As Long = QpcTicksTo100ns(sourceQpcTicks)
                     ' ─── Got a frame — copy to staging texture + ReleaseFrame ─
                     Dim stagingTexture As ID3D11Texture2D = Nothing
