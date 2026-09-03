@@ -11,7 +11,7 @@ namespace CaptureEngine.Audio
         {
             public readonly AudioTrackKind Kind;
             public readonly WasapiPositionCapture Capture;
-            public readonly AudioPositionTracker Tracker;
+            public AudioPositionTracker Tracker;
             public readonly List<IAudioSink> Sinks = new List<IAudioSink>();
             public int OutputChannels;
             public int OutputBits = 16;
@@ -25,8 +25,8 @@ namespace CaptureEngine.Audio
             {
                 Kind = kind;
                 Capture = capture;
-                Tracker = new AudioPositionTracker(capture.SampleRate);
-                OutputChannels = Math.Max(1, capture.Channels);
+                Tracker = null;
+                OutputChannels = 0;
             }
 
             public void Dispose()
@@ -60,8 +60,8 @@ namespace CaptureEngine.Audio
                     if (t.Kind == kind)
                     {
                         sampleRate = t.Capture.SampleRate;
-                        channels = t.OutputChannels;
-                        return true;
+                        channels = t.OutputChannels > 0 ? t.OutputChannels : t.Capture.Channels;
+                        return sampleRate > 0 && channels > 0;
                     }
                 }
             }
@@ -179,8 +179,21 @@ namespace CaptureEngine.Audio
         private void OnPacket(TrackRuntime t, WasapiPacket packet)
         {
             if (packet.Data == null || packet.Frames <= 0) return;
+            if (t.Tracker == null)
+            {
+                int sampleRate = t.Capture.SampleRate;
+                int channels = Math.Max(1, t.Capture.Channels);
+                if (sampleRate <= 0)
+                {
+                    Log($"[AudioEngine] {t.Kind} first packet has invalid format: {sampleRate}Hz/{channels}ch");
+                    return;
+                }
+                t.OutputChannels = channels;
+                t.Tracker = new AudioPositionTracker(sampleRate);
+                Log($"[AudioEngine] {t.Kind} format ready: {sampleRate}Hz/{channels}ch {t.Capture.BitsPerSample}bit");
+            }
             byte[] pcm = AudioPcm16.Convert(packet.Data, packet.Data.Length,
-                                           Math.Max(1, t.Capture.Channels), t.Capture.BitsPerSample);
+                                           t.OutputChannels, t.Capture.BitsPerSample);
             int frames = pcm.Length / Math.Max(1, t.OutputChannels * 2);
             if (frames <= 0) return;
 
