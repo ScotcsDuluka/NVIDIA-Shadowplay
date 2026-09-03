@@ -1,9 +1,9 @@
-' AppLayout.vb — ROOT-FIXED LAYOUT SUPPORT (custom app tree, 2026-08-28)
+﻿' AppLayout.vb — ROOT-FIXED LAYOUT SUPPORT (custom app tree, 2026-08-28)
 '
 ' The deployed product tree is:
 '
 '   NVIDIA ShadowPlay\
-'     NVIDIA Experience.*            (root app, exe+dll+runtimeconfig adjacent)
+'     Launcher.*            (root app, exe+dll+runtimeconfig adjacent)
 '     Application\*.exe              (thin native hosts for the 3 services)
 '     Services\*.dll + runtimeconfig       (the 3 services' managed apps;
 '                                       their deps.json lives in .NET Deployment\)

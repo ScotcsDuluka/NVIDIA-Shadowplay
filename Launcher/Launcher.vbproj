@@ -2,7 +2,8 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<RootNamespace>NVIDIA_Experience</RootNamespace>
+		<AssemblyName>Launcher</AssemblyName>
+		<RootNamespace>Launcher</RootNamespace>
 		<UseWindowsForms>true</UseWindowsForms>
 		<MyType>WindowsForms</MyType>
 		<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
@@ -12,7 +13,7 @@
          Runtime behavior is identical. -->
     <NoWarn>$(NoWarn);WFO1000</NoWarn>
 		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
-		<StartupObject>NVIDIA_Experience.My.MyApplication</StartupObject>
+		<StartupObject>Launcher.My.MyApplication</StartupObject>
 		<ApplicationIcon>NVIDIA ShadowPlay.ico</ApplicationIcon>
 		<Platforms>AnyCPU;x64</Platforms>
 	</PropertyGroup>

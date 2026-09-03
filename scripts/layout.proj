@@ -1,4 +1,4 @@
-<Project DefaultTargets="Stage" InitialTargets="Prepare">
+﻿<Project DefaultTargets="Stage" InitialTargets="Prepare">
 
   <!-- ============================================================================
        scripts/layout.proj — assembles the root-fixed "NVIDIA ShadowPlay" tree
@@ -52,7 +52,7 @@
                         $(Repo)CaptureEngine.Audio.Wasapi/CaptureEngine.Audio.Wasapi.csproj;
                         $(Repo)CaptureEngine.Recording/CaptureEngine.Recording.vbproj" />
     <!-- Apps -->
-    <AppProject Include="$(Repo)Launcher/NVIDIA Experience.vbproj;$(Repo)Overlay/NVIDIA Overlay.vbproj;
+    <AppProject Include="$(Repo)Launcher/Launcher.vbproj;$(Repo)Overlay/NVIDIA Overlay.vbproj;
                          $(Repo)API/NVIDIA API.vbproj;$(Repo)Engine/NVIDIA Capture.vbproj;$(Repo)Notifier/NVIDIA Notifier.vbproj" />
     <AllProjects Include="@(EngineLib);@(AppProject)" />
 
@@ -60,19 +60,19 @@
          Exe items are separate: on Linux the Windows apphost is not
          produced, so each exe copy is Exists-gated (the Manifest target
          enforces their presence on Windows). -->
-    <!-- Root app: NVIDIA Experience — exe+dll+runtimeconfig (deps.json
+    <!-- Root app: Launcher — exe+dll+runtimeconfig (deps.json
          lives in .NET Deployment\; runtimeconfig is a hostfxr hard
          requirement beside the dll, see header). -->
-    <ExperiencePayload Include="$(Repo)Launcher\$(AppBin)\NVIDIA Experience.dll;
-                                $(Repo)Launcher\$(AppBin)\NVIDIA Experience.runtimeconfig.json" />
-    <ExperienceExe Include="$(Repo)Launcher\$(AppBin)\NVIDIA Experience.exe" />
+    <LauncherPayload Include="$(Repo)Launcher\$(AppBin)\Launcher.dll;
+                                $(Repo)Launcher\$(AppBin)\Launcher.runtimeconfig.json" />
+    <LauncherExe Include="$(Repo)Launcher\$(AppBin)\Launcher.exe" />
     <OverlayPayload Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.dll;
                              $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json" />
     <OverlayExe Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.exe" />
     <!-- .NET Deployment\ — the complete deployment-metadata set (OWNER
          tree): every app's deps.json + runtimeconfig.json, one folder. -->
-    <NetDepJson Include="$(Repo)Launcher\$(AppBin)\NVIDIA Experience.deps.json;
-                          $(Repo)Launcher\$(AppBin)\NVIDIA Experience.runtimeconfig.json;
+    <NetDepJson Include="$(Repo)Launcher\$(AppBin)\Launcher.deps.json;
+                          $(Repo)Launcher\$(AppBin)\Launcher.runtimeconfig.json;
                           $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.deps.json;
                           $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json;
                           $(Repo)API\$(AppBin)\NVIDIA API.deps.json;
@@ -105,14 +105,14 @@
 
   <Target Name="Stage" DependsOnTargets="BuildAll">
 
-    <!-- Root app: NVIDIA Experience -->
-    <Copy SourceFiles="@(ExperiencePayload)"
-          DestinationFiles="@(ExperiencePayload->'$([System.IO.Path]::Combine('$(LayoutRoot)', '%(Filename)%(Extension)'))')"
+    <!-- Root app: Launcher -->
+    <Copy SourceFiles="@(LauncherPayload)"
+          DestinationFiles="@(LauncherPayload->'$([System.IO.Path]::Combine('$(LayoutRoot)', '%(Filename)%(Extension)'))')"
           SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(ExperienceExe)"
-          DestinationFiles="@(ExperienceExe->'$([System.IO.Path]::Combine('$(LayoutRoot)', '%(Filename)%(Extension)'))')"
+    <Copy SourceFiles="@(LauncherExe)"
+          DestinationFiles="@(LauncherExe->'$([System.IO.Path]::Combine('$(LayoutRoot)', '%(Filename)%(Extension)'))')"
           SkipUnchangedFiles="true"
-          Condition="Exists('%(ExperienceExe.Identity)')" />
+          Condition="Exists('%(LauncherExe.Identity)')" />
 
     <!-- Overlay app -->
     <Copy SourceFiles="@(OverlayPayload)"
@@ -196,14 +196,14 @@
 
   <Target Name="Manifest" DependsOnTargets="Stage">
     <ItemGroup>
-      <!-- root: Experience.exe/.dll/.runtimeconfig.json (deps.json is in
+      <!-- root: Launcher.exe/.dll/.runtimeconfig.json (deps.json is in
            .NET Deployment\; runtimeconfig is a loader hard requirement) -->
-      <Required Include="$(LayoutRoot)/NVIDIA Experience.dll" />
-      <Required Include="$(LayoutRoot)/NVIDIA Experience.exe" />
-      <Required Include="$(LayoutRoot)/NVIDIA Experience.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Launcher.dll" />
+      <Required Include="$(LayoutRoot)/Launcher.exe" />
+      <Required Include="$(LayoutRoot)/Launcher.runtimeconfig.json" />
       <!-- .NET Deployment\ — the complete 10-file metadata set -->
-      <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA Experience.deps.json" />
-      <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA Experience.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/.NET Deployment\Launcher.deps.json" />
+      <Required Include="$(LayoutRoot)/.NET Deployment\Launcher.runtimeconfig.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA ShadowPlay.deps.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA ShadowPlay.runtimeconfig.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA API.deps.json" />
