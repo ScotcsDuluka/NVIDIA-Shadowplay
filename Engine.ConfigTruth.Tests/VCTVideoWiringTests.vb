@@ -106,6 +106,9 @@ Friend Module VCTVideoWiringTests
             "V-CT3b bitrate reaches EncoderConfig unchanged (engine mapping)",
             AddressOf VCT3b_Bitrate_ReachesEncoderStartupConfig)
         TestRunner.RunTest(
+            "V-CT3c rate control normalization accepts cbr/vbr/cq and fails closed",
+            AddressOf VCT3c_RateControl_Normalization)
+        TestRunner.RunTest(
             "V-CT4 config encoder_preset=7 → internal preset 'p7' (single mapper)",
             AddressOf VCT4_EncoderPreset_MappedToInternalPreset)
         TestRunner.RunTest(
@@ -302,6 +305,18 @@ Friend Module VCTVideoWiringTests
     ''' was dead in the unified apply path — the engine always used the
     ''' engine.json Preset string.
     ''' </summary>
+    Private Sub VCT3c_RateControl_Normalization()
+        TestRunner.Assert(EngineStartupConfig.ResolveRateControl("cbr") = "cbr", "cbr must remain cbr")
+        TestRunner.Assert(EngineStartupConfig.ResolveRateControl(" CBR ") = "cbr", "CBR whitespace/case must normalize to cbr")
+        TestRunner.Assert(EngineStartupConfig.ResolveRateControl("VBR") = "vbr", "VBR must normalize to vbr")
+        TestRunner.Assert(EngineStartupConfig.ResolveRateControl("cq") = "cq", "cq must remain cq")
+        TestRunner.Assert(EngineStartupConfig.ResolveRateControl("") = "cbr", "blank rate control must fall back to cbr")
+        TestRunner.Assert(EngineStartupConfig.ResolveRateControl("unknown") = "cbr", "unknown rate control must fall back to cbr")
+        Dim settings As New CaptureSettings() With {.RateControl = " VBR "}
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
+        TestRunner.Assert(startup.RateControl = "vbr", "MapStartupConfig must pass normalized rate control to the engine")
+    End Sub
+
     Private Sub VCT4_EncoderPreset_MappedToInternalPreset()
         WriteVideoConfig(VideoConfigJson(60, 17000, 7, True, 1920, 1080))
 

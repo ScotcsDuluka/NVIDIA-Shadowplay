@@ -105,7 +105,7 @@ Namespace CaptureEngine.Recording
                     .MaxrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
                     .BufsizeBps = If(startup.BitrateBps > 0, startup.BitrateBps * 2, 40_000_000L),
                     .GopSize = gop,
-                    .RateControl = If(String.IsNullOrEmpty(startup.RateControl), "cbr", startup.RateControl),
+                    .RateControl = EngineStartupConfig.ResolveRateControl(startup.RateControl),
                     .Preset = If(String.IsNullOrEmpty(startup.Preset), "p4", startup.Preset),
                     .FrameRateFps = startup.Fps,
                     .ExpectedWidth = _capture.OutputWidth,

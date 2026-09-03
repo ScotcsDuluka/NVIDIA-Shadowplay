@@ -141,9 +141,7 @@ Public NotInheritable Class NextRecordingConfig
             If settings.FPS > 0 Then
                 startup.Fps = settings.FPS          ' V-CT1: FPS lives here — NOT in GopSize
             End If
-            If Not String.IsNullOrEmpty(settings.RateControl) Then
-                startup.RateControl = settings.RateControl
-            End If
+            startup.RateControl = EngineStartupConfig.ResolveRateControl(settings.RateControl)
 
             ' ★ PHASE 1 VIDEO RUNTIME WIRING (V-CT4): preset unification.
             ' ONE canonical source: config.json Recording.current.encoder_preset

@@ -150,6 +150,21 @@ Namespace CaptureEngine.Recording
         End Function
 
         ''' <summary>
+        ''' Normalize the process-lifetime NVENC rate-control authority.
+        ''' The encoder contract accepts only cbr, vbr, or cq; unknown or
+        ''' blank values fail closed to the proven cbr default.
+        ''' </summary>
+        Public Shared Function ResolveRateControl(value As String) As String
+            Dim normalized As String = If(value, "").Trim().ToLowerInvariant()
+            Select Case normalized
+                Case "cbr", "vbr", "cq"
+                    Return normalized
+                Case Else
+                    Return "cbr"
+            End Select
+        End Function
+
+        ''' <summary>
         ''' Resolution group from config.json Recording.current.* at engine
         ''' init (V-CT2). True (or invalid width/height) = encode at the
         ''' captured desktop resolution. False + valid dims = NVENC encodes
