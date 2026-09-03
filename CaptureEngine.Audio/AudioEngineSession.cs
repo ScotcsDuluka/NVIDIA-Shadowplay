@@ -39,6 +39,7 @@ namespace CaptureEngine.Audio
         private readonly Action<string> _log;
         private readonly object _sync = new object();
         private readonly List<TrackRuntime> _tracks = new List<TrackRuntime>();
+        private readonly Dictionary<AudioTrackKind, List<IAudioSink>> _pendingSinks = new Dictionary<AudioTrackKind, List<IAudioSink>>();
         private AudioEngineDiagnostics _diagnostics = new AudioEngineDiagnostics();
         private long _sessionStartQpc100ns;
         private long _videoStartQpc100ns;
@@ -49,6 +50,25 @@ namespace CaptureEngine.Audio
         public long SessionStartQpc100ns => Interlocked.Read(ref _sessionStartQpc100ns);
         public long VideoStartQpc100ns => Interlocked.Read(ref _videoStartQpc100ns);
         public AudioEngineDiagnostics Diagnostics => _diagnostics;
+
+        public bool TryGetTrackFormat(AudioTrackKind kind, out int sampleRate, out int channels)
+        {
+            lock (_sync)
+            {
+                foreach (var t in _tracks)
+                {
+                    if (t.Kind == kind)
+                    {
+                        sampleRate = t.Capture.SampleRate;
+                        channels = t.OutputChannels;
+                        return true;
+                    }
+                }
+            }
+            sampleRate = 0;
+            channels = 0;
+            return false;
+        }
 
         public AudioEngineSession(AudioEngineConfig config, Action<string> log = null)
         {
@@ -61,7 +81,20 @@ namespace CaptureEngine.Audio
             if (sink == null) throw new ArgumentNullException(nameof(sink));
             lock (_sync)
             {
-                GetOrCreateRuntime(track).Sinks.Add(sink);
+                foreach (var t in _tracks)
+                {
+                    if (t.Kind == track)
+                    {
+                        t.Sinks.Add(sink);
+                        return;
+                    }
+                }
+                if (!_pendingSinks.TryGetValue(track, out var list))
+                {
+                    list = new List<IAudioSink>();
+                    _pendingSinks[track] = list;
+                }
+                list.Add(sink);
             }
         }
 
@@ -73,8 +106,8 @@ namespace CaptureEngine.Audio
                 _sessionStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
                 _diagnostics.SessionStartQpc100ns = _sessionStartQpc100ns;
 
-                if (_config.SystemEnabled) StartTrack(AudioTrackKind.System, true);
-                if (_config.MicrophoneEnabled) StartTrack(AudioTrackKind.Microphone, false);
+                if (_config.SystemEnabled) TryStartTrack(AudioTrackKind.System, true);
+                if (_config.MicrophoneEnabled) TryStartTrack(AudioTrackKind.Microphone, false);
                 _started = true;
                 _stopped = false;
             }
@@ -112,32 +145,35 @@ namespace CaptureEngine.Audio
             Log(_diagnostics.ToString());
         }
 
-        private void StartTrack(AudioTrackKind kind, bool loopback)
+        private void TryStartTrack(AudioTrackKind kind, bool loopback)
         {
-            var options = new WasapiCaptureOptions
+            try
             {
-                Loopback = loopback,
-                DeviceId = loopback ? "" : (_config.MicrophoneDeviceId ?? ""),
-                IncludePcm = true,
-                PollIntervalMs = _config.PollIntervalMs,
-                BufferDuration100ns = _config.BufferDuration100ns
-            };
-            var capture = new WasapiPositionCapture(options);
-            var runtime = new TrackRuntime(kind, capture);
-            if (kind == AudioTrackKind.Microphone)
-            {
-                Log("[AudioEngine] microphone uses default capture endpoint in shared driver; selected ID/name is retained for host diagnostics");
+                var options = new WasapiCaptureOptions
+                {
+                    Loopback = loopback,
+                    DeviceId = loopback ? "" : (_config.MicrophoneDeviceId ?? ""),
+                    IncludePcm = true,
+                    PollIntervalMs = _config.PollIntervalMs,
+                    BufferDuration100ns = _config.BufferDuration100ns
+                };
+                var capture = new WasapiPositionCapture(options);
+                var runtime = new TrackRuntime(kind, capture);
+                capture.PacketReady += packet => OnPacket(runtime, packet);
+                capture.StoppedWithError += error => Log($"[AudioEngine] {kind} capture error: {error}");
+                if (_pendingSinks.TryGetValue(kind, out var list))
+                {
+                    runtime.Sinks.AddRange(list);
+                    _pendingSinks.Remove(kind);
+                }
+                _tracks.Add(runtime);
+                capture.Start();
+                Log($"[AudioEngine] {kind} endpoint started: {capture.DeviceId} {capture.SampleRate}Hz/{capture.Channels}ch");
             }
-            capture.PacketReady += packet => OnPacket(runtime, packet);
-            capture.StoppedWithError += error => Log($"[AudioEngine] {kind} capture error: {error}");
-            _tracks.Add(runtime);
-            capture.Start();
-        }
-
-        private TrackRuntime GetOrCreateRuntime(AudioTrackKind kind)
-        {
-            foreach (var t in _tracks) if (t.Kind == kind) return t;
-            throw new InvalidOperationException("Audio track must be enabled before AddSink: " + kind);
+            catch (Exception ex)
+            {
+                Log($"[AudioEngine] {kind} endpoint FAILED (track disabled): {ex.Message}");
+            }
         }
 
         private void OnPacket(TrackRuntime t, WasapiPacket packet)
@@ -161,14 +197,16 @@ namespace CaptureEngine.Audio
                     var silence = new byte[silenceFrames * t.OutputChannels * 2L];
                     var sp = new AudioPacket(t.Kind, dataStart - report.Hole100ns,
                                              checked((int)silenceFrames), silence, true,
-                                             packet.QpcPosition100ns, packet.DevicePositionFrames, packet.Flags);
+                                             packet.QpcPosition100ns, packet.DevicePositionFrames, packet.Flags,
+                                             t.Capture.SampleRate, t.OutputChannels);
                     Dispatch(t, sp);
                     t.SilenceBytes += silence.Length;
                 }
             }
 
             var dp = new AudioPacket(t.Kind, dataStart, frames, pcm, false,
-                                     packet.QpcPosition100ns, packet.DevicePositionFrames, packet.Flags);
+                                     packet.QpcPosition100ns, packet.DevicePositionFrames, packet.Flags,
+                                     t.Capture.SampleRate, t.OutputChannels);
             Dispatch(t, dp);
             t.DataBytes += pcm.Length;
             t.LastEnd100ns = dataEnd;
@@ -206,7 +244,8 @@ namespace CaptureEngine.Audio
             long framesLong = duration100ns * t.Capture.SampleRate / 10_000_000L;
             if (framesLong <= 0) return;
             var bytes = new byte[checked((int)(framesLong * t.OutputChannels * 2L))];
-            var packet = new AudioPacket(t.Kind, pts100ns, checked((int)framesLong), bytes, true, 0, 0, 0);
+            var packet = new AudioPacket(t.Kind, pts100ns, checked((int)framesLong), bytes, true, 0, 0, 0,
+                                         t.Capture.SampleRate, t.OutputChannels);
             Dispatch(t, packet);
             t.SilenceBytes += bytes.Length;
             t.LastEnd100ns = pts100ns + duration100ns;

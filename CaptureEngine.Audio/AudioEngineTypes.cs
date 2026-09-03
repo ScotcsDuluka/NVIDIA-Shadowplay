@@ -29,10 +29,13 @@ namespace CaptureEngine.Audio
         public long QpcPosition100ns { get; }
         public long DevicePositionFrames { get; }
         public int Flags { get; }
+        public int SampleRate { get; }
+        public int Channels { get; }
 
         public AudioPacket(AudioTrackKind track, long pts100ns, int frames,
                            byte[] data, bool isSilence,
-                           long qpcPosition100ns, long devicePositionFrames, int flags)
+                           long qpcPosition100ns, long devicePositionFrames, int flags,
+                           int sampleRate = 0, int channels = 0)
         {
             Track = track;
             Pts100ns = pts100ns;
@@ -42,6 +45,8 @@ namespace CaptureEngine.Audio
             QpcPosition100ns = qpcPosition100ns;
             DevicePositionFrames = devicePositionFrames;
             Flags = flags;
+            SampleRate = sampleRate;
+            Channels = channels;
         }
 
         public int ByteCount => Data?.Length ?? 0;
@@ -93,6 +98,6 @@ namespace CaptureEngine.Audio
 
     public interface IAudioSink
     {
-        void Write(in AudioPacket packet);
+        void Write(AudioPacket packet);
     }
 }

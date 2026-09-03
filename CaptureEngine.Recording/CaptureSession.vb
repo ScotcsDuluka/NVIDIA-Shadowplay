@@ -43,6 +43,7 @@ Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Threading
 Imports NAudio.Wave
+Imports CaptureEngine.Audio
 Imports CaptureEngine.Diagnostics
 Imports CaptureEngine.Video
 Imports CaptureEngine.Video.Backends.Ddagrab
@@ -96,6 +97,13 @@ Namespace CaptureEngine.Recording
         ' video+audio through named pipes while recording — no temp files,
         ' no post-hoc wrap/mux, wall-clock-true by construction.
         Private _liveMux As LiveMuxSession
+
+        ' ★ Shared Audio Engine: one audio owner for every video engine.
+        ' The legacy/Duluka audio implementations below remain as migration
+        ' code, but the live session path uses this shared engine only.
+        Private _audioEngine As AudioEngineSession
+        Private _sysAudioEngineSink As AudioEngineMuxSink
+        Private _micAudioEngineSink As AudioEngineMuxSink
 
         ' ★ OBS trick: render endless silence to the loopback device while
         ' recording so WASAPI delivers callbacks CONTINUOUSLY (silence included).
@@ -245,6 +253,29 @@ Namespace CaptureEngine.Recording
                 _logger.Info("[session] timer resolution set to 1ms (CFR pacing)")
                 sink = New BoundedVideoFrameSink(4, BoundedHandoffPolicy.DropOldest, _logger)
 
+                ' ─── 2. Shared Audio Engine (single owner) ─────────────
+                ' UI authority is Overlay [6] Audio Capture.vb. SessionConfig
+                ' already carries those persisted values into this engine.
+                _audioEngine = New AudioEngineSession(New AudioEngineConfig With {
+                    .SystemEnabled = _config.AudioEnabled,
+                    .MicrophoneEnabled = _config.MicEnabled,
+                    .MicrophoneDeviceId = If(_config.MicDeviceId, ""),
+                    .MicrophoneDeviceName = If(_config.MicDeviceName, "")
+                }, Sub(m) _logger.Info(m))
+                If _config.AudioEnabled Then
+                    _sysAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.System)
+                    _audioEngine.AddSink(AudioTrackKind.System, _sysAudioEngineSink)
+                End If
+                If _config.MicEnabled Then
+                    _micAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.Microphone)
+                    _audioEngine.AddSink(AudioTrackKind.Microphone, _micAudioEngineSink)
+                End If
+                _audioEngine.Start()
+                _logger.Info("[session] Audio owner = CaptureEngine.Audio (shared across video engines)")
+
+                ' ─── 2b. Legacy audio path is bypassed during migration ──
+                ' Keep the old implementation intact for rollback/reference.
+                If False Then
                 ' ─── 2. Start audio sidecar ─────────────────────────────
                 If _config.AudioEnabled Then
                     _logger.Info("[session] Starting audio sidecar...")
@@ -421,8 +452,7 @@ Namespace CaptureEngine.Recording
                     _systemStartTicks = Stopwatch.GetTimestamp()
                     _logger.Info("[session] Audio sidecar started (bounded queue + writer thread)")
                     End If ' device-clock vs legacy system-audio path
-                Else
-                    _logger.Info("[session] Audio DISABLED by config — video-only session")
+                    End If ' legacy audio migration bypass
                 End If
 
                 ' ★ M1: Start MIC sidecar (independent #2) ──────────────────
@@ -432,9 +462,9 @@ Namespace CaptureEngine.Recording
                 '     system ticks; the two devices have independent clocks
                 '   - failure to open the mic must NOT kill the session — the
                 '     track is dropped and logged (system audio continues)
-                If _config.MicEnabled Then
+                If False AndAlso _config.MicEnabled Then
                     Try
-                        _logger.Info("[session] Starting mic sidecar...")
+                        _logger.Info("[session] Starting legacy mic sidecar (bypassed)...")
                         Dim micDevice As NAudio.CoreAudioApi.MMDevice = FindMicDevice(_config.MicDeviceId, _config.MicDeviceName)
                         micCapture = If(micDevice IsNot Nothing, New NAudio.CoreAudioApi.WasapiCapture(micDevice), New NAudio.CoreAudioApi.WasapiCapture())
                         micWaveFormat = micCapture.WaveFormat
@@ -506,14 +536,20 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] video: fps source = config.json Recording.current.fps = {targetFps} (display refresh {_capture.OutputRefreshRate}Hz is diagnostics-only)")
                 _logger.Info($"[session] video: requested resolution = {If(_config.UseNativeResolution, $"native (use_native_resolution=true)", $"{_config.RequestedWidth}x{_config.RequestedHeight} (use_native_resolution=false)")} → capture {_capture.OutputWidth}x{_capture.OutputHeight} → encode {_config.EncodeWidth}x{_config.EncodeHeight}")
 
-                Dim micRate As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.SampleRate, 0)
-                Dim micCh As Integer = If(micWaveFormat IsNot Nothing, micWaveFormat.Channels, 0)
-                Dim sysRate As Integer = If(_deviceClockSys AndAlso _sysPosCapture IsNot Nothing AndAlso _sysPosCapture.SampleRate > 0,
-                                            _sysPosCapture.SampleRate,
-                                            If(waveFormat IsNot Nothing, waveFormat.SampleRate, 48000))
-                Dim sysCh As Integer = If(_deviceClockSys AndAlso _sysPosCapture IsNot Nothing AndAlso _sysPosCapture.Channels > 0,
-                                          _sysPosCapture.Channels,
-                                          If(waveFormat IsNot Nothing, waveFormat.Channels, 2))
+                Dim sysRate As Integer = 48000
+                Dim sysCh As Integer = 2
+                Dim micRate As Integer = 0
+                Dim micCh As Integer = 0
+                Dim hasSharedSys As Boolean = _audioEngine IsNot Nothing AndAlso _audioEngine.TryGetTrackFormat(AudioTrackKind.System, sysRate, sysCh)
+                Dim hasSharedMic As Boolean = _audioEngine IsNot Nothing AndAlso _audioEngine.TryGetTrackFormat(AudioTrackKind.Microphone, micRate, micCh)
+                If _config.AudioEnabled AndAlso Not hasSharedSys Then
+                    _logger.Warning("[session] Shared Audio Engine has no System track — live mux will remain audio-input idle")
+                End If
+                If _config.MicEnabled AndAlso Not hasSharedMic Then
+                    _logger.Warning("[session] Shared Audio Engine has no Microphone track — mic input disabled")
+                    micRate = 0
+                    micCh = 0
+                End If
 
                 _liveMux = New LiveMuxSession(
                     _config.FFmpegPath,
@@ -528,6 +564,9 @@ Namespace CaptureEngine.Recording
                 If Not _liveMux.Start() Then
                     Throw New Exception("LiveMux failed to start (ffmpeg) — session aborted")
                 End If
+                _sysAudioEngineSink?.AttachMux(_liveMux)
+                _micAudioEngineSink?.AttachMux(_liveMux)
+                _logger.Info("[session] Shared Audio Engine sinks attached to LiveMux (audio PTS alignment handled upstream)")
 
                 ' ─── 3. Start video capture + encoder ─────────────────────
                 _logger.Info("[session] Starting video capture...")
@@ -625,11 +664,17 @@ Namespace CaptureEngine.Recording
                         ' whichever input arrives last wins; the mux queues
                         ' audio bytes meanwhile (8 MB cap ≫ the sub-100 ms
                         ' window) and its writer waits on the timeline event.
-                        If _deviceClockSys AndAlso Not _timelinesBegun AndAlso
-                           (_sysTap3 Is Nothing OrElse Not _sysTap3.Anchored) Then
-                            _logger.Info("[session] video t0 before first audio anchor — deferring mux timelines to the device anchor (exact v2 math)")
+                        ' Shared Audio Engine owns the audio timeline. Its sink
+                        ' trims/pads buffered audio to this exact video QPC origin.
+                        If _audioEngine IsNot Nothing Then
+                            _audioEngine.SetVideoStartQpc100ns(_videoStartQpc100ns)
+                            _sysAudioEngineSink?.SetVideoStart(_videoStartQpc100ns)
+                            _micAudioEngineSink?.SetVideoStart(_videoStartQpc100ns)
+                            _liveMux?.BeginTimelines(0.0, 0.0)
+                            _timelinesBegun = True
+                        Else
+                            BeginTimelinesOnce()
                         End If
-                        BeginTimelinesOnce()
                     End If
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
@@ -778,8 +823,33 @@ Namespace CaptureEngine.Recording
                 _logger.Info("[session] Stopping encoder...")
                 _encoder.Stop()
 
-                ' ─── 8. Stop audio → event-driven WAV finalize ──────────
-                If _deviceClockSys OrElse audioCapture IsNot Nothing Then
+                ' ─── 8. Stop shared Audio Engine ───────────────────────
+                _stopSignal = True
+                If _audioEngine IsNot Nothing Then
+                    Try
+                        _audioEngine.Stop(WasapiPositionCapture.QpcTicksTo100ns(stopQpcTicks))
+                    Catch ex As Exception
+                        _logger.Warning("[session] Shared Audio Engine stop failed: " & ex.Message)
+                    End Try
+                    _logger.Info(_audioEngine.Diagnostics.ToString())
+                    Dim sysDiag = _audioEngine.Diagnostics.Tracks.Find(Function(t) t.Track = AudioTrackKind.System)
+                    If sysDiag IsNot Nothing Then
+                        result.AudioBytes = sysDiag.DataBytes + sysDiag.SilenceBytes
+                        result.AudioSamples = If(sysDiag.Channels > 0, result.AudioBytes \ (sysDiag.Channels * 2), 0)
+                        result.AudioDroppedBytes = sysDiag.DroppedBytes
+                        result.AudioAccountingOk = (sysDiag.DroppedBytes = 0)
+                    End If
+                    Dim micDiag = _audioEngine.Diagnostics.Tracks.Find(Function(t) t.Track = AudioTrackKind.Microphone)
+                    If micDiag IsNot Nothing Then
+                        result.MicBytes = micDiag.DataBytes + micDiag.SilenceBytes
+                        result.MicSamples = If(micDiag.Channels > 0, result.MicBytes \ (micDiag.Channels * 2), 0)
+                        result.MicDroppedBytes = micDiag.DroppedBytes
+                        result.MicAccountingOk = (micDiag.DroppedBytes = 0)
+                    End If
+                End If
+
+                ' ─── 8b. Legacy audio path retained but bypassed ─────────
+                If False AndAlso (_deviceClockSys OrElse audioCapture IsNot Nothing) Then
                     _logger.Info("[session] Stopping audio sidecar...")
                     _stopSignal = True
 

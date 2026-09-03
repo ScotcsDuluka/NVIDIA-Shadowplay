@@ -261,8 +261,30 @@ Namespace CaptureEngine.FFmpegBackend
             If _started Then _audio.Feed(pcm, length)
         End Sub
 
+        Public Sub FeedSystemAudioSegment(pcm As Byte(), offset As Integer, length As Integer)
+            If Not _started OrElse pcm Is Nothing OrElse offset < 0 OrElse length <= 0 OrElse offset + length > pcm.Length Then Return
+            If offset = 0 Then
+                _audio.Feed(pcm, length)
+            Else
+                Dim slice(length - 1) As Byte
+                Buffer.BlockCopy(pcm, offset, slice, 0, length)
+                _audio.Feed(slice, length)
+            End If
+        End Sub
+
         Public Sub FeedMicAudio(pcm As Byte(), length As Integer)
             If _started Then _mic?.Feed(pcm, length)
+        End Sub
+
+        Public Sub FeedMicAudioSegment(pcm As Byte(), offset As Integer, length As Integer)
+            If Not _started OrElse pcm Is Nothing OrElse _mic Is Nothing OrElse offset < 0 OrElse length <= 0 OrElse offset + length > pcm.Length Then Return
+            If offset = 0 Then
+                _mic.Feed(pcm, length)
+            Else
+                Dim slice(length - 1) As Byte
+                Buffer.BlockCopy(pcm, offset, slice, 0, length)
+                _mic.Feed(slice, length)
+            End If
         End Sub
 
         ' ─── stop ───────────────────────────────────────────────────

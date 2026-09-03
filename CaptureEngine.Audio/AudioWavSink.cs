@@ -52,7 +52,7 @@ namespace CaptureEngine.Audio
             _writer.Start();
         }
 
-        public void Write(in AudioPacket packet)
+        public void Write(AudioPacket packet)
         {
             if (!_started || _completed || packet.Data == null || packet.Data.Length == 0) return;
             byte[] copy = new byte[packet.Data.Length];
