@@ -17,7 +17,7 @@
 | C-2 | Engine read path: numeric `api_capture` breaks nested video parse | CRITICAL | ✅ **FIXED** by the same restore (files now serialize strings/null) — residual risk on legacy files, see §0.2 |
 | H-1 | UI shows applied state the disk never received | HIGH | ✅ resolved with C-1 (silent-swallow policy still open → D-2) |
 | H-2 | Engine diagnostics text "no UI writer; Q2 open" is stale | HIGH | 🔴 **OPEN** — `UI_Engine.vb:1374` still prints it |
-| H-3 | One key (`api_capture`), two semantics (regime + FFmpeg filter) | HIGH | 🔴 **OPEN** — and now disk-persistent; `GetEngineModeKey()` :2397 unchanged |
+| H-3 | One key (`api_capture`), two semantics (regime + FFmpeg filter) | HIGH | ✅ **FIXED** — `Recording.engine_mode` now owns the regime; `api_capture` is capture API/filter only |
 | H-4 | FormClosing re-arms the debounced save instead of flushing | HIGH | 🔴 **OPEN** — :630-647 unchanged |
 | M-1 | FPS cap schisma (UI 800 vs engine 240 + internal table conflicts) | MEDIUM | 🔴 **OPEN** — :18/:135 vs `CaptureSettings.vb:485` |
 | M-2 | My-preset values not persisted at click time | MEDIUM | 🔴 **OPEN** |
@@ -182,8 +182,10 @@ The throw happened inside `BuildRecordingDto`, i.e. **before** `JsonSerializer.S
 **FACT.** The diagnostics panel prints `(config.json Recording.api_capture — no UI writer; Q2 open)`. Since `19088cd`/`05af7d5`/`75917ef`, the [5] page **is** a UI writer (2 write paths + mode radio, §1.3), and since `a1b814c` those writes actually persist. **IMPACT:** the operator panel misstates ownership; contract doc v2.0 (Q2) is behind the code. **RECOMMENDATION:** re-anchor `docs/CONFIG_RUNTIME_CONTRACT.md` Q2 with §4 of this audit (owner: GLM/2 per current task split); correct the diagnostics string when the engine UI is next touched.
 
 ### H-3 — One key, two semantics: `api_capture` drives both the engine-mode radio and the FFmpeg API dropdown
-**STATUS at 306bb30: OPEN (now disk-persistent).**
-**FACT.** `GetEngineModeKey()` (:2397-2402) derives the *regime* from the same value the API dropdown writes. In ffmpeg mode the menu offers `ddagrab` — an **FFmpeg filter name** — as an "API"; selecting it sets the model to `"ddagrab"` (:2305) and persists it (:2306), so the radio flips to Duluka on the next `UpdateEngineModeUI`/form reload even though the user only picked an FFmpeg capture filter. `gfxcapture` is additionally still accepted by `GetSelectedApiKey()` (:2347-2349) though no path can produce it after `05af7d5` (engine-mode mapper no longer recognizes it). **IMPACT:** modal state collision on one key. **RECOMMENDATION:** separate regime from capture-API (dedicated `engine_mode` key) — decision D-3.
+**STATUS: ✅ FIXED after 306bb30.**
+
+The fix adds `Recording.engine_mode` (`Duluka` / `FFmpeg`) as the regime owner and keeps `Recording.APICapture` as the capture API/filter owner. The UI now reads engine mode from the dedicated field, while API selection no longer changes the engine regime. Missing `engine_mode` remains backward-compatible by inferring the old regime from `api_capture` (`ddagrab` → Duluka, otherwise FFmpeg).
+**VERIFICATION.** `GetEngineModeKey()` now reads `Recording.EngineMode` first. `ApiMenuItem_Click` only updates `Recording.APICapture`; selecting an FFmpeg capture filter therefore cannot flip the engine-mode radio. Legacy config files without `engine_mode` are still interpreted through the old `api_capture` rule and are upgraded on the next settings save.
 
 ### H-4 — FormClosing save/teardown ordering has a loss window
 **STATUS at 306bb30: OPEN.**
@@ -251,11 +253,10 @@ The throw happened inside `BuildRecordingDto`, i.e. **before** `JsonSerializer.S
 - **OWNER DECISION REQUIRED.**
 
 ### D-3 — Separate *engine regime* from *capture API* on the config schema
-- **FACT:** one key (`api_capture`) currently encodes regime (ddagrab vs ffmpeg) and, inside ffmpeg, the capture filter (H-3). Engine treats it as echo-only (`UI_Engine.vb:1377`: "non-ddagrab request = recorded GAP, never silently accepted").
-- **OPTIONS:** (a) add `Recording.engine_mode` (ffmpeg|duluka) and demote `api_capture` to filter-only; (b) keep one key with namespaced values (`ffmpeg:gdigrab`); (c) status quo.
-- **IMPACT:** (a) is a schema change → contract v3 + migration; (b) is uglier but additive; (c) leaves the collision live.
-- **RECOMMENDATION:** (a), decided together with contract Q1/Q2 re-anchor.
-- **OWNER DECISION REQUIRED.**
+- **STATUS: ✅ IMPLEMENTED.** `Recording.engine_mode` now owns the engine regime (`Duluka` / `FFmpeg`), while `Recording.api_capture` remains the capture API/filter.
+- **Compatibility:** missing `engine_mode` is inferred from legacy `api_capture` (`ddagrab` → Duluka, otherwise FFmpeg), preserving old config files.
+- **UI behavior:** Engine Mode changes update `engine_mode`; API dropdown changes update `api_capture` only. The two state machines no longer share one persistent key.
+- **FOLLOW-UP:** the Engine runtime still needs an explicit consumer of `engine_mode` before this field can become the authoritative runtime selector; that is separate from this UI/config collision fix.
 
 ### D-4 — Placeholder UI policy
 - **FACT:** 5 disabled native-API items + dead OBS card (M-5).

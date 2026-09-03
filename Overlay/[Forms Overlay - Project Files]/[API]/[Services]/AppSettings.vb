@@ -46,7 +46,10 @@ Partial Public Class AppSettings
         ''' <summary>Custom renameable name for MY preset group (e.g. "P4", "P6")</summary>
         Public Property MyPresetName As String = "MY"
 
-        ''' <summary>Capture API: ddagrab, gfxcapture, GDIGrab, or null (auto)</summary>
+        ''' <summary>Engine regime: Duluka or FFmpeg. Missing/empty = infer from legacy api_capture.</summary>
+        Public Property EngineMode As String = Nothing
+
+        ''' <summary>Capture API/filter: ddagrab, gfxcapture, gdigrab, or null (auto)</summary>
         Public Property APICapture As String = Nothing
     End Class
 
@@ -367,7 +370,9 @@ Partial Public Class AppSettings
         ''' <summary>Replay buffer duration in seconds</summary>
         Public Property replay_duration As Integer = 60
         Public Property my_presets As MyPresetsDto = New MyPresetsDto()
-        ''' <summary>Capture API: ddagrab, gfxcapture, gdigrab, or null (auto)</summary>
+        ''' <summary>Engine regime: Duluka or FFmpeg. Missing/empty = infer from legacy api_capture.</summary>
+        Public Property engine_mode As String = Nothing
+        ''' <summary>Capture API/filter: ddagrab, gfxcapture, gdigrab, or null (auto)</summary>
         Public Property api_capture As String = Nothing
     End Class
 
@@ -797,6 +802,7 @@ Partial Public Class AppSettings
             .medium = BuildPresetSlotDto(Recording.MyMediumFPS, Recording.MyMediumBitrate, Recording.MyMediumEncoderPreset),
             .high = BuildPresetSlotDto(Recording.MyHighFPS, Recording.MyHighBitrate, Recording.MyHighEncoderPreset)
         }
+        d.engine_mode = Recording.EngineMode
         d.api_capture = Recording.APICapture
         Return d
     End Function
@@ -848,9 +854,23 @@ Partial Public Class AppSettings
             End If
         End If
 
+        If Not String.IsNullOrWhiteSpace(d.engine_mode) Then
+            Recording.EngineMode = NormalizeEngineMode(d.engine_mode)
+        Else
+            ' Backward compatibility: old files encoded the regime through api_capture.
+            Recording.EngineMode = If(String.Equals(d.api_capture, "ddagrab", StringComparison.OrdinalIgnoreCase), "Duluka", "FFmpeg")
+        End If
+
         ' Nothing = auto — direct assignment preserves the nullable semantics.
         Recording.APICapture = d.api_capture
     End Sub
+
+    Private Shared Function NormalizeEngineMode(value As String) As String
+        Dim mode As String = If(value, "").Trim().ToLowerInvariant()
+        If mode = "duluka" OrElse mode = "ddagrab" OrElse mode = "native" Then Return "Duluka"
+        If mode = "ffmpeg" OrElse mode = "legacy" Then Return "FFmpeg"
+        Return "FFmpeg"
+    End Function
 
     ''' <summary>
     ''' Atomic config write: write a per-PID temp file, keep the current

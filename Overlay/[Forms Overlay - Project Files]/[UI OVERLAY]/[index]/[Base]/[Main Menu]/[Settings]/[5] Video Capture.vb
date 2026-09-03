@@ -2302,6 +2302,7 @@ Public Class Base_RecordingsSet
         If GetEngineModeKey() = "ffmpeg" Then
             _selectedFFmpegApiKey = apiKey
             _selectedApiKey = _selectedFFmpegApiKey
+            ' API/filter selection is independent from the engine regime.
             AppSettings.Instance.Recording.APICapture = apiKey
             AppSettings.Instance.Save()
         ElseIf apiKey = "dxgi_desktop_duplication" Then
@@ -2354,7 +2355,6 @@ Public Class Base_RecordingsSet
 
     Private Sub Engine_Mode1_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode1_BgSub.MouseMove, Engine_Mode1_Text.MouseMove
         Engine_Mode1_BgSub.BackColor = COLOR_ACTIVE
-        Engine_Mode1_Text.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode1_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.MouseLeave, Engine_Mode1_BgSub.MouseLeave
@@ -2395,9 +2395,13 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Function GetEngineModeKey() As String
+        Dim configuredMode As String = If(AppSettings.Instance.Recording.EngineMode, "").Trim().ToLowerInvariant()
+        If configuredMode = "duluka" OrElse configuredMode = "ddagrab" Then Return "ddagrab"
+        If configuredMode = "ffmpeg" OrElse configuredMode = "legacy" Then Return "ffmpeg"
+
+        ' Backward compatibility for config.json files written before engine_mode existed.
         Dim api As String = If(AppSettings.Instance.Recording.APICapture, "").Trim().ToLowerInvariant()
-        If api = "ddagrab" Then Return "ddagrab"
-        Return "ffmpeg"
+        Return If(api = "ddagrab", "ddagrab", "ffmpeg")
     End Function
 
     Private Function IsEngineModeSelected(modeKey As String) As Boolean
@@ -2420,19 +2424,21 @@ Public Class Base_RecordingsSet
     Private Sub ApplyEngineMode(modeKey As String, displayName As String)
         Select Case modeKey.ToLowerInvariant()
             Case "ffmpeg"
-                ' Legacy FFmpeg mode: leave capture API unset so the legacy
-                ' pipeline can use its canonical/default capture selection.
-                AppSettings.Instance.Recording.APICapture = Nothing
+                AppSettings.Instance.Recording.EngineMode = "FFmpeg"
+                ' Keep the selected FFmpeg capture API independent from the regime.
+                ' Empty means the legacy canonical/default capture method.
+                If String.IsNullOrWhiteSpace(AppSettings.Instance.Recording.APICapture) Then
+                    AppSettings.Instance.Recording.APICapture = Nothing
+                End If
+                _selectedApiKey = If(String.IsNullOrWhiteSpace(_selectedFFmpegApiKey), "ddagrab", _selectedFFmpegApiKey)
             Case "ddagrab"
-                ' Duluka/native mode: request the production Ddagrab backend.
+                AppSettings.Instance.Recording.EngineMode = "Duluka"
+                ' Current Duluka runtime backend: Ddagrab is the production path.
                 AppSettings.Instance.Recording.APICapture = "ddagrab"
+                _selectedApiKey = "dxgi_desktop_duplication"
             Case Else
                 Return
         End Select
-
-        _selectedApiKey = If(modeKey.Equals("ddagrab", StringComparison.OrdinalIgnoreCase),
-                             "dxgi_desktop_duplication",
-                             "ddagrab")
 
         Debug.WriteLine($"[Video Capture] Engine mode → {displayName} ({modeKey})")
         AppSettings.Instance.Save()
