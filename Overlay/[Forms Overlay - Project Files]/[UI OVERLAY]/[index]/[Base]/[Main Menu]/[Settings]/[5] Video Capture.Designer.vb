@@ -377,13 +377,13 @@ Partial Class Base_RecordingsSet
         ' 
         API_Box.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         API_Box.Cursor = Cursors.Hand
-        API_Box.Font = New Font("nvgcshare", 19.0F)
+        API_Box.Font = New Font("Segoe UI", 15.0F)
         API_Box.ForeColor = Color.White
         API_Box.Location = New Point(552, 84)
         API_Box.Name = "API_Box"
         API_Box.Size = New Size(729, 27)
         API_Box.TabIndex = 136
-        API_Box.Text = "%API%"
+        API_Box.Text = "%API TEST%"
         API_Box.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Engine_Mode3_Text

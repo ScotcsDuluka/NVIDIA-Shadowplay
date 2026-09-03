@@ -774,6 +774,8 @@ Public Class Base_RecordingsSet
 
     Private _encoderNameList As New List(Of String)()
     Private _selectedApiKey As String = String.Empty
+    Private _selectedDulukaApiKey As String = String.Empty
+    Private _selectedFFmpegApiKey As String = String.Empty
 
     Private Sub AddEncoderSafe(name As String, ByRef count As Integer)
         If Not _encoderNameList.Contains(name) Then
@@ -2254,7 +2256,7 @@ Public Class Base_RecordingsSet
         If API_Box Is Nothing Then Exit Sub
 
         Dim cms As ContextMenuStrip = CreateStyledMenu()
-        Dim currentApi As String = If(String.IsNullOrWhiteSpace(_selectedApiKey), "", _selectedApiKey)
+        Dim currentApi As String = GetSelectedApiKey()
 
         If GetEngineModeKey() = "ddagrab" Then
             AddApiMenuItem(cms, "dxgi_desktop_duplication", "DXGI Desktop Duplication", currentApi, True)
@@ -2298,11 +2300,14 @@ Public Class Base_RecordingsSet
         Dim apiKey As String = TryCast(item.Tag, String)
         If String.IsNullOrWhiteSpace(apiKey) Then Exit Sub
 
-        _selectedApiKey = apiKey
         If GetEngineModeKey() = "ffmpeg" Then
+            _selectedFFmpegApiKey = apiKey
+            _selectedApiKey = _selectedFFmpegApiKey
             AppSettings.Instance.Recording.APICapture = apiKey
             AppSettings.Instance.Save()
         ElseIf apiKey = "dxgi_desktop_duplication" Then
+            _selectedDulukaApiKey = apiKey
+            _selectedApiKey = _selectedDulukaApiKey
             ' Current Duluka runtime backend: Ddagrab is the production DXGI Desktop Duplication path.
             AppSettings.Instance.Recording.APICapture = "ddagrab"
             AppSettings.Instance.Save()
@@ -2329,12 +2334,20 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Function GetSelectedApiKey() As String
-        If Not String.IsNullOrWhiteSpace(_selectedApiKey) Then Return _selectedApiKey
         If GetEngineModeKey() = "ddagrab" Then
+            If Not String.IsNullOrWhiteSpace(_selectedDulukaApiKey) Then Return _selectedDulukaApiKey
             Return "dxgi_desktop_duplication"
         End If
+
         Dim configured As String = If(AppSettings.Instance.Recording.APICapture, "").Trim().ToLowerInvariant()
-        If configured = "gdigrab" OrElse configured = "gfxcapture" OrElse configured = "ddagrab" Then Return configured
+        If Not String.IsNullOrWhiteSpace(_selectedFFmpegApiKey) Then
+            If String.Equals(_selectedFFmpegApiKey, configured, StringComparison.OrdinalIgnoreCase) Then
+                Return _selectedFFmpegApiKey
+            End If
+        End If
+        If configured = "gdigrab" OrElse configured = "gfxcapture" OrElse configured = "ddagrab" Then
+            Return configured
+        End If
         Return "ddagrab"
     End Function
 
