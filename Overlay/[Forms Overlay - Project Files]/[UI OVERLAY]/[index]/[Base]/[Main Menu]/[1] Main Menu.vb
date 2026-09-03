@@ -636,7 +636,7 @@ Partial Public Class Base
 
         ' Recordings settings
         With Base_RecordingsSet
-            .text_settings.Text = L("l10n.recordings")
+            .Menu_TEXT.Text = L("l10n.recordings")
             .action_fn.Text = L("l10n.Saved")
             .Label4.Text = L("l10n.videoCapture")
             .quality_main.Text = L("l10n.preset")
@@ -657,7 +657,7 @@ Partial Public Class Base
             .Label13.Text = L("l10n.framerate")
             .vdo_resetall.Text = L("l10n.resetToDefaults")
             .captrueblock.Text = L("l10n.settingsVideoCaptureDisable")
-            .warm_re.Text = L("l10n.captrueresolutionwarm")
+            '.warm_re.Text = L("l10n.captrueresolutionwarm")
             .custom_main.Text = L("l10n.adjust_value")
             .advanced_main.Text = L("l10n.advanced")
 

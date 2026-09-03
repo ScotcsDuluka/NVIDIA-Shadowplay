@@ -1155,11 +1155,11 @@ Public Class Base_RecordingsSet
     End Sub
 
 #Region "video.json Save/Load"
- ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
+    ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
 
- ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
+    ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
 
- ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
+    ' GLM/6 unified config: legacy video.json writer/reader removed — config.json is the ONE file.
 #End Region
 
 #Region "Save Settings"
@@ -2240,6 +2240,30 @@ Public Class Base_RecordingsSet
         AppSettings.Instance.Recording.EncoderPreset = PresetNameToIndex(preset)
         If IsEditablePreset() Then SaveCurrentSettings()
     End Sub
-#End Region
 
+    Private Sub Engine_Mode1_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode1_BgSub.MouseMove, Engine_Mode1_Text.MouseMove
+        Engine_Mode1_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+    End Sub
+
+    Private Sub Engine_Mode1_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.MouseLeave, Engine_Mode1_BgSub.MouseLeave
+        Engine_Mode1_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+    End Sub
+
+
+    Private Sub Engine_Mode2_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode2_BgSub.MouseMove, Engine_Mode2_Text.MouseMove
+        Engine_Mode2_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+    End Sub
+
+    Private Sub Engine_Mode2_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.MouseLeave, Engine_Mode2_BgSub.MouseLeave
+        Engine_Mode2_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+    End Sub
+
+    Private Sub Engine_Mode3_BgSub_MouseMove(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseMove, Engine_Mode3_Text.MouseMove
+        Engine_Mode3_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+    End Sub
+
+    Private Sub Engine_Mode3_BgSub_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseLeave, Engine_Mode3_Text.MouseLeave
+        Engine_Mode3_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+    End Sub
+#End Region
 End Class

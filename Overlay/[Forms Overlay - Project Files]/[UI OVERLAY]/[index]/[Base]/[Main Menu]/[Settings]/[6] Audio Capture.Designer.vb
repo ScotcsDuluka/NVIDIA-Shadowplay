@@ -50,7 +50,7 @@ Partial Class Base_AudioSet
         ' 
         ' setret
         ' 
-        setret.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        setret.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         setret.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         setret.Controls.Add(quality_main)
         setret.Controls.Add(ICO_MENU1)
@@ -71,7 +71,7 @@ Partial Class Base_AudioSet
         setret.Controls.Add(lblStatus)
         setret.Location = New Point(80, 160)
         setret.Name = "setret"
-        setret.Size = New Size(1520, 630)
+        setret.Size = New Size(1520, 614)
         setret.TabIndex = 0
         ' 
         ' quality_main
@@ -154,12 +154,11 @@ Partial Class Base_AudioSet
         chkSystem.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         chkSystem.Checked = True
         chkSystem.CheckState = CheckState.Checked
-        chkSystem.FlatStyle = FlatStyle.Flat
         chkSystem.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         chkSystem.ForeColor = Color.White
         chkSystem.Location = New Point(129, 196)
         chkSystem.Name = "chkSystem"
-        chkSystem.Size = New Size(195, 25)
+        chkSystem.Size = New Size(198, 25)
         chkSystem.TabIndex = 6
         chkSystem.Text = "Capture System Audio"
         chkSystem.UseVisualStyleBackColor = True
@@ -193,7 +192,7 @@ Partial Class Base_AudioSet
         lblSystemVol.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblSystemVol.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         lblSystemVol.ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        lblSystemVol.Location = New Point(330, 198)
+        lblSystemVol.Location = New Point(333, 197)
         lblSystemVol.Name = "lblSystemVol"
         lblSystemVol.Size = New Size(51, 21)
         lblSystemVol.TabIndex = 9
@@ -203,12 +202,11 @@ Partial Class Base_AudioSet
         ' 
         chkMic.AutoSize = True
         chkMic.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        chkMic.FlatStyle = FlatStyle.Flat
         chkMic.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         chkMic.ForeColor = Color.White
         chkMic.Location = New Point(129, 336)
         chkMic.Name = "chkMic"
-        chkMic.Size = New Size(183, 25)
+        chkMic.Size = New Size(186, 25)
         chkMic.TabIndex = 10
         chkMic.Text = "Capture Microphone"
         chkMic.UseVisualStyleBackColor = True
@@ -242,7 +240,7 @@ Partial Class Base_AudioSet
         lblMicVol.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblMicVol.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         lblMicVol.ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        lblMicVol.Location = New Point(318, 338)
+        lblMicVol.Location = New Point(321, 337)
         lblMicVol.Name = "lblMicVol"
         lblMicVol.Size = New Size(51, 21)
         lblMicVol.TabIndex = 13
@@ -275,13 +273,12 @@ Partial Class Base_AudioSet
         ' 
         ' lblStatus
         ' 
-        lblStatus.AutoSize = True
         lblStatus.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblStatus.Font = New Font("Segoe UI", 10F)
         lblStatus.ForeColor = Color.FromArgb(CByte(160), CByte(165), CByte(170))
-        lblStatus.Location = New Point(581, 649)
+        lblStatus.Location = New Point(257, 448)
         lblStatus.Name = "lblStatus"
-        lblStatus.Size = New Size(0, 19)
+        lblStatus.Size = New Size(149, 19)
         lblStatus.TabIndex = 17
         ' 
         ' action_fn

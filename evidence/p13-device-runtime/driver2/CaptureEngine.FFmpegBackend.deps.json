@@ -1,0 +1,53 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {
+      "CaptureEngine.FFmpegBackend/1.0.0": {
+        "dependencies": {
+          "CaptureEngine": "1.0.0",
+          "CaptureEngine.Audio.Wasapi": "1.0.0"
+        },
+        "runtime": {
+          "CaptureEngine.FFmpegBackend.dll": {}
+        }
+      },
+      "CaptureEngine/1.0.0": {
+        "runtime": {
+          "CaptureEngine.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "CaptureEngine.Audio.Wasapi/1.0.0": {
+        "runtime": {
+          "CaptureEngine.Audio.Wasapi.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "CaptureEngine.FFmpegBackend/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CaptureEngine/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "CaptureEngine.Audio.Wasapi/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

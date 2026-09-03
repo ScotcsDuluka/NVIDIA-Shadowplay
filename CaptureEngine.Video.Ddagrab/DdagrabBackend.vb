@@ -678,6 +678,13 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         Continue Do
                     End If
 
+                    ' Session/recording timestamp: sample QPC immediately after
+                    ' AcquireNextFrame succeeds. DXGI LastPresentTime is the
+                    ' timestamp of the desktop image''s LAST UPDATE, not the
+                    ' time this frame was acquired; on a static desktop it can
+                    ' legitimately be stale and must not become the recording
+                    ' timeline origin.
+                    Dim acquiredQpc100ns As Long = QpcTicksTo100ns(Stopwatch.GetTimestamp())
                     ' ─── Got a frame — copy to staging texture + ReleaseFrame ─
                     Dim stagingTexture As ID3D11Texture2D = Nothing
                     Dim sharedTexture As ID3D11Texture2D = Nothing
@@ -726,15 +733,7 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         ' In shared-handle mode: frame wraps sharedTexture (with handle)
                         ' In direct mode: frame wraps stagingTexture (no handle)
                         Dim frameTexture As ID3D11Texture2D = If(sharedTexture, stagingTexture)
-                        ' DXGI LastPresentTime is the producer-side QPC stamp for
-                        ' the desktop image represented by this frame. Do not use
-                        ' attemptTime: it is sampled BEFORE AcquireNextFrame and
-                        ' can include the 100ms wait plus queue latency.
-                        Dim frameQpc100ns As Long = attemptTime
-                        If frameInfo.LastPresentTime <> 0 Then
-                            frameQpc100ns = QpcTicksTo100ns(frameInfo.LastPresentTime)
-                        End If
-
+                        Dim frameQpc100ns As Long = acquiredQpc100ns
                         frame = New D3D11VideoFrame(
                             frameTexture,
                             _outputWidth,

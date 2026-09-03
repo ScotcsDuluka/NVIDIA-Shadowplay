@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -590,12 +590,9 @@ Namespace CaptureEngine.Recording
                             Continue Do
                         End If
                         _videoStartTicks = Stopwatch.GetTimestamp()
-                        ' Use the producer-side DXGI timestamp carried by the frame.
-                        ' Consumer-time Stopwatch includes queue/CFR delivery latency.
-                        _videoStartQpc100ns = pendingFrame.Diagnostics.CaptureTimeTicks
-                        If _videoStartQpc100ns <= 0 Then
-                            _videoStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
-                        End If
+                        ' Device-mode sync anchor: same QPC domain as WASAPI, sampled at first frame.
+                        ' FrameDiagnostics remains diagnostics-only across backend handoffs.
+                        _videoStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
                         nextTick = _videoStartTicks
 
                         ' ★ OBS-model alignment: SyncMath offsets applied at FEED time.
