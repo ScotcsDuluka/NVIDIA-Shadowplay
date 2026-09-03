@@ -642,7 +642,8 @@ Public Class Base_RecordingsSet
                 _copyResetTimer = Nothing
             End If
 
-            SaveCurrentSettings()
+            ' Flush immediately on close. Do not re-arm the 300 ms debounce timer.
+            SaveSettingsNow()
             ' GLM/6 unified: one file — AppSettings.Save() persists everything.
             AppSettings.Instance.Save()
             Try

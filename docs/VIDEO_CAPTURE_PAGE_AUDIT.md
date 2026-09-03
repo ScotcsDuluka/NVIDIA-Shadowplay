@@ -188,8 +188,8 @@ The fix adds `Recording.engine_mode` (`Duluka` / `FFmpeg`) as the regime owner a
 **VERIFICATION.** `GetEngineModeKey()` now reads `Recording.EngineMode` first. `ApiMenuItem_Click` only updates `Recording.APICapture`; selecting an FFmpeg capture filter therefore cannot flip the engine-mode radio. Legacy config files without `engine_mode` are still interpreted through the old `api_capture` rule and are upgraded on the next settings save.
 
 ### H-4 — FormClosing save/teardown ordering has a loss window
-**STATUS at 306bb30: OPEN.**
-**FACT.** `Base_RecordingsSet_FormClosing` disposes `_saveSettingsTimer` (:632-637), then calls `SaveCurrentSettings()` (:645) which **re-creates and starts** a 300 ms timer (:1172-1180). The pending `SaveSettingsNow` therefore fires after close (if the pump is alive) or never (app exits within 300 ms); in the latter case control-only edits (e.g. `FPS_BOX.Text` typed but not yet committed by any handler) are lost because :647 persists the model, not the controls. **IMPACT:** narrow, real, silent loss window. **RECOMMENDATION:** flush synchronously at close (call `SaveSettingsNow()` directly) instead of re-arming the debounce.
+**STATUS: ✅ FIXED after `ab7927d`.**
+**FACT.** `Base_RecordingsSet_FormClosing` now disposes the debounce timer and calls `SaveSettingsNow()` directly instead of re-arming `SaveCurrentSettings()`. This removes the 300 ms post-close loss window while preserving the normal debounce path during ordinary editing. `SaveSettingsNow()` persists the current UI/model values synchronously before the close handler returns.
 
 ---
 
