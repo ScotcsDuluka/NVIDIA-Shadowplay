@@ -750,6 +750,9 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] Stop snapshot: elapsed={stopElapsedSeconds:F3}s")
                 _logger.Info("[session] Stopping video capture...")
                 _capture.Stop()
+                ' Capture-path evidence: distinguish real DXGI no-update periods,
+                ' handoff backpressure, and backend errors from CFR duplication.
+                _logger.Info($"[session] capture diagnostics: emitted={_capture.EmittedFrames}, pushed={_capture.FramesPushed}, dropped={_capture.DroppedFrames}, replaced={_capture.ReplacedFrames}, noFrame={_capture.NoFrameCount}, errors={_capture.ErrorCount}, accessLost={_capture.AccessLostCount}, textures={_capture.TexturesCreated}/{_capture.TexturesDisposed}")
 
                 ' Drain: keep only the FRESHEST leftover frame (stale ones just
                 ' dispose — the CFR stream already displayed newer states).
