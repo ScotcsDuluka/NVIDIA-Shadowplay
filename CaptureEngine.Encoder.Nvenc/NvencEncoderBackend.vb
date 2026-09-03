@@ -658,10 +658,11 @@ Namespace CaptureEngine.Encoder.Nvenc
                     ' guess desynced from the actual IDR cadence (_framesSinceIdr
                     ' counter) by one frame after every forced IDR — critical for
                     ' Instant Replay, which must trust IsKeyFrame to cut segments.
-                    ' NVENC pic types: 1=NV_ENC_PIC_TYPE_IDR, 2=I, 3=P, 4=B,
-                    ' 5=BI, 6=SKIP; anything <=2 is a keyframe/random-access point.
+                    ' NVENC NV_ENC_PIC_TYPE enum (NVIDIA SDK):
+                    ' P=0, B=1, I=2, IDR=3, BI=4, SKIPPED=5,
+                    ' INTRA_REFRESH=6, NONREF_P=7, SWITCH=8, UNKNOWN=0xFF.
                     Dim realPicType As UInteger = lockParams.pictureType
-                    Dim isKeyFrame As Boolean = (realPicType = 1UI OrElse realPicType = 2UI)
+                    Dim isKeyFrame As Boolean = (realPicType = 2UI OrElse realPicType = 3UI)
                     If isKeyFrame AndAlso sequence > 0 Then
                         _logger.Info($"NvencEncoderBackend: keyframe at seq {sequence} (picType={realPicType})")
                     End If

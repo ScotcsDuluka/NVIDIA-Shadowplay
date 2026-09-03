@@ -856,10 +856,12 @@ skipFrame:
         End Sub
 
         ' Convert DXGI QPC ticks to the engine's 100ns timestamp domain.
+        ' Keep the quotient/remainder groups explicit: VB operator precedence
+        ' must not change the unit conversion into (qpcTicks Mod f).
         Private Shared Function QpcTicksTo100ns(qpcTicks As Long) As Long
             Dim f As Long = Stopwatch.Frequency
             If f <= 0 Then Return 0
-            Return qpcTicks \ f * 10000000L + qpcTicks Mod f * 10000000L \ f
+            Return (qpcTicks \ f) * 10000000L + ((qpcTicks Mod f) * 10000000L) \ f
         End Function
 
         Private Sub RecreateDuplication()
