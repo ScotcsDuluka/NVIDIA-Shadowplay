@@ -278,12 +278,20 @@ SteerDone:
         ''' session. Call once, after the capture has fully stopped.
         ''' </summary>
         Public Sub FinalizeToNow()
+            FinalizeToTicks(Stopwatch.GetTimestamp())
+        End Sub
+
+        ''' <summary>
+        ''' Close the timeline at an immutable session-stop QPC tick.
+        ''' </summary>
+        Public Sub FinalizeToTicks(targetTicks As Long)
+            If targetTicks <= 0 Then targetTicks = Stopwatch.GetTimestamp()
             If _originTicks = 0 Then
                 ' Never received anything — fully silent track. Pad the whole
                 ' span from MarkStart to now so the stream exists (else ffmpeg
                 ' gets zero packets for this input and aborts).
                 If _startRequestedTicks > 0 Then
-                    Dim spanSec As Double = (Stopwatch.GetTimestamp() - _startRequestedTicks) / Stopwatch.Frequency
+                    Dim spanSec As Double = (targetTicks - _startRequestedTicks) / Stopwatch.Frequency
                     If spanSec > 0 AndAlso spanSec <= 3600.0 Then
                         PadSilence(spanSec)
                     End If
@@ -291,7 +299,7 @@ SteerDone:
                 Return
             End If
 
-            Dim tailSec As Double = (Stopwatch.GetTimestamp() - _lastTicks) / Stopwatch.Frequency
+            Dim tailSec As Double = (targetTicks - _lastTicks) / Stopwatch.Frequency
             If tailSec > 0.02 AndAlso tailSec <= 3600.0 Then
                 PadSilence(tailSec)
             End If

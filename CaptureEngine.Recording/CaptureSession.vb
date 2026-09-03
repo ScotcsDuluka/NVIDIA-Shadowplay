@@ -811,7 +811,7 @@ Namespace CaptureEngine.Recording
                         _sysTap3.FinalizeTo100ns(_sessionStartQpc100ns,
                             WasapiPositionCapture.QpcTicksTo100ns(stopQpcTicks))
                     Else
-                        _sysTap?.FinalizeToNow()
+                        _sysTap?.FinalizeToTicks(stopQpcTicks)
                     End If
 
                     If wavWriter IsNot Nothing Then
@@ -846,7 +846,7 @@ Namespace CaptureEngine.Recording
                         _logger.Warning("[session] Mic RecordingStopped event timeout (3s) — finalizing anyway")
                     End If
 
-                    _micTap?.FinalizeToNow()
+                    _micTap?.FinalizeToTicks(stopQpcTicks)
 
                     If micWriter IsNot Nothing Then
                         micReport = micWriter.Complete(5000)
