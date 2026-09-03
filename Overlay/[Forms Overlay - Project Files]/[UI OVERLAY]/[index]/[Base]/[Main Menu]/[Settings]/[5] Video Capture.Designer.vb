@@ -377,7 +377,7 @@ Partial Class Base_RecordingsSet
         ' 
         API_Box.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         API_Box.Cursor = Cursors.Hand
-        API_Box.Font = New Font("Segoe UI", 15.0F)
+        API_Box.Font = New Font("Segoe UI", 14.0F)
         API_Box.ForeColor = Color.White
         API_Box.Location = New Point(552, 84)
         API_Box.Name = "API_Box"
