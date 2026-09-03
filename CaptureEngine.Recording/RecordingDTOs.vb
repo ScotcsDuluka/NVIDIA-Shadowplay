@@ -140,6 +140,16 @@ Namespace CaptureEngine.Recording
         Public Property Fps As Integer = 0
 
         ''' <summary>
+        ''' Resolve the per-session FPS authority independently of the
+        ''' process-lifetime encoder. A valid session FPS always wins;
+        ''' engine FPS is fallback only when the session leaves FPS unset.
+        ''' </summary>
+        Public Shared Function ResolveSessionTargetFps(sessionFps As Integer, engineFps As Integer) As Integer
+            If sessionFps > 0 Then Return sessionFps
+            Return If(engineFps > 0, engineFps, 60)
+        End Function
+
+        ''' <summary>
         ''' Resolution group from config.json Recording.current.* at engine
         ''' init (V-CT2). True (or invalid width/height) = encode at the
         ''' captured desktop resolution. False + valid dims = NVENC encodes

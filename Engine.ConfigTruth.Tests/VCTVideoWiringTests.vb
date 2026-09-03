@@ -88,6 +88,9 @@ Friend Module VCTVideoWiringTests
             "V-CT1c MapSessionConfig Nothing-settings → TargetFps=0 (explicit unset, not display)",
             AddressOf VCT1c_NothingSettings_TargetFpsUnset)
         TestRunner.RunTest(
+            "V-CT1d session FPS wins over persistent NVENC FPS",
+            AddressOf VCT1d_SessionFps_WinsOverEngineFps)
+        TestRunner.RunTest(
             "V-CT2 config 1280x720 native=false → effective encode 1280x720",
             AddressOf VCT2_CustomResolution_ReachesEncodeDims)
         TestRunner.RunTest(
@@ -171,6 +174,22 @@ Friend Module VCTVideoWiringTests
                           $"startup.Fps expected 0 (unset), got {startup.Fps}")
         TestRunner.Assert(startup.GopSize = 60,
                           $"GopSize default expected 60, got {startup.GopSize}")
+    End Sub
+
+    ''' <summary>
+    ''' V-CT1d: session FPS is authoritative even when the persistent NVENC
+    ''' engine was initialized with a different FPS. The engine FPS may only
+    ''' serve as fallback when the session value is unset.
+    ''' </summary>
+    Private Sub VCT1d_SessionFps_WinsOverEngineFps()
+        TestRunner.Assert(EngineStartupConfig.ResolveSessionTargetFps(30, 60) = 30,
+                          "session FPS 30 must win over persistent engine FPS 60")
+        TestRunner.Assert(EngineStartupConfig.ResolveSessionTargetFps(120, 60) = 120,
+                          "session FPS 120 must win over persistent engine FPS 60")
+        TestRunner.Assert(EngineStartupConfig.ResolveSessionTargetFps(0, 60) = 60,
+                          "unset session FPS must fall back to engine FPS 60")
+        TestRunner.Assert(EngineStartupConfig.ResolveSessionTargetFps(0, 0) = 60,
+                          "unset session and engine FPS must fall back to safe 60")
     End Sub
 
     ''' <summary>
