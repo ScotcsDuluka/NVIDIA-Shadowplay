@@ -82,6 +82,7 @@ Namespace CaptureEngine.Recording
         Private ReadOnly _config As SessionConfig
         Private ReadOnly _logger As EngineLogger
         Private _stopSignal As Boolean = False
+        Private _stopRequestedTicks As Long = 0
         Private _disposed As Boolean = False
 
         ' Sync timeline (Stopwatch ticks)
@@ -627,7 +628,7 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] Recording for {_config.DurationSeconds}s @ CFR {targetFps}fps...")
 
                 Dim durationTicks As Long = CLng(duration.TotalSeconds * Stopwatch.Frequency)
-                Do While (Stopwatch.GetTimestamp() - _timelineStartTicks) < durationTicks AndAlso Not _stopSignal
+                Do While (Stopwatch.GetTimestamp() - _timelineStartTicks) < durationTicks AndAlso Not Threading.Volatile.Read(_stopSignal)
                     ' Refresh 'pending' with the freshest frame (drop older).
                     Dim far As FrameAcquisitionResult
                     While sink.TryTake(far)
@@ -1075,7 +1076,8 @@ Namespace CaptureEngine.Recording
         End Function
 
         Public Sub [Stop]()
-            _stopSignal = True
+            Interlocked.CompareExchange(_stopRequestedTicks, Stopwatch.GetTimestamp(), 0)
+            Threading.Volatile.Write(_stopSignal, True)
         End Sub
 
         Public Sub Dispose() Implements IDisposable.Dispose
