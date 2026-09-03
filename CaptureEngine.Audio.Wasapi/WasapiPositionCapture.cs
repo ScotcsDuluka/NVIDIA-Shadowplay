@@ -241,6 +241,18 @@ namespace CaptureEngine.Audio.Wasapi
                                                  out long qpcPos);
                     if (hrG < 0) { error = "GetBuffer: " + Interop.HrName(hrG); break; }
 
+                    // IMPORTANT: copy the WASAPI buffer BEFORE ReleaseBuffer.
+                    // The data pointer is only valid until ReleaseBuffer(); releasing
+                    // first and then Marshal.Copy reads reclaimed/reused audio memory
+                    // and produces loud noise/corrupted samples.
+                    byte[] pcmData = null;
+                    if (_opt.IncludePcm && frames > 0)
+                    {
+                        int bytes = frames * BlockAlign;
+                        pcmData = new byte[bytes];
+                        Marshal.Copy(data, pcmData, 0, bytes);
+                    }
+
                     // RULE #4 — never 0. The P13.1 OOM was this exact line.
                     int hrR = _capture.ReleaseBuffer(frames);
                     if (hrR < 0)
@@ -272,13 +284,7 @@ namespace CaptureEngine.Audio.Wasapi
                         Flags = flags,
                         Data = null,
                     };
-                    if (_opt.IncludePcm && frames > 0)
-                    {
-                        int bytes = frames * BlockAlign;
-                        var buf = new byte[bytes];
-                        Marshal.Copy(data, buf, 0, bytes);
-                        pkt.Data = buf;
-                    }
+                    pkt.Data = pcmData;
 
                     var handler = PacketReady;
                     if (handler != null) handler(pkt);

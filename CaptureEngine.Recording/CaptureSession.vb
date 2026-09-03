@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -679,6 +679,14 @@ Namespace CaptureEngine.Recording
                 Loop
 
                 ' ─── 6. Stop video → final fresh frame → stop encoder ──
+                ' ─── 6. Freeze session stop time BEFORE any drain/encode work ──
+                ' Everything downstream must use this immutable stop snapshot.
+                ' Tail-fill and encoder shutdown can take seconds and must never
+                ' extend the audio/video timeline after the user pressed Stop.
+                Dim stopElapsedSeconds As Double = Math.Min(duration.TotalSeconds, sw.Elapsed.TotalSeconds)
+                Dim stopQpcTicks As Long = Stopwatch.GetTimestamp()
+
+                _logger.Info($"[session] Stop snapshot: elapsed={stopElapsedSeconds:F3}s")
                 _logger.Info("[session] Stopping video capture...")
                 _capture.Stop()
 
@@ -730,7 +738,8 @@ Namespace CaptureEngine.Recording
                         End Try
                     End If
 
-                    Dim targetFrames As Long = CLng(Math.Ceiling(duration.TotalSeconds * targetFps))
+                    Dim actualSessionSeconds As Double = stopElapsedSeconds
+                    Dim targetFrames As Long = CLng(Math.Ceiling(actualSessionSeconds * targetFps))
                     Dim fillBefore As Long = result.FramesEncoded
                     While result.FramesEncoded < targetFrames AndAlso finalFrame IsNot Nothing
                         Dim packetPad As EncodedPacket = Nothing
@@ -800,7 +809,7 @@ Namespace CaptureEngine.Recording
                         ' v3: exact QPC tail — pad to the session-end stamp,
                         ' no wall-clock estimation, no FinalizeToNow guess.
                         _sysTap3.FinalizeTo100ns(_sessionStartQpc100ns,
-                            WasapiPositionCapture.QpcTicksTo100ns(Stopwatch.GetTimestamp()))
+                            WasapiPositionCapture.QpcTicksTo100ns(stopQpcTicks))
                     Else
                         _sysTap?.FinalizeToNow()
                     End If
@@ -855,7 +864,7 @@ Namespace CaptureEngine.Recording
                     End If
                 End If
 
-                result.ActualDurationSec = sw.Elapsed.TotalSeconds
+                result.ActualDurationSec = stopElapsedSeconds
 
                 ' ★ OBS-model: finalize the LIVE MUX (drain pipes → FFmpeg EOF
                 ' → finalize fragmented MP4 → +faststart remux). The declared CFR
@@ -1030,3 +1039,5 @@ Namespace CaptureEngine.Recording
     End Class
 
 End Namespace
+
+

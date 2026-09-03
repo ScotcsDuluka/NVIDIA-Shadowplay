@@ -1,4 +1,4 @@
-// WasapiPacket.cs — P13.2: one WASAPI capture packet with its hardware stamps.
+﻿// WasapiPacket.cs — P13.2: one WASAPI capture packet with its hardware stamps.
 //
 // This is the currency of the P13 clock design: every packet carries the
 // device's OWN stamp of when its content is playing, so downstream code
@@ -24,11 +24,11 @@ namespace CaptureEngine.Audio.Wasapi
         /// <summary>Packet content is all silence (stream start typically).
         /// P13.1 evidence: quiet-phase packets are genuine zero buffers
         /// WITHOUT this flag — never key silence math off it.</summary>
-        public const int Silent = 0x1;
+        public const int Discontinuity = 0x1;
         /// <summary>Timestamps derived from a known-error source.</summary>
-        public const int TimestampError = 0x2;
+        public const int Silent = 0x2;
         /// <summary>Packet not contiguous with the previous one.</summary>
-        public const int Discontinuity = 0x4;
+        public const int TimestampError = 0x4;
     }
 
     /// <summary>One captured WASAPI packet: PCM bytes + hardware stamps.</summary>
@@ -61,3 +61,4 @@ namespace CaptureEngine.Audio.Wasapi
         public byte[] Data;
     }
 }
+
