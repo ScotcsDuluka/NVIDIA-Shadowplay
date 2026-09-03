@@ -42,6 +42,7 @@ Partial Public Class UI_Engine
     Private _useNewEngine As Boolean = True  ' True = use RecordingEngine, False = legacy
     Private _engineReady As Boolean = False  ' set once off-thread Initialize succeeds
     Private _engineReconfiguring As Boolean = False  ' true while video config rebuilds the persistent encoder
+    Private _rebuildPending As Boolean = False  ' config changed during recording; rebuild after stop
     ' ★ P13-AUDIO-TIMELINE: WHY the new engine is unavailable (shown on
     ' every legacy-pipeline record start — ends the "which pipeline ran?"
     ' mystery that kept the [speech][speech][apad-silence] bug invisible).
@@ -117,7 +118,8 @@ Partial Public Class UI_Engine
     Private Sub ReinitializeRecordingEngineFromConfig()
         If _engineReconfiguring Then Return
         If _recordingTask IsNot Nothing AndAlso Not _recordingTask.IsCompleted Then
-            DebugLog("[RecordingEngine] config changed during recording — defer runtime rebuild")
+            _rebuildPending = True
+            DebugLog("[RecordingEngine] config changed during recording — rebuild queued after stop")
             Return
         End If
 
@@ -328,6 +330,11 @@ Partial Public Class UI_Engine
             ' Wait for the session to complete (should be quick after Stop)
             Dim result As SessionResult = Await _recordingTask
             _recordingTask = Nothing
+
+            If _rebuildPending AndAlso Not _engineReconfiguring Then
+                _rebuildPending = False
+                ReinitializeRecordingEngineFromConfig()
+            End If
 
             DebugLog($"[RecordingEngine] stopped: pass={result.Pass}, file={result.OutputPath}")
             DebugLog($"[RecordingEngine] evidence: frames={result.FramesEncoded}, audioBytes={result.AudioBytes}, " &
