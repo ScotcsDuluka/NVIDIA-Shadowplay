@@ -30,6 +30,7 @@ Partial Class AudioSettingsForm
         BT_Back = New Label()
         settings_top = New PictureBox()
         settings_menu = New Panel()
+        quality_main = New Label()
         ICO_MENU1 = New Label()
         PictureBox5 = New PictureBox()
         PictureBox4 = New PictureBox()
@@ -38,7 +39,6 @@ Partial Class AudioSettingsForm
         hg2 = New PictureBox()
         Audio_Capture_Menutext = New Label()
         OPEN_UI = New System.Windows.Forms.Timer(components)
-        quality_main = New Label()
         grpTrackMode.SuspendLayout()
         grpSystem.SuspendLayout()
         CType(trkSystemVol, ComponentModel.ISupportInitialize).BeginInit()
@@ -261,7 +261,7 @@ Partial Class AudioSettingsForm
         ' 
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(80, 110)
         BT_Back.Name = "BT_Back"
@@ -305,10 +305,22 @@ Partial Class AudioSettingsForm
         settings_menu.Size = New Size(1760, 840)
         settings_menu.TabIndex = 98
         ' 
+        ' quality_main
+        ' 
+        quality_main.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        quality_main.Font = New Font("Segoe UI Semibold", 18F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        quality_main.ForeColor = Color.White
+        quality_main.Location = New Point(129, 85)
+        quality_main.Name = "quality_main"
+        quality_main.Size = New Size(515, 67)
+        quality_main.TabIndex = 73
+        quality_main.Text = "Quality:"
+        quality_main.TextAlign = ContentAlignment.MiddleLeft
+        ' 
         ' ICO_MENU1
         ' 
         ICO_MENU1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        ICO_MENU1.Font = New Font("nvgcshare", 50.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ICO_MENU1.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         ICO_MENU1.ForeColor = Color.White
         ICO_MENU1.Location = New Point(62, 85)
         ICO_MENU1.Name = "ICO_MENU1"
@@ -375,7 +387,7 @@ Partial Class AudioSettingsForm
         ' Audio_Capture_Menutext
         ' 
         Audio_Capture_Menutext.AutoSize = True
-        Audio_Capture_Menutext.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
+        Audio_Capture_Menutext.Font = New Font("GeForce", 24F, FontStyle.Bold)
         Audio_Capture_Menutext.Location = New Point(62, 43)
         Audio_Capture_Menutext.Name = "Audio_Capture_Menutext"
         Audio_Capture_Menutext.Size = New Size(210, 42)
@@ -387,21 +399,9 @@ Partial Class AudioSettingsForm
         OPEN_UI.Enabled = True
         OPEN_UI.Interval = 1
         ' 
-        ' quality_main
-        ' 
-        quality_main.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        quality_main.Font = New Font("Segoe UI Semibold", 18.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        quality_main.ForeColor = Color.White
-        quality_main.Location = New Point(129, 85)
-        quality_main.Name = "quality_main"
-        quality_main.Size = New Size(515, 67)
-        quality_main.TabIndex = 73
-        quality_main.Text = "Quality:"
-        quality_main.TextAlign = ContentAlignment.MiddleLeft
-        ' 
         ' AudioSettingsForm
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Coral
         ClientSize = New Size(1920, 1080)

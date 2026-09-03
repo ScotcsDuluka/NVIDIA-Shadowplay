@@ -385,6 +385,10 @@ Partial Public Class Base
 
         ' Privacy control
         SetHoverEffect(Base_Privacy_Control.action_fn, HoverColorGR, LeaveColorGR)
+
+        ' Audio capture
+        SetHoverEffect(Base_AudioSet.action_fn, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_AudioSet.btnRefresh, HoverColorG, LeaveColorG)
     End Sub
 
 #End Region

@@ -147,14 +147,14 @@ Public Class Base_AudioSet
         End Try
     End Sub
 
- 
+
 
 
 #End Region
 
 #Region "UI handlers"
 
-    Private Sub btnRefresh_Click(sender As Object, e As EventArgs) Handles btnRefresh.Click
+    Private Sub btnRefresh_Click(sender As Object, e As EventArgs)
         RefreshMicDevices()
         SelectCurrentMic()
     End Sub
@@ -167,12 +167,12 @@ Public Class Base_AudioSet
         UpdateVolumeLabels()
     End Sub
 
-    Private Sub btnApply_Click(sender As Object, e As EventArgs) Handles btnApply.Click
+    Private Sub btnApply_Click(sender As Object, e As EventArgs)
         SaveToSettings()
         lblStatus.Text = "Saved."
     End Sub
 
-    Private Sub btnTest_Click(sender As Object, e As EventArgs) Handles btnTest.Click
+    Private Sub btnTest_Click(sender As Object, e As EventArgs)
         SaveToSettings()
         lblStatus.Text = "Settings saved. Start recording to test."
     End Sub
@@ -189,7 +189,6 @@ Public Class Base_AudioSet
             Debug.WriteLine("[AudioSet] action_fn_Click error: " & ex.Message)
         End Try
     End Sub
-
 #End Region
 
 End Class
