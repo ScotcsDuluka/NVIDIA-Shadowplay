@@ -74,6 +74,7 @@
   "l10n.off": "Off",
   "l10n.gallery": "Gallery",
   "l10n.instantReplayStart": "Turn on",
+  "l10n.replayNotImplemented": "Not available yet",
   "l10n.instantReplayStop": "Turn off",
   "l10n.customize": "Customize",
   "l10n.recording": "Recording",

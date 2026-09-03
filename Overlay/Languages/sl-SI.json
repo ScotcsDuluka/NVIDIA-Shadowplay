@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "Dolžina neposredne ponovitve predvajanja:",
   "l10n.instantReplayOnOff": "Neposredna ponovitev predvajanja je zdaj vklopljena/izklopljena",
   "l10n.instantReplayStart": "Vklopi",
+  "l10n.replayNotImplemented": "Še ni na voljo",
   "l10n.instantReplayStop": "Izklopi",
   "l10n.instantReplayTime1": "{{arg1}} sekund ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} minut ({{arg2}})",

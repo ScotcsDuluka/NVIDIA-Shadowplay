@@ -119,6 +119,21 @@ Public Class SettingsExportImport
 
             AppSettings.Instance.Save()
 
+            ' W2-6: the Engine must learn about imported settings NOW, not
+            ' at the next record start. Broadcast with an EMPTY scope so the
+            ' Engine reloads the whole config.json and reinitializes the
+            ' capture session while idle (UI_Engine.vb
+            ' HandleEngineConfigChanged: empty scope = reload all + rebuild).
+            ' Imports can change video AND audio values, so the wide scope
+            ' is deliberate.
+            Try
+                If Base.tcp IsNot Nothing Then
+                    Base.tcp.Send("engine_config_changed", "")
+                End If
+            Catch ex As Exception
+                Debug.WriteLine($"SettingsExportImport: engine_config_changed failed: {ex.Message}")
+            End Try
+
             Debug.WriteLine($"SettingsExportImport.Import: Loaded from {filePath}")
             Return True
 

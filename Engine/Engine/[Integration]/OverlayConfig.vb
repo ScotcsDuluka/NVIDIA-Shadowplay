@@ -341,14 +341,35 @@ Public NotInheritable Class OverlayConfig
     End Function
 
     ''' <summary>
-    ''' Load Overlay's video settings. Legacy video.json first (old installs
-    ''' that still have it); when it does not exist — the normal case since
-    ''' the GLM/6 unification — build the SAME shape from config.json's
-    ''' nested Recording section + top-level Audio section, so the Engine UI
-    ''' mirror shows LIVE values instead of the defaults it displayed while
-    ''' the file was gone. Always returns a usable VideoConfig.
+    ''' Load Overlay's video settings. W2-7: config.json is the ONE
+    ''' user-facing config file and is tried FIRST (it used to lose to a
+    ''' stale legacy video.json whenever that file still existed — the
+    ''' Engine UI mirror then showed outdated values while the runtime ran
+    ''' config.json via ApplyUnifiedToCaptureSettings). Legacy video.json is
+    ''' now only a fallback for old installs whose config.json is missing or
+    ''' has no usable Recording section. Always returns a usable VideoConfig.
     ''' </summary>
     Public Shared Function LoadVideoConfig() As VideoConfig
+        ' 1) config.json — authoritative (nested Recording + top-level Audio)
+        Dim cp As String = ConfigPath
+        If cp.Length > 0 AndAlso File.Exists(cp) Then
+            Try
+                Dim json As String = File.ReadAllText(cp)
+                If Not String.IsNullOrWhiteSpace(json) Then
+                    Dim vc As VideoConfig = TryParseNestedRecording(json)
+                    If vc IsNot Nothing Then
+                        MapTopLevelAudioIntoVideoConfig(json, vc)
+                        Return vc
+                    End If
+                    ' No usable Recording.current in config.json → fall
+                    ' through to the legacy file below.
+                End If
+            Catch ex As Exception
+                System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig(config.json) error: {ex.Message}")
+            End Try
+        End If
+
+        ' 2) legacy video.json — old installs only (stale by definition)
         Dim p As String = VideoConfigPath
         If p.Length > 0 AndAlso File.Exists(p) Then
             Try
@@ -357,25 +378,12 @@ Public NotInheritable Class OverlayConfig
                     Return JsonSerializer.Deserialize(Of VideoConfig)(json, _jsonOpts)
                 End If
             Catch ex As Exception
-                System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig error: {ex.Message}")
+                System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig(video.json) error: {ex.Message}")
                 Return New VideoConfig()
             End Try
         End If
 
-        ' video.json absent → derive from config.json (nested Recording + Audio)
-        Dim cp As String = ConfigPath
-        If cp.Length = 0 OrElse Not File.Exists(cp) Then Return New VideoConfig()
-        Try
-            Dim json As String = File.ReadAllText(cp)
-            If String.IsNullOrWhiteSpace(json) Then Return New VideoConfig()
-            Dim vc As VideoConfig = TryParseNestedRecording(json)
-            If vc Is Nothing Then vc = New VideoConfig()
-            MapTopLevelAudioIntoVideoConfig(json, vc)
-            Return vc
-        Catch ex As Exception
-            System.Diagnostics.Debug.WriteLine($"OverlayConfig.LoadVideoConfig(config.json) error: {ex.Message}")
-            Return New VideoConfig()
-        End Try
+        Return New VideoConfig()
     End Function
 
     ''' <summary>

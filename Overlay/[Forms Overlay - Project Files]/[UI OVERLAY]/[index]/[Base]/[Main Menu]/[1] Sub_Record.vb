@@ -5,7 +5,8 @@
 ' สถาปัตยกรรม: Overlay ไม่ถือ ScreenRecorder ตรง
 '   → ส่งคำสั่ง TCP แบบ fire-and-forget
 '   → Engine ตอบกลับผ่าน OnMessageReceived
-'   → UI อัพเดทแบบ Optimistic (เปลี่ยนก่อนรับ response)
+'   → W2: UI สถานะจริงเท่านั้น — toast/state ผูกกับ engine_response /
+'     engine_recording_saved จาก Engine (ไม่โชว์ก่อนยืนยันอีกต่อไป)
 '
 ' TCP Commands:
 '   RECORD_START <outputPath>
@@ -156,7 +157,9 @@ Partial Public Class Base
                 ' ══════════════════ STOP ══════════════════
                 _isRecordingLocal = False
                 RecordValue = False
-                ShowNotifier("recording_saved")
+                ' W2-2: ไม่มี optimistic "saved" toast อีกต่อไป — ไฟล์ยังไม่ถูก
+                ' เขียนด้วยซ้ำ ตอนนี้ toast จะยิงใน [Overlay] Client.vb
+                ' HandleEngineRecordingSaved เมื่อ Engine เขียนไฟล์เสร็จจริง
 
                 Await Task.Run(Sub()
                                    Try : tcp.Send("RECORD_STOP")
@@ -168,7 +171,10 @@ Partial Public Class Base
             Else
 
                 ' ══════════════════ START ══════════════════
-                ShowNotifier("recording_started")
+                ' W2-2: ไม่มี optimistic "started" toast — ย้ายไปยิงใน
+                ' [Overlay] Client.vb เมื่อ engine_response = ok เท่านั้น
+                ' (ถ้า Engine ปฏิเสธ ผู้ใช้จะเห็น recording_error แทน toast
+                ' ที่เคยโกหก)
 
                 Dim outputDir As String = GetOutputDirectory()
                 Dim outputPath As String = Path.Combine(outputDir,
@@ -239,7 +245,9 @@ Partial Public Class Base
                 SetControlEnabled(Menu_Replay_Box2, False)
                 SetControlEnabled(Menu_Replay_save_text, False)
                 SetControlEnabled(Menu_Replay_save_key, False)
-                ShowNotifier("instant_replay_off")
+                ' W2-1: toast "off" ย้ายไปยิงเมื่อ Engine ตอบ ok เท่านั้น
+                ' (state revert ด้านบนเป็น fail-safe ที่ปลอดภัยอยู่แล้ว —
+                ' ถ้า Engine ปฏิเสธ แปลว่า buffer ไม่เคยมีจริง)
 
                 Await Task.Run(Sub()
                                    Try : tcp.Send("REPLAY_STOP")
@@ -255,19 +263,16 @@ Partial Public Class Base
                 saveSeconds = Math.Max(15, Math.Min(1200, saveSeconds))
 
                 Debug.WriteLine($"Replay duration: {saveSeconds}s")
-                ShowNotifier("instant_replay_on")
 
                 Try : tcp.Send("REPLAY_START", saveSeconds.ToString())
                 Catch ex As Exception
                     Debug.WriteLine("REPLAY_START TCP Error: " & ex.Message)
                 End Try
 
-                ' Optimistic UI
-                _isBufferingLocal = True
-                ReplayValue = True
-                SetControlEnabled(Menu_Replay_Box2, True)
-                SetControlEnabled(Menu_Replay_save_text, True)
-                SetControlEnabled(Menu_Replay_save_key, True)
+                ' W2-1: ไม่มี optimistic "on" toast/state — Engine ปฏิเสธทุก
+                ' REPLAY_* ด้วย not_implemented (UI_Engine.vb) ดังนั้น UI จะ
+                ' ติดสว่างเฉพาะเมื่อ engine_response = ok เท่านั้น
+                ' (handler ใน [Overlay] Client.vb)
 
             End If
 
@@ -327,7 +332,9 @@ Partial Public Class Base
                 Debug.WriteLine("REPLAY_SAVE TCP Error: " & ex.Message)
             End Try
 
-            ShowNotifier("saved_last_15")
+            ' W2-1/W2-2: ไม่มี optimistic "saved_last_15" toast — Engine ไม่เคย
+            ' รองรับ REPLAY_SAVE (ตอบ not_implemented เสมอ) toast จะยิงใน
+            ' [Overlay] Client.vb เมื่อ engine_response = ok เท่านั้น
 
         Catch ex As Exception
             Debug.WriteLine($"[SaveInstantReplay] Error: {ex.Message}")
@@ -339,6 +346,31 @@ Partial Public Class Base
                 SetControlEnabled(Menu_Replay_save_text, True)
                 SetControlEnabled(Menu_Replay_save_key, True)
             End If
+        End Try
+    End Sub
+
+#End Region
+
+#Region "Replay Honesty (W2-1)"
+
+    ''' <summary>
+    ''' Engine ปฏิเสธทุก REPLAY_* command ด้วย not_implemented
+    ''' (UI_Engine.vb — ยังไม่มี replay buffer จริง) ดังนั้นปิดปุ่ม replay
+    ''' ในแผงหลักและระบุให้ชัด แทนที่จะมีปุ่มที่กดแล้วได้แต่ความหลอก
+    ''' ปุ่มจะกลับมาใช้ได้เฉพาะเมื่อ Engine ตอบ engine_replay_start = ok
+    ''' (handler ใน [Overlay] Client.vb) — "until Engine has real buffer"
+    ''' </summary>
+    Public Sub InitReplayHonesty()
+        Try
+            Menu_Replay_key.Enabled = False
+            Menu_Replay_Box1.Enabled = False
+            Menu_Replay_text.Enabled = False
+            Menu_Replay_Box2.Enabled = False
+            Menu_Replay_save_text.Enabled = False
+            Menu_Replay_save_key.Enabled = False
+            Debug.WriteLine("[Overlay] replay controls disabled (engine replay not implemented)")
+        Catch ex As Exception
+            Debug.WriteLine("[Overlay] InitReplayHonesty error: " & ex.Message)
         End Try
     End Sub
 

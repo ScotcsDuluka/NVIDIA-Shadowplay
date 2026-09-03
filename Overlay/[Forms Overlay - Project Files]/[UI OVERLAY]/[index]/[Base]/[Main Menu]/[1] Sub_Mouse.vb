@@ -257,6 +257,16 @@ Partial Public Class Base
         AppSettings.Instance.Save()
         LoadMicState()
 
+        ' W2-6: tell the Engine the mic config changed. Scope "audio"
+        ' makes the Engine reload config.json + refresh its mirror
+        ' WITHOUT an NVENC session rebuild (audio changes don't need
+        ' one; the record-start fresh-reload chain picks this up too).
+        Try
+            If tcp IsNot Nothing Then tcp.Send("engine_config_changed", "audio")
+        Catch ex As Exception
+            Debug.WriteLine("Mic_Click engine_config_changed failed: " & ex.Message)
+        End Try
+
         Debug.WriteLine("Mic Enabled: " & AppSettings.Instance.Audio.MicEnabled)
     End Sub
 

@@ -453,7 +453,10 @@ Partial Public Class Base
         ' ===== Register hotkeys immediately =====
         _hotkeyService = New HotkeyService()
         _hotkeyService.RegisterAll(Handle)
-        tcp.Send("Hotkeys registered!")
+        ' W2-5: removed the dead hotkey-registration broadcast — no Engine
+        ' handler ever matched that string ([Engine] Client.vb dispatches
+        ' engine_*/legacy record commands only), so it was shouted into the
+        ' socket on every startup for nothing.
 
         ' ===== SystemMonitor (was a 2s delay, reduced to 500ms) =====
         _delayTimers = New System.Windows.Forms.Timer
@@ -736,7 +739,10 @@ Partial Public Class Base
         ' Instant Replay
         Replay_Text.Text = L("l10n.instantReplay") & " - BETA"
         Replay_Stats.Text = L("l10n.off")
-        Menu_Replay_text.Text = L("l10n.instantReplayStart")
+        ' W2-1: the action label reads "not available yet" — the Engine
+        ' rejects every REPLAY_* command with not_implemented, so the old
+        ' "Turn on" label advertised a feature that does not exist.
+        Menu_Replay_text.Text = L("l10n.replayNotImplemented")
         Menu_Replay_save_text.Text = L("l10n.Saved")
         Menu_Replay_Sttings_text.Text = L("l10n.settings")
 

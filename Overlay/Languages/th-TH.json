@@ -217,6 +217,7 @@
   "l10n.instantReplayLength": "ความยาวการเล่นซ้ำทันที:",
   "l10n.instantReplayOnOff": "การเล่นซ้ำทันทีอยู่ในโหมดเปิด/ปิด",
   "l10n.instantReplayStart": "เปิด",
+  "l10n.replayNotImplemented": "ยังไม่พร้อมใช้งาน",
   "l10n.instantReplayStop": "ปิด",
   "l10n.instantReplayTime1": "{{arg1}} วินาที ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} นาที ({{arg2}})",

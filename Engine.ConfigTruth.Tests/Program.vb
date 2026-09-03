@@ -47,6 +47,7 @@ Namespace Engine.ConfigTruth.Tests
             CT4ConfigTruthTests.RunAll()
             VCTVideoWiringTests.RunAll()
             P3UIContractTests.RunAll()
+            W2OverlayHonestyTests.RunAll()
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")

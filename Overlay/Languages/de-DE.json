@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "Videobeweis-Länge:",
   "l10n.instantReplayOnOff": "Videobeweis ist jetzt ein/aus",
   "l10n.instantReplayStart": "Einschalten",
+  "l10n.replayNotImplemented": "Noch nicht verfügbar",
   "l10n.instantReplayStop": "Ausschalten",
   "l10n.instantReplayTime1": "{{arg1}} Sekunden ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} Minuten ({{arg2}})",

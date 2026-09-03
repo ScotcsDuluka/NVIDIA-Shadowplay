@@ -289,12 +289,11 @@ Public Class Base_RecordingsSet
         AppSettings.Instance.Recording.ReplayDuration = seconds
         AppSettings.Instance.Save()
 
-        ' Send buffer duration to Engine via TCP
-        Try
-            Base.tcp.Send("BUFFER_DURATION", seconds.ToString())
-        Catch ex As Exception
-            Debug.WriteLine("TrackBar TCP Error: " & ex.Message)
-        End Try
+        ' W2-5: removed the BUFFER_DURATION send — no Engine handler has
+        ' ever matched it ([Engine] Client.vb dispatches engine_*/legacy
+        ' record commands only), so it was a dead command. The duration
+        ' still persists via AppSettings → config.json, where the Engine
+        ' reads it (fresh reload at record start / engine_config_changed).
     End Sub
 
     Public Sub UpdateBufferLabel(seconds As Integer)

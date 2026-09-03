@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "Duración de la repetición instantánea:",
   "l10n.instantReplayOnOff": "Repetición instantánea está activada/desactivada",
   "l10n.instantReplayStart": "Activar",
+  "l10n.replayNotImplemented": "Aún no disponible",
   "l10n.instantReplayStop": "Desactivar",
   "l10n.instantReplayTime1": "{{arg1}} segundos ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} minutos ({{arg2}})",

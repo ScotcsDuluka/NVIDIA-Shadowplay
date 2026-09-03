@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "即时重放长度：",
   "l10n.instantReplayOnOff": "即时重放现已打开/关闭",
   "l10n.instantReplayStart": "打开",
+  "l10n.replayNotImplemented": "尚不可用",
   "l10n.instantReplayStop": "关闭",
   "l10n.instantReplayTime1": "{{arg1}} 秒 ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} 分钟 ({{arg2}})",

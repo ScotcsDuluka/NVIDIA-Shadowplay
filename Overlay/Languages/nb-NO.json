@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "Lengde på Øyeblikkelig reprise:",
   "l10n.instantReplayOnOff": "Øyeblikkelig reprise er nå på/av",
   "l10n.instantReplayStart": "Skru på",
+  "l10n.replayNotImplemented": "Ikke tilgjengelig ennå",
   "l10n.instantReplayStop": "Skru av",
   "l10n.instantReplayTime1": "{{arg1}} sekunder ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} minutter ({{arg2}})",

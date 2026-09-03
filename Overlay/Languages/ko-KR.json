@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "인스턴트 리플레이 길이:",
   "l10n.instantReplayOnOff": "즉시 리플레이가 현재 켜짐/꺼짐",
   "l10n.instantReplayStart": "켜기",
+  "l10n.replayNotImplemented": "아직 사용할 수 없습니다",
   "l10n.instantReplayStop": "끄기",
   "l10n.instantReplayTime1": "{{arg1}} 초 ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} 분 ({{arg2}})",

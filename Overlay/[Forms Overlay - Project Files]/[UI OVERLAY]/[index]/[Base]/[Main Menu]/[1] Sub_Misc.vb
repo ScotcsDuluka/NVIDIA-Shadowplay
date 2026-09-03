@@ -147,7 +147,7 @@ Partial Public Class Base
             "l10n.on",
             "l10n.off",
             "l10n.instantReplayStop",
-            "l10n.instantReplayStart")
+            "l10n.replayNotImplemented")
 
         Menu_Replay_save_ico.ForeColor = If(ReplayValue, Color.White, Color.Gray)
         _lastReplayValue = ReplayValue

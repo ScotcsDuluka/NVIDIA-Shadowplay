@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "Lengte Instant replay:",
   "l10n.instantReplayOnOff": "Instant Replay is nu in-/uitgeschakeld",
   "l10n.instantReplayStart": "Aanzetten",
+  "l10n.replayNotImplemented": "Nog niet beschikbaar",
   "l10n.instantReplayStop": "Uitzetten",
   "l10n.instantReplayTime1": "{{arg1}} seconden ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} minuten ({{arg2}})",

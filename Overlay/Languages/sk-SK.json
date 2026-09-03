@@ -216,6 +216,7 @@
   "l10n.instantReplayLength": "Dĺžka okamžitého opakovaného prehrávania:",
   "l10n.instantReplayOnOff": "Okamžité opakované prehrávanie je teraz zapnuté/vypnuté",
   "l10n.instantReplayStart": "Zapnúť",
+  "l10n.replayNotImplemented": "Zatiaľ nedostupné",
   "l10n.instantReplayStop": "Vypnúť",
   "l10n.instantReplayTime1": "{{arg1}} s ({{arg2}})",
   "l10n.instantReplayTime2": "{{arg1}} min ({{arg2}})",
