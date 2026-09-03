@@ -654,7 +654,7 @@ Partial Public Class Base
             .Maximum_TEXT.Text = L("l10n.maximum")
             .Encoder_CODE.Text = L("l10n.codecEncoder")
             .Label12.Text = L("l10n.resolution")
-            .Label13.Text = L("l10n.framerate")
+            .fps_text.Text = L("l10n.framerate")
             .vdo_resetall.Text = L("l10n.resetToDefaults")
             .captrueblock.Text = L("l10n.settingsVideoCaptureDisable")
             '.warm_re.Text = L("l10n.captrueresolutionwarm")

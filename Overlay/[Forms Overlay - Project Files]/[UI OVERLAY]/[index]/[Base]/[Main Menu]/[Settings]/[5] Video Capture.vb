@@ -2056,14 +2056,14 @@ Public Class Base_RecordingsSet
         If Not IsEditablePreset() Then Exit Sub
         If FPS_BOX Is Nothing Then Exit Sub
 
-        Dim limits As FPSLimit = GetFPSLimits(_currentResolution)
-        Dim cms As ContextMenuStrip = CreateStyledMenu()
-        Dim currentFPS As Integer = GetCurrentFPS()
+        Dim limits = GetFPSLimits(_currentResolution)
+        Dim cms = CreateStyledMenu()
+        Dim currentFPS = GetCurrentFPS()
 
-        Dim commonFPS As Integer() = {30, 60, 120, 144, 240}
-        For Each fps As Integer In commonFPS
+        Dim commonFPS = {30, 60, 120, 144, 240}
+        For Each fps In commonFPS
             If fps >= limits.MinFPS AndAlso fps <= limits.MaxFPS Then
-                Dim lbl As String = fps.ToString() & " FPS"
+                Dim lbl = fps.ToString & " FPS"
                 Dim item As New ToolStripMenuItem(lbl) With {.Tag = fps}
                 If fps = currentFPS Then item.ForeColor = COLOR_MENU_SELECTED
                 AddHandler item.Click, AddressOf FPSMenuItem_Click
@@ -2243,11 +2243,13 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Sub Engine_Mode1_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode1_BgSub.MouseMove, Engine_Mode1_Text.MouseMove
-        If Not IsEngineModeSelected("ffmpeg") Then Engine_Mode1_BgSub.BackColor = COLOR_ACTIVE
+        Engine_Mode1_BgSub.BackColor = COLOR_ACTIVE
+        Engine_Mode1_Text.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode1_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.MouseLeave, Engine_Mode1_BgSub.MouseLeave
         Engine_Mode1_BgSub.BackColor = If(IsEngineModeSelected("ffmpeg"), COLOR_ACTIVE, COLOR_INACTIVE)
+        Engine_Mode1_Text.BackColor = If(IsEngineModeSelected("ffmpeg"), COLOR_ACTIVE, COLOR_INACTIVE)
     End Sub
 
     Private Sub Engine_Mode1_Click(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.Click, Engine_Mode1_BgSub.Click
@@ -2255,11 +2257,12 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Sub Engine_Mode2_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode2_BgSub.MouseMove, Engine_Mode2_Text.MouseMove
-        If Not IsEngineModeSelected("ddagrab") Then Engine_Mode2_BgSub.BackColor = COLOR_ACTIVE
+        Engine_Mode2_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode2_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.MouseLeave, Engine_Mode2_BgSub.MouseLeave
         Engine_Mode2_BgSub.BackColor = If(IsEngineModeSelected("ddagrab"), COLOR_ACTIVE, COLOR_INACTIVE)
+        Engine_Mode2_Text.BackColor = If(IsEngineModeSelected("ddagrab"), COLOR_ACTIVE, COLOR_INACTIVE)
     End Sub
 
     Private Sub Engine_Mode2_Click(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.Click, Engine_Mode2_BgSub.Click
@@ -2267,21 +2270,24 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private Sub Engine_Mode3_BgSub_MouseMove(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseMove, Engine_Mode3_Text.MouseMove
-        If Not IsEngineModeSelected("obs") Then Engine_Mode3_BgSub.BackColor = COLOR_ACTIVE
+        Engine_Mode3_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode3_BgSub_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseLeave, Engine_Mode3_Text.MouseLeave
-        Engine_Mode3_BgSub.BackColor = If(IsEngineModeSelected("obs"), COLOR_ACTIVE, COLOR_INACTIVE)
+        Engine_Mode3_BgSub.BackColor = COLOR_INACTIVE
+        Engine_Mode3_Text.BackColor = COLOR_INACTIVE
     End Sub
 
     Private Sub Engine_Mode3_Click(sender As Object, e As EventArgs) Handles Engine_Mode3_Text.Click, Engine_Mode3_BgSub.Click
-        ApplyEngineMode("obs", "OBS Capture")
+        Engine_Mode3_BgSub.BackColor = COLOR_INACTIVE
+        Engine_Mode3_Text.BackColor = COLOR_INACTIVE
+        Debug.WriteLine("[Video Capture] OBS Capture is not connected to the runtime engine yet.")
     End Sub
 
     Private Function GetEngineModeKey() As String
         Dim api As String = If(AppSettings.Instance.Recording.APICapture, "").Trim().ToLowerInvariant()
-        If api = "ffmpeg" OrElse api = "ddagrab" OrElse api = "gfxcapture" OrElse api = "obs" Then Return api
-        Return "ddagrab"
+        If api = "ddagrab" Then Return "ddagrab"
+        Return "ffmpeg"
     End Function
 
     Private Function IsEngineModeSelected(modeKey As String) As Boolean
@@ -2297,18 +2303,19 @@ Public Class Base_RecordingsSet
         If Engine_Mode2_BgSub IsNot Nothing Then Engine_Mode2_BgSub.BackColor = If(selected = "ddagrab", COLOR_ACTIVE, COLOR_INACTIVE)
         If Engine_Mode2_Text IsNot Nothing Then Engine_Mode2_Text.BackColor = If(selected = "ddagrab", COLOR_ACTIVE, COLOR_INACTIVE)
 
-        If Engine_Mode3_BgSub IsNot Nothing Then Engine_Mode3_BgSub.BackColor = If(selected = "obs", COLOR_ACTIVE, COLOR_INACTIVE)
-        If Engine_Mode3_Text IsNot Nothing Then Engine_Mode3_Text.BackColor = If(selected = "obs", COLOR_ACTIVE, COLOR_INACTIVE)
+        If Engine_Mode3_BgSub IsNot Nothing Then Engine_Mode3_BgSub.BackColor = COLOR_INACTIVE
+        If Engine_Mode3_Text IsNot Nothing Then Engine_Mode3_Text.BackColor = COLOR_INACTIVE
     End Sub
 
     Private Sub ApplyEngineMode(modeKey As String, displayName As String)
         Select Case modeKey.ToLowerInvariant()
             Case "ffmpeg"
-                AppSettings.Instance.Recording.APICapture = "ffmpeg"
+                ' Legacy FFmpeg mode: leave capture API unset so the legacy
+                ' pipeline can use its canonical/default capture selection.
+                AppSettings.Instance.Recording.APICapture = Nothing
             Case "ddagrab"
+                ' Duluka/native mode: request the production Ddagrab backend.
                 AppSettings.Instance.Recording.APICapture = "ddagrab"
-            Case "obs"
-                AppSettings.Instance.Recording.APICapture = "obs"
             Case Else
                 Return
         End Select
@@ -2317,6 +2324,7 @@ Public Class Base_RecordingsSet
         AppSettings.Instance.Save()
         UpdateEngineModeUI()
         UpdateCommandPreview()
+        Debug.WriteLine("[Video Capture] Engine mode persisted to config.json")
 
         Try
             Base.tcp.Send("engine_config_changed", "video")
