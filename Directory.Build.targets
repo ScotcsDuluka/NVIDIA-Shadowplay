@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!-- ============================================================================
        Directory.Build.targets — ROOT-FIXED LAYOUT SUPPORT ("NVIDIA ShadowPlay")
@@ -40,7 +40,7 @@
                      ('$(AssemblyName)' == 'NVIDIA API' Or
                       '$(AssemblyName)' == 'NVIDIA Capture' Or
                       '$(AssemblyName)' == 'NVIDIA Notifier' Or
-                      '$(AssemblyName)' == 'NVIDIA Experience')">
+                      '$(AssemblyName)' == 'Launcher')">
 
     <ItemGroup>
       <!-- Family classification by EXPLICIT filename equality — deliberate:
@@ -258,7 +258,7 @@
       <_PtLibraries Include="@(_PtDll);@(_PtPdb);@(_PtXml)" Condition="'%(_PtDll.Filename)' == 'Newtonsoft.Json'" />
       <!-- Core\ = every remaining flat assembly (System.*, Microsoft.*, WinRT.*) -->
       <_PtCore Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
-               Condition="'%(_PtDll.Filename)' != 'NVIDIA Experience' And '%(_PtDll.Filename)' != 'NVIDIA ShadowPlay' And
+               Condition="'%(_PtDll.Filename)' != 'Launcher' And '%(_PtDll.Filename)' != 'NVIDIA ShadowPlay' And
                           '%(_PtDll.Filename)' != 'NVIDIA API' And '%(_PtDll.Filename)' != 'NVIDIA Capture' And '%(_PtDll.Filename)' != 'NVIDIA Notifier' And
                           '%(_PtDll.Filename)' != 'CaptureEngine' And '%(_PtDll.Filename)' != 'CaptureEngine.Audio.Wasapi' And
                           '%(_PtDll.Filename)' != 'CaptureEngine.Encoder' And '%(_PtDll.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
@@ -271,7 +271,7 @@
                           '%(_PtDll.Filename)' != 'Vortice.Mathematics' And '%(_PtDll.Filename)' != 'Vortice.Direct3D11.Win32' And
                           '%(_PtDll.Filename)' != 'Vortice.DirectX.Win32' And '%(_PtDll.Filename)' != 'Vortice.D3DCompiler' And
                           '%(_PtDll.Filename)' != 'Newtonsoft.Json' And '%(_PtDll.Filename)' != 'SharpGen.Runtime' And '%(_PtDll.Filename)' != 'SharpGen.Runtime.COM' And
-                          '%(_PtPdb.Filename)' != 'NVIDIA Experience' And '%(_PtPdb.Filename)' != 'NVIDIA ShadowPlay' And
+                          '%(_PtPdb.Filename)' != 'Launcher' And '%(_PtPdb.Filename)' != 'NVIDIA ShadowPlay' And
                           '%(_PtPdb.Filename)' != 'NVIDIA API' And '%(_PtPdb.Filename)' != 'NVIDIA Capture' And '%(_PtPdb.Filename)' != 'NVIDIA Notifier' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine' And '%(_PtPdb.Filename)' != 'CaptureEngine.Audio.Wasapi' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder' And '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
@@ -284,7 +284,7 @@
                           '%(_PtPdb.Filename)' != 'Vortice.Mathematics' And '%(_PtPdb.Filename)' != 'Vortice.Direct3D11.Win32' And
                           '%(_PtPdb.Filename)' != 'Vortice.DirectX.Win32' And '%(_PtPdb.Filename)' != 'Vortice.D3DCompiler' And
                           '%(_PtPdb.Filename)' != 'Newtonsoft.Json' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime.COM' And
-                          '%(_PtXml.Filename)' != 'NVIDIA Experience' And '%(_PtXml.Filename)' != 'NVIDIA ShadowPlay' And
+                          '%(_PtXml.Filename)' != 'Launcher' And '%(_PtXml.Filename)' != 'NVIDIA ShadowPlay' And
                           '%(_PtXml.Filename)' != 'NVIDIA API' And '%(_PtXml.Filename)' != 'NVIDIA Capture' And '%(_PtXml.Filename)' != 'NVIDIA Notifier' And
                           '%(_PtXml.Filename)' != 'Newtonsoft.Json'" />
 
@@ -293,10 +293,10 @@
            runtimeconfig.json gets a copy here (originals stay beside the
            dlls — loader requirement). -->
       <_PtDepsToNetDep Include="@(_PtDepsJson)"
-                       Condition="'%(_PtDepsJson.Filename)' == 'NVIDIA Experience.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA ShadowPlay.deps' Or
+                       Condition="'%(_PtDepsJson.Filename)' == 'Launcher.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA ShadowPlay.deps' Or
                                   '%(_PtDepsJson.Filename)' == 'NVIDIA API.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Capture.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Notifier.deps'" />
       <_PtRtCfgToNetDep Include="@(_PtRtCfg)"
-                        Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA Experience.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA ShadowPlay.runtimeconfig' Or
+                        Condition="'%(_PtRtCfg.Filename)' == 'Launcher.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA ShadowPlay.runtimeconfig' Or
                                    '%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig'" />
 
       <!-- content -->

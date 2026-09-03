@@ -1,4 +1,4 @@
-# UI CONFIG ARCHITECTURE — NVIDIA ShadowPlay
+﻿# UI CONFIG ARCHITECTURE — NVIDIA ShadowPlay
 
 - Route: **PHASE 3 — UI CONFIG ARCHITECTURE & SPEC** (read-only audit + design spec; no production code touched)
 - Anchored at commit: **`06667e9`** (v1.1 — re-anchored after PHASE 1 video wiring `867aae3..06667e9`; v1.0 audited at `ab89372`, parent `99a5dc0` PHASE 0 CONFIG TRUTH fix wave)
@@ -67,7 +67,7 @@ Overlay services (non-visual): `Overlay/[Forms Overlay - Project Files]/[API]/[S
 | `API/[Forms - Project Files]/[API]/Server.vb` | `Server` | TCP broadcast hub (register/ping/broadcast, `ProcessMessage:296-352`); carries all commands; owns no config |
 | `API/[Forms - Project Files]/[UI Forms]/NVIDIA API.vb` | `NVIDIA API` | Hub form; reads `Overlay.UseOverlayEnabled` every second to keep-alive/kill the overlay stack (`:131-133`) |
 
-### 1.4 Launcher — `Launcher/NVIDIA Experience.vbproj`
+### 1.4 Launcher — `Launcher/Launcher.vbproj`
 
 | FULL PATH | CONTROL | CURRENT PURPOSE |
 |---|---|---|

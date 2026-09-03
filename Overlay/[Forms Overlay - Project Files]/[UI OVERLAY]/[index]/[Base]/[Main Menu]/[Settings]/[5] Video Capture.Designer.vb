@@ -30,9 +30,13 @@ Partial Class Base_RecordingsSet
         Menu_TEXT = New Label()
         settings_top = New PictureBox()
         Panel_SET = New Panel()
+        API_Box = New Label()
         Engine_Mode3_Text = New Label()
+        API_text = New Label()
         Engine_Mode3_BgSub = New PictureBox()
+        API_DROP = New Label()
         Engine_Mode2_Text = New Label()
+        API_Bg = New PictureBox()
         Engine_Mode2_BgSub = New PictureBox()
         Engine_Mode1_Text = New Label()
         Engine_Mode1_BgSub = New PictureBox()
@@ -65,7 +69,7 @@ Partial Class Base_RecordingsSet
         lblBitrateValue = New Label()
         TrackBar_BITRATE = New TrackBar()
         P_BOX = New Label()
-        Label20 = New Label()
+        Preset_encoder_text = New Label()
         P_bg = New PictureBox()
         Block_1 = New Label()
         custom_main = New Label()
@@ -74,9 +78,9 @@ Partial Class Base_RecordingsSet
         Block_3 = New Label()
         lblEncoderInfo = New Label()
         FPS_BOX = New Label()
-        Label13 = New Label()
+        fps_text = New Label()
         Encoder_CODE = New Label()
-        Label12 = New Label()
+        resolution_text = New Label()
         C_R = New PictureBox()
         quality_main = New Label()
         C_L = New PictureBox()
@@ -162,6 +166,7 @@ Partial Class Base_RecordingsSet
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         Panel_SET.SuspendLayout()
         CType(Engine_Mode3_BgSub, ComponentModel.ISupportInitialize).BeginInit()
+        CType(API_Bg, ComponentModel.ISupportInitialize).BeginInit()
         CType(Engine_Mode2_BgSub, ComponentModel.ISupportInitialize).BeginInit()
         CType(Engine_Mode1_BgSub, ComponentModel.ISupportInitialize).BeginInit()
         CType(Resolution_bg, ComponentModel.ISupportInitialize).BeginInit()
@@ -279,9 +284,13 @@ Partial Class Base_RecordingsSet
         ' 
         Panel_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel_SET.AutoScroll = True
+        Panel_SET.Controls.Add(API_Box)
         Panel_SET.Controls.Add(Engine_Mode3_Text)
+        Panel_SET.Controls.Add(API_text)
         Panel_SET.Controls.Add(Engine_Mode3_BgSub)
+        Panel_SET.Controls.Add(API_DROP)
         Panel_SET.Controls.Add(Engine_Mode2_Text)
+        Panel_SET.Controls.Add(API_Bg)
         Panel_SET.Controls.Add(Engine_Mode2_BgSub)
         Panel_SET.Controls.Add(Engine_Mode1_Text)
         Panel_SET.Controls.Add(Engine_Mode1_BgSub)
@@ -314,7 +323,7 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(lblBitrateValue)
         Panel_SET.Controls.Add(TrackBar_BITRATE)
         Panel_SET.Controls.Add(P_BOX)
-        Panel_SET.Controls.Add(Label20)
+        Panel_SET.Controls.Add(Preset_encoder_text)
         Panel_SET.Controls.Add(P_bg)
         Panel_SET.Controls.Add(Block_1)
         Panel_SET.Controls.Add(custom_main)
@@ -323,9 +332,9 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(Block_3)
         Panel_SET.Controls.Add(lblEncoderInfo)
         Panel_SET.Controls.Add(FPS_BOX)
-        Panel_SET.Controls.Add(Label13)
+        Panel_SET.Controls.Add(fps_text)
         Panel_SET.Controls.Add(Encoder_CODE)
-        Panel_SET.Controls.Add(Label12)
+        Panel_SET.Controls.Add(resolution_text)
         Panel_SET.Controls.Add(C_R)
         Panel_SET.Controls.Add(quality_main)
         Panel_SET.Controls.Add(C_L)
@@ -361,8 +370,21 @@ Partial Class Base_RecordingsSet
         Panel_SET.Controls.Add(Preset_My)
         Panel_SET.Location = New Point(62, 73)
         Panel_SET.Name = "Panel_SET"
-        Panel_SET.Size = New Size(1411, 676)
+        Panel_SET.Size = New Size(1411, 690)
         Panel_SET.TabIndex = 121
+        ' 
+        ' API_Box
+        ' 
+        API_Box.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        API_Box.Cursor = Cursors.Hand
+        API_Box.Font = New Font("Segoe UI", 15.0F)
+        API_Box.ForeColor = Color.White
+        API_Box.Location = New Point(552, 84)
+        API_Box.Name = "API_Box"
+        API_Box.Size = New Size(729, 27)
+        API_Box.TabIndex = 136
+        API_Box.Text = "%API TEST%"
+        API_Box.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Engine_Mode3_Text
         ' 
@@ -377,15 +399,40 @@ Partial Class Base_RecordingsSet
         Engine_Mode3_Text.Text = "OBS Capture"
         Engine_Mode3_Text.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' API_text
+        ' 
+        API_text.AutoSize = True
+        API_text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        API_text.Font = New Font("Segoe UI Semibold", 10.0F)
+        API_text.ForeColor = Color.White
+        API_text.Location = New Point(544, 60)
+        API_text.Name = "API_text"
+        API_text.Size = New Size(86, 19)
+        API_text.TabIndex = 133
+        API_text.Text = "API Capture:"
+        ' 
         ' Engine_Mode3_BgSub
         ' 
-        Engine_Mode3_BgSub.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Engine_Mode3_BgSub.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Engine_Mode3_BgSub.Cursor = Cursors.Hand
         Engine_Mode3_BgSub.Location = New Point(385, 82)
         Engine_Mode3_BgSub.Name = "Engine_Mode3_BgSub"
         Engine_Mode3_BgSub.Size = New Size(153, 34)
         Engine_Mode3_BgSub.TabIndex = 185
         Engine_Mode3_BgSub.TabStop = False
+        ' 
+        ' API_DROP
+        ' 
+        API_DROP.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        API_DROP.Cursor = Cursors.Hand
+        API_DROP.Font = New Font("nvgcshare", 22.0F)
+        API_DROP.ForeColor = Color.Gray
+        API_DROP.Location = New Point(551, 85)
+        API_DROP.Name = "API_DROP"
+        API_DROP.Size = New Size(767, 30)
+        API_DROP.TabIndex = 135
+        API_DROP.Text = ""
+        API_DROP.TextAlign = ContentAlignment.MiddleRight
         ' 
         ' Engine_Mode2_Text
         ' 
@@ -400,9 +447,18 @@ Partial Class Base_RecordingsSet
         Engine_Mode2_Text.Text = "Duluka Capture"
         Engine_Mode2_Text.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' API_Bg
+        ' 
+        API_Bg.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
+        API_Bg.Location = New Point(544, 82)
+        API_Bg.Name = "API_Bg"
+        API_Bg.Size = New Size(774, 34)
+        API_Bg.TabIndex = 134
+        API_Bg.TabStop = False
+        ' 
         ' Engine_Mode2_BgSub
         ' 
-        Engine_Mode2_BgSub.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Engine_Mode2_BgSub.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Engine_Mode2_BgSub.Cursor = Cursors.Hand
         Engine_Mode2_BgSub.Location = New Point(226, 82)
         Engine_Mode2_BgSub.Name = "Engine_Mode2_BgSub"
@@ -425,7 +481,7 @@ Partial Class Base_RecordingsSet
         ' 
         ' Engine_Mode1_BgSub
         ' 
-        Engine_Mode1_BgSub.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Engine_Mode1_BgSub.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         Engine_Mode1_BgSub.Cursor = Cursors.Hand
         Engine_Mode1_BgSub.Location = New Point(67, 82)
         Engine_Mode1_BgSub.Name = "Engine_Mode1_BgSub"
@@ -554,7 +610,7 @@ Partial Class Base_RecordingsSet
         Button1.ForeColor = SystemColors.Control
         Button1.Location = New Point(1006, 603)
         Button1.Name = "Button1"
-        Button1.Size = New Size(78, 55)
+        Button1.Size = New Size(78, 58)
         Button1.TabIndex = 140
         Button1.Text = "Reload"
         Button1.UseVisualStyleBackColor = False
@@ -565,11 +621,11 @@ Partial Class Base_RecordingsSet
         Resolution_BOX.Cursor = Cursors.Hand
         Resolution_BOX.Font = New Font("nvgcshare", 20.0F)
         Resolution_BOX.ForeColor = Color.White
-        Resolution_BOX.Location = New Point(369, 382)
+        Resolution_BOX.Location = New Point(437, 382)
         Resolution_BOX.Name = "Resolution_BOX"
         Resolution_BOX.Size = New Size(181, 27)
         Resolution_BOX.TabIndex = 151
-        Resolution_BOX.Text = "60"
+        Resolution_BOX.Text = "%Resolution%"
         ' 
         ' Resolution_DROP
         ' 
@@ -577,7 +633,7 @@ Partial Class Base_RecordingsSet
         Resolution_DROP.Cursor = Cursors.Hand
         Resolution_DROP.Font = New Font("nvgcshare", 22.0F)
         Resolution_DROP.ForeColor = Color.Gray
-        Resolution_DROP.Location = New Point(369, 383)
+        Resolution_DROP.Location = New Point(437, 383)
         Resolution_DROP.Name = "Resolution_DROP"
         Resolution_DROP.Size = New Size(213, 30)
         Resolution_DROP.TabIndex = 150
@@ -587,7 +643,7 @@ Partial Class Base_RecordingsSet
         ' Resolution_bg
         ' 
         Resolution_bg.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        Resolution_bg.Location = New Point(362, 380)
+        Resolution_bg.Location = New Point(430, 380)
         Resolution_bg.Name = "Resolution_bg"
         Resolution_bg.Size = New Size(220, 37)
         Resolution_bg.TabIndex = 149
@@ -600,7 +656,7 @@ Partial Class Base_RecordingsSet
         cmbEncoder.Cursor = Cursors.Hand
         cmbEncoder.Font = New Font("nvgcshare", 20.0F)
         cmbEncoder.ForeColor = Color.White
-        cmbEncoder.Location = New Point(1098, 627)
+        cmbEncoder.Location = New Point(1098, 628)
         cmbEncoder.Name = "cmbEncoder"
         cmbEncoder.Size = New Size(183, 27)
         cmbEncoder.TabIndex = 148
@@ -613,7 +669,7 @@ Partial Class Base_RecordingsSet
         Encoder_DROP.Cursor = Cursors.Hand
         Encoder_DROP.Font = New Font("nvgcshare", 22.0F)
         Encoder_DROP.ForeColor = Color.Gray
-        Encoder_DROP.Location = New Point(1097, 628)
+        Encoder_DROP.Location = New Point(1097, 629)
         Encoder_DROP.Name = "Encoder_DROP"
         Encoder_DROP.Size = New Size(216, 30)
         Encoder_DROP.TabIndex = 147
@@ -624,7 +680,7 @@ Partial Class Base_RecordingsSet
         ' 
         Encoder_bg.Anchor = AnchorStyles.Right
         Encoder_bg.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
-        Encoder_bg.Location = New Point(1090, 625)
+        Encoder_bg.Location = New Point(1090, 626)
         Encoder_bg.Name = "Encoder_bg"
         Encoder_bg.Size = New Size(223, 37)
         Encoder_bg.TabIndex = 146
@@ -635,9 +691,9 @@ Partial Class Base_RecordingsSet
         lblBitrateRange.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblBitrateRange.Font = New Font("Segoe UI Semibold", 10.0F)
         lblBitrateRange.ForeColor = Color.White
-        lblBitrateRange.Location = New Point(585, 418)
+        lblBitrateRange.Location = New Point(656, 418)
         lblBitrateRange.Name = "lblBitrateRange"
-        lblBitrateRange.Size = New Size(391, 19)
+        lblBitrateRange.Size = New Size(435, 19)
         lblBitrateRange.TabIndex = 127
         lblBitrateRange.Text = "lblBitrateRange"
         lblBitrateRange.TextAlign = ContentAlignment.BottomLeft
@@ -646,9 +702,9 @@ Partial Class Base_RecordingsSet
         ' 
         PictureBox8.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox8.Location = New Point(592, 411)
+        PictureBox8.Location = New Point(663, 411)
         PictureBox8.Name = "PictureBox8"
-        PictureBox8.Size = New Size(726, 10)
+        PictureBox8.Size = New Size(655, 10)
         PictureBox8.TabIndex = 145
         PictureBox8.TabStop = False
         ' 
@@ -656,9 +712,9 @@ Partial Class Base_RecordingsSet
         ' 
         PictureBox7.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PictureBox7.Location = New Point(592, 383)
+        PictureBox7.Location = New Point(663, 383)
         PictureBox7.Name = "PictureBox7"
-        PictureBox7.Size = New Size(742, 4)
+        PictureBox7.Size = New Size(671, 4)
         PictureBox7.TabIndex = 144
         PictureBox7.TabStop = False
         ' 
@@ -690,7 +746,7 @@ Partial Class Base_RecordingsSet
         Button_Copy.ForeColor = SystemColors.Control
         Button_Copy.Location = New Point(1006, 639)
         Button_Copy.Name = "Button_Copy"
-        Button_Copy.Size = New Size(78, 41)
+        Button_Copy.Size = New Size(78, 44)
         Button_Copy.TabIndex = 141
         Button_Copy.Text = "Copy"
         Button_Copy.TextAlign = ContentAlignment.BottomCenter
@@ -708,7 +764,7 @@ Partial Class Base_RecordingsSet
         prearg.Multiline = True
         prearg.Name = "prearg"
         prearg.ReadOnly = True
-        prearg.Size = New Size(920, 63)
+        prearg.Size = New Size(920, 66)
         prearg.TabIndex = 139
         prearg.Text = "Command"
         ' 
@@ -722,7 +778,7 @@ Partial Class Base_RecordingsSet
         TextBox1.Location = New Point(67, 603)
         TextBox1.Multiline = True
         TextBox1.Name = "TextBox1"
-        TextBox1.Size = New Size(933, 77)
+        TextBox1.Size = New Size(933, 80)
         TextBox1.TabIndex = 138
         ' 
         ' Preview_FFmpeg
@@ -733,9 +789,9 @@ Partial Class Base_RecordingsSet
         Preview_FFmpeg.ForeColor = Color.White
         Preview_FFmpeg.Location = New Point(67, 581)
         Preview_FFmpeg.Name = "Preview_FFmpeg"
-        Preview_FFmpeg.Size = New Size(219, 19)
+        Preview_FFmpeg.Size = New Size(166, 19)
         Preview_FFmpeg.TabIndex = 137
-        Preview_FFmpeg.Text = "Preview Build FFmpeg Arguments"
+        Preview_FFmpeg.Text = "Preview Build Arguments"
         ' 
         ' TrackBar_Replaylast
         ' 
@@ -754,18 +810,18 @@ Partial Class Base_RecordingsSet
         lblBitrateValue.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblBitrateValue.Font = New Font("Segoe UI Semibold", 10.0F)
         lblBitrateValue.ForeColor = Color.White
-        lblBitrateValue.Location = New Point(585, 358)
+        lblBitrateValue.Location = New Point(656, 358)
         lblBitrateValue.Name = "lblBitrateValue"
-        lblBitrateValue.Size = New Size(749, 19)
+        lblBitrateValue.Size = New Size(678, 19)
         lblBitrateValue.TabIndex = 129
         lblBitrateValue.Text = "lblBitrateValue"
         ' 
         ' TrackBar_BITRATE
         ' 
         TrackBar_BITRATE.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        TrackBar_BITRATE.Location = New Point(585, 378)
+        TrackBar_BITRATE.Location = New Point(656, 378)
         TrackBar_BITRATE.Name = "TrackBar_BITRATE"
-        TrackBar_BITRATE.Size = New Size(734, 45)
+        TrackBar_BITRATE.Size = New Size(663, 45)
         TrackBar_BITRATE.TabIndex = 128
         TrackBar_BITRATE.TickStyle = TickStyle.Both
         ' 
@@ -777,22 +833,22 @@ Partial Class Base_RecordingsSet
         P_BOX.ForeColor = Color.White
         P_BOX.Location = New Point(292, 382)
         P_BOX.Name = "P_BOX"
-        P_BOX.Size = New Size(64, 27)
+        P_BOX.Size = New Size(132, 27)
         P_BOX.TabIndex = 123
-        P_BOX.Text = "6"
+        P_BOX.Text = "%Preset%"
         P_BOX.TextAlign = ContentAlignment.TopCenter
         ' 
-        ' Label20
+        ' Preset_encoder_text
         ' 
-        Label20.AutoSize = True
-        Label20.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label20.Font = New Font("Segoe UI Semibold", 10.0F)
-        Label20.ForeColor = Color.White
-        Label20.Location = New Point(292, 359)
-        Label20.Name = "Label20"
-        Label20.Size = New Size(50, 19)
-        Label20.TabIndex = 121
-        Label20.Text = "Preset:"
+        Preset_encoder_text.AutoSize = True
+        Preset_encoder_text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Preset_encoder_text.Font = New Font("Segoe UI Semibold", 10.0F)
+        Preset_encoder_text.ForeColor = Color.White
+        Preset_encoder_text.Location = New Point(292, 359)
+        Preset_encoder_text.Name = "Preset_encoder_text"
+        Preset_encoder_text.Size = New Size(50, 19)
+        Preset_encoder_text.TabIndex = 121
+        Preset_encoder_text.Text = "Preset:"
         ' 
         ' P_bg
         ' 
@@ -800,7 +856,7 @@ Partial Class Base_RecordingsSet
         P_bg.Cursor = Cursors.Hand
         P_bg.Location = New Point(292, 380)
         P_bg.Name = "P_bg"
-        P_bg.Size = New Size(64, 37)
+        P_bg.Size = New Size(132, 37)
         P_bg.TabIndex = 122
         P_bg.TabStop = False
         ' 
@@ -870,7 +926,7 @@ Partial Class Base_RecordingsSet
         lblEncoderInfo.AutoSize = True
         lblEncoderInfo.Font = New Font("Segoe UI Semibold", 9.0F)
         lblEncoderInfo.ForeColor = Color.White
-        lblEncoderInfo.Location = New Point(1090, 665)
+        lblEncoderInfo.Location = New Point(1090, 666)
         lblEncoderInfo.Name = "lblEncoderInfo"
         lblEncoderInfo.Size = New Size(30, 15)
         lblEncoderInfo.TabIndex = 116
@@ -886,19 +942,19 @@ Partial Class Base_RecordingsSet
         FPS_BOX.Name = "FPS_BOX"
         FPS_BOX.Size = New Size(174, 27)
         FPS_BOX.TabIndex = 114
-        FPS_BOX.Text = "60"
+        FPS_BOX.Text = "%FPS%"
         ' 
-        ' Label13
+        ' fps_text
         ' 
-        Label13.AutoSize = True
-        Label13.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label13.Font = New Font("Segoe UI Semibold", 10.0F)
-        Label13.ForeColor = Color.White
-        Label13.Location = New Point(73, 358)
-        Label13.Name = "Label13"
-        Label13.Size = New Size(78, 19)
-        Label13.TabIndex = 86
-        Label13.Text = "Frame rate:"
+        fps_text.AutoSize = True
+        fps_text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        fps_text.Font = New Font("Segoe UI Semibold", 10.0F)
+        fps_text.ForeColor = Color.White
+        fps_text.Location = New Point(73, 358)
+        fps_text.Name = "fps_text"
+        fps_text.Size = New Size(78, 19)
+        fps_text.TabIndex = 86
+        fps_text.Text = "Frame rate:"
         ' 
         ' Encoder_CODE
         ' 
@@ -907,23 +963,23 @@ Partial Class Base_RecordingsSet
         Encoder_CODE.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Encoder_CODE.Font = New Font("Segoe UI Semibold", 10.0F)
         Encoder_CODE.ForeColor = Color.White
-        Encoder_CODE.Location = New Point(1090, 603)
+        Encoder_CODE.Location = New Point(1090, 604)
         Encoder_CODE.Name = "Encoder_CODE"
         Encoder_CODE.Size = New Size(99, 19)
         Encoder_CODE.TabIndex = 111
         Encoder_CODE.Text = "Code Encoder:"
         ' 
-        ' Label12
+        ' resolution_text
         ' 
-        Label12.AutoSize = True
-        Label12.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Label12.Font = New Font("Segoe UI Semibold", 10.0F)
-        Label12.ForeColor = Color.White
-        Label12.Location = New Point(362, 358)
-        Label12.Name = "Label12"
-        Label12.Size = New Size(79, 19)
-        Label12.TabIndex = 84
-        Label12.Text = "Resolution:"
+        resolution_text.AutoSize = True
+        resolution_text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        resolution_text.Font = New Font("Segoe UI Semibold", 10.0F)
+        resolution_text.ForeColor = Color.White
+        resolution_text.Location = New Point(430, 358)
+        resolution_text.Name = "resolution_text"
+        resolution_text.Size = New Size(79, 19)
+        resolution_text.TabIndex = 84
+        resolution_text.Text = "Resolution:"
         ' 
         ' C_R
         ' 
@@ -1903,6 +1959,7 @@ Partial Class Base_RecordingsSet
         Panel_SET.ResumeLayout(False)
         Panel_SET.PerformLayout()
         CType(Engine_Mode3_BgSub, ComponentModel.ISupportInitialize).EndInit()
+        CType(API_Bg, ComponentModel.ISupportInitialize).EndInit()
         CType(Engine_Mode2_BgSub, ComponentModel.ISupportInitialize).EndInit()
         CType(Engine_Mode1_BgSub, ComponentModel.ISupportInitialize).EndInit()
         CType(Resolution_bg, ComponentModel.ISupportInitialize).EndInit()
@@ -1980,7 +2037,7 @@ Partial Class Base_RecordingsSet
     Friend WithEvents C_BG As PictureBox
     Friend WithEvents PictureBox2 As PictureBox
     Friend WithEvents PictureBox1 As PictureBox
-    Friend WithEvents Label12 As Label
+    Friend WithEvents resolution_text As Label
     Friend WithEvents Label10 As Label
     Friend WithEvents Label11 As Label
     Friend WithEvents Label8 As Label
@@ -1988,7 +2045,7 @@ Partial Class Base_RecordingsSet
     Friend WithEvents Label6 As Label
     Friend WithEvents Label7 As Label
     Friend WithEvents fps_bg As PictureBox
-    Friend WithEvents Label13 As Label
+    Friend WithEvents fps_text As Label
     Friend WithEvents FPS_DROP As Label
     Friend WithEvents C_R As PictureBox
     Friend WithEvents C_L As PictureBox
@@ -2017,7 +2074,7 @@ Partial Class Base_RecordingsSet
     Friend WithEvents custom_main As Label
     Friend WithEvents Block_2 As Label
     Friend WithEvents Panel_SET As Panel
-    Friend WithEvents Label20 As Label
+    Friend WithEvents Preset_encoder_text As Label
     Friend WithEvents P_bg As PictureBox
     Friend WithEvents P_BOX As Label
     Friend WithEvents lblBitrateRange As Label
@@ -2101,4 +2158,8 @@ Partial Class Base_RecordingsSet
     Friend WithEvents Engine_Mode3_BgSub As PictureBox
     Friend WithEvents Engine_Mode2_Text As Label
     Friend WithEvents Engine_Mode2_BgSub As PictureBox
+    Friend WithEvents API_Box As Label
+    Friend WithEvents API_text As Label
+    Friend WithEvents API_DROP As Label
+    Friend WithEvents API_Bg As PictureBox
 End Class

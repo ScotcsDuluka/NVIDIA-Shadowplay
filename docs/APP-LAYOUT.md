@@ -1,4 +1,4 @@
-# App Layout — root-fixed "NVIDIA ShadowPlay" tree (2026-08-28 rev 2)
+﻿# App Layout — root-fixed "NVIDIA ShadowPlay" tree (2026-08-28 rev 2)
 
 OWNER's product tree. Two producers, ONE set of rules:
 
@@ -21,7 +21,7 @@ build's `_DevLayoutComplete`, so a fresh bin still gets their staged
 defaults.
 
 Per OWNER, the dev bin IS the main tree: after any build that folder is
-the clean product tree — `NVIDIA Experience.exe` at the root,
+the clean product tree — `Launcher.exe` at the root,
 `NVIDIA ShadowPlay.exe` in Overlay\, hosts in Application\, family
 folders (Engine\Core\Audio\Graphics\Libraries\Runtimes) for the
 resolver. `dist\NVIDIA ShadowPlay` remains the clean deployment
@@ -29,7 +29,7 @@ artifact the mirror copies from.
 
 ```
 NVIDIA ShadowPlay\                    <- dist\NVIDIA ShadowPlay (default)
-├── NVIDIA Experience.exe/.dll/.runtimeconfig.json              (root app)
+├── Launcher.exe/.dll/.runtimeconfig.json              (root app)
 ├── .NET Deployment\        EVERY app's .deps.json + .runtimeconfig.json
 │                           (10 files: Experience, ShadowPlay, API,
 │                           Capture, Notifier × 2 — OWNER tree rev 2;
@@ -152,7 +152,7 @@ assume" style.
   `_StageSplitAppHost`), both gated on `StageLayout=true` (set only by
   layout.proj) + `AppLayoutRoot`.
 - `scripts/build-all.ps1` — `-StageLayout` switch.
-- Path-site rewrites across API / Launcher (NVIDIA Experience) / Notifier / Engine /
+- Path-site rewrites across API / Launcher (Launcher.exe) / Notifier / Engine /
   Overlay (~40 sites; test projects and `Load.old` untouched).
 - Post-rewrite full-code audit (2026-08-28) caught 3 late CWD-relative
   sites in `Launcher/Main.vb` — the `Use_Overlay` toggle READ at
@@ -181,7 +181,7 @@ assume" style.
    Application\ hosts + the 10 `.NET Deployment\` json).
 4. Confirm `Application\NVIDIA API.exe` exists (apphost stamping is
    Windows-only) and has the ShadowPlay icon.
-5. Run `Overlay\bin\Release\net10.0-windows10.0.26100.0\NVIDIA Experience.exe`
+5. Run `Overlay\bin\Release\net10.0-windows10.0.26100.0\Launcher.exe`
    → click its API launcher; then run `...\Application\NVIDIA API.exe`
    directly — the tray hub must come up (this proves the `..\Services\`
    host mechanism end-to-end WITHOUT deps.json in Services\ — the

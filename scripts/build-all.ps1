@@ -1,4 +1,4 @@
-# build-all.ps1 — Phase 12b whole-solution build (Windows)
+﻿# build-all.ps1 — Phase 12b whole-solution build (Windows)
 #
 # Follows docs/BUILD_PROTOCOL.md: CLEAN FIRST, then build, then optionally
 # run every test suite. Stale DLLs are the #1 cause of false-positive bugs.
@@ -41,7 +41,7 @@ if (-not $Fast) {
     # alive; any running instance (incl. Diag builds) locks bin DLLs →
     # 'Access denied' during Remove-Item. Kill FIRST, always, before clean.
     foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
-                     "NVIDIA Experience", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost",
+                     "Launcher", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost",
                      "ffmpeg", "ffprobe", "ffplay")) {
         Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     }
@@ -89,7 +89,7 @@ if (Test-Path $dll) {
 $devBin = "Overlay\bin\Release\net10.0-windows10.0.26100.0"
 if (Test-Path "$devBin\Overlay\NVIDIA ShadowPlay.dll") {
     Write-Host "`n>>> DEV BIN = PRODUCT TREE: $devBin" -ForegroundColor Green
-    Write-Host "    -> run NVIDIA Experience.exe from the root, NVIDIA ShadowPlay.exe from Overlay\."
+    Write-Host "    -> run Launcher.exe from the root, NVIDIA ShadowPlay.exe from Overlay\."
     Write-Host "    -> hosts in Application\, deployment json in .NET Deployment\ — swept automatically"
     Write-Host "       by the plain build (_ProductTreeBin)."
 }
@@ -166,13 +166,13 @@ if ($StageLayout) {
     # (Config/Data entries are supplied by _DevLayoutComplete, not the
     # mirror — see the /XD exclusions above.)
     $mustExist = @(
-        # root — Experience.exe/.dll/.runtimeconfig.json (deps.json moved)
-        "NVIDIA Experience.exe",
-        "NVIDIA Experience.dll",
-        "NVIDIA Experience.runtimeconfig.json",
+        # root — Launcher.exe/.dll/.runtimeconfig.json (deps.json moved)
+        "Launcher.exe",
+        "Launcher.dll",
+        "Launcher.runtimeconfig.json",
         # .NET Deployment\ — the complete 10-file metadata set
-        ".NET Deployment\NVIDIA Experience.deps.json",
-        ".NET Deployment\NVIDIA Experience.runtimeconfig.json",
+        ".NET Deployment\Launcher.deps.json",
+        ".NET Deployment\Launcher.runtimeconfig.json",
         ".NET Deployment\NVIDIA ShadowPlay.deps.json",
         ".NET Deployment\NVIDIA ShadowPlay.runtimeconfig.json",
         ".NET Deployment\NVIDIA API.deps.json",
@@ -213,7 +213,7 @@ if ($StageLayout) {
         exit 4
     }
     Write-Host "STAGED TREE APPLIED OK -> $bin" -ForegroundColor Green
-    Write-Host "    -> bin is now the CLEAN product tree: NVIDIA Experience.exe at" -ForegroundColor Green
+    Write-Host "    -> bin is now the CLEAN product tree: Launcher.exe at" -ForegroundColor Green
     Write-Host "       the root, NVIDIA ShadowPlay.exe in Overlay\, hosts in Application\," -ForegroundColor Green
     Write-Host "       deployment json in .NET Deployment\." -ForegroundColor Green
     Write-Host "    -> plain builds now self-maintain this tree (_ProductTreeBin);" -ForegroundColor Green

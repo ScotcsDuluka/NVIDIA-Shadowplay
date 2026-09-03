@@ -33,7 +33,7 @@ Namespace My
 
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>
         Protected Overrides Sub OnCreateMainForm()
-            Me.MainForm = Global.NVIDIA_Experience.NVIDIA_Shadowplay_Helper
+            Me.MainForm = Global.Launcher.NVIDIA_Shadowplay_Helper
         End Sub
         
         <Global.System.Diagnostics.DebuggerStepThroughAttribute()>  _

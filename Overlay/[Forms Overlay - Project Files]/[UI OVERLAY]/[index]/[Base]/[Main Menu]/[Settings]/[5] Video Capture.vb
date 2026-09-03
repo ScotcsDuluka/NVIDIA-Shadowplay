@@ -569,6 +569,8 @@ Public Class Base_RecordingsSet
             LoadResolutionBox()
             LoadSettings()
             UpdateUIFromPreset()
+            UpdateEngineModeUI()
+            UpdateApiBoxDisplay()
             UpdateCommandPreview()
 
             Quality.Enabled = True
@@ -770,6 +772,9 @@ Public Class Base_RecordingsSet
     End Sub
 
     Private _encoderNameList As New List(Of String)()
+    Private _selectedApiKey As String = String.Empty
+    Private _selectedDulukaApiKey As String = String.Empty
+    Private _selectedFFmpegApiKey As String = String.Empty
 
     Private Sub AddEncoderSafe(name As String, ByRef count As Integer)
         If Not _encoderNameList.Contains(name) Then
@@ -2058,11 +2063,12 @@ Public Class Base_RecordingsSet
         Dim cms As ContextMenuStrip = CreateStyledMenu()
         Dim currentFPS As Integer = GetCurrentFPS()
 
-        Dim commonFPS As Integer() = {30, 60, 120, 144, 240}
+        Dim commonFPS() As Integer = {30, 60, 120, 144, 240}
         For Each fps As Integer In commonFPS
             If fps >= limits.MinFPS AndAlso fps <= limits.MaxFPS Then
                 Dim lbl As String = fps.ToString() & " FPS"
-                Dim item As New ToolStripMenuItem(lbl) With {.Tag = fps}
+                        Dim item As System.Windows.Forms.ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem(lbl)
+                item.Tag = fps
                 If fps = currentFPS Then item.ForeColor = COLOR_MENU_SELECTED
                 AddHandler item.Click, AddressOf FPSMenuItem_Click
                 cms.Items.Add(item)
@@ -2078,7 +2084,7 @@ Public Class Base_RecordingsSet
 
         _menuRestoreDrop = FPS_DROP
         _menuRestoreBg = fps_bg
-        AddHandler cms.Closed, AddressOf DropdownMenu_Closed
+        AddHandler DirectCast(cms, System.Windows.Forms.ContextMenuStrip).Closed, AddressOf DropdownMenu_Closed
     End Sub
 
     Private Sub FPSMenuItem_Click(sender As Object, e As EventArgs)
@@ -2097,7 +2103,8 @@ Public Class Base_RecordingsSet
         Dim currentRes As String = _currentResolution
 
         Dim nativeDisplay As String = LangHelper.GetText("l10n.native", _nativeResolution)
-        Dim nativeItem As New ToolStripMenuItem(nativeDisplay) With {.Tag = NATIVE_RESOLUTION_KEY}
+        Dim nativeItem As System.Windows.Forms.ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem(nativeDisplay)
+        nativeItem.Tag = NATIVE_RESOLUTION_KEY
         If currentRes = NATIVE_RESOLUTION_KEY OrElse currentRes.StartsWith(NATIVE_RESOLUTION_KEY & " (") Then nativeItem.ForeColor = COLOR_MENU_SELECTED
         AddHandler nativeItem.Click, AddressOf ResolutionMenuItem_Click
         cms.Items.Add(nativeItem)
@@ -2107,7 +2114,8 @@ Public Class Base_RecordingsSet
         Dim commonResolutions As String() = {"1920x1080", "2560x1440", "3840x2160", "1280x720", "1366x768", "1600x900", "2560x1080", "3440x1440"}
         For Each res As String In commonResolutions
             If res <> _nativeResolution Then
-                Dim item As New ToolStripMenuItem(res) With {.Tag = res}
+                Dim item As System.Windows.Forms.ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem(res)
+                item.Tag = res
                 If currentRes = res Then item.ForeColor = COLOR_MENU_SELECTED
                 AddHandler item.Click, AddressOf ResolutionMenuItem_Click
                 cms.Items.Add(item)
@@ -2123,7 +2131,7 @@ Public Class Base_RecordingsSet
 
         _menuRestoreDrop = Resolution_DROP
         _menuRestoreBg = Resolution_bg
-        AddHandler cms.Closed, AddressOf DropdownMenu_Closed
+        AddHandler DirectCast(cms, System.Windows.Forms.ContextMenuStrip).Closed, AddressOf DropdownMenu_Closed
     End Sub
 
     Private Sub ResolutionMenuItem_Click(sender As Object, e As EventArgs)
@@ -2170,11 +2178,12 @@ Public Class Base_RecordingsSet
 
         _menuRestoreDrop = Encoder_DROP
         _menuRestoreBg = Encoder_bg
-        AddHandler cms.Closed, AddressOf DropdownMenu_Closed
+        AddHandler DirectCast(cms, System.Windows.Forms.ContextMenuStrip).Closed, AddressOf DropdownMenu_Closed
     End Sub
 
     Private Sub AddEncoderMenuItem(cms As ContextMenuStrip, encoderKey As String, displayName As String, currentEncoder As String)
-        Dim item As New ToolStripMenuItem(displayName) With {.Tag = encoderKey}
+        Dim item As System.Windows.Forms.ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem(displayName)
+        item.Tag = encoderKey
         If encoderKey = currentEncoder Then item.ForeColor = COLOR_MENU_SELECTED
         AddHandler item.Click, AddressOf EncoderMenuItem_Click
         cms.Items.Add(item)
@@ -2202,7 +2211,8 @@ Public Class Base_RecordingsSet
         Dim currentPreset As String = _currentPresetName
 
         For Each preset As String In presets
-            Dim item As New ToolStripMenuItem(preset) With {.Tag = preset}
+            Dim item As System.Windows.Forms.ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem(preset)
+            item.Tag = preset
             If String.Equals(preset, currentPreset, StringComparison.OrdinalIgnoreCase) Then
                 item.ForeColor = COLOR_MENU_SELECTED
             End If
@@ -2217,7 +2227,7 @@ Public Class Base_RecordingsSet
 
         _menuRestoreDrop = Nothing
         _menuRestoreBg = P_bg
-        AddHandler cms.Closed, AddressOf DropdownMenu_Closed
+        AddHandler DirectCast(cms, System.Windows.Forms.ContextMenuStrip).Closed, AddressOf DropdownMenu_Closed
     End Sub
 
     Private Sub DropdownMenu_Closed(sender As Object, e As ToolStripDropDownClosedEventArgs)
@@ -2240,29 +2250,202 @@ Public Class Base_RecordingsSet
         If IsEditablePreset() Then SaveCurrentSettings()
     End Sub
 
+#Region "API Capture Dropdown"
+    Private Sub API_Box_Click(sender As Object, e As EventArgs) Handles API_Box.Click, API_DROP.Click, API_Bg.Click
+        If API_Box Is Nothing Then Exit Sub
+
+        Dim cms As ContextMenuStrip = CreateStyledMenu()
+        Dim currentApi As String = GetSelectedApiKey()
+
+        If GetEngineModeKey() = "ddagrab" Then
+            AddApiMenuItem(cms, "dxgi_desktop_duplication", "DXGI Desktop Duplication", currentApi, True)
+            AddApiMenuItem(cms, "windows_graphics_capture", "Windows Graphics Capture", currentApi, False)
+            AddApiMenuItem(cms, "d3d11_native", "Direct3D 11 Native Capture", currentApi, False)
+            AddApiMenuItem(cms, "window_capture", "Window Capture", currentApi, False)
+            AddApiMenuItem(cms, "region_capture", "Region Capture", currentApi, False)
+            AddApiMenuItem(cms, "native_game_capture", "Native Game Capture", currentApi, False)
+        Else
+            AddApiMenuItem(cms, "ddagrab", "ddagrab — Direct3D 11 Desktop Capture", currentApi, True)
+            AddApiMenuItem(cms, "gdigrab", "gdigrab — GDI Desktop Capture", currentApi, True)
+            AddApiMenuItem(cms, "gfxcapture", "gfxcapture — Graphics Capture", currentApi, True)
+        End If
+
+        cms.Show(API_Box, 0, API_Box.Height)
+        API_Box.BackColor = COLOR_INACTIVE
+        API_DROP.Visible = False
+        API_DROP.BackColor = COLOR_INACTIVE
+        API_Bg.BackColor = COLOR_INACTIVE
+        API_Bg.Cursor = Cursors.Default
+
+        _menuRestoreDrop = API_DROP
+        _menuRestoreBg = API_Bg
+        AddHandler DirectCast(cms, System.Windows.Forms.ContextMenuStrip).Closed, AddressOf DropdownMenu_Closed
+    End Sub
+
+    Private Sub AddApiMenuItem(cms As ContextMenuStrip, apiKey As String, displayName As String, currentApi As String, enabled As Boolean)
+        Dim item As System.Windows.Forms.ToolStripMenuItem = New System.Windows.Forms.ToolStripMenuItem(displayName)
+        item.Tag = apiKey
+        item.Enabled = enabled
+        If String.Equals(apiKey, currentApi, StringComparison.OrdinalIgnoreCase) Then
+            item.ForeColor = COLOR_MENU_SELECTED
+        End If
+        AddHandler item.Click, AddressOf ApiMenuItem_Click
+        cms.Items.Add(item)
+    End Sub
+
+    Private Sub ApiMenuItem_Click(sender As Object, e As EventArgs)
+        Dim item As ToolStripMenuItem = TryCast(sender, ToolStripMenuItem)
+        If item Is Nothing Then Exit Sub
+        Dim apiKey As String = TryCast(item.Tag, String)
+        If String.IsNullOrWhiteSpace(apiKey) Then Exit Sub
+
+        If GetEngineModeKey() = "ffmpeg" Then
+            _selectedFFmpegApiKey = apiKey
+            _selectedApiKey = _selectedFFmpegApiKey
+            AppSettings.Instance.Recording.APICapture = apiKey
+            AppSettings.Instance.Save()
+        ElseIf apiKey = "dxgi_desktop_duplication" Then
+            _selectedDulukaApiKey = apiKey
+            _selectedApiKey = _selectedDulukaApiKey
+            ' Current Duluka runtime backend: Ddagrab is the production DXGI Desktop Duplication path.
+            AppSettings.Instance.Recording.APICapture = "ddagrab"
+            AppSettings.Instance.Save()
+        End If
+        UpdateApiBoxDisplay()
+        UpdateCommandPreview()
+        Debug.WriteLine("[Video Capture] API selection → " & _selectedApiKey)
+    End Sub
+
+    Private Sub UpdateApiBoxDisplay()
+        If API_Box Is Nothing Then Exit Sub
+        Select Case GetSelectedApiKey()
+            Case "dxgi_desktop_duplication" : API_Box.Text = "DXGI Desktop Duplication"
+            Case "windows_graphics_capture" : API_Box.Text = "Windows Graphics Capture"
+            Case "d3d11_native" : API_Box.Text = "Direct3D 11 Native Capture"
+            Case "window_capture" : API_Box.Text = "Window Capture"
+            Case "region_capture" : API_Box.Text = "Region Capture"
+            Case "native_game_capture" : API_Box.Text = "Native Game Capture"
+            Case "ddagrab" : API_Box.Text = "ddagrab — Direct3D 11 Desktop Capture"
+            Case "gdigrab" : API_Box.Text = "gdigrab — GDI Desktop Capture"
+            Case "gfxcapture" : API_Box.Text = "gfxcapture — Graphics Capture"
+            Case Else : API_Box.Text = "ddagrab — Direct3D 11 Desktop Capture"
+        End Select
+    End Sub
+
+    Private Function GetSelectedApiKey() As String
+        If GetEngineModeKey() = "ddagrab" Then
+            If Not String.IsNullOrWhiteSpace(_selectedDulukaApiKey) Then Return _selectedDulukaApiKey
+            Return "dxgi_desktop_duplication"
+        End If
+
+        Dim configured As String = If(AppSettings.Instance.Recording.APICapture, "").Trim().ToLowerInvariant()
+        If Not String.IsNullOrWhiteSpace(_selectedFFmpegApiKey) Then
+            If String.Equals(_selectedFFmpegApiKey, configured, StringComparison.OrdinalIgnoreCase) Then
+                Return _selectedFFmpegApiKey
+            End If
+        End If
+        If configured = "gdigrab" OrElse configured = "gfxcapture" OrElse configured = "ddagrab" Then
+            Return configured
+        End If
+        Return "ddagrab"
+    End Function
+
+#End Region
+
     Private Sub Engine_Mode1_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode1_BgSub.MouseMove, Engine_Mode1_Text.MouseMove
-        Engine_Mode1_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+        Engine_Mode1_BgSub.BackColor = COLOR_ACTIVE
+        Engine_Mode1_Text.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode1_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.MouseLeave, Engine_Mode1_BgSub.MouseLeave
-        Engine_Mode1_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+        Engine_Mode1_BgSub.BackColor = If(IsEngineModeSelected("ffmpeg"), COLOR_ACTIVE, COLOR_INACTIVE)
+        Engine_Mode1_Text.BackColor = If(IsEngineModeSelected("ffmpeg"), COLOR_ACTIVE, COLOR_INACTIVE)
     End Sub
 
+    Private Sub Engine_Mode1_Click(sender As Object, e As EventArgs) Handles Engine_Mode1_Text.Click, Engine_Mode1_BgSub.Click
+        ApplyEngineMode("ffmpeg", "FFmpeg Capture")
+    End Sub
 
     Private Sub Engine_Mode2_BgSub_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_Mode2_BgSub.MouseMove, Engine_Mode2_Text.MouseMove
-        Engine_Mode2_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+        Engine_Mode2_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode2_Text_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.MouseLeave, Engine_Mode2_BgSub.MouseLeave
-        Engine_Mode2_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+        Engine_Mode2_BgSub.BackColor = If(IsEngineModeSelected("ddagrab"), COLOR_ACTIVE, COLOR_INACTIVE)
+        Engine_Mode2_Text.BackColor = If(IsEngineModeSelected("ddagrab"), COLOR_ACTIVE, COLOR_INACTIVE)
+    End Sub
+
+    Private Sub Engine_Mode2_Click(sender As Object, e As EventArgs) Handles Engine_Mode2_Text.Click, Engine_Mode2_BgSub.Click
+        ApplyEngineMode("ddagrab", "Duluka Capture")
     End Sub
 
     Private Sub Engine_Mode3_BgSub_MouseMove(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseMove, Engine_Mode3_Text.MouseMove
-        Engine_Mode3_BgSub.BackColor = Color.FromArgb(118, 185, 0)
+        Engine_Mode3_BgSub.BackColor = COLOR_ACTIVE
     End Sub
 
     Private Sub Engine_Mode3_BgSub_MouseLeave(sender As Object, e As EventArgs) Handles Engine_Mode3_BgSub.MouseLeave, Engine_Mode3_Text.MouseLeave
-        Engine_Mode3_BgSub.BackColor = Color.FromArgb(33, 35, 38)
+        Engine_Mode3_BgSub.BackColor = COLOR_INACTIVE
+        Engine_Mode3_Text.BackColor = COLOR_INACTIVE
+    End Sub
+
+    Private Sub Engine_Mode3_Click(sender As Object, e As EventArgs) Handles Engine_Mode3_Text.Click, Engine_Mode3_BgSub.Click
+        Engine_Mode3_BgSub.BackColor = COLOR_INACTIVE
+        Engine_Mode3_Text.BackColor = COLOR_INACTIVE
+        Debug.WriteLine("[Video Capture] OBS Capture is not connected to the runtime engine yet.")
+    End Sub
+
+    Private Function GetEngineModeKey() As String
+        Dim api As String = If(AppSettings.Instance.Recording.APICapture, "").Trim().ToLowerInvariant()
+        If api = "ddagrab" Then Return "ddagrab"
+        Return "ffmpeg"
+    End Function
+
+    Private Function IsEngineModeSelected(modeKey As String) As Boolean
+        Return String.Equals(GetEngineModeKey(), modeKey, StringComparison.OrdinalIgnoreCase)
+    End Function
+
+    Private Sub UpdateEngineModeUI()
+        Dim selected As String = GetEngineModeKey()
+
+        If Engine_Mode1_BgSub IsNot Nothing Then Engine_Mode1_BgSub.BackColor = If(selected = "ffmpeg", COLOR_ACTIVE, COLOR_INACTIVE)
+        If Engine_Mode1_Text IsNot Nothing Then Engine_Mode1_Text.BackColor = If(selected = "ffmpeg", COLOR_ACTIVE, COLOR_INACTIVE)
+
+        If Engine_Mode2_BgSub IsNot Nothing Then Engine_Mode2_BgSub.BackColor = If(selected = "ddagrab", COLOR_ACTIVE, COLOR_INACTIVE)
+        If Engine_Mode2_Text IsNot Nothing Then Engine_Mode2_Text.BackColor = If(selected = "ddagrab", COLOR_ACTIVE, COLOR_INACTIVE)
+
+        If Engine_Mode3_BgSub IsNot Nothing Then Engine_Mode3_BgSub.BackColor = COLOR_INACTIVE
+        If Engine_Mode3_Text IsNot Nothing Then Engine_Mode3_Text.BackColor = COLOR_INACTIVE
+    End Sub
+
+    Private Sub ApplyEngineMode(modeKey As String, displayName As String)
+        Select Case modeKey.ToLowerInvariant()
+            Case "ffmpeg"
+                ' Legacy FFmpeg mode: leave capture API unset so the legacy
+                ' pipeline can use its canonical/default capture selection.
+                AppSettings.Instance.Recording.APICapture = Nothing
+            Case "ddagrab"
+                ' Duluka/native mode: request the production Ddagrab backend.
+                AppSettings.Instance.Recording.APICapture = "ddagrab"
+            Case Else
+                Return
+        End Select
+
+        _selectedApiKey = If(modeKey.Equals("ddagrab", StringComparison.OrdinalIgnoreCase),
+                             "dxgi_desktop_duplication",
+                             "ddagrab")
+
+        Debug.WriteLine($"[Video Capture] Engine mode → {displayName} ({modeKey})")
+        AppSettings.Instance.Save()
+        UpdateEngineModeUI()
+        UpdateApiBoxDisplay()
+        UpdateCommandPreview()
+        Debug.WriteLine("[Video Capture] Engine mode persisted to config.json")
+
+        Try
+            Base.tcp.Send("engine_config_changed", "video")
+        Catch ex As Exception
+            Debug.WriteLine("Engine mode TCP Error: " & ex.Message)
+        End Try
     End Sub
 #End Region
 End Class

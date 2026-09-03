@@ -1,10 +1,10 @@
-# test-autospawn.ps1 v9 — CORRECTED after root cause found
+﻿# test-autospawn.ps1 v9 — CORRECTED after root cause found
 #
 # ROOT CAUSE (closed after 8 investigation runs):
 #   The hub (NVIDIA API.exe) runs HandleAppsSmart() every 1 second:
 #     Use_Overlay marker present → SPAWNS Notifier/ShadowPlay/Capture itself
 #     Use_Overlay marker ABSENT   → KILLS all three every second (p.Kill)
-#   The test bin had no marker (the Launcher\NVIDIA Experience app creates it in production) →
+#   The test bin had no marker (the Launcher\Launcher app creates it in production) →
 #   the hub murdered our test ShadowPlay.exe ~1s into host startup:
 #   exit -1, no crash, no event log, trace truncated mid-deps-resolution.
 #   This also means: IN PRODUCTION the hub is ALREADY the auto-spawner.
@@ -37,7 +37,7 @@ $marker  = Join-Path $overlayBin "Use_Overlay"
 $supLog  = Join-Path $env:TEMP "NVIDIA-Shadowplay-Supervisor.log"
 
 $familyNames = @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
-                 "NVIDIA Experience", "NVIDIA Notifier")
+                 "Launcher", "NVIDIA Notifier")
 
 if (-not $SkipBuild) {
     Write-Host ">>> Building solution (clean)..." -ForegroundColor Cyan

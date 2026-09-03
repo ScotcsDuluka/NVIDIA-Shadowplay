@@ -233,6 +233,13 @@ Namespace CaptureEngine.FFmpegBackend
             End Get
         End Property
 
+        ''' <summary>Prime the audio timeline with the recording session's
+        ''' QPC origin before the first packet arrives. This preserves silent
+        ''' lead-in instead of treating the first delivered packet as t=0.</summary>
+        Public Sub PrimeSessionStart(sessionStartQpc100ns As Long)
+            _tracker.PrimeSessionStart(sessionStartQpc100ns)
+        End Sub
+
         ' ── The v3 entry point ──────────────────────────────────────────
 
         ''' <summary>

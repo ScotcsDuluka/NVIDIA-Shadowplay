@@ -293,6 +293,7 @@ Namespace CaptureEngine.Recording
                                 _sysTap3 = New AudioTapDeviceClock("sys", _sysPosCapture.SampleRate, dch, dbits,
                                     New AudioTapSinkDual(wavWriter, AddressOf SysPipeFeed),
                                     Sub(m) _logger.Info("[session] " & m))
+                                _sysTap3.PrimeSessionStart(_sessionStartQpc100ns)
                             End If
 
                             ' Convert the float mix format exactly like the
