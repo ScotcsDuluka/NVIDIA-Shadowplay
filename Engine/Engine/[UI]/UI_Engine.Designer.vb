@@ -93,23 +93,22 @@ Partial Class UI_Engine
         BT_Back = New Label()
         settings_top = New PictureBox()
         settings_menu = New Panel()
+        btnStressTest = New Button()
         PictureBox5 = New PictureBox()
         PictureBox4 = New PictureBox()
         PictureBox3 = New PictureBox()
         PictureBox16 = New PictureBox()
         hg2 = New PictureBox()
+        pnlDiag = New Panel()
+        lblDiagTitle = New Label()
+        txtDiagnostics = New TextBox()
+        lblMirrorNote = New Label()
         pnlStatus = New Panel()
         lblRecState = New Label()
         lblRecSize = New Label()
         lblRecFrames = New Label()
         lblRecBitrate = New Label()
         OPEN_UI = New System.Windows.Forms.Timer(components)
-        btnStressTest = New Button()
-        ' ✅ PHASE 3: Effective Runtime diagnostics panel + mirror note
-        pnlDiag = New Panel()
-        lblDiagTitle = New Label()
-        txtDiagnostics = New TextBox()
-        lblMirrorNote = New Label()
         pnlCapture.SuspendLayout()
         pnlEncoder.SuspendLayout()
         pnlRes.SuspendLayout()
@@ -132,14 +131,14 @@ Partial Class UI_Engine
         CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox16, ComponentModel.ISupportInitialize).BeginInit()
         CType(hg2, ComponentModel.ISupportInitialize).BeginInit()
-        pnlStatus.SuspendLayout()
         pnlDiag.SuspendLayout()
+        pnlStatus.SuspendLayout()
         SuspendLayout()
         ' 
         ' lblTitle
         ' 
         lblTitle.AutoSize = True
-        lblTitle.Font = New Font("GeForce", 24.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        lblTitle.Font = New Font("GeForce", 24F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         lblTitle.Location = New Point(62, 43)
         lblTitle.Name = "lblTitle"
         lblTitle.Size = New Size(234, 42)
@@ -149,7 +148,7 @@ Partial Class UI_Engine
         ' lblStatus
         ' 
         lblStatus.AutoSize = True
-        lblStatus.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        lblStatus.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         lblStatus.Location = New Point(47, 95)
         lblStatus.Name = "lblStatus"
         lblStatus.Size = New Size(34, 19)
@@ -178,7 +177,7 @@ Partial Class UI_Engine
         ' lblCapTitle
         ' 
         lblCapTitle.AutoSize = True
-        lblCapTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblCapTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblCapTitle.Location = New Point(12, 8)
         lblCapTitle.Name = "lblCapTitle"
         lblCapTitle.Size = New Size(98, 15)
@@ -189,7 +188,7 @@ Partial Class UI_Engine
         ' 
         cboCaptureMethod.DropDownStyle = ComboBoxStyle.DropDownList
         cboCaptureMethod.Enabled = False
-        cboCaptureMethod.Font = New Font("Segoe UI", 9.0F)
+        cboCaptureMethod.Font = New Font("Segoe UI", 9F)
         cboCaptureMethod.Items.AddRange(New Object() {"ddagrab - Desktop Duplication (DXGI)", "gdigrab - GDI Screen Capture", "gfxcapture - DXGI Desktop Dup (NV)"})
         cboCaptureMethod.Location = New Point(12, 30)
         cboCaptureMethod.Name = "cboCaptureMethod"
@@ -209,7 +208,7 @@ Partial Class UI_Engine
         ' lblEncTitle
         ' 
         lblEncTitle.AutoSize = True
-        lblEncTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblEncTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblEncTitle.Location = New Point(12, 8)
         lblEncTitle.Name = "lblEncTitle"
         lblEncTitle.Size = New Size(52, 15)
@@ -220,7 +219,7 @@ Partial Class UI_Engine
         ' 
         cboEncoder.DropDownStyle = ComboBoxStyle.DropDownList
         cboEncoder.Enabled = False
-        cboEncoder.Font = New Font("Segoe UI", 9.0F)
+        cboEncoder.Font = New Font("Segoe UI", 9F)
         cboEncoder.Items.AddRange(New Object() {"Auto (Recommended)", "h264_nvenc - NVIDIA H.264", "hevc_nvenc - NVIDIA H.265", "h264_qsv - Intel QuickSync", "hevc_qsv - Intel QuickSync H.265", "h264_amf - AMD AMF H.264", "libx264 - CPU H.264", "libx265 - CPU H.265", "libsvtav1 - CPU SVT-AV1"})
         cboEncoder.Location = New Point(12, 30)
         cboEncoder.Name = "cboEncoder"
@@ -230,7 +229,7 @@ Partial Class UI_Engine
         ' btnDetect
         ' 
         btnDetect.Cursor = Cursors.Hand
-        btnDetect.Font = New Font("Segoe UI", 8.0F)
+        btnDetect.Font = New Font("Segoe UI", 8F)
         btnDetect.Location = New Point(345, 30)
         btnDetect.Name = "btnDetect"
         btnDetect.Size = New Size(133, 23)
@@ -253,7 +252,7 @@ Partial Class UI_Engine
         chkNativeRes.Checked = True
         chkNativeRes.CheckState = CheckState.Checked
         chkNativeRes.Enabled = False
-        chkNativeRes.Font = New Font("Segoe UI", 9.0F)
+        chkNativeRes.Font = New Font("Segoe UI", 9F)
         chkNativeRes.Location = New Point(12, 8)
         chkNativeRes.Name = "chkNativeRes"
         chkNativeRes.Size = New Size(141, 19)
@@ -265,7 +264,7 @@ Partial Class UI_Engine
         ' 
         cboResolution.DropDownStyle = ComboBoxStyle.DropDownList
         cboResolution.Enabled = False
-        cboResolution.Font = New Font("Segoe UI", 9.0F)
+        cboResolution.Font = New Font("Segoe UI", 9F)
         cboResolution.Items.AddRange(New Object() {"1920x1080 (1080p)", "2560x1440 (1440p)", "3840x2160 (4K)", "1280x720 (720p)"})
         cboResolution.Location = New Point(12, 32)
         cboResolution.Name = "cboResolution"
@@ -287,7 +286,7 @@ Partial Class UI_Engine
         ' lblFPSTitle
         ' 
         lblFPSTitle.AutoSize = True
-        lblFPSTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblFPSTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblFPSTitle.Location = New Point(12, 8)
         lblFPSTitle.Name = "lblFPSTitle"
         lblFPSTitle.Size = New Size(27, 15)
@@ -309,7 +308,7 @@ Partial Class UI_Engine
         ' lblBitTitle
         ' 
         lblBitTitle.AutoSize = True
-        lblBitTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblBitTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblBitTitle.Location = New Point(150, 8)
         lblBitTitle.Name = "lblBitTitle"
         lblBitTitle.Size = New Size(87, 15)
@@ -332,7 +331,7 @@ Partial Class UI_Engine
         ' lblBitrateHint
         ' 
         lblBitrateHint.AutoSize = True
-        lblBitrateHint.Font = New Font("Segoe UI", 8.0F)
+        lblBitrateHint.Font = New Font("Segoe UI", 8F)
         lblBitrateHint.Location = New Point(278, 34)
         lblBitrateHint.Name = "lblBitrateHint"
         lblBitrateHint.Size = New Size(83, 13)
@@ -354,7 +353,7 @@ Partial Class UI_Engine
         ' lblPresetTitle
         ' 
         lblPresetTitle.AutoSize = True
-        lblPresetTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblPresetTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblPresetTitle.Location = New Point(12, 8)
         lblPresetTitle.Name = "lblPresetTitle"
         lblPresetTitle.Size = New Size(43, 15)
@@ -364,7 +363,7 @@ Partial Class UI_Engine
         ' lblPresetValue
         ' 
         lblPresetValue.AutoSize = True
-        lblPresetValue.Font = New Font("Segoe UI", 9.0F)
+        lblPresetValue.Font = New Font("Segoe UI", 9F)
         lblPresetValue.Location = New Point(60, 8)
         lblPresetValue.Name = "lblPresetValue"
         lblPresetValue.Size = New Size(61, 15)
@@ -374,7 +373,7 @@ Partial Class UI_Engine
         ' lblNvencPreset
         ' 
         lblNvencPreset.AutoSize = True
-        lblNvencPreset.Font = New Font("Segoe UI", 8.0F)
+        lblNvencPreset.Font = New Font("Segoe UI", 8F)
         lblNvencPreset.Location = New Point(200, 9)
         lblNvencPreset.Name = "lblNvencPreset"
         lblNvencPreset.Size = New Size(62, 13)
@@ -384,7 +383,7 @@ Partial Class UI_Engine
         ' lblReplayTitle
         ' 
         lblReplayTitle.AutoSize = True
-        lblReplayTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblReplayTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblReplayTitle.Location = New Point(12, 32)
         lblReplayTitle.Name = "lblReplayTitle"
         lblReplayTitle.Size = New Size(112, 15)
@@ -405,6 +404,7 @@ Partial Class UI_Engine
         ' 
         ' pnlAudio
         ' 
+        pnlAudio.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         pnlAudio.Controls.Add(lblAudioTitle)
         pnlAudio.Controls.Add(chkSysAudio)
         pnlAudio.Controls.Add(chkMic)
@@ -414,15 +414,15 @@ Partial Class UI_Engine
         pnlAudio.Controls.Add(trkMicVol)
         pnlAudio.Controls.Add(lblMicDevice)
         pnlAudio.Controls.Add(btnOpenAudioSettings)
-        pnlAudio.Location = New Point(1036, 216)
+        pnlAudio.Location = New Point(1012, 164)
         pnlAudio.Name = "pnlAudio"
-        pnlAudio.Size = New Size(490, 105)
+        pnlAudio.Size = New Size(736, 118)
         pnlAudio.TabIndex = 12
         ' 
         ' lblAudioTitle
         ' 
         lblAudioTitle.AutoSize = True
-        lblAudioTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblAudioTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblAudioTitle.Location = New Point(12, 8)
         lblAudioTitle.Name = "lblAudioTitle"
         lblAudioTitle.Size = New Size(39, 15)
@@ -432,7 +432,7 @@ Partial Class UI_Engine
         ' chkSysAudio
         ' 
         chkSysAudio.AutoSize = True
-        chkSysAudio.Font = New Font("Segoe UI", 9.0F)
+        chkSysAudio.Font = New Font("Segoe UI", 9F)
         chkSysAudio.Location = New Point(12, 32)
         chkSysAudio.Name = "chkSysAudio"
         chkSysAudio.Size = New Size(99, 19)
@@ -442,7 +442,7 @@ Partial Class UI_Engine
         ' chkMic
         ' 
         chkMic.AutoSize = True
-        chkMic.Font = New Font("Segoe UI", 9.0F)
+        chkMic.Font = New Font("Segoe UI", 9F)
         chkMic.Location = New Point(140, 32)
         chkMic.Name = "chkMic"
         chkMic.Size = New Size(91, 19)
@@ -452,7 +452,7 @@ Partial Class UI_Engine
         ' lblSysVol
         ' 
         lblSysVol.AutoSize = True
-        lblSysVol.Font = New Font("Segoe UI", 8.0F)
+        lblSysVol.Font = New Font("Segoe UI", 8F)
         lblSysVol.Location = New Point(12, 58)
         lblSysVol.Name = "lblSysVol"
         lblSysVol.Size = New Size(75, 13)
@@ -471,7 +471,7 @@ Partial Class UI_Engine
         ' lblMicVol
         ' 
         lblMicVol.AutoSize = True
-        lblMicVol.Font = New Font("Segoe UI", 8.0F)
+        lblMicVol.Font = New Font("Segoe UI", 8F)
         lblMicVol.Location = New Point(240, 58)
         lblMicVol.Name = "lblMicVol"
         lblMicVol.Size = New Size(77, 13)
@@ -490,7 +490,7 @@ Partial Class UI_Engine
         ' lblMicDevice
         ' 
         lblMicDevice.AutoSize = True
-        lblMicDevice.Font = New Font("Segoe UI", 8.0F)
+        lblMicDevice.Font = New Font("Segoe UI", 8F)
         lblMicDevice.Location = New Point(12, 85)
         lblMicDevice.Name = "lblMicDevice"
         lblMicDevice.Size = New Size(74, 13)
@@ -499,8 +499,9 @@ Partial Class UI_Engine
         ' 
         ' btnOpenAudioSettings
         ' 
-        btnOpenAudioSettings.Font = New Font("Segoe UI", 9.0F)
-        btnOpenAudioSettings.Location = New Point(360, 80)
+        btnOpenAudioSettings.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
+        btnOpenAudioSettings.Font = New Font("Segoe UI", 9F)
+        btnOpenAudioSettings.Location = New Point(605, 84)
         btnOpenAudioSettings.Name = "btnOpenAudioSettings"
         btnOpenAudioSettings.Size = New Size(120, 22)
         btnOpenAudioSettings.TabIndex = 8
@@ -511,7 +512,7 @@ Partial Class UI_Engine
         pnlOutput.Controls.Add(lblOutTitle)
         pnlOutput.Controls.Add(txtOutputDir)
         pnlOutput.Controls.Add(btnBrowse)
-        pnlOutput.Location = New Point(47, 699)
+        pnlOutput.Location = New Point(47, 611)
         pnlOutput.Name = "pnlOutput"
         pnlOutput.Size = New Size(490, 65)
         pnlOutput.TabIndex = 7
@@ -519,7 +520,7 @@ Partial Class UI_Engine
         ' lblOutTitle
         ' 
         lblOutTitle.AutoSize = True
-        lblOutTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblOutTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblOutTitle.Location = New Point(12, 8)
         lblOutTitle.Name = "lblOutTitle"
         lblOutTitle.Size = New Size(85, 15)
@@ -537,7 +538,7 @@ Partial Class UI_Engine
         ' 
         ' btnBrowse
         ' 
-        btnBrowse.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        btnBrowse.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         btnBrowse.Location = New Point(438, 30)
         btnBrowse.Name = "btnBrowse"
         btnBrowse.Size = New Size(40, 23)
@@ -547,7 +548,7 @@ Partial Class UI_Engine
         ' lblFfmpegTitle
         ' 
         lblFfmpegTitle.AutoSize = True
-        lblFfmpegTitle.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        lblFfmpegTitle.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         lblFfmpegTitle.Location = New Point(15, 130)
         lblFfmpegTitle.Name = "lblFfmpegTitle"
         lblFfmpegTitle.Size = New Size(96, 19)
@@ -569,7 +570,7 @@ Partial Class UI_Engine
         btnFFmpegBrowse.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
         btnFFmpegBrowse.BackColor = Color.DimGray
         btnFFmpegBrowse.FlatStyle = FlatStyle.Flat
-        btnFFmpegBrowse.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        btnFFmpegBrowse.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         btnFFmpegBrowse.Location = New Point(404, 156)
         btnFFmpegBrowse.Name = "btnFFmpegBrowse"
         btnFFmpegBrowse.Size = New Size(40, 23)
@@ -582,7 +583,7 @@ Partial Class UI_Engine
         pnlGitHub.Controls.Add(lblGitHubTitle)
         pnlGitHub.Controls.Add(lblGitHubUser)
         pnlGitHub.Controls.Add(lblGitHubStatus)
-        pnlGitHub.Location = New Point(47, 599)
+        pnlGitHub.Location = New Point(47, 555)
         pnlGitHub.Name = "pnlGitHub"
         pnlGitHub.Size = New Size(490, 50)
         pnlGitHub.TabIndex = 13
@@ -590,7 +591,7 @@ Partial Class UI_Engine
         ' lblGitHubTitle
         ' 
         lblGitHubTitle.AutoSize = True
-        lblGitHubTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblGitHubTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblGitHubTitle.Location = New Point(12, 8)
         lblGitHubTitle.Name = "lblGitHubTitle"
         lblGitHubTitle.Size = New Size(50, 15)
@@ -600,7 +601,7 @@ Partial Class UI_Engine
         ' lblGitHubUser
         ' 
         lblGitHubUser.AutoSize = True
-        lblGitHubUser.Font = New Font("Segoe UI", 9.0F)
+        lblGitHubUser.Font = New Font("Segoe UI", 9F)
         lblGitHubUser.Location = New Point(70, 8)
         lblGitHubUser.Name = "lblGitHubUser"
         lblGitHubUser.Size = New Size(72, 15)
@@ -610,7 +611,7 @@ Partial Class UI_Engine
         ' lblGitHubStatus
         ' 
         lblGitHubStatus.AutoSize = True
-        lblGitHubStatus.Font = New Font("Segoe UI", 8.0F)
+        lblGitHubStatus.Font = New Font("Segoe UI", 8F)
         lblGitHubStatus.Location = New Point(12, 28)
         lblGitHubStatus.Name = "lblGitHubStatus"
         lblGitHubStatus.Size = New Size(116, 13)
@@ -622,15 +623,15 @@ Partial Class UI_Engine
         pnlHub.Controls.Add(lblHubTitle)
         pnlHub.Controls.Add(lblHubStatus)
         pnlHub.Controls.Add(lblHubClients)
-        pnlHub.Location = New Point(646, 433)
+        pnlHub.Location = New Point(543, 370)
         pnlHub.Name = "pnlHub"
-        pnlHub.Size = New Size(633, 278)
+        pnlHub.Size = New Size(463, 52)
         pnlHub.TabIndex = 14
         ' 
         ' lblHubTitle
         ' 
         lblHubTitle.AutoSize = True
-        lblHubTitle.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        lblHubTitle.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         lblHubTitle.Location = New Point(12, 8)
         lblHubTitle.Name = "lblHubTitle"
         lblHubTitle.Size = New Size(33, 15)
@@ -640,7 +641,7 @@ Partial Class UI_Engine
         ' lblHubStatus
         ' 
         lblHubStatus.AutoSize = True
-        lblHubStatus.Font = New Font("Segoe UI", 9.0F)
+        lblHubStatus.Font = New Font("Segoe UI", 9F)
         lblHubStatus.Location = New Point(50, 8)
         lblHubStatus.Name = "lblHubStatus"
         lblHubStatus.Size = New Size(78, 15)
@@ -650,7 +651,7 @@ Partial Class UI_Engine
         ' lblHubClients
         ' 
         lblHubClients.AutoSize = True
-        lblHubClients.Font = New Font("Segoe UI", 8.0F)
+        lblHubClients.Font = New Font("Segoe UI", 8F)
         lblHubClients.Location = New Point(12, 28)
         lblHubClients.Name = "lblHubClients"
         lblHubClients.Size = New Size(54, 13)
@@ -660,8 +661,8 @@ Partial Class UI_Engine
         ' lblConfigSource
         ' 
         lblConfigSource.AutoSize = True
-        lblConfigSource.Font = New Font("Segoe UI", 7.0F)
-        lblConfigSource.Location = New Point(543, 377)
+        lblConfigSource.Font = New Font("Segoe UI", 7F)
+        lblConfigSource.Location = New Point(47, 679)
         lblConfigSource.Name = "lblConfigSource"
         lblConfigSource.Size = New Size(93, 12)
         lblConfigSource.TabIndex = 15
@@ -670,7 +671,7 @@ Partial Class UI_Engine
         ' btnRecord
         ' 
         btnRecord.Cursor = Cursors.Hand
-        btnRecord.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
+        btnRecord.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         btnRecord.ForeColor = Color.White
         btnRecord.Location = New Point(47, 117)
         btnRecord.Name = "btnRecord"
@@ -682,7 +683,7 @@ Partial Class UI_Engine
         ' 
         btnStop.Cursor = Cursors.Hand
         btnStop.Enabled = False
-        btnStop.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
+        btnStop.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         btnStop.ForeColor = Color.White
         btnStop.Location = New Point(297, 117)
         btnStop.Name = "btnStop"
@@ -713,7 +714,7 @@ Partial Class UI_Engine
         ' 
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(80, 110)
         BT_Back.Name = "BT_Back"
@@ -739,6 +740,8 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(btnStressTest)
         settings_menu.Controls.Add(PictureBox5)
         settings_menu.Controls.Add(PictureBox4)
+        settings_menu.Controls.Add(lblConfigSource)
+        settings_menu.Controls.Add(lblMirrorNote)
         settings_menu.Controls.Add(PictureBox3)
         settings_menu.Controls.Add(PictureBox16)
         settings_menu.Controls.Add(lblStatus)
@@ -749,15 +752,12 @@ Partial Class UI_Engine
         settings_menu.Controls.Add(pnlRes)
         settings_menu.Controls.Add(btnRecord)
         settings_menu.Controls.Add(pnlPerf)
-        settings_menu.Controls.Add(lblConfigSource)
         settings_menu.Controls.Add(pnlPreset)
         settings_menu.Controls.Add(pnlHub)
         settings_menu.Controls.Add(pnlAudio)
         settings_menu.Controls.Add(pnlGitHub)
         settings_menu.Controls.Add(pnlOutput)
-        ' ✅ PHASE 3: diagnostics panel + mirror-boundary note
         settings_menu.Controls.Add(pnlDiag)
-        settings_menu.Controls.Add(lblMirrorNote)
         settings_menu.Controls.Add(lblTitle)
         settings_menu.Controls.Add(pnlStatus)
         settings_menu.ForeColor = Color.White
@@ -765,6 +765,15 @@ Partial Class UI_Engine
         settings_menu.Name = "settings_menu"
         settings_menu.Size = New Size(1760, 840)
         settings_menu.TabIndex = 95
+        ' 
+        ' btnStressTest
+        ' 
+        btnStressTest.Location = New Point(543, 117)
+        btnStressTest.Name = "btnStressTest"
+        btnStressTest.Size = New Size(463, 32)
+        btnStressTest.TabIndex = 92
+        btnStressTest.Text = "Button1"
+        btnStressTest.UseVisualStyleBackColor = True
         ' 
         ' PictureBox5
         ' 
@@ -821,32 +830,16 @@ Partial Class UI_Engine
         hg2.TabStop = False
         hg2.Visible = False
         ' 
-        ' pnlStatus
-        ' 
-        pnlStatus.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
-        pnlStatus.BorderStyle = BorderStyle.FixedSingle
-        pnlStatus.Controls.Add(lblFfmpegTitle)
-        pnlStatus.Controls.Add(txtFFmpegPath)
-        pnlStatus.Controls.Add(lblTimer)
-        pnlStatus.Controls.Add(btnFFmpegBrowse)
-        pnlStatus.Controls.Add(lblRecState)
-        pnlStatus.Controls.Add(lblRecSize)
-        pnlStatus.Controls.Add(lblRecFrames)
-        pnlStatus.Controls.Add(lblRecBitrate)
-        pnlStatus.Location = New Point(543, 164)
-        pnlStatus.Name = "pnlStatus"
-        pnlStatus.Size = New Size(463, 200)
-        pnlStatus.TabIndex = 90
-        ' 
         ' pnlDiag
         ' 
+        pnlDiag.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         pnlDiag.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
         pnlDiag.BorderStyle = BorderStyle.FixedSingle
         pnlDiag.Controls.Add(lblDiagTitle)
         pnlDiag.Controls.Add(txtDiagnostics)
-        pnlDiag.Location = New Point(1288, 336)
+        pnlDiag.Location = New Point(1012, 288)
         pnlDiag.Name = "pnlDiag"
-        pnlDiag.Size = New Size(460, 490)
+        pnlDiag.Size = New Size(736, 537)
         pnlDiag.TabIndex = 91
         ' 
         ' lblDiagTitle
@@ -855,7 +848,7 @@ Partial Class UI_Engine
         lblDiagTitle.ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         lblDiagTitle.Location = New Point(8, 6)
         lblDiagTitle.Name = "lblDiagTitle"
-        lblDiagTitle.Size = New Size(380, 15)
+        lblDiagTitle.Size = New Size(357, 15)
         lblDiagTitle.TabIndex = 0
         lblDiagTitle.Text = "EFFECTIVE RUNTIME (read-only) — requested → effective → actual"
         ' 
@@ -878,17 +871,34 @@ Partial Class UI_Engine
         ' 
         lblMirrorNote.AutoSize = True
         lblMirrorNote.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
-        lblMirrorNote.Location = New Point(543, 392)
+        lblMirrorNote.Location = New Point(47, 694)
         lblMirrorNote.Name = "lblMirrorNote"
-        lblMirrorNote.Size = New Size(420, 15)
+        lblMirrorNote.Size = New Size(376, 15)
         lblMirrorNote.TabIndex = 92
         lblMirrorNote.Text = "Mirrors are read-only — user settings: Overlay → Settings (config.json)"
+        ' 
+        ' pnlStatus
+        ' 
+        pnlStatus.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
+        pnlStatus.BorderStyle = BorderStyle.FixedSingle
+        pnlStatus.Controls.Add(lblFfmpegTitle)
+        pnlStatus.Controls.Add(txtFFmpegPath)
+        pnlStatus.Controls.Add(lblTimer)
+        pnlStatus.Controls.Add(btnFFmpegBrowse)
+        pnlStatus.Controls.Add(lblRecState)
+        pnlStatus.Controls.Add(lblRecSize)
+        pnlStatus.Controls.Add(lblRecFrames)
+        pnlStatus.Controls.Add(lblRecBitrate)
+        pnlStatus.Location = New Point(543, 164)
+        pnlStatus.Name = "pnlStatus"
+        pnlStatus.Size = New Size(463, 200)
+        pnlStatus.TabIndex = 90
         ' 
         ' lblRecState
         ' 
         lblRecState.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         lblRecState.BackColor = Color.FromArgb(CByte(20), CByte(20), CByte(24))
-        lblRecState.Font = New Font("GeForce", 14.0F, FontStyle.Bold)
+        lblRecState.Font = New Font("GeForce", 14F, FontStyle.Bold)
         lblRecState.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
         lblRecState.Location = New Point(15, 15)
         lblRecState.Name = "lblRecState"
@@ -900,7 +910,7 @@ Partial Class UI_Engine
         ' lblRecSize
         ' 
         lblRecSize.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        lblRecSize.Font = New Font("Consolas", 14.0F, FontStyle.Bold)
+        lblRecSize.Font = New Font("Consolas", 14F, FontStyle.Bold)
         lblRecSize.ForeColor = Color.FromArgb(CByte(230), CByte(230), CByte(230))
         lblRecSize.Location = New Point(15, 87)
         lblRecSize.Name = "lblRecSize"
@@ -912,7 +922,7 @@ Partial Class UI_Engine
         ' lblRecFrames
         ' 
         lblRecFrames.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        lblRecFrames.Font = New Font("Consolas", 10.0F)
+        lblRecFrames.Font = New Font("Consolas", 10F)
         lblRecFrames.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
         lblRecFrames.Location = New Point(307, 51)
         lblRecFrames.Name = "lblRecFrames"
@@ -924,7 +934,7 @@ Partial Class UI_Engine
         ' lblRecBitrate
         ' 
         lblRecBitrate.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
-        lblRecBitrate.Font = New Font("Consolas", 10.0F)
+        lblRecBitrate.Font = New Font("Consolas", 10F)
         lblRecBitrate.ForeColor = Color.FromArgb(CByte(160), CByte(160), CByte(160))
         lblRecBitrate.Location = New Point(15, 51)
         lblRecBitrate.Name = "lblRecBitrate"
@@ -938,18 +948,9 @@ Partial Class UI_Engine
         OPEN_UI.Enabled = True
         OPEN_UI.Interval = 1
         ' 
-        ' btnStressTest
-        ' 
-        btnStressTest.Location = New Point(648, 107)
-        btnStressTest.Name = "btnStressTest"
-        btnStressTest.Size = New Size(75, 23)
-        btnStressTest.TabIndex = 92
-        btnStressTest.Text = "Button1"
-        btnStressTest.UseVisualStyleBackColor = True
-        ' 
         ' UI_Engine
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Coral
         ClientSize = New Size(1920, 1080)
@@ -957,7 +958,7 @@ Partial Class UI_Engine
         Controls.Add(settings_top)
         Controls.Add(DIMBOX_2)
         Controls.Add(settings_menu)
-        Font = New Font("Segoe UI", 9.0F)
+        Font = New Font("Segoe UI", 9F)
         FormBorderStyle = FormBorderStyle.None
         MaximizeBox = False
         Name = "UI_Engine"
@@ -1000,10 +1001,10 @@ Partial Class UI_Engine
         CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox16, ComponentModel.ISupportInitialize).EndInit()
         CType(hg2, ComponentModel.ISupportInitialize).EndInit()
-        pnlStatus.ResumeLayout(False)
-        pnlStatus.PerformLayout()
         pnlDiag.ResumeLayout(False)
         pnlDiag.PerformLayout()
+        pnlStatus.ResumeLayout(False)
+        pnlStatus.PerformLayout()
         ResumeLayout(False)
     End Sub
 

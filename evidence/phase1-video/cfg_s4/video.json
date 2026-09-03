@@ -1,0 +1,12 @@
+﻿{
+    "Current":  {
+                    "FPS":  60,
+                    "Bitrate":  10200,
+                    "EncoderPreset":  7,
+                    "UseNativeResolution":  true,
+                    "Width":  1920,
+                    "Height":  1080
+                },
+    "Encoder":  "h264_nvenc",
+    "ActivePreset":  "CUSTOM"
+}

@@ -1,0 +1,10 @@
+﻿{
+    "ConfigVersion":  3,
+    "CaptureMethod":  "ddagrab",
+    "PixelFormat":  "nv12",
+    "Preset":  "",
+    "RateControl":  "cbr",
+    "UseNativeResolution":  true,
+    "CustomWidth":  1920,
+    "CustomHeight":  1080
+}

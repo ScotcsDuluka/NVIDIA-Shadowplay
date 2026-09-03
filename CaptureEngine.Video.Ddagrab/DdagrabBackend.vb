@@ -726,13 +726,22 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         ' In shared-handle mode: frame wraps sharedTexture (with handle)
                         ' In direct mode: frame wraps stagingTexture (no handle)
                         Dim frameTexture As ID3D11Texture2D = If(sharedTexture, stagingTexture)
+                        ' DXGI LastPresentTime is the producer-side QPC stamp for
+                        ' the desktop image represented by this frame. Do not use
+                        ' attemptTime: it is sampled BEFORE AcquireNextFrame and
+                        ' can include the 100ms wait plus queue latency.
+                        Dim frameQpc100ns As Long = attemptTime
+                        If frameInfo.LastPresentTime <> 0 Then
+                            frameQpc100ns = QpcTicksTo100ns(frameInfo.LastPresentTime)
+                        End If
+
                         frame = New D3D11VideoFrame(
                             frameTexture,
                             _outputWidth,
                             _outputHeight,
                             sequence,
-                            attemptTime,
-                            attemptTime,
+                            frameQpc100ns,
+                            frameQpc100ns,
                             sharedHandle)
                         frameTexture = Nothing  ' ownership transferred to frame
 
@@ -827,6 +836,13 @@ skipFrame:
 
             _logger.Info("DdagrabBackend: worker exited")
         End Sub
+
+        ' Convert DXGI QPC ticks to the engine's 100ns timestamp domain.
+        Private Shared Function QpcTicksTo100ns(qpcTicks As Long) As Long
+            Dim f As Long = Stopwatch.Frequency
+            If f <= 0 Then Return 0
+            Return qpcTicks \ f * 10000000L + qpcTicks Mod f * 10000000L \ f
+        End Function
 
         Private Sub RecreateDuplication()
             ' DXGI_ACCESS_LOST recovery — recreate the duplication object.

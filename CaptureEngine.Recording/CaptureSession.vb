@@ -86,6 +86,8 @@ Namespace CaptureEngine.Recording
         ' Sync timeline (Stopwatch ticks)
         Private _systemStartTicks As Long = 0
         Private _videoStartTicks As Long = 0
+        ' Device-mode video origin in the same 100ns QPC domain as WASAPI.
+        Private _videoStartQpc100ns As Long = 0
         ' ★ M1: mic has its own independent timeline (device clock/cadence
         ' differ from system loopback — never share or derive one from other)
         Private _micStartTicks As Long = 0
@@ -159,7 +161,10 @@ Namespace CaptureEngine.Recording
                     ' no pre-roll estimate; the lead is ZERO by default
                     ' (SystemAudioLeadDeviceSec; residual goes in only if
                     ' sync-verify measures it).
-                    Dim videoT0100ns As Long = CLng(_videoStartTicks * 10000000.0 / Stopwatch.Frequency)
+                    Dim videoT0100ns As Long = _videoStartQpc100ns
+                    If videoT0100ns <= 0 Then
+                        videoT0100ns = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
+                    End If
                     sysOff = SyncMath.ComputeAudioOffsetSecFromAnchors(
                         videoT0100ns, _sysTap3.FirstQpc100ns) + SyncMath.SystemAudioLeadDeviceSec
                 Else
@@ -585,6 +590,12 @@ Namespace CaptureEngine.Recording
                             Continue Do
                         End If
                         _videoStartTicks = Stopwatch.GetTimestamp()
+                        ' Use the producer-side DXGI timestamp carried by the frame.
+                        ' Consumer-time Stopwatch includes queue/CFR delivery latency.
+                        _videoStartQpc100ns = pendingFrame.Diagnostics.CaptureTimeTicks
+                        If _videoStartQpc100ns <= 0 Then
+                            _videoStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
+                        End If
                         nextTick = _videoStartTicks
 
                         ' ★ OBS-model alignment: SyncMath offsets applied at FEED time.
