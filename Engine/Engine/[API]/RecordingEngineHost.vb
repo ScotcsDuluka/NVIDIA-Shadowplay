@@ -1,4 +1,4 @@
-﻿Option Strict On
+Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -41,6 +41,7 @@ Partial Public Class UI_Engine
     Private _recordingTask As Task(Of SessionResult)
     Private _useNewEngine As Boolean = True  ' True = use RecordingEngine, False = legacy
     Private _engineReady As Boolean = False  ' set once off-thread Initialize succeeds
+    Private _engineReconfiguring As Boolean = False  ' true while video config rebuilds the persistent encoder
     ' ★ P13-AUDIO-TIMELINE: WHY the new engine is unavailable (shown on
     ' every legacy-pipeline record start — ends the "which pipeline ran?"
     ' mystery that kept the [speech][speech][apad-silence] bug invisible).
@@ -110,6 +111,49 @@ Partial Public Class UI_Engine
     End Sub
 
     ''' <summary>
+    ''' Rebuild the persistent RecordingEngine from the current unified config.json.
+    ''' The previous runtime stays alive until replacement initialization succeeds.
+    ''' </summary>
+    Private Sub ReinitializeRecordingEngineFromConfig()
+        If _engineReconfiguring Then Return
+        If _recordingTask IsNot Nothing AndAlso Not _recordingTask.IsCompleted Then
+            DebugLog("[RecordingEngine] config changed during recording — defer runtime rebuild")
+            Return
+        End If
+
+        _engineReconfiguring = True
+        DebugLog("[RecordingEngine] rebuilding persistent runtime from fresh config.json...")
+
+        Dim fresh As CaptureSettings = CaptureSettings.Load(_configPath)
+        SyncWithOverlayConfig(fresh)
+        Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(fresh)
+        Dim previousEngine As RecordingEngine = _recordingEngine
+
+        Task.Run(Sub()
+                     Try
+                         Dim logger As New EngineLogger("RecordingEngine", EngineLogger.LogLevel.Info, AddressOf DebugLog)
+                         Dim replacement As New RecordingEngine(logger)
+                         replacement.Initialize(startup)
+                         Me.Invoke(Sub()
+                                       _recordingEngine = replacement
+                                       _settings = fresh
+                                       _engineReady = True
+                                       _engineReconfiguring = False
+                                       Try : previousEngine?.Dispose() : Catch ex As Exception : DebugLog($"[RecordingEngine] previous runtime dispose: {ex.Message}") : End Try
+                                       DebugLog($"[RecordingEngine] runtime rebuilt: fps={startup.Fps}, bitrate={startup.BitrateBps}, preset={startup.Preset}")
+                                       RefreshOverlayConfigUI()
+                                       UpdateDiagnosticsPanel()
+                                   End Sub)
+                     Catch ex As Exception
+                         Me.Invoke(Sub()
+                                       _engineReconfiguring = False
+                                       DebugLog($"[RecordingEngine] runtime rebuild FAILED — keeping previous runtime: {ex.Message}")
+                                       UpdateDiagnosticsPanel()
+                                   End Sub)
+                     End Try
+                 End Sub)
+    End Sub
+    ''' <summary>
     ''' Dispose RecordingEngine + job guard. Called from UI_Engine_FormClosing.
     ''' Order matters: engine first (stops any active session → mux finishes),
     ''' THEN the job guard (its handle close would kill ffmpeg children).
@@ -178,6 +222,11 @@ Partial Public Class UI_Engine
 #Disable Warning BC42356 ' Deliberately await-less (see comment above)
     Private Async Function HandleRecordingStart(value As String, reqId As String) As Task
         Try
+            If _engineReconfiguring Then
+                SendResponse("engine_record_start", "error", "engine_reconfiguring", reqId)
+                Return
+            End If
+
             If Not _engineReady OrElse _recordingEngine Is Nothing Then
                 SendResponse("engine_record_start", "error", "engine_not_ready", reqId)
                 Return

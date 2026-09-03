@@ -651,6 +651,14 @@ Partial Public Class UI_Engine
             ' Refresh UI (we're on the UI thread already).
             RefreshOverlayConfigUI()
             UpdateDiagnosticsPanel()
+
+            ' Video settings are initialization-time inputs to the persistent NVENC
+            ' session. Rebuild while idle so the next recording uses the new values.
+            If String.Equals(scope, "video", StringComparison.OrdinalIgnoreCase) OrElse
+               String.Equals(scope, "config", StringComparison.OrdinalIgnoreCase) OrElse
+               String.IsNullOrWhiteSpace(scope) Then
+                ReinitializeRecordingEngineFromConfig()
+            End If
         Catch ex As Exception
             DebugLog($"[Engine] engine_config_changed error: {ex.Message}")
         End Try

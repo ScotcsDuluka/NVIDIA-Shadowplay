@@ -211,11 +211,12 @@ Namespace CaptureEngine.Recording
                 config.RequestedWidth = echo.RequestedWidth
                 config.RequestedHeight = echo.RequestedHeight
 
-                Dim encoderFps As Integer = If(echo.Fps > 0, echo.Fps, 60)
-                If config.TargetFps > 0 AndAlso config.TargetFps <> encoderFps Then
-                    _logger.Warning($"[RecordingEngine] session FPS {config.TargetFps} != persistent NVENC FPS {encoderFps}; using {encoderFps} to preserve real-time playback. Engine rebuild required to apply a new FPS.")
+                If config.TargetFps <= 0 Then
+                    config.TargetFps = If(echo.Fps > 0, echo.Fps, 60)
+                    _logger.Warning($"[RecordingEngine] session FPS missing/invalid; using configured engine/startup FPS {config.TargetFps}fps")
+                ElseIf echo.Fps > 0 AndAlso config.TargetFps <> echo.Fps Then
+                    _logger.Warning($"[RecordingEngine] session FPS {config.TargetFps} != persistent NVENC FPS {echo.Fps}; runtime uses session/config FPS. Persistent NVENC must be rebuilt when FPS changes.")
                 End If
-                config.TargetFps = encoderFps
 
                 config.EncodeWidth = _encoder.EncodeWidthOutput
                 config.EncodeHeight = _encoder.EncodeHeightOutput
