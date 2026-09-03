@@ -355,6 +355,19 @@ Partial Public Class UI_Engine
             UpdateDiagnosticsPanel()
 
             If result.Pass Then
+                ' W2-2 contract: the stop toast fires on the REAL completion
+                ' broadcast (engine_recording_saved), NOT on this response —
+                ' the Overlay intentionally shows nothing on engine_record_stop
+                ' ok. The legacy CaptureEngine fires RecordingStopped ->
+                ' OnRecordingStopped -> the same tcp.Send; the Duluka path must
+                ' match or the Overlay never shows the stop toast (W2-H1
+                ' removed the optimistic Sub_Record toast).
+                Try
+                    If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                        tcp.Send("engine_recording_saved", result.OutputPath)
+                    End If
+                Catch
+                End Try
                 SendResponse("engine_record_stop", "ok", result.OutputPath, reqId)
             Else
                 Dim why As String = $"pass=False: frames={result.FramesEncoded}, file={result.FileExists}, " &
