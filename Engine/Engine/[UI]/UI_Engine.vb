@@ -388,6 +388,13 @@ Partial Public Class UI_Engine
         Try
             DebugLog($"[Engine] HandleEngineRecordStart: path={value}, reqId={If(String.IsNullOrEmpty(reqId), "(none)", reqId)}")
 
+            ' Engine 2 / Duluka is a separate runtime path. Honor the persisted
+            ' engine_mode instead of always constructing the legacy CaptureEngine.
+            If OverlayConfig.GetEngineMode() = "ddagrab" Then
+                Await HandleRecordingStart(value, reqId)
+                Return
+            End If
+
             ' ✅ P2.6: load settings from Overlay's config.json + video.json
             ' (source of truth). Old code loaded from Engine's shadowplay-config.json
             ' which drifted out of sync with Overlay → wrong encoder/fps/bitrate.
@@ -525,6 +532,14 @@ Partial Public Class UI_Engine
 
     Private Async Function HandleEngineRecordStop(reqId As String) As Task
         Try
+            ' Stop the runtime that actually owns the active session. Do not
+            ' infer this from stale UI state: _recordingTask is the authoritative
+            ' marker for the new Duluka path.
+            If _recordingTask IsNot Nothing AndAlso Not _recordingTask.IsCompleted Then
+                Await HandleRecordingStop(reqId)
+                Return
+            End If
+
             If _captureEngine Is Nothing OrElse Not _captureEngine.IsRecording Then
                 SendResponse("engine_record_stop", "error", "not_recording", reqId)
                 Return
@@ -814,6 +829,14 @@ Partial Public Class UI_Engine
             SyncWithOverlayConfig(s)
             _settings = s
 
+            ' Honor the same persisted engine regime as TCP-triggered recording.
+            ' Duluka uses the process-lifetime RecordingEngine; FFmpeg keeps the
+            ' existing Legacy CaptureEngine path untouched.
+            If OverlayConfig.GetEngineMode() = "ddagrab" Then
+                Await HandleRecordingStart(s.GenerateOutputFilename(), "")
+                Return
+            End If
+
             Dim engine As New CaptureEngine(_settings)
             AddHandler engine.StateChanged, AddressOf OnEngineStateChanged
             AddHandler engine.RecordingStarted, AddressOf OnRecordingStarted
@@ -840,7 +863,11 @@ Partial Public Class UI_Engine
         btnStop.Enabled = False
 
         Try
-            Await _captureEngine.StopRecordingAsync()
+            If _recordingTask IsNot Nothing AndAlso Not _recordingTask.IsCompleted Then
+                Await HandleRecordingStop("")
+            Else
+                Await _captureEngine.StopRecordingAsync()
+            End If
             btnRecord.Enabled = True
         Catch
             btnRecord.Enabled = True

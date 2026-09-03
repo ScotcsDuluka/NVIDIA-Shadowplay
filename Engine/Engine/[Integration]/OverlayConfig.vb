@@ -78,6 +78,7 @@ Public NotInheritable Class OverlayConfig
         Public Property replay_duration As Integer = 60
         Public Property audio As VideoAudioConfig = New VideoAudioConfig()
         Public Property my_presets As VideoMyPresets = New VideoMyPresets()
+        Public Property engine_mode As String = Nothing
         Public Property api_capture As String = Nothing
     End Class
 
@@ -106,6 +107,7 @@ Public NotInheritable Class OverlayConfig
         Public Property MyHighBitrate As Integer?
         Public Property MyHighEncoderPreset As Integer?
         Public Property MyPresetName As String = "MY"
+        Public Property EngineMode As String = Nothing
         Public Property APICapture As String = Nothing
     End Class
 
@@ -426,6 +428,40 @@ Public NotInheritable Class OverlayConfig
             Return ConfigPath.Length > 0 AndAlso File.Exists(ConfigPath)
         End Get
     End Property
+
+    ''' <summary>
+    ''' Resolve the persisted engine regime from the same unified config used by
+    ''' the Overlay. Nested Recording.engine_mode is authoritative; legacy flat
+    ''' Recording.EngineMode is accepted for backward compatibility. Missing or
+    ''' unknown values fall back to the historical api_capture inference.
+    ''' </summary>
+    Public Shared Function GetEngineMode() As String
+        Try
+            Dim cp As String = ConfigPath
+            If cp.Length > 0 AndAlso File.Exists(cp) Then
+                Dim nested As VideoConfig = LoadVideoConfig()
+                If nested IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(nested.engine_mode) Then
+                    Dim mode As String = nested.engine_mode.Trim().ToLowerInvariant()
+                    If mode = "ffmpeg" OrElse mode = "legacy" Then Return "ffmpeg"
+                    If mode = "duluka" OrElse mode = "ddagrab" Then Return "ddagrab"
+                End If
+
+                Dim cfg As AppConfig = LoadConfig()
+                If cfg IsNot Nothing AndAlso cfg.Recording IsNot Nothing AndAlso
+                   Not String.IsNullOrWhiteSpace(cfg.Recording.EngineMode) Then
+                    Dim mode As String = cfg.Recording.EngineMode.Trim().ToLowerInvariant()
+                    If mode = "ffmpeg" OrElse mode = "legacy" Then Return "ffmpeg"
+                    If mode = "duluka" OrElse mode = "ddagrab" Then Return "ddagrab"
+                End If
+
+                Dim api As String = If(cfg?.Recording?.APICapture, "").Trim().ToLowerInvariant()
+                Return If(api = "ddagrab", "ddagrab", "ffmpeg")
+            End If
+        Catch ex As Exception
+            System.Diagnostics.Debug.WriteLine($"OverlayConfig.GetEngineMode error: {ex.Message}")
+        End Try
+        Return "ffmpeg"
+    End Function
 
     ''' <summary>
     ''' GLM/6 UNIFIED CONFIG: apply the Overlay's single config.json onto
