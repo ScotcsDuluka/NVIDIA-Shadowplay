@@ -5,7 +5,7 @@ Option Infer On
 ' CaptureSession.vb
 '
 ' Per-session resource owner. Composes:
-'   - BoundedVideoFrameSink (frame queue)
+'   - BoundedVideoFrameSink (latest-oriented bounded frame handoff)
 '   - System audio → WavSidecarWriter (bounded queue + writer thread)
 '   - Raw H.264 file (native NVENC packets)
 '   - FFmpeg wrap (raw H.264 → temp MP4 @ display refresh rate)
@@ -262,7 +262,7 @@ Namespace CaptureEngine.Recording
                 ' needs sub-15.6ms sleeps — see the winmm declarations above).
                 timeBeginPeriod(1UI)
                 _logger.Info("[session] timer resolution set to 1ms (CFR pacing)")
-                sink = New BoundedVideoFrameSink(16, BoundedHandoffPolicy.DropNewest, _logger)
+                sink = New BoundedVideoFrameSink(16, BoundedHandoffPolicy.DropOldest, _logger)
 
                 ' ─── 2. Shared Audio Engine (single owner) ─────────────
                 ' UI authority is Overlay [6] Audio Capture.vb. SessionConfig
