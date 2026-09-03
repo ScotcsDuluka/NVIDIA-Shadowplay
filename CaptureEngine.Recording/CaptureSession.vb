@@ -650,61 +650,67 @@ Namespace CaptureEngine.Recording
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
                     If nowTicks >= nextTick Then
-                        ' ── Tick: choose the newest source frame at/before this timeline tick. ──
-                        ' Future frames remain pending; never jump ahead in visual time.
-                        Dim targetQpc100ns As Long = _timelineStartQpc100ns +
-                            (CLng(Math.Max(0L, nextTick - _timelineStartTicks)) * 10000000L \ Stopwatch.Frequency)
-                        Dim selectedFrame As IVideoFrame = Nothing
+                        ' ── CFR catch-up: emit every presentation tick that is already due. ──
+                        ' A synchronous NVENC encode can occasionally cross one or more
+                        ' 120fps deadlines. Handling only one tick per outer iteration
+                        ' permanently loses those presentation slots and pushes the deficit
+                        ' into tail-fill. Bound each burst so Stop() remains responsive.
+                        Dim catchUpCount As Integer = 0
+                        Do
+                            If nextTick >= _timelineStartTicks + durationTicks Then Exit Do
 
-                        While pendingFrame IsNot Nothing AndAlso
-                              pendingFrame.Diagnostics.CaptureTimeTicks <= targetQpc100ns
-                            selectedFrame = pendingFrame
-                            pendingFrame = Nothing
-                            pendingSeq = -1
+                            Dim targetQpc100ns As Long = _timelineStartQpc100ns +
+                                (CLng(Math.Max(0L, nextTick - _timelineStartTicks)) * 10000000L \ Stopwatch.Frequency)
+                            Dim selectedFrame As IVideoFrame = Nothing
 
-                            Dim nextSource As FrameAcquisitionResult
-                            If sink.TryTake(nextSource) Then
-                                result.FramesCaptured += 1
-                                pendingFrame = nextSource.Frame
-                                pendingSeq = nextSource.Sequence
-                            End If
-                        End While
+                            While pendingFrame IsNot Nothing AndAlso
+                                  pendingFrame.Diagnostics.CaptureTimeTicks <= targetQpc100ns
+                                selectedFrame = pendingFrame
+                                pendingFrame = Nothing
+                                pendingSeq = -1
 
-                        If selectedFrame IsNot Nothing Then
-                            lastFrame?.Dispose()
-                            lastFrame = selectedFrame
-                        End If
-
-                        Dim encodeFrame As IVideoFrame = lastFrame
-                        Dim isDuplicate As Boolean = (selectedFrame Is Nothing AndAlso lastFrame IsNot Nothing)
-
-                        If encodeFrame IsNot Nothing Then
-                            Dim packet As EncodedPacket = Nothing
-                            Try
-                                If _encoder.Encode(encodeFrame, packet) AndAlso packet IsNot Nothing Then
-                                    _liveMux?.FeedVideo(packet.Payload, packet.PayloadLength)
-                                    result.TotalVideoBytes += packet.PayloadLength
-                                    result.FramesEncoded += 1
-                                    packet.Dispose()
+                                Dim nextSource As FrameAcquisitionResult
+                                If sink.TryTake(nextSource) Then
+                                    result.FramesCaptured += 1
+                                    pendingFrame = nextSource.Frame
+                                    pendingSeq = nextSource.Sequence
                                 End If
-                            Catch ex As Exception
-                                result.NvencErrors += 1
-                                _logger.Error($"[session] Encode error: {ex.Message}")
-                            End Try
+                            End While
 
-                            If isDuplicate Then
-                                result.FramesDuplicated += 1
+                            If selectedFrame IsNot Nothing Then
+                                lastFrame?.Dispose()
+                                lastFrame = selectedFrame
                             End If
-                        End If
 
-                        ' Advance the schedule strictly on the CFR timeline.
-                        ' Never reset nextTick to wall-clock time: doing so discards
-                        ' missed presentation ticks and shortens the video stream.
-                        ' When an encode stalls, the loop remains behind and emits
-                        ' the latest frame again for every missed CFR tick until the
-                        ' timeline catches up. The output frame count therefore tracks
-                        ' elapsed recording time instead of compressing it.
-                        nextTick += tickIntervalTicks
+                            Dim encodeFrame As IVideoFrame = lastFrame
+                            Dim isDuplicate As Boolean = (selectedFrame Is Nothing AndAlso lastFrame IsNot Nothing)
+
+                            If encodeFrame IsNot Nothing Then
+                                Dim packet As EncodedPacket = Nothing
+                                Try
+                                    If _encoder.Encode(encodeFrame, packet) AndAlso packet IsNot Nothing Then
+                                        _liveMux?.FeedVideo(packet.Payload, packet.PayloadLength)
+                                        result.TotalVideoBytes += packet.PayloadLength
+                                        result.FramesEncoded += 1
+                                        packet.Dispose()
+                                    End If
+                                Catch ex As Exception
+                                    result.NvencErrors += 1
+                                    _logger.Error($"[session] Encode error: {ex.Message}")
+                                End Try
+
+                                If isDuplicate Then
+                                    result.FramesDuplicated += 1
+                                End If
+                            End If
+
+                            nextTick += tickIntervalTicks
+                            catchUpCount += 1
+                            nowTicks = Stopwatch.GetTimestamp()
+                        Loop While catchUpCount < 8 AndAlso
+                                   nextTick <= nowTicks AndAlso
+                                   Not Threading.Volatile.Read(_stopSignal)
+
                     Else
                         ' Sleep toward the next tick (keep ~2ms spin margin for
                         ' Stop() responsiveness and tick precision).
@@ -713,10 +719,15 @@ Namespace CaptureEngine.Recording
                         ' core spins at 100%. Use SpinWait for the sub-2.5ms
                         ' remainder instead of a hot loop.
                         Dim waitMs As Double = (nextTick - nowTicks) * 1000.0 / Stopwatch.Frequency
-                        If waitMs > 2.5 Then
-                            Thread.Sleep(CInt(waitMs - 2.0))
-                        ElseIf waitMs > 0.2 Then
-                            Thread.SpinWait(50)   ' ~sub-ms yield, keeps core free-ish
+                        ' Do not sleep for the whole remaining interval. Windows may
+                        ' overshoot a multi-ms Sleep even after timeBeginPeriod(1),
+                        ' which turns a 120fps target into ~80-90fps pacing.
+                        ' Use short 1ms scheduler quanta and re-check the deadline.
+                        ' The final sub-ms remainder stays on SpinWait for precision.
+                        If waitMs > 1.0 Then
+                            Thread.Sleep(1)
+                        ElseIf waitMs > 0.05 Then
+                            Thread.SpinWait(200)
                         End If
                     End If
                 Loop

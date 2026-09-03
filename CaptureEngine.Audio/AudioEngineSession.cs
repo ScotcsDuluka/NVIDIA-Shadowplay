@@ -43,6 +43,10 @@ namespace CaptureEngine.Audio
         private AudioEngineDiagnostics _diagnostics = new AudioEngineDiagnostics();
         private long _sessionStartQpc100ns;
         private long _videoStartQpc100ns;
+        // Frozen session boundary. Packets arriving after this boundary may
+        // contain device-cursor audio that was already queued at Stop(); output
+        // must be hard-clipped to [T0, TEnd].
+        private long _sessionEndQpc100ns;
         private bool _started;
         private bool _stopped;
 
@@ -136,6 +140,7 @@ namespace CaptureEngine.Audio
                 if (!_started || _stopped) return;
                 if (sessionEndQpc100ns <= 0)
                     sessionEndQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
+                Interlocked.Exchange(ref _sessionEndQpc100ns, sessionEndQpc100ns);
                 foreach (var t in _tracks)
                 {
                     try { t.Capture.Stop(); } catch { }
@@ -215,6 +220,63 @@ namespace CaptureEngine.Audio
                                         packet.QpcPosition100ns, packet.Flags);
             long dataEnd = report.LastEnd100ns;
             long dataStart = dataEnd - report.BufferDur100ns;
+
+            // HARD T_END: WASAPI's render cursor can be ahead of wall-clock Stop
+            // because audio was already queued in the endpoint buffer. Never pass
+            // content beyond the frozen session boundary to downstream sinks.
+            long sessionEnd = Interlocked.Read(ref _sessionEndQpc100ns);
+            if (sessionEnd > 0)
+            {
+                if (dataStart >= sessionEnd)
+                {
+                    t.LastEnd100ns = sessionEnd;
+                    return;
+                }
+
+                if (report.Hole100ns > 0)
+                {
+                    long holeStart = dataStart - report.Hole100ns;
+                    long holeEnd = Math.Min(dataStart, sessionEnd);
+                    if (holeStart < holeEnd)
+                    {
+                        DispatchSilence(t, holeStart, holeEnd - holeStart);
+                    }
+                }
+
+                long clippedEnd = Math.Min(dataEnd, sessionEnd);
+                long emitDur100ns = clippedEnd - dataStart;
+                int emitFrames = (int)Math.Min((long)frames,
+                    emitDur100ns * t.Capture.SampleRate / 10_000_000L);
+                if (emitFrames <= 0)
+                {
+                    t.LastEnd100ns = sessionEnd;
+                    return;
+                }
+
+                int bytesPerFrame = Math.Max(1, t.OutputChannels * 2);
+                int emitBytes = emitFrames * bytesPerFrame;
+                byte[] emitPcm = pcm;
+                if (emitBytes < pcm.Length)
+                {
+                    emitPcm = new byte[emitBytes];
+                    Buffer.BlockCopy(pcm, 0, emitPcm, 0, emitBytes);
+                }
+
+                var clippedPacket = new AudioPacket(t.Kind, dataStart, emitFrames, emitPcm, false,
+                                                    packet.QpcPosition100ns, packet.DevicePositionFrames,
+                                                    packet.Flags, t.Capture.SampleRate, t.OutputChannels);
+                Dispatch(t, clippedPacket);
+                t.DataBytes += emitPcm.Length;
+                t.LastEnd100ns = Math.Min(dataStart +
+                    (long)emitFrames * 10_000_000L / t.Capture.SampleRate, sessionEnd);
+                if (!t.Started)
+                {
+                    t.Started = true;
+                    t.FirstQpc100ns = packet.QpcPosition100ns;
+                }
+                return;
+            }
+
 
             if (report.Hole100ns > 0)
             {
