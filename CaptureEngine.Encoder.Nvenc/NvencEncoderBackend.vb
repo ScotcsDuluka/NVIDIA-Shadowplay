@@ -100,6 +100,17 @@ Namespace CaptureEngine.Encoder.Nvenc
             End Get
         End Property
 
+        ''' <summary>
+        ''' Actual NVENC frame rate from the initialized native encoder.
+        ''' This is the authoritative rate used by the H.264 stream timing.
+        ''' </summary>
+        Public ReadOnly Property FrameRateFps As Integer
+            Get
+                If _frameRateDen = 0UI Then Return 0
+                Return CInt(Math.Round(CDbl(_frameRateNum) / CDbl(_frameRateDen)))
+            End Get
+        End Property
+
         ' ─── Session boundary tracking ─────────────────────────────────
         ' When True, the next Encode() call will set FORCEIDR + OUTPUT_SPSPPS
         ' to create a clean H.264 access point (IDR frame + SPS/PPS headers).

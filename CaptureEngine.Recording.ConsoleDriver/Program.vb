@@ -56,6 +56,7 @@ Module Program
         Dim configArg As String = ""
         Dim outArg As String = "videocheck.mp4"
         Dim checkSec As Integer = 8
+        Dim mismatchSessionFps As Integer = 0
         For i As Integer = 0 To args.Length - 2
             If args(i) = "--ffmpeg" Then ffmpegPath = args(i + 1)
             If args(i) = "--quick" Then quick = True
@@ -64,6 +65,7 @@ Module Program
             If args(i) = "--config" Then configArg = args(i + 1)
             If args(i) = "--out" Then outArg = args(i + 1)
             If args(i) = "--seconds" Then Integer.TryParse(args(i + 1), checkSec)
+            If args(i) = "--mismatch-fps" Then Integer.TryParse(args(i + 1), mismatchSessionFps)
         Next
 
         If ffmpegPath = "ffmpeg" Then
@@ -79,7 +81,7 @@ Module Program
 
         ' ── PHASE 1 VIDEO RUNTIME VALIDATION driver (canonical config chain) ──
         If videoCheck Then
-            Return RunVideoCheck(configArg, outArg, checkSec, ffmpegPath)
+            Return RunVideoCheck(configArg, outArg, checkSec, ffmpegPath, mismatchSessionFps)
         End If
 
         Console.WriteLine("============================================================")
@@ -367,7 +369,7 @@ Module Program
     ' config variants and ffprobe-asserts the produced MP4. This driver
     ' only runs the REAL pipeline and echoes the effective startup values
     ' — no config invented here, no result faked.
-    Private Function RunVideoCheck(configPath As String, outPath As String, seconds As Integer, ffmpegPath As String) As Integer
+    Private Function RunVideoCheck(configPath As String, outPath As String, seconds As Integer, ffmpegPath As String, mismatchSessionFps As Integer) As Integer
         Console.WriteLine("============================================================")
         Console.WriteLine(" PHASE 1 VIDEO — Windows real-record validation (--videocheck)")
         Console.WriteLine("============================================================")
@@ -387,6 +389,14 @@ Module Program
             Dim settings As CaptureSettings = NextRecordingConfig.LoadEffectiveSettings(cfg)
             Dim startup As EngineStartupConfig = NextRecordingConfig.MapStartupConfig(settings)
 
+            ' Regression hook: deliberately initialize NVENC at 60fps and ask the
+            ' subsequent session for another FPS. This exercises the production
+            ' per-session rebuild path for the exact timing bug found in real clips.
+            If mismatchSessionFps > 0 Then
+                startup.Fps = 60
+                Console.WriteLine($"  MISMATCH REGRESSION: startup NVENC fps=60, session fps={mismatchSessionFps}")
+            End If
+
             Console.WriteLine("  effective startup (requested values from config):")
             Console.WriteLine($"    encoder='{startup.CodecKey}' fps={startup.Fps} bitrate={startup.BitrateBps} bps")
             Console.WriteLine($"    rc='{startup.RateControl}' preset='{startup.Preset}' gop={startup.GopSize}")
@@ -400,6 +410,7 @@ Module Program
             ' ── session config from a FRESH reload (CT-4 contract) → real record ──
             Dim sessionCfg As SessionConfig = NextRecordingConfig.BuildSessionConfig(outPath, ffmpegPath, Nothing, cfg)
             sessionCfg.DurationSeconds = seconds
+            If mismatchSessionFps > 0 Then sessionCfg.TargetFps = mismatchSessionFps
             Dim r As SessionResult = engine.StartSession(sessionCfg)
             PrintSessionResult("VideoCheck", r)
 

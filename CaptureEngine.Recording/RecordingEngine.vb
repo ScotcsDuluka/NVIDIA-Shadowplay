@@ -215,11 +215,52 @@ Namespace CaptureEngine.Recording
                     config.TargetFps = If(echo.Fps > 0, echo.Fps, 60)
                     _logger.Warning($"[RecordingEngine] session FPS missing/invalid; using configured engine/startup FPS {config.TargetFps}fps")
                 ElseIf echo.Fps > 0 AndAlso config.TargetFps <> echo.Fps Then
-                    _logger.Warning($"[RecordingEngine] session FPS {config.TargetFps} != persistent NVENC FPS {echo.Fps}; runtime uses session/config FPS. Persistent NVENC must be rebuilt when FPS changes.")
+                    _logger.Info($"[RecordingEngine] session FPS {config.TargetFps} differs from startup FPS {echo.Fps}; NVENC will be reconciled before the session starts.")
                 End If
 
                 config.EncodeWidth = _encoder.EncodeWidthOutput
                 config.EncodeHeight = _encoder.EncodeHeightOutput
+
+                ' The NVENC frame rate is encoded into the native encoder session and
+                ' therefore into the raw H.264 stream timing. A per-session FPS change
+                ' MUST rebuild the encoder before any frame is submitted; merely pacing
+                ' CaptureSession at a new FPS would otherwise produce a rate-mismatched
+                ' stream (e.g. 120 submitted frames interpreted as 60fps).
+                Dim encoderFps As Integer = _encoder.FrameRateFps
+                If encoderFps <> config.TargetFps Then
+                    _logger.Warning($"[RecordingEngine] rebuilding persistent NVENC for session FPS: encoder={encoderFps}fps → session={config.TargetFps}fps")
+
+                    Dim startup As EngineStartupConfig = If(_startupEcho, New EngineStartupConfig())
+                    Dim rebuiltConfig As New EncoderConfig() With {
+                        .CodecKey = If(String.IsNullOrEmpty(startup.CodecKey), "NVENC_H264", startup.CodecKey),
+                        .BitrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
+                        .MinrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
+                        .MaxrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
+                        .BufsizeBps = If(startup.BitrateBps > 0, startup.BitrateBps * 2, 40_000_000L),
+                        .GopSize = If(startup.GopSize > 0, startup.GopSize, 60),
+                        .RateControl = EngineStartupConfig.ResolveRateControl(startup.RateControl),
+                        .Preset = If(String.IsNullOrEmpty(startup.Preset), "p4", startup.Preset),
+                        .FrameRateFps = config.TargetFps,
+                        .ExpectedWidth = _capture.OutputWidth,
+                        .ExpectedHeight = _capture.OutputHeight,
+                        .EncodeWidth = config.EncodeWidth,
+                        .EncodeHeight = config.EncodeHeight
+                    }
+
+                    Dim rebuiltEncoder As New NvencEncoderBackend(_logger)
+                    rebuiltEncoder.Initialize(rebuiltConfig)
+                    Dim previousEncoder As NvencEncoderBackend = _encoder
+                    _encoder = rebuiltEncoder
+                    Try
+                        previousEncoder.Dispose()
+                    Catch ex As Exception
+                        _logger.Warning($"[RecordingEngine] previous NVENC dispose after FPS rebuild threw: {ex.Message}")
+                    End Try
+
+                    _logger.Info($"[RecordingEngine] NVENC FPS authority now={_encoder.FrameRateFps}fps (session requested={config.TargetFps}fps)")
+                Else
+                    _logger.Info($"[RecordingEngine] NVENC FPS authority verified={encoderFps}fps")
+                End If
 
                 _currentSession = New CaptureSession(
                     _capture, _encoder, config, _logger)
