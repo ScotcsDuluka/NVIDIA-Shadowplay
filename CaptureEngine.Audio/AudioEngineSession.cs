@@ -98,12 +98,14 @@ namespace CaptureEngine.Audio
             }
         }
 
-        public void Start()
+        public void Start(long timelineStartQpc100ns = 0)
         {
             lock (_sync)
             {
                 if (_started) return;
-                _sessionStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
+                _sessionStartQpc100ns = timelineStartQpc100ns > 0
+                    ? timelineStartQpc100ns
+                    : WasapiPositionCapture.QpcTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
                 _diagnostics.SessionStartQpc100ns = _sessionStartQpc100ns;
 
                 if (_config.SystemEnabled) TryStartTrack(AudioTrackKind.System, true);
@@ -168,7 +170,19 @@ namespace CaptureEngine.Audio
                 }
                 _tracks.Add(runtime);
                 capture.Start();
-                Log($"[AudioEngine] {kind} endpoint started: {capture.DeviceId} {capture.SampleRate}Hz/{capture.Channels}ch");
+
+                // The device format is authoritative only after WASAPI Start().
+                // Prime the tracker immediately so an idle endpoint still has a
+                // complete [T0, T_END] timeline filled with silence.
+                int sampleRate = capture.SampleRate;
+                int channels = Math.Max(1, capture.Channels);
+                if (sampleRate <= 0)
+                    throw new InvalidOperationException($"{kind} started with invalid format {sampleRate}Hz/{channels}ch");
+                runtime.OutputChannels = channels;
+                runtime.Tracker = new AudioPositionTracker(sampleRate);
+                runtime.Tracker.PrimeSessionStart(_sessionStartQpc100ns);
+                Log($"[AudioEngine] {kind} format ready: {sampleRate}Hz/{channels}ch {capture.BitsPerSample}bit");
+                Log($"[AudioEngine] {kind} endpoint started: {capture.DeviceId} {sampleRate}Hz/{channels}ch");
             }
             catch (Exception ex)
             {
@@ -281,17 +295,17 @@ namespace CaptureEngine.Audio
                     DeviceId = t.Capture.DeviceId,
                     SampleRate = t.Capture.SampleRate,
                     Channels = t.OutputChannels,
-                    Frames = t.Tracker.Frames,
-                    Packets = t.Tracker.Packets,
+                    Frames = t.Tracker?.Frames ?? 0,
+                    Packets = t.Tracker?.Packets ?? 0,
                     DataBytes = t.DataBytes,
                     SilenceBytes = t.SilenceBytes,
                     FirstQpc100ns = t.FirstQpc100ns,
                     LastEnd100ns = t.LastEnd100ns,
-                    GapPackets = t.Tracker.GapPackets,
-                    IdleGapPackets = t.Tracker.IdleGapPackets,
-                    QpcAnomalies = t.Tracker.QpcAnomalies,
-                    CursorViolations = t.Tracker.MonotonicViolations,
-                    TimestampErrorPackets = t.Tracker.TimestampErrorPackets
+                    GapPackets = t.Tracker?.GapPackets ?? 0,
+                    IdleGapPackets = t.Tracker?.IdleGapPackets ?? 0,
+                    QpcAnomalies = t.Tracker?.QpcAnomalies ?? 0,
+                    CursorViolations = t.Tracker?.MonotonicViolations ?? 0,
+                    TimestampErrorPackets = t.Tracker?.TimestampErrorPackets ?? 0
                 });
             }
         }

@@ -87,6 +87,9 @@ Namespace CaptureEngine.Recording
         ' Sync timeline (Stopwatch ticks)
         Private _systemStartTicks As Long = 0
         Private _videoStartTicks As Long = 0
+        ' Single recording timeline origin shared by video, audio, and mux.
+        Private _timelineStartTicks As Long = 0
+        Private _timelineStartQpc100ns As Long = 0
         ' Device-mode video origin in the same 100ns QPC domain as WASAPI.
         Private _videoStartQpc100ns As Long = 0
         ' ★ M1: mic has its own independent timeline (device clock/cadence
@@ -246,6 +249,13 @@ Namespace CaptureEngine.Recording
             Dim sw As Stopwatch = Stopwatch.StartNew()
             Dim duration As TimeSpan = TimeSpan.FromSeconds(_config.DurationSeconds)
 
+            ' One common recording clock. Capture/audio can warm before T0;
+            ' no sample/frame belongs to the recording timeline before this boundary.
+            _timelineStartTicks = Stopwatch.GetTimestamp() + Math.Max(1L, Stopwatch.Frequency \ 10L)
+            _timelineStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(_timelineStartTicks)
+            _systemStartTicks = _timelineStartTicks
+            _logger.Info($"[session] common timeline armed: T0={_timelineStartQpc100ns} (all producers armed before T0)")
+
             Try
                 ' ★ Timer resolution: 1ms for the whole session (CFR pacing
                 ' needs sub-15.6ms sleeps — see the winmm declarations above).
@@ -270,8 +280,9 @@ Namespace CaptureEngine.Recording
                     _micAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.Microphone)
                     _audioEngine.AddSink(AudioTrackKind.Microphone, _micAudioEngineSink)
                 End If
-                _audioEngine.Start()
-                _logger.Info("[session] Audio owner = CaptureEngine.Audio (shared across video engines)")
+                ' Audio capture is armed/warmed now, but its recording timeline starts at common T0.
+                _audioEngine.Start(_timelineStartQpc100ns)
+                _logger.Info("[session] Audio owner = CaptureEngine.Audio (armed before common T0)")
 
                 ' ─── 2b. Legacy audio path is bypassed during migration ──
                 ' Keep the old implementation intact for rollback/reference.
@@ -568,10 +579,18 @@ Namespace CaptureEngine.Recording
                 _micAudioEngineSink?.AttachMux(_liveMux)
                 _logger.Info("[session] Shared Audio Engine sinks attached to LiveMux (audio PTS alignment handled upstream)")
 
-                ' ─── 3. Start video capture + encoder ─────────────────────
-                _logger.Info("[session] Starting video capture...")
+                ' ─── 3. Arm video capture + encoder BEFORE common T0 ────
+                _logger.Info("[session] Arming video capture + encoder before common T0...")
                 _encoder.Start()
                 _capture.Start(sink)
+
+                ' Audio/video mux timeline is already defined by the same T0.
+                _audioEngine.SetVideoStartQpc100ns(_timelineStartQpc100ns)
+                _sysAudioEngineSink?.SetVideoStart(_timelineStartQpc100ns)
+                _micAudioEngineSink?.SetVideoStart(_timelineStartQpc100ns)
+                _liveMux?.BeginTimelines(0.0, 0.0)
+                _timelinesBegun = True
+                _logger.Info("[session] Capture + Audio armed; common T0 committed to all timelines")
 
                 ' ─── 4. (video bytes now stream into the live-mux pipe) ──
 
@@ -600,14 +619,15 @@ Namespace CaptureEngine.Recording
                 '     Dim targetFps As Integer = _capture.OutputRefreshRate
                 '     If targetFps <= 0 Then targetFps = 60
                 Dim tickIntervalTicks As Long = CLng(Stopwatch.Frequency / targetFps)
-                Dim nextTick As Long = 0                     ' 0 = t0 not established yet
+                Dim nextTick As Long = _timelineStartTicks
                 Dim pendingFrame As IVideoFrame = Nothing     ' freshest captured, not yet displayed
                 Dim pendingSeq As Long = -1
                 Dim lastFrame As IVideoFrame = Nothing        ' last displayed (for duplicates)
 
                 _logger.Info($"[session] Recording for {_config.DurationSeconds}s @ CFR {targetFps}fps...")
 
-                Do While sw.Elapsed < duration AndAlso Not _stopSignal
+                Dim durationTicks As Long = CLng(duration.TotalSeconds * Stopwatch.Frequency)
+                Do While (Stopwatch.GetTimestamp() - _timelineStartTicks) < durationTicks AndAlso Not _stopSignal
                     ' Refresh 'pending' with the freshest frame (drop older).
                     Dim far As FrameAcquisitionResult
                     While sink.TryTake(far)
@@ -623,58 +643,11 @@ Namespace CaptureEngine.Recording
                         End If
                     End While
 
-                    ' t0 = first REAL captured frame (video timeline origin).
-                    If _videoStartTicks = 0 Then
-                        If pendingFrame Is Nothing Then
-                            Thread.Sleep(1)
-                            Continue Do
-                        End If
-                        _videoStartTicks = Stopwatch.GetTimestamp()
-                        ' Device-mode sync anchor: same QPC domain as WASAPI, sampled at first frame.
-                        ' FrameDiagnostics remains diagnostics-only across backend handoffs.
-                        _videoStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
-                        nextTick = _videoStartTicks
-
-                        ' ★ OBS-model alignment: SyncMath offsets applied at FEED time.
-                        ' (Owner run 20:58 showed a=0B + exit -22: this call was lost
-                        ' in a merge — the audio PipeFeed waited forever for the
-                        ' timeline event, nothing was ever written, ffmpeg died.)
-                        ' ★ SELF-AUDIT FIX (regression in 342f808): I removed the
-                        ' SyncMath offset here believing it double-compensated with
-                        ' the tap's pre-roll. Sign analysis over the whole chain
-                        ' proves the OPPOSITE — the two steps are complementary:
-                        '   tap pre-roll builds the stream from AUDIO START
-                        '   (wall-clock true, device-latency lead applied inside)
-                        '   this discard trims the head to VIDEO t0 so both pipes
-                        '   share the same origin (video pipe t0 = first frame).
-                        ' Without it the audio runs EARLY by the variable
-                        ' audio-start→video-t0 delta (0.05-0.5s per session logs)
-                        ' — the residual 'not stable' the owner kept reporting.
-                        ' Division of labor: AudioTap applies the device-latency
-                        ' LEAD (its ctor param); the pipe applies the ORIGIN
-                        ' OFFSET (SyncMath). One value each, no overlap.
-                        ' ★ Lead lives HERE now (single place): the tap builds a pure
-                        ' wall-clock stream (lead 0); the pipe origin offset carries
-                        ' BOTH the audio-start→video-t0 trim AND the systemic
-                        ' device-latency lead.
-                        ' ★ Timelines begin via BeginTimelinesOnce(): Legacy
-                        ' mode fires here (stopwatch math is exact for that
-                        ' path). Device mode fires HERE if the tap already
-                        ' anchored, otherwise defers to the first packet —
-                        ' whichever input arrives last wins; the mux queues
-                        ' audio bytes meanwhile (8 MB cap ≫ the sub-100 ms
-                        ' window) and its writer waits on the timeline event.
-                        ' Shared Audio Engine owns the audio timeline. Its sink
-                        ' trims/pads buffered audio to this exact video QPC origin.
-                        If _audioEngine IsNot Nothing Then
-                            _audioEngine.SetVideoStartQpc100ns(_videoStartQpc100ns)
-                            _sysAudioEngineSink?.SetVideoStart(_videoStartQpc100ns)
-                            _micAudioEngineSink?.SetVideoStart(_videoStartQpc100ns)
-                            _liveMux?.BeginTimelines(0.0, 0.0)
-                            _timelinesBegun = True
-                        Else
-                            BeginTimelinesOnce()
-                        End If
+                    ' The recording timeline has one owner: common T0 reserved before any
+                    ' producer started. A frame arriving before T0 is only warm-up data.
+                    If _videoStartTicks = 0 AndAlso Stopwatch.GetTimestamp() >= _timelineStartTicks Then
+                        _videoStartTicks = _timelineStartTicks
+                        _videoStartQpc100ns = _timelineStartQpc100ns
                     End If
 
                     Dim nowTicks As Long = Stopwatch.GetTimestamp()
@@ -737,7 +710,7 @@ Namespace CaptureEngine.Recording
                 ' Everything downstream must use this immutable stop snapshot.
                 ' Tail-fill and encoder shutdown can take seconds and must never
                 ' extend the audio/video timeline after the user pressed Stop.
-                Dim stopElapsedSeconds As Double = Math.Min(duration.TotalSeconds, sw.Elapsed.TotalSeconds)
+                Dim stopElapsedSeconds As Double = Math.Min(duration.TotalSeconds, Math.Max(0.0, (Stopwatch.GetTimestamp() - _timelineStartTicks) / CDbl(Stopwatch.Frequency)))
                 Dim stopQpcTicks As Long = Stopwatch.GetTimestamp()
 
                 _logger.Info($"[session] Stop snapshot: elapsed={stopElapsedSeconds:F3}s")
