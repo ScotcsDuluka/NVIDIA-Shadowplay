@@ -497,17 +497,21 @@ Partial Public Class Loader
     ' ฟังก์ชัน UpdateNotifier (จัดการ UI)
     ' group = the notification group this toast belongs to (recording /
     ' replay / per-key fallback - see NotificationGroup). Routing (T29.3
-    ' slots + T29.4 anti-spam + T30 RaiseStack):
+    ' slots + T29.4 anti-spam + T30 RaiseStack, OWNER no-queue rule):
     '   1. A group steadily showing on a side slot -> Updater UI dance there.
     '   2. A NEW group + main busy -> first FREE configured side slot; when
-    '      EVERY configured slot is busy -> T30 QUEUE (FIFO, capped,
-    '      same-group dedup) instead of stealing a slot or dropping.
+    '      EVERY configured slot is busy -> OWNER displacement rule: the
+    '      toast lands on the FIRST slot top-down (main -> side2 -> side3)
+    '      that steadily shows a NON-toggle key. No queue, never deferred
+    '      while a normal slot exists (see DisplaceFirstNormalSlot).
     '   2b. A group live on a side slot but not steady yet -> mid-dance /
     '       mid-entrance coalesce onto that unit (T30.4 OWNER rule: a key
     '       repeat ALWAYS surfaces on the slot where the key lives);
-    '       mid-exit queues instead (the pending Close() would eat it).
+    '       mid-exit goes through the same displacement rule (the pending
+    '       Close() would eat it - never paint a corpse, T29.4).
     '   3. Main slot -> fresh show at the BOTTOM of the active stack (T30
-    '      reflow glides the rest up), same-group dance, or coalesce.
+    '      reflow glides the rest up), same-group dance, or coalesce;
+    '      mid-exit main -> displacement rule as well.
     Public Sub UpdateNotifier(message As String, showImage As Boolean, icon As String, iconColor As Color, Optional group As String = Nothing)
         If Me.InvokeRequired Then
             Me.Invoke(Sub() UpdateNotifier(message, showImage, icon, iconColor, group))
@@ -544,11 +548,12 @@ Partial Public Class Loader
         ' 2) A NEW group while the main toast is up -> the first FREE
         '    configured side slot gets a fresh show (OWNER example: Record
         '    start/stop living in slot 2, Replay start/stop arrives -> it
-        '    takes the free slot). Every configured slot busy -> T30 QUEUE:
-        '    the toast waits and surfaces on the first slot that frees -
-        '    never dropped, never stealing another group's slot. A group
-        '    already live somewhere skips this branch so its own slot's
-        '    dance (below) keeps updating where it lives.
+        '    takes the free slot). Every configured slot busy -> OWNER
+        '    no-queue displacement: the toast lands on the first slot
+        '    top-down (main -> side2 -> side3) that steadily shows a
+        '    NON-toggle key. A group already live somewhere skips this
+        '    branch so its own slot's dance (below) keeps updating where
+        '    it lives.
         If MainSlotBusy() AndAlso Not groupLiveSomewhere Then
             If slotCount >= 2 AndAlso Not SideSlotBusy(Notifier2) Then
                 AssignUnitY(2)
@@ -562,19 +567,20 @@ Partial Public Class Loader
                 RegisterActiveSlot(3)
                 Exit Sub
             End If
-            EnqueueToast(message, showImage, icon, iconColor, group)
+            DisplaceFirstNormalSlot(message, showImage, icon, iconColor, group)
             Exit Sub
         End If
 
         ' 2b) The group lives on a side slot but is NOT steady (mid-dance /
         '     mid-entrance). Coalesce onto that unit's rider - or, if the
-        '     unit is sliding out to close, queue instead of painting a
-        '     corpse (T29.4 lesson: the pending Me.Close() eats the toast).
+        '     unit is sliding out to close, DISPLACE elsewhere instead of
+        '     painting a corpse (T29.4 lesson: the pending Me.Close()
+        '     eats the toast).
         If slotCount >= 2 AndAlso SideSlotBusy(Notifier2) AndAlso SameToastGroup(_side2Group, group) Then
             If Notifier2.InTransition AndAlso Not Notifier2.IsDancing Then
                 ' Mid-EXIT to close - the pending Me.Close() would eat the
-                ' toast. Queue; never paint a corpse (T29.4).
-                EnqueueToast(message, showImage, icon, iconColor, group)
+                ' toast. Displace; never paint a corpse (T29.4).
+                DisplaceFirstNormalSlot(message, showImage, icon, iconColor, group)
             Else
                 ' Steady OR mid-dance -> the Updater UI dance on THIS slot
                 ' (T30.4 OWNER: key ซ้ำ stays on the slot where it lives).
@@ -587,7 +593,7 @@ Partial Public Class Loader
         If slotCount >= 3 AndAlso SideSlotBusy(Notifier3) AndAlso SameToastGroup(_side3Group, group) Then
             If Notifier3.InTransition AndAlso Not Notifier3.IsDancing Then
                 ' Mid-EXIT to close - see the slot 2 branch above.
-                EnqueueToast(message, showImage, icon, iconColor, group)
+                DisplaceFirstNormalSlot(message, showImage, icon, iconColor, group)
             Else
                 ' Steady OR mid-dance -> dance on THIS slot (T30.4).
                 DanceSideToast3(message, showImage, icon, iconColor, group)
@@ -601,13 +607,13 @@ Partial Public Class Loader
         '    This also covers 1-slot mode.
         If Notifier.InTransition AndAlso Not Notifier.IsDancing Then
             ' Main is sliding out to close - anything painted now dies with
-            ' it. Queue the toast; the heartbeat shows it on the next free
-            ' slot (often this very one, about a second later).
+            ' it. Displace onto the first non-toggle slot top-down instead
+            ' (OWNER no-queue rule).
             ' T30.4 OWNER rule "key ซ้ำ ให้ใช้ Updater UI > Slot นั้นๆ": a
-            ' mid-DANCE main is NOT queued - it falls through to ShowOnMain,
-            ' which coalesces the repeat onto the dance already running, so
-            ' the key keeps surfacing on the slot where it lives.
-            EnqueueToast(message, showImage, icon, iconColor, group)
+            ' mid-DANCE main is NOT displaced - it falls through to
+            ' ShowOnMain, which coalesces the repeat onto the dance already
+            ' running, so the key keeps surfacing on the slot where it lives.
+            DisplaceFirstNormalSlot(message, showImage, icon, iconColor, group)
             Exit Sub
         End If
         AssignUnitY(1)
@@ -693,18 +699,18 @@ Partial Public Class Loader
         paintSub()
     End Sub
 
-    ' ==== T30 RaiseStack — stack manager (reflow + queue + topmost) ====
-    ' OWNER spec T30 "RaiseStack":
+    ' ==== T30 RaiseStack — stack manager (reflow + topmost, no queue) ====
+    ' OWNER spec T30 "RaiseStack" + OWNER no-queue displacement rule:
     '   A) When a toast closes, the toasts BELOW it glide up (StartSlideY
     '      per unit: card + content, shadow rides its 16ms sync timer) to
     '      fill the gap - a compact vertical stack, Windows-style.
     '   B) The whole stack is re-asserted HWND_TOPMOST (SWP_NOACTIVATE -
     '      no focus steal) every ~2s while visible, so fullscreen
     '      borderless games / other topmost apps can never bury it.
-    '   C) A toast arriving when EVERY configured slot is busy is QUEUED
-    '      (FIFO, capped, same-group dedup) instead of being dropped or
-    '      stealing another group's slot - the heartbeat surfaces it the
-    '      moment a slot frees.
+    '   C) A toast arriving when EVERY configured slot is busy is NEVER
+    '      deferred: it displaces the first slot top-down (main -> side2
+    '      -> side3) that steadily shows a NON-toggle key - see
+    '      DisplaceFirstNormalSlot.
     ' Explosion-proofing (OWNER request - "กัน Users ระเบิด แอป"):
     '   - The heartbeat is idempotent: EVERY tick recomputes the truth
     '     from the live forms (liveness, ranks, free slots). Any race -
@@ -715,20 +721,12 @@ Partial Public Class Loader
     '   - Animations refuse disposed targets ("never animate a corpse"):
     '     unit engines drop panels/forms closed mid-flight instead of
     '     throwing ObjectDisposedException on the UI thread.
-    '   - Queue caps at MaxPendingToasts; overflow drops the OLDEST and
-    '     logs - memory stays bounded no matter how hard users spam.
+    '   - No queue (OWNER rule): a toast that cannot find a free or
+    '     same-group slot is displaced onto the first NON-toggle slot
+    '     top-down (see DisplaceFirstNormalSlot) - memory stays bounded
+    '     no matter how hard users spam.
     '   - A fresh show never pokes a unit mid-transition (T29.4 guard
-    '     extended): mid-exit toasts are queued, not painted.
-    Private Class PendingToast
-        Public Message As String
-        Public ShowImage As Boolean
-        Public Icon As String
-        Public IconColor As Color
-        Public Group As String
-    End Class
-
-    Private ReadOnly _pendingToasts As New Queue(Of PendingToast)()
-    Private Const MaxPendingToasts As Integer = 8
+    '     extended): mid-exit toasts are displaced elsewhere, not painted.
     Private Const StackPitchPx As Integer = 100      ' card 90px + 10px gap (matches SlotOffsetY)
     Private Const StackReflowMs As Integer = 250
     Private ReadOnly _slotOrder As New List(Of Integer)()   ' active slots, first = top of the stack
@@ -774,7 +772,6 @@ Partial Public Class Loader
         Try
             UpdateSlotLiveness()       ' deaths -> leave the stack order + clear group
             CompactStack()             ' glide every unit to its rank (no-op when aligned)
-            TryDequeueIntoFreeSlot()   ' T30-C: surface queued toasts
             _raiseCounter += 1
             If _raiseCounter >= 20 Then
                 _raiseCounter = 0
@@ -791,19 +788,6 @@ Partial Public Class Loader
             Case 1 : Return Notifier.Visible OrElse Notifier.Notifier_green_stop.Visible
             Case 2 : Return Notifier2.Visible OrElse Notifier2.Notifier_green_stop.Visible
             Case 3 : Return Notifier3.Visible OrElse Notifier3.Notifier_green_stop.Visible
-        End Select
-        Return False
-    End Function
-
-    ' A fully idle unit: not showing AND not mid-dance/mid-exit. Only then
-    ' may a queued toast reuse it for a fresh show (T29.4: never poke a
-    ' unit mid-transition - its pending Me.Close() eats the toast).
-    Private Function SlotIsIdle(slotIdx As Integer) As Boolean
-        If SlotIsAlive(slotIdx) Then Return False
-        Select Case slotIdx
-            Case 1 : Return Not Notifier.InTransition
-            Case 2 : Return Not Notifier2.InTransition
-            Case 3 : Return Not Notifier3.InTransition
         End Select
         Return False
     End Function
@@ -876,59 +860,56 @@ Partial Public Class Loader
         Next
     End Sub
 
-    ' T30-C: FIFO queue with same-group dedup (a repeat toast refreshes
-    ' its queued copy in place) and a hard cap - overflow drops the OLDEST
-    ' and logs, so spamming can grow memory or starve the stack forever.
-    Private Sub EnqueueToast(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
-        For Each p As PendingToast In _pendingToasts
-            If SameToastGroup(p.Group, group) Then
-                p.Message = message
-                p.ShowImage = showImage
-                p.Icon = icon
-                p.IconColor = iconColor
-                Debug.WriteLine("[Stack] queue: refreshed pending group " & group)
-                Return
-            End If
-        Next
-        If _pendingToasts.Count >= MaxPendingToasts Then
-            Dim dropped As PendingToast = _pendingToasts.Dequeue()
-            Debug.WriteLine("[Stack] queue FULL (" & MaxPendingToasts & ") - dropped oldest group " & dropped.Group)
-        End If
-        _pendingToasts.Enqueue(New PendingToast With {
-            .Message = message, .ShowImage = showImage,
-            .Icon = icon, .IconColor = iconColor, .Group = group})
-        Debug.WriteLine("[Stack] queued group " & group & " (depth " & _pendingToasts.Count & ")")
-    End Sub
+    ' OWNER no-queue rule: toggle keys are the start/stop PAIR groups
+    ' (recording on/off, replay on/off - see NotificationGroup). A slot
+    ' showing one carries a live state the user is tracking; displacement
+    ' must never land on it while a "normal" one-shot slot exists.
+    Private Shared Function IsToggleGroup(group As String) As Boolean
+        Return SameToastGroup(group, "recording") OrElse SameToastGroup(group, "replay")
+    End Function
 
-    Private Sub TryDequeueIntoFreeSlot()
-        If _pendingToasts.Count = 0 Then Return
-
+    ' OWNER displacement rule (replaces the T30-C queue): when EVERY
+    ' configured slot is busy and a new key arrives, the toast is NEVER
+    ' deferred. It lands on the FIRST slot top-down (main -> side2 ->
+    ' side3) that steadily shows a NON-toggle group, via that slot's own
+    ' Updater UI replace dance - the displaced key simply goes away.
+    '   - Steady check: green_stop.Visible (entrance done) + not
+    '     InTransition (no dance/exit in flight). A mid-exit unit is never
+    '     touched (T29.4: its pending Me.Close() eats the paint), a
+    '     mid-dance unit coalesces inside its dance path instead.
+    '   - Fallback when EVERY slot holds a toggle group: the classic
+    '     replace dance on the MAIN toast (pre-T30 rule - a new toast is
+    '     never dropped silently). Main mid-exit is the one untouchable
+    '     case: the toast is dropped and logged (there is no queue).
+    Private Sub DisplaceFirstNormalSlot(message As String, showImage As Boolean, icon As String, iconColor As Color, group As String)
         Dim slotCount As Integer = ConfiguredSlotCount()
-        Dim target As Integer = 0
-        If SlotIsIdle(1) Then
-            target = 1
-        ElseIf slotCount >= 2 AndAlso SlotIsIdle(2) Then
-            target = 2
-        ElseIf slotCount >= 3 AndAlso SlotIsIdle(3) Then
-            target = 3
-        End If
-        If target = 0 Then Return
 
-        Dim p As PendingToast = _pendingToasts.Dequeue()
-        UpdateSlotLiveness()   ' refresh ranks with the CURRENT liveness
-        AssignUnitY(target)
-        Debug.WriteLine("[Stack] dequeue group " & p.Group & " -> slot " & target)
-        Select Case target
-            Case 1
-                ShowOnMain(p.Message, p.ShowImage, p.Icon, p.IconColor, p.Group)
-                RegisterActiveSlot(1)
-            Case 2
-                ShowSideSlot(Notifier_Sub2, p.Message, p.ShowImage, p.Icon, p.IconColor, p.Group)
-                RegisterActiveSlot(2)
-            Case 3
-                ShowSideSlot3(Notifier_Sub3, p.Message, p.ShowImage, p.Icon, p.IconColor, p.Group)
-                RegisterActiveSlot(3)
-        End Select
+        ' 1) Main slot - top of the stack, checked first.
+        If Notifier.Notifier_green_stop.Visible AndAlso Not Notifier.InTransition AndAlso
+           Not IsToggleGroup(_mainGroup) Then
+            ShowOnMain(message, showImage, icon, iconColor, group)
+            Exit Sub
+        End If
+        ' 2) Side slot 2.
+        If slotCount >= 2 AndAlso Notifier2.Notifier_green_stop.Visible AndAlso Not Notifier2.InTransition AndAlso
+           Not IsToggleGroup(_side2Group) Then
+            DanceSideToast(message, showImage, icon, iconColor, group)
+            Exit Sub
+        End If
+        ' 3) Side slot 3 (3-slot mode only).
+        If slotCount >= 3 AndAlso Notifier3.Notifier_green_stop.Visible AndAlso Not Notifier3.InTransition AndAlso
+           Not IsToggleGroup(_side3Group) Then
+            DanceSideToast3(message, showImage, icon, iconColor, group)
+            Exit Sub
+        End If
+
+        ' Fallback - every slot holds a toggle group.
+        If Notifier.InTransition AndAlso Not Notifier.IsDancing Then
+            Debug.WriteLine("[Stack] no normal slot + main closing - dropped (no queue): " & group)
+            Exit Sub
+        End If
+        Debug.WriteLine("[Stack] all slots toggle - displaced onto main: " & group)
+        ShowOnMain(message, showImage, icon, iconColor, group)
     End Sub
 
     ' T30-B: re-assert topmost on every window of every visible unit.
