@@ -42,6 +42,7 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
 
         ' PHASE 1 VIDEO RUNTIME WIRING: driver-side preset config retrieval
         Public Property GetPresetConfig As NvEncodeAPI.NvEncGetEncodePresetConfigDelegate
+        Public Property GetPresetConfigEx As NvEncodeAPI.NvEncGetEncodePresetConfigExDelegate
 
         Public ReadOnly Property MaxSupportedApiVersion As UInteger
             Get
@@ -127,6 +128,12 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
                     Of NvEncodeAPI.NvEncUnlockBitstreamDelegate)(_fnList.nvEncUnlockBitstream)
                 GetPresetConfig = Marshal.GetDelegateForFunctionPointer(
                     Of NvEncodeAPI.NvEncGetEncodePresetConfigDelegate)(_fnList.nvEncGetEncodePresetConfig)
+                If _fnList.nvEncGetEncodePresetConfigEx <> IntPtr.Zero Then
+                    GetPresetConfigEx = Marshal.GetDelegateForFunctionPointer(
+                        Of NvEncodeAPI.NvEncGetEncodePresetConfigExDelegate)(_fnList.nvEncGetEncodePresetConfigEx)
+                Else
+                    GetPresetConfigEx = Nothing
+                End If
 
                 _loaded = True
                 Return True

@@ -124,6 +124,12 @@ function Invoke-Scenario {
     # can never write to the user's config.
     $appRoot = Join-Path $env:TEMP "phase1-video-$Name"
     New-Item -ItemType Directory -Force -Path (Join-Path $appRoot "Config") | Out-Null
+
+    # HARD ISOLATION: Seed scenario values into AppRoot Config\\config.json so OverlayConfig cannot leak the real user config.
+    $v = Get-Content (Join-Path $CfgDir "video.json") -Raw | ConvertFrom-Json
+    $e = Get-Content (Join-Path $CfgDir "engine.json") -Raw | ConvertFrom-Json
+    $u = [ordered]@{ Recording = [ordered]@{ UseNativeResolution=[bool]$v.Current.use_native_resolution; Encoder=[string]$v.Encoder; EncoderNow=[string]$v.Encoder; FPS=[int]$v.Current.fps; Bitrate=[int]$v.Current.bitrate; Width=[int]$v.Current.width; Height=[int]$v.Current.height; Preset=[string]$v.ActivePreset; EncoderPreset=[int]$v.Current.encoder_preset; ReplayDuration=60; APICapture=[string]$e.CaptureMethod }; Audio=[ordered]@{ SystemAudioEnabled=$true; MicEnabled=$false; SystemAudioVolume=1.0; MicVolume=1.0; MicDeviceName=""; MicDeviceId=""; TrackMode=0; AudioClockMode="Legacy" }; Paths=[ordered]@{} }
+    $u | ConvertTo-Json -Depth 6 | Set-Content -Path (Join-Path $appRoot "Config\\config.json") -Encoding UTF8
     $prevRoot = $env:NVIDIA_SHADOWPLAY_APP_ROOT
     $env:NVIDIA_SHADOWPLAY_APP_ROOT = $appRoot
     Write-Host ""

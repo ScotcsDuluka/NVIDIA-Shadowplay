@@ -200,10 +200,10 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
 
         ' PHASE 1 VIDEO RUNTIME WIRING — struct versions from the SDK 13.0
         ' header: NV_ENC_CONFIG_VER = NVENCAPI_STRUCT_VERSION(9) | 1<<31,
-        ' NV_ENC_PRESET_CONFIG_VER = NVENCAPI_STRUCT_VERSION(5) | 1<<31,
+        ' NV_ENC_PRESET_CONFIG_VER = NVENCAPI_STRUCT_VERSION(4) | 1<<31.
         ' NV_ENC_RC_PARAMS_VER = NVENCAPI_STRUCT_VERSION(1) (NO 1<<31 flag).
         Public Const NV_ENC_CONFIG_VER_STRUCT As UInteger = 9UI
-        Public Const NV_ENC_PRESET_CONFIG_VER_STRUCT As UInteger = 5UI
+        Public Const NV_ENC_PRESET_CONFIG_VER_STRUCT As UInteger = 4UI
         Public Const NV_ENC_RC_PARAMS_VER_STRUCT As UInteger = 1UI
 
         Public Shared ReadOnly Property NV_ENC_CREATE_BITSTREAM_BUFFER_VER As UInteger
@@ -475,7 +475,13 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             Public nvEncCreateMVBuffer As IntPtr
             Public nvEncDestroyMVBuffer As IntPtr
             Public nvEncRunMotionEstimationOnly As IntPtr
-            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=281)>
+            ' SDK tail order: GetLastError → SetIOCUDAStreams →
+            ' GetEncodePresetConfigEx → GetSequenceParamEx.
+            Public nvEncGetLastErrorString As IntPtr
+            Public nvEncSetIOCudaStreams As IntPtr
+            Public nvEncGetEncodePresetConfigEx As IntPtr
+            Public nvEncGetSequenceParamEx As IntPtr
+            <MarshalAs(UnmanagedType.ByValArray, SizeConst:=277)>
             Public reserved2 As IntPtr()
         End Structure
 
@@ -648,19 +654,25 @@ Namespace CaptureEngine.Encoder.Nvenc.Internal
             encoder As IntPtr, bitstreamBuffer As IntPtr) As UInteger
 
         ''' <summary>
-        ''' PHASE 1 VIDEO RUNTIME WIRING: NvEncGetEncodePresetConfig — the
-        ''' driver fills NV_ENC_PRESET_CONFIG.presetCfg with the preset's own
-        ''' NV_ENC_CONFIG. This is the SAFE way to obtain a real
-        ''' NV_ENC_CONFIG (the struct memory comes from the driver itself;
-        ''' only whitelisted fields are patched afterwards by
-        ''' NvEncParamBuilder.ApplyVideoSettings).
-        ''' C: NVENCSTATUS nvEncGetEncodePresetConfig(void* encoder,
-        '''        GUID encodeGUID, GUID presetGUID, NV_ENC_PRESET_CONFIG*);
+        ''' PHASE 1 VIDEO RUNTIME WIRING: NvEncGetEncodePresetConfig — legacy
+        ''' preset retrieval kept only as a compatibility fallback.
         ''' </summary>
         <UnmanagedFunctionPointer(CallingConvention.StdCall)>
         Public Delegate Function NvEncGetEncodePresetConfigDelegate(
             encoder As IntPtr, encodeGUID As Guid, presetGUID As Guid,
             ByRef presetConfig As NV_ENC_PRESET_CONFIG) As UInteger
+
+        ''' <summary>
+        ''' SDK 13.x primary preset retrieval path. The Ex form accepts the
+        ''' tuningInfo selected for NvEncInitializeEncoder and is required by
+        ''' current drivers for p1..p7 preset GUIDs.
+        ''' C: nvEncGetEncodePresetConfigEx(encoder, encodeGUID, presetGUID,
+        ''' tuningInfo, presetConfig)
+        ''' </summary>
+        <UnmanagedFunctionPointer(CallingConvention.StdCall)>
+        Public Delegate Function NvEncGetEncodePresetConfigExDelegate(
+            encoder As IntPtr, encodeGUID As Guid, presetGUID As Guid,
+            tuningInfo As UInteger, ByRef presetConfig As NV_ENC_PRESET_CONFIG) As UInteger
 
         ' === P/Invoke loader functions ===
         <DllImport("nvEncodeAPI64.dll", CallingConvention:=CallingConvention.StdCall,

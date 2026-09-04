@@ -40,6 +40,7 @@ Namespace CaptureEngine.Recording
 
         ' ─── Current session ─────────────────────────────────────────────
         Private _currentSession As CaptureSession
+        Private _stopRequested As Boolean = False
 
         Public Sub New(logger As EngineLogger)
             _logger = logger
@@ -196,6 +197,7 @@ Namespace CaptureEngine.Recording
                 If _state <> RecordingEngineState.Idle Then
                     Throw New InvalidOperationException($"StartSession() called from state {_state}")
                 End If
+                _stopRequested = False
                 _state = RecordingEngineState.Recording
             End SyncLock
 
@@ -262,8 +264,12 @@ Namespace CaptureEngine.Recording
                     _logger.Info($"[RecordingEngine] NVENC FPS authority verified={encoderFps}fps")
                 End If
 
-                _currentSession = New CaptureSession(
-                    _capture, _encoder, config, _logger)
+                Dim startStop As Boolean
+                SyncLock _sync
+                    _currentSession = New CaptureSession(_capture, _encoder, config, _logger)
+                    startStop = _stopRequested
+                End SyncLock
+                If startStop Then _currentSession?.[Stop]()
                 result = _currentSession.Run()
                 _currentSession = Nothing
                 _lastSessionResult = result
@@ -285,10 +291,17 @@ Namespace CaptureEngine.Recording
 
         ''' <summary>Signal early stop. The running session will return shortly.</summary>
         Public Sub [Stop]()
+            Dim session As CaptureSession = Nothing
             SyncLock _sync
                 If _disposed Then Return
+                If _state = RecordingEngineState.Recording Then
+                    _stopRequested = True
+                    session = _currentSession
+                Else
+                    Return
+                End If
             End SyncLock
-            _currentSession?.[Stop]()
+            session?.[Stop]()
         End Sub
 
         Public Function GetStatus() As EngineStatus

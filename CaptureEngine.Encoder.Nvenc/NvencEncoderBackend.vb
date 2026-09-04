@@ -273,17 +273,39 @@ Namespace CaptureEngine.Encoder.Nvenc
                 ' in that case fall back to the explicit config builder.
                 Dim presetCfg As New NvEncodeAPI.NV_ENC_PRESET_CONFIG()
                 Dim gotPreset As Boolean = False
-                If _nvenc.GetPresetConfig IsNot Nothing Then
-                    presetCfg.version = NvEncodeAPI.NV_ENC_PRESET_CONFIG_VER
+                presetCfg.version = NvEncodeAPI.NV_ENC_PRESET_CONFIG_VER
+                presetCfg.presetCfg = Nothing
+                presetCfg.presetCfg.version = NvEncodeAPI.NV_ENC_CONFIG_VER
+
+                ' SDK 13.x primary path: Ex includes tuningInfo and supports the
+                ' modern p1..p7 presets. Legacy GetEncodePresetConfig is only a
+                ' compatibility fallback for older drivers.
+                If _nvenc.GetPresetConfigEx IsNot Nothing Then
+                    Dim pcStatusEx As UInteger = _nvenc.GetPresetConfigEx.Invoke(
+                        _encoderHandle, NvEncodeAPI.NV_ENC_CODEC_H264_GUID,
+                        initParams.presetGUID, initParams.tuningInfo, presetCfg)
+                    gotPreset = (pcStatusEx = NvEncodeAPI.NV_ENC_SUCCESS)
+                    If gotPreset Then
+                        _logger.Info($"NvEncGetEncodePresetConfigEx succeeded: preset={presetKey}, tuningInfo={initParams.tuningInfo}")
+                    Else
+                        _logger.Warning($"NvEncGetEncodePresetConfigEx failed: status={pcStatusEx} ({NvEncodeAPI.NvencStatusToString(pcStatusEx)})")
+                    End If
+                ElseIf _nvenc.GetPresetConfig IsNot Nothing Then
                     Dim pcStatus As UInteger = _nvenc.GetPresetConfig.Invoke(
                         _encoderHandle, NvEncodeAPI.NV_ENC_CODEC_H264_GUID,
                         initParams.presetGUID, presetCfg)
                     gotPreset = (pcStatus = NvEncodeAPI.NV_ENC_SUCCESS)
                     If Not gotPreset Then
-                        _logger.Warning($"NvEncGetEncodePresetConfig failed: status={pcStatus} ({NvEncodeAPI.NvencStatusToString(pcStatus)}) — building an explicit minimal NV_ENC_CONFIG")
+                        _logger.Warning($"NvEncGetEncodePresetConfig legacy fallback failed: status={pcStatus} ({NvEncodeAPI.NvencStatusToString(pcStatus)})")
+                    Else
+                        _logger.Info($"NvEncGetEncodePresetConfig legacy fallback succeeded: preset={presetKey}")
                     End If
                 Else
-                    _logger.Warning("NvEncGetEncodePresetConfig unavailable in the driver function table — building an explicit minimal NV_ENC_CONFIG")
+                    _logger.Warning("No NVENC preset config retrieval entrypoint available — building an explicit minimal NV_ENC_CONFIG")
+                End If
+
+                If Not gotPreset Then
+                    _logger.Warning("Falling back to explicit minimal NV_ENC_CONFIG")
                 End If
 
                 Dim encodeCfg As NvEncodeAPI.NV_ENC_CONFIG
