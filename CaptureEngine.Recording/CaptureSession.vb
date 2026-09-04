@@ -233,6 +233,7 @@ Namespace CaptureEngine.Recording
 
             ' ─── Resources ───────────────────────────────────────────────
             Dim sink As BoundedVideoFrameSink = Nothing
+            Dim frameDisposer As DeferredVideoFrameDisposer = Nothing
             Dim audioCapture As WasapiLoopbackCapture = Nothing
             Dim wavStoppedEvent As New ManualResetEvent(False)
             Dim wavWriter As WavSidecarWriter = Nothing
@@ -263,6 +264,7 @@ Namespace CaptureEngine.Recording
                 timeBeginPeriod(1UI)
                 _logger.Info("[session] timer resolution set to 1ms (CFR pacing)")
                 sink = New BoundedVideoFrameSink(16, BoundedHandoffPolicy.DropOldest, _logger)
+                frameDisposer = New DeferredVideoFrameDisposer()
 
                 ' ─── 2. Shared Audio Engine (single owner) ─────────────
                 ' UI authority is Overlay [6] Audio Capture.vb. SessionConfig
@@ -633,6 +635,9 @@ Namespace CaptureEngine.Recording
                 Dim maxSourceGap100ns As Long = 0
                 Dim totalEncodeTicks As Long = 0
                 Dim maxEncodeTicks As Long = 0
+                Dim maxTickLateTicks As Long = 0
+                Dim lateTickCount As Long = 0
+                Dim presentationTickCount As Long = 0
                 Dim lastSelectedTs As Long = -1
 
                 _logger.Info($"[session] Recording for {_config.DurationSeconds}s @ CFR {targetFps}fps...")
@@ -672,13 +677,16 @@ Namespace CaptureEngine.Recording
                             Dim targetQpc100ns As Long = _timelineStartQpc100ns +
                                 (CLng(Math.Max(0L, nextTick - _timelineStartTicks)) * 10000000L \ Stopwatch.Frequency)
                             Dim selectedFrame As IVideoFrame = Nothing
+                            presentationTickCount += 1
 
                             While pendingFrame IsNot Nothing AndAlso
                                   pendingFrame.Diagnostics.CaptureTimeTicks <= targetQpc100ns
                                 ' Keep only the newest eligible source frame. The
                                 ' previously selected frame is obsolete now and must
                                 ' be disposed immediately; D3D11VideoFrame has no finalizer.
-                                selectedFrame?.Dispose()
+                                If selectedFrame IsNot Nothing Then
+                                    frameDisposer.Enqueue(selectedFrame)
+                                End If
                                 Dim selectedSeq As Long = pendingSeq
                                 If selectedSeqLast >= 0 AndAlso selectedSeq > selectedSeqLast + 1 Then selectedSeqSkips += selectedSeq - selectedSeqLast - 1
                                 If selectedSeq >= 0 Then selectedSeqLast = selectedSeq
@@ -704,13 +712,16 @@ Namespace CaptureEngine.Recording
                             End While
 
                             If selectedFrame IsNot Nothing Then
-                                lastFrame?.Dispose()
+                                If lastFrame IsNot Nothing Then
+                                    frameDisposer.Enqueue(lastFrame)
+                                End If
                                 lastFrame = selectedFrame
                             End If
 
                             Dim encodeFrame As IVideoFrame = lastFrame
-                            Dim isDuplicate As Boolean = (selectedFrame Is Nothing AndAlso lastFrame IsNot Nothing)
 
+                            Dim isDuplicate As Boolean = (selectedFrame Is Nothing AndAlso lastFrame IsNot Nothing)
+                            Dim encodeTicks As Long = 0
                             If encodeFrame IsNot Nothing Then
                                 Dim packet As EncodedPacket = Nothing
                                 Dim encodeStartTicks As Long = Stopwatch.GetTimestamp()
@@ -726,7 +737,7 @@ Namespace CaptureEngine.Recording
                                     _logger.Error($"[session] Encode error: {ex.Message}")
                                 End Try
 
-                                Dim encodeTicks As Long = Stopwatch.GetTimestamp() - encodeStartTicks
+                                encodeTicks = Stopwatch.GetTimestamp() - encodeStartTicks
                                 totalEncodeTicks += encodeTicks
                                 If encodeTicks > maxEncodeTicks Then maxEncodeTicks = encodeTicks
 
@@ -734,6 +745,11 @@ Namespace CaptureEngine.Recording
                                     result.FramesDuplicated += 1
                                 End If
                             End If
+
+                            Dim tickDoneTicks As Long = Stopwatch.GetTimestamp()
+                            Dim tickLateTicks As Long = tickDoneTicks - nextTick
+                            If tickLateTicks > maxTickLateTicks Then maxTickLateTicks = tickLateTicks
+                            If tickLateTicks > tickIntervalTicks Then lateTickCount += 1
 
                             nextTick += tickIntervalTicks
                             catchUpCount += 1
@@ -780,11 +796,13 @@ Namespace CaptureEngine.Recording
                 ' Capture-path evidence: distinguish real DXGI no-update periods,
                 ' handoff backpressure, and backend errors from CFR duplication.
                 _logger.Info($"[session] capture diagnostics: emitted={_capture.EmittedFrames}, pushed={_capture.FramesPushed}, dropped={_capture.DroppedFrames}, replaced={_capture.ReplacedFrames}, noFrame={_capture.NoFrameCount}, errors={_capture.ErrorCount}, accessLost={_capture.AccessLostCount}, textures={_capture.TexturesCreated}/{_capture.TexturesDisposed}")
+
                 Dim avgEncodeMs As Double = If(result.FramesEncoded > 0, totalEncodeTicks * 1000.0 / Stopwatch.Frequency / result.FramesEncoded, 0.0)
                 Dim maxEncodeMs As Double = maxEncodeTicks * 1000.0 / Stopwatch.Frequency
                 Dim maxSelectedLagMs As Double = maxSelectedLag100ns / 10000.0
                 Dim maxSourceGapMs As Double = maxSourceGap100ns / 10000.0
-                _logger.Info($"[session] CFR telemetry: selected={selectedCount}, seqSkips={selectedSeqSkips}, maxSelectedLag={maxSelectedLagMs:0.###}ms, maxSourceGap={maxSourceGapMs:0.###}ms, avgEncode={avgEncodeMs:0.###}ms, maxEncode={maxEncodeMs:0.###}ms")
+                Dim maxTickLateMs As Double = maxTickLateTicks * 1000.0 / Stopwatch.Frequency
+                _logger.Info($"[session] CFR telemetry: ticks={presentationTickCount}, selectedSources={selectedCount}, seqSkips={selectedSeqSkips}, maxSelectedLag={maxSelectedLagMs:0.###}ms, maxSourceGap={maxSourceGapMs:0.###}ms, avgEncode={avgEncodeMs:0.###}ms, maxEncode={maxEncodeMs:0.###}ms, lateTicks>{1000.0 * tickIntervalTicks / Stopwatch.Frequency:0.###}ms={lateTickCount}, maxTickLate={maxTickLateMs:0.###}ms")
 
                 ' Drain: keep only the FRESHEST leftover frame (stale ones just
                 ' dispose — the CFR stream already displayed newer states).
@@ -794,11 +812,11 @@ Namespace CaptureEngine.Recording
                     Dim f As IVideoFrame = farDrain.Frame
                     If f Is Nothing Then Continue While
                     If farDrain.Sequence > pendingSeq Then
-                        pendingFrame?.Dispose()
+                        frameDisposer.Enqueue(pendingFrame)
                         pendingFrame = f
                         pendingSeq = farDrain.Sequence
                     Else
-                        f.Dispose()
+                        frameDisposer.Enqueue(f)
                     End If
                 End While
 
@@ -824,7 +842,7 @@ Namespace CaptureEngine.Recording
 
                                 ' Transfer ownership before tail-fill; finalFrame
                                 ' must never point at a disposed pending frame.
-                                lastFrame?.Dispose()
+                                frameDisposer.Enqueue(lastFrame)
                                 lastFrame = pendingFrame
                                 pendingFrame = Nothing
                                 finalFrame = lastFrame
@@ -859,10 +877,11 @@ Namespace CaptureEngine.Recording
                     End If
                 End If
                 pendingFrame = Nothing   ' nothing left to dispose
-                lastFrame?.Dispose()
+                frameDisposer.Enqueue(lastFrame)
                 lastFrame = Nothing
+                frameDisposer.CompleteAndWait()
 
-                _logger.Info("[session] Stopping encoder...")
+                _logger.Info("[session] GPU frame disposer drained; stopping encoder...")
                 _encoder.Stop()
 
                 ' ─── 8. Stop shared Audio Engine ───────────────────────
@@ -1084,6 +1103,7 @@ Namespace CaptureEngine.Recording
                 ' ★ M1: mic sidecar cleanup mirrors the system sidecar
                 Try : micWriter?.Dispose() : Catch : End Try
                 Try : micCapture?.Dispose() : Catch : End Try
+                Try : frameDisposer?.Dispose() : Catch : End Try
                 Try : sink?.Dispose() : Catch : End Try
                 Try : wavStoppedEvent.Dispose() : Catch : End Try
                 Try : micStoppedEvent.Dispose() : Catch : End Try
