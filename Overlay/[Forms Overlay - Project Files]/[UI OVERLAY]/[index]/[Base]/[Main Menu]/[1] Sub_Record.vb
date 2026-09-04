@@ -151,6 +151,20 @@ Partial Public Class Base
             Exit Sub
         End If
 
+        ' Guard: hub connectivity — without the TCP link RECORD_START could
+        ' never be delivered (TcpClientHelper.Send drops silently) and no
+        ' engine_response would ever arrive to reconcile the optimistic
+        ' state, so the UI would show "Recording" forever. ShowNotifier
+        ' rides the SAME dead link, so the explicit offline state must be a
+        ' local control: Record_Stats is only rewritten on a real state
+        ' flip (UpdateRecordStatus memoizes on RecordValue), so the message
+        ' survives until the next genuine Start/Stop.
+        If tcp Is Nothing OrElse Not tcp.IsConnected Then
+            Record_Stats.Text = "Hub Offline — unable to start recording"
+            _isTogglingRecording = False
+            Exit Sub
+        End If
+
         Try
             If _isRecordingLocal Then
 

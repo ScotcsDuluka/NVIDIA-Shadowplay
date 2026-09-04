@@ -72,7 +72,12 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         ' Single-source config: the toggle state lives in config.json
         ' Overlay.UseOverlayEnabled (was: the Flags\Use_Overlay marker file;
         ' reading the CWD-relative name used to silently reset the overlay).
+        ' Programmatic init must not write back — only USER toggles write
+        ' (Use_Overlay_ValueChanged); config.json stays the single source
+        ' of truth that external edits and the API hub can rely on.
+        _toggleInitializing = True
         Use_Overlay.IsOn = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", False)
+        _toggleInitializing = False
         OpenApp()
         Timer1.Start()
     End Sub
@@ -108,22 +113,24 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         NvStatusDot_NVAPI.Status = If(apiRunning,
             NvStatusDot.DotStatus.Running, NvStatusDot.DotStatus.Stopped)
 
-        ' ── Overlay toggle (config.json Overlay.UseOverlayEnabled) ──
-        ' Writes only on mismatch: parse-patch-write of the CURRENT file, so
-        ' sections owned by other processes survive; the API hub enforces the
+        ' ── Overlay toggle indicator ──
+        ' READ-ONLY on purpose: the tick must not rewrite the config. It used
+        ' to mirror Use_Overlay.IsOn into config.json every second, so any
+        ' externally written UseOverlayEnabled=true was reverted within one
+        ' tick while the launcher toggle sat off. The config file is the
+        ' single source of truth: the toggle writes it on USER action only
+        ' (Use_Overlay_ValueChanged), and the NVIDIA API hub enforces the
         ' value every second (start/keep-alive vs kill the overlay stack).
-        Dim overlayEnabledStored As Boolean = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", False)
-        If Use_Overlay.IsOn Then
-            If Not overlayEnabledStored Then
-                AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", True)
-            End If
-            overlay_text.ForeColor = Color.White
-        Else
-            If overlayEnabledStored Then
-                AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", False)
-            End If
-            overlay_text.ForeColor = Color.DimGray
-        End If
+        overlay_text.ForeColor = If(Use_Overlay.IsOn, Color.White, Color.DimGray)
+    End Sub
+
+    ''' <summary>Guards the Load-time programmatic IsOn assignment so config
+    ''' init never round-trips a write; only real user toggles persist.</summary>
+    Private _toggleInitializing As Boolean = False
+
+    Private Sub Use_Overlay_ValueChanged(sender As Object, e As EventArgs) Handles Use_Overlay.ValueChanged
+        If _toggleInitializing Then Return
+        AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", Use_Overlay.IsOn)
     End Sub
 
     Public Sub OpenApp()
