@@ -41,6 +41,8 @@ Namespace CaptureEngine.Recording
         ' ─── Current session ─────────────────────────────────────────────
         Private _currentSession As CaptureSession
         Private _stopRequested As Boolean = False
+        Private _disposeRequested As Boolean = False
+        Private ReadOnly _sessionFinished As New ManualResetEventSlim(True)
 
         Public Sub New(logger As EngineLogger)
             _logger = logger
@@ -193,11 +195,12 @@ Namespace CaptureEngine.Recording
             If config Is Nothing Then Throw New ArgumentNullException(NameOf(config))
 
             SyncLock _sync
-                If _disposed Then Throw New ObjectDisposedException(NameOf(RecordingEngine))
+                If _disposed OrElse _disposeRequested Then Throw New ObjectDisposedException(NameOf(RecordingEngine))
                 If _state <> RecordingEngineState.Idle Then
                     Throw New InvalidOperationException($"StartSession() called from state {_state}")
                 End If
                 _stopRequested = False
+                _sessionFinished.Reset()
                 _state = RecordingEngineState.Recording
             End SyncLock
 
@@ -265,14 +268,23 @@ Namespace CaptureEngine.Recording
                 End If
 
                 Dim startStop As Boolean
+                Dim session As CaptureSession
                 SyncLock _sync
+                    If _disposeRequested OrElse _disposed Then
+                        _stopRequested = True
+                    End If
                     _currentSession = New CaptureSession(_capture, _encoder, config, _logger)
+                    session = _currentSession
                     startStop = _stopRequested
                 End SyncLock
-                If startStop Then _currentSession?.[Stop]()
-                result = _currentSession.Run()
-                _currentSession = Nothing
-                _lastSessionResult = result
+                If startStop Then session?.[Stop]()
+                result = session.Run()
+                SyncLock _sync
+                    If Object.ReferenceEquals(_currentSession, session) Then
+                        _currentSession = Nothing
+                    End If
+                    _lastSessionResult = result
+                End SyncLock
             Catch ex As Exception
                 _logger.Error($"RecordingEngine: session failed: {ex.Message}", ex)
                 result = New SessionResult() With {
@@ -284,6 +296,7 @@ Namespace CaptureEngine.Recording
                 SyncLock _sync
                     _state = RecordingEngineState.Idle
                 End SyncLock
+                _sessionFinished.Set()
             End Try
 
             Return result
@@ -317,20 +330,42 @@ Namespace CaptureEngine.Recording
         Private _lastSessionResult As SessionResult = Nothing
 
         Public Sub Dispose() Implements IDisposable.Dispose
+            Dim session As CaptureSession = Nothing
+            Dim waitForSession As Boolean = False
+
+            SyncLock _sync
+                If _disposed Then Return
+                _disposeRequested = True
+                _stopRequested = True
+                session = _currentSession
+                waitForSession = (_state = RecordingEngineState.Recording)
+            End SyncLock
+
+            session?.[Stop]()
+
+            If waitForSession Then
+                If Not _sessionFinished.Wait(TimeSpan.FromSeconds(30)) Then
+                    _logger.Warning("RecordingEngine: timed out waiting for active session to finish during Dispose; backends left alive for a safe retry.")
+                    Return
+                End If
+            End If
+
             SyncLock _sync
                 If _disposed Then Return
                 _disposed = True
                 _state = RecordingEngineState.Disposed
+                session = _currentSession
+                _currentSession = Nothing
             End SyncLock
 
-            ' Stop any active session first
-            _currentSession?.[Stop]()
-            Try : _currentSession?.Dispose() : Catch : End Try
+            Try : session?.[Stop]() : Catch : End Try
+            Try : session?.Dispose() : Catch : End Try
 
-            ' Dispose persistent backends (reverse order)
+            ' Dispose persistent backends only after any active StartSession has fully unwound.
             Try : _encoder?.Dispose() : Catch ex As Exception : _logger.Warning($"encoder.Dispose: {ex.Message}") : End Try
             Try : _capture?.Dispose() : Catch ex As Exception : _logger.Warning($"capture.Dispose: {ex.Message}") : End Try
 
+            _sessionFinished.Dispose()
             _logger.Info("RecordingEngine: disposed")
         End Sub
 
