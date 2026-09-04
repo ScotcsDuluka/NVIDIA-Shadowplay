@@ -63,3 +63,4 @@ scripts/apphost_test/bin/
 scripts/apphost_test/obj/
 scripts/apphost_test/out_final
 *.mp4
+/evidence

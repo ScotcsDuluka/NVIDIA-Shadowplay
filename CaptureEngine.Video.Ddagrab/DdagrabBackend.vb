@@ -690,6 +690,13 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                     ' timeline origin.
                     Dim acquireQpcTicks As Long = Stopwatch.GetTimestamp()
                     Dim sourceQpcTicks As Long = frameInfo.LastPresentTime
+                    Dim sourceAcquireDelta100ns As Long = 0
+                    If sourceQpcTicks > 0 Then
+                        sourceAcquireDelta100ns = QpcTicksTo100ns(sourceQpcTicks - acquireQpcTicks)
+                    End If
+                    If sequence Mod 60 = 0 Then
+                        _logger.Info($"DdagrabBackend: QPC probe seq={sequence} sourcePresent={sourceQpcTicks} acquireQpc={acquireQpcTicks} deltaMs={(sourceAcquireDelta100ns / 10000.0):0.###} accumulatedFrames={frameInfo.AccumulatedFrames}")
+                    End If
                     If sourceQpcTicks <= 0 OrElse
                        (_lastSourceQpcTicks > 0 AndAlso sourceQpcTicks < _lastSourceQpcTicks) Then
                         ' DXGI should expose a monotonic QPC presentation stamp, but

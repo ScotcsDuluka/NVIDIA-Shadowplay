@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright-glm-tabs": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@latest",
+        "--extension",
+        "--output-dir",
+        "C:\\My Project\\NVIDIA-Shadowplay\\output\\browser"
+      ]
+    }
+  }
+}
