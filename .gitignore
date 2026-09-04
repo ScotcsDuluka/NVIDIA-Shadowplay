@@ -51,6 +51,12 @@ Overlay/build.txt
 Overlay/NVIDIA_Shadowplay_Data/
 Overlay/API-Core/
 
+# stray editor/session backup files (cleanup after e032343 committed four of these)
+*.bak
+*.bak_wake
+*.diagbackup
+*.tmpwake
+
 # wrangler files
 .wrangler
 .dev.vars*
