@@ -2449,3 +2449,45 @@ CFR telemetry for final 15s motion run:
 - lateTicks>16.667ms=8
 - maxTickLate=64.124ms
 - Residual late ticks remain rare; do not claim every possible cadence stall is eliminated. Main confirmed disposal stall is fixed.
+
+============================================================
+2026-09-05 SESSION (Intel machine) — clap-sync test executed; Intel path validated
+============================================================
+- Ran the pending clap-sync campaign (HANDOFF §3/§8.1) on the INTEL machine
+  (no NVIDIA GPU: Intel UHD 0x9B41, 1920x1080). Full report:
+  evidence/clap-sync-SUMMARY-20260905.md + evidence/clap-sync-test-*.md.
+- Production config for this machine was incomplete and is now fixed/kept:
+  Paths.FFmpegPath=<product tree>\FFmpeg\ffmpeg.exe (RECORD_START was rejected
+  with 'FFmpegPath invalid' otherwise) and Recording.encoder=QUICKSYNC_H264
+  (legacy FFmpeg regime + QSV branch: ddagrab -> hwmap=derive_device=qsv ->
+  h264_qsv, 1080p60 CBR works end-to-end through the apphost stack).
+- Duluka/RecordingEngine cannot init on this machine (no NVIDIA adapter);
+  fallback to legacy CaptureEngine is automatic and works.
+- ENVIRONMENT GOTCHAS for any audio test here:
+  1) render endpoint is MUTED -> WASAPI loopback captures digital silence
+     even while audio plays (proven via evidence/loopback-probe: -8.0 dBFS
+     unmuted vs -91 dBFS muted). Tests must unmute and restore.
+  2) Intel SST loopback start-stall: first callback 0.4-12s after
+     StartRecording; content played in the gap never reaches the recording
+     (gap becomes silence, timeline stays continuous). A -40dB continuous
+     'warmer' tone from before RECORD_START shrinks it to ~0.4s.
+  3) ffplay starts its audio ~0.9s before its video (A/V startup skew) —
+     pollutes flash+beep absolute-offset measurements.
+- Result: recording pipeline healthy (h264+aac, start_time=0 both, exact
+  3.000s event spacing on both timelines); ms-level A/V verdict NOT honestly
+  measurable on this hardware (constant ~0.9s offset from stall+player skew,
+  not the 50ms clock-bias class). Phase-13 device-clock remains the design
+  answer for the Intel path.
+- Hotkey automation knowledge: PostMessage WM_HOTKEY(0x0312, id=5) to the
+  visible WinForms window titled 'Main' of process 'NVIDIA ShadowPlay' toggles
+  recording; MainWindowHandle of that process is 0x0 and the hidden 'test'
+  windows ignore the message.
+- Tooling recreated in evidence/ (gitignored, disk-only): tone_1k_60s.wav,
+  make-clap-tone.ps1, synthetic-click.ps1, apphost-contamination-experiment.ps1
+  (recreated, not re-run), diag-hotkey-probe.ps1, clap-sync-test.ps1,
+  loopback-probe/ (net10 WASAPI probe).
+- scripts/sync-verify.ps1: added UTF-8 BOM (was a parse error on PowerShell
+  5.1) and Find-Ffmpeg now probes the product tree FFmpeg\ folder.
+- Committed f064928: removed the four CaptureSession.vb backup variants
+  accidentally committed in e032343; .gitignore now ignores *.bak/*.bak_wake/
+  *.diagbackup/*.tmpwake.

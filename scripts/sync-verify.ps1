@@ -1,4 +1,4 @@
-# sync-verify.ps1 — TRUE end-to-end A/V sync measurement (ms-level)
+﻿# sync-verify.ps1 — TRUE end-to-end A/V sync measurement (ms-level)
 #
 # WHY: SessionResult.SystemOffsetSec reports the offset we MEASURED and
 # compensated — it is not proof the final file is aligned. The only honest
@@ -36,14 +36,18 @@ param(
 $ErrorActionPreference = "Continue"
 
 function Find-Ffmpeg {
-    $c = @("FFmpeg\ffmpeg.exe", "Overlay\API-Core\ffmpeg.exe", "$env:TEMP\ffmpeg.exe")
     $repo = Split-Path -Parent $PSScriptRoot
-    foreach ($p in @((Join-Path $repo "Overlay\API-Core\ffmpeg.exe"))) {
+    $candidates = @(
+        (Join-Path $repo "Overlay\API-Core\ffmpeg.exe"),
+        (Join-Path $repo "Overlay\bin\Release\net10.0-windows10.0.26100.0\FFmpeg\ffmpeg.exe"),
+        "$env:TEMP\ffmpeg.exe"
+    )
+    foreach ($p in $candidates) {
         if (Test-Path $p) { return $p }
     }
     $inPath = Get-Command ffmpeg -ErrorAction SilentlyContinue
     if ($inPath) { return $inPath.Source }
-    Write-Host "ffmpeg not found (Overlay\API-Core\ffmpeg.exe or PATH)" -ForegroundColor Red
+    Write-Host "ffmpeg not found (product tree FFmpeg\, Overlay\API-Core\ffmpeg.exe or PATH)" -ForegroundColor Red
     exit 1
 }
 
