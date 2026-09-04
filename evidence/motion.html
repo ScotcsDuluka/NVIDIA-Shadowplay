@@ -1,0 +1,12 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>NVIDIA MOTION TEST</title></head>
+<body style="margin:0;background:#111;color:#fff;overflow:hidden;font-family:Consolas">
+<div id="box" style="position:absolute;left:0;top:180px;width:180px;height:180px;background:white;color:black;font-size:28px;font-weight:bold;display:flex;align-items:center;justify-content:center">0</div>
+<div style="position:absolute;left:20px;top:20px;font-size:34px">NVIDIA MOTION TEST</div>
+<script>
+let x=0,d=7,n=0;
+function f(){x+=d;if(x<0||x>1100)d=-d;n++;box.style.left=x+"px";box.textContent=n;requestAnimationFrame(f)}
+f();
+</script>
+</body></html>

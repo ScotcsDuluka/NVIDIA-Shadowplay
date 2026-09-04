@@ -625,16 +625,6 @@ Namespace CaptureEngine.Recording
                 Dim pendingSeq As Long = -1
                 Dim lastFrame As IVideoFrame = Nothing        ' last displayed (for duplicates)
 
-                ' Phase 12c runtime telemetry.
-                Dim selectedCount As Long = 0
-                Dim selectedSeqLast As Long = -1
-                Dim selectedSeqSkips As Long = 0
-                Dim maxSelectedLag100ns As Long = 0
-                Dim maxSourceGap100ns As Long = 0
-                Dim totalEncodeTicks As Long = 0
-                Dim maxEncodeTicks As Long = 0
-                Dim lastSelectedTs As Long = -1
-
                 _logger.Info($"[session] Recording for {_config.DurationSeconds}s @ CFR {targetFps}fps...")
 
                 Dim durationTicks As Long = CLng(duration.TotalSeconds * Stopwatch.Frequency)
@@ -679,18 +669,6 @@ Namespace CaptureEngine.Recording
                                 ' previously selected frame is obsolete now and must
                                 ' be disposed immediately; D3D11VideoFrame has no finalizer.
                                 selectedFrame?.Dispose()
-                                Dim selectedSeq As Long = pendingSeq
-                                If selectedSeqLast >= 0 AndAlso selectedSeq > selectedSeqLast + 1 Then selectedSeqSkips += selectedSeq - selectedSeqLast - 1
-                                If selectedSeq >= 0 Then selectedSeqLast = selectedSeq
-                                selectedCount += 1
-                                Dim selectedTs As Long = pendingFrame.Diagnostics.CaptureTimeTicks
-                                Dim selectedLag As Long = targetQpc100ns - selectedTs
-                                If selectedLag > maxSelectedLag100ns Then maxSelectedLag100ns = selectedLag
-                                If lastSelectedTs >= 0 AndAlso selectedTs >= lastSelectedTs Then
-                                    Dim sourceGap As Long = selectedTs - lastSelectedTs
-                                    If sourceGap > maxSourceGap100ns Then maxSourceGap100ns = sourceGap
-                                End If
-                                lastSelectedTs = selectedTs
                                 selectedFrame = pendingFrame
                                 pendingFrame = Nothing
                                 pendingSeq = -1
@@ -713,7 +691,6 @@ Namespace CaptureEngine.Recording
 
                             If encodeFrame IsNot Nothing Then
                                 Dim packet As EncodedPacket = Nothing
-                                Dim encodeStartTicks As Long = Stopwatch.GetTimestamp()
                                 Try
                                     If _encoder.Encode(encodeFrame, packet) AndAlso packet IsNot Nothing Then
                                         _liveMux?.FeedVideo(packet.Payload, packet.PayloadLength)
@@ -725,10 +702,6 @@ Namespace CaptureEngine.Recording
                                     result.NvencErrors += 1
                                     _logger.Error($"[session] Encode error: {ex.Message}")
                                 End Try
-
-                                Dim encodeTicks As Long = Stopwatch.GetTimestamp() - encodeStartTicks
-                                totalEncodeTicks += encodeTicks
-                                If encodeTicks > maxEncodeTicks Then maxEncodeTicks = encodeTicks
 
                                 If isDuplicate Then
                                     result.FramesDuplicated += 1
@@ -780,11 +753,6 @@ Namespace CaptureEngine.Recording
                 ' Capture-path evidence: distinguish real DXGI no-update periods,
                 ' handoff backpressure, and backend errors from CFR duplication.
                 _logger.Info($"[session] capture diagnostics: emitted={_capture.EmittedFrames}, pushed={_capture.FramesPushed}, dropped={_capture.DroppedFrames}, replaced={_capture.ReplacedFrames}, noFrame={_capture.NoFrameCount}, errors={_capture.ErrorCount}, accessLost={_capture.AccessLostCount}, textures={_capture.TexturesCreated}/{_capture.TexturesDisposed}")
-                Dim avgEncodeMs As Double = If(result.FramesEncoded > 0, totalEncodeTicks * 1000.0 / Stopwatch.Frequency / result.FramesEncoded, 0.0)
-                Dim maxEncodeMs As Double = maxEncodeTicks * 1000.0 / Stopwatch.Frequency
-                Dim maxSelectedLagMs As Double = maxSelectedLag100ns / 10000.0
-                Dim maxSourceGapMs As Double = maxSourceGap100ns / 10000.0
-                _logger.Info($"[session] CFR telemetry: selected={selectedCount}, seqSkips={selectedSeqSkips}, maxSelectedLag={maxSelectedLagMs:0.###}ms, maxSourceGap={maxSourceGapMs:0.###}ms, avgEncode={avgEncodeMs:0.###}ms, maxEncode={maxEncodeMs:0.###}ms")
 
                 ' Drain: keep only the FRESHEST leftover frame (stale ones just
                 ' dispose — the CFR stream already displayed newer states).
