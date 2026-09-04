@@ -2409,3 +2409,43 @@ Do not jump to NV12/GfxCapture/performance soak before live UI recording accepta
 
 Security:
 - PAT must be rotated; never write the PAT/token into repo memory or logs.
+
+
+==================================================
+[CHECKPOINT — 2026-09-04 19:40 ICT]
+==================================================
+
+Branch / source:
+- Branch: Engine-Rebuild-Stabilization
+- HEAD: eb45d74
+- Commit: Fix CFR GPU frame disposal stalls
+- Pushed to origin/Engine-Rebuild-Stabilization successfully.
+
+Root-cause fix verified:
+- D3D11 GPU-backed frame Dispose/COM Release could block the CFR presentation thread.
+- Observed pre-fix staging Dispose avg ~7.4 ms, max ~36.4 ms, with ~196 late CFR ticks/600.
+- Added CaptureEngine.Recording/DeferredVideoFrameDisposer.vb.
+- GPU frame disposal now runs on dedicated background thread; CompleteAndWait drains deterministically at session end.
+- Enqueue-after-stop race/leak was explicitly guarded.
+
+Post-fix production motion validation:
+- Real foreground motion.html was confirmed visually in the captured desktop before recording.
+- 15s recording: 900 CFR frames @ 60 FPS, 1114 source frames, dropped=0, NVENC errors=0.
+- Audio: 48 kHz stereo, 2,891,520 bytes, dropped=0, gaps=0.
+- A/V offset: 0.000 ms.
+- FFmpeg exit=0; orphan FFmpeg baseline 0 -> final 0.
+- Mux duration 15.08s; result pass=True.
+- Foreground frame inspection at 2s and 10s showed the motion square at different positions and the MOTION counter advancing.
+- Freeze detector on the foreground clip returned no freeze result (exit 1 means no matching freeze output).
+
+CFR telemetry for final 15s motion run:
+- ticks=900
+- selectedSources=1111
+- seqSkips=0
+- maxSelectedLag=44.027ms
+- maxSourceGap=51.402ms
+- avgEncode=3.478ms
+- maxEncode=28.972ms
+- lateTicks>16.667ms=8
+- maxTickLate=64.124ms
+- Residual late ticks remain rare; do not claim every possible cadence stall is eliminated. Main confirmed disposal stall is fixed.
