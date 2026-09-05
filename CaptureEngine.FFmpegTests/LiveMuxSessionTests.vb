@@ -94,6 +94,7 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("LM-E: Stop during active writes — feeder never throws, deterministic terminal", AddressOf Test_StopDuringActiveWrites)
             RunTest("LM-F: drain timeout bounded + DroppedBytes ledger (written+dropped == accepted)", AddressOf Test_DrainTimeoutLedger)
             RunTest("LM-H: Stop is single-terminal — second Stop never re-finalizes or re-reports success", AddressOf Test_StopTwiceSingleTerminal)
+            RunTest("LM-G: video-only session (sysRate=0) — no audio pipe, valid video-only output", AddressOf Test_VideoOnlySession)
 
             Dim leftovers As Integer = FfmpegCount() - baseline
             If leftovers > 0 Then
@@ -497,6 +498,47 @@ Namespace CaptureEngine.FFmpegTests
                 mux.Dispose()
             End Try
             Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after double-stop test")
+        End Sub
+
+        ''' <summary>G: video-only session — the "17:19" contract. When the
+        ''' caller passes systemSampleRate=0 (audio disabled), LiveMux must
+        ''' create NO audio pipe and NO audio input: a created-but-unfed pipe
+        ''' used to kill ffmpeg's input open (exit -22, all video dropped, no
+        ''' output file at all). The rest of this suite always constructs the
+        ''' mux with 48000/2 audio, so this path had zero coverage while
+        ''' "record with audio off" (silent desktop) is a first-class user
+        ''' scenario.</summary>
+        Private Sub Test_VideoOnlySession()
+            Dim outPath As String = IO.Path.Combine(_sandbox, "lm_g.mp4")
+            ' rate=0 on BOTH tracks is the explicit audio-disabled signal
+            ' (ctor: rate<=0 → no sp_a/sp_m pipe, no audio args, audio EOF
+            ' handling in Stop never runs).
+            Dim mux As New LiveMuxSession(_ffmpeg, outPath, 30, 0, 0, 0, 0, False, 1.0F, 1.0F,
+                                          AddressOf CollectLog)
+            Try
+                Assert(mux.Start(), "Start returned False")
+                mux.BeginTimelines(0.0, 0.0)
+
+                Dim fed As Long = FeedVideoFile(mux)
+                Thread.Sleep(2000)   ' let ffmpeg connect + consume before EOF
+
+                Dim res As LiveMuxResult = mux.Stop(30000)
+                Assert(res.Succeeded, "Succeeded=False: " & res.ErrorMessage)
+                Assert(res.FFmpegExitCode = 0, "exit code " & res.FFmpegExitCode)
+                Assert(res.UsedFaststartRemux, "faststart remux should have run")
+                Assert(res.VideoBytesFed > 0, "no video bytes reached the mux")
+                Assert(res.SystemBytesFed = 0, "video-only session must not report audio bytes")
+                Assert(res.DroppedBytes = 0, $"unexpected drops on the video-only path: {res.DroppedBytes:N0}")
+                AssertLedger(res, fed, 0, "LM-G")
+
+                Assert(IO.File.Exists(outPath), "final output missing")
+                Dim probe As String = ProbeStreams(outPath)
+                Assert(probe.Contains("Video:"), "no video stream in output")
+                Assert(Not probe.Contains("Audio:"), "video-only session must not produce an audio stream")
+            Finally
+                mux.Dispose()
+            End Try
+            Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after video-only test")
         End Sub
 
     End Module
