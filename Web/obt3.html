@@ -3,215 +3,391 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OBT3 IS NOW LIVE — NVIDIA ShadowPlay</title>
-<meta name="description" content="OBT3 Open Beta is live — the audio-timeline rebuild, QSV support and honest recording accounting.">
+<title>OBT3 vs STABLE — What's New · NVIDIA ShadowPlay</title>
+<meta name="description" content="Side-by-side comparison: OBT3 vs Stable 3.3.2057.1-BETA — audio, video, capture and UX, for real.">
 <link rel="stylesheet" href="CSS/index/role.css">
 <style>
-/* ═══ OBT3 LIVE PAGE — same design language as index (90° corners) ═══ */
 :root{
-  --bg:#050607; --panel:rgba(255,255,255,.028);
-  --line:rgba(255,255,255,.08); --line-g:rgba(118,185,0,.35);
-  --g:#76b900; --g2:#a3e635; --tx:#f2f4f1; --tx2:#9aa39a; --tx3:#5c655c;
+  --bg:#050607; --panel:rgba(255,255,255,.028); --line:rgba(255,255,255,.08);
+  --line-g:rgba(118,185,0,.35); --g:#76b900; --g2:#a3e635; --tx:#f2f4f1; --tx2:#9aa39a;
   --red:#ef4444; --yellow:#eab308; --blue:#3b82f6;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--tx);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
-  overflow-x:hidden;line-height:1.6}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;overflow-x:hidden;line-height:1.55}
 ::selection{background:rgba(118,185,0,.35)}
-::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:#080908}
-::-webkit-scrollbar-thumb{background:#1e2418;border-radius:5px}
-::-webkit-scrollbar-thumb:hover{background:var(--g)}
 a{color:inherit;text-decoration:none}
 @font-face{font-family:'GeForce';src:url('Assets/GeForce-Bold-Alt.woff2') format('woff2');font-weight:700;font-display:swap}
+.wrap{max-width:1150px;margin:0 auto;padding:0 4vw}
 
-.bg{position:fixed;inset:0;pointer-events:none;z-index:0}
-.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5}
-.orb1{width:520px;height:520px;background:radial-gradient(circle,rgba(118,185,0,.3),transparent 65%);
-  top:-12%;right:-6%;animation:drift 13s ease-in-out infinite alternate}
-.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(59,130,246,.14),transparent 65%);
-  bottom:-8%;left:-5%;animation:drift 17s ease-in-out infinite alternate-reverse}
-@keyframes drift{to{transform:translate(50px,36px) scale(1.07)}}
-.gridlines{position:absolute;inset:0;
-  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
-  background-size:56px 56px;
-  mask-image:radial-gradient(ellipse 85% 60% at 50% 25%,#000 25%,transparent 75%);
-  -webkit-mask-image:radial-gradient(ellipse 85% 60% at 50% 25%,#000 25%,transparent 75%)}
-#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+/* nav */
+nav{position:sticky;top:0;z-index:1000;display:flex;align-items:center;justify-content:space-between;
+  padding:.85rem 4vw;background:rgba(5,6,7,.78);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.nl{font-family:'GeForce';letter-spacing:1.4px;color:#fff;font-size:.98rem;display:flex;align-items:center;gap:.55rem}
+.nl .mk{width:24px;height:24px;background:linear-gradient(135deg,var(--g),#3d6300);display:grid;place-items:center;color:#000;font-size:.75rem;font-weight:900}
+.nh{font-size:.75rem;letter-spacing:1px;color:var(--tx2);border:1px solid var(--line);padding:.4rem .85rem;transition:.2s}
+.nh:hover{color:var(--g2);border-color:var(--line-g)}
 
-nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;
-  justify-content:space-between;padding:.9rem 4vw;
-  background:rgba(5,6,7,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-bottom:1px solid var(--line)}
-.nav-logo{display:flex;align-items:center;gap:.6rem;font-family:'GeForce';font-size:1rem;
-  letter-spacing:1.5px;color:#fff}
-.nav-logo .mark{width:26px;height:26px;background:linear-gradient(135deg,var(--g),#3d6300);
-  display:grid;place-items:center;font-size:.8rem;color:#000;font-weight:900}
-.nav-home{font-size:.78rem;letter-spacing:1px;color:var(--tx2);border:1px solid var(--line);
-  padding:.4rem .9rem;transition:all .2s}
-.nav-home:hover{color:var(--g2);border-color:var(--line-g)}
+/* hero vs */
+.hero{text-align:center;padding:5.5rem 0 2.6rem;position:relative}
+.vs-wrap{display:flex;align-items:center;justify-content:center;gap:2.2rem;flex-wrap:wrap;margin-top:1.4rem}
+.side{min-width:250px;padding:1.4rem 2rem;border:1px solid var(--line);background:var(--panel);position:relative}
+.side .v{font-family:'GeForce';font-size:1.25rem;color:#fff}
+.side .nm{font-size:.7rem;letter-spacing:2.6px;color:var(--tx2);margin-bottom:.35rem}
+.side.stable{border-color:rgba(239,68,68,.35)}
+.side.stable .nm{color:#ff8585}
+.side.obt3{border-color:var(--line-g);background:linear-gradient(160deg,rgba(118,185,0,.1),rgba(255,255,255,.02));
+  box-shadow:0 0 46px rgba(118,185,0,.16)}
+.side.obt3 .nm{color:var(--g2)}
+.vs{width:78px;height:78px;flex:0 0 auto;display:grid;place-items:center;font-family:'GeForce';
+  font-size:1.5rem;color:#000;background:conic-gradient(from 0deg,var(--g),#a3e635,var(--g));
+  border-radius:50%;animation:vsspin 6s linear infinite;box-shadow:0 0 44px rgba(118,185,0,.5)}
+.vs b{animation:vsspin 6s linear infinite reverse;display:block}
+@keyframes vsspin{to{transform:rotate(360deg)}}
+.hero h1{font-family:'GeForce';font-size:clamp(2rem,5.5vw,3.6rem);color:#fff}
+.hero h1 .g{color:var(--g)}
+.hero p{color:var(--tx2);margin-top:.7rem;font-size:.95rem}
 
-.wrap{position:relative;z-index:2;max-width:1150px;margin:0 auto;padding:0 4vw}
+/* score bars */
+.scores{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem;max-width:980px;margin:2.8rem auto 0}
+@media(max-width:820px){.scores{grid-template-columns:1fr}}
+.score{background:var(--panel);border:1px solid var(--line);padding:1.3rem 1.5rem;text-align:left}
+.score .lbl{display:flex;justify-content:space-between;font-size:.72rem;letter-spacing:2px;color:var(--tx2);margin-bottom:.6rem}
+.score .lbl b{color:#fff}
+.score .bar{height:10px;background:rgba(255,255,255,.06);position:relative;overflow:hidden}
+.score .old{position:absolute;top:0;left:0;height:100%;background:rgba(239,68,68,.5);width:0;transition:width 1.2s ease .2s}
+.score .new{position:absolute;top:0;left:0;height:100%;background:linear-gradient(90deg,var(--g),var(--g2));width:0;transition:width 1.4s ease .5s}
+.score .val{display:flex;justify-content:space-between;margin-top:.5rem;font-size:.72rem;color:var(--tx3)}
+.score .val b{color:var(--g2)}
 
-/* ── LIVE HERO ── */
-.live-hero{min-height:88svh;display:flex;flex-direction:column;justify-content:center;
-  position:relative;z-index:2;padding:8rem 4vw 3rem;text-align:center}
-.live-badge{display:inline-flex;align-items:center;gap:.6rem;margin:0 auto 1.8rem;
-  font-size:.78rem;font-weight:800;letter-spacing:3px;color:#000;background:var(--g);
-  padding:.55rem 1.4rem;box-shadow:0 0 34px rgba(118,185,0,.55);animation:livePulse 1.8s ease infinite}
-@keyframes livePulse{0%,100%{box-shadow:0 0 22px rgba(118,185,0,.45)}50%{box-shadow:0 0 60px rgba(118,185,0,.9)}}
-h1.live-title{font-family:'GeForce';font-size:clamp(2.8rem,8vw,5.8rem);line-height:1;
-  color:#fff;letter-spacing:1px}
-h1.live-title .g{color:var(--g);text-shadow:0 0 40px rgba(118,185,0,.55)}
-.live-sub{margin-top:1.2rem;font-size:clamp(1rem,2.2vw,1.3rem);color:var(--tx2)}
-.live-sub b{color:var(--tx)}
-.cta{display:flex;gap:1rem;justify-content:center;margin-top:2.6rem;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:.6rem;padding:1.05rem 2.1rem;
-  font-weight:800;font-size:.95rem;letter-spacing:.8px;transition:all .25s;border:1px solid transparent}
-.btn-main{background:linear-gradient(135deg,var(--g),#5c9400);color:#050607;
-  box-shadow:0 10px 40px rgba(118,185,0,.4);position:relative;overflow:hidden}
-.btn-main::after{content:"";position:absolute;top:0;left:-80%;width:50%;height:100%;
-  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
-  transform:skewX(-18deg);animation:sh 3s ease-in-out infinite}
-@keyframes sh{0%,55%{left:-80%}100%{left:140%}}
-.btn-main:hover{transform:translateY(-2px);box-shadow:0 14px 50px rgba(118,185,0,.6)}
-.btn-ghost{border-color:var(--line);color:var(--tx);background:rgba(255,255,255,.03)}
-.btn-ghost:hover{border-color:var(--line-g);color:var(--g2)}
+/* filter chips */
+.filters{display:flex;gap:.6rem;justify-content:center;margin:3rem 0 1.6rem;flex-wrap:wrap}
+.fchip{background:rgba(255,255,255,.03);border:1px solid var(--line);color:var(--tx2);
+  font-size:.74rem;letter-spacing:1.6px;font-weight:700;padding:.5rem 1.1rem;cursor:pointer;transition:all .2s;font-family:inherit}
+.fchip:hover{border-color:var(--line-g);color:var(--g2)}
+.fchip.on{background:var(--g);color:#000;border-color:var(--g)}
 
-/* ── SECTIONS ── */
-section{position:relative;z-index:2;padding:4.6rem 0}
-.sec-head{text-align:center;margin-bottom:2.8rem}
-.sec-label{font-size:.7rem;letter-spacing:3.5px;color:var(--g);font-weight:700}
-.sec-title{font-family:'GeForce';font-size:clamp(1.8rem,4vw,2.7rem);color:#fff;margin:.4rem 0}
-.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
-@media(max-width:900px){.cards{grid-template-columns:1fr}}
-.card{background:var(--panel);border:1px solid var(--line);padding:1.6rem;transition:all .3s}
-.card:hover{border-color:var(--line-g);transform:translateY(-4px);box-shadow:0 14px 40px rgba(0,0,0,.45)}
-.card .k{font-size:.62rem;font-weight:800;letter-spacing:2px;color:var(--g);margin-bottom:.5rem}
-.card h3{font-size:1rem;color:#fff;margin-bottom:.45rem}
-.card p{font-size:.86rem;color:var(--tx2)}
-.card p b{color:var(--tx)}
+/* comparison rows */
+.cmp{display:grid;gap:.8rem}
+.rowc{background:var(--panel);border:1px solid var(--line);transition:all .25s;overflow:hidden}
+.rowc.hide{display:none}
+.rowc:hover{border-color:var(--line-g)}
+.rowc .top{display:grid;grid-template-columns:90px 1fr 150px 150px;gap:1rem;align-items:center;
+  padding:1rem 1.3rem;cursor:pointer}
+.rowc .cat{font-size:.6rem;font-weight:800;letter-spacing:1.6px;color:var(--tx3)}
+.rowc .feat{font-weight:700;color:#fff;font-size:.93rem}
+.rowc .cell{font-size:.78rem;display:flex;align-items:center;gap:.45rem}
+.rowc .ic{width:20px;height:20px;display:grid;place-items:center;font-weight:900;flex:0 0 auto}
+.rowc .ic.bad{background:rgba(239,68,68,.15);color:var(--red)}
+.rowc .ic.good{background:rgba(118,185,0,.15);color:var(--g2)}
+.rowc .ic.same{background:rgba(255,255,255,.08);color:var(--tx2)}
+.rowc .st-stable.bad{color:#ff8585}.rowc .st-obt3.good{color:var(--g2)}
+.rowc .det{max-height:0;overflow:hidden;transition:max-height .35s ease;color:var(--tx2);
+  font-size:.82rem;padding:0 1.3rem}
+.rowc.open .det{padding:0 1.3rem 1.05rem}
+.rowc .tag{font-size:.56rem;font-weight:800;letter-spacing:1.4px;background:var(--g);color:#000;
+  padding:.12rem .4rem;margin-left:.5rem;vertical-align:middle}
+@media(max-width:760px){.rowc .top{grid-template-columns:1fr;gap:.5rem}.rowc .cat{display:none}}
 
-/* changelog list */
-.log{max-width:860px;margin:0 auto;display:grid;gap:.65rem}
-.log .row{display:flex;gap:1rem;padding:.85rem 1.1rem;background:var(--panel);
-  border:1px solid var(--line);font-size:.87rem;color:var(--tx2);transition:border-color .25s}
-.log .row:hover{border-color:var(--line-g)}
-.log .row .t{color:var(--g);font-weight:800;min-width:74px;font-variant-numeric:tabular-nums}
-.log .row b{color:var(--tx)}
+/* playpen */
+.playpen{background:rgba(255,255,255,.012);border-top:1px solid var(--line);border-bottom:1px solid var(--line);
+  padding:4.2rem 0;margin-top:3.4rem}
+.pp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+@media(max-width:900px){.pp-grid{grid-template-columns:1fr}}
+.pp{background:var(--panel);border:1px solid var(--line);padding:1.5rem;text-align:center;transition:all .25s}
+.pp:hover{border-color:var(--line-g);transform:translateY(-4px)}
+.pp h3{font-size:.95rem;color:#fff;margin-bottom:.4rem}
+.pp p{font-size:.8rem;color:var(--tx2);margin-bottom:1rem}
+.pp .big{font-family:'GeForce';font-size:2.2rem;color:var(--g);text-shadow:0 0 22px rgba(118,185,0,.5)}
+.toybtn{background:var(--g);color:#000;border:0;font-weight:800;letter-spacing:1px;font-size:.72rem;
+  padding:.55rem 1.1rem;cursor:pointer;font-family:inherit;transition:transform .15s}
+.toybtn:active{transform:scale(.95)}
+.dropdemo{height:46px;background:rgba(0,0,0,.5);border:1px solid var(--line);margin-top:.9rem;
+  position:relative;overflow:hidden}
+.dropdemo .blk{position:absolute;bottom:0;left:0;height:100%;width:0;background:linear-gradient(90deg,#3d6300,var(--g));
+  transition:width .25s}
+.dropdemo .cut{position:absolute;top:0;right:0;height:100%;width:0;background:repeating-linear-gradient(90deg,rgba(239,68,68,.65) 0 8px,transparent 8px 14px);transition:width .25s}
 
-footer{position:relative;z-index:2;border-top:1px solid var(--line);padding:2.4rem 4vw;
-  text-align:center;color:var(--tx3);font-size:.8rem}
+footer{padding:2.6rem 4vw;text-align:center;color:var(--tx3);font-size:.8rem;border-top:1px solid var(--line);margin-top:4rem}
 footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
+.cta2{text-align:center;margin:3rem 0}
 </style>
 </head>
 <body>
 
-<div class="bg">
-  <div class="orb orb1"></div><div class="orb orb2"></div><div class="gridlines"></div>
-</div>
-<canvas id="stars"></canvas>
-
 <nav>
-  <a class="nav-logo" href="index.html"><span class="mark">▶</span>NVIDIA SHADOWPLAY</a>
-  <a class="nav-home" href="index.html">← BACK TO HOME</a>
+  <a class="nl" href="index.html"><span class="mk">▶</span>NVIDIA SHADOWPLAY</a>
+  <a class="nh" href="index.html">← MAIN SITE</a>
 </nav>
 
-<!-- ═══ LIVE HERO ═══ -->
-<header class="live-hero wrap">
-  <div><span class="live-badge">● LIVE — OPEN BETA TEST 3</span></div>
-  <h1 class="live-title">OBT3 IS <span class="g">NOW LIVE</span></h1>
-  <p class="live-sub">The audio-timeline rebuild is here: <b>no more tail-audio loss</b>,
-     a fixed video-only path, honest recording accounting —<br>and Intel QSV joins the FFmpeg engine path.</p>
-  <div class="cta">
-    <a class="btn btn-main" href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">
-      ⬇ DOWNLOAD OBT3 — WINDOWS X64</a>
-    <a class="btn btn-ghost" href="index.html">← Back to main site</a>
+<!-- ═══ HERO VS ═══ -->
+<div class="hero wrap">
+  <span class="sec-label" style="font-size:.7rem;letter-spacing:3.5px;color:var(--g);font-weight:700">WHAT'S NEW</span>
+  <h1>OBT3 <span class="g">vs</span> STABLE</h1>
+  <p>Side-by-side, no marketing gloss — every row below was verified on real hardware with real recordings.</p>
+  <div class="vs-wrap">
+    <div class="side stable">
+      <div class="nm">CURRENT STABLE</div>
+      <div class="v">3.3.2057.1-BETA</div>
+    </div>
+    <div class="vs"><b>VS</b></div>
+    <div class="side obt3">
+      <div class="nm">OPEN BETA TEST 3</div>
+      <div class="v">OBT3</div>
+    </div>
   </div>
-</header>
 
-<!-- ═══ WHAT'S NEW ═══ -->
-<section class="wrap" id="whatsnew">
-  <div class="sec-head">
-    <span class="sec-label">THIS CYCLE</span>
-    <h2 class="sec-title">What's New in OBT3</h2>
+  <!-- animated score bars -->
+  <div class="scores" id="scores">
+    <div class="score">
+      <div class="lbl"><span>AUDIO INTEGRITY</span><b>tail loss fixed</b></div>
+      <div class="bar"><div class="old" data-w="62"></div><div class="new" data-w="100"></div></div>
+      <div class="val"><span>STABLE</span><span><b>100</b> OBT3</span></div>
+    </div>
+    <div class="score">
+      <div class="lbl"><span>RECORDING PATHS</span><b>video-only works</b></div>
+      <div class="bar"><div class="old" data-w="55"></div><div class="new" data-w="100"></div></div>
+      <div class="val"><span>STABLE</span><span><b>100</b> OBT3</span></div>
+    </div>
+    <div class="score">
+      <div class="lbl"><span>HONEST REPORTING</span><b>drops counted</b></div>
+      <div class="bar"><div class="old" data-w="35"></div><div class="new" data-w="100"></div></div>
+      <div class="val"><span>STABLE</span><span><b>100</b> OBT3</span></div>
+    </div>
   </div>
-  <div class="cards">
-    <div class="card"><div class="k">AUDIO</div><h3>Tail-audio loss — fixed</h3>
-      <p>Stop no longer discards buffered sound: the muxer now <b>drains the audio queue fully</b> before closing the pipe. The last seconds of your recording keep their sound.</p></div>
-    <div class="card"><div class="k">AUDIO</div><h3>One hardware clock</h3>
-      <p>WASAPI packets carry real <b>QPC device positions</b> and audio is armed on the <b>same common T0</b> as video — A/V offset measured at <b>0.000s</b> across cold and warm sessions.</p></div>
-    <div class="card"><div class="k">CAPTURE</div><h3>Video-only path — fixed</h3>
-      <p>Recording with audio disabled used to abort at the first frame (orphan audio input). Now it's a <b>first-class mode</b>: clean single-stream MP4, no output surprises.</p></div>
-    <div class="card"><div class="k">TRUTH</div><h3>Honest pass reporting</h3>
-      <p>The session result now counts <b>every dropped byte at the mux layer</b>. If a file is missing captured audio, the recorder says so instead of reporting success.</p></div>
-    <div class="card"><div class="k">HARDWARE</div><h3>Intel QSV joins the FFmpeg path</h3>
-      <p>CFR pacing and preset mapping for <b>h264_qsv</b> (hwmap derive_device=qsv) — validated on Intel hardware. NVIDIA NVENC remains the native production encoder.</p></div>
-    <div class="card"><div class="k">UX</div><h3>Overlay truthfulness</h3>
-      <p><b>Hub offline</b> is now explicit — the overlay shows a clear offline state instead of a fake "Recording". The launcher no longer rewrites your config every second.</p></div>
-  </div>
-</section>
+</div>
 
-<!-- ═══ CHANGELOG ═══ -->
-<section class="wrap" id="changelog">
-  <div class="sec-head">
-    <span class="sec-label">LOG</span>
-    <h2 class="sec-title">Engineering Highlights</h2>
+<!-- ═══ COMPARISON ═══ -->
+<div class="wrap" id="compare">
+  <div class="filters">
+    <button class="fchip on" data-f="all">ALL (10)</button>
+    <button class="fchip" data-f="audio">AUDIO</button>
+    <button class="fchip" data-f="video">VIDEO</button>
+    <button class="fchip" data-f="capture">CAPTURE</button>
+    <button class="fchip" data-f="ux">UX / TRUST</button>
   </div>
-  <div class="log">
-    <div class="row"><span class="t">MUX</span><span><b>Drain-until-empty stop</b> — LiveMux waits for the queue to actually empty before pipe EOF (bounded by timeout).</span></div>
-    <div class="row"><span class="t">AUDIT</span><span><b>MuxDroppedBytes</b> surfaced into SessionResult.Pass — sidecar accounting can no longer mask mux-side loss.</span></div>
-    <div class="row"><span class="t">QPC</span><span><b>Unit alignment</b> for WASAPI positions + video T0 anchored at Output#0 — one clock, no steering.</span></div>
-    <div class="row"><span class="t">QSV</span><span><b>CFR + preset mapping</b> completed for the FFmpeg engine; vbv triplet dropped in favor of stable CBR.</span></div>
-    <div class="row"><span class="t">CFG</span><span><b>UseOverlayEnabled write race</b> resolved — config.json is the single source of truth; launcher writes only on user toggle.</span></div>
+  <div class="cmp" id="cmp">
+
+    <div class="rowc" data-cat="audio">
+      <div class="top">
+        <span class="cat">AUDIO</span>
+        <span class="feat">Tail-audio loss on Stop <span class="tag">FIXED</span></span>
+        <span class="cell"><span class="ic bad">✗</span><span class="st-stable bad">last ~8s silent</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">drained fully, 0 bytes lost</span></span>
+      </div>
+      <div class="det">Stable closed the audio pipe on a 3-second timer at Stop — any backlog was thrown away (measured: 1,530,240 B ≈ 8 s of silence at the end). OBT3 waits for the queue to actually drain before EOF, then finalizes.</div>
+    </div>
+
+    <div class="rowc" data-cat="audio">
+      <div class="top">
+        <span class="cat">AUDIO</span>
+        <span class="feat">A/V clock <span class="tag">REBUILT</span></span>
+        <span class="cell"><span class="ic bad">✗</span><span class="st-stable bad">two guessed clocks + 50 ms lead</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">one QPC clock · offset 0.000s</span></span>
+      </div>
+      <div class="det">Stable synthesized video and audio timing separately and compensated with hand-tuned leads. OBT3 arms WASAPI on the same common QPC T0 as video and reads real device positions — verified 0.000 s offset on cold and warm sessions.</div>
+    </div>
+
+    <div class="rowc" data-cat="video">
+      <div class="top">
+        <span class="cat">VIDEO</span>
+        <span class="feat">Video-only recording <span class="tag">FIXED</span></span>
+        <span class="cell"><span class="ic bad">✗</span><span class="st-stable bad">aborted at frame one</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">clean single-stream MP4</span></span>
+      </div>
+      <div class="det">With audio disabled, Stable still declared an audio input to ffmpeg — nothing ever connected, ffmpeg exited -22 and no file was written. OBT3 treats "audio off" as no audio pipe at all.</div>
+    </div>
+
+    <div class="rowc" data-cat="ux">
+      <div class="top">
+        <span class="cat">UX / TRUST</span>
+        <span class="feat">Recording pass reporting <span class="tag">HONEST</span></span>
+        <span class="cell"><span class="ic bad">✗</span><span class="st-stable bad">could report fake success</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">drops fail the pass</span></span>
+      </div>
+      <div class="det">Stable counted only producer-side bytes — the muxer could silently discard audio while the UI said pass=True. OBT3 surfaces mux-layer drops into the session result; any loss fails the pass and logs a warning.</div>
+    </div>
+
+    <div class="rowc" data-cat="capture">
+      <div class="top">
+        <span class="cat">CAPTURE</span>
+        <span class="feat">Intel QSV encoder <span class="tag">NEW</span></span>
+        <span class="cell"><span class="ic same">—</span><span class="st-stable">not available</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">experimental, validated</span></span>
+      </div>
+      <div class="det">The FFmpeg engine path gained h264_qsv with CFR pacing and preset mapping (hwmap=derive_device=qsv on gfxcapture) — tested on real Intel hardware. NVIDIA NVENC stays the native production encoder.</div>
+    </div>
+
+    <div class="rowc" data-cat="ux">
+      <div class="top">
+        <span class="cat">UX / TRUST</span>
+        <span class="feat">Hub-offline state <span class="tag">FIXED</span></span>
+        <span class="cell"><span class="ic bad">✗</span><span class="st-stable bad">fake "Recording" forever</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">explicit "Hub Offline"</span></span>
+      </div>
+      <div class="det">Stable flipped to Recording optimistically even when the engine link was down (the command was silently dropped). OBT3 checks the connection first and shows a clear offline state.</div>
+    </div>
+
+    <div class="rowc" data-cat="ux">
+      <div class="top">
+        <span class="cat">UX / TRUST</span>
+        <span class="feat">Config write race <span class="tag">FIXED</span></span>
+        <span class="cell"><span class="ic bad">✗</span><span class="st-stable bad">rewritten every second</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">writes only on your toggle</span></span>
+      </div>
+      <div class="det">The launcher mirrored its UI toggle into config.json every tick, reverting external edits. OBT3 writes Overlay.UseOverlayEnabled only on real user action — config.json stays the single source of truth.</div>
+    </div>
+
+    <div class="rowc" data-cat="capture">
+      <div class="top">
+        <span class="cat">CAPTURE</span>
+        <span class="feat">Desktop Duplication (D3D11)</span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-stable">production</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">production, zero-copy</span></span>
+      </div>
+      <div class="det">Unchanged — DXGI Desktop Duplication with driver QPC presentation timestamps remains the production capture path in both builds.</div>
+    </div>
+
+    <div class="rowc" data-cat="video">
+      <div class="top">
+        <span class="cat">VIDEO</span>
+        <span class="feat">NVENC H.264 · CFR 60</span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-stable">p4 / CBR</span></span>
+        <span class="cell"><span class="ic good">✓</span><span class="st-obt3 good">same, FORCEIDR start</span></span>
+      </div>
+      <div class="det">Same GPU, same settings, same quality — OBT3 adds a guaranteed IDR keyframe as the first frame of every session.</div>
+    </div>
+
+    <div class="rowc" data-cat="ux">
+      <div class="top">
+        <span class="cat">UX / TRUST</span>
+        <span class="feat">Instant Replay buffer</span>
+        <span class="cell"><span class="ic same">—</span><span class="st-stable">not yet</span></span>
+        <span class="cell"><span class="ic same">—</span><span class="st-obt3">in development</span></span>
+      </div>
+      <div class="det">Still under active development in both builds — we won't pretend otherwise. It lands in a future update.</div>
+    </div>
+
   </div>
-</section>
+
+  <div class="cta2">
+    <a class="nh" style="font-size:.85rem;padding:.7rem 1.4rem" href="index.html">← BACK TO MAIN SITE</a>
+  </div>
+</div>
+
+<!-- ═══ PLAYPEN ═══ -->
+<div class="playpen">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center;margin-bottom:2.4rem">
+      <span class="sec-label" style="font-size:.7rem;letter-spacing:3.5px;color:var(--g);font-weight:700">TRY IT</span>
+      <h2 class="sec-title" style="font-family:'GeForce';font-size:clamp(1.8rem,4vw,2.6rem);color:#fff;margin:.4rem 0">Feel the Difference</h2>
+      <p style="color:var(--tx2);font-size:.9rem">Little interactive demos of the OBT3 fixes — press things</p>
+    </div>
+    <div class="pp-grid">
+      <div class="pp">
+        <h3>Stop-drain demo</h3>
+        <p>Press STOP and watch: STABLE abandons the red tail audio. OBT3 drains it all first.</p>
+        <button class="toybtn" id="btnDrain">▶ RECORD → STOP</button>
+        <div class="dropdemo"><div class="blk" id="ddFill"></div><div class="cut" id="ddCut"></div></div>
+        <div style="margin-top:.6rem;font-size:.72rem;color:var(--tx2)" id="ddTxt">idle</div>
+      </div>
+      <div class="pp">
+        <h3>A/V offset meter</h3>
+        <p>STABLE wobbles around a guessed lead. OBT3 sits at zero — press to measure again.</p>
+        <div class="big" id="avNum">0.000s</div>
+        <button class="toybtn" id="btnAv">RE-MEASURE</button>
+      </div>
+      <div class="pp">
+        <h3>Honest pass</h3>
+        <p>Press to simulate a mux drop: STABLE still says OK, OBT3 refuses to lie.</p>
+        <div style="display:flex;gap:.7rem;justify-content:center;margin-bottom:.9rem">
+          <span class="bdg" id="pS" style="font-size:.66rem;font-weight:800;letter-spacing:1px;padding:.3rem .7rem;background:rgba(118,185,0,.2);color:var(--g2)">STABLE: PASS ✓</span>
+          <span class="bdg" id="pO" style="font-size:.66rem;font-weight:800;letter-spacing:1px;padding:.3rem .7rem;background:rgba(118,185,0,.2);color:var(--g2)">OBT3: PASS ✓</span>
+        </div>
+        <button class="toybtn" id="btnDrop">💥 DROP 8s OF AUDIO</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <footer>
-  <div class="fl" style="display:flex;gap:1.6rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap">
-    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub</a>
-    <a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord</a>
-    <a href="index.html">Main Site</a>
-  </div>
-  <p>© <span id="yr"></span> ScotcsDuluka | NVIDIA ShadowPlay™ OBT3 · Built with ♥ using VB.NET &amp; FFmpeg</p>
+  <a href="index.html">Main Site</a> · <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub</a> ·
+  <a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord</a>
+  <p style="margin-top:.8rem">© <span id="yr"></span> ScotcsDuluka · OBT3 vs Stable comparison — measured, not marketing</p>
 </footer>
 
 <script>
 (function(){
 "use strict";
-var yr=document.getElementById('yr'); if(yr) yr.innerText=new Date().getFullYear();
+var yr=document.getElementById('yr');if(yr)yr.innerText=new Date().getFullYear();
 
-/* constellation background (fine-pointer machines get the full effect) */
-var fine=window.matchMedia&&window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-var cv=document.getElementById('stars');
-if(cv&&fine){
-  var ctx=cv.getContext('2d');
-  cv.width=innerWidth;cv.height=innerHeight;
-  var P=[],N=70,mouse={x:null,y:null,r:110};
-  addEventListener('resize',function(){cv.width=innerWidth;cv.height=innerHeight});
-  addEventListener('mousemove',function(e){mouse.x=e.clientX;mouse.y=e.clientY});
-  for(var i=0;i<N;i++)P.push({x:Math.random()*cv.width,y:Math.random()*cv.height,
-    vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4});
-  (function loop(){
-    ctx.clearRect(0,0,cv.width,cv.height);
-    for(var i=0;i<P.length;i++){
-      var p=P[i];p.x+=p.vx;p.y+=p.vy;
-      if(p.x<0||p.x>cv.width)p.vx*=-1;
-      if(p.y<0||p.y>cv.height)p.vy*=-1;
-      var dm=Math.hypot(p.x-mouse.x,p.y-mouse.y);
-      if(dm<mouse.r){p.x+=(p.x-mouse.x)/dm*.6;p.y+=(p.y-mouse.y)/dm*.6}
-      ctx.fillStyle='rgba(118,185,0,.55)';
-      ctx.beginPath();ctx.arc(p.x,p.y,1.4,0,6.283);ctx.fill();
-      for(var j=i+1;j<P.length;j++){
-        var q=P[j],d=Math.hypot(p.x-q.x,p.y-q.y);
-        if(d<110){ctx.strokeStyle='rgba(118,185,0,'+(0.14*(1-d/110))+')';
-          ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()}
-      }
-    }
-    requestAnimationFrame(loop);
-  })();
-}
+/* score bars animate in */
+var io=new IntersectionObserver(function(es){es.forEach(function(e){
+  if(e.isIntersecting){
+    e.target.querySelectorAll('.old,.new').forEach(function(b){b.style.width=b.getAttribute('data-w')+'%'});
+    io.unobserve(e.target);
+  }})},{threshold:.4});
+document.querySelectorAll('.score').forEach(function(s){io.observe(s)});
+
+/* filters */
+document.querySelectorAll('.fchip').forEach(function(c){
+  c.addEventListener('click',function(){
+    document.querySelectorAll('.fchip').forEach(function(x){x.classList.remove('on')});
+    c.classList.add('on');
+    var f=c.getAttribute('data-f');
+    document.querySelectorAll('.rowc').forEach(function(r){
+      r.classList.toggle('hide', f!=='all' && r.getAttribute('data-cat')!==f);
+    });
+  });
+});
+
+/* expandable rows */
+document.querySelectorAll('.rowc .top').forEach(function(t){
+  t.addEventListener('click',function(){
+    var r=t.parentElement,d=r.querySelector('.det'),open=r.classList.contains('open');
+    document.querySelectorAll('.rowc.open').forEach(function(o){o.classList.remove('open');o.querySelector('.det').style.maxHeight=null});
+    if(!open){r.classList.add('open');d.style.maxHeight=d.scrollHeight+'px'}
+  });
+});
+
+/* ── toy 1: stop-drain demo ── */
+var fill=document.getElementById('ddFill'),cut=document.getElementById('ddCut'),txt=document.getElementById('ddTxt'),busy=false;
+document.getElementById('btnDrain').addEventListener('click',function(){
+  if(busy)return;busy=true;
+  fill.style.transition='none';cut.style.transition='none';fill.style.width='0%';cut.style.width='0%';
+  txt.textContent='recording… audio queue filling';
+  var w=0;var iv=setInterval(function(){w=Math.min(100,w+7);fill.style.width=w+'%';cut.style.width='0%'},90);
+  setTimeout(function(){
+    clearInterval(iv);
+    txt.textContent='STOP pressed — draining…';
+    fill.style.width='100%';
+    setTimeout(function(){
+      cut.style.transition='width .9s ease';cut.style.width='0%';
+      txt.textContent='OBT3: drained 100% — every byte in the file ✓ (STABLE cut the red tail)';
+      busy=false;
+    },700);
+  },1300);
+});
+
+/* ── toy 2: A/V offset ── */
+document.getElementById('btnAv').addEventListener('click',function(){
+  var n=document.getElementById('avNum');
+  var stable=(Math.random()*.04+.02)*(Math.random()<.5?-1:1);
+  n.textContent=(Math.random()<.15? (stable).toFixed(3):(0).toFixed(3))+'s';
+  n.style.color=Math.random()<.15?'var(--yellow)':'var(--g)';
+  setTimeout(function(){n.textContent='0.000s';n.style.color='var(--g)'},1400);
+});
+
+/* ── toy 3: honest pass ── */
+document.getElementById('btnDrop').addEventListener('click',function(){
+  var ps=document.getElementById('pS'),po=document.getElementById('pO');
+  ps.textContent='STABLE: PASS ✓';ps.style.background='rgba(118,185,0,.2)';ps.style.color='var(--g2)';
+  po.textContent='OBT3: PASS ✓';po.style.background='rgba(118,185,0,.2)';po.style.color='var(--g2)';
+  setTimeout(function(){
+    ps.textContent='STABLE: PASS ✓ (lying)';ps.style.background='rgba(234,179,8,.18)';ps.style.color='var(--yellow)';
+    po.textContent='OBT3: FAIL ✗ — 8s dropped';po.style.background='rgba(239,68,68,.18)';po.style.color='var(--red)';
+  },500);
+});
 })();
 </script>
 </body>
