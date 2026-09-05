@@ -48,6 +48,19 @@ Partial Public Class UI_Engine
     ' mystery that kept the [speech][speech][apad-silence] bug invisible).
     Private _engineInitFailReason As String = ""
 
+    ' ─── C/3 session-end broadcast contract ───────────────────────────
+    ' A session can end three ways: manual stop (HandleRecordingStop owns
+    ' the broadcast), natural expiry (DurationSeconds elapsed, nobody
+    ' pressed stop), or async failure (StartSession faulted). Endings 2
+    ' and 3 previously ended SILENTLY — the Overlay kept showing
+    ' "Recording" until the next user action. WatchSessionEnd broadcasts
+    ' for every UNOWNED ending; ClaimSessionEndBroadcast gives the stop
+    ' path first refusal, and exactly one side wins under _sessionEndLock.
+    Private ReadOnly _sessionEndLock As New Object()
+    Private _sessionCounter As Long = 0
+    Private _currentSessionId As Long = 0
+    Private _sessionEndClaimed As Boolean = False
+
     ' Phase 12b: one job object owns every child ffmpeg this host spawns
     ' (recording pipeline + legacy path guards). KILL_ON_JOB_CLOSE means
     ' a host crash can never leave an orphan ffmpeg behind.
@@ -300,8 +313,18 @@ Partial Public Class UI_Engine
 
             DebugLog($"[RecordingEngine] starting session: path={value}, audio={config.AudioEnabled}, mic={config.MicEnabled}")
 
+            ' C/3: register the session end-broadcast contract for THIS
+            ' session, then arm the completion watcher. Runs before any
+            ' await so no ending can slip past the watcher.
+            Dim sessionId As Long = System.Threading.Interlocked.Increment(_sessionCounter)
+            SyncLock _sessionEndLock
+                _currentSessionId = sessionId
+                _sessionEndClaimed = False
+            End SyncLock
+
             ' Start on background thread — StartSession blocks until done
             _recordingTask = Task.Run(Function() _recordingEngine.StartSession(config))
+            WatchSessionEnd(_recordingTask, sessionId)
 
             ' Respond immediately — recording has started
             ' UI update on UI thread
@@ -322,6 +345,83 @@ Partial Public Class UI_Engine
 #Enable Warning BC42356
 
     ''' <summary>
+    ''' C/3: fires at EVERY session end — natural expiry, async fault, or
+    ''' manual stop. The manual-stop path claims the broadcast first
+    ''' (ClaimSessionEndBroadcast) and owns it end-to-end; whatever ending
+    ''' remains (nobody pressed stop, or the session crashed) is broadcast
+    ''' HERE as engine_recording_saved / engine_recording_error, exactly
+    ''' once per session. Previously those endings were silent: the Overlay
+    ''' kept showing "Recording" with no file and no error toast.
+    ''' Fire-and-forget by design — never throws into the session task.
+    ''' </summary>
+    Private Sub WatchSessionEnd(task As Task(Of SessionResult), sessionId As Long)
+#Disable Warning BC42358 ' Fire-and-forget watcher — the session task outlives this method
+        task.ContinueWith(
+            Sub(t)
+                Try
+                    Dim result As SessionResult = Nothing
+                    Dim faultMessage As String = ""
+                    If t.Status = TaskStatus.RanToCompletion Then
+                        result = t.Result
+                    ElseIf t.Exception IsNot Nothing Then
+                        faultMessage = t.Exception.GetBaseException().Message
+                    End If
+
+                    ' Under one lock: read ownership, decide, and mark the
+                    ' session's end as broadcast — so the stop path arriving
+                    ' late (expiry → user presses stop moments later) cannot
+                    ' double-toast.
+                    Dim action As SessionEndAction
+                    SyncLock _sessionEndLock
+                        If _currentSessionId <> sessionId Then Return   ' stale watcher
+                        If _sessionEndClaimed Then
+                            action = SessionEndAction.None              ' stop path owns it
+                        Else
+                            action = SessionEndBroadcastPolicy.Decide(result, False)
+                            If action <> SessionEndAction.None Then _sessionEndClaimed = True
+                        End If
+                    End SyncLock
+
+                    Select Case action
+                        Case SessionEndAction.Saved
+                            Try
+                                If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                                    tcp.Send("engine_recording_saved", result.OutputPath)
+                                    DebugLog($"[RecordingEngine] session end broadcast (unowned ending): saved {result.OutputPath}")
+                                End If
+                            Catch
+                            End Try
+                        Case SessionEndAction.[Error]
+                            Dim why As String = SessionEndBroadcastPolicy.DescribeFailure(result, faultMessage)
+                            Try
+                                If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                                    tcp.Send("engine_recording_error", why)
+                                    DebugLog($"[RecordingEngine] session end broadcast (unowned ending): {why}")
+                                End If
+                            Catch
+                            End Try
+                    End Select
+                Catch ex As Exception
+                    DebugLog($"[RecordingEngine] session-end watcher error: {ex.Message}")
+                End Try
+            End Sub, TaskScheduler.Default)
+#Enable Warning BC42358
+    End Sub
+
+    ''' <summary>
+    ''' C/3: the manual-stop path claims this session's end broadcast BEFORE
+    ''' signalling Stop(). True = caller owns the saved/error broadcast;
+    ''' False = the completion watcher already broadcast (expiry ending).
+    ''' </summary>
+    Private Function ClaimSessionEndBroadcast() As Boolean
+        SyncLock _sessionEndLock
+            If _sessionEndClaimed Then Return False
+            _sessionEndClaimed = True
+            Return True
+        End SyncLock
+    End Function
+
+    ''' <summary>
     ''' Stop recording. Signals RecordingEngine.Stop() and waits for the
     ''' background task to complete. Returns the session result.
     ''' </summary>
@@ -333,6 +433,13 @@ Partial Public Class UI_Engine
             End If
 
             DebugLog("[RecordingEngine] stopping...")
+
+            ' C/3: claim the session's end broadcast BEFORE stopping — the
+            ' manual-stop path owns saved/error; if the completion watcher
+            ' already broadcast (session expired/failed moments earlier),
+            ' this path must not double-toast.
+            Dim stopOwnsBroadcast As Boolean = ClaimSessionEndBroadcast()
+
             _recordingEngine.Stop()
 
             ' Wait for the session to complete (should be quick after Stop)
@@ -370,8 +477,10 @@ Partial Public Class UI_Engine
                 ' OnRecordingStopped -> the same tcp.Send; the Duluka path must
                 ' match or the Overlay never shows the stop toast (W2-H1
                 ' removed the optimistic Sub_Record toast).
+                ' C/3: gated on broadcast ownership — if the session ended
+                ' unowned (expiry) the watcher already broadcast saved.
                 Try
-                    If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                    If stopOwnsBroadcast AndAlso tcp IsNot Nothing AndAlso tcp.IsConnected Then
                         tcp.Send("engine_recording_saved", result.OutputPath)
                     End If
                 Catch

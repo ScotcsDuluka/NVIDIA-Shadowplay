@@ -48,6 +48,7 @@ Namespace Engine.ConfigTruth.Tests
             VCTVideoWiringTests.RunAll()
             P3UIContractTests.RunAll()
             W2OverlayHonestyTests.RunAll()
+            SessionEndContractTests.RunAll()   ' C/3: Duluka session-end broadcast contract
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
