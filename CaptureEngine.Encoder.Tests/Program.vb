@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -29,6 +29,7 @@ Namespace CaptureEngine.Encoder.Tests
 
             ' ----- C/6 NVENC lifecycle matrix (hardware-independent) -----
             Lifecycle.NvencLifecycleTests.RunAll(AddressOf RunTest)
+            Lifecycle.NvencNativeFaultTests.RunAll(AddressOf RunTest)   ' C/2: real-NVENC fault/dispose proof
 
             ' ----- Encode tests -----
             Encode.EncodeTests.RunAll(AddressOf RunTest)

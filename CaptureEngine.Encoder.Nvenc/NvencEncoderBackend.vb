@@ -269,6 +269,15 @@ Namespace CaptureEngine.Encoder.Nvenc
             ' control / GOP / no-B-frames.
             Dim encodeConfigPtr As IntPtr = IntPtr.Zero
             Dim encodeConfigBytes As Long = 0
+            ' C/2: the explicit NvEncInitializeEncoder failure path below unwinds
+            ' ALL acquired natives (DestroyEncoder + function table + device) and
+            ' throws. Its Throw lands in THIS method's generic Catch — which used
+            ' to run the unwind AGAIN: a second NvEncDestroyEncoder on the
+            ' already-destroyed session handle is a process-fatal access
+            ' violation (measured on GTX 1080 Ti / driver 582.66: 0xC0000005
+            ' at the second destroy). unwindDone makes the generic Catch skip
+            ' the natives it has already released.
+            Dim unwindDone As Boolean = False
             Try
                 Dim presetKey As String = _encoderConfig.Preset
                 Dim initParams As NvEncodeAPI.NV_ENC_INITIALIZE_PARAMS =
@@ -360,6 +369,13 @@ Namespace CaptureEngine.Encoder.Nvenc
                     _nvenc.Dispose()
                     _deviceResult.Dispose()
                     _deviceResult = Nothing
+                    ' C/2: invalidate the session handle + function table too —
+                    ' Dispose() (even straight from Faulted) re-destroys whenever
+                    ' _encoderHandle is non-zero; a destroyed-but-nonzero handle
+                    ' here is another access violation (measured).
+                    _encoderHandle = IntPtr.Zero
+                    _nvenc = Nothing
+                    unwindDone = True   ' C/2: generic Catch must NOT unwind again
                     TransitionToFaulted(msg)
                     Throw New EncoderRuntimeException(msg)
                 End If
@@ -379,10 +395,17 @@ Namespace CaptureEngine.Encoder.Nvenc
                 ' failure path above). The state write must not depend on the
                 ' logger, so it is done inline instead of via TransitionToFaulted.
                 Try
-                    Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
-                    _nvenc.Dispose()
-                    _deviceResult.Dispose()
-                    _deviceResult = Nothing
+                    If Not unwindDone Then
+                        ' C/2: guarded by unwindDone — the explicit failure path
+                        ' already released these natives (double DestroyEncoder
+                        ' on a destroyed handle = driver AV, see above).
+                        Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
+                        _nvenc.Dispose()
+                        _deviceResult.Dispose()
+                        _deviceResult = Nothing
+                        _encoderHandle = IntPtr.Zero
+                        _nvenc = Nothing
+                    End If
                 Catch unwindEx As Exception
                     _logger.Warning($"NvencEncoderBackend: Initialize unwind threw: {unwindEx.Message}")
                 End Try
