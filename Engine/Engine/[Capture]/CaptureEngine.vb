@@ -396,6 +396,10 @@ Partial Public Class CaptureEngine
                                      ' ─── Step 2: Stop audio recorder (AFTER FFmpeg exited) ───
                                      ' Audio has been recording through the entire video duration.
                                      ' The .wav file is slightly longer than the video — mux trims it.
+                                     ' MUST complete before mux: the mux decision reads the wav files,
+                                     ' and an unflushed sink looks like a header-only file (the
+                                     ' 2026-09-05 regression shipped video-only mp4s with the audio
+                                     ' still buffered inside the AudioEngine).
                                      If _audioWriter IsNot Nothing Then
                                          LogDebug("[Audio] Stopping audio recorder (flushing .wav files)…")
                                          WriteDebugLog("[Audio] Stopping audio recorder…")
@@ -410,6 +414,7 @@ Partial Public Class CaptureEngine
                                          _audioWriter = Nothing
                                          LogDebug("[Audio] Audio recorder stopped.")
                                      End If
+                                     StopAudioWriter()
 
                                      ' ─── Step 3: Mux video + audio (if two-process) ───
                                      If _useTwoProcess Then
@@ -566,9 +571,21 @@ Partial Public Class CaptureEngine
                 End If
 
                 If muxExitCode <> 0 Then
-                    LogDebug("[Mux] FFmpeg mux FAILED — keeping temp files for inspection")
-                    WriteDebugLog("[Mux] FFmpeg mux FAILED — temp files preserved")
-                    ' Don't delete temp files so user can inspect
+                    ' The partial mux output has no moov atom and is unplayable;
+                    ' the temp video is a complete stream-copy-ready h264 file,
+                    ' so ship it video-only instead of leaving a broken mp4.
+                    LogDebug("[Mux] FFmpeg mux FAILED — falling back to video-only output")
+                    WriteDebugLog($"[Mux] FFmpeg mux ExitCode={muxExitCode} — removing broken output, renaming temp video to final output")
+                    Try
+                        If File.Exists(_outputFile) Then File.Delete(_outputFile)
+                        File.Move(_tempVideoPath, _outputFile)
+                        LogDebug("[Mux] Video-only fallback output: " & _outputFile)
+                        WriteDebugLog("[Mux] Video-only fallback output: " & _outputFile)
+                    Catch ex2 As Exception
+                        LogDebug("[Mux] Video-only fallback failed: " & ex2.Message)
+                        WriteDebugLog("[Mux] Video-only fallback failed: " & ex2.Message)
+                    End Try
+                    ' Audio sidecars stay behind for inspection
                     Return
                 End If
             End Using

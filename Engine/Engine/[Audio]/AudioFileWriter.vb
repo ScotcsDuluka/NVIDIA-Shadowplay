@@ -769,9 +769,40 @@ Public Class AudioFileWriter
         Return sb.ToString()
     End Function
 
+    ''' <summary>
+    ''' True only when the wav contains actual audio samples. A writer stopped
+    ''' before the first WASAPI callback still leaves a 58-byte header
+    ''' (RIFF+fmt+fact+data with size 0), so "Length > 44" alone cannot tell it
+    ''' from real content — that once made the muxer apad a zero-sample stream,
+    ''' hang to the 60s timeout and ship a broken 48-byte mp4. Streaming writers
+    ''' (AudioEngine sidecar) also leave the data-chunk size unpatched — 0 or
+    ''' 0xFFFFFFFF — while payload bytes exist, so for the data chunk the bytes
+    ''' actually present after the chunk header are the truth.
+    ''' </summary>
     Public Shared Function HasAudioData(wavPath As String) As Boolean
         Try
-            Return File.Exists(wavPath) AndAlso New FileInfo(wavPath).Length > 44
+            If Not File.Exists(wavPath) Then Return False
+            If New FileInfo(wavPath).Length <= 44 Then Return False
+            Using fs As FileStream = File.OpenRead(wavPath)
+                Using br As New BinaryReader(fs)
+                    If br.BaseStream.Length < 12 Then Return False
+                    If System.Text.Encoding.ASCII.GetString(br.ReadBytes(4)) <> "RIFF" Then Return False
+                    br.BaseStream.Seek(8, SeekOrigin.Begin)
+                    If System.Text.Encoding.ASCII.GetString(br.ReadBytes(4)) <> "WAVE" Then Return False
+                    While br.BaseStream.Position + 8 <= br.BaseStream.Length
+                        Dim chunkId As String = System.Text.Encoding.ASCII.GetString(br.ReadBytes(4))
+                        Dim chunkSize As UInteger = br.ReadUInt32()
+                        If chunkId = "data" Then
+                            ' Streaming wavs carry 0 (or 0xFFFFFFFF) here; the
+                            ' payload trailing the header is the real content.
+                            Return br.BaseStream.Length - br.BaseStream.Position > 0
+                        End If
+                        If chunkSize > CUInt(br.BaseStream.Length - br.BaseStream.Position) Then Return False
+                        br.BaseStream.Seek(chunkSize + (chunkSize Mod 2), SeekOrigin.Current)
+                    End While
+                    Return False
+                End Using
+            End Using
         Catch
             Return False
         End Try
