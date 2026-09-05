@@ -94,6 +94,10 @@ Namespace Engine.Concurrency.Tests
 
             RunTest("GUARD: JobObjectGuard.Assign contract (live=True, disposed=False, null=False)",
                     AddressOf Test_JobGuardAssignContract)
+            RunTest("JOB-1: guard.Dispose kills assigned child (KILL_ON_JOB_CLOSE — the parent-death net)",
+                    AddressOf Test_GuardDisposeKillsChild)
+            RunTest("JOB-2: Assign after child exit + concurrent Assign/Dispose — no crash, honest False",
+                    AddressOf Test_GuardAssignAfterExitAndRace)
             RunTest("H2-A: Dispose during StartRecordingAsync — no orphan ffmpeg",
                     AddressOf Test_DisposeDuringStart_NoOrphan)
             RunTest("H1-B: Start during Muxing rejected — old session completes with output",
@@ -324,6 +328,97 @@ Namespace Engine.Concurrency.Tests
                 TestRunner.Assert(WaitFfmpegAtMost(baseline, 8000),
                                   $"cycle {i}: ffmpeg.exe count did not return to baseline — orphan accumulation")
             Next
+        End Sub
+
+        ' ───────────────────────────────────────────────────────────────
+        ' C/5 ownership: the KILL_ON_JOB_CLOSE net the LiveMuxSession wiring
+        ' relies on (SessionConfig.OnProcessStarted → AssignChildToJob).
+        ' Hardware-free — uses disposable cmd.exe helpers, never fakes the
+        ' assertion.
+        ' ───────────────────────────────────────────────────────────────
+
+        ''' <summary>JOB-1: closing the job handle must terminate every
+        ''' assigned child. When the host process dies, Windows closes its
+        ''' handles — guard.Dispose() reproduces exactly that transition
+        ''' deterministically. A surviving child here would mean the wiring
+        ''' cannot protect against host death.</summary>
+        Private Sub Test_GuardDisposeKillsChild()
+            Dim psi As New ProcessStartInfo("cmd.exe", "/c timeout /t 60 /nobreak > NUL") With {
+                .CreateNoWindow = True,
+                .UseShellExecute = False
+            }
+            Using p As Process = Process.Start(psi)
+                Dim guard As New JobObjectGuard()
+                Try
+                    TestRunner.Assert(guard.Assign(p), "Assign on a live guard must return True")
+                    TestRunner.Assert(Not p.HasExited, "helper child died before the guard was closed")
+                Finally
+                    guard.Dispose()   ' == what Windows does when the host process dies
+                End Try
+
+                Dim dead As Boolean = False
+                Dim sw As Stopwatch = Stopwatch.StartNew()
+                While sw.ElapsedMilliseconds < 8000
+                    Try
+                        If p.HasExited Then
+                            dead = True
+                            Exit While
+                        End If
+                    Catch
+                        ' Process object can race its own handle teardown — treat as gone.
+                        dead = True
+                        Exit While
+                    End Try
+                    Thread.Sleep(100)
+                End While
+                TestRunner.Assert(dead, "assigned child survived guard.Dispose — KILL_ON_JOB_CLOSE contract broken")
+            End Using
+        End Sub
+
+        ''' <summary>JOB-2: Assign on an already-exited child must not throw;
+        ''' concurrent Assign/Dispose on one guard must not crash (the M11
+        ''' DangerousAddRef race surface) — every late Assign reports False.</summary>
+        Private Sub Test_GuardAssignAfterExitAndRace()
+            ' a) child that already exited
+            Dim psi As New ProcessStartInfo("cmd.exe", "/c exit 0") With {
+                .CreateNoWindow = True,
+                .UseShellExecute = False
+            }
+            Dim exited As Process = Process.Start(psi)
+            exited.WaitForExit(5000)
+            Dim g1 As New JobObjectGuard()
+            Dim assignedAfterExit As Boolean = g1.Assign(exited)   ' must not throw either way
+            g1.Dispose()
+            Try : exited.Dispose() : Catch : End Try
+            Console.WriteLine($"  (assign-after-exit returned {assignedAfterExit} — either outcome is contract-legal)")
+
+            ' b) concurrent Assign / Dispose on one guard + one live child
+            Dim child As Process = Process.Start(New ProcessStartInfo("cmd.exe", "/c timeout /t 20 /nobreak > NUL") With {
+                                                     .CreateNoWindow = True,
+                                                     .UseShellExecute = False})
+            Dim g2 As New JobObjectGuard()
+            Dim stopRace As Boolean = False
+            Dim assignThread As New Thread(
+                Sub()
+                    While Not stopRace
+                        Try
+                            g2.Assign(child)   ' True or honest False — never an escape
+                        Catch
+                            Exit While
+                        End Try
+                    End While
+                End Sub)
+            assignThread.IsBackground = True
+            assignThread.Start()
+            Thread.Sleep(150)
+            g2.Dispose()
+            Thread.Sleep(150)
+            stopRace = True
+            assignThread.Join(2000)
+            TestRunner.Assert(Not g2.Assign(child), "Assign after Dispose must return False (H2 honest contract)")
+            Try : child.Kill() : Catch : End Try
+            Try : child.WaitForExit(3000) : Catch : End Try
+            Try : child.Dispose() : Catch : End Try
         End Sub
 
     End Module

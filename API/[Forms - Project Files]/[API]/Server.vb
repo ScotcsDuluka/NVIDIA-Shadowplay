@@ -307,6 +307,15 @@ Partial Public Class API_RUN
         ' HeartbeatMonitor (30s) wins first, but this is belt-and-suspenders.
         info.Client.ReceiveTimeout = 60000
 
+        ' ✅ F-04 follow-up (message layer): per-WRITE timeout. Broadcast()
+        ' writes under clientsLock; without SendTimeout a local client that
+        ' never reads blocks that write once its buffers fill — deadlocking
+        ' the WHOLE hub (broadcasts, pongs, HeartbeatMonitor) for as long as
+        ' the attacker holds the socket. With the timeout, the stuck write
+        ' throws on the writer thread and the dead-client path releases the
+        ' lock; the hub survives. Legit loopback clients never block 60s.
+        info.Client.SendTimeout = 60000
+
         Try
             While True
                 Dim msg = Await reader.ReadLineAsync()

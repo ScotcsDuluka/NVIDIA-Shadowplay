@@ -672,7 +672,14 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] Recording for {_config.DurationSeconds}s @ CFR {targetFps}fps...")
 
                 Dim durationTicks As Long = CLng(duration.TotalSeconds * Stopwatch.Frequency)
-                Do While (Stopwatch.GetTimestamp() - _timelineStartTicks) < durationTicks AndAlso Not Threading.Volatile.Read(_stopSignal)
+                ' C/6: latched when the encoder transitions to Faulted mid-session —
+                ' every further Encode can only throw from the state check, so the
+                ' loop hands the session to the normal stop sequence (which still
+                ' muxes what was encoded) instead of erroring once per tick.
+                Dim encoderFaulted As Boolean = False
+                Do While (Stopwatch.GetTimestamp() - _timelineStartTicks) < durationTicks AndAlso
+                         Not Threading.Volatile.Read(_stopSignal) AndAlso
+                         Not encoderFaulted
                     ' Pull only the next chronological source frame. Do NOT drain the whole
                     ' queue and keep the newest; that skips temporal history and can make
                     ' motion appear accelerated during capture bursts.
@@ -764,6 +771,16 @@ Namespace CaptureEngine.Recording
                                 Catch ex As Exception
                                     result.NvencErrors += 1
                                     _logger.Error($"[session] Encode error: {ex.Message}")
+                                    ' C/6 containment: once the encoder has faulted, every
+                                    ' further tick can only throw again from its state check —
+                                    ' stop burning the remaining presentation ticks and hand
+                                    ' the session to the normal stop sequence, which still
+                                    ' muxes what was encoded. Tail-fill already breaks on error.
+                                    If _encoder.CurrentState = EncoderState.Faulted Then
+                                        _logger.Error("[session] Encoder Faulted — aborting CFR loop")
+                                        encoderFaulted = True
+                                        Exit Do
+                                    End If
                                 End Try
 
                                 encodeTicks = Stopwatch.GetTimestamp() - encodeStartTicks
