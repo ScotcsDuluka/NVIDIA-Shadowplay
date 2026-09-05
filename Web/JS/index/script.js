@@ -62,7 +62,7 @@
   let particlesEnabled = !reduceMotion;
   const canvas = document.getElementById('particles-canvas');
   let ctx, particlesArray = [], animationId = null;
-  const particleCount = (isTouchDevice || window.innerWidth < 768) ? 20 : 80;
+  const particleCount = (!hasFinePointer || window.innerWidth < 768) ? 20 : 80;
 
   if (particlesEnabled && canvas) {
     ctx = canvas.getContext('2d');
@@ -70,7 +70,7 @@
     canvas.height = window.innerHeight;
     const mouse = { x: null, y: null, radius: 120 };
 
-    if (!isTouchDevice) {
+    if (hasFinePointer) {
       window.addEventListener('mousemove', (e) => { mouse.x = e.x; mouse.y = e.y; });
     }
 
@@ -119,7 +119,7 @@
       if (!ctx) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       particlesArray.forEach(p => { p.update(); p.draw(); });
-      if (!isTouchDevice) {
+      if (hasFinePointer) {
         for (let a = 0; a < particlesArray.length; a++) {
           for (let b = a; b < particlesArray.length; b++) {
             const dx = particlesArray[a].x - particlesArray[b].x;
