@@ -125,6 +125,7 @@ table{width:100%;border-collapse:collapse;font-size:.86rem}
 @media(max-width:860px){.kpi-grid{grid-template-columns:1fr}}
 .kpi-box{background:var(--panel);padding:1.5rem 1.6rem}
 .kpi-box .lbl{font-size:.68rem;letter-spacing:2px;color:var(--tx3);font-weight:800;margin-bottom:.85rem}
+.kpi-box .lbl .sub{font-size:.6rem;letter-spacing:.6px;font-weight:400;color:var(--tx3);margin-top:.25rem}
 .kpi-box .row{display:grid;grid-template-columns:74px 1fr 44px;gap:.8rem;align-items:center;margin-bottom:.6rem;font-size:.72rem;color:var(--tx2)}
 .kpi-box .bar{height:8px;background:rgba(255,255,255,.05);position:relative;overflow:hidden}
 .kpi-box .fill{position:absolute;top:0;left:0;height:100%;width:0;transition:width 1.3s cubic-bezier(.2,.7,.3,1)}
@@ -206,8 +207,8 @@ footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
     <div>
       <div class="box-title">KEY MEASUREMENTS</div>
       <div style="display:grid;gap:1.2rem">
-        <div><div class="kpi">0.000<small>s</small></div><div class="lab">Measured A/V offset — OBT3 (video = audio, Δ16 ms)</div>
-          <span class="delta">STABLE BASELINE: GUESSED LEAD ±40 ms</span></div>
+        <div><div class="kpi">0.000<small>s</small></div><div class="lab">Measured A/V offset — OBT3: 0.000 s observed stream-start offset (≤16 ms measurement tolerance)</div>
+          <span class="delta">STABLE BASELINE: estimated lead ±40 ms</span></div>
         <div><div class="kpi">0 <small>bytes lost</small></div><div class="lab">Mux-layer drop on stop — OBT3</div>
           <span class="delta">STABLE: 1,530,240 B LOST ≈ 8 s SILENT</span></div>
       </div>
@@ -218,7 +219,7 @@ footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
         <li><b>Tail-audio loss on stop</b> — root-caused and fixed (drain-until-empty mux stop).</li>
         <li><b>Video-only recording</b> was fully broken (ffmpeg exit −22, no output) — now a first-class mode.</li>
         <li><b>Pass reporting was dishonest</b> — mux drops are now counted and fail the session.</li>
-        <li><b>Intel QSV</b> enters via the FFmpeg engine path, validated on Intel hardware.</li>
+        <li><b>Intel QSV</b> enters via the FFmpeg engine path, validated on Intel hardware in engineering test runs.</li>
         <li>Instant Replay remains <b>in development</b> in both builds — stated plainly, not hidden.</li>
       </ul>
     </div>
@@ -282,7 +283,7 @@ footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
       <div class="c feat">Intel QSV encoder <span class="tag">NEW</span></div>
       <div class="c cell"><span class="ic same">—</span>not available</div>
       <div class="c cell"><span class="ic good">✓</span>experimental, validated</div>
-      <div class="det"><b>Evidence:</b> FFmpeg engine path gained h264_qsv (hwmap derive_device=qsv), CFR pacing + preset mapping completed; exercised on Intel hardware by the second engineering workstation.</div></div>
+      <div class="det"><b>Evidence:</b> FFmpeg engine path gained h264_qsv (hwmap derive_device=qsv), CFR pacing + preset mapping completed; validated on Intel hardware in engineering test runs (single workstation).</div></div>
 
     <div class="mx-row" data-cat="ux"><div class="c cat">X-02</div>
       <div class="c feat">Hub-offline overlay state <span class="tag">FIXED</span></div>
@@ -340,17 +341,17 @@ footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
   <div class="sec-no">4.0</div>
   <h2 class="sec-title">Measured KPI Summary</h2>
   <div class="kpi-grid">
-    <div class="kpi-box"><div class="lbl">AUDIO INTEGRITY INDEX</div>
+    <div class="kpi-box"><div class="lbl">AUDIO INTEGRITY INDEX<div class="sub">Internal Engineering Index</div></div>
       <div class="row"><span>STABLE</span><div class="bar"><div class="fill old" data-w="62"></div></div><span class="num old-n">62</span></div>
       <div class="row"><span>OBT3</span><div class="bar"><div class="fill new" data-w="100"></div></div><span class="num new-n">100</span></div>
       <div class="row"><span>UNIT</span><div style="grid-column:2/4;color:var(--tx3)">tail retention, % of captured bytes</div></div>
     </div>
-    <div class="kpi-box"><div class="lbl">RECORDING PATH COVERAGE</div>
+    <div class="kpi-box"><div class="lbl">RECORDING PATH COVERAGE<div class="sub">Internal Engineering Index</div></div>
       <div class="row"><span>STABLE</span><div class="bar"><div class="fill old" data-w="55"></div></div><span class="num old-n">55</span></div>
       <div class="row"><span>OBT3</span><div class="bar"><div class="fill new" data-w="100"></div></div><span class="num new-n">100</span></div>
       <div class="row"><span>UNIT</span><div style="grid-column:2/4;color:var(--tx3)">audio-on / audio-off both healthy</div></div>
     </div>
-    <div class="kpi-box"><div class="lbl">REPORT HONESTY INDEX</div>
+    <div class="kpi-box"><div class="lbl">REPORT HONESTY INDEX<div class="sub">Internal Engineering Index</div></div>
       <div class="row"><span>STABLE</span><div class="bar"><div class="fill old" data-w="35"></div></div><span class="num old-n">35</span></div>
       <div class="row"><span>OBT3</span><div class="bar"><div class="fill new" data-w="100"></div></div><span class="num new-n">100</span></div>
       <div class="row"><span>UNIT</span><div style="grid-column:2/4;color:var(--tx3)">loss visibility across all layers</div></div>
@@ -378,7 +379,7 @@ footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
   <h2 class="sec-title">Recommendation &amp; Sign-off</h2>
   <div class="rec">
     <h3>DEPLOY OBT3 AS THE CURRENT FLAGSHIP BUILD</h3>
-    <p>All 13 findings were reproduced and re-verified post-fix. Audio integrity, recording-path
+    <p>All 13 findings were reproduced, verified, or validated post-fix as applicable. Audio integrity, recording-path
     coverage and report honesty regressions are resolved with the validation suite passing at 30/30.
     The overlay, hub keep-alive and deployment layout are unchanged from the accepted production baseline.</p>
     <div class="stamps">
