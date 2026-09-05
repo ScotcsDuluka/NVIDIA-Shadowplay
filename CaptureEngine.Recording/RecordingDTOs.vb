@@ -252,6 +252,10 @@ Namespace CaptureEngine.Recording
         Public Property AudioBytes As Long
         Public Property VideoStreamFound As Boolean
         Public Property AudioStreamFound As Boolean
+        ''' <summary>Whether this session REQUESTED audio — Pass uses it to
+        ''' decide if an audio stream is expected (video-only sessions have
+        ''' no audio stream by design).</summary>
+        Public Property AudioRequested As Boolean
         Public Property FileExists As Boolean
         Public Property FileSize As Long
         Public Property ErrorMessage As String = ""
@@ -298,15 +302,22 @@ Namespace CaptureEngine.Recording
 
         Public ReadOnly Property Pass As Boolean
             Get
+                ' ★ 17:28 FIX (video-only wrongly failed): audio expectations
+                ' are conditional on the session's own audio switch — a
+                ' video-only session has NO audio stream by design (its mux
+                ' args don't even include an audio input), so demanding
+                ' AudioStreamFound made every video-only run fail.
+                Dim audioOk As Boolean = If(AudioRequested,
+                                            AudioStreamFound AndAlso MuxDroppedBytes = 0 AndAlso
+                                            AudioDroppedBytes = 0,
+                                            True)
+                Dim micOk As Boolean = If(MicDroppedBytes = 0, True, False)
                 Return FramesEncoded > 0 AndAlso
                        NvencErrors = 0 AndAlso
                        FileExists AndAlso
                        FileSize > 0 AndAlso
                        VideoStreamFound AndAlso
-                       AudioStreamFound AndAlso
-                       MuxDroppedBytes = 0 AndAlso
-                       AudioDroppedBytes = 0 AndAlso
-                       MicDroppedBytes = 0
+                       audioOk AndAlso micOk
             End Get
         End Property
     End Class

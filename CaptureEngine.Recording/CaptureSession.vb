@@ -224,7 +224,8 @@ Namespace CaptureEngine.Recording
         Public Function Run() As SessionResult
             Dim result As New SessionResult() With {
                 .OutputPath = _config.OutputPath,
-                .RequestedDurationSec = _config.DurationSeconds
+                .RequestedDurationSec = _config.DurationSeconds,
+                .AudioRequested = _config.AudioEnabled
             }
 
             ' ─── Temp file paths ─────────────────────────────────────────

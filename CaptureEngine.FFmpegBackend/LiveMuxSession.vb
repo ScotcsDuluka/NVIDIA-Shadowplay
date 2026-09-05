@@ -110,10 +110,17 @@ Namespace CaptureEngine.FFmpegBackend
             _finalPath = finalOutputPath
             _fragPath = finalOutputPath & ".frag.mp4"
             _videoFps = Math.Max(1, videoFps)
-            _sysRate = systemSampleRate
-            _sysChannels = systemChannels
-            _micRate = micSampleRate
-            _micChannels = micChannels
+            ' ★ 17:19 FIX (video-only session died at first frame): when the
+            ' session has NO system audio the caller used to pass the default
+            ' 48000/2 regardless — LiveMux then created the sp_a pipe and put
+            ' it in the ffmpeg args, but nothing ever connected; ffmpeg's
+            ' input#1 open failed ('Invalid argument') → exit -22, ALL video
+            ' bytes dropped, no output file. rate<=0 is the explicit
+            ' "audio disabled" signal: no audio pipe, no audio input.
+            _sysRate = If(systemSampleRate > 0, systemSampleRate, 0)
+            _sysChannels = If(systemSampleRate > 0, systemChannels, 0)
+            _micRate = If(micSampleRate > 0, micSampleRate, 0)
+            _micChannels = If(micSampleRate > 0, micChannels, 0)
             _separateTracks = separateTracks
             _sysVolume = systemVolume
             _micVolume = micVolume
@@ -138,13 +145,17 @@ Namespace CaptureEngine.FFmpegBackend
         Public Function Start() As Boolean
             Dim id As String = Guid.NewGuid().ToString("N").Substring(0, 10)
             Try
-                _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False, blockProducer:=True, blockAlign:=1, log:=AddressOf LogPipe)
-                _audio = New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_sysChannels * 2, log:=AddressOf LogPipe)
-                _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_micChannels * 2, log:=AddressOf LogPipe), Nothing)
+            _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False, blockProducer:=True, blockAlign:=1, log:=AddressOf LogPipe)
+            ' ★ 17:19: no audio pipe at all when system audio is disabled
+            ' (rate 0) — a created-but-unfed pipe kills ffmpeg's input open.
+            _audio = If(_sysRate > 0 AndAlso _sysChannels > 0,
+                        New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_sysChannels * 2, log:=AddressOf LogPipe),
+                        Nothing)
+            _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_micChannels * 2, log:=AddressOf LogPipe), Nothing)
 
-                _video.StartListening()
-                _audio.StartListening()
-                _mic?.StartListening()
+            _video.StartListening()
+            _audio?.StartListening()
+            _mic?.StartListening()
 
                 Dim psi As New ProcessStartInfo With {
                     .FileName = _ffmpegPath,
@@ -158,7 +169,7 @@ Namespace CaptureEngine.FFmpegBackend
                 _stderrTask = _proc.StandardError.ReadToEndAsync()
 
                 _video.StartWriter()
-                _audio.StartWriter()
+                _audio?.StartWriter()
                 _mic?.StartWriter()
 
                 _started = True
@@ -178,8 +189,13 @@ Namespace CaptureEngine.FFmpegBackend
             ' input 0: raw H.264 CFR
             sb.Append($"-f h264 -framerate {_videoFps} -i ""\\.\pipe\{_video.Name}"" ")
 
-            ' input 1: system audio raw PCM
-            sb.Append($"-f s16le -ar {_sysRate} -ac {_sysChannels} -i ""\\.\pipe\{_audio.Name}"" ")
+            ' input 1: system audio raw PCM — ONLY when system audio exists
+            ' (rate 0 = audio disabled; a pipe no one feeds kills ffmpeg's
+            ' input open, see ctor note)
+            Dim hasSys As Boolean = _sysRate > 0 AndAlso _sysChannels > 0
+            If hasSys Then
+                sb.Append($"-f s16le -ar {_sysRate} -ac {_sysChannels} -i ""\\.\pipe\{_audio.Name}"" ")
+            End If
 
             ' input 2: mic raw PCM
             If _mic IsNot Nothing Then
@@ -195,15 +211,18 @@ Namespace CaptureEngine.FFmpegBackend
                 sb.Append("-map 0:v -map ""[aout]"" ")
             ElseIf _mic IsNot Nothing Then
                 sb.Append("-map 0:v -map 1:a -map 2:a ")
-            Else
+            ElseIf hasSys Then
                 sb.Append("-map 0:v -map 1:a ")
+            Else
+                ' video-only
+                sb.Append("-map 0:v ")
             End If
 
             sb.Append("-c:v copy ")
             If _mic IsNot Nothing AndAlso _separateTracks Then
                 sb.Append("-c:a:0 aac -b:a:0 320k -ar:a:0 48000 ")
                 sb.Append("-c:a:1 aac -b:a:1 320k -ar:a:1 48000 ")
-            Else
+            ElseIf hasSys OrElse _mic IsNot Nothing Then
                 sb.Append("-c:a aac -b:a 320k -ar 48000 ")
             End If
 
@@ -242,13 +261,13 @@ Namespace CaptureEngine.FFmpegBackend
 
             Dim sysDiscard As Long = CLng(Math.Max(0, systemOffsetSec) * sysBytesPerSec)
             Dim sysPad As Long = CLng(Math.Max(0, -systemOffsetSec) * sysBytesPerSec)
-            _audio.BeginTimeline(sysDiscard, sysPad)
+            _audio?.BeginTimeline(sysDiscard, sysPad)
             Log($"[live-mux] sys timeline: offset={systemOffsetSec:0.000}s → discard {sysDiscard:N0}B / pad {sysPad:N0}B")
 
             If _mic IsNot Nothing Then
                 Dim micDiscard As Long = CLng(Math.Max(0, micOffsetSec) * micBytesPerSec)
                 Dim micPad As Long = CLng(Math.Max(0, -micOffsetSec) * micBytesPerSec)
-                _mic.BeginTimeline(micDiscard, micPad)
+                _mic?.BeginTimeline(micDiscard, micPad)
                 Log($"[live-mux] mic timeline: offset={micOffsetSec:0.000}s → discard {micDiscard:N0}B / pad {micPad:N0}B")
             End If
         End Sub
@@ -258,11 +277,11 @@ Namespace CaptureEngine.FFmpegBackend
         End Sub
 
         Public Sub FeedSystemAudio(pcm As Byte(), length As Integer)
-            If _started Then _audio.Feed(pcm, length)
+            If _started Then _audio?.Feed(pcm, length)
         End Sub
 
         Public Sub FeedSystemAudioSegment(pcm As Byte(), offset As Integer, length As Integer)
-            If Not _started OrElse pcm Is Nothing OrElse offset < 0 OrElse length <= 0 OrElse offset + length > pcm.Length Then Return
+            If Not _started OrElse _audio Is Nothing OrElse pcm Is Nothing OrElse offset < 0 OrElse length <= 0 OrElse offset + length > pcm.Length Then Return
             If offset = 0 Then
                 _audio.Feed(pcm, length)
             Else
@@ -277,7 +296,7 @@ Namespace CaptureEngine.FFmpegBackend
         End Sub
 
         Public Sub FeedMicAudioSegment(pcm As Byte(), offset As Integer, length As Integer)
-            If Not _started OrElse pcm Is Nothing OrElse _mic Is Nothing OrElse offset < 0 OrElse length <= 0 OrElse offset + length > pcm.Length Then Return
+            If Not _started OrElse _mic Is Nothing OrElse pcm Is Nothing OrElse offset < 0 OrElse length <= 0 OrElse offset + length > pcm.Length Then Return
             If offset = 0 Then
                 _mic.Feed(pcm, length)
             Else
@@ -308,7 +327,7 @@ Namespace CaptureEngine.FFmpegBackend
 
                 Log($"[live-mux] stop requested: timeout={timeoutMs}ms, pipeBudget={pipeBudgetMs}ms")
                 _video.RequestStopAndDrain(pipeBudgetMs)
-                _audio.RequestStopAndDrain(pipeBudgetMs)
+                _audio?.RequestStopAndDrain(pipeBudgetMs)
                 _mic?.RequestStopAndDrain(pipeBudgetMs)
 
                 Dim remainingMs As Integer = Math.Max(1000, timeoutMs - CInt(stopClock.ElapsedMilliseconds))
@@ -329,9 +348,9 @@ Namespace CaptureEngine.FFmpegBackend
                 End Try
 
                 res.VideoBytesFed = _video.BytesWritten
-                res.SystemBytesFed = _audio.BytesWritten
+                res.SystemBytesFed = If(_audio IsNot Nothing, _audio.BytesWritten, 0)
                 res.MicBytesFed = If(_mic IsNot Nothing, _mic.BytesWritten, 0)
-                res.DroppedBytes = _video.DroppedBytes + _audio.DroppedBytes + If(_mic IsNot Nothing, _mic.DroppedBytes, 0)
+                res.DroppedBytes = _video.DroppedBytes + If(_audio IsNot Nothing, _audio.DroppedBytes, 0) + If(_mic IsNot Nothing, _mic.DroppedBytes, 0)
 
                 If res.FFmpegExitCode = 0 AndAlso File.Exists(_fragPath) Then
                     ' +faststart remux (stream copy — cheap)
