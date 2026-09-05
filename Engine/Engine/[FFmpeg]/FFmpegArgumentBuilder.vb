@@ -101,9 +101,10 @@ Partial Public Class CaptureEngine
                 sb.Append("-spatial-aq 1 -temporal-aq 1 ")
 
             Case HwDeviceType.IntelQSV
-                sb.Append("-preset medium ")
-                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " -rc cbr ")
-                sb.Append("-look_ahead 1 ")
+                Dim qsvPreset As String = OverlayConfig.MapQsvPreset(_settings.NvencPreset)
+                sb.Append("-preset " & qsvPreset & " -rc cbr ")
+                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " ")
+                sb.Append("-g " & fpsStr & " -fps_mode cfr ")
 
             Case HwDeviceType.AMD
                 sb.Append("-preset balanced -usage transcoding ")

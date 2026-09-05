@@ -635,6 +635,19 @@ Public NotInheritable Class OverlayConfig
     ''' <summary>
     ''' NVENC preset p1..p7 mapping. Overlay uses integer 1-7. FFmpeg uses p1..p7.
     ''' </summary>
+    Public Shared Function MapQsvPreset(presetNum As Integer) As String
+        Select Case presetNum
+            Case 1 : Return "veryfast"
+            Case 2 : Return "faster"
+            Case 3 : Return "fast"
+            Case 4 : Return "medium"
+            Case 5 : Return "slow"
+            Case 6 : Return "slower"
+            Case 7 : Return "veryslow"
+            Case Else : Return "medium"
+        End Select
+    End Function
+
     Public Shared Function MapNvencPreset(presetNum As Integer) As String
         Select Case presetNum
             Case 1 : Return "p1"
