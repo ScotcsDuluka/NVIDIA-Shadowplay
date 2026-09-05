@@ -129,7 +129,8 @@ Public Class ObsWebSocketClient
 
         ' Bump the epoch FIRST: any old loop waking up sees a stale generation
         ' and silently retires instead of fighting the new connection.
-        Interlocked.Increment(_generation)
+        Dim newGen As Integer = Interlocked.Increment(_generation)
+        FailStalePendingRequests(newGen, "endpoint changed")
 
         _isConnected = False
         _isReconnecting = False
@@ -158,6 +159,7 @@ Public Class ObsWebSocketClient
     Private Sub ConnectCore()
         ' New epoch: old ReceiveLoops/ReconnectLoops become stale no-ops.
         Dim myGen As Integer = Interlocked.Increment(_generation)
+        FailStalePendingRequests(myGen, "superseded by a newer connection")
         Try
             Disconnect()
             _isReconnecting = False
@@ -175,7 +177,6 @@ Public Class ObsWebSocketClient
                 Log("error", "Connect timed out after 5s")
                 _isConnected = False
                 DisconnectIfCurrent(myGen)   ' own socket: dispose (leak fix)
-                FailPendingRequests(myGen, "connect attempt ended")
                 TryStartReconnect()
                 Return
             End If
@@ -281,7 +282,7 @@ Public Class ObsWebSocketClient
             Return
         End If
         _isConnected = False
-        FailPendingRequests(myGen, "connection lost")
+        FailPendingRequestsOfGen(myGen, "connection lost")
         RaiseEvent OnDisconnected()
         TryStartReconnect()
     End Sub
@@ -454,22 +455,40 @@ Public Class ObsWebSocketClient
     ''' called when that epoch's connection ends, so no caller stays blocked
     ''' against a socket that can no longer answer. (Result = Nothing, same
     ''' contract as a timeout.)</summary>
-    Private Sub FailPendingRequests(myGen As Integer, reason As String)
+    Private Sub FailPendingRequestsOfGen(gen As Integer, reason As String)
         SyncLock _pendingLock
             Dim stale As New List(Of String)()
             For Each kv In _pendingGenerations
-                If kv.Value = myGen Then stale.Add(kv.Key)
+                If kv.Value = gen Then stale.Add(kv.Key)
             Next
-            For Each id In stale
-                Dim tcs As TaskCompletionSource(Of JObject) = Nothing
-                If _pendingResponses.TryGetValue(id, tcs) Then
-                    _pendingResponses.Remove(id)
-                    _pendingGenerations.Remove(id)
-                    Log("info", $"request id={id} failed (connection epoch ended: {reason})")
-                    tcs.TrySetResult(Nothing)
-                End If
-            Next
+            RemoveAndFail(stale, reason)
         End SyncLock
+    End Sub
+
+    ''' <summary>Fail every pending request issued on an epoch OLDER than the
+    ''' newly-bumped generation — called on every epoch transition (endpoint
+    ''' change, reconnect, dispose). This is what keeps a dead connection from
+    ''' holding a caller for the full request timeout.</summary>
+    Private Sub FailStalePendingRequests(newGen As Integer, reason As String)
+        SyncLock _pendingLock
+            Dim stale As New List(Of String)()
+            For Each kv In _pendingGenerations
+                If kv.Value <> newGen Then stale.Add(kv.Key)
+            Next
+            RemoveAndFail(stale, reason)
+        End SyncLock
+    End Sub
+
+    Private Sub RemoveAndFail(ids As List(Of String), reason As String)
+        For Each id In ids
+            Dim tcs As TaskCompletionSource(Of JObject) = Nothing
+            If _pendingResponses.TryGetValue(id, tcs) Then
+                _pendingResponses.Remove(id)
+                _pendingGenerations.Remove(id)
+                Log("info", $"request id={id} failed (connection epoch ended: {reason})")
+                tcs.TrySetResult(Nothing)
+            End If
+        Next
     End Sub
 
     Private Sub ReconnectLoop()
@@ -477,6 +496,7 @@ Public Class ObsWebSocketClient
         ' dispose the SHARED _cts/_ws fields — killing whatever newer
         ' connection was live by the time the backoff elapsed.
         Dim myGen As Integer = Interlocked.Increment(_generation)
+        FailStalePendingRequests(myGen, "superseded by reconnect")
         RaiseEvent OnReconnecting()
         While Not IsConnected AndAlso _autoReconnect AndAlso myGen = CurrentGeneration()
             Try
@@ -548,7 +568,8 @@ Public Class ObsWebSocketClient
         _autoReconnect = False
         ' Retire every loop of every epoch before tearing the socket down,
         ' then wake any reconnect backoff sleep so the task exits promptly.
-        Interlocked.Increment(_generation)
+        Dim newGen As Integer = Interlocked.Increment(_generation)
+        FailStalePendingRequests(newGen, "client disposed")
         Try : _shutdownEvent.Set() : Catch : End Try
         Disconnect()
     End Sub
