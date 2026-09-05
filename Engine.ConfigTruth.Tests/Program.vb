@@ -50,6 +50,7 @@ Namespace Engine.ConfigTruth.Tests
             W2OverlayHonestyTests.RunAll()
             GetEngineModeTests.RunAll()        ' C/2: engine_mode vocabulary authority
             SessionEndContractTests.RunAll()   ' C/3: Duluka session-end broadcast contract
+            FrameRetirementContractTests.RunAll()   ' F-05: CaptureSession frame-retirement order
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")

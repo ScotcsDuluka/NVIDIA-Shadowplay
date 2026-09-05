@@ -5,7 +5,9 @@ Imports System.Threading
 
 Partial Public Class API_RUN
 
-    Private listener As TcpListener
+    ' F-04: loopback-only listeners (127.0.0.1 + ::1). The old single
+    ' `listener` field (wildcard-bound) is gone — see StartServer.
+    Private loopbackListeners As TcpListener() = New TcpListener() {}
     Private clients As New List(Of ClientInfo)
     Private clientsLock As New Object()
     Private startTime As DateTime
@@ -65,10 +67,12 @@ Partial Public Class API_RUN
             clients.Clear()
         End SyncLock
 
-        ' หยุด listener
-        If listener IsNot Nothing Then
-            Try : listener.Stop() : Catch : End Try
-        End If
+        ' หยุด listener ทุกตัว (F-04: loopback listeners อาจมีมากกว่าหนึ่ง —
+        ' 127.0.0.1 และ ::1 แยก socket กัน)
+        For Each l As TcpListener In loopbackListeners
+            Try : l.Stop() : Catch : End Try
+        Next
+        loopbackListeners = New TcpListener() {}
     End Sub
 
     ''' <summary>
@@ -132,60 +136,69 @@ Partial Public Class API_RUN
     End Sub
 
     Private Async Sub StartServer()
-        ' ✅ P2.2: bind to IPv6 Any with dual-stack enabled.
-        ' Old code: New TcpListener(IPAddress.Loopback, 5000) → IPv4 only.
-        ' Problem: when Engine's TcpClient.Connect("127.0.0.1", 5000) resolved
-        ' to ::ffff:127.0.0.1 (IPv6 dual-stack), the connection was refused
-        ' because the Hub wasn't listening on IPv6.
-        ' Fix: bind IPv6Any with SocketOptionName.IPv6Only=False (default in
-        ' .NET 8) → accepts both IPv4 and IPv6 connections on the same socket.
-        ' We still constrain to loopback by checking the remote endpoint
-        ' after accept (to keep the security posture from P0).
-
-        ' ✅ P2.6: retry loop. If both IPv6 and IPv4 binds fail (port 5000
+        ' ✅ F-04 FIX (C/2): bind ONLY loopback — was: IPv6Any dual-stack wildcard.
+        '
+        ' History: P2.2 widened the bind from IPAddress.Loopback to IPv6Any
+        ' (IPv6Only=False) so the Engine's dual-stack "127.0.0.1" connect could
+        ' never be refused, and this comment claimed "We still constrain to
+        ' loopback by checking the remote endpoint after accept" — but NO such
+        ' check existed (C/6 F-04). Measured on this machine before the fix:
+        ' the wildcard hub accepted and served 192.168.1.254 and 192.168.137.1
+        ' clients end-to-end (connect + ping → pong).
+        '
+        ' Now the boundary is kernel-level: loopback-only listeners created by
+        ' LoopbackGate (127.0.0.1 + ::1 with IPv6Only=True, so dual-stack
+        ' mapping can never widen the ::1 socket to a wildcard). The accept
+        ' path re-checks the peer with LoopbackGate.IsLoopback as defense in
+        ' depth (see HandleClientAsync).
+        '
+        ' ✅ P2.6: retry loop (kept). If EVERY loopback bind fails (port 5000
         ' already in use by another app), wait 5s and retry instead of
-        ' crashing the Hub.
+        ' crashing the Hub. A single-family bind failure only logs and
+        ' continues on the other family.
         Dim bindAttempts As Integer = 0
         Dim shouldRetry As Boolean = False
         Do
             shouldRetry = False
-            Try
-                listener = New TcpListener(IPAddress.IPv6Any, 5000)
-                listener.Server.SetSocketOption(SocketOptionLevel.IPv6, SocketOptionName.IPv6Only, False)
-                listener.Start()
-                Exit Do
-            Catch ex As SocketException
-                Log("[Warn] NVIDIA API", $"ipv6_bind_failed_{ex.Message}_trying_ipv4")
+            Dim bound As New List(Of TcpListener)
+            For Each l As TcpListener In LoopbackGate.CreateLoopbackListeners(5000)
                 Try
-                    listener = New TcpListener(IPAddress.Loopback, 5000)
-                    listener.Start()
-                    Exit Do
-                Catch ex2 As SocketException
-                    bindAttempts += 1
-                    Log("[Error] NVIDIA API", $"bind_failed_attempt_{bindAttempts}_ipv4_error_{ex2.Message}")
-                    If bindAttempts >= 12 Then
-                        ' Give up after ~1 minute of retries.
-                        Log("[Error] NVIDIA API", "bind_failed_giving_up_after_12_attempts")
-                        ' ✅ M12 FIX: tell the user the hub is dead. Old code just
-                        ' returned silently — lblStatus still said "Online" because
-                        ' UpdateUI hardcodes "Online". Now show an error status and
-                        ' a tray balloon so the user knows nothing can connect.
-                        Try
-                            Me.Invoke(Sub()
-                                          lblStatus.Text = "Server log | OFFLINE — bind failed"
-                                          lblStatus.ForeColor = Color.FromArgb(200, 50, 50)
-                                          notifyIcon.BalloonTipTitle = "NVIDIA API"
-                                          notifyIcon.BalloonTipText = "Hub failed to bind port 5000 after 12 attempts. Check if another app is using the port."
-                                          notifyIcon.BalloonTipIcon = ToolTipIcon.Error
-                                          notifyIcon.ShowBalloonTip(5000)
-                                      End Sub)
-                        Catch
-                        End Try
-                        Return
-                    End If
-                    shouldRetry = True
+                    l.Start()
+                    bound.Add(l)
+                Catch ex As SocketException
+                    Try : l.Stop() : Catch : End Try
+                    Log("[Warn] NVIDIA API", $"loopback_bind_failed_{l.LocalEndpoint}_{ex.Message}_continuing")
                 End Try
-            End Try
+            Next
+            loopbackListeners = bound.ToArray()
+            If loopbackListeners.Length > 0 Then
+                Exit Do
+            End If
+
+            ' Every loopback bind failed — keep the P2.6/M12 retry UX.
+            bindAttempts += 1
+            Log("[Error] NVIDIA API", $"loopback_bind_failed_attempt_{bindAttempts}_all_families")
+            If bindAttempts >= 12 Then
+                ' Give up after ~1 minute of retries.
+                Log("[Error] NVIDIA API", "bind_failed_giving_up_after_12_attempts")
+                ' ✅ M12 FIX: tell the user the hub is dead. Old code just
+                ' returned silently — lblStatus still said "Online" because
+                ' UpdateUI hardcodes "Online". Now show an error status and
+                ' a tray balloon so the user knows nothing can connect.
+                Try
+                    Me.Invoke(Sub()
+                                  lblStatus.Text = "Server log | OFFLINE — bind failed"
+                                  lblStatus.ForeColor = Color.FromArgb(200, 50, 50)
+                                  notifyIcon.BalloonTipTitle = "NVIDIA API"
+                                  notifyIcon.BalloonTipText = "Hub failed to bind port 5000 after 12 attempts. Check if another app is using the port."
+                                  notifyIcon.BalloonTipIcon = ToolTipIcon.Error
+                                  notifyIcon.ShowBalloonTip(5000)
+                              End Sub)
+                Catch
+                End Try
+                Return
+            End If
+            shouldRetry = True
 
             ' ✅ P2.6b: VB.NET does not allow Await inside Catch/Finally/SyncLock
             ' (BC36943). Wait outside the Catch block instead.
@@ -209,45 +222,79 @@ Partial Public Class API_RUN
 #Disable Warning BC42358 ' Fire-and-forget by design (see comment above)
         Task.Run(Sub() HeartbeatMonitor(_heartbeatCts.Token), _heartbeatCts.Token)
 #Enable Warning BC42358
-        While Not _isShuttingDown
+
+        ' ✅ F-04: one accept task per bound loopback listener. WhenAny picks
+        ' the first completed accept; that slot is re-armed against the SAME
+        ' listener so both families keep serving concurrently. A faulted
+        ' accept (listener stopped) drops only its own slot — the remaining
+        ' listener keeps serving until shutdown.
+        Dim accepts As New List(Of Task(Of TcpClient))
+        Dim owners As New List(Of TcpListener)
+        For Each l As TcpListener In loopbackListeners
+            accepts.Add(l.AcceptTcpClientAsync())
+            owners.Add(l)
+        Next
+
+        While Not _isShuttingDown AndAlso accepts.Count > 0
+            Dim completed As Task(Of TcpClient) = Await Task.WhenAny(accepts)
+            Dim idx As Integer = accepts.IndexOf(completed)
+            Dim client As TcpClient = Nothing
             Try
-                Dim client = Await listener.AcceptTcpClientAsync()
-                ' ✅ FIX: hard cap on connected clients to bound memory.
-                Dim curCount As Integer
-                SyncLock clientsLock : curCount = clients.Count : End SyncLock
-                If curCount >= 32 Then
-                    Try : client.Close() : Catch : End Try
-                    Log("[Warn] NVIDIA API", "client_rejected_max_reached")
-                    Continue While
-                End If
-
-                Dim info As New ClientInfo With {
-                    .Client = client,
-                    .Writer = New StreamWriter(client.GetStream()) With {.AutoFlush = True},
-                    .ConnectedAt = DateTime.Now
-                }
-
-                SyncLock clientsLock
-                    clients.Add(info)
-                End SyncLock
-
-                Log("[Log] NVIDIA API", $"client_connected_{clients.Count}")
-                ' Deliberate fire-and-forget: HandleClientAsync owns its own
-                ' try/catch and per-client lifetime; the accept loop must not
-                ' wait on it or one slow client would block all others.
-#Disable Warning BC42358 ' Fire-and-forget by design (see comment above)
-                Task.Run(Function() HandleClientAsync(info))
-#Enable Warning BC42358
+                client = Await completed
             Catch ex As Exception
                 If Not _isShuttingDown Then
                     Log("[Error] NVIDIA API", $"accept_failed_{ex.Message}")
                 End If
-                Exit While
+                ' Drop this listener from rotation; keep the others alive.
+                accepts.RemoveAt(idx)
+                owners.RemoveAt(idx)
+                Continue While
             End Try
+
+            ' Re-arm the slot for its listener before any client work.
+            accepts(idx) = owners(idx).AcceptTcpClientAsync()
+
+            ' ✅ FIX (kept): hard cap on connected clients to bound memory.
+            Dim curCount As Integer
+            SyncLock clientsLock : curCount = clients.Count : End SyncLock
+            If curCount >= 32 Then
+                Try : client.Close() : Catch : End Try
+                Log("[Warn] NVIDIA API", "client_rejected_max_reached")
+                Continue While
+            End If
+
+            Dim info As New ClientInfo With {
+                .Client = client,
+                .Writer = New StreamWriter(client.GetStream()) With {.AutoFlush = True},
+                .ConnectedAt = DateTime.Now
+            }
+
+            SyncLock clientsLock
+                clients.Add(info)
+            End SyncLock
+
+            Log("[Log] NVIDIA API", $"client_connected_{clients.Count}")
+            ' Deliberate fire-and-forget: HandleClientAsync owns its own
+            ' try/catch and per-client lifetime; the accept loop must not
+            ' wait on it or one slow client would block all others.
+#Disable Warning BC42358 ' Fire-and-forget by design (see comment above)
+            Task.Run(Function() HandleClientAsync(info))
+#Enable Warning BC42358
         End While
     End Sub
 
     Private Async Function HandleClientAsync(info As ClientInfo) As Task
+        ' ✅ F-04 defense in depth: the kernel-level loopback bind is THE
+        ' boundary; this re-check guarantees that a future bind change (or a
+        ' platform dual-stack surprise) cannot silently reopen the Hub to
+        ' non-loopback peers. Rejected immediately, before any stream work.
+        Dim peer As IPEndPoint = TryCast(info.Client.Client.RemoteEndPoint, IPEndPoint)
+        If Not LoopbackGate.IsLoopback(peer) Then
+            Log("[Warn] NVIDIA API", $"client_rejected_non_loopback_{If(peer IsNot Nothing, peer.ToString(), "<unknown>")}")
+            Try : info.Client.Close() : Catch : End Try
+            Return
+        End If
+
         Dim reader As New StreamReader(info.Client.GetStream())
 
         Dim id As String = "unknown"
@@ -259,6 +306,15 @@ Partial Public Class API_RUN
         ' for hours, old code held the connection forever. With 60s inactivity, the
         ' HeartbeatMonitor (30s) wins first, but this is belt-and-suspenders.
         info.Client.ReceiveTimeout = 60000
+
+        ' ✅ F-04 follow-up (message layer): per-WRITE timeout. Broadcast()
+        ' writes under clientsLock; without SendTimeout a local client that
+        ' never reads blocks that write once its buffers fill — deadlocking
+        ' the WHOLE hub (broadcasts, pongs, HeartbeatMonitor) for as long as
+        ' the attacker holds the socket. With the timeout, the stuck write
+        ' throws on the writer thread and the dead-client path releases the
+        ' lock; the hub survives. Legit loopback clients never block 60s.
+        info.Client.SendTimeout = 60000
 
         Try
             While True

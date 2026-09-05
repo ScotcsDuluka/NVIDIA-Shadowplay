@@ -83,6 +83,7 @@ Namespace CaptureEngine.Recording.Tests
             SyncMathTests.RunAll()
             WavSidecarTests.RunAll()
             DisposerTests.RunAll()   ' ★ GPU disposer: no-lost-frame + no-throw contracts
+            LiveMuxJobOwnershipTests.RunAll()   ' ★ F-07: LiveMux ffmpeg process ownership (real ffmpeg)
             AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
             AudioTimelineDeviceClockTests.RunAll()   ' ★ P13-A: OWNER-spec deterministic sample timeline (no hardware)
             RuntimeSyncTests.RunAll()

@@ -132,6 +132,7 @@ Namespace CaptureEngine.FFmpegBackend
             _sysVolume = systemVolume
             _micVolume = micVolume
             _log = log
+            _onProcessStarted = onProcessStarted
         End Sub
 
         Private Sub Log(msg As String)

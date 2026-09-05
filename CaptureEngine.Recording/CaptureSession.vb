@@ -598,7 +598,7 @@ Namespace CaptureEngine.Recording
                     _config.SystemVolume,
                     _config.MicVolume,
                     Sub(m) _logger.Info(m),
-                    _config.OnProcessStarted)
+                    _config.OnProcessStarted)   ' ★ F-07: job-assign every spawned ffmpeg
                 If Not _liveMux.Start() Then
                     Throw New Exception("LiveMux failed to start (ffmpeg) — session aborted")
                 End If
@@ -608,10 +608,16 @@ Namespace CaptureEngine.Recording
 
                 ' ─── 3. Arm video capture + encoder BEFORE common T0 ────
                 _logger.Info("[session] Arming video capture + encoder before common T0...")
-                _encoder.Start()
+                ' ★ C-1: claim ownership BEFORE starting each backend. If a
+                ' Start throws mid-way (thread OOM, logger fault) the Finally
+                ' unwind still sees running=True and Stops the backend — the
+                ' old flag-after-call order skipped the unwind and stranded a
+                ' live capture worker. Stop is idempotent/state-guarded on
+                ' both backends, so claiming early is always safe.
                 encoderRunning = True
-                _capture.Start(sink)
+                _encoder.Start()
                 captureRunning = True
+                _capture.Start(sink)
 
                 ' Audio/video mux timeline is already defined by the same T0.
                 _audioEngine.SetVideoStartQpc100ns(_timelineStartQpc100ns)
@@ -917,17 +923,19 @@ Namespace CaptureEngine.Recording
                         _logger.Info($"[session] CFR tail-fill: +{result.FramesEncoded - fillBefore} frames (target {targetFrames})")
                     End If
                 End If
-                pendingFrame = Nothing   ' nothing left to dispose
-                ' ★ Leak fix: if the final fresh-frame encode threw (Catch above),
-                ' ownership never transferred and pendingFrame still wraps a
-                ' D3D11 texture. lastFrame is a DIFFERENT texture — both must be
-                ' retired; enqueueing the same frame twice is safe (Dispose is
-                ' one-shot via CompareExchange).
+                ' ★ F-05 (C/6 evidence): retire the retained frames EXACTLY
+                ' ONCE and in the right order. pendingFrame still owns a
+                ' D3D11 texture when the final fresh-frame encode threw above
+                ' (the Try transfers ownership on success only), so the guard
+                ' MUST run before the Nothing assignments — a premature
+                ' `pendingFrame = Nothing` turned the guard into dead code and
+                ' stranded one staging texture per failure (D3D11VideoFrame
+                ' has no finalizer).
                 If pendingFrame IsNot Nothing AndAlso pendingFrame IsNot lastFrame Then
                     frameDisposer.Enqueue(pendingFrame)
-                    pendingFrame = Nothing
                 End If
                 frameDisposer.Enqueue(lastFrame)
+                pendingFrame = Nothing   ' ownership handed to the disposer
                 lastFrame = Nothing
                 frameDisposer.CompleteAndWait()
 

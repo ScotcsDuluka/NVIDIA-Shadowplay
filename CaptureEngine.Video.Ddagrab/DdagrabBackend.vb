@@ -408,16 +408,42 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 _logger.Info("DdagrabBackend: recreating duplication for session-start frame")
                 RecreateDuplication()
 
-                _workerThread = New Thread(AddressOf WorkerLoop) With {
-                    .IsBackground = True,
-                    .Name = "DdagrabBackend.Worker"
-                }
-                _workerThread.Start()
-                _state = DdagrabBackendState.Running
+                ' ★ C-1: commit Running and spawn the worker under ONE lock —
+                ' the transition is atomic w.r.t. the caller. Once Start() can
+                ' throw, the state is either Running (worker live or about to
+                ' be; Stop works) or Faulted (no worker exists). The old order
+                ' spawned the worker first and committed Running last, so a
+                ' throw in between (thread OOM, logger fault) left a LIVE
+                ' worker under a state the session's Finally would never Stop.
+                SyncLock _sync
+                    _state = DdagrabBackendState.Running
+                    Try
+                        _workerThread = New Thread(AddressOf WorkerLoop) With {
+                            .IsBackground = True,
+                            .Name = "DdagrabBackend.Worker"
+                        }
+                        _workerThread.Start()
+                    Catch
+                        _state = DdagrabBackendState.Faulted   ' rollback — no worker exists
+                        _workerThread = Nothing
+                        Throw
+                    End Try
+                End SyncLock
                 _logger.Info("DdagrabBackend: started (real DXGI capture)")
             Catch ex As Exception
-                _state = DdagrabBackendState.Faulted
-                _logger.Error("DdagrabBackend: Start failed", ex)
+                ' Never downgrade a committed Running (worker live) to Faulted —
+                ' that is exactly the orphan the commit-first order exists to
+                ' prevent. Only pre-commit failures mark Faulted.
+                Dim committed As Boolean
+                SyncLock _sync
+                    committed = (_state = DdagrabBackendState.Running)
+                    If Not committed Then _state = DdagrabBackendState.Faulted
+                End SyncLock
+                If committed Then
+                    Try : _logger.Warning("DdagrabBackend: Start threw after commit — worker is live; caller must Stop(): " & ex.Message) : Catch : End Try
+                Else
+                    _logger.Error("DdagrabBackend: Start failed", ex)
+                End If
                 Throw New VideoBackendRuntimeException("Start failed", ex)
             End Try
         End Sub
@@ -502,6 +528,14 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 Try
                     If Not workerToJoin.Join(TimeSpan.FromSeconds(2)) Then
                         _logger.Error("DdagrabBackend: worker did not acknowledge stop within 2 s", Nothing)
+                        ' ★ C-2B: the worker may be inside a blocking COM
+                        ' capture call — give it one bounded extra wait before
+                        ' the cleanup below releases the COM objects it is
+                        ' still calling into (a released-wrapper call can
+                        ' fault the process). 5 s total, then cleanup proceeds.
+                        If Not workerToJoin.Join(TimeSpan.FromSeconds(3)) Then
+                            _logger.Error("DdagrabBackend: worker still alive after 5 s — disposing COM resources anyway", Nothing)
+                        End If
                     End If
                 Catch ex As Exception
                     _logger.Error("DdagrabBackend: stop path failed during Dispose (will still dispose)", ex)
@@ -883,6 +917,15 @@ skipFrame:
             SyncLock _sync
                 If _state = DdagrabBackendState.Stopping Then
                     _state = DdagrabBackendState.Stopped
+                ElseIf _state = DdagrabBackendState.Running Then
+                    ' ★ C-2C: the worker terminated with NO Stop in flight
+                    ' (unexpected crash). Running must never describe a dead
+                    ' worker — Start from Running is silently refused forever.
+                    ' The worker is gone, so the stop is effectively complete:
+                    ' transition to Stopped (loud Error log carries the
+                    ' evidence) so a future Start can recreate and self-heal.
+                    _state = DdagrabBackendState.Stopped
+                    _logger.Error("DdagrabBackend: worker terminated without Stop — state=Stopped (Start may recreate)")
                 End If
             End SyncLock
 

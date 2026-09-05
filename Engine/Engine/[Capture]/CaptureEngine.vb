@@ -725,6 +725,20 @@ Partial Public Class CaptureEngine
                         File.Move(_tempVideoPath, _outputFile)
                         LogDebug("[Mux] Video-only fallback output: " & _outputFile)
                         WriteDebugLog("[Mux] Video-only fallback output: " & _outputFile)
+
+                        ' ★ F-03 honesty fix (proven by F03-B regression): the
+                        ' fallback assumed the temp video is playable. A crashed
+                        ' finalize leaves a moov-less file the mux just rejected —
+                        ' renaming it and letting Step 4 announce RecordingStopped
+                        ' shipped an unplayable "saved" recording. Validate the
+                        ' renamed output with a 1-second real-decode probe; an
+                        ' unplayable file is deleted so Step 4 reports the truth
+                        ' ("Recording not saved") instead of a false save.
+                        If Not ValidatePlayback(_outputFile) Then
+                            LogDebug("[Mux] fallback output FAILED playback validation — removing unplayable file")
+                            WriteDebugLog("[Mux] fallback output FAILED playback validation — removing unplayable file")
+                            Try : File.Delete(_outputFile) : Catch : End Try
+                        End If
                     Catch ex2 As Exception
                         LogDebug("[Mux] Video-only fallback failed: " & ex2.Message)
                         WriteDebugLog("[Mux] Video-only fallback failed: " & ex2.Message)
@@ -746,6 +760,49 @@ Partial Public Class CaptureEngine
             WriteDebugLog("[Mux] Exception: " & ex.ToString())
         End Try
     End Sub
+
+    ''' <summary>★ F-03: playback validation for the mux-failure fallback output.
+    ''' Opens the file and decodes one second with the configured ffmpeg — a
+    ''' moov-less/garbage MP4 (crashed finalize) fails immediately at open.
+    ''' Returns True when the file is playable, or when validation cannot be
+    ' performed at all (ffmpeg missing/spawn failure — keeps the legacy
+    ' best-effort behavior instead of discarding recordings blindly).</summary>
+    Private Function ValidatePlayback(path As String) As Boolean
+        If String.IsNullOrEmpty(path) OrElse Not File.Exists(path) Then Return False
+        Dim psi As New ProcessStartInfo()
+        psi.FileName = _settings.FFmpegPath
+        psi.Arguments = "-v error -i """ & path & """ -t 1 -f null -"
+        psi.UseShellExecute = False
+        psi.RedirectStandardOutput = True
+        psi.RedirectStandardError = True
+        psi.CreateNoWindow = True
+        Try
+            Using probe As New Process()
+                probe.StartInfo = psi
+                probe.Start()
+                If _jobGuard IsNot Nothing Then
+                    ' Honest assignment (H2 contract) — a failed assignment does
+                    ' not abort the probe: it is bounded by the timeout below.
+                    If Not _jobGuard.Assign(probe) Then
+                        LogDebug("[Mux] probe process not job-owned — bounded by 15s timeout")
+                    End If
+                End If
+                Dim errTask As Task(Of String) = probe.StandardError.ReadToEndAsync()
+                Dim outTask As Task(Of String) = probe.StandardOutput.ReadToEndAsync()
+                If Not probe.WaitForExit(15000) Then
+                    LogDebug("[Mux] playback probe timeout — treating as invalid")
+                    Try : probe.Kill() : probe.WaitForExit(2000) : Catch : End Try
+                    Return False
+                End If
+                Try : errTask.Wait(1000) : Catch : End Try
+                Try : outTask.Wait(500) : Catch : End Try
+                Return probe.ExitCode = 0
+            End Using
+        Catch ex As Exception
+            LogDebug("[Mux] playback probe unavailable (" & ex.Message & ") — keeping legacy behavior")
+            Return True
+        End Try
+    End Function
 
     Private Sub DeleteTempFile(path As String)
         If String.IsNullOrEmpty(path) Then Return
