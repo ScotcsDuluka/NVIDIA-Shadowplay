@@ -736,25 +736,28 @@ Partial Public Class CaptureEngine
         End If
 
         ' ── Detect video start (HIGH-PRECISION sync) ──
-        ' Instead of using "Output #0" (which appears BEFORE the first frame is
-        ' actually captured, introducing ~80-130ms error), we use the FIRST
-        ' "frame=" status line and back-calculate the exact video start time.
+        ' The output file's PTS 0 frame is the FIRST frame ddagrab grabbed, so
+        ' the wall time of that grab is the anchor the audio timeline must map
+        ' to. ffmpeg prints "Output #0" right before the transcode loop starts
+        ' — within one loop iteration (~10-30ms) of the first grab. That is the
+        ' earliest authoritative marker.
         '
-        ' The first "frame=" line includes "time=00:00:00.XX" which tells us
-        ' how much video time has elapsed. By subtracting that from the current
-        ' real-time timestamp, we get the EXACT moment video frame 0 was captured:
-        '
-        '   videoStartTicks = nowTicks - (videoTimeSeconds × freq)
-        '
-        ' This reduces sync error from ~80ms to <5ms (sub-frame at 144fps).
+        ' The old back-calculation (T0 = now - statusTime) is biased LATE by
+        ' everything between the first grab and the status line: on Intel QSV
+        ' the encoder init blocks while ddagrab frames queue up, so the first
+        ' parseable status line can report time=0.7s at a moment when the
+        ' actual content began ~0.5s earlier — the 2026-09-05 "~500ms audio
+        ' offset" on this machine. The back-calc is kept ONLY as evidence and
+        ' as a fallback when "Output #0" was never seen.
         If Not _videoStartDetected AndAlso _useTwoProcess Then
             If e.Data.Contains("Output #0") Then
-                ' Mark that Output #0 was seen (so we know to look for first frame=)
                 _videoStartTicks = Stopwatch.GetTimestamp()
+                _videoStartDetected = True
+                PropagateVideoStart("Output#0", -1)
             ElseIf e.Data.IndexOf("frame=", StringComparison.OrdinalIgnoreCase) >= 0 AndAlso
-                   e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) >= 0 AndAlso
-                   _videoStartTicks > 0 Then
-                ' First frame= status line — parse "time=" and back-calculate
+                   e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                ' First frame= status line — fallback anchor + evidence of the
+                ' back-calc bias versus the Output#0 anchor.
                 Try
                     Dim timeIdx As Integer = e.Data.IndexOf("time=", StringComparison.OrdinalIgnoreCase) + 5
                     Dim timeStr As String = e.Data.Substring(timeIdx).TrimStart()
@@ -762,25 +765,22 @@ Partial Public Class CaptureEngine
                     If timeEnd > 0 Then timeStr = timeStr.Substring(0, timeEnd)
                     Dim videoTime As TimeSpan
                     If TimeSpan.TryParse(timeStr, Globalization.CultureInfo.InvariantCulture, videoTime) Then
-                        ' Back-calculate: videoStart = now - videoTime
                         Dim nowTicks As Long = Stopwatch.GetTimestamp()
-                        Dim videoTimeTicks As Long = CLng(videoTime.TotalSeconds * Stopwatch.Frequency)
-                        _videoStartTicks = nowTicks - videoTimeTicks
-                        _videoStartDetected = True
-                        ' Shared Audio Engine owns the capture clock. Publish the
-                        ' exact video t0 so every audio track aligns to this origin.
-                        If _audioEngine IsNot Nothing Then
-                            Dim videoT0Qpc100ns As Long = WasapiPositionCapture.StopwatchTicksTo100ns(_videoStartTicks)
-                            _audioEngine.SetVideoStartQpc100ns(videoT0Qpc100ns)
-                            _systemAudioSink?.SetVideoStart(videoT0Qpc100ns)
-                            _micAudioSink?.SetVideoStart(videoT0Qpc100ns)
-                            LogDebug("[Audio] Shared timeline anchored to video t0 QPC=" & videoT0Qpc100ns.ToString())
+                        Dim backCalcTicks As Long = nowTicks - CLng(videoTime.TotalSeconds * Stopwatch.Frequency)
+                        If Not _videoStartDetected Then
+                            ' Fallback: no Output#0 marker seen — use the
+                            ' back-calculation (legacy behavior).
+                            _videoStartTicks = backCalcTicks
+                            _videoStartDetected = True
+                            PropagateVideoStart("frame=back-calc", videoTime.TotalMilliseconds)
+                        ElseIf _videoStartTicks > 0 AndAlso videoTime.TotalSeconds >= 0 Then
+                            ' Evidence: how far the back-calc sits from the
+                            ' Output#0 anchor (positive = back-calc later =
+                            ' encoder-init backlog + status latency).
+                            Dim deltaMs As Double = (backCalcTicks - _videoStartTicks) * 1000.0 / Stopwatch.Frequency
+                            LogDebug($"[SYNC-TRACE] anchor=Output#0 ticks={_videoStartTicks}, backCalc={backCalcTicks}, backCalcLaterByMs={deltaMs:F1}, frameTime={videoTime.TotalSeconds:F3}s")
+                            WriteDebugLog($"[SYNC-TRACE] anchor=Output#0 ticks={_videoStartTicks}, backCalc={backCalcTicks}, backCalcLaterByMs={deltaMs:F1}, frameTime={videoTime.TotalSeconds:F3}s")
                         End If
-                        ' Log per-track offsets (system/mic may have different offsets)
-                        Dim sysOffsetMs As Double = If(_systemStartTicks > 0, (_videoStartTicks - _systemStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
-                        Dim micOffsetMs As Double = If(_micStartTicks > 0, (_videoStartTicks - _micStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
-                        LogDebug($"[Sync] Video start computed. frame time={videoTime.TotalSeconds:F3}s, sys offset={sysOffsetMs:F1}ms, mic offset={micOffsetMs:F1}ms")
-                        WriteDebugLog($"[Sync] Video start at ticks={_videoStartTicks}, sysOffset={sysOffsetMs:F1}ms, micOffset={micOffsetMs:F1}ms (back-calculated from time={videoTime.TotalSeconds:F3}s)")
                     End If
                 Catch
                 End Try
@@ -926,6 +926,30 @@ Partial Public Class CaptureEngine
     End Sub
 
     ' ── Audio Recorder Lifecycle ─────────────────────────────
+
+    ''' <summary>Publish the video T0 anchor to the shared audio timeline.
+    ''' backCalcFrameMs &gt;= 0 marks the call as coming from the frame= fallback
+    ''' (logged for evidence); -1 marks the Output#0 anchor.</summary>
+    Private Sub PropagateVideoStart(anchor As String, backCalcFrameMs As Double)
+        Try
+            If _videoStartTicks <= 0 Then Return
+            Dim videoT0Qpc100ns As Long = WasapiPositionCapture.StopwatchTicksTo100ns(_videoStartTicks)
+            LogDebug($"[SYNC-TRACE] video T0 anchored via {anchor}: ticks={_videoStartTicks} qpc100ns={videoT0Qpc100ns}" &
+                     If(backCalcFrameMs >= 0, $" frameTimeMs={backCalcFrameMs:F1}", ""))
+            WriteDebugLog($"[SYNC-TRACE] video T0 anchored via {anchor}: ticks={_videoStartTicks} qpc100ns={videoT0Qpc100ns}" &
+                          If(backCalcFrameMs >= 0, $" frameTimeMs={backCalcFrameMs:F1}", ""))
+            If _audioEngine IsNot Nothing Then
+                _audioEngine.SetVideoStartQpc100ns(videoT0Qpc100ns)
+            End If
+            _systemAudioSink?.SetVideoStart(videoT0Qpc100ns)
+            _micAudioSink?.SetVideoStart(videoT0Qpc100ns)
+            Dim sysOffsetMs As Double = If(_systemStartTicks > 0, (_videoStartTicks - _systemStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
+            Dim micOffsetMs As Double = If(_micStartTicks > 0, (_videoStartTicks - _micStartTicks) * 1000.0 / Stopwatch.Frequency, 0)
+            LogDebug($"[Sync] Video start ({anchor}). sys offset={sysOffsetMs:F1}ms, mic offset={micOffsetMs:F1}ms")
+        Catch ex As Exception
+            LogDebug("[Sync] PropagateVideoStart failed: " & ex.Message)
+        End Try
+    End Sub
 
     Private Sub StartAudioRecorder()
         Try

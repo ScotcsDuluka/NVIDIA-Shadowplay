@@ -6,13 +6,16 @@
 // guessing with Stopwatch arrival times.
 //
 // Stamp units — normalized here, at the source:
-//   WASAPI reports qpcPosition in QPC ticks (P13.1 evidence: slope vs .NET
-//   Stopwatch = 1.000003..1.000006, i.e. the SAME counter domain). Stopwatch
-//   ticks are only 100ns ticks when Stopwatch.Frequency == 10,000,000 (true
-//   on OWNER's machine). To keep every downstream formula in the doc's
-//   100ns domain on ANY machine, the capture class normalizes:
-//       QpcPosition100ns = RawQpcTicks * 10^7 / Stopwatch.Frequency
-//   (split division — the naive product overflows long at ~29 days of QPC).
+//   audioclient.h: GetBuffer's pu64QPCPosition is the performance counter
+//   value AT THE TIME THE ENDPOINT READ THE DEVICE POSITION, already
+//   expressed in 100-ns units (P13.1 field evidence: slope vs .NET
+//   Stopwatch = 1.000003..1.000006 — the same counter, same scale).
+//   It is therefore the wall time of the packet's content END, not its
+//   first frame. The capture class assigns it UNCONVERTED:
+//       QpcPosition100ns = qpcPos        (raw value == 100ns value)
+//   Stopwatch.GetTimestamp() values are a DIFFERENT expression of the same
+//   counter and need WasapiPositionCapture.StopwatchTicksTo100ns — never
+//   apply that helper to a WASAPI qpcPosition (double conversion).
 
 using System;
 
@@ -34,17 +37,20 @@ namespace CaptureEngine.Audio.Wasapi
     /// <summary>One captured WASAPI packet: PCM bytes + hardware stamps.</summary>
     public struct WasapiPacket
     {
-        /// <summary>Hardware stamp of the packet's FIRST frame, in 100ns
-        /// units (normalized from raw QPC ticks — see file header).</summary>
+        /// <summary>Wall time of the packet's content END (the endpoint's
+        /// read moment), in 100ns units exactly as WASAPI reported it.
+        /// audioclient.h guarantees 100ns — do NOT convert again.</summary>
         public long QpcPosition100ns;
 
-        /// <summary>The stamp exactly as WASAPI reported it (QPC ticks).
-        /// Diagnostics only — engine math uses QpcPosition100ns.</summary>
+        /// <summary>The stamp exactly as WASAPI reported it — the same value
+        /// as QpcPosition100ns (100ns, NOT Stopwatch ticks). Kept under the
+        /// historical name for diagnostics only; engine math uses
+        /// QpcPosition100ns.</summary>
         public long RawQpcTicks;
 
-        /// <summary>Device sample-clock position of the first frame, in
-        /// sample FRAMES since stream start (P13.1: ratio 1.000000 vs
-        /// summed packet frames).</summary>
+        /// <summary>Device sample-clock position of the packet's FIRST frame
+        /// (frames rendered since stream start; cursor END = this + Frames).
+        /// P13.1: ratio 1.000000 vs summed packet frames.</summary>
         public long DevicePositionFrames;
 
         /// <summary>Frames in this packet (P13.1 evidence: 480 = 10ms @ 48kHz

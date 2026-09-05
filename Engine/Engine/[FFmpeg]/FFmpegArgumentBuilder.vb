@@ -103,7 +103,13 @@ Partial Public Class CaptureEngine
             Case HwDeviceType.IntelQSV
                 Dim qsvPreset As String = OverlayConfig.MapQsvPreset(_settings.NvencPreset)
                 sb.Append("-preset " & qsvPreset & " -rc cbr ")
-                sb.Append("-b:v " & br & " -minrate " & br & " -maxrate " & br & " -bufsize " & buf & " ")
+                ' NO -minrate/-maxrate/-bufsize here: on ffmpeg 8 + Intel MFX
+                ' (driver of 2026-09) setting rc_min_rate/rc_max_rate/rc_buffer_size
+                ' makes the mp4 muxer exit 0 with a TRUNCATED moov — unplayable
+                ' file, "moov atom not found". 5/5 broken with the triplet vs
+                ' 5/5 valid without it (evidence/ffmpeg-trailer-test*.ps1);
+                ' -rc cbr -b:v is the QSV CBR path that finalizes cleanly.
+                sb.Append("-b:v " & br & " ")
                 sb.Append("-g " & fpsStr & " -fps_mode cfr ")
 
             Case HwDeviceType.AMD
