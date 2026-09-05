@@ -2491,3 +2491,30 @@ CFR telemetry for final 15s motion run:
 - Committed f064928: removed the four CaptureSession.vb backup variants
   accidentally committed in e032343; .gitignore now ignores *.bak/*.bak_wake/
   *.diagbackup/*.tmpwake.
+
+2026-09-05 SESSION PART 2 — capture system stabilization (commit 23ce979)
+- Fixed three defects in the legacy two-process capture pipeline, found while
+  hardening the recording system on the Intel machine:
+  1) StopRecordingAsync never stopped/flushed the new AudioEngineSession (it
+     checked only the legacy _audioWriter field): audio stayed buffered, the
+     mux decision read a header-only wav and shipped video-only output (wav
+     grew to 5MB only AFTER mux decided). StopAudioWriter() now always runs
+     before AwaitOrRunMux.
+  2) HasAudioData "Length > 44" passed a 58-byte header-only wav -> mux apad
+     on a zero-sample stream -> 60s hang -> broken 48-byte mp4 when recording
+     a silent desktop. Now parses RIFF chunks; bytes after the data-chunk
+     header are the truth (streaming sidecars never patch the size field).
+  3) Mux failure (exit<>0) left a moov-less partial file as the final output;
+     now falls back to renaming the complete temp video (video-only), audio
+     sidecars preserved.
+- Validation: silent desktop -> valid video-only mp4 (regression case, was
+  48-byte broken); with 1kHz tone -> both streams, start_time=0, tone present
+  (-28.9 dBFS), onset within ~33ms of ffplay audio-open latency; the 6.4s
+  stop stall disappeared (StopAudioWriter now runs in-sequence).
+- DEPLOY LESSON: after `dotnet build Engine\NVIDIA Capture.vbproj`, copy ALL
+  TEN assemblies to the product tree (Engine\CaptureEngine.*.dll nine files +
+  Services\NVIDIA Capture.dll). Deploying only the host dll causes
+  MissingMethodException (EngineStartupConfig.ResolveRateControl) and
+  FileNotFoundException (CaptureEngine.Audio) at RECORD_START.
+- Regression tooling: evidence\silent-recording-test.ps1 (silent-desktop
+  case, expects valid final mp4).

@@ -35,6 +35,13 @@
 5. §8 ข้อ 2-5 (OBS เต็มตัว, Phase-13 implement, slot เทา, ย้ายเครื่อง Intel) — **ยังรอตัดสินใจ
    เจ้าของเหมือนเดิม** โดยข้อ 5 ตอนนี้มีข้อค้นพบเพิ่ม: ทาง Intel ใช้งานได้จริงแล้วเบื้องต้น
    (legacy+QSV) แต่การวัด A/V ms-level ติดข้อจำกัด driver (ข้อ 2-3 ข้างบน)
+6. **fix ระบบอัด 3 จุด (commit `23ce979`)** — (a) stop sequence ไม่เคย flush AudioEngine ใหม่
+   (เช็คฟิลด์ `_audioWriter` เก่า) → เสียงค้างใน buffer จน mux ตัดสินใจก่อน = ได้ไฟล์ video-only
+   (b) `HasAudioData` เช็คแค่ Length>44 หลอกโดน wav header ล้วน 58B → mux apad คลื่นว่าง hang 60s
+   ได้ mp4 พัง 48B ตอนอัดเดสก์ท็อปเงียบ (c) mux fail ปล่อยไฟล์เสียทิ้ง → ตอนนี้ fallback เป็น
+   video-only เสมอ ทดสอบผ่านทั้งเคสเงียบ (valid video-only) และเคสมีโทน (2 streams, onset
+   คลาด ~33ms จาก latency เปิดเสียง ffplay) — **สำคัญ: deploy ต้อง copy ทั้งชุด 10 dll**
+   (Engine\ 9 ตัว + Services\NVIDIA Capture.dll) ไม่ใช่ตัวเดียว ไม่งั้นเจอ MissingMethodException
 
 ---
 
