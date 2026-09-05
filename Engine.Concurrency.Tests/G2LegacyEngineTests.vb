@@ -61,6 +61,22 @@ Namespace Engine.Concurrency.Tests
                 Dim muxExit As Integer = 0
                 Integer.TryParse(Environment.GetEnvironmentVariable("LMHLP_MUX_EXIT"), muxExit)
                 Console.Error.WriteLine("[LMHLP] mux mode → exit " & muxExit)
+                If muxExit = 0 Then
+                    ' G3: a mux SUCCESS must leave a real output file, or the
+                    ' engine's honesty check reports "not saved". Copy the
+                    ' source MP4 to the output path embedded in the mux args.
+                    Dim muxSrc As String = Environment.GetEnvironmentVariable("LMHLP_MUX_SRC")
+                    Dim outPath As String = ExtractMuxOutputPath(args)
+                    Console.Error.WriteLine($"[LMHLP] mux src={If(muxSrc, "(null)")} out={If(outPath, "(null)")}")
+                    If muxSrc IsNot Nothing AndAlso outPath IsNot Nothing Then
+                        Try
+                            IO.File.Copy(muxSrc, outPath, True)
+                            Console.Error.WriteLine("[LMHLP] mux produced " & outPath)
+                        Catch ex As Exception
+                            Console.Error.WriteLine("[LMHLP] mux copy failed: " & ex.Message)
+                        End Try
+                    End If
+                End If
                 Return muxExit
             End If
 
@@ -74,15 +90,60 @@ Namespace Engine.Concurrency.Tests
                 End Try
             End If
             Console.Error.WriteLine("[LMHLP] record start")
+            ' Real ffmpeg prints "Output #0" before the transcode loop; the
+            ' engine uses it as the video-start anchor — without it the audio
+            ' sinks never align and the wav stays a bare 44-byte header.
+            Console.Error.WriteLine("[LMHLP] Output #0, mp4, to 'helper'")
 
             Dim sleepS As Integer = 0
             Integer.TryParse(Environment.GetEnvironmentVariable("LMHLP_SLEEP"), sleepS)
-            If sleepS > 0 Then Thread.Sleep(sleepS * 1000)
+
+            ' G3: watch stdin for the engine's graceful quit ("q") — exercises
+            ' the REAL StopRecordingAsync 'q' → WaitForExit contract. Background
+            ' thread: a kill (dispose paths) tears it down with the process.
+            Dim quitReceived As New ManualResetEvent(False)
+            Dim stdinReader As New Thread(
+                Sub()
+                    Try
+                        While True
+                            Dim line As String = Console.ReadLine()
+                            If line Is Nothing Then Exit While
+                            If line.Trim().StartsWith("q", StringComparison.Ordinal) Then
+                                quitReceived.Set()
+                                Exit While
+                            End If
+                        End While
+                    Catch
+                    End Try
+                End Sub) With {.IsBackground = True}
+            stdinReader.Start()
+
+            If quitReceived.WaitOne(Math.Max(0, sleepS) * 1000) Then
+                Console.Error.WriteLine("[LMHLP] quit received — graceful exit")
+            Else
+                Console.Error.WriteLine("[LMHLP] sleep elapsed")
+            End If
 
             Dim exitCode As Integer = 0
             Integer.TryParse(Environment.GetEnvironmentVariable("LMHLP_EXIT"), exitCode)
             Console.Error.WriteLine("[LMHLP] record exit " & exitCode)
             Return exitCode
+        End Function
+
+        ''' <summary>★ G3: .NET command-line parsing STRIPS the quotes before
+        ''' args reach us, so the paths arrive as bare tokens. The mux OUTPUT is
+        ''' the last .mp4 argument that is not one of the engine's .tmp inputs
+        ''' (inputs: video.tmp.mp4 / system.tmp.wav; output: final .mp4).</summary>
+        Private Function ExtractMuxOutputPath(args As String()) As String
+            Dim result As String = Nothing
+            For Each a As String In args
+                Dim t As String = If(a, "").Trim()
+                If t.EndsWith(".mp4", StringComparison.OrdinalIgnoreCase) AndAlso
+                   Not t.Contains(".tmp") Then
+                    result = t
+                End If
+            Next
+            Return result
         End Function
 
         ' ───────────────────────────────────────────────────────────────
@@ -188,8 +249,12 @@ Namespace Engine.Concurrency.Tests
         Private Function HelperProcesses() As Integer
             Dim name As String = IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath)
             Dim procs As Process() = Process.GetProcessesByName(name)
-            Dim n As Integer = procs.Length
+            Dim n As Integer = 0
             For Each p As Process In procs
+                Try
+                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
+                Catch
+                End Try
                 Try : p.Dispose() : Catch : End Try
             Next
             Return n
@@ -197,8 +262,12 @@ Namespace Engine.Concurrency.Tests
 
         Private Function FfmpegCount() As Integer
             Dim procs As Process() = Process.GetProcessesByName("ffmpeg")
-            Dim n As Integer = procs.Length
+            Dim n As Integer = 0
             For Each p As Process In procs
+                Try
+                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
+                Catch
+                End Try
                 Try : p.Dispose() : Catch : End Try
             Next
             Return n

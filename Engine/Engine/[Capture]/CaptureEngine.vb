@@ -1052,7 +1052,15 @@ Partial Public Class CaptureEngine
         '
         ' This fixes the P0 race where OnExited called mux while audio was still
         ' running, producing incomplete .wav files.
-        If _state = CaptureState.Recording Then
+        '
+        ' ★ G3 fix (proven by G3-A dispose-while-recording test): during
+        ' Dispose the ForceStop teardown KILLS ffmpeg while _state is still
+        ' Recording (Idle is only set in ForceStop's finally). OnExited could
+        ' observe that window and fire a spurious
+        ' "FFmpeg exited unexpectedly with code -1" error over a teardown the
+        ' dispose path already owns. A disposed engine never recovers here —
+        ' its exit belongs to the teardown.
+        If _state = CaptureState.Recording AndAlso Not _disposed Then
             If _stopwatch IsNot Nothing Then _stopwatch.Stop()
 
             ' Step 1: Stop audio writer (finalize .wav files)

@@ -103,6 +103,7 @@ Namespace Engine.Concurrency.Tests
 
             M1M2Tests.RunAll(_ffmpegPath, _sandbox)
             G2LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
+            G3LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
 
             Console.WriteLine()
             Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed}")
@@ -167,8 +168,12 @@ Namespace Engine.Concurrency.Tests
 
         Private Function FfmpegCount() As Integer
             Dim procs As Process() = Process.GetProcessesByName("ffmpeg")
-            Dim n As Integer = procs.Length
+            Dim n As Integer = 0
             For Each p As Process In procs
+                Try
+                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
+                Catch
+                End Try
                 Try : p.Dispose() : Catch : End Try
             Next
             Return n
