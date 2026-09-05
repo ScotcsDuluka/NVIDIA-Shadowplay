@@ -65,9 +65,9 @@
                 </ReadLinesFromFile>
 
                 <PropertyGroup>
-                        <Version>3.4.$(BuildNumber).42</Version>
-                        <AssemblyVersion>3.4.$(BuildNumber).42</AssemblyVersion>
-                        <FileVersion>3.4.$(BuildNumber).42</FileVersion>
+                        <Version>3.41.$(BuildNumber).61</Version>
+                        <AssemblyVersion>3.41.$(BuildNumber).61</AssemblyVersion>
+                        <FileVersion>3.41.$(BuildNumber).61</FileVersion>
                 </PropertyGroup>
 
         </Target>

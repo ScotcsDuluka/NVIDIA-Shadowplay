@@ -70,3 +70,4 @@ scripts/apphost_test/obj/
 scripts/apphost_test/out_final
 *.mp4
 /evidence
+/dist-installer
