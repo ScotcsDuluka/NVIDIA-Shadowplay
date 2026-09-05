@@ -66,6 +66,15 @@ Namespace Engine.Concurrency.Tests
         Friend _sandbox As String = ""
 
         Function Main(args As String()) As Integer
+            ' ─── G2 helper mode: the legacy CaptureEngine launches THIS
+            ' executable as its "ffmpeg" (CaptureSettings.FFmpegPath =
+            ' Environment.ProcessPath). Recognize the engine's argument shape
+            ' and behave as a controllable fake encoder/mux instead of running
+            ' the suite. See G2LegacyEngineTests.RunHelperMode.
+            If args.Length > 0 AndAlso args(0) = "-hide_banner" Then
+                Return G2LegacyEngineTests.RunHelperMode(args)
+            End If
+
             Console.WriteLine("==================================================")
             Console.WriteLine(" Engine.Concurrency.Tests — H1/H2 regression")
             Console.WriteLine(" (real ffmpeg, real job object, real lifecycle)")
@@ -93,6 +102,8 @@ Namespace Engine.Concurrency.Tests
                     AddressOf Test_RepeatedCycles_NoOrphanAccumulation)
 
             M1M2Tests.RunAll(_ffmpegPath, _sandbox)
+            G2LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
+            G3LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
 
             Console.WriteLine()
             Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed}")
@@ -157,8 +168,12 @@ Namespace Engine.Concurrency.Tests
 
         Private Function FfmpegCount() As Integer
             Dim procs As Process() = Process.GetProcessesByName("ffmpeg")
-            Dim n As Integer = procs.Length
+            Dim n As Integer = 0
             For Each p As Process In procs
+                Try
+                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
+                Catch
+                End Try
                 Try : p.Dispose() : Catch : End Try
             Next
             Return n

@@ -36,6 +36,10 @@
          ConfigMigrator — linked so the runtime mapping runs unmodified. -->
     <Compile Include="..\CaptureEngine\Configuration\ConfigMigrator.vb" Link="ConfigMigrator.vb" />
     <Compile Include="..\CaptureEngine\Configuration\EngineConfigV2.vb" Link="EngineConfigV2.vb" />
+    <!-- C/3 session-end broadcast contract: the pure decision policy is
+         LINKED so the behavioral tests run the SAME source the engine
+         compiles (no copy drift). -->
+    <Compile Include="..\CaptureEngine.Recording\SessionEndBroadcastPolicy.vb" Link="SessionEndBroadcastPolicy.vb" />
   </ItemGroup>
 
   <ItemGroup>
