@@ -38,6 +38,9 @@ Namespace CaptureEngine.Video.Tests
             ' ----- GLM-1: DdagrabBackend skeleton tests -----
             DdagrabBackendLifecycleTests.RunAll(AddressOf RunTest)
 
+            ' ----- C-1/C-2: Ddagrab ownership & concurrency (real DXGI) -----
+            DdagrabOwnershipTests.RunAll(AddressOf RunTest)
+
             ' ----- Frame contract tests (FrameAvailable / NoFrame / Error / BGRA8 / diagnostics) -----
             FrameAvailabilityTests.RunAll(AddressOf RunTest)
 

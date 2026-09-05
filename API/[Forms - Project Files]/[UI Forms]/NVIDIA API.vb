@@ -283,10 +283,11 @@ Public Class API_RUN
             clients.Clear()
         End SyncLock
 
-        ' หยุด Server
-        Try
-            listener.Stop()
-        Catch : End Try
+        ' หยุด Server (F-04: loopback listeners — 127.0.0.1 และ ::1 แยกกัน)
+        For Each l As TcpListener In loopbackListeners
+            Try : l.Stop() : Catch : End Try
+        Next
+        loopbackListeners = New TcpListener() {}
 
         notifyIcon.Visible = False
         Application.Exit()

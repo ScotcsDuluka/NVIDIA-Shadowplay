@@ -95,6 +95,15 @@ Namespace CaptureEngine.FFmpegBackend
         Private _started As Boolean
         Private _disposed As Boolean
 
+        ' ★ F-07: process-ownership hook — invoked the moment each spawned
+        ' ffmpeg exists, so the host can assign it to its JobObjectGuard
+        ' (KILL_ON_JOB_CLOSE). Without it the MAIN recording ffmpeg (and the
+        ' faststart remux ffmpeg) were the only processes in the whole
+        ' pipeline with NO owner: a host crash left them encoding the desktop
+        ' forever (MuxCoordinator, the old post-hoc muxer, always had this
+        ' hook — the live muxer silently dropped it).
+        Private ReadOnly _onProcessStarted As Action(Of Process)
+
         Public Sub New(ffmpegPath As String,
                        finalOutputPath As String,
                        videoFps As Integer,
@@ -105,7 +114,8 @@ Namespace CaptureEngine.FFmpegBackend
                        separateTracks As Boolean,
                        systemVolume As Single,
                        micVolume As Single,
-                       Optional log As Action(Of String) = Nothing)
+                       Optional log As Action(Of String) = Nothing,
+                       Optional onProcessStarted As Action(Of Process) = Nothing)
             _ffmpegPath = ffmpegPath
             _finalPath = finalOutputPath
             _fragPath = finalOutputPath & ".frag.mp4"
@@ -125,6 +135,7 @@ Namespace CaptureEngine.FFmpegBackend
             _sysVolume = systemVolume
             _micVolume = micVolume
             _log = log
+            _onProcessStarted = onProcessStarted
         End Sub
 
         Private Sub Log(msg As String)
@@ -166,6 +177,11 @@ Namespace CaptureEngine.FFmpegBackend
                     .CreateNoWindow = True
                 }
                 _proc = Process.Start(psi)
+                ' ★ F-07: assign the main recording ffmpeg to the host's job
+                ' object the instant it exists — this is the crash-ownership
+                ' window (KILL_ON_JOB_CLOSE only protects from Assign onward;
+                ' the hook is invoked before anything else can fail).
+                Try : _onProcessStarted?.Invoke(_proc) : Catch : End Try
                 _stderrTask = _proc.StandardError.ReadToEndAsync()
 
                 _video.StartWriter()
@@ -401,6 +417,9 @@ Namespace CaptureEngine.FFmpegBackend
                     .CreateNoWindow = True
                 }
                 Using p As Process = Process.Start(psi)
+                    ' ★ F-07: the faststart remux ffmpeg is owned like the
+                    ' main one — job-assigned the moment it exists.
+                    Try : _onProcessStarted?.Invoke(p) : Catch : End Try
                     Dim errTask = p.StandardError.ReadToEndAsync()
                     If Not p.WaitForExit(30000) Then
                         Try : p.Kill() : Catch : End Try
