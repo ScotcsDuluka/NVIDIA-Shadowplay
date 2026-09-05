@@ -47,6 +47,43 @@
       -moz-osx-font-smoothing: grayscale;
     }
   </style>
+<style>
+/* ═══ OBT3 COUNTDOWN ═══ */
+.obt3-banner{margin-top:2.2rem;max-width:760px;padding:1.6rem 2rem;border-radius:18px;
+  background:linear-gradient(145deg,rgba(118,185,0,.12),rgba(10,10,10,.85) 45%,rgba(118,185,0,.07));
+  border:1px solid rgba(118,185,0,.35);box-shadow:0 0 42px rgba(118,185,0,.18),inset 0 0 30px rgba(118,185,0,.05);
+  backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.obt3-banner::before{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(118,185,0,.14),transparent);
+  animation:obt3-sheen 4.5s ease-in-out infinite}
+@keyframes obt3-sheen{0%,60%{left:-60%}100%{left:130%}}
+.obt3-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem}
+.obt3-tag{font-family:'GeForce','Inter',sans-serif;font-size:.75rem;letter-spacing:2px;color:#0a0a0a;
+  background:#76b900;padding:.18rem .55rem;border-radius:5px;font-weight:800}
+.obt3-title{font-family:'GeForce','Inter',sans-serif;font-size:1.15rem;letter-spacing:1.5px;color:#fff;font-weight:700}
+.obt3-sub{font-size:.85rem;color:rgba(255,255,255,.55);font-style:italic}
+.obt3-timer{display:flex;align-items:center;gap:.55rem;justify-content:flex-start;margin-bottom:1rem}
+.obt3-cell{display:flex;flex-direction:column;align-items:center;gap:.25rem}
+.obt3-flip{font-family:'GeForce','Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:2.5rem;font-weight:800;
+  min-width:3.4em;text-align:center;padding:.35em .2em;color:#76b900;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.55));
+  border:1px solid rgba(118,185,0,.4);
+  text-shadow:0 0 18px rgba(118,185,0,.65),0 0 46px rgba(118,185,0,.3);
+  transition:transform .18s ease,text-shadow .3s ease;position:relative}
+.obt3-flip::after{content:"";position:absolute;left:8%;right:8%;top:50%;height:1px;background:rgba(118,185,0,.22)}
+.obt3-flip.obt3-tick{transform:translateY(-3px) scale(1.045);text-shadow:0 0 26px rgba(118,185,0,.95),0 0 70px rgba(118,185,0,.5)}
+.obt3-label{font-size:.6rem;letter-spacing:2.4px;color:rgba(255,255,255,.45);font-family:'Inter',sans-serif}
+.obt3-colon{font-size:1.9rem;color:rgba(118,185,0,.7);font-weight:800;animation:obt3-blink 1s steps(1) infinite;padding-bottom:1.1rem}
+@keyframes obt3-blink{50%{opacity:.25}}
+.obt3-progress{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:.5rem}
+.obt3-progress-fill{height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,#3d6300,#76b900,#a3e635);
+  box-shadow:0 0 12px rgba(118,185,0,.8);transition:width 1s linear}
+.obt3-meta{display:flex;justify-content:space-between;gap:.8rem;flex-wrap:wrap;font-size:.68rem;letter-spacing:1px;color:rgba(255,255,255,.5)}
+.obt3-target{font-weight:700;color:rgba(118,185,0,.85)}
+.obt3-live{color:#76b900;animation:obt3-blink 2s ease infinite}
+@media(max-width:640px){.obt3-flip{font-size:1.6rem;min-width:2.6em}.obt3-colon{font-size:1.2rem;padding-bottom:.7rem}.obt3-banner{padding:1.2rem 1.3rem}}
+</style>
 </head>
 <body class="custom-cursor-active">
   
@@ -95,6 +132,27 @@
         <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay</h1>
         <h2 class="animated-text-gradient">Capture Every Moment</h2>
         <h3 class="animated-text-gradient">Zero latency. Zero compromise. Built for performance.</h3>
+        <!-- ═══ OBT3 COUNTDOWN — 2026-09-05 23:30 ═══ -->
+        <div id="obt3-banner" class="obt3-banner animate-fade-up delay-3">
+          <div class="obt3-head">
+            <span class="obt3-tag">NEXT</span>
+            <span class="obt3-title">OBT3 — OPEN BETA TEST</span>
+            <span class="obt3-sub">A new era of ShadowPlay is coming</span>
+          </div>
+          <div class="obt3-timer" id="obt3Timer" aria-live="polite">
+            <div class="obt3-cell"><div class="obt3-flip" id="cdDays">00</div><div class="obt3-label">DAYS</div></div>
+            <div class="obt3-colon">:</div>
+            <div class="obt3-cell"><div class="obt3-flip" id="cdHours">00</div><div class="obt3-label">HOURS</div></div>
+            <div class="obt3-colon">:</div>
+            <div class="obt3-cell"><div class="obt3-flip" id="cdMins">00</div><div class="obt3-label">MINUTES</div></div>
+            <div class="obt3-colon">:</div>
+            <div class="obt3-cell"><div class="obt3-flip" id="cdSecs">00</div><div class="obt3-label">SECONDS</div></div>
+          </div>
+          <div class="obt3-progress"><div class="obt3-progress-fill" id="obt3Fill"></div></div>
+          <div class="obt3-meta"><span id="obt3Pct">0%</span><span class="obt3-target">LAUNCH · SEP 5, 2026 · 23:30 (GMT+7)</span><span class="obt3-live">● LIVE COUNTDOWN</span></div>
+        </div>
+        <!-- /OBT3 COUNTDOWN -->
+
         <br>
         
         <div class="hero-cta-group animate-fade-up delay-5">
@@ -670,5 +728,42 @@
 
   <!-- JavaScript -->
   <script src="JS/index/script.js"></script>
+<script>
+(function(){
+  var TARGET = new Date("2026-09-05T23:30:00+07:00").getTime();
+  var START  = new Date("2026-08-29T00:00:00+07:00").getTime(); // campaign start for progress %
+  var el = {d:document.getElementById("cdDays"),h:document.getElementById("cdHours"),
+            m:document.getElementById("cdMins"),s:document.getElementById("cdSecs"),
+            fill:document.getElementById("obt3Fill"),pct:document.getElementById("obt3Pct")};
+  if(!el.d) return;
+  var prev = {};
+  function pad(n){return (n<10?"0":"")+n;}
+  function set(cell,key,val){
+    if(prev[key]===val) return;
+    cell.textContent = val;
+    cell.classList.remove("obt3-tick");
+    void cell.offsetWidth;            // restart animation
+    cell.classList.add("obt3-tick");
+    setTimeout(function(){cell.classList.remove("obt3-tick")},200);
+    prev[key]=val;
+  }
+  function tick(){
+    var now = Date.now(), diff = TARGET - now;
+    if(diff <= 0){
+      set(el.d,"d","00");set(el.h,"h","00");set(el.m,"m","00");set(el.s,"s","00");
+      el.fill.style.width="100%"; el.pct.textContent="100% — OBT3 IS LIVE";
+      clearInterval(iv); return;
+    }
+    var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000),
+        m=Math.floor(diff%3600000/60000), s=Math.floor(diff%60000/1000);
+    set(el.d,"d",pad(d)); set(el.h,"h",pad(h)); set(el.m,"m",pad(m)); set(el.s,"s",pad(s));
+    var pct = Math.min(100, Math.max(0, (now-START)/(TARGET-START)*100));
+    el.fill.style.width = pct.toFixed(2)+"%";
+    el.pct.textContent = pct.toFixed(1)+"%";
+  }
+  tick();
+  var iv = setInterval(tick,1000);
+})();
+</script>
 </body>
 </html>
