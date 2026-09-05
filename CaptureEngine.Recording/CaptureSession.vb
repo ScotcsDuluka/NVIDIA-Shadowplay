@@ -263,6 +263,17 @@ Namespace CaptureEngine.Recording
             Dim captureRunning As Boolean = False
             Dim encoderRunning As Boolean = False
 
+            ' ★ M1: the CFR loop's retained frames (freshest pending + last
+            ' displayed) were only disposed by the post-loop tail — an
+            ' exception before that tail skipped it and leaked one D3D11
+            ' staging texture per failure (D3D11VideoFrame has no finalizer).
+            ' Declared here so the Finally can retire them on every path;
+            ' Dispose is one-shot (CompareExchange), so the happy path's
+            ' earlier disposal makes this a no-op there.
+            Dim pendingFrame As IVideoFrame = Nothing     ' freshest captured, not yet displayed
+            Dim pendingSeq As Long = -1
+            Dim lastFrame As IVideoFrame = Nothing        ' last displayed (for duplicates)
+
             ' One common recording clock. Capture/audio can warm before T0;
             ' no sample/frame belongs to the recording timeline before this boundary.
             _timelineStartTicks = Stopwatch.GetTimestamp() + Math.Max(1L, Stopwatch.Frequency \ 10L)
@@ -637,9 +648,6 @@ Namespace CaptureEngine.Recording
                 '     If targetFps <= 0 Then targetFps = 60
                 Dim tickIntervalTicks As Long = CLng(Stopwatch.Frequency / targetFps)
                 Dim nextTick As Long = _timelineStartTicks
-                Dim pendingFrame As IVideoFrame = Nothing     ' freshest captured, not yet displayed
-                Dim pendingSeq As Long = -1
-                Dim lastFrame As IVideoFrame = Nothing        ' last displayed (for duplicates)
 
                 ' Phase 12c runtime telemetry.
                 Dim selectedCount As Long = 0
@@ -1132,7 +1140,7 @@ Namespace CaptureEngine.Recording
             Finally
                 Try : timeEndPeriod(1UI) : Catch : End Try
                 ' ★ M1: unwind the session-owned video lifecycle on EVERY exit
-                ' path. A failure after _capture.Start()/​_encoder.Start() used
+                ' path. A failure after _capture.Start()/_encoder.Start() used
                 ' to leave the capture worker running (owner-less frames forever)
                 ' and the encoder Running — the next session's Start() then
                 ' no-op'd and skipped the FORCEIDR/SPS-PPS re-arm. Idempotent:
@@ -1148,6 +1156,8 @@ Namespace CaptureEngine.Recording
                         _logger.Warning("[session] encoder stop during failure unwind: " & ex.Message)
                     End Try
                 End If
+                Try : pendingFrame?.Dispose() : Catch : End Try
+                Try : lastFrame?.Dispose() : Catch : End Try
                 ' ★ Hardening: the shared Audio Engine is session-owned. The
                 ' success path already called Stop() above (idempotent — the
                 ' _stopped guard makes this a no-op there), but ANY failure

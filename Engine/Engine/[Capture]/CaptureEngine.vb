@@ -282,23 +282,32 @@ Partial Public Class CaptureEngine
                                      si.CreateNoWindow = True
 
                                      Dim startOk As Boolean = False
+                                     ' ★ H2: build the Process in a LOCAL and publish it to the
+                                     ' field only AFTER lifetime ownership is settled. The old
+                                     ' field-first order let Dispose()'s ForceStop see an
+                                     ' UNSTARTED Process (HasExited throws), dispose the object
+                                     ' and null the field mid-start — a Start() that succeeded in
+                                     ' that window then had no owner and no killer (caught by the
+                                     ' H2-A stress round). Every kill below targets the local,
+                                     ' which Dispose can never null away.
+                                     Dim proc As Process = Nothing
                                      Try
-                                         _ffmpegProcess = New Process()
-                                         _ffmpegProcess.StartInfo = si
-                                         _ffmpegProcess.EnableRaisingEvents = True
-                                         AddHandler _ffmpegProcess.OutputDataReceived, AddressOf OnStdOut
-                                         AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
-                                         AddHandler _ffmpegProcess.Exited, AddressOf OnExited
+                                         proc = New Process()
+                                         proc.StartInfo = si
+                                         proc.EnableRaisingEvents = True
+                                         AddHandler proc.OutputDataReceived, AddressOf OnStdOut
+                                         AddHandler proc.ErrorDataReceived, AddressOf OnStdErr
+                                         AddHandler proc.Exited, AddressOf OnExited
 
                                          If _useTwoProcess Then
                                              StartAudioRecorder()
                                          End If
 
-                                         If Not _ffmpegProcess.Start() Then
+                                         If Not proc.Start() Then
                                              SetState(CaptureState.HasError)
                                              RaiseEvent ErrorOccurred("Failed to start FFmpeg process")
                                          Else
-                                             LogDebug($"[FFmpeg] Started PID={_ffmpegProcess.Id}")
+                                             LogDebug($"[FFmpeg] Started PID={proc.Id}")
 
                                              ' ★ H2 lifetime re-check: Dispose() can land between
                                              ' the lambda's early _disposed check and this point.
@@ -313,30 +322,31 @@ Partial Public Class CaptureEngine
                                              ' engine usable.
                                              Dim owned As Boolean = True
                                              If Not _disposed AndAlso _jobGuard IsNot Nothing Then
-                                                 owned = _jobGuard.Assign(_ffmpegProcess)
+                                                 owned = _jobGuard.Assign(proc)
                                              End If
 
                                              If _disposed OrElse Not owned Then
                                                  LogDebug("[FFmpeg] start raced with Dispose or lost job ownership — terminating process")
                                                  WriteDebugLog("[FFmpeg] start raced with Dispose or lost job ownership — terminating process")
                                                  Try
-                                                     If Not _ffmpegProcess.HasExited Then
-                                                         _ffmpegProcess.Kill()
-                                                         _ffmpegProcess.WaitForExit(2000)
+                                                     If Not proc.HasExited Then
+                                                         proc.Kill()
+                                                         proc.WaitForExit(2000)
                                                      End If
                                                  Catch
                                                  End Try
+                                                 Try : proc.Dispose() : Catch : End Try
+                                                 proc = Nothing
                                                  If Not _disposed Then
                                                      SetState(CaptureState.HasError)
                                                      RaiseEvent ErrorOccurred("FFmpeg started without job ownership — terminated")
                                                  Else
                                                      RaiseEvent ErrorOccurred("Start aborted: engine disposed after ffmpeg start")
                                                  End If
-                                                 ' startOk stays False → Finally cleans up
-                                                 ' (dispose, audio writer, temp files).
                                              Else
-                                                 _ffmpegProcess.BeginOutputReadLine()
-                                                 _ffmpegProcess.BeginErrorReadLine()
+                                                 _ffmpegProcess = proc   ' publish — ownership settled
+                                                 proc.BeginOutputReadLine()
+                                                 proc.BeginErrorReadLine()
                                                  _stopwatch = Stopwatch.StartNew()
                                                  System.Threading.Interlocked.Exchange(_stopCompleted, 0)
                                                  SetState(CaptureState.Recording)
@@ -357,8 +367,18 @@ Partial Public Class CaptureEngine
                                          ' which then kept encoding the desktop to the temp file
                                          ' unbounded (job-guard assignment is the only thing that
                                          ' would have reaped it, at Dispose time). Whatever the
-                                         ' failure, leave NOTHING running behind.
+                                         ' failure, leave NOTHING running behind: the kill targets
+                                         ' the LOCAL (Dispose cannot null it away) and the field
+                                         ' (published after ownership) so both lifetimes are reaped.
                                          If Not startOk Then
+                                             Try
+                                                 If proc IsNot Nothing AndAlso Not proc.HasExited Then
+                                                     proc.Kill()
+                                                     proc.WaitForExit(2000)
+                                                 End If
+                                             Catch
+                                             End Try
+                                             Try : proc?.Dispose() : Catch : End Try
                                              Try
                                                  If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
                                                      _ffmpegProcess.Kill()
