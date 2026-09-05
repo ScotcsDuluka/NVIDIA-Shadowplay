@@ -13,9 +13,9 @@ Imports CaptureEngine.Audio.Wasapi
 
 Namespace CaptureEngine.FFmpegTests
     Friend Module Program
-        Private _passed As Integer = 0
-        Private _failed As Integer = 0
-        Private ReadOnly _failures As New List(Of String)()
+        Friend _passed As Integer = 0
+        Friend _failed As Integer = 0
+        Friend ReadOnly _failures As New List(Of String)()
 
         Function Main(args As String()) As Integer
             Console.WriteLine("==================================================")
@@ -92,6 +92,9 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
             RunTest("STRESS: Start → Stop → Start cycle (3 rounds, real ffmpeg)", AddressOf Test_StartStopStartStress)
 
+            ' ----- LiveMuxSession — the PRODUCTION mux path (G1) -----
+            LiveMuxSessionTests.RunAll()
+
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
             Console.WriteLine(" Result: " & _passed & " passed, " & _failed & " failed, " & (_passed + _failed) & " total")
@@ -106,7 +109,7 @@ Namespace CaptureEngine.FFmpegTests
             Return If(_failed > 0, 1, 0)
         End Function
 
-        Private Sub RunTest(name As String, test As Action)
+        Friend Sub RunTest(name As String, test As Action)
             Dim paddedName = name
             If paddedName.Length < 70 Then paddedName = paddedName & New String(" "c, 70 - paddedName.Length)
             Console.Write("[" & paddedName & "] ")
@@ -122,7 +125,7 @@ Namespace CaptureEngine.FFmpegTests
             End Try
         End Sub
 
-        Private Sub Assert(cond As Boolean, msg As String)
+        Friend Sub Assert(cond As Boolean, msg As String)
             If Not cond Then Throw New InvalidOperationException("ASSERT: " & msg)
         End Sub
 

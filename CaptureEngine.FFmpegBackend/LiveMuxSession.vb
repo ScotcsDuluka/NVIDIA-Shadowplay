@@ -790,8 +790,14 @@ Namespace CaptureEngine.FFmpegBackend
                 ' whole output dies (-2) with NO audio in the file. Wait (bounded)
                 ' for ffmpeg to connect to THIS pipe first; if it never does
                 ' (crashed), the timeout still closes cleanly.
+                ' ★ G1 FIX: the old WaitAny({_connectedEvent, _stopWriter}) could
+                ' never wait — this method sets _stopWriter at entry, so WaitAny
+                ' returned IMMEDIATELY and the connection guard was dead code.
+                ' Wait on the connection event alone (still bounded at 3 s);
+                ' WaitForConnection completing/failing sets the event anyway, so
+                ' a concurrent Dispose cannot hang here.
                 If Not _pipe.IsConnected Then
-                    WaitHandle.WaitAny(New WaitHandle() {_connectedEvent, _stopWriter}, 3000)
+                    _connectedEvent.WaitOne(3000)
                 End If
                 Try : _pipe.Dispose() : Catch : End Try
             End Sub
