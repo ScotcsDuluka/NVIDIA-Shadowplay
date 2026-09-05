@@ -6,7 +6,7 @@
   <title>NEXTGEN NVIDIA ShadowPlay</title>
   
   <!-- Stylesheets -->
-  <link rel="stylesheet" href="CSS/index/style.css?v=5">
+  <link rel="stylesheet" href="CSS/index/style.css?v=4">
   <link rel="stylesheet" href="CSS/index/role.css">
   
   <!-- Favicon -->
@@ -465,6 +465,7 @@
             <p>AMD Advanced Media Framework encoder on roadmap.</p>
           </div>
         </div>
+		<br>
         <h2 class="section-title">API Capture</h2>
         <div class="api-cards-grid">
           <div class="api-spec-card">
@@ -517,6 +518,7 @@
             <p>Software x264 (ultrafast/zerolatency) as last resort; AMD AMF preset branch exists, on roadmap.</p>
           </div>
         </div>
+		<br>
         <h2 class="section-title">API Capture</h2>
         <div class="api-cards-grid">
           <div class="api-spec-card">
@@ -569,6 +571,7 @@
             <p>Encoding is whatever OBS itself is configured to use (x264 / NVENC / QSV / AMF) — files are written by OBS, not by this engine.</p>
           </div>
         </div>
+		<br>
         <h2 class="section-title">API Capture</h2>
         <div class="api-cards-grid">
           <div class="api-spec-card">
@@ -943,7 +946,7 @@
   </footer>
 
   <!-- JavaScript -->
-  <script src="JS/index/script.js?v=5"></script>
+  <script src="JS/index/script.js?v=4"></script>
 <script>
 (function(){
   var tabs=document.querySelectorAll('.rtab');
@@ -985,7 +988,9 @@
     var now = Date.now(), diff = TARGET - now;
     if(diff <= 0){
       set(el.d,"d","00");set(el.h,"h","00");set(el.m,"m","00");set(el.s,"s","00");
-      el.fill.style.width="100%"; el.pct.textContent="100% — OBT3 IS LIVE";
+      el.fill.style.width="100%";
+      el.pct.innerHTML='<a href="obt3.html" style="color:#a3e635;text-decoration:none;font-weight:800;letter-spacing:1px">100% — OBT3 IS LIVE &nbsp;·&nbsp; ENTER &#8594;</a>';
+      document.title = "OBT3 IS LIVE — NVIDIA ShadowPlay";
       clearInterval(iv); return;
     }
     var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000),

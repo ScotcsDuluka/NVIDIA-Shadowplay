@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OBT3 IS NOW LIVE — NVIDIA ShadowPlay</title>
+<meta name="description" content="OBT3 Open Beta is live — the audio-timeline rebuild, QSV support and honest recording accounting.">
+<link rel="stylesheet" href="CSS/index/role.css">
+<style>
+/* ═══ OBT3 LIVE PAGE — same design language as index (90° corners) ═══ */
+:root{
+  --bg:#050607; --panel:rgba(255,255,255,.028);
+  --line:rgba(255,255,255,.08); --line-g:rgba(118,185,0,.35);
+  --g:#76b900; --g2:#a3e635; --tx:#f2f4f1; --tx2:#9aa39a; --tx3:#5c655c;
+  --red:#ef4444; --yellow:#eab308; --blue:#3b82f6;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--tx);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
+  overflow-x:hidden;line-height:1.6}
+::selection{background:rgba(118,185,0,.35)}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:#080908}
+::-webkit-scrollbar-thumb{background:#1e2418;border-radius:5px}
+::-webkit-scrollbar-thumb:hover{background:var(--g)}
+a{color:inherit;text-decoration:none}
+@font-face{font-family:'GeForce';src:url('Assets/GeForce-Bold-Alt.woff2') format('woff2');font-weight:700;font-display:swap}
+
+.bg{position:fixed;inset:0;pointer-events:none;z-index:0}
+.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5}
+.orb1{width:520px;height:520px;background:radial-gradient(circle,rgba(118,185,0,.3),transparent 65%);
+  top:-12%;right:-6%;animation:drift 13s ease-in-out infinite alternate}
+.orb2{width:400px;height:400px;background:radial-gradient(circle,rgba(59,130,246,.14),transparent 65%);
+  bottom:-8%;left:-5%;animation:drift 17s ease-in-out infinite alternate-reverse}
+@keyframes drift{to{transform:translate(50px,36px) scale(1.07)}}
+.gridlines{position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
+  background-size:56px 56px;
+  mask-image:radial-gradient(ellipse 85% 60% at 50% 25%,#000 25%,transparent 75%);
+  -webkit-mask-image:radial-gradient(ellipse 85% 60% at 50% 25%,#000 25%,transparent 75%)}
+#stars{position:fixed;inset:0;z-index:0;pointer-events:none}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;
+  justify-content:space-between;padding:.9rem 4vw;
+  background:rgba(5,6,7,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line)}
+.nav-logo{display:flex;align-items:center;gap:.6rem;font-family:'GeForce';font-size:1rem;
+  letter-spacing:1.5px;color:#fff}
+.nav-logo .mark{width:26px;height:26px;background:linear-gradient(135deg,var(--g),#3d6300);
+  display:grid;place-items:center;font-size:.8rem;color:#000;font-weight:900}
+.nav-home{font-size:.78rem;letter-spacing:1px;color:var(--tx2);border:1px solid var(--line);
+  padding:.4rem .9rem;transition:all .2s}
+.nav-home:hover{color:var(--g2);border-color:var(--line-g)}
+
+.wrap{position:relative;z-index:2;max-width:1150px;margin:0 auto;padding:0 4vw}
+
+/* ── LIVE HERO ── */
+.live-hero{min-height:88svh;display:flex;flex-direction:column;justify-content:center;
+  position:relative;z-index:2;padding:8rem 4vw 3rem;text-align:center}
+.live-badge{display:inline-flex;align-items:center;gap:.6rem;margin:0 auto 1.8rem;
+  font-size:.78rem;font-weight:800;letter-spacing:3px;color:#000;background:var(--g);
+  padding:.55rem 1.4rem;box-shadow:0 0 34px rgba(118,185,0,.55);animation:livePulse 1.8s ease infinite}
+@keyframes livePulse{0%,100%{box-shadow:0 0 22px rgba(118,185,0,.45)}50%{box-shadow:0 0 60px rgba(118,185,0,.9)}}
+h1.live-title{font-family:'GeForce';font-size:clamp(2.8rem,8vw,5.8rem);line-height:1;
+  color:#fff;letter-spacing:1px}
+h1.live-title .g{color:var(--g);text-shadow:0 0 40px rgba(118,185,0,.55)}
+.live-sub{margin-top:1.2rem;font-size:clamp(1rem,2.2vw,1.3rem);color:var(--tx2)}
+.live-sub b{color:var(--tx)}
+.cta{display:flex;gap:1rem;justify-content:center;margin-top:2.6rem;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:.6rem;padding:1.05rem 2.1rem;
+  font-weight:800;font-size:.95rem;letter-spacing:.8px;transition:all .25s;border:1px solid transparent}
+.btn-main{background:linear-gradient(135deg,var(--g),#5c9400);color:#050607;
+  box-shadow:0 10px 40px rgba(118,185,0,.4);position:relative;overflow:hidden}
+.btn-main::after{content:"";position:absolute;top:0;left:-80%;width:50%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);
+  transform:skewX(-18deg);animation:sh 3s ease-in-out infinite}
+@keyframes sh{0%,55%{left:-80%}100%{left:140%}}
+.btn-main:hover{transform:translateY(-2px);box-shadow:0 14px 50px rgba(118,185,0,.6)}
+.btn-ghost{border-color:var(--line);color:var(--tx);background:rgba(255,255,255,.03)}
+.btn-ghost:hover{border-color:var(--line-g);color:var(--g2)}
+
+/* ── SECTIONS ── */
+section{position:relative;z-index:2;padding:4.6rem 0}
+.sec-head{text-align:center;margin-bottom:2.8rem}
+.sec-label{font-size:.7rem;letter-spacing:3.5px;color:var(--g);font-weight:700}
+.sec-title{font-family:'GeForce';font-size:clamp(1.8rem,4vw,2.7rem);color:#fff;margin:.4rem 0}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.2rem}
+@media(max-width:900px){.cards{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);padding:1.6rem;transition:all .3s}
+.card:hover{border-color:var(--line-g);transform:translateY(-4px);box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.card .k{font-size:.62rem;font-weight:800;letter-spacing:2px;color:var(--g);margin-bottom:.5rem}
+.card h3{font-size:1rem;color:#fff;margin-bottom:.45rem}
+.card p{font-size:.86rem;color:var(--tx2)}
+.card p b{color:var(--tx)}
+
+/* changelog list */
+.log{max-width:860px;margin:0 auto;display:grid;gap:.65rem}
+.log .row{display:flex;gap:1rem;padding:.85rem 1.1rem;background:var(--panel);
+  border:1px solid var(--line);font-size:.87rem;color:var(--tx2);transition:border-color .25s}
+.log .row:hover{border-color:var(--line-g)}
+.log .row .t{color:var(--g);font-weight:800;min-width:74px;font-variant-numeric:tabular-nums}
+.log .row b{color:var(--tx)}
+
+footer{position:relative;z-index:2;border-top:1px solid var(--line);padding:2.4rem 4vw;
+  text-align:center;color:var(--tx3);font-size:.8rem}
+footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
+</style>
+</head>
+<body>
+
+<div class="bg">
+  <div class="orb orb1"></div><div class="orb orb2"></div><div class="gridlines"></div>
+</div>
+<canvas id="stars"></canvas>
+
+<nav>
+  <a class="nav-logo" href="index.html"><span class="mark">▶</span>NVIDIA SHADOWPLAY</a>
+  <a class="nav-home" href="index.html">← BACK TO HOME</a>
+</nav>
+
+<!-- ═══ LIVE HERO ═══ -->
+<header class="live-hero wrap">
+  <div><span class="live-badge">● LIVE — OPEN BETA TEST 3</span></div>
+  <h1 class="live-title">OBT3 IS <span class="g">NOW LIVE</span></h1>
+  <p class="live-sub">The audio-timeline rebuild is here: <b>no more tail-audio loss</b>,
+     a fixed video-only path, honest recording accounting —<br>and Intel QSV joins the FFmpeg engine path.</p>
+  <div class="cta">
+    <a class="btn btn-main" href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">
+      ⬇ DOWNLOAD OBT3 — WINDOWS X64</a>
+    <a class="btn btn-ghost" href="index.html">← Back to main site</a>
+  </div>
+</header>
+
+<!-- ═══ WHAT'S NEW ═══ -->
+<section class="wrap" id="whatsnew">
+  <div class="sec-head">
+    <span class="sec-label">THIS CYCLE</span>
+    <h2 class="sec-title">What's New in OBT3</h2>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="k">AUDIO</div><h3>Tail-audio loss — fixed</h3>
+      <p>Stop no longer discards buffered sound: the muxer now <b>drains the audio queue fully</b> before closing the pipe. The last seconds of your recording keep their sound.</p></div>
+    <div class="card"><div class="k">AUDIO</div><h3>One hardware clock</h3>
+      <p>WASAPI packets carry real <b>QPC device positions</b> and audio is armed on the <b>same common T0</b> as video — A/V offset measured at <b>0.000s</b> across cold and warm sessions.</p></div>
+    <div class="card"><div class="k">CAPTURE</div><h3>Video-only path — fixed</h3>
+      <p>Recording with audio disabled used to abort at the first frame (orphan audio input). Now it's a <b>first-class mode</b>: clean single-stream MP4, no output surprises.</p></div>
+    <div class="card"><div class="k">TRUTH</div><h3>Honest pass reporting</h3>
+      <p>The session result now counts <b>every dropped byte at the mux layer</b>. If a file is missing captured audio, the recorder says so instead of reporting success.</p></div>
+    <div class="card"><div class="k">HARDWARE</div><h3>Intel QSV joins the FFmpeg path</h3>
+      <p>CFR pacing and preset mapping for <b>h264_qsv</b> (hwmap derive_device=qsv) — validated on Intel hardware. NVIDIA NVENC remains the native production encoder.</p></div>
+    <div class="card"><div class="k">UX</div><h3>Overlay truthfulness</h3>
+      <p><b>Hub offline</b> is now explicit — the overlay shows a clear offline state instead of a fake "Recording". The launcher no longer rewrites your config every second.</p></div>
+  </div>
+</section>
+
+<!-- ═══ CHANGELOG ═══ -->
+<section class="wrap" id="changelog">
+  <div class="sec-head">
+    <span class="sec-label">LOG</span>
+    <h2 class="sec-title">Engineering Highlights</h2>
+  </div>
+  <div class="log">
+    <div class="row"><span class="t">MUX</span><span><b>Drain-until-empty stop</b> — LiveMux waits for the queue to actually empty before pipe EOF (bounded by timeout).</span></div>
+    <div class="row"><span class="t">AUDIT</span><span><b>MuxDroppedBytes</b> surfaced into SessionResult.Pass — sidecar accounting can no longer mask mux-side loss.</span></div>
+    <div class="row"><span class="t">QPC</span><span><b>Unit alignment</b> for WASAPI positions + video T0 anchored at Output#0 — one clock, no steering.</span></div>
+    <div class="row"><span class="t">QSV</span><span><b>CFR + preset mapping</b> completed for the FFmpeg engine; vbv triplet dropped in favor of stable CBR.</span></div>
+    <div class="row"><span class="t">CFG</span><span><b>UseOverlayEnabled write race</b> resolved — config.json is the single source of truth; launcher writes only on user toggle.</span></div>
+  </div>
+</section>
+
+<footer>
+  <div class="fl" style="display:flex;gap:1.6rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap">
+    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub</a>
+    <a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord</a>
+    <a href="index.html">Main Site</a>
+  </div>
+  <p>© <span id="yr"></span> ScotcsDuluka | NVIDIA ShadowPlay™ OBT3 · Built with ♥ using VB.NET &amp; FFmpeg</p>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var yr=document.getElementById('yr'); if(yr) yr.innerText=new Date().getFullYear();
+
+/* constellation background (fine-pointer machines get the full effect) */
+var fine=window.matchMedia&&window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+var cv=document.getElementById('stars');
+if(cv&&fine){
+  var ctx=cv.getContext('2d');
+  cv.width=innerWidth;cv.height=innerHeight;
+  var P=[],N=70,mouse={x:null,y:null,r:110};
+  addEventListener('resize',function(){cv.width=innerWidth;cv.height=innerHeight});
+  addEventListener('mousemove',function(e){mouse.x=e.clientX;mouse.y=e.clientY});
+  for(var i=0;i<N;i++)P.push({x:Math.random()*cv.width,y:Math.random()*cv.height,
+    vx:(Math.random()-.5)*.4,vy:(Math.random()-.5)*.4});
+  (function loop(){
+    ctx.clearRect(0,0,cv.width,cv.height);
+    for(var i=0;i<P.length;i++){
+      var p=P[i];p.x+=p.vx;p.y+=p.vy;
+      if(p.x<0||p.x>cv.width)p.vx*=-1;
+      if(p.y<0||p.y>cv.height)p.vy*=-1;
+      var dm=Math.hypot(p.x-mouse.x,p.y-mouse.y);
+      if(dm<mouse.r){p.x+=(p.x-mouse.x)/dm*.6;p.y+=(p.y-mouse.y)/dm*.6}
+      ctx.fillStyle='rgba(118,185,0,.55)';
+      ctx.beginPath();ctx.arc(p.x,p.y,1.4,0,6.283);ctx.fill();
+      for(var j=i+1;j<P.length;j++){
+        var q=P[j],d=Math.hypot(p.x-q.x,p.y-q.y);
+        if(d<110){ctx.strokeStyle='rgba(118,185,0,'+(0.14*(1-d/110))+')';
+          ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()}
+      }
+    }
+    requestAnimationFrame(loop);
+  })();
+}
+})();
+</script>
+</body>
+</html>
