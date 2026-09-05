@@ -15,7 +15,9 @@ Namespace CaptureEngine.FFmpegTests
     Friend Module Program
         Friend _passed As Integer = 0
         Friend _failed As Integer = 0
+        Friend _skipped As Integer = 0
         Friend ReadOnly _failures As New List(Of String)()
+        Friend ReadOnly _skips As New List(Of String)()
 
         Function Main(args As String()) As Integer
             Console.WriteLine("==================================================")
@@ -91,14 +93,23 @@ Namespace CaptureEngine.FFmpegTests
             ' ----- Integration tests (requires real ffmpeg.exe) -----
             RunTest("INTEGRATION: Real FFmpeg record → stop → output file", AddressOf Test_RealFFmpegIntegration)
             RunTest("STRESS: Start → Stop → Start cycle (3 rounds, real ffmpeg)", AddressOf Test_StartStopStartStress)
+            RunTest("VALIDATOR: AssertValidMedia rejects garbage + accepts real media", AddressOf Test_MediaValidatorContract)
 
             ' ----- LiveMuxSession — the PRODUCTION mux path (G1) -----
             LiveMuxSessionTests.RunAll()
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
-            Console.WriteLine(" Result: " & _passed & " passed, " & _failed & " failed, " & (_passed + _failed) & " total")
+            Console.WriteLine(" Result: " & _passed & " passed, " & _failed & " failed, " &
+                              _skipped & " skipped, " & (_passed + _failed + _skipped) & " total")
             Console.WriteLine("--------------------------------------------------")
+            If _skipped > 0 Then
+                Console.WriteLine()
+                Console.WriteLine("Skips (ENVIRONMENT NOT CAPABLE — F-01):")
+                For Each s As String In _skips
+                    Console.WriteLine("  - " & s)
+                Next
+            End If
             If _failed > 0 Then
                 Console.WriteLine()
                 Console.WriteLine("Failures:")
@@ -117,6 +128,12 @@ Namespace CaptureEngine.FFmpegTests
                 test()
                 _passed += 1
                 Console.WriteLine("PASS")
+            Catch ex As SkipException
+                ' F-01/C-4: ENVIRONMENT NOT CAPABLE — SKIP, never PASS, never FAIL.
+                _skipped += 1
+                _skips.Add(name & ": " & ex.Message)
+                Console.WriteLine("SKIP")
+                Console.WriteLine("    " & ex.Message)
             Catch ex As Exception
                 _failed += 1
                 _failures.Add(name & ": " & ex.GetType().Name & ": " & ex.Message)
@@ -1034,9 +1051,7 @@ Namespace CaptureEngine.FFmpegTests
             Next
 
             If ffmpegPath Is Nothing Then
-                ' Skip — ffmpeg not available in this environment
-                Console.Write("(SKIP: ffmpeg not found) ")
-                Return
+                Throw New SkipException("ffmpeg not available in this environment")
             End If
 
             ' Generate a test output path
@@ -1073,38 +1088,17 @@ Namespace CaptureEngine.FFmpegTests
             Assert(finalState = VideoBackendState.Stopped OrElse finalState = VideoBackendState.Faulted,
                    "Final state should be Stopped or Faulted (not Running)")
 
-            ' Verify output file exists and has content
-            Assert(IO.File.Exists(outputFile), "Output file should exist")
-            If IO.File.Exists(outputFile) Then
-                Dim sizeBytes = New IO.FileInfo(outputFile).Length
-                Assert(sizeBytes > 0, "Output file should be non-empty (size=" & sizeBytes & ")")
+            ' ★ F-02: truthful validation. The OLD block here had a real bug:
+            ' it looked for an ffprobe binary named "ffprobe" (no .exe) — the
+            ' lookup never matched on Windows, so the duration check was DEAD
+            ' CODE and the test passed green even for a headerless file.
+            ' AssertValidMedia probes via the bundled ffmpeg itself (same
+            ' evidence), making the check mandatory: Exists + >0 bytes +
+            ' container Duration > 0 + Video stream, no audio (testsrc only).
+            MediaValidation.AssertValidMedia(ffmpegPath, outputFile, True, False, "INTEGRATION")
 
-                ' Try to read duration with ffprobe (if available)
-                Dim ffprobePath As String = IO.Path.Combine(IO.Path.GetDirectoryName(ffmpegPath), "ffprobe")
-                If IO.File.Exists(ffprobePath) Then
-                    Dim psi As New ProcessStartInfo()
-                    psi.FileName = ffprobePath
-                    psi.Arguments = "-v error -show_entries format=duration -of csv=p=0 """ & outputFile & """"
-                    psi.UseShellExecute = False
-                    psi.RedirectStandardOutput = True
-                    psi.CreateNoWindow = True
-                    Using proc As New Process()
-                        proc.StartInfo = psi
-                        proc.Start()
-                        Dim dur = proc.StandardOutput.ReadToEnd().Trim()
-                        proc.WaitForExit(5000)
-                        If Not String.IsNullOrEmpty(dur) Then
-                            Dim durVal As Double
-                            If Double.TryParse(dur, Globalization.CultureInfo.InvariantCulture, durVal) Then
-                                Assert(durVal > 0, "Duration should be > 0 (got " & durVal & ")")
-                            End If
-                        End If
-                    End Using
-                End If
-
-                ' Clean up
-                IO.File.Delete(outputFile)
-            End If
+            ' Clean up
+            IO.File.Delete(outputFile)
 
             backend.Dispose()
         End Sub
@@ -1123,8 +1117,7 @@ Namespace CaptureEngine.FFmpegTests
                 End If
             Next
             If ffmpegPath Is Nothing Then
-                Console.Write("(SKIP: ffmpeg not found) ")
-                Return
+                Throw New SkipException("ffmpeg not found in this environment")
             End If
 
             Dim tempDir As String = IO.Path.GetTempPath()
@@ -1168,13 +1161,12 @@ Namespace CaptureEngine.FFmpegTests
                 Assert(finalState = VideoBackendState.Stopped OrElse finalState = VideoBackendState.Faulted,
                        $"Cycle {cycle}: final state should be Stopped or Faulted (got {finalState})")
 
-                ' Verify output file exists
-                Assert(IO.File.Exists(outputFile), $"Cycle {cycle}: output file should exist")
-                If IO.File.Exists(outputFile) Then
-                    Dim size = New IO.FileInfo(outputFile).Length
-                    Assert(size > 0, $"Cycle {cycle}: output file should be non-empty")
-                    IO.File.Delete(outputFile)
-                End If
+                ' ★ F-02: truthful validation — the old assertions (Exists +
+                ' size > 0) accepted a headerless/0-packet file as "output
+                ' valid". The real libx264 encode must produce a probe-able
+                ' MP4 with a video stream, positive duration, and no audio.
+                MediaValidation.AssertValidMedia(ffmpegPath, outputFile, True, False, $"STRESS cycle {cycle}")
+                IO.File.Delete(outputFile)
 
                 ' Verify no stale state — state should be Stopped (ready for next Start)
                 Assert(backend.CurrentState = VideoBackendState.Stopped OrElse backend.CurrentState = VideoBackendState.Faulted,
@@ -1188,6 +1180,91 @@ Namespace CaptureEngine.FFmpegTests
             backend.Dispose()
             Assert(backend.CurrentState = VideoBackendState.Disposed,
                    "State should be Disposed after final Dispose")
+        End Sub
+
+        ' ===== F-02 validator contract: the helper itself must be able to
+        ' FAIL — otherwise "valid output" assertions are vacuous =====
+
+        ''' <summary>Proves the F-02 helper has teeth: an empty file, a
+        ''' text file with an .mp4 name, and a truncated MP4 must all be
+        ''' REJECTED; a real libx264 encode must PASS. Without this test the
+        ''' validator could silently accept garbage forever.</summary>
+        Private Sub Test_MediaValidatorContract()
+            Dim ffmpegPath As String = Nothing
+            For Each c In {"/usr/bin/ffmpeg", "/usr/local/bin/ffmpeg",
+                           IO.Path.Combine(System.AppDomain.CurrentDomain.BaseDirectory, "ffmpeg.exe"),
+                           FindRepoFFmpeg()}
+                If IO.File.Exists(c) Then
+                    ffmpegPath = c
+                    Exit For
+                End If
+            Next
+            If ffmpegPath Is Nothing Then
+                Throw New SkipException("ffmpeg not available in this environment")
+            End If
+
+            Dim dir As String = IO.Path.Combine(IO.Path.GetTempPath(), "media-validator-" &
+                                                DateTime.Now.ToString("yyyyMMdd_HHmmss"))
+            IO.Directory.CreateDirectory(dir)
+            Try
+                ' 1) EMPTY file — must be rejected.
+                Dim emptyPath As String = IO.Path.Combine(dir, "empty.mp4")
+                IO.File.WriteAllBytes(emptyPath, New Byte() {})
+                Dim rejectedEmpty As Boolean = False
+                Try
+                    MediaValidation.AssertValidMedia(ffmpegPath, emptyPath, True, False, "VALIDATOR-empty")
+                Catch ex As InvalidOperationException
+                    rejectedEmpty = True
+                End Try
+                Assert(rejectedEmpty, "validator ACCEPTED an empty file — false-green validator")
+
+                ' 2) TEXT file with an .mp4 name — must be rejected (no
+                '    container Duration in the probe dump).
+                Dim textPath As String = IO.Path.Combine(dir, "garbage.mp4")
+                IO.File.WriteAllText(textPath, "this is definitely not an mp4 container")
+                Dim rejectedText As Boolean = False
+                Try
+                    MediaValidation.AssertValidMedia(ffmpegPath, textPath, True, False, "VALIDATOR-garbage")
+                Catch ex As InvalidOperationException
+                    rejectedText = True
+                End Try
+                Assert(rejectedText, "validator ACCEPTED a text file named .mp4 — false-green validator")
+
+                ' 3) TRUNCATED real MP4 (first 64 bytes of a valid one) — must
+                '    be rejected: this is the exact 0-packet/moov-missing
+                '    failure class the legacy fallback used to announce saved.
+                Dim realPath As String = IO.Path.Combine(dir, "real.mp4")
+                Dim psi As New ProcessStartInfo With {
+                    .FileName = ffmpegPath,
+                    .Arguments = "-y -f lavfi -i testsrc=duration=1:size=320x240:rate=15 " &
+                                 "-c:v libx264 -preset ultrafast -pix_fmt yuv420p """ & realPath & """",
+                    .UseShellExecute = False, .CreateNoWindow = True,
+                    .RedirectStandardError = True
+                }
+                Using p As Process = Process.Start(psi)
+                    p.StandardError.ReadToEnd()
+                    If Not p.WaitForExit(30000) Then
+                        Try : p.Kill() : Catch : End Try
+                    End If
+                End Using
+                Assert(IO.File.Exists(realPath), "fixture generation failed — real.mp4 missing")
+
+                Dim truncatedPath As String = IO.Path.Combine(dir, "truncated.mp4")
+                Dim allBytes As Byte() = IO.File.ReadAllBytes(realPath)
+                IO.File.WriteAllBytes(truncatedPath, allBytes.Take(64).ToArray())
+                Dim rejectedTruncated As Boolean = False
+                Try
+                    MediaValidation.AssertValidMedia(ffmpegPath, truncatedPath, True, False, "VALIDATOR-truncated")
+                Catch ex As InvalidOperationException
+                    rejectedTruncated = True
+                End Try
+                Assert(rejectedTruncated, "validator ACCEPTED a truncated mp4 — false-green validator")
+
+                ' 4) REAL media — must PASS every clause.
+                MediaValidation.AssertValidMedia(ffmpegPath, realPath, True, False, "VALIDATOR-real")
+            Finally
+                Try : IO.Directory.Delete(dir, True) : Catch : End Try
+            End Try
         End Sub
     End Module
 End Namespace

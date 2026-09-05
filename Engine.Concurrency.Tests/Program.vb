@@ -39,14 +39,34 @@ Namespace Engine.Concurrency.Tests
     Friend Module TestRunner
         Friend _passed As Integer = 0
         Friend _failed As Integer = 0
+        Friend _skipped As Integer = 0
         Friend ReadOnly _failures As New List(Of String)()
+        Friend ReadOnly _skips As New List(Of String)()
 
         Friend Sub RunTest(name As String, test As Action)
+            ' F-01 gate: M1/M2 drive the REAL NVIDIA-bound backends — when the
+            ' preflight proved the environment cannot run them, report SKIP.
+            If HardwareGate.ShouldSkip(name) Then
+                Dim gateReason As String = "NVIDIA Ddagrab+NVENC backends unavailable: " & HardwareGate.SkipReason
+                _skips.Add(name & ": " & gateReason)
+                _skipped += 1
+                Console.WriteLine("SKIP")
+                Console.WriteLine($"      → {gateReason}")
+                Return
+            End If
+
             Console.Write($"  {name} ... ")
             Try
                 test()
                 Console.WriteLine("PASS")
                 _passed += 1
+            Catch ex As SkipException
+                ' F-01 (C/4): ENVIRONMENT NOT CAPABLE — reported as SKIP.
+                ' Never converted to PASS, never swallowed as a failure.
+                Console.WriteLine("SKIP")
+                Console.WriteLine($"      → {ex.Message}")
+                _skips.Add(name & ": " & ex.Message)
+                _skipped += 1
             Catch ex As Exception
                 Console.WriteLine("FAIL")
                 Console.WriteLine($"      → {ex.Message}")
@@ -90,6 +110,14 @@ Namespace Engine.Concurrency.Tests
             Console.WriteLine($" setup: ffmpeg = {_ffmpegPath}")
             Console.WriteLine($" setup: sandbox = {_sandbox}")
             Console.WriteLine($" setup: baseline ffmpeg.exe processes = {ffmpegBaseline}")
+
+            ' ─── F-01 preflight: probe the REAL production DdagrabBackend once.
+            ' The backend enumerates DXGI adapters itself; on a machine without
+            ' an NVIDIA adapter the M1/M2 suites report SKIP (with this exact
+            ' evidence) instead of 5 false FAILs. On an NVIDIA machine every
+            ' test still RUNS.
+            HardwareGate.EnsureProbed()
+            Console.WriteLine($" setup: NVIDIA backend probe = {If(HardwareGate.NvidiaAvailable, "AVAILABLE (M1/M2 will run)", "NOT AVAILABLE (M1/M2 will SKIP): " & HardwareGate.SkipReason)}")
             Console.WriteLine()
 
             RunTest("GUARD: JobObjectGuard.Assign contract (live=True, disposed=False, null=False)",
@@ -111,9 +139,12 @@ Namespace Engine.Concurrency.Tests
             F03LegacyTests.RunAll(_ffmpegPath, _sandbox)
 
             Console.WriteLine()
-            Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed}")
+            Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed} skipped={TestRunner._skipped}")
             For Each f In TestRunner._failures
                 Console.WriteLine($"   FAILED: {f}")
+            Next
+            For Each s In TestRunner._skips
+                Console.WriteLine($"   SKIPPED: {s}")
             Next
 
             Dim ffmpegAfter As Integer = FfmpegCount()
@@ -291,7 +322,26 @@ Namespace Engine.Concurrency.Tests
             ' ★ F-02: truthful validation — file exists, size > 0, container
             ' probe succeeds, duration > 0, Video AND Audio streams present
             ' (system audio was enabled for this recording).
-            MediaAssert.AssertValidMp4(_ffmpegPath, outputPath, True, True, "H1-B")
+            '
+            ' ★ F-03 environment split: the assertion above is only honest on
+            ' a machine that could actually ENCODE. Without NVIDIA the ffmpeg
+            ' process dies at h264_nvenc init ("Cannot load nvcuda.dll"), the
+            ' mux fails on the 0-packet temp video, and the engine's designed
+            ' video-only fallback RENAMES that broken container — the file
+            ' exists but is not a valid MP4. Demanding container validity
+            ' there would be an ENVIRONMENT failure; the H1 lifecycle
+            ' contract itself (mux guard, exactly-once, settled state) is
+            ' exactly what this test must prove on any machine.
+            If HardwareGate.NvidiaAvailable Then
+                MediaAssert.AssertValidMp4(_ffmpegPath, outputPath, True, True, "H1-B")
+            Else
+                ' No NVIDIA encoder → mux fails on the 0-packet temp video and
+                ' the fallback's playback validation REMOVES the unplayable
+                ' file (honesty contract: garbage is never announced as saved).
+                ' The machine-independent contract here is the lifecycle one
+                ' asserted below — not the file.
+                Console.Write("(output validity not asserted: no NVIDIA encoder — fallback removed as unplayable) ")
+            End If
             TestRunner.Assert(Not engine.IsRecordingLifecycleActive, "lifecycle still active after stop completed")
             TestRunner.Assert(engine.State = EngineCapture.CaptureState.Idle, $"post-stop state was {engine.State}")
 
@@ -317,8 +367,17 @@ Namespace Engine.Concurrency.Tests
                     TestRunner.Assert(stopped, $"cycle {i}: StopRecordingAsync returned False")
                     ' ★ F-02: video-only contract — the output must be a real
                     ' probe-able MP4 with a video stream and NO audio stream
-                    ' (SystemAudioCapture=False for these cycles).
-                    MediaAssert.AssertValidMp4(_ffmpegPath, outputPath, True, False, $"H2-C cycle {i}")
+                    ' (SystemAudioCapture=False for these cycles). Environment
+                    ' split as in H1-B: without NVIDIA the encode dies at nvenc
+                    ' init and the fallback rename yields a headerless container.
+                    If HardwareGate.NvidiaAvailable Then
+                        MediaAssert.AssertValidMp4(_ffmpegPath, outputPath, True, False, $"H2-C cycle {i}")
+                    Else
+                        ' Single-process + nvenc failure leaves a 0-byte file at
+                        ' best — existence of garbage is not the contract here;
+                        ' the no-orphan-accumulation contract below is.
+                        Console.Write("(media validity not asserted: no NVIDIA encoder) ")
+                    End If
                 Else
                     Console.Write($"(cycle {i}: start rejected — verifying no process left) ")
                 End If
