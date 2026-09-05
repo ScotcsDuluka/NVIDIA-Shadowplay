@@ -177,7 +177,7 @@ begin
   HeadLocation.Caption := 'Where should NVIDIA ShadowPlay be installed?';
   HeadLocation.AutoSize := False;
   HeadLocation.SetBounds(ScaleX(44), ScaleY(24), ScaleX(700), ScaleY(30));
-  HeadLocation.Font.Height := -20; HeadLocation.Font.Name := 'NVIDIA Sans';
+  HeadLocation.Font.Size := 15; HeadLocation.Font.Name := 'NVIDIA Sans';
   HeadLocation.Font.Style := [fsBold]; HeadLocation.Font.Color := ClTextMain;
   HeadLocation.AutoSize := False;
   HeadLocation.Visible := False;
@@ -187,7 +187,7 @@ begin
   SubLocation.Caption := 'The default location is recommended. Runtime folders (settings, recordings, logs) stay inside it and remain writable.';
   SubLocation.AutoSize := False;
   SubLocation.SetBounds(ScaleX(44), ScaleY(60), ScaleX(700), ScaleY(34));
-  SubLocation.Font.Height := -15; SubLocation.Font.Name := 'NVIDIA Sans';
+  SubLocation.Font.Size := 11; SubLocation.Font.Name := 'NVIDIA Sans';
   SubLocation.Font.Color := ClTextDim;
   SubLocation.WordWrap := True;
   SubLocation.AutoSize := False;
@@ -198,7 +198,7 @@ begin
   HeadOptions.Caption := 'Installation options';
   HeadOptions.AutoSize := False;
   HeadOptions.SetBounds(ScaleX(44), ScaleY(24), ScaleX(700), ScaleY(30));
-  HeadOptions.Font.Height := -20; HeadOptions.Font.Name := 'NVIDIA Sans';
+  HeadOptions.Font.Size := 15; HeadOptions.Font.Name := 'NVIDIA Sans';
   HeadOptions.Font.Style := [fsBold]; HeadOptions.Font.Color := ClTextMain;
   HeadOptions.AutoSize := False;
   HeadOptions.Visible := False;
@@ -208,7 +208,7 @@ begin
   SubOptions.Caption := 'Everything is optional and can be changed later.';
   SubOptions.AutoSize := False;
   SubOptions.SetBounds(ScaleX(44), ScaleY(60), ScaleX(700), ScaleY(24));
-  SubOptions.Font.Height := -15; SubOptions.Font.Name := 'NVIDIA Sans';
+  SubOptions.Font.Size := 11; SubOptions.Font.Name := 'NVIDIA Sans';
   SubOptions.Font.Color := ClTextDim;
   SubOptions.AutoSize := False;
   SubOptions.Visible := False;
@@ -217,7 +217,7 @@ begin
   WizardForm.WelcomeLabel1.Hide;
   WizardForm.WelcomeLabel2.AutoSize := False;
   WizardForm.WelcomeLabel2.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(220));
-  WizardForm.WelcomeLabel2.Font.Height := -17; WizardForm.WelcomeLabel2.Font.Name := 'NVIDIA Sans';
+  WizardForm.WelcomeLabel2.Font.Size := 13; WizardForm.WelcomeLabel2.Font.Name := 'NVIDIA Sans';
   WizardForm.WelcomeLabel2.Font.Color := ClTextMain;
   WizardForm.WelcomeLabel2.Caption :=
     'A fast, hardware-accelerated screen recorder.' + #13#10#13#10 +
@@ -239,14 +239,14 @@ begin
   WizardForm.TasksList.Color := PageDark;
   WizardForm.TasksList.Font.Color := ClTextMain;
   WizardForm.TasksList.Font.Name := 'NVIDIA Sans';
-  WizardForm.TasksList.Font.Height := -16;
+  WizardForm.TasksList.Font.Size := 12;
 
   // ── installing page ──────────────────────────────────────────────────
   WizardForm.StatusLabel.SetBounds(ScaleX(44), ScaleY(238), ScaleX(700), ScaleY(20));
-  WizardForm.StatusLabel.Font.Height := -16; WizardForm.StatusLabel.Font.Name := 'NVIDIA Sans';
+  WizardForm.StatusLabel.Font.Size := 12; WizardForm.StatusLabel.Font.Name := 'NVIDIA Sans';
   WizardForm.StatusLabel.Font.Color := ClTextMain;
   WizardForm.FilenameLabel.SetBounds(ScaleX(44), ScaleY(262), ScaleX(700), ScaleY(18));
-  WizardForm.FilenameLabel.Font.Height := -13; WizardForm.FilenameLabel.Font.Name := 'NVIDIA Sans';
+  WizardForm.FilenameLabel.Font.Size := 10; WizardForm.FilenameLabel.Font.Name := 'NVIDIA Sans';
   WizardForm.FilenameLabel.Font.Color := ClTextDim;
   WizardForm.ProgressGauge.SetBounds(ScaleX(44), ScaleY(292), ScaleX(700), ScaleY(26));
   try
@@ -258,7 +258,7 @@ begin
   // ── finished page copy ───────────────────────────────────────────────
   WizardForm.FinishedLabel.AutoSize := False;
   WizardForm.FinishedLabel.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(160));
-  WizardForm.FinishedLabel.Font.Height := -17; WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
+  WizardForm.FinishedLabel.Font.Size := 13; WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
   WizardForm.FinishedLabel.Font.Color := ClTextMain;
   WizardForm.FinishedLabel.Caption :=
     'NVIDIA ShadowPlay has been installed.' + #13#10#13#10 +
@@ -268,7 +268,7 @@ begin
   WizardForm.RunList.Color := PageDark;
   WizardForm.RunList.Font.Color := ClTextMain;
   WizardForm.RunList.Font.Name := 'NVIDIA Sans';
-  WizardForm.RunList.Font.Height := -15;
+  WizardForm.RunList.Font.Size := 11;
 
   // ── bottom buttons (standard order, right-aligned) ───────────────────
   WizardForm.CancelButton.SetBounds(ScaleX(790) - ScaleX(75) - ScaleX(10), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
@@ -304,13 +304,13 @@ begin
     WizardForm.FinishedLabel.BringToFront;
     WizardForm.RunList.BringToFront;
     WizardForm.FinishedHeadingLabel.SetBounds(ScaleX(44), ScaleY(140), ScaleX(700), ScaleY(40));
-    WizardForm.FinishedHeadingLabel.Font.Height := -24;
+    WizardForm.FinishedHeadingLabel.Font.Size := 18;
     WizardForm.FinishedHeadingLabel.Font.Name := 'NVIDIA Sans';
     WizardForm.FinishedHeadingLabel.Font.Style := [fsBold];
     WizardForm.FinishedHeadingLabel.Font.Color := ClTextMain;
     WizardForm.FinishedHeadingLabel.Caption := 'Installation complete';
     WizardForm.FinishedLabel.SetBounds(ScaleX(44), ScaleY(196), ScaleX(700), ScaleY(120));
-    WizardForm.FinishedLabel.Font.Height := -17;
+    WizardForm.FinishedLabel.Font.Size := 13;
     WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
     WizardForm.FinishedLabel.Font.Color := ClTextMain;
     WizardForm.FinishedLabel.Caption :=
@@ -321,6 +321,6 @@ begin
     WizardForm.RunList.Color := ClBackDark;
     WizardForm.RunList.Font.Color := ClTextMain;
     WizardForm.RunList.Font.Name := 'NVIDIA Sans';
-    WizardForm.RunList.Font.Height := -15;
+    WizardForm.RunList.Font.Size := 11;
   end;
 end;
