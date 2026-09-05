@@ -1,0 +1,89 @@
+    :root {
+      --nvidia-green: #78B802; --nvidia-green-hover: #8FC93A; --nvidia-black: #000000;
+      --nvidia-gray-dark: #141414; --text-white: #FFFFFF; --text-gray: #BEBEBE;
+      --border-color: rgba(255,255,255,0.1); --ease-out-expo: cubic-bezier(0.16,1,0.3,1);
+    }
+
+@font-face {
+  font-family: 'GeForce';
+  src: url('../../Assets/GeForce-Bold-Alt.woff2') format('woff2');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'NvidiaIcons';
+  src: url('../../Assets/nvgcshare.woff2') format('woff2');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+
+    .icon-nvidia { font-family: 'NvidiaIcons'; font-weight: normal; font-style: normal; line-height: 1; -webkit-font-smoothing: antialiased; }
+    .feature-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: var(--nvidia-green); transform: scaleX(0);
+      transform-origin: left; transition: transform 0.4s ease;
+    }
+    @media (hover: hover) and (pointer: fine) {
+      .feature-card:hover {
+        transform: translateY(-12px) scale(1.02);
+        border-color: rgba(118, 185, 0, 0.5);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 30px rgba(118, 185, 0, 0.15);
+      }
+      .feature-card:hover::before { transform: scaleX(1); }
+    }
+  
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { overflow-x: hidden; height: 100%; }
+    body {
+      font-family: 'Inter', sans-serif; background-color: var(--nvidia-black); color: var(--text-white);
+      line-height: 1.6; height: 100%; min-height: 100vh; display: block; padding: 0;
+      overflow-y: auto; overflow-x: hidden; opacity: 0;
+      animation: pageEnter 0.6s var(--ease-out-expo) forwards;
+      cursor: default;
+    }
+    @keyframes pageEnter { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    body.page-exit { animation: pageExit 0.3s var(--ease-out-expo) forwards; }
+    @keyframes pageExit { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(0.96); } }
+    @keyframes fadeUp { 0% { opacity: 0; transform: translateY(10px); } 100% { opacity: 1; transform: translateY(0); } }
+    ::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: var(--nvidia-gray-dark); } ::-webkit-scrollbar-thumb { background: var(--nvidia-green); }
+    #particles-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+    .main-content { max-width: 1200px; margin: 0 auto; padding: 2rem; position: relative; z-index: 2; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 1rem; animation: fadeUp 0.5s var(--ease-out-expo) 0.1s both; }
+    .back-link { color: var(--nvidia-green); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; font-family: 'GeForce', sans-serif; }
+    .back-link:hover { gap: 12px; color: var(--nvidia-green-hover); }
+
+    h1 { font-size: 2.5rem; font-weight: 800; letter-spacing: 1.2px; background: linear-gradient(90deg, #fff, var(--nvidia-green)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-top: 0.5rem; font-family: 'GeForce', sans-serif; animation: fadeUp 0.5s var(--ease-out-expo) 0.15s both; }
+    .statusVER { background: rgba(34,197,94,0.2); border-left: 3px solid #22C55E; color: #22C55E; font-size: 0.75rem; font-weight: 700; padding: 0.3rem 1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .info-note { background: rgba(118,185,0,0.1); border-left: 4px solid var(--nvidia-green); padding: 1rem 1.5rem; margin-bottom: 2.5rem; color: var(--text-gray); animation: fadeUp 0.5s var(--ease-out-expo) 0.25s both; font-size: 0.95rem; }
+    .filter-bar { display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap; animation: fadeUp 0.5s var(--ease-out-expo) 0.3s both; }
+    .search-box { flex: 1; min-width: 250px; background: var(--nvidia-gray-dark); border: 1px solid var(--border-color); padding: 0.8rem 1.2rem; color: white; font-size: 1rem; outline: none; }
+    .search-box:focus { border-color: var(--nvidia-green); }
+    .filter-tag { background: transparent; border: 1px solid var(--border-color); color: var(--text-gray); padding: 0.8rem 1.5rem; cursor: pointer; font-weight: 600; font-family: 'GeForce', sans-serif; transition: all 0.2s; }
+    .filter-tag.active { background: var(--nvidia-green); border-color: var(--nvidia-green); color: black; }
+    .games-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1.5rem; margin: 2rem 0 3rem; }
+    .game-card {
+      background: var(--nvidia-gray-dark); border: 1px solid var(--border-color);
+      padding: 1.5rem; transition: all 0.25s; display: flex; flex-direction: column;
+      border-left: 4px solid var(--nvidia-green); opacity: 0; transform: translateY(20px);
+      animation: cardAppear 0.5s var(--ease-out-expo) forwards;
+      animation-delay: calc(0.05s * var(--index, 0));
+    }
+    @keyframes cardAppear { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+    .game-card:hover { transform: translateY(-8px) scale(1.02); border-color: var(--nvidia-green); box-shadow: 0 20px 30px -8px rgba(0,0,0,0.7); }
+    .game-name { font-size: 1.3rem; font-weight: 700; font-family: 'GeForce', sans-serif; margin-bottom: 0.75rem; }
+    .game-status { display: inline-block; font-size: 0.7rem; font-weight: 700; padding: 0.25rem 0.9rem; align-self: flex-start; text-transform: uppercase; letter-spacing: 1px; }
+    .status-full { background: #22C55E20; color: #22C55E; border: 1px solid #22C55E40; }
+    .status-borderless { background: #3B82F620; color: #60A5FA; border: 1px solid #3B82F640; }
+    .status-limited { background: #F59E0B20; color: #FBBF24; border: 1px solid #F59E0B40; }
+    .legend { display: flex; gap: 2rem; flex-wrap: wrap; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--border-color); animation: fadeUp 0.5s var(--ease-out-expo) 0.4s both; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 0.9rem; }
+    .color-dot { width: 14px; height: 14px; border-radius: 2px; }
+    .footer-note { margin-top: 3rem; text-align: center; color: #6E6E6E; animation: fadeUp 0.5s var(--ease-out-expo) 0.45s both; }
+    @media (max-width: 600px) {
+      .main-content { padding: 1rem; } h1 { font-size: 1.8rem; } .filter-bar { flex-direction: column; }
+      .games-grid { grid-template-columns: 1fr; }
+    }
