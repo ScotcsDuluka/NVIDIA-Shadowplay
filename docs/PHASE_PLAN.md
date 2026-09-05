@@ -1,5 +1,12 @@
 # Phase Plan — Engine-Audio Reset
 
+> **⚠️ HISTORICAL (2026-08, `Engine-Audio` branch era).** This plan was written for the
+> aborted "audio reset" approach that assumed removing `CaptureEngine/`. That did NOT
+> happen on `Engine-Rebuild-Stabilization` — the modular `CaptureEngine.*` projects are
+> the active production engine. Keep for reference only; for the current architecture
+> start at `docs/ARCHITECTURE.md` (contracts: `docs/CONFIG_RUNTIME_CONTRACT.md`,
+> layout: `docs/APP-LAYOUT.md`).
+
 > **Goal**: Rebuild the audio capture pipeline cleanly, phase by phase,
 > with verifiable acceptance criteria at each step.
 
