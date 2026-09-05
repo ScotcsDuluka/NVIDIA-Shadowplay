@@ -162,7 +162,7 @@ Friend Module ObsResilienceTests
     Private Function WaitReconnecting(timeoutMs As Integer) As Boolean
         Dim deadline As Long = DateTime.UtcNow.Ticks + timeoutMs * 10000L
         While DateTime.UtcNow.Ticks < deadline
-            If Interlocked.Read(_reconnectingCount) > 0 Then Return True
+            If _reconnectingCount > 0 Then Return True
             Thread.Sleep(20)
         End While
         Return False
@@ -260,8 +260,8 @@ Friend Module ObsResilienceTests
         client.Dispose()
         Thread.Sleep(300)
 
-        Dim connBefore As Integer = Interlocked.Read(_connCount)
-        Dim recBefore As Integer = Interlocked.Read(_reconnectingCount)
+        Dim connBefore As Integer = _connCount
+        Dim recBefore As Integer = _reconnectingCount
 
         ' A still-alive reconnect loop would hit this listener on its next
         ' attempt (backoff is 50ms — dozens of attempts fit in the window).
@@ -277,8 +277,8 @@ Friend Module ObsResilienceTests
         probe.Stop()
 
         TestRunner.Assert(Not connected, "B: reconnect attempted after dispose (socket/task leak)")
-        TestRunner.Assert(Interlocked.Read(_connCount) = connBefore, "B: no connection formed after dispose")
-        TestRunner.Assert(Interlocked.Read(_reconnectingCount) = recBefore, "B: no new reconnect cycle after dispose")
+        TestRunner.Assert(_connCount = connBefore, "B: no connection formed after dispose")
+        TestRunner.Assert(_reconnectingCount = recBefore, "B: no new reconnect cycle after dispose")
         TestRunner.Assert(Not client.IsConnected, "B: client reports disconnected")
     End Sub
 
@@ -384,7 +384,7 @@ Friend Module ObsResilienceTests
                 ' A request on the NEW generation works end-to-end.
                 Dim r2 = client.SendRequest("GetVersion", Nothing, 5000)
                 TestRunner.Assert(r2 IsNot Nothing, "E: new-generation request answered")
-                TestRunner.Assert(r2("d")("responseData")("from").Value(Of String)() = "E-new",
+                TestRunner.Assert(r2("responseData")("from").Value(Of String)() = "E-new",
                                   "E: response came from the new generation's server")
             End Using
         Finally
@@ -417,9 +417,9 @@ Friend Module ObsResilienceTests
                 Thread.Sleep(1500)   ' settle: any stale loop would churn here
 
                 TestRunner.Assert(srv.AliveCount = 1, $"F: exactly one live server-side connection (got {srv.AliveCount})")
-                TestRunner.Assert(Interlocked.Read(_connCount) = 101,
+                TestRunner.Assert(_connCount = 101,
                                   $"F: exactly 101 OnConnected (initial + 100 reconnects, got {_connCount})")
-                TestRunner.Assert(Interlocked.Read(_disconnectedCount) = 100,
+                TestRunner.Assert(_disconnectedCount = 100,
                                   $"F: exactly 100 OnDisconnected (one per OBS death, got {_disconnectedCount})")
                 TestRunner.Assert(srv.TotalAccepted >= 101 AndAlso srv.TotalAccepted <= 103,
                                   $"F: server accepted 101-103 connections (got {srv.TotalAccepted})")

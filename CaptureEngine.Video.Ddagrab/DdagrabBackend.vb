@@ -449,10 +449,23 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 Dim worker = _workerThread
                 If worker IsNot Nothing Then
                     If Not worker.Join(TimeSpan.FromSeconds(2)) Then
-                        _logger.Error("DdagrabBackend: worker did not acknowledge stop within 2 s", Nothing)
+                        ' ★ M2: do NOT declare Stopped while the worker
+                        ' generation that owns the duplication/device may still
+                        ' be executing — that let a follow-up Start() spawn a
+                        ' SECOND worker onto the same shared GPU state. The
+                        ' state stays 'Stopping' (Start is rejected from there)
+                        ' and the worker's own exit tail completes the
+                        ' Stopping→Stopped transition the moment the generation
+                        ' actually terminates.
+                        _logger.Error("DdagrabBackend: worker did not acknowledge stop within 2 s — state remains 'Stopping' until the worker generation exits")
+                        Return
                     End If
                 End If
-                _state = DdagrabBackendState.Stopped
+                SyncLock _sync
+                    If _state = DdagrabBackendState.Stopping Then
+                        _state = DdagrabBackendState.Stopped
+                    End If
+                End SyncLock
                 _logger.Info("DdagrabBackend: stopped")
             Catch ex As Exception
                 _state = DdagrabBackendState.Faulted
@@ -858,6 +871,20 @@ skipFrame:
             Catch ex As Exception
                 _logger.Error($"DdagrabBackend: worker thread crashed: {ex.Message}", ex)
             End Try
+
+            ' ★ M2: the exiting worker generation owns the completion of its
+            ' own stop. When a Stop() join timed out, the state was left at
+            ' 'Stopping' (Start rejected); the moment this generation actually
+            ' terminates — normal exit OR crash — the stop is complete and a
+            ' future Start() is legitimate again. A joined Stop already
+            ' completed the transition, so this only fires for the
+            ' timed-out/restart path. Runs after the LAST shared-state access;
+            ' nothing below touches the duplication or device.
+            SyncLock _sync
+                If _state = DdagrabBackendState.Stopping Then
+                    _state = DdagrabBackendState.Stopped
+                End If
+            End SyncLock
 
             _logger.Info("DdagrabBackend: worker exited")
         End Sub

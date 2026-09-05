@@ -17,12 +17,14 @@ Option Infer On
 Imports System
 Imports System.Collections.Concurrent
 Imports System.Collections.Generic
+Imports System.IO
 Imports System.Net
 Imports System.Net.Sockets
 Imports System.Security.Cryptography
 Imports System.Text
 Imports System.Threading
 Imports System.Threading.Tasks
+Imports Newtonsoft.Json.Linq
 
 Friend NotInheritable Class TestObsServer
 
@@ -52,17 +54,31 @@ Friend NotInheritable Class TestObsServer
     Public Property AutoIdentify As Boolean = True
     Public Property AutoRespond As Boolean = True
     Public Property ServerTag As String = "srv"
+    Public Property Trace As Boolean = True
+
+    Private Sub T(message As String)
+        If Trace Then Console.WriteLine($"      [srv {ServerTag}] {message}")
+    End Sub
 
     Public ReadOnly Property Port As Integer
     Public ReadOnly Property TotalAccepted As Integer
         Get
-            Return Interlocked.Read(_acceptedCounter)
+            Return CInt(Interlocked.Read(_acceptedCounter))
         End Get
     End Property
     Private _acceptedCounter As Long = 0
 
     Public Event OnIdentified(conn As ObsConnection)
     Public Event OnRequest(conn As ObsConnection, requestType As String, requestId As String)
+
+    Private ReadOnly _requestsSeen As New List(Of String)()
+
+    ''' <summary>True if any request of the given type reached the server.</summary>
+    Public Function SawRequest(requestType As String) As Boolean
+        SyncLock _requestsSeen
+            Return _requestsSeen.Contains(requestType)
+        End SyncLock
+    End Function
 
     Public ReadOnly Property AliveCount As Integer
         Get
@@ -114,7 +130,9 @@ Friend NotInheritable Class TestObsServer
                 Interlocked.Increment(_acceptedCounter)
                 Dim conn As New ObsConnection($"{ServerTag}#{Interlocked.Increment(_connCounter)}", client)
                 _clients(conn.Id) = conn
+#Disable Warning BC42358 ' Fire-and-forget by design: accept loop must not block on one client
                 Task.Run(Sub() HandleClientAsync(conn))
+#Enable Warning BC42358
             Catch ex As Exception When Not _accepting
                 Exit While
             Catch ex As Exception
@@ -126,17 +144,24 @@ Friend NotInheritable Class TestObsServer
 
     Private Async Sub HandleClientAsync(conn As ObsConnection)
         Try
+            T($"tcp accepted {conn.Id}")
             Dim stream As NetworkStream = conn.Client.GetStream()
             Dim key As String = ReadHandshakeKey(stream)
             SendHandshakeAccept(stream, key)
+            T("handshake complete")
 
             If AutoIdentify Then
-                SendServerText(conn, "{\""op\"":0,""d\"":{}}")
+                SendServerText(conn, "{""op"":0,""d"":{}}")
+                T("hello sent")
             End If
 
             While conn.Alive AndAlso _accepting
                 Dim text As String = Await ReadClientFrameAsync(stream)
-                If text Is Nothing Then Exit While
+                If text Is Nothing Then
+                    T("client frame stream ended (closed)")
+                    Exit While
+                End If
+                T($"frame: {text}")
 
                 Dim msg As Newtonsoft.Json.Linq.JObject = Nothing
                 Try
@@ -150,16 +175,26 @@ Friend NotInheritable Class TestObsServer
                 Dim op As Integer = opTok.Value(Of Integer)()
 
                 If op = 1 Then
-                    SendServerText(conn, "{\""op\"":2,\""d\"":{}}")
+                    SendServerText(conn, "{""op"":2,""d"":{}}")
                     RaiseEvent OnIdentified(conn)
                 ElseIf op = 6 Then
                     Dim d = msg("d")
                     Dim reqType As String = If(d?("requestType")?.Value(Of String)(), "")
                     Dim reqId As String = If(d?("requestId")?.Value(Of String)(), "")
+                    SyncLock _requestsSeen
+                        _requestsSeen.Add(reqType)
+                    End SyncLock
                     RaiseEvent OnRequest(conn, reqType, reqId)
                     If AutoRespond Then
-                        Dim resp As String = "{{""op"":7,""d"":{{""requestType"":""{0}"",""requestId"":""{1}"",""responseData"":{{""ok"":true,""from"":""{2}""}}}}}}"
-                        SendServerText(conn, String.Format(resp, reqType, reqId, ServerTag))
+                        Dim respObj As New Newtonsoft.Json.Linq.JObject(
+                            New Newtonsoft.Json.Linq.JProperty("op", 7),
+                            New Newtonsoft.Json.Linq.JProperty("d", New Newtonsoft.Json.Linq.JObject(
+                                New Newtonsoft.Json.Linq.JProperty("requestType", reqType),
+                                New Newtonsoft.Json.Linq.JProperty("requestId", reqId),
+                                New Newtonsoft.Json.Linq.JProperty("responseData", New Newtonsoft.Json.Linq.JObject(
+                                    New Newtonsoft.Json.Linq.JProperty("ok", True),
+                                    New Newtonsoft.Json.Linq.JProperty("from", ServerTag))))))
+                        SendServerText(conn, respObj.ToString(Newtonsoft.Json.Formatting.None))
                     End If
                 End If
             End While
@@ -193,7 +228,6 @@ Friend NotInheritable Class TestObsServer
     End Function
 
     Private Shared Sub SendHandshakeAccept(stream As NetworkStream, key As String)
-        Dim sha As SHA256 = Nothing
         Using sha1 As System.Security.Cryptography.SHA1 = System.Security.Cryptography.SHA1.Create()
             Dim acceptBytes As Byte() = sha1.ComputeHash(Encoding.ASCII.GetBytes(key & "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"))
             Dim accept As String = Convert.ToBase64String(acceptBytes)

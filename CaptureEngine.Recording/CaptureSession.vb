@@ -252,6 +252,17 @@ Namespace CaptureEngine.Recording
             Dim sw As Stopwatch = Stopwatch.StartNew()
             Dim duration As TimeSpan = TimeSpan.FromSeconds(_config.DurationSeconds)
 
+            ' ★ M1: session-owned video lifecycle tracking. Any path that runs
+            ' after _capture.Start()/_encoder.Start() must stop them again —
+            ' the success path stops inline; the Finally stops whatever a
+            ' failure/exception left running, so a failed session can never
+            ' leak a running capture worker (orphaned frames forever) nor
+            ' leave the encoder Running: Start() no-ops on Running, which
+            ' would skip the NEXT session's FORCEIDR/SPS-PPS re-arm and
+            ' produce a header-less H.264 stream the mux cannot decode.
+            Dim captureRunning As Boolean = False
+            Dim encoderRunning As Boolean = False
+
             ' One common recording clock. Capture/audio can warm before T0;
             ' no sample/frame belongs to the recording timeline before this boundary.
             _timelineStartTicks = Stopwatch.GetTimestamp() + Math.Max(1L, Stopwatch.Frequency \ 10L)
@@ -586,7 +597,9 @@ Namespace CaptureEngine.Recording
                 ' ─── 3. Arm video capture + encoder BEFORE common T0 ────
                 _logger.Info("[session] Arming video capture + encoder before common T0...")
                 _encoder.Start()
+                encoderRunning = True
                 _capture.Start(sink)
+                captureRunning = True
 
                 ' Audio/video mux timeline is already defined by the same T0.
                 _audioEngine.SetVideoStartQpc100ns(_timelineStartQpc100ns)
@@ -794,6 +807,7 @@ Namespace CaptureEngine.Recording
                 _logger.Info($"[session] Stop snapshot: elapsed={stopElapsedSeconds:F3}s")
                 _logger.Info("[session] Stopping video capture...")
                 _capture.Stop()
+                captureRunning = False   ' ★ M1: success path owns the stop — Finally must not re-stop
                 ' Capture-path evidence: distinguish real DXGI no-update periods,
                 ' handoff backpressure, and backend errors from CFR duplication.
                 _logger.Info($"[session] capture diagnostics: emitted={_capture.EmittedFrames}, pushed={_capture.FramesPushed}, dropped={_capture.DroppedFrames}, replaced={_capture.ReplacedFrames}, noFrame={_capture.NoFrameCount}, errors={_capture.ErrorCount}, accessLost={_capture.AccessLostCount}, textures={_capture.TexturesCreated}/{_capture.TexturesDisposed}")
@@ -893,6 +907,7 @@ Namespace CaptureEngine.Recording
 
                 _logger.Info("[session] GPU frame disposer drained; stopping encoder...")
                 _encoder.Stop()
+                encoderRunning = False   ' ★ M1: success path owns the stop — Finally must not re-stop
 
                 ' ─── 8. Stop shared Audio Engine ───────────────────────
                 _stopSignal = True
@@ -1116,6 +1131,23 @@ Namespace CaptureEngine.Recording
                 _logger.Error($"[session] Failed: {ex.Message}", ex)
             Finally
                 Try : timeEndPeriod(1UI) : Catch : End Try
+                ' ★ M1: unwind the session-owned video lifecycle on EVERY exit
+                ' path. A failure after _capture.Start()/​_encoder.Start() used
+                ' to leave the capture worker running (owner-less frames forever)
+                ' and the encoder Running — the next session's Start() then
+                ' no-op'd and skipped the FORCEIDR/SPS-PPS re-arm. Idempotent:
+                ' on the success path the flags are already False (inline stops
+                ' own the transition), so this is a no-op there.
+                If captureRunning Then
+                    Try : _capture.Stop() : Catch ex As Exception
+                        _logger.Warning("[session] capture stop during failure unwind: " & ex.Message)
+                    End Try
+                End If
+                If encoderRunning Then
+                    Try : _encoder.Stop() : Catch ex As Exception
+                        _logger.Warning("[session] encoder stop during failure unwind: " & ex.Message)
+                    End Try
+                End If
                 ' ★ Hardening: the shared Audio Engine is session-owned. The
                 ' success path already called Stop() above (idempotent — the
                 ' _stopped guard makes this a no-op there), but ANY failure

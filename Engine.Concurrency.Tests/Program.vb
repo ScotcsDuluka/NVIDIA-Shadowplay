@@ -62,8 +62,8 @@ Namespace Engine.Concurrency.Tests
 
     Friend Module Program
 
-        Private _ffmpegPath As String = ""
-        Private _sandbox As String = ""
+        Friend _ffmpegPath As String = ""
+        Friend _sandbox As String = ""
 
         Function Main(args As String()) As Integer
             Console.WriteLine("==================================================")
@@ -91,6 +91,8 @@ Namespace Engine.Concurrency.Tests
                     AddressOf Test_StartDuringMuxing_ProtectsOldSession)
             RunTest("H2-C: repeated Start/Stop/Dispose with jitter — no orphan accumulation",
                     AddressOf Test_RepeatedCycles_NoOrphanAccumulation)
+
+            M1M2Tests.RunAll(_ffmpegPath, _sandbox)
 
             Console.WriteLine()
             Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed}")

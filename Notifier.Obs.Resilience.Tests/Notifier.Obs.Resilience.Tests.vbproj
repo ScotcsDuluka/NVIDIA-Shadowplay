@@ -18,6 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ObsWebSocketClient uses Debug.WriteLine — not in the VB SDK default
+         imports for console projects. -->
+    <Import Include="System.Diagnostics" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- Real production files, LINKED (not copied) — the tests exercise the
          SAME source the Notifier compiles. ObsWebSocketClient has no
          WinForms dependencies; AppLayout supplies the log path resolver. -->
