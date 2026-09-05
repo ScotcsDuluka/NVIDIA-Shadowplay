@@ -181,6 +181,7 @@
     </a>
     <ul class="nav-menu">
       <li><a href="#features">Features</a></li>
+      <li><a href="#overlay">Overlay</a></li>
       <li><a href="#api-specs">API Capture</a></li>
       <li><a href="#requirements">Requirements</a></li>
       <li><a href="#architecture">Architecture</a></li>
@@ -254,39 +255,41 @@
 
 
 
-        <!-- In-game Overlay Card -->
-        <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
-          <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
-            <!-- Left: Text Content -->
-            <div style="padding: 2.5rem;">
-              <div class="title-row">
-                <span class="card-status" style="font-family: 'GeForce', 'Inter', sans-serif; letter-spacing: 1.3px; font-size: 1.5rem;">Game Ready</span>
-                <h3 style="font-size: 2.4rem;">In-game Overlay</h3>
-                <br>
-              </div>
-              <div class="desc-row">
-                <span class="card-icon icon-nvidia" style="font-size: 5rem;"></span>
-                <p style="font-size: 1.1rem;">Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.</p>
-              </div>
-              <ul style="list-style: none; margin-top: 1.5rem;">
-                <li style="padding: 0.5rem 0;">- Borderless Windowed Design</li>
-                <li style="padding: 0.5rem 0;">- Real-time Performance Checked</li>
-                <li style="padding: 0.5rem 0;">- Keyboard Shortcut Access</li>
-                <li style="padding: 0.5rem 0; list-style: none;">
-                  <a href="games.html" class="game-see" style="color: #76B900; text-decoration: none; font-weight: 600;">- View Supported Games</a>
-                </li>
-              </ul>
-            </div>
-            <!-- Right: Image -->
-            <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
-              <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
-              <img src="Assets/overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
-            </div>
+  </section>
+
+
+  <!-- ==================== OVERLAY SECTION ==================== -->
+  <section id="overlay" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
+    <div class="container">
+      <div class="section-header" style="text-align: center;">
+        <span class="section-label">GAME READY</span>
+        <h2 class="section-title" style="font-size: clamp(2.4rem, 5.5vw, 3.8rem);">In-game Overlay</h2>
+        <p class="section-subtitle" style="margin: 0 auto;">Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.</p>
+      </div>
+      <div class="feature-card animate-scale tilt-card" style="background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
+        <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+          <!-- Left: bullets -->
+          <div style="padding: 2.5rem;">
+            <ul style="list-style: none; margin: 0;">
+              <li style="padding: 0.6rem 0; font-size: 1.05rem;">- Borderless Windowed Design</li>
+              <li style="padding: 0.6rem 0; font-size: 1.05rem;">- Real-time Performance Checked</li>
+              <li style="padding: 0.6rem 0; font-size: 1.05rem;">- Keyboard Shortcut Access</li>
+              <li style="padding: 0.6rem 0; list-style: none;">
+                <a href="games.html" class="game-see" style="color: #76B900; text-decoration: none; font-weight: 600;">- View Supported Games</a>
+              </li>
+            </ul>
+          </div>
+          <!-- Right: image -->
+          <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+            <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
+            <img src="Assets/overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
           </div>
         </div>
       </div>
     </div>
   </section>
+
+  <!-- Anchor for download section -->  </section>
 
   <!-- Anchor for download section -->
   <div id="download-section"></div>
