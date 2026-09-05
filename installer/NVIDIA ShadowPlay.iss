@@ -68,6 +68,13 @@ Name: "{app}\Flags"; Permissions: users-modify
 Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; wizard artwork — extracted to {tmp} at runtime and painted by [Code]
 Source: "assets\welcome-bg.bmp"; Flags: dontcopy
+Source: "assets\btn-green-install.bmp"; Flags: dontcopy
+Source: "assets\btn-green-next.bmp"; Flags: dontcopy
+Source: "assets\btn-green-finish.bmp"; Flags: dontcopy
+Source: "assets\btn-gray-cancel.bmp"; Flags: dontcopy
+Source: "assets\btn-gray-back.bmp"; Flags: dontcopy
+Source: "assets\cb-on.bmp"; Flags: dontcopy
+Source: "assets\cb-off.bmp"; Flags: dontcopy
 Source: "assets\NVIDIASans_Rg.ttf"; Flags: dontcopy
 Source: "assets\NVIDIASans_Md.ttf"; Flags: dontcopy
 Source: "assets\NVIDIASans_Bd.ttf"; Flags: dontcopy
@@ -96,6 +103,26 @@ Type: filesandordirs; Name: "{app}\Flags"
 function AddFontResource(lpszFilename: String): Integer;
 external 'AddFontResourceW@gdi32.dll stdcall';
 
+function DwmSetWindowAttributeX(hwnd: Longint; attr: Longint; var attrValue: Longint; size: Longint): Longint;
+external 'DwmSetWindowAttribute@dwmapi.dll stdcall';
+
+// bitmap-button click handlers forward to the REAL Inno buttons so all
+// built-in logic (validation, page flow, [Run]) stays intact
+procedure ClickNext(Sender: TObject);
+begin
+  SendMessage(WizardForm.NextButton.Handle, $F5, 0, 0);   // BM_CLICK
+end;
+
+procedure ClickBack(Sender: TObject);
+begin
+  SendMessage(WizardForm.BackButton.Handle, $F5, 0, 0);
+end;
+
+procedure ClickCancel(Sender: TObject);
+begin
+  SendMessage(WizardForm.CancelButton.Handle, $F5, 0, 0);
+end;
+
 const
   ClBackDark  = $00333333;   // #333333 — real Main_BG.png surface
   ClInputDark = $00242424;   // input fields on #333333
@@ -107,6 +134,19 @@ var
   BgWelcome, BgFinished, BgFinishedTop: TBitmapImage;
   HeadLocation, HeadOptions: TNewStaticText;
   SubLocation, SubOptions: TNewStaticText;
+  BtnGreen, BtnGrayBack, BtnGrayCancel: TBitmapImage;
+  CbLaunch: TBitmapImage;
+  LaunchLabel: TNewStaticText;
+  LaunchChecked: Boolean;
+
+procedure ClickLaunchCb(Sender: TObject);
+begin
+  LaunchChecked := not LaunchChecked;
+  if LaunchChecked then
+    CbLaunch.Bitmap.LoadFromFile(ExpandConstant('{tmp}\cb-on.bmp'))
+  else
+    CbLaunch.Bitmap.LoadFromFile(ExpandConstant('{tmp}\cb-off.bmp'));
+end;
 
 procedure StyleLabel(C: TNewStaticText; AColor: TColor);
 begin
@@ -132,8 +172,17 @@ end;
 procedure InitializeWizard;
 var
   PageDark: TColor;
+  DarkVal: Longint;
 begin
   ExtractTemporaryFile('welcome-bg.bmp');
+  ExtractTemporaryFile('btn-green-install.bmp');
+  ExtractTemporaryFile('btn-green-next.bmp');
+  ExtractTemporaryFile('btn-green-finish.bmp');
+  ExtractTemporaryFile('btn-gray-cancel.bmp');
+  ExtractTemporaryFile('btn-gray-back.bmp');
+  ExtractTemporaryFile('cb-on.bmp');
+  ExtractTemporaryFile('cb-off.bmp');
+  LaunchChecked := True;   // the finished-page checkbox renders ON by default
   ExtractTemporaryFile('NVIDIASans_Rg.ttf');
   ExtractTemporaryFile('NVIDIASans_Md.ttf');
   ExtractTemporaryFile('NVIDIASans_Bd.ttf');
@@ -170,6 +219,54 @@ begin
   BgFinishedTop.Stretch := True;
   BgFinishedTop.Parent := WizardForm.FinishedPage;
   BgFinishedTop.SetBounds(0, 0, WizardForm.FinishedPage.Width, WizardForm.FinishedPage.Height);
+
+  // ── 100% custom chrome: bitmap buttons over the real ones ────────────
+  // (real buttons stay in the tab chain; clicks land on the bitmaps which
+  //  forward BM_CLICK to them)
+  DarkVal := 1;
+  try
+    DwmSetWindowAttributeX(WizardForm.Handle, 20, DarkVal, 4);   // DWMWA_USE_IMMERSIVE_DARK_MODE
+    DwmSetWindowAttributeX(WizardForm.Handle, 19, DarkVal, 4);   // older attribute id
+  except
+  end;
+
+  BtnGreen := TBitmapImage.Create(WizardForm);
+  BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-install.bmp'));
+  BtnGreen.Stretch := True;
+  BtnGreen.Parent := WizardForm;
+  BtnGreen.SetBounds(ScaleX(624), ScaleY(474), ScaleX(150), ScaleY(40));
+  BtnGreen.OnClick := @ClickNext;
+
+  BtnGrayBack := TBitmapImage.Create(WizardForm);
+  BtnGrayBack.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-gray-back.bmp'));
+  BtnGrayBack.Stretch := True;
+  BtnGrayBack.Parent := WizardForm;
+  BtnGrayBack.SetBounds(ScaleX(304), ScaleY(474), ScaleX(150), ScaleY(40));
+  BtnGrayBack.OnClick := @ClickBack;
+
+  BtnGrayCancel := TBitmapImage.Create(WizardForm);
+  BtnGrayCancel.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-gray-cancel.bmp'));
+  BtnGrayCancel.Stretch := True;
+  BtnGrayCancel.Parent := WizardForm;
+  BtnGrayCancel.SetBounds(ScaleX(462), ScaleY(474), ScaleX(150), ScaleY(40));
+  BtnGrayCancel.OnClick := @ClickCancel;
+
+  // custom launch checkbox (finished page)
+  CbLaunch := TBitmapImage.Create(WizardForm);
+  CbLaunch.Bitmap.LoadFromFile(ExpandConstant('{tmp}\cb-on.bmp'));
+  CbLaunch.AutoSize := True;
+  CbLaunch.Parent := WizardForm;
+  CbLaunch.SetBounds(ScaleX(44), ScaleY(322), ScaleX(20), ScaleY(20));
+  CbLaunch.OnClick := @ClickLaunchCb;
+
+  LaunchLabel := TNewStaticText.Create(WizardForm);
+  LaunchLabel.Parent := WizardForm;
+  LaunchLabel.Caption := 'Launch NVIDIA ShadowPlay';
+  LaunchLabel.SetBounds(ScaleX(74), ScaleY(324), ScaleX(400), ScaleY(20));
+  LaunchLabel.Font.Size := 11;
+  LaunchLabel.Font.Name := 'NVIDIA Sans';
+  LaunchLabel.Font.Color := ClTextMain;
+  LaunchLabel.OnClick := @ClickLaunchCb;
 
   // ── inner-page headers (location / options share InnerPage) ──────────
   HeadLocation := TNewStaticText.Create(WizardForm);
@@ -280,12 +377,52 @@ begin
   WizardForm.CancelButton.Font.Name := 'NVIDIA Sans';
 end;
 
+function NextButtonClick(CurPageID: Integer): Boolean;
+begin
+  Result := True;
+  if CurPageID = wpFinished then
+    WizardForm.RunList.Checked[0] := LaunchChecked;
+end;
+
 procedure CurPageChanged(CurPageID: Integer);
 begin
   // Inno re-shows its own wizard artwork when entering Welcome/Finished and
   // rewrites the finished-page copy — re-apply our design on every entry.
   if (CurPageID = wpWelcome) or (CurPageID = wpFinished) then
     WizardForm.WizardBitmapImage.Visible := False;
+
+  // 100% custom chrome: real buttons hidden, bitmap buttons per page
+  WizardForm.NextButton.Visible := False;
+  WizardForm.BackButton.Visible := False;
+  WizardForm.CancelButton.Visible := False;
+  BtnGreen.Visible := False;
+  BtnGrayBack.Visible := False;
+  BtnGrayCancel.Visible := False;
+  CbLaunch.Visible := False;
+  LaunchLabel.Visible := False;
+
+  if CurPageID = wpWelcome then
+  begin
+    BtnGreen.Visible := True;
+    BtnGrayCancel.Visible := True;
+    BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-install.bmp'));
+  end;
+  if (CurPageID = wpSelectDir) or (CurPageID = wpSelectTasks) then
+  begin
+    BtnGreen.Visible := True;
+    BtnGrayBack.Visible := True;
+    BtnGrayCancel.Visible := True;
+    BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-next.bmp'));
+  end;
+  if CurPageID = wpInstalling then
+    BtnGrayCancel.Visible := True;
+  if CurPageID = wpFinished then
+  begin
+    BtnGreen.Visible := True;
+    CbLaunch.Visible := True;
+    LaunchLabel.Visible := True;
+    BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-finish.bmp'));
+  end;
 
   // headers swap on the shared InnerPage
   HeadLocation.Visible := CurPageID = wpSelectDir;
