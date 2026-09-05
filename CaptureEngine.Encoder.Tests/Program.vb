@@ -27,6 +27,9 @@ Namespace CaptureEngine.Encoder.Tests
             ' ----- Lifecycle tests -----
             Lifecycle.EncoderLifecycleTests.RunAll(AddressOf RunTest)
 
+            ' ----- C/6 NVENC lifecycle matrix (hardware-independent) -----
+            Lifecycle.NvencLifecycleTests.RunAll(AddressOf RunTest)
+
             ' ----- Encode tests -----
             Encode.EncodeTests.RunAll(AddressOf RunTest)
 

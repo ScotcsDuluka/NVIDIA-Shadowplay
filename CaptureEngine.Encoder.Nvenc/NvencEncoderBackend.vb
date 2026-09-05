@@ -54,6 +54,18 @@ Namespace CaptureEngine.Encoder.Nvenc
         Private _state As EncoderState = EncoderState.Created
         Private _disposed As Boolean = False
 
+        ' C/6: number of Encode() calls currently inside the native hot path
+        ' (CopyResource → Map → EncodePicture → Lock/Unlock → Unmap). Dispose()
+        ' drains this counter (bounded) before destroying the NVENC session and
+        ' resources, so a teardown can no longer race an in-flight encode.
+        Private _encodeInFlight As Long = 0
+
+        ' C/6: bounded drain budget in Dispose for the in-flight gate above.
+        ' A wedged native call must not hang Dispose forever — after the
+        ' timeout the teardown proceeds (same containment semantics as the
+        ' 2 s backend Stop joins).
+        Private Const EncodeDrainTimeoutMs As Integer = 5000
+
         ' ─── Owned resources (created in Initialize, destroyed in Dispose) ─
         Private _deviceResult As Internal.D3D11DeviceResult
         Private _nvenc As Internal.NvEncFunctionTable
@@ -357,6 +369,27 @@ Namespace CaptureEngine.Encoder.Nvenc
                 encodeConfigPtr = IntPtr.Zero
             Catch ex As Exception
                 If encodeConfigPtr <> IntPtr.Zero Then Marshal.FreeHGlobal(encodeConfigPtr)
+                ' C/6: this Try runs with the D3D11 device, the NVENC function
+                ' table and an OPEN encode session already acquired (fields set
+                ' above). Freeing only the config pointer leaked all three and
+                ' left the state at Created — so a retry looked legal while it
+                ' overwrote the leaked fields with a second device + session.
+                ' Unwind everything acquired so far and converge to the terminal
+                ' Faulted state (mirrors the explicit NvEncInitializeEncoder
+                ' failure path above). The state write must not depend on the
+                ' logger, so it is done inline instead of via TransitionToFaulted.
+                Try
+                    Try : _nvenc.DestroyEncoder.Invoke(_encoderHandle) : Catch : End Try
+                    _nvenc.Dispose()
+                    _deviceResult.Dispose()
+                    _deviceResult = Nothing
+                Catch unwindEx As Exception
+                    _logger.Warning($"NvencEncoderBackend: Initialize unwind threw: {unwindEx.Message}")
+                End Try
+                SyncLock _sync
+                    If _state <> EncoderState.Disposed Then _state = EncoderState.Faulted
+                End SyncLock
+                Try : _logger.Error($"NvencEncoderBackend: FAULTED — Initialize failed: {ex.Message}") : Catch : End Try
                 Throw
             End Try
 
@@ -536,9 +569,13 @@ Namespace CaptureEngine.Encoder.Nvenc
 
             ' ─── ENCODE HOT PATH (mirrors spike Phase 10) ────────────────
             ' All operations happen OUTSIDE _sync (no lock contention during encoding).
-            Dim deviceCtx As ID3D11DeviceContext = _deviceResult.DeviceContext
-
+            ' C/6: from here to the outer Finally the code drives the NVENC
+            ' session and resources that Dispose() destroys. Raise the in-flight
+            ' gate so Dispose drains this section (bounded) instead of tearing
+            ' the natives down under an active encode.
+            Interlocked.Increment(_encodeInFlight)
             Try
+                Dim deviceCtx As ID3D11DeviceContext = _deviceResult.DeviceContext
                 ' 1. CopyResource: frame texture → encoder texture (GPU-side copy, fast)
                 deviceCtx.CopyResource(_resources.EncoderTexture, frameTexture)
 
@@ -716,6 +753,9 @@ Namespace CaptureEngine.Encoder.Nvenc
                 End Try
 
             Finally
+                ' C/6: release the in-flight gate (Dispose drains on this counter).
+                Interlocked.Decrement(_encodeInFlight)
+
                 ' If shared-handle path was used, dispose the opened shared resource.
                 ' This releases the Vortice wrapper (NOT the shared resource itself —
                 ' that's owned by D3D11VideoFrame's staging texture).
@@ -843,6 +883,20 @@ Namespace CaptureEngine.Encoder.Nvenc
                 _disposed = True
                 _state = EncoderState.Disposed
             End SyncLock
+
+            ' C/6: an Encode() that already passed its state check may still be
+            ' inside the native hot path. Drain it (bounded — a wedged native
+            ' call must not hang Dispose forever) before destroying the session
+            ' and resources beneath it. Encode() never waits on Dispose, so
+            ' this cannot deadlock.
+            Dim encodeDrain As Stopwatch = Stopwatch.StartNew()
+            While Interlocked.Read(_encodeInFlight) > 0 AndAlso
+                  encodeDrain.ElapsedMilliseconds < EncodeDrainTimeoutMs
+                Thread.Sleep(10)
+            End While
+            If Interlocked.Read(_encodeInFlight) > 0 Then
+                _logger.Warning($"NvencEncoderBackend: Dispose proceeding while {_encodeInFlight} encode(s) still in flight (drain timeout {EncodeDrainTimeoutMs}ms).")
+            End If
 
             ' Dispose in REVERSE construction order.
             ' All disposal happens OUTSIDE _sync (per P1-B.1 FIX lesson #1).

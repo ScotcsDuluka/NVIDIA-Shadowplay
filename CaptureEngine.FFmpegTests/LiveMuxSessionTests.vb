@@ -19,6 +19,11 @@ Option Infer On
 '   F  drain timeout (ffmpeg suspended via NtSuspendProcess — TEST-ONLY) — bounded shutdown
 '      + the DroppedBytes ledger: written + dropped == accepted (no under/over-count)
 '   H  Stop is single-terminal — a second Stop never re-finalizes or re-reports success
+'   G  video-only session (sysRate=0) — no audio pipe, valid video-only output
+'   J/K/L/N  process OWNERSHIP (C/5): OnProcessStarted hook fires for every
+'      spawned ffmpeg (recording + remux), is fail-open on throw, and the
+'      session's Stop/Dispose stay the explicit owners. The KILL_ON_JOB_CLOSE
+'      handle-close contract itself is proven by JOB-1 in Engine.Concurrency.Tests.
 '
 ' All tests run the REAL LiveMuxSession against the REAL bundled ffmpeg.
 ' Named pipes are Windows-only → the whole module skips elsewhere.
@@ -95,6 +100,10 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("LM-F: drain timeout bounded + DroppedBytes ledger (written+dropped == accepted)", AddressOf Test_DrainTimeoutLedger)
             RunTest("LM-H: Stop is single-terminal — second Stop never re-finalizes or re-reports success", AddressOf Test_StopTwiceSingleTerminal)
             RunTest("LM-G: video-only session (sysRate=0) — no audio pipe, valid video-only output", AddressOf Test_VideoOnlySession)
+            RunTest("LM-J: spawn ownership — hook fires once with live ffmpeg; Stop → exited", AddressOf Test_SpawnOwnershipHook)
+            RunTest("LM-K: ffmpeg exits right after spawn — hook still fires, clean failure, no orphan", AddressOf Test_HookOnImmediateExit)
+            RunTest("LM-L: throwing ownership hook is fail-open — lifecycle intact", AddressOf Test_HookThrowIsFailOpen)
+            RunTest("LM-N: Dispose without Stop kills the hooked ffmpeg", AddressOf Test_DisposeKillsHookedProcess)
 
             Dim leftovers As Integer = FfmpegCount() - baseline
             If leftovers > 0 Then
@@ -135,6 +144,19 @@ Namespace CaptureEngine.FFmpegTests
                 Thread.Sleep(100)
             End While
             Return FfmpegCount() <= max
+        End Function
+
+        ''' <summary>PID liveness by re-enumeration — safe across mux.Dispose()
+        ''' (which disposes the Process object; its HasExited must not be read
+        ''' afterwards). PID reuse inside a test window is negligible.</summary>
+        Private Function PidAlive(pid As Integer) As Boolean
+            Try
+                Using p As Process = Process.GetProcessById(pid)
+                    Return Not p.HasExited
+                End Using
+            Catch ex As ArgumentException
+                Return False
+            End Try
         End Function
 
         Private Sub CollectLog(msg As String)
@@ -194,7 +216,7 @@ Namespace CaptureEngine.FFmpegTests
             End Using
         End Function
 
-        Private Function MakeMux(outPath As String) As LiveMuxSession
+        Private Function MakeMux(outPath As String, Optional onProcessStarted As Action(Of Process) = Nothing) As LiveMuxSession
             SyncLock _logSync
                 _logLines = New List(Of String)()
             End SyncLock
@@ -202,7 +224,7 @@ Namespace CaptureEngine.FFmpegTests
             ' the -framerate declaration only stamps PTS; the raw H.264 carries
             ' its own access units.
             Return New LiveMuxSession(_ffmpeg, outPath, 30, 48000, 2, 0, 0, False, 1.0F, 1.0F,
-                                      AddressOf CollectLog)
+                                      AddressOf CollectLog, onProcessStarted)
         End Function
 
         ''' <summary>Feed the whole generated H.264 stream in slices
@@ -539,6 +561,116 @@ Namespace CaptureEngine.FFmpegTests
                 mux.Dispose()
             End Try
             Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after video-only test")
+        End Sub
+
+        ' ───────────────────────────────────────────────────────────────
+        ' Ownership (C/5): every ffmpeg LiveMuxSession spawns must reach the
+        ' host's OnProcessStarted hook → JobObjectGuard (KILL_ON_JOB_CLOSE),
+        ' and the session's own Stop/Dispose remain the explicit owners.
+        ' ───────────────────────────────────────────────────────────────
+
+        ''' <summary>J: successful spawn ownership — the hook fires EXACTLY
+        ''' once per spawned ffmpeg, receives a live ffmpeg process, and the
+        ''' normal Stop path still terminates it. (The hook cannot prove the
+        ''' job itself here — the KILL_ON_JOB_CLOSE close-the-handle contract
+        ''' is proven by the JOB-1 test in Engine.Concurrency.Tests.)</summary>
+        Private Sub Test_SpawnOwnershipHook()
+            Dim captured As Process = Nothing
+            Dim hookCount As Integer = 0
+            Dim outPath As String = IO.Path.Combine(_sandbox, "lm_j.mp4")
+            Dim mux As LiveMuxSession = MakeMux(outPath,
+                Sub(p)
+                    Interlocked.Increment(hookCount)
+                    captured = p
+                End Sub)
+            Try
+                Assert(mux.Start(), "Start returned False")
+                Assert(hookCount = 1, "ownership hook must fire exactly once on spawn, got " & hookCount)
+                Assert(captured IsNot Nothing, "hook received no process")
+                Assert(Not captured.HasExited, "hooked ffmpeg already exited at spawn time")
+                Assert(captured.ProcessName = "ffmpeg", "hooked process is not ffmpeg: " & captured.ProcessName)
+
+                mux.BeginTimelines(0.0, 0.0)
+                FeedVideoFile(mux)
+                FeedAudioSeconds(mux, 1.0)
+                Thread.Sleep(2000)
+
+                Dim res As LiveMuxResult = mux.Stop(30000)
+                Assert(res.Succeeded, "Succeeded=False: " & res.ErrorMessage)
+                Assert(captured.HasExited, "hooked ffmpeg still alive after Stop")
+            Finally
+                mux.Dispose()
+            End Try
+            Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after ownership test")
+        End Sub
+
+        ''' <summary>K: ffmpeg exits right after spawn (illegal output path) —
+        ''' the ownership hook still fires (assignment happens the moment the
+        ''' process exists), the mux fails loudly, and Dispose stays safe.</summary>
+        Private Sub Test_HookOnImmediateExit()
+            Dim hookCount As Integer = 0
+            Dim outPath As String = IO.Path.Combine(_sandbox, "lm_k|illegal.mp4")
+            Dim mux As LiveMuxSession = MakeMux(outPath, Sub(p) Interlocked.Increment(hookCount))
+            Try
+                Assert(mux.Start(), "Start returned False")
+                Assert(hookCount = 1, "hook must fire even when ffmpeg dies immediately, got " & hookCount)
+                Dim res As LiveMuxResult = mux.Stop(30000)
+                Assert(Not res.Succeeded, "illegal output path must not report success")
+            Finally
+                mux.Dispose()
+            End Try
+            Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after immediate-exit test")
+        End Sub
+
+        ''' <summary>L: a THROWING ownership hook must not poison Start or the
+        ''' lifecycle (fail-open contract — a failed job assignment leaves the
+        ''' process self-owned, exactly the pre-wiring behavior).</summary>
+        Private Sub Test_HookThrowIsFailOpen()
+            Dim outPath As String = IO.Path.Combine(_sandbox, "lm_l.mp4")
+            Dim mux As LiveMuxSession = MakeMux(outPath,
+                Sub(p) Throw New InvalidOperationException("injected hook failure"))
+            Try
+                Assert(mux.Start(), "Start must survive a throwing ownership hook")
+                mux.BeginTimelines(0.0, 0.0)
+                FeedVideoFile(mux)
+                FeedAudioSeconds(mux, 1.0)
+                Thread.Sleep(2000)
+                Dim res As LiveMuxResult = mux.Stop(30000)
+                Assert(res.Succeeded, "Succeeded=False: " & res.ErrorMessage)
+            Finally
+                mux.Dispose()
+            End Try
+            Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after throwing-hook test")
+        End Sub
+
+        ''' <summary>N: Dispose without Stop kills the hooked ffmpeg — the
+        ''' session is the explicit cleanup owner within its own lifetime;
+        ''' liveness is checked by PID re-enumeration because Dispose disposes
+        ''' the Process object itself.</summary>
+        Private Sub Test_DisposeKillsHookedProcess()
+            Dim captured As Process = Nothing
+            Dim outPath As String = IO.Path.Combine(_sandbox, "lm_n.mp4")
+            Dim mux As LiveMuxSession = MakeMux(outPath, Sub(p) captured = p)
+            Try
+                Assert(mux.Start(), "Start returned False")
+                Assert(captured IsNot Nothing, "hook received no process")
+                Dim pid As Integer = captured.Id
+                Thread.Sleep(500)   ' let ffmpeg connect to the pipes
+                mux.Dispose()
+                Dim dead As Boolean = False
+                Dim sw As Stopwatch = Stopwatch.StartNew()
+                While sw.ElapsedMilliseconds < 5000
+                    If Not PidAlive(pid) Then
+                        dead = True
+                        Exit While
+                    End If
+                    Thread.Sleep(100)
+                End While
+                Assert(dead, "hooked ffmpeg survived Dispose (orphan within the owner's own lifetime)")
+            Finally
+                mux.Dispose()
+            End Try
+            Assert(WaitFfmpegAtMost(0, 5000), "orphan ffmpeg after dispose-kill test")
         End Sub
 
     End Module

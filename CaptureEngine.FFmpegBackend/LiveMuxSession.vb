@@ -94,6 +94,11 @@ Namespace CaptureEngine.FFmpegBackend
         Private _stderrTask As Task(Of String)
         Private _started As Boolean
         Private _disposed As Boolean
+        ' ★ Ownership: host-provided hook (SessionConfig.OnProcessStarted →
+        ' JobObjectGuard.Assign). Every ffmpeg this class spawns is handed to
+        ' the host's job so a crashed/killed host cannot orphan it —
+        ' KILL_ON_JOB_CLOSE closes the job handle → children die.
+        Private ReadOnly _onProcessStarted As Action(Of Process)
 
         Public Sub New(ffmpegPath As String,
                        finalOutputPath As String,
@@ -105,8 +110,10 @@ Namespace CaptureEngine.FFmpegBackend
                        separateTracks As Boolean,
                        systemVolume As Single,
                        micVolume As Single,
-                       Optional log As Action(Of String) = Nothing)
+                       Optional log As Action(Of String) = Nothing,
+                       Optional onProcessStarted As Action(Of Process) = Nothing)
             _ffmpegPath = ffmpegPath
+            _onProcessStarted = onProcessStarted
             _finalPath = finalOutputPath
             _fragPath = finalOutputPath & ".frag.mp4"
             _videoFps = Math.Max(1, videoFps)
@@ -166,6 +173,15 @@ Namespace CaptureEngine.FFmpegBackend
                     .CreateNoWindow = True
                 }
                 _proc = Process.Start(psi)
+                ' ★ Ownership: assign the recording ffmpeg to the host's job
+                ' object ASAP after spawn (MuxCoordinator parity). Fail-open:
+                ' a throwing/failing assignment leaves the process self-owned
+                ' exactly as before — Stop/Dispose remain the explicit owners.
+                If _proc IsNot Nothing Then
+                    Try : _onProcessStarted?.Invoke(_proc) : Catch ex As Exception
+                        Log("[live-mux] process-ownership hook failed (ffmpeg stays self-owned): " & ex.Message)
+                    End Try
+                End If
                 _stderrTask = _proc.StandardError.ReadToEndAsync()
 
                 _video.StartWriter()
@@ -401,6 +417,11 @@ Namespace CaptureEngine.FFmpegBackend
                     .CreateNoWindow = True
                 }
                 Using p As Process = Process.Start(psi)
+                    ' ★ Ownership: the remux child gets the same job assignment
+                    ' as the recording ffmpeg (it holds _fragPath/_finalPath).
+                    If p IsNot Nothing Then
+                        Try : _onProcessStarted?.Invoke(p) : Catch : End Try
+                    End If
                     Dim errTask = p.StandardError.ReadToEndAsync()
                     If Not p.WaitForExit(30000) Then
                         Try : p.Kill() : Catch : End Try
