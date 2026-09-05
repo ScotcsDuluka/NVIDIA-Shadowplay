@@ -38,6 +38,11 @@
       mouseX = e.clientX; mouseY = e.clientY;
       cursorDot.style.left = mouseX + 'px';
       cursorDot.style.top = mouseY + 'px';
+      // First real mousemove: the custom cursor is proven drawing — only
+      // now may the native cursor be hidden (see style.css CURSOR block).
+      if (!document.body.classList.contains('custom-cursor-active')) {
+        document.body.classList.add('custom-cursor-active');
+      }
     });
     function animateCursor() {
       cursorX += (mouseX - cursorX) * 0.15;

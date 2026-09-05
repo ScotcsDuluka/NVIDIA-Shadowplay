@@ -45,8 +45,12 @@ html { overflow-x: hidden; scroll-behavior: smooth; }
 
 /* ---------- CURSOR (Desktop only) ---------- */
 @media (hover: hover) and (pointer: fine) {
-  html, body, * { cursor: none !important; }
-  body.custom-cursor-active { cursor: none !important; }
+  /* ★ SAFETY: the native cursor is hidden ONLY after JS confirms the
+     custom cursor is actually drawing (body.custom-cursor-active is
+     added on the first mousemove). Before that the OS cursor stays
+     visible — a page must never end up with no cursor at all. */
+  body.custom-cursor-active,
+  body.custom-cursor-active * { cursor: none !important; }
 }
 @media (hover: none), (pointer: coarse) {
   .custom-cursor, .cursor-dot { display: none !important; }
