@@ -1,0 +1,155 @@
+/* ==================== BADGE VARIANTS ==================== */
+/* Base .card-status is defined elsewhere */
+
+/* --- Specializations --- */
+.card-status.elite {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.card-status.dev {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+}
+
+.card-status.ai {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+}
+
+.card-status.perf {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+}
+
+.card-status.realtime {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.card-status.ui {
+  background: rgba(236, 72, 153, 0.2);
+  color: #f472b6;
+}
+
+.card-status.architect {
+  background: rgba(20, 184, 166, 0.2);
+  color: #2dd4bf;
+}
+
+/* --- Special Gradient / Glow Badges --- */
+.card-status.origin {
+  background: linear-gradient(45deg, #22c55e, #06b6d4);
+  color: black;
+}
+
+.card-status.trusted {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border: 1px solid rgba(96, 165, 250, 0.4);
+}
+
+.card-status.join {
+  background: rgba(234, 179, 8, 0.2);
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.4);
+}
+
+.card-status.next {
+  background: rgba(168, 85, 247, 0.2);
+  color: #c084fc;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+}
+
+.card-status.glow {
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6),
+              0 0 16px rgba(34, 197, 94, 0.3);
+}
+
+
+
+
+
+/* --- Mythic Animated Badge --- */
+.card-status.mythic {
+  background: linear-gradient(
+    90deg,
+    #ff0000,
+    #ff7a00,
+    #ffee00,
+    #00ff88,
+    #00cfff,
+    #7a00ff,
+    #ff00c8,
+    #ff0000
+  );
+  background-size: 200% 100%;
+  animation: rainbowFlow 4s linear infinite,
+             mythicPulse 2.5s ease-in-out infinite;
+  color: rgb(255, 255, 255);
+  border: 1px solid #ffffff;
+}
+
+/* --- Keyframes --- */
+@keyframes rainbowFlow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes mythicPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 255, 255, 0.6),
+                0 0 14px rgba(255, 255, 255, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.9),
+                0 0 3px rgba(255, 255, 255, 0.6);
+  }
+}
+
+
+
+
+
+
+/* --- Elite Animated Badge - SPINNING COLORS --- */
+.card-status.Elite {
+  /* 🌀 CONIC GRADIENT - สีวางเรียงแบบวงกลม */
+  background: conic-gradient(
+    from 0deg,
+    #ffffff,      /* เริ่มที่สีขาว */
+    #ffeef2,      /* Baby Pink */
+    #ffd6e7,      /* Soft Rose */
+    #ffcce0,      /* Blush Pink */
+    #d4f1f9,      /* Light Sky Blue */
+    #c7f0db,      /* Mint Green */
+    #fff4d6,      /* Cream Yellow */
+    #fce4ec,      /* Cherry Blossom */
+    #e8eaf6,      /* Lavender */
+    #ffffff       /* จบที่สีขาว */
+  );
+  
+  /* 🔄 SPINNING ANIMATION - หมุนสีไปเรื่อยๆ!
+     hue-rotate(0deg → 360deg) = สีหมุนครบวงกลม */
+  animation: spinColors 3s linear infinite,
+             mythicPulse 2.5s ease-in-out infinite;
+             
+  color: #5a4a4a;
+}
+
+/* 🌈 KEYFRAME - หมุนสี 360 องศา! */
+@keyframes spinColors {
+  0%   { filter: hue-rotate(0deg); }   /* เริ่มต้น */
+  100% { filter: hue-rotate(360deg); } /* หมุนครบรอบ */
+}
+
+
+
+
+
