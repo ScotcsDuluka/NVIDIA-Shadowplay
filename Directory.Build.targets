@@ -100,7 +100,7 @@
     <MakeDir Directories="$([System.IO.Path]::Combine('$(AppLayoutRoot)', 'Application'))" />
     <CreateAppHost
       AppHostSourcePath="$(AppHostSourcePath)"
-      AppHostDestinationPath="$([System.IO.Path]::Combine('$(AppLayoutRoot)', 'Application', '$(AssemblyName)$(TargetExt)'))"
+      AppHostDestinationPath="$([System.IO.Path]::Combine('$(AppLayoutRoot)', 'Application', '$(AssemblyName).exe'))"
       AppBinaryName="..\Services\$(AssemblyName).dll"
       IntermediateAssembly="@(IntermediateAssembly->'%(FullPath)')"
       WindowsGraphicalUserInterface="true" />
