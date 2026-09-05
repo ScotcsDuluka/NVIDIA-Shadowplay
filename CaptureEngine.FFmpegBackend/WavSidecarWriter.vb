@@ -210,7 +210,13 @@ Namespace CaptureEngine.FFmpegBackend
 
             _queue.Enqueue(copy)
             Interlocked.Add(_bytesEnqueued, count)
-            _signal.[Set]()
+            ' ★ Teardown guard: Dispose() may dispose _signal while this
+            ' (WASAPI callback) thread is past the _disposed check — an
+            ' ObjectDisposedException here used to abort the audio capture.
+            Try
+                _signal.[Set]()
+            Catch ex As ObjectDisposedException
+            End Try
         End Sub
 
         ''' <summary>
@@ -235,15 +241,33 @@ Namespace CaptureEngine.FFmpegBackend
             _stopWriter.[Set]()
             _signal.[Set]()
 
+            ' ★ Finalize race fix: the old code ignored the Join result and
+            ' Seek+rewrote the WAV header on the same FileStream the writer
+            ' thread may still be using (FileStream is not thread-safe). On a
+            ' join timeout, dispose the stream first — the writer's in-flight
+            ' Write fails into its catch (accounted as dropped) and it exits —
+            ' then patch the header through a fresh handle.
+            Dim writerAlive As Boolean = False
             If _writerThread IsNot Nothing Then
-                If Not _writerThread.Join(Math.Max(500, timeoutMs)) Then
-                    Debug.WriteLine("WavSidecarWriter: writer thread did not exit in time")
+                writerAlive = Not _writerThread.Join(Math.Max(500, timeoutMs))
+                If writerAlive Then
+                    Debug.WriteLine("WavSidecarWriter: writer thread did not exit in time — forcing stream close")
+                    Try : _stream?.Dispose() : Catch : End Try
+                    Try : _writerThread.Join(2000) : Catch : End Try
                 End If
             End If
 
             Dim ok As Boolean = False
             Try
-                If _stream IsNot Nothing Then
+                If writerAlive Then
+                    ' Patch via a separate handle (stream may be closed/owned
+                    ' by the late writer thread).
+                    Using patchStream As New FileStream(_filePath, FileMode.Open, FileAccess.Write, FileShare.Read)
+                        PatchHeaderSizes(patchStream, _dataBytes)
+                        patchStream.Flush()
+                    End Using
+                    ok = True
+                ElseIf _stream IsNot Nothing Then
                     ' Patch RIFF + data sizes so the file is a valid WAV.
                     _stream.Seek(0, SeekOrigin.Begin)
                     PatchHeaderSizes(_stream, _dataBytes)

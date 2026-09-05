@@ -140,6 +140,14 @@ Partial Public Class UI_Engine
                                        _recordingEngine = replacement
                                        _settings = fresh
                                        _engineReady = True
+                                       ' ★ Flag restore: a startup failure permanently set
+                                       ' _useNewEngine=False (legacy dispatch), so a user
+                                       ' fixing the config got a healthy rebuilt runtime that
+                                       ' every engine_record_* command still refused to use
+                                       ' until an app restart. A successful rebuild means the
+                                       ' new-engine path is healthy again.
+                                       _useNewEngine = True
+                                       _engineInitFailReason = ""
                                        _engineReconfiguring = False
                                        Try : previousEngine?.Dispose() : Catch ex As Exception : DebugLog($"[RecordingEngine] previous runtime dispose: {ex.Message}") : End Try
                                        DebugLog($"[RecordingEngine] runtime rebuilt: fps={startup.Fps}, bitrate={startup.BitrateBps}, preset={startup.Preset}")

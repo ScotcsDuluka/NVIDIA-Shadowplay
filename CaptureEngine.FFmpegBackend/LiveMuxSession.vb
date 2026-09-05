@@ -336,7 +336,17 @@ Namespace CaptureEngine.FFmpegBackend
                     Try : _proc.Kill() : Catch : End Try
                     res.ErrorMessage = "ffmpeg finalize timeout"
                 End If
-                res.FFmpegExitCode = _proc.ExitCode
+                ' ★ Fix: after Kill() the process may still be terminating —
+                ' reading ExitCode then throws InvalidOperationException, which
+                ' used to escape into the outer Catch, skipping the remux/salvage
+                ' entirely (the finished .frag.mp4 was never promoted to the
+                ' final output → session reported failed with NO output file).
+                Try
+                    res.FFmpegExitCode = _proc.ExitCode
+                Catch ex As Exception
+                    Log($"[live-mux] exit code unavailable after kill: {ex.Message}")
+                    If res.ErrorMessage.Length = 0 Then res.ErrorMessage = "ffmpeg exit code unavailable"
+                End Try
 
                 Dim stderrTail As String = ""
                 Try
@@ -410,6 +420,14 @@ Namespace CaptureEngine.FFmpegBackend
             Try : _video?.Dispose() : Catch : End Try
             Try : _audio?.Dispose() : Catch : End Try
             Try : _mic?.Dispose() : Catch : End Try
+            ' ★ Orphan guard: Dispose can run without Stop() (session failure
+            ' path). The closed pipes usually drive ffmpeg to EOF on its own,
+            ' but a process wedged in a blocking syscall would survive forever —
+            ' kill it explicitly.
+            Try
+                If _proc IsNot Nothing AndAlso Not _proc.HasExited Then _proc.Kill()
+            Catch
+            End Try
             Try : _proc?.Dispose() : Catch : End Try
         End Sub
 
@@ -748,6 +766,21 @@ Namespace CaptureEngine.FFmpegBackend
                     ' writer stuck on a blocked pipe write — force close
                     Try : _pipe.Dispose() : Catch : End Try
                     Try : _writer.Join(2000) : Catch : End Try
+                End If
+
+                ' ★ Accounting fix: whatever is STILL queued after the pipe is
+                ' closed is lost — the old code logged it but never counted it
+                ' into DroppedBytes, so the session-level pass gate (which fails
+                ' only when DroppedBytes > 0) could pass a file that silently
+                ' lost tail bytes. Fold the residual into the honest counter.
+                Dim residualAfterClose As Long = Interlocked.Read(_bytesQueued)
+                Dim residualChunk As Byte() = Nothing
+                While _queue.TryDequeue(residualChunk)
+                    Interlocked.Add(_bytesQueued, -CLng(residualChunk.Length))
+                    Interlocked.Add(_droppedBytes, residualChunk.Length)
+                End While
+                If residualAfterClose > 0 Then
+                    _log?.Invoke($"[live-mux:{Name}] {residualAfterClose:N0}B still queued after close — counted as dropped")
                 End If
 
                 ' ★ 02:23 FIX ('Error opening input: No such file'): on very

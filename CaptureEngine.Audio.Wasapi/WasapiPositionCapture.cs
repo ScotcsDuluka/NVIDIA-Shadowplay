@@ -331,13 +331,28 @@ namespace CaptureEngine.Audio.Wasapi
             _running = false;
             var t = _thread;
             if (t != null && t.IsAlive && t != Thread.CurrentThread)
-                t.Join(2000);
+            {
+                // ★ Stop-race fix: a single Join(2000) ignores the timeout —
+                // the caller (AudioEngineSession.Stop) then finalized the track
+                // while the capture thread could still dispatch packets into
+                // the same sinks, and Dispose() nulled the COM fields under the
+                // still-running CaptureLoop. Bound the total wait (8s) and
+                // keep joining in slices so a slow handler is waited out, not
+                // raced.
+                var deadline = Environment.TickCount64 + 8000;
+                while (t.IsAlive && Environment.TickCount64 < deadline)
+                    t.Join(1000);
+            }
             _thread = null;
         }
 
         public void Dispose()
         {
             Stop();
+            // Only drop the COM references once the capture thread is gone —
+            // CaptureLoop dereferences the _capture field every iteration and
+            // nulling it early produced a post-dispose NRE → spurious
+            // StoppedWithError after teardown.
             _capture = null;
             _client = null;
             _device = null;

@@ -29,6 +29,19 @@ Public Class ObsWebSocketClient
     Private _isReconnecting As Boolean = False
     Private _reconnectLock As New Object()
 
+    ' ★ Connection-epoch fix: every socket lifetime gets a generation. Old
+    ' receive/reconnect loops must not mutate shared state or dispose sockets
+    ' that belong to a NEWER epoch. Without this, UpdateEndpoint (called by
+    ' the 2s notifier_obs.json watcher) + an old ReceiveLoop waking from its
+    ' cancelled ReceiveAsync would: (1) clobber _isConnected of the new
+    ' connection, (2) spawn a competing ReconnectLoop that DISPOSES the new
+    ' live socket, (3) run two ReceiveLoops over the shared _receiveBuffer.
+    Private _generation As Integer = 0
+
+    Private Function CurrentGeneration() As Integer
+        Return Volatile.Read(_generation)
+    End Function
+
     Public Event OnEvent(eventType As String, eventData As JObject, raw As JObject)
     Public Event OnConnected()
     Public Event OnDisconnected()
@@ -70,6 +83,10 @@ Public Class ObsWebSocketClient
         _port = port
         _password = password
 
+        ' Bump the epoch FIRST: any old loop waking up sees a stale generation
+        ' and silently retires instead of fighting the new connection.
+        Interlocked.Increment(_generation)
+
         _isConnected = False
         _isReconnecting = False
         _currentReconnectDelayMs = 1000
@@ -86,16 +103,30 @@ Public Class ObsWebSocketClient
 
     Public Sub Connect()
         Try
+            ' New epoch: old ReceiveLoops/ReconnectLoops become stale no-ops.
+            Dim myGen As Integer = Interlocked.Increment(_generation)
+
             Disconnect()
             _isReconnecting = False
             _cts = New CancellationTokenSource()
             _ws = New ClientWebSocket()
             Dim uri = New Uri($"ws://{_host}:{_port}/")
             Log("info", $"Connecting to OBS WebSocket at {uri}…")
-            _ws.ConnectAsync(uri, _cts.Token).Wait(5000)
+
+            ' ★ Fix: Wait(5000) on a timed-out task is a false positive — the
+            ' old code set _isConnected=True and started ReceiveLoop against a
+            ' socket still in Connecting. Cancel the pending attempt on timeout.
+            Dim connectTask = _ws.ConnectAsync(uri, _cts.Token)
+            If Not connectTask.Wait(5000) Then
+                Try : _cts.Cancel() : Catch : End Try
+                Log("error", "Connect timed out after 5s")
+                _isConnected = False
+                TryStartReconnect()
+                Return
+            End If
             _isConnected = True
             _currentReconnectDelayMs = 1000
-            Task.Run(AddressOf ReceiveLoop)
+            Task.Run(Sub() ReceiveLoop(myGen))
         Catch ex As Exception
             Log("error", $"Connect failed: {ex.Message}")
             _isConnected = False
@@ -119,7 +150,15 @@ Public Class ObsWebSocketClient
         _ws = Nothing
     End Sub
 
-    Private Async Sub ReceiveLoop()
+    ''' <summary>Epoch-scoped disconnect: only touches the current socket when
+    ''' the caller's generation is still the live one — a stale reconnect loop
+    ''' must never dispose a newer epoch's connection.</summary>
+    Private Sub DisconnectIfCurrent(myGen As Integer)
+        If myGen <> CurrentGeneration() Then Return
+        Disconnect()
+    End Sub
+
+    Private Async Sub ReceiveLoop(myGen As Integer)
         Try
             While _isConnected AndAlso Not _cts.IsCancellationRequested
                 Dim result As WebSocketReceiveResult
@@ -150,6 +189,13 @@ Public Class ObsWebSocketClient
             Log("error", $"ReceiveLoop error: {ex.Message}")
         End Try
 
+        ' ★ Epoch guard: a superseded loop (endpoint change / reconnect) must
+        ' not touch the connection state of the CURRENT epoch or spawn a
+        ' competing reconnect against the new socket.
+        If myGen <> CurrentGeneration() Then
+            Log("info", "ReceiveLoop retired (superseded by a newer connection)")
+            Return
+        End If
         _isConnected = False
         RaiseEvent OnDisconnected()
         TryStartReconnect()
@@ -296,31 +342,40 @@ Public Class ObsWebSocketClient
     End Function
 
     Private Sub ReconnectLoop()
+        ' ★ Epoch fix: each attempt owns its OWN generation. The loop used to
+        ' dispose the SHARED _cts/_ws fields — killing whatever newer
+        ' connection was live by the time the backoff elapsed.
+        Dim myGen As Integer = Interlocked.Increment(_generation)
         RaiseEvent OnReconnecting()
-        While Not IsConnected AndAlso _autoReconnect
+        While Not IsConnected AndAlso _autoReconnect AndAlso myGen = CurrentGeneration()
             Try
                 Thread.Sleep(_currentReconnectDelayMs)
+                If myGen <> CurrentGeneration() Then Exit While
                 _currentReconnectDelayMs = Math.Min(_currentReconnectDelayMs * 2, MaxReconnectDelayMs)
 
-                If _cts IsNot Nothing Then
-                    Try : _cts.Cancel() : Catch : End Try
-                    Try : _cts.Dispose() : Catch : End Try
-                End If
-                If _ws IsNot Nothing Then
-                    Try : _ws.Dispose() : Catch : End Try
-                End If
+                DisconnectIfCurrent(myGen)
 
                 _cts = New CancellationTokenSource()
                 _ws = New ClientWebSocket()
                 Dim uri = New Uri($"ws://{_host}:{_port}/")
                 Log("info", $"Reconnecting to OBS WebSocket ({_currentReconnectDelayMs}ms backoff)…")
-                _ws.ConnectAsync(uri, _cts.Token).Wait(5000)
-                _isConnected = True
-                _currentReconnectDelayMs = 1000
+                Dim connectTask = _ws.ConnectAsync(uri, _cts.Token)
+                If Not connectTask.Wait(5000) Then
+                    Try : _cts.Cancel() : Catch : End Try
+                    Log("warn", "Reconnect timed out after 5s")
+                    Continue While
+                End If
+                ' Adopt the connection only if no newer epoch superseded us.
                 SyncLock _reconnectLock
+                    If myGen <> CurrentGeneration() Then
+                        Try : _ws.Dispose() : Catch : End Try
+                        Exit While
+                    End If
+                    _isConnected = True
+                    _currentReconnectDelayMs = 1000
                     _isReconnecting = False
                 End SyncLock
-                Task.Run(AddressOf ReceiveLoop)
+                Task.Run(Sub() ReceiveLoop(myGen))
                 Return
             Catch ex As Exception
                 Log("warn", $"Reconnect failed: {ex.Message}")
@@ -329,7 +384,9 @@ Public Class ObsWebSocketClient
         End While
 
         SyncLock _reconnectLock
-            _isReconnecting = False
+            If myGen = CurrentGeneration() Then
+                _isReconnecting = False
+            End If
         End SyncLock
     End Sub
 
@@ -354,6 +411,8 @@ Public Class ObsWebSocketClient
 
     Public Sub Dispose() Implements IDisposable.Dispose
         _autoReconnect = False
+        ' Retire every loop of every epoch before tearing the socket down.
+        Interlocked.Increment(_generation)
         Disconnect()
     End Sub
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-  <title>NEXTGEN NVIDIA ShadowPlay</title>
+  <title>OBT3 IS LIVE — NVIDIA ShadowPlay</title>
   
   <!-- Stylesheets -->
   <link rel="stylesheet" href="CSS/index/style.css?v=4">
@@ -180,6 +180,7 @@
       <span class="hero-badge animate-fade-up">OPEN SOURCE PROJECT</span>
     </a>
     <ul class="nav-menu">
+      <li><a href="obt3.html" style="color:#76B900;font-weight:700;">OBT3 LIVE &#8594;</a></li>
       <li><a href="#features">Features</a></li>
       <li><a href="#overlay">Overlay</a></li>
       <li><a href="#api-specs">API Capture</a></li>
@@ -219,36 +220,21 @@
           <div class="obt3-runway"><span></span></div>
           <div class="obt3-inner">
             <div class="obt3-head">
-              <span class="obt3-tag">NEXT</span>
-              <span class="obt3-title">OBT3 — OPEN BETA TEST</span>
-              <span class="obt3-sub">A new era of ShadowPlay is coming</span>
-              <span class="obt3-live">LIVE COUNTDOWN</span>
+              <span class="obt3-tag" style="animation:obt3-blink 1.8s ease infinite">flagship build</span>
+              <span class="obt3-title">OPEN BETA TEST 3 IS HERE</span>
+              <span class="obt3-sub">the audio-timeline rebuild is out now</span>
             </div>
             <div class="obt3-main">
-              <div class="obt3-timer" id="obt3Timer" aria-live="polite">
-                <div class="obt3-cell"><div class="obt3-flip" id="cdDays">00</div><div class="obt3-label">DAYS</div></div>
-                <div class="obt3-colon">:</div>
-                <div class="obt3-cell"><div class="obt3-flip" id="cdHours">00</div><div class="obt3-label">HOURS</div></div>
-                <div class="obt3-colon">:</div>
-                <div class="obt3-cell"><div class="obt3-flip" id="cdMins">00</div><div class="obt3-label">MINUTES</div></div>
-                <div class="obt3-colon">:</div>
-                <div class="obt3-cell"><div class="obt3-flip" id="cdSecs">00</div><div class="obt3-label">SECONDS</div></div>
-              </div>
-              <div class="obt3-divider"></div>
-              <a href="#download-section" class="obt3-dl">
-                <span class="obt3-dl-arrow">↓</span>
+              <a class="obt3-dl" href="obt3.html">
+                <span class="obt3-dl-arrow">&#10022;</span>
                 <span class="obt3-dl-txt">
-                  <b>DOWNLOAD FOR WINDOWS</b>
-                  <small>grab the current build — be there when OBT3 drops</small>
+                  <b>WHAT'S NEW — OBT3</b>
+                  <small>side-by-side comparison, measured not marketed</small>
                 </span>
               </a>
             </div>
             <div class="obt3-progress"><div class="obt3-progress-fill" id="obt3Fill"></div></div>
-            <div class="obt3-meta">
-              <span id="obt3Pct">0%</span>
-              <span class="obt3-target">LAUNCH · SEP 5, 2026 · 23:30 (GMT+7)</span>
-              <span></span>
-            </div>
+            <div class="obt3-meta"><span class="obt3-target">BUILD: OBT3 &middot; SEP 2026</span><span>SDK 26100 &middot; NVENC READY &middot; A/V 0.000s</span></div>
           </div>
         </div>
         <!-- /OBT3 COUNTDOWN -->
@@ -304,6 +290,31 @@
     <div class="container">
       <span class="section-label">DOWNLOAD NVIDIA SHADOWPLAY</span>
       
+      <!-- OBT3 Release Card (current flagship) -->
+      <div class="feature-card animate-scale delay-0 tilt-card" style="border:1px solid rgba(118,185,0,.5); box-shadow: 0 0 44px rgba(118,185,0,.14); padding: 2.4rem; margin-bottom: 1.6rem;">
+        <div class="title-row" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap;">
+          <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+            <span class="card-status" style="animation: obt3-blink 1.8s ease infinite;">NEW</span>
+            <h3 style="font-size: 2rem; margin: 0;">NVIDIA ShadowPlay <span style="color:#76B900;">OBT3</span></h3>
+            <span class="status-badge status-ready">Open Beta Test 3</span>
+            <span class="status-badge status-partial">Windows x64 bit</span>
+          </div>
+        </div>
+        <div class="desc-row" style="margin-top: 1.2rem;">
+          <p style="font-size: 1rem;"><strong style="color: var(--text-white);">The current flagship build.</strong><br>
+          Audio-timeline rebuild (no tail loss) &middot; fixed video-only path &middot; honest pass reporting &middot; Intel QSV via FFmpeg path &middot; WASAPI on one common QPC clock (A/V 0.000s).</p>
+        </div>
+        <div style="display: flex; gap: 1rem; margin-top: 1.4rem; flex-wrap: wrap;">
+		  <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/Release-OBT-3/NVIDIA.ShadowPlay.OBT3.exe" class="btn-primary magnetic-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px; vertical-align: middle;">
+      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+    </svg>
+    Download Installer
+  </a>
+          <a href="obt3.html" class="btn-primary magnetic-btn" style="background: rgba(118,185,0,.12); color: #A3E635;">See OBT3 vs Stable &#8594;</a>
+        </div>
+      </div>
+
       <!-- Release Card -->
       <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
         <div class="title-row" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
@@ -423,13 +434,13 @@
       
       <!-- ═══ ENGINE REGIME SWITCHER ═══ -->
       <div class="regime-tabs">
-        <button class="rtab active" data-regime="duluka">
-          <span class="rtab-name">Duluka Capture</span>
-          <span class="rtab-sub">Native engine · production</span>
-        </button>
         <button class="rtab" data-regime="ffmpeg">
           <span class="rtab-name">FFmpeg Capture</span>
           <span class="rtab-sub">FFmpeg engine · flexible</span>
+        </button>
+        <button class="rtab active" data-regime="duluka">
+          <span class="rtab-name">Duluka Capture</span>
+          <span class="rtab-sub">Native engine · production</span>
         </button>
         <button class="rtab" data-regime="obs">
           <span class="rtab-name">OBS Capture <span class="rtab-soon">SOON</span></span>
@@ -965,44 +976,6 @@
   });
 })();
 </script>
-<script>
-(function(){
-  var TARGET = new Date("2026-09-05T23:30:00+07:00").getTime();
-  var START  = new Date("2026-08-29T00:00:00+07:00").getTime(); // campaign start for progress %
-  var el = {d:document.getElementById("cdDays"),h:document.getElementById("cdHours"),
-            m:document.getElementById("cdMins"),s:document.getElementById("cdSecs"),
-            fill:document.getElementById("obt3Fill"),pct:document.getElementById("obt3Pct")};
-  if(!el.d) return;
-  var prev = {};
-  function pad(n){return (n<10?"0":"")+n;}
-  function set(cell,key,val){
-    if(prev[key]===val) return;
-    cell.textContent = val;
-    cell.classList.remove("obt3-tick");
-    void cell.offsetWidth;            // restart animation
-    cell.classList.add("obt3-tick");
-    setTimeout(function(){cell.classList.remove("obt3-tick")},200);
-    prev[key]=val;
-  }
-  function tick(){
-    var now = Date.now(), diff = TARGET - now;
-    if(diff <= 0){
-      set(el.d,"d","00");set(el.h,"h","00");set(el.m,"m","00");set(el.s,"s","00");
-      el.fill.style.width="100%";
-      el.pct.innerHTML='<a href="index-obt3.html" style="color:#a3e635;text-decoration:none;font-weight:800;letter-spacing:1px">100% — OBT3 IS LIVE &nbsp;·&nbsp; ENTER &#8594;</a>';
-      document.title = "OBT3 IS LIVE — NVIDIA ShadowPlay";
-      clearInterval(iv); return;
-    }
-    var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000),
-        m=Math.floor(diff%3600000/60000), s=Math.floor(diff%60000/1000);
-    set(el.d,"d",pad(d)); set(el.h,"h",pad(h)); set(el.m,"m",pad(m)); set(el.s,"s",pad(s));
-    var pct = Math.min(100, Math.max(0, (now-START)/(TARGET-START)*100));
-    el.fill.style.width = pct.toFixed(2)+"%";
-    el.pct.textContent = pct.toFixed(1)+"%";
-  }
-  tick();
-  var iv = setInterval(tick,1000);
-})();
-</script>
+<script>/* countdown not used on the OBT3-live homepage */</script>
 </body>
 </html>

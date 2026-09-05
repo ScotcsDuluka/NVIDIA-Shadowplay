@@ -207,6 +207,17 @@ Partial Public Class CaptureEngine
 
         Return Await Task.Run(Function()
                                  Try
+                                     ' ★ Dispose-race guard: Dispose() can run while this
+                                     ' lambda is still initializing (form close during start,
+                                     ' stress-runner start timeout). Starting ffmpeg after the
+                                     ' job guard was disposed leaves it WITHOUT the
+                                     ' KILL_ON_JOB_CLOSE contract — a permanent orphan. Bail
+                                     ' out on a disposed engine instead.
+                                     If _disposed Then
+                                         LogDebug("Start aborted: engine disposed during initialization")
+                                         Return False
+                                     End If
+
                                      ' ═══ DETERMINE RECORDING MODE ═══
                                      ' Two-process mode is used when ANY audio capture is enabled.
                                      ' This keeps video FFmpeg single-input (= Engine-Stable performance).
@@ -256,44 +267,73 @@ Partial Public Class CaptureEngine
                                      si.RedirectStandardInput = True
                                      si.CreateNoWindow = True
 
-                                     _ffmpegProcess = New Process()
-                                     _ffmpegProcess.StartInfo = si
-                                     _ffmpegProcess.EnableRaisingEvents = True
-                                     AddHandler _ffmpegProcess.OutputDataReceived, AddressOf OnStdOut
-                                     AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
-                                     AddHandler _ffmpegProcess.Exited, AddressOf OnExited
+                                     Dim startOk As Boolean = False
+                                     Try
+                                         _ffmpegProcess = New Process()
+                                         _ffmpegProcess.StartInfo = si
+                                         _ffmpegProcess.EnableRaisingEvents = True
+                                         AddHandler _ffmpegProcess.OutputDataReceived, AddressOf OnStdOut
+                                         AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
+                                         AddHandler _ffmpegProcess.Exited, AddressOf OnExited
 
-                                     If _useTwoProcess Then
-                                         StartAudioRecorder()
-                                     End If
+                                         If _useTwoProcess Then
+                                             StartAudioRecorder()
+                                         End If
 
-                                     If Not _ffmpegProcess.Start() Then
+                                         If Not _ffmpegProcess.Start() Then
+                                             SetState(CaptureState.HasError)
+                                             RaiseEvent ErrorOccurred("Failed to start FFmpeg process")
+                                         Else
+                                             LogDebug($"[FFmpeg] Started PID={_ffmpegProcess.Id}")
+
+                                             If _jobGuard IsNot Nothing Then
+                                                 _jobGuard.Assign(_ffmpegProcess)
+                                             End If
+
+                                             _ffmpegProcess.BeginOutputReadLine()
+                                             _ffmpegProcess.BeginErrorReadLine()
+                                             _stopwatch = Stopwatch.StartNew()
+                                             System.Threading.Interlocked.Exchange(_stopCompleted, 0)
+                                             SetState(CaptureState.Recording)
+                                             RaiseEvent RecordingStarted(_outputFile)
+                                             startOk = True
+                                         End If
+                                     Catch ex As Exception
                                          SetState(CaptureState.HasError)
-                                         RaiseEvent ErrorOccurred("Failed to start FFmpeg process")
-                                         Return False
-                                     End If
-
-                                     LogDebug($"[FFmpeg] Started PID={_ffmpegProcess.Id}")
-
-                                     If _jobGuard IsNot Nothing Then
-                                         _jobGuard.Assign(_ffmpegProcess)
-                                     End If
-
-                                     _ffmpegProcess.BeginOutputReadLine()
-                                     _ffmpegProcess.BeginErrorReadLine()
-                                     _stopwatch = Stopwatch.StartNew()
-                                     System.Threading.Interlocked.Exchange(_stopCompleted, 0)
-                                     SetState(CaptureState.Recording)
-                                     RaiseEvent RecordingStarted(_outputFile)
-
-
-                                     Return True
+                                         RaiseEvent ErrorOccurred("Start failed: " & ex.Message)
+                                         LogDebug("Exception: " & ex.ToString())
+                                         WriteDebugLog("Start exception: " & ex.ToString())
+                                     Finally
+                                         ' ★ Start-failure cleanup (was half-missing): the bare
+                                         ' `Return False` path skipped the Catch entirely (audio
+                                         ' engine stayed live forever), and the Catch stopped
+                                         ' audio but never killed a successfully-STARTED ffmpeg —
+                                         ' which then kept encoding the desktop to the temp file
+                                         ' unbounded (job-guard assignment is the only thing that
+                                         ' would have reaped it, at Dispose time). Whatever the
+                                         ' failure, leave NOTHING running behind.
+                                         If Not startOk Then
+                                             Try
+                                                 If _ffmpegProcess IsNot Nothing AndAlso Not _ffmpegProcess.HasExited Then
+                                                     _ffmpegProcess.Kill()
+                                                     _ffmpegProcess.WaitForExit(2000)
+                                                 End If
+                                             Catch
+                                             End Try
+                                             Try : _ffmpegProcess?.Dispose() : Catch : End Try
+                                             _ffmpegProcess = Nothing
+                                             Try : StopAudioWriter() : Catch : End Try
+                                             DeleteTempFile(_tempVideoPath)
+                                             DeleteTempFile(_tempSystemWav)
+                                             DeleteTempFile(_tempMicWav)
+                                         End If
+                                     End Try
+                                     Return startOk
                                  Catch ex As Exception
                                      SetState(CaptureState.HasError)
                                      RaiseEvent ErrorOccurred("Start failed: " & ex.Message)
                                      LogDebug("Exception: " & ex.ToString())
                                      WriteDebugLog("Start exception: " & ex.ToString())
-                                     Try : StopAudioWriter() : Catch : End Try
                                      Return False
                                  End Try
                              End Function)
@@ -421,9 +461,32 @@ Partial Public Class CaptureEngine
                                      ' ─── Step 4: Fire RecordingStopped (exactly once) ───
                                      If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                                          SetState(CaptureState.Idle)
-                                         RaiseEvent RecordingStopped(_outputFile)
-                                         LogDebug("Recording saved: " & _outputFile)
+                                         ' ★ Honesty fix: only announce a saved file that exists.
+                                         ' The old unconditional event made the Overlay show
+                                         ' "Saved: <file>" + a gallery entry for recordings that
+                                         ' were never produced (temp video missing, mux move
+                                         ' failure, stop-from-start-failed state).
+                                         If File.Exists(_outputFile) Then
+                                             RaiseEvent RecordingStopped(_outputFile)
+                                             LogDebug("Recording saved: " & _outputFile)
+                                         Else
+                                             RaiseEvent ErrorOccurred("Recording not saved — output file missing: " & _outputFile)
+                                             LogDebug("RecordingStopped suppressed — file missing: " & _outputFile)
+                                         End If
                                      End If
+
+                                     ' ★ Per-recording handle cleanup: the Process object (with its
+                                     ' Exited/Output/Error handlers) used to stay alive until the
+                                     ' next start overwrote the field — one leaked process handle
+                                     ' set per recording. The stop flow is fully unwound here;
+                                     ' OnExited tolerates a disposed process (guarded reads).
+                                     Try
+                                         If _ffmpegProcess IsNot Nothing AndAlso _ffmpegProcess.HasExited Then
+                                             _ffmpegProcess.Dispose()
+                                             _ffmpegProcess = Nothing
+                                         End If
+                                     Catch
+                                     End Try
                                      Return True
 
                                  Catch ex As Exception
@@ -932,7 +995,13 @@ Partial Public Class CaptureEngine
                 ' Step 3: Fire event exactly once
                 If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                     SetState(CaptureState.Idle)
-                    RaiseEvent RecordingStopped(_outputFile)
+                    ' ★ Honesty fix (mirrors StopRecordingAsync): announce only
+                    ' files that actually exist.
+                    If File.Exists(_outputFile) Then
+                        RaiseEvent RecordingStopped(_outputFile)
+                    Else
+                        RaiseEvent ErrorOccurred("Recording not saved — output file missing: " & _outputFile)
+                    End If
                 End If
             ElseIf exitCode <> "?" Then
                 If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
@@ -1056,6 +1125,12 @@ Partial Public Class CaptureEngine
 
     Protected Overridable Sub Dispose(disposing As Boolean)
         If Not _disposed Then
+            ' ★ Flag FIRST, not last: the in-flight StartRecordingAsync lambda
+            ' checks _disposed before spawning ffmpeg. Setting it after the
+            ' cleanup below left a window where the start path passed the check
+            ' and started ffmpeg against an already-disposed job guard —
+            ' an unattached, permanent orphan process.
+            _disposed = True
             If disposing Then
                 StopAudioWriter()
                 ForceStop()
@@ -1064,7 +1139,6 @@ Partial Public Class CaptureEngine
                     _jobGuard = Nothing
                 End If
             End If
-            _disposed = True
         End If
     End Sub
 
