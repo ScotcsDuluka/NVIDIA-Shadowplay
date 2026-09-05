@@ -48,10 +48,14 @@ spikes/**/logs/
 **/*.trx
 
 # App/runtime data that should stay local
-Overlay/build.txt
+# (Overlay/build.txt is NOT here on purpose: it is the tracked canonical build
+#  counter read/incremented by the Overlay.vbproj IncrementBuild target)
 Overlay/NVIDIA_Shadowplay_Data/
 Overlay/API-Core/
 feedback-logs/
+
+# Local browser-session output of tools/playwright/playwright-mcp-config.json
+tools/playwright/browser/
 
 # stray editor/session backup files (cleanup after e032343 committed four of these)
 *.bak
@@ -71,5 +75,7 @@ scripts/apphost_test/bin/
 scripts/apphost_test/obj/
 scripts/apphost_test/out_final
 *.mp4
+# tracked A/V sync reference asset used by scripts/sync-verify.ps1
+!scripts/sync-reference.mp4
 /evidence
 /dist-installer
