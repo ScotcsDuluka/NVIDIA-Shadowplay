@@ -71,7 +71,7 @@ Namespace Engine.Concurrency.Tests
             ' Environment.ProcessPath). Recognize the engine's argument shape
             ' and behave as a controllable fake encoder/mux instead of running
             ' the suite. See G2LegacyEngineTests.RunHelperMode.
-            If args.Length > 0 AndAlso args(0) = "-hide_banner" Then
+            If args.Length > 0 AndAlso (args(0) = "-hide_banner" OrElse args(0) = "-v") Then
                 Return G2LegacyEngineTests.RunHelperMode(args)
             End If
 
@@ -104,6 +104,7 @@ Namespace Engine.Concurrency.Tests
             M1M2Tests.RunAll(_ffmpegPath, _sandbox)
             G2LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
             G3LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
+            F03LegacyTests.RunAll(_ffmpegPath, _sandbox)
 
             Console.WriteLine()
             Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed}")
@@ -283,7 +284,10 @@ Namespace Engine.Concurrency.Tests
             TestRunner.Assert(predicateDuringMux, "IsRecordingLifecycleActive was False during Muxing (H1 guard would not hold)")
             TestRunner.Assert(startDuringMuxResult.HasValue, "start-during-mux probe never ran")
             TestRunner.Assert(Not startDuringMuxResult.Value, "StartRecordingAsync during Muxing was NOT rejected")
-            TestRunner.Assert(File.Exists(outputPath), $"final output missing after mux: {outputPath}")
+            ' ★ F-02: truthful validation — file exists, size > 0, container
+            ' probe succeeds, duration > 0, Video AND Audio streams present
+            ' (system audio was enabled for this recording).
+            MediaAssert.AssertValidMp4(_ffmpegPath, outputPath, True, True, "H1-B")
             TestRunner.Assert(Not engine.IsRecordingLifecycleActive, "lifecycle still active after stop completed")
             TestRunner.Assert(engine.State = EngineCapture.CaptureState.Idle, $"post-stop state was {engine.State}")
 
@@ -307,7 +311,10 @@ Namespace Engine.Concurrency.Tests
                     Thread.Sleep(rnd.Next(200, 500))
                     Dim stopped As Boolean = engine.StopRecordingAsync().GetAwaiter().GetResult()
                     TestRunner.Assert(stopped, $"cycle {i}: StopRecordingAsync returned False")
-                    TestRunner.Assert(File.Exists(outputPath), $"cycle {i}: output file missing — {outputPath}")
+                    ' ★ F-02: video-only contract — the output must be a real
+                    ' probe-able MP4 with a video stream and NO audio stream
+                    ' (SystemAudioCapture=False for these cycles).
+                    MediaAssert.AssertValidMp4(_ffmpegPath, outputPath, True, False, $"H2-C cycle {i}")
                 Else
                     Console.Write($"(cycle {i}: start rejected — verifying no process left) ")
                 End If

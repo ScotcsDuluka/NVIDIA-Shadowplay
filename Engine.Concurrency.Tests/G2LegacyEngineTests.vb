@@ -56,8 +56,32 @@ Namespace Engine.Concurrency.Tests
         Friend Function RunHelperMode(args As String()) As Integer
             Dim joined As String = String.Join(" ", args)
 
+            ' F-03 PROBE mode — the engine's playback validation spawns
+            ' ffmpeg with "-v error -i <file> -t 1 -f null -". Delegate to the
+            ' REAL ffmpeg (LMHLP_PROBE_REAL) so the verdict is genuine, or
+            ' return LMHLP_PROBE_EXIT for synthetic cases.
+            If args.Length > 0 AndAlso args(0) = "-v" Then
+                Dim realProbe As String = Environment.GetEnvironmentVariable("LMHLP_PROBE_REAL")
+                If Not String.IsNullOrEmpty(realProbe) Then
+                    Return RunRealFfmpeg(realProbe, joined, 30000)
+                End If
+                Dim probeExit As Integer = 0
+                Integer.TryParse(Environment.GetEnvironmentVariable("LMHLP_PROBE_EXIT"), probeExit)
+                Console.Error.WriteLine("[LMHLP] probe mode → exit " & probeExit)
+                Return probeExit
+            End If
+
             ' MUX mode — AwaitOrRunMux builds args containing "-map".
             If joined.Contains("-map ") Then
+                ' F-03: LMHLP_MUX_REAL delegates to the REAL ffmpeg with the
+                ' engine's exact mux arguments — the mux verdict is then the
+                ' real decoder's verdict (used for the fallback-honesty test).
+                Dim realMux As String = Environment.GetEnvironmentVariable("LMHLP_MUX_REAL")
+                If Not String.IsNullOrEmpty(realMux) Then
+                    Dim realExit As Integer = RunRealFfmpeg(realMux, joined, 60000)
+                    Console.Error.WriteLine("[LMHLP] mux delegated → exit " & realExit)
+                    Return realExit
+                End If
                 Dim muxExit As Integer = 0
                 Integer.TryParse(Environment.GetEnvironmentVariable("LMHLP_MUX_EXIT"), muxExit)
                 Console.Error.WriteLine("[LMHLP] mux mode → exit " & muxExit)
@@ -134,6 +158,31 @@ Namespace Engine.Concurrency.Tests
         ''' args reach us, so the paths arrive as bare tokens. The mux OUTPUT is
         ''' the last .mp4 argument that is not one of the engine's .tmp inputs
         ''' (inputs: video.tmp.mp4 / system.tmp.wav; output: final .mp4).</summary>
+        ''' <summary>F-03: run the REAL ffmpeg with the given argument string
+        ''' and return its exit code (bounded). Test-only delegation so mux and
+        ''' playback-validation verdicts come from the real decoder.</summary>
+        Private Function RunRealFfmpeg(realExe As String, argumentLine As String, timeoutMs As Integer) As Integer
+            Dim psi As New ProcessStartInfo With {
+                .FileName = realExe,
+                .Arguments = argumentLine,
+                .UseShellExecute = False,
+                .CreateNoWindow = True,
+                .RedirectStandardError = True,
+                .RedirectStandardOutput = True
+            }
+            Using p As Process = Process.Start(psi)
+                Dim errTask = p.StandardError.ReadToEndAsync()
+                Dim outTask = p.StandardOutput.ReadToEndAsync()
+                If Not p.WaitForExit(timeoutMs) Then
+                    Try : p.Kill() : p.WaitForExit(2000) : Catch : End Try
+                    Return -999
+                End If
+                Try : errTask.Wait(1000) : Catch : End Try
+                Try : outTask.Wait(500) : Catch : End Try
+                Return p.ExitCode
+            End Using
+        End Function
+
         Private Function ExtractMuxOutputPath(args As String()) As String
             Dim result As String = Nothing
             For Each a As String In args
@@ -434,8 +483,9 @@ Namespace Engine.Concurrency.Tests
                 TestRunner.Assert(engine.LastAudioDiagnostics.Length > 0,
                                   "audio must be finalized before the mux/fallback runs (G2-D)")
 
-                Dim probe As String = ProbeStreams(outPath)
-                TestRunner.Assert(probe.Contains("Video:"), "fallback output has no video stream (G2-G)")
+                ' ★ F-02: truthful fallback validation — video-only contract
+                ' (the record-copy source carries no audio track).
+                MediaAssert.AssertValidMp4(_ffmpeg, outPath, True, False, "G2-C")
 
                 ' Double-mux guard: a Stop after the OnExited recovery must NOT
                 ' run AwaitOrRunMux again (_muxCompleted already latched) and
