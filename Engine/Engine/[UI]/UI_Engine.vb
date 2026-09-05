@@ -432,9 +432,14 @@ Partial Public Class UI_Engine
             ' Dispose() below and KILL the in-flight recording (ffmpeg killed
             ' mid-encode → truncated moov-less file, temp files deleted). The
             ' new-engine path already answers already_recording; mirror it here.
+            ' ★ H1 fix: the guard now uses IsRecordingLifecycleActive so the
+            ' stop flow's MUXING phase is protected too — the old check
+            ' (IsRecording/Stopping) let a start request dispose the old
+            ' engine mid-mux: jobGuard.Dispose killed the mux ffmpeg and
+            ' ForceStop raced the mux's temp-file fallback → recording lost.
             If _captureEngine IsNot Nothing AndAlso
-               (_captureEngine.IsRecording OrElse _captureEngine.State = CaptureEngine.CaptureState.Stopping) Then
-                DebugLog("[Engine] RECORD_START rejected: already recording/stopping")
+               _captureEngine.IsRecordingLifecycleActive Then
+                DebugLog("[Engine] RECORD_START rejected: recording lifecycle active")
                 SendResponse("engine_record_start", "error", "already_recording", reqId)
                 Return
             End If
@@ -863,9 +868,12 @@ Partial Public Class UI_Engine
             ' ★ Overlapped-start guard (mirrors HandleEngineRecordStart): a
             ' click while a recording/stop is still unwinding used to Dispose
             ' the live engine — destroying the in-flight recording silently.
+            ' ★ H1 fix: IsRecordingLifecycleActive also covers Muxing —
+            ' disposing during the stop flow's mux phase killed the mux
+            ' ffmpeg (job close) and deleted the temp files it was reading.
             If _captureEngine IsNot Nothing AndAlso
-               (_captureEngine.IsRecording OrElse _captureEngine.State = CaptureEngine.CaptureState.Stopping) Then
-                DebugLog("[Engine] Record click rejected: already recording/stopping")
+               _captureEngine.IsRecordingLifecycleActive Then
+                DebugLog("[Engine] Record click rejected: recording lifecycle active")
                 engine.Dispose()
                 btnStop.Enabled = _captureEngine.IsRecording
                 Return

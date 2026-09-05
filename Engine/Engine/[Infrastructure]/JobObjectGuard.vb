@@ -117,16 +117,29 @@ Public NotInheritable Class JobObjectGuard
     ''' Assign a process to this job. Must be called AFTER process.Start()
     ''' and BEFORE the process is allowed to spawn children (FFmpeg doesn't,
     ''' so order is not critical here).
+    '''
+    ''' ★ H2: returns True only when the process is ACTUALLY owned by this
+    ''' job. A disposed/invalid guard, an AddRef failure, or a failed
+    ''' AssignProcessToJobObject returns False — callers must treat the
+    ''' process as UNOWNED and terminate it where the no-orphan contract
+    ''' matters (see CaptureEngine.StartRecordingAsync). The old Sub
+    ''' silently "succeeded" on a disposed guard, letting a started ffmpeg
+    ''' escape lifetime ownership as a permanent orphan.
     ''' </summary>
-    Public Sub Assign(process As Process)
-        If _handle Is Nothing OrElse _handle.IsInvalid Then Return
-        If process Is Nothing Then Return
+    Public Function Assign(process As Process) As Boolean
+        If process Is Nothing Then Return False
+
+        ' Local copy closes the check→use gap with Dispose() nulling the
+        ' field: the local keeps the SafeFileHandle object alive, and if
+        ' Dispose already ran, DangerousAddRef below throws (caught → False).
+        Dim handle As SafeFileHandle = _handle
+        If handle Is Nothing OrElse handle.IsInvalid Then Return False
 
         ' Get a fresh raw handle to the process — do NOT use process.Handle
         ' directly because that's the handle the Process instance owns and
         ' we don't want to duplicate-close it.
         Dim hProc As IntPtr = process.Handle
-        If hProc = IntPtr.Zero Then Return
+        If hProc = IntPtr.Zero Then Return False
 
         ' ✅ M11 FIX: use DangerousAddRef/Release to prevent the handle from
         ' being closed by Dispose() on another thread mid-P/Invoke.
@@ -135,16 +148,18 @@ Public NotInheritable Class JobObjectGuard
         ' the handle could be closed before AssignProcessToJobObject executes.
         Dim success As Boolean = False
         Try
-            _handle.DangerousAddRef(success)
-            If Not success Then Return
-            Dim rawHandle As IntPtr = _handle.DangerousGetHandle()
-            AssignProcessToJobObject(rawHandle, hProc)
+            handle.DangerousAddRef(success)
+            If Not success Then Return False
+            Dim rawHandle As IntPtr = handle.DangerousGetHandle()
+            If Not AssignProcessToJobObject(rawHandle, hProc) Then Return False
         Catch
-            ' Silently swallow — orphan protection is best-effort.
+            ' ★ H2: any failure means NOT owned — report it instead of
+            ' pretending the assignment succeeded (old behavior swallowed).
+            Return False
         Finally
             If success Then
                 Try
-                    _handle.DangerousRelease()
+                    handle.DangerousRelease()
                 Catch
                 End Try
             End If
@@ -159,7 +174,8 @@ Public NotInheritable Class JobObjectGuard
                 ' Best-effort — some systems may not allow priority changes
             End Try
         End Try
-    End Sub
+        Return True
+    End Function
 
     Public Sub Dispose() Implements IDisposable.Dispose
         If _disposed Then Return

@@ -141,6 +141,20 @@ Partial Public Class CaptureEngine
         End Get
     End Property
 
+    ''' <summary>True while the engine is inside the recording lifecycle
+    ''' (Recording / Stopping / Muxing). The UI dispose-guards must use THIS
+    ''' — not IsRecording — so a stop's MUX phase can never be torn down by
+    ''' a start request disposing the old engine mid-mux (H1 fix: the old
+    ''' guard checked only IsRecording/Stopping and let
+    ''' Dispose → jobGuard.Dispose kill the mux ffmpeg, losing the recording).</summary>
+    Public ReadOnly Property IsRecordingLifecycleActive As Boolean
+        Get
+            Return _state = CaptureState.Recording OrElse
+                   _state = CaptureState.Stopping OrElse
+                   _state = CaptureState.Muxing
+        End Get
+    End Property
+
     Public ReadOnly Property OutputFile As String
         Get
             Return _outputFile
@@ -286,17 +300,49 @@ Partial Public Class CaptureEngine
                                          Else
                                              LogDebug($"[FFmpeg] Started PID={_ffmpegProcess.Id}")
 
-                                             If _jobGuard IsNot Nothing Then
-                                                 _jobGuard.Assign(_ffmpegProcess)
+                                             ' ★ H2 lifetime re-check: Dispose() can land between
+                                             ' the lambda's early _disposed check and this point.
+                                             ' The old code assigned unconditionally; Assign on a
+                                             ' disposed guard returned silently and the started
+                                             ' ffmpeg escaped lifetime ownership forever (no
+                                             ' KILL_ON_JOB_CLOSE, nobody kills it). Contract: a
+                                             ' started process must end this operation either
+                                             ' OWNED by the job guard or TERMINATED here.
+                                             ' _jobGuard Is Nothing = pre-existing best-effort mode
+                                             ' (guard ctor failed in the engine ctor) — keep the
+                                             ' engine usable.
+                                             Dim owned As Boolean = True
+                                             If Not _disposed AndAlso _jobGuard IsNot Nothing Then
+                                                 owned = _jobGuard.Assign(_ffmpegProcess)
                                              End If
 
-                                             _ffmpegProcess.BeginOutputReadLine()
-                                             _ffmpegProcess.BeginErrorReadLine()
-                                             _stopwatch = Stopwatch.StartNew()
-                                             System.Threading.Interlocked.Exchange(_stopCompleted, 0)
-                                             SetState(CaptureState.Recording)
-                                             RaiseEvent RecordingStarted(_outputFile)
-                                             startOk = True
+                                             If _disposed OrElse Not owned Then
+                                                 LogDebug("[FFmpeg] start raced with Dispose or lost job ownership — terminating process")
+                                                 WriteDebugLog("[FFmpeg] start raced with Dispose or lost job ownership — terminating process")
+                                                 Try
+                                                     If Not _ffmpegProcess.HasExited Then
+                                                         _ffmpegProcess.Kill()
+                                                         _ffmpegProcess.WaitForExit(2000)
+                                                     End If
+                                                 Catch
+                                                 End Try
+                                                 If Not _disposed Then
+                                                     SetState(CaptureState.HasError)
+                                                     RaiseEvent ErrorOccurred("FFmpeg started without job ownership — terminated")
+                                                 Else
+                                                     RaiseEvent ErrorOccurred("Start aborted: engine disposed after ffmpeg start")
+                                                 End If
+                                                 ' startOk stays False → Finally cleans up
+                                                 ' (dispose, audio writer, temp files).
+                                             Else
+                                                 _ffmpegProcess.BeginOutputReadLine()
+                                                 _ffmpegProcess.BeginErrorReadLine()
+                                                 _stopwatch = Stopwatch.StartNew()
+                                                 System.Threading.Interlocked.Exchange(_stopCompleted, 0)
+                                                 SetState(CaptureState.Recording)
+                                                 RaiseEvent RecordingStarted(_outputFile)
+                                                 startOk = True
+                                             End If
                                          End If
                                      Catch ex As Exception
                                          SetState(CaptureState.HasError)
@@ -592,7 +638,13 @@ Partial Public Class CaptureEngine
                 muxProc.StartInfo = muxPsi
                 muxProc.Start()
                 If _jobGuard IsNot Nothing Then
-                    _jobGuard.Assign(muxProc)
+                    ' ★ H2: Assign now reports ownership honestly. A failed
+                    ' assignment does not abort the mux — this flow reaps the
+                    ' mux process itself (WaitForExit(60000) + Kill below), so
+                    ' an unowned mux can never outlive the stop operation.
+                    If Not _jobGuard.Assign(muxProc) Then
+                        LogDebug("[Mux] job-guard assignment failed — mux stays bounded by its own 60s timeout + kill")
+                    End If
                 End If
 
                 ' Read stdout/stderr to completion (prevents deadlock on long output)
