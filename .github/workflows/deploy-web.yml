@@ -1,0 +1,51 @@
+name: Deploy Web to gh-pages
+
+# Pushes to these branches with Web/ changes sync the site into the
+# gh-pages branch — the classic Pages source — so the live site updates
+# on every push (replaces the artifact-deploy workflow that kept
+# failing after Pages moved to branch mode).
+
+on:
+  push:
+    branches: ["Master", "Engine", "Engine-Rebuild-Stabilization"]
+    paths:
+      - 'Web/**'
+      - '.github/workflows/deploy-web.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gh-pages-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout site source (current branch)
+        uses: actions/checkout@v4
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages
+
+      - name: Sync Web/ -> gh-pages
+        run: |
+          shopt -s dotglob
+          rm -rf gh-pages/*
+          cp -r Web/* gh-pages/
+          rm -f gh-pages/desktop.ini gh-pages/_*.py
+          cd gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to deploy"
+          else
+            git commit -m "Deploy Web from ${GITHUB_SHA::7} (${{ github.ref_name }})"
+            git push
+          fi
