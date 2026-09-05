@@ -415,8 +415,13 @@ Partial Public Class UI_Engine
     Private Sub AssignChildToJob(proc As System.Diagnostics.Process)
         If _engineJobGuard IsNot Nothing AndAlso proc IsNot Nothing Then
             Try
-                _engineJobGuard.Assign(proc)
-                DebugLog($"[RecordingEngine] child → job object: {proc.ProcessName} (pid {proc.Id})")
+                ' ★ H2: Assign reports ownership honestly now — surface a
+                ' failure loudly instead of pretending the child is protected.
+                If _engineJobGuard.Assign(proc) Then
+                    DebugLog($"[RecordingEngine] child → job object: {proc.ProcessName} (pid {proc.Id})")
+                Else
+                    DebugLog($"[RecordingEngine] job assign FAILED — child left unowned: {proc.ProcessName} (pid {proc.Id})")
+                End If
             Catch ex As Exception
                 DebugLog($"[RecordingEngine] job assign failed for pid {proc.Id}: {ex.Message}")
             End Try

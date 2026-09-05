@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Engine.Concurrency.Tests</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Engine.Concurrency.Tests</AssemblyName>
+    <Description>H1/H2 regression tests — Dispose-during-Start orphan contract, Start-during-Muxing lifecycle guard, repeated Start/Stop/Dispose stress (real ffmpeg)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The legacy two-process engine under test: CaptureEngine +
+         JobObjectGuard + CaptureSettings live in the NVIDIA Capture
+         (WinForms host) assembly. -->
+    <ProjectReference Include="..\Engine\NVIDIA Capture.vbproj" />
+  </ItemGroup>
+
+</Project>
