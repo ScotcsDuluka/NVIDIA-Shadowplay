@@ -15,6 +15,7 @@ Imports System.Net
 Imports System.Net.Sockets
 Imports System.Threading
 Imports System.Threading.Tasks
+Imports Newtonsoft.Json.Linq
 
 Friend Module TestRunner
     Friend _passed As Integer = 0
@@ -132,7 +133,7 @@ Friend Module ObsResilienceTests
                 Interlocked.Increment(_reconnectingCount)
             End Sub
         AddHandler client.OnEvent,
-            Sub(eventType As String, eventData As JObject3, raw As JObject3)
+            Sub(eventType As String, eventData As JObject, raw As JObject)
                 Log("event", eventType)
                 SyncLock _lock
                     If _eventCounts.ContainsKey(eventType) Then
@@ -145,10 +146,6 @@ Friend Module ObsResilienceTests
                 If tcs IsNot Nothing Then tcs.TrySetResult(eventType)
             End Sub
     End Sub
-
-    ' Alias so the Wire lambda signature matches the client's event type.
-    Private UsingJobjectAlias As Boolean = True
-    Private UsingJobjectAlias2 As Boolean = UsingJobjectAlias
 
     Private Function WaitConnected(timeoutMs As Integer) As Boolean
         Dim tcs = NewTcs()
