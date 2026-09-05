@@ -1,542 +1,776 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NVIDIA ShadowPlay — OBT3 Coming Soon</title>
-<meta name="description" content="Open-source screen capture utility inspired by NVIDIA ShadowPlay. No-Hook design, native NVENC, VB.NET + FFmpeg.">
-<link rel="stylesheet" href="CSS/index/role.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>NEXTGEN NVIDIA ShadowPlay</title>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="CSS/index/style.css?v=4">
+  <link rel="stylesheet" href="CSS/index/role.css">
+  
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="https://camo.githubusercontent.com/189f450c3c7997fd8f52d7b7278d18c04674aa747ff66745eaa21bb099ac2436/68747470733a2f2f63646e322e737465616d6772696464622e636f6d2f69636f6e2f65383835356233353238636230336431646566393830333232306264336362392f33322f34387834382e706e67">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome (for icons used in architecture/modules) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  
+  <style>
+    /* Custom Fonts */
+    @font-face {
+      font-family: 'NvidiaIcons';
+      src: url('Assets/nvgcshare.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'GeForce';
+      src: url('Assets/GeForce-Bold-Alt.woff2') format('woff2');
+      font-weight: bold;
+      font-style: normal;
+      font-display: swap;
+    }
+    
+    /* Icon Utility */
+    .icon-nvidia {
+      font-family: 'NvidiaIcons';
+      font-style: normal;
+      font-weight: normal;
+      font-variant: normal;
+      text-transform: none;
+      line-height: 1;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+  </style>
 <style>
-/* ═══════════════ REBUILD v2 — 2026-09-05 ═══════════════ */
-:root{
-  --bg:#050607; --panel:rgba(255,255,255,.028);
-  --line:rgba(255,255,255,.08); --line-g:rgba(118,185,0,.35);
-  --g:#76b900; --g2:#a3e635; --tx:#f2f4f1; --tx2:#9aa39a; --tx3:#5c655c;
-  --red:#ef4444; --yellow:#eab308; --blue:#3b82f6; --purple:#a855f7;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--tx);font-family:'Inter',-apple-system,'Segoe UI',sans-serif;
-  overflow-x:hidden;line-height:1.6}
-::selection{background:rgba(118,185,0,.35)}
-::-webkit-scrollbar{width:10px}::-webkit-scrollbar-track{background:#080908}
-::-webkit-scrollbar-thumb{background:#1e2418;border-radius:5px}
-::-webkit-scrollbar-thumb:hover{background:var(--g)}
-a{color:inherit;text-decoration:none}
-@font-face{font-family:'GeForce';src:url('Assets/GeForce-Bold-Alt.woff2') format('woff2');font-weight:700;font-display:swap}
-
-/* ── NAV ── */
-nav{position:fixed;top:0;left:0;right:0;z-index:1000;display:flex;align-items:center;
-  justify-content:space-between;padding:.9rem 4vw;
-  background:rgba(5,6,7,.72);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-  border-bottom:1px solid var(--line)}
-.nav-logo{display:flex;align-items:center;gap:.6rem;font-family:'GeForce';font-size:1.02rem;
-  letter-spacing:1.5px;color:#fff}
-.nav-logo .mark{width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,var(--g),#3d6300);
-  display:grid;place-items:center;font-size:.8rem;color:#000;font-weight:900}
-.nav-links{display:flex;gap:1.8rem;list-style:none}
-.nav-links a{font-size:.82rem;color:var(--tx2);letter-spacing:.6px;transition:color .2s}
-.nav-links a:hover{color:var(--g2)}
-.nav-obt{font-size:.7rem;letter-spacing:1.2px;color:var(--g);border:1px solid var(--line-g);
-  padding:.35rem .7rem;border-radius:99px;font-weight:700;white-space:nowrap}
-.nav-obt b{color:#fff;font-variant-numeric:tabular-nums}
-@media(max-width:920px){.nav-links{display:none}}
-
-/* ── HERO ── */
-.hero{min-height:100svh;display:flex;align-items:center;position:relative;padding:7rem 4vw 4rem}
-.hero-bg{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.orb{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5}
-.orb1{width:560px;height:560px;background:radial-gradient(circle,rgba(118,185,0,.28),transparent 65%);
-  top:-15%;right:-8%;animation:drift 14s ease-in-out infinite alternate}
-.orb2{width:420px;height:420px;background:radial-gradient(circle,rgba(59,130,246,.14),transparent 65%);
-  bottom:-10%;left:-6%;animation:drift 18s ease-in-out infinite alternate-reverse}
-@keyframes drift{to{transform:translate(60px,40px) scale(1.08)}}
-.gridlines{position:absolute;inset:0;
-  background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);
-  background-size:56px 56px;
-  mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 30%,transparent 75%);
-  -webkit-mask-image:radial-gradient(ellipse 90% 70% at 50% 30%,#000 30%,transparent 75%)}
-.hero-in{position:relative;max-width:1200px;margin:0 auto;width:100%}
-.hero-badge{display:inline-flex;align-items:center;gap:.5rem;font-size:.72rem;letter-spacing:2.5px;
-  color:var(--g2);border:1px solid var(--line-g);border-radius:99px;padding:.45rem 1rem;
-  background:rgba(118,185,0,.06);margin-bottom:1.6rem}
-.hero-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--g);animation:pulse 1.6s ease infinite}
-@keyframes pulse{50%{opacity:.25;transform:scale(.8)}}
-h1.hero-title{font-family:'GeForce';font-size:clamp(2.6rem,7vw,5.2rem);line-height:1.02;
-  letter-spacing:1px;color:#fff}
-h1.hero-title .grad{background:linear-gradient(92deg,var(--g) 10%,var(--g2) 55%,#fff 95%);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.hero-sub{margin-top:1.1rem;font-size:clamp(1rem,2vw,1.25rem);color:var(--tx2);max-width:620px}
-.hero-sub b{color:var(--tx)}
-
-/* ── COUNTDOWN ── */
-.cd{margin-top:2.4rem;display:inline-block;padding:1.4rem 1.7rem;border-radius:18px;
-  background:linear-gradient(160deg,rgba(118,185,0,.09),rgba(255,255,255,.02) 55%);
-  border:1px solid var(--line-g);box-shadow:0 0 50px rgba(118,185,0,.1);position:relative;overflow:hidden}
-.cd::before{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;
-  background:linear-gradient(100deg,transparent,rgba(118,185,0,.12),transparent);
-  animation:sheen 5s ease-in-out infinite}
-@keyframes sheen{0%,55%{left:-70%}100%{left:135%}}
-.cd-head{display:flex;align-items:center;gap:.65rem;margin-bottom:1rem;flex-wrap:wrap}
-.cd-tag{background:var(--g);color:#000;font-size:.68rem;font-weight:900;letter-spacing:1.8px;
-  padding:.22rem .6rem;border-radius:5px}
-.cd-title{font-family:'GeForce';letter-spacing:1.6px;font-size:1.02rem;color:#fff}
-.cd-sub{font-size:.78rem;color:var(--tx2);font-style:italic}
-.cd-grid{display:flex;align-items:center;gap:.5rem}
-.cd-cell{display:flex;flex-direction:column;gap:.3rem}
-.cd-num{font-family:'GeForce';font-variant-numeric:tabular-nums;font-size:clamp(1.7rem,4vw,2.6rem);
-  font-weight:800;color:var(--g);min-width:2.6em;text-align:center;padding:.28em .12em;border-radius:12px;
-  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(0,0,0,.5));
-  border:1px solid rgba(118,185,0,.4);text-shadow:0 0 20px rgba(118,185,0,.6);transition:transform .15s}
-.cd-num.tick{transform:translateY(-3px);text-shadow:0 0 30px rgba(118,185,0,1)}
-.cd-lbl{font-size:.58rem;letter-spacing:2.4px;color:var(--tx3);text-align:center}
-.cd-sep{font-family:'GeForce';font-size:1.7rem;color:rgba(118,185,0,.65);padding-bottom:1.15rem;
-  animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:.2}}
-.cd-bar{height:5px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:1.05rem;overflow:hidden}
-.cd-fill{height:100%;width:0%;border-radius:99px;background:linear-gradient(90deg,#3d6300,var(--g),var(--g2));
-  box-shadow:0 0 14px rgba(118,185,0,.8);transition:width 1s linear}
-.cd-meta{display:flex;justify-content:space-between;gap:.8rem;flex-wrap:wrap;margin-top:.55rem;
-  font-size:.66rem;letter-spacing:1.2px;color:var(--tx3)}
-.cd-meta .tgt{color:var(--g);font-weight:700}
-.cd-meta .live{animation:blink 2.2s ease infinite}
-
-/* ── CTAs ── */
-.cta-row{display:flex;gap:1rem;margin-top:2.4rem;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:.55rem;padding:.95rem 1.9rem;border-radius:12px;
-  font-weight:700;font-size:.92rem;letter-spacing:.4px;transition:all .25s;border:1px solid transparent}
-.btn-g{background:linear-gradient(135deg,var(--g),#5c9400);color:#050607;
-  box-shadow:0 8px 30px rgba(118,185,0,.35)}
-.btn-g:hover{transform:translateY(-2px);box-shadow:0 12px 40px rgba(118,185,0,.5)}
-.btn-o{border-color:var(--line);color:var(--tx);background:rgba(255,255,255,.03)}
-.btn-o:hover{border-color:var(--line-g);color:var(--g2);transform:translateY(-2px)}
-
-/* ── TICKER ── */
-.ticker{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:.85rem 0;
-  overflow:hidden;background:rgba(255,255,255,.015);white-space:nowrap}
-.ticker-in{display:inline-block;animation:mq 26s linear infinite}
-.ticker span{font-size:.72rem;letter-spacing:2.2px;color:var(--tx2);margin:0 1.6rem}
-.ticker b{color:var(--g)}
-@keyframes mq{to{transform:translateX(-50%)}}
-
-/* ── SECTIONS ── */
-section{padding:6.5rem 4vw;position:relative}
-.wrap{max-width:1200px;margin:0 auto}
-.sec-head{text-align:center;margin-bottom:3.4rem}
-.sec-label{font-size:.7rem;letter-spacing:3.5px;color:var(--g);font-weight:700}
-.sec-title{font-family:'GeForce';font-size:clamp(1.9rem,4.4vw,3rem);color:#fff;margin:.5rem 0 .4rem}
-.sec-desc{color:var(--tx2);font-size:.95rem}
-
-/* reveal */
-.rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s ease}
-.rv.on{opacity:1;transform:none}
-
-/* ── CARDS ── */
-.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:1.3rem}
-.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:1.7rem;
-  transition:transform .3s,border-color .3s,box-shadow .3s}
-.card:hover{transform:translateY(-5px);border-color:var(--line-g);box-shadow:0 16px 44px rgba(0,0,0,.45)}
-.card h3{font-size:1.06rem;color:#fff;margin-bottom:.55rem;display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.card p{font-size:.87rem;color:var(--tx2)}
-.card p b{color:var(--tx)}
-@media(max-width:860px){.g3{grid-template-columns:1fr}}
-
-/* badges */
-.bdg{font-size:.6rem;font-weight:800;letter-spacing:1.6px;padding:.2rem .55rem;border-radius:5px;font-family:'Inter'}
-.b-ready{background:rgba(118,185,0,.16);color:var(--g2);border:1px solid rgba(118,185,0,.4)}
-.b-dev{background:rgba(234,179,8,.14);color:var(--yellow);border:1px solid rgba(234,179,8,.4)}
-.b-part{background:rgba(59,130,246,.14);color:#7fb0ff;border:1px solid rgba(59,130,246,.4)}
-.b-soon{background:rgba(168,85,247,.14);color:#c99df7;border:1px solid rgba(168,85,247,.4)}
-.b-red{background:rgba(239,68,68,.14);color:#ff8585;border:1px solid rgba(239,68,68,.4)}
-
-/* ── SHOWCASE ── */
-.show{display:grid;grid-template-columns:1.1fr 1fr;gap:3rem;align-items:center}
-.show img{width:100%;border-radius:16px;border:1px solid var(--line-g);
-  box-shadow:0 24px 70px rgba(0,0,0,.55),0 0 60px rgba(118,185,0,.08)}
-.show h2{font-family:'GeForce';font-size:clamp(1.7rem,3.6vw,2.6rem);color:#fff;line-height:1.1}
-.show ul{list-style:none;margin-top:1.4rem;display:grid;gap:.7rem}
-.show li{color:var(--tx2);font-size:.93rem;padding-left:1.4rem;position:relative}
-.show li::before{content:"▸";position:absolute;left:0;color:var(--g)}
-@media(max-width:860px){.show{grid-template-columns:1fr}}
-
-/* ── ARCH ── */
-.arch{display:grid;grid-template-columns:repeat(4,1fr);gap:1.1rem;counter-reset:ar}
-.arch .card{position:relative;padding-top:2.4rem}
-.arch .card::before{counter-increment:ar;content:"0" counter(ar);position:absolute;top:1.2rem;left:1.7rem;
-  font-family:'GeForce';font-size:.95rem;color:var(--g);opacity:.75}
-.arch .card h3{margin-top:.4rem;font-size:.98rem}
-@media(max-width:1100px){.arch{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:640px){.arch{grid-template-columns:1fr}}
-
-/* ── REQUIREMENTS ── */
-.req{display:grid;grid-template-columns:repeat(3,1fr);gap:1.3rem}
-@media(max-width:960px){.req{grid-template-columns:1fr}}
-.chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}
-.chip{font-size:.72rem;padding:.32rem .7rem;border-radius:7px;border:1px solid var(--line);
-  color:var(--tx2);background:rgba(255,255,255,.02)}
-.chip.ok{color:var(--g2);border-color:rgba(118,185,0,.35);background:rgba(118,185,0,.06)}
-.chip.no{color:#ff8585;border-color:rgba(239,68,68,.35);background:rgba(239,68,68,.06)}
-
-/* ── DOWNLOAD ── */
-.dl{display:grid;grid-template-columns:1fr 1fr;gap:1.3rem}
-.dl .card{display:flex;flex-direction:column;gap:.7rem}
-.dl .card:hover{border-color:var(--line-g)}
-.dl .ver{font-family:'GeForce';font-size:1.5rem;color:#fff}
-.dl .tag{font-size:.62rem;font-weight:800;letter-spacing:1.8px;padding:.25rem .6rem;border-radius:5px;align-self:flex-start}
-.dl p{flex:1}
-@media(max-width:860px){.dl{grid-template-columns:1fr}}
-
-/* ── TEAM ── */
-.team{display:grid;grid-template-columns:repeat(3,1fr);gap:1.3rem}
-@media(max-width:860px){.team{grid-template-columns:1fr}}
-.team .card{text-align:center}
-.team img{width:84px;height:84px;border-radius:50%;object-fit:cover;border:2px solid var(--line-g);
-  box-shadow:0 0 26px rgba(118,185,0,.25)}
-.team .nm{color:#fff;font-weight:700;margin-top:.9rem}
-.team .role{font-size:.78rem;color:var(--g2);letter-spacing:1px;margin-top:.15rem}
-.team .tags{display:flex;gap:.4rem;justify-content:center;flex-wrap:wrap;margin-top:.8rem}
-
-/* ── FAQ ── */
-.faq{max-width:820px;margin:0 auto;display:grid;gap:.8rem}
-.fq{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden;transition:border-color .25s}
-.fq.open{border-color:var(--line-g)}
-.fq button{width:100%;background:none;border:0;color:#fff;font-size:.95rem;font-weight:600;
-  padding:1.15rem 1.4rem;text-align:left;display:flex;justify-content:space-between;gap:1rem;
-  cursor:pointer;font-family:inherit}
-.fq button .ic{color:var(--g);transition:transform .3s;font-size:1.15rem}
-.fq.open button .ic{transform:rotate(45deg)}
-.fq .a{max-height:0;overflow:hidden;transition:max-height .35s ease,color .35s ease,color var(--tx2);
-  color:var(--tx2);font-size:.88rem;padding:0 1.4rem}
-.fq.open .a{padding:0 1.4rem 1.15rem}
-
-/* ── FOOTER ── */
-footer{border-top:1px solid var(--line);padding:2.6rem 4vw;text-align:center;color:var(--tx3);font-size:.8rem}
-footer .fl{display:flex;gap:1.6rem;justify-content:center;margin-bottom:1rem;flex-wrap:wrap}
-footer a{color:var(--tx2)}footer a:hover{color:var(--g2)}
-
-/* click ripple */
-.ripple{position:fixed;width:14px;height:14px;border-radius:50%;border:2px solid var(--g);
-  pointer-events:none;z-index:9999;animation:rip .55s ease-out forwards;transform:translate(-50%,-50%)}
-@keyframes rip{to{width:90px;height:90px;opacity:0}}
-@media (hover:none),(pointer:coarse){.ripple{display:none}}
+/* ═══ OBT3 COUNTDOWN ═══ */
+.obt3-banner{margin-top:2.2rem;max-width:760px;padding:1.6rem 2rem;border-radius:18px;
+  background:linear-gradient(145deg,rgba(118,185,0,.12),rgba(10,10,10,.85) 45%,rgba(118,185,0,.07));
+  border:1px solid rgba(118,185,0,.35);box-shadow:0 0 42px rgba(118,185,0,.18),inset 0 0 30px rgba(118,185,0,.05);
+  backdrop-filter:blur(8px);position:relative;overflow:hidden}
+.obt3-banner::before{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+  background:linear-gradient(100deg,transparent,rgba(118,185,0,.14),transparent);
+  animation:obt3-sheen 4.5s ease-in-out infinite}
+@keyframes obt3-sheen{0%,60%{left:-60%}100%{left:130%}}
+.obt3-head{display:flex;align-items:baseline;gap:.7rem;flex-wrap:wrap;margin-bottom:1rem}
+.obt3-tag{font-family:'GeForce','Inter',sans-serif;font-size:.75rem;letter-spacing:2px;color:#0a0a0a;
+  background:#76b900;padding:.18rem .55rem;border-radius:5px;font-weight:800}
+.obt3-title{font-family:'GeForce','Inter',sans-serif;font-size:1.15rem;letter-spacing:1.5px;color:#fff;font-weight:700}
+.obt3-sub{font-size:.85rem;color:rgba(255,255,255,.55);font-style:italic}
+.obt3-timer{display:flex;align-items:center;gap:.55rem;justify-content:flex-start;margin-bottom:1rem}
+.obt3-cell{display:flex;flex-direction:column;align-items:center;gap:.25rem}
+.obt3-flip{font-family:'GeForce','Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:2.5rem;font-weight:800;
+  min-width:3.4em;text-align:center;padding:.35em .2em;color:#76b900;border-radius:12px;
+  background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(0,0,0,.55));
+  border:1px solid rgba(118,185,0,.4);
+  text-shadow:0 0 18px rgba(118,185,0,.65),0 0 46px rgba(118,185,0,.3);
+  transition:transform .18s ease,text-shadow .3s ease;position:relative}
+.obt3-flip::after{content:"";position:absolute;left:8%;right:8%;top:50%;height:1px;background:rgba(118,185,0,.22)}
+.obt3-flip.obt3-tick{transform:translateY(-3px) scale(1.045);text-shadow:0 0 26px rgba(118,185,0,.95),0 0 70px rgba(118,185,0,.5)}
+.obt3-label{font-size:.6rem;letter-spacing:2.4px;color:rgba(255,255,255,.45);font-family:'Inter',sans-serif}
+.obt3-colon{font-size:1.9rem;color:rgba(118,185,0,.7);font-weight:800;animation:obt3-blink 1s steps(1) infinite;padding-bottom:1.1rem}
+@keyframes obt3-blink{50%{opacity:.25}}
+.obt3-progress{height:5px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-bottom:.5rem}
+.obt3-progress-fill{height:100%;width:0%;border-radius:99px;
+  background:linear-gradient(90deg,#3d6300,#76b900,#a3e635);
+  box-shadow:0 0 12px rgba(118,185,0,.8);transition:width 1s linear}
+.obt3-meta{display:flex;justify-content:space-between;gap:.8rem;flex-wrap:wrap;font-size:.68rem;letter-spacing:1px;color:rgba(255,255,255,.5)}
+.obt3-target{font-weight:700;color:rgba(118,185,0,.85)}
+.obt3-live{color:#76b900;animation:obt3-blink 2s ease infinite}
+@media(max-width:640px){.obt3-flip{font-size:1.6rem;min-width:2.6em}.obt3-colon{font-size:1.2rem;padding-bottom:.7rem}.obt3-banner{padding:1.2rem 1.3rem}}
 </style>
 </head>
-<body>
+<body class="custom-cursor-active">
+  
+  <!-- Custom Cursor Elements -->
+  <div class="custom-cursor" id="cursor"></div>
+  <div class="cursor-dot" id="cursorDot"></div>
+  
+  <!-- Background Particles & Scroll Progress -->
+  <canvas id="particles-canvas"></canvas>
+  <div class="scroll-progress" id="scrollProgress"></div>
 
-<nav>
-  <a class="nav-logo" href="#top"><span class="mark">▶</span>NVIDIA SHADOWPLAY</a>
-  <ul class="nav-links">
-    <li><a href="#features">Features</a></li>
-    <li><a href="#status">Status</a></li>
-    <li><a href="#architecture">Architecture</a></li>
-    <li><a href="#requirements">Requirements</a></li>
-    <li><a href="#download">Download</a></li>
-    <li><a href="#faq">FAQ</a></li>
-  </ul>
-  <span class="nav-obt">OBT3 IN <b id="navCd">--:--</b></span>
-</nav>
-
-<!-- ═══ HERO ═══ -->
-<header class="hero" id="top">
-  <div class="hero-bg">
-    <div class="orb orb1"></div><div class="orb orb2"></div><div class="gridlines"></div>
+  <!-- ==================== NAVIGATION ==================== -->
+  <nav class="main-nav">
+    <a href="#" class="nav-brand" style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+      <span class="hero-badge animate-fade-up">OPEN SOURCE PROJECT</span>
+    </a>
+    <ul class="nav-menu">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#api-specs">API Capture</a></li>
+      <li><a href="#requirements">Requirements</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#faq">FAQ</a></li>
+      <li><a href="#team">Team</a></li>
+      <li><a target="_blank" href="https://discord.gg/v5qUGVD3jZ">Discord Server</a></li>
+    </ul>
+    <button class="hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+  
+  <!-- Mobile Menu -->
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#features">Features</a>
+    <a href="#api-specs">API Capture</a>
+    <a href="#requirements">Requirements</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#faq">FAQ</a>
+    <a href="#team">Team</a>
+    <a target="_blank" href="https://discord.gg/v5qUGVD3jZ">Discord Server</a>
   </div>
-  <div class="hero-in">
-    <span class="hero-badge"><span class="dot"></span>OPEN SOURCE · VB.NET + FFmpeg · NO-HOOK</span>
-    <h1 class="hero-title">NVIDIA <span class="grad">ShadowPlay</span></h1>
-    <p class="hero-sub">Capture every moment. <b>Zero latency. Zero compromise.</b><br>
-      An open-source screen-capture utility rebuilt around one idea — the hardware is the clock.</p>
 
-    <!-- OBT3 COUNTDOWN -->
-    <div class="cd" id="cd">
-      <div class="cd-head">
-        <span class="cd-tag">NEXT</span>
-        <span class="cd-title">OBT3 — OPEN BETA TEST</span>
-        <span class="cd-sub">a new era of ShadowPlay is coming</span>
-      </div>
-      <div class="cd-grid">
-        <div class="cd-cell"><div class="cd-num" id="cdD">00</div><div class="cd-lbl">DAYS</div></div>
-        <div class="cd-sep">:</div>
-        <div class="cd-cell"><div class="cd-num" id="cdH">00</div><div class="cd-lbl">HOURS</div></div>
-        <div class="cd-sep">:</div>
-        <div class="cd-cell"><div class="cd-num" id="cdM">00</div><div class="cd-lbl">MINUTES</div></div>
-        <div class="cd-sep">:</div>
-        <div class="cd-cell"><div class="cd-num" id="cdS">00</div><div class="cd-lbl">SECONDS</div></div>
-      </div>
-      <div class="cd-bar"><div class="cd-fill" id="cdFill"></div></div>
-      <div class="cd-meta">
-        <span id="cdPct">0%</span>
-        <span class="tgt">LAUNCH · SEP 5, 2026 · 23:30 (GMT+7)</span>
-        <span class="live">● LIVE COUNTDOWN</span>
+  <!-- ==================== HERO SECTION ==================== -->
+  <section class="hero-section animated-gradient-bg" id="hero">
+    <div class="hero-container">
+      <div style="position: relative; z-index: 1;">
+        <h1 class="hero-title animate-fade-up delay-1">NVIDIA ShadowPlay</h1>
+        <h2 class="animated-text-gradient">Capture Every Moment</h2>
+        <h3 class="animated-text-gradient">Zero latency. Zero compromise. Built for performance.</h3>
+        <!-- ═══ OBT3 COUNTDOWN — 2026-09-05 23:30 ═══ -->
+        <div id="obt3-banner" class="obt3-banner animate-fade-up delay-3">
+          <div class="obt3-head">
+            <span class="obt3-tag">NEXT</span>
+            <span class="obt3-title">OBT3 — OPEN BETA TEST</span>
+            <span class="obt3-sub">A new era of ShadowPlay is coming</span>
+          </div>
+          <div class="obt3-timer" id="obt3Timer" aria-live="polite">
+            <div class="obt3-cell"><div class="obt3-flip" id="cdDays">00</div><div class="obt3-label">DAYS</div></div>
+            <div class="obt3-colon">:</div>
+            <div class="obt3-cell"><div class="obt3-flip" id="cdHours">00</div><div class="obt3-label">HOURS</div></div>
+            <div class="obt3-colon">:</div>
+            <div class="obt3-cell"><div class="obt3-flip" id="cdMins">00</div><div class="obt3-label">MINUTES</div></div>
+            <div class="obt3-colon">:</div>
+            <div class="obt3-cell"><div class="obt3-flip" id="cdSecs">00</div><div class="obt3-label">SECONDS</div></div>
+          </div>
+          <div class="obt3-progress"><div class="obt3-progress-fill" id="obt3Fill"></div></div>
+          <div class="obt3-meta"><span id="obt3Pct">0%</span><span class="obt3-target">LAUNCH · SEP 5, 2026 · 23:30 (GMT+7)</span><span class="obt3-live">● LIVE COUNTDOWN</span></div>
+        </div>
+        <!-- /OBT3 COUNTDOWN -->
+
+        <br>
+        
+        <div class="hero-cta-group animate-fade-up delay-5">
+          <a href="#download-section" class="btn-primary magnetic-btn">Download for Windows</a>
+             </div>
+
+        <!-- In-game Overlay Card -->
+        <div class="feature-card animate-scale delay-4 tilt-card" style="grid-column: span 3; background: linear-gradient(135deg, rgba(120,184,2,0.15), var(--nvidia-gray-dark)); padding: 0; overflow: hidden;">
+          <div class="overlay-card-inner" style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: center;">
+            <!-- Left: Text Content -->
+            <div style="padding: 2.5rem;">
+              <div class="title-row">
+                <span class="card-status" style="font-family: 'GeForce', 'Inter', sans-serif; letter-spacing: 1.3px; font-size: 1.5rem;">Game Ready</span>
+                <h3 style="font-size: 2.4rem;">In-game Overlay</h3>
+                <br>
+              </div>
+              <div class="desc-row">
+                <span class="card-icon icon-nvidia" style="font-size: 5rem;"></span>
+                <p style="font-size: 1.1rem;">Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.</p>
+              </div>
+              <ul style="list-style: none; margin-top: 1.5rem;">
+                <li style="padding: 0.5rem 0;">- Borderless Windowed Design</li>
+                <li style="padding: 0.5rem 0;">- Real-time Performance Checked</li>
+                <li style="padding: 0.5rem 0;">- Keyboard Shortcut Access</li>
+                <li style="padding: 0.5rem 0; list-style: none;">
+                  <a href="games.html" class="game-see" style="color: #76B900; text-decoration: none; font-weight: 600;">- View Supported Games</a>
+                </li>
+              </ul>
+            </div>
+            <!-- Right: Image -->
+            <div style="position: relative; display: flex; justify-content: center; align-items: center; padding: 2rem;">
+              <div style="position: absolute; width: 350px; height: 250px; background: radial-gradient(ellipse, rgba(120, 184, 2, 0.15) 0%, transparent 70%); filter: blur(40px);"></div>
+              <img src="Assets/overlay.png" alt="In-game Overlay UI" style="width: 100%; max-width: 700px; height: auto; position: relative; z-index: 1;">
+            </div>
+          </div>
+        </div>
       </div>
     </div>
+  </section>
 
-    <div class="cta-row">
-      <a href="#download" class="btn btn-g">Download for Windows ↓</a>
-      <a href="games.html" class="btn btn-o">Supported Games</a>
-      <a href="https://discord.gg/v5qUGVD3jZ" target="_blank" class="btn btn-o">Join Discord</a>
+  <!-- Anchor for download section -->
+  <div id="download-section"></div>
+
+  <!-- ==================== FEATURES & DOWNLOAD ==================== -->
+  <section id="features" style="background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%); padding: 8rem 3rem;">
+    <div class="container">
+      <span class="section-label">DOWNLOAD NVIDIA SHADOWPLAY</span>
+      
+      <!-- Release Card -->
+      <div class="feature-card animate-scale delay-0 tilt-card" style="grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+        <div class="title-row" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="card-status">Release</span>
+            <h3 style="font-size: 2rem; margin: 0;">NVIDIA ShadowPlay</h3>
+            <span class="status-badge status-ready">3.3.2057.1</span>
+            <span class="status-badge status-partial">Windows x64 bit</span>
+            <span class="status-badge status-soon">App + Runtime + Resources</span>
+          </div>
+        </div>
+     <div class="desc-row" style="margin-top: 1.5rem;">
+  <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe" class="btn-primary magnetic-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px; vertical-align: middle;">
+      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+    </svg>
+    Download Installer
+  </a>
+  <p style="margin-left: 1.5rem;">
+    This stable release of NVIDIA ShadowPlay is built for smooth and reliable everyday use, delivering high-performance<br>recording with minimal impact on gameplay.
+  </p>
+</div>
+      </div>
+
+      <!-- Pre-Release Card -->
+      <div class="feature-card animate-scale delay-0 tilt-card" style="margin-top: 1.5rem; grid-column: span 5; grid-row: span 2; background: linear-gradient(135deg, rgba(255, 174, 0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+        <div class="title-row" style="display: flex; justify-content: space-between; align-items: center; gap: 1rem;">
+          <div style="display: flex; align-items: center; gap: 1rem;">
+            <span class="card-status" style="background: #ffae00;">Pre-Release</span>
+            <h3 style="font-size: 2rem; margin: 0;">NVIDIA ShadowPlay</h3>
+            <span class="status-badge status-ready">3.35.2542.30</span>
+            <span class="status-badge status-partial">Windows x64 bit + Experimental</span>
+            <span class="status-badge status-soon">App + Runtime + Resources</span>
+          </div>
+        </div>
+        <div class="desc-row" style="margin-top: 1.5rem;">
+          <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.35.2542.30-PRE/NVIDIA.ShadowPlay.3.35.2542.30-PRE.exe" class="btn-primary magnetic-btn">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px; vertical-align: middle;">
+      <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+    </svg>
+    Download Installer
+  </a>
+          <p style="margin-left: 1.5rem;">
+            This experimental build provides early access to new features and ongoing improvements.<br> 
+            While it offers the latest updates and faster iteration,<br>it may include bugs and is recommended for advanced users who want to test upcoming changes.
+          </p>
+        </div>
+      </div>
+
+      <br><br><br><br>
+
+      <!-- Features Overview Header -->
+      <div class="section-header">
+        <span class="section-label">Features Overview</span>
+        <h2 class="section-title">Capture Your Best Moments</h2>
+        <p class="section-subtitle">Professional-grade features inspired by NVIDIA ShadowPlay</p>
+      </div>
+      
+      <!-- Bento Grid Features -->
+      <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 2rem;" class="bento-grid">
+        
+        <!-- Real-time Screen Recording -->
+        <div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 2; background: linear-gradient(135deg, rgba(118,185,0,0.1), var(--nvidia-gray-dark)); padding: 3rem;">
+          <div class="title-row">
+            <span class="card-status">FEATURED</span>
+            <h3 style="font-size: 2rem;">Real-time Screen Recording</h3>
+          </div>
+          <div class="desc-row">
+            <span class="card-icon icon-nvidia" style="font-size: 5rem;"></span>
+            <p>Record your gameplay or desktop in real time.<br>High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.</p>
+          </div>
+          <ul style="list-style: none; margin-top: 1.5rem;">
+            <li style="padding: 0.5rem 0;">- Hardware-accelerated encoding</li>
+            <li style="padding: 0.5rem 0;">- Low CPU Usage</li>
+            <li style="padding: 0.5rem 0;">- Supports multiple formats</li>
+          </ul>
+        </div>
+        
+        <!-- Instant Replay -->
+        <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
+          <div class="title-row"><span class="card-status" style="background:#EAB308;color:#111;">IN&nbsp;DEV</span><h3>Instant Replay</h3></div>
+          <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Automatically capture and save the last minutes of your gameplay with a single click. <strong>Buffer engine is under active development</strong> — not yet in the current build.</p></div>
+        </div>
+        
+        <!-- Screenshot -->
+        <div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
+          <div class="title-row"><span class="card-status" style="background:#EAB308;color:#111;">IN&nbsp;DEV</span><h3>Screenshot</h3></div>
+          <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly. <strong>Under active development</strong> — not yet in the current build.</p></div>
+        </div>
+        
+        <!-- No-Hook Architecture -->
+        <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.1), var(--nvidia-gray-dark));">
+          <span class="card-status" style="background: #EF4444; color: white;">SAFE</span>
+          <span class="card-icon icon-nvidia"><br></span>
+          <h3>No-Hook Architecture</h3>
+          <p>Safe and secure by design. No memory injection, no hooks — just pure stability.</p>
+        </div>
+        
+        <!-- Hardware Acceleration -->
+        <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 2;">
+          <span class="card-status">FAST</span>
+           <span class="card-icon icon-nvidia"><br></span>
+          <h3>NVIDIA Hardware Acceleration</h3>
+          <p>Fully optimized with NVIDIA NVENC via FFmpeg. Fast, efficient, and reliable GPU-based encoding.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== API CAPTURE & SPECS ==================== -->
+  <section id="api-specs" style="padding: var(--section-padding); background: var(--nvidia-dark-bg);">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-label">Encoder & Capture</span>
+        <p class="section-subtitle">Modern capture APIs + hardware encoder status</p>
+      </div>
+      
+      <h2 class="section-title">Encoder Support</h2>
+      <div class="api-cards-grid">
+        <!-- NVENC -->
+        <div class="api-spec-card">
+          <div class="card-header">
+            <div class="card-title-icon"><h3 class="underline-effect">NVIDIA NVENC</h3></div>
+            <span class="status-badge status-ready">Ready</span>
+          </div>
+          <p>Native in-app GPU encoding (production path): H.264 CBR/CFR, zero-copy D3D11 texture submission, proven stable in long-run stress tests.</p>
+        </div>
+        <!-- Intel QSV -->
+        <div class="api-spec-card">
+          <div class="card-header">
+            <div class="card-title-icon"><h3 class="underline-effect">Intel QSV</h3></div>
+            <span class="status-badge status-partial">Partial</span>
+          </div>
+          <p>Intel QuickSync available through the FFmpeg engine path (hwmap derive_device=qsv) — validated on Intel hardware, experimental.</p>
+        </div>
+        <!-- AMD AMF -->
+        <div class="api-spec-card">
+          <div class="card-header">
+            <div class="card-title-icon"><h3 class="underline-effect">AMD AMF</h3></div>
+            <span class="status-badge status-soon">Soon</span>
+          </div>
+          <p>AMD Advanced Media Framework encoder on roadmap.</p>
+        </div>
+      </div>
+      
+      <br>
+      <h2 class="section-title">API Capture</h2>
+      <div>
+        <!-- Windows.Graphics.Capture -->
+        <div class="api-spec-card">
+          <div class="card-header">
+            <div class="card-title-icon"><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
+            <span class="status-badge status-partial">Partial</span>
+          </div>
+          <p>Modern Windows 10/11 API via the FFmpeg engine (gfxcapture). Native overlay path still uses Desktop Duplication — WGC slot in the overlay menu is coming.</p>
+        </div>
+        <!-- Desktop Duplication API -->
+        <div class="api-spec-card">
+          <div class="card-header">
+            <div class="card-title-icon"><h3 class="underline-effect">Desktop Duplication API</h3></div>
+            <span class="status-badge status-recommended">Recommended</span>
+          </div>
+          <p>The production capture path (native engine, zero-copy D3D11). Minimal latency, captures exclusive fullscreen (with limitations).</p>
+        </div>
+      <div class="api-spec-card">
+          <div class="card-header">
+            <div class="card-title-icon"><h3 class="underline-effect">GDI Screen Grabber</h3></div>
+            <span class="status-badge status-partial">Partial</span>
+          </div>
+          <p>Legacy fallback via the FFmpeg engine (gdigrab). CPU heavy — use only when needed.</p>
+        </div>
+    </div>
+  </section>
+
+      
+  </section>
+
+
+  <!-- ==================== REQUIREMENTS (NVIDIA STYLE) ==================== -->
+<section id="requirements" style="padding: var(--section-padding); background: linear-gradient(180deg, var(--nvidia-black) 0%, var(--nvidia-dark-bg) 50%, var(--nvidia-black) 100%);">
+  <div class="container">
+    <div class="section-header">
+      <span class="section-label">Prerequisites</span>
+      <h2 class="section-title">System Requirements</h2>
+      <p class="section-subtitle">Ensure your system meets these specifications for optimal recording performance</p>
+    </div>
+
+    <!-- Bento Grid Layout -->
+    <div style="max-width: var(--container-max); margin: 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem;" class="req-bento-grid">
+      
+   <!-- CRITICAL: Operating System (Spans 2 cols) -->
+<div class="feature-card animate-scale delay-1 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.08), var(--nvidia-gray-dark)); padding: 2.5rem;">
+  <div class="title-row">
+    <span class="card-status" style="background: #EF4444;">CRITICAL</span>
+    <h3 style="font-size: 1.6rem;">Operating System</h3>
+  </div>
+  <div class="desc-row">
+   
+    <div>
+      <p style="margin-bottom: 1rem;"><strong style="color: var(--text-white);">Windows 10 (19045+) / Windows 11</strong><br>(64-bit — the app targets .NET 10, older Windows including 8/7/Vista/XP are not supported)</p>
+      <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
+        <span class="status-badge status-ready">Windows 11</span>
+        <span class="status-badge status-ready">Windows 10</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 8.1</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 8</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2022</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2019</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2016</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2012 R2</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2012</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 7</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows Vista</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows XP</span>
+      </div>
     </div>
   </div>
-</header>
+</div>
 
-<!-- ticker -->
-<div class="ticker"><div class="ticker-in" id="ticker"></div></div>
+<!-- Runtime Dependencies   
+<a class="btn-primary" style="padding: 0.7rem 1.5rem; font-size: 0.9rem; display: inline-flex;"></a>
 
-<!-- ═══ FEATURES ═══ -->
-<section id="features">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">FEATURES</span>
-      <h2 class="sec-title">What It Does</h2>
-      <p class="sec-desc">Real capabilities of the current build — nothing exaggerated</p></div>
-    <div class="g3">
-      <div class="card rv"><h3>Real-time Screen Recording <span class="bdg b-ready">READY</span></h3>
-        <p><b>60 FPS CFR</b> desktop capture with native NVENC H.264 — zero-copy GPU path, proven stable in multi-minute stress runs.</p></div>
-      <div class="card rv"><h3>In-game Overlay <span class="bdg b-ready">READY</span></h3>
-        <p>Borderless <b>Alt+Z</b> overlay with record controls, global hotkeys and live settings — no injection, anti-cheat friendly.</p></div>
-      <div class="card rv"><h3>System Audio <span class="bdg b-ready">READY</span></h3>
-        <p>WASAPI loopback armed on the <b>same QPC timeline</b> as video. Honest drop accounting — silence and loss are never faked.</p></div>
-      <div class="card rv"><h3>Instant Replay <span class="bdg b-dev">IN DEV</span></h3>
-        <p>Automatically save the last minutes of gameplay with one click. <b>Buffer engine under active development</b> — not in the current build.</p></div>
-      <div class="card rv"><h3>Screenshot <span class="bdg b-dev">IN DEV</span></h3>
-        <p>Crisp full-res screenshots on hotkey. <b>Under active development</b> — not yet in the current build.</p></div>
-      <div class="card rv"><h3>No-Hook Architecture <span class="bdg b-ready">SAFE</span></h3>
-        <p>No memory injection, no hooks — pure capture APIs only. Built for stability and anti-cheat compatibility.</p></div>
+ -->
+<div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(168,85,247,0.08), var(--nvidia-gray-dark));">
+  <div class="title-row">
+    <span class="card-status" style="background: #A855F7;">REQUIRED</span>   <span class="status-badge status-ready">This is a separate package. We've already included it in the Release version.</span>
+  </div>
+  
+  <div class="desc-row" style="display: flex; align-items: center; gap: 0.8rem;">
+     
+ 
+
+  <div style="display: flex; gap: 1rem; margin-top: 0.3rem;">
+<a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/REQUIRED/64bit.runtime.exe" class="btn-primary" style="padding: 0.7rem 1.5rem; font-size: 0.9rem; display: inline-flex;">Download</a>
+  </div>
+
+    <p>
+      <strong style="color: var(--text-white);">.NET Desktop Runtime 10</strong><br>The app targets .NET 10 — install the .NET Desktop Runtime 10 (x64) if the installer doesn't already provide it.
+    </p>
+  </div>
+  
+
+
+
+  </div>
+
+
+
+
+
+      <!-- CAUTION: DRM Warning (Spans full width) -->
+      <div class="feature-card animate-scale delay-5 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(239,68,68,0.05), var(--nvidia-gray-dark));">
+        <div class="title-row">
+          <span class="card-status" style="background: #EF4444;">CAUTION</span>
+          <h3 style="font-size: 1.5rem;">Known Limitations</h3>
+        </div>
+        <div class="desc-row">
+          <span class="card-icon"><i class="fas fa-shield-alt" style="font-size: 3rem; color: #EF4444;"></i></span>
+          <div style="flex: 1;">
+            <ul style="list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.8rem;">
+              <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #EF4444; color: var(--text-gray); font-size: 0.9rem;">
+                <strong style="color: #EF4444;">DRM Content :</strong> Netflix/Disney+ blocked by Windows protection
+              </li>
+              <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #F59E0B; color: var(--text-gray); font-size: 0.9rem;">
+                <strong style="color: #F59E0B;">Fullscreen :</strong> Exclusive mode not supported (no-hook design)
+              </li>
+              <li style="padding: 0.6rem 1rem; background: rgba(255,255,255,0.02); border-left: 2px solid #78B802; color: var(--text-gray); font-size: 0.9rem;">
+                <strong style="color: #78B802;">Solution :</strong> Use Borderless Windowed mode in games
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIP Card -->
+      <div class="feature-card animate-scale delay-6 tilt-card" style="grid-column: span 3; grid-row: span 1; background: linear-gradient(135deg, rgba(34,197,94,0.05), var(--nvidia-gray-dark)); border: 1px dashed rgba(34,197,94,0.3);">
+        <div class="title-row">
+          <span class="card-status" style="background: #22C55E;">TIP</span>
+          <h3 style="font-size: 1.4rem;">Performance Optimization</h3>
+        </div>
+        <div class="desc-row">
+          <span class="card-icon"><i class="fas fa-lightbulb" style="font-size: 2.5rem; color: #22C55E;"></i></span>
+          <p style="flex: 1;">For best results, use <strong style="color: #78B802;">NVIDIA hardware encoders</strong> (e.g., <code>h264_nvenc</code>) via FFmpeg at <strong style="color: var(--text-white);">1920 × 1080 resolution</strong>. This ensures minimal CPU usage and maximum recording quality.</p>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
 
-<!-- ═══ SHOWCASE ═══ -->
-<section style="background:linear-gradient(180deg,transparent,rgba(118,185,0,.03),transparent)">
-  <div class="wrap show">
-    <img src="Assets/overlay.png" alt="In-game overlay preview" class="rv">
-    <div class="rv">
-      <span class="sec-label">GAME READY</span>
-      <h2 style="margin:.5rem 0 1rem">Overlay that stays out of the way</h2>
-      <ul>
-        <li>Borderless windowed design — never breaks immersion</li>
-        <li>Real-time performance and recording status</li>
-        <li>Global hotkeys work inside any game</li>
-        <li>Engine auto-spawn + hub keep-alive — always ready to record</li>
-      </ul>
-      <div class="cta-row" style="margin-top:1.6rem">
-        <a href="#download" class="btn btn-g">Get the overlay</a>
+
+
+  <!-- ==================== ARCHITECTURE ==================== -->
+  <section id="architecture" style="padding: var(--section-padding);">
+    <div class="container">
+      <div class="section-header" style="text-align: center;">
+        <span class="section-label">Deep Dive</span>
+        <h2 class="section-title">Modular Architecture</h2>
+        <p class="section-subtitle" style="margin: 0 auto;">Each module with distinct border color — real stack components</p>
+      </div>
+      <div class="arch-modules">
+        <div class="arch-card" style="border-left-color: #78B802;">
+          <h3> CaptureEngine/</h3>
+          <p>Core contracts and configuration: IVideoBackend / IEncoderBackend seams, config pipeline, engine logger. Every producer plugs in through these seams.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #3B82F6;">
+          <h3> Capture — Ddagrab/</h3>
+          <p>Production capture: DXGI Desktop Duplication on D3D11, zero-copy GPU frames with QPC presentation timestamps from the driver.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #F59E0B;">
+          <h3> Encoder — NVENC/</h3>
+          <p>Native in-app NVENC encoder: direct function-table binding (no FFmpeg wrapper), CBR/CFR, FORCEIDR first frame, GPU texture submission.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #22C55E;">
+          <h3> Audio — WASAPI/</h3>
+          <p>Shared loopback engine armed on one common QPC timeline (T0) with video. System audio + microphone, gap-aware, honest drop accounting.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #EF4444;">
+          <h3> Live Mux — FFmpeg/</h3>
+          <p>Named-pipe live muxer: H.264 + PCM stream into ffmpeg, fragmented MP4 (crash-safe), faststart finalize, drain-until-empty stop.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #06B6D4;">
+          <h3> Overlay/</h3>
+          <p>In-game borderless overlay (Alt+Z) with record controls, hotkeys (global RegisterHotKey), settings, gallery. No-Hook for anti-cheat compatibility.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #A855F7;">
+          <h3> Hub — NVIDIA API/</h3>
+          <p>TCP hub on localhost:5000. Starts and keeps alive the whole app family (Capture, Overlay, Notifier) and carries the engine command channel.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #F97316;">
+          <h3> Two Engine Regimes/</h3>
+          <p>Duluka (native D3D11+NVENC) as production, plus an FFmpeg-engine path (ddagrab / gdigrab / gfxcapture, Intel QSV via hwmap) for wider hardware support.</p>
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ═══ STATUS ═══ -->
-<section id="status" style="background:rgba(255,255,255,.012)">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">HARDWARE &amp; APIS</span>
-      <h2 class="sec-title">Encoder &amp; Capture Status</h2>
-      <p class="sec-desc">Exactly what works today — and what's on the bench</p></div>
-
-    <div class="g3 rv" style="margin-bottom:2.6rem">
-      <div class="card"><h3>NVIDIA NVENC <span class="bdg b-ready">READY</span></h3>
-        <p>Native in-app GPU encoding (production path): H.264 CBR/CFR, zero-copy D3D11 texture submission, proven in long-run stress tests.</p></div>
-      <div class="card"><h3>Intel QSV <span class="bdg b-part">PARTIAL</span></h3>
-        <p>Intel QuickSync through the FFmpeg engine path (<b>hwmap derive_device=qsv</b>) — validated on Intel hardware, experimental.</p></div>
-      <div class="card"><h3>AMD AMF <span class="bdg b-soon">SOON</span></h3>
-        <p>AMD Advanced Media Framework encoder on the roadmap.</p></div>
-    </div>
-
-    <div class="g3 rv">
-      <div class="card"><h3>Desktop Duplication <span class="bdg b-ready">PRODUCTION</span></h3>
-        <p>The production capture path (native engine, zero-copy D3D11). Minimal latency, captures exclusive fullscreen (with limitations).</p></div>
-      <div class="card"><h3>Windows.Graphics.Capture <span class="bdg b-part">PARTIAL</span></h3>
-        <p>Modern Win10/11 API via the FFmpeg engine (gfxcapture). The native overlay path still uses Desktop Duplication — WGC slot in the overlay menu is coming.</p></div>
-      <div class="card"><h3>GDI Grabber <span class="bdg b-part">PARTIAL</span></h3>
-        <p>Legacy fallback via the FFmpeg engine (gdigrab). CPU heavy — use only when needed.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ ARCHITECTURE ═══ -->
-<section id="architecture">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">DEEP DIVE</span>
-      <h2 class="sec-title">Modular Architecture</h2>
-      <p class="sec-desc">Real stack components — each module, one job</p></div>
-    <div class="arch">
-      <div class="card rv"><h3>CaptureEngine/</h3><p>Core contracts &amp; configuration: IVideoBackend / IEncoderBackend seams, config pipeline, engine logger.</p></div>
-      <div class="card rv"><h3>Capture — Ddagrab/</h3><p>DXGI Desktop Duplication on D3D11, zero-copy GPU frames with driver QPC presentation timestamps.</p></div>
-      <div class="card rv"><h3>Encoder — NVENC/</h3><p>Native in-app NVENC: direct function-table binding, CBR/CFR, FORCEIDR first frame, GPU texture submission.</p></div>
-      <div class="card rv"><h3>Audio — WASAPI/</h3><p>Loopback engine armed on one common QPC timeline (T0) with video. System + mic, honest drop accounting.</p></div>
-      <div class="card rv"><h3>Live Mux — FFmpeg/</h3><p>Named-pipe muxer: H.264 + PCM into ffmpeg, fragmented MP4 (crash-safe), faststart, drain-until-empty stop.</p></div>
-      <div class="card rv"><h3>Overlay/</h3><p>Borderless Alt+Z overlay — record controls, global hotkeys, settings, gallery. Anti-cheat friendly.</p></div>
-      <div class="card rv"><h3>Hub — NVIDIA API/</h3><p>TCP hub on localhost:5000 — starts &amp; keeps alive the app family (Capture, Overlay, Notifier).</p></div>
-      <div class="card rv"><h3>Two Engine Regimes/</h3><p>Duluka (native D3D11+NVENC) as production, plus an FFmpeg-engine path (ddagrab/gdigrab/gfxcapture, QSV via hwmap).</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ REQUIREMENTS ═══ -->
-<section id="requirements" style="background:rgba(255,255,255,.012)">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">PREREQUISITES</span>
-      <h2 class="sec-title">System Requirements</h2>
-      <p class="sec-desc">Straight facts — no wishlist compatibility</p></div>
-    <div class="req">
-      <div class="card rv"><h3>Operating System <span class="bdg b-red">CRITICAL</span></h3>
-        <p><b>Windows 10 (19045+) or Windows 11</b> — 64-bit only. The app targets .NET 10; Windows 8/7/Vista/XP cannot run it.</p>
-        <div class="chips">
-          <span class="chip ok">Windows 11</span><span class="chip ok">Windows 10 22H2</span>
-          <span class="chip no">Windows 8.1</span><span class="chip no">Windows 8</span>
-          <span class="chip no">Windows 7</span><span class="chip no">Vista / XP</span>
-        </div></div>
-      <div class="card rv"><h3>Runtime <span class="bdg b-ready">INCLUDED</span></h3>
-        <p><b>.NET 10 Desktop Runtime (x64)</b> — bundled with the release installer; grab it from Microsoft if you run the raw build.</p>
-        <div class="chips"><span class="chip ok">.NET 10 Desktop Runtime</span><span class="chip ok">FFmpeg bundled</span></div></div>
-      <div class="card rv"><h3>Known Limitations</h3>
-        <p><b style="color:var(--red)">DRM:</b> Netflix / Disney+ blocked by Windows protection<br>
-           <b style="color:var(--yellow)">Exclusive fullscreen:</b> not supported (No-Hook design)<br>
-           <b style="color:var(--g2)">Fix:</b> use Borderless Windowed in games</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ DOWNLOAD ═══ -->
-<section id="download">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">GET IT</span>
-      <h2 class="sec-title">Download</h2>
-      <p class="sec-desc">Direct from GitHub Releases — installer includes runtime + resources</p></div>
-    <div class="dl">
-      <div class="card rv">
-        <span class="tag b-ready">STABLE BETA</span>
-        <span class="ver">3.3.2057.1-BETA</span>
-        <p>Built for smooth, reliable everyday use — high-performance recording with minimal gameplay impact. Windows x64.</p>
-        <a class="btn btn-g" style="justify-content:center" target="_blank"
-           href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe">Download Installer ↓</a>
+  <!-- ==================== FAQ ==================== -->
+  <section id="faq">
+    <div class="container">
+      <div class="section-header" style="text-align: center;">
+        <span class="section-label">Common Questions</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Everything you need to know about the project</p>
       </div>
-      <div class="card rv">
-        <span class="tag b-part">PRE-RELEASE</span>
-        <span class="ver">3.35.2542.30-PRE</span>
-        <p>Preview channel — newer engine work, may change without notice. Try it to see what's coming next.</p>
-        <a class="btn btn-o" style="justify-content:center" target="_blank"
-           href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.35.2542.30-PRE/NVIDIA.ShadowPlay.3.35.2542.30-PRE.exe">Download Pre-release ↓</a>
+      <div class="faq-list">
+        <div class="faq-item">
+          <button class="faq-question">Why No-Hook architecture? <span class="faq-icon">+</span></button>
+          <div class="faq-answer">We avoid memory injection to ensure compatibility with anti-cheat systems and maintain system stability. This makes the app safer for online gaming.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">Can I record DRM content like Netflix? <span class="faq-icon">+</span></button>
+          <div class="faq-answer">Due to digital rights management, most streaming platforms block screen capture. This is a limitation of Windows itself, not our app.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">What if I don't have an NVIDIA GPU? <span class="faq-icon">+</span></button>
+          <div class="faq-answer">Yes — two options: the FFmpeg engine path supports Intel QSV today (validated on Intel hardware, experimental) and software x264 as a last resort. AMD AMF is on the roadmap. The native production engine (Duluka) currently targets NVIDIA NVENC.</div>
+        </div>
+        <div class="faq-item">
+          <button class="faq-question">How can I contribute to the project? <span class="faq-icon">+</span></button>
+          <div class="faq-answer">Fork the repository, make your changes, and submit a pull request. We welcome improvements, bug fixes, and documentation updates.</div>
+        </div>
       </div>
     </div>
-    <p class="rv" style="text-align:center;color:var(--tx3);font-size:.8rem;margin-top:1.4rem">
-      OBT3 will land here as a new release — the countdown knows when.</p>
-  </div>
-</section>
+  </section>
 
-<!-- ═══ TEAM ═══ -->
-<section id="team" style="background:rgba(255,255,255,.012)">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">THE PEOPLE</span>
-      <h2 class="sec-title">Team</h2></div>
-    <div class="team">
-      <div class="card rv">
-        <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka">
-        <div class="nm">ScotcsDuluka <span style="color:var(--tx3);font-weight:400">(Agkarath Truajnok)</span></div>
-        <div class="role">BUILDER · LONE WOLF</div>
-        <div class="tags"><span class="bdg b-ready">ELITE</span><span class="bdg b-ready">OWNERSHIP</span>
-          <span class="bdg b-red">3+ YEARS LEGACY</span><span class="bdg b-part">WEBSITE EDITOR</span></div>
+  <!-- ==================== TEAM ==================== -->
+  <section id="team">
+    <div class="container">
+      <div class="section-header" style="text-align: center;">
+        <span class="section-label">Contributors</span>
+        <h2 class="section-title">Meet The Team</h2>
+        <p class="section-subtitle" style="margin: 0 auto;">
+          Driven by passion, built through 3+ years of continuous innovation and refinement.
+        </p>
       </div>
-      <div class="card rv">
-        <img src="Assets/Team3.png" alt="Natthawut Fueangkaew">
-        <div class="nm">Natthawut Fueangkaew</div>
-        <div class="role">CONTRIBUTOR</div>
-        <div class="tags"><span class="bdg b-part">TEAM</span></div>
-      </div>
-      <div class="card rv">
-        <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ApiwitKaemanee" style="opacity:.55">
-        <div class="nm">ApiwitKaemanee</div>
-        <div class="role">CONTRIBUTOR</div>
-        <div class="tags"><span class="bdg b-soon">JOIN US</span></div>
+
+      <div class="team-grid">
+        <!-- ScotcsDuluka -->
+        <div class="team-member">
+          <div class="member-avatar-wrapper">
+            <img src="https://avatars.githubusercontent.com/u/185081063?v=4&size=200" alt="ScotcsDuluka" class="member-avatar" style="border-radius: 50%;">
+          </div>
+          <div class="member-content">
+            <div class="member-header">
+              <span class="member-name rainbow-name">ScotcsDuluka (Agkarath Truajnok)</span>
+              <div class="member-role">
+                <span class="role-title rainbow-text" style="color: rgb(255, 0, 0);">Builder • Lone Wolf</span>
+
+
+                <br><br>
+                <span class="card-status Elite">Elite</span>
+                <span class="card-status origin glow">OWNERSHIP</span>
+                <span class="card-status legacy" style="background: #ff5555;">3+ YEARS LEGACY</span>
+                <br><br>
+                <span class="card-status perf">WEBSITE Editor</span>
+
+
+
+              </div>
+            </div>
+            <p class="member-description">
+              The creator and driving force behind the entire project — from the first concept to full execution. 
+              Responsible for architecting the system, designing the user experience, and engineering every core component 
+              including
+              Known for pushing technical boundaries and turning complex ideas into seamless, real-time experiences. 
+              Continuously refining performance, scalability, and innovation to deliver a product that stands above the rest.
+              <br><br>
+              <span>Not just building software — defining the experience.</span>
+            </p>
+          </div>
+        </div>
+
+
+
+
+
+
+          <!-- Coming Soon -->
+<div class="team-member">
+  <div class="member-avatar-wrapper">
+    <img src="Assets/Team3.png" alt="Natthawut Fueangkaew" class="member-avatar">
+  </div>
+  <div class="member-content">
+    <div class="member-header">
+      <span class="member-name">Natthawut Fueangkaew</span>   
+      <div class="member-role"> 
+        <span class="role-title">Architect of Continuity • The Silent Origin</span>
+
+        <br><br>
+        <span class="card-status scotcs-glow" style="color: #ffdd00; text-shadow: 0 0 8px #ffdd00, 0 0 16px #ffaa00, 0 0 24px #ff5500; background: linear-gradient(45deg, #ff5555, #ffaa00); box-shadow: 0 0 5px #ffdd00, 0 0 20px #ffaa00 inset;">SUPPORTING</span>
+        <span class="card-status ui">Reawakening Force</span>
+        <br><br>
+        <span class="card-status">TESTER</span>
+        <span class="card-status next">SENIOR</span>         
       </div>
     </div>
+    <p class="member-description">
+    Supporting the project from behind the scenes through resources, encouragement, and continuous belief in the vision.
+      <br><br>
+      As the silent origin of continuity, his presence ensures that the project never truly fades,
+      even in moments of inactivity or uncertainty.
+      This is not merely support —
+      this is the foundation that allowed rebirth to happen.
+      <br><br>
+      <span>
+       As the three-year program neared its end, he walked in and offered support—not just support, but hope… which rekindled ScotcsDuluka's determination and reignited his fighting spirit!
+      </span>
+    </p>
   </div>
-</section>
+</div>
 
-<!-- ═══ FAQ ═══ -->
-<section id="faq">
-  <div class="wrap">
-    <div class="sec-head rv"><span class="sec-label">COMMON QUESTIONS</span>
-      <h2 class="sec-title">FAQ</h2></div>
-    <div class="faq rv">
-      <div class="fq"><button>Why No-Hook architecture? <span class="ic">+</span></button>
-        <div class="a">We avoid memory injection to stay compatible with anti-cheat systems and keep the system stable — safer for online gaming.</div></div>
-      <div class="fq"><button>Can I record DRM content like Netflix? <span class="ic">+</span></button>
-        <div class="a">Most streaming platforms block screen capture at the Windows level. That's a platform limitation, not the app.</div></div>
-      <div class="fq"><button>What if I don't have an NVIDIA GPU? <span class="ic">+</span></button>
-        <div class="a">Two options: the FFmpeg engine path supports Intel QSV today (validated on Intel hardware, experimental), and software x264 as a last resort. AMD AMF is on the roadmap. The native production engine (Duluka) currently targets NVIDIA NVENC.</div></div>
-      <div class="fq"><button>Why only Windows 10/11? <span class="ic">+</span></button>
-        <div class="a">The app targets .NET 10, which itself requires Windows 10 1607+. Older Windows can't install the runtime — and current NVIDIA drivers don't support them either.</div></div>
-      <div class="fq"><button>How can I contribute? <span class="ic">+</span></button>
-        <div class="a">Fork the repository, make your changes, submit a pull request. Bug fixes, features and docs are all welcome.</div></div>
+
+
+
+
+
+        <!-- Aphiwich -->
+        <div class="team-member">
+          <div class="member-avatar-wrapper">
+            <!--  <img src="https://scontent.furt1-1.fna.fbcdn.net/v/t39.30808-6/666977230_122178937994928266_2312752811117573803_n.jpg?_nc_cat=104&ccb=1-7&_nc_sid=1d70fc&_nc_eui2=AeEhUX_SEyveUZT-8ahONBbNL8MdlZhHwkAvwx2VmEfCQHce4cwvYMCXAP9QrROrURuTWHXPw_lcTZ0tkGzRYDfR&_nc_ohc=VuG3WrTghWUQ7kNvwGhpvcF&_nc_oc=AdryZftTZx4rJ_cgkf2eAhAeI8BFY_UDwsush8cFh-MP5b_gqmxCOZTsV6StvBuEUzM&_nc_zt=23&_nc_ht=scontent.furt1-1.fna&_nc_gid=GZhy4bElm2CzS407EOgsLg&_nc_ss=7a3a8&oh=00_Af0smacfQ3_TWCOiIPYJYtckn3c0P4Y9HbnKgDwBKNCHEA&oe=69DC3E4E" alt="ApiwitKaemanee" class="member-avatar">
+          --> </div>
+          <div class="member-content">
+            <div class="member-header">
+              <span class="member-name">Apiwit Kaemanee</span>
+              <div class="member-role">
+                <span class="role-title">Core Contributor • QA Specialist • System Tester</span>
+
+                <br><br>
+        <span class="card-status mythic" style="color: black; text-shadow: 0 0 5px white, 0 0 10px white, 0 0 15px white;">Transcendent</span>
+<span class="card-status scotcs-glow" style="color: #00fad5; text-shadow: 0 0 4px #00ffd5, 0 0 8px #ff77ff; background: linear-gradient(45deg, #ff77aa, #ff55ff);">FRIEND</span>
+                <br><br>
+                <span class="card-status">TESTER</span>
+                <span class="card-status trusted">PRIME</span>
+              </div>       
+            </div>
+
+
+            <p class="member-description">
+              A key contributor supporting the development and refinement of the system through rigorous testing and validation. 
+              Responsible for identifying issues, verifying functionality, and ensuring overall system stability and reliability.
+              <br><br>
+              Plays an essential role in maintaining quality standards and helping shape a smoother, more polished user experience.
+              <br><br>
+              <span>Ensuring everything works — exactly as it should.</span>
+            </p>
+          </div>
+        </div>
+
+     
+
+      <div style="text-align: center; margin-top: 3.5rem; color: var(--text-gray); font-style: italic; opacity: 0.8;">
+        Crafted with passion, engineered for performance, and continuously evolving.
+      </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<footer>
-  <div class="fl">
-    <a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub Repository</a>
-    <a href="https://github.com/ScotcsDuluka" target="_blank">Developer Profile</a>
-    <a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord Server</a>
-  </div>
-  <p>© <span id="yr"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay™ · Built with ♥ using VB.NET &amp; FFmpeg</p>
-</footer>
+  <!-- ==================== FOOTER ==================== -->
+  <footer>
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="nav-brand">NVIDIA SHADOWPLAY</a>
+        <p>A custom screen capture implementation inspired by NVIDIA ShadowPlay.</p>
+      </div>
+      <div class="footer-column">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay" target="_blank">GitHub Repo</a></li>
+          <li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases" target="_blank">Releases</a></li>
+          <li><a href="https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues" target="_blank">Issues</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h4>Resources</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#architecture">Architecture</a></li>
+          <li><a href="#requirements">Requirements</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h4>Connect</h4>
+        <ul>
+          <li><a href="https://github.com/ScotcsDuluka" target="_blank">Developer Profile</a></li>
+          <li><a href="https://discord.gg/v5qUGVD3jZ" target="_blank">Discord Server</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p class="copyright">&copy; <span id="currentYear"></span> ScotcsDuluka | Inspired by NVIDIA ShadowPlay&trade;</p>
+      <p class="copyright">Built with <span class="heart">&#10084;&#65039;</span> using VB.NET & FFmpeg</p>
+    </div>
+  </footer>
 
+  <!-- JavaScript -->
+  <script src="JS/index/script.js?v=4"></script>
 <script>
 (function(){
-"use strict";
-/* ── year ── */
-var yr=document.getElementById('yr'); if(yr) yr.innerText=new Date().getFullYear();
-
-/* ── countdown: OBT3 = 2026-09-05 23:30 GMT+7 ── */
-var TARGET=new Date("2026-09-05T23:30:00+07:00").getTime();
-var START=new Date("2026-08-29T00:00:00+07:00").getTime();
-var $=function(id){return document.getElementById(id)};
-var E={d:$('cdD'),h:$('cdH'),m:$('cdM'),s:$('cdS'),f:$('cdFill'),p:$('cdPct'),n:$('navCd')};
-var prev={};
-function pad(n){return(n<10?"0":"")+n}
-function set(k,el,v){if(prev[k]===v)return;el.textContent=v;el.classList.remove('tick');void el.offsetWidth;el.classList.add('tick');setTimeout(function(){el.classList.remove('tick')},180);prev[k]=v}
-function tick(){
-  var now=Date.now(),diff=TARGET-now;
-  if(diff<=0){set('d',E.d,'00');set('h',E.h,'00');set('m',E.m,'00');set('s',E.s,'00');
-    E.f.style.width='100%';E.p.textContent='100% — OBT3 IS LIVE';
-    if(E.n)E.n.textContent='LIVE';clearInterval(iv);return}
-  var d=Math.floor(diff/864e5),h=Math.floor(diff%864e5/36e5),m=Math.floor(diff%36e5/6e4),s=Math.floor(diff%6e4/1e3);
-  set('d',E.d,pad(d));set('h',E.h,pad(h));set('m',E.m,pad(m));set('s',E.s,pad(s));
-  if(E.n)E.n.textContent=pad(d)+'d '+pad(h)+'h '+pad(m)+'m';
-  var pct=Math.min(100,Math.max(0,(now-START)/(TARGET-START)*100));
-  E.f.style.width=pct.toFixed(2)+'%';E.p.textContent=pct.toFixed(1)+'%';
-}
-if(E.d){tick();var iv=setInterval(tick,1000)}
-
-/* ── ticker ── */
-var tk=document.getElementById('ticker');
-if(tk){var items='<span><b>NVENC</b> READY</span><span><b>CFR 60FPS</b> LOCKED</span><span><b>A/V OFFSET</b> 0.000s</span><span><b>NO-HOOK</b> ANTI-CHEAT SAFE</span><span><b>OBT3</b> SEP 5 · 23:30</span><span><b>DROP ACCOUNTING</b> HONEST</span><span><b>FFMPEG EXIT</b> CLEAN 0</span>';
-  tk.innerHTML=items+items;}
-
-/* ── reveal on scroll ── */
-var io=new IntersectionObserver(function(es){es.forEach(function(e){
-  if(e.isIntersecting){e.target.classList.add('on');io.unobserve(e.target)}})},{threshold:.12});
-document.querySelectorAll('.rv').forEach(function(el){io.observe(el)});
-
-/* ── FAQ accordion ── */
-document.querySelectorAll('.fq button').forEach(function(b){
-  b.addEventListener('click',function(){
-    var fq=b.parentElement,a=fq.querySelector('.a'),open=fq.classList.contains('open');
-    document.querySelectorAll('.fq.open').forEach(function(o){o.classList.remove('open');o.querySelector('.a').style.maxHeight=null});
-    if(!open){fq.classList.add('open');a.style.maxHeight=a.scrollHeight+'px'}
-  });
-});
-
-/* ── click ripple (fine pointer only) ── */
-var fine=window.matchMedia&&window.matchMedia('(hover: hover) and (pointer: fine)').matches;
-if(fine){
-  document.addEventListener('click',function(e){
-    var r=document.createElement('div');r.className='ripple';
-    r.style.left=e.clientX+'px';r.style.top=e.clientY+'px';
-    document.body.appendChild(r);setTimeout(function(){r.remove()},600);
-  });
-}
+  var TARGET = new Date("2026-09-05T23:30:00+07:00").getTime();
+  var START  = new Date("2026-08-29T00:00:00+07:00").getTime(); // campaign start for progress %
+  var el = {d:document.getElementById("cdDays"),h:document.getElementById("cdHours"),
+            m:document.getElementById("cdMins"),s:document.getElementById("cdSecs"),
+            fill:document.getElementById("obt3Fill"),pct:document.getElementById("obt3Pct")};
+  if(!el.d) return;
+  var prev = {};
+  function pad(n){return (n<10?"0":"")+n;}
+  function set(cell,key,val){
+    if(prev[key]===val) return;
+    cell.textContent = val;
+    cell.classList.remove("obt3-tick");
+    void cell.offsetWidth;            // restart animation
+    cell.classList.add("obt3-tick");
+    setTimeout(function(){cell.classList.remove("obt3-tick")},200);
+    prev[key]=val;
+  }
+  function tick(){
+    var now = Date.now(), diff = TARGET - now;
+    if(diff <= 0){
+      set(el.d,"d","00");set(el.h,"h","00");set(el.m,"m","00");set(el.s,"s","00");
+      el.fill.style.width="100%"; el.pct.textContent="100% — OBT3 IS LIVE";
+      clearInterval(iv); return;
+    }
+    var d=Math.floor(diff/86400000), h=Math.floor(diff%86400000/3600000),
+        m=Math.floor(diff%3600000/60000), s=Math.floor(diff%60000/1000);
+    set(el.d,"d",pad(d)); set(el.h,"h",pad(h)); set(el.m,"m",pad(m)); set(el.s,"s",pad(s));
+    var pct = Math.min(100, Math.max(0, (now-START)/(TARGET-START)*100));
+    el.fill.style.width = pct.toFixed(2)+"%";
+    el.pct.textContent = pct.toFixed(1)+"%";
+  }
+  tick();
+  var iv = setInterval(tick,1000);
 })();
 </script>
 </body>
