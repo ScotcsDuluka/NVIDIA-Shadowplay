@@ -35,8 +35,10 @@ jobs:
 
       - name: Sync Web/ -> gh-pages
         run: |
-          shopt -s dotglob
-          rm -rf gh-pages/*
+          # clean WITHOUT touching gh-pages/.git (dotglob rm deleted it
+          # once, which made git fall through to the parent repo and
+          # commit the site onto the source branch instead)
+          find gh-pages -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
           cp -r Web/* gh-pages/
           rm -f gh-pages/desktop.ini gh-pages/_*.py
           cd gh-pages
