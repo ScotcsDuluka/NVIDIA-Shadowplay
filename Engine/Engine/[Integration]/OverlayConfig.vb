@@ -443,7 +443,11 @@ Public NotInheritable Class OverlayConfig
                 If nested IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(nested.engine_mode) Then
                     Dim mode As String = nested.engine_mode.Trim().ToLowerInvariant()
                     If mode = "ffmpeg" OrElse mode = "legacy" Then Return "ffmpeg"
-                    If mode = "duluka" OrElse mode = "ddagrab" Then Return "ddagrab"
+                    ' "native" is part of the Overlay's accepted Duluka
+                    ' vocabulary (AppSettings.NormalizeEngineMode) and of the
+                    ' documented regime table — rejecting it here makes the
+                    ' Engine run legacy while the Overlay UI shows Duluka.
+                    If mode = "duluka" OrElse mode = "ddagrab" OrElse mode = "native" Then Return "ddagrab"
                 End If
 
                 Dim cfg As AppConfig = LoadConfig()
@@ -451,7 +455,7 @@ Public NotInheritable Class OverlayConfig
                    Not String.IsNullOrWhiteSpace(cfg.Recording.EngineMode) Then
                     Dim mode As String = cfg.Recording.EngineMode.Trim().ToLowerInvariant()
                     If mode = "ffmpeg" OrElse mode = "legacy" Then Return "ffmpeg"
-                    If mode = "duluka" OrElse mode = "ddagrab" Then Return "ddagrab"
+                    If mode = "duluka" OrElse mode = "ddagrab" OrElse mode = "native" Then Return "ddagrab"
                 End If
 
                 Dim api As String = If(cfg?.Recording?.APICapture, "").Trim().ToLowerInvariant()
