@@ -223,14 +223,14 @@
         
         <!-- Instant Replay -->
         <div class="feature-card animate-scale delay-2 tilt-card" style="grid-column: span 3; grid-row: span 1;">
-          <div class="title-row"><span class="card-status">READY</span><h3>Instant Replay</h3></div>
-          <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Never miss the action. Automatically capture and save the last few minutes of your gameplay with a single click.</p></div>
+          <div class="title-row"><span class="card-status" style="background:#EAB308;color:#111;">IN&nbsp;DEV</span><h3>Instant Replay</h3></div>
+          <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Automatically capture and save the last minutes of your gameplay with a single click. <strong>Buffer engine is under active development</strong> — not yet in the current build.</p></div>
         </div>
         
         <!-- Screenshot -->
         <div class="feature-card animate-scale delay-3 tilt-card" style="grid-column: span 3; grid-row: span 1;">
-          <div class="title-row"><span class="card-status">READY</span><h3>Screenshot</h3></div>
-          <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly — perfect for sharing or reviewing your best moments.</p></div>
+          <div class="title-row"><span class="card-status" style="background:#EAB308;color:#111;">IN&nbsp;DEV</span><h3>Screenshot</h3></div>
+          <div class="desc-row"><span class="card-icon icon-nvidia"></span><p>Snap crisp, high-resolution screenshots instantly. <strong>Under active development</strong> — not yet in the current build.</p></div>
         </div>
         
         <!-- No-Hook Architecture -->
@@ -268,7 +268,7 @@
             <div class="card-title-icon"><h3 class="underline-effect">NVIDIA NVENC</h3></div>
             <span class="status-badge status-ready">Ready</span>
           </div>
-          <p>Full GPU encoding via FFmpeg, minimal performance impact.</p>
+          <p>Native in-app GPU encoding (production path): H.264 CBR/CFR, zero-copy D3D11 texture submission, proven stable in long-run stress tests.</p>
         </div>
         <!-- Intel QSV -->
         <div class="api-spec-card">
@@ -276,7 +276,7 @@
             <div class="card-title-icon"><h3 class="underline-effect">Intel QSV</h3></div>
             <span class="status-badge status-partial">Partial</span>
           </div>
-          <p>Intel QuickSync Video support — planned.</p>
+          <p>Intel QuickSync available through the FFmpeg engine path (hwmap derive_device=qsv) — validated on Intel hardware, experimental.</p>
         </div>
         <!-- AMD AMF -->
         <div class="api-spec-card">
@@ -295,9 +295,9 @@
         <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
-            <span class="status-badge status-ready">Ready</span>
+            <span class="status-badge status-partial">Partial</span>
           </div>
-          <p>Modern Windows 10/11 API, high-performance, borderless window capture. <strong>Recommended</strong>.</p>
+          <p>Modern Windows 10/11 API via the FFmpeg engine (gfxcapture). Native overlay path still uses Desktop Duplication — WGC slot in the overlay menu is coming.</p>
         </div>
         <!-- Desktop Duplication API -->
         <div class="api-spec-card">
@@ -305,14 +305,14 @@
             <div class="card-title-icon"><h3 class="underline-effect">Desktop Duplication API</h3></div>
             <span class="status-badge status-recommended">Recommended</span>
           </div>
-          <p>DirectX-based duplication, minimal latency, captures exclusive fullscreen (with limitations).</p>
+          <p>The production capture path (native engine, zero-copy D3D11). Minimal latency, captures exclusive fullscreen (with limitations).</p>
         </div>
       <div class="api-spec-card">
           <div class="card-header">
             <div class="card-title-icon"><h3 class="underline-effect">GDI Screen Grabber</h3></div>
             <span class="status-badge status-partial">Partial</span>
           </div>
-          <p>Legacy fallback, CPU heavy. Use only when needed.</p>
+          <p>Legacy fallback via the FFmpeg engine (gdigrab). CPU heavy — use only when needed.</p>
         </div>
     </div>
   </section>
