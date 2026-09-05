@@ -278,7 +278,7 @@ namespace CaptureEngine.Audio.Wasapi
                     var pkt = new WasapiPacket
                     {
                         RawQpcTicks = qpcPos,
-                        QpcPosition100ns = QpcTicksTo100ns(qpcPos),
+                        QpcPosition100ns = qpcPos,
                         DevicePositionFrames = devPos,
                         Frames = frames,
                         Flags = flags,
@@ -316,7 +316,7 @@ namespace CaptureEngine.Audio.Wasapi
         /// overflows long once QPC passes ~29 days. Stopwatch shares the QPC
         /// counter (P13.1: slope ≈ 1), so this lands in the doc's 100ns
         /// domain on every machine.</summary>
-        public static long QpcTicksTo100ns(long qpcTicks)
+        public static long StopwatchTicksTo100ns(long qpcTicks)
         {
             long f = Stopwatch.Frequency;
             return qpcTicks / f * 10_000_000L + qpcTicks % f * 10_000_000L / f;

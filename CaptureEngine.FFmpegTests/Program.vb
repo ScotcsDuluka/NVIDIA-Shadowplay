@@ -619,20 +619,20 @@ Namespace CaptureEngine.FFmpegTests
             ' Property, not constants: N ticks at Stopwatch.Frequency = N/freq
             ' seconds = N/freq x 1e7 units of 100ns. Must hold for ANY freq.
             Dim freq As Long = Stopwatch.Frequency
-            Assert(WasapiPositionCapture.QpcTicksTo100ns(freq) = 10000000L,
+            Assert(WasapiPositionCapture.StopwatchTicksTo100ns(freq) = 10000000L,
                    "1 freq-worth of ticks = exactly 1 second = 1e7")
-            Assert(WasapiPositionCapture.QpcTicksTo100ns(2L * freq) = 20000000L,
+            Assert(WasapiPositionCapture.StopwatchTicksTo100ns(2L * freq) = 20000000L,
                    "2 seconds exact")
-            Assert(WasapiPositionCapture.QpcTicksTo100ns(freq \ 2) = 5000000L,
+            Assert(WasapiPositionCapture.StopwatchTicksTo100ns(freq \ 2) = 5000000L,
                    "half a second exact")
-            Assert(WasapiPositionCapture.QpcTicksTo100ns(0L) = 0L, "0 ticks = 0")
+            Assert(WasapiPositionCapture.StopwatchTicksTo100ns(0L) = 0L, "0 ticks = 0")
             ' ~29 days of QPC (the naive product overflows here).
             ' VB precedence trap: '*' binds TIGHTER than '\', so every
             ' integer division needs explicit parentheses.
             Dim huge As Long = 2500000000000000L
             Dim expect As Long = (huge \ freq) * 10000000L +
                                  ((huge Mod freq) * 10000000L \ freq)
-            Assert(WasapiPositionCapture.QpcTicksTo100ns(huge) = expect,
+            Assert(WasapiPositionCapture.StopwatchTicksTo100ns(huge) = expect,
                    "overflow-safe split math matches reference")
         End Sub
 

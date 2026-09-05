@@ -175,7 +175,7 @@ Namespace CaptureEngine.Recording
                     ' sync-verify measures it).
                     Dim videoT0100ns As Long = _videoStartQpc100ns
                     If videoT0100ns <= 0 Then
-                        videoT0100ns = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
+                        videoT0100ns = WasapiPositionCapture.StopwatchTicksTo100ns(_videoStartTicks)
                     End If
                     sysOff = SyncMath.ComputeAudioOffsetSecFromAnchors(
                         videoT0100ns, _sysTap3.FirstQpc100ns) + SyncMath.SystemAudioLeadDeviceSec
@@ -254,7 +254,7 @@ Namespace CaptureEngine.Recording
             ' One common recording clock. Capture/audio can warm before T0;
             ' no sample/frame belongs to the recording timeline before this boundary.
             _timelineStartTicks = Stopwatch.GetTimestamp() + Math.Max(1L, Stopwatch.Frequency \ 10L)
-            _timelineStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(_timelineStartTicks)
+            _timelineStartQpc100ns = WasapiPositionCapture.StopwatchTicksTo100ns(_timelineStartTicks)
             _systemStartTicks = _timelineStartTicks
             _logger.Info($"[session] common timeline armed: T0={_timelineStartQpc100ns} (all producers armed before T0)")
 
@@ -372,7 +372,7 @@ Namespace CaptureEngine.Recording
 
                         ' Session start stamp (100ns QPC) for the tap's tail
                         ' close — replaces the legacy MarkStart wall-clock trick.
-                        _sessionStartQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(Stopwatch.GetTimestamp())
+                        _sessionStartQpc100ns = WasapiPositionCapture.StopwatchTicksTo100ns(Stopwatch.GetTimestamp())
                         _sysPosCapture.Start()
                         _systemStartTicks = Stopwatch.GetTimestamp()
 
@@ -888,7 +888,7 @@ Namespace CaptureEngine.Recording
                 _stopSignal = True
                 If _audioEngine IsNot Nothing Then
                     Try
-                        _audioEngine.Stop(WasapiPositionCapture.QpcTicksTo100ns(stopQpcTicks))
+                        _audioEngine.Stop(WasapiPositionCapture.StopwatchTicksTo100ns(stopQpcTicks))
                     Catch ex As Exception
                         _logger.Warning("[session] Shared Audio Engine stop failed: " & ex.Message)
                     End Try
@@ -949,7 +949,7 @@ Namespace CaptureEngine.Recording
                         ' v3: exact QPC tail — pad to the session-end stamp,
                         ' no wall-clock estimation, no FinalizeToNow guess.
                         _sysTap3.FinalizeTo100ns(_sessionStartQpc100ns,
-                            WasapiPositionCapture.QpcTicksTo100ns(stopQpcTicks))
+                            WasapiPositionCapture.StopwatchTicksTo100ns(stopQpcTicks))
                     Else
                         _sysTap?.FinalizeToTicks(stopQpcTicks)
                     End If

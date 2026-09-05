@@ -109,7 +109,7 @@ namespace CaptureEngine.Audio
                 if (_started) return;
                 _sessionStartQpc100ns = timelineStartQpc100ns > 0
                     ? timelineStartQpc100ns
-                    : WasapiPositionCapture.QpcTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
+                    : WasapiPositionCapture.StopwatchTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
                 _diagnostics.SessionStartQpc100ns = _sessionStartQpc100ns;
 
                 if (_config.SystemEnabled) TryStartTrack(AudioTrackKind.System, true);
@@ -139,7 +139,7 @@ namespace CaptureEngine.Audio
             {
                 if (!_started || _stopped) return;
                 if (sessionEndQpc100ns <= 0)
-                    sessionEndQpc100ns = WasapiPositionCapture.QpcTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
+                    sessionEndQpc100ns = WasapiPositionCapture.StopwatchTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
                 Interlocked.Exchange(ref _sessionEndQpc100ns, sessionEndQpc100ns);
                 foreach (var t in _tracks)
                 {

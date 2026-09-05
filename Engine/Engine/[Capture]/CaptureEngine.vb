@@ -263,6 +263,10 @@ Partial Public Class CaptureEngine
                                      AddHandler _ffmpegProcess.ErrorDataReceived, AddressOf OnStdErr
                                      AddHandler _ffmpegProcess.Exited, AddressOf OnExited
 
+                                     If _useTwoProcess Then
+                                         StartAudioRecorder()
+                                     End If
+
                                      If Not _ffmpegProcess.Start() Then
                                          SetState(CaptureState.HasError)
                                          RaiseEvent ErrorOccurred("Failed to start FFmpeg process")
@@ -282,21 +286,14 @@ Partial Public Class CaptureEngine
                                      SetState(CaptureState.Recording)
                                      RaiseEvent RecordingStarted(_outputFile)
 
-                                     ' ═══ START AUDIO RECORDER (if enabled) ═══
-                                     ' Audio runs completely independently — separate thread, separate
-                                     ' file output. No pipe, no FFmpeg subprocess, no shared state with
-                                     ' the video FFmpeg. Failure here does NOT stop video recording.
-                                     If _useTwoProcess Then
-                                         StartAudioRecorder()
-                                     End If
 
                                      Return True
-
                                  Catch ex As Exception
                                      SetState(CaptureState.HasError)
                                      RaiseEvent ErrorOccurred("Start failed: " & ex.Message)
                                      LogDebug("Exception: " & ex.ToString())
                                      WriteDebugLog("Start exception: " & ex.ToString())
+                                     Try : StopAudioWriter() : Catch : End Try
                                      Return False
                                  End Try
                              End Function)
@@ -773,7 +770,7 @@ Partial Public Class CaptureEngine
                         ' Shared Audio Engine owns the capture clock. Publish the
                         ' exact video t0 so every audio track aligns to this origin.
                         If _audioEngine IsNot Nothing Then
-                            Dim videoT0Qpc100ns As Long = WasapiPositionCapture.QpcTicksTo100ns(_videoStartTicks)
+                            Dim videoT0Qpc100ns As Long = WasapiPositionCapture.StopwatchTicksTo100ns(_videoStartTicks)
                             _audioEngine.SetVideoStartQpc100ns(videoT0Qpc100ns)
                             _systemAudioSink?.SetVideoStart(videoT0Qpc100ns)
                             _micAudioSink?.SetVideoStart(videoT0Qpc100ns)
@@ -963,7 +960,7 @@ Partial Public Class CaptureEngine
         Try
             If _audioEngine IsNot Nothing Then
                 Dim endTicks As Long = If(_audioStopTicks > 0, _audioStopTicks, Stopwatch.GetTimestamp())
-                Dim endQpc As Long = WasapiPositionCapture.QpcTicksTo100ns(endTicks)
+                Dim endQpc As Long = WasapiPositionCapture.StopwatchTicksTo100ns(endTicks)
                 _audioEngine.Stop(endQpc)
                 _systemAudioSink?.Complete(endQpc)
                 _micAudioSink?.Complete(endQpc)
