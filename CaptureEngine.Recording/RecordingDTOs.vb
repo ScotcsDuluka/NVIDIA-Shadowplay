@@ -285,6 +285,17 @@ Namespace CaptureEngine.Recording
         ''' <summary>Mic A/V offset applied at mux (own timeline, proven model).</summary>
         Public Property MicOffsetSec As Double
 
+        ''' <summary>
+        ''' Bytes the live-mux pipe layer dropped (queue overflow, broken pipe,
+        ''' or stop-drain timeout) — the only counter that sees loss between
+        ''' the audio engine and the FFmpeg file. The sidecar counters above
+        ''' measure the PRODUCER side and stay 0 while the mux is dropping
+        ''' (clap-sync run 02:41: sidecar dropped=0, mux dropped=1,530,240B
+        ''' ≈ 8s of tail audio missing from the file).
+        ''' 0 = the file really contains everything captured.
+        ''' </summary>
+        Public Property MuxDroppedBytes As Long
+
         Public ReadOnly Property Pass As Boolean
             Get
                 Return FramesEncoded > 0 AndAlso
@@ -292,7 +303,10 @@ Namespace CaptureEngine.Recording
                        FileExists AndAlso
                        FileSize > 0 AndAlso
                        VideoStreamFound AndAlso
-                       AudioStreamFound
+                       AudioStreamFound AndAlso
+                       MuxDroppedBytes = 0 AndAlso
+                       AudioDroppedBytes = 0 AndAlso
+                       MicDroppedBytes = 0
             End Get
         End Property
     End Class

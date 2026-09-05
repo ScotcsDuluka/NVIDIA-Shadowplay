@@ -1016,6 +1016,16 @@ Namespace CaptureEngine.Recording
                 Dim liveRes As LiveMuxResult = _liveMux.[Stop](30000)
                 _logger.Info("[session] " & liveRes.ToString())
 
+                ' ★ 02:41 FIX (honest accounting): surface mux-layer drops into
+                ' the session result — Pass now fails when the pipe layer lost
+                ' bytes. (Clap-sync evidence: sidecar counters reported
+                ' dropped=0 while the mux threw away 1,530,240B ≈ 8s of tail
+                ' audio; pass=True hid the loss for years.)
+                result.MuxDroppedBytes = liveRes.DroppedBytes
+                If liveRes.DroppedBytes > 0 Then
+                    _logger.Warning($"[session] live-mux dropped {liveRes.DroppedBytes:N0}B — file is missing captured audio (pass will report False)")
+                End If
+
                 ' ─── 10. Probe final MP4 duration (evidence) ─────────────
                 Dim probePsi As New ProcessStartInfo With {
                     .FileName = _config.FFmpegPath,

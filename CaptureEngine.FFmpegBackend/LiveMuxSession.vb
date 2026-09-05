@@ -695,11 +695,36 @@ Namespace CaptureEngine.FFmpegBackend
                 End While
             End Sub
 
-            ''' <summary>Signal stop, drain, then dispose the pipe → FFmpeg reads EOF.</summary>
+            ''' <summary>Signal stop, drain the queue FULLY, then dispose the pipe → FFmpeg reads EOF.</summary>
             Friend Sub RequestStopAndDrain(timeoutMs As Integer)
                 _stopWriter.Set()
                 _signal.Set()
                 _timelineStarted.Set()
+
+                ' ★ 02:41 FIX (clap-sync evidence: dropped=1,530,240B ≈ 8s tail
+                ' audio lost): the old code Joined the writer with the 3s pipe
+                ' budget — but the audio writer can legitimately still hold a
+                ' multi-second backlog (producer was 192KB/s faster than the
+                ' consumer during the run). A Join is "thread finished OR
+                ' timeout", and on timeout the pipe is disposed with the queue
+                ' still loaded → those bytes are never written and FFmpeg's
+                ' audio input simply ends early. Correct stop semantics for a
+                ' BOUNDED producer/consumer pipe: wait until the QUEUE is
+                ' drained (bytes actually handed to the pipe), not until the
+                ' thread is idle. Video (blockProducer) can never have a
+                ' backlog — its Feed blocks — so this wait is audio-only in
+                ' practice and bounded by backlog/throughput, typically <1s.
+                Dim swDrain As Stopwatch = Stopwatch.StartNew()
+                While Interlocked.Read(_bytesQueued) > 0 AndAlso
+                      swDrain.ElapsedMilliseconds < timeoutMs AndAlso
+                      Not _pipeBroken
+                    Thread.Sleep(10)
+                End While
+                Dim drainedResidual As Long = Interlocked.Read(_bytesQueued)
+                If drainedResidual > 0 Then
+                    _log?.Invoke($"[live-mux:{Name}] drain timeout with {drainedResidual:N0}B still queued — closing (bytes will be lost)")
+                End If
+
                 If _writer IsNot Nothing AndAlso Not _writer.Join(timeoutMs) Then
                     ' writer stuck on a blocked pipe write — force close
                     Try : _pipe.Dispose() : Catch : End Try

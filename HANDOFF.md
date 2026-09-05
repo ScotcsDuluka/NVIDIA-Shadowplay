@@ -98,9 +98,48 @@
 
 ## 8. เรื่องค้างที่รอตัดสินใจเจ้าของ
 
-1. เทสเสียง clap-sync (ดู §3) — ยังไม่รัน
+1. ~~เทสเสียง clap-sync~~ → **ทำแล้ว 2026-09-05 — เจอบั๊กจริงและแก้แล้ว (ดู §9)**
 2. OBS จะเป็น capture ตัวที่สามเต็มตัวไหม (ต้องเพิ่ม app→OBS StartRecord/StopRecord
    + รับไฟล์จาก OBS เข้า Gallery)
-3. Phase 13 single-clock — implement จริงหรือยัง
+3. Phase 13 single-clock — implement จริงหรือยัง (config ยังเป็น AudioClockMode="Legacy")
 4. 5 slot capture เทาของ Duluka (WGC มี slot enum แล้ว)
 5. ย้ายเครื่อง Intel — ทางลัด = FFmpeg regime + QSV (ดู §5)
+
+## 9. เสียง — ผล clap-sync เทสจริง 2026-09-05 + บั๊กที่แก้แล้ว
+
+**บั๊กที่เจอ (หลักฐานจากไฟล์อัดจริง):**
+- อัดสั้น 58s: วิดีโอ 58.07s / เสียง **50.13s** — เสียงท้ายหาย ~8s
+  (`LiveMux: dropped=1,530,240B` ≈ 7.97s พอดี)
+- **สาเหตุ**: `LiveMuxSession.PipeFeed.RequestStopAndDrain` ใช้ `Join(timeoutMs)`
+  (3s) — คิวเสียงค้างท้ายหลายวินาที ทำให้ pipe ถูกปิดทั้งที่ยังมีข้อมูล
+  → ไบต์หายทั้งก้อน แล้ว ffmpeg EOF ช่วงท้ายจึงไม่มีเสียง
+- **บั๊กซ้อน**: `SessionResult.Pass` ไม่เห็น drop ฝั่ง mux (sidecar รายงาน dropped=0
+  ขณะ mux ทิ้งจริง) → `pass=True` หลอกตลอด 4 ปี
+- **แก้แล้ว 3 ไฟล์** (validate: build 0/0, ConfigTruth 30/30, อัด 3 นาทีจริง
+  `dropped=0B`, เสียง 176.87s = วิดีโอ 176.89s, decode -xerror 0 errors):
+  1. `CaptureEngine.FFmpegBackend/LiveMuxSession.vb` — RequestStopAndDrain รอ
+     drain คิวจนหมด (bounded by timeout) ก่อนปิด pipe
+  2. `CaptureEngine.Recording/RecordingDTOs.vb` — เพิ่ม `MuxDroppedBytes`;
+     `Pass` ต้องการ dropped ทั้งสามทาง = 0 (mux + sidecar + mic)
+  3. `CaptureEngine.Recording/CaptureSession.vb` — map `liveRes.DroppedBytes`
+     → `result.MuxDroppedBytes` + Warning log เมื่อ > 0
+
+**การค้นพบเรื่อง endpoint (สำคัญ — ยังไม่แก้):**
+- engine จับ system audio จาก endpoint `{6ec9c7cb-…}` = **"FxSound Audio Enhancer"
+  (APO ของ FxSound, process กำลังรัน pid 9052)** — ไม่ใช่ลำโพงจริง
+- โทนทดสอบที่เล่น (SoundPlayer) ออกทาง default endpoint จริง → ไฟล์เงียบทั้งเทป
+  (-91dB ทั้งไฟล์ ทั้งที่ dropped=0) — งานที่ค้างต่อ: (a) ยิงเสียงเข้า endpoint
+  ที่ FxSound คุม หรือ (b) ปิด FxSound ชั่วคราวแล้วเทสซ้ำ หรือ (c) ใช้ ffmpeg
+  `-filter_complex "[1:a]aloop"` ผ่าน `dshow` จะคุม endpoint ได้ตรง ๆ
+- ตัวนับในไฟล์อัด 3 นาที: `dropped=0B` หมายถึง "ไปป์ไลน์ไม่ทิ้งข้อมูล" —
+  ส่วนว่าไฟล์มีเสียงหรือไม่ต้องวัดด้วย silencedetect/volumedetect แยกต่างหาก
+
+## 10. สิ่งที่ค้างต่อจาก §9 ทันที (สำหรับแชทใหม่)
+
+1. **ตรวจว่า fix เสียงเข้า HEAD แล้วหรือยัง** (`git log --oneline -3` — ถ้ายังไม่มี
+   commit ใหม่เรื่อง audio ให้ทำตาม §9 รายการไฟล์ 2)
+2. **เทสโทนซ้ำให้เห็นเสียงจริงในไฟล์**: ปิด FxSound ก่อน (kill pid หรือ service)
+   → ยิงโทน → อัด → silencedetect ต้องเห็นโทน; ถ้ายังเงียบ ให้เช็คว่า default
+   render device ตรงกับ endpoint ที่ engine จับ
+3. ตัดสินใจนโยบาย endpoint: จับ "default render" ตอนเริ่มเซสชัน หรือให้ผู้ใช้เลือกได้
+   (FxSound/APO เป็นเรื่องปกติของเครื่องผู้ใช้จริง)
