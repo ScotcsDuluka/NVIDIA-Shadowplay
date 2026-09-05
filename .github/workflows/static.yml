@@ -2,7 +2,7 @@ name: Deploy static content to Pages
 
 on:
   push:
-    branches: ["Master", "Engine"]
+    branches: ["Master", "Engine", "Engine-Rebuild-Stabilization"]
     paths:
       - 'Web/**'
       - '.github/workflows/static.yml'
