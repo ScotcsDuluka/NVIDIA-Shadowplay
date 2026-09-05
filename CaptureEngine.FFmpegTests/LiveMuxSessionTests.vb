@@ -569,26 +569,33 @@ Namespace CaptureEngine.FFmpegTests
         ' and the session's own Stop/Dispose remain the explicit owners.
         ' ───────────────────────────────────────────────────────────────
 
-        ''' <summary>J: successful spawn ownership — the hook fires EXACTLY
-        ''' once per spawned ffmpeg, receives a live ffmpeg process, and the
-        ''' normal Stop path still terminates it. (The hook cannot prove the
-        ''' job itself here — the KILL_ON_JOB_CLOSE close-the-handle contract
-        ''' is proven by the JOB-1 test in Engine.Concurrency.Tests.)</summary>
+        ''' <summary>J: successful spawn ownership — the hook fires for EVERY
+        ''' spawned ffmpeg (recording + faststart remux), receives a live
+        ''' process each time, and the normal Stop path still terminates the
+        ''' recording child. Process identity is snapshotted INSIDE the hook:
+        ''' the remux child's Process object is disposed by its Using block
+        ''' before Stop returns, so post-hoc member access is illegal. (The
+        ''' KILL_ON_JOB_CLOSE close-the-handle contract itself is proven by
+        ''' JOB-1 in Engine.Concurrency.Tests.)</summary>
         Private Sub Test_SpawnOwnershipHook()
-            Dim captured As Process = Nothing
             Dim hookCount As Integer = 0
+            Dim recordingPid As Integer = -1
+            Dim recordingName As String = ""
             Dim outPath As String = IO.Path.Combine(_sandbox, "lm_j.mp4")
             Dim mux As LiveMuxSession = MakeMux(outPath,
                 Sub(p)
-                    Interlocked.Increment(hookCount)
-                    captured = p
+                    Dim n As Integer = Interlocked.Increment(hookCount)
+                    If n = 1 Then
+                        recordingPid = p.Id
+                        recordingName = p.ProcessName
+                    End If
                 End Sub)
             Try
                 Assert(mux.Start(), "Start returned False")
-                Assert(hookCount = 1, "ownership hook must fire exactly once on spawn, got " & hookCount)
-                Assert(captured IsNot Nothing, "hook received no process")
-                Assert(Not captured.HasExited, "hooked ffmpeg already exited at spawn time")
-                Assert(captured.ProcessName = "ffmpeg", "hooked process is not ffmpeg: " & captured.ProcessName)
+                Assert(hookCount = 1, "ownership hook must fire once for the recording ffmpeg, got " & hookCount)
+                Assert(recordingPid > 0, "hook received no process id")
+                Assert(recordingName = "ffmpeg", "hooked process is not ffmpeg: " & recordingName)
+                Assert(PidAlive(recordingPid), "hooked ffmpeg not alive right after spawn")
 
                 mux.BeginTimelines(0.0, 0.0)
                 FeedVideoFile(mux)
@@ -597,7 +604,8 @@ Namespace CaptureEngine.FFmpegTests
 
                 Dim res As LiveMuxResult = mux.Stop(30000)
                 Assert(res.Succeeded, "Succeeded=False: " & res.ErrorMessage)
-                Assert(captured.HasExited, "hooked ffmpeg still alive after Stop")
+                Assert(hookCount = 2, "the remux ffmpeg must also reach the ownership hook, got " & hookCount)
+                Assert(Not PidAlive(recordingPid), "hooked recording ffmpeg still alive after Stop")
             Finally
                 mux.Dispose()
             End Try

@@ -539,6 +539,18 @@ Partial Public Class CaptureEngine
                                              RaiseEvent ErrorOccurred("Recording not saved — output file missing: " & _outputFile)
                                              LogDebug("RecordingStopped suppressed — file missing: " & _outputFile)
                                          End If
+                                     ElseIf _state = CaptureState.Stopping OrElse _state = CaptureState.Muxing Then
+                                         ' ★ H1-B fix: the terminal EVENT was already delivered by
+                                         ' OnExited's unexpected-exit recovery (state was HasError
+                                         ' when this stop started — e.g. encoder failure), so this
+                                         ' stop must not re-fire events. But the stop flow itself
+                                         ' is now FINISHED: leaving _state parked in
+                                         ' Stopping/Muxing stranded the engine inside
+                                         ' IsRecordingLifecycleActive forever — every later
+                                         ' StartRecordingAsync was rejected ("engine is not idle")
+                                         ' until Dispose. Settle to Idle (no event, exactly-once
+                                         ' contract untouched).
+                                         SetState(CaptureState.Idle)
                                      End If
 
                                      ' ★ Per-recording handle cleanup: the Process object (with its
