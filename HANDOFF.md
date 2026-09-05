@@ -42,6 +42,23 @@
    video-only เสมอ ทดสอบผ่านทั้งเคสเงียบ (valid video-only) และเคสมีโทน (2 streams, onset
    คลาด ~33ms จาก latency เปิดเสียง ffplay) — **สำคัญ: deploy ต้อง copy ทั้งชุด 10 dll**
    (Engine\ 9 ตัว + Services\NVIDIA Capture.dll) ไม่ใช่ตัวเดียว ไม่งั้นเจอ MissingMethodException
+7. **fix A/V sync + Intel stutter จากฟีดแบคผู้ใช้ (2026-09-05, ดู PROJECT_MEMORY.txt ท้ายไฟล์)**
+   — ผู้ใช้รายงาน (a) เสียงเพลงเล่นก่อนภาพ ~1.5-1.8s (b) ภาพกระตุก:
+   - **(a)** legacy engine ใช้ stderr `Output #0` เป็น anchor ของ video T0 — มันพิมพ์หลัง
+     QSV encoder init (~1.3-1.5s) ทั้งที่ gdigrab/ddagrab เริ่มจับเฟรมตั้งแต่ต้น →
+     AudioTimelineWavSink align WAV ไปตาม anchor ที่ช้า → เสียงดีดขึ้นก่อนภาพ
+     (offsetMs=1479-1762 ใน capture-engine.log, mux offsets=0 ตาม design)
+     **แก้:** anchor chain ใน `CaptureEngine.vb OnStdErr` — `"Capturing whole desktop"`
+     (gdigrab, ≈T0-1 เฟรม) → `"Input #0"` (lavfi, ≈T0+probe) → `Output #0` (fallback) →
+     back-calc (สุดท้าย) ตัวแรกที่เจอชนะ
+   - **(b)** ddagrab/gfxcapture+QSV ใช้ `hwmap=derive_device=qsv` → MFX session -9 บน Intel
+     ทุกครั้ง → ผู้ใช้ต้องหนีไป gdigrab (GDI ได้จริง ~25-28fps → dup ถล่ม → กระตุก)
+     **แก้:** `hwdownload,format=bgra,format=nv12` ใน builder ทั้ง 3 ตัว (Engine
+     FFmpegArgumentBuilder + CaptureEngine V1/V2) — QSV encode จาก system memory ใช้ได้จริง,
+     ทดสอบบนเครื่อง dev: ddagrab+hwdownload+h264_qsv ได้ 30.00fps เป๊ะ dup นิ่ง
+   - ConfigTests 95/95 (เพิ่ม S1.26-S1.29), tooling: `evidence/ddagrab-test/anchor-timing-test.ps1`
+   - **ยังไม่ได้เทสบนเครื่องผู้ใช้จริง** — ให้ผู้ใช้กลับไปใช้ default ddagrab+h264_qsv แล้วเช็ค
+     ว่า offsetMs ใน log ต้องหลังหลักร้อย ms ไม่ใช่ ~1500ms
 
 ---
 

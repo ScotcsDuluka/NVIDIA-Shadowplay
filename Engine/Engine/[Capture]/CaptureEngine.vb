@@ -736,21 +736,39 @@ Partial Public Class CaptureEngine
         End If
 
         ' ── Detect video start (HIGH-PRECISION sync) ──
-        ' The output file's PTS 0 frame is the FIRST frame ddagrab grabbed, so
-        ' the wall time of that grab is the anchor the audio timeline must map
-        ' to. ffmpeg prints "Output #0" right before the transcode loop starts
-        ' — within one loop iteration (~10-30ms) of the first grab. That is the
-        ' earliest authoritative marker.
+        ' The output file's PTS 0 frame is the FIRST frame the capture source
+        ' grabbed, so the wall time of that grab is the anchor the audio
+        ' timeline must map to. ffmpeg stderr markers appear in this order:
+        '
+        '   1. "Capturing whole desktop…" — gdigrab read_header, printed just
+        '      BEFORE the first grab (~1 frame early → audio ~1 frame late,
+        '      the safe direction). Exact T0 for the gdigrab method.
+        '   2. "Input #0" — printed after probing has pulled the first frames,
+        '      so the first grab already happened. Error = probe duration
+        '      (tens of ms). The earliest reliable marker for lavfi sources
+        '      (ddagrab / gfxcapture).
+        '   3. "Output #0" — printed after ENCODER init. On Intel QSV that
+        '      init blocks ~1.3-1.5s while capture frames queue with valid
+        '      PTS, so anchoring here put the audio timeline 1.5s LATE → the
+        '      final mux played music ~1.5s AHEAD of the picture (2026-09-05
+        '      user feedback "music already playing before the video starts",
+        '      offsetMs=1479-1762 in capture-engine.log). Kept only as a
+        '      fallback for unknown capture methods.
         '
         ' The old back-calculation (T0 = now - statusTime) is biased LATE by
-        ' everything between the first grab and the status line: on Intel QSV
-        ' the encoder init blocks while ddagrab frames queue up, so the first
-        ' parseable status line can report time=0.7s at a moment when the
-        ' actual content began ~0.5s earlier — the 2026-09-05 "~500ms audio
-        ' offset" on this machine. The back-calc is kept ONLY as evidence and
-        ' as a fallback when "Output #0" was never seen.
+        ' everything between the first grab and the status line (encoder-init
+        ' backlog + status latency). Kept ONLY as the last-resort fallback and
+        ' as evidence of the marker-vs-back-calc bias.
         If Not _videoStartDetected AndAlso _useTwoProcess Then
-            If e.Data.Contains("Output #0") Then
+            If e.Data.Contains("Capturing whole desktop") Then
+                _videoStartTicks = Stopwatch.GetTimestamp()
+                _videoStartDetected = True
+                PropagateVideoStart("gdigrab-init", -1)
+            ElseIf e.Data.Contains("Input #0") Then
+                _videoStartTicks = Stopwatch.GetTimestamp()
+                _videoStartDetected = True
+                PropagateVideoStart("Input#0", -1)
+            ElseIf e.Data.Contains("Output #0") Then
                 _videoStartTicks = Stopwatch.GetTimestamp()
                 _videoStartDetected = True
                 PropagateVideoStart("Output#0", -1)

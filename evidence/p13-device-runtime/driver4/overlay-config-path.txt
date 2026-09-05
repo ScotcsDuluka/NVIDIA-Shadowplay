@@ -1,1 +1,0 @@
-C:\My Project\NVIDIA-Shadowplay\Overlay\bin\Release\net10.0-windows10.0.26100.0\Config\config.json

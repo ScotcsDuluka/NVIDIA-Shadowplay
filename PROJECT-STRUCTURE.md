@@ -65,6 +65,10 @@ Test projects (kept in-tree, run by build scripts):
 - `CaptureEngine.FFmpegTests/`
 - `CaptureEngine.FrameContractTests/`
 - `CaptureEngine.ConfigTests/`
+- `Engine.ConfigTruth.Tests/`
+  Config-ownership truth tests — standalone console runner, **not** part of
+  `Overlay/NVIDIA Overlay.sln`; build/run it directly (`dotnet run --project
+  Engine.ConfigTruth.Tests`).
 
 ## Support directories
 
@@ -78,6 +82,14 @@ Test projects (kept in-tree, run by build scripts):
 - `scripts/`
   Build and diagnostic entry points (`build-all.ps1` / `build-all.sh`),
   startup stress, sync verification, phase validation.
+- `tools/`
+  One-shot patch/verification scripts and local tooling configs used during
+  development sessions (`tools/playwright/` for the Playwright MCP setup).
+  Not referenced by the build.
+- `installer/`
+  Inno Setup source (`NVIDIA ShadowPlay.iss`) and wizard artwork. It packages
+  the staged tree in `dist\NVIDIA ShadowPlay` and writes the setup exe to
+  `dist-installer\` (both ignored, generated).
 
 ## Notes
 

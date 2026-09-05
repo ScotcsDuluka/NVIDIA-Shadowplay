@@ -91,6 +91,10 @@ Namespace CaptureEngine.ConfigTests.Regression
             RunTest("S1.23 Snapshot: V2 NVENC_HEVC encoder → hevc_nvenc", AddressOf Test_Snapshot_V2HevcEncoder)
             RunTest("S1.24 Snapshot: V2 contains expected OutputIndex in ddagrab (0)", AddressOf Test_Snapshot_V2OutputIndex)
             RunTest("S1.25 Snapshot: V2 default bitrate unit is bps (not kbps)", AddressOf Test_Snapshot_V2BitrateUnitBps)
+            RunTest("S1.26 Snapshot: V2 ddagrab+QSV uses hwdownload (MFX session -9 regression)", AddressOf Test_Snapshot_V2QsvDdagrabHwDownload)
+            RunTest("S1.27 Snapshot: V2 gfxcapture+QSV uses hwdownload (MFX session -9 regression)", AddressOf Test_Snapshot_V2QsvGfxcaptureHwDownload)
+            RunTest("S1.28 Snapshot: V1 ddagrab+QSV uses hwdownload (MFX session -9 regression)", AddressOf Test_Snapshot_V1QsvDdagrabHwDownload)
+            RunTest("S1.29 Snapshot: QSV capture commands contain no hwmap=derive_device=qsv", AddressOf Test_Snapshot_QsvNoHwmap)
 
             ' Parity delta: V1 vs V2 must differ ONLY in bufsize + pix_fmt
             RunTest("P1.1 Parity: V1 vs V2 same logical config differ only in bufsize + pix_fmt",
@@ -497,9 +501,81 @@ Namespace CaptureEngine.ConfigTests.Regression
             Dim v2 As New EngineConfigV2()
             Assert(v2.Video.Encoder.BitrateBps = 20000000L, "Default should be 20000000 (bps)")
 
+                Dim builder As IFFmpegCommandBuilder = PipelineResolver.BuildFFmpegCommandBuilder(v2)
+                Dim cmd As String = builder.Build("out.mp4")
+                Assert(cmd.Contains("-b:v 20000000 "), "Command should use 20000000 (bps)")
+            End Sub
+
+        ' ── S1.26-S1.29: IntelQSV hwmap regression (2026-09-05) ──
+        ' hwmap=derive_device=qsv fails on Intel iGPU with "Error creating a
+        ' MFX session: -9" — every ddagrab/gfxcapture+QSV recording died at
+        ' init, forcing users onto gdigrab (GDI ~25-28 real fps → heavy dup
+        ' stutter). QSV encoders accept SYSTEM-memory frames (gdigrab+qsv
+        ' always worked), so the GPU-resident frames must be downloaded
+        ' instead of mapped. See Engine FFmpegArgumentBuilder.vb.
+        Private Sub Test_Snapshot_V2QsvDdagrabHwDownload()
+            Dim v2 As New EngineConfigV2()
+            v2.Video.Encoder.FFmpegCodec = "h264_qsv"
+
             Dim builder As IFFmpegCommandBuilder = PipelineResolver.BuildFFmpegCommandBuilder(v2)
             Dim cmd As String = builder.Build("out.mp4")
-            Assert(cmd.Contains("-b:v 20000000 "), "Command should use 20000000 (bps)")
+
+            Assert(cmd.Contains("hwdownload,format=bgra,format=nv12"),
+                   "ddagrab+QSV must download to system memory (nv12). Cmd: " & cmd)
+            Assert(Not cmd.Contains("hwmap"), "ddagrab+QSV must NOT use hwmap. Cmd: " & cmd)
+            Assert(cmd.Contains("-c:v h264_qsv"), "Should encode with h264_qsv. Cmd: " & cmd)
+        End Sub
+
+        Private Sub Test_Snapshot_V2QsvGfxcaptureHwDownload()
+            Dim v2 As New EngineConfigV2()
+            v2.Video.Capture.Method = "gfxcapture"
+            v2.Video.Encoder.FFmpegCodec = "hevc_qsv"
+
+            Dim builder As IFFmpegCommandBuilder = PipelineResolver.BuildFFmpegCommandBuilder(v2)
+            Dim cmd As String = builder.Build("out.mp4")
+
+            Assert(cmd.Contains("hwdownload,format=bgra,format=nv12"),
+                   "gfxcapture+QSV must download to system memory (nv12). Cmd: " & cmd)
+            Assert(Not cmd.Contains("hwmap"), "gfxcapture+QSV must NOT use hwmap. Cmd: " & cmd)
+        End Sub
+
+        Private Sub Test_Snapshot_V1QsvDdagrabHwDownload()
+            Dim v1Settings As New FFmpegCommandBuilderV1.V1Settings() With {
+                .Encoder = "h264_qsv",
+                .FPS = 60,
+                .Bitrate = 5000000,
+                .CaptureMethod = "ddagrab",
+                .UseNativeResolution = True
+            }
+            Dim builder As New FFmpegCommandBuilderV1(v1Settings)
+            Dim cmd As String = builder.Build("out.mp4")
+
+            Assert(cmd.Contains("hwdownload,format=bgra,format=nv12"),
+                   "V1 ddagrab+QSV must download to system memory (nv12). Cmd: " & cmd)
+            Assert(Not cmd.Contains("hwmap"), "V1 ddagrab+QSV must NOT use hwmap. Cmd: " & cmd)
+        End Sub
+
+        Private Sub Test_Snapshot_QsvNoHwmap()
+            ' No capture method + QSV encoder may produce hwmap=derive_device=qsv.
+            For Each method As String In {"ddagrab", "gfxcapture", "gdigrab"}
+                Dim v1Settings As New FFmpegCommandBuilderV1.V1Settings() With {
+                    .Encoder = "h264_qsv",
+                    .FPS = 30,
+                    .Bitrate = 7000000,
+                    .CaptureMethod = method,
+                    .UseNativeResolution = True
+                }
+                Dim v1Cmd As String = New FFmpegCommandBuilderV1(v1Settings).Build("out.mp4")
+                Assert(Not v1Cmd.Contains("hwmap=derive_device=qsv"),
+                       $"V1 {method}+QSV must not contain hwmap=derive_device=qsv. Cmd: " & v1Cmd)
+
+                Dim v2 As New EngineConfigV2()
+                v2.Video.Capture.Method = method
+                v2.Video.Encoder.FFmpegCodec = "h264_qsv"
+                Dim v2Cmd As String = PipelineResolver.BuildFFmpegCommandBuilder(v2).Build("out.mp4")
+                Assert(Not v2Cmd.Contains("hwmap=derive_device=qsv"),
+                       $"V2 {method}+QSV must not contain hwmap=derive_device=qsv. Cmd: " & v2Cmd)
+            Next
         End Sub
 
         ' ════════════════════════════════════════════════════════════

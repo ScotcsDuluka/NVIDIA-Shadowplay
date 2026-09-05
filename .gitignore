@@ -35,6 +35,7 @@ spike_output.md
 *.lnk
 *.mcworld
 *.zip
+*.ziplog
 *.7z
 *.msi
 Video_Codec_Interface_13.1.15/
@@ -50,6 +51,7 @@ spikes/**/logs/
 Overlay/build.txt
 Overlay/NVIDIA_Shadowplay_Data/
 Overlay/API-Core/
+feedback-logs/
 
 # stray editor/session backup files (cleanup after e032343 committed four of these)
 *.bak

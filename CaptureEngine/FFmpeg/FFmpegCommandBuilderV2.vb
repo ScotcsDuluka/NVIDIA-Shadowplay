@@ -81,7 +81,10 @@ Namespace CaptureEngine.FFmpeg
                               ":framerate=" & fpsStr & """ ")
                     Select Case hwType
                         Case HwDeviceType.IntelQSV
-                            videoFilter = "hwmap=derive_device=qsv"
+                            ' hwmap=derive_device=qsv fails on Intel iGPU (MFX session -9
+                            ' from the ddagrab-derived D3D11 device); system-memory qsv
+                            ' encode works — mirror the Engine FFmpegArgumentBuilder fix.
+                            videoFilter = "hwdownload,format=bgra,format=nv12"
                         Case HwDeviceType.None
                             videoFilter = "hwdownload,format=bgra,format=yuv420p"
                         Case HwDeviceType.NVIDIA, HwDeviceType.AMD
@@ -97,7 +100,8 @@ Namespace CaptureEngine.FFmpeg
                               ":max_framerate=" & fpsStr & """ ")
                     Select Case hwType
                         Case HwDeviceType.IntelQSV
-                            videoFilter = "fps=" & fpsStr & ",hwmap=derive_device=qsv"
+                            ' Same IntelQSV hwmap failure as ddagrab (MFX session -9).
+                            videoFilter = "fps=" & fpsStr & ",hwdownload,format=bgra,format=nv12"
                         Case HwDeviceType.None
                             videoFilter = "fps=" & fpsStr & ",hwdownload,format=bgra,format=yuv420p"
                         Case HwDeviceType.NVIDIA, HwDeviceType.AMD
@@ -122,7 +126,7 @@ Namespace CaptureEngine.FFmpeg
                         videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",hwupload"
                     ElseIf hwType = HwDeviceType.IntelQSV Then
                         If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
-                        videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",hwmap=derive_device=qsv"
+                        videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart & ",format=nv12"
                     Else
                         If videoFilter.Length > 0 Then videoFilter = videoFilter & ","
                         videoFilter = videoFilter & "hwdownload,format=bgra," & scalePart

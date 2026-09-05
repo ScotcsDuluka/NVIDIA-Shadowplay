@@ -2518,3 +2518,51 @@ CFR telemetry for final 15s motion run:
   FileNotFoundException (CaptureEngine.Audio) at RECORD_START.
 - Regression tooling: evidence\silent-recording-test.ps1 (silent-desktop
   case, expects valid final mp4).
+
+==================================================
+[2026-09-05] A/V SYNC + INTEL STUTTER FIX (user feedback)
+==================================================
+User feedback (logs zip: 'scotcsduluka the best dev.zip' -> extracted to
+feedback-logs/i kill people/): (a) music plays on the audio track BEFORE it
+starts in the video (~1.5-1.8s early); (b) recording stutters.
+
+ROOT CAUSE 1 - sync (audio early by QSV-encoder-init delay):
+- Legacy engine anchored video T0 at ffmpeg stderr 'Output #0', which prints
+  AFTER encoder init. On Intel QSV that init takes ~1.3-1.5s while gdigrab/
+  ddagrab frames queue with valid PTS from the real first grab.
+- AudioTimelineWavSink aligns the WAV to whatever anchor PropagateVideoStart
+  sends (mux offsets are intentionally 0 - 'alignment owned by AudioEngine'),
+  so a late anchor = WAV starts late = audio plays ~1.5s ahead of the video.
+  Evidence: user log offsetMs=1479/1637/1707/1762/1525 with mux offsets=0.000s.
+- Reproduced on dev machine (Intel): Output#0 at 1555ms vs 'Capturing whole
+  desktop' at 121ms (gdigrab); Output#0 1277ms vs Input#0 682ms (ddagrab).
+- FIX (Engine/Engine/[Capture]/CaptureEngine.vb OnStdErr): marker chain, first
+  match wins: 'Capturing whole desktop' (gdigrab read_header, ~= T0 - 1 frame,
+  safe direction) -> 'Input #0' (probe end, ~= T0 + probe duration, lavfi
+  sources) -> 'Output #0' (fallback) -> frame= back-calc (last resort).
+  Residual error now tens of ms instead of ~1.5s.
+
+ROOT CAUSE 2 - stutter (gdigrab GDI delivers only ~25-28 real fps @1080p):
+- ddagrab/gfxcapture + IntelQSV used hwmap=derive_device=qsv -> 'Error creating
+  a MFX session: -9' on Intel iGPU (user log, 4/4 recordings DOA) -> users
+  forced onto gdigrab -> fps_mode=cfr duplicates frames continuously
+  (dup=175-270 per 20s @30fps; dup=463/712 @60fps) -> visible judder.
+- FIX: hwdownload,format=bgra,format=nv12 for ddagrab/gfxcapture + QSV in ALL
+  THREE builders (Engine FFmpegArgumentBuilder.vb, CaptureEngine
+  FFmpegCommandBuilderV1.vb + V2.vb). QSV encodes system-memory frames fine
+  (gdigrab+qsv always worked); ddagrab itself runs on any vendor via DXGI.
+- Verified on dev machine: ddagrab+hwdownload+h264_qsv = exact 30.00fps,
+  dup frozen at startup burst (23) with NO steady-state growth, drop=6,
+  8.000s file. Compare gdigrab: continuous dup growth.
+
+TESTS: +4 regression tests S1.26-S1.29 in CaptureEngine.ConfigTests
+(RegressionTests.vb) asserting hwdownload + no hwmap for QSV capture paths.
+ConfigTests: 95/95 PASS (was 91). Overlay Release build: 0 err / 0 warn.
+
+TOOLING: evidence/ddagrab-test/anchor-timing-test.ps1 - timestamps ffmpeg
+stderr markers relative to process start (ddagrab + gdigrab variants).
+
+NOT CHANGED: FFmpegPipelineBackend.vb (NVIDIA live-mux) still anchors on the
+first frame= back-calc - production-validated path, do not touch without a
+NVIDIA machine. NVIDIA encoder args untouched (GPU-resident ddagrab->nvenc).
+
