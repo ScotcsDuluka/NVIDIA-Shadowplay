@@ -660,6 +660,21 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
             End SyncLock
         End Function
 
+        ' ─── C-2C test seam (Friend — deterministic worker-crash injection) ──
+        ' A natural worker crash needs a DXGI/driver fault that cannot be
+        ' forced safely. This seam reproduces the EXACT crash shape at the
+        ' safest point: the TOP of a worker iteration, where no COM object
+        ' and no frame is held — the exception then travels the same path a
+        ' real crash takes (outer catch → worker-exit state tail). Production
+        ' never sets the flag; the field is read-and-cleared per iteration.
+        Private _workerCrashRequested As Boolean = False
+
+        Friend Sub RequestWorkerCrashOnce()
+            SyncLock _sync
+                _workerCrashRequested = True
+            End SyncLock
+        End Sub
+
         ' ===== Internal worker — REAL DXGI CAPTURE LOOP =====
 
         Private Sub WorkerLoop()
@@ -670,6 +685,19 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         shouldStop = _stopSignal
                     End SyncLock
                     If shouldStop Then Exit Do
+
+                    ' ★ C-2C seam: read-and-clear the crash request at the
+                    ' top of the iteration — nothing is held here (no frame,
+                    ' no acquire in flight), so the injected throw exercises
+                    ' the identical termination path as a natural crash.
+                    Dim crashNow As Boolean
+                    SyncLock _sync
+                        crashNow = _workerCrashRequested
+                        _workerCrashRequested = False
+                    End SyncLock
+                    If crashNow Then
+                        Throw New InvalidOperationException("INJECTED worker crash (C-2C test seam)")
+                    End If
 
                     ' ─── AcquireNextFrame (DXGI Output Duplication) ────────
                     Dim sequence As Long

@@ -38,6 +38,10 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
                    AddressOf Test_StopQuiescesWorker)
             runner("DDAGRAB C-2: 5 repeated Start/Stop cycles → textures balanced, state honest",
                    AddressOf Test_RepeatedCycles)
+            runner("DDAGRAB C-2C: worker crash while Running → no zombie, next session works (real NVIDIA)",
+                   AddressOf Test_WorkerCrashWhileRunning)
+            runner("DDAGRAB C-2: 50-cycle mixed stress (stop/slow/timeout/crash) — workers, textures, state",
+                   AddressOf Test_MixedStress50)
         End Sub
 
         ' ---- helpers ----
@@ -180,6 +184,205 @@ Namespace CaptureEngine.Video.Tests.Lifecycle
 
             backend.Dispose()
         End Sub
+
+        ' ───────────────────────────────────────────────────────────────
+        ' C-2C — WORKER CRASH WHILE RUNNING (real NVIDIA, deterministic)
+        '
+        ' A natural crash needs a DXGI/driver fault that cannot be forced
+        ' safely, so the backend exposes a Friend seam that throws from the
+        ' TOP of a worker iteration — no COM object, no frame held — and the
+        ' exception travels the identical termination path as a real crash:
+        ' outer catch → worker-exit tail → Running→Stopped.
+        ' ───────────────────────────────────────────────────────────────
+        Private Shared Sub Test_WorkerCrashWhileRunning()
+            Dim proc As Process = Process.GetCurrentProcess()
+            Dim backend = CreateBackend(New EngineLogger("DdagrabCrash", EngineLogger.LogLevel.Warning))
+            backend.Initialize(CreateContext())
+            Dim sink As New RecordingVideoFrameSink()
+            sink.SetOutcomeOverride(PushOutcome.Dropped)   ' backend disposes every frame
+
+            Try
+                backend.Start(sink)
+                TestHelpers.AssertEqual(
+                    DdagrabBackend.DdagrabBackendState.Running,
+                    backend.CurrentState, "state after Start")
+
+                ' Activity is EVIDENCE, not a precondition: the crash seam
+                ' fires from the worker loop top regardless of what the
+                ' desktop delivers (under concurrent duplication load the
+                ' counters may stay at zero — that is environmental).
+                Dim sawActivity As Boolean =
+                    WaitTrue(Function() backend.Diagnostics.NoFrameCount > 0 OrElse
+                                        backend.Diagnostics.EmittedFrames > 0 OrElse
+                                        backend.Diagnostics.ErrorCount > 0, 10000)
+                If Not sawActivity Then
+                    Console.WriteLine("      note: no capture activity observed (DXGI contention) — crash contract still asserted")
+                End If
+                Dim threadsWithWorker As Integer = proc.Threads.Count
+
+                ' ── Running → worker terminates unexpectedly ──
+                backend.RequestWorkerCrashOnce()
+
+                Dim deadline As Long = DateTime.UtcNow.Ticks + 100000000L   ' 10s
+                While backend.CurrentState = DdagrabBackend.DdagrabBackendState.Running AndAlso
+                      DateTime.UtcNow.Ticks < deadline
+                    Thread.Sleep(25)
+                End While
+                TestHelpers.AssertEqual(
+                    DdagrabBackend.DdagrabBackendState.Stopped,
+                    backend.CurrentState,
+                    "crashed worker must complete Running→Stopped — no zombie Running")
+
+                ' Worker thread really exited (thread count back to pre-worker).
+                Thread.Sleep(300)
+                Dim threadsAfterCrash As Integer = proc.Threads.Count
+                TestHelpers.Assert(threadsAfterCrash <= threadsWithWorker,
+                                   $"worker thread leaked: {threadsWithWorker} → {threadsAfterCrash}")
+
+                ' ── Next session on the SAME backend must work (no brick) ──
+                Dim sink2 As New RecordingVideoFrameSink()
+                sink2.SetOutcomeOverride(PushOutcome.Dropped)
+                backend.Start(sink2)
+                TestHelpers.AssertEqual(
+                    DdagrabBackend.DdagrabBackendState.Running,
+                    backend.CurrentState, "Start after crash must be allowed")
+                backend.[Stop]()
+                TestHelpers.AssertEqual(
+                    DdagrabBackend.DdagrabBackendState.Stopped,
+                    backend.CurrentState, "post-crash session stop")
+
+                TestHelpers.AssertEqual(
+                    backend.TexturesCreated, backend.TexturesDisposed,
+                    "texture leak across crash + recovery")
+            Finally
+                ' NEVER leave a live duplication behind — this process gets
+                ' exactly ONE duplication per output; an abandoned backend
+                ' would cascade E_INVALIDARG into every later Initialize.
+                Try : backend.[Stop]() : Catch : End Try
+                Try : backend.Dispose() : Catch : End Try
+            End Try
+        End Sub
+
+        ' ───────────────────────────────────────────────────────────────
+        ' 50-CYCLE MIXED STRESS — Start/Stop, slow stop, Stop-timeout,
+        ' worker failure (crash seam). Per cycle: state + texture balance.
+        ' Periodic + final: process thread count (worker-leak detector).
+        ' ───────────────────────────────────────────────────────────────
+        Private Shared Sub Test_MixedStress50()
+            Dim proc As Process = Process.GetCurrentProcess()
+            Dim threadsBefore As Integer = proc.Threads.Count
+
+            Dim backend = CreateBackend(New EngineLogger("DdagrabStress", EngineLogger.LogLevel.Warning))
+            backend.Initialize(CreateContext())
+            Dim sink As New RecordingVideoFrameSink()
+            sink.SetOutcomeOverride(PushOutcome.Dropped)   ' backend disposes every frame
+
+            Dim crashCycles As Integer = 0
+            Dim timeoutCycles As Integer = 0
+
+            For i As Integer = 1 To 50
+                Dim kind As Integer = i Mod 5
+                If kind = 1 OrElse kind = 3 Then
+                    ' ── normal Start/Stop ──
+                    backend.Start(sink)
+                    TestHelpers.AssertEqual(DdagrabBackend.DdagrabBackendState.Running,
+                                            backend.CurrentState, "cycle " & i & ": post-Start")
+                    backend.[Stop]()
+                ElseIf kind = 2 Then
+                    ' ── slow stop (join still succeeds) ──
+                    backend.Start(sink)
+                    WaitTrue(Function() backend.Diagnostics.NoFrameCount > 0 OrElse
+                                        backend.Diagnostics.EmittedFrames > 0, 5000)
+                    Thread.Sleep(40)
+                    backend.[Stop]()
+                ElseIf kind = 0 Then
+                    ' ── worker failure: injected crash mid-Running ──
+                    backend.Start(sink)
+                    WaitTrue(Function() backend.Diagnostics.NoFrameCount > 0 OrElse
+                                        backend.Diagnostics.EmittedFrames > 0 OrElse
+                                        backend.Diagnostics.ErrorCount > 0, 5000)
+                    backend.RequestWorkerCrashOnce()
+                    crashCycles += 1
+                Else
+                    ' ── Stop timeout: worker parked in a gated sink push ──
+                    Dim gate As New ManualResetEvent(False)
+                    Dim gated As New GatedSinkStub(gate)
+                    backend.Start(gated)
+                    Dim sw As Stopwatch = Stopwatch.StartNew()
+                    While Not gated.Entered AndAlso sw.ElapsedMilliseconds < 5000
+                        Thread.Sleep(10)
+                    End While
+                    backend.[Stop]()
+                    TestHelpers.AssertEqual(DdagrabBackend.DdagrabBackendState.Stopping,
+                                            backend.CurrentState, "cycle " & i & " (timeout): must hold Stopping")
+                    timeoutCycles += 1
+                    gate.Set()
+                    Dim s4 As Stopwatch = Stopwatch.StartNew()
+                    While backend.CurrentState <> DdagrabBackend.DdagrabBackendState.Stopped AndAlso
+                          s4.ElapsedMilliseconds < 10000
+                        Thread.Sleep(25)
+                    End While
+                End If
+
+                ' every cycle ends Stopped (normal + slow + timeout + crash)
+                Dim s5 As Stopwatch = Stopwatch.StartNew()
+                While backend.CurrentState <> DdagrabBackend.DdagrabBackendState.Stopped AndAlso
+                      s5.ElapsedMilliseconds < 10000
+                    Thread.Sleep(25)
+                End While
+                TestHelpers.AssertEqual(DdagrabBackend.DdagrabBackendState.Stopped,
+                                        backend.CurrentState, "cycle " & i & ": final state")
+                TestHelpers.AssertEqual(backend.TexturesCreated, backend.TexturesDisposed,
+                                        "cycle " & i & ": texture balance")
+            Next
+
+            TestHelpers.Assert(crashCycles >= 5, "expected >=5 worker-failure cycles (got " & crashCycles & ")")
+            TestHelpers.Assert(timeoutCycles >= 5, "expected >=5 timeout cycles (got " & timeoutCycles & ")")
+
+            Try
+                ' Dispose contract + leak audit
+                backend.Dispose()
+                Dim disposeRejected As Boolean = False
+                Try
+                    backend.Start(sink)
+                Catch ex As ObjectDisposedException
+                    disposeRejected = True
+                End Try
+                TestHelpers.Assert(disposeRejected, "Start after Dispose was accepted")
+
+                Thread.Sleep(300)
+                Dim threadsAfter As Integer = proc.Threads.Count
+                Console.WriteLine("      threads before=" & threadsBefore & " after=" & threadsAfter &
+                                  "; crash cycles=" & crashCycles & "; timeout cycles=" & timeoutCycles)
+                TestHelpers.Assert(threadsAfter <= threadsBefore + 8,
+                                   "thread count grew " & threadsBefore & " → " & threadsAfter & " — worker leak")
+            Finally
+                Try : backend.[Stop]() : Catch : End Try
+                Try : backend.Dispose() : Catch : End Try
+            End Try
+        End Sub
+
+        ' Minimal sink that parks the worker inside TryPush until
+        ' the gate opens (deterministic Stop-timeout generator).
+        Private NotInheritable Class GatedSinkStub
+            Implements IVideoFrameSink
+
+            Private ReadOnly _gate As ManualResetEvent
+            Public Entered As Boolean = False
+
+            Public Sub New(gate As ManualResetEvent)
+                _gate = gate
+            End Sub
+
+            Public Function TryPush(result As FrameAcquisitionResult) As PushOutcome Implements IVideoFrameSink.TryPush
+                Entered = True
+                _gate.WaitOne()
+                If result.Frame IsNot Nothing Then
+                    Try : result.Frame.Dispose() : Catch : End Try
+                End If
+                Return PushOutcome.Pushed
+            End Function
+        End Class
 
     End Class
 
