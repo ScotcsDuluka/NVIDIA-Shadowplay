@@ -182,7 +182,8 @@ Namespace CaptureEngine.FFmpegBackend
                     Try : _onProcessStarted?.Invoke(_proc) : Catch ex As Exception
                         Log("[live-mux] process-ownership hook failed (ffmpeg stays self-owned): " & ex.Message)
                     End Try
-                End If                _stderrTask = _proc.StandardError.ReadToEndAsync()
+                End If
+                _stderrTask = _proc.StandardError.ReadToEndAsync()
 
                 _video.StartWriter()
                 _audio?.StartWriter()
@@ -421,7 +422,8 @@ Namespace CaptureEngine.FFmpegBackend
                     ' as the recording ffmpeg (it holds _fragPath/_finalPath).
                     If p IsNot Nothing Then
                         Try : _onProcessStarted?.Invoke(p) : Catch : End Try
-                    End If                    Dim errTask = p.StandardError.ReadToEndAsync()
+                    End If
+                    Dim errTask = p.StandardError.ReadToEndAsync()
                     If Not p.WaitForExit(30000) Then
                         Try : p.Kill() : Catch : End Try
                         Return False
