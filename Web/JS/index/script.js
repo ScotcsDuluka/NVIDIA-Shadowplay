@@ -2,7 +2,14 @@
   "use strict";
 
   const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0) || (navigator.msMaxTouchPoints > 0);
-  if (isTouchDevice) {
+  // ★ CURSOR FIX: the CSS hides the native cursor only on (hover:hover)+(pointer:fine)
+  // and shows the custom cursor there. The old check (maxTouchPoints>0) also matched
+  // touch-capable machines USED WITH A MOUSE (touchscreens, Remote Play/RDP sessions)
+  // -> JS hid the custom cursor while CSS hid the real one = no cursor at all.
+  // The cursor decision must use the SAME media query as the CSS.
+  const hasFinePointer = window.matchMedia &&
+    window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  if (!hasFinePointer) {
     const cursor = document.getElementById('cursor');
     const cursorDot = document.getElementById('cursorDot');
     if (cursor) cursor.style.display = 'none';
@@ -24,7 +31,7 @@
     });
   });
 
-  if (!isTouchDevice) {
+  if (hasFinePointer) {
     const cursor = document.getElementById('cursor'), cursorDot = document.getElementById('cursorDot');
     let mouseX = 0, mouseY = 0, cursorX = 0, cursorY = 0;
     document.addEventListener('mousemove', (e) => {
