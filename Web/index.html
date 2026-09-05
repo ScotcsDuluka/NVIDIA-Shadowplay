@@ -400,17 +400,17 @@
   <div class="desc-row">
    
     <div>
-      <p style="margin-bottom: 1rem;"><strong style="color: var(--text-white);">Windows 8 / Server 2012 or newer</strong><br>(64-bit required)</p>
+      <p style="margin-bottom: 1rem;"><strong style="color: var(--text-white);">Windows 10 (19045+) / Windows 11</strong><br>(64-bit — the app targets .NET 10, older Windows including 8/7/Vista/XP are not supported)</p>
       <div style="display: flex; gap: 0.8rem; flex-wrap: wrap;">
         <span class="status-badge status-ready">Windows 11</span>
         <span class="status-badge status-ready">Windows 10</span>
-        <span class="status-badge status-ready">Windows 8.1</span>
-        <span class="status-badge status-ready">Windows 8</span>
-        <span class="status-badge status-ready">Windows Server 2022</span>
-        <span class="status-badge status-ready">Windows Server 2019</span>
-        <span class="status-badge status-ready">Windows Server 2016</span>
-        <span class="status-badge status-ready">Windows Server 2012 R2</span>
-        <span class="status-badge status-ready">Windows Server 2012</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 8.1</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 8</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2022</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2019</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2016</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2012 R2</span>
+        <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Server 2012</span>
         <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows 7</span>
         <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows Vista</span>
         <span class="status-badge" style="background: rgba(239,68,68,0.2); border-left: 3px solid #EF4444; color: #EF4444;">Windows XP</span>
@@ -437,7 +437,7 @@
   </div>
 
     <p>
-      <strong style="color: var(--text-white);">.NET Desktop Runtime 8</strong><br>The .NET Desktop Runtime enables you to run existing Windows desktop applications.
+      <strong style="color: var(--text-white);">.NET Desktop Runtime 10</strong><br>The app targets .NET 10 — install the .NET Desktop Runtime 10 (x64) if the installer doesn't already provide it.
     </p>
   </div>
   
@@ -502,28 +502,36 @@
       </div>
       <div class="arch-modules">
         <div class="arch-card" style="border-left-color: #78B802;">
-          <h3> API/</h3>
-          <p>Screen capture abstraction: Windows.Graphics.Capture, Desktop Duplication, GDI fallback. Provides unified interface for frame grabbing.</p>
+          <h3> CaptureEngine/</h3>
+          <p>Core contracts and configuration: IVideoBackend / IEncoderBackend seams, config pipeline, engine logger. Every producer plugs in through these seams.</p>
         </div>
         <div class="arch-card" style="border-left-color: #3B82F6;">
-          <h3> App Experience/</h3>
-          <p>User settings, hotkey manager, UI state, theming, and configuration persistence. Responsive design and smooth animations.</p>
+          <h3> Capture — Ddagrab/</h3>
+          <p>Production capture: DXGI Desktop Duplication on D3D11, zero-copy GPU frames with QPC presentation timestamps from the driver.</p>
         </div>
         <div class="arch-card" style="border-left-color: #F59E0B;">
-          <h3> Engine/</h3>
-          <p>FFmpeg encoding pipeline, replay buffer management, hardware acceleration dispatcher, and recording session controller.</p>
+          <h3> Encoder — NVENC/</h3>
+          <p>Native in-app NVENC encoder: direct function-table binding (no FFmpeg wrapper), CBR/CFR, FORCEIDR first frame, GPU texture submission.</p>
         </div>
-        <div class="arch-card" style="border-left-color: #A855F7;">
-          <h3> Notifier/</h3>
-          <p>System tray integration, toast notifications, error reporting, status updates, and user alerts for recording events.</p>
+        <div class="arch-card" style="border-left-color: #22C55E;">
+          <h3> Audio — WASAPI/</h3>
+          <p>Shared loopback engine armed on one common QPC timeline (T0) with video. System audio + microphone, gap-aware, honest drop accounting.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #EF4444;">
+          <h3> Live Mux — FFmpeg/</h3>
+          <p>Named-pipe live muxer: H.264 + PCM stream into ffmpeg, fragmented MP4 (crash-safe), faststart finalize, drain-until-empty stop.</p>
         </div>
         <div class="arch-card" style="border-left-color: #06B6D4;">
           <h3> Overlay/</h3>
-          <p>In-game borderless overlay with FPS counter, recording timer, hotkey hints. Built with No-Hook for anti-cheat compatibility.</p>
+          <p>In-game borderless overlay (Alt+Z) with record controls, hotkeys (global RegisterHotKey), settings, gallery. No-Hook for anti-cheat compatibility.</p>
         </div>
-        <div class="arch-card" style="border-left-color: #A85527;">
-          <h3> API Server/</h3>
-          <p>An app that communicates using the TCP protocol.<br>With an API server.</p>
+        <div class="arch-card" style="border-left-color: #A855F7;">
+          <h3> Hub — NVIDIA API/</h3>
+          <p>TCP hub on localhost:5000. Starts and keeps alive the whole app family (Capture, Overlay, Notifier) and carries the engine command channel.</p>
+        </div>
+        <div class="arch-card" style="border-left-color: #F97316;">
+          <h3> Two Engine Regimes/</h3>
+          <p>Duluka (native D3D11+NVENC) as production, plus an FFmpeg-engine path (ddagrab / gdigrab / gfxcapture, Intel QSV via hwmap) for wider hardware support.</p>
         </div>
       </div>
     </div>
@@ -548,7 +556,7 @@
         </div>
         <div class="faq-item">
           <button class="faq-question">What if I don't have an NVIDIA GPU? <span class="faq-icon">+</span></button>
-          <div class="faq-answer">You can still use software encoding (x264) but performance may be lower. We plan to add Intel QSV and AMD AMF in future updates.</div>
+          <div class="faq-answer">Yes — two options: the FFmpeg engine path supports Intel QSV today (validated on Intel hardware, experimental) and software x264 as a last resort. AMD AMF is on the roadmap. The native production engine (Duluka) currently targets NVIDIA NVENC.</div>
         </div>
         <div class="faq-item">
           <button class="faq-question">How can I contribute to the project? <span class="faq-icon">+</span></button>
