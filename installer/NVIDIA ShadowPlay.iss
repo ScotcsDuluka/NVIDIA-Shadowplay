@@ -68,7 +68,9 @@ Name: "{app}\Flags"; Permissions: users-modify
 Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; wizard artwork — extracted to {tmp} at runtime and painted by [Code]
 Source: "assets\welcome-bg.bmp"; Flags: dontcopy
-Source: "assets\logo-sm.bmp"; Flags: dontcopy
+Source: "assets\NVIDIASans_Rg.ttf"; Flags: dontcopy
+Source: "assets\NVIDIASans_Md.ttf"; Flags: dontcopy
+Source: "assets\NVIDIASans_Bd.ttf"; Flags: dontcopy
 
 [Icons]
 Name: "{autoprograms}\{#AppName}\{#AppName}"; Filename: "{app}\Launcher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Overlay\NVIDIA ShadowPlay.ico"
@@ -86,18 +88,23 @@ Type: filesandordirs; Name: "{app}\Flags"
 
 [Code]
 // ─────────────────────────────────────────────────────────────────────────
-// Dark premium wizard — palette (TColor = $00BBGGRR)
+// Dark premium wizard — palette (TColor = $00BBGGRR). Colors and fonts are
+// the REAL NVIDIA App installer values: #333333 surface (Main_BG.png),
+// #76B900 accent + #898989 secondary (theme.cfg), NVIDIA Sans (NVI2 fonts).
 // ─────────────────────────────────────────────────────────────────────────
+
+function AddFontResource(lpszFilename: String): Integer;
+external 'AddFontResourceW@gdi32.dll stdcall';
+
 const
-  ClBackDark  = $000D0D0D;   // #0D0D0D page background
-  ClInputDark = $001A1A1A;   // input fields
-  ClTextMain  = $00F5F5F5;   // near-white
-  ClTextDim   = $009B9896;   // secondary gray
-  ClAccent    = $0000B976;   // NVIDIA-class green #76B900
+  ClBackDark  = $00333333;   // #333333 — real Main_BG.png surface
+  ClInputDark = $00242424;   // input fields on #333333
+  ClTextMain  = $00FFFFFF;   // #FFFFFF (SideBarCurrentTextColor)
+  ClTextDim   = $00898989;   // #898989 (SideBarNotDoneTextColor)
+  ClAccent    = $0000B976;   // #76B900 (SideBarDoneTextColor)
 
 var
   BgWelcome, BgFinished, BgFinishedTop: TBitmapImage;
-  LogoInner: TBitmapImage;
   HeadLocation, HeadOptions: TNewStaticText;
   SubLocation, SubOptions: TNewStaticText;
 
@@ -127,7 +134,12 @@ var
   PageDark: TColor;
 begin
   ExtractTemporaryFile('welcome-bg.bmp');
-  ExtractTemporaryFile('logo-sm.bmp');
+  ExtractTemporaryFile('NVIDIASans_Rg.ttf');
+  ExtractTemporaryFile('NVIDIASans_Md.ttf');
+  ExtractTemporaryFile('NVIDIASans_Bd.ttf');
+  AddFontResource(ExpandConstant('{tmp}\\NVIDIASans_Rg.ttf'));
+  AddFontResource(ExpandConstant('{tmp}\\NVIDIASans_Md.ttf'));
+  AddFontResource(ExpandConstant('{tmp}\\NVIDIASans_Bd.ttf'));
   PageDark := ClBackDark;
 
   // ── window: large fixed-size dark canvas ──────────────────────────────
@@ -142,8 +154,8 @@ begin
   WizardForm.Bevel.Visible := False;
   WizardForm.WizardBitmapImage.Hide;             // default welcome artwork off-brand
   WizardForm.Caption := 'NVIDIA ShadowPlay Setup';
-  WizardForm.ClientWidth := ScaleX(824);
-  WizardForm.ClientHeight := ScaleY(560);
+  WizardForm.ClientWidth := ScaleX(790);
+  WizardForm.ClientHeight := ScaleY(530);
   WizardForm.Position := poScreenCenter;
 
   // ── backgrounds ───────────────────────────────────────────────────────
@@ -159,20 +171,13 @@ begin
   BgFinishedTop.Parent := WizardForm.FinishedPage;
   BgFinishedTop.SetBounds(0, 0, WizardForm.FinishedPage.Width, WizardForm.FinishedPage.Height);
 
-  // small logo on the inner (location/options) pages
-  LogoInner := TBitmapImage.Create(WizardForm.InnerPage);
-  LogoInner.Bitmap.LoadFromFile(ExpandConstant('{tmp}\logo-sm.bmp'));
-  LogoInner.AutoSize := True;
-  LogoInner.Parent := WizardForm.InnerPage;
-  LogoInner.SetBounds(ScaleX(348), ScaleY(28), ScaleX(48), ScaleY(48));
-
   // ── inner-page headers (location / options share InnerPage) ──────────
   HeadLocation := TNewStaticText.Create(WizardForm);
   HeadLocation.Parent := WizardForm.InnerPage;
   HeadLocation.Caption := 'Where should NVIDIA ShadowPlay be installed?';
   HeadLocation.AutoSize := False;
-  HeadLocation.SetBounds(ScaleX(348), ScaleY(24), ScaleX(440), ScaleY(30));
-  HeadLocation.Font.Height := -20; HeadLocation.Font.Name := 'Segoe UI';
+  HeadLocation.SetBounds(ScaleX(44), ScaleY(24), ScaleX(700), ScaleY(30));
+  HeadLocation.Font.Height := -20; HeadLocation.Font.Name := 'NVIDIA Sans';
   HeadLocation.Font.Style := [fsBold]; HeadLocation.Font.Color := ClTextMain;
   HeadLocation.AutoSize := False;
   HeadLocation.Visible := False;
@@ -181,8 +186,8 @@ begin
   SubLocation.Parent := WizardForm.InnerPage;
   SubLocation.Caption := 'The default location is recommended. Runtime folders (settings, recordings, logs) stay inside it and remain writable.';
   SubLocation.AutoSize := False;
-  SubLocation.SetBounds(ScaleX(348), ScaleY(60), ScaleX(430), ScaleY(34));
-  SubLocation.Font.Height := -15; SubLocation.Font.Name := 'Segoe UI';
+  SubLocation.SetBounds(ScaleX(44), ScaleY(60), ScaleX(700), ScaleY(34));
+  SubLocation.Font.Height := -15; SubLocation.Font.Name := 'NVIDIA Sans';
   SubLocation.Font.Color := ClTextDim;
   SubLocation.WordWrap := True;
   SubLocation.AutoSize := False;
@@ -192,8 +197,8 @@ begin
   HeadOptions.Parent := WizardForm.InnerPage;
   HeadOptions.Caption := 'Installation options';
   HeadOptions.AutoSize := False;
-  HeadOptions.SetBounds(ScaleX(348), ScaleY(24), ScaleX(440), ScaleY(30));
-  HeadOptions.Font.Height := -20; HeadOptions.Font.Name := 'Segoe UI';
+  HeadOptions.SetBounds(ScaleX(44), ScaleY(24), ScaleX(700), ScaleY(30));
+  HeadOptions.Font.Height := -20; HeadOptions.Font.Name := 'NVIDIA Sans';
   HeadOptions.Font.Style := [fsBold]; HeadOptions.Font.Color := ClTextMain;
   HeadOptions.AutoSize := False;
   HeadOptions.Visible := False;
@@ -202,8 +207,8 @@ begin
   SubOptions.Parent := WizardForm.InnerPage;
   SubOptions.Caption := 'Everything is optional and can be changed later.';
   SubOptions.AutoSize := False;
-  SubOptions.SetBounds(ScaleX(348), ScaleY(60), ScaleX(430), ScaleY(24));
-  SubOptions.Font.Height := -15; SubOptions.Font.Name := 'Segoe UI';
+  SubOptions.SetBounds(ScaleX(44), ScaleY(60), ScaleX(700), ScaleY(24));
+  SubOptions.Font.Height := -15; SubOptions.Font.Name := 'NVIDIA Sans';
   SubOptions.Font.Color := ClTextDim;
   SubOptions.AutoSize := False;
   SubOptions.Visible := False;
@@ -211,8 +216,8 @@ begin
   // ── welcome page copy ────────────────────────────────────────────────
   WizardForm.WelcomeLabel1.Hide;
   WizardForm.WelcomeLabel2.AutoSize := False;
-  WizardForm.WelcomeLabel2.SetBounds(ScaleX(348), ScaleY(150), ScaleX(440), ScaleY(220));
-  WizardForm.WelcomeLabel2.Font.Height := -17; WizardForm.WelcomeLabel2.Font.Name := 'Segoe UI';
+  WizardForm.WelcomeLabel2.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(220));
+  WizardForm.WelcomeLabel2.Font.Height := -17; WizardForm.WelcomeLabel2.Font.Name := 'NVIDIA Sans';
   WizardForm.WelcomeLabel2.Font.Color := ClTextMain;
   WizardForm.WelcomeLabel2.Caption :=
     'A fast, hardware-accelerated screen recorder.' + #13#10#13#10 +
@@ -223,27 +228,27 @@ begin
 
   // ── location page ────────────────────────────────────────────────────
   WizardForm.SelectDirBitmapImage.Hide;          // default folder artwork off-brand
-  WizardForm.DirEdit.SetBounds(ScaleX(348), ScaleY(150), ScaleX(370), ScaleY(30));
+  WizardForm.DirEdit.SetBounds(ScaleX(44), ScaleY(150), ScaleX(620), ScaleY(30));
   WizardForm.DirEdit.Color := ClInputDark;
   WizardForm.DirEdit.Font.Color := ClTextMain;
-  WizardForm.DirEdit.Font.Name := 'Segoe UI';
-  WizardForm.DirBrowseButton.SetBounds(ScaleX(726), ScaleY(149), ScaleX(62), ScaleY(31));
+  WizardForm.DirEdit.Font.Name := 'NVIDIA Sans';
+  WizardForm.DirBrowseButton.SetBounds(ScaleX(676), ScaleY(149), ScaleX(70), ScaleY(31));
 
   // ── options page (task list) ─────────────────────────────────────────
-  WizardForm.TasksList.SetBounds(ScaleX(348), ScaleY(150), ScaleX(440), ScaleY(120));
+  WizardForm.TasksList.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(120));
   WizardForm.TasksList.Color := PageDark;
   WizardForm.TasksList.Font.Color := ClTextMain;
-  WizardForm.TasksList.Font.Name := 'Segoe UI';
+  WizardForm.TasksList.Font.Name := 'NVIDIA Sans';
   WizardForm.TasksList.Font.Height := -16;
 
   // ── installing page ──────────────────────────────────────────────────
-  WizardForm.StatusLabel.SetBounds(ScaleX(348), ScaleY(238), ScaleX(440), ScaleY(20));
-  WizardForm.StatusLabel.Font.Height := -16; WizardForm.StatusLabel.Font.Name := 'Segoe UI';
+  WizardForm.StatusLabel.SetBounds(ScaleX(44), ScaleY(238), ScaleX(700), ScaleY(20));
+  WizardForm.StatusLabel.Font.Height := -16; WizardForm.StatusLabel.Font.Name := 'NVIDIA Sans';
   WizardForm.StatusLabel.Font.Color := ClTextMain;
-  WizardForm.FilenameLabel.SetBounds(ScaleX(348), ScaleY(262), ScaleX(440), ScaleY(18));
-  WizardForm.FilenameLabel.Font.Height := -13; WizardForm.FilenameLabel.Font.Name := 'Segoe UI';
+  WizardForm.FilenameLabel.SetBounds(ScaleX(44), ScaleY(262), ScaleX(700), ScaleY(18));
+  WizardForm.FilenameLabel.Font.Height := -13; WizardForm.FilenameLabel.Font.Name := 'NVIDIA Sans';
   WizardForm.FilenameLabel.Font.Color := ClTextDim;
-  WizardForm.ProgressGauge.SetBounds(ScaleX(348), ScaleY(292), ScaleX(440), ScaleY(26));
+  WizardForm.ProgressGauge.SetBounds(ScaleX(44), ScaleY(292), ScaleX(700), ScaleY(26));
   try
     // themed progress bars may ignore the classic color messages; harmless
     SendMessage(WizardForm.ProgressGauge.Handle, $0409, 0, ClAccent);  // PBM_SETBARCOLOR
@@ -252,27 +257,27 @@ begin
 
   // ── finished page copy ───────────────────────────────────────────────
   WizardForm.FinishedLabel.AutoSize := False;
-  WizardForm.FinishedLabel.SetBounds(ScaleX(348), ScaleY(150), ScaleX(440), ScaleY(160));
-  WizardForm.FinishedLabel.Font.Height := -17; WizardForm.FinishedLabel.Font.Name := 'Segoe UI';
+  WizardForm.FinishedLabel.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(160));
+  WizardForm.FinishedLabel.Font.Height := -17; WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
   WizardForm.FinishedLabel.Font.Color := ClTextMain;
   WizardForm.FinishedLabel.Caption :=
     'NVIDIA ShadowPlay has been installed.' + #13#10#13#10 +
     'Shortcuts are in the Start Menu' + #13#10 +
     'and on the desktop if you selected one.';
-  WizardForm.RunList.SetBounds(ScaleX(348), ScaleY(330), ScaleX(440), ScaleY(40));
+  WizardForm.RunList.SetBounds(ScaleX(44), ScaleY(330), ScaleX(700), ScaleY(40));
   WizardForm.RunList.Color := PageDark;
   WizardForm.RunList.Font.Color := ClTextMain;
-  WizardForm.RunList.Font.Name := 'Segoe UI';
+  WizardForm.RunList.Font.Name := 'NVIDIA Sans';
   WizardForm.RunList.Font.Height := -15;
 
   // ── bottom buttons (standard order, right-aligned) ───────────────────
-  WizardForm.CancelButton.SetBounds(ScaleX(824) - ScaleX(75) - ScaleX(10), ScaleY(560) - ScaleY(38), ScaleX(75), ScaleY(29));
-  WizardForm.NextButton.SetBounds(ScaleX(824) - ScaleX(75) * 2 - ScaleX(20), ScaleY(560) - ScaleY(38), ScaleX(75), ScaleY(29));
-  WizardForm.BackButton.SetBounds(ScaleX(824) - ScaleX(75) * 3 - ScaleX(30), ScaleY(560) - ScaleY(38), ScaleX(75), ScaleY(29));
-  WizardForm.BackButton.Font.Name := 'Segoe UI';
-  WizardForm.NextButton.Font.Name := 'Segoe UI';
+  WizardForm.CancelButton.SetBounds(ScaleX(790) - ScaleX(75) - ScaleX(10), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
+  WizardForm.NextButton.SetBounds(ScaleX(790) - ScaleX(75) * 2 - ScaleX(20), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
+  WizardForm.BackButton.SetBounds(ScaleX(790) - ScaleX(75) * 3 - ScaleX(30), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
+  WizardForm.BackButton.Font.Name := 'NVIDIA Sans';
+  WizardForm.NextButton.Font.Name := 'NVIDIA Sans';
   WizardForm.NextButton.Font.Style := [fsBold];
-  WizardForm.CancelButton.Font.Name := 'Segoe UI';
+  WizardForm.CancelButton.Font.Name := 'NVIDIA Sans';
 end;
 
 procedure CurPageChanged(CurPageID: Integer);
@@ -298,24 +303,24 @@ begin
     WizardForm.FinishedHeadingLabel.BringToFront;
     WizardForm.FinishedLabel.BringToFront;
     WizardForm.RunList.BringToFront;
-    WizardForm.FinishedHeadingLabel.SetBounds(ScaleX(348), ScaleY(140), ScaleX(440), ScaleY(40));
+    WizardForm.FinishedHeadingLabel.SetBounds(ScaleX(44), ScaleY(140), ScaleX(700), ScaleY(40));
     WizardForm.FinishedHeadingLabel.Font.Height := -24;
-    WizardForm.FinishedHeadingLabel.Font.Name := 'Segoe UI';
+    WizardForm.FinishedHeadingLabel.Font.Name := 'NVIDIA Sans';
     WizardForm.FinishedHeadingLabel.Font.Style := [fsBold];
     WizardForm.FinishedHeadingLabel.Font.Color := ClTextMain;
     WizardForm.FinishedHeadingLabel.Caption := 'Installation complete';
-    WizardForm.FinishedLabel.SetBounds(ScaleX(348), ScaleY(196), ScaleX(440), ScaleY(120));
+    WizardForm.FinishedLabel.SetBounds(ScaleX(44), ScaleY(196), ScaleX(700), ScaleY(120));
     WizardForm.FinishedLabel.Font.Height := -17;
-    WizardForm.FinishedLabel.Font.Name := 'Segoe UI';
+    WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
     WizardForm.FinishedLabel.Font.Color := ClTextMain;
     WizardForm.FinishedLabel.Caption :=
       'NVIDIA ShadowPlay has been installed.' + #13#10#13#10 +
       'Shortcuts are in the Start Menu' + #13#10 +
       'and on the desktop if you selected one.';
-    WizardForm.RunList.SetBounds(ScaleX(348), ScaleY(320), ScaleX(440), ScaleY(40));
+    WizardForm.RunList.SetBounds(ScaleX(44), ScaleY(320), ScaleX(700), ScaleY(40));
     WizardForm.RunList.Color := ClBackDark;
     WizardForm.RunList.Font.Color := ClTextMain;
-    WizardForm.RunList.Font.Name := 'Segoe UI';
+    WizardForm.RunList.Font.Name := 'NVIDIA Sans';
     WizardForm.RunList.Font.Height := -15;
   end;
 end;
