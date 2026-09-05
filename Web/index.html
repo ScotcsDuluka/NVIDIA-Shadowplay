@@ -84,6 +84,26 @@
 .obt3-live{color:#76b900;animation:obt3-blink 2s ease infinite}
 @media(max-width:640px){.obt3-flip{font-size:1.6rem;min-width:2.6em}.obt3-colon{font-size:1.2rem;padding-bottom:.7rem}.obt3-banner{padding:1.2rem 1.3rem}}
 </style>
+<style>
+/* ── ENGINE REGIME SWITCHER ── */
+.regime-tabs{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;max-width:980px;margin:0 auto 1.4rem}
+.rtab{position:relative;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.09);
+  border-radius:14px;padding:1rem 1.2rem;text-align:left;cursor:pointer;transition:all .25s;
+  font-family:inherit;color:inherit;display:flex;flex-direction:column;gap:.25rem}
+.rtab:hover{border-color:rgba(118,185,0,.45);transform:translateY(-2px)}
+.rtab.active{background:linear-gradient(150deg,rgba(118,185,0,.14),rgba(255,255,255,.02));
+  border-color:#76b900;box-shadow:0 0 34px rgba(118,185,0,.16)}
+.rtab-name{font-family:'GeForce','Inter',sans-serif;font-size:1.02rem;color:#fff;letter-spacing:.5px;
+  display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.rtab-sub{font-size:.72rem;color:rgba(255,255,255,.45);letter-spacing:.4px}
+.rtab-soon{font-size:.56rem;font-weight:800;letter-spacing:1.4px;background:#76b900;color:#000;
+  padding:.14rem .42rem;border-radius:4px}
+.regime-desc{text-align:center;font-size:.9rem;color:rgba(255,255,255,.55);margin-bottom:2.2rem;
+  font-style:italic}
+.regime-panel{animation:regFade .45s ease}
+@keyframes regFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media(max-width:760px){.regime-tabs{grid-template-columns:1fr}}
+</style>
 </head>
 <body class="custom-cursor-active">
   
@@ -318,60 +338,165 @@
         <p class="section-subtitle">Modern capture APIs + hardware encoder status</p>
       </div>
       
-      <h2 class="section-title">Encoder Support</h2>
-      <div class="api-cards-grid">
-        <!-- NVENC -->
-        <div class="api-spec-card">
-          <div class="card-header">
-            <div class="card-title-icon"><h3 class="underline-effect">NVIDIA NVENC</h3></div>
-            <span class="status-badge status-ready">Ready</span>
+      <!-- ═══ ENGINE REGIME SWITCHER ═══ -->
+      <div class="regime-tabs">
+        <button class="rtab active" data-regime="duluka">
+          <span class="rtab-name">Duluka Capture</span>
+          <span class="rtab-sub">Native engine · production</span>
+        </button>
+        <button class="rtab" data-regime="ffmpeg">
+          <span class="rtab-name">FFmpeg Capture</span>
+          <span class="rtab-sub">FFmpeg engine · flexible</span>
+        </button>
+        <button class="rtab" data-regime="obs">
+          <span class="rtab-name">OBS Capture <span class="rtab-soon">SOON</span></span>
+          <span class="rtab-sub">Bridge · event forwarding</span>
+        </button>
+      </div>
+
+      <div class="regime-desc" id="regimeDesc">Native D3D11 + NVENC pipeline — the production engine behind the overlay.</div>
+
+      <!-- ── DULUKA PANEL ── -->
+      <div class="regime-panel" id="regime-duluka">
+        <h2 class="section-title">Encoder Support</h2>
+        <div class="api-cards-grid">
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">NVIDIA NVENC</h3></div>
+              <span class="status-badge status-ready">Ready</span>
+            </div>
+            <p>Native in-app GPU encoding (production path): H.264 CBR/CFR, zero-copy D3D11 texture submission, proven stable in long-run stress tests.</p>
           </div>
-          <p>Native in-app GPU encoding (production path): H.264 CBR/CFR, zero-copy D3D11 texture submission, proven stable in long-run stress tests.</p>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">Intel QSV</h3></div>
+              <span class="status-badge status-soon">Not in this regime</span>
+            </div>
+            <p>The native engine binds NVENC directly — QSV lives in the FFmpeg engine regime.</p>
+          </div>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">AMD AMF</h3></div>
+              <span class="status-badge status-soon">Soon</span>
+            </div>
+            <p>AMD Advanced Media Framework encoder on roadmap.</p>
+          </div>
         </div>
-        <!-- Intel QSV -->
-        <div class="api-spec-card">
-          <div class="card-header">
-            <div class="card-title-icon"><h3 class="underline-effect">Intel QSV</h3></div>
-            <span class="status-badge status-partial">Partial</span>
+        <h2 class="section-title">API Capture</h2>
+        <div class="api-cards-grid">
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">DXGI Desktop Duplication</h3></div>
+              <span class="status-badge status-recommended">Active</span>
+            </div>
+            <p>The production capture path — zero-copy D3D11 GPU frames with driver QPC presentation timestamps.</p>
           </div>
-          <p>Intel QuickSync available through the FFmpeg engine path (hwmap derive_device=qsv) — validated on Intel hardware, experimental.</p>
-        </div>
-        <!-- AMD AMF -->
-        <div class="api-spec-card">
-          <div class="card-header">
-            <div class="card-title-icon"><h3 class="underline-effect">AMD AMF</h3></div>
-            <span class="status-badge status-soon">Soon</span>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
+              <span class="status-badge status-soon">Coming</span>
+            </div>
+            <p>Slot prepared in the engine (VideoBackendKind.GfxCapture) — overlay menu entry still greyed.</p>
           </div>
-          <p>AMD Advanced Media Framework encoder on roadmap.</p>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">Window / Region / Game</h3></div>
+              <span class="status-badge status-soon">Coming</span>
+            </div>
+            <p>d3d11_native, window_capture, region_capture and native_game_capture slots — on the roadmap.</p>
+          </div>
         </div>
       </div>
-      
-      <br>
-      <h2 class="section-title">API Capture</h2>
-      <div>
-        <!-- Windows.Graphics.Capture -->
-        <div class="api-spec-card">
-          <div class="card-header">
-            <div class="card-title-icon"><h3 class="underline-effect">Windows.Graphics.Capture</h3></div>
-            <span class="status-badge status-partial">Partial</span>
+
+      <!-- ── FFMPEG PANEL ── -->
+      <div class="regime-panel" id="regime-ffmpeg" hidden>
+        <h2 class="section-title">Encoder Support</h2>
+        <div class="api-cards-grid">
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">h264_nvenc</h3></div>
+              <span class="status-badge status-ready">Ready</span>
+            </div>
+            <p>NVIDIA hardware encoding inside the FFmpeg subprocess — preset p4 / CBR / CFR, same hardware as the native path.</p>
           </div>
-          <p>Modern Windows 10/11 API via the FFmpeg engine (gfxcapture). Native overlay path still uses Desktop Duplication — WGC slot in the overlay menu is coming.</p>
-        </div>
-        <!-- Desktop Duplication API -->
-        <div class="api-spec-card">
-          <div class="card-header">
-            <div class="card-title-icon"><h3 class="underline-effect">Desktop Duplication API</h3></div>
-            <span class="status-badge status-recommended">Recommended</span>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">h264_qsv</h3></div>
+              <span class="status-badge status-partial">Partial</span>
+            </div>
+            <p>Intel QuickSync via <strong>hwmap=derive_device=qsv</strong> on the gfxcapture path — validated on Intel hardware, experimental.</p>
           </div>
-          <p>The production capture path (native engine, zero-copy D3D11). Minimal latency, captures exclusive fullscreen (with limitations).</p>
-        </div>
-      <div class="api-spec-card">
-          <div class="card-header">
-            <div class="card-title-icon"><h3 class="underline-effect">GDI Screen Grabber</h3></div>
-            <span class="status-badge status-partial">Partial</span>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">libx264 / AMD</h3></div>
+              <span class="status-badge status-partial">Fallback</span>
+            </div>
+            <p>Software x264 (ultrafast/zerolatency) as last resort; AMD AMF preset branch exists, on roadmap.</p>
           </div>
-          <p>Legacy fallback via the FFmpeg engine (gdigrab). CPU heavy — use only when needed.</p>
         </div>
+        <h2 class="section-title">API Capture</h2>
+        <div class="api-cards-grid">
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">ddagrab</h3></div>
+              <span class="status-badge status-recommended">Active</span>
+            </div>
+            <p>FFmpeg's Direct3D 11 desktop capture — frames stay on the GPU straight into NVENC.</p>
+          </div>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">gdigrab</h3></div>
+              <span class="status-badge status-partial">Partial</span>
+            </div>
+            <p>GDI desktop capture — legacy fallback, CPU heavy. Use only when needed.</p>
+          </div>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">gfxcapture</h3></div>
+              <span class="status-badge status-partial">Partial</span>
+            </div>
+            <p>Windows Graphics Capture filter (lavfi) — modern API, pairs with QSV hwmap on Intel.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── OBS PANEL ── -->
+      <div class="regime-panel" id="regime-obs" hidden>
+        <h2 class="section-title">Status</h2>
+        <div class="api-cards-grid">
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">OBS Bridge</h3></div>
+              <span class="status-badge status-partial">Event forwarding</span>
+            </div>
+            <p>Connects to OBS Studio over obs-websocket (port 4455) and forwards RecordStateChanged / ReplayBuffer events into the app's UI and toasts.</p>
+          </div>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">App → OBS Control</h3></div>
+              <span class="status-badge status-soon">Soon</span>
+            </div>
+            <p>Starting/stopping OBS recordings from the overlay (StartRecord / StopRecord requests) — on the roadmap.</p>
+          </div>
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">OBS Encoder</h3></div>
+              <span class="status-badge status-partial">OBS-side</span>
+            </div>
+            <p>Encoding is whatever OBS itself is configured to use (x264 / NVENC / QSV / AMF) — files are written by OBS, not by this engine.</p>
+          </div>
+        </div>
+        <h2 class="section-title">API Capture</h2>
+        <div class="api-cards-grid">
+          <div class="api-spec-card">
+            <div class="card-header">
+              <div class="card-title-icon"><h3 class="underline-effect">Capture by OBS</h3></div>
+              <span class="status-badge status-partial">OBS-side</span>
+            </div>
+            <p>OBS captures and writes its own files; this app currently mirrors state and events. Full pipeline integration is a future goal.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -736,6 +861,24 @@
 
   <!-- JavaScript -->
   <script src="JS/index/script.js?v=4"></script>
+<script>
+(function(){
+  var tabs=document.querySelectorAll('.rtab');
+  var desc=document.getElementById('regimeDesc');
+  var descs={duluka:'Native D3D11 + NVENC pipeline — the production engine behind the overlay.',
+             ffmpeg:'FFmpeg subprocess engine — three capture filters, widest hardware reach.',
+             obs:'OBS Studio bridge — event mirroring today, full control on the roadmap.'};
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){
+      tabs.forEach(function(x){x.classList.remove('active')});
+      t.classList.add('active');
+      var r=t.getAttribute('data-regime');
+      document.querySelectorAll('.regime-panel').forEach(function(p){p.hidden=(p.id!=='regime-'+r)});
+      if(desc)desc.textContent=descs[r]||'';
+    });
+  });
+})();
+</script>
 <script>
 (function(){
   var TARGET = new Date("2026-09-05T23:30:00+07:00").getTime();
