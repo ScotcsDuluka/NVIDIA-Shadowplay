@@ -2,6 +2,49 @@
 > เขียน 2026-09-05 โดย ZCode session `sess_02804a48-cca4-40de-ab79-0028cb067262`
 > วัตถุประสงค์: ย้ายบริบทงานทั้งหมดไปเครื่อง/แชทใหม่ — ให้ agent ตัวใหม่อ่านไฟล์นี้ก่อนทำอะไร
 
+## 0. อัปเดตล่าสุด — 2026-09-05 (session ต่อ, อ่านก่อน §1-8)
+
+**เครื่องที่รัน session นี้คือเครื่อง Intel** (ไม่มี NVIDIA GPU: Intel UHD 0x9B41, จอ 1920x1080)
+— ต่างจากเครื่องเดิมตอนเขียน §1-8 (1680x1050) สิ่งที่ทำไปแล้วใน session นี้:
+
+1. **ของที่หายถูกสร้างคืนหมด** (evidence/ ถูก gitignore ไฟล์อยู่บนดิสก์เท่านั้น):
+   `tone_1k_60s.wav` + `make-clap-tone.ps1`, `synthetic-click.ps1`,
+   `apphost-contamination-experiment.ps1` (สร้างคืนแต่ไม่ได้รัน), `diag-hotkey-probe.ps1`,
+   `clap-sync-test.ps1` (driver เทสเต็มระบบ), `loopback-probe\` (net10 console probe WASAPI) —
+   รายละเอียด + ผลทั้งหมดใน `evidence/clap-sync-SUMMARY-20260905.md`
+2. **เทส clap-sync (§8.1) รันแล้วจบ**: pipeline ผ่านทั้งระบบบนเครื่องนี้ แต่มีข้อค้นพบเรื่อง
+   environment 4 ข้อ (อ่านก่อนเทสเสียงอะไรบนเครื่องนี้):
+   - ต้องแก้ config 2 ค่า (แก้ไปแล้ว, เก็บถาวร): `Paths.FFmpegPath` = ffmpeg ใน product tree
+     (ไม่งั้น RECORD_START ถูก reject "FFmpegPath invalid") และ `Recording.encoder=QUICKSYNC_H264`
+     (Duluka รันไม่ได้บนเครื่องนี้ — fallback legacy + QSV branch ทำงานจริง: 1080p60 CBR ผ่าน)
+   - **Endpoint เครื่องนี้ถูก mute อยู่** → loopback ได้ digital silence ทั้งที่เสียงเล่น
+     (พิสูจน์ด้วย loopback-probe: unmute = -8.0 dBFS, mute = -91 dBFS) — เทสเสียงต้อง unmute
+     (clap-sync-test.ps1 จัดการ unmute/restore ให้เอง)
+   - **Intel SST loopback start-stall**: callback แรกมาช้า 0.4-12s หลัง StartRecording
+     เนื้อหาช่วงนั้นหาย (gap กลายเป็น silence แต่ timeline ต่อเนื่อง) — warmer (-40dB tone
+     เล่นต่อเนื่องตั้งแต่ก่อน start) ลดเหลือ ~0.4s
+   - **sync-verify วัด ms-level ไม่ได้เชิงคุณภาพบนเครื่องนี้**: offset คงที่ -0.86s (audio
+     leads) ทั้งชุด มาจาก stall + skew ของ ffplay เอง (เปิดเสียงก่อนภาพ ~0.9s) — ไม่ใช่
+     bias ระดับ 50ms ที่ Phase-13 ตาม; spacing ภายใน stream เป๊ะ 3.000s ทั้งสองฝั่ง
+3. **ความรู้ trigger ระดับ production**: WM_HOTKEY ต้องโพสต์ไปที่ window ชื่อ "Main"
+   (WinForms visible) ของ process "NVIDIA ShadowPlay" — `MainWindowHandle` ของ process นี้ = 0x0,
+   window "test" 4 ตัวไม่รับ message; id=5 = ManualRecordToggle (ยืนยันจากลำดับ AllHotkeys)
+4. **ลบไฟล์ .bak ที่หลุดเข้า e032343 แล้ว** (commit `f064928` + ignore patterns กันซ้ำ) และ
+   แก้ `scripts/sync-verify.ps1` (ใส่ BOM แก้ parse error บน PowerShell 5.1 + Find-Ffmpeg
+   หา product tree ได้)
+5. §8 ข้อ 2-5 (OBS เต็มตัว, Phase-13 implement, slot เทา, ย้ายเครื่อง Intel) — **ยังรอตัดสินใจ
+   เจ้าของเหมือนเดิม** โดยข้อ 5 ตอนนี้มีข้อค้นพบเพิ่ม: ทาง Intel ใช้งานได้จริงแล้วเบื้องต้น
+   (legacy+QSV) แต่การวัด A/V ms-level ติดข้อจำกัด driver (ข้อ 2-3 ข้างบน)
+6. **fix ระบบอัด 3 จุด (commit `23ce979`)** — (a) stop sequence ไม่เคย flush AudioEngine ใหม่
+   (เช็คฟิลด์ `_audioWriter` เก่า) → เสียงค้างใน buffer จน mux ตัดสินใจก่อน = ได้ไฟล์ video-only
+   (b) `HasAudioData` เช็คแค่ Length>44 หลอกโดน wav header ล้วน 58B → mux apad คลื่นว่าง hang 60s
+   ได้ mp4 พัง 48B ตอนอัดเดสก์ท็อปเงียบ (c) mux fail ปล่อยไฟล์เสียทิ้ง → ตอนนี้ fallback เป็น
+   video-only เสมอ ทดสอบผ่านทั้งเคสเงียบ (valid video-only) และเคสมีโทน (2 streams, onset
+   คลาด ~33ms จาก latency เปิดเสียง ffplay) — **สำคัญ: deploy ต้อง copy ทั้งชุด 10 dll**
+   (Engine\ 9 ตัว + Services\NVIDIA Capture.dll) ไม่ใช่ตัวเดียว ไม่งั้นเจอ MissingMethodException
+
+---
+
 ## 1. สถานะ Repo ปัจจุบัน (อัปเดตสุดท้ายตอนเขียนไฟล์นี้)
 
 - Branch: `Engine-Rebuild-Stabilization`
