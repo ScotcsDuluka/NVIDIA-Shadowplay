@@ -109,6 +109,7 @@ Namespace Engine.Concurrency.Tests
             G2LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
             G3LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
             F03LegacyTests.RunAll(_ffmpegPath, _sandbox)
+            NvidiaProofTests.RunAll(_ffmpegPath, _sandbox)
 
             Console.WriteLine()
             Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed}")

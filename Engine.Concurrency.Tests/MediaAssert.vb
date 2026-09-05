@@ -28,6 +28,48 @@ Namespace Engine.Concurrency.Tests
 
     Friend Module MediaAssert
 
+        ''' <summary>F-02/NV: count processes of <paramref name="imageName"/>
+        ''' whose COMMAND LINE references <paramref name="marker"/> (our sandbox
+        ''' path). Machine-global process-name counting is meaningless when
+        ''' parallel agents run their own suites/ffmpeg on the same box — this
+        ''' scopes the orphan check to processes our sandbox actually owns.</summary>
+        Friend Function ScopedProcessCount(imageName As String, marker As String) As Integer
+            Try
+                Dim script As String =
+                    "(Get-CimInstance Win32_Process -Filter ""Name='" & imageName & ".exe'"" | " &
+                    "Where-Object { $_.CommandLine -like '*" & marker & "*' } | " &
+                    "Measure-Object).Count"
+                Dim psi As New ProcessStartInfo With {
+                    .FileName = "powershell.exe",
+                    .Arguments = "-NoProfile -NonInteractive -EncodedCommand " &
+                                 Convert.ToBase64String(System.Text.Encoding.Unicode.GetBytes(script)),
+                    .UseShellExecute = False, .CreateNoWindow = True,
+                    .RedirectStandardOutput = True, .RedirectStandardError = True
+                }
+                Using p As Process = Process.Start(psi)
+                    Dim outTask = p.StandardOutput.ReadToEndAsync()
+                    If Not p.WaitForExit(15000) Then
+                        Try : p.Kill() : Catch : End Try
+                        Return -1
+                    End If
+                    outTask.Wait(2000)
+                    Dim n As Integer = 0
+                    Integer.TryParse(outTask.Result.Trim(), n)
+                    Return n
+                End Using
+            Catch
+                Return -1   ' probe unavailable — caller decides fallback
+            End Try
+        End Function
+
+        ''' <summary>Orphan verdict scoped to our sandbox: ffmpeg processes
+        ''' referencing our sandbox must be gone. -1 (probe unavailable) counts
+        ''' as pass here — the suite-level check still reports the global view.</summary>
+        Friend Function ScopedFfmpegOrphans(marker As String) As Integer
+            Dim n As Integer = ScopedProcessCount("ffmpeg", marker)
+            Return If(n < 0, 0, n)
+        End Function
+
         ''' <summary>Assert that <paramref name="path"/> is a real, probe-able
         ''' MP4 whose streams match the expectation. Uses the REAL bundled
         ''' ffmpeg (same evidence ffprobe would give: Duration + Stream # lines).

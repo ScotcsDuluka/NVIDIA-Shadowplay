@@ -145,23 +145,14 @@ Namespace Engine.Concurrency.Tests
             Dim sw As Stopwatch = Stopwatch.StartNew()
             While sw.ElapsedMilliseconds < timeoutMs
                 If condition() Then Return True
-                Thread.Sleep(50)
+                Thread.Sleep(250)
             End While
             Return condition()
         End Function
 
         Private Function HelperProcesses() As Integer
-            Dim name As String = IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath)
-            Dim procs As Process() = Process.GetProcessesByName(name)
-            Dim n As Integer = 0
-            For Each p As Process In procs
-                Try
-                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
-                Catch
-                End Try
-                Try : p.Dispose() : Catch : End Try
-            Next
-            Return n
+            Dim exeName As String = IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath)
+            Return MediaAssert.ScopedProcessCount(exeName, _sandbox)
         End Function
 
         Private Sub SetEnv(name As String, value As String)
@@ -214,11 +205,11 @@ Namespace Engine.Concurrency.Tests
             TestRunner.Assert(started, "start returned False")
             TestRunner.Assert(engine.State = EngineCapture.CaptureState.Recording,
                               $"state after start = {engine.State}")
-            TestRunner.Assert(HelperProcesses() = 2, "helper process not running after start")
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1, 10000), "helper process not running after start")
 
             engine.Dispose()
 
-            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1, 8000),
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0, 10000),
                               "helper process survived Dispose while recording")
             TestRunner.Assert(engine.State = EngineCapture.CaptureState.Idle,
                               $"state after Dispose = {engine.State} (ForceStop normalizes to Idle)")
@@ -304,7 +295,7 @@ Namespace Engine.Concurrency.Tests
                 ClearHelperEnv()
                 engine.Dispose()
             End Try
-            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1, 8000),
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0, 10000),
                               "helper process survived the double-start scenario")
         End Sub
 
@@ -330,7 +321,7 @@ Namespace Engine.Concurrency.Tests
                 TestRunner.Assert(msg.Contains("FPS"), $"error should name FPS validation, got: {msg}")
                 TestRunner.Assert(engine.State = EngineCapture.CaptureState.Idle,
                                   $"state after validation failure = {engine.State}")
-                TestRunner.Assert(HelperProcesses() = 1, "validation failure must not spawn a helper process")
+                TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0, 5000), "validation failure must not spawn a helper process")
             Finally
                 engine.Dispose()
             End Try
@@ -439,7 +430,7 @@ Namespace Engine.Concurrency.Tests
                 ClearHelperEnv()
                 engine.Dispose()
             End Try
-            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1, 8000),
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0, 10000),
                               "helper process survived the graceful-stop scenario")
         End Sub
 

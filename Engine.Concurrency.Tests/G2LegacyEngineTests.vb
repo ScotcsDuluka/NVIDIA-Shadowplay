@@ -290,36 +290,18 @@ Namespace Engine.Concurrency.Tests
             Dim sw As Stopwatch = Stopwatch.StartNew()
             While sw.ElapsedMilliseconds < timeoutMs
                 If condition() Then Return True
-                Thread.Sleep(50)
+                Thread.Sleep(250)
             End While
             Return condition()
         End Function
 
         Private Function HelperProcesses() As Integer
-            Dim name As String = IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath)
-            Dim procs As Process() = Process.GetProcessesByName(name)
-            Dim n As Integer = 0
-            For Each p As Process In procs
-                Try
-                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
-                Catch
-                End Try
-                Try : p.Dispose() : Catch : End Try
-            Next
-            Return n
+            Dim exeName As String = IO.Path.GetFileNameWithoutExtension(Environment.ProcessPath)
+            Return MediaAssert.ScopedProcessCount(exeName, _sandbox)
         End Function
 
         Private Function FfmpegCount() As Integer
-            Dim procs As Process() = Process.GetProcessesByName("ffmpeg")
-            Dim n As Integer = 0
-            For Each p As Process In procs
-                Try
-                    If Not p.HasExited Then n += 1   ' ignore dying processes still in the table
-                Catch
-                End Try
-                Try : p.Dispose() : Catch : End Try
-            Next
-            Return n
+            Return MediaAssert.ScopedFfmpegOrphans(_sandbox)
         End Function
 
         Private Function ProbeStreams(path As String) As String
@@ -399,7 +381,7 @@ Namespace Engine.Concurrency.Tests
                 ClearHelperEnv()
                 engine.Dispose()
             End Try
-            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1 AndAlso FfmpegCount() = 0, 5000),
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0 AndAlso FfmpegCount() = 0, 5000),
                               "leftover helper/ffmpeg process after scenario A")
         End Sub
 
@@ -500,7 +482,7 @@ Namespace Engine.Concurrency.Tests
                 ClearHelperEnv()
                 engine.Dispose()
             End Try
-            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1 AndAlso FfmpegCount() = 0, 5000),
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0 AndAlso FfmpegCount() = 0, 5000),
                               "leftover helper process after scenario C")
         End Sub
 
@@ -544,7 +526,7 @@ Namespace Engine.Concurrency.Tests
                 ClearHelperEnv()
                 engine.Dispose()
             End Try
-            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 1 AndAlso FfmpegCount() = 0, 5000),
+            TestRunner.Assert(WaitFor(Function() HelperProcesses() = 0 AndAlso FfmpegCount() = 0, 5000),
                               "leftover helper/ffmpeg process after idempotency scenario")
         End Sub
 
