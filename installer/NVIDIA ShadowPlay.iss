@@ -71,7 +71,14 @@ Name: "{app}\Logs"; Permissions: users-modify
 Name: "{app}\Flags"; Permissions: users-modify
 
 [Files]
-Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; product tree — EXCLUDES the four runtime-writable dirs' state (Config\ app
+; settings, Logs\, Flags\ sentinels, Data\NVIDIA_Shadowplay_Data recordings):
+; those hold dev-machine runtime state (e.g. engine.json carries an absolute
+; dev FFmpegPath) and must never ship; [Dirs] recreates them with
+; users-modify rights. Shipped Config defaults are re-added below.
+Source: "{#SourceRoot}\*"; DestDir: "{app}"; Excludes: "Config\*,Logs\*,Flags\*,Data\NVIDIA_Shadowplay_Data\*"; Flags: ignoreversion recursesubdirs createallsubdirs
+; shipped Config defaults (tracked sources, copied into the tree by the build)
+Source: "{#SourceRoot}\Config\notifier_obs.json"; DestDir: "{app}\Config"; Flags: ignoreversion
 ; license terms — canonical sources are the repo-root files (the legacy
 ; installer embedded the same MIT text + third-party notices in its license
 ; dialog); LICENSE is also shown on the license page

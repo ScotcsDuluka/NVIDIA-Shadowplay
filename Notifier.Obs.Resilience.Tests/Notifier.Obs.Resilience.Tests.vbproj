@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Notifier.Obs.Resilience.Tests</AssemblyName>
+    <Description>OBS runtime resilience + reconnect hardening tests. Real WebSocket conversations against an in-process raw-TCP OBS-protocol server (loopback): epoch/generation ownership, dispose-during-reconnect, dead-socket bounded requests, reconnect+SendRequest generation, x100 flap stress. The production client source is LINKED (not copied).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Real production files, LINKED (not copied) — the tests exercise the
+         SAME source the Notifier compiles. ObsWebSocketClient has no
+         WinForms dependencies; AppLayout supplies the log path resolver. -->
+    <Compile Include="..\Notifier\[Forms Overlay - Project Files]\[API]\OBS\ObsWebSocketClient.vb" Link="ObsWebSocketClient.vb" />
+    <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
+  </ItemGroup>
+
+</Project>
