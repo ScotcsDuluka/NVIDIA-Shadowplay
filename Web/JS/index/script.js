@@ -372,7 +372,10 @@
       setTimeout(() => p.remove(), 800);
     }
   }
-  if (!isTouchDevice) {
+  // ★ Same root cause as the cursor fix: gate on the fine-pointer media
+  // query (aligned with CSS), not maxTouchPoints — touch-capable machines
+  // driven by a mouse were treated as touch-only and lost the tap effect.
+  if (hasFinePointer) {
     document.addEventListener('click', (e) => spawnTapEffect(e.clientX, e.clientY));
   }
 
