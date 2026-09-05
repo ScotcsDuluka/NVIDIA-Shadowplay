@@ -18,6 +18,10 @@ namespace CaptureEngine.Audio
             public long DataBytes;
             public long SilenceBytes;
             public long LastEnd100ns;
+            // ★ Honest accounting: bytes lost because a sink write threw.
+            // Populated into AudioTrackDiagnostics.DroppedBytes at Stop, so
+            // AudioAccountingOk is a real invariant instead of a constant True.
+            public long DroppedBytes;
             public long FirstQpc100ns;
             public bool Started;
 
@@ -184,8 +188,16 @@ namespace CaptureEngine.Audio
                 if (sampleRate <= 0)
                     throw new InvalidOperationException($"{kind} started with invalid format {sampleRate}Hz/{channels}ch");
                 runtime.OutputChannels = channels;
-                runtime.Tracker = new AudioPositionTracker(sampleRate);
-                runtime.Tracker.PrimeSessionStart(_sessionStartQpc100ns);
+                // ★ Race fix: the capture thread spawns INSIDE capture.Start(),
+                // so the lazy OnPacket tracker below may already be installed
+                // (and fed) by the time we get here. Never overwrite a tracker
+                // that the capture thread created — and the lazy one is primed
+                // too, so both orders produce the identical [T0, T_END] timeline.
+                if (runtime.Tracker == null)
+                {
+                    runtime.Tracker = new AudioPositionTracker(sampleRate);
+                    runtime.Tracker.PrimeSessionStart(_sessionStartQpc100ns);
+                }
                 Log($"[AudioEngine] {kind} format ready: {sampleRate}Hz/{channels}ch {capture.BitsPerSample}bit");
                 Log($"[AudioEngine] {kind} endpoint started: {capture.DeviceId} {sampleRate}Hz/{channels}ch");
             }
@@ -209,6 +221,10 @@ namespace CaptureEngine.Audio
                 }
                 t.OutputChannels = channels;
                 t.Tracker = new AudioPositionTracker(sampleRate);
+                // ★ Race fix (TryStartTrack no longer overwrites this tracker):
+                // prime it exactly like the eager path so the idle-endpoint
+                // [T0, T_END] silence timeline is identical in both start orders.
+                t.Tracker.PrimeSessionStart(Interlocked.Read(ref _sessionStartQpc100ns));
                 Log($"[AudioEngine] {t.Kind} format ready: {sampleRate}Hz/{channels}ch {t.Capture.BitsPerSample}bit");
             }
             byte[] pcm = AudioPcm16.Convert(packet.Data, packet.Data.Length,
@@ -280,17 +296,22 @@ namespace CaptureEngine.Audio
 
             if (report.Hole100ns > 0)
             {
-                long silenceFrames = report.Hole100ns * t.Capture.SampleRate / 10_000_000L;
-                if (silenceFrames > 0)
+                // ★ Bounded-silence fix: Hole100ns is UNCAPPED upstream (the
+                // tracker's own header notes its exposure is "bounded by the
+                // tap's 3600s cap" — but this engine path has NO tap). A large
+                // device stall / wall-gap evidence produced
+                // new byte[hole × byteRate] here — one multi-GB LOH allocation
+                // on the WASAPI capture thread → OutOfMemoryException → the
+                // backstop kills the capture → the ENTIRE remaining track is
+                // lost. Cap to the tap's documented 3600s policy and stream
+                // the silence in ≤1s chunks instead.
+                long hole100ns = Math.Min(report.Hole100ns, MaxSyntheticSilence100ns);
+                if (hole100ns < report.Hole100ns)
                 {
-                    var silence = new byte[silenceFrames * t.OutputChannels * 2L];
-                    var sp = new AudioPacket(t.Kind, dataStart - report.Hole100ns,
-                                             checked((int)silenceFrames), silence, true,
-                                             packet.QpcPosition100ns, packet.DevicePositionFrames, packet.Flags,
-                                             t.Capture.SampleRate, t.OutputChannels);
-                    Dispatch(t, sp);
-                    t.SilenceBytes += silence.Length;
+                    Log($"[AudioEngine] {t.Kind} hole {report.Hole100ns / 10_000_000.0:0.0}s exceeds " +
+                        $"{MaxSyntheticSilence100ns / 10_000_000.0:0.0}s cap — clipped (track timeline integrity protected)");
                 }
+                DispatchSilence(t, dataStart - hole100ns, hole100ns);
             }
 
             var dp = new AudioPacket(t.Kind, dataStart, frames, pcm, false,
@@ -308,9 +329,21 @@ namespace CaptureEngine.Audio
 
         private static void Dispatch(TrackRuntime t, in AudioPacket packet)
         {
+            int bytes = packet.Data?.Length ?? 0;
             foreach (var sink in t.Sinks)
             {
-                try { sink.Write(packet); } catch { }
+                try
+                {
+                    sink.Write(packet);
+                }
+                catch
+                {
+                    // ★ Accounting fix: a sink failure used to vanish (this
+                    // catch fed a DroppedBytes counter that was never wired to
+                    // diagnostics), so AudioAccountingOk was a constant True.
+                    // Count the loss so the session pass gate can fail on it.
+                    if (bytes > 0) Interlocked.Add(ref t.DroppedBytes, bytes);
+                }
             }
         }
 
@@ -328,16 +361,40 @@ namespace CaptureEngine.Audio
             if (tail > 0) DispatchSilence(t, t.LastEnd100ns, tail);
         }
 
+        /// <summary>Silence is emitted in ≤1s chunks — never one allocation
+        /// for the whole span (a multi-hour tail used to allocate GBs on the
+        /// capture/finalize thread).</summary>
+        private const long SilenceChunk100ns = 10_000_000L;
+
+        /// <summary>Same 3600s policy the (dormant) taps document: a hole
+        /// larger than this is driver/device pathology, not real silence.</summary>
+        public const long MaxSyntheticSilence100ns = 3600L * 10_000_000L;
+
         private void DispatchSilence(TrackRuntime t, long pts100ns, long duration100ns)
         {
+            if (duration100ns <= 0) return;
+            if (duration100ns > MaxSyntheticSilence100ns) duration100ns = MaxSyntheticSilence100ns;
             long framesLong = duration100ns * t.Capture.SampleRate / 10_000_000L;
             if (framesLong <= 0) return;
-            var bytes = new byte[checked((int)(framesLong * t.OutputChannels * 2L))];
-            var packet = new AudioPacket(t.Kind, pts100ns, checked((int)framesLong), bytes, true, 0, 0, 0,
-                                         t.Capture.SampleRate, t.OutputChannels);
-            Dispatch(t, packet);
-            t.SilenceBytes += bytes.Length;
-            t.LastEnd100ns = pts100ns + duration100ns;
+            int bytesPerFrame = Math.Max(1, t.OutputChannels * 2);
+
+            long remaining = duration100ns;
+            long offset100ns = 0;
+            while (remaining > 0)
+            {
+                long chunk100ns = Math.Min(remaining, SilenceChunk100ns);
+                long chunkFrames = chunk100ns * t.Capture.SampleRate / 10_000_000L;
+                if (chunkFrames <= 0) break;
+                var bytes = new byte[checked(chunkFrames * bytesPerFrame)];
+                var packet = new AudioPacket(t.Kind, pts100ns + offset100ns,
+                                             checked((int)chunkFrames), bytes, true, 0, 0, 0,
+                                             t.Capture.SampleRate, t.OutputChannels);
+                Dispatch(t, packet);
+                t.SilenceBytes += bytes.Length;
+                t.LastEnd100ns = pts100ns + offset100ns + chunk100ns;
+                offset100ns += chunk100ns;
+                remaining -= chunk100ns;
+            }
         }
 
         private void RebuildDiagnostics()
@@ -361,6 +418,7 @@ namespace CaptureEngine.Audio
                     Packets = t.Tracker?.Packets ?? 0,
                     DataBytes = t.DataBytes,
                     SilenceBytes = t.SilenceBytes,
+                    DroppedBytes = Interlocked.Read(ref t.DroppedBytes),
                     FirstQpc100ns = t.FirstQpc100ns,
                     LastEnd100ns = t.LastEnd100ns,
                     GapPackets = t.Tracker?.GapPackets ?? 0,

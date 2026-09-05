@@ -15,6 +15,11 @@ Namespace CaptureEngine.Recording
         Private ReadOnly _queue As New ConcurrentQueue(Of IVideoFrame)()
         Private ReadOnly _wake As New AutoResetEvent(False)
         Private ReadOnly _worker As Thread
+        ' ★ _stopping/_disposed are transitioned UNDER _stateLock together with
+        ' the Enqueue check-then-act, so a producer racing CompleteAndWait can
+        ' never drop a frame into a queue nobody will drain (the old lock-free
+        ' check lost frames + ObjectDisposedException'd on _wake.Set()).
+        Private ReadOnly _stateLock As New Object()
         Private _stopping As Integer = 0
         Private _disposed As Integer = 0
 
@@ -28,21 +33,40 @@ Namespace CaptureEngine.Recording
 
         Public Sub Enqueue(frame As IVideoFrame)
             If frame Is Nothing Then Return
-            If Volatile.Read(_disposed) <> 0 OrElse Volatile.Read(_stopping) <> 0 Then
+            SyncLock _stateLock
+                If Volatile.Read(_disposed) <> 0 OrElse Volatile.Read(_stopping) <> 0 Then
+                    Try
+                        frame.Dispose()
+                    Catch
+                    End Try
+                    Return
+                End If
+                _queue.Enqueue(frame)
                 Try
-                    frame.Dispose()
+                    _wake.Set()
                 Catch
+                    ' _wake is only disposed after the worker has exited; kept
+                    ' defensive so a torn-down handle can never kill a producer.
                 End Try
-                Return
-            End If
-            _queue.Enqueue(frame)
-            _wake.Set()
+            End SyncLock
         End Sub
 
+        ''' <summary>
+        ''' Stop the worker and drain everything. NEVER throws: the old
+        ''' TimeoutException-on-Join(5000) converted a merely-slow GPU drain
+        ''' (TDR, heavy load) into an aborted session finalization — skipping
+        ''' encoder stop, audio finalization, and mux finalize entirely.
+        ''' The drain is concurrency-safe with a still-alive worker (frame
+        ''' Dispose is one-shot via Interlocked.CompareExchange).
+        ''' </summary>
         Public Sub CompleteAndWait()
-            If Interlocked.Exchange(_stopping, 1) = 0 Then _wake.Set()
+            Interlocked.Exchange(_stopping, 1)
+            _wake.Set()
             If Not _worker.Join(5000) Then
-                Throw New TimeoutException("GPU disposer did not drain within 5 seconds.")
+                ' Slow (not necessarily hung) drain — keep waiting once more,
+                ' then drain from this thread regardless. Reserving an
+                ' exception for this would poison the whole recording.
+                _worker.Join(10000)
             End If
             DrainSynchronously()
         End Sub
@@ -51,7 +75,9 @@ Namespace CaptureEngine.Recording
             Do
                 _wake.WaitOne(50)
                 DrainSynchronously()
-                If Volatile.Read(_stopping) <> 0 AndAlso _queue.IsEmpty Then Exit Do
+                SyncLock _stateLock
+                    If Volatile.Read(_stopping) <> 0 AndAlso _queue.IsEmpty Then Exit Do
+                End SyncLock
             Loop
         End Sub
 
@@ -68,8 +94,13 @@ Namespace CaptureEngine.Recording
         End Sub
 
         Public Sub Dispose() Implements IDisposable.Dispose
-            If Interlocked.Exchange(_disposed, 1) <> 0 Then Return
-            CompleteAndWait()
+            SyncLock _stateLock
+                If Interlocked.Exchange(_disposed, 1) <> 0 Then Return
+                Volatile.Write(_stopping, 1)
+            End SyncLock
+            _wake.Set()
+            _worker.Join(5000)
+            DrainSynchronously()
             _wake.Dispose()
         End Sub
 

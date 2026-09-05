@@ -426,6 +426,19 @@ Partial Public Class UI_Engine
                 IO.Directory.CreateDirectory(_settings.OutputDirectory)
             End If
 
+            ' ★ Overlapped-start guard: BeginInvoke keeps the UI pump running
+            ' while a previous handler is inside Await — a second
+            ' engine_record_start (double hotkey, Overlay retry) used to hit
+            ' Dispose() below and KILL the in-flight recording (ffmpeg killed
+            ' mid-encode → truncated moov-less file, temp files deleted). The
+            ' new-engine path already answers already_recording; mirror it here.
+            If _captureEngine IsNot Nothing AndAlso
+               (_captureEngine.IsRecording OrElse _captureEngine.State = CaptureEngine.CaptureState.Stopping) Then
+                DebugLog("[Engine] RECORD_START rejected: already recording/stopping")
+                SendResponse("engine_record_start", "error", "already_recording", reqId)
+                Return
+            End If
+
             _captureEngine?.Dispose()
             _captureEngine = New CaptureEngine(_settings)
             AddHandler _captureEngine.StateChanged, AddressOf OnEngineStateChanged
@@ -846,6 +859,17 @@ Partial Public Class UI_Engine
             ' update the status panel + broadcast to Overlay. Was missing — only
             ' TCP-triggered recordings had it.
             AddHandler engine.ProgressUpdated, AddressOf OnEngineProgress
+
+            ' ★ Overlapped-start guard (mirrors HandleEngineRecordStart): a
+            ' click while a recording/stop is still unwinding used to Dispose
+            ' the live engine — destroying the in-flight recording silently.
+            If _captureEngine IsNot Nothing AndAlso
+               (_captureEngine.IsRecording OrElse _captureEngine.State = CaptureEngine.CaptureState.Stopping) Then
+                DebugLog("[Engine] Record click rejected: already recording/stopping")
+                engine.Dispose()
+                btnStop.Enabled = _captureEngine.IsRecording
+                Return
+            End If
 
             _captureEngine?.Dispose()
             _captureEngine = engine

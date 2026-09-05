@@ -1,20 +1,26 @@
-; NVIDIA ShadowPlay — first-party-style installer (Inno Setup 6.7+)
+; NVIDIA ShadowPlay — installer (Inno Setup 6.7+)
 ;
-; Visual design: dark premium wizard, NVIDIA-class green accent, brand panel
-; on the left (welcome/finished), hand-laid controls on every page. All
-; wizard chrome is restyled in [Code]; no external UI plugins.
+; Standard Inno Setup wizard: Welcome -> License -> Location -> Shortcuts ->
+; Ready -> Installing -> Finish.
 ;
-; Flow: Welcome -> Installation location -> Options -> Installing -> Finished
-; (ready page and program-group page disabled).
-;
-; Version is read from the actual build output (Overlay\NVIDIA ShadowPlay.exe).
+; Migrated from the legacy InstallForge setup (NVSetup\config.ifp):
+;   - payload: the production product tree
+;     Overlay\bin\Release\net10.0-windows10.0.26100.0 (Launcher.exe,
+;     .NET Deployment\, Application\, Services\, Overlay\, FFmpeg\, Redist\...)
+;   - version: read from the built Overlay\NVIDIA ShadowPlay.exe — that exe
+;     is the version authority, no separate one is maintained
+;   - prerequisite: the payload is framework-dependent, so the bundled
+;     .NET Desktop Runtime 10 installer (Redist\64bit.runtime.exe) runs
+;     silently during install — legacy behavior, still required
+;   - desktop shortcut "NVIDIA Launcher" -> Launcher.exe (legacy naming)
+;   - license: repo-root LICENSE is shown on the license page; LICENSE and
+;     LICENSE.NOTICE ship to {app} so the installed product carries the terms
 
 #define AppName "NVIDIA ShadowPlay"
-#define AppVersion GetVersionNumbersString("..\dist\NVIDIA ShadowPlay\Overlay\NVIDIA ShadowPlay.exe")
+#define SourceRoot "..\Overlay\bin\Release\net10.0-windows10.0.26100.0"
+#define AppVersion GetVersionNumbersString(SourceRoot + "\Overlay\NVIDIA ShadowPlay.exe")
 #define AppPublisher "ScotcsDuluka"
-#define SourceRoot "..\dist\NVIDIA ShadowPlay"
 #define OutputDir "..\dist-installer"
-#define Assets "assets"
 
 [Setup]
 AppId={{B7E48D4A-7F83-4E3A-9F38-9D9E2A6D8F41}
@@ -27,13 +33,12 @@ AppSupportURL=https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
 DefaultDirName={autopf}\NVIDIA ShadowPlay
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
-DisableReadyPage=yes
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 WizardStyle=modern
-WizardSizePercent=100
 DisableWelcomePage=no
+LicenseFile=..\LICENSE
 SetupIconFile={#SourceRoot}\Overlay\NVIDIA ShadowPlay.ico
 UninstallDisplayIcon={app}\Overlay\NVIDIA ShadowPlay.ico
 UninstallDisplayName={#AppName}
@@ -52,8 +57,9 @@ VersionInfoDescription={#AppName} installer
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a desktop shortcut"; \
-    GroupDescription: "Shortcuts:"; Flags: unchecked
+; legacy InstallForge always created a desktop shortcut named "NVIDIA Launcher"
+Name: "desktopicon"; Description: "Create a desktop shortcut (NVIDIA Launcher)"; \
+    GroupDescription: "Shortcuts:"
 
 [Dirs]
 ; runtime-writable folders the app writes into while installed under
@@ -66,25 +72,23 @@ Name: "{app}\Flags"; Permissions: users-modify
 
 [Files]
 Source: "{#SourceRoot}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-; wizard artwork — extracted to {tmp} at runtime and painted by [Code]
-Source: "assets\welcome-bg.bmp"; Flags: dontcopy
-Source: "assets\btn-green-install.bmp"; Flags: dontcopy
-Source: "assets\btn-green-next.bmp"; Flags: dontcopy
-Source: "assets\btn-green-finish.bmp"; Flags: dontcopy
-Source: "assets\btn-gray-cancel.bmp"; Flags: dontcopy
-Source: "assets\btn-gray-back.bmp"; Flags: dontcopy
-Source: "assets\cb-on.bmp"; Flags: dontcopy
-Source: "assets\cb-off.bmp"; Flags: dontcopy
-Source: "assets\NVIDIASans_Rg.ttf"; Flags: dontcopy
-Source: "assets\NVIDIASans_Md.ttf"; Flags: dontcopy
-Source: "assets\NVIDIASans_Bd.ttf"; Flags: dontcopy
+; license terms — canonical sources are the repo-root files (the legacy
+; installer embedded the same MIT text + third-party notices in its license
+; dialog); LICENSE is also shown on the license page
+Source: "..\LICENSE"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\LICENSE.NOTICE"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#AppName}\{#AppName}"; Filename: "{app}\Launcher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Overlay\NVIDIA ShadowPlay.ico"
 Name: "{autoprograms}\{#AppName}\Uninstall {#AppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#AppName}"; Filename: "{app}\Launcher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Overlay\NVIDIA ShadowPlay.ico"; Tasks: desktopicon
+Name: "{autodesktop}\NVIDIA Launcher"; Filename: "{app}\Launcher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Overlay\NVIDIA ShadowPlay.ico"; Tasks: desktopicon
 
 [Run]
+; legacy prerequisite: the payload is framework-dependent (".NET Deployment\"
+; carries only deps/runtimeconfig json) — .NET Desktop Runtime 10 must exist.
+; The bundled installer is idempotent; machines with the runtime already
+; present finish this step quickly without changing it.
+Filename: "{app}\Redist\64bit.runtime.exe"; Parameters: "/install /quiet /norestart"; Flags: waituntilterminated runhidden
 Filename: "{app}\Launcher.exe"; Description: "Launch NVIDIA ShadowPlay"; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
@@ -92,372 +96,3 @@ Filename: "{app}\Launcher.exe"; Description: "Launch NVIDIA ShadowPlay"; Working
 ; replay state) are deliberately preserved on uninstall
 Type: filesandordirs; Name: "{app}\Logs"
 Type: filesandordirs; Name: "{app}\Flags"
-
-[Code]
-// ─────────────────────────────────────────────────────────────────────────
-// Dark premium wizard — palette (TColor = $00BBGGRR). Colors and fonts are
-// the REAL NVIDIA App installer values: #333333 surface (Main_BG.png),
-// #76B900 accent + #898989 secondary (theme.cfg), NVIDIA Sans (NVI2 fonts).
-// ─────────────────────────────────────────────────────────────────────────
-
-function AddFontResource(lpszFilename: String): Integer;
-external 'AddFontResourceW@gdi32.dll stdcall';
-
-function DwmSetWindowAttributeX(hwnd: Longint; attr: Longint; var attrValue: Longint; size: Longint): Longint;
-external 'DwmSetWindowAttribute@dwmapi.dll stdcall';
-
-// bitmap-button click handlers forward to the REAL Inno buttons so all
-// built-in logic (validation, page flow, [Run]) stays intact
-procedure ClickNext(Sender: TObject);
-begin
-  SendMessage(WizardForm.NextButton.Handle, $F5, 0, 0);   // BM_CLICK
-end;
-
-procedure ClickBack(Sender: TObject);
-begin
-  SendMessage(WizardForm.BackButton.Handle, $F5, 0, 0);
-end;
-
-procedure ClickCancel(Sender: TObject);
-begin
-  SendMessage(WizardForm.CancelButton.Handle, $F5, 0, 0);
-end;
-
-const
-  ClBackDark  = $00333333;   // #333333 — real Main_BG.png surface
-  ClInputDark = $00242424;   // input fields on #333333
-  ClTextMain  = $00FFFFFF;   // #FFFFFF (SideBarCurrentTextColor)
-  ClTextDim   = $00898989;   // #898989 (SideBarNotDoneTextColor)
-  ClAccent    = $0000B976;   // #76B900 (SideBarDoneTextColor)
-
-var
-  BgWelcome, BgFinished, BgFinishedTop: TBitmapImage;
-  HeadLocation, HeadOptions: TNewStaticText;
-  SubLocation, SubOptions: TNewStaticText;
-  BtnGreen, BtnGrayBack, BtnGrayCancel: TBitmapImage;
-  CbLaunch: TBitmapImage;
-  LaunchLabel: TNewStaticText;
-  LaunchChecked: Boolean;
-
-procedure ClickLaunchCb(Sender: TObject);
-begin
-  LaunchChecked := not LaunchChecked;
-  if LaunchChecked then
-    CbLaunch.Bitmap.LoadFromFile(ExpandConstant('{tmp}\cb-on.bmp'))
-  else
-    CbLaunch.Bitmap.LoadFromFile(ExpandConstant('{tmp}\cb-off.bmp'));
-end;
-
-procedure StyleLabel(C: TNewStaticText; AColor: TColor);
-begin
-  if C <> nil then
-  begin
-    C.Font.Color := AColor;
-    C.Color := ClBackDark;
-  end;
-end;
-
-// Load a bitmap from {tmp} (extracted at setup start) and pin it as a
-// full-page background.
-procedure PinBackground(Parent: TNewNotebookPage; FileName: String; var Store: TBitmapImage);
-begin
-  Store := TBitmapImage.Create(Parent);
-  Store.Bitmap.LoadFromFile(ExpandConstant('{tmp}\') + FileName);
-  Store.Stretch := True;
-  Store.Parent := Parent;
-  Store.SetBounds(0, 0, Parent.Width, Parent.Height);
-  Store.SendToBack;
-end;
-
-procedure InitializeWizard;
-var
-  PageDark: TColor;
-  DarkVal: Longint;
-begin
-  ExtractTemporaryFile('welcome-bg.bmp');
-  ExtractTemporaryFile('btn-green-install.bmp');
-  ExtractTemporaryFile('btn-green-next.bmp');
-  ExtractTemporaryFile('btn-green-finish.bmp');
-  ExtractTemporaryFile('btn-gray-cancel.bmp');
-  ExtractTemporaryFile('btn-gray-back.bmp');
-  ExtractTemporaryFile('cb-on.bmp');
-  ExtractTemporaryFile('cb-off.bmp');
-  LaunchChecked := True;   // the finished-page checkbox renders ON by default
-  ExtractTemporaryFile('NVIDIASans_Rg.ttf');
-  ExtractTemporaryFile('NVIDIASans_Md.ttf');
-  ExtractTemporaryFile('NVIDIASans_Bd.ttf');
-  AddFontResource(ExpandConstant('{tmp}\\NVIDIASans_Rg.ttf'));
-  AddFontResource(ExpandConstant('{tmp}\\NVIDIASans_Md.ttf'));
-  AddFontResource(ExpandConstant('{tmp}\\NVIDIASans_Bd.ttf'));
-  PageDark := ClBackDark;
-
-  // ── window: large fixed-size dark canvas ──────────────────────────────
-  WizardForm.InnerPage.Color := PageDark;
-  WizardForm.WelcomePage.Color := PageDark;
-  WizardForm.InstallingPage.Color := PageDark;
-  WizardForm.FinishedPage.Color := PageDark;
-  WizardForm.ReadyPage.Color := PageDark;
-  WizardForm.Color := PageDark;
-  WizardForm.MainPanel.Visible := False;         // chrome: our pages carry the design
-  WizardForm.Bevel1.Visible := False;
-  WizardForm.Bevel.Visible := False;
-  WizardForm.WizardBitmapImage.Hide;             // default welcome artwork off-brand
-  WizardForm.Caption := 'NVIDIA ShadowPlay Setup';
-  WizardForm.ClientWidth := ScaleX(790);
-  WizardForm.ClientHeight := ScaleY(530);
-  WizardForm.Position := poScreenCenter;
-
-  // ── backgrounds ───────────────────────────────────────────────────────
-  PinBackground(WizardForm.WelcomePage, 'welcome-bg.bmp', BgWelcome);
-  PinBackground(WizardForm.FinishedPage, 'welcome-bg.bmp', BgFinished);
-
-  // Inno re-shows its box artwork on the Finished page above our background;
-  // an identical copy painted ON TOP wins z-order — labels are brought back
-  // above it in CurPageChanged.
-  BgFinishedTop := TBitmapImage.Create(WizardForm.FinishedPage);
-  BgFinishedTop.Bitmap.LoadFromFile(ExpandConstant('{tmp}\welcome-bg.bmp'));
-  BgFinishedTop.Stretch := True;
-  BgFinishedTop.Parent := WizardForm.FinishedPage;
-  BgFinishedTop.SetBounds(0, 0, WizardForm.FinishedPage.Width, WizardForm.FinishedPage.Height);
-
-  // ── 100% custom chrome: bitmap buttons over the real ones ────────────
-  // (real buttons stay in the tab chain; clicks land on the bitmaps which
-  //  forward BM_CLICK to them)
-  DarkVal := 1;
-  try
-    DwmSetWindowAttributeX(WizardForm.Handle, 20, DarkVal, 4);   // DWMWA_USE_IMMERSIVE_DARK_MODE
-    DwmSetWindowAttributeX(WizardForm.Handle, 19, DarkVal, 4);   // older attribute id
-  except
-  end;
-
-  BtnGreen := TBitmapImage.Create(WizardForm);
-  BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-install.bmp'));
-  BtnGreen.Stretch := True;
-  BtnGreen.Parent := WizardForm;
-  BtnGreen.SetBounds(ScaleX(624), ScaleY(474), ScaleX(150), ScaleY(40));
-  BtnGreen.OnClick := @ClickNext;
-
-  BtnGrayBack := TBitmapImage.Create(WizardForm);
-  BtnGrayBack.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-gray-back.bmp'));
-  BtnGrayBack.Stretch := True;
-  BtnGrayBack.Parent := WizardForm;
-  BtnGrayBack.SetBounds(ScaleX(304), ScaleY(474), ScaleX(150), ScaleY(40));
-  BtnGrayBack.OnClick := @ClickBack;
-
-  BtnGrayCancel := TBitmapImage.Create(WizardForm);
-  BtnGrayCancel.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-gray-cancel.bmp'));
-  BtnGrayCancel.Stretch := True;
-  BtnGrayCancel.Parent := WizardForm;
-  BtnGrayCancel.SetBounds(ScaleX(462), ScaleY(474), ScaleX(150), ScaleY(40));
-  BtnGrayCancel.OnClick := @ClickCancel;
-
-  // custom launch checkbox (finished page)
-  CbLaunch := TBitmapImage.Create(WizardForm);
-  CbLaunch.Bitmap.LoadFromFile(ExpandConstant('{tmp}\cb-on.bmp'));
-  CbLaunch.AutoSize := True;
-  CbLaunch.Parent := WizardForm;
-  CbLaunch.SetBounds(ScaleX(44), ScaleY(322), ScaleX(20), ScaleY(20));
-  CbLaunch.OnClick := @ClickLaunchCb;
-
-  LaunchLabel := TNewStaticText.Create(WizardForm);
-  LaunchLabel.Parent := WizardForm;
-  LaunchLabel.Caption := 'Launch NVIDIA ShadowPlay';
-  LaunchLabel.SetBounds(ScaleX(74), ScaleY(324), ScaleX(400), ScaleY(20));
-  LaunchLabel.Font.Size := 11;
-  LaunchLabel.Font.Name := 'NVIDIA Sans';
-  LaunchLabel.Font.Color := ClTextMain;
-  LaunchLabel.OnClick := @ClickLaunchCb;
-
-  // ── inner-page headers (location / options share InnerPage) ──────────
-  HeadLocation := TNewStaticText.Create(WizardForm);
-  HeadLocation.Parent := WizardForm.InnerPage;
-  HeadLocation.Caption := 'Where should NVIDIA ShadowPlay be installed?';
-  HeadLocation.AutoSize := False;
-  HeadLocation.SetBounds(ScaleX(44), ScaleY(24), ScaleX(700), ScaleY(30));
-  HeadLocation.Font.Size := 15; HeadLocation.Font.Name := 'NVIDIA Sans';
-  HeadLocation.Font.Style := [fsBold]; HeadLocation.Font.Color := ClTextMain;
-  HeadLocation.AutoSize := False;
-  HeadLocation.Visible := False;
-
-  SubLocation := TNewStaticText.Create(WizardForm);
-  SubLocation.Parent := WizardForm.InnerPage;
-  SubLocation.Caption := 'The default location is recommended. Runtime folders (settings, recordings, logs) stay inside it and remain writable.';
-  SubLocation.AutoSize := False;
-  SubLocation.SetBounds(ScaleX(44), ScaleY(60), ScaleX(700), ScaleY(34));
-  SubLocation.Font.Size := 11; SubLocation.Font.Name := 'NVIDIA Sans';
-  SubLocation.Font.Color := ClTextDim;
-  SubLocation.WordWrap := True;
-  SubLocation.AutoSize := False;
-  SubLocation.Visible := False;
-
-  HeadOptions := TNewStaticText.Create(WizardForm);
-  HeadOptions.Parent := WizardForm.InnerPage;
-  HeadOptions.Caption := 'Installation options';
-  HeadOptions.AutoSize := False;
-  HeadOptions.SetBounds(ScaleX(44), ScaleY(24), ScaleX(700), ScaleY(30));
-  HeadOptions.Font.Size := 15; HeadOptions.Font.Name := 'NVIDIA Sans';
-  HeadOptions.Font.Style := [fsBold]; HeadOptions.Font.Color := ClTextMain;
-  HeadOptions.AutoSize := False;
-  HeadOptions.Visible := False;
-
-  SubOptions := TNewStaticText.Create(WizardForm);
-  SubOptions.Parent := WizardForm.InnerPage;
-  SubOptions.Caption := 'Everything is optional and can be changed later.';
-  SubOptions.AutoSize := False;
-  SubOptions.SetBounds(ScaleX(44), ScaleY(60), ScaleX(700), ScaleY(24));
-  SubOptions.Font.Size := 11; SubOptions.Font.Name := 'NVIDIA Sans';
-  SubOptions.Font.Color := ClTextDim;
-  SubOptions.AutoSize := False;
-  SubOptions.Visible := False;
-
-  // ── welcome page copy ────────────────────────────────────────────────
-  WizardForm.WelcomeLabel1.Hide;
-  WizardForm.WelcomeLabel2.AutoSize := False;
-  WizardForm.WelcomeLabel2.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(220));
-  WizardForm.WelcomeLabel2.Font.Size := 13; WizardForm.WelcomeLabel2.Font.Name := 'NVIDIA Sans';
-  WizardForm.WelcomeLabel2.Font.Color := ClTextMain;
-  WizardForm.WelcomeLabel2.Caption :=
-    'A fast, hardware-accelerated screen recorder.' + #13#10#13#10 +
-    'Instant replay, manual recording and screenshots with NVIDIA NVENC ' +
-    'or Intel QSV encoding - packaged with the complete runtime, capture ' +
-    'engines, overlay and launcher.' + #13#10#13#10 +
-    'Click Install to continue.';
-
-  // ── location page ────────────────────────────────────────────────────
-  WizardForm.SelectDirBitmapImage.Hide;          // default folder artwork off-brand
-  WizardForm.DirEdit.SetBounds(ScaleX(44), ScaleY(150), ScaleX(620), ScaleY(30));
-  WizardForm.DirEdit.Color := ClInputDark;
-  WizardForm.DirEdit.Font.Color := ClTextMain;
-  WizardForm.DirEdit.Font.Name := 'NVIDIA Sans';
-  WizardForm.DirBrowseButton.SetBounds(ScaleX(676), ScaleY(149), ScaleX(70), ScaleY(31));
-
-  // ── options page (task list) ─────────────────────────────────────────
-  WizardForm.TasksList.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(120));
-  WizardForm.TasksList.Color := PageDark;
-  WizardForm.TasksList.Font.Color := ClTextMain;
-  WizardForm.TasksList.Font.Name := 'NVIDIA Sans';
-  WizardForm.TasksList.Font.Size := 12;
-
-  // ── installing page ──────────────────────────────────────────────────
-  WizardForm.StatusLabel.SetBounds(ScaleX(44), ScaleY(238), ScaleX(700), ScaleY(20));
-  WizardForm.StatusLabel.Font.Size := 12; WizardForm.StatusLabel.Font.Name := 'NVIDIA Sans';
-  WizardForm.StatusLabel.Font.Color := ClTextMain;
-  WizardForm.FilenameLabel.SetBounds(ScaleX(44), ScaleY(262), ScaleX(700), ScaleY(18));
-  WizardForm.FilenameLabel.Font.Size := 10; WizardForm.FilenameLabel.Font.Name := 'NVIDIA Sans';
-  WizardForm.FilenameLabel.Font.Color := ClTextDim;
-  WizardForm.ProgressGauge.SetBounds(ScaleX(44), ScaleY(292), ScaleX(700), ScaleY(26));
-  try
-    // themed progress bars may ignore the classic color messages; harmless
-    SendMessage(WizardForm.ProgressGauge.Handle, $0409, 0, ClAccent);  // PBM_SETBARCOLOR
-  except
-  end;
-
-  // ── finished page copy ───────────────────────────────────────────────
-  WizardForm.FinishedLabel.AutoSize := False;
-  WizardForm.FinishedLabel.SetBounds(ScaleX(44), ScaleY(150), ScaleX(700), ScaleY(160));
-  WizardForm.FinishedLabel.Font.Size := 13; WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
-  WizardForm.FinishedLabel.Font.Color := ClTextMain;
-  WizardForm.FinishedLabel.Caption :=
-    'NVIDIA ShadowPlay has been installed.' + #13#10#13#10 +
-    'Shortcuts are in the Start Menu' + #13#10 +
-    'and on the desktop if you selected one.';
-  WizardForm.RunList.SetBounds(ScaleX(44), ScaleY(330), ScaleX(700), ScaleY(40));
-  WizardForm.RunList.Color := PageDark;
-  WizardForm.RunList.Font.Color := ClTextMain;
-  WizardForm.RunList.Font.Name := 'NVIDIA Sans';
-  WizardForm.RunList.Font.Size := 11;
-
-  // ── bottom buttons (standard order, right-aligned) ───────────────────
-  WizardForm.CancelButton.SetBounds(ScaleX(790) - ScaleX(75) - ScaleX(10), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
-  WizardForm.NextButton.SetBounds(ScaleX(790) - ScaleX(75) * 2 - ScaleX(20), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
-  WizardForm.BackButton.SetBounds(ScaleX(790) - ScaleX(75) * 3 - ScaleX(30), ScaleY(530) - ScaleY(38), ScaleX(75), ScaleY(29));
-  WizardForm.BackButton.Font.Name := 'NVIDIA Sans';
-  WizardForm.NextButton.Font.Name := 'NVIDIA Sans';
-  WizardForm.NextButton.Font.Style := [fsBold];
-  WizardForm.CancelButton.Font.Name := 'NVIDIA Sans';
-end;
-
-function NextButtonClick(CurPageID: Integer): Boolean;
-begin
-  Result := True;
-  if CurPageID = wpFinished then
-    WizardForm.RunList.Checked[0] := LaunchChecked;
-end;
-
-procedure CurPageChanged(CurPageID: Integer);
-begin
-  // Inno re-shows its own wizard artwork when entering Welcome/Finished and
-  // rewrites the finished-page copy — re-apply our design on every entry.
-  if (CurPageID = wpWelcome) or (CurPageID = wpFinished) then
-    WizardForm.WizardBitmapImage.Visible := False;
-
-  // 100% custom chrome: real buttons hidden, bitmap buttons per page
-  WizardForm.NextButton.Visible := False;
-  WizardForm.BackButton.Visible := False;
-  WizardForm.CancelButton.Visible := False;
-  BtnGreen.Visible := False;
-  BtnGrayBack.Visible := False;
-  BtnGrayCancel.Visible := False;
-  CbLaunch.Visible := False;
-  LaunchLabel.Visible := False;
-
-  if CurPageID = wpWelcome then
-  begin
-    BtnGreen.Visible := True;
-    BtnGrayCancel.Visible := True;
-    BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-install.bmp'));
-  end;
-  if (CurPageID = wpSelectDir) or (CurPageID = wpSelectTasks) then
-  begin
-    BtnGreen.Visible := True;
-    BtnGrayBack.Visible := True;
-    BtnGrayCancel.Visible := True;
-    BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-next.bmp'));
-  end;
-  if CurPageID = wpInstalling then
-    BtnGrayCancel.Visible := True;
-  if CurPageID = wpFinished then
-  begin
-    BtnGreen.Visible := True;
-    CbLaunch.Visible := True;
-    LaunchLabel.Visible := True;
-    BtnGreen.Bitmap.LoadFromFile(ExpandConstant('{tmp}\btn-green-finish.bmp'));
-  end;
-
-  // headers swap on the shared InnerPage
-  HeadLocation.Visible := CurPageID = wpSelectDir;
-  SubLocation.Visible := CurPageID = wpSelectDir;
-  HeadOptions.Visible := CurPageID = wpSelectTasks;
-  SubOptions.Visible := CurPageID = wpSelectTasks;
-  if CurPageID = wpWelcome then
-    WizardForm.NextButton.Caption := '&Install'
-  else
-    WizardForm.NextButton.Caption := '&Next >';
-
-  if CurPageID = wpFinished then
-  begin
-    BgFinishedTop.BringToFront;
-    WizardForm.FinishedHeadingLabel.BringToFront;
-    WizardForm.FinishedLabel.BringToFront;
-    WizardForm.RunList.BringToFront;
-    WizardForm.FinishedHeadingLabel.SetBounds(ScaleX(44), ScaleY(140), ScaleX(700), ScaleY(40));
-    WizardForm.FinishedHeadingLabel.Font.Size := 18;
-    WizardForm.FinishedHeadingLabel.Font.Name := 'NVIDIA Sans';
-    WizardForm.FinishedHeadingLabel.Font.Style := [fsBold];
-    WizardForm.FinishedHeadingLabel.Font.Color := ClTextMain;
-    WizardForm.FinishedHeadingLabel.Caption := 'Installation complete';
-    WizardForm.FinishedLabel.SetBounds(ScaleX(44), ScaleY(196), ScaleX(700), ScaleY(120));
-    WizardForm.FinishedLabel.Font.Size := 13;
-    WizardForm.FinishedLabel.Font.Name := 'NVIDIA Sans';
-    WizardForm.FinishedLabel.Font.Color := ClTextMain;
-    WizardForm.FinishedLabel.Caption :=
-      'NVIDIA ShadowPlay has been installed.' + #13#10#13#10 +
-      'Shortcuts are in the Start Menu' + #13#10 +
-      'and on the desktop if you selected one.';
-    WizardForm.RunList.SetBounds(ScaleX(44), ScaleY(320), ScaleX(700), ScaleY(40));
-    WizardForm.RunList.Color := ClBackDark;
-    WizardForm.RunList.Font.Color := ClTextMain;
-    WizardForm.RunList.Font.Name := 'NVIDIA Sans';
-    WizardForm.RunList.Font.Size := 11;
-  end;
-end;

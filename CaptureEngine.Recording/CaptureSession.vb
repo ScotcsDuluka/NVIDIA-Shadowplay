@@ -878,6 +878,15 @@ Namespace CaptureEngine.Recording
                     End If
                 End If
                 pendingFrame = Nothing   ' nothing left to dispose
+                ' ★ Leak fix: if the final fresh-frame encode threw (Catch above),
+                ' ownership never transferred and pendingFrame still wraps a
+                ' D3D11 texture. lastFrame is a DIFFERENT texture — both must be
+                ' retired; enqueueing the same frame twice is safe (Dispose is
+                ' one-shot via CompareExchange).
+                If pendingFrame IsNot Nothing AndAlso pendingFrame IsNot lastFrame Then
+                    frameDisposer.Enqueue(pendingFrame)
+                    pendingFrame = Nothing
+                End If
                 frameDisposer.Enqueue(lastFrame)
                 lastFrame = Nothing
                 frameDisposer.CompleteAndWait()
@@ -1107,6 +1116,18 @@ Namespace CaptureEngine.Recording
                 _logger.Error($"[session] Failed: {ex.Message}", ex)
             Finally
                 Try : timeEndPeriod(1UI) : Catch : End Try
+                ' ★ Hardening: the shared Audio Engine is session-owned. The
+                ' success path already called Stop() above (idempotent — the
+                ' _stopped guard makes this a no-op there), but ANY failure
+                ' before that point (LiveMux start failure, capture arm
+                ' failure, exception) used to skip Stop entirely — leaving
+                ' the WASAPI capture threads + open endpoint streams alive
+                ' for the lifetime of the process (one leak per failed
+                ' session in a long-lived host).
+                Try : _audioEngine?.Stop(WasapiPositionCapture.StopwatchTicksTo100ns(Stopwatch.GetTimestamp())) : Catch : End Try
+                Try : _audioEngine?.Dispose() : Catch : End Try
+                Try : _sysAudioEngineSink = Nothing : Catch : End Try
+                Try : _micAudioEngineSink = Nothing : Catch : End Try
                 Try : _silenceKeepAlive?.Dispose() : Catch : End Try
                 Try : _liveMux?.Dispose() : Catch : End Try
                 Try : wavWriter?.Dispose() : Catch : End Try
@@ -1186,6 +1207,9 @@ Namespace CaptureEngine.Recording
             ' P13.3: the Device-clock capture is session-owned — release it
             ' here so an abnormal teardown cannot leave the WASAPI stream open.
             Try : _sysPosCapture?.Dispose() : Catch : End Try
+            ' ★ Hardening: same session-ownership rule for the shared Audio
+            ' Engine (idempotent — Stop is guarded, Dispose disposes tracks).
+            Try : _audioEngine?.Dispose() : Catch : End Try
             ' NOTE: does NOT dispose _capture or _encoder — those are owned by RecordingEngine
         End Sub
 

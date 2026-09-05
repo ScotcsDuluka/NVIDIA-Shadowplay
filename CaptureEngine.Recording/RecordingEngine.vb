@@ -252,8 +252,20 @@ Namespace CaptureEngine.Recording
                         .EncodeHeight = config.EncodeHeight
                     }
 
+                    ' ★ Leak fix: a failed Initialize (NVENC open failure, D3D11
+                    ' creation failure, driver busy) used to leak the freshly
+                    ' constructed backend — the NVENC session + D3D11 device it
+                    ' already opened were never released (GPU memory accumulates
+                    ' process-lifetime across FPS-mismatched sessions). Dispose
+                    ' the half-initialized instance and rethrow; the previous
+                    ' encoder stays the live authority for this failed session.
                     Dim rebuiltEncoder As New NvencEncoderBackend(_logger)
-                    rebuiltEncoder.Initialize(rebuiltConfig)
+                    Try
+                        rebuiltEncoder.Initialize(rebuiltConfig)
+                    Catch ex As Exception
+                        Try : rebuiltEncoder.Dispose() : Catch : End Try
+                        Throw
+                    End Try
                     Dim previousEncoder As NvencEncoderBackend = _encoder
                     _encoder = rebuiltEncoder
                     Try
