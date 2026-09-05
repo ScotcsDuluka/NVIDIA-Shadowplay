@@ -7,3 +7,4 @@ Imports System.Runtime.CompilerServices
 ' test assembly so tests can observe internal backend state (e.g.
 ' CurrentState) without exposing them on the public API surface.
 <Assembly: InternalsVisibleTo("CaptureEngine.Video.Tests")>
+<Assembly: InternalsVisibleTo("NVIDIA.Soak")>

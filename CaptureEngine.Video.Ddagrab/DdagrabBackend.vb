@@ -519,6 +519,16 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                     _stopSignal = True
                     workerToJoin = _workerThread
                     needJoin = True
+                ElseIf _state = DdagrabBackendState.Stopping Then
+                    ' ★ Soak-D fix (concurrent Stop+Dispose): a Stop() in flight
+                    ' already raised _stopSignal but its 2s join may still be
+                    ' running when we get here. Cleanup below releases the COM
+                    ' objects the worker is calling into — RecreateDuplication
+                    ' on the disposed output then spun forever / crashed
+                    ' natively (exit 0xC0000005 on the 1080 Ti). Join FIRST.
+                    _logger.Info("DdagrabBackend: Dispose while Stopping — joining worker before cleanup.")
+                    workerToJoin = _workerThread
+                    needJoin = True
                 Else
                     _logger.Info("DdagrabBackend: Dispose from state '" & _state.ToString() & "'.")
                 End If
@@ -970,6 +980,18 @@ skipFrame:
         End Function
 
         Private Sub RecreateDuplication()
+            ' ★ Soak-D guard: Dispose's cleanup may already have released the
+            ' output/device while this worker was still unwinding — recreating
+            ' onto disposed COM spun forever and crashed natively. Bail when
+            ' disposed; the worker's stop-signal check ends the loop.
+            Dim disposedNow As Boolean = False
+            SyncLock _sync
+                disposedNow = _disposed
+            End SyncLock
+            If disposedNow Then
+                _duplication = Nothing
+                Return
+            End If
             ' DXGI_ACCESS_LOST recovery — recreate the duplication object.
             ' Existing _duplication is dead; replace it.
             Try
