@@ -104,6 +104,11 @@
 @keyframes regFade{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(max-width:760px){.regime-tabs{grid-template-columns:1fr}}
 </style>
+<style>
+/* 90° SHARP CORNER OVERRIDE — must stay the LAST style block */
+*{border-radius:0!important}
+.member-avatar,.custom-cursor,.cursor-dot{border-radius:50%!important}
+</style>
 </head>
 <body class="custom-cursor-active">
   

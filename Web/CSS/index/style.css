@@ -1168,3 +1168,9 @@ footer {
     font-size: 1.6rem !important;
   }
 }
+
+/* ═══════════════ 90° SHARP CORNER THEME (2026-09-05) ═══════════════
+   Every square corner becomes a hard 90° — only true circles (avatars,
+   custom-cursor parts, decorative dots) keep their roundness. */
+* { border-radius: 0 !important; }
+.member-avatar, .custom-cursor, .cursor-dot { border-radius: 50% !important; }
