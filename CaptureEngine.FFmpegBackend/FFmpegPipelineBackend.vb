@@ -40,7 +40,12 @@ Namespace CaptureEngine.FFmpegBackend
     '''       they were created with. If it doesn't match _currentGeneration, the callback
     '''       is from a stale (previous session) process and must be ignored.
     ''' </summary>
-    Public NotInheritable Class FFmpegPipelineBackend
+    ''' ★ C/5 DORMANT (audit 2026-09-06): ZERO production callers — superseded by
+    ''' LiveMuxSession. Friend = compile-time isolation: code outside this assembly
+    ''' cannot wire this in and bypass the NextRecordingConfig.MapSessionConfig H1
+    ''' seam (its WithArguments/WithOutputPath API takes raw unvalidated args).
+    ''' Tests reach it via InternalsVisibleTo. Do NOT re-activate without the seam.
+    Friend NotInheritable Class FFmpegPipelineBackend
         Implements IVideoBackend
         Implements IDisposable
 

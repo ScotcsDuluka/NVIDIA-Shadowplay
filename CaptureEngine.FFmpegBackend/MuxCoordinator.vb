@@ -33,7 +33,11 @@ Namespace CaptureEngine.FFmpegBackend
     '''   ❌ NEVER hold a lock across ffprobe() or mux process WaitForExit()
     '''   ✅ These methods are called OUTSIDE the caller's lock
     ''' </summary>
-    Public NotInheritable Class MuxCoordinator
+    ''' ★ C/5 DORMANT (audit 2026-09-06): zero production callers — constructed
+    ''' only by FFmpegPipelineBackend (dormant) + Recording.Tests. Friend =
+    ''' compile-time isolation; contains delete-before-move on OutputPath, so
+    ''' do NOT re-activate without the MapSessionConfig H1 seam.
+    Friend NotInheritable Class MuxCoordinator
         Implements IDisposable
 
         Private ReadOnly _sync As New Object()
