@@ -282,20 +282,20 @@ Friend Module Program
             End Sub)
         End If
 
-        ' ── IPC-7: the REAL production hub (port 5000) — protocol survives ──
+        ' ── IPC-7: the REAL production hub (port 5001) — protocol survives ──
         Dim hubUp As Boolean = False
         Try
             Using probe As New TcpClient()
-                probe.Connect(IPAddress.Loopback, 5000)
+                probe.Connect(IPAddress.Loopback, 5001)
                 hubUp = probe.Connected
             End Using
         Catch
         End Try
 
         If hubUp Then
-            RunTest("IPC-7 live hub 127.0.0.1:5000 ping → pong (protocol intact)", Sub()
+            RunTest("IPC-7 live hub 127.0.0.1:5001 ping → pong (protocol intact)", Sub()
                 Using c As New TcpClient()
-                    c.Connect(IPAddress.Loopback, 5000)
+                    c.Connect(IPAddress.Loopback, 5001)
                     Dim s As NetworkStream = c.GetStream()
                     s.ReadTimeout = 3000
                     Dim w As New IO.StreamWriter(s) With {.NewLine = vbCr & vbLf, .AutoFlush = True}
@@ -306,7 +306,7 @@ Friend Module Program
                 End Using
             End Sub)
         Else
-            RunSkip("IPC-7 live hub ping → pong", "hub not running on 127.0.0.1:5000")
+            RunSkip("IPC-7 live hub ping → pong", "hub not running on 127.0.0.1:5001")
         End If
 
         Console.WriteLine()

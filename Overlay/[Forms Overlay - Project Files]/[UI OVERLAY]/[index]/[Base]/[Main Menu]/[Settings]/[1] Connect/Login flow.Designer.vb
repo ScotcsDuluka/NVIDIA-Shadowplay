@@ -25,14 +25,14 @@ Partial Class Base_Connect_Login
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Login))
         Settings_Panel = New Panel()
         Settings_TEXT = New Label()
-        Dim_Top = New PictureBox()
-        BT_Back = New Label()
-        Dim_1 = New PictureBox()
-        Dim_2 = New PictureBox()
         Info_TEXT = New Label()
         BT_StartLogin = New Label()
         BT_CancelLogin = New Label()
         Status_TEXT = New Label()
+        Dim_Top = New PictureBox()
+        BT_Back = New Label()
+        Dim_1 = New PictureBox()
+        Dim_2 = New PictureBox()
         Settings_Panel.SuspendLayout()
         CType(Dim_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
@@ -50,28 +50,28 @@ Partial Class Base_Connect_Login
         Settings_Panel.Controls.Add(Status_TEXT)
         Settings_Panel.Location = New Point(80, 160)
         Settings_Panel.Name = "Settings_Panel"
-        Settings_Panel.Size = New Size(1760, 840)
+        Settings_Panel.Size = New Size(1760, 283)
         Settings_Panel.TabIndex = 45
         ' 
         ' Settings_TEXT
         ' 
         Settings_TEXT.AutoSize = True
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_TEXT.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
+        Settings_TEXT.Font = New Font("GeForce", 24F, FontStyle.Bold)
         Settings_TEXT.ForeColor = Color.White
         Settings_TEXT.Location = New Point(62, 43)
         Settings_TEXT.Name = "Settings_TEXT"
-        Settings_TEXT.Size = New Size(128, 42)
+        Settings_TEXT.Size = New Size(434, 42)
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Sign in to your Duluka Account"
         ' 
         ' Info_TEXT
         ' 
-        Info_TEXT.Font = New Font("Segoe UI", 11.0F)
+        Info_TEXT.Font = New Font("Segoe UI", 11F)
         Info_TEXT.ForeColor = Color.Gainsboro
-        Info_TEXT.Location = New Point(62, 120)
+        Info_TEXT.Location = New Point(62, 107)
         Info_TEXT.Name = "Info_TEXT"
-        Info_TEXT.Size = New Size(1100, 96)
+        Info_TEXT.Size = New Size(1100, 60)
         Info_TEXT.TabIndex = 70
         Info_TEXT.Text = "Use a linked provider to securely authenticate to your Duluka Account. Your provider identity is never shared beyond this sign-in."
         ' 
@@ -79,9 +79,9 @@ Partial Class Base_Connect_Login
         ' 
         BT_StartLogin.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_StartLogin.Cursor = Cursors.Hand
-        BT_StartLogin.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_StartLogin.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         BT_StartLogin.ForeColor = Color.White
-        BT_StartLogin.Location = New Point(62, 260)
+        BT_StartLogin.Location = New Point(62, 167)
         BT_StartLogin.Name = "BT_StartLogin"
         BT_StartLogin.Size = New Size(320, 58)
         BT_StartLogin.TabIndex = 71
@@ -92,9 +92,9 @@ Partial Class Base_Connect_Login
         ' 
         BT_CancelLogin.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_CancelLogin.Cursor = Cursors.Hand
-        BT_CancelLogin.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
+        BT_CancelLogin.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
         BT_CancelLogin.ForeColor = Color.White
-        BT_CancelLogin.Location = New Point(400, 260)
+        BT_CancelLogin.Location = New Point(400, 167)
         BT_CancelLogin.Name = "BT_CancelLogin"
         BT_CancelLogin.Size = New Size(160, 58)
         BT_CancelLogin.TabIndex = 72
@@ -110,9 +110,8 @@ Partial Class Base_Connect_Login
         Status_TEXT.ForeColor = Color.Silver
         Status_TEXT.Location = New Point(62, 380)
         Status_TEXT.Name = "Status_TEXT"
-        Status_TEXT.Size = New Size(60, 19)
+        Status_TEXT.Size = New Size(0, 19)
         Status_TEXT.TabIndex = 73
-        Status_TEXT.Text = ""
         ' 
         ' Dim_Top
         ' 
@@ -128,7 +127,7 @@ Partial Class Base_Connect_Login
         ' 
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(80, 110)
         BT_Back.Name = "BT_Back"
@@ -161,7 +160,7 @@ Partial Class Base_Connect_Login
         ' 
         ' Base_Connect_Login
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1070)

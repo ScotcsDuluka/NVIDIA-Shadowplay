@@ -41,7 +41,9 @@ Partial Public Class UI_Engine
 
     Private Sub StartTcpClient()
         Try
-            tcp = New TcpClientHelper("NVIDIA Engine", "127.0.0.1", 5000, autoReconnect:=True)
+            ' Host/port/autoReconnect come from the TcpClientHelper defaults —
+            ' the single client-side authority for the NVIDIA API hub port.
+            tcp = New TcpClientHelper("NVIDIA Engine")
             AddHandler tcp.OnMessageReceived, AddressOf OnTcpMessage
             AddHandler tcp.OnDisconnected, AddressOf OnTcpDisconnected
             AddHandler tcp.OnReconnecting, AddressOf OnTcpReconnecting

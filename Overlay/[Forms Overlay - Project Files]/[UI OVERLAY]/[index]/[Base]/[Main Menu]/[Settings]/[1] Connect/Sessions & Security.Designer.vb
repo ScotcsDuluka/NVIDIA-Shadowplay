@@ -25,10 +25,6 @@ Partial Class Base_Connect_Security
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Security))
         Settings_Panel = New Panel()
         Settings_TEXT = New Label()
-        Dim_Top = New PictureBox()
-        BT_Back = New Label()
-        Dim_1 = New PictureBox()
-        Dim_2 = New PictureBox()
         Info_META = New Label()
         BT_RefreshSession = New Label()
         BT_RevokeAll = New Label()
@@ -41,6 +37,10 @@ Partial Class Base_Connect_Security
         PwConfirm_BOX = New TextBox()
         BT_ChangePassword = New Label()
         Status_TEXT = New Label()
+        Dim_Top = New PictureBox()
+        BT_Back = New Label()
+        Dim_1 = New PictureBox()
+        Dim_2 = New PictureBox()
         Settings_Panel.SuspendLayout()
         CType(Dim_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
@@ -73,13 +73,13 @@ Partial Class Base_Connect_Security
         ' 
         Settings_TEXT.AutoSize = True
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_TEXT.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
+        Settings_TEXT.Font = New Font("GeForce", 24F, FontStyle.Bold)
         Settings_TEXT.ForeColor = Color.White
         Settings_TEXT.Location = New Point(62, 43)
         Settings_TEXT.Name = "Settings_TEXT"
-        Settings_TEXT.Size = New Size(128, 42)
+        Settings_TEXT.Size = New Size(285, 42)
         Settings_TEXT.TabIndex = 51
-        Settings_TEXT.Text = "Sessions & Security"
+        Settings_TEXT.Text = "Sessions / Security"
         ' 
         ' Info_META
         ' 
@@ -89,13 +89,12 @@ Partial Class Base_Connect_Security
         Info_META.Name = "Info_META"
         Info_META.Size = New Size(1100, 140)
         Info_META.TabIndex = 70
-        Info_META.Text = ""
         ' 
         ' BT_RefreshSession
         ' 
         BT_RefreshSession.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_RefreshSession.Cursor = Cursors.Hand
-        BT_RefreshSession.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        BT_RefreshSession.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         BT_RefreshSession.ForeColor = Color.White
         BT_RefreshSession.Location = New Point(62, 320)
         BT_RefreshSession.Name = "BT_RefreshSession"
@@ -121,11 +120,11 @@ Partial Class Base_Connect_Security
         ' 
         PwHeader_LBL.AutoSize = True
         PwHeader_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PwHeader_LBL.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        PwHeader_LBL.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         PwHeader_LBL.ForeColor = Color.White
         PwHeader_LBL.Location = New Point(62, 560)
         PwHeader_LBL.Name = "PwHeader_LBL"
-        PwHeader_LBL.Size = New Size(120, 19)
+        PwHeader_LBL.Size = New Size(127, 19)
         PwHeader_LBL.TabIndex = 74
         PwHeader_LBL.Text = "Change password"
         ' 
@@ -133,7 +132,7 @@ Partial Class Base_Connect_Security
         ' 
         PwCurrent_LBL.AutoSize = True
         PwCurrent_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PwCurrent_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        PwCurrent_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwCurrent_LBL.ForeColor = Color.Gainsboro
         PwCurrent_LBL.Location = New Point(62, 592)
         PwCurrent_LBL.Name = "PwCurrent_LBL"
@@ -149,7 +148,7 @@ Partial Class Base_Connect_Security
         PwCurrent_BOX.ForeColor = Color.White
         PwCurrent_BOX.Location = New Point(185, 588)
         PwCurrent_BOX.Name = "PwCurrent_BOX"
-        PwCurrent_BOX.Size = New Size(260, 25)
+        PwCurrent_BOX.Size = New Size(260, 26)
         PwCurrent_BOX.TabIndex = 76
         PwCurrent_BOX.UseSystemPasswordChar = True
         ' 
@@ -157,11 +156,11 @@ Partial Class Base_Connect_Security
         ' 
         PwNew_LBL.AutoSize = True
         PwNew_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PwNew_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        PwNew_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwNew_LBL.ForeColor = Color.Gainsboro
         PwNew_LBL.Location = New Point(62, 628)
         PwNew_LBL.Name = "PwNew_LBL"
-        PwNew_LBL.Size = New Size(85, 15)
+        PwNew_LBL.Size = New Size(88, 15)
         PwNew_LBL.TabIndex = 77
         PwNew_LBL.Text = "New password"
         ' 
@@ -173,7 +172,7 @@ Partial Class Base_Connect_Security
         PwNew_BOX.ForeColor = Color.White
         PwNew_BOX.Location = New Point(185, 624)
         PwNew_BOX.Name = "PwNew_BOX"
-        PwNew_BOX.Size = New Size(260, 25)
+        PwNew_BOX.Size = New Size(260, 26)
         PwNew_BOX.TabIndex = 78
         PwNew_BOX.UseSystemPasswordChar = True
         ' 
@@ -181,11 +180,11 @@ Partial Class Base_Connect_Security
         ' 
         PwConfirm_LBL.AutoSize = True
         PwConfirm_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        PwConfirm_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        PwConfirm_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwConfirm_LBL.ForeColor = Color.Gainsboro
         PwConfirm_LBL.Location = New Point(62, 664)
         PwConfirm_LBL.Name = "PwConfirm_LBL"
-        PwConfirm_LBL.Size = New Size(100, 15)
+        PwConfirm_LBL.Size = New Size(79, 15)
         PwConfirm_LBL.TabIndex = 79
         PwConfirm_LBL.Text = "Confirm new"
         ' 
@@ -197,7 +196,7 @@ Partial Class Base_Connect_Security
         PwConfirm_BOX.ForeColor = Color.White
         PwConfirm_BOX.Location = New Point(185, 660)
         PwConfirm_BOX.Name = "PwConfirm_BOX"
-        PwConfirm_BOX.Size = New Size(260, 25)
+        PwConfirm_BOX.Size = New Size(260, 26)
         PwConfirm_BOX.TabIndex = 80
         PwConfirm_BOX.UseSystemPasswordChar = True
         ' 
@@ -205,7 +204,7 @@ Partial Class Base_Connect_Security
         ' 
         BT_ChangePassword.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_ChangePassword.Cursor = Cursors.Hand
-        BT_ChangePassword.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        BT_ChangePassword.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         BT_ChangePassword.ForeColor = Color.White
         BT_ChangePassword.Location = New Point(185, 700)
         BT_ChangePassword.Name = "BT_ChangePassword"
@@ -216,15 +215,13 @@ Partial Class Base_Connect_Security
         ' 
         ' Status_TEXT
         ' 
-        Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Status_TEXT.Font = New Font("Segoe UI", 10.0F)
+        Status_TEXT.Font = New Font("Segoe UI", 10F)
         Status_TEXT.ForeColor = Color.Silver
         Status_TEXT.Location = New Point(62, 780)
         Status_TEXT.Name = "Status_TEXT"
-        Status_TEXT.Size = New Size(60, 19)
+        Status_TEXT.Size = New Size(383, 19)
         Status_TEXT.TabIndex = 73
-        Status_TEXT.Text = ""
         ' 
         ' Dim_Top
         ' 
@@ -240,7 +237,7 @@ Partial Class Base_Connect_Security
         ' 
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(80, 110)
         BT_Back.Name = "BT_Back"
@@ -273,7 +270,7 @@ Partial Class Base_Connect_Security
         ' 
         ' Base_Connect_Security
         ' 
-        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
+        AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1070)

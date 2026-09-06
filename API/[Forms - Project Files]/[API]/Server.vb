@@ -7,6 +7,12 @@ Partial Public Class API_RUN
 
     ' F-04: loopback-only listeners (127.0.0.1 + ::1). The old single
     ' `listener` field (wildcard-bound) is gone — see StartServer.
+    '
+    ' ApiPort = 5001: Duluka.Server owns 127.0.0.1:5000 on this machine (its
+    ' public Tailscale Funnel proxies straight to that port), so the hub
+    ' moved to the next free loopback port. Every client must match — the
+    ' TcpClientHelper ctor default is the client-side authority.
+    Private Const ApiPort As Integer = 5001
     Private loopbackListeners As TcpListener() = New TcpListener() {}
     Private clients As New List(Of ClientInfo)
     Private clientsLock As New Object()
@@ -91,7 +97,7 @@ Partial Public Class API_RUN
         If _isShuttingDown Then Return
 
         Try
-            Me.Text = "API Server - tcp://127.0.0.1:5000"
+            Me.Text = $"API Server - tcp://127.0.0.1:{ApiPort}"
 
             ' Uptime
             Dim uptime = DateTime.Now - startTime
@@ -152,7 +158,7 @@ Partial Public Class API_RUN
         ' path re-checks the peer with LoopbackGate.IsLoopback as defense in
         ' depth (see HandleClientAsync).
         '
-        ' ✅ P2.6: retry loop (kept). If EVERY loopback bind fails (port 5000
+        ' ✅ P2.6: retry loop (kept). If EVERY loopback bind fails (ApiPort
         ' already in use by another app), wait 5s and retry instead of
         ' crashing the Hub. A single-family bind failure only logs and
         ' continues on the other family.
@@ -161,7 +167,7 @@ Partial Public Class API_RUN
         Do
             shouldRetry = False
             Dim bound As New List(Of TcpListener)
-            For Each l As TcpListener In LoopbackGate.CreateLoopbackListeners(5000)
+            For Each l As TcpListener In LoopbackGate.CreateLoopbackListeners(ApiPort)
                 Try
                     l.Start()
                     bound.Add(l)
@@ -190,7 +196,7 @@ Partial Public Class API_RUN
                                   lblStatus.Text = "Server log | OFFLINE — bind failed"
                                   lblStatus.ForeColor = Color.FromArgb(200, 50, 50)
                                   notifyIcon.BalloonTipTitle = "NVIDIA API"
-                                  notifyIcon.BalloonTipText = "Hub failed to bind port 5000 after 12 attempts. Check if another app is using the port."
+                                  notifyIcon.BalloonTipText = $"Hub failed to bind port {ApiPort} after 12 attempts. Check if another app is using the port."
                                   notifyIcon.BalloonTipIcon = ToolTipIcon.Error
                                   notifyIcon.ShowBalloonTip(5000)
                               End Sub)

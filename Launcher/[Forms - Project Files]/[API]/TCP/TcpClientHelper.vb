@@ -36,7 +36,7 @@ Public Class TcpClientHelper
 
     Public Sub New(appName As String,
                    Optional host As String = "127.0.0.1",
-                   Optional port As Integer = 5000,
+                   Optional port As Integer = 5001, ' NVIDIA API hub (Duluka.Server owns 5000 — public Funnel binds there)
                    Optional autoReconnect As Boolean = True)
 
         _appName = appName

@@ -118,4 +118,8 @@ Public Class Base_Connect_Login
         Me.Hide()
         Base_Connect.ReturnFromSubPage()
     End Sub
+
+    Private Sub Settings_Panel_Paint(sender As Object, e As PaintEventArgs) Handles Settings_Panel.Paint
+
+    End Sub
 End Class

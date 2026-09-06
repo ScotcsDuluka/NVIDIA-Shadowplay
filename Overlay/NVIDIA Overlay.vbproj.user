@@ -53,6 +53,9 @@
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[#] Empty.vb">
       <SubType>Form</SubType>
     </Compile>
+    <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Create account.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\[Main] Account home.vb">
       <SubType>Form</SubType>
     </Compile>
