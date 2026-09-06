@@ -230,6 +230,12 @@ Namespace CaptureEngine.Recording.Tests
             ' Sandbox: MuxCoordinator probes "<dir of FFmpegPath>\ffprobe.exe".
             ' Normalize names there so the production resolution logic is
             ' exercised verbatim on every OS.
+            '
+            ' Sandbox hygiene (C-hygiene pass): reclaim RRT_RT_* sandboxes
+            ' abandoned by earlier hard-killed runs (older than 6h) BEFORE
+            ' creating this run's own. Only this suite's prefix under the
+            ' temp path is ever touched; cleanup failures become warnings.
+            SandboxSweepStale(6)
             _sandbox = Path.Combine(Path.GetTempPath(), "RRT_RT_" & Guid.NewGuid().ToString("N").Substring(0, 8))
             Directory.CreateDirectory(_sandbox)
             _ffmpegExe = Path.Combine(_sandbox, "ffmpeg.exe")
@@ -258,7 +264,12 @@ Namespace CaptureEngine.Recording.Tests
 
             ' ★ Verify the sandboxed ffmpeg actually RUNS (-version) — fail loudly
             ' with the real reason instead of empty-stderr mystery downstream.
-            If Not SandboxFfmpegWorks() Then Return False
+            If Not SandboxFfmpegWorks() Then
+                ' Don't leak the freshly created sandbox on a discovery failure.
+                SandboxTryDelete(_sandbox, "sandbox ffmpeg failed -v verification")
+                _sandbox = Nothing
+                Return False
+            End If
 
             Console.WriteLine($"      ffmpeg: {found}")
             Console.WriteLine($"      sandbox: {_sandbox}")
@@ -270,6 +281,51 @@ Namespace CaptureEngine.Recording.Tests
                 File.Copy(src, dst, overwrite:=True)
             Catch ex As Exception
                 Console.WriteLine($"      WARN copy {Path.GetFileName(src)} failed: {ex.Message}")
+            End Try
+        End Sub
+
+        ' ─── Sandbox hygiene (C-hygiene pass) ─────────────────────────
+        ' Contract: ONLY directories this suite creates are ever touched
+        ' (Path.GetTempPath() + name starting with "RRT_RT_"). Cleanup
+        ' failures are collected in SandboxCleanupWarnings — reported by the
+        ' runner at exit, never masking a test verdict, never throwing.
+
+        Friend ReadOnly SandboxCleanupWarnings As New List(Of String)()
+        Private Const SandboxPrefix As String = "RRT_RT_"
+
+        ''' <summary>Deletes THIS run's RRT sandbox (and nothing else). Called
+        ''' from the runner's Finally after every suite has finished.</summary>
+        Friend Sub CleanupSandbox()
+            If String.IsNullOrEmpty(_sandbox) Then Return
+            If SandboxTryDelete(_sandbox, "current run sandbox") Then _sandbox = Nothing
+        End Sub
+
+        Friend Function SandboxTryDelete(path As String, label As String) As Boolean
+            Try
+                If Not Directory.Exists(path) Then Return True
+                Directory.Delete(path, True)
+                Return Not Directory.Exists(path)
+            Catch ex As Exception
+                SandboxCleanupWarnings.Add(label & " [" & path & "]: " & ex.Message)
+                Return False
+            End Try
+        End Function
+
+        ''' <summary>Reclaims RRT_RT_* sandboxes abandoned by earlier
+        ''' hard-killed runs (LastWriteTime older than maxAgeHours). Returns
+        ''' the number reclaimed; never throws.</summary>
+        Private Sub SandboxSweepStale(maxAgeHours As Integer)
+            Try
+                Dim tempRoot As DirectoryInfo = New DirectoryInfo(Path.GetTempPath())
+                Dim cutoff As DateTime = DateTime.Now.AddHours(-maxAgeHours)
+                For Each d As DirectoryInfo In tempRoot.EnumerateDirectories(SandboxPrefix & "*")
+                    Try
+                        If d.LastWriteTime >= cutoff Then Continue For
+                        SandboxTryDelete(d.FullName, "stale sandbox (" & d.Name & ")")
+                    Catch
+                    End Try
+                Next
+            Catch
             End Try
         End Sub
 

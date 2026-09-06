@@ -86,6 +86,15 @@ Public NotInheritable Class NextRecordingConfig
                                             outputPath As String,
                                             ffmpegPath As String,
                                             onProcessStarted As Action(Of Process)) As SessionConfig
+        ' ★ C/5 H1: every RECORD_START path crosses this seam — reject here
+        ' what can only be argument-injection, before any SessionConfig (and
+        ' therefore any FFmpeg command line) can exist.
+        If Not IsSafeRecordingOutputPath(outputPath) Then
+            Throw New ArgumentException(
+                "RECORD_START rejected: output path is empty or contains a quote/control character " &
+                "that cannot occur in a real file path and would break FFmpeg argument parsing.",
+                NameOf(outputPath))
+        End If
         Return New SessionConfig() With {
             .OutputPath = outputPath,
             .DurationSeconds = 3600,          ' no fixed duration — stop via command
@@ -102,6 +111,34 @@ Public NotInheritable Class NextRecordingConfig
             .AudioClockMode = If(settings IsNot Nothing, settings.AudioClockMode, "Legacy"),
             .OnProcessStarted = onProcessStarted
         }
+    End Function
+
+    ''' <summary>
+    ''' ★ C/5 H1 — output-path security contract (product design, not invented):
+    '''
+    ''' The output DIRECTORY authority is the USER (config.json
+    ''' Paths.GalleryPath/SavePath is a user-settable arbitrary directory and
+    ''' the Overlay sends per-recording paths under it). Absolute paths, other
+    ''' drives, UNC shares, traversal relative to the chosen root, spaces and
+    ''' unicode are BY DESIGN and must stay accepted.
+    '''
+    ''' What can never occur in a legitimate Windows file path is a double
+    ''' quote or a control character (NTFS forbids both in names). Their only
+    ''' possible effect is Windows argument-parsing breakout when the path is
+    ''' embedded into the FFmpeg command line — every production builder
+    ''' quotes but does not escape: LiveMuxSession BuildArgs()/RunRemux()
+    ''' (""{_fragPath}"" / ""{_finalPath}"") and legacy FFmpegArgumentBuilder
+    ''' (-y ""{outputFile}""). A breakout injects extra FFmpeg outputs/flags
+    ''' = arbitrary file write via the -y overwrite path. Such strings are
+    ''' therefore rejected here, the single seam every RECORD_START crosses.
+    ''' </summary>
+    Public Shared Function IsSafeRecordingOutputPath(path As String) As Boolean
+        If String.IsNullOrWhiteSpace(path) Then Return False
+        For Each ch As Char In path
+            If ch = ControlChars.Quote Then Return False
+            If ch < " "c Then Return False
+        Next
+        Return True
     End Function
 
     ''' <summary>

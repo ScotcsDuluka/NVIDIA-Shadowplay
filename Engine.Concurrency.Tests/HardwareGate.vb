@@ -64,6 +64,17 @@ Namespace Engine.Concurrency.Tests
             End Try
         End Sub
 
+        ''' <summary>True when the preflight proved the real NVIDIA backends
+        ''' Initialize successfully. Media-validity assertions gate on this:
+        ''' without an NVIDIA encoder the fallback-rename output is a broken
+        ''' container (environment), not a production defect.</summary>
+        Friend ReadOnly Property NvidiaAvailable As Boolean
+            Get
+                EnsureProbed()
+                Return _nvidiaAvailable
+            End Get
+        End Property
+
         ''' <summary>True when <paramref name="testName"/> exercises the
         ''' NVIDIA-bound production backends and the probe proved the
         ''' environment cannot run them. Test names are stable prefixes

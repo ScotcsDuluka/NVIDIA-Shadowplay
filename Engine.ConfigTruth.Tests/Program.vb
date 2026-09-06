@@ -51,6 +51,7 @@ Namespace Engine.ConfigTruth.Tests
             GetEngineModeTests.RunAll()        ' C/2: engine_mode vocabulary authority
             SessionEndContractTests.RunAll()   ' C/3: Duluka session-end broadcast contract
             FrameRetirementContractTests.RunAll()   ' F-05: CaptureSession frame-retirement order
+            H1OutputPathTests.RunAll()         ' C/5: RECORD_START output-path security contract
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")

@@ -80,14 +80,30 @@ Namespace CaptureEngine.Recording.Tests
             Console.WriteLine("==================================================")
             Console.WriteLine()
 
-            SyncMathTests.RunAll()
-            WavSidecarTests.RunAll()
-            DisposerTests.RunAll()   ' ★ GPU disposer: no-lost-frame + no-throw contracts
-            LiveMuxJobOwnershipTests.RunAll()   ' ★ F-07: LiveMux ffmpeg process ownership (real ffmpeg)
-            AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
-            AudioTimelineDeviceClockTests.RunAll()   ' ★ P13-A: OWNER-spec deterministic sample timeline (no hardware)
-            RuntimeSyncTests.RunAll()
-            DualTrackTests.RunAll()   ' ★ M1: system + mic second track
+            Try
+                SyncMathTests.RunAll()
+                WavSidecarTests.RunAll()
+                DisposerTests.RunAll()   ' ★ GPU disposer: no-lost-frame + no-throw contracts
+                LiveMuxJobOwnershipTests.RunAll()   ' ★ F-07: LiveMux ffmpeg process ownership (real ffmpeg)
+                AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
+                AudioTimelineDeviceClockTests.RunAll()   ' ★ P13-A: OWNER-spec deterministic sample timeline (no hardware)
+                RuntimeSyncTests.RunAll()
+                DualTrackTests.RunAll()   ' ★ M1: system + mic second track
+            Finally
+                ' Sandbox hygiene (C-hygiene pass): the RRT_RT_ sandbox created
+                ' by RuntimeSyncTests/DualTrackTests is removed on EVERY outcome
+                ' — PASS, FAIL, assertion failure, timeout, unexpected
+                ' exception. Cleanup failures are reported separately and
+                ' never change the test verdict or the exit code.
+                RuntimeSyncTests.CleanupSandbox()
+                If RuntimeSyncTests.SandboxCleanupWarnings.Count > 0 Then
+                    Console.WriteLine()
+                    Console.WriteLine($" SANDBOX CLEANUP WARNINGS: {RuntimeSyncTests.SandboxCleanupWarnings.Count} (test verdicts unaffected)")
+                    For Each w As String In RuntimeSyncTests.SandboxCleanupWarnings
+                        Console.WriteLine("   - " & w)
+                    Next
+                End If
+            End Try
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")

@@ -395,6 +395,17 @@ Partial Public Class UI_Engine
                 Return
             End If
 
+            ' ★ C/5 H1: reject paths that cannot be real Windows file paths
+            ' (quote / control characters) BEFORE they reach the legacy FFmpeg
+            ' command line (FFmpegArgumentBuilder embeds -y ""{outputFile}""
+            ' quoted but unescaped). Same contract the new-engine path enforces
+            ' inside NextRecordingConfig.MapSessionConfig.
+            If Not NextRecordingConfig.IsSafeRecordingOutputPath(value) Then
+                DebugLog($"[Engine] RECORD_START rejected: invalid output path ({If(value, "(null)")})")
+                SendResponse("engine_record_start", "error", "invalid_output_path", reqId)
+                Return
+            End If
+
             ' ✅ P2.6: load settings from Overlay's config.json + video.json
             ' (source of truth). Old code loaded from Engine's shadowplay-config.json
             ' which drifted out of sync with Overlay → wrong encoder/fps/bitrate.
