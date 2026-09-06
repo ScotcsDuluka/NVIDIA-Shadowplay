@@ -57,6 +57,7 @@ internal static class Program
         Run("NATIVE-7: second login on same device supersedes prior session (§5.2)", Test_NativeSessionSupersede);
         Run("NATIVE-8: password change — wrong current refused, new password works", Test_NativePasswordChange);
         Run("NATIVE-9: revoked device key refused; cross-account key refused", Test_NativeDeviceGuards);
+        Run("NATIVE-12: cross-account device-key register → refused, NO orphan account/credential", Test_NativeRegisterNoOrphanOnDeviceConflict);
         Run("NATIVE-10: suspended account cannot login (perm.account_suspended)", Test_NativeSuspended);
         Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
         Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
@@ -905,6 +906,36 @@ internal static class Program
             try { f.Native.Login("grace", "correct-horse-1", hash2, "dev"); }
             catch (InvalidOperationException ex) { crossCode = ex.Message; }
             Assert(crossCode == "device_key_in_use", "a device key bound to another account is refused");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeRegisterNoOrphanOnDeviceConflict()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Account B already exists and owns a LIVE device key.
+            var (keyB, hashB) = NewDeviceKey();
+            var (accountB, deviceB) = f.Native.Register("owner-b", "correct-horse-1", hashB, "dev-B");
+
+            // A registration for a NEW account reusing B's device key must be
+            // refused BEFORE any account/credential persistence — the 409 is
+            // correct, and no orphan account may survive it.
+            var code = "";
+            try { f.Native.Register("victim-a", "another-pass-1", hashB, "dev-A"); }
+            catch (InvalidOperationException ex) { code = ex.Message; }
+            Assert(code == "device_key_in_use", $"cross-account key must fail with device_key_in_use (got: {code})");
+
+            Assert(f.Db.FindNativeCredentialByUsername("victim-a") is null,
+                "no orphan credential for the refused registration");
+            var accountsViaCredential = f.Db.FindNativeCredentialByUsername("owner-b");
+            Assert(accountsViaCredential is not null && accountsViaCredential.AccountId == accountB.AccountId,
+                "the existing owner account is untouched");
+
+            var devB = f.Db.FindDeviceByKeyHash(hashB)!;
+            Assert(devB.DeviceId == deviceB.DeviceId && devB.AccountId == accountB.AccountId,
+                "the existing device binding is unchanged");
         }
         finally { f.Dispose(); }
     }

@@ -244,26 +244,26 @@ public sealed class NativeAuthService(Database db)
     private static readonly string DummyVerifier = Secrets.HashPassword("duluka-dummy-credential-timing-burn");
 
     /// <summary>Create a fresh account + credential + device. Contract guards:
-    /// revoked device keys are dead forever; a device key bound to another
-    /// account is rejected; duplicate usernames roll back the whole
-    /// account+credential transaction.</summary>
+    /// revoked device keys are dead forever; a device key already bound to ANY
+    /// account is rejected — BOTH BEFORE any persistence, so a refused
+    /// registration never leaves an orphan account/credential behind.
+    /// Duplicate usernames roll back the whole account+credential transaction.</summary>
     public (DulukaAccount Account, AccountDevice Device) Register(
         string username, string password, string deviceKeyHash, string deviceName)
     {
+        // Device ownership guards FIRST — before the account/credential
+        // transaction even starts. The account does not exist yet, so any
+        // existing live device key belongs to a different account by
+        // definition: fail here, persist nothing.
         var existingDevice = db.FindDeviceByKeyHash(deviceKeyHash);
         if (existingDevice is not null && existingDevice.RevokedAt is not null)
             throw new InvalidOperationException("device_revoked");
+        if (existingDevice is not null)
+            throw new InvalidOperationException("device_key_in_use");
 
         var canonical = UsernamePolicy.Canonicalize(username);
         var display = username.Trim();
         var account = db.CreateNativeAccount(canonical, display, Secrets.HashPassword(password));
-
-        if (existingDevice is not null)
-        {
-            // The new account is fresh — any existing live device key belongs
-            // to a different account by definition.
-            throw new InvalidOperationException("device_key_in_use");
-        }
 
         var device = db.CreateDevice(account.AccountId, deviceName, deviceKeyHash);
         db.TouchDevice(device.DeviceId);
