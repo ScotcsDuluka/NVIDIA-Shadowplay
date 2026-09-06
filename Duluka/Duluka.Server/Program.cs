@@ -23,6 +23,7 @@ builder.Configuration.AddEnvironmentVariables(prefix: "DULUKA_");
 builder.Services.AddSingleton<OAuthFlowStore>();
 builder.Services.AddSingleton<GitHubOAuthService>();
 builder.Services.AddSingleton<AccountProvisioningService>();
+builder.Services.AddSingleton<NativeAuthService>();
 builder.Services.AddSingleton<SessionService>();
 builder.Services.AddHttpClient("github");
 
@@ -270,6 +271,134 @@ app.MapPost("/v1/account/providers/{provider}/complete", async (string provider,
     }
 }).RequireRateLimiting("auth-start");
 
+// ─── auth: native username/password (Duluka's own credential) ───────────────
+
+var nativeAuth = app.Services.GetRequiredService<NativeAuthService>();
+
+static string? NativeAuthFieldError(string username, string password, string deviceKey, string deviceName)
+{
+    if (!UsernamePolicy.IsValidFormat(username)) return WireCodes.InvalidUsername;
+    if (string.IsNullOrEmpty(password)) return WireCodes.InvalidPassword;
+    if (string.IsNullOrWhiteSpace(deviceName) || deviceName.Length > 64) return "invalid_device_name";
+    if (string.IsNullOrWhiteSpace(deviceKey) || deviceKey.Length < 43) return "invalid_device_key";
+    return null;
+}
+
+static string NativeAuthFieldText(string code) => code switch
+{
+    var c when c == WireCodes.InvalidUsername => "Username must be 3-32 characters (letters, digits, dot, underscore, hyphen).",
+    var c when c == WireCodes.InvalidPassword => "Password must be 8-128 characters.",
+    "invalid_device_name" => "deviceName is required (max 64 chars).",
+    "invalid_device_key" => "deviceKey must be a client-generated base64url value of at least 43 chars (256 bits).",
+    _ => "Invalid request.",
+};
+
+static (string Username, string Password, string DeviceKey, string DeviceName) ReadNativeAuthBody(JsonDocument body)
+{
+    string get(string name) =>
+        body.RootElement.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
+            ? el.GetString() ?? "" : "";
+    return (get("username"), get("password"), get("deviceKey"), get("deviceName"));
+}
+
+app.MapPost("/v1/auth/register", async (HttpRequest req) =>
+{
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
+    var (username, password, deviceKey, deviceName) = ReadNativeAuthBody(body);
+    var fieldError = NativeAuthFieldError(username, password, deviceKey, deviceName)
+                     ?? (UsernamePolicy.IsValidPassword(password) ? null : WireCodes.InvalidPassword);
+    if (fieldError is not null)
+        return Wire.Err(req, 400, fieldError, NativeAuthFieldText(fieldError));
+
+    var deviceKeyHash = Secrets.Sha256Hex(deviceKey);
+    try
+    {
+        var (account, device) = nativeAuth.Register(
+            username, password, deviceKeyHash, deviceName.Trim());
+        var (token, session) = sessionService.Create(account.AccountId, device.DeviceId, null);
+        return Wire.Ok(req, new
+        {
+            sessionToken = token,
+            accountId = account.AccountId,
+            deviceId = device.DeviceId,
+            username = username.Trim(),
+            sessionExpiresAt = session.ExpiresAt,
+        });
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "username_taken")
+    {
+        return Wire.Err(req, 409, WireCodes.ConflictUsernameTaken,
+            "That username is already taken.");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "device_revoked")
+    {
+        return Wire.Err(req, 403, WireCodes.PermDeviceRemoved, "This device key was revoked. Generate a new device key and retry.");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "device_key_in_use")
+    {
+        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled register failure");
+        return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
+    }
+}).RequireRateLimiting("auth-start");
+
+app.MapPost("/v1/auth/login", async (HttpRequest req) =>
+{
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
+    var (username, password, deviceKey, deviceName) = ReadNativeAuthBody(body);
+    var fieldError = NativeAuthFieldError(username, password, deviceKey, deviceName)
+                     ?? (UsernamePolicy.IsValidPassword(password) ? null : WireCodes.InvalidPassword);
+    if (fieldError is not null)
+        return Wire.Err(req, 400, fieldError, NativeAuthFieldText(fieldError));
+
+    var deviceKeyHash = Secrets.Sha256Hex(deviceKey);
+    try
+    {
+        var (account, device) = nativeAuth.Login(
+            username, password, deviceKeyHash, deviceName.Trim());
+        var (token, session) = sessionService.Create(account.AccountId, device.DeviceId, null);
+        var native = db.FindNativeCredentialByAccount(account.AccountId);
+        return Wire.Ok(req, new
+        {
+            sessionToken = token,
+            accountId = account.AccountId,
+            deviceId = device.DeviceId,
+            username = native?.UsernameDisplay,
+            sessionExpiresAt = session.ExpiresAt,
+        });
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "invalid_credentials")
+    {
+        // GENERIC by design: unknown username and wrong password are the same
+        // answer on the wire (no account enumeration).
+        return Wire.Err(req, 401, WireCodes.InvalidCredentials, "Incorrect username or password.");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "account_suspended")
+    {
+        return Wire.Err(req, 403, WireCodes.PermAccountSuspended, "This account is suspended.");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "device_revoked")
+    {
+        return Wire.Err(req, 403, WireCodes.PermDeviceRemoved, "This device key was revoked. Generate a new device key and retry.");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "device_key_in_use")
+    {
+        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled login failure");
+        return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
+    }
+}).RequireRateLimiting("auth-start");
+
 // ─── auth: session lifecycle ────────────────────────────────────────────────
 
 app.MapPost("/v1/auth/session/refresh", (HttpRequest req) =>
@@ -281,6 +410,49 @@ app.MapPost("/v1/auth/session/refresh", (HttpRequest req) =>
         ? Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.")
         : Wire.Ok(req, new { sessionExpiresAt = expires });
 });
+
+app.MapPost("/v1/account/password", async (HttpRequest req) =>
+{
+    var token = BearerToken(req);
+    if (token is null) return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "Authorization: Bearer <session token> required.");
+    var validation = sessionService.Validate(token);
+    if (validation is null) return Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.");
+
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
+    string get(string name) =>
+        body.RootElement.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
+            ? el.GetString() ?? "" : "";
+    var currentPassword = get("currentPassword");
+    var newPassword = get("newPassword");
+    if (string.IsNullOrEmpty(currentPassword))
+        return Wire.Err(req, 400, WireCodes.InvalidCredentials, "Current password is required.");
+    if (!UsernamePolicy.IsValidPassword(newPassword))
+        return Wire.Err(req, 400, WireCodes.InvalidPassword,
+            $"Password must be {UsernamePolicy.MinPasswordLength}-{UsernamePolicy.MaxPasswordLength} characters.");
+
+    try
+    {
+        nativeAuth.ChangePassword(validation.Value.Item3.AccountId, currentPassword,
+            Secrets.HashPassword(newPassword));
+        return Wire.Ok(req, new { changed = true });
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "invalid_credentials")
+    {
+        return Wire.Err(req, 400, WireCodes.InvalidCredentials, "Current password is incorrect.");
+    }
+    catch (InvalidOperationException ex) when (ex.Message == "native_credential_absent")
+    {
+        return Wire.Err(req, 400, WireCodes.NativeCredentialAbsent,
+            "This account has no username/password credential.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled password change failure");
+        return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
+    }
+}).RequireRateLimiting("api");
 
 app.MapPost("/v1/auth/session/revoke", (HttpRequest req) =>
 {
@@ -313,10 +485,12 @@ app.MapGet("/v1/account/me", (HttpRequest req) =>
         return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
             "Session is expired, revoked, or unknown.");
     var (_, device, account) = validation.Value;
+    var native = db.FindNativeCredentialByAccount(account.AccountId);
     return Wire.Ok(req, new
     {
         accountId = account.AccountId,
         displayName = account.DisplayName,
+        username = native?.UsernameDisplay,
         createdAt = account.CreatedAt,
         currentDevice = new { device.DeviceId, device.DeviceName },
     });
@@ -438,4 +612,15 @@ internal static class WireCodes
     public const string ServerRateLimited = "server.rate_limited";
     public const string ProviderReserved = "provider_reserved";
     public const string BadRequest = "bad_request";
+
+    // Documented extensions for native credentials (§7.2 extension rule).
+    // invalid_credentials is deliberately GENERIC — unknown username and wrong
+    // password are indistinguishable on the wire (no account enumeration).
+    public const string InvalidCredentials = "invalid_credentials";
+    public const string InvalidUsername = "invalid_username";
+    public const string InvalidPassword = "invalid_password";
+    public const string NativeCredentialAbsent = "native_credential_absent";
+
+    public const string ConflictUsernameTaken = "conflict.username_taken";
+    public const string PermAccountSuspended = "perm.account_suspended";
 }

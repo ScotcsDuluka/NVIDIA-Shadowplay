@@ -958,10 +958,11 @@ internal static class Groups
                 ServerApp.Assert(arr.GetArrayLength() == 3, "RE-12: all three devices listed");
             });
 
-            r.Run("RE-13 SchemaHistory marks schema v2 (v1→v2 migration ran)", () =>
+            r.Run("RE-13 SchemaHistory at current schema (v2 ran; v3 = native credentials, additive)", () =>
             {
                 var v = app.RawScalar("SELECT MAX(Version) FROM SchemaHistory");
-                ServerApp.Assert(v == "2", $"RE-13: SchemaHistory must hold v2, got {v}");
+                ServerApp.Assert(int.Parse(v) >= 2 && int.Parse(v) == Database.SchemaVersion,
+                    $"RE-13: SchemaHistory must hold the current schema version ({Database.SchemaVersion}), got {v}");
             });
 
             r.Run("RE-14 log sweep G10 (both process generations)", () => app.Sweep("RE-14"));
@@ -1093,6 +1094,195 @@ internal static class Groups
             });
 
             r.Run("ENV-4 log sweep G11", () => app.Sweep("ENV-4"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G12 — native username/password auth (register / login / password change).
+    // Every error path must speak the §7.1 envelope; invalid_credentials must
+    // be GENERIC (unknown username and wrong password are indistinguishable);
+    // passwords and tokens must never reach the logs.
+    // Auth-start budget: register/login are auth-start-limited; malformed-JSON
+    // probes also cross the limiter, so the budget covers every call below.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void NativeAuth(Runner r)
+    {
+        r.Group("G12 native username/password auth", configureGitHub: false, budget: 13, ctx =>
+        {
+            var app = ctx.App;
+            const string password = "native-pass-123";
+            const string newPassword = "rotated-pass-456";
+            var loginToken = "";
+
+            r.Run("NAT-1 register → 200 envelope, session shape, username echoed", () =>
+            {
+                app.TrackSecret(password);
+                var resp = app.Post("/v1/auth/register", new
+                {
+                    username = "ada",
+                    password,
+                    deviceKey = Key(256),
+                    deviceName = "it-native-dev",
+                });
+                ServerApp.ExpectOk(resp, "NAT-1");
+                var res = ServerApp.Json(resp);
+                ServerApp.Assert(res.GetProperty("sessionToken").GetString()!.StartsWith("duluka_st_"),
+                    "NAT-1: sessionToken must be a Duluka session token");
+                ServerApp.Assert(res.GetProperty("accountId").GetString()!.StartsWith("duluka_acc_"),
+                    "NAT-1: accountId must be a Duluka account id");
+                ServerApp.Assert(res.GetProperty("deviceId").GetString()!.StartsWith("duluka_dev_"),
+                    "NAT-1: deviceId must be a Duluka device id");
+                ServerApp.Assert(res.GetProperty("username").GetString() == "ada",
+                    "NAT-1: username echoed as registered");
+                ServerApp.Assert(!string.IsNullOrEmpty(res.GetProperty("sessionExpiresAt").GetString()),
+                    "NAT-1: sessionExpiresAt present");
+                // NB: the sessionToken is NOT tracked as a sweep secret — the
+                // issuing response is its one sanctioned appearance ("shown to
+                // the client EXACTLY ONCE"). Passwords are tracked: they must
+                // never appear in any response or log.
+            });
+
+            r.Run("NAT-2 duplicate username (case-insensitive) → 409 conflict.username_taken", () =>
+            {
+                var resp = app.Post("/v1/auth/register", new
+                {
+                    username = "ADA",
+                    password,
+                    deviceKey = Key(256),
+                    deviceName = "it-native-dev",
+                });
+                ServerApp.ExpectErr(resp, 409, "conflict.username_taken", "NAT-2");
+            });
+
+            r.Run("NAT-3 register field validation → 400 invalid_username / invalid_password / invalid_device_key", () =>
+            {
+                ServerApp.ExpectErr(app.Post("/v1/auth/register", new
+                {
+                    username = "bad name!", password, deviceKey = Key(256), deviceName = "d",
+                }), 400, "invalid_username", "NAT-3a");
+
+                ServerApp.ExpectErr(app.Post("/v1/auth/register", new
+                {
+                    username = "shortpass", password = "short", deviceKey = Key(256), deviceName = "d",
+                }), 400, "invalid_password", "NAT-3b");
+
+                ServerApp.ExpectErr(app.Post("/v1/auth/register", new
+                {
+                    username = "shortkey", password, deviceKey = "too-short", deviceName = "d",
+                }), 400, "invalid_device_key", "NAT-3c");
+            });
+
+            r.Run("NAT-4 login success → session works on /me (username present)", () =>
+            {
+                var resp = app.Post("/v1/auth/login", new
+                {
+                    username = "ada",
+                    password,
+                    deviceKey = Key(256),
+                    deviceName = "it-native-dev-2",
+                });
+                ServerApp.ExpectOk(resp, "NAT-4");
+                var res = ServerApp.Json(resp);
+                loginToken = res.GetProperty("sessionToken").GetString()!;
+
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: loginToken));
+                ServerApp.Assert(me.GetProperty("username").GetString() == "ada",
+                    "NAT-4: /me must surface the native username");
+                ServerApp.Assert(me.GetProperty("accountId").GetString()!.StartsWith("duluka_acc_"),
+                    "NAT-4: same account identity");
+            });
+
+            r.Run("NAT-5 login failures are GENERIC — wrong password and unknown username share invalid_credentials", () =>
+            {
+                var wrongPw = app.Post("/v1/auth/login", new
+                {
+                    username = "ada", password = "definitely-wrong-1", deviceKey = Key(256), deviceName = "d",
+                });
+                var (codePw, _) = ServerApp.ExpectErr(wrongPw, 401, "invalid_credentials", "NAT-5a");
+
+                var unknown = app.Post("/v1/auth/login", new
+                {
+                    username = "no-such-user", password = "whatever-pass-1", deviceKey = Key(256), deviceName = "d",
+                });
+                var (codeUn, msgUn) = ServerApp.ExpectErr(unknown, 401, "invalid_credentials", "NAT-5b");
+                ServerApp.Assert(codePw == codeUn, "NAT-5: identical errorCode for both failure kinds");
+                ServerApp.Assert(!msgUn.Contains("no-such-user", StringComparison.OrdinalIgnoreCase),
+                    "NAT-5: failure message must not echo the username");
+            });
+
+            r.Run("NAT-6 malformed JSON on the native endpoints → 400 bad_request envelope (M-1 intact)", () =>
+            {
+                ServerApp.ExpectErr(app.PostRaw("/v1/auth/register", "{\"username\": \"ada\", \"pass"),
+                    400, "bad_request", "NAT-6a");
+                ServerApp.ExpectErr(app.PostRaw("/v1/auth/login", ""),
+                    400, "bad_request", "NAT-6b");
+            });
+
+            r.Run("NAT-7 log sweep G12 (passwords never in server logs or bodies)", () => app.Sweep("NAT-7"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G13 — native password rotation. Separate group = fresh server + fresh
+    // auth-start window (the shared 10/min limiter is per process; G12 already
+    // spends its budget on register/login validation).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void NativePasswordRotation(Runner r)
+    {
+        r.Group("G13 native password rotation", configureGitHub: false, budget: 5, ctx =>
+        {
+            var app = ctx.App;
+            const string password = "native-pass-123";
+            const string newPassword = "rotated-pass-456";
+            var loginToken = "";
+
+            r.Run("ROT-1 seed: register + login (auth-start ×2)", () =>
+            {
+                app.TrackSecret(password);
+                app.TrackSecret(newPassword);
+                ServerApp.ExpectOk(app.Post("/v1/auth/register", new
+                {
+                    username = "rotation-user",
+                    password,
+                    deviceKey = Key(256),
+                    deviceName = "it-rot",
+                }), "ROT-1a");
+                var login = ServerApp.Json(app.Post("/v1/auth/login", new
+                {
+                    username = "rotation-user",
+                    password,
+                    deviceKey = Key(256),
+                    deviceName = "it-rot-2",
+                }));
+                loginToken = login.GetProperty("sessionToken").GetString()!;
+            });
+
+            r.Run("ROT-2 wrong current password → 400 invalid_credentials (session alone is not enough)", () =>
+            {
+                ServerApp.ExpectErr(app.Post("/v1/account/password",
+                    new { currentPassword = "not-the-current-1", newPassword }, bearer: loginToken),
+                    400, "invalid_credentials", "ROT-2");
+            });
+
+            r.Run("ROT-3 correct rotation → 200; old password dies, new password logs in", () =>
+            {
+                ServerApp.ExpectOk(app.Post("/v1/account/password",
+                    new { currentPassword = password, newPassword }, bearer: loginToken), "ROT-3a");
+
+                ServerApp.ExpectOk(app.Post("/v1/auth/login", new
+                {
+                    username = "rotation-user", password = newPassword, deviceKey = Key(256), deviceName = "d",
+                }), "ROT-3b");
+
+                ServerApp.ExpectErr(app.Post("/v1/auth/login", new
+                {
+                    username = "rotation-user", password, deviceKey = Key(256), deviceName = "d",
+                }), 401, "invalid_credentials", "ROT-3c");
+            });
+
+            r.Run("ROT-4 log sweep G13 (both passwords never in server logs or bodies)", () => app.Sweep("ROT-4"));
         });
     }
 }

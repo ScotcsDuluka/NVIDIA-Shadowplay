@@ -370,7 +370,7 @@ Partial Public Class Base
         SetHoverEffect(Base_Settings.btnImportSettings, HoverColorG, LeaveColorG)
 
         ' Connect page
-        SetHoverEffect(Base_Connect.action_fn, HoverColorGR, LeaveColorGR)
+        SetHoverEffect(Base_Connect.BT_Back, HoverColorGR, LeaveColorGR)
 
         ' Overlay hub
         SetHoverEffect(Base_Overlay_Hub.action_fn, HoverColorGR, LeaveColorGR)
@@ -687,8 +687,8 @@ Partial Public Class Base
 
         ' Connect page
         With Base_Connect
-            .text_menu.Text = L("l10n.connect")
-            .action_fn.Text = L("l10n.back")
+            .Settings_TEXT.Text = L("l10n.connect")
+            .BT_Back.Text = L("l10n.back")
         End With
 
         ' Keyboard shortcuts

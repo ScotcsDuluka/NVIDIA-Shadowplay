@@ -48,6 +48,19 @@ internal static class Program
         Run("UNLINK-3: re-login after unlink converges (new account, no 500)", Test_RelinkAfterUnlink);
         Run("SCHEMA-1: v1 database migrates to v2, rows survive, re-link works", Test_SchemaV2Migration);
         Run("NVIDIA-1: provider reserved, no flow, no hardware identity surface", Test_NvidiaReserved);
+        Run("NATIVE-1: register creates account + credential + device (canonical username)", Test_NativeRegister);
+        Run("NATIVE-2: duplicate username across case variants rejected (DB unique)", Test_NativeDuplicateUsername);
+        Run("NATIVE-3: invalid username/password rejected deterministically", Test_NativeValidation);
+        Run("NATIVE-4: login success — case-insensitive username, session valid", Test_NativeLogin);
+        Run("NATIVE-5: wrong password and unknown username = SAME generic failure", Test_NativeGenericFailure);
+        Run("NATIVE-6: password verifier at rest — PBKDF2, salted, never plaintext", Test_NativeHashAtRest);
+        Run("NATIVE-7: second login on same device supersedes prior session (§5.2)", Test_NativeSessionSupersede);
+        Run("NATIVE-8: password change — wrong current refused, new password works", Test_NativePasswordChange);
+        Run("NATIVE-9: revoked device key refused; cross-account key refused", Test_NativeDeviceGuards);
+        Run("NATIVE-10: suspended account cannot login (perm.account_suspended)", Test_NativeSuspended);
+        Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
+        Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
+        Run("SCHEMA-2: v2-shaped database migrates to v3 additively, rows survive", Test_SchemaV3Migration);
         RunHttpIntegrationTests();
         RunCwdIndependenceTests();
 
@@ -132,7 +145,8 @@ internal static class Program
         })
         .Build();
 
-    private sealed record Fixture(Database Db, GitHubOAuthService GitHub, AccountProvisioningService Provisioning, SessionService Sessions, string DbPath)
+    private sealed record Fixture(Database Db, GitHubOAuthService GitHub, AccountProvisioningService Provisioning,
+        NativeAuthService Native, SessionService Sessions, string DbPath)
         : IDisposable
     {
         public string RegisterGitHubUser(long ghId, string login)
@@ -159,7 +173,7 @@ internal static class Program
         var github = new GitHubOAuthService(
             new FixedHttpClientFactory(new FakeGitHubHandler()), config, NullLogger<GitHubOAuthService>.Instance);
         return new Fixture(db, github, new AccountProvisioningService(db),
-            new SessionService(db, config), dbPath);
+            new NativeAuthService(db), new SessionService(db, config), dbPath);
     }
 
     private static (string deviceKey, string deviceKeyHash) NewDeviceKey() =>
@@ -660,7 +674,7 @@ internal static class Program
                 check.Open();
                 using var cmd = check.CreateCommand();
                 cmd.CommandText = "SELECT MAX(Version) FROM SchemaHistory";
-                Assert(Convert.ToInt32(cmd.ExecuteScalar()) == 2, "schema version marked 2");
+                Assert(Convert.ToInt32(cmd.ExecuteScalar()) >= 2, "schema migrated past v2 (current: v3 adds native credentials additively)");
                 using var idx = check.CreateCommand();
                 idx.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='UX_Link_ActiveIdentity'";
                 Assert(Convert.ToInt32(idx.ExecuteScalar()) == 1, "partial unique index present");
@@ -699,6 +713,349 @@ internal static class Program
         var type = typeof(NvidiaProviderStub);
         Assert(type.GetProperties().Length == 0, "nvidia stub exposes no identity surface");
     }
+
+    // ─── native username/password credentials ───────────────────────────────
+
+    private static void Test_NativeRegister()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var (account, device) = f.Native.Register("Alice", "correct-horse-1", hash, "dev");
+            Assert(account.DisplayName == "Alice", "display keeps the chosen case");
+            Assert(account.Status == AccountStatus.Active, "account starts Active");
+
+            var cred = f.Db.FindNativeCredentialByUsername("alice");
+            Assert(cred is not null, "canonical (lowercased) username is the uniqueness anchor");
+            Assert(cred!.AccountId == account.AccountId, "credential is owned by the account");
+            Assert(f.Db.FindDeviceByKeyHash(hash)!.DeviceId == device.DeviceId, "device bound to the account");
+
+            var (token, _) = f.Sessions.Create(account.AccountId, device.DeviceId, null);
+            Assert(f.Sessions.Validate(token) is not null, "native login issues a working Duluka session");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeDuplicateUsername()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            f.Native.Register("Alice", "correct-horse-1", hash, "dev");
+
+            foreach (var variant in new[] { "ALICE", "alice", "  alice  " })
+            {
+                var (k2, h2) = NewDeviceKey();
+                var threw = false;
+                try { f.Native.Register(variant, "another-pass-1", h2, "dev"); }
+                catch (InvalidOperationException ex)
+                {
+                    threw = ex.Message == "username_taken";
+                }
+                Assert(threw, $"duplicate variant '{variant}' must be refused with username_taken");
+            }
+
+            Assert(f.Db.FindNativeCredentialByUsername("alice") is not null, "original credential intact");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeValidation()
+    {
+        var f = NewFixture();
+        try
+        {
+            foreach (var bad in new[] { "", "   ", "ab", "has space", "bad!char", new string('a', 33) })
+                Assert(!UsernamePolicy.IsValidFormat(bad), $"'{Truncate(bad, 12)}' must be an invalid username");
+
+            Assert(UsernamePolicy.IsValidFormat("a.B_c-9"), "charset letters/digits/._- valid");
+            foreach (var pw in new[] { "", "short1a", new string('x', 129) })
+                Assert(!UsernamePolicy.IsValidPassword(pw), "short/empty/overlong passwords rejected");
+            Assert(UsernamePolicy.IsValidPassword(new string('x', 8)), "8-char password accepted");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeLogin()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var (account, _) = f.Native.Register("Bob_TheBuilder", "correct-horse-1", hash, "dev");
+
+            var (loginAccount, loginDevice) = f.Native.Login("BOB_thebuilder", "correct-horse-1", hash, "dev");
+            Assert(loginAccount.AccountId == account.AccountId, "case-insensitive username reaches the SAME account");
+            Assert(loginDevice.DeviceId == f.Db.FindDeviceByKeyHash(hash)!.DeviceId, "device reused, not duplicated");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeGenericFailure()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            f.Native.Register("Carol", "correct-horse-1", hash, "dev");
+
+            var unknownCode = "";
+            try { f.Native.Login("nobody-here", "whatever-pass-1", hash, "dev"); }
+            catch (InvalidOperationException ex) { unknownCode = ex.Message; }
+            Assert(unknownCode == "invalid_credentials", "unknown username = invalid_credentials");
+
+            var wrongPwCode = "";
+            try { f.Native.Login("carol", "totally-wrong-1", hash, "dev"); }
+            catch (InvalidOperationException ex) { wrongPwCode = ex.Message; }
+            Assert(wrongPwCode == "invalid_credentials", "wrong password = invalid_credentials");
+            Assert(unknownCode == wrongPwCode, "the two failures must be INDISTINGUISHABLE (no enumeration)");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeHashAtRest()
+    {
+        var f = NewFixture();
+        try
+        {
+            const string password = "correct-horse-1";
+            var (key, hash) = NewDeviceKey();
+            var (account, _) = f.Native.Register("Dave", password, hash, "dev");
+            var cred = f.Db.FindNativeCredentialByAccount(account.AccountId)!;
+
+            Assert(cred.PasswordHash.StartsWith("pbkdf2-sha256$", StringComparison.Ordinal),
+                "verifier is PBKDF2-SHA256 (framework primitive), not plaintext");
+            Assert(!cred.PasswordHash.Contains(password, StringComparison.OrdinalIgnoreCase),
+                "plaintext password never reaches storage");
+            Assert(!cred.PasswordHash.Contains(Secrets.Sha256Hex(password)), "not a bare digest either — slow hash only");
+
+            var (k2, h2) = NewDeviceKey();
+            var (account2, _) = f.Native.Register("Eve", password, h2, "dev");
+            var cred2 = f.Db.FindNativeCredentialByAccount(account2.AccountId)!;
+            Assert(cred.PasswordHash != cred2.PasswordHash, "same password → different stored verifier (per-credential salt)");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeSessionSupersede()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var (account, device) = f.Native.Register("Fay", "correct-horse-1", hash, "dev");
+
+            var (token1, _) = f.Sessions.Create(account.AccountId, device.DeviceId, null);
+            var (token2, _) = f.Sessions.Create(account.AccountId, device.DeviceId, null);
+            Assert(f.Sessions.Validate(token1) is null, "second login on the same device supersedes the first (§5.2)");
+            Assert(f.Sessions.Validate(token2) is not null, "the newest session stays valid");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativePasswordChange()
+    {
+        var f = NewFixture();
+        try
+        {
+            const string oldPassword = "correct-horse-1";
+            const string newPassword = "tin-foil-chapeau-9";
+            var (key, hash) = NewDeviceKey();
+            var (account, device) = f.Native.Register("Frank", oldPassword, hash, "dev");
+
+            var wrongCurrent = false;
+            try { f.Native.ChangePassword(account.AccountId, "not-the-current-1", Secrets.HashPassword(newPassword)); }
+            catch (InvalidOperationException ex) { wrongCurrent = ex.Message == "invalid_credentials"; }
+            Assert(wrongCurrent, "wrong current password must be refused with invalid_credentials");
+
+            f.Native.ChangePassword(account.AccountId, oldPassword, Secrets.HashPassword(newPassword));
+
+            var newLoginOk = false;
+            try { f.Native.Login("frank", newPassword, hash, "dev"); newLoginOk = true; }
+            catch { }
+            Assert(newLoginOk, "login with the NEW password works");
+
+            var oldLoginCode = "";
+            try { f.Native.Login("frank", oldPassword, hash, "dev"); }
+            catch (InvalidOperationException ex) { oldLoginCode = ex.Message; }
+            Assert(oldLoginCode == "invalid_credentials", "login with the OLD password fails");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeDeviceGuards()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key1, hash1) = NewDeviceKey();
+            var (account1, device1) = f.Native.Register("Grace", "correct-horse-1", hash1, "dev");
+
+            f.Db.RevokeDevice(device1.DeviceId, DateTimeOffset.UtcNow);
+            var revokedCode = "";
+            try { f.Native.Login("grace", "correct-horse-1", hash1, "dev"); }
+            catch (InvalidOperationException ex) { revokedCode = ex.Message; }
+            Assert(revokedCode == "device_revoked", "a revoked device key can never silently re-register");
+
+            var (key2, hash2) = NewDeviceKey();
+            f.Native.Register("Henry", "another-pass-1", hash2, "dev");
+            var crossCode = "";
+            try { f.Native.Login("grace", "correct-horse-1", hash2, "dev"); }
+            catch (InvalidOperationException ex) { crossCode = ex.Message; }
+            Assert(crossCode == "device_key_in_use", "a device key bound to another account is refused");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeSuspended()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var (account, _) = f.Native.Register("Ivan", "correct-horse-1", hash, "dev");
+            ExecRaw(f.DbPath, $"UPDATE DulukaAccount SET Status='Suspended' WHERE AccountId='{account.AccountId}'");
+
+            var code = "";
+            try { f.Native.Login("ivan", "correct-horse-1", hash, "dev"); }
+            catch (InvalidOperationException ex) { code = ex.Message; }
+            Assert(code == "account_suspended", "suspended accounts are refused at login, before any session");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeProviderSameAccount()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Native account first; GitHub is then LINKED onto it (the
+            // authenticated link flow seeds the ProviderLink), so a later
+            // GitHub login must land on the SAME account — never a second one.
+            var (key, hash) = NewDeviceKey();
+            var (account, device) = f.Native.Register("Kate", "correct-horse-1", hash, "dev");
+
+            var ghId = f.RegisterGitHubUser(9001, "kate");
+            f.Db.CreateLink(account.AccountId, ProviderKeys.GitHub, ghId, "kate@example.com", "kate");
+
+            var identity = new GitHubIdentity(ProviderKeys.GitHub, ghId, "kate@example.com", "kate");
+            var (link, ghAccount, existed) = f.Provisioning.LoginOrLink(identity, hash, "dev");
+            Assert(existed, "the GitHub identity already has a link");
+            Assert(ghAccount.AccountId == account.AccountId, "GitHub login reaches the SAME Duluka Account");
+            Assert(link.AccountId == account.AccountId, "link belongs to the same account");
+
+            var (token, _) = f.Sessions.Create(ghAccount.AccountId, device.DeviceId, link.LinkId);
+            Assert(f.Sessions.Validate(token) is not null, "one device, one working Duluka session");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_UnlinkWithNativeCredential()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var (account, _) = f.Native.Register("Lena", "correct-horse-1", hash, "dev");
+            var ghId = f.RegisterGitHubUser(9002, "lena");
+            var link = f.Db.CreateLink(account.AccountId, ProviderKeys.GitHub, ghId, null, null);
+
+            // WITH a native credential, the password is still a way in — the
+            // last PROVIDER link may be unlinked (account is never locked out).
+            var result = f.Provisioning.Unlink(account.AccountId, link.LinkId);
+            Assert(result.Ok, $"native-backed account may unlink its only provider (got {result.Code})");
+
+            var stillIn = false;
+            try { f.Native.Login("lena", "correct-horse-1", hash, "dev"); stillIn = true; }
+            catch { }
+            Assert(stillIn, "password login still works after unlinking");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_SchemaV3Migration()
+    {
+        // Build a CURRENT database, then rewind it to the v2 shape (drop the
+        // v3 table + marker). Re-opening must re-apply the v3 DDL additively —
+        // accounts/links/devices/sessions survive untouched.
+        var dbPath = Path.Combine(Path.GetTempPath(), $"duluka-test-{Guid.NewGuid():N}.db");
+        var config = TestConfig(dbPath, 30, 7);
+        var db = new Database(dbPath, NullLogger<Database>.Instance);
+        db.Bootstrap();
+        var (key, hash) = NewDeviceKey();
+        var account = db.CreateNativeAccount("migrate", "Migrate", Secrets.HashPassword("correct-horse-1"));
+        db.CreateDevice(account.AccountId, "dev", hash);
+        var (link, _, _) = db.UpsertLink(ProviderKeys.GitHub, "7001", null, null);
+        db.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        ExecRaw(dbPath, "DELETE FROM SchemaHistory WHERE Version=3");
+        ExecRaw(dbPath, "DROP TABLE NativeCredential");
+
+        var db2 = new Database(dbPath, NullLogger<Database>.Instance);
+        db2.Bootstrap();
+        try
+        {
+            using var inspect = new Microsoft.Data.Sqlite.SqliteConnection(
+                new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
+                {
+                    DataSource = dbPath,
+                    Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadWriteCreate,
+                    Pooling = false,
+                }.ToString());
+            inspect.Open();
+            using (var v = inspect.CreateCommand())
+            {
+                v.CommandText = "SELECT COALESCE(MAX(Version),0) FROM SchemaHistory";
+                Assert(Convert.ToInt32(v.ExecuteScalar()) == Database.SchemaVersion,
+                    "schema marker advanced to the current version");
+            }
+            using (var v = inspect.CreateCommand())
+            {
+                // UpsertLink seeded its own provider account, so count by the
+                // SPECIFIC native account — the row must survive the rewind.
+                v.CommandText = "SELECT COUNT(*) FROM DulukaAccount WHERE AccountId=$id";
+                v.Parameters.AddWithValue("$id", account.AccountId);
+                Assert(Convert.ToInt32(v.ExecuteScalar()) == 1,
+                    "the native account survives the additive migration");
+            }
+            Assert(db2.FindNativeCredentialByUsername("migrate") is null,
+                "rewound v2 credential is gone, but the table exists again");
+            var cred = db2.FindNativeCredentialByAccount(account.AccountId);
+            Assert(cred is null, "no phantom credential rows");
+
+            // The migrated database is fully usable: new native account works.
+            var (k2, h2) = NewDeviceKey();
+            var newAccount = db2.CreateNativeAccount("fresh", "Fresh", Secrets.HashPassword("correct-horse-1"));
+            Assert(db2.FindNativeCredentialByUsername("fresh")!.AccountId == newAccount.AccountId,
+                "post-migration registration works");
+        }
+        finally
+        {
+            db2.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            Cleanup(dbPath);
+        }
+    }
+
+    private static void ExecRaw(string dbPath, string sql)
+    {
+        // Pooling would keep the file handle alive after Close and break the
+        // fixture's cleanup delete — same discipline as Database itself.
+        using var conn = new Microsoft.Data.Sqlite.SqliteConnection(
+            new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
+            {
+                DataSource = dbPath,
+                Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadWriteCreate,
+                Pooling = false,
+            }.ToString());
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = sql;
+        cmd.ExecuteNonQuery();
+    }
+
+    private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 
     // ─── HTTP integration: the §7.1 wire contract against the REAL server ───
     // The service-level tests above cannot see Program.cs (minimal APIs) —
@@ -842,6 +1199,9 @@ internal static class Program
             {
                 try { server.Kill(entireProcessTree: true); } catch { /* best effort */ }
             }
+            // Kill() returns before the OS releases the child's file handles —
+            // wait for the actual exit or the store delete below races it.
+            try { server?.WaitForExit(5000); } catch { /* best effort */ }
             server?.Dispose();
             foreach (var suffix in new[] { "", "-wal", "-shm" })
             {

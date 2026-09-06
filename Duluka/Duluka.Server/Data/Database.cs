@@ -45,7 +45,7 @@ public sealed class Database : IAsyncDisposable
         pragma.ExecuteNonQuery();
     }
 
-    public const int SchemaVersion = 2;
+    public const int SchemaVersion = 3;
 
     private static readonly string[] Ddl =
     {
@@ -123,6 +123,18 @@ public sealed class Database : IAsyncDisposable
             ObtainedAt TEXT NOT NULL,
             ExpiresAt TEXT)
         """,
+        // Native Duluka credential (schema v3) — 1:1 with the account
+        // (AccountId PK) and DB-enforced username uniqueness (UNIQUE anchor).
+        // PasswordHash holds ONLY the PBKDF2 verifier string (Secrets.HashPassword).
+        """
+        CREATE TABLE IF NOT EXISTS NativeCredential(
+            AccountId TEXT PRIMARY KEY REFERENCES DulukaAccount(AccountId),
+            UsernameCanonical TEXT NOT NULL UNIQUE,
+            UsernameDisplay TEXT NOT NULL,
+            PasswordHash TEXT NOT NULL,
+            CreatedAt TEXT NOT NULL,
+            UpdatedAt TEXT NOT NULL)
+        """,
         // Indexes are created AFTER the possible v1→v2 table rebuild in
         // Bootstrap (DROP TABLE takes its indexes with it).
     };
@@ -150,6 +162,14 @@ public sealed class Database : IAsyncDisposable
         {
             if (LinkTableHasTableLevelUnique()) RebuildLinkTableWithoutTableUnique();
             MarkSchemaVersion(2);
+        }
+
+        // v2 → v3: native credentials. Purely additive (CREATE TABLE IF NOT
+        // EXISTS above ran already) — existing accounts, links, devices and
+        // sessions are untouched; the row simply records that v3 DDL applied.
+        if (GetSchemaVersion() < 3)
+        {
+            MarkSchemaVersion(3);
         }
 
         using (var cmd = _conn.CreateCommand())
@@ -273,6 +293,95 @@ public sealed class Database : IAsyncDisposable
     private static DulukaAccount MapAccount(SqliteDataReader r) => new(
         r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2),
         DateTimeOffset.Parse(r.GetString(3)), DateTimeOffset.Parse(r.GetString(4)));
+
+    // ─── Native credentials ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Create an account AND its native username/password credential in ONE
+    /// transaction. On a username-unique violation the whole thing rolls back —
+    /// there is never an orphan account without its credential — and the caller
+    /// answers conflict.username_taken.
+    /// </summary>
+    public DulukaAccount CreateNativeAccount(string usernameCanonical, string usernameDisplay, string passwordHash)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var account = new DulukaAccount(
+            Secrets.NewToken("duluka_acc_"), AccountStatus.Active, usernameDisplay, now, now);
+        using var tx = _conn.BeginTransaction();
+        try
+        {
+            using (var cmd = _conn.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "INSERT INTO DulukaAccount(AccountId, Status, DisplayName, CreatedAt, UpdatedAt) " +
+                                  "VALUES ($id, $st, $dn, $ca, $ua)";
+                cmd.Parameters.AddWithValue("$id", account.AccountId);
+                cmd.Parameters.AddWithValue("$st", account.Status);
+                cmd.Parameters.AddWithValue("$dn", (object?)account.DisplayName ?? DBNull.Value);
+                cmd.Parameters.AddWithValue("$ca", account.CreatedAt.ToString("o"));
+                cmd.Parameters.AddWithValue("$ua", account.UpdatedAt.ToString("o"));
+                cmd.ExecuteNonQuery();
+            }
+            using (var cmd = _conn.CreateCommand())
+            {
+                cmd.Transaction = tx;
+                cmd.CommandText = "INSERT INTO NativeCredential(AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt) " +
+                                  "VALUES ($aid, $uc, $ud, $ph, $ca, $ua)";
+                cmd.Parameters.AddWithValue("$aid", account.AccountId);
+                cmd.Parameters.AddWithValue("$uc", usernameCanonical);
+                cmd.Parameters.AddWithValue("$ud", usernameDisplay);
+                cmd.Parameters.AddWithValue("$ph", passwordHash);
+                cmd.Parameters.AddWithValue("$ca", now.ToString("o"));
+                cmd.Parameters.AddWithValue("$ua", now.ToString("o"));
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+            return account;
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            tx.Rollback();
+            throw new InvalidOperationException("username_taken", ex);
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
+    public NativeCredential? FindNativeCredentialByUsername(string usernameCanonical)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt " +
+                          "FROM NativeCredential WHERE UsernameCanonical=$uc";
+        cmd.Parameters.AddWithValue("$uc", usernameCanonical);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapNativeCredential(r) : null;
+    }
+
+    public NativeCredential? FindNativeCredentialByAccount(string accountId)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt " +
+                          "FROM NativeCredential WHERE AccountId=$aid";
+        cmd.Parameters.AddWithValue("$aid", accountId);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapNativeCredential(r) : null;
+    }
+
+    public bool HasNativeCredential(string accountId)
+        => FindNativeCredentialByAccount(accountId) is not null;
+
+    public void UpdateNativePassword(string accountId, string newPasswordHash)
+    {
+        Exec("UPDATE NativeCredential SET PasswordHash=$ph, UpdatedAt=$ua WHERE AccountId=$aid",
+            ("$ph", newPasswordHash), ("$ua", DateTimeOffset.UtcNow.ToString("o")), ("$aid", accountId));
+    }
+
+    private static NativeCredential MapNativeCredential(SqliteDataReader r) => new(
+        r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3),
+        DateTimeOffset.Parse(r.GetString(4)), DateTimeOffset.Parse(r.GetString(5)));
 
     // ─── Provider links ─────────────────────────────────────────────────────
 

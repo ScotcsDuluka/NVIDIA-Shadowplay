@@ -95,3 +95,44 @@ public record CredentialReference(
 /// <summary>Identity as reported by the provider. Contains NO secrets — the
 /// transient access token travels in a separate channel and is discarded.</summary>
 public record ProviderIdentity(string ProviderKey, string ProviderUserId, string? ProviderEmail, string? DisplayName);
+
+/// <summary>
+/// Native Duluka credential — the account's FIRST-CLASS username/password way
+/// in. 1:1 with an account (AccountId is the primary key). Only the slow-hash
+/// verifier is stored; the plaintext password never reaches this layer.
+/// UsernameCanonical is the uniqueness anchor (DB-enforced); UsernameDisplay
+/// keeps the case the user chose and is display-only.
+/// </summary>
+public record NativeCredential(
+    string AccountId,
+    string UsernameCanonical,
+    string UsernameDisplay,
+    string PasswordHash,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset UpdatedAt);
+
+/// <summary>
+/// Deterministic username rules. Canonical form = trimmed + lowercased, so
+/// Alice / alice / ALICE collapse to one identity and cannot collide.
+/// Charset is deliberately narrow (letters, digits, dot, underscore, hyphen).
+/// </summary>
+public static class UsernamePolicy
+{
+    public const int MinLength = 3;
+    public const int MaxLength = 32;
+    public const int MinPasswordLength = 8;
+    public const int MaxPasswordLength = 128;
+
+    private static readonly System.Text.RegularExpressions.Regex Pattern =
+        new(@"^[A-Za-z0-9._-]{3,32}$", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    public static bool IsValidFormat(string? username) =>
+        !string.IsNullOrWhiteSpace(username) && Pattern.IsMatch(username.Trim());
+
+    public static string Canonicalize(string username) => username.Trim().ToLowerInvariant();
+
+    public static bool IsValidPassword(string? password) =>
+        !string.IsNullOrEmpty(password)
+        && password.Length >= MinPasswordLength
+        && password.Length <= MaxPasswordLength;
+}

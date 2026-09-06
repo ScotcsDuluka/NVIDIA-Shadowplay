@@ -561,7 +561,7 @@ Partial Public Class Base
     End Sub
 
     Private Sub Connect_Click(sender As Object, e As EventArgs) Handles Connect_TEXT.Click, Connect_ICO.Click
-        OpenPanel(Base_Connect, Base_Connect.settings_1)
+        OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
     End Sub
 
     ' ========== PRIVACY SETTINGS ==========

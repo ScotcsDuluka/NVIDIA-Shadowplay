@@ -216,7 +216,11 @@ public sealed class AccountProvisioningService(Database db)
         if (!string.Equals(link.Status, LinkStatus.Active, StringComparison.Ordinal))
             return new UnlinkResult(false, "link_already_unlinked", 0);
 
-        if (db.ActiveLinkCount(accountId) <= 1)
+        // Last-way-in guard: with a native credential, the password IS a way in,
+        // so the last provider link may be unlinked (the account survives).
+        // Without one, the last active provider link is the only way in and is
+        // refused — an account must never be locked out silently.
+        if (db.ActiveLinkCount(accountId) <= 1 && !db.HasNativeCredential(accountId))
             return new UnlinkResult(false, "last_provider", 0);
 
         var at = DateTimeOffset.UtcNow;
@@ -227,3 +231,92 @@ public sealed class AccountProvisioningService(Database db)
 }
 
 public sealed record UnlinkResult(bool Ok, string Code, int RevokedSessions);
+
+/// <summary>
+/// Native (username/password) authentication on top of the SAME account,
+/// device and session machinery the provider flow uses — no separate session
+/// system. Unknown username and wrong password converge on the SAME generic
+/// failure, with a dummy verifier burn on the unknown-username path so the two
+/// are not distinguishable by timing (no account enumeration).
+/// </summary>
+public sealed class NativeAuthService(Database db)
+{
+    private static readonly string DummyVerifier = Secrets.HashPassword("duluka-dummy-credential-timing-burn");
+
+    /// <summary>Create a fresh account + credential + device. Contract guards:
+    /// revoked device keys are dead forever; a device key bound to another
+    /// account is rejected; duplicate usernames roll back the whole
+    /// account+credential transaction.</summary>
+    public (DulukaAccount Account, AccountDevice Device) Register(
+        string username, string password, string deviceKeyHash, string deviceName)
+    {
+        var existingDevice = db.FindDeviceByKeyHash(deviceKeyHash);
+        if (existingDevice is not null && existingDevice.RevokedAt is not null)
+            throw new InvalidOperationException("device_revoked");
+
+        var canonical = UsernamePolicy.Canonicalize(username);
+        var display = username.Trim();
+        var account = db.CreateNativeAccount(canonical, display, Secrets.HashPassword(password));
+
+        if (existingDevice is not null)
+        {
+            // The new account is fresh — any existing live device key belongs
+            // to a different account by definition.
+            throw new InvalidOperationException("device_key_in_use");
+        }
+
+        var device = db.CreateDevice(account.AccountId, deviceName, deviceKeyHash);
+        db.TouchDevice(device.DeviceId);
+        return (account, device);
+    }
+
+    /// <summary>Username/password login onto the EXISTING account (never
+    /// creates one). Device binding follows the provider-flow rules exactly.</summary>
+    public (DulukaAccount Account, AccountDevice Device) Login(
+        string username, string password, string deviceKeyHash, string deviceName)
+    {
+        var canonical = UsernamePolicy.Canonicalize(username);
+        var credential = db.FindNativeCredentialByUsername(canonical);
+        if (credential is null)
+        {
+            // Burn the same PBKDF2 cost the success path would pay, so response
+            // timing does not reveal whether the username exists.
+            Secrets.VerifyPassword(password, DummyVerifier);
+            throw new InvalidOperationException("invalid_credentials");
+        }
+        if (!Secrets.VerifyPassword(password, credential.PasswordHash))
+            throw new InvalidOperationException("invalid_credentials");
+
+        var account = db.GetAccount(credential.AccountId)
+            ?? throw new InvalidOperationException("invalid_credentials");
+        if (!string.Equals(account.Status, AccountStatus.Active, StringComparison.Ordinal))
+            throw new InvalidOperationException("account_suspended");
+
+        var existingDevice = db.FindDeviceByKeyHash(deviceKeyHash);
+        if (existingDevice is not null && existingDevice.RevokedAt is not null)
+            throw new InvalidOperationException("device_revoked");
+
+        if (existingDevice is not null)
+        {
+            if (existingDevice.AccountId != account.AccountId)
+                throw new InvalidOperationException("device_key_in_use");
+            db.TouchDevice(existingDevice.DeviceId);
+            return (account, existingDevice);
+        }
+
+        var device = db.CreateDevice(account.AccountId, deviceName, deviceKeyHash);
+        db.TouchDevice(device.DeviceId);
+        return (account, device);
+    }
+
+    /// <summary>Change the password of the authenticated account. The current
+    /// password must verify — possession of a session alone is not enough.</summary>
+    public void ChangePassword(string accountId, string currentPassword, string newPasswordHash)
+    {
+        var credential = db.FindNativeCredentialByAccount(accountId)
+            ?? throw new InvalidOperationException("native_credential_absent");
+        if (!Secrets.VerifyPassword(currentPassword, credential.PasswordHash))
+            throw new InvalidOperationException("invalid_credentials");
+        db.UpdateNativePassword(accountId, newPasswordHash);
+    }
+}

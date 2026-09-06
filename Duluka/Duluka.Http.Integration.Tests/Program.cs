@@ -42,6 +42,8 @@ internal static class Program
             Groups.RateLimits(Runner.I);               // G9
             Groups.Restart(Runner.I);                  // G10
             Groups.ContractSweep(Runner.I);            // G11
+            Groups.NativeAuth(Runner.I);               // G12 (native username/password)
+            Groups.NativePasswordRotation(Runner.I);   // G13 (native password change)
         }
         catch (Exception ex)
         {

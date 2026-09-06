@@ -55,4 +55,45 @@ public static class Secrets
         var bb = Encoding.UTF8.GetBytes(b);
         return CryptographicOperations.FixedTimeEquals(ba, bb);
     }
+
+    // ─── password hashing (native Duluka credentials) ───────────────────────
+    //
+    // Framework primitive only (PBKDF2 via Rfc2898DeriveBytes) — no custom
+    // crypto. Slow (210k SHA-256 iterations, OWASP guidance), salted per
+    // credential, verified in constant time. Stored format:
+    //   pbkdf2-sha256$<iterations>$<saltBase64>$<hashBase64>
+    // The verifier is the ONLY thing persisted; the plaintext never leaves the
+    // parameter and is never logged.
+
+    private const int PasswordIterations = 210_000;
+    private const int PasswordSaltBytes = 16;
+    private const int PasswordHashBytes = 32;
+
+    public static string HashPassword(string password)
+    {
+        var salt = RandomNumberGenerator.GetBytes(PasswordSaltBytes);
+        var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, PasswordIterations,
+            HashAlgorithmName.SHA256, PasswordHashBytes);
+        return FormattableString.Invariant(
+            $"pbkdf2-sha256${PasswordIterations}${Convert.ToBase64String(salt)}${Convert.ToBase64String(hash)}");
+    }
+
+    public static bool VerifyPassword(string password, string stored)
+    {
+        try
+        {
+            var parts = stored.Split('$');
+            if (parts.Length != 4 || parts[0] != "pbkdf2-sha256") return false;
+            if (!int.TryParse(parts[1], System.Globalization.CultureInfo.InvariantCulture, out var iterations))
+                return false;
+            if (iterations < 1) return false;
+            var salt = Convert.FromBase64String(parts[2]);
+            var expected = Convert.FromBase64String(parts[3]);
+            var actual = Rfc2898DeriveBytes.Pbkdf2(password, salt, iterations,
+                HashAlgorithmName.SHA256, expected.Length);
+            return CryptographicOperations.FixedTimeEquals(actual, expected);
+        }
+        catch (FormatException) { return false; }
+        catch (ArgumentException) { return false; }
+    }
 }
