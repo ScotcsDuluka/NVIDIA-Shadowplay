@@ -110,7 +110,15 @@ if ($RunTests) {
     $failed = @()
     foreach ($s in $suites) {
         Write-Host "`n──── $s ────" -ForegroundColor Yellow
-        dotnet run --project "$s\$s.vbproj" -c Release --no-build
+        # ★ C/4 parallel-build contamination fix: NO --no-build here. A bare
+        # --no-build trusts whatever binary is in bin\ — on this shared tree
+        # another agent may have edited source after our build, and the test
+        # run would "prove" code that was never built (proven: source edited
+        # after build → --no-build executed the stale DLL byte-for-byte).
+        # dotnet run without --no-build performs the incremental up-to-date
+        # check first, so the executed binary always corresponds to the
+        # source present AT TEST TIME.
+        dotnet run --project "$s\$s.vbproj" -c Release
         if ($LASTEXITCODE -ne 0) { $failed += $s }
     }
     if ($failed.Count -gt 0) {
