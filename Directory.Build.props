@@ -9,4 +9,32 @@
     <EnableWindowsTargeting Condition="'$(EnableWindowsTargeting)' == ''">true</EnableWindowsTargeting>
   </PropertyGroup>
 
+  <!-- ============================================================================
+       BL-1 Release traceability (C/3) — product version defaults for EVERY
+       assembly in the repo, keyed to ONE authoritative build number.
+       ============================================================================
+       Before this block only NVIDIA Overlay carried the product version
+       (3.41.<build.txt>.61 via its own IncrementBuild target); every other
+       assembly shipped as 1.0.0.0, and the git revision reached only
+       ProductVersion metadata (SDK SourceRevisionId) — invisible to the
+       installer and to file-properties views.
+
+       Contract (unchanged semantics, single source of truth):
+         FileVersion / ProductVersion = 3.41.<BuildNumber>.61
+         InformationalVersion         = 3.41.<BuildNumber>.61+<git-sha>
+
+       The Overlay's IncrementBuild target stays the build-number authority:
+       it increments Overlay\build.txt and re-evaluates these properties
+       BEFORE compile (Directory.Build.targets _Bl1Stamp target runs after
+       IncrementBuild), so every sibling assembly shares the number of the
+       Overlay build that swept it into the product tree. The git sha is
+       resolved once per build by _Bl1Stamp (see Directory.Build.targets).
+       ============================================================================ -->
+
+  <PropertyGroup>
+    <SharedBuildNumberFile Condition="'$(SharedBuildNumberFile)' == ''">$(MSBuildThisFileDirectory)Overlay\build.txt</SharedBuildNumberFile>
+    <SharedBuildNumber Condition="'$(SharedBuildNumber)' == ''">0</SharedBuildNumber>
+    <GitShaFile Condition="'$(GitShaFile)' == ''">$(MSBuildThisFileDirectory).git\bl1-commit.txt</GitShaFile>
+  </PropertyGroup>
+
 </Project>

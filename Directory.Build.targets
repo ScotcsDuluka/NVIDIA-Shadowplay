@@ -393,6 +393,18 @@
 
     <Message Text="product tree staged in bin -> $(_PtRoot)  (.NET Deployment\ holds the deployment json; hosts in Application\)" Importance="high" />
 
+    <!-- BL-1: build-info.txt in the product root — the traceability record
+         for the staged tree (source revision + build number + version).
+         Installer ships it; support reads it without any tooling. -->
+    <WriteLinesToFile File="$(MSBuildThisFileDirectory)installer\bl1-commit.txt"
+                      Lines="$(Bl1GitSha)"
+                      Overwrite="true"
+                      Condition="'$(Bl1GitSha)' != ''" />
+    <WriteLinesToFile File="$(_PtRoot)build-info.txt"
+                      Lines="version=$(_Bl1Version);commit=$(Bl1GitSha);build=$(SharedBuildNumber);utc=$([System.DateTime]::UtcNow.ToString(o))"
+                      Overwrite="true"
+                      Condition="'$(_PtRoot)' != '' And '$(_Bl1Version)' != ''" />
+
     <!-- 6. stale-layout cleanup — files the PREVIOUS tree revisions put in
          product folders and this revision moved to .NET Deployment\
          (deleting them here means a plain build self-heals an old bin
@@ -412,5 +424,66 @@
        deps.json there — Overlay's ProjectReference copies it from that
        exact path; deleting it = MSB3030). The product tree lives in
        Overlay's bin and is maintained by _ProductTreeBin alone. -->
+
+  <!-- ============================================================================
+       BL-1 Release traceability stamping (C/3). Runs BEFORE compile in every
+       project: resolves the git commit once per build (cached in
+       .git/bl1-commit.txt for the non-Windows path), reads the authoritative
+       build number from Overlay/build.txt (after Overlay's IncrementBuild
+       target refreshed it), and applies the product version contract:
+
+         FileVersion / ProductVersion = 3.41.<BuildNumber>.61
+         InformationalVersion         = 3.41.<BuildNumber>.61+<git-sha>
+
+       AssemblyVersion is deliberately NOT overridden (assembly identity /
+       binding semantics stay historical). IncrementBuild (Overlay.vbproj)
+       re-sets FileVersion/InformationalVersion for Overlay itself with the
+       SAME scheme, so both paths converge on one number.
+       ============================================================================ -->
+  <Target Name="_Bl1Stamp" BeforeTargets="BeforeBuild;BeforeCompile">
+
+    <!-- 1. git commit — resolve once per build. Windows uses Exec+redirect
+         (MSBuild property functions cannot run processes); the bash path
+         covers Linux CI. Fails soft outside a git worktree. -->
+    <Exec Command="git rev-parse HEAD &gt; &quot;$(GitShaFile)&quot; 2&gt; nul"
+          IgnoreExitCode="true"
+          Condition="'$(OS)' == 'Windows_NT' And !Exists('$(GitShaFile)')"
+          ConsoleToMsBuild="true" />
+    <Exec Command="git rev-parse HEAD &gt; &quot;$(GitShaFile)&quot; 2&gt;/dev/null || true"
+          IgnoreExitCode="true"
+          Condition="'$(OS)' != 'Windows_NT'" />
+
+    <PropertyGroup Condition="Exists('$(GitShaFile)')">
+      <Bl1GitSha>$([System.IO.File]::ReadAllText($(GitShaFile)).Trim())</Bl1GitSha>
+    </PropertyGroup>
+
+    <!-- 2. authoritative build number (Overlay/build.txt) -->
+    <PropertyGroup Condition="Exists('$(SharedBuildNumberFile)')">
+      <SharedBuildNumber>$([System.IO.File]::ReadAllText($(SharedBuildNumberFile)).Trim())</SharedBuildNumber>
+    </PropertyGroup>
+    <PropertyGroup Condition="'$(SharedBuildNumber)' == ''">
+      <SharedBuildNumber>0</SharedBuildNumber>
+    </PropertyGroup>
+
+    <PropertyGroup>
+      <_Bl1Version>3.41.$(SharedBuildNumber).61</_Bl1Version>
+      <_Bl1InfoVersion>$(_Bl1Version)</_Bl1InfoVersion>
+      <!-- Contract application: only where a project didn't set its own.
+           Overlay's IncrementBuild re-sets FileVersion/InformationalVersion
+           with the same scheme AFTER this target (BeforeBuild ordering:
+           Directory.Build.targets runs before project targets), so both
+           converge. -->
+      <FileVersion Condition="'$(FileVersion)' == ''">$(_Bl1Version)</FileVersion>
+      <InformationalVersion Condition="'$(InformationalVersion)' == ''">$(_Bl1Version)</InformationalVersion>
+      <!-- Feed the SDK's AddSourceRevisionToInformationalVersion with OUR
+           resolved sha (it appends '+<sha>' itself when the version has no
+           '+' — SemVer 2.0 path). Deterministic even if the SDK's own
+           source-control discovery fails. -->
+      <SourceRevisionId Condition="'$(Bl1GitSha)' != ''">$(Bl1GitSha)</SourceRevisionId>
+    </PropertyGroup>
+
+    <Message Text="BL-1 stamp: v=$(_Bl1Version) sha=$(Bl1GitSha) (assembly=$(MSBuildProjectName))"
+             Importance="low" />
+  </Target>
 
 </Project>

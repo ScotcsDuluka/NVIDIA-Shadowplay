@@ -1,4 +1,4 @@
-; NVIDIA ShadowPlay — installer (Inno Setup 6.7+)
+﻿; NVIDIA ShadowPlay — installer (Inno Setup 6.7+)
 ;
 ; Standard Inno Setup wizard: Welcome -> License -> Location -> Shortcuts ->
 ; Ready -> Installing -> Finish.
@@ -19,6 +19,18 @@
 #define AppName "NVIDIA ShadowPlay"
 #define SourceRoot "..\Overlay\bin\Release\net10.0-windows10.0.26100.0"
 #define AppVersion GetVersionNumbersString(SourceRoot + "\Overlay\NVIDIA ShadowPlay.exe")
+; BL-1 traceability: the source commit the payload was built from. The build
+; writes installer\bl1-commit.txt (sha only) alongside the payload's
+; build-info.txt; the preprocessor reads it with FileRead.
+#define Bl1CommitFile "..\installer\bl1-commit.txt"
+#dim Bl1Commit
+#if FileExists(Bl1CommitFile)
+#  define Bl1Commit ReadFile(Bl1CommitFile)
+#endif
+#ifndef Bl1Commit
+#define Bl1Commit ""
+#endif
+#define Bl1CommitSuffix (Len(Bl1Commit) > 0 ? "-g" + Copy(Bl1Commit, 1, 8) : "")
 #define AppPublisher "ScotcsDuluka"
 #define OutputDir "..\dist-installer"
 
@@ -26,7 +38,7 @@
 AppId={{B7E48D4A-7F83-4E3A-9F38-9D9E2A6D8F41}
 AppName={#AppName}
 AppVersion={#AppVersion}
-AppVerName={#AppName} {#AppVersion}
+AppVerName={#AppName} {#AppVersion}{#Bl1CommitSuffix}
 AppPublisher={#AppPublisher}
 AppPublisherURL=https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
 AppSupportURL=https://github.com/ScotcsDuluka/NVIDIA-Shadowplay
@@ -43,7 +55,7 @@ SetupIconFile={#SourceRoot}\Overlay\NVIDIA ShadowPlay.ico
 UninstallDisplayIcon={app}\Overlay\NVIDIA ShadowPlay.ico
 UninstallDisplayName={#AppName}
 OutputDir={#OutputDir}
-OutputBaseFilename=NVIDIA-ShadowPlay-Setup-v{#AppVersion}
+OutputBaseFilename=NVIDIA-ShadowPlay-Setup-v{#AppVersion}{#Bl1CommitSuffix}
 Compression=lzma2/max
 SolidCompression=yes
 LZMAUseSeparateProcess=yes
@@ -51,7 +63,7 @@ VersionInfoVersion={#AppVersion}
 VersionInfoProductVersion={#AppVersion}
 VersionInfoProductName={#AppName}
 VersionInfoCompany={#AppPublisher}
-VersionInfoDescription={#AppName} installer
+VersionInfoDescription={#AppName} installer{#Bl1CommitSuffix}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -71,6 +83,8 @@ Name: "{app}\Logs"; Permissions: users-modify
 Name: "{app}\Flags"; Permissions: users-modify
 
 [Files]
+; BL-1: build provenance record (version/commit/build/utc) written by the build
+Source: "{#SourceRoot}\build-info.txt"; DestDir: "{app}"; Flags: ignoreversion skipifsourcedoesntexist
 ; product tree — EXCLUDES the four runtime-writable dirs' state (Config\ app
 ; settings, Logs\, Flags\ sentinels, Data\NVIDIA_Shadowplay_Data recordings):
 ; those hold dev-machine runtime state (e.g. engine.json carries an absolute
