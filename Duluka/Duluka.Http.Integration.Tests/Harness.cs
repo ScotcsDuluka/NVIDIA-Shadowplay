@@ -12,8 +12,9 @@ using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Duluka.Http.Integration.Tests;
 
-/// <summary>One HTTP exchange against the live server.</summary>
-internal sealed record Resp(string Method, string Path, int Status, string Body)
+/// <summary>One HTTP exchange against the live server. ReqId = the X-ReqId
+/// value this request sent (the §7.1 envelope must echo it verbatim).</summary>
+internal sealed record Resp(string Method, string Path, int Status, string Body, string ReqId)
 {
     public bool IsJsonBody => Body.TrimStart().StartsWith('{') || Body.TrimStart().StartsWith('[');
 }
@@ -182,12 +183,14 @@ internal sealed class ServerApp : IDisposable
          path.StartsWith("/v1/account/providers/") && path.EndsWith("/complete"));
 
     public Resp Send(string method, string path, string? json = null, string? bearer = null,
-        string? rawAuthorization = null, bool jsonContentType = true)
+        string? rawAuthorization = null, bool jsonContentType = true, string? reqId = null)
     {
         if (IsAuthStart(method, path) && ++AuthStartUsed > AuthStartBudget)
             throw new InvalidOperationException(
                 $"auth-start budget {AuthStartBudget} exceeded ({AuthStartUsed} used) — the fixed 10/min window would make tests flaky");
+        reqId ??= "itest-" + Guid.NewGuid().ToString("N")[..12];
         using var req = new HttpRequestMessage(new HttpMethod(method), path);
+        req.Headers.TryAddWithoutValidation("X-ReqId", reqId);   // §7.1: envelope must echo this verbatim
         if (rawAuthorization is not null) req.Headers.TryAddWithoutValidation("Authorization", rawAuthorization);
         else if (bearer is not null) req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + bearer);
         if (json is not null)
@@ -198,14 +201,14 @@ internal sealed class ServerApp : IDisposable
         }
         using var resp = Http.SendAsync(req).GetAwaiter().GetResult();
         var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-        var r = new Resp(method, path, (int)resp.StatusCode, body);
+        var r = new Resp(method, path, (int)resp.StatusCode, body, reqId);
         Exchanges.Add(r);
         return r;
     }
 
-    public Resp Get(string path, string? bearer = null) => Send("GET", path, bearer: bearer);
-    public Resp Post(string path, object? body = null, string? bearer = null) =>
-        Send("POST", path, body is null ? "{}" : JsonSerializer.Serialize(body), bearer);
+    public Resp Get(string path, string? bearer = null, string? reqId = null) => Send("GET", path, bearer: bearer, reqId: reqId);
+    public Resp Post(string path, object? body = null, string? bearer = null, string? reqId = null) =>
+        Send("POST", path, body is null ? "{}" : JsonSerializer.Serialize(body), bearer, reqId: reqId);
     public Resp PostRaw(string path, string rawBody, string? bearer = null, bool jsonContentType = true) =>
         Send("POST", path, rawBody, bearer, jsonContentType: jsonContentType);
     public Resp Delete(string path, string? bearer = null) => Send("DELETE", path, bearer: bearer);
@@ -223,31 +226,59 @@ internal sealed class ServerApp : IDisposable
         return r;
     }
 
-    /// <summary>Assert the single error-envelope shape and return (code, message).</summary>
+    /// <summary>Assert the §7.1 error envelope: ok=false, verbatim reqId echo,
+    /// errorCode, httpStatus, retryable, conflict, message. Returns (code, message).</summary>
     public static (string Code, string Message) ExpectErr(Resp r, int status, string code, string label)
     {
         ExpectStatus(r, status, label);
         Assert(r.IsJsonBody, $"{label}: expected JSON error envelope, got: {Trunc(r.Body)}");
         using var doc = JsonDocument.Parse(r.Body);
         var root = doc.RootElement;
-        Assert(root.TryGetProperty("error", out var err) && err.ValueKind == JsonValueKind.Object,
-            $"{label}: envelope has no error object: {Trunc(r.Body)}");
-        var gotCode = err.GetProperty("code").GetString();
-        var msg = err.GetProperty("message").GetString();
-        Assert(!string.IsNullOrEmpty(gotCode) && !string.IsNullOrEmpty(msg),
-            $"{label}: error.code/error.message must be non-empty: {Trunc(r.Body)}");
-        Assert(gotCode == code, $"{label}: expected error.code '{code}', got '{gotCode}'");
-        return (gotCode!, msg!);
+        Assert(root.TryGetProperty("ok", out var ok) && !ok.GetBoolean(), $"{label}: ok must be false: {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("reqId", out var reqId) && reqId.GetString() == r.ReqId,
+            $"{label}: reqId must echo the client X-ReqId verbatim: {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("errorCode", out var codeEl) && codeEl.GetString() == code,
+            $"{label}: expected errorCode '{code}', got '{(root.TryGetProperty("errorCode", out var c2) ? c2.GetString() : "?")}': {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("httpStatus", out var hs) && hs.GetInt32() == status,
+            $"{label}: httpStatus must mirror the HTTP status: {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("retryable", out var retry) && retry.GetBoolean() == (status >= 500 || status == 429),
+            $"{label}: retryable must be true exactly for 5xx/429: {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("conflict", out _), $"{label}: conflict field must exist (§7.1): {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("message", out var msg) && !string.IsNullOrEmpty(msg.GetString()),
+            $"{label}: message must be non-empty: {Trunc(r.Body)}");
+        return (code, msg.GetString()!);
+    }
+
+    /// <summary>Assert the §7.1 success envelope: ok=true + verbatim reqId echo.</summary>
+    public static void ExpectOk(Resp r, string label)
+    {
+        ExpectStatus(r, 200, label);
+        using var doc = JsonDocument.Parse(r.Body);
+        var root = doc.RootElement;
+        Assert(root.TryGetProperty("ok", out var ok) && ok.GetBoolean(), $"{label}: ok must be true: {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("reqId", out var reqId) && reqId.GetString() == r.ReqId,
+            $"{label}: reqId must echo the client X-ReqId verbatim: {Trunc(r.Body)}");
+        Assert(root.TryGetProperty("resource", out var res) && res.ValueKind == JsonValueKind.Object,
+            $"{label}: success payload must nest under 'resource' (§7.1): {Trunc(r.Body)}");
     }
 
     public static string Prop(Resp r, string name)
     {
         using var doc = JsonDocument.Parse(r.Body);
-        return doc.RootElement.GetProperty(name).GetString()
+        return doc.RootElement.GetProperty("resource").GetProperty(name).GetString()
                ?? throw new InvalidOperationException($"{name} missing/null in: {Trunc(r.Body)}");
     }
 
+    /// <summary>Clone of the success body's `resource` object (§7.1 nesting).</summary>
     public static JsonElement Json(Resp r)
+    {
+        using var doc = JsonDocument.Parse(r.Body);
+        return doc.RootElement.GetProperty("resource").Clone();
+    }
+
+    /// <summary>Clone of the raw root object — for endpoints that do not speak
+    /// the §7.1 envelope (health probes).</summary>
+    public static JsonElement JsonRoot(Resp r)
     {
         using var doc = JsonDocument.Parse(r.Body);
         return doc.RootElement.Clone();
@@ -299,6 +330,10 @@ internal sealed class ServerApp : IDisposable
         return link.LinkId;
     }
 
+    /// <summary>Seeds through the PRODUCTION CreateSession, which since the
+    /// C/5 reconcile supersedes (revokes) every live session on the same device
+    /// before inserting — contract §5.2 one-active-session-per-device. Callers
+    /// must therefore use a distinct device per LIVE session.</summary>
     public string SeedSession(string accountId, string deviceId, string? viaLinkId,
         DateTimeOffset? expires = null, DateTimeOffset? createdAt = null, bool revoked = false)
     {

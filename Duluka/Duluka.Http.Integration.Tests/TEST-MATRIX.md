@@ -3,125 +3,113 @@
 **Suite:** `Duluka/Duluka.Http.Integration.Tests` · Run:
 `dotnet run --project Duluka/Duluka.Http.Integration.Tests -c Release`
 
-**What is under test:** the REAL `Duluka.Server` binary launched as a real process per
-test group (loopback-only bind), against its REAL SQLite store. Nothing about production
-behavior is mocked: GitHub identity exchange is never faked (groups that need
-deterministic pre-exchange behavior run against an *unconfigured* server; the one
-network-dependent group is egress-gated with honest SKIP), and authenticated surfaces are
-exercised via rows seeded into the live database through the production data layer
-(`Database`/`Secrets.Sha256Hex`), exactly like a client that provisioned offline.
+**This revision verifies the C/5 reconcile commit (`bf54d08`, the `ee07eb7` lineage)
+against the baseline HTTP suite from `038589c`.** The server was reworked to the frozen
+C/1 contract: §7.1 envelope (`{ok, reqId, errorCode, httpStatus, retryable, conflict,
+message}`, success payload under `resource`), §7.2 registry codes, raw OAuth state,
+per-device session supersession, schema v2 (partial unique index + v1→v2 migration),
+429 envelopes, catch-all 500 envelopes on the auth callbacks.
 
-**Determinism law:** one fresh server process + fresh SQLite file per group; the
-in-memory per-IP rate limiter (10/min on auth-start endpoints) is respected by an
-explicit per-group budget (G0=3, G1=7, G2=7, G3=5, G7=9, G9=11-by-design, G10=2, G11=8 —
-all ≤ 10). Every session-expiry assertion is tick-exact arithmetic on stored timestamps
-(no sleeps). Verified: byte-identical output across consecutive runs.
+**Under test:** the REAL `Duluka.Server` binary launched as a real process per test group
+(loopback-only bind) against its REAL SQLite store. Nothing about production behavior is
+mocked: GitHub identity exchange is never faked (pre-exchange groups run against an
+*unconfigured* server; the one network-dependent group is egress-gated with honest SKIP);
+authenticated surfaces are exercised via rows seeded into the live database through the
+production data layer. Since the reconcile, `CreateSession` supersedes the previous
+session per device (§5.2), so fixtures seed ONE live session per device.
 
-**Outcome vocabulary (C/4 honesty):**
-- `PASS` — production behaves exactly as asserted
-- `FAIL` — production drifted from a pinned behavior (alarm; suite exits non-zero)
-- `MISMATCH CONFIRMED` — the behavior violates the v0.1 contract / C/2 spec in a way the
-  mismatch ledger tracks. The test passes ONLY while the violation still reproduces
-  exactly; fixing or changing it fails the test and forces ledger reclassification.
-- `SKIP` — environment not capable (e.g. no github.com egress); never a fake PASS
+**Honest before-state:** the 038589c suite (after a compile-only fix for the new
+`RefreshSession` parameter — no assertion changes) scored **33 passed / 62 failed** against
+the reconciled server. Every failure was triaged into one of: obsolete pin (production
+fixed or changed the wire shape), fixture conflict with the new supersede rule, or a still-
+violated contract. No test was altered merely to make it green — the ledger below is the
+documentation of that triage.
+
+**Determinism law:** one fresh server process + fresh SQLite file per group; explicit
+per-group auth-start rate-limit budget (G0=3, G1=7, G2=7, G3=5, G7=9, G9=11-by-design,
+G10=2, G11=8 — all ≤ 10); every expiry assertion is tick-exact arithmetic (no sleeps).
+Verified: three consecutive full-suite runs produce identical results including the
+mismatch ledger.
+
+**Outcome vocabulary (C/4 honesty):** PASS = behaves as asserted · FAIL = drift (suite
+exits non-zero) · MISMATCH CONFIRMED = tracked contract violation, passes only while it
+still reproduces exactly · SKIP = environment not capable.
 
 ---
 
-## 1. Matrix (95 tests, 12 groups)
+## 1. M-1..M-9 verification verdict (C/5 reconcile vs the previous C/2 report)
 
-| Group | Area | Tests | Requirement coverage |
+| ID | Violation (previous report) | Verdict | Evidence in this suite |
 |---|---|---|---|
-| G0 | health / readiness / transport | 9 | `/healthz` live, `/healthz/ready` schema=1, unknown-route 404, method 405, reserved providers (nvidia/unknown → 501), case-insensitive provider route, loopback-only bind (R1), log-secret sweep |
-| G1 | auth start validation | 8 | deviceName/deviceKey limits + 42/43-char boundary, authorize-URL shape (PKCE S256, state, scope), no-upper-bound pin, malformed/empty JSON body, redaction sweep |
-| G2 | auth callback + exactly-once | 6 | missing code, short deviceKey, unknown state, **state single-use even when the exchange fails** (C/3), redaction sweep (unconfigured server → deterministic, no network) |
-| G3 | real provider exchange | 2 | bogus code → 400 exchange-rejected envelope (never 5xx), state still single-use, raw code never echoed in body or log. **Egress-gated: RUN when github.com reachable, SKIP when not** |
-| G4 | account / 401 matrix | 11 | `/me` full shape; 401 for no-header / empty-Bearer / non-Bearer scheme / unknown token / **expired** / **revoked**; suspended-account behavior; multi-session-per-device probe; body + log secret sweeps |
-| G5 | device + revoke cascade | 9 | device list (own only, revoked visible), revoke → exact cascade count (2), both victims dead, no collateral, revoke-twice idempotency (0 re-counted), unknown → 404, **cross-tenant → 404 with no leak**, own-device revoke kills own session |
-| G6 | session lifecycle | 9 | refresh (sliding never shortens, tick-exact), **absolute cap createdAt+30d (tick-exact)**, expired/unknown/no-token 401 codes, revoke → sibling survives, revoke-twice, revoke-all exact count, **revoke-all idempotency (dead sessions never re-counted)** |
-| G7 | provider links + unlink | 13 | link list (own Active only), link-flow start 200 + state-in-URL, complete pre-network failure (`github_not_configured`), **complete state single-use**, complete after binding-session death → 401, unlink → via-link session cascade (exactly 1), **last-provider 409**, unknown 404, **cross-tenant 404**, re-unlink behavior |
-| G8 | CAS races (real store) | 4 | **8 parallel first-logins same identity → exactly ONE account, orphan cleaned** (unique-anchor CAS); **8 parallel same NEW device key → one device row, only UNIQUE(19) violations may escape** (M-6 evidence: 7/8 manifest); parallel revoke+refresh → no resurrect; sequential duplicate identity → same account |
-| G9 | rate limiting | 4 | **auth-start fixed window: 10 pass, 11th → 429** (empty body pin); per-policy isolation (healthz unaffected); untagged endpoints have NO api limiter (260 hits, zero 429 — M-7) |
-| G10 | restart behavior | 14 | same SQLite file across two process generations: **sessions survive**, **revocations survive** (session + device), **sliding-cap expiry persists tick-exact**, OAuth flow state does NOT survive (documented v0 design → `invalid_state`), ready/schema=1 both generations, SchemaHistory v1, dual-generation secret sweep |
-| G11 | envelope + contract sweep | 6 | 9-case error-envelope corpus (400/401/404/409/500/501, single schema, stable codes, no internals), envelope-shape mismatch (M-4), link-start auth gates, **401 matrix over all 9 authenticated surfaces**, **sync tripwire** (`/v1/sync*` absent → 404; tripwire forces the SYN/If-Match/428 matrix to be enabled the moment sync ships) |
+| M-1 | Malformed/empty JSON → naked 500, empty body | **STILL VIOLATED** | S-6, S-7, ENV-1: `JsonDocument.ParseAsync` remains unguarded on all 4 body-parsing endpoints; the C/5 catch-alls cover only the callback/complete exchange sections |
+| M-2 | Suspended account → 401 (contract §6.3: 403 `account_suspended`) | **STILL VIOLATED** | ME-9: suspended → 401 `auth.session_expired` (code updated, status still wrong) |
+| M-3 | No one-active-session-per-device | **FIXED** | ME-8: `CreateSession` now revokes-before-insert; superseded token → 401 `auth.session_revoked`, new token → 200 |
+| M-4 | Envelope `{error:{code,message}}`, no §7.1 fields, no registry codes | **FIXED** | ENV-2 + every `ExpectErr`: full §7.1 envelope, X-ReqId echoed verbatim, registry codes on the wire; `invalid_*`/`provider_reserved` remain as documented §7.2 extensions |
+| M-5 | Re-unlink → 400 (C/2: 409 resource-shape) | **FIXED** | UNL-3/UNL-6: 409 `conflict.link_conflict` (the §7.2 registry family code — accepted alias for C/2's `provider_not_linked` / `last_provider_cannot_unlink` literals) |
+| M-6 | Device-key UNIQUE race escapes `LoginOrLink` | **STILL VIOLATED** (severity reduced) | RACE-DEV evidence: 7/8 threads still hit the unguarded `CreateDevice` UNIQUE violation; the callback's new catch-all now answers a well-formed 500 envelope instead of a naked one — the functional loss (a concurrent same-device login fails instead of converging) remains |
+| M-7 | No endpoint carries the `api` rate-limit policy | **STILL VIOLATED** | RL-3: 260 consecutive `/me` hits, zero 429 |
+| M-8 | 401 root causes conflated into `session_invalid` | **FIXED** | ME-7: revoked → `auth.session_revoked`, expired/unknown/missing → `auth.session_expired` (frozen §7.2 registry has no `unknown_session` code; the conflation of unknown with expired is the documented registry decision) |
+| M-9 | Second revoke → 401 (C/2 SES-2b: idempotent 200) | **STILL VIOLATED** | SES-5: second revoke → 401 `auth.session_revoked`; no-resurrect security property holds |
 
-HTTP-status coverage over the live server: **200, 400, 401, 404, 405, 409, 429, 500, 501**.
-**403**: not reachable over the v0 HTTP surface (the only production 403, `device_revoked`
-at callback, sits behind a successful provider exchange) — the contract-required 403 for
-suspended accounts is a confirmed mismatch (M-2). **428 + sync (If-Match/409
-stale_version)**: blocked on the unimplemented sync slice (owner decisions O-1/O-2); the
-in-memory executable spec remains `Duluka.Account.Tests` (SYN-1..3, RACE-2), and COMP-2
-is the tripwire that forces enabling the HTTP matrix when the endpoints appear.
+**Score: 4 of 9 fixed (M-3, M-4, M-5, M-8); 5 still violated (M-1, M-2, M-6, M-7, M-9).**
 
----
+## 2. Newly discovered mismatches (this pass)
 
-## 2. Failures found (mismatch ledger — every one is a fix required OUTSIDE this suite)
+| ID | Violation | Evidence |
+|---|---|---|
+| M-10 | 409s carry `conflict=null`; §6.2 requires the CURRENT server resource + version attached so the client can re-apply or drop deterministically | ENV-3 (`last-provider` 409) |
+| M-11 | `/v1/account/providers/{provider}/complete` hardcodes `auth.session_expired` for a REVOKED binding session, while every other endpoint distinguishes revocation via `DeadSessionCode` | PRV-9 |
 
-| ID | Violation | Evidence (live) | Cross-ref |
-|---|---|---|---|
-| M-1 | Malformed/empty JSON body on any body-parsing endpoint → **naked HTTP 500 with empty body** (unhandled `JsonException`) | S-6, S-7, ENV-1 corpus | *not in R2 §14* — found by this suite |
-| M-2 | Suspended account → 401 `session_invalid`; contract §6.3 requires **403 `account_suspended`** (identity established, action not permitted) | ME-9 | R2 §14 G-5 |
-| M-3 | **No one-active-session-per-device enforcement**: two concurrent live sessions on one device both validate; contract §5.2 requires second login to revoke the previous and answer 409 `session_conflict` | ME-8 | *not in R2 §14* — found by this suite |
-| M-4 | Error envelope is `{error:{code,message}}` only — no `ok/reqId/errorCode/httpStatus/retryable` (§7.1), codes outside the §7.2 registry | ENV-2 | R2 §14 G-6 (partial) |
-| M-5 | Re-unlink of an already-unlinked provider → 400 `link_already_unlinked`; C/2 pins resource-shape **409 `provider_not_linked`** | UNL-6 | adjacent to R2 §14 G-2 |
-| M-6 | `LoginOrLink` has **no `SqliteException(19)` handler on `CreateDevice`**: concurrent first-login with the same NEW device key lets the UNIQUE violation escape (7/8 threads in the race probe) → would surface as HTTP 500 at the callback endpoint. The `UpsertLink` path already converges correctly — mirror it | RACE-DEV evidence | adjacent to R2 §14 G-4 (`device_key_in_use` variant) |
-| M-7 | **No endpoint carries the `api` rate-limit policy** (C/6 claims 240/min on the authenticated API): 260 consecutive `/me` hits, zero 429 | RL-3 | R2 §14 G-6 (partial) |
-| M-8 | 401 root-cause codes conflated: revoked AND expired (and unknown) sessions all answer `session_invalid`; §7.2 registry (`auth.session_revoked` / `auth.session_expired`) and the C/2 root-cause precedence are not implemented | ME-7 | R2 §14 G-1 |
-| M-9 | Second revoke of an already-revoked session → 401; C/2 SES-2b requires an **idempotent 200** (goal state already reached). The security property (no resurrect) holds | SES-5 | R2 §14 G-3 |
+**Carried findings:** F-3 — `revoke-all` counts already-expired-but-unrevoked sessions
+(no expiry filter; SES-6). **Resolved findings:** F-1 — state now returned RAW (S-4 pin
+inverted); F-2 — missing-token 401 codes are now uniform (PRV-0/COMP-1); F-4 — callback
+failures now converge to a `server.internal` envelope (§5.4-2).
 
-**Additional findings (pinned, not contract violations):**
-- **F-1** — `POST /v1/auth/*/start` returns the OAuth `state` field REDACTED; the usable
-  state only travels inside `authorizationUrl` (S-4 pin). Anti-replay-safe but a
-  client-side footgun; if this pin ever fails, the field became usable.
-- **F-2** — 401 code inconsistency for a missing token: `session_missing` on
-  refresh/revoke/link-start, `session_invalid` on me/providers/devices/unlink/
-  device-revoke/revoke-all (COMP-1 pins all nine).
-- **F-3** — `revoke-all` counts already-expired-but-unrevoked sessions in
-  `revokedSessions` (no expiry filter in `RevokeAllForAccount`); harmless but the
-  reported number overcounts (SES-6).
-- **F-4** — `ExchangeForIdentityAsync` does not catch transport failures
-  (`HttpRequestException`): an unreachable github.com during a callback would produce
-  another naked 500 instead of a retryable server envelope (code-path evidence; not
-  deterministically reachable with egress present).
+## 3. Additional checks required by this pass
 
----
-
-## 3. Fixes required elsewhere (owner work list, ordered)
-
-1. `Program.cs` — wrap body parsing; map malformed/empty JSON to 400 envelope (M-1).
-2. `Data/Database.cs` — surface the validation failure CAUSE; `Program.cs` — map
-   suspended → 403, revoked/expired/unknown → distinct 401 codes per §7.2/C-2 precedence
-   (M-2, M-8); R2 G-1/G-5.
-3. `Program.cs` (`/v1/auth/session/revoke`) — idempotent 200 on already-revoked (M-9); R2 G-3.
-4. `Data/Database.cs` + session creation path — enforce one active session per device with
-   409 `session_conflict` (M-3).
-5. `Auth/GitHubOAuth.cs` (`AccountProvisioningService.LoginOrLink`) — catch
-   `SqliteException(19)` on `CreateDevice` and converge (mirror `UpsertLink`), map
-   `device_key_in_use` to a 4xx (M-6); R2 G-4.
-6. `Program.cs` — attach the `api` rate-limit policy to all authenticated endpoints (M-7).
-7. Envelope: adopt §7.1 shape + registry codes, or freeze the current shape as the
-   documented v0 exception (M-4, M-5, F-2 — owner call); R2 G-2/G-6.
-8. Sync slice (O-1/O-2) — when it lands, enable the SYN/428 matrix here (COMP-2 trips); R2 G-7.
-9. `Duluka.Account.Tests/DulukaHttpContractProbe.vb` — retarget at the real §13 routes
-   when `DULUKA_BASE_URL` testing starts; R2 G-8.
-
-**Production code was not modified by this suite.** No test was adjusted to fit a bug;
-every bug is pinned as a tracked mismatch.
-
----
+- **428 missing If-Match / 409 stale revision / conflict resource on sync** — sync
+  endpoints remain ABSENT (only the `SyncProfile` DDL exists). COMP-2 pins the tripwire:
+  `/v1/sync*` → 404; the SYN matrix (428 `missing_if_match`, 409 `stale_version`,
+  conflict attachment) is executable in `Duluka.Account.Tests` and MUST be enabled here
+  the moment the endpoints ship. Blocked on owner decisions O-1/O-2, unchanged.
+- **Provider-link race** — RACE-5 (store): `CreateLink` loser converges on the winner's
+  row and the endpoint's ownership check turns it into 409 — no silent cross-account
+  merge. RACE-6: v1→v2 partial unique index removes the permanent-500 on re-login with a
+  previously unlinked identity; documented v2 behavior: the unlinked identity reads as
+  unknown and provisions a NEW account.
+- **Device revoke cascade** — DEV-2/3/4/5/8: exact cascade count, no collateral across
+  devices, idempotent re-revoke, own-device self-cascade.
+- **Cross-tenant hiding** — DEV-7/UNL-5: cross-tenant device/link access → 404 with the
+  registry codes, no leak, no collateral (§6.3 cross-tenant rule).
+- **Restart persistence** — RE-1..14 across two process generations on one SQLite file:
+  sessions, revocations (session + device) and the tick-exact sliding cap persist;
+  in-memory OAuth flow state does not (documented v0 design → `invalid_state`);
+  `SchemaHistory` = v2 (v1→v2 migration verified on a fresh store).
+- **Auth start throttling** — RL-1: 10th request passes, 11th → 429 `server.rate_limited`
+  envelope, retryable=true, X-ReqId echoed; per-policy isolation (healthz unaffected).
+- **GitHub callback/state handling** — C-2..C-5, E-1/E-2: validation order, unknown state,
+  single-use state even when the exchange fails, raw-code never echoed in body or log
+  (egress-gated RUN / honest SKIP).
 
 ## 4. Counts
 
-| Suite | Before (baseline) | After |
+| Suite | Baseline (038589c era) | Current HEAD (post C/5) |
 |---|---|---|
-| `Duluka/Duluka.Server.Tests` (C/6, in-process) | 16 passed / 0 failed | 16 / 0 (unchanged) |
-| `Duluka.Account.Tests` (C/2 executable spec) | 19 passed / 0 failed (+1 skipped group) | 19 / 0 (unchanged) |
-| `API.Hub.Boundary.Tests` (R1) | 10 passed / 0 failed | 10 / 0 (unchanged) |
-| **`Duluka/Duluka.Http.Integration.Tests` (this suite)** | — | **95 passed / 0 failed / 0 skipped** |
-| **Total** | **45** | **140** |
+| `Duluka/Duluka.Server.Tests` | 16 / 0 | **24 / 0** (C/5 added 8) |
+| `Duluka.Account.Tests` (C/2 executable spec) | 19 / 0 (+1 skipped group) | 19 / 0 (+1 skipped group) |
+| `API.Hub.Boundary.Tests` | 10 / 0 | 9 / 0 (+1 env-dependent skip: live-hub ping, hub not running) |
+| **`Duluka/Duluka.Http.Integration.Tests`** | **95 / 0** (038589c) | **99 / 0** (this pass; 99 = 95 − 1 renamed merge + 5 new: RACE-5, RACE-6, ENV-3, XREQ-1, ENV-2 split) |
+| **Total** | 140 | **151** |
 
-Determinism proof: consecutive full-suite runs produce **byte-identical output**
-(GUID-masked), including the mismatch section. No timing-based assertion exists; the only
+**HTTP-suite before/after for this task: 95 tests → 99 tests; against the CURRENT server
+the unmodified baseline scored 33/95 — the updated suite scores 99/99 with 5 still-
+violated + 2 newly-discovered tracked mismatches (M-1, M-2, M-6, M-7, M-9, M-10, M-11).**
+
+**Determinism evidence:** three consecutive full runs → identical `RESULT: 99 passed,
+0 failed` and identical mismatch ledgers; no timing-based assertions; the only
 environment-dependent group (G3) is honestly SKIP-gated on github.com egress.
 
-Exit code: `0` while every pin holds (mismatches included — they are tracked ledger
-entries, printed prominently); non-zero the moment production drifts in either direction.
+**Production code was not modified.** Fixes belong to C/5: M-1 (wrap body parsing),
+M-2 (suspended → 403), M-6 (catch SqliteException 19 in `LoginOrLink`/`CreateDevice`),
+M-7 (attach the `api` policy), M-9 (idempotent revoke), M-10 (attach conflict resource),
+M-11 (use `DeadSessionCode` in link-complete).
