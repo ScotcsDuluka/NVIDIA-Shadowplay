@@ -32,6 +32,14 @@ Partial Class Base_Connect_Security
         Info_META = New Label()
         BT_RefreshSession = New Label()
         BT_RevokeAll = New Label()
+        PwHeader_LBL = New Label()
+        PwCurrent_LBL = New Label()
+        PwCurrent_BOX = New TextBox()
+        PwNew_LBL = New Label()
+        PwNew_BOX = New TextBox()
+        PwConfirm_LBL = New Label()
+        PwConfirm_BOX = New TextBox()
+        BT_ChangePassword = New Label()
         Status_TEXT = New Label()
         Settings_Panel.SuspendLayout()
         CType(Dim_Top, ComponentModel.ISupportInitialize).BeginInit()
@@ -47,6 +55,14 @@ Partial Class Base_Connect_Security
         Settings_Panel.Controls.Add(Info_META)
         Settings_Panel.Controls.Add(BT_RefreshSession)
         Settings_Panel.Controls.Add(BT_RevokeAll)
+        Settings_Panel.Controls.Add(PwHeader_LBL)
+        Settings_Panel.Controls.Add(PwCurrent_LBL)
+        Settings_Panel.Controls.Add(PwCurrent_BOX)
+        Settings_Panel.Controls.Add(PwNew_LBL)
+        Settings_Panel.Controls.Add(PwNew_BOX)
+        Settings_Panel.Controls.Add(PwConfirm_LBL)
+        Settings_Panel.Controls.Add(PwConfirm_BOX)
+        Settings_Panel.Controls.Add(BT_ChangePassword)
         Settings_Panel.Controls.Add(Status_TEXT)
         Settings_Panel.Location = New Point(80, 160)
         Settings_Panel.Name = "Settings_Panel"
@@ -101,13 +117,110 @@ Partial Class Base_Connect_Security
         BT_RevokeAll.Text = "Sign out on ALL devices"
         BT_RevokeAll.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' PwHeader_LBL
+        ' 
+        PwHeader_LBL.AutoSize = True
+        PwHeader_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PwHeader_LBL.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        PwHeader_LBL.ForeColor = Color.White
+        PwHeader_LBL.Location = New Point(62, 560)
+        PwHeader_LBL.Name = "PwHeader_LBL"
+        PwHeader_LBL.Size = New Size(120, 19)
+        PwHeader_LBL.TabIndex = 74
+        PwHeader_LBL.Text = "Change password"
+        ' 
+        ' PwCurrent_LBL
+        ' 
+        PwCurrent_LBL.AutoSize = True
+        PwCurrent_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PwCurrent_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        PwCurrent_LBL.ForeColor = Color.Gainsboro
+        PwCurrent_LBL.Location = New Point(62, 592)
+        PwCurrent_LBL.Name = "PwCurrent_LBL"
+        PwCurrent_LBL.Size = New Size(105, 15)
+        PwCurrent_LBL.TabIndex = 75
+        PwCurrent_LBL.Text = "Current password"
+        ' 
+        ' PwCurrent_BOX
+        ' 
+        PwCurrent_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        PwCurrent_BOX.BorderStyle = BorderStyle.FixedSingle
+        PwCurrent_BOX.Font = New Font("Segoe UI", 10.5F)
+        PwCurrent_BOX.ForeColor = Color.White
+        PwCurrent_BOX.Location = New Point(185, 588)
+        PwCurrent_BOX.Name = "PwCurrent_BOX"
+        PwCurrent_BOX.Size = New Size(260, 25)
+        PwCurrent_BOX.TabIndex = 76
+        PwCurrent_BOX.UseSystemPasswordChar = True
+        ' 
+        ' PwNew_LBL
+        ' 
+        PwNew_LBL.AutoSize = True
+        PwNew_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PwNew_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        PwNew_LBL.ForeColor = Color.Gainsboro
+        PwNew_LBL.Location = New Point(62, 628)
+        PwNew_LBL.Name = "PwNew_LBL"
+        PwNew_LBL.Size = New Size(85, 15)
+        PwNew_LBL.TabIndex = 77
+        PwNew_LBL.Text = "New password"
+        ' 
+        ' PwNew_BOX
+        ' 
+        PwNew_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        PwNew_BOX.BorderStyle = BorderStyle.FixedSingle
+        PwNew_BOX.Font = New Font("Segoe UI", 10.5F)
+        PwNew_BOX.ForeColor = Color.White
+        PwNew_BOX.Location = New Point(185, 624)
+        PwNew_BOX.Name = "PwNew_BOX"
+        PwNew_BOX.Size = New Size(260, 25)
+        PwNew_BOX.TabIndex = 78
+        PwNew_BOX.UseSystemPasswordChar = True
+        ' 
+        ' PwConfirm_LBL
+        ' 
+        PwConfirm_LBL.AutoSize = True
+        PwConfirm_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PwConfirm_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        PwConfirm_LBL.ForeColor = Color.Gainsboro
+        PwConfirm_LBL.Location = New Point(62, 664)
+        PwConfirm_LBL.Name = "PwConfirm_LBL"
+        PwConfirm_LBL.Size = New Size(100, 15)
+        PwConfirm_LBL.TabIndex = 79
+        PwConfirm_LBL.Text = "Confirm new"
+        ' 
+        ' PwConfirm_BOX
+        ' 
+        PwConfirm_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        PwConfirm_BOX.BorderStyle = BorderStyle.FixedSingle
+        PwConfirm_BOX.Font = New Font("Segoe UI", 10.5F)
+        PwConfirm_BOX.ForeColor = Color.White
+        PwConfirm_BOX.Location = New Point(185, 660)
+        PwConfirm_BOX.Name = "PwConfirm_BOX"
+        PwConfirm_BOX.Size = New Size(260, 25)
+        PwConfirm_BOX.TabIndex = 80
+        PwConfirm_BOX.UseSystemPasswordChar = True
+        ' 
+        ' BT_ChangePassword
+        ' 
+        BT_ChangePassword.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        BT_ChangePassword.Cursor = Cursors.Hand
+        BT_ChangePassword.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
+        BT_ChangePassword.ForeColor = Color.White
+        BT_ChangePassword.Location = New Point(185, 700)
+        BT_ChangePassword.Name = "BT_ChangePassword"
+        BT_ChangePassword.Size = New Size(200, 42)
+        BT_ChangePassword.TabIndex = 81
+        BT_ChangePassword.Text = "Change password"
+        BT_ChangePassword.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Status_TEXT
         ' 
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10.0F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(62, 500)
+        Status_TEXT.Location = New Point(62, 780)
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(60, 19)
         Status_TEXT.TabIndex = 73
@@ -195,5 +308,13 @@ Partial Class Base_Connect_Security
     Friend WithEvents Info_META As Label
     Friend WithEvents BT_RefreshSession As Label
     Friend WithEvents BT_RevokeAll As Label
+    Friend WithEvents PwHeader_LBL As Label
+    Friend WithEvents PwCurrent_LBL As Label
+    Friend WithEvents PwCurrent_BOX As TextBox
+    Friend WithEvents PwNew_LBL As Label
+    Friend WithEvents PwNew_BOX As TextBox
+    Friend WithEvents PwConfirm_LBL As Label
+    Friend WithEvents PwConfirm_BOX As TextBox
+    Friend WithEvents BT_ChangePassword As Label
     Friend WithEvents Status_TEXT As Label
 End Class

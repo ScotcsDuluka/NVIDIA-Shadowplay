@@ -138,6 +138,55 @@ Public Class Base_Connect_Security
         End Try
     End Sub
 
+    Private Async Sub BT_ChangePassword_Click(sender As Object, e As EventArgs) Handles BT_ChangePassword.Click
+        If _busy Then Return
+        Dim current As String = PwCurrent_BOX.Text
+        Dim newPw As String = PwNew_BOX.Text
+        Dim confirm As String = PwConfirm_BOX.Text
+
+        If current = "" OrElse newPw = "" OrElse confirm = "" Then
+            Status_TEXT.Text = "Fill in every password field."
+            Return
+        End If
+        If newPw.Length < 8 OrElse newPw.Length > 128 Then
+            Status_TEXT.Text = "New password must be 8-128 characters."
+            Return
+        End If
+        If newPw <> confirm Then
+            Status_TEXT.Text = "New passwords do not match."
+            Return
+        End If
+
+        _busy = True
+        Try
+            Status_TEXT.Text = "Updating password…"
+            Dim token As String = DulukaAccountStore.Instance.SessionToken
+            Dim body As New System.Text.Json.Nodes.JsonObject()
+            body("currentPassword") = current
+            body("newPassword") = newPw
+            Dim r As DulukaApi.Result = Await DulukaApi.PostAsync(
+                "/v1/account/password", token, body.ToJsonString()).ConfigureAwait(True)
+            If IsDisposed OrElse Not IsHandleCreated Then Return
+
+            If r.Ok Then
+                PwCurrent_BOX.Clear()
+                PwNew_BOX.Clear()
+                PwConfirm_BOX.Clear()
+                Status_TEXT.Text = "Password updated."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
+                Status_TEXT.Text = "Current password is incorrect."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "native_credential_absent" Then
+                Status_TEXT.Text = "This account signs in with a linked provider only."
+            ElseIf r.AuthDead Then
+                TerminalSignOut("Your session has expired. Please sign in again.")
+            Else
+                Status_TEXT.Text = DulukaApi.HumanError(r)
+            End If
+        Finally
+            _busy = False
+        End Try
+    End Sub
+
     Private Sub TerminalSignOut(message As String)
         DulukaAccountStore.Instance.ClearSession()
         Me.Hide()

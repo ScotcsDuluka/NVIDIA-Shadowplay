@@ -33,6 +33,7 @@ Friend Class DulukaAccountStore
     Private _deviceId As String = ""
     Private _deviceName As String = ""
     Private _displayName As String = ""
+    Private _username As String = ""
     Private _sessionExpiresAtIso As String = ""
 
     Private Sub New()
@@ -75,6 +76,12 @@ Friend Class DulukaAccountStore
     Public ReadOnly Property DisplayName As String
         Get
             Return _displayName
+        End Get
+    End Property
+
+    Public ReadOnly Property Username As String
+        Get
+            Return _username
         End Get
     End Property
 
@@ -134,9 +141,10 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Sub
 
-    Public Sub SetProfile(displayName As String)
+    Public Sub SetProfile(displayName As String, username As String)
         SyncLock _lock
             _displayName = If(displayName, "")
+            _username = If(username, "")
             Save()
         End SyncLock
     End Sub
@@ -149,6 +157,7 @@ Friend Class DulukaAccountStore
             _accountId = ""
             _deviceId = ""
             _displayName = ""
+            _username = ""
             _sessionExpiresAtIso = ""
             Save()
         End SyncLock
@@ -211,6 +220,8 @@ Friend Class DulukaAccountStore
         Public DeviceName As String = ""
         <JsonPropertyName("displayName")>
         Public DisplayName As String = ""
+        <JsonPropertyName("username")>
+        Public Username As String = ""
         <JsonPropertyName("sessionExpiresAt")>
         Public SessionExpiresAt As String = ""
     End Class
@@ -230,6 +241,7 @@ Friend Class DulukaAccountStore
             dto.DeviceId = _deviceId
             dto.DeviceName = _deviceName
             dto.DisplayName = _displayName
+            dto.Username = _username
             dto.SessionExpiresAt = _sessionExpiresAtIso
             File.WriteAllText(StorePath, JsonSerializer.Serialize(dto))
         Catch ex As Exception
@@ -249,6 +261,7 @@ Friend Class DulukaAccountStore
             _deviceId = If(dto.DeviceId, "")
             _deviceName = If(dto.DeviceName, "")
             _displayName = If(dto.DisplayName, "")
+            _username = If(dto.Username, "")
             _sessionExpiresAtIso = If(dto.SessionExpiresAt, "")
         Catch ex As Exception
             ' Corrupt store = start clean; the next login re-provisions.

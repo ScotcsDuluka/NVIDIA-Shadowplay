@@ -30,6 +30,13 @@ Partial Class Base_Connect
         Account_META = New Label()
         Auth_PROMPT = New Label()
         Provider_NOTE = New Label()
+        Username_LBL = New Label()
+        Username_BOX = New TextBox()
+        Password_LBL = New Label()
+        Password_BOX = New TextBox()
+        BT_SignIn = New Label()
+        Or_LBL = New Label()
+        BT_CreateAccount = New Label()
         BT_Connect = New Label()
         BT_Logout = New Label()
         Status_TEXT = New Label()
@@ -57,6 +64,13 @@ Partial Class Base_Connect
         Settings_Panel.Controls.Add(Account_META)
         Settings_Panel.Controls.Add(Auth_PROMPT)
         Settings_Panel.Controls.Add(Provider_NOTE)
+        Settings_Panel.Controls.Add(Username_LBL)
+        Settings_Panel.Controls.Add(Username_BOX)
+        Settings_Panel.Controls.Add(Password_LBL)
+        Settings_Panel.Controls.Add(Password_BOX)
+        Settings_Panel.Controls.Add(BT_SignIn)
+        Settings_Panel.Controls.Add(Or_LBL)
+        Settings_Panel.Controls.Add(BT_CreateAccount)
         Settings_Panel.Controls.Add(BT_Connect)
         Settings_Panel.Controls.Add(BT_Logout)
         Settings_Panel.Controls.Add(Status_TEXT)
@@ -125,13 +139,105 @@ Partial Class Base_Connect
         Auth_PROMPT.Text = "Sign in to your Duluka Account"
         Auth_PROMPT.Visible = False
         ' 
+        ' Username_LBL
+        ' 
+        Username_LBL.AutoSize = True
+        Username_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Username_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        Username_LBL.ForeColor = Color.Gainsboro
+        Username_LBL.Location = New Point(62, 190)
+        Username_LBL.Name = "Username_LBL"
+        Username_LBL.Size = New Size(64, 15)
+        Username_LBL.TabIndex = 75
+        Username_LBL.Text = "Username"
+        Username_LBL.Visible = False
+        ' 
+        ' Username_BOX
+        ' 
+        Username_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        Username_BOX.BorderStyle = BorderStyle.FixedSingle
+        Username_BOX.Font = New Font("Segoe UI", 10.5F)
+        Username_BOX.ForeColor = Color.White
+        Username_BOX.Location = New Point(62, 210)
+        Username_BOX.Name = "Username_BOX"
+        Username_BOX.Size = New Size(260, 25)
+        Username_BOX.TabIndex = 76
+        Username_BOX.Visible = False
+        ' 
+        ' Password_LBL
+        ' 
+        Password_LBL.AutoSize = True
+        Password_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Password_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
+        Password_LBL.ForeColor = Color.Gainsboro
+        Password_LBL.Location = New Point(62, 246)
+        Password_LBL.Name = "Password_LBL"
+        Password_LBL.Size = New Size(63, 15)
+        Password_LBL.TabIndex = 77
+        Password_LBL.Text = "Password"
+        Password_LBL.Visible = False
+        ' 
+        ' Password_BOX
+        ' 
+        Password_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        Password_BOX.BorderStyle = BorderStyle.FixedSingle
+        Password_BOX.Font = New Font("Segoe UI", 10.5F)
+        Password_BOX.ForeColor = Color.White
+        Password_BOX.Location = New Point(62, 266)
+        Password_BOX.Name = "Password_BOX"
+        Password_BOX.Size = New Size(260, 25)
+        Password_BOX.TabIndex = 78
+        Password_BOX.UseSystemPasswordChar = True
+        Password_BOX.Visible = False
+        ' 
+        ' BT_SignIn
+        ' 
+        BT_SignIn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_SignIn.Cursor = Cursors.Hand
+        BT_SignIn.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
+        BT_SignIn.ForeColor = Color.White
+        BT_SignIn.Location = New Point(62, 306)
+        BT_SignIn.Name = "BT_SignIn"
+        BT_SignIn.Size = New Size(260, 46)
+        BT_SignIn.TabIndex = 79
+        BT_SignIn.Text = "Sign In"
+        BT_SignIn.TextAlign = ContentAlignment.MiddleCenter
+        BT_SignIn.Visible = False
+        ' 
+        ' Or_LBL
+        ' 
+        Or_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Or_LBL.Font = New Font("Segoe UI", 8.5F)
+        Or_LBL.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(165))
+        Or_LBL.Location = New Point(62, 360)
+        Or_LBL.Name = "Or_LBL"
+        Or_LBL.Size = New Size(260, 18)
+        Or_LBL.TabIndex = 80
+        Or_LBL.Text = "────────  OR  ────────"
+        Or_LBL.TextAlign = ContentAlignment.MiddleCenter
+        Or_LBL.Visible = False
+        ' 
+        ' BT_CreateAccount
+        ' 
+        BT_CreateAccount.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        BT_CreateAccount.Cursor = Cursors.Hand
+        BT_CreateAccount.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
+        BT_CreateAccount.ForeColor = Color.White
+        BT_CreateAccount.Location = New Point(62, 452)
+        BT_CreateAccount.Name = "BT_CreateAccount"
+        BT_CreateAccount.Size = New Size(260, 46)
+        BT_CreateAccount.TabIndex = 81
+        BT_CreateAccount.Text = "Create Duluka Account"
+        BT_CreateAccount.TextAlign = ContentAlignment.MiddleCenter
+        BT_CreateAccount.Visible = False
+        ' 
         ' Provider_NOTE
         ' 
         Provider_NOTE.AutoSize = True
         Provider_NOTE.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Provider_NOTE.Font = New Font("Segoe UI", 8.75F)
         Provider_NOTE.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(165))
-        Provider_NOTE.Location = New Point(62, 290)
+        Provider_NOTE.Location = New Point(62, 506)
         Provider_NOTE.Name = "Provider_NOTE"
         Provider_NOTE.Size = New Size(366, 15)
         Provider_NOTE.TabIndex = 74
@@ -142,11 +248,11 @@ Partial Class Base_Connect
         ' 
         BT_Connect.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Connect.Cursor = Cursors.Hand
-        BT_Connect.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_Connect.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
         BT_Connect.ForeColor = Color.White
-        BT_Connect.Location = New Point(62, 223)
+        BT_Connect.Location = New Point(62, 392)
         BT_Connect.Name = "BT_Connect"
-        BT_Connect.Size = New Size(200, 50)
+        BT_Connect.Size = New Size(260, 46)
         BT_Connect.TabIndex = 63
         BT_Connect.Text = "Continue with GitHub"
         BT_Connect.TextAlign = ContentAlignment.MiddleCenter
@@ -307,6 +413,13 @@ Partial Class Base_Connect
     Friend WithEvents Account_META As Label
     Friend WithEvents Auth_PROMPT As Label
     Friend WithEvents Provider_NOTE As Label
+    Friend WithEvents Username_LBL As Label
+    Friend WithEvents Username_BOX As TextBox
+    Friend WithEvents Password_LBL As Label
+    Friend WithEvents Password_BOX As TextBox
+    Friend WithEvents BT_SignIn As Label
+    Friend WithEvents Or_LBL As Label
+    Friend WithEvents BT_CreateAccount As Label
     Friend WithEvents BT_Connect As Label
     Friend WithEvents BT_Devices As Label
     Friend WithEvents BT_Security As Label
