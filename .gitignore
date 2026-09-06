@@ -1,4 +1,4 @@
-# Build outputs
+﻿# Build outputs
 **/bin/
 **/obj/
 **/Debug/
@@ -79,3 +79,6 @@ scripts/apphost_test/out_final
 !scripts/sync-reference.mp4
 /evidence
 /dist-installer
+
+# BL-1: build-emitted provenance artifact (regenerated every build)
+/installer/bl1-commit.txt
