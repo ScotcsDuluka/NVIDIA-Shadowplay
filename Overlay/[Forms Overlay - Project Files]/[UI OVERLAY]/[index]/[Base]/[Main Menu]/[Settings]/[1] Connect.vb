@@ -129,10 +129,12 @@ Public Class Base_Connect
     Private Sub PreparePKCE()
         _codeVerifier = GenerateCodeVerifier()
         _codeChallenge = GenerateCodeChallenge(_codeVerifier)
-        Debug.WriteLine($"PKCE prepared:")
-        Debug.WriteLine($"  verifier: {_codeVerifier}")
+        ' C/2 secret hygiene: the verifier is a bearer-equivalent secret —
+        ' log its PRESENCE and length only, never its value.
+        Debug.WriteLine("PKCE prepared:")
+        Debug.WriteLine("  verifier: <redacted>")
         Debug.WriteLine($"  verifier length: {_codeVerifier.Length}")
-        Debug.WriteLine($"  challenge: {_codeChallenge}")
+        Debug.WriteLine("  challenge: <redacted>")
     End Sub
 
     ' ═══════════════════════════════════════════════════════════════════════════════
@@ -276,17 +278,13 @@ Public Class Base_Connect
             Dim [error] As String = request.QueryString("error")
 
             ' ✅ ส่ง response กลับไปยัง browser
-            Dim responseHtml As String
+            Dim responseHtml As String = OAuthCallbackResponse.BuildCallbackHtml([error], code)
 
             If Not String.IsNullOrEmpty([error]) Then
-                responseHtml = $"<html><body><h2>Login Cancelled</h2><p>Error: {[error]}</p><script>setTimeout(function(){{window.close();}}, 2000);</script></body></html>"
                 Debug.WriteLine($"OAuth error: {[error]}")
             ElseIf String.IsNullOrEmpty(code) Then
-                responseHtml = "<html><body><h2>Error</h2><p>No authorization code received.</p><script>setTimeout(function(){window.close();}, 2000);</script></body></html>"
                 Debug.WriteLine("No authorization code received")
             Else
-                responseHtml = "<html><body><h2>Login Successful!</h2><p>You can close this window now.</p><script>setTimeout(function(){window.close();}, 1500);</script></body></html>"
-
                 ' ✅ แลก code เป็น token
                 Dim token As String = Await GetAccessToken(code)
 
@@ -343,14 +341,17 @@ Public Class Base_Connect
 
                 Dim content As New FormUrlEncodedContent(values)
 
-                ' ✅ Debug
-                Dim requestBody As String = Await content.ReadAsStringAsync()
-                Debug.WriteLine($"Token request: {requestBody}")
+                ' ✅ C/2 secret hygiene: the request body carries client_secret
+                ' or code_verifier — log the flow + length, never the values.
+                Debug.WriteLine(OAuthCallbackResponse.BuildTokenRequestLogLine(
+                    Not String.IsNullOrEmpty(CLIENT_SECRET), _codeVerifier.Length))
 
                 Dim response As HttpResponseMessage = Await client.PostAsync("https://github.com/login/oauth/access_token", content)
                 Dim json As String = Await response.Content.ReadAsStringAsync()
 
-                Debug.WriteLine($"Token response: {json}")
+                ' ✅ C/2 secret hygiene: the response carries access_token —
+                ' log error fields / presence only, never the value.
+                Debug.WriteLine(OAuthCallbackResponse.BuildTokenResponseLogLine(json))
 
                 Dim doc As JsonDocument = JsonDocument.Parse(json)
 
