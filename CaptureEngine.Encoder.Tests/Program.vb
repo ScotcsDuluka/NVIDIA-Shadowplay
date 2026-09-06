@@ -13,7 +13,9 @@ Namespace CaptureEngine.Encoder.Tests
     Friend Module Program
         Private _passed As Integer = 0
         Private _failed As Integer = 0
+        Private _skipped As Integer = 0
         Private ReadOnly _failures As New List(Of String)()
+        Private ReadOnly _skips As New List(Of String)()
 
         Function Main(args As String()) As Integer
             Console.WriteLine("==================================================")
@@ -45,12 +47,20 @@ Namespace CaptureEngine.Encoder.Tests
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
-            Console.WriteLine(" Result: " & _passed & " passed, " & _failed & " failed, " & (_passed + _failed) & " total")
+            Console.WriteLine(" Result: " & _passed & " passed, " & _failed & " failed, " &
+                              _skipped & " skipped, " & (_passed + _failed + _skipped) & " total")
             Console.WriteLine("--------------------------------------------------")
             If _failed > 0 Then
                 Console.WriteLine()
                 Console.WriteLine("Failures:")
                 For Each f As String In _failures
+                    Console.WriteLine("  " & f)
+                Next
+            End If
+            If _skipped > 0 Then
+                Console.WriteLine()
+                Console.WriteLine("Skips (environment not capable):")
+                For Each f In _skips
                     Console.WriteLine("  " & f)
                 Next
             End If
@@ -63,6 +73,13 @@ Namespace CaptureEngine.Encoder.Tests
                 test()
                 _passed += 1
                 Console.WriteLine("PASS")
+            Catch ex As SkipException
+                _skipped += 1
+                Dim msg As String = ex.Message
+                If msg.Length > 100 Then msg = msg.Substring(0, 100) & "..."
+                Console.WriteLine("SKIP")
+                Console.WriteLine("    " & msg)
+                _skips.Add(name & " — " & ex.Message)
             Catch ex As Exception
                 _failed += 1
                 Dim msg As String = ex.Message

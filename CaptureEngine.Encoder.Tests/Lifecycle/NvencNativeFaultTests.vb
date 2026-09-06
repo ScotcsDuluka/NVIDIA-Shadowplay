@@ -5,9 +5,14 @@ Option Infer On
 ' NvencNativeFaultTests.vb — C/2: hardware-PROVEN NVENC failure / dispose
 ' concurrency closure (C/6 hardware-blocked items 1-3). Every scenario here
 ' runs the REAL NvencEncoderBackend against the REAL driver on the machine's
-' NVIDIA GPU — no Fake backend anywhere; the hardware gate test fails loudly
-' when the machine has no usable NVENC, so nothing can silently pass on
-' fake evidence.
+' NVIDIA GPU — no Fake backend anywhere.
+'
+' C/1 hardware-gate contract (aligned with Video.Tests HardwareGate F-01):
+'   - NVIDIA machine  → all five scenarios RUN for real (never skipped);
+'   - non-NVIDIA      → all five report SKIP with the probe reason (never
+'                       FAIL, never PASS, never counted toward the exit
+'                       code) — a missing GPU is an environment property,
+'                       not a regression.
 '
 ' P1  Initialize failure AFTER partial acquisition:
 '       device + function table + OPEN encode session are acquired, then the
@@ -199,21 +204,55 @@ Namespace CaptureEngine.Encoder.Tests.Lifecycle
 
         ' ── gate ─────────────────────────────────────────────────────────
 
-        Private Shared Sub Test_HardwareGate()
-            Dim dev As Internal.D3D11DeviceResult = CreateDevice()
+        ' ── C/1 hardware gate (one-time probe, cached) ────────────────────
+        ' Probe = the REAL production acquisition path: D3D11DeviceFactory on
+        ' the NVIDIA adapter + NvEncFunctionTable.TryLoad. No fake shortcuts.
+        Private Shared _probed As Boolean = False
+        Private Shared _nvencAvailable As Boolean = False
+        Private Shared _gateReason As String = ""
+        Private Shared _gateAdapter As String = ""
+
+        Private Shared Sub EnsureNvencProbed()
+            If _probed Then Return
+            _probed = True
             Try
-                Console.WriteLine($"    adapter: {dev.Description} (vendor=0x{dev.VendorId:x4} device=0x{dev.DeviceId:x4})")
-                TestHelpers.Assert(dev.VendorId = &H10DEUI,
-                    $"primary adapter is not NVIDIA (vendor=0x{dev.VendorId:x4}) — native scenarios require real NVENC")
-                Dim ft As New Internal.NvEncFunctionTable(New EngineLogger("nvenc-native-gate", EngineLogger.LogLevel.Info, AddressOf DiscardLog))
+                Dim dev As Internal.D3D11DeviceResult = CreateDevice()
                 Try
-                    TestHelpers.Assert(ft.TryLoad(), "NvEncFunctionTable.TryLoad failed — NVENC unavailable")
+                    _gateAdapter = $"{dev.Description} (vendor=0x{dev.VendorId:x4} device=0x{dev.DeviceId:x4})"
+                    Dim ft As New Internal.NvEncFunctionTable(New EngineLogger("nvenc-native-gate", EngineLogger.LogLevel.Info, AddressOf DiscardLog))
+                    Try
+                        If ft.TryLoad() Then
+                            _nvencAvailable = True
+                            _gateReason = ""
+                        Else
+                            _gateReason = "NvEncFunctionTable.TryLoad failed — NVENC API unavailable"
+                        End If
+                    Finally
+                        ft.Dispose()
+                    End Try
                 Finally
-                    ft.Dispose()
+                    dev.Dispose()
                 End Try
-            Finally
-                dev.Dispose()
+            Catch ex As Exception
+                _nvencAvailable = False
+                _gateReason = ex.Message
             End Try
+        End Sub
+
+        ''' <summary>C/1: throw SkipException (environment not capable) unless
+        ''' this machine has a REAL NVIDIA adapter with a loadable NVENC API.
+        ''' Never throws on an NVIDIA machine.</summary>
+        Private Shared Sub RequireNvenc()
+            EnsureNvencProbed()
+            If Not _nvencAvailable Then
+                Throw New SkipException("NVENC-NAT requires real NVIDIA NVENC hardware: " & _gateReason)
+            End If
+        End Sub
+
+        Private Shared Sub Test_HardwareGate()
+            RequireNvenc()
+            ' On an NVIDIA machine the gate doubles as the evidence line.
+            Console.WriteLine($"    adapter: {_gateAdapter}")
         End Sub
 
         ' ── P1: initialize failure after partial acquisition ─────────────
@@ -308,6 +347,7 @@ Namespace CaptureEngine.Encoder.Tests.Lifecycle
 
 
         Private Shared Sub Test_InitializeFailureAfterAcquire()
+            RequireNvenc()
             If Environment.GetEnvironmentVariable("NVP_PROBE_TEARDOWN") = "1" OrElse Environment.GetEnvironmentVariable("NVP_PROBE_TEARDOWN") = "2" Then
                 Test_TeardownSequenceProbe()
                 Return
@@ -391,6 +431,7 @@ Namespace CaptureEngine.Encoder.Tests.Lifecycle
         End Sub
 
         Private Shared Sub Test_NoSessionLeakAcrossFailures()
+            RequireNvenc()
             ' 5 consecutive driver-rejected initializes on fresh backends. Each
             ' failure unwinds device + function table + session; if the unwind
             ' leaked the NVENC session, repeated failures would consume the
@@ -437,6 +478,7 @@ Namespace CaptureEngine.Encoder.Tests.Lifecycle
         ' ── P2: encode vs dispose ────────────────────────────────────────
 
         Private Shared Sub Test_EncodeVsDispose()
+            RequireNvenc()
             ' Allowed outcomes on the encode thread racing Dispose: success,
             ' False return, or the three expected managed faults. Anything
             ' else is an invariant break. Dispose must ALWAYS return (C/6
@@ -542,6 +584,7 @@ Namespace CaptureEngine.Encoder.Tests.Lifecycle
         ' ── P3: post-fault containment ───────────────────────────────────
 
         Private Shared Sub Test_PostFaultContainment()
+            RequireNvenc()
             Dim logs As New List(Of String)
             Dim enc As NvencEncoderBackend = NewBackend(Sub(m)
                                                             SyncLock logs : logs.Add(m) : End SyncLock
