@@ -1,0 +1,62 @@
+# Duluka Account — v0 auth/security slice
+
+Central account system for the Duluka ecosystem (NVIDIA ShadowPlay, Duluka Web,
+future products). **This directory is a separate product — no ShadowPlay code
+depends on it and none was modified.**
+
+Architecture discovery: see the C/4 + C/5 + C/6 v0.1 design (data model, server
+modules, security model). Implemented here: the **C/6 auth/security slice**.
+
+## Implemented (v0)
+
+- **GitHub OAuth** — Authorization Code + PKCE (S256) + one-time state (10 min TTL),
+  server-side code exchange, redirect-uri = the single configured value,
+  identity = GitHub `id` (numeric, stable; login/email are display-only)
+- **Account provisioning** — unknown identity creates a NEW account; known
+  `(ProviderKey, ProviderUserId)` logs into ITS account; the unique-anchor race
+  converges on one account (constraint + fallback re-read)
+- **Sessions** — opaque 256-bit tokens (`duluka_st_…`), SHA-256 hashed at rest
+  (raw token never stored), device-bound, sliding 7d / absolute 30d, revoke
+  per-session / per-device / logout-all
+- **Devices** — client-generated 256-bit device key (hashed at rest), revoked
+  keys can never silently re-register, cross-account key reuse rejected
+- **Provider unlink** — last-provider guard (409), credential row destroyed,
+  sessions issued via that link revoked
+- **NVIDIA provider = reserved** — `ProviderKeys.Nvidia` exists but has NO auth
+  flow. Hardware-derived identity (GPU UUID/serial/driver/fingerprint) is
+  explicitly banned as an auth identity (spoofable = bypass).
+- **Rate limiting** — per-IP fixed window: 10/min on auth starts, 240/min on API
+- **Secret redaction** — single implementation (`Security/Secrets.cs`); raw
+  tokens/codes/state never logged
+
+## NOT implemented in v0 (deliberate)
+
+- Sync endpoints (`/v1/sync/{product}`) — schema table exists, endpoints next phase
+- Provider token persistence — tokens are used transiently and discarded
+  (`CredentialReference` table exists, v0 writes no rows)
+- Migration framework — v0 applies idempotent DDL at startup + `SchemaHistory`
+- E2E encryption for sync blobs — open decision
+- Web client (cookie transport) — v0 returns the session token in the JSON body
+  (ShadowPlay-first)
+
+## Configuration
+
+| Key | Source | Notes |
+|---|---|---|
+| `GitHub:ClientId` | config or env `DULUKA_GitHub__ClientId` | non-secret |
+| `GitHub:ClientSecret` | **env `DULUKA_GitHub__ClientSecret` only** | never in config files |
+| `GitHub:RedirectUri` | config | must exactly match the GitHub app setting |
+| `Database:Path` | config | default `AppData/DulukaAccount.db` (gitignored) |
+
+## Run
+
+```text
+dotnet run --project Duluka/Duluka.Server -c Release
+dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 16 security tests
+```
+
+Endpoints: `POST /v1/auth/github/start` → GitHub authorize URL →
+`POST /v1/auth/github/callback {code, state, deviceKey}` → `{sessionToken,…}`;
+then `GET /v1/account/me`, `GET|POST|DELETE /v1/account/providers[…]`,
+`GET /v1/account/devices`, `POST /v1/account/devices/{id}/revoke`,
+`POST /v1/auth/session/{refresh,revoke}`, `POST /v1/auth/sessions/revoke-all`.

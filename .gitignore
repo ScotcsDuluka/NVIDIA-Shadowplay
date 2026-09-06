@@ -79,3 +79,6 @@ scripts/apphost_test/out_final
 !scripts/sync-reference.mp4
 /evidence
 /dist-installer
+
+# Duluka Server local data
+Duluka/**/AppData/
