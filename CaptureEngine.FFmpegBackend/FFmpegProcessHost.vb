@@ -31,7 +31,9 @@ Namespace CaptureEngine.FFmpegBackend
     '''   - Kill() swallows exceptions (process may already be dead)
     '''   - WaitForExit() returns False on timeout (does NOT throw)
     ''' </summary>
-    Public NotInheritable Class FFmpegProcessHost
+    ''' ★ C/5 DORMANT (audit 2026-09-06): zero production callers — constructed
+    ''' only by FFmpegPipelineBackend (dormant). Friend = compile-time isolation.
+    Friend NotInheritable Class FFmpegProcessHost
         Implements IDisposable
 
         Private _process As Process

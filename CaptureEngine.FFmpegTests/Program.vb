@@ -7,6 +7,7 @@ Imports System.Collections.Generic
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Globalization
+Imports System.Reflection
 Imports CaptureEngine.Backends
 Imports CaptureEngine.FFmpegBackend
 Imports CaptureEngine.Audio.Wasapi
@@ -23,6 +24,9 @@ Namespace CaptureEngine.FFmpegTests
             Console.WriteLine("==================================================")
             Console.WriteLine(" CaptureEngine.FFmpegBackend Tests (P1-C)")
             Console.WriteLine("==================================================")
+            ' C/4 provenance banner: ties this run to the exact binary that
+            ' executed it (BuildUtc + SourceRevision stamped at build time).
+            Console.WriteLine(" " & ProvenanceLine())
             Console.WriteLine()
 
             ' ----- StderrParser tests -----
@@ -145,6 +149,20 @@ Namespace CaptureEngine.FFmpegTests
         Friend Sub Assert(cond As Boolean, msg As String)
             If Not cond Then Throw New InvalidOperationException("ASSERT: " & msg)
         End Sub
+
+        ''' <summary>C/4 provenance: read the build-time stamp from this
+        ''' assembly's AssemblyMetadata (stamped by StampTestProvenance in
+        ''' Directory.Build.targets for every *Tests assembly).</summary>
+        Private Function ProvenanceLine() As String
+            Dim buildUtc As String = "unknown"
+            Dim sourceRev As String = "unknown"
+            For Each a As AssemblyMetadataAttribute In
+                Assembly.GetExecutingAssembly().GetCustomAttributes(Of AssemblyMetadataAttribute)()
+                If a.Key = "BuildUtc" Then buildUtc = a.Value
+                If a.Key = "SourceRevision" Then sourceRev = a.Value
+            Next
+            Return $"binary provenance: built {buildUtc} from source {sourceRev}"
+        End Function
 
         ' ===== FFmpegStderrParser tests =====
 

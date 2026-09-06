@@ -29,6 +29,7 @@ Imports System
 Imports System.Collections.Generic
 Imports System.Diagnostics
 Imports System.IO
+Imports System.Reflection
 Imports System.Threading
 Imports System.Threading.Tasks
 Imports NVIDIA_Capture
@@ -99,6 +100,11 @@ Namespace Engine.Concurrency.Tests
             Console.WriteLine(" Engine.Concurrency.Tests — H1/H2 regression")
             Console.WriteLine(" (real ffmpeg, real job object, real lifecycle)")
             Console.WriteLine("==================================================")
+            ' ★ C/4 provenance banner: ties this run to the exact binary that
+            ' executed it (BuildUtc + SourceRevision stamped at build time).
+            ' A --no-build run on a stale or other-agent-contaminated binary
+            ' can no longer pass silently as "proof of current source".
+            Console.WriteLine(" " & ProvenanceLine())
             Console.WriteLine()
 
             Try
@@ -238,6 +244,20 @@ Namespace Engine.Concurrency.Tests
             Catch
             End Try
             Return reclaimed
+        End Function
+
+        ''' <summary>C/4 provenance: read the build-time stamp from this
+        ''' assembly's AssemblyMetadata (stamped by StampTestProvenance in
+        ''' Directory.Build.targets for every *Tests assembly).</summary>
+        Private Function ProvenanceLine() As String
+            Dim buildUtc As String = "unknown"
+            Dim sourceRev As String = "unknown"
+            For Each a As AssemblyMetadataAttribute In
+                Assembly.GetExecutingAssembly().GetCustomAttributes(Of AssemblyMetadataAttribute)()
+                If a.Key = "BuildUtc" Then buildUtc = a.Value
+                If a.Key = "SourceRevision" Then sourceRev = a.Value
+            Next
+            Return $"binary provenance: built {buildUtc} from source {sourceRev}"
         End Function
 
         Private Function Setup() As Boolean

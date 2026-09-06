@@ -82,3 +82,5 @@ scripts/apphost_test/out_final
 
 # BL-1: build-emitted provenance artifact (regenerated every build)
 /installer/bl1-commit.txt
+# Duluka Server local data
+Duluka/**/AppData/

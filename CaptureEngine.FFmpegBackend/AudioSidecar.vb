@@ -29,7 +29,11 @@ Namespace CaptureEngine.FFmpegBackend
     '''   - Start/Stop are called from the FFmpegPipelineBackend thread (serialized)
     '''   - Internal state protected by SyncLock
     ''' </summary>
-    Public NotInheritable Class AudioSidecar
+    ''' ★ C/5 DORMANT (audit 2026-09-06): zero production callers — lifecycle-safe
+    ''' STUB (Start/Stop no-ops, HasAudioData always False) used only by the dormant
+    ''' FFmpegPipelineBackend + FFmpegTests. Friend = compile-time isolation.
+    ''' REMOVE-LATER candidate (with the FFPB family) — owner decision.
+    Friend NotInheritable Class AudioSidecar
         Implements IDisposable
 
         Private ReadOnly _sync As New Object()

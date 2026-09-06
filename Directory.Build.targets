@@ -490,6 +490,41 @@
 
     <Message Text="BL-1 stamp: v=$(_Bl1Version) sha=$(Bl1GitSha) (assembly=$(MSBuildProjectName))"
              Importance="low" />
+       StampTestProvenance (C/4 parallel-build contamination audit).
+       Every *Tests assembly carries its build identity:
+         AssemblyMetadata "BuildUtc"        — when the binary was produced
+         AssemblyMetadata "SourceRevision"  — git short HEAD (best-effort;
+                                              "unknown (git unavailable)"
+                                              when git is not on PATH)
+       Suites print this at startup, so a reported proof is tied to the
+       binary that produced it. A run that skips the build step against a
+       stale or other-agent-contaminated binary can no longer be silently
+       attributed to the current source. Production assemblies are
+       deliberately NOT stamped (zero runtime impact). Same source still
+       compiles byte-deterministically apart from this metadata (verified
+       by SHA-256 comparison during the audit).
+       ============================================================================ -->
+  <Target Name="StampTestProvenance" BeforeTargets="BeforeBuild"
+          Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(AssemblyName)', '(Tests)$'))">
+    <PropertyGroup>
+      <_ProvBuildUtc>$([System.DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"))</_ProvBuildUtc>
+      <_ProvGitRevRaw></_ProvGitRevRaw>
+    </PropertyGroup>
+    <Exec Command="git rev-parse --short HEAD" ConsoleToMsBuild="true" IgnoreExitCode="true"
+          IgnoreStandardErrorWarningFormat="true" StandardOutputImportance="low" StandardErrorImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_ProvGitRevRaw" />
+    </Exec>
+    <PropertyGroup>
+      <!-- Sanitizer: accept ONLY a hex short-hash. When git is unavailable
+           the Exec output may contain shell error text ("'git' is not
+           recognized...") — that must never leak into the stamp. -->
+      <_ProvSourceRev Condition="$([System.Text.RegularExpressions.Regex]::IsMatch('$(_ProvGitRevRaw.Trim())', '^[0-9a-f]{7,40}$'))">$(_ProvGitRevRaw.Trim())</_ProvSourceRev>
+      <_ProvSourceRev Condition="'$(_ProvSourceRev)' == ''">unknown (git unavailable)</_ProvSourceRev>
+    </PropertyGroup>
+    <ItemGroup>
+      <AssemblyMetadata Include="BuildUtc" Value="$(_ProvBuildUtc)" />
+      <AssemblyMetadata Include="SourceRevision" Value="$(_ProvSourceRev)" />
+    </ItemGroup>
   </Target>
 
 </Project>

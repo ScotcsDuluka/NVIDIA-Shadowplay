@@ -1,0 +1,456 @@
+using Microsoft.Data.Sqlite;
+using Duluka.Server.Domain;
+using Duluka.Server.Security;
+
+namespace Duluka.Server.Data;
+
+/// <summary>
+/// v0 SQLite bootstrap + data access. Parameterized SQL everywhere; secrets
+/// (session tokens, device keys) are stored ONLY as SHA-256 digests produced
+/// by Secrets.Sha256Hex. The raw token never reaches this layer.
+/// Schema is applied idempotently at startup with a SchemaHistory row — the
+/// v0 stand-in for a migration framework (operator-readable, no auto-magic).
+/// </summary>
+public sealed class Database : IAsyncDisposable
+{
+    private readonly SqliteConnection _conn;
+    private readonly ILogger<Database> _logger;
+
+    public Database(string dbPath, ILogger<Database> logger)
+    {
+        _logger = logger;
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(dbPath))!);
+        _conn = new SqliteConnection(new SqliteConnectionStringBuilder
+        {
+            DataSource = dbPath,
+            Mode = SqliteOpenMode.ReadWriteCreate,
+            Pooling = false,
+        }.ToString());
+        _conn.Open();
+        using var pragma = _conn.CreateCommand();
+        pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
+        pragma.ExecuteNonQuery();
+    }
+
+    public const int SchemaVersion = 1;
+
+    private static readonly string[] Ddl =
+    {
+        """
+        CREATE TABLE IF NOT EXISTS SchemaHistory(
+            Version INTEGER PRIMARY KEY,
+            AppliedAt TEXT NOT NULL)
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS DulukaAccount(
+            AccountId TEXT PRIMARY KEY,
+            Status TEXT NOT NULL DEFAULT 'Active',
+            DisplayName TEXT,
+            CreatedAt TEXT NOT NULL,
+            UpdatedAt TEXT NOT NULL)
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS AccountProviderLink(
+            LinkId TEXT PRIMARY KEY,
+            AccountId TEXT NOT NULL REFERENCES DulukaAccount(AccountId),
+            ProviderKey TEXT NOT NULL,
+            ProviderUserId TEXT NOT NULL,
+            ProviderEmail TEXT,
+            Status TEXT NOT NULL DEFAULT 'Active',
+            LinkedAt TEXT NOT NULL,
+            UnlinkedAt TEXT,
+            UNIQUE(ProviderKey, ProviderUserId))
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS AccountDevice(
+            DeviceId TEXT PRIMARY KEY,
+            AccountId TEXT NOT NULL REFERENCES DulukaAccount(AccountId),
+            DeviceName TEXT NOT NULL,
+            DeviceKeyHash TEXT NOT NULL UNIQUE,
+            CreatedAt TEXT NOT NULL,
+            LastSeenAt TEXT NOT NULL,
+            RevokedAt TEXT)
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS AccountSession(
+            SessionId TEXT PRIMARY KEY,
+            SessionTokenHash TEXT NOT NULL UNIQUE,
+            AccountId TEXT NOT NULL REFERENCES DulukaAccount(AccountId),
+            DeviceId TEXT NOT NULL REFERENCES AccountDevice(DeviceId),
+            IssuedViaLinkId TEXT,
+            CreatedAt TEXT NOT NULL,
+            ExpiresAt TEXT NOT NULL,
+            LastSeenAt TEXT NOT NULL,
+            RevokedAt TEXT,
+            RevokedReason TEXT)
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS SyncProfile(
+            AccountId TEXT NOT NULL REFERENCES DulukaAccount(AccountId),
+            ProductKey TEXT NOT NULL,
+            SchemaVersion INTEGER NOT NULL,
+            CurrentVersion INTEGER NOT NULL,
+            DataBlob BLOB,
+            UpdatedByDeviceId TEXT,
+            UpdatedAt TEXT NOT NULL,
+            UNIQUE(AccountId, ProductKey))
+        """,
+        """
+        CREATE TABLE IF NOT EXISTS CredentialReference(
+            LinkId TEXT PRIMARY KEY REFERENCES AccountProviderLink(LinkId),
+            ProviderKey TEXT NOT NULL,
+            ProviderUserId TEXT NOT NULL,
+            AccessTokenRef TEXT,
+            RefreshTokenRef TEXT,
+            Scopes TEXT,
+            ObtainedAt TEXT NOT NULL,
+            ExpiresAt TEXT)
+        """,
+        "CREATE INDEX IF NOT EXISTS IX_Session_Account ON AccountSession(AccountId, RevokedAt)",
+        "CREATE INDEX IF NOT EXISTS IX_Session_Device ON AccountSession(DeviceId, RevokedAt)",
+        "CREATE INDEX IF NOT EXISTS IX_Link_Account ON AccountProviderLink(AccountId, Status)",
+    };
+
+    public void Bootstrap()
+    {
+        using var tx = _conn.BeginTransaction();
+        foreach (var ddl in Ddl)
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = ddl;
+            cmd.ExecuteNonQuery();
+        }
+        using (var mark = _conn.CreateCommand())
+        {
+            mark.Transaction = tx;
+            mark.CommandText =
+                "INSERT OR REPLACE INTO SchemaHistory(Version, AppliedAt) VALUES ($v, $at)";
+            mark.Parameters.AddWithValue("$v", SchemaVersion);
+            mark.Parameters.AddWithValue("$at", DateTimeOffset.UtcNow.ToString("o"));
+            mark.ExecuteNonQuery();
+        }
+        tx.Commit();
+        _logger.LogInformation("Duluka database schema ready (schema v{Version})", SchemaVersion);
+    }
+
+    // ─── Accounts ───────────────────────────────────────────────────────────
+
+    public DulukaAccount CreateAccount(string? displayName)
+    {
+        var account = new DulukaAccount(
+            Secrets.NewToken("duluka_acc_"), AccountStatus.Active, displayName,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow);
+        Exec("INSERT INTO DulukaAccount(AccountId, Status, DisplayName, CreatedAt, UpdatedAt) " +
+             "VALUES ($id, $st, $dn, $ca, $ua)",
+            ("$id", account.AccountId), ("$st", account.Status), ("$dn", (object?)account.DisplayName ?? DBNull.Value),
+            ("$ca", account.CreatedAt.ToString("o")), ("$ua", account.UpdatedAt.ToString("o")));
+        return account;
+    }
+
+    public DulukaAccount? GetAccount(string accountId)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT AccountId, Status, DisplayName, CreatedAt, UpdatedAt FROM DulukaAccount WHERE AccountId=$id";
+        cmd.Parameters.AddWithValue("$id", accountId);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapAccount(r) : null;
+    }
+
+    private static DulukaAccount MapAccount(SqliteDataReader r) => new(
+        r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2),
+        DateTimeOffset.Parse(r.GetString(3)), DateTimeOffset.Parse(r.GetString(4)));
+
+    // ─── Provider links ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Upsert by the (ProviderKey, ProviderUserId) anchor. On unique-constraint
+    /// violation (the duplicate-account race) re-reads the existing row instead
+    /// of creating a second account — this is the anti-duplicate fallback.
+    /// Returns the link AND whether an account already existed for it.
+    /// </summary>
+    public (AccountProviderLink Link, DulukaAccount Account, bool Existed) UpsertLink(
+        string providerKey, string providerUserId, string? providerEmail, string? displayName)
+    {
+        var existing = FindActiveLink(providerKey, providerUserId);
+        if (existing is not null)
+        {
+            var acc = GetAccount(existing.AccountId)!;
+            return (existing, acc, true);
+        }
+
+        var account = CreateAccount(displayName);
+        var link = new AccountProviderLink(
+            Secrets.NewToken("duluka_link_"), account.AccountId, providerKey, providerUserId,
+            providerEmail, LinkStatus.Active, DateTimeOffset.UtcNow, null);
+        try
+        {
+            Exec("INSERT INTO AccountProviderLink(LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt) " +
+                 "VALUES ($lid, $aid, $pk, $puid, $pe, 'Active', $la)",
+                ("$lid", link.LinkId), ("$aid", link.AccountId), ("$pk", link.ProviderKey),
+                ("$puid", link.ProviderUserId), ("$pe", (object?)link.ProviderEmail ?? DBNull.Value),
+                ("$la", link.LinkedAt.ToString("o")));
+            return (link, account, false);
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            // Lost the unique-anchor race (concurrent first-login for the same
+            // provider identity). Converge on the winner's account.
+            var winner = FindActiveLink(providerKey, providerUserId)
+                         ?? throw new InvalidOperationException(
+                             "unique-anchor race converged to no row", ex);
+            Exec("DELETE FROM DulukaAccount WHERE AccountId=$id AND AccountId NOT IN " +
+                 "(SELECT AccountId FROM AccountProviderLink WHERE ProviderKey=$pk AND ProviderUserId=$puid)",
+                ("$id", account.AccountId), ("$pk", providerKey), ("$puid", providerUserId));
+            return (winner, GetAccount(winner.AccountId)!, true);
+        }
+    }
+
+    public AccountProviderLink? FindActiveLink(string providerKey, string providerUserId)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
+                          "FROM AccountProviderLink WHERE ProviderKey=$pk AND ProviderUserId=$puid AND Status='Active'";
+        cmd.Parameters.AddWithValue("$pk", providerKey);
+        cmd.Parameters.AddWithValue("$puid", providerUserId);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapLink(r) : null;
+    }
+
+    public AccountProviderLink? GetLink(string linkId)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
+                          "FROM AccountProviderLink WHERE LinkId=$lid";
+        cmd.Parameters.AddWithValue("$lid", linkId);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapLink(r) : null;
+    }
+
+    /// <summary>Explicit insert of a fully-formed link (test seeding / future
+    /// admin flows). UpsertLink is the production path.</summary>
+    public void AddLink(AccountProviderLink link)
+    {
+        Exec("INSERT INTO AccountProviderLink(LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt) " +
+             "VALUES ($lid, $aid, $pk, $puid, $pe, $st, $la, $ua)",
+            ("$lid", link.LinkId), ("$aid", link.AccountId), ("$pk", link.ProviderKey),
+            ("$puid", link.ProviderUserId), ("$pe", (object?)link.ProviderEmail ?? DBNull.Value),
+            ("$st", link.Status), ("$la", link.LinkedAt.ToString("o")),
+            ("$ua", link.UnlinkedAt is null ? DBNull.Value : link.UnlinkedAt.Value.ToString("o")));
+    }
+
+    public IReadOnlyList<AccountProviderLink> LinksForAccount(string accountId)
+    {
+        var list = new List<AccountProviderLink>();
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
+                          "FROM AccountProviderLink WHERE AccountId=$aid ORDER BY LinkedAt";
+        cmd.Parameters.AddWithValue("$aid", accountId);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(MapLink(r));
+        return list;
+    }
+
+    public int ActiveLinkCount(string accountId)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM AccountProviderLink WHERE AccountId=$aid AND Status='Active'";
+        cmd.Parameters.AddWithValue("$aid", accountId);
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    public void Unlink(string linkId, DateTimeOffset at)
+    {
+        Exec("UPDATE AccountProviderLink SET Status='Unlinked', UnlinkedAt=$at WHERE LinkId=$lid",
+            ("$at", at.ToString("o")), ("$lid", linkId));
+        // Credential rows are destroyed with the link — no provider token outlives it.
+        Exec("DELETE FROM CredentialReference WHERE LinkId=$lid", ("$lid", linkId));
+    }
+
+    private static AccountProviderLink MapLink(SqliteDataReader r) => new(
+        r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3),
+        r.IsDBNull(4) ? null : r.GetString(4), r.GetString(5),
+        DateTimeOffset.Parse(r.GetString(6)), r.IsDBNull(7) ? null : DateTimeOffset.Parse(r.GetString(7)));
+
+    // ─── Devices ────────────────────────────────────────────────────────────
+
+    public AccountDevice? FindDeviceByKeyHash(string deviceKeyHash)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt, RevokedAt " +
+                          "FROM AccountDevice WHERE DeviceKeyHash=$h";
+        cmd.Parameters.AddWithValue("$h", deviceKeyHash);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapDevice(r) : null;
+    }
+
+    public AccountDevice CreateDevice(string accountId, string deviceName, string deviceKeyHash)
+    {
+        var device = new AccountDevice(
+            Secrets.NewToken("duluka_dev_"), accountId, deviceName, deviceKeyHash,
+            DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null);
+        Exec("INSERT INTO AccountDevice(DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt) " +
+             "VALUES ($id, $aid, $dn, $kh, $ca, $lsa)",
+            ("$id", device.DeviceId), ("$aid", device.AccountId), ("$dn", device.DeviceName),
+            ("$kh", device.DeviceKeyHash), ("$ca", device.CreatedAt.ToString("o")),
+            ("$lsa", device.LastSeenAt.ToString("o")));
+        return device;
+    }
+
+    public void TouchDevice(string deviceId)
+    {
+        Exec("UPDATE AccountDevice SET LastSeenAt=$t WHERE DeviceId=$id",
+            ("$t", DateTimeOffset.UtcNow.ToString("o")), ("$id", deviceId));
+    }
+
+    public IReadOnlyList<AccountDevice> DevicesForAccount(string accountId)
+    {
+        var list = new List<AccountDevice>();
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt, RevokedAt " +
+                          "FROM AccountDevice WHERE AccountId=$aid ORDER BY CreatedAt";
+        cmd.Parameters.AddWithValue("$aid", accountId);
+        using var r = cmd.ExecuteReader();
+        while (r.Read()) list.Add(MapDevice(r));
+        return list;
+    }
+
+    public AccountDevice? GetDevice(string deviceId)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt, RevokedAt " +
+                          "FROM AccountDevice WHERE DeviceId=$id";
+        cmd.Parameters.AddWithValue("$id", deviceId);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapDevice(r) : null;
+    }
+
+    public int RevokeDevice(string deviceId, DateTimeOffset at)
+    {
+        Exec("UPDATE AccountDevice SET RevokedAt=$at WHERE DeviceId=$id AND RevokedAt IS NULL",
+            ("$at", at.ToString("o")), ("$id", deviceId));
+        return RevokeSessionsForDevice(deviceId, at, "device-revoke");
+    }
+
+    private static AccountDevice MapDevice(SqliteDataReader r) => new(
+        r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3),
+        DateTimeOffset.Parse(r.GetString(4)), DateTimeOffset.Parse(r.GetString(5)),
+        r.IsDBNull(6) ? null : DateTimeOffset.Parse(r.GetString(6)));
+
+    // ─── Sessions ───────────────────────────────────────────────────────────
+
+    public AccountSession CreateSession(string accountId, string deviceId, string? viaLinkId,
+        string tokenHash, DateTimeOffset expiresAt)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var session = new AccountSession(
+            Secrets.NewToken("duluka_sess_"), tokenHash, accountId, deviceId, viaLinkId,
+            now, expiresAt, now, null, null);
+        Exec("INSERT INTO AccountSession(SessionId, SessionTokenHash, AccountId, DeviceId, IssuedViaLinkId, CreatedAt, ExpiresAt, LastSeenAt) " +
+             "VALUES ($sid, $th, $aid, $did, $via, $ca, $ea, $lsa)",
+            ("$sid", session.SessionId), ("$th", session.SessionTokenHash), ("$aid", session.AccountId),
+            ("$did", session.DeviceId), ("$via", (object?)session.IssuedViaLinkId ?? DBNull.Value),
+            ("$ca", session.CreatedAt.ToString("o")), ("$ea", session.ExpiresAt.ToString("o")),
+            ("$lsa", session.LastSeenAt.ToString("o")));
+        return session;
+    }
+
+    /// <summary>Full-chain validation: token hash → session not revoked/expired →
+    /// device not revoked → account Active. Any broken link means 401.</summary>
+    public (AccountSession Session, AccountDevice Device, DulukaAccount Account)? ValidateSession(string tokenHash)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT s.SessionId, s.SessionTokenHash, s.AccountId, s.DeviceId, s.IssuedViaLinkId,
+                   s.CreatedAt, s.ExpiresAt, s.LastSeenAt, s.RevokedAt, s.RevokedReason,
+                   d.RevokedAt, a.Status
+            FROM AccountSession s
+            JOIN AccountDevice d ON d.DeviceId = s.DeviceId
+            JOIN DulukaAccount a ON a.AccountId = s.AccountId
+            WHERE s.SessionTokenHash = $th
+            """;
+        cmd.Parameters.AddWithValue("$th", tokenHash);
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return null;
+
+        var session = new AccountSession(
+            r.GetString(0), r.GetString(1), r.GetString(2), r.GetString(3),
+            r.IsDBNull(4) ? null : r.GetString(4), DateTimeOffset.Parse(r.GetString(5)),
+            DateTimeOffset.Parse(r.GetString(6)), DateTimeOffset.Parse(r.GetString(7)),
+            r.IsDBNull(8) ? null : DateTimeOffset.Parse(r.GetString(8)),
+            r.IsDBNull(9) ? null : r.GetString(9));
+        if (session.RevokedAt is not null) return null;
+        if (session.ExpiresAt <= DateTimeOffset.UtcNow) return null;
+        if (!r.IsDBNull(10)) return null;                                   // device revoked
+        var status = r.GetString(11);
+        if (!string.Equals(status, AccountStatus.Active, StringComparison.Ordinal)) return null;
+
+        var device = GetDevice(session.DeviceId)!;
+        var account = GetAccount(session.AccountId)!;
+        TouchSession(session.SessionId);
+        return (session, device, account);
+    }
+
+    public void TouchSession(string sessionId)
+    {
+        Exec("UPDATE AccountSession SET LastSeenAt=$t WHERE SessionId=$id",
+            ("$t", DateTimeOffset.UtcNow.ToString("o")), ("$id", sessionId));
+    }
+
+    /// <summary>Sliding refresh bounded by the absolute cap from creation.</summary>
+    public DateTimeOffset? RefreshSession(string tokenHash, TimeSpan slidingWindow)
+    {
+        var validation = ValidateSession(tokenHash);
+        if (validation is null) return null;
+        var (session, _, _) = validation.Value;
+        var proposed = DateTimeOffset.UtcNow + slidingWindow;
+        var capped = DateTimeOffset.Compare(proposed, session.CreatedAt + TimeSpan.FromDays(30)) > 0
+            ? session.CreatedAt + TimeSpan.FromDays(30)
+            : proposed;
+        if (capped <= session.ExpiresAt) return session.ExpiresAt;
+        Exec("UPDATE AccountSession SET ExpiresAt=$ea WHERE SessionId=$id",
+            ("$ea", capped.ToString("o")), ("$id", session.SessionId));
+        return capped;
+    }
+
+    public bool RevokeSessionByTokenHash(string tokenHash, string reason, DateTimeOffset at)
+    {
+        return Exec("UPDATE AccountSession SET RevokedAt=$at, RevokedReason=$r " +
+                    "WHERE SessionTokenHash=$th AND RevokedAt IS NULL",
+            ("$at", at.ToString("o")), ("$r", reason), ("$th", tokenHash)) == 1;
+    }
+
+    public int RevokeSessionsForDevice(string deviceId, DateTimeOffset at, string reason)
+    {
+        return Exec("UPDATE AccountSession SET RevokedAt=$at, RevokedReason=$r " +
+                    "WHERE DeviceId=$id AND RevokedAt IS NULL",
+            ("$at", at.ToString("o")), ("$r", reason), ("$id", deviceId));
+    }
+
+    public int RevokeSessionsForLink(string linkId, DateTimeOffset at, string reason)
+    {
+        return Exec("UPDATE AccountSession SET RevokedAt=$at, RevokedReason=$r " +
+                    "WHERE IssuedViaLinkId=$lid AND RevokedAt IS NULL",
+            ("$at", at.ToString("o")), ("$r", reason), ("$lid", linkId));
+    }
+
+    public int RevokeAllForAccount(string accountId, DateTimeOffset at, string reason)
+    {
+        return Exec("UPDATE AccountSession SET RevokedAt=$at, RevokedReason=$r " +
+                    "WHERE AccountId=$aid AND RevokedAt IS NULL",
+            ("$at", at.ToString("o")), ("$r", reason), ("$aid", accountId));
+    }
+
+    // ─── infrastructure ─────────────────────────────────────────────────────
+
+    private int Exec(string sql, params (string Name, object Value)[] parameters)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = sql;
+        foreach (var (name, value) in parameters)
+            cmd.Parameters.AddWithValue(name, value);
+        return cmd.ExecuteNonQuery();
+    }
+
+    public async ValueTask DisposeAsync() => await _conn.DisposeAsync();
+}
