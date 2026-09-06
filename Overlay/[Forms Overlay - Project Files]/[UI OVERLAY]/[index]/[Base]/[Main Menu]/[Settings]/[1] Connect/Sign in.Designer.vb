@@ -24,6 +24,7 @@ Partial Class Base_Connect_Signin
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Signin))
         Settings_Panel = New Panel()
+        BT_Back = New Label()
         Settings_TEXT = New Label()
         Auth_PROMPT = New Label()
         Card_PANEL = New Panel()
@@ -39,7 +40,6 @@ Partial Class Base_Connect_Signin
         Status_TEXT = New Label()
         Box_Bg = New PictureBox()
         Dim_Top = New PictureBox()
-        BT_Back = New Label()
         Dim_1 = New PictureBox()
         Dim_2 = New PictureBox()
         Settings_Panel.SuspendLayout()
@@ -65,6 +65,20 @@ Partial Class Base_Connect_Signin
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
+        ' 
+        ' BT_Back
+        ' 
+        BT_Back.Anchor = AnchorStyles.Top
+        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_Back.Cursor = Cursors.Hand
+        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
+        BT_Back.ForeColor = Color.White
+        BT_Back.Location = New Point(651, 569)
+        BT_Back.Name = "BT_Back"
+        BT_Back.Size = New Size(458, 39)
+        BT_Back.TabIndex = 58
+        BT_Back.Text = "Back"
+        BT_Back.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Settings_TEXT
         ' 
@@ -213,15 +227,16 @@ Partial Class Base_Connect_Signin
         Provider_NOTE.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Provider_NOTE.Font = New Font("Segoe UI", 8.75F)
         Provider_NOTE.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(165))
-        Provider_NOTE.Location = New Point(669, 500)
+        Provider_NOTE.Location = New Point(651, 500)
         Provider_NOTE.Name = "Provider_NOTE"
-        Provider_NOTE.Size = New Size(428, 15)
+        Provider_NOTE.Size = New Size(458, 15)
         Provider_NOTE.TabIndex = 74
         Provider_NOTE.Text = "GitHub is an authentication provider linked to your Duluka Account."
         Provider_NOTE.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Status_TEXT
         ' 
+        Status_TEXT.Anchor = AnchorStyles.Top
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
         Status_TEXT.ForeColor = Color.Silver
@@ -250,20 +265,6 @@ Partial Class Base_Connect_Signin
         Dim_Top.Size = New Size(458, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        ' 
-        ' BT_Back
-        ' 
-        BT_Back.Anchor = AnchorStyles.Top
-        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
-        BT_Back.ForeColor = Color.White
-        BT_Back.Location = New Point(651, 569)
-        BT_Back.Name = "BT_Back"
-        BT_Back.Size = New Size(458, 39)
-        BT_Back.TabIndex = 58
-        BT_Back.Text = "Back"
-        BT_Back.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Dim_1
         ' 
