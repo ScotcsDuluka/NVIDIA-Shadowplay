@@ -41,7 +41,7 @@ still reproduces exactly · SKIP = environment not capable.
 
 | ID | Violation (previous report) | Verdict | Evidence in this suite |
 |---|---|---|---|
-| M-1 | Malformed/empty JSON → naked 500, empty body | **STILL VIOLATED** | S-6, S-7, ENV-1: `JsonDocument.ParseAsync` remains unguarded on all 4 body-parsing endpoints; the C/5 catch-alls cover only the callback/complete exchange sections |
+| M-1 | Malformed/empty JSON → naked 500, empty body | **FIXED** (dedicated commit after the verification pass) | S-6/S-7/S-8/S-9/S-10 + ENV-1: every body-parsing endpoint (`start`, `callback`, link-flow `start`, `complete`) now answers 400 `bad_request` in the canonical §7.1 envelope (ok=false, reqId echo, httpStatus=400, retryable=false, conflict, message) for malformed/empty/truncated bodies; valid bodies unchanged |
 | M-2 | Suspended account → 401 (contract §6.3: 403 `account_suspended`) | **STILL VIOLATED** | ME-9: suspended → 401 `auth.session_expired` (code updated, status still wrong) |
 | M-3 | No one-active-session-per-device | **FIXED** | ME-8: `CreateSession` now revokes-before-insert; superseded token → 401 `auth.session_revoked`, new token → 200 |
 | M-4 | Envelope `{error:{code,message}}`, no §7.1 fields, no registry codes | **FIXED** | ENV-2 + every `ExpectErr`: full §7.1 envelope, X-ReqId echoed verbatim, registry codes on the wire; `invalid_*`/`provider_reserved` remain as documented §7.2 extensions |
@@ -51,7 +51,7 @@ still reproduces exactly · SKIP = environment not capable.
 | M-8 | 401 root causes conflated into `session_invalid` | **FIXED** | ME-7: revoked → `auth.session_revoked`, expired/unknown/missing → `auth.session_expired` (frozen §7.2 registry has no `unknown_session` code; the conflation of unknown with expired is the documented registry decision) |
 | M-9 | Second revoke → 401 (C/2 SES-2b: idempotent 200) | **STILL VIOLATED** | SES-5: second revoke → 401 `auth.session_revoked`; no-resurrect security property holds |
 
-**Score: 4 of 9 fixed (M-3, M-4, M-5, M-8); 5 still violated (M-1, M-2, M-6, M-7, M-9).**
+**Score: 5 of 9 fixed (M-1, M-3, M-4, M-5, M-8); 4 still violated (M-2, M-6, M-7, M-9).**
 
 ## 2. Newly discovered mismatches (this pass)
 
@@ -98,18 +98,20 @@ failures now converge to a `server.internal` envelope (§5.4-2).
 | `Duluka/Duluka.Server.Tests` | 16 / 0 | **24 / 0** (C/5 added 8) |
 | `Duluka.Account.Tests` (C/2 executable spec) | 19 / 0 (+1 skipped group) | 19 / 0 (+1 skipped group) |
 | `API.Hub.Boundary.Tests` | 10 / 0 | 9 / 0 (+1 env-dependent skip: live-hub ping, hub not running) |
-| **`Duluka/Duluka.Http.Integration.Tests`** | **95 / 0** (038589c) | **99 / 0** (this pass; 99 = 95 − 1 renamed merge + 5 new: RACE-5, RACE-6, ENV-3, XREQ-1, ENV-2 split) |
+| **`Duluka/Duluka.Http.Integration.Tests`** | **95 / 0** (038589c) | **102 / 0** (verification pass 99, M-1 fix pass +3: S-8 truncated, S-9 callback, S-10 link-start malformed) |
 | **Total** | 140 | **151** |
 
-**HTTP-suite before/after for this task: 95 tests → 99 tests; against the CURRENT server
-the unmodified baseline scored 33/95 — the updated suite scores 99/99 with 5 still-
-violated + 2 newly-discovered tracked mismatches (M-1, M-2, M-6, M-7, M-9, M-10, M-11).**
+**HTTP-suite before/after for this task: 95 tests → 99 tests (verification pass) → 102
+tests (M-1 fix pass); against the CURRENT server the unmodified baseline scored 33/95 —
+the updated suite scores 102/102 with 4 still-violated + 2 newly-discovered tracked
+mismatches (M-2, M-6, M-7, M-9, M-10, M-11).**
 
-**Determinism evidence:** three consecutive full runs → identical `RESULT: 99 passed,
+**Determinism evidence:** three consecutive full runs → identical `RESULT: 102 passed,
 0 failed` and identical mismatch ledgers; no timing-based assertions; the only
 environment-dependent group (G3) is honestly SKIP-gated on github.com egress.
 
-**Production code was not modified.** Fixes belong to C/5: M-1 (wrap body parsing),
-M-2 (suspended → 403), M-6 (catch SqliteException 19 in `LoginOrLink`/`CreateDevice`),
-M-7 (attach the `api` policy), M-9 (idempotent revoke), M-10 (attach conflict resource),
-M-11 (use `DeadSessionCode` in link-complete).
+**M-1 fix note (dedicated commit):** the only production change since the verification
+pass is `Wire.TryParseBodyAsync` — a `JsonException`-scoped body-parse guard at the four
+request-parsing sites, answering 400 `bad_request` in the canonical envelope. Valid-body
+behavior, all other endpoints, and the remaining mismatches (M-2, M-6, M-7, M-9, M-10,
+M-11) are untouched — fixes for those still belong to C/5.

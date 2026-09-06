@@ -101,9 +101,14 @@ internal static class Groups
 
     public static void AuthStart(Runner r)
     {
-        r.Group("G1 auth/start validation", configureGitHub: true, budget: 7, ctx =>
+        r.Group("G1 auth/start validation", configureGitHub: true, budget: 10, ctx =>
         {
             var app = ctx.App;
+            // Seeded session: S-10 proves the link-flow start endpoint parses
+            // its body AFTER auth — the malformed-body 400 needs a valid bearer.
+            var accG1 = app.SeedAccount("g1");
+            var (devG1, _) = app.SeedDevice(accG1, "g1-dev");
+            var tG1 = app.SeedSession(accG1, devG1, null);
 
             r.Run("S-1 missing deviceName → 400 invalid_device_name", () =>
                 ServerApp.ExpectErr(app.Post("/v1/auth/github/start", new { deviceKey = Key(256) }),
@@ -142,21 +147,28 @@ internal static class Groups
                 ServerApp.ExpectStatus(
                     app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(300 * 8) }), 200, "S-5"));
 
-            r.Run("S-6 malformed JSON body → HTTP 500 empty body — MISMATCH M-1 (unfixed)", () =>
+            r.Run("S-6 malformed JSON body → 400 bad_request envelope (M-1 FIXED)", () =>
             {
-                var resp = app.PostRaw("/v1/auth/github/start", "not json");
-                ServerApp.ExpectStatus(resp, 500, "S-6");
-                ServerApp.Assert(resp.Body.Length == 0,
-                    $"S-6: naked 500 must have empty body, got: {ServerApp.Trunc(resp.Body)}");
-                r.Mismatch("M-1", $"malformed JSON → {resp.Status} with EMPTY body (client protocol error must be 4xx)");
+                // M-1 was: malformed/empty JSON escaped as a naked 500 with an
+                // empty body. The fix maps every client protocol error to the
+                // canonical 400 envelope (ExpectErr asserts ok=false, reqId
+                // echo, httpStatus=400, retryable=false, conflict, message).
+                ServerApp.ExpectErr(app.PostRaw("/v1/auth/github/start", "not json"),
+                    400, "bad_request", "S-6");
             });
 
-            r.Run("S-7 empty body → HTTP 500 — MISMATCH M-1 (unfixed)", () =>
-            {
-                var resp = app.PostRaw("/v1/auth/github/start", "");
-                ServerApp.ExpectStatus(resp, 500, "S-7");
-                r.Mismatch("M-1", $"empty body → {resp.Status}");
-            });
+            r.Run("S-7 empty body → 400 bad_request envelope (M-1 FIXED)", () =>
+                ServerApp.ExpectErr(app.PostRaw("/v1/auth/github/start", ""), 400, "bad_request", "S-7"));
+
+            r.Run("S-8 truncated JSON body → 400 bad_request envelope", () =>
+                ServerApp.ExpectErr(app.PostRaw("/v1/auth/github/start", "{\"deviceName\":\"d\","),
+                    400, "bad_request", "S-8"));
+
+            r.Run("S-9 malformed JSON on callback → 400 bad_request (all parse sites covered)", () =>
+                ServerApp.ExpectErr(app.PostRaw("/v1/auth/github/callback", "not json"), 400, "bad_request", "S-9"));
+
+            r.Run("S-10 malformed JSON on link-flow start (authed) → 400 bad_request", () =>
+                ServerApp.ExpectErr(app.PostRaw("/v1/account/providers", "not json", bearer: tG1), 400, "bad_request", "S-10"));
 
             r.Run("S-8 log sweep G1 (raw device keys never logged)", () => app.Sweep("S-8"));
         });
@@ -962,7 +974,7 @@ internal static class Groups
 
     public static void ContractSweep(Runner r)
     {
-        r.Group("G11 envelope + contract sweep", configureGitHub: true, budget: 8, ctx =>
+        r.Group("G11 envelope + contract sweep", configureGitHub: true, budget: 9, ctx =>
         {
             var app = ctx.App;
             var accA = app.SeedAccount("alice");
@@ -983,6 +995,7 @@ internal static class Groups
                     ("device-revoke/unknown", app.Post("/v1/account/devices/duluka_dev_unknown/revoke", bearer: tA1)),
                     ("last-provider", app.Delete($"/v1/account/providers/{linkA1}", tA1)),
                     ("start/malformed-json", app.PostRaw("/v1/auth/github/start", "not json")),
+                    ("complete/malformed-json", app.PostRaw("/v1/account/providers/github/complete", "not json")),
                 };
                 var expected = new Dictionary<string, (int Status, string? Code)>
                 {
@@ -994,7 +1007,8 @@ internal static class Groups
                     ["unlink/unknown"] = (404, "nf.link"),
                     ["device-revoke/unknown"] = (404, "nf.device"),
                     ["last-provider"] = (409, "conflict.link_conflict"),
-                    ["start/malformed-json"] = (500, null), // naked 500 — M-1
+                    ["start/malformed-json"] = (400, "bad_request"), // M-1 fixed
+                    ["complete/malformed-json"] = (400, "bad_request"), // M-1 fixed
                 };
                 foreach (var (label, resp) in corpus)
                 {

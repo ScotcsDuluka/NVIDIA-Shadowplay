@@ -66,7 +66,7 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
 ```text
 dotnet run --project Duluka/Duluka.Server -c Release
 dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 24 tests (service-level + live HTTP contract)
-dotnet run --project Duluka/Duluka.Http.Integration.Tests -c Release  # 99 black-box HTTP tests (real server + real SQLite)
+dotnet run --project Duluka/Duluka.Http.Integration.Tests -c Release  # 102 black-box HTTP tests (real server + real SQLite)
 ```
 
 ## Black-box HTTP regression (C/2)
@@ -79,8 +79,8 @@ persistence, the 401/404/409 matrix and the error envelope. GitHub identity exch
 never faked; the one egress-dependent group is honestly SKIP-gated.
 
 Contract violations found by the suite are tracked in the mismatch ledger
-(M-1..M-11 — after the C/5 reconcile: M-3/M-4/M-5/M-8 fixed and now contract-PASS tests;
-M-1/M-2/M-6/M-7/M-9/M-10/M-11 still open) in
+(M-1..M-11 — M-1/M-3/M-4/M-5/M-8 fixed and now contract-PASS tests;
+M-2/M-6/M-7/M-9/M-10/M-11 still open) in
 [Duluka.Http.Integration.Tests/TEST-MATRIX.md](Duluka.Http.Integration.Tests/TEST-MATRIX.md) —
 each is a fix required in `Duluka.Server`, not in the tests. A test passes only while the
 tracked violation still reproduces exactly, so the ledger can never go stale silently.

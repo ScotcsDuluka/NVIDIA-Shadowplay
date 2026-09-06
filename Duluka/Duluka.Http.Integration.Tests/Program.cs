@@ -90,8 +90,10 @@ internal sealed class Runner
     private static readonly string[] LedgerIds =
     {
         // Ledger after the C/5 reconcile verification pass: M-3, M-4, M-5 and
-        // M-8 were FIXED by C/5 and became contract-PASS tests; still violated:
-        "M-1", "M-2", "M-6", "M-7", "M-9", "M-10", "M-11",
+        // M-8 were FIXED by C/5 and became contract-PASS tests; M-1 was fixed
+        // by the dedicated malformed-JSON commit and became a contract-PASS
+        // test. Still violated:
+        "M-2", "M-6", "M-7", "M-9", "M-10", "M-11",
     };
 
     public sealed class GroupCtx

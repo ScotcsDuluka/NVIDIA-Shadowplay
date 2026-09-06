@@ -95,7 +95,9 @@ app.MapPost("/v1/auth/{provider}/start", async (string provider, HttpRequest req
         return Wire.Err(req, 501, WireCodes.ProviderReserved,
             $"Provider '{provider}' is reserved but has no authentication flow in this version.");
 
-    using var body = await System.Text.Json.JsonDocument.ParseAsync(req.Body);
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
     var deviceName = body.RootElement.TryGetProperty("deviceName", out var dn) ? dn.GetString() : null;
     var deviceKey = body.RootElement.TryGetProperty("deviceKey", out var dk) ? dk.GetString() : null;
 
@@ -123,7 +125,9 @@ app.MapPost("/v1/auth/{provider}/callback", async (string provider, HttpRequest 
     if (!ProviderKeys.IsImplemented(provider))
         return Wire.Err(req, 501, WireCodes.ProviderReserved, $"Provider '{provider}' is reserved in this version.");
 
-    using var body = await System.Text.Json.JsonDocument.ParseAsync(req.Body);
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
     string get(string name) =>
         body.RootElement.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
             ? el.GetString() ?? "" : "";
@@ -188,7 +192,9 @@ app.MapPost("/v1/account/providers", async (HttpRequest req) =>
     var validation = sessionService.Validate(token);
     if (validation is null) return Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.");
 
-    using var body = await System.Text.Json.JsonDocument.ParseAsync(req.Body);
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
     var provider = body.RootElement.TryGetProperty("provider", out var p) ? p.GetString() : null;
     if (string.IsNullOrWhiteSpace(provider)) return Wire.Err(req, 400, "invalid_provider", "provider is required.");
     if (!ProviderKeys.IsImplemented(provider))
@@ -209,7 +215,9 @@ app.MapPost("/v1/account/providers/{provider}/complete", async (string provider,
     if (!ProviderKeys.IsImplemented(provider))
         return Wire.Err(req, 501, WireCodes.ProviderReserved, $"Provider '{provider}' is reserved in this version.");
 
-    using var body = await System.Text.Json.JsonDocument.ParseAsync(req.Body);
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
     string get(string name) =>
         body.RootElement.TryGetProperty(name, out var el) && el.ValueKind == JsonValueKind.String
             ? el.GetString() ?? "" : "";
@@ -395,11 +403,21 @@ internal static class Wire
         var v = values[0]?.Trim();
         return string.IsNullOrEmpty(v) ? null : v;
     }
+
+    /// <summary>Parse the request body as JSON. Returns null for a
+    /// malformed/empty/truncated body — a client protocol error must answer the
+    /// 400 bad_request envelope (§7.1), never an unhandled 500 with an empty
+    /// body. Transport-level stream failures are NOT swallowed here.</summary>
+    public static async Task<JsonDocument?> TryParseBodyAsync(HttpRequest req)
+    {
+        try { return await System.Text.Json.JsonDocument.ParseAsync(req.Body); }
+        catch (System.Text.Json.JsonException) { return null; }
+    }
 }
 
 /// <summary>§7.2 registry codes actually emitted on the wire. Codes outside
-/// the frozen registry (provider_*, invalid_*) are documented extensions —
-/// clients fall back per HTTP class (§7.2 unknown-code rule).</summary>
+/// the frozen registry (provider_*, invalid_*, bad_request) are documented
+/// extensions — clients fall back per HTTP class (§7.2 unknown-code rule).</summary>
 internal static class WireCodes
 {
     public const string AuthSessionExpired = "auth.session_expired";
@@ -411,4 +429,5 @@ internal static class WireCodes
     public const string ServerInternal = "server.internal";
     public const string ServerRateLimited = "server.rate_limited";
     public const string ProviderReserved = "provider_reserved";
+    public const string BadRequest = "bad_request";
 }
