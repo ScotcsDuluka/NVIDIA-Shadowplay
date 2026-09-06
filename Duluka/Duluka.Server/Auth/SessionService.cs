@@ -33,11 +33,17 @@ public sealed class SessionService(Database db, IConfiguration config)
     }
 
     public DateTimeOffset? Refresh(string token) =>
-        db.RefreshSession(Secrets.Sha256Hex(token), SlidingDays);
+        db.RefreshSession(Secrets.Sha256Hex(token), SlidingDays, AbsoluteDays);
 
     public bool Revoke(string token, string reason) =>
         db.RevokeSessionByTokenHash(Secrets.Sha256Hex(token), reason, DateTimeOffset.UtcNow);
 
     public int RevokeAll(string accountId, string reason) =>
         db.RevokeAllForAccount(accountId, DateTimeOffset.UtcNow, reason);
+
+    /// <summary>Registry code for a session that failed validation (§7.2).
+    /// Revocation is distinguishable from expiry and reported as its own
+    /// code; unknown/expired/missing all fall under session_expired.</summary>
+    public string DeadSessionCode(string token) =>
+        db.SessionTokenWasRevoked(Secrets.Sha256Hex(token)) ? "auth.session_revoked" : "auth.session_expired";
 }

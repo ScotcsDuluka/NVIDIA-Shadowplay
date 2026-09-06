@@ -32,7 +32,7 @@ public sealed class Database : IAsyncDisposable
         pragma.ExecuteNonQuery();
     }
 
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
 
     private static readonly string[] Ddl =
     {
@@ -49,6 +49,11 @@ public sealed class Database : IAsyncDisposable
             CreatedAt TEXT NOT NULL,
             UpdatedAt TEXT NOT NULL)
         """,
+        // NOTE: no table-level UNIQUE(ProviderKey, ProviderUserId) — the anchor
+        // is enforced by the PARTIAL unique index below (Active rows only), so
+        // a previously UNLINKED identity can be linked/login again. The v1
+        // table-level constraint blocked that forever (Bootstrap migrates v1
+        // databases to this shape).
         """
         CREATE TABLE IF NOT EXISTS AccountProviderLink(
             LinkId TEXT PRIMARY KEY,
@@ -58,8 +63,7 @@ public sealed class Database : IAsyncDisposable
             ProviderEmail TEXT,
             Status TEXT NOT NULL DEFAULT 'Active',
             LinkedAt TEXT NOT NULL,
-            UnlinkedAt TEXT,
-            UNIQUE(ProviderKey, ProviderUserId))
+            UnlinkedAt TEXT)
         """,
         """
         CREATE TABLE IF NOT EXISTS AccountDevice(
@@ -106,32 +110,128 @@ public sealed class Database : IAsyncDisposable
             ObtainedAt TEXT NOT NULL,
             ExpiresAt TEXT)
         """,
-        "CREATE INDEX IF NOT EXISTS IX_Session_Account ON AccountSession(AccountId, RevokedAt)",
-        "CREATE INDEX IF NOT EXISTS IX_Session_Device ON AccountSession(DeviceId, RevokedAt)",
-        "CREATE INDEX IF NOT EXISTS IX_Link_Account ON AccountProviderLink(AccountId, Status)",
+        // Indexes are created AFTER the possible v1→v2 table rebuild in
+        // Bootstrap (DROP TABLE takes its indexes with it).
     };
 
     public void Bootstrap()
     {
-        using var tx = _conn.BeginTransaction();
-        foreach (var ddl in Ddl)
+        using (var tx = _conn.BeginTransaction())
         {
-            using var cmd = _conn.CreateCommand();
-            cmd.Transaction = tx;
-            cmd.CommandText = ddl;
+            foreach (var ddl in Ddl)
+            {
+                using var cmd = _conn.CreateCommand();
+                cmd.Transaction = tx;
+                cmd.CommandText = ddl;
+                cmd.ExecuteNonQuery();
+            }
+            tx.Commit();
+        }
+
+        // v1 → v2: v1 anchored (ProviderKey, ProviderUserId) with a table-level
+        // UNIQUE spanning Unlinked rows — a re-login with a previously unlinked
+        // identity could never insert again (permanent 500, contract §5.4-2
+        // violation). Rebuild the table without it; the anchor moves to the
+        // partial unique index over ACTIVE rows only.
+        if (GetSchemaVersion() < 2)
+        {
+            if (LinkTableHasTableLevelUnique()) RebuildLinkTableWithoutTableUnique();
+            MarkSchemaVersion(2);
+        }
+
+        using (var cmd = _conn.CreateCommand())
+        {
+            cmd.CommandText = """
+                CREATE UNIQUE INDEX IF NOT EXISTS UX_Link_ActiveIdentity
+                    ON AccountProviderLink(ProviderKey, ProviderUserId) WHERE Status='Active';
+                CREATE INDEX IF NOT EXISTS IX_Session_Account ON AccountSession(AccountId, RevokedAt);
+                CREATE INDEX IF NOT EXISTS IX_Session_Device ON AccountSession(DeviceId, RevokedAt);
+                CREATE INDEX IF NOT EXISTS IX_Link_Account ON AccountProviderLink(AccountId, Status);
+                """;
             cmd.ExecuteNonQuery();
         }
-        using (var mark = _conn.CreateCommand())
+
+        _logger.LogInformation("Duluka database schema ready (schema v{Version})", GetSchemaVersion());
+    }
+
+    private int GetSchemaVersion()
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT COALESCE(MAX(Version), 0) FROM SchemaHistory";
+        return Convert.ToInt32(cmd.ExecuteScalar());
+    }
+
+    private void MarkSchemaVersion(int version)
+    {
+        Exec("INSERT OR REPLACE INTO SchemaHistory(Version, AppliedAt) VALUES ($v, $at)",
+            ("$v", version), ("$at", DateTimeOffset.UtcNow.ToString("o")));
+    }
+
+    private bool LinkTableHasTableLevelUnique()
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT sql FROM sqlite_master WHERE type='table' AND name='AccountProviderLink'";
+        return cmd.ExecuteScalar() is string sql
+               && sql.Contains("UNIQUE(ProviderKey, ProviderUserId)", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private void RebuildLinkTableWithoutTableUnique()
+    {
+        // PRAGMA foreign_keys cannot change inside a transaction — toggle around it.
+        SetForeignKeys(false);
+        try
         {
-            mark.Transaction = tx;
-            mark.CommandText =
-                "INSERT OR REPLACE INTO SchemaHistory(Version, AppliedAt) VALUES ($v, $at)";
-            mark.Parameters.AddWithValue("$v", SchemaVersion);
-            mark.Parameters.AddWithValue("$at", DateTimeOffset.UtcNow.ToString("o"));
-            mark.ExecuteNonQuery();
+            using var tx = _conn.BeginTransaction();
+            using (var create = _conn.CreateCommand())
+            {
+                create.Transaction = tx;
+                create.CommandText = """
+                    CREATE TABLE AccountProviderLink_v2(
+                        LinkId TEXT PRIMARY KEY,
+                        AccountId TEXT NOT NULL REFERENCES DulukaAccount(AccountId),
+                        ProviderKey TEXT NOT NULL,
+                        ProviderUserId TEXT NOT NULL,
+                        ProviderEmail TEXT,
+                        Status TEXT NOT NULL DEFAULT 'Active',
+                        LinkedAt TEXT NOT NULL,
+                        UnlinkedAt TEXT)
+                    """;
+                create.ExecuteNonQuery();
+            }
+            using (var copy = _conn.CreateCommand())
+            {
+                copy.Transaction = tx;
+                copy.CommandText = """
+                    INSERT INTO AccountProviderLink_v2(LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt)
+                    SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt FROM AccountProviderLink
+                    """;
+                copy.ExecuteNonQuery();
+            }
+            using (var drop = _conn.CreateCommand())
+            {
+                drop.Transaction = tx;
+                drop.CommandText = "DROP TABLE AccountProviderLink";
+                drop.ExecuteNonQuery();
+            }
+            using (var rename = _conn.CreateCommand())
+            {
+                rename.Transaction = tx;
+                rename.CommandText = "ALTER TABLE AccountProviderLink_v2 RENAME TO AccountProviderLink";
+                rename.ExecuteNonQuery();
+            }
+            tx.Commit();
         }
-        tx.Commit();
-        _logger.LogInformation("Duluka database schema ready (schema v{Version})", SchemaVersion);
+        finally
+        {
+            SetForeignKeys(true);
+        }
+    }
+
+    private void SetForeignKeys(bool on)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = on ? "PRAGMA foreign_keys=ON" : "PRAGMA foreign_keys=OFF";
+        cmd.ExecuteNonQuery();
     }
 
     // ─── Accounts ───────────────────────────────────────────────────────────
@@ -215,6 +315,35 @@ public sealed class Database : IAsyncDisposable
         cmd.Parameters.AddWithValue("$puid", providerUserId);
         using var r = cmd.ExecuteReader();
         return r.Read() ? MapLink(r) : null;
+    }
+
+    /// <summary>
+    /// Attach a NEW provider link to an EXISTING account (the authenticated
+    /// link flow). Unlike UpsertLink it never creates an account. On the
+    /// unique-anchor race it returns the WINNER's row — the caller MUST check
+    /// AccountId ownership before reporting success (no silent cross-account
+    /// merge, contract §6.2).
+    /// </summary>
+    public AccountProviderLink CreateLink(string accountId, string providerKey, string providerUserId,
+        string? providerEmail, string? displayName)
+    {
+        var link = new AccountProviderLink(
+            Secrets.NewToken("duluka_link_"), accountId, providerKey, providerUserId,
+            providerEmail, LinkStatus.Active, DateTimeOffset.UtcNow, null);
+        try
+        {
+            Exec("INSERT INTO AccountProviderLink(LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt) " +
+                 "VALUES ($lid, $aid, $pk, $puid, $pe, 'Active', $la)",
+                ("$lid", link.LinkId), ("$aid", link.AccountId), ("$pk", link.ProviderKey),
+                ("$puid", link.ProviderUserId), ("$pe", (object?)link.ProviderEmail ?? DBNull.Value),
+                ("$la", link.LinkedAt.ToString("o")));
+            return link;
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            return FindActiveLink(providerKey, providerUserId)
+                   ?? throw new InvalidOperationException("unique-anchor race converged to no row", ex);
+        }
     }
 
     public AccountProviderLink? GetLink(string linkId)
@@ -343,6 +472,13 @@ public sealed class Database : IAsyncDisposable
         string tokenHash, DateTimeOffset expiresAt)
     {
         var now = DateTimeOffset.UtcNow;
+        // Contract §5.2: exactly ONE active session per DeviceId — a second
+        // login supersedes the previous session FIRST (revoke-before-insert;
+        // the transient zero-active window is the fail-closed direction and
+        // invisible on the single connection).
+        Exec("UPDATE AccountSession SET RevokedAt=$at, RevokedReason='superseded' " +
+             "WHERE DeviceId=$did AND RevokedAt IS NULL",
+            ("$at", now.ToString("o")), ("$did", deviceId));
         var session = new AccountSession(
             Secrets.NewToken("duluka_sess_"), tokenHash, accountId, deviceId, viaLinkId,
             now, expiresAt, now, null, null);
@@ -397,20 +533,33 @@ public sealed class Database : IAsyncDisposable
             ("$t", DateTimeOffset.UtcNow.ToString("o")), ("$id", sessionId));
     }
 
-    /// <summary>Sliding refresh bounded by the absolute cap from creation.</summary>
-    public DateTimeOffset? RefreshSession(string tokenHash, TimeSpan slidingWindow)
+    /// <summary>Sliding refresh bounded by the absolute cap from creation.
+    /// The absolute window is the configured Session:AbsoluteDays value —
+    /// never a hardcoded constant (operators may shorten the TTL).</summary>
+    public DateTimeOffset? RefreshSession(string tokenHash, TimeSpan slidingWindow, TimeSpan absoluteWindow)
     {
         var validation = ValidateSession(tokenHash);
         if (validation is null) return null;
         var (session, _, _) = validation.Value;
         var proposed = DateTimeOffset.UtcNow + slidingWindow;
-        var capped = DateTimeOffset.Compare(proposed, session.CreatedAt + TimeSpan.FromDays(30)) > 0
-            ? session.CreatedAt + TimeSpan.FromDays(30)
+        var capped = DateTimeOffset.Compare(proposed, session.CreatedAt + absoluteWindow) > 0
+            ? session.CreatedAt + absoluteWindow
             : proposed;
         if (capped <= session.ExpiresAt) return session.ExpiresAt;
         Exec("UPDATE AccountSession SET ExpiresAt=$ea WHERE SessionId=$id",
             ("$ea", capped.ToString("o")), ("$id", session.SessionId));
         return capped;
+    }
+
+    /// <summary>Whether this token hash belongs to a REVOKED session row —
+    /// lets a 401 answer with auth.session_revoked instead of the generic
+    /// auth.session_expired (§7.2 registry codes are distinguishable).</summary>
+    public bool SessionTokenWasRevoked(string tokenHash)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM AccountSession WHERE SessionTokenHash=$th AND RevokedAt IS NOT NULL";
+        cmd.Parameters.AddWithValue("$th", tokenHash);
+        return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
     }
 
     public bool RevokeSessionByTokenHash(string tokenHash, string reason, DateTimeOffset at)

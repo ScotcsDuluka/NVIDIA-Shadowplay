@@ -490,6 +490,9 @@
 
     <Message Text="BL-1 stamp: v=$(_Bl1Version) sha=$(Bl1GitSha) (assembly=$(MSBuildProjectName))"
              Importance="low" />
+  </Target>
+
+  <!-- ============================================================================
        StampTestProvenance (C/4 parallel-build contamination audit).
        Every *Tests assembly carries its build identity:
          AssemblyMetadata "BuildUtc"        — when the binary was produced

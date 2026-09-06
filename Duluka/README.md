@@ -16,18 +16,31 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
   `(ProviderKey, ProviderUserId)` logs into ITS account; the unique-anchor race
   converges on one account (constraint + fallback re-read)
 - **Sessions** — opaque 256-bit tokens (`duluka_st_…`), SHA-256 hashed at rest
-  (raw token never stored), device-bound, sliding 7d / absolute 30d, revoke
-  per-session / per-device / logout-all
+  (raw token never stored), device-bound, exactly ONE active session per
+  device (a second login supersedes the first, contract §5.2), sliding 7d /
+  absolute 30d (both configurable), revoke per-session / per-device /
+  logout-all
 - **Devices** — client-generated 256-bit device key (hashed at rest), revoked
   keys can never silently re-register, cross-account key reuse rejected
 - **Provider unlink** — last-provider guard (409), credential row destroyed,
-  sessions issued via that link revoked
+  sessions issued via that link revoked; a re-login with a previously
+  unlinked identity converges on a fresh account (anchor is a partial unique
+  index over ACTIVE links, schema v2 migration rebuilds v1 databases)
 - **NVIDIA provider = reserved** — `ProviderKeys.Nvidia` exists but has NO auth
   flow. Hardware-derived identity (GPU UUID/serial/driver/fingerprint) is
   explicitly banned as an auth identity (spoofable = bypass).
 - **Rate limiting** — per-IP fixed window: 10/min on auth starts, 240/min on API
+- **Error envelope (contract §7.1)** — every response carries
+  `ok`, `reqId` (client-issued `X-ReqId`, echoed verbatim), `errorCode`,
+  `httpStatus`, `retryable`; payloads sit under `resource`. Errors use the
+  §7.2 registry codes (`auth.session_expired`, `auth.session_revoked`,
+  `perm.device_removed`, `nf.link`, `conflict.link_conflict`, `server.internal`)
+  plus documented extensions for 400-family input errors (`invalid_*`,
+  `provider_*`, 501 `provider_reserved`, 429 `server.rate_limited`)
 - **Secret redaction** — single implementation (`Security/Secrets.cs`); raw
-  tokens/codes/state never logged
+  tokens/codes/state never logged. The OAuth `state` is returned RAW in the
+  start response (it is the client's own correlation value; redaction is a
+  LOG rule, §9.2)
 
 ## NOT implemented in v0 (deliberate)
 
@@ -52,7 +65,7 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
 
 ```text
 dotnet run --project Duluka/Duluka.Server -c Release
-dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 16 security tests
+dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 24 tests (service-level + live HTTP contract)
 ```
 
 Endpoints: `POST /v1/auth/github/start` → GitHub authorize URL →
