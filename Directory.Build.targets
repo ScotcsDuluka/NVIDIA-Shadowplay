@@ -456,7 +456,11 @@
     </Exec>
     <PropertyGroup>
       <Bl1GitSha Condition="'$(Bl1GitShaRaw)' != ''">$(Bl1GitShaRaw.Trim())</Bl1GitSha>
-      <Bl1GitSha Condition="'$(Bl1GitSha)' == ''">$([System.IO.File]::ReadAllText($(GitShaFile)).Trim())</Bl1GitSha>
+      <Bl1GitSha Condition="'$(Bl1GitSha)' == '' And Exists('$(GitShaFile)')">$([System.IO.File]::ReadAllText($(GitShaFile)).Trim())</Bl1GitSha>
+      <!-- Missing-git fail-soft: a redirect target may exist as a 0-byte
+           file when git is absent — an empty sha must behave like no sha
+           (all-zero placeholder keeps the version shape parseable). -->
+      <Bl1GitSha Condition="'$(Bl1GitSha)' == ''">0000000000000000000000000000000000000000</Bl1GitSha>
     </PropertyGroup>
 
     <!-- 2. authoritative build number (Overlay/build.txt) -->
