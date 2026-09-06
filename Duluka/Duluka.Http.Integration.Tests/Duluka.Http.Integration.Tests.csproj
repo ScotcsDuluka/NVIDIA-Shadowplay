@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Duluka.Http.Integration.Tests</RootNamespace>
+    <AssemblyName>Duluka.Http.Integration.Tests</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Description>C/2 black-box HTTP regression suite: launches the REAL Duluka.Server binary per test group (fresh SQLite per group) and exercises the live HTTP surface — health, auth flows, account/device/session lifecycle, revoke cascades, rate limits, restart persistence, error-envelope and 401/403/404 contract. GitHub identity exchange is never faked: groups that need a deterministic pre-exchange behavior run against an unconfigured server, and the real-provider exchange-failure path is egress-gated (RUN/SKIP, never a fake PASS). See TEST-MATRIX.md.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Duluka.Server\Duluka.Server.csproj" />
+  </ItemGroup>
+
+</Project>

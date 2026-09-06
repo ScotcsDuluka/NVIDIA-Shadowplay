@@ -66,7 +66,22 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
 ```text
 dotnet run --project Duluka/Duluka.Server -c Release
 dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 24 tests (service-level + live HTTP contract)
+dotnet run --project Duluka/Duluka.Http.Integration.Tests -c Release  # 95 black-box HTTP tests (real server + real SQLite)
 ```
+
+## Black-box HTTP regression (C/2)
+
+`Duluka.Http.Integration.Tests` launches the real server binary per test group (fresh
+SQLite per group, loopback bind, per-group auth-start rate-limit budget) and pins the
+live HTTP contract: health/readiness, auth flows, account/provider/device/session
+lifecycles, revoke cascades, idempotency, store-level CAS races, rate limiting, restart
+persistence, the 401/404/409 matrix and the error envelope. GitHub identity exchange is
+never faked; the one egress-dependent group is honestly SKIP-gated.
+
+Contract violations found by the suite are tracked in the mismatch ledger (M-1..M-9,
+finding F-1..F-4) in [Duluka.Http.Integration.Tests/TEST-MATRIX.md](Duluka.Http.Integration.Tests/TEST-MATRIX.md) —
+each is a fix required in `Duluka.Server`, not in the tests. A test passes only while the
+tracked violation still reproduces exactly, so the ledger can never go stale silently.
 
 Endpoints: `POST /v1/auth/github/start` → GitHub authorize URL →
 `POST /v1/auth/github/callback {code, state, deviceKey}` → `{sessionToken,…}`;

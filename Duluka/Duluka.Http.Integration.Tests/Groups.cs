@@ -1,0 +1,974 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using Duluka.Server.Auth;
+using Duluka.Server.Data;
+using Duluka.Server.Domain;
+using Duluka.Server.Security;
+using Microsoft.Data.Sqlite;
+
+namespace Duluka.Http.Integration.Tests;
+
+/// <summary>
+/// The regression matrix. Grouping law: one REAL server process per group with
+/// a fresh SQLite file, and the in-memory per-IP rate limiter (10/min on
+/// auth-start endpoints) is respected by an explicit per-group budget — this is
+/// what keeps every test deterministic instead of timing-dependent.
+/// Budget accounting per group (verified ≤ 10): G0=3 G1=7 G2=7 G3=5 G7=9
+/// G9=11 (the test IS the window) G10=2 G11=8; G4/G5/G6 use none.
+/// </summary>
+internal static class Groups
+{
+    private static string Key(int bits) => Secrets.Base64Url(RandomNumberGenerator.GetBytes(bits / 8));
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G0 — health / transport / reserved providers
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void Health(Runner r)
+    {
+        r.Group("G0 health/transport", configureGitHub: true, budget: 3, ctx =>
+        {
+            var app = ctx.App;
+
+            r.Run("H-1 GET /healthz → 200 {status=live}", () =>
+            {
+                var resp = ServerApp.ExpectStatus(app.Get("/healthz"), 200, "H-1");
+                ServerApp.Assert(ServerApp.Prop(resp, "status") == "live", "H-1: status must be 'live'");
+            });
+
+            r.Run("H-2 GET /healthz/ready → 200 {status=ready, schema=1}", () =>
+            {
+                var resp = ServerApp.ExpectStatus(app.Get("/healthz/ready"), 200, "H-2");
+                var json = ServerApp.Json(resp);
+                ServerApp.Assert(json.GetProperty("status").GetString() == "ready", "H-2: status must be 'ready'");
+                ServerApp.Assert(json.GetProperty("schema").GetInt32() == Database.SchemaVersion,
+                    "H-2: schema must report Database.SchemaVersion");
+            });
+
+            r.Run("H-3 GET unknown route → 404, empty body (pin)", () =>
+            {
+                var resp = app.Get("/definitely-not-a-route");
+                ServerApp.ExpectStatus(resp, 404, "H-3");
+                ServerApp.Assert(resp.Body.Length == 0,
+                    $"H-3: unknown route must not produce a body, got: {ServerApp.Trunc(resp.Body)}");
+            });
+
+            r.Run("H-4 PUT /healthz → 405 (method mismatch)", () =>
+                ServerApp.ExpectStatus(app.Send("PUT", "/healthz"), 405, "H-4"));
+
+            r.Run("H-5 POST /v1/auth/nvidia/start → 501 provider_reserved", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/nvidia/start", new { deviceName = "d", deviceKey = Key(256) }),
+                    501, "provider_reserved", "H-5"));
+
+            r.Run("H-6 POST /v1/auth/{unknown}/start → 501 provider_reserved", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/acme/start", new { deviceName = "d", deviceKey = Key(256) }),
+                    501, "provider_reserved", "H-6"));
+
+            r.Run("H-7 provider route is case-insensitive (GitHub = github)", () =>
+                ServerApp.ExpectStatus(app.Post("/v1/auth/GitHub/start", new { deviceName = "d", deviceKey = Key(256) }),
+                    200, "H-7"));
+
+            r.Run("H-8 transport gate: server binds loopback only (R1)", () =>
+            {
+                var log = app.ReadLog();
+                ServerApp.Assert(log.Contains("Now listening on: http://127.0.0.1:"),
+                    "H-8: loopback bind line missing from server log");
+                ServerApp.Assert(!log.Contains("http://0.0.0.0") && !log.Contains("http://*") && !log.Contains("http://+"),
+                    "H-8: server must never widen its bind beyond loopback");
+            });
+
+            r.Run("H-9 log sweep G0 (no secrets in server logs)", () => app.Sweep("H-9"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G1 — auth/start validation
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void AuthStart(Runner r)
+    {
+        r.Group("G1 auth/start validation", configureGitHub: true, budget: 7, ctx =>
+        {
+            var app = ctx.App;
+
+            r.Run("S-1 missing deviceName → 400 invalid_device_name", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/start", new { deviceKey = Key(256) }),
+                    400, "invalid_device_name", "S-1"));
+
+            r.Run("S-2 deviceName 65 chars → 400 invalid_device_name", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/start", new { deviceName = new string('x', 65), deviceKey = Key(256) }),
+                    400, "invalid_device_name", "S-2"));
+
+            r.Run("S-3 deviceKey 42 chars → 400 invalid_device_key", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(252) }),
+                    400, "invalid_device_key", "S-3"));
+
+            r.Run("S-4 43-char deviceKey (boundary) → 200 with PKCE S256 authorize URL", () =>
+            {
+                var resp = ServerApp.ExpectStatus(
+                    app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(256) }), 200, "S-4");
+                var url = ServerApp.Prop(resp, "authorizationUrl");
+                ServerApp.Assert(url.StartsWith("https://github.com/login/oauth/authorize?"), "S-4: authorize URL host/path");
+                foreach (var part in new[] { "client_id=", "redirect_uri=", "scope=read%3Auser", "response_type=code",
+                                             "state=duluka_state_", "code_challenge=", "code_challenge_method=S256" })
+                    ServerApp.Assert(url.Contains(part), $"S-4: authorize URL missing '{part}': {url}");
+                // Pin: the JSON `state` field is REDACTED — the usable state only
+                // travels inside authorizationUrl (finding F-1). If this fails the
+                // field became usable — reclassify the pin.
+                var bodyState = ServerApp.Prop(resp, "state");
+                var urlState = Runner.UrlParam(url, "state");
+                ServerApp.Assert(urlState is { Length: > 0 } && urlState.StartsWith("duluka_state_"),
+                    "S-4: URL state must be the real server-issued value");
+                ServerApp.Assert(bodyState != urlState,
+                    "S-4: body state was expected to stay redacted (F-1) — behavior changed, update the pin");
+            });
+
+            r.Run("S-5 deviceKey 300 chars → 200 (no upper bound pin)", () =>
+                ServerApp.ExpectStatus(
+                    app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(300 * 8) }), 200, "S-5"));
+
+            r.Run("S-6 malformed JSON body → HTTP 500 empty body — MISMATCH M-1", () =>
+            {
+                var resp = app.PostRaw("/v1/auth/github/start", "not json");
+                ServerApp.ExpectStatus(resp, 500, "S-6");
+                ServerApp.Assert(resp.Body.Length == 0,
+                    $"S-6: naked 500 must have empty body, got: {ServerApp.Trunc(resp.Body)}");
+                r.Mismatch("M-1", $"malformed JSON → {resp.Status} with EMPTY body (client protocol error must be 4xx)");
+            });
+
+            r.Run("S-7 empty body → HTTP 500 — MISMATCH M-1", () =>
+            {
+                var resp = app.PostRaw("/v1/auth/github/start", "");
+                ServerApp.ExpectStatus(resp, 500, "S-7");
+                r.Mismatch("M-1", $"empty body → {resp.Status}");
+            });
+
+            r.Run("S-8 log sweep G1 (raw device keys never logged)", () => app.Sweep("S-8"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G2 — callback validation + exactly-once state consumption.
+    // Runs against an UNCONFIGURED server: the exchange throws
+    // github_not_configured BEFORE any network I/O → deterministic offline.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void Callback(Runner r)
+    {
+        r.Group("G2 callback validation + exactly-once (unconfigured GitHub)", configureGitHub: false, budget: 7, ctx =>
+        {
+            var app = ctx.App;
+
+            r.Run("C-1 callback nvidia → 501 provider_reserved", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/nvidia/callback", new { code = "c", state = "s", deviceKey = Key(256) }),
+                    501, "provider_reserved", "C-1"));
+
+            r.Run("C-2 callback missing code → 400 invalid_callback", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { state = "s", deviceKey = Key(256) }),
+                    400, "invalid_callback", "C-2"));
+
+            r.Run("C-3 callback 42-char deviceKey → 400 invalid_device_key", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { code = "c", state = "s", deviceKey = Key(252) }),
+                    400, "invalid_device_key", "C-3"));
+
+            r.Run("C-4 callback unknown state → 400 invalid_state", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { code = "c", state = "duluka_state_unknown", deviceKey = Key(256) }),
+                    400, "invalid_state", "C-4"));
+
+            r.Run("C-5 state is single-use even when the exchange fails (C/3 exactly-once)", () =>
+            {
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(256) }), 200, "C-5/start");
+                var state = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state");
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { code = "bogus-code", state, deviceKey = Key(256) }),
+                    400, "github_not_configured", "C-5/first");
+                // The state was consumed BEFORE the exchange ran — a replayed
+                // callback cannot mint a second attempt from it.
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { code = "bogus-code", state, deviceKey = Key(256) }),
+                    400, "invalid_state", "C-5/replay");
+            });
+
+            r.Run("C-6 log sweep G2 (codes/states never logged)", () => app.Sweep("C-6"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G3 — real provider exchange failure path. Egress-gated: RUN when
+    // github.com is reachable, honest SKIP otherwise (never a fake PASS).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void ProviderExchange(Runner r)
+    {
+        r.Group("G3 provider exchange failure (real GitHub, egress-gated)", configureGitHub: true, budget: 5, ctx =>
+        {
+            var app = ctx.App;
+
+            if (!Egress.Reachable())
+            {
+                r.SkipGroup("github.com unreachable in this environment — exchange path cannot be exercised honestly");
+                return;
+            }
+
+            r.Run("E-1 bogus code → 400 exchange-rejected envelope; state still single-use", () =>
+            {
+                var code = "bogus-code-" + Guid.NewGuid().ToString("N");
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(256) }), 200, "E-1/start");
+                var state = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state")
+                             ?? throw new InvalidOperationException("E-1: no state in URL");
+                // GitHub's rejection class varies with how it answers the token
+                // exchange (200+error body → provider_callback_rejected; non-2xx
+                // → provider_token_exchange_failed). The deterministic contract:
+                // a 400 envelope — never a 5xx — and the state stays single-use.
+                var resp = app.Post("/v1/auth/github/callback", new { code, state, deviceKey = Key(256) });
+                ServerApp.ExpectStatus(resp, 400, "E-1/first");
+                ServerApp.Assert(resp.Body.Contains("provider_callback_rejected") || resp.Body.Contains("provider_token_exchange_failed"),
+                    $"E-1/first: unexpected envelope: {ServerApp.Trunc(resp.Body)}");
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { code, state, deviceKey = Key(256) }),
+                    400, "invalid_state", "E-1/replay");
+            });
+
+            r.Run("E-2 rejected exchange never echoes the raw code (body or log)", () =>
+            {
+                var code = "bogus-code-" + Guid.NewGuid().ToString("N");
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(256) }), 200, "E-2/start");
+                var state = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state");
+                app.Post("/v1/auth/github/callback", new { code, state, deviceKey = Key(256) });
+                app.Sweep("E-2"); // sweep asserts the raw code appears nowhere
+            });
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G4 — authenticated surface + the 401 matrix (seeded sessions)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void AuthenticatedSurface(Runner r)
+    {
+        r.Group("G4 authenticated surface / 401 matrix", configureGitHub: true, budget: 0, ctx =>
+        {
+            var app = ctx.App;
+            var accA = app.SeedAccount("alice");
+            var linkA = app.SeedLink(accA, "777");
+            var (devA1, _) = app.SeedDevice(accA, "alice-pc");
+            var (devA2, _) = app.SeedDevice(accA, "alice-laptop");
+            var tA1 = app.SeedSession(accA, devA1, linkA);                     // live
+            var tExpired = app.SeedSession(accA, devA1, linkA,
+                expires: DateTimeOffset.UtcNow - TimeSpan.FromMinutes(1));     // expired
+            var tRevoked = app.SeedSession(accA, devA2, linkA, revoked: true); // revoked
+            var accS = app.SeedAccount("suspended");
+            var (devS, _) = app.SeedDevice(accS, "s-pc");
+            var tSuspended = app.SeedSession(accS, devS, null);
+            app.Suspend(accS);
+
+            r.Run("ME-1 GET /v1/account/me with live session → 200 full shape", () =>
+            {
+                var resp = ServerApp.ExpectStatus(app.Get("/v1/account/me", tA1), 200, "ME-1");
+                var json = ServerApp.Json(resp);
+                ServerApp.Assert(json.GetProperty("accountId").GetString() == accA, "ME-1: accountId mismatch");
+                ServerApp.Assert(json.GetProperty("displayName").GetString() == "alice", "ME-1: displayName mismatch");
+                ServerApp.Assert(json.GetProperty("currentDevice").GetProperty("deviceId").GetString() == devA1,
+                    "ME-1: currentDevice.deviceId mismatch");
+                ServerApp.Assert(json.GetProperty("currentDevice").GetProperty("deviceName").GetString() == "alice-pc",
+                    "ME-1: currentDevice.deviceName mismatch");
+                DateTimeOffset.Parse(json.GetProperty("createdAt").GetString()!);
+            });
+
+            r.Run("ME-2 /me with NO Authorization header → 401 session_invalid (pin)", () =>
+                ServerApp.ExpectErr(app.Get("/v1/account/me"), 401, "session_invalid", "ME-2"));
+
+            r.Run("ME-3 /me with empty Bearer → 401", () =>
+                ServerApp.ExpectErr(app.Get("/v1/account/me", ""), 401, "session_invalid", "ME-3"));
+
+            r.Run("ME-4 /me with non-Bearer scheme → 401", () =>
+                ServerApp.ExpectErr(app.Send("GET", "/v1/account/me", rawAuthorization: "Basic dXNlcjpwYXNz"),
+                    401, "session_invalid", "ME-4"));
+
+            r.Run("ME-5 /me with unknown duluka_st_ token → 401", () =>
+                ServerApp.ExpectErr(app.Get("/v1/account/me", "duluka_st_" + Secrets.Base64Url(new byte[32])),
+                    401, "session_invalid", "ME-5"));
+
+            r.Run("ME-6 /me with expired session → 401", () =>
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tExpired), 401, "session_invalid", "ME-6"));
+
+            r.Run("ME-7 /me with revoked session → 401 (root-cause code conflated) — MISMATCH M-8", () =>
+            {
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tRevoked), 401, "session_invalid", "ME-7");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tExpired), 401, "session_invalid", "ME-7/expired");
+                r.Mismatch("M-8", "revoked AND expired sessions both answer session_invalid — the §7.2 registry codes (auth.session_revoked / auth.session_expired) and the C/2 root-cause precedence are not implemented");
+            });
+
+            r.Run("ME-8 SECOND concurrent session on one device validates — MISMATCH M-3", () =>
+            {
+                // Contract §5.2: exactly ONE active session per DeviceId; the
+                // second login must revoke the first (409 session_conflict). The
+                // server mints and honors unlimited concurrent sessions.
+                var t3 = app.SeedSession(accA, devA1, linkA);
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tA1), 200, "ME-8/first");
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", t3), 200, "ME-8/second");
+                r.Mismatch("M-3", "two concurrent live sessions on one device both validate (contract: exactly one, second login → 409 session_conflict)");
+            });
+
+            r.Run("ME-9 suspended account → observed 401, contract §6.3 requires 403 — MISMATCH M-2", () =>
+            {
+                var resp = app.Get("/v1/account/me", tSuspended);
+                ServerApp.ExpectStatus(resp, 401, "ME-9");
+                ServerApp.Assert(resp.Body.Contains("session_invalid"), "ME-9: observed code changed");
+                r.Mismatch("M-2", $"suspended account → HTTP {resp.Status} session_invalid (contract: 403 perm.account_suspended)");
+            });
+
+            r.Run("ME-10 body sweep G4 (no raw token in any response body)", () => app.Sweep("ME-10"));
+
+            r.Run("ME-11 log sweep G4", () => app.Sweep("ME-11"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G5 — devices + revoke cascade
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void Devices(Runner r)
+    {
+        r.Group("G5 devices + revoke cascade", configureGitHub: true, budget: 0, ctx =>
+        {
+            var app = ctx.App;
+            var accA = app.SeedAccount("alice");
+            var (devA1, _) = app.SeedDevice(accA, "alice-pc");
+            var (devA2, _) = app.SeedDevice(accA, "alice-tablet");
+            var (devOld, _) = app.SeedDevice(accA, "alice-old", revoked: true); // pre-revoked, must stay listed
+            var (devA4, _) = app.SeedDevice(accA, "alice-phone");
+            var accB = app.SeedAccount("bob");
+            var (devB1, _) = app.SeedDevice(accB, "bob-pc");
+
+            var tA1 = app.SeedSession(accA, devA1, null);
+            var tA2a = app.SeedSession(accA, devA2, null);
+            var tA2b = app.SeedSession(accA, devA2, null);
+            var tA4 = app.SeedSession(accA, devA4, null);
+            var tB1 = app.SeedSession(accB, devB1, null);
+
+            r.Run("DEV-1 GET /devices lists own devices incl. revoked one, never foreign", () =>
+            {
+                var resp = ServerApp.ExpectStatus(app.Get("/v1/account/devices", tA1), 200, "DEV-1");
+                var arr = ServerApp.Json(resp).GetProperty("devices");
+                ServerApp.Assert(arr.GetArrayLength() == 4, $"DEV-1: exactly 4 own devices, got {arr.GetArrayLength()}");
+                var ids = arr.EnumerateArray().Select(d => d.GetProperty("deviceId").GetString()).ToHashSet();
+                ServerApp.Assert(ids.SetEquals(new[] { devA1, devA2, devOld, devA4 }), "DEV-1: device id set mismatch");
+                var doomed = arr.EnumerateArray().Single(d => d.GetProperty("deviceId").GetString() == devOld);
+                ServerApp.Assert(doomed.GetProperty("revokedAt").ValueKind == JsonValueKind.String,
+                    "DEV-1: pre-revoked device must be visible with RevokedAt");
+            });
+
+            r.Run("DEV-2 revoke D_A2 → 200, sessionsRevoked=2", () =>
+            {
+                var resp = ServerApp.ExpectStatus(app.Post($"/v1/account/devices/{devA2}/revoke", bearer: tA1), 200, "DEV-2");
+                var json = ServerApp.Json(resp);
+                ServerApp.Assert(json.GetProperty("revoked").GetBoolean(), "DEV-2: revoked flag");
+                ServerApp.Assert(json.GetProperty("sessionsRevoked").GetInt32() == 2, "DEV-2: cascade count must be 2");
+            });
+
+            r.Run("DEV-3 cascade: both sessions of D_A2 are dead", () =>
+            {
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA2a), 401, "session_invalid", "DEV-3/a");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA2b), 401, "session_invalid", "DEV-3/b");
+            });
+
+            r.Run("DEV-4 no collateral: session on D_A4 survives", () =>
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tA4), 200, "DEV-4"));
+
+            r.Run("DEV-5 revoke D_A2 again → 200, sessionsRevoked=0 (idempotent)", () =>
+            {
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post($"/v1/account/devices/{devA2}/revoke", bearer: tA1), 200, "DEV-5"));
+                ServerApp.Assert(json.GetProperty("sessionsRevoked").GetInt32() == 0, "DEV-5: second revoke must not re-count");
+            });
+
+            r.Run("DEV-6 revoke unknown device → 404 device_not_found", () =>
+                ServerApp.ExpectErr(app.Post("/v1/account/devices/duluka_dev_unknown/revoke", bearer: tA1),
+                    404, "device_not_found", "DEV-6"));
+
+            r.Run("DEV-7 cross-tenant revoke → 404 (cross-tenant REQUIRED 404), no collateral", () =>
+            {
+                ServerApp.ExpectErr(app.Post($"/v1/account/devices/{devB1}/revoke", bearer: tA1), 404, "device_not_found", "DEV-7");
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tB1), 200, "DEV-7/bob-alive");
+            });
+
+            r.Run("DEV-8 revoke OWN current device → own session dies in cascade", () =>
+            {
+                ServerApp.ExpectStatus(app.Post($"/v1/account/devices/{devA1}/revoke", bearer: tA1), 200, "DEV-8");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA1), 401, "session_invalid", "DEV-8/after");
+            });
+
+            r.Run("DEV-9 log sweep G5", () => app.Sweep("DEV-9"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G6 — session lifecycle (refresh sliding/absolute cap, revoke, revoke-all)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void Sessions(Runner r)
+    {
+        r.Group("G6 session lifecycle", configureGitHub: true, budget: 0, ctx =>
+        {
+            var app = ctx.App;
+            var accA = app.SeedAccount("alice");
+            var (devA1, _) = app.SeedDevice(accA, "alice-pc");
+            var (devA2, _) = app.SeedDevice(accA, "alice-laptop");
+
+            var t0 = DateTimeOffset.UtcNow;
+            var tA1 = app.SeedSession(accA, devA1, null, expires: t0 + TimeSpan.FromDays(30)); // fresh 30d, explicit for a tick-exact assertion
+            var tA2 = app.SeedSession(accA, devA2, null);
+            var tA3 = app.SeedSession(accA, devA2, null);
+            var tExpired = app.SeedSession(accA, devA2, null, expires: t0 - TimeSpan.FromMinutes(1));
+            // Cap probe: created 26d ago, slid to +2d. Absolute cap = createdAt+30d = t0+4d.
+            var tCap = app.SeedSession(accA, devA1, null,
+                expires: t0 + TimeSpan.FromDays(2), createdAt: t0 - TimeSpan.FromDays(26));
+
+            r.Run("SES-1 refresh fresh session → returns the unchanged 30d expiry (never shortens)", () =>
+            {
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post("/v1/auth/session/refresh", bearer: tA1), 200, "SES-1"));
+                var got = DateTimeOffset.Parse(json.GetProperty("sessionExpiresAt").GetString()!);
+                ServerApp.Assert(got == t0 + TimeSpan.FromDays(30), $"SES-1: expected unchanged expiry {t0 + TimeSpan.FromDays(30):O}, got {got:O}");
+            });
+
+            r.Run("SES-2 refresh hits the absolute cap exactly (createdAt+30d)", () =>
+            {
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post("/v1/auth/session/refresh", bearer: tCap), 200, "SES-2"));
+                var got = DateTimeOffset.Parse(json.GetProperty("sessionExpiresAt").GetString()!);
+                ServerApp.Assert(got == t0 + TimeSpan.FromDays(4), $"SES-2: expected exact cap {t0 + TimeSpan.FromDays(4):O}, got {got:O}");
+            });
+
+            r.Run("SES-3 refresh: expired/unknown/no-token → 401 (code pinned per case)", () =>
+            {
+                ServerApp.ExpectErr(app.Post("/v1/auth/session/refresh", bearer: tExpired), 401, "session_invalid", "SES-3/expired");
+                ServerApp.ExpectErr(app.Post("/v1/auth/session/refresh", bearer: "duluka_st_" + Secrets.Base64Url(new byte[32])),
+                    401, "session_invalid", "SES-3/unknown");
+                ServerApp.ExpectErr(app.Post("/v1/auth/session/refresh"), 401, "session_missing", "SES-3/no-token");
+            });
+
+            r.Run("SES-4 revoke own session → 200; sibling session survives", () =>
+            {
+                ServerApp.ExpectStatus(app.Post("/v1/auth/session/revoke", bearer: tA2), 200, "SES-4");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA2), 401, "session_invalid", "SES-4/after");
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tA3), 200, "SES-4/sibling");
+            });
+
+            r.Run("SES-5 revoke again → 401 (revocation is terminal, no resurrect)", () =>
+            {
+                // The session STAYS dead (no resurrect) — the security property
+                // holds. But the STATUS is a tracked mismatch: C/2 SES-2b (and
+                // R2 §14 G-3) requires the second revoke to answer an idempotent
+                // 200, because the goal state is already reached.
+                ServerApp.ExpectErr(app.Post("/v1/auth/session/revoke", bearer: tA2), 401, "session_invalid", "SES-5");
+                r.Mismatch("M-9", "second session revoke → 401 session_invalid (C/2 SES-2b / R2 G-3: idempotent 200 — goal state already reached)");
+            });
+
+            r.Run("SES-6 revoke-all → counts exactly the unrevoked sessions, all live ones die incl. caller", () =>
+            {
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post("/v1/auth/sessions/revoke-all", bearer: tA1), 200, "SES-6"));
+                // Finding F-3: the count includes the ALREADY-EXPIRED-but-unrevoked
+                // session (RevokeAllForAccount has no expiry filter): 4 = tA1,
+                // tA3, tCap, tExpired. Harmless — the expired one was already
+                // unusable — but the reported "revoked" number overcounts.
+                ServerApp.Assert(json.GetProperty("revokedSessions").GetInt32() == 4,
+                    "SES-6: expected 4 unrevoked sessions counted (3 live + 1 expired — finding F-3)");
+                foreach (var t in new[] { tA1, tA3, tCap })
+                    ServerApp.ExpectErr(app.Get("/v1/account/me", t), 401, "session_invalid", "SES-6/after");
+            });
+
+            r.Run("SES-7 revoke-all is idempotent: only NEWLY live sessions are counted", () =>
+            {
+                var tA4 = app.SeedSession(accA, devA1, null);
+                var tA5 = app.SeedSession(accA, devA2, null);
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post("/v1/auth/sessions/revoke-all", bearer: tA4), 200, "SES-7"));
+                ServerApp.Assert(json.GetProperty("revokedSessions").GetInt32() == 2,
+                    "SES-7: dead sessions must never be re-counted");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA5), 401, "session_invalid", "SES-7/after");
+            });
+
+            r.Run("SES-8 revoke-all with unknown/no token → 401 (code pinned)", () =>
+            {
+                ServerApp.ExpectErr(app.Post("/v1/auth/sessions/revoke-all", bearer: "duluka_st_" + Secrets.Base64Url(new byte[32])),
+                    401, "session_invalid", "SES-8/unknown");
+                ServerApp.ExpectErr(app.Post("/v1/auth/sessions/revoke-all"), 401, "session_invalid", "SES-8/no-token");
+            });
+
+            r.Run("SES-9 log sweep G6", () => app.Sweep("SES-9"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G7 — provider links + unlink guards (unconfigured GitHub for the
+    // deterministic pre-exchange behavior of /complete). Budget: 9 auth-start.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void Providers(Runner r)
+    {
+        r.Group("G7 provider links + unlink", configureGitHub: false, budget: 9, ctx =>
+        {
+            var app = ctx.App;
+            var accA = app.SeedAccount("alice");
+            var linkA1 = app.SeedLink(accA, "777");
+            var linkA2 = app.SeedLink(accA, "778");
+            var accB = app.SeedAccount("bob");
+            var linkB1 = app.SeedLink(accB, "999");
+            var (devA, _) = app.SeedDevice(accA, "alice-pc");
+            var (devB, _) = app.SeedDevice(accB, "bob-pc");
+            var tA1 = app.SeedSession(accA, devA, linkA1);
+            var tA2 = app.SeedSession(accA, devA, linkA2);
+            var tB1 = app.SeedSession(accB, devB, null);
+
+            r.Run("PRV-1 GET /providers lists exactly own ACTIVE links, no foreign rows", () =>
+            {
+                var resp = ServerApp.ExpectStatus(app.Get("/v1/account/providers", tA1), 200, "PRV-1");
+                var arr = ServerApp.Json(resp).GetProperty("providers");
+                ServerApp.Assert(arr.GetArrayLength() == 2, $"PRV-1: exactly 2 links, got {arr.GetArrayLength()}");
+                foreach (var l in arr.EnumerateArray())
+                {
+                    ServerApp.Assert(l.GetProperty("status").GetString() == "Active", "PRV-1: all seeded links Active");
+                    ServerApp.Assert(l.GetProperty("providerKey").GetString() == "github", "PRV-1: providerKey");
+                    ServerApp.Assert(l.GetProperty("linkId").GetString() is { Length: > 0 }, "PRV-1: linkId present");
+                }
+            });
+
+            r.Run("PRV-5 start link flow for github → 200, state bound to the session", () =>
+            {
+                var resp = ServerApp.ExpectStatus(
+                    app.Post("/v1/account/providers", new { provider = "github" }, tA1), 200, "PRV-5");
+                var url = ServerApp.Prop(resp, "authorizationUrl");
+                ServerApp.Assert(Runner.UrlParam(url, "state") is { Length: > 0 }, "PRV-5: state must travel in the URL");
+            });
+
+            r.Run("PRV-6 complete with garbage code → 400 github_not_configured pre-network; session intact", () =>
+            {
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/account/providers", new { provider = "github" }, tA1), 200, "PRV-6/start");
+                var state = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state");
+                ServerApp.ExpectErr(app.Post("/v1/account/providers/github/complete", new { code = "bogus-code", state }),
+                    400, "github_not_configured", "PRV-6");
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tA1), 200, "PRV-6/session-intact");
+            });
+
+            r.Run("PRV-7 complete replay → 400 invalid_state (single-use)", () =>
+            {
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/account/providers", new { provider = "github" }, tA1), 200, "PRV-7/start");
+                var state = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state");
+                app.Post("/v1/account/providers/github/complete", new { code = "x", state });
+                ServerApp.ExpectErr(app.Post("/v1/account/providers/github/complete", new { code = "x", state }),
+                    400, "invalid_state", "PRV-7");
+            });
+
+            r.Run("PRV-8 complete unknown state → 400 invalid_state", () =>
+                ServerApp.ExpectErr(app.Post("/v1/account/providers/github/complete", new { code = "x", state = "duluka_state_unknown" }),
+                    400, "invalid_state", "PRV-8"));
+
+            r.Run("PRV-9 complete after the binding session died → 401 session_invalid", () =>
+            {
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/account/providers", new { provider = "github" }, tA2), 200, "PRV-9/start");
+                var state = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state");
+                ServerApp.ExpectStatus(app.Post("/v1/auth/session/revoke", bearer: tA2), 200, "PRV-9/revoke");
+                ServerApp.ExpectErr(app.Post("/v1/account/providers/github/complete", new { code = "x", state }),
+                    401, "session_invalid", "PRV-9");
+            });
+
+            r.Run("UNL-1 unlink non-last provider → 200 + via-link session revoked", () =>
+            {
+                var tVia = app.SeedSession(accA, devA, linkA2); // fresh session issued VIA linkA2
+                var json = ServerApp.Json(ServerApp.ExpectStatus(app.Delete($"/v1/account/providers/{linkA2}", tA1), 200, "UNL-1"));
+                ServerApp.Assert(json.GetProperty("unlinked").GetBoolean(), "UNL-1: unlinked flag");
+                ServerApp.Assert(json.GetProperty("revokedSessions").GetInt32() == 1, "UNL-1: exactly the via-link session dies");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tVia), 401, "session_invalid", "UNL-1/via-dead");
+            });
+
+            r.Run("UNL-2 after unlink: via-link session dead, other session alive, status Unlinked", () =>
+            {
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA2), 401, "session_invalid", "UNL-2/a");
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tA1), 200, "UNL-2/b");
+                var arr = ServerApp.Json(app.Get("/v1/account/providers", tA1)).GetProperty("providers");
+                var l2 = arr.EnumerateArray().Single(l => l.GetProperty("linkId").GetString() == linkA2);
+                ServerApp.Assert(l2.GetProperty("status").GetString() == "Unlinked", "UNL-2: link must be soft-unlinked");
+            });
+
+            r.Run("UNL-3 last-provider unlink → 409 last_provider (C/2 UNL-2)", () =>
+                ServerApp.ExpectErr(app.Delete($"/v1/account/providers/{linkA1}", tA1), 409, "last_provider", "UNL-3"));
+
+            r.Run("UNL-4 unlink unknown linkId → 404 link_not_found", () =>
+                ServerApp.ExpectErr(app.Delete("/v1/account/providers/duluka_link_unknown", tA1), 404, "link_not_found", "UNL-4"));
+
+            r.Run("UNL-5 cross-tenant unlink → 404 link_not_found, no leak, no collateral", () =>
+            {
+                ServerApp.ExpectErr(app.Delete($"/v1/account/providers/{linkB1}", tA1), 404, "link_not_found", "UNL-5");
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tB1), 200, "UNL-5/bob-alive");
+            });
+
+            r.Run("UNL-6 unlink already-unlinked link → 400 link_already_unlinked — MISMATCH M-5", () =>
+            {
+                var resp = app.Delete($"/v1/account/providers/{linkA2}", tA1);
+                ServerApp.ExpectStatus(resp, 400, "UNL-6");
+                r.Mismatch("M-5", $"re-unlink → HTTP {resp.Status} link_already_unlinked (C/2: 409 provider_not_linked)");
+            });
+
+            r.Run("UNL-7 log sweep G7", () => app.Sweep("UNL-7"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G8 — store-level CAS races on the REAL SQLite file through the REAL
+    // production data layer (no HTTP: the races live below the transport).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void StoreRaceTests(Runner r)
+    {
+        r.Run("RACE-1 8 concurrent first-logins, same identity → exactly ONE account (real store)", () =>
+        {
+            using var store = new StoreRaces.Store();
+            var barrier = new Barrier(8);
+            var accounts = new System.Collections.Concurrent.ConcurrentBag<string>();
+            var errors = new System.Collections.Concurrent.ConcurrentBag<string>();
+            Parallel.For(0, 8, i =>
+            {
+                try
+                {
+                    barrier.SignalAndWait(TimeSpan.FromSeconds(10));
+                    var (db, provisioning) = store.OpenThreadStore();
+                    try
+                    {
+                        var identity = new GitHubIdentity(ProviderKeys.GitHub, "race-identity", "race@example.test", "racer");
+                        var deviceKeyHash = Secrets.Sha256Hex(Secrets.NewToken("devk_"));
+                        var (_, account, _) = provisioning.LoginOrLink(identity, deviceKeyHash, "race-dev-" + i);
+                        accounts.Add(account.AccountId);
+                    }
+                    finally { db.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+                }
+                catch (Exception ex) { errors.Add(ex.GetType().Name + ": " + ex.Message); }
+            });
+            ServerApp.Assert(errors.IsEmpty, "RACE-1: no exception may escape: " + string.Join("; ", errors.Take(3)));
+            ServerApp.Assert(accounts.Distinct().Count() == 1,
+                $"RACE-1: must converge on ONE account, got {accounts.Distinct().Count()}");
+            ServerApp.Assert(store.Db.ActiveLinkCount(accounts.First()) == 1, "RACE-1: exactly one active link");
+            ServerApp.Assert(store.Scalar("SELECT COUNT(*) FROM DulukaAccount") == "1",
+                "RACE-1: loser's orphan account must be cleaned up");
+        });
+
+        r.Run("RACE-DEV same NEW device key racing → one device row survives; only UNIQUE violations may escape (M-6 evidence)", () =>
+        {
+            using var store = new StoreRaces.Store();
+            var barrier = new Barrier(8);
+            var errors = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+            Parallel.For(0, 8, i =>
+            {
+                try
+                {
+                    barrier.SignalAndWait(TimeSpan.FromSeconds(10));
+                    var (db, provisioning) = store.OpenThreadStore();
+                    try
+                    {
+                        var identity = new GitHubIdentity(ProviderKeys.GitHub, "race-dev-identity", "race@example.test", "racer");
+                        provisioning.LoginOrLink(identity, Secrets.Sha256Hex("devk_shared-race-key"), "race-dev");
+                    }
+                    finally { db.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+                }
+                catch (Exception ex) { errors.Add(ex); }
+            });
+            // Deterministic invariants under ANY interleaving:
+            foreach (var ex in errors)
+                ServerApp.Assert(ex is SqliteException { SqliteErrorCode: 19 },
+                    "RACE-DEV: only the known unguarded UNIQUE violation may escape (M-6); got: " +
+                    ex.GetType().Name + ": " + ex.Message);
+            ServerApp.Assert(
+                store.Scalar($"SELECT COUNT(*) FROM AccountDevice WHERE DeviceKeyHash='{Secrets.Sha256Hex("devk_shared-race-key")}'") == "1",
+                "RACE-DEV: exactly one device row may survive");
+            ServerApp.Assert(store.Scalar("SELECT COUNT(*) FROM DulukaAccount") == "1", "RACE-DEV: accounts must converge to one");
+            if (!errors.IsEmpty)
+                Console.WriteLine(
+                    $"      ⚠ evidence for M-6: {errors.Count}/8 threads hit the unguarded device-key UNIQUE violation " +
+                    "(escapes LoginOrLink → HTTP 500 at the callback endpoint; fix: catch SqliteException 19 and converge like UpsertLink)");
+        });
+
+        r.Run("RACE-3 parallel revoke + refresh converge to revoked (no resurrect)", () =>
+        {
+            using var store = new StoreRaces.Store();
+            var acc = store.Db.CreateAccount("racer");
+            var dev = store.Db.CreateDevice(acc.AccountId, "d", Secrets.Sha256Hex(Secrets.NewToken("devk_")));
+            var token = Secrets.NewToken("duluka_st_");
+            store.Db.CreateSession(acc.AccountId, dev.DeviceId, null, Secrets.Sha256Hex(token), DateTimeOffset.UtcNow + TimeSpan.FromDays(1));
+            var barrier = new Barrier(5);
+            var refreshResults = new System.Collections.Concurrent.ConcurrentBag<DateTimeOffset?>();
+            var revoked = false;
+            Parallel.For(0, 5, i =>
+            {
+                barrier.SignalAndWait(TimeSpan.FromSeconds(10));
+                if (i == 0)
+                {
+                    revoked = store.Db.RevokeSessionByTokenHash(Secrets.Sha256Hex(token), "race", DateTimeOffset.UtcNow);
+                }
+                else
+                {
+                    var (db, _) = store.OpenThreadStore();
+                    try { refreshResults.Add(db.RefreshSession(Secrets.Sha256Hex(token), TimeSpan.FromDays(7))); }
+                    finally { db.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+                }
+            });
+            ServerApp.Assert(revoked, "RACE-3: revoke must succeed");
+            ServerApp.Assert(store.Db.ValidateSession(Secrets.Sha256Hex(token)) is null,
+                "RACE-3: final state must be revoked (no resurrect)");
+        });
+
+        r.Run("RACE-4 sequential duplicate identity → same account, existed=true (dedup path)", () =>
+        {
+            using var store = new StoreRaces.Store();
+            var identity = new GitHubIdentity(ProviderKeys.GitHub, "dup-identity", "dup@example.test", "dup");
+            var (_, acc1, existed1) = store.Provisioning.LoginOrLink(identity, Secrets.Sha256Hex(Secrets.NewToken("devk_")), "d1");
+            var (_, acc2, existed2) = store.Provisioning.LoginOrLink(identity, Secrets.Sha256Hex(Secrets.NewToken("devk_")), "d2");
+            ServerApp.Assert(!existed1 && existed2, "RACE-4: second login must be marked existing");
+            ServerApp.Assert(acc1.AccountId == acc2.AccountId, "RACE-4: same identity → same account");
+            ServerApp.Assert(store.Scalar("SELECT COUNT(*) FROM DulukaAccount") == "1", "RACE-4: no duplicate account");
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G9 — rate limiting (fresh process; the group IS the window)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void RateLimits(Runner r)
+    {
+        r.Group("G9 rate limiting", configureGitHub: true, budget: 11, ctx =>
+        {
+            var app = ctx.App;
+
+            r.Run("RL-1 auth-start fixed window: 10 pass, 11th → 429", () =>
+            {
+                for (var i = 0; i < 10; i++)
+                    ServerApp.ExpectStatus(
+                        app.Post("/v1/auth/nvidia/start", new { deviceName = "d", deviceKey = Key(256) }), 501, $"RL-1/{i}");
+                var resp = app.Post("/v1/auth/nvidia/start", new { deviceName = "d", deviceKey = Key(256) });
+                ServerApp.ExpectStatus(resp, 429, "RL-1/11th");
+                ServerApp.Assert(resp.Body.Length == 0, $"RL-1: 429 body pin (empty), got: {ServerApp.Trunc(resp.Body)}");
+            });
+
+            r.Run("RL-2 limiter is per-policy: healthz unaffected by auth-start exhaustion", () =>
+                ServerApp.ExpectStatus(app.Get("/healthz"), 200, "RL-2"));
+
+            r.Run("RL-3 untagged endpoints have NO api limiter: 260 hits, zero 429 — MISMATCH M-7", () =>
+            {
+                var bad = "duluka_st_" + Secrets.Base64Url(new byte[32]);
+                for (var i = 0; i < 260; i++)
+                {
+                    var resp = app.Get("/v1/account/me", bad);
+                    if (resp.Status == 429)
+                    {
+                        r.Mismatch("M-7", "api limiter appeared (240/min) — the C/6 claim is now true; update M-7 and unpin RL-3");
+                        return;
+                    }
+                    ServerApp.ExpectStatus(resp, 401, $"RL-3/{i}");
+                }
+                r.Mismatch("M-7", "260 consecutive /me hits → zero 429 (C/6 claims 240/min on the authenticated API)");
+            });
+
+            r.Run("RL-4 log sweep G9", () => app.Sweep("RL-4"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G10 — restart behavior (deterministic: same SQLite file, new process)
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void Restart(Runner r)
+    {
+        r.Group("G10 restart persistence", configureGitHub: true, budget: 2, ctx =>
+        {
+            var app = ctx.App;
+            var accA = app.SeedAccount("alice");
+            var (devA1, _) = app.SeedDevice(accA, "alice-pc");
+            var (devA2, _) = app.SeedDevice(accA, "alice-laptop");
+            var (devR, _) = app.SeedDevice(accA, "doomed");
+
+            var t0 = DateTimeOffset.UtcNow;
+            var tA1 = app.SeedSession(accA, devA1, null,
+                expires: t0 + TimeSpan.FromDays(2), createdAt: t0 - TimeSpan.FromDays(26)); // cap probe
+            var tA2 = app.SeedSession(accA, devA2, null);   // revoked pre-restart
+            var tR = app.SeedSession(accA, devR, null);     // dies with its device
+
+            r.Run("RE-1 ready pre-restart (schema=1)", () =>
+                ServerApp.ExpectStatus(app.Get("/healthz/ready"), 200, "RE-1"));
+
+            r.Run("RE-2 refresh pre-restart → extends to the absolute cap exactly", () =>
+            {
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post("/v1/auth/session/refresh", bearer: tA1), 200, "RE-2"));
+                var got = DateTimeOffset.Parse(json.GetProperty("sessionExpiresAt").GetString()!);
+                ServerApp.Assert(got == t0 + TimeSpan.FromDays(4), $"RE-2: expected cap {t0 + TimeSpan.FromDays(4):O}, got {got:O}");
+            });
+
+            var flowState = "";
+            r.Run("RE-3 start a login flow pre-restart (state lives in memory)", () =>
+            {
+                var start = ServerApp.ExpectStatus(
+                    app.Post("/v1/auth/github/start", new { deviceName = "d", deviceKey = Key(256) }), 200, "RE-3");
+                flowState = Runner.UrlParam(ServerApp.Prop(start, "authorizationUrl"), "state") ?? "";
+            });
+
+            r.Run("RE-4 revoke session T_A2 pre-restart", () =>
+                ServerApp.ExpectStatus(app.Post("/v1/auth/session/revoke", bearer: tA2), 200, "RE-4"));
+
+            r.Run("RE-5 device revoke D_R pre-restart (kills T_R)", () =>
+                ServerApp.ExpectStatus(app.Post($"/v1/account/devices/{devR}/revoke", bearer: tA1), 200, "RE-5"));
+
+            ctx.Restart();
+            app = ctx.App;
+
+            r.Run("RE-6 ready post-restart (schema=1)", () =>
+                ServerApp.ExpectStatus(app.Get("/healthz/ready"), 200, "RE-6"));
+
+            r.Run("RE-7 OAuth flow state does NOT survive restart → 400 invalid_state (documented v0 design)", () =>
+                ServerApp.ExpectErr(app.Post("/v1/auth/github/callback", new { code = "c", state = flowState, deviceKey = Key(256) }),
+                    400, "invalid_state", "RE-7"));
+
+            r.Run("RE-8 session survives restart (persisted, still valid)", () =>
+                ServerApp.ExpectStatus(app.Get("/v1/account/me", tA1), 200, "RE-8"));
+
+            r.Run("RE-9 refresh post-restart returns the EXACT same capped expiry (persisted)", () =>
+            {
+                var json = ServerApp.Json(
+                    ServerApp.ExpectStatus(app.Post("/v1/auth/session/refresh", bearer: tA1), 200, "RE-9"));
+                var got = DateTimeOffset.Parse(json.GetProperty("sessionExpiresAt").GetString()!);
+                ServerApp.Assert(got == t0 + TimeSpan.FromDays(4), $"RE-9: expected persisted cap {t0 + TimeSpan.FromDays(4):O}, got {got:O}");
+            });
+
+            r.Run("RE-10 session revocation survives restart", () =>
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tA2), 401, "session_invalid", "RE-10"));
+
+            r.Run("RE-11 device revocation survives restart (its session stays dead)", () =>
+                ServerApp.ExpectErr(app.Get("/v1/account/me", tR), 401, "session_invalid", "RE-11"));
+
+            r.Run("RE-12 device list post-restart shows RevokedAt persisted", () =>
+            {
+                var arr = ServerApp.Json(app.Get("/v1/account/devices", tA1)).GetProperty("devices");
+                var doomed = arr.EnumerateArray().Single(d => d.GetProperty("deviceId").GetString() == devR);
+                ServerApp.Assert(doomed.GetProperty("revokedAt").ValueKind == JsonValueKind.String, "RE-12: RevokedAt must be persisted");
+                ServerApp.Assert(arr.GetArrayLength() == 3, "RE-12: all three devices listed");
+            });
+
+            r.Run("RE-13 SchemaHistory marks schema v1 in the persisted store", () =>
+            {
+                var v = app.RawScalar("SELECT Version FROM SchemaHistory ORDER BY Version DESC LIMIT 1");
+                ServerApp.Assert(v == "1", $"RE-13: SchemaHistory must hold v1, got {v}");
+            });
+
+            r.Run("RE-14 log sweep G10 (both process generations)", () => app.Sweep("RE-14"));
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G11 — cross-cutting envelope + contract compliance sweep
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void ContractSweep(Runner r)
+    {
+        r.Group("G11 envelope + contract sweep", configureGitHub: true, budget: 8, ctx =>
+        {
+            var app = ctx.App;
+            var accA = app.SeedAccount("alice");
+            var linkA1 = app.SeedLink(accA, "777");
+            var (devA1, _) = app.SeedDevice(accA, "alice-pc");
+            var tA1 = app.SeedSession(accA, devA1, linkA1);
+
+            r.Run("ENV-1 error envelope: single schema, stable codes, no internals over a 9-case corpus", () =>
+            {
+                var corpus = new (string Label, Resp Resp)[]
+                {
+                    ("me/unknown", app.Get("/v1/account/me", "duluka_st_" + Secrets.Base64Url(new byte[32]))),
+                    ("refresh/no-token", app.Post("/v1/auth/session/refresh")),
+                    ("start/missing-name", app.Post("/v1/auth/github/start", new { deviceKey = Key(256) })),
+                    ("callback/unknown-state", app.Post("/v1/auth/github/callback", new { code = "c", state = "x", deviceKey = Key(256) })),
+                    ("link-start/nvidia", app.Post("/v1/account/providers", new { provider = "nvidia" }, tA1)),
+                    ("unlink/unknown", app.Delete("/v1/account/providers/duluka_link_unknown", tA1)),
+                    ("device-revoke/unknown", app.Post("/v1/account/devices/duluka_dev_unknown/revoke", bearer: tA1)),
+                    ("last-provider", app.Delete($"/v1/account/providers/{linkA1}", tA1)),
+                    ("start/malformed-json", app.PostRaw("/v1/auth/github/start", "not json")),
+                };
+                var expected = new Dictionary<string, (int Status, string? Code)>
+                {
+                    ["me/unknown"] = (401, "session_invalid"),
+                    ["refresh/no-token"] = (401, "session_missing"),
+                    ["start/missing-name"] = (400, "invalid_device_name"),
+                    ["callback/unknown-state"] = (400, "invalid_state"),
+                    ["link-start/nvidia"] = (501, "provider_reserved"),
+                    ["unlink/unknown"] = (404, "link_not_found"),
+                    ["device-revoke/unknown"] = (404, "device_not_found"),
+                    ["last-provider"] = (409, "last_provider"),
+                    ["start/malformed-json"] = (500, null), // naked 500 — M-1
+                };
+                foreach (var (label, resp) in corpus)
+                {
+                    var (status, code) = expected[label];
+                    ServerApp.ExpectStatus(resp, status, $"ENV-1/{label}");
+                    if (code is null)
+                        ServerApp.Assert(resp.Body.Length == 0, $"ENV-1/{label}: known naked error must have empty body");
+                    else
+                        ServerApp.ExpectErr(resp, status, code, $"ENV-1/{label}");
+                    if (resp.Body.Length > 0)
+                        ServerApp.Assert(
+                            !resp.Body.Contains("Exception") && !resp.Body.Contains("at Program") && !resp.Body.Contains("at System."),
+                            $"ENV-1/{label}: no internals may leak into error bodies: {ServerApp.Trunc(resp.Body)}");
+                }
+            });
+
+            r.Run("ENV-2 envelope lacks reqId/errorCode/retryable — MISMATCH M-4", () =>
+            {
+                var resp = app.Get("/v1/account/me", "duluka_st_" + Secrets.Base64Url(new byte[32]));
+                ServerApp.ExpectStatus(resp, 401, "ENV-2");
+                using var doc = JsonDocument.Parse(resp.Body);
+                var has = doc.RootElement.EnumerateObject().Any(p => p.Name is "reqId" or "errorCode" or "retryable" or "httpStatus" or "ok");
+                ServerApp.Assert(!has, "ENV-2: envelope grew contract fields — update M-4");
+                r.Mismatch("M-4", "envelope is {error:{code,message}} only — no ok/reqId/errorCode/httpStatus/retryable (§7.1); codes outside the §7.2 registry");
+            });
+
+            r.Run("PRV-0 auth gates on link flow start (moved from G7 for budget)", () =>
+            {
+                ServerApp.ExpectErr(app.Post("/v1/account/providers", new { provider = "github" }), 401, "session_missing", "PRV-0/no-token");
+                ServerApp.ExpectErr(app.Post("/v1/account/providers", new { provider = "github" }, "duluka_st_" + Secrets.Base64Url(new byte[32])),
+                    401, "session_invalid", "PRV-0/bad-token");
+                ServerApp.ExpectErr(app.Post("/v1/account/providers", new { provider = "nvidia" }, tA1), 501, "provider_reserved", "PRV-0/nvidia");
+            });
+
+            r.Run("COMP-1 401 matrix: every authenticated surface answers 401 with its pinned code", () =>
+            {
+                var bad = "duluka_st_" + Secrets.Base64Url(new byte[32]);
+                var probes = new (string Label, Func<Resp> Call, string Code)[]
+                {
+                    ("GET /me", () => app.Get("/v1/account/me", bad), "session_invalid"),
+                    ("GET /providers", () => app.Get("/v1/account/providers", bad), "session_invalid"),
+                    ("GET /devices", () => app.Get("/v1/account/devices", bad), "session_invalid"),
+                    ("POST /refresh", () => app.Post("/v1/auth/session/refresh", bearer: bad), "session_invalid"),
+                    ("POST /revoke", () => app.Post("/v1/auth/session/revoke", bearer: bad), "session_invalid"),
+                    ("POST /revoke-all", () => app.Post("/v1/auth/sessions/revoke-all", bearer: bad), "session_invalid"),
+                    ("POST /link-start", () => app.Post("/v1/account/providers", new { provider = "github" }, bad), "session_invalid"),
+                    ("POST /device-revoke", () => app.Post("/v1/account/devices/duluka_dev_x/revoke", bad), "session_invalid"),
+                    ("DELETE /unlink", () => app.Delete("/v1/account/providers/duluka_link_x", bad), "session_invalid"),
+                };
+                foreach (var (label, call, code) in probes)
+                    ServerApp.ExpectErr(call(), 401, code, $"COMP-1/{label}");
+            });
+
+            r.Run("COMP-2 sync surface tripwire: /v1/sync* → 404 (absent; if this fails the SYN matrix MUST be enabled)", () =>
+            {
+                foreach (var (method, path) in new[] { ("GET", "/v1/sync"), ("PUT", "/v1/sync"), ("GET", "/v1/sync/shadowplay") })
+                {
+                    var resp = app.Send(method, path, method == "PUT" ? "\"doc\"" : null, tA1);
+                    ServerApp.ExpectStatus(resp, 404, $"COMP-2/{method} {path}");
+                    ServerApp.Assert(resp.Body.Length == 0, $"COMP-2/{path}: absent-route body pin");
+                }
+            });
+
+            r.Run("ENV-3 log sweep G11", () => app.Sweep("ENV-3"));
+        });
+    }
+}
