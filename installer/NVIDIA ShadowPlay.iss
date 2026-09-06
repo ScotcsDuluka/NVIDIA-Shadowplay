@@ -19,7 +19,7 @@
 #define AppName "NVIDIA ShadowPlay"
 #define SourceRoot "..\Overlay\bin\Release\net10.0-windows10.0.26100.0"
 #define AppVersion GetVersionNumbersString(SourceRoot + "\Overlay\NVIDIA ShadowPlay.exe")
-; BL-1 traceability: the source commit the payload was built from. The build
+; BL-1 traceability: the source commit the payload was built from (Test B probe). The build
 ; writes installer\bl1-commit.txt (sha only) alongside the payload's
 ; build-info.txt; the preprocessor reads it with FileRead.
 #define Bl1CommitFile "..\installer\bl1-commit.txt"
