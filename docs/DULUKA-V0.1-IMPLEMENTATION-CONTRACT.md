@@ -1,8 +1,14 @@
 # DULUKA ACCOUNT — v0.1 IMPLEMENTATION CONTRACT
 
-Status: **FROZEN — R2 reconciled against the implemented C/4+C/5+C/6 code and the C/2
-executable spec (2026-09-06). Conformance gaps are enumerated in §14; they gate the next
-integration phase, not this document.**
+Status: **FROZEN — R3 (2026-09-06, final audit amendment). R2 was reconciled against the
+pre-integration server; the owner then re-decided three R2 rulings via commit `bf54d08`
+("C/6: reconcile Duluka auth slice with frozen C/1 contract", green at 24/24 incl.
+HTTP-INT-1..4): (1) the §7.1 wire envelope is the `ok/reqId/errorCode` shape, (2) the
+§7.2 registry is the dotted vocabulary, (3) §5.2 is one-active-session-per-device, and
+(4) O-6 is answered YES — `reqId` is on the wire. R3 amends those sections to match.
+R3 is a docs-only amendment applied by the C/1 final audit (reconciled again to the
+C/2 verification pass `e3b6432`: suite reclassified to 99 tests, 99/99 PASS).
+Conformance gaps are enumerated in §14 (live status of the C/2 ledger M-1..M-11).**
 Scope owner: ScotcsDuluka · R1 synthesized from C/4 + C/5 + C/6 discoveries; R2 reconciled
 read-only against the actual repository state (working tree of `Engine-Rebuild-Stabilization`):
 `Duluka/Duluka.Server` (auth/account implementation), `Duluka/Duluka.Server.Tests` (16/16 PASS),
@@ -103,7 +109,7 @@ green suites. Every identifier is **opaque** — never derived from user-identif
 | I-7 | **ProviderKey** | `github` \| `nvidia` (case-insensitive set; OrdinalIgnoreCase) | Fixed vocabulary | Plaintext | `Domain.ProviderKeys` |
 | I-8 | **ProviderUserId** | Provider-scoped stable identity string. GitHub = numeric user `id` as a decimal string. Email/login are DISPLAY-ONLY, never identity | Provider, resolved during OAuth exchange | Plaintext (not a secret) | `GitHubOAuth.FetchIdentityAsync`; Entities.cs header |
 | I-9 | **OAuth flow state** | `duluka_state_` + 43 chars base64url, single-use, 10-min TTL | Server, per flow start | In-memory only (`OAuthFlowStore`) | `Program.cs` /v1/auth/*/start |
-| I-10 | **requestId (Duluka)** | **NOT part of the Duluka v0.1 wire contract.** `reqId` correlation is a ShadowPlay HUB mechanism (`req=<reqId>` in `engine_response`, Overlay TCP client). Duluka request correlation = **OPEN (O-6)** | — | — | grep: `reqId` exists only in Overlay TCP client; zero occurrences in Duluka code/tests |
+| I-10 | **requestId (Duluka)** | Client-issued `X-ReqId` header, **echoed verbatim** in every response envelope (`reqId` field; `null` when the client sent none). Server never mints or validates it. **R3 (owner decision, `bf54d08`)** — supersedes the R2 "hub-only" ruling | — | Not stored | `Program.cs Wire.ReqId`; HTTP-INT-1/2/4 PASS |
 | I-11 | Recording-session id (ShadowPlay-owned) | Out of Duluka's namespace; passed opaquely if ever referenced | Capture pipeline | — | §2.1(5) |
 
 Superseded (R2): R1's "UUIDv4-shaped" AccountId/DeviceId rules matched no artifact and
@@ -172,7 +178,7 @@ Active ⇄ Suspended ; Active|Suspended → Closed (terminal)
   until the admin boundary is decided, O-7). While suspended, session validation fails
   full-chain (ValidateSession requires `Status='Active'`). **Frozen client rule: the
   server MUST report a suspended account as `403 account_suspended`** (distinct reality
-  = distinct outcome, C/4) — current server folding into 401 is conformance gap G-5.
+  = distinct outcome, C/4) — current server folding into 401 is open item M-2 (§14).
 - `Closed`: terminal. Client behavior on encountering it: wipe local account store
   secrets, keep DeviceId/DeviceKey, surface one terminal notice (exactly once — C/3
   rule). No v0 endpoint sets it.
@@ -184,11 +190,15 @@ Sessions have no status column; state is DERIVED from `RevokedAt`/`ExpiresAt`
 Active → (ExpiresAt passed)        → Expired   [terminal]
 Active → (RevokedAt set)           → Revoked   [terminal, reason recorded]
 ```
-- **Multiple concurrent sessions per device are ALLOWED.** R1's "exactly ONE active
-  session per DeviceId + `409 session_conflict` on second login" is RETIRED: it is
-  disproven by BOTH implementations (server REVOKE-1 keeps t1/t2 alive on one device;
-  C/2 reference DEV-1 creates multiple sessions per device) and no `session_conflict`
-  code exists anywhere.
+- **Exactly ONE active session per DeviceId (R3, owner decision `bf54d08` — supersedes
+  the R2 "multiple allowed" ruling and implements R1 §5.2's invariant).** A second login
+  on the same device REVOKES the previous session first (revoke-before-insert,
+  `RevokedReason='superseded'` — `Database.CreateSession`, SESSION-3 PASS). The second
+  login itself SUCCEEDS (it completes a real OAuth exchange); there is NO
+  `409 session_conflict` — R1's 409-on-login variant is retired. The superseded
+  session's client learns of the supersession on its next request via
+  `401 auth.session_revoked`. The transient zero-active window during supersession is
+  fail-closed and invisible on the single connection.
 - Terminal semantics fire EXACTLY ONCE per (SessionId, terminal kind) on the client
   (C/3 exactly-once); the client clears in-memory tokens, keeps DeviceId/DeviceKey.
 - Sliding refresh: 7 days sliding / 30 days absolute cap from creation, both
@@ -240,9 +250,9 @@ is FROZEN from the C/2 executable spec (`DulukaContracts.vb` + `InMemoryDulukaAc
 
 ### 6.2 If-Match CAS (lost-update protection is NOT optional — TEST-MATRIX R6)
 - Every mutating sync request carries `If-Match: <syncVersion>`.
-- Missing If-Match on a write → **`428 missing_if_match`** (C/2 SYN-3, executable and
+- Missing If-Match on a write → **`428 conflict.missing_if_match`** (C/2 SYN-3, executable and
   tested in the reference). R1 was silent on this case; 428 is the frozen rule.
-- Mismatched If-Match → **`409 stale_version`**, and the response body MUST reveal the
+- Mismatched If-Match → **`409 conflict.stale_version`**, and the response body MUST reveal the
   server's current version (C/2 SYN-2: "current version revealed"); the loser must not
   overwrite (RACE-2: exactly one winner, rest 409, version advances by exactly 1).
   Exact JSON field name for the revealed version is an implementation freedom of the
@@ -254,25 +264,24 @@ is FROZEN from the C/2 executable spec (`DulukaContracts.vb` + `InMemoryDulukaAc
 ### 6.3 HTTP status semantics (fixed — never conflated; R2 consolidated)
 | Status | Meaning | Codes (canonical, §7.2) | Evidence |
 |---|---|---|---|
-| 400 | Malformed input / failed provider callback | `invalid_device_name`, `invalid_device_key`, `invalid_callback`, `invalid_state`, `invalid_provider`, `github_not_configured`, `provider_token_exchange_failed`, `provider_callback_rejected`, `provider_identity_fetch_failed` | Program.cs paths |
-| 401 | Identity not established / not usable | `unknown_session`, `device_revoked`, `session_revoked`, `session_expired` — root-cause precedence in that order (root cause wins, TEST-MATRIX decision); `session_missing` (no Bearer) | C/2 ResolveLiveSession precedence; server folds all four into `session_invalid` today = gap G-1 |
-| 403 | Identity established, action not permitted | `device_revoked` (revoked KEY presented at login — re-registration attempt), `account_suspended` (forward — see §5.1), `cross_account_forbidden` (forward, cross-account resource access) | Program.cs callback catch (403 device_revoked, implemented); C/2 TEST-MATRIX decisions |
-| 404 | Identity established, resource does not exist | `link_not_found` (foreign or unknown), `device_not_found` (foreign or unknown) | Program.cs DELETE provider / device revoke |
-| 409 | State conflict (deterministic, never 403) | `provider_linked_to_other_account`, `last_provider_cannot_unlink`, `provider_not_linked`, `stale_version` | C/2 codes (canonical) vs server names `identity_already_linked` / `last_provider` = rename gap G-2 |
-| 428 | Missing precondition on sync writes | `missing_if_match` | C/2 SYN-3 |
-| 429 | Rate limited (per-IP fixed windows: 10/min auth starts, 240/min API) | no body guaranteed | Program.cs RateLimiter, `RejectionStatusCode=429` |
-| 501 | Provider reserved (known key, no flow — `nvidia` and any unimplemented key) | `provider_reserved` | Program.cs, three endpoints |
-| 5xx | Unhandled server fault | `server.internal` (retryable) | envelope rule; note gap G-6 |
+| 400 | Malformed input / failed provider callback | `invalid_device_name`, `invalid_device_key`, `invalid_callback`, `invalid_state`, `invalid_provider`, `github_not_configured`, `provider_token_exchange_failed`, `provider_callback_rejected`, `provider_identity_fetch_failed` | Program.cs paths (documented registry extensions) |
+| 401 | Identity not established / not usable | `auth.session_expired` (no/empty/non-Bearer header, unknown token, expired) · `auth.session_revoked` (revoked or superseded-by-second-login) — the wire distinguishes revoked-vs-expired only (R3: `DeadSessionCode`; HTTP-INT-2 PASS; finer unknown-vs-expired granularity retired) | Program.cs + SessionService.cs |
+| 403 | Identity established, action not permitted | `perm.device_removed` (revoked KEY presented at login — implemented, callback catch) · `perm.account_suspended` (REQUIRED, **open M-2** — suspended currently folds to 401 `auth.session_expired`) · `cross_account_forbidden` (forward) | Program.cs; TEST-MATRIX ME-9 |
+| 404 | Identity established, resource does not exist | `nf.link`, `nf.device` (foreign or unknown — cross-tenant never leaks existence) | Program.cs DELETE provider / device revoke |
+| 409 | State conflict (deterministic, never 403) | `conflict.link_conflict` — covers: identity already linked to another account, last-provider unlink guard, re-unlink of an unlinked link, device key bound to another account. (`stale_version` and C/2's `provider_not_linked` name are retired in favor of the single implemented code) | Program.cs, three sites + LoginOrLink |
+| 428 | Missing precondition on sync writes | `missing_if_match` | C/2 SYN-3 (sync slice future) |
+| 429 | Rate limited (per-IP fixed windows: 10/min auth-start, 240/min api policy) | `server.rate_limited`, `retryable=true`, full envelope (**R3: implemented**; note **open M-7**: no authenticated endpoint carries the `api` policy yet) | Program.cs `OnRejected`; RL-1/RL-3 |
+| 501 | Provider reserved (known key, no flow — `nvidia` and any unimplemented key) | `provider_reserved` | Program.cs, three endpoints; HTTP-INT-3 PASS |
+| 5xx | Unhandled server fault | `server.internal` (retryable) — full envelope via callback catch-all (**R3: no more naked 500s on the callback paths**; body-parse paths remain open **M-1**) | Program.cs catch-all; S-6/S-7 |
 
 - **401 vs 403 vs 404 rule (kept from R1, now evidence-aligned):** 401 = re-auth may
   fix it; 403 = authenticated but forbidden; 404 = authenticated, resource absent.
   Cross-tenant resources are 404 (never leak existence): implemented — device revoke
   and link lookup of another account's row return 404, not 403.
-- **Device revocation resolves R1's internal contradiction** (R1 put `device_removed`
-  in BOTH the 403 and 404 families): there is no `device_removed` code. A revoked
-  device still EXISTS (404 would lie). Frozen: use-with-revoked-device → `401
-  device_revoked`; login-with-revoked-key → `403 device_revoked`; unknown/foreign
-  DeviceId → `404 device_not_found`.
+- **Device revocation (R3):** one root cause, two surfaces: USE of a session whose
+  device was revoked → `401 auth.session_revoked`; LOGIN presenting a revoked KEY →
+  `403 perm.device_removed`. Unknown/foreign DeviceId → `404 nf.device`. R1's
+  `device_removed`-in-404 contradiction stays resolved; the flat R2 names are retired.
 - Uniqueness races on the provider anchor are state conflicts → 409, never 403
   (kept). BUT the duplicate-account race CONVERGES rather than conflicts: the same
   (ProviderKey, ProviderUserId) ALWAYS logs into its existing account — first-login
@@ -296,9 +305,11 @@ is FROZEN from the C/2 executable spec (`DulukaContracts.vb` + `InMemoryDulukaAc
   exist in DDL; SQLite serializes writers.
 
 ### 6.6 Retries / idempotency (C-3 rule, R2-sharpened)
-- **Revoke operations are idempotent**: revoking an already-revoked session returns
-  `200` (no error) — C/2 SES-2b, executable and tested. Server currently returns
-  `401 session_invalid` on the second revoke = gap G-3.
+- **Revoke idempotency:** device-level revoke is idempotent (second call → 200 with
+  `sessionsRevoked=0`). Session-level revoke of an already-revoked session currently
+  answers `401 auth.session_revoked`; C/2 SES-2b pins an idempotent `200` — **open M-9
+  (owner call: keep terminal-401 or align to 200)**. Use-after-revoke is always `401
+  auth.session_revoked` forever (AUTH-3: revocation outlives TTL).
 - Use-after-revoke remains `401 session_revoked` forever (AUTH-3: revocation outlives
   TTL).
 - Future write retries (sync phase) carry the SAME (SessionId, If-Match precondition);
@@ -310,50 +321,66 @@ is FROZEN from the C/2 executable spec (`DulukaContracts.vb` + `InMemoryDulukaAc
 
 ## 7. ERROR ENVELOPE (single schema — R2 frozen to the implemented wire)
 
-### 7.1 Shape (implemented, `Program.cs Err()` — evidence)
-```json
-HTTP <status>
-{ "error": { "code": "<stable machine code, §7.2>", "message": "<human-readable, safe-for-display>" } }
-```
-- Success bodies are camelCase JSON (`sessionToken`, `accountId`, `deviceId`,
-  `existingAccount`, `sessionExpiresAt`, `providers[]`, `devices[]`, …).
-- `message` is display text: HTML-encode on render (C/2 reflected-XSS fix); it NEVER
-  contains tokens, ProviderKeys, or raw OAuth payloads (C/2 redaction rule; enforced by
-  `Secrets.Redact` in all log paths).
-- Error bodies expose stable codes only — no internals, no PII, no stack traces
-  (TEST-MATRIX R7).
-- R1's envelope (`ok:false` + `reqId` echo + `errorCode` + `retryable` + `conflict`
-  fields) is RETIRED: it matched no implemented artifact; `reqId` is a hub-channel
-  mechanism (I-10). `retryable` semantics live in the status class (429/5xx retryable;
-  4xx terminal). The sync slice MAY add a conflict payload to the 409 body (§6.2) —
-  that is the only sanctioned extension.
+### 7.1 Shape (R3 — the owner adopted the R1 `ok/reqId` envelope via `bf54d08`; HTTP-INT-1/2/4 PASS)
 
-### 7.2 Code registry (fixed vocabulary — canonical names from the C/2 executable spec)
+Every response (success AND error) carries ONE schema:
+
+```json
+// success
+{ "ok": true,  "reqId": "<X-ReqId echoed verbatim, or null>", "resource": { …payload… } }
+
+// error
+{ "ok": false, "reqId": "<echo or null>", "errorCode": "<registry code, §7.2>",
+  "httpStatus": 429, "retryable": false, "conflict": null,
+  "message": "<human-readable, safe-for-display>" }
+```
+
+- `reqId` comes from the client's `X-ReqId` header, echoed verbatim, never minted or
+  validated server-side (I-10, R3).
+- `retryable` is `true` for 429 and 5xx, `false` otherwise (implemented in `Wire.Err`).
+- `conflict` is `null` on every v0 auth surface today — that is the current
+  implementation, and the C/2 ledger tracks wiring it up as **open M-10** (409 bodies
+  should carry the current server resource so the client can re-apply or drop; exact
+  payload shape is the owning fix's to define). The sync slice's `409
+  conflict.stale_version` body MUST carry the current version (§6.2).
+- `message` is display text: HTML-encode on render (C/2 reflected-XSS fix); it NEVER
+  contains tokens, ProviderKeys, or raw OAuth payloads (redaction enforced by
+  `Secrets.Redact` in all log paths; 10 log sweeps green in the HTTP suite).
+- R2's `{"error":{"code","message"}}` shape is RETIRED (it was the pre-integration
+  shape; R2 §7.1 had frozen it — the owner's `bf54d08` reversal is the authoritative
+  evidence, per the R3 header note).
+
+### 7.2 Code registry (R3 — the DOTTED vocabulary is canonical; implemented set frozen)
+
 ```text
 client.* (local only, never sent):  bad_id, env, protocol
 400 family:    invalid_device_name, invalid_device_key, invalid_callback,
                invalid_state, invalid_provider,
                github_not_configured, provider_token_exchange_failed,
                provider_callback_rejected, provider_identity_fetch_failed
-401 family:    unknown_session, device_revoked, session_revoked, session_expired,
-               session_missing
-403 family:    device_revoked (login path), account_suspended (forward),
+401 family:    auth.session_expired, auth.session_revoked
+403 family:    perm.device_removed (implemented, login path)
+               perm.account_suspended (REQUIRED — open M-2)
                cross_account_forbidden (forward)
-404 family:    link_not_found, device_not_found
-409 family:    provider_linked_to_other_account, last_provider_cannot_unlink,
-               provider_not_linked, stale_version
-428 family:    missing_if_match
-429:           (rate limited; no body guaranteed)
+404 family:    nf.link, nf.device
+409 family:    conflict.link_conflict
+               conflict.stale_version (sync slice future)
+428 family:    conflict.missing_if_match (sync slice future)
+429 family:    server.rate_limited
 501 family:    provider_reserved
 5xx family:    server.internal (retryable)
 ```
-- Known aliases in the current server that MUST be renamed for conformance (gap G-2):
-  `session_invalid` → root-cause 401 codes (G-1); `identity_already_linked` →
-  `provider_linked_to_other_account`; `last_provider` → `last_provider_cannot_unlink`.
+
+- Implemented today: every code above except `perm.account_suspended` (M-2),
+  `cross_account_forbidden`, and the two sync-slice codes.
+- R2's flat registry (`session_expired`, `stale_version`, …) and R2's claim that the
+  dotted registry "matched no artifact" are RETIRED — `bf54d08` implemented the dotted
+  registry and pinned it with green tests (HTTP-INT-2). The C/2 in-memory executable
+  spec (`DulukaContracts.vb`) still speaks flat names: its STATUS assertions remain
+  binding; its code-name constants are superseded by this table (owner may update the
+  VB constants at the next sync-slice touch).
 - Unknown `errorCode` received → client renders generic per-HTTP-class message and
   logs the raw code once (C/5 unknown-value fallback rule).
-- R1's dotted registry (`auth.*`, `perm.*`, `nf.*`, `conflict.*`) is RETIRED — no
-  artifact ever emitted it.
 
 ### 7.3 Exactly-once (C/3)
 - One request → one terminal envelope. Replayed OAuth state (`invalid_state`), single-use
@@ -393,7 +420,7 @@ client.* (local only, never sent):  bad_id, env, protocol
 | O-3 | Device liveness window value | Split: **O-3a device window still OPEN**; session TTL values RESOLVED by implementation defaults (7d sliding / 30d absolute, configurable) |
 | O-4 | Server stack/hosting | **RESOLVED by implementation**: ASP.NET Core minimal APIs + Kestrel + SQLite (`Duluka.Server.csproj`, `Program.cs`) |
 | O-5 | Provider list for v0.1 | **RESOLVED by implementation**: `github` implemented; `nvidia` reserved with the hardware-identity ban (ProviderKeys, NVIDIA-1 PASS) |
-| O-6 | Duluka request-correlation id (hub `reqId` analog) | **NEW (R2)** — retired from the wire envelope as unevidenced; re-add via owner decision only |
+| O-6 | Duluka request-correlation id (hub `reqId` analog) | **RESOLVED (R3, `bf54d08`): YES** — client-issued `X-ReqId`, echoed verbatim in every envelope (I-10) |
 | O-7 | Admin boundary (who may set Suspended/Closed; operator vs endpoint) | **NEW (R2)** — v0 has NO admin surface; suspension/close are DB-operator actions today |
 
 ---
@@ -419,22 +446,25 @@ client.* (local only, never sent):  bad_id, env, protocol
 | **R2: missing If-Match (R1 silent) vs 428 (C/2)** | — | **C/2 wins**: 428 `missing_if_match` (SYN-3). |
 | **R2: 201-on-create (C/2 abstract seam) vs 200 login callback (server)** | C/2 interface vs server | Both stand, different surfaces: the abstract `CreateOrLinkAccount` seam may return 201; the implemented OAuth login flow returns `200` + `existingAccount` (creation is a callback side effect). The HTTP probe asserts statuses only. |
 | **R2: 409 `invalid_identity` on blank input (C/2 reference quirk) vs 400 `invalid_*` (server)** | C/2 reference vs server | **Server wins for HTTP** (400 = malformed input); the reference's 409 is a seam artifact, never in the P0 matrix, not promoted to the contract. |
+| **R3: R2 envelope/registry/one-session rulings vs `bf54d08` implementation** | R2 doc (frozen after `bf54d08` was written) vs `bf54d08` code + green HTTP-INT tests | **`bf54d08` wins** — the owner implemented and test-pinned the R1-style `ok/reqId` envelope, the dotted registry, one-active-session-per-device (supersede semantics), and reqId on the wire. §5.2/§6.3/§7.1/§7.2/I-10/O-6 amended; R2's "retired" claims on those points are void. |
+| **R3: one-session enforcement vs C/2 in-memory reference (multi-session fixtures)** | `bf54d08` vs `DulukaContracts.vb` DEV-1/REVOKE-1 shapes | **Server wins** (owner decision); the C/2 in-memory spec's STATUS semantics stay binding, its multi-session fixtures and flat code-name constants are legacy until the owner touches the VB spec. |
+| **R3: `C:\My Project\Duluka.Server` repo + commits `ee07eb7`/`b7c1801` + "C/6 M1..M6" (task premise)** | Task premise vs repository | **Not found anywhere** — the synchronized server lives in THIS repo under `Duluka/`; `ee07eb7`/`b7c1801` do not exist in any ref; no M1..M6 artifact exists (the C/6 matrix is SECRETS/FLOW/LOGIN/SESSION/REVOKE/UNLINK/SCHEMA/NVIDIA + HTTP-INT-1..4, 24 tests). Audited against actual HEAD state. |
 
 ---
 
-## 12. VERDICT (R2)
+## 12. VERDICT (R3)
 
-**FROZEN.** Identifiers (§3), state machines (§5), sync CAS (§6), HTTP/error semantics
-(§6.3/§7), boundaries (§2), and at-rest rules (§4) are fully specified, mutually
-consistent, and grounded in the implemented, green-suite code plus the C/2 executable
-spec. No UUID/ULID ambiguity remains (none exist); no API semantic contradiction remains
-(§11 closes each one with evidence).
+**FROZEN (amended).** Identifiers (§3), state machines (§5), sync CAS (§6), HTTP/error
+semantics (§6.3/§7), boundaries (§2), and at-rest rules (§4) are specified, mutually
+consistent, and grounded in implemented, green-suite code (C/6: 24/24 at HEAD). R3
+resolved the R2↔`bf54d08` contradiction in the owner's direction (ok/reqId envelope,
+dotted registry, one-active-session-per-device, reqId on the wire) — the three-way
+R1/R2/code conflict is closed. No UUID/ULID ambiguity exists (none ever did).
 
-**Gates for the next integration phase** (do not block this freeze):
-- §14 conformance gaps G-1..G-7 (server renames/foldings + sync endpoints + probe
-  retargeting).
-- Owner decisions O-1/O-2 gate the sync payload specifically; O-3a/O-6/O-7 are
-  independent micro-decisions.
+**Release-readiness is governed by §14 (live gap status), NOT by this freeze:** the
+remaining open items are the production mismatches M-1, M-2, M-6, M-7, M-9 plus the
+newly tracked M-10/M-11 (§14), and the sync slice (O-1/O-2, COMP-2 tripwire). The C/2
+HTTP suite is green at 99/99 after its `e3b6432` reclassification.
 
 ---
 
@@ -443,37 +473,50 @@ spec. No UUID/ULID ambiguity remains (none exist); no API semantic contradiction
 | Route | Auth | Semantics (statuses per §6.3) |
 |---|---|---|
 | `GET /healthz`, `GET /healthz/ready` | none | liveness / readiness (schema version) |
-| `POST /v1/auth/{provider}/start` | rate-limited per-IP | 501 reserved; 400 invalid device fields; 200 `{authorizationUrl, state(redacted), expiresInMinutes:10}` |
+| `POST /v1/auth/{provider}/start` | rate-limited per-IP | 501 reserved; 400 invalid device fields; 200 `{authorizationUrl, state(RAW), expiresInMinutes:10}` (HTTP-INT-1) |
 | `POST /v1/auth/{provider}/callback` | rate-limited | 400 invalid callback/state/device key/provider errors; 403 device_revoked; 200 `{sessionToken, accountId, deviceId, existingAccount, sessionExpiresAt}` |
-| `POST /v1/account/providers` | Bearer | start LINK flow onto THIS account; 401 session_missing/session_invalid; 501 reserved |
-| `POST /v1/account/providers/{provider}/complete` | flow-bound | 400 invalid_state; 401 session_invalid; 409 provider identity bound elsewhere; 200 `{linked, linkId, already}` |
+| `POST /v1/account/providers` | Bearer | start LINK flow onto THIS account; 401 `auth.session_expired`; 501 reserved |
+| `POST /v1/account/providers/{provider}/complete` | flow-bound | 400 `invalid_state`; 401 `auth.session_expired`; 409 `conflict.link_conflict` (identity bound elsewhere, incl. race-loser guard); 200 `{linked, linkId, already}` |
 | `POST /v1/auth/session/refresh` | Bearer | 200 `{sessionExpiresAt}` / 401 |
-| `POST /v1/auth/session/revoke` | Bearer | 200 `{revoked:true}` / 401 (second revoke 401 = gap G-3) |
+| `POST /v1/auth/session/revoke` | Bearer | 200 `{revoked:true}` / 401 `auth.session_revoked` (second revoke = open M-9) |
 | `POST /v1/auth/sessions/revoke-all` | Bearer | 200 `{revokedSessions:n}` / 401 |
 | `GET /v1/account/me` | Bearer | 200 `{accountId, displayName, createdAt, currentDevice}` |
 | `GET /v1/account/providers` | Bearer | 200 `{providers:[{linkId, providerKey, providerEmail, status, linkedAt}]}` |
-| `DELETE /v1/account/providers/{linkId}` | Bearer | 200 `{unlinked:true, revokedSessions:n}` / 409 last_provider / 404 link_not_found / 400 link_already_unlinked |
+| `DELETE /v1/account/providers/{linkId}` | Bearer | 200 `{unlinked:true, revokedSessions:n}` / 409 `conflict.link_conflict` (last-provider, re-unlink) / 404 `nf.link` (unknown or cross-tenant) |
 | `GET /v1/account/devices` | Bearer | 200 `{devices:[{deviceId, deviceName, createdAt, lastSeenAt, revokedAt}]}` |
-| `POST /v1/account/devices/{deviceId}/revoke` | Bearer | 200 `{revoked:true, sessionsRevoked:n}` / 404 device_not_found (incl. cross-tenant) |
+| `POST /v1/account/devices/{deviceId}/revoke` | Bearer | 200 `{revoked:true, sessionsRevoked:n}` (idempotent; second call `sessionsRevoked=0`) / 404 `nf.device` (incl. cross-tenant) |
 | (future) sync routes | Bearer + If-Match | per §6 — not implemented in v0 |
 
 ---
 
-## 14. CONFORMANCE GAPS (server/tests vs FROZEN contract — next-phase work list)
+## 14. CONFORMANCE GAPS — LIVE STATUS (final audit, HEAD `e3b6432`, 2026-09-06)
 
-> Read-only reconciliation: NOTHING below was changed in production code. Each gap is
-> listed with the file that would need the change.
+Suite truth at HEAD: C/6 `Duluka.Server.Tests` **24/24 PASS** · C/2 HTTP suite
+**99/99 PASS** (reclassified to the frozen contract in `e3b6432` — 95 → 99 tests;
+the unmodified pre-reclassification suite had scored 33/95 against the reconciled
+server, which was the designed ledger-drift signal) · C/2 in-memory spec **19/0 PASS**.
 
-| # | Gap | Current (evidence) | Frozen requirement | File(s) |
-|---|---|---|---|---|
-| G-1 | 401 root-cause codes folded | All session failures → `401 session_invalid` | Emit `unknown_session` / `device_revoked` / `session_revoked` / `session_expired` with C/2 precedence | `Duluka/Duluka.Server/Program.cs` (+ `Data/Database.cs` to expose the cause) |
-| G-2 | 409 code aliases | `identity_already_linked`, `last_provider` | Rename to `provider_linked_to_other_account`, `last_provider_cannot_unlink` | `Program.cs` |
-| G-3 | Revoke idempotency | Second revoke → 401 | Second revoke → 200 (C/2 SES-2b) | `Program.cs` (`/v1/auth/session/revoke`) |
-| G-4 | Unhandled `device_key_in_use` on login path | InvalidOperationException escapes (500) | Map to 409 `device_key_in_use` (or owner-chosen 4xx) | `Program.cs` callback catch |
-| G-5 | Suspended-account folding | Suspended → 401 | 403 `account_suspended` | `Data/Database.cs` + `Program.cs` |
-| G-6 | Rate-limit + 5xx bodies | 429 empty body; unhandled faults → plain 500 | Acceptable as-is; if bodies are added they must use §7.1 shape | `Program.cs` |
-| G-7 | Sync slice | Only `SyncProfile` DDL exists | Implement §6 (If-Match, 428/409/429 semantics, initial version 1) | `Duluka/Duluka.Server` (new endpoints) |
-| G-8 | HTTP probe route sketch | Probe targets `POST /accounts`, `PUT /sync`, … | Retarget at the §13 routes when `DULUKA_BASE_URL` testing starts (assert bodies per R7 too) | `Duluka.Account.Tests/DulukaHttpContractProbe.vb`, `Duluka.Account.Tests/TEST-MATRIX.md` |
+| ID | Item | Status at HEAD | Owner file |
+|---|---|---|---|
+| M-1 | Malformed/empty JSON body → naked 500, empty body | **OPEN (CONFIRMED by S-6/S-7)** → map to 400 envelope | `Duluka/Duluka.Server/Program.cs` (body parsing) |
+| M-2 | Suspended account → 401; contract requires 403 `perm.account_suspended` | **OPEN** (now 401 `auth.session_expired` — code improved, status still wrong) | `Data/Database.cs` + `Program.cs` |
+| M-3 | One-active-session-per-device | **FIXED** (`bf54d08`: revoke-before-insert; SESSION-3 PASS; old ME-8 pin fails as designed) | — |
+| M-4 | Envelope lacks ok/reqId/errorCode/retryable | **FIXED** (`bf54d08` adopted §7.1; HTTP-INT-1/2 PASS; ENV-2 pin fails as designed) | — |
+| M-5 | Re-unlink → 400; C/2 wants 409 | **FIXED** (now 409 `conflict.link_conflict`; UNL-6 pin fails on fixture, not status) | — |
+| M-6 | Device-key race: `CreateDevice` UNIQUE(19) escapes `LoginOrLink` → 500 (7/8 threads) | **OPEN (CONFIRMED by RACE-DEV)** → catch + converge like `UpsertLink`, map to 4xx | `Auth/GitHubOAuth.cs` |
+| M-7 | No endpoint carries the `api` rate-limit policy (260 hits, zero 429) | **OPEN (CONFIRMED by RL-3)** → attach `RequireRateLimiting("api")` | `Program.cs` |
+| M-8 | 401 root-cause codes conflated | **FIXED** (`DeadSessionCode`: revoked-vs-expired on the wire; ME-7 pin fails as designed) | — |
+| M-9 | Second session revoke → 401; C/2 SES-2b pins idempotent 200 | **OPEN (owner call)** — security property (no resurrect) holds | `Program.cs` revoke endpoint |
+| M-10 | 409 `conflict.link_conflict` bodies carry `conflict=null`; §6.2 requires the CURRENT server resource (+ version) attached so the client can re-apply or drop deterministically | **OPEN (new, tracked by `e3b6432` ledger, ENV-3)** | `Program.cs` 409 sites |
+| M-11 | `/v1/account/providers/{provider}/complete` hardcodes `auth.session_expired` for a REVOKED binding session while every other endpoint distinguishes revocation via `DeadSessionCode` | **OPEN (new, tracked by `e3b6432` ledger, PRV-9)** | `Program.cs` link-complete |
+| F-1 | start returned state redacted | **RESOLVED** — state now RAW (HTTP-INT-1); F-1 pin inverted, ledger must drop it | suite only |
+| F-2 | Missing-token 401 code inconsistent | **RESOLVED** — uniform `auth.session_expired` (R2 §6.3 table) | suite only |
+| F-3 | revoke-all counts expired-but-unrevoked sessions | **OPEN (minor)** — harmless overcount | `Data/Database.cs` `RevokeAllForAccount` |
+| F-4 | No transport-failure catch in exchange | **RESOLVED at envelope level** — callback catch-all → 500 `server.internal` retryable | — |
+| S-1 | C/2 HTTP suite reclassification | **RESOLVED** — reclassified and committed in `e3b6432` (99 tests, 99/99 PASS, deterministic across 3 consecutive runs); ledger verdict: M-3/M-4/M-5/M-8 FIXED, M-1/M-2/M-6/M-7/M-9 still violated, M-10/M-11 newly tracked | `Duluka/Duluka.Http.Integration.Tests/` (committed) |
+| S-2 | Sync slice | **NOT STARTED** (COMP-2 tripwire green: `/v1/sync*` → 404); gated on O-1/O-2; SYN/428 matrix must be enabled when it lands | new endpoints |
+| S-3 | Admin boundary (O-7) / device liveness window (O-3a) | **OPEN (owner)** — no admin surface exists; suspension is a DB-operator action today | owner decision |
 
-FROZEN document owner: C/1. Changes to this document after R2 require a new evidence
-citation per rule (same discipline as R1/R2).
+FROZEN document owner: C/1. R3 is a docs-only amendment committed as
+`docs: reconcile Duluka v0.1 contract amendment`; production code is untouched by it
+(all §14 fixes belong to C/5). Changes after R3 require a new evidence citation per rule.
