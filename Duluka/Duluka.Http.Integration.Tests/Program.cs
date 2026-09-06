@@ -44,6 +44,7 @@ internal static class Program
             Groups.ContractSweep(Runner.I);            // G11
             Groups.NativeAuth(Runner.I);               // G12 (native username/password)
             Groups.NativePasswordRotation(Runner.I);   // G13 (native password change)
+            Groups.NativeAdoption(Runner.I);           // G14 (provider-only adopts password)
         }
         catch (Exception ex)
         {
@@ -201,7 +202,16 @@ internal sealed class Runner
     {
         var msg = ex.Message.ReplaceLineEndings(" | ");
         if (msg.Length > 300) msg = msg[..300] + "…";
-        I.FailureList.Add($"{name} — {msg}");
+        // First non-assert stack frame — pinpoints the failing line when the
+        // message alone is generic (e.g. JsonElement KeyNotFoundException).
+        var frame = (ex.StackTrace ?? "")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .SkipWhile(l => l.Contains("ServerApp.") || l.Contains("at System."))
+            .FirstOrDefault()?.Trim() ?? "";
+        I.FailureList.Add($"{name} — {msg} @ {frame}");
+        Console.WriteLine();
+        Console.WriteLine($"      ↳ {ex.GetType().Name}: {msg}");
+        Console.WriteLine($"      ↳ {frame}");
     }
 
     public static string? UrlParam(string url, string name)

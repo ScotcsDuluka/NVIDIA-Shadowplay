@@ -206,24 +206,27 @@ Friend Class DulukaAccountStore
     ' ── file shape ──────────────────────────────────────────────────────────
 
     Private Class StoreDto
+        ' NB: System.Text.Json serializes PROPERTIES only — public FIELDS are
+        ' silently skipped (the file came out as "{}" and nothing persisted
+        ' across restarts). Every member below must stay a Property.
         <JsonPropertyName("v")>
-        Public Version As Integer = 1
+        Public Property Version As Integer = 1
         <JsonPropertyName("deviceKeyEncrypted")>
-        Public DeviceKeyEncrypted As String = ""
+        Public Property DeviceKeyEncrypted As String = ""
         <JsonPropertyName("sessionTokenEncrypted")>
-        Public SessionTokenEncrypted As String = ""
+        Public Property SessionTokenEncrypted As String = ""
         <JsonPropertyName("accountId")>
-        Public AccountId As String = ""
+        Public Property AccountId As String = ""
         <JsonPropertyName("deviceId")>
-        Public DeviceId As String = ""
+        Public Property DeviceId As String = ""
         <JsonPropertyName("deviceName")>
-        Public DeviceName As String = ""
+        Public Property DeviceName As String = ""
         <JsonPropertyName("displayName")>
-        Public DisplayName As String = ""
+        Public Property DisplayName As String = ""
         <JsonPropertyName("username")>
-        Public Username As String = ""
+        Public Property Username As String = ""
         <JsonPropertyName("sessionExpiresAt")>
-        Public SessionExpiresAt As String = ""
+        Public Property SessionExpiresAt As String = ""
     End Class
 
     Private ReadOnly Property StorePath As String

@@ -426,30 +426,59 @@ app.MapPost("/v1/account/password", async (HttpRequest req) =>
             ? el.GetString() ?? "" : "";
     var currentPassword = get("currentPassword");
     var newPassword = get("newPassword");
-    if (string.IsNullOrEmpty(currentPassword))
-        return Wire.Err(req, 400, WireCodes.InvalidCredentials, "Current password is required.");
+    var username = get("username");
     if (!UsernamePolicy.IsValidPassword(newPassword))
         return Wire.Err(req, 400, WireCodes.InvalidPassword,
             $"Password must be {UsernamePolicy.MinPasswordLength}-{UsernamePolicy.MaxPasswordLength} characters.");
 
+    var accountId = validation.Value.Item3.AccountId;
+
+    // Account WITH a native credential → change requires the current password.
+    if (db.HasNativeCredential(accountId))
+    {
+        if (string.IsNullOrEmpty(currentPassword))
+            return Wire.Err(req, 400, WireCodes.InvalidCredentials, "Current password is required.");
+        try
+        {
+            nativeAuth.ChangePassword(accountId, currentPassword, Secrets.HashPassword(newPassword));
+            return Wire.Ok(req, new { changed = true });
+        }
+        catch (InvalidOperationException ex) when (ex.Message == "invalid_credentials")
+        {
+            return Wire.Err(req, 400, WireCodes.InvalidCredentials, "Current password is incorrect.");
+        }
+        catch (Exception ex)
+        {
+            app.Logger.LogError(ex, "Unhandled password change failure");
+            return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
+        }
+    }
+
+    // PROVIDER-ONLY (bootstrapped) account → first-time password: the user
+    // picks a username, no current password exists to verify. This releases
+    // the last-provider trap: once the account has a password, its provider
+    // link can be unlinked without locking the account out.
+    if (!UsernamePolicy.IsValidFormat(username))
+        return Wire.Err(req, 400, WireCodes.InvalidUsername,
+            "username is required when adding password login to a provider-only account.");
     try
     {
-        nativeAuth.ChangePassword(validation.Value.Item3.AccountId, currentPassword,
-            Secrets.HashPassword(newPassword));
-        return Wire.Ok(req, new { changed = true });
+        // SetInitialPassword hashes internally — pass the PLAINTEXT (a
+        // pre-hashed value here would be hashed twice and never verify).
+        nativeAuth.SetInitialPassword(accountId, username, newPassword);
+        return Wire.Ok(req, new { changed = true, username = username.Trim() });
     }
-    catch (InvalidOperationException ex) when (ex.Message == "invalid_credentials")
+    catch (InvalidOperationException ex) when (ex.Message == "username_taken")
     {
-        return Wire.Err(req, 400, WireCodes.InvalidCredentials, "Current password is incorrect.");
+        return Wire.Err(req, 409, WireCodes.ConflictUsernameTaken, "That username is already taken.");
     }
-    catch (InvalidOperationException ex) when (ex.Message == "native_credential_absent")
+    catch (InvalidOperationException ex) when (ex.Message == "credential_exists")
     {
-        return Wire.Err(req, 400, WireCodes.NativeCredentialAbsent,
-            "This account has no username/password credential.");
+        return Wire.Err(req, 409, WireCodes.ConflictUsernameTaken, "This account already has a password.");
     }
     catch (Exception ex)
     {
-        app.Logger.LogError(ex, "Unhandled password change failure");
+        app.Logger.LogError(ex, "Unhandled initial password failure");
         return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
     }
 }).RequireRateLimiting("api");

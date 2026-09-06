@@ -29,6 +29,8 @@ Partial Class Base_Connect_Security
         BT_RefreshSession = New Label()
         BT_RevokeAll = New Label()
         PwHeader_LBL = New Label()
+        PwUsername_LBL = New Label()
+        PwUsername_BOX = New TextBox()
         PwCurrent_LBL = New Label()
         PwCurrent_BOX = New TextBox()
         PwNew_LBL = New Label()
@@ -127,6 +129,31 @@ Partial Class Base_Connect_Security
         PwHeader_LBL.Size = New Size(127, 19)
         PwHeader_LBL.TabIndex = 74
         PwHeader_LBL.Text = "Change password"
+        ' 
+        ' PwUsername_LBL
+        ' 
+        PwUsername_LBL.AutoSize = True
+        PwUsername_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        PwUsername_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        PwUsername_LBL.ForeColor = Color.Gainsboro
+        PwUsername_LBL.Location = New Point(62, 556)
+        PwUsername_LBL.Name = "PwUsername_LBL"
+        PwUsername_LBL.Size = New Size(105, 15)
+        PwUsername_LBL.TabIndex = 82
+        PwUsername_LBL.Text = "Choose a username"
+        PwUsername_LBL.Visible = False
+        ' 
+        ' PwUsername_BOX
+        ' 
+        PwUsername_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        PwUsername_BOX.BorderStyle = BorderStyle.FixedSingle
+        PwUsername_BOX.Font = New Font("Segoe UI", 10.5F)
+        PwUsername_BOX.ForeColor = Color.White
+        PwUsername_BOX.Location = New Point(185, 552)
+        PwUsername_BOX.Name = "PwUsername_BOX"
+        PwUsername_BOX.Size = New Size(260, 26)
+        PwUsername_BOX.TabIndex = 83
+        PwUsername_BOX.Visible = False
         ' 
         ' PwCurrent_LBL
         ' 
@@ -306,6 +333,8 @@ Partial Class Base_Connect_Security
     Friend WithEvents BT_RefreshSession As Label
     Friend WithEvents BT_RevokeAll As Label
     Friend WithEvents PwHeader_LBL As Label
+    Friend WithEvents PwUsername_LBL As Label
+    Friend WithEvents PwUsername_BOX As TextBox
     Friend WithEvents PwCurrent_LBL As Label
     Friend WithEvents PwCurrent_BOX As TextBox
     Friend WithEvents PwNew_LBL As Label

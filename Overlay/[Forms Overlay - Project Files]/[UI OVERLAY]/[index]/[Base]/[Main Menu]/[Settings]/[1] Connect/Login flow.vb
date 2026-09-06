@@ -87,6 +87,38 @@ Public Class Base_Connect_Login
         BT_StartLogin.Visible = False
         BT_CancelLogin.Visible = True
 
+        ' NB: no Cancel here — cancelling the flow before RunAsync kills the
+        ' localhost listener and GitHub's redirect would hit nothing.
+
+        Me.Hide()
+        Base_Connect.ReturnFromSubPage()
+
+        Base_Connect.Hide()
+        Base_Settings.Show()
+        Base.AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
+        Base.Settings_List.Visible = True
+
+
+
+        Base_Settings.Hide()
+        Base.ME_CLOSE_BG.Visible = True
+        Base.Opacity = 0
+        Base.Settings_List.Visible = False
+        Base.shadowplay.Visible = True
+
+
+        Base_Background_Top.d.Visible = True
+        Base_Background_Top.ME_CLOSE_BG_GRE.Visible = True
+        Base_Background_Top.ME_CLOSE_BG.Visible = True
+
+        Base.ShowMainPanel()
+                                  Base.Opacity = 0.85
+                                  Base.IF_OpenShare = True
+
+
+
+        Base.HideAllControls()
+
         Dim outcome As DulukaAuthFlow.Outcome = Await _flow.RunAsync(AddressOf Report)
         _flow = Nothing
         If IsDisposed OrElse Not IsHandleCreated Then Return
@@ -96,9 +128,16 @@ Public Class Base_Connect_Login
             Status_TEXT.Text = "Signed in to your Duluka Account."
             Await Task.Delay(900)
             If IsDisposed OrElse Not IsHandleCreated Then Return
-            Me.Hide()
-            Base_Connect.ReturnFromSubPage()
+            Base.ShowMainPanel()
+            Base.OpenSettings()
+            Base.IF_OpenShare = False
+            Base.OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
         Else
+            Base.ShowMainPanel()
+            Base.OpenSettings()
+            Base.IF_OpenShare = False
+            Base.OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
+            Me.Show()
             Status_TEXT.Text = outcome.Message
             BT_StartLogin.Visible = True
         End If

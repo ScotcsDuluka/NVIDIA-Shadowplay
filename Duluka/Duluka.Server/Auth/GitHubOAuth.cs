@@ -171,6 +171,15 @@ public sealed class AccountProvisioningService(Database db)
         if (existingDevice is not null && existingDevice.RevokedAt is not null)
             throw new InvalidOperationException("device_revoked");
 
+        // Ownership guard BEFORE the anchor upsert: for an UNKNOWN identity the
+        // upsert would bootstrap a NEW account — if the device key is already
+        // bound to a different account, refuse here so a refused login never
+        // leaves an orphan account/provider-link behind (same class as the
+        // native-register ordering fix).
+        var existingLink = db.FindActiveLink(identity.ProviderKey, identity.ProviderUserId);
+        if (existingLink is null && existingDevice is not null)
+            throw new InvalidOperationException("device_key_in_use");
+
         var (link, account, existed) = db.UpsertLink(
             identity.ProviderKey, identity.ProviderUserId, identity.ProviderEmail, identity.DisplayName);
 
@@ -318,5 +327,19 @@ public sealed class NativeAuthService(Database db)
         if (!Secrets.VerifyPassword(currentPassword, credential.PasswordHash))
             throw new InvalidOperationException("invalid_credentials");
         db.UpdateNativePassword(accountId, newPasswordHash);
+    }
+
+    /// <summary>First-time password for a PROVIDER-ONLY (bootstrapped) account:
+    /// the user picks a username and password; the account then has two ways in
+    /// and its provider link can finally be unlinked (releases the
+    /// last-provider trap). Refuses if a native credential already exists —
+    /// those accounts change passwords via ChangePassword instead.</summary>
+    public void SetInitialPassword(string accountId, string username, string password)
+    {
+        if (db.HasNativeCredential(accountId))
+            throw new InvalidOperationException("credential_exists");
+        db.CreateNativeCredential(accountId,
+            UsernamePolicy.Canonicalize(username), username.Trim(),
+            Secrets.HashPassword(password));
     }
 }

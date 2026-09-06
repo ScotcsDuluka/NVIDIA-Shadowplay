@@ -373,6 +373,28 @@ public sealed class Database : IAsyncDisposable
     public bool HasNativeCredential(string accountId)
         => FindNativeCredentialByAccount(accountId) is not null;
 
+    /// <summary>Add a native credential to an EXISTING account (provider-only
+    /// accounts adopting a password). Username uniqueness is DB-enforced; the
+    /// AccountId PK guarantees one credential per account.</summary>
+    public NativeCredential CreateNativeCredential(string accountId, string usernameCanonical,
+        string usernameDisplay, string passwordHash)
+    {
+        var now = DateTimeOffset.UtcNow;
+        try
+        {
+            Exec("INSERT INTO NativeCredential(AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt) " +
+                 "VALUES ($aid, $uc, $ud, $ph, $ca, $ua)",
+                ("$aid", accountId), ("$uc", usernameCanonical), ("$ud", usernameDisplay),
+                ("$ph", passwordHash), ("$ca", now.ToString("o")), ("$ua", now.ToString("o")));
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            throw new InvalidOperationException("username_taken", ex);
+        }
+        return new NativeCredential(accountId, usernameCanonical, usernameDisplay,
+            passwordHash, now, now);
+    }
+
     public void UpdateNativePassword(string accountId, string newPasswordHash)
     {
         Exec("UPDATE NativeCredential SET PasswordHash=$ph, UpdatedAt=$ua WHERE AccountId=$aid",

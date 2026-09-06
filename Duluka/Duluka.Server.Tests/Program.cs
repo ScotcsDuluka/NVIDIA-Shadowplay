@@ -58,6 +58,8 @@ internal static class Program
         Run("NATIVE-8: password change — wrong current refused, new password works", Test_NativePasswordChange);
         Run("NATIVE-9: revoked device key refused; cross-account key refused", Test_NativeDeviceGuards);
         Run("NATIVE-12: cross-account device-key register → refused, NO orphan account/credential", Test_NativeRegisterNoOrphanOnDeviceConflict);
+        Run("LOGIN-5: unknown identity + foreign device key → refused, NO orphan account/link", Test_LoginOrLinkNoOrphanOnDeviceConflict);
+        Run("NATIVE-13: provider-only account adopts username+password, trap released", Test_NativeAdoptPassword);
         Run("NATIVE-10: suspended account cannot login (perm.account_suspended)", Test_NativeSuspended);
         Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
         Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
@@ -936,6 +938,97 @@ internal static class Program
             var devB = f.Db.FindDeviceByKeyHash(hashB)!;
             Assert(devB.DeviceId == deviceB.DeviceId && devB.AccountId == accountB.AccountId,
                 "the existing device binding is unchanged");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_LoginOrLinkNoOrphanOnDeviceConflict()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Account B exists (GitHub bootstrap) and owns a LIVE device key.
+            var (keyB, hashB) = NewDeviceKey();
+            var ghB = f.RegisterGitHubUser(9100, "owner-b");
+            var identityB = new GitHubIdentity(ProviderKeys.GitHub, ghB, null, null);
+            var (linkB, accountB, existedB) = f.Provisioning.LoginOrLink(identityB, hashB, "dev-B");
+            Assert(!existedB, "owner-b bootstrap created its account");
+            var deviceB = f.Db.FindDeviceByKeyHash(hashB)!;
+
+            // A DIFFERENT, UNKNOWN GitHub identity tries to log in with B's
+            // device key: must be refused BEFORE the anchor upsert — no orphan
+            // account/provider-link may survive the 409.
+            var ghX = f.RegisterGitHubUser(9101, "unknown-x");
+            var identityX = new GitHubIdentity(ProviderKeys.GitHub, ghX, null, null);
+            var code = "";
+            try { f.Provisioning.LoginOrLink(identityX, hashB, "dev-A"); }
+            catch (InvalidOperationException ex) { code = ex.Message; }
+            Assert(code == "device_key_in_use",
+                $"unknown identity + foreign key must be device_key_in_use (got: {code})");
+            Assert(f.Db.FindActiveLink(ProviderKeys.GitHub, ghX) is null,
+                "no provider-link row persisted for the refused identity");
+
+            // The owner's link + device binding remain untouched.
+            Assert(f.Db.FindActiveLink(ProviderKeys.GitHub, ghB)!.AccountId == accountB.AccountId,
+                "owner link intact");
+            var devB = f.Db.FindDeviceByKeyHash(hashB)!;
+            Assert(devB.AccountId == accountB.AccountId && devB.DeviceId == deviceB.DeviceId,
+                "owner device binding intact");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_NativeAdoptPassword()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Provider-only (bootstrapped) account: GitHub link, no credential.
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9102, "adopter");
+            var identity = new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null);
+            var (link, account, _) = f.Provisioning.LoginOrLink(identity, hash, "dev");
+            Assert(!f.Db.HasNativeCredential(account.AccountId), "starts provider-only");
+
+            // Adopt a password with a chosen username.
+            f.Native.SetInitialPassword(account.AccountId, "Adopter_1", "adopted-pass-1");
+            Assert(f.Db.HasNativeCredential(account.AccountId), "credential created");
+
+            var loginOk = false;
+            try
+            {
+                f.Native.Login("adopter_1", "adopted-pass-1", hash, "dev");
+                loginOk = true;
+            }
+            catch
+            {
+            }
+            Assert(loginOk, "password login works after adoption (canonical username)");
+
+            // Username uniqueness still enforced across accounts.
+            var (k2, h2) = NewDeviceKey();
+            var gh2 = f.RegisterGitHubUser(9103, "adopter-two");
+            var (link2, account2, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, gh2, null, null), h2, "dev-2");
+            var dup = false;
+            try { f.Native.SetInitialPassword(account2.AccountId, "adopter_1", "adopted-pass-1"); }
+            catch (InvalidOperationException ex) { dup = ex.Message == "username_taken"; }
+            Assert(dup, "adopting a taken username must be refused with username_taken");
+
+            // THE TRAP RELEASED: with a password present, the only provider
+            // link can be unlinked without locking the account out.
+            var result = f.Provisioning.Unlink(account.AccountId, link.LinkId);
+            Assert(result.Ok, $"unlink succeeds once a password exists (got {result.Code})");
+            var stillIn = false;
+            try
+            {
+                f.Native.Login("adopter_1", "adopted-pass-1", hash, "dev");
+                stillIn = true;
+            }
+            catch
+            {
+            }
+            Assert(stillIn, "password login still works after unlinking");
         }
         finally { f.Dispose(); }
     }

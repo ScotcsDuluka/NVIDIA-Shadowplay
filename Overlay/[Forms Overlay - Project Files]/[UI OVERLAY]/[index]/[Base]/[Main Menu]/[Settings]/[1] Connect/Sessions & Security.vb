@@ -4,6 +4,7 @@
 ' device, including this one). 401 anywhere is the terminal path.
 
 Imports System.Diagnostics
+Imports System.Linq
 Imports System.Runtime.InteropServices
 Imports System.Text.Json.Nodes
 Imports System.Threading.Tasks
@@ -52,6 +53,7 @@ Public Class Base_Connect_Security
         If Visible Then
             _confirmAll = False
             BT_RevokeAll.Text = "Sign out on ALL devices"
+            SetupPasswordForm()
             RenderSessionInfo()
         End If
     End Sub
@@ -138,15 +140,39 @@ Public Class Base_Connect_Security
         End Try
     End Sub
 
+    ''' <summary>Provider-only (bootstrapped via GitHub) accounts have no
+    ' username/password yet — the password form switches to FIRST-TIME SETUP:
+    ' the user picks a username, no current password exists to verify. This
+    ' also releases the last-provider trap so GitHub can be unlinked later.</summary>
+    Private ReadOnly Property ProviderOnlyAccount As Boolean
+        Get
+            Return DulukaAccountStore.Instance.Username = ""
+        End Get
+    End Property
+
     Private Async Sub BT_ChangePassword_Click(sender As Object, e As EventArgs) Handles BT_ChangePassword.Click
         If _busy Then Return
+        Dim providerOnly As Boolean = ProviderOnlyAccount
+        Dim username As String = PwUsername_BOX.Text.Trim()
         Dim current As String = PwCurrent_BOX.Text
         Dim newPw As String = PwNew_BOX.Text
         Dim confirm As String = PwConfirm_BOX.Text
 
-        If current = "" OrElse newPw = "" OrElse confirm = "" Then
-            Status_TEXT.Text = "Fill in every password field."
-            Return
+        If providerOnly Then
+            If username = "" OrElse newPw = "" OrElse confirm = "" Then
+                Status_TEXT.Text = "Choose a username and fill both password fields."
+                Return
+            End If
+            If username.Length < 3 OrElse username.Length > 32 OrElse
+               username.Any(Function(c) Not (Char.IsLetterOrDigit(c) OrElse c = "."c OrElse c = "_"c OrElse c = "-"c)) Then
+                Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+                Return
+            End If
+        Else
+            If current = "" OrElse newPw = "" OrElse confirm = "" Then
+                Status_TEXT.Text = "Fill in every password field."
+                Return
+            End If
         End If
         If newPw.Length < 8 OrElse newPw.Length > 128 Then
             Status_TEXT.Text = "New password must be 8-128 characters."
@@ -159,24 +185,34 @@ Public Class Base_Connect_Security
 
         _busy = True
         Try
-            Status_TEXT.Text = "Updating password…"
+            Status_TEXT.Text = If(providerOnly, "Adding password sign-in…", "Updating password…")
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim body As New System.Text.Json.Nodes.JsonObject()
-            body("currentPassword") = current
             body("newPassword") = newPw
+            If providerOnly Then
+                body("username") = username
+            Else
+                body("currentPassword") = current
+            End If
             Dim r As DulukaApi.Result = Await DulukaApi.PostAsync(
                 "/v1/account/password", token, body.ToJsonString()).ConfigureAwait(True)
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok Then
+                PwUsername_BOX.Clear()
                 PwCurrent_BOX.Clear()
                 PwNew_BOX.Clear()
                 PwConfirm_BOX.Clear()
-                Status_TEXT.Text = "Password updated."
+                ' The account now has a username — cache it so the form flips
+                ' to the change-password mode without a full /me round trip.
+                If providerOnly Then DulukaAccountStore.Instance.SetProfile(
+                    DulukaAccountStore.Instance.DisplayName, username)
+                SetupPasswordForm()
+                Status_TEXT.Text = "Password updated — you can now sign in with it."
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Current password is incorrect."
-            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "native_credential_absent" Then
-                Status_TEXT.Text = "This account signs in with a linked provider only."
+            ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
+                Status_TEXT.Text = "That username is already taken — pick another."
             ElseIf r.AuthDead Then
                 TerminalSignOut("Your session has expired. Please sign in again.")
             Else
@@ -185,6 +221,19 @@ Public Class Base_Connect_Security
         Finally
             _busy = False
         End Try
+    End Sub
+
+    ''' <summary>Arranges the password form for the account kind: change mode
+    ' (current password required) vs first-time adoption mode (username
+    ' picker, no current password).</summary>
+    Private Sub SetupPasswordForm()
+        Dim providerOnly As Boolean = ProviderOnlyAccount
+        PwUsername_LBL.Visible = providerOnly
+        PwUsername_BOX.Visible = providerOnly
+        PwCurrent_LBL.Text = If(providerOnly, "Current password (not set yet)", "Current password")
+        PwCurrent_LBL.Enabled = Not providerOnly
+        PwCurrent_BOX.Enabled = Not providerOnly
+        PwHeader_LBL.Text = If(providerOnly, "Add password sign-in", "Change password")
     End Sub
 
     Private Sub TerminalSignOut(message As String)

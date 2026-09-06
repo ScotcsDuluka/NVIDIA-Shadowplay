@@ -1,13 +1,11 @@
-' [Main] Account home — the Duluka Account landing page.
+' [Main] Account home — the Duluka Account landing page (SIGNED-IN ONLY).
 ' Identity model (product rule): the DULUKA ACCOUNT owns the identity;
 ' username/password is its NATIVE authentication method and a ProviderLink
 ' (GitHub in v0) is an EXTERNAL authentication method into the SAME account.
-'   unauthenticated -> native sign-in form + "Continue with GitHub" +
-'                      "Create Duluka Account"
-'   authenticated   -> Duluka Account identity from GET /v1/account/me
-'                      (never from GitHub UI state) + navigation + sign out.
-' 401 / dead session is terminal: wipe the local session, re-render,
-' exactly once per occurrence (contract §5.4).
+' Anyone without a Duluka session who lands here is forwarded to the
+' Sign in page. Identity comes from GET /v1/account/me — never from GitHub.
+' 401 / dead session is terminal: wipe the local session, forward to
+' Sign in, exactly once per occurrence (contract §5.4).
 
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
@@ -48,64 +46,34 @@ Public Class Base_Connect
     End Sub
 
     Private _meInFlight As Boolean
-    Private _signInBusy As Boolean
 
     Private Sub Base_Connect_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
-        RenderState()
     End Sub
 
-    ''' <summary>Re-renders on every show — the state may have changed while a
-    ' sub-page (sign-in/devices/security/providers/create) was on top.</summary>
+    ''' <summary>GATE: this page exists ONLY for signed-in users — anyone
+    ' without a Duluka session is forwarded to the Sign in page.</summary>
     Private Sub Base_Connect_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
-        RenderState()
-        If DulukaAccountStore.Instance.HasSession Then
-            RefreshAccountAsync()
+        If Not DulukaAccountStore.Instance.HasSession Then
+            ForwardToSignIn()
+            Return
         End If
+        RenderState()
+        RefreshAccountAsync()
     End Sub
 
     Private Sub RenderState()
-        Dim authed As Boolean = DulukaAccountStore.Instance.HasSession
-
-        ' Unauthenticated — the primary account experience: native sign-in,
-        ' the provider alternative, and account creation. GitHub is presented
-        ' as an authentication method, never as the account itself.
-        Auth_PROMPT.Visible = Not authed
-        Username_LBL.Visible = Not authed
-        Username_BOX.Visible = Not authed
-        Password_LBL.Visible = Not authed
-        Password_BOX.Visible = Not authed
-        BT_SignIn.Visible = Not authed
-        Or_LBL.Visible = Not authed
-        BT_Connect.Visible = Not authed
-        Provider_NOTE.Visible = Not authed
-        BT_CreateAccount.Visible = Not authed
-
-        ' Authenticated — the Duluka Account identity card + navigation.
-        Box_PNG.Visible = authed
-        USERSNAME_TEXT.Visible = authed
-        Account_META.Visible = authed
-        BT_Devices.Visible = authed
-        BT_Security.Visible = authed
-        BT_Providers.Visible = authed
-        BT_Logout.Visible = authed
-
-        If authed Then
-            Dim name As String = DulukaAccountStore.Instance.DisplayName
-            USERSNAME_TEXT.Text = If(name <> "", name, "Duluka Account")
-            Dim meta As String = ""
-            If DulukaAccountStore.Instance.Username <> "" Then
-                meta &= "Username  " & DulukaAccountStore.Instance.Username & Environment.NewLine
-            End If
-            meta &= "Account  " & If(DulukaAccountStore.Instance.AccountId <> "", DulukaAccountStore.Instance.AccountId, "—") &
-                    Environment.NewLine &
-                    "This device:  " & If(DulukaAccountStore.Instance.DeviceName <> "", DulukaAccountStore.Instance.DeviceName, "—")
-            Account_META.Text = meta
-        Else
-            USERSNAME_TEXT.Text = ""
-            Account_META.Text = ""
+        Dim store As DulukaAccountStore = DulukaAccountStore.Instance
+        Dim name As String = store.DisplayName
+        USERSNAME_TEXT.Text = If(name <> "", name, "Duluka Account")
+        Dim meta As String = ""
+        If store.Username <> "" Then
+            meta &= "Username  " & store.Username & Environment.NewLine
         End If
+        meta &= "Account  " & If(store.AccountId <> "", store.AccountId, "—") & Environment.NewLine &
+                "This device:  " & If(store.DeviceName <> "", store.DeviceName, "—")
+        Account_META.Text = meta
     End Sub
 
     ''' <summary>Server-truth refresh of the identity card. Keeps the cached
@@ -123,25 +91,12 @@ Public Class Base_Connect
             If r.Ok AndAlso r.Resource IsNot Nothing Then
                 Dim displayName As String = ResourceText(r.Resource, "displayName")
                 Dim username As String = ResourceText(r.Resource, "username")
-                Dim accountId As String = ResourceText(r.Resource, "accountId")
-                Dim deviceName As String = ""
-                Dim deviceNode As JsonNode = r.Resource("currentDevice")
-                If deviceNode IsNot Nothing Then
-                    deviceName = NodeText(deviceNode, "deviceName")
-                End If
                 DulukaAccountStore.Instance.SetProfile(displayName, username)
-
-                USERSNAME_TEXT.Text = If(displayName <> "", displayName, "Duluka Account")
-                Dim meta As String = ""
-                If username <> "" Then meta &= "Username  " & username & Environment.NewLine
-                meta &= "Account  " & If(accountId <> "", accountId, "—") & Environment.NewLine &
-                        "This device:  " & If(deviceName <> "", deviceName, "—")
-                Account_META.Text = meta
+                RenderState()
                 Status_TEXT.Text = ""
             ElseIf r.AuthDead Then
                 DulukaAccountStore.Instance.ClearSession()
-                RenderState()
-                Status_TEXT.Text = "Your session has expired. Please sign in again."
+                ForwardToSignIn()
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
@@ -152,79 +107,6 @@ Public Class Base_Connect
         End Try
     End Sub
 
-    ' ── native sign-in ──────────────────────────────────────────────────────
-
-    Private Async Sub BT_SignIn_Click(sender As Object, e As EventArgs) Handles BT_SignIn.Click
-        NativeSignIn()
-    End Sub
-
-    Private Sub Password_Box_Enter(sender As Object, e As KeyEventArgs) Handles Password_BOX.KeyDown
-        If e.KeyCode = Keys.Enter Then
-            e.SuppressKeyPress = True
-            NativeSignIn()
-        End If
-    End Sub
-
-    Private Async Sub NativeSignIn()
-        If _signInBusy Then Return
-        Dim store As DulukaAccountStore = DulukaAccountStore.Instance
-
-        ' Client-side validation is a courtesy only — the server stays the
-        ' authority. Both fields required before a network round trip.
-        Dim username As String = Username_BOX.Text.Trim()
-        Dim password As String = Password_BOX.Text
-        If username = "" OrElse password = "" Then
-            Status_TEXT.Text = "Enter your username and password."
-            Return
-        End If
-
-        _signInBusy = True
-        BT_SignIn.Enabled = False
-        BT_Connect.Enabled = False
-        BT_CreateAccount.Enabled = False
-        Status_TEXT.Text = "Signing in…"
-        Try
-            Dim body As New JsonObject()
-            body("username") = username
-            body("password") = password
-            body("deviceKey") = store.EnsureDeviceKey()
-            body("deviceName") = DulukaApi.DeviceName()
-            Dim r As DulukaApi.Result = Await DulukaApi.PostAsync("/v1/auth/login", Nothing, body.ToJsonString()).ConfigureAwait(True)
-            If IsDisposed OrElse Not IsHandleCreated Then Return
-
-            If r.Ok AndAlso r.Resource IsNot Nothing Then
-                store.SetSession(ResourceText(r.Resource, "sessionToken"),
-                                 ResourceText(r.Resource, "accountId"),
-                                 ResourceText(r.Resource, "deviceId"),
-                                 ResourceText(r.Resource, "sessionExpiresAt"),
-                                 DulukaApi.DeviceName())
-                Password_BOX.Clear()
-                RenderState()
-                Status_TEXT.Text = ""
-                RefreshAccountAsync()
-            ElseIf r.HttpStatus = 401 AndAlso r.ErrorCode = "invalid_credentials" Then
-                Status_TEXT.Text = "Incorrect username or password."
-            ElseIf r.HttpStatus = 403 AndAlso r.ErrorCode = "perm.device_removed" Then
-                ' This device's key is dead — drop it so the next attempt mints
-                ' a fresh one, and tell the user honestly what happened.
-                store.RevokeDeviceKey()
-                Status_TEXT.Text = "This device was revoked by your account. Try signing in again."
-            Else
-                Status_TEXT.Text = DulukaApi.HumanError(r)
-            End If
-        Catch ex As Exception
-            Debug.WriteLine($"NativeSignIn error: {ex.GetType().Name}")
-            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka."
-        Finally
-            _signInBusy = False
-            If Not IsDisposed Then
-                BT_SignIn.Enabled = True
-                BT_Connect.Enabled = True
-                BT_CreateAccount.Enabled = True
-            End If
-        End Try
-    End Sub
-
     ' ── navigation ──────────────────────────────────────────────────────────
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
@@ -232,14 +114,6 @@ Public Class Base_Connect
         Base_Settings.Show()
         Base.AMY(Base_Settings.Main_Menu_SET, -2000, 160, 300)
         Base.Settings_List.Visible = True
-    End Sub
-
-    Private Sub BT_Connect_Click(sender As Object, e As EventArgs) Handles BT_Connect.Click
-        OpenSubPage(Base_Connect_Login)
-    End Sub
-
-    Private Sub BT_CreateAccount_Click(sender As Object, e As EventArgs) Handles BT_CreateAccount.Click
-        OpenSubPage(Base_Connect_Create)
     End Sub
 
     Private Sub BT_Devices_Click(sender As Object, e As EventArgs) Handles BT_Devices.Click
@@ -259,16 +133,25 @@ Public Class Base_Connect
         target.Show()
     End Sub
 
-    ''' <summary>Sub-pages return here through this — VisibleChanged re-renders
-    ' the correct state (sign-in entry or the identity card).</summary>
+    ''' <summary>Sub-pages return here through this — the gate either shows the
+    ' identity card (session alive) or forwards to Sign in (no session).</summary>
     Friend Sub ReturnFromSubPage()
         Me.Show()
     End Sub
 
-    ''' <summary>Sub-pages surface one-line outcomes (terminal sign-outs etc.)
-    ' on the home status line.</summary>
+    ''' <summary>Sub-pages surface one-line outcomes (terminal sign-outs etc.);
+    ' routed to whichever page ends up visible.</summary>
     Friend Sub NotifyFromSubPage(message As String)
         Status_TEXT.Text = message
+    End Sub
+
+    ''' <summary>The one forward path to the Sign in page — used by the gate,
+    ' by 401 handling and after sign out.</summary>
+    Friend Sub ForwardToSignIn()
+        Me.Hide()
+        Base_Connect_Signin.Settings_Panel.Location = New Point(80, 160)
+        Base_Connect_Signin.Show()
+        Base_Connect_Signin.Opacity = 1
     End Sub
 
     ' ── sign out ────────────────────────────────────────────────────────────
@@ -276,7 +159,7 @@ Public Class Base_Connect
     Private Async Sub BT_Logout_Click(sender As Object, e As EventArgs) Handles BT_Logout.Click
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
         If Not store.HasSession Then
-            RenderState()
+            ForwardToSignIn()
             Return
         End If
         BT_Logout.Enabled = False
@@ -288,8 +171,7 @@ Public Class Base_Connect
         End If
         store.ClearSession()
         BT_Logout.Enabled = True
-        RenderState()
-        Status_TEXT.Text = "Signed out."
+        ForwardToSignIn()
     End Sub
 
     Private Function ResourceText(resource As JsonNode, name As String) As String

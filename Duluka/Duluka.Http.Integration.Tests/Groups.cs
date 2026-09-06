@@ -1285,4 +1285,81 @@ internal static class Groups
             r.Run("ROT-4 log sweep G13 (both passwords never in server logs or bodies)", () => app.Sweep("ROT-4"));
         });
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G14 — provider-only (bootstrapped) account adopts a password; releases
+    // the last-provider trap. Own server process: G12's auth-start window is
+    // already spent at the real 10/min limiter and adoption's login probe
+    // needs a fresh one.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void NativeAdoption(Runner r)
+    {
+        r.Group("G14 provider-only password adoption", configureGitHub: false, budget: 4, ctx =>
+        {
+            var app = ctx.App;
+            app.TrackSecret("adopted-pass-1");
+
+            r.Run("ADOPT-1 provider-only account adopts username+password (no current password needed)", () =>
+            {
+                // Bootstrapped account: GitHub link seeded, NO native credential.
+                var accountId = app.SeedAccount("bootstrapped-user");
+                app.SeedLink(accountId, "gh-adopt-1");
+                var (deviceId, _) = app.SeedDevice(accountId, "it-adopt");
+                var token = app.SeedSession(accountId, deviceId, null);
+                app.TrackSecret(token);
+
+                var resp = app.Post("/v1/account/password", new
+                {
+                    username = "adopter",
+                    newPassword = "adopted-pass-1",
+                }, bearer: token);
+                ServerApp.ExpectOk(resp, "ADOPT-1a");
+                ServerApp.Assert(ServerApp.Json(resp).GetProperty("username").GetString() == "adopter",
+                    "ADOPT-1a: response echoes the adopted username");
+
+                // After adoption the account HAS a credential — the same
+                // endpoint now requires the current password (change path).
+                var changeWithoutCurrent = app.Post("/v1/account/password", new
+                {
+                    username = "adopter",
+                    newPassword = "adopted-pass-2",
+                }, bearer: token);
+                ServerApp.ExpectErr(changeWithoutCurrent, 400, "invalid_credentials", "ADOPT-1b");
+
+                // A DIFFERENT provider-only account trying to adopt a taken
+                // username is refused with 409.
+                var otherId = app.SeedAccount("other-bootstrapped");
+                app.SeedLink(otherId, "gh-adopt-2");
+                var (otherDev, _) = app.SeedDevice(otherId, "it-adopt-2");
+                var otherToken = app.SeedSession(otherId, otherDev, null);
+                var dup = app.Post("/v1/account/password", new
+                {
+                    username = "adopter",
+                    newPassword = "adopted-pass-1",
+                }, bearer: otherToken);
+                ServerApp.ExpectErr(dup, 409, "conflict.username_taken", "ADOPT-1c");
+            });
+
+            r.Run("ADOPT-2 adopted account: password login works + last-provider trap released", () =>
+            {
+                var login = ServerApp.Json(app.Post("/v1/auth/login", new
+                {
+                    username = "adopter", password = "adopted-pass-1", deviceKey = Key(256), deviceName = "d",
+                }));
+                // NB: the sessionToken is NOT tracked — its issuing response is
+                // the one sanctioned appearance ("shown EXACTLY ONCE").
+                var token = login.GetProperty("sessionToken").GetString()!;
+
+                var links = ServerApp.Json(app.Get("/v1/account/providers", bearer: token));
+                var linkId = links.GetProperty("providers").EnumerateArray().Single().GetProperty("linkId").GetString()!;
+
+                // With a password present, the ONLY provider link is unlinkable.
+                var un = ServerApp.Json(app.Delete("/v1/account/providers/" + linkId, bearer: token));
+                ServerApp.Assert(un.GetProperty("unlinked").GetBoolean(), "ADOPT-2: unlink must succeed");
+            });
+
+            r.Run("ADOPT-3 log sweep G14 (adopted password never in server logs or bodies)", () => app.Sweep("ADOPT-3"));
+        });
+    }
 }

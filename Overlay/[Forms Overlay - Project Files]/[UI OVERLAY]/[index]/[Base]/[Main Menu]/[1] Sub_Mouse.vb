@@ -107,11 +107,6 @@ Partial Public Class Base
     Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_TEXT.MouseLeave, Connect_ICO.MouseLeave
         Connect_BOX_SUB.BackColor = System.Drawing.Color.Gray
     End Sub
-
-    ' NOTE (kept as-is): this handler is double-registered with Connect_Click
-    ' below — both fire on Connect_TEXT.Click / Connect_ICO.Click, so a click
-    ' currently shows the error notifier AND opens the Connect panel.
-    ' Removing either side changes user-visible behavior — OWNER's call.
     Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_TEXT.Click, Connect_ICO.Click
         ShowNotifier("account_confirm_error")
     End Sub
@@ -503,6 +498,7 @@ Partial Public Class Base
     Private ReadOnly allForms As Form() = {
         Base_Settings,
         Base_Connect,
+        Base_Connect_Signin,
         Base_Privacy_Control,
         Base_Overlay_Hub,
         Base_KeySet,
@@ -526,7 +522,7 @@ Partial Public Class Base
     End Sub
 
     ' ========== HELPER METHOD ==========
-    Private Sub OpenPanel(showForm As Form, settingsCtrl As Control)
+    Public Sub OpenPanel(showForm As Form, settingsCtrl As Control)
         IF_OpenShare = False
         For Each f In allForms
             If f IsNot showForm Then f.Hide()

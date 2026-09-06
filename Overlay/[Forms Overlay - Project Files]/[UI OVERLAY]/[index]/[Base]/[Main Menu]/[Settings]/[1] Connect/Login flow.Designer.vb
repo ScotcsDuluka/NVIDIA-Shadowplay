@@ -96,7 +96,7 @@ Partial Class Base_Connect_Login
         BT_CancelLogin.ForeColor = Color.White
         BT_CancelLogin.Location = New Point(400, 167)
         BT_CancelLogin.Name = "BT_CancelLogin"
-        BT_CancelLogin.Size = New Size(160, 58)
+        BT_CancelLogin.Size = New Size(167, 58)
         BT_CancelLogin.TabIndex = 72
         BT_CancelLogin.Text = "Cancel"
         BT_CancelLogin.TextAlign = ContentAlignment.MiddleCenter
