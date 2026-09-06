@@ -49,6 +49,7 @@ internal static class Program
         Run("SCHEMA-1: v1 database migrates to v2, rows survive, re-link works", Test_SchemaV2Migration);
         Run("NVIDIA-1: provider reserved, no flow, no hardware identity surface", Test_NvidiaReserved);
         RunHttpIntegrationTests();
+        RunCwdIndependenceTests();
 
         Console.WriteLine();
         Console.WriteLine($"--------------------------------------------------");
@@ -904,6 +905,197 @@ internal static class Program
             Thread.Sleep(300);
         }
         throw new InvalidOperationException($"server not live within 90s.\nSTDOUT:{stdout}\nSTDERR:{stderr}");
+    }
+
+    // ─── CWD independence: state must not follow the working directory ────
+    // `Database:Path` is relative by default and the content root used to
+    // follow the process CWD — a server started from an unrelated directory
+    // silently created a FRESH database there and split state (C/1 finding).
+    // These tests launch the REAL server binary from three different working
+    // directories and pin: the database always materializes at the deployed
+    // application root, nothing appears in any unrelated CWD, relative CONFIG
+    // paths resolve against the app root, and seeded state survives a restart
+    // from yet another CWD.
+
+    private static System.Diagnostics.Process StartCwdServer(
+        string serverDll, int port, string workingDir, string? envRelDb,
+        System.Text.StringBuilder stdout, System.Text.StringBuilder stderr)
+    {
+        var psi = new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = DotnetHostPath(),
+            Arguments = $"exec \"{serverDll}\"",
+            WorkingDirectory = workingDir,   // ← the variable under test
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            CreateNoWindow = true,
+        };
+        psi.Environment["ASPNETCORE_URLS"] = $"http://127.0.0.1:{port}";
+        psi.Environment["ASPNETCORE_ENVIRONMENT"] = "Production";
+        if (envRelDb is not null) psi.Environment["DULUKA_Database__Path"] = envRelDb;
+        psi.Environment["DULUKA_GitHub__ClientId"] = "test-client-id";
+        psi.Environment["DULUKA_GitHub__ClientSecret"] = "test-client-secret";
+        psi.Environment["DULUKA_GitHub__RedirectUri"] = "http://localhost:8517/v1/auth/github/callback";
+        var server = System.Diagnostics.Process.Start(psi)!;
+        server.OutputDataReceived += (_, e) => stdout.AppendLine(e.Data);
+        server.ErrorDataReceived += (_, e) => stderr.AppendLine(e.Data);
+        server.BeginOutputReadLine();
+        server.BeginErrorReadLine();
+        WaitForLive($"http://127.0.0.1:{port}", server, stdout, stderr);
+        return server;
+    }
+
+    private static void StopCwdServer(System.Diagnostics.Process? server)
+    {
+        if (server is not null && !server.HasExited)
+        {
+            try { server.Kill(entireProcessTree: true); } catch { /* best effort */ }
+        }
+        server?.Dispose();
+        // Give Windows a beat to release the file locks before assertions/cleanup.
+        Thread.Sleep(300);
+    }
+
+    private static void DeleteDatabaseFiles(string dbPath)
+    {
+        foreach (var suffix in new[] { "", "-wal", "-shm" })
+        {
+            var p = dbPath + suffix;
+            if (File.Exists(p)) File.Delete(p);
+        }
+    }
+
+    private static void RunCwdIndependenceTests()
+    {
+        Console.WriteLine("  [cwd-int] real-server CWD-independence group");
+        var cfg =
+#if DEBUG
+            "Debug";
+#else
+            "Release";
+#endif
+        var serverBinDir = Path.Combine(
+            Path.GetDirectoryName(LocateServerProject())!, "bin", cfg, "net10.0");
+        var serverDll = Path.Combine(serverBinDir, "Duluka.Server.dll");
+        Assert(File.Exists(serverDll), $"server build output missing: {serverDll}");
+
+        // The DEFAULT Database:Path ("AppData/DulukaAccount.db"), resolved the
+        // CWD-independent way: under the deployed application root.
+        var stableDb = Path.Combine(serverBinDir, "AppData", "DulukaAccount.db");
+        var envDb = Path.Combine(serverBinDir, "AppData", "CwdEnvRel.db");
+        var stableDbPreExisted = File.Exists(stableDb);
+        var envDbPreExisted = File.Exists(envDb);
+        var unrelatedA = Path.Combine(Path.GetTempPath(), $"duluka-cwd-a-{Guid.NewGuid():N}");
+        var unrelatedB = Path.Combine(Path.GetTempPath(), $"duluka-cwd-b-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(unrelatedA);
+        Directory.CreateDirectory(unrelatedB);
+
+        System.Diagnostics.Process? server = null;
+        try
+        {
+            Run("CWD-1: deployment dir as CWD → ready OK, DB at the app root", () =>
+            {
+                var port = FreeTcpPort();
+                server = StartCwdServer(serverDll, port, serverBinDir, null, new(), new());
+                using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+                using var resp = http.GetAsync("/healthz/ready").GetAwaiter().GetResult();
+                var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert((int)resp.StatusCode == 200, $"ready expected 200, got {(int)resp.StatusCode}: {body}");
+                Assert(File.Exists(stableDb), $"default DB must materialize at the app root: {stableDb}");
+            });
+            StopCwdServer(server); server = null;
+
+            Run("CWD-2: unrelated CWD → SAME DB at the app root, nothing in the CWD", () =>
+            {
+                var port = FreeTcpPort();
+                server = StartCwdServer(serverDll, port, unrelatedA, null, new(), new());
+                using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+                using var resp = http.GetAsync("/healthz/ready").GetAwaiter().GetResult();
+                Assert((int)resp.StatusCode == 200, $"ready expected 200, got {(int)resp.StatusCode}");
+                Assert(File.Exists(stableDb), "the default DB location must not follow the CWD");
+                Assert(!Directory.Exists(Path.Combine(unrelatedA, "AppData")),
+                    "no database may leak into an unrelated working directory");
+            });
+            StopCwdServer(server); server = null;
+
+            Run("CWD-3: relative CONFIG DB path resolves against the app root", () =>
+            {
+                var port = FreeTcpPort();
+                server = StartCwdServer(serverDll, port, unrelatedB, "AppData/CwdEnvRel.db", new(), new());
+                using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+                using var resp = http.GetAsync("/healthz/ready").GetAwaiter().GetResult();
+                Assert((int)resp.StatusCode == 200, $"ready expected 200, got {(int)resp.StatusCode}");
+                Assert(File.Exists(envDb), $"relative config path must resolve at the app root: {envDb}");
+                Assert(!Directory.Exists(Path.Combine(unrelatedB, "AppData")),
+                    "no database may leak into an unrelated working directory");
+            });
+            StopCwdServer(server); server = null;
+
+            Run("CWD-4: seeded state survives a restart from a third CWD", () =>
+            {
+                // Seed with the production data layer while the server is STOPPED,
+                // then start from yet another unrelated directory and use the state.
+                string token, accountId;
+                var seedDb = new Database(stableDb, NullLogger<Database>.Instance);
+                try
+                {
+                    seedDb.Bootstrap(); // idempotent on the server-created store
+                    var account = seedDb.CreateAccount("cwd-persist");
+                    var device = seedDb.CreateDevice(account.AccountId, "cwd-dev",
+                        Secrets.Sha256Hex("cwd-device-key-" + Guid.NewGuid().ToString("N")));
+                    var link = seedDb.CreateLink(account.AccountId, ProviderKeys.GitHub,
+                        "cwd-persist-" + Guid.NewGuid().ToString("N"), null, null);
+                    token = Secrets.NewToken(SessionService.TokenPrefix);
+                    accountId = account.AccountId;
+                    seedDb.CreateSession(account.AccountId, device.DeviceId, link.LinkId,
+                        Secrets.Sha256Hex(token), DateTimeOffset.UtcNow + TimeSpan.FromDays(30));
+                }
+                finally { seedDb.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
+
+                var port = FreeTcpPort();
+                server = StartCwdServer(serverDll, port, unrelatedB, null, new(), new());
+                using var http = new HttpClient { BaseAddress = new Uri($"http://127.0.0.1:{port}") };
+                using var req = new HttpRequestMessage(HttpMethod.Get, "/v1/account/me");
+                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                using var resp = http.SendAsync(req).GetAwaiter().GetResult();
+                var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert((int)resp.StatusCode == 200,
+                    $"seeded session must validate after restart: {(int)resp.StatusCode} {body}");
+                using var doc = JsonDocument.Parse(body);
+                Assert(doc.RootElement.GetProperty("resource").GetProperty("accountId").GetString() == accountId,
+                    "/me must resolve the account from the SAME stable-root database");
+                Assert(!Directory.Exists(Path.Combine(unrelatedB, "AppData")),
+                    "no database may leak into an unrelated working directory");
+            });
+        }
+        finally
+        {
+            StopCwdServer(server);
+            // Cleanup only what THIS group created — never a pre-existing operator DB.
+            if (!stableDbPreExisted)
+            {
+                DeleteDatabaseFiles(stableDb);
+                TryDeleteEmptyDir(Path.GetDirectoryName(stableDb)!);
+            }
+            if (!envDbPreExisted)
+            {
+                DeleteDatabaseFiles(envDb);
+                TryDeleteEmptyDir(Path.GetDirectoryName(envDb)!);
+            }
+            try { Directory.Delete(unrelatedA, true); } catch { /* best effort */ }
+            try { Directory.Delete(unrelatedB, true); } catch { /* best effort */ }
+        }
+    }
+
+    private static void TryDeleteEmptyDir(string dir)
+    {
+        try
+        {
+            if (Directory.Exists(dir) && !Directory.EnumerateFileSystemEntries(dir).Any())
+                Directory.Delete(dir);
+        }
+        catch { /* best effort */ }
     }
 
     /// <summary>Intentionally inert — documents the reserved provider contract.</summary>

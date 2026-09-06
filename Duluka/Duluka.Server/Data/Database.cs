@@ -16,9 +16,22 @@ public sealed class Database : IAsyncDisposable
     private readonly SqliteConnection _conn;
     private readonly ILogger<Database> _logger;
 
+    /// <summary>The RESOLVED database file path (absolute; relative inputs were
+    /// pinned to AppContext.BaseDirectory) — the single source of truth for
+    /// where this server's state lives, regardless of the starting CWD.</summary>
+    public string DbPath { get; }
+
     public Database(string dbPath, ILogger<Database> logger)
     {
         _logger = logger;
+        // CWD-independence (C/1): a relative Database:Path must resolve against
+        // the DEPLOYED application location (AppContext.BaseDirectory), never
+        // the process's current working directory — otherwise a server started
+        // from an unrelated CWD silently creates a fresh database there and
+        // splits state. Absolute paths (operator config, tests) pass through.
+        if (!Path.IsPathRooted(dbPath))
+            dbPath = Path.GetFullPath(dbPath, AppContext.BaseDirectory);
+        DbPath = dbPath;
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(dbPath))!);
         _conn = new SqliteConnection(new SqliteConnectionStringBuilder
         {

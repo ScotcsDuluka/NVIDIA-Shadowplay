@@ -5,7 +5,15 @@ using Duluka.Server.Data;
 using Duluka.Server.Domain;
 using Duluka.Server.Security;
 
-var builder = WebApplication.CreateBuilder(args);
+// CWD-independence (C/1): ContentRoot defaults to the process's CURRENT
+// DIRECTORY, which would make appsettings.json (and every config key in it)
+// load from wherever the EXE happens to be started. Pin it to the deployed
+// application location — same keys, same precedence, stable location.
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory,
+});
 
 // Secrets come from environment ONLY (DULUKA_GitHub__ClientSecret etc.) —
 // appsettings.json carries empty placeholders by design (hard rule:

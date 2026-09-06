@@ -65,7 +65,7 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
 
 ```text
 dotnet run --project Duluka/Duluka.Server -c Release
-dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 24 tests (service-level + live HTTP contract)
+dotnet run --project Duluka/Duluka.Server.Tests -c Release   # 28 tests (service-level + live HTTP + CWD independence)
 dotnet run --project Duluka/Duluka.Http.Integration.Tests -c Release  # 102 black-box HTTP tests (real server + real SQLite)
 ```
 
