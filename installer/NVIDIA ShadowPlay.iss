@@ -23,13 +23,15 @@
 ; writes installer\bl1-commit.txt (sha only) alongside the payload's
 ; build-info.txt; the preprocessor reads it with FileRead.
 #define Bl1CommitFile "..\installer\bl1-commit.txt"
-#dim Bl1Commit
-#if FileExists(Bl1CommitFile)
-#  define Bl1Commit ReadFile(Bl1CommitFile)
-#endif
-#ifndef Bl1Commit
 #define Bl1Commit ""
+#if FileExists(Bl1CommitFile)
+#  define Bl1Handle FileOpen(Bl1CommitFile)
+#  define Bl1Commit FileRead(Bl1Handle)
+#  if Bl1Handle != 0
+#    pragma message "bl1-commit.txt read OK"
+#  endif
 #endif
+#define Bl1Commit (Len(Bl1Commit) > 8 ? Copy(Bl1Commit, 1, 40) : Bl1Commit)
 #define Bl1CommitSuffix (Len(Bl1Commit) > 0 ? "-g" + Copy(Bl1Commit, 1, 8) : "")
 #define AppPublisher "ScotcsDuluka"
 #define OutputDir "..\dist-installer"

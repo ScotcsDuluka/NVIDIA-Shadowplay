@@ -428,7 +428,7 @@
   <!-- ============================================================================
        BL-1 Release traceability stamping (C/3). Runs BEFORE compile in every
        project: resolves the git commit once per build (cached in
-       .git/bl1-commit.txt for the non-Windows path), reads the authoritative
+       obj/bl1-commit.txt for the non-Windows path), reads the authoritative
        build number from Overlay/build.txt (after Overlay's IncrementBuild
        target refreshed it), and applies the product version contract:
 
@@ -445,16 +445,18 @@
     <!-- 1. git commit — resolve once per build. Windows uses Exec+redirect
          (MSBuild property functions cannot run processes); the bash path
          covers Linux CI. Fails soft outside a git worktree. -->
-    <Exec Command="git rev-parse HEAD &gt; &quot;$(GitShaFile)&quot; 2&gt; nul"
+    <!-- BL-1 (race fix): capture the sha via ConsoleToMsBuild output —
+         no shared file, no cross-process read/write races between the N
+         parallel project builds. GitShaFile is kept ONLY as the installer
+         provenance file, written once per project from the captured value. -->
+    <Exec Command="git rev-parse HEAD"
           IgnoreExitCode="true"
-          Condition="'$(OS)' == 'Windows_NT' And !Exists('$(GitShaFile)')"
-          ConsoleToMsBuild="true" />
-    <Exec Command="git rev-parse HEAD &gt; &quot;$(GitShaFile)&quot; 2&gt;/dev/null || true"
-          IgnoreExitCode="true"
-          Condition="'$(OS)' != 'Windows_NT'" />
-
-    <PropertyGroup Condition="Exists('$(GitShaFile)')">
-      <Bl1GitSha>$([System.IO.File]::ReadAllText($(GitShaFile)).Trim())</Bl1GitSha>
+          ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="Bl1GitShaRaw" />
+    </Exec>
+    <PropertyGroup>
+      <Bl1GitSha Condition="'$(Bl1GitShaRaw)' != ''">$(Bl1GitShaRaw.Trim())</Bl1GitSha>
+      <Bl1GitSha Condition="'$(Bl1GitSha)' == ''">$([System.IO.File]::ReadAllText($(GitShaFile)).Trim())</Bl1GitSha>
     </PropertyGroup>
 
     <!-- 2. authoritative build number (Overlay/build.txt) -->

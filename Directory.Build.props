@@ -1,4 +1,4 @@
-<Project>
+﻿<Project>
 
   <!-- Directory.Build.props — repo-wide defaults (evaluated early). -->
 
@@ -34,7 +34,7 @@
   <PropertyGroup>
     <SharedBuildNumberFile Condition="'$(SharedBuildNumberFile)' == ''">$(MSBuildThisFileDirectory)Overlay\build.txt</SharedBuildNumberFile>
     <SharedBuildNumber Condition="'$(SharedBuildNumber)' == ''">0</SharedBuildNumber>
-    <GitShaFile Condition="'$(GitShaFile)' == ''">$(MSBuildThisFileDirectory).git\bl1-commit.txt</GitShaFile>
+    <GitShaFile Condition="'$(GitShaFile)' == ''">$(MSBuildThisFileDirectory)obj\bl1-commit.txt</GitShaFile>
   </PropertyGroup>
 
 </Project>
