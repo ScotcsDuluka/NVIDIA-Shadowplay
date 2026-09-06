@@ -19,6 +19,21 @@
          JobObjectGuard + CaptureSettings live in the NVIDIA Capture
          (WinForms host) assembly. -->
     <ProjectReference Include="..\Engine\NVIDIA Capture.vbproj" />
+    <!-- F-S2 regression: link the REAL Overlay AppSettings partials so the
+         token-at-rest contract is exercised against production code. -->
+    <Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.vb" Link="Overlay\AppSettings.vb" />
+    <Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.GitHub.vb" Link="Overlay\AppSettings.GitHub.vb" />
+    <Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.HardwareDetection.vb" Link="Overlay\AppSettings.HardwareDetection.vb" />
+    <Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.LegacyVideo.vb" Link="Overlay\AppSettings.LegacyVideo.vb" />
+    <Compile Include="..\Common\AppConfigShared.vb" Link="AppConfigShared.vb" />
+    <!-- AppLayout copy for the linked Overlay sources: Engine's copy lives in
+         NVIDIA_Capture namespace (RootNamespace) which the linked files cannot
+         see — every app project embeds its own AppLayout copy by design. -->
+    <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.TestCopy.vb" />
+    <!-- Project-level VB imports the linked Overlay sources rely on
+         (mirrors Overlay\NVIDIA Overlay.vbproj). -->
+    <Import Include="System.Drawing" />
+    <Import Include="System.Windows.Forms" />
   </ItemGroup>
 
 </Project>

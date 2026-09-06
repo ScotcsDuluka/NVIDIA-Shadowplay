@@ -143,6 +143,7 @@ Namespace Engine.Concurrency.Tests
             G3LegacyEngineTests.RunAll(_ffmpegPath, _sandbox)
             F03LegacyTests.RunAll(_ffmpegPath, _sandbox)
             NvidiaProofTests.RunAll(_ffmpegPath, _sandbox)
+            GithubTokenSecurityTests.RunAll()
 
             Console.WriteLine()
             Console.WriteLine($" passed={TestRunner._passed} failed={TestRunner._failed} skipped={TestRunner._skipped}")
