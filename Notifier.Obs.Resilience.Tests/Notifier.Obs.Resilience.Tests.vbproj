@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -28,6 +28,7 @@
          SAME source the Notifier compiles. ObsWebSocketClient has no
          WinForms dependencies; AppLayout supplies the log path resolver. -->
     <Compile Include="..\Notifier\[Forms Overlay - Project Files]\[API]\OBS\ObsWebSocketClient.vb" Link="ObsWebSocketClient.vb" />
+    <Compile Include="..\Notifier\[Forms Overlay - Project Files]\[API]\OBS\FfprobeDuration.vb" Link="FfprobeDuration.vb" />
     <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
   </ItemGroup>
 

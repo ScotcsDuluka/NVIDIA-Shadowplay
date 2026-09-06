@@ -256,28 +256,10 @@ Partial Public Class Loader
                 Return 0
             End If
 
-            Dim psi As New ProcessStartInfo()
-            psi.FileName = ffprobePath
-            psi.Arguments = $"-v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 ""{videoPath}"""
-            psi.UseShellExecute = False
-            psi.RedirectStandardOutput = True
-            psi.RedirectStandardError = True
-            psi.CreateNoWindow = True
-
-            Using p As Process = Process.Start(psi)
-                Dim stdout As String = p.StandardOutput.ReadToEnd().Trim()
-                p.WaitForExit(3000)
-                If p.ExitCode <> 0 Then
-                    Dim stderr As String = p.StandardError.ReadToEnd().Trim()
-                    ObsLog($"ReadVideoDurationSeconds: ffprobe exit={p.ExitCode} err={stderr}")
-                    Return 0
-                End If
-                ObsLog($"ReadVideoDurationSeconds: ffprobe stdout=""{stdout}""")
-                Dim durSec As Double
-                If Double.TryParse(stdout, durSec) Then
-                    Return CInt(Math.Floor(durSec))
-                End If
-            End Using
+            ' C/2: spawn + parse live in FfprobeDuration (shared with the
+            ' boundary tests) — the OBS savedReplayPath is attacker-influenced
+            ' input text and must reach ffprobe as ONE argument.
+            Return FfprobeDuration.ReadDuration(ffprobePath, videoPath, AddressOf ObsLog)
         Catch ex As Exception
             ObsLog($"ReadVideoDurationSeconds error: {ex.Message}")
         End Try

@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -51,6 +51,7 @@ Friend Module Program
         Console.WriteLine()
 
         ObsResilienceTests.RunAll()
+        FfprobeBoundaryTests.RunAll()   ' C/2: OBS savedReplayPath -> ffprobe argv boundary
 
         Console.WriteLine()
         Console.WriteLine("--------------------------------------------------")
