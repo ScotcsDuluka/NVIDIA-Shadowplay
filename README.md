@@ -1,125 +1,325 @@
-Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadowplay/ as the information in this ReadME may not be current.
-
+Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadowplay/ as the information in this README may not be current.
 
 # <img src="https://cdn2.steamgriddb.com/icon/e8855b3528cb03d1def9803220bd3cb9/32/48x48.png" alt="NVIDIA ShadowPlay Logo" width="22"> NVIDIA ShadowPlay `Custom Implementation`
 
-
 > [!NOTE]
-> A screen capture utility inspired by NVIDIA ShadowPlay with overlay UI, built in **<img src="https://raw.githubusercontent.com/github/explore/refs/heads/main/topics/visual-basic/visual-basic.png" alt="Visual Basic Logo" width="15"> VB.NET** **[**No Hook**]**. <br>
-> Record Engine Powered by FFmpeg
-
-> [!WARNING]
-> Some apps (**Netflix** / **DRM content**) cannot be recorded.<br>
-> Still under active development.
+> A third-party screen capture utility inspired by NVIDIA ShadowPlay, built primarily in **VB.NET** with a WinForms overlay and **no game-process hook**.
+>
+> The current modular recording engine is built around **Desktop Duplication + native NVIDIA NVENC + WASAPI + FFmpeg**.
 
 > [!IMPORTANT]
-> **Runtime Dependency:** This application requires the **.NET 10.0 Desktop Runtime** installed on your system. The program will not launch without it.<br><br>
-> **OS Requirement:** **Windows 10 / Server 2016 or newer is required.** (.NET 10 does not support Windows 7/8/8.1.) <br>
-> ## **API Capture**
-> - Windows.Graphics.Capture
-> - Desktop Duplication API
-> - GDI screen grabber
-> ## **The **Encoder** is Ready**
-> - [X] NVIDIA-READY
-> - [ ] INTEL-NEXT
-> - [ ] AMD-Q
+> ## Current Engine
+>
+> The active `Engine-Rebuild-Stabilization` branch uses the following production recording path:
+>
+> ```text
+> DdagrabBackend (DXGI Desktop Duplication)
+>         ↓
+> D3D11 video frame
+>         ↓
+> Native NVENC H.264
+>         ↓
+> LiveMuxSession
+>         ↓
+> FFmpeg
+>         ↓
+> MP4 output
+> ```
+>
+> Audio is handled separately through the shared WASAPI audio path:
+>
+> ```text
+> WASAPI System Audio ─┐
+>                      ├→ Audio timeline / live mux → FFmpeg → MP4
+> WASAPI Microphone ───┘
+> ```
+
+## Runtime Requirements
+
+- **Windows x64**
+- **.NET 10 Desktop Runtime / SDK** for the current projects
+- An **NVIDIA GPU with NVENC H.264 support** for the production encoder path
+- FFmpeg runtime payload for recording/muxing
+
+> [!WARNING]
+> The current modular Engine is **NVIDIA-focused**. Intel QSV and AMD AMF are not production encoder paths in this branch.
 
 > [!CAUTION]
-> **Exclusive Fullscreen Limitation:** Due to the no-hook design, capturing "Exclusive Fullscreen" applications is not supported on older Windows builds. Please use "Borderless Windowed" mode in your games for reliable recording.<br>
-> **Recommended capture resolution: 1920 x 1080**
-
-> [!TIP]
-> For the best performance, it is highly recommended to use NVIDIA hardware encoders (e.g., `h264_nvenc`) via FFmpeg.
+> DRM-protected content may not be capturable. Capture behavior also depends on the Windows display/capture restrictions of the target application.
 
 ---
 
-# Features Main
-- [X] UI NVIDIA Shadowplay
-- [x] Real-time screen recording
-- [x] Instant Replay (save last moments)
-- [x] Screenshot capture
-- [x] In-game overlay UI [`Borderless Windowed`]
+# Capture & Recording
 
-# More
-- This project is inspired by NVIDIA ShadowPlay.<br>
-- Built over 3 years focusing on animation system, overlay UX, and performance.<br>
-- บางทีก็อัดได้ บางทีก็ไม่… แล้วแต่ดวง 555555665
+### Production capture backend
+
+- [x] **DXGI Desktop Duplication / `DdagrabBackend`**
+- [ ] Windows Graphics Capture as the current production backend
+- [ ] GDI / `gdigrab` as the current production backend
+
+The modular Engine currently has **one production video backend: DdagrabBackend**. Other capture methods may exist in legacy code, contracts, or research, but they are not represented here as active production backends.
+
+### Frame & ownership model
+
+- D3D11 capture textures are owned by the capture backend.
+- Per-frame resources are transferred to the frame sink when accepted.
+- Dropped frames are disposed by the producer.
+- Capture and encoder lifetimes are independent and explicitly managed.
+- Start / Stop / Dispose / Restart behavior is covered by lifecycle tests.
+
+### Video format
+
+```text
+Desktop capture: BGRA8 / D3D11
+        ↓
+NVENC input: ARGB path
+        ↓
+H.264 output: yuv420p in MP4
+```
+
+### Encoder
+
+- [x] NVIDIA NVENC
+- [x] H.264 production path
+- [x] Configurable bitrate / rate control / preset / GOP
+- [x] Runtime FPS reconciliation through encoder rebuild when required
+- [ ] Intel QSV production path
+- [ ] AMD AMF production path
+- [ ] NVENC HEVC production integration
+- [ ] NVENC AV1 production integration
+
+The current native NVENC backend rejects unsupported codec keys instead of silently substituting another encoder.
 
 ---
 
-## Development
+# Resolution & FPS
+
+The recording engine separates **capture resolution** from **encode resolution**.
+
+- Native-resolution mode captures the desktop and encodes at the captured size.
+- A smaller requested encode size is handled by NVENC GPU scaling.
+- Upscaling above the captured desktop size is rejected rather than silently falling back.
+- Display refresh rate is used where required for video timing evidence.
+- Per-session FPS changes rebuild the persistent encoder before frames are submitted so the native stream timing stays consistent.
+
+---
+
+# Audio
+
+The active modular recording path supports:
+
+- [x] WASAPI system / loopback audio
+- [x] WASAPI microphone capture
+- [x] Separate system and microphone timelines
+- [x] Audio gap accounting / bounded delivery
+- [x] Device-clock-aware system audio path in the current implementation
+- [x] Audio/video timeline alignment before live muxing
+
+The audio hot path is designed so capture callbacks do not perform disk I/O directly.
+
+---
+
+# Live Mux / FFmpeg
+
+The current recording path uses an **OBS-style live mux architecture**:
+
+```text
+Video H.264 ───────────────┐
+                           ├→ named pipes → one FFmpeg process → fragmented MP4
+System audio PCM ──────────┤
+Microphone PCM ────────────┘
+```
+
+The FFmpeg layer is responsible for process lifetime, stderr draining, stream coordination, and final output handling.
+
+The live mux path includes bounded queues and explicit byte/drop accounting. Video production is protected from arbitrary packet dropping that could corrupt an H.264 access sequence.
+
+---
+
+# Recording Engine Architecture
+
+The current modular engine is split into focused projects:
+
+| Project | Responsibility |
+|---------|----------------|
+| `CaptureEngine` | Core contracts and engine configuration |
+| `CaptureEngine.Video` | Video frame contracts and handoff |
+| `CaptureEngine.Video.Ddagrab` | DXGI Desktop Duplication capture |
+| `CaptureEngine.Encoder` | Encoder abstraction and contracts |
+| `CaptureEngine.Encoder.Nvenc` | Native NVIDIA NVENC H.264 backend |
+| `CaptureEngine.Audio` | Shared audio engine and audio types |
+| `CaptureEngine.Audio.Wasapi` | WASAPI / device-clock capture support |
+| `CaptureEngine.FFmpegBackend` | FFmpeg process, live mux, timeline helpers |
+| `CaptureEngine.Recording` | Recording session orchestration |
+| `CaptureEngine.Recording.ConsoleDriver` | Headless recording/test driver |
+
+The process-lifetime `RecordingEngine` owns the persistent capture and encoder backends and creates a `CaptureSession` for each recording session.
+
+---
+
+# Duluka Account
+
+The project includes a **Duluka Account** identity layer for account, device, and session management.
+
+```text
+Duluka Account
+├── Username
+├── Display Name
+├── Profile Image
+├── Devices
+├── Sessions
+└── Linked Providers
+    └── GitHub
+```
+
+GitHub is a linked provider/authentication mechanism. It is **not** the Duluka Account identity itself.
+
+Current account work includes native username/password authentication, device registration, session persistence, and provider linking. Profile editing is kept separate from the immutable account username semantics.
+
+---
+
+# Current Development Status
+
+The main active development branch is:
+
+```text
+Engine-Rebuild-Stabilization
+```
+
+Current engine focus:
+
+- Modular capture engine stabilization
+- Ddagrab lifecycle and ownership hardening
+- Native NVENC H.264 integration
+- Video configuration authority (FPS, bitrate, rate control, preset, GOP, resolution)
+- WASAPI system/microphone audio and timeline handling
+- Live FFmpeg muxing and A/V synchronization
+- Recording lifecycle and regression coverage
+
+The engine has extensive deterministic contract, lifecycle, recording, encoder, FFmpeg, concurrency, and configuration tests. Hardware-specific validation is tracked separately and is not treated as equivalent to software-only test proof.
+
+> [!NOTE]
+> The repository contains historical experiments, legacy engine code, and research spikes. Their presence does not mean they are the active production recording path.
+
+---
+
+# Project Layout
+
+```text
+NVIDIA-Shadowplay/
+├── CaptureEngine/                    Core contracts and configuration
+├── CaptureEngine.Video/              Video frame contracts / handoff
+├── CaptureEngine.Video.Ddagrab/      DXGI Desktop Duplication backend
+├── CaptureEngine.Encoder/             Encoder contracts
+├── CaptureEngine.Encoder.Nvenc/      Native NVIDIA NVENC backend
+├── CaptureEngine.Audio/               Shared audio engine
+├── CaptureEngine.Audio.Wasapi/        WASAPI capture / device-clock support
+├── CaptureEngine.FFmpegBackend/       FFmpeg process + live mux + sync helpers
+├── CaptureEngine.Recording/           Recording session orchestration
+├── Engine/                             Legacy/runtime integration
+├── Overlay/                            Overlay UI and account experience
+├── Launcher/                           Desktop launcher
+├── Notifier/                           Notification / event forwarding
+├── Duluka/                             Duluka Account / server components
+├── Tester/test/                        Automated test projects
+├── docs/                               Architecture, audits, status, protocols
+├── spikes/                             Hardware/API research probes
+├── scripts/                            Build and diagnostics
+└── installer/                          Installer source
+```
+
+See [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md) for the repository map.
+
+---
+
+# Development
 
 | Branch | Purpose |
 |--------|---------|
-| **`Stable`** | Default branch — last known-good build |
-| **`Engine-Rebuild-Stabilization`** | Active development — modular capture engine rewrite, sync/audio stabilization |
+| **`Stable`** | Stable/release-oriented branch |
+| **`Engine-Rebuild-Stabilization`** | Active modular Engine development and stabilization |
 
-Engine docs live in [`docs/`](docs/) (start at `docs/PHASE_PLAN.md`), the module map in [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md), and build/diagnostic entry points in [`scripts/`](scripts/).
+Important engineering documentation lives in [`docs/`](docs/).
+
+The repository deliberately separates **architecture claims**, **implementation status**, **automated test proof**, and **hardware runtime proof** so that unfinished or hardware-gated components are not presented as production-ready.
 
 ---
 
-## ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg) 
+# Limitations
 
-| File | Description | Click to View |
-|---------|-------------|------------------|
-| **[LICENSE](LICENSE)** | MIT License (Copyright 2023-2024) | [Open LICENSE](LICENSE) |
-| **[LICENSE.NOTICE](LICENSE.NOTICE)** | Third-Party Components Attribution | [Open LICENSE.NOTICE](LICENSE.NOTICE) |
+- No-hook capture cannot guarantee capture of every application or display mode.
+- DRM-protected content may be blocked or captured as black frames.
+- The current modular production video backend is NVIDIA/DXGI-focused.
+- Intel QSV and AMD AMF are not current production encoder paths.
+- Some hardware validation requires an NVIDIA system with a compatible NVENC-capable GPU.
 
-DISCLAIMER
+---
+
+# License
+
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
+
+This project is distributed under the MIT License. See [`LICENSE`](LICENSE).
+
+Third-party attribution is listed in [`LICENSE.NOTICE`](LICENSE.NOTICE).
+
+---
+
+# Disclaimer
+
 > [!CAUTION]
-> **Trademark Notice:** This is an **independent third-party application** and is **NOT affiliated with, endorsed by, sponsored, or approved by NVIDIA Corporation**.
-> 
-> "**NVIDIA**", "**GeForce**", and "**ShadowPlay**" are **trademarks or registered trademarks of NVIDIA Corporation** in the United States and/or other countries.
+> This is an **independent third-party application** and is **NOT affiliated with, endorsed by, sponsored by, or approved by NVIDIA Corporation**.
 >
-> This software uses official **NVIDIA NVENC/intel/Amd encoder technology through FFmpeg** and **Microsoft Windows.Graphics.Capture API** in compliance with their respective license agreements.
+> **NVIDIA**, **GeForce**, and **ShadowPlay** are trademarks or registered trademarks of NVIDIA Corporation in the United States and/or other countries.
+>
+> This project uses technologies such as NVIDIA NVENC, Microsoft Windows APIs, NAudio, and FFmpeg according to their respective licenses and runtime requirements.
 
 ---
 
-## 📦 Third-Party Components
+# Third-Party Components
 
-| Component | License | Author | Source |
-|-----------|---------|--------|--------|
-| [NAudio](https://github.com/naudio/NAudio) | MIT | Mark Heath | NAudio.Core.dll, NAudio.Wasapi.dll |
-| [Newtonsoft.Json](https://www.newtonsoft.com/json) | MIT | James Newton-King | Newtonsoft.Json.dll |
-| [libmp3lame](https://lame.sourceforge.io/) | LGPL-2.0 | The LAME Project | libmp3lame.32.dll, libmp3lame.64.dll |
-| [FFmpeg](https://ffmpeg.org/) | LGPL/GPL | FFmpeg Developers | Encoding Pipeline |
-| [.NET 10 Runtime](https://dotnet.microsoft.com/) | MIT | Microsoft | Microsoft.Windows.SDK.NET.dll |
-| [Windows SDK.NET](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | MIT | Microsoft | WinRT.Runtime.dll |
+| Component | Purpose |
+|-----------|---------|
+| [FFmpeg](https://ffmpeg.org/) | Live muxing and media processing |
+| [NAudio](https://github.com/naudio/NAudio) | Windows audio capture support |
+| [Vortice.Windows](https://github.com/amerkoleci/Vortice.Windows) | D3D11 / DXGI interop |
+| [Newtonsoft.Json](https://www.newtonsoft.com/json) | JSON support in legacy/integration components |
 
-See full attribution: **[LICENSE.NOTICE](LICENSE.NOTICE)** ← Click!
+See [`LICENSE.NOTICE`](LICENSE.NOTICE) for the complete attribution list.
 
 ---
 
-## Contributing
+# Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions are welcome.
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+1. Fork the repository.
+2. Create a feature branch.
+3. Make and test your changes.
+4. Open a Pull Request with a clear description of the change and validation performed.
+
+For Engine work, please read the relevant documents in [`docs/`](docs/) before changing architecture or lifecycle contracts.
 
 ---
 
-## Credits
+# Credits
 
 | Role | Name | Description |
 |------|------|-------------|
-| **Creator & Lead Developer** | [ScotcsDuluka](https://github.com/ScotcsDuluka) | Architecture, UX Design, Core Engine, Overlay System, Animation Framework |
-| **Tester & QA** | [ApiwitKaemanee](https://www.facebook.com/profile.php?id=61577847980691) | Testing, Validation, Stability Assurance |
+| **Creator & Lead Developer** | [ScotcsDuluka](https://github.com/ScotcsDuluka) | Architecture, UX, Core Engine, Overlay System, Animation Framework |
+| **Testing & Validation** | — | Testing, Validation, Stability Assurance |
 
 ---
 
-## Contact & Links
+# Links
 
-| Resource | 🔗 Link |
-|------------|--------|
-| **Website** | [ScotcsDuluka](https://scotcsduluka.github.io/ScotcsDuluka/) |
-| **Releases** | [GitHub Releases](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases) |
-| **Report Bug** | [GitHub Issues](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues) |
+| Resource | Link |
+|----------|------|
+| **Project Website** | [NVIDIA ShadowPlay](https://scotcsduluka.github.io/NVIDIA-Shadowplay/) |
 | **Creator** | [ScotcsDuluka](https://github.com/ScotcsDuluka) |
+| **Releases** | [GitHub Releases](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases) |
+| **Issues** | [GitHub Issues](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues) |
 
 ---
 
-*Crafted with passion, engineered for performance, and continuously evolving.* ❤️
+*Independent implementation inspired by NVIDIA ShadowPlay — continuously evolving.* ❤️
