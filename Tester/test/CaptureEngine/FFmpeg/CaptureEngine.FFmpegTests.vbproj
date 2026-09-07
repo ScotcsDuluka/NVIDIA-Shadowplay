@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace></RootNamespace>
+    <AssemblyName>CaptureEngine.FFmpegTests</AssemblyName>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Description>CaptureEngine.FFmpegBackend tests — P1-C</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\..\..\..\CaptureEngine\CaptureEngine.vbproj" />
+    <!-- P13.2: synthetic-position tests for AudioPositionTracker (Linux-safe) -->
+    <ProjectReference Include="..\..\..\..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj" />
+  </ItemGroup>
+</Project>

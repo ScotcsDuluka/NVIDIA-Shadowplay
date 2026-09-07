@@ -87,7 +87,7 @@ Three mechanisms, zero magic config files:
 
 1. **Split hosts (Application\ → Services\).** `CreateAppHost` embeds the
    app-binary path `..\Services\<app>.dll` into the host exe (verified in
-   `scripts/apphost_test`: the path is embedded verbatim, the icon is
+   `Tester/test/scripts/apphost_test`: the path is embedded verbatim, the icon is
    copied from the managed dll, and hostfxr resolves the relative path
    against the HOST's own directory and normalizes `..`). The host reads
    `<dll>.runtimeconfig.json` from Services\ (loader hard requirement);
@@ -192,7 +192,7 @@ assume" style.
 If step 4's host ever fails to start (`The application to execute does not
 exist` naming the wrong path), the fallback is to keep the apps' standard
 hosts inside Services\ and turn Application\ entries into shortcuts — but
-the mechanism is verified in `scripts/apphost_test` and should not be
+the mechanism is verified in `Tester/test/scripts/apphost_test` and should not be
 needed.
 
 ## Runtime resolution summary (one line per mechanism)

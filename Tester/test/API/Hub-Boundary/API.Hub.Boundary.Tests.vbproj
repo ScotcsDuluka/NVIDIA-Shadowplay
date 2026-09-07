@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>API.Hub.Boundary.Tests</AssemblyName>
+    <Description>C/2 F-04 — real-socket regression tests for the Hub loopback trust boundary (LoopbackGate). LINKS the same Common/LoopbackGate.vb the Hub compiles (zero copy drift). No external network needed; IPC-7 probes the live hub when it is running.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The boundary is production code, LINKED (not copied) — the tests
+         exercise the SAME LoopbackGate the Hub (Server.vb) runs. -->
+    <Compile Include="..\..\..\..\Common\LoopbackGate.vb" Link="LoopbackGate.vb" />
+  </ItemGroup>
+
+</Project>

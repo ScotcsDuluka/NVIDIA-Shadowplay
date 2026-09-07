@@ -98,14 +98,14 @@ if (Test-Path "$devBin\Overlay\NVIDIA ShadowPlay.dll") {
 if ($RunTests) {
     Write-Host "`n>>> Running test suites..." -ForegroundColor Cyan
     $suites = @(
-        "CaptureEngine.Tests",
-        "CaptureEngine.FFmpegTests",
-        "CaptureEngine.FrameContractTests",
-        "CaptureEngine.ConfigTests",
-        "CaptureEngine.Encoder.Tests",
-        "CaptureEngine.Video.Tests",
+        "Tester\test\CaptureEngine\Core\CaptureEngine.Tests.vbproj",
+        "Tester\test\CaptureEngine\FFmpeg\CaptureEngine.FFmpegTests.vbproj",
+        "Tester\test\CaptureEngine\FrameContract\CaptureEngine.FrameContractTests.vbproj",
+        "Tester\test\CaptureEngine\Config\CaptureEngine.ConfigTests.vbproj",
+        "Tester\test\CaptureEngine\Encoder\CaptureEngine.Encoder.Tests.vbproj",
+        "Tester\test\CaptureEngine\Video\CaptureEngine.Video.Tests.vbproj",
         # Phase 12b: SyncMath + sidecar + real-ffmpeg sync
-        "CaptureEngine.Recording.Tests"
+        "Tester\test\CaptureEngine\Recording\CaptureEngine.Recording.Tests.vbproj"
     )
     $failed = @()
     foreach ($s in $suites) {
@@ -118,7 +118,7 @@ if ($RunTests) {
         # dotnet run without --no-build performs the incremental up-to-date
         # check first, so the executed binary always corresponds to the
         # source present AT TEST TIME.
-        dotnet run --project "$s\$s.vbproj" -c Release
+        dotnet run --project "$s" -c Release
         if ($LASTEXITCODE -ne 0) { $failed += $s }
     }
     if ($failed.Count -gt 0) {

@@ -1,0 +1,21 @@
+
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Overlay.OAuth.Tests</AssemblyName>
+    <Description>C/2 — GitHub OAuth callback boundary: deterministic reflected-XSS proof over a REAL HttpListener + HttpClient, plus secret-hygiene checks on the debug log lines (client_secret / code_verifier / access_token must never be logged). The production callback HTML builder is LINKED (not copied).</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\..\Overlay\[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\OAuthCallbackResponse.vb" Link="OAuthCallbackResponse.vb" />
+  </ItemGroup>
+
+</Project>

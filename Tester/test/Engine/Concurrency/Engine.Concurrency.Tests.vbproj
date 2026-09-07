@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Engine.Concurrency.Tests</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>Engine.Concurrency.Tests</AssemblyName>
+    <Description>H1/H2 regression tests — Dispose-during-Start orphan contract, Start-during-Muxing lifecycle guard, repeated Start/Stop/Dispose stress (real ffmpeg)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The legacy two-process engine under test: CaptureEngine +
+         JobObjectGuard + CaptureSettings live in the NVIDIA Capture
+         (WinForms host) assembly. -->
+    <ProjectReference Include="..\..\..\..\Engine\NVIDIA Capture.vbproj" />
+    <!-- F-S2 regression: link the REAL Overlay AppSettings partials so the
+         token-at-rest contract is exercised against production code. -->
+    <Compile Include="..\..\..\..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.vb" Link="Overlay\AppSettings.vb" />
+    <Compile Include="..\..\..\..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.GitHub.vb" Link="Overlay\AppSettings.GitHub.vb" />
+    <Compile Include="..\..\..\..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.HardwareDetection.vb" Link="Overlay\AppSettings.HardwareDetection.vb" />
+    <Compile Include="..\..\..\..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\AppSettings.LegacyVideo.vb" Link="Overlay\AppSettings.LegacyVideo.vb" />
+    <Compile Include="..\..\..\..\Common\AppConfigShared.vb" Link="AppConfigShared.vb" />
+    <!-- AppLayout copy for the linked Overlay sources: Engine's copy lives in
+         NVIDIA_Capture namespace (RootNamespace) which the linked files cannot
+         see — every app project embeds its own AppLayout copy by design. -->
+    <Compile Include="..\..\..\..\Common\AppLayout.vb" Link="AppLayout.TestCopy.vb" />
+    <!-- Project-level VB imports the linked Overlay sources rely on
+         (mirrors Overlay\NVIDIA Overlay.vbproj). -->
+    <Import Include="System.Drawing" />
+    <Import Include="System.Windows.Forms" />
+  </ItemGroup>
+
+</Project>

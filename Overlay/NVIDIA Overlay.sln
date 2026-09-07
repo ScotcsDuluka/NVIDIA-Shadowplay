@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 18
 VisualStudioVersion = 18.3.11512.155
@@ -29,19 +29,19 @@ Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Recording", "
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Recording.ConsoleDriver", "..\CaptureEngine.Recording.ConsoleDriver\CaptureEngine.Recording.ConsoleDriver.vbproj", "{9A19006D-8C77-4BC2-AC7A-446B22CE4BBA}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Recording.Tests", "..\CaptureEngine.Recording.Tests\CaptureEngine.Recording.Tests.vbproj", "{37FC60E3-FFAA-41EC-853C-1D35D9D58640}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Recording.Tests", "..\Tester\test\CaptureEngine\Recording\CaptureEngine.Recording.Tests.vbproj", "{37FC60E3-FFAA-41EC-853C-1D35D9D58640}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Tests", "..\CaptureEngine.Tests\CaptureEngine.Tests.vbproj", "{1B13E1E4-B0D7-4073-9DA1-AA0B8CFC5DBA}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Tests", "..\Tester\test\CaptureEngine\Core\CaptureEngine.Tests.vbproj", "{1B13E1E4-B0D7-4073-9DA1-AA0B8CFC5DBA}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Video.Tests", "..\CaptureEngine.Video.Tests\CaptureEngine.Video.Tests.vbproj", "{72F3BCFA-F3D4-4FC2-B675-9E376D65120D}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Video.Tests", "..\Tester\test\CaptureEngine\Video\CaptureEngine.Video.Tests.vbproj", "{72F3BCFA-F3D4-4FC2-B675-9E376D65120D}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Encoder.Tests", "..\CaptureEngine.Encoder.Tests\CaptureEngine.Encoder.Tests.vbproj", "{364C416E-6749-430B-93A6-6253FBA56A7F}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.Encoder.Tests", "..\Tester\test\CaptureEngine\Encoder\CaptureEngine.Encoder.Tests.vbproj", "{364C416E-6749-430B-93A6-6253FBA56A7F}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.FFmpegTests", "..\CaptureEngine.FFmpegTests\CaptureEngine.FFmpegTests.vbproj", "{D63375A8-F14F-4789-B86E-6763CA29A275}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.FFmpegTests", "..\Tester\test\CaptureEngine\FFmpeg\CaptureEngine.FFmpegTests.vbproj", "{D63375A8-F14F-4789-B86E-6763CA29A275}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.FrameContractTests", "..\CaptureEngine.FrameContractTests\CaptureEngine.FrameContractTests.vbproj", "{41718949-D8BF-454D-97BA-E30D0CD0BFD1}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.FrameContractTests", "..\Tester\test\CaptureEngine\FrameContract\CaptureEngine.FrameContractTests.vbproj", "{41718949-D8BF-454D-97BA-E30D0CD0BFD1}"
 EndProject
-Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.ConfigTests", "..\CaptureEngine.ConfigTests\CaptureEngine.ConfigTests.vbproj", "{A89C17BD-4DD2-4861-B9BA-1CB757E5B763}"
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "CaptureEngine.ConfigTests", "..\Tester\test\CaptureEngine\Config\CaptureEngine.ConfigTests.vbproj", "{A89C17BD-4DD2-4861-B9BA-1CB757E5B763}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CaptureEngine.Audio.Wasapi", "..\CaptureEngine.Audio.Wasapi\CaptureEngine.Audio.Wasapi.csproj", "{24F2E607-618D-40AC-8BEA-6BA0023F8EA2}"
 EndProject

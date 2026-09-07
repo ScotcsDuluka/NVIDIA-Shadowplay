@@ -70,10 +70,10 @@ tools/playwright/browser/
 .env*
 !.env.example
 dist/
-scripts/apphost_test/out*
-scripts/apphost_test/bin/
-scripts/apphost_test/obj/
-scripts/apphost_test/out_final
+Tester/test/scripts/apphost_test/out*
+Tester/test/scripts/apphost_test/bin/
+Tester/test/scripts/apphost_test/obj/
+Tester/test/scripts/apphost_test/out_final
 *.mp4
 # tracked A/V sync reference asset used by scripts/sync-verify.ps1
 !scripts/sync-reference.mp4

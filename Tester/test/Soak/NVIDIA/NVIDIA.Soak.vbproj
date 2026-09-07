@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <AssemblyName>NVIDIA.Soak</AssemblyName>
+    <Description>C/3 final real-hardware soak — GTX 1080 Ti: repeated recording lifecycle (A), mixed stop stress (B), encoder fault/recovery (C), dispose race (D), combined 200-op soak (E). Standalone process so the shared test suites stay fast; production code only, no mocks.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="3.6.2" />
+    <PackageReference Include="System.Management" Version="9.0.0" />
+    <PackageReference Include="Vortice.DXGI" Version="3.6.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
+    <ProjectReference Include="..\..\..\..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
+    <ProjectReference Include="..\..\..\..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+  </ItemGroup>
+
+</Project>

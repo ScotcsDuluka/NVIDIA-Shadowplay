@@ -20,7 +20,7 @@
 
          _StageSplitAppHost — stamps Application\<app>.exe whose embedded
            app path is ..\Services\<app>.dll (mechanism verified in
-           scripts/apphost_test: CreateAppHost embeds the parent-relative
+           Tester/test/scripts/apphost_test: CreateAppHost embeds the parent-relative
            path verbatim, copies the icon from the managed dll, and hostfxr
            resolves it against the host's own directory).
 
