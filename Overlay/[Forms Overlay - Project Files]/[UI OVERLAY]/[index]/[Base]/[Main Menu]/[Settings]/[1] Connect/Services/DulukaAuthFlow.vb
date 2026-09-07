@@ -166,7 +166,13 @@ Friend Class DulukaAuthFlow
                         Return outcome
                     End If
 
-                    If done.HttpStatus = 403 Then
+                    If done.HttpStatus = 403 OrElse
+                       (done.HttpStatus = 409 AndAlso done.ErrorCode = "conflict.link_conflict") Then
+                        ' Dead end with THIS device key: revoked server-side
+                        ' (403) or bound to a different account (409). Drop it
+                        ' so the next attempt mints a fresh key instead of
+                        ' failing identically forever — without this the 409
+                        ' is a permanent lockout of the sign-in button.
                         store.RevokeDeviceKey()
                     End If
                     FillError(outcome, done)

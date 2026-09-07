@@ -24,8 +24,11 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
   keys can never silently re-register, cross-account key reuse rejected
 - **Provider unlink** — last-provider guard (409), credential row destroyed,
   sessions issued via that link revoked; a re-login with a previously
-  unlinked identity converges on a fresh account (anchor is a partial unique
-  index over ACTIVE links, schema v2 migration rebuilds v1 databases)
+  unlinked identity returns to the SAME account (a returning identity
+  re-enters its own home on a fresh link period; the anchor is a partial
+  unique index over ACTIVE links, schema v2 migration rebuilds v1
+  databases). A never-seen identity with a device key bound to another
+  account is still refused pre-persist (no orphan account/link).
 - **NVIDIA provider = reserved** — `ProviderKeys.Nvidia` exists but has NO auth
   flow. Hardware-derived identity (GPU UUID/serial/driver/fingerprint) is
   explicitly banned as an auth identity (spoofable = bypass).
