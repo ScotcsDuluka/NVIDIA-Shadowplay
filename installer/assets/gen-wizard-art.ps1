@@ -14,9 +14,10 @@ $white = [Drawing.Color]::FromArgb(255, 255, 255)
 $gray  = [Drawing.Color]::FromArgb(137, 137, 137)   # #898989 (real theme.cfg)
 
 # register the real NVIDIA Sans fonts for this process so GDI+ can render them
+# (fonts live in the FONTS\ subfolder — the same folder the installer ships to {fonts})
 $fonts = @('NVIDIASans_Rg.ttf', 'NVIDIASans_Md.ttf', 'NVIDIASans_Bd.ttf')
 foreach ($f in $fonts) {
-    $p = Join-Path $outDir $f
+    $p = Join-Path (Join-Path $outDir 'FONTS') $f
     if (Test-Path $p) {
         Add-Type -Name NativeFont -Namespace Win32 -MemberDefinition '[DllImport("gdi32.dll")] public static extern int AddFontResource(string lpszFilename);'
         [Win32.NativeFont]::AddFontResource($p) | Out-Null
