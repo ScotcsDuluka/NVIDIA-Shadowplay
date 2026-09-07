@@ -7,7 +7,7 @@ namespace Duluka.Server.Data;
 // Read-mostly projections for the /admin operator dashboard plus the small
 // set of destructive operations it exposes (revoke session, revoke/delete
 // device, unlink link, suspend account, delete account). Every destructive
-// operation runs in ONE transaction on the shared connection and removes
+// operation runs in ONE transaction on ONE short-lived connection and removes
 // child rows explicitly — the v0 schema declares no ON DELETE CASCADE, so a
 // bare parent DELETE would either fail on the foreign key or orphan children.
 // These methods NEVER touch secrets: token/key hashes stay unread.
@@ -50,9 +50,10 @@ public sealed partial class Database
     public AdminOverview AdminGetOverview()
     {
         var now = DateTimeOffset.UtcNow.ToString("o");
+        using var conn = OpenConn();
         int Count(string sql, params (string Name, object Value)[] ps)
         {
-            using var cmd = _conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             foreach (var (name, value) in ps) cmd.Parameters.AddWithValue(name, value);
             return Convert.ToInt32(cmd.ExecuteScalar());
@@ -69,7 +70,8 @@ public sealed partial class Database
     public IReadOnlyList<AdminAccountRow> AdminListAccounts(int limit = 500)
     {
         var now = DateTimeOffset.UtcNow.ToString("o");
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = $$"""
             SELECT a.AccountId, a.Status, a.DisplayName, n.UsernameDisplay,
                    (a.ProfileImage IS NOT NULL), a.CreatedAt, a.UpdatedAt,
@@ -95,7 +97,8 @@ public sealed partial class Database
 
     public IReadOnlyList<AdminSessionRow> AdminListSessions(int limit = 300)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = $$"""
             SELECT s.SessionId, s.AccountId, {{AccountLabelSql}}, s.DeviceId, d.DeviceName,
                    s.CreatedAt, s.ExpiresAt, s.LastSeenAt, s.RevokedAt, s.RevokedReason
@@ -121,7 +124,8 @@ public sealed partial class Database
     public IReadOnlyList<AdminDeviceRow> AdminListDevices(int limit = 300)
     {
         var now = DateTimeOffset.UtcNow.ToString("o");
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = $$"""
             SELECT d.DeviceId, d.AccountId, {{AccountLabelSql}}, d.DeviceName,
                    d.CreatedAt, d.LastSeenAt, d.RevokedAt,
@@ -146,7 +150,8 @@ public sealed partial class Database
 
     public IReadOnlyList<AdminLinkRow> AdminListLinks(int limit = 300)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = $$"""
             SELECT l.LinkId, l.AccountId, {{AccountLabelSql}}, l.ProviderKey,
                    l.ProviderUserId, l.ProviderEmail, l.Status, l.LinkedAt, l.UnlinkedAt
@@ -193,9 +198,10 @@ public sealed partial class Database
     /// from RevokeDevice, which keeps the history and only invalidates).</summary>
     public bool AdminDeleteDevice(string deviceId)
     {
-        using var tx = _conn.BeginTransaction();
-        var deleted = Exec("DELETE FROM AccountSession WHERE DeviceId=$id", ("$id", deviceId));
-        deleted += Exec("DELETE FROM AccountDevice WHERE DeviceId=$id", ("$id", deviceId));
+        using var conn = OpenConn();
+        using var tx = conn.BeginTransaction();
+        var deleted = ExecTx(tx, "DELETE FROM AccountSession WHERE DeviceId=$id", ("$id", deviceId));
+        deleted += ExecTx(tx, "DELETE FROM AccountDevice WHERE DeviceId=$id", ("$id", deviceId));
         tx.Commit();
         return deleted > 0;
     }
@@ -206,15 +212,16 @@ public sealed partial class Database
     /// does not exist (nothing is deleted).</summary>
     public bool AdminDeleteAccount(string accountId)
     {
-        using var tx = _conn.BeginTransaction();
-        Exec("DELETE FROM AccountSession WHERE AccountId=$id", ("$id", accountId));
-        Exec("DELETE FROM AccountDevice WHERE AccountId=$id", ("$id", accountId));
-        Exec("DELETE FROM CredentialReference WHERE LinkId IN " +
+        using var conn = OpenConn();
+        using var tx = conn.BeginTransaction();
+        ExecTx(tx, "DELETE FROM AccountSession WHERE AccountId=$id", ("$id", accountId));
+        ExecTx(tx, "DELETE FROM AccountDevice WHERE AccountId=$id", ("$id", accountId));
+        ExecTx(tx, "DELETE FROM CredentialReference WHERE LinkId IN " +
              "(SELECT LinkId FROM AccountProviderLink WHERE AccountId=$id)", ("$id", accountId));
-        Exec("DELETE FROM AccountProviderLink WHERE AccountId=$id", ("$id", accountId));
-        Exec("DELETE FROM SyncProfile WHERE AccountId=$id", ("$id", accountId));
-        Exec("DELETE FROM NativeCredential WHERE AccountId=$id", ("$id", accountId));
-        var deleted = Exec("DELETE FROM DulukaAccount WHERE AccountId=$id", ("$id", accountId));
+        ExecTx(tx, "DELETE FROM AccountProviderLink WHERE AccountId=$id", ("$id", accountId));
+        ExecTx(tx, "DELETE FROM SyncProfile WHERE AccountId=$id", ("$id", accountId));
+        ExecTx(tx, "DELETE FROM NativeCredential WHERE AccountId=$id", ("$id", accountId));
+        var deleted = ExecTx(tx, "DELETE FROM DulukaAccount WHERE AccountId=$id", ("$id", accountId));
         tx.Commit();
         return deleted > 0;
     }
@@ -228,10 +235,11 @@ public sealed partial class Database
     /// round-trip strings, so substr(…,1,10) is the UTC date.</summary>
     public IReadOnlyList<AdminDayActivity> AdminActivity(int days = 14)
     {
+        using var conn = OpenConn();
         var from = DateTimeOffset.UtcNow.Date.AddDays(-(days - 1)).ToString("yyyy-MM-dd");
         var map = new Dictionary<string, (int Accounts, int Sessions)>();
 
-        using (var cmd = _conn.CreateCommand())
+        using (var cmd = conn.CreateCommand())
         {
             cmd.CommandText = "SELECT substr(CreatedAt,1,10), COUNT(*) FROM DulukaAccount " +
                               "WHERE substr(CreatedAt,1,10) >= $from GROUP BY 1";
@@ -239,7 +247,7 @@ public sealed partial class Database
             using var r = cmd.ExecuteReader();
             while (r.Read()) map[r.GetString(0)] = (Convert.ToInt32(r.GetInt64(1)), 0);
         }
-        using (var cmd = _conn.CreateCommand())
+        using (var cmd = conn.CreateCommand())
         {
             cmd.CommandText = "SELECT substr(CreatedAt,1,10), COUNT(*) FROM AccountSession " +
                               "WHERE substr(CreatedAt,1,10) >= $from GROUP BY 1";
@@ -267,17 +275,18 @@ public sealed partial class Database
         long FileBytes, long PageCount, long PageSize, long FreelistPages, string JournalMode);
 
     /// <summary>File + page-level facts about the SQLite database (no row reads).
-    /// PRAGMAs run on the shared connection exactly like any other command.</summary>
+    /// PRAGMAs run on the operation's own short-lived connection.</summary>
     public AdminDbStats AdminGetDbStats()
     {
+        using var conn = OpenConn();
         long Scalar(string sql)
         {
-            using var cmd = _conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             return Convert.ToInt64(cmd.ExecuteScalar());
         }
         string journalMode;
-        using (var cmd = _conn.CreateCommand())
+        using (var cmd = conn.CreateCommand())
         {
             cmd.CommandText = "PRAGMA journal_mode";
             journalMode = Convert.ToString(cmd.ExecuteScalar()) ?? "?";
@@ -332,7 +341,8 @@ public sealed partial class Database
             throw new ArgumentException("This console is read-only — mutation and DDL keywords are blocked.");
 
         var watch = System.Diagnostics.Stopwatch.StartNew();
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandTimeout = 5;
         // ask for one row MORE than the cap so truncation is detectable from
         // the same reader — Microsoft.Data.Sqlite refuses a second command

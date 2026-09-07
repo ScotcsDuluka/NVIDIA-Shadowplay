@@ -47,6 +47,7 @@ internal static class Program
             Groups.NativeAdoption(Runner.I);           // G14 (provider-only adopts password)
             Groups.OAuthBootstrapSetup(Runner.I);      // G15 (GitHub bootstrap → first-time setup)
             Groups.AccountDeletion(Runner.I);          // G16 (user-initiated account deletion)
+            Groups.AdminConsole(Runner.I);             // G17 (admin console + parallel-read regression)
         }
         catch (Exception ex)
         {

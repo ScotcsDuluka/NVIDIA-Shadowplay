@@ -13,7 +13,7 @@ namespace Duluka.Server.Data;
 /// </summary>
 public sealed partial class Database : IAsyncDisposable
 {
-    private readonly SqliteConnection _conn;
+    private readonly string _cs;
     private readonly ILogger<Database> _logger;
 
     /// <summary>The RESOLVED database file path (absolute; relative inputs were
@@ -33,16 +33,40 @@ public sealed partial class Database : IAsyncDisposable
             dbPath = Path.GetFullPath(dbPath, AppContext.BaseDirectory);
         DbPath = dbPath;
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(dbPath))!);
-        _conn = new SqliteConnection(new SqliteConnectionStringBuilder
+        _cs = new SqliteConnectionStringBuilder
         {
             DataSource = dbPath,
             Mode = SqliteOpenMode.ReadWriteCreate,
-            Pooling = false,
-        }.ToString());
-        _conn.Open();
-        using var pragma = _conn.CreateCommand();
-        pragma.CommandText = "PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
+            Pooling = true,   // OpenConn() opens per operation; handles are pooled
+        }.ToString();
+
+        // WAL is a PERSISTENT database-file property — enable once at bootstrap.
+        // foreign_keys/synchronous are per-connection and set in OpenConn().
+        using (var bootstrap = OpenConn())
+        using (var pragma = bootstrap.CreateCommand())
+        {
+            pragma.CommandText = "PRAGMA journal_mode=WAL;";
+            pragma.ExecuteNonQuery();
+        }
+    }
+
+    /// <summary>A short-lived connection for ONE operation. SqliteConnection is
+    /// NOT thread-safe at the managed layer — its internal command list races
+    /// under concurrent use (ArgumentOutOfRangeException in
+    /// SqliteConnection.RemoveCommand, observed live when the admin dashboard
+    /// fired parallel panels). ASP.NET Core serves requests concurrently, so
+    /// every method opens its own pooled connection instead of sharing one:
+    /// Pooling keeps the per-op open cheap, WAL keeps concurrent readers + one
+    /// writer safe, and Microsoft.Data.Sqlite's default 30s CommandTimeout
+    /// absorbs write-write collisions.</summary>
+    private SqliteConnection OpenConn()
+    {
+        var conn = new SqliteConnection(_cs);
+        conn.Open();
+        using var pragma = conn.CreateCommand();
+        pragma.CommandText = "PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;";
         pragma.ExecuteNonQuery();
+        return conn;
     }
 
     public const int SchemaVersion = 4;
@@ -142,11 +166,12 @@ public sealed partial class Database : IAsyncDisposable
 
     public void Bootstrap()
     {
-        using (var tx = _conn.BeginTransaction())
+        using var conn = OpenConn();
+        using (var tx = conn.BeginTransaction())
         {
             foreach (var ddl in Ddl)
             {
-                using var cmd = _conn.CreateCommand();
+                using var cmd = conn.CreateCommand();
                 cmd.Transaction = tx;
                 cmd.CommandText = ddl;
                 cmd.ExecuteNonQuery();
@@ -186,7 +211,7 @@ public sealed partial class Database : IAsyncDisposable
             MarkSchemaVersion(4);
         }
 
-        using (var cmd = _conn.CreateCommand())
+        using (var cmd = conn.CreateCommand())
         {
             cmd.CommandText = """
                 CREATE UNIQUE INDEX IF NOT EXISTS UX_Link_ActiveIdentity
@@ -203,7 +228,8 @@ public sealed partial class Database : IAsyncDisposable
 
     private int GetSchemaVersion()
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COALESCE(MAX(Version), 0) FROM SchemaHistory";
         return Convert.ToInt32(cmd.ExecuteScalar());
     }
@@ -216,7 +242,8 @@ public sealed partial class Database : IAsyncDisposable
 
     private bool LinkTableHasTableLevelUnique()
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT sql FROM sqlite_master WHERE type='table' AND name='AccountProviderLink'";
         return cmd.ExecuteScalar() is string sql
                && sql.Contains("UNIQUE(ProviderKey, ProviderUserId)", StringComparison.OrdinalIgnoreCase);
@@ -224,7 +251,8 @@ public sealed partial class Database : IAsyncDisposable
 
     private bool AccountTableHasColumn(string columnName)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('DulukaAccount') WHERE name=$n";
         cmd.Parameters.AddWithValue("$n", columnName);
         return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
@@ -233,11 +261,12 @@ public sealed partial class Database : IAsyncDisposable
     private void RebuildLinkTableWithoutTableUnique()
     {
         // PRAGMA foreign_keys cannot change inside a transaction — toggle around it.
-        SetForeignKeys(false);
+        using var conn = OpenConn();
+        SetForeignKeys(conn, false);
         try
         {
-            using var tx = _conn.BeginTransaction();
-            using (var create = _conn.CreateCommand())
+            using var tx = conn.BeginTransaction();
+            using (var create = conn.CreateCommand())
             {
                 create.Transaction = tx;
                 create.CommandText = """
@@ -253,7 +282,7 @@ public sealed partial class Database : IAsyncDisposable
                     """;
                 create.ExecuteNonQuery();
             }
-            using (var copy = _conn.CreateCommand())
+            using (var copy = conn.CreateCommand())
             {
                 copy.Transaction = tx;
                 copy.CommandText = """
@@ -262,13 +291,13 @@ public sealed partial class Database : IAsyncDisposable
                     """;
                 copy.ExecuteNonQuery();
             }
-            using (var drop = _conn.CreateCommand())
+            using (var drop = conn.CreateCommand())
             {
                 drop.Transaction = tx;
                 drop.CommandText = "DROP TABLE AccountProviderLink";
                 drop.ExecuteNonQuery();
             }
-            using (var rename = _conn.CreateCommand())
+            using (var rename = conn.CreateCommand())
             {
                 rename.Transaction = tx;
                 rename.CommandText = "ALTER TABLE AccountProviderLink_v2 RENAME TO AccountProviderLink";
@@ -278,13 +307,13 @@ public sealed partial class Database : IAsyncDisposable
         }
         finally
         {
-            SetForeignKeys(true);
+            SetForeignKeys(conn, true);
         }
     }
 
-    private void SetForeignKeys(bool on)
+    private void SetForeignKeys(SqliteConnection conn, bool on)
     {
-        using var cmd = _conn.CreateCommand();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = on ? "PRAGMA foreign_keys=ON" : "PRAGMA foreign_keys=OFF";
         cmd.ExecuteNonQuery();
     }
@@ -305,7 +334,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public DulukaAccount? GetAccount(string accountId)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT AccountId, Status, DisplayName, CreatedAt, UpdatedAt, ProfileImage FROM DulukaAccount WHERE AccountId=$id";
         cmd.Parameters.AddWithValue("$id", accountId);
         using var r = cmd.ExecuteReader();
@@ -345,10 +375,11 @@ public sealed partial class Database : IAsyncDisposable
         var now = DateTimeOffset.UtcNow;
         var account = new DulukaAccount(
             Secrets.NewToken("duluka_acc_"), AccountStatus.Active, usernameDisplay, now, now);
-        using var tx = _conn.BeginTransaction();
+        using var conn = OpenConn();
+        using var tx = conn.BeginTransaction();
         try
         {
-            using (var cmd = _conn.CreateCommand())
+            using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tx;
                 cmd.CommandText = "INSERT INTO DulukaAccount(AccountId, Status, DisplayName, CreatedAt, UpdatedAt) " +
@@ -360,7 +391,7 @@ public sealed partial class Database : IAsyncDisposable
                 cmd.Parameters.AddWithValue("$ua", account.UpdatedAt.ToString("o"));
                 cmd.ExecuteNonQuery();
             }
-            using (var cmd = _conn.CreateCommand())
+            using (var cmd = conn.CreateCommand())
             {
                 cmd.Transaction = tx;
                 cmd.CommandText = "INSERT INTO NativeCredential(AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt) " +
@@ -390,7 +421,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public NativeCredential? FindNativeCredentialByUsername(string usernameCanonical)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt " +
                           "FROM NativeCredential WHERE UsernameCanonical=$uc";
         cmd.Parameters.AddWithValue("$uc", usernameCanonical);
@@ -400,7 +432,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public NativeCredential? FindNativeCredentialByAccount(string accountId)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT AccountId, UsernameCanonical, UsernameDisplay, PasswordHash, CreatedAt, UpdatedAt " +
                           "FROM NativeCredential WHERE AccountId=$aid";
         cmd.Parameters.AddWithValue("$aid", accountId);
@@ -490,7 +523,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public AccountProviderLink? FindActiveLink(string providerKey, string providerUserId)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
                           "FROM AccountProviderLink WHERE ProviderKey=$pk AND ProviderUserId=$puid AND Status='Active'";
         cmd.Parameters.AddWithValue("$pk", providerKey);
@@ -530,7 +564,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public AccountProviderLink? GetLink(string linkId)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
                           "FROM AccountProviderLink WHERE LinkId=$lid";
         cmd.Parameters.AddWithValue("$lid", linkId);
@@ -553,7 +588,8 @@ public sealed partial class Database : IAsyncDisposable
     public IReadOnlyList<AccountProviderLink> LinksForAccount(string accountId)
     {
         var list = new List<AccountProviderLink>();
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
                           "FROM AccountProviderLink WHERE AccountId=$aid ORDER BY LinkedAt";
         cmd.Parameters.AddWithValue("$aid", accountId);
@@ -564,7 +600,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public int ActiveLinkCount(string accountId)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM AccountProviderLink WHERE AccountId=$aid AND Status='Active'";
         cmd.Parameters.AddWithValue("$aid", accountId);
         return Convert.ToInt32(cmd.ExecuteScalar());
@@ -587,7 +624,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public AccountDevice? FindDeviceByKeyHash(string deviceKeyHash)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt, RevokedAt " +
                           "FROM AccountDevice WHERE DeviceKeyHash=$h";
         cmd.Parameters.AddWithValue("$h", deviceKeyHash);
@@ -617,7 +655,8 @@ public sealed partial class Database : IAsyncDisposable
     public IReadOnlyList<AccountDevice> DevicesForAccount(string accountId)
     {
         var list = new List<AccountDevice>();
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt, RevokedAt " +
                           "FROM AccountDevice WHERE AccountId=$aid ORDER BY CreatedAt";
         cmd.Parameters.AddWithValue("$aid", accountId);
@@ -628,7 +667,8 @@ public sealed partial class Database : IAsyncDisposable
 
     public AccountDevice? GetDevice(string deviceId)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT DeviceId, AccountId, DeviceName, DeviceKeyHash, CreatedAt, LastSeenAt, RevokedAt " +
                           "FROM AccountDevice WHERE DeviceId=$id";
         cmd.Parameters.AddWithValue("$id", deviceId);
@@ -677,7 +717,8 @@ public sealed partial class Database : IAsyncDisposable
     /// device not revoked → account Active. Any broken link means 401.</summary>
     public (AccountSession Session, AccountDevice Device, DulukaAccount Account)? ValidateSession(string tokenHash)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = """
             SELECT s.SessionId, s.SessionTokenHash, s.AccountId, s.DeviceId, s.IssuedViaLinkId,
                    s.CreatedAt, s.ExpiresAt, s.LastSeenAt, s.RevokedAt, s.RevokedReason,
@@ -738,7 +779,8 @@ public sealed partial class Database : IAsyncDisposable
     /// auth.session_expired (§7.2 registry codes are distinguishable).</summary>
     public bool SessionTokenWasRevoked(string tokenHash)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT COUNT(*) FROM AccountSession WHERE SessionTokenHash=$th AND RevokedAt IS NOT NULL";
         cmd.Parameters.AddWithValue("$th", tokenHash);
         return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
@@ -785,7 +827,8 @@ public sealed partial class Database : IAsyncDisposable
     /// died with the account.</summary>
     public int DeleteAccountCascade(string accountId)
     {
-        using var tx = _conn.BeginTransaction();
+        using var conn = OpenConn();
+        using var tx = conn.BeginTransaction();
         try
         {
             int sessions = ExecTx(tx,
@@ -814,7 +857,8 @@ public sealed partial class Database : IAsyncDisposable
 
     private int Exec(string sql, params (string Name, object Value)[] parameters)
     {
-        using var cmd = _conn.CreateCommand();
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         foreach (var (name, value) in parameters)
             cmd.Parameters.AddWithValue(name, value);
@@ -827,7 +871,7 @@ public sealed partial class Database : IAsyncDisposable
     /// is open on the connection without that assignment.</summary>
     private int ExecTx(SqliteTransaction tx, string sql, params (string Name, object Value)[] parameters)
     {
-        using var cmd = _conn.CreateCommand();
+        using var cmd = tx.Connection!.CreateCommand();
         cmd.Transaction = tx;
         cmd.CommandText = sql;
         foreach (var (name, value) in parameters)
@@ -835,5 +879,8 @@ public sealed partial class Database : IAsyncDisposable
         return cmd.ExecuteNonQuery();
     }
 
-    public async ValueTask DisposeAsync() => await _conn.DisposeAsync();
+    /// <summary>Nothing long-lived to release: every operation ran on its own
+    /// short-lived pooled connection (see OpenConn). Pooled handles are
+    /// returned automatically when their operation disposes.</summary>
+    public ValueTask DisposeAsync() => ValueTask.CompletedTask;
 }

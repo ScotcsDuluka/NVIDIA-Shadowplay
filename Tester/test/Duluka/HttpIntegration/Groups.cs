@@ -1645,4 +1645,102 @@ internal static class Groups
             r.Run("DEL-6 log sweep G16 (deletion password never in server logs or bodies)", () => ctx.App.Sweep("DEL-6"));
         });
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G17 — operator console (admin API). The dashboard fires its panels in
+    // PARALLEL; every panel is a DB op on the real server process. This group
+    // pins the concurrency regression that forced connection-per-operation:
+    // one shared SqliteConnection across concurrent requests corrupted its
+    // internal command list (ArgumentOutOfRangeException in
+    // SqliteConnection.RemoveCommand) the moment two panels raced. All admin
+    // reads must answer 200 under parallel load, mixed with authenticated
+    // main-API traffic.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void AdminConsole(Runner r)
+    {
+        r.Run("ADM-1 overview + system respond with coherent payloads", () =>
+        {
+            using var app = ServerApp.Start(false, 5);
+            app.SeedAccount("adm-one");
+            using var client = new HttpClient { BaseAddress = app.Http.BaseAddress, Timeout = TimeSpan.FromSeconds(15) };
+            var ov = ServerApp.Json(AdminGet(client, "/admin/api/overview"));
+            ServerApp.Assert(ov.TryGetProperty("accounts", out var acc) && acc.GetInt32() >= 1,
+                "ADM-1: overview must count the seeded account");
+            ServerApp.Assert(ov.TryGetProperty("activeSessions", out var sess) && sess.GetInt32() == 0,
+                "ADM-1: no sessions exist yet");
+            var sys = ServerApp.Json(AdminGet(client, "/admin/api/system"));
+            ServerApp.Assert(sys.TryGetProperty("database", out var dbEl)
+                && dbEl.TryGetProperty("pageCount", out var pc) && pc.GetInt64() > 0,
+                "ADM-1: system.database.pageCount must be positive");
+            ServerApp.Assert(dbEl.TryGetProperty("journalMode", out var jm) && jm.GetString() == "wal",
+                "ADM-1: the store must be in WAL mode");
+        });
+
+        r.Run("ADM-RACE 27 parallel admin reads + authenticated /me → every response 200 (connection-per-operation regression)", () =>
+        {
+            using var app = ServerApp.Start(false, 5);
+            var accountId = app.SeedAccount("adm-racer");
+            var (deviceId, _) = app.SeedDevice(accountId, "adm-race-dev");
+            var token = app.SeedSession(accountId, deviceId, null);
+            app.TrackSecret(token);
+
+            // The harness Send()/Exchanges list is single-threaded by contract,
+            // so this test drives its OWN HttpClient for the parallel fan-out.
+            using var client = new HttpClient
+            {
+                BaseAddress = app.Http.BaseAddress,
+                Timeout = TimeSpan.FromSeconds(15),
+            };
+            var paths = new[]
+            {
+                "/admin/api/overview", "/admin/api/system", "/admin/api/accounts",
+                "/admin/api/sessions", "/admin/api/devices", "/admin/api/links",
+                "/admin/api/activity", "/admin/api/logs?after=0", "/v1/account/devices",
+            };
+            var barrier = new Barrier(27);
+            var failures = new System.Collections.Concurrent.ConcurrentBag<string>();
+            var okCount = 0;
+            Parallel.For(0, 27, i =>
+            {
+                try
+                {
+                    barrier.SignalAndWait(TimeSpan.FromSeconds(10));
+                    var path = paths[i % paths.Length];
+                    using var req = new HttpRequestMessage(HttpMethod.Get, path);
+                    if (path.StartsWith("/admin/"))
+                        req.Headers.TryAddWithoutValidation("X-Admin-Request", "1");   // operator-console guard
+                    else
+                        req.Headers.TryAddWithoutValidation("Authorization", "Bearer " + token);
+                    using var resp = client.SendAsync(req).GetAwaiter().GetResult();
+                    var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                    lock (barrier)
+                    {
+                        if ((int)resp.StatusCode == 200) okCount++;
+                        else failures.Add(path + " -> HTTP " + (int)resp.StatusCode + ": " +
+                                          (body.Length <= 120 ? body : body[..120]));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    failures.Add("request " + i + " threw " + ex.GetType().Name + ": " + ex.Message);
+                }
+            });
+            ServerApp.Assert(failures.IsEmpty,
+                "ADM-RACE: every concurrent read must answer 200: " + string.Join("; ", failures.Take(4)));
+            ServerApp.Assert(okCount == 27, $"ADM-RACE: expected 27 OK responses, got {okCount}");
+        });
+    }
+
+    /// <summary>GET an /admin/api path with the operator-console guard header.
+    /// The harness Get() cannot carry custom headers, so the admin group drives
+    /// its own client.</summary>
+    private static Resp AdminGet(HttpClient client, string path)
+    {
+        using var req = new HttpRequestMessage(HttpMethod.Get, path);
+        req.Headers.TryAddWithoutValidation("X-Admin-Request", "1");
+        using var resp = client.SendAsync(req).GetAwaiter().GetResult();
+        var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+        return new Resp("GET", path, (int)resp.StatusCode, body, "itest-admin");
+    }
 }

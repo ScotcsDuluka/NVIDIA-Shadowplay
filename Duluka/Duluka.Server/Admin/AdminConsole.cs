@@ -46,15 +46,19 @@ internal static class AdminConsole
 
         // ── API: stats + listings ──────────────────────────────────────────
         app.MapGet("/admin/api/overview", (HttpContext ctx) =>
-            Guarded(ctx, () => Wire.Ok(ctx.Request, new
+            Guarded(ctx, () =>
             {
-                accounts = db.AdminGetOverview().Accounts,
-                activeSessions = db.AdminGetOverview().ActiveSessions,
-                activeDevices = db.AdminGetOverview().ActiveDevices,
-                activeLinks = db.AdminGetOverview().ActiveLinks,
-                nativeCredentials = db.AdminGetOverview().NativeCredentials,
-                dbPath = db.DbPath,
-            })));
+                var overview = db.AdminGetOverview();   // computed ONCE per request
+                return Wire.Ok(ctx.Request, new
+                {
+                    accounts = overview.Accounts,
+                    activeSessions = overview.ActiveSessions,
+                    activeDevices = overview.ActiveDevices,
+                    activeLinks = overview.ActiveLinks,
+                    nativeCredentials = overview.NativeCredentials,
+                    dbPath = db.DbPath,
+                });
+            }));
 
         app.MapGet("/admin/api/accounts", (HttpContext ctx) =>
             Guarded(ctx, () => Wire.Ok(ctx.Request, new { accounts = db.AdminListAccounts() })));
