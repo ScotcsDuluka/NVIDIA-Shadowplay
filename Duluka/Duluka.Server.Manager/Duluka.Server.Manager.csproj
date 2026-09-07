@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Duluka.Server.Manager — local operator control panel for Duluka.Server.
+       Simple by design: Start/Stop the server process, live log console,
+       data-folder shortcut, small stats strip read straight from the SQLite
+       file (read-only). Windows-only (WinForms); EnableWindowsTargeting lets
+       this project COMPILE on non-Windows CI boxes — it still only RUNS on
+       Windows, same as the rest of the suite. -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>Duluka.Server.Manager</RootNamespace>
+    <AssemblyName>Duluka.Server.Manager</AssemblyName>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationHighDpiMode>SystemAware</ApplicationHighDpiMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.3" />
+    <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
+  </ItemGroup>
+
+</Project>
