@@ -90,3 +90,11 @@ Endpoints: `POST /v1/auth/github/start` → GitHub authorize URL →
 then `GET /v1/account/me`, `GET|POST|DELETE /v1/account/providers[…]`,
 `GET /v1/account/devices`, `POST /v1/account/devices/{id}/revoke`,
 `POST /v1/auth/session/{refresh,revoke}`, `POST /v1/auth/sessions/revoke-all`.
+
+## Ports
+
+- **Duluka HTTP API binds `http://127.0.0.1:5115`** (appsettings `Urls`).
+- Port **5000 is RESERVED by the ShadowPlay TCP Hub** on the same machine —
+  never bind Duluka there (a hub/Duluka collision silently kills the
+  overlay's client connections).
+- Clients override the base with the `DULUKA_API_BASE` environment variable.

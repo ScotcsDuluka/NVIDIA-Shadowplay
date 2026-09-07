@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -1208,7 +1208,7 @@ internal static class Program
         var psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = DotnetHostPath(),
-            Arguments = $"exec \"{serverDll}\"",
+            Arguments = $"exec \"{serverDll}\" --urls http://127.0.0.1:{port}",
             UseShellExecute = false,
             RedirectStandardError = true,
             RedirectStandardOutput = true,
@@ -1408,7 +1408,7 @@ internal static class Program
         var psi = new System.Diagnostics.ProcessStartInfo
         {
             FileName = DotnetHostPath(),
-            Arguments = $"exec \"{serverDll}\"",
+            Arguments = $"exec \"{serverDll}\" --urls http://127.0.0.1:{port}",
             WorkingDirectory = workingDir,   // ← the variable under test
             UseShellExecute = false,
             RedirectStandardError = true,

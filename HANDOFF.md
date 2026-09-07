@@ -203,3 +203,83 @@
    render device ตรงกับ endpoint ที่ engine จับ
 3. ตัดสินใจนโยบาย endpoint: จับ "default render" ตอนเริ่มเซสชัน หรือให้ผู้ใช้เลือกได้
    (FxSound/APO เป็นเรื่องปกติของเครื่องผู้ใช้จริง)
+
+
+---
+
+# LATEST CHECKPOINT — 2026-09-07
+
+## Engine deep forensic audit CLOSED
+
+Machine B completed the deep Engine forensic pass. Canonical evidence:
+`ENGINE-DEEP-FORENSIC-AUDIT-2026-09-07.md`
+
+Current branch:
+`Engine-Rebuild-Stabilization`
+
+Current HEAD:
+`be24068`
+
+Engine verdict:
+**SAFE (engine surface)**
+
+The audit covered lifecycle, concurrency, worker ownership, Start/Stop/Dispose,
+restart, timestamp/QPC, queue/backpressure, capture, NVENC, device loss,
+configuration, audio/video isolation, and the M1/M2 findings.
+
+Round-2 engine fixes are contained in commit `f3a2568` and are present in HEAD.
+No Engine architecture rewrite was performed.
+
+## Final regression evidence
+
+- CaptureEngine.Tests: 14/14
+- FrameContractTests: 8/8
+- Recording.Tests: 43/43
+- FFmpegTests: 70/70
+- ConfigTruth: 52/52
+- Engine.Concurrency.Tests: 20 passed / 0 failed / 7 skipped × 10 consecutive runs
+- Encoder.Tests: 64 passed / 0 failed / 5 skipped
+- Video.Tests: 38 passed / 0 failed / 28 skipped
+- Builds: 0 errors
+- Orphan ffmpeg: 0 in every concurrency run
+
+The skips are honest hardware/environment gates. This audit machine has Intel UHD
+and no NVIDIA adapter, so M1/M2 NVIDIA runtime proof is still required on the GTX 1080 Ti.
+
+## Fixed by the deep audit
+
+M1 CaptureSession cleanup, M2 Ddagrab stop lifecycle, encoder-swap Dispose race,
+legacy state/start TOCTOU, Ddagrab retry escalation, mux-drop accounting,
+ConfigTruth stale paths, and the F03-B false-saved legacy mux paths are fixed and tested.
+
+A production bug found during stress was also fixed: silent/no-audio fallback could
+promote an unvalidated moov-less temporary video to the final output path.
+
+## Still open by design / owner decision
+
+- RecordingEngine L12 Dispose-timeout behavior policy
+- NVENC direct cross-device texture path / UseSharedHandle decision
+- AudioClockMode implement-or-remove decision
+- Dead-code/duplicate consolidation
+- Repository reproducibility, version authority, CI, installer/payload coupling
+- NVIDIA-machine M1/M2 runtime re-proof
+
+## Concurrent work — DO NOT TOUCH
+
+Current working tree is dirty with six modifications in the Duluka Server and Connect UI
+workstreams plus `Overlay/build.txt`. These were not part of the Engine audit.
+Preserve them; do not reset/rebase/stash/overwrite.
+
+## Duluka server note
+
+Direct inspection currently shows a config mismatch: source `appsettings.json` says
+`127.0.0.1:5115`, while `run-server.ps1` still launches/announces port 5000 and the
+recently inspected server process was not listening on either 5000 or 5115.
+Treat this as an active concurrent server task, not an Engine regression.
+
+## GitHub OAuth note
+
+The GitHub authorize URL previously observed had an empty `client_id`, caused by missing
+runtime ClientId configuration. Current source appsettings contains the non-secret
+ClientId; ClientSecret must remain supplied through `DULUKA_GitHub__ClientSecret` or the
+ignored `.server-secret`. Never put the secret in chat, tracked docs, or logs.

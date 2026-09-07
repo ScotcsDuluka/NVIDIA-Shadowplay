@@ -1,4 +1,4 @@
-' Login flow — one Duluka GitHub OAuth sign-in.
+﻿' Login flow — one Duluka GitHub OAuth sign-in.
 ' The server builds the authorize URL and exchanges the code; this page only
 ' hosts the progress state machine and hands the flow its report callback.
 ' Every state the user can hit is rendered: starting, waiting for the browser,
@@ -121,6 +121,10 @@ Public Class Base_Connect_Login
             Base.OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
             Me.Hide()
         Else
+            ' The overlay is in main-panel mode while the flow runs — the Sign
+            ' In page must come back so the failure message and the retry
+            ' button are actually visible.
+            Me.Show()
             Status_TEXT.Text = outcome.Message
             BT_StartLogin.Visible = True
         End If

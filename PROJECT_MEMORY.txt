@@ -2566,3 +2566,86 @@ NOT CHANGED: FFmpegPipelineBackend.vb (NVIDIA live-mux) still anchors on the
 first frame= back-calc - production-validated path, do not touch without a
 NVIDIA machine. NVIDIA encoder args untouched (GPU-resident ddagrab->nvenc).
 
+
+
+============================================================
+[CANONICAL CHECKPOINT — 2026-09-07]
+============================================================
+
+Latest repository state verified directly after Machine B deep forensic audit.
+Branch:
+Engine-Rebuild-Stabilization
+
+Current HEAD:
+be24068 — Merge branch 'Engine-Rebuild-Stabilization' ...
+
+Engine forensic audit:
+ENGINE-DEEP-FORENSIC-AUDIT-2026-09-07.md
+Verdict: SAFE (engine surface)
+Architecture changes: NONE
+
+Deep audit covered:
+lifecycle, worker ownership, Start/Stop/Dispose, restart, concurrency,
+timestamp/QPC, queue/backpressure, capture, NVENC, device loss,
+configuration, audio/video isolation, and M1/M2.
+
+Confirmed fixes in audit round 1 + round 2 are committed in:
+f3a2568 — Sync
+Current HEAD contains those changes.
+
+M1 CaptureSession cleanup:
+PASS by code proof + deterministic tests; hardware runtime gate remains NVIDIA-only.
+M2 Ddagrab stop lifecycle:
+PASS by code proof + deterministic tests; hardware runtime gate remains NVIDIA-only.
+
+Final engine suite evidence from audit:
+CaptureEngine.Tests 14/14
+FrameContract 8/8
+Recording.Tests 43/43
+FFmpegTests 70/70
+ConfigTruth 52/52
+Concurrency 20/0/7 skipped × 10 consecutive runs
+Encoder 64/0/5 skipped
+Video 38/0/28 skipped
+All builds: 0 errors.
+
+Important: 5 hardware-gated M1/M2 checks and other NVIDIA/DXGI checks were SKIP,
+not PASS, because the audit machine has Intel UHD and no NVIDIA adapter.
+Runtime re-proof must occur on the GTX 1080 Ti machine.
+
+
+Engine audit remaining owner/design items:
+1. L12 Dispose-timeout behavior remains intentionally unchanged; only misleading log fixed.
+2. NVENC direct cross-device texture path remains production default; UseSharedHandle is a dead knob.
+3. AudioClockMode is accepted/logged but has no production consumer; implement-or-remove is an owner decision.
+4. Legacy/dead clusters and duplicate implementations remain technical debt; no speculative cleanup.
+5. Product reproducibility, version authority, CI, installer/payload coupling remain repository-level risks.
+
+Production proof boundary:
+The audit proves engine correctness by code + deterministic tests on Intel hardware.
+It does NOT prove NVIDIA runtime behavior on the 1080 Ti.
+Do not convert hardware-gated SKIPs into PASS in future summaries.
+
+Repository safety at this checkpoint:
+Working tree is NOT clean. Six pre-existing/concurrent modifications are present:
+Duluka.Server.Tests/Program.cs
+Duluka.Server/appsettings.json
+Duluka/README.md
+Overlay/.../[1] Connect/Login flow.vb
+Overlay/.../[1] Connect/Services/DulukaApi.vb
+Overlay/build.txt
+
+These changes are outside the completed Engine audit and must be preserved.
+Do not reset, rebase, stash, or overwrite them.
+
+Duluka server configuration note:
+Current source appsettings contains Urls=http://127.0.0.1:5115,
+while run-server.ps1 still announces/launches the server expecting port 5000.
+This is an active concurrent server/config workstream inconsistency.
+Do not declare Duluka port state resolved until the server agent reconciles
+Program/appsettings/launcher/runtime and proves the actual listener.
+
+GitHub OAuth note:
+appsettings now contains the non-secret GitHub ClientId, while ClientSecret remains empty.
+run-server.ps1 loads ClientSecret from DULUKA_GitHub__ClientSecret or the git-ignored
+Duluka/.server-secret file. Never print or store the secret in project memory.

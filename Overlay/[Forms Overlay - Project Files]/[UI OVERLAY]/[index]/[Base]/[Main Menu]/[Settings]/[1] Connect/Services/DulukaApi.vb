@@ -1,4 +1,4 @@
-' DulukaApi.vb — HTTP client for the Duluka account server, used by the
+﻿' DulukaApi.vb — HTTP client for the Duluka account server, used by the
 ' Overlay account UI ([1] Connect). One place owns the §7.1 envelope:
 '   ok=true  -> { ok, reqId, resource }
 '   ok=false -> { ok, reqId, errorCode, httpStatus, retryable, conflict, message }
@@ -25,7 +25,7 @@ Friend Module DulukaApi
             If Not String.IsNullOrWhiteSpace(fromEnv) Then
                 Return fromEnv.TrimEnd("/"c)
             End If
-            Return "http://127.0.0.1:5000"
+            Return "http://127.0.0.1:5115"
         End Get
     End Property
 
