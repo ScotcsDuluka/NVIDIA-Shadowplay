@@ -208,16 +208,42 @@ Public Class Base_Connect_Security
                 If providerOnly Then DulukaAccountStore.Instance.SetProfile(
                     DulukaAccountStore.Instance.DisplayName, username)
                 SetupPasswordForm()
-                Status_TEXT.Text = "Password updated — you can now sign in with it."
+                Status_TEXT.Text = If(providerOnly,
+                    "Account ready — you can now sign in with your username and password.",
+                    "Password updated — you can now sign in with it.")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Current password is incorrect."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_username" Then
+                Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_password" Then
+                Status_TEXT.Text = "Password must be 8-128 characters."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
-                Status_TEXT.Text = "That username is already taken — pick another."
+                ' The code covers BOTH "username taken" AND "this account
+                ' already has a password" (credential_exists maps to it — e.g.
+                ' the account was initialized on another device). Server truth
+                ' decides: a /me username means this account is DONE — adopt
+                ' it and leave the setup state instead of dead-ending.
+                Dim meR As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/me", token).ConfigureAwait(True)
+                If Not IsDisposed AndAlso meR.Ok AndAlso meR.Resource IsNot Nothing Then
+                    Dim meUser As String = ResourceText(meR.Resource, "username")
+                    If meUser <> "" Then
+                        DulukaAccountStore.Instance.SetProfile(ResourceText(meR.Resource, "displayName"), meUser)
+                        SetupPasswordForm()
+                        Status_TEXT.Text = "This account already has a username and password."
+                        Return
+                    End If
+                End If
+                If Not IsDisposed Then Status_TEXT.Text = "That username is already taken — pick another."
             ElseIf r.AuthDead Then
                 TerminalSignOut("Your session has expired. Please sign in again.")
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
+        Catch ex As Exception
+            ' NEVER silent: a transport or parsing failure must land in the
+            ' status line, not vanish (and never escape an Async Sub).
+            Debug.WriteLine($"BT_ChangePassword error: {ex.GetType().Name}")
+            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
         Finally
             _busy = False
         End Try
@@ -225,7 +251,8 @@ Public Class Base_Connect_Security
 
     ''' <summary>Arranges the password form for the account kind: change mode
     ' (current password required) vs first-time adoption mode (username
-    ' picker, no current password).</summary>
+    ' picker, no current password). The rows are re-stacked at runtime so the
+    ' optional username row never leaves a hole or overlaps its neighbours.</summary>
     Private Sub SetupPasswordForm()
         Dim providerOnly As Boolean = ProviderOnlyAccount
         PwUsername_LBL.Visible = providerOnly
@@ -234,6 +261,28 @@ Public Class Base_Connect_Security
         PwCurrent_LBL.Enabled = Not providerOnly
         PwCurrent_BOX.Enabled = Not providerOnly
         PwHeader_LBL.Text = If(providerOnly, "Add password sign-in", "Change password")
+        ' Honest button label per mode — first-time adoption SETS UP the
+        ' native credential; it does not change an existing one.
+        BT_ChangePassword.Text = If(providerOnly, "Set Up Account", "Change password")
+        LayoutPasswordRows()
+    End Sub
+
+    ''' <summary>Stacks the password rows top-to-bottom (header → [username]
+    ' → current → new → confirm → button). Rows hidden by the mode are
+    ' collapsed instead of leaving a fixed hole, so both layouts stay tight
+    ' and nothing can overlap — the static Designer slots are the fallback.</summary>
+    Private Sub LayoutPasswordRows()
+        Const RowPitch As Integer = 36
+        Const ButtonGap As Integer = 40
+        Dim y As Integer = PwHeader_LBL.Top
+        If PwUsername_LBL.Visible Then
+            PwUsername_LBL.Top = y + 4 : PwUsername_BOX.Top = y
+            y += RowPitch
+        End If
+        PwCurrent_LBL.Top = y + 4 : PwCurrent_BOX.Top = y : y += RowPitch
+        PwNew_LBL.Top = y + 4 : PwNew_BOX.Top = y : y += RowPitch
+        PwConfirm_LBL.Top = y + 4 : PwConfirm_BOX.Top = y : y += RowPitch
+        BT_ChangePassword.Top = y + ButtonGap - RowPitch + 4
     End Sub
 
     Private Sub TerminalSignOut(message As String)
@@ -242,6 +291,14 @@ Public Class Base_Connect_Security
         Base_Connect.ReturnFromSubPage()
         Base_Connect.NotifyFromSubPage(message)
     End Sub
+
+    ''' <summary>String field of a §7.1 success `resource` object ("" if the
+    ' field is absent or null — e.g. username on a provider-only account).</summary>
+    Private Function ResourceText(resource As JsonNode, name As String) As String
+        Dim node As JsonNode = resource(name)
+        If node Is Nothing Then Return ""
+        Return node.GetValue(Of String)()
+    End Function
 
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Me.Hide()

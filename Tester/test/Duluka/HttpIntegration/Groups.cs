@@ -1362,4 +1362,139 @@ internal static class Groups
             r.Run("ADOPT-3 log sweep G14 (adopted password never in server logs or bodies)", () => app.Sweep("ADOPT-3"));
         });
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G15 — GitHub OAuth BOOTSTRAP account → first-time Duluka Account setup.
+    // Product regression for the "Set button does nothing" fix: a bootstrap
+    // account (provider link, NO native credential) MUST be detected as
+    // setup-required (/me username null), MUST accept exactly one first-time
+    // username+password choice, the chosen username MUST be immutable, native
+    // login MUST work afterwards, the display name MUST stay an independent
+    // field, and the whole state MUST survive a server (client) restart —
+    // never asking for setup twice.
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void OAuthBootstrapSetup(Runner r)
+    {
+        r.Group("G15 GitHub bootstrap → first-time setup", configureGitHub: false, budget: 0, ctx =>
+        {
+            var app = ctx.App;
+            const string setupPassword = "setup-pass-123";
+            const string chosenUsername = "Bootstrap.User";
+            string accountId = "";
+            string bootstrapToken = "";   // the bootstrap account's live session (SETUP-1)
+
+            r.Run("SETUP-1 GitHub bootstrap account without native credential → /me username null (setup REQUIRED)", () =>
+            {
+                accountId = app.SeedAccount("GitHub Bootstrap");
+                app.SeedLink(accountId, "gh-setup-1");
+                var (deviceId, _) = app.SeedDevice(accountId, "it-setup");
+                bootstrapToken = app.SeedSession(accountId, deviceId, null);
+                app.TrackSecret(bootstrapToken);
+
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: bootstrapToken));
+                ServerApp.Assert(me.GetProperty("username").ValueKind == JsonValueKind.Null,
+                    $"SETUP-1: username must be null for a bootstrap account (setup required): {ServerApp.Trunc(me.ToString())}");
+                ServerApp.Assert(me.GetProperty("displayName").GetString() == "GitHub Bootstrap",
+                    "SETUP-1: displayName must come from the account row, not from a username");
+            });
+
+            r.Run("SETUP-2 invalid setup input → 400s, NOTHING persisted (username still null)", () =>
+            {
+                ServerApp.ExpectErr(app.Post("/v1/account/password",
+                    new { username = chosenUsername, newPassword = "short7" }, bearer: bootstrapToken),
+                    400, "invalid_password", "SETUP-2a (password policy)");
+                ServerApp.ExpectErr(app.Post("/v1/account/password",
+                    new { username = "bad name!", newPassword = setupPassword }, bearer: bootstrapToken),
+                    400, "invalid_username", "SETUP-2b (username policy)");
+
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: bootstrapToken));
+                ServerApp.Assert(me.GetProperty("username").ValueKind == JsonValueKind.Null,
+                    "SETUP-2c: failed attempts must not create the credential");
+            });
+
+            r.Run("SETUP-3 first-time set username+password → 200 with echo; /me now reports the username", () =>
+            {
+                app.TrackSecret(setupPassword);
+                var resp = app.Post("/v1/account/password",
+                    new { username = chosenUsername, newPassword = setupPassword }, bearer: bootstrapToken);
+                ServerApp.ExpectOk(resp, "SETUP-3a");
+                var resource = ServerApp.Json(resp);
+                ServerApp.Assert(resource.GetProperty("changed").GetBoolean(), "SETUP-3a: changed must be true");
+                ServerApp.Assert(resource.GetProperty("username").GetString() == chosenUsername,
+                    "SETUP-3a: response must echo the chosen username");
+
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: bootstrapToken));
+                ServerApp.Assert(me.GetProperty("username").GetString() == chosenUsername,
+                    "SETUP-3b: username must persist after setup (no longer null)");
+            });
+
+            r.Run("SETUP-4 native login with the chosen credentials → SAME account; wrong password → generic 401", () =>
+            {
+                var login = ServerApp.Json(app.Post("/v1/auth/login", new
+                {
+                    username = "bootstrap.user",   // case/space variants collapse to one canonical identity
+                    password = setupPassword,
+                    deviceKey = Key(256),
+                    deviceName = "it-setup-native",
+                }));
+                ServerApp.Assert(login.GetProperty("accountId").GetString() == accountId,
+                    "SETUP-4a: native login must land on the SAME (bootstrap) account — never a duplicate");
+                ServerApp.Assert(login.GetProperty("username").GetString() == chosenUsername,
+                    "SETUP-4a: login echoes the stored UsernameDisplay");
+
+                ServerApp.ExpectErr(app.Post("/v1/auth/login", new
+                {
+                    username = chosenUsername, password = "wrong-pass-999", deviceKey = Key(256), deviceName = "d",
+                }), 401, "invalid_credentials", "SETUP-4b (generic, no enumeration)");
+            });
+
+            r.Run("SETUP-5 username IMMUTABLE: repeat first-time adoption → 400; duplicate username elsewhere → 409; /me unchanged", () =>
+            {
+                // The account HAS a credential now — the first-time branch is
+                // closed: the same body hits the change path, which requires
+                // the current password (there is NO rename path on the wire).
+                ServerApp.ExpectErr(app.Post("/v1/account/password",
+                    new { username = "renamed.user", newPassword = setupPassword }, bearer: bootstrapToken),
+                    400, "invalid_credentials", "SETUP-5a (first-time branch closed)");
+
+                // Another bootstrap account may not take the settled username.
+                var otherId = app.SeedAccount("other-bootstrap");
+                app.SeedLink(otherId, "gh-setup-2");
+                var (otherDev, _) = app.SeedDevice(otherId, "it-setup-2");
+                var otherToken = app.SeedSession(otherId, otherDev, null);
+                ServerApp.ExpectErr(app.Post("/v1/account/password",
+                    new { username = chosenUsername, newPassword = "other-pass-123" }, bearer: otherToken),
+                    409, "conflict.username_taken", "SETUP-5b (DB-enforced uniqueness)");
+
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: bootstrapToken));
+                ServerApp.Assert(me.GetProperty("username").GetString() == chosenUsername,
+                    "SETUP-5c: username must be byte-identical after every attempt");
+            });
+
+            r.Run("SETUP-6 Display Name independent: still the bootstrap value, separate from the username", () =>
+            {
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: bootstrapToken));
+                ServerApp.Assert(me.GetProperty("displayName").GetString() == "GitHub Bootstrap",
+                    "SETUP-6: displayName must be unaffected by the username setup");
+                ServerApp.Assert(me.GetProperty("displayName").GetString() != me.GetProperty("username").GetString(),
+                    "SETUP-6: displayName and username are separate fields");
+            });
+
+            r.Run("SETUP-7 restart (client relaunch) → session+credential persist, setup NOT asked again, login still works", () =>
+            {
+                ctx.Restart();   // ctx.App now points at the NEW server generation on the SAME store
+                var me = ServerApp.Json(ctx.App.Get("/v1/account/me", bearer: bootstrapToken));
+                ServerApp.Assert(me.GetProperty("username").GetString() == chosenUsername,
+                    "SETUP-7a: username must survive the restart — no re-setup loop");
+
+                ServerApp.ExpectOk(ctx.App.Post("/v1/auth/login", new
+                {
+                    username = chosenUsername, password = setupPassword, deviceKey = Key(256), deviceName = "d2",
+                }), "SETUP-7b: native login still works after the restart");
+            });
+
+            r.Run("SETUP-8 log sweep G15 (setup password never in server logs or bodies)", () => ctx.App.Sweep("SETUP-8"));
+        });
+    }
 }

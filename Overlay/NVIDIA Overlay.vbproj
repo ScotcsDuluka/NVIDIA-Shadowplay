@@ -213,6 +213,10 @@
                   <SubType>Form</SubType>
                 </Compile>
 
+                <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.vb">
+                  <SubType>Form</SubType>
+                </Compile>
+
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[7] Notifications\[Main] Notifications.vb">
                   <SubType>Form</SubType>
                 </Compile>

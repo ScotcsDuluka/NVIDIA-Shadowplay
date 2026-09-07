@@ -110,6 +110,11 @@ Public Class Base_Connect_Create
                                  ResourceText(r.Resource, "deviceId"),
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
+                ' The native credential exists NOW — cache the username
+                ' immediately so the Account Home first-time-setup gate can
+                ' never misfire for a native account before /me returns.
+                store.SetProfile(ResourceText(r.Resource, "username"),
+                                 ResourceText(r.Resource, "username"))
                 Status_TEXT.Text = ""
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
