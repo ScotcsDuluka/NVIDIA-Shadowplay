@@ -37,6 +37,10 @@ Partial Class Base_Connect
         Session_PANEL = New Panel()
         Session_TITLE = New Label()
         Session_META = New Label()
+        Nudge_PANEL = New Panel()
+        Nudge_TITLE = New Label()
+        Nudge_META = New Label()
+        BT_SetupNow = New Label()
         Dim_Top = New PictureBox()
         BT_Back = New Label()
         Dim_1 = New PictureBox()
@@ -60,6 +64,7 @@ Partial Class Base_Connect
         Settings_Panel.Controls.Add(BT_Security)
         Settings_Panel.Controls.Add(BT_Providers)
         Settings_Panel.Controls.Add(Session_PANEL)
+        Settings_Panel.Controls.Add(Nudge_PANEL)
         Settings_Panel.Location = New Point(80, 160)
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
@@ -221,6 +226,57 @@ Partial Class Base_Connect
         Session_META.Size = New Size(1588, 44)
         Session_META.TabIndex = 97
         ' 
+        ' Nudge_PANEL
+        ' 
+        Nudge_PANEL.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Nudge_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Nudge_PANEL.Controls.Add(Nudge_TITLE)
+        Nudge_PANEL.Controls.Add(Nudge_META)
+        Nudge_PANEL.Controls.Add(BT_SetupNow)
+        Nudge_PANEL.Location = New Point(62, 560)
+        Nudge_PANEL.Name = "Nudge_PANEL"
+        Nudge_PANEL.Size = New Size(1636, 110)
+        Nudge_PANEL.TabIndex = 98
+        Nudge_PANEL.Visible = False
+        ' 
+        ' Nudge_TITLE
+        ' 
+        Nudge_TITLE.AutoSize = True
+        Nudge_TITLE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Nudge_TITLE.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        Nudge_TITLE.ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Nudge_TITLE.Location = New Point(24, 16)
+        Nudge_TITLE.Name = "Nudge_TITLE"
+        Nudge_TITLE.Size = New Size(154, 15)
+        Nudge_TITLE.TabIndex = 99
+        Nudge_TITLE.Text = "FINISH SETTING UP"
+        ' 
+        ' Nudge_META
+        ' 
+        Nudge_META.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Nudge_META.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Nudge_META.Font = New Font("Segoe UI", 9.75F)
+        Nudge_META.ForeColor = Color.Silver
+        Nudge_META.Location = New Point(24, 44)
+        Nudge_META.Name = "Nudge_META"
+        Nudge_META.Size = New Size(1300, 44)
+        Nudge_META.TabIndex = 100
+        Nudge_META.Text = "This account has no username or password yet — GitHub alone cannot always sign you in."
+        ' 
+        ' BT_SetupNow
+        ' 
+        BT_SetupNow.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        BT_SetupNow.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_SetupNow.Cursor = Cursors.Hand
+        BT_SetupNow.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
+        BT_SetupNow.ForeColor = Color.White
+        BT_SetupNow.Location = New Point(1387, 30)
+        BT_SetupNow.Name = "BT_SetupNow"
+        BT_SetupNow.Size = New Size(200, 50)
+        BT_SetupNow.TabIndex = 101
+        BT_SetupNow.Text = "Set Up Account"
+        BT_SetupNow.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Dim_Top
         ' 
         Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
@@ -315,4 +371,8 @@ Partial Class Base_Connect
     Friend WithEvents BT_Security As Label
     Friend WithEvents BT_Providers As Label
     Friend WithEvents Status_TEXT As Label
+    Friend WithEvents Nudge_PANEL As Panel
+    Friend WithEvents Nudge_TITLE As Label
+    Friend WithEvents Nudge_META As Label
+    Friend WithEvents BT_SetupNow As Label
 End Class

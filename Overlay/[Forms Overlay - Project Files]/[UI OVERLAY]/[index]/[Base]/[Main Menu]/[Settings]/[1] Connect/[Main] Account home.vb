@@ -100,6 +100,8 @@ Public Class Base_Connect
         Dim meta As String = ""
         If store.Username <> "" Then
             meta &= "Username  " & store.Username & Environment.NewLine
+        Else
+            meta &= "Username  (not set up yet)" & Environment.NewLine
         End If
         meta &= "Account  " & If(store.AccountId <> "", store.AccountId, "—") & Environment.NewLine &
                 "This device  " & If(store.DeviceName <> "", store.DeviceName, "—")
@@ -118,10 +120,18 @@ Public Class Base_Connect
         BT_Providers.Visible = True
         BT_Logout.Visible = True
         Session_PANEL.Visible = True
+        ' First-time setup nudge: a GitHub-bootstrapped account has no native
+        ' username/password yet — keep the setup offer on screen until done.
+        ' The Setup page itself re-gates (it never renders for an account that
+        ' already has a username), so the nudge cannot overstay its welcome.
+        Nudge_PANEL.Visible = (store.Username = "")
     End Sub
 
     ''' <summary>Server-truth refresh of the identity card. Keeps the cached
-    ' profile on transient errors; a 401 is terminal and signs out locally.</summary>
+    ' profile on transient errors; a 401 is terminal and signs out locally.
+    ' When the FORCED-SETUP gate is armed (right after a provider login) and
+    ' /me reports no native username, the Setup page replaces this one —
+    ' exactly once per login, so Back can return without a bounce loop.</summary>
     Private Async Sub RefreshAccountAsync()
         If _meInFlight Then Return
         If Not DulukaAccountStore.Instance.HasSession Then Return
@@ -138,6 +148,14 @@ Public Class Base_Connect
                 DulukaAccountStore.Instance.SetProfile(displayName, username)
                 RenderState()
                 Status_TEXT.Text = ""
+
+                Dim gateArmed As Boolean = _setupGateArmed
+                _setupGateArmed = False
+                If gateArmed AndAlso username = "" Then
+                    Me.Hide()
+                    Base_Connect_Setup.Show()
+                    Return
+                End If
             ElseIf r.AuthDead Then
                 DulukaAccountStore.Instance.ClearSession()
                 ForwardToSignIn()
@@ -149,6 +167,18 @@ Public Class Base_Connect
         Finally
             _meInFlight = False
         End Try
+    End Sub
+
+    ' ── forced first-time setup gate ────────────────────────────────────────
+
+    ''' <summary>Armed ONLY by the provider-login path (Login flow). A GitHub
+    ' bootstrap lands on Account home first; when /me confirms the account is
+    ' provider-only, the Setup page is force-opened (once per login — the
+    ' user may defer with Back, the nudge stays until the username exists).</summary>
+    Private _setupGateArmed As Boolean
+
+    Friend Sub ArmForcedSetupGate()
+        _setupGateArmed = True
     End Sub
 
     ' ── navigation ──────────────────────────────────────────────────────────
@@ -170,6 +200,10 @@ Public Class Base_Connect
 
     Private Sub BT_Providers_Click(sender As Object, e As EventArgs) Handles BT_Providers.Click
         OpenSubPage(Base_Connect_Providers)
+    End Sub
+
+    Private Sub BT_SetupNow_Click(sender As Object, e As EventArgs) Handles BT_SetupNow.Click
+        OpenSubPage(Base_Connect_Setup)
     End Sub
 
     Friend Sub OpenSubPage(target As Form)

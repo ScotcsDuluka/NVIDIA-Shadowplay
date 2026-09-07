@@ -59,6 +59,8 @@ Partial Class Base_Connect_Security
         Settings_Panel.Controls.Add(BT_RefreshSession)
         Settings_Panel.Controls.Add(BT_RevokeAll)
         Settings_Panel.Controls.Add(PwHeader_LBL)
+        Settings_Panel.Controls.Add(PwUsername_LBL)
+        Settings_Panel.Controls.Add(PwUsername_BOX)
         Settings_Panel.Controls.Add(PwCurrent_LBL)
         Settings_Panel.Controls.Add(PwCurrent_BOX)
         Settings_Panel.Controls.Add(PwNew_LBL)
@@ -125,7 +127,7 @@ Partial Class Base_Connect_Security
         PwHeader_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwHeader_LBL.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         PwHeader_LBL.ForeColor = Color.White
-        PwHeader_LBL.Location = New Point(62, 560)
+        PwHeader_LBL.Location = New Point(62, 556)
         PwHeader_LBL.Name = "PwHeader_LBL"
         PwHeader_LBL.Size = New Size(127, 19)
         PwHeader_LBL.TabIndex = 74
@@ -137,7 +139,7 @@ Partial Class Base_Connect_Security
         PwUsername_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwUsername_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwUsername_LBL.ForeColor = Color.Gainsboro
-        PwUsername_LBL.Location = New Point(62, 556)
+        PwUsername_LBL.Location = New Point(62, 596)
         PwUsername_LBL.Name = "PwUsername_LBL"
         PwUsername_LBL.Size = New Size(105, 15)
         PwUsername_LBL.TabIndex = 82
@@ -150,7 +152,7 @@ Partial Class Base_Connect_Security
         PwUsername_BOX.BorderStyle = BorderStyle.FixedSingle
         PwUsername_BOX.Font = New Font("Segoe UI", 10.5F)
         PwUsername_BOX.ForeColor = Color.White
-        PwUsername_BOX.Location = New Point(185, 552)
+        PwUsername_BOX.Location = New Point(185, 592)
         PwUsername_BOX.Name = "PwUsername_BOX"
         PwUsername_BOX.Size = New Size(260, 26)
         PwUsername_BOX.TabIndex = 83
@@ -162,7 +164,7 @@ Partial Class Base_Connect_Security
         PwCurrent_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwCurrent_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwCurrent_LBL.ForeColor = Color.Gainsboro
-        PwCurrent_LBL.Location = New Point(62, 592)
+        PwCurrent_LBL.Location = New Point(62, 632)
         PwCurrent_LBL.Name = "PwCurrent_LBL"
         PwCurrent_LBL.Size = New Size(105, 15)
         PwCurrent_LBL.TabIndex = 75
@@ -174,7 +176,7 @@ Partial Class Base_Connect_Security
         PwCurrent_BOX.BorderStyle = BorderStyle.FixedSingle
         PwCurrent_BOX.Font = New Font("Segoe UI", 10.5F)
         PwCurrent_BOX.ForeColor = Color.White
-        PwCurrent_BOX.Location = New Point(185, 588)
+        PwCurrent_BOX.Location = New Point(185, 628)
         PwCurrent_BOX.Name = "PwCurrent_BOX"
         PwCurrent_BOX.Size = New Size(260, 26)
         PwCurrent_BOX.TabIndex = 76
@@ -186,7 +188,7 @@ Partial Class Base_Connect_Security
         PwNew_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwNew_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwNew_LBL.ForeColor = Color.Gainsboro
-        PwNew_LBL.Location = New Point(62, 628)
+        PwNew_LBL.Location = New Point(62, 668)
         PwNew_LBL.Name = "PwNew_LBL"
         PwNew_LBL.Size = New Size(88, 15)
         PwNew_LBL.TabIndex = 77
@@ -198,7 +200,7 @@ Partial Class Base_Connect_Security
         PwNew_BOX.BorderStyle = BorderStyle.FixedSingle
         PwNew_BOX.Font = New Font("Segoe UI", 10.5F)
         PwNew_BOX.ForeColor = Color.White
-        PwNew_BOX.Location = New Point(185, 624)
+        PwNew_BOX.Location = New Point(185, 664)
         PwNew_BOX.Name = "PwNew_BOX"
         PwNew_BOX.Size = New Size(260, 26)
         PwNew_BOX.TabIndex = 78
@@ -210,7 +212,7 @@ Partial Class Base_Connect_Security
         PwConfirm_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwConfirm_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
         PwConfirm_LBL.ForeColor = Color.Gainsboro
-        PwConfirm_LBL.Location = New Point(62, 664)
+        PwConfirm_LBL.Location = New Point(62, 704)
         PwConfirm_LBL.Name = "PwConfirm_LBL"
         PwConfirm_LBL.Size = New Size(79, 15)
         PwConfirm_LBL.TabIndex = 79
@@ -222,7 +224,7 @@ Partial Class Base_Connect_Security
         PwConfirm_BOX.BorderStyle = BorderStyle.FixedSingle
         PwConfirm_BOX.Font = New Font("Segoe UI", 10.5F)
         PwConfirm_BOX.ForeColor = Color.White
-        PwConfirm_BOX.Location = New Point(185, 660)
+        PwConfirm_BOX.Location = New Point(185, 700)
         PwConfirm_BOX.Name = "PwConfirm_BOX"
         PwConfirm_BOX.Size = New Size(260, 26)
         PwConfirm_BOX.TabIndex = 80
@@ -234,7 +236,7 @@ Partial Class Base_Connect_Security
         BT_ChangePassword.Cursor = Cursors.Hand
         BT_ChangePassword.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
         BT_ChangePassword.ForeColor = Color.White
-        BT_ChangePassword.Location = New Point(185, 700)
+        BT_ChangePassword.Location = New Point(185, 740)
         BT_ChangePassword.Name = "BT_ChangePassword"
         BT_ChangePassword.Size = New Size(200, 42)
         BT_ChangePassword.TabIndex = 81
@@ -246,9 +248,9 @@ Partial Class Base_Connect_Security
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(62, 780)
+        Status_TEXT.Location = New Point(62, 792)
         Status_TEXT.Name = "Status_TEXT"
-        Status_TEXT.Size = New Size(383, 19)
+        Status_TEXT.Size = New Size(560, 19)
         Status_TEXT.TabIndex = 73
         ' 
         ' Dim_Top

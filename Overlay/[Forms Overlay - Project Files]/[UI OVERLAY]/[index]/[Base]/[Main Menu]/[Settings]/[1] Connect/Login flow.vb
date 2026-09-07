@@ -118,6 +118,11 @@ Public Class Base_Connect_Login
             Status_TEXT.Text = "Signed in to your Duluka Account."
             Await Task.Delay(900)
             If IsDisposed OrElse Not IsHandleCreated Then Return
+            ' FIRST-TIME SETUP gate: a GitHub-bootstrap account has no native
+            ' username/password. Account home's /me refresh checks the native
+            ' credential state and force-opens the Setup page when the account
+            ' is provider-only; already-initialized accounts sail through.
+            Base_Connect.ArmForcedSetupGate()
             Base.OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
             Me.Hide()
         Else
