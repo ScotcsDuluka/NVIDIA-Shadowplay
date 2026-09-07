@@ -6,10 +6,10 @@ Add-Type -AssemblyName System.Drawing
 $outDir = $PSScriptRoot
 $green = [Drawing.Color]::FromArgb(118, 185, 0)
 
-# register NVIDIA Sans for this process
+# register NVIDIA Sans for this process (fonts live in the FONTS\ subfolder)
 Add-Type -Name NF -Namespace W32 -MemberDefinition '[DllImport("gdi32.dll")] public static extern int AddFontResource(string lpszFilename);'
 foreach ($f in @('NVIDIASans_Rg.ttf', 'NVIDIASans_Md.ttf', 'NVIDIASans_Bd.ttf')) {
-    $p = Join-Path $outDir $f
+    $p = Join-Path (Join-Path $outDir 'FONTS') $f
     if (Test-Path $p) { [W32.NF]::AddFontResource($p) | Out-Null }
 }
 
