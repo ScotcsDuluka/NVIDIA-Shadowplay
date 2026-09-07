@@ -23,14 +23,6 @@ Partial Public Class Base
         End If
     End Sub
 
-
-
-
-    
-
-
-
-
     Private Sub Mode1() Handles _hotkeyService.Key_CaptureScreen
         If IF_OpenShare = False Then Return
         If AppSettings.Instance.UI.UseWindowsSnip Then
@@ -50,14 +42,6 @@ Partial Public Class Base
         ToggleGameFilter()
     End Sub
 
-
-
-
-
-    
-
-
-
     Private Sub Run_InstantReplayToggle() Handles _hotkeyService.Key_InstantReplayToggle
         If IF_OpenShare = False Then Return
         ToggleInstantReplay()
@@ -68,9 +52,6 @@ Partial Public Class Base
         SaveInstantReplay()
     End Sub
 
-
-
-
     Private Sub Run_ManualRecordToggle() Handles _hotkeyService.Key_ManualRecordToggle
         If IF_OpenShare = False Then Return
         ToggleRecording()
@@ -80,13 +61,6 @@ Partial Public Class Base
         If Base_KeySet.Visible Then Return
         ShowNotifier("feature_not_ready")
     End Sub
-
-
-
-
-
-
-
 
     Private Sub TestNotifier() Handles _hotkeyService.Key_TestNotifier
         If IF_OpenShare = False Then Return
@@ -155,7 +129,5 @@ Partial Public Class Base
     End Sub
 
 #End Region
-
-
 
 End Class

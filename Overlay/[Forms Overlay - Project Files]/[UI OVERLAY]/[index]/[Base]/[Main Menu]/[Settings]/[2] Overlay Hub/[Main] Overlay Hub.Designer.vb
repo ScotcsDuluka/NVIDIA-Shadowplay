@@ -2,7 +2,6 @@
 Partial Class Base_Overlay_Hub
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()> _
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Overlay_Hub
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Overlay_Hub))
@@ -46,9 +41,7 @@ Partial Class Base_Overlay_Hub
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox6, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        
-        
-        
+
         settings_1.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         settings_1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         settings_1.Controls.Add(PictureBox5)
@@ -63,9 +56,7 @@ Partial Class Base_Overlay_Hub
         settings_1.Name = "settings_1"
         settings_1.Size = New Size(1760, 840)
         settings_1.TabIndex = 45
-        
-        
-        
+
         PictureBox5.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         PictureBox5.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox5.Location = New Point(269, 710)
@@ -74,9 +65,7 @@ Partial Class Base_Overlay_Hub
         PictureBox5.TabIndex = 91
         PictureBox5.TabStop = False
         PictureBox5.Visible = False
-        
-        
-        
+
         PictureBox4.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         PictureBox4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox4.Location = New Point(12, 710)
@@ -85,9 +74,7 @@ Partial Class Base_Overlay_Hub
         PictureBox4.TabIndex = 90
         PictureBox4.TabStop = False
         PictureBox4.Visible = False
-        
-        
-        
+
         PictureBox3.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         PictureBox3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox3.Location = New Point(269, 589)
@@ -96,9 +83,7 @@ Partial Class Base_Overlay_Hub
         PictureBox3.TabIndex = 89
         PictureBox3.TabStop = False
         PictureBox3.Visible = False
-        
-        
-        
+
         PictureBox16.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         PictureBox16.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox16.Location = New Point(12, 589)
@@ -107,9 +92,7 @@ Partial Class Base_Overlay_Hub
         PictureBox16.TabIndex = 88
         PictureBox16.TabStop = False
         PictureBox16.Visible = False
-        
-        
-        
+
         hg2.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         hg2.BackColor = Color.DimGray
         hg2.Location = New Point(11, 588)
@@ -118,9 +101,7 @@ Partial Class Base_Overlay_Hub
         hg2.TabIndex = 87
         hg2.TabStop = False
         hg2.Visible = False
-        
-        
-        
+
         PictureBox2.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PictureBox2.BackgroundImage = My.Resources.Resources.display_graphic
         PictureBox2.Location = New Point(466, 118)
@@ -129,9 +110,7 @@ Partial Class Base_Overlay_Hub
         PictureBox2.TabIndex = 74
         PictureBox2.TabStop = False
         PictureBox2.Visible = False
-        
-        
-        
+
         PictureBox1.BackColor = Color.Black
         PictureBox1.Location = New Point(505, 85)
         PictureBox1.Name = "PictureBox1"
@@ -139,9 +118,7 @@ Partial Class Base_Overlay_Hub
         PictureBox1.TabIndex = 73
         PictureBox1.TabStop = False
         PictureBox1.Visible = False
-        
-        
-        
+
         Label4.AutoSize = True
         Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label4.Font = New Font("GeForce", 24F, FontStyle.Bold)
@@ -151,9 +128,7 @@ Partial Class Base_Overlay_Hub
         Label4.Size = New Size(187, 42)
         Label4.TabIndex = 51
         Label4.Text = "Overlay Hub"
-        
-        
-        
+
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(80, 160)
@@ -161,9 +136,7 @@ Partial Class Base_Overlay_Hub
         settings_top.Size = New Size(1760, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
-        
-        
-        
+
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -174,18 +147,14 @@ Partial Class Base_Overlay_Hub
         action_fn.TabIndex = 58
         action_fn.Text = "Back"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         PictureBox6.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         PictureBox6.Location = New Point(-46, -16)
         PictureBox6.Name = "PictureBox6"
         PictureBox6.Size = New Size(1935, 176)
         PictureBox6.TabIndex = 46
         PictureBox6.TabStop = False
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

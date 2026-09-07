@@ -42,14 +42,11 @@ Public Class Base_Privacy_Control
         Base.Settings_List.Visible = True
     End Sub
     Private Sub Base_Privacy_Control_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        
-        
-        
+
         TogglePrivacy.IsOn = AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Sub
     Private Sub TogglePrivacy_ValueChanged(sender As Object, e As EventArgs) Handles TogglePrivacy.ValueChanged
-        
-        
+
         AppSettings.Instance.Privacy.DesktopCaptureEnabled = TogglePrivacy.IsOn
         AppSettings.Instance.Save()
     End Sub

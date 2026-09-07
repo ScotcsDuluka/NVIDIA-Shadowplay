@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 Imports System.Collections.Generic
 Imports System.Diagnostics
 Imports System.IO
@@ -15,9 +10,7 @@ Imports System.Text.Json.Serialization
 
 Partial Public Class AppSettings
 #Region "JSON Model Classes"
-    
-    
-    
+
     Public Class RecordingSettingsClass
         Public Property UseNativeResolution As Boolean = True
         Public Property Encoder As String = "NVENC_H264"
@@ -30,7 +23,6 @@ Partial Public Class AppSettings
         Public Property EncoderPreset As Integer = 4
         Public Property ReplayDuration As Integer = 60
 
-        
         Public Property MyLowFPS As Integer? = Nothing
         Public Property MyLowBitrate As Integer? = Nothing
         Public Property MyLowEncoderPreset As Integer? = Nothing
@@ -43,99 +35,43 @@ Partial Public Class AppSettings
         Public Property MyHighBitrate As Integer? = Nothing
         Public Property MyHighEncoderPreset As Integer? = Nothing
 
-        
         Public Property MyPresetName As String = "MY"
 
-        
         Public Property EngineMode As String = Nothing
 
-        
         Public Property APICapture As String = Nothing
     End Class
 
-    
-    
-    
     Public Class PathSettingsClass
         Public Property GalleryPath As String = ""
         Public Property SavePath As String = ""
         Public Property FFmpegPath As String = ""
     End Class
 
-    
-    
-    
     Public Class UISettingsClass
         Public Property Language As String = "en-US"
         Public Property Theme As String = "Dark"
         Public Property UseWindowsSnip As Boolean = False
     End Class
 
-
-    
-    
-    
     Public Class AudioSettingsClass
-        
-        
-        
+
         Public Property SystemAudioEnabled As Boolean = True
 
-        
-        
-        
         Public Property MicEnabled As Boolean = False
 
-        
-        
-        
         Public Property SystemAudioVolume As Single = 1.0F
 
-        
-        
-        
         Public Property MicVolume As Single = 1.0F
 
-        
-        
-        
         Public Property MicDeviceName As String = ""
 
-        
-        
-        
-        
-        
         Public Property MicDeviceId As String = ""
 
-        
-        
-        
-        
-        
         Public Property TrackMode As Integer = 0
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
         Public Property AudioClockMode As String = "Legacy"
 
-        
-        
-        
-
-        
-        
-        
-        
-        
-        
         <Obsolete("Use MicVolume instead")>
         <JsonIgnore>
         Public Property MicVolumePercent As Integer
@@ -147,10 +83,6 @@ Partial Public Class AppSettings
             End Set
         End Property
 
-        
-        
-        
-        
         <Obsolete("Use SystemAudioVolume instead")>
         <JsonIgnore>
         Public Property SystemVolumePercent As Integer
@@ -163,35 +95,16 @@ Partial Public Class AppSettings
         End Property
     End Class
 
-    
-    
-    
-    
-    
     Public Class PrivacySettingsClass
         
         Public Property DesktopCaptureEnabled As Boolean = False
     End Class
 
-    
-    
-    
-    
-    
-    
-    
     Public Class OverlaySettingsClass
         
         Public Property UseOverlayEnabled As Boolean = False
     End Class
 
-    
-    
-    
-    
-    
-    
-    
     Public Class NotificationsSettingsClass
         
         Public Property RecordingStarted As Boolean = True
@@ -227,18 +140,10 @@ Partial Public Class AppSettings
         Public Property EngineUIInUse As Boolean = True
         Public Property ErrorResolution As Boolean = True
         Public Property DesktopCaptureDisabled As Boolean = True
-        
-        
-        
-        
-        
-        
+
         Public Property SlotCount As Integer = 2
     End Class
 
-    
-    
-    
     Public Class GitHubUserClass
         Public Property Username As String = ""
         Public Property AvatarUrl As String = ""
@@ -246,10 +151,6 @@ Partial Public Class AppSettings
         Public Property LastLogin As DateTime = DateTime.MinValue
     End Class
 
-    
-    
-    
-    
     Private Shared Function EncryptToken(plain As String) As String
         If String.IsNullOrEmpty(plain) Then Return ""
         Try
@@ -287,30 +188,11 @@ Partial Public Class AppSettings
 
     Public Property Hotkeys As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
 
-    
-    
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
     Public Property GitHubUser As New GitHubUserClass()
 
-    
     <JsonPropertyName("GitHubTokenEncrypted")>
     Public Property GitHubTokenEncrypted As String = ""
 
-    
-    
-    
-    
-    
-    
     <JsonIgnore>
     Public Property GitHubToken As String
         Get
@@ -323,18 +205,7 @@ Partial Public Class AppSettings
 #End Region
 
 #Region "Config file DTO — Recording stored video.json-shaped (the detailed file schema)"
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
 
-    
     Public Class VideoCurrentDto
         Public Property fps As Integer = 60
         Public Property bitrate As Integer = 20000
@@ -344,7 +215,6 @@ Partial Public Class AppSettings
         Public Property height As Integer = 1080
     End Class
 
-    
     Public Class MyPresetSlotDto
         Public Property fps As Integer? = Nothing
         Public Property bitrate As Integer? = Nothing
@@ -376,11 +246,6 @@ Partial Public Class AppSettings
         Public Property api_capture As String = Nothing
     End Class
 
-    
-    
-    
-    
-    
     Public Class ConfigFileDto
         Public Property Recording As RecordingSectionDto = New RecordingSectionDto()
         Public Property Paths As PathSettingsClass
@@ -398,19 +263,12 @@ Partial Public Class AppSettings
 #Region "Singleton"
     Private Shared _instance As AppSettings = Nothing
     Private Shared ReadOnly _lock As New Object()
-    
-    
-    
-    
+
     Private Shared ReadOnly _saveLock As New Object()
     Private Shared _isLoaded As Boolean = False
 
-    
     Private Shared _hardwareDetected As Boolean = False
 
-    
-    
-    
     Public Shared ReadOnly Property Instance As AppSettings
         Get
             If _instance Is Nothing Then
@@ -426,19 +284,12 @@ Partial Public Class AppSettings
         End Get
     End Property
 
-    
-    
-    
     Public Shared ReadOnly Property HardwareDetected As Boolean
         Get
             Return _hardwareDetected
         End Get
     End Property
 
-
-    
-    
-    
     Public Shared Sub Initialize()
         SyncLock _lock
             If _instance Is Nothing Then
@@ -459,13 +310,8 @@ Partial Public Class AppSettings
     Private _configPath As String = Nothing
     Private _videoConfigPath As String = Nothing
 
-    
     Private _configWasMissingOnLoad As Boolean = False
 
-    
-    
-    
-    
     Private ReadOnly Property ConfigPath As String
         Get
             If _configPath Is Nothing Then
@@ -475,10 +321,6 @@ Partial Public Class AppSettings
         End Get
     End Property
 
-    
-    
-    
-    
     Private ReadOnly Property VideoConfigPath As String
         Get
             If _videoConfigPath Is Nothing Then
@@ -490,12 +332,7 @@ Partial Public Class AppSettings
 #End Region
 
 #Region "config.json — Load / Save"
-    
-    
-    
-    
-    
-    
+
     Public Sub Load()
         Try
             Debug.WriteLine("══════════ AppSettings.Load ══════════")
@@ -510,10 +347,6 @@ Partial Public Class AppSettings
                     applied = TryApplyConfigJson(json)
                 End If
 
-                
-                
-                
-                
                 If Not applied Then
                     Dim bakJson As String = TryReadBackupText()
                     If bakJson IsNot Nothing Then
@@ -526,20 +359,11 @@ Partial Public Class AppSettings
                 End If
 
                 If applied Then
-                    
-                    
-                    
-                    
+
                     If recoveredFromBackup OrElse Not ConfigJsonIsNested(json) Then
                         Save()
                     End If
 
-                    
-                    
-                    
-                    
-                    
-                    
                     Dim legacyPlainToken As String = TryGetLegacyPlainToken(json)
                     If Not String.IsNullOrEmpty(legacyPlainToken) Then
                         GitHubToken = legacyPlainToken  
@@ -564,13 +388,8 @@ Partial Public Class AppSettings
                 Debug.WriteLine("AppSettings.Load: Created default config")
             End If
 
-            
-            
-            
             MigrateLegacyConfigFiles()
 
-            
-            
             MigrateLegacyMarkerFiles()
 
         Catch ex As Exception
@@ -579,19 +398,10 @@ Partial Public Class AppSettings
     End Sub
 
 #Region "Legacy marker-file migration (privacy / Use_Overlay / current.txt)"
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     Private Sub MigrateLegacyMarkerFiles()
         Dim changed As Boolean = False
 
-        
         Dim privacyMarker As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
         If File.Exists(privacyMarker) Then
             Privacy.DesktopCaptureEnabled = True
@@ -600,7 +410,6 @@ Partial Public Class AppSettings
             Debug.WriteLine("[Migrate] privacy marker → config.json Privacy.DesktopCaptureEnabled = True")
         End If
 
-        
         Dim useOverlayFlag As String = AppLayout.P("Flags", "Use_Overlay")
         If File.Exists(useOverlayFlag) Then
             Overlay.UseOverlayEnabled = True
@@ -609,10 +418,6 @@ Partial Public Class AppSettings
             Debug.WriteLine("[Migrate] Flags/Use_Overlay → config.json Overlay.UseOverlayEnabled = True")
         End If
 
-        
-        
-        
-        
         Dim currentTxt As String = AppLayout.P("Languages", "current.txt")
         If File.Exists(currentTxt) Then
             Try
@@ -633,17 +438,12 @@ Partial Public Class AppSettings
     End Sub
 #End Region
 
-    
-    
-    
-    
     Private Shared Function TryGetLegacyPlainToken(json As String) As String
         Try
             Using doc As JsonDocument = JsonDocument.Parse(json)
                 Dim root As JsonElement = doc.RootElement
                 Dim tok As JsonElement
-                
-                
+
                 If root.TryGetProperty("GitHubToken", tok) AndAlso tok.ValueKind = JsonValueKind.String Then
                     Dim s As String = tok.GetString()
                     If Not String.IsNullOrEmpty(s) Then Return s
@@ -658,10 +458,6 @@ Partial Public Class AppSettings
         Return ""
     End Function
 
-    
-    
-    
-    
     Private Function TryDeserializeConfig(json As String) As AppSettings
         Try
             Dim options As New JsonSerializerOptions With {
@@ -676,12 +472,6 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    
-    
-    
-    
-    
-    
     Private Function TryApplyConfigJson(json As String) As Boolean
         If ConfigJsonIsNested(json) Then
             Dim dto As ConfigFileDto = TryDeserializeConfigDto(json)
@@ -695,11 +485,6 @@ Partial Public Class AppSettings
         Return True
     End Function
 
-    
-    
-    
-    
-    
     Private Shared Function ConfigJsonIsNested(json As String) As Boolean
         Try
             Dim docOpts As New JsonDocumentOptions With {
@@ -721,10 +506,6 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    
-    
-    
-    
     Private Shared Function TryDeserializeConfigDto(json As String) As ConfigFileDto
         Try
             Dim options As New JsonSerializerOptions With {
@@ -739,11 +520,6 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    
-    
-    
-    
-    
     Private Function TryReadBackupText() As String
         Try
             Dim bakPath As String = ConfigPath & ".bak"
@@ -757,7 +533,6 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    
     Private Sub ApplyDtoSettings(dto As ConfigFileDto)
         If dto Is Nothing Then Return
 
@@ -774,14 +549,9 @@ Partial Public Class AppSettings
             Hotkeys = New Dictionary(Of String, String)(dto.Hotkeys, StringComparer.OrdinalIgnoreCase)
         End If
 
-        
-        
         GitHubTokenEncrypted = dto.GitHubTokenEncrypted
     End Sub
 
-    
-
-    
     Private Function BuildRecordingDto() As RecordingSectionDto
         Dim d As New RecordingSectionDto()
         d.encoder = Recording.Encoder
@@ -811,12 +581,6 @@ Partial Public Class AppSettings
         Return New MyPresetSlotDto With {.fps = fps, .bitrate = bitrate, .encoder_preset = encoderPreset}
     End Function
 
-    
-
-    
-    
-    
-    
     Private Sub ApplyRecordingDto(d As RecordingSectionDto)
         If d Is Nothing Then Return
 
@@ -861,7 +625,6 @@ Partial Public Class AppSettings
             Recording.EngineMode = If(String.Equals(d.api_capture, "ddagrab", StringComparison.OrdinalIgnoreCase), "Duluka", "FFmpeg")
         End If
 
-        
         Recording.APICapture = d.api_capture
     End Sub
 
@@ -872,14 +635,6 @@ Partial Public Class AppSettings
         Return "FFmpeg"
     End Function
 
-    
-    
-    
-    
-    
-    
-    
-    
     Private Sub WriteConfigFileAtomic(json As String)
         Dim tmpPath As String = ConfigPath & "." & Process.GetCurrentProcess().Id.ToString() & ".tmp"
         Dim bakPath As String = ConfigPath & ".bak"
@@ -907,11 +662,6 @@ Partial Public Class AppSettings
             Hotkeys = New Dictionary(Of String, String)(loaded.Hotkeys, StringComparer.OrdinalIgnoreCase)
         End If
 
-        
-        
-        
-        
-        
         GitHubTokenEncrypted = loaded.GitHubTokenEncrypted
     End Sub
 
@@ -929,7 +679,6 @@ Partial Public Class AppSettings
         Recording.ReplayDuration = loadedRecording.ReplayDuration
         Recording.UseNativeResolution = loadedRecording.UseNativeResolution
 
-        
         Recording.MyLowFPS = loadedRecording.MyLowFPS
         Recording.MyLowBitrate = loadedRecording.MyLowBitrate
         Recording.MyLowEncoderPreset = loadedRecording.MyLowEncoderPreset
@@ -968,10 +717,7 @@ Partial Public Class AppSettings
         Audio.SystemAudioVolume = loadedAudio.SystemAudioVolume
         Audio.MicVolume = loadedAudio.MicVolume
         Audio.MicDeviceName = loadedAudio.MicDeviceName
-        
-        
-        
-        
+
         Audio.MicDeviceId = loadedAudio.MicDeviceId
         Audio.TrackMode = loadedAudio.TrackMode
         Audio.AudioClockMode = loadedAudio.AudioClockMode
@@ -1032,41 +778,20 @@ Partial Public Class AppSettings
         Notifications.EngineUIInUse = loadedNotifications.EngineUIInUse
         Notifications.ErrorResolution = loadedNotifications.ErrorResolution
         Notifications.DesktopCaptureDisabled = loadedNotifications.DesktopCaptureDisabled
-        
-        
+
         Notifications.SlotCount = Math.Min(3, Math.Max(1, loadedNotifications.SlotCount))
     End Sub
 
-    
-    
-    
     Public Sub Save()
         Try
             SyncLock _saveLock
-                
-                
-                
-                
-                
-                
+
                 Overlay.UseOverlayEnabled = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", Overlay.UseOverlayEnabled)
 
                 Dim options As New JsonSerializerOptions With {
                     .WriteIndented = True
                 }
-                
-                
-                
-                
-                
-                
-                
 
-                
-                
-                
-                
-                
                 Dim dto As New ConfigFileDto With {
                     .Recording = BuildRecordingDto(),
                     .Paths = Paths,

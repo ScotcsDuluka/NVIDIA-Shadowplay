@@ -2,7 +2,6 @@
 Partial Class Base_Connect_Profile
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Connect_Profile
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Settings_Panel = New Panel()
@@ -48,9 +43,7 @@ Partial Class Base_Connect_Profile
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        
-        
-        
+
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_Panel.Controls.Add(Empty_Crad)
@@ -61,18 +54,14 @@ Partial Class Base_Connect_Profile
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 455)
         Settings_Panel.TabIndex = 45
-        
-        
-        
+
         Empty_Crad.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Empty_Crad.Location = New Point(854, 130)
         Empty_Crad.Name = "Empty_Crad"
         Empty_Crad.Size = New Size(842, 260)
         Empty_Crad.TabIndex = 91
         Empty_Crad.Visible = False
-        
-        
-        
+
         Settings_TEXT.AutoSize = True
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_TEXT.Font = New Font("GeForce", 24F, FontStyle.Bold)
@@ -82,9 +71,7 @@ Partial Class Base_Connect_Profile
         Settings_TEXT.Size = New Size(169, 42)
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Edit Profile"
-        
-        
-        
+
         Profile_CARD.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Profile_CARD.Controls.Add(Username_VALUE)
         Profile_CARD.Controls.Add(AvatarLetter_LABEL)
@@ -99,9 +86,7 @@ Partial Class Base_Connect_Profile
         Profile_CARD.Name = "Profile_CARD"
         Profile_CARD.Size = New Size(786, 260)
         Profile_CARD.TabIndex = 90
-        
-        
-        
+
         Username_VALUE.BackColor = Color.FromArgb(CByte(30), CByte(33), CByte(36))
         Username_VALUE.BorderStyle = BorderStyle.FixedSingle
         Username_VALUE.Enabled = False
@@ -113,9 +98,7 @@ Partial Class Base_Connect_Profile
         Username_VALUE.ReadOnly = True
         Username_VALUE.Size = New Size(631, 27)
         Username_VALUE.TabIndex = 100
-        
-        
-        
+
         AvatarLetter_LABEL.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         AvatarLetter_LABEL.Font = New Font("GeForce", 30F, FontStyle.Bold)
         AvatarLetter_LABEL.ForeColor = Color.White
@@ -125,9 +108,7 @@ Partial Class Base_Connect_Profile
         AvatarLetter_LABEL.TabIndex = 91
         AvatarLetter_LABEL.Text = "D"
         AvatarLetter_LABEL.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Avatar_PICTURE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Avatar_PICTURE.Location = New Point(24, 32)
         Avatar_PICTURE.Name = "Avatar_PICTURE"
@@ -136,9 +117,7 @@ Partial Class Base_Connect_Profile
         Avatar_PICTURE.TabIndex = 92
         Avatar_PICTURE.TabStop = False
         Avatar_PICTURE.Visible = False
-        
-        
-        
+
         BT_ChangeImage.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_ChangeImage.Cursor = Cursors.Hand
         BT_ChangeImage.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
@@ -149,9 +128,7 @@ Partial Class Base_Connect_Profile
         BT_ChangeImage.TabIndex = 92
         BT_ChangeImage.Text = "Change image…"
         BT_ChangeImage.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         BT_RemoveImage.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_RemoveImage.Cursor = Cursors.Hand
         BT_RemoveImage.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
@@ -162,9 +139,7 @@ Partial Class Base_Connect_Profile
         BT_RemoveImage.TabIndex = 93
         BT_RemoveImage.Text = "Remove"
         BT_RemoveImage.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Name_LABEL.AutoSize = True
         Name_LABEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Name_LABEL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
@@ -174,9 +149,7 @@ Partial Class Base_Connect_Profile
         Name_LABEL.Size = New Size(91, 15)
         Name_LABEL.TabIndex = 94
         Name_LABEL.Text = "DISPLAY NAME"
-        
-        
-        
+
         BT_Save.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Save.Cursor = Cursors.Hand
         BT_Save.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
@@ -187,9 +160,7 @@ Partial Class Base_Connect_Profile
         BT_Save.TabIndex = 99
         BT_Save.Text = "Save"
         BT_Save.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Name_BOX.BackColor = Color.FromArgb(CByte(30), CByte(33), CByte(36))
         Name_BOX.BorderStyle = BorderStyle.FixedSingle
         Name_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -199,9 +170,7 @@ Partial Class Base_Connect_Profile
         Name_BOX.Name = "Name_BOX"
         Name_BOX.Size = New Size(631, 27)
         Name_BOX.TabIndex = 95
-        
-        
-        
+
         Username_LABEL.AutoSize = True
         Username_LABEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Username_LABEL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
@@ -211,9 +180,7 @@ Partial Class Base_Connect_Profile
         Username_LABEL.Size = New Size(208, 15)
         Username_LABEL.TabIndex = 96
         Username_LABEL.Text = "USERNAME (CANNOT BE CHANGED)"
-        
-        
-        
+
         Username_NOTE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Username_NOTE.Font = New Font("Segoe UI", 9F, FontStyle.Italic)
         Username_NOTE.ForeColor = Color.Silver
@@ -222,9 +189,7 @@ Partial Class Base_Connect_Profile
         Username_NOTE.Size = New Size(740, 48)
         Username_NOTE.TabIndex = 98
         Username_NOTE.Text = "Your display name and avatar are how other Duluka surfaces show you. They are NOT your sign-in identity — changing them never affects your username, devices or signed-in sessions."
-        
-        
-        
+
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
@@ -233,9 +198,7 @@ Partial Class Base_Connect_Profile
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(0, 17)
         Status_TEXT.TabIndex = 68
-        
-        
-        
+
         Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Dim_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Dim_Top.Location = New Point(80, 160)
@@ -243,9 +206,7 @@ Partial Class Base_Connect_Profile
         Dim_Top.Size = New Size(1760, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        
-        
-        
+
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
         BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -256,9 +217,7 @@ Partial Class Base_Connect_Profile
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -267,9 +226,7 @@ Partial Class Base_Connect_Profile
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        
-        
-        
+
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -278,9 +235,7 @@ Partial Class Base_Connect_Profile
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

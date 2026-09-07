@@ -31,7 +31,6 @@ Public Class sha2
         SetWindowLong(Me.Handle, GWL_EXSTYLE, newStyle)
     End Sub
 
-
     <DllImport("dwmapi.dll")>
     Private Shared Function DwmSetWindowAttribute(
         hwnd As IntPtr,
@@ -78,7 +77,6 @@ Public Class sha2
         DwmExtendFrameIntoClientArea(Me.Handle, margins)
         SetLayeredWindowAttributes(Me.Handle, Color.Magenta.ToArgb(), 0, LWA_COLORKEY)
     End Sub
-
 
     Private Sub test_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()

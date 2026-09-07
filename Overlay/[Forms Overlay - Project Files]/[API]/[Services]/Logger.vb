@@ -35,9 +35,6 @@ Public Module Logger
 
     End Class
 
-
-    
-    
     Private Sub RedirectDebugToConsole()
         Try
             Dim debugType As Global.System.Type = GetType(Global.System.Diagnostics.Debug)
@@ -240,7 +237,6 @@ Public Module Logger
         End Get
     End Property
 
-    
     Public Sub AutoStart(Optional title As String = "Logger")
         Try
             Dim enabled As Boolean = True   
@@ -294,16 +290,10 @@ Public Module Logger
         End If
     End Sub
 
-    
-    
-    
     Public Sub D(msg As String)
         Write("", msg, _msgColor)
     End Sub
 
-    
-    
-    
     Public Sub D(tag As String, msg As String)
         Write(tag, msg, _msgColor)
     End Sub

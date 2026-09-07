@@ -1,9 +1,5 @@
 
 
-
-
-
-
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Text.Json.Nodes
@@ -132,8 +128,7 @@ Public Class Base_Connect_Devices
 
     Private Sub AddDeviceRow(id As String, name As String, lastSeen As String,
                              revokedAt As String, isCurrent As Boolean)
-        
-        
+
         Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
             .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
@@ -216,8 +211,7 @@ Public Class Base_Connect_Devices
         ElseIf r.AuthDead Then
             TerminalSignOut("Your session has expired. Please sign in again.")
         ElseIf r.HttpStatus = 403 Then
-            
-            
+
             Status_TEXT.Text = DulukaApi.HumanError(r)
         ElseIf r.HttpStatus = 404 Then
             Status_TEXT.Text = "That device is already gone — refreshing."
@@ -227,8 +221,6 @@ Public Class Base_Connect_Devices
         End If
     End Sub
 
-    
-    
     Private Sub TerminalSignOut(message As String)
         DulukaAccountStore.Instance.ClearSession()
         Me.Hide()
@@ -251,11 +243,6 @@ Public Class Base_Connect_Devices
         Return iso
     End Function
 
-    
-    
-    
-    
-    
     Private Sub StretchRows()
         Dim w As Integer = List_PANEL.ClientSize.Width
         If w <= 0 Then Return

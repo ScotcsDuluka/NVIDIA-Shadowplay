@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Threading.Tasks
@@ -65,7 +60,6 @@ Public Class Base_Connect_Login
         End If
     End Sub
 
-    
     Private Sub Report(message As String)
         If IsDisposed OrElse Not IsHandleCreated Then Return
         Try
@@ -87,7 +81,6 @@ Public Class Base_Connect_Login
         End If
         BT_StartLogin.Visible = False
         BT_CancelLogin.Visible = True
-
 
         Base_Connect.Hide()
         Base_Settings.Hide()
@@ -118,17 +111,15 @@ Public Class Base_Connect_Login
             Status_TEXT.Text = "Signed in to your Duluka Account."
             Await Task.Delay(900)
             If IsDisposed OrElse Not IsHandleCreated Then Return
-            
-            
-            
-            
+
             Base_Connect.ArmForcedSetupGate()
             Base.OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
             Me.Hide()
         Else
-            
-            
-            
+
+            Base_Settings.Hide()
+            Base_Connect.Hide()
+            Base.Settings_List.Visible = False
             Me.Show()
             Status_TEXT.Text = outcome.Message
             BT_StartLogin.Visible = True

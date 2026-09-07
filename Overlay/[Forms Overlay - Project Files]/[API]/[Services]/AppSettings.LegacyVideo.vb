@@ -1,63 +1,31 @@
 
 
-
-
-
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Text.Json
 
 Partial Public Class AppSettings
 #Region "Legacy video.json (migration source only)"
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
     Public Class VideoConfigClass
         
         Public Property Encoder As String = "NVENC_H264"
 
-        
         Public Property EncoderNow As String = "NVENC_H264"
 
-        
         Public Property ActivePreset As String = "Medium"
 
-        
         Public Property Current As New VideoCurrentValuesClass()
 
-        
         Public Property ReplayDuration As Integer = 60
 
-        
         Public Property Audio As New VideoAudioConfigClass()
 
-        
         Public Property MyPresets As New VideoMyPresetsClass()
 
-        
         Public Property APICapture As String = Nothing
     End Class
 
-    
-    
-    
     Public Class VideoCurrentValuesClass
         Public Property FPS As Integer = 60
         Public Property Bitrate As Integer = 20000
@@ -67,9 +35,6 @@ Partial Public Class AppSettings
         Public Property Height As Integer = 0
     End Class
 
-    
-    
-    
     Public Class VideoAudioConfigClass
         Public Property SystemEnabled As Boolean = True
         Public Property MicEnabled As Boolean = False
@@ -80,23 +45,15 @@ Partial Public Class AppSettings
         Public Property TrackMode As Integer = 0
     End Class
 
-    
-    
-    
     Public Class MyPresetSlotClass
         
         Public Property FPS As Integer? = Nothing
 
-        
         Public Property Bitrate As Integer? = Nothing
 
-        
         Public Property EncoderPreset As Integer? = Nothing
     End Class
 
-    
-    
-    
     Public Class VideoMyPresetsClass
         
         Public Property Name As String = "MY"
@@ -106,17 +63,6 @@ Partial Public Class AppSettings
         Public Property High As New MyPresetSlotClass()
     End Class
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     Private Sub MigrateLegacyConfigFiles()
         Try
             Dim imported As Boolean = False
@@ -132,7 +78,6 @@ Partial Public Class AppSettings
                     End If
                 End If
 
-                
                 Dim audioPath As String = AppLayout.P("Config", "audio.json")
                 If File.Exists(audioPath) Then
                     Try
@@ -147,8 +92,7 @@ Partial Public Class AppSettings
                             If doc.RootElement.TryGetProperty("MicDevice", p) Then a.MicDeviceName = p.GetString()
                             If doc.RootElement.TryGetProperty("MicDeviceId", p) Then a.MicDeviceId = p.GetString()
                             If doc.RootElement.TryGetProperty("AudioTrackMode", p) Then a.TrackMode = p.GetInt32()
-                            
-                            
+
                             If doc.RootElement.TryGetProperty("AudioClockMode", p) Then
                                 Dim clock As String = If(p.GetString(), "").Trim()
                                 a.AudioClockMode = If(String.Equals(clock, "Device", StringComparison.OrdinalIgnoreCase),
@@ -165,7 +109,6 @@ Partial Public Class AppSettings
                 If imported Then Save()
             End If
 
-            
             RenameLegacyAway(VideoConfigPath, "video.json")
             RenameLegacyAway(AppLayout.P("Config", "audio.json"), "audio.json")
 
@@ -188,10 +131,6 @@ Partial Public Class AppSettings
         End Try
     End Sub
 
-    
-    
-    
-    
     Private Function LoadVideoSettings() As VideoConfigClass
         Try
             Debug.WriteLine("══════════ AppSettings.LoadVideoSettings ══════════")
@@ -223,32 +162,21 @@ Partial Public Class AppSettings
             Debug.WriteLine("AppSettings.LoadVideoSettings Error: " & ex.Message)
         End Try
 
-        
         Return Nothing
     End Function
 
-
-
-    
-    
-    
-    
     Private Sub ApplyVideoConfig(video As VideoConfigClass)
         If video Is Nothing Then Return
 
-        
         Recording.Encoder = video.Encoder
         Recording.EncoderNow = video.EncoderNow
         Recording.Preset = video.ActivePreset
         Recording.ReplayDuration = video.ReplayDuration
 
-        
         Recording.MyPresetName = video.MyPresets.Name
 
-        
         Recording.APICapture = video.APICapture
 
-        
         Recording.FPS = video.Current.FPS
         Recording.Bitrate = video.Current.Bitrate
         Recording.EncoderPreset = video.Current.EncoderPreset
@@ -256,7 +184,6 @@ Partial Public Class AppSettings
         Recording.Width = If(video.Current.Width = 0, Recording.Width, video.Current.Width)
         Recording.Height = If(video.Current.Height = 0, Recording.Height, video.Current.Height)
 
-        
         Audio.SystemAudioEnabled = video.Audio.SystemEnabled
         Audio.MicEnabled = video.Audio.MicEnabled
         Audio.SystemAudioVolume = video.Audio.SystemVolume
@@ -265,7 +192,6 @@ Partial Public Class AppSettings
         Audio.MicDeviceId = video.Audio.MicDeviceId
         Audio.TrackMode = video.Audio.TrackMode
 
-        
         Recording.MyLowFPS = video.MyPresets.Low.FPS
         Recording.MyLowBitrate = video.MyPresets.Low.Bitrate
         Recording.MyLowEncoderPreset = video.MyPresets.Low.EncoderPreset

@@ -51,8 +51,7 @@
                 <NuGetAuditLevel>low</NuGetAuditLevel>
         </PropertyGroup>
 
-        
-        <Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
+        <Target Name="IncrementBuild" BeforeTargets="BeforeBuild" Condition="'$(DesignTimeBuild)' != 'true'">
 
                 <WriteLinesToFile File="$(MSBuildProjectDirectory)\build.txt" Lines="100" Overwrite="false" Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
 
@@ -72,7 +71,6 @@
 
         </Target>
 
-        
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
                 <RegisterForComInterop>False</RegisterForComInterop>
                 <DefineDebug>False</DefineDebug>
@@ -90,7 +88,6 @@
                 <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
         </PropertyGroup>
 
-        
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
                 <RegisterForComInterop>False</RegisterForComInterop>
                 <DefineDebug>False</DefineDebug>
@@ -108,7 +105,6 @@
                 <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
         </PropertyGroup>
 
-        
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
                 <DebugType>none</DebugType>
         </PropertyGroup>
@@ -117,24 +113,17 @@
                 <DebugType>none</DebugType>
         </PropertyGroup>
 
-        
         <ItemGroup>
                 <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
                 <EmbeddedResource Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
                 <None Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
 
-                <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.vb" />
-                <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.Designer.vb" />
-                <EmbeddedResource Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.resx" />
         </ItemGroup>
-
-        
 
         <ItemGroup>
                 <Content Include="NVIDIA ShadowPlay.ico" />
         </ItemGroup>
 
-        
         <ItemGroup>
                 <Import Include="System" />
                 <Import Include="System.Collections" />
@@ -149,17 +138,12 @@
                 <Import Include="Microsoft.VisualBasic" />
         </ItemGroup>
 
-        
         <ItemGroup>
                 <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
                 <PackageReference Include="System.Management" Version="10.0.11" />
-                
 
-                
-                
         </ItemGroup>
 
-        
         <ItemGroup>
                 <Compile Update="My Project\Application.Designer.vb">
                         <DesignTime>True</DesignTime>
@@ -226,7 +210,6 @@
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[#] Empty.vb" />
         </ItemGroup>
 
-        
         <ItemGroup>
                 <EmbeddedResource Update="My Project\Resources.resx">
                         <CustomToolNamespace>My.Resources</CustomToolNamespace>
@@ -235,7 +218,6 @@
                 </EmbeddedResource>
         </ItemGroup>
 
-        
         <ItemGroup>
 
                 <None Update="API-Core\avcodec-62.dll">
@@ -434,7 +416,6 @@
                 <Folder Include="Resources\" />
         </ItemGroup>
 
-        
         <ItemGroup>
                 <ProjectReference Include="..\API\NVIDIA API.vbproj" />
                 <ProjectReference Include="..\Launcher\Launcher.vbproj" />
@@ -449,17 +430,14 @@
                 </VisualStudio>
         </ProjectExtensions>
 
-        
         <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
-                
                 <Exec Command="rm -f $(TargetDir)*.pdb $(TargetDir)*.xml" Condition=" '$(OS)' != 'Windows_NT'" />
 
                 <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;" Condition=" '$(OS)' == 'Windows_NT'" />
 
         </Target>
 
-        
         <ItemGroup>
                 <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
                 <Compile Include="..\Common\AppLayoutStartup.vb" Link="AppLayoutStartup.vb" />

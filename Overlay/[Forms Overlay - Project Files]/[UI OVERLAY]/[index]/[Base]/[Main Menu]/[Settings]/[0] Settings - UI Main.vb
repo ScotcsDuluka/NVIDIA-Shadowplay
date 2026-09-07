@@ -49,11 +49,9 @@ Public Class Base_Settings
         Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True
 
-
         Base_Background_Top.d.Visible = True
         Base_Background_Top.ME_CLOSE_BG_GRE.Visible = True
         Base_Background_Top.ME_CLOSE_BG.Visible = True
-
 
         AppSettings.Instance.Save()
 
@@ -70,8 +68,7 @@ Public Class Base_Settings
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
-        
-        
+
         If ToggleUseWindowsSnip IsNot Nothing Then ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
     End Sub
 
@@ -109,9 +106,7 @@ Public Class Base_Settings
     End Sub
 
     Private Sub SelectLang(langCode As String)
-        
-        
-        
+
         AppSettings.Instance.UI.Language = langCode
 
         Dim langFolder As String = GetLanguageFolderPath()
@@ -152,7 +147,6 @@ Public Class Base_Settings
         Return AppLayout.P(LanguageFolderName)
     End Function
 
-    
     Private Function GetCurrentLanguageCode(langFolder As String) As String
         Dim saved As String = AppSettings.Instance.UI.Language
         If String.IsNullOrWhiteSpace(saved) Then saved = DefaultLanguageCode
@@ -200,7 +194,6 @@ Public Class Base_Settings
         Return fallbackCode
     End Function
 
-    
     Private Sub btnExportSettings_Click(sender As Object, e As EventArgs) Handles btnExportSettings.Click
         Dim path As String = SettingsExportImport.ExportWithDialog(Me)
         If path IsNot Nothing Then
@@ -210,7 +203,6 @@ Public Class Base_Settings
         End If
     End Sub
 
-    
     Private Sub btnImportSettings_Click(sender As Object, e As EventArgs) Handles btnImportSettings.Click
         If SettingsExportImport.ImportWithDialog(Me) Then
             MessageBox.Show(LangHelper.GetText("l10n.importSuccess"), "Settings - Import                                                        ", MessageBoxButtons.OK, MessageBoxIcon.Information)

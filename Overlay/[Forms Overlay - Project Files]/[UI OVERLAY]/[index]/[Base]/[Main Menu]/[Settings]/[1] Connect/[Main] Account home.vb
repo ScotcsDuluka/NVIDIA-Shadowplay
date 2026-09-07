@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Text.Json.Nodes
@@ -52,11 +45,6 @@ Public Class Base_Connect
         LayoutRow()
     End Sub
 
-    
-    
-    
-    
-    
     Private Sub LayoutRow()
         Dim contentW As Integer = Settings_Panel.Width - 124
         If contentW <= 0 Then Return
@@ -76,12 +64,6 @@ Public Class Base_Connect
         LayoutRow()
     End Sub
 
-    
-    
-    
-    
-    
-    
     Private Sub Base_Connect_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         If Not DulukaAccountStore.Instance.HasSession Then
@@ -96,10 +78,6 @@ Public Class Base_Connect
         RefreshAccountAsync()
     End Sub
 
-    
-    
-    
-    
     Private Sub RenderState()
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
         If Not store.HasSession Then Return
@@ -132,18 +110,10 @@ Public Class Base_Connect
         BT_Providers.Visible = True
         BT_Logout.Visible = True
         Session_PANEL.Visible = True
-        
-        
-        
-        
+
         Nudge_PANEL.Visible = (store.Username = "")
     End Sub
 
-    
-    
-    
-    
-    
     Private Async Sub RefreshAccountAsync()
         If _meInFlight Then Return
         If Not DulukaAccountStore.Instance.HasSession Then Return
@@ -182,29 +152,15 @@ Public Class Base_Connect
         End Try
     End Sub
 
-    
-
-    
-    
-    
-    
     Private _setupGateArmed As Boolean
 
     Friend Sub ArmForcedSetupGate()
         _setupGateArmed = True
     End Sub
 
-    
-
-    
-    
-    
-    
     Private Sub RenderAvatar(dataUrl As String)
         DulukaAvatar.SetPreview(Avatar_PICTURE, dataUrl, Avatar_BOX)
     End Sub
-
-    
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Me.Hide()
@@ -238,20 +194,14 @@ Public Class Base_Connect
         target.Show()
     End Sub
 
-    
-    
     Friend Sub ReturnFromSubPage()
         Me.Show()
     End Sub
 
-    
-    
     Friend Sub NotifyFromSubPage(message As String)
         Status_TEXT.Text = message
     End Sub
 
-    
-    
     Friend Sub ForwardToSignIn()
         Me.Hide()
         Base_Connect_Signin.Settings_Panel.Location = New Point(80, 160)
@@ -259,19 +209,12 @@ Public Class Base_Connect
         Base_Connect_Signin.Opacity = 1
     End Sub
 
-    
-    
-    
-    
-    
     Friend Sub ForwardToSetup()
         Me.Hide()
         Base_Connect_Setup.Settings_Panel.Location = New Point(80, 160)
         Base_Connect_Setup.Show()
         Base_Connect_Setup.Opacity = 1
     End Sub
-
-    
 
     Private Async Sub BT_Logout_Click(sender As Object, e As EventArgs) Handles BT_Logout.Click
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance

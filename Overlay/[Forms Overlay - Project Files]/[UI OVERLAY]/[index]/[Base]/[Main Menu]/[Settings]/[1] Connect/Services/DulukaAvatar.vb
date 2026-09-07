@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Drawing.Drawing2D
@@ -15,30 +9,18 @@ Imports System.Text.RegularExpressions
 
 Friend Module DulukaAvatar
 
-    
-    
     Private Const MaxProfileImageBytes As Integer = 256 * 1024
 
-    
-    
     Private Const EncodedEdge As Integer = 256
 
-    
-    
     Private Const MaxSourceFileBytes As Integer = 8 * 1024 * 1024
 
-    
-    
     Private Const MaxSourceEdge As Integer = 4096
 
     Private ReadOnly DataUrlPattern As New Regex(
         "^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/]*={0,2})$",
         RegexOptions.Compiled)
 
-    
-    
-    
-    
     Public Function FromDataUrl(dataUrl As String) As Image
         If String.IsNullOrWhiteSpace(dataUrl) Then Return Nothing
         Try
@@ -48,9 +30,7 @@ Friend Module DulukaAvatar
             If payload.Length = 0 OrElse payload.Length > (MaxProfileImageBytes \ 3 + 1) * 4 Then Return Nothing
             Dim bytes As Byte() = Convert.FromBase64String(payload)
             If bytes.Length = 0 OrElse bytes.Length > MaxProfileImageBytes Then Return Nothing
-            
-            
-            
+
             Dim stream As New MemoryStream(bytes, writable:=False)
             Return Image.FromStream(stream)
         Catch ex As Exception
@@ -60,10 +40,6 @@ Friend Module DulukaAvatar
         End Try
     End Function
 
-    
-    
-    
-    
     Public Function EncodeFromFile(path As String, ByRef errorReason As String) As String
         errorReason = ""
         Try
@@ -103,10 +79,7 @@ Friend Module DulukaAvatar
                     Using outStream As New MemoryStream()
                         scaled.Save(outStream, ImageFormat.Png)
                         Dim bytes As Byte() = outStream.ToArray()
-                        
-                        
-                        
-                        
+
                         If bytes.Length > MaxProfileImageBytes Then
                             errorReason = "That image encodes too large — pick a simpler one."
                             Return Nothing
@@ -125,9 +98,6 @@ Friend Module DulukaAvatar
         End Try
     End Function
 
-    
-    
-    
     Public Sub SetPreview(box As PictureBox, dataUrl As String, letterFallback As Label)
         Dim img As Image = FromDataUrl(dataUrl)
         Dim old As Image = box.Image

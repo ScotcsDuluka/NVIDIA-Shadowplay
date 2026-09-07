@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Linq
 Imports System.Runtime.InteropServices
@@ -57,12 +43,6 @@ Public Class Base_Connect_Setup
         HideFromAltTab()
     End Sub
 
-    
-    
-    
-    
-    
-    
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
@@ -84,9 +64,6 @@ Public Class Base_Connect_Setup
         If _busy Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        
-        
-        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         Dim confirm As String = Confirm_BOX.Text
@@ -112,9 +89,6 @@ Public Class Base_Connect_Setup
         BT_SetupAccount.Enabled = False
         Status_TEXT.Text = "Setting up your account…"
         Try
-            
-            
-            
             Dim body As New JsonObject()
             body("username") = username
             body("newPassword") = password
@@ -123,8 +97,6 @@ Public Class Base_Connect_Setup
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok Then
-                
-                
                 Dim chosen As String = ResourceText(r.Resource, "username")
                 If chosen = "" Then chosen = username
                 store.SetProfile(store.DisplayName, chosen)
@@ -137,8 +109,6 @@ Public Class Base_Connect_Setup
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
                 Status_TEXT.Text = "That username is already taken — pick another."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "credential_exists" Then
-                
-                
                 Status_TEXT.Text = ""
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
@@ -160,9 +130,6 @@ Public Class Base_Connect_Setup
         End Try
     End Sub
 
-    
-    
-    
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Me.Hide()
         Base_Connect.ReturnFromSubPage()

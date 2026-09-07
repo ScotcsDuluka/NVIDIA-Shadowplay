@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Net.Http
 Imports System.Net.Http.Headers
@@ -16,9 +10,6 @@ Imports System.Threading.Tasks
 
 Friend Module DulukaApi
 
-    
-    
-    
     Public ReadOnly Property ApiBase As String
         Get
             Dim fromEnv As String = Environment.GetEnvironmentVariable("DULUKA_API_BASE")
@@ -29,13 +20,8 @@ Friend Module DulukaApi
         End Get
     End Property
 
-    
-    
-    
-    
     Public Const CallbackRedirectUri As String = "http://localhost:8517/v1/auth/github/callback"
 
-    
     Public Class Result
         Public Ok As Boolean
         Public HttpStatus As Integer
@@ -44,8 +30,6 @@ Friend Module DulukaApi
         Public Retryable As Boolean
         Public Resource As JsonNode
 
-        
-        
         Public ReadOnly Property AuthDead As Boolean
             Get
                 Return (Not Ok) AndAlso HttpStatus = 401
@@ -53,10 +37,8 @@ Friend Module DulukaApi
         End Property
     End Class
 
-    
     Private ReadOnly _http As New HttpClient With {.Timeout = TimeSpan.FromSeconds(15)}
 
-    
     Public Function DeviceName() As String
         Dim name As String = Environment.MachineName
         If String.IsNullOrWhiteSpace(name) Then name = "ShadowPlay Desktop"
@@ -72,7 +54,6 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Post, path, sessionToken, jsonBody)
     End Function
 
-    
     Public Function PutAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
         Return SendAsync(HttpMethod.Put, path, sessionToken, jsonBody)
     End Function
@@ -81,8 +62,6 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Delete, path, sessionToken, Nothing)
     End Function
 
-    
-    
     Public Function DeleteAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
         Return SendAsync(HttpMethod.Delete, path, sessionToken, jsonBody)
     End Function
@@ -106,8 +85,7 @@ Friend Module DulukaApi
                 ParseEnvelope(body, result)
             End Using
         Catch ex As Exception
-            
-            
+
             Debug.WriteLine($"DulukaApi transport failure: {ex.GetType().Name} — {ex.Message}")
             result.Ok = False
             result.HttpStatus = 0
@@ -122,11 +100,7 @@ Friend Module DulukaApi
 
     Private Sub ParseEnvelope(body As String, result As Result)
         If String.IsNullOrWhiteSpace(body) Then
-            
-            
-            
-            
-            
+
             If result.HttpStatus = 404 Then
                 result.Ok = False
                 result.HttpStatus = 404
@@ -178,8 +152,6 @@ Friend Module DulukaApi
         Return node.GetValue(Of String)()
     End Function
 
-    
-    
     Public Function HumanError(r As Result) As String
         If r.ErrorCode = "error.client.env" Then Return r.Message
         If r.ErrorCode = "github_not_configured" Then

@@ -1,18 +1,9 @@
 
 
-
-
-
-
-
-
-
 Imports System.Windows.Forms
 
 Friend Module OverlayGuard
 
-    
-    
     Public ReadOnly Property Engaged As Boolean
         Get
             Return Base.IF_OpenShare
@@ -26,8 +17,6 @@ Friend Module OverlayGuard
         HideOverlay(f)
     End Sub
 
-    
-    
     Public Function EscapeHide(f As Form, keyData As Keys) As Boolean
         If keyData <> Keys.Escape Then Return False
         If Not Engaged Then Return False
@@ -35,9 +24,6 @@ Friend Module OverlayGuard
         Return True
     End Function
 
-    
-    
-    
     Public Sub HideOverlay(f As Form)
         If Not Engaged Then Return
         f.Hide()
@@ -46,7 +32,6 @@ Friend Module OverlayGuard
     End Sub
 
 End Module
-
 
 Partial Class Base
 
@@ -63,7 +48,6 @@ Partial Class Base
 
 End Class
 
-
 Partial Class Base_Background_Top
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -78,7 +62,6 @@ Partial Class Base_Background_Top
     End Function
 
 End Class
-
 
 Partial Class Base_Background
 
@@ -95,7 +78,6 @@ Partial Class Base_Background
 
 End Class
 
-
 Partial Class Base_Overlay_Hub
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -110,7 +92,6 @@ Partial Class Base_Overlay_Hub
     End Function
 
 End Class
-
 
 Partial Class Base_Connect
 
@@ -127,7 +108,6 @@ Partial Class Base_Connect
 
 End Class
 
-
 Partial Class Base_Settings
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -142,7 +122,6 @@ Partial Class Base_Settings
     End Function
 
 End Class
-
 
 Partial Class Base_Gallery
 
@@ -159,7 +138,6 @@ Partial Class Base_Gallery
 
 End Class
 
-
 Partial Class Base_Game_Filter
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -174,7 +152,6 @@ Partial Class Base_Game_Filter
     End Function
 
 End Class
-
 
 Partial Class Base_Game_Filter_Sub
 
@@ -191,7 +168,6 @@ Partial Class Base_Game_Filter_Sub
 
 End Class
 
-
 Partial Class Base_Privacy_Control
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -206,8 +182,6 @@ Partial Class Base_Privacy_Control
     End Function
 
 End Class
-
-
 
 Partial Class Base_KeySet
 

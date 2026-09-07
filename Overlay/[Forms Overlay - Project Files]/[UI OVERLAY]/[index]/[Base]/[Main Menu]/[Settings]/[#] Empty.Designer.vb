@@ -2,7 +2,6 @@
 Partial Class Base_Empty
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Empty
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Empty))
@@ -36,9 +31,7 @@ Partial Class Base_Empty
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        
-        
-        
+
         Menu_Settings.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Menu_Settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Menu_Settings.Controls.Add(Menu_Text)
@@ -46,9 +39,7 @@ Partial Class Base_Empty
         Menu_Settings.Name = "Menu_Settings"
         Menu_Settings.Size = New Size(1760, 840)
         Menu_Settings.TabIndex = 45
-        
-        
-        
+
         Menu_Text.AutoSize = True
         Menu_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Menu_Text.Font = New Font("GeForce", 24F, FontStyle.Bold)
@@ -58,9 +49,7 @@ Partial Class Base_Empty
         Menu_Text.Size = New Size(107, 42)
         Menu_Text.TabIndex = 51
         Menu_Text.Text = "Empty"
-        
-        
-        
+
         Menu_Top_Dim.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Menu_Top_Dim.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Menu_Top_Dim.Location = New Point(80, 160)
@@ -68,9 +57,7 @@ Partial Class Base_Empty
         Menu_Top_Dim.Size = New Size(1760, 5)
         Menu_Top_Dim.TabIndex = 0
         Menu_Top_Dim.TabStop = False
-        
-        
-        
+
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
         BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -81,18 +68,14 @@ Partial Class Base_Empty
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Dim_Top.Location = New Point(-24, -16)
         Dim_Top.Name = "Dim_Top"
         Dim_Top.Size = New Size(1913, 176)
         Dim_Top.TabIndex = 46
         Dim_Top.TabStop = False
-        
-        
-        
+
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -101,9 +84,7 @@ Partial Class Base_Empty
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        
-        
-        
+
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -112,9 +93,7 @@ Partial Class Base_Empty
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

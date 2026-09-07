@@ -1,7 +1,5 @@
 
 
-
-
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Net.Http
@@ -10,9 +8,7 @@ Imports System.Text.Json
 
 Partial Public Class AppSettings
 #Region "GitHub Account (login / avatar)"
-    
-    
-    
+
     Public Sub SaveGitHubUser(username As String, avatarUrl As String, token As String)
         GitHubUser.Username = username
         GitHubUser.AvatarUrl = avatarUrl
@@ -23,9 +19,6 @@ Partial Public Class AppSettings
         Debug.WriteLine($"SaveGitHubUser: Saved user '{username}' to config.json")
     End Sub
 
-    
-    
-    
     Public Sub ClearGitHubUser()
         GitHubUser.Username = ""
         GitHubUser.AvatarUrl = ""
@@ -36,9 +29,6 @@ Partial Public Class AppSettings
         Debug.WriteLine("ClearGitHubUser: User logged out")
     End Sub
 
-    
-    
-    
     Public Async Function LoadGitHubUser() As Task
         Try
             If String.IsNullOrEmpty(GitHubToken) Then
@@ -46,7 +36,6 @@ Partial Public Class AppSettings
                 Return
             End If
 
-            
             Using ping As New Net.NetworkInformation.Ping()
                 Dim reply = Await ping.SendPingAsync("api.github.com", 2000)
                 If reply.Status <> Net.NetworkInformation.IPStatus.Success Then
@@ -55,7 +44,6 @@ Partial Public Class AppSettings
                 End If
             End Using
 
-            
             Using client As New HttpClient()
                 client.DefaultRequestHeaders.Authorization = New AuthenticationHeaderValue("Bearer", GitHubToken)
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("VBApp")
@@ -70,7 +58,6 @@ Partial Public Class AppSettings
                 Debug.WriteLine($"LoadGitHubUser: Loaded user '{GitHubUser.Username}' from API")
             End Using
 
-            
             Save()
 
         Catch ex As Exception
@@ -79,9 +66,6 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    
-    
-    
     Public Async Function LoadGitHubAvatar(pb As PictureBox) As Task
         If String.IsNullOrEmpty(GitHubUser.AvatarUrl) Then
             Debug.WriteLine("LoadGitHubAvatar: No avatar URL")
@@ -105,16 +89,13 @@ Partial Public Class AppSettings
                 End Try
             End If
 
-            
             Using client As New HttpClient()
                 Dim bytes() As Byte = Await client.GetByteArrayAsync(GitHubUser.AvatarUrl)
 
-                
                 Using ms As New MemoryStream(bytes)
                     pb.BackgroundImage = New Bitmap(ms)
                 End Using
 
-                
                 Try
                     File.WriteAllBytes(avatarPath, bytes)
                     Debug.WriteLine("LoadGitHubAvatar: Saved to cache")
@@ -131,9 +112,6 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    
-    
-    
     Public Sub SaveAvatarFromBytes(avatarBytes As Byte())
         Try
             Dim avatarPath As String = AppLayout.P("avatar.png")
@@ -144,9 +122,6 @@ Partial Public Class AppSettings
         End Try
     End Sub
 
-    
-    
-    
     Public ReadOnly Property IsGitHubLoggedIn As Boolean
         Get
             Return GitHubUser.IsLoggedIn AndAlso Not String.IsNullOrEmpty(GitHubToken)

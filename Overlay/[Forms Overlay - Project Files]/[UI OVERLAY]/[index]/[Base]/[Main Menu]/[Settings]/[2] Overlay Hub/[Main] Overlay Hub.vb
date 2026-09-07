@@ -5,8 +5,6 @@ Public Class Base_Overlay_Hub
     Inherits System.Windows.Forms.Form
     Const WS_EX_TRANSPARENT As Integer = &H20
 
-
-
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -22,7 +20,6 @@ Public Class Base_Overlay_Hub
 
         If m.Msg = WM_NCHITTEST Then
             Dim pos As Point = Me.PointToClient(Cursor.Position)
-
 
             If Me.GetChildAtPoint(pos) Is Nothing Then
                 m.Result = CType(HTTRANSPARENT, IntPtr)

@@ -2,7 +2,6 @@
 Partial Class Base_Connect_Setup
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Connect_Setup
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Settings_Panel = New Panel()
@@ -46,9 +41,9 @@ Partial Class Base_Connect_Setup
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        
-        
-        
+        ' 
+        ' Settings_Panel
+        ' 
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.Red
         Settings_Panel.Controls.Add(BT_Back)
@@ -61,9 +56,9 @@ Partial Class Base_Connect_Setup
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
-        
-        
-        
+        ' 
+        ' BT_Back
+        ' 
         BT_Back.Anchor = AnchorStyles.Top
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
@@ -75,9 +70,9 @@ Partial Class Base_Connect_Setup
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+        ' 
+        ' Settings_TEXT
+        ' 
         Settings_TEXT.Anchor = AnchorStyles.Top
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_TEXT.Font = New Font("GeForce", 24F, FontStyle.Bold)
@@ -88,22 +83,22 @@ Partial Class Base_Connect_Setup
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Duluka Account"
         Settings_TEXT.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+        ' 
+        ' Auth_PROMPT
+        ' 
         Auth_PROMPT.Anchor = AnchorStyles.Top
         Auth_PROMPT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Auth_PROMPT.Font = New Font("Segoe UI", 11.25F)
         Auth_PROMPT.ForeColor = Color.Gainsboro
-        Auth_PROMPT.Location = New Point(651, 90)
+        Auth_PROMPT.Location = New Point(700, 90)
         Auth_PROMPT.Name = "Auth_PROMPT"
-        Auth_PROMPT.Size = New Size(458, 48)
+        Auth_PROMPT.Size = New Size(360, 48)
         Auth_PROMPT.TabIndex = 70
         Auth_PROMPT.Text = "Set up your Duluka Account"
         Auth_PROMPT.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+        ' 
+        ' Card_PANEL
+        ' 
         Card_PANEL.Anchor = AnchorStyles.Top
         Card_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Card_PANEL.Controls.Add(Username_LBL)
@@ -117,9 +112,9 @@ Partial Class Base_Connect_Setup
         Card_PANEL.Name = "Card_PANEL"
         Card_PANEL.Size = New Size(360, 282)
         Card_PANEL.TabIndex = 84
-        
-        
-        
+        ' 
+        ' Username_LBL
+        ' 
         Username_LBL.AutoSize = True
         Username_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Username_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
@@ -129,9 +124,9 @@ Partial Class Base_Connect_Setup
         Username_LBL.Size = New Size(137, 15)
         Username_LBL.TabIndex = 71
         Username_LBL.Text = "Username (permanent)"
-        
-        
-        
+        ' 
+        ' Username_BOX
+        ' 
         Username_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Username_BOX.BorderStyle = BorderStyle.FixedSingle
         Username_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -140,9 +135,9 @@ Partial Class Base_Connect_Setup
         Username_BOX.Name = "Username_BOX"
         Username_BOX.Size = New Size(312, 27)
         Username_BOX.TabIndex = 72
-        
-        
-        
+        ' 
+        ' Password_LBL
+        ' 
         Password_LBL.AutoSize = True
         Password_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Password_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
@@ -152,9 +147,9 @@ Partial Class Base_Connect_Setup
         Password_LBL.Size = New Size(59, 15)
         Password_LBL.TabIndex = 73
         Password_LBL.Text = "Password"
-        
-        
-        
+        ' 
+        ' Password_BOX
+        ' 
         Password_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Password_BOX.BorderStyle = BorderStyle.FixedSingle
         Password_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -164,9 +159,9 @@ Partial Class Base_Connect_Setup
         Password_BOX.Size = New Size(312, 27)
         Password_BOX.TabIndex = 74
         Password_BOX.UseSystemPasswordChar = True
-        
-        
-        
+        ' 
+        ' Confirm_LBL
+        ' 
         Confirm_LBL.AutoSize = True
         Confirm_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Confirm_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
@@ -176,9 +171,9 @@ Partial Class Base_Connect_Setup
         Confirm_LBL.Size = New Size(107, 15)
         Confirm_LBL.TabIndex = 75
         Confirm_LBL.Text = "Confirm password"
-        
-        
-        
+        ' 
+        ' Confirm_BOX
+        ' 
         Confirm_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Confirm_BOX.BorderStyle = BorderStyle.FixedSingle
         Confirm_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -188,9 +183,9 @@ Partial Class Base_Connect_Setup
         Confirm_BOX.Size = New Size(312, 27)
         Confirm_BOX.TabIndex = 76
         Confirm_BOX.UseSystemPasswordChar = True
-        
-        
-        
+        ' 
+        ' BT_SetupAccount
+        ' 
         BT_SetupAccount.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_SetupAccount.Cursor = Cursors.Hand
         BT_SetupAccount.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
@@ -201,9 +196,9 @@ Partial Class Base_Connect_Setup
         BT_SetupAccount.TabIndex = 77
         BT_SetupAccount.Text = "Set Up Account"
         BT_SetupAccount.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+        ' 
+        ' Status_TEXT
+        ' 
         Status_TEXT.Anchor = AnchorStyles.Top
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
@@ -213,9 +208,9 @@ Partial Class Base_Connect_Setup
         Status_TEXT.Size = New Size(458, 17)
         Status_TEXT.TabIndex = 78
         Status_TEXT.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+        ' 
+        ' Box_Bg
+        ' 
         Box_Bg.Anchor = AnchorStyles.Top
         Box_Bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Box_Bg.Location = New Point(651, 0)
@@ -223,9 +218,9 @@ Partial Class Base_Connect_Setup
         Box_Bg.Size = New Size(458, 483)
         Box_Bg.TabIndex = 85
         Box_Bg.TabStop = False
-        
-        
-        
+        ' 
+        ' Dim_Top
+        ' 
         Dim_Top.Anchor = AnchorStyles.Top
         Dim_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Dim_Top.Location = New Point(731, 160)
@@ -233,9 +228,9 @@ Partial Class Base_Connect_Setup
         Dim_Top.Size = New Size(458, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        
-        
-        
+        ' 
+        ' Dim_1
+        ' 
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -244,9 +239,9 @@ Partial Class Base_Connect_Setup
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        
-        
-        
+        ' 
+        ' Dim_2
+        ' 
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -255,9 +250,9 @@ Partial Class Base_Connect_Setup
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        
-        
-        
+        ' 
+        ' Base_Connect_Setup
+        ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

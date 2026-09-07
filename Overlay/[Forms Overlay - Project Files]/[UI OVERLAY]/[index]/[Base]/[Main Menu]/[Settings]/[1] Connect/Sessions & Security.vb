@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Linq
 Imports System.Runtime.InteropServices
@@ -72,10 +66,7 @@ Public Class Base_Connect_Security
             Base_Connect.ReturnFromSubPage()
             Return
         End If
-        
-        
-        
-        
+
         Dim lines As String = "Current Duluka Account Session" & Environment.NewLine &
                               "Device  " & If(store.DeviceName <> "", store.DeviceName, "—") & Environment.NewLine &
                               "Expires  " & If(store.SessionExpiresAtText <> "", store.SessionExpiresAtText, "—")
@@ -112,7 +103,6 @@ Public Class Base_Connect_Security
     Private Async Sub BT_RevokeAll_Click(sender As Object, e As EventArgs) Handles BT_RevokeAll.Click
         If _busy Then Return
 
-        
         If Not _confirmAll Then
             _confirmAll = True
             BT_RevokeAll.Text = "Really sign out EVERYWHERE? Click again"
@@ -147,10 +137,6 @@ Public Class Base_Connect_Security
         End Try
     End Sub
 
-    
-    
-    
-    
     Private ReadOnly Property ProviderOnlyAccount As Boolean
         Get
             Return DulukaAccountStore.Instance.Username = ""
@@ -210,8 +196,7 @@ Public Class Base_Connect_Security
                 PwCurrent_BOX.Clear()
                 PwNew_BOX.Clear()
                 PwConfirm_BOX.Clear()
-                
-                
+
                 If providerOnly Then DulukaAccountStore.Instance.SetProfile(
                     DulukaAccountStore.Instance.DisplayName, username)
                 SetupPasswordForm()
@@ -225,11 +210,7 @@ Public Class Base_Connect_Security
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_password" Then
                 Status_TEXT.Text = "Password must be 8-128 characters."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
-                
-                
-                
-                
-                
+
                 Dim meR As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/me", token).ConfigureAwait(True)
                 If Not IsDisposed AndAlso meR.Ok AndAlso meR.Resource IsNot Nothing Then
                     Dim meUser As String = ResourceText(meR.Resource, "username")
@@ -247,8 +228,7 @@ Public Class Base_Connect_Security
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
         Catch ex As Exception
-            
-            
+
             Debug.WriteLine($"BT_ChangePassword error: {ex.GetType().Name}")
             If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
         Finally
@@ -256,10 +236,6 @@ Public Class Base_Connect_Security
         End Try
     End Sub
 
-    
-    
-    
-    
     Private Sub SetupPasswordForm()
         Dim providerOnly As Boolean = ProviderOnlyAccount
         PwUsername_LBL.Visible = providerOnly
@@ -268,23 +244,15 @@ Public Class Base_Connect_Security
         PwCurrent_LBL.Enabled = Not providerOnly
         PwCurrent_BOX.Enabled = Not providerOnly
         PwHeader_LBL.Text = If(providerOnly, "Add password sign-in", "Change password")
-        
-        
+
         BT_ChangePassword.Text = If(providerOnly, "Set Up Account", "Change password")
-        
-        
+
         Dim hasPassword As Boolean = Not providerOnly
         DzPassword_LBL.Visible = hasPassword
         DzPassword_BOX.Visible = hasPassword
         LayoutPasswordRows()
     End Sub
 
-    
-    
-    
-    
-    
-    
     Private Sub LayoutPasswordRows()
         Const RowPitch As Integer = 36
         Const ButtonGap As Integer = 40
@@ -298,8 +266,6 @@ Public Class Base_Connect_Security
         PwConfirm_LBL.Top = y + 4 : PwConfirm_BOX.Top = y : y += RowPitch
         BT_ChangePassword.Top = y + ButtonGap - RowPitch + 4
 
-        
-        
         y = BT_ChangePassword.Top + BT_ChangePassword.Height + 28
         DzHeader_LBL.Top = y
         y += 34
@@ -313,16 +279,6 @@ Public Class Base_Connect_Security
         Status_TEXT.Top = BT_DeleteAccount.Top + BT_DeleteAccount.Height + 18
     End Sub
 
-    
-
-    
-    
-    
-    
-    
-    
-    
-    
     Private Async Sub BT_DeleteAccount_Click(sender As Object, e As EventArgs) Handles BT_DeleteAccount.Click
         If _busy Then Return
 
@@ -354,8 +310,7 @@ Public Class Base_Connect_Security
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok Then
-                
-                
+
                 DulukaAccountStore.Instance.ClearSession()
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()   
@@ -372,8 +327,7 @@ Public Class Base_Connect_Security
                 DisarmDelete()
             End If
         Catch ex As Exception
-            
-            
+
             Debug.WriteLine($"BT_DeleteAccount error: {ex.GetType().Name}")
             If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
             DisarmDelete()
@@ -394,8 +348,6 @@ Public Class Base_Connect_Security
         Base_Connect.NotifyFromSubPage(message)
     End Sub
 
-    
-    
     Private Function ResourceText(resource As JsonNode, name As String) As String
         Dim node As JsonNode = resource(name)
         If node Is Nothing Then Return ""

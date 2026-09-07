@@ -45,22 +45,11 @@ Public Class Base_Notifications
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
     Private _notiLoading As Boolean
 
     Private Sub LoadNotificationToggles()
         _notiLoading = True
-        
-        
-        
+
         If ToggleRecordingStarted IsNot Nothing Then ToggleRecordingStarted.IsOn = AppSettings.Instance.Notifications.RecordingStarted
         If ToggleRecordingSaved IsNot Nothing Then ToggleRecordingSaved.IsOn = AppSettings.Instance.Notifications.RecordingSaved
         If ToggleRecordingError IsNot Nothing Then ToggleRecordingError.IsOn = AppSettings.Instance.Notifications.RecordingError
@@ -97,9 +86,6 @@ Public Class Base_Notifications
         _notiLoading = False
     End Sub
 
-    
-    
-    
     Private Sub SetAllNotifications(value As Boolean)
         _notiLoading = True
         
@@ -177,7 +163,6 @@ Public Class Base_Notifications
         SetAllNotifications(False)
     End Sub
 
-    
     Private Sub ToggleRecordingStarted_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecordingStarted.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.RecordingStarted = ToggleRecordingStarted.IsOn
@@ -196,7 +181,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    
     Private Sub ToggleReplaySaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleReplaySaved.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.ReplaySaved = ToggleReplaySaved.IsOn
@@ -227,7 +211,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    
     Private Sub ToggleScreenshotSaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleScreenshotSaved.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.ScreenshotSaved = ToggleScreenshotSaved.IsOn
@@ -240,14 +223,12 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    
     Private Sub ToggleOpenShare_ValueChanged(sender As Object, e As EventArgs) Handles ToggleOpenShare.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.OpenShare = ToggleOpenShare.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    
     Private Sub ToggleRamWarning_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRamWarning.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.RamWarning = ToggleRamWarning.IsOn
@@ -278,7 +259,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    
     Private Sub ToggleUpdateAvailable_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUpdateAvailable.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.UpdateAvailable = ToggleUpdateAvailable.IsOn
@@ -297,7 +277,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    
     Private Sub ToggleAccountConfirmError_ValueChanged(sender As Object, e As EventArgs) Handles ToggleAccountConfirmError.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.AccountConfirmError = ToggleAccountConfirmError.IsOn
@@ -356,30 +335,11 @@ Public Class Base_Notifications
         LoadObsSettings()
     End Sub
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     Private _toastSlotsLoading As Boolean
 
     Private Sub LoadToastSlotToggles()
         _toastSlotsLoading = True
-        
-        
+
         If ToggleToastSlot2 IsNot Nothing Then ToggleToastSlot2.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 2)
         If ToggleToastSlot3 IsNot Nothing Then ToggleToastSlot3.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 3)
         _toastSlotsLoading = False
@@ -402,31 +362,15 @@ Public Class Base_Notifications
         SyncToastSlotCount()
     End Sub
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     Private _obsCfg As ObsConfig
     Private _obsLoading As Boolean
 
     Private Sub LoadObsSettings()
-        
-        
-        
-        
-        
-        
+
         _obsCfg = ObsConfig.Load()
         If _obsCfg Is Nothing Then _obsCfg = New ObsConfig()
         _obsLoading = True
-        
-        
+
         If ObsEnabledToggle IsNot Nothing Then ObsEnabledToggle.IsOn = _obsCfg.Enabled
         HOST_BOX.Text = _obsCfg.Host
         PORT_BOX.Text = _obsCfg.Port.ToString()
@@ -471,20 +415,6 @@ Public Class Base_Notifications
         _obsCfg.Save()
     End Sub
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     Private Sub HideBoxCaret(sender As Object, e As EventArgs)
         Dim box As Control = TryCast(sender, Control)
         If box Is Nothing OrElse Not box.IsHandleCreated Then Return

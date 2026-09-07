@@ -46,22 +46,13 @@ Partial Public Class Base
 
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
 
-
         UpdateReplayStatus()
         UpdateRecordStatus()
         UpdateMicStatus()
         Dim filePaths As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")
 
         Try
-            
-            
-            
-            
-            
-            
-            
-            
-            
+
         Catch ex As Exception
         End Try
     End Sub
@@ -153,12 +144,6 @@ Partial Public Class Base
         _lastReplayValue = ReplayValue
     End Sub
 
-    
-    
-    
-    
-    
-    
     Private Sub UpdateMicStatus(Optional force As Boolean = False)
         Dim micEnabledNow As Boolean = AppSettings.Instance.Audio.MicEnabled
 
@@ -216,12 +201,6 @@ Partial Public Class Base
         End If
     End Sub
 
-    
-    
-    
-    
-    
-    
     Private Sub ME_CLOSE_BG_MouseMove(sender As Object, e As MouseEventArgs) Handles ME_CLOSE_BG.MouseMove
         Base_Background_Top.ME_CLOSE_BG_GRE.BackColor = greenColor
     End Sub
@@ -234,29 +213,14 @@ Partial Public Class Base
         HideAllControls()
     End Sub
 
-
-
 #End Region
-
 
 #Region "Privacy State (Phase 5: moved from Sub_Record.vb)"
 
-    
-    
-    
-    
-    
     Private Sub PrivacyOpen()
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
-    
-    
-    
-    
-    
-    
-    
     Private Function IsPrivacyEnabled() As Boolean
         Return AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Function

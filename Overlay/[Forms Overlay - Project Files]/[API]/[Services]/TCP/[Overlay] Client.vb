@@ -1,32 +1,20 @@
 Public Class Base
 
-    
     Public Shared tcp As TcpClientHelper
 
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        
-        
-        
+
         tcp = New TcpClientHelper("NVIDIA Overlay")
 
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
 
         tcp.ConnectAsync()
 
-        
-        
-        
-        
         InitReplayHonesty()
 
-        
-        
-        
-        
         EngineProcessSupervisor.EnsureEngineRunning()
     End Sub
 
-    
     Private Sub Base_TestFormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         Try
             
@@ -43,9 +31,7 @@ Public Class Base
 
     Public Sub OnMessage(msg As String)
         If InvokeRequired Then
-            
-            
-            
+
             If Not IsHandleCreated Then Return
             Try
                 BeginInvoke(Sub() OnMessage(msg))
@@ -94,12 +80,7 @@ Public Class Base
                 End If
 
             Case "engine_ready"
-                
-                
-                
-                
-                
-                
+
                 Debug.WriteLine("[Overlay] received engine_ready, re-sending PREWARM_FFMPEG")
                 Try
                     Dim ffmpegPath As String = AppSettings.Instance.Paths.FFmpegPath
@@ -111,14 +92,6 @@ Public Class Base
                     Debug.WriteLine("[Overlay] engine_ready re-send failed: " & ex.Message)
                 End Try
 
-                
-                
-                
-                
-                
-                
-                
-                
                 _isRecordingLocal = False
                 RecordValue = False
                 Try
@@ -129,27 +102,22 @@ Public Class Base
                 End Try
 
             Case "engine_response"
-                
-                
+
                 Debug.WriteLine($"[Overlay] engine_response: {value}")
                 HandleEngineResponse(value)
 
             Case "engine_state_changed"
-                
-                
-                
+
                 Debug.WriteLine($"[Overlay] engine_state_changed: {value}")
                 HandleEngineStateChanged(value)
 
             Case "engine_recording_progress"
-                
-                
+
                 Debug.WriteLine($"[Overlay] engine_recording_progress: {value}")
                 HandleEngineProgress(value)
 
             Case "engine_recording_saved"
-                
-                
+
                 Debug.WriteLine($"[Overlay] engine_recording_saved: {value}")
                 HandleEngineRecordingSaved(value)
 
@@ -164,14 +132,6 @@ Public Class Base
         End Select
     End Sub
 
-    
-    
-    
-
-    
-    
-    
-    
     Private Sub HandleEngineStateChanged(stateName As String)
         Try
             Select Case stateName
@@ -193,10 +153,6 @@ Public Class Base
         End Try
     End Sub
 
-    
-    
-    
-    
     Private Sub HandleEngineProgress(value As String)
         Try
             Dim parts As String() = value.Split("|"c)
@@ -209,8 +165,6 @@ Public Class Base
             If Not Long.TryParse(parts(1), frames) Then Return
             If Not Long.TryParse(parts(2), sizeBytes) Then Return
 
-            
-            
             Dim sizeStr As String
             If sizeBytes >= 1024 * 1024 * 1024 Then
                 sizeStr = (sizeBytes / (1024.0 * 1024 * 1024)).ToString("F2") & " GB"
@@ -222,12 +176,6 @@ Public Class Base
                 sizeStr = sizeBytes & " B"
             End If
 
-            
-            
-            
-            
-            
-            
             If RecordValue AndAlso Record_Stats IsNot Nothing Then
                 Record_Stats.Text = TimeSpan.FromSeconds(sec).ToString("hh\:mm\:ss") & " - " & sizeStr
             End If
@@ -238,17 +186,11 @@ Public Class Base
         End Try
     End Sub
 
-    
-    
-    
     Private Sub HandleEngineRecordingSaved(filePath As String)
         Try
             _isRecordingLocal = False
             RecordValue = False
-            
-            
-            
-            
+
             ShowNotifier("recording_saved")
             Debug.WriteLine($"[Overlay] recording saved: {filePath}")
         Catch ex As Exception
@@ -256,9 +198,6 @@ Public Class Base
         End Try
     End Sub
 
-    
-    
-    
     Private Sub HandleEngineRecordingError(message As String)
         Try
             _isRecordingLocal = False
@@ -270,12 +209,6 @@ Public Class Base
         End Try
     End Sub
 
-    
-    
-    
-    
-    
-    
     Private Sub HandleEngineResponse(value As String)
         Try
             If String.IsNullOrEmpty(value) Then Return
@@ -288,9 +221,7 @@ Public Class Base
             Select Case cmd
                 Case "engine_record_start"
                     If status = "ok" Then
-                        
-                        
-                        
+
                         ShowNotifier("recording_started")
                         Debug.WriteLine($"[Overlay] Engine confirmed record_start OK")
                     Else
@@ -305,9 +236,7 @@ Public Class Base
                     If status = "ok" Then
                         Debug.WriteLine($"[Overlay] Engine confirmed record_stop OK")
                     Else
-                        
-                        
-                        
+
                         Debug.WriteLine($"[Overlay] Engine record_stop FAILED: {status}")
                         ShowNotifier("recording_error")
                     End If
@@ -328,10 +257,7 @@ Public Class Base
                     End If
 
                 Case "engine_replay_start"
-                    
-                    
-                    
-                    
+
                     If status = "ok" Then
                         _isBufferingLocal = True
                         ReplayValue = True
@@ -348,15 +274,13 @@ Public Class Base
                     If status = "ok" Then
                         ShowNotifier("instant_replay_off")
                     Else
-                        
-                        
+
                         Debug.WriteLine($"[Overlay] Engine replay_stop FAILED: {status}")
                     End If
 
                 Case "engine_replay_save"
                     If status = "ok" Then
-                        
-                        
+
                         ShowNotifier("saved_last_15")
                     Else
                         Debug.WriteLine($"[Overlay] Engine replay_save FAILED: {status}")

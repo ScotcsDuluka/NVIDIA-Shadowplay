@@ -2,7 +2,6 @@
 Partial Class Base_Notifications
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Notifications
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Notifications))
@@ -144,9 +139,7 @@ Partial Class Base_Notifications
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        
-        
-        
+
         Menu_Settings.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Menu_Settings.AutoScroll = True
         Menu_Settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -164,9 +157,7 @@ Partial Class Base_Notifications
         Menu_Settings.Name = "Menu_Settings"
         Menu_Settings.Size = New Size(1760, 840)
         Menu_Settings.TabIndex = 45
-        
-        
-        
+
         Menu_Text.AutoSize = True
         Menu_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Menu_Text.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
@@ -176,9 +167,7 @@ Partial Class Base_Notifications
         Menu_Text.Size = New Size(193, 42)
         Menu_Text.TabIndex = 51
         Menu_Text.Text = "Notifications"
-        
-        
-        
+
         Menu_SubText.AutoSize = True
         Menu_SubText.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Menu_SubText.Font = New Font("Segoe UI", 10.0F)
@@ -188,9 +177,7 @@ Partial Class Base_Notifications
         Menu_SubText.Size = New Size(273, 19)
         Menu_SubText.TabIndex = 55
         Menu_SubText.Text = "Choose which notifications appear in-game"
-        
-        
-        
+
         Card_Recording.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_Recording.Controls.Add(Accent_Recording)
         Card_Recording.Controls.Add(Header_Recording)
@@ -204,17 +191,13 @@ Partial Class Base_Notifications
         Card_Recording.Name = "Card_Recording"
         Card_Recording.Size = New Size(495, 180)
         Card_Recording.TabIndex = 10
-        
-        
-        
+
         Accent_Recording.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Recording.Location = New Point(20, 22)
         Accent_Recording.Name = "Accent_Recording"
         Accent_Recording.Size = New Size(4, 25)
         Accent_Recording.TabIndex = 0
-        
-        
-        
+
         Header_Recording.AutoSize = True
         Header_Recording.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_Recording.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -224,9 +207,7 @@ Partial Class Base_Notifications
         Header_Recording.Size = New Size(122, 28)
         Header_Recording.TabIndex = 1
         Header_Recording.Text = "RECORDING"
-        
-        
-        
+
         Desc_RecordingStarted.AutoSize = True
         Desc_RecordingStarted.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_RecordingStarted.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -236,9 +217,7 @@ Partial Class Base_Notifications
         Desc_RecordingStarted.Size = New Size(142, 21)
         Desc_RecordingStarted.TabIndex = 2
         Desc_RecordingStarted.Text = "Recording started"
-        
-        
-        
+
         ToggleRecordingStarted.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleRecordingStarted.ImeMode = ImeMode.Off
         ToggleRecordingStarted.IsOn = False
@@ -250,9 +229,7 @@ Partial Class Base_Notifications
         ToggleRecordingStarted.Size = New Size(48, 24)
         ToggleRecordingStarted.TabIndex = 3
         ToggleRecordingStarted.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_RecordingSaved.AutoSize = True
         Desc_RecordingSaved.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_RecordingSaved.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -262,9 +239,7 @@ Partial Class Base_Notifications
         Desc_RecordingSaved.Size = New Size(132, 21)
         Desc_RecordingSaved.TabIndex = 4
         Desc_RecordingSaved.Text = "Recording saved"
-        
-        
-        
+
         ToggleRecordingSaved.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleRecordingSaved.ImeMode = ImeMode.Off
         ToggleRecordingSaved.IsOn = False
@@ -276,9 +251,7 @@ Partial Class Base_Notifications
         ToggleRecordingSaved.Size = New Size(48, 24)
         ToggleRecordingSaved.TabIndex = 5
         ToggleRecordingSaved.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_RecordingError.AutoSize = True
         Desc_RecordingError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_RecordingError.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -288,9 +261,7 @@ Partial Class Base_Notifications
         Desc_RecordingError.Size = New Size(127, 21)
         Desc_RecordingError.TabIndex = 6
         Desc_RecordingError.Text = "Recording error"
-        
-        
-        
+
         ToggleRecordingError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleRecordingError.ImeMode = ImeMode.Off
         ToggleRecordingError.IsOn = False
@@ -302,9 +273,7 @@ Partial Class Base_Notifications
         ToggleRecordingError.Size = New Size(48, 24)
         ToggleRecordingError.TabIndex = 7
         ToggleRecordingError.Text = "ToggleSwitch"
-        
-        
-        
+
         Card_Screenshots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_Screenshots.Controls.Add(Accent_Screenshots)
         Card_Screenshots.Controls.Add(Header_Screenshots)
@@ -316,17 +285,13 @@ Partial Class Base_Notifications
         Card_Screenshots.Name = "Card_Screenshots"
         Card_Screenshots.Size = New Size(398, 142)
         Card_Screenshots.TabIndex = 11
-        
-        
-        
+
         Accent_Screenshots.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Screenshots.Location = New Point(20, 22)
         Accent_Screenshots.Name = "Accent_Screenshots"
         Accent_Screenshots.Size = New Size(4, 25)
         Accent_Screenshots.TabIndex = 0
-        
-        
-        
+
         Header_Screenshots.AutoSize = True
         Header_Screenshots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_Screenshots.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -336,9 +301,7 @@ Partial Class Base_Notifications
         Header_Screenshots.Size = New Size(144, 28)
         Header_Screenshots.TabIndex = 1
         Header_Screenshots.Text = "SCREENSHOTS"
-        
-        
-        
+
         Desc_ScreenshotSaved.AutoSize = True
         Desc_ScreenshotSaved.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ScreenshotSaved.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -348,9 +311,7 @@ Partial Class Base_Notifications
         Desc_ScreenshotSaved.Size = New Size(213, 21)
         Desc_ScreenshotSaved.TabIndex = 2
         Desc_ScreenshotSaved.Text = "Screenshot saved to Gallery"
-        
-        
-        
+
         ToggleScreenshotSaved.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleScreenshotSaved.ImeMode = ImeMode.Off
         ToggleScreenshotSaved.IsOn = False
@@ -362,9 +323,7 @@ Partial Class Base_Notifications
         ToggleScreenshotSaved.Size = New Size(48, 24)
         ToggleScreenshotSaved.TabIndex = 3
         ToggleScreenshotSaved.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_ValidSavePath.AutoSize = True
         Desc_ValidSavePath.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ValidSavePath.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -374,9 +333,7 @@ Partial Class Base_Notifications
         Desc_ValidSavePath.Size = New Size(193, 21)
         Desc_ValidSavePath.TabIndex = 4
         Desc_ValidSavePath.Text = "Invalid save path warning"
-        
-        
-        
+
         ToggleValidSavePath.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleValidSavePath.ImeMode = ImeMode.Off
         ToggleValidSavePath.IsOn = False
@@ -388,9 +345,7 @@ Partial Class Base_Notifications
         ToggleValidSavePath.Size = New Size(48, 24)
         ToggleValidSavePath.TabIndex = 5
         ToggleValidSavePath.Text = "ToggleSwitch"
-        
-        
-        
+
         Card_ShareOverlay.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_ShareOverlay.Controls.Add(Accent_ShareOverlay)
         Card_ShareOverlay.Controls.Add(Header_ShareOverlay)
@@ -400,17 +355,13 @@ Partial Class Base_Notifications
         Card_ShareOverlay.Name = "Card_ShareOverlay"
         Card_ShareOverlay.Size = New Size(495, 104)
         Card_ShareOverlay.TabIndex = 12
-        
-        
-        
+
         Accent_ShareOverlay.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_ShareOverlay.Location = New Point(20, 22)
         Accent_ShareOverlay.Name = "Accent_ShareOverlay"
         Accent_ShareOverlay.Size = New Size(4, 25)
         Accent_ShareOverlay.TabIndex = 0
-        
-        
-        
+
         Header_ShareOverlay.AutoSize = True
         Header_ShareOverlay.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_ShareOverlay.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -420,9 +371,7 @@ Partial Class Base_Notifications
         Header_ShareOverlay.Size = New Size(163, 28)
         Header_ShareOverlay.TabIndex = 1
         Header_ShareOverlay.Text = "SHARE OVERLAY"
-        
-        
-        
+
         Desc_OpenShare.AutoSize = True
         Desc_OpenShare.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_OpenShare.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -432,9 +381,7 @@ Partial Class Base_Notifications
         Desc_OpenShare.Size = New Size(224, 21)
         Desc_OpenShare.TabIndex = 2
         Desc_OpenShare.Text = "Share overlay opened (Alt+Z)"
-        
-        
-        
+
         ToggleOpenShare.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleOpenShare.ImeMode = ImeMode.Off
         ToggleOpenShare.IsOn = False
@@ -446,9 +393,7 @@ Partial Class Base_Notifications
         ToggleOpenShare.Size = New Size(48, 24)
         ToggleOpenShare.TabIndex = 3
         ToggleOpenShare.Text = "ToggleSwitch"
-        
-        
-        
+
         Card_InstantReplay.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_InstantReplay.Controls.Add(Accent_InstantReplay)
         Card_InstantReplay.Controls.Add(Header_InstantReplay)
@@ -466,17 +411,13 @@ Partial Class Base_Notifications
         Card_InstantReplay.Name = "Card_InstantReplay"
         Card_InstantReplay.Size = New Size(398, 256)
         Card_InstantReplay.TabIndex = 13
-        
-        
-        
+
         Accent_InstantReplay.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_InstantReplay.Location = New Point(20, 22)
         Accent_InstantReplay.Name = "Accent_InstantReplay"
         Accent_InstantReplay.Size = New Size(4, 25)
         Accent_InstantReplay.TabIndex = 0
-        
-        
-        
+
         Header_InstantReplay.AutoSize = True
         Header_InstantReplay.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_InstantReplay.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -486,9 +427,7 @@ Partial Class Base_Notifications
         Header_InstantReplay.Size = New Size(167, 28)
         Header_InstantReplay.TabIndex = 1
         Header_InstantReplay.Text = "INSTANT REPLAY"
-        
-        
-        
+
         Desc_ReplaySaved.AutoSize = True
         Desc_ReplaySaved.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ReplaySaved.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -498,9 +437,7 @@ Partial Class Base_Notifications
         Desc_ReplaySaved.Size = New Size(159, 21)
         Desc_ReplaySaved.TabIndex = 2
         Desc_ReplaySaved.Text = "Instant Replay saved"
-        
-        
-        
+
         ToggleReplaySaved.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleReplaySaved.ImeMode = ImeMode.Off
         ToggleReplaySaved.IsOn = False
@@ -512,9 +449,7 @@ Partial Class Base_Notifications
         ToggleReplaySaved.Size = New Size(48, 24)
         ToggleReplaySaved.TabIndex = 3
         ToggleReplaySaved.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_InstantReplayOn.AutoSize = True
         Desc_InstantReplayOn.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_InstantReplayOn.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -524,9 +459,7 @@ Partial Class Base_Notifications
         Desc_InstantReplayOn.Size = New Size(136, 21)
         Desc_InstantReplayOn.TabIndex = 4
         Desc_InstantReplayOn.Text = "Instant Replay on"
-        
-        
-        
+
         ToggleInstantReplayOn.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleInstantReplayOn.ImeMode = ImeMode.Off
         ToggleInstantReplayOn.IsOn = False
@@ -538,9 +471,7 @@ Partial Class Base_Notifications
         ToggleInstantReplayOn.Size = New Size(48, 24)
         ToggleInstantReplayOn.TabIndex = 5
         ToggleInstantReplayOn.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_InstantReplayOff.AutoSize = True
         Desc_InstantReplayOff.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_InstantReplayOff.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -550,9 +481,7 @@ Partial Class Base_Notifications
         Desc_InstantReplayOff.Size = New Size(139, 21)
         Desc_InstantReplayOff.TabIndex = 6
         Desc_InstantReplayOff.Text = "Instant Replay off"
-        
-        
-        
+
         ToggleInstantReplayOff.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleInstantReplayOff.ImeMode = ImeMode.Off
         ToggleInstantReplayOff.IsOn = False
@@ -564,9 +493,7 @@ Partial Class Base_Notifications
         ToggleInstantReplayOff.Size = New Size(48, 24)
         ToggleInstantReplayOff.TabIndex = 7
         ToggleInstantReplayOff.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_ReplayTurnOn.AutoSize = True
         Desc_ReplayTurnOn.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ReplayTurnOn.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -576,9 +503,7 @@ Partial Class Base_Notifications
         Desc_ReplayTurnOn.Size = New Size(195, 21)
         Desc_ReplayTurnOn.TabIndex = 8
         Desc_ReplayTurnOn.Text = "Turning on Instant Replay"
-        
-        
-        
+
         ToggleReplayTurnOn.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleReplayTurnOn.ImeMode = ImeMode.Off
         ToggleReplayTurnOn.IsOn = False
@@ -590,9 +515,7 @@ Partial Class Base_Notifications
         ToggleReplayTurnOn.Size = New Size(48, 24)
         ToggleReplayTurnOn.TabIndex = 9
         ToggleReplayTurnOn.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_ReplayError.AutoSize = True
         Desc_ReplayError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ReplayError.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -602,9 +525,7 @@ Partial Class Base_Notifications
         Desc_ReplayError.Size = New Size(154, 21)
         Desc_ReplayError.TabIndex = 10
         Desc_ReplayError.Text = "Instant Replay error"
-        
-        
-        
+
         ToggleReplayError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleReplayError.ImeMode = ImeMode.Off
         ToggleReplayError.IsOn = False
@@ -616,9 +537,7 @@ Partial Class Base_Notifications
         ToggleReplayError.Size = New Size(48, 24)
         ToggleReplayError.TabIndex = 11
         ToggleReplayError.Text = "ToggleSwitch"
-        
-        
-        
+
         Card_SystemMonitor.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         Card_SystemMonitor.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_SystemMonitor.Controls.Add(Accent_SystemMonitor)
@@ -637,17 +556,13 @@ Partial Class Base_Notifications
         Card_SystemMonitor.Name = "Card_SystemMonitor"
         Card_SystemMonitor.Size = New Size(495, 384)
         Card_SystemMonitor.TabIndex = 14
-        
-        
-        
+
         Accent_SystemMonitor.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_SystemMonitor.Location = New Point(20, 22)
         Accent_SystemMonitor.Name = "Accent_SystemMonitor"
         Accent_SystemMonitor.Size = New Size(4, 25)
         Accent_SystemMonitor.TabIndex = 0
-        
-        
-        
+
         Header_SystemMonitor.AutoSize = True
         Header_SystemMonitor.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_SystemMonitor.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -657,9 +572,7 @@ Partial Class Base_Notifications
         Header_SystemMonitor.Size = New Size(182, 28)
         Header_SystemMonitor.TabIndex = 1
         Header_SystemMonitor.Text = "SYSTEM MONITOR"
-        
-        
-        
+
         Desc_RamWarning.AutoSize = True
         Desc_RamWarning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_RamWarning.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -669,9 +582,7 @@ Partial Class Base_Notifications
         Desc_RamWarning.Size = New Size(155, 21)
         Desc_RamWarning.TabIndex = 2
         Desc_RamWarning.Text = "RAM usage warning"
-        
-        
-        
+
         ToggleRamWarning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleRamWarning.ImeMode = ImeMode.Off
         ToggleRamWarning.IsOn = False
@@ -683,9 +594,7 @@ Partial Class Base_Notifications
         ToggleRamWarning.Size = New Size(48, 24)
         ToggleRamWarning.TabIndex = 3
         ToggleRamWarning.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_RamWarning95.AutoSize = True
         Desc_RamWarning95.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_RamWarning95.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -695,9 +604,7 @@ Partial Class Base_Notifications
         Desc_RamWarning95.Size = New Size(128, 21)
         Desc_RamWarning95.TabIndex = 4
         Desc_RamWarning95.Text = "RAM usage 95%"
-        
-        
-        
+
         ToggleRamWarning95.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleRamWarning95.ImeMode = ImeMode.Off
         ToggleRamWarning95.IsOn = False
@@ -709,9 +616,7 @@ Partial Class Base_Notifications
         ToggleRamWarning95.Size = New Size(48, 24)
         ToggleRamWarning95.TabIndex = 5
         ToggleRamWarning95.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_RamCritical.AutoSize = True
         Desc_RamCritical.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_RamCritical.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -721,9 +626,7 @@ Partial Class Base_Notifications
         Desc_RamCritical.Size = New Size(145, 21)
         Desc_RamCritical.TabIndex = 6
         Desc_RamCritical.Text = "RAM usage critical"
-        
-        
-        
+
         ToggleRamCritical.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleRamCritical.ImeMode = ImeMode.Off
         ToggleRamCritical.IsOn = False
@@ -735,9 +638,7 @@ Partial Class Base_Notifications
         ToggleRamCritical.Size = New Size(48, 24)
         ToggleRamCritical.TabIndex = 7
         ToggleRamCritical.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_CpuWarning.AutoSize = True
         Desc_CpuWarning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_CpuWarning.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -747,9 +648,7 @@ Partial Class Base_Notifications
         Desc_CpuWarning.Size = New Size(149, 21)
         Desc_CpuWarning.TabIndex = 8
         Desc_CpuWarning.Text = "CPU usage warning"
-        
-        
-        
+
         ToggleCpuWarning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleCpuWarning.ImeMode = ImeMode.Off
         ToggleCpuWarning.IsOn = False
@@ -761,9 +660,7 @@ Partial Class Base_Notifications
         ToggleCpuWarning.Size = New Size(48, 24)
         ToggleCpuWarning.TabIndex = 9
         ToggleCpuWarning.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_DiskSpaceLow.AutoSize = True
         Desc_DiskSpaceLow.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_DiskSpaceLow.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -773,9 +670,7 @@ Partial Class Base_Notifications
         Desc_DiskSpaceLow.Size = New Size(116, 21)
         Desc_DiskSpaceLow.TabIndex = 10
         Desc_DiskSpaceLow.Text = "Disk space low"
-        
-        
-        
+
         ToggleDiskSpaceLow.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleDiskSpaceLow.ImeMode = ImeMode.Off
         ToggleDiskSpaceLow.IsOn = False
@@ -787,9 +682,7 @@ Partial Class Base_Notifications
         ToggleDiskSpaceLow.Size = New Size(48, 24)
         ToggleDiskSpaceLow.TabIndex = 11
         ToggleDiskSpaceLow.Text = "ToggleSwitch"
-        
-        
-        
+
         Card_Updates.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         Card_Updates.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_Updates.Controls.Add(Accent_Updates)
@@ -804,17 +697,13 @@ Partial Class Base_Notifications
         Card_Updates.Name = "Card_Updates"
         Card_Updates.Size = New Size(398, 270)
         Card_Updates.TabIndex = 15
-        
-        
-        
+
         Accent_Updates.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Updates.Location = New Point(20, 22)
         Accent_Updates.Name = "Accent_Updates"
         Accent_Updates.Size = New Size(4, 25)
         Accent_Updates.TabIndex = 0
-        
-        
-        
+
         Header_Updates.AutoSize = True
         Header_Updates.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_Updates.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -824,9 +713,7 @@ Partial Class Base_Notifications
         Header_Updates.Size = New Size(96, 28)
         Header_Updates.TabIndex = 1
         Header_Updates.Text = "UPDATES"
-        
-        
-        
+
         Desc_UpdateAvailable.AutoSize = True
         Desc_UpdateAvailable.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_UpdateAvailable.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -836,9 +723,7 @@ Partial Class Base_Notifications
         Desc_UpdateAvailable.Size = New Size(131, 21)
         Desc_UpdateAvailable.TabIndex = 2
         Desc_UpdateAvailable.Text = "Update available"
-        
-        
-        
+
         ToggleUpdateAvailable.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleUpdateAvailable.ImeMode = ImeMode.Off
         ToggleUpdateAvailable.IsOn = False
@@ -850,9 +735,7 @@ Partial Class Base_Notifications
         ToggleUpdateAvailable.Size = New Size(48, 24)
         ToggleUpdateAvailable.TabIndex = 3
         ToggleUpdateAvailable.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_VersionLatest.AutoSize = True
         Desc_VersionLatest.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_VersionLatest.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -862,9 +745,7 @@ Partial Class Base_Notifications
         Desc_VersionLatest.Size = New Size(218, 21)
         Desc_VersionLatest.TabIndex = 4
         Desc_VersionLatest.Text = "Already on the latest version"
-        
-        
-        
+
         ToggleVersionLatest.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleVersionLatest.ImeMode = ImeMode.Off
         ToggleVersionLatest.IsOn = False
@@ -876,9 +757,7 @@ Partial Class Base_Notifications
         ToggleVersionLatest.Size = New Size(48, 24)
         ToggleVersionLatest.TabIndex = 5
         ToggleVersionLatest.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_UpdateError.AutoSize = True
         Desc_UpdateError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_UpdateError.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -888,9 +767,7 @@ Partial Class Base_Notifications
         Desc_UpdateError.Size = New Size(151, 21)
         Desc_UpdateError.TabIndex = 6
         Desc_UpdateError.Text = "Update check error"
-        
-        
-        
+
         ToggleUpdateError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleUpdateError.ImeMode = ImeMode.Off
         ToggleUpdateError.IsOn = False
@@ -902,9 +779,7 @@ Partial Class Base_Notifications
         ToggleUpdateError.Size = New Size(48, 24)
         ToggleUpdateError.TabIndex = 7
         ToggleUpdateError.Text = "ToggleSwitch"
-        
-        
-        
+
         Card_ToastSlots.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Card_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_ToastSlots.Controls.Add(Accent_ToastSlots)
@@ -918,17 +793,13 @@ Partial Class Base_Notifications
         Card_ToastSlots.Name = "Card_ToastSlots"
         Card_ToastSlots.Size = New Size(815, 344)
         Card_ToastSlots.TabIndex = 17
-        
-        
-        
+
         Accent_ToastSlots.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_ToastSlots.Location = New Point(20, 22)
         Accent_ToastSlots.Name = "Accent_ToastSlots"
         Accent_ToastSlots.Size = New Size(4, 75)
         Accent_ToastSlots.TabIndex = 0
-        
-        
-        
+
         Header_ToastSlots.AutoSize = True
         Header_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_ToastSlots.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -938,9 +809,7 @@ Partial Class Base_Notifications
         Header_ToastSlots.Size = New Size(134, 28)
         Header_ToastSlots.TabIndex = 1
         Header_ToastSlots.Text = "TOAST SLOTS"
-        
-        
-        
+
         ToggleToastSlot3.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleToastSlot3.ForeColor = Color.Aquamarine
         ToggleToastSlot3.ImeMode = ImeMode.Off
@@ -952,9 +821,7 @@ Partial Class Base_Notifications
         ToggleToastSlot3.ShowGlow = False
         ToggleToastSlot3.Size = New Size(48, 24)
         ToggleToastSlot3.TabIndex = 4
-        
-        
-        
+
         Desc_ToastSlots_SUB.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Desc_ToastSlots_SUB.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ToastSlots_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -965,9 +832,7 @@ Partial Class Base_Notifications
         Desc_ToastSlots_SUB.TabIndex = 6
         Desc_ToastSlots_SUB.Text = "A new notification enters a free slot instead of replacing the showing one. Turn the second off to route every toast through the main slot only."
         Desc_ToastSlots_SUB.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         Desc_ToastSlots3.AutoSize = True
         Desc_ToastSlots3.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ToastSlots3.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -977,9 +842,7 @@ Partial Class Base_Notifications
         Desc_ToastSlots3.Size = New Size(160, 21)
         Desc_ToastSlots3.TabIndex = 5
         Desc_ToastSlots3.Text = "Use a third toast slot"
-        
-        
-        
+
         ToggleToastSlot2.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleToastSlot2.ForeColor = Color.Aquamarine
         ToggleToastSlot2.ImeMode = ImeMode.Off
@@ -991,9 +854,7 @@ Partial Class Base_Notifications
         ToggleToastSlot2.ShowGlow = False
         ToggleToastSlot2.Size = New Size(48, 24)
         ToggleToastSlot2.TabIndex = 2
-        
-        
-        
+
         Desc_ToastSlots.AutoSize = True
         Desc_ToastSlots.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ToastSlots.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1003,9 +864,7 @@ Partial Class Base_Notifications
         Desc_ToastSlots.Size = New Size(178, 21)
         Desc_ToastSlots.TabIndex = 3
         Desc_ToastSlots.Text = "Use a second toast slot"
-        
-        
-        
+
         Card_OBS.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Card_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_OBS.Controls.Add(Accent_OBS)
@@ -1017,17 +876,13 @@ Partial Class Base_Notifications
         Card_OBS.Name = "Card_OBS"
         Card_OBS.Size = New Size(815, 330)
         Card_OBS.TabIndex = 18
-        
-        
-        
+
         Accent_OBS.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_OBS.Location = New Point(20, 22)
         Accent_OBS.Name = "Accent_OBS"
         Accent_OBS.Size = New Size(4, 75)
         Accent_OBS.TabIndex = 0
-        
-        
-        
+
         Header_OBS.AutoSize = True
         Header_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_OBS.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -1037,9 +892,7 @@ Partial Class Base_Notifications
         Header_OBS.Size = New Size(389, 28)
         Header_OBS.TabIndex = 1
         Header_OBS.Text = "OBS Studio WebSocket Integration - Beta"
-        
-        
-        
+
         ObsEnabledToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         ObsEnabledToggle.BackColor = Color.Transparent
         ObsEnabledToggle.ImeMode = ImeMode.Off
@@ -1052,9 +905,7 @@ Partial Class Base_Notifications
         ObsEnabledToggle.Size = New Size(48, 24)
         ObsEnabledToggle.TabIndex = 2
         ObsEnabledToggle.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_OBS.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Desc_OBS.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_OBS.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1065,9 +916,7 @@ Partial Class Base_Notifications
         Desc_OBS.TabIndex = 3
         Desc_OBS.Text = "Allow Notifier to connect to the OBS Studio WebSocket and display notifications based on OBS Studio states or events."
         Desc_OBS.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         Panel_OBS.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Panel_OBS.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Panel_OBS.Controls.Add(Label6)
@@ -1080,9 +929,7 @@ Partial Class Base_Notifications
         Panel_OBS.Name = "Panel_OBS"
         Panel_OBS.Size = New Size(774, 196)
         Panel_OBS.TabIndex = 4
-        
-        
-        
+
         Label6.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label6.Font = New Font("Segoe UI Semibold", 11.8F)
         Label6.ForeColor = Color.White
@@ -1092,9 +939,7 @@ Partial Class Base_Notifications
         Label6.TabIndex = 0
         Label6.Text = "PORT"
         Label6.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         PORT_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         PORT_BOX.BorderStyle = BorderStyle.None
         PORT_BOX.Font = New Font("nvgcshare", 20.0F)
@@ -1106,9 +951,7 @@ Partial Class Base_Notifications
         PORT_BOX.TabIndex = 1
         PORT_BOX.Text = "Port"
         PORT_BOX.TextAlign = HorizontalAlignment.Center
-        
-        
-        
+
         Label7.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label7.Font = New Font("Segoe UI Semibold", 11.8F)
         Label7.ForeColor = Color.White
@@ -1118,9 +961,7 @@ Partial Class Base_Notifications
         Label7.TabIndex = 2
         Label7.Text = "Key/Password"
         Label7.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         KEY_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         KEY_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         KEY_BOX.BorderStyle = BorderStyle.None
@@ -1133,9 +974,7 @@ Partial Class Base_Notifications
         KEY_BOX.TabIndex = 3
         KEY_BOX.Text = "Key"
         KEY_BOX.TextAlign = HorizontalAlignment.Center
-        
-        
-        
+
         Label8.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label8.Font = New Font("Segoe UI Semibold", 11.8F)
         Label8.ForeColor = Color.White
@@ -1145,9 +984,7 @@ Partial Class Base_Notifications
         Label8.TabIndex = 4
         Label8.Text = "HOST"
         Label8.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         HOST_BOX.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         HOST_BOX.BorderStyle = BorderStyle.None
         HOST_BOX.Font = New Font("nvgcshare", 20.0F)
@@ -1159,9 +996,7 @@ Partial Class Base_Notifications
         HOST_BOX.TabIndex = 5
         HOST_BOX.Text = "HOST"
         HOST_BOX.TextAlign = HorizontalAlignment.Center
-        
-        
-        
+
         Card_Errors.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Card_Errors.Controls.Add(Accent_Errors)
         Card_Errors.Controls.Add(Header_Errors)
@@ -1186,17 +1021,13 @@ Partial Class Base_Notifications
         Card_Errors.Size = New Size(495, 384)
         Card_Errors.TabIndex = 16
         Card_Errors.Visible = False
-        
-        
-        
+
         Accent_Errors.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Accent_Errors.Location = New Point(20, 22)
         Accent_Errors.Name = "Accent_Errors"
         Accent_Errors.Size = New Size(4, 20)
         Accent_Errors.TabIndex = 0
-        
-        
-        
+
         Header_Errors.AutoSize = True
         Header_Errors.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Header_Errors.Font = New Font("Segoe UI Semibold", 15.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -1206,9 +1037,7 @@ Partial Class Base_Notifications
         Header_Errors.Size = New Size(189, 28)
         Header_Errors.TabIndex = 1
         Header_Errors.Text = "ERRORS & FEEDBACK"
-        
-        
-        
+
         Desc_AccountConfirmError.AutoSize = True
         Desc_AccountConfirmError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_AccountConfirmError.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1218,9 +1047,7 @@ Partial Class Base_Notifications
         Desc_AccountConfirmError.Size = New Size(210, 21)
         Desc_AccountConfirmError.TabIndex = 2
         Desc_AccountConfirmError.Text = "Account confirmation error"
-        
-        
-        
+
         ToggleAccountConfirmError.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleAccountConfirmError.ImeMode = ImeMode.Off
         ToggleAccountConfirmError.IsOn = False
@@ -1232,9 +1059,7 @@ Partial Class Base_Notifications
         ToggleAccountConfirmError.Size = New Size(48, 24)
         ToggleAccountConfirmError.TabIndex = 3
         ToggleAccountConfirmError.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_ExtensionNotFound.AutoSize = True
         Desc_ExtensionNotFound.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ExtensionNotFound.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1244,9 +1069,7 @@ Partial Class Base_Notifications
         Desc_ExtensionNotFound.Size = New Size(222, 21)
         Desc_ExtensionNotFound.TabIndex = 4
         Desc_ExtensionNotFound.Text = "Browser extension not found"
-        
-        
-        
+
         ToggleExtensionNotFound.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleExtensionNotFound.ImeMode = ImeMode.Off
         ToggleExtensionNotFound.IsOn = False
@@ -1258,9 +1081,7 @@ Partial Class Base_Notifications
         ToggleExtensionNotFound.Size = New Size(48, 24)
         ToggleExtensionNotFound.TabIndex = 5
         ToggleExtensionNotFound.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_FeatureNotReady.AutoSize = True
         Desc_FeatureNotReady.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_FeatureNotReady.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1270,9 +1091,7 @@ Partial Class Base_Notifications
         Desc_FeatureNotReady.Size = New Size(139, 21)
         Desc_FeatureNotReady.TabIndex = 6
         Desc_FeatureNotReady.Text = "Feature not ready"
-        
-        
-        
+
         ToggleFeatureNotReady.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleFeatureNotReady.ImeMode = ImeMode.Off
         ToggleFeatureNotReady.IsOn = False
@@ -1284,9 +1103,7 @@ Partial Class Base_Notifications
         ToggleFeatureNotReady.Size = New Size(48, 24)
         ToggleFeatureNotReady.TabIndex = 7
         ToggleFeatureNotReady.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_GpuRequired.AutoSize = True
         Desc_GpuRequired.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_GpuRequired.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1296,9 +1113,7 @@ Partial Class Base_Notifications
         Desc_GpuRequired.Size = New Size(166, 21)
         Desc_GpuRequired.TabIndex = 8
         Desc_GpuRequired.Text = "NVIDIA GPU required"
-        
-        
-        
+
         ToggleGpuRequired.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleGpuRequired.ImeMode = ImeMode.Off
         ToggleGpuRequired.IsOn = False
@@ -1310,9 +1125,7 @@ Partial Class Base_Notifications
         ToggleGpuRequired.Size = New Size(48, 24)
         ToggleGpuRequired.TabIndex = 9
         ToggleGpuRequired.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_EngineNotRunning.AutoSize = True
         Desc_EngineNotRunning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_EngineNotRunning.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1322,9 +1135,7 @@ Partial Class Base_Notifications
         Desc_EngineNotRunning.Size = New Size(148, 21)
         Desc_EngineNotRunning.TabIndex = 10
         Desc_EngineNotRunning.Text = "Engine not running"
-        
-        
-        
+
         ToggleEngineNotRunning.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleEngineNotRunning.ImeMode = ImeMode.Off
         ToggleEngineNotRunning.IsOn = False
@@ -1336,9 +1147,7 @@ Partial Class Base_Notifications
         ToggleEngineNotRunning.Size = New Size(48, 24)
         ToggleEngineNotRunning.TabIndex = 11
         ToggleEngineNotRunning.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_EngineUIInUse.AutoSize = True
         Desc_EngineUIInUse.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_EngineUIInUse.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1348,9 +1157,7 @@ Partial Class Base_Notifications
         Desc_EngineUIInUse.Size = New Size(182, 21)
         Desc_EngineUIInUse.TabIndex = 12
         Desc_EngineUIInUse.Text = "Engine UI already in use"
-        
-        
-        
+
         ToggleEngineUIInUse.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleEngineUIInUse.ImeMode = ImeMode.Off
         ToggleEngineUIInUse.IsOn = False
@@ -1362,9 +1169,7 @@ Partial Class Base_Notifications
         ToggleEngineUIInUse.Size = New Size(48, 24)
         ToggleEngineUIInUse.TabIndex = 13
         ToggleEngineUIInUse.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_ErrorResolution.AutoSize = True
         Desc_ErrorResolution.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_ErrorResolution.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1374,9 +1179,7 @@ Partial Class Base_Notifications
         Desc_ErrorResolution.Size = New Size(129, 21)
         Desc_ErrorResolution.TabIndex = 14
         Desc_ErrorResolution.Text = "Resolution error"
-        
-        
-        
+
         ToggleErrorResolution.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleErrorResolution.ImeMode = ImeMode.Off
         ToggleErrorResolution.IsOn = False
@@ -1388,9 +1191,7 @@ Partial Class Base_Notifications
         ToggleErrorResolution.Size = New Size(48, 24)
         ToggleErrorResolution.TabIndex = 15
         ToggleErrorResolution.Text = "ToggleSwitch"
-        
-        
-        
+
         Desc_DesktopCaptureDisabled.AutoSize = True
         Desc_DesktopCaptureDisabled.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         Desc_DesktopCaptureDisabled.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -1400,9 +1201,7 @@ Partial Class Base_Notifications
         Desc_DesktopCaptureDisabled.Size = New Size(197, 21)
         Desc_DesktopCaptureDisabled.TabIndex = 16
         Desc_DesktopCaptureDisabled.Text = "Desktop capture disabled"
-        
-        
-        
+
         ToggleDesktopCaptureDisabled.BackColor = Color.FromArgb(CByte(46), CByte(53), CByte(59))
         ToggleDesktopCaptureDisabled.ImeMode = ImeMode.Off
         ToggleDesktopCaptureDisabled.IsOn = False
@@ -1414,9 +1213,7 @@ Partial Class Base_Notifications
         ToggleDesktopCaptureDisabled.Size = New Size(48, 24)
         ToggleDesktopCaptureDisabled.TabIndex = 17
         ToggleDesktopCaptureDisabled.Text = "ToggleSwitch"
-        
-        
-        
+
         BT_EnableAll.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         BT_EnableAll.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_EnableAll.Cursor = Cursors.Hand
@@ -1428,9 +1225,7 @@ Partial Class Base_Notifications
         BT_EnableAll.TabIndex = 56
         BT_EnableAll.Text = "Enable all"
         BT_EnableAll.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         BT_DisableAll.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         BT_DisableAll.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         BT_DisableAll.Cursor = Cursors.Hand
@@ -1442,9 +1237,7 @@ Partial Class Base_Notifications
         BT_DisableAll.TabIndex = 57
         BT_DisableAll.Text = "Disable all"
         BT_DisableAll.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Menu_Top_Dim.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Menu_Top_Dim.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Menu_Top_Dim.Location = New Point(80, 160)
@@ -1452,9 +1245,7 @@ Partial Class Base_Notifications
         Menu_Top_Dim.Size = New Size(1760, 5)
         Menu_Top_Dim.TabIndex = 0
         Menu_Top_Dim.TabStop = False
-        
-        
-        
+
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
         BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
@@ -1465,18 +1256,14 @@ Partial Class Base_Notifications
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Dim_Top.Location = New Point(-24, -16)
         Dim_Top.Name = "Dim_Top"
         Dim_Top.Size = New Size(1913, 176)
         Dim_Top.TabIndex = 46
         Dim_Top.TabStop = False
-        
-        
-        
+
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -1485,9 +1272,7 @@ Partial Class Base_Notifications
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        
-        
-        
+
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -1496,9 +1281,7 @@ Partial Class Base_Notifications
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

@@ -39,10 +39,6 @@ Public Class LangHelper
             text = text.Replace("{{arg" & (i + 1) & "}}", args(i))
         Next
 
-        
-        
-        
-        
         If args.Length > 0 Then
             text = text.Replace("{{minutesToSave}}", args(0))
         End If
