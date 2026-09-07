@@ -90,7 +90,7 @@ Partial Class Base_Background_Top
         ' PictureGFE
         ' 
         PictureGFE.BackColor = Color.Black
-        PictureGFE.BackgroundImage = My.Resources.osc_img_appicon_64x64
+PictureGFE.BackgroundImage = My.Resources.osc_img_appicon_64x64
         PictureGFE.BackgroundImageLayout = ImageLayout.None
         PictureGFE.Location = New Point(8, 8)
         PictureGFE.Name = "PictureGFE"

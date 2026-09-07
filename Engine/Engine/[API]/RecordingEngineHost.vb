@@ -203,10 +203,16 @@ Partial Public Class UI_Engine
     ''' Resolve the real ffmpeg.exe path. The Overlay\API-Core directory is
     ''' part of the deployment contract — NEVER rely on PATH alone.
     ''' Resolution order:
-    '''   1. CaptureSettings.FFmpegPath (if the file exists)
-    '''   2. {exe dir}\API-Core\ffmpeg.exe   (deployment root)
-    '''   3. {exe dir}\ffmpeg.exe
-    '''   4. bare "ffmpeg" (PATH — last resort, logged loudly)
+    '''   1. CaptureSettings.FFmpegPath (if the file exists AND runs)
+    '''   2. {exe dir}\FFmpeg\ffmpeg.exe     (layout root)
+    '''   3. {exe dir}\API-Core\ffmpeg.exe   (deployment root)
+    '''   4. {exe dir}\ffmpeg.exe
+    '''   5. bare "ffmpeg" (PATH — last resort, logged loudly)
+    ''' Each real-path candidate is VALIDATED (see FFmpegLocator): a corrupt
+    ''' or stale copy must fall through to the next candidate instead of
+    ''' dead-ending the session with Win32Exception 193 at spawn time
+    ''' (2026-09-08 postmortem: broken FFmpeg\ffmpeg.exe aborted every
+    ''' recording while API-Core\ffmpeg.exe one candidate later was fine).
     ''' </summary>
     Private Function ResolveFFmpegPath() As String
         Dim candidates As New List(Of String)
@@ -219,17 +225,13 @@ Partial Public Class UI_Engine
         candidates.Add(Path.Combine(baseDir, "API-Core", "ffmpeg.exe"))
         candidates.Add(Path.Combine(baseDir, "ffmpeg.exe"))
 
-        For Each c As String In candidates
-            Try
-                If File.Exists(c) Then
-                    DebugLog($"[RecordingEngine] ffmpeg resolved: {c}")
-                    Return c
-                End If
-            Catch
-            End Try
-        Next
+        Dim found As String = FFmpegLocator.FirstUsableFFmpeg(candidates, AddressOf DebugLog)
+        If found <> "" Then
+            DebugLog($"[RecordingEngine] ffmpeg resolved: {found}")
+            Return found
+        End If
 
-        DebugLog("[RecordingEngine] WARNING — ffmpeg NOT found in settings/deployment; falling back to PATH lookup")
+        DebugLog("[RecordingEngine] WARNING — no runnable ffmpeg in settings/deployment (see FFmpegLocator rejections above); falling back to PATH lookup")
         Return "ffmpeg"
     End Function
 
