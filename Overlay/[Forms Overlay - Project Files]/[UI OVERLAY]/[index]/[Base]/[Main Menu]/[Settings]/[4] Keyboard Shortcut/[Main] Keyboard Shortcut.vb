@@ -7,10 +7,13 @@ Public Class Base_KeySet
 
     Private _captureActionKey As String = Nothing
     Private ReadOnly _keyLabels As New Dictionary(Of String, Label)(StringComparer.OrdinalIgnoreCase)
+    Private ReadOnly _rowPanels As New Dictionary(Of String, Control)(StringComparer.OrdinalIgnoreCase)
 
-    Private ReadOnly _colorNormal As Color = Color.FromArgb(38, 43, 47)
-    Private ReadOnly _colorHover As Color = Color.FromArgb(55, 60, 65)
+    ' Keycap colors — keep in sync with the Designer (lbl_* keycaps on row_* cards).
+    Private ReadOnly _colorNormal As Color = Color.FromArgb(55, 60, 65)
+    Private ReadOnly _colorHover As Color = Color.FromArgb(74, 80, 86)
     Private ReadOnly _colorCapture As Color = Color.FromArgb(118, 185, 0)
+    Private ReadOnly _colorError As Color = Color.FromArgb(150, 52, 52)
 
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
@@ -37,9 +40,6 @@ Public Class Base_KeySet
         Base.Settings_List.Visible = True
     End Sub
 
-    Private Sub settings_top_Click(sender As Object, e As EventArgs) Handles settings_top.Click
-    End Sub
-
     Protected Overrides Sub WndProc(ByRef m As Message)
         Const WM_NCHITTEST As Integer = &H84
         Const HTTRANSPARENT As Integer = -1
@@ -57,13 +57,17 @@ Public Class Base_KeySet
         InitKeyLabels()
         WireEvents()
         LoadHotkeyValues()
+        LayoutColumns()
     End Sub
 
-    ' <<<< ไม่ต้อง Hardcode แล้ว! มันหา Label เองจากชื่อ >>>>
+    ' <<<< No hardcoding: labels/rows are found by name inside the keyset panel >>>>
+    ' Keycap labels are named "lbl_<ActionKey>" (e.g. lbl_ToggleOverlay) and their
+    ' whole row cards "row_<ActionKey>". Both are discovered automatically, so a
+    ' new hotkey only needs a new row in this page + one line in HotkeyService.
     Public Sub InitKeyLabels()
         _keyLabels.Clear()
+        _rowPanels.Clear()
         For Each def In HotkeyService.AllHotkeys
-            ' มันจะไปหา Label ที่ชื่อ "lbl_<ActionKey>" เช่น lbl_ToggleOverlay ใน Panel keyset ให้เอง
             Dim lblName As String = "lbl_" & def.ActionKey
             Dim foundControls() As Control = keyset.Controls.Find(lblName, True)
 
@@ -72,11 +76,20 @@ Public Class Base_KeySet
                 lbl.Tag = def.ActionKey
                 _keyLabels.Add(def.ActionKey, lbl)
             End If
+
+            Dim rowName As String = "row_" & def.ActionKey
+            Dim foundRows() As Control = keyset.Controls.Find(rowName, True)
+
+            If foundRows.Length > 0 Then
+                foundRows(0).Tag = def.ActionKey
+                _rowPanels.Add(def.ActionKey, foundRows(0))
+            End If
         Next
     End Sub
 
-    ' กัน AddHandler ซ้ำ: WireEvents ถูกเรียก 2 ที่ (Main Menu startup + set_key_Load)
-    ' AddHandler ไม่ dedupe — ลงทะเบียนซ้ำ = click label ครั้งเดียว handler ยิงสองรอบ
+    ' Guard against double-wiring: WireEvents is called from two places
+    ' (Main Menu startup + set_key_Load). AddHandler does not dedupe —
+    ' registering twice means one click fires the handler twice.
     Private _wiredEvents As Boolean = False
 
     Public Sub WireEvents()
@@ -94,6 +107,54 @@ Public Class Base_KeySet
                                            If _captureActionKey <> CStr(l.Tag) Then l.BackColor = _colorNormal
                                        End Sub
         Next
+        For Each rowKvp As System.Collections.Generic.KeyValuePair(Of String, Control) In _rowPanels
+            AddHandler rowKvp.Value.Click, AddressOf RowPanel_Click
+        Next
+    End Sub
+
+    ' ---- Responsive two-column layout ---------------------------------------
+    ' keyset stretches with the screen (Top|Bottom|Left|Right anchor), so the two
+    ' content columns re-split the panel width on every resize. Keycap labels ride
+    ' the right edge of their row card (Top|Right anchor in the Designer).
+    Private ReadOnly _colLeftRows As String() = {"ToggleOverlay", "TestNotifier", "WebToggle", "Screenshot", "PhotosToggle", "GameFilterToggle"}
+
+    Private Sub Keyset_Resize(sender As Object, e As EventArgs) Handles keyset.Resize
+        LayoutColumns()
+    End Sub
+
+    Private Sub LayoutColumns()
+        If _rowPanels.Count = 0 Then Return
+        If keyset.ClientSize.Width < 200 Then Return
+
+        Const marginL As Integer = 28
+        Const marginR As Integer = 28
+        Const gap As Integer = 30
+        ' Below the design width (690) the description and the keycap would
+        ' overlap, so columns clamp there and AutoScroll takes over instead.
+        Const minColWidth As Integer = 690
+
+        Dim colWidth As Integer = Math.Max(minColWidth, (keyset.ClientSize.Width - marginL - marginR - gap) \ 2)
+        Dim col2X As Integer = marginL + colWidth + gap
+
+        bar_General.Left = marginL
+        lblCat_General.Left = marginL + 16
+        bar_Capture.Left = marginL
+        lblCat_Capture.Left = marginL + 16
+
+        bar_Record.Left = col2X
+        lblCat_Record.Left = col2X + 16
+        bar_Broadcast.Left = col2X
+        lblCat_Broadcast.Left = col2X + 16
+        lbl_Note.Left = col2X + 16
+
+        For Each kvp As System.Collections.Generic.KeyValuePair(Of String, Control) In _rowPanels
+            If _colLeftRows.Contains(kvp.Key, StringComparer.OrdinalIgnoreCase) Then
+                kvp.Value.Left = marginL
+            Else
+                kvp.Value.Left = col2X
+            End If
+            kvp.Value.Width = colWidth
+        Next
     End Sub
 
     Public Sub LoadHotkeyValues()
@@ -110,17 +171,35 @@ Public Class Base_KeySet
 
     Private Sub HotkeyLabel_Click(sender As Object, e As EventArgs)
         Dim label As Label = CType(sender, Label)
-        Dim actionKey As String = CStr(label.Tag)
+        StartCapture(CStr(label.Tag), label)
+    End Sub
+
+    ' Clicking anywhere on the row card starts (or cancels) the capture.
+    Private Sub RowPanel_Click(sender As Object, e As EventArgs)
+        Dim row As Control = CType(sender, Control)
+        Dim actionKey As String = CStr(row.Tag)
+        If String.IsNullOrWhiteSpace(actionKey) Then Return
+        If _keyLabels.ContainsKey(actionKey) Then
+            StartCapture(actionKey, _keyLabels(actionKey))
+        End If
+    End Sub
+
+    Private Sub StartCapture(actionKey As String, label As Label)
         If String.IsNullOrWhiteSpace(actionKey) Then Return
 
-        If _captureActionKey IsNot Nothing Then LoadHotkeyValues()
+        If _captureActionKey IsNot Nothing Then
+            ' Clicking the key that is already capturing cancels the capture.
+            If String.Equals(_captureActionKey, actionKey, StringComparison.OrdinalIgnoreCase) Then
+                CancelCapture()
+                Return
+            End If
+            LoadHotkeyValues()
+            ResetCaptureVisuals()
+        End If
+
         Base.PauseHotkeys()
 
         _captureActionKey = actionKey
-        For Each kvp In _keyLabels
-            kvp.Value.BackColor = _colorNormal
-        Next
-
         label.BackColor = _colorCapture
         label.Text = "Press keys..."
         Me.Focus()
@@ -129,10 +208,15 @@ Public Class Base_KeySet
     Private Sub Base_KeySet_KeyDown(sender As Object, e As KeyEventArgs) Handles Me.KeyDown
         If String.IsNullOrEmpty(_captureActionKey) Then Return
 
+        e.SuppressKeyPress = True
+        e.Handled = True
+
         If e.KeyCode = Keys.Escape Then
             CancelCapture()
             Return
         End If
+
+        Dim actionKey As String = _captureActionKey
 
         Dim modifiers As Integer = 0
         If e.Control Then modifiers = modifiers Or WinAPI.MOD_CONTROL
@@ -140,29 +224,26 @@ Public Class Base_KeySet
         If e.Shift Then modifiers = modifiers Or WinAPI.MOD_SHIFT
 
         Dim key As Keys = e.KeyCode
-        If key = Keys.ControlKey OrElse key = Keys.Menu OrElse key = Keys.ShiftKey Then Return
+        If key = Keys.ControlKey OrElse key = Keys.Menu OrElse key = Keys.ShiftKey OrElse key = Keys.LWin OrElse key = Keys.RWin Then Return
+
         If modifiers = 0 Then
-            ShowCaptureError("Please include Ctrl, Alt, or Shift.")
+            ShowCaptureError(actionKey, "Needs Ctrl/Alt/Shift")
             Return
         End If
 
         Dim normalized As String = HotkeyService.NormalizeHotkeyText(modifiers, key)
 
-        If IsDuplicateBinding(_captureActionKey, normalized) Then
-            ShowCaptureError("This key is already assigned.")
+        If IsDuplicateBinding(actionKey, normalized) Then
+            ShowCaptureError(actionKey, "Already in use")
             Return
         End If
 
-        SaveBinding(_captureActionKey, normalized)
-
-        If _keyLabels.ContainsKey(_captureActionKey) Then
-            _keyLabels(_captureActionKey).BackColor = _colorNormal
-        End If
+        SaveBinding(actionKey, normalized)
 
         _captureActionKey = Nothing
+        ResetCaptureVisuals()
         LoadHotkeyValues()
         Base.ReloadHotkeys()
-        e.SuppressKeyPress = True
     End Sub
 
     Private Function IsDuplicateBinding(actionKey As String, binding As String) As Boolean
@@ -176,34 +257,63 @@ Public Class Base_KeySet
     Private Sub SaveBinding(actionKey As String, binding As String)
         Dim def As HotkeyService.HotkeyDef = HotkeyService.AllHotkeys.FirstOrDefault(Function(x) x.ActionKey.Equals(actionKey, StringComparison.OrdinalIgnoreCase))
         If def IsNot Nothing Then
-            def.SetSetting.Invoke(binding) ' <<< เพิ่ม .Invoke()
+            def.SetSetting.Invoke(binding)
             AppSettings.Instance.Save()
         End If
     End Sub
 
-    Private Sub CancelCapture()
-        _captureActionKey = Nothing
+    Private Sub ResetCaptureVisuals()
         For Each kvp In _keyLabels
             kvp.Value.BackColor = _colorNormal
         Next
+    End Sub
+
+    Private Sub CancelCapture()
+        _captureActionKey = Nothing
+        ResetCaptureVisuals()
         LoadHotkeyValues()
         Base.ResumeHotkeys()
     End Sub
 
-    Private Sub ShowCaptureError(message As String)
-        MessageBox.Show(message, "Invalid hotkey", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+    ' Inline error: the keycap itself flashes red with the reason instead of a
+    ' modal MessageBox covering the game. The capture ends and the saved binding
+    ' is restored after a short pause.
+    Private Sub ShowCaptureError(actionKey As String, message As String)
+        CancelCapture()
+
+        If Not _keyLabels.ContainsKey(actionKey) Then Return
+        Dim lbl As Label = _keyLabels(actionKey)
+        lbl.BackColor = _colorError
+        lbl.Text = message
+
+        Dim restore As New Timer With {.Interval = 1500}
+        AddHandler restore.Tick,
+            Sub(s, ea)
+                restore.Stop()
+                restore.Dispose()
+                ' Skip the restore if the user started a new capture on this key.
+                If Not String.Equals(_captureActionKey, actionKey, StringComparison.OrdinalIgnoreCase) Then
+                    lbl.BackColor = _colorNormal
+                    lbl.Text = GetBindingText(actionKey)
+                End If
+            End Sub
+        restore.Start()
     End Sub
+
+    Private Function GetBindingText(actionKey As String) As String
+        Dim def As HotkeyService.HotkeyDef = HotkeyService.AllHotkeys.FirstOrDefault(Function(x) x.ActionKey.Equals(actionKey, StringComparison.OrdinalIgnoreCase))
+        If def Is Nothing Then Return ""
+        Return HotkeyService.NormalizeHotkeyText(def.GetSetting.Invoke())
+    End Function
 
     Private Sub Reset_Click(sender As Object, e As EventArgs) Handles Reset.Click
         For Each def As HotkeyService.HotkeyDef In HotkeyService.AllHotkeys
-            def.SetSetting.Invoke(def.DefaultBinding) ' <<< เพิ่ม .Invoke()
+            def.SetSetting.Invoke(def.DefaultBinding)
         Next
         AppSettings.Instance.Save()
 
         _captureActionKey = Nothing
-        For Each kvp In _keyLabels
-            kvp.Value.BackColor = _colorNormal
-        Next
+        ResetCaptureVisuals()
         LoadHotkeyValues()
         Base.ReloadHotkeys()
     End Sub

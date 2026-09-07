@@ -67,6 +67,7 @@ Partial Class Base_Connect_Login
         ' 
         ' Info_TEXT
         ' 
+        Info_TEXT.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Info_TEXT.Font = New Font("Segoe UI", 11F)
         Info_TEXT.ForeColor = Color.Gainsboro
         Info_TEXT.Location = New Point(62, 107)
@@ -108,7 +109,7 @@ Partial Class Base_Connect_Login
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10.5F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(62, 380)
+        Status_TEXT.Location = New Point(62, 240)
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(0, 19)
         Status_TEXT.TabIndex = 73

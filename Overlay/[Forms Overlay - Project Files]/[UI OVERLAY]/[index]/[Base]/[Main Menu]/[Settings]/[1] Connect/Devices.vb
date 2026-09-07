@@ -132,10 +132,13 @@ Public Class Base_Connect_Devices
 
     Private Sub AddDeviceRow(id As String, name As String, lastSeen As String,
                              revokedAt As String, isCurrent As Boolean)
+        ' Rows span the list's current width and re-stretch on resize
+        ' (see List_PANEL_Resize); 180 = button 150 + 30 right gap.
+        Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
             .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
             .Location = New Point(0, _nextRowY),
-            .Size = New Size(1580, 72)
+            .Size = New Size(rowW, 72)
         }
         _nextRowY += 80
 
@@ -165,11 +168,12 @@ Public Class Base_Connect_Devices
 
         If revokedAt = "" Then
             Dim revoke As New Label With {
+                .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
                 .BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40)),
                 .Cursor = Cursors.Hand,
                 .Font = New Font("Segoe UI", 9.5F, FontStyle.Bold),
                 .ForeColor = Color.White,
-                .Location = New Point(1400, 14),
+                .Location = New Point(rowW - 180, 14),
                 .Size = New Size(150, 44),
                 .TextAlign = ContentAlignment.MiddleCenter,
                 .Text = "Revoke"
@@ -182,6 +186,7 @@ Public Class Base_Connect_Devices
         End If
 
         List_PANEL.Controls.Add(row)
+        StretchRows()
     End Sub
 
     Private Sub ClearRows()
@@ -245,6 +250,23 @@ Public Class Base_Connect_Devices
         End If
         Return iso
     End Function
+
+    ''' <summary>Row panels span the list's ClientSize — called on resize AND
+    ' after every row is added, because the vertical scrollbar appearing
+    ' shrinks ClientSize without firing Resize (uniform widths, and never a
+    ' horizontal scrollbar). Each row's Revoke button follows its own
+    ' Top+Right anchor; section headers are AutoSize.</summary>
+    Private Sub StretchRows()
+        Dim w As Integer = List_PANEL.ClientSize.Width
+        If w <= 0 Then Return
+        For Each c As Control In List_PANEL.Controls
+            If TypeOf c Is Panel Then c.Width = w
+        Next
+    End Sub
+
+    Private Sub List_PANEL_Resize(sender As Object, e As EventArgs) Handles List_PANEL.Resize
+        StretchRows()
+    End Sub
 
     Private Sub BT_RefreshDevices_Click(sender As Object, e As EventArgs) Handles BT_RefreshDevices.Click
         LoadDevicesAsync()

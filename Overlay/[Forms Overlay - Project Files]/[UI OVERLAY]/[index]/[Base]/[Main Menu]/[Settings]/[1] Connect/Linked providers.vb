@@ -112,10 +112,13 @@ Public Class Base_Connect_Providers
     ' (Google etc.) needs only another call with its key — no model change.</summary>
     Private Sub AddProviderRow(linkId As String, providerKey As String, email As String,
                                linkedAt As String, connected As Boolean)
+        ' Rows span the list's current width and re-stretch on resize
+        ' (see List_PANEL_Resize); 180 = button 150 + 30 right gap.
+        Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
             .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
             .Location = New Point(0, _nextRowY),
-            .Size = New Size(1580, 72)
+            .Size = New Size(rowW, 72)
         }
         _nextRowY += 80
 
@@ -145,11 +148,12 @@ Public Class Base_Connect_Providers
 
         If connected Then
             Dim unlink As New Label With {
+                .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
                 .BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40)),
                 .Cursor = Cursors.Hand,
                 .Font = New Font("Segoe UI", 9.5F, FontStyle.Bold),
                 .ForeColor = Color.White,
-                .Location = New Point(1400, 14),
+                .Location = New Point(rowW - 180, 14),
                 .Size = New Size(150, 44),
                 .TextAlign = ContentAlignment.MiddleCenter,
                 .Text = "Unlink"
@@ -160,11 +164,12 @@ Public Class Base_Connect_Providers
             row.Controls.Add(unlink)
         Else
             Dim link As New Label With {
+                .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
                 .BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0)),
                 .Cursor = Cursors.Hand,
                 .Font = New Font("Segoe UI", 9.5F, FontStyle.Bold),
                 .ForeColor = Color.White,
-                .Location = New Point(1400, 14),
+                .Location = New Point(rowW - 180, 14),
                 .Size = New Size(150, 44),
                 .TextAlign = ContentAlignment.MiddleCenter,
                 .Text = "Link GitHub"
@@ -174,6 +179,7 @@ Public Class Base_Connect_Providers
         End If
 
         List_PANEL.Controls.Add(row)
+        StretchRows()
     End Sub
 
     Private Sub ClearRows()
@@ -232,8 +238,7 @@ Public Class Base_Connect_Providers
         _linking = True
         BT_LinkNew.Enabled = False
         Try
-            Dim outcome As DulukaAuthFlow.Outcome = Await flow.RunAsync(
-                Sub(message) Status_TEXT.Text = message).ConfigureAwait(True)
+            Dim outcome As DulukaAuthFlow.Outcome = Await flow.RunAsync(AddressOf Report).ConfigureAwait(True)
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If outcome.Succeeded Then
@@ -247,6 +252,17 @@ Public Class Base_Connect_Providers
         Finally
             _linking = False
             If Not IsDisposed Then BT_LinkNew.Enabled = True
+        End Try
+    End Sub
+
+    ''' <summary>Progress reporter — the flow calls it from any thread; the
+    ' control must only be touched on the UI thread.</summary>
+    Private Sub Report(message As String)
+        If IsDisposed OrElse Not IsHandleCreated Then Return
+        Try
+            Invoke(New Action(Sub() Status_TEXT.Text = message))
+        Catch ex As ObjectDisposedException
+        Catch ex As InvalidOperationException
         End Try
     End Sub
 
@@ -271,6 +287,23 @@ Public Class Base_Connect_Providers
         End If
         Return iso
     End Function
+
+    ''' <summary>Row panels span the list's ClientSize — called on resize AND
+    ' after every row is added, because the vertical scrollbar appearing
+    ' shrinks ClientSize without firing Resize (uniform widths, and never a
+    ' horizontal scrollbar). Each row's action button follows its own
+    ' Top+Right anchor; section headers are AutoSize.</summary>
+    Private Sub StretchRows()
+        Dim w As Integer = List_PANEL.ClientSize.Width
+        If w <= 0 Then Return
+        For Each c As Control In List_PANEL.Controls
+            If TypeOf c Is Panel Then c.Width = w
+        Next
+    End Sub
+
+    Private Sub List_PANEL_Resize(sender As Object, e As EventArgs) Handles List_PANEL.Resize
+        StretchRows()
+    End Sub
 
     Private Sub BT_RefreshProviders_Click(sender As Object, e As EventArgs) Handles BT_RefreshProviders.Click
         LoadProvidersAsync()

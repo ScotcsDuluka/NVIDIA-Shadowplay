@@ -52,6 +52,7 @@ Partial Class Base_Connect_Security
         ' Settings_Panel
         ' 
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Settings_Panel.AutoScroll = True
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_Panel.Controls.Add(Settings_TEXT)
         Settings_Panel.Controls.Add(Info_META)

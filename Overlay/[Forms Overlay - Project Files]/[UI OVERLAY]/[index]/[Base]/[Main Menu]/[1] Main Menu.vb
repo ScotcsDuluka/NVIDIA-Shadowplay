@@ -426,28 +426,17 @@ Partial Public Class Base
         File.Create(readyFlag).Dispose()
 
         ' ===== Heavier work runs in the background (does not block the UI) =====
-        Task.Run(Async Function()
-                     Try
-                         ' 1) GitHub user (network)
-                         Await AppSettings.Instance.LoadGitHubUser()
-                         Me.BeginInvoke(Sub()
-                                            Base_Connect.USERSNAME_TEXT.Text = AppSettings.Instance.GitHubUser.Username
-                                        End Sub)
-
-                         ' 2) Avatar (network + decode)
-                         Await AppSettings.Instance.LoadGitHubAvatar(Base_Connect.Box_PNG)
-
-                     Catch ex As Exception
-                         Debug.WriteLine("[BG Init] " & ex.Message)
-                     End Try
-
-                     ' 3) Notifier (Process.Start) — after network work is done
+        ' (The legacy AppSettings GitHub user/avatar preload lived here — it
+        ' wrote straight into the Duluka Account home card. Identity is now
+        ' owned by DulukaAccountStore + GET /v1/account/me, rendered by
+        ' Base_Connect itself; this background slot only starts the notifier.)
+        Task.Run(Sub()
                      Me.BeginInvoke(Sub()
                                         InitializeNotifierAPI()
                                         _bgInitDone = True
 
                                     End Sub)
-                 End Function)
+                 End Sub)
 
 
         ' ===== Register hotkeys immediately =====

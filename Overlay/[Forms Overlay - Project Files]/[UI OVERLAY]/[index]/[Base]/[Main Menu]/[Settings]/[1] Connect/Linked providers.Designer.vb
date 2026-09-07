@@ -78,6 +78,7 @@ Partial Class Base_Connect_Providers
         ' 
         ' BT_LinkNew
         ' 
+        BT_LinkNew.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         BT_LinkNew.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_LinkNew.Cursor = Cursors.Hand
         BT_LinkNew.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
@@ -91,6 +92,7 @@ Partial Class Base_Connect_Providers
         ' 
         ' BT_RefreshProviders
         ' 
+        BT_RefreshProviders.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         BT_RefreshProviders.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_RefreshProviders.Cursor = Cursors.Hand
         BT_RefreshProviders.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
@@ -104,6 +106,7 @@ Partial Class Base_Connect_Providers
         ' 
         ' Status_TEXT
         ' 
+        Status_TEXT.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10.0F)

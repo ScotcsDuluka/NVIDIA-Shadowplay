@@ -49,6 +49,28 @@ Public Class Base_Connect
 
     Private Sub Base_Connect_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
+        LayoutRow()
+    End Sub
+
+    ''' <summary>The action row divides the panel content width (62px margins)
+    ' into three equal buttons with 16px gaps — recomputed on every resize so
+    ' the row tracks the panel width exactly (anchors cannot make thirds).
+    ' At the design width (panel 1760) this computes the Designer values.</summary>
+    Private Sub LayoutRow()
+        Dim contentW As Integer = Settings_Panel.Width - 124
+        If contentW <= 0 Then Return
+        Dim gap As Integer = 16
+        Dim bw As Integer = (contentW - 2 * gap) \ 3
+        If bw < 200 Then bw = 200 ' below this the captions clip
+        BT_Devices.Width = bw
+        BT_Security.Location = New Point(62 + bw + gap, BT_Security.Top)
+        BT_Security.Width = bw
+        BT_Providers.Location = New Point(62 + 2 * (bw + gap), BT_Providers.Top)
+        BT_Providers.Width = bw
+    End Sub
+
+    Private Sub Settings_Panel_Resize(sender As Object, e As EventArgs) Handles Settings_Panel.Resize
+        LayoutRow()
     End Sub
 
     ''' <summary>GATE: this page exists ONLY for signed-in users — anyone
@@ -63,17 +85,39 @@ Public Class Base_Connect
         RefreshAccountAsync()
     End Sub
 
+    ''' <summary>Paints the identity card from the cached store. The page is
+    ' signed-in only (the VisibleChanged gate forwards everyone else), but the
+    ' visibility of every block is still enforced here so the card can never
+    ' render as a blank page again.</summary>
     Private Sub RenderState()
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
+        If Not store.HasSession Then Return
+
         Dim name As String = store.DisplayName
         USERSNAME_TEXT.Text = If(name <> "", name, "Duluka Account")
+        Avatar_BOX.Text = If(name <> "", name.Substring(0, 1).ToUpperInvariant(), "D")
+
         Dim meta As String = ""
         If store.Username <> "" Then
             meta &= "Username  " & store.Username & Environment.NewLine
         End If
         meta &= "Account  " & If(store.AccountId <> "", store.AccountId, "—") & Environment.NewLine &
-                "This device:  " & If(store.DeviceName <> "", store.DeviceName, "—")
+                "This device  " & If(store.DeviceName <> "", store.DeviceName, "—")
         Account_META.Text = meta
+
+        Dim expires As String = store.SessionExpiresAtText
+        Session_META.Text = "Device  " & If(store.DeviceName <> "", store.DeviceName, "—") &
+                            "        Expires  " & If(expires <> "", expires, "unknown")
+
+        Card_PANEL.Visible = True
+        Avatar_BOX.Visible = True
+        USERSNAME_TEXT.Visible = True
+        Account_META.Visible = True
+        BT_Devices.Visible = True
+        BT_Security.Visible = True
+        BT_Providers.Visible = True
+        BT_Logout.Visible = True
+        Session_PANEL.Visible = True
     End Sub
 
     ''' <summary>Server-truth refresh of the identity card. Keeps the cached

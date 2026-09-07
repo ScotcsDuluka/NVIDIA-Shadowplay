@@ -76,6 +76,7 @@ Partial Class Base_Connect_Devices
         ' 
         ' BT_RefreshDevices
         ' 
+        BT_RefreshDevices.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         BT_RefreshDevices.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_RefreshDevices.Cursor = Cursors.Hand
         BT_RefreshDevices.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
@@ -89,6 +90,7 @@ Partial Class Base_Connect_Devices
         ' 
         ' Status_TEXT
         ' 
+        Status_TEXT.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10.0F)

@@ -18,27 +18,32 @@ Partial Class Base_Connect
     Private components As System.ComponentModel.IContainer
 
     'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
+    'It can be modified using the Windows Form Designer.
     'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect))
         Settings_Panel = New Panel()
         Settings_TEXT = New Label()
-        Box_PNG = New PictureBox()
+        Status_TEXT = New Label()
+        Card_PANEL = New Panel()
+        Avatar_BOX = New Label()
         USERSNAME_TEXT = New Label()
         Account_META = New Label()
         BT_Logout = New Label()
-        Status_TEXT = New Label()
         BT_Devices = New Label()
         BT_Security = New Label()
         BT_Providers = New Label()
+        Session_PANEL = New Panel()
+        Session_TITLE = New Label()
+        Session_META = New Label()
         Dim_Top = New PictureBox()
         BT_Back = New Label()
         Dim_1 = New PictureBox()
         Dim_2 = New PictureBox()
         Settings_Panel.SuspendLayout()
-        CType(Box_PNG, ComponentModel.ISupportInitialize).BeginInit()
+        Card_PANEL.SuspendLayout()
+        Session_PANEL.SuspendLayout()
         CType(Dim_Top, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
@@ -49,14 +54,15 @@ Partial Class Base_Connect
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_Panel.Controls.Add(Settings_TEXT)
-        Settings_Panel.Controls.Add(Box_PNG)
-        Settings_Panel.Controls.Add(USERSNAME_TEXT)
-        Settings_Panel.Controls.Add(Account_META)
-        Settings_Panel.Controls.Add(BT_Logout)
         Settings_Panel.Controls.Add(Status_TEXT)
+        Settings_Panel.Controls.Add(Card_PANEL)
+        Settings_Panel.Controls.Add(BT_Devices)
+        Settings_Panel.Controls.Add(BT_Security)
+        Settings_Panel.Controls.Add(BT_Providers)
+        Settings_Panel.Controls.Add(Session_PANEL)
         Settings_Panel.Location = New Point(80, 160)
         Settings_Panel.Name = "Settings_Panel"
-        Settings_Panel.Size = New Size(1760, 568)
+        Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
         ' 
         ' Settings_TEXT
@@ -71,105 +77,152 @@ Partial Class Base_Connect
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Duluka Account"
         ' 
-        ' Box_PNG
-        ' 
-        Box_PNG.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
-        Box_PNG.BackgroundImageLayout = ImageLayout.Zoom
-        Box_PNG.Location = New Point(62, 111)
-        Box_PNG.Name = "Box_PNG"
-        Box_PNG.Size = New Size(96, 96)
-        Box_PNG.TabIndex = 60
-        Box_PNG.TabStop = False
-        Box_PNG.Visible = False
-        ' 
-        ' USERSNAME_TEXT
-        ' 
-        USERSNAME_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        USERSNAME_TEXT.Font = New Font("GeForce", 16F, FontStyle.Bold)
-        USERSNAME_TEXT.ForeColor = Color.White
-        USERSNAME_TEXT.Location = New Point(164, 111)
-        USERSNAME_TEXT.Name = "USERSNAME_TEXT"
-        USERSNAME_TEXT.Size = New Size(121, 29)
-        USERSNAME_TEXT.TabIndex = 61
-        USERSNAME_TEXT.Visible = False
-        ' 
-        ' Account_META
-        ' 
-        Account_META.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Account_META.Font = New Font("Segoe UI", 9.75F)
-        Account_META.ForeColor = Color.Gainsboro
-        Account_META.Location = New Point(164, 160)
-        Account_META.Name = "Account_META"
-        Account_META.Size = New Size(121, 41)
-        Account_META.TabIndex = 62
-        Account_META.Visible = False
-        ' 
-        ' BT_Logout
-        ' 
-        BT_Logout.BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
-        BT_Logout.Cursor = Cursors.Hand
-        BT_Logout.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
-        BT_Logout.ForeColor = Color.White
-        BT_Logout.Location = New Point(62, 460)
-        BT_Logout.Name = "BT_Logout"
-        BT_Logout.Size = New Size(200, 50)
-        BT_Logout.TabIndex = 67
-        BT_Logout.Text = "Sign out"
-        BT_Logout.TextAlign = ContentAlignment.MiddleCenter
-        BT_Logout.Visible = False
-        ' 
         ' Status_TEXT
         ' 
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(62, 780)
+        Status_TEXT.Location = New Point(62, 528)
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(0, 17)
         Status_TEXT.TabIndex = 68
         ' 
+        ' Card_PANEL
+        ' 
+        Card_PANEL.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Card_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Card_PANEL.Controls.Add(Avatar_BOX)
+        Card_PANEL.Controls.Add(USERSNAME_TEXT)
+        Card_PANEL.Controls.Add(Account_META)
+        Card_PANEL.Controls.Add(BT_Logout)
+        Card_PANEL.Location = New Point(62, 130)
+        Card_PANEL.Name = "Card_PANEL"
+        Card_PANEL.Size = New Size(1636, 160)
+        Card_PANEL.TabIndex = 90
+        ' 
+        ' Avatar_BOX
+        ' 
+        Avatar_BOX.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Avatar_BOX.Font = New Font("GeForce", 30F, FontStyle.Bold)
+        Avatar_BOX.ForeColor = Color.White
+        Avatar_BOX.Location = New Point(24, 32)
+        Avatar_BOX.Name = "Avatar_BOX"
+        Avatar_BOX.Size = New Size(96, 96)
+        Avatar_BOX.TabIndex = 91
+        Avatar_BOX.Text = "D"
+        Avatar_BOX.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' USERSNAME_TEXT
+        ' 
+        USERSNAME_TEXT.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        USERSNAME_TEXT.Font = New Font("GeForce", 16F, FontStyle.Bold)
+        USERSNAME_TEXT.ForeColor = Color.White
+        USERSNAME_TEXT.Location = New Point(144, 40)
+        USERSNAME_TEXT.Name = "USERSNAME_TEXT"
+        USERSNAME_TEXT.Size = New Size(900, 36)
+        USERSNAME_TEXT.TabIndex = 92
+        USERSNAME_TEXT.Text = "Duluka Account"
+        ' 
+        ' Account_META
+        ' 
+        Account_META.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Account_META.Font = New Font("Segoe UI", 9.75F)
+        Account_META.ForeColor = Color.Gainsboro
+        Account_META.Location = New Point(144, 86)
+        Account_META.Name = "Account_META"
+        Account_META.Size = New Size(900, 54)
+        Account_META.TabIndex = 93
+        ' 
+        ' BT_Logout
+        ' 
+        BT_Logout.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        BT_Logout.BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
+        BT_Logout.Cursor = Cursors.Hand
+        BT_Logout.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
+        BT_Logout.ForeColor = Color.White
+        BT_Logout.Location = New Point(1412, 55)
+        BT_Logout.Name = "BT_Logout"
+        BT_Logout.Size = New Size(200, 50)
+        BT_Logout.TabIndex = 94
+        BT_Logout.Text = "Sign out"
+        BT_Logout.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' BT_Devices
         ' 
-        BT_Devices.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        BT_Devices.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         BT_Devices.Cursor = Cursors.Hand
-        BT_Devices.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
+        BT_Devices.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Devices.ForeColor = Color.White
-        BT_Devices.Location = New Point(286, 115)
+        BT_Devices.Location = New Point(62, 310)
         BT_Devices.Name = "BT_Devices"
-        BT_Devices.Size = New Size(200, 50)
+        BT_Devices.Size = New Size(534, 64)
         BT_Devices.TabIndex = 64
         BT_Devices.Text = "Devices"
         BT_Devices.TextAlign = ContentAlignment.MiddleCenter
-        BT_Devices.Visible = False
         ' 
         ' BT_Security
         ' 
-        BT_Security.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        BT_Security.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         BT_Security.Cursor = Cursors.Hand
-        BT_Security.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
+        BT_Security.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Security.ForeColor = Color.White
-        BT_Security.Location = New Point(492, 115)
+        BT_Security.Location = New Point(612, 310)
         BT_Security.Name = "BT_Security"
-        BT_Security.Size = New Size(200, 50)
+        BT_Security.Size = New Size(534, 64)
         BT_Security.TabIndex = 65
-        BT_Security.Text = "Sessions & Security"
+        BT_Security.Text = "Sessions && Security"
         BT_Security.TextAlign = ContentAlignment.MiddleCenter
-        BT_Security.Visible = False
         ' 
         ' BT_Providers
         ' 
-        BT_Providers.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        ' NB: no Left/Right anchor here — the action row is laid out in code
+        ' (LayoutRow) so the three buttons always divide the width into exact
+        ' thirds; an anchor would stretch only this button and skew the row.
+        BT_Providers.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         BT_Providers.Cursor = Cursors.Hand
-        BT_Providers.Font = New Font("Segoe UI", 11F, FontStyle.Bold)
+        BT_Providers.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Providers.ForeColor = Color.White
-        BT_Providers.Location = New Point(698, 115)
+        BT_Providers.Location = New Point(1162, 310)
         BT_Providers.Name = "BT_Providers"
-        BT_Providers.Size = New Size(200, 50)
+        BT_Providers.Size = New Size(534, 64)
         BT_Providers.TabIndex = 66
         BT_Providers.Text = "Linked accounts"
         BT_Providers.TextAlign = ContentAlignment.MiddleCenter
-        BT_Providers.Visible = False
+        ' 
+        ' Session_PANEL
+        ' 
+        Session_PANEL.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Session_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Session_PANEL.Controls.Add(Session_TITLE)
+        Session_PANEL.Controls.Add(Session_META)
+        Session_PANEL.Location = New Point(62, 398)
+        Session_PANEL.Name = "Session_PANEL"
+        Session_PANEL.Size = New Size(1636, 110)
+        Session_PANEL.TabIndex = 95
+        ' 
+        ' Session_TITLE
+        ' 
+        Session_TITLE.AutoSize = True
+        Session_TITLE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Session_TITLE.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        Session_TITLE.ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        Session_TITLE.Location = New Point(24, 16)
+        Session_TITLE.Name = "Session_TITLE"
+        Session_TITLE.Size = New Size(113, 15)
+        Session_TITLE.TabIndex = 96
+        Session_TITLE.Text = "CURRENT SESSION"
+        ' 
+        ' Session_META
+        ' 
+        Session_META.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
+        Session_META.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Session_META.Font = New Font("Segoe UI", 9.75F)
+        Session_META.ForeColor = Color.Silver
+        Session_META.Location = New Point(24, 44)
+        Session_META.Name = "Session_META"
+        Session_META.Size = New Size(1588, 44)
+        Session_META.TabIndex = 97
         ' 
         ' Dim_Top
         ' 
@@ -222,14 +275,11 @@ Partial Class Base_Connect
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1070)
-        Controls.Add(BT_Security)
-        Controls.Add(BT_Devices)
         Controls.Add(BT_Back)
-        Controls.Add(Dim_2)
-        Controls.Add(Dim_1)
-        Controls.Add(BT_Providers)
         Controls.Add(Dim_Top)
         Controls.Add(Settings_Panel)
+        Controls.Add(Dim_1)
+        Controls.Add(Dim_2)
         FormBorderStyle = FormBorderStyle.None
         Icon = CType(resources.GetObject("$this.Icon"), Icon)
         Name = "Base_Connect"
@@ -241,7 +291,9 @@ Partial Class Base_Connect
         WindowState = FormWindowState.Maximized
         Settings_Panel.ResumeLayout(False)
         Settings_Panel.PerformLayout()
-        CType(Box_PNG, ComponentModel.ISupportInitialize).EndInit()
+        Card_PANEL.ResumeLayout(False)
+        Session_PANEL.ResumeLayout(False)
+        Session_PANEL.PerformLayout()
         CType(Dim_Top, ComponentModel.ISupportInitialize).EndInit()
         CType(Dim_1, ComponentModel.ISupportInitialize).EndInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).EndInit()
@@ -249,17 +301,21 @@ Partial Class Base_Connect
     End Sub
 
     Friend WithEvents Settings_Panel As Panel
+    Friend WithEvents Card_PANEL As Panel
+    Friend WithEvents Avatar_BOX As Label
+    Friend WithEvents USERSNAME_TEXT As Label
+    Friend WithEvents Account_META As Label
+    Friend WithEvents BT_Logout As Label
+    Friend WithEvents Session_PANEL As Panel
+    Friend WithEvents Session_TITLE As Label
+    Friend WithEvents Session_META As Label
     Friend WithEvents BT_Back As Label
     Friend WithEvents Settings_TEXT As Label
     Friend WithEvents Dim_Top As PictureBox
     Friend WithEvents Dim_1 As PictureBox
     Friend WithEvents Dim_2 As PictureBox
-    Friend WithEvents Box_PNG As PictureBox
-    Friend WithEvents USERSNAME_TEXT As Label
-    Friend WithEvents Account_META As Label
     Friend WithEvents BT_Devices As Label
     Friend WithEvents BT_Security As Label
     Friend WithEvents BT_Providers As Label
-    Friend WithEvents BT_Logout As Label
     Friend WithEvents Status_TEXT As Label
 End Class

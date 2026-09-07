@@ -158,6 +158,9 @@ Friend Module DulukaApi
     ' fall back to the HTTP class (§7.2 unknown-code rule).</summary>
     Public Function HumanError(r As Result) As String
         If r.ErrorCode = "error.client.env" Then Return r.Message
+        If r.ErrorCode = "github_not_configured" Then
+            Return "GitHub sign-in is not configured on the Duluka server — the client secret is missing."
+        End If
         If r.HttpStatus = 429 Then Return "Too many requests. Please wait and try again."
         Dim code As String = If(String.IsNullOrEmpty(r.ErrorCode), "error." & r.HttpStatus.ToString(), r.ErrorCode)
         Dim message As String = If(String.IsNullOrEmpty(r.Message), "", " — " & r.Message)
