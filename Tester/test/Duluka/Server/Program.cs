@@ -52,6 +52,7 @@ internal static class Program
         Run("NATIVE-2: duplicate username across case variants rejected (DB unique)", Test_NativeDuplicateUsername);
         Run("NATIVE-3: invalid username/password rejected deterministically", Test_NativeValidation);
         Run("NATIVE-4: login success — case-insensitive username, session valid", Test_NativeLogin);
+        Run("NATIVE-4B: same credentials + new device → same account, second device", Test_NativeMultiDeviceLogin);
         Run("NATIVE-5: wrong password and unknown username = SAME generic failure", Test_NativeGenericFailure);
         Run("NATIVE-6: password verifier at rest — PBKDF2, salted, never plaintext", Test_NativeHashAtRest);
         Run("NATIVE-7: second login on same device supersedes prior session (§5.2)", Test_NativeSessionSupersede);
@@ -60,12 +61,21 @@ internal static class Program
         Run("NATIVE-12: cross-account device-key register → refused, NO orphan account/credential", Test_NativeRegisterNoOrphanOnDeviceConflict);
         Run("LOGIN-5: unknown identity + foreign device key → refused, NO orphan account/link", Test_LoginOrLinkNoOrphanOnDeviceConflict);
         Run("NATIVE-13: provider-only account adopts username+password, trap released", Test_NativeAdoptPassword);
+        Run("SETUP-1: GitHub bootstrap → forced-setup path → native login, SAME account", Test_SetupBootstrapFlow);
+        Run("SETUP-2: username immutable — second adoption refused, password change still works", Test_SetupUsernameImmutable);
+        Run("SETUP-3: setup refuses taken/invalid usernames and weak passwords", Test_SetupValidation);
+        Run("SETUP-4: /me username surface flips only after setup (client gate fact)", Test_SetupMeUsernameSurface);
         Run("NATIVE-10: suspended account cannot login (perm.account_suspended)", Test_NativeSuspended);
         Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
         Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
         Run("SCHEMA-2: v2-shaped database migrates to v3 additively, rows survive", Test_SchemaV3Migration);
         Run("DELETE-1: cascade removes account + dependents, every anchor freed", Test_AccountDeletionCascade);
         Run("DELETE-2: password-protected deletion demands the current password", Test_AccountDeletionPasswordProof);
+        Run("PROFILE-1: display name update persists (trimmed)", Test_ProfileDisplayName);
+        Run("PROFILE-2: profile image data URL persists + clears", Test_ProfileImage);
+        Run("PROFILE-3: profile edit preserves account identity + live session", Test_ProfileIdentityPreserved);
+        Run("PROFILE-4: ProfilePolicy validation matrix", Test_ProfilePolicyMatrix);
+        Run("SCHEMA-3: v3-shaped database migrates to v4 additively, rows survive", Test_SchemaV4Migration);
         RunHttpIntegrationTests();
         RunCwdIndependenceTests();
 
@@ -798,6 +808,39 @@ internal static class Program
         finally { f.Dispose(); }
     }
 
+    private static void Test_NativeMultiDeviceLogin()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (_, hashA) = NewDeviceKey();
+            var (account, deviceA) = f.Native.Register("Alice", "correct-horse-1", hashA, "device-a");
+
+            var (_, hashB) = NewDeviceKey();
+            var (loginAccount, deviceB) = f.Native.Login("alice", "correct-horse-1", hashB, "device-b");
+
+            Assert(!string.Equals(hashA, hashB, StringComparison.Ordinal), "independent device keys differ");
+            Assert(loginAccount.AccountId == account.AccountId, "new-device login reaches the original account");
+            Assert(deviceB.DeviceId != deviceA.DeviceId, "new-device login creates a distinct device");
+            Assert(f.Db.DevicesForAccount(account.AccountId).Count == 2,
+                "the account owns both devices");
+
+            var (_, otherAccountDeviceKey) = NewDeviceKey();
+            var other = f.Native.Register("Bob", "correct-horse-1", otherAccountDeviceKey, "device-other");
+            var devicesBeforeCollision = f.Db.DevicesForAccount(other.Account.AccountId).Count;
+            var threw = false;
+            try { f.Native.Login("bob", "correct-horse-1", hashA, "device-reused"); }
+            catch (InvalidOperationException ex) { threw = ex.Message == "device_key_in_use"; }
+            Assert(threw, "a key owned by another account remains guarded");
+            Assert(other.Account.AccountId != account.AccountId, "guard test uses a separate account");
+            Assert(f.Db.DevicesForAccount(other.Account.AccountId).Count == devicesBeforeCollision,
+                "cross-account collision created an orphan device");
+            Assert(f.Sessions.Validate("duluka_st_collision") is null,
+                "cross-account collision created a session");
+        }
+        finally { f.Dispose(); }
+    }
+
     private static void Test_NativeGenericFailure()
     {
         var f = NewFixture();
@@ -1035,6 +1078,159 @@ internal static class Program
         finally { f.Dispose(); }
     }
 
+    /// <summary>SETUP-1 — the exact data path the client's forced first-time
+    /// setup flow walks: a GitHub-bootstrapped account (no native credential)
+    /// adopts a permanent username + first password, then signs in with those
+    /// credentials onto the SAME account (no duplicate account is created).</summary>
+    private static void Test_SetupBootstrapFlow()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9201, "bootstrapper");
+            var (link, account, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+
+            // The /me username surface (FindNativeCredentialByAccount) is what
+            // the client reads: null → "" → provider-only → forced setup.
+            Assert(f.Db.FindNativeCredentialByAccount(account.AccountId) is null,
+                "bootstrap account exposes NO username before setup");
+
+            f.Native.SetInitialPassword(account.AccountId, "Boot.User", "bootstrap-pass-1");
+
+            var credential = f.Db.FindNativeCredentialByAccount(account.AccountId);
+            Assert(credential is not null, "setup created the native credential");
+            Assert(credential!.UsernameDisplay == "Boot.User", "display username preserved verbatim");
+            Assert(credential.UsernameCanonical == "boot.user", "canonical username is lowercased");
+
+            // Username + password sign-in reaches the SAME account.
+            var (loginAccount, _) = f.Native.Login("BOOT.USER", "bootstrap-pass-1", hash, "dev");
+            Assert(loginAccount.AccountId == account.AccountId,
+                "native login lands on the SAME bootstrap account (no duplicate)");
+
+            // And the provider identity still resolves to that same account.
+            var (_, relinkAccount, existed) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+            Assert(existed, "re-login reports the account as existing");
+            Assert(relinkAccount.AccountId == account.AccountId, "provider path hits the same account");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-2 — USERNAME IMMUTABILITY: a second adoption on the same
+    /// account is refused (credential_exists → the wire maps it to 409), the
+    /// display username is unchanged, and the password can still be changed
+    /// through the authenticated change path (with the current password).</summary>
+    private static void Test_SetupUsernameImmutable()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9202, "immutable");
+            var (_, account, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+            f.Native.SetInitialPassword(account.AccountId, "keeper", "first-pass-123");
+
+            var refused = false;
+            try { f.Native.SetInitialPassword(account.AccountId, "renamed", "second-pass-456"); }
+            catch (InvalidOperationException ex) { refused = ex.Message == "credential_exists"; }
+            Assert(refused, "second adoption must be refused with credential_exists");
+
+            var credential = f.Db.FindNativeCredentialByAccount(account.AccountId);
+            Assert(credential!.UsernameDisplay == "keeper", "username unchanged after refused adoption");
+
+            var wrongCurrent = false;
+            try { f.Native.ChangePassword(account.AccountId, "wrong-current-1", Secrets.HashPassword("changed-pass-99")); }
+            catch (InvalidOperationException ex) { wrongCurrent = ex.Message == "invalid_credentials"; }
+            Assert(wrongCurrent, "password change still requires the CURRENT password");
+
+            f.Native.ChangePassword(account.AccountId, "first-pass-123", Secrets.HashPassword("changed-pass-99"));
+            var newPwWorks = false;
+            try { f.Native.Login("keeper", "changed-pass-99", hash, "dev"); newPwWorks = true; } catch { }
+            Assert(newPwWorks, "changed password signs in");
+            var oldPwDead = false;
+            try { f.Native.Login("keeper", "first-pass-123", hash, "dev"); }
+            catch (InvalidOperationException ex) { oldPwDead = ex.Message == "invalid_credentials"; }
+            Assert(oldPwDead, "old password is dead after the change");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-3 — validation around first-time setup: the username
+    /// policy the client mirrors, uniqueness against NATIVE accounts too, and
+    /// password-length bounds.</summary>
+    private static void Test_SetupValidation()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Username policy the setup form mirrors client-side.
+            Assert(!UsernamePolicy.IsValidFormat("ab"), "below 3 chars rejected");
+            Assert(!UsernamePolicy.IsValidFormat(new string('a', 33)), "above 32 chars rejected");
+            Assert(!UsernamePolicy.IsValidFormat("bad name"), "space rejected");
+            Assert(!UsernamePolicy.IsValidFormat("bad!name"), "symbol rejected");
+            Assert(UsernamePolicy.IsValidFormat("ok.name-1_x"), "charset letters/digits/dot/underscore/hyphen accepted");
+            Assert(!UsernamePolicy.IsValidPassword("short"), "password below 8 rejected");
+            Assert(UsernamePolicy.IsValidPassword(new string('p', 8)), "password at 8 accepted");
+
+            var (key, hash) = NewDeviceKey();
+            var (nativeAccount, _) = f.Native.Register("resident", "resident-pass-1", hash, "dev");
+
+            // A bootstrap account adopting a NATIVE account's username is a
+            // duplicate — refused with username_taken (unique index).
+            var (k2, h2) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9203, "newcomer");
+            var (_, bootstrap, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), h2, "dev-2");
+            var taken = false;
+            try { f.Native.SetInitialPassword(bootstrap.AccountId, "RESIDENT", "adopted-pass-1"); }
+            catch (InvalidOperationException ex) { taken = ex.Message == "username_taken"; }
+            Assert(taken, "adopting a native account's username is refused (canonical match)");
+            Assert(f.Db.FindNativeCredentialByAccount(bootstrap.AccountId) is null,
+                "refused adoption leaves NO credential behind");
+
+            // And the refused attempt did not disturb the resident account.
+            var stillIn = false;
+            try { f.Native.Login("resident", "resident-pass-1", hash, "dev"); stillIn = true; } catch { }
+            Assert(stillIn, "resident account unaffected by refused adoption");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-4 — the client gate fact: the username surfaced by /me
+    /// is EMPTY for a fresh GitHub bootstrap (→ forced setup) and populated
+    /// once the first-time setup completes; the session issued BEFORE setup
+    /// stays valid throughout (no re-login required to finish setup).</summary>
+    private static void Test_SetupMeUsernameSurface()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9204, "surfacetest");
+            var (_, account, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+            var device = f.Db.FindDeviceByKeyHash(hash)!;
+            var (token, session) = f.Sessions.Create(account.AccountId, device.DeviceId, viaLinkId: null);
+            Assert(!string.IsNullOrEmpty(token), "bootstrap session issued");
+
+            Assert(f.Db.FindNativeCredentialByAccount(account.AccountId)?.UsernameDisplay is null,
+                "username surface empty before setup (client forced-setup condition)");
+
+            f.Native.SetInitialPassword(account.AccountId, "surface.user", "surface-pass-1");
+
+            Assert(f.Db.FindNativeCredentialByAccount(account.AccountId)?.UsernameDisplay == "surface.user",
+                "username surface populated after setup");
+
+            // The pre-setup session is untouched by credential creation.
+            Assert(f.Sessions.Validate(token) is not null, "session issued before setup still validates");
+            Assert(session.ExpiresAt > DateTimeOffset.UtcNow, "session expiry in the future");
+        }
+        finally { f.Dispose(); }
+    }
+
     private static void Test_NativeSuspended()
     {
         var f = NewFixture();
@@ -1243,6 +1439,164 @@ internal static class Program
         cmd.ExecuteNonQuery();
     }
 
+    // ─── profile: display name / profile image (presentation surface) ──────
+
+    private static string TinyPngDataUrl() =>
+        "data:image/png;base64," + Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+
+    /// <summary>Fixture with a native account, its device and a live session —
+    /// the profile surface's precondition is an authenticated account.</summary>
+    private static (Fixture F, string Token, string AccountId, string DeviceId) NewNativeSessionFixture()
+    {
+        var f = NewFixture();
+        var (account, device) = f.Native.Register("profiley", "correct-horse-1",
+            Secrets.Sha256Hex("devk-profile-1"), "prof-dev");
+        var (token, _) = f.Sessions.Create(account.AccountId, device.DeviceId, null);
+        return (f, token, account.AccountId, device.DeviceId);
+    }
+
+    private static void Test_ProfileDisplayName()
+    {
+        var (f, _, accountId, _) = NewNativeSessionFixture();
+        try
+        {
+            // The endpoint trims before persisting (Program.cs); the data layer
+            // stores the profile verbatim — that contract is pinned here.
+            f.Db.UpdateAccountProfile(accountId, "Prof  Al", TinyPngDataUrl());
+            var reloaded = f.Db.GetAccount(accountId);
+            Assert(reloaded is not null, "account still present after profile update");
+            Assert(reloaded!.DisplayName == "Prof  Al", "display name persisted verbatim");
+            Assert(reloaded.UpdatedAt >= reloaded.CreatedAt, "UpdatedAt advanced past CreatedAt");
+
+            // Empty display name = clear (deterministic overwrite, no merge;
+            // the endpoint maps whitespace input to null before this layer).
+            f.Db.UpdateAccountProfile(accountId, null, TinyPngDataUrl());
+            Assert(f.Db.GetAccount(accountId)!.DisplayName is null,
+                "null display name clears the field");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_ProfileImage()
+    {
+        var (f, _, accountId, _) = NewNativeSessionFixture();
+        try
+        {
+            var url = TinyPngDataUrl();
+            f.Db.UpdateAccountProfile(accountId, "P", url);
+            Assert(f.Db.GetAccount(accountId)!.ProfileImage == url,
+                "profile image data URL persisted verbatim");
+
+            f.Db.UpdateAccountProfile(accountId, "P", null);
+            Assert(f.Db.GetAccount(accountId)!.ProfileImage is null,
+                "null clears the profile image");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_ProfileIdentityPreserved()
+    {
+        var (f, token, accountId, deviceId) = NewNativeSessionFixture();
+        try
+        {
+            var before = f.Db.GetAccount(accountId)!;
+            var credBefore = f.Db.FindNativeCredentialByAccount(accountId)!;
+            var devicesBefore = f.Db.DevicesForAccount(accountId).Count;
+
+            f.Db.UpdateAccountProfile(accountId, "Renamed Person", TinyPngDataUrl());
+
+            var after = f.Db.GetAccount(accountId)!;
+            var credAfter = f.Db.FindNativeCredentialByAccount(accountId)!;
+            Assert(after.AccountId == before.AccountId, "AccountId unchanged");
+            Assert(after.Status == before.Status, "Status unchanged");
+            Assert(after.CreatedAt == before.CreatedAt, "CreatedAt unchanged");
+            Assert(credAfter.UsernameCanonical == credBefore.UsernameCanonical,
+                "username anchor unchanged by a profile edit");
+            Assert(credAfter.UsernameDisplay == credBefore.UsernameDisplay,
+                "username display unchanged by a profile edit");
+            Assert(f.Db.DevicesForAccount(accountId).Count == devicesBefore, "device rows untouched");
+            Assert(f.Db.DevicesForAccount(accountId).Single().DeviceId == deviceId, "same device remains");
+            Assert(f.Sessions.Validate(token) is not null, "the live session survives a profile edit");
+            Assert(after.DisplayName == "Renamed Person", "only the profile fields changed");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_ProfilePolicyMatrix()
+    {
+        var png = TinyPngDataUrl();
+        // Display name.
+        Assert(ProfilePolicy.IsValidDisplayName(null), "null display name = clear");
+        Assert(ProfilePolicy.IsValidDisplayName(""), "empty display name = clear");
+        Assert(ProfilePolicy.IsValidDisplayName("   "), "whitespace display name = clear");
+        Assert(ProfilePolicy.IsValidDisplayName("Alice"), "plain display name valid");
+        Assert(ProfilePolicy.IsValidDisplayName(new string('a', ProfilePolicy.MaxDisplayNameLength)),
+            "64-char display name valid");
+        Assert(!ProfilePolicy.IsValidDisplayName(new string('a', ProfilePolicy.MaxDisplayNameLength + 1)),
+            "65-char display name rejected");
+        Assert(!ProfilePolicy.IsValidDisplayName("bad\nname"), "control characters rejected");
+
+        // Profile image.
+        Assert(ProfilePolicy.IsValidProfileImage(null), "null image = clear");
+        Assert(ProfilePolicy.IsValidProfileImage(""), "empty image = clear");
+        Assert(ProfilePolicy.IsValidProfileImage(png), "png data URL valid");
+        Assert(ProfilePolicy.IsValidProfileImage("data:image/jpeg;base64," + Convert.ToBase64String(new byte[] { 1, 2, 3 })),
+            "jpeg accepted");
+        Assert(ProfilePolicy.IsValidProfileImage("data:image/webp;base64," + Convert.ToBase64String(new byte[] { 1 })),
+            "webp accepted");
+        Assert(!ProfilePolicy.IsValidProfileImage("data:image/svg+xml;base64,AAAA"),
+            "svg refused (scriptable)");
+        Assert(!ProfilePolicy.IsValidProfileImage("data:image/png;base64,"), "empty payload refused");
+        Assert(!ProfilePolicy.IsValidProfileImage("data:image/png;base64,!!!not-base64!!!"),
+            "non-base64 payload refused");
+        Assert(!ProfilePolicy.IsValidProfileImage("http://example.test/avatar.png"),
+            "remote URL refused");
+        var overCap = "data:image/png;base64," + new string('A', (ProfilePolicy.MaxProfileImageBytes / 3 + 1) * 4 + 8);
+        Assert(!ProfilePolicy.IsValidProfileImage(overCap),
+            "oversized payload refused before decode");
+    }
+
+    private static void Test_SchemaV4Migration()
+    {
+        // Build a CURRENT database, then rewind it to the v3 shape (drop the
+        // ProfileImage column + the v4 marker). Re-opening must re-apply the
+        // v4 ALTER additively — accounts/credentials/devices survive untouched.
+        var dbPath = Path.Combine(Path.GetTempPath(), $"duluka-test-{Guid.NewGuid():N}.db");
+        var db = new Database(dbPath, NullLogger<Database>.Instance);
+        db.Bootstrap();
+        var (_, hash) = NewDeviceKey();
+        var account = db.CreateNativeAccount("migrate4", "Migrate Four", Secrets.HashPassword("correct-horse-1"));
+        db.CreateDevice(account.AccountId, "dev", hash);
+        db.UpdateAccountProfile(account.AccountId, "Pre", TinyPngDataUrl());
+        db.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        ExecRaw(dbPath, "DELETE FROM SchemaHistory WHERE Version=4");
+        ExecRaw(dbPath, "ALTER TABLE DulukaAccount DROP COLUMN ProfileImage");
+
+        var db2 = new Database(dbPath, NullLogger<Database>.Instance);
+        db2.Bootstrap();
+        try
+        {
+            var reloaded = db2.GetAccount(account.AccountId);
+            Assert(reloaded is not null, "account survives the v4 migration");
+            Assert(reloaded!.ProfileImage is null,
+                "profile image column re-created empty (the column was dropped with the rewind)");
+            Assert(db2.FindNativeCredentialByUsername("migrate4") is not null,
+                "credential untouched by the migration");
+            Assert(db2.DevicesForAccount(account.AccountId).Count == 1, "device untouched by the migration");
+
+            // The migrated store is fully profile-capable again.
+            db2.UpdateAccountProfile(account.AccountId, "Post", TinyPngDataUrl());
+            Assert(db2.GetAccount(account.AccountId)!.ProfileImage == TinyPngDataUrl(),
+                "profile writes work after the migration");
+        }
+        finally
+        {
+            db2.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            Cleanup(dbPath);
+        }
+    }
+
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 
     // ─── HTTP integration: the §7.1 wire contract against the REAL server ───
@@ -1361,7 +1715,59 @@ internal static class Program
                     "reserved provider code on the wire");
             });
 
-            Run("HTTP-INT-4: rate limiter answers with the §7.1 envelope (429)", () =>
+            Run("HTTP-INT-4: native multi-device + foreign-key conflict has no orphan/session", () =>
+            {
+                const string password = "native-http-pass-123";
+                const string keyA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+                const string keyB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+                const string keyC = "cccccccccccccccccccccccccccccccccccccccccccccccc";
+                using var registerA = PostJson(http, "/v1/auth/register", "reqid-http-int-4a",
+                    $$"""{"username":"alice-http","password":"{{password}}","deviceKey":"{{keyA}}","deviceName":"client-a"}""");
+                using var registerADoc = JsonDocument.Parse(registerA.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var accountA = registerADoc.RootElement.GetProperty("resource").GetProperty("accountId").GetString();
+                var deviceA = registerADoc.RootElement.GetProperty("resource").GetProperty("deviceId").GetString();
+
+                using var loginB = PostJson(http, "/v1/auth/login", "reqid-http-int-4b",
+                    $$"""{"username":"alice-http","password":"{{password}}","deviceKey":"{{keyB}}","deviceName":"client-b"}""");
+                using var loginBDoc = JsonDocument.Parse(loginB.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var loginAccount = loginBDoc.RootElement.GetProperty("resource").GetProperty("accountId").GetString();
+                var deviceB = loginBDoc.RootElement.GetProperty("resource").GetProperty("deviceId").GetString();
+                Assert(accountA == loginAccount && deviceA != deviceB,
+                    "same native credentials must resolve one account with a new device");
+
+                using var registerOther = PostJson(http, "/v1/auth/register", "reqid-http-int-4c",
+                    $$"""{"username":"bob-http","password":"{{password}}","deviceKey":"{{keyC}}","deviceName":"other"}""");
+                using var otherDoc = JsonDocument.Parse(registerOther.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var otherToken = otherDoc.RootElement.GetProperty("resource").GetProperty("sessionToken").GetString()!;
+                using var devicesBeforeRequest = new HttpRequestMessage(HttpMethod.Get, "/v1/account/devices");
+                devicesBeforeRequest.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", otherToken);
+                using var devicesBefore = http.SendAsync(devicesBeforeRequest).GetAwaiter().GetResult();
+                using var devicesBeforeDoc = JsonDocument.Parse(
+                    devicesBefore.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var deviceCountBefore = devicesBeforeDoc.RootElement.GetProperty("resource")
+                    .GetProperty("devices").GetArrayLength();
+
+                using var collision = PostJson(http, "/v1/auth/login", "reqid-http-int-4d",
+                    $$"""{"username":"bob-http","password":"{{password}}","deviceKey":"{{keyA}}","deviceName":"collision"}""");
+                var collisionBody = collision.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert((int)collision.StatusCode == 409, "foreign device key must return HTTP 409");
+                using var collisionDoc = JsonDocument.Parse(collisionBody);
+                Assert(collisionDoc.RootElement.GetProperty("errorCode").GetString() == "conflict.link_conflict",
+                    "foreign device key must return conflict.link_conflict");
+                Assert(!collisionDoc.RootElement.TryGetProperty("resource", out _),
+                    "conflicting login must not return a session resource");
+                using var devicesAfterRequest = new HttpRequestMessage(HttpMethod.Get, "/v1/account/devices");
+                devicesAfterRequest.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", otherToken);
+                using var devicesAfter = http.SendAsync(devicesAfterRequest).GetAwaiter().GetResult();
+                using var devicesAfterDoc = JsonDocument.Parse(
+                    devicesAfter.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                Assert(devicesAfterDoc.RootElement.GetProperty("resource").GetProperty("devices").GetArrayLength() == deviceCountBefore,
+                    "conflicting login must not create an orphan device");
+            });
+
+            Run("HTTP-INT-5: rate limiter answers with the §7.1 envelope (429)", () =>
             {
                 var saw429 = false;
                 for (var i = 0; i < 14 && !saw429; i++)
@@ -1379,6 +1785,23 @@ internal static class Program
                     Assert(root.GetProperty("reqId").GetString() == $"reqid-http-int-4-{i}", "429 echoes reqId");
                 }
                 Assert(saw429, "expected ≥1 429 within the fixed 10/min auth-start window");
+            });
+            Run("HTTP-INT-5: PUT /v1/account/profile unauthenticated → 401 envelope", () =>
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Put, "/v1/account/profile")
+                {
+                    Content = new StringContent("""{"displayName":"X"}""", Encoding.UTF8, "application/json"),
+                };
+                req.Headers.Add("X-ReqId", "reqid-http-int-5");
+                using var resp = http.SendAsync(req).GetAwaiter().GetResult();
+                var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert((int)resp.StatusCode == 401, $"expected 401, got {(int)resp.StatusCode}: {body}");
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                Assert(!root.GetProperty("ok").GetBoolean(), "ok=false on the profile surface too");
+                Assert(root.GetProperty("errorCode").GetString() == "auth.session_expired",
+                    "registry 401 code on the profile surface");
+                Assert(root.GetProperty("reqId").GetString() == "reqid-http-int-5", "reqId echoed");
             });
         }
         finally

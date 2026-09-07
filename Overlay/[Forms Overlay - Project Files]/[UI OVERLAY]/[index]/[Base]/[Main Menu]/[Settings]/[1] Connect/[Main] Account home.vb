@@ -53,20 +53,23 @@ Public Class Base_Connect
     End Sub
 
     ''' <summary>The action row divides the panel content width (62px margins)
-    ' into three equal buttons with 16px gaps — recomputed on every resize so
-    ' the row tracks the panel width exactly (anchors cannot make thirds).
-    ' At the design width (panel 1760) this computes the Designer values.</summary>
+    ' into FOUR equal buttons (Devices / Security / Providers / Edit Profile)
+    ' with 16px gaps — recomputed on every resize so the row tracks the panel
+    ' width exactly (anchors cannot make quarters). At the design width (panel
+    ' 1760) this computes the Designer values.</summary>
     Private Sub LayoutRow()
         Dim contentW As Integer = Settings_Panel.Width - 124
         If contentW <= 0 Then Return
         Dim gap As Integer = 16
-        Dim bw As Integer = (contentW - 2 * gap) \ 3
-        If bw < 200 Then bw = 200 ' below this the captions clip
+        Dim bw As Integer = (contentW - 3 * gap) \ 4
+        If bw < 180 Then bw = 180 ' below this the captions clip
         BT_Devices.Width = bw
         BT_Security.Location = New Point(62 + bw + gap, BT_Security.Top)
         BT_Security.Width = bw
         BT_Providers.Location = New Point(62 + 2 * (bw + gap), BT_Providers.Top)
         BT_Providers.Width = bw
+        BT_EditProfile.Location = New Point(62 + 3 * (bw + gap), BT_EditProfile.Top)
+        BT_EditProfile.Width = bw
     End Sub
 
     Private Sub Settings_Panel_Resize(sender As Object, e As EventArgs) Handles Settings_Panel.Resize
@@ -104,10 +107,13 @@ Public Class Base_Connect
         Dim name As String = store.DisplayName
         USERSNAME_TEXT.Text = If(name <> "", name, "Duluka Account")
         Avatar_BOX.Text = If(name <> "", name.Substring(0, 1).ToUpperInvariant(), "D")
+        RenderAvatar(store.ProfileImage)
 
         Dim meta As String = ""
         If store.Username <> "" Then
             meta &= "Username  " & store.Username & Environment.NewLine
+        Else
+            meta &= "Username  (not set up yet)" & Environment.NewLine
         End If
         meta &= "Account  " & If(store.AccountId <> "", store.AccountId, "—") & Environment.NewLine &
                 "This device  " & If(store.DeviceName <> "", store.DeviceName, "—")
@@ -126,10 +132,18 @@ Public Class Base_Connect
         BT_Providers.Visible = True
         BT_Logout.Visible = True
         Session_PANEL.Visible = True
+        ' First-time setup nudge: a GitHub-bootstrapped account has no native
+        ' username/password yet — keep the setup offer on screen until done.
+        ' The Setup page itself re-gates (it never renders for an account that
+        ' already has a username), so the nudge cannot overstay its welcome.
+        Nudge_PANEL.Visible = (store.Username = "")
     End Sub
 
     ''' <summary>Server-truth refresh of the identity card. Keeps the cached
-    ' profile on transient errors; a 401 is terminal and signs out locally.</summary>
+    ' profile on transient errors; a 401 is terminal and signs out locally.
+    ' When the FORCED-SETUP gate is armed (right after a provider login) and
+    ' /me reports no native username, the Setup page replaces this one —
+    ' exactly once per login, so Back can return without a bounce loop.</summary>
     Private Async Sub RefreshAccountAsync()
         If _meInFlight Then Return
         If Not DulukaAccountStore.Instance.HasSession Then Return
@@ -143,15 +157,17 @@ Public Class Base_Connect
             If r.Ok AndAlso r.Resource IsNot Nothing Then
                 Dim displayName As String = ResourceText(r.Resource, "displayName")
                 Dim username As String = ResourceText(r.Resource, "username")
-                DulukaAccountStore.Instance.SetProfile(displayName, username)
+                Dim profileImage As String = ResourceText(r.Resource, "profileImage")
+                DulukaAccountStore.Instance.SetProfileWithImage(displayName, username, profileImage)
                 RenderState()
                 Status_TEXT.Text = ""
-                If username = "" Then
-                    ' Server truth: this account still has NO native
-                    ' credential (username comes back null on /me) — the
-                    ' first-time Account Setup is REQUIRED. This also catches
-                    ' a stale local store claiming otherwise.
-                    ForwardToSetup()
+
+                Dim gateArmed As Boolean = _setupGateArmed
+                _setupGateArmed = False
+                If gateArmed AndAlso username = "" Then
+                    Me.Hide()
+                    Base_Connect_Setup.Show()
+                    Return
                 End If
             ElseIf r.AuthDead Then
                 DulukaAccountStore.Instance.ClearSession()
@@ -164,6 +180,28 @@ Public Class Base_Connect
         Finally
             _meInFlight = False
         End Try
+    End Sub
+
+    ' ── forced first-time setup gate ────────────────────────────────────────
+
+    ''' <summary>Armed ONLY by the provider-login path (Login flow). A GitHub
+    ' bootstrap lands on Account home first; when /me confirms the account is
+    ' provider-only, the Setup page is force-opened (once per login — the
+    ' user may defer with Back, the nudge stays until the username exists).</summary>
+    Private _setupGateArmed As Boolean
+
+    Friend Sub ArmForcedSetupGate()
+        _setupGateArmed = True
+    End Sub
+
+    ' ── avatar rendering ──────────────────────────────────────────────────
+
+    ''' <summary>Show the profile image when it decodes; the letter avatar is
+    ' the fallback for "no image" AND for a corrupt value — a bad avatar can
+    ' never blank the identity card. The previous bitmap is disposed so rapid
+    ' re-renders do not accumulate GDI+ handles.</summary>
+    Private Sub RenderAvatar(dataUrl As String)
+        DulukaAvatar.SetPreview(Avatar_PICTURE, dataUrl, Avatar_BOX)
     End Sub
 
     ' ── navigation ──────────────────────────────────────────────────────────
@@ -185,6 +223,14 @@ Public Class Base_Connect
 
     Private Sub BT_Providers_Click(sender As Object, e As EventArgs) Handles BT_Providers.Click
         OpenSubPage(Base_Connect_Providers)
+    End Sub
+
+    Private Sub BT_SetupNow_Click(sender As Object, e As EventArgs) Handles BT_SetupNow.Click
+        OpenSubPage(Base_Connect_Setup)
+    End Sub
+
+    Private Sub BT_EditProfile_Click(sender As Object, e As EventArgs) Handles BT_EditProfile.Click
+        OpenSubPage(Base_Connect_Profile)
     End Sub
 
     Friend Sub OpenSubPage(target As Form)

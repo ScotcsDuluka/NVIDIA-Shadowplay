@@ -45,7 +45,7 @@ public sealed class Database : IAsyncDisposable
         pragma.ExecuteNonQuery();
     }
 
-    public const int SchemaVersion = 3;
+    public const int SchemaVersion = 4;
 
     private static readonly string[] Ddl =
     {
@@ -60,7 +60,8 @@ public sealed class Database : IAsyncDisposable
             Status TEXT NOT NULL DEFAULT 'Active',
             DisplayName TEXT,
             CreatedAt TEXT NOT NULL,
-            UpdatedAt TEXT NOT NULL)
+            UpdatedAt TEXT NOT NULL,
+            ProfileImage TEXT)
         """,
         // NOTE: no table-level UNIQUE(ProviderKey, ProviderUserId) — the anchor
         // is enforced by the PARTIAL unique index below (Active rows only), so
@@ -172,6 +173,19 @@ public sealed class Database : IAsyncDisposable
             MarkSchemaVersion(3);
         }
 
+        // v3 → v4: account profile surface (ProfileImage). Purely additive —
+        // a single nullable column on DulukaAccount; identity, links, devices
+        // and sessions are untouched. Fresh databases already got the column
+        // from the DDL above, so the ALTER only fires on upgraded stores.
+        if (GetSchemaVersion() < 4)
+        {
+            if (!AccountTableHasColumn("ProfileImage"))
+            {
+                Exec("ALTER TABLE DulukaAccount ADD COLUMN ProfileImage TEXT");
+            }
+            MarkSchemaVersion(4);
+        }
+
         using (var cmd = _conn.CreateCommand())
         {
             cmd.CommandText = """
@@ -206,6 +220,14 @@ public sealed class Database : IAsyncDisposable
         cmd.CommandText = "SELECT sql FROM sqlite_master WHERE type='table' AND name='AccountProviderLink'";
         return cmd.ExecuteScalar() is string sql
                && sql.Contains("UNIQUE(ProviderKey, ProviderUserId)", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private bool AccountTableHasColumn(string columnName)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandText = "SELECT COUNT(*) FROM pragma_table_info('DulukaAccount') WHERE name=$n";
+        cmd.Parameters.AddWithValue("$n", columnName);
+        return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
     }
 
     private void RebuildLinkTableWithoutTableUnique()
@@ -284,7 +306,7 @@ public sealed class Database : IAsyncDisposable
     public DulukaAccount? GetAccount(string accountId)
     {
         using var cmd = _conn.CreateCommand();
-        cmd.CommandText = "SELECT AccountId, Status, DisplayName, CreatedAt, UpdatedAt FROM DulukaAccount WHERE AccountId=$id";
+        cmd.CommandText = "SELECT AccountId, Status, DisplayName, CreatedAt, UpdatedAt, ProfileImage FROM DulukaAccount WHERE AccountId=$id";
         cmd.Parameters.AddWithValue("$id", accountId);
         using var r = cmd.ExecuteReader();
         return r.Read() ? MapAccount(r) : null;
@@ -292,7 +314,23 @@ public sealed class Database : IAsyncDisposable
 
     private static DulukaAccount MapAccount(SqliteDataReader r) => new(
         r.GetString(0), r.GetString(1), r.IsDBNull(2) ? null : r.GetString(2),
-        DateTimeOffset.Parse(r.GetString(3)), DateTimeOffset.Parse(r.GetString(4)));
+        DateTimeOffset.Parse(r.GetString(3)), DateTimeOffset.Parse(r.GetString(4)),
+        r.IsDBNull(5) ? null : r.GetString(5));
+
+    /// <summary>
+    /// Update ONLY the profile presentation fields (DisplayName, ProfileImage).
+    /// Identity (AccountId/Status/CreatedAt), the username credential and every
+    /// device/session row are deliberately OUTSIDE this statement — a profile
+    /// edit can never re-key an account or disturb its sessions.
+    /// </summary>
+    public void UpdateAccountProfile(string accountId, string? displayName, string? profileImage)
+    {
+        Exec("UPDATE DulukaAccount SET DisplayName=$dn, ProfileImage=$pi, UpdatedAt=$ua WHERE AccountId=$id",
+            ("$dn", (object?)displayName ?? DBNull.Value),
+            ("$pi", (object?)profileImage ?? DBNull.Value),
+            ("$ua", DateTimeOffset.UtcNow.ToString("o")),
+            ("$id", accountId));
+    }
 
     // ─── Native credentials ─────────────────────────────────────────────────
 

@@ -326,7 +326,14 @@ Namespace CaptureEngine.Recording
                 }
             Finally
                 SyncLock _sync
-                    _state = RecordingEngineState.Idle
+                    ' A timed-out Dispose leaves disposal pending while the
+                    ' session unwinds. Do not publish Idle: StartSession rejects
+                    ' that state through _disposeRequested, so Idle would lie
+                    ' about the engine being reusable. A later Dispose call can
+                    ' finish cleanup once this session has signaled completion.
+                    _state = If(_disposeRequested,
+                                RecordingEngineState.Stopping,
+                                RecordingEngineState.Idle)
                 End SyncLock
                 _sessionFinished.Set()
             End Try

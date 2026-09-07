@@ -29,6 +29,12 @@ modules, security model). Implemented here: the **C/6 auth/security slice**.
 - **NVIDIA provider = reserved** — `ProviderKeys.Nvidia` exists but has NO auth
   flow. Hardware-derived identity (GPU UUID/serial/driver/fingerprint) is
   explicitly banned as an auth identity (spoofable = bypass).
+- **Native accounts + profile** — username/password (PBKDF2, canonical anchor),
+  display name + profile image (avatar data URL) editable via
+  `PUT /v1/account/profile`; the profile is PRESENTATION-ONLY — AccountId,
+  username, devices and sessions are structurally untouched by a profile edit.
+  Profile image: `data:image/png|jpeg|webp;base64` only, 256 KB decoded cap,
+  validated before base64 decode; schema v4 adds the column additively
 - **Rate limiting** — per-IP fixed window: 10/min on auth starts, 240/min on API
 - **Error envelope (contract §7.1)** — every response carries
   `ok`, `reqId` (client-issued `X-ReqId`, echoed verbatim), `errorCode`,
@@ -87,7 +93,8 @@ tracked violation still reproduces exactly, so the ledger can never go stale sil
 
 Endpoints: `POST /v1/auth/github/start` → GitHub authorize URL →
 `POST /v1/auth/github/callback {code, state, deviceKey}` → `{sessionToken,…}`;
-then `GET /v1/account/me`, `GET|POST|DELETE /v1/account/providers[…]`,
+then `GET /v1/account/me`, `PUT /v1/account/profile`,
+`GET|POST|DELETE /v1/account/providers[…]`,
 `GET /v1/account/devices`, `POST /v1/account/devices/{id}/revoke`,
 `POST /v1/auth/session/{refresh,revoke}`, `POST /v1/auth/sessions/revoke-all`.
 

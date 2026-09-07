@@ -72,6 +72,11 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Post, path, sessionToken, jsonBody)
     End Function
 
+    ''' <summary>PUT — used by the profile editor (PUT /v1/account/profile).</summary>
+    Public Function PutAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
+        Return SendAsync(HttpMethod.Put, path, sessionToken, jsonBody)
+    End Function
+
     Public Function DeleteAsync(path As String, sessionToken As String) As Task(Of Result)
         Return SendAsync(HttpMethod.Delete, path, sessionToken, Nothing)
     End Function
@@ -117,7 +122,20 @@ Friend Module DulukaApi
 
     Private Sub ParseEnvelope(body As String, result As Result)
         If String.IsNullOrWhiteSpace(body) Then
-            MarkLocal(result, "Empty response from server.")
+            ' Empty body + a real HTTP status = the transport answered but no
+            ' §7.1 envelope came back. A 404 in particular means this server
+            ' build predates the endpoint (ASP.NET answers unmatched routes
+            ' with an empty 404) — name that cause instead of a vague
+            ' transport complaint (contract §7.2 HTTP-class fallback).
+            If result.HttpStatus = 404 Then
+                result.Ok = False
+                result.HttpStatus = 404
+                result.ErrorCode = "error.404"
+                result.Retryable = False
+                result.Message = "This server build does not provide this API (HTTP 404) — update Duluka.Server and restart it."
+            Else
+                MarkLocal(result, "Empty response from server.")
+            End If
             Return
         End If
         Dim root As JsonNode

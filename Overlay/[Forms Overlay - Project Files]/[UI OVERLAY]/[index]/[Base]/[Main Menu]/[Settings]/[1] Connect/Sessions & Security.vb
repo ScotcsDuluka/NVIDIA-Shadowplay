@@ -216,7 +216,7 @@ Public Class Base_Connect_Security
                     DulukaAccountStore.Instance.DisplayName, username)
                 SetupPasswordForm()
                 Status_TEXT.Text = If(providerOnly,
-                    "Account ready — you can now sign in with your username and password.",
+                    "Account set up — you can now sign in with your username and password.",
                     "Password updated — you can now sign in with it.")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Current password is incorrect."
@@ -258,8 +258,8 @@ Public Class Base_Connect_Security
 
     ''' <summary>Arranges the password form for the account kind: change mode
     ' (current password required) vs first-time adoption mode (username
-    ' picker, no current password). The rows are re-stacked at runtime so the
-    ' optional username row never leaves a hole or overlaps its neighbours.</summary>
+    ' picker, no current password). The username is PERMANENT once set —
+    ' adoption mode is therefore only reachable while it is still unset.</summary>
     Private Sub SetupPasswordForm()
         Dim providerOnly As Boolean = ProviderOnlyAccount
         PwUsername_LBL.Visible = providerOnly

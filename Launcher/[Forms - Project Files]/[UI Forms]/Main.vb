@@ -198,4 +198,12 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     Private Sub NvButton1_Click(sender As Object, e As EventArgs) Handles openoverlay.Click
         tcp.Send("open_overlay")
     End Sub
+
+
+    Private Sub OBT3_Click(sender As Object, e As EventArgs)
+        Process.Start(New ProcessStartInfo With {
+            .FileName = "https://scotcsduluka.github.io/NVIDIA-Shadowplay/obt3.html",
+            .UseShellExecute = True
+        })
+    End Sub
 End Class
