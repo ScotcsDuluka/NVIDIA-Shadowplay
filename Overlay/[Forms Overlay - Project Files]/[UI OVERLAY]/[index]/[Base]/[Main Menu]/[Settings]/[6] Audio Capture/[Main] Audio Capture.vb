@@ -1,13 +1,10 @@
-' NOTE: no 'Option Strict On' here — the Overlay project compiles with
-' strict OFF (project-wide convention). This file follows the same
-' convention as every other Overlay form.
+
 
 Imports System.IO
 Imports System.Runtime.InteropServices
 
 Public Class Base_AudioSet
 
-    ' ─── OWNER rule: every Form hides itself from Alt-Tab/taskbar in Load ───
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -17,20 +14,19 @@ Public Class Base_AudioSet
     End Function
 
     Private Const GWL_EXSTYLE As Integer = -20
-    Private Const WS_EX_TOOLWINDOW As Integer = &H80 ' สถานะสำหรับ ToolWindow (ไม่แสดงใน Alt+Tab)
-    Private Const WS_EX_APPWINDOW As Integer = &H40000 ' สถานะสำหรับการแสดงใน Task Switcher
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80 
+    Private Const WS_EX_APPWINDOW As Integer = &H40000 
 
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        ' Explicit parens: VB.NET And binds tighter than Or — without them the
-        ' APPWINDOW bit is never cleared (same precedence bug fixed project-wide in b2a42c2).
+
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
 #Region "Load / refresh"
 
     Private Sub Base_AudioSet_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' Sticky set once here — same pattern as every other overlay form.
+        
         HideFromAltTab()
         cboMic.DisplayMember = "Item2"
         RefreshMicDevices()
@@ -38,7 +34,6 @@ Public Class Base_AudioSet
         UpdateVolumeLabels()
     End Sub
 
-    ''' <summary>Push AppSettings audio model → controls (same semantics as the old Engine form).</summary>
     Private Sub LoadFromSettings()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
 
@@ -51,18 +46,12 @@ Public Class Base_AudioSet
         chkSystem.Checked = audio.SystemAudioEnabled
         chkMic.Checked = audio.MicEnabled
 
-        ' ✅ PHASE 3 (UI spec §15.6 — documented decision; range debate open per
-        ' contract v1.0): UI implements the MODEL contract 0.0–1.0
-        ' (AppSettings.vb:86-94). Legacy >100% configs still load (runtime
-        ' clamps 0–2 at the mux) but the slider offers the cap. If OWNER later
-        ' picks the 1.5 option, raising the slider max here is the whole change.
         trkSystemVol.Value = CInt(Math.Max(0, Math.Min(100, audio.SystemAudioVolume * 100.0F)))
         trkMicVol.Value = CInt(Math.Max(0, Math.Min(100, audio.MicVolume * 100.0F)))
 
         SelectCurrentMic()
     End Sub
 
-    ''' <summary>Select the saved mic (by Id first, then by name) — mirrors old form logic.</summary>
     Private Sub SelectCurrentMic()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
         Dim micId As String = audio.MicDeviceId
@@ -84,7 +73,6 @@ Public Class Base_AudioSet
         End If
     End Sub
 
-    ''' <summary>Fill the mic dropdown from NAudio device enumeration (Engine project helper).</summary>
     Private Sub RefreshMicDevices()
         cboMic.Items.Clear()
         Try
@@ -106,12 +94,6 @@ Public Class Base_AudioSet
 
 #Region "Save"
 
-    ''' <summary>
-    ''' Controls → AppSettings → config.json (AppSettings.Save, atomic) +
-    ''' engine_config_changed broadcast. PHASE 3: this is the SOLE
-    ''' user-facing audio writer (config.json) — the Engine AudioSettingsForm
-    ''' no longer writes engine.json/video.json (triple-write resolved).
-    ''' </summary>
     Private Sub SaveToSettings()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
 
@@ -129,15 +111,12 @@ Public Class Base_AudioSet
             End If
         End If
 
-        ' 1) Overlay's unified config.json — THE single config file
-        ' (GLM/6: Recording + Audio + Paths all persist here)
         Try
             AppSettings.Instance.Save()
         Catch ex As Exception
             Debug.WriteLine("[AudioSet] AppSettings.Save error: " & ex.Message)
         End Try
 
-        ' 2) Tell the Engine to reload now (don't wait for its file poll)
         Try
             If Base.tcp IsNot Nothing AndAlso Base.tcp.IsConnected Then
                 Base.tcp.Send("engine_config_changed", "video")
@@ -146,9 +125,6 @@ Public Class Base_AudioSet
             Debug.WriteLine("[AudioSet] engine_config_changed broadcast failed: " & ex.Message)
         End Try
     End Sub
-
-
-
 
 #End Region
 
@@ -177,7 +153,6 @@ Public Class Base_AudioSet
         lblStatus.Text = "Settings saved. Start recording to test."
     End Sub
 
-    ''' <summary>Back → settings home (same contract as Base_RecordingsSet.action_fn_Click).</summary>
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Try
             SaveToSettings()

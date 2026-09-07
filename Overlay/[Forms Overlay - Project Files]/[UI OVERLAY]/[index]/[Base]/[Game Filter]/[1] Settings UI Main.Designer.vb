@@ -1,8 +1,7 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()> _
 Partial Class Base_Game_Filter
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()> _
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Game_Filter
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Game_Filter))
@@ -32,9 +27,7 @@ Partial Class Base_Game_Filter
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
         Main_Filter.SuspendLayout()
         SuspendLayout()
-        ' 
-        ' Home_settings
-        ' 
+
         Home_settings.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         Home_settings.Font = New Font("Segoe UI Semibold", 15.75F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Home_settings.ForeColor = Color.White
@@ -44,9 +37,7 @@ Partial Class Base_Game_Filter
         Home_settings.TabIndex = 44
         Home_settings.Text = "Game filter"
         Home_settings.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox2
-        ' 
+
         PictureBox2.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         PictureBox2.BackgroundImage = CType(resources.GetObject("PictureBox2.BackgroundImage"), Image)
         PictureBox2.BackgroundImageLayout = ImageLayout.Center
@@ -55,9 +46,7 @@ Partial Class Base_Game_Filter
         PictureBox2.Size = New Size(79, 76)
         PictureBox2.TabIndex = 2
         PictureBox2.TabStop = False
-        ' 
-        ' Main_Filter
-        ' 
+
         Main_Filter.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Main_Filter.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         Main_Filter.Controls.Add(d)
@@ -70,9 +59,7 @@ Partial Class Base_Game_Filter
         Main_Filter.Name = "Main_Filter"
         Main_Filter.Size = New Size(268, 719)
         Main_Filter.TabIndex = 46
-        ' 
-        ' d
-        ' 
+
         d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         d.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         d.Cursor = Cursors.Hand
@@ -84,9 +71,7 @@ Partial Class Base_Game_Filter
         d.TabIndex = 98
         d.Text = ""
         d.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' ME_CLOSE_BG
-        ' 
+
         ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         ME_CLOSE_BG.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         ME_CLOSE_BG.Cursor = Cursors.Hand
@@ -97,9 +82,7 @@ Partial Class Base_Game_Filter
         ME_CLOSE_BG.Size = New Size(34, 34)
         ME_CLOSE_BG.TabIndex = 97
         ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' ME_CLOSE_BG_GRE
-        ' 
+
         ME_CLOSE_BG_GRE.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         ME_CLOSE_BG_GRE.BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))
         ME_CLOSE_BG_GRE.Cursor = Cursors.Hand
@@ -111,9 +94,7 @@ Partial Class Base_Game_Filter
         ME_CLOSE_BG_GRE.TabIndex = 96
         ME_CLOSE_BG_GRE.Text = ""
         ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Base_Game_Filter
-        ' 
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))

@@ -1,8 +1,7 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Game_Filter_Sub
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_Game_Filter_Sub
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         BG = New Panel()
@@ -28,9 +23,7 @@ Partial Class Base_Game_Filter_Sub
         ME_CLOSE_BG_GRE = New Label()
         BG.SuspendLayout()
         SuspendLayout()
-        ' 
-        ' BG
-        ' 
+
         BG.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left
         BG.BackColor = Color.Black
         BG.Controls.Add(d)
@@ -40,9 +33,7 @@ Partial Class Base_Game_Filter_Sub
         BG.Name = "BG"
         BG.Size = New Size(268, 717)
         BG.TabIndex = 1
-        ' 
-        ' d
-        ' 
+
         d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         d.BackColor = Color.Black
         d.Cursor = Cursors.Hand
@@ -54,9 +45,7 @@ Partial Class Base_Game_Filter_Sub
         d.TabIndex = 96
         d.Text = ""
         d.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' ME_CLOSE_BG
-        ' 
+
         ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         ME_CLOSE_BG.BackColor = Color.Black
         ME_CLOSE_BG.Cursor = Cursors.Hand
@@ -67,9 +56,7 @@ Partial Class Base_Game_Filter_Sub
         ME_CLOSE_BG.Size = New Size(34, 34)
         ME_CLOSE_BG.TabIndex = 95
         ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' ME_CLOSE_BG_GRE
-        ' 
+
         ME_CLOSE_BG_GRE.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         ME_CLOSE_BG_GRE.BackColor = Color.Black
         ME_CLOSE_BG_GRE.Cursor = Cursors.Hand
@@ -80,9 +67,7 @@ Partial Class Base_Game_Filter_Sub
         ME_CLOSE_BG_GRE.Size = New Size(40, 40)
         ME_CLOSE_BG_GRE.TabIndex = 94
         ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Base_Game_Filter_Sub
-        ' 
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(1), CByte(0), CByte(1))

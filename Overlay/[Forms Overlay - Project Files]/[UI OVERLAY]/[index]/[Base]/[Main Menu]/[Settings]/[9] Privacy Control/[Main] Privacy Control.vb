@@ -1,4 +1,4 @@
-﻿Imports System.IO
+Imports System.IO
 Imports System.Drawing
 Imports System.Runtime.InteropServices
 Public Class Base_Privacy_Control
@@ -42,14 +42,11 @@ Public Class Base_Privacy_Control
         Base.Settings_List.Visible = True
     End Sub
     Private Sub Base_Privacy_Control_Load(sender As Object, e As EventArgs) Handles MyBase.Load
-        ' Single-source config: consent lives in config.json
-        ' Privacy.DesktopCaptureEnabled (was: the marker file
-        ' Data/NVIDIA_Shadowplay_Data/privacy).
+
         TogglePrivacy.IsOn = AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Sub
     Private Sub TogglePrivacy_ValueChanged(sender As Object, e As EventArgs) Handles TogglePrivacy.ValueChanged
-        ' Single-source config: persist the consent flag in config.json
-        ' Privacy.DesktopCaptureEnabled (was: create/delete the marker file).
+
         AppSettings.Instance.Privacy.DesktopCaptureEnabled = TogglePrivacy.IsOn
         AppSettings.Instance.Save()
     End Sub

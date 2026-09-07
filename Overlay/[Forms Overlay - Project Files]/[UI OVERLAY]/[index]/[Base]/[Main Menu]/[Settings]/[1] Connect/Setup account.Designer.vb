@@ -1,8 +1,7 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Connect_Setup
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,15 +13,12 @@ Partial Class Base_Connect_Setup
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Settings_Panel = New Panel()
+        BT_Back = New Label()
         Settings_TEXT = New Label()
         Auth_PROMPT = New Label()
         Card_PANEL = New Panel()
@@ -36,7 +32,6 @@ Partial Class Base_Connect_Setup
         Status_TEXT = New Label()
         Box_Bg = New PictureBox()
         Dim_Top = New PictureBox()
-        BT_Back = New Label()
         Dim_1 = New PictureBox()
         Dim_2 = New PictureBox()
         Settings_Panel.SuspendLayout()
@@ -62,6 +57,20 @@ Partial Class Base_Connect_Setup
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
         ' 
+        ' BT_Back
+        ' 
+        BT_Back.Anchor = AnchorStyles.Top
+        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_Back.Cursor = Cursors.Hand
+        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        BT_Back.ForeColor = Color.White
+        BT_Back.Location = New Point(651, 483)
+        BT_Back.Name = "BT_Back"
+        BT_Back.Size = New Size(458, 39)
+        BT_Back.TabIndex = 58
+        BT_Back.Text = "Back"
+        BT_Back.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Settings_TEXT
         ' 
         Settings_TEXT.Anchor = AnchorStyles.Top
@@ -81,9 +90,9 @@ Partial Class Base_Connect_Setup
         Auth_PROMPT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Auth_PROMPT.Font = New Font("Segoe UI", 11.25F)
         Auth_PROMPT.ForeColor = Color.Gainsboro
-        Auth_PROMPT.Location = New Point(570, 90)
+        Auth_PROMPT.Location = New Point(700, 90)
         Auth_PROMPT.Name = "Auth_PROMPT"
-        Auth_PROMPT.Size = New Size(620, 48)
+        Auth_PROMPT.Size = New Size(360, 48)
         Auth_PROMPT.TabIndex = 70
         Auth_PROMPT.Text = "Set up your Duluka Account"
         Auth_PROMPT.TextAlign = ContentAlignment.MiddleCenter
@@ -112,7 +121,7 @@ Partial Class Base_Connect_Setup
         Username_LBL.ForeColor = Color.Gainsboro
         Username_LBL.Location = New Point(24, 20)
         Username_LBL.Name = "Username_LBL"
-        Username_LBL.Size = New Size(160, 15)
+        Username_LBL.Size = New Size(137, 15)
         Username_LBL.TabIndex = 71
         Username_LBL.Text = "Username (permanent)"
         ' 
@@ -159,7 +168,7 @@ Partial Class Base_Connect_Setup
         Confirm_LBL.ForeColor = Color.Gainsboro
         Confirm_LBL.Location = New Point(24, 136)
         Confirm_LBL.Name = "Confirm_LBL"
-        Confirm_LBL.Size = New Size(116, 15)
+        Confirm_LBL.Size = New Size(107, 15)
         Confirm_LBL.TabIndex = 75
         Confirm_LBL.Text = "Confirm password"
         ' 
@@ -194,9 +203,9 @@ Partial Class Base_Connect_Setup
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(570, 454)
+        Status_TEXT.Location = New Point(651, 454)
         Status_TEXT.Name = "Status_TEXT"
-        Status_TEXT.Size = New Size(620, 17)
+        Status_TEXT.Size = New Size(458, 17)
         Status_TEXT.TabIndex = 78
         Status_TEXT.TextAlign = ContentAlignment.MiddleCenter
         ' 
@@ -219,20 +228,6 @@ Partial Class Base_Connect_Setup
         Dim_Top.Size = New Size(458, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        ' 
-        ' BT_Back
-        ' 
-        BT_Back.Anchor = AnchorStyles.Top
-        BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
-        BT_Back.ForeColor = Color.White
-        BT_Back.Location = New Point(651, 483)
-        BT_Back.Name = "BT_Back"
-        BT_Back.Size = New Size(458, 39)
-        BT_Back.TabIndex = 58
-        BT_Back.Text = "Back"
-        BT_Back.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Dim_1
         ' 

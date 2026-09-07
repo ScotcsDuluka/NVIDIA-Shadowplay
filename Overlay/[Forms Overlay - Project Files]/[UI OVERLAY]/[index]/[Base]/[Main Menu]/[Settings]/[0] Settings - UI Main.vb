@@ -1,4 +1,4 @@
-﻿Imports System.IO
+Imports System.IO
 Imports System.Drawing
 Imports System.Runtime.InteropServices
 Imports Newtonsoft.Json.Linq
@@ -49,11 +49,9 @@ Public Class Base_Settings
         Base.Settings_List.Visible = False
         Base.shadowplay.Visible = True
 
-
         Base_Background_Top.d.Visible = True
         Base_Background_Top.ME_CLOSE_BG_GRE.Visible = True
         Base_Background_Top.ME_CLOSE_BG.Visible = True
-
 
         AppSettings.Instance.Save()
 
@@ -70,8 +68,7 @@ Public Class Base_Settings
 
     Private Sub Settings_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
-        ' Guard: the toggle's instance lives in the Designer.vb and can be
-        ' stripped by hand edits — never let that NRE the whole page.
+
         If ToggleUseWindowsSnip IsNot Nothing Then ToggleUseWindowsSnip.IsOn = AppSettings.Instance.UI.UseWindowsSnip
     End Sub
 
@@ -109,9 +106,7 @@ Public Class Base_Settings
     End Sub
 
     Private Sub SelectLang(langCode As String)
-        ' Single-source config: the selected language lives in config.json
-        ' UI.Language (was: the Languages/current.txt pointer file). The
-        ' AppSettings.Save() calls below persist it.
+
         AppSettings.Instance.UI.Language = langCode
 
         Dim langFolder As String = GetLanguageFolderPath()
@@ -152,7 +147,6 @@ Public Class Base_Settings
         Return AppLayout.P(LanguageFolderName)
     End Function
 
-    ''' <summary>Returns the saved language code (config.json UI.Language; default en-US).</summary>
     Private Function GetCurrentLanguageCode(langFolder As String) As String
         Dim saved As String = AppSettings.Instance.UI.Language
         If String.IsNullOrWhiteSpace(saved) Then saved = DefaultLanguageCode
@@ -200,7 +194,6 @@ Public Class Base_Settings
         Return fallbackCode
     End Function
 
-    ' Export
     Private Sub btnExportSettings_Click(sender As Object, e As EventArgs) Handles btnExportSettings.Click
         Dim path As String = SettingsExportImport.ExportWithDialog(Me)
         If path IsNot Nothing Then
@@ -210,7 +203,6 @@ Public Class Base_Settings
         End If
     End Sub
 
-    ' Import
     Private Sub btnImportSettings_Click(sender As Object, e As EventArgs) Handles btnImportSettings.Click
         If SettingsExportImport.ImportWithDialog(Me) Then
             MessageBox.Show(LangHelper.GetText("l10n.importSuccess"), "Settings - Import                                                        ", MessageBoxButtons.OK, MessageBoxIcon.Information)

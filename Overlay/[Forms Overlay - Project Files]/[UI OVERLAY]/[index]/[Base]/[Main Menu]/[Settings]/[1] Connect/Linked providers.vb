@@ -1,11 +1,4 @@
-' Linked Providers — management surface for ProviderLinks.
-' Product rule: a ProviderLink is an EXTERNAL identity + authentication
-' method attached to the Duluka Account — it is NOT the account itself.
-' Rows say "Connected" / "Not connected" and describe the link as
-' "used to authenticate to this Duluka Account".
-' v0 contract: GitHub is the only implemented provider (NVIDIA is reserved
-' server-side and is deliberately NOT offered). Adding a future provider is
-' a data change here, not an account-model change.
+
 
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
@@ -75,8 +68,7 @@ Public Class Base_Connect_Providers
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok AndAlso r.Resource IsNot Nothing Then
-                ' Known provider list for v0: GitHub only. The server marks
-                ' every other provider (incl. NVIDIA) reserved — never offered.
+
                 Dim githubLink As JsonNode = Nothing
 
                 Dim list As JsonNode = r.Resource("providers")
@@ -94,8 +86,7 @@ Public Class Base_Connect_Providers
                                    NodeText(githubLink, "providerEmail"),
                                    NodeText(githubLink, "linkedAt"), True)
                 Else
-                    ' Not linked yet — the provider is still offered as an
-                    ' authentication method for this Duluka Account.
+
                     AddProviderRow("", "github", "", "", False)
                 End If
             ElseIf r.AuthDead Then
@@ -108,12 +99,9 @@ Public Class Base_Connect_Providers
         End Try
     End Sub
 
-    ''' <summary>Renders one provider block. Provider-aware: a future provider
-    ' (Google etc.) needs only another call with its key — no model change.</summary>
     Private Sub AddProviderRow(linkId As String, providerKey As String, email As String,
                                linkedAt As String, connected As Boolean)
-        ' Rows span the list's current width and re-stretch on resize
-        ' (see List_PANEL_Resize); 180 = button 150 + 30 right gap.
+
         Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
             .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
@@ -158,7 +146,7 @@ Public Class Base_Connect_Providers
                 .TextAlign = ContentAlignment.MiddleCenter,
                 .Text = "Unlink"
             }
-            ' Closure-safe capture per row.
+            
             Dim rowLinkId As String = linkId
             AddHandler unlink.Click, Sub(s, e) UnlinkProvider(rowLinkId)
             row.Controls.Add(unlink)
@@ -210,8 +198,7 @@ Public Class Base_Connect_Providers
         ElseIf r.AuthDead Then
             TerminalSignOut("Your session has expired. Please sign in again.")
         ElseIf r.HttpStatus = 409 Then
-            ' Conflict — shown, never silently overwritten. The server message
-            ' explains the last-active-provider rule.
+
             Status_TEXT.Text = "Cannot unlink — " & r.Message
         ElseIf r.HttpStatus = 404 Then
             Status_TEXT.Text = "That link is already gone — refreshing."
@@ -255,8 +242,6 @@ Public Class Base_Connect_Providers
         End Try
     End Sub
 
-    ''' <summary>Progress reporter — the flow calls it from any thread; the
-    ' control must only be touched on the UI thread.</summary>
     Private Sub Report(message As String)
         If IsDisposed OrElse Not IsHandleCreated Then Return
         Try
@@ -288,11 +273,6 @@ Public Class Base_Connect_Providers
         Return iso
     End Function
 
-    ''' <summary>Row panels span the list's ClientSize — called on resize AND
-    ' after every row is added, because the vertical scrollbar appearing
-    ' shrinks ClientSize without firing Resize (uniform widths, and never a
-    ' horizontal scrollbar). Each row's action button follows its own
-    ' Top+Right anchor; section headers are AutoSize.</summary>
     Private Sub StretchRows()
         Dim w As Integer = List_PANEL.ClientSize.Width
         If w <= 0 Then Return

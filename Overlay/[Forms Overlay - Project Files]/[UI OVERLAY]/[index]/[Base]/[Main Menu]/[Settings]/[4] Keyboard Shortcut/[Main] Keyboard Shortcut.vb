@@ -1,4 +1,4 @@
-﻿Imports System.Runtime.InteropServices
+Imports System.Runtime.InteropServices
 Imports System.Drawing
 Imports System.Linq
 
@@ -9,7 +9,6 @@ Public Class Base_KeySet
     Private ReadOnly _keyLabels As New Dictionary(Of String, Label)(StringComparer.OrdinalIgnoreCase)
     Private ReadOnly _rowPanels As New Dictionary(Of String, Control)(StringComparer.OrdinalIgnoreCase)
 
-    ' Keycap colors — keep in sync with the Designer (lbl_* keycaps on row_* cards).
     Private ReadOnly _colorNormal As Color = Color.FromArgb(55, 60, 65)
     Private ReadOnly _colorHover As Color = Color.FromArgb(74, 80, 86)
     Private ReadOnly _colorCapture As Color = Color.FromArgb(118, 185, 0)
@@ -60,10 +59,6 @@ Public Class Base_KeySet
         LayoutColumns()
     End Sub
 
-    ' <<<< No hardcoding: labels/rows are found by name inside the keyset panel >>>>
-    ' Keycap labels are named "lbl_<ActionKey>" (e.g. lbl_ToggleOverlay) and their
-    ' whole row cards "row_<ActionKey>". Both are discovered automatically, so a
-    ' new hotkey only needs a new row in this page + one line in HotkeyService.
     Public Sub InitKeyLabels()
         _keyLabels.Clear()
         _rowPanels.Clear()
@@ -87,9 +82,6 @@ Public Class Base_KeySet
         Next
     End Sub
 
-    ' Guard against double-wiring: WireEvents is called from two places
-    ' (Main Menu startup + set_key_Load). AddHandler does not dedupe —
-    ' registering twice means one click fires the handler twice.
     Private _wiredEvents As Boolean = False
 
     Public Sub WireEvents()
@@ -112,10 +104,6 @@ Public Class Base_KeySet
         Next
     End Sub
 
-    ' ---- Responsive two-column layout ---------------------------------------
-    ' keyset stretches with the screen (Top|Bottom|Left|Right anchor), so the two
-    ' content columns re-split the panel width on every resize. Keycap labels ride
-    ' the right edge of their row card (Top|Right anchor in the Designer).
     Private ReadOnly _colLeftRows As String() = {"ToggleOverlay", "TestNotifier", "WebToggle", "Screenshot", "PhotosToggle", "GameFilterToggle"}
 
     Private Sub Keyset_Resize(sender As Object, e As EventArgs) Handles keyset.Resize
@@ -129,8 +117,7 @@ Public Class Base_KeySet
         Const marginL As Integer = 28
         Const marginR As Integer = 28
         Const gap As Integer = 30
-        ' Below the design width (690) the description and the keycap would
-        ' overlap, so columns clamp there and AutoScroll takes over instead.
+
         Const minColWidth As Integer = 690
 
         Dim colWidth As Integer = Math.Max(minColWidth, (keyset.ClientSize.Width - marginL - marginR - gap) \ 2)
@@ -174,7 +161,6 @@ Public Class Base_KeySet
         StartCapture(CStr(label.Tag), label)
     End Sub
 
-    ' Clicking anywhere on the row card starts (or cancels) the capture.
     Private Sub RowPanel_Click(sender As Object, e As EventArgs)
         Dim row As Control = CType(sender, Control)
         Dim actionKey As String = CStr(row.Tag)
@@ -188,7 +174,7 @@ Public Class Base_KeySet
         If String.IsNullOrWhiteSpace(actionKey) Then Return
 
         If _captureActionKey IsNot Nothing Then
-            ' Clicking the key that is already capturing cancels the capture.
+            
             If String.Equals(_captureActionKey, actionKey, StringComparison.OrdinalIgnoreCase) Then
                 CancelCapture()
                 Return
@@ -275,9 +261,6 @@ Public Class Base_KeySet
         Base.ResumeHotkeys()
     End Sub
 
-    ' Inline error: the keycap itself flashes red with the reason instead of a
-    ' modal MessageBox covering the game. The capture ends and the saved binding
-    ' is restored after a short pause.
     Private Sub ShowCaptureError(actionKey As String, message As String)
         CancelCapture()
 
@@ -291,7 +274,7 @@ Public Class Base_KeySet
             Sub(s, ea)
                 restore.Stop()
                 restore.Dispose()
-                ' Skip the restore if the user started a new capture on this key.
+                
                 If Not String.Equals(_captureActionKey, actionKey, StringComparison.OrdinalIgnoreCase) Then
                     lbl.BackColor = _colorNormal
                     lbl.Text = GetBindingText(actionKey)

@@ -3,17 +3,10 @@ Imports System.IO
 Imports System.Text.Json
 Imports System.Text.Json.Serialization
 
-''' <summary>
-''' Export / Import recording settings to/from a .json file.
-''' Does NOT export machine-specific paths or GitHub credentials.
-''' </summary>
 Public Class SettingsExportImport
 
 #Region "JSON Structure for Export/Import"
-    ''' <summary>
-    ''' Portable settings DTO — only recording + audio + UI settings.
-    ''' Paths, GitHub credentials, and hotkeys are excluded.
-    ''' </summary>
+
     Public Class PortableSettings
         Public Property Recording As AppSettings.RecordingSettingsClass
         Public Property Audio As AppSettings.AudioSettingsClass
@@ -27,10 +20,7 @@ Public Class SettingsExportImport
 #End Region
 
 #Region "Export"
-    ''' <summary>
-    ''' Export current recording/audio/UI settings to a JSON file.
-    ''' Returns True on success, False on failure.
-    ''' </summary>
+
     Public Shared Function ExportToFile(filePath As String) As Boolean
         Try
             If String.IsNullOrEmpty(filePath) Then Return False
@@ -58,10 +48,6 @@ Public Class SettingsExportImport
         End Try
     End Function
 
-    ''' <summary>
-    ''' Show SaveFileDialog and export settings.
-    ''' Returns the saved file path, or Nothing if cancelled/failed.
-    ''' </summary>
     Public Shared Function ExportWithDialog(owner As Form) As String
         Using sfd As New SaveFileDialog()
             sfd.Filter = "Settings File (*.json)|*.json"
@@ -81,11 +67,7 @@ Public Class SettingsExportImport
 #End Region
 
 #Region "Import"
-    ''' <summary>
-    ''' Import settings from a JSON file and apply to AppSettings.
-    ''' Returns True on success, False on failure.
-    ''' Does NOT overwrite paths, GitHub credentials, or hotkeys.
-    ''' </summary>
+
     Public Shared Function ImportFromFile(filePath As String) As Boolean
         Try
             If String.IsNullOrEmpty(filePath) OrElse Not File.Exists(filePath) Then Return False
@@ -102,30 +84,20 @@ Public Class SettingsExportImport
 
             If imported Is Nothing Then Return False
 
-            ' Apply recording settings
             If imported.Recording IsNot Nothing Then
                 ApplyImportedRecording(imported.Recording)
             End If
 
-            ' Apply audio settings
             If imported.Audio IsNot Nothing Then
                 ApplyImportedAudio(imported.Audio)
             End If
 
-            ' Apply UI settings (language only, not theme)
             If imported.UI IsNot Nothing Then
                 AppSettings.Instance.UI.Language = imported.UI.Language
             End If
 
             AppSettings.Instance.Save()
 
-            ' W2-6: the Engine must learn about imported settings NOW, not
-            ' at the next record start. Broadcast with an EMPTY scope so the
-            ' Engine reloads the whole config.json and reinitializes the
-            ' capture session while idle (UI_Engine.vb
-            ' HandleEngineConfigChanged: empty scope = reload all + rebuild).
-            ' Imports can change video AND audio values, so the wide scope
-            ' is deliberate.
             Try
                 If Base.tcp IsNot Nothing Then
                     Base.tcp.Send("engine_config_changed", "")
@@ -143,10 +115,6 @@ Public Class SettingsExportImport
         End Try
     End Function
 
-    ''' <summary>
-    ''' Show OpenFileDialog and import settings.
-    ''' Returns True if imported successfully, False if cancelled/failed.
-    ''' </summary>
     Public Shared Function ImportWithDialog(owner As Form) As Boolean
         Using ofd As New OpenFileDialog()
             ofd.Filter = "Settings File (*.json)|*.json"
@@ -193,8 +161,7 @@ Public Class SettingsExportImport
         clone.SystemAudioVolume = src.SystemAudioVolume
         clone.MicVolume = src.MicVolume
         clone.MicDeviceName = src.MicDeviceName
-        ' Keep the field-copy complete (GLM/6 class additions) — the export
-        ' file must round-trip everything the class persists.
+
         clone.MicDeviceId = src.MicDeviceId
         clone.TrackMode = src.TrackMode
         clone.AudioClockMode = src.AudioClockMode
@@ -222,13 +189,11 @@ Public Class SettingsExportImport
         rec.ReplayDuration = imported.ReplayDuration
         rec.UseNativeResolution = imported.UseNativeResolution
 
-        ' Only apply resolution if NOT native (native auto-detects)
         If Not imported.UseNativeResolution Then
             rec.Width = imported.Width
             rec.Height = imported.Height
         End If
 
-        ' My Preset values (only overwrite if the import has them)
         If imported.MyLowFPS.HasValue Then rec.MyLowFPS = imported.MyLowFPS
         If imported.MyLowBitrate.HasValue Then rec.MyLowBitrate = imported.MyLowBitrate
         If imported.MyLowEncoderPreset.HasValue Then rec.MyLowEncoderPreset = imported.MyLowEncoderPreset
@@ -249,8 +214,7 @@ Public Class SettingsExportImport
         aud.MicEnabled = imported.MicEnabled
         aud.SystemAudioVolume = imported.SystemAudioVolume
         aud.MicVolume = imported.MicVolume
-        ' Do NOT import MicDeviceName/MicDeviceId — they're machine-specific.
-        ' TrackMode + AudioClockMode are plain prefs — import them.
+
         aud.TrackMode = imported.TrackMode
         aud.AudioClockMode = imported.AudioClockMode
     End Sub

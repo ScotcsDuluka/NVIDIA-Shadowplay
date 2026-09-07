@@ -1,4 +1,4 @@
-﻿Imports System.Diagnostics
+Imports System.Diagnostics
 Imports System.Drawing
 Imports System.Net
 Imports System.Net.Http
@@ -45,47 +45,36 @@ Public Class Base_Notifications
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
-    ' ====================================================================
-    ' Settings → Notifications page
-    '
-    ' Each toggle writes one key of the config.json "Notifications"
-    ' section (AppSettings.Notifications). The Notifier re-reads those
-    ' keys at display time — it is the single choke point every toast
-    ' passes through (TCP path + OBS bridge), so a disabled category
-    ' stops showing from the very next notification on.
-    ' ====================================================================
     Private _notiLoading As Boolean
 
     Private Sub LoadNotificationToggles()
         _notiLoading = True
-        ' Guards: the instances live in the Designer.vb and can be stripped
-        ' by hand edits — never let that NRE the whole page.
-        ' RECORDING
+
         If ToggleRecordingStarted IsNot Nothing Then ToggleRecordingStarted.IsOn = AppSettings.Instance.Notifications.RecordingStarted
         If ToggleRecordingSaved IsNot Nothing Then ToggleRecordingSaved.IsOn = AppSettings.Instance.Notifications.RecordingSaved
         If ToggleRecordingError IsNot Nothing Then ToggleRecordingError.IsOn = AppSettings.Instance.Notifications.RecordingError
-        ' INSTANT REPLAY
+        
         If ToggleReplaySaved IsNot Nothing Then ToggleReplaySaved.IsOn = AppSettings.Instance.Notifications.ReplaySaved
         If ToggleInstantReplayOn IsNot Nothing Then ToggleInstantReplayOn.IsOn = AppSettings.Instance.Notifications.InstantReplayOn
         If ToggleInstantReplayOff IsNot Nothing Then ToggleInstantReplayOff.IsOn = AppSettings.Instance.Notifications.InstantReplayOff
         If ToggleReplayTurnOn IsNot Nothing Then ToggleReplayTurnOn.IsOn = AppSettings.Instance.Notifications.ReplayTurnOn
         If ToggleReplayError IsNot Nothing Then ToggleReplayError.IsOn = AppSettings.Instance.Notifications.ReplayError
-        ' SCREENSHOTS
+        
         If ToggleScreenshotSaved IsNot Nothing Then ToggleScreenshotSaved.IsOn = AppSettings.Instance.Notifications.ScreenshotSaved
         If ToggleValidSavePath IsNot Nothing Then ToggleValidSavePath.IsOn = AppSettings.Instance.Notifications.ValidSavePath
-        ' SHARE OVERLAY
+        
         If ToggleOpenShare IsNot Nothing Then ToggleOpenShare.IsOn = AppSettings.Instance.Notifications.OpenShare
-        ' SYSTEM MONITOR
+        
         If ToggleRamWarning IsNot Nothing Then ToggleRamWarning.IsOn = AppSettings.Instance.Notifications.RamWarning
         If ToggleRamWarning95 IsNot Nothing Then ToggleRamWarning95.IsOn = AppSettings.Instance.Notifications.RamWarning95
         If ToggleRamCritical IsNot Nothing Then ToggleRamCritical.IsOn = AppSettings.Instance.Notifications.RamCritical
         If ToggleCpuWarning IsNot Nothing Then ToggleCpuWarning.IsOn = AppSettings.Instance.Notifications.CpuWarning
         If ToggleDiskSpaceLow IsNot Nothing Then ToggleDiskSpaceLow.IsOn = AppSettings.Instance.Notifications.DiskSpaceLow
-        ' UPDATES
+        
         If ToggleUpdateAvailable IsNot Nothing Then ToggleUpdateAvailable.IsOn = AppSettings.Instance.Notifications.UpdateAvailable
         If ToggleVersionLatest IsNot Nothing Then ToggleVersionLatest.IsOn = AppSettings.Instance.Notifications.VersionLatest
         If ToggleUpdateError IsNot Nothing Then ToggleUpdateError.IsOn = AppSettings.Instance.Notifications.UpdateError
-        ' ERRORS & FEEDBACK
+        
         If ToggleAccountConfirmError IsNot Nothing Then ToggleAccountConfirmError.IsOn = AppSettings.Instance.Notifications.AccountConfirmError
         If ToggleExtensionNotFound IsNot Nothing Then ToggleExtensionNotFound.IsOn = AppSettings.Instance.Notifications.ExtensionNotFound
         If ToggleFeatureNotReady IsNot Nothing Then ToggleFeatureNotReady.IsOn = AppSettings.Instance.Notifications.FeatureNotReady
@@ -97,37 +86,34 @@ Public Class Base_Notifications
         _notiLoading = False
     End Sub
 
-    ' Bulk switch (Enable all / Disable all buttons): flips every switch
-    ' under the same _notiLoading gate so no per-toggle save fires mid
-    ' loop, then writes the config section directly and saves once.
     Private Sub SetAllNotifications(value As Boolean)
         _notiLoading = True
-        ' RECORDING
+        
         If ToggleRecordingStarted IsNot Nothing Then ToggleRecordingStarted.IsOn = value
         If ToggleRecordingSaved IsNot Nothing Then ToggleRecordingSaved.IsOn = value
         If ToggleRecordingError IsNot Nothing Then ToggleRecordingError.IsOn = value
-        ' INSTANT REPLAY
+        
         If ToggleReplaySaved IsNot Nothing Then ToggleReplaySaved.IsOn = value
         If ToggleInstantReplayOn IsNot Nothing Then ToggleInstantReplayOn.IsOn = value
         If ToggleInstantReplayOff IsNot Nothing Then ToggleInstantReplayOff.IsOn = value
         If ToggleReplayTurnOn IsNot Nothing Then ToggleReplayTurnOn.IsOn = value
         If ToggleReplayError IsNot Nothing Then ToggleReplayError.IsOn = value
-        ' SCREENSHOTS
+        
         If ToggleScreenshotSaved IsNot Nothing Then ToggleScreenshotSaved.IsOn = value
         If ToggleValidSavePath IsNot Nothing Then ToggleValidSavePath.IsOn = value
-        ' SHARE OVERLAY
+        
         If ToggleOpenShare IsNot Nothing Then ToggleOpenShare.IsOn = value
-        ' SYSTEM MONITOR
+        
         If ToggleRamWarning IsNot Nothing Then ToggleRamWarning.IsOn = value
         If ToggleRamWarning95 IsNot Nothing Then ToggleRamWarning95.IsOn = value
         If ToggleRamCritical IsNot Nothing Then ToggleRamCritical.IsOn = value
         If ToggleCpuWarning IsNot Nothing Then ToggleCpuWarning.IsOn = value
         If ToggleDiskSpaceLow IsNot Nothing Then ToggleDiskSpaceLow.IsOn = value
-        ' UPDATES
+        
         If ToggleUpdateAvailable IsNot Nothing Then ToggleUpdateAvailable.IsOn = value
         If ToggleVersionLatest IsNot Nothing Then ToggleVersionLatest.IsOn = value
         If ToggleUpdateError IsNot Nothing Then ToggleUpdateError.IsOn = value
-        ' ERRORS & FEEDBACK
+        
         If ToggleAccountConfirmError IsNot Nothing Then ToggleAccountConfirmError.IsOn = value
         If ToggleExtensionNotFound IsNot Nothing Then ToggleExtensionNotFound.IsOn = value
         If ToggleFeatureNotReady IsNot Nothing Then ToggleFeatureNotReady.IsOn = value
@@ -177,7 +163,6 @@ Public Class Base_Notifications
         SetAllNotifications(False)
     End Sub
 
-    ' RECORDING
     Private Sub ToggleRecordingStarted_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRecordingStarted.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.RecordingStarted = ToggleRecordingStarted.IsOn
@@ -196,7 +181,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    ' INSTANT REPLAY
     Private Sub ToggleReplaySaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleReplaySaved.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.ReplaySaved = ToggleReplaySaved.IsOn
@@ -227,7 +211,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    ' SCREENSHOTS
     Private Sub ToggleScreenshotSaved_ValueChanged(sender As Object, e As EventArgs) Handles ToggleScreenshotSaved.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.ScreenshotSaved = ToggleScreenshotSaved.IsOn
@@ -240,14 +223,12 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    ' SHARE OVERLAY
     Private Sub ToggleOpenShare_ValueChanged(sender As Object, e As EventArgs) Handles ToggleOpenShare.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.OpenShare = ToggleOpenShare.IsOn
         AppSettings.Instance.Save()
     End Sub
 
-    ' SYSTEM MONITOR
     Private Sub ToggleRamWarning_ValueChanged(sender As Object, e As EventArgs) Handles ToggleRamWarning.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.RamWarning = ToggleRamWarning.IsOn
@@ -278,7 +259,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    ' UPDATES
     Private Sub ToggleUpdateAvailable_ValueChanged(sender As Object, e As EventArgs) Handles ToggleUpdateAvailable.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.UpdateAvailable = ToggleUpdateAvailable.IsOn
@@ -297,7 +277,6 @@ Public Class Base_Notifications
         AppSettings.Instance.Save()
     End Sub
 
-    ' ERRORS & FEEDBACK
     Private Sub ToggleAccountConfirmError_ValueChanged(sender As Object, e As EventArgs) Handles ToggleAccountConfirmError.ValueChanged
         If _notiLoading Then Return
         AppSettings.Instance.Notifications.AccountConfirmError = ToggleAccountConfirmError.IsOn
@@ -356,30 +335,11 @@ Public Class Base_Notifications
         LoadObsSettings()
     End Sub
 
-    ' ====================================================================
-    ' Toast slots (1..3) — moved here from Settings → General
-    '
-    ' "Use a second toast slot" + "Use a third toast slot" encode the
-    ' count: both off = 1, second on = 2, second + third on = 3.
-    ' OFF/OFF = 1 slot: every toast funnels through the main toast — a
-    '     repeat of the same notification group updates it in place
-    '     (Updater UI dance), anything else replaces it. Nothing stacks.
-    ' Second ON = 2 slots: a NEW notification group enters the free slot
-    '     instead of replacing the showing one (Record start/stop lives
-    '     in slot 2, Replay start/stop arrives → slot 1).
-    ' Third ON = 3 slots: slot 3 joins as the overflow for a new group
-    '     when main AND slot 2 are both busy. It needs the second slot:
-    '     flipping it on brings the second along, killing the second
-    '     takes the third with it.
-    ' The Notifier reads Notifications.SlotCount from config.json at
-    ' every toast, so changes apply live — no restart needed.
-    ' ====================================================================
     Private _toastSlotsLoading As Boolean
 
     Private Sub LoadToastSlotToggles()
         _toastSlotsLoading = True
-        ' Guards: the instances live in the Designer.vb and can be stripped
-        ' by hand edits — never let that NRE the whole page.
+
         If ToggleToastSlot2 IsNot Nothing Then ToggleToastSlot2.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 2)
         If ToggleToastSlot3 IsNot Nothing Then ToggleToastSlot3.IsOn = (AppSettings.Instance.Notifications.SlotCount >= 3)
         _toastSlotsLoading = False
@@ -387,7 +347,7 @@ Public Class Base_Notifications
 
     Private Sub SyncToastSlotCount()
         If _toastSlotsLoading Then Exit Sub
-        ' Slot 3 depends on slot 2 — keep the toggle pair consistent.
+        
         If ToggleToastSlot3.IsOn AndAlso Not ToggleToastSlot2.IsOn Then ToggleToastSlot2.IsOn = True
         If Not ToggleToastSlot2.IsOn AndAlso ToggleToastSlot3.IsOn Then ToggleToastSlot3.IsOn = False
         AppSettings.Instance.Notifications.SlotCount = If(ToggleToastSlot2.IsOn, If(ToggleToastSlot3.IsOn, 3, 2), 1)
@@ -402,31 +362,15 @@ Public Class Base_Notifications
         SyncToastSlotCount()
     End Sub
 
-    ' ====================================================================
-    ' OBS Studio WebSocket integration — moved here from Settings → General
-    '
-    ' The Notifier owns the actual OBS connection: it watches
-    ' Config\notifier_obs.json and hot-reloads it every 2 seconds
-    ' (start/stop the bridge, reconnect on endpoint changes). This page
-    ' is only the editor: it loads the shared ObsConfig and writes the
-    ' file back when the user changes a value — the Overlay never talks
-    ' to OBS directly.
-    ' ====================================================================
     Private _obsCfg As ObsConfig
     Private _obsLoading As Boolean
 
     Private Sub LoadObsSettings()
-        ' ObsConfig.Load() returns Nothing when notifier_obs.json exists but
-        ' can't be read/parsed (it never throws). Falling back to a fresh
-        ' default instance keeps this page alive — the form used to crash
-        ' with NullReferenceException right here on first show, which made
-        ' the whole Settings window appear to never open. The next Save()
-        ' from any control rebuilds the file as valid JSON.
+
         _obsCfg = ObsConfig.Load()
         If _obsCfg Is Nothing Then _obsCfg = New ObsConfig()
         _obsLoading = True
-        ' Guard: the toggle's instance lives in the Designer.vb and can be
-        ' stripped by hand edits — never let that NRE the whole page.
+
         If ObsEnabledToggle IsNot Nothing Then ObsEnabledToggle.IsOn = _obsCfg.Enabled
         HOST_BOX.Text = _obsCfg.Host
         PORT_BOX.Text = _obsCfg.Port.ToString()
@@ -471,20 +415,6 @@ Public Class Base_Notifications
         _obsCfg.Save()
     End Sub
 
-    ' ====================================================================
-    ' Caret-free text boxes (HOST_BOX / PORT_BOX / KEY_BOX)
-    '
-    ' These fields are styled as flat value displays (nvgcshare, no
-    ' border, centered), so the blinking text caret reads as noise —
-    ' it blinks exactly where the user clicked. HideCaret() only flips
-    ' the Win32 caret visibility: editing, selection and the Leave-based
-    ' save below are untouched.
-    '
-    ' The EDIT control re-creates/re-shows the caret on focus, mouse
-    ' down and while typing, so every one of those events schedules
-    ' another hide — deferred with BeginInvoke so it runs AFTER the
-    ' message that showed the caret has fully completed.
-    ' ====================================================================
     Private Sub HideBoxCaret(sender As Object, e As EventArgs)
         Dim box As Control = TryCast(sender, Control)
         If box Is Nothing OrElse Not box.IsHandleCreated Then Return

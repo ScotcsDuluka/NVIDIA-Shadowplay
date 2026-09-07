@@ -1,9 +1,4 @@
-﻿' Login flow — one Duluka GitHub OAuth sign-in.
-' The server builds the authorize URL and exchanges the code; this page only
-' hosts the progress state machine and hands the flow its report callback.
-' Every state the user can hit is rendered: starting, waiting for the browser,
-' creating the session, success, cancel, provider error, expired/invalid
-' state (400 invalid_state -> restart hint), rate limit, server down.
+
 
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
@@ -65,7 +60,6 @@ Public Class Base_Connect_Login
         End If
     End Sub
 
-    ''' <summary>Progress reporter — the flow calls it from any thread.</summary>
     Private Sub Report(message As String)
         If IsDisposed OrElse Not IsHandleCreated Then Return
         Try
@@ -87,7 +81,6 @@ Public Class Base_Connect_Login
         End If
         BT_StartLogin.Visible = False
         BT_CancelLogin.Visible = True
-
 
         Base_Connect.Hide()
         Base_Settings.Hide()
@@ -118,17 +111,15 @@ Public Class Base_Connect_Login
             Status_TEXT.Text = "Signed in to your Duluka Account."
             Await Task.Delay(900)
             If IsDisposed OrElse Not IsHandleCreated Then Return
-            ' FIRST-TIME SETUP gate: a GitHub-bootstrap account has no native
-            ' username/password. Account home's /me refresh checks the native
-            ' credential state and force-opens the Setup page when the account
-            ' is provider-only; already-initialized accounts sail through.
+
             Base_Connect.ArmForcedSetupGate()
             Base.OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
             Me.Hide()
         Else
-            ' The overlay is in main-panel mode while the flow runs — the Sign
-            ' In page must come back so the failure message and the retry
-            ' button are actually visible.
+
+            Base_Settings.Hide()
+            Base_Connect.Hide()
+            Base.Settings_List.Visible = False
             Me.Show()
             Status_TEXT.Text = outcome.Message
             BT_StartLogin.Visible = True

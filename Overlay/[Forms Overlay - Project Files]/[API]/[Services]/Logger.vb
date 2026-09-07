@@ -1,4 +1,4 @@
-﻿Imports System.IO
+Imports System.IO
 Imports System.Runtime.InteropServices
 Imports System.Text.RegularExpressions
 
@@ -35,9 +35,6 @@ Public Module Logger
 
     End Class
 
-
-    ' NOTE: intentionally reflection-based — direct Debug.Listeners access
-    ' does not compile in this project (BC30456), verified 2026-08-29.
     Private Sub RedirectDebugToConsole()
         Try
             Dim debugType As Global.System.Type = GetType(Global.System.Diagnostics.Debug)
@@ -240,10 +237,9 @@ Public Module Logger
         End Get
     End Property
 
-    ''' <summary>Auto-start the console unless config.json says DebugEnabled = false.</summary>
     Public Sub AutoStart(Optional title As String = "Logger")
         Try
-            Dim enabled As Boolean = True   ' default: console on
+            Dim enabled As Boolean = True   
             Dim cfg As String = AppLayout.P("Config", "config.json")
             If IO.File.Exists(cfg) Then
                 Dim json As String = IO.File.ReadAllText(cfg)
@@ -294,16 +290,10 @@ Public Module Logger
         End If
     End Sub
 
-    ''' <summary>
-    ''' shortcut แทน Debug.WriteLine — เรียก D("ข้อความ") เลย
-    ''' </summary>
     Public Sub D(msg As String)
         Write("", msg, _msgColor)
     End Sub
 
-    ''' <summary>
-    ''' shortcut แทน Debug.WriteLine พร้อม tag — เรียก D("tag", "ข้อความ")
-    ''' </summary>
     Public Sub D(tag As String, msg As String)
         Write(tag, msg, _msgColor)
     End Sub

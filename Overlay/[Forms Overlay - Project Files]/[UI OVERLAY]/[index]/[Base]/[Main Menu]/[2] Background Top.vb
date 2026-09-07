@@ -1,4 +1,4 @@
-﻿Imports System.Runtime.InteropServices
+Imports System.Runtime.InteropServices
 Imports System.Drawing
 Imports System.Diagnostics
 Imports System.Windows.Forms
@@ -79,14 +79,11 @@ Public Class Base_Background_Top
     End Function
 
     Private Const GWL_EXSTYLE As Integer = -20
-    Private Const WS_EX_TOOLWINDOW As Integer = &H80 ' สถานะสำหรับ ToolWindow (ไม่แสดงใน Alt+Tab)
-    Private Const WS_EX_APPWINDOW As Integer = &H40000 ' สถานะสำหรับการแสดงใน Task Switcher
+    Private Const WS_EX_TOOLWINDOW As Integer = &H80 
+    Private Const WS_EX_APPWINDOW As Integer = &H40000 
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        ' FIX: VB.NET And/Or precedence — And binds tighter than Or. Original expression
-        '     `style Or WS_EX_TOOLWINDOW And Not WS_EX_APPWINDOW` evaluated as
-        '     `style Or (WS_EX_TOOLWINDOW And (Not WS_EX_APPWINDOW))` which never
-        '     cleared the APPWINDOW bit if it was already set. Explicit parens fix it.
+
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
     Private Sub bg_top_MouseMove(sender As Object, e As MouseEventArgs) Handles MyBase.MouseMove
@@ -104,8 +101,6 @@ Public Class Base_Background_Top
     Private Sub bg_top_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
 
-        ' ตั้งตำแหน่งเริ่มต้น
-
         ANIME.Start()
         Main_Top.Location = New Point(0, -100)
     End Sub
@@ -114,13 +109,11 @@ Public Class Base_Background_Top
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick
 
-        ' เริ่ม Animation ตอน Opacity ≥ 0.5
         If Me.Opacity >= 0.5 AndAlso Not hasAnimated Then
             hasAnimated = True
             StartSlideY(Main_Top, -100, 0, 100)
         End If
 
-        ' รีเซ็ต ถ้า Opacity หายไป
         If Me.Opacity <= 0 Then
             hasAnimated = False
             Main_Top.Location = New Point(0, -100)

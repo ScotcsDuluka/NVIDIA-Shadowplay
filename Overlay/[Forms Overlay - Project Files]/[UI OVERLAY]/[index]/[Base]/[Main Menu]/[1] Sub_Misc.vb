@@ -1,4 +1,4 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.IO
 
 Partial Public Class Base
@@ -46,22 +46,13 @@ Partial Public Class Base
 
     Private Sub Load_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
 
-
         UpdateReplayStatus()
         UpdateRecordStatus()
         UpdateMicStatus()
         Dim filePaths As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "notifier_main")
 
         Try
-            ' If 'Notifier.Visible Then
-            '   If Not File.Exists(filePaths) Then
-            'File.Create(filePaths).Dispose()
-            '  End If
-            '  Else
-            '     If File.Exists(filePaths) Then
-            'File.Delete(filePaths)
-            ' End If
-            '    End If
+
         Catch ex As Exception
         End Try
     End Sub
@@ -153,12 +144,6 @@ Partial Public Class Base
         _lastReplayValue = ReplayValue
     End Sub
 
-    ' PHASE 3 UI CONTRACT (spec section 10 violation #3): config.json
-    ' Audio.MicEnabled is the ONLY state source. The old body derived the
-    ' config value FROM the icon glyph text and wrote it back — classic
-    ' UI-guessed-state (manufactured state). Now this method is display-sync
-    ' only: the glyph is re-derived from the canonical bool via LoadMicState
-    ' (Sub_Mouse.vb) and config is NEVER written here.
     Private Sub UpdateMicStatus(Optional force As Boolean = False)
         Dim micEnabledNow As Boolean = AppSettings.Instance.Audio.MicEnabled
 
@@ -216,12 +201,6 @@ Partial Public Class Base
         End If
     End Sub
 
-    ' ✅ PHASE 3 UI CONTRACT (UI spec §14.3 — Paths unify, one picker per path):
-    ' the dead save_sc_Click that used to live here was REMOVED. It had NO
-    ' Handles clause (never invoked — the live handler is
-    ' [Gallery]/[1] Main.vb save_sc_Click) and duplicated the GalleryPath
-    ' writer. Paths.GalleryPath now has exactly ONE UI writer:
-    ' Base_Gallery.save_sc_Click ([Gallery]/[1] Main.vb:54-65).
     Private Sub ME_CLOSE_BG_MouseMove(sender As Object, e As MouseEventArgs) Handles ME_CLOSE_BG.MouseMove
         Base_Background_Top.ME_CLOSE_BG_GRE.BackColor = greenColor
     End Sub
@@ -234,29 +213,14 @@ Partial Public Class Base
         HideAllControls()
     End Sub
 
-
-
 #End Region
-
 
 #Region "Privacy State (Phase 5: moved from Sub_Record.vb)"
 
-    ''' <summary>
-    ''' Phase 5: Relocated from Sub_Record.vb.
-    ''' Opens the Privacy Control settings panel. Belongs here (UI navigation
-    ''' for the Privacy toggle) rather than inside the Record toggle module.
-    ''' </summary>
     Private Sub PrivacyOpen()
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
-    ''' <summary>
-    ''' Phase 5: Relocated from Sub_Record.vb.
-    ''' Returns True when the user has explicitly opted in to desktop capture
-    ''' (config.json Privacy.DesktopCaptureEnabled; previously the
-    ''' Data/NVIDIA_Shadowplay_Data/privacy marker file — see
-    ''' AppSettings.MigrateLegacyMarkerFiles for the one-time import).
-    ''' </summary>
     Private Function IsPrivacyEnabled() As Boolean
         Return AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Function
