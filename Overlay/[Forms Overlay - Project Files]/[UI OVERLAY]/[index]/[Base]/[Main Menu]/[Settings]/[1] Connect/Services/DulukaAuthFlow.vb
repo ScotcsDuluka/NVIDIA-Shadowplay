@@ -149,6 +149,19 @@ Friend Class DulukaAuthFlow
                                          Text(done.Resource, "deviceId"),
                                          Text(done.Resource, "sessionExpiresAt"),
                                          deviceName)
+                        ' Seed the local profile straight from the callback
+                        ' when the server provides it: a set-up account must
+                        ' not look "needs setup" just because GitHub login
+                        ' used to return no username (that blind guess was
+                        ' the endless Setup-screen loop). Absent fields =
+                        ' old server — the /me fetch on the account home
+                        ' remains the fallback source of truth.
+                        Dim seededUsername As String = Text(done.Resource, "username")
+                        If seededUsername <> "" Then
+                            Dim seededName As String = Text(done.Resource, "displayName")
+                            store.SetProfile(If(seededName <> "", seededName, store.DisplayName),
+                                             seededUsername)
+                        End If
                         outcome.Succeeded = True
                         Return outcome
                     End If

@@ -81,10 +81,15 @@ Public Class Base_Connect
             Return
         End If
         RenderState()
-        If DulukaAccountStore.Instance.Username = "" Then
-            ForwardToSetup()
-            Return
-        End If
+        ' Setup is decided by SERVER truth, never by the local cache alone.
+        ' After a GitHub (re)login the callback response carries no username,
+        ' so the local value is "" even for a fully set-up account — forcing
+        ' Setup here used to trap users in an endless loop (Back bounced
+        ' straight back to Setup). RefreshAccountAsync fetches
+        ' /v1/account/me, restores the real profile, and only forwards to
+        ' Setup when the SERVER confirms the account has no username and the
+        ' login flow's one-shot gate is armed. Until then the home card +
+        ' the FINISH SETTING UP nudge stay visible and Back keeps working.
         RefreshAccountAsync()
     End Sub
 

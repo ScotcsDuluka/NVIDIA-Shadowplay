@@ -176,6 +176,14 @@ app.MapPost("/v1/auth/{provider}/callback", async (string provider, HttpRequest 
             deviceId = device.DeviceId,
             existingAccount = existed,
             sessionExpiresAt = session.ExpiresAt,
+            // Parity with /v1/auth/login + /v1/auth/register: the client
+            // seeds its local profile from this response. Without these
+            // fields a fully set-up account re-logging in with GitHub
+            // looked locally "needs setup" and was trapped on the client's
+            // Setup screen with a dead Back button — the real decision
+            // lives server-side (this credential lookup / GET /me).
+            username = db.FindNativeCredentialByAccount(account.AccountId)?.UsernameDisplay,
+            displayName = account.DisplayName,
         });
     }
     catch (GitHubOAuthException ex)
