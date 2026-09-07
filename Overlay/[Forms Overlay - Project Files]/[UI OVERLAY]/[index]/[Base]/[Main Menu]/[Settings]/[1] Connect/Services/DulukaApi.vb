@@ -116,7 +116,20 @@ Friend Module DulukaApi
 
     Private Sub ParseEnvelope(body As String, result As Result)
         If String.IsNullOrWhiteSpace(body) Then
-            MarkLocal(result, "Empty response from server.")
+            ' Empty body + a real HTTP status = the transport answered but no
+            ' §7.1 envelope came back. A 404 in particular means this server
+            ' build predates the endpoint (ASP.NET answers unmatched routes
+            ' with an empty 404) — name that cause instead of a vague
+            ' transport complaint (contract §7.2 HTTP-class fallback).
+            If result.HttpStatus = 404 Then
+                result.Ok = False
+                result.HttpStatus = 404
+                result.ErrorCode = "error.404"
+                result.Retryable = False
+                result.Message = "This server build does not provide this API (HTTP 404) — update Duluka.Server and restart it."
+            Else
+                MarkLocal(result, "Empty response from server.")
+            End If
             Return
         End If
         Dim root As JsonNode
