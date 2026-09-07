@@ -1,4 +1,4 @@
-<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Connect
     Inherits System.Windows.Forms.Form
 
@@ -14,7 +14,6 @@ Partial Class Base_Connect
     End Sub
 
     Private components As System.ComponentModel.IContainer
-
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect))
@@ -153,7 +152,7 @@ Partial Class Base_Connect
         BT_Devices.ForeColor = Color.White
         BT_Devices.Location = New Point(62, 310)
         BT_Devices.Name = "BT_Devices"
-        BT_Devices.Size = New Size(534, 64)
+        BT_Devices.Size = New Size(397, 64)
         BT_Devices.TabIndex = 64
         BT_Devices.Text = "Devices"
         BT_Devices.TextAlign = ContentAlignment.MiddleCenter
@@ -162,9 +161,9 @@ Partial Class Base_Connect
         BT_Security.Cursor = Cursors.Hand
         BT_Security.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Security.ForeColor = Color.White
-        BT_Security.Location = New Point(612, 310)
+        BT_Security.Location = New Point(475, 310)
         BT_Security.Name = "BT_Security"
-        BT_Security.Size = New Size(534, 64)
+        BT_Security.Size = New Size(397, 64)
         BT_Security.TabIndex = 65
         BT_Security.Text = "Sessions && Security"
         BT_Security.TextAlign = ContentAlignment.MiddleCenter
@@ -173,9 +172,9 @@ Partial Class Base_Connect
         BT_Providers.Cursor = Cursors.Hand
         BT_Providers.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Providers.ForeColor = Color.White
-        BT_Providers.Location = New Point(1162, 310)
+        BT_Providers.Location = New Point(888, 310)
         BT_Providers.Name = "BT_Providers"
-        BT_Providers.Size = New Size(534, 64)
+        BT_Providers.Size = New Size(397, 64)
         BT_Providers.TabIndex = 66
         BT_Providers.Text = "Linked accounts"
         BT_Providers.TextAlign = ContentAlignment.MiddleCenter
@@ -184,9 +183,9 @@ Partial Class Base_Connect
         BT_EditProfile.Cursor = Cursors.Hand
         BT_EditProfile.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_EditProfile.ForeColor = Color.White
-        BT_EditProfile.Location = New Point(1662, 310)
+        BT_EditProfile.Location = New Point(1301, 310)
         BT_EditProfile.Name = "BT_EditProfile"
-        BT_EditProfile.Size = New Size(360, 64)
+        BT_EditProfile.Size = New Size(397, 64)
         BT_EditProfile.TabIndex = 67
         BT_EditProfile.Text = "Edit Profile"
         BT_EditProfile.TextAlign = ContentAlignment.MiddleCenter
@@ -246,7 +245,7 @@ Partial Class Base_Connect
         Nudge_META.ForeColor = Color.Silver
         Nudge_META.Location = New Point(24, 44)
         Nudge_META.Name = "Nudge_META"
-        Nudge_META.Size = New Size(2736, 44)
+        Nudge_META.Size = New Size(1300, 44)
         Nudge_META.TabIndex = 100
         Nudge_META.Text = "This account has no username or password yet — GitHub alone cannot always sign you in."
 
@@ -255,7 +254,7 @@ Partial Class Base_Connect
         BT_SetupNow.Cursor = Cursors.Hand
         BT_SetupNow.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
         BT_SetupNow.ForeColor = Color.White
-        BT_SetupNow.Location = New Point(2823, 30)
+        BT_SetupNow.Location = New Point(1387, 30)
         BT_SetupNow.Name = "BT_SetupNow"
         BT_SetupNow.Size = New Size(200, 50)
         BT_SetupNow.TabIndex = 101
