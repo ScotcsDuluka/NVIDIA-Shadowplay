@@ -519,11 +519,71 @@ app.MapGet("/v1/account/me", (HttpRequest req) =>
     {
         accountId = account.AccountId,
         displayName = account.DisplayName,
+        profileImage = account.ProfileImage,
         username = native?.UsernameDisplay,
         createdAt = account.CreatedAt,
         currentDevice = new { device.DeviceId, device.DeviceName },
     });
 });
+
+/// <summary>
+/// Update the account's PROFILE presentation fields. The body is a full profile
+/// snapshot: omitted/null fields CLEAR those values (deterministic overwrite,
+/// no merge). Only DisplayName + ProfileImage are touched — AccountId, Status,
+/// the username credential, devices and sessions are structurally unreachable
+/// from this endpoint. 401 semantics are identical to every other account
+/// surface (no profile change ever mints or revokes a session).
+/// </summary>
+app.MapPut("/v1/account/profile", async (HttpRequest req) =>
+{
+    var token = BearerToken(req);
+    var validation = token is null ? null : sessionService.Validate(token);
+    if (validation is null)
+        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
+            "Session is expired, revoked, or unknown.");
+
+    using var body = await Wire.TryParseBodyAsync(req);
+    if (body is null)
+        return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON.");
+
+    string? GetOptionalString(string name)
+    {
+        if (!body.RootElement.TryGetProperty(name, out var el)) return null;
+        return el.ValueKind == JsonValueKind.String ? el.GetString() : null;
+    }
+    // Missing key OR explicit null OR empty = CLEAR; otherwise trimmed text.
+    var displayName = GetOptionalString("displayName");
+    var profileImage = GetOptionalString("profileImage");
+
+    if (!ProfilePolicy.IsValidDisplayName(displayName))
+        return Wire.Err(req, 400, WireCodes.InvalidDisplayName,
+            $"displayName must be at most {ProfilePolicy.MaxDisplayNameLength} characters with no control characters.");
+    if (!ProfilePolicy.IsValidProfileImage(profileImage))
+        return Wire.Err(req, 400, WireCodes.InvalidProfileImage,
+            "profileImage must be a data:image/png|jpeg|webp base64 data URL within the size cap.");
+
+    var accountId = validation.Value.Item3.AccountId;
+    try
+    {
+        var trimmedName = string.IsNullOrWhiteSpace(displayName) ? null : displayName.Trim();
+        var storedImage = string.IsNullOrWhiteSpace(profileImage) ? null : profileImage;
+        db.UpdateAccountProfile(accountId, trimmedName, storedImage);
+        var account = db.GetAccount(accountId)!;
+        var native = db.FindNativeCredentialByAccount(accountId);
+        return Wire.Ok(req, new
+        {
+            accountId = account.AccountId,
+            displayName = account.DisplayName,
+            profileImage = account.ProfileImage,
+            username = native?.UsernameDisplay,
+        });
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled profile update failure");
+        return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
+    }
+}).RequireRateLimiting("api");
 
 app.MapGet("/v1/account/providers", (HttpRequest req) =>
 {
@@ -649,6 +709,10 @@ internal static class WireCodes
     public const string InvalidUsername = "invalid_username";
     public const string InvalidPassword = "invalid_password";
     public const string NativeCredentialAbsent = "native_credential_absent";
+
+    // Documented extensions for the profile surface (§7.2 extension rule).
+    public const string InvalidDisplayName = "invalid_display_name";
+    public const string InvalidProfileImage = "invalid_profile_image";
 
     public const string ConflictUsernameTaken = "conflict.username_taken";
     public const string PermAccountSuspended = "perm.account_suspended";

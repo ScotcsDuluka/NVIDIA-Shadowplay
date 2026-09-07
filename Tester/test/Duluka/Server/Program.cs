@@ -69,6 +69,11 @@ internal static class Program
         Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
         Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
         Run("SCHEMA-2: v2-shaped database migrates to v3 additively, rows survive", Test_SchemaV3Migration);
+        Run("PROFILE-1: display name update persists (trimmed)", Test_ProfileDisplayName);
+        Run("PROFILE-2: profile image data URL persists + clears", Test_ProfileImage);
+        Run("PROFILE-3: profile edit preserves account identity + live session", Test_ProfileIdentityPreserved);
+        Run("PROFILE-4: ProfilePolicy validation matrix", Test_ProfilePolicyMatrix);
+        Run("SCHEMA-3: v3-shaped database migrates to v4 additively, rows survive", Test_SchemaV4Migration);
         RunHttpIntegrationTests();
         RunCwdIndependenceTests();
 
@@ -1370,6 +1375,164 @@ internal static class Program
         cmd.ExecuteNonQuery();
     }
 
+    // ─── profile: display name / profile image (presentation surface) ──────
+
+    private static string TinyPngDataUrl() =>
+        "data:image/png;base64," + Convert.ToBase64String(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A });
+
+    /// <summary>Fixture with a native account, its device and a live session —
+    /// the profile surface's precondition is an authenticated account.</summary>
+    private static (Fixture F, string Token, string AccountId, string DeviceId) NewNativeSessionFixture()
+    {
+        var f = NewFixture();
+        var (account, device) = f.Native.Register("profiley", "correct-horse-1",
+            Secrets.Sha256Hex("devk-profile-1"), "prof-dev");
+        var (token, _) = f.Sessions.Create(account.AccountId, device.DeviceId, null);
+        return (f, token, account.AccountId, device.DeviceId);
+    }
+
+    private static void Test_ProfileDisplayName()
+    {
+        var (f, _, accountId, _) = NewNativeSessionFixture();
+        try
+        {
+            // The endpoint trims before persisting (Program.cs); the data layer
+            // stores the profile verbatim — that contract is pinned here.
+            f.Db.UpdateAccountProfile(accountId, "Prof  Al", TinyPngDataUrl());
+            var reloaded = f.Db.GetAccount(accountId);
+            Assert(reloaded is not null, "account still present after profile update");
+            Assert(reloaded!.DisplayName == "Prof  Al", "display name persisted verbatim");
+            Assert(reloaded.UpdatedAt >= reloaded.CreatedAt, "UpdatedAt advanced past CreatedAt");
+
+            // Empty display name = clear (deterministic overwrite, no merge;
+            // the endpoint maps whitespace input to null before this layer).
+            f.Db.UpdateAccountProfile(accountId, null, TinyPngDataUrl());
+            Assert(f.Db.GetAccount(accountId)!.DisplayName is null,
+                "null display name clears the field");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_ProfileImage()
+    {
+        var (f, _, accountId, _) = NewNativeSessionFixture();
+        try
+        {
+            var url = TinyPngDataUrl();
+            f.Db.UpdateAccountProfile(accountId, "P", url);
+            Assert(f.Db.GetAccount(accountId)!.ProfileImage == url,
+                "profile image data URL persisted verbatim");
+
+            f.Db.UpdateAccountProfile(accountId, "P", null);
+            Assert(f.Db.GetAccount(accountId)!.ProfileImage is null,
+                "null clears the profile image");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_ProfileIdentityPreserved()
+    {
+        var (f, token, accountId, deviceId) = NewNativeSessionFixture();
+        try
+        {
+            var before = f.Db.GetAccount(accountId)!;
+            var credBefore = f.Db.FindNativeCredentialByAccount(accountId)!;
+            var devicesBefore = f.Db.DevicesForAccount(accountId).Count;
+
+            f.Db.UpdateAccountProfile(accountId, "Renamed Person", TinyPngDataUrl());
+
+            var after = f.Db.GetAccount(accountId)!;
+            var credAfter = f.Db.FindNativeCredentialByAccount(accountId)!;
+            Assert(after.AccountId == before.AccountId, "AccountId unchanged");
+            Assert(after.Status == before.Status, "Status unchanged");
+            Assert(after.CreatedAt == before.CreatedAt, "CreatedAt unchanged");
+            Assert(credAfter.UsernameCanonical == credBefore.UsernameCanonical,
+                "username anchor unchanged by a profile edit");
+            Assert(credAfter.UsernameDisplay == credBefore.UsernameDisplay,
+                "username display unchanged by a profile edit");
+            Assert(f.Db.DevicesForAccount(accountId).Count == devicesBefore, "device rows untouched");
+            Assert(f.Db.DevicesForAccount(accountId).Single().DeviceId == deviceId, "same device remains");
+            Assert(f.Sessions.Validate(token) is not null, "the live session survives a profile edit");
+            Assert(after.DisplayName == "Renamed Person", "only the profile fields changed");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_ProfilePolicyMatrix()
+    {
+        var png = TinyPngDataUrl();
+        // Display name.
+        Assert(ProfilePolicy.IsValidDisplayName(null), "null display name = clear");
+        Assert(ProfilePolicy.IsValidDisplayName(""), "empty display name = clear");
+        Assert(ProfilePolicy.IsValidDisplayName("   "), "whitespace display name = clear");
+        Assert(ProfilePolicy.IsValidDisplayName("Alice"), "plain display name valid");
+        Assert(ProfilePolicy.IsValidDisplayName(new string('a', ProfilePolicy.MaxDisplayNameLength)),
+            "64-char display name valid");
+        Assert(!ProfilePolicy.IsValidDisplayName(new string('a', ProfilePolicy.MaxDisplayNameLength + 1)),
+            "65-char display name rejected");
+        Assert(!ProfilePolicy.IsValidDisplayName("bad\nname"), "control characters rejected");
+
+        // Profile image.
+        Assert(ProfilePolicy.IsValidProfileImage(null), "null image = clear");
+        Assert(ProfilePolicy.IsValidProfileImage(""), "empty image = clear");
+        Assert(ProfilePolicy.IsValidProfileImage(png), "png data URL valid");
+        Assert(ProfilePolicy.IsValidProfileImage("data:image/jpeg;base64," + Convert.ToBase64String(new byte[] { 1, 2, 3 })),
+            "jpeg accepted");
+        Assert(ProfilePolicy.IsValidProfileImage("data:image/webp;base64," + Convert.ToBase64String(new byte[] { 1 })),
+            "webp accepted");
+        Assert(!ProfilePolicy.IsValidProfileImage("data:image/svg+xml;base64,AAAA"),
+            "svg refused (scriptable)");
+        Assert(!ProfilePolicy.IsValidProfileImage("data:image/png;base64,"), "empty payload refused");
+        Assert(!ProfilePolicy.IsValidProfileImage("data:image/png;base64,!!!not-base64!!!"),
+            "non-base64 payload refused");
+        Assert(!ProfilePolicy.IsValidProfileImage("http://example.test/avatar.png"),
+            "remote URL refused");
+        var overCap = "data:image/png;base64," + new string('A', (ProfilePolicy.MaxProfileImageBytes / 3 + 1) * 4 + 8);
+        Assert(!ProfilePolicy.IsValidProfileImage(overCap),
+            "oversized payload refused before decode");
+    }
+
+    private static void Test_SchemaV4Migration()
+    {
+        // Build a CURRENT database, then rewind it to the v3 shape (drop the
+        // ProfileImage column + the v4 marker). Re-opening must re-apply the
+        // v4 ALTER additively — accounts/credentials/devices survive untouched.
+        var dbPath = Path.Combine(Path.GetTempPath(), $"duluka-test-{Guid.NewGuid():N}.db");
+        var db = new Database(dbPath, NullLogger<Database>.Instance);
+        db.Bootstrap();
+        var (_, hash) = NewDeviceKey();
+        var account = db.CreateNativeAccount("migrate4", "Migrate Four", Secrets.HashPassword("correct-horse-1"));
+        db.CreateDevice(account.AccountId, "dev", hash);
+        db.UpdateAccountProfile(account.AccountId, "Pre", TinyPngDataUrl());
+        db.DisposeAsync().AsTask().GetAwaiter().GetResult();
+
+        ExecRaw(dbPath, "DELETE FROM SchemaHistory WHERE Version=4");
+        ExecRaw(dbPath, "ALTER TABLE DulukaAccount DROP COLUMN ProfileImage");
+
+        var db2 = new Database(dbPath, NullLogger<Database>.Instance);
+        db2.Bootstrap();
+        try
+        {
+            var reloaded = db2.GetAccount(account.AccountId);
+            Assert(reloaded is not null, "account survives the v4 migration");
+            Assert(reloaded!.ProfileImage is null,
+                "profile image column re-created empty (the column was dropped with the rewind)");
+            Assert(db2.FindNativeCredentialByUsername("migrate4") is not null,
+                "credential untouched by the migration");
+            Assert(db2.DevicesForAccount(account.AccountId).Count == 1, "device untouched by the migration");
+
+            // The migrated store is fully profile-capable again.
+            db2.UpdateAccountProfile(account.AccountId, "Post", TinyPngDataUrl());
+            Assert(db2.GetAccount(account.AccountId)!.ProfileImage == TinyPngDataUrl(),
+                "profile writes work after the migration");
+        }
+        finally
+        {
+            db2.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            Cleanup(dbPath);
+        }
+    }
+
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 
     // ─── HTTP integration: the §7.1 wire contract against the REAL server ───
@@ -1558,6 +1721,23 @@ internal static class Program
                     Assert(root.GetProperty("reqId").GetString() == $"reqid-http-int-4-{i}", "429 echoes reqId");
                 }
                 Assert(saw429, "expected ≥1 429 within the fixed 10/min auth-start window");
+            });
+            Run("HTTP-INT-5: PUT /v1/account/profile unauthenticated → 401 envelope", () =>
+            {
+                using var req = new HttpRequestMessage(HttpMethod.Put, "/v1/account/profile")
+                {
+                    Content = new StringContent("""{"displayName":"X"}""", Encoding.UTF8, "application/json"),
+                };
+                req.Headers.Add("X-ReqId", "reqid-http-int-5");
+                using var resp = http.SendAsync(req).GetAwaiter().GetResult();
+                var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert((int)resp.StatusCode == 401, $"expected 401, got {(int)resp.StatusCode}: {body}");
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                Assert(!root.GetProperty("ok").GetBoolean(), "ok=false on the profile surface too");
+                Assert(root.GetProperty("errorCode").GetString() == "auth.session_expired",
+                    "registry 401 code on the profile surface");
+                Assert(root.GetProperty("reqId").GetString() == "reqid-http-int-5", "reqId echoed");
             });
         }
         finally

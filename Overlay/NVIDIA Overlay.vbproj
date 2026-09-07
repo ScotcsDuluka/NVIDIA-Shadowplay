@@ -201,6 +201,10 @@
                   <SubType>Form</SubType>
                 </Compile>
 
+                <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\[Main] Edit profile.vb">
+                  <SubType>Form</SubType>
+                </Compile>
+
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Sessions &amp; Security.vb">
                   <SubType>Form</SubType>
                 </Compile>

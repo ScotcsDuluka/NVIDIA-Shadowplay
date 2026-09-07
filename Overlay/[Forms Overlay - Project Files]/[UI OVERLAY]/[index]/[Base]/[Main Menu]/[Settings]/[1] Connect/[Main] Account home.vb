@@ -53,20 +53,23 @@ Public Class Base_Connect
     End Sub
 
     ''' <summary>The action row divides the panel content width (62px margins)
-    ' into three equal buttons with 16px gaps — recomputed on every resize so
-    ' the row tracks the panel width exactly (anchors cannot make thirds).
-    ' At the design width (panel 1760) this computes the Designer values.</summary>
+    ' into FOUR equal buttons (Devices / Security / Providers / Edit Profile)
+    ' with 16px gaps — recomputed on every resize so the row tracks the panel
+    ' width exactly (anchors cannot make quarters). At the design width (panel
+    ' 1760) this computes the Designer values.</summary>
     Private Sub LayoutRow()
         Dim contentW As Integer = Settings_Panel.Width - 124
         If contentW <= 0 Then Return
         Dim gap As Integer = 16
-        Dim bw As Integer = (contentW - 2 * gap) \ 3
-        If bw < 200 Then bw = 200 ' below this the captions clip
+        Dim bw As Integer = (contentW - 3 * gap) \ 4
+        If bw < 180 Then bw = 180 ' below this the captions clip
         BT_Devices.Width = bw
         BT_Security.Location = New Point(62 + bw + gap, BT_Security.Top)
         BT_Security.Width = bw
         BT_Providers.Location = New Point(62 + 2 * (bw + gap), BT_Providers.Top)
         BT_Providers.Width = bw
+        BT_EditProfile.Location = New Point(62 + 3 * (bw + gap), BT_EditProfile.Top)
+        BT_EditProfile.Width = bw
     End Sub
 
     Private Sub Settings_Panel_Resize(sender As Object, e As EventArgs) Handles Settings_Panel.Resize
@@ -96,6 +99,7 @@ Public Class Base_Connect
         Dim name As String = store.DisplayName
         USERSNAME_TEXT.Text = If(name <> "", name, "Duluka Account")
         Avatar_BOX.Text = If(name <> "", name.Substring(0, 1).ToUpperInvariant(), "D")
+        RenderAvatar(store.ProfileImage)
 
         Dim meta As String = ""
         If store.Username <> "" Then
@@ -145,7 +149,8 @@ Public Class Base_Connect
             If r.Ok AndAlso r.Resource IsNot Nothing Then
                 Dim displayName As String = ResourceText(r.Resource, "displayName")
                 Dim username As String = ResourceText(r.Resource, "username")
-                DulukaAccountStore.Instance.SetProfile(displayName, username)
+                Dim profileImage As String = ResourceText(r.Resource, "profileImage")
+                DulukaAccountStore.Instance.SetProfileWithImage(displayName, username, profileImage)
                 RenderState()
                 Status_TEXT.Text = ""
 
@@ -181,6 +186,16 @@ Public Class Base_Connect
         _setupGateArmed = True
     End Sub
 
+    ' ── avatar rendering ──────────────────────────────────────────────────
+
+    ''' <summary>Show the profile image when it decodes; the letter avatar is
+    ' the fallback for "no image" AND for a corrupt value — a bad avatar can
+    ' never blank the identity card. The previous bitmap is disposed so rapid
+    ' re-renders do not accumulate GDI+ handles.</summary>
+    Private Sub RenderAvatar(dataUrl As String)
+        DulukaAvatar.SetPreview(Avatar_PICTURE, dataUrl, Avatar_BOX)
+    End Sub
+
     ' ── navigation ──────────────────────────────────────────────────────────
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
@@ -204,6 +219,10 @@ Public Class Base_Connect
 
     Private Sub BT_SetupNow_Click(sender As Object, e As EventArgs) Handles BT_SetupNow.Click
         OpenSubPage(Base_Connect_Setup)
+    End Sub
+
+    Private Sub BT_EditProfile_Click(sender As Object, e As EventArgs) Handles BT_EditProfile.Click
+        OpenSubPage(Base_Connect_Profile)
     End Sub
 
     Friend Sub OpenSubPage(target As Form)

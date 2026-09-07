@@ -72,6 +72,11 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Post, path, sessionToken, jsonBody)
     End Function
 
+    ''' <summary>PUT — used by the profile editor (PUT /v1/account/profile).</summary>
+    Public Function PutAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
+        Return SendAsync(HttpMethod.Put, path, sessionToken, jsonBody)
+    End Function
+
     Public Function DeleteAsync(path As String, sessionToken As String) As Task(Of Result)
         Return SendAsync(HttpMethod.Delete, path, sessionToken, Nothing)
     End Function
