@@ -158,7 +158,7 @@ Partial Class Base_Connect
         BT_Logout.Cursor = Cursors.Hand
         BT_Logout.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
         BT_Logout.ForeColor = Color.White
-        BT_Logout.Location = New Point(1412, 55)
+        BT_Logout.Location = New Point(1387, 52)
         BT_Logout.Name = "BT_Logout"
         BT_Logout.Size = New Size(200, 50)
         BT_Logout.TabIndex = 94
