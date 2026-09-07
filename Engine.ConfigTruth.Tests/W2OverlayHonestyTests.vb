@@ -72,7 +72,7 @@ Friend Module W2OverlayHonestyTests
     Private Const SubMouseVb As String =
         "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[1] Sub_Mouse.vb"
     Private Const VideoPageVb As String =
-        "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[Settings]/[5] Video Capture.vb"
+        "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[Settings]/[5] Video Capture/[Main] Video Capture.vb"
     Private Const ExportImportVb As String =
         "Overlay/[Forms Overlay - Project Files]/[API]/[Services]/SettingsExportImport.vb"
     Private Const OverlayConfigVb As String =

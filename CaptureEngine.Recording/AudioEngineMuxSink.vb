@@ -1,6 +1,7 @@
 Option Explicit On
 Option Strict On
 
+Imports System.Threading
 Imports CaptureEngine.Audio
 Imports CaptureEngine.FFmpegBackend
 
@@ -28,6 +29,19 @@ Namespace CaptureEngine.Recording
         Private _aligned As Boolean
         Private _pendingBytes As Long
         Private Const MaxPendingBytes As Long = 16L * 1024 * 1024
+
+        ' ★ Accounting fix: packets discarded because the pending cap was
+        ' full used to vanish silently — the same "pass=True หลอก" class as
+        ' the mux-drop hole. Counted here, folded into the session result.
+        Private _droppedBytes As Long
+
+        ''' <summary>Bytes discarded while unaligned/unattached because the
+        ''' pending buffer was full (16 MB cap). Read by the session at stop.</summary>
+        Public ReadOnly Property PendingDroppedBytes As Long
+            Get
+                Return Interlocked.Read(_droppedBytes)
+            End Get
+        End Property
 
         Public Sub New(track As AudioTrackKind, Optional wav As AudioWavSink = Nothing)
             _track = track
@@ -61,6 +75,8 @@ Namespace CaptureEngine.Recording
                     If _pendingBytes + packet.Data.Length <= MaxPendingBytes Then
                         _pending.Add(packet)
                         _pendingBytes += packet.Data.Length
+                    Else
+                        Interlocked.Add(_droppedBytes, packet.Data.Length)
                     End If
                     Return
                 End If

@@ -266,13 +266,33 @@ Namespace CaptureEngine.Recording
                         Try : rebuiltEncoder.Dispose() : Catch : End Try
                         Throw
                     End Try
-                    Dim previousEncoder As NvencEncoderBackend = _encoder
-                    _encoder = rebuiltEncoder
-                    Try
-                        previousEncoder.Dispose()
-                    Catch ex As Exception
-                        _logger.Warning($"[RecordingEngine] previous NVENC dispose after FPS rebuild threw: {ex.Message}")
-                    End Try
+                    ' ★ Dispose-race guard: the field swap is the only write to
+                    ' _encoder outside _sync. A Dispose() landing between
+                    ' Initialize and the swap would tear down whichever backend
+                    ' the field names while this path still owns the other one
+                    ' — the session below could then receive a disposed encoder.
+                    ' Re-check the dispose gate UNDER _sync and swap atomically;
+                    ' if Dispose won, discard the rebuilt backend instead.
+                    Dim previousEncoder As NvencEncoderBackend = Nothing
+                    Dim disposeWon As Boolean = False
+                    SyncLock _sync
+                        If _disposeRequested OrElse _disposed Then
+                            disposeWon = True
+                        Else
+                            previousEncoder = _encoder
+                            _encoder = rebuiltEncoder
+                        End If
+                    End SyncLock
+                    If disposeWon Then
+                        Try : rebuiltEncoder.Dispose() : Catch : End Try
+                        _logger.Warning("[RecordingEngine] NVENC FPS rebuild discarded — engine dispose won the race")
+                    Else
+                        Try
+                            previousEncoder.Dispose()
+                        Catch ex As Exception
+                            _logger.Warning($"[RecordingEngine] previous NVENC dispose after FPS rebuild threw: {ex.Message}")
+                        End Try
+                    End If
 
                     _logger.Info($"[RecordingEngine] NVENC FPS authority now={_encoder.FrameRateFps}fps (session requested={config.TargetFps}fps)")
                 Else
@@ -357,7 +377,12 @@ Namespace CaptureEngine.Recording
 
             If waitForSession Then
                 If Not _sessionFinished.Wait(TimeSpan.FromSeconds(30)) Then
-                    _logger.Warning("RecordingEngine: timed out waiting for active session to finish during Dispose; backends left alive for a safe retry.")
+                    ' State truth: the session task is STILL alive, so the state
+                    ' stays Recording (a session does exist). _disposeRequested
+                    ' remains set, so StartSession is rejected from now on — the
+                    ' engine is unusable until the process restarts. Saying
+                    ' "safe retry" here was a lie: there is no retry path.
+                    _logger.Warning("RecordingEngine: timed out waiting for the active session during Dispose — backends left alive, session still running; StartSession is rejected until the process restarts.")
                     Return
                 End If
             End If
@@ -373,9 +398,17 @@ Namespace CaptureEngine.Recording
             Try : session?.[Stop]() : Catch : End Try
             Try : session?.Dispose() : Catch : End Try
 
-            ' Dispose persistent backends only after any active StartSession has fully unwound.
-            Try : _encoder?.Dispose() : Catch ex As Exception : _logger.Warning($"encoder.Dispose: {ex.Message}") : End Try
-            Try : _capture?.Dispose() : Catch ex As Exception : _logger.Warning($"capture.Dispose: {ex.Message}") : End Try
+            ' Dispose persistent backends only after any active StartSession has
+            ' fully unwound. Read the refs UNDER _sync so an FPS-rebuild swap
+            ' cannot publish a different backend between the read and the dispose.
+            Dim encoderToDispose As NvencEncoderBackend = Nothing
+            Dim captureToDispose As DdagrabBackend = Nothing
+            SyncLock _sync
+                encoderToDispose = _encoder
+                captureToDispose = _capture
+            End SyncLock
+            Try : encoderToDispose?.Dispose() : Catch ex As Exception : _logger.Warning($"encoder.Dispose: {ex.Message}") : End Try
+            Try : captureToDispose?.Dispose() : Catch ex As Exception : _logger.Warning($"capture.Dispose: {ex.Message}") : End Try
 
             _sessionFinished.Dispose()
             _logger.Info("RecordingEngine: disposed")

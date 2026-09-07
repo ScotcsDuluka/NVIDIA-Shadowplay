@@ -309,6 +309,13 @@ Namespace CaptureEngine.Recording
                 ' Audio capture is armed/warmed now, but its recording timeline starts at common T0.
                 _audioEngine.Start(_timelineStartQpc100ns)
                 _logger.Info("[session] Audio owner = CaptureEngine.Audio (armed before common T0)")
+                ' ★ Config honesty: AudioClockMode is accepted by the config
+                ' stack but NO LONGER selects a path — the live session always
+                ' uses the shared AudioEngine (WasapiPositionCapture stamps +
+                ' QPC anchors = device-clock by construction). The Legacy/Device
+                ' switch only exists in the dormant migration blocks below.
+                ' Logged loudly so the setting is never silently ignored again.
+                _logger.Info($"[session] AudioClockMode='{If(_config.AudioClockMode, "")}' is superseded: the shared AudioEngine path is device-clock by construction")
 
                 ' ─── 2b. Legacy audio path is bypassed during migration ──
                 ' Keep the old implementation intact for rollback/reference.
@@ -956,15 +963,20 @@ Namespace CaptureEngine.Recording
                     If sysDiag IsNot Nothing Then
                         result.AudioBytes = sysDiag.DataBytes + sysDiag.SilenceBytes
                         result.AudioSamples = If(sysDiag.Channels > 0, result.AudioBytes \ (sysDiag.Channels * 2), 0)
-                        result.AudioDroppedBytes = sysDiag.DroppedBytes
-                        result.AudioAccountingOk = (sysDiag.DroppedBytes = 0)
+                        ' ★ Sink-drop accounting: pending-cap discards in the
+                        ' mux sink (pre-alignment window) are counted by the
+                        ' sink itself — fold them into the honest drop total.
+                        result.AudioDroppedBytes = sysDiag.DroppedBytes +
+                            If(_sysAudioEngineSink IsNot Nothing, _sysAudioEngineSink.PendingDroppedBytes, 0)
+                        result.AudioAccountingOk = (result.AudioDroppedBytes = 0)
                     End If
                     Dim micDiag = _audioEngine.Diagnostics.Tracks.Find(Function(t) t.Track = AudioTrackKind.Microphone)
                     If micDiag IsNot Nothing Then
                         result.MicBytes = micDiag.DataBytes + micDiag.SilenceBytes
                         result.MicSamples = If(micDiag.Channels > 0, result.MicBytes \ (micDiag.Channels * 2), 0)
-                        result.MicDroppedBytes = micDiag.DroppedBytes
-                        result.MicAccountingOk = (micDiag.DroppedBytes = 0)
+                        result.MicDroppedBytes = micDiag.DroppedBytes +
+                            If(_micAudioEngineSink IsNot Nothing, _micAudioEngineSink.PendingDroppedBytes, 0)
+                        result.MicAccountingOk = (result.MicDroppedBytes = 0)
                     End If
                 End If
 
@@ -1095,8 +1107,15 @@ Namespace CaptureEngine.Recording
                 }
                 Try
                     Using probeProc As Process = Process.Start(probePsi)
-                        Dim probeErr As String = probeProc.StandardError.ReadToEnd()
-                        probeProc.WaitForExit(5000)
+                        ' Bounded probe: ReadToEnd would never return on a hung
+                        ' ffmpeg (EOF only arrives at process exit), so the read
+                        ' is async and the process is killed on timeout — the
+                        ' same pattern the legacy engine uses for ffprobe.
+                        Dim probeErrTask As System.Threading.Tasks.Task(Of String) = probeProc.StandardError.ReadToEndAsync()
+                        If Not probeProc.WaitForExit(5000) Then
+                            Try : probeProc.Kill() : probeProc.WaitForExit(2000) : Catch : End Try
+                        End If
+                        Dim probeErr As String = If(probeErrTask.Wait(1000), probeErrTask.Result, "")
                         Dim m As System.Text.RegularExpressions.Match =
                             System.Text.RegularExpressions.Regex.Match(probeErr, "Duration:\s*(\d+):(\d+):(\d+\.?\d*)")
                         If m.Success Then
@@ -1144,8 +1163,15 @@ Namespace CaptureEngine.Recording
                     Try
                         Using verifyProc As Process = Process.Start(verifyPsi)
                             Try : _config.OnProcessStarted?.Invoke(verifyProc) : Catch : End Try
-                            Dim stderr As String = verifyProc.StandardError.ReadToEnd()
-                            verifyProc.WaitForExit(5000)
+                            ' Bounded probe (same pattern as the duration probe
+                            ' above): async read + kill on timeout — a hung verify
+                            ' ffmpeg must never wedge the stop path or outlive
+                            ' the session.
+                            Dim verifyErrTask As System.Threading.Tasks.Task(Of String) = verifyProc.StandardError.ReadToEndAsync()
+                            If Not verifyProc.WaitForExit(5000) Then
+                                Try : verifyProc.Kill() : verifyProc.WaitForExit(2000) : Catch : End Try
+                            End If
+                            Dim stderr As String = If(verifyErrTask.Wait(1000), verifyErrTask.Result, "")
                             result.VideoStreamFound = stderr.Contains("Stream #") AndAlso stderr.Contains("Video:")
                             result.AudioStreamFound = stderr.Contains("Stream #") AndAlso stderr.Contains("Audio:")
                         End Using

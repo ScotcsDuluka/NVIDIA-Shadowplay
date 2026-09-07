@@ -87,6 +87,7 @@ Namespace CaptureEngine.Recording.Tests
                 LiveMuxJobOwnershipTests.RunAll()   ' ★ F-07: LiveMux ffmpeg process ownership (real ffmpeg)
                 AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
                 AudioTimelineDeviceClockTests.RunAll()   ' ★ P13-A: OWNER-spec deterministic sample timeline (no hardware)
+                MuxSinkAccountingTests.RunAll()   ' ★ Audit fix: pending-cap drops are counted, never silent
                 RuntimeSyncTests.RunAll()
                 DualTrackTests.RunAll()   ' ★ M1: system + mic second track
             Finally
