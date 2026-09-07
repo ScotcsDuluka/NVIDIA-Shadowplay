@@ -30,7 +30,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         openoverlay = New NvButton()
         Use_Overlay = New NvToggleButton()
         UseOverlay_LBL = New Label()
-        NvIconButton2 = New NvIconButton()
         Label4 = New Label()
         PictureBox2 = New PictureBox()
         NvStatusDot_NVNOTIFIER = New NvStatusDot()
@@ -46,7 +45,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         PictureBox1 = New PictureBox()
         PictureBox4 = New PictureBox()
         NvIconButton1 = New NvIconButton()
-        PictureBox3 = New PictureBox()
         Accent_BAR = New PictureBox()
         Hero_TAG = New Label()
         BOX_LOGO = New PictureBox()
@@ -54,15 +52,16 @@ Partial Class NVIDIA_Shadowplay_Helper
         Timer1 = New Timer(components)
         Label2 = New Label()
         RadioButton1 = New PictureBox()
+        OBT3 = New PictureBox()
         Panel_MAIN.SuspendLayout()
         CType(PictureBox2, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox8, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox4, ComponentModel.ISupportInitialize).BeginInit()
-        CType(PictureBox3, ComponentModel.ISupportInitialize).BeginInit()
         CType(Accent_BAR, ComponentModel.ISupportInitialize).BeginInit()
         CType(BOX_LOGO, ComponentModel.ISupportInitialize).BeginInit()
         CType(RadioButton1, ComponentModel.ISupportInitialize).BeginInit()
+        CType(OBT3, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
         ' Panel_MAIN
@@ -75,7 +74,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         Panel_MAIN.Controls.Add(openoverlay)
         Panel_MAIN.Controls.Add(Use_Overlay)
         Panel_MAIN.Controls.Add(UseOverlay_LBL)
-        Panel_MAIN.Controls.Add(NvIconButton2)
         Panel_MAIN.Controls.Add(Label4)
         Panel_MAIN.Controls.Add(PictureBox2)
         Panel_MAIN.Controls.Add(NvStatusDot_NVNOTIFIER)
@@ -91,9 +89,9 @@ Partial Class NVIDIA_Shadowplay_Helper
         Panel_MAIN.Controls.Add(PictureBox1)
         Panel_MAIN.Controls.Add(PictureBox4)
         Panel_MAIN.Controls.Add(NvIconButton1)
-        Panel_MAIN.Controls.Add(PictureBox3)
         Panel_MAIN.Controls.Add(Accent_BAR)
         Panel_MAIN.Controls.Add(Hero_TAG)
+        Panel_MAIN.Controls.Add(OBT3)
         Panel_MAIN.Location = New Point(3, 41)
         Panel_MAIN.Name = "Panel_MAIN"
         Panel_MAIN.Size = New Size(1083, 326)
@@ -115,17 +113,17 @@ Partial Class NVIDIA_Shadowplay_Helper
         ' 
         ' RadioButton2
         ' 
-        RadioButton2.BackColor = Color.FromArgb(CByte(30), CByte(32), CByte(35))
+        RadioButton2.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         RadioButton2.ButtonImage = Nothing
         RadioButton2.ButtonImageSize = New Size(16, 16)
         RadioButton2.ButtonSizeSetting = NvButton.NvBtnSize.Small
-        RadioButton2.ButtonVariant = NvButton.NvButtonVariant.Surface
+        RadioButton2.ButtonVariant = NvButton.NvButtonVariant.Blue
         RadioButton2.CornerRadius = 10
         RadioButton2.Font = New Font("Bahnschrift", 10.5F)
         RadioButton2.ForeColor = Color.Snow
-        RadioButton2.Location = New Point(40, 239)
+        RadioButton2.Location = New Point(494, 243)
         RadioButton2.Name = "RadioButton2"
-        RadioButton2.Size = New Size(125, 41)
+        RadioButton2.Size = New Size(125, 34)
         RadioButton2.TabIndex = 68
         RadioButton2.Text = "Installer Mode"
         ' 
@@ -170,20 +168,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         UseOverlay_LBL.Size = New Size(163, 16)
         UseOverlay_LBL.TabIndex = 92
         UseOverlay_LBL.Text = "O V E R L A Y   E N A B L E D"
-        ' 
-        ' NvIconButton2
-        ' 
-        NvIconButton2.BackColor = Color.FromArgb(CByte(30), CByte(32), CByte(35))
-        NvIconButton2.ButtonVariant = NvIconButton.IconVariant.Ghost
-        NvIconButton2.CornerRadius = 14
-        NvIconButton2.Enabled = False
-        NvIconButton2.IconImage = Nothing
-        NvIconButton2.IsActive = True
-        NvIconButton2.Location = New Point(20, 218)
-        NvIconButton2.Name = "NvIconButton2"
-        NvIconButton2.Size = New Size(620, 83)
-        NvIconButton2.TabIndex = 84
-        NvIconButton2.Text = "NvIconButton2"
         ' 
         ' Label4
         ' 
@@ -361,17 +345,6 @@ Partial Class NVIDIA_Shadowplay_Helper
         NvIconButton1.TabIndex = 83
         NvIconButton1.Text = "NvIconButton1"
         ' 
-        ' PictureBox3
-        ' 
-        PictureBox3.BackColor = Color.FromArgb(CByte(22), CByte(23), CByte(25))
-        PictureBox3.BackgroundImageLayout = ImageLayout.Stretch
-        PictureBox3.Location = New Point(20, 218)
-        PictureBox3.Name = "PictureBox3"
-        PictureBox3.Size = New Size(620, 44)
-        PictureBox3.TabIndex = 85
-        PictureBox3.TabStop = False
-        PictureBox3.Visible = False
-        ' 
         ' Accent_BAR
         ' 
         Accent_BAR.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
@@ -434,6 +407,17 @@ Partial Class NVIDIA_Shadowplay_Helper
         RadioButton1.TabIndex = 68
         RadioButton1.TabStop = False
         ' 
+        ' OBT3
+        ' 
+        OBT3.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        OBT3.BackgroundImage = CType(resources.GetObject("OBT3.BackgroundImage"), Image)
+        OBT3.BackgroundImageLayout = ImageLayout.Center
+        OBT3.Location = New Point(20, 218)
+        OBT3.Name = "OBT3"
+        OBT3.Size = New Size(620, 83)
+        OBT3.TabIndex = 94
+        OBT3.TabStop = False
+        ' 
         ' NVIDIA_Shadowplay_Helper
         ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
@@ -456,10 +440,10 @@ Partial Class NVIDIA_Shadowplay_Helper
         CType(PictureBox8, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).EndInit()
         CType(PictureBox4, ComponentModel.ISupportInitialize).EndInit()
-        CType(PictureBox3, ComponentModel.ISupportInitialize).EndInit()
         CType(Accent_BAR, ComponentModel.ISupportInitialize).EndInit()
         CType(BOX_LOGO, ComponentModel.ISupportInitialize).EndInit()
         CType(RadioButton1, ComponentModel.ISupportInitialize).EndInit()
+        CType(OBT3, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
     Friend WithEvents Panel_MAIN As Panel
@@ -486,11 +470,10 @@ Partial Class NVIDIA_Shadowplay_Helper
     Friend WithEvents openoverlay As NvButton
     Friend WithEvents PictureBox2 As PictureBox
     Friend WithEvents NvIconButton1 As NvIconButton
-    Friend WithEvents NvIconButton2 As NvIconButton
-    Friend WithEvents PictureBox3 As PictureBox
     Friend WithEvents Hero_TAG As Label
     Friend WithEvents UseOverlay_LBL As Label
     Friend WithEvents Accent_BAR As PictureBox
     Friend WithEvents NvIconButton3 As NvIconButton
+    Friend WithEvents OBT3 As PictureBox
 
 End Class

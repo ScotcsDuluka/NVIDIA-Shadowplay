@@ -98,20 +98,6 @@ Partial Public Class Base
 
 #End Region
 
-#Region "Connect (double-registered with the panel handlers below — kept, see note)"
-
-    Private Sub Privacy_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_TEXT.MouseMove, Connect_ICO.MouseMove
-        Connect_BOX_SUB.BackColor = greenColor
-    End Sub
-
-    Private Sub Privacy_MouseLeave(sender As Object, e As EventArgs) Handles Connect_TEXT.MouseLeave, Connect_ICO.MouseLeave
-        Connect_BOX_SUB.BackColor = System.Drawing.Color.Gray
-    End Sub
-    Private Sub Privacy_Click(sender As Object, e As EventArgs) Handles Connect_TEXT.Click, Connect_ICO.Click
-        ShowNotifier("account_confirm_error")
-    End Sub
-
-#End Region
 
 #Region "Replay menu"
 

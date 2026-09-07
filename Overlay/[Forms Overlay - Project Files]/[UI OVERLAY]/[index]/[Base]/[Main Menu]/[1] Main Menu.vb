@@ -1065,6 +1065,7 @@ Partial Public Class Base
 
     ''' <summary>Shows/hides the Engine settings page depending on whether "Engine.UI" marker file exists; stops itself if the capture process died.</summary>
     Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
+
         Dim EngineFile = AppLayout.P("Flags", "Engine.UI")
 
         Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()

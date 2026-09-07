@@ -23,6 +23,8 @@ Friend Class DulukaAccountStore
 
     Private Const FileName As String = "duluka_account.json"
     Private ReadOnly _lock As New Object()
+    Private ReadOnly _storePathOverride As String
+    Private ReadOnly _legacyStorePathOverride As String
 
     ' Persisted, DPAPI-encrypted. Never serialized as plain text.
     Private _deviceKeyEncrypted As String = ""
@@ -36,9 +38,17 @@ Friend Class DulukaAccountStore
     Private _username As String = ""
     Private _sessionExpiresAtIso As String = ""
 
-    Private Sub New()
+    Private Sub New(Optional storePathOverride As String = Nothing,
+                    Optional legacyStorePathOverride As String = Nothing)
+        _storePathOverride = storePathOverride
+        _legacyStorePathOverride = legacyStorePathOverride
         Load()
     End Sub
+
+    ''' <summary>Creates an isolated store for deterministic client tests.</summary>
+    Friend Shared Function CreateForTest(storePath As String, legacyStorePath As String) As DulukaAccountStore
+        Return New DulukaAccountStore(storePath, legacyStorePath)
+    End Function
 
     ' ── session state ───────────────────────────────────────────────────────
 
@@ -151,17 +161,22 @@ Friend Class DulukaAccountStore
 
     ''' <summary>Logout / terminal session handling: clears everything
     ' session-scoped. The device key is intentionally kept.</summary>
-    Public Sub ClearSession()
+    Public Function ClearSession() As Boolean
         SyncLock _lock
+            Dim hadSession As Boolean = _sessionTokenEncrypted <> "" OrElse _
+                _accountId <> "" OrElse _deviceId <> "" OrElse _deviceName <> "" OrElse _
+                _displayName <> "" OrElse _username <> "" OrElse _sessionExpiresAtIso <> ""
             _sessionTokenEncrypted = ""
             _accountId = ""
             _deviceId = ""
+            _deviceName = ""
             _displayName = ""
             _username = ""
             _sessionExpiresAtIso = ""
             Save()
+            Return hadSession
         End SyncLock
-    End Sub
+    End Function
 
     ' ── DPAPI (same discipline as AppSettings.GitHubTokenEncrypted) ─────────
 
@@ -229,8 +244,27 @@ Friend Class DulukaAccountStore
         Public Property SessionExpiresAt As String = ""
     End Class
 
+    ''' <summary>
+    ''' User-owned account state. This must not live below AppLayout.Dir:
+    ''' portable/copyable application trees must never carry a device identity
+    ''' to another installation.
+    ''' </summary>
     Private ReadOnly Property StorePath As String
         Get
+            If Not String.IsNullOrEmpty(_storePathOverride) Then Return _storePathOverride
+            Return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "Duluka",
+                "NVIDIA ShadowPlay",
+                "Account",
+                FileName)
+        End Get
+    End Property
+
+    ''' <summary>Pre-migration path used by older portable installations.</summary>
+    Private ReadOnly Property LegacyStorePath As String
+        Get
+            If Not String.IsNullOrEmpty(_legacyStorePathOverride) Then Return _legacyStorePathOverride
             Return AppLayout.P(FileName)
         End Get
     End Property
@@ -246,6 +280,7 @@ Friend Class DulukaAccountStore
             dto.DisplayName = _displayName
             dto.Username = _username
             dto.SessionExpiresAt = _sessionExpiresAtIso
+            AppLayout.EnsureParentDir(StorePath)
             File.WriteAllText(StorePath, JsonSerializer.Serialize(dto))
         Catch ex As Exception
             Debug.WriteLine($"DulukaAccountStore.Save failed: {ex.GetType().Name}")
@@ -255,21 +290,54 @@ Friend Class DulukaAccountStore
     Private Sub Load()
         Try
             Dim path As String = StorePath
-            If Not File.Exists(path) Then Return
-            Dim dto As StoreDto = JsonSerializer.Deserialize(Of StoreDto)(File.ReadAllText(path))
-            If dto Is Nothing Then Return
-            _deviceKeyEncrypted = If(dto.DeviceKeyEncrypted, "")
-            _sessionTokenEncrypted = If(dto.SessionTokenEncrypted, "")
-            _accountId = If(dto.AccountId, "")
-            _deviceId = If(dto.DeviceId, "")
-            _deviceName = If(dto.DeviceName, "")
-            _displayName = If(dto.DisplayName, "")
-            _username = If(dto.Username, "")
-            _sessionExpiresAtIso = If(dto.SessionExpiresAt, "")
+            If File.Exists(path) Then
+                ApplyDto(ReadDto(path))
+                Return
+            End If
+
+            ' Migrate only a legacy store whose protected values can be
+            ' decrypted by this Windows user. A copied store from another
+            ' profile is treated as absent and never copied forward.
+            Dim legacyPath As String = LegacyStorePath
+            If Not File.Exists(legacyPath) Then Return
+            Dim legacyDto As StoreDto = ReadDto(legacyPath)
+            If legacyDto Is Nothing OrElse Not CanDecryptPersistedSecrets(legacyDto) Then Return
+            ApplyDto(legacyDto)
+            Save()
         Catch ex As Exception
             ' Corrupt store = start clean; the next login re-provisions.
             Debug.WriteLine($"DulukaAccountStore.Load failed: {ex.GetType().Name}")
         End Try
+    End Sub
+
+    Private Function ReadDto(path As String) As StoreDto
+        If String.IsNullOrEmpty(path) OrElse Not File.Exists(path) Then Return Nothing
+        Return JsonSerializer.Deserialize(Of StoreDto)(File.ReadAllText(path))
+    End Function
+
+    Private Function CanDecryptPersistedSecrets(dto As StoreDto) As Boolean
+        If dto Is Nothing Then Return False
+        If Not String.IsNullOrEmpty(dto.DeviceKeyEncrypted) AndAlso
+           String.IsNullOrEmpty(Decrypt(dto.DeviceKeyEncrypted)) Then
+            Return False
+        End If
+        If Not String.IsNullOrEmpty(dto.SessionTokenEncrypted) AndAlso
+           String.IsNullOrEmpty(Decrypt(dto.SessionTokenEncrypted)) Then
+            Return False
+        End If
+        Return True
+    End Function
+
+    Private Sub ApplyDto(dto As StoreDto)
+        If dto Is Nothing Then Return
+        _deviceKeyEncrypted = If(dto.DeviceKeyEncrypted, "")
+        _sessionTokenEncrypted = If(dto.SessionTokenEncrypted, "")
+        _accountId = If(dto.AccountId, "")
+        _deviceId = If(dto.DeviceId, "")
+        _deviceName = If(dto.DeviceName, "")
+        _displayName = If(dto.DisplayName, "")
+        _username = If(dto.Username, "")
+        _sessionExpiresAtIso = If(dto.SessionExpiresAt, "")
     End Sub
 
 End Class

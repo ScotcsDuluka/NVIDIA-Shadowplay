@@ -52,6 +52,7 @@ internal static class Program
         Run("NATIVE-2: duplicate username across case variants rejected (DB unique)", Test_NativeDuplicateUsername);
         Run("NATIVE-3: invalid username/password rejected deterministically", Test_NativeValidation);
         Run("NATIVE-4: login success — case-insensitive username, session valid", Test_NativeLogin);
+        Run("NATIVE-4B: same credentials + new device → same account, second device", Test_NativeMultiDeviceLogin);
         Run("NATIVE-5: wrong password and unknown username = SAME generic failure", Test_NativeGenericFailure);
         Run("NATIVE-6: password verifier at rest — PBKDF2, salted, never plaintext", Test_NativeHashAtRest);
         Run("NATIVE-7: second login on same device supersedes prior session (§5.2)", Test_NativeSessionSupersede);
@@ -796,6 +797,39 @@ internal static class Program
         finally { f.Dispose(); }
     }
 
+    private static void Test_NativeMultiDeviceLogin()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (_, hashA) = NewDeviceKey();
+            var (account, deviceA) = f.Native.Register("Alice", "correct-horse-1", hashA, "device-a");
+
+            var (_, hashB) = NewDeviceKey();
+            var (loginAccount, deviceB) = f.Native.Login("alice", "correct-horse-1", hashB, "device-b");
+
+            Assert(!string.Equals(hashA, hashB, StringComparison.Ordinal), "independent device keys differ");
+            Assert(loginAccount.AccountId == account.AccountId, "new-device login reaches the original account");
+            Assert(deviceB.DeviceId != deviceA.DeviceId, "new-device login creates a distinct device");
+            Assert(f.Db.DevicesForAccount(account.AccountId).Count == 2,
+                "the account owns both devices");
+
+            var (_, otherAccountDeviceKey) = NewDeviceKey();
+            var other = f.Native.Register("Bob", "correct-horse-1", otherAccountDeviceKey, "device-other");
+            var devicesBeforeCollision = f.Db.DevicesForAccount(other.Account.AccountId).Count;
+            var threw = false;
+            try { f.Native.Login("bob", "correct-horse-1", hashA, "device-reused"); }
+            catch (InvalidOperationException ex) { threw = ex.Message == "device_key_in_use"; }
+            Assert(threw, "a key owned by another account remains guarded");
+            Assert(other.Account.AccountId != account.AccountId, "guard test uses a separate account");
+            Assert(f.Db.DevicesForAccount(other.Account.AccountId).Count == devicesBeforeCollision,
+                "cross-account collision created an orphan device");
+            Assert(f.Sessions.Validate("duluka_st_collision") is null,
+                "cross-account collision created a session");
+        }
+        finally { f.Dispose(); }
+    }
+
     private static void Test_NativeGenericFailure()
     {
         var f = NewFixture();
@@ -1297,7 +1331,59 @@ internal static class Program
                     "reserved provider code on the wire");
             });
 
-            Run("HTTP-INT-4: rate limiter answers with the §7.1 envelope (429)", () =>
+            Run("HTTP-INT-4: native multi-device + foreign-key conflict has no orphan/session", () =>
+            {
+                const string password = "native-http-pass-123";
+                const string keyA = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+                const string keyB = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+                const string keyC = "cccccccccccccccccccccccccccccccccccccccccccccccc";
+                using var registerA = PostJson(http, "/v1/auth/register", "reqid-http-int-4a",
+                    $$"""{"username":"alice-http","password":"{{password}}","deviceKey":"{{keyA}}","deviceName":"client-a"}""");
+                using var registerADoc = JsonDocument.Parse(registerA.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var accountA = registerADoc.RootElement.GetProperty("resource").GetProperty("accountId").GetString();
+                var deviceA = registerADoc.RootElement.GetProperty("resource").GetProperty("deviceId").GetString();
+
+                using var loginB = PostJson(http, "/v1/auth/login", "reqid-http-int-4b",
+                    $$"""{"username":"alice-http","password":"{{password}}","deviceKey":"{{keyB}}","deviceName":"client-b"}""");
+                using var loginBDoc = JsonDocument.Parse(loginB.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var loginAccount = loginBDoc.RootElement.GetProperty("resource").GetProperty("accountId").GetString();
+                var deviceB = loginBDoc.RootElement.GetProperty("resource").GetProperty("deviceId").GetString();
+                Assert(accountA == loginAccount && deviceA != deviceB,
+                    "same native credentials must resolve one account with a new device");
+
+                using var registerOther = PostJson(http, "/v1/auth/register", "reqid-http-int-4c",
+                    $$"""{"username":"bob-http","password":"{{password}}","deviceKey":"{{keyC}}","deviceName":"other"}""");
+                using var otherDoc = JsonDocument.Parse(registerOther.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var otherToken = otherDoc.RootElement.GetProperty("resource").GetProperty("sessionToken").GetString()!;
+                using var devicesBeforeRequest = new HttpRequestMessage(HttpMethod.Get, "/v1/account/devices");
+                devicesBeforeRequest.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", otherToken);
+                using var devicesBefore = http.SendAsync(devicesBeforeRequest).GetAwaiter().GetResult();
+                using var devicesBeforeDoc = JsonDocument.Parse(
+                    devicesBefore.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                var deviceCountBefore = devicesBeforeDoc.RootElement.GetProperty("resource")
+                    .GetProperty("devices").GetArrayLength();
+
+                using var collision = PostJson(http, "/v1/auth/login", "reqid-http-int-4d",
+                    $$"""{"username":"bob-http","password":"{{password}}","deviceKey":"{{keyA}}","deviceName":"collision"}""");
+                var collisionBody = collision.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+                Assert((int)collision.StatusCode == 409, "foreign device key must return HTTP 409");
+                using var collisionDoc = JsonDocument.Parse(collisionBody);
+                Assert(collisionDoc.RootElement.GetProperty("errorCode").GetString() == "conflict.link_conflict",
+                    "foreign device key must return conflict.link_conflict");
+                Assert(!collisionDoc.RootElement.TryGetProperty("resource", out _),
+                    "conflicting login must not return a session resource");
+                using var devicesAfterRequest = new HttpRequestMessage(HttpMethod.Get, "/v1/account/devices");
+                devicesAfterRequest.Headers.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", otherToken);
+                using var devicesAfter = http.SendAsync(devicesAfterRequest).GetAwaiter().GetResult();
+                using var devicesAfterDoc = JsonDocument.Parse(
+                    devicesAfter.Content.ReadAsStringAsync().GetAwaiter().GetResult());
+                Assert(devicesAfterDoc.RootElement.GetProperty("resource").GetProperty("devices").GetArrayLength() == deviceCountBefore,
+                    "conflicting login must not create an orphan device");
+            });
+
+            Run("HTTP-INT-5: rate limiter answers with the §7.1 envelope (429)", () =>
             {
                 var saw429 = false;
                 for (var i = 0; i < 14 && !saw429; i++)

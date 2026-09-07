@@ -297,7 +297,7 @@ Partial Class Base
         ' 
         Record_Logo.BackColor = Color.Black
         Record_Logo.Cursor = Cursors.Hand
-        Record_Logo.Font = New Font("nvgcshare", 90F)
+        Record_Logo.Font = New Font("nvgcshare", 90.0F)
         Record_Logo.ForeColor = Color.White
         Record_Logo.ImageAlign = ContentAlignment.TopCenter
         Record_Logo.Location = New Point(525, 0)
@@ -484,7 +484,7 @@ Partial Class Base
         ' 
         Menu_Record_key.BackColor = Color.Black
         Menu_Record_key.Cursor = Cursors.Hand
-        Menu_Record_key.Font = New Font("Segoe UI", 9F)
+        Menu_Record_key.Font = New Font("Segoe UI", 9.0F)
         Menu_Record_key.ForeColor = Color.Gray
         Menu_Record_key.ImageAlign = ContentAlignment.MiddleRight
         Menu_Record_key.Location = New Point(183, 4)
@@ -593,7 +593,7 @@ Partial Class Base
         Logo_Mode1.AutoSize = True
         Logo_Mode1.BackColor = Color.Black
         Logo_Mode1.Cursor = Cursors.Hand
-        Logo_Mode1.Font = New Font("nvgcshare", 36F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Logo_Mode1.Font = New Font("nvgcshare", 36.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Logo_Mode1.ForeColor = Color.White
         Logo_Mode1.Location = New Point(12, 16)
         Logo_Mode1.Name = "Logo_Mode1"
@@ -691,7 +691,7 @@ Partial Class Base
         Logo_Mode2.AutoSize = True
         Logo_Mode2.BackColor = Color.Black
         Logo_Mode2.Cursor = Cursors.Hand
-        Logo_Mode2.Font = New Font("nvgcshare", 36F)
+        Logo_Mode2.Font = New Font("nvgcshare", 36.0F)
         Logo_Mode2.ForeColor = Color.White
         Logo_Mode2.Location = New Point(12, 96)
         Logo_Mode2.Name = "Logo_Mode2"
@@ -714,7 +714,7 @@ Partial Class Base
         Logo_Mode3.AutoSize = True
         Logo_Mode3.BackColor = Color.Black
         Logo_Mode3.Cursor = Cursors.Hand
-        Logo_Mode3.Font = New Font("nvgcshare", 36F)
+        Logo_Mode3.Font = New Font("nvgcshare", 36.0F)
         Logo_Mode3.ForeColor = Color.White
         Logo_Mode3.Location = New Point(12, 176)
         Logo_Mode3.Name = "Logo_Mode3"
@@ -758,7 +758,7 @@ Partial Class Base
         ' Key_Mode1
         ' 
         Key_Mode1.BackColor = Color.Black
-        Key_Mode1.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Key_Mode1.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Key_Mode1.ForeColor = Color.Gray
         Key_Mode1.Location = New Point(80, 44)
         Key_Mode1.Name = "Key_Mode1"
@@ -781,7 +781,7 @@ Partial Class Base
         Key_Mode2.AutoSize = True
         Key_Mode2.BackColor = Color.Black
         Key_Mode2.Cursor = Cursors.Hand
-        Key_Mode2.Font = New Font("Segoe UI", 9F)
+        Key_Mode2.Font = New Font("Segoe UI", 9.0F)
         Key_Mode2.ForeColor = Color.Gray
         Key_Mode2.Location = New Point(80, 123)
         Key_Mode2.Name = "Key_Mode2"
@@ -804,7 +804,7 @@ Partial Class Base
         Key_Mode3.AutoSize = True
         Key_Mode3.BackColor = Color.Black
         Key_Mode3.Cursor = Cursors.Hand
-        Key_Mode3.Font = New Font("Segoe UI", 9F)
+        Key_Mode3.Font = New Font("Segoe UI", 9.0F)
         Key_Mode3.ForeColor = Color.Gray
         Key_Mode3.Location = New Point(80, 203)
         Key_Mode3.Name = "Key_Mode3"
@@ -816,7 +816,7 @@ Partial Class Base
         ' 
         Bg_Mode1.BackColor = Color.Black
         Bg_Mode1.Cursor = Cursors.Hand
-        Bg_Mode1.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_Mode1.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Bg_Mode1.ForeColor = Color.White
         Bg_Mode1.ImageAlign = ContentAlignment.TopCenter
         Bg_Mode1.Location = New Point(0, 0)
@@ -829,7 +829,7 @@ Partial Class Base
         ' 
         Bg_Mode2.BackColor = Color.Black
         Bg_Mode2.Cursor = Cursors.Hand
-        Bg_Mode2.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_Mode2.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Bg_Mode2.ForeColor = Color.White
         Bg_Mode2.ImageAlign = ContentAlignment.TopCenter
         Bg_Mode2.Location = New Point(0, 80)
@@ -842,7 +842,7 @@ Partial Class Base
         ' 
         Bg_Mode3.BackColor = Color.Black
         Bg_Mode3.Cursor = Cursors.Hand
-        Bg_Mode3.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Bg_Mode3.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Bg_Mode3.ForeColor = Color.White
         Bg_Mode3.ImageAlign = ContentAlignment.TopCenter
         Bg_Mode3.Location = New Point(0, 160)
@@ -894,7 +894,7 @@ Partial Class Base
         Menu_Replay_key.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Menu_Replay_key.BackColor = Color.Black
         Menu_Replay_key.Cursor = Cursors.Hand
-        Menu_Replay_key.Font = New Font("Segoe UI", 9F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Menu_Replay_key.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Menu_Replay_key.ForeColor = Color.Gray
         Menu_Replay_key.Location = New Point(139, 4)
         Menu_Replay_key.Name = "Menu_Replay_key"
@@ -1053,7 +1053,7 @@ Partial Class Base
         Menu_Replay_save_key.Anchor = AnchorStyles.Bottom
         Menu_Replay_save_key.BackColor = Color.Black
         Menu_Replay_save_key.Cursor = Cursors.Hand
-        Menu_Replay_save_key.Font = New Font("Segoe UI", 9F)
+        Menu_Replay_save_key.Font = New Font("Segoe UI", 9.0F)
         Menu_Replay_save_key.ForeColor = Color.Gray
         Menu_Replay_save_key.Location = New Point(139, 45)
         Menu_Replay_save_key.Name = "Menu_Replay_save_key"
@@ -1357,7 +1357,7 @@ Partial Class Base
         ' 
         Replay_Stats.BackColor = Color.Black
         Replay_Stats.Cursor = Cursors.Hand
-        Replay_Stats.Font = New Font("Segoe UI", 12F)
+        Replay_Stats.Font = New Font("Segoe UI", 12.0F)
         Replay_Stats.ForeColor = Color.Gray
         Replay_Stats.Location = New Point(283, 192)
         Replay_Stats.Name = "Replay_Stats"
@@ -1383,7 +1383,7 @@ Partial Class Base
         ' 
         Live_Stats.BackColor = Color.Black
         Live_Stats.Cursor = Cursors.Hand
-        Live_Stats.Font = New Font("Segoe UI", 12F)
+        Live_Stats.Font = New Font("Segoe UI", 12.0F)
         Live_Stats.ForeColor = Color.Gray
         Live_Stats.Location = New Point(763, 192)
         Live_Stats.Name = "Live_Stats"
@@ -1396,7 +1396,7 @@ Partial Class Base
         ' 
         Record_Stats.BackColor = Color.Black
         Record_Stats.Cursor = Cursors.Hand
-        Record_Stats.Font = New Font("Segoe UI", 12F)
+        Record_Stats.Font = New Font("Segoe UI", 12.0F)
         Record_Stats.ForeColor = Color.Gray
         Record_Stats.Location = New Point(523, 192)
         Record_Stats.Name = "Record_Stats"
@@ -1436,7 +1436,7 @@ Partial Class Base
         Settings_Logo.AutoSize = True
         Settings_Logo.BackColor = Color.Black
         Settings_Logo.Cursor = Cursors.Hand
-        Settings_Logo.Font = New Font("nvgcshare", 36F)
+        Settings_Logo.Font = New Font("nvgcshare", 36.0F)
         Settings_Logo.ForeColor = Color.White
         Settings_Logo.Location = New Point(1050, 176)
         Settings_Logo.Name = "Settings_Logo"
@@ -1449,7 +1449,7 @@ Partial Class Base
         Gallery_Logo.AutoSize = True
         Gallery_Logo.BackColor = Color.Black
         Gallery_Logo.Cursor = Cursors.Hand
-        Gallery_Logo.Font = New Font("nvgcshare", 36F)
+        Gallery_Logo.Font = New Font("nvgcshare", 36.0F)
         Gallery_Logo.ForeColor = Color.White
         Gallery_Logo.Location = New Point(1050, 96)
         Gallery_Logo.Name = "Gallery_Logo"
@@ -1488,7 +1488,7 @@ Partial Class Base
         Share_Logo.AutoSize = True
         Share_Logo.BackColor = Color.Black
         Share_Logo.Cursor = Cursors.Hand
-        Share_Logo.Font = New Font("nvgcshare", 36F)
+        Share_Logo.Font = New Font("nvgcshare", 36.0F)
         Share_Logo.ForeColor = Color.White
         Share_Logo.Location = New Point(1050, 16)
         Share_Logo.Name = "Share_Logo"
@@ -1500,7 +1500,7 @@ Partial Class Base
         ' 
         Gallery_Box.BackColor = Color.Black
         Gallery_Box.Cursor = Cursors.Hand
-        Gallery_Box.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Gallery_Box.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Gallery_Box.ForeColor = Color.White
         Gallery_Box.ImageAlign = ContentAlignment.TopCenter
         Gallery_Box.Location = New Point(1040, 80)
@@ -1513,7 +1513,7 @@ Partial Class Base
         ' 
         Share_Box.BackColor = Color.Black
         Share_Box.Cursor = Cursors.Hand
-        Share_Box.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Share_Box.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Share_Box.ForeColor = Color.White
         Share_Box.ImageAlign = ContentAlignment.TopCenter
         Share_Box.Location = New Point(1040, 0)
@@ -1526,7 +1526,7 @@ Partial Class Base
         ' 
         Settings_Box.BackColor = Color.Black
         Settings_Box.Cursor = Cursors.Hand
-        Settings_Box.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        Settings_Box.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Settings_Box.ForeColor = Color.White
         Settings_Box.ImageAlign = ContentAlignment.TopCenter
         Settings_Box.Location = New Point(1040, 160)
@@ -1539,7 +1539,7 @@ Partial Class Base
         ' 
         Live_Logo.BackColor = Color.Black
         Live_Logo.Cursor = Cursors.Hand
-        Live_Logo.Font = New Font("nvgcshare", 90F)
+        Live_Logo.Font = New Font("nvgcshare", 90.0F)
         Live_Logo.ForeColor = Color.White
         Live_Logo.ImageAlign = ContentAlignment.TopCenter
         Live_Logo.Location = New Point(764, 0)
@@ -1553,7 +1553,7 @@ Partial Class Base
         ' 
         Replay_Logo.BackColor = Color.Black
         Replay_Logo.Cursor = Cursors.Hand
-        Replay_Logo.Font = New Font("nvgcshare", 90F)
+        Replay_Logo.Font = New Font("nvgcshare", 90.0F)
         Replay_Logo.ForeColor = Color.White
         Replay_Logo.ImageAlign = ContentAlignment.TopCenter
         Replay_Logo.Location = New Point(285, 0)
@@ -1566,7 +1566,7 @@ Partial Class Base
         ' bg_action
         ' 
         bg_action.BackColor = Color.Black
-        bg_action.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        bg_action.Font = New Font("Microsoft Sans Serif", 80.0F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         bg_action.ForeColor = Color.White
         bg_action.ImageAlign = ContentAlignment.TopCenter
         bg_action.Location = New Point(280, 0)
@@ -1589,7 +1589,7 @@ Partial Class Base
         ' 
         Name_action.AutoSize = True
         Name_action.BackColor = Color.Black
-        Name_action.Font = New Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        Name_action.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         Name_action.ForeColor = Color.White
         Name_action.Location = New Point(91, 27)
         Name_action.Name = "Name_action"
@@ -1626,7 +1626,7 @@ Partial Class Base
         ' 
         Settings_List_Text.AutoSize = True
         Settings_List_Text.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_List_Text.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
+        Settings_List_Text.Font = New Font("Segoe UI Semibold", 12.0F, FontStyle.Bold)
         Settings_List_Text.ForeColor = Color.White
         Settings_List_Text.Location = New Point(32, 41)
         Settings_List_Text.Name = "Settings_List_Text"
@@ -1700,7 +1700,7 @@ Partial Class Base
         ' 
         Audio_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Audio_TEXT.Cursor = Cursors.Hand
-        Audio_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Audio_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         Audio_TEXT.ForeColor = Color.White
         Audio_TEXT.Location = New Point(60, 401)
         Audio_TEXT.Name = "Audio_TEXT"
@@ -1713,7 +1713,7 @@ Partial Class Base
         ' 
         Connect_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Connect_TEXT.Cursor = Cursors.Hand
-        Connect_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Connect_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         Connect_TEXT.ForeColor = Color.White
         Connect_TEXT.Location = New Point(60, 2)
         Connect_TEXT.Name = "Connect_TEXT"
@@ -1726,7 +1726,7 @@ Partial Class Base
         ' 
         Audio_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Audio_ICO.Cursor = Cursors.Hand
-        Audio_ICO.Font = New Font("nvgcshare", 26F)
+        Audio_ICO.Font = New Font("nvgcshare", 26.0F)
         Audio_ICO.ForeColor = Color.White
         Audio_ICO.Location = New Point(2, 401)
         Audio_ICO.Name = "Audio_ICO"
@@ -1739,7 +1739,7 @@ Partial Class Base
         ' 
         HUDLayout_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         HUDLayout_TEXT.Cursor = Cursors.Hand
-        HUDLayout_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        HUDLayout_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         HUDLayout_TEXT.ForeColor = Color.White
         HUDLayout_TEXT.Location = New Point(60, 82)
         HUDLayout_TEXT.Name = "HUDLayout_TEXT"
@@ -1763,7 +1763,7 @@ Partial Class Base
         ' 
         Highlights_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Highlights_TEXT.Cursor = Cursors.Hand
-        Highlights_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Highlights_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         Highlights_TEXT.ForeColor = Color.White
         Highlights_TEXT.Location = New Point(60, 162)
         Highlights_TEXT.Name = "Highlights_TEXT"
@@ -1776,7 +1776,7 @@ Partial Class Base
         ' 
         KeyboardShortcuts_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         KeyboardShortcuts_TEXT.Cursor = Cursors.Hand
-        KeyboardShortcuts_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        KeyboardShortcuts_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         KeyboardShortcuts_TEXT.ForeColor = Color.White
         KeyboardShortcuts_TEXT.Location = New Point(60, 242)
         KeyboardShortcuts_TEXT.Name = "KeyboardShortcuts_TEXT"
@@ -1799,7 +1799,7 @@ Partial Class Base
         ' 
         VideoCapture_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         VideoCapture_TEXT.Cursor = Cursors.Hand
-        VideoCapture_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        VideoCapture_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         VideoCapture_TEXT.ForeColor = Color.White
         VideoCapture_TEXT.Location = New Point(60, 322)
         VideoCapture_TEXT.Name = "VideoCapture_TEXT"
@@ -1812,7 +1812,7 @@ Partial Class Base
         ' 
         VideoCapture_TEXT_SUB.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         VideoCapture_TEXT_SUB.Cursor = Cursors.Hand
-        VideoCapture_TEXT_SUB.Font = New Font("Segoe UI Semibold", 8F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
+        VideoCapture_TEXT_SUB.Font = New Font("Segoe UI Semibold", 8.0F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
         VideoCapture_TEXT_SUB.ForeColor = Color.Gray
         VideoCapture_TEXT_SUB.Location = New Point(61, 353)
         VideoCapture_TEXT_SUB.Name = "VideoCapture_TEXT_SUB"
@@ -1824,7 +1824,7 @@ Partial Class Base
         ' 
         Engine_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Engine_TEXT.Cursor = Cursors.Hand
-        Engine_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Engine_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         Engine_TEXT.ForeColor = Color.White
         Engine_TEXT.Location = New Point(60, 481)
         Engine_TEXT.Name = "Engine_TEXT"
@@ -1837,7 +1837,7 @@ Partial Class Base
         ' 
         Notifications_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Notifications_TEXT.Cursor = Cursors.Hand
-        Notifications_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        Notifications_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         Notifications_TEXT.ForeColor = Color.White
         Notifications_TEXT.Location = New Point(60, 561)
         Notifications_TEXT.Name = "Notifications_TEXT"
@@ -1850,7 +1850,7 @@ Partial Class Base
         ' 
         PrivacyControl_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PrivacyControl_TEXT.Cursor = Cursors.Hand
-        PrivacyControl_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        PrivacyControl_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         PrivacyControl_TEXT.ForeColor = Color.White
         PrivacyControl_TEXT.Location = New Point(60, 641)
         PrivacyControl_TEXT.Name = "PrivacyControl_TEXT"
@@ -1863,7 +1863,7 @@ Partial Class Base
         ' 
         About_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         About_TEXT.Cursor = Cursors.Hand
-        About_TEXT.Font = New Font("Segoe UI Semibold", 11F, FontStyle.Bold)
+        About_TEXT.Font = New Font("Segoe UI Semibold", 11.0F, FontStyle.Bold)
         About_TEXT.ForeColor = Color.White
         About_TEXT.Location = New Point(60, 721)
         About_TEXT.Name = "About_TEXT"
@@ -1887,7 +1887,7 @@ Partial Class Base
         ' 
         Engine_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Engine_ICO.Cursor = Cursors.Hand
-        Engine_ICO.Font = New Font("nvgcshare", 26F)
+        Engine_ICO.Font = New Font("nvgcshare", 26.0F)
         Engine_ICO.ForeColor = Color.White
         Engine_ICO.Location = New Point(2, 481)
         Engine_ICO.Name = "Engine_ICO"
@@ -1911,7 +1911,7 @@ Partial Class Base
         ' 
         notifications_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         notifications_ICO.Cursor = Cursors.Hand
-        notifications_ICO.Font = New Font("nvgcshare", 26F)
+        notifications_ICO.Font = New Font("nvgcshare", 26.0F)
         notifications_ICO.ForeColor = Color.White
         notifications_ICO.Location = New Point(2, 561)
         notifications_ICO.Name = "notifications_ICO"
@@ -1935,7 +1935,7 @@ Partial Class Base
         ' 
         Highlights_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Highlights_ICO.Cursor = Cursors.Hand
-        Highlights_ICO.Font = New Font("nvgcshare", 26F)
+        Highlights_ICO.Font = New Font("nvgcshare", 26.0F)
         Highlights_ICO.ForeColor = Color.White
         Highlights_ICO.Location = New Point(2, 162)
         Highlights_ICO.Name = "Highlights_ICO"
@@ -1959,7 +1959,7 @@ Partial Class Base
         ' 
         VideoCapture_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         VideoCapture_ICO.Cursor = Cursors.Hand
-        VideoCapture_ICO.Font = New Font("nvgcshare", 26F)
+        VideoCapture_ICO.Font = New Font("nvgcshare", 26.0F)
         VideoCapture_ICO.ForeColor = Color.White
         VideoCapture_ICO.Location = New Point(2, 322)
         VideoCapture_ICO.Name = "VideoCapture_ICO"
@@ -1983,7 +1983,7 @@ Partial Class Base
         ' 
         KeyboardShortcuts_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         KeyboardShortcuts_ICO.Cursor = Cursors.Hand
-        KeyboardShortcuts_ICO.Font = New Font("nvgcshare", 26F)
+        KeyboardShortcuts_ICO.Font = New Font("nvgcshare", 26.0F)
         KeyboardShortcuts_ICO.ForeColor = Color.White
         KeyboardShortcuts_ICO.Location = New Point(2, 242)
         KeyboardShortcuts_ICO.Name = "KeyboardShortcuts_ICO"
@@ -1996,7 +1996,7 @@ Partial Class Base
         ' 
         HUDLayout_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         HUDLayout_ICO.Cursor = Cursors.Hand
-        HUDLayout_ICO.Font = New Font("nvgcshare", 26F)
+        HUDLayout_ICO.Font = New Font("nvgcshare", 26.0F)
         HUDLayout_ICO.ForeColor = Color.White
         HUDLayout_ICO.Location = New Point(2, 82)
         HUDLayout_ICO.Name = "HUDLayout_ICO"
@@ -2020,7 +2020,7 @@ Partial Class Base
         ' 
         Connect_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Connect_ICO.Cursor = Cursors.Hand
-        Connect_ICO.Font = New Font("nvgcshare", 26F)
+        Connect_ICO.Font = New Font("nvgcshare", 26.0F)
         Connect_ICO.ForeColor = Color.White
         Connect_ICO.Location = New Point(2, 2)
         Connect_ICO.Name = "Connect_ICO"
@@ -2033,7 +2033,7 @@ Partial Class Base
         ' 
         PrivacyControl_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PrivacyControl_ICO.Cursor = Cursors.Hand
-        PrivacyControl_ICO.Font = New Font("nvgcshare", 26F)
+        PrivacyControl_ICO.Font = New Font("nvgcshare", 26.0F)
         PrivacyControl_ICO.ForeColor = Color.White
         PrivacyControl_ICO.Location = New Point(2, 641)
         PrivacyControl_ICO.Name = "PrivacyControl_ICO"
@@ -2068,7 +2068,7 @@ Partial Class Base
         ' 
         About_ICO.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         About_ICO.Cursor = Cursors.Hand
-        About_ICO.Font = New Font("nvgcshare", 26F)
+        About_ICO.Font = New Font("nvgcshare", 26.0F)
         About_ICO.ForeColor = Color.White
         About_ICO.Location = New Point(2, 721)
         About_ICO.Name = "About_ICO"
@@ -2172,7 +2172,7 @@ Partial Class Base
         Box_FIX_UIMENU.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Box_FIX_UIMENU.Location = New Point(-31, -104)
         Box_FIX_UIMENU.Name = "Box_FIX_UIMENU"
-        Box_FIX_UIMENU.Size = New Size(359, 1539)
+        Box_FIX_UIMENU.Size = New Size(359, 1971)
         Box_FIX_UIMENU.TabIndex = 75
         Box_FIX_UIMENU.TabStop = False
         ' 
@@ -2260,7 +2260,7 @@ Partial Class Base
         ' 
         ' Base
         ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1700, 986)

@@ -136,8 +136,8 @@
   <data name="display_graphic" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\display_graphic.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="display_eye_icon16" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\display_eye_icon16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  <data name="display_camera_icon_S" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\display_camera_icon_S.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="display_camera_icon_M" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\display_camera_icon_M.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -147,6 +147,9 @@
   </data>
   <data name="display_comments_icon16" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\display_comments_icon16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="display_eye_icon16" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\display_eye_icon16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
   <data name="display_camera_icon_L" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\display_camera_icon_L.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
@@ -163,10 +166,10 @@
   <data name="perfstats_preview" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\perfstats_preview.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
-  <data name="display_camera_icon_S" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\Resources\display_camera_icon_S.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
-  </data>
   <data name="fps_counter_icon16" type="System.Resources.ResXFileRef, System.Windows.Forms">
     <value>..\Resources\fps_counter_icon16.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
+  </data>
+  <data name="obt3" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Resources\obt3.png;System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

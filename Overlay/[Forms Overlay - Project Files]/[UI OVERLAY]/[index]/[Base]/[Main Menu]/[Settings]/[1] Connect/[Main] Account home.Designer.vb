@@ -141,7 +141,7 @@ Partial Class Base_Connect
         BT_Logout.Cursor = Cursors.Hand
         BT_Logout.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
         BT_Logout.ForeColor = Color.White
-        BT_Logout.Location = New Point(1412, 55)
+        BT_Logout.Location = New Point(1387, 52)
         BT_Logout.Name = "BT_Logout"
         BT_Logout.Size = New Size(200, 50)
         BT_Logout.TabIndex = 94
@@ -176,9 +176,6 @@ Partial Class Base_Connect
         ' 
         ' BT_Providers
         ' 
-        ' NB: no Left/Right anchor here — the action row is laid out in code
-        ' (LayoutRow) so the three buttons always divide the width into exact
-        ' thirds; an anchor would stretch only this button and skew the row.
         BT_Providers.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         BT_Providers.Cursor = Cursors.Hand
         BT_Providers.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
