@@ -117,6 +117,12 @@ Public Class Base_Connect_Create
             ElseIf r.HttpStatus = 403 AndAlso r.ErrorCode = "perm.device_removed" Then
                 store.RevokeDeviceKey()
                 Status_TEXT.Text = "This device was revoked. Try again to mint a fresh device key."
+            ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.link_conflict" Then
+                ' The key is bound to another account — a dead end with THIS
+                ' key. Drop it so the next press mints a fresh device key and
+                ' can actually create the new account.
+                store.RevokeDeviceKey()
+                Status_TEXT.Text = "This device key is bound to another Duluka Account. Try again to mint a fresh device key."
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If

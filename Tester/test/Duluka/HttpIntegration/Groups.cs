@@ -811,24 +811,27 @@ internal static class Groups
                 "RACE-5: no silent merge — one active link row total");
         });
 
-        r.Run("RACE-6 re-login with a PREVIOUSLY UNLINKED identity succeeds (v1→v2 partial-index fix)", () =>
+        r.Run("RACE-6 re-login with a PREVIOUSLY UNLINKED identity returns to the SAME account", () =>
         {
             // v1's table-level UNIQUE(ProviderKey, ProviderUserId) made a
             // re-login with a previously unlinked identity a permanent 500.
-            // Schema v2 anchors uniqueness on ACTIVE rows only.
+            // Schema v2 anchored uniqueness on ACTIVE rows only. The v2-era
+            // "fresh account" convergence was its own bug (unlink → logout
+            // → login-again is a normal journey: it 409'd the still-bound
+            // device key forever and stranded the old home) — the contract
+            // was revised: a returning identity re-enters ITS OWN account.
             using var store = new StoreRaces.Store();
             var identity = new GitHubIdentity(ProviderKeys.GitHub, "relink-identity", "re@example.test", "re");
             var (_, acc1, _) = store.Provisioning.LoginOrLink(identity, Secrets.Sha256Hex(Secrets.NewToken("devk_")), "d1");
             var link = store.Db.LinksForAccount(acc1.AccountId).Single();
             store.Db.Unlink(link.LinkId, DateTimeOffset.UtcNow); // direct store unlink (last-provider guard bypassed on purpose)
-            // Documented v2 behavior: an unlinked identity reads as UNKNOWN --
-            // the re-login provisions a NEW account (C/2 ACC-2 same-account rule
-            // covers ACTIVE identities only). The v1 permanent-500 is gone.
             var (link2, acc2, existed2) = store.Provisioning.LoginOrLink(identity, Secrets.Sha256Hex(Secrets.NewToken("devk_")), "d2");
-            ServerApp.Assert(existed2 == false, "RACE-6: unlinked identity reads as unknown (documented v2 behavior)");
-            ServerApp.Assert(acc2.AccountId != acc1.AccountId, "RACE-6: re-login lands on a fresh account");
+            ServerApp.Assert(existed2 == true, "RACE-6: returning identity re-enters the existing account");
+            ServerApp.Assert(acc2.AccountId == acc1.AccountId, "RACE-6: re-login lands on the SAME account (no stranded home)");
             ServerApp.Assert(store.Db.GetLink(link.LinkId)!.Status == "Unlinked", "RACE-6: old row stays Unlinked");
-            ServerApp.Assert(store.Db.ActiveLinkCount(acc2.AccountId) == 1, "RACE-6: new account holds exactly one active link");
+            ServerApp.Assert(link2.LinkId != link.LinkId && link2.AccountId == acc1.AccountId,
+                "RACE-6: fresh link period minted on the same account");
+            ServerApp.Assert(store.Db.ActiveLinkCount(acc2.AccountId) == 1, "RACE-6: the account holds exactly one active link again");
             ServerApp.Assert(store.Scalar("SELECT COUNT(*) FROM AccountProviderLink WHERE Status='Active'") == "1",
                 "RACE-6: unique anchor holds over active rows");
         });

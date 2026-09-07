@@ -494,18 +494,51 @@ public sealed partial class Database : IAsyncDisposable
             return (existing, acc, true);
         }
 
+        // No ACTIVE anchor — but the identity may hold link history (unlink
+        // keeps the old row). Its home is the account of the most recent
+        // period: re-login after unlink must return THERE, never bootstrap a
+        // fresh empty account and strand the old one (the unlink → logout →
+        // login-again round trip is a normal user journey). A NEW link period
+        // (fresh LinkId) is minted on that same account; the previous row
+        // stays Unlinked as immutable audit history.
+        var latest = FindLatestLinkByKey(providerKey, providerUserId);
+        if (latest is not null)
+        {
+            var link = new AccountProviderLink(
+                Secrets.NewToken("duluka_link_"), latest.AccountId, providerKey, providerUserId,
+                providerEmail, LinkStatus.Active, DateTimeOffset.UtcNow, null);
+            try
+            {
+                Exec("INSERT INTO AccountProviderLink(LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt) " +
+                     "VALUES ($lid, $aid, $pk, $puid, $pe, 'Active', $la)",
+                    ("$lid", link.LinkId), ("$aid", link.AccountId), ("$pk", link.ProviderKey),
+                    ("$puid", link.ProviderUserId), ("$pe", (object?)link.ProviderEmail ?? DBNull.Value),
+                    ("$la", link.LinkedAt.ToString("o")));
+                return (link, GetAccount(latest.AccountId)!, true);
+            }
+            catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+            {
+                // Lost the unique-anchor race (concurrent re-login for the
+                // same identity). Converge on the winner's ACTIVE row.
+                var winner = FindActiveLink(providerKey, providerUserId)
+                             ?? throw new InvalidOperationException(
+                                 "unique-anchor race converged to no row", ex);
+                return (winner, GetAccount(winner.AccountId)!, true);
+            }
+        }
+
         var account = CreateAccount(displayName);
-        var link = new AccountProviderLink(
+        var newLink = new AccountProviderLink(
             Secrets.NewToken("duluka_link_"), account.AccountId, providerKey, providerUserId,
             providerEmail, LinkStatus.Active, DateTimeOffset.UtcNow, null);
         try
         {
             Exec("INSERT INTO AccountProviderLink(LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt) " +
                  "VALUES ($lid, $aid, $pk, $puid, $pe, 'Active', $la)",
-                ("$lid", link.LinkId), ("$aid", link.AccountId), ("$pk", link.ProviderKey),
-                ("$puid", link.ProviderUserId), ("$pe", (object?)link.ProviderEmail ?? DBNull.Value),
-                ("$la", link.LinkedAt.ToString("o")));
-            return (link, account, false);
+                ("$lid", newLink.LinkId), ("$aid", newLink.AccountId), ("$pk", newLink.ProviderKey),
+                ("$puid", newLink.ProviderUserId), ("$pe", (object?)newLink.ProviderEmail ?? DBNull.Value),
+                ("$la", newLink.LinkedAt.ToString("o")));
+            return (newLink, account, false);
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
         {
@@ -527,6 +560,26 @@ public sealed partial class Database : IAsyncDisposable
         using var cmd = conn.CreateCommand();
         cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
                           "FROM AccountProviderLink WHERE ProviderKey=$pk AND ProviderUserId=$puid AND Status='Active'";
+        cmd.Parameters.AddWithValue("$pk", providerKey);
+        cmd.Parameters.AddWithValue("$puid", providerUserId);
+        using var r = cmd.ExecuteReader();
+        return r.Read() ? MapLink(r) : null;
+    }
+
+    /// <summary>
+    /// Resolve a provider identity's anchor row REGARDLESS of status: the
+    /// ACTIVE row when one exists, otherwise the most recent link period.
+    /// Unlink keeps the historical row, so a returning identity (unlink →
+    /// logout → login again) can be recognised and sent home to ITS account
+    /// instead of being bootstrapped as a stranger.
+    /// </summary>
+    public AccountProviderLink? FindLatestLinkByKey(string providerKey, string providerUserId)
+    {
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = "SELECT LinkId, AccountId, ProviderKey, ProviderUserId, ProviderEmail, Status, LinkedAt, UnlinkedAt " +
+                          "FROM AccountProviderLink WHERE ProviderKey=$pk AND ProviderUserId=$puid " +
+                          "ORDER BY (Status='Active') DESC, LinkedAt DESC LIMIT 1";
         cmd.Parameters.AddWithValue("$pk", providerKey);
         cmd.Parameters.AddWithValue("$puid", providerUserId);
         using var r = cmd.ExecuteReader();

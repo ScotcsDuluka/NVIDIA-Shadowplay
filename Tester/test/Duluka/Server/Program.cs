@@ -45,7 +45,8 @@ internal static class Program
         Run("REVOKE-2: device revoke kills its sessions + blocks the key", Test_DeviceRevoke);
         Run("UNLINK-1: last-provider unlink rejected", Test_UnlinkLastProvider);
         Run("UNLINK-2: unlink non-last destroys credential + via-link sessions", Test_UnlinkNonLast);
-        Run("UNLINK-3: re-login after unlink converges (new account, no 500)", Test_RelinkAfterUnlink);
+        Run("UNLINK-3: re-login after unlink returns to the SAME account (same device key)", Test_RelinkAfterUnlink);
+        Run("UNLINK-5: returning identity + foreign device key refused, nothing persisted", Test_RelinkForeignDeviceRefused);
         Run("SCHEMA-1: v1 database migrates to v2, rows survive, re-link works", Test_SchemaV2Migration);
         Run("NVIDIA-1: provider reserved, no flow, no hardware identity surface", Test_NvidiaReserved);
         Run("NATIVE-1: register creates account + credential + device (canonical username)", Test_NativeRegister);
@@ -566,10 +567,18 @@ internal static class Program
 
     private static void Test_RelinkAfterUnlink()
     {
-        // Contract §5.4-2 / §6.2: unlinking a non-last provider must leave the
-        // provider identity RE-LINKABLE — the v1 table-level UNIQUE anchored
-        // Unlinked rows too, so every later login with that identity 500'd
-        // forever. The partial unique index (Active rows only) fixes it.
+        // Contract §6.2 (REVISED after a real-world failure report):
+        // unlinking a non-last provider must leave the provider identity
+        // RE-LINKABLE — the v1 table-level UNIQUE anchored Unlinked rows too,
+        // so every later login with that identity 500'd forever; the partial
+        // unique index (Active rows only) fixed the 500. But the OLD
+        // convergence ("fresh account") was its own bug: unlink → logout →
+        // login-again is a normal user journey, and the client arrives with
+        // the SAME device key (it persists in the local store across
+        // logout). The old contract 409'd that key forever ("This device
+        // key is already bound to another account" — while the identity was
+        // linked to NOTHING) and, with a minted key, silently stranded the
+        // old account. A returning identity must re-enter ITS OWN account.
         var f = NewFixture();
         try
         {
@@ -585,18 +594,76 @@ internal static class Program
 
             Assert(f.Provisioning.Unlink(account.AccountId, ghLink.LinkId).Ok, "non-last unlink succeeds");
 
-            // The same GitHub identity logs in again — must converge on a NEW
-            // account (its old link is history), never throw.
-            var (newLink, newAccount, existed) = f.Db.UpsertLink(
-                ProviderKeys.GitHub, ghId, null, null);
-            Assert(!existed, "unlinked identity is unknown again → fresh account");
-            Assert(newAccount.AccountId != account.AccountId, "new account, old account untouched");
-            Assert(newLink.Status == LinkStatus.Active, "new link is active");
+            // The SAME GitHub identity + the SAME device key (the real
+            // client's state after logout) log in again — must land back on
+            // the SAME account with a fresh link period, never throw.
+            var (newLink, sameAccount, existed) = f.Provisioning.LoginOrLink(id, hash, "dev");
+            Assert(existed, "returning identity re-enters the existing account");
+            Assert(sameAccount.AccountId == account.AccountId,
+                "same account — the old home is not stranded");
+            Assert(newLink.Status == LinkStatus.Active, "new link period is active");
             Assert(newLink.LinkId != ghLink.LinkId, "LinkId is minted fresh (immutable history preserved)");
+            Assert(newLink.AccountId == account.AccountId, "new link period belongs to the same account");
 
             var old = f.Db.GetLink(ghLink.LinkId)!;
             Assert(old.Status == LinkStatus.Unlinked, "old link row stays Unlinked (audit history)");
-            Assert(f.Db.ActiveLinkCount(account.AccountId) == 1, "old account keeps its remaining provider");
+            Assert(f.Db.ActiveLinkCount(account.AccountId) == 2,
+                "account holds github (again) + its remaining provider");
+
+            // The device key was REUSED, not duplicated: still exactly one
+            // live device row behind that hash, bound to the same account.
+            var device = f.Db.FindDeviceByKeyHash(hash);
+            Assert(device is not null && device.AccountId == account.AccountId,
+                "device binding survives the unlink → login round trip");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_RelinkForeignDeviceRefused()
+    {
+        // A returning (unlinked-history) identity may not be dragged onto a
+        // device key bound to a DIFFERENT account: refused BEFORE any
+        // persistence — no new link period, no account churn. Its own key
+        // still gets it home.
+        var f = NewFixture();
+        try
+        {
+            // Identity B bootstraps account B with its own device key.
+            var (keyB, hashB) = NewDeviceKey();
+            var ghB = f.RegisterGitHubUser(9200, "returnee");
+            var identityB = new GitHubIdentity(ProviderKeys.GitHub, ghB, null, null);
+            var (linkB, accountB, _) = f.Provisioning.LoginOrLink(identityB, hashB, "dev-B");
+
+            // A second account with a different live device key.
+            var (_, hashX) = NewDeviceKey();
+            var ghY = f.RegisterGitHubUser(9201, "other-home");
+            var identityY = new GitHubIdentity(ProviderKeys.GitHub, ghY, null, null);
+            var (_, accountX, _) = f.Provisioning.LoginOrLink(identityY, hashX, "dev-X");
+
+            // Unlink B's identity (B keeps a way in via a seeded provider).
+            var second = new AccountProviderLink(
+                Secrets.NewToken("duluka_link_"), accountB.AccountId, "discord", "discord-88",
+                null, LinkStatus.Active, DateTimeOffset.UtcNow, null);
+            f.Db.AddLink(second);
+            Assert(f.Provisioning.Unlink(accountB.AccountId, linkB.LinkId).Ok, "non-last unlink succeeds");
+
+            // The unlinked identity tries the FOREIGN device key → refused,
+            // and NOTHING is persisted (no fresh link period on either home).
+            var code = "";
+            try { f.Provisioning.LoginOrLink(identityB, hashX, "dev-X"); }
+            catch (InvalidOperationException ex) { code = ex.Message; }
+            Assert(code == "device_key_in_use",
+                $"returning identity + foreign key must be device_key_in_use (got: {code})");
+            Assert(f.Db.ActiveLinkCount(accountB.AccountId) == 1,
+                "no link period was opened by the refused login (account B)");
+            Assert(f.Db.ActiveLinkCount(accountX.AccountId) == 1,
+                "no link period was opened by the refused login (account X)");
+
+            // Its OWN key still gets it home — the same account, key reused.
+            var (home, homeAccount, existed) = f.Provisioning.LoginOrLink(identityB, hashB, "dev-B");
+            Assert(existed && homeAccount.AccountId == accountB.AccountId,
+                "own key returns the identity to its own account");
+            Assert(home.Status == LinkStatus.Active, "home link period active");
         }
         finally { f.Dispose(); }
     }
@@ -673,12 +740,15 @@ internal static class Program
                 Assert(existed && acc.AccountId == "acc-v1" && same.LinkId == "link-v1",
                     "anchor still resolves to the same account after migration");
 
-                // The re-link path that was FATAL on v1 now converges.
+                // The re-login path that was FATAL on v1 now converges — and
+                // returns to the SAME account (a returning identity re-enters
+                // its own home; it must not be re-bootstrapped as a stranger).
                 migrated.Unlink("link-v1", DateTimeOffset.UtcNow);
                 var (fresh, freshAcc, existed2) = migrated.UpsertLink(ProviderKeys.GitHub, "99001", null, null);
-                Assert(!existed2 && freshAcc.AccountId != "acc-v1",
-                    "re-login after unlink creates a fresh account (v1: unique violation → 500)");
-                Assert(fresh.Status == LinkStatus.Active, "fresh link active");
+                Assert(existed2 && freshAcc.AccountId == "acc-v1",
+                    "re-login after unlink returns to the SAME account (v1: unique violation → 500)");
+                Assert(fresh.Status == LinkStatus.Active && fresh.LinkId != "link-v1",
+                    "fresh link period active, old row stays history");
             }
             finally { migrated.DisposeAsync().AsTask().GetAwaiter().GetResult(); }
 

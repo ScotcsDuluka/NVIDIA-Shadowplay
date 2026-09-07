@@ -74,8 +74,11 @@ Partial Class Base_Connect_Profile
 
         Profile_CARD.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Profile_CARD.Controls.Add(Username_VALUE)
-        Profile_CARD.Controls.Add(AvatarLetter_LABEL)
+        ' Avatar_PICTURE first = front of the card's z-order: the loaded
+        ' profile image must sit ABOVE the letter-fallback label sharing the
+        ' same rect (mirrors the Account home card ordering).
         Profile_CARD.Controls.Add(Avatar_PICTURE)
+        Profile_CARD.Controls.Add(AvatarLetter_LABEL)
         Profile_CARD.Controls.Add(BT_ChangeImage)
         Profile_CARD.Controls.Add(BT_RemoveImage)
         Profile_CARD.Controls.Add(Name_LABEL)
