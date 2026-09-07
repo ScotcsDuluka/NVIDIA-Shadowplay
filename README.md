@@ -1,7 +1,3 @@
-Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadowplay/ as the information in this README may not be current.
-
-# <img src="https://cdn2.steamgriddb.com/icon/e8855b3528cb03d1def9803220bd3cb9/32/48x48.png" alt="NVIDIA ShadowPlay Logo" width="22"> NVIDIA ShadowPlay
-
 [**OPEN SOURCE PROJECT**](https://scotcsduluka.github.io/NVIDIA-Shadowplay/#)
 
 - [**OBT3 LIVE →**](https://scotcsduluka.github.io/NVIDIA-Shadowplay/obt3.html)
@@ -14,156 +10,151 @@ Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadow
 - [**Team**](https://scotcsduluka.github.io/NVIDIA-Shadowplay/#team)
 - [**Discord Server**](https://discord.gg/v5qUGVD3jZ)
 
-# Capture Every Moment
+# NVIDIA ShadowPlay
+
+## Capture Every Momen
 
 ### Zero latency. Zero compromise. Built for performance.
 
 **Flagship Build — OBT3**
-
-> The current open beta build focuses on the rebuilt audio/video timeline and the production native capture path.
-
-**BUILD: OBT3 · SEP 2026**
-**SDK 26100 · NVENC READY · A/V 0.000s**
+*Open Beta Test 3 — the audio-timeline rebuild is out now.*
 
 [**✦ WHAT'S NEW — OBT3**](https://scotcsduluka.github.io/NVIDIA-Shadowplay/obt3.html)
 Side-by-side comparison and measured results are available on the OBT3 page.
 
+**BUILD: OBT3 · SEP 2026**
+**SDK 26100 · NVENC READY · A/V 0.000s**
+
 ---
 
-# Overlay
+## Overlay
 
-Precision-engineered, borderless overlay that keeps you in control without breaking immersion.
+Precision-engineered, borderless overlay that keeps you in control — without ever breaking immersion.
 
-## In-game Overlay
+### In-game Overlay
 
-- Borderless Windowed design
-- Real-time performance checks
-- Keyboard shortcut access
+- Borderless Windowed Design
+- Real-time Performance Checked
+- Keyboard Shortcut Access
 - [View Supported Games](https://scotcsduluka.github.io/NVIDIA-Shadowplay/games.html)
 
 ![In-game Overlay UI](https://scotcsduluka.github.io/NVIDIA-Shadowplay/Assets/overlay.png)
 
 ---
 
-# Downloads
+# DOWNLOAD NVIDIA SHADOWPLAY
 
 ## NVIDIA ShadowPlay OBT3
 
-**Open Beta Test 3 · Windows x64**
+**Open Beta Test 3 · Windows x64 bit**
 
-The current flagship build.
+**The current flagship build.**
+Audio-timeline rebuild (no tail loss) · fixed video-only path · honest pass reporting · Intel QSV via FFmpeg path · WASAPI on one common QPC clock (A/V 0.000s).
 
-Audio-timeline rebuild, fixed video-only path, honest pass reporting, Intel QSV through the FFmpeg engine path, and WASAPI on a common QPC time base.
-
-[**Download OBT3 Installer**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/Release-OBT-3/NVIDIA.ShadowPlay.OBT3.exe)
-
+[**Download Installer**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/Release-OBT-3/NVIDIA.ShadowPlay.OBT3.exe)
 [**See OBT3 vs Stable →**](https://scotcsduluka.github.io/NVIDIA-Shadowplay/obt3.html)
 
-## NVIDIA ShadowPlay 3.3.2057.1
+## NVIDIA ShadowPlay
 
-**Windows x64 · App + Runtime + Resources**
+**3.3.2057.1 · Windows x64 bit · App + Runtime + Resources**
 
-A stable release for everyday use.
+[**Download Installer**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe)
 
-[**Download Stable Installer**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.3.2057.1-BETA/NVIDIA.ShadowPlay.3.3.2057.1-BETA.exe)
+This stable release of NVIDIA ShadowPlay is built for smooth and reliable everyday use, delivering high-performance recording with minimal impact on gameplay.
 
-## NVIDIA ShadowPlay 3.35.2542.30
+## NVIDIA ShadowPlay
 
-**Windows x64 · Experimental · App + Runtime + Resources**
+**3.35.2542.30 · Windows x64 bit + Experimental · App + Runtime + Resources**
 
-An experimental build for users who want to test earlier changes and ongoing improvements.
+[**Download Installer**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.35.2542.30-PRE/NVIDIA.ShadowPlay.3.35.2542.30-PRE.exe)
 
-[**Download Pre-Release Installer**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/3.35.2542.30-PRE/NVIDIA.ShadowPlay.3.35.2542.30-PRE.exe)
+This experimental build provides early access to new features and ongoing improvements. While it offers the latest updates and faster iteration, it may include bugs and is recommended for advanced users who want to test upcoming changes.
 
 ---
 
-# Features Overview
+## Features Overview
 
-## Capture Your Best Moments
+# Capture Your Best Moments
 
 Professional-grade features inspired by NVIDIA ShadowPlay.
 
-## Real-time Screen Recording
+### Real-time Screen Recording
 
-Record gameplay or desktop in real time with hardware-accelerated video encoding when the native NVIDIA path is available.
+Record your gameplay or desktop in real time.
+High-quality output with minimal performance impact, fully powered by NVIDIA NVENC hardware acceleration.
 
 - Hardware-accelerated encoding
-- Low CPU overhead on the NVIDIA path
-- FFmpeg-based alternative engine path
+- Low CPU Usage
+- Supports multiple formats
 
-## Instant Replay
+### Instant Replay
 
-The replay feature is part of the application architecture, but the rebuilt production path is still under active development and should not be treated as fully available in the current flagship build.
+Automatically capture and save the last minutes of your gameplay with a single click. **Buffer engine is under active development** — not yet in the current build.
 
-## Screenshot
+### Screensho
 
-High-resolution screenshot capture remains under active development in the current rebuild.
+Snap crisp, high-resolution screenshots instantly. **Under active development** — not yet in the current build.
 
-## No-Hook Architecture
+### No-Hook Architecture
 
-Designed without memory injection or gameplay hooks. The overlay uses supported Windows APIs and global hotkeys instead of injecting into the target application.
+Safe and secure by design. No memory injection, no hooks — just pure stability.
 
-## NVIDIA Hardware Acceleration
+### NVIDIA Hardware Acceleration
 
-The native production engine uses NVIDIA NVENC for in-app H.264 encoding with a D3D11 texture submission path.
-
+Fully optimized with NVIDIA NVENC via FFmpeg. Fast, efficient, and reliable GPU-based encoding.
 ---
 
-# Encoder & Capture
+## Encoder & Capture
 
-## Capture Engines
+Modern capture APIs + hardware encoder status.
 
-The project currently has two engine regimes:
+### Engine Regimes
 
-| Engine | Status | Purpose |
+| Engine Regime | Status | Description |
 |---|---|---|
-| **Duluka Capture** | **Production** | Native D3D11 + NVIDIA NVENC path |
-| **FFmpeg Capture** | **Supported / Broader** | FFmpeg-managed capture and encoding paths |
-| **OBS Capture** | **Soon** | Event forwarding bridge only |
-
-The native production path is the engine behind the rebuilt recording flow and overlay integration.
-
-## Encoder Support
+| **FFmpeg Capture** | Flexible | FFmpeg subprocess engine with multiple capture and encoder paths |
+| **Duluka Capture** | **Production** | Native D3D11 + NVENC pipeline — the production engine behind the overlay |
+| **OBS Capture** | **SOON** | Bridge / event forwarding |
 
 ### NVIDIA NVENC
 
 **Ready**
 
-Native in-app NVIDIA encoding on the production path. Current backend targets H.264 with CBR/CFR configuration, D3D11 texture submission, per-session frame-rate reconciliation, and explicit keyframe handling.
+Native in-app GPU encoding (production path): H.264 CBR/CFR, D3D11 texture submission, and explicit keyframe handling.
 
 ### Intel QSV
 
-**FFmpeg Engine Path**
+**Not in this regime**
 
-Intel QSV belongs to the FFmpeg-engine regime rather than the native Duluka NVENC backend.
+The native engine binds NVENC directly — QSV lives in the FFmpeg engine regime.
 
 ### AMD AMF
 
 **Soon**
 
-AMD Advanced Media Framework support remains on the roadmap.
+AMD Advanced Media Framework encoder on roadmap.
 
 ---
 
-# API Capture
+## API Capture
 
-## DXGI Desktop Duplication
+### DXGI Desktop Duplication
 
 **Active**
 
-The production capture path. `DdagrabBackend` uses DXGI Desktop Duplication with D3D11 resources and driver presentation timestamps in the QPC time domain.
+The production capture path — D3D11 GPU frames with driver QPC presentation timestamps.
 
-## Windows.Graphics.Capture
-
-**Coming**
-
-The modular engine has a dedicated `GfxCapture` slot, but it is not the active production backend in the current native path.
-
-## Window / Region / Game Capture
+### Windows.Graphics.Capture
 
 **Coming**
 
-Additional capture modes remain planned for future backend implementations.
+Slot prepared in the modular engine (`VideoBackendKind.GfxCapture`) — not the active production backend.
+
+### Window / Region / Game
+
+**Coming**
+
+`d3d11_native`, `window_capture`, `region_capture` and `native_game_capture` remain on the roadmap.
 
 ---
 
@@ -173,99 +164,70 @@ Additional capture modes remain planned for future backend implementations.
 
 ### Operating System
 
-**Windows 10 (19045+) / Windows 11 · 64-bit**
+**Windows 10 (19045+) / Windows 11**
+64-bit — the application targets .NET 10. Older Windows versions including Windows 8/7/Vista/XP are not supported.
 
-The application targets **.NET 10**. Older Windows versions are not supported.
+### .NET Desktop Runtime 10
 
-### .NET Runtime
+The app targets .NET 10. Install the **.NET Desktop Runtime 10 (x64)** when it is not already included with the selected release package.
 
-**.NET Desktop Runtime 10 (x64)**
-
-The installer may include the required runtime package depending on the release. Install .NET Desktop Runtime 10 separately when the selected package does not bundle it.
+[**Download Runtime Package**](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases/download/REQUIRED/64bit.runtime.exe)
 
 ### Hardware
 
-For the native production capture/encode path:
-
-- NVIDIA GPU with a supported NVENC encoder
-- Windows D3D11 / DXGI support
-- Adequate GPU memory and system resources for the selected capture and encode resolution
-
+The native production engine requires an NVIDIA GPU with a supported NVENC encoder. The FFmpeg regime provides broader capture/encoder options where supported.
 ---
 
-# Known Limitations
+## Known Limitations
 
-- **DRM content:** Services such as Netflix and Disney+ can block screen capture through Windows content protection.
-- **Exclusive fullscreen:** The no-hook design does not guarantee capture of exclusive-fullscreen applications. Borderless Windowed mode is recommended.
-- **Hardware-gated paths:** Native capture and NVENC require an NVIDIA-capable machine. Some validation suites intentionally skip hardware-only checks on systems without the required adapter.
+- **DRM Content:** Netflix/Disney+ blocked by Windows protection.
+- **Fullscreen:** Exclusive mode not supported by the no-hook design.
+- **Solution:** Use Borderless Windowed mode in games.
 
-## Performance Optimization
+### Performance Optimization
 
-For best results, use the NVIDIA hardware path with an appropriate NVENC profile and a practical capture resolution such as **1920 × 1080** when your hardware and display permit it.
-
----
-
-# Duluka Account
-
-Duluka Account is the primary identity layer for the application.
-
-```text
-Duluka Account
-├── Username
-├── Password
-├── Display Name
-├── Profile Image
-├── Devices
-├── Sessions
-└── Linked Providers
-    └── GitHub
-```
-
-GitHub is a linked provider / authentication mechanism. **GitHub Account ≠ Duluka Account.**
-
-The account system supports native username/password authentication and provider linking. Account profile data such as display name and profile image belongs to the Duluka Account, not to the GitHub identity.
+For best results, use **NVIDIA hardware encoders** such as `h264_nvenc` through the FFmpeg path at **1920 × 1080 resolution** when appropriate for your hardware.
 
 ---
 
 # Architecture
 
-## Modular Capture Engine
+## Modular Architecture
 
-The rebuilt engine is split into focused modules with explicit ownership and lifecycle boundaries.
+Each module represents a distinct part of the current stack.
 
 ### CaptureEngine/
 
-Core contracts, configuration, diagnostics, and engine-level orchestration.
+Core contracts and configuration: `IVideoBackend` / `IEncoderBackend` seams, configuration pipeline, and engine diagnostics. Producers plug into explicit backend contracts.
 
 ### Capture — Ddagrab/
 
-Production video capture using DXGI Desktop Duplication on D3D11. Frames carry capture-side presentation timing and ownership is transferred through the bounded frame handoff.
+Production capture: DXGI Desktop Duplication on D3D11, GPU-backed frames, and driver presentation timestamps in the QPC time domain.
 
 ### Encoder — NVENC/
 
-Native NVIDIA encoder backend. The encoder owns its D3D11/NVENC resources and consumes caller-owned video frames without taking frame ownership.
+Native in-app NVENC encoder: direct function-table binding rather than an FFmpeg encoder wrapper, with CBR/CFR configuration, first-frame keyframe handling, and D3D11 texture submission.
 
 ### Audio — WASAPI/
 
-Shared WASAPI audio capture for system audio and microphone. The rebuilt path keeps audio timing in the same QPC clock domain and uses explicit queue/drop accounting.
+Shared audio path for system audio and microphone, aligned to the common QPC time domain with explicit queue and drop accounting.
 
 ### Live Mux — FFmpeg/
 
-Named-pipe live mux path. Encoded H.264 and PCM audio are fed into FFmpeg during recording, producing fragmented MP4 before finalization.
+Named-pipe live muxer: H.264 + PCM stream into FFmpeg, fragmented MP4 during recording, faststart finalization, and controlled draining at stop.
 
 ### Overlay/
 
-Borderless in-game overlay with recording controls, settings, hotkeys, account UI, and gallery-related integration. The overlay does not own the engine's native GPU resources.
+In-game borderless overlay with recording controls, keyboard shortcuts, settings, account UI, and gallery integration. The overlay does not own the native engine's GPU resources.
 
 ### Hub — NVIDIA API/
 
-Local application hub used to coordinate the app family and carry engine commands between the desktop components.
+Local application hub coordinating the desktop app family and carrying engine command messages between components.
+### Two Engine Regimes
 
-## Two Engine Regimes
+The project intentionally keeps two distinct engine regimes:
 
-The current project intentionally keeps two distinct regimes:
-
-```text
+```tex
 Duluka Native Engine
     D3D11 Desktop Duplication
         ↓
@@ -281,7 +243,11 @@ FFmpeg Engine Regime
     Wider hardware support, including Intel QSV paths
 ```
 
-The architecture keeps capture, encoding, audio, and output responsibilities separated so individual backends can evolve without redefining the entire recording pipeline.
+The native Duluka engine is the production path. The FFmpeg regime provides broader capture and encoder combinations where the corresponding FFmpeg components are available and validated.
+
+### Hub — NVIDIA API
+
+TCP/local hub used to coordinate the desktop application family and carry engine commands between components.
 
 ---
 
@@ -301,7 +267,7 @@ Some DRM-protected applications can block screen capture. This is a Windows/cont
 
 ### Does it support Intel GPUs?
 
-Yes, through the FFmpeg engine regime where the corresponding FFmpeg/QSV path is available and validated. The native Duluka production engine currently targets NVIDIA NVENC.
+Yes, through the FFmpeg engine regime where the corresponding FFmpeg/QSV path is available and validated. The native production engine (Duluka) currently targets NVIDIA NVENC.
 
 ### Does it support AMD?
 
@@ -310,30 +276,45 @@ AMD AMF remains on the roadmap.
 ### How can I contribute?
 
 Fork the repository, make your changes, test them, and submit a pull request.
-
 ---
 
 # Meet The Team
 
-Driven by 3+ years of continuous development, testing, experimentation, and refinement.
+Driven by passion, built through 3+ years of continuous innovation and refinement.
 
 ## ScotcsDuluka (Agkarath Truajnok)
 
-**Builder · Owner · Lead Developer**
+**Builder • Lone Wolf**
 
-Creator and driving force behind the project, responsible for architecture, UX, core engine development, overlay system, animation framework, and product direction.
+**Elite · OWNERSHIP · 3+ YEARS LEGACY · WEBSITE Editor**
+
+The creator and driving force behind the entire project — from the first concept to full execution. Responsible for architecting the system, designing the user experience, and engineering the core components. Known for pushing technical boundaries and turning complex ideas into seamless, real-time experiences. Continuously refining performance, scalability, and innovation to deliver a product that stands above the rest.
+
+*Not just building software — defining the experience.*
 
 ## Natthawut Fueangkaew
 
-**Architect of Continuity · Supporting Contributor**
+**Architect of Continuity • The Silent Origin**
 
-Supports the project's continuity through resources, encouragement, and long-term project support.
+**SUPPORTING · Reawakening Force · TESTER · SENIOR**
+
+Supporting the project from behind the scenes through resources, encouragement, and continuous belief in the vision.
+
+As the silent origin of continuity, his presence ensures that the project never truly fades, even in moments of inactivity or uncertainty. This is not merely support — this is the foundation that allowed rebirth to happen.
+
+*As the three-year program neared its end, he walked in and offered support—not just support, but hope… which rekindled ScotcsDuluka's determination and reignited his fighting spirit!*
 
 ## Apiwit Kaemanee
 
-**Core Contributor · QA Specialist · System Tester**
+**Core Contributor • QA Specialist • System Tester**
 
-Contributes through rigorous testing, validation, issue discovery, and system stability verification.
+**Transcendent · FRIEND · TESTER · PRIME**
+
+A key contributor supporting the development and refinement of the system through rigorous testing and validation. Responsible for identifying issues, verifying functionality, and ensuring overall system stability and reliability.
+
+Plays an essential role in maintaining quality standards and helping shape a smoother, more polished user experience.
+
+*Ensuring everything works — exactly as it should.*
 
 ---
 
@@ -341,7 +322,7 @@ Contributes through rigorous testing, validation, issue discovery, and system st
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-This project is released under the MIT License. See:
+This project is released under the MIT License.
 
 - [LICENSE](LICENSE)
 - [LICENSE.NOTICE](LICENSE.NOTICE)
@@ -360,15 +341,14 @@ This project is released under the MIT License. See:
 | [Windows SDK / WinRT](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | Microsoft licensing | Windows API interop |
 
 See full attribution in [LICENSE.NOTICE](LICENSE.NOTICE).
-
 ---
 
 # Disclaimer
 
 > [!CAUTION]
-> **Trademark Notice:** NVIDIA ShadowPlay is an independent third-party application and is **NOT affiliated with, endorsed by, sponsored by, or approved by NVIDIA Corporation**.
+> **Trademark Notice:** This is an **independent third-party application** and is **NOT affiliated with, endorsed by, sponsored by, or approved by NVIDIA Corporation**.
 >
-> "NVIDIA", "GeForce", and "ShadowPlay" are trademarks or registered trademarks of NVIDIA Corporation in the United States and/or other countries.
+> **NVIDIA**, **GeForce**, and **ShadowPlay** are trademarks or registered trademarks of NVIDIA Corporation in the United States and/or other countries.
 >
 > This project uses Microsoft Windows APIs and NVIDIA encoding technology through documented interfaces and/or FFmpeg components as applicable to each engine regime.
 
@@ -377,7 +357,7 @@ See full attribution in [LICENSE.NOTICE](LICENSE.NOTICE).
 # Contributing
 
 1. Fork the project.
-2. Create a feature branch.
+2. Create your feature branch.
 3. Make focused changes.
 4. Run the relevant tests and builds.
 5. Push your branch.
