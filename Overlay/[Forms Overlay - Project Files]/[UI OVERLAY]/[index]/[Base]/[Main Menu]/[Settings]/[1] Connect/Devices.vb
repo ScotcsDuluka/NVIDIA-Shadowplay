@@ -118,7 +118,7 @@ Public Class Base_Connect_Devices
         Dim header As New Label With {
             .AutoSize = True,
             .Font = New Font("Segoe UI", 9.5F, FontStyle.Bold),
-            .ForeColor = UiTheme.Accent,
+            .ForeColor = Color.FromArgb(CByte(118), CByte(185), CByte(0)),
             .Location = New Point(0, _nextRowY + 6)
         }
         header.Text = title.ToUpperInvariant()
@@ -131,7 +131,7 @@ Public Class Base_Connect_Devices
 
         Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
-            .BackColor = UiTheme.SurfaceRaised,
+            .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
             .Location = New Point(0, _nextRowY),
             .Size = New Size(rowW, 72)
         }

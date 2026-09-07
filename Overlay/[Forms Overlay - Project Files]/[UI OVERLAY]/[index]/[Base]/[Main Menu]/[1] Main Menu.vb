@@ -269,27 +269,46 @@ Partial Public Class Base
 
 #Region "UI HOVER EFFECTS"
 
-    ' New glass-dark palette — same roles, tweened by UiTheme (see UiTheme.vb)
-    Private ReadOnly HoverColorG As Color = UiTheme.SurfaceHover
-    Private ReadOnly LeaveColorG As Color = UiTheme.SurfaceBase
+    Private ReadOnly HoverColorG As Color = Color.FromArgb(64, 64, 64)
+    Private ReadOnly LeaveColorG As Color = Color.FromArgb(38, 43, 47)
 
-    Private ReadOnly HoverColorGR As Color = UiTheme.AccentHover
-    Private ReadOnly LeaveColorGR As Color = UiTheme.Accent
+    Private ReadOnly HoverColorGR As Color = Color.Green
+    Private ReadOnly LeaveColorGR As Color = Color.FromArgb(118, 185, 0)
 
-    Private ReadOnly HVDG As Color = UiTheme.SurfaceHover
-    Private ReadOnly VDG As Color = UiTheme.SurfaceDeep
+    Private ReadOnly HVDG As Color = Color.FromArgb(53, 55, 58)
+    Private ReadOnly VDG As Color = Color.FromArgb(33, 35, 38)
 
-    Private ReadOnly HVDGR As Color = UiTheme.AccentHover
-    Private ReadOnly VDGR As Color = UiTheme.Accent
+    Private ReadOnly HVDGR As Color = Color.Green
+    Private ReadOnly VDGR As Color = Color.FromArgb(118, 185, 0)
 
     Private Sub SetHoverEffect(ctrl As Control, hoverColor As Color, leaveColor As Color)
-        ' tweened hover (was: instant BackColor swap) — wiring stays identical
-        UiTheme.RegisterManualHover(ctrl, hoverColor, leaveColor)
+        AddHandler ctrl.MouseEnter, Sub() ctrl.BackColor = hoverColor
+        AddHandler ctrl.MouseLeave, Sub() ctrl.BackColor = leaveColor
     End Sub
 
     Private Sub SetGroupHoverEffect(hoverColor As Color, leaveColor As Color, ParamArray ctrls() As Control)
-        ' tweened group hover (was: instant swap) — same still-over semantics
-        UiTheme.RegisterManualGroupHover(ctrls, hoverColor, leaveColor)
+        For Each ctrl As Control In ctrls
+            AddHandler ctrl.MouseEnter, Sub()
+                                            For Each c As Control In ctrls
+                                                c.BackColor = hoverColor
+                                            Next
+                                        End Sub
+            AddHandler ctrl.MouseLeave, Sub()
+                                            Dim mousePos As Point = Cursor.Position
+                                            Dim stillOver As Boolean = False
+                                            For Each c As Control In ctrls
+                                                If c.RectangleToScreen(c.ClientRectangle).Contains(mousePos) Then
+                                                    stillOver = True
+                                                    Exit For
+                                                End If
+                                            Next
+                                            If Not stillOver Then
+                                                For Each c As Control In ctrls
+                                                    c.BackColor = leaveColor
+                                                Next
+                                            End If
+                                        End Sub
+        Next
     End Sub
 
     Private Sub Sub_VDUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load

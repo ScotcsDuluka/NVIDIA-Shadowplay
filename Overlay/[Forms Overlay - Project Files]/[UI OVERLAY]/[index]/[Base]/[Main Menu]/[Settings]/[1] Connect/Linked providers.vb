@@ -104,7 +104,7 @@ Public Class Base_Connect_Providers
 
         Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
-            .BackColor = UiTheme.SurfaceRaised,
+            .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
             .Location = New Point(0, _nextRowY),
             .Size = New Size(rowW, 72)
         }
@@ -153,7 +153,7 @@ Public Class Base_Connect_Providers
         Else
             Dim link As New Label With {
                 .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
-                .BackColor = UiTheme.Accent,
+                .BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0)),
                 .Cursor = Cursors.Hand,
                 .Font = New Font("Segoe UI", 9.5F, FontStyle.Bold),
                 .ForeColor = Color.White,

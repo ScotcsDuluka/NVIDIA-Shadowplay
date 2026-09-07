@@ -98,7 +98,6 @@ Partial Class Base_Connect_Security
         ' 
         ' Bg1
         ' 
-        Bg1.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Bg1.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         Bg1.Location = New Point(62, 452)
         Bg1.Name = "Bg1"
@@ -108,7 +107,6 @@ Partial Class Base_Connect_Security
         ' 
         ' Status_TEXT
         ' 
-        Status_TEXT.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10.0F)
         Status_TEXT.ForeColor = Color.Silver
@@ -119,7 +117,6 @@ Partial Class Base_Connect_Security
         ' 
         ' BT_DeleteAccount
         ' 
-        BT_DeleteAccount.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         BT_DeleteAccount.BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
         BT_DeleteAccount.Cursor = Cursors.Hand
         BT_DeleteAccount.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
@@ -133,7 +130,6 @@ Partial Class Base_Connect_Security
         ' 
         ' DzPassword_BOX
         ' 
-        DzPassword_BOX.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         DzPassword_BOX.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         DzPassword_BOX.BorderStyle = BorderStyle.FixedSingle
         DzPassword_BOX.Font = New Font("Segoe UI", 10.5F)
@@ -147,7 +143,6 @@ Partial Class Base_Connect_Security
         ' 
         ' DzPassword_LBL
         ' 
-        DzPassword_LBL.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         DzPassword_LBL.AutoSize = True
         DzPassword_LBL.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         DzPassword_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -161,7 +156,6 @@ Partial Class Base_Connect_Security
         ' 
         ' DzNote_META
         ' 
-        DzNote_META.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         DzNote_META.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         DzNote_META.Font = New Font("Segoe UI", 9.25F)
         DzNote_META.ForeColor = Color.Silver
@@ -173,7 +167,6 @@ Partial Class Base_Connect_Security
         ' 
         ' DzHeader_LBL
         ' 
-        DzHeader_LBL.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         DzHeader_LBL.AutoSize = True
         DzHeader_LBL.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         DzHeader_LBL.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
@@ -186,7 +179,6 @@ Partial Class Base_Connect_Security
         ' 
         ' BT_ChangePassword
         ' 
-        BT_ChangePassword.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         BT_ChangePassword.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_ChangePassword.Cursor = Cursors.Hand
         BT_ChangePassword.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
@@ -200,7 +192,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwConfirm_BOX
         ' 
-        PwConfirm_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwConfirm_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         PwConfirm_BOX.BorderStyle = BorderStyle.FixedSingle
         PwConfirm_BOX.Font = New Font("Segoe UI", 10.5F)
@@ -213,7 +204,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwConfirm_LBL
         ' 
-        PwConfirm_LBL.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwConfirm_LBL.AutoSize = True
         PwConfirm_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwConfirm_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -226,7 +216,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwNew_BOX
         ' 
-        PwNew_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwNew_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         PwNew_BOX.BorderStyle = BorderStyle.FixedSingle
         PwNew_BOX.Font = New Font("Segoe UI", 10.5F)
@@ -239,7 +228,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwNew_LBL
         ' 
-        PwNew_LBL.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwNew_LBL.AutoSize = True
         PwNew_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwNew_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -252,7 +240,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwCurrent_BOX
         ' 
-        PwCurrent_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwCurrent_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         PwCurrent_BOX.BorderStyle = BorderStyle.FixedSingle
         PwCurrent_BOX.Font = New Font("Segoe UI", 10.5F)
@@ -265,7 +252,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwCurrent_LBL
         ' 
-        PwCurrent_LBL.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwCurrent_LBL.AutoSize = True
         PwCurrent_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwCurrent_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -278,7 +264,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwUsername_BOX
         ' 
-        PwUsername_BOX.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwUsername_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         PwUsername_BOX.BorderStyle = BorderStyle.FixedSingle
         PwUsername_BOX.Font = New Font("Segoe UI", 10.5F)
@@ -291,7 +276,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwUsername_LBL
         ' 
-        PwUsername_LBL.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwUsername_LBL.AutoSize = True
         PwUsername_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwUsername_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -305,7 +289,6 @@ Partial Class Base_Connect_Security
         ' 
         ' PwHeader_LBL
         ' 
-        PwHeader_LBL.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PwHeader_LBL.AutoSize = True
         PwHeader_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         PwHeader_LBL.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
@@ -318,7 +301,6 @@ Partial Class Base_Connect_Security
         ' 
         ' BT_RevokeAll
         ' 
-        BT_RevokeAll.Anchor = AnchorStyles.Bottom Or AnchorStyles.Right
         BT_RevokeAll.BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
         BT_RevokeAll.Cursor = Cursors.Hand
         BT_RevokeAll.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
@@ -332,7 +314,6 @@ Partial Class Base_Connect_Security
         ' 
         ' BT_RefreshSession
         ' 
-        BT_RefreshSession.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         BT_RefreshSession.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_RefreshSession.Cursor = Cursors.Hand
         BT_RefreshSession.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
@@ -346,7 +327,6 @@ Partial Class Base_Connect_Security
         ' 
         ' Info_META
         ' 
-        Info_META.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Info_META.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         Info_META.Font = New Font("Consolas", 11.25F)
         Info_META.ForeColor = Color.Gainsboro
