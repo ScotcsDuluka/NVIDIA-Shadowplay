@@ -38,6 +38,11 @@ Partial Class Base_Connect_Security
         PwConfirm_LBL = New Label()
         PwConfirm_BOX = New TextBox()
         BT_ChangePassword = New Label()
+        DzHeader_LBL = New Label()
+        DzNote_META = New Label()
+        DzPassword_LBL = New Label()
+        DzPassword_BOX = New TextBox()
+        BT_DeleteAccount = New Label()
         Status_TEXT = New Label()
         Dim_Top = New PictureBox()
         BT_Back = New Label()
@@ -68,6 +73,13 @@ Partial Class Base_Connect_Security
         Settings_Panel.Controls.Add(PwConfirm_LBL)
         Settings_Panel.Controls.Add(PwConfirm_BOX)
         Settings_Panel.Controls.Add(BT_ChangePassword)
+        ' Danger zone — the user-initiated IRREVERSIBLE account deletion
+        ' (DELETE /v1/account). Parented into the panel like every other row.
+        Settings_Panel.Controls.Add(DzHeader_LBL)
+        Settings_Panel.Controls.Add(DzNote_META)
+        Settings_Panel.Controls.Add(DzPassword_LBL)
+        Settings_Panel.Controls.Add(DzPassword_BOX)
+        Settings_Panel.Controls.Add(BT_DeleteAccount)
         Settings_Panel.Controls.Add(Status_TEXT)
         Settings_Panel.Location = New Point(80, 160)
         Settings_Panel.Name = "Settings_Panel"
@@ -243,6 +255,67 @@ Partial Class Base_Connect_Security
         BT_ChangePassword.Text = "Change password"
         BT_ChangePassword.TextAlign = ContentAlignment.MiddleCenter
         ' 
+        ' DzHeader_LBL
+        ' 
+        DzHeader_LBL.AutoSize = True
+        DzHeader_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        DzHeader_LBL.Font = New Font("Segoe UI", 10F, FontStyle.Bold)
+        DzHeader_LBL.ForeColor = Color.White
+        DzHeader_LBL.Location = New Point(62, 900)
+        DzHeader_LBL.Name = "DzHeader_LBL"
+        DzHeader_LBL.Size = New Size(90, 19)
+        DzHeader_LBL.TabIndex = 84
+        DzHeader_LBL.Text = "Danger zone"
+        ' 
+        ' DzNote_META
+        ' 
+        DzNote_META.Font = New Font("Segoe UI", 9.25F)
+        DzNote_META.ForeColor = Color.Silver
+        DzNote_META.Location = New Point(62, 932)
+        DzNote_META.Name = "DzNote_META"
+        DzNote_META.Size = New Size(1100, 58)
+        DzNote_META.TabIndex = 85
+        DzNote_META.Text = "Deleting your Duluka Account is permanent: the account, its username and password, every linked provider (GitHub), all devices and all sessions are removed from the Duluka server. This device signs out. This cannot be undone."
+        ' 
+        ' DzPassword_LBL
+        ' 
+        DzPassword_LBL.AutoSize = True
+        DzPassword_LBL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        DzPassword_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        DzPassword_LBL.ForeColor = Color.Gainsboro
+        DzPassword_LBL.Location = New Point(62, 1002)
+        DzPassword_LBL.Name = "DzPassword_LBL"
+        DzPassword_LBL.Size = New Size(112, 15)
+        DzPassword_LBL.TabIndex = 86
+        DzPassword_LBL.Text = "Current password"
+        DzPassword_LBL.Visible = False
+        ' 
+        ' DzPassword_BOX
+        ' 
+        DzPassword_BOX.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        DzPassword_BOX.BorderStyle = BorderStyle.FixedSingle
+        DzPassword_BOX.Font = New Font("Segoe UI", 10.5F)
+        DzPassword_BOX.ForeColor = Color.White
+        DzPassword_BOX.Location = New Point(185, 998)
+        DzPassword_BOX.Name = "DzPassword_BOX"
+        DzPassword_BOX.Size = New Size(260, 26)
+        DzPassword_BOX.TabIndex = 87
+        DzPassword_BOX.UseSystemPasswordChar = True
+        DzPassword_BOX.Visible = False
+        ' 
+        ' BT_DeleteAccount
+        ' 
+        BT_DeleteAccount.BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
+        BT_DeleteAccount.Cursor = Cursors.Hand
+        BT_DeleteAccount.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
+        BT_DeleteAccount.ForeColor = Color.White
+        BT_DeleteAccount.Location = New Point(185, 1050)
+        BT_DeleteAccount.Name = "BT_DeleteAccount"
+        BT_DeleteAccount.Size = New Size(340, 50)
+        BT_DeleteAccount.TabIndex = 88
+        BT_DeleteAccount.Text = "Delete this account permanently"
+        BT_DeleteAccount.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Status_TEXT
         ' 
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -345,5 +418,10 @@ Partial Class Base_Connect_Security
     Friend WithEvents PwConfirm_LBL As Label
     Friend WithEvents PwConfirm_BOX As TextBox
     Friend WithEvents BT_ChangePassword As Label
+    Friend WithEvents DzHeader_LBL As Label
+    Friend WithEvents DzNote_META As Label
+    Friend WithEvents DzPassword_LBL As Label
+    Friend WithEvents DzPassword_BOX As TextBox
+    Friend WithEvents BT_DeleteAccount As Label
     Friend WithEvents Status_TEXT As Label
 End Class

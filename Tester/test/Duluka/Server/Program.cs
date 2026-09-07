@@ -69,6 +69,8 @@ internal static class Program
         Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
         Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
         Run("SCHEMA-2: v2-shaped database migrates to v3 additively, rows survive", Test_SchemaV3Migration);
+        Run("DELETE-1: cascade removes account + dependents, every anchor freed", Test_AccountDeletionCascade);
+        Run("DELETE-2: password-protected deletion demands the current password", Test_AccountDeletionPasswordProof);
         Run("PROFILE-1: display name update persists (trimmed)", Test_ProfileDisplayName);
         Run("PROFILE-2: profile image data URL persists + clears", Test_ProfileImage);
         Run("PROFILE-3: profile edit preserves account identity + live session", Test_ProfileIdentityPreserved);
@@ -1356,6 +1358,68 @@ internal static class Program
             db2.DisposeAsync().AsTask().GetAwaiter().GetResult();
             Cleanup(dbPath);
         }
+    }
+
+    // ─── account deletion (service level — the machinery behind DELETE /v1/account) ───
+
+    private static void Test_AccountDeletionCascade()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Fully loaded account: provider link + device + live session +
+            // native credential (bootstrap account that finished its setup).
+            var ghId = f.RegisterGitHubUser(13001, "doomed-provider");
+            var id = new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null);
+            var (_, hash) = NewDeviceKey();
+            var (link, account, _) = f.Provisioning.LoginOrLink(id, hash, "dev");
+            var device = f.Db.DevicesForAccount(account.AccountId).Single();
+            f.Sessions.Create(account.AccountId, device.DeviceId, null);
+            f.Native.SetInitialPassword(account.AccountId, "doomed.user", "cascade-pass-123");
+
+            var sessions = f.Native.DeleteAccount(account.AccountId, "cascade-pass-123");
+            Assert(sessions >= 1, "the live session must be counted among the deleted");
+            Assert(f.Db.GetAccount(account.AccountId) is null, "the account row is gone");
+            Assert(f.Db.GetLink(link.LinkId) is null, "the provider link row is gone");
+            Assert(!f.Db.HasNativeCredential(account.AccountId), "the native credential is gone");
+            Assert(f.Db.DevicesForAccount(account.AccountId).Count == 0, "the device rows are gone");
+            Assert(f.Db.FindActiveLink(ProviderKeys.GitHub, ghId) is null,
+                "the (provider, identity) anchor is freed — the duplicate-account defense no longer sees the dead account");
+
+            // Every UNIQUE anchor is reusable: the same identity bootstraps a
+            // FRESH account, and the username can be registered again.
+            var (_, fresh, existed) = f.Provisioning.LoginOrLink(id, Secrets.Sha256Hex(Secrets.NewToken("devk_")), "dev2");
+            Assert(!existed && fresh.AccountId != account.AccountId,
+                "the same identity must bootstrap a FRESH account after deletion");
+            f.Native.Register("doomed.user", "fresh-pass-456", Secrets.Sha256Hex(Secrets.NewToken("devk_")), "dev3");
+        }
+        finally { f.Dispose(); }
+    }
+
+    private static void Test_AccountDeletionPasswordProof()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (devKey, _) = NewDeviceKey();
+            var (account, device) = f.Native.Register("proof.user", "keeper-pass-123", Secrets.Sha256Hex(devKey), "dev");
+            f.Sessions.Create(account.AccountId, device.DeviceId, null);
+
+            foreach (var bad in new[] { "", "wrong-pass-999" })
+            {
+                var refused = false;
+                try { f.Native.DeleteAccount(account.AccountId, bad); }
+                catch (InvalidOperationException) { refused = true; }
+                Assert(refused, "a password-protected account must refuse deletion without the correct password");
+            }
+            Assert(f.Db.GetAccount(account.AccountId) is not null,
+                "a refused deletion must not touch the account");
+
+            var sessions = f.Native.DeleteAccount(account.AccountId, "keeper-pass-123");
+            Assert(sessions >= 1, "the correct password must delete and count the sessions");
+            Assert(f.Db.GetAccount(account.AccountId) is null, "the account row is gone after the correct password");
+        }
+        finally { f.Dispose(); }
     }
 
     private static void ExecRaw(string dbPath, string sql)

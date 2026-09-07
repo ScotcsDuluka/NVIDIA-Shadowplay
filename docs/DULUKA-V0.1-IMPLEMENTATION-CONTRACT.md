@@ -485,6 +485,7 @@ HTTP suite is green at 99/99 after its `e3b6432` reclassification.
 | `DELETE /v1/account/providers/{linkId}` | Bearer | 200 `{unlinked:true, revokedSessions:n}` / 409 `conflict.link_conflict` (last-provider, re-unlink) / 404 `nf.link` (unknown or cross-tenant) |
 | `GET /v1/account/devices` | Bearer | 200 `{devices:[{deviceId, deviceName, createdAt, lastSeenAt, revokedAt}]}` |
 | `POST /v1/account/devices/{deviceId}/revoke` | Bearer | 200 `{revoked:true, sessionsRevoked:n}` (idempotent; second call `sessionsRevoked=0`) / 404 `nf.device` (incl. cross-tenant) |
+| `DELETE /v1/account` | Bearer (+ `currentPassword` iff the account has a native credential) | IRREVERSIBLE self-deletion: one transaction removes the account and every dependent row (sessions, devices, links + credential references, native credential, sync profiles). 200 `{deleted:true, deletedSessions:n}`; 400 `invalid_credentials` (missing/wrong password); 400 `bad_request` (malformed body); 401. Body optional — provider-only accounts delete on session possession. Frees every UNIQUE anchor: username re-registrable, device key re-enrollable, same provider identity bootstraps a FRESH account |
 | (future) sync routes | Bearer + If-Match | per §6 — not implemented in v0 |
 
 ---

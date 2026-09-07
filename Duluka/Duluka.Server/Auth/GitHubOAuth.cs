@@ -342,4 +342,23 @@ public sealed class NativeAuthService(Database db)
             UsernamePolicy.Canonicalize(username), username.Trim(),
             Secrets.HashPassword(password));
     }
+
+    /// <summary>Delete the account IRREVERSIBLY (user-initiated cascade). An
+    /// account WITH a native credential must present its current password —
+    /// possession of a session alone is not enough to destroy a
+    /// password-protected identity (the same bar ChangePassword applies). A
+    /// provider-only account has no second factor; its live session IS the
+    /// proof. Returns the number of sessions that died with the account.</summary>
+    public int DeleteAccount(string accountId, string currentPassword)
+    {
+        var credential = db.FindNativeCredentialByAccount(accountId);
+        if (credential is not null)
+        {
+            if (string.IsNullOrEmpty(currentPassword))
+                throw new InvalidOperationException("password_required");
+            if (!Secrets.VerifyPassword(currentPassword, credential.PasswordHash))
+                throw new InvalidOperationException("invalid_credentials");
+        }
+        return db.DeleteAccountCascade(accountId);
+    }
 }

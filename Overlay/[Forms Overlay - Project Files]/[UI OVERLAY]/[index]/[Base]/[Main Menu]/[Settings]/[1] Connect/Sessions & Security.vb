@@ -1,7 +1,10 @@
-' Sessions & Security — the current session at a glance, plus the two
-' destructive actions: extend the session (refresh) and sign out on ALL
-' devices (revoke-all, two-step confirm — it signs out every signed-in
-' device, including this one). 401 anywhere is the terminal path.
+' Sessions & Security — the current session at a glance, plus the three
+' destructive actions: extend the session (refresh), sign out on ALL devices
+' (revoke-all, two-step confirm — it signs out every signed-in device,
+' including this one) and DELETE THE ACCOUNT ITSELF (irreversible cascade —
+' account, username/password, linked providers, devices and sessions; two-step
+' confirm + current-password proof when the account has one). 401 anywhere is
+' the terminal path.
 
 Imports System.Diagnostics
 Imports System.Linq
@@ -43,6 +46,7 @@ Public Class Base_Connect_Security
     End Sub
 
     Private _confirmAll As Boolean
+    Private _confirmDelete As Boolean
     Private _busy As Boolean
 
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -53,6 +57,9 @@ Public Class Base_Connect_Security
         If Visible Then
             _confirmAll = False
             BT_RevokeAll.Text = "Sign out on ALL devices"
+            _confirmDelete = False
+            BT_DeleteAccount.Text = "Delete this account permanently"
+            DzPassword_BOX.Clear()
             SetupPasswordForm()
             RenderSessionInfo()
         End If
@@ -213,13 +220,37 @@ Public Class Base_Connect_Security
                     "Password updated — you can now sign in with it.")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Current password is incorrect."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_username" Then
+                Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_password" Then
+                Status_TEXT.Text = "Password must be 8-128 characters."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
-                Status_TEXT.Text = "That username is already taken — pick another."
+                ' The code covers BOTH "username taken" AND "this account
+                ' already has a password" (credential_exists maps to it — e.g.
+                ' the account was initialized on another device). Server truth
+                ' decides: a /me username means this account is DONE — adopt
+                ' it and leave the setup state instead of dead-ending.
+                Dim meR As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/me", token).ConfigureAwait(True)
+                If Not IsDisposed AndAlso meR.Ok AndAlso meR.Resource IsNot Nothing Then
+                    Dim meUser As String = ResourceText(meR.Resource, "username")
+                    If meUser <> "" Then
+                        DulukaAccountStore.Instance.SetProfile(ResourceText(meR.Resource, "displayName"), meUser)
+                        SetupPasswordForm()
+                        Status_TEXT.Text = "This account already has a username and password."
+                        Return
+                    End If
+                End If
+                If Not IsDisposed Then Status_TEXT.Text = "That username is already taken — pick another."
             ElseIf r.AuthDead Then
                 TerminalSignOut("Your session has expired. Please sign in again.")
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
+        Catch ex As Exception
+            ' NEVER silent: a transport or parsing failure must land in the
+            ' status line, not vanish (and never escape an Async Sub).
+            Debug.WriteLine($"BT_ChangePassword error: {ex.GetType().Name}")
+            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
         Finally
             _busy = False
         End Try
@@ -237,7 +268,123 @@ Public Class Base_Connect_Security
         PwCurrent_LBL.Enabled = Not providerOnly
         PwCurrent_BOX.Enabled = Not providerOnly
         PwHeader_LBL.Text = If(providerOnly, "Add password sign-in", "Change password")
+        ' Honest button label per mode — first-time adoption SETS UP the
+        ' native credential; it does not change an existing one.
         BT_ChangePassword.Text = If(providerOnly, "Set Up Account", "Change password")
+        ' Danger zone: the deletion password row exists ONLY for accounts
+        ' that actually have a password to verify against.
+        Dim hasPassword As Boolean = Not providerOnly
+        DzPassword_LBL.Visible = hasPassword
+        DzPassword_BOX.Visible = hasPassword
+        LayoutPasswordRows()
+    End Sub
+
+    ''' <summary>Stacks the password rows top-to-bottom (header → [username]
+    ' → current → new → confirm → button) and the DANGER ZONE below them
+    ' (header → note → [current password] → delete button), with the status
+    ' line last. Rows hidden by the mode are collapsed instead of leaving a
+    ' fixed hole, so every layout stays tight and nothing can overlap — the
+    ' static Designer slots are the fallback.</summary>
+    Private Sub LayoutPasswordRows()
+        Const RowPitch As Integer = 36
+        Const ButtonGap As Integer = 40
+        Dim y As Integer = PwHeader_LBL.Top
+        If PwUsername_LBL.Visible Then
+            PwUsername_LBL.Top = y + 4 : PwUsername_BOX.Top = y
+            y += RowPitch
+        End If
+        PwCurrent_LBL.Top = y + 4 : PwCurrent_BOX.Top = y : y += RowPitch
+        PwNew_LBL.Top = y + 4 : PwNew_BOX.Top = y : y += RowPitch
+        PwConfirm_LBL.Top = y + 4 : PwConfirm_BOX.Top = y : y += RowPitch
+        BT_ChangePassword.Top = y + ButtonGap - RowPitch + 4
+
+        ' Danger zone stacks below the password form in BOTH modes — the
+        ' optional deletion-password row collapses cleanly like the rest.
+        y = BT_ChangePassword.Top + BT_ChangePassword.Height + 28
+        DzHeader_LBL.Top = y
+        y += 34
+        DzNote_META.Top = y
+        y += DzNote_META.Height + 10
+        If DzPassword_LBL.Visible Then
+            DzPassword_LBL.Top = y + 4 : DzPassword_BOX.Top = y
+            y += RowPitch
+        End If
+        BT_DeleteAccount.Top = y + 14
+        Status_TEXT.Top = BT_DeleteAccount.Top + BT_DeleteAccount.Height + 18
+    End Sub
+
+    ' ── delete account (irreversible) ────────────────────────────────────────
+
+    ''' <summary>DELETE /v1/account — the irreversible one. Two-step confirm
+    ' (same discipline as revoke-all): the first click only ARMS the button,
+    ' nothing is sent. An account WITH a password must type it (server
+    ' enforces the same bar as the password change); a provider-only account
+    ' has nothing to type. Success means the account, its username/password,
+    ' every linked provider, all devices and sessions are GONE server-side —
+    ' the local wipe lands the user on Sign in. NEVER silent: every outcome
+    ' lands in the status line, and the armed state resets on any refusal.</summary>
+    Private Async Sub BT_DeleteAccount_Click(sender As Object, e As EventArgs) Handles BT_DeleteAccount.Click
+        If _busy Then Return
+
+        If Not _confirmDelete Then
+            _confirmDelete = True
+            BT_DeleteAccount.Text = "Really delete EVERYTHING? Click again"
+            Status_TEXT.Text = "This removes the account, its username and password, linked providers, devices and sessions — permanently."
+            Return
+        End If
+
+        Dim hasPassword As Boolean = Not ProviderOnlyAccount
+        Dim password As String = DzPassword_BOX.Text
+        If hasPassword AndAlso password = "" Then
+            Status_TEXT.Text = "Type your current password to confirm the deletion."
+            Return
+        End If
+
+        _busy = True
+        Try
+            Status_TEXT.Text = "Deleting account…"
+            Dim token As String = DulukaAccountStore.Instance.SessionToken
+            Dim body As String = "{}"
+            If hasPassword Then
+                Dim obj As New System.Text.Json.Nodes.JsonObject()
+                obj("currentPassword") = password
+                body = obj.ToJsonString()
+            End If
+            Dim r As DulukaApi.Result = Await DulukaApi.DeleteAsync("/v1/account", token, body).ConfigureAwait(True)
+            If IsDisposed OrElse Not IsHandleCreated Then Return
+
+            If r.Ok Then
+                ' The account is GONE server-side — the local wipe is the
+                ' whole point. Land on Sign in with the outcome in its line.
+                DulukaAccountStore.Instance.ClearSession()
+                Me.Hide()
+                Base_Connect.ReturnFromSubPage()   ' gate forwards to Sign in
+                Base_Connect_Signin.Note("Duluka Account deleted.")
+            ElseIf r.AuthDead Then
+                TerminalSignOut("Your session has expired. Please sign in again.")
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
+                Status_TEXT.Text = If(password = "",
+                    "Current password is required to delete this account.",
+                    "Current password is incorrect.")
+                DisarmDelete()
+            Else
+                Status_TEXT.Text = DulukaApi.HumanError(r)
+                DisarmDelete()
+            End If
+        Catch ex As Exception
+            ' NEVER silent: a transport or parsing failure must land in the
+            ' status line, not vanish (and never escape an Async Sub).
+            Debug.WriteLine($"BT_DeleteAccount error: {ex.GetType().Name}")
+            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
+            DisarmDelete()
+        Finally
+            _busy = False
+        End Try
+    End Sub
+
+    Private Sub DisarmDelete()
+        _confirmDelete = False
+        BT_DeleteAccount.Text = "Delete this account permanently"
     End Sub
 
     Private Sub TerminalSignOut(message As String)
@@ -246,6 +393,14 @@ Public Class Base_Connect_Security
         Base_Connect.ReturnFromSubPage()
         Base_Connect.NotifyFromSubPage(message)
     End Sub
+
+    ''' <summary>String field of a §7.1 success `resource` object ("" if the
+    ' field is absent or null — e.g. username on a provider-only account).</summary>
+    Private Function ResourceText(resource As JsonNode, name As String) As String
+        Dim node As JsonNode = resource(name)
+        If node Is Nothing Then Return ""
+        Return node.GetValue(Of String)()
+    End Function
 
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Me.Hide()

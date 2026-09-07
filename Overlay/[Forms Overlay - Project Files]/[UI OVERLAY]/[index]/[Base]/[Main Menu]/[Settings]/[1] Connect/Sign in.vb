@@ -108,6 +108,11 @@ Public Class Base_Connect_Signin
                                  ResourceText(r.Resource, "deviceId"),
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
+                ' A successful NATIVE login proves the account HAS a username
+                ' — cache it immediately so the Account Home first-time-setup
+                ' gate can never misfire before /me returns.
+                store.SetProfile(store.DisplayName,
+                                 ResourceText(r.Resource, "username"))
                 Password_BOX.Clear()
                 Status_TEXT.Text = ""
                 Me.Hide()

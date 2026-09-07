@@ -25,21 +25,21 @@ Partial Class Base_Connect_Profile
         Settings_Panel = New Panel()
         Settings_TEXT = New Label()
         Profile_CARD = New Panel()
+        Username_VALUE = New TextBox()
         AvatarLetter_LABEL = New Label()
         Avatar_PICTURE = New PictureBox()
         BT_ChangeImage = New Label()
         BT_RemoveImage = New Label()
         Name_LABEL = New Label()
+        BT_Save = New Label()
         Name_BOX = New TextBox()
         Username_LABEL = New Label()
         Username_NOTE = New Label()
-        BT_Save = New Label()
         Status_TEXT = New Label()
         Dim_Top = New PictureBox()
         BT_Back = New Label()
         Dim_1 = New PictureBox()
         Dim_2 = New PictureBox()
-        Username_VALUE = New TextBox()
         Settings_Panel.SuspendLayout()
         Profile_CARD.SuspendLayout()
         CType(Avatar_PICTURE, ComponentModel.ISupportInitialize).BeginInit()
@@ -74,7 +74,6 @@ Partial Class Base_Connect_Profile
         ' 
         ' Profile_CARD
         ' 
-        Profile_CARD.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Profile_CARD.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Profile_CARD.Controls.Add(Username_VALUE)
         Profile_CARD.Controls.Add(AvatarLetter_LABEL)
@@ -90,6 +89,20 @@ Partial Class Base_Connect_Profile
         Profile_CARD.Name = "Profile_CARD"
         Profile_CARD.Size = New Size(786, 260)
         Profile_CARD.TabIndex = 90
+        ' 
+        ' Username_VALUE
+        ' 
+        Username_VALUE.BackColor = Color.FromArgb(CByte(30), CByte(33), CByte(36))
+        Username_VALUE.BorderStyle = BorderStyle.FixedSingle
+        Username_VALUE.Enabled = False
+        Username_VALUE.Font = New Font("Segoe UI", 11.25F)
+        Username_VALUE.ForeColor = Color.White
+        Username_VALUE.Location = New Point(133, 98)
+        Username_VALUE.MaxLength = 64
+        Username_VALUE.Name = "Username_VALUE"
+        Username_VALUE.ReadOnly = True
+        Username_VALUE.Size = New Size(631, 27)
+        Username_VALUE.TabIndex = 100
         ' 
         ' AvatarLetter_LABEL
         ' 
@@ -152,6 +165,19 @@ Partial Class Base_Connect_Profile
         Name_LABEL.TabIndex = 94
         Name_LABEL.Text = "DISPLAY NAME"
         ' 
+        ' BT_Save
+        ' 
+        BT_Save.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
+        BT_Save.Cursor = Cursors.Hand
+        BT_Save.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
+        BT_Save.ForeColor = Color.White
+        BT_Save.Location = New Point(588, 190)
+        BT_Save.Name = "BT_Save"
+        BT_Save.Size = New Size(176, 44)
+        BT_Save.TabIndex = 99
+        BT_Save.Text = "Save"
+        BT_Save.TextAlign = ContentAlignment.MiddleCenter
+        ' 
         ' Name_BOX
         ' 
         Name_BOX.BackColor = Color.FromArgb(CByte(30), CByte(33), CByte(36))
@@ -183,22 +209,9 @@ Partial Class Base_Connect_Profile
         Username_NOTE.ForeColor = Color.Silver
         Username_NOTE.Location = New Point(24, 131)
         Username_NOTE.Name = "Username_NOTE"
-        Username_NOTE.Size = New Size(740, 59)
+        Username_NOTE.Size = New Size(740, 48)
         Username_NOTE.TabIndex = 98
         Username_NOTE.Text = "Your display name and avatar are how other Duluka surfaces show you. They are NOT your sign-in identity — changing them never affects your username, devices or signed-in sessions."
-        ' 
-        ' BT_Save
-        ' 
-        BT_Save.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
-        BT_Save.Cursor = Cursors.Hand
-        BT_Save.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
-        BT_Save.ForeColor = Color.White
-        BT_Save.Location = New Point(588, 190)
-        BT_Save.Name = "BT_Save"
-        BT_Save.Size = New Size(176, 44)
-        BT_Save.TabIndex = 99
-        BT_Save.Text = "Save"
-        BT_Save.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Status_TEXT
         ' 
@@ -255,19 +268,6 @@ Partial Class Base_Connect_Profile
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        ' 
-        ' Username_VALUE
-        ' 
-        Username_VALUE.BackColor = Color.FromArgb(CByte(30), CByte(33), CByte(36))
-        Username_VALUE.BorderStyle = BorderStyle.FixedSingle
-        Username_VALUE.Font = New Font("Segoe UI", 11.25F)
-        Username_VALUE.ForeColor = Color.White
-        Username_VALUE.Location = New Point(133, 98)
-        Username_VALUE.MaxLength = 64
-        Username_VALUE.Name = "Username_VALUE"
-        Username_VALUE.ReadOnly = True
-        Username_VALUE.Size = New Size(631, 27)
-        Username_VALUE.TabIndex = 100
         ' 
         ' Base_Connect_Profile
         ' 

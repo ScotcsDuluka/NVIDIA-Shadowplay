@@ -618,6 +618,66 @@ app.MapDelete("/v1/account/providers/{linkId}", (string linkId, HttpRequest req)
         };
 });
 
+// ─── account deletion (user-initiated, IRREVERSIBLE) ────────────────────────
+
+// DELETE /v1/account — the account deletes ITSELF. One transaction removes the
+// account and EVERY dependent row (sessions, devices, provider links + their
+// credential references, native credential, sync profiles); the current
+// session dies with the account. An account WITH a native credential must
+// present its CURRENT password (possession of a session alone is not enough
+// to destroy a password-protected identity — same bar as the password
+// change); a provider-only account has nothing else to present, its live
+// session IS the proof. Deleting — not merely revoking — frees every UNIQUE
+// anchor: the username may be registered again, the same device key may
+// enroll again, and the same GitHub identity may bootstrap a FRESH account.
+app.MapDelete("/v1/account", async (HttpRequest req) =>
+{
+    var token = BearerToken(req);
+    if (token is null) return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "Authorization: Bearer <session token> required.");
+    var validation = sessionService.Validate(token);
+    if (validation is null) return Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.");
+
+    // Body is OPTIONAL (absent, {} or {"currentPassword":"…"}). A NON-EMPTY
+    // body that is not valid JSON is a client protocol error → 400
+    // bad_request (§7.1), never a silent "no password given".
+    string currentPassword = "";
+    using (var reader = new StreamReader(req.Body))
+    {
+        var raw = await reader.ReadToEndAsync();
+        if (!string.IsNullOrWhiteSpace(raw))
+        {
+            JsonDocument body;
+            try { body = JsonDocument.Parse(raw); }
+            catch (JsonException) { return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be valid JSON."); }
+            using (body)
+            {
+                if (body.RootElement.ValueKind != JsonValueKind.Object)
+                    return Wire.Err(req, 400, WireCodes.BadRequest, "Request body must be a JSON object.");
+                if (body.RootElement.TryGetProperty("currentPassword", out var pw) && pw.ValueKind == JsonValueKind.String)
+                    currentPassword = pw.GetString() ?? "";
+            }
+        }
+    }
+
+    try
+    {
+        var deletedSessions = nativeAuth.DeleteAccount(validation.Value.Item3.AccountId, currentPassword);
+        app.Logger.LogInformation("Duluka account {AccountId} deleted by user request", validation.Value.Item3.AccountId);
+        return Wire.Ok(req, new { deleted = true, deletedSessions });
+    }
+    catch (InvalidOperationException ex) when (ex.Message is "password_required" or "invalid_credentials")
+    {
+        return Wire.Err(req, 400, WireCodes.InvalidCredentials, ex.Message == "password_required"
+            ? "Current password is required to delete this account."
+            : "Current password is incorrect.");
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Unhandled account deletion failure");
+        return Wire.Err(req, 500, WireCodes.ServerInternal, "Internal error — retry the request with the same id.");
+    }
+}).RequireRateLimiting("api");
+
 // ─── devices ────────────────────────────────────────────────────────────────
 
 app.MapGet("/v1/account/devices", (HttpRequest req) =>

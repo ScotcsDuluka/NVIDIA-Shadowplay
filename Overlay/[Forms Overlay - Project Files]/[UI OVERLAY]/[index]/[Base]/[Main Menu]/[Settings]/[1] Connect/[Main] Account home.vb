@@ -77,7 +77,11 @@ Public Class Base_Connect
     End Sub
 
     ''' <summary>GATE: this page exists ONLY for signed-in users — anyone
-    ' without a Duluka session is forwarded to the Sign in page.</summary>
+    ' without a Duluka session is forwarded to the Sign in page, and a
+    ' signed-in account whose native credential is STILL MISSING (GitHub
+    ' bootstrap, no username/password yet) is forwarded to the first-time
+    ' Account Setup page. Product rule: setup is one-time; once the username
+    ' exists this page renders normally forever after.</summary>
     Private Sub Base_Connect_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         If Not DulukaAccountStore.Instance.HasSession Then
@@ -85,6 +89,10 @@ Public Class Base_Connect
             Return
         End If
         RenderState()
+        If DulukaAccountStore.Instance.Username = "" Then
+            ForwardToSetup()
+            Return
+        End If
         RefreshAccountAsync()
     End Sub
 
@@ -249,6 +257,18 @@ Public Class Base_Connect
         Base_Connect_Signin.Settings_Panel.Location = New Point(80, 160)
         Base_Connect_Signin.Show()
         Base_Connect_Signin.Opacity = 1
+    End Sub
+
+    ''' <summary>The one forward path to the first-time Account Setup page —
+    ' a signed-in account whose native credential is missing must choose its
+    ' immutable username and password before Account Home is usable. The
+    ' Setup page re-checks server truth itself, so an already-initialized
+    ' account is never asked to set up twice.</summary>
+    Friend Sub ForwardToSetup()
+        Me.Hide()
+        Base_Connect_Setup.Settings_Panel.Location = New Point(80, 160)
+        Base_Connect_Setup.Show()
+        Base_Connect_Setup.Opacity = 1
     End Sub
 
     ' ── sign out ────────────────────────────────────────────────────────────
