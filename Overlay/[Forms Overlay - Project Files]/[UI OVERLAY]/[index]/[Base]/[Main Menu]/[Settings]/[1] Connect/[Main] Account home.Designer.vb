@@ -289,7 +289,7 @@ Partial Class Base_Connect
         Nudge_META.ForeColor = Color.Silver
         Nudge_META.Location = New Point(24, 44)
         Nudge_META.Name = "Nudge_META"
-        Nudge_META.Size = New Size(2736, 44)
+        Nudge_META.Size = New Size(1300, 44)
         Nudge_META.TabIndex = 100
         Nudge_META.Text = "This account has no username or password yet — GitHub alone cannot always sign you in."
 
@@ -300,7 +300,7 @@ Partial Class Base_Connect
         BT_SetupNow.Cursor = Cursors.Hand
         BT_SetupNow.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
         BT_SetupNow.ForeColor = Color.White
-        BT_SetupNow.Location = New Point(2823, 30)
+        BT_SetupNow.Location = New Point(1387, 30)
         BT_SetupNow.Name = "BT_SetupNow"
         BT_SetupNow.Size = New Size(200, 50)
         BT_SetupNow.TabIndex = 101

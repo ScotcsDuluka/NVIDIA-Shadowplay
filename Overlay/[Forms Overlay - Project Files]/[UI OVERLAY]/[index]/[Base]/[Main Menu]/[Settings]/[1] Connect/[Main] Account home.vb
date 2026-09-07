@@ -70,6 +70,16 @@ Public Class Base_Connect
         BT_Providers.Width = bw
         BT_EditProfile.Location = New Point(62 + 3 * (bw + gap), BT_EditProfile.Top)
         BT_EditProfile.Width = bw
+        LayoutNudge()
+    End Sub
+
+    ' nudge row re-derived in code like the action row — a designer
+    ' re-serialise at another DPI once stranded BT_SetupNow at x=2823 on a
+    ' 1636px panel (the FINISH SETTING UP CTA went invisible)
+    Private Sub LayoutNudge()
+        Dim m As Integer = 24
+        BT_SetupNow.Location = New Point(Nudge_PANEL.Width - BT_SetupNow.Width - m, BT_SetupNow.Top)
+        Nudge_META.Width = Math.Max(200, BT_SetupNow.Left - Nudge_META.Left - m)
     End Sub
 
     Private Sub Settings_Panel_Resize(sender As Object, e As EventArgs) Handles Settings_Panel.Resize
