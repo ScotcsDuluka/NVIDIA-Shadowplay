@@ -23,11 +23,17 @@ Partial Class Base_Background
         Timer1 = New Timer(components)
         Timer2 = New Timer(components)
         SuspendLayout()
-
+        ' 
+        ' Timer1
+        ' 
         Timer1.Interval = 1
-
+        ' 
+        ' Timer2
+        ' 
         Timer2.Interval = 1
-
+        ' 
+        ' Base_Background
+        ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Black
