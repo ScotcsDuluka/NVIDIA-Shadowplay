@@ -1,49 +1,67 @@
-Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadowplay/ as the information in this ReadME may not be current.
-
+Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadowplay/ as this README may not always reflect the latest application status.
 
 # <img src="https://cdn2.steamgriddb.com/icon/e8855b3528cb03d1def9803220bd3cb9/32/48x48.png" alt="NVIDIA ShadowPlay Logo" width="22"> NVIDIA ShadowPlay `Custom Implementation`
 
-
 > [!NOTE]
-> A screen capture utility inspired by NVIDIA ShadowPlay with overlay UI, built in **<img src="https://raw.githubusercontent.com/github/explore/refs/heads/main/topics/visual-basic/visual-basic.png" alt="Visual Basic Logo" width="15"> VB.NET** **[**No Hook**]**. <br>
-> Record Engine Powered by FFmpeg
+> A custom screen capture utility inspired by NVIDIA ShadowPlay, built primarily in **<img src="https://raw.githubusercontent.com/github/explore/refs/heads/main/topics/visual-basic/visual-basic.png" alt="Visual Basic Logo" width="15"> VB.NET** with a **no-hook** capture design.<br>
+> Recording and encoding are powered by **FFmpeg**, with modular capture and encoder components under active development.
 
 > [!WARNING]
-> Some apps (**Netflix** / **DRM content**) cannot be recorded.<br>
-> Still under active development.
+> This project is still under active development. Some applications and protected/DRM content may not be capturable, depending on the capture path and operating-system restrictions.
 
 > [!IMPORTANT]
-> **Runtime Dependency:** This application requires the **.NET 10.0 Desktop Runtime** installed on your system. The program will not launch without it.<br><br>
-> **OS Requirement:** **Windows 10 / Server 2016 or newer is required.** (.NET 10 does not support Windows 7/8/8.1.) <br>
-> ## **API Capture**
-> - Windows.Graphics.Capture
-> - Desktop Duplication API
-> - GDI screen grabber
-> ## **The **Encoder** is Ready**
-> - [X] NVIDIA-READY
-> - [ ] INTEL-NEXT
-> - [ ] AMD-Q
+> **Runtime Dependency:** The current desktop application targets **.NET 10** and requires the **.NET 10 Desktop Runtime** when deployed as framework-dependent.<br><br>
+> **OS Requirement:** Windows is required. Supported operating-system versions depend on the .NET 10 and Windows API requirements of the selected build. Microsoft currently lists .NET 10 support for supported Windows 10 LTSC/Enterprise releases, Windows 11, and supported Windows Server releases. See the official .NET Windows support matrix for the current platform details.
+
+## API Capture
+- Windows.Graphics.Capture
+- Desktop Duplication API
+- GDI screen grabber
+
+## Encoder Status
+- [x] NVIDIA / NVENC ready
+- [ ] Intel / Quick Sync
+- [ ] AMD / AMF
 
 > [!CAUTION]
-> **Exclusive Fullscreen Limitation:** Due to the no-hook design, capturing "Exclusive Fullscreen" applications is not supported on older Windows builds. Please use "Borderless Windowed" mode in your games for reliable recording.<br>
-> **Recommended capture resolution: 1920 x 1080**
+> **Exclusive Fullscreen Limitation:** Because this project uses a no-hook capture design, **Exclusive Fullscreen** applications may not be capturable on some older Windows builds. For reliable recording, use **Borderless Windowed** mode when possible.<br>
+> **Recommended capture resolution:** 1920 × 1080
 
 > [!TIP]
-> For the best performance, it is highly recommended to use NVIDIA hardware encoders (e.g., `h264_nvenc`) via FFmpeg.
+> For the best performance on supported NVIDIA hardware, use the NVIDIA hardware encoder (`h264_nvenc`) through FFmpeg.
 
 ---
 
-# Features Main
-- [X] UI NVIDIA Shadowplay
+# Features
+- [x] NVIDIA-style overlay UI
 - [x] Real-time screen recording
-- [x] Instant Replay (save last moments)
+- [x] Instant Replay / save the last moments
 - [x] Screenshot capture
-- [x] In-game overlay UI [`Borderless Windowed`]
+- [x] In-game overlay UI for Borderless Windowed applications
+- [x] Modular capture-engine architecture
+- [x] NVIDIA NVENC encoding path
+- [ ] Intel encoder support
+- [ ] AMD encoder support
 
-# More
-- This project is inspired by NVIDIA ShadowPlay.<br>
-- Built over 3 years focusing on animation system, overlay UX, and performance.<br>
-- บางทีก็อัดได้ บางทีก็ไม่… แล้วแต่ดวง 555555665
+# Duluka Account
+Duluka Account is the project's account and identity layer. **GitHub is not the Duluka Account itself**; when used, GitHub is treated as a linked provider/authentication mechanism.
+
+Conceptually:
+
+```text
+Duluka Account
+├── Account Identity
+├── Devices
+├── Sessions
+├── Profile
+│   ├── Username
+│   ├── Display Name
+│   └── Profile Image
+└── Linked Providers
+    └── GitHub
+```
+
+The account system is under active development and includes native username/password authentication alongside GitHub-based account bootstrap/linking flows. The native account identity remains separate from any external provider identity.
 
 ---
 
@@ -52,26 +70,52 @@ Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadow
 | Branch | Purpose |
 |--------|---------|
 | **`Stable`** | Default branch — last known-good build |
-| **`Engine-Rebuild-Stabilization`** | Active development — modular capture engine rewrite, sync/audio stabilization |
+| **`Engine-Rebuild-Stabilization`** | Active development — modular capture engine, lifecycle hardening, sync/audio stabilization, and account integration |
 
-Engine docs live in [`docs/`](docs/) (start at `docs/PHASE_PLAN.md`), the module map in [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md), and build/diagnostic entry points in [`scripts/`](scripts/).
+The project is being developed as a modular capture stack rather than a direct copy of NVIDIA's internal implementation.
+
+Engine documentation lives in [`docs/`](docs/), starting with [`docs/PHASE_PLAN.md`](docs/PHASE_PLAN.md). The module map is documented in [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md), with build and diagnostic entry points under [`scripts/`](scripts/).
+
+### Current Engineering Focus
+- Capture backend lifecycle and ownership
+- Video frame delivery and timestamp correctness
+- NVENC configuration authority and synchronization
+- FFmpeg recording/mux integration
+- Duluka Account authentication and identity semantics
+- Regression and integration testing
 
 ---
 
-## ![License: MIT](https://img.shields.io/badge/License-MIT-green.svg) 
+## Requirements
+
+- Windows desktop environment
+- .NET 10 Desktop Runtime for framework-dependent desktop builds
+- NVIDIA GPU recommended for the NVENC path
+- FFmpeg components required by the selected recording pipeline
+
+For the most accurate platform support information, also check the application website listed at the top of this README.
+
+---
+
+## License
+
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
 | File | Description | Click to View |
 |---------|-------------|------------------|
-| **[LICENSE](LICENSE)** | MIT License (Copyright 2023-2024) | [Open LICENSE](LICENSE) |
+| **[LICENSE](LICENSE)** | MIT License | [Open LICENSE](LICENSE) |
 | **[LICENSE.NOTICE](LICENSE.NOTICE)** | Third-Party Components Attribution | [Open LICENSE.NOTICE](LICENSE.NOTICE) |
 
-DISCLAIMER
+---
+
+## Disclaimer
+
 > [!CAUTION]
-> **Trademark Notice:** This is an **independent third-party application** and is **NOT affiliated with, endorsed by, sponsored, or approved by NVIDIA Corporation**.
-> 
-> "**NVIDIA**", "**GeForce**", and "**ShadowPlay**" are **trademarks or registered trademarks of NVIDIA Corporation** in the United States and/or other countries.
+> **Trademark Notice:** This is an **independent third-party application** and is **NOT affiliated with, endorsed by, sponsored by, or approved by NVIDIA Corporation**.
 >
-> This software uses official **NVIDIA NVENC/intel/Amd encoder technology through FFmpeg** and **Microsoft Windows.Graphics.Capture API** in compliance with their respective license agreements.
+> **NVIDIA**, **GeForce**, and **ShadowPlay** are trademarks or registered trademarks of NVIDIA Corporation in the United States and/or other countries.
+>
+> This project uses third-party and platform technologies such as FFmpeg, NVIDIA NVENC, and Microsoft Windows capture APIs according to their respective licensing and platform terms. This project does not imply endorsement by NVIDIA.
 
 ---
 
@@ -82,11 +126,11 @@ DISCLAIMER
 | [NAudio](https://github.com/naudio/NAudio) | MIT | Mark Heath | NAudio.Core.dll, NAudio.Wasapi.dll |
 | [Newtonsoft.Json](https://www.newtonsoft.com/json) | MIT | James Newton-King | Newtonsoft.Json.dll |
 | [libmp3lame](https://lame.sourceforge.io/) | LGPL-2.0 | The LAME Project | libmp3lame.32.dll, libmp3lame.64.dll |
-| [FFmpeg](https://ffmpeg.org/) | LGPL/GPL | FFmpeg Developers | Encoding Pipeline |
-| [.NET 10 Runtime](https://dotnet.microsoft.com/) | MIT | Microsoft | Microsoft.Windows.SDK.NET.dll |
-| [Windows SDK.NET](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | MIT | Microsoft | WinRT.Runtime.dll |
+| [FFmpeg](https://ffmpeg.org/) | LGPL/GPL | FFmpeg Developers | Recording / Encoding pipeline |
+| [.NET](https://dotnet.microsoft.com/) | MIT | Microsoft | .NET runtime / desktop components |
+| [Windows SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | Microsoft licenses | Microsoft | Windows API / WinRT components |
 
-See full attribution: **[LICENSE.NOTICE](LICENSE.NOTICE)** ← Click!
+See the full attribution list in **[LICENSE.NOTICE](LICENSE.NOTICE)**.
 
 ---
 
@@ -99,6 +143,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+For substantial engine or architecture changes, please review the documentation under [`docs/`](docs/) first.
 
 ---
 
@@ -115,7 +161,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 | Resource | 🔗 Link |
 |------------|--------|
-| **Website** | [ScotcsDuluka](https://scotcsduluka.github.io/ScotcsDuluka/) |
+| **Website** | [NVIDIA ShadowPlay Custom Implementation](https://scotcsduluka.github.io/NVIDIA-Shadowplay/) |
 | **Releases** | [GitHub Releases](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases) |
 | **Report Bug** | [GitHub Issues](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues) |
 | **Creator** | [ScotcsDuluka](https://github.com/ScotcsDuluka) |
