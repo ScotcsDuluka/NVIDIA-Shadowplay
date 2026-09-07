@@ -96,8 +96,8 @@ Public Class Base_Connect_Profile
             picker.CheckFileExists = True
             If picker.ShowDialog(Me) <> DialogResult.OK Then Return
 
-            Dim reason = ""
-            Dim dataUrl = EncodeFromFile(picker.FileName, reason)
+            Dim reason As String = ""
+            Dim dataUrl As String = EncodeFromFile(picker.FileName, reason)
             If dataUrl Is Nothing Then
                 Status_TEXT.Text = reason
                 Return
@@ -123,14 +123,14 @@ Public Class Base_Connect_Profile
     
     Private Async Sub BT_Save_Click(sender As Object, e As EventArgs) Handles BT_Save.Click
         If _saveInFlight Then Return
-        Dim store = DulukaAccountStore.Instance
+        Dim store As DulukaAccountStore = DulukaAccountStore.Instance
         If Not store.HasSession Then
             Hide()
             Base_Connect.ReturnFromSubPage()
             Return
         End If
 
-        Dim displayName = Name_BOX.Text.Trim
+        Dim displayName As String = Name_BOX.Text.Trim()
         If displayName.Length > 64 Then
             Status_TEXT.Text = "Display name is too long (max 64 characters)."
             Return
@@ -144,8 +144,8 @@ Public Class Base_Connect_Profile
             body("displayName") = If(displayName <> "", displayName, Nothing)
             body("profileImage") = If(_pendingImage <> "", _pendingImage, Nothing)
 
-            Dim token = store.SessionToken
-            Dim r = Await PutAsync(
+            Dim token As String = store.SessionToken
+            Dim r As DulukaApi.Result = Await PutAsync(
                 "/v1/account/profile", token, body.ToJsonString).ConfigureAwait(True)
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
