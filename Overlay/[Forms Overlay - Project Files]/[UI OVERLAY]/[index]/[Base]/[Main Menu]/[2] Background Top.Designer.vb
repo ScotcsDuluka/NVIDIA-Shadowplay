@@ -21,9 +21,9 @@ Partial Class Base_Background_Top
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Background_Top))
         Main_Top = New Panel()
         d = New Label()
-        ME_CLOSE_BG_GRE = New Label()
         ME_CLOSE_BG = New Label()
         PictureGFE = New PictureBox()
+        ME_CLOSE_BG_GRE = New Label()
         Logo_text = New Label()
         ANIME = New Timer(components)
         Main_menu_list = New Panel()
@@ -46,7 +46,9 @@ Partial Class Base_Background_Top
         Mode_u.SuspendLayout()
         CType(s_3r, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-
+        ' 
+        ' Main_Top
+        ' 
         Main_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Main_Top.Controls.Add(d)
         Main_Top.Controls.Add(ME_CLOSE_BG)
@@ -57,7 +59,9 @@ Partial Class Base_Background_Top
         Main_Top.Name = "Main_Top"
         Main_Top.Size = New Size(1700, 80)
         Main_Top.TabIndex = 10
-
+        ' 
+        ' d
+        ' 
         d.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         d.BackColor = Color.Black
         d.Cursor = Cursors.Hand
@@ -69,7 +73,33 @@ Partial Class Base_Background_Top
         d.TabIndex = 89
         d.Text = ""
         d.TextAlign = ContentAlignment.MiddleCenter
-
+        ' 
+        ' ME_CLOSE_BG
+        ' 
+        ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
+        ME_CLOSE_BG.BackColor = Color.Black
+        ME_CLOSE_BG.Cursor = Cursors.Hand
+        ME_CLOSE_BG.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
+        ME_CLOSE_BG.ForeColor = Color.White
+        ME_CLOSE_BG.Location = New Point(1642, 23)
+        ME_CLOSE_BG.Name = "ME_CLOSE_BG"
+        ME_CLOSE_BG.Size = New Size(34, 34)
+        ME_CLOSE_BG.TabIndex = 88
+        ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
+        ' 
+        ' PictureGFE
+        ' 
+        PictureGFE.BackColor = Color.Black
+        PictureGFE.BackgroundImage = resources.Resources.osc_img_appicon_64x64
+        PictureGFE.BackgroundImageLayout = ImageLayout.None
+        PictureGFE.Location = New Point(8, 8)
+        PictureGFE.Name = "PictureGFE"
+        PictureGFE.Size = New Size(64, 64)
+        PictureGFE.TabIndex = 46
+        PictureGFE.TabStop = False
+        ' 
+        ' ME_CLOSE_BG_GRE
+        ' 
         ME_CLOSE_BG_GRE.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         ME_CLOSE_BG_GRE.BackColor = Color.Black
         ME_CLOSE_BG_GRE.Cursor = Cursors.No
@@ -81,27 +111,9 @@ Partial Class Base_Background_Top
         ME_CLOSE_BG_GRE.TabIndex = 87
         ME_CLOSE_BG_GRE.Text = ""
         ME_CLOSE_BG_GRE.TextAlign = ContentAlignment.MiddleCenter
-
-        ME_CLOSE_BG.Anchor = AnchorStyles.Top Or AnchorStyles.Right
-        ME_CLOSE_BG.BackColor = Color.Black
-        ME_CLOSE_BG.Cursor = Cursors.Hand
-        ME_CLOSE_BG.Font = New Font("nvgcshare", 26.25F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
-        ME_CLOSE_BG.ForeColor = Color.White
-        ME_CLOSE_BG.Location = New Point(1642, 23)
-        ME_CLOSE_BG.Name = "ME_CLOSE_BG"
-        ME_CLOSE_BG.Size = New Size(34, 34)
-        ME_CLOSE_BG.TabIndex = 88
-        ME_CLOSE_BG.TextAlign = ContentAlignment.MiddleCenter
-
-        PictureGFE.BackColor = Color.Black
-        PictureGFE.BackgroundImage = My.Resources.Resources.osc_img_appicon_64x64
-        PictureGFE.BackgroundImageLayout = ImageLayout.None
-        PictureGFE.Location = New Point(8, 8)
-        PictureGFE.Name = "PictureGFE"
-        PictureGFE.Size = New Size(64, 64)
-        PictureGFE.TabIndex = 46
-        PictureGFE.TabStop = False
-
+        ' 
+        ' Logo_text
+        ' 
         Logo_text.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Logo_text.BackColor = Color.Black
         Logo_text.Font = New Font("Segoe UI", 24F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -112,10 +124,14 @@ Partial Class Base_Background_Top
         Logo_text.TabIndex = 8
         Logo_text.Text = "NVIDIA Shadowplay OBT 3"
         Logo_text.TextAlign = ContentAlignment.MiddleCenter
-
+        ' 
+        ' ANIME
+        ' 
         ANIME.Enabled = True
         ANIME.Interval = 16
-
+        ' 
+        ' Main_menu_list
+        ' 
         Main_menu_list.BackColor = Color.Blue
         Main_menu_list.Controls.Add(b1_all)
         Main_menu_list.Controls.Add(b2_all)
@@ -130,7 +146,9 @@ Partial Class Base_Background_Top
         Main_menu_list.Name = "Main_menu_list"
         Main_menu_list.Size = New Size(1280, 483)
         Main_menu_list.TabIndex = 46
-
+        ' 
+        ' b1_all
+        ' 
         b1_all.BackColor = Color.Black
         b1_all.Cursor = Cursors.Hand
         b1_all.Font = New Font("nvgcshare", 90F)
@@ -142,7 +160,9 @@ Partial Class Base_Background_Top
         b1_all.TabIndex = 86
         b1_all.TextAlign = ContentAlignment.MiddleCenter
         b1_all.Visible = False
-
+        ' 
+        ' b2_all
+        ' 
         b2_all.BackColor = Color.Black
         b2_all.Cursor = Cursors.Hand
         b2_all.Font = New Font("nvgcshare", 90F)
@@ -154,7 +174,9 @@ Partial Class Base_Background_Top
         b2_all.TabIndex = 85
         b2_all.TextAlign = ContentAlignment.MiddleCenter
         b2_all.Visible = False
-
+        ' 
+        ' Mode_u
+        ' 
         Mode_u.Controls.Add(s_3r)
         Mode_u.Controls.Add(Bg_Mode1)
         Mode_u.Controls.Add(Bg_Mode2)
@@ -163,7 +185,9 @@ Partial Class Base_Background_Top
         Mode_u.Name = "Mode_u"
         Mode_u.Size = New Size(240, 240)
         Mode_u.TabIndex = 84
-
+        ' 
+        ' s_3r
+        ' 
         s_3r.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         s_3r.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         s_3r.Location = New Point(0, 300)
@@ -172,7 +196,9 @@ Partial Class Base_Background_Top
         s_3r.TabIndex = 62
         s_3r.TabStop = False
         s_3r.Visible = False
-
+        ' 
+        ' Bg_Mode1
+        ' 
         Bg_Mode1.BackColor = Color.Black
         Bg_Mode1.Cursor = Cursors.Hand
         Bg_Mode1.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -184,7 +210,9 @@ Partial Class Base_Background_Top
         Bg_Mode1.TabIndex = 29
         Bg_Mode1.TextAlign = ContentAlignment.MiddleCenter
         Bg_Mode1.Visible = False
-
+        ' 
+        ' Bg_Mode2
+        ' 
         Bg_Mode2.BackColor = Color.Black
         Bg_Mode2.Cursor = Cursors.Hand
         Bg_Mode2.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -196,7 +224,9 @@ Partial Class Base_Background_Top
         Bg_Mode2.TabIndex = 31
         Bg_Mode2.TextAlign = ContentAlignment.MiddleCenter
         Bg_Mode2.Visible = False
-
+        ' 
+        ' Bg_Mode3
+        ' 
         Bg_Mode3.BackColor = Color.Black
         Bg_Mode3.Cursor = Cursors.Hand
         Bg_Mode3.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -208,7 +238,9 @@ Partial Class Base_Background_Top
         Bg_Mode3.TabIndex = 30
         Bg_Mode3.TextAlign = ContentAlignment.MiddleCenter
         Bg_Mode3.Visible = False
-
+        ' 
+        ' b1
+        ' 
         b1.BackColor = Color.Black
         b1.Cursor = Cursors.Hand
         b1.Font = New Font("nvgcshare", 90F)
@@ -220,7 +252,9 @@ Partial Class Base_Background_Top
         b1.TabIndex = 41
         b1.TextAlign = ContentAlignment.MiddleCenter
         b1.Visible = False
-
+        ' 
+        ' Bg_SET2
+        ' 
         Bg_SET2.BackColor = Color.Black
         Bg_SET2.Cursor = Cursors.Hand
         Bg_SET2.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -232,7 +266,9 @@ Partial Class Base_Background_Top
         Bg_SET2.TabIndex = 16
         Bg_SET2.TextAlign = ContentAlignment.MiddleCenter
         Bg_SET2.Visible = False
-
+        ' 
+        ' Bg_SET1
+        ' 
         Bg_SET1.BackColor = Color.Black
         Bg_SET1.Cursor = Cursors.Hand
         Bg_SET1.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -244,7 +280,9 @@ Partial Class Base_Background_Top
         Bg_SET1.TabIndex = 14
         Bg_SET1.TextAlign = ContentAlignment.MiddleCenter
         Bg_SET1.Visible = False
-
+        ' 
+        ' b3
+        ' 
         b3.BackColor = Color.Black
         b3.Cursor = Cursors.Hand
         b3.Font = New Font("nvgcshare", 90F)
@@ -256,7 +294,9 @@ Partial Class Base_Background_Top
         b3.TabIndex = 13
         b3.TextAlign = ContentAlignment.MiddleCenter
         b3.Visible = False
-
+        ' 
+        ' b2
+        ' 
         b2.BackColor = Color.Black
         b2.Cursor = Cursors.Hand
         b2.Font = New Font("nvgcshare", 90F)
@@ -268,7 +308,9 @@ Partial Class Base_Background_Top
         b2.TabIndex = 11
         b2.TextAlign = ContentAlignment.MiddleCenter
         b2.Visible = False
-
+        ' 
+        ' Bg_SET3
+        ' 
         Bg_SET3.BackColor = Color.Black
         Bg_SET3.Cursor = Cursors.Hand
         Bg_SET3.Font = New Font("Microsoft Sans Serif", 80F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
@@ -280,7 +322,9 @@ Partial Class Base_Background_Top
         Bg_SET3.TabIndex = 76
         Bg_SET3.TextAlign = ContentAlignment.MiddleCenter
         Bg_SET3.Visible = False
-
+        ' 
+        ' Base_Background_Top
+        ' 
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Blue
