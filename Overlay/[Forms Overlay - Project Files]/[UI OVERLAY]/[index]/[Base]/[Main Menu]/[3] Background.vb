@@ -48,16 +48,11 @@ Public Class Base_Background
     Private Const WS_EX_APPWINDOW As Integer = &H40000 
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        
-        
-        
-        
+
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
     Private Sub Bg_MouseMove(sender As Object, e As MouseEventArgs) Handles MyBase.MouseMove
-        
-        
-        
+
     End Sub
 
     Private Sub Bg_Load(sender As Object, e As EventArgs) Handles MyBase.Load

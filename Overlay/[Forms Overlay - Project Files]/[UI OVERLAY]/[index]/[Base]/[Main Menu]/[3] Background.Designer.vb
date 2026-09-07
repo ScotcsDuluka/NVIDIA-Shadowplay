@@ -3,7 +3,6 @@ Imports System.Drawing
 Partial Class Base_Background
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()> _
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -15,12 +14,8 @@ Partial Class Base_Background
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         components = New ComponentModel.Container()
@@ -28,17 +23,11 @@ Partial Class Base_Background
         Timer1 = New Timer(components)
         Timer2 = New Timer(components)
         SuspendLayout()
-        
-        
-        
+
         Timer1.Interval = 1
-        
-        
-        
+
         Timer2.Interval = 1
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Black

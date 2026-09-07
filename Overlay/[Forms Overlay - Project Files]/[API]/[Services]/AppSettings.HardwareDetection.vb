@@ -1,8 +1,5 @@
 
 
-
-
-
 Imports System.Collections.Generic
 Imports System.Diagnostics
 Imports System.IO
@@ -22,57 +19,38 @@ Partial Public Class AppSettings
     Private Shared _intelGpuName As String = ""
     Private Shared _supportsAV1 As Boolean? = Nothing
 
-    
     Private Shared _allGpuNames As New List(Of String)()
 
-    
-    
-    
     Public Shared ReadOnly Property HasNvidia As Boolean
         Get
             Return _hasNvidia.GetValueOrDefault(False)
         End Get
     End Property
 
-    
-    
-    
     Public Shared ReadOnly Property HasIntel As Boolean
         Get
             Return _hasIntel.GetValueOrDefault(False)
         End Get
     End Property
 
-    
-    
-    
     Public Shared ReadOnly Property HasAMD As Boolean
         Get
             Return _hasAMD.GetValueOrDefault(False)
         End Get
     End Property
 
-    
-    
-    
     Public Shared ReadOnly Property GPUName As String
         Get
             Return _gpuName
         End Get
     End Property
 
-    
-    
-    
     Public Shared ReadOnly Property IntelGPUName As String
         Get
             Return _intelGpuName
         End Get
     End Property
 
-    
-    
-    
     Public Shared ReadOnly Property SupportsNVENCAV1 As Boolean
         Get
             If _supportsAV1 Is Nothing Then
@@ -82,9 +60,6 @@ Partial Public Class AppSettings
         End Get
     End Property
 
-    
-    
-    
     Private Shared Sub DetectAV1Support()
         _supportsAV1 = False
 
@@ -92,7 +67,6 @@ Partial Public Class AppSettings
             Exit Sub
         End If
 
-        
         Dim gpuUpper As String = _gpuName.ToUpperInvariant()
 
         If gpuUpper.Contains("RTX 40") OrElse
@@ -104,13 +78,8 @@ Partial Public Class AppSettings
         Debug.WriteLine("AV1 Support: " & _supportsAV1.ToString() & " (GPU: " & _gpuName & ")")
     End Sub
 
-    
-    
     Private Shared _psProbeStarted As Integer = 0
 
-    
-    
-    
     Public Shared Sub DetectHardware()
         
         If _hardwareDetected Then
@@ -126,16 +95,10 @@ Partial Public Class AppSettings
             _hasAMD = False
             _allGpuNames.Clear()
 
-            
-            
-
-            
             DetectGPUsViaRegistry()
 
-            
             Dim system32 As String = Environment.SystemDirectory
 
-            
             If Not _hasNvidia.GetValueOrDefault(False) Then
                 If File.Exists(Path.Combine(system32, "nvenc.dll")) Then
                     _hasNvidia = True
@@ -143,7 +106,6 @@ Partial Public Class AppSettings
                 End If
             End If
 
-            
             If Not _hasAMD.GetValueOrDefault(False) Then
                 If File.Exists(Path.Combine(system32, "amdocl64.dll")) Then
                     _hasAMD = True
@@ -153,7 +115,6 @@ Partial Public Class AppSettings
 
             RecomputePrimaryGpuName()
 
-            
             _hardwareDetected = True
 
             Debug.WriteLine("══════════ DetectHardware RESULT (fast probes) ══════════")
@@ -163,10 +124,6 @@ Partial Public Class AppSettings
             Debug.WriteLine("  Primary GPU: " & _gpuName)
             Debug.WriteLine("═══════════════════════════════════════════")
 
-            
-            
-            
-            
             If Interlocked.CompareExchange(_psProbeStarted, 1, 0) = 0 Then
                 Task.Run(Sub()
                              DetectGPUsViaPowerShell()
@@ -182,7 +139,6 @@ Partial Public Class AppSettings
         End Try
     End Sub
 
-    
     Private Shared Sub RecomputePrimaryGpuName()
         If _hasNvidia.GetValueOrDefault(False) Then
             _gpuName = _allGpuNames.FirstOrDefault(Function(n) n.ToUpperInvariant().Contains("NVIDIA"), "NVIDIA GPU")
@@ -193,9 +149,6 @@ Partial Public Class AppSettings
         End If
     End Sub
 
-    
-    
-    
     Private Shared Sub DetectGPUsViaPowerShell()
         Try
             Dim psi As New ProcessStartInfo With {
@@ -232,9 +185,6 @@ Partial Public Class AppSettings
         End Try
     End Sub
 
-    
-    
-    
     Private Shared Sub DetectGPUsViaRegistry()
         Try
             Const GPU_REGISTRY_PATH As String = "SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"

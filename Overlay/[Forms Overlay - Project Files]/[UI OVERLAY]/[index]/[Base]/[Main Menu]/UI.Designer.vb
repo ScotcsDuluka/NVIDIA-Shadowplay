@@ -3,7 +3,6 @@
 Partial Class Debug_UI
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()> _
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -15,19 +14,13 @@ Partial Class Debug_UI
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Debug_UI))
         SuspendLayout()
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         ClientSize = New Size(1264, 681)

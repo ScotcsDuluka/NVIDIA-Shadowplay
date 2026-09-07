@@ -2,39 +2,13 @@ Imports System.Diagnostics
 Imports System.IO
 Imports System.Threading.Tasks
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Public Module EncoderService
 
-    
-    
-    
     Private _cache As New Dictionary(Of String, Boolean)()
     Private ReadOnly _lock As New Object()
 
     Private Const VERIFY_TIMEOUT_MS As Integer = 5000
 
-    
-    
-    
-    
     Public ReadOnly Property AllEncoderKeys As String()
         Get
             Return {
@@ -48,11 +22,6 @@ Public Module EncoderService
 
 #Region "Public API"
 
-    
-    
-    
-    
-    
     Public Function CheckAvailability(ffmpegPath As String, encoderName As String) As Boolean
         SyncLock _lock
             If _cache.ContainsKey(encoderName) Then
@@ -117,10 +86,6 @@ Public Module EncoderService
         End Try
     End Function
 
-    
-    
-    
-    
     Public Function GetFFmpegCodecName(encoderName As String) As String
         Select Case encoderName
             Case "NVENC_H264" : Return "h264_nvenc"
@@ -136,21 +101,12 @@ Public Module EncoderService
         End Select
     End Function
 
-    
-    
-    
-    
     Public Sub ClearCache()
         SyncLock _lock
             _cache.Clear()
         End SyncLock
     End Sub
 
-    
-    
-    
-    
-    
     Public Sub VerifyAllInBackground(ffmpegPath As String)
         Try
             Using proc As New Process()

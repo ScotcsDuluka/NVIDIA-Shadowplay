@@ -12,15 +12,8 @@ Public Class TcpClientHelper
     Private _cts As CancellationTokenSource
     Private _writeLock As New Object()
 
-    
-    
-    
     Private _reconnectGate As Integer = 0
 
-    
-    
-    
-    
     Private _generation As Integer = 0
 
     Private ReadOnly _appName As String
@@ -44,12 +37,8 @@ Public Class TcpClientHelper
         _port = port
         _autoReconnect = autoReconnect
 
-        
-        
-        
     End Sub
 
-    
     Public Sub ConnectAsync()
         Dim gen As Integer = _generation
         Task.Run(Sub()
@@ -69,8 +58,6 @@ Public Class TcpClientHelper
 
             Dim stream As NetworkStream = _client.GetStream()
 
-            
-            
             SyncLock _writeLock
                 _writer = New StreamWriter(stream) With {.AutoFlush = True}
                 _reader = New StreamReader(stream)
@@ -110,8 +97,7 @@ Public Class TcpClientHelper
 
         Try
             SyncLock _writeLock
-                
-                
+
                 If _writer IsNot Nothing Then
                     Dim msg As String
 
@@ -152,8 +138,7 @@ Public Class TcpClientHelper
     End Property
 
     Private Sub ListenLoop()
-        
-        
+
         Dim myGen As Integer = _generation
         Dim reader As StreamReader = _reader
 
@@ -170,9 +155,6 @@ Public Class TcpClientHelper
             Debug.WriteLine($"TcpClientHelper.ListenLoop Error ({_appName}): {ex.Message}")
         End Try
 
-        
-        
-        
         If myGen = _generation Then
             _isConnected = False
             RaiseEvent OnDisconnected()
@@ -184,8 +166,7 @@ Public Class TcpClientHelper
     End Sub
 
     Private Sub PingLoop()
-        
-        
+
         Dim myGen As Integer = _generation
 
         Try
@@ -210,9 +191,7 @@ Public Class TcpClientHelper
     End Sub
 
     Private Sub ReconnectLoop()
-        
-        
-        
+
         If Interlocked.CompareExchange(_reconnectGate, 1, 0) <> 0 Then Return
 
         Try
@@ -225,18 +204,14 @@ Public Class TcpClientHelper
                     _currentReconnectDelay = Math.Min(_currentReconnectDelay * 2, 30000) 
                     Thread.Sleep(_currentReconnectDelay)
 
-                    
-                    
                     If startGen <> _generation Then Exit While
 
                     _cts = New CancellationTokenSource()
                     _client = New TcpClient()
                     _client.Connect(_host, _port)
 
-                    
                     Dim stream As NetworkStream = _client.GetStream()
 
-                    
                     SyncLock _writeLock
                         _writer = New StreamWriter(stream) With {.AutoFlush = True}
                         _reader = New StreamReader(stream)
@@ -261,7 +236,6 @@ Public Class TcpClientHelper
         End Try
     End Sub
 
-    
     Public Sub Dispose() Implements IDisposable.Dispose
         Disconnect()
     End Sub

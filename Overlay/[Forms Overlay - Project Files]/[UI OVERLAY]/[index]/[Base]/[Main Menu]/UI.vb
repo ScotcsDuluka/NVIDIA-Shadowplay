@@ -7,12 +7,10 @@ Public Class Debug_UI
     Private _lastW As Integer = Integer.MinValue
     Private _lastH As Integer = Integer.MinValue
 
-    
     Private Const WM_MOVING As Integer = &H216
     Private Const WM_MOVE As Integer = &H3
     Private Const WM_SIZE As Integer = &H5
 
-    
     Private WithEvents tmr As New Timer With {.Interval = 1}
 
     Public Sub New()
@@ -49,7 +47,6 @@ Public Class Debug_UI
         Dim pt As Point = Me.PointToScreen(Point.Empty)
         Dim x As Integer = pt.X : Dim y As Integer = pt.Y
         Dim w As Integer = Me.ClientSize.Width : Dim h As Integer = Me.ClientSize.Height
-
 
         For Each frm In Application.OpenForms
             If frm.Name <> Me.Name AndAlso Not frm.IsDisposed AndAlso frm.Visible Then

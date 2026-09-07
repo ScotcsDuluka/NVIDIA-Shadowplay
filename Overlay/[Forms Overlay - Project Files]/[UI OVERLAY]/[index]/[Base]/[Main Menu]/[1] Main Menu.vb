@@ -19,12 +19,6 @@ Imports Windows.Graphics.DirectX.Direct3D11
 Imports Windows.Media.Devices
 Imports WinRT.Interop
 
-
-
-
-
-
-
 Partial Public Class Base
 
 #Region "CONSTANTS & FIELDS"
@@ -38,7 +32,6 @@ Partial Public Class Base
     Private Const MicOnFile As String = "mic/mic_on"
     Private Const MicOffFile As String = "mic/mic_off"
 
-    
     Private isFunctionActive As Boolean = False
     Private isKeyPressed As Boolean = False
 
@@ -69,19 +62,15 @@ Partial Public Class Base
     Private isNotiOn As Boolean = False
     Private notifierShown As Boolean = False
 
-    
     Private WithEvents _hotkeyService As HotkeyService
     Private SystemMonitor As New SystemMonitor()
 
-    
     Private _delayTimers As System.Windows.Forms.Timer
     Private _bgInitDone As Boolean = False
 
-    
     Private shas As Control()
     Private lastMode As String = ""
 
-    
     Public clickThrough As Boolean = False
 
 #End Region
@@ -143,7 +132,6 @@ Partial Public Class Base
         Public dwThreadId As UInteger
     End Structure
 
-    
     Private Const GWL_EXSTYLE As Integer = -20
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
@@ -183,7 +171,6 @@ Partial Public Class Base
 
         MyBase.WndProc(m)
     End Sub
-
 
 #End Region
 
@@ -294,17 +281,11 @@ Partial Public Class Base
     Private ReadOnly HVDGR As Color = Color.Green
     Private ReadOnly VDGR As Color = Color.FromArgb(118, 185, 0)
 
-    
     Private Sub SetHoverEffect(ctrl As Control, hoverColor As Color, leaveColor As Color)
         AddHandler ctrl.MouseEnter, Sub() ctrl.BackColor = hoverColor
         AddHandler ctrl.MouseLeave, Sub() ctrl.BackColor = leaveColor
     End Sub
 
-    
-    
-    
-    
-    
     Private Sub SetGroupHoverEffect(hoverColor As Color, leaveColor As Color, ParamArray ctrls() As Control)
         For Each ctrl As Control In ctrls
             AddHandler ctrl.MouseEnter, Sub()
@@ -330,7 +311,6 @@ Partial Public Class Base
         Next
     End Sub
 
-    
     Private Sub Sub_VDUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         
         SetGroupHoverEffect(HVDG, VDG,
@@ -338,55 +318,44 @@ Partial Public Class Base
             Base_RecordingsSet.fps_bg,
             Base_RecordingsSet.FPS_DROP)
 
-        
         SetGroupHoverEffect(HVDG, VDG,
             Base_RecordingsSet.P_BOX,
             Base_RecordingsSet.P_bg)
 
-        
         SetGroupHoverEffect(HVDG, VDG,
             Base_RecordingsSet.Resolution_bg,
             Base_RecordingsSet.Resolution_BOX,
             Base_RecordingsSet.Resolution_DROP)
 
-        
         SetGroupHoverEffect(HVDG, VDG,
             Base_RecordingsSet.cmbEncoder,
             Base_RecordingsSet.Encoder_DROP,
             Base_RecordingsSet.Encoder_bg)
     End Sub
 
-    
     Private Sub MainUI_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         
         SetHoverEffect(Base_Gallery.Saved_l10n, HoverColorGR, LeaveColorGR)
         SetHoverEffect(Base_Gallery.Openloaction_l10n, HoverColorG, LeaveColorG)
 
-        
         SetHoverEffect(Base_Settings.SW_lang, HoverColorG, LeaveColorG)
         SetHoverEffect(Base_Settings.ch, HoverColorG, LeaveColorG)
         SetHoverEffect(Base_Settings.action_fn, HoverColorGR, LeaveColorGR)
         SetHoverEffect(Base_Settings.btnExportSettings, HoverColorG, LeaveColorG)
         SetHoverEffect(Base_Settings.btnImportSettings, HoverColorG, LeaveColorG)
 
-        
         SetHoverEffect(Base_Connect.BT_Back, HoverColorGR, LeaveColorGR)
 
-        
         SetHoverEffect(Base_Overlay_Hub.action_fn, HoverColorGR, LeaveColorGR)
 
-        
         SetHoverEffect(Base_KeySet.action_fn, HoverColorGR, LeaveColorGR)
         SetHoverEffect(Base_KeySet.Reset, HoverColorG, LeaveColorG)
 
-        
         SetHoverEffect(Base_RecordingsSet.action_fn, HoverColorGR, LeaveColorGR)
         SetHoverEffect(Base_RecordingsSet.vdo_resetall, HoverColorG, LeaveColorG)
 
-        
         SetHoverEffect(Base_Privacy_Control.action_fn, HoverColorGR, LeaveColorGR)
 
-        
         SetHoverEffect(Base_AudioSet.action_fn, HoverColorGR, LeaveColorGR)
         SetHoverEffect(Base_AudioSet.btnRefresh, HoverColorG, LeaveColorG)
     End Sub
@@ -399,7 +368,6 @@ Partial Public Class Base
 
         HideFromAltTab()
 
-        
         AppSettings.Initialize()
         LoadCurrentLanguage()
         MainSub_Load()
@@ -418,18 +386,11 @@ Partial Public Class Base
         Else
             ShowNotifier("notificationErrorResolution")
         End If
-        
-        
-        
+
         Dim readyFlag As String = AppLayout.P("Flags", "Ready")
         AppLayout.EnsureParentDir(readyFlag)
         File.Create(readyFlag).Dispose()
 
-        
-        
-        
-        
-        
         Task.Run(Sub()
                      Me.BeginInvoke(Sub()
                                         InitializeNotifierAPI()
@@ -438,22 +399,14 @@ Partial Public Class Base
                                     End Sub)
                  End Sub)
 
-
-        
         _hotkeyService = New HotkeyService()
         _hotkeyService.RegisterAll(Handle)
-        
-        
-        
-        
 
-        
         _delayTimers = New System.Windows.Forms.Timer
         _delayTimers.Interval = 500
         AddHandler _delayTimers.Tick, Sub()
                                           _delayTimers.Stop()
-                                          
-                                          
+
                                           SystemMonitor.StartMonitoring()
                                       End Sub
         _delayTimers.Start()
@@ -467,21 +420,17 @@ Partial Public Class Base
 
     End Sub
 
-    
     Private Sub MainSub_Load()
         Base_RecordingsSet.Opacity = 1
     End Sub
 
-    
     Private Sub TIMESLOAD()
         Load_App.Start()
         Privacy_control.Start()
     End Sub
 
-    
     Private Sub LoadCurrentLanguage()
-        
-        
+
         Dim langFolder As String = AppLayout.P("Languages")
 
         Dim currentLang As String = AppSettings.Instance.UI.Language
@@ -493,12 +442,9 @@ Partial Public Class Base
         Base_Settings.SW_lang.Text = LangHelper.GetText("meta.languageName")
     End Sub
 
-    
     Private Sub InitializeNotifierAPI()
         Try
-            
-            
-            
+
             Dim exePath As String = AppLayout.ExePath("NVIDIA Notifier.exe")
             If Not File.Exists(exePath) Then
                 MessageBox.Show(
@@ -516,7 +462,6 @@ Partial Public Class Base
         End Try
     End Sub
 
-    
     Private Async Function WaitForConnection(timeoutMs As Integer) As Task
         Dim tcs As New TaskCompletionSource(Of Boolean)()
         Dim handler As TcpClientHelper.OnMessageReceivedEventHandler = Nothing
@@ -541,15 +486,13 @@ Partial Public Class Base
 
     Private Sub Base_FormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         If _snipPending Then
-            
-            
+
             _snipPending = False
             KillSnipHostProcesses()
         End If
         AppSettings.Instance.Save()
         _hotkeyService?.UnregisterAll()
-        
-        
+
         SystemMonitor.StopMonitoring()
     End Sub
 
@@ -557,12 +500,10 @@ Partial Public Class Base
 
 #Region "LOCALIZATION"
 
-    
     Private Function L(key As String, ParamArray args() As String) As String
         Return LangHelper.GetText(key, args)
     End Function
 
-    
     Private Function GetClampedReplayDuration() As Integer
         Dim savedSeconds As Integer = 60
         Try
@@ -573,16 +514,13 @@ Partial Public Class Base
         Return CInt(Math.Round(savedSeconds / 15.0) * 15)
     End Function
 
-    
     Private Function GetClampedReplayDurationMinutes() As Integer
         Dim savedMinutes As Integer = 1 
         Try
             Dim settingValue As Integer = AppSettings.Instance.Recording.ReplayDuration
 
-            
             savedMinutes = settingValue \ 60
 
-            
             savedMinutes = Math.Max(1, Math.Min(20, savedMinutes))
         Catch
         End Try
@@ -590,12 +528,10 @@ Partial Public Class Base
         Return savedMinutes
     End Function
 
-    
     Private Sub Lang_Tick(sender As Object, e As EventArgs) Handles Lang.Tick
         
         Base_Background_Top.Logo_text.Text = L("l10n.nvidiashadowplay")
 
-        
         With Base_Gallery
             .Gallery_l10n.Text = L("l10n.gallery")
             .LoactionSaved_l10n.Text = L("l10n.LocationSaved")
@@ -607,10 +543,8 @@ Partial Public Class Base
             .text_sub.Text = L("l10n.gallerynotready")
         End With
 
-        
         Base_Game_Filter.Home_settings.Text = L("l10n.mods")
 
-        
         With Base_Privacy_Control
             .Label4.Text = L("l10n.privacyControl")
             .Label2.Text = L("l10n.settingsPrivacyDescribe")
@@ -619,14 +553,12 @@ Partial Public Class Base
         End With
         CheckPrivacyControl()
 
-        
         With Base_Overlay_Hub
             
             .action_fn.Text = L("l10n.back")
             .Label4.Text = L("l10n.overlays")
         End With
 
-        
         With Base_RecordingsSet
             .Menu_TEXT.Text = L("l10n.recordings")
             .action_fn.Text = L("l10n.Saved")
@@ -653,7 +585,6 @@ Partial Public Class Base
             .custom_main.Text = L("l10n.adjust_value")
             .advanced_main.Text = L("l10n.advanced")
 
-            
             .UpdatePresetStatusLabel()    
             .UpdateBitrateRangeLabel()    
             .UpdateBitrateLabel()         
@@ -661,26 +592,22 @@ Partial Public Class Base
             .UpdateEncoderInfo()          
             .UpdateCommandPreview()       
 
-            
             If .Resolution_BOX IsNot Nothing Then
                 Dim curRes As String = AppSettings.Instance.Recording.Preset
                 .Resolution_BOX.Text = LangHelper.GetText("l10n.native", ._nativeResolutionWidth & "x" & ._nativeResolutionHeight)
             End If
         End With
 
-        
         With Base_Settings
             .action_fn.Text = L("l10n.done")
             .ch.Text = L("l10n.checkForUpdates")
         End With
 
-        
         With Base_Connect
             .Settings_TEXT.Text = L("l10n.connect")
             .BT_Back.Text = L("l10n.back")
         End With
 
-        
         With Base_KeySet
             .text_settings.Text = L("l10n.keyboardShortcuts")
             .action_fn.Text = L("l10n.done")
@@ -701,20 +628,12 @@ Partial Public Class Base
             .Desc_BroadcastToggle.Text = L("l10n.toggleBroadcasting")
         End With
 
-        
         UpdateLocalizedTexts()
         RefreshRuntimeStatusTexts()
 
-        
-        
-        
-        
-        
-        
         Lang.Stop()
     End Sub
 
-    
     Public Sub UpdateLocalizedTexts()
         Lang.Start()
 
@@ -728,20 +647,16 @@ Partial Public Class Base
         
         Replay_Text.Text = L("l10n.instantReplay") & " - BETA"
         Replay_Stats.Text = L("l10n.off")
-        
-        
-        
+
         Menu_Replay_text.Text = L("l10n.replayNotImplemented")
         Menu_Replay_save_text.Text = L("l10n.Saved")
         Menu_Replay_Sttings_text.Text = L("l10n.settings")
 
-        
         Record_Text.Text = L("l10n.manualRecord")
         Record_Stats.Text = L("l10n.notRecording")
         Menu_Record_text.Text = L("l10n.start")
         Menu_Record_Sttings_text.Text = L("l10n.settings")
 
-        
         Live_Text.Text = L("l10n.broadcastLive")
         Live_Stats.Text = L("l10n.NotReady")
 #End Region
@@ -773,7 +688,6 @@ Partial Public Class Base
 
 #Region "FILE & DIRECTORY OPERATIONS"
 
-    
     Private Sub LoadFilePath()
         Dim GalleryPath As String = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.MyVideos),
@@ -794,7 +708,6 @@ Partial Public Class Base
         End If
     End Sub
 
-    
     Private Sub CreateDataDirectories()
         Dim basePath As String = AppLayout.P("Data", DataDirectoryName)
         Dim subdirectories As String() = {"Replay", "Record", "Live", "mic"}
@@ -804,7 +717,6 @@ Partial Public Class Base
         Next
     End Sub
 
-    
     Private Sub CheckPrivacyControl()
         Base_Privacy_Control.TogglePrivacy.IsOn = AppSettings.Instance.Privacy.DesktopCaptureEnabled
     End Sub
@@ -813,7 +725,6 @@ Partial Public Class Base
 
 #Region "SCREEN CAPTURE"
 
-    
     Private Sub CaptureScreen()
         If Not AppSettings.Instance.Privacy.DesktopCaptureEnabled Then
             ShowNotifier("notificationWarningDesktopCaptureDisabled")
@@ -862,27 +773,16 @@ Partial Public Class Base
 
 #Region "NOTIFIER SYSTEM"
 
-    
     Public Sub ShowNotifier(message As String)
         tcp.Send("l10n." & message)
         Dim folderPath As String = AppLayout.P("Data", DataDirectoryName)
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
     End Sub
 
 #End Region
 
 #Region "WINDOW MANAGEMENT"
 
-    
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And (Not WS_EX_APPWINDOW))
@@ -893,19 +793,15 @@ Partial Public Class Base
         AlignPanelToTop()
     End Sub
 
-    
     Public Sub AlignPanelToTop()
         Dim marginTop As Integer = 160
 
-        
         Settings_List.Location = New Point(80, 160)
         Base_Background_Top.Main_menu_list.Location = New Point((Me.ClientSize.Width - Base_Background_Top.Main_menu_list.Width) / 2, marginTop)
         shadowplay.Location = New Point((Me.ClientSize.Width - shadowplay.Width) / 2, marginTop)
 
-        
         Base_Gallery.settings_1.Location = New Point((Me.ClientSize.Width - Base_Gallery.settings_1.Width) / 2, marginTop)
 
-        
         Base_Privacy_Control.settings_1.Location = New Point(80, marginTop)
         Base_RecordingsSet.setret.Location = New Point(80, marginTop)
         Base_Overlay_Hub.settings_1.Location = New Point(80, marginTop)
@@ -942,10 +838,6 @@ Partial Public Class Base
         Next
     End Sub
 
-    
-    
-    
-    
     Public Sub ShadowLoad()
         If shas Is Nothing Then Return
 
@@ -1016,7 +908,6 @@ Partial Public Class Base
 
 #Region "PERIODIC TIMERS"
 
-    
     Private Sub Load_App_Tick(sender As Object, e As EventArgs) Handles Load_App.Tick
         Menu_Replay_key.Text = Base_KeySet.lbl_InstantReplayToggle.Text
         Menu_Replay_save_key.Text = Base_KeySet.lbl_InstantReplaySave.Text
@@ -1063,7 +954,6 @@ Partial Public Class Base
         End If
     End Sub
 
-    
     Private Sub Engine_UI_Tick(sender As Object, e As EventArgs) Handles Engine_UI.Tick
 
         Dim EngineFile = AppLayout.P("Flags", "Engine.UI")
@@ -1085,7 +975,6 @@ Partial Public Class Base
         End If
     End Sub
 
-    
     Private Sub Audio_UI_Tick(sender As Object, e As EventArgs) Handles Audio_UI.Tick
         Dim AudioFile = AppLayout.P("Flags", "Audio.UI")
 
@@ -1105,7 +994,6 @@ Partial Public Class Base
             Audio_UI.Stop()
         End If
     End Sub
-
 
 #End Region
 

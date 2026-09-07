@@ -1,13 +1,10 @@
 
 
-
-
 Imports System.IO
 Imports System.Runtime.InteropServices
 
 Public Class Base_AudioSet
 
-    
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
     End Function
@@ -22,8 +19,7 @@ Public Class Base_AudioSet
 
     Private Sub HideFromAltTab()
         Dim style As Integer = GetWindowLong(Me.Handle, GWL_EXSTYLE)
-        
-        
+
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
@@ -38,7 +34,6 @@ Public Class Base_AudioSet
         UpdateVolumeLabels()
     End Sub
 
-    
     Private Sub LoadFromSettings()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
 
@@ -51,18 +46,12 @@ Public Class Base_AudioSet
         chkSystem.Checked = audio.SystemAudioEnabled
         chkMic.Checked = audio.MicEnabled
 
-        
-        
-        
-        
-        
         trkSystemVol.Value = CInt(Math.Max(0, Math.Min(100, audio.SystemAudioVolume * 100.0F)))
         trkMicVol.Value = CInt(Math.Max(0, Math.Min(100, audio.MicVolume * 100.0F)))
 
         SelectCurrentMic()
     End Sub
 
-    
     Private Sub SelectCurrentMic()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
         Dim micId As String = audio.MicDeviceId
@@ -84,7 +73,6 @@ Public Class Base_AudioSet
         End If
     End Sub
 
-    
     Private Sub RefreshMicDevices()
         cboMic.Items.Clear()
         Try
@@ -106,12 +94,6 @@ Public Class Base_AudioSet
 
 #Region "Save"
 
-    
-    
-    
-    
-    
-    
     Private Sub SaveToSettings()
         Dim audio As AppSettings.AudioSettingsClass = AppSettings.Instance.Audio
 
@@ -129,15 +111,12 @@ Public Class Base_AudioSet
             End If
         End If
 
-        
-        
         Try
             AppSettings.Instance.Save()
         Catch ex As Exception
             Debug.WriteLine("[AudioSet] AppSettings.Save error: " & ex.Message)
         End Try
 
-        
         Try
             If Base.tcp IsNot Nothing AndAlso Base.tcp.IsConnected Then
                 Base.tcp.Send("engine_config_changed", "video")
@@ -146,9 +125,6 @@ Public Class Base_AudioSet
             Debug.WriteLine("[AudioSet] engine_config_changed broadcast failed: " & ex.Message)
         End Try
     End Sub
-
-
-
 
 #End Region
 
@@ -177,7 +153,6 @@ Public Class Base_AudioSet
         lblStatus.Text = "Settings saved. Start recording to test."
     End Sub
 
-    
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles action_fn.Click
         Try
             SaveToSettings()

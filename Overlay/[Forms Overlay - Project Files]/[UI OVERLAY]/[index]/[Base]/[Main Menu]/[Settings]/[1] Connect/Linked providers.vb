@@ -1,12 +1,5 @@
 
 
-
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Text.Json.Nodes
@@ -75,8 +68,7 @@ Public Class Base_Connect_Providers
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok AndAlso r.Resource IsNot Nothing Then
-                
-                
+
                 Dim githubLink As JsonNode = Nothing
 
                 Dim list As JsonNode = r.Resource("providers")
@@ -94,8 +86,7 @@ Public Class Base_Connect_Providers
                                    NodeText(githubLink, "providerEmail"),
                                    NodeText(githubLink, "linkedAt"), True)
                 Else
-                    
-                    
+
                     AddProviderRow("", "github", "", "", False)
                 End If
             ElseIf r.AuthDead Then
@@ -108,12 +99,9 @@ Public Class Base_Connect_Providers
         End Try
     End Sub
 
-    
-    
     Private Sub AddProviderRow(linkId As String, providerKey As String, email As String,
                                linkedAt As String, connected As Boolean)
-        
-        
+
         Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
             .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
@@ -210,8 +198,7 @@ Public Class Base_Connect_Providers
         ElseIf r.AuthDead Then
             TerminalSignOut("Your session has expired. Please sign in again.")
         ElseIf r.HttpStatus = 409 Then
-            
-            
+
             Status_TEXT.Text = "Cannot unlink — " & r.Message
         ElseIf r.HttpStatus = 404 Then
             Status_TEXT.Text = "That link is already gone — refreshing."
@@ -255,8 +242,6 @@ Public Class Base_Connect_Providers
         End Try
     End Sub
 
-    
-    
     Private Sub Report(message As String)
         If IsDisposed OrElse Not IsHandleCreated Then Return
         Try
@@ -288,11 +273,6 @@ Public Class Base_Connect_Providers
         Return iso
     End Function
 
-    
-    
-    
-    
-    
     Private Sub StretchRows()
         Dim w As Integer = List_PANEL.ClientSize.Width
         If w <= 0 Then Return

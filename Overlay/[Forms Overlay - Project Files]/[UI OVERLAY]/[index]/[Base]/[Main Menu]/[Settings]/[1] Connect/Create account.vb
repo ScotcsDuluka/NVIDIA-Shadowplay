@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Linq
 Imports System.Runtime.InteropServices
@@ -68,9 +63,6 @@ Public Class Base_Connect_Create
         If _creating Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        
-        
-        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         Dim confirm As String = Confirm_BOX.Text
@@ -110,9 +102,7 @@ Public Class Base_Connect_Create
                                  ResourceText(r.Resource, "deviceId"),
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
-                
-                
-                
+
                 store.SetProfile(ResourceText(r.Resource, "username"),
                                  ResourceText(r.Resource, "username"))
                 Status_TEXT.Text = ""

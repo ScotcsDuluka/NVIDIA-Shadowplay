@@ -1,21 +1,5 @@
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Imports System.Drawing
 Imports System.IO
 Imports System.Threading.Tasks
@@ -23,21 +7,16 @@ Imports System.Windows.Forms
 
 Partial Public Class Base
 
-    
     Public ReplayValue As Boolean = False
     Public RecordValue As Boolean = False
 
 #Region "Anti-Spam Cooldown"
-    
-    
-    
 
     Private Shared _lastUiActionTime As DateTime = DateTime.MinValue
     Private Shared _uiActionLock As New Object()
     Private Const UI_ACTION_COOLDOWN_MS As Integer = 200
     Private Shared _lastCooldownLogTime As DateTime = DateTime.MinValue
 
-    
     Private Function CheckUiCooldown() As Boolean
         SyncLock _uiActionLock
             Dim elapsed As Long = CLng((DateTime.Now - _lastUiActionTime).TotalMilliseconds)
@@ -63,22 +42,17 @@ Partial Public Class Base
 
 #Region "Recording State — Local Tracking (TCP Architecture)"
 
-    
-    
-
     Private _isRecordingLocal As Boolean = False
     Private _isBufferingLocal As Boolean = False
     Private Shared _isTogglingRecording As Boolean = False
     Private Shared _isTogglingReplay As Boolean = False
 
-    
     Public ReadOnly Property ReplayActive As Boolean
         Get
             Return _isBufferingLocal
         End Get
     End Property
 
-    
     Public ReadOnly Property IsRecording As Boolean
         Get
             Return _isRecordingLocal
@@ -89,9 +63,6 @@ Partial Public Class Base
 
 #Region "Output Directory"
 
-    
-    
-    
     Private Function GetOutputDirectory() As String
         Dim outputDir As String = ""
 
@@ -99,7 +70,6 @@ Partial Public Class Base
             
             outputDir = AppSettings.Instance.Paths.SavePath
 
-            
             If String.IsNullOrEmpty(outputDir) AndAlso Base_Gallery IsNot Nothing AndAlso Base_Gallery.txtFilePath IsNot Nothing Then
                 outputDir = Base_Gallery.txtFilePath.Text
             End If
@@ -107,12 +77,10 @@ Partial Public Class Base
             Debug.WriteLine("GetOutputDirectory: Error - " & ex.Message)
         End Try
 
-        
         If String.IsNullOrEmpty(outputDir) OrElse Not Directory.Exists(outputDir) Then
             outputDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "Shadowplay", "Gallery")
         End If
 
-        
         If Not Directory.Exists(outputDir) Then
             Try
                 Directory.CreateDirectory(outputDir)
@@ -134,14 +102,12 @@ Partial Public Class Base
         
         If Not CheckUiCooldown() Then Exit Sub
 
-        
         SyncLock _uiActionLock
             If _isTogglingRecording Then Exit Sub
             _isTogglingRecording = True
         End SyncLock
         MarkUiAction()
 
-        
         If Not IsPrivacyEnabled() Then
             ShowMainPanel()
             OpenSettings()
@@ -151,14 +117,6 @@ Partial Public Class Base
             Exit Sub
         End If
 
-        
-        
-        
-        
-        
-        
-        
-        
         If tcp Is Nothing OrElse Not tcp.IsConnected Then
             Record_Stats.Text = "Hub Offline — unable to start recording"
             _isTogglingRecording = False
@@ -168,12 +126,8 @@ Partial Public Class Base
         Try
             If _isRecordingLocal Then
 
-                
                 _isRecordingLocal = False
                 RecordValue = False
-                
-                
-                
 
                 Await Task.Run(Sub()
                                    Try : tcp.Send("RECORD_STOP")
@@ -184,12 +138,6 @@ Partial Public Class Base
 
             Else
 
-                
-                
-                
-                
-                
-
                 Dim outputDir As String = GetOutputDirectory()
                 Dim outputPath As String = Path.Combine(outputDir,
                     $"Record_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4")
@@ -199,7 +147,6 @@ Partial Public Class Base
                     Debug.WriteLine("RECORD_START TCP Error: " & ex.Message)
                 End Try
 
-                
                 _isRecordingLocal = True
                 RecordValue = True
 
@@ -221,23 +168,16 @@ Partial Public Class Base
 
 #Region "Toggle Instant Replay (Alt+Shift+F10)"
 
-    
-    
-    
-    
-    
     Public Async Sub ToggleInstantReplay()
         
         If Not CheckUiCooldown() Then Exit Sub
 
-        
         SyncLock _uiActionLock
             If _isTogglingReplay Then Exit Sub
             _isTogglingReplay = True
         End SyncLock
         MarkUiAction()
 
-        
         If Not IsPrivacyEnabled() Then
             ShowMainPanel()
             OpenSettings()
@@ -250,18 +190,13 @@ Partial Public Class Base
         Try
             If _isBufferingLocal Then
 
-                
                 _isBufferingLocal = False
                 ReplayValue = False
 
-                
                 SetControlColor(Replay_Logo, Color.White)
                 SetControlEnabled(Menu_Replay_Box2, False)
                 SetControlEnabled(Menu_Replay_save_text, False)
                 SetControlEnabled(Menu_Replay_save_key, False)
-                
-                
-                
 
                 Await Task.Run(Sub()
                                    Try : tcp.Send("REPLAY_STOP")
@@ -272,7 +207,6 @@ Partial Public Class Base
 
             Else
 
-                
                 Dim saveSeconds As Integer = AppSettings.Instance.Recording.ReplayDuration
                 saveSeconds = Math.Max(15, Math.Min(1200, saveSeconds))
 
@@ -282,11 +216,6 @@ Partial Public Class Base
                 Catch ex As Exception
                     Debug.WriteLine("REPLAY_START TCP Error: " & ex.Message)
                 End Try
-
-                
-                
-                
-                
 
             End If
 
@@ -317,23 +246,19 @@ Partial Public Class Base
                 Exit Sub
             End If
 
-            
             SetControlEnabled(Menu_Replay_Box2, False)
             SetControlEnabled(Menu_Replay_save_text, False)
             SetControlEnabled(Menu_Replay_save_key, False)
 
-            
             Dim outputDir As String = GetOutputDirectory()
             Dim outputPath As String = Path.Combine(outputDir,
                 $"Replay_{DateTime.Now:yyyy-MM-dd_HH-mm-ss}.mp4")
 
-            
             Dim duration As Integer = AppSettings.Instance.Recording.ReplayDuration
             duration = Math.Max(15, Math.Min(1200, duration))
 
             Debug.WriteLine($"SaveInstantReplay: {outputPath} ({duration}s)")
 
-            
             Try
                 Await Task.Run(Sub()
                                    Try
@@ -345,10 +270,6 @@ Partial Public Class Base
             Catch ex As Exception
                 Debug.WriteLine("REPLAY_SAVE TCP Error: " & ex.Message)
             End Try
-
-            
-            
-            
 
         Catch ex As Exception
             Debug.WriteLine($"[SaveInstantReplay] Error: {ex.Message}")
@@ -367,13 +288,6 @@ Partial Public Class Base
 
 #Region "Replay Honesty (W2-1)"
 
-    
-    
-    
-    
-    
-    
-    
     Public Sub InitReplayHonesty()
         Try
             Menu_Replay_key.Enabled = False
@@ -392,7 +306,6 @@ Partial Public Class Base
 
 #Region "Encoder Info — from AppSettings"
 
-    
     Public Function GetEncoderInfo() As String
         Try
             Select Case AppSettings.Instance.Recording.Encoder
@@ -412,7 +325,6 @@ Partial Public Class Base
         End Try
     End Function
 
-    
     Public Function GetEncoderInfoDetailed() As String
         Try
             Dim rec = AppSettings.Instance.Recording

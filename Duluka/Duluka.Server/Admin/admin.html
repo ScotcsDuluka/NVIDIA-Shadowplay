@@ -9,47 +9,90 @@
     --bg:#22272b; --panel:#2e3439; --panel2:#343b41; --hover:#3a4147;
     --line:#3d454c; --text:#eceff1; --muted:#9aa4ab;
     --mint:#3fde9e; --blue:#58a6ff; --danger:#f0616d; --warn:#e3b341;
+    --pink:#f778ba;
   }
+  body[data-accent="mint"]  { --accent:var(--mint);  --accent-soft:rgba(63,222,158,.14); }
+  body[data-accent="blue"]  { --accent:var(--blue);  --accent-soft:rgba(88,166,255,.14); }
+  body[data-accent="amber"] { --accent:var(--warn);  --accent-soft:rgba(227,179,65,.14); }
+  body[data-accent="pink"]  { --accent:var(--pink);  --accent-soft:rgba(247,120,186,.14); }
+  body{ --accent:var(--mint); --accent-soft:rgba(63,222,158,.14); }
   *{box-sizing:border-box; margin:0; padding:0}
   body{background:var(--bg); color:var(--text);
-       font:14px/1.45 "Segoe UI",system-ui,sans-serif; padding-bottom:48px}
-  header{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-         background:var(--panel); border-bottom:1px solid var(--line);
-         padding:14px 22px}
-  header h1{font-size:17px; font-weight:600; letter-spacing:.2px}
-  header h1 span{color:var(--mint)}
-  #dbpath{color:var(--muted); font-size:12px; max-width:46ch; overflow:hidden;
-          text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
-  #live{margin-left:auto; font-size:12px; color:var(--muted)}
-  #live b{color:var(--mint)}
-  main{max-width:1180px; margin:0 auto; padding:20px 22px}
-  /* stat cards */
-  #cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px}
+       font:14px/1.45 "Segoe UI",system-ui,sans-serif; padding-bottom:44px}
+  kbd{background:var(--bg); border:1px solid var(--line); border-bottom-width:2px;
+      border-radius:4px; padding:1px 5px; font:11px Consolas,monospace; color:var(--muted)}
+  /* ── header ─────────────────────────────────────────────────────────── */
+  header{background:var(--panel); border-bottom:1px solid var(--line); padding:12px 22px}
+  .hrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  header h1{font-size:17px; font-weight:600; letter-spacing:.2px; margin-right:6px}
+  header h1 span{color:var(--accent)}
+  .chip{display:inline-flex; align-items:center; gap:6px; background:var(--panel2);
+        border:1px solid var(--line); border-radius:20px; padding:3px 11px;
+        font-size:11.5px; color:var(--muted); white-space:nowrap}
+  .chip b{color:var(--text); font-weight:600}
+  .chip.accent b{color:var(--accent)}
+  #live{margin-left:auto; display:flex; align-items:center; gap:8px}
+  #live .dot{width:9px; height:9px; border-radius:50%; background:var(--accent);
+             box-shadow:0 0 8px var(--accent); animation:pulse 1.6s infinite}
+  #live.off .dot{background:var(--muted); box-shadow:none; animation:none}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  #clock{font:12.5px Consolas,Menlo,monospace; color:var(--muted)}
+  #dbpath{color:var(--muted); font-size:11.5px; margin-top:6px; max-width:96ch;
+          overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+          direction:rtl; text-align:left}
+  .dots{display:flex; gap:5px; align-items:center}
+  .adot{width:13px; height:13px; border-radius:50%; cursor:pointer; border:2px solid transparent}
+  .adot.on{border-color:#fff}
+  /* ── main ───────────────────────────────────────────────────────────── */
+  main{max-width:1280px; margin:0 auto; padding:18px 22px}
+  #cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px}
   .card{background:var(--panel); border:1px solid var(--line); border-radius:10px;
-        padding:14px 16px}
-  .card .num{font-size:26px; font-weight:700; color:var(--mint)}
-  .card .lbl{color:var(--muted); font-size:12px; margin-top:2px; letter-spacing:.4px;
+        padding:13px 15px; cursor:pointer; transition:transform .08s}
+  .card:hover{transform:translateY(-2px); border-color:var(--accent)}
+  .card .num{font-size:25px; font-weight:700; color:var(--accent)}
+  .card .lbl{color:var(--muted); font-size:11px; margin-top:2px; letter-spacing:.5px;
              text-transform:uppercase}
-  /* tabs */
-  #tabs{display:flex; gap:6px; margin:20px 0 12px; flex-wrap:wrap}
+  /* sparklines */
+  #charts{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
+  @media (max-width:860px){ #charts{grid-template-columns:1fr} }
+  .chartbox{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+  .chartbox .t{display:flex; justify-content:space-between; font-size:12px; color:var(--muted)}
+  .chartbox .t b{color:var(--text)}
+  .chartbox canvas{width:100%; height:110px; display:block; margin-top:6px}
+  #charttip{position:fixed; z-index:60; background:var(--panel2); border:1px solid var(--line);
+            border-radius:7px; padding:5px 10px; font-size:12px; pointer-events:none; display:none}
+  #charttip b{color:var(--accent)}
+  /* toolbar + tabs */
+  #bar{display:flex; align-items:center; gap:8px; margin:18px 0 12px; flex-wrap:wrap}
+  #tabs{display:flex; gap:6px; flex-wrap:wrap}
   .tab{background:var(--panel); color:var(--muted); border:1px solid var(--line);
-       border-radius:8px; padding:8px 18px; cursor:pointer; font-weight:600; font-size:13px}
+       border-radius:8px; padding:8px 15px; cursor:pointer; font-weight:600; font-size:13px}
   .tab:hover{background:var(--hover); color:var(--text)}
-  .tab.on{background:var(--mint); color:#14201a; border-color:var(--mint)}
+  .tab.on{background:var(--accent); color:#14201a; border-color:var(--accent)}
+  .tab .n{opacity:.55; font-weight:400; margin-left:4px}
+  #search{margin-left:auto; background:var(--panel); border:1px solid var(--line);
+          border-radius:8px; color:var(--text); padding:8px 12px; font:inherit;
+          font-size:13px; width:230px}
+  #search:focus{outline:none; border-color:var(--accent)}
   /* table */
   .wrap{background:var(--panel); border:1px solid var(--line); border-radius:10px;
         overflow-x:auto}
-  table{width:100%; border-collapse:collapse; font-size:13px; min-width:860px}
+  table{width:100%; border-collapse:collapse; font-size:13px; min-width:820px}
   th{color:var(--muted); text-align:left; font-weight:600; font-size:11px;
      text-transform:uppercase; letter-spacing:.5px; padding:10px 12px;
-     border-bottom:1px solid var(--line); white-space:nowrap}
+     border-bottom:1px solid var(--line); white-space:nowrap; user-select:none}
+  th.sortable{cursor:pointer}
+  th.sortable:hover{color:var(--text)}
+  th .arr{font-size:10px; color:var(--accent)}
   td{padding:9px 12px; border-bottom:1px solid #2b3136; vertical-align:middle;
      white-space:nowrap}
   tr:last-child td{border-bottom:none}
   tr:hover td{background:var(--hover)}
   .mut{color:var(--muted)} .sm{font-size:12px}
   .mono{font-family:Consolas,Menlo,monospace; font-size:12px}
-  .cut{max-width:230px; overflow:hidden; text-overflow:ellipsis}
+  .cut{max-width:200px; overflow:hidden; text-overflow:ellipsis; display:inline-block;
+       vertical-align:middle}
+  .cnt{color:var(--muted); font-size:12px; padding:8px 14px; border-top:1px solid var(--line)}
   /* badges */
   .b{display:inline-block; padding:2px 9px; border-radius:20px; font-size:11px;
      font-weight:700; letter-spacing:.3px}
@@ -58,76 +101,172 @@
   .b.gray{background:rgba(154,164,171,.14); color:var(--muted)}
   .b.yellow{background:rgba(227,179,65,.14); color:var(--warn)}
   .b.blue{background:rgba(88,166,255,.14); color:var(--blue)}
+  .b.acc{background:var(--accent-soft); color:var(--accent)}
   /* avatar */
   .av{width:30px; height:30px; border-radius:50%; display:flex; align-items:center;
       justify-content:center; font-weight:700; font-size:13px; color:#14201a;
-      background:var(--mint); overflow:hidden; flex:none}
+      background:var(--accent); overflow:hidden; flex:none}
   .av img{width:100%; height:100%; object-fit:cover}
   .avcell{display:flex; align-items:center; gap:9px}
+  .av.big{width:56px; height:56px; font-size:24px}
   /* buttons */
   button{font:inherit; cursor:pointer; border:none; border-radius:7px;
          padding:6px 12px; font-weight:600; font-size:12px; background:var(--panel2);
          color:var(--text)}
   button:hover{background:var(--hover)}
-  button.pri{background:var(--mint); color:#14201a}
+  button.pri{background:var(--accent); color:#14201a}
   button.pri:hover{filter:brightness(1.1)}
   button.dng{background:rgba(240,97,109,.15); color:var(--danger)}
   button.dng:hover{background:rgba(240,97,109,.3)}
   button.warn{background:rgba(227,179,65,.15); color:var(--warn)}
+  button.ghost{background:transparent; border:1px solid var(--line); color:var(--muted)}
+  button.ghost:hover{color:var(--text); border-color:var(--accent)}
   button:disabled{opacity:.45; cursor:default}
-  .acts{display:flex; gap:6px}
-  /* modal + toast */
+  .acts{display:flex; gap:6px; flex-wrap:wrap}
+  /* drawer */
+  #drawer{position:fixed; top:0; right:-460px; width:440px; max-width:94vw; height:100vh;
+          background:var(--panel); border-left:1px solid var(--line); z-index:45;
+          transition:right .18s ease; display:flex; flex-direction:column;
+          box-shadow:-12px 0 34px rgba(0,0,0,.4)}
+  #drawer.open{right:0}
+  #drawer .dhead{display:flex; align-items:center; gap:12px; padding:16px 18px;
+                 border-bottom:1px solid var(--line)}
+  #drawer .dbody{padding:14px 18px; overflow-y:auto; flex:1}
+  #drawer h3{font-size:15px}
+  #drawer .kv{display:grid; grid-template-columns:130px 1fr; gap:4px 12px;
+              font-size:13px; margin:10px 0}
+  #drawer .kv .k{color:var(--muted)}
+  #drawer .kv .v{word-break:break-all}
+  #drawer h4{font-size:12px; text-transform:uppercase; letter-spacing:.6px;
+             color:var(--muted); margin:16px 0 6px}
+  #drawer pre{background:var(--bg); border:1px solid var(--line); border-radius:8px;
+              padding:12px; font:11.5px/1.5 Consolas,Menlo,monospace; overflow:auto;
+              max-height:300px; white-space:pre-wrap; word-break:break-all}
+  #dscrim{position:fixed; inset:0; z-index:44; display:none; background:rgba(10,12,14,.4)}
+  /* modal */
   #scrim{position:fixed; inset:0; background:rgba(10,12,14,.62); display:none;
-         align-items:center; justify-content:center; z-index:40}
+         align-items:center; justify-content:center; z-index:50}
   #modal{background:var(--panel); border:1px solid var(--line); border-radius:12px;
-         padding:22px; width:min(440px,92vw)}
+         padding:22px; width:min(460px,92vw)}
   #modal h3{font-size:15px; margin-bottom:8px}
   #modal p{color:var(--muted); font-size:13px; white-space:pre-wrap}
   #modal input{width:100%; margin-top:12px; display:none; background:var(--bg);
                border:1px solid var(--line); border-radius:7px; color:var(--text);
                padding:9px 11px; font:inherit}
+  #modal input:focus{outline:none; border-color:var(--accent)}
+  #modal .hint{font-size:11.5px; color:var(--muted); margin-top:6px; display:none}
   #modal .row{display:flex; gap:8px; justify-content:flex-end; margin-top:18px}
+  /* toasts */
   #toasts{position:fixed; right:18px; bottom:18px; display:flex; flex-direction:column;
-          gap:8px; z-index:50}
-  .toast{background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--mint);
+          gap:8px; z-index:70}
+  .toast{background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--accent);
          border-radius:8px; padding:10px 14px; font-size:13px; max-width:380px;
          box-shadow:0 6px 18px rgba(0,0,0,.35)}
   .toast.err{border-left-color:var(--danger)}
   .empty{padding:28px; text-align:center; color:var(--muted)}
+  footer{position:fixed; bottom:0; left:0; right:0; background:var(--panel);
+         border-top:1px solid var(--line); padding:6px 20px; font-size:11.5px;
+         color:var(--muted); display:flex; gap:16px; align-items:center; z-index:30}
 </style>
 </head>
-<body>
+<body data-accent="mint">
 <header>
-  <h1>Duluka Server <span>Admin Console</span></h1>
+  <div class="hrow">
+    <h1>Duluka Server <span>Admin Console</span></h1>
+    <span class="chip" id="chip-dbsize" title="SQLite database file size">DB <b>—</b></span>
+    <span class="chip" id="chip-uptime" title="Server process uptime">UP <b>—</b></span>
+    <span class="chip" id="chip-mem" title="Process working set">RAM <b>—</b></span>
+    <span class="chip accent" id="chip-net" title="Runtime">.NET <b>—</b></span>
+    <div id="live"><span class="dot"></span><b>LIVE</b>
+      <select id="interval" title="Auto-refresh interval">
+        <option value="0">off</option>
+        <option value="2">2s</option>
+        <option value="5" selected>5s</option>
+        <option value="10">10s</option>
+        <option value="30">30s</option>
+      </select>
+    </div>
+    <div class="dots" title="Accent color">
+      <div class="adot on" data-a="mint"  style="background:#3fde9e"></div>
+      <div class="adot"    data-a="blue"  style="background:#58a6ff"></div>
+      <div class="adot"    data-a="amber" style="background:#e3b341"></div>
+      <div class="adot"    data-a="pink"  style="background:#f778ba"></div>
+    </div>
+    <span id="clock"></span>
+  </div>
   <div id="dbpath" class="mono" title=""></div>
-  <div id="live">● <b>live</b> · auto-refresh 5s</div>
 </header>
 <main>
   <section id="cards"></section>
-  <nav id="tabs">
-    <button class="tab on" data-t="accounts">Accounts</button>
-    <button class="tab" data-t="sessions">Sessions</button>
-    <button class="tab" data-t="devices">Devices</button>
-    <button class="tab" data-t="links">Provider links</button>
-  </nav>
+  <section id="charts">
+    <div class="chartbox">
+      <div class="t"><b>New accounts</b><span>last 14 days</span></div>
+      <canvas id="ch-accounts"></canvas>
+    </div>
+    <div class="chartbox">
+      <div class="t"><b>Sessions issued</b><span>last 14 days</span></div>
+      <canvas id="ch-sessions"></canvas>
+    </div>
+  </section>
+  <div id="bar">
+    <nav id="tabs">
+      <button class="tab on" data-t="accounts">Accounts</button>
+      <button class="tab" data-t="sessions">Sessions</button>
+      <button class="tab" data-t="devices">Devices</button>
+      <button class="tab" data-t="links">Links</button>
+      <button class="tab" data-t="logs">Live logs</button>
+      <button class="tab" data-t="sql">SQL</button>
+      <button class="tab" data-t="danger">Danger zone</button>
+    </nav>
+    <input id="search" type="search" placeholder="Filter rows…  ( / )" autocomplete="off">
+    <button class="ghost" id="btn-refresh" title="Refresh now (R)">⟳ Refresh</button>
+    <button class="ghost" id="btn-export" title="Download current table as JSON">⬇ Export</button>
+  </div>
   <section class="wrap" id="content"><div class="empty">Loading…</div></section>
 </main>
+<div id="dscrim"></div>
+<aside id="drawer">
+  <div class="dhead">
+    <div class="av big" id="d-av">?</div>
+    <div><h3 id="d-name">—</h3><div class="sm mut" id="d-sub"></div></div>
+    <button class="ghost" id="d-close" style="margin-left:auto">✕ Close</button>
+  </div>
+  <div class="dbody" id="d-body"></div>
+</aside>
 <div id="scrim"><div id="modal">
   <h3 id="m-title"></h3><p id="m-msg"></p>
-  <input id="m-input" type="text" maxlength="64">
+  <input id="m-input" type="text" maxlength="80" autocomplete="off">
+  <div class="hint" id="m-hint"></div>
   <div class="row">
     <button id="m-cancel">Cancel</button>
     <button id="m-ok" class="pri">Confirm</button>
   </div>
 </div></div>
+<div id="charttip"></div>
 <div id="toasts"></div>
-
+<footer>
+  <span><kbd>/</kbd> filter</span>
+  <span><kbd>R</kbd> refresh</span>
+  <span><kbd>1</kbd>–<kbd>7</kbd> tabs</span>
+  <span><kbd>Ctrl</kbd>+<kbd>Enter</kbd> run SQL</span>
+  <span><kbd>Esc</kbd> close</span>
+  <span style="margin-left:auto" class="mono" id="f-db">—</span>
+</footer>
 <script>
 'use strict';
+/* ═══════════════════ state & tiny helpers ═══════════════════ */
 const H = {'X-Admin-Request':'1'};
 let TAB = 'accounts';
-
+const STATE = {
+  search:'', live:true, interval:5, busy:false,
+  sort:{},                                   // per-table {key,dir}
+  rows:{accounts:[],sessions:[],devices:[],links:[]},
+  overview:null, system:null, activity:null,
+  logCursor:0, logPause:false, logLevels:{info:true,warn:true,error:true},
+  logFilter:'', logWrap:false, sqlHist:[],
+};
 const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g,
   c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const cut = s => `<span class="cut" title="${esc(s)}">${esc(s)}</span>`;
@@ -137,9 +276,18 @@ function fmt(t){ if(!t) return '—';
   return d.toLocaleString(undefined,{year:'numeric',month:'short',day:'numeric',
     hour:'2-digit',minute:'2-digit'}); }
 function ago(t){ if(!t) return '—';
-  const s = (Date.now() - new Date(t).getTime())/1000;
+  let s = (Date.now() - new Date(t).getTime())/1000;
+  if(s<0) s=0;
   if(s<60) return 'just now'; if(s<3600) return (s/60|0)+'m ago';
   if(s<86400) return (s/3600|0)+'h ago'; return (s/86400|0)+'d ago'; }
+function bytes(n){ if(n==null) return '—';
+  if(n<1024) return n+' B';
+  const u=['KB','MB','GB']; let i=-1;
+  do{ n/=1024; i++; }while(n>=1024 && i<u.length-1);
+  return n.toFixed(n<10?1:0)+' '+u[i]; }
+function upTime(s){ s=Math.floor(s);
+  const d=s/86400|0, h=(s%86400)/3600|0, m=(s%3600)/60|0, ss=s%60;
+  return (d?d+'d ':'')+(d||h?h+'h ':'')+(d||h||m?m+'m ':'')+ss+'s'; }
 
 async function api(path, opts={}){
   const r = await fetch(path, {...opts, headers:{...H, ...(opts.headers||{})}});
@@ -158,49 +306,167 @@ function toast(msg, err){
   setTimeout(()=>el.remove(), 4200);
 }
 
-/* ── confirm / prompt modal ─────────────────────────────────────────── */
-function modal({title, msg, input=null, ok='Confirm', danger=false}){
+async function copyText(t){
+  try{ await navigator.clipboard.writeText(t); toast('Copied to clipboard.'); }
+  catch{
+    const ta = document.createElement('textarea');
+    ta.value = t; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove(); toast('Copied to clipboard.');
+  }
+}
+
+/* ── modal v2: prompt / confirm / type-to-confirm ────────────────────── */
+function modal({title, msg, input=null, ok='Confirm', danger=false, confirmPhrase=null}){
   return new Promise(res=>{
     $('#m-title').textContent = title;
     $('#m-msg').textContent = msg;
-    const inp = $('#m-input');
-    inp.style.display = input===null ? 'none' : 'block';
-    if(input!==null) inp.value = input;
-    const okB = $('#m-ok');
+    const inp = $('#m-input'), hint = $('#m-hint'), okB = $('#m-ok');
+    const phraseMode = confirmPhrase !== null;
+    inp.style.display = (input===null && !phraseMode) ? 'none' : 'block';
+    hint.style.display = phraseMode ? 'block' : 'none';
+    if(phraseMode){
+      inp.value = ''; inp.placeholder = confirmPhrase;
+      hint.textContent = `Type ${confirmPhrase} to enable the button.`;
+      okB.disabled = true;
+      inp.oninput = () => { okB.disabled = inp.value.trim() !== confirmPhrase; };
+    }else{
+      inp.value = input ?? ''; okB.disabled = false; inp.oninput = null;
+    }
     okB.className = danger ? 'dng' : 'pri';
     okB.textContent = ok;
     $('#scrim').style.display = 'flex';
-    if(input!==null){ inp.focus(); inp.select(); }
+    if(inp.style.display!=='none'){ inp.focus(); inp.select(); }
     const done = v => { $('#scrim').style.display='none';
       okB.onclick = $('#m-cancel').onclick = inp.onkeydown = null; res(v); };
-    okB.onclick = () => done(input===null ? true : inp.value);
+    okB.onclick = () => done(phraseMode ? true : (inp.style.display==='none' ? true : inp.value));
     $('#m-cancel').onclick = () => done(null);
-    inp.onkeydown = e => { if(e.key==='Enter') okB.click();
+    inp.onkeydown = e => { if(e.key==='Enter' && !okB.disabled) okB.click();
                            if(e.key==='Escape') done(null); };
   });
 }
+
+/* ── header chips / clock ────────────────────────────────────────────── */
+function tickClock(){
+  $('#clock').textContent = new Date().toLocaleTimeString(
+    undefined,{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tickClock, 1000); tickClock();
+
+let uptimeSeconds = 0, uptimeStamp = 0;
+function renderChips(){
+  const sys = STATE.system;
+  if(!sys) return;
+  uptimeSeconds = sys.uptimeSeconds; uptimeStamp = Date.now();
+  $('#chip-dbsize').innerHTML = 'DB <b>'+bytes(sys.database.fileBytes)+'</b>';
+  $('#chip-uptime').innerHTML = 'UP <b>'+upTime(sys.uptimeSeconds)+'</b>';
+  $('#chip-mem').innerHTML = 'RAM <b>'+bytes(sys.process.workingSetBytes)+'</b>';
+  $('#chip-net').innerHTML = '.NET <b>'+esc(sys.runtime.version)+'</b>';
+  $('#f-db').textContent = 'journal='+sys.database.journalMode
+    +' · pages='+sys.database.pageCount+'×'+sys.database.pageSize
+    +' · threads='+sys.process.threads;
+}
+setInterval(()=>{
+  if(uptimeStamp && STATE.system)
+    $('#chip-uptime').innerHTML = 'UP <b>'+upTime(uptimeSeconds+(Date.now()-uptimeStamp)/1000)+'</b>';
+}, 1000);
 
 /* ── overview cards ─────────────────────────────────────────────────── */
 async function loadOverview(){
   try{
     const o = await api('/admin/api/overview');
+    STATE.overview = o;
     $('#dbpath').textContent = o.dbPath;
     $('#dbpath').title = o.dbPath;
     const cards = [
-      ['Accounts', o.accounts],
-      ['Active sessions', o.activeSessions],
-      ['Active devices', o.activeDevices],
-      ['Provider links', o.activeLinks],
-      ['Native credentials', o.nativeCredentials],
+      ['Accounts', o.accounts, 'accounts'],
+      ['Active sessions', o.activeSessions, 'sessions'],
+      ['Active devices', o.activeDevices, 'devices'],
+      ['Provider links', o.activeLinks, 'links'],
+      ['Credentials', o.nativeCredentials, 'accounts'],
+      ['Log lines', STATE.system ? STATE.rows._logcount ?? '—' : '—', 'logs'],
+      ['Uptime', STATE.system ? upTime(uptimeSeconds) : '—', 'logs', 1],
     ];
-    $('#cards').innerHTML = cards.map(([l,n]) =>
-      `<div class="card"><div class="num">${n}</div><div class="lbl">${esc(l)}</div></div>`).join('');
+    $('#cards').innerHTML = cards.map(([l,n,t,isTxt]) =>
+      `<div class="card" data-tab="${t}"><div class="num" ${isTxt?'style="font-size:18px;padding-top:6px"':''}>${esc(n)}</div><div class="lbl">${esc(l)}</div></div>`).join('');
   }catch(e){ toast('Overview: '+e.message, true); }
 }
 
-/* ── tables ─────────────────────────────────────────────────────────── */
-function badge(ok, text){
-  return `<span class="b ${ok==='green'?'green':ok==='red'?'red':ok==='yellow'?'yellow':ok==='blue'?'blue':'gray'}">${esc(text)}</span>`;
+/* ── system + activity ──────────────────────────────────────────────── */
+async function loadSystem(){
+  try{ STATE.system = await api('/admin/api/system'); renderChips(); }
+  catch(e){ /* silent — chips keep last values */ }
+}
+async function loadActivity(){
+  try{
+    STATE.activity = await api('/admin/api/activity');
+    drawBars($('#ch-accounts'), STATE.activity.days.map(d=>[d.day,d.accounts]), getAccent());
+    drawBars($('#ch-sessions'), STATE.activity.days.map(d=>[d.day,d.sessions]), getAccent());
+  }catch(e){ /* silent */ }
+}
+function getAccent(){
+  return getComputedStyle(document.body).getPropertyValue('--accent').trim() || '#3fde9e';
+}
+
+/* ── sparkline bars on raw canvas ────────────────────────────────────── */
+const BARHIT = new Map();
+function drawBars(canvas, data, color){
+  const dpr = window.devicePixelRatio || 1;
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if(!w || !h) return;
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  const g = canvas.getContext('2d');
+  g.setTransform(dpr,0,0,dpr,0,0);
+  g.clearRect(0,0,w,h);
+  const max = Math.max(1, ...data.map(d=>d[1]));
+  const n = data.length, pad = 4;
+  const bw = Math.max(3, (w - pad*2) / n * 0.62);
+  const step = (w - pad*2) / n;
+  const hits = [];
+  data.forEach((d,i)=>{
+    const v = d[1], bh = v===0 ? 2 : Math.max(3, (h-26) * v/max);
+    const x = pad + i*step + (step-bw)/2, y = h-18-bh;
+    g.fillStyle = v===0 ? '#3d454c' : color;
+    g.globalAlpha = v===0 ? 1 : (i===n-1 ? 1 : .82);
+    g.beginPath();
+    g.roundRect ? g.roundRect(x,y,bw,bh,2) : g.rect(x,y,bw,bh);
+    g.fill();
+    hits.push([x,y,bw,bh,d]);
+  });
+  g.globalAlpha = 1;
+  g.fillStyle = '#9aa4ab'; g.font = '10px Consolas,Menlo,monospace';
+  g.fillText(data[0][0].slice(5), pad, h-4);
+  const lw = g.measureText(data[n-1][0].slice(5)).width;
+  g.fillText(data[n-1][0].slice(5), w-pad-lw, h-4);
+  BARHIT.set(canvas.id, hits);
+}
+document.addEventListener('mousemove', e=>{
+  const tip = $('#charttip');
+  for(const cv of ['ch-accounts','ch-sessions']){
+    const el = document.getElementById(cv);
+    if(!el || !BARHIT.has(cv)) continue;
+    const r = el.getBoundingClientRect();
+    if(e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom){
+      const x = e.clientX - r.left;
+      for(const [bx,by,bw,bh,d] of BARHIT.get(cv)){
+        if(x>=bx-2 && x<=bx+bw+2){
+          tip.style.display='block';
+          tip.style.left = (e.clientX+12)+'px'; tip.style.top = (e.clientY+12)+'px';
+          tip.innerHTML = `${esc(d[0])} — <b>${d[1]}</b>`;
+          return;
+        }
+      }
+    }
+  }
+  tip.style.display='none';
+});
+window.addEventListener('resize', ()=>{ if(STATE.activity){
+  drawBars($('#ch-accounts'), STATE.activity.days.map(d=>[d.day,d.accounts]), getAccent());
+  drawBars($('#ch-sessions'), STATE.activity.days.map(d=>[d.day,d.sessions]), getAccent());
+}});
+
+/* ═══════════════════ table engine ═══════════════════ */
+function badge(kind, text){
+  return `<span class="b ${kind}">${esc(text)}</span>`;
 }
 function avatarCell(a){
   const name = a.displayName || a.username || '?';
@@ -212,93 +478,155 @@ function avatarCell(a){
     <div><div>${esc(a.displayName ?? '(no display name)')}</div>
     <div class="sm mut">${esc(a.username ?? 'no native credential')}</div></div></div>`;
 }
+function idCell(id){
+  return `<span class="mono sm mut">${cut(id)}</span>
+    <button class="ghost" style="padding:2px 7px" title="Copy id"
+      onclick="copyText('${esc(id)}')">⧉</button>`;
+}
+function sBadge(v){ return v ? `<span class="sm">${v}</span>` : '—'; }
 
 const TABLES = {
   accounts: {
-    load: () => api('/admin/api/accounts'),
-    render: rows => rows.map(a => `<tr>
-      <td>${avatarCell(a)}</td>
-      <td>${badge(a.status==='Active'?'green':a.status==='Suspended'?'yellow':'gray', a.status)}</td>
-      <td class="mono sm mut">${cut(a.accountId)}</td>
-      <td>${fmt(a.createdAt)}</td>
-      <td>${ago(a.updatedAt)}</td>
-      <td class="sm">${a.activeSessions}/${a.devices} dev · ${a.activeLinks} link</td>
-      <td><div class="acts">
-        <button onclick="renameAccount('${esc(a.accountId)}','${esc(a.displayName ?? '')}')">Rename</button>
-        ${a.hasProfileImage ? `<button onclick="clearImage('${esc(a.accountId)}')">Clear image</button>` : ''}
-        ${a.status==='Active'
-          ? `<button class="warn" onclick="setStatus('${esc(a.accountId)}','Suspended')">Suspend</button>`
-          : `<button class="pri" onclick="setStatus('${esc(a.accountId)}','Active')">Activate</button>`}
-        <button class="dng" onclick="deleteAccount('${esc(a.accountId)}')">Delete</button>
-      </div></td></tr>`).join('') || `<tr><td colspan="7"><div class="empty">No accounts yet — register one from the Overlay.</div></td></tr>`,
-    head: `<tr><th>Account</th><th>Status</th><th>Id</th><th>Created</th>
-           <th>Updated</th><th>Usage</th><th>Actions</th></tr>`,
+    cols: [
+      {l:'Account', v:r=>r.displayName||r.username||r.accountId, h:avatarCell},
+      {l:'Status', v:r=>r.status,
+        h:r=>badge(r.status==='Active'?'green':r.status==='Suspended'?'yellow':'gray', r.status)},
+      {l:'Id', v:r=>r.accountId, h:r=>idCell(r.accountId)},
+      {l:'Created', v:r=>r.createdAt, h:r=>`<span title="${esc(r.createdAt)}">${fmt(r.createdAt)}</span>`},
+      {l:'Updated', v:r=>r.updatedAt, h:r=>`<span title="${esc(r.updatedAt)}">${ago(r.updatedAt)}</span>`},
+      {l:'Usage', v:r=>r.activeSessions*100+r.devices*10+r.activeLinks,
+        h:r=>`<span class="sm">${r.activeSessions} sess · ${r.devices} dev · ${r.activeLinks} link</span>`},
+      {l:'Actions', v:()=>0, h:r=>`<div class="acts">
+        <button class="ghost" onclick="inspect('${esc(r.accountId)}')">Inspect</button>
+        <button onclick="renameAccount('${esc(r.accountId)}')">Rename</button>
+        ${r.hasProfileImage ? `<button onclick="clearImage('${esc(r.accountId)}')">Clear image</button>` : ''}
+        ${r.status==='Active'
+          ? `<button class="warn" onclick="setStatus('${esc(r.accountId)}','Suspended')">Suspend</button>`
+          : `<button class="pri" onclick="setStatus('${esc(r.accountId)}','Active')">Activate</button>`}
+        <button class="dng" onclick="deleteAccount('${esc(r.accountId)}')">Delete</button>
+      </div>`},
+    ],
+    pick: b=>b.accounts, export:'accounts',
+    empty:'No accounts yet — register one from the Overlay.',
   },
   sessions: {
-    load: () => api('/admin/api/sessions'),
-    render: rows => rows.map(s => {
-      const st = s.revokedAt ? ['red','revoked']
-               : new Date(s.expiresAt) <= new Date() ? ['gray','expired'] : ['green','active'];
-      return `<tr>
-      <td class="mono sm mut">${cut(s.sessionId)}</td>
-      <td>${esc(s.accountLabel)}</td>
-      <td>${esc(s.deviceName ?? '—')}</td>
-      <td>${fmt(s.createdAt)}</td>
-      <td>${fmt(s.expiresAt)}</td>
-      <td>${ago(s.lastSeenAt)}</td>
-      <td>${badge(...st)}${s.revokedReason?` <span class="sm mut">${esc(s.revokedReason)}</span>`:''}</td>
-      <td>${st[1]==='active' ? `<button class="dng" onclick="revokeSession('${esc(s.sessionId)}')">Revoke</button>` : ''}</td>
-    </tr>`;}).join('') || `<tr><td colspan="8"><div class="empty">No sessions.</div></td></tr>`,
-    head: `<tr><th>Session</th><th>Account</th><th>Device</th><th>Created</th>
-           <th>Expires</th><th>Last seen</th><th>Status</th><th></th></tr>`,
+    cols: [
+      {l:'Session', v:r=>r.sessionId, h:r=>idCell(r.sessionId)},
+      {l:'Account', v:r=>r.accountLabel, h:r=>esc(r.accountLabel)},
+      {l:'Device', v:r=>r.deviceName||'', h:r=>esc(r.deviceName ?? '—')},
+      {l:'Created', v:r=>r.createdAt, h:r=>fmt(r.createdAt)},
+      {l:'Expires', v:r=>r.expiresAt, h:r=>fmt(r.expiresAt)},
+      {l:'Last seen', v:r=>r.lastSeenAt, h:r=>ago(r.lastSeenAt)},
+      {l:'Status', v:r=>r.revokedAt?'2':(new Date(r.expiresAt)<=new Date()?'1':'0'),
+        h:r=>{ const st = r.revokedAt ? ['red','revoked']
+             : new Date(r.expiresAt)<=new Date() ? ['gray','expired'] : ['green','active'];
+          return badge(...st)+(r.revokedReason?` <span class="sm mut">${esc(r.revokedReason)}</span>`:''); }},
+      {l:'', v:()=>0, h:r=>(r.revokedAt||new Date(r.expiresAt)<=new Date()) ? '' :
+        `<button class="dng" onclick="revokeSession('${esc(r.sessionId)}')">Revoke</button>`},
+    ],
+    pick: b=>b.sessions, export:'sessions', empty:'No sessions.',
   },
   devices: {
-    load: () => api('/admin/api/devices'),
-    render: rows => rows.map(d => `<tr>
-      <td>${esc(d.deviceName)}</td>
-      <td class="mono sm mut">${cut(d.deviceId)}</td>
-      <td>${esc(d.accountLabel)}</td>
-      <td>${fmt(d.createdAt)}</td>
-      <td>${ago(d.lastSeenAt)}</td>
-      <td>${d.revokedAt ? badge('red','revoked') : badge('green','active')}</td>
-      <td class="sm">${d.activeSessions}</td>
-      <td><div class="acts">
-        ${!d.revokedAt ? `<button class="warn" onclick="revokeDevice('${esc(d.deviceId)}')">Revoke</button>` : ''}
-        <button class="dng" onclick="deleteDevice('${esc(d.deviceId)}')">Delete</button>
-      </div></td></tr>`).join('') || `<tr><td colspan="8"><div class="empty">No devices.</div></td></tr>`,
-    head: `<tr><th>Device</th><th>Id</th><th>Account</th><th>Created</th>
-           <th>Last seen</th><th>Status</th><th>Live sess.</th><th>Actions</th></tr>`,
+    cols: [
+      {l:'Device', v:r=>r.deviceName, h:r=>`<b>${esc(r.deviceName)}</b>`},
+      {l:'Id', v:r=>r.deviceId, h:r=>idCell(r.deviceId)},
+      {l:'Account', v:r=>r.accountLabel, h:r=>esc(r.accountLabel)},
+      {l:'Created', v:r=>r.createdAt, h:r=>fmt(r.createdAt)},
+      {l:'Last seen', v:r=>r.lastSeenAt, h:r=>ago(r.lastSeenAt)},
+      {l:'Status', v:r=>r.revokedAt?'1':'0',
+        h:r=>r.revokedAt ? badge('red','revoked') : badge('green','active')},
+      {l:'Live sess.', v:r=>r.activeSessions, h:r=>sBadge(r.activeSessions)},
+      {l:'Actions', v:()=>0, h:r=>`<div class="acts">
+        ${!r.revokedAt ? `<button class="warn" onclick="revokeDevice('${esc(r.deviceId)}')">Revoke</button>` : ''}
+        <button class="dng" onclick="deleteDevice('${esc(r.deviceId)}')">Delete</button>
+      </div>`},
+    ],
+    pick: b=>b.devices, export:'devices', empty:'No devices.',
   },
   links: {
-    load: () => api('/admin/api/links'),
-    render: rows => rows.map(l => `<tr>
-      <td>${badge('blue', l.providerKey)}</td>
-      <td class="mono sm">${esc(l.providerUserId)}</td>
-      <td>${esc(l.providerEmail ?? '—')}</td>
-      <td>${esc(l.accountLabel)}</td>
-      <td>${l.status==='Active' ? badge('green','active') : badge('gray','unlinked')}</td>
-      <td>${fmt(l.linkedAt)}</td>
-      <td>${l.status==='Active' ? `<button class="dng" onclick="unlinkLink('${esc(l.linkId)}')">Unlink</button>` : ''}</td>
-    </tr>`).join('') || `<tr><td colspan="7"><div class="empty">No provider links.</div></td></tr>`,
-    head: `<tr><th>Provider</th><th>Provider user</th><th>Email</th><th>Account</th>
-           <th>Status</th><th>Linked</th><th></th></tr>`,
+    cols: [
+      {l:'Provider', v:r=>r.providerKey, h:r=>badge('blue', r.providerKey)},
+      {l:'Provider user', v:r=>r.providerUserId, h:r=>`<span class="mono sm">${esc(r.providerUserId)}</span>`},
+      {l:'Email', v:r=>r.providerEmail||'', h:r=>esc(r.providerEmail ?? '—')},
+      {l:'Account', v:r=>r.accountLabel, h:r=>esc(r.accountLabel)},
+      {l:'Status', v:r=>r.status,
+        h:r=>r.status==='Active' ? badge('green','active') : badge('gray','unlinked')},
+      {l:'Linked', v:r=>r.linkedAt, h:r=>fmt(r.linkedAt)},
+      {l:'Actions', v:()=>0, h:r=>r.status==='Active' ?
+        `<button class="dng" onclick="unlinkLink('${esc(r.linkId)}')">Unlink</button>` : ''},
+    ],
+    pick: b=>b.links, export:'links', empty:'No provider links.',
   },
 };
 
-async function loadTab(){
-  const t = TABLES[TAB];
-  $('#content').innerHTML = `<div class="empty">Loading…</div>`;
-  try{
-    const body = await t.load();
-    const rows = body.accounts ?? body.sessions ?? body.devices ?? body.links ?? [];
-    $('#content').innerHTML = `<table>${t.head}<tbody>${t.render(rows)}</tbody></table>`;
-  }catch(e){
-    $('#content').innerHTML = `<div class="empty">Failed: ${esc(e.message)}</div>`;
+function tableRows(t){
+  const cfg = TABLES[t];
+  let rows = [...(STATE.rows[t] ?? [])];
+  const q = STATE.search.trim().toLowerCase();
+  if(q) rows = rows.filter(r =>
+    JSON.stringify(r).toLowerCase().includes(q));
+  const s = STATE.sort[t];
+  if(s){
+    const col = cfg.cols.find(c=>c.l===s.key);
+    if(col){
+      rows.sort((a,b)=>{
+        const x = col.v(a), y = col.v(b);
+        const c = (typeof x==='number' && typeof y==='number') ? x-y : String(x).localeCompare(String(y));
+        return s.dir==='asc' ? c : -c;
+      });
+    }
+  }
+  return rows;
+}
+
+async function loadTab(silent){
+  if(TABLES[TAB]){
+    const cfg = TABLES[TAB];
+    if(!silent) $('#content').innerHTML = `<div class="empty">Loading…</div>`;
+    try{
+      const body = await api('/admin/api/'+TAB);
+      STATE.rows[TAB] = cfg.pick(body) ?? [];
+      renderTable();
+    }catch(e){
+      if(!silent){
+        $('#content').innerHTML = `<div class="empty">Failed: ${esc(e.message)}</div>`;
+        toast('Load failed: '+e.message, true);
+      }
+    }
   }
 }
 
-/* ── actions ────────────────────────────────────────────────────────── */
-window.renameAccount = async (id, current) => {
+function renderTable(){
+  const t = TAB;
+  if(!TABLES[t]) return;              // logs / sql / danger render themselves
+  const cfg = TABLES[t];
+  const rows = tableRows(t);
+  const s = STATE.sort[t];
+  const head = `<tr>${cfg.cols.map(c=>{
+    const sortable = c.v.length > 0;
+    const arr = s && s.key===c.l ? `<span class="arr"> ${s.dir==='asc'?'▲':'▼'}</span>` : '';
+    return `<th class="${sortable?'sortable':''}" data-col="${esc(c.l)}">${esc(c.l)}${arr}</th>`;
+  }).join('')}</tr>`;
+  const body = rows.length ? rows.map(r=>`<tr>${cfg.cols.map(c=>`<td>${c.h(r)}</td>`).join('')}</tr>`).join('')
+    : `<tr><td colspan="${cfg.cols.length}"><div class="empty">${
+        STATE.search ? 'No rows match the filter.' : esc(cfg.empty)}</div></td></tr>`;
+  const total = (STATE.rows[t] ?? []).length;
+  $('#content').innerHTML = `<table>${head}<tbody>${body}</tbody></table>
+    <div class="cnt">${rows.length} of ${total} rows${STATE.search?' (filtered)':''} · click a column header to sort</div>`;
+  $$('#content th.sortable').forEach(th => th.onclick = ()=>{
+    const key = th.dataset.col, cur = STATE.sort[t];
+    STATE.sort[t] = {key, dir: cur && cur.key===key && cur.dir==='asc' ? 'desc' : 'asc'};
+    renderTable();
+  });
+}
+
+/* ═══════════════════ account actions ═══════════════════ */
+function rowById(tab, id){ return (STATE.rows[tab] ?? []).find(r =>
+  r.accountId===id || r.sessionId===id || r.deviceId===id || r.linkId===id); }
+
+window.renameAccount = async id => {
+  const row = rowById('accounts', id);
+  const current = row?.displayName ?? '';
   const name = await modal({title:'Rename display name', input:current, ok:'Save',
     msg:'Only the presentation name changes — identity, username, devices and sessions stay untouched.'});
   if(name === null) return;
@@ -327,6 +655,7 @@ window.setStatus = async (id, status) => {
 };
 window.deleteAccount = async id => {
   if(await modal({title:'DELETE this account?', ok:'Delete forever', danger:true,
+      confirmPhrase:'DELETE',
       msg:'Removes the account AND all of its sessions, devices, provider links, sync profiles and native credential in one transaction. This cannot be undone.\n\n'+id}) === null) return;
   try{ await api(`/admin/api/accounts/${encodeURIComponent(id)}`, {method:'DELETE'});
        toast('Account deleted.'); refresh(); }
@@ -348,6 +677,7 @@ window.revokeDevice = async id => {
 };
 window.deleteDevice = async id => {
   if(await modal({title:'DELETE device?', ok:'Delete forever', danger:true,
+      confirmPhrase:'DELETE',
       msg:'Hard-deletes the device row AND all of its sessions (including history). The device must sign in again with a fresh device key.\n\n'+id}) === null) return;
   try{ await api(`/admin/api/devices/${encodeURIComponent(id)}`, {method:'DELETE'});
        toast('Device deleted.'); refresh(); }
@@ -360,16 +690,370 @@ window.unlinkLink = async id => {
        toast('Provider unlinked.'); refresh(); }
   catch(e){ toast(e.message, true); }
 };
+window.copyText = copyText;
 
-/* ── wiring ─────────────────────────────────────────────────────────── */
-function refresh(){ loadOverview(); loadTab(); }
-document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+/* ═══════════════════ inspect drawer ═══════════════════ */
+window.inspect = id => {
+  const a = rowById('accounts', id);
+  if(!a) return;
+  const name = a.displayName || a.username || '?';
+  $('#d-av').textContent = name.charAt(0).toUpperCase();
+  $('#d-av').style.background = getAccent();
+  $('#d-name').textContent = name;
+  $('#d-sub').textContent = a.username ?? 'no native credential';
+  const sess = (STATE.rows.sessions ?? []).filter(s=>s.accountId===id);
+  const devs = (STATE.rows.devices ?? []).filter(d=>d.accountId===id);
+  const lnks = (STATE.rows.links ?? []).filter(l=>l.accountId===id);
+  const list = (title, items, line) => items.length
+    ? `<h4>${title} (${items.length})</h4>` + items.map(line).join('')
+    : `<h4>${title} (0)</h4><div class="sm mut">none</div>`;
+  $('#d-body').innerHTML = `
+    <div class="kv">
+      <span class="k">Account id</span><span class="v mono">${esc(a.accountId)} <button class="ghost" style="padding:2px 7px" onclick="copyText('${esc(a.accountId)}')">⧉</button></span>
+      <span class="k">Status</span><span class="v">${esc(a.status)}</span>
+      <span class="k">Created</span><span class="v">${fmt(a.createdAt)}</span>
+      <span class="k">Updated</span><span class="v">${fmt(a.updatedAt)}</span>
+      <span class="k">Avatar</span><span class="v">${a.hasProfileImage?'yes':'no (letter fallback)'}</span>
+    </div>
+    ${list('Live sessions', sess, s=>`<div class="sm mono" style="padding:3px 0">${esc(s.sessionId.slice(0,13))}… · ${esc(s.deviceName??'?')} · ${s.revokedAt?'revoked':'active'}</div>`)}
+    ${list('Devices', devs, d=>`<div class="sm" style="padding:3px 0">${esc(d.deviceName)} · ${d.revokedAt?'revoked':'active'} · ${ago(d.lastSeenAt)}</div>`)}
+    ${list('Provider links', lnks, l=>`<div class="sm" style="padding:3px 0">${esc(l.providerKey)} · ${esc(l.providerEmail??'?')} · ${esc(l.status)}</div>`)}
+    <h4>Raw JSON</h4>
+    <pre id="d-json">${esc(JSON.stringify(a, null, 2))}</pre>
+    <div style="margin-top:10px"><button class="ghost" onclick="copyText(document.getElementById('d-json').textContent)">⧉ Copy JSON</button></div>`;
+  $('#drawer').classList.add('open');
+  $('#dscrim').style.display = 'block';
+};
+function closeDrawer(){
+  $('#drawer').classList.remove('open');
+  $('#dscrim').style.display = 'none';
+}
+$('#d-close').onclick = closeDrawer;
+$('#dscrim').onclick = closeDrawer;
+
+/* ═══════════════════ live logs tab ═══════════════════ */
+const LOG_COLOR = {info:'', warn:'color:var(--warn)', error:'color:var(--danger);font-weight:600',
+                   critical:'color:#fff;background:var(--danger)'};
+function logLineHtml(e){
+  const cls = STATE.logWrap ? '' : ' style="white-space:pre"';
+  return `<div class="mono" data-lvl="${esc(e.level)}" style="padding:2px 0;${LOG_COLOR[e.level]??''}"${cls}>`+
+    `<span class="mut">${esc(e.time)}</span> <b>${esc(e.level.toUpperCase().padEnd(5))}</b> `+
+    `<span style="color:var(--blue)">${esc(e.logger)}</span> ${esc(e.message)}</div>`;
+}
+function renderLogToolbar(){
+  return `<div class="wrap" style="padding:10px 12px; margin-bottom:10px">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap">
+      <span class="chip ${STATE.logPause?'':'accent'}"><b>${STATE.logPause?'PAUSED':'STREAMING'}</b></span>
+      ${['info','warn','error'].map(l=>
+        `<button class="${STATE.logLevels[l]?'pri':'ghost'}" data-lvl="${l}"
+          style="padding:4px 10px">${l.toUpperCase()}</button>`).join('')}
+      <input id="logfilter" type="search" placeholder="grep…" value="${esc(STATE.logFilter)}"
+        style="background:var(--bg); border:1px solid var(--line); border-radius:7px;
+        color:var(--text); padding:5px 10px; font:inherit; font-size:12px; width:180px">
+      <button class="ghost" id="log-clear">Clear view</button>
+      <button class="ghost" id="log-download">⬇ .log</button>
+      <button class="ghost" id="log-wrap">${STATE.logWrap?'Unwrap':'Wrap'}</button>
+      <button class="ghost" id="log-pause">${STATE.logPause?'▶ Resume':'⏸ Pause'}</button>
+      <span class="sm mut" id="log-stat" style="margin-left:auto"></span>
+    </div>
+  </div>
+  <div class="wrap" id="logview" style="padding:10px 14px; max-height:56vh; overflow-y:auto;
+      font-size:12px; background:#1d2225"></div>`;
+}
+function applyLogFilter(){
+  $$('#logview > div').forEach(el=>{
+    const lvl = el.dataset.lvl, txt = el.textContent.toLowerCase();
+    el.style.display =
+      (STATE.logLevels[lvl] !== false && txt.includes(STATE.logFilter.toLowerCase())) ? '' : 'none';
+  });
+}
+function bindLogEvents(){
+  $$('#content [data-lvl]').forEach(b => b.onclick = ()=>{
+    STATE.logLevels[b.dataset.lvl] = !STATE.logLevels[b.dataset.lvl];
+    renderLogsTab();
+  });
+  const f = $('#logfilter');
+  if(f) f.oninput = ()=>{ STATE.logFilter = f.value; applyLogFilter(); };
+  $('#log-clear').onclick = ()=>{ $('#logview').innerHTML=''; };
+  $('#log-wrap').onclick = ()=>{ STATE.logWrap = !STATE.logWrap; renderLogsTab(); };
+  $('#log-pause').onclick = ()=>{ STATE.logPause = !STATE.logPause; renderLogsTab(); };
+  $('#log-download').onclick = ()=>{
+    const lines = $$('#logview > div').filter(el=>el.style.display!=='none')
+      .map(el=>el.textContent).join('\n');
+    const blob = new Blob([lines], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'duluka-server-'+new Date().toISOString().replace(/[:.]/g,'-')+'.log';
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+}
+function renderLogsTab(){
+  $('#content').innerHTML = renderLogToolbar() +
+    '<div class="empty" id="log-empty">Waiting for log lines…</div>';
+  bindLogEvents();
+}
+async function pollLogs(){
+  if(TAB!=='logs' || STATE.logPause || !STATE.live) return;
+  try{
+    const r = await api('/admin/api/logs?after='+STATE.logCursor);
+    STATE.logCursor = r.last;
+    const entries = r.entries ?? [];
+    STATE.rows._logcount = r.last;
+    if(!entries.length) return;
+    const view = $('#logview');
+    if(!view) return;
+    $('#log-empty')?.remove();
+    const stick = view.scrollHeight - view.scrollTop - view.clientHeight < 60;
+    let html = '';
+    for(const e of entries) html += logLineHtml(e);
+    view.insertAdjacentHTML('beforeend', html);
+    while(view.children.length > 2500) view.children[0].remove();
+    applyLogFilter();
+    $('#log-stat').textContent = entries.length+' new · '+view.children.length+' buffered';
+    if(stick) view.scrollTop = view.scrollHeight;
+  }catch(e){ /* transient */ }
+}
+
+/* ═══════════════════ sql console tab ═══════════════════ */
+const SQL_SAMPLES = [
+  ['All accounts', 'SELECT AccountId, Status, DisplayName, CreatedAt FROM DulukaAccount ORDER BY CreatedAt DESC'],
+  ['Active sessions', "SELECT s.SessionId, a.DisplayName, d.DeviceName, s.CreatedAt, s.ExpiresAt FROM AccountSession s JOIN DulukaAccount a ON a.AccountId=s.AccountId JOIN AccountDevice d ON d.DeviceId=s.DeviceId WHERE s.RevokedAt IS NULL AND s.ExpiresAt > datetime('now') ORDER BY s.CreatedAt DESC"],
+  ['Devices idle 7d', "SELECT DeviceId, DeviceName, LastSeenAt FROM AccountDevice WHERE RevokedAt IS NULL AND LastSeenAt < datetime('now','-7 days')"],
+  ['Schema history', 'SELECT * FROM SchemaHistory ORDER BY Version'],
+  ['Table row counts', "SELECT 'DulukaAccount' t, COUNT(*) n FROM DulukaAccount UNION ALL SELECT 'AccountSession', COUNT(*) FROM AccountSession UNION ALL SELECT 'AccountDevice', COUNT(*) FROM AccountDevice UNION ALL SELECT 'AccountProviderLink', COUNT(*) FROM AccountProviderLink UNION ALL SELECT 'NativeCredential', COUNT(*) FROM NativeCredential UNION ALL SELECT 'SyncProfile', COUNT(*) FROM SyncProfile"],
+];
+function renderSqlTab(){
+  $('#content').innerHTML = `
+  <div class="wrap" style="padding:14px">
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px">
+      <span class="b acc">READ-ONLY</span>
+      <span class="sm mut">SELECT only · one statement · max 500 rows · Ctrl+Enter to run</span>
+    </div>
+    <textarea id="sqlbox" rows="5" spellcheck="false" style="width:100%; background:#1d2225;
+      color:var(--text); border:1px solid var(--line); border-radius:8px; padding:12px;
+      font:13px/1.5 Consolas,Menlo,monospace; resize:vertical">SELECT AccountId, Status, DisplayName, CreatedAt FROM DulukaAccount ORDER BY CreatedAt DESC</textarea>
+    <div style="display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center">
+      <button class="pri" id="sql-run">▶ Run</button>
+      ${SQL_SAMPLES.map((s,i)=>`<button class="ghost" data-sq="${i}">${esc(s[0])}</button>`).join('')}
+      <select id="sql-hist" style="background:var(--panel2); color:var(--text);
+        border:1px solid var(--line); border-radius:7px; padding:6px; font:inherit; font-size:12px">
+        <option value="">history…</option>
+      </select>
+    </div>
+    <div id="sql-err" style="display:none; margin-top:12px; background:rgba(240,97,109,.12);
+      border:1px solid var(--danger); border-radius:8px; padding:10px 14px;
+      color:var(--danger); font-size:13px; white-space:pre-wrap"></div>
+    <div id="sql-out" style="margin-top:12px"></div>
+  </div>`;
+  $('#sql-run').onclick = runSql;
+  $('#sqlbox').onkeydown = e=>{
+    if(e.key==='Enter' && (e.ctrlKey||e.metaKey)){ e.preventDefault(); runSql(); }
+  };
+  $$('[data-sq]').forEach(b => b.onclick = ()=>{
+    $('#sqlbox').value = SQL_SAMPLES[+b.dataset.sq][1];
+  });
+  const hist = $('#sql-hist');
+  STATE.sqlHist.forEach(h=>{
+    const o = document.createElement('option');
+    o.value = h; o.textContent = h.length>60 ? h.slice(0,60)+'…' : h;
+    hist.appendChild(o);
+  });
+  hist.onchange = ()=>{ if(hist.value) $('#sqlbox').value = hist.value; };
+}
+async function runSql(){
+  const sql = $('#sqlbox').value.trim();
+  if(!sql) return;
+  $('#sql-err').style.display='none';
+  $('#sql-out').innerHTML = '<div class="empty">Running…</div>';
+  try{
+    const r = await api('/admin/api/query', {method:'POST', body:JSON.stringify({sql})});
+    STATE.sqlHist = [sql, ...STATE.sqlHist.filter(x=>x!==sql)].slice(0,20);
+    localStorage.setItem('duluka-sql-hist', JSON.stringify(STATE.sqlHist));
+    const cols = r.columns.map(c=>`<th>${esc(c)}</th>`).join('');
+    const rows = r.rows.map(row=>`<tr>${row.map(v=>
+      `<td class="mono sm">${v===null?'<i class="mut">NULL</i>':esc(v)}</td>`).join('')}</tr>`).join('');
+    $('#sql-out').innerHTML = `
+      <div class="sm mut" style="margin-bottom:8px">
+        <b style="color:var(--accent)">${r.returned}</b> rows in <b>${r.elapsedMs}</b> ms
+        ${r.truncated?'<span class="b yellow">TRUNCATED at 500</span>':''}
+      </div>
+      <div class="wrap"><table><tr>${cols}</tr>${
+        rows || `<tr><td colspan="${r.columns.length}"><div class="empty">No rows.</div></td></tr>`
+      }</table></div>`;
+  }catch(e){
+    $('#sql-out').innerHTML = '';
+    const err = $('#sql-err');
+    err.style.display = 'block';
+    err.textContent = '✖ '+e.message;
+  }
+}
+
+/* ═══════════════════ danger zone tab ═══════════════════ */
+function renderDangerTab(){
+  $('#content').innerHTML = `
+  <div class="wrap" style="padding:18px">
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px">
+      <span class="b red">DANGER ZONE</span>
+      <span class="sm mut">Every action here hits the live database immediately and cannot be undone.</span>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px" class="dzgrid">
+      <div style="border:1px solid var(--danger); border-radius:10px; padding:16px">
+        <h3 style="font-size:14px; color:var(--danger)">Revoke ALL active sessions</h3>
+        <p class="sm mut" style="margin:8px 0 4px">Every live session dies right now — all Overlay clients are signed out on their next call. Accounts and devices are untouched.</p>
+        <p class="sm mono mut" id="dz1-info">—</p>
+        <input id="dz1-input" placeholder="type REVOKE-ALL" style="width:100%; margin-top:10px;
+          background:var(--bg); border:1px solid var(--line); border-radius:7px; color:var(--text); padding:9px 11px; font:inherit">
+        <button class="dng" id="dz1-go" style="margin-top:10px" disabled>Revoke everything</button>
+        <div class="sm" id="dz1-res" style="margin-top:8px"></div>
+      </div>
+      <div style="border:1px solid var(--warn); border-radius:10px; padding:16px">
+        <h3 style="font-size:14px; color:var(--warn)">VACUUM the database</h3>
+        <p class="sm mut" style="margin:8px 0 4px">Rebuilds the SQLite file and reclaims free pages. Safe but heavy — do it after large deletions. Current file size: <b id="dz2-size">—</b></p>
+        <input id="dz2-input" placeholder="type VACUUM" style="width:100%; margin-top:10px;
+          background:var(--bg); border:1px solid var(--line); border-radius:7px; color:var(--text); padding:9px 11px; font:inherit">
+        <button class="warn" id="dz2-go" style="margin-top:10px" disabled>Vacuum now</button>
+        <div class="sm" id="dz2-res" style="margin-top:8px"></div>
+      </div>
+    </div>
+    <div style="margin-top:16px" class="sm mut">
+      Softer alternatives: export a JSON snapshot first
+      (<a href="#" onclick="exportData('accounts');return false" style="color:var(--accent)">accounts</a>,
+       <a href="#" onclick="exportData('sessions');return false" style="color:var(--accent)">sessions</a>),
+      or suspend accounts instead of deleting them.
+    </div>
+  </div>
+  <style>@media(max-width:860px){.dzgrid{grid-template-columns:1fr !important}}</style>`;
+  if(STATE.system) $('#dz2-size').textContent = bytes(STATE.system.database.fileBytes);
+  const i1 = $('#dz1-input'), b1 = $('#dz1-go');
+  i1.oninput = ()=>{ b1.disabled = i1.value.trim() !== 'REVOKE-ALL'; };
+  b1.onclick = async ()=>{
+    try{
+      const r = await api('/admin/api/maintenance/revoke-all-sessions',
+        {method:'POST', body:JSON.stringify({confirm:i1.value.trim()})});
+      $('#dz1-res').innerHTML = `<span style="color:var(--mint)">✔ revoked ${r.revoked} sessions</span>`;
+      toast('Revoked '+r.revoked+' sessions.');
+      loadOverview();
+    }catch(e){ $('#dz1-res').innerHTML = `<span style="color:var(--danger)">✖ ${esc(e.message)}</span>`; }
+  };
+  const i2 = $('#dz2-input'), b2 = $('#dz2-go');
+  i2.oninput = ()=>{ b2.disabled = i2.value.trim() !== 'VACUUM'; };
+  b2.onclick = async ()=>{
+    b2.disabled = true; b2.textContent = 'Vacuuming…';
+    try{
+      const r = await api('/admin/api/maintenance/vacuum',
+        {method:'POST', body:JSON.stringify({confirm:i2.value.trim()})});
+      $('#dz2-res').innerHTML = `<span style="color:var(--mint)">✔ freed ${bytes(r.freedBytes)} — file is now ${bytes(r.afterBytes)}</span>`;
+      toast('Vacuum done: freed '+bytes(r.freedBytes));
+      loadSystem();
+    }catch(e){ $('#dz2-res').innerHTML = `<span style="color:var(--danger)">✖ ${esc(e.message)}</span>`; }
+    b2.textContent = 'Vacuum now'; i2.value=''; i2.oninput();
+  };
+}
+
+/* ═══════════════════ wiring ═══════════════════ */
+function refresh(){
+  if(STATE.busy) return;
+  STATE.busy = true;
+  Promise.allSettled([
+    loadOverview(), loadSystem(), loadActivity(),
+    TABLES[TAB] ? loadTab(true) : Promise.resolve(),
+  ]).finally(()=>{ STATE.busy = false; });
+}
+function exportData(what){
+  fetch(`/admin/api/export?what=${encodeURIComponent(what)}`, {headers:H})
+    .then(async r=>{
+      if(!r.ok){ const b = await r.json().catch(()=>({})); throw new Error(b.message||('HTTP '+r.status)); }
+      const blob = await r.blob();
+      const cd = r.headers.get('Content-Disposition') || '';
+      const m = cd.match(/filename="([^"]+)"/);
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = m ? m[1] : `duluka-${what}.json`;
+      a.click(); URL.revokeObjectURL(a.href);
+      toast('Exported '+what+'.');
+    })
+    .catch(e=>toast('Export: '+e.message, true));
+}
+window.exportData = exportData;
+$('#btn-export').onclick = ()=> TABLES[TAB] ? exportData(TAB)
+  : toast('Export is available on the data tabs.', true);
+$('#btn-refresh').onclick = refresh;
+$('#search').oninput = e=>{ STATE.search = e.target.value;
+  if(TABLES[TAB]) renderTable(); };
+
+document.querySelectorAll('.tab').forEach((b,i) => b.onclick = () => switchTab(b.dataset.t));
+function switchTab(t){
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('on'));
-  b.classList.add('on');
-  TAB = b.dataset.t; loadTab();
+  document.querySelector(`.tab[data-t="${t}"]`).classList.add('on');
+  TAB = t;
+  if(TABLES[t]) loadTab();
+  else if(t==='logs'){ renderLogsTab(); pollLogs(); }
+  else if(t==='sql') renderSqlTab();
+  else if(t==='danger') renderDangerTab();
+}
+
+/* cards jump to tabs */
+$('#cards').addEventListener('click', e=>{
+  const card = e.target.closest('.card');
+  if(card && card.dataset.tab) switchTab(card.dataset.tab);
 });
+
+/* accent picker (persisted) */
+const savedAccent = localStorage.getItem('duluka-accent');
+if(savedAccent) document.body.dataset.accent = savedAccent;
+$$('.adot').forEach(d => {
+  if(d.dataset.a === document.body.dataset.accent){
+    $$('.adot').forEach(x=>x.classList.remove('on')); d.classList.add('on');
+  }
+  d.onclick = ()=>{
+    document.body.dataset.accent = d.dataset.a;
+    localStorage.setItem('duluka-accent', d.dataset.a);
+    $$('.adot').forEach(x=>x.classList.remove('on')); d.classList.add('on');
+    if(STATE.activity) loadActivity();
+  };
+});
+
+/* live interval (persisted) */
+const savedInt = localStorage.getItem('duluka-interval');
+if(savedInt !== null) $('#interval').value = savedInt;
+function applyInterval(){
+  STATE.interval = +$('#interval').value;
+  STATE.live = STATE.interval > 0;
+  $('#live').classList.toggle('off', !STATE.live);
+  localStorage.setItem('duluka-interval', $('#interval').value);
+  clearInterval(STATE.timer);
+  STATE.timer = setInterval(()=>{
+    refresh(); pollLogs();
+  }, STATE.interval*1000 || 60000);
+}
+$('#interval').onchange = applyInterval;
+
+/* keyboard shortcuts */
+document.addEventListener('keydown', e=>{
+  const tag = e.target.tagName;
+  const typing = tag==='INPUT' || tag==='TEXTAREA' || tag==='SELECT';
+  if(e.key==='Escape'){
+    if($('#scrim').style.display==='flex'){ $('#m-cancel').click(); return; }
+    closeDrawer();
+    return;
+  }
+  if(typing || e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key==='/'){ e.preventDefault(); $('#search').focus(); }
+  else if(e.key==='r' || e.key==='R'){ refresh(); }
+  else if(e.key>='1' && e.key<='7'){
+    const tabs = ['accounts','sessions','devices','links','logs','sql','danger'];
+    switchTab(tabs[+e.key-1]);
+  }
+});
+
+/* restore sql history */
+try{ STATE.sqlHist = JSON.parse(localStorage.getItem('duluka-sql-hist') ?? '[]'); }catch{ STATE.sqlHist = []; }
+
+/* boot */
+STATE.timer = null;
+applyInterval();
 refresh();
-setInterval(loadOverview, 5000);
+setTimeout(pollLogs, 800);
 </script>
 </body>
 </html>

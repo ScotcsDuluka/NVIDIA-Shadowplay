@@ -89,16 +89,10 @@ Public Class Base_Game_Filter
         ANIME.Start()
         ANIME.Interval = 16 
 
-        
-        
-        
         HideFromAltTab()
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick
-        
-        
-        
 
         If Opacity >= 0.78 AndAlso Not hasAnimated Then
             hasAnimated = True

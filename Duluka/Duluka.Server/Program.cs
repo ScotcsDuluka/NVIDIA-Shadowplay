@@ -64,6 +64,12 @@ builder.Services.AddRateLimiter(options =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 240, Window = TimeSpan.FromMinutes(1) }));
 });
 
+// /admin live log tail: mirror every Info+ record into a bounded ring buffer
+// (console output untouched — this is purely an operator-console feed).
+var adminLogs = new AdminLogBuffer();
+builder.Services.AddSingleton(adminLogs);
+builder.Logging.AddProvider(new AdminLogBufferProvider(adminLogs));
+
 var app = builder.Build();
 app.UseRateLimiter();
 
@@ -708,7 +714,7 @@ app.MapPost("/v1/account/devices/{deviceId}/revoke", (string deviceId, HttpReque
 });
 
 // ─── local operator console (/admin) ────────────────────────────────────
-AdminConsole.Map(app, db);
+AdminConsole.Map(app, db, adminLogs);
 
 app.Run();
 

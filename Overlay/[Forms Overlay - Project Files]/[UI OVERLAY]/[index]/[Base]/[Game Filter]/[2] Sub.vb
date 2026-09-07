@@ -3,7 +3,6 @@ Imports System.Runtime.InteropServices
 
 Public Class Base_Game_Filter_Sub
 
-
     Inherits System.Windows.Forms.Form
     <DllImport("user32.dll", SetLastError:=True)>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As Integer) As Integer
@@ -86,21 +85,15 @@ Public Class Base_Game_Filter_Sub
         Me.Size = New Size(268, screenArea.Height)
         Me.Location = New Point(0, 0)
 
-        
         BG.Location = New Point(-500, 0)
 
         ANIME.Start()
 
-        
-        
-        
         HideFromAltTab()
     End Sub
 
     Private Sub ANIME_Tick(sender As Object, e As EventArgs) Handles ANIME.Tick
-        
-        
-        
+
         If Me.Opacity >= 0.78 AndAlso Not hasAnimated Then
             hasAnimated = True
             StartSlideX(BG, -500, 0, 250)
@@ -121,8 +114,6 @@ Public Class Base_Game_Filter_Sub
         Base_Game_Filter.TopMost = True
     End Sub
 
-    
-    
     Private Sub BG_MouseEnter(sender As Object, e As EventArgs) Handles BG.MouseEnter
         Base_Game_Filter.TopMost = True
     End Sub

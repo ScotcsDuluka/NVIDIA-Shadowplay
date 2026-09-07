@@ -1,13 +1,5 @@
 
 
-
-
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Text.Json.Nodes
@@ -46,8 +38,6 @@ Public Class Base_Connect_Profile
         SetWindowLong(Me.Handle, GWL_EXSTYLE, (style Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW)
     End Sub
 
-    
-    
     Private _pendingImage As String
     Private _saveInFlight As Boolean
 
@@ -55,7 +45,6 @@ Public Class Base_Connect_Profile
         HideFromAltTab()
     End Sub
 
-    
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         If Not DulukaAccountStore.Instance.HasSession Then
@@ -66,8 +55,6 @@ Public Class Base_Connect_Profile
         LoadCurrent()
     End Sub
 
-    
-    
     Private Sub LoadCurrent()
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
         Name_BOX.Text = store.DisplayName
@@ -81,17 +68,10 @@ Public Class Base_Connect_Profile
         Status_TEXT.Text = ""
     End Sub
 
-    
-
-    
-    
-    
     Private Sub BT_ChangeImage_Click(sender As Object, e As EventArgs) Handles BT_ChangeImage.Click
         Using picker As New OpenFileDialog
             picker.Title = "Choose a profile image"
-            
-            
-            
+
             picker.Filter = "PNG or JPEG images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"
             picker.CheckFileExists = True
             If picker.ShowDialog(Me) <> DialogResult.OK Then Return
@@ -108,19 +88,12 @@ Public Class Base_Connect_Profile
         End Using
     End Sub
 
-    
-    
     Private Sub BT_RemoveImage_Click(sender As Object, e As EventArgs) Handles BT_RemoveImage.Click
         _pendingImage = ""
         SetPreview(Avatar_PICTURE, "", AvatarLetter_LABEL)
         Status_TEXT.Text = ""
     End Sub
 
-    
-
-    
-    
-    
     Private Async Sub BT_Save_Click(sender As Object, e As EventArgs) Handles BT_Save.Click
         If _saveInFlight Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
@@ -167,8 +140,6 @@ Public Class Base_Connect_Profile
         End Try
     End Sub
 
-    
-    
     Private Sub TerminalSignOut(message As String)
         DulukaAccountStore.Instance.ClearSession()
         Me.Hide()

@@ -20,31 +20,24 @@ Public Class SystemMonitor
         Public ullAvailExtendedVirtual As ULong
     End Structure
 
-    
     Private timer As Timer
     Private cpuCounter As PerformanceCounter
 
-    
     Public RamThreshold80 As Integer = 80
     Public RamThreshold95 As Integer = 95
     Public CpuThreshold As Integer = 95
     Public DiskThresholdGB As Integer = 10
 
-    
     Private ram80Warned As Boolean = False
     Private ram95Warned As Boolean = False
     Private ramCriticalLastWarn As DateTime = DateTime.MinValue
     Private cpuWarned As Boolean = False
     Private diskLastWarn As DateTime = DateTime.MinValue
 
-    
-    
     Private diskPathFailLogged As Boolean = False
 
-    
     Public MonitorDiskPath As String = ""
 
-    
     Public Sub StartMonitoring()
         cpuCounter = New PerformanceCounter("Processor", "% Processor Time", "_Total")
 
@@ -54,7 +47,6 @@ Public Class SystemMonitor
         timer.Start()
     End Sub
 
-    
     Public Sub StopMonitoring()
         If timer IsNot Nothing Then
             timer.Stop()
@@ -65,14 +57,12 @@ Public Class SystemMonitor
         End If
     End Sub
 
-    
     Private Sub CheckSystem(sender As Object, e As EventArgs)
         CheckRam()
         CheckCpu()
         CheckDiskSpace()
     End Sub
 
-    
     Private Sub CheckRam()
         Dim ramInfo As New MEMORYSTATUSEX()
         ramInfo.dwLength = CUInt(Marshal.SizeOf(GetType(MEMORYSTATUSEX)))
@@ -80,11 +70,6 @@ Public Class SystemMonitor
         If GlobalMemoryStatusEx(ramInfo) Then
             Dim ramPercent As Integer = CInt(ramInfo.dwMemoryLoad)
 
-            
-            
-            
-            
-            
             If ramPercent >= 100 Then
                 
                 If Not ram95Warned OrElse (DateTime.Now - ramCriticalLastWarn).TotalSeconds >= 10 Then
@@ -95,10 +80,7 @@ Public Class SystemMonitor
                 ram80Warned = True
 
             ElseIf ramPercent >= RamThreshold95 Then
-                
-                
-                
-                
+
                 Dim now As DateTime = DateTime.Now
                 If (now - ramCriticalLastWarn).TotalSeconds >= 10 Then
                     Base.ShowNotifier("ramwram95")
@@ -124,7 +106,6 @@ Public Class SystemMonitor
         End If
     End Sub
 
-    
     Private Sub CheckCpu()
         Dim cpuPercent As Integer = CInt(cpuCounter.NextValue())
 
@@ -138,7 +119,6 @@ Public Class SystemMonitor
         End If
     End Sub
 
-    
     Private Sub CheckDiskSpace()
         If Base.RecordValue = False Then
             Exit Sub
@@ -147,10 +127,6 @@ Public Class SystemMonitor
             Dim path As String = MonitorDiskPath
             If String.IsNullOrEmpty(path) Then path = "C:\"
 
-            
-            
-            
-            
             Dim root As String = IO.Path.GetPathRoot(IO.Path.GetFullPath(path))
             If root Is Nothing OrElse root.Length < 2 OrElse root(1) <> ":"c Then
                 Throw New ArgumentException("MonitorDiskPath has no drive root: " & path)
@@ -184,7 +160,6 @@ Public Class SystemMonitor
         End Try
     End Sub
 
-    
     Public Function GetRamInfo() As (Percent As Integer, TotalGB As Double, AvailableGB As Double)
         Dim ramInfo As New MEMORYSTATUSEX()
         ramInfo.dwLength = CUInt(Marshal.SizeOf(GetType(MEMORYSTATUSEX)))
@@ -200,7 +175,6 @@ Public Class SystemMonitor
         Return (0, 0, 0)
     End Function
 
-    
     Public Function GetCpuPercent() As Integer
         If cpuCounter IsNot Nothing Then
             Return CInt(cpuCounter.NextValue())
@@ -208,13 +182,11 @@ Public Class SystemMonitor
         Return 0
     End Function
 
-    
     Public Function GetDiskInfo() As (FreeGB As Double, TotalGB As Double)
         Try
             Dim path As String = MonitorDiskPath
             If String.IsNullOrEmpty(path) Then path = "C:\"
 
-            
             Dim root As String = IO.Path.GetPathRoot(IO.Path.GetFullPath(path))
             If root Is Nothing OrElse root.Length < 2 OrElse root(1) <> ":"c Then
                 Return (0, 0)

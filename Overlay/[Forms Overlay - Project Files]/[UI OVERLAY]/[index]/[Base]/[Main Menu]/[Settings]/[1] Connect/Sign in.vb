@@ -1,11 +1,5 @@
 
 
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Text.Json.Nodes
@@ -50,8 +44,6 @@ Public Class Base_Connect_Signin
         HideFromAltTab()
     End Sub
 
-    
-    
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         If DulukaAccountStore.Instance.HasSession Then
@@ -61,8 +53,6 @@ Public Class Base_Connect_Signin
         End If
         Username_BOX.Focus()
     End Sub
-
-    
 
     Private Sub BT_SignIn_Click(sender As Object, e As EventArgs) Handles BT_SignIn.Click
         NativeSignIn()
@@ -79,8 +69,6 @@ Public Class Base_Connect_Signin
         If _signInBusy Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        
-        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         If username = "" OrElse password = "" Then
@@ -108,9 +96,7 @@ Public Class Base_Connect_Signin
                                  ResourceText(r.Resource, "deviceId"),
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
-                
-                
-                
+
                 store.SetProfile(store.DisplayName,
                                  ResourceText(r.Resource, "username"))
                 Password_BOX.Clear()
@@ -120,8 +106,7 @@ Public Class Base_Connect_Signin
             ElseIf r.HttpStatus = 401 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Incorrect username or password."
             ElseIf r.HttpStatus = 403 AndAlso r.ErrorCode = "perm.device_removed" Then
-                
-                
+
                 store.RevokeDeviceKey()
                 Status_TEXT.Text = "This device was revoked by your account. Try signing in again."
             Else
@@ -140,8 +125,6 @@ Public Class Base_Connect_Signin
         End Try
     End Sub
 
-    
-
     Private Sub BT_Connect_Click(sender As Object, e As EventArgs) Handles BT_Connect.Click
         Me.Hide()
         Base_Connect_Login.Show()
@@ -159,8 +142,6 @@ Public Class Base_Connect_Signin
         Base.Settings_List.Visible = True
     End Sub
 
-    
-    
     Friend Sub Note(message As String)
         Status_TEXT.Text = message
     End Sub

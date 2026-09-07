@@ -2,7 +2,6 @@
 Partial Class sha3
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,18 +13,12 @@ Partial Class sha3
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         SuspendLayout()
-        
-        
-        
+
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Black

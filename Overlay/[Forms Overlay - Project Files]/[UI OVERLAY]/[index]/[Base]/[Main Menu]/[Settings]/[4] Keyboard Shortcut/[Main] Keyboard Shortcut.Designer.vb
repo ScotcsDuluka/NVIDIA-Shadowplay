@@ -2,7 +2,6 @@
 Partial Class Base_KeySet
     Inherits System.Windows.Forms.Form
 
-    
     <System.Diagnostics.DebuggerNonUserCode()> _
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +13,8 @@ Partial Class Base_KeySet
         End Try
     End Sub
 
-    
     Private components As System.ComponentModel.IContainer
 
-    
-    
-    
     <System.Diagnostics.DebuggerStepThrough()> _
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_KeySet))
@@ -83,9 +78,7 @@ Partial Class Base_KeySet
         row_BroadcastToggle.SuspendLayout()
         CType(settings_top, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        
-        
-        
+
         keyset.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         keyset.AutoScroll = True
         keyset.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
@@ -115,9 +108,7 @@ Partial Class Base_KeySet
         keyset.Name = "keyset"
         keyset.Size = New Size(1467, 711)
         keyset.TabIndex = 3
-        
-        
-        
+
         text_settings.AutoSize = True
         text_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         text_settings.Font = New Font("GeForce", 24F, FontStyle.Bold)
@@ -127,9 +118,7 @@ Partial Class Base_KeySet
         text_settings.Size = New Size(272, 42)
         text_settings.TabIndex = 0
         text_settings.Text = "Keyboard Shortcut"
-        
-        
-        
+
         lbl_Hint.AutoSize = True
         lbl_Hint.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lbl_Hint.Font = New Font("Segoe UI", 9F)
@@ -139,9 +128,7 @@ Partial Class Base_KeySet
         lbl_Hint.Size = New Size(197, 15)
         lbl_Hint.TabIndex = 1
         lbl_Hint.Text = "Click a key to rebind  |  Esc to cancel"
-        
-        
-        
+
         header_strip.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         header_strip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         header_strip.Location = New Point(0, 0)
@@ -149,17 +136,13 @@ Partial Class Base_KeySet
         header_strip.Size = New Size(1496, 100)
         header_strip.TabIndex = 2
         header_strip.TabStop = False
-        
-        
-        
+
         bar_General.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         bar_General.Location = New Point(28, 142)
         bar_General.Name = "bar_General"
         bar_General.Size = New Size(4, 22)
         bar_General.TabIndex = 3
-        
-        
-        
+
         lblCat_General.AutoSize = True
         lblCat_General.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         lblCat_General.Font = New Font("Segoe UI", 12.5F, FontStyle.Bold)
@@ -169,9 +152,7 @@ Partial Class Base_KeySet
         lblCat_General.Size = New Size(71, 23)
         lblCat_General.TabIndex = 4
         lblCat_General.Text = "General"
-        
-        
-        
+
         row_ToggleOverlay.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_ToggleOverlay.Controls.Add(Desc_ToggleOverlay)
         row_ToggleOverlay.Controls.Add(lbl_ToggleOverlay)
@@ -180,9 +161,7 @@ Partial Class Base_KeySet
         row_ToggleOverlay.Name = "row_ToggleOverlay"
         row_ToggleOverlay.Size = New Size(690, 56)
         row_ToggleOverlay.TabIndex = 5
-        
-        
-        
+
         Desc_ToggleOverlay.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_ToggleOverlay.Font = New Font("Segoe UI", 10F)
         Desc_ToggleOverlay.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -192,9 +171,7 @@ Partial Class Base_KeySet
         Desc_ToggleOverlay.TabIndex = 0
         Desc_ToggleOverlay.Text = "Open/close share overlay"
         Desc_ToggleOverlay.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_ToggleOverlay.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_ToggleOverlay.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_ToggleOverlay.Cursor = Cursors.Hand
@@ -206,9 +183,7 @@ Partial Class Base_KeySet
         lbl_ToggleOverlay.TabIndex = 1
         lbl_ToggleOverlay.Text = "Alt+Z"
         lbl_ToggleOverlay.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         row_TestNotifier.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_TestNotifier.Controls.Add(Desc_Test)
         row_TestNotifier.Controls.Add(lbl_TestNotifier)
@@ -217,9 +192,7 @@ Partial Class Base_KeySet
         row_TestNotifier.Name = "row_TestNotifier"
         row_TestNotifier.Size = New Size(690, 56)
         row_TestNotifier.TabIndex = 6
-        
-        
-        
+
         Desc_Test.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_Test.Font = New Font("Segoe UI", 10F)
         Desc_Test.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -229,9 +202,7 @@ Partial Class Base_KeySet
         Desc_Test.TabIndex = 0
         Desc_Test.Text = "Test notifier"
         Desc_Test.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_TestNotifier.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_TestNotifier.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_TestNotifier.Cursor = Cursors.Hand
@@ -243,9 +214,7 @@ Partial Class Base_KeySet
         lbl_TestNotifier.TabIndex = 1
         lbl_TestNotifier.Text = "Alt+T"
         lbl_TestNotifier.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         row_WebToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_WebToggle.Controls.Add(Desc_Empty)
         row_WebToggle.Controls.Add(lbl_WebToggle)
@@ -254,9 +223,7 @@ Partial Class Base_KeySet
         row_WebToggle.Name = "row_WebToggle"
         row_WebToggle.Size = New Size(690, 56)
         row_WebToggle.TabIndex = 7
-        
-        
-        
+
         Desc_Empty.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_Empty.Font = New Font("Segoe UI", 10F)
         Desc_Empty.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -265,9 +232,7 @@ Partial Class Base_KeySet
         Desc_Empty.Size = New Size(480, 40)
         Desc_Empty.TabIndex = 0
         Desc_Empty.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_WebToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_WebToggle.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_WebToggle.Cursor = Cursors.Hand
@@ -279,17 +244,13 @@ Partial Class Base_KeySet
         lbl_WebToggle.TabIndex = 1
         lbl_WebToggle.Text = "Alt+W"
         lbl_WebToggle.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         bar_Record.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         bar_Record.Location = New Point(748, 142)
         bar_Record.Name = "bar_Record"
         bar_Record.Size = New Size(4, 22)
         bar_Record.TabIndex = 8
-        
-        
-        
+
         lblCat_Record.AutoSize = True
         lblCat_Record.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         lblCat_Record.Font = New Font("Segoe UI", 12.5F, FontStyle.Bold)
@@ -299,9 +260,7 @@ Partial Class Base_KeySet
         lblCat_Record.Size = New Size(66, 23)
         lblCat_Record.TabIndex = 9
         lblCat_Record.Text = "Record"
-        
-        
-        
+
         row_ManualRecordToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_ManualRecordToggle.Controls.Add(Desc_ManualRecordToggle)
         row_ManualRecordToggle.Controls.Add(lbl_ManualRecordToggle)
@@ -310,9 +269,7 @@ Partial Class Base_KeySet
         row_ManualRecordToggle.Name = "row_ManualRecordToggle"
         row_ManualRecordToggle.Size = New Size(690, 56)
         row_ManualRecordToggle.TabIndex = 10
-        
-        
-        
+
         Desc_ManualRecordToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_ManualRecordToggle.Font = New Font("Segoe UI", 10F)
         Desc_ManualRecordToggle.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -322,9 +279,7 @@ Partial Class Base_KeySet
         Desc_ManualRecordToggle.TabIndex = 0
         Desc_ManualRecordToggle.Text = "Toggle recording"
         Desc_ManualRecordToggle.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_ManualRecordToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_ManualRecordToggle.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_ManualRecordToggle.Cursor = Cursors.Hand
@@ -336,9 +291,7 @@ Partial Class Base_KeySet
         lbl_ManualRecordToggle.TabIndex = 1
         lbl_ManualRecordToggle.Text = "Alt+F9"
         lbl_ManualRecordToggle.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         row_InstantReplayToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_InstantReplayToggle.Controls.Add(Desc_InstantReplayToggle)
         row_InstantReplayToggle.Controls.Add(lbl_InstantReplayToggle)
@@ -347,9 +300,7 @@ Partial Class Base_KeySet
         row_InstantReplayToggle.Name = "row_InstantReplayToggle"
         row_InstantReplayToggle.Size = New Size(690, 56)
         row_InstantReplayToggle.TabIndex = 11
-        
-        
-        
+
         Desc_InstantReplayToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_InstantReplayToggle.Font = New Font("Segoe UI", 10F)
         Desc_InstantReplayToggle.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -359,9 +310,7 @@ Partial Class Base_KeySet
         Desc_InstantReplayToggle.TabIndex = 0
         Desc_InstantReplayToggle.Text = "Toggle Instant Replay"
         Desc_InstantReplayToggle.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_InstantReplayToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_InstantReplayToggle.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_InstantReplayToggle.Cursor = Cursors.Hand
@@ -373,9 +322,7 @@ Partial Class Base_KeySet
         lbl_InstantReplayToggle.TabIndex = 1
         lbl_InstantReplayToggle.Text = "Alt+Shift+F10"
         lbl_InstantReplayToggle.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         row_InstantReplaySave.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_InstantReplaySave.Controls.Add(Desc_InstantReplaySave)
         row_InstantReplaySave.Controls.Add(lbl_InstantReplaySave)
@@ -384,9 +331,7 @@ Partial Class Base_KeySet
         row_InstantReplaySave.Name = "row_InstantReplaySave"
         row_InstantReplaySave.Size = New Size(690, 56)
         row_InstantReplaySave.TabIndex = 12
-        
-        
-        
+
         Desc_InstantReplaySave.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_InstantReplaySave.Font = New Font("Segoe UI", 10F)
         Desc_InstantReplaySave.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -396,9 +341,7 @@ Partial Class Base_KeySet
         Desc_InstantReplaySave.TabIndex = 0
         Desc_InstantReplaySave.Text = "Save last N minutes"
         Desc_InstantReplaySave.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_InstantReplaySave.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_InstantReplaySave.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_InstantReplaySave.Cursor = Cursors.Hand
@@ -410,17 +353,13 @@ Partial Class Base_KeySet
         lbl_InstantReplaySave.TabIndex = 1
         lbl_InstantReplaySave.Text = "Alt+F10"
         lbl_InstantReplaySave.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         bar_Capture.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         bar_Capture.Location = New Point(28, 410)
         bar_Capture.Name = "bar_Capture"
         bar_Capture.Size = New Size(4, 22)
         bar_Capture.TabIndex = 13
-        
-        
-        
+
         lblCat_Capture.AutoSize = True
         lblCat_Capture.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         lblCat_Capture.Font = New Font("Segoe UI", 12.5F, FontStyle.Bold)
@@ -430,9 +369,7 @@ Partial Class Base_KeySet
         lblCat_Capture.Size = New Size(74, 23)
         lblCat_Capture.TabIndex = 14
         lblCat_Capture.Text = "Capture"
-        
-        
-        
+
         row_Screenshot.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_Screenshot.Controls.Add(Desc_Screenshot)
         row_Screenshot.Controls.Add(lbl_Screenshot)
@@ -441,9 +378,7 @@ Partial Class Base_KeySet
         row_Screenshot.Name = "row_Screenshot"
         row_Screenshot.Size = New Size(690, 56)
         row_Screenshot.TabIndex = 15
-        
-        
-        
+
         Desc_Screenshot.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_Screenshot.Font = New Font("Segoe UI", 10F)
         Desc_Screenshot.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -453,9 +388,7 @@ Partial Class Base_KeySet
         Desc_Screenshot.TabIndex = 0
         Desc_Screenshot.Text = "Save screenshot"
         Desc_Screenshot.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_Screenshot.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_Screenshot.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_Screenshot.Cursor = Cursors.Hand
@@ -467,9 +400,7 @@ Partial Class Base_KeySet
         lbl_Screenshot.TabIndex = 1
         lbl_Screenshot.Text = "Alt+F1"
         lbl_Screenshot.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         row_PhotosToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_PhotosToggle.Controls.Add(Desc_PhotosToggle)
         row_PhotosToggle.Controls.Add(lbl_PhotosToggle)
@@ -478,9 +409,7 @@ Partial Class Base_KeySet
         row_PhotosToggle.Name = "row_PhotosToggle"
         row_PhotosToggle.Size = New Size(690, 56)
         row_PhotosToggle.TabIndex = 16
-        
-        
-        
+
         Desc_PhotosToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_PhotosToggle.Font = New Font("Segoe UI", 10F)
         Desc_PhotosToggle.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -490,9 +419,7 @@ Partial Class Base_KeySet
         Desc_PhotosToggle.TabIndex = 0
         Desc_PhotosToggle.Text = "Open/close photo mode"
         Desc_PhotosToggle.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_PhotosToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_PhotosToggle.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_PhotosToggle.Cursor = Cursors.Hand
@@ -504,9 +431,7 @@ Partial Class Base_KeySet
         lbl_PhotosToggle.TabIndex = 1
         lbl_PhotosToggle.Text = "Alt+F2"
         lbl_PhotosToggle.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         row_GameFilterToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_GameFilterToggle.Controls.Add(Desc_GameFilterToggle)
         row_GameFilterToggle.Controls.Add(lbl_GameFilterToggle)
@@ -515,9 +440,7 @@ Partial Class Base_KeySet
         row_GameFilterToggle.Name = "row_GameFilterToggle"
         row_GameFilterToggle.Size = New Size(690, 56)
         row_GameFilterToggle.TabIndex = 17
-        
-        
-        
+
         Desc_GameFilterToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_GameFilterToggle.Font = New Font("Segoe UI", 10F)
         Desc_GameFilterToggle.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -527,9 +450,7 @@ Partial Class Base_KeySet
         Desc_GameFilterToggle.TabIndex = 0
         Desc_GameFilterToggle.Text = "Toggle mods"
         Desc_GameFilterToggle.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_GameFilterToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_GameFilterToggle.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_GameFilterToggle.Cursor = Cursors.Hand
@@ -541,17 +462,13 @@ Partial Class Base_KeySet
         lbl_GameFilterToggle.TabIndex = 1
         lbl_GameFilterToggle.Text = "Alt+F3"
         lbl_GameFilterToggle.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         bar_Broadcast.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         bar_Broadcast.Location = New Point(748, 410)
         bar_Broadcast.Name = "bar_Broadcast"
         bar_Broadcast.Size = New Size(4, 22)
         bar_Broadcast.TabIndex = 18
-        
-        
-        
+
         lblCat_Broadcast.AutoSize = True
         lblCat_Broadcast.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         lblCat_Broadcast.Font = New Font("Segoe UI", 12.5F, FontStyle.Bold)
@@ -561,9 +478,7 @@ Partial Class Base_KeySet
         lblCat_Broadcast.Size = New Size(89, 23)
         lblCat_Broadcast.TabIndex = 19
         lblCat_Broadcast.Text = "Broadcast"
-        
-        
-        
+
         row_BroadcastToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         row_BroadcastToggle.Controls.Add(Desc_BroadcastToggle)
         row_BroadcastToggle.Controls.Add(lbl_BroadcastToggle)
@@ -572,9 +487,7 @@ Partial Class Base_KeySet
         row_BroadcastToggle.Name = "row_BroadcastToggle"
         row_BroadcastToggle.Size = New Size(690, 56)
         row_BroadcastToggle.TabIndex = 20
-        
-        
-        
+
         Desc_BroadcastToggle.BackColor = Color.FromArgb(CByte(37), CByte(40), CByte(44))
         Desc_BroadcastToggle.Font = New Font("Segoe UI", 10F)
         Desc_BroadcastToggle.ForeColor = Color.FromArgb(CByte(208), CByte(214), CByte(220))
@@ -584,9 +497,7 @@ Partial Class Base_KeySet
         Desc_BroadcastToggle.TabIndex = 0
         Desc_BroadcastToggle.Text = "Open/close broadcasting"
         Desc_BroadcastToggle.TextAlign = ContentAlignment.MiddleLeft
-        
-        
-        
+
         lbl_BroadcastToggle.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         lbl_BroadcastToggle.BackColor = Color.FromArgb(CByte(55), CByte(60), CByte(65))
         lbl_BroadcastToggle.Cursor = Cursors.Hand
@@ -598,9 +509,7 @@ Partial Class Base_KeySet
         lbl_BroadcastToggle.TabIndex = 1
         lbl_BroadcastToggle.Text = "Alt+F8"
         lbl_BroadcastToggle.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         lbl_Note.AutoSize = True
         lbl_Note.BackColor = Color.FromArgb(CByte(33), CByte(35), CByte(38))
         lbl_Note.Font = New Font("Segoe UI", 9F)
@@ -610,9 +519,7 @@ Partial Class Base_KeySet
         lbl_Note.Size = New Size(246, 15)
         lbl_Note.TabIndex = 21
         lbl_Note.Text = "Each action needs a unique key combination."
-        
-        
-        
+
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(80, 160)
@@ -620,9 +527,7 @@ Partial Class Base_KeySet
         settings_top.Size = New Size(1467, 5)
         settings_top.TabIndex = 2
         settings_top.TabStop = False
-        
-        
-        
+
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -633,9 +538,7 @@ Partial Class Base_KeySet
         action_fn.TabIndex = 0
         action_fn.Text = "Done"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         Reset.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Reset.Cursor = Cursors.Hand
         Reset.Font = New Font("Segoe UI", 11F)
@@ -646,9 +549,7 @@ Partial Class Base_KeySet
         Reset.TabIndex = 1
         Reset.Text = "Reset"
         Reset.TextAlign = ContentAlignment.MiddleCenter
-        
-        
-        
+
         AutoScaleMode = AutoScaleMode.None
         BackColor = Color.Red
         ClientSize = New Size(1627, 951)

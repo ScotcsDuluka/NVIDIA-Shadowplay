@@ -1,10 +1,6 @@
 Imports System.Drawing
 Imports System.IO
 
-
-
-
-
 Partial Public Class Base
 
 #Region "Screenshot (Mode 1)"
@@ -69,7 +65,6 @@ Partial Public Class Base
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
 
-        
         RunAfterDelay(20,
             Sub()
                 Base_Settings.Opacity = 1
@@ -98,7 +93,6 @@ Partial Public Class Base
 
 #End Region
 
-
 #Region "Replay menu"
 
     Private Sub ReplayMenu_MouseMove(sender As Object, e As MouseEventArgs) Handles Replay_Logo.MouseMove, Replay_Text.MouseMove, Replay_Stats.MouseMove
@@ -119,7 +113,6 @@ Partial Public Class Base
         a_1b.Visible = isVisible
     End Sub
 
-    
     Private Sub ToggleReplayMenu()
         ShadowLoad()
         Menu_Replay.Visible = Not Menu_Replay.Visible
@@ -129,12 +122,6 @@ Partial Public Class Base
         a_3.Visible = False
         SetReplayControlBorder(True)
     End Sub
-
-    
-    
-    
-    
-    
 
     Private Sub ReplayMenu_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
         ToggleReplayMenu()
@@ -162,7 +149,6 @@ Partial Public Class Base
         a_2b.Visible = isVisible
     End Sub
 
-    
     Private Sub ToggleRecordMenu()
         ShadowLoad()
         Menu_Record.Visible = Not Menu_Record.Visible
@@ -176,8 +162,6 @@ Partial Public Class Base
     Private Sub RecordMenu_Click(sender As Object, e As EventArgs) Handles Record_Logo.Click, Record_Text.Click, Record_Stats.Click
         ToggleRecordMenu()
     End Sub
-
-    
 
 #End Region
 
@@ -219,8 +203,7 @@ Partial Public Class Base
     Private Sub Mic_MouseLeave(sender As Object, e As EventArgs) Handles MIC_ICO.MouseLeave
         MIC_ICO.ForeColor = System.Drawing.Color.White
     End Sub
-    
-    
+
     Public Sub LoadMicState()
         If AppSettings.Instance.Audio.MicEnabled = True Then
             MIC_ICO.Text = ""
@@ -228,20 +211,12 @@ Partial Public Class Base
             MIC_ICO.Text = ""
         End If
     End Sub
-    
-    
-    
-    
-    
+
     Private Sub Mic_Click(sender As Object, e As EventArgs) Handles MIC_ICO.Click
         AppSettings.Instance.Audio.MicEnabled = Not AppSettings.Instance.Audio.MicEnabled
         AppSettings.Instance.Save()
         LoadMicState()
 
-        
-        
-        
-        
         Try
             If tcp IsNot Nothing Then tcp.Send("engine_config_changed", "audio")
         Catch ex As Exception
@@ -250,7 +225,6 @@ Partial Public Class Base
 
         Debug.WriteLine("Mic Enabled: " & AppSettings.Instance.Audio.MicEnabled)
     End Sub
-
 
     Private Sub VideoInfo_MouseMove(sender As Object, e As MouseEventArgs) Handles vdo.MouseMove
         vdo.ForeColor = System.Drawing.Color.Gray
@@ -302,8 +276,6 @@ Partial Public Class Base
         Base_Gallery.Opacity = 0
         Base_Gallery.Show()
 
-
-        
         RunAfterDelay(20,
             Sub()
                 AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
@@ -477,14 +449,19 @@ Partial Public Class Base
 
 #Region "Menu panel — settings pages & system entries"
 
-    
     Private ReadOnly grayColor As Color = Color.Gray
 
-    
     Private ReadOnly allForms As Form() = {
         Base_Settings,
         Base_Connect,
         Base_Connect_Signin,
+        Base_Connect_Login,
+        Base_Connect_Create,
+        Base_Connect_Setup,
+        Base_Connect_Devices,
+        Base_Connect_Security,
+        Base_Connect_Providers,
+        Base_Connect_Profile,
         Base_Privacy_Control,
         Base_Overlay_Hub,
         Base_KeySet,
@@ -493,9 +470,6 @@ Partial Public Class Base
         Base_Notifications
     }
 
-    
-    
-    
     Private Sub RunAfterDelay(intervalMs As Integer, action As Action)
         Dim t As New Timer With {.Interval = intervalMs}
         AddHandler t.Tick,
@@ -507,7 +481,6 @@ Partial Public Class Base
         t.Start()
     End Sub
 
-    
     Public Sub OpenPanel(showForm As Form, settingsCtrl As Control)
         IF_OpenShare = False
         For Each f In allForms
@@ -518,11 +491,9 @@ Partial Public Class Base
         showForm.Show()
         settingsCtrl.Location = New Point(80, 160)
 
-        
         RunAfterDelay(1, Sub() showForm.Opacity = 1)
     End Sub
 
-    
     Private Sub Settings_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove, Settings_Box.MouseMove, Settings_Text.MouseMove
         Base_Background_Top.Bg_SET3.Visible = True
         s1.Visible = True : s1r.Visible = True : s1l.Visible = True : s1b.Visible = True
@@ -533,7 +504,6 @@ Partial Public Class Base
         s1.Visible = False : s1r.Visible = False : s1l.Visible = False : s1b.Visible = False
     End Sub
 
-    
     Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_TEXT.MouseMove, Connect_ICO.MouseMove
         Connect_BOX_SUB.BackColor = greenColor
     End Sub
@@ -546,7 +516,6 @@ Partial Public Class Base
         OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
     End Sub
 
-    
     Private Sub PrivacyControl_MouseMove(sender As Object, e As MouseEventArgs) Handles PrivacyControl_TEXT.MouseMove, PrivacyControl_ICO.MouseMove
         PrivacyControl_BOX_SUB.BackColor = greenColor
     End Sub
@@ -559,7 +528,6 @@ Partial Public Class Base
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
-    
     Private Sub Hub_MouseMove(sender As Object, e As MouseEventArgs) Handles HUDLayout_TEXT.MouseMove, HUDLayout_ICO.MouseMove
         HUDLayout_BOX_SUB.BackColor = greenColor
     End Sub
@@ -572,7 +540,6 @@ Partial Public Class Base
         OpenPanel(Base_Overlay_Hub, Base_Overlay_Hub.settings_1)
     End Sub
 
-    
     Private Sub KeyboardShortcuts_MouseMove(sender As Object, e As MouseEventArgs) Handles KeyboardShortcuts_TEXT.MouseMove, KeyboardShortcuts_ICO.MouseMove
         KeyboardShortcuts_BOX_SUB.BackColor = greenColor
     End Sub
@@ -585,7 +552,6 @@ Partial Public Class Base
         OpenPanel(Base_KeySet, Base_KeySet.keyset)
     End Sub
 
-    
     Private Sub Highlights_MouseMove(sender As Object, e As MouseEventArgs) Handles Highlights_TEXT.MouseMove, Highlights_ICO.MouseMove
         Highlights_BOX_SUB.BackColor = greenColor
     End Sub
@@ -598,7 +564,6 @@ Partial Public Class Base
         ShowNotifier("feature_not_ready")
     End Sub
 
-    
     Private Sub VideoCapture_MouseMove(sender As Object, e As MouseEventArgs) Handles VideoCapture_TEXT_SUB.MouseMove, VideoCapture_TEXT.MouseMove, VideoCapture_ICO.MouseMove
         VideoCapture_BOX_SUB.BackColor = greenColor
     End Sub
@@ -606,8 +571,6 @@ Partial Public Class Base
     Private Sub VideoCapture_MouseLeave(sender As Object, e As EventArgs) Handles VideoCapture_TEXT_SUB.MouseLeave, VideoCapture_TEXT.MouseLeave, VideoCapture_ICO.MouseLeave
         VideoCapture_BOX_SUB.BackColor = grayColor
     End Sub
-
-
 
     Public Sub OpenRecordings()
         IF_OpenShare = False
@@ -618,8 +581,6 @@ Partial Public Class Base
         sha3.Hide()
         sha4.Hide()
 
-        
-        
         RunAfterDelay(10, Sub() OpenSettings())
         RunAfterDelay(20, Sub() OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret))
     End Sub
@@ -629,7 +590,6 @@ Partial Public Class Base
 
     End Sub
 
-    
     Private Sub EngineUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_TEXT.MouseMove, Engine_ICO.MouseMove
         Engine_BOX_SUB.BackColor = greenColor
     End Sub
@@ -658,7 +618,6 @@ Partial Public Class Base
         End Try
     End Sub
 
-    
     Private Sub AudioUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Audio_TEXT.MouseMove, Audio_ICO.MouseMove
         Audio_BOX_SUB.BackColor = greenColor
     End Sub
@@ -668,14 +627,10 @@ Partial Public Class Base
     End Sub
 
     Private Sub AudioUI_Click(sender As Object, e As EventArgs) Handles Audio_TEXT.Click, Audio_ICO.Click
-        
-        
-        
-        
+
         OpenPanel(Base_AudioSet, Base_AudioSet.setret)
     End Sub
 
-    
     Private Sub Notifications_MouseMove(sender As Object, e As MouseEventArgs) Handles Notifications_TEXT.MouseMove, notifications_ICO.MouseMove
         Notifications_BOX_SUB.BackColor = greenColor
     End Sub
@@ -688,7 +643,6 @@ Partial Public Class Base
         OpenPanel(Base_Notifications, Base_Notifications.Menu_Settings)
     End Sub
 
-    
     Private Sub About_MouseMove(sender As Object, e As MouseEventArgs) Handles About_TEXT.MouseMove, About_ICO.MouseMove
         About_BOX_SUB.BackColor = greenColor
     End Sub

@@ -2,50 +2,15 @@ Option Strict On
 Option Explicit On
 Option Infer On
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Threading
-
-
-
-
-
 
 Public NotInheritable Class EngineProcessSupervisor
 
     Private Const ProcessName As String = "NVIDIA Capture"     
     Private Const ExeFileName As String = "NVIDIA Capture.exe"
 
-    
     Private Const RespawnBaseDelayMs As Integer = 3000
     Private Const RespawnMaxDelayMs As Integer = 60000
     Private Const StableRunMs As Integer = 30000                
@@ -58,14 +23,8 @@ Public NotInheritable Class EngineProcessSupervisor
     Private Shared _lastSpawnAt As DateTime = DateTime.MinValue
     Private Shared _respawnDelayMs As Integer = RespawnBaseDelayMs
 
-    
-    
-    
     Private Shared _spawnInFlight As Boolean = False
 
-    
-    
-    
     Private Shared ReadOnly _logLock As New Object()
     Private Shared ReadOnly LogFilePath As String =
         Path.Combine(Path.GetTempPath(), "NVIDIA-Shadowplay-Supervisor.log")
@@ -84,13 +43,6 @@ Public NotInheritable Class EngineProcessSupervisor
     Private Sub New()
     End Sub
 
-    
-
-    
-    
-    
-    
-    
     Public Shared Sub EnsureEngineRunning()
         SyncLock _sync
             If _started Then Return
@@ -111,17 +63,12 @@ Public NotInheritable Class EngineProcessSupervisor
         _monitorThread.Start()
     End Sub
 
-    
-    
-    
-    
     Public Shared Sub Shutdown()
         SyncLock _sync
             _shuttingDown = True
         End SyncLock
     End Sub
 
-    
     Public Shared Function FindEngineProcess() As Process
         Dim procs As Process() = Process.GetProcessesByName(ProcessName)
         If procs Is Nothing OrElse procs.Length = 0 Then Return Nothing
@@ -132,16 +79,10 @@ Public NotInheritable Class EngineProcessSupervisor
         Return first
     End Function
 
-    
-
     Private Shared Sub SpawnIfNotRunning(reason As String)
         SyncLock _sync
             If _shuttingDown Then Return
 
-            
-            
-            
-            
             If _spawnInFlight Then
                 Log($"[EngineSupervisor] spawn already in flight — skip ({reason})")
                 Return
@@ -190,24 +131,16 @@ Public NotInheritable Class EngineProcessSupervisor
         End Try
     End Sub
 
-    
-    
-    
-    
-    
     Private Shared Function ResolveEngineExePath() As String
         Try
             Dim baseDir As String = AppLayout.Dir
 
-            
             Dim layoutCandidate As String = Path.Combine(baseDir, "Application", ExeFileName)
             If File.Exists(layoutCandidate) Then Return layoutCandidate
 
-            
             Dim candidate As String = Path.Combine(baseDir, ExeFileName)
             If File.Exists(candidate) Then Return candidate
 
-            
             Dim dir As New DirectoryInfo(baseDir)
             For i As Integer = 1 To 8
                 If dir Is Nothing Then Exit For
@@ -224,8 +157,6 @@ Public NotInheritable Class EngineProcessSupervisor
         End Try
         Return Nothing
     End Function
-
-    
 
     Private Shared Sub MonitorLoop()
         
@@ -255,9 +186,6 @@ Public NotInheritable Class EngineProcessSupervisor
                     End If
                 End Using
 
-                
-                
-                
                 If aliveNow Then
                     Dim procs As Process() = Process.GetProcessesByName(ProcessName)
                     If procs IsNot Nothing AndAlso procs.Length > 1 Then
@@ -270,7 +198,6 @@ Public NotInheritable Class EngineProcessSupervisor
                     Continue While
                 End If
 
-                
                 Dim waitMs As Integer
                 SyncLock _sync
                     waitMs = _respawnDelayMs

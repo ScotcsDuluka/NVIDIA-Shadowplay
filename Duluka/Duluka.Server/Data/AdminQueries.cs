@@ -218,4 +218,145 @@ public sealed partial class Database
         tx.Commit();
         return deleted > 0;
     }
+
+    // ─── operator console v2: activity, db stats, bulk + read-only SQL ─────
+
+    public sealed record AdminDayActivity(string Day, int Accounts, int Sessions);
+
+    /// <summary>Daily new-account / new-session counts for the last `days`
+    /// days (UTC calendar days, zero-filled). CreatedAt columns are ISO-8601
+    /// round-trip strings, so substr(…,1,10) is the UTC date.</summary>
+    public IReadOnlyList<AdminDayActivity> AdminActivity(int days = 14)
+    {
+        var from = DateTimeOffset.UtcNow.Date.AddDays(-(days - 1)).ToString("yyyy-MM-dd");
+        var map = new Dictionary<string, (int Accounts, int Sessions)>();
+
+        using (var cmd = _conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT substr(CreatedAt,1,10), COUNT(*) FROM DulukaAccount " +
+                              "WHERE substr(CreatedAt,1,10) >= $from GROUP BY 1";
+            cmd.Parameters.AddWithValue("$from", from);
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) map[r.GetString(0)] = (Convert.ToInt32(r.GetInt64(1)), 0);
+        }
+        using (var cmd = _conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT substr(CreatedAt,1,10), COUNT(*) FROM AccountSession " +
+                              "WHERE substr(CreatedAt,1,10) >= $from GROUP BY 1";
+            cmd.Parameters.AddWithValue("$from", from);
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+            {
+                var day = r.GetString(0);
+                var prev = map.TryGetValue(day, out var p) ? p : (0, 0);
+                map[day] = (prev.Item1, Convert.ToInt32(r.GetInt64(1)));
+            }
+        }
+
+        var rows = new List<AdminDayActivity>(days);
+        for (var i = 0; i < days; i++)
+        {
+            var day = DateTimeOffset.UtcNow.Date.AddDays(-(days - 1 - i)).ToString("yyyy-MM-dd");
+            var (accounts, sessions) = map.TryGetValue(day, out var v) ? v : (0, 0);
+            rows.Add(new AdminDayActivity(day, accounts, sessions));
+        }
+        return rows;
+    }
+
+    public sealed record AdminDbStats(
+        long FileBytes, long PageCount, long PageSize, long FreelistPages, string JournalMode);
+
+    /// <summary>File + page-level facts about the SQLite database (no row reads).
+    /// PRAGMAs run on the shared connection exactly like any other command.</summary>
+    public AdminDbStats AdminGetDbStats()
+    {
+        long Scalar(string sql)
+        {
+            using var cmd = _conn.CreateCommand();
+            cmd.CommandText = sql;
+            return Convert.ToInt64(cmd.ExecuteScalar());
+        }
+        string journalMode;
+        using (var cmd = _conn.CreateCommand())
+        {
+            cmd.CommandText = "PRAGMA journal_mode";
+            journalMode = Convert.ToString(cmd.ExecuteScalar()) ?? "?";
+        }
+        var fileBytes = File.Exists(DbPath) ? new FileInfo(DbPath).Length : 0;
+        return new AdminDbStats(fileBytes,
+            Scalar("PRAGMA page_count"), Scalar("PRAGMA page_size"),
+            Scalar("PRAGMA freelist_count"), journalMode);
+    }
+
+    /// <summary>Bulk revoke: every still-valid session dies immediately with
+    /// reason 'admin-revoke-all'. Returns the number of sessions killed.</summary>
+    public int AdminRevokeAllSessions()
+    {
+        var now = DateTimeOffset.UtcNow.ToString("o");
+        return Exec("UPDATE AccountSession SET RevokedAt=$at, RevokedReason='admin-revoke-all' " +
+                    "WHERE RevokedAt IS NULL AND ExpiresAt > $now",
+            ("$at", now), ("$now", now));
+    }
+
+    /// <summary>SQLite VACUUM — rebuilds the database file, reclaiming free
+    /// pages. Must NOT run inside a transaction; Exec uses autocommit.</summary>
+    public void AdminVacuum() => Exec("VACUUM");
+
+    public sealed record AdminQueryResult(
+        IReadOnlyList<string> Columns, IReadOnlyList<IReadOnlyList<string?>> Rows,
+        int Returned, bool Truncated, double ElapsedMs);
+
+    private static readonly System.Text.RegularExpressions.Regex SelectGuard =
+        new(@"^\s*SELECT\b", System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    private static readonly System.Text.RegularExpressions.Regex MutationGuard =
+        new(@"\b(INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|REPLACE|PRAGMA|ATTACH|DETACH|VACUUM|REINDEX|BEGIN|COMMIT|ROLLBACK|SAVEPOINT|ANALYZE|VIRTUAL|USING)\b",
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>Read-only ad-hoc query console. Hard rules: exactly one
+    /// statement, must start with SELECT (CTEs rejected too — WITH can prefix
+    /// INSERT/UPDATE/DELETE in SQLite), no mutation/DDL keywords anywhere,
+    /// result capped at maxRows via an outer LIMIT. Hash columns are never
+    /// hidden — this is the local operator's own database.</summary>
+    public AdminQueryResult AdminRunSelect(string sql, int maxRows = 500)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
+            throw new ArgumentException("Empty query.");
+        sql = sql.Trim();
+        if (sql.EndsWith(";")) sql = sql[..^1].TrimEnd();
+        if (sql.Contains(';'))
+            throw new ArgumentException("Multiple statements are not allowed.");
+        if (!SelectGuard.IsMatch(sql))
+            throw new ArgumentException("Only SELECT statements are allowed.");
+        if (MutationGuard.IsMatch(sql))
+            throw new ArgumentException("This console is read-only — mutation and DDL keywords are blocked.");
+
+        var watch = System.Diagnostics.Stopwatch.StartNew();
+        using var cmd = _conn.CreateCommand();
+        cmd.CommandTimeout = 5;
+        // ask for one row MORE than the cap so truncation is detectable from
+        // the same reader — Microsoft.Data.Sqlite refuses a second command
+        // while a DataReader is still open on the connection.
+        cmd.CommandText = $"SELECT * FROM ({sql}) LIMIT $lim";
+        cmd.Parameters.AddWithValue("$lim", maxRows + 1);
+
+        using var reader = cmd.ExecuteReader();
+        var columns = new List<string>(reader.FieldCount);
+        for (var i = 0; i < reader.FieldCount; i++) columns.Add(reader.GetName(i));
+
+        var rows = new List<string?[]>();
+        var truncated = false;
+        while (reader.Read())
+        {
+            if (rows.Count >= maxRows) { truncated = true; break; }
+            var row = new string?[reader.FieldCount];
+            for (var i = 0; i < reader.FieldCount; i++)
+                row[i] = reader.IsDBNull(i) ? null : Convert.ToString(reader.GetValue(i));
+            rows.Add(row);
+        }
+        watch.Stop();
+        return new AdminQueryResult(
+            columns, rows.Select(r => (IReadOnlyList<string?>)r.ToList()).ToList(),
+            rows.Count, truncated, Math.Round(watch.Elapsed.TotalMilliseconds, 2));
+    }
 }

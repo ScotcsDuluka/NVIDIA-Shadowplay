@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.IO
 Imports System.Security.Cryptography
@@ -26,11 +21,9 @@ Friend Class DulukaAccountStore
     Private ReadOnly _storePathOverride As String
     Private ReadOnly _legacyStorePathOverride As String
 
-    
     Private _deviceKeyEncrypted As String = ""
     Private _sessionTokenEncrypted As String = ""
 
-    
     Private _accountId As String = ""
     Private _deviceId As String = ""
     Private _deviceName As String = ""
@@ -46,12 +39,9 @@ Friend Class DulukaAccountStore
         Load()
     End Sub
 
-    
     Friend Shared Function CreateForTest(storePath As String, legacyStorePath As String) As DulukaAccountStore
         Return New DulukaAccountStore(storePath, legacyStorePath)
     End Function
-
-    
 
     Public ReadOnly Property HasSession As Boolean
         Get
@@ -59,7 +49,6 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    
     Public ReadOnly Property SessionToken As String
         Get
             Return Decrypt(_sessionTokenEncrypted)
@@ -96,17 +85,12 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    
-    
-    
-    
     Public ReadOnly Property ProfileImage As String
         Get
             Return _profileImage
         End Get
     End Property
 
-    
     Public ReadOnly Property SessionExpiresAtText As String
         Get
             If _sessionExpiresAtIso = "" Then Return ""
@@ -118,10 +102,6 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    
-    
-    
-    
     Public Function EnsureDeviceKey() As String
         SyncLock _lock
             Dim plain As String = Decrypt(_deviceKeyEncrypted)
@@ -133,9 +113,6 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Function
 
-    
-    
-    
     Public Sub RevokeDeviceKey()
         SyncLock _lock
             _deviceKeyEncrypted = ""
@@ -170,8 +147,6 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Sub
 
-    
-    
     Public Sub SetProfileWithImage(displayName As String, username As String, profileImage As String)
         SyncLock _lock
             _displayName = If(displayName, "")
@@ -181,8 +156,6 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Sub
 
-    
-    
     Public Function ClearSession() As Boolean
         SyncLock _lock
             Dim hadSession As Boolean = _sessionTokenEncrypted <> "" OrElse _
@@ -200,8 +173,6 @@ Friend Class DulukaAccountStore
             Return hadSession
         End SyncLock
     End Function
-
-    
 
     Private Function Encrypt(plain As String) As String
         If String.IsNullOrEmpty(plain) Then Return ""
@@ -222,8 +193,7 @@ Friend Class DulukaAccountStore
             Dim plain As Byte() = ProtectedData.Unprotect(cipher, Nothing, DataProtectionScope.CurrentUser)
             Return Encoding.UTF8.GetString(plain)
         Catch ex As Exception
-            
-            
+
             Return ""
         End Try
     End Function
@@ -241,12 +211,8 @@ Friend Class DulukaAccountStore
         Return base64.Replace("+", "-").Replace("/", "_").Replace("=", "")
     End Function
 
-    
-
     Private Class StoreDto
-        
-        
-        
+
         <JsonPropertyName("v")>
         Public Property Version As Integer = 2
         <JsonPropertyName("deviceKeyEncrypted")>
@@ -269,11 +235,6 @@ Friend Class DulukaAccountStore
         Public Property SessionExpiresAt As String = ""
     End Class
 
-    
-    
-    
-    
-    
     Private ReadOnly Property StorePath As String
         Get
             If Not String.IsNullOrEmpty(_storePathOverride) Then Return _storePathOverride
@@ -286,7 +247,6 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    
     Private ReadOnly Property LegacyStorePath As String
         Get
             If Not String.IsNullOrEmpty(_legacyStorePathOverride) Then Return _legacyStorePathOverride
@@ -321,9 +281,6 @@ Friend Class DulukaAccountStore
                 Return
             End If
 
-            
-            
-            
             Dim legacyPath As String = LegacyStorePath
             If Not File.Exists(legacyPath) Then Return
             Dim legacyDto As StoreDto = ReadDto(legacyPath)

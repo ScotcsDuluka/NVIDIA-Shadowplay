@@ -21,7 +21,6 @@ Module UpdateHelper
                 Dim downloadUrl As String = If(json("download_url") IsNot Nothing, json("download_url").ToString(), "")
                 Dim currentVer As New Version(Assembly.GetExecutingAssembly().GetName().Version.ToString())
 
-
                 Dim dataFolder As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data")
                 If Not Directory.Exists(dataFolder) Then Directory.CreateDirectory(dataFolder)
 

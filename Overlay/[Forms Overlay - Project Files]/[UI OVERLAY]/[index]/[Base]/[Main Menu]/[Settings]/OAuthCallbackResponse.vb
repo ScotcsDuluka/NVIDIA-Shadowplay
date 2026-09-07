@@ -1,19 +1,6 @@
 Option Strict On
 Option Explicit On
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 Imports System.Net
 Imports System.Text.Json
 
@@ -22,14 +9,6 @@ Friend NotInheritable Class OAuthCallbackResponse
     Private Sub New()
     End Sub
 
-    
-    
-    
-    
-    
-    
-    
-    
     Friend Shared Function BuildCallbackHtml(errorParam As String, code As String) As String
         If Not String.IsNullOrEmpty(errorParam) Then
             Dim encoded As String = WebUtility.HtmlEncode(errorParam)
@@ -41,10 +20,6 @@ Friend NotInheritable Class OAuthCallbackResponse
         End If
     End Function
 
-    
-    
-    
-    
     Friend Shared Function BuildTokenRequestLogLine(useClientSecret As Boolean, verifierLength As Integer) As String
         If useClientSecret Then
             Return "Token request: Client Secret flow (secret redacted)"
@@ -52,10 +27,6 @@ Friend NotInheritable Class OAuthCallbackResponse
         Return $"Token request: PKCE flow (code_verifier length={verifierLength}, redacted)"
     End Function
 
-    
-    
-    
-    
     Friend Shared Function BuildTokenResponseLogLine(json As String) As String
         Try
             Using doc As JsonDocument = JsonDocument.Parse(json)

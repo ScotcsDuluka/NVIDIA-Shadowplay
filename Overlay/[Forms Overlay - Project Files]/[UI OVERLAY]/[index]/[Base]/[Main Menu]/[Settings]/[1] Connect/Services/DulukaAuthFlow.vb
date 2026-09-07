@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 Imports System.Diagnostics
 Imports System.Net
 Imports System.Text
@@ -26,7 +21,6 @@ Friend Class DulukaAuthFlow
         Public Message As String = ""
     End Class
 
-    
     Private Shared _active As DulukaAuthFlow
 
     Private ReadOnly _kind As FlowKind
@@ -37,7 +31,6 @@ Friend Class DulukaAuthFlow
         _kind = kind
     End Sub
 
-    
     Public Shared Function TryBegin(kind As FlowKind) As DulukaAuthFlow
         If _active IsNot Nothing Then Return Nothing
         Dim flow As New DulukaAuthFlow(kind)
@@ -55,10 +48,6 @@ Friend Class DulukaAuthFlow
         End If
     End Sub
 
-    
-    
-    
-    
     Public Async Function RunAsync(report As Action(Of String)) As Task(Of Outcome)
         Dim outcome As New Outcome()
         Dim listener As HttpListener = Nothing
@@ -67,7 +56,6 @@ Friend Class DulukaAuthFlow
             Dim deviceKey As String = store.EnsureDeviceKey()
             Dim deviceName As String = DulukaApi.DeviceName()
 
-            
             report("Contacting the Duluka server…")
             Dim startRes As DulukaApi.Result
             If _kind = FlowKind.Login Then
@@ -92,14 +80,11 @@ Friend Class DulukaAuthFlow
                 Return outcome
             End If
 
-            
             report("Opening the browser…")
             listener = New HttpListener()
             listener.Prefixes.Add(DulukaApi.CallbackRedirectUri & "/")
             Try
-                
-                
-                
+
                 listener.Prefixes.Add(DulukaApi.CallbackRedirectUri)
             Catch
             End Try
@@ -109,7 +94,6 @@ Friend Class DulukaAuthFlow
             Process.Start(opener)
             report("Waiting for GitHub in your browser… (expires in ~10 min)")
 
-            
             Dim contextTask As Task(Of HttpListenerContext) = listener.GetContextAsync()
             Dim waitCts As CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token)
             waitCts.CancelAfter(TimeSpan.FromMinutes(11))
@@ -125,15 +109,12 @@ Friend Class DulukaAuthFlow
                 Return outcome
             End If
 
-            
-            
             Dim ctx As HttpListenerContext = Await contextTask.ConfigureAwait(False)
             Try
                 Dim qCode As String = ctx.Request.QueryString("code")
                 Dim qError As String = ctx.Request.QueryString("error")
                 Dim qState As String = ctx.Request.QueryString("state")
 
-                
                 Dim html As String = OAuthCallbackResponse.BuildCallbackHtml(qError, qCode)
                 Dim htmlBytes As Byte() = Encoding.UTF8.GetBytes(html)
                 ctx.Response.ContentType = "text/html"
@@ -154,7 +135,6 @@ Friend Class DulukaAuthFlow
                     Return outcome
                 End If
 
-                
                 report("Creating your session…")
                 If _kind = FlowKind.Login Then
                     Dim body As New JsonObject()
@@ -172,8 +152,7 @@ Friend Class DulukaAuthFlow
                         outcome.Succeeded = True
                         Return outcome
                     End If
-                    
-                    
+
                     If done.HttpStatus = 403 Then
                         store.RevokeDeviceKey()
                     End If

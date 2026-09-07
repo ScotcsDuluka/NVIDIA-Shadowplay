@@ -9,7 +9,6 @@ Public Class Base_KeySet
     Private ReadOnly _keyLabels As New Dictionary(Of String, Label)(StringComparer.OrdinalIgnoreCase)
     Private ReadOnly _rowPanels As New Dictionary(Of String, Control)(StringComparer.OrdinalIgnoreCase)
 
-    
     Private ReadOnly _colorNormal As Color = Color.FromArgb(55, 60, 65)
     Private ReadOnly _colorHover As Color = Color.FromArgb(74, 80, 86)
     Private ReadOnly _colorCapture As Color = Color.FromArgb(118, 185, 0)
@@ -60,10 +59,6 @@ Public Class Base_KeySet
         LayoutColumns()
     End Sub
 
-    
-    
-    
-    
     Public Sub InitKeyLabels()
         _keyLabels.Clear()
         _rowPanels.Clear()
@@ -87,9 +82,6 @@ Public Class Base_KeySet
         Next
     End Sub
 
-    
-    
-    
     Private _wiredEvents As Boolean = False
 
     Public Sub WireEvents()
@@ -112,10 +104,6 @@ Public Class Base_KeySet
         Next
     End Sub
 
-    
-    
-    
-    
     Private ReadOnly _colLeftRows As String() = {"ToggleOverlay", "TestNotifier", "WebToggle", "Screenshot", "PhotosToggle", "GameFilterToggle"}
 
     Private Sub Keyset_Resize(sender As Object, e As EventArgs) Handles keyset.Resize
@@ -129,8 +117,7 @@ Public Class Base_KeySet
         Const marginL As Integer = 28
         Const marginR As Integer = 28
         Const gap As Integer = 30
-        
-        
+
         Const minColWidth As Integer = 690
 
         Dim colWidth As Integer = Math.Max(minColWidth, (keyset.ClientSize.Width - marginL - marginR - gap) \ 2)
@@ -174,7 +161,6 @@ Public Class Base_KeySet
         StartCapture(CStr(label.Tag), label)
     End Sub
 
-    
     Private Sub RowPanel_Click(sender As Object, e As EventArgs)
         Dim row As Control = CType(sender, Control)
         Dim actionKey As String = CStr(row.Tag)
@@ -275,9 +261,6 @@ Public Class Base_KeySet
         Base.ResumeHotkeys()
     End Sub
 
-    
-    
-    
     Private Sub ShowCaptureError(actionKey As String, message As String)
         CancelCapture()
 

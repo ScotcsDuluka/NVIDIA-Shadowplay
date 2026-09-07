@@ -33,8 +33,6 @@ Partial Public Class Base
             img.Save(fileName, System.Drawing.Imaging.ImageFormat.Png)
         End Using
 
-        
-        
         KillSnipHostAfterDelay(_snipSessionId)
 
         ShowNotifier("notificationScreenshotSavedToGallery")
@@ -43,15 +41,8 @@ Partial Public Class Base
         End If
     End Sub
 
-    
-    
-    
-    
-    
     Private _snipSessionId As Integer = 0
 
-    
-    
     Private Sub KillSnipHostAfterDelay(sessionId As Integer)
         Task.Run(Async Function()
                      Await Task.Delay(1000) 
@@ -61,7 +52,6 @@ Partial Public Class Base
                  End Function)
     End Sub
 
-    
     Private Sub KillSnipHostProcesses()
         Dim hostNames As String() = {"SnippingTool", "ScreenClippingHost", "ScreenSketch"}
 
