@@ -1,4 +1,4 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.IO
 Partial Public Class Base
 
@@ -26,7 +26,7 @@ Partial Public Class Base
 
 
 
-    'Mode
+    
 
 
 
@@ -54,7 +54,7 @@ Partial Public Class Base
 
 
 
-    'Shadowplay
+    
 
 
 

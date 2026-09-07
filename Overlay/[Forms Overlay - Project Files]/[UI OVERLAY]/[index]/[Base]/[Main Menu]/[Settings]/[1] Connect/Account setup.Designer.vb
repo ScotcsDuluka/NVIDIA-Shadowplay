@@ -1,8 +1,8 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Connect_Setup
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
+    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +14,12 @@ Partial Class Base_Connect_Setup
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
+    
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
+    
+    
+    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Setup))
@@ -48,9 +48,9 @@ Partial Class Base_Connect_Setup
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         CType(Box_Bg, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        ' 
-        ' Settings_Panel
-        ' 
+        
+        
+        
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_Panel.Controls.Add(Settings_TEXT)
@@ -64,12 +64,12 @@ Partial Class Base_Connect_Setup
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
-        ' 
-        ' Settings_TEXT
-        ' 
+        
+        
+        
         Settings_TEXT.Anchor = AnchorStyles.Top
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_TEXT.Font = New Font("GeForce", 24F, FontStyle.Bold)
+        Settings_TEXT.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
         Settings_TEXT.ForeColor = Color.White
         Settings_TEXT.Location = New Point(700, 43)
         Settings_TEXT.Name = "Settings_TEXT"
@@ -77,9 +77,9 @@ Partial Class Base_Connect_Setup
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Duluka Account"
         Settings_TEXT.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Auth_PROMPT
-        ' 
+        
+        
+        
         Auth_PROMPT.Anchor = AnchorStyles.Top
         Auth_PROMPT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Auth_PROMPT.Font = New Font("Segoe UI", 11.25F)
@@ -90,9 +90,9 @@ Partial Class Base_Connect_Setup
         Auth_PROMPT.TabIndex = 69
         Auth_PROMPT.Text = "Set up your account"
         Auth_PROMPT.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Card_PANEL
-        ' 
+        
+        
+        
         Card_PANEL.Anchor = AnchorStyles.Top
         Card_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Card_PANEL.Controls.Add(Username_LBL)
@@ -106,21 +106,21 @@ Partial Class Base_Connect_Setup
         Card_PANEL.Name = "Card_PANEL"
         Card_PANEL.Size = New Size(360, 290)
         Card_PANEL.TabIndex = 84
-        ' 
-        ' Username_LBL
-        ' 
+        
+        
+        
         Username_LBL.AutoSize = True
         Username_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
-        Username_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        Username_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
         Username_LBL.ForeColor = Color.Gainsboro
         Username_LBL.Location = New Point(24, 20)
         Username_LBL.Name = "Username_LBL"
         Username_LBL.Size = New Size(64, 15)
         Username_LBL.TabIndex = 85
         Username_LBL.Text = "Username"
-        ' 
-        ' Username_BOX
-        ' 
+        
+        
+        
         Username_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Username_BOX.BorderStyle = BorderStyle.FixedSingle
         Username_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -129,21 +129,21 @@ Partial Class Base_Connect_Setup
         Username_BOX.Name = "Username_BOX"
         Username_BOX.Size = New Size(312, 27)
         Username_BOX.TabIndex = 86
-        ' 
-        ' Password_LBL
-        ' 
+        
+        
+        
         Password_LBL.AutoSize = True
         Password_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
-        Password_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        Password_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
         Password_LBL.ForeColor = Color.Gainsboro
         Password_LBL.Location = New Point(24, 78)
         Password_LBL.Name = "Password_LBL"
         Password_LBL.Size = New Size(59, 15)
         Password_LBL.TabIndex = 87
         Password_LBL.Text = "Password"
-        ' 
-        ' Password_BOX
-        ' 
+        
+        
+        
         Password_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Password_BOX.BorderStyle = BorderStyle.FixedSingle
         Password_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -153,21 +153,21 @@ Partial Class Base_Connect_Setup
         Password_BOX.Size = New Size(312, 27)
         Password_BOX.TabIndex = 88
         Password_BOX.UseSystemPasswordChar = True
-        ' 
-        ' Confirm_LBL
-        ' 
+        
+        
+        
         Confirm_LBL.AutoSize = True
         Confirm_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
-        Confirm_LBL.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
+        Confirm_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
         Confirm_LBL.ForeColor = Color.Gainsboro
         Confirm_LBL.Location = New Point(24, 136)
         Confirm_LBL.Name = "Confirm_LBL"
         Confirm_LBL.Size = New Size(104, 15)
         Confirm_LBL.TabIndex = 89
         Confirm_LBL.Text = "Confirm password"
-        ' 
-        ' Confirm_BOX
-        ' 
+        
+        
+        
         Confirm_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Confirm_BOX.BorderStyle = BorderStyle.FixedSingle
         Confirm_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -177,9 +177,9 @@ Partial Class Base_Connect_Setup
         Confirm_BOX.Size = New Size(312, 27)
         Confirm_BOX.TabIndex = 90
         Confirm_BOX.UseSystemPasswordChar = True
-        ' 
-        ' BT_Setup
-        ' 
+        
+        
+        
         BT_Setup.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Setup.Cursor = Cursors.Hand
         BT_Setup.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
@@ -190,9 +190,9 @@ Partial Class Base_Connect_Setup
         BT_Setup.TabIndex = 91
         BT_Setup.Text = "Set Up Account"
         BT_Setup.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Setup_NOTE
-        ' 
+        
+        
+        
         Setup_NOTE.Anchor = AnchorStyles.Top
         Setup_NOTE.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Setup_NOTE.Font = New Font("Segoe UI", 8.75F)
@@ -203,9 +203,9 @@ Partial Class Base_Connect_Setup
         Setup_NOTE.TabIndex = 74
         Setup_NOTE.Text = "Your username is permanent — it cannot be changed later. You will sign in with it and your password."
         Setup_NOTE.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Status_TEXT
-        ' 
+        
+        
+        
         Status_TEXT.Anchor = AnchorStyles.Top
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
@@ -215,13 +215,13 @@ Partial Class Base_Connect_Setup
         Status_TEXT.Size = New Size(458, 17)
         Status_TEXT.TabIndex = 68
         Status_TEXT.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' BT_Back
-        ' 
+        
+        
+        
         BT_Back.Anchor = AnchorStyles.Top
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
-        BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
+        BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
         BT_Back.Location = New Point(651, 514)
         BT_Back.Name = "BT_Back"
@@ -229,9 +229,9 @@ Partial Class Base_Connect_Setup
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Dim_Top
-        ' 
+        
+        
+        
         Dim_Top.Anchor = AnchorStyles.Top
         Dim_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Dim_Top.Location = New Point(731, 160)
@@ -239,9 +239,9 @@ Partial Class Base_Connect_Setup
         Dim_Top.Size = New Size(458, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        ' 
-        ' Dim_1
-        ' 
+        
+        
+        
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -250,9 +250,9 @@ Partial Class Base_Connect_Setup
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        ' 
-        ' Dim_2
-        ' 
+        
+        
+        
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -261,9 +261,9 @@ Partial Class Base_Connect_Setup
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        ' 
-        ' Box_Bg
-        ' 
+        
+        
+        
         Box_Bg.Anchor = AnchorStyles.Top
         Box_Bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Box_Bg.Location = New Point(651, 0)
@@ -271,10 +271,10 @@ Partial Class Base_Connect_Setup
         Box_Bg.Size = New Size(458, 569)
         Box_Bg.TabIndex = 95
         Box_Bg.TabStop = False
-        ' 
-        ' Base_Connect_Setup
-        ' 
-        AutoScaleDimensions = New SizeF(7F, 15F)
+        
+        
+        
+        AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red
         ClientSize = New Size(1920, 1070)

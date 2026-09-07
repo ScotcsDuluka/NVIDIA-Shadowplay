@@ -1,8 +1,8 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Connect_Signin
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
+    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +14,12 @@ Partial Class Base_Connect_Signin
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
+    
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
+    
+    
+    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Signin))
@@ -49,9 +49,9 @@ Partial Class Base_Connect_Signin
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        ' 
-        ' Settings_Panel
-        ' 
+        
+        
+        
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.Red
         Settings_Panel.Controls.Add(BT_Back)
@@ -65,9 +65,9 @@ Partial Class Base_Connect_Signin
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
-        ' 
-        ' BT_Back
-        ' 
+        
+        
+        
         BT_Back.Anchor = AnchorStyles.Top
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
@@ -79,9 +79,9 @@ Partial Class Base_Connect_Signin
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Settings_TEXT
-        ' 
+        
+        
+        
         Settings_TEXT.Anchor = AnchorStyles.Top
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_TEXT.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
@@ -92,9 +92,9 @@ Partial Class Base_Connect_Signin
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Duluka Account"
         Settings_TEXT.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Auth_PROMPT
-        ' 
+        
+        
+        
         Auth_PROMPT.Anchor = AnchorStyles.Top
         Auth_PROMPT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Auth_PROMPT.Font = New Font("Segoe UI", 11.25F)
@@ -105,9 +105,9 @@ Partial Class Base_Connect_Signin
         Auth_PROMPT.TabIndex = 69
         Auth_PROMPT.Text = "Sign in to your Duluka Account"
         Auth_PROMPT.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Card_PANEL
-        ' 
+        
+        
+        
         Card_PANEL.Anchor = AnchorStyles.Top
         Card_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Card_PANEL.Controls.Add(Username_LBL)
@@ -122,9 +122,9 @@ Partial Class Base_Connect_Signin
         Card_PANEL.Name = "Card_PANEL"
         Card_PANEL.Size = New Size(360, 348)
         Card_PANEL.TabIndex = 84
-        ' 
-        ' Username_LBL
-        ' 
+        
+        
+        
         Username_LBL.AutoSize = True
         Username_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Username_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -134,9 +134,9 @@ Partial Class Base_Connect_Signin
         Username_LBL.Size = New Size(64, 15)
         Username_LBL.TabIndex = 85
         Username_LBL.Text = "Username"
-        ' 
-        ' Username_BOX
-        ' 
+        
+        
+        
         Username_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Username_BOX.BorderStyle = BorderStyle.FixedSingle
         Username_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -145,9 +145,9 @@ Partial Class Base_Connect_Signin
         Username_BOX.Name = "Username_BOX"
         Username_BOX.Size = New Size(312, 27)
         Username_BOX.TabIndex = 86
-        ' 
-        ' Password_LBL
-        ' 
+        
+        
+        
         Password_LBL.AutoSize = True
         Password_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Password_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
@@ -157,9 +157,9 @@ Partial Class Base_Connect_Signin
         Password_LBL.Size = New Size(59, 15)
         Password_LBL.TabIndex = 87
         Password_LBL.Text = "Password"
-        ' 
-        ' Password_BOX
-        ' 
+        
+        
+        
         Password_BOX.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         Password_BOX.BorderStyle = BorderStyle.FixedSingle
         Password_BOX.Font = New Font("Segoe UI", 11.25F)
@@ -169,9 +169,9 @@ Partial Class Base_Connect_Signin
         Password_BOX.Size = New Size(312, 27)
         Password_BOX.TabIndex = 88
         Password_BOX.UseSystemPasswordChar = True
-        ' 
-        ' BT_SignIn
-        ' 
+        
+        
+        
         BT_SignIn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_SignIn.Cursor = Cursors.Hand
         BT_SignIn.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
@@ -182,9 +182,9 @@ Partial Class Base_Connect_Signin
         BT_SignIn.TabIndex = 89
         BT_SignIn.Text = "Sign In"
         BT_SignIn.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Or_LBL
-        ' 
+        
+        
+        
         Or_LBL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Or_LBL.Font = New Font("Segoe UI", 8.5F)
         Or_LBL.ForeColor = Color.FromArgb(CByte(150), CByte(160), CByte(165))
@@ -194,9 +194,9 @@ Partial Class Base_Connect_Signin
         Or_LBL.TabIndex = 90
         Or_LBL.Text = "────────  OR  ────────"
         Or_LBL.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' BT_Connect
-        ' 
+        
+        
+        
         BT_Connect.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         BT_Connect.Cursor = Cursors.Hand
         BT_Connect.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
@@ -207,9 +207,9 @@ Partial Class Base_Connect_Signin
         BT_Connect.TabIndex = 91
         BT_Connect.Text = "Continue with GitHub"
         BT_Connect.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' BT_CreateAccount
-        ' 
+        
+        
+        
         BT_CreateAccount.BackColor = Color.FromArgb(CByte(30), CByte(34), CByte(38))
         BT_CreateAccount.Cursor = Cursors.Hand
         BT_CreateAccount.Font = New Font("Segoe UI", 11.0F, FontStyle.Bold)
@@ -220,9 +220,9 @@ Partial Class Base_Connect_Signin
         BT_CreateAccount.TabIndex = 92
         BT_CreateAccount.Text = "Create Duluka Account"
         BT_CreateAccount.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Provider_NOTE
-        ' 
+        
+        
+        
         Provider_NOTE.Anchor = AnchorStyles.Top
         Provider_NOTE.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Provider_NOTE.Font = New Font("Segoe UI", 8.75F)
@@ -233,9 +233,9 @@ Partial Class Base_Connect_Signin
         Provider_NOTE.TabIndex = 74
         Provider_NOTE.Text = "GitHub is an authentication provider linked to your Duluka Account."
         Provider_NOTE.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Status_TEXT
-        ' 
+        
+        
+        
         Status_TEXT.Anchor = AnchorStyles.Top
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
@@ -245,9 +245,9 @@ Partial Class Base_Connect_Signin
         Status_TEXT.Size = New Size(458, 17)
         Status_TEXT.TabIndex = 68
         Status_TEXT.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Box_Bg
-        ' 
+        
+        
+        
         Box_Bg.Anchor = AnchorStyles.Top
         Box_Bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Box_Bg.Location = New Point(651, 0)
@@ -255,9 +255,9 @@ Partial Class Base_Connect_Signin
         Box_Bg.Size = New Size(458, 569)
         Box_Bg.TabIndex = 85
         Box_Bg.TabStop = False
-        ' 
-        ' Dim_Top
-        ' 
+        
+        
+        
         Dim_Top.Anchor = AnchorStyles.Top
         Dim_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Dim_Top.Location = New Point(731, 160)
@@ -265,9 +265,9 @@ Partial Class Base_Connect_Signin
         Dim_Top.Size = New Size(458, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        ' 
-        ' Dim_1
-        ' 
+        
+        
+        
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -276,9 +276,9 @@ Partial Class Base_Connect_Signin
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        ' 
-        ' Dim_2
-        ' 
+        
+        
+        
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -287,9 +287,9 @@ Partial Class Base_Connect_Signin
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        ' 
-        ' Base_Connect_Signin
-        ' 
+        
+        
+        
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

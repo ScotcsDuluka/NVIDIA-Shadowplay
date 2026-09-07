@@ -1,9 +1,9 @@
-' DulukaAccount.vb — the client-side Duluka account store.
-' F-S2 at-rest rules: the device key and the session token are DPAPI
-' (CurrentUser) protected inside duluka_account.json; plain values exist in
-' memory only and are never serialized. The device key SURVIVES logout (it is
-' the device's long-lived identity — revoked keys are dead forever); the
-' session token does not.
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.IO
@@ -26,11 +26,11 @@ Friend Class DulukaAccountStore
     Private ReadOnly _storePathOverride As String
     Private ReadOnly _legacyStorePathOverride As String
 
-    ' Persisted, DPAPI-encrypted. Never serialized as plain text.
+    
     Private _deviceKeyEncrypted As String = ""
     Private _sessionTokenEncrypted As String = ""
 
-    ' Persisted, non-secret.
+    
     Private _accountId As String = ""
     Private _deviceId As String = ""
     Private _deviceName As String = ""
@@ -46,12 +46,12 @@ Friend Class DulukaAccountStore
         Load()
     End Sub
 
-    ''' <summary>Creates an isolated store for deterministic client tests.</summary>
+    
     Friend Shared Function CreateForTest(storePath As String, legacyStorePath As String) As DulukaAccountStore
         Return New DulukaAccountStore(storePath, legacyStorePath)
     End Function
 
-    ' ── session state ───────────────────────────────────────────────────────
+    
 
     Public ReadOnly Property HasSession As Boolean
         Get
@@ -59,7 +59,7 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    ''' <summary>Plain session token — decrypt-on-read, memory only.</summary>
+    
     Public ReadOnly Property SessionToken As String
         Get
             Return Decrypt(_sessionTokenEncrypted)
@@ -96,17 +96,17 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    ''' <summary>The avatar as a data:image/...;base64 URL ("" = none). It is
-    ' a PRESENTATION value from THIS account's own profile — not a secret and
-    ' not a remote URL; the renderer decodes defensively (no crash, letter
-    ' fallback) so a corrupt value can never blank the UI.</summary>
+    
+    
+    
+    
     Public ReadOnly Property ProfileImage As String
         Get
             Return _profileImage
         End Get
     End Property
 
-    ''' <summary>Session expiry rendered for the Security page ("" if unknown).</summary>
+    
     Public ReadOnly Property SessionExpiresAtText As String
         Get
             If _sessionExpiresAtIso = "" Then Return ""
@@ -118,10 +118,10 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    ''' <summary>Client-generated device key (≥256-bit base64url) — created once
-    ' per machine, DPAPI-persisted, never re-generated after revocation (the
-    ' server rejects revoked keys; a REVOKED device must generate a NEW key
-    ' via RevokeDeviceKey()).</summary>
+    
+    
+    
+    
     Public Function EnsureDeviceKey() As String
         SyncLock _lock
             Dim plain As String = Decrypt(_deviceKeyEncrypted)
@@ -133,9 +133,9 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Function
 
-    ''' <summary>Drops the local device key (used after the server reports the
-    ' key as revoked — 403 perm.device_removed — so the next login mints a
-    ' fresh key instead of replaying a dead one).</summary>
+    
+    
+    
     Public Sub RevokeDeviceKey()
         SyncLock _lock
             _deviceKeyEncrypted = ""
@@ -170,8 +170,8 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Sub
 
-    ''' <summary>Full profile snapshot from the server (identity card / profile
-    ' editor reload path). profileImage "" clears the avatar.</summary>
+    
+    
     Public Sub SetProfileWithImage(displayName As String, username As String, profileImage As String)
         SyncLock _lock
             _displayName = If(displayName, "")
@@ -181,8 +181,8 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Sub
 
-    ''' <summary>Logout / terminal session handling: clears everything
-    ' session-scoped. The device key is intentionally kept.</summary>
+    
+    
     Public Function ClearSession() As Boolean
         SyncLock _lock
             Dim hadSession As Boolean = _sessionTokenEncrypted <> "" OrElse _
@@ -201,7 +201,7 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Function
 
-    ' ── DPAPI (same discipline as AppSettings.GitHubTokenEncrypted) ─────────
+    
 
     Private Function Encrypt(plain As String) As String
         If String.IsNullOrEmpty(plain) Then Return ""
@@ -222,8 +222,8 @@ Friend Class DulukaAccountStore
             Dim plain As Byte() = ProtectedData.Unprotect(cipher, Nothing, DataProtectionScope.CurrentUser)
             Return Encoding.UTF8.GetString(plain)
         Catch ex As Exception
-            ' Failed decrypt = treat as missing (wrong user profile / corrupted
-            ' store). Never throw into the UI from a property getter.
+            
+            
             Return ""
         End Try
     End Function
@@ -241,12 +241,12 @@ Friend Class DulukaAccountStore
         Return base64.Replace("+", "-").Replace("/", "_").Replace("=", "")
     End Function
 
-    ' ── file shape ──────────────────────────────────────────────────────────
+    
 
     Private Class StoreDto
-        ' NB: System.Text.Json serializes PROPERTIES only — public FIELDS are
-        ' silently skipped (the file came out as "{}" and nothing persisted
-        ' across restarts). Every member below must stay a Property.
+        
+        
+        
         <JsonPropertyName("v")>
         Public Property Version As Integer = 2
         <JsonPropertyName("deviceKeyEncrypted")>
@@ -269,11 +269,11 @@ Friend Class DulukaAccountStore
         Public Property SessionExpiresAt As String = ""
     End Class
 
-    ''' <summary>
-    ''' User-owned account state. This must not live below AppLayout.Dir:
-    ''' portable/copyable application trees must never carry a device identity
-    ''' to another installation.
-    ''' </summary>
+    
+    
+    
+    
+    
     Private ReadOnly Property StorePath As String
         Get
             If Not String.IsNullOrEmpty(_storePathOverride) Then Return _storePathOverride
@@ -286,7 +286,7 @@ Friend Class DulukaAccountStore
         End Get
     End Property
 
-    ''' <summary>Pre-migration path used by older portable installations.</summary>
+    
     Private ReadOnly Property LegacyStorePath As String
         Get
             If Not String.IsNullOrEmpty(_legacyStorePathOverride) Then Return _legacyStorePathOverride
@@ -321,9 +321,9 @@ Friend Class DulukaAccountStore
                 Return
             End If
 
-            ' Migrate only a legacy store whose protected values can be
-            ' decrypted by this Windows user. A copied store from another
-            ' profile is treated as absent and never copied forward.
+            
+            
+            
             Dim legacyPath As String = LegacyStorePath
             If Not File.Exists(legacyPath) Then Return
             Dim legacyDto As StoreDto = ReadDto(legacyPath)
@@ -331,7 +331,7 @@ Friend Class DulukaAccountStore
             ApplyDto(legacyDto)
             Save()
         Catch ex As Exception
-            ' Corrupt store = start clean; the next login re-provisions.
+            
             Debug.WriteLine($"DulukaAccountStore.Load failed: {ex.GetType().Name}")
         End Try
     End Sub

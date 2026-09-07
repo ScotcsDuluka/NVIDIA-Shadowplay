@@ -1,8 +1,8 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Settings
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
+    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +14,12 @@ Partial Class Base_Settings
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
+    
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
+    
+    
+    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Settings))
@@ -46,9 +46,9 @@ Partial Class Base_Settings
         CType(PictureBox9, ComponentModel.ISupportInitialize).BeginInit()
         CType(PictureBox1, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        ' 
-        ' Main_Menu_SET
-        ' 
+        
+        
+        
         Main_Menu_SET.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Main_Menu_SET.BackColor = Color.Red
         Main_Menu_SET.Controls.Add(Panel)
@@ -56,9 +56,9 @@ Partial Class Base_Settings
         Main_Menu_SET.Name = "Main_Menu_SET"
         Main_Menu_SET.Size = New Size(1135, 810)
         Main_Menu_SET.TabIndex = 44
-        ' 
-        ' Panel
-        ' 
+        
+        
+        
         Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Panel.Controls.Add(Label4)
@@ -70,9 +70,9 @@ Partial Class Base_Settings
         Panel.Name = "Panel"
         Panel.Size = New Size(1135, 817)
         Panel.TabIndex = 74
-        ' 
-        ' Label4
-        ' 
+        
+        
+        
         Label4.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label4.Font = New Font("GeForce", 24F, FontStyle.Bold)
         Label4.ForeColor = Color.White
@@ -81,9 +81,9 @@ Partial Class Base_Settings
         Label4.Size = New Size(514, 60)
         Label4.TabIndex = 80
         Label4.Text = "General"
-        ' 
-        ' Desc_UseWindowsSnip
-        ' 
+        
+        
+        
         Desc_UseWindowsSnip.AutoSize = True
         Desc_UseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Desc_UseWindowsSnip.Font = New Font("Segoe UI Semibold", 15F, FontStyle.Bold, GraphicsUnit.Point, CByte(0))
@@ -93,9 +93,9 @@ Partial Class Base_Settings
         Desc_UseWindowsSnip.Size = New Size(362, 28)
         Desc_UseWindowsSnip.TabIndex = 76
         Desc_UseWindowsSnip.Text = "Take screenshots with Windows - Beta"
-        ' 
-        ' Desc_UseWindowsSnip_SUB
-        ' 
+        
+        
+        
         Desc_UseWindowsSnip_SUB.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Desc_UseWindowsSnip_SUB.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Desc_UseWindowsSnip_SUB.Font = New Font("Segoe UI Semibold", 11.8F)
@@ -106,9 +106,9 @@ Partial Class Base_Settings
         Desc_UseWindowsSnip_SUB.TabIndex = 78
         Desc_UseWindowsSnip_SUB.Text = "Screenshots are taken with Windows (Win+Shift+S), letting you select the area to capture."
         Desc_UseWindowsSnip_SUB.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' ToggleUseWindowsSnip
-        ' 
+        
+        
+        
         ToggleUseWindowsSnip.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ToggleUseWindowsSnip.ForeColor = Color.Aquamarine
         ToggleUseWindowsSnip.ImeMode = ImeMode.Off
@@ -121,9 +121,9 @@ Partial Class Base_Settings
         ToggleUseWindowsSnip.Size = New Size(48, 24)
         ToggleUseWindowsSnip.TabIndex = 79
         ToggleUseWindowsSnip.Text = "ToggleSwitch"
-        ' 
-        ' Label3
-        ' 
+        
+        
+        
         Label3.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Label3.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         Label3.ForeColor = Color.White
@@ -133,9 +133,9 @@ Partial Class Base_Settings
         Label3.TabIndex = 77
         Label3.Text = ""
         Label3.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' settings_top
-        ' 
+        
+        
+        
         settings_top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         settings_top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         settings_top.Location = New Point(465, 160)
@@ -143,18 +143,18 @@ Partial Class Base_Settings
         settings_top.Size = New Size(1135, 5)
         settings_top.TabIndex = 0
         settings_top.TabStop = False
-        ' 
-        ' Block_AM
-        ' 
+        
+        
+        
         Block_AM.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Block_AM.Location = New Point(-3, -16)
         Block_AM.Name = "Block_AM"
         Block_AM.Size = New Size(1931, 176)
         Block_AM.TabIndex = 73
         Block_AM.TabStop = False
-        ' 
-        ' action_fn
-        ' 
+        
+        
+        
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI Semibold", 12F, FontStyle.Bold)
@@ -165,9 +165,9 @@ Partial Class Base_Settings
         action_fn.TabIndex = 74
         action_fn.Text = "Done"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' ch
-        ' 
+        
+        
+        
         ch.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ch.Cursor = Cursors.Hand
         ch.Font = New Font("Segoe UI Semibold", 12F)
@@ -178,9 +178,9 @@ Partial Class Base_Settings
         ch.TabIndex = 75
         ch.Text = "Check update"
         ch.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' SW_lang
-        ' 
+        
+        
+        
         SW_lang.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         SW_lang.Cursor = Cursors.Hand
         SW_lang.Font = New Font("Segoe UI Semibold", 12F)
@@ -191,9 +191,9 @@ Partial Class Base_Settings
         SW_lang.TabIndex = 76
         SW_lang.Text = "SW_lang"
         SW_lang.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' PictureBox9
-        ' 
+        
+        
+        
         PictureBox9.Anchor = AnchorStyles.Bottom
         PictureBox9.BackColor = Color.Blue
         PictureBox9.BackgroundImageLayout = ImageLayout.None
@@ -203,9 +203,9 @@ Partial Class Base_Settings
         PictureBox9.TabIndex = 91
         PictureBox9.TabStop = False
         PictureBox9.Visible = False
-        ' 
-        ' PictureBox1
-        ' 
+        
+        
+        
         PictureBox1.Anchor = AnchorStyles.Top Or AnchorStyles.Right
         PictureBox1.BackColor = Color.Blue
         PictureBox1.BackgroundImageLayout = ImageLayout.None
@@ -215,9 +215,9 @@ Partial Class Base_Settings
         PictureBox1.TabIndex = 92
         PictureBox1.TabStop = False
         PictureBox1.Visible = False
-        ' 
-        ' btnExportSettings
-        ' 
+        
+        
+        
         btnExportSettings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         btnExportSettings.Cursor = Cursors.Hand
         btnExportSettings.Font = New Font("Segoe UI Semibold", 12F)
@@ -228,9 +228,9 @@ Partial Class Base_Settings
         btnExportSettings.TabIndex = 93
         btnExportSettings.Text = "Export Settings"
         btnExportSettings.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' btnImportSettings
-        ' 
+        
+        
+        
         btnImportSettings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         btnImportSettings.Cursor = Cursors.Hand
         btnImportSettings.Font = New Font("Segoe UI Semibold", 12F)
@@ -241,9 +241,9 @@ Partial Class Base_Settings
         btnImportSettings.TabIndex = 94
         btnImportSettings.Text = "Import Settings"
         btnImportSettings.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Base_Settings
-        ' 
+        
+        
+        
         AutoScaleDimensions = New SizeF(7F, 15F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

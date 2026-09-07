@@ -1,18 +1,18 @@
-' Overlay close behavior:
-'   Alt+F4 / X -> hide (never kill the overlay or the engine behind it)
-'   ESC        -> hide
-' Real exit stays with the Logo button (Application.Exit) and
-' Application.Restart — both pass through the CloseReason gate untouched.
-'
-' Written as partials on purpose: NO shared base class, so the WinForms
-' designer keeps loading plain System.Windows.Forms.Form.
+
+
+
+
+
+
+
+
 
 Imports System.Windows.Forms
 
 Friend Module OverlayGuard
 
-    ' False while a sub-page (Settings / Gallery / Recordings) is active.
-    ' Same gate every hotkey handler in Sub_Hotkey.vb uses.
+    
+    
     Public ReadOnly Property Engaged As Boolean
         Get
             Return Base.IF_OpenShare
@@ -21,13 +21,13 @@ Friend Module OverlayGuard
 
     Public Sub InterceptClose(f As Form, e As FormClosingEventArgs)
         If e.CloseReason <> CloseReason.UserClosing Then Return
-        e.Cancel = True             ' the form never actually dies
+        e.Cancel = True             
         If Not Engaged Then Return
         HideOverlay(f)
     End Sub
 
-    ' True = ESC consumed (overlay hidden). False = caller falls back to
-    ' normal key handling.
+    
+    
     Public Function EscapeHide(f As Form, keyData As Keys) As Boolean
         If keyData <> Keys.Escape Then Return False
         If Not Engaged Then Return False
@@ -35,9 +35,9 @@ Friend Module OverlayGuard
         Return True
     End Function
 
-    ' Canonical dismiss: hide the focused form, then Base.HideAllControls()
-    ' (resets state, opacities and the Base/Background/Background_Top trio),
-    ' and clear the Game Filter flag so the next hotkey toggle starts clean.
+    
+    
+    
     Public Sub HideOverlay(f As Form)
         If Not Engaged Then Return
         f.Hide()
@@ -47,7 +47,7 @@ Friend Module OverlayGuard
 
 End Module
 
-' ---- [1] Main Menu ----
+
 Partial Class Base
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -63,7 +63,7 @@ Partial Class Base
 
 End Class
 
-' ---- [2] Background Top ----
+
 Partial Class Base_Background_Top
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -79,7 +79,7 @@ Partial Class Base_Background_Top
 
 End Class
 
-' ---- [3] Background ----
+
 Partial Class Base_Background
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -95,7 +95,7 @@ Partial Class Base_Background
 
 End Class
 
-' ---- [2] Overlay Hub ----
+
 Partial Class Base_Overlay_Hub
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -111,7 +111,7 @@ Partial Class Base_Overlay_Hub
 
 End Class
 
-' ---- [1] Connect ----
+
 Partial Class Base_Connect
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -127,7 +127,7 @@ Partial Class Base_Connect
 
 End Class
 
-' ---- [0] Settings ----
+
 Partial Class Base_Settings
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -143,7 +143,7 @@ Partial Class Base_Settings
 
 End Class
 
-' ---- Gallery ----
+
 Partial Class Base_Gallery
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -159,7 +159,7 @@ Partial Class Base_Gallery
 
 End Class
 
-' ---- Game Filter ----
+
 Partial Class Base_Game_Filter
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -175,7 +175,7 @@ Partial Class Base_Game_Filter
 
 End Class
 
-' ---- Game Filter Sub ----
+
 Partial Class Base_Game_Filter_Sub
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -191,7 +191,7 @@ Partial Class Base_Game_Filter_Sub
 
 End Class
 
-' ---- Privacy Control ----
+
 Partial Class Base_Privacy_Control
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)
@@ -207,8 +207,8 @@ Partial Class Base_Privacy_Control
 
 End Class
 
-' ---- Keyboard Shortcut ----
-' ESC during hotkey capture means "cancel capture" — KeyDown owns it.
+
+
 Partial Class Base_KeySet
 
     Protected Overrides Sub OnFormClosing(e As FormClosingEventArgs)

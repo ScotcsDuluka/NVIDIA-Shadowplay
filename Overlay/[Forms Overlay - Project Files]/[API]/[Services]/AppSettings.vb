@@ -1,9 +1,9 @@
-﻿' AppSettings — THE single user-facing configuration model (config.json).
-' One class, split across partial files for readability:
-'   AppSettings.vb                   → JSON model classes + Load / Save + singleton
-'   AppSettings.GitHub.vb            → GitHub account (login, avatar, API)
-'   AppSettings.LegacyVideo.vb       → legacy video.json schema + one-time migration
-'   AppSettings.HardwareDetection.vb → GPU detection (NVIDIA / AMD / Intel, AV1)
+
+
+
+
+
+
 
 Imports System.Collections.Generic
 Imports System.Diagnostics
@@ -15,9 +15,9 @@ Imports System.Text.Json.Serialization
 
 Partial Public Class AppSettings
 #Region "JSON Model Classes"
-    ''' <summary>
-    ''' Recording settings: encoder, fps, bitrate, resolution, preset
-    ''' </summary>
+    
+    
+    
     Public Class RecordingSettingsClass
         Public Property UseNativeResolution As Boolean = True
         Public Property Encoder As String = "NVENC_H264"
@@ -30,7 +30,7 @@ Partial Public Class AppSettings
         Public Property EncoderPreset As Integer = 4
         Public Property ReplayDuration As Integer = 60
 
-        ' ═══ My Preset saved values (Nothing = use default) ═══
+        
         Public Property MyLowFPS As Integer? = Nothing
         Public Property MyLowBitrate As Integer? = Nothing
         Public Property MyLowEncoderPreset As Integer? = Nothing
@@ -43,28 +43,28 @@ Partial Public Class AppSettings
         Public Property MyHighBitrate As Integer? = Nothing
         Public Property MyHighEncoderPreset As Integer? = Nothing
 
-        ''' <summary>Custom renameable name for MY preset group (e.g. "P4", "P6")</summary>
+        
         Public Property MyPresetName As String = "MY"
 
-        ''' <summary>Engine regime: Duluka or FFmpeg. Missing/empty = infer from legacy api_capture.</summary>
+        
         Public Property EngineMode As String = Nothing
 
-        ''' <summary>Capture API/filter: ddagrab, gfxcapture, gdigrab, or null (auto)</summary>
+        
         Public Property APICapture As String = Nothing
     End Class
 
-    ''' <summary>
-    ''' Path settings: gallery, save, ffmpeg paths
-    ''' </summary>
+    
+    
+    
     Public Class PathSettingsClass
         Public Property GalleryPath As String = ""
         Public Property SavePath As String = ""
         Public Property FFmpegPath As String = ""
     End Class
 
-    ''' <summary>
-    ''' UI settings: language, theme
-    ''' </summary>
+    
+    
+    
     Public Class UISettingsClass
         Public Property Language As String = "en-US"
         Public Property Theme As String = "Dark"
@@ -72,70 +72,70 @@ Partial Public Class AppSettings
     End Class
 
 
-    ''' <summary>
-    ''' Audio settings: system audio, microphone, volume
-    ''' </summary>
+    
+    
+    
     Public Class AudioSettingsClass
-        ''' <summary>
-        ''' Enable system audio capture (WASAPI Loopback via NAudio)
-        ''' </summary>
+        
+        
+        
         Public Property SystemAudioEnabled As Boolean = True
 
-        ''' <summary>
-        ''' Enable microphone capture (DirectShow)
-        ''' </summary>
+        
+        
+        
         Public Property MicEnabled As Boolean = False
 
-        ''' <summary>
-        ''' System audio volume (0.0 - 1.0)
-        ''' </summary>
+        
+        
+        
         Public Property SystemAudioVolume As Single = 1.0F
 
-        ''' <summary>
-        ''' Microphone volume (0.0 - 1.0)
-        ''' </summary>
+        
+        
+        
         Public Property MicVolume As Single = 1.0F
 
-        ''' <summary>
-        ''' Microphone device name (empty = default device)
-        ''' </summary>
+        
+        
+        
         Public Property MicDeviceName As String = ""
 
-        ''' <summary>
-        ''' Microphone device ID (NAudio MMDevice ID — stable across renames).
-        ''' Ported from Engine's AudioSettingsForm so the Overlay audio page can
-        ''' persist the exact device the Engine selects by ID.
-        ''' </summary>
+        
+        
+        
+        
+        
         Public Property MicDeviceId As String = ""
 
-        ''' <summary>
-        ''' Audio track mode: 0 = Single (mixed), 1 = Separate mic track.
-        ''' Mirrors CaptureSettings.AudioTrackModeEnum consumed by the Engine
-        ''' via audio.json (AudioTrackMode).
-        ''' </summary>
+        
+        
+        
+        
+        
         Public Property TrackMode As Integer = 0
 
-        ''' <summary>
-        ''' ★ P13.3/P13.4 A/B flag (unified-config plumbing fix): "Device" =
-        ''' hardware-stamped system-audio timeline, "Legacy" = proven v2 tap.
-        ''' Consumed by the Engine through unified config.json (normalized
-        ''' there — anything but "Device" means Legacy). Temporary knob:
-        ''' the whole flag is deleted at P13.5. Declared here so a
-        ''' hand-edited config.json value survives Overlay saves (without
-        ''' this property the serializer would silently erase the key).
-        ''' </summary>
+        
+        
+        
+        
+        
+        
+        
+        
+        
         Public Property AudioClockMode As String = "Legacy"
 
-        ' ═══════════════════════════════════════════════════════════════════════
-        ' Legacy properties for backward compatibility with old config.json
-        ' ═══════════════════════════════════════════════════════════════════════
+        
+        
+        
 
-        ''' <summary>
-        ''' Legacy: Mic volume as integer (0-100) - converted to MicVolume.
-        ''' Computed duplicate — never persisted (JsonIgnore): it exists only
-        ''' so old callers can keep passing percent values; config.json
-        ''' carries the real MicVolume only.
-        ''' </summary>
+        
+        
+        
+        
+        
+        
         <Obsolete("Use MicVolume instead")>
         <JsonIgnore>
         Public Property MicVolumePercent As Integer
@@ -147,10 +147,10 @@ Partial Public Class AppSettings
             End Set
         End Property
 
-        ''' <summary>
-        ''' Legacy: System volume as integer (0-100) - converted to SystemAudioVolume.
-        ''' Computed duplicate — never persisted (JsonIgnore), same as MicVolumePercent.
-        ''' </summary>
+        
+        
+        
+        
         <Obsolete("Use SystemAudioVolume instead")>
         <JsonIgnore>
         Public Property SystemVolumePercent As Integer
@@ -163,62 +163,62 @@ Partial Public Class AppSettings
         End Property
     End Class
 
-    ''' <summary>
-    ''' Privacy settings — user consent flags that used to live as the marker
-    ''' file Data/NVIDIA_Shadowplay_Data/privacy. Imported once by
-    ''' MigrateLegacyMarkerFiles, then config.json is the only source.
-    ''' </summary>
+    
+    
+    
+    
+    
     Public Class PrivacySettingsClass
-        ''' <summary>Desktop capture allowed (was: privacy marker file exists).</summary>
+        
         Public Property DesktopCaptureEnabled As Boolean = False
     End Class
 
-    ''' <summary>
-    ''' Overlay stack switch that used to live as the Flags\Use_Overlay marker
-    ''' file. OWNED by the Launcher.exe toggle; the NVIDIA API
-    ''' hub reads it every second to start/keep-alive or kill the overlay
-    ''' stack. The Overlay itself only carries the value here so its
-    ''' full-model Save() cannot erase a Launcher-written flip (see Save()).
-    ''' </summary>
+    
+    
+    
+    
+    
+    
+    
     Public Class OverlaySettingsClass
-        ''' <summary>Overlay stack enabled (was: Flags/Use_Overlay exists).</summary>
+        
         Public Property UseOverlayEnabled As Boolean = False
     End Class
 
-    ''' <summary>
-    ''' Per-notification switches (Settings → Notifications page) — one key
-    ''' PER toast, grouped in the UI under static headers. All default True
-    ''' — missing keys/sections show as before. The Notifier reads the same
-    ''' keys via AppConfigShared at display time (the single choke point
-    ''' every toast passes through: the TCP path AND the OBS bridge).
-    ''' </summary>
+    
+    
+    
+    
+    
+    
+    
     Public Class NotificationsSettingsClass
-        ' RECORDING
+        
         Public Property RecordingStarted As Boolean = True
         Public Property RecordingSaved As Boolean = True
         Public Property RecordingError As Boolean = True
-        ' INSTANT REPLAY
+        
         Public Property ReplaySaved As Boolean = True
         Public Property InstantReplayOn As Boolean = True
         Public Property InstantReplayOff As Boolean = True
         Public Property ReplayTurnOn As Boolean = True
         Public Property ReplayError As Boolean = True
-        ' SCREENSHOTS
+        
         Public Property ScreenshotSaved As Boolean = True
         Public Property ValidSavePath As Boolean = True
-        ' SHARE OVERLAY
+        
         Public Property OpenShare As Boolean = True
-        ' SYSTEM MONITOR
+        
         Public Property RamWarning As Boolean = True
         Public Property RamWarning95 As Boolean = True
         Public Property RamCritical As Boolean = True
         Public Property CpuWarning As Boolean = True
         Public Property DiskSpaceLow As Boolean = True
-        ' UPDATES
+        
         Public Property UpdateAvailable As Boolean = True
         Public Property VersionLatest As Boolean = True
         Public Property UpdateError As Boolean = True
-        ' ERRORS & FEEDBACK
+        
         Public Property AccountConfirmError As Boolean = True
         Public Property ExtensionNotFound As Boolean = True
         Public Property FeatureNotReady As Boolean = True
@@ -227,18 +227,18 @@ Partial Public Class AppSettings
         Public Property EngineUIInUse As Boolean = True
         Public Property ErrorResolution As Boolean = True
         Public Property DesktopCaptureDisabled As Boolean = True
-        ' TOAST SLOTS — how many simultaneous toast slots the Notifier uses
-        ' (1 = every toast funnels through the main slot; 2 = a new
-        ' notification group enters the free slot instead of replacing the
-        ' showing one; 3 = slot 3 joins as the overflow when main AND slot
-        ' 2 are both busy). Settings → General "second" + "third toast
-        ' slot" toggles.
+        
+        
+        
+        
+        
+        
         Public Property SlotCount As Integer = 2
     End Class
 
-    ''' <summary>
-    ''' GitHub User settings - เก็บข้อมูลผู้ใช้ GitHub
-    ''' </summary>
+    
+    
+    
     Public Class GitHubUserClass
         Public Property Username As String = ""
         Public Property AvatarUrl As String = ""
@@ -246,10 +246,10 @@ Partial Public Class AppSettings
         Public Property LastLogin As DateTime = DateTime.MinValue
     End Class
 
-    ' ── GitHub account + token persistence — declared in the Config
-    ' Sections region AFTER Hotkeys, so serialization order keeps config.json
-    ' in Settings-page order with the account block last.
-    ' ── DPAPI helpers ─────────────────────────────────────────
+    
+    
+    
+    
     Private Shared Function EncryptToken(plain As String) As String
         If String.IsNullOrEmpty(plain) Then Return ""
         Try
@@ -269,7 +269,7 @@ Partial Public Class AppSettings
             Dim plain As Byte() = ProtectedData.Unprotect(cipher, Nothing, DataProtectionScope.CurrentUser)
             Return Encoding.UTF8.GetString(plain)
         Catch ex As Exception
-            ' Wrong user, corrupted, or it's actually a legacy plain-text token.
+            
             Debug.WriteLine($"DecryptToken failed: {ex.Message}")
             Return ""
         End Try
@@ -287,30 +287,30 @@ Partial Public Class AppSettings
 
     Public Property Hotkeys As New Dictionary(Of String, String)(StringComparer.OrdinalIgnoreCase)
 
-    ' ── GitHub account block LAST — declaration order = config.json key
-    ' order, so the file opens with the app sections (Recording → Hotkeys)
-    ' and closes with the account block.
+    
+    
+    
 
-    ''' <summary>
-    ''' GitHub account + token persistence.
-    ''' ✅ P1: token stored encrypted (DPAPI, CurrentUser scope) in config.json
-    ''' as GitHubTokenEncrypted. Never written to disk as plain text. The
-    ''' plain GitHubToken property below is computed (decrypt-on-read) and
-    ''' only exists in memory. On first load after upgrade, an old plain-text
-    ''' GitHubToken value is automatically migrated to encrypted form.
-    ''' </summary>
+    
+    
+    
+    
+    
+    
+    
+    
     Public Property GitHubUser As New GitHubUserClass()
 
-    ''' <summary>Encrypted GitHub token (Base64 of DPAPI-protected bytes). Persisted.</summary>
+    
     <JsonPropertyName("GitHubTokenEncrypted")>
     Public Property GitHubTokenEncrypted As String = ""
 
-    ''' <summary>
-    ''' Plain-text GitHub token. NOT serialized to JSON (JsonIgnore on the
-    ''' backing field below). Reading it decrypts GitHubTokenEncrypted; writing
-    ''' it encrypts and stores in GitHubTokenEncrypted. On failed decrypt the
-    ''' getter returns "" (treats token as missing).
-    ''' </summary>
+    
+    
+    
+    
+    
+    
     <JsonIgnore>
     Public Property GitHubToken As String
         Get
@@ -323,18 +323,18 @@ Partial Public Class AppSettings
 #End Region
 
 #Region "Config file DTO — Recording stored video.json-shaped (the detailed file schema)"
-    ' The in-memory model stays FLAT (Recording.FPS / Recording.MyLowFPS …) so
-    ' every Settings page, the TCP payload and the Engine sync code keep
-    ' working untouched. Only the FILE shape is nested: config.json's
-    ' Recording section keeps the old video.json layout — current { fps,
-    ' bitrate, … } / my_presets { low, medium, high } — the "detailed"
-    ' structure the flat 20-key section had replaced. Mapping happens
-    ' exclusively in BuildRecordingDto (save) / ApplyRecordingDto (load).
-    ' Property names ARE the JSON keys: snake_case inside the section,
-    ' PascalCase section names — same convention as the Engine-side mirror's
-    ' OverlayConfig.VideoConfig classes, which parse this exact shape.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    ''' <summary>Nested under "current" — the values actually in use.</summary>
+    
     Public Class VideoCurrentDto
         Public Property fps As Integer = 60
         Public Property bitrate As Integer = 20000
@@ -344,7 +344,7 @@ Partial Public Class AppSettings
         Public Property height As Integer = 1080
     End Class
 
-    ''' <summary>One MY preset slot — null = use NVIDIA defaults.</summary>
+    
     Public Class MyPresetSlotDto
         Public Property fps As Integer? = Nothing
         Public Property bitrate As Integer? = Nothing
@@ -352,7 +352,7 @@ Partial Public Class AppSettings
     End Class
 
     Public Class MyPresetsDto
-        ''' <summary>Custom renameable name for MY preset group (e.g. "P4", "P6")</summary>
+        
         Public Property name As String = "MY"
         Public Property low As MyPresetSlotDto = New MyPresetSlotDto()
         Public Property medium As MyPresetSlotDto = New MyPresetSlotDto()
@@ -360,27 +360,27 @@ Partial Public Class AppSettings
     End Class
 
     Public Class RecordingSectionDto
-        ''' <summary>Encoder string: NVENC_H264, NVENC_HEVC, QuickSync_H264, etc.</summary>
+        
         Public Property encoder As String = "NVENC_H264"
-        ''' <summary>Encoder currently in use (may differ during transitions)</summary>
+        
         Public Property encoder_now As String = "NVENC_H264"
-        ''' <summary>Currently selected preset name (e.g. "Medium", "MyLow", "Custom")</summary>
+        
         Public Property active_preset As String = "Medium"
         Public Property current As VideoCurrentDto = New VideoCurrentDto()
-        ''' <summary>Replay buffer duration in seconds</summary>
+        
         Public Property replay_duration As Integer = 60
         Public Property my_presets As MyPresetsDto = New MyPresetsDto()
-        ''' <summary>Engine regime: Duluka or FFmpeg. Missing/empty = infer from legacy api_capture.</summary>
+        
         Public Property engine_mode As String = Nothing
-        ''' <summary>Capture API/filter: ddagrab, gfxcapture, gdigrab, or null (auto)</summary>
+        
         Public Property api_capture As String = Nothing
     End Class
 
-    ''' <summary>
-    ''' Full config.json file shape — Recording nested, everything else
-    ''' identical to the model (the same classes → the same keys as today).
-    ''' Declaration order = key order in the file.
-    ''' </summary>
+    
+    
+    
+    
+    
     Public Class ConfigFileDto
         Public Property Recording As RecordingSectionDto = New RecordingSectionDto()
         Public Property Paths As PathSettingsClass
@@ -398,19 +398,19 @@ Partial Public Class AppSettings
 #Region "Singleton"
     Private Shared _instance As AppSettings = Nothing
     Private Shared ReadOnly _lock As New Object()
-    ' Serializes Save() — two threads saving at once could otherwise
-    ' interleave the read-modify-write guard below or trip over each
-    ' other's temp file. (Instance creation uses _lock; saves get their
-    ' own gate so a long save never blocks first access.)
+    
+    
+    
+    
     Private Shared ReadOnly _saveLock As New Object()
     Private Shared _isLoaded As Boolean = False
 
-    ' Hardware detection flag
+    
     Private Shared _hardwareDetected As Boolean = False
 
-    ''' <summary>
-    ''' Get singleton instance - Load() จะถูกเรียกอัตโนมัติครั้งแรก
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property Instance As AppSettings
         Get
             If _instance Is Nothing Then
@@ -426,9 +426,9 @@ Partial Public Class AppSettings
         End Get
     End Property
 
-    ''' <summary>
-    ''' Check if hardware detection has been run
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property HardwareDetected As Boolean
         Get
             Return _hardwareDetected
@@ -436,9 +436,9 @@ Partial Public Class AppSettings
     End Property
 
 
-    ''' <summary>
-    ''' Initialize และ Load config - เรียกตอน app start (optional)
-    ''' </summary>
+    
+    
+    
     Public Shared Sub Initialize()
         SyncLock _lock
             If _instance Is Nothing Then
@@ -459,13 +459,13 @@ Partial Public Class AppSettings
     Private _configPath As String = Nothing
     Private _videoConfigPath As String = Nothing
 
-    ''' <summary>True when config.json did NOT exist at the last Load() — legacy files must be migrated in.</summary>
+    
     Private _configWasMissingOnLoad As Boolean = False
 
-    ''' <summary>
-    ''' Path to config.json — THE single user-facing config file (GLM/6 unified
-    ''' config: Paths + UI + Recording + Audio + Hotkeys all live here).
-    ''' </summary>
+    
+    
+    
+    
     Private ReadOnly Property ConfigPath As String
         Get
             If _configPath Is Nothing Then
@@ -475,10 +475,10 @@ Partial Public Class AppSettings
         End Get
     End Property
 
-    ''' <summary>
-    ''' Path to legacy video.json — READ ONCE for migration only. Nothing writes
-    ''' it anymore; after a successful migration it is renamed to video.json.legacy.
-    ''' </summary>
+    
+    
+    
+    
     Private ReadOnly Property VideoConfigPath As String
         Get
             If _videoConfigPath Is Nothing Then
@@ -490,12 +490,12 @@ Partial Public Class AppSettings
 #End Region
 
 #Region "config.json — Load / Save"
-    ''' <summary>
-    ''' Load settings from config.json. Accepts BOTH file schema generations:
-    ''' nested Recording (current — video.json-shaped) and flat Recording
-    ''' (legacy files from before the detailed schema); a legacy-shaped file
-    ''' is rewritten once in the nested shape right after a successful read.
-    ''' </summary>
+    
+    
+    
+    
+    
+    
     Public Sub Load()
         Try
             Debug.WriteLine("══════════ AppSettings.Load ══════════")
@@ -510,10 +510,10 @@ Partial Public Class AppSettings
                     applied = TryApplyConfigJson(json)
                 End If
 
-                ' Crash-proofing: a truncated config.json (hard kill / power
-                ' loss mid-Save) must not silently reset the user to defaults.
-                ' Every atomic save keeps the previous good content as
-                ' config.json.bak — try it before giving up.
+                
+                
+                
+                
                 If Not applied Then
                     Dim bakJson As String = TryReadBackupText()
                     If bakJson IsNot Nothing Then
@@ -526,26 +526,26 @@ Partial Public Class AppSettings
                 End If
 
                 If applied Then
-                    ' One-time schema upgrade + crash repair: a file read in
-                    ' the legacy flat shape is rewritten once in the nested
-                    ' shape; a file recovered from .bak is rewritten over the
-                    ' corrupt one right away so the bad state never spreads.
+                    
+                    
+                    
+                    
                     If recoveredFromBackup OrElse Not ConfigJsonIsNested(json) Then
                         Save()
                     End If
 
-                    ' ✅ P1: Migration — if the JSON on disk still has a legacy
-                    ' plain-text GitHubToken field (from before DPAPI encryption),
-                    ' encrypt it and store it as GitHubTokenEncrypted, then trigger
-                    ' a save so the plain-text field is wiped from disk.
-                    ' The <JsonIgnore> on the GitHubToken setter means it never
-                    ' deserializes directly — we have to peek at the raw JSON.
+                    
+                    
+                    
+                    
+                    
+                    
                     Dim legacyPlainToken As String = TryGetLegacyPlainToken(json)
                     If Not String.IsNullOrEmpty(legacyPlainToken) Then
-                        GitHubToken = legacyPlainToken  ' triggers EncryptToken via setter
+                        GitHubToken = legacyPlainToken  
                         Debug.WriteLine("AppSettings.Load: migrated legacy plain-text GitHubToken → encrypted")
                         Try
-                            Save()  ' persist the encrypted form and wipe the plain-text field
+                            Save()  
                         Catch ex As Exception
                             Debug.WriteLine("AppSettings.Load: migration save failed: " & ex.Message)
                         End Try
@@ -558,19 +558,19 @@ Partial Public Class AppSettings
                     Debug.WriteLine("AppSettings.Load: config.json unreadable and no usable .bak — running on defaults")
                 End If
             Else
-                ' Create default config
+                
                 _configWasMissingOnLoad = True
                 Save()
                 Debug.WriteLine("AppSettings.Load: Created default config")
             End If
 
-            ' GLM/6 UNIFIED CONFIG: one-time legacy migration (video.json +
-            ' audio.json → config.json). Runs only when config.json was just
-            ' created (first run / fresh install next to old files).
+            
+            
+            
             MigrateLegacyConfigFiles()
 
-            ' One-time import of the last settings that lived OUTSIDE
-            ' config.json (privacy marker, Use_Overlay flag, current.txt).
+            
+            
             MigrateLegacyMarkerFiles()
 
         Catch ex As Exception
@@ -579,19 +579,19 @@ Partial Public Class AppSettings
     End Sub
 
 #Region "Legacy marker-file migration (privacy / Use_Overlay / current.txt)"
-    ''' <summary>
-    ''' One-time import of user settings that used to live OUTSIDE config.json:
-    '''   Data/NVIDIA_Shadowplay_Data/privacy → Privacy.DesktopCaptureEnabled
-    '''   Flags/Use_Overlay                   → Overlay.UseOverlayEnabled
-    '''   Languages/current.txt               → UI.Language
-    ''' Each source is imported once and then deleted, so config.json becomes
-    ''' the single source of truth. Runs on every Load() but is a no-op once
-    ''' the legacy files are gone.
-    ''' </summary>
+    
+    
+    
+    
+    
+    
+    
+    
+    
     Private Sub MigrateLegacyMarkerFiles()
         Dim changed As Boolean = False
 
-        ' ── Privacy consent marker (existence = user opted in) ──
+        
         Dim privacyMarker As String = AppLayout.P("Data", "NVIDIA_Shadowplay_Data", "privacy")
         If File.Exists(privacyMarker) Then
             Privacy.DesktopCaptureEnabled = True
@@ -600,7 +600,7 @@ Partial Public Class AppSettings
             Debug.WriteLine("[Migrate] privacy marker → config.json Privacy.DesktopCaptureEnabled = True")
         End If
 
-        ' ── Overlay stack toggle (Flags/Use_Overlay) ──
+        
         Dim useOverlayFlag As String = AppLayout.P("Flags", "Use_Overlay")
         If File.Exists(useOverlayFlag) Then
             Overlay.UseOverlayEnabled = True
@@ -609,10 +609,10 @@ Partial Public Class AppSettings
             Debug.WriteLine("[Migrate] Flags/Use_Overlay → config.json Overlay.UseOverlayEnabled = True")
         End If
 
-        ' ── Current language pointer ──
-        ' Import only when the code maps to an existing Languages\<code>.json
-        ' (defends against a hand-edited/garbage pointer); the pointer file is
-        ' removed either way so the migration always completes.
+        
+        
+        
+        
         Dim currentTxt As String = AppLayout.P("Languages", "current.txt")
         If File.Exists(currentTxt) Then
             Try
@@ -633,17 +633,17 @@ Partial Public Class AppSettings
     End Sub
 #End Region
 
-    ''' <summary>
-    ''' Peek at the raw JSON to find a legacy plain-text "GitHubToken" field.
-    ''' Returns "" if not present or if the value is empty.
-    ''' </summary>
+    
+    
+    
+    
     Private Shared Function TryGetLegacyPlainToken(json As String) As String
         Try
             Using doc As JsonDocument = JsonDocument.Parse(json)
                 Dim root As JsonElement = doc.RootElement
                 Dim tok As JsonElement
-                ' PropertyNameCaseInsensitive at the parser level is not a thing —
-                ' check both common casings explicitly.
+                
+                
                 If root.TryGetProperty("GitHubToken", tok) AndAlso tok.ValueKind = JsonValueKind.String Then
                     Dim s As String = tok.GetString()
                     If Not String.IsNullOrEmpty(s) Then Return s
@@ -658,10 +658,10 @@ Partial Public Class AppSettings
         Return ""
     End Function
 
-    ''' <summary>
-    ''' Parse + deserialize config.json content with the tolerant options set.
-    ''' Returns Nothing when the text is not usable JSON — caller may recover.
-    ''' </summary>
+    
+    
+    
+    
     Private Function TryDeserializeConfig(json As String) As AppSettings
         Try
             Dim options As New JsonSerializerOptions With {
@@ -676,12 +676,12 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    ''' <summary>
-    ''' Parse + apply config.json content in EITHER schema generation:
-    ''' nested (current — Recording stored video.json-shaped) or legacy flat
-    ''' (Recording as 20 PascalCase keys). Returns False when the text is not
-    ''' usable JSON in either shape — the caller may then try the .bak.
-    ''' </summary>
+    
+    
+    
+    
+    
+    
     Private Function TryApplyConfigJson(json As String) As Boolean
         If ConfigJsonIsNested(json) Then
             Dim dto As ConfigFileDto = TryDeserializeConfigDto(json)
@@ -695,11 +695,11 @@ Partial Public Class AppSettings
         Return True
     End Function
 
-    ''' <summary>
-    ''' True when the Recording section is in the nested (video.json-shaped)
-    ''' schema — detected by the "current" child object, which the legacy flat
-    ''' generation never had. Tolerates casing, comments and trailing commas.
-    ''' </summary>
+    
+    
+    
+    
+    
     Private Shared Function ConfigJsonIsNested(json As String) As Boolean
         Try
             Dim docOpts As New JsonDocumentOptions With {
@@ -721,10 +721,10 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    ''' <summary>
-    ''' Parse config.json content into the nested-shape file DTO with the
-    ''' tolerant options set. Returns Nothing when the text is not usable.
-    ''' </summary>
+    
+    
+    
+    
     Private Shared Function TryDeserializeConfigDto(json As String) As ConfigFileDto
         Try
             Dim options As New JsonSerializerOptions With {
@@ -739,11 +739,11 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    ''' <summary>
-    ''' Last-resort recovery source: config.json.bak (kept by every atomic
-    ''' save). Returns the raw backup text (Nothing when absent/unreadable) —
-    ''' the caller runs the same dual-shape apply on it as on the live file.
-    ''' </summary>
+    
+    
+    
+    
+    
     Private Function TryReadBackupText() As String
         Try
             Dim bakPath As String = ConfigPath & ".bak"
@@ -757,7 +757,7 @@ Partial Public Class AppSettings
         End Try
     End Function
 
-    ''' <summary>Apply a nested-shape ConfigFileDto onto the flat in-memory model.</summary>
+    
     Private Sub ApplyDtoSettings(dto As ConfigFileDto)
         If dto Is Nothing Then Return
 
@@ -774,14 +774,14 @@ Partial Public Class AppSettings
             Hotkeys = New Dictionary(Of String, String)(dto.Hotkeys, StringComparer.OrdinalIgnoreCase)
         End If
 
-        ' ✅ P1: copy the encrypted token directly (same contract as
-        ' ApplyLoadedSettings — no decrypt-then-encrypt round-trip).
+        
+        
         GitHubTokenEncrypted = dto.GitHubTokenEncrypted
     End Sub
 
-    ' ═══ Flat model → nested DTO (save) ═══
+    
 
-    ''' <summary>Flat in-memory Recording → nested (video.json-shaped) DTO.</summary>
+    
     Private Function BuildRecordingDto() As RecordingSectionDto
         Dim d As New RecordingSectionDto()
         d.encoder = Recording.Encoder
@@ -811,12 +811,12 @@ Partial Public Class AppSettings
         Return New MyPresetSlotDto With {.fps = fps, .bitrate = bitrate, .encoder_preset = encoderPreset}
     End Function
 
-    ' ═══ Nested DTO → flat model (load) ═══
+    
 
-    ''' <summary>
-    ''' Nested (video.json-shaped) DTO → flat in-memory Recording. Missing
-    ''' keys keep their defaults — same semantics as ApplyLoadedSettings.
-    ''' </summary>
+    
+    
+    
+    
     Private Sub ApplyRecordingDto(d As RecordingSectionDto)
         If d Is Nothing Then Return
 
@@ -857,11 +857,11 @@ Partial Public Class AppSettings
         If Not String.IsNullOrWhiteSpace(d.engine_mode) Then
             Recording.EngineMode = NormalizeEngineMode(d.engine_mode)
         Else
-            ' Backward compatibility: old files encoded the regime through api_capture.
+            
             Recording.EngineMode = If(String.Equals(d.api_capture, "ddagrab", StringComparison.OrdinalIgnoreCase), "Duluka", "FFmpeg")
         End If
 
-        ' Nothing = auto — direct assignment preserves the nullable semantics.
+        
         Recording.APICapture = d.api_capture
     End Sub
 
@@ -872,14 +872,14 @@ Partial Public Class AppSettings
         Return "FFmpeg"
     End Function
 
-    ''' <summary>
-    ''' Atomic config write: write a per-PID temp file, keep the current
-    ''' content as config.json.bak, then rename the temp over config.json
-    ''' (same volume — atomic on NTFS). A crash mid-save can only cost the
-    ''' newest change, never the whole file. The per-PID temp name stops two
-    ''' processes (Overlay save vs Launcher WriteBool) from clobbering one
-    ''' shared temp file mid-write.
-    ''' </summary>
+    
+    
+    
+    
+    
+    
+    
+    
     Private Sub WriteConfigFileAtomic(json As String)
         Dim tmpPath As String = ConfigPath & "." & Process.GetCurrentProcess().Id.ToString() & ".tmp"
         Dim bakPath As String = ConfigPath & ".bak"
@@ -907,11 +907,11 @@ Partial Public Class AppSettings
             Hotkeys = New Dictionary(Of String, String)(loaded.Hotkeys, StringComparer.OrdinalIgnoreCase)
         End If
 
-        ' ✅ P1: copy the encrypted token directly (the plain GitHubToken property
-        ' is <JsonIgnore> so the deserializer can't set it; copying the encrypted
-        ' form preserves the value without a decrypt-then-encrypt round-trip that
-        ' could subtly corrupt the bytes). Legacy plain-text migration is handled
-        ' separately in Load() via TryGetLegacyPlainToken.
+        
+        
+        
+        
+        
         GitHubTokenEncrypted = loaded.GitHubTokenEncrypted
     End Sub
 
@@ -929,7 +929,7 @@ Partial Public Class AppSettings
         Recording.ReplayDuration = loadedRecording.ReplayDuration
         Recording.UseNativeResolution = loadedRecording.UseNativeResolution
 
-        ' ═══ My Preset saved values (ถ้าไม่มีใน config.json เก่า จะเป็น Nothing → ใช้ default) ═══
+        
         Recording.MyLowFPS = loadedRecording.MyLowFPS
         Recording.MyLowBitrate = loadedRecording.MyLowBitrate
         Recording.MyLowEncoderPreset = loadedRecording.MyLowEncoderPreset
@@ -968,10 +968,10 @@ Partial Public Class AppSettings
         Audio.SystemAudioVolume = loadedAudio.SystemAudioVolume
         Audio.MicVolume = loadedAudio.MicVolume
         Audio.MicDeviceName = loadedAudio.MicDeviceName
-        ' GLM/6 unification added MicDeviceId + TrackMode to the class but this
-        ' field-copy was never updated — every app start silently dropped both
-        ' (mic selection reset in the Overlay UI; the Engine was unaffected
-        ' because it reads config.json itself). AudioClockMode rides the fix.
+        
+        
+        
+        
         Audio.MicDeviceId = loadedAudio.MicDeviceId
         Audio.TrackMode = loadedAudio.TrackMode
         Audio.AudioClockMode = loadedAudio.AudioClockMode
@@ -998,32 +998,32 @@ Partial Public Class AppSettings
 
     Private Sub ApplyNotificationsSettings(loadedNotifications As NotificationsSettingsClass)
         If loadedNotifications Is Nothing Then Return
-        ' RECORDING
+        
         Notifications.RecordingStarted = loadedNotifications.RecordingStarted
         Notifications.RecordingSaved = loadedNotifications.RecordingSaved
         Notifications.RecordingError = loadedNotifications.RecordingError
-        ' INSTANT REPLAY
+        
         Notifications.ReplaySaved = loadedNotifications.ReplaySaved
         Notifications.InstantReplayOn = loadedNotifications.InstantReplayOn
         Notifications.InstantReplayOff = loadedNotifications.InstantReplayOff
         Notifications.ReplayTurnOn = loadedNotifications.ReplayTurnOn
         Notifications.ReplayError = loadedNotifications.ReplayError
-        ' SCREENSHOTS
+        
         Notifications.ScreenshotSaved = loadedNotifications.ScreenshotSaved
         Notifications.ValidSavePath = loadedNotifications.ValidSavePath
-        ' SHARE OVERLAY
+        
         Notifications.OpenShare = loadedNotifications.OpenShare
-        ' SYSTEM MONITOR
+        
         Notifications.RamWarning = loadedNotifications.RamWarning
         Notifications.RamWarning95 = loadedNotifications.RamWarning95
         Notifications.RamCritical = loadedNotifications.RamCritical
         Notifications.CpuWarning = loadedNotifications.CpuWarning
         Notifications.DiskSpaceLow = loadedNotifications.DiskSpaceLow
-        ' UPDATES
+        
         Notifications.UpdateAvailable = loadedNotifications.UpdateAvailable
         Notifications.VersionLatest = loadedNotifications.VersionLatest
         Notifications.UpdateError = loadedNotifications.UpdateError
-        ' ERRORS & FEEDBACK
+        
         Notifications.AccountConfirmError = loadedNotifications.AccountConfirmError
         Notifications.ExtensionNotFound = loadedNotifications.ExtensionNotFound
         Notifications.FeatureNotReady = loadedNotifications.FeatureNotReady
@@ -1032,41 +1032,41 @@ Partial Public Class AppSettings
         Notifications.EngineUIInUse = loadedNotifications.EngineUIInUse
         Notifications.ErrorResolution = loadedNotifications.ErrorResolution
         Notifications.DesktopCaptureDisabled = loadedNotifications.DesktopCaptureDisabled
-        ' TOAST SLOTS - clamp to the supported range (1..3 slots); a
-        ' hand-edited config can never push the router out of bounds.
+        
+        
         Notifications.SlotCount = Math.Min(3, Math.Max(1, loadedNotifications.SlotCount))
     End Sub
 
-    ''' <summary>
-    ''' Save settings to config.json
-    ''' </summary>
+    
+    
+    
     Public Sub Save()
         Try
             SyncLock _saveLock
-                ' Foreign-key guard: Overlay.UseOverlayEnabled is owned by the
-                ' Launcher.exe toggle and enforced by the API hub
-                ' every second. Refresh it from the file right before serializing
-                ' so an Overlay save can never clobber a toggle flip that happened
-                ' after our Load(). (Privacy/UI.Language are Overlay-owned — no
-                ' other process writes them.)
+                
+                
+                
+                
+                
+                
                 Overlay.UseOverlayEnabled = AppConfigShared.ReadBool("Overlay", "UseOverlayEnabled", Overlay.UseOverlayEnabled)
 
                 Dim options As New JsonSerializerOptions With {
                     .WriteIndented = True
                 }
-                ' NOTE: no DefaultIgnoreCondition — null fields are written
-                ' explicitly (e.g. "fps": null in a MY preset slot) so
-                ' config.json always shows the FULL schema: every section,
-                ' every key, in a stable order. All readers are null-tolerant
-                ' (typed mirror models on the Overlay/Engine sides, TryGetValue
-                ' fallbacks in AppConfigShared, and value-type keys are never
-                ' null).
+                
+                
+                
+                
+                
+                
+                
 
-                ' The FILE schema nests Recording video.json-style (current /
-                ' my_presets — the "detailed" layout); the in-memory model
-                ' stays flat. ConfigFileDto is that file shape: Recording is
-                ' built from the flat model, every other section is written
-                ' as-is (the same classes the model uses → same keys).
+                
+                
+                
+                
+                
                 Dim dto As New ConfigFileDto With {
                     .Recording = BuildRecordingDto(),
                     .Paths = Paths,

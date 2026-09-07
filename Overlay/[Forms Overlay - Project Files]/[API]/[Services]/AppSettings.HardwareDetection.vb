@@ -1,7 +1,7 @@
-﻿' AppSettings (hardware detection) — GPU vendor flags via three probes:
-'   FAST  (sync, UI thread): Registry DriverDesc → System32 DLL check  (<50ms)
-'   SLOW  (background once): PowerShell Get-CimInstance                (~5s worst case)
-' AV1 (NVENC) is assumed for RTX 40/50 series ("RTX 40"/"RTX 50"/"Ada").
+
+
+
+
 
 Imports System.Collections.Generic
 Imports System.Diagnostics
@@ -22,57 +22,57 @@ Partial Public Class AppSettings
     Private Shared _intelGpuName As String = ""
     Private Shared _supportsAV1 As Boolean? = Nothing
 
-    ' Store all detected GPU names
+    
     Private Shared _allGpuNames As New List(Of String)()
 
-    ''' <summary>
-    ''' Check if NVIDIA GPU is available
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property HasNvidia As Boolean
         Get
             Return _hasNvidia.GetValueOrDefault(False)
         End Get
     End Property
 
-    ''' <summary>
-    ''' Check if Intel GPU is available
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property HasIntel As Boolean
         Get
             Return _hasIntel.GetValueOrDefault(False)
         End Get
     End Property
 
-    ''' <summary>
-    ''' Check if AMD GPU is available
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property HasAMD As Boolean
         Get
             Return _hasAMD.GetValueOrDefault(False)
         End Get
     End Property
 
-    ''' <summary>
-    ''' Get primary GPU name (NVIDIA > AMD > Intel)
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property GPUName As String
         Get
             Return _gpuName
         End Get
     End Property
 
-    ''' <summary>
-    ''' Get Intel iGPU name
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property IntelGPUName As String
         Get
             Return _intelGpuName
         End Get
     End Property
 
-    ''' <summary>
-    ''' Check if GPU supports AV1 encoding (RTX 40 series+)
-    ''' </summary>
+    
+    
+    
     Public Shared ReadOnly Property SupportsNVENCAV1 As Boolean
         Get
             If _supportsAV1 Is Nothing Then
@@ -82,9 +82,9 @@ Partial Public Class AppSettings
         End Get
     End Property
 
-    ''' <summary>
-    ''' Detect AV1 support - RTX 40 series or newer
-    ''' </summary>
+    
+    
+    
     Private Shared Sub DetectAV1Support()
         _supportsAV1 = False
 
@@ -92,7 +92,7 @@ Partial Public Class AppSettings
             Exit Sub
         End If
 
-        ' AV1 supported on: RTX 40 series (Ada Lovelace)
+        
         Dim gpuUpper As String = _gpuName.ToUpperInvariant()
 
         If gpuUpper.Contains("RTX 40") OrElse
@@ -104,15 +104,15 @@ Partial Public Class AppSettings
         Debug.WriteLine("AV1 Support: " & _supportsAV1.ToString() & " (GPU: " & _gpuName & ")")
     End Sub
 
-    ' PowerShell CIM probe ตัวเดียวที่ช้า (สูงสุด ~5s) — ต้องไม่ถูกเรียกบน UI thread
-    ' Interlocked guard: ตลอดอายุโปรเซส probe ตัวนี้ถูกเรียก "ครั้งเดียว"
+    
+    
     Private Shared _psProbeStarted As Integer = 0
 
-    ''' <summary>
-    ''' Detect available GPUs
-    ''' </summary>
+    
+    
+    
     Public Shared Sub DetectHardware()
-        ' Skip if already detected
+        
         If _hardwareDetected Then
             Debug.WriteLine("DetectHardware: Already detected, skipping")
             Exit Sub
@@ -126,16 +126,16 @@ Partial Public Class AppSettings
             _hasAMD = False
             _allGpuNames.Clear()
 
-            ' FAST probes มาก่อน (Registry + DLL < 50ms) — UI thread ไม่ต้องรอ
-            ' ผลลัพธ์เกือบทุกเครื่องเหมือน PowerShell CIM (DriverDesc ก็คือชื่อ GPU เดียวกัน)
+            
+            
 
-            ' Registry Detection
+            
             DetectGPUsViaRegistry()
 
-            ' DLL Check (final fallback)
+            
             Dim system32 As String = Environment.SystemDirectory
 
-            ' NVIDIA - ต้องมี nvenc.dll
+            
             If Not _hasNvidia.GetValueOrDefault(False) Then
                 If File.Exists(Path.Combine(system32, "nvenc.dll")) Then
                     _hasNvidia = True
@@ -143,7 +143,7 @@ Partial Public Class AppSettings
                 End If
             End If
 
-            ' AMD - amdocl64.dll
+            
             If Not _hasAMD.GetValueOrDefault(False) Then
                 If File.Exists(Path.Combine(system32, "amdocl64.dll")) Then
                     _hasAMD = True
@@ -153,7 +153,7 @@ Partial Public Class AppSettings
 
             RecomputePrimaryGpuName()
 
-            ' Mark as detected — แอปใช้งานได้เต็มรูปแบบจากผล fast probes แล้ว
+            
             _hardwareDetected = True
 
             Debug.WriteLine("══════════ DetectHardware RESULT (fast probes) ══════════")
@@ -163,26 +163,26 @@ Partial Public Class AppSettings
             Debug.WriteLine("  Primary GPU: " & _gpuName)
             Debug.WriteLine("═══════════════════════════════════════════")
 
-            ' SLOW probe (PowerShell CIM, สูงสุด ~5s) → background เท่านั้น
-            ' ทำหน้าที่ยืนยัน/เสริมผล ไม่ใช่เงื่อนไขของ startup
-            ' Thread-safety: _allGpuNames ถูกเขียนโดย registry probe (จบก่อน Task.Run
-            ' ถูก schedule) และ PowerShell probe ที่วิ่งครั้งเดียวจาก flag นี้ — ไม่มีทางทับกัน
+            
+            
+            
+            
             If Interlocked.CompareExchange(_psProbeStarted, 1, 0) = 0 Then
                 Task.Run(Sub()
                              DetectGPUsViaPowerShell()
                              RecomputePrimaryGpuName()
-                             _supportsAV1 = Nothing   ' ให้คำนวณใหม่จากชื่อที่อาจละเอียดขึ้น
+                             _supportsAV1 = Nothing   
                              Debug.WriteLine("PowerShell GPU probe finished (background)")
                          End Sub)
             End If
 
         Catch ex As Exception
             Debug.WriteLine("DetectHardware Error: " & ex.Message)
-            _hardwareDetected = True ' Still mark as detected to prevent loops
+            _hardwareDetected = True 
         End Try
     End Sub
 
-    ''' <summary>เลือกชื่อ GPU หลักจากทุกชื่อที่ probe เจอ (NVIDIA &gt; AMD &gt; Intel)</summary>
+    
     Private Shared Sub RecomputePrimaryGpuName()
         If _hasNvidia.GetValueOrDefault(False) Then
             _gpuName = _allGpuNames.FirstOrDefault(Function(n) n.ToUpperInvariant().Contains("NVIDIA"), "NVIDIA GPU")
@@ -193,9 +193,9 @@ Partial Public Class AppSettings
         End If
     End Sub
 
-    ''' <summary>
-    ''' Detect GPUs using PowerShell
-    ''' </summary>
+    
+    
+    
     Private Shared Sub DetectGPUsViaPowerShell()
         Try
             Dim psi As New ProcessStartInfo With {
@@ -232,9 +232,9 @@ Partial Public Class AppSettings
         End Try
     End Sub
 
-    ''' <summary>
-    ''' Detect GPUs via Windows Registry
-    ''' </summary>
+    
+    
+    
     Private Shared Sub DetectGPUsViaRegistry()
         Try
             Const GPU_REGISTRY_PATH As String = "SYSTEM\CurrentControlSet\Control\Class\{4d36e968-e325-11ce-bfc1-08002be10318}"

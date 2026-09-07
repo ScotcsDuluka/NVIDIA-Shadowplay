@@ -1,8 +1,8 @@
-﻿<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
+<Global.Microsoft.VisualBasic.CompilerServices.DesignerGenerated()>
 Partial Class Base_Connect_Devices
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
+    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +14,12 @@ Partial Class Base_Connect_Devices
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
+    
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.  
-    'Do not modify it using the code editor.
+    
+    
+    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Devices))
@@ -38,9 +38,9 @@ Partial Class Base_Connect_Devices
         CType(Dim_1, ComponentModel.ISupportInitialize).BeginInit()
         CType(Dim_2, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        ' 
-        ' Settings_Panel
-        ' 
+        
+        
+        
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_Panel.Controls.Add(Settings_TEXT)
@@ -51,9 +51,9 @@ Partial Class Base_Connect_Devices
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
-        ' 
-        ' Settings_TEXT
-        ' 
+        
+        
+        
         Settings_TEXT.AutoSize = True
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_TEXT.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
@@ -63,9 +63,9 @@ Partial Class Base_Connect_Devices
         Settings_TEXT.Size = New Size(128, 42)
         Settings_TEXT.TabIndex = 51
         Settings_TEXT.Text = "Devices"
-        ' 
-        ' List_PANEL
-        ' 
+        
+        
+        
         List_PANEL.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         List_PANEL.AutoScroll = True
         List_PANEL.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -73,9 +73,9 @@ Partial Class Base_Connect_Devices
         List_PANEL.Name = "List_PANEL"
         List_PANEL.Size = New Size(1636, 600)
         List_PANEL.TabIndex = 80
-        ' 
-        ' BT_RefreshDevices
-        ' 
+        
+        
+        
         BT_RefreshDevices.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         BT_RefreshDevices.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         BT_RefreshDevices.Cursor = Cursors.Hand
@@ -87,9 +87,9 @@ Partial Class Base_Connect_Devices
         BT_RefreshDevices.TabIndex = 81
         BT_RefreshDevices.Text = "Refresh"
         BT_RefreshDevices.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Status_TEXT
-        ' 
+        
+        
+        
         Status_TEXT.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
@@ -100,9 +100,9 @@ Partial Class Base_Connect_Devices
         Status_TEXT.Size = New Size(60, 19)
         Status_TEXT.TabIndex = 82
         Status_TEXT.Text = ""
-        ' 
-        ' Dim_Top
-        ' 
+        
+        
+        
         Dim_Top.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Dim_Top.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Dim_Top.Location = New Point(80, 160)
@@ -110,9 +110,9 @@ Partial Class Base_Connect_Devices
         Dim_Top.Size = New Size(1760, 5)
         Dim_Top.TabIndex = 0
         Dim_Top.TabStop = False
-        ' 
-        ' BT_Back
-        ' 
+        
+        
+        
         BT_Back.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_Back.Cursor = Cursors.Hand
         BT_Back.Font = New Font("Segoe UI", 12.0F, FontStyle.Bold)
@@ -123,9 +123,9 @@ Partial Class Base_Connect_Devices
         BT_Back.TabIndex = 58
         BT_Back.Text = "Back"
         BT_Back.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Dim_1
-        ' 
+        
+        
+        
         Dim_1.BackColor = Color.Blue
         Dim_1.BackgroundImageLayout = ImageLayout.None
         Dim_1.Location = New Point(0, 203)
@@ -134,9 +134,9 @@ Partial Class Base_Connect_Devices
         Dim_1.TabIndex = 93
         Dim_1.TabStop = False
         Dim_1.Visible = False
-        ' 
-        ' Dim_2
-        ' 
+        
+        
+        
         Dim_2.BackColor = Color.Blue
         Dim_2.BackgroundImageLayout = ImageLayout.None
         Dim_2.Location = New Point(1840, 166)
@@ -145,9 +145,9 @@ Partial Class Base_Connect_Devices
         Dim_2.TabIndex = 94
         Dim_2.TabStop = False
         Dim_2.Visible = False
-        ' 
-        ' Base_Connect_Devices
-        ' 
+        
+        
+        
         AutoScaleDimensions = New SizeF(7.0F, 15.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.Red

@@ -1,11 +1,11 @@
-' [Main] Account home — the Duluka Account landing page (SIGNED-IN ONLY).
-' Identity model (product rule): the DULUKA ACCOUNT owns the identity;
-' username/password is its NATIVE authentication method and a ProviderLink
-' (GitHub in v0) is an EXTERNAL authentication method into the SAME account.
-' Anyone without a Duluka session who lands here is forwarded to the
-' Sign in page. Identity comes from GET /v1/account/me — never from GitHub.
-' 401 / dead session is terminal: wipe the local session, forward to
-' Sign in, exactly once per occurrence (contract §5.4).
+
+
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
@@ -52,17 +52,17 @@ Public Class Base_Connect
         LayoutRow()
     End Sub
 
-    ''' <summary>The action row divides the panel content width (62px margins)
-    ' into FOUR equal buttons (Devices / Security / Providers / Edit Profile)
-    ' with 16px gaps — recomputed on every resize so the row tracks the panel
-    ' width exactly (anchors cannot make quarters). At the design width (panel
-    ' 1760) this computes the Designer values.</summary>
+    
+    
+    
+    
+    
     Private Sub LayoutRow()
         Dim contentW As Integer = Settings_Panel.Width - 124
         If contentW <= 0 Then Return
         Dim gap As Integer = 16
         Dim bw As Integer = (contentW - 3 * gap) \ 4
-        If bw < 180 Then bw = 180 ' below this the captions clip
+        If bw < 180 Then bw = 180 
         BT_Devices.Width = bw
         BT_Security.Location = New Point(62 + bw + gap, BT_Security.Top)
         BT_Security.Width = bw
@@ -76,12 +76,12 @@ Public Class Base_Connect
         LayoutRow()
     End Sub
 
-    ''' <summary>GATE: this page exists ONLY for signed-in users — anyone
-    ' without a Duluka session is forwarded to the Sign in page, and a
-    ' signed-in account whose native credential is STILL MISSING (GitHub
-    ' bootstrap, no username/password yet) is forwarded to the first-time
-    ' Account Setup page. Product rule: setup is one-time; once the username
-    ' exists this page renders normally forever after.</summary>
+    
+    
+    
+    
+    
+    
     Private Sub Base_Connect_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         If Not DulukaAccountStore.Instance.HasSession Then
@@ -96,10 +96,10 @@ Public Class Base_Connect
         RefreshAccountAsync()
     End Sub
 
-    ''' <summary>Paints the identity card from the cached store. The page is
-    ' signed-in only (the VisibleChanged gate forwards everyone else), but the
-    ' visibility of every block is still enforced here so the card can never
-    ' render as a blank page again.</summary>
+    
+    
+    
+    
     Private Sub RenderState()
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
         If Not store.HasSession Then Return
@@ -132,18 +132,18 @@ Public Class Base_Connect
         BT_Providers.Visible = True
         BT_Logout.Visible = True
         Session_PANEL.Visible = True
-        ' First-time setup nudge: a GitHub-bootstrapped account has no native
-        ' username/password yet — keep the setup offer on screen until done.
-        ' The Setup page itself re-gates (it never renders for an account that
-        ' already has a username), so the nudge cannot overstay its welcome.
+        
+        
+        
+        
         Nudge_PANEL.Visible = (store.Username = "")
     End Sub
 
-    ''' <summary>Server-truth refresh of the identity card. Keeps the cached
-    ' profile on transient errors; a 401 is terminal and signs out locally.
-    ' When the FORCED-SETUP gate is armed (right after a provider login) and
-    ' /me reports no native username, the Setup page replaces this one —
-    ' exactly once per login, so Back can return without a bounce loop.</summary>
+    
+    
+    
+    
+    
     Private Async Sub RefreshAccountAsync()
         If _meInFlight Then Return
         If Not DulukaAccountStore.Instance.HasSession Then Return
@@ -182,29 +182,29 @@ Public Class Base_Connect
         End Try
     End Sub
 
-    ' ── forced first-time setup gate ────────────────────────────────────────
+    
 
-    ''' <summary>Armed ONLY by the provider-login path (Login flow). A GitHub
-    ' bootstrap lands on Account home first; when /me confirms the account is
-    ' provider-only, the Setup page is force-opened (once per login — the
-    ' user may defer with Back, the nudge stays until the username exists).</summary>
+    
+    
+    
+    
     Private _setupGateArmed As Boolean
 
     Friend Sub ArmForcedSetupGate()
         _setupGateArmed = True
     End Sub
 
-    ' ── avatar rendering ──────────────────────────────────────────────────
+    
 
-    ''' <summary>Show the profile image when it decodes; the letter avatar is
-    ' the fallback for "no image" AND for a corrupt value — a bad avatar can
-    ' never blank the identity card. The previous bitmap is disposed so rapid
-    ' re-renders do not accumulate GDI+ handles.</summary>
+    
+    
+    
+    
     Private Sub RenderAvatar(dataUrl As String)
         DulukaAvatar.SetPreview(Avatar_PICTURE, dataUrl, Avatar_BOX)
     End Sub
 
-    ' ── navigation ──────────────────────────────────────────────────────────
+    
 
     Private Sub action_fn_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Me.Hide()
@@ -238,20 +238,20 @@ Public Class Base_Connect
         target.Show()
     End Sub
 
-    ''' <summary>Sub-pages return here through this — the gate either shows the
-    ' identity card (session alive) or forwards to Sign in (no session).</summary>
+    
+    
     Friend Sub ReturnFromSubPage()
         Me.Show()
     End Sub
 
-    ''' <summary>Sub-pages surface one-line outcomes (terminal sign-outs etc.);
-    ' routed to whichever page ends up visible.</summary>
+    
+    
     Friend Sub NotifyFromSubPage(message As String)
         Status_TEXT.Text = message
     End Sub
 
-    ''' <summary>The one forward path to the Sign in page — used by the gate,
-    ' by 401 handling and after sign out.</summary>
+    
+    
     Friend Sub ForwardToSignIn()
         Me.Hide()
         Base_Connect_Signin.Settings_Panel.Location = New Point(80, 160)
@@ -259,11 +259,11 @@ Public Class Base_Connect
         Base_Connect_Signin.Opacity = 1
     End Sub
 
-    ''' <summary>The one forward path to the first-time Account Setup page —
-    ' a signed-in account whose native credential is missing must choose its
-    ' immutable username and password before Account Home is usable. The
-    ' Setup page re-checks server truth itself, so an already-initialized
-    ' account is never asked to set up twice.</summary>
+    
+    
+    
+    
+    
     Friend Sub ForwardToSetup()
         Me.Hide()
         Base_Connect_Setup.Settings_Panel.Location = New Point(80, 160)
@@ -271,7 +271,7 @@ Public Class Base_Connect
         Base_Connect_Setup.Opacity = 1
     End Sub
 
-    ' ── sign out ────────────────────────────────────────────────────────────
+    
 
     Private Async Sub BT_Logout_Click(sender As Object, e As EventArgs) Handles BT_Logout.Click
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
@@ -283,7 +283,7 @@ Public Class Base_Connect
         Status_TEXT.Text = "Signing out…"
         Dim token As String = store.SessionToken
         If token <> "" Then
-            ' Best effort — sign out must never strand the user on a dead session.
+            
             Await DulukaApi.PostAsync("/v1/auth/session/revoke", token, "{}").ConfigureAwait(True)
         End If
         store.ClearSession()

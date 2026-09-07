@@ -1,4 +1,4 @@
-﻿Public Class Debug_UI
+Public Class Debug_UI
 
 #If DEBUG Then
 
@@ -7,12 +7,12 @@
     Private _lastW As Integer = Integer.MinValue
     Private _lastH As Integer = Integer.MinValue
 
-    ' ★ Messages
+    
     Private Const WM_MOVING As Integer = &H216
     Private Const WM_MOVE As Integer = &H3
     Private Const WM_SIZE As Integer = &H5
 
-    ' ★ Timer
+    
     Private WithEvents tmr As New Timer With {.Interval = 1}
 
     Public Sub New()
@@ -30,18 +30,18 @@
         Select Case m.Msg
             Case WM_MOVING, WM_MOVE, WM_SIZE
                 MyBase.WndProc(m)
-                DoSync() ' ★ Sync!
+                DoSync() 
                 Return
         End Select
         MyBase.WndProc(m)
     End Sub
 
     Private Sub OnChanged(sender As Object, e As EventArgs)
-        DoSync() ' ★ Sync!
+        DoSync() 
     End Sub
 
     Private Sub tmr_Tick(sender As Object, e As EventArgs) Handles tmr.Tick
-        DoSync() ' ★ Sync every tick!
+        DoSync() 
     End Sub
 
     Public Sub DoSync()

@@ -1,19 +1,19 @@
-' Account setup — FIRST-TIME Duluka Account setup for provider-bootstrapped
-' accounts. GitHub OAuth creates the Duluka Account (the account is the
-' PRIMARY identity; GitHub is only a linked provider / authentication
-' bootstrap), but such an account has NO native credential yet: no username,
-' no password. This page forces that one-time choice:
-'
-'   OAuth success → load Duluka Account → check native credential state
-'     → not initialized → THIS page (username + password + confirm)
-'     → initialized    → straight to Account Home
-'
-' The username becomes IMMUTABLE on success (server: NativeCredential is
-' 1:1 per account, uniqueness DB-enforced, no rename endpoint exists) —
-' this page therefore never offers a rename path either. The Display Name
-' stays an independent, provider-owned field.
-' The password lives only in this form and the local-loop request body —
-' never stored or logged anywhere.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Linq
@@ -61,11 +61,11 @@ Public Class Base_Connect_Setup
         HideFromAltTab()
     End Sub
 
-    ''' <summary>GATE: this page exists ONLY for a signed-in account whose
-    ' native credential is still missing. Anyone initialized goes straight to
-    ' Account Home; anyone without a session goes to Sign in. A server-truth
-    ' check catches a stale local store so an ALREADY-initialized account is
-    ' never asked to set up twice.</summary>
+    
+    
+    
+    
+    
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
@@ -87,10 +87,10 @@ Public Class Base_Connect_Setup
         ServerTruthCheckAsync()
     End Sub
 
-    ''' <summary>Server-truth pre-check (GET /v1/account/me): a non-empty
-    ' username means the native credential ALREADY exists (e.g. setup was
-    ' completed from another device, or the local store was wiped) — dismiss
-    ' this page to Account Home instead of asking for setup again.</summary>
+    
+    
+    
+    
     Private Async Sub ServerTruthCheckAsync()
         If _truthCheckInFlight Then Return
         _truthCheckInFlight = True
@@ -110,8 +110,8 @@ Public Class Base_Connect_Setup
             ElseIf r.AuthDead Then
                 TerminalSignOut("Your session has expired. Please sign in again.")
             End If
-            ' Transient failures keep the page up: the submit path reports
-            ' every error honestly, nothing here may fail silently.
+            
+            
         Catch ex As Exception
             Debug.WriteLine($"Setup truth check error: {ex.GetType().Name}")
         Finally
@@ -123,9 +123,9 @@ Public Class Base_Connect_Setup
         If _busy Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        ' Courtesy validation (server is the authority):
-        '   username 3-32 chars, letters/digits/dot/underscore/hyphen
-        '   password 8-128, confirm must match
+        
+        
+        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         Dim confirm As String = Confirm_BOX.Text
@@ -151,9 +151,9 @@ Public Class Base_Connect_Setup
         BT_Setup.Enabled = False
         Status_TEXT.Text = "Setting up your account…"
         Try
-            ' The EXISTING first-time credential mechanism is REUSED —
-            ' POST /v1/account/password with username+newPassword on a
-            ' provider-only account. No second credential API anywhere.
+            
+            
+            
             Dim body As New JsonObject()
             body("username") = username
             body("newPassword") = password
@@ -162,8 +162,8 @@ Public Class Base_Connect_Setup
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok Then
-                ' Username is now SET (immutable). Session stays valid; no
-                ' duplicate account is created — same accountId, same store.
+                
+                
                 store.SetProfile(store.DisplayName, username)
                 Username_BOX.Clear()
                 Password_BOX.Clear()
@@ -172,9 +172,9 @@ Public Class Base_Connect_Setup
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
-                ' Same wire code covers "username taken" AND "this account
-                ' already has a password" (initialized elsewhere). Server
-                ' truth decides which one this was.
+                
+                
+                
                 Dim meR As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/me", token).ConfigureAwait(True)
                 If IsDisposed OrElse Not IsHandleCreated Then Return
                 If meR.Ok AndAlso meR.Resource IsNot Nothing Then
@@ -198,8 +198,8 @@ Public Class Base_Connect_Setup
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
         Catch ex As Exception
-            ' NEVER silent: every failure lands in the status line and the
-            ' button comes back (no unhandled exception, no dead UI).
+            
+            
             Debug.WriteLine($"AccountSetup error: {ex.GetType().Name}")
             If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka."
         Finally
@@ -208,10 +208,10 @@ Public Class Base_Connect_Setup
         End Try
     End Sub
 
-    ''' <summary>Setup is REQUIRED while the native credential is missing —
-    ' Back cannot bounce the user into the Account Home gate (that would
-    ' loop back here). The hint says so honestly; after setup the page
-    ' never reappears anyway.</summary>
+    
+    
+    
+    
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         If DulukaAccountStore.Instance.Username = "" Then
             Status_TEXT.Text = "Choose your username and password to finish setting up your account."
