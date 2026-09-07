@@ -117,7 +117,12 @@ Public Class Base_Connect
                             "        Expires  " & If(expires <> "", expires, "unknown")
 
         Card_PANEL.Visible = True
-        Avatar_BOX.Visible = True
+        ' Avatar_BOX / Avatar_PICTURE visibility is owned EXCLUSIVELY by
+        ' DulukaAvatar.SetPreview (via RenderAvatar above): image → picture
+        ' visible + letter hidden, no image → the reverse. Forcing the letter
+        ' label visible here re-showed it ON TOP of the loaded profile image
+        ' (same 96×96 rect, label first in the panel's z-order), so the home
+        ' card always looked like a letter avatar. Do not touch them here.
         USERSNAME_TEXT.Visible = True
         Account_META.Visible = True
         BT_Devices.Visible = True

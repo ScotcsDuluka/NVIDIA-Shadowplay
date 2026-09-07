@@ -171,13 +171,27 @@ public sealed class AccountProvisioningService(Database db)
         if (existingDevice is not null && existingDevice.RevokedAt is not null)
             throw new InvalidOperationException("device_revoked");
 
-        // Ownership guard BEFORE the anchor upsert: for an UNKNOWN identity the
-        // upsert would bootstrap a NEW account — if the device key is already
-        // bound to a different account, refuse here so a refused login never
-        // leaves an orphan account/provider-link behind (same class as the
-        // native-register ordering fix).
-        var existingLink = db.FindActiveLink(identity.ProviderKey, identity.ProviderUserId);
-        if (existingLink is null && existingDevice is not null)
+        // Resolve the identity's home FIRST (without persisting anything):
+        // the active anchor, or — after an unlink — the most recent link
+        // period on its account. Returning home with the SAME device key is
+        // the normal unlink → logout → login-again journey and must succeed.
+        var latestLink = db.FindLatestLinkByKey(identity.ProviderKey, identity.ProviderUserId);
+
+        // Ownership guard BEFORE the anchor upsert: for a NEVER-SEEN identity
+        // the upsert would bootstrap a NEW account — if the device key is
+        // already bound, that binding belongs to a DIFFERENT home, so refuse
+        // here and persist nothing (a refused login never leaves an orphan
+        // account/provider-link behind, same class as the native-register
+        // ordering fix). A returning identity skips this guard: its device
+        // key typically belongs to its own home.
+        if (latestLink is null && existingDevice is not null)
+            throw new InvalidOperationException("device_key_in_use");
+
+        // Known identity + device bound to a DIFFERENT account: neither home
+        // may claim the other — refuse BEFORE the upsert so no link period is
+        // opened by a refused login.
+        if (latestLink is not null && existingDevice is not null &&
+            existingDevice.AccountId != latestLink.AccountId)
             throw new InvalidOperationException("device_key_in_use");
 
         var (link, account, existed) = db.UpsertLink(

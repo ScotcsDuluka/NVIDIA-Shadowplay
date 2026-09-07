@@ -96,8 +96,12 @@ Partial Class Base_Connect
         ' 
         Card_PANEL.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Card_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
-        Card_PANEL.Controls.Add(Avatar_BOX)
+        ' Avatar_PICTURE first = front of the card's z-order (index 0): when a
+        ' profile image is loaded it must sit ABOVE the letter-fallback label,
+        ' which shares the same 96×96 rect. SetPreview keeps the pair mutually
+        ' exclusive — this order is the belt to those braces.
         Card_PANEL.Controls.Add(Avatar_PICTURE)
+        Card_PANEL.Controls.Add(Avatar_BOX)
         Card_PANEL.Controls.Add(USERSNAME_TEXT)
         Card_PANEL.Controls.Add(Account_META)
         Card_PANEL.Controls.Add(BT_Logout)
