@@ -21,4 +21,10 @@
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The /admin operator dashboard ships as a single embedded HTML file
+         (no wwwroot, no static-file middleware, no external assets). -->
+    <EmbeddedResource Include="Admin\admin.html" />
+  </ItemGroup>
+
 </Project>

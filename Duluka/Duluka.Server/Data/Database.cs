@@ -11,7 +11,7 @@ namespace Duluka.Server.Data;
 /// Schema is applied idempotently at startup with a SchemaHistory row — the
 /// v0 stand-in for a migration framework (operator-readable, no auto-magic).
 /// </summary>
-public sealed class Database : IAsyncDisposable
+public sealed partial class Database : IAsyncDisposable
 {
     private readonly SqliteConnection _conn;
     private readonly ILogger<Database> _logger;

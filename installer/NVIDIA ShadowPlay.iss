@@ -19,10 +19,10 @@
 ;     + Add/Remove Programs entry) — drawn in the same DNA as the wizard art
 ;     (ring + slit mark, #76B900 on #1D1D1D); uninstall.ico ships to {app}
 ;     because the uninstaller/ARP must be able to resolve it after install
-;   - fonts: assets\FONTS\NVIDIA Sans (Rg/Md/Bd) install system-wide to
-;     {fonts} (Windows\Fonts) and are registered under the Fonts registry key;
-;     onlyifdoesntexist so a font the user already has is never clobbered,
-;     and uninstall removes only the copies we installed
+;   - fonts: assets\FONTS\ (NVIDIA Sans Rg/Md/Bd + nvgcshare + TypeTwo)
+;     install system-wide to {fonts} (Windows\Fonts) and are registered under
+;     the Fonts registry key; onlyifdoesntexist so a font the user already
+;     has is never clobbered, and uninstall removes only the copies we installed
 
 #define AppName "NVIDIA ShadowPlay"
 #define SourceRoot "..\Overlay\bin\Release\net10.0-windows10.0.26100.0"
@@ -115,10 +115,14 @@ Source: "assets\uninstall.ico"; DestDir: "{app}"; Flags: ignoreversion
 ; Fonts registry key (FontName = family + style + "(TrueType)", matching the
 ; names inside the TTFs). onlyifdoesntexist: never overwrite a font the
 ; machine already has (and the uninstaller therefore only ever deletes files
-; this install actually laid down)
+; this install actually laid down). Family names below were read from each
+; TTF's name table (Rg="NVIDIA Sans", Md="NVIDIA Sans Medium",
+; Bd="NVIDIA Sans" + Bold bit, _icon="nvgcshare", betanv="TypeTwo")
 Source: "assets\FONTS\NVIDIASans_Rg.ttf"; DestDir: "{fonts}"; FontName: "NVIDIA Sans (TrueType)"; Flags: onlyifdoesntexist
 Source: "assets\FONTS\NVIDIASans_Md.ttf"; DestDir: "{fonts}"; FontName: "NVIDIA Sans Medium (TrueType)"; Flags: onlyifdoesntexist
 Source: "assets\FONTS\NVIDIASans_Bd.ttf"; DestDir: "{fonts}"; FontName: "NVIDIA Sans Bold (TrueType)"; Flags: onlyifdoesntexist
+Source: "assets\FONTS\_icon.ttf"; DestDir: "{fonts}"; FontName: "nvgcshare (TrueType)"; Flags: onlyifdoesntexist
+Source: "assets\FONTS\betanv.ttf"; DestDir: "{fonts}"; FontName: "TypeTwo (TrueType)"; Flags: onlyifdoesntexist
 
 [Icons]
 Name: "{autoprograms}\{#AppName}\{#AppName}"; Filename: "{app}\Launcher.exe"; WorkingDir: "{app}"; IconFilename: "{app}\Overlay\NVIDIA ShadowPlay.ico"

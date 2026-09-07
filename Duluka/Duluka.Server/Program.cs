@@ -1,5 +1,6 @@
 using System.Threading.RateLimiting;
 using System.Text.Json;
+using Duluka.Server.Admin;
 using Duluka.Server.Auth;
 using Duluka.Server.Data;
 using Duluka.Server.Domain;
@@ -705,6 +706,9 @@ app.MapPost("/v1/account/devices/{deviceId}/revoke", (string deviceId, HttpReque
     var revoked = db.RevokeDevice(deviceId, DateTimeOffset.UtcNow);
     return Wire.Ok(req, new { revoked = true, sessionsRevoked = revoked });
 });
+
+// ─── local operator console (/admin) ────────────────────────────────────
+AdminConsole.Map(app, db);
 
 app.Run();
 
