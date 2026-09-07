@@ -734,11 +734,63 @@ public sealed class Database : IAsyncDisposable
             ("$at", at.ToString("o")), ("$r", reason), ("$aid", accountId));
     }
 
+    /// <summary>User-initiated IRREVERSIBLE account deletion. Every dependent
+    /// row is removed in ONE transaction, children before parents so the FK
+    /// chain (sessions→devices, credential-references→links, …) never blocks.
+    /// Deleting — not just revoking — frees every UNIQUE anchor the account
+    /// holds: the UsernameCanonical, the device key hashes and the
+    /// (ProviderKey, ProviderUserId) identity anchor. Consequences by design:
+    /// the username may be registered again, the same device key may enroll
+    /// again, and the same GitHub identity may bootstrap a FRESH account.
+    /// Session rows are DELETED (not revoked): a post-deletion token validates
+    /// to a plain unknown session. Returns the number of session rows that
+    /// died with the account.</summary>
+    public int DeleteAccountCascade(string accountId)
+    {
+        using var tx = _conn.BeginTransaction();
+        try
+        {
+            int sessions = ExecTx(tx,
+                "DELETE FROM AccountSession WHERE AccountId=$aid", ("$aid", accountId));
+            ExecTx(tx, "DELETE FROM AccountDevice WHERE AccountId=$aid", ("$aid", accountId));
+            ExecTx(tx,
+                "DELETE FROM CredentialReference WHERE LinkId IN " +
+                "(SELECT LinkId FROM AccountProviderLink WHERE AccountId=$aid)", ("$aid", accountId));
+            ExecTx(tx, "DELETE FROM AccountProviderLink WHERE AccountId=$aid", ("$aid", accountId));
+            ExecTx(tx, "DELETE FROM NativeCredential WHERE AccountId=$aid", ("$aid", accountId));
+            ExecTx(tx, "DELETE FROM SyncProfile WHERE AccountId=$aid", ("$aid", accountId));
+            ExecTx(tx, "DELETE FROM DulukaAccount WHERE AccountId=$aid", ("$aid", accountId));
+            tx.Commit();
+            _logger.LogInformation(
+                "Account {AccountId} deleted (cascade): {Sessions} session rows removed", accountId, sessions);
+            return sessions;
+        }
+        catch
+        {
+            tx.Rollback();
+            throw;
+        }
+    }
+
     // ─── infrastructure ─────────────────────────────────────────────────────
 
     private int Exec(string sql, params (string Name, object Value)[] parameters)
     {
         using var cmd = _conn.CreateCommand();
+        cmd.CommandText = sql;
+        foreach (var (name, value) in parameters)
+            cmd.Parameters.AddWithValue(name, value);
+        return cmd.ExecuteNonQuery();
+    }
+
+    /// <summary>Exec inside an EXPLICIT transaction (cascade paths). Mirrors
+    /// Exec exactly, but assigns the caller's transaction to the command —
+    /// Microsoft.Data.Sqlite refuses a command that runs while a transaction
+    /// is open on the connection without that assignment.</summary>
+    private int ExecTx(SqliteTransaction tx, string sql, params (string Name, object Value)[] parameters)
+    {
+        using var cmd = _conn.CreateCommand();
+        cmd.Transaction = tx;
         cmd.CommandText = sql;
         foreach (var (name, value) in parameters)
             cmd.Parameters.AddWithValue(name, value);

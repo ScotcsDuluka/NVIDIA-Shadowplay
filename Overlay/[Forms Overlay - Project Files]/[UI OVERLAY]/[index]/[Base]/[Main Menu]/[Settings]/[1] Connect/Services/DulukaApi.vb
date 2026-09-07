@@ -76,6 +76,12 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Delete, path, sessionToken, Nothing)
     End Function
 
+    ''' <summary>DELETE with a JSON body (e.g. DELETE /v1/account carries the
+    ' current-password confirmation when the account has a native credential).</summary>
+    Public Function DeleteAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
+        Return SendAsync(HttpMethod.Delete, path, sessionToken, jsonBody)
+    End Function
+
     Public Async Function SendAsync(method As HttpMethod, path As String, sessionToken As String,
                                     jsonBody As String) As Task(Of Result)
         Dim result As New Result()

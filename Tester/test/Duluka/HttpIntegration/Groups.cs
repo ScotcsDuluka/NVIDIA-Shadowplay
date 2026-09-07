@@ -1497,4 +1497,152 @@ internal static class Groups
             r.Run("SETUP-8 log sweep G15 (setup password never in server logs or bodies)", () => ctx.App.Sweep("SETUP-8"));
         });
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G16 — USER-INITIATED ACCOUNT DELETION (DELETE /v1/account).
+    // The account deletes ITSELF: one transaction removes the account row and
+    // every dependent row (sessions, devices, provider links + their credential
+    // references, native credential, sync profiles). A password-protected
+    // account must present its CURRENT password (session possession alone is
+    // not enough — same bar as the password change); a provider-only account
+    // deletes on session possession alone. Deleting — not revoking — frees
+    // every UNIQUE anchor: the username may be registered again, the same
+    // device key may enroll again, and the same GitHub identity may bootstrap
+    // a FRESH account (the duplicate-account defense is the ACTIVE anchor, so
+    // a real re-bootstrap must find nothing).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    public static void AccountDeletion(Runner r)
+    {
+        r.Group("G16 user-initiated account deletion", configureGitHub: false, budget: 0, ctx =>
+        {
+            var app = ctx.App;
+            const string password = "delete-pass-123";
+            const string username = "Doomed.User";
+            string accountId = "";
+            string doomedToken = "";
+            string doomedDeviceKey = "";
+
+            r.Run("DEL-1 delete requires a session (no token / unknown token → 401)", () =>
+            {
+                ServerApp.ExpectErr(app.Delete("/v1/account"), 401, "auth.session_expired", "DEL-1a (no bearer)");
+                ServerApp.ExpectErr(app.Delete("/v1/account", bearer: "duluka_st_unknown-token"),
+                    401, "auth.session_expired", "DEL-1b (unknown token)");
+            });
+
+            r.Run("DEL-2 password-protected account: missing/wrong password or malformed body → 400, account INTACT", () =>
+            {
+                doomedDeviceKey = Key(256);
+                var reg = ServerApp.Json(app.Post("/v1/auth/register", new
+                {
+                    username, password, deviceKey = doomedDeviceKey, deviceName = "it-doomed",
+                }));
+                accountId = reg.GetProperty("accountId").GetString()!;
+                doomedToken = reg.GetProperty("sessionToken").GetString()!;
+                // NB: the session token is a legitimate register-response
+                // field (like every other group's registration) — only the
+                // PASSWORD is a tracked secret for the sweep.
+                app.TrackSecret(password);
+
+                ServerApp.ExpectErr(app.Send("DELETE", "/v1/account", "{}", doomedToken),
+                    400, "invalid_credentials", "DEL-2a (no password given)");
+                ServerApp.ExpectErr(app.Send("DELETE", "/v1/account",
+                    JsonSerializer.Serialize(new { currentPassword = "wrong-pass-999" }), doomedToken),
+                    400, "invalid_credentials", "DEL-2b (wrong password)");
+                ServerApp.ExpectErr(app.Send("DELETE", "/v1/account", "not-json{", doomedToken),
+                    400, "bad_request", "DEL-2c (malformed body is a client error, never a silent no-password)");
+
+                var me = ServerApp.Json(app.Get("/v1/account/me", bearer: doomedToken));
+                ServerApp.Assert(me.GetProperty("accountId").GetString() == accountId,
+                    "DEL-2d: refused attempts must leave the account intact");
+                ServerApp.Assert(me.GetProperty("username").GetString() == username,
+                    "DEL-2d: the native credential must survive the refused attempts");
+            });
+
+            r.Run("DEL-3 correct password → deleted; old session dead, native login dead, ZERO orphan rows", () =>
+            {
+                var resp = app.Send("DELETE", "/v1/account",
+                    JsonSerializer.Serialize(new { currentPassword = password }), doomedToken);
+                ServerApp.ExpectOk(resp, "DEL-3a");
+                var resource = ServerApp.Json(resp);
+                ServerApp.Assert(resource.GetProperty("deleted").GetBoolean(), "DEL-3a: deleted must be true");
+                ServerApp.Assert(resource.GetProperty("deletedSessions").GetInt32() >= 1,
+                    "DEL-3a: the doomed session must be counted among the deleted");
+
+                ServerApp.ExpectErr(app.Get("/v1/account/me", bearer: doomedToken),
+                    401, "auth.session_expired", "DEL-3b (session died WITH the account)");
+                ServerApp.ExpectErr(app.Post("/v1/auth/login", new
+                {
+                    username, password, deviceKey = Key(256), deviceName = "d",
+                }), 401, "invalid_credentials", "DEL-3c (credential is gone — generic, no enumeration)");
+
+                foreach (var table in new[] { "DulukaAccount", "AccountSession", "AccountDevice", "AccountProviderLink", "NativeCredential" })
+                    ServerApp.Assert(app.RawScalar($"SELECT COUNT(*) FROM {table} WHERE AccountId='{accountId}'") == "0",
+                        $"DEL-3d: cascade must leave no orphan row in {table}");
+                ServerApp.Assert(app.RawScalar(
+                    $"SELECT COUNT(*) FROM CredentialReference WHERE LinkId NOT IN (SELECT LinkId FROM AccountProviderLink)") == "0",
+                    "DEL-3d: cascade must leave no orphan credential references");
+            });
+
+            r.Run("DEL-4 anchors freed: the SAME username re-registers and the SAME device key enrolls onto the new account", () =>
+            {
+                var reg = ServerApp.Json(app.Post("/v1/auth/register", new
+                {
+                    username,                                  // identical canonical username as the deleted account
+                    password = "fresh-pass-456",
+                    deviceKey = doomedDeviceKey,               // identical device key as the deleted account
+                    deviceName = "it-reborn",
+                }));
+                var rebornId = reg.GetProperty("accountId").GetString()!;
+                ServerApp.Assert(rebornId != accountId,
+                    "DEL-4a: re-registration must mint a FRESH account, never resurrect the deleted one");
+
+                var login = ServerApp.Json(app.Post("/v1/auth/login", new
+                {
+                    username, password = "fresh-pass-456", deviceKey = Key(256), deviceName = "d2",
+                }));
+                ServerApp.Assert(login.GetProperty("accountId").GetString() == rebornId,
+                    "DEL-4b: the username now resolves to the NEW account only");
+
+                ServerApp.ExpectErr(app.Post("/v1/auth/login", new
+                {
+                    username, password, deviceKey = Key(256), deviceName = "d3",
+                }), 401, "invalid_credentials", "DEL-4c (the OLD password is dead with the old account)");
+            });
+
+            r.Run("DEL-5 provider-only account: deletes on session possession; the GitHub identity may bootstrap FRESH again", () =>
+            {
+                var providerId = app.SeedAccount("GitHub ProviderOnly");
+                app.SeedLink(providerId, "gh-delete-1");
+                var (dev, _) = app.SeedDevice(providerId, "it-provider-del");
+                var providerToken = app.SeedSession(providerId, dev, null);
+                app.TrackSecret(providerToken);
+
+                // A provider-only account has NO password to verify — a body
+                // with a password must be IGNORED, not required and not fatal.
+                ServerApp.ExpectOk(app.Send("DELETE", "/v1/account",
+                    JsonSerializer.Serialize(new { currentPassword = "irrelevant" }), providerToken), "DEL-5a");
+
+                ServerApp.ExpectErr(app.Get("/v1/account/me", bearer: providerToken),
+                    401, "auth.session_expired", "DEL-5b (session died with the account)");
+
+                ServerApp.Assert(app.Db.FindActiveLink(ProviderKeys.GitHub, "gh-delete-1") is null,
+                    "DEL-5c: the (provider, identity) anchor must be freed by the cascade");
+
+                // The production login-or-link path — exactly what the NEXT
+                // GitHub OAuth will run — must now bootstrap a NEW account.
+                var provisioning = new AccountProvisioningService(app.Db);
+                var (link, fresh, existed) = provisioning.LoginOrLink(
+                    new GitHubIdentity(ProviderKeys.GitHub, "gh-delete-1", "gh-delete-1@example.test", "GitHub ProviderOnly"),
+                    Secrets.Sha256Hex(Key(256)), "it-rebootstrap");
+                ServerApp.Assert(!existed, "DEL-5d: the identity must bootstrap a NEW account, not log into the dead one");
+                ServerApp.Assert(fresh.AccountId != providerId,
+                    "DEL-5d: the fresh bootstrap must never resurrect the deleted account");
+                ServerApp.Assert(link.AccountId == fresh.AccountId,
+                    "DEL-5d: the new link must bind to the fresh account");
+            });
+
+            r.Run("DEL-6 log sweep G16 (deletion password never in server logs or bodies)", () => ctx.App.Sweep("DEL-6"));
+        });
+    }
 }

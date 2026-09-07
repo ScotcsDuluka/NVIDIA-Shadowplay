@@ -132,3 +132,18 @@ data layer, same as G4/G14); `budget: 0`.
 | SETUP-6 | display-name separation | displayName still the bootstrap value, ≠ username |
 | SETUP-7 | server (client) restart → `/me` + native login | username persists; login works; setup never asked again |
 | SETUP-8 | log sweep | setup password never in any response body or server log |
+
+## 6. G16 — User-initiated account deletion (DELETE /v1/account)
+
+Added with the account-deletion feature (client + suite). One fresh server per
+group; NO auth-start usage (native accounts register through `/v1/auth/register`,
+provider-only state is seeded through the production data layer); `budget: 0`.
+
+| ID | Scenario | Expected |
+|---|---|---|
+| DEL-1 | delete without a session (no bearer / unknown token) | 401 `auth.session_expired` |
+| DEL-2 | password-protected account: `{}` / wrong password / malformed body | 400 `invalid_credentials` / `invalid_credentials` / `bad_request`; account + credential INTACT after every refusal |
+| DEL-3 | correct password → deleted | 200 `{deleted:true, deletedSessions:n}`; old token → 401; native login → generic 401; ZERO orphan rows in every table (incl. credential references) |
+| DEL-4 | anchors freed | SAME username re-registers onto a NEW account; SAME device key enrolls; old password dead |
+| DEL-5 | provider-only account | deletes on session possession (password body ignored); GitHub identity anchor freed → production `LoginOrLink` bootstraps a FRESH account |
+| DEL-6 | log sweep | deletion password never in any response body or server log |
