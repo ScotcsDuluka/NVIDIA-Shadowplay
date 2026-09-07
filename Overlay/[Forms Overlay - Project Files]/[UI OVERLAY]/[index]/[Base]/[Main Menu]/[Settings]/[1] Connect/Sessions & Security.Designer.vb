@@ -148,7 +148,6 @@ Partial Class Base_Connect_Security
         ' DzPassword_LBL
         ' 
         DzPassword_LBL.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        DzPassword_LBL.AutoSize = True
         DzPassword_LBL.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         DzPassword_LBL.Font = New Font("Segoe UI", 9.0F, FontStyle.Bold)
         DzPassword_LBL.ForeColor = Color.Gainsboro
@@ -174,11 +173,10 @@ Partial Class Base_Connect_Security
         ' DzHeader_LBL
         ' 
         DzHeader_LBL.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        DzHeader_LBL.AutoSize = True
         DzHeader_LBL.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
         DzHeader_LBL.Font = New Font("Segoe UI", 10.0F, FontStyle.Bold)
         DzHeader_LBL.ForeColor = Color.White
-        DzHeader_LBL.Location = New Point(125, 505)
+        DzHeader_LBL.Location = New Point(125, 500)
         DzHeader_LBL.Name = "DzHeader_LBL"
         DzHeader_LBL.Size = New Size(94, 19)
         DzHeader_LBL.TabIndex = 84
@@ -359,7 +357,7 @@ Partial Class Base_Connect_Security
         ' 
         Settings_TEXT.AutoSize = True
         Settings_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Settings_TEXT.Font = New Font("GeForce", 24F, FontStyle.Bold)
+        Settings_TEXT.Font = New Font("GeForce", 24.0F, FontStyle.Bold)
         Settings_TEXT.ForeColor = Color.White
         Settings_TEXT.Location = New Point(62, 43)
         Settings_TEXT.Name = "Settings_TEXT"
@@ -377,6 +375,7 @@ Partial Class Base_Connect_Security
         Settings_Panel.Controls.Add(BT_RefreshSession)
         Settings_Panel.Controls.Add(BT_RevokeAll)
         Settings_Panel.Controls.Add(PwHeader_LBL)
+        Settings_Panel.Controls.Add(DzHeader_LBL)
         Settings_Panel.Controls.Add(PwUsername_LBL)
         Settings_Panel.Controls.Add(PwUsername_BOX)
         Settings_Panel.Controls.Add(PwCurrent_LBL)
@@ -386,7 +385,6 @@ Partial Class Base_Connect_Security
         Settings_Panel.Controls.Add(PwConfirm_LBL)
         Settings_Panel.Controls.Add(PwConfirm_BOX)
         Settings_Panel.Controls.Add(BT_ChangePassword)
-        Settings_Panel.Controls.Add(DzHeader_LBL)
         Settings_Panel.Controls.Add(DzNote_META)
         Settings_Panel.Controls.Add(DzPassword_LBL)
         Settings_Panel.Controls.Add(DzPassword_BOX)
