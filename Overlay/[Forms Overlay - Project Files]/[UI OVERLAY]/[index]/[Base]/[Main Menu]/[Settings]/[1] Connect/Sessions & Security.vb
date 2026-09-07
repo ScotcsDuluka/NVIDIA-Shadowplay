@@ -208,7 +208,9 @@ Public Class Base_Connect_Security
                 If providerOnly Then DulukaAccountStore.Instance.SetProfile(
                     DulukaAccountStore.Instance.DisplayName, username)
                 SetupPasswordForm()
-                Status_TEXT.Text = "Password updated — you can now sign in with it."
+                Status_TEXT.Text = If(providerOnly,
+                    "Account set up — you can now sign in with your username and password.",
+                    "Password updated — you can now sign in with it.")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Current password is incorrect."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
@@ -225,7 +227,8 @@ Public Class Base_Connect_Security
 
     ''' <summary>Arranges the password form for the account kind: change mode
     ' (current password required) vs first-time adoption mode (username
-    ' picker, no current password).</summary>
+    ' picker, no current password). The username is PERMANENT once set —
+    ' adoption mode is therefore only reachable while it is still unset.</summary>
     Private Sub SetupPasswordForm()
         Dim providerOnly As Boolean = ProviderOnlyAccount
         PwUsername_LBL.Visible = providerOnly
@@ -234,6 +237,7 @@ Public Class Base_Connect_Security
         PwCurrent_LBL.Enabled = Not providerOnly
         PwCurrent_BOX.Enabled = Not providerOnly
         PwHeader_LBL.Text = If(providerOnly, "Add password sign-in", "Change password")
+        BT_ChangePassword.Text = If(providerOnly, "Set Up Account", "Change password")
     End Sub
 
     Private Sub TerminalSignOut(message As String)

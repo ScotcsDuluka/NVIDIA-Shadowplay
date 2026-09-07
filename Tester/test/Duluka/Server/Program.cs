@@ -61,6 +61,10 @@ internal static class Program
         Run("NATIVE-12: cross-account device-key register → refused, NO orphan account/credential", Test_NativeRegisterNoOrphanOnDeviceConflict);
         Run("LOGIN-5: unknown identity + foreign device key → refused, NO orphan account/link", Test_LoginOrLinkNoOrphanOnDeviceConflict);
         Run("NATIVE-13: provider-only account adopts username+password, trap released", Test_NativeAdoptPassword);
+        Run("SETUP-1: GitHub bootstrap → forced-setup path → native login, SAME account", Test_SetupBootstrapFlow);
+        Run("SETUP-2: username immutable — second adoption refused, password change still works", Test_SetupUsernameImmutable);
+        Run("SETUP-3: setup refuses taken/invalid usernames and weak passwords", Test_SetupValidation);
+        Run("SETUP-4: /me username surface flips only after setup (client gate fact)", Test_SetupMeUsernameSurface);
         Run("NATIVE-10: suspended account cannot login (perm.account_suspended)", Test_NativeSuspended);
         Run("NATIVE-11: GitHub ProviderLink login reaches the SAME native account", Test_NativeProviderSameAccount);
         Run("UNLINK-4: native credential allows unlinking the last provider link", Test_UnlinkWithNativeCredential);
@@ -1068,6 +1072,159 @@ internal static class Program
             {
             }
             Assert(stillIn, "password login still works after unlinking");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-1 — the exact data path the client's forced first-time
+    /// setup flow walks: a GitHub-bootstrapped account (no native credential)
+    /// adopts a permanent username + first password, then signs in with those
+    /// credentials onto the SAME account (no duplicate account is created).</summary>
+    private static void Test_SetupBootstrapFlow()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9201, "bootstrapper");
+            var (link, account, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+
+            // The /me username surface (FindNativeCredentialByAccount) is what
+            // the client reads: null → "" → provider-only → forced setup.
+            Assert(f.Db.FindNativeCredentialByAccount(account.AccountId) is null,
+                "bootstrap account exposes NO username before setup");
+
+            f.Native.SetInitialPassword(account.AccountId, "Boot.User", "bootstrap-pass-1");
+
+            var credential = f.Db.FindNativeCredentialByAccount(account.AccountId);
+            Assert(credential is not null, "setup created the native credential");
+            Assert(credential!.UsernameDisplay == "Boot.User", "display username preserved verbatim");
+            Assert(credential.UsernameCanonical == "boot.user", "canonical username is lowercased");
+
+            // Username + password sign-in reaches the SAME account.
+            var (loginAccount, _) = f.Native.Login("BOOT.USER", "bootstrap-pass-1", hash, "dev");
+            Assert(loginAccount.AccountId == account.AccountId,
+                "native login lands on the SAME bootstrap account (no duplicate)");
+
+            // And the provider identity still resolves to that same account.
+            var (_, relinkAccount, existed) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+            Assert(existed, "re-login reports the account as existing");
+            Assert(relinkAccount.AccountId == account.AccountId, "provider path hits the same account");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-2 — USERNAME IMMUTABILITY: a second adoption on the same
+    /// account is refused (credential_exists → the wire maps it to 409), the
+    /// display username is unchanged, and the password can still be changed
+    /// through the authenticated change path (with the current password).</summary>
+    private static void Test_SetupUsernameImmutable()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9202, "immutable");
+            var (_, account, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+            f.Native.SetInitialPassword(account.AccountId, "keeper", "first-pass-123");
+
+            var refused = false;
+            try { f.Native.SetInitialPassword(account.AccountId, "renamed", "second-pass-456"); }
+            catch (InvalidOperationException ex) { refused = ex.Message == "credential_exists"; }
+            Assert(refused, "second adoption must be refused with credential_exists");
+
+            var credential = f.Db.FindNativeCredentialByAccount(account.AccountId);
+            Assert(credential!.UsernameDisplay == "keeper", "username unchanged after refused adoption");
+
+            var wrongCurrent = false;
+            try { f.Native.ChangePassword(account.AccountId, "wrong-current-1", Secrets.HashPassword("changed-pass-99")); }
+            catch (InvalidOperationException ex) { wrongCurrent = ex.Message == "invalid_credentials"; }
+            Assert(wrongCurrent, "password change still requires the CURRENT password");
+
+            f.Native.ChangePassword(account.AccountId, "first-pass-123", Secrets.HashPassword("changed-pass-99"));
+            var newPwWorks = false;
+            try { f.Native.Login("keeper", "changed-pass-99", hash, "dev"); newPwWorks = true; } catch { }
+            Assert(newPwWorks, "changed password signs in");
+            var oldPwDead = false;
+            try { f.Native.Login("keeper", "first-pass-123", hash, "dev"); }
+            catch (InvalidOperationException ex) { oldPwDead = ex.Message == "invalid_credentials"; }
+            Assert(oldPwDead, "old password is dead after the change");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-3 — validation around first-time setup: the username
+    /// policy the client mirrors, uniqueness against NATIVE accounts too, and
+    /// password-length bounds.</summary>
+    private static void Test_SetupValidation()
+    {
+        var f = NewFixture();
+        try
+        {
+            // Username policy the setup form mirrors client-side.
+            Assert(!UsernamePolicy.IsValidFormat("ab"), "below 3 chars rejected");
+            Assert(!UsernamePolicy.IsValidFormat(new string('a', 33)), "above 32 chars rejected");
+            Assert(!UsernamePolicy.IsValidFormat("bad name"), "space rejected");
+            Assert(!UsernamePolicy.IsValidFormat("bad!name"), "symbol rejected");
+            Assert(UsernamePolicy.IsValidFormat("ok.name-1_x"), "charset letters/digits/dot/underscore/hyphen accepted");
+            Assert(!UsernamePolicy.IsValidPassword("short"), "password below 8 rejected");
+            Assert(UsernamePolicy.IsValidPassword(new string('p', 8)), "password at 8 accepted");
+
+            var (key, hash) = NewDeviceKey();
+            var (nativeAccount, _) = f.Native.Register("resident", "resident-pass-1", hash, "dev");
+
+            // A bootstrap account adopting a NATIVE account's username is a
+            // duplicate — refused with username_taken (unique index).
+            var (k2, h2) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9203, "newcomer");
+            var (_, bootstrap, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), h2, "dev-2");
+            var taken = false;
+            try { f.Native.SetInitialPassword(bootstrap.AccountId, "RESIDENT", "adopted-pass-1"); }
+            catch (InvalidOperationException ex) { taken = ex.Message == "username_taken"; }
+            Assert(taken, "adopting a native account's username is refused (canonical match)");
+            Assert(f.Db.FindNativeCredentialByAccount(bootstrap.AccountId) is null,
+                "refused adoption leaves NO credential behind");
+
+            // And the refused attempt did not disturb the resident account.
+            var stillIn = false;
+            try { f.Native.Login("resident", "resident-pass-1", hash, "dev"); stillIn = true; } catch { }
+            Assert(stillIn, "resident account unaffected by refused adoption");
+        }
+        finally { f.Dispose(); }
+    }
+
+    /// <summary>SETUP-4 — the client gate fact: the username surfaced by /me
+    /// is EMPTY for a fresh GitHub bootstrap (→ forced setup) and populated
+    /// once the first-time setup completes; the session issued BEFORE setup
+    /// stays valid throughout (no re-login required to finish setup).</summary>
+    private static void Test_SetupMeUsernameSurface()
+    {
+        var f = NewFixture();
+        try
+        {
+            var (key, hash) = NewDeviceKey();
+            var ghId = f.RegisterGitHubUser(9204, "surfacetest");
+            var (_, account, _) = f.Provisioning.LoginOrLink(
+                new GitHubIdentity(ProviderKeys.GitHub, ghId, null, null), hash, "dev");
+            var device = f.Db.FindDeviceByKeyHash(hash)!;
+            var (token, session) = f.Sessions.Create(account.AccountId, device.DeviceId, viaLinkId: null);
+            Assert(!string.IsNullOrEmpty(token), "bootstrap session issued");
+
+            Assert(f.Db.FindNativeCredentialByAccount(account.AccountId)?.UsernameDisplay is null,
+                "username surface empty before setup (client forced-setup condition)");
+
+            f.Native.SetInitialPassword(account.AccountId, "surface.user", "surface-pass-1");
+
+            Assert(f.Db.FindNativeCredentialByAccount(account.AccountId)?.UsernameDisplay == "surface.user",
+                "username surface populated after setup");
+
+            // The pre-setup session is untouched by credential creation.
+            Assert(f.Sessions.Validate(token) is not null, "session issued before setup still validates");
+            Assert(session.ExpiresAt > DateTimeOffset.UtcNow, "session expiry in the future");
         }
         finally { f.Dispose(); }
     }
