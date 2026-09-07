@@ -474,6 +474,12 @@ Namespace CaptureEngine.FFmpegBackend
             Private _droppedBytes As Long
             Private _discardBytes As Long
             Private _padBytes As Long
+            ' ★ Accounting fix: set after RequestStopAndDrain's residual fold.
+            ' A Feed racing past that fold used to enqueue bytes nobody would
+            ' ever write AND nobody counted — the honest DroppedBytes total
+            ' could under-report. Feeds arriving after this flag are counted
+            ' as dropped at entry.
+            Private _closed As Integer = 0
 
             Friend Sub New(pipeName As String, waitForTimeline As Boolean, blockProducer As Boolean, blockAlign As Integer, Optional log As Action(Of String) = Nothing)
                 Name = pipeName
@@ -542,6 +548,12 @@ Namespace CaptureEngine.FFmpegBackend
 
             Friend Sub Feed(data As Byte(), count As Integer)
                 If count <= 0 OrElse count > data.Length Then Return
+                ' Post-close feeds can never be written — count them into the
+                ' honest drop total instead of silently vanishing.
+                If Volatile.Read(_closed) <> 0 Then
+                    Interlocked.Add(_droppedBytes, count)
+                    Return
+                End If
                 Dim copy(count - 1) As Byte
                 Array.Copy(data, copy, count)
 
@@ -549,8 +561,9 @@ Namespace CaptureEngine.FFmpegBackend
                     ' ★ VIDEO: never drop — blocking bounded queue. A dropped
                     ' H.264 packet corrupts the stream until the next IDR.
                     ' Wait (bounded by ProducerBlockTimeoutMs) for the writer
-                    ' to drain; on timeout fail hard — the consumer is gone
-                    ' and silence-video is worse than a clean failure.
+                    ' to drain; on timeout the packet is dropped WHOLE and
+                    ' counted into DroppedBytes (the session pass gate then
+                    ' fails on it) — corruption-safe, honestly reported.
                     Dim swFeed As New Stopwatch()
                     swFeed.Start()
                     While Interlocked.Read(_bytesQueued) + count > _byteCap
@@ -804,6 +817,10 @@ Namespace CaptureEngine.FFmpegBackend
                 If residualAfterClose > 0 Then
                     _log?.Invoke($"[live-mux:{Name}] {residualAfterClose:N0}B still queued after close — counted as dropped")
                 End If
+
+                ' ★ Accounting fix: everything fed from this point on can
+                ' never reach the pipe (writer joined) — Feed now counts it.
+                Interlocked.Exchange(_closed, 1)
 
                 ' ★ 02:23 FIX ('Error opening input: No such file'): on very
                 ' short recordings Stop() arrives while ffmpeg is STILL probing

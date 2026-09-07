@@ -59,6 +59,11 @@ Partial Public Class CaptureEngine
     Private _settings As CaptureSettings
     Private _ffmpegProcess As Process
     Private _state As CaptureState = CaptureState.Idle
+    ' ★ T3 fix: _state is written/read from ≥4 thread contexts (UI thread,
+    ' Task.Run, Exited threadpool thread, stderr callbacks). All reads and
+    ' writes go through _stateLock (Monitor is reentrant per-thread, so
+    ' nested property reads inside this class are safe).
+    Private ReadOnly _stateLock As New Object()
     Private _outputFile As String = ""
     Private _stopwatch As Stopwatch
     Private _logBuffer As StringBuilder
@@ -131,13 +136,17 @@ Partial Public Class CaptureEngine
 
     Public ReadOnly Property State As CaptureState
         Get
-            Return _state
+            SyncLock _stateLock
+                Return _state
+            End SyncLock
         End Get
     End Property
 
     Public ReadOnly Property IsRecording As Boolean
         Get
-            Return _state = CaptureState.Recording
+            SyncLock _stateLock
+                Return _state = CaptureState.Recording
+            End SyncLock
         End Get
     End Property
 
@@ -149,9 +158,11 @@ Partial Public Class CaptureEngine
     ''' Dispose → jobGuard.Dispose kill the mux ffmpeg, losing the recording).</summary>
     Public ReadOnly Property IsRecordingLifecycleActive As Boolean
         Get
-            Return _state = CaptureState.Recording OrElse
-                   _state = CaptureState.Stopping OrElse
-                   _state = CaptureState.Muxing
+            SyncLock _stateLock
+                Return _state = CaptureState.Recording OrElse
+                       _state = CaptureState.Stopping OrElse
+                       _state = CaptureState.Muxing
+            End SyncLock
         End Get
     End Property
 
@@ -219,6 +230,21 @@ Partial Public Class CaptureEngine
             _outputFile = _settings.GenerateOutputFilename()
         End If
 
+        ' ★ T3 fix: close the double-start window. The old guard checked
+        ' _state on this thread and only set Recording deep inside Task.Run,
+        ' so two concurrent starts could both pass. Reservation is now
+        ' ATOMIC on the caller thread: the second starter sees non-Idle and
+        ' is rejected before any process/audio work happens. Detecting was
+        ' a dead enum slot; it is now the reserved/pre-spawn state. Every
+        ' failure path below must leave a terminal state (HasError or Idle).
+        SyncLock _stateLock
+            If _state <> CaptureState.Idle Then
+                RaiseEvent ErrorOccurred("Cannot start: engine is not idle")
+                Return False
+            End If
+            _state = CaptureState.Detecting
+        End SyncLock
+
         Return Await Task.Run(Function()
                                  Try
                                      ' ★ Dispose-race guard: Dispose() can run while this
@@ -226,9 +252,12 @@ Partial Public Class CaptureEngine
                                      ' stress-runner start timeout). Starting ffmpeg after the
                                      ' job guard was disposed leaves it WITHOUT the
                                      ' KILL_ON_JOB_CLOSE contract — a permanent orphan. Bail
-                                     ' out on a disposed engine instead.
+                                     ' out on a disposed engine instead. The Detecting
+                                     ' reservation is released: a disposed engine owns the
+                                     ' terminal state.
                                      If _disposed Then
                                          LogDebug("Start aborted: engine disposed during initialization")
+                                         SetState(CaptureState.Idle)
                                          Return False
                                      End If
 
@@ -341,6 +370,7 @@ Partial Public Class CaptureEngine
                                                      SetState(CaptureState.HasError)
                                                      RaiseEvent ErrorOccurred("FFmpeg started without job ownership — terminated")
                                                  Else
+                                                     SetState(CaptureState.Idle)
                                                      RaiseEvent ErrorOccurred("Start aborted: engine disposed after ffmpeg start")
                                                  End If
                                              Else
@@ -408,9 +438,11 @@ Partial Public Class CaptureEngine
     ' ── Stop Recording ────────────────────────────────────────
 
     Public Async Function StopRecordingAsync() As Task(Of Boolean)
-        If _state <> CaptureState.Recording AndAlso _state <> CaptureState.HasError Then
-            Return False
-        End If
+        SyncLock _stateLock
+            If _state <> CaptureState.Recording AndAlso _state <> CaptureState.HasError Then
+                Return False
+            End If
+        End SyncLock
 
         SetState(CaptureState.Stopping)
         _audioStopTicks = Stopwatch.GetTimestamp()
@@ -606,17 +638,30 @@ Partial Public Class CaptureEngine
         If Not hasSystem AndAlso Not hasMic Then
             ' No audio captured (WASAPI never fired, or mic not connected).
             ' Just rename the temp video to the final output — no mux needed.
-            LogDebug("[Mux] No audio data — renaming temp video to final output (no mux)")
-            WriteDebugLog("[Mux] No audio data — renaming temp video to final output")
-            Try
-                ' Delete final if exists (stale), then move temp → final
-                If File.Exists(_outputFile) Then File.Delete(_outputFile)
-                File.Move(_tempVideoPath, _outputFile)
-                LogDebug("[Mux] Renamed temp video → " & _outputFile)
-            Catch ex As Exception
-                LogDebug("[Mux] Rename failed: " & ex.Message)
-                WriteDebugLog("[Mux] Rename failed: " & ex.Message)
-            End Try
+            ' ★ F03-B flake fix (audit 2026-09-07): this path used to rename
+            ' UNVALIDATED. When the desktop was silent AND the video finalize
+            ' had crashed (moov-less temp), the garbage file was promoted to
+            ' the final output and Step 4 announced it as saved — the same
+            ' FALSE-SAVED window the mux-failure path had. Same contract:
+            ' promote only a playable file; the honesty error in Step 4
+            ' becomes deterministic.
+            LogDebug("[Mux] No audio data — validating temp video before rename (no mux)")
+            WriteDebugLog("[Mux] No audio data — validating temp video before rename (no mux)")
+            If ValidatePlayback(_tempVideoPath) Then
+                Try
+                    ' Delete final if exists (stale), then move temp → final
+                    If File.Exists(_outputFile) Then File.Delete(_outputFile)
+                    File.Move(_tempVideoPath, _outputFile)
+                    LogDebug("[Mux] Renamed temp video → " & _outputFile)
+                    WriteDebugLog("[Mux] Renamed temp video → " & _outputFile)
+                Catch ex As Exception
+                    LogDebug("[Mux] Rename failed: " & ex.Message)
+                    WriteDebugLog("[Mux] Rename failed: " & ex.Message)
+                End Try
+            Else
+                LogDebug("[Mux] no-audio fallback temp video FAILED playback validation — not promoted to the final output")
+                WriteDebugLog("[Mux] no-audio fallback temp video FAILED playback validation — not promoted to the final output")
+            End If
             Return
         End If
 
@@ -720,30 +765,31 @@ Partial Public Class CaptureEngine
                     ' so ship it video-only instead of leaving a broken mp4.
                     LogDebug("[Mux] FFmpeg mux FAILED — falling back to video-only output")
                     WriteDebugLog($"[Mux] FFmpeg mux ExitCode={muxExitCode} — removing broken output, renaming temp video to final output")
-                    Try
-                        If File.Exists(_outputFile) Then File.Delete(_outputFile)
-                        File.Move(_tempVideoPath, _outputFile)
-                        LogDebug("[Mux] Video-only fallback output: " & _outputFile)
-                        WriteDebugLog("[Mux] Video-only fallback output: " & _outputFile)
 
-                        ' ★ F-03 honesty fix (proven by F03-B regression): the
-                        ' fallback assumed the temp video is playable. A crashed
-                        ' finalize leaves a moov-less file the mux just rejected —
-                        ' renaming it and letting Step 4 announce RecordingStopped
-                        ' shipped an unplayable "saved" recording. Validate the
-                        ' renamed output with a 1-second real-decode probe; an
-                        ' unplayable file is deleted so Step 4 reports the truth
-                        ' ("Recording not saved") instead of a false save.
-                        If Not ValidatePlayback(_outputFile) Then
-                            LogDebug("[Mux] fallback output FAILED playback validation — removing unplayable file")
-                            WriteDebugLog("[Mux] fallback output FAILED playback validation — removing unplayable file")
-                            Try : File.Delete(_outputFile) : Catch : End Try
-                        End If
-                    Catch ex2 As Exception
-                        LogDebug("[Mux] Video-only fallback failed: " & ex2.Message)
-                        WriteDebugLog("[Mux] Video-only fallback failed: " & ex2.Message)
-                    End Try
-                    ' Audio sidecars stay behind for inspection
+                    ' ★ F03-B flake fix (audit 2026-09-07): validation used to
+                    ' run AFTER the move — an unplayable file was renamed to
+                    ' the final path and then deleted; a transiently locked
+                    ' delete (AV/indexer holding the just-written file) was
+                    ' swallowed, the garbage survived at the FINAL path, and
+                    ' Step 4 announced it as saved (FALSE SAVED). Validate the
+                    ' TEMP first and promote only when playable — an
+                    ' unplayable file can never exist at the final path, so
+                    ' the honesty error in Step 4 becomes deterministic.
+                    If ValidatePlayback(_tempVideoPath) Then
+                        Try
+                            If File.Exists(_outputFile) Then File.Delete(_outputFile)
+                            File.Move(_tempVideoPath, _outputFile)
+                            LogDebug("[Mux] Video-only fallback output: " & _outputFile)
+                            WriteDebugLog("[Mux] Video-only fallback output: " & _outputFile)
+                        Catch ex2 As Exception
+                            LogDebug("[Mux] Video-only fallback failed: " & ex2.Message)
+                            WriteDebugLog("[Mux] Video-only fallback failed: " & ex2.Message)
+                        End Try
+                    Else
+                        LogDebug("[Mux] fallback temp video FAILED playback validation — not promoted to the final output")
+                        WriteDebugLog("[Mux] fallback temp video FAILED playback validation — not promoted to the final output")
+                    End If
+                    ' Audio sidecars (and the rejected temp video) stay behind for inspection
                     Return
                 End If
             End Using
@@ -1129,7 +1175,13 @@ Partial Public Class CaptureEngine
         ' "FFmpeg exited unexpectedly with code -1" error over a teardown the
         ' dispose path already owns. A disposed engine never recovers here —
         ' its exit belongs to the teardown.
-        If _state = CaptureState.Recording AndAlso Not _disposed Then
+        ' ★ T3 fix: snapshot the state under the lock — the Exited handler runs
+        ' on a threadpool thread while Stop/Dispose mutate _state.
+        Dim exitedDuringRecording As Boolean
+        SyncLock _stateLock
+            exitedDuringRecording = (_state = CaptureState.Recording)
+        End SyncLock
+        If exitedDuringRecording AndAlso Not _disposed Then
             If _stopwatch IsNot Nothing Then _stopwatch.Stop()
 
             ' Step 1: Stop audio writer (finalize .wav files)
@@ -1241,7 +1293,12 @@ Partial Public Class CaptureEngine
     ' ── Helpers ──────────────────────────────────────────────
 
     Private Sub SetState(newState As CaptureState)
-        _state = newState
+        ' ★ T3 fix: the write is synchronized; the event fires OUTSIDE the
+        ' lock (handlers may re-read State — same-thread Monitor reentrancy
+        ' would tolerate it, but never hold a lock across foreign callbacks).
+        SyncLock _stateLock
+            _state = newState
+        End SyncLock
         RaiseEvent StateChanged(newState)
     End Sub
 

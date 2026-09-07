@@ -119,9 +119,9 @@ Friend Module P3UIContractTests
     Private Const EngineAudioDesignerVb As String = "Engine/Engine/[UI]/AudioSettingsForm.Designer.vb"
 
     Private Const VideoPageVb As String =
-        "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[Settings]/[5] Video Capture.vb"
+        "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[Settings]/[5] Video Capture/[Main] Video Capture.vb"
     Private Const AudioPageVb As String =
-        "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[Settings]/[6] Audio Capture.vb"
+        "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[Settings]/[6] Audio Capture/[Main] Audio Capture.vb"
     Private Const SubMouseVb As String =
         "Overlay/[Forms Overlay - Project Files]/[UI OVERLAY]/[index]/[Base]/[Main Menu]/[1] Sub_Mouse.vb"
     Private Const SubMiscVb As String =
@@ -200,7 +200,7 @@ Friend Module P3UIContractTests
     ' ── P3-UICT4 ──
     Private Sub P3UICT4_VolumeCap_100()
         Dim engineDesigner As String = Source(EngineAudioDesignerVb)
-        Dim overlayDesigner As String = Source(AudioPageVb.Replace("[6] Audio Capture.vb", "[6] Audio Capture.Designer.vb"))
+        Dim overlayDesigner As String = Source(AudioPageVb.Replace("[Main] Audio Capture.vb", "[Main] Audio Capture.Designer.vb"))
 
         ExpectContains(engineDesigner, "trkSystemVol.Maximum = 100", "Engine audio designer")
         ExpectContains(engineDesigner, "trkMicVol.Maximum = 100", "Engine audio designer")

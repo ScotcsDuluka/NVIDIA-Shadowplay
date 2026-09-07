@@ -107,6 +107,17 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
         Private _adapterLuidLow As UInteger
         Private _adapterLuidHigh As Integer
 
+        ' ---- L8 escalation: eternal DuplicateOutput retry guard ----
+        ' A duplication that cannot be recreated (slot exhaustion, driver
+        ' wedge, OOM) used to retry at 250 ms FOREVER while the session
+        ' silently recorded nothing. After MaxDuplicationRecreateFailures
+        ' CONSECUTIVE failed recreations the worker faults loudly (the throw
+        ' travels the same outer-catch → worker-exit state tail as a natural
+        ' crash), so the session fails honestly instead of shipping a black
+        ' recording. A single success resets the counter.
+        Private Const MaxDuplicationRecreateFailures As Long = 120   ' ≈30s at the 250ms self-heal retry
+        Private _duplicationRecreateFailures As Long = 0
+
         ' ---- shared-handle mode (Phase 12a-5c) ----
         ' When True, staging textures are created with SharedNthandle flag and
         ' a shared handle is obtained for cross-device resource sharing.
@@ -1002,10 +1013,25 @@ skipFrame:
                 Dim output1 As IDXGIOutput1 = _output.QueryInterface(Of IDXGIOutput1)()
                 _duplication = output1.DuplicateOutput(_device)
                 output1.Dispose()
+                SyncLock _sync
+                    _duplicationRecreateFailures = 0
+                End SyncLock
                 _logger.Info("DdagrabBackend: DXGI Output Duplication recreated")
             Catch ex As Exception
-                _logger.Error($"DdagrabBackend: failed to recreate duplication: {ex.Message}", ex)
-                ' Worker will see access-lost again next iteration; keep trying.
+                Dim failures As Long
+                SyncLock _sync
+                    _duplicationRecreateFailures += 1
+                    failures = _duplicationRecreateFailures
+                End SyncLock
+                _logger.Error($"DdagrabBackend: failed to recreate duplication ({failures}/{MaxDuplicationRecreateFailures}): {ex.Message}", ex)
+                If failures >= MaxDuplicationRecreateFailures Then
+                    ' L8 escalation: stop the eternal 250ms retry — fault the
+                    ' worker so the session fails loudly instead of recording
+                    ' nothing forever.
+                    Throw New VideoBackendRuntimeException(
+                        $"DXGI Output Duplication unavailable — {failures} consecutive recreate failures " &
+                        "(device wedge, duplication-slot exhaustion, or driver fault).")
+                End If
             End Try
         End Sub
 
