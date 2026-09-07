@@ -145,8 +145,11 @@ Public Class CaptureSettings
             If Not String.IsNullOrEmpty(foundEngine) Then LoadEngineSettings(settings, foundEngine)
         End If
 
-        ' ── Auto-detect FFmpegPath if empty ──
-        If String.IsNullOrEmpty(settings.FFmpegPath) OrElse Not File.Exists(settings.FFmpegPath) Then
+        ' ── Auto-detect FFmpegPath if not actually usable ──
+        ' IsUsableFFmpeg, NOT File.Exists: a saved path may point at a
+        ' corrupt/stale binary (2026-09-08 postmortem) — re-detect so the
+        ' good candidate one directory over wins instead.
+        If Not FFmpegLocator.IsUsableFFmpeg(settings.FFmpegPath) Then
             settings.FFmpegPath = FindFFmpegPath()
         End If
 
@@ -420,10 +423,12 @@ Public Class CaptureSettings
         Catch
         End Try
 
-        For Each candidate In candidates
-            If File.Exists(candidate) Then Return candidate
-        Next
-        Return ""
+        ' VALIDATED resolution (FFmpegLocator): File.Exists alone once let a
+        ' corrupt {bin}\FFmpeg\ffmpeg.exe dead-end every lookup with
+        ' Win32Exception 193 while a good API-Core\ffmpeg.exe sat one
+        ' candidate later. Each candidate now must actually RUN (-version
+        ' probe, cached per file version) before it is accepted.
+        Return FFmpegLocator.FirstUsableFFmpeg(candidates, Nothing)
     End Function
 
     Private Shared Function JsonEscape(s As String) As String
