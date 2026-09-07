@@ -5,6 +5,9 @@ namespace Duluka.Server.Domain;
 /// providers are connectors and NEVER own the account. ProviderUserId is unique
 /// within (ProviderKey) — that unique anchor is the only duplicate-account defense.
 /// Email/login values are DISPLAY-ONLY and are never used for identity matching.
+/// Profile surface: DisplayName + ProfileImage are user-editable PRESENTATION
+/// fields — changing them NEVER touches identity (AccountId/Status), the
+/// username anchor (NativeCredential) or any device/session row.
 /// </summary>
 public static class ProviderKeys
 {
@@ -47,7 +50,8 @@ public record DulukaAccount(
     string Status,
     string? DisplayName,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string? ProfileImage = null);
 
 public record AccountProviderLink(
     string LinkId,
@@ -135,4 +139,58 @@ public static class UsernamePolicy
         !string.IsNullOrEmpty(password)
         && password.Length >= MinPasswordLength
         && password.Length <= MaxPasswordLength;
+}
+
+/// <summary>
+/// Profile-field policy (documented §7.2 extension: invalid_display_name /
+/// invalid_profile_image). The profile image travels as a data URL — the same
+/// single-JSON-body transport every other endpoint uses (no multipart anywhere
+/// in v0) — and is size-capped BEFORE base64 decoding so a hostile body cannot
+/// force a large allocation. The avatar is a PRESENTATION value: it must never
+/// carry executable content, so the MIME allow-list is strict and the decoded
+/// payload is bounded; rendering safety is the client's decode contract.
+/// </summary>
+public static class ProfilePolicy
+{
+    public const int MaxDisplayNameLength = 64;
+    public const int MaxProfileImageBytes = 256 * 1024;   // 256 KB decoded avatar cap
+    public const int MaxProfileImageFileBytes = 8 * 1024 * 1024; // client-side pre-decode file cap
+
+    /// <summary>Strict data-URL grammar: data:image/(png|jpeg|webp);base64,payload.
+    /// No SVG (scriptable), no GIF (animation surface), no unencoded payloads.</summary>
+    private static readonly System.Text.RegularExpressions.Regex Pattern =
+        new(
+            "^data:image/(png|jpeg|webp);base64,([A-Za-z0-9+/]*={0,2})$",
+            System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    /// <summary>DisplayName is optional (null/empty clears it). When present it
+    /// is trimmed, length-capped and may not contain control characters — it is
+    /// rendered verbatim in the overlay UI.</summary>
+    public static bool IsValidDisplayName(string? displayName)
+    {
+        if (string.IsNullOrEmpty(displayName)) return true;   // clearing is valid
+        var trimmed = displayName.Trim();
+        if (trimmed.Length == 0) return true;
+        if (trimmed.Length > MaxDisplayNameLength) return false;
+        return !trimmed.Any(char.IsControl);
+    }
+
+    /// <summary>Profile image is optional (null/empty clears it). When present
+    /// it must be a well-formed, allow-listed, size-capped data URL.
+    /// <paramref name="profileImage"/> of null/whitespace is always valid.</summary>
+    public static bool IsValidProfileImage(string? profileImage)
+    {
+        if (string.IsNullOrWhiteSpace(profileImage)) return true;   // clearing is valid
+        var match = Pattern.Match(profileImage);
+        if (!match.Success) return false;
+        // Size gate BEFORE Convert.FromBase64String: the payload length bounds
+        // the decoded size to ~3/4 of itself, so an oversized body is refused
+        // without ever materializing the bytes.
+        var payloadLength = match.Groups[2].Length;
+        if (payloadLength == 0) return false;
+        if (payloadLength > (MaxProfileImageBytes / 3 + 1) * 4) return false;
+        try { Convert.FromBase64String(match.Groups[2].Value); }
+        catch (FormatException) { return false; }
+        return true;
+    }
 }

@@ -34,6 +34,7 @@ Friend Class DulukaAccountStore
     Private _deviceName As String = ""
     Private _displayName As String = ""
     Private _username As String = ""
+    Private _profileImage As String = ""
     Private _sessionExpiresAtIso As String = ""
 
     Private Sub New()
@@ -82,6 +83,16 @@ Friend Class DulukaAccountStore
     Public ReadOnly Property Username As String
         Get
             Return _username
+        End Get
+    End Property
+
+    ''' <summary>The avatar as a data:image/...;base64 URL ("" = none). It is
+    ' a PRESENTATION value from THIS account's own profile — not a secret and
+    ' not a remote URL; the renderer decodes defensively (no crash, letter
+    ' fallback) so a corrupt value can never blank the UI.</summary>
+    Public ReadOnly Property ProfileImage As String
+        Get
+            Return _profileImage
         End Get
     End Property
 
@@ -149,6 +160,17 @@ Friend Class DulukaAccountStore
         End SyncLock
     End Sub
 
+    ''' <summary>Full profile snapshot from the server (identity card / profile
+    ' editor reload path). profileImage "" clears the avatar.</summary>
+    Public Sub SetProfileWithImage(displayName As String, username As String, profileImage As String)
+        SyncLock _lock
+            _displayName = If(displayName, "")
+            _username = If(username, "")
+            _profileImage = If(profileImage, "")
+            Save()
+        End SyncLock
+    End Sub
+
     ''' <summary>Logout / terminal session handling: clears everything
     ' session-scoped. The device key is intentionally kept.</summary>
     Public Sub ClearSession()
@@ -158,6 +180,7 @@ Friend Class DulukaAccountStore
             _deviceId = ""
             _displayName = ""
             _username = ""
+            _profileImage = ""
             _sessionExpiresAtIso = ""
             Save()
         End SyncLock
@@ -210,7 +233,7 @@ Friend Class DulukaAccountStore
         ' silently skipped (the file came out as "{}" and nothing persisted
         ' across restarts). Every member below must stay a Property.
         <JsonPropertyName("v")>
-        Public Property Version As Integer = 1
+        Public Property Version As Integer = 2
         <JsonPropertyName("deviceKeyEncrypted")>
         Public Property DeviceKeyEncrypted As String = ""
         <JsonPropertyName("sessionTokenEncrypted")>
@@ -225,6 +248,8 @@ Friend Class DulukaAccountStore
         Public Property DisplayName As String = ""
         <JsonPropertyName("username")>
         Public Property Username As String = ""
+        <JsonPropertyName("profileImage")>
+        Public Property ProfileImage As String = ""
         <JsonPropertyName("sessionExpiresAt")>
         Public Property SessionExpiresAt As String = ""
     End Class
@@ -245,6 +270,7 @@ Friend Class DulukaAccountStore
             dto.DeviceName = _deviceName
             dto.DisplayName = _displayName
             dto.Username = _username
+            dto.ProfileImage = _profileImage
             dto.SessionExpiresAt = _sessionExpiresAtIso
             File.WriteAllText(StorePath, JsonSerializer.Serialize(dto))
         Catch ex As Exception
@@ -265,6 +291,7 @@ Friend Class DulukaAccountStore
             _deviceName = If(dto.DeviceName, "")
             _displayName = If(dto.DisplayName, "")
             _username = If(dto.Username, "")
+            _profileImage = If(dto.ProfileImage, "")
             _sessionExpiresAtIso = If(dto.SessionExpiresAt, "")
         Catch ex As Exception
             ' Corrupt store = start clean; the next login re-provisions.
