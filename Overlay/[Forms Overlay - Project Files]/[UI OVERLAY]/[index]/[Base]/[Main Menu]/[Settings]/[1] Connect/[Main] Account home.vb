@@ -130,6 +130,7 @@ Public Class Base_Connect
         BT_Devices.Visible = True
         BT_Security.Visible = True
         BT_Providers.Visible = True
+        BT_EditProfile.Visible = True
         BT_Logout.Visible = True
         Session_PANEL.Visible = True
         ' First-time setup nudge: a GitHub-bootstrapped account has no native

@@ -178,7 +178,7 @@ Partial Class Base_Connect
         BT_Devices.ForeColor = Color.White
         BT_Devices.Location = New Point(62, 310)
         BT_Devices.Name = "BT_Devices"
-        BT_Devices.Size = New Size(534, 64)
+        BT_Devices.Size = New Size(397, 64)
         BT_Devices.TabIndex = 64
         BT_Devices.Text = "Devices"
         BT_Devices.TextAlign = ContentAlignment.MiddleCenter
@@ -189,9 +189,9 @@ Partial Class Base_Connect
         BT_Security.Cursor = Cursors.Hand
         BT_Security.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Security.ForeColor = Color.White
-        BT_Security.Location = New Point(612, 310)
+        BT_Security.Location = New Point(475, 310)
         BT_Security.Name = "BT_Security"
-        BT_Security.Size = New Size(534, 64)
+        BT_Security.Size = New Size(397, 64)
         BT_Security.TabIndex = 65
         BT_Security.Text = "Sessions && Security"
         BT_Security.TextAlign = ContentAlignment.MiddleCenter
@@ -199,15 +199,15 @@ Partial Class Base_Connect
         ' BT_Providers
         '
         ' NB: no Left/Right anchor here — the action row is laid out in code
-        ' (LayoutRow) so the three buttons always divide the width into exact
-        ' thirds; an anchor would stretch only this button and skew the row.
+        ' (LayoutRow) so the FOUR buttons always divide the width into exact
+        ' quarters; an anchor would stretch only this button and skew the row.
         BT_Providers.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         BT_Providers.Cursor = Cursors.Hand
         BT_Providers.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_Providers.ForeColor = Color.White
-        BT_Providers.Location = New Point(1162, 310)
+        BT_Providers.Location = New Point(888, 310)
         BT_Providers.Name = "BT_Providers"
-        BT_Providers.Size = New Size(534, 64)
+        BT_Providers.Size = New Size(397, 64)
         BT_Providers.TabIndex = 66
         BT_Providers.Text = "Linked accounts"
         BT_Providers.TextAlign = ContentAlignment.MiddleCenter
@@ -220,9 +220,9 @@ Partial Class Base_Connect
         BT_EditProfile.Cursor = Cursors.Hand
         BT_EditProfile.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_EditProfile.ForeColor = Color.White
-        BT_EditProfile.Location = New Point(1662, 310)
+        BT_EditProfile.Location = New Point(1301, 310)
         BT_EditProfile.Name = "BT_EditProfile"
-        BT_EditProfile.Size = New Size(360, 64)
+        BT_EditProfile.Size = New Size(397, 64)
         BT_EditProfile.TabIndex = 67
         BT_EditProfile.Text = "Edit Profile"
         BT_EditProfile.TextAlign = ContentAlignment.MiddleCenter
