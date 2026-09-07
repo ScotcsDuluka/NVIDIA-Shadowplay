@@ -10,7 +10,20 @@
 - [**Team**](https://scotcsduluka.github.io/NVIDIA-Shadowplay/#team)
 - [**Discord Server**](https://discord.gg/v5qUGVD3jZ)
 
+Please check the app information at https://scotcsduluka.github.io/NVIDIA-Shadowplay/ as this README may not always reflect the latest application status.
+
 # NVIDIA ShadowPlay
+
+> [!NOTE]
+> A custom screen capture utility inspired by NVIDIA ShadowPlay, built primarily in **<img src="https://raw.githubusercontent.com/github/explore/refs/heads/main/topics/visual-basic/visual-basic.png" alt="Visual Basic Logo" width="15"> VB.NET** with a **no-hook** capture design.<br>
+> Recording and encoding are powered by **FFmpeg**, with modular capture and encoder components under active development.
+
+> [!WARNING]
+> This project is still under active development. Some applications and protected/DRM content may not be capturable, depending on the capture path and operating-system restrictions.
+
+> [!IMPORTANT]
+> **Runtime Dependency:** The current desktop application targets **.NET 10** and requires the **.NET 10 Desktop Runtime** when deployed as framework-dependent.<br><br>
+> **OS Requirement:** Windows is required. Supported operating-system versions depend on the .NET 10 and Windows API requirements of the selected build. See the official .NET Windows support matrix for the current platform details.
 
 ## Capture Every Momen
 
@@ -122,6 +135,12 @@ Modern capture APIs + hardware encoder status.
 
 Native in-app GPU encoding (production path): H.264 CBR/CFR, D3D11 texture submission, and explicit keyframe handling.
 
+### Encoder Status
+
+- [x] NVIDIA / NVENC ready
+- [ ] Intel / Quick Sync
+- [ ] AMD / AMF
+
 ### Intel QSV
 
 **Not in this regime**
@@ -155,6 +174,12 @@ Slot prepared in the modular engine (`VideoBackendKind.GfxCapture`) — not the 
 **Coming**
 
 `d3d11_native`, `window_capture`, `region_capture` and `native_game_capture` remain on the roadmap.
+
+Additionally supported capture options and planned backends:
+
+- Windows.Graphics.Capture
+- Desktop Duplication API
+- GDI screen grabber
 
 ---
 
@@ -222,7 +247,7 @@ In-game borderless overlay with recording controls, keyboard shortcuts, settings
 
 ### Hub — NVIDIA API/
 
-Local application hub coordinating the desktop app family and carrying engine command messages between components.
+Local application hub coordinating the desktop application family and carrying engine command messages between components.
 ### Two Engine Regimes
 
 The project intentionally keeps two distinct engine regimes:
@@ -251,106 +276,46 @@ TCP/local hub used to coordinate the desktop application family and carry engine
 
 ---
 
-# Frequently Asked Questions
+## Development
 
-### Is the application a modified NVIDIA ShadowPlay?
+| Branch | Purpose |
+|--------|---------|
+| **`Stable`** | Default branch — last known-good build |
+| **`Engine-Rebuild-Stabilization`** | Active development — modular capture engine, lifecycle hardening, sync/audio stabilization, and account integration |
 
-No. This is an independent third-party implementation inspired by the workflow and user experience of NVIDIA ShadowPlay.
+The project is being developed as a modular capture stack rather than a direct copy of NVIDIA's internal implementation.
 
-### Does it use memory injection or hooks?
+Engine documentation lives in [`docs/`](docs/), starting with [`docs/PHASE_PLAN.md`](docs/PHASE_PLAN.md). The module map is documented in [`PROJECT-STRUCTURE.md`](PROJECT-STRUCTURE.md), with build and diagnostic entry points under [`scripts/`](scripts/).
 
-No. The design uses Windows capture APIs, D3D11 resources, FFmpeg, and supported hotkey mechanisms instead of injecting into games.
-
-### Can it record Netflix or other DRM video?
-
-Some DRM-protected applications can block screen capture. This is a Windows/content-protection limitation rather than an application feature toggle.
-
-### Does it support Intel GPUs?
-
-Yes, through the FFmpeg engine regime where the corresponding FFmpeg/QSV path is available and validated. The native production engine (Duluka) currently targets NVIDIA NVENC.
-
-### Does it support AMD?
-
-AMD AMF remains on the roadmap.
-
-### How can I contribute?
-
-Fork the repository, make your changes, test them, and submit a pull request.
----
-
-# Meet The Team
-
-Driven by passion, built through 3+ years of continuous innovation and refinement.
-
-## ScotcsDuluka (Agkarath Truajnok)
-
-**Builder • Lone Wolf**
-
-**Elite · OWNERSHIP · 3+ YEARS LEGACY · WEBSITE Editor**
-
-The creator and driving force behind the entire project — from the first concept to full execution. Responsible for architecting the system, designing the user experience, and engineering the core components. Known for pushing technical boundaries and turning complex ideas into seamless, real-time experiences. Continuously refining performance, scalability, and innovation to deliver a product that stands above the rest.
-
-*Not just building software — defining the experience.*
-
-## Natthawut Fueangkaew
-
-**Architect of Continuity • The Silent Origin**
-
-**SUPPORTING · Reawakening Force · TESTER · SENIOR**
-
-Supporting the project from behind the scenes through resources, encouragement, and continuous belief in the vision.
-
-As the silent origin of continuity, his presence ensures that the project never truly fades, even in moments of inactivity or uncertainty. This is not merely support — this is the foundation that allowed rebirth to happen.
-
-*As the three-year program neared its end, he walked in and offered support—not just support, but hope… which rekindled ScotcsDuluka's determination and reignited his fighting spirit!*
-
-## Apiwit Kaemanee
-
-**Core Contributor • QA Specialist • System Tester**
-
-**Transcendent · FRIEND · TESTER · PRIME**
-
-A key contributor supporting the development and refinement of the system through rigorous testing and validation. Responsible for identifying issues, verifying functionality, and ensuring overall system stability and reliability.
-
-Plays an essential role in maintaining quality standards and helping shape a smoother, more polished user experience.
-
-*Ensuring everything works — exactly as it should.*
+### Current Engineering Focus
+- Capture backend lifecycle and ownership
+- Video frame delivery and timestamp correctness
+- NVENC configuration authority and synchronization
+- FFmpeg recording/mux integration
+- Duluka Account authentication and identity semantics
+- Regression and integration testing
 
 ---
 
-# License
+## License
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)
 
-This project is released under the MIT License.
-
-- [LICENSE](LICENSE)
-- [LICENSE.NOTICE](LICENSE.NOTICE)
+| File | Description | Click to View |
+|---------|-------------|------------------|
+| **[LICENSE](LICENSE)** | MIT License | [Open LICENSE](LICENSE) |
+| **[LICENSE.NOTICE](LICENSE.NOTICE)** | Third-Party Components Attribution | [Open LICENSE.NOTICE](LICENSE.NOTICE) |
 
 ---
 
-# Third-Party Components
-
-| Component | License | Source |
-|---|---|---|
-| [NAudio](https://github.com/naudio/NAudio) | MIT | Audio capture support |
-| [Newtonsoft.Json](https://www.newtonsoft.com/json) | MIT | JSON support |
-| [libmp3lame](https://lame.sourceforge.io/) | LGPL-2.0 | Audio codec dependency |
-| [FFmpeg](https://ffmpeg.org/) | LGPL/GPL | Encoding and live mux engine |
-| [.NET](https://dotnet.microsoft.com/) | MIT | Runtime/platform |
-| [Windows SDK / WinRT](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | Microsoft licensing | Windows API interop |
-
-See full attribution in [LICENSE.NOTICE](LICENSE.NOTICE).
----
-
-# Disclaimer
+## Disclaimer
 
 > [!CAUTION]
 > **Trademark Notice:** This is an **independent third-party application** and is **NOT affiliated with, endorsed by, sponsored by, or approved by NVIDIA Corporation**.
 >
 > **NVIDIA**, **GeForce**, and **ShadowPlay** are trademarks or registered trademarks of NVIDIA Corporation in the United States and/or other countries.
 >
-> This project uses Microsoft Windows APIs and NVIDIA encoding technology through documented interfaces and/or FFmpeg components as applicable to each engine regime.
+> This project uses third-party and platform technologies such as FFmpeg, NVIDIA NVENC, and Microsoft Windows capture APIs according to their respective licensing and platform terms. This project does not imply endorsement by NVIDIA.
 
 ---
 
@@ -363,15 +328,52 @@ See full attribution in [LICENSE.NOTICE](LICENSE.NOTICE).
 5. Push your branch.
 6. Open a Pull Request.
 
+| Component | License | Author | Source |
+|-----------|---------|--------|--------|
+| [NAudio](https://github.com/naudio/NAudio) | MIT | Mark Heath | NAudio.Core.dll, NAudio.Wasapi.dll |
+| [Newtonsoft.Json](https://www.newtonsoft.com/json) | MIT | James Newton-King | Newtonsoft.Json.dll |
+| [libmp3lame](https://lame.sourceforge.io/) | LGPL-2.0 | The LAME Project | libmp3lame.32.dll, libmp3lame.64.dll |
+| [FFmpeg](https://ffmpeg.org/) | LGPL/GPL | FFmpeg Developers | Recording / Encoding pipeline |
+| [.NET](https://dotnet.microsoft.com/) | MIT | Microsoft | .NET runtime / desktop components |
+| [Windows SDK](https://learn.microsoft.com/en-us/windows/apps/windows-app-sdk/) | Microsoft licenses | Microsoft | Windows API / WinRT components |
+
+See the full attribution list in **[LICENSE.NOTICE](LICENSE.NOTICE)**.
+
 ---
 
 # Contact & Links
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+For substantial engine or architecture changes, please review the documentation under [`docs/`](docs/) first.
+
+---
+
+## Credits
+
+| Role | Name | Description |
+|------|------|-------------|
+| **Creator & Lead Developer** | [ScotcsDuluka](https://github.com/ScotcsDuluka) | Architecture, UX Design, Core Engine, Overlay System, Animation Framework |
+| **Tester & QA** | [ApiwitKaemanee](https://www.facebook.com/profile.php?id=61577847980691) | Testing, Validation, Stability Assurance |
+
+---
+
+## Contact & Links
 
 | Resource | Link |
 |---|---|
 | **Project Website** | [NVIDIA ShadowPlay](https://scotcsduluka.github.io/NVIDIA-Shadowplay/) |
 | **OBT3** | [Live OBT3 page](https://scotcsduluka.github.io/NVIDIA-Shadowplay/obt3.html) |
 | **Repository** | [GitHub](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay) |
+| **Releases** | [GitHub Releases](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases) |
+| **Issues** | [GitHub Issues](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues) |
+| **Creator** | [ScotcsDuluka](https://github.com/ScotcsDuluka) |
 | **Releases** | [GitHub Releases](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/releases) |
 | **Issues** | [GitHub Issues](https://github.com/ScotcsDuluka/NVIDIA-Shadowplay/issues) |
 | **Creator** | [ScotcsDuluka](https://github.com/ScotcsDuluka) |
