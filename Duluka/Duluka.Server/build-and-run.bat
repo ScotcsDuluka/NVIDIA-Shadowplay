@@ -54,15 +54,33 @@ if errorlevel 1 (
 
 rem ---- Optional: GitHub OAuth client secret (only needed for GitHub
 rem      sign-in; email/password sign-in works without it) ----
+rem      Sources, in order: Duluka\.server-secret (git-ignored) >
+rem      one-time inline paste (saved to that file) > GitHub off.
 set "DULUKA_GitHub__ClientSecret="
-if exist "%~dp0..\.server-secret" for /f "usebackq delims=" %%s in ("%~dp0..\.server-secret") do set "DULUKA_GitHub__ClientSecret=%%s"
+if not exist "%~dp0..\.server-secret" goto secret_ask
+for /f "usebackq delims=" %%s in ("%~dp0..\.server-secret") do set "DULUKA_GitHub__ClientSecret=%%s"
 if defined DULUKA_GitHub__ClientSecret (
     echo   GitHub client secret loaded from Duluka\.server-secret
-) else (
-    echo   Note: no GitHub client secret - GitHub sign-in is disabled.
-    echo         Email/password sign-in works fine. To enable GitHub sign-in,
-    echo         run Duluka\run-server.cmd once and paste the secret.
+    goto secret_done
 )
+:secret_ask
+echo   Note: no GitHub client secret - GitHub sign-in is disabled.
+echo         Email/password sign-in works fine.
+echo         Get it: GitHub ^> Settings ^> Developer settings ^>
+echo         GitHub Apps ^> "Duluka Shadow" ^> Generate a client secret
+choice /c YN /m "   Paste the client secret now (saved locally, never committed)"
+if errorlevel 2 goto secret_done
+set "SECRET_INPUT="
+set /p "SECRET_INPUT=   Paste the client secret and press Enter: "
+if not defined SECRET_INPUT (
+    echo   No secret entered - continuing WITHOUT GitHub sign-in.
+    goto secret_done
+)
+> "%~dp0..\.server-secret" <nul set /p "=%SECRET_INPUT%"
+set "DULUKA_GitHub__ClientSecret=%SECRET_INPUT%"
+set "SECRET_INPUT="
+echo   Saved to Duluka\.server-secret (git-ignored - it will not be committed).
+:secret_done
 
 set "EXE=%~dp0bin\Release\net10.0\Duluka.Server.exe"
 if not exist "%EXE%" (
