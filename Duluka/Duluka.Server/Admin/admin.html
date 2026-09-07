@@ -6,29 +6,47 @@
 <title>Duluka Server — Admin Console</title>
 <style>
   :root{
-    --bg:#22272b; --panel:#2e3439; --panel2:#343b41; --hover:#3a4147;
-    --line:#3d454c; --text:#eceff1; --muted:#9aa4ab;
+    --bg:#12161a; --panel:#1b2127; --panel2:#242c34; --hover:#2e3841;
+    --line:#2c353e; --text:#e9eff4; --muted:#92a1ad;
     --mint:#3fde9e; --blue:#58a6ff; --danger:#f0616d; --warn:#e3b341;
-    --pink:#f778ba;
+    --pink:#f778ba; --nv:#76b900;
+    --edge:rgba(255,255,255,.075); --glass:rgba(255,255,255,.035);
   }
+  body[data-accent="green"] { --accent:var(--nv);    --accent-soft:rgba(118,185,0,.16); }
   body[data-accent="mint"]  { --accent:var(--mint);  --accent-soft:rgba(63,222,158,.14); }
   body[data-accent="blue"]  { --accent:var(--blue);  --accent-soft:rgba(88,166,255,.14); }
   body[data-accent="amber"] { --accent:var(--warn);  --accent-soft:rgba(227,179,65,.14); }
   body[data-accent="pink"]  { --accent:var(--pink);  --accent-soft:rgba(247,120,186,.14); }
-  body{ --accent:var(--mint); --accent-soft:rgba(63,222,158,.14); }
+  body{ --accent:var(--nv); --accent-soft:rgba(118,185,0,.16); }
   *{box-sizing:border-box; margin:0; padding:0}
-  body{background:var(--bg); color:var(--text);
-       font:14px/1.45 "Segoe UI",system-ui,sans-serif; padding-bottom:44px}
+  body{background:
+         radial-gradient(1100px 460px at 78% -8%, rgba(118,185,0,.07), transparent 62%),
+         radial-gradient(900px 420px at -10% 12%, rgba(88,166,255,.05), transparent 55%),
+         linear-gradient(180deg,#161c22,#12161a 420px);
+       background-attachment:fixed;
+       color:var(--text);
+       font:14px/1.45 "Segoe UI",system-ui,sans-serif; padding-bottom:44px;
+       animation:pageIn .34s ease both}
+  @keyframes pageIn{from{opacity:0; transform:translateY(5px)}}
+  ::-webkit-scrollbar{width:11px; height:11px}
+  ::-webkit-scrollbar-thumb{background:#2e3841; border-radius:8px; border:3px solid var(--bg)}
+  ::-webkit-scrollbar-thumb:hover{background:#3a4550}
+  ::-webkit-scrollbar-track{background:transparent}
   kbd{background:var(--bg); border:1px solid var(--line); border-bottom-width:2px;
       border-radius:4px; padding:1px 5px; font:11px Consolas,monospace; color:var(--muted)}
   /* ── header ─────────────────────────────────────────────────────────── */
-  header{background:var(--panel); border-bottom:1px solid var(--line); padding:12px 22px}
+  header{position:sticky; top:0; z-index:40; padding:12px 22px;
+         backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+         background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015) 50%,rgba(0,0,0,.14)),rgba(27,33,39,.84);
+         border-bottom:1px solid var(--edge)}
   .hrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
   header h1{font-size:17px; font-weight:600; letter-spacing:.2px; margin-right:6px}
   header h1 span{color:var(--accent)}
-  .chip{display:inline-flex; align-items:center; gap:6px; background:var(--panel2);
-        border:1px solid var(--line); border-radius:20px; padding:3px 11px;
-        font-size:11.5px; color:var(--muted); white-space:nowrap}
+  .chip{display:inline-flex; align-items:center; gap:6px; background:var(--glass);
+        border:1px solid var(--edge); border-radius:20px; padding:3px 11px;
+        font-size:11.5px; color:var(--muted); white-space:nowrap;
+        transition:border-color .15s}
+  .chip:hover{border-color:var(--accent)}
   .chip b{color:var(--text); font-weight:600}
   .chip.accent b{color:var(--accent)}
   #live{margin-left:auto; display:flex; align-items:center; gap:8px}
@@ -41,21 +59,33 @@
           overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
           direction:rtl; text-align:left}
   .dots{display:flex; gap:5px; align-items:center}
-  .adot{width:13px; height:13px; border-radius:50%; cursor:pointer; border:2px solid transparent}
+  .adot{width:13px; height:13px; border-radius:50%; cursor:pointer; border:2px solid transparent;
+        transition:transform .12s}
+  .adot:hover{transform:scale(1.2)}
   .adot.on{border-color:#fff}
   /* ── main ───────────────────────────────────────────────────────────── */
   main{max-width:1280px; margin:0 auto; padding:18px 22px}
   #cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px}
-  .card{background:var(--panel); border:1px solid var(--line); border-radius:10px;
-        padding:13px 15px; cursor:pointer; transition:transform .08s}
-  .card:hover{transform:translateY(-2px); border-color:var(--accent)}
+  .card{background:linear-gradient(180deg,var(--glass),rgba(255,255,255,.006) 60%),var(--panel);
+        border:1px solid var(--edge); border-radius:12px;
+        padding:13px 15px; cursor:pointer;
+        transition:transform .16s cubic-bezier(.2,.8,.2,1), border-color .16s, box-shadow .16s;
+        animation:riseIn .4s cubic-bezier(.2,.8,.2,1) backwards}
+  .card:nth-child(1){animation-delay:.02s} .card:nth-child(2){animation-delay:.06s}
+  .card:nth-child(3){animation-delay:.10s} .card:nth-child(4){animation-delay:.14s}
+  .card:nth-child(5){animation-delay:.18s} .card:nth-child(6){animation-delay:.22s}
+  @keyframes riseIn{from{opacity:0; transform:translateY(10px)}}
+  .card:hover{transform:translateY(-3px); border-color:var(--accent);
+              box-shadow:0 10px 26px rgba(0,0,0,.35), 0 0 0 1px var(--accent-soft)}
   .card .num{font-size:25px; font-weight:700; color:var(--accent)}
   .card .lbl{color:var(--muted); font-size:11px; margin-top:2px; letter-spacing:.5px;
              text-transform:uppercase}
   /* sparklines */
   #charts{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px}
   @media (max-width:860px){ #charts{grid-template-columns:1fr} }
-  .chartbox{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+  .chartbox{background:linear-gradient(180deg,var(--glass),rgba(255,255,255,.006) 60%),var(--panel);
+            border:1px solid var(--edge); border-radius:12px; padding:12px 14px;
+            box-shadow:0 8px 22px rgba(0,0,0,.22)}
   .chartbox .t{display:flex; justify-content:space-between; font-size:12px; color:var(--muted)}
   .chartbox .t b{color:var(--text)}
   .chartbox canvas{width:100%; height:110px; display:block; margin-top:6px}
@@ -66,17 +96,21 @@
   #bar{display:flex; align-items:center; gap:8px; margin:18px 0 12px; flex-wrap:wrap}
   #tabs{display:flex; gap:6px; flex-wrap:wrap}
   .tab{background:var(--panel); color:var(--muted); border:1px solid var(--line);
-       border-radius:8px; padding:8px 15px; cursor:pointer; font-weight:600; font-size:13px}
+       border-radius:8px; padding:8px 15px; cursor:pointer; font-weight:600; font-size:13px;
+       transition:background .15s, color .15s, border-color .15s, transform .1s, box-shadow .15s}
   .tab:hover{background:var(--hover); color:var(--text)}
-  .tab.on{background:var(--accent); color:#14201a; border-color:var(--accent)}
+  .tab:active{transform:scale(.96)}
+  .tab.on{background:var(--accent); color:#14201a; border-color:var(--accent);
+          box-shadow:0 2px 16px var(--accent-soft)}
   .tab .n{opacity:.55; font-weight:400; margin-left:4px}
   #search{margin-left:auto; background:var(--panel); border:1px solid var(--line);
           border-radius:8px; color:var(--text); padding:8px 12px; font:inherit;
-          font-size:13px; width:230px}
-  #search:focus{outline:none; border-color:var(--accent)}
+          font-size:13px; width:230px; transition:border-color .15s, box-shadow .15s}
+  #search:focus{outline:none; border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-soft)}
   /* table */
-  .wrap{background:var(--panel); border:1px solid var(--line); border-radius:10px;
-        overflow-x:auto}
+  .wrap{background:linear-gradient(180deg,var(--glass),rgba(255,255,255,.006) 40%),var(--panel);
+        border:1px solid var(--edge); border-radius:12px;
+        overflow-x:auto; box-shadow:0 8px 22px rgba(0,0,0,.22)}
   table{width:100%; border-collapse:collapse; font-size:13px; min-width:820px}
   th{color:var(--muted); text-align:left; font-weight:600; font-size:11px;
      text-transform:uppercase; letter-spacing:.5px; padding:10px 12px;
@@ -84,8 +118,8 @@
   th.sortable{cursor:pointer}
   th.sortable:hover{color:var(--text)}
   th .arr{font-size:10px; color:var(--accent)}
-  td{padding:9px 12px; border-bottom:1px solid #2b3136; vertical-align:middle;
-     white-space:nowrap}
+  td{padding:9px 12px; border-bottom:1px solid #232b32; vertical-align:middle;
+     white-space:nowrap; transition:background .12s}
   tr:last-child td{border-bottom:none}
   tr:hover td{background:var(--hover)}
   .mut{color:var(--muted)} .sm{font-size:12px}
@@ -108,11 +142,12 @@
       background:var(--accent); overflow:hidden; flex:none}
   .av img{width:100%; height:100%; object-fit:cover}
   .avcell{display:flex; align-items:center; gap:9px}
-  .av.big{width:56px; height:56px; font-size:24px}
+  .av.big{width:56px; height:56px; font-size:24px; box-shadow:0 0 0 2px var(--accent-soft)}
   /* buttons */
   button{font:inherit; cursor:pointer; border:none; border-radius:7px;
          padding:6px 12px; font-weight:600; font-size:12px; background:var(--panel2);
-         color:var(--text)}
+         color:var(--text); transition:background .15s, color .15s, border-color .15s, transform .1s}
+  button:active{transform:scale(.96)}
   button:hover{background:var(--hover)}
   button.pri{background:var(--accent); color:#14201a}
   button.pri:hover{filter:brightness(1.1)}
@@ -125,8 +160,9 @@
   .acts{display:flex; gap:6px; flex-wrap:wrap}
   /* drawer */
   #drawer{position:fixed; top:0; right:-460px; width:440px; max-width:94vw; height:100vh;
-          background:var(--panel); border-left:1px solid var(--line); z-index:45;
-          transition:right .18s ease; display:flex; flex-direction:column;
+          background:linear-gradient(180deg,var(--glass),transparent 42%),var(--panel);
+          border-left:1px solid var(--edge); z-index:45;
+          transition:right .24s cubic-bezier(.2,.8,.2,1); display:flex; flex-direction:column;
           box-shadow:-12px 0 34px rgba(0,0,0,.4)}
   #drawer.open{right:0}
   #drawer .dhead{display:flex; align-items:center; gap:12px; padding:16px 18px;
@@ -146,8 +182,10 @@
   /* modal */
   #scrim{position:fixed; inset:0; background:rgba(10,12,14,.62); display:none;
          align-items:center; justify-content:center; z-index:50}
-  #modal{background:var(--panel); border:1px solid var(--line); border-radius:12px;
-         padding:22px; width:min(460px,92vw)}
+  #modal{background:linear-gradient(180deg,var(--glass),rgba(255,255,255,.005) 45%),var(--panel);
+         border:1px solid var(--edge); border-radius:12px;
+         padding:22px; width:min(460px,92vw); animation:popIn .18s cubic-bezier(.2,.8,.2,1)}
+  @keyframes popIn{from{opacity:0; transform:scale(.95) translateY(6px)}}
   #modal h3{font-size:15px; margin-bottom:8px}
   #modal p{color:var(--muted); font-size:13px; white-space:pre-wrap}
   #modal input{width:100%; margin-top:12px; display:none; background:var(--bg);
@@ -159,17 +197,22 @@
   /* toasts */
   #toasts{position:fixed; right:18px; bottom:18px; display:flex; flex-direction:column;
           gap:8px; z-index:70}
-  .toast{background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--accent);
+  .toast{background:linear-gradient(180deg,var(--glass),transparent 45%),var(--panel);
+         border:1px solid var(--edge); border-left:4px solid var(--accent);
          border-radius:8px; padding:10px 14px; font-size:13px; max-width:380px;
-         box-shadow:0 6px 18px rgba(0,0,0,.35)}
+         box-shadow:0 6px 18px rgba(0,0,0,.35);
+         animation:toastIn .22s cubic-bezier(.2,.8,.2,1)}
+  @keyframes toastIn{from{opacity:0; transform:translateX(16px)}}
   .toast.err{border-left-color:var(--danger)}
   .empty{padding:28px; text-align:center; color:var(--muted)}
-  footer{position:fixed; bottom:0; left:0; right:0; background:var(--panel);
-         border-top:1px solid var(--line); padding:6px 20px; font-size:11.5px;
-         color:var(--muted); display:flex; gap:16px; align-items:center; z-index:30}
+  footer{position:fixed; bottom:0; left:0; right:0; z-index:30;
+         background:rgba(27,33,39,.85); backdrop-filter:blur(10px);
+         -webkit-backdrop-filter:blur(10px);
+         border-top:1px solid var(--edge); padding:6px 20px; font-size:11.5px;
+         color:var(--muted); display:flex; gap:16px; align-items:center}
 </style>
 </head>
-<body data-accent="mint">
+<body data-accent="green">
 <header>
   <div class="hrow">
     <h1>Duluka Server <span>Admin Console</span></h1>
@@ -187,7 +230,8 @@
       </select>
     </div>
     <div class="dots" title="Accent color">
-      <div class="adot on" data-a="mint"  style="background:#3fde9e"></div>
+      <div class="adot on" data-a="green" style="background:#76b900"></div>
+      <div class="adot"    data-a="mint"  style="background:#3fde9e"></div>
       <div class="adot"    data-a="blue"  style="background:#58a6ff"></div>
       <div class="adot"    data-a="amber" style="background:#e3b341"></div>
       <div class="adot"    data-a="pink"  style="background:#f778ba"></div>
