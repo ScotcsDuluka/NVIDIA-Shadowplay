@@ -28,6 +28,7 @@
          Linux. The Engine form itself stays out of scope by design.
          The [ ] folder names are literal for MSBuild (no globbing). -->
     <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
+    <Compile Include="..\Engine\Engine\[FFmpeg]\FFmpegLocator.vb" Link="FFmpegLocator.vb" />
     <Compile Include="..\Engine\Engine\[Capture]\CaptureSettings.vb" Link="CaptureSettings.vb" />
     <Compile Include="..\Engine\Engine\[Integration]\OverlayConfig.vb" Link="OverlayConfig.vb" />
     <Compile Include="..\Engine\Engine\[API]\NextRecordingConfig.vb" Link="NextRecordingConfig.vb" />
