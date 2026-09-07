@@ -53,9 +53,9 @@ Public Class Base_RecordingsSet
     Private Shared ReadOnly DEFAULT_BITRATE_LIMIT As New BitrateLimit(1500, 20000, 3000, 12000)
     Private Shared ReadOnly DEFAULT_FPS_LIMIT As New FPSLimit(1, 60, 30)
 
-    Private Shared ReadOnly COLOR_ACTIVE As Color = Color.FromArgb(118, 185, 0)
-    Private Shared ReadOnly COLOR_INACTIVE As Color = Color.FromArgb(33, 35, 38)
-    Private Shared ReadOnly COLOR_ENABLED As Color = Color.FromArgb(220, 220, 220)
+    Private Shared ReadOnly COLOR_ACTIVE As Color = UiTheme.Accent
+    Private Shared ReadOnly COLOR_INACTIVE As Color = UiTheme.SurfaceDeep
+    Private Shared ReadOnly COLOR_ENABLED As Color = UiTheme.TextBright
     Private Shared ReadOnly COLOR_DISABLED As Color = Color.FromArgb(120, 120, 120)
 #End Region
 
@@ -1885,7 +1885,7 @@ Public Class Base_RecordingsSet
                 Clipboard.SetText(prearg.Text)
                 Dim originalText As String = Button_Copy.Text
                 Button_Copy.Text = LangHelper.GetText("l10n.copied")
-                Button_Copy.BackColor = Color.FromArgb(0, 150, 0)
+                Button_Copy.BackColor = UiTheme.AccentHover
 
                 If _copyResetTimer IsNot Nothing Then
                     _copyResetTimer.Stop()
@@ -1899,7 +1899,7 @@ Public Class Base_RecordingsSet
                                                      _copyResetTimer = Nothing
                                                      If Me.IsDisposed Then Return
                                                      Button_Copy.Text = originalText
-                                                     Button_Copy.BackColor = Color.FromArgb(33, 35, 38)
+                                                     Button_Copy.BackColor = UiTheme.SurfaceDeep
                                                  End Sub
                 _copyResetTimer.Start()
             End If
@@ -1969,9 +1969,9 @@ Public Class Base_RecordingsSet
 #End Region
 
 #Region "Styled Dropdown Menus"
-    Private Shared ReadOnly COLOR_MENU_BG As Color = Color.FromArgb(30, 30, 34)
-    Private Shared ReadOnly COLOR_MENU_FG As Color = Color.FromArgb(220, 220, 220)
-    Private Shared ReadOnly COLOR_MENU_SELECTED As Color = Color.FromArgb(100, 149, 237)
+    Private Shared ReadOnly COLOR_MENU_BG As Color = UiTheme.SurfaceDeepest
+    Private Shared ReadOnly COLOR_MENU_FG As Color = UiTheme.TextBright
+    Private Shared ReadOnly COLOR_MENU_SELECTED As Color = UiTheme.AccentHover
 
     Private Function CreateStyledMenu() As ContextMenuStrip
         Dim menu As New ContextMenuStrip()
@@ -2004,10 +2004,10 @@ Public Class Base_RecordingsSet
         Next
 
         cms.Show(FPS_BOX, 0, FPS_BOX.Height)
-        FPS_BOX.BackColor = Color.FromArgb(33, 35, 38)
+        FPS_BOX.BackColor = UiTheme.SurfaceDeep
         FPS_DROP.Visible = False
-        FPS_DROP.BackColor = Color.FromArgb(33, 35, 38)
-        fps_bg.BackColor = Color.FromArgb(33, 35, 38)
+        FPS_DROP.BackColor = UiTheme.SurfaceDeep
+        fps_bg.BackColor = UiTheme.SurfaceDeep
         fps_bg.Cursor = Cursors.Default
 
         _menuRestoreDrop = FPS_DROP
@@ -2050,11 +2050,11 @@ Public Class Base_RecordingsSet
         Next
 
         cms.Show(Resolution_BOX, 0, Resolution_BOX.Height)
-        Resolution_BOX.BackColor = Color.FromArgb(33, 35, 38)
+        Resolution_BOX.BackColor = UiTheme.SurfaceDeep
         Resolution_DROP.Visible = False
-        Resolution_bg.BackColor = Color.FromArgb(33, 35, 38)
+        Resolution_bg.BackColor = UiTheme.SurfaceDeep
         Resolution_bg.Cursor = Cursors.Default
-        Resolution_DROP.BackColor = Color.FromArgb(33, 35, 38)
+        Resolution_DROP.BackColor = UiTheme.SurfaceDeep
 
         _menuRestoreDrop = Resolution_DROP
         _menuRestoreBg = Resolution_bg
@@ -2094,10 +2094,10 @@ Public Class Base_RecordingsSet
         End If
 
         cms.Show(cmbEncoder, 0, cmbEncoder.Height)
-        cmbEncoder.BackColor = Color.FromArgb(33, 35, 38)
+        cmbEncoder.BackColor = UiTheme.SurfaceDeep
         Encoder_DROP.Visible = False
-        Encoder_DROP.BackColor = Color.FromArgb(33, 35, 38)
-        Encoder_bg.BackColor = Color.FromArgb(33, 35, 38)
+        Encoder_DROP.BackColor = UiTheme.SurfaceDeep
+        Encoder_bg.BackColor = UiTheme.SurfaceDeep
         Encoder_bg.Cursor = Cursors.Default
 
         _menuRestoreDrop = Encoder_DROP
@@ -2144,8 +2144,8 @@ Public Class Base_RecordingsSet
         Next
 
         cms.Show(P_BOX, 0, P_BOX.Height)
-        P_BOX.BackColor = Color.FromArgb(33, 35, 38)
-        P_bg.BackColor = Color.FromArgb(33, 35, 38)
+        P_BOX.BackColor = UiTheme.SurfaceDeep
+        P_bg.BackColor = UiTheme.SurfaceDeep
         P_bg.Cursor = Cursors.Default
 
         _menuRestoreDrop = Nothing

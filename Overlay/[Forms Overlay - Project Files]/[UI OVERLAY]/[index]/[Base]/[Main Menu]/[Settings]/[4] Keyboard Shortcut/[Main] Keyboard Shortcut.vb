@@ -11,7 +11,7 @@ Public Class Base_KeySet
 
     Private ReadOnly _colorNormal As Color = Color.FromArgb(55, 60, 65)
     Private ReadOnly _colorHover As Color = Color.FromArgb(74, 80, 86)
-    Private ReadOnly _colorCapture As Color = Color.FromArgb(118, 185, 0)
+    Private ReadOnly _colorCapture As Color = UiTheme.Accent
     Private ReadOnly _colorError As Color = Color.FromArgb(150, 52, 52)
 
     <DllImport("user32.dll", SetLastError:=True)>

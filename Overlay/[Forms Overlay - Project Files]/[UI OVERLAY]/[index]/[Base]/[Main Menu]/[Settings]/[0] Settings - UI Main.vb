@@ -155,8 +155,8 @@ Public Class Base_Settings
 
     Private Function CreateLanguageMenu() As ContextMenuStrip
         Dim menu As New ContextMenuStrip()
-        menu.BackColor = Color.FromArgb(30, 30, 34)
-        menu.ForeColor = Color.FromArgb(220, 220, 220)
+        menu.BackColor = UiTheme.SurfaceDeepest
+        menu.ForeColor = UiTheme.TextBright
         menu.Font = New Font("Segoe UI", 10)
         menu.ShowImageMargin = False
         Return menu
@@ -170,7 +170,7 @@ Public Class Base_Settings
         }
 
         If langCode = currentLang Then
-            item.ForeColor = Color.FromArgb(100, 149, 237)
+            item.ForeColor = UiTheme.AccentHover
         End If
 
         AddHandler item.Click, Sub(sender, e)

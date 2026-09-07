@@ -7,23 +7,22 @@ namespace Duluka.Server.Manager;
 /// Local operator control panel for Duluka.Server — deliberately simple:
 /// Start/Stop the server process, a live log console, a data-folder shortcut
 /// and a small stats strip read straight from the SQLite file (read-only).
-/// Dark palette matches the Overlay's Connect surface (#2E3439 family).
+/// Dark palette matches the Overlay's glass-dark refresh (UiTheme).
 /// </summary>
 public sealed class MainForm : Form
 {
     private const string AdminUrl = "http://127.0.0.1:5115/admin";
     private const int MaxLogLines = 4000;
 
-    // Overlay dark palette
-    private static readonly Color FormBg = Color.FromArgb(34, 39, 43);
-    private static readonly Color PanelBg = Color.FromArgb(46, 52, 57);
-    private static readonly Color Panel2 = Color.FromArgb(52, 59, 65);
-    private static readonly Color Border = Color.FromArgb(61, 69, 76);
-    private static readonly Color LogBg = Color.FromArgb(28, 33, 37);
-    private static readonly Color TextCol = Color.FromArgb(236, 239, 241);
-    private static readonly Color Muted = Color.FromArgb(154, 164, 171);
-    private static readonly Color Mint = Color.FromArgb(63, 222, 158);
-    private static readonly Color Danger = Color.FromArgb(240, 97, 109);
+    // Glass-dark palette — single source of truth: UiTheme
+    private static readonly Color FormBg = UiTheme.SurfaceDeep;
+    private static readonly Color PanelBg = UiTheme.SurfaceBase;
+    private static readonly Color Panel2 = UiTheme.SurfaceRaised;
+    private static readonly Color LogBg = UiTheme.LogBg;
+    private static readonly Color TextCol = UiTheme.TextBright;
+    private static readonly Color Muted = UiTheme.TextMuted;
+    private static readonly Color Mint = UiTheme.Accent;      // unified NVIDIA-green accent
+    private static readonly Color Danger = UiTheme.Danger;
 
     private Process? _server;
     private DateTime? _startedAt;
@@ -42,6 +41,7 @@ public sealed class MainForm : Form
     private readonly TextBox _log = new();
     private readonly CheckBox _cbAutoScroll = new();
     private readonly System.Windows.Forms.Timer _tick = new();
+    private System.Windows.Forms.Timer? _pulse;
 
     public MainForm()
     {
@@ -57,6 +57,8 @@ public sealed class MainForm : Form
         BuildLog();
         BuildBottomBar();
 
+        UiTheme.FadeIn(this);
+
         _tick.Interval = 2000;
         _tick.Tick += (_, _) => { UpdateUptime(); RefreshStats(); };
         _tick.Start();
@@ -70,6 +72,7 @@ public sealed class MainForm : Form
     private void BuildTopBar()
     {
         var top = new Panel { Dock = DockStyle.Top, Height = 128, BackColor = PanelBg };
+        UiTheme.GlassEdge(top);
         Controls.Add(top);
 
         var statusRow = new FlowLayoutPanel
@@ -156,6 +159,7 @@ public sealed class MainForm : Form
         var bottom = new Panel { Dock = DockStyle.Bottom, Height = 44, BackColor = PanelBg };
         Controls.Add(bottom);
         bottom.BringToFront();
+        UiTheme.GlassEdge(bottom);
 
         _cbAutoScroll.Text = "Auto-scroll";
         _cbAutoScroll.Checked = true;
@@ -186,13 +190,24 @@ public sealed class MainForm : Form
         b.Text = text;
         b.AutoSize = true;
         b.FlatStyle = FlatStyle.Flat;
-        b.FlatAppearance.BorderColor = Border;
-        b.FlatAppearance.MouseOverBackColor = mint
-            ? Color.FromArgb(82, 232, 178) : Color.FromArgb(64, 72, 79);
         b.BackColor = mint ? Mint : Panel2;
-        b.ForeColor = mint ? Color.FromArgb(20, 32, 26) : TextCol;
-        b.Padding = new Padding(8, 4, 8, 4);
+        b.FlatAppearance.BorderColor = b.BackColor;         // borderless pill
+        b.FlatAppearance.MouseOverBackColor = b.BackColor;  // hover face is tweened instead
+        b.ForeColor = mint ? Color.FromArgb(24, 32, 12) : TextCol;
+        b.Padding = new Padding(10, 5, 10, 5);
         b.Margin = new Padding(2, 6, 2, 0);
+
+        // Flat buttons paint MouseOverBackColor while hovered — tween BOTH
+        // properties together so the hover transition is truly animated.
+        Action<Color> apply = col =>
+        {
+            b.BackColor = col;
+            b.FlatAppearance.MouseOverBackColor = col;
+        };
+        Func<Color> get = () => b.BackColor;
+        UiTheme.AttachHover(b, mint ? UiTheme.AccentHover : UiTheme.SurfaceHover,
+            idle: mint ? UiTheme.Accent : Panel2, apply: apply, get: get);
+        UiTheme.Round(b, () => Math.Max(7, b.Height / 2 - 1));
     }
 
     // ── server location ─────────────────────────────────────────────────────
@@ -301,6 +316,7 @@ public sealed class MainForm : Form
 
         _startedAt = DateTime.UtcNow;
         SetDot(true);
+        StartPulse();
         _statusText.Text = "Running";
         _btStart.Enabled = false;
         _btStop.Enabled = true;
@@ -333,6 +349,7 @@ public sealed class MainForm : Form
         _server?.Dispose();
         _server = null;
         _startedAt = null;
+        StopPulse();
         SetDot(false);
         _statusText.Text = "Stopped";
         _btStart.Enabled = true;
@@ -418,7 +435,15 @@ public sealed class MainForm : Form
     }
 
     private void SetDot(bool running) =>
-        _statusDot.BackColor = running ? Mint : Danger;
+        UiTheme.Tween(_statusDot, running ? Mint : Danger, 200);
+
+    private void StartPulse()
+    {
+        _pulse ??= UiTheme.StartPulse(_statusDot, Mint, UiTheme.Shade(Mint, 0.45f));
+        _pulse.Start();
+    }
+
+    private void StopPulse() => _pulse?.Stop();
 
     private void AppendLog(string line)
     {
