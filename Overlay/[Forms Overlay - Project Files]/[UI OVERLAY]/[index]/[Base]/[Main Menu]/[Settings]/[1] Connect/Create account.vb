@@ -1,9 +1,9 @@
-' Create account — native Duluka Account registration.
-' Client validation is a courtesy; the server stays the authority. A
-' successful registration creates the account + credential + device and
-' lands the user straight into a Duluka Account Session (same shape as
-' login). The password never leaves this form except inside the TLS-free
-' local-loop request body — it is never stored or logged anywhere.
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Linq
@@ -57,7 +57,7 @@ Public Class Base_Connect_Create
             Confirm_BOX.Clear()
             Status_TEXT.Text = ""
             If DulukaAccountStore.Instance.HasSession Then
-                ' Already signed in — there is nothing to create here.
+                
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
             End If
@@ -68,9 +68,9 @@ Public Class Base_Connect_Create
         If _creating Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        ' Courtesy validation (server is the authority):
-        '   username 3-32 chars, letters/digits/dot/underscore/hyphen
-        '   password ≥ 8, confirm must match
+        
+        
+        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         Dim confirm As String = Confirm_BOX.Text
@@ -110,9 +110,9 @@ Public Class Base_Connect_Create
                                  ResourceText(r.Resource, "deviceId"),
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
-                ' The native credential exists NOW — cache the username
-                ' immediately so the Account Home first-time-setup gate can
-                ' never misfire for a native account before /me returns.
+                
+                
+                
                 store.SetProfile(ResourceText(r.Resource, "username"),
                                  ResourceText(r.Resource, "username"))
                 Status_TEXT.Text = ""

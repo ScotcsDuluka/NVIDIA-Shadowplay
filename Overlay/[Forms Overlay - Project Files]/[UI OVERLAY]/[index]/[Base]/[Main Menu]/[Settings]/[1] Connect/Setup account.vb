@@ -1,16 +1,16 @@
-' Setup account — FIRST-TIME setup for a GitHub-bootstrapped Duluka Account.
-' Product rule: a Duluka Account created through a Linked Provider has NO
-' native credential yet. This page picks the account's PERMANENT username and
-' its first password. It reuses the server's provider-only branch of
-' /v1/account/password (SetInitialPassword) — the ONLY credential mechanism;
-' no second hashing or registration path exists client- or server-side.
-' USERNAME IMMUTABILITY: once the username is set the server refuses any
-' second adoption (credential_exists) and no UI can edit it — this page
-' refuses to render for an account that already has a username, the Security
-' page flips to change-password mode, and the username field never returns.
-' Display Name and profile image remain independently editable elsewhere.
-' Log discipline (C/2): username/password values are NEVER logged; only
-' exception TYPE names reach the debug sink on failure paths.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Linq
@@ -57,12 +57,12 @@ Public Class Base_Connect_Setup
         HideFromAltTab()
     End Sub
 
-    ''' <summary>GATE: this page exists ONLY for a signed-in account that has
-    ' no native username yet (the GitHub-bootstrap case). Anyone signed-in
-    ' WITH a username (native Case A / already-set-up Case C) is sent straight
-    ' back — the setup UI must never be reachable twice for one account.
-    ' Anyone without a session goes back through Account home's gate to Sign
-    ' in.</summary>
+    
+    
+    
+    
+    
+    
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
@@ -84,9 +84,9 @@ Public Class Base_Connect_Setup
         If _busy Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        ' Courtesy validation (the server is the authority — same rules):
-        '   username 3-32 chars, letters/digits/dot/underscore/hyphen
-        '   password 8-128, confirm must match
+        
+        
+        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         Dim confirm As String = Confirm_BOX.Text
@@ -112,9 +112,9 @@ Public Class Base_Connect_Setup
         BT_SetupAccount.Enabled = False
         Status_TEXT.Text = "Setting up your account…"
         Try
-            ' Provider-only branch of /v1/account/password: username + new
-            ' password, no currentPassword (none exists yet). The server
-            ' hashes once, enforces username uniqueness and immutability.
+            
+            
+            
             Dim body As New JsonObject()
             body("username") = username
             body("newPassword") = password
@@ -123,8 +123,8 @@ Public Class Base_Connect_Setup
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok Then
-                ' Cache the permanent username — the server echoes it; fall
-                ' back to what was typed (same value the server canonicalized).
+                
+                
                 Dim chosen As String = ResourceText(r.Resource, "username")
                 If chosen = "" Then chosen = username
                 store.SetProfile(store.DisplayName, chosen)
@@ -137,8 +137,8 @@ Public Class Base_Connect_Setup
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
                 Status_TEXT.Text = "That username is already taken — pick another."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "credential_exists" Then
-                ' The account gained a credential behind our back (race or
-                ' another device): setup is DONE — never a second adoption.
+                
+                
                 Status_TEXT.Text = ""
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
@@ -160,9 +160,9 @@ Public Class Base_Connect_Setup
         End Try
     End Sub
 
-    ''' <summary>Back is allowed — the session stays valid and the Security
-    ' page keeps offering the same setup; Account home re-raises the nudge
-    ' until the username exists.</summary>
+    
+    
+    
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
         Me.Hide()
         Base_Connect.ReturnFromSubPage()

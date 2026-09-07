@@ -1,10 +1,10 @@
-' Sign in — the unauthenticated entry to the Duluka Account.
-' Product rule: GitHub is an AUTHENTICATION METHOD (via its ProviderLink),
-' never the account itself. Native username/password signs in first; the
-' GitHub path delegates to the DulukaAuthFlow engine (single-flight).
-' A signed-in user who lands here is sent straight to Account Home.
-' 401 semantics are handled by the flow engine; 403 perm.device_removed
-' burns the local device key so the next attempt mints a fresh one.
+
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
@@ -50,8 +50,8 @@ Public Class Base_Connect_Signin
         HideFromAltTab()
     End Sub
 
-    ''' <summary>GATE: a signed-in user has no business on the sign-in page —
-    ' straight to Account Home.</summary>
+    
+    
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Not Visible Then Return
         If DulukaAccountStore.Instance.HasSession Then
@@ -62,7 +62,7 @@ Public Class Base_Connect_Signin
         Username_BOX.Focus()
     End Sub
 
-    ' ── native sign-in ──────────────────────────────────────────────────────
+    
 
     Private Sub BT_SignIn_Click(sender As Object, e As EventArgs) Handles BT_SignIn.Click
         NativeSignIn()
@@ -79,8 +79,8 @@ Public Class Base_Connect_Signin
         If _signInBusy Then Return
         Dim store As DulukaAccountStore = DulukaAccountStore.Instance
 
-        ' Client-side validation is a courtesy only — the server stays the
-        ' authority. Both fields required before a network round trip.
+        
+        
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         If username = "" OrElse password = "" Then
@@ -108,9 +108,9 @@ Public Class Base_Connect_Signin
                                  ResourceText(r.Resource, "deviceId"),
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
-                ' A successful NATIVE login proves the account HAS a username
-                ' — cache it immediately so the Account Home first-time-setup
-                ' gate can never misfire before /me returns.
+                
+                
+                
                 store.SetProfile(store.DisplayName,
                                  ResourceText(r.Resource, "username"))
                 Password_BOX.Clear()
@@ -120,8 +120,8 @@ Public Class Base_Connect_Signin
             ElseIf r.HttpStatus = 401 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = "Incorrect username or password."
             ElseIf r.HttpStatus = 403 AndAlso r.ErrorCode = "perm.device_removed" Then
-                ' This device's key is dead — drop it so the next attempt mints
-                ' a fresh one, and tell the user honestly what happened.
+                
+                
                 store.RevokeDeviceKey()
                 Status_TEXT.Text = "This device was revoked by your account. Try signing in again."
             Else
@@ -140,7 +140,7 @@ Public Class Base_Connect_Signin
         End Try
     End Sub
 
-    ' ── provider + account creation paths ───────────────────────────────────
+    
 
     Private Sub BT_Connect_Click(sender As Object, e As EventArgs) Handles BT_Connect.Click
         Me.Hide()
@@ -159,8 +159,8 @@ Public Class Base_Connect_Signin
         Base.Settings_List.Visible = True
     End Sub
 
-    ''' <summary>Friendlier message for provider-only accounts adopting their
-    ' first password — the Security page owns that flow.</summary>
+    
+    
     Friend Sub Note(message As String)
         Status_TEXT.Text = message
     End Sub

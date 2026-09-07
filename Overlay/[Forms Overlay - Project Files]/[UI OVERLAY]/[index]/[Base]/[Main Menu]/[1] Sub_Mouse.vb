@@ -1,9 +1,9 @@
-﻿Imports System.Drawing
+Imports System.Drawing
 Imports System.IO
 
-' Base (mouse) — click / hover wiring for the main menu: screenshot, settings,
-' replay / record menus, gallery, and every settings-panel entry point.
-' Pure UI event handlers — recording logic lives in the other Base partials.
+
+
+
 
 Partial Public Class Base
 
@@ -69,7 +69,7 @@ Partial Public Class Base
         Menu_Replay.Visible = False
         Menu_Record.Visible = False
 
-        ' Let the settings form finish showing, then fade in and animate the menu.
+        
         RunAfterDelay(20,
             Sub()
                 Base_Settings.Opacity = 1
@@ -119,7 +119,7 @@ Partial Public Class Base
         a_1b.Visible = isVisible
     End Sub
 
-    ' Shared by Click + MouseHover: flip the replay menu open/closed.
+    
     Private Sub ToggleReplayMenu()
         ShadowLoad()
         Menu_Replay.Visible = Not Menu_Replay.Visible
@@ -130,11 +130,11 @@ Partial Public Class Base
         SetReplayControlBorder(True)
     End Sub
 
-    ' OWNER UX rule: menu toggling is CLICK-ONLY.
-    ' The old MouseHover handlers toggled the menu after WinForms' built-in
-    ' ~400 ms hover delay — hover would open it, then the click flipped it
-    ' back, so a normal press randomly looked like a no-op depending on
-    ' hand speed. Hover highlight lives in MouseMove/MouseLeave below.
+    
+    
+    
+    
+    
 
     Private Sub ReplayMenu_Click(sender As Object, e As EventArgs) Handles Replay_Logo.Click, Replay_Text.Click, Replay_Stats.Click
         ToggleReplayMenu()
@@ -162,7 +162,7 @@ Partial Public Class Base
         a_2b.Visible = isVisible
     End Sub
 
-    ' Shared by Click + MouseHover: flip the record menu open/closed.
+    
     Private Sub ToggleRecordMenu()
         ShadowLoad()
         Menu_Record.Visible = Not Menu_Record.Visible
@@ -177,7 +177,7 @@ Partial Public Class Base
         ToggleRecordMenu()
     End Sub
 
-    ' (RecordMenu_MouseHover removed — see OWNER UX rule at ReplayMenu_Click.)
+    
 
 #End Region
 
@@ -219,8 +219,8 @@ Partial Public Class Base
     Private Sub Mic_MouseLeave(sender As Object, e As EventArgs) Handles MIC_ICO.MouseLeave
         MIC_ICO.ForeColor = System.Drawing.Color.White
     End Sub
-    ' MIC_ICO.Text holds PUA glyphs from the bundled icon font — they look
-    ' invisible in source but are meaningful; never retype or trim them.
+    
+    
     Public Sub LoadMicState()
         If AppSettings.Instance.Audio.MicEnabled = True Then
             MIC_ICO.Text = ""
@@ -228,20 +228,20 @@ Partial Public Class Base
             MIC_ICO.Text = ""
         End If
     End Sub
-    ' PHASE 3 UI CONTRACT (spec section 10 violation #3): the toggle decision
-    ' reads the CANONICAL bool (config.json Audio.MicEnabled), not the icon
-    ' glyph. The glyph is re-derived AFTER the write via LoadMicState() —
-    ' pure display, zero glyph comparison (the old body decided by comparing
-    ' MIC_ICO.Text PUA glyphs and could manufacture state).
+    
+    
+    
+    
+    
     Private Sub Mic_Click(sender As Object, e As EventArgs) Handles MIC_ICO.Click
         AppSettings.Instance.Audio.MicEnabled = Not AppSettings.Instance.Audio.MicEnabled
         AppSettings.Instance.Save()
         LoadMicState()
 
-        ' W2-6: tell the Engine the mic config changed. Scope "audio"
-        ' makes the Engine reload config.json + refresh its mirror
-        ' WITHOUT an NVENC session rebuild (audio changes don't need
-        ' one; the record-start fresh-reload chain picks this up too).
+        
+        
+        
+        
         Try
             If tcp IsNot Nothing Then tcp.Send("engine_config_changed", "audio")
         Catch ex As Exception
@@ -303,7 +303,7 @@ Partial Public Class Base
         Base_Gallery.Show()
 
 
-        ' Fade the gallery in after it has finished showing.
+        
         RunAfterDelay(20,
             Sub()
                 AMY(Base_Gallery.Base_Submenu, -200, 5, 300)
@@ -477,10 +477,10 @@ Partial Public Class Base
 
 #Region "Menu panel — settings pages & system entries"
 
-    ' ========== SHARED COLORS ==========
+    
     Private ReadOnly grayColor As Color = Color.Gray
 
-    ' ========== ALL FORMS LIST ==========
+    
     Private ReadOnly allForms As Form() = {
         Base_Settings,
         Base_Connect,
@@ -493,9 +493,9 @@ Partial Public Class Base
         Base_Notifications
     }
 
-    ' One-shot delay helper: runs <action> on the UI thread after <intervalMs>.
-    ' The timer disposes itself inside Tick — without that Dispose the GCHandle
-    ' plus Tick delegate chain stay alive until GC (this used to leak per click).
+    
+    
+    
     Private Sub RunAfterDelay(intervalMs As Integer, action As Action)
         Dim t As New Timer With {.Interval = intervalMs}
         AddHandler t.Tick,
@@ -507,7 +507,7 @@ Partial Public Class Base
         t.Start()
     End Sub
 
-    ' ========== HELPER METHOD ==========
+    
     Public Sub OpenPanel(showForm As Form, settingsCtrl As Control)
         IF_OpenShare = False
         For Each f In allForms
@@ -518,11 +518,11 @@ Partial Public Class Base
         showForm.Show()
         settingsCtrl.Location = New Point(80, 160)
 
-        ' Show the panel only after it is fully on screen (avoids a flash).
+        
         RunAfterDelay(1, Sub() showForm.Opacity = 1)
     End Sub
 
-    ' ========== SETTINGS PANEL ==========
+    
     Private Sub Settings_MouseMove(sender As Object, e As MouseEventArgs) Handles Settings_Logo.MouseMove, Settings_Box.MouseMove, Settings_Text.MouseMove
         Base_Background_Top.Bg_SET3.Visible = True
         s1.Visible = True : s1r.Visible = True : s1l.Visible = True : s1b.Visible = True
@@ -533,7 +533,7 @@ Partial Public Class Base
         s1.Visible = False : s1r.Visible = False : s1l.Visible = False : s1b.Visible = False
     End Sub
 
-    ' ========== CONNECT ==========
+    
     Private Sub Connect_MouseMove(sender As Object, e As MouseEventArgs) Handles Connect_TEXT.MouseMove, Connect_ICO.MouseMove
         Connect_BOX_SUB.BackColor = greenColor
     End Sub
@@ -546,7 +546,7 @@ Partial Public Class Base
         OpenPanel(Base_Connect, Base_Connect.Settings_Panel)
     End Sub
 
-    ' ========== PRIVACY SETTINGS ==========
+    
     Private Sub PrivacyControl_MouseMove(sender As Object, e As MouseEventArgs) Handles PrivacyControl_TEXT.MouseMove, PrivacyControl_ICO.MouseMove
         PrivacyControl_BOX_SUB.BackColor = greenColor
     End Sub
@@ -559,7 +559,7 @@ Partial Public Class Base
         OpenPanel(Base_Privacy_Control, Base_Privacy_Control.settings_1)
     End Sub
 
-    ' ========== OVERLAY HUB ==========
+    
     Private Sub Hub_MouseMove(sender As Object, e As MouseEventArgs) Handles HUDLayout_TEXT.MouseMove, HUDLayout_ICO.MouseMove
         HUDLayout_BOX_SUB.BackColor = greenColor
     End Sub
@@ -572,7 +572,7 @@ Partial Public Class Base
         OpenPanel(Base_Overlay_Hub, Base_Overlay_Hub.settings_1)
     End Sub
 
-    ' ========== KEYBOARD SHORTCUTS ==========
+    
     Private Sub KeyboardShortcuts_MouseMove(sender As Object, e As MouseEventArgs) Handles KeyboardShortcuts_TEXT.MouseMove, KeyboardShortcuts_ICO.MouseMove
         KeyboardShortcuts_BOX_SUB.BackColor = greenColor
     End Sub
@@ -585,7 +585,7 @@ Partial Public Class Base
         OpenPanel(Base_KeySet, Base_KeySet.keyset)
     End Sub
 
-    ' ========== HIGHLIGHTS ==========
+    
     Private Sub Highlights_MouseMove(sender As Object, e As MouseEventArgs) Handles Highlights_TEXT.MouseMove, Highlights_ICO.MouseMove
         Highlights_BOX_SUB.BackColor = greenColor
     End Sub
@@ -598,7 +598,7 @@ Partial Public Class Base
         ShowNotifier("feature_not_ready")
     End Sub
 
-    ' ========== VIDEO CAPTURE SETTINGS ==========
+    
     Private Sub VideoCapture_MouseMove(sender As Object, e As MouseEventArgs) Handles VideoCapture_TEXT_SUB.MouseMove, VideoCapture_TEXT.MouseMove, VideoCapture_ICO.MouseMove
         VideoCapture_BOX_SUB.BackColor = greenColor
     End Sub
@@ -618,8 +618,8 @@ Partial Public Class Base
         sha3.Hide()
         sha4.Hide()
 
-        ' Sequence: OpenSettings() rebuilds the settings shell first; the
-        ' recordings panel opens on top of it 10 ms later.
+        
+        
         RunAfterDelay(10, Sub() OpenSettings())
         RunAfterDelay(20, Sub() OpenPanel(Base_RecordingsSet, Base_RecordingsSet.setret))
     End Sub
@@ -629,7 +629,7 @@ Partial Public Class Base
 
     End Sub
 
-    ' ========== Engine ==========
+    
     Private Sub EngineUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Engine_TEXT.MouseMove, Engine_ICO.MouseMove
         Engine_BOX_SUB.BackColor = greenColor
     End Sub
@@ -658,7 +658,7 @@ Partial Public Class Base
         End Try
     End Sub
 
-    ' ========== AUDIO ==========
+    
     Private Sub AudioUI_MouseMove(sender As Object, e As MouseEventArgs) Handles Audio_TEXT.MouseMove, Audio_ICO.MouseMove
         Audio_BOX_SUB.BackColor = greenColor
     End Sub
@@ -668,14 +668,14 @@ Partial Public Class Base
     End Sub
 
     Private Sub AudioUI_Click(sender As Object, e As EventArgs) Handles Audio_TEXT.Click, Audio_ICO.Click
-        ' ✅ GLM/6: Audio UI now lives in the Overlay ([6] Audio Capture page) —
-        ' no more "Audio.UI" marker file round-trip to the Engine process.
-        ' The old Engine AudioSettingsForm is dormant (nothing creates the
-        ' marker) and can be removed in a follow-up commit.
+        
+        
+        
+        
         OpenPanel(Base_AudioSet, Base_AudioSet.setret)
     End Sub
 
-    ' ========== NOTIFICATIONS ==========
+    
     Private Sub Notifications_MouseMove(sender As Object, e As MouseEventArgs) Handles Notifications_TEXT.MouseMove, notifications_ICO.MouseMove
         Notifications_BOX_SUB.BackColor = greenColor
     End Sub
@@ -688,7 +688,7 @@ Partial Public Class Base
         OpenPanel(Base_Notifications, Base_Notifications.Menu_Settings)
     End Sub
 
-    ' ========== ABOUT ==========
+    
     Private Sub About_MouseMove(sender As Object, e As MouseEventArgs) Handles About_TEXT.MouseMove, About_ICO.MouseMove
         About_BOX_SUB.BackColor = greenColor
     End Sub

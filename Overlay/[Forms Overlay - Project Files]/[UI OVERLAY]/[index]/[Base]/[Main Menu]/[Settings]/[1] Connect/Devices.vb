@@ -1,8 +1,8 @@
-' Devices — every device bound to the Duluka Account, grouped as
-' "This device" and "Other devices", with revoke. Revoking the CURRENT
-' device ends this Duluka Account Session: the local session is wiped and
-' Account Home re-renders unauthenticated. 401 anywhere is the single
-' terminal path (ClearSession -> unauthenticated, exactly once).
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Runtime.InteropServices
@@ -132,8 +132,8 @@ Public Class Base_Connect_Devices
 
     Private Sub AddDeviceRow(id As String, name As String, lastSeen As String,
                              revokedAt As String, isCurrent As Boolean)
-        ' Rows span the list's current width and re-stretch on resize
-        ' (see List_PANEL_Resize); 180 = button 150 + 30 right gap.
+        
+        
         Dim rowW As Integer = Math.Max(List_PANEL.ClientSize.Width, 480)
         Dim row As New Panel With {
             .BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57)),
@@ -178,7 +178,7 @@ Public Class Base_Connect_Devices
                 .TextAlign = ContentAlignment.MiddleCenter,
                 .Text = "Revoke"
             }
-            ' Capture the id in a local (closure-safe for this row).
+            
             Dim rowId As String = id
             Dim rowIsCurrent As Boolean = isCurrent
             AddHandler revoke.Click, Sub(s, e) RevokeDevice(rowId, rowIsCurrent)
@@ -216,8 +216,8 @@ Public Class Base_Connect_Devices
         ElseIf r.AuthDead Then
             TerminalSignOut("Your session has expired. Please sign in again.")
         ElseIf r.HttpStatus = 403 Then
-            ' Server answers 403 with a specific errorCode (e.g. the device key
-            ' was revoked) — show the code, never guess from the status alone.
+            
+            
             Status_TEXT.Text = DulukaApi.HumanError(r)
         ElseIf r.HttpStatus = 404 Then
             Status_TEXT.Text = "That device is already gone — refreshing."
@@ -227,8 +227,8 @@ Public Class Base_Connect_Devices
         End If
     End Sub
 
-    ''' <summary>The one terminal path: wipe the local session, home renders
-    ' unauthenticated.</summary>
+    
+    
     Private Sub TerminalSignOut(message As String)
         DulukaAccountStore.Instance.ClearSession()
         Me.Hide()
@@ -251,11 +251,11 @@ Public Class Base_Connect_Devices
         Return iso
     End Function
 
-    ''' <summary>Row panels span the list's ClientSize — called on resize AND
-    ' after every row is added, because the vertical scrollbar appearing
-    ' shrinks ClientSize without firing Resize (uniform widths, and never a
-    ' horizontal scrollbar). Each row's Revoke button follows its own
-    ' Top+Right anchor; section headers are AutoSize.</summary>
+    
+    
+    
+    
+    
     Private Sub StretchRows()
         Dim w As Integer = List_PANEL.ClientSize.Width
         If w <= 0 Then Return

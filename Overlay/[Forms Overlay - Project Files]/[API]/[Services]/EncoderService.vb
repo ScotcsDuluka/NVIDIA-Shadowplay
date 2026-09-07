@@ -2,39 +2,39 @@ Imports System.Diagnostics
 Imports System.IO
 Imports System.Threading.Tasks
 
-''' <summary>
-''' Phase 6 refactor: FFmpeg encoder availability service.
-'''
-''' WHY THIS EXISTS:
-'''   Base_RecordingsSet (the Video Capture settings panel) used to carry a
-'''   Shared encoder-availability cache + check logic + batch-verify logic
-'''   all mixed in with the form's UI code. Those concerns have nothing to
-'''   do with the form itself — they're cross-cutting encoder detection.
-'''   Moved here so:
-'''     - The cache + lock + verification live in one place.
-'''     - Sub_Record.vb's ValidateEncoder/SelectBestEncoder can call
-'''       EncoderService directly instead of going through Base_RecordingsSet.
-'''     - Base_RecordingsSet no longer needs Shared state that isn't UI state.
-'''
-''' MIGRATION POLICY:
-'''   Base_RecordingsSet.CheckEncoderAvailability / GetFFmpegCodecName /
-'''   ClearEncoderAvailabilityCache remain as Shared forwarders so external
-'''   callers continue to compile. They delegate to this module.
-''' </summary>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 Public Module EncoderService
 
-    ' ════════════════════════════════════════════════════════════════════
-    ' Cache + lock — same shape as the original fields in Base_RecordingsSet.
-    ' ════════════════════════════════════════════════════════════════════
+    
+    
+    
     Private _cache As New Dictionary(Of String, Boolean)()
     Private ReadOnly _lock As New Object()
 
     Private Const VERIFY_TIMEOUT_MS As Integer = 5000
 
-    ''' <summary>
-    ''' All encoder keys we know how to verify. Same list as the original
-    ''' VerifyEncodersInBackground method.
-    ''' </summary>
+    
+    
+    
+    
     Public ReadOnly Property AllEncoderKeys As String()
         Get
             Return {
@@ -48,11 +48,11 @@ Public Module EncoderService
 
 #Region "Public API"
 
-    ''' <summary>
-    ''' Returns True if the named encoder is available in the given FFmpeg
-    ''' build. Result is cached per encoderName. If FFmpeg cannot be reached,
-    ''' returns False.
-    ''' </summary>
+    
+    
+    
+    
+    
     Public Function CheckAvailability(ffmpegPath As String, encoderName As String) As Boolean
         SyncLock _lock
             If _cache.ContainsKey(encoderName) Then
@@ -117,10 +117,10 @@ Public Module EncoderService
         End Try
     End Function
 
-    ''' <summary>
-    ''' Maps an encoder key (e.g. "NVENC_HEVC") to its FFmpeg codec name
-    ''' (e.g. "hevc_nvenc"). Returns Nothing if unknown.
-    ''' </summary>
+    
+    
+    
+    
     Public Function GetFFmpegCodecName(encoderName As String) As String
         Select Case encoderName
             Case "NVENC_H264" : Return "h264_nvenc"
@@ -136,21 +136,21 @@ Public Module EncoderService
         End Select
     End Function
 
-    ''' <summary>
-    ''' Clears the availability cache. Call this when the FFmpeg binary path
-    ''' changes, since availability is per-build.
-    ''' </summary>
+    
+    
+    
+    
     Public Sub ClearCache()
         SyncLock _lock
             _cache.Clear()
         End SyncLock
     End Sub
 
-    ''' <summary>
-    ''' Spawns FFmpeg once with -encoders and updates the cache for every
-    ''' known encoder key. Faster than calling CheckAvailability nine times
-    ''' because we read FFmpeg's encoder list only once.
-    ''' </summary>
+    
+    
+    
+    
+    
     Public Sub VerifyAllInBackground(ffmpegPath As String)
         Try
             Using proc As New Process()

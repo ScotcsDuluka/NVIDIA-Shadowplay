@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
         <PropertyGroup>
                 <OutputType>WinExe</OutputType>
@@ -51,7 +51,7 @@
                 <NuGetAuditLevel>low</NuGetAuditLevel>
         </PropertyGroup>
 
-        <!-- Build number / assembly version -->
+        
         <Target Name="IncrementBuild" BeforeTargets="BeforeBuild">
 
                 <WriteLinesToFile File="$(MSBuildProjectDirectory)\build.txt" Lines="100" Overwrite="false" Condition="!Exists('$(MSBuildProjectDirectory)\build.txt')" />
@@ -72,7 +72,7 @@
 
         </Target>
 
-        <!-- Release AnyCPU -->
+        
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
                 <RegisterForComInterop>False</RegisterForComInterop>
                 <DefineDebug>False</DefineDebug>
@@ -90,7 +90,7 @@
                 <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
         </PropertyGroup>
 
-        <!-- Release x64 -->
+        
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
                 <RegisterForComInterop>False</RegisterForComInterop>
                 <DefineDebug>False</DefineDebug>
@@ -108,7 +108,7 @@
                 <GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
         </PropertyGroup>
 
-        <!-- Debug -->
+        
         <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
                 <DebugType>none</DebugType>
         </PropertyGroup>
@@ -117,20 +117,24 @@
                 <DebugType>none</DebugType>
         </PropertyGroup>
 
-        <!-- Excluded files -->
+        
         <ItemGroup>
                 <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
                 <EmbeddedResource Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
                 <None Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[Notifier]\**" />
+
+                <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.vb" />
+                <Compile Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.Designer.vb" />
+                <EmbeddedResource Remove="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.resx" />
         </ItemGroup>
 
-        <!-- COMReference removed for Linux cross-build: WMPLib -->
+        
 
         <ItemGroup>
                 <Content Include="NVIDIA ShadowPlay.ico" />
         </ItemGroup>
 
-        <!-- Global imports -->
+        
         <ItemGroup>
                 <Import Include="System" />
                 <Import Include="System.Collections" />
@@ -145,19 +149,17 @@
                 <Import Include="Microsoft.VisualBasic" />
         </ItemGroup>
 
-        <!-- NuGet -->
+        
         <ItemGroup>
                 <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
                 <PackageReference Include="System.Management" Version="10.0.11" />
-                <!-- System.CodeDom / System.Security.Cryptography.ProtectedData removed
-                     (NU1510): inbox in the .NET 10 shared framework — the APIs stay
-                     available without an explicit PackageReference. -->
+                
 
-                <!-- Runtime dependency used by NVIDIA Capture -->
+                
                 
         </ItemGroup>
 
-        <!-- Generated files -->
+        
         <ItemGroup>
                 <Compile Update="My Project\Application.Designer.vb">
                         <DesignTime>True</DesignTime>
@@ -217,10 +219,6 @@
                   <SubType>Form</SubType>
                 </Compile>
 
-                <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[1] Connect\Account setup.vb">
-                  <SubType>Form</SubType>
-                </Compile>
-
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[7] Notifications\[Main] Notifications.vb">
                   <SubType>Form</SubType>
                 </Compile>
@@ -228,7 +226,7 @@
                 <Compile Update="[Forms Overlay - Project Files]\[UI OVERLAY]\[index]\[Base]\[Main Menu]\[Settings]\[#] Empty.vb" />
         </ItemGroup>
 
-        <!-- Resources -->
+        
         <ItemGroup>
                 <EmbeddedResource Update="My Project\Resources.resx">
                         <CustomToolNamespace>My.Resources</CustomToolNamespace>
@@ -237,7 +235,7 @@
                 </EmbeddedResource>
         </ItemGroup>
 
-        <!-- Runtime / FFmpeg files -->
+        
         <ItemGroup>
 
                 <None Update="API-Core\avcodec-62.dll">
@@ -436,7 +434,7 @@
                 <Folder Include="Resources\" />
         </ItemGroup>
 
-        <!-- Project references -->
+        
         <ItemGroup>
                 <ProjectReference Include="..\API\NVIDIA API.vbproj" />
                 <ProjectReference Include="..\Launcher\Launcher.vbproj" />
@@ -451,23 +449,17 @@
                 </VisualStudio>
         </ProjectExtensions>
 
-        <!--
-        IMPORTANT:
-        Do NOT delete *.deps.json.
-        .NET uses this file for runtime dependency resolution.
-        Removing it causes runtime FileNotFoundException for assemblies
-        such as System.Text.Json.
-    -->
+        
         <Target Name="PostBuild" AfterTargets="PostBuildEvent">
 
-                <!-- Keep old cleanup for symbols/docs only -->
+                
                 <Exec Command="rm -f $(TargetDir)*.pdb $(TargetDir)*.xml" Condition=" '$(OS)' != 'Windows_NT'" />
 
                 <Exec Command="del &quot;$(TargetDir)*.pdb&quot;&#xD;&#xA;del &quot;$(TargetDir)*.xml&quot;" Condition=" '$(OS)' == 'Windows_NT'" />
 
         </Target>
 
-        <!-- Root-fixed layout support (linked shared sources) -->
+        
         <ItemGroup>
                 <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
                 <Compile Include="..\Common\AppLayoutStartup.vb" Link="AppLayoutStartup.vb" />

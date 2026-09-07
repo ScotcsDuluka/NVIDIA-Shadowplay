@@ -1,4 +1,4 @@
-﻿Imports Newtonsoft.Json.Linq
+Imports Newtonsoft.Json.Linq
 Imports System.IO
 
 Public Class LangHelper
@@ -39,10 +39,10 @@ Public Class LangHelper
             text = text.Replace("{{arg" & (i + 1) & "}}", args(i))
         Next
 
-        ' ★ FIX: {{minutesToSave}} used to be replaced inside the loop, so with
-        ' multiple args it always ended up holding the LAST argument instead of
-        ' the minutes value. It maps to the first argument — replace once here.
-        ' Current caller: "l10n.saveLastNMins" passes minutes as args(0).
+        
+        
+        
+        
         If args.Length > 0 Then
             text = text.Replace("{{minutesToSave}}", args(0))
         End If

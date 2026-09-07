@@ -1,4 +1,4 @@
-﻿Imports System.IO
+Imports System.IO
 
 Public Class HotkeyService
     Public Class HotkeyDef
@@ -8,9 +8,9 @@ Public Class HotkeyService
         Public Property SetSetting As Action(Of String)
     End Class
 
-    ' ====================================================================
-    ' <<<< จุดเดียว!! ถ้าอยากเพิ่ม Key ใหม่ แค่เพิ่มบรรทัดเดียวตรงนี้ >>>>
-    ' ====================================================================
+    
+    
+    
     Public Shared ReadOnly AllHotkeys As List(Of HotkeyDef)
 
     Shared Sub New()
@@ -51,12 +51,12 @@ Public Class HotkeyService
             hk(key) = value
         End If
     End Sub
-    ' ====================================================================
+    
 
     Private _hwnd As IntPtr
     Private ReadOnly _actions As New Dictionary(Of Integer, Action)
 
-    ' Events
+    
     Public Event Key_OpenShare()
 
     Public Event Key_CaptureScreen()
@@ -86,13 +86,13 @@ Public Class HotkeyService
     End Sub
 
     Private Sub Register(id As Integer, modifiers As Integer, key As Keys, action As Action)
-        ' MOD_NOREPEAT: ไม่งั้น auto-repeat ของ OS จะยิง action รัวต่อเนื่องตอนกดค้าง
+        
         If WinAPI.RegisterHotKey(_hwnd, id, modifiers Or WinAPI.MOD_NOREPEAT, CInt(key)) Then
             _actions(id) = action
         End If
     End Sub
 
-    ' <<< ระบุ Type ให้ชัดๆ ว่าเป็น String >>>
+    
     Private Sub RegisterCommand(id As Integer, def As HotkeyDef, configuredBinding As String, usedCombos As HashSet(Of String))
         Dim modifiers As Integer = 0
         Dim key As Keys = Keys.None

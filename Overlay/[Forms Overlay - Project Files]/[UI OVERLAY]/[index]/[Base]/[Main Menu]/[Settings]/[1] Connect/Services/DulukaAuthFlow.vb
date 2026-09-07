@@ -1,9 +1,9 @@
-' DulukaAuthFlow.vb — one Duluka GitHub OAuth flow (login or provider link).
-' Division of trust: the SERVER builds the authorize URL and performs the code
-' exchange (the client never sees a client_secret). The client's jobs are:
-' host the localhost:8517 redirect listener, hand code+state back, and persist
-' the session token it is shown EXACTLY ONCE straight into the DPAPI store.
-' Log discipline (C/2): code/state/token presence is logged, never values.
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Net
@@ -26,7 +26,7 @@ Friend Class DulukaAuthFlow
         Public Message As String = ""
     End Class
 
-    ' Single-flight: one OAuth flow at a time across the whole app.
+    
     Private Shared _active As DulukaAuthFlow
 
     Private ReadOnly _kind As FlowKind
@@ -37,7 +37,7 @@ Friend Class DulukaAuthFlow
         _kind = kind
     End Sub
 
-    ''' <summary>Begins a flow; Nothing if one is already running.</summary>
+    
     Public Shared Function TryBegin(kind As FlowKind) As DulukaAuthFlow
         If _active IsNot Nothing Then Return Nothing
         Dim flow As New DulukaAuthFlow(kind)
@@ -55,10 +55,10 @@ Friend Class DulukaAuthFlow
         End If
     End Sub
 
-    ''' <summary>
-    ''' Runs the whole flow. report() may fire from ANY thread — callers must
-    ''' marshal to the UI thread before touching controls.
-    ''' </summary>
+    
+    
+    
+    
     Public Async Function RunAsync(report As Action(Of String)) As Task(Of Outcome)
         Dim outcome As New Outcome()
         Dim listener As HttpListener = Nothing
@@ -67,7 +67,7 @@ Friend Class DulukaAuthFlow
             Dim deviceKey As String = store.EnsureDeviceKey()
             Dim deviceName As String = DulukaApi.DeviceName()
 
-            ' 1) start — the server returns the authorize URL + flow state
+            
             report("Contacting the Duluka server…")
             Dim startRes As DulukaApi.Result
             If _kind = FlowKind.Login Then
@@ -92,14 +92,14 @@ Friend Class DulukaAuthFlow
                 Return outcome
             End If
 
-            ' 2) host the local redirect listener BEFORE the browser opens
+            
             report("Opening the browser…")
             listener = New HttpListener()
             listener.Prefixes.Add(DulukaApi.CallbackRedirectUri & "/")
             Try
-                ' Exact path without the slash — GitHub appends ?code&state to the
-                ' configured RedirectUri verbatim. If this stack rejects a
-                ' non-slash prefix, the slash form above still matches.
+                
+                
+                
                 listener.Prefixes.Add(DulukaApi.CallbackRedirectUri)
             Catch
             End Try
@@ -109,7 +109,7 @@ Friend Class DulukaAuthFlow
             Process.Start(opener)
             report("Waiting for GitHub in your browser… (expires in ~10 min)")
 
-            ' 3) wait for the single redirect (state TTL is 10 min server-side)
+            
             Dim contextTask As Task(Of HttpListenerContext) = listener.GetContextAsync()
             Dim waitCts As CancellationTokenSource = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token)
             waitCts.CancelAfter(TimeSpan.FromMinutes(11))
@@ -125,15 +125,15 @@ Friend Class DulukaAuthFlow
                 Return outcome
             End If
 
-            ' HttpListenerContext is not IDisposable here — close the response
-            ' explicitly so the browser tab is released on every path.
+            
+            
             Dim ctx As HttpListenerContext = Await contextTask.ConfigureAwait(False)
             Try
                 Dim qCode As String = ctx.Request.QueryString("code")
                 Dim qError As String = ctx.Request.QueryString("error")
                 Dim qState As String = ctx.Request.QueryString("state")
 
-                ' Browser-facing page — the C/2 XSS-hardened builder.
+                
                 Dim html As String = OAuthCallbackResponse.BuildCallbackHtml(qError, qCode)
                 Dim htmlBytes As Byte() = Encoding.UTF8.GetBytes(html)
                 ctx.Response.ContentType = "text/html"
@@ -154,7 +154,7 @@ Friend Class DulukaAuthFlow
                     Return outcome
                 End If
 
-                ' 4) hand code+state to the server; IT exchanges the code
+                
                 report("Creating your session…")
                 If _kind = FlowKind.Login Then
                     Dim body As New JsonObject()
@@ -172,8 +172,8 @@ Friend Class DulukaAuthFlow
                         outcome.Succeeded = True
                         Return outcome
                     End If
-                    ' 403 perm.device_removed = this device's key is dead; drop
-                    ' the local key so the next attempt mints a fresh one.
+                    
+                    
                     If done.HttpStatus = 403 Then
                         store.RevokeDeviceKey()
                     End If
@@ -203,7 +203,7 @@ Friend Class DulukaAuthFlow
             outcome.Message = "Sign-in cancelled."
             Return outcome
         Catch ex As HttpListenerException
-            ' Port 8517 already bound etc. — SAY SO instead of failing silently.
+            
             outcome.ErrorCode = "error.client.env"
             outcome.Message = "Cannot listen on localhost:8517 (already in use?) — " & ex.Message
             Return outcome

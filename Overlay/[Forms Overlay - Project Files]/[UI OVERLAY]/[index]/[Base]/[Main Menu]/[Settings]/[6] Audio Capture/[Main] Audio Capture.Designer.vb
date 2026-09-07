@@ -2,7 +2,7 @@
 Partial Class Base_AudioSet
     Inherits System.Windows.Forms.Form
 
-    'Form overrides dispose to clean up the component list.
+    
     <System.Diagnostics.DebuggerNonUserCode()>
     Protected Overrides Sub Dispose(ByVal disposing As Boolean)
         Try
@@ -14,12 +14,12 @@ Partial Class Base_AudioSet
         End Try
     End Sub
 
-    'Required by the Windows Form Designer
+    
     Private components As System.ComponentModel.IContainer
 
-    'NOTE: The following procedure is required by the Windows Form Designer
-    'It can be modified using the Windows Form Designer.
-    'Do not modify it using the code editor.
+    
+    
+    
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
         setret = New Panel()
@@ -47,9 +47,9 @@ Partial Class Base_AudioSet
         CType(trkSystemVol, ComponentModel.ISupportInitialize).BeginInit()
         CType(trkMicVol, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
-        ' 
-        ' setret
-        ' 
+        
+        
+        
         setret.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         setret.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         setret.Controls.Add(quality_main)
@@ -73,9 +73,9 @@ Partial Class Base_AudioSet
         setret.Name = "setret"
         setret.Size = New Size(1520, 614)
         setret.TabIndex = 0
-        ' 
-        ' quality_main
-        ' 
+        
+        
+        
         quality_main.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         quality_main.Font = New Font("Segoe UI Semibold", 18F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         quality_main.ForeColor = Color.White
@@ -85,9 +85,9 @@ Partial Class Base_AudioSet
         quality_main.TabIndex = 112
         quality_main.Text = "Track Mode:"
         quality_main.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' ICO_MENU1
-        ' 
+        
+        
+        
         ICO_MENU1.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         ICO_MENU1.Font = New Font("nvgcshare", 50F, FontStyle.Regular, GraphicsUnit.Point, CByte(0))
         ICO_MENU1.ForeColor = Color.White
@@ -97,9 +97,9 @@ Partial Class Base_AudioSet
         ICO_MENU1.TabIndex = 113
         ICO_MENU1.Text = ""
         ICO_MENU1.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' text_settings
-        ' 
+        
+        
+        
         text_settings.AutoSize = True
         text_settings.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         text_settings.Font = New Font("GeForce", 24F, FontStyle.Bold)
@@ -109,9 +109,9 @@ Partial Class Base_AudioSet
         text_settings.Size = New Size(210, 42)
         text_settings.TabIndex = 1
         text_settings.Text = "Audio Capture"
-        ' 
-        ' Menu_Top_Dim
-        ' 
+        
+        
+        
         Menu_Top_Dim.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Menu_Top_Dim.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         Menu_Top_Dim.Location = New Point(0, 0)
@@ -119,9 +119,9 @@ Partial Class Base_AudioSet
         Menu_Top_Dim.Size = New Size(1760, 5)
         Menu_Top_Dim.TabIndex = 21
         Menu_Top_Dim.TabStop = False
-        ' 
-        ' radSingle
-        ' 
+        
+        
+        
         radSingle.AutoSize = True
         radSingle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         radSingle.Checked = True
@@ -134,9 +134,9 @@ Partial Class Base_AudioSet
         radSingle.TabStop = True
         radSingle.Text = "Single Track (mixed)"
         radSingle.UseVisualStyleBackColor = True
-        ' 
-        ' radSeparate
-        ' 
+        
+        
+        
         radSeparate.AutoSize = True
         radSeparate.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         radSeparate.Font = New Font("Segoe UI", 10.5F)
@@ -147,9 +147,9 @@ Partial Class Base_AudioSet
         radSeparate.TabIndex = 5
         radSeparate.Text = "Separate Track (mic on own track)"
         radSeparate.UseVisualStyleBackColor = True
-        ' 
-        ' chkSystem
-        ' 
+        
+        
+        
         chkSystem.AutoSize = True
         chkSystem.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         chkSystem.Checked = True
@@ -162,9 +162,9 @@ Partial Class Base_AudioSet
         chkSystem.TabIndex = 6
         chkSystem.Text = "Capture System Audio"
         chkSystem.UseVisualStyleBackColor = True
-        ' 
-        ' lblSystemVolTitle
-        ' 
+        
+        
+        
         lblSystemVolTitle.AutoSize = True
         lblSystemVolTitle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblSystemVolTitle.Font = New Font("Segoe UI", 10.5F)
@@ -174,9 +174,9 @@ Partial Class Base_AudioSet
         lblSystemVolTitle.Size = New Size(103, 19)
         lblSystemVolTitle.TabIndex = 7
         lblSystemVolTitle.Text = "System Volume"
-        ' 
-        ' trkSystemVol
-        ' 
+        
+        
+        
         trkSystemVol.LargeChange = 10
         trkSystemVol.Location = New Point(147, 259)
         trkSystemVol.Maximum = 100
@@ -185,9 +185,9 @@ Partial Class Base_AudioSet
         trkSystemVol.TabIndex = 8
         trkSystemVol.TickFrequency = 10
         trkSystemVol.Value = 100
-        ' 
-        ' lblSystemVol
-        ' 
+        
+        
+        
         lblSystemVol.AutoSize = True
         lblSystemVol.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblSystemVol.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -197,9 +197,9 @@ Partial Class Base_AudioSet
         lblSystemVol.Size = New Size(51, 21)
         lblSystemVol.TabIndex = 9
         lblSystemVol.Text = "100%"
-        ' 
-        ' chkMic
-        ' 
+        
+        
+        
         chkMic.AutoSize = True
         chkMic.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         chkMic.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -210,9 +210,9 @@ Partial Class Base_AudioSet
         chkMic.TabIndex = 10
         chkMic.Text = "Capture Microphone"
         chkMic.UseVisualStyleBackColor = True
-        ' 
-        ' lblMicVolTitle
-        ' 
+        
+        
+        
         lblMicVolTitle.AutoSize = True
         lblMicVolTitle.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblMicVolTitle.Font = New Font("Segoe UI", 10.5F)
@@ -222,9 +222,9 @@ Partial Class Base_AudioSet
         lblMicVolTitle.Size = New Size(133, 19)
         lblMicVolTitle.TabIndex = 11
         lblMicVolTitle.Text = "Microphone Volume"
-        ' 
-        ' trkMicVol
-        ' 
+        
+        
+        
         trkMicVol.LargeChange = 10
         trkMicVol.Location = New Point(147, 399)
         trkMicVol.Maximum = 100
@@ -233,9 +233,9 @@ Partial Class Base_AudioSet
         trkMicVol.TabIndex = 12
         trkMicVol.TickFrequency = 10
         trkMicVol.Value = 100
-        ' 
-        ' lblMicVol
-        ' 
+        
+        
+        
         lblMicVol.AutoSize = True
         lblMicVol.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblMicVol.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -245,9 +245,9 @@ Partial Class Base_AudioSet
         lblMicVol.Size = New Size(51, 21)
         lblMicVol.TabIndex = 13
         lblMicVol.Text = "100%"
-        ' 
-        ' lblMicDevice
-        ' 
+        
+        
+        
         lblMicDevice.AutoSize = True
         lblMicDevice.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblMicDevice.Font = New Font("Segoe UI", 10.5F)
@@ -257,9 +257,9 @@ Partial Class Base_AudioSet
         lblMicDevice.Size = New Size(127, 19)
         lblMicDevice.TabIndex = 14
         lblMicDevice.Text = "Microphone Device"
-        ' 
-        ' cboMic
-        ' 
+        
+        
+        
         cboMic.BackColor = Color.FromArgb(CByte(28), CByte(32), CByte(36))
         cboMic.DropDownStyle = ComboBoxStyle.DropDownList
         cboMic.FlatStyle = FlatStyle.Flat
@@ -270,9 +270,9 @@ Partial Class Base_AudioSet
         cboMic.Name = "cboMic"
         cboMic.Size = New Size(500, 23)
         cboMic.TabIndex = 15
-        ' 
-        ' lblStatus
-        ' 
+        
+        
+        
         lblStatus.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         lblStatus.Font = New Font("Segoe UI", 10F)
         lblStatus.ForeColor = Color.FromArgb(CByte(160), CByte(165), CByte(170))
@@ -280,9 +280,9 @@ Partial Class Base_AudioSet
         lblStatus.Name = "lblStatus"
         lblStatus.Size = New Size(149, 19)
         lblStatus.TabIndex = 17
-        ' 
-        ' action_fn
-        ' 
+        
+        
+        
         action_fn.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         action_fn.Cursor = Cursors.Hand
         action_fn.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
@@ -293,9 +293,9 @@ Partial Class Base_AudioSet
         action_fn.TabIndex = 59
         action_fn.Text = "Saved"
         action_fn.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' btnRefresh
-        ' 
+        
+        
+        
         btnRefresh.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         btnRefresh.Cursor = Cursors.Hand
         btnRefresh.Font = New Font("Segoe UI Semibold", 12F)
@@ -306,9 +306,9 @@ Partial Class Base_AudioSet
         btnRefresh.TabIndex = 114
         btnRefresh.Text = "Refresh"
         btnRefresh.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Base_AudioSet
-        ' 
+        
+        
+        
         AutoScaleMode = AutoScaleMode.None
         BackColor = Color.Red
         ClientSize = New Size(1680, 945)

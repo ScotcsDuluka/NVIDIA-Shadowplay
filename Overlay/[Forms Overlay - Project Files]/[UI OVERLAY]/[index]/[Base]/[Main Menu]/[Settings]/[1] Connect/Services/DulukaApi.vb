@@ -1,10 +1,10 @@
-﻿' DulukaApi.vb — HTTP client for the Duluka account server, used by the
-' Overlay account UI ([1] Connect). One place owns the §7.1 envelope:
-'   ok=true  -> { ok, reqId, resource }
-'   ok=false -> { ok, reqId, errorCode, httpStatus, retryable, conflict, message }
-' The server echoes X-ReqId verbatim; each request issues a fresh one.
-' Transport failures are LOCAL facts reported as error.client.env — they must
-' never masquerade as a server verdict (contract §6.4).
+
+
+
+
+
+
+
 
 Imports System.Diagnostics
 Imports System.Net.Http
@@ -16,9 +16,9 @@ Imports System.Threading.Tasks
 
 Friend Module DulukaApi
 
-    ' Base URL of the Duluka server. Override per deployment/staging with the
-    ' DULUKA_API_BASE environment variable. Not a secret — no token ever lives
-    ' in config or environment.
+    
+    
+    
     Public ReadOnly Property ApiBase As String
         Get
             Dim fromEnv As String = Environment.GetEnvironmentVariable("DULUKA_API_BASE")
@@ -29,13 +29,13 @@ Friend Module DulukaApi
         End Get
     End Property
 
-    ' The local OAuth redirect. MUST stay byte-identical to the server's
-    ' GitHub:RedirectUri (Duluka/Duluka.Server/appsettings.json) — GitHub sends
-    ' the browser here with ?code&state. Port 8517 is deliberate: 5000 is the
-    ' ShadowPlay TCP Hub port on this machine.
+    
+    
+    
+    
     Public Const CallbackRedirectUri As String = "http://localhost:8517/v1/auth/github/callback"
 
-    ' One parsed §7.1 response.
+    
     Public Class Result
         Public Ok As Boolean
         Public HttpStatus As Integer
@@ -44,8 +44,8 @@ Friend Module DulukaApi
         Public Retryable As Boolean
         Public Resource As JsonNode
 
-        ' 401 means the session is gone (expired/revoked/unknown) — the UI's
-        ' single terminal trigger: wipe the local session, exactly once.
+        
+        
         Public ReadOnly Property AuthDead As Boolean
             Get
                 Return (Not Ok) AndAlso HttpStatus = 401
@@ -53,10 +53,10 @@ Friend Module DulukaApi
         End Property
     End Class
 
-    ' Shared client — account calls are sparse; one handler pool is fine.
+    
     Private ReadOnly _http As New HttpClient With {.Timeout = TimeSpan.FromSeconds(15)}
 
-    ''' <summary>Device display name sent with auth start (server caps at 64 chars).</summary>
+    
     Public Function DeviceName() As String
         Dim name As String = Environment.MachineName
         If String.IsNullOrWhiteSpace(name) Then name = "ShadowPlay Desktop"
@@ -72,7 +72,7 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Post, path, sessionToken, jsonBody)
     End Function
 
-    ''' <summary>PUT — used by the profile editor (PUT /v1/account/profile).</summary>
+    
     Public Function PutAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
         Return SendAsync(HttpMethod.Put, path, sessionToken, jsonBody)
     End Function
@@ -81,8 +81,8 @@ Friend Module DulukaApi
         Return SendAsync(HttpMethod.Delete, path, sessionToken, Nothing)
     End Function
 
-    ''' <summary>DELETE with a JSON body (e.g. DELETE /v1/account carries the
-    ' current-password confirmation when the account has a native credential).</summary>
+    
+    
     Public Function DeleteAsync(path As String, sessionToken As String, jsonBody As String) As Task(Of Result)
         Return SendAsync(HttpMethod.Delete, path, sessionToken, jsonBody)
     End Function
@@ -106,8 +106,8 @@ Friend Module DulukaApi
                 ParseEnvelope(body, result)
             End Using
         Catch ex As Exception
-            ' Transport failure is an environment fact — the UI must NOT read it
-            ' as "authentication failed". Detail goes to the debug log only.
+            
+            
             Debug.WriteLine($"DulukaApi transport failure: {ex.GetType().Name} — {ex.Message}")
             result.Ok = False
             result.HttpStatus = 0
@@ -122,11 +122,11 @@ Friend Module DulukaApi
 
     Private Sub ParseEnvelope(body As String, result As Result)
         If String.IsNullOrWhiteSpace(body) Then
-            ' Empty body + a real HTTP status = the transport answered but no
-            ' §7.1 envelope came back. A 404 in particular means this server
-            ' build predates the endpoint (ASP.NET answers unmatched routes
-            ' with an empty 404) — name that cause instead of a vague
-            ' transport complaint (contract §7.2 HTTP-class fallback).
+            
+            
+            
+            
+            
             If result.HttpStatus = 404 Then
                 result.Ok = False
                 result.HttpStatus = 404
@@ -178,8 +178,8 @@ Friend Module DulukaApi
         Return node.GetValue(Of String)()
     End Function
 
-    ''' <summary>Human-facing one-liner for an error result. Unknown errorCodes
-    ' fall back to the HTTP class (§7.2 unknown-code rule).</summary>
+    
+    
     Public Function HumanError(r As Result) As String
         If r.ErrorCode = "error.client.env" Then Return r.Message
         If r.ErrorCode = "github_not_configured" Then
