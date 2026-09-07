@@ -109,9 +109,15 @@ Public Class Base_Connect_Setup
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
                 Status_TEXT.Text = "That username is already taken — pick another."
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "credential_exists" Then
-                Status_TEXT.Text = ""
-                Me.Hide()
-                Base_Connect.ReturnFromSubPage()
+                ' The account ALREADY has a password (set up earlier on this
+                ' or another device). Never silently return home here — the
+                ' home screen would bounce straight back to Setup and the
+                ' Back button would look broken. Tell the user instead.
+                Status_TEXT.Text = "This account already has a password. Press Back — you are already set up."
+            ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
+                ' The server's change-password branch answering "current
+                ' password is required" means the same thing: setup is done.
+                Status_TEXT.Text = "This account already has a password. Press Back — you are already set up."
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_username" Then
                 Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_password" Then

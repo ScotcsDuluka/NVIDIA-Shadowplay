@@ -39,6 +39,6 @@ if ([string]::IsNullOrWhiteSpace($env:DULUKA_GitHub__ClientSecret)) {
     }
 }
 
-Write-Host "Starting Duluka.Server on http://localhost:5000 … (Ctrl+C to stop)"
+Write-Host "Starting Duluka.Server on http://127.0.0.1:5115   (Admin: http://127.0.0.1:5115/admin) … (Ctrl+C to stop)"
 & $exe @args
 exit $LASTEXITCODE
