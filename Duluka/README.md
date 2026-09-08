@@ -108,3 +108,28 @@ then `GET /v1/account/me`, `PUT /v1/account/profile`,
   never bind Duluka there (a hub/Duluka collision silently kills the
   overlay's client connections).
 - Clients override the base with the `DULUKA_API_BASE` environment variable.
+
+## Exposing the server to other machines (LAN / internet)
+
+The default bind is **loopback only** — safe by design (v0 has no TLS and the
+`/admin` console ships with the server, so widening the bind must be a
+deliberate act). A non-loopback bind announces itself loudly at startup
+(`EXTERNAL BIND` warning block on the console).
+
+**LAN (other PCs / phones on the same network):**
+
+1. Start with the public bind:
+   - `run-server.ps1 -Public` (or `run-server.cmd public`), or
+   - `build-and-run.bat public`, or
+   - set the environment yourself: `DULUKA_Urls=http://0.0.0.0:5115`
+2. Allow the port once (admin PowerShell/CMD) — Windows Firewall blocks
+   inbound TCP otherwise:
+   `netsh advfirewall firewall add rule name="Duluka.Server 5115" dir=in action=allow protocol=TCP localport=5115`
+3. Clients use the machine's LAN IP: `DULUKA_API_BASE=http://<lan-ip>:5115`.
+
+**Internet (different networks):** do NOT port-forward raw HTTP — v0 speaks
+plain HTTP, so tokens are visible on the wire. Put a TLS reverse proxy
+(Caddy/nginx/IIS) or a tunnel (cloudflared, Tailscale) in front and point
+clients at the HTTPS base.
+
+Custom bind (single interface, other port): `DULUKA_Urls=http://192.168.1.10:8080`.

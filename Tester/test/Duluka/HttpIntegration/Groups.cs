@@ -1746,4 +1746,36 @@ internal static class Groups
         var body = resp.Content.ReadAsStringAsync().GetAwaiter().GetResult();
         return new Resp("GET", path, (int)resp.StatusCode, body, "itest-admin");
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // G18 — bind override: DULUKA_Urls widens the bind ON PURPOSE
+    // ─────────────────────────────────────────────────────────────────────────
+    // H-8 pins the DEFAULT (loopback only, safe by design). This group proves
+    // the INTENTIONAL widening path production deploys with — DULUKA_Urls in
+    // the environment (same route run-server.ps1 -Public uses) — actually
+    // works, and that the widened bind announces itself at startup.
+
+    public static void BindOverride(Runner r)
+    {
+        r.Group("G18 bind override (DULUKA_Urls → 0.0.0.0, intentional)", configureGitHub: false, budget: 2,
+            ctx =>
+        {
+            var log = ctx.App.ReadLog();
+
+            r.Run("H-10a explicit DULUKA_Urls widens the bind (no --urls override)", () =>
+                ServerApp.Assert(log.Contains("Now listening on: http://0.0.0.0:"),
+                    $"H-10a: expected a 0.0.0.0 bind line, got: {ServerApp.Trunc(log)}"));
+
+            r.Run("H-10b healthz answers over the widened bind", () =>
+                ServerApp.ExpectStatus(ctx.App.Get("/healthz"), 200, "H-10b"));
+
+            r.Run("H-10c widened bind announces itself (EXTERNAL BIND warning)", () =>
+                ServerApp.Assert(log.Contains("EXTERNAL BIND"),
+                    "H-10c: the external-bind startup warning is missing from the log"));
+        },
+            extraEnvironment: new[]
+            {
+                new KeyValuePair<string, string>("DULUKA_Urls", "http://0.0.0.0:{PORT}"),
+            });
+    }
 }

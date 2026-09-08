@@ -48,6 +48,7 @@ internal static class Program
             Groups.OAuthBootstrapSetup(Runner.I);      // G15 (GitHub bootstrap → first-time setup)
             Groups.AccountDeletion(Runner.I);          // G16 (user-initiated account deletion)
             Groups.AdminConsole(Runner.I);             // G17 (admin console + parallel-read regression)
+            Groups.BindOverride(Runner.I);             // G18 (intentional DULUKA_Urls bind widening)
         }
         catch (Exception ex)
         {
@@ -134,7 +135,8 @@ internal sealed class Runner
         internal string? DbPath => _dbPath ?? App?.DbPath;
     }
 
-    public void Group(string name, bool configureGitHub, int budget, Action<GroupCtx> body)
+    public void Group(string name, bool configureGitHub, int budget, Action<GroupCtx> body,
+        IEnumerable<KeyValuePair<string, string>>? extraEnvironment = null)
     {
         Console.WriteLine();
         Console.WriteLine($" ──── {name} ────");
@@ -142,7 +144,7 @@ internal sealed class Runner
         ctx.Init(configureGitHub, budget);
         try
         {
-            ctx.SetApp(ServerApp.Start(configureGitHub, budget));
+            ctx.SetApp(ServerApp.Start(configureGitHub, budget, extraEnvironment: extraEnvironment));
             body(ctx);
         }
         catch (Exception ex)

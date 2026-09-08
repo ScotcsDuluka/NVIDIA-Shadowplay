@@ -724,7 +724,37 @@ app.MapPost("/v1/account/devices/{deviceId}/revoke", (string deviceId, HttpReque
 // ─── local operator console (/admin) ────────────────────────────────────
 AdminConsole.Map(app, db, adminLogs);
 
-app.Run();
+app.Start();
+WarnIfExternalBind(app.Urls);
+app.WaitForShutdown();
+
+/// <summary>v0 stays loopback-only BY DEFAULT (appsettings "Urls" pin + H-8).
+/// Widening is a deliberate deployment decision (DULUKA_Urls / -Public), so a
+/// non-loopback bind announces itself loudly at startup — plain HTTP, the
+/// /admin console and per-IP rate limits are all exposed with it.</summary>
+static void WarnIfExternalBind(IEnumerable<string> urls)
+{
+    var external = new List<string>();
+    foreach (var u in urls)
+    {
+        if (!Uri.TryCreate(u, UriKind.Absolute, out var uri)) continue;
+        var host = uri.Host.Trim('[', ']').ToLowerInvariant();
+        // only explicit loopback hosts stay private; anything else (0.0.0.0,
+        // *, +, a LAN IP, a hostname) is reachable from other machines
+        if (host is not ("127.0.0.1" or "localhost" or "::1")) external.Add(u);
+    }
+    if (external.Count == 0) return;
+    Console.WriteLine();
+    Console.WriteLine("================================================================");
+    Console.WriteLine("  [!] EXTERNAL BIND — other machines can now reach this server:");
+    foreach (var u in external) Console.WriteLine("      " + u);
+    Console.WriteLine("  [!] v0 speaks PLAIN HTTP (no TLS) and /admin is exposed with it.");
+    Console.WriteLine("      - LAN use: fine. Internet use: front it with a TLS reverse proxy / tunnel.");
+    Console.WriteLine("      - If clients cannot connect, allow TCP 5115 in Windows Firewall:");
+    Console.WriteLine("          netsh advfirewall firewall add rule name=\"Duluka.Server 5115\" dir=in action=allow protocol=TCP localport=5115");
+    Console.WriteLine("================================================================");
+    Console.WriteLine();
+}
 
 /// <summary>§7.1 wire envelope: every response carries ok + reqId echo
 /// (client-issued X-ReqId, verbatim); errors add errorCode/httpStatus/

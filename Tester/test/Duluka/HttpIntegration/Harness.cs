@@ -91,9 +91,15 @@ internal sealed class ServerApp : IDisposable
     /// <summary>Launch a fresh real server. dbPath null → brand-new temp database
     /// (deleted on Dispose); non-null → reuse an existing database across a
     /// restart (store cleanup then belongs to the caller). inherited* carry
-    /// secrets/exchanges/log across a restart so sweeps stay whole.</summary>
+    /// secrets/exchanges/log across a restart so sweeps stay whole.
+    /// extraEnvironment: additional DULUKA_* launch configuration — the value
+    /// "{PORT}" is replaced with the resolved free port. When DULUKA_Urls is
+    /// among the keys the harness does NOT pass --urls on the command line
+    /// (command line would beat the environment, and the environment route is
+    /// exactly what production uses to widen the bind).</summary>
     public static ServerApp Start(bool configureGitHub, int authStartBudget, string? dbPath = null,
-        string? inheritedLog = null, IEnumerable<string>? inheritedSecrets = null, IEnumerable<Resp>? inheritedExchanges = null)
+        string? inheritedLog = null, IEnumerable<string>? inheritedSecrets = null, IEnumerable<Resp>? inheritedExchanges = null,
+        IEnumerable<KeyValuePair<string, string>>? extraEnvironment = null)
     {
         string dir = Path.Combine(Path.GetTempPath(), "duluka-itest-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(dir);
@@ -102,7 +108,10 @@ internal sealed class ServerApp : IDisposable
 
         var port = FreePort();
         var dll = ServerDll();
-        var psi = new ProcessStartInfo("dotnet", $"\"{dll}\" --urls http://127.0.0.1:{port}")
+        var extraEnv = extraEnvironment?.ToList();
+        var envUrls = extraEnv?.Any(k => k.Key.Equals("DULUKA_Urls", StringComparison.OrdinalIgnoreCase)) == true;
+        var argLine = envUrls ? $"\"{dll}\"" : $"\"{dll}\" --urls http://127.0.0.1:{port}";
+        var psi = new ProcessStartInfo("dotnet", argLine)
         {
             UseShellExecute = false,
             WorkingDirectory = Path.GetDirectoryName(dll)!,
@@ -119,6 +128,9 @@ internal sealed class ServerApp : IDisposable
             psi.Environment["DULUKA_GitHub__ClientId"] = "duluka-itest-client";
             psi.Environment["DULUKA_GitHub__ClientSecret"] = "duluka-itest-secret";
         }
+        if (extraEnv is not null)
+            foreach (var (k, v) in extraEnv)
+                psi.Environment[k] = v.Replace("{PORT}", port.ToString());
 
         var logBuffer = new StringBuilder();
         var proc = Process.Start(psi)!;
