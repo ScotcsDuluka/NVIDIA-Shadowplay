@@ -492,6 +492,21 @@ HTTP suite is green at 99/99 after its `e3b6432` reclassification.
 
 ## 14. CONFORMANCE GAPS — LIVE STATUS (final audit, HEAD `e3b6432`, 2026-09-06)
 
+> **R4 amendment (2026-09-08, docs-only — E2E-completion pass, `Engine-Rebuild-Stabilization`).**
+> Evidence at the amendment commit: `Duluka.Server.Tests` **59/59 PASS** · HTTP suite
+> **135/135 PASS, 135 total** (mismatch ledger reduced to M-9 alone) · `Duluka.Account.Tests`
+> **19 passed / 0 failed / 1 skipped-group** (baseline unchanged) · Overlay client
+> `NVIDIA Overlay.vbproj` Release build 0W/0E · live-server E2E matrix 64/64 PASS
+> (register/login/profile/password/session/device/provider/deletion/rate-limit, §13 surface).
+> Rows updated: **M-2, M-6, M-7, M-10, M-11 → FIXED** (their ledger pins in
+> `Duluka.Http.Integration.Tests` were reclassified to contract-PASS tests, the same
+> mechanism `e3b6432` used). **M-9 stays OPEN as the recorded owner call.** F-3 remains
+> open (minor, unconfirmed by any pin). Production code touched: `Program.cs`
+> (M-2 status mapping, M-7 policy tags, M-10 conflict payloads, M-11 vocabulary),
+> `Data/Database.cs` (`LiveSessionAccountSuspended`, `CreateDeviceConverged`),
+> `Auth/SessionService.cs` + `Auth/GitHubOAuth.cs` (M-2/M-6), client
+> `[1] Connect/Create account.vb` (Display Name no longer overwritten by the username).
+
 Suite truth at HEAD: C/6 `Duluka.Server.Tests` **24/24 PASS** · C/2 HTTP suite
 **99/99 PASS** (reclassified to the frozen contract in `e3b6432` — 95 → 99 tests;
 the unmodified pre-reclassification suite had scored 33/95 against the reconciled
@@ -499,22 +514,22 @@ server, which was the designed ledger-drift signal) · C/2 in-memory spec **19/0
 
 | ID | Item | Status at HEAD | Owner file |
 |---|---|---|---|
-| M-1 | Malformed/empty JSON body → naked 500, empty body | **OPEN (CONFIRMED by S-6/S-7)** → map to 400 envelope | `Duluka/Duluka.Server/Program.cs` (body parsing) |
-| M-2 | Suspended account → 401; contract requires 403 `perm.account_suspended` | **OPEN** (now 401 `auth.session_expired` — code improved, status still wrong) | `Data/Database.cs` + `Program.cs` |
+| M-1 | Malformed/empty JSON body → naked 500, empty body | **FIXED (pre-R4)** — `Wire.TryParseBodyAsync` maps JsonException to 400 `bad_request`; pinned green by S-6/S-7 contract-PASS tests | `Duluka/Duluka.Server/Program.cs` (body parsing) |
+| M-2 | Suspended account → 401; contract requires 403 `perm.account_suspended` | **FIXED (R4)** — `DeadSessionCode` answers `perm.account_suspended` and `Wire.DeadSessionErr` maps it to 403 (revoked/expired keep 401 + their codes); ME-9 reclassified to contract-PASS | `Data/Database.cs` + `Program.cs` |
 | M-3 | One-active-session-per-device | **FIXED** (`bf54d08`: revoke-before-insert; SESSION-3 PASS; old ME-8 pin fails as designed) | — |
 | M-4 | Envelope lacks ok/reqId/errorCode/retryable | **FIXED** (`bf54d08` adopted §7.1; HTTP-INT-1/2 PASS; ENV-2 pin fails as designed) | — |
 | M-5 | Re-unlink → 400; C/2 wants 409 | **FIXED** (now 409 `conflict.link_conflict`; UNL-6 pin fails on fixture, not status) | — |
-| M-6 | Device-key race: `CreateDevice` UNIQUE(19) escapes `LoginOrLink` → 500 (7/8 threads) | **OPEN (CONFIRMED by RACE-DEV)** → catch + converge like `UpsertLink`, map to 4xx | `Auth/GitHubOAuth.cs` |
-| M-7 | No endpoint carries the `api` rate-limit policy (260 hits, zero 429) | **OPEN (CONFIRMED by RL-3)** → attach `RequireRateLimiting("api")` | `Program.cs` |
+| M-6 | Device-key race: `CreateDevice` UNIQUE(19) escapes `LoginOrLink` → 500 (7/8 threads) | **FIXED (R4)** — `Database.CreateDeviceConverged` re-reads the surviving row and applies the same ownership guards (revoked → 403, foreign → 409, same account → converged outcome); RACE-DEV now pins ZERO escaping exceptions | `Auth/GitHubOAuth.cs` + `Data/Database.cs` |
+| M-7 | No endpoint carries the `api` rate-limit policy (260 hits, zero 429) | **FIXED (R4)** — every authenticated account surface carries `RequireRateLimiting("api")`; RL-3 reclassified to pin the 240/min budget tripping at hit 241 with the §7.1 429 envelope (also verified live, E2E section G) | `Program.cs` |
 | M-8 | 401 root-cause codes conflated | **FIXED** (`DeadSessionCode`: revoked-vs-expired on the wire; ME-7 pin fails as designed) | — |
 | M-9 | Second session revoke → 401; C/2 SES-2b pins idempotent 200 | **OPEN (owner call)** — security property (no resurrect) holds | `Program.cs` revoke endpoint |
-| M-10 | 409 `conflict.link_conflict` bodies carry `conflict=null`; §6.2 requires the CURRENT server resource (+ version) attached so the client can re-apply or drop deterministically | **OPEN (new, tracked by `e3b6432` ledger, ENV-3)** | `Program.cs` 409 sites |
-| M-11 | `/v1/account/providers/{provider}/complete` hardcodes `auth.session_expired` for a REVOKED binding session while every other endpoint distinguishes revocation via `DeadSessionCode` | **OPEN (new, tracked by `e3b6432` ledger, PRV-9)** | `Program.cs` link-complete |
+| M-10 | 409 `conflict.link_conflict` bodies carry `conflict=null`; §6.2 requires the CURRENT server resource (+ version) attached so the client can re-apply or drop deterministically | **FIXED (R4)** — all `conflict.link_conflict` sites attach the caller's OWN current resource (`kind` + own active providers + `hasNativeCredential`; device-key 409s attach `kind` only — no foreign rows ever revealed); ENV-3 reclassified to contract-PASS | `Program.cs` 409 sites |
+| M-11 | `/v1/account/providers/{provider}/complete` hardcodes `auth.session_expired` for a REVOKED binding session while every other endpoint distinguishes revocation via `DeadSessionCode` | **FIXED (R4)** — link-complete now answers the full §6.3 root-cause vocabulary (revoked → `auth.session_revoked`, suspended → 403 `perm.account_suspended`, else `auth.session_expired`); PRV-9 reclassified to contract-PASS | `Program.cs` link-complete |
 | F-1 | start returned state redacted | **RESOLVED** — state now RAW (HTTP-INT-1); F-1 pin inverted, ledger must drop it | suite only |
 | F-2 | Missing-token 401 code inconsistent | **RESOLVED** — uniform `auth.session_expired` (R2 §6.3 table) | suite only |
 | F-3 | revoke-all counts expired-but-unrevoked sessions | **OPEN (minor)** — harmless overcount | `Data/Database.cs` `RevokeAllForAccount` |
 | F-4 | No transport-failure catch in exchange | **RESOLVED at envelope level** — callback catch-all → 500 `server.internal` retryable | — |
-| S-1 | C/2 HTTP suite reclassification | **RESOLVED** — reclassified and committed in `e3b6432` (99 tests, 99/99 PASS, deterministic across 3 consecutive runs); ledger verdict: M-3/M-4/M-5/M-8 FIXED, M-1/M-2/M-6/M-7/M-9 still violated, M-10/M-11 newly tracked | `Duluka/Duluka.Http.Integration.Tests/` (committed) |
+| S-1 | C/2 HTTP suite reclassification | **RESOLVED** — reclassified and committed in `e3b6432` (99 tests, 99/99 PASS, deterministic across 3 consecutive runs); ledger verdict: M-3/M-4/M-5/M-8 FIXED, M-1/M-2/M-6/M-7/M-9 still violated, M-10/M-11 newly tracked. **R4:** suite now 135 tests (native slice groups G12–G18); M-1/M-2/M-6/M-7/M-10/M-11 reclassified to contract-PASS; only M-9 remains reported | `Duluka/Duluka.Http.Integration.Tests/` (committed) |
 | S-2 | Sync slice | **NOT STARTED** (COMP-2 tripwire green: `/v1/sync*` → 404); gated on O-1/O-2; SYN/428 matrix must be enabled when it lands | new endpoints |
 | S-3 | Admin boundary (O-7) / device liveness window (O-3a) | **OPEN (owner)** — no admin surface exists; suspension is a DB-operator action today | owner decision |
 

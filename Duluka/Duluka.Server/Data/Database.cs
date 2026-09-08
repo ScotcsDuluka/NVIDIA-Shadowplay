@@ -699,6 +699,28 @@ public sealed partial class Database : IAsyncDisposable
         return device;
     }
 
+    /// <summary>Create a device, CONVERGING on the UNIQUE(DeviceKeyHash) race
+    /// exactly like UpsertLink converges on the identity anchor (M-6): the
+    /// losing thread re-reads the surviving row and applies the same ownership
+    /// guards — revoked key → device_revoked, foreign account → device_key_in_use,
+    /// same account → the surviving device IS the answer (TouchDevice + return).
+    /// A lost race must surface as a usable outcome, never a 500.</summary>
+    public AccountDevice CreateDeviceConverged(string accountId, string deviceName, string deviceKeyHash)
+    {
+        try { return CreateDevice(accountId, deviceName, deviceKeyHash); }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            var survivor = FindDeviceByKeyHash(deviceKeyHash);
+            if (survivor is null) throw;
+            if (survivor.RevokedAt is not null)
+                throw new InvalidOperationException("device_revoked");
+            if (survivor.AccountId != accountId)
+                throw new InvalidOperationException("device_key_in_use");
+            TouchDevice(survivor.DeviceId);
+            return survivor;
+        }
+    }
+
     public void TouchDevice(string deviceId)
     {
         Exec("UPDATE AccountDevice SET LastSeenAt=$t WHERE DeviceId=$id",
@@ -837,6 +859,32 @@ public sealed partial class Database : IAsyncDisposable
         cmd.CommandText = "SELECT COUNT(*) FROM AccountSession WHERE SessionTokenHash=$th AND RevokedAt IS NOT NULL";
         cmd.Parameters.AddWithValue("$th", tokenHash);
         return Convert.ToInt32(cmd.ExecuteScalar()) > 0;
+    }
+
+    /// <summary>Whether this token hash maps to a LIVE session (unrevoked,
+    /// unexpired, device alive) whose ACCOUNT is not Active — the suspension
+    /// root cause behind a failed full-chain validation. Contract §5.1/§6.3
+    /// (frozen client rule, M-2): a suspended account MUST be reported as
+    /// 403 perm.account_suspended, never folded into a generic 401. Dates are
+    /// parsed in C# (never SQL-compared as strings), mirroring ValidateSession.</summary>
+    public bool LiveSessionAccountSuspended(string tokenHash)
+    {
+        using var conn = OpenConn();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = """
+            SELECT s.RevokedAt, s.ExpiresAt, d.RevokedAt, a.Status
+            FROM AccountSession s
+            JOIN AccountDevice d ON d.DeviceId = s.DeviceId
+            JOIN DulukaAccount a ON a.AccountId = s.AccountId
+            WHERE s.SessionTokenHash = $th
+            """;
+        cmd.Parameters.AddWithValue("$th", tokenHash);
+        using var r = cmd.ExecuteReader();
+        if (!r.Read()) return false;                    // unknown token → session_expired elsewhere
+        if (!r.IsDBNull(0)) return false;               // revoked → session_revoked wins
+        if (DateTimeOffset.Parse(r.GetString(1)) <= DateTimeOffset.UtcNow) return false;  // expired
+        if (!r.IsDBNull(2)) return false;               // device revoked → its own root cause
+        return !string.Equals(r.GetString(3), AccountStatus.Active, StringComparison.Ordinal);
     }
 
     public bool RevokeSessionByTokenHash(string tokenHash, string reason, DateTimeOffset at)

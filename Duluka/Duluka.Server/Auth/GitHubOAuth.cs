@@ -205,7 +205,7 @@ public sealed class AccountProvisioningService(Database db)
             return (link, account, existed);
         }
 
-        var device = db.CreateDevice(account.AccountId, deviceName, deviceKeyHash);
+        var device = db.CreateDeviceConverged(account.AccountId, deviceName, deviceKeyHash);
         db.TouchDevice(device.DeviceId);
         return (link, account, existed);
     }
@@ -222,7 +222,7 @@ public sealed class AccountProvisioningService(Database db)
                 throw new InvalidOperationException("device_key_in_use");
             return existing; // re-login from a known device
         }
-        return db.CreateDevice(accountId, deviceName, deviceKeyHash);
+        return db.CreateDeviceConverged(accountId, deviceName, deviceKeyHash);
     }
 
     /// <summary>
@@ -288,7 +288,7 @@ public sealed class NativeAuthService(Database db)
         var display = username.Trim();
         var account = db.CreateNativeAccount(canonical, display, Secrets.HashPassword(password));
 
-        var device = db.CreateDevice(account.AccountId, deviceName, deviceKeyHash);
+        var device = db.CreateDeviceConverged(account.AccountId, deviceName, deviceKeyHash);
         db.TouchDevice(device.DeviceId);
         return (account, device);
     }
@@ -327,7 +327,7 @@ public sealed class NativeAuthService(Database db)
             return (account, existingDevice);
         }
 
-        var device = db.CreateDevice(account.AccountId, deviceName, deviceKeyHash);
+        var device = db.CreateDeviceConverged(account.AccountId, deviceName, deviceKeyHash);
         db.TouchDevice(device.DeviceId);
         return (account, device);
     }

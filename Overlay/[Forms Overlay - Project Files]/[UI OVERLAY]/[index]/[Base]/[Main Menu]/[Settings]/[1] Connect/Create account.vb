@@ -103,7 +103,11 @@ Public Class Base_Connect_Create
                                  ResourceText(r.Resource, "sessionExpiresAt"),
                                  DulukaApi.DeviceName())
 
-                store.SetProfile(ResourceText(r.Resource, "username"),
+                ' Username is the identity anchor being set here; Display Name
+                ' is a SEPARATE, user-editable presentation field and must not
+                ' be overwritten with the username (same pattern as Sign in /
+                ' Setup account). Server truth (/me) seeds it on the home card.
+                store.SetProfile(store.DisplayName,
                                  ResourceText(r.Resource, "username"))
                 Status_TEXT.Text = ""
                 Me.Hide()

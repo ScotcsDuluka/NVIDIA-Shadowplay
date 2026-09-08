@@ -42,8 +42,15 @@ public sealed class SessionService(Database db, IConfiguration config)
         db.RevokeAllForAccount(accountId, DateTimeOffset.UtcNow, reason);
 
     /// <summary>Registry code for a session that failed validation (§7.2).
-    /// Revocation is distinguishable from expiry and reported as its own
-    /// code; unknown/expired/missing all fall under session_expired.</summary>
-    public string DeadSessionCode(string token) =>
-        db.SessionTokenWasRevoked(Secrets.Sha256Hex(token)) ? "auth.session_revoked" : "auth.session_expired";
+    /// Revocation is distinguishable from expiry and reported as its own code;
+    /// a LIVE session whose ACCOUNT is suspended reports the frozen 403-family
+    /// code perm.account_suspended (contract §5.1/§6.3 — M-2 fix); unknown,
+    /// expired, and every other failure root cause fall under session_expired.</summary>
+    public string DeadSessionCode(string token)
+    {
+        var hash = Secrets.Sha256Hex(token);
+        if (db.SessionTokenWasRevoked(hash)) return "auth.session_revoked";
+        if (db.LiveSessionAccountSuspended(hash)) return WireCodes.PermAccountSuspended;
+        return "auth.session_expired";
+    }
 }

@@ -196,7 +196,8 @@ app.MapPost("/v1/auth/{provider}/callback", async (string provider, HttpRequest 
     }
     catch (InvalidOperationException ex) when (ex.Message == "device_key_in_use")
     {
-        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.");
+        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.",
+            new { kind = "device_key_bound_to_other_account" });
     }
     catch (Exception ex)
     {
@@ -214,7 +215,7 @@ app.MapPost("/v1/account/providers", async (HttpRequest req) =>
     var token = BearerToken(req);
     if (token is null) return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "Authorization: Bearer <session token> required.");
     var validation = sessionService.Validate(token);
-    if (validation is null) return Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.");
+    if (validation is null) return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
 
     using var body = await Wire.TryParseBodyAsync(req);
     if (body is null)
@@ -253,7 +254,17 @@ app.MapPost("/v1/account/providers/{provider}/complete", async (string provider,
         return Wire.Err(req, 400, "invalid_state", "Unknown, expired, or non-link state.");
     var validation = db.ValidateSession(flow.SessionTokenHash);
     if (validation is null)
-        return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "The session that started this link flow is gone.");
+    {
+        // Same §6.3 root-cause vocabulary as every other surface (M-11):
+        // revoked → 401 auth.session_revoked, suspended → 403
+        // perm.account_suspended, everything else → 401 auth.session_expired.
+        var hash = flow.SessionTokenHash;
+        return db.SessionTokenWasRevoked(hash)
+            ? Wire.Err(req, 401, WireCodes.AuthSessionRevoked, "The session that started this link flow was revoked.")
+            : db.LiveSessionAccountSuspended(hash)
+            ? Wire.Err(req, 403, WireCodes.PermAccountSuspended, "The account that started this link flow is suspended.")
+            : Wire.Err(req, 401, WireCodes.AuthSessionExpired, "The session that started this link flow is gone.");
+    }
 
     var accountId = validation.Value.Session.AccountId;
     try
@@ -264,7 +275,8 @@ app.MapPost("/v1/account/providers/{provider}/complete", async (string provider,
             return existing.AccountId == accountId
                 ? Wire.Ok(req, new { linked = true, linkId = existing.LinkId, already = true })
                 : Wire.Err(req, 409, WireCodes.ConflictLink,
-                    "This provider identity is already linked to another account. Unlink it there first.");
+                    "This provider identity is already linked to another account. Unlink it there first.",
+                    Wire.OwnConflictResource(db, accountId, "provider_identity_bound_to_other_account"));
         var link = db.CreateLink(accountId, identity.ProviderKey, identity.ProviderUserId,
             identity.ProviderEmail, identity.DisplayName);
         if (!string.Equals(link.AccountId, accountId, StringComparison.Ordinal))
@@ -272,7 +284,8 @@ app.MapPost("/v1/account/providers/{provider}/complete", async (string provider,
             // another account; never report a foreign link as ours (§6.2:
             // deterministic 409, no silent merge).
             return Wire.Err(req, 409, WireCodes.ConflictLink,
-                "This provider identity is already linked to another account. Unlink it there first.");
+                "This provider identity is already linked to another account. Unlink it there first.",
+                Wire.OwnConflictResource(db, accountId, "provider_identity_bound_to_other_account"));
         return Wire.Ok(req, new { linked = true, linkId = link.LinkId, already = false });
     }
     catch (GitHubOAuthException ex)
@@ -353,7 +366,8 @@ app.MapPost("/v1/auth/register", async (HttpRequest req) =>
     }
     catch (InvalidOperationException ex) when (ex.Message == "device_key_in_use")
     {
-        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.");
+        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.",
+            new { kind = "device_key_bound_to_other_account" });
     }
     catch (Exception ex)
     {
@@ -405,7 +419,8 @@ app.MapPost("/v1/auth/login", async (HttpRequest req) =>
     }
     catch (InvalidOperationException ex) when (ex.Message == "device_key_in_use")
     {
-        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.");
+        return Wire.Err(req, 409, WireCodes.ConflictLink, "This device key is already bound to another account.",
+            new { kind = "device_key_bound_to_other_account" });
     }
     catch (Exception ex)
     {
@@ -422,16 +437,16 @@ app.MapPost("/v1/auth/session/refresh", (HttpRequest req) =>
     if (token is null) return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "Authorization: Bearer <session token> required.");
     var expires = sessionService.Refresh(token);
     return expires is null
-        ? Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.")
+        ? Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.")
         : Wire.Ok(req, new { sessionExpiresAt = expires });
-});
+}).RequireRateLimiting("api");
 
 app.MapPost("/v1/account/password", async (HttpRequest req) =>
 {
     var token = BearerToken(req);
     if (token is null) return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "Authorization: Bearer <session token> required.");
     var validation = sessionService.Validate(token);
-    if (validation is null) return Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.");
+    if (validation is null) return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
 
     using var body = await Wire.TryParseBodyAsync(req);
     if (body is null)
@@ -505,19 +520,18 @@ app.MapPost("/v1/auth/session/revoke", (HttpRequest req) =>
     var revoked = sessionService.Revoke(token, "user-logout");
     return revoked
         ? Wire.Ok(req, new { revoked = true })
-        : Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Unknown session.");
-});
+        : Wire.DeadSessionErr(req, sessionService, token, "Unknown session.");
+}).RequireRateLimiting("api");
 
 app.MapPost("/v1/auth/sessions/revoke-all", (HttpRequest req) =>
 {
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
     var count = sessionService.RevokeAll(validation.Value.Item3.AccountId, "logout-all");
     return Wire.Ok(req, new { revokedSessions = count });
-});
+}).RequireRateLimiting("api");
 
 // ─── account ────────────────────────────────────────────────────────────────
 
@@ -526,8 +540,7 @@ app.MapGet("/v1/account/me", (HttpRequest req) =>
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
     var (_, device, account) = validation.Value;
     var native = db.FindNativeCredentialByAccount(account.AccountId);
     return Wire.Ok(req, new
@@ -539,7 +552,7 @@ app.MapGet("/v1/account/me", (HttpRequest req) =>
         createdAt = account.CreatedAt,
         currentDevice = new { device.DeviceId, device.DeviceName },
     });
-});
+}).RequireRateLimiting("api");
 
 /// <summary>
 /// Update the account's PROFILE presentation fields. The body is a full profile
@@ -554,8 +567,7 @@ app.MapPut("/v1/account/profile", async (HttpRequest req) =>
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
 
     using var body = await Wire.TryParseBodyAsync(req);
     if (body is null)
@@ -605,32 +617,32 @@ app.MapGet("/v1/account/providers", (HttpRequest req) =>
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
     var links = db.LinksForAccount(validation.Value.Item3.AccountId)
         .Select(l => new { l.LinkId, l.ProviderKey, l.ProviderEmail, l.Status, l.LinkedAt });
     return Wire.Ok(req, new { providers = links });
-});
+}).RequireRateLimiting("api");
 
 app.MapDelete("/v1/account/providers/{linkId}", (string linkId, HttpRequest req) =>
 {
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
     var result = provisioning.Unlink(validation.Value.Item3.AccountId, linkId);
     return result.Ok
         ? Wire.Ok(req, new { unlinked = true, revokedSessions = result.RevokedSessions })
         : result.Code switch
         {
             "last_provider" => Wire.Err(req, 409, WireCodes.ConflictLink,
-                "This is the account's last active provider and cannot be unlinked."),
-            "link_already_unlinked" => Wire.Err(req, 409, WireCodes.ConflictLink, "This provider link is already unlinked."),
+                "This is the account's last active provider and cannot be unlinked.",
+                Wire.OwnConflictResource(db, validation.Value.Item3.AccountId, "last_provider_cannot_unlink")),
+            "link_already_unlinked" => Wire.Err(req, 409, WireCodes.ConflictLink, "This provider link is already unlinked.",
+                new { kind = "link_already_unlinked", linkId }),
             "link_not_found" => Wire.Err(req, 404, WireCodes.NfLink, "No such provider link for this account."),
             _ => Wire.Err(req, 500, WireCodes.ServerInternal, "Unlink failed."),
         };
-});
+}).RequireRateLimiting("api");
 
 // ─── account deletion (user-initiated, IRREVERSIBLE) ────────────────────────
 
@@ -649,7 +661,7 @@ app.MapDelete("/v1/account", async (HttpRequest req) =>
     var token = BearerToken(req);
     if (token is null) return Wire.Err(req, 401, WireCodes.AuthSessionExpired, "Authorization: Bearer <session token> required.");
     var validation = sessionService.Validate(token);
-    if (validation is null) return Wire.Err(req, 401, sessionService.DeadSessionCode(token), "Session is expired, revoked, or unknown.");
+    if (validation is null) return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
 
     // Body is OPTIONAL (absent, {} or {"currentPassword":"…"}). A NON-EMPTY
     // body that is not valid JSON is a client protocol error → 400
@@ -699,27 +711,25 @@ app.MapGet("/v1/account/devices", (HttpRequest req) =>
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
     var devices = db.DevicesForAccount(validation.Value.Item3.AccountId)
         .Select(d => new { d.DeviceId, d.DeviceName, d.CreatedAt, d.LastSeenAt, d.RevokedAt });
     return Wire.Ok(req, new { devices });
-});
+}).RequireRateLimiting("api");
 
 app.MapPost("/v1/account/devices/{deviceId}/revoke", (string deviceId, HttpRequest req) =>
 {
     var token = BearerToken(req);
     var validation = token is null ? null : sessionService.Validate(token);
     if (validation is null)
-        return Wire.Err(req, 401, token is null ? WireCodes.AuthSessionExpired : sessionService.DeadSessionCode(token),
-            "Session is expired, revoked, or unknown.");
+        return Wire.DeadSessionErr(req, sessionService, token, "Session is expired, revoked, or unknown.");
     var (_, device, account) = validation.Value;
     var target = db.GetDevice(deviceId);
     if (target is null || target.AccountId != account.AccountId)
         return Wire.Err(req, 404, WireCodes.NfDevice, "No such device for this account.");
     var revoked = db.RevokeDevice(deviceId, DateTimeOffset.UtcNow);
     return Wire.Ok(req, new { revoked = true, sessionsRevoked = revoked });
-});
+}).RequireRateLimiting("api");
 
 // ─── local operator console (/admin) ────────────────────────────────────
 AdminConsole.Map(app, db, adminLogs);
@@ -761,7 +771,7 @@ static void WarnIfExternalBind(IEnumerable<string> urls)
 /// retryable per §7.2, successes nest the payload under `resource`.</summary>
 internal static class Wire
 {
-    public static IResult Err(HttpRequest req, int status, string code, string message) =>
+    public static IResult Err(HttpRequest req, int status, string code, string message, object? conflict = null) =>
         Results.Json(new
         {
             ok = false,
@@ -769,9 +779,35 @@ internal static class Wire
             errorCode = code,
             httpStatus = status,
             retryable = status >= 500 || status == 429,
-            conflict = (object?)null,
+            conflict,
             message,
         }, statusCode: status);
+
+    /// <summary>§6.2/M-10: a 409 conflict body must carry the CURRENT server
+    /// resource so the client can re-apply or drop deterministically. The
+    /// resource is the CALLER's own state only — a foreign account's rows are
+    /// never revealed (§6.3 cross-tenant rule). Payload shape is the owning
+    /// fix's freedom (§7.1); the SEMANTIC (current resource revealed) is frozen.</summary>
+    public static object OwnConflictResource(Database db, string accountId, string kind) => new
+    {
+        kind,
+        providers = db.LinksForAccount(accountId)
+            .Where(l => string.Equals(l.Status, LinkStatus.Active, StringComparison.Ordinal))
+            .Select(l => new { l.LinkId, l.ProviderKey, l.Status }),
+        hasNativeCredential = db.HasNativeCredential(accountId),
+    };
+
+    /// <summary>§7.1 envelope for a failed session validation. The STATUS
+    /// follows the root cause, not a fixed 401 (§6.3, M-2): a live session
+    /// whose ACCOUNT is suspended answers 403 perm.account_suspended; a
+    /// missing token is the plain 401; revoked/expired stay 401 with their
+    /// distinguishing §7.2 codes from DeadSessionCode.</summary>
+    public static IResult DeadSessionErr(HttpRequest req, SessionService sessions, string? token, string message)
+    {
+        if (token is null) return Err(req, 401, WireCodes.AuthSessionExpired, message);
+        var code = sessions.DeadSessionCode(token);
+        return Err(req, code == WireCodes.PermAccountSuspended ? 403 : 401, code, message);
+    }
 
     public static IResult Ok(HttpRequest req, object resource) =>
         Results.Json(new { ok = true, reqId = ReqId(req), resource });

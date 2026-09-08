@@ -23,6 +23,8 @@ namespace Duluka.Http.Integration.Tests;
 /// Ledger state after this pass: M-3, M-4, M-5, M-8 FIXED (now contract-PASS
 /// tests); M-1, M-2, M-6, M-7, M-9 still violated (tracked); M-10 newly
 /// discovered (409s carry conflict=null, §6.2 wants the current resource).
+/// E2E-completion pass update: M-1, M-2, M-6, M-7, M-10, M-11 FIXED (now
+/// contract-PASS tests); M-9 remains the recorded OWNER CALL (keep 401).
 ///
 /// Grouping law: one REAL server process per group with a fresh SQLite file,
 /// and the in-memory per-IP rate limiter (10/min on auth-start endpoints) is
@@ -340,12 +342,14 @@ internal static class Groups
                 ServerApp.ExpectOk(app.Get("/v1/account/me", t2), "ME-8/current");
             });
 
-            r.Run("ME-9 suspended account → observed 401, contract §6.3 requires 403 — MISMATCH M-2 (unfixed)", () =>
+            r.Run("ME-9 suspended account → 403 perm.account_suspended (M-2 FIXED: §5.1/§6.3 frozen client rule)", () =>
             {
+                // M-2 was: the suspended account folded into 401
+                // auth.session_expired. DeadSessionCode now answers the frozen
+                // 403-family code when the token maps to a live session whose
+                // account is not Active — revocation/expiry keep their own codes.
                 var resp = app.Get("/v1/account/me", tSuspended);
-                ServerApp.ExpectStatus(resp, 401, "ME-9");
-                ServerApp.Assert(resp.Body.Contains("auth.session_expired"), "ME-9: observed code changed");
-                r.Mismatch("M-2", $"suspended account → HTTP {resp.Status} auth.session_expired (contract: 403 perm.account_suspended)");
+                ServerApp.ExpectErr(resp, 403, "perm.account_suspended", "ME-9");
             });
 
             r.Run("ME-10 body sweep G4 (no raw token in any response body)", () => app.Sweep("ME-10"));
@@ -606,19 +610,17 @@ internal static class Groups
                 ServerApp.ExpectErr(app.Post("/v1/account/providers/github/complete", new { code = "x", state = "duluka_state_unknown" }),
                     400, "invalid_state", "PRV-8"));
 
-            r.Run("PRV-9 complete after the binding session died → 401, but code is folded — MISMATCH M-11 (new)", () =>
+            r.Run("PRV-9 complete after the binding session died → 401 auth.session_revoked (M-11 FIXED: DeadSessionCode vocabulary)", () =>
             {
                 var start = ServerApp.ExpectStatus(
                     app.Post("/v1/account/providers", new { provider = "github" }, tA2), 200, "PRV-9/start");
                 var state = ServerApp.Prop(start, "state");
                 ServerApp.ExpectOk(app.Post("/v1/auth/session/revoke", bearer: tA2), "PRV-9/revoke");
-                // The complete endpoint hardcodes auth.session_expired for the
-                // dead binding session, while every OTHER endpoint distinguishes
-                // revocation via DeadSessionCode (§7.2). One-endpoint vocabulary
-                // gap discovered by this pass.
+                // M-11 was: the complete endpoint hardcoded auth.session_expired
+                // for the dead binding session. It now answers the SAME §7.2
+                // vocabulary as every other surface (revoked vs expired).
                 ServerApp.ExpectErr(app.Post("/v1/account/providers/github/complete", new { code = "x", state }),
-                    401, "auth.session_expired", "PRV-9");
-                r.Mismatch("M-11", "link-complete 401 folds a REVOKED binding session into auth.session_expired (other endpoints answer auth.session_revoked) — endpoint should use DeadSessionCode like the rest");
+                    401, "auth.session_revoked", "PRV-9");
             });
 
             r.Run("UNL-1 unlink non-last provider → 200 + via-link session revoked (M-5 status fixed: 409→ now normal path)", () =>
@@ -702,7 +704,7 @@ internal static class Groups
                 "RACE-1: loser's orphan account must be cleaned up");
         });
 
-        r.Run("RACE-DEV same NEW device key racing → one device row survives; only UNIQUE violations may escape (M-6 evidence)", () =>
+        r.Run("RACE-DEV same NEW device key racing → races CONVERGE on one device row (M-6 FIXED: CreateDeviceConverged)", () =>
         {
             using var store = new StoreRaces.Store();
             var barrier = new Barrier(8);
@@ -722,19 +724,17 @@ internal static class Groups
                 }
                 catch (Exception ex) { errors.Add(ex); }
             });
-            // Deterministic invariants under ANY interleaving:
-            foreach (var ex in errors)
-                ServerApp.Assert(ex is SqliteException { SqliteErrorCode: 19 },
-                    "RACE-DEV: only the known unguarded UNIQUE violation may escape (M-6); got: " +
-                    ex.GetType().Name + ": " + ex.Message);
+            // M-6 was: the UNIQUE(19) violation escaped LoginOrLink on the
+            // losing threads (500 on the wire). CreateDeviceConverged now
+            // re-reads the surviving row and applies the same ownership guards,
+            // so EVERY thread gets a usable outcome — nothing may escape.
+            ServerApp.Assert(errors.IsEmpty,
+                "RACE-DEV: the device-key UNIQUE race must converge, not escape: " +
+                string.Join("; ", errors.Take(3).Select(e => e.GetType().Name + ": " + e.Message)));
             ServerApp.Assert(
                 store.Scalar($"SELECT COUNT(*) FROM AccountDevice WHERE DeviceKeyHash='{Secrets.Sha256Hex("devk_shared-race-key")}'") == "1",
                 "RACE-DEV: exactly one device row may survive");
             ServerApp.Assert(store.Scalar("SELECT COUNT(*) FROM DulukaAccount") == "1", "RACE-DEV: accounts must converge to one");
-            if (!errors.IsEmpty)
-                Console.WriteLine(
-                    $"      ⚠ evidence for M-6: {errors.Count}/8 threads hit the unguarded device-key UNIQUE violation " +
-                    "(still escapes LoginOrLink; the callback's catch-all now answers a well-formed 500 envelope — the functional loss remains)");
         });
 
         r.Run("RACE-3 parallel revoke + refresh converge to revoked (no resurrect)", () =>
@@ -861,20 +861,26 @@ internal static class Groups
             r.Run("RL-2 limiter is per-policy: healthz unaffected by auth-start exhaustion", () =>
                 ServerApp.ExpectStatus(app.Get("/healthz"), 200, "RL-2"));
 
-            r.Run("RL-3 untagged endpoints have NO api limiter: 260 hits, zero 429 — MISMATCH M-7 (unfixed)", () =>
+            r.Run("RL-3 authenticated endpoints carry the api limiter: 401s up to the 240/min budget, then the 429 envelope (M-7 FIXED)", () =>
             {
+                // M-7 was: no endpoint carried the api policy (260 hits, zero 429).
+                // Every authenticated account surface now requires it; the fixed
+                // window must trip exactly at permit+1 and speak the §7.1 envelope.
                 var bad = "duluka_st_" + Secrets.Base64Url(new byte[32]);
-                for (var i = 0; i < 260; i++)
+                var trippedAt = -1;
+                for (var i = 1; i <= 260; i++)
                 {
                     var resp = app.Get("/v1/account/me", bad);
                     if (resp.Status == 429)
                     {
-                        r.Mismatch("M-7", "api limiter appeared (240/min) — the C/6 claim is now true; update M-7 and unpin RL-3");
-                        return;
+                        trippedAt = i;
+                        break;
                     }
                     ServerApp.ExpectStatus(resp, 401, $"RL-3/{i}");
                 }
-                r.Mismatch("M-7", "260 consecutive /me hits → zero 429 (C/6 claims 240/min on the authenticated API)");
+                ServerApp.Assert(trippedAt == 241,
+                    $"RL-3: the 240/min api limiter must trip exactly at hit 241, tripped at {trippedAt}");
+                ServerApp.ExpectErr(app.Get("/v1/account/me", bad), 429, "server.rate_limited", "RL-3/envelope");
             });
 
             r.Run("RL-4 log sweep G9", () => app.Sweep("RL-4"));
@@ -1038,15 +1044,20 @@ internal static class Groups
                 ServerApp.ExpectOk(app.Get("/v1/account/me", tA1), "ENV-2/success");
             });
 
-            r.Run("ENV-3 409s carry conflict=null — MISMATCH M-10 (new; §6.2 wants the current resource attached)", () =>
+            r.Run("ENV-3 409 bodies carry the CURRENT caller resource in conflict (M-10 FIXED: §6.2 attachment)", () =>
             {
                 var resp = app.Delete($"/v1/account/providers/{linkA1}", tA1); // last-provider 409
                 ServerApp.ExpectErr(resp, 409, "conflict.link_conflict", "ENV-3");
                 using var doc = JsonDocument.Parse(resp.Body);
                 var conflict = doc.RootElement.GetProperty("conflict");
-                ServerApp.Assert(conflict.ValueKind == JsonValueKind.Null,
-                    "ENV-3: conflict became populated — §6.2 attachment implemented; update M-10");
-                r.Mismatch("M-10", "409 conflict.link_conflict carries conflict=null (§6.2: the CURRENT server resource + version must be attached so the client can re-apply or drop)");
+                ServerApp.Assert(conflict.ValueKind == JsonValueKind.Object,
+                    "ENV-3: conflict must carry the current server resource (§6.2/M-10)");
+                ServerApp.Assert(conflict.GetProperty("kind").GetString() == "last_provider_cannot_unlink",
+                    "ENV-3: conflict.kind must name the root cause");
+                ServerApp.Assert(!conflict.GetProperty("hasNativeCredential").GetBoolean(),
+                    "ENV-3: conflict must reveal the native-credential state (the way-in that is missing)");
+                ServerApp.Assert(conflict.GetProperty("providers").GetArrayLength() == 1,
+                    "ENV-3: conflict must reveal the caller's own active providers (exactly the last one)");
             });
 
             r.Run("XREQ-1 X-ReqId echoed verbatim on error and success paths", () =>

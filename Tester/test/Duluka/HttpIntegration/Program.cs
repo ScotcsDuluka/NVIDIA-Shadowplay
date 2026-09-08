@@ -93,14 +93,15 @@ internal sealed class Runner
     /// <summary>Contract violations tracked against the v0.1 implementation
     /// contract (docs/DULUKA-V0.1-IMPLEMENTATION-CONTRACT.md) and the C/2
     /// executable spec (Duluka.Account.Tests/TEST-MATRIX.md). Every entry is a
-    /// fix required OUTSIDE this test project.</summary>
+    /// fix required OUTSIDE this test project.
+    /// Ledger after the E2E-completion pass (Engine-Rebuild-Stabilization):
+    /// M-1..M-8, M-10, M-11 are FIXED and became contract-PASS tests; M-9 is
+    /// the recorded OWNER CALL (second session revoke stays terminal-401 —
+    /// the security property holds; C/2 SES-2b's idempotent-200 pin is
+    /// deliberately not adopted).</summary>
     private static readonly string[] LedgerIds =
     {
-        // Ledger after the C/5 reconcile verification pass: M-3, M-4, M-5 and
-        // M-8 were FIXED by C/5 and became contract-PASS tests; M-1 was fixed
-        // by the dedicated malformed-JSON commit and became a contract-PASS
-        // test. Still violated:
-        "M-2", "M-6", "M-7", "M-9", "M-10", "M-11",
+        "M-9",
     };
 
     public sealed class GroupCtx
