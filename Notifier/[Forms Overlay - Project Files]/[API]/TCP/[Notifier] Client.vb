@@ -78,6 +78,15 @@ Partial Public Class Loader
         notifications.Add(New NotificationData("l10n.replay_error", "", localizationKey:="l10n.notificationReplaySaveError"))
         notifications.Add(New NotificationData("l10n.recording_started", "", False, greenColor, localizationKey:="l10n.notificationManualRecordStarted"))
         notifications.Add(New NotificationData("l10n.recording_saved", "", localizationKey:="l10n.notificationManualRecordStopped"))
+        ' FIX (silent record failure): Overlay sends l10n.recording_error whenever the
+        ' engine rejects RECORD_START (ffmpeg_not_found / engine_not_ready / no_encoder
+        ' / start_failed / session fault) or a session ends with an error. This key
+        ' was never registered here, so the lookup missed and the toast was silently
+        ' dropped - the user pressed record, nothing happened, nothing explained why.
+        ' The per-category gate (NotificationCategory -> "RecordingError") and the
+        ' "recording" group routing already existed for this key; only this
+        ' registration line was missing.
+        notifications.Add(New NotificationData("l10n.recording_error", "", localizationKey:="l10n.notificationErrorGeneral"))
         notifications.Add(New NotificationData("l10n.update_available", "", localizationKey:="l10n.notificationUpdateAvailable"))
         notifications.Add(New NotificationData("l10n.version_latest", "", localizationKey:="l10n.notificationVersionLatest"))
         notifications.Add(New NotificationData("l10n.notificationErrorEngineNotRunning", "", localizationKey:="l10n.notificationErrorEngineNotRunning"))

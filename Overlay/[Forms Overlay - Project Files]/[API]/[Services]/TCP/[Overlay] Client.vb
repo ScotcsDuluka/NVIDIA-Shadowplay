@@ -203,6 +203,17 @@ Public Class Base
             _isRecordingLocal = False
             RecordValue = False
             ShowNotifier("recording_error")
+
+            ' Surface the failure text where the user pressed record — the
+            ' toast says THAT it failed, this line says WHY (same channel
+            ' as the "Hub Offline" message).
+            Try
+                If Record_Stats IsNot Nothing Then
+                    Record_Stats.Text = message
+                End If
+            Catch
+            End Try
+
             Debug.WriteLine($"[Overlay] recording error: {message}")
         Catch ex As Exception
             Debug.WriteLine($"[Overlay] HandleEngineRecordingError error: {ex.Message}")
@@ -225,11 +236,32 @@ Public Class Base
                         ShowNotifier("recording_started")
                         Debug.WriteLine($"[Overlay] Engine confirmed record_start OK")
                     Else
-                        
-                        Debug.WriteLine($"[Overlay] Engine record_start FAILED: {status} {If(parts.Length >= 3, parts(2), "")}")
+
+                        Dim reason As String = If(parts.Length >= 3, parts(2).Trim(), "")
+                        Debug.WriteLine($"[Overlay] Engine record_start FAILED: {reason}")
                         _isRecordingLocal = False
                         RecordValue = False
-                        ShowNotifier("recording_error")
+
+                        ' Map the engine's reject reason to the most specific toast we
+                        ' have; everything else falls back to the generic error toast
+                        ' (recording_error is registered in Notifier since the
+                        ' silent-record-failure fix).
+                        If reason.StartsWith("engine_not_ready", StringComparison.OrdinalIgnoreCase) OrElse
+                           reason.StartsWith("engine_reconfiguring", StringComparison.OrdinalIgnoreCase) Then
+                            ShowNotifier("notificationErrorEngineNotRunning")
+                        Else
+                            ShowNotifier("recording_error")
+                        End If
+
+                        ' Surface the exact reject reason where the user pressed record
+                        ' (same channel as the "Hub Offline" message) — the toast says
+                        ' THAT it failed, this line says WHY.
+                        Try
+                            If Record_Stats IsNot Nothing Then
+                                Record_Stats.Text = If(reason.Length > 0, "Record failed: " & reason, "Record failed")
+                            End If
+                        Catch
+                        End Try
                     End If
 
                 Case "engine_record_stop"
