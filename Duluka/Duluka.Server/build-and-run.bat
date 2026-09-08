@@ -39,19 +39,28 @@ if errorlevel 1 (
     exit /b 1
 )
 
-rem ---- Guard: port 5115 already taken = old instance still running ----
-rem (starting a second copy would die with "address already in use")
+rem ---- Stop ALL leftover Duluka.Server instances before building ----
+rem (a running instance holds port 5115 AND locks Duluka.Server.exe —
+rem  the build cannot overwrite a running EXE, MSB3027. Killing only the
+rem  port owner is not enough: a second instance that failed to bind can
+rem  still hold the file lock, so kill by IMAGE name, all of them.)
+set "KILLED="
+taskkill /F /IM Duluka.Server.exe >nul 2>&1 && set "KILLED=1"
+if defined KILLED (
+    echo   [INFO] Stopped a running Duluka.Server instance before rebuild.
+    timeout /t 2 /nobreak >nul
+)
+
+rem ---- Guard: port 5115 still taken = some OTHER program owns it ----
 set "PORTBUSY="
 for /f "tokens=5" %%p in ('netstat -aon ^| findstr /r /c:":5115 .*LISTENING"') do set "PORTBUSY=%%p"
 if not defined PORTBUSY goto portok
-echo   [WARN] Port 5115 is already in use by PID %PORTBUSY%.
-echo          An old Duluka.Server instance is probably still running.
-echo          Keep it and the new one cannot bind the port.
+echo   [ERROR] Port 5115 is in use by PID %PORTBUSY% (NOT Duluka.Server).
+echo          Another program owns the port - close it or free the port,
+echo          then run this script again.
 echo.
-choice /c YN /m "   Kill PID %PORTBUSY% and continue"
-if errorlevel 2 exit /b 1
-taskkill /F /PID %PORTBUSY% >nul 2>&1
-timeout /t 1 /nobreak >nul
+pause
+exit /b 1
 
 :portok
 echo   [1/2] Building (Release)...
