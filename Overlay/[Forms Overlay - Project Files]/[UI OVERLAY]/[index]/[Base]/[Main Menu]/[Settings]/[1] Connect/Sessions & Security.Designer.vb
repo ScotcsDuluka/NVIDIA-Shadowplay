@@ -109,7 +109,7 @@ Partial Class Base_Connect_Security
         ' 
         ' BT_DeleteAccount
         ' 
-        BT_DeleteAccount.Anchor = AnchorStyles.None
+        BT_DeleteAccount.Anchor = AnchorStyles.Right
         BT_DeleteAccount.BackColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
         BT_DeleteAccount.Cursor = Cursors.Hand
         BT_DeleteAccount.Font = New Font("Segoe UI", 10.5F, FontStyle.Bold)
@@ -370,14 +370,13 @@ Partial Class Base_Connect_Security
         Nudge_PANEL.Name = "Nudge_PANEL"
         Nudge_PANEL.Size = New Size(1636, 129)
         Nudge_PANEL.TabIndex = 99
-        Nudge_PANEL.Visible = False
         ' 
         ' Nudge_TITLE
         ' 
         Nudge_TITLE.AutoSize = True
         Nudge_TITLE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Nudge_TITLE.Font = New Font("Segoe UI", 9F, FontStyle.Bold)
-        Nudge_TITLE.ForeColor = Color.Red
+        Nudge_TITLE.ForeColor = Color.FromArgb(CByte(140), CByte(40), CByte(40))
         Nudge_TITLE.Location = New Point(24, 16)
         Nudge_TITLE.Name = "Nudge_TITLE"
         Nudge_TITLE.Size = New Size(90, 15)
@@ -386,12 +385,13 @@ Partial Class Base_Connect_Security
         ' 
         ' Nudge_META
         ' 
+        Nudge_META.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Nudge_META.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Nudge_META.Font = New Font("Segoe UI", 9.75F)
         Nudge_META.ForeColor = Color.Silver
         Nudge_META.Location = New Point(24, 36)
         Nudge_META.Name = "Nudge_META"
-        Nudge_META.Size = New Size(1067, 44)
+        Nudge_META.Size = New Size(1195, 44)
         Nudge_META.TabIndex = 100
         Nudge_META.Text = resources.GetString("Nudge_META.Text")
         ' 

@@ -19,10 +19,10 @@ Partial Class Base_Connect_Providers
     Private Sub InitializeComponent()
         Dim resources As System.ComponentModel.ComponentResourceManager = New System.ComponentModel.ComponentResourceManager(GetType(Base_Connect_Providers))
         Settings_Panel = New Panel()
+        BT_RefreshProviders = New Label()
         Settings_TEXT = New Label()
         List_PANEL = New Panel()
         BT_LinkNew = New Label()
-        BT_RefreshProviders = New Label()
         Status_TEXT = New Label()
         Dim_Top = New PictureBox()
         BT_Back = New Label()
@@ -47,6 +47,20 @@ Partial Class Base_Connect_Providers
         Settings_Panel.Name = "Settings_Panel"
         Settings_Panel.Size = New Size(1760, 840)
         Settings_Panel.TabIndex = 45
+        ' 
+        ' BT_RefreshProviders
+        ' 
+        BT_RefreshProviders.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
+        BT_RefreshProviders.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
+        BT_RefreshProviders.Cursor = Cursors.Hand
+        BT_RefreshProviders.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
+        BT_RefreshProviders.ForeColor = Color.White
+        BT_RefreshProviders.Location = New Point(62, 740)
+        BT_RefreshProviders.Name = "BT_RefreshProviders"
+        BT_RefreshProviders.Size = New Size(160, 44)
+        BT_RefreshProviders.TabIndex = 82
+        BT_RefreshProviders.Text = "Refresh"
+        BT_RefreshProviders.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' Settings_TEXT
         ' 
@@ -85,31 +99,17 @@ Partial Class Base_Connect_Providers
         BT_LinkNew.TextAlign = ContentAlignment.MiddleCenter
         BT_LinkNew.Visible = False
         ' 
-        ' BT_RefreshProviders
-        ' 
-        BT_RefreshProviders.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        BT_RefreshProviders.BackColor = Color.FromArgb(CByte(52), CByte(58), CByte(64))
-        BT_RefreshProviders.Cursor = Cursors.Hand
-        BT_RefreshProviders.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
-        BT_RefreshProviders.ForeColor = Color.White
-        BT_RefreshProviders.Location = New Point(62, 740)
-        BT_RefreshProviders.Name = "BT_RefreshProviders"
-        BT_RefreshProviders.Size = New Size(160, 44)
-        BT_RefreshProviders.TabIndex = 82
-        BT_RefreshProviders.Text = "Refresh"
-        BT_RefreshProviders.TextAlign = ContentAlignment.MiddleCenter
-        ' 
         ' Status_TEXT
         ' 
         Status_TEXT.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
-        Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(440, 752)
+        Status_TEXT.Location = New Point(248, 740)
         Status_TEXT.Name = "Status_TEXT"
-        Status_TEXT.Size = New Size(0, 19)
+        Status_TEXT.Size = New Size(311, 44)
         Status_TEXT.TabIndex = 83
+        Status_TEXT.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' Dim_Top
         ' 
