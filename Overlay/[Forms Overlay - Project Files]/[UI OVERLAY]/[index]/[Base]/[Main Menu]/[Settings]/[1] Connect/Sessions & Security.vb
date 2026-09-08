@@ -250,33 +250,11 @@ Public Class Base_Connect_Security
         Dim hasPassword As Boolean = Not providerOnly
         DzPassword_LBL.Visible = hasPassword
         DzPassword_BOX.Visible = hasPassword
-        LayoutPasswordRows()
+        '  LayoutPasswordRows()
     End Sub
 
     Private Sub LayoutPasswordRows()
-        Const RowPitch As Integer = 36
-        Const ButtonGap As Integer = 40
-        Dim y As Integer = PwHeader_LBL.Top
-        If PwUsername_LBL.Visible Then
-            PwUsername_LBL.Top = y + 4 : PwUsername_BOX.Top = y
-            y += RowPitch
-        End If
-        PwCurrent_LBL.Top = y + 4 : PwCurrent_BOX.Top = y : y += RowPitch
-        PwNew_LBL.Top = y + 4 : PwNew_BOX.Top = y : y += RowPitch
-        PwConfirm_LBL.Top = y + 4 : PwConfirm_BOX.Top = y : y += RowPitch
-        BT_ChangePassword.Top = y + ButtonGap - RowPitch + 4
 
-        y = BT_ChangePassword.Top + BT_ChangePassword.Height + 28
-        DzHeader_LBL.Top = y
-        y += 34
-        DzNote_META.Top = y
-        y += DzNote_META.Height + 10
-        If DzPassword_LBL.Visible Then
-            DzPassword_LBL.Top = y + 4 : DzPassword_BOX.Top = y
-            y += RowPitch
-        End If
-        BT_DeleteAccount.Top = y + 14
-        Status_TEXT.Top = BT_DeleteAccount.Top + BT_DeleteAccount.Height + 18
     End Sub
 
     Private Async Sub BT_DeleteAccount_Click(sender As Object, e As EventArgs) Handles BT_DeleteAccount.Click

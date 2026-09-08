@@ -38,10 +38,10 @@ Partial Class Base_Connect_Providers
         ' 
         Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Settings_Panel.Controls.Add(BT_RefreshProviders)
         Settings_Panel.Controls.Add(Settings_TEXT)
         Settings_Panel.Controls.Add(List_PANEL)
         Settings_Panel.Controls.Add(BT_LinkNew)
-        Settings_Panel.Controls.Add(BT_RefreshProviders)
         Settings_Panel.Controls.Add(Status_TEXT)
         Settings_Panel.Location = New Point(80, 160)
         Settings_Panel.Name = "Settings_Panel"
@@ -83,6 +83,7 @@ Partial Class Base_Connect_Providers
         BT_LinkNew.TabIndex = 81
         BT_LinkNew.Text = "Link GitHub"
         BT_LinkNew.TextAlign = ContentAlignment.MiddleCenter
+        BT_LinkNew.Visible = False
         ' 
         ' BT_RefreshProviders
         ' 
@@ -91,7 +92,7 @@ Partial Class Base_Connect_Providers
         BT_RefreshProviders.Cursor = Cursors.Hand
         BT_RefreshProviders.Font = New Font("Segoe UI", 9.5F, FontStyle.Bold)
         BT_RefreshProviders.ForeColor = Color.White
-        BT_RefreshProviders.Location = New Point(260, 740)
+        BT_RefreshProviders.Location = New Point(62, 740)
         BT_RefreshProviders.Name = "BT_RefreshProviders"
         BT_RefreshProviders.Size = New Size(160, 44)
         BT_RefreshProviders.TabIndex = 82
@@ -103,12 +104,14 @@ Partial Class Base_Connect_Providers
         Status_TEXT.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
+        Status_TEXT.Enabled = False
         Status_TEXT.Font = New Font("Segoe UI", 10F)
         Status_TEXT.ForeColor = Color.Silver
         Status_TEXT.Location = New Point(440, 752)
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(0, 19)
         Status_TEXT.TabIndex = 83
+        Status_TEXT.Visible = False
         ' 
         ' Dim_Top
         ' 

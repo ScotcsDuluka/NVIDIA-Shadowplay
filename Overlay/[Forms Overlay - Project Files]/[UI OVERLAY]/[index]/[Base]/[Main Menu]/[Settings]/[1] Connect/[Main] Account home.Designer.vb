@@ -21,8 +21,8 @@ Partial Class Base_Connect
         Settings_TEXT = New Label()
         Status_TEXT = New Label()
         Card_PANEL = New Panel()
-        Avatar_BOX = New Label()
         Avatar_PICTURE = New PictureBox()
+        Avatar_BOX = New Label()
         USERSNAME_TEXT = New Label()
         Account_META = New Label()
         BT_Logout = New Label()
@@ -53,7 +53,7 @@ Partial Class Base_Connect
         ' 
         ' Settings_Panel
         ' 
-        Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Bottom Or AnchorStyles.Left Or AnchorStyles.Right
+        Settings_Panel.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Settings_Panel.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Settings_Panel.Controls.Add(Settings_TEXT)
         Settings_Panel.Controls.Add(Status_TEXT)
@@ -96,10 +96,6 @@ Partial Class Base_Connect
         ' 
         Card_PANEL.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Card_PANEL.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
-        ' Avatar_PICTURE first = front of the card's z-order (index 0): when a
-        ' profile image is loaded it must sit ABOVE the letter-fallback label,
-        ' which shares the same 96×96 rect. SetPreview keeps the pair mutually
-        ' exclusive — this order is the belt to those braces.
         Card_PANEL.Controls.Add(Avatar_PICTURE)
         Card_PANEL.Controls.Add(Avatar_BOX)
         Card_PANEL.Controls.Add(USERSNAME_TEXT)
@@ -109,6 +105,17 @@ Partial Class Base_Connect
         Card_PANEL.Name = "Card_PANEL"
         Card_PANEL.Size = New Size(1636, 160)
         Card_PANEL.TabIndex = 90
+        ' 
+        ' Avatar_PICTURE
+        ' 
+        Avatar_PICTURE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
+        Avatar_PICTURE.Location = New Point(24, 32)
+        Avatar_PICTURE.Name = "Avatar_PICTURE"
+        Avatar_PICTURE.Size = New Size(96, 96)
+        Avatar_PICTURE.SizeMode = PictureBoxSizeMode.Zoom
+        Avatar_PICTURE.TabIndex = 92
+        Avatar_PICTURE.TabStop = False
+        Avatar_PICTURE.Visible = False
         ' 
         ' Avatar_BOX
         ' 
@@ -121,17 +128,6 @@ Partial Class Base_Connect
         Avatar_BOX.TabIndex = 91
         Avatar_BOX.Text = "D"
         Avatar_BOX.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' Avatar_PICTURE
-        ' 
-        Avatar_PICTURE.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
-        Avatar_PICTURE.Location = New Point(24, 32)
-        Avatar_PICTURE.Name = "Avatar_PICTURE"
-        Avatar_PICTURE.Size = New Size(96, 96)
-        Avatar_PICTURE.SizeMode = PictureBoxSizeMode.Zoom
-        Avatar_PICTURE.TabIndex = 92
-        Avatar_PICTURE.TabStop = False
-        Avatar_PICTURE.Visible = False
         ' 
         ' USERSNAME_TEXT
         ' 
@@ -281,7 +277,6 @@ Partial Class Base_Connect
         ' 
         ' Nudge_META
         ' 
-        Nudge_META.Anchor = AnchorStyles.Top Or AnchorStyles.Left Or AnchorStyles.Right
         Nudge_META.BackColor = Color.FromArgb(CByte(46), CByte(52), CByte(57))
         Nudge_META.Font = New Font("Segoe UI", 9.75F)
         Nudge_META.ForeColor = Color.Silver
