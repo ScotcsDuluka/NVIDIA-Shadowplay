@@ -40,6 +40,7 @@ Public Class Base_Connect_Providers
 
     Private _loading As Boolean
     Private _linking As Boolean
+    Private _flow As DulukaAuthFlow
     Private _nextRowY As Integer = 8
 
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
@@ -221,22 +222,56 @@ Public Class Base_Connect_Providers
             Status_TEXT.Text = "Another sign-in flow is already in progress."
             Return
         End If
+        _flow = flow
 
         _linking = True
         BT_LinkNew.Enabled = False
         Try
+            ' Same presentation shell as the Login flow
+            ' (Base_Connect_Login.BT_StartLogin_Click): hand the overlay over
+            ' to the authentication presentation while GitHub is in progress.
+            Base_Connect.Hide()
+            Base_Settings.Hide()
+            Base.ME_CLOSE_BG.Visible = True
+            Base.Opacity = 0
+            Base.Settings_List.Visible = False
+            Base.shadowplay.Visible = True
+
+            Base_Background_Top.d.Visible = True
+            Base_Background_Top.ME_CLOSE_BG_GRE.Visible = True
+            Base_Background_Top.ME_CLOSE_BG.Visible = True
+
+            Base.ShowMainPanel()
+            Base.Opacity = 0.85
+            Base.IF_OpenShare = True
+            Base.HideAllControls()
+            Me.Hide()
+
             Dim outcome As DulukaAuthFlow.Outcome = Await flow.RunAsync(AddressOf Report).ConfigureAwait(True)
+            _flow = Nothing
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
+            ' Restore the presentation the same way the Login flow does,
+            ' then come back HERE — to Linked providers — never to Login.
+            ' Provider linking is not sign-in: no setup gate, no identity
+            ' change, just the provider link on the existing account.
+            Base.ShowMainPanel()
+            Base.OpenSettings()
+            Base.IF_OpenShare = False
+
+            Base_Settings.Hide()
+            Base_Connect.Hide()
+            Base.Settings_List.Visible = False
+            Me.Show()
+
             If outcome.Succeeded Then
-                Status_TEXT.Text = "GitHub is now linked to this Duluka Account."
                 LoadProvidersAsync()
-            ElseIf outcome.Cancelled Then
-                Status_TEXT.Text = outcome.Message
+                Status_TEXT.Text = "GitHub is now linked to this Duluka Account."
             Else
                 Status_TEXT.Text = outcome.Message
             End If
         Finally
+            _flow = Nothing
             _linking = False
             If Not IsDisposed Then BT_LinkNew.Enabled = True
         End Try
@@ -290,6 +325,9 @@ Public Class Base_Connect_Providers
     End Sub
 
     Private Sub BT_Back_Click(sender As Object, e As EventArgs) Handles BT_Back.Click
+        If _flow IsNot Nothing Then
+            _flow.Cancel()
+        End If
         Me.Hide()
         Base_Connect.ReturnFromSubPage()
     End Sub

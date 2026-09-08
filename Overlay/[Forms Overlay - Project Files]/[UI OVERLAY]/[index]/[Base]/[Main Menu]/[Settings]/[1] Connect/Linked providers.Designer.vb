@@ -104,14 +104,12 @@ Partial Class Base_Connect_Providers
         Status_TEXT.Anchor = AnchorStyles.Bottom Or AnchorStyles.Left
         Status_TEXT.AutoSize = True
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
-        Status_TEXT.Enabled = False
         Status_TEXT.Font = New Font("Segoe UI", 10F)
         Status_TEXT.ForeColor = Color.Silver
         Status_TEXT.Location = New Point(440, 752)
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(0, 19)
         Status_TEXT.TabIndex = 83
-        Status_TEXT.Visible = False
         ' 
         ' Dim_Top
         ' 
