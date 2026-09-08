@@ -367,7 +367,7 @@ Partial Public Class UI_Engine
         End If
 
         If tcp.IsConnected Then
-            lblHubStatus.Text = "connected (port 5000)"
+            lblHubStatus.Text = "connected (port 5001)"
             lblHubStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
             lblHubClients.Text = "Engine: online"
         Else
