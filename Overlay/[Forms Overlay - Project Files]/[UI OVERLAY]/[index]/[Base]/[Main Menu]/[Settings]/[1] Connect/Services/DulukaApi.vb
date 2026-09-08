@@ -25,7 +25,7 @@ Friend Module DulukaApi
     ' picks the new address up on its next start (env var + local file remain
     ' as overrides, so a broken Drive file can never brick a machine: it just
     ' falls back to the previous behavior).
-    Public Const DriveApiTxtFileId As String = ""
+    Public Const DriveApiTxtFileId As String = "1ocsGedqEuzXPDisbJL_le3VZWgrFgGq3"
 
     ' Resolved ONCE per process (avoids re-reading config on every request).
     Private _apiBase As String
