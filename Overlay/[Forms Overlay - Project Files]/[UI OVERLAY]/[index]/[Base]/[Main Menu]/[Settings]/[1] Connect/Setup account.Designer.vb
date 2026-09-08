@@ -64,7 +64,7 @@ Partial Class Base_Connect_Setup
         BT_Back.Cursor = Cursors.Hand
         BT_Back.Font = New Font("Segoe UI", 12F, FontStyle.Bold)
         BT_Back.ForeColor = Color.White
-        BT_Back.Location = New Point(651, 483)
+        BT_Back.Location = New Point(651, 492)
         BT_Back.Name = "BT_Back"
         BT_Back.Size = New Size(458, 39)
         BT_Back.TabIndex = 58
@@ -90,9 +90,9 @@ Partial Class Base_Connect_Setup
         Auth_PROMPT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Auth_PROMPT.Font = New Font("Segoe UI", 11.25F)
         Auth_PROMPT.ForeColor = Color.Gainsboro
-        Auth_PROMPT.Location = New Point(700, 90)
+        Auth_PROMPT.Location = New Point(700, 94)
         Auth_PROMPT.Name = "Auth_PROMPT"
-        Auth_PROMPT.Size = New Size(360, 48)
+        Auth_PROMPT.Size = New Size(360, 68)
         Auth_PROMPT.TabIndex = 70
         Auth_PROMPT.Text = "Set up your Duluka Account"
         Auth_PROMPT.TextAlign = ContentAlignment.MiddleCenter
@@ -108,9 +108,9 @@ Partial Class Base_Connect_Setup
         Card_PANEL.Controls.Add(Confirm_LBL)
         Card_PANEL.Controls.Add(Confirm_BOX)
         Card_PANEL.Controls.Add(BT_SetupAccount)
-        Card_PANEL.Location = New Point(700, 152)
+        Card_PANEL.Location = New Point(700, 165)
         Card_PANEL.Name = "Card_PANEL"
-        Card_PANEL.Size = New Size(360, 282)
+        Card_PANEL.Size = New Size(360, 280)
         Card_PANEL.TabIndex = 84
         ' 
         ' Username_LBL
@@ -186,11 +186,12 @@ Partial Class Base_Connect_Setup
         ' 
         ' BT_SetupAccount
         ' 
+        BT_SetupAccount.Anchor = AnchorStyles.Bottom
         BT_SetupAccount.BackColor = Color.FromArgb(CByte(118), CByte(185), CByte(0))
         BT_SetupAccount.Cursor = Cursors.Hand
         BT_SetupAccount.Font = New Font("Segoe UI", 11.25F, FontStyle.Bold)
         BT_SetupAccount.ForeColor = Color.White
-        BT_SetupAccount.Location = New Point(24, 204)
+        BT_SetupAccount.Location = New Point(24, 202)
         BT_SetupAccount.Name = "BT_SetupAccount"
         BT_SetupAccount.Size = New Size(312, 46)
         BT_SetupAccount.TabIndex = 77
@@ -203,7 +204,7 @@ Partial Class Base_Connect_Setup
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 9.75F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(651, 454)
+        Status_TEXT.Location = New Point(651, 457)
         Status_TEXT.Name = "Status_TEXT"
         Status_TEXT.Size = New Size(458, 17)
         Status_TEXT.TabIndex = 78
@@ -215,7 +216,7 @@ Partial Class Base_Connect_Setup
         Box_Bg.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Box_Bg.Location = New Point(651, 0)
         Box_Bg.Name = "Box_Bg"
-        Box_Bg.Size = New Size(458, 483)
+        Box_Bg.Size = New Size(458, 492)
         Box_Bg.TabIndex = 85
         Box_Bg.TabStop = False
         ' 
