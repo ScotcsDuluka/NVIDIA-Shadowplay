@@ -682,6 +682,113 @@ Partial Public Class Base
         About_TEXT.Text = L("l10n.about")
 #End Region
 
+#Region "Connect pages ([1] Connect)"
+        ' Duluka Account pages: static page furniture is (re)applied here so
+        ' every page follows the selected language — UpdateLocalizedTexts
+        ' runs on startup (first Lang tick) and on every language switch
+        ' (Base_Settings.SelectLang). Runtime strings (Status_TEXT, list row
+        ' builders, MessageBoxes) are localized at their call sites inside
+        ' the [1] Connect forms themselves.
+        With Base_Connect   ' [Main] Account home (header/back wired above)
+            .USERSNAME_TEXT.Text = L("l10n.acctTitle")
+            .BT_Logout.Text = L("l10n.acctHomeSignOut")
+            .BT_Devices.Text = L("l10n.acctDevices")
+            ' "&&" so the & renders on a mnemonic Label/Button
+            .BT_Security.Text = L("l10n.acctHomeSecurity").Replace("&", "&&")
+            .BT_Providers.Text = L("l10n.acctLinkedAccounts")
+            .BT_EditProfile.Text = L("l10n.acctHomeEditProfile")
+            .Session_TITLE.Text = L("l10n.acctHomeCurrentSession")
+            .Nudge_TITLE.Text = L("l10n.acctHomeFinishSetup")
+            .Nudge_META.Text = L("l10n.acctHomeNudgeMeta")
+            .BT_SetupNow.Text = L("l10n.acctSetUpAccount")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Signin
+            .Settings_TEXT.Text = L("l10n.acctTitle")
+            .Auth_PROMPT.Text = L("l10n.acctSigninPrompt")
+            .Username_LBL.Text = L("l10n.acctSigninUsername")
+            .Password_LBL.Text = L("l10n.acctSigninPassword")
+            .BT_SignIn.Text = L("l10n.acctSigninButton")
+            .Or_LBL.Text = L("l10n.acctSigninOr")
+            .BT_Connect.Text = L("l10n.acctContinueGithub")
+            .BT_CreateAccount.Text = L("l10n.acctSigninCreateLink")
+            .Provider_NOTE.Text = L("l10n.acctSigninProviderNote")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Login
+            .Settings_TEXT.Text = L("l10n.acctSigninPrompt")
+            .Info_TEXT.Text = L("l10n.acctLoginflowInfo")
+            .BT_StartLogin.Text = L("l10n.acctContinueGithub")
+            .BT_CancelLogin.Text = L("l10n.cancel")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Create
+            .Settings_TEXT.Text = L("l10n.acctTitle")
+            .Auth_PROMPT.Text = L("l10n.acctCreatePrompt")
+            .Username_LBL.Text = L("l10n.acctSigninUsername")
+            .Password_LBL.Text = L("l10n.acctSigninPassword")
+            .Confirm_LBL.Text = L("l10n.acctCreateConfirm")
+            .BT_Create.Text = L("l10n.acctCreateButton")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Setup
+            .Settings_TEXT.Text = L("l10n.acctTitle")
+            .Auth_PROMPT.Text = L("l10n.acctSetupPrompt")
+            .Username_LBL.Text = L("l10n.acctSetupUsername")
+            .Password_LBL.Text = L("l10n.acctSigninPassword")
+            .Confirm_LBL.Text = L("l10n.acctSetupConfirm")
+            .BT_SetupAccount.Text = L("l10n.acctSetUpAccount")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Devices
+            .Settings_TEXT.Text = L("l10n.acctDevices")
+            .BT_RefreshDevices.Text = L("l10n.acctRefresh")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Providers
+            .Settings_TEXT.Text = L("l10n.acctLinkedAccounts")
+            .BT_LinkNew.Text = L("l10n.acctProvidersLinkGithub")
+            .BT_RefreshProviders.Text = L("l10n.acctRefresh")
+            .BT_Back.Text = L("l10n.back")
+        End With
+
+        With Base_Connect_Security
+            .Settings_TEXT.Text = L("l10n.acctSecurityTitle")
+            .BT_Back.Text = L("l10n.back")
+            .BT_RevokeAll.Text = L("l10n.acctSecuritySignOutAll")
+            .BT_RefreshSession.Text = L("l10n.acctSecurityExtendSession")
+            .BT_DeleteAccount.Text = L("l10n.acctSecurityDeleteAccount")
+            .DzPassword_LBL.Text = L("l10n.acctSecurityCurrentPassword")
+            ' Default (non-provider-only) state; SetupPasswordForm() re-derives
+            ' the state-dependent texts every time the page is shown.
+            .BT_ChangePassword.Text = L("l10n.acctSecurityChangePassword")
+            .PwConfirm_LBL.Text = L("l10n.acctSecurityConfirmNew")
+            .PwNew_LBL.Text = L("l10n.acctSecurityNewPassword")
+            .PwCurrent_LBL.Text = L("l10n.acctSecurityCurrentPassword")
+            .PwUsername_LBL.Text = L("l10n.acctSecurityChooseUsername")
+            .PwHeader_LBL.Text = L("l10n.acctSecurityChangePassword")
+            .Nudge_TITLE.Text = L("l10n.acctSecurityDangerZone")
+            .Nudge_META.Text = L("l10n.acctSecurityDeleteWarning")
+        End With
+
+        With Base_Connect_Profile
+            .Settings_TEXT.Text = L("l10n.acctHomeEditProfile")
+            .BT_ChangeImage.Text = L("l10n.acctProfileChangeImage")
+            .BT_RemoveImage.Text = L("l10n.remove")
+            .Name_LABEL.Text = L("l10n.acctProfileDisplayName")
+            .BT_Save.Text = L("l10n.save")
+            .Username_LABEL.Text = L("l10n.acctProfileUsernameImmutable")
+            .Username_NOTE.Text = L("l10n.acctProfileNote")
+            .BT_Back.Text = L("l10n.back")
+        End With
+#End Region
+
     End Sub
 
 #End Region

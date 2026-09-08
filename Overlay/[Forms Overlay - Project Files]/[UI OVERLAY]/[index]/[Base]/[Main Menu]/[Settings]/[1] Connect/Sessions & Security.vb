@@ -43,6 +43,10 @@ Public Class Base_Connect_Security
     Private _confirmDelete As Boolean
     Private _busy As Boolean
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
     End Sub
@@ -50,9 +54,9 @@ Public Class Base_Connect_Security
     Private Sub Page_VisibleChanged(sender As Object, e As EventArgs) Handles MyBase.VisibleChanged
         If Visible Then
             _confirmAll = False
-            BT_RevokeAll.Text = "Sign out on ALL devices"
+            BT_RevokeAll.Text = L("l10n.acctSecuritySignOutAll")
             _confirmDelete = False
-            BT_DeleteAccount.Text = "Delete this account permanently"
+            BT_DeleteAccount.Text = L("l10n.acctSecurityDeleteAccount")
             DzPassword_BOX.Clear()
             SetupPasswordForm()
             RenderSessionInfo()
@@ -67,9 +71,9 @@ Public Class Base_Connect_Security
             Return
         End If
 
-        Dim lines As String = "Current Duluka Account Session" & Environment.NewLine &
-                              "Device  " & If(store.DeviceName <> "", store.DeviceName, "—") & Environment.NewLine &
-                              "Expires  " & If(store.SessionExpiresAtText <> "", store.SessionExpiresAtText, "—")
+        Dim lines As String = L("l10n.acctSecurityCurrentSession") & Environment.NewLine &
+                              L("l10n.acctMetaDevice", If(store.DeviceName <> "", store.DeviceName, "—")) & Environment.NewLine &
+                              L("l10n.acctMetaExpires", If(store.SessionExpiresAtText <> "", store.SessionExpiresAtText, "—"))
         Info_META.Text = lines
         Status_TEXT.Text = ""
     End Sub
@@ -78,7 +82,7 @@ Public Class Base_Connect_Security
         If _busy Then Return
         _busy = True
         Try
-            Status_TEXT.Text = "Extending session…"
+            Status_TEXT.Text = L("l10n.acctSecurityExtending")
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim r As DulukaApi.Result = Await DulukaApi.PostAsync("/v1/auth/session/refresh", token, "{}").ConfigureAwait(True)
             If IsDisposed OrElse Not IsHandleCreated Then Return
@@ -89,9 +93,9 @@ Public Class Base_Connect_Security
                     DulukaAccountStore.Instance.SetSessionExpiry(expires.GetValue(Of String)())
                 End If
                 RenderSessionInfo()
-                Status_TEXT.Text = "Session extended."
+                Status_TEXT.Text = L("l10n.acctSecurityExtended")
             ElseIf r.AuthDead Then
-                TerminalSignOut("Session expired — signed out.")
+                TerminalSignOut(L("l10n.acctSecuritySessionExpired"))
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
@@ -105,32 +109,32 @@ Public Class Base_Connect_Security
 
         If Not _confirmAll Then
             _confirmAll = True
-            BT_RevokeAll.Text = "Really sign out EVERYWHERE? Click again"
-            Status_TEXT.Text = "This ends your Duluka Account Session on every device, including this one."
+            BT_RevokeAll.Text = L("l10n.acctSecurityReallySignOutAll")
+            Status_TEXT.Text = L("l10n.acctSecuritySignOutAllWarn")
             Return
         End If
 
         _busy = True
         Try
-            Status_TEXT.Text = "Signing out everywhere…"
+            Status_TEXT.Text = L("l10n.acctSecuritySigningOutAll")
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim r As DulukaApi.Result = Await DulukaApi.PostAsync("/v1/auth/sessions/revoke-all", token, "{}").ConfigureAwait(True)
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
             If r.Ok Then
-                Dim countText As String = "All devices signed out."
+                Dim countText As String = L("l10n.acctSecurityAllSignedOut")
                 Dim countNode As JsonNode = If(r.Resource IsNot Nothing, r.Resource("revokedSessions"), Nothing)
                 If countNode IsNot Nothing Then
-                    countText = "Signed out on " & countNode.GetValue(Of Integer)().ToString() & " device(s)."
+                    countText = L("l10n.acctSecuritySignedOutCount", countNode.GetValue(Of Integer)().ToString())
                 End If
                 TerminalSignOut(countText)
             ElseIf r.AuthDead Then
                 
-                TerminalSignOut("Session was already gone — signed out.")
+                TerminalSignOut(L("l10n.acctSecuritySessionGone"))
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
                 _confirmAll = False
-                BT_RevokeAll.Text = "Sign out on ALL devices"
+                BT_RevokeAll.Text = L("l10n.acctSecuritySignOutAll")
             End If
         Finally
             _busy = False
@@ -153,32 +157,32 @@ Public Class Base_Connect_Security
 
         If providerOnly Then
             If username = "" OrElse newPw = "" OrElse confirm = "" Then
-                Status_TEXT.Text = "Choose a username and fill both password fields."
+                Status_TEXT.Text = L("l10n.acctSetupChooseAndFill")
                 Return
             End If
             If username.Length < 3 OrElse username.Length > 32 OrElse
                username.Any(Function(c) Not (Char.IsLetterOrDigit(c) OrElse c = "."c OrElse c = "_"c OrElse c = "-"c)) Then
-                Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+                Status_TEXT.Text = L("l10n.acctUsernameRule")
                 Return
             End If
         Else
             If current = "" OrElse newPw = "" OrElse confirm = "" Then
-                Status_TEXT.Text = "Fill in every password field."
+                Status_TEXT.Text = L("l10n.acctSecurityFillPasswords")
                 Return
             End If
         End If
         If newPw.Length < 8 OrElse newPw.Length > 128 Then
-            Status_TEXT.Text = "New password must be 8-128 characters."
+            Status_TEXT.Text = L("l10n.acctSecurityNewPasswordRule")
             Return
         End If
         If newPw <> confirm Then
-            Status_TEXT.Text = "New passwords do not match."
+            Status_TEXT.Text = L("l10n.acctSecurityNewNoMatch")
             Return
         End If
 
         _busy = True
         Try
-            Status_TEXT.Text = If(providerOnly, "Adding password sign-in…", "Updating password…")
+            Status_TEXT.Text = If(providerOnly, L("l10n.acctSecurityAddingPassword"), L("l10n.acctSecurityUpdatingPassword"))
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim body As New System.Text.Json.Nodes.JsonObject()
             body("newPassword") = newPw
@@ -201,14 +205,14 @@ Public Class Base_Connect_Security
                     DulukaAccountStore.Instance.DisplayName, username)
                 SetupPasswordForm()
                 Status_TEXT.Text = If(providerOnly,
-                    "Account set up — you can now sign in with your username and password.",
-                    "Password updated — you can now sign in with it.")
+                    L("l10n.acctSecurityAccountSetUp"),
+                    L("l10n.acctSecurityPasswordUpdated"))
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
-                Status_TEXT.Text = "Current password is incorrect."
+                Status_TEXT.Text = L("l10n.acctSecurityCurrentIncorrect")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_username" Then
-                Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+                Status_TEXT.Text = L("l10n.acctUsernameRule")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_password" Then
-                Status_TEXT.Text = "Password must be 8-128 characters."
+                Status_TEXT.Text = L("l10n.acctPasswordRule")
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
 
                 Dim meR As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/me", token).ConfigureAwait(True)
@@ -217,20 +221,20 @@ Public Class Base_Connect_Security
                     If meUser <> "" Then
                         DulukaAccountStore.Instance.SetProfile(ResourceText(meR.Resource, "displayName"), meUser)
                         SetupPasswordForm()
-                        Status_TEXT.Text = "This account already has a username and password."
+                        Status_TEXT.Text = L("l10n.acctSecurityAlreadyHasPassword")
                         Return
                     End If
                 End If
-                If Not IsDisposed Then Status_TEXT.Text = "That username is already taken — pick another."
+                If Not IsDisposed Then Status_TEXT.Text = L("l10n.acctUsernameTaken")
             ElseIf r.AuthDead Then
-                TerminalSignOut("Your session has expired. Please sign in again.")
+                TerminalSignOut(L("l10n.acctSessionExpired"))
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
         Catch ex As Exception
 
             Debug.WriteLine($"BT_ChangePassword error: {ex.GetType().Name}")
-            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
+            If Not IsDisposed Then Status_TEXT.Text = L("l10n.acctCannotReachRetry")
         Finally
             _busy = False
         End Try
@@ -240,12 +244,12 @@ Public Class Base_Connect_Security
         Dim providerOnly As Boolean = ProviderOnlyAccount
         PwUsername_LBL.Visible = providerOnly
         PwUsername_BOX.Visible = providerOnly
-        PwCurrent_LBL.Text = If(providerOnly, "Current password (not set yet)", "Current password")
+        PwCurrent_LBL.Text = If(providerOnly, L("l10n.acctSecurityCurrentNotSet"), L("l10n.acctSecurityCurrentPassword"))
         PwCurrent_LBL.Enabled = Not providerOnly
         PwCurrent_BOX.Enabled = Not providerOnly
-        PwHeader_LBL.Text = If(providerOnly, "Add password sign-in", "Change password")
+        PwHeader_LBL.Text = If(providerOnly, L("l10n.acctSecurityAddPasswordHeader"), L("l10n.acctSecurityChangePassword"))
 
-        BT_ChangePassword.Text = If(providerOnly, "Set Up Account", "Change password")
+        BT_ChangePassword.Text = If(providerOnly, L("l10n.acctSetUpAccount"), L("l10n.acctSecurityChangePassword"))
 
         Dim hasPassword As Boolean = Not providerOnly
         DzPassword_LBL.Visible = hasPassword
@@ -262,21 +266,21 @@ Public Class Base_Connect_Security
 
         If Not _confirmDelete Then
             _confirmDelete = True
-            BT_DeleteAccount.Text = "Really delete EVERYTHING? Click again"
-            Status_TEXT.Text = "This removes the account, its username and password, linked providers, devices and sessions — permanently."
+            BT_DeleteAccount.Text = L("l10n.acctSecurityReallyDelete")
+            Status_TEXT.Text = L("l10n.acctSecurityDeleteMeta")
             Return
         End If
 
         Dim hasPassword As Boolean = Not ProviderOnlyAccount
         Dim password As String = DzPassword_BOX.Text
         If hasPassword AndAlso password = "" Then
-            Status_TEXT.Text = "Type your current password to confirm the deletion."
+            Status_TEXT.Text = L("l10n.acctSecurityTypeToDelete")
             Return
         End If
 
         _busy = True
         Try
-            Status_TEXT.Text = "Deleting account…"
+            Status_TEXT.Text = L("l10n.acctSecurityDeleting")
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim body As String = "{}"
             If hasPassword Then
@@ -292,13 +296,13 @@ Public Class Base_Connect_Security
                 DulukaAccountStore.Instance.ClearSession()
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()   
-                Base_Connect_Signin.Note("Duluka Account deleted.")
+                Base_Connect_Signin.Note(L("l10n.acctAccountDeleted"))
             ElseIf r.AuthDead Then
-                TerminalSignOut("Your session has expired. Please sign in again.")
+                TerminalSignOut(L("l10n.acctSessionExpired"))
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 Status_TEXT.Text = If(password = "",
-                    "Current password is required to delete this account.",
-                    "Current password is incorrect.")
+                    L("l10n.acctSecurityPasswordRequiredToDelete"),
+                    L("l10n.acctSecurityCurrentIncorrect"))
                 DisarmDelete()
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
@@ -307,7 +311,7 @@ Public Class Base_Connect_Security
         Catch ex As Exception
 
             Debug.WriteLine($"BT_DeleteAccount error: {ex.GetType().Name}")
-            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka — try again."
+            If Not IsDisposed Then Status_TEXT.Text = L("l10n.acctCannotReachRetry")
             DisarmDelete()
         Finally
             _busy = False
@@ -316,7 +320,7 @@ Public Class Base_Connect_Security
 
     Private Sub DisarmDelete()
         _confirmDelete = False
-        BT_DeleteAccount.Text = "Delete this account permanently"
+        BT_DeleteAccount.Text = L("l10n.acctSecurityDeleteAccount")
     End Sub
 
     Private Sub TerminalSignOut(message As String)

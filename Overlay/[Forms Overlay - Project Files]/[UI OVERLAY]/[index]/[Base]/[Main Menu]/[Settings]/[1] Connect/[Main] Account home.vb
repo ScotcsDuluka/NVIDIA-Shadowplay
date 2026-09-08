@@ -40,6 +40,10 @@ Public Class Base_Connect
 
     Private _meInFlight As Boolean
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Base_Connect_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
         LayoutRow()
@@ -98,23 +102,23 @@ Public Class Base_Connect
         If Not store.HasSession Then Return
 
         Dim name As String = store.DisplayName
-        USERSNAME_TEXT.Text = If(name <> "", name, "Duluka Account")
+        USERSNAME_TEXT.Text = If(name <> "", name, L("l10n.acctTitle"))
         Avatar_BOX.Text = If(name <> "", name.Substring(0, 1).ToUpperInvariant(), "D")
         RenderAvatar(store.ProfileImage)
 
         Dim meta As String = ""
         If store.Username <> "" Then
-            meta &= "Username  " & store.Username & Environment.NewLine
+            meta &= L("l10n.acctMetaUsername", store.Username) & Environment.NewLine
         Else
-            meta &= "Username  (not set up yet)" & Environment.NewLine
+            meta &= L("l10n.acctMetaUsernameNotSet") & Environment.NewLine
         End If
-        meta &= "Account  " & If(store.AccountId <> "", store.AccountId, "—") & Environment.NewLine &
-                "This device  " & If(store.DeviceName <> "", store.DeviceName, "—")
+        meta &= L("l10n.acctMetaAccount", If(store.AccountId <> "", store.AccountId, "—")) & Environment.NewLine &
+                L("l10n.acctMetaThisDevice", If(store.DeviceName <> "", store.DeviceName, "—"))
         Account_META.Text = meta
 
         Dim expires As String = store.SessionExpiresAtText
-        Session_META.Text = "Device  " & If(store.DeviceName <> "", store.DeviceName, "—") &
-                            "        Expires  " & If(expires <> "", expires, "unknown")
+        Session_META.Text = L("l10n.acctMetaDevice", If(store.DeviceName <> "", store.DeviceName, "—")) &
+                            "        " & L("l10n.acctMetaExpires", If(expires <> "", expires, L("l10n.acctMetaExpiresUnknown")))
 
         Card_PANEL.Visible = True
         ' Avatar_BOX / Avatar_PICTURE visibility is owned EXCLUSIVELY by
@@ -244,7 +248,7 @@ Public Class Base_Connect
             Return
         End If
         BT_Logout.Enabled = False
-        Status_TEXT.Text = "Signing out…"
+        Status_TEXT.Text = L("l10n.acctHomeSigningOut")
         Dim token As String = store.SessionToken
         If token <> "" Then
             

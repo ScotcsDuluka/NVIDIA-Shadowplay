@@ -39,6 +39,10 @@ Public Class Base_Connect_Login
 
     Private _flow As DulukaAuthFlow
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
         ResetUi()
@@ -54,7 +58,7 @@ Public Class Base_Connect_Login
         BT_StartLogin.Visible = True
         BT_CancelLogin.Visible = False
         If DulukaAccountStore.Instance.HasSession Then
-            Status_TEXT.Text = "Already signed in on this device."
+            Status_TEXT.Text = L("l10n.acctLoginflowAlreadySignedIn")
         Else
             Status_TEXT.Text = ""
         End If
@@ -71,12 +75,12 @@ Public Class Base_Connect_Login
 
     Private Async Sub BT_StartLogin_Click(sender As Object, e As EventArgs) Handles BT_StartLogin.Click
         If DulukaAccountStore.Instance.HasSession Then
-            Status_TEXT.Text = "Already signed in on this device."
+            Status_TEXT.Text = L("l10n.acctLoginflowAlreadySignedIn")
             Return
         End If
         _flow = DulukaAuthFlow.TryBegin(DulukaAuthFlow.FlowKind.Login)
         If _flow Is Nothing Then
-            Status_TEXT.Text = "A sign-in is already in progress."
+            Status_TEXT.Text = L("l10n.acctLoginflowInProgress")
             Return
         End If
         BT_StartLogin.Visible = False
@@ -108,7 +112,7 @@ Public Class Base_Connect_Login
         Base.OpenSettings()
         Base.IF_OpenShare = False
         If outcome.Succeeded Then
-            Status_TEXT.Text = "Signed in to your Duluka Account."
+            Status_TEXT.Text = L("l10n.acctLoginflowSuccess")
             Await Task.Delay(900)
             If IsDisposed OrElse Not IsHandleCreated Then Return
 
@@ -129,7 +133,7 @@ Public Class Base_Connect_Login
     Private Sub BT_CancelLogin_Click(sender As Object, e As EventArgs) Handles BT_CancelLogin.Click
         If _flow IsNot Nothing Then
             _flow.Cancel()
-            Status_TEXT.Text = "Cancelling…"
+            Status_TEXT.Text = L("l10n.acctLoginflowCancelling")
         End If
     End Sub
 

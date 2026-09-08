@@ -41,6 +41,10 @@ Public Class Base_Connect_Profile
     Private _pendingImage As String
     Private _saveInFlight As Boolean
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
     End Sub
@@ -61,7 +65,7 @@ Public Class Base_Connect_Profile
         If store.Username <> "" Then
             Username_VALUE.Text = store.Username
         Else
-            Username_VALUE.Text = "— (this account signs in with a provider)"
+            Username_VALUE.Text = L("l10n.acctProfileProviderOnly")
         End If
         _pendingImage = store.ProfileImage
         DulukaAvatar.SetPreview(Avatar_PICTURE, _pendingImage, AvatarLetter_LABEL)
@@ -70,7 +74,7 @@ Public Class Base_Connect_Profile
 
     Private Sub BT_ChangeImage_Click(sender As Object, e As EventArgs) Handles BT_ChangeImage.Click
         Using picker As New OpenFileDialog
-            picker.Title = "Choose a profile image"
+            picker.Title = L("l10n.acctProfilePickImage")
 
             picker.Filter = "PNG or JPEG images (*.png;*.jpg;*.jpeg)|*.png;*.jpg;*.jpeg"
             picker.CheckFileExists = True
@@ -105,14 +109,14 @@ Public Class Base_Connect_Profile
 
         Dim displayName As String = Name_BOX.Text.Trim()
         If displayName.Length > 64 Then
-            Status_TEXT.Text = "Display name is too long (max 64 characters)."
+            Status_TEXT.Text = L("l10n.acctProfileNameTooLong")
             Return
         End If
 
         _saveInFlight = True
         BT_Save.Enabled = False
         Try
-            Status_TEXT.Text = "Saving…"
+            Status_TEXT.Text = L("l10n.acctProfileSaving")
             Dim body As New JsonObject
             body("displayName") = If(displayName <> "", displayName, Nothing)
             body("profileImage") = If(_pendingImage <> "", _pendingImage, Nothing)
@@ -128,9 +132,9 @@ Public Class Base_Connect_Profile
                                           ResourceText(r.Resource, "profileImage"))
                 Hide()
                 Base_Connect.ReturnFromSubPage()
-                Base_Connect.NotifyFromSubPage("Profile updated.")
+                Base_Connect.NotifyFromSubPage(L("l10n.acctProfileUpdated"))
             ElseIf r.AuthDead Then
-                TerminalSignOut("Your session has expired. Please sign in again.")
+                TerminalSignOut(L("l10n.acctSessionExpired"))
             Else
                 Status_TEXT.Text = HumanError(r)
             End If

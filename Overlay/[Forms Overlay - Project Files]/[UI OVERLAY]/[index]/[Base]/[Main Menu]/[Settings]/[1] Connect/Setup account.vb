@@ -39,6 +39,10 @@ Public Class Base_Connect_Setup
 
     Private _busy As Boolean
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
     End Sub
@@ -51,8 +55,8 @@ Public Class Base_Connect_Setup
             Base_Connect.ReturnFromSubPage()
             Return
         End If
-        Auth_PROMPT.Text = "Set up your Duluka Account" & Environment.NewLine &
-            "GitHub stays a linked sign-in method. Choose your permanent username and a password."
+        Auth_PROMPT.Text = L("l10n.acctSetupPrompt") & Environment.NewLine &
+            L("l10n.acctSetupPromptDetail")
         Username_BOX.Clear()
         Password_BOX.Clear()
         Confirm_BOX.Clear()
@@ -68,26 +72,26 @@ Public Class Base_Connect_Setup
         Dim password As String = Password_BOX.Text
         Dim confirm As String = Confirm_BOX.Text
         If username = "" OrElse password = "" OrElse confirm = "" Then
-            Status_TEXT.Text = "Choose a username and fill both password fields."
+            Status_TEXT.Text = L("l10n.acctSetupChooseAndFill")
             Return
         End If
         If username.Length < 3 OrElse username.Length > 32 OrElse
            username.Any(Function(c) Not (Char.IsLetterOrDigit(c) OrElse c = "."c OrElse c = "_"c OrElse c = "-"c)) Then
-            Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+            Status_TEXT.Text = L("l10n.acctUsernameRule")
             Return
         End If
         If password.Length < 8 OrElse password.Length > 128 Then
-            Status_TEXT.Text = "Password must be 8-128 characters."
+            Status_TEXT.Text = L("l10n.acctPasswordRule")
             Return
         End If
         If password <> confirm Then
-            Status_TEXT.Text = "Passwords do not match."
+            Status_TEXT.Text = L("l10n.acctPasswordsNoMatch")
             Return
         End If
 
         _busy = True
         BT_SetupAccount.Enabled = False
-        Status_TEXT.Text = "Setting up your account…"
+        Status_TEXT.Text = L("l10n.acctSetupBusy")
         Try
             Dim body As New JsonObject()
             body("username") = username
@@ -107,29 +111,29 @@ Public Class Base_Connect_Setup
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "conflict.username_taken" Then
-                Status_TEXT.Text = "That username is already taken — pick another."
+                Status_TEXT.Text = L("l10n.acctUsernameTaken")
             ElseIf r.HttpStatus = 409 AndAlso r.ErrorCode = "credential_exists" Then
                 ' The account ALREADY has a password (set up earlier on this
                 ' or another device). Never silently return home here — the
                 ' home screen would bounce straight back to Setup and the
                 ' Back button would look broken. Tell the user instead.
-                Status_TEXT.Text = "This account already has a password. Press Back — you are already set up."
+                Status_TEXT.Text = L("l10n.acctSetupAlreadyPassword")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_credentials" Then
                 ' The server's change-password branch answering "current
                 ' password is required" means the same thing: setup is done.
-                Status_TEXT.Text = "This account already has a password. Press Back — you are already set up."
+                Status_TEXT.Text = L("l10n.acctSetupAlreadyPassword")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_username" Then
-                Status_TEXT.Text = "Username: 3-32 characters — letters, digits, dot, underscore, hyphen."
+                Status_TEXT.Text = L("l10n.acctUsernameRule")
             ElseIf r.HttpStatus = 400 AndAlso r.ErrorCode = "invalid_password" Then
-                Status_TEXT.Text = "Password must be 8-128 characters."
+                Status_TEXT.Text = L("l10n.acctPasswordRule")
             ElseIf r.AuthDead Then
-                TerminalSignOut("Your session has expired. Please sign in again.")
+                TerminalSignOut(L("l10n.acctSessionExpired"))
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
         Catch ex As Exception
             Debug.WriteLine($"SetupAccount error: {ex.GetType().Name}")
-            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka."
+            If Not IsDisposed Then Status_TEXT.Text = L("l10n.acctCannotReach")
         Finally
             _busy = False
             If Not IsDisposed Then BT_SetupAccount.Enabled = True

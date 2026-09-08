@@ -887,5 +887,16 @@
   "l10n.acctSecurityTypeToDelete": "Type your current password to confirm the deletion.",
   "l10n.acctSecurityDeleting": "Deleting account…",
   "l10n.engineNotConnected": "Engine not connected",
-  "l10n.notificationErrorEngineNotRunning": "The NVIDIA Capture engine is not running."
+  "l10n.notificationErrorEngineNotRunning": "The NVIDIA Capture engine is not running.",
+  "l10n.acctDevicesSectionThis": "This device",
+  "l10n.acctDevicesSectionOther": "Other devices",
+  "l10n.acctDevicesRevoke": "Revoke",
+  "l10n.acctDevicesNever": "never",
+  "l10n.acctSecurityExtendSession": "Extend session",
+  "l10n.acctSecurityAccountSetUp": "Account set up — you can now sign in with your username and password.",
+  "l10n.acctSecurityPasswordUpdated": "Password updated — you can now sign in with it.",
+  "l10n.acctSecurityPasswordRequiredToDelete": "Current password is required to delete this account.",
+  "l10n.acctAccountDeleted": "Duluka Account deleted.",
+  "l10n.acctSetupPromptDetail": "GitHub stays a linked sign-in method. Choose your permanent username and a password.",
+  "l10n.testNotifier": "Test notifier"
 }

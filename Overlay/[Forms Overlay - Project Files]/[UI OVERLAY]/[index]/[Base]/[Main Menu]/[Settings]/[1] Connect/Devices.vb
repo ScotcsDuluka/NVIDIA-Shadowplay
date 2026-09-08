@@ -41,6 +41,10 @@ Public Class Base_Connect_Devices
     Private _loading As Boolean
     Private _nextRowY As Integer = 8
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
     End Sub
@@ -60,7 +64,7 @@ Public Class Base_Connect_Devices
         End If
         _loading = True
         Try
-            Status_TEXT.Text = "Loading devices…"
+            Status_TEXT.Text = L("l10n.acctDevicesLoading")
             ClearRows()
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim r As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/devices", token).ConfigureAwait(True)
@@ -83,14 +87,14 @@ Public Class Base_Connect_Devices
                 End If
 
                 If current IsNot Nothing Then
-                    AddSectionHeader("This device")
+                    AddSectionHeader(L("l10n.acctDevicesSectionThis"))
                     AddDeviceRow(NodeText(current, "deviceId"),
                                  NodeText(current, "deviceName"),
                                  NodeText(current, "lastSeenAt"),
                                  NodeText(current, "revokedAt"), True)
                 End If
                 If others.Count > 0 Then
-                    AddSectionHeader("Other devices")
+                    AddSectionHeader(L("l10n.acctDevicesSectionOther"))
                     For Each d As JsonNode In others
                         AddDeviceRow(NodeText(d, "deviceId"),
                                      NodeText(d, "deviceName"),
@@ -100,7 +104,7 @@ Public Class Base_Connect_Devices
                 End If
 
                 If current Is Nothing AndAlso others.Count = 0 Then
-                    Status_TEXT.Text = "No devices registered yet."
+                    Status_TEXT.Text = L("l10n.acctDevicesNone")
                 Else
                     Status_TEXT.Text = ""
                 End If
@@ -143,7 +147,7 @@ Public Class Base_Connect_Devices
             .ForeColor = Color.White,
             .Location = New Point(16, 10)
         }
-        title.Text = If(name <> "", name, "Unnamed device")
+        title.Text = If(name <> "", name, L("l10n.acctDevicesUnnamed"))
 
         Dim meta As New Label With {
             .AutoSize = True,
@@ -152,10 +156,10 @@ Public Class Base_Connect_Devices
             .Location = New Point(16, 40)
         }
         If revokedAt <> "" Then
-            meta.Text = "Revoked"
+            meta.Text = L("l10n.acctDevicesRevoked")
             meta.ForeColor = Color.IndianRed
         Else
-            meta.Text = "Active  ·  last seen " & FormatIso(lastSeen)
+            meta.Text = L("l10n.acctDevicesActiveLastSeen", FormatIso(lastSeen))
         End If
 
         row.Controls.Add(title)
@@ -171,7 +175,7 @@ Public Class Base_Connect_Devices
                 .Location = New Point(rowW - 180, 14),
                 .Size = New Size(150, 44),
                 .TextAlign = ContentAlignment.MiddleCenter,
-                .Text = "Revoke"
+                .Text = L("l10n.acctDevicesRevoke")
             }
             
             Dim rowId As String = id
@@ -191,12 +195,12 @@ Public Class Base_Connect_Devices
 
     Private Async Sub RevokeDevice(deviceId As String, isCurrent As Boolean)
         Dim confirmText As String = If(isCurrent,
-            "Revoke THIS device? This Duluka Account Session on it will be signed out.",
-            "Revoke this device? All its Duluka Account Sessions will be signed out.")
-        If MessageBox.Show(confirmText, "Revoke device", MessageBoxButtons.YesNo,
+            L("l10n.acctDevicesRevokeCurrent"),
+            L("l10n.acctDevicesRevokeOther"))
+        If MessageBox.Show(confirmText, L("l10n.acctDevicesRevokeCaption"), MessageBoxButtons.YesNo,
                            MessageBoxIcon.Warning) <> DialogResult.Yes Then Return
 
-        Status_TEXT.Text = "Revoking…"
+        Status_TEXT.Text = L("l10n.acctDevicesRevoking")
         Dim token As String = DulukaAccountStore.Instance.SessionToken
         Dim r As DulukaApi.Result = Await DulukaApi.PostAsync(
             "/v1/account/devices/" & deviceId & "/revoke", token, "{}").ConfigureAwait(True)
@@ -204,17 +208,17 @@ Public Class Base_Connect_Devices
 
         If r.Ok Then
             If isCurrent Then
-                TerminalSignOut("This device was revoked — signed out.")
+                TerminalSignOut(L("l10n.acctDevicesRevokedSignedOut"))
             Else
                 LoadDevicesAsync()
             End If
         ElseIf r.AuthDead Then
-            TerminalSignOut("Your session has expired. Please sign in again.")
+            TerminalSignOut(L("l10n.acctSessionExpired"))
         ElseIf r.HttpStatus = 403 Then
 
             Status_TEXT.Text = DulukaApi.HumanError(r)
         ElseIf r.HttpStatus = 404 Then
-            Status_TEXT.Text = "That device is already gone — refreshing."
+            Status_TEXT.Text = L("l10n.acctDevicesAlreadyGone")
             LoadDevicesAsync()
         Else
             Status_TEXT.Text = DulukaApi.HumanError(r)
@@ -235,7 +239,7 @@ Public Class Base_Connect_Devices
     End Function
 
     Private Function FormatIso(iso As String) As String
-        If iso = "" Then Return "never"
+        If iso = "" Then Return L("l10n.acctDevicesNever")
         Dim parsed As DateTimeOffset
         If DateTimeOffset.TryParse(iso, parsed) Then
             Return parsed.ToLocalTime().ToString("yyyy-MM-dd HH:mm")

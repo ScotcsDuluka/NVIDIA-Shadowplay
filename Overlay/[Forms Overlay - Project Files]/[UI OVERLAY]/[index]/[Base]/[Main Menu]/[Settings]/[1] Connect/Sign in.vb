@@ -40,6 +40,10 @@ Public Class Base_Connect_Signin
 
     Private _signInBusy As Boolean
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
     End Sub
@@ -72,7 +76,7 @@ Public Class Base_Connect_Signin
         Dim username As String = Username_BOX.Text.Trim()
         Dim password As String = Password_BOX.Text
         If username = "" OrElse password = "" Then
-            Status_TEXT.Text = "Enter your username and password."
+            Status_TEXT.Text = L("l10n.acctSigninEnterCreds")
             Return
         End If
 
@@ -80,7 +84,7 @@ Public Class Base_Connect_Signin
         BT_SignIn.Enabled = False
         BT_Connect.Enabled = False
         BT_CreateAccount.Enabled = False
-        Status_TEXT.Text = "Signing in…"
+        Status_TEXT.Text = L("l10n.acctSigninBusy")
         Try
             Dim body As New JsonObject()
             body("username") = username
@@ -104,17 +108,17 @@ Public Class Base_Connect_Signin
                 Me.Hide()
                 Base_Connect.ReturnFromSubPage()
             ElseIf r.HttpStatus = 401 AndAlso r.ErrorCode = "invalid_credentials" Then
-                Status_TEXT.Text = "Incorrect username or password."
+                Status_TEXT.Text = L("l10n.acctSigninBadCreds")
             ElseIf r.HttpStatus = 403 AndAlso r.ErrorCode = "perm.device_removed" Then
 
                 store.RevokeDeviceKey()
-                Status_TEXT.Text = "This device was revoked by your account. Try signing in again."
+                Status_TEXT.Text = L("l10n.acctSigninDeviceRevoked")
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
         Catch ex As Exception
             Debug.WriteLine($"NativeSignIn error: {ex.GetType().Name}")
-            If Not IsDisposed Then Status_TEXT.Text = "Cannot reach Duluka."
+            If Not IsDisposed Then Status_TEXT.Text = L("l10n.acctCannotReach")
         Finally
             _signInBusy = False
             If Not IsDisposed Then

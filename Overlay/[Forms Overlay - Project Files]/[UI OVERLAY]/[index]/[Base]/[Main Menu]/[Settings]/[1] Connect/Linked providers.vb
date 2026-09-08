@@ -43,6 +43,10 @@ Public Class Base_Connect_Providers
     Private _flow As DulukaAuthFlow
     Private _nextRowY As Integer = 8
 
+    Private Shared Function L(key As String, ParamArray args() As String) As String
+        Return LangHelper.GetText(key, args)
+    End Function
+
     Private Sub Page_Load(sender As Object, e As EventArgs) Handles MyBase.Load
         HideFromAltTab()
     End Sub
@@ -62,7 +66,7 @@ Public Class Base_Connect_Providers
         End If
         _loading = True
         Try
-            Status_TEXT.Text = "Loading linked providers…"
+            Status_TEXT.Text = L("l10n.acctProvidersLoading")
             ClearRows()
             Dim token As String = DulukaAccountStore.Instance.SessionToken
             Dim r As DulukaApi.Result = Await DulukaApi.GetAsync("/v1/account/providers", token).ConfigureAwait(True)
@@ -91,7 +95,7 @@ Public Class Base_Connect_Providers
                     AddProviderRow("", "github", "", "", False)
                 End If
             ElseIf r.AuthDead Then
-                TerminalSignOut("Your session has expired. Please sign in again.")
+                TerminalSignOut(L("l10n.acctSessionExpired"))
             Else
                 Status_TEXT.Text = DulukaApi.HumanError(r)
             End If
@@ -117,8 +121,8 @@ Public Class Base_Connect_Providers
             .ForeColor = Color.White,
             .Location = New Point(16, 10)
         }
-        Dim shownEmail As String = If(email <> "", email, "(no email shared)")
-        title.Text = "GitHub  ·  " & If(connected, shownEmail, "Not connected")
+        Dim shownEmail As String = If(email <> "", email, L("l10n.acctProvidersNoEmail"))
+        title.Text = L("l10n.acctProvidersGithubTitle", If(connected, shownEmail, L("l10n.acctProvidersNotConnected")))
 
         Dim meta As New Label With {
             .AutoSize = True,
@@ -127,9 +131,9 @@ Public Class Base_Connect_Providers
             .Location = New Point(16, 40)
         }
         If connected Then
-            meta.Text = "Connected " & FormatIso(linkedAt) & "  —  used to authenticate to this Duluka Account"
+            meta.Text = L("l10n.acctProvidersConnectedAt", FormatIso(linkedAt))
         Else
-            meta.Text = "Used to authenticate to your Duluka Account once linked"
+            meta.Text = L("l10n.acctProvidersNotLinkedYet")
         End If
 
         row.Controls.Add(title)
@@ -145,7 +149,7 @@ Public Class Base_Connect_Providers
                 .Location = New Point(rowW - 180, 14),
                 .Size = New Size(150, 44),
                 .TextAlign = ContentAlignment.MiddleCenter,
-                .Text = "Unlink"
+                .Text = L("l10n.acctProvidersUnlink")
             }
             
             Dim rowLinkId As String = linkId
@@ -161,7 +165,7 @@ Public Class Base_Connect_Providers
                 .Location = New Point(rowW - 180, 14),
                 .Size = New Size(150, 44),
                 .TextAlign = ContentAlignment.MiddleCenter,
-                .Text = "Link GitHub"
+                .Text = L("l10n.acctProvidersLinkGithub")
             }
             AddHandler link.Click, Sub(s, e) BT_LinkNew_Click(s, e)
             row.Controls.Add(link)
@@ -177,12 +181,12 @@ Public Class Base_Connect_Providers
     End Sub
 
     Private Async Sub UnlinkProvider(linkId As String)
-        If MessageBox.Show("Unlink this GitHub identity from your Duluka Account?" & Environment.NewLine &
-                           "If it is your only linked provider, the server will refuse.",
-                           "Unlink provider", MessageBoxButtons.YesNo,
+        If MessageBox.Show(L("l10n.acctProvidersUnlinkConfirm") & Environment.NewLine &
+                           L("l10n.acctProvidersUnlinkConfirmNote"),
+                           L("l10n.acctProvidersUnlinkCaption"), MessageBoxButtons.YesNo,
                            MessageBoxIcon.Warning) <> DialogResult.Yes Then Return
 
-        Status_TEXT.Text = "Unlinking…"
+        Status_TEXT.Text = L("l10n.acctProvidersUnlinking")
         Dim token As String = DulukaAccountStore.Instance.SessionToken
         Dim r As DulukaApi.Result = Await DulukaApi.DeleteAsync(
             "/v1/account/providers/" & linkId, token).ConfigureAwait(True)
@@ -194,15 +198,17 @@ Public Class Base_Connect_Providers
                 Dim countNode As JsonNode = r.Resource("revokedSessions")
                 If countNode IsNot Nothing Then revoked = countNode.GetValue(Of Integer)()
             End If
-            Status_TEXT.Text = "Unlinked" & If(revoked > 0, " (" & revoked.ToString() & " session(s) revoked)", "") & "."
+            Status_TEXT.Text = If(revoked > 0,
+                L("l10n.acctProvidersUnlinkedRevoked", revoked.ToString()),
+                L("l10n.acctProvidersUnlinked"))
             LoadProvidersAsync()
         ElseIf r.AuthDead Then
-            TerminalSignOut("Your session has expired. Please sign in again.")
+            TerminalSignOut(L("l10n.acctSessionExpired"))
         ElseIf r.HttpStatus = 409 Then
 
-            Status_TEXT.Text = "Cannot unlink — " & r.Message
+            Status_TEXT.Text = L("l10n.acctProvidersCannotUnlink", r.Message)
         ElseIf r.HttpStatus = 404 Then
-            Status_TEXT.Text = "That link is already gone — refreshing."
+            Status_TEXT.Text = L("l10n.acctProvidersLinkAlreadyGone")
             LoadProvidersAsync()
         Else
             Status_TEXT.Text = DulukaApi.HumanError(r)
@@ -219,7 +225,7 @@ Public Class Base_Connect_Providers
 
         Dim flow As DulukaAuthFlow = DulukaAuthFlow.TryBegin(DulukaAuthFlow.FlowKind.LinkProvider)
         If flow Is Nothing Then
-            Status_TEXT.Text = "Another sign-in flow is already in progress."
+            Status_TEXT.Text = L("l10n.acctAnotherFlow")
             Return
         End If
         _flow = flow
@@ -266,7 +272,7 @@ Public Class Base_Connect_Providers
 
             If outcome.Succeeded Then
                 LoadProvidersAsync()
-                Status_TEXT.Text = "GitHub is now linked to this Duluka Account."
+                Status_TEXT.Text = L("l10n.acctProvidersLinkSuccess")
             Else
                 Status_TEXT.Text = outcome.Message
             End If

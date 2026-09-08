@@ -887,5 +887,16 @@
   "l10n.acctSecurityTypeToDelete": "พิมพ์รหัสผ่านปัจจุบันเพื่อยืนยันการลบ",
   "l10n.acctSecurityDeleting": "กำลังลบบัญชี…",
   "l10n.engineNotConnected": "เอนจินไม่ได้เชื่อมต่อ",
-  "l10n.notificationErrorEngineNotRunning": "เอนจินไม่ได้ทำงาน"
+  "l10n.notificationErrorEngineNotRunning": "เอนจินไม่ได้ทำงาน",
+  "l10n.acctDevicesSectionThis": "อุปกรณ์นี้",
+  "l10n.acctDevicesSectionOther": "อุปกรณ์อื่น ๆ",
+  "l10n.acctDevicesRevoke": "เพิกถอน",
+  "l10n.acctDevicesNever": "ไม่เคย",
+  "l10n.acctSecurityExtendSession": "ยืดอายุเซสชัน",
+  "l10n.acctSecurityAccountSetUp": "ตั้งค่าบัญชีแล้ว — ตอนนี้คุณลงชื่อเข้าใช้ด้วยชื่อผู้ใช้และรหัสผ่านได้แล้ว",
+  "l10n.acctSecurityPasswordUpdated": "อัปเดตรหัสผ่านแล้ว — ตอนนี้คุณลงชื่อเข้าใช้ด้วยรหัสผ่านใหม่ได้แล้ว",
+  "l10n.acctSecurityPasswordRequiredToDelete": "ต้องระบุรหัสผ่านปัจจุบันเพื่อลบบัญชีนี้",
+  "l10n.acctAccountDeleted": "ลบบัญชี Duluka แล้ว",
+  "l10n.acctSetupPromptDetail": "GitHub ยังคงเป็นวิธีลงชื่อเข้าใช้แบบเชื่อมต่อ เลือกชื่อผู้ใช้ถาวรของคุณพร้อมรหัสผ่าน",
+  "l10n.testNotifier": "ทดสอบตัวแจ้งเตือน"
 }
