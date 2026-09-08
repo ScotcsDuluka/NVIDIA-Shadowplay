@@ -10,13 +10,44 @@ Imports System.Threading.Tasks
 
 Friend Module DulukaApi
 
+    ' Resolved ONCE per process (avoids re-reading config on every request).
+    Private _apiBase As String
+
+    ''' <summary>Server base URL, in priority order:
+    ''' 1) DULUKA_API_BASE environment variable (power users / tests)
+    ''' 2) Config\DulukaApi.base.txt next to the EXE — first non-blank,
+    '''    non-# line that starts with http:// or https://. Lets a distributed
+    '''    build ship pre-pointed at a central server so NO end user has to
+    '''    touch environment variables (setx).
+    ''' 3) default http://127.0.0.1:5115 (server running on the same machine).</summary>
     Public ReadOnly Property ApiBase As String
         Get
+            If _apiBase IsNot Nothing Then Return _apiBase
+            Dim resolved As String = Nothing
             Dim fromEnv As String = Environment.GetEnvironmentVariable("DULUKA_API_BASE")
             If Not String.IsNullOrWhiteSpace(fromEnv) Then
-                Return fromEnv.TrimEnd("/"c)
+                resolved = fromEnv.TrimEnd("/"c)
+            Else
+                Try
+                    Dim p As String = AppLayout.P("Config", "DulukaApi.base.txt")
+                    If IO.File.Exists(p) Then
+                        For Each raw As String In IO.File.ReadAllLines(p)
+                            Dim line As String = raw.Trim()
+                            If line.Length = 0 OrElse line.StartsWith("#"c) Then Continue For
+                            If line.StartsWith("http://", StringComparison.OrdinalIgnoreCase) OrElse
+                               line.StartsWith("https://", StringComparison.OrdinalIgnoreCase) Then
+                                resolved = line.TrimEnd("/"c)
+                                Exit For
+                            End If
+                        Next
+                    End If
+                Catch
+                    ' unreadable file → fall through to the loopback default
+                End Try
             End If
-            Return "http://127.0.0.1:5115"
+            If String.IsNullOrWhiteSpace(resolved) Then resolved = "http://127.0.0.1:5115"
+            _apiBase = resolved
+            Return _apiBase
         End Get
     End Property
 
