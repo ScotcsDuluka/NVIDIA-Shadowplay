@@ -1,0 +1,23 @@
+# 2026-09-09 — harden binary integrity after the corrupted ffmpeg bundle
+# incident (damaged PE headers were committed and every checkout/build then
+# deployed a broken FFmpeg\ffmpeg.exe -> silent record failure).
+# Mark all binary formats explicitly so no EOL conversion or diff machinery
+# ever touches them on any platform/checkout.
+*.exe   binary
+*.dll   binary
+*.ttf   binary
+*.otf   binary
+*.woff  binary
+*.woff2 binary
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.wav   binary
+*.mp3   binary
+*.mp4   binary
+*.zip   binary
+*.7z    binary
+*.pdb   binary
+*.bin   binary
