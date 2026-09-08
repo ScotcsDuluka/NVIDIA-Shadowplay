@@ -280,10 +280,36 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 multithread.Dispose()
                 _logger.Info($"DdagrabBackend: D3D11 device created (feature level {_device.FeatureLevel})")
 
-                ' ─── Enumerate outputs, pick primary ─────────────────────────
-                Dim outIdx As Integer = 0
+                ' ─── Enumerate outputs, prefer one attached to the desktop ───
+                ' 2026-09-09: blindly taking output #0 can select a stale/
+                ' detached monitor entry on multi-adapter rigs (observed on a
+                ' 3×GTX 1080 Ti machine) — DuplicateOutput on a detached
+                ' output fails E_INVALIDARG (0x80070057) and the persistent
+                ' runtime rebuild then failed in a loop. Prefer the first
+                ' output with AttachedToDesktop; fall back to the first
+                ' enumerated output to preserve prior behavior.
                 Dim out_ As IDXGIOutput = Nothing
-                If Not _adapter.EnumOutputs(CUInt(outIdx), out_).Success Then
+                Dim outIdx As Integer = -1
+                Dim scanIdx As Integer = 0
+                Do
+                    Dim candidate As IDXGIOutput = Nothing
+                    If Not _adapter.EnumOutputs(CUInt(scanIdx), candidate).Success Then Exit Do
+                    Dim attached As Boolean = candidate.Description.AttachedToDesktop
+                    If out_ Is Nothing Then
+                        out_ = candidate          ' keep ownership of the first
+                        outIdx = scanIdx
+                        If attached Then Exit Do  ' first output already live — done
+                    ElseIf attached Then
+                        out_.Dispose()            ' default was detached — replace
+                        out_ = candidate
+                        outIdx = scanIdx
+                        Exit Do
+                    Else
+                        candidate.Dispose()       ' not chosen
+                    End If
+                    scanIdx += 1
+                Loop
+                If out_ Is Nothing Then
                     Throw New VideoBackendRuntimeException(
                         "DdagrabBackend: no DXGI outputs found on adapter.")
                 End If
@@ -324,9 +350,35 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                 ' Phase 11 root cause #2: Windows limits 1 duplication per output
                 ' per process. Initialize() creates it ONCE; Start/Stop just
                 ' starts/stops frame delivery.
-                Dim output1 As IDXGIOutput1 = _output.QueryInterface(Of IDXGIOutput1)()
-                _duplication = output1.DuplicateOutput(_device)
-                output1.Dispose()
+                ' 2026-09-09: single-shot DuplicateOutput made the persistent
+                ' runtime rebuild brittle — a transient E_INVALIDARG (desktop
+                ' topology race right after a config change) failed the whole
+                ' rebuild 4× in a row on the user machine while the same call
+                ' succeeded at process start. Bounded retry (3 × 250ms) absorbs
+                ' the transient window without masking persistent faults — the
+                ' LAST exception still propagates verbatim on total failure.
+                Const DuplicationInitAttempts As Integer = 3
+                Const DuplicationInitRetryDelayMs As Integer = 250
+                Dim dupLastEx As Exception = Nothing
+                For attempt As Integer = 1 To DuplicationInitAttempts
+                    Try
+                        Dim output1 As IDXGIOutput1 = _output.QueryInterface(Of IDXGIOutput1)()
+                        _duplication = output1.DuplicateOutput(_device)
+                        output1.Dispose()
+                        dupLastEx = Nothing
+                        Exit For
+                    Catch ex As Exception
+                        _duplication = Nothing
+                        dupLastEx = ex
+                        _logger.Warning($"DdagrabBackend: DuplicateOutput attempt {attempt}/{DuplicationInitAttempts} failed: {ex.Message}")
+                        If attempt < DuplicationInitAttempts Then
+                            Threading.Thread.Sleep(DuplicationInitRetryDelayMs)
+                        End If
+                    End Try
+                Next attempt
+                If dupLastEx IsNot Nothing Then
+                    Throw dupLastEx
+                End If
                 _logger.Info("DdagrabBackend: DXGI Output Duplication created (persistent)")
 
                 ' ─── Staging texture description (used per-frame in WorkerLoop) ─

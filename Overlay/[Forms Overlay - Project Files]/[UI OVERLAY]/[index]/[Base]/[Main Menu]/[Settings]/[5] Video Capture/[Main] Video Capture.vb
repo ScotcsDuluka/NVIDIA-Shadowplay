@@ -595,14 +595,24 @@ Public Class Base_RecordingsSet
             Path.Combine(Application.StartupPath, "bin", "ffmpeg.exe")
         }
 
-        For Each testPath As String In possiblePaths
-            If File.Exists(testPath) Then
-                Debug.WriteLine("FFmpeg found at: " & testPath)
-                Return testPath
-            End If
-        Next
+        ' 2026-09-09: validate every candidate with the SAME contract the
+        ' Engine uses (FFmpegLocator) instead of bare File.Exists. The old
+        ' loop returned the FIRST EXISTING file — on the user machine a
+        ' corrupt {output}\FFmpeg\ffmpeg.exe (the exact 2026-09-08
+        ' Win32Exception-193 postmortem pattern) shadowed the healthy
+        ' API-Core\ffmpeg.exe, was saved into settings and PREWARM_FFMPEG,
+        ' and every record start then died with ffmpeg_not_found.
+        ' Probes are cached per (length, last-write-time); existing-but-
+        ' broken files fail the spawn probe in milliseconds, good ones
+        ' pass in ~100ms once.
+        Dim found As String = FFmpegLocator.FirstUsableFFmpeg(
+            possiblePaths, Sub(msg) Debug.WriteLine(msg))
+        If found <> "" Then
+            Debug.WriteLine("FFmpeg found at: " & found)
+            Return found
+        End If
 
-        Debug.WriteLine("FFmpeg NOT found!")
+        Debug.WriteLine("FFmpeg NOT found! (no RUNNABLE ffmpeg among candidates — see rejection lines above)")
         Return Nothing
     End Function
 

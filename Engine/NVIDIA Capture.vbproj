@@ -112,6 +112,7 @@
         <ItemGroup>
                 <Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
                 <Compile Include="..\Common\AppLayoutStartup.vb" Link="AppLayoutStartup.vb" />
+                <Compile Include="..\Common\FFmpegLocator.vb" Link="FFmpegLocator.vb" />
         </ItemGroup>
 
 </Project>

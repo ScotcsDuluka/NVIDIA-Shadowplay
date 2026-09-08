@@ -294,6 +294,10 @@ Partial Public Class UI_Engine
             Dim ffmpegPath As String = ResolveFFmpegPath()
             If ffmpegPath = "ffmpeg" AndAlso _settings?.FFmpegPath IsNot Nothing AndAlso _settings.FFmpegPath.Length > 0 Then
                 ' Settings named a path that does not exist — surface it.
+                ' 2026-09-09: previously this rejection was sent silently — the
+                ' engine log ended at the PATH-lookup warning and the record
+                ' failure looked like a dead button. Log the exact reason.
+                DebugLog($"[RecordingEngine] record start REJECTED — settings FFmpegPath is not runnable and no deployment/PATH candidate exists: {_settings.FFmpegPath}")
                 SendResponse("engine_record_start", "error", "ffmpeg_not_found: " & _settings.FFmpegPath, reqId)
                 Return
             End If

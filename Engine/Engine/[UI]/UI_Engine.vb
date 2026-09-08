@@ -644,10 +644,29 @@ Partial Public Class UI_Engine
                 Return
             End If
 
+            ' ✅ 2026-09-09: File.Exists alone accepted a corrupt ffmpeg.exe
+            ' (the exact 2026-09-08 Win32Exception-193 postmortem pattern) and
+            ' the dead path was persisted into config.json — every record
+            ' start then rejected with ffmpeg_not_found even though a healthy
+            ' API-Core\ffmpeg.exe existed. Validate BEFORE trusting the path;
+            ' the probe result is cached per (length, last-write-time) and an
+            ' existing-but-broken file fails the spawn probe in milliseconds
+            ' (Win32Exception), so this never blocks the UI thread meaningfully.
+            If Not FFmpegLocator.IsUsableFFmpeg(ffmpegPath) Then
+                DebugLog($"[Engine] PREWARM_FFMPEG: path exists but is NOT a runnable ffmpeg — ignored: {ffmpegPath}")
+                Return
+            End If
+
             ' ✅ P2.6: caller marshals via BeginUiInvoke, so we're on the UI thread.
             ' Load current settings, update FFmpegPath, save back.
             Dim s As CaptureSettings = CaptureSettings.Load(_configPath)
-            If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not IO.File.Exists(s.FFmpegPath) Then
+            If String.IsNullOrEmpty(s.FFmpegPath) OrElse Not FFmpegLocator.IsUsableFFmpeg(s.FFmpegPath) Then
+                ' Self-heal: empty OR stored-but-broken path gets replaced by
+                ' the validated incoming one (2026-09-09 — previously a broken
+                ' stored path was kept forever and shadowed every candidate).
+                If Not String.IsNullOrEmpty(s.FFmpegPath) Then
+                    DebugLog($"[Engine] PREWARM_FFMPEG: stored FFmpegPath is not runnable — replacing: {s.FFmpegPath}")
+                End If
                 s.FFmpegPath = ffmpegPath
                 s.Save(_configPath)
                 _settings = s
