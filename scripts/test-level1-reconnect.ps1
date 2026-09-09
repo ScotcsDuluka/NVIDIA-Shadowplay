@@ -104,15 +104,28 @@ function Wait-HubLine([string]$needle, [int]$deadlineSec = 10) {
     return $null
 }
 
-# engine_get_status round-trip from ENGINE truth. Returns the raw data field
-# (state|elapsed|output for a recording session; bare state otherwise).
+# Unique correlation token. The engine echoes it back as ,req=<id> on the
+# response ([Engine] Client.vb request format: req=<token>|<payload>).
+function New-ReqId([string]$prefix) {
+    return $prefix + [Guid]::NewGuid().ToString("N").Substring(0, 8)
+}
+
+# engine_get_status round-trip from ENGINE truth, correlated to THIS query
+# by a unique req id. (Uncorrelated matching raced on the 2026-09-09 run:
+# the restarted UI's own status pull interleaved with ours and the harness
+# consumed a stale buffered answer — row 4 measured elapsed 7->7 while the
+# engine had actually answered Recording|22 DURING the UI-dead window.
+# Engine clock was fine; the measurement wasn't.) Returns the raw data
+# field (state|elapsed|output for a recording session; bare state else).
 function Get-EngineStatus {
-    Send-Hub 'engine_get_status'
-    $resp = Wait-HubLine 'engine_response:engine_get_status' 8
+    $reqId = New-ReqId 'L1S'
+    Send-Hub 'engine_get_status' "req=$reqId|"
+    $resp = Wait-HubLine "req=$reqId" 8
     if (-not $resp) { return $null }
-    $parts = $resp -split '\|', 2
-    if ($parts.Count -lt 2) { return $null }
-    $fields = ($parts[1] -split ',')
+    $payload = ($resp -split '\|', 2)[1]           # drop "[Send] <who>|"
+    if (-not $payload) { return $null }
+    $payload = ($payload -split ",req=$reqId")[0]  # drop correlation tail
+    $fields = $payload -split ','
     if ($fields.Count -lt 3) { return $fields[-1] }
     return $fields[2]
 }
@@ -179,14 +192,15 @@ try {
 
     # ── matrix 3 setup: engine RECORDS via direct hub command ───────────────
     $outPath = Join-Path $WorkRoot ("L1_{0}.mp4" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
-    Send-Hub 'RECORD_START' $outPath
-    $startResp = Wait-HubLine 'engine_response:engine_record_start,ok' 15
+    $startReq = New-ReqId 'L1R'
+    Send-Hub 'RECORD_START' "req=$startReq|$outPath"
+    $startResp = Wait-HubLine "req=$startReq" 15
     Write-Result '3a. RECORD_START accepted by engine' ($null -ne $startResp) "out=$outPath"
     # The path the ENGINE echoes is the authoritative output location (it may
     # normalize what we sent, e.g. 8.3 short form). All file probes use THAT.
     $engineOutPath = $outPath
     if ($startResp) {
-        $echo = ($startResp -split ',', 3)[2]
+        $echo = (($startResp -split ',', 3)[2]) -replace ",req=$startReq.*$", ''
         if ($echo) { $engineOutPath = $echo.Trim() }
     }
     Start-Sleep -Seconds 4
@@ -257,8 +271,9 @@ try {
 
     $recFails = 0
     $outPath2 = Join-Path $WorkRoot ("L1stress_{0}.mp4" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
-    Send-Hub 'RECORD_START' $outPath2
-    $null = Wait-HubLine 'engine_response:engine_record_start,ok' 15
+    $startReq2 = New-ReqId 'L1R'
+    Send-Hub 'RECORD_START' "req=$startReq2|$outPath2"
+    $null = Wait-HubLine "req=$startReq2" 15
     Start-Sleep -Seconds 4
     for ($i = 1; $i -le $Iterations; $i++) {
         Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue | Stop-Process -Force
