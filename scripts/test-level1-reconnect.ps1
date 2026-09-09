@@ -20,6 +20,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\test-level1-reconnect.ps1
 #   powershell ... -Iterations 10 -RecordSeconds 20
 #   powershell ... -AllowEngineKill          # enables matrix row 9
+#   powershell ... -UiExe 'C:\path\NVIDIA ShadowPlay.exe'  # only if auto-discovery misses
 # ============================================================================
 
 param(
@@ -27,13 +28,16 @@ param(
     [int]$RecordSeconds = 15,
     [int]$ReconnectWaitSeconds = 12,
     [switch]$AllowEngineKill,
-    [string]$WorkRoot = "$env:TEMP\Level1ReconnectTest"
+    [string]$WorkRoot = "$env:TEMP\Level1ReconnectTest",
+    [string]$UiExe = ""
 )
 
 $ErrorActionPreference = 'Continue'
 $HubHost = '127.0.0.1'
 $HubPort = 5001
 $script:Results = New-Object System.Collections.Generic.List[string]
+$script:FailCount = 0
+$script:Aborted = $false
 $script:Socket = $null
 $script:Stream = $null
 $script:Reader = $null
@@ -44,6 +48,18 @@ function Write-Result([string]$name, [bool]$pass, [string]$evidence) {
     $line = "[$tag] $name — $evidence"
     Write-Host $line
     $script:Results.Add($line)
+    # Verdict uses a REAL counter. A text match like -like '*[FAIL]*' is a
+    # PowerShell wildcard CHARACTER CLASS (matches any of f/a/i/l, case-
+    # insensitive) and would count PASS lines as failures.
+    if (-not $pass) { $script:FailCount++ }
+}
+
+# Abort the harness. The finally block reports NO MEASURED ROWS (exit 2) —
+# an aborted run must never be printable as a PASS.
+function Fail-Hard([string]$msg) {
+    $script:Aborted = $true
+    Write-Host "FATAL: $msg"
+    exit 1
 }
 
 function Get-ProcCount([string]$name) {
@@ -118,6 +134,28 @@ if ($hubCount -lt 1) {
 }
 Write-Host "hub running. engine=$(Get-ProcCount 'NVIDIA Capture'), ui=$(Get-ProcCount 'NVIDIA ShadowPlay')"
 
+# ── resolve the UI executable ONCE, while facts are available ─────────────
+# A running UI process exposes its own Path — more reliable than guessing
+# the layout. Priority: -UiExe override > running process path > PATH >
+# script-relative guesses. (2026-09-09 OWNER run: guessed paths missed and
+# the harness aborted before measuring anything.)
+if (-not $UiExe -or -not (Test-Path $UiExe)) {
+    $proc = Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path } | Select-Object -First 1
+    if ($proc) { $UiExe = $proc.Path }
+}
+if (-not $UiExe -or -not (Test-Path $UiExe)) {
+    $UiExe = @(
+        (Get-Command 'NVIDIA ShadowPlay.exe' -ErrorAction SilentlyContinue).Source,
+        "$PSScriptRoot\..\Application\NVIDIA ShadowPlay.exe",
+        "$PSScriptRoot\..\..\Application\NVIDIA ShadowPlay.exe"
+    ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+}
+if (-not $UiExe -or -not (Test-Path $UiExe)) {
+    Fail-Hard "NVIDIA ShadowPlay.exe not found. Launch the UI once and re-run, or pass the full path: -UiExe 'C:\...\NVIDIA ShadowPlay.exe'"
+}
+Write-Host "ui exe = $UiExe"
+
 Connect-Hub
 
 try {
@@ -127,17 +165,7 @@ try {
         Stop-Process -Force -ErrorAction SilentlyContinue
     Start-Sleep -Seconds 2
     $engineBefore = Get-ProcCount 'NVIDIA Capture'
-    # UI path is resolved by name below; adjust if the layout differs.
-    $uiCandidates = @(
-        (Get-Command 'NVIDIA ShadowPlay.exe' -ErrorAction SilentlyContinue).Source,
-        "$PSScriptRoot\..\Application\NVIDIA ShadowPlay.exe",
-        "$PSScriptRoot\..\..\Application\NVIDIA ShadowPlay.exe"
-    ) | Where-Object { $_ -and (Test-Path $_) }
-    if (-not $uiCandidates) {
-        Write-Host "FATAL: NVIDIA ShadowPlay.exe not found — pass the layout root and re-run."
-        exit 1
-    }
-    Start-Process $uiCandidates[0]
+    Start-Process $UiExe
     Start-Sleep -Seconds 8
     $engineAfter = Get-ProcCount 'NVIDIA Capture'
     Write-Result '1. UI start -> engine started (or reused)' ($engineAfter -ge 1) "engine count $engineBefore -> $engineAfter (supervisor reuse if identical)"
@@ -164,7 +192,7 @@ try {
     Write-Result '4. UI killed -> engine alive + file grows' (($engineWhileDead -eq 1) -and $grew) "engine=$engineWhileDead, size $sizeA -> $sizeB, status=$statusDead"
 
     # ── matrix 5: UI restarted → reconnect (count stays 1, recording intact) ─
-    Start-Process $uiCandidates[0]
+    Start-Process $UiExe
     Start-Sleep -Seconds $ReconnectWaitSeconds
     $engineReconnect = Get-ProcCount 'NVIDIA Capture'
     $statusReconnect = Get-EngineStatus
@@ -187,7 +215,7 @@ try {
     for ($i = 1; $i -le 5; $i++) {
         Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue | Stop-Process -Force
         Start-Sleep -Seconds 2
-        Start-Process $uiCandidates[0]
+        Start-Process $UiExe
         Start-Sleep -Seconds 6
         $c = Get-ProcCount 'NVIDIA Capture'
         if ($c -ne 1) { $idleFails++ }
@@ -203,7 +231,7 @@ try {
     for ($i = 1; $i -le $Iterations; $i++) {
         Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue | Stop-Process -Force
         Start-Sleep -Seconds 2
-        Start-Process $uiCandidates[0]
+        Start-Process $UiExe
         Start-Sleep -Seconds 6
         $c = Get-ProcCount 'NVIDIA Capture'
         $s = Get-EngineStatus
@@ -221,13 +249,13 @@ try {
             Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue | Stop-Process -Force
             Get-Process -Name 'NVIDIA Capture' -ErrorAction SilentlyContinue | Stop-Process -Force
             Start-Sleep -Seconds 3
-            Start-Process $uiCandidates[0]
+            Start-Process $UiExe
             Start-Sleep -Seconds ($ReconnectWaitSeconds + 10)  # supervisor respawn budget
             $c = Get-ProcCount 'NVIDIA Capture'
             $s2 = Get-EngineStatus
             Write-Result '9. engine absent -> UI start spawns exactly one engine' ($c -eq 1) "engine=$c, status=$s2"
         } else {
-            Write-Result '9. engine-absent row SKIPPED' $true "engine busy: status=$s (run while idle)"
+            Write-Host "[SKIP] 9. engine-absent row skipped — engine busy: status=$s (run while idle)"
         }
     } else {
         Write-Host "[SKIP] 9. engine-absent row requires -AllowEngineKill (destructive, idle-only)"
@@ -242,8 +270,13 @@ finally {
     Write-Host ""
     Write-Host "=== SUMMARY ==="
     $script:Results | ForEach-Object { Write-Host $_ }
-    $fails = @($script:Results | Where-Object { $_ -like '*[FAIL]*' }).Count
     Write-Host ""
-    if ($fails -eq 0) { Write-Host "RESULT: ALL MEASURED ROWS PASS" }
-    else { Write-Host "RESULT: $fails row(s) FAILED — do not report PASS without fixing"; exit 1 }
+    # Honesty guard: an abort or zero measured rows must NEVER print a PASS
+    # verdict (vacuous truth). Fail-count comes from the real counter.
+    if ($script:Aborted -or $script:Results.Count -eq 0) {
+        Write-Host "RESULT: NO MEASURED ROWS — HARNESS DID NOT RUN, THIS IS NOT A PASS"
+        exit 2
+    }
+    if ($script:FailCount -eq 0) { Write-Host "RESULT: ALL MEASURED ROWS PASS" }
+    else { Write-Host "RESULT: $($script:FailCount) row(s) FAILED — do not report PASS without fixing"; exit 1 }
 }
