@@ -27,6 +27,17 @@ Public Class TcpClientHelper
     Public Event OnDisconnected()
     Public Event OnReconnecting()
 
+    ''' <summary>
+    ''' L1 (UI/Host Recovery): raised ONCE after a reconnect SUCCEEDS in
+    ''' ReconnectLoop. The initial successful Connect() does NOT raise this —
+    ''' consumers use it to re-pull authoritative state (engine_get_status)
+    ''' because a UI-side socket reconnect is INVISIBLE to the Engine: the
+    ''' Engine never re-broadcasts engine_ready for it, so without this event
+    ''' a UI that survived a hub outage stays stale until the next push.
+    ''' Same contract as the Engine-side TcpClientHelper v9 evidence fix.
+    ''' </summary>
+    Public Event OnReconnected()
+
     Public Sub New(appName As String,
                    Optional host As String = "127.0.0.1",
                    Optional port As Integer = 5001, 
@@ -223,6 +234,16 @@ Public Class TcpClientHelper
 
                     Task.Run(AddressOf ListenLoop)
                     Task.Run(AddressOf PingLoop)
+
+                    ' L1: announce the reconnect so consumers can re-pull
+                    ' authoritative state. Fire outside the _writeLock; a
+                    ' handler that runs after a racing Disconnect() can only
+                    ' no-op (Send checks IsConnected).
+                    Try
+                        RaiseEvent OnReconnected()
+                    Catch ex As Exception
+                        Debug.WriteLine($"TcpClientHelper.OnReconnected handler error ({_appName}): {ex.Message}")
+                    End Try
                     Return
 
                 Catch ex As Exception

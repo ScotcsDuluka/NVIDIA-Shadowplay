@@ -66,6 +66,25 @@ Partial Public Class UI_Engine
     ' a host crash can never leave an orphan ffmpeg behind.
     Private _engineJobGuard As JobObjectGuard
 
+    ' ─── L1 (UI/Host Recovery): host-side session truth ─────────────
+    ' EngineStatus exposes no elapsed/output for the ACTIVE session, so the
+    ' host records what IT truly knows: the wall-clock moment it ACCEPTED the
+    ' record command (after every guard passed) and the output path it
+    ' answered "ok" for. Nothing synthetic is manufactured — Idle/Faulted
+    ' report state only. Both are cleared by the session-end watcher.
+    Private ReadOnly _newEngineSessionClock As New System.Diagnostics.Stopwatch()
+    Private _newEngineSessionOutputPath As String = ""
+
+    ' L1: one persistent 1s progress broadcaster for new-engine sessions.
+    ' The legacy pipeline pushes progress via CaptureEngine.ProgressUpdated
+    ' (~1/s); the new engine had NO equivalent, so a restarted UI never got a
+    ' ticking timer. Host-layer only: elapsed from the host session clock,
+    ' size from the REAL output file on disk (FileInfo.Length). frames is not
+    ' exposed at host layer and is sent as 0 (Overlay displays time + size).
+    ' The tick no-ops unless a session is actually active, so it never fires
+    ' alongside the legacy broadcast.
+    Private _newEngineProgressTimer As System.Windows.Forms.Timer
+
     ''' <summary>
     ''' Initialize RecordingEngine on a BACKGROUND thread (Phase 12b fix —
     ''' was synchronous on the UI thread). Called from UI_Engine_Load.
@@ -78,6 +97,18 @@ Partial Public Class UI_Engine
         Catch ex As Exception
             ' Best-effort orphan protection — engine still works without it.
             DebugLog($"[RecordingEngine] JobObjectGuard unavailable: {ex.Message}")
+        End Try
+
+        ' L1: host progress broadcaster (see field comment). Created on the UI
+        ' thread here; the tick itself is a guarded no-op when no session runs.
+        Try
+            If _newEngineProgressTimer Is Nothing Then
+                _newEngineProgressTimer = New System.Windows.Forms.Timer With {.Interval = 1000}
+                AddHandler _newEngineProgressTimer.Tick, AddressOf OnNewEngineProgressTick
+                _newEngineProgressTimer.Start()
+            End If
+        Catch ex As Exception
+            DebugLog($"[RecordingEngine] progress broadcaster unavailable: {ex.Message}")
         End Try
 
         Dim settingsSnapshot As CaptureSettings = _settings
@@ -122,6 +153,39 @@ Partial Public Class UI_Engine
                          DebugLog("[RecordingEngine] falling back to legacy CaptureEngine")
                      End Try
                  End Sub)
+    End Sub
+
+    ''' <summary>
+    ''' L1: 1s broadcast of REAL session progress while (and only while) a
+    ''' new-engine session is active: <elapsed_sec>|0|<file_size_bytes>.
+    ''' Elapsed comes from the host session clock; size is measured from the
+    ''' actual output file. This is what makes a rehydrated UI keep ticking
+    ''' after reconnect — and gives the new-engine path the live progress the
+    ''' legacy pipeline always had.
+    ''' </summary>
+    Private Sub OnNewEngineProgressTick(sender As Object, e As EventArgs)
+        Try
+            Dim taskRef As Task(Of SessionResult) = _recordingTask
+            If taskRef Is Nothing OrElse taskRef.IsCompleted Then Return
+            If Not _newEngineSessionClock.IsRunning Then Return
+            If tcp Is Nothing OrElse Not tcp.IsConnected Then Return
+
+            Dim sec As Integer = CInt(Math.Floor(_newEngineSessionClock.Elapsed.TotalSeconds))
+            Dim sizeBytes As Long = 0
+            Dim outPath As String = _newEngineSessionOutputPath
+            If Not String.IsNullOrEmpty(outPath) Then
+                Try
+                    Dim fi As New IO.FileInfo(outPath)
+                    If fi.Exists Then sizeBytes = fi.Length
+                Catch
+                    ' Size stays 0 — never fabricate a size.
+                End Try
+            End If
+
+            tcp.Send("engine_recording_progress", $"{sec}|0|{sizeBytes}")
+        Catch
+            ' Progress must never take the host down.
+        End Try
     End Sub
 
     ''' <summary>
@@ -203,6 +267,20 @@ Partial Public Class UI_Engine
         Catch ex As Exception
             DebugLog($"[RecordingEngine] dispose error: {ex.Message}")
         End Try
+
+        ' L1: stop the host progress broadcaster with the engine and retire
+        ' session truth — no session can outlive the host runtime.
+        Try
+            If _newEngineProgressTimer IsNot Nothing Then
+                _newEngineProgressTimer.Stop()
+                _newEngineProgressTimer.Dispose()
+                _newEngineProgressTimer = Nothing
+            End If
+        Catch ex As Exception
+            DebugLog($"[RecordingEngine] progress broadcaster dispose error: {ex.Message}")
+        End Try
+        _newEngineSessionClock.Reset()
+        _newEngineSessionOutputPath = ""
 
         Try
             _engineJobGuard?.Dispose()
@@ -343,6 +421,12 @@ Partial Public Class UI_Engine
                 _sessionEndClaimed = False
             End SyncLock
 
+            ' L1: host-side session truth starts here — every guard has
+            ' passed and this session WILL be answered "ok". Cleared by the
+            ' session-end watcher for every ending kind.
+            _newEngineSessionOutputPath = If(value, "")
+            _newEngineSessionClock.Restart()
+
             ' Start on background thread — StartSession blocks until done
             _recordingTask = Task.Run(Function() _recordingEngine.StartSession(config))
             WatchSessionEnd(_recordingTask, sessionId)
@@ -402,6 +486,14 @@ Partial Public Class UI_Engine
                             If action <> SessionEndAction.None Then _sessionEndClaimed = True
                         End If
                     End SyncLock
+
+                    ' L1: the session is over (any ending kind — manual stop,
+                    ' expiry, fault). Retire host-side session truth so
+                    ' engine_get_status goes back to state-only and the 1s
+                    ' progress broadcast goes quiet. The stale-watcher return
+                    ' above guarantees a NEWER session owns the clock.
+                    _newEngineSessionClock.Reset()
+                    _newEngineSessionOutputPath = ""
 
                     Select Case action
                         Case SessionEndAction.Saved
@@ -536,7 +628,22 @@ Partial Public Class UI_Engine
             End If
 
             Dim status As EngineStatus = _recordingEngine.GetStatus()
-            SendResponse("engine_get_status", "ok", status.State.ToString(), reqId)
+            Dim stateName As String = status.State.ToString()
+
+            ' L1 (UI/Host Recovery): while a session the host ACCEPTED is still
+            ' alive, append <elapsed_sec>|<output_path> so a restarted UI can
+            ' rehydrate REC state from engine truth. '|' is illegal in Windows
+            ' file names → safe field delimiter. Every other state (Idle,
+            ' Faulted, Disposed, Stopping after the clock was retired) reports
+            ' state only — the host never invents session data.
+            If status.State = RecordingEngineState.Recording AndAlso
+               _newEngineSessionClock.IsRunning Then
+                Dim elapsedSec As Integer = CInt(Math.Floor(_newEngineSessionClock.Elapsed.TotalSeconds))
+                SendResponse("engine_get_status", "ok", $"{stateName}|{elapsedSec}|{_newEngineSessionOutputPath}", reqId)
+                Return
+            End If
+
+            SendResponse("engine_get_status", "ok", stateName, reqId)
         Catch ex As Exception
             SendResponse("engine_get_status", "error", ex.Message, reqId)
         End Try

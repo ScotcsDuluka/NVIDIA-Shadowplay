@@ -2,22 +2,120 @@ Public Class Base
 
     Public Shared tcp As TcpClientHelper
 
+    ' ── L1 (UI/Host Recovery): engine status rehydration ────────
+    ' A restarted UI must learn the truth from the Engine, not from cached
+    ' local state. The hub does NOT replay history to late joiners (Broadcast
+    ' sends only to current clients), so engine_ready — which the Engine
+    ' emits when IT connects/reconnects — is never seen by a UI that starts
+    ' while the Engine is already connected. The fix is a bounded PULL:
+    '   _engineStatusPulled = set once ANY engine_get_status answer arrives
+    '                         (an answer proves the Engine is responsive —
+    '                         process-alive alone is never treated as healthy)
+    '   StartBoundedStatusPull = UI-thread timer, 2s × 10 attempts (20s cap):
+    '                         bounded retry, no infinite reconnect loop; when
+    '                         it exhausts, the UI stays honestly disconnected
+    '                         and the user sees "Hub Offline" on the record
+    '                         panel — no fake "Recording" is ever shown.
+    ' It never launches or kills anything — the EngineProcessSupervisor owns
+    ' process lifecycle and reuses an existing engine.
+    Private _engineStatusPulled As Boolean = False
+    Private _statusPullTimer As System.Windows.Forms.Timer
+    Private Const StatusPullIntervalMs As Integer = 2000
+    Private Const StatusPullMaxAttempts As Integer = 10
+
     Private Sub Base_Load(sender As Object, e As EventArgs) Handles MyBase.Load
 
         tcp = New TcpClientHelper("NVIDIA Overlay")
 
         AddHandler tcp.OnMessageReceived, AddressOf OnMessage
 
+        ' L1: if THIS UI's socket lost the hub and came back (hub restart,
+        ' sleep/resume), re-pull authoritative engine state — the Engine does
+        ' not re-announce engine_ready for a UI-side reconnect.
+        AddHandler tcp.OnReconnected, AddressOf OnTcpReconnected
+
         tcp.ConnectAsync()
 
         InitReplayHonesty()
 
         EngineProcessSupervisor.EnsureEngineRunning()
+
+        StartBoundedStatusPull()
+    End Sub
+
+    ''' <summary>
+    ''' L1: bounded engine status pull for (re)start rehydration. Runs on the
+    ''' UI thread; each tick asks the hub for engine_get_status until the
+    ''' Engine answers or the attempt budget is gone. Sending is a no-op while
+    ''' the socket is down (Send checks IsConnected), so a hub that is still
+    ''' offline simply consumes attempts — deterministic fallback, no
+    ''' duplicate engine launch, no unbounded loop.
+    ''' </summary>
+    Private Sub StartBoundedStatusPull()
+        Try
+            If _statusPullTimer IsNot Nothing Then Return
+
+            Dim pullTimer As New System.Windows.Forms.Timer With {.Interval = StatusPullIntervalMs}
+            _statusPullTimer = pullTimer
+            Dim attemptsLeft As Integer = StatusPullMaxAttempts
+
+            AddHandler pullTimer.Tick, Sub(s, ev)
+                                           Try
+                                               attemptsLeft -= 1
+                                               If _engineStatusPulled OrElse attemptsLeft <= 0 Then
+                                                   pullTimer.Stop()
+                                                   pullTimer.Dispose()
+                                                   If _statusPullTimer Is pullTimer Then _statusPullTimer = Nothing
+                                                   If Not _engineStatusPulled Then
+                                                       Debug.WriteLine($"[Overlay] bounded status pull exhausted after {StatusPullMaxAttempts} attempts — engine state unknown (hub offline or engine initializing); engine broadcasts still reconcile on arrival")
+                                                   End If
+                                                   Return
+                                               End If
+                                               If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                                                   tcp.Send("engine_get_status")
+                                                   Debug.WriteLine($"[Overlay] startup status pull attempt {StatusPullMaxAttempts - attemptsLeft}/{StatusPullMaxAttempts}")
+                                               End If
+                                           Catch ex As Exception
+                                               Debug.WriteLine("[Overlay] status pull tick error: " & ex.Message)
+                                           End Try
+                                       End Sub
+
+            pullTimer.Start()
+            Debug.WriteLine($"[Overlay] bounded engine status pull started (max {StatusPullMaxAttempts} attempts)")
+        Catch ex As Exception
+            Debug.WriteLine("[Overlay] StartBoundedStatusPull error: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>
+    ''' L1: this UI's TCP socket reconnected to the hub. Reset the pulled
+    ''' latch and pull engine state immediately — the session may have
+    ''' started, ended, or kept recording while we were blind.
+    ''' </summary>
+    Private Sub OnTcpReconnected()
+        Try
+            _engineStatusPulled = False
+            If tcp IsNot Nothing AndAlso tcp.IsConnected Then
+                tcp.Send("engine_get_status")
+                Debug.WriteLine("[Overlay] reconnect → pulled engine_get_status")
+            End If
+        Catch ex As Exception
+            Debug.WriteLine("[Overlay] reconnect status pull failed: " & ex.Message)
+        End Try
     End Sub
 
     Private Sub Base_TestFormClosing(sender As Object, e As FormClosingEventArgs) Handles Me.FormClosing
         Try
-            
+            ' L1: stop the bounded status pull — UI cleanup only. Nothing here
+            ' touches NVIDIA Capture.exe: a recording session must survive
+            ' this window closing (EngineProcessSupervisor.Shutdown below
+            ' only stops the UI-side monitor thread).
+            If _statusPullTimer IsNot Nothing Then
+                _statusPullTimer.Stop()
+                _statusPullTimer.Dispose()
+                _statusPullTimer = Nothing
+            End If
+
             EngineProcessSupervisor.Shutdown()
 
             If tcp IsNot Nothing Then
@@ -274,17 +372,45 @@ Public Class Base
                     End If
 
                 Case "engine_get_status"
-                    
+
+                    ' L1: any answer proves the Engine is responsive — the
+                    ' bounded startup/reconnect pull can retire.
+                    _engineStatusPulled = True
+
                     If parts.Length >= 3 Then
-                        Dim engineState As String = parts(2).Trim()
-                        Debug.WriteLine($"[Overlay] Engine status: {engineState}")
-                        
+                        ' L1 reconnect data contract:
+                        '   <state>[|<elapsed_sec>[|<output_path>]]
+                        ' The Engine appends elapsed + the active output path
+                        ' only while a session is really alive ('|' is illegal
+                        ' in Windows file names, so it cannot collide with the
+                        ' path field). A state-only answer is still valid.
+                        Dim statusFields As String() = parts(2).Trim().Split("|"c)
+                        Dim engineState As String = statusFields(0).Trim()
+                        Debug.WriteLine($"[Overlay] Engine status: {parts(2)}")
+
                         If engineState = "Recording" AndAlso Not _isRecordingLocal Then
                             _isRecordingLocal = True
                             RecordValue = True
                         ElseIf engineState <> "Recording" AndAlso _isRecordingLocal Then
                             _isRecordingLocal = False
                             RecordValue = False
+                        End If
+
+                        ' L1 rehydration: seed the record panel with ENGINE
+                        ' truth (elapsed of the session that outlived the
+                        ' previous UI process). The periodic
+                        ' engine_recording_progress broadcast takes over from
+                        ' here — nothing is extrapolated locally.
+                        If engineState = "Recording" AndAlso statusFields.Length >= 2 Then
+                            Dim restoredSec As Integer
+                            If Integer.TryParse(statusFields(1).Trim(), restoredSec) AndAlso restoredSec >= 0 Then
+                                If Record_Stats IsNot Nothing Then
+                                    Record_Stats.Text = TimeSpan.FromSeconds(restoredSec).ToString("hh\:mm\:ss")
+                                End If
+                                If statusFields.Length >= 3 AndAlso statusFields(2).Trim().Length > 0 Then
+                                    Debug.WriteLine($"[Overlay] rehydrated active output: {statusFields(2).Trim()}")
+                                End If
+                            End If
                         End If
                     End If
 

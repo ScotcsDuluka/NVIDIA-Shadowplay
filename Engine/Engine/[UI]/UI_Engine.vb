@@ -607,7 +607,15 @@ Partial Public Class UI_Engine
     Private Sub HandleEngineGetStatus(reqId As String)
         Dim state As String = "Idle"
         If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
-            state = "Recording"
+            ' L1 (UI/Host Recovery): while a session is really alive, append
+            ' <elapsed_sec>|<output_path> so a restarted UI can rehydrate REC
+            ' state from ENGINE truth (its own recording clock + output file).
+            ' '|' is illegal in Windows file names → safe field delimiter.
+            ' No session → state-only answer; the host never invents data.
+            Dim elapsedSec As Integer = CInt(Math.Floor(_captureEngine.RecordingDuration.TotalSeconds))
+            Dim outputFile As String = If(_captureEngine.OutputFile, "")
+            SendResponse("engine_get_status", "ok", $"Recording|{elapsedSec}|{outputFile}", reqId)
+            Return
         End If
         SendResponse("engine_get_status", "ok", state, reqId)
     End Sub

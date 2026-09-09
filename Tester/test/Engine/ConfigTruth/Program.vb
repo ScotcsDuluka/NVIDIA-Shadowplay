@@ -52,6 +52,7 @@ Namespace Engine.ConfigTruth.Tests
             SessionEndContractTests.RunAll()   ' C/3: Duluka session-end broadcast contract
             FrameRetirementContractTests.RunAll()   ' F-05: CaptureSession frame-retirement order
             H1OutputPathTests.RunAll()         ' C/5: RECORD_START output-path security contract
+            L1ReconnectTests.RunAll()          ' L1: UI/host recovery — reconnect + rehydration contracts
 
             Console.WriteLine()
             Console.WriteLine("--------------------------------------------------")
