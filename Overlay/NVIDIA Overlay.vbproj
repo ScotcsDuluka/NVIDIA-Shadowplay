@@ -443,6 +443,7 @@
                 <Compile Include="..\Common\AppLayoutStartup.vb" Link="AppLayoutStartup.vb" />
                 <Compile Include="..\Common\AppConfigShared.vb" Link="AppConfigShared.vb" />
                 <Compile Include="..\Common\ObsConfig.vb" Link="ObsConfig.vb" />
+                <Compile Include="..\Common\FFmpegLocator.vb" Link="FFmpegLocator.vb" />
         </ItemGroup>
 
 </Project>
