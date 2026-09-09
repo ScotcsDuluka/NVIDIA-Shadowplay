@@ -146,6 +146,17 @@ Partial Public Class UI_Engine
 
         Task.Run(Sub()
                      Try
+                         ' DXGI output duplication cannot be owned by two
+                         ' backends at once. Release the old runtime before
+                         ' initializing the replacement; otherwise
+                         ' DuplicateOutput fails and the old encoder silently
+                         ' remains active with stale bitrate/preset settings.
+                         Try
+                             previousEngine?.Dispose()
+                         Catch ex As Exception
+                             DebugLog($"[RecordingEngine] previous runtime dispose before rebuild: {ex.Message}")
+                         End Try
+
                          Dim logger As New EngineLogger("RecordingEngine", EngineLogger.LogLevel.Info, AddressOf DebugLog)
                          Dim replacement As New RecordingEngine(logger)
                          replacement.Initialize(startup)
@@ -169,8 +180,12 @@ Partial Public Class UI_Engine
                                    End Sub)
                      Catch ex As Exception
                          Me.Invoke(Sub()
+                                       _recordingEngine = Nothing
+                                       _engineReady = False
+                                       _useNewEngine = False
+                                       _engineInitFailReason = $"Runtime rebuild failed: {ex.Message}"
                                        _engineReconfiguring = False
-                                       DebugLog($"[RecordingEngine] runtime rebuild FAILED — keeping previous runtime: {ex.Message}")
+                                       DebugLog($"[RecordingEngine] runtime rebuild FAILED — recording disabled until runtime is rebuilt: {ex.Message}")
                                        UpdateDiagnosticsPanel()
                                    End Sub)
                      End Try
@@ -458,12 +473,18 @@ Partial Public Class UI_Engine
                      $"dropped={result.AudioDroppedBytes}, accountingOk={result.AudioAccountingOk}, " &
                      $"offset={result.SystemOffsetSec:0.000}s, muxDur={result.MuxVideoDurationSec:0.000}s")
 
-            ' UI update
+            ' UI update: a file with dropped audio or another failed session
+            ' must never be presented as successfully saved.
             Me.Invoke(Sub()
                           tmrRecording.Stop()
                           lblTimer.Text = "00:00:00"
-                          lblStatus.Text = "Saved: " & Path.GetFileName(result.OutputPath)
-                          lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                          If result.Pass Then
+                              lblStatus.Text = "Saved: " & Path.GetFileName(result.OutputPath)
+                              lblStatus.ForeColor = Drawing.Color.FromArgb(118, 185, 0)
+                          Else
+                              lblStatus.Text = "Recording failed"
+                              lblStatus.ForeColor = Drawing.Color.OrangeRed
+                          End If
                           btnRecord.Enabled = True
                           btnStop.Enabled = False
                       End Sub)

@@ -102,9 +102,9 @@ Partial Class Base_Connect_Security
         Status_TEXT.BackColor = Color.FromArgb(CByte(38), CByte(43), CByte(47))
         Status_TEXT.Font = New Font("Segoe UI", 10F)
         Status_TEXT.ForeColor = Color.Silver
-        Status_TEXT.Location = New Point(1340, 368)
+        Status_TEXT.Location = New Point(1340, 79)
         Status_TEXT.Name = "Status_TEXT"
-        Status_TEXT.Size = New Size(358, 19)
+        Status_TEXT.Size = New Size(358, 44)
         Status_TEXT.TabIndex = 73
         ' 
         ' BT_DeleteAccount

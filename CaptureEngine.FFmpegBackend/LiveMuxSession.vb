@@ -156,10 +156,15 @@ Namespace CaptureEngine.FFmpegBackend
             _video = New PipeFeed("sp_v_" & id, waitForTimeline:=False, blockProducer:=True, blockAlign:=1, log:=AddressOf LogPipe)
             ' ★ 17:19: no audio pipe at all when system audio is disabled
             ' (rate 0) — a created-but-unfed pipe kills ffmpeg's input open.
+            ' Audio is raw PCM without per-packet timestamps. Dropping an old
+            ' chunk would remove time from the stream and concatenate later
+            ' speech across the missing silence. Use the same bounded
+            ' backpressure policy as video; if the producer cannot keep up,
+            ' the session fails honestly instead of producing shifted audio.
             _audio = If(_sysRate > 0 AndAlso _sysChannels > 0,
-                        New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_sysChannels * 2, log:=AddressOf LogPipe),
+                        New PipeFeed("sp_a_" & id, waitForTimeline:=True, blockProducer:=True, blockAlign:=_sysChannels * 2, log:=AddressOf LogPipe),
                         Nothing)
-            _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=False, blockAlign:=_micChannels * 2, log:=AddressOf LogPipe), Nothing)
+            _mic = If(_micRate > 0, New PipeFeed("sp_m_" & id, waitForTimeline:=True, blockProducer:=True, blockAlign:=_micChannels * 2, log:=AddressOf LogPipe), Nothing)
 
             _video.StartListening()
             _audio?.StartListening()
