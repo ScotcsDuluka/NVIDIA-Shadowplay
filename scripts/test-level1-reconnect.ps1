@@ -124,6 +124,13 @@ function Get-FileSize([string]$path) {
     } catch { return -1 }
 }
 
+# Engine-truth elapsed seconds from a Recording|<sec>|<path> status answer.
+# Returns -1 when the engine is not in an elapsed-reporting recording state.
+function Get-StatusElapsed([string]$status) {
+    if ($status -match '^Recording\|(\d+)\|') { return [int]$Matches[1] }
+    return -1
+}
+
 # ── preflight ───────────────────────────────────────────────────────────────
 Write-Host "=== LEVEL 1 RECONNECT HARNESS — preflight ==="
 New-Item -ItemType Directory -Force -Path $WorkRoot | Out-Null
@@ -175,38 +182,63 @@ try {
     Send-Hub 'RECORD_START' $outPath
     $startResp = Wait-HubLine 'engine_response:engine_record_start,ok' 15
     Write-Result '3a. RECORD_START accepted by engine' ($null -ne $startResp) "out=$outPath"
+    # The path the ENGINE echoes is the authoritative output location (it may
+    # normalize what we sent, e.g. 8.3 short form). All file probes use THAT.
+    $engineOutPath = $outPath
+    if ($startResp) {
+        $echo = ($startResp -split ',', 3)[2]
+        if ($echo) { $engineOutPath = $echo.Trim() }
+    }
     Start-Sleep -Seconds 4
     $status = Get-EngineStatus
     $statusOk = ($status -match '^Recording\|')
     Write-Result '3b. engine truth = Recording|elapsed|output' $statusOk "status=$status"
 
-    # ── matrix 4: recording → UI killed → engine continues ──────────────────
+    # ── matrix 4: recording → UI killed → engine session keeps advancing ─────
+    # Continuity proof per task spec: file-size growth OR engine-timer growth.
+    # Measured fact (2026-09-09 OWNER run): the new engine materializes the
+    # final MP4 only on SAVE (live-mux stages fragments), so DURING recording
+    # the output path legitimately does not exist yet (probe = -1; the
+    # engine's own 1s progress broadcast also reports size 0). The engine
+    # elapsed counter (Recording|<sec>|...) is therefore the PRIMARY
+    # continuity signal; the file probe stays as supporting evidence.
     Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue | Stop-Process -Force
     Start-Sleep -Seconds 3
     $engineWhileDead = Get-ProcCount 'NVIDIA Capture'
-    $sizeA = Get-FileSize $outPath
+    $statusDeadA = Get-EngineStatus
+    $elapsedA = Get-StatusElapsed $statusDeadA
+    $sizeA = Get-FileSize $engineOutPath
     Start-Sleep -Seconds ([Math]::Max(5, $RecordSeconds))
-    $sizeB = Get-FileSize $outPath
     $statusDead = Get-EngineStatus
-    $grew = ($sizeB -gt $sizeA)
-    Write-Result '4. UI killed -> engine alive + file grows' (($engineWhileDead -eq 1) -and $grew) "engine=$engineWhileDead, size $sizeA -> $sizeB, status=$statusDead"
+    $elapsedB = Get-StatusElapsed $statusDead
+    $sizeB = Get-FileSize $engineOutPath
+    $timerGrew = ($elapsedB -gt $elapsedA)
+    Write-Result '4. UI killed -> engine alive + session advances' (($engineWhileDead -eq 1) -and ($elapsedA -ge 0) -and $timerGrew) "engine=$engineWhileDead, elapsed $elapsedA -> $elapsedB s, size $sizeA -> $sizeB (size<0 = final mp4 written at save)"
 
     # ── matrix 5: UI restarted → reconnect (count stays 1, recording intact) ─
     Start-Process $UiExe
     Start-Sleep -Seconds $ReconnectWaitSeconds
     $engineReconnect = Get-ProcCount 'NVIDIA Capture'
     $statusReconnect = Get-EngineStatus
-    $sizeC = Get-FileSize $outPath
+    $elapsedC = Get-StatusElapsed $statusReconnect
+    $sizeC = Get-FileSize $engineOutPath
     Start-Sleep -Seconds 5
-    $sizeD = Get-FileSize $outPath
-    Write-Result '5. UI restarted -> reconnect, count=1, file still grows' (($engineReconnect -eq 1) -and ($statusReconnect -match '^Recording\|') -and ($sizeD -gt $sizeC)) "engine=$engineReconnect, status=$statusReconnect, size $sizeC -> $sizeD"
+    $statusReconnect2 = Get-EngineStatus
+    $elapsedD = Get-StatusElapsed $statusReconnect2
+    $sizeD = Get-FileSize $engineOutPath
+    Write-Result '5. UI restarted -> reconnect, count=1, session still advancing' (($engineReconnect -eq 1) -and ($statusReconnect -match '^Recording\|') -and ($elapsedD -gt $elapsedC)) "engine=$engineReconnect, elapsed $elapsedC -> $elapsedD s (reconnected clock continues), size $sizeC -> $sizeD, status=$statusReconnect2"
 
     # ── matrix 8: explicit Stop Recording after reconnect ────────────────────
+    # Broadcast format is engine_recording_saved:<path> — COLON separator,
+    # not pipe (the previous pipe-split yielded garbage and failed this row
+    # even though the save itself succeeded).
     Send-Hub 'RECORD_STOP'
     $stopResp = Wait-HubLine 'engine_recording_saved' 30
-    $savedFile = if ($stopResp) { ($stopResp -split '\|', 2)[1] } else { '' }
-    $savedExists = $savedFile -and (Test-Path -LiteralPath $savedFile)
-    Write-Result '8. Stop after reconnect saves exactly one file' ($null -ne $stopResp -and $savedExists) "saved=$savedFile"
+    $savedFile = ''
+    if ($stopResp) { $seg = ($stopResp -split ':', 2)[1]; if ($seg) { $savedFile = $seg.Trim() } }
+    $savedExists = [bool]($savedFile -and (Test-Path -LiteralPath $savedFile))
+    $savedSize = if ($savedExists) { (Get-Item -LiteralPath $savedFile).Length } else { -1 }
+    Write-Result '8. Stop after reconnect -> saved broadcast + non-empty file on disk' ($null -ne $stopResp -and $savedExists -and $savedSize -gt 0) "saved=$savedFile ($savedSize bytes)"
     $statusAfterStop = Get-EngineStatus
     Write-Result '8b. engine truth after stop = Idle' ($statusAfterStop -eq 'Idle') "status=$statusAfterStop"
 
