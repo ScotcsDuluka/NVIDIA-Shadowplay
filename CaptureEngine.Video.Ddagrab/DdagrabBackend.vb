@@ -908,6 +908,18 @@ Namespace CaptureEngine.Video.Backends.Ddagrab
                         ' In direct mode: frame wraps stagingTexture (no handle)
                         Dim frameTexture As ID3D11Texture2D = If(sharedTexture, stagingTexture)
                         Dim frameQpc100ns As Long = acquiredQpc100ns
+                        
+                        ' ★ FORENSIC INSTRUMENTATION: Capture layer timing for first 4 frames
+                        If sequence <= 4 Then
+                            Dim captureTick As Long = Stopwatch.GetTimestamp()
+                            Dim captureQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                            _logger.Info($"DdagrabBackend: FRAME {sequence} CAPTURE TIMING:")
+                            _logger.Info($"  acquireQpc100ns={acquiredQpc100ns}")
+                            _logger.Info($"  frameQpc100ns={frameQpc100ns}")
+                            _logger.Info($"  captureTick={captureTick}")
+                            _logger.Info($"  captureQpc={captureQpc}")
+                        End If
+                        
                         frame = New D3D11VideoFrame(
                             frameTexture,
                             _outputWidth,

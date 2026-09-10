@@ -483,6 +483,18 @@ Namespace CaptureEngine.Encoder.Nvenc
                 Throw New ArgumentNullException(NameOf(frame))
             End If
 
+            ' ★ FORENSIC INSTRUMENTATION: Encoder input timing for first 4 frames
+            Dim frameSequence As Long = frame.Diagnostics.Sequence
+            If frameSequence <= 4 Then
+                Dim encodeInputTick As Long = Stopwatch.GetTimestamp()
+                Dim encodeInputQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                _logger.Info($"NvencEncoderBackend: FRAME {frameSequence} ENCODER INPUT:")
+                _logger.Info($"  inputTick={encodeInputTick}")
+                _logger.Info($"  inputQpc={encodeInputQpc}")
+                _logger.Info($"  frame.Diagnostics.PresentationTimestampTicks={frame.Diagnostics.PresentationTimestampTicks}")
+                _logger.Info($"  frame.Diagnostics.CaptureTimeTicks={frame.Diagnostics.CaptureTimeTicks}")
+            End If
+
             ' ─── State check (under lock) ─────────────────────────────────
             SyncLock _sync
                 If _disposed Then
@@ -758,6 +770,17 @@ Namespace CaptureEngine.Encoder.Nvenc
                         isReferenceFrame:=isKeyFrame,  ' I-frames are reference frames
                         codecKey:=_encoderConfig.CodecKey,
                         codecSpecificFlags:=0)
+                    
+                    ' ★ FORENSIC INSTRUMENTATION: Encoder output timing for first 4 frames
+                    If sequence <= 4 Then
+                        Dim encodeOutputTick As Long = Stopwatch.GetTimestamp()
+                        Dim encodeOutputQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                        _logger.Info($"NvencEncoderBackend: FRAME {sequence} ENCODER OUTPUT:")
+                        _logger.Info($"  encodeOutputTick={encodeOutputTick}")
+                        _logger.Info($"  encodeOutputQpc={encodeOutputQpc}")
+                        _logger.Info($"  packet.PresentationTimestampTicks={pts}")
+                        _logger.Info($"  packet.IsKeyFrame={isKeyFrame}")
+                    End If
                     packet = New EncodedPacket(metadata, payload, CInt(bsSize))
                     Return True
 

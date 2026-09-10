@@ -696,6 +696,16 @@ Namespace CaptureEngine.Recording
                             result.FramesCaptured += 1
                             pendingFrame = far.Frame
                             pendingSeq = far.Sequence
+                            
+                            ' ★ FORENSIC INSTRUMENTATION: Queue dequeue timing for first 4 frames
+                            If pendingSeq <= 4 Then
+                                Dim dequeueTick As Long = Stopwatch.GetTimestamp()
+                                Dim dequeueQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                                _logger.Info($"CaptureSession: FRAME {pendingSeq} QUEUE DEQUEUE:")
+                                _logger.Info($"  dequeueTick={dequeueTick}")
+                                _logger.Info($"  dequeueQpc={dequeueQpc}")
+                                _logger.Info($"  frame.Diagnostics.CaptureTimeTicks={pendingFrame.Diagnostics.CaptureTimeTicks}")
+                            End If
                         End If
                     End If
 
@@ -721,6 +731,19 @@ Namespace CaptureEngine.Recording
                                 (CLng(Math.Max(0L, nextTick - _timelineStartTicks)) * 10000000L \ Stopwatch.Frequency)
                             Dim selectedFrame As IVideoFrame = Nothing
                             presentationTickCount += 1
+
+                            ' ★ FORENSIC INSTRUMENTATION: CFR frame selection timing for first 4 presentation ticks
+                            If presentationTickCount <= 4 Then
+                                Dim cfrTick As Long = Stopwatch.GetTimestamp()
+                                Dim cfrQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                                _logger.Info($"CaptureSession: CFR TICK {presentationTickCount} SELECTION DEBUG:")
+                                _logger.Info($"  targetQpc100ns={targetQpc100ns}")
+                                _logger.Info($"  timelineStartQpc100ns={_timelineStartQpc100ns}")
+                                _logger.Info($"  nextTick={nextTick}")
+                                _logger.Info($"  _timelineStartTicks={_timelineStartTicks}")
+                                _logger.Info($"  cfrTick={cfrTick}")
+                                _logger.Info($"  cfrQpc={cfrQpc}")
+                            End If
 
                             While pendingFrame IsNot Nothing AndAlso
                                   pendingFrame.Diagnostics.CaptureTimeTicks <= targetQpc100ns
@@ -752,6 +775,18 @@ Namespace CaptureEngine.Recording
                                     pendingFrame = nextSource.Frame
                                     pendingSeq = nextSource.Sequence
                                 End If
+                                
+                                ' ★ FORENSIC INSTRUMENTATION: Selected frame timing for first 4 presentation ticks
+                                If presentationTickCount <= 4 Then
+                                    Dim selectedTick As Long = Stopwatch.GetTimestamp()
+                                    Dim selectedQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                                    _logger.Info($"CaptureSession: CFR TICK {presentationTickCount} SELECTED FRAME:")
+                                    _logger.Info($"  selectedSeq={selectedSeq}")
+                                    _logger.Info($"  selectedTs={selectedTs}")
+                                    _logger.Info($"  selectedLag={selectedLag}ns")
+                                    _logger.Info($"  selectedTick={selectedTick}")
+                                    _logger.Info($"  selectedQpc={selectedQpc}")
+                                End If
                             End While
 
                             If selectedFrame IsNot Nothing Then
@@ -770,6 +805,17 @@ Namespace CaptureEngine.Recording
                                 Dim encodeStartTicks As Long = Stopwatch.GetTimestamp()
                                 Try
                                     If _encoder.Encode(encodeFrame, packet) AndAlso packet IsNot Nothing Then
+                                        ' ★ FORENSIC INSTRUMENTATION: Muxer feed timing for first 4 presentation ticks
+                                        If presentationTickCount <= 4 Then
+                                            Dim muxFeedTick As Long = Stopwatch.GetTimestamp()
+                                            Dim muxFeedQpc As Long = Stopwatch.GetTimestamp() ' Using Stopwatch as QPC equivalent
+                                            _logger.Info($"CaptureSession: CFR TICK {presentationTickCount} MUXER FEED:")
+                                            _logger.Info($"  muxFeedTick={muxFeedTick}")
+                                            _logger.Info($"  muxFeedQpc={muxFeedQpc}")
+                                            _logger.Info($"  packet.Metadata.PresentationTimestampTicks={packet.Metadata.PresentationTimestampTicks}")
+                                            _logger.Info($"  packet.Metadata.Sequence={packet.Metadata.Sequence}")
+                                        End If
+                                        
                                         _liveMux?.FeedVideo(packet.Payload, packet.PayloadLength)
                                         result.TotalVideoBytes += packet.PayloadLength
                                         result.FramesEncoded += 1
