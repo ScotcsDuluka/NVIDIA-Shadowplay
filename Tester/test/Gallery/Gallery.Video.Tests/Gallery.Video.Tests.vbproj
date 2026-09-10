@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+  Gallery.Video.Tests — standalone console runner (repo convention:
+  NOT part of Overlay solution; build/run directly with `dotnet run`).
+  Tier map (design doc §8):
+    - Unit + deterministic integration: run anywhere ffmpeg/ffprobe exist
+      (this box: real ffmpeg 7.1.5 on Linux).
+    - Hardware smoke (D3D11 present, WasapiOut, NVDEC, perf): honest SKIPS
+      off-hardware — never converted to PASS (PROJECT_MEMORY rule).
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- Repo convention: empty RootNamespace (namespaces live in files). -->
+    <RootNamespace></RootNamespace>
+    <AssemblyName>Gallery.Video.Tests</AssemblyName>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\..\Gallery.Video\Gallery.Video.vbproj" />
+  </ItemGroup>
+
+</Project>
