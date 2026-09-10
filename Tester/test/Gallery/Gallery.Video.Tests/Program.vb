@@ -19,6 +19,7 @@ Option Infer On
 
 Imports System
 Imports System.Collections.Generic
+Imports System.Runtime.InteropServices
 
 Namespace Gallery.Video.Tests
 
@@ -77,8 +78,12 @@ Namespace Gallery.Video.Tests
         ''' (b) a rare orphaned ffmpeg blocked forever on a full stdout pipe
         ''' after its parent vanished → KillOrphanedChildren before exit.
         ''' Tests already stopped every worker they own before this point.</summary>
+        ' NOTE: no explicit 'Shared' here — Module members are implicitly
+        ' Shared in VB, and an explicit modifier is a compile error (BC30433).
+        ' (Landed in 7c49302 after the last rebuild — caught on first fresh-
+        ' sandbox build; proof the shard discipline must include a build.)
         <Runtime.InteropServices.DllImport("libc", EntryPoint:="exit")>
-        Private Shared Sub LibcExit(status As Integer)
+        Private Sub LibcExit(status As Integer)
         End Sub
 
         ''' <summary>Kill any direct child still alive (ppid == us). On Linux

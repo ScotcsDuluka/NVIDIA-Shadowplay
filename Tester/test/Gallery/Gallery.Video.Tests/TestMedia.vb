@@ -109,6 +109,21 @@ Namespace Gallery.Video.Tests
                            "-f lavfi -i sine=frequency=800:sample_rate=48000:duration=6 " &
                            "-c:v libx264 -pix_fmt yuv420p -g 120 " &
                            "-c:a aac -b:a 128k -shortest """ & p & """"
+                Case "real_shape"
+                    ' Pinned to the REAL ShadowPlay recording (design doc §5):
+                    ' Record_2026-09-10_21-18-52.mp4 measured on the owner box —
+                    ' H.264 yuv420p 1680×1050 (16:10, both even), ~60fps, AAC LC
+                    ' 48k stereo, mov/mp4. Short duration: full-res decode in
+                    ' tests must stay fast.
+                    args = "-y -f lavfi -i testsrc2=size=1680x1050:rate=60:duration=2 " &
+                           "-f lavfi -i sine=frequency=1000:sample_rate=48000:duration=2 " &
+                           "-c:v libx264 -pix_fmt yuv420p -g 60 " &
+                           "-c:a aac -b:a 128k -ac 2 -shortest """ & p & """"
+                Case "wrong_codec"
+                    ' MPEG-4 Part 2 — deliberately OUTSIDE the supported set
+                    ' (§7: probe gate → Faulted.UnsupportedFormat). Small + fast.
+                    args = "-y -f lavfi -i testsrc2=size=320x240:rate=30:duration=1 " &
+                           "-c:v mpeg4 -pix_fmt yuv420p -q:v 10 """ & p & """"
                 Case Else
                     Throw New ArgumentException("unknown synthetic kind: " & kind)
             End Select

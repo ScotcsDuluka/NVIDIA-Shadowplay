@@ -529,6 +529,20 @@ Namespace Gallery.Video
                         _fpsFallbackUsed = True ' counted, never silent (§6)
                     End If
 
+                    ' ---- §7 format gate: probed codec/pixfmt must be in the
+                    ' supported set BEFORE any pipeline allocation. The set is
+                    ' deliberate: the product's own recordings are h264/yuv420p
+                    ' (pinned from a real ShadowPlay file, design doc §5) —
+                    ' HEVC/QSV variants stay gated out until probed-for-real.
+                    If v.CodecName <> "h264" OrElse v.PixFmt <> "yuv420p" OrElse
+                       v.Width <= 0 OrElse v.Height <= 0 Then
+                        FaultOut(New GalleryVideoFault(
+                            GalleryVideoFaultKind.UnsupportedFormat,
+                            $"codec={v.CodecName} pix_fmt={v.PixFmt} {v.Width}x{v.Height} " &
+                            $"(supported: h264/yuv420p)"))
+                        Return
+                    End If
+
                     ' ---- allocate pipeline ----
                     SyncLock _lock
                         _media = probe
