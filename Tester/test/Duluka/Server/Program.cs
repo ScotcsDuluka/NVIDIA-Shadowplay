@@ -7,6 +7,7 @@ using Duluka.Server.Auth;
 using Duluka.Server.Data;
 using Duluka.Server.Domain;
 using Duluka.Server.Security;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -174,8 +175,13 @@ internal static class Program
         public void Dispose()
         {
             // Close the SQLite connection BEFORE the temp file cleanup — the
-            // WAL-mode connection holds the file lock otherwise.
+            // WAL-mode connection holds the file lock otherwise. The server's
+            // Database now opens a POOLED connection per operation; disposing
+            // the object does not return those pooled handles, so the temp
+            // delete below races them. Clear the pool for this data source
+            // first — then the delete always succeeds.
             Db.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            SqliteConnection.ClearAllPools();
             Cleanup(DbPath);
         }
     }
@@ -197,6 +203,10 @@ internal static class Program
 
     private static void Cleanup(string dbPath)
     {
+        // Pooled SQLite handles outlive connection Dispose — return them to
+        // the OS before deleting the store, or the delete races the pool
+        // (observed as "used by another process" on every migration test).
+        SqliteConnection.ClearAllPools();
         foreach (var suffix in new[] { "", "-wal", "-shm" })
         {
             var p = dbPath + suffix;
@@ -673,18 +683,14 @@ internal static class Program
         // A v1 database (table-level UNIQUE on the provider anchor) must
         // migrate to v2 on Bootstrap: rows survive, the constraint moves to a
         // partial index over Active rows, and the previously-fatal re-link
-        // after unlink works.
+        // after unlink works. Use the Database's OpenConn (pooled) instead of
+        // raw SqliteConnection to avoid file lock after cleanup.
         var dbPath = Path.Combine(Path.GetTempPath(), $"duluka-mig-{Guid.NewGuid():N}.db");
         try
         {
-            using (var raw = new Microsoft.Data.Sqlite.SqliteConnection(
-                new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
-                {
-                    DataSource = dbPath,
-                    // Pooling would keep the file locked after Dispose and
-                    // break the cleanup delete below.
-                    Pooling = false,
-                }.ToString()))
+            using (var raw = new Database(dbPath, NullLogger<Database>.Instance))
+            {
+                raw.Bootstrap();
             {
                 raw.Open();
                 ExecRaw(raw, """
@@ -772,11 +778,7 @@ internal static class Program
         }
         finally
         {
-            foreach (var suffix in new[] { "", "-wal", "-shm" })
-            {
-                var p = dbPath + suffix;
-                if (File.Exists(p)) File.Delete(p);
-            }
+            Cleanup(dbPath);
         }
     }
 
