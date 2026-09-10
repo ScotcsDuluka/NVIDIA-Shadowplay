@@ -7,10 +7,25 @@
 #
 # What it proves (measured, never assumed):
 #   - UI (NVIDIA ShadowPlay.exe) death does NOT stop NVIDIA Capture.exe
-#   - the recording output file keeps GROWING while the UI is dead
+#   - the engine session clock keeps ADVANCING while the UI is dead
+#     (the final MP4 materializes at SAVE — live-mux design — so the
+#     engine elapsed timer is the PRIMARY continuity signal, not file size)
 #   - a restarted UI reuses the existing engine (engine count stays 1)
 #   - engine_get_status answers engine truth: Recording|elapsed|output
 #   - explicit stop after reconnect saves the file exactly once
+#
+# WIRE RULES (learned the hard way on the OWNER's machine, 2026-09 runs):
+#   - a command value must NEVER contain '|' — [Engine] Client.vb
+#     OnTcpMessage splits the whole wire line on '|' and keeps parts(1)
+#     only; anything after the second pipe is silently discarded and the
+#     discarded part becomes the engine's output path (round 4 recorded
+#     a real file named "req=L1Rxxxxxxxx").
+#   - the req=<token>|<payload> contract in Client.vb (lines ~201-210) is
+#     DEAD CODE on this wire: value never contains a pipe after the split,
+#     so a token can never be extracted and echoed back. Correlation is
+#     therefore ORDER-BASED: Drain-Hub (flush buffered lines) immediately
+#     before every command, then the first matching line after OUR send
+#     is OUR answer by construction.
 #
 # HARD RULE: this harness NEVER kills NVIDIA Capture.exe — except the one
 # gated matrix row that REQUIRES an absent engine (-AllowEngineKill), and
@@ -91,11 +106,14 @@ function Send-Hub([string]$cmd, [string]$value = "") {
 
 # Read hub lines until a needle appears or the deadline passes. Returns the
 # matched line (or $null). Non-matching lines are printed for the transcript.
+# A ReadTimeout is RETRYABLE, not terminal — returning $null on the first
+# 3s timeout made the 30s saved-broadcast deadline meaningless (measured
+# round 4: the wait gave up ~3s into a 30s window).
 function Wait-HubLine([string]$needle, [int]$deadlineSec = 10) {
     $deadline = (Get-Date).AddSeconds($deadlineSec)
     while ((Get-Date) -lt $deadline) {
         $line = $null
-        try { $line = $script:Reader.ReadLine() } catch { return $null }
+        try { $line = $script:Reader.ReadLine() } catch { continue }
         if ($null -eq $line) { return $null }
         if ($line -eq '[System]|pong') { continue }
         Write-Host "    hub> $line"
@@ -104,28 +122,36 @@ function Wait-HubLine([string]$needle, [int]$deadlineSec = 10) {
     return $null
 }
 
-# Unique correlation token. The engine echoes it back as ,req=<id> on the
-# response ([Engine] Client.vb request format: req=<token>|<payload>).
-function New-ReqId([string]$prefix) {
-    return $prefix + [Guid]::NewGuid().ToString("N").Substring(0, 8)
+# Flush everything already buffered/queued on our hub connection (read and
+# discard until a short quiet window). Order-based correlation depends on
+# this: without a drain, a stale answer buffered from an earlier query (or
+# from another client's status pull) is consumed by the NEXT Wait-HubLine
+# and the measurement pairs the wrong question with the right answer —
+# exactly the round-3 row-4 race (elapsed 7 -> 7 while the engine had
+# already answered Recording|22 during the UI-dead window).
+function Drain-Hub {
+    $script:Stream.ReadTimeout = 400
+    try {
+        while ($true) { $null = $script:Reader.ReadLine() }
+    } catch {}
+    $script:Stream.ReadTimeout = 3000
 }
 
-# engine_get_status round-trip from ENGINE truth, correlated to THIS query
-# by a unique req id. (Uncorrelated matching raced on the 2026-09-09 run:
-# the restarted UI's own status pull interleaved with ours and the harness
-# consumed a stale buffered answer — row 4 measured elapsed 7->7 while the
-# engine had actually answered Recording|22 DURING the UI-dead window.
-# Engine clock was fine; the measurement wasn't.) Returns the raw data
-# field (state|elapsed|output for a recording session; bare state else).
+# engine_get_status round-trip from ENGINE truth. Pipe-free request, order-
+# based correlation (see WIRE RULES in the header): drain, send, then the
+# first engine_response:engine_get_status line is THIS query's answer.
+# Parse uses PowerShell maxsubstrings semantics — the LAST element of
+# -split ',', 3 consumes the remainder INCLUDING pipes, so the data field
+# survives intact: engine_response:engine_get_status,ok,Recording|15|C:\path
+# → fields[2] = Recording|15|C:\path (or bare state, e.g. Idle).
 function Get-EngineStatus {
-    $reqId = New-ReqId 'L1S'
-    Send-Hub 'engine_get_status' "req=$reqId|"
-    $resp = Wait-HubLine "req=$reqId" 8
+    Drain-Hub
+    Send-Hub 'engine_get_status'
+    $resp = Wait-HubLine 'engine_response:engine_get_status' 8
     if (-not $resp) { return $null }
     $payload = ($resp -split '\|', 2)[1]           # drop "[Send] <who>|"
     if (-not $payload) { return $null }
-    $payload = ($payload -split ",req=$reqId")[0]  # drop correlation tail
-    $fields = $payload -split ','
+    $fields = $payload -split ',', 3               # last element eats remainder
     if ($fields.Count -lt 3) { return $fields[-1] }
     return $fields[2]
 }
@@ -191,16 +217,20 @@ try {
     Write-Result '1. UI start -> engine started (or reused)' ($engineAfter -ge 1) "engine count $engineBefore -> $engineAfter (supervisor reuse if identical)"
 
     # ── matrix 3 setup: engine RECORDS via direct hub command ───────────────
+    # Value = the bare path (pipe-free). The engine echoes it back inside
+    # engine_response:engine_record_start,ok,<path>.
     $outPath = Join-Path $WorkRoot ("L1_{0}.mp4" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
-    $startReq = New-ReqId 'L1R'
-    Send-Hub 'RECORD_START' "req=$startReq|$outPath"
-    $startResp = Wait-HubLine "req=$startReq" 15
-    Write-Result '3a. RECORD_START accepted by engine' ($null -ne $startResp) "out=$outPath"
+    Drain-Hub
+    Send-Hub 'RECORD_START' $outPath
+    $startResp = Wait-HubLine 'engine_response:engine_record_start' 15
+    $startOk = ($null -ne $startResp -and $startResp -match ',ok,')
+    Write-Result '3a. RECORD_START accepted by engine' $startOk "out=$outPath"
     # The path the ENGINE echoes is the authoritative output location (it may
     # normalize what we sent, e.g. 8.3 short form). All file probes use THAT.
+    # maxsubstrings: element 2 eats the remainder, so the path stays whole.
     $engineOutPath = $outPath
     if ($startResp) {
-        $echo = (($startResp -split ',', 3)[2]) -replace ",req=$startReq.*$", ''
+        $echo = ($startResp -split ',', 3)[2]
         if ($echo) { $engineOutPath = $echo.Trim() }
     }
     Start-Sleep -Seconds 4
@@ -246,6 +276,7 @@ try {
     # Broadcast format is engine_recording_saved:<path> — COLON separator,
     # not pipe (the previous pipe-split yielded garbage and failed this row
     # even though the save itself succeeded).
+    Drain-Hub
     Send-Hub 'RECORD_STOP'
     $stopResp = Wait-HubLine 'engine_recording_saved' 30
     $savedFile = ''
@@ -271,9 +302,9 @@ try {
 
     $recFails = 0
     $outPath2 = Join-Path $WorkRoot ("L1stress_{0}.mp4" -f (Get-Date -Format 'yyyyMMdd_HHmmss'))
-    $startReq2 = New-ReqId 'L1R'
-    Send-Hub 'RECORD_START' "req=$startReq2|$outPath2"
-    $null = Wait-HubLine "req=$startReq2" 15
+    Drain-Hub
+    Send-Hub 'RECORD_START' $outPath2
+    $null = Wait-HubLine 'engine_response:engine_record_start' 15
     Start-Sleep -Seconds 4
     for ($i = 1; $i -le $Iterations; $i++) {
         Get-Process -Name 'NVIDIA ShadowPlay' -ErrorAction SilentlyContinue | Stop-Process -Force
