@@ -276,7 +276,7 @@ Namespace CaptureEngine.Recording
 
             ' One common recording clock. Capture/audio can warm before T0;
             ' no sample/frame belongs to the recording timeline before this boundary.
-            _timelineStartTicks = Stopwatch.GetTimestamp() + Stopwatch.Frequency \ 10
+            _timelineStartTicks = Stopwatch.GetTimestamp() + Math.Max(1L, Stopwatch.Frequency \ 10L)
             _timelineStartQpc100ns = WasapiPositionCapture.StopwatchTicksTo100ns(_timelineStartTicks)
             _systemStartTicks = _timelineStartTicks
             _logger.Info($"[session] common timeline armed: T0={_timelineStartQpc100ns} (all producers armed before T0)")

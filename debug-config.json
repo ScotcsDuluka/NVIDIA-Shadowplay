@@ -1,0 +1,31 @@
+{
+  "Version": 1,
+  "Logging": {
+    "LogLevel": {
+      "Default": "Debug",
+      "Microsoft": "Warning",
+      "System": "Warning"
+    },
+    "File": {
+      "Path": "debug-recording.log",
+      "MaxSize": "10MB",
+      "MaxFiles": 5
+    }
+  },
+  "Capture": {
+    "DurationSeconds": 5,
+    "TargetFps": 30,
+    "VideoCodec": "h264_nvenc",
+    "BitrateBps": 5000000,
+    "AudioEnabled": true,
+    "AudioCodec": "aac",
+    "AudioBitrate": 128000,
+    "AudioChannels": 2,
+    "EvidenceSidecar": true,
+    "SilenceKeepAlive": false
+  },
+  "Output": {
+    "Path": "test-recording.mp4",
+    "Format": "mp4"
+  }
+}

@@ -1,0 +1,25 @@
+Timing Analysis Report 
+Date: Fri 09/11/2026 16:53:52.16 
+====================================== 
+ 
+Processing: phase-12b-validation-20260910-223652.md 
+====================================== 
+ 
+Processing: phase-12b-validation-20260910-224149.md 
+====================================== 
+ 
+Processing: phase-12b-validation-20260911-000755.md 
+====================================== 
+ 
+Processing: phase-12b-validation-20260911-001029.md 
+====================================== 
+ 
+Processing: phase-12b-validation-20260911-001203.md 
+====================================== 
+ 
+Processing: phase-12b-validation-20260911-164925.md 
+====================================== 
+ 
+Processing: phase-12b-validation-20260911-165236.md 
+====================================== 
+ 

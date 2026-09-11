@@ -1,0 +1,14 @@
+{
+  "recording": {
+    "enabled": true,
+    "fps": 60,
+    "duration": 12,
+    "output_path": "..\\..\\test-recordings\\overlay_01.mp4",
+    "audio_enabled": true,
+    "instrumentation": {
+      "enabled": true,
+      "log_level": "Info",
+      "timing_instrumentation": true
+    }
+  }
+}
