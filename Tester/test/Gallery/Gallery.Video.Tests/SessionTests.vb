@@ -375,6 +375,19 @@ Namespace Gallery.Video.Tests
                                   $"kind=CorruptFile (got {s.Fault.Kind})")
             End Using
 
+            ' --- UnsupportedFormat (§7 gate: probed codec outside the set) ---
+            ' mpeg4-in-mp4 is valid media (probe succeeds) but outside the
+            ' supported h264/yuv420p set pinned in design doc §5 — the session
+            ' must fault BEFORE any pipeline allocation (renderer/decode).
+            Using s As New PlaybackSession(NewOptions())
+                s.Open(TestMedia.Synthetic("synth_wrong_codec.mp4", "wrong_codec"))
+                TestRunner.Assert(s.WaitForState(PlaybackState.Faulted, 20000), "Faulted (wrong codec)")
+                TestRunner.Assert(s.Fault.Kind = GalleryVideoFaultKind.UnsupportedFormat,
+                                  $"kind=UnsupportedFormat (got {s.Fault.Kind})")
+                TestRunner.Assert(s.Fault.Detail.Contains("mpeg4"),
+                                  $"detail lists probed codec (got: {s.Fault.Detail})")
+            End Using
+
             ' --- BackendMissing (broken binaries) ---
             Dim opts As PlaybackSessionOptions = NewOptions()
             opts.FfmpegExe = "/nonexistent/ffmpeg"

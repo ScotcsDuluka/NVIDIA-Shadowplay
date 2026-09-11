@@ -257,17 +257,65 @@ Gallery Index (UI) → ThumbnailRequest queue (bounded=4, coalesced by path)
 
 ## 5. File Format (probe, don't assume)
 
-Owner rule: verify from REAL outputs. Two sources:
-1. **This box (now)**: synthetic MP4s generated with real ffmpeg 7.1.5
+Owner rule: verify from REAL outputs. Three sources, in increasing authority:
+1. **This box**: synthetic MP4s generated with real ffmpeg 7.1.5
    (H.264+AAC, CFR 60, yuv420p, start_time 0 — matching the validated product
    matrix in `HANDOFF.md` §3: "MP4: H264 … + AAC, start_time=0.000000 both").
-2. **Owner machine (pending)**: `ffprobe -v error -show_format -show_streams`
-   of a real ShadowPlay recording pasted into chat; result recorded here and
-   tests pinned to it. **No support claim without this evidence.**
+2. **REAL ShadowPlay recording (pinned 2026-09-10)**: owner-machine ffprobe
+   of `C:\Users\ScotcsDuluka\Videos\Shadowplay\Gallery\Record_2026-09-10_21-18-52.mp4`
+   — run with the repo-distributed
+   `Overlay\bin\Release\net10.0-windows10.0.26100.0\FFmpeg\ffprobe.exe`
+   (which also proves the FFmpegLocator bundling works on the real box).
+   **Measured facts (the format authority):**
 
-Support priority order (prototype): MP4/H.264/yuv420p+AAC first (proven
-product output), then MP4/H.264 variants (HEVC/QSV recordings noted in
-HANDOFF §5 Intel path) — each gated behind a probe check, never assumed.
+   | Field | Measured value |
+   |---|---|
+   | Container | `mov,mp4,m4a,3gp,3g2,mj2` (mov/mp4, avc1+mp4a tracks) |
+   | Writer | `Lavf62.13.101` — **our own LiveMuxSession** (product output) |
+   | Video codec | `h264`, profile **High** (avc1) |
+   | Pixel format | `yuv420p` |
+   | Resolution | **1680×1050 — 16:10, both dims even** (the owner's monitor is 1680×1050; NOT 16:9) |
+   | Frame rate | `r_frame_rate 60/1` nominal, `avg_frame_rate ≈ 59.88` — **slight VFR** |
+   | B-frames | `has_b_frames=0` |
+   | Color metadata | **all unknown** (range/space/transfer/primaries untagged) |
+   | Audio codec | `aac`, profile **LC**, 48000 Hz, stereo |
+   | Stream lengths | audio runs **~54 ms longer** than video |
+   | start_time | ≈ 0 (both streams) |
+
+   **Prototype-compatibility verdicts (each checked against code):**
+   - **1680×1050**: D3D11 swapchain is created at the PROBED size
+     (`D3D11VideoRenderer` ctor) and DXGI `Scaling.Stretch` maps it into the
+     window — resolution-agnostic; both dims even so yuv420p→BGRA is trivially
+     safe. Pinned in tests via `real_shape` synthetic (MediaProbeTests).
+     Letterbox/aspect UI is a Gallery-UI wiring concern (§11.4), not engine.
+   - **59.88 avg fps (VFR-ish)**: the clock is PTS-driven (showinfo
+     `pts_time` → 100-ns ticks) and never assumes CFR; `avg_frame_rate` is
+     used ONLY for the ±1.5×frame late/early window and seek step heuristics,
+     where a 0.2% error is irrelevant. `ParseFrameRate` accepts `N/M`
+     rationals and decimals. VFR-safe by construction.
+   - **has_b_frames=0**: input-side `-ss` + showinfo sequential PTS — no
+     reorder delay; matches the deterministic seek model (§3.7).
+   - **Color metadata unknown**: the yuv420p→BGRA conversion happens inside
+     the ffmpeg swscale, which applies its DEFAULT matrix (BT.601) to
+     untagged sources. ShadowPlay content is effectively BT.709, so colors
+     are expected to be slightly off until pinned. Honest handling: declared
+     assumption + follow-up (§11.4 #2) — pin `in_color_matrix=bt709` and
+     verify VISUALLY on the owner machine (Tier-3), never silently.
+   - **Audio +54 ms trailing**: EOS is video-master (§3.4): at video EOF the
+     clock freezes and state → Paused(EOS); up to ~54 ms of trailing audio
+     may be truncated. Perceptually negligible; measured semantics documented
+     here, drain-then-EOS listed as a follow-up (§11.4 #3).
+   - **Lavf62.13.101 = product output**: the Gallery is its own recording's
+     primary consumer — the synthetic matrix (source 1) and this real file
+     agree on shape, so Tier-2 coverage is representative.
+
+3. **Support policy (unchanged)**: supported set is probed, never assumed —
+   now ENFORCED: the session open path faults `UnsupportedFormat` for anything
+   outside `h264`/`yuv420p` with nonzero dims (design §7; session test in
+   `SessionTests.Test_FaultMapping`, probe-side `MediaProbeTests.Test_WrongCodec`).
+   MP4/H.264 variants (HEVC/QSV recordings noted in HANDOFF §5 Intel path)
+   stay gated out until a real file is probed-for-real and the set is widened
+   deliberately.
 
 ## 6. Performance measurement plan (owner-mandated, measured only)
 
@@ -332,11 +380,15 @@ Git safety: no reset/rebase/clean/stash/revert; before commit: full
 
 ## 11. Implementation status (prototype phase — updated 2026-09-10)
 
-**Test result on the Linux dev box (ffmpeg 7.1.5, no GPU): PASS 51 / FAIL 0 /
+**Test result on the Linux dev box (ffmpeg 7.1.5, no GPU): PASS 53 / FAIL 0 /
 SKIP 3 — the 3 SKIPS are the honest Tier-3 hardware gates (D3D11 present,
-WasapiOut, perf matrix), never converted to PASS. Re-verified 6× on
-2026-09-10 after resuming the session (chunked shards and full runs — every
-run's summary identical).**
+WasapiOut, perf matrix), never converted to PASS. 51 of those were verified
+6× on 2026-09-10; the 53 count includes the two §5-pin tests added the same
+day (real_shape 1680×1050 + wrong_codec probe gate). Fresh-sandbox note: the
+first cold build exposed two defects in the runner tail committed in 7c49302
+(explicit `Shared` in a VB Module + missing `Runtime.InteropServices` import)
+— both compile-time only, fixed before this run; shard discipline now
+includes a cold build.**
 
 ### 11.1 Delivered
 
@@ -395,13 +447,23 @@ run's summary identical).**
 
 1. Wire `FFmpegLocator` into product runtime paths (prototype takes explicit
    binary paths — deliberate, no silent PATH assumptions).
-2. Real-recording validation: `ffprobe` output of an owner ShadowPlay file
-   pins §5 (no support claim without it).
-3. Tier-3 hardware pass on the GTX 1080 Ti machine: D3D11 present, WasapiOut,
-   NVDEC/D3D11VA availability, §6 perf matrix (1080p60/1440p60/4K60) +
-   50-iteration on-hardware stress.
-4. Gallery UI wiring: session ↔ `[Gallery]/[1] Main.vb` (handle → renderer,
-   buttons → session commands — UI thread never blocks by contract).
-5. ThumbnailService (§4) + listing/index.
-6. Frame-accurate seek mode (`SeekAccuracy` flag, §3.7) if keyframe seek
+2. ~~Real-recording validation~~ **DONE (2026-09-10)**: owner-machine ffprobe
+   of a real ShadowPlay recording pinned §5 (1680×1050 / 59.88 avg / untagged
+   color / AAC LC / +54 ms audio tail); compatibility verdicts + the
+   `UnsupportedFormat` gate landed with it.
+3. Pin the color matrix: untagged ShadowPlay sources go through swscale's
+   default (BT.601) today — add `in_color_matrix=bt709` to the video decode
+   `-vf` chain and verify VISUALLY on the owner machine (Tier-3) before
+   claiming correctness (§5 verdicts).
+4. Trailing-audio policy: video-master EOS may truncate up to ~54 ms of
+   audio tail; if the owner hears a cut, switch EOS to drain-then-freeze
+   (hold last frame until the audio buffer empties, bounded).
+5. Tier-3 hardware pass on the GTX 1080 Ti machine: D3D11 present, WasapiOut,
+   NVDEC/D3D11VA availability, §6 perf matrix (1080p60/1440p60/4K60 + the
+   real 1680×1050 shape) + 50-iteration on-hardware stress.
+6. Gallery UI wiring: session ↔ `[Gallery]/[1] Main.vb` (handle → renderer,
+   buttons → session commands — UI thread never blocks by contract); decide
+   letterbox-vs-stretch for 16:10 content in non-16:10 windows.
+7. ThumbnailService (§4) + listing/index.
+8. Frame-accurate seek mode (`SeekAccuracy` flag, §3.7) if keyframe seek
    proves too coarse on real recordings.
