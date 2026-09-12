@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>W2MuxGate</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <AssemblyName>W2MuxGate</AssemblyName>
+    <Description>M2-W2 observation gate for the Encode → FeedVideo → MP4 gap — answers "FramesEncoded == MP4 frames?" and classifies empty-payload / pipe-dropped-AU / mux-failure. No production code is modified.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Production mux layer under observation (hardware-independent). -->
+    <ProjectReference Include="..\..\..\..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+  </ItemGroup>
+
+</Project>

@@ -33,6 +33,10 @@
          mux sink's drop accounting is tested against the live production
          source (pure VB; pulls no D3D11/NAudio dependency). -->
     <Compile Include="..\..\..\..\CaptureEngine.Recording\AudioEngineMuxSink.vb" Link="AudioEngineMuxSink.vb" />
+    <!-- M2-W2 SessionResultContractTests: the Pass contract is tested against
+         the LIVE production source (same link-compile convention; pure VB,
+         no WinForms/hardware). -->
+    <Compile Include="..\..\..\..\CaptureEngine.Recording\RecordingDTOs.vb" Link="RecordingDTOs.vb" />
   </ItemGroup>
 
 </Project>

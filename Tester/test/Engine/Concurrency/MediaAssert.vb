@@ -105,6 +105,24 @@ Namespace Engine.Concurrency.Tests
                                       FirstLine(probe, 220))
         End Sub
 
+        ''' <summary>Non-throwing mirror of <see cref="AssertValidMp4"/>'s
+        ''' container sanity (exists, non-empty, parseable Duration &gt; 0).
+        ''' Used where a test must CHECK the output's usability rather than
+        ''' demand it — e.g. mirroring the engine's stop boolean (M2/W1).</summary>
+        Friend Function IsPlayableMp4(ffmpegExe As String, path As String) As Boolean
+            Try
+                Dim fi As New IO.FileInfo(path)
+                If Not fi.Exists OrElse fi.Length = 0 Then Return False
+                Dim probe As String = ProbeMedia(ffmpegExe, path)
+                Dim m As Match = Regex.Match(probe, "Duration:\s*(\d+):(\d+):(\d+\.?\d*)")
+                If Not m.Success Then Return False
+                Return (CDbl(m.Groups(1).Value) * 3600 + CDbl(m.Groups(2).Value) * 60 +
+                        CDbl(m.Groups(3).Value)) > 0
+            Catch
+                Return False
+            End Try
+        End Function
+
         ''' <summary>Dump the media info the way production's verify step does:
         ''' ffmpeg -i (no output target) writes the container/stream report to
         ''' stderr and exits non-zero — the exit code is irrelevant here.</summary>

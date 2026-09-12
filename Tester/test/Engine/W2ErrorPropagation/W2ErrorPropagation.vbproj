@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>W2ErrorPropagation</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <AssemblyName>W2ErrorPropagation</AssemblyName>
+    <Description>M2-W2 False-Success / Error-Propagation audit repro — drives the REAL LiveMuxSession and SessionResult contracts against failure fixtures; no production code is modified.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Production classes under audit (hardware-independent FFmpeg side):
+         LiveMuxSession (salvage/remux path) + SessionResult.Pass contract. -->
+    <ProjectReference Include="..\..\..\..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\..\..\..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+  </ItemGroup>
+
+</Project>

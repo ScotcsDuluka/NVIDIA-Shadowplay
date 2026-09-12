@@ -508,8 +508,13 @@ Namespace Engine.Concurrency.Tests
                 TestRunner.Assert(errorsAtRecovery = 1, "recovery should emit exactly one error")
 
                 ' Idempotency surface: stop-after-failure, double dispose.
+                ' ★ M2/W1 honesty contract: this stop runs from HasError over an
+                ' ABSENT output (helper wrote nothing) — it must report False
+                ' (the old True here was the same FALSE-SUCCESS shape B3/Q5b
+                ' pinned as known-red). The property under test is unchanged:
+                ' no duplicate terminal events, no orphan processes.
                 Dim stopOk As Boolean = engine.StopRecordingAsync().GetAwaiter().GetResult()
-                TestRunner.Assert(stopOk, "Stop after unexpected exit returned False")
+                TestRunner.Assert(Not stopOk, "Stop after unexpected exit returned True over a missing output")
                 engine.Dispose()
                 engine.Dispose()
 

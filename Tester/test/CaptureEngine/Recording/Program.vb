@@ -88,6 +88,7 @@ Namespace CaptureEngine.Recording.Tests
                 AudioTimelineRepairTests.RunAll()   ' ★ P13-AUDIO-TIMELINE: OBS gap-repair rules
                 AudioTimelineDeviceClockTests.RunAll()   ' ★ P13-A: OWNER-spec deterministic sample timeline (no hardware)
                 MuxSinkAccountingTests.RunAll()   ' ★ Audit fix: pending-cap drops are counted, never silent
+                SessionResultContractTests.RunAll()   ' ★ M2-W2: video-only loss gate — Pass contract (1 known-fail until the fix lands)
                 RuntimeSyncTests.RunAll()
                 DualTrackTests.RunAll()   ' ★ M1: system + mic second track
             Finally

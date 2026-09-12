@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>FpsMatrixDriver</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <AssemblyName>FpsMatrixDriver</AssemblyName>
+    <Description>M2-W3 FPS matrix driver — records through the REAL legacy production engine (NVIDIA_Capture.CaptureEngine) at a target FPS; video-only single-process mode; no production code is modified.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The legacy two-process engine under test: CaptureEngine + CaptureSettings
+         live in the NVIDIA Capture (WinForms host) assembly — same pattern as
+         Engine.Concurrency.Tests. -->
+    <ProjectReference Include="..\..\..\..\Engine\NVIDIA Capture.vbproj" />
+  </ItemGroup>
+
+</Project>

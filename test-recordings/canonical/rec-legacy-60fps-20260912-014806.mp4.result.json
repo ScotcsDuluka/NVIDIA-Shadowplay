@@ -1,0 +1,127 @@
+﻿{
+    "schema":  "canonical-run-v1",
+    "verdict":  "PASS",
+    "reason":  "",
+    "lane":  "legacy",
+    "run":  {
+                "fps":  60,
+                "seconds":  4,
+                "forceAttempt":  false
+            },
+    "outFile":  "C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-60fps-20260912-014806.mp4",
+    "binaries":  {
+                     "gate":  {
+                                  "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Tester\\test\\Engine\\TimingGate\\bin\\Debug\\net10.0-windows10.0.26100.0\\Engine.TimingGate.Tests.exe",
+                                  "sha256":  "4e1898820dddd09b288c884953dd8021a8d2eba6d720135b3181577e73cbacf3"
+                              },
+                     "driver":  {
+                                    "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Tester\\test\\Engine\\FpsMatrix\\bin\\Debug\\net10.0-windows10.0.26100.0\\FpsMatrixDriver.exe",
+                                    "sha256":  "4258190ff8556b02d38161b292245db4bf06ff2e6c1b2b9a01f4fe21e61d03fa"
+                                }
+                 },
+    "ffmpeg":  {
+                   "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffmpeg.exe",
+                   "version":  "ffmpeg version N-123522-gac4d50cb26-20260317 Copyright (c) 2000-2026 the FFmpeg developers"
+               },
+    "ffprobe":  {
+                    "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffprobe.exe",
+                    "version":  "ffprobe version N-123522-gac4d50cb26-20260317 Copyright (c) 2007-2026 the FFmpeg developers"
+                },
+    "probe":  {
+                  "schema":  "timinggate-probe-v1",
+                  "ffmpeg":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffmpeg.exe",
+                  "ffprobe":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffprobe.exe",
+                  "qsvAvailable":  true,
+                  "nativeAvailable":  false,
+                  "nativeReason":  "DdagrabBackend: no NVIDIA adapter found. Capture requires an NVIDIA GPU.",
+                  "modeSupported":  {
+                                        "30":  true,
+                                        "60":  true,
+                                        "120":  true,
+                                        "144":  true,
+                                        "240":  false
+                                    },
+                  "utc":  "2026-09-11T18:48:06.0174631Z"
+              },
+    "runResult":  {
+                      "schema":  "fpsmatrix-result-v1",
+                      "verdict":  "RECORDED",
+                      "reason":  "",
+                      "binary":  {
+                                     "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Tester\\test\\Engine\\FpsMatrix\\bin\\Debug\\net10.0-windows10.0.26100.0\\FpsMatrixDriver.exe",
+                                     "sha256":  "4258190ff8556b02d38161b292245db4bf06ff2e6c1b2b9a01f4fe21e61d03fa"
+                                 },
+                      "settings":  {
+                                       "lane":  "legacy",
+                                       "encoder":  "h264_qsv",
+                                       "captureMethod":  "ddagrab",
+                                       "bitrate":  20000000,
+                                       "rateControl":  "cbr",
+                                       "pixelFormat":  "nv12",
+                                       "audioEnabled":  false
+                                   },
+                      "run":  {
+                                  "fps":  60,
+                                  "seconds":  4,
+                                  "out":  "C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-60fps-20260912-014806.mp4",
+                                  "ffmpeg":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffmpeg.exe"
+                              },
+                      "engine":  {
+                                     "started":  true,
+                                     "stopped":  true,
+                                     "stateFinal":  "Idle",
+                                     "states":  [
+                                                    "0.04s Recording",
+                                                    "4.08s Stopping",
+                                                    "4.54s Idle"
+                                                ],
+                                     "errors":  [
+
+                                                ]
+                                 },
+                      "file":  {
+                                   "exists":  true,
+                                   "size":  908337
+                               },
+                      "wallSec":  4.5372149,
+                      "utc":  "2026-09-11T18:48:11.1709578Z"
+                  },
+    "analyze":  {
+                    "schema":  "timinggate-analyze-v1",
+                    "file":  "C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-60fps-20260912-014806.mp4",
+                    "fps":  60,
+                    "seconds":  4,
+                    "verdict":  "PASS",
+                    "primaryClass":  "GRID_OK",
+                    "frames":  248,
+                    "packets":  248,
+                    "containerDurationSec":  4.133333,
+                    "effFps":  59.9999951417008,
+                    "firstDeltaMs":  16.667,
+                    "medianDeltaMs":  16.666999999999987,
+                    "meanDeltaMs":  16.66666801619433,
+                    "p95Ms":  16.666999999999998,
+                    "p99Ms":  16.667000000000098,
+                    "minDeltaMs":  16.665999999999848,
+                    "maxDeltaMs":  16.667000000000098,
+                    "dupCount":  0,
+                    "negCount":  0,
+                    "avgRateTag":  "60/1",
+                    "avgRateTagInformationalOnly":  true,
+                    "notes":  [
+
+                              ],
+                    "utc":  "2026-09-11T18:48:13.2094065Z"
+                },
+    "timing":  {
+                   "utcStart":  "2026-09-11T18:47:45.6739459Z",
+                   "wallSec":  27.59,
+                   "utcEnd":  "2026-09-11T18:48:13.2763382Z"
+               },
+    "host":  {
+                 "machine":  "MATEBOOK-HUAWEI",
+                 "user":  "HUAWEI-PC",
+                 "psVersion":  "5.1.26100.8497"
+             },
+    "resultJson":  ""
+}

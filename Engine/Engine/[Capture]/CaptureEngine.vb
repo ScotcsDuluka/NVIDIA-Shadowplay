@@ -438,10 +438,12 @@ Partial Public Class CaptureEngine
     ' ── Stop Recording ────────────────────────────────────────
 
     Public Async Function StopRecordingAsync() As Task(Of Boolean)
+        Dim stopFromFailure As Boolean
         SyncLock _stateLock
             If _state <> CaptureState.Recording AndAlso _state <> CaptureState.HasError Then
                 Return False
             End If
+            stopFromFailure = (_state = CaptureState.HasError)
         End SyncLock
 
         SetState(CaptureState.Stopping)
@@ -556,22 +558,30 @@ Partial Public Class CaptureEngine
                                          AwaitOrRunMux()
                                      End If
 
-                                     ' ─── Step 4: Fire RecordingStopped (exactly once) ───
-                                     If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
-                                         SetState(CaptureState.Idle)
-                                         ' ★ Honesty fix: only announce a saved file that exists.
-                                         ' The old unconditional event made the Overlay show
-                                         ' "Saved: <file>" + a gallery entry for recordings that
-                                         ' were never produced (temp video missing, mux move
-                                         ' failure, stop-from-start-failed state).
-                                         If File.Exists(_outputFile) Then
-                                             RaiseEvent RecordingStopped(_outputFile)
-                                             LogDebug("Recording saved: " & _outputFile)
-                                         Else
-                                             RaiseEvent ErrorOccurred("Recording not saved — output file missing: " & _outputFile)
-                                             LogDebug("RecordingStopped suppressed — file missing: " & _outputFile)
-                                         End If
-                                     ElseIf _state = CaptureState.Stopping OrElse _state = CaptureState.Muxing Then
+                                    ' ─── Step 4: Fire RecordingStopped (exactly once) ───
+                                    ' ★ FALSE-SUCCESS fix (M2/W1 2026-09-12): the stop contract
+                                    ' keys on a USABLE output, not File.Exists alone — and the
+                                    ' boolean return must agree with the event. outputOk is
+                                    ' computed once and drives BOTH: the H1-B settle branch
+                                    ' (stop-after-failure, event already delivered by OnExited)
+                                    ' returns the same truth the event branch announces.
+                                    Dim outputOk As Boolean = IsOutputFileValid(_outputFile)
+                                    If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
+                                        SetState(CaptureState.Idle)
+                                        ' ★ Honesty fix: only announce a saved file that is
+                                        ' actually usable. The old unconditional event made the
+                                        ' Overlay show "Saved: <file>" + a gallery entry for
+                                        ' recordings that were never produced (temp video
+                                        ' missing, mux move failure, stop-from-start-failed
+                                        ' state, 0-byte garbage from a dead encoder).
+                                        If outputOk Then
+                                            RaiseEvent RecordingStopped(_outputFile)
+                                            LogDebug("Recording saved: " & _outputFile)
+                                        Else
+                                            RaiseEvent ErrorOccurred("Recording not saved — output file missing or empty: " & _outputFile)
+                                            LogDebug("RecordingStopped suppressed — output missing/empty: " & _outputFile)
+                                        End If
+                                    ElseIf _state = CaptureState.Stopping OrElse _state = CaptureState.Muxing Then
                                          ' ★ H1-B fix: the terminal EVENT was already delivered by
                                          ' OnExited's unexpected-exit recovery (state was HasError
                                          ' when this stop started — e.g. encoder failure), so this
@@ -597,14 +607,44 @@ Partial Public Class CaptureEngine
                                          End If
                                      Catch
                                      End Try
-                                     Return True
+                                     ' Honesty (M2/W1): a stop of a FAILED session reports success
+                                     ' only when a usable output actually landed on disk (B3:
+                                     ' stop-after-failure used to return True over a 0-byte file).
+                                     ' A healthy-session stop keeps the pinned F03 contract —
+                                     ' True = the stop flow completed; output honesty travels
+                                     ' via the terminal events (RecordingStopped vs error).
+                                     Return outputOk OrElse Not stopFromFailure
 
-                                 Catch ex As Exception
-                                     SetState(CaptureState.HasError)
-                                     RaiseEvent ErrorOccurred("Stop failed: " & ex.Message)
-                                     Return False
-                                 End Try
+                                Catch ex As Exception
+                                    SetState(CaptureState.HasError)
+                                    RaiseEvent ErrorOccurred("Stop failed: " & ex.Message)
+                                    Return False
+                                End Try
                              End Function)
+    End Function
+
+    ''' <summary>
+    ''' FALSE-SUCCESS gate (M2/W1 2026-09-12): a recording output counts as
+    ''' saved only when it exists, is non-empty, AND actually decodes.
+    ''' File.Exists alone returned True for the garbage a failed session
+    ''' leaves behind (the QSV-240 run reported stopped=True over a 0-byte
+    ''' moov-less file), and Length alone is still not honesty — an MP4
+    ''' muxer writes its ftyp header BEFORE the encoder initializes, so a
+    ''' dead session can leave a non-empty header-only container. The final
+    ''' verdict is a bounded decode probe (≤1s, 15s timeout) — the same
+    ''' validator the mux fallback already promotes with. File.Exists also
+    ''' answers False for a directory-occupied path (stress mux-failure
+    ''' injection), keeping that leg honest too.
+    ''' </summary>
+    Private Function IsOutputFileValid(path As String) As Boolean
+        If String.IsNullOrEmpty(path) Then Return False
+        Try
+            Dim fi As New FileInfo(path)
+            If Not fi.Exists OrElse fi.Length = 0 Then Return False
+        Catch
+            Return False
+        End Try
+        Return ValidatePlayback(path)
     End Function
 
     ' ── Mux video + audio ─────────────────────────────────────
@@ -1197,11 +1237,11 @@ Partial Public Class CaptureEngine
                 If System.Threading.Interlocked.Exchange(_stopCompleted, 1) = 0 Then
                     SetState(CaptureState.Idle)
                     ' ★ Honesty fix (mirrors StopRecordingAsync): announce only
-                    ' files that actually exist.
-                    If File.Exists(_outputFile) Then
+                    ' usable output (exists AND non-empty — M2/W1 false-success gate).
+                    If IsOutputFileValid(_outputFile) Then
                         RaiseEvent RecordingStopped(_outputFile)
                     Else
-                        RaiseEvent ErrorOccurred("Recording not saved — output file missing: " & _outputFile)
+                        RaiseEvent ErrorOccurred("Recording not saved — output file missing or empty: " & _outputFile)
                     End If
                 End If
             ElseIf exitCode <> "?" Then
