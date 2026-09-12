@@ -1,4 +1,4 @@
-﻿# build-all.ps1 — Phase 12b whole-solution build (Windows)
+# build-all.ps1 — Phase 12b whole-solution build (Windows)
 #
 # Follows docs/BUILD_PROTOCOL.md: CLEAN FIRST, then build, then optionally
 # run every test suite. Stale DLLs are the #1 cause of false-positive bugs.
@@ -106,6 +106,7 @@ if ($RunTests) {
         "Tester\test\CaptureEngine\Video\CaptureEngine.Video.Tests.vbproj",
         # Phase 12b: SyncMath + sidecar + real-ffmpeg sync
         "Tester\test\CaptureEngine\Recording\CaptureEngine.Recording.Tests.vbproj"
+    "Tester\test\Engine\TimingGate\Engine.TimingGate.Tests.vbproj"
     )
     $failed = @()
     foreach ($s in $suites) {

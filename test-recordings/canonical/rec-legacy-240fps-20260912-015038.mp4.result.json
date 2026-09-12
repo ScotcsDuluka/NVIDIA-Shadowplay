@@ -1,0 +1,111 @@
+﻿{
+    "schema":  "canonical-run-v1",
+    "verdict":  "FAIL",
+    "reason":  "analyzer=FAIL analyze: output file is EMPTY (0 bytes) โ€” C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-240fps-20260912-015038.mp4  driverVerdict=FAILED",
+    "lane":  "legacy",
+    "run":  {
+                "fps":  240,
+                "seconds":  3,
+                "forceAttempt":  true
+            },
+    "outFile":  "C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-240fps-20260912-015038.mp4",
+    "binaries":  {
+                     "gate":  {
+                                  "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Tester\\test\\Engine\\TimingGate\\bin\\Debug\\net10.0-windows10.0.26100.0\\Engine.TimingGate.Tests.exe",
+                                  "sha256":  "4e1898820dddd09b288c884953dd8021a8d2eba6d720135b3181577e73cbacf3"
+                              },
+                     "driver":  {
+                                    "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Tester\\test\\Engine\\FpsMatrix\\bin\\Debug\\net10.0-windows10.0.26100.0\\FpsMatrixDriver.exe",
+                                    "sha256":  "4258190ff8556b02d38161b292245db4bf06ff2e6c1b2b9a01f4fe21e61d03fa"
+                                }
+                 },
+    "ffmpeg":  {
+                   "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffmpeg.exe",
+                   "version":  "ffmpeg version N-123522-gac4d50cb26-20260317 Copyright (c) 2000-2026 the FFmpeg developers"
+               },
+    "ffprobe":  {
+                    "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffprobe.exe",
+                    "version":  "ffprobe version N-123522-gac4d50cb26-20260317 Copyright (c) 2007-2026 the FFmpeg developers"
+                },
+    "probe":  {
+                  "schema":  "timinggate-probe-v1",
+                  "ffmpeg":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffmpeg.exe",
+                  "ffprobe":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffprobe.exe",
+                  "qsvAvailable":  true,
+                  "nativeAvailable":  false,
+                  "nativeReason":  "DdagrabBackend: no NVIDIA adapter found. Capture requires an NVIDIA GPU.",
+                  "modeSupported":  {
+                                        "30":  true,
+                                        "60":  true,
+                                        "120":  true,
+                                        "144":  true,
+                                        "240":  false
+                                    },
+                  "utc":  "2026-09-11T18:50:38.6588721Z"
+              },
+    "runResult":  {
+                      "schema":  "fpsmatrix-result-v1",
+                      "verdict":  "FAILED",
+                      "reason":  "",
+                      "binary":  {
+                                     "path":  "C:\\My Project\\NVIDIA-Shadowplay\\Tester\\test\\Engine\\FpsMatrix\\bin\\Debug\\net10.0-windows10.0.26100.0\\FpsMatrixDriver.exe",
+                                     "sha256":  "4258190ff8556b02d38161b292245db4bf06ff2e6c1b2b9a01f4fe21e61d03fa"
+                                 },
+                      "settings":  {
+                                       "lane":  "legacy",
+                                       "encoder":  "h264_qsv",
+                                       "captureMethod":  "ddagrab",
+                                       "bitrate":  20000000,
+                                       "rateControl":  "cbr",
+                                       "pixelFormat":  "nv12",
+                                       "audioEnabled":  false
+                                   },
+                      "run":  {
+                                  "fps":  240,
+                                  "seconds":  3,
+                                  "out":  "C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-240fps-20260912-015038.mp4",
+                                  "ffmpeg":  "C:\\My Project\\NVIDIA-Shadowplay\\Overlay\\API-Core\\ffmpeg.exe"
+                              },
+                      "engine":  {
+                                     "started":  true,
+                                     "stopped":  false,
+                                     "stateFinal":  "Idle",
+                                     "states":  [
+                                                    "0.10s Recording",
+                                                    "0.95s HasError",
+                                                    "3.19s Stopping",
+                                                    "3.19s Idle"
+                                                ],
+                                     "errors":  [
+                                                    "[vost#0:0/h264_qsv @ 0000022266ec2ec0] [enc:h264_qsv @ 0000022265b79580] Could not open encoder before EOF",
+                                                    "[vost#0:0/h264_qsv @ 0000022266ec2ec0] Task finished with error code: -22 (Invalid argument)",
+                                                    "[vost#0:0/h264_qsv @ 0000022266ec2ec0] Terminating thread with return code -22 (Invalid argument)",
+                                                    "Conversion failed!",
+                                                    "FFmpeg exited unexpectedly with code -40"
+                                                ]
+                                 },
+                      "file":  {
+                                   "exists":  true,
+                                   "size":  0
+                               },
+                      "wallSec":  3.1935936,
+                      "utc":  "2026-09-11T18:50:42.3424793Z"
+                  },
+    "analyze":  {
+                    "verdict":  "FAIL",
+                    "reason":  "analyze: output file is EMPTY (0 bytes) โ€” C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-240fps-20260912-015038.mp4",
+                    "file":  "C:\\My Project\\NVIDIA-Shadowplay\\test-recordings\\canonical\\rec-legacy-240fps-20260912-015038.mp4",
+                    "fps":  "240"
+                },
+    "timing":  {
+                   "utcStart":  "2026-09-11T18:50:23.9506847Z",
+                   "wallSec":  19.01,
+                   "utcEnd":  "2026-09-11T18:50:42.9854801Z"
+               },
+    "host":  {
+                 "machine":  "MATEBOOK-HUAWEI",
+                 "user":  "HUAWEI-PC",
+                 "psVersion":  "5.1.26100.8497"
+             },
+    "resultJson":  ""
+}

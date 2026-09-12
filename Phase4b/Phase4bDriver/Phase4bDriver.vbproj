@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace></RootNamespace>
+    <AssemblyName>Phase4bDriver</AssemblyName>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <LangVersion>latest</LangVersion>
+    <Nullable>disable</Nullable>
+    <Description>Phase 4B — Timing Causality A/B driver (38ms → 28ms end-to-end proof). Experiment-only: production sources are referenced, never modified.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Production pipeline assemblies — REFERENCED, NOT MODIFIED (ห้ามแก้ production).
+         The A/B variant lives only in this project's Phase4bCaptureSession.vb fork. -->
+    <ProjectReference Include="..\..\CaptureEngine\CaptureEngine.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Video\CaptureEngine.Video.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Video.Ddagrab\CaptureEngine.Video.Ddagrab.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Encoder\CaptureEngine.Encoder.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Encoder.Nvenc\CaptureEngine.Encoder.Nvenc.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.FFmpegBackend\CaptureEngine.FFmpegBackend.vbproj" />
+    <ProjectReference Include="..\..\CaptureEngine.Recording\CaptureEngine.Recording.vbproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Linq" />
+  </ItemGroup>
+
+</Project>

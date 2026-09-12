@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>TimingGate.Tests</RootNamespace>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OptionStrict>On</OptionStrict>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionInfer>On</OptionInfer>
+    <AssemblyName>Engine.TimingGate.Tests</AssemblyName>
+    <Description>W3 timing/FPS regression gate — PTS monotonicity, 1/fps cadence, first-gap classification, frame-count and encode→packet integrity, restart, failure propagation, 240fps. Verdicts: PASS / FAIL / BLOCKED. VFR verdicts come from the ΔPTS distribution only — avg_frame_rate is informational.</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The legacy two-process engine under test: CaptureEngine + CaptureSettings
+         live in the NVIDIA Capture (WinForms host) assembly — same pattern as
+         Engine.Concurrency.Tests. DdagrabBackend (native probe) flows in transitively. -->
+    <ProjectReference Include="..\..\..\..\Engine\NVIDIA Capture.vbproj" />
+  </ItemGroup>
+
+</Project>

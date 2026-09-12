@@ -421,7 +421,14 @@ Namespace Engine.Concurrency.Tests
             Thread.Sleep(3000)
 
             Dim stopped As Boolean = engine.StopRecordingAsync().GetAwaiter().GetResult()
-            TestRunner.Assert(stopped, "StopRecordingAsync returned False")
+            ' ★ M2/W1 honesty contract: the boolean now agrees with what landed
+            ' on disk. With an encoder: valid MP4 saved → True. Without (this
+            ' F-03 environment split): the fallback REMOVES the unplayable
+            ' container → the stop of a session with no usable output is False
+            ' — the old unconditional True was the FALSE-SUCCESS shape that
+            ' B3/Q5b pinned as known-red.
+            TestRunner.Assert(stopped = HardwareGate.NvidiaAvailable,
+                              $"StopRecordingAsync returned {stopped} (expected {HardwareGate.NvidiaAvailable} for the output that landed)")
 
             TestRunner.Assert(muxObserved, "Muxing state never observed — two-process stop flow did not run")
             TestRunner.Assert(predicateDuringMux, "IsRecordingLifecycleActive was False during Muxing (H1 guard would not hold)")
@@ -471,8 +478,22 @@ Namespace Engine.Concurrency.Tests
                 Dim started As Boolean = engine.StartRecordingAsync(outputPath).GetAwaiter().GetResult()
                 If started Then
                     Thread.Sleep(rnd.Next(200, 500))
+                    ' ★ M2/W1 honesty contract — the stop boolean must agree with
+                    ' the session state OBSERVED AT STOP TIME (the 200-500ms sleep
+                    ' races the encoder's death: a stop may start healthy and the
+                    ' encode may fail mid-stop; both outcomes are then honest):
+                    '   stop started from Recording      → True (flow completed)
+                    '   stop started from HasError       → True only when a usable
+                    '                                      output landed (B3/Q5b)
+                    Dim wasRecording As Boolean = (engine.State = EngineCapture.CaptureState.Recording)
                     Dim stopped As Boolean = engine.StopRecordingAsync().GetAwaiter().GetResult()
-                    TestRunner.Assert(stopped, $"cycle {i}: StopRecordingAsync returned False")
+                    If wasRecording Then
+                        TestRunner.Assert(stopped, $"cycle {i}: healthy-session stop returned False")
+                    Else
+                        TestRunner.Assert(
+                            stopped = MediaAssert.IsPlayableMp4(_ffmpegPath, outputPath),
+                            $"cycle {i}: stop boolean {stopped} disagrees with the output that landed")
+                    End If
                     ' ★ F-02: video-only contract — the output must be a real
                     ' probe-able MP4 with a video stream and NO audio stream
                     ' (SystemAudioCapture=False for these cycles). Environment
