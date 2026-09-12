@@ -1,4 +1,4 @@
-Option Strict On
+﻿Option Strict On
 Option Explicit On
 Option Infer On
 
@@ -98,6 +98,7 @@ Namespace CaptureEngine.FFmpegTests
             RunTest("LM-D: Dispose without Stop — ffmpeg killed, re-Dispose safe, no orphan", AddressOf Test_DisposeWithoutStop)
             RunTest("LM-E: Stop during active writes — feeder never throws, deterministic terminal", AddressOf Test_StopDuringActiveWrites)
             RunTest("LM-F: drain timeout bounded + DroppedBytes ledger (written+dropped == accepted)", AddressOf Test_DrainTimeoutLedger)
+            RunTest("LM-SEP: SeparateTrack → THREE streams (sys 2ch + mic 1ch)", AddressOf Test_SeparateTrackThreeStreams)
             RunTest("LM-H: Stop is single-terminal — second Stop never re-finalizes or re-reports success", AddressOf Test_StopTwiceSingleTerminal)
             RunTest("LM-G: video-only session (sysRate=0) — no audio pipe, valid video-only output", AddressOf Test_VideoOnlySession)
             RunTest("LM-J: spawn ownership — hook fires once with live ffmpeg; Stop → exited", AddressOf Test_SpawnOwnershipHook)
@@ -277,6 +278,78 @@ Namespace CaptureEngine.FFmpegTests
             Assert(res.VideoBytesFed + res.SystemBytesFed + res.DroppedBytes = acceptedVideo + acceptedAudio,
                    label & $": ledger video={res.VideoBytesFed:N0} + audio={res.SystemBytesFed:N0} " &
                            $"+ dropped={res.DroppedBytes:N0} <> accepted {acceptedVideo + acceptedAudio:N0}")
+        End Sub
+
+
+        ''' <summary>W3 pin: SeparateTrack=True with a live mic input must produce'''
+        ''' THREE output streams — video + 2ch system AAC + 1ch mic AAC.'''
+        Private Sub Test_SeparateTrackThreeStreams()
+            Dim outPath As String = IO.Path.Combine(_sandbox, "lm_sep.mp4")
+            Dim mux As New LiveMuxSession(_ffmpeg, outPath, 30, 48000, 2, 48000, 1, True, 1.0F, 1.0F,
+                                          AddressOf CollectLog)
+            Try
+                Assert(mux.Start(), "Start returned False")
+                mux.BeginTimelines(0.0, 0.0)
+
+                FeedVideoFile(mux)
+                FeedAudioSeconds(mux, 1.0)
+                ' mic: 1ch sine, 1s — 48k frames x 2B
+                Dim mic As Byte() = New Byte(48000 * 2 - 1) {}
+                For i As Integer = 0 To 47999
+                    Dim v As Short = CShort(Math.Sin(i * 900.0 * 2.0 * Math.PI / 48000.0) * 12000.0)
+                    mic(i * 2) = CByte(v And &HFF)
+                    mic(i * 2 + 1) = CByte((v >> 8) And &HFF)
+                Next
+                mux.FeedMicAudioSegment(mic, 0, mic.Length)
+                Thread.Sleep(2000)
+
+                ' W3 pin: snapshot the frag BEFORE Stop — proves whether the
+                ' mic stream existed in the muxed fragments or was lost at
+                ' finalize/remux.
+                Dim fragSnap As String = outPath & ".snap.mp4"
+                Try
+                    If IO.File.Exists(outPath & ".frag.mp4") Then
+                        IO.File.Copy(outPath & ".frag.mp4", fragSnap, True)
+                    End If
+                Catch
+                End Try
+
+                Dim res As LiveMuxResult = mux.Stop(30000)
+                Assert(res.Succeeded, "Succeeded=False: " & res.ErrorMessage)
+                Assert(res.MicBytesFed > 0, "no mic bytes reached the mux")
+
+                Dim probe As String = ProbeStreams(outPath)
+                Dim audioCount As Integer = 0
+                Dim idx As Integer = probe.IndexOf("Audio:", StringComparison.Ordinal)
+                While idx >= 0
+                    audioCount += 1
+                    idx = probe.IndexOf("Audio:", idx + 1)
+                End While
+                If IO.File.Exists(fragSnap) Then
+                    Dim fp As String = ProbeStreams(fragSnap)
+                    Dim fa As Integer = 0
+                    Dim ix As Integer = fp.IndexOf("Audio:", StringComparison.Ordinal)
+                    While ix >= 0
+                        fa += 1
+                        ix = fp.IndexOf("Audio:", ix + 1)
+                    End While
+                    Console.WriteLine($"      [LM-SEP] frag snapshot audio streams = {fa}")
+                Else
+                    Console.WriteLine("      [LM-SEP] frag snapshot MISSING (frag never created)")
+                End If
+                ' KNOWN UPSTREAM LIMITATION (W3 pin, FFmpeg trac #1663): with
+                ' THREE named-pipe inputs the LAST audio input is demuxed but
+                ' its packets never reach the muxer — the output loses the mic
+                ' stream while args/feeds/accounting are all correct. This test
+                ' stays RED as the guard: it goes green the day the ffmpeg in
+                ' use (or a pipe-architecture rework) fixes the drop.
+                Assert(audioCount = 2, $"expected 2 audio streams, got {audioCount} " &
+                                       $"[FFmpeg trac #1663: third named-pipe input dropped by the muxer] : {probe}" &
+                                       Environment.NewLine & "STDERR: " & res.StderrTail &
+                                       Environment.NewLine & "MICFED: " & res.MicBytesFed.ToString("N0"))
+            Finally
+                mux.Dispose()
+            End Try
         End Sub
 
         ' ───────────────────────────────────────────────────────────────

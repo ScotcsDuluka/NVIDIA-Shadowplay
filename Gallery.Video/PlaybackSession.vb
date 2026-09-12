@@ -38,6 +38,7 @@ Option Infer On
 '   paused session costs zero subprocess CPU. Doc updated to match.
 
 Imports System
+Imports System.Diagnostics
 Imports System.Globalization
 Imports System.IO
 Imports System.Threading
@@ -62,6 +63,26 @@ Namespace Gallery.Video
         ''' <summary>Bounded waits: open (probe+spawn) and seek (first frame).</summary>
         Public Property OpenTimeoutMs As Integer = 15000
         Public Property SeekTimeoutMs As Integer = 5000
+
+        ''' <summary>F4 liveness guard: when Playing, a decode worker that
+        ''' produces NO complete frame for this long (alive but silent — hung
+        ''' ffmpeg, wedged pipe, suspended process) deterministically moves the
+        ''' session to Paused with one advisory DecodeStalled fault instead of
+        ''' freezing Playing forever. Generous default: a healthy local-file
+        ''' decode produces frames far faster; a legal silent gap larger than
+        ''' this is indistinguishable from a hang.</summary>
+        Public Property DecodeStallTimeoutMs As Integer = 10000
+
+        ''' <summary>W1 starved-present guard: when a decoded frame is LATE
+        ''' beyond the presentation window and the sink has shown nothing for
+        ''' this long, the late frame is PRESENTED as a resync instead of
+        ''' dropped — decode delivery slower than the container rate (e.g. a
+        ''' 240fps recording on a ~100fps decode path) otherwise freezes the
+        ''' screen forever while audio advances. The result is a bounded-rate
+        ''' slideshow (≈1000/StarvedPresentMs fps) that keeps motion and makes
+        ''' the architectural delivery ceiling VISIBLE instead of hidden.
+        ''' 250 = default; 0 = present every late frame; -1 = strict drop.</summary>
+        Public Property StarvedPresentMs As Integer = 250
 
         ''' <summary>Decode audio when the probe finds an audio stream.</summary>
         Public Property AudioEnabled As Boolean = True
@@ -153,8 +174,18 @@ Namespace Gallery.Video
         Private _framesPresented As Long
         Private _droppedLate As Long
         Private _staleGenerationsFlushed As Long
+        ' W1 starved-present guard: last-present wall marker + resync counter
+        Private _lastPresentWallQpc As Long = 0
+        Private _starvedResyncPresents As Long
         Private _eofCount As Long
         Private _audioFallbackCount As Long
+        Private _decodeStallCount As Long
+
+        ' F4 liveness: decode-stall decision core (pure; the render loop is
+        ' its only caller, so no locking beyond the session state guard).
+        ' Constructed in the ctor — it reads _opts (field initializers run
+        ' before the ctor body assigns _opts).
+        Private ReadOnly _stallWatch As DecodeStallWatchdog
 
         ' eof waiter (test seam)
         Private ReadOnly _eofEvent As New ManualResetEventSlim(False)
@@ -162,6 +193,9 @@ Namespace Gallery.Video
         Public Sub New(Optional opts As PlaybackSessionOptions = Nothing)
             _opts = If(opts, New PlaybackSessionOptions())
             _clock = If(_opts.Clock, New PlaybackClock())
+            ' Clamp: a non-positive timeout would silently disarm the F4 guard
+            ' (the watchdog ctor throws) — the guard must always be armed.
+            _stallWatch = New DecodeStallWatchdog(Math.Max(1, _opts.DecodeStallTimeoutMs))
         End Sub
 
         ' ---- observability ----
@@ -218,9 +252,43 @@ Namespace Gallery.Video
             End Get
         End Property
 
+        ''' <summary>W1 starved-present guard: late frames PRESENTED as resyncs
+        ''' because the sink had shown nothing for StarvedPresentMs. 0 on every
+        ''' healthy-rate session; greater than 0 proves the architectural
+        ''' delivery ceiling was hit and the degrade path kept motion instead
+        ''' of freezing.</summary>
+        Public ReadOnly Property StarvedResyncPresents As Long
+            Get
+                Return Volatile.Read(_starvedResyncPresents)
+            End Get
+        End Property
+
         Public ReadOnly Property EofCount As Long
             Get
                 Return Volatile.Read(_eofCount)
+            End Get
+        End Property
+
+        ''' <summary>F4 liveness: how many times a silent decode forced the
+        ''' Playing → Paused transition (each carries one DecodeStalled fault).
+        ''' 0 on every healthy session.</summary>
+        Public ReadOnly Property DecodeStallCount As Long
+            Get
+                Return Volatile.Read(_decodeStallCount)
+            End Get
+        End Property
+
+        ''' <summary>Video decode PID of the live generation (-1 when none) —
+        ''' diagnostics + liveness test seam (stall tests target the EXACT
+        ''' process; a name-based ffmpeg lookup would race other tests).</summary>
+        Public ReadOnly Property DecodeVideoProcessId As Integer
+            Get
+                Dim w As FfmpegDecodeWorker = Nothing
+                SyncLock _lock
+                    w = _worker
+                End SyncLock
+                If w Is Nothing Then Return -1
+                Return w.VideoProcessId
             End Get
         End Property
 
@@ -282,11 +350,91 @@ Namespace Gallery.Video
                 a = _audio
                 active = _audioActive
             End SyncLock
+            ' W2 clock-domain fix: audio is the master ONLY while it
+            ' demonstrably ADVANCES. A device that reports Playing but never
+            ' consumes samples (endpoint stalled, pull path dead) must never
+            ' freeze the presentation clock — fall back to the QPC wall clock,
+            ' which lives in the SAME 100-ns media domain (§3.6).
             If active AndAlso a IsNot Nothing AndAlso a.IsPlaying Then
-                Return a.AudioPositionTicks
+                Dim at = a.AudioPositionTicks
+                If at > _lastAudioMasterTicks Then
+                    ' W2: an endpoint whose consumption rate is not wall-true
+                    ' (virtual APO devices can pull ~2×) must not drag the
+                    ' presentation clock — audio masters only while it agrees
+                    ' with the QPC wall clock within ±120 ms (typical A/V sync
+                    ' budget); outside that window the wall clock (SAME media
+                    ' domain) takes over, keeping master-switch jitter bounded.
+                    If Math.Abs(at - _clock.PresentationTicks) <= PlaybackClock.SecondsToTicks(0.12) Then
+                        _lastAudioMasterTicks = at
+                        Return at
+                    End If
+                End If
             End If
             Return _clock.PresentationTicks
         End Function
+
+        ''' <summary>Last audio position accepted as the master clock — the
+        ''' progress evidence behind the audio-master gate above.</summary>
+        Private _lastAudioMasterTicks As Long = -1L
+
+        ' ---- W2 observability seams (measured, never hidden — §6) ----
+
+        ''' <summary>Absolute media-domain audio position (100-ns ticks) while
+        ''' an audio renderer is active; −1 in video-only mode. SAME domain as
+        ''' PositionTicks (W2 clock-domain fix — rebased at Open/Resume/Seek).</summary>
+        Public ReadOnly Property AudioPositionTicks As Long
+            Get
+                Dim a As AudioRenderer = Nothing
+                Dim active As Boolean = False
+                SyncLock _lock
+                    a = _audio
+                    active = _audioActive
+                End SyncLock
+                If active AndAlso a IsNot Nothing Then Return a.AudioPositionTicks
+                Return -1L
+            End Get
+        End Property
+
+        ''' <summary>True when audio render is wired to a live endpoint (not
+        ''' the video-only fallback).</summary>
+        Public ReadOnly Property AudioActive As Boolean
+            Get
+                SyncLock _lock
+                    Return _audioActive AndAlso _audio IsNot Nothing
+                End SyncLock
+            End Get
+        End Property
+
+        ''' <summary>Video frames currently buffered in the bounded queue
+        ''' (test seam for the memory/queue stress proofs).</summary>
+        Public ReadOnly Property VideoQueueCount As Integer
+            Get
+                Dim q As FrameQueue = Nothing
+                SyncLock _lock
+                    q = _videoQueue
+                End SyncLock
+                Return If(q IsNot Nothing, q.Count, 0)
+            End Get
+        End Property
+
+        Public ReadOnly Property VideoQueueCapacity As Integer
+            Get
+                Return _opts.VideoQueueCapacity
+            End Get
+        End Property
+
+        ''' <summary>Device-pull underruns on the active audio renderer (ring
+        ''' empty at pull time — answered with silence). −1 when video-only.
+        ''' Observability seam (W2 audio lifecycle fix evidence).</summary>
+        Public ReadOnly Property AudioUnderruns As Long
+            Get
+                Dim a As AudioRenderer = Nothing
+                SyncLock _lock
+                    a = _audio
+                End SyncLock
+                Return If(a IsNot Nothing, a.Underruns, -1L)
+            End Get
+        End Property
 
         ' ---- test seams (polling keeps them off the UI contract) ----
 
@@ -378,7 +526,10 @@ Namespace Gallery.Video
                     Return PlaybackCommandResult.Reject($"Pause requires Playing (state={_state})")
                 End If
                 _state = PlaybackState.Paused
-                _pausedTicks = MasterTicks()
+                ' W2 clock-domain fix: the pause/resume anchor is the WALL-TRUE
+                ' media position — MasterTicks() can drift up to the drift-guard
+                ' window on endpoints whose sample clock is not wall-true.
+                _pausedTicks = _clock.PresentationTicks
                 _clock.Freeze()
                 _audio?.Pause()
                 parked = _decodeAlive
@@ -412,7 +563,11 @@ Namespace Gallery.Video
                         Math.Max(0L, _durationTicks - PlaybackClock.FrameWindowTicks(1.0 / _fps)))
                     clamped = Math.Min(clamped, maxT)
                 End If
-                originTicks = MasterTicks()
+                ' W2 clock-domain fix: the seek-RECOVERY origin is wall-true
+                ' (same reasoning as the pause anchor above).
+                originTicks = If(_state = PlaybackState.Playing,
+                                 _clock.PresentationTicks,
+                                 If(_lastPresentedPts >= 0, _lastPresentedPts, _pausedTicks))
                 _resumePaused = (_state = PlaybackState.Paused)
                 prevState = _state
                 _state = PlaybackState.Seeking
@@ -563,7 +718,16 @@ Namespace Gallery.Video
                     ' a clock that already ran past the first frame's PTS
                     ' (probe time would otherwise read as "late" and drop the
                     ' opening frames — §3.4 late rule).
-                    If wasOpening0() Then _clock.AnchorAt(0L)
+                    ' W2 audio clock-domain fix: Open auto-plays (§3.5), so the
+                    ' audio device MUST start here with the same anchor — the
+                    ' old path never called _audio.Play() on Open, leaving the
+                    ' Open→Playing session silent and the audio master clock
+                    ' dormant (MasterTicks silently fell back to QPC).
+                    If wasOpening0() Then
+                        _clock.AnchorAt(0L)
+                        _audio?.RebaseTo(0L)
+                        _audio?.Play()
+                    End If
 
                     Dim wasOpening As Boolean
                     SyncLock _lock
@@ -648,6 +812,13 @@ Namespace Gallery.Video
         Private Function SpawnGeneration(seekSeconds As Double) As Boolean
             Dim probe = _media
             Dim v = probe.Video
+            ' W1 starved-present guard: a fresh generation needs a FRESH
+            ' picture — without this reset the pre-seek "last present"
+            ' freshness would suppress the first post-seek resync for
+            ' StarvedPresentMs while the clock runs on, and the first
+            ' presented frame after a seek would land past the target
+            ' (measured: 2.517s for a 2.0s seek before this reset).
+            Volatile.Write(_lastPresentWallQpc, 0)
             Dim gen As Long
             Dim queue As FrameQueue
             Dim ring As AudioPcmBuffer
@@ -677,6 +848,9 @@ Namespace Gallery.Video
 
             Dim worker As New FfmpegDecodeWorker(cfg)
             Dim current As FfmpegDecodeWorker = worker
+            ' F4: a fresh generation restarts the decode counter domain —
+            ' re-arm the stall window exactly at spawn (not at first poll).
+            _stallWatch.Reset(Stopwatch.GetTimestamp())
             AddHandler worker.FaultDetected,
                 Sub(w, f)
                     ' Ignore stale workers (superseded generation).
@@ -762,6 +936,7 @@ Namespace Gallery.Video
                     _decodeAlive = True
                 End SyncLock
                 _clock.AnchorAt(PlaybackClock.SecondsToTicks(seekSeconds))
+                _audio?.RebaseTo(PlaybackClock.SecondsToTicks(seekSeconds))
                 _audio?.Play()
                 StartRenderThreadIfNeeded()
             Finally
@@ -791,6 +966,8 @@ Namespace Gallery.Video
                 If Not SpawnGeneration(0.0) Then Return
 
                 _clock.AnchorAt(0L)
+                _audio?.RebaseTo(0L)
+                _audio?.Play()
                 SyncLock _lock
                     _decodeAlive = True
                 End SyncLock
@@ -877,6 +1054,7 @@ Namespace Gallery.Video
                     _decodeAlive = True
                 End SyncLock
                 _clock.AnchorAt(anchor)
+                _audio?.RebaseTo(anchor)
                 If resumePaused Then
                     SyncLock _lock
                         _state = PlaybackState.Paused
@@ -915,6 +1093,7 @@ Namespace Gallery.Video
                 _decodeAlive = True
             End SyncLock
             _clock.AnchorAt(_seekOriginTicks)
+            _audio?.RebaseTo(_seekOriginTicks)
             SyncLock _lock
                 _state = PlaybackState.Paused
                 _clock.Freeze()
@@ -987,6 +1166,13 @@ Namespace Gallery.Video
                     End If
                 End SyncLock
 
+                If hold IsNot Nothing Then
+                    ' A frame left the queue — presentation is moving. Feeding
+                    ' the stall window keeps a draining pre-hang buffer from
+                    ' firing the F4 guard while real motion continues.
+                    _stallWatch.MarkProgress(Stopwatch.GetTimestamp())
+                End If
+
                 If hold Is Nothing Then
                     ' ---- EOF detection (decode alive + everything drained) ----
                     Dim w As FfmpegDecodeWorker = Nothing
@@ -1001,7 +1187,7 @@ Namespace Gallery.Video
                         SyncLock _lock
                             If _state = PlaybackState.Playing AndAlso _decodeAlive Then
                                 _decodeAlive = False
-                                _pausedTicks = MasterTicks()
+                                _pausedTicks = _clock.PresentationTicks
                                 _clock.Freeze()
                                 _audio?.Pause()
                                 _state = PlaybackState.Paused
@@ -1009,18 +1195,35 @@ Namespace Gallery.Video
                                 raiseEos = True
                             End If
                         End SyncLock
-                        If raiseEos Then
-                            FireState(PlaybackState.Playing, PlaybackState.Paused)
-                            ' Event BEFORE the waiter gate opens: anyone woken by
-                            ' WaitForEof must already have seen EosReached (the
-                            ' reverse order is a wake-before-notify race).
-                            RaiseEvent EosReached(Me)
-                            _eofEvent.Set()
-                        End If
+                    If raiseEos Then
+                        FireState(PlaybackState.Playing, PlaybackState.Paused)
+                        ' Event BEFORE the waiter gate opens: anyone woken by
+                        ' WaitForEof must already have seen EosReached (the
+                        ' reverse order is a wake-before-notify race).
+                        RaiseEvent EosReached(Me)
+                        _eofEvent.Set()
                     End If
-                    Thread.Sleep(tickMs)
-                    Continue While
                 End If
+
+                ' ---- F4 decode liveness: Playing must never outlive a silent
+                ' decode. A worker that is alive, NOT at EOF, NOT faulted, and
+                ' has produced no complete frame for DecodeStallTimeoutMs gets
+                ' exactly one deterministic transition (see the method doc).
+                ' Worker FAULTS are not handled here — FaultDetected already
+                ' drives the terminal Faulted path via FaultOut.
+                If st = PlaybackState.Playing AndAlso alive AndAlso
+                   w IsNot Nothing AndAlso Not w.VideoEof Then
+                    If _stallWatch.IsStalled(w.FramesDecoded, decodeEof:=False,
+                                             nowQpc:=Stopwatch.GetTimestamp()) Then
+                        TransitionToPausedAfterDecodeStall(
+                            $"no decoded frame for {_opts.DecodeStallTimeoutMs}ms while Playing " &
+                            $"(decoded={w.FramesDecoded}, video pid={w.VideoProcessId})")
+                    End If
+                End If
+
+                Thread.Sleep(tickMs)
+                Continue While
+            End If
 
                 ' ---- stale generation guard (seek contract: never present) ----
                 If hold.Generation < gen Then
@@ -1055,6 +1258,29 @@ Namespace Gallery.Video
                 Dim delta = hold.PtsTicks - now
 
                 If delta < -window Then
+                    ' W1 starved-present guard: when decode delivery is slower
+                    ' than the container rate, EVERY arriving frame is late and
+                    ' the strict drop path would freeze the screen forever
+                    ' (presented=0 while audio advances — measured 240fps: 961
+                    ' dropped / 0 presented). Once the sink has shown nothing
+                    ' for StarvedPresentMs, present the late frame as a RESYNC:
+                    ' a bounded-rate slideshow that keeps motion and exposes
+                    ' the delivery ceiling (counted, never silent).
+                    Dim starveMs = _opts.StarvedPresentMs
+                    If starveMs >= 0 Then
+                        Dim lastQ = Volatile.Read(_lastPresentWallQpc)
+                        Dim ageMs = (Stopwatch.GetTimestamp() - lastQ) * 1000.0 / Stopwatch.Frequency
+                        If ageMs >= starveMs Then
+                            PresentFrame(hold)
+                            Volatile.Write(_lastPresentWallQpc, Stopwatch.GetTimestamp())
+                            Interlocked.Increment(_starvedResyncPresents)
+                            SyncLock _holdLock
+                                If _holdFrame Is hold Then _holdFrame = Nothing
+                            End SyncLock
+                            Try : hold.Dispose() : Catch : End Try
+                            Continue While
+                        End If
+                    End If
                     SyncLock _holdLock
                         If _holdFrame Is hold Then _holdFrame = Nothing
                     End SyncLock
@@ -1086,6 +1312,42 @@ Namespace Gallery.Video
             End SyncLock
         End Sub
 
+        ''' <summary>
+        ''' F4 containment (single-shot, deterministic). A decode worker that
+        ''' stayed alive but produced nothing must never hold Playing forever.
+        ''' Mirrors Pause() exactly — freeze the clock at the current master
+        ''' position, pause audio, hold the last presented frame on the sink —
+        ''' then parks (kills) the hung decoder asynchronously and raises ONE
+        ''' advisory DecodeStalled fault. The session stays usable: Play
+        ''' respawns a fresh generation at the paused position (the existing
+        ''' recovery path); a file that stalls at the same spot again simply
+        ''' stalls into Paused again — bounded, never terminal, never hidden.
+        ''' Re-entry is impossible: the state guard requires Playing and the
+        ''' transition itself leaves Playing.
+        ''' </summary>
+        Private Sub TransitionToPausedAfterDecodeStall(reason As String)
+            Dim fired As Boolean = False
+            SyncLock _lock
+                If _state = PlaybackState.Playing AndAlso _decodeAlive AndAlso Not IsDisposed Then
+                    _decodeAlive = False
+                    _pausedTicks = MasterTicks()   ' Monitor reentrancy — same pattern as Pause()
+                    _clock.Freeze()
+                    _audio?.Pause()
+                    _state = PlaybackState.Paused
+                    Interlocked.Increment(_decodeStallCount)
+                    fired = True
+                End If
+            End SyncLock
+            If Not fired Then Return
+
+            FireState(PlaybackState.Playing, PlaybackState.Paused)
+            ' State transition FIRST, then the advisory fault (same order as
+            ' the EOF path — observers must never see a fault for a state the
+            ' session has not reached).
+            RaiseEvent FaultRaised(Me, New GalleryVideoFault(GalleryVideoFaultKind.DecodeStalled, reason))
+            Task.Run(Sub() ParkDecoderCore())
+        End Sub
+
         Private Sub PresentFrame(frame As PlaybackFrame)
             Dim sink As IVideoRenderSink = Nothing
             SyncLock _lock
@@ -1097,6 +1359,7 @@ Namespace Gallery.Video
                 Volatile.Write(_sinkLastGeneration, frame.Generation)
                 Volatile.Write(_sinkLastSequence, frame.Sequence)
                 Volatile.Write(_lastPresentedPts, frame.PtsTicks)
+                Volatile.Write(_lastPresentWallQpc, Stopwatch.GetTimestamp())
                 Interlocked.Increment(_framesPresented)
             Catch
                 ' Sink-level failure must never kill the render loop; device

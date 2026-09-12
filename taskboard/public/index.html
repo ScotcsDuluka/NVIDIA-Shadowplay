@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TASK BOARD — Mission Control</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%230b0e14'/%3E%3Ccircle cx='8' cy='8' r='4' fill='%2335d07f'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+
+<div id="login" class="login-wrap hidden">
+  <div class="login-card">
+    <div class="login-brand">▣ TASK BOARD</div>
+    <div class="login-sub">Mission Control — single source of truth for task &amp; worker status</div>
+    <form id="loginForm">
+      <label>USERNAME <input id="loginUser" autocomplete="username" required></label>
+      <label>PASSWORD <input id="loginPass" type="password" autocomplete="current-password" required></label>
+      <div id="loginError" class="form-error hidden"></div>
+      <button class="btn accent wide" type="submit">SIGN IN</button>
+    </form>
+    <div class="login-hint">
+      Seeded accounts — <code>owner / owner123</code> · <code>admin / admin123</code> · <code>viewer / viewer123</code>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header class="topbar">
+    <a class="brand" href="#/"><span class="brand-mark">▣</span> TASK BOARD <span class="brand-sub">MISSION CONTROL</span></a>
+    <nav class="mainnav" id="mainnav">
+      <a href="#/" data-nav="board">BOARD</a>
+      <a href="#/activity" data-nav="activity">ACTIVITY</a>
+      <a href="#/history" data-nav="history">HISTORY</a>
+    </nav>
+    <div class="searchbox">
+      <input id="globalSearch" type="search" spellcheck="false"
+             placeholder="Search: task name / task id / machine / worker / file / test / blocker / notes">
+    </div>
+    <button id="btnNewTask" class="btn accent">+ NEW TASK</button>
+    <div class="userbox">
+      <span id="userLabel"></span>
+      <button id="btnLogout" class="btn ghost">LOG OUT</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice">
+    <b>TASK ≠ STATUS</b> · <b>REPORT ≠ STATUS</b>
+    <span>Status is an explicit field set by an operator. Task progress, reports and test results never change status automatically — every transition is a logged action with a reason.</span>
+    <button id="noticeClose" title="Dismiss">✕</button>
+  </div>
+
+  <div id="filterbar" class="filterbar"></div>
+
+  <main id="content"></main>
+
+  <footer class="foot">
+    Task Board — tracker only. It never runs git or any repository operation.
+  </footer>
+</div>
+
+<div id="modalOverlay" class="modal-overlay hidden"><div class="modal" id="modalBox"></div></div>
+<div id="toasts"></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

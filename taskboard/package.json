@@ -1,0 +1,16 @@
+{
+  "name": "nvidia-shadowplay-taskboard",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Multi-machine AI worker Task Board - single source of truth for task and worker status",
+  "scripts": {
+    "start": "node server/index.js",
+    "test": "node --test",
+    "sync": "node sync/zcode-sync.mjs",
+    "check": "node --check server/index.js && node --check server/app.js && node --check server/db.js && node --check server/seed.js && node --check server/transitions.js && node --check sync/zcode-sync.mjs"
+  },
+  "engines": {
+    "node": ">=23.4"
+  }
+}

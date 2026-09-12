@@ -38,6 +38,14 @@ Namespace Engine.ConfigTruth.Tests
     Friend Module Program
 
         Function Main(args As String()) As Integer
+            ' W3 pin gate: w3pin runs ONLY the SeparateTrack plumbing pin and
+            ' exits — keeps the pin independent of the full-suite context.
+            If args IsNot Nothing AndAlso Array.Exists(args,
+               Function(a) String.Equals(If(a, "").Trim(), "w3pin", StringComparison.OrdinalIgnoreCase)) Then
+                W3AudioTrackPinTests.RunPin()
+                Return W3AudioTrackPinTests.ReportSummary()
+            End If
+
             Console.WriteLine("==================================================")
             Console.WriteLine(" Engine.ConfigTruth.Tests — PHASE 0 CONFIG TRUTH")
             Console.WriteLine(" CT-4: stale config reload (deterministic)")

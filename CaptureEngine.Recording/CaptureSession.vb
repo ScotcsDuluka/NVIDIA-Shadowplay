@@ -890,6 +890,17 @@ Namespace CaptureEngine.Recording
                 Dim stopElapsedSeconds As Double = Math.Min(duration.TotalSeconds, Math.Max(0.0, (stopQpcTicks - _timelineStartTicks) / CDbl(Stopwatch.Frequency)))
 
                 _logger.Info($"[session] Stop snapshot: elapsed={stopElapsedSeconds:F3}s")
+                ' ★ P1-A stop boundary (W1): freeze the AUDIO session end at the
+                ' SAME snapshot the video stop sequence just latched — before the
+                ' (possibly slow, heavy-resolution) capture-stop/tail-fill/encoder
+                ' teardown drains. Without this the audio boundary froze only when
+                ' _audioEngine.Stop() ran at the END of the sequence, so every
+                ' packet recorded during the teardown flowed past T_END unclipped
+                ' and the audio stream ran long (audio tail > video duration; the
+                ' OnPacket HARD T_END clip was armed too late to help). From here
+                ' the HARD T_END clip owns the boundary; the later
+                ' _audioEngine.Stop(…stopQpcTicks…) re-sets the identical value.
+                _audioEngine?.SetSessionEndQpc100ns(WasapiPositionCapture.StopwatchTicksTo100ns(stopQpcTicks))
                 _logger.Info("[session] Stopping video capture...")
                 _capture.Stop()
                 captureRunning = False   ' ★ M1: success path owns the stop — Finally must not re-stop
@@ -1139,6 +1150,12 @@ Namespace CaptureEngine.Recording
                 ' dropped=0 while the mux threw away 1,530,240B ≈ 8s of tail
                 ' audio; pass=True hid the loss for years.)
                 result.MuxDroppedBytes = liveRes.DroppedBytes
+                ' P1-B: a salvaged fragment keeps the partial file on disk but
+                ' the session stays an honest FAILURE (Pass excludes partials).
+                result.MuxPartialSalvaged = liveRes.PartialSalvaged
+                If liveRes.PartialSalvaged Then
+                    _logger.Warning("[session] partial recording salvaged from fragments — pass stays False")
+                End If
                 If liveRes.DroppedBytes > 0 Then
                     _logger.Warning($"[session] live-mux dropped {liveRes.DroppedBytes:N0}B — file is missing captured audio (pass will report False)")
                 End If

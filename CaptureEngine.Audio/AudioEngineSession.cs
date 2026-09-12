@@ -145,15 +145,42 @@ namespace CaptureEngine.Audio
                 if (sessionEndQpc100ns <= 0)
                     sessionEndQpc100ns = WasapiPositionCapture.StopwatchTicksTo100ns(System.Diagnostics.Stopwatch.GetTimestamp());
                 Interlocked.Exchange(ref _sessionEndQpc100ns, sessionEndQpc100ns);
+                // ★ P3-A stop hardening (W3 endurance, E1 evidence): with a
+                // wedged audio consumer the tail-silence dispatch below used
+                // to run tail_chunks × PipeFeed's 10s producer timeout — a
+                // 10-minute recording carried a ~100-minute stop (E1 killed
+                // at 4.9min). The finalize budget bounds the whole stop:
+                // once exceeded, remaining tail silence is truncated with a
+                // loud log. Healthy runs finalize in milliseconds and never
+                // trip it. Timestamps/timeline semantics are unchanged — the
+                // truncation only shortens the already-broken tail.
+                var swFinalize = System.Diagnostics.Stopwatch.StartNew();
                 foreach (var t in _tracks)
                 {
                     try { t.Capture.Stop(); } catch { }
-                    FinalizeTrack(t, sessionEndQpc100ns);
+                    FinalizeTrack(t, sessionEndQpc100ns, swFinalize);
                 }
                 _stopped = true;
                 RebuildDiagnostics();
             }
             Log(_diagnostics.ToString());
+        }
+
+        /// <summary>P1-A stop boundary: freeze the session-end boundary to the
+        /// SAME snapshot the video stop sequence latched — WITHOUT stopping the
+        /// captures or finalizing. From this moment the HARD T_END clip (OnPacket)
+        /// drops everything past the boundary, so the audio stream can no longer
+        /// overrun the video while the (possibly slow, heavy-resolution) video
+        /// stop sequence drains. The later Stop(sessionEndQpc100ns) call re-sets
+        /// the identical value and finalizes; first boundary always wins.</summary>
+        public void SetSessionEndQpc100ns(long sessionEndQpc100ns)
+        {
+            if (sessionEndQpc100ns <= 0) return;
+            lock (_sync)
+            {
+                if (!_started || _stopped) return;
+                Interlocked.Exchange(ref _sessionEndQpc100ns, sessionEndQpc100ns);
+            }
         }
 
         private void TryStartTrack(AudioTrackKind kind, bool loopback)
@@ -347,18 +374,18 @@ namespace CaptureEngine.Audio
             }
         }
 
-        private void FinalizeTrack(TrackRuntime t, long sessionEndQpc100ns)
+        private void FinalizeTrack(TrackRuntime t, long sessionEndQpc100ns, System.Diagnostics.Stopwatch swFinalize)
         {
             if (!t.Started)
             {
                 long span = sessionEndQpc100ns - _sessionStartQpc100ns;
                 if (span > 0)
-                    DispatchSilence(t, _sessionStartQpc100ns, span);
+                    DispatchSilence(t, _sessionStartQpc100ns, span, swFinalize);
                 return;
             }
 
             long tail = sessionEndQpc100ns - t.LastEnd100ns;
-            if (tail > 0) DispatchSilence(t, t.LastEnd100ns, tail);
+            if (tail > 0) DispatchSilence(t, t.LastEnd100ns, tail, swFinalize);
         }
 
         /// <summary>Silence is emitted in ≤1s chunks — never one allocation
@@ -366,11 +393,20 @@ namespace CaptureEngine.Audio
         /// capture/finalize thread).</summary>
         private const long SilenceChunk100ns = 10_000_000L;
 
+        /// <summary>P3-A: wall-clock budget for the whole Stop finalize
+        /// (tail/hole silence dispatch across all tracks). A wedged audio
+        /// consumer makes every silence chunk's sink write hit PipeFeed's
+        /// 10s producer timeout — without this budget a 10-minute recording
+        /// carried a ~100-minute stop. Healthy runs finalize in milliseconds
+        /// and never approach it.</summary>
+        private const long FinalizeBudgetMs = 10_000;
+
         /// <summary>Same 3600s policy the (dormant) taps document: a hole
         /// larger than this is driver/device pathology, not real silence.</summary>
         public const long MaxSyntheticSilence100ns = 3600L * 10_000_000L;
 
-        private void DispatchSilence(TrackRuntime t, long pts100ns, long duration100ns)
+        private void DispatchSilence(TrackRuntime t, long pts100ns, long duration100ns,
+                                     System.Diagnostics.Stopwatch swFinalize = null)
         {
             if (duration100ns <= 0) return;
             if (duration100ns > MaxSyntheticSilence100ns) duration100ns = MaxSyntheticSilence100ns;
@@ -382,6 +418,18 @@ namespace CaptureEngine.Audio
             long offset100ns = 0;
             while (remaining > 0)
             {
+                // ★ P3-A: stop-path budget — after FinalizeBudgetMs the tail
+                // silence is truncated (logged once per call). Bounds the stop
+                // when the consumer wedges; per-chunk sink writes stay bounded
+                // by PipeFeed.Feed's own producer timeout.
+                if (swFinalize != null && swFinalize.ElapsedMilliseconds > FinalizeBudgetMs)
+                {
+                    Log($"[AudioEngine] {t.Kind} finalize budget {FinalizeBudgetMs}ms exceeded — " +
+                        $"{remaining / 10_000_000.0:0.#}s of tail silence truncated " +
+                        "(audio consumer wedged; stop bounded by design)");
+                    return;
+                }
+
                 long chunk100ns = Math.Min(remaining, SilenceChunk100ns);
                 long chunkFrames = chunk100ns * t.Capture.SampleRate / 10_000_000L;
                 if (chunkFrames <= 0) break;

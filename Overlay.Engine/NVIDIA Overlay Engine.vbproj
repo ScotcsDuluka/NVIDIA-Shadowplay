@@ -1,0 +1,54 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<AssemblyName>NVIDIA Overlay Engine</AssemblyName>
+		<RootNamespace>NVIDIA_OverlayEngine</RootNamespace>
+		<UseWindowsForms>true</UseWindowsForms>
+		<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+		<NoWarn>$(NoWarn);WFO1000</NoWarn>
+		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+		<StartupObject>NVIDIA_OverlayEngine.Program</StartupObject>
+		<Platforms>AnyCPU;x64</Platforms>
+		<Version Condition="'$(SharedBuildNumber)' != ''">3.41.$(SharedBuildNumber).61</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- osc web overlay content (the NVIDIA GFE on-screen-indicator app).
+		     Copied from Overlay\osc — served same-origin by OscControllerServer.
+		     The original Overlay\osc stays until M1 acceptance completes. -->
+		<Content Include="osc\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2903.40" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Import Include="System" />
+		<Import Include="System.Collections" />
+		<Import Include="System.Collections.Generic" />
+		<Import Include="System.Data" />
+		<Import Include="System.Diagnostics" />
+		<Import Include="System.Drawing" />
+		<Import Include="System.Linq" />
+		<Import Include="System.Threading.Tasks" />
+		<Import Include="System.Windows.Forms" />
+		<Import Include="Microsoft.VisualBasic" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Root-fixed layout support (linked shared sources). This project
+		     uses a plain Sub Main (not the VB app framework), so it calls
+		     AppLayout.Initialize() directly in Program.vb and does NOT link
+		     AppLayoutStartup.vb (that shim requires My.MyApplication). -->
+		<Compile Include="..\Common\AppLayout.vb" Link="AppLayout.vb" />
+		<Compile Include="..\Common\AppConfigShared.vb" Link="AppConfigShared.vb" />
+
+		<!-- The hub TCP client is protocol-identical across every process;
+		     link the Overlay's source verbatim instead of duplicating it.
+		     (Bracket folder names are literal MSBuild paths.) -->
+		<Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\TCP\TcpClientHelper.vb" Link="TcpClientHelper.vb" />
+	</ItemGroup>
+
+</Project>

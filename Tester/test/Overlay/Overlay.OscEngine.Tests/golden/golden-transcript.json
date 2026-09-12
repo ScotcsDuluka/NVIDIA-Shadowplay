@@ -1,0 +1,201 @@
+{
+  "meta": {
+    "captured": "2026-09-12T17:50:16.114Z",
+    "engineio_client": "3.5.4",
+    "socketio_client": "2.5.0",
+    "secret": "GOLDENSECRET42"
+  },
+  "steps": [
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlRPm&b64=1",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "74:0{\"sid\":\"GOLDENSID\",\"upgrades\":[],\"pingInterval\":2000,\"pingTimeout\":60000}"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlRQ6&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "2:40"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlRQA&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "65:42[\"/ShadowPlay/v.1.0/WindowState\",{\"windowMsg\":\"overlayToggle\"}]"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlRVR&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "1:6"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlRt6&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "POST",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlRvY&b64=1&sid=GOLDENSID",
+      "body": "1:2"
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "ok"
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "1:6"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlSEc&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "1:3"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlSEe&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "1:6"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "POST",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlScH&b64=1&sid=GOLDENSID",
+      "body": "50:42[\"/ShadowPlay/v.1.0/Hotkey\",{\"hotkey\":\"Alt+F9\"}]"
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "ok"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlScM&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "POST",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlSk4&b64=1&sid=GOLDENSID",
+      "body": "1:2"
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "ok"
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "74:42[\"/ShadowPlay/v.1.0/Notification\",{\"id\":\"n1\",\"title\":\"Recording saved\"}]51:42[\"/ShadowPlay/v.1.0/Hotkey\",{\"hotkey\":\"Alt+F10\"}]"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlSls&b64=1&sid=GOLDENSID",
+      "body": ""
+    },
+    {
+      "dir": "s2c",
+      "kind": "response",
+      "status": 200,
+      "body": "1:3"
+    },
+    {
+      "dir": "c2s",
+      "kind": "request",
+      "method": "GET",
+      "url": "/socket.io/?X_LOCAL_SECURITY_COOKIE=GOLDENSECRET42&EIO=3&transport=polling&t=Q2MlSlv&b64=1&sid=GOLDENSID",
+      "body": ""
+    }
+  ],
+  "clientEvents": [
+    {
+      "ev": "connect"
+    },
+    {
+      "ev": "/ShadowPlay/v.1.0/WindowState",
+      "data": {
+        "windowMsg": "overlayToggle"
+      }
+    },
+    {
+      "ev": "/ShadowPlay/v.1.0/Notification",
+      "data": {
+        "id": "n1",
+        "title": "Recording saved"
+      }
+    },
+    {
+      "ev": "/ShadowPlay/v.1.0/Hotkey",
+      "data": {
+        "hotkey": "Alt+F10"
+      }
+    },
+    {
+      "ev": "disconnect",
+      "reason": "io client disconnect"
+    }
+  ]
+}

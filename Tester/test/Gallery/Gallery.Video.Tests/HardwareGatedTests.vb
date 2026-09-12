@@ -131,10 +131,19 @@ Namespace Gallery.Video.Tests
                     worker.Start()
 
                     Dim consumed As Long = 0
+                    Dim firstFrameWall As Long = -1
+                    Dim sustainedTicks As Long = 0
                     Dim deadline = DateTime.UtcNow.AddSeconds(120)
                     While DateTime.UtcNow < deadline
                         Dim f As PlaybackFrame = Nothing
                         If q.TryDequeue(100, f) Then
+                            ' W1: measure the SUSTAINED decode rate from the
+                            ' first consumed frame — process spawn + ffmpeg
+                            ' init (~0.5-1s, absorbed once by Open in real
+                            ' playback) must not be amortized into the rate.
+                            Dim nowT = Stopwatch.GetTimestamp()
+                            If firstFrameWall < 0 Then firstFrameWall = nowT
+                            sustainedTicks = nowT - firstFrameWall
                             f.Dispose()
                             consumed += 1L
                             Continue While
@@ -146,14 +155,21 @@ Namespace Gallery.Video.Tests
 
                     Dim memPeak = GC.GetTotalMemory(False)
                     Dim decodeFps = consumed / Math.Max(0.001, sw.Elapsed.TotalSeconds)
+                    Dim sustainedFps = If(sustainedTicks > 0,
+                                          (consumed - 1) / (sustainedTicks / CDbl(Stopwatch.Frequency)),
+                                          decodeFps)
+                    Console.WriteLine($"      CPU decode REPORT: gross {decodeFps:F1} fps (incl. startup), sustained {sustainedFps:F1} fps after first frame")
                     TestRunner.Assert(consumed >= 100, $"decoded ≥100 frames (got {consumed})")
 
                     Console.WriteLine()
                     Console.WriteLine($"      [ENV REPORT — this box, NOT a product claim]")
-                    Console.WriteLine($"      1080p60 H.264→BGRA8 pipe: {consumed} frames in {sw.ElapsedMilliseconds}ms = {decodeFps:F1} decode-fps")
-                    Console.WriteLine($"      (real-time = 60 fps → headroom ×{decodeFps / 60.0:F1} on CPU alone; mem {memBefore \ 1024}→{memPeak \ 1024}KB)")
-                    TestRunner.Assert(decodeFps > 60.0,
-                                      $"CPU decode faster than real-time on this box (got {decodeFps:F1} fps)")
+                    Console.WriteLine($"      1080p60 H.264→BGRA8 pipe: {consumed} frames in {sw.ElapsedMilliseconds}ms = {decodeFps:F1} decode-fps (incl. spawn/init)")
+                    Console.WriteLine($"      sustained after first frame: {sustainedFps:F1} fps → headroom ×{sustainedFps / 60.0:F2} at real-time (mem {memBefore \ 1024}→{memPeak \ 1024}KB)")
+                    ' W1: assert the SUSTAINED rate (first-frame-referenced) — the
+                    ' one-time spawn/init cost is absorbed by Open in real
+                    ' playback and must not be amortized into the rate.
+                    TestRunner.Assert(sustainedFps > 60.0,
+                                      $"CPU decode faster than real-time on this box (sustained {sustainedFps:F1} fps)")
                 End Using
             End Using
         End Sub

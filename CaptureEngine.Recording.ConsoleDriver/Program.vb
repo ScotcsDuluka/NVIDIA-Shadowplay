@@ -380,6 +380,24 @@ Module Program
         Console.WriteLine()
 
         Dim cfg As String = If(String.IsNullOrWhiteSpace(configPath), Nothing, configPath)
+
+        ' ★ W3 pin fix (SeparateTrack forensics): with an EXPLICIT --config
+        ' dir, pin the process layout root to that dir's PARENT so
+        ' OverlayConfig.ResolveConfigDir step 2 finds <root>\Config\config.json
+        ' (when the caller provides one) INSTEAD of the sibling-Overlay-bin
+        ' walk (step 3) which silently imports the OWNER'S deployed unified
+        ' config over every variant this driver was asked to test. Without a
+        ' unified file in the temp tree, IsAvailable=False → the legacy tier
+        ' (video/audio.json) governs — both shapes now honor --config.
+        If Not String.IsNullOrWhiteSpace(cfg) Then
+            Dim configDir As String = IO.Path.GetDirectoryName(IO.Path.GetFullPath(cfg))
+            If Not String.IsNullOrEmpty(configDir) Then
+                Environment.SetEnvironmentVariable("NVIDIA_SHADOWPLAY_APP_ROOT",
+                                                   IO.Path.GetDirectoryName(configDir))
+                Console.WriteLine($"  layout:  NVIDIA_SHADOWPLAY_APP_ROOT pinned to {IO.Path.GetDirectoryName(configDir)} (--config isolation)")
+            End If
+        End If
+
         Dim baselineOrphans As Integer = CountFFmpeg()
         Dim logger As New EngineLogger("VideoCheck", EngineLogger.LogLevel.Info, AddressOf Console.WriteLine)
         Dim engine As New RecordingEngine(logger)

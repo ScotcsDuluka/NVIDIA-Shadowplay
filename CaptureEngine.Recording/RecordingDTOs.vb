@@ -300,6 +300,12 @@ Namespace CaptureEngine.Recording
         ''' </summary>
         Public Property MuxDroppedBytes As Long
 
+        ''' <summary>P1-B: ffmpeg died (exit != 0) but a USABLE fragmented
+        ''' recording was promoted to the output path. The file exists and
+        ''' plays, yet the session is an honest FAILURE — Pass below must
+        ''' never turn a salvaged kill into a success.</summary>
+        Public Property MuxPartialSalvaged As Boolean
+
         Public ReadOnly Property Pass As Boolean
             Get
                 ' ★ 17:28 FIX (video-only wrongly failed): audio expectations
@@ -314,6 +320,7 @@ Namespace CaptureEngine.Recording
                 Dim micOk As Boolean = If(MicDroppedBytes = 0, True, False)
                 Return FramesEncoded > 0 AndAlso
                        NvencErrors = 0 AndAlso
+                       Not MuxPartialSalvaged AndAlso
                        FileExists AndAlso
                        FileSize > 0 AndAlso
                        VideoStreamFound AndAlso

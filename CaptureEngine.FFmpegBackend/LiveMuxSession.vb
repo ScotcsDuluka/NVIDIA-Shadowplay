@@ -39,6 +39,11 @@ Namespace CaptureEngine.FFmpegBackend
     ''' <summary>Statistics of a completed live-mux run.</summary>
     Public NotInheritable Class LiveMuxResult
         Public Property Succeeded As Boolean
+        ' P1-B: ffmpeg died (exit != 0) but a USABLE fragmented recording was
+        ' promoted to the output path. The result stays an honest FAILURE
+        ' (Succeeded = False) - this flag only marks that partial footage was
+        ' preserved for the user.
+        Public Property PartialSalvaged As Boolean
         Public Property FFmpegExitCode As Integer
         Public Property VideoBytesFed As Long
         Public Property SystemBytesFed As Long
@@ -46,11 +51,16 @@ Namespace CaptureEngine.FFmpegBackend
         Public Property DroppedBytes As Long
         Public Property UsedFaststartRemux As Boolean
         Public Property ErrorMessage As String = ""
+        ' W3 audio-forensics: the muxer's own stderr tail is evidence on the
+        ' SUCCESS path too (a silently dropped mapped stream, codec warnings,
+        ' interleave notices never reach ErrorMessage). Always captured.
+        Public Property StderrTail As String = ""
 
         Public Overrides Function ToString() As String
             Return $"LiveMux: ok={Succeeded} exit={FFmpegExitCode} " &
                    $"v={VideoBytesFed:N0}B a={SystemBytesFed:N0}B mic={MicBytesFed:N0}B " &
                    $"dropped={DroppedBytes:N0}B faststart={UsedFaststartRemux}" &
+                   If(PartialSalvaged, " PARTIAL-SALVAGED", "") &
                    If(String.IsNullOrEmpty(ErrorMessage), "", " err=" & ErrorMessage)
         End Function
     End Class
@@ -250,6 +260,13 @@ Namespace CaptureEngine.FFmpegBackend
 
             ' fragmented MP4: recording survives a crash mid-session
             sb.Append("-movflags +frag_keyframe+empty_moov+default_base_moof ")
+            ' ★ P1-B: close a fragment at least every 1 s — frag_keyframe alone
+            ' leaves ONE giant open fragment when the encoder emits no keyframes
+            ' (measured: NVENC keyframe only at seq≈2220 → an 8 s kill left a
+            ' 28-byte ftyp-only file, the entire recording lost in the muxer's
+            ' memory). Duration-bounded fragments hit disk continuously, so the
+            ' partial-salvage path has real content at ANY kill point.
+            sb.Append("-frag_duration 1000000 ")
             sb.Append($"""{_fragPath}""")
             Return sb.ToString()
         End Function
@@ -374,10 +391,11 @@ Namespace CaptureEngine.FFmpegBackend
                 Try
                     If _stderrTask.Wait(2000) Then
                         Dim lines As String() = _stderrTask.Result.Split(New Char() {ControlChars.Lf}, StringSplitOptions.RemoveEmptyEntries)
-                        stderrTail = String.Join(" | ", lines.Skip(Math.Max(0, lines.Length - 3)))
+                        stderrTail = String.Join(" | ", lines.Skip(Math.Max(0, lines.Length - 12)))
                     End If
                 Catch
                 End Try
+                res.StderrTail = stderrTail
 
                 res.VideoBytesFed = _video.BytesWritten
                 res.SystemBytesFed = If(_audio IsNot Nothing, _audio.BytesWritten, 0)
@@ -403,6 +421,28 @@ Namespace CaptureEngine.FFmpegBackend
                     End If
                 Else
                     res.ErrorMessage &= " ffmpeg exit=" & res.FFmpegExitCode & " " & stderrTail
+
+                    ' P1-B frag salvage: ffmpeg died (killed/crashed) but the
+                    ' fragmented recording on disk may still be USABLE - fMP4
+                    ' (+frag_keyframe+empty_moov) is playable up to the last
+                    ' complete fragment. Promote it to the output path so the
+                    ' user keeps the partial footage. The result remains an
+                    ' honest FAILURE: Succeeded stays False and PartialSalvaged
+                    ' marks the output as partial (SessionResult.Pass must NOT
+                    ' flip to True for a salvaged kill).
+                    If File.Exists(_fragPath) AndAlso ValidateFragmentUsable(_fragPath) Then
+                        Try
+                            If File.Exists(_finalPath) Then File.Delete(_finalPath)
+                            File.Move(_fragPath, _finalPath)
+                            res.PartialSalvaged = File.Exists(_finalPath)
+                            If res.PartialSalvaged Then
+                                Log("[live-mux] partial salvage: fragmented recording promoted to output " +
+                                    "(ffmpeg exit=" & res.FFmpegExitCode & ") - result stays FAILED")
+                            End If
+                        Catch ex As Exception
+                            Log("[live-mux] partial salvage failed (frag kept on disk): " & ex.Message)
+                        End Try
+                    End If
                 End If
 
                 Log("[live-mux] " & res.ToString())
@@ -411,6 +451,40 @@ Namespace CaptureEngine.FFmpegBackend
                 Log("[live-mux] stop error: " & ex.Message)
             End Try
             Return res
+        End Function
+
+        ' P1-B: is a fragmented recording USABLE? ffprobe must see a video
+        ' stream and a positive duration (fMP4 carries its moov from the
+        ' first byte, so a mid-crash file probes fine). Bounded wait + kill,
+        ' never throws. Without ffprobe: non-trivial size heuristic.
+        Private Function ValidateFragmentUsable(fragPath As String) As Boolean
+            Try
+                If New FileInfo(fragPath).Length < 1024 Then Return False
+                Dim ffprobe = Path.Combine(Path.GetDirectoryName(_ffmpegPath), "ffprobe.exe")
+                If Not File.Exists(ffprobe) Then Return True ' heuristic: size only
+
+                Dim psi As New ProcessStartInfo With {
+                    .FileName = ffprobe,
+                    .Arguments = "-v error -select_streams v:0 -show_entries stream=codec_name " &
+                                 "-show_entries format=duration -of json """ & fragPath & """",
+                    .UseShellExecute = False,
+                    .RedirectStandardOutput = True,
+                    .RedirectStandardError = True,
+                    .CreateNoWindow = True
+                }
+                Using p As Process = Process.Start(psi)
+                    Dim outTask = p.StandardOutput.ReadToEndAsync()
+                    If Not p.WaitForExit(10000) Then
+                        Try : p.Kill() : Catch : End Try
+                        Return False
+                    End If
+                    Dim json As String = If(outTask.Wait(2000), outTask.Result, "")
+                    Return json.Contains("codec_name") AndAlso json.Contains("duration") AndAlso
+                           Not json.Contains("duration"":""N/A")
+                End Using
+            Catch
+                Return False
+            End Try
         End Function
 
         Private Function RunRemux() As Boolean

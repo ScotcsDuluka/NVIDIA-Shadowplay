@@ -161,13 +161,16 @@ Namespace Gallery.Video.Tests
             ' ---- Tier 2: deterministic integration (REAL ffmpeg/ffprobe) ----
             If Want(args, NameOf(MediaProbeTests)) OrElse Want(args, NameOf(DecodeIntegrationTests)) OrElse
                Want(args, NameOf(SeekIntegrationTests)) OrElse Want(args, NameOf(FaultIntegrationTests)) OrElse
-               Want(args, NameOf(SessionTests)) Then
+               Want(args, NameOf(SessionTests)) OrElse Want(args, NameOf(DecodeLivenessTests)) OrElse
+               Want(args, NameOf(GalleryLibraryTests)) Then
                 Console.WriteLine(" [Tier 2] Deterministic integration — real ffmpeg/ffprobe")
                 If Want(args, NameOf(MediaProbeTests)) Then MediaProbeTests.RunAll(AddressOf TestRunner.RunTest)
                 If Want(args, NameOf(DecodeIntegrationTests)) Then DecodeIntegrationTests.RunAll(AddressOf TestRunner.RunTest)
                 If Want(args, NameOf(SeekIntegrationTests)) Then SeekIntegrationTests.RunAll(AddressOf TestRunner.RunTest)
                 If Want(args, NameOf(FaultIntegrationTests)) Then FaultIntegrationTests.RunAll(AddressOf TestRunner.RunTest)
                 If Want(args, NameOf(SessionTests)) Then SessionTests.RunAll(AddressOf TestRunner.RunTest)
+                If Want(args, NameOf(DecodeLivenessTests)) Then DecodeLivenessTests.RunAll(AddressOf TestRunner.RunTest)
+                If Want(args, NameOf(GalleryLibraryTests)) Then GalleryLibraryTests.RunAll(AddressOf TestRunner.RunTest)
                 Console.WriteLine()
             End If
 
@@ -175,6 +178,19 @@ Namespace Gallery.Video.Tests
             If Want(args, NameOf(StressLoopTests)) Then
                 Console.WriteLine(" [Tier 2b] Stress — open/close A↔B loops")
                 StressLoopTests.RunAll(AddressOf TestRunner.RunTest)
+                Console.WriteLine()
+            End If
+
+            ' ---- Tier 2c: W1/W2 regressions + W3 completion gate ----
+            ' (GPU-independent by construction: headless sink + software decode
+            '  subprocess + injected-clock pure math — no NVIDIA anywhere.)
+            If Want(args, NameOf(PlaybackTimingRegressionTests)) OrElse Want(args, NameOf(AudioClockDomainTests)) OrElse
+               Want(args, NameOf(MemoryStressTests)) OrElse Want(args, NameOf(CompletionGate)) Then
+                Console.WriteLine(" [Tier 2c] W1/W2/W3 — playback timing, audio clock domain, memory stress, completion gate")
+                If Want(args, NameOf(PlaybackTimingRegressionTests)) Then PlaybackTimingRegressionTests.RunAll(AddressOf TestRunner.RunTest)
+                If Want(args, NameOf(AudioClockDomainTests)) Then AudioClockDomainTests.RunAll(AddressOf TestRunner.RunTest)
+                If Want(args, NameOf(MemoryStressTests)) Then MemoryStressTests.RunAll(AddressOf TestRunner.RunTest)
+                If Want(args, NameOf(CompletionGate)) Then CompletionGate.RunAll(AddressOf TestRunner.RunTest)
                 Console.WriteLine()
             End If
 

@@ -91,6 +91,7 @@ Namespace CaptureEngine.Recording.Tests
                 SessionResultContractTests.RunAll()   ' ★ M2-W2: video-only loss gate — Pass contract (1 known-fail until the fix lands)
                 RuntimeSyncTests.RunAll()
                 DualTrackTests.RunAll()   ' ★ M1: system + mic second track
+                P3AStopHardeningTests.RunAll()   ' ★ W3 P3-A: stop/finalize hardening (budget-bounded)
             Finally
                 ' Sandbox hygiene (C-hygiene pass): the RRT_RT_ sandbox created
                 ' by RuntimeSyncTests/DualTrackTests is removed on EVERY outcome

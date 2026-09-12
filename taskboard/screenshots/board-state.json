@@ -1,0 +1,296 @@
+{
+  "board_url": "http://localhost:15242",
+  "captured_at": "2026-09-12T14:40:35.338Z",
+  "counts": {
+    "machines": 4,
+    "open_tasks": 5,
+    "unassigned_tasks": 4,
+    "workers": 12
+  },
+  "machines": [
+    {
+      "name": "M1",
+      "status": "ONLINE",
+      "workers": [
+        {
+          "current_task": {
+            "code": "T-0001",
+            "priority": "P1",
+            "progress": 78,
+            "status": "IN_PROGRESS",
+            "tests": "97 PASS / 0 FAIL / 6 SKIP",
+            "title": "Gallery.Video Finalization"
+          },
+          "name": "W1",
+          "status": "WORKING"
+        },
+        {
+          "current_task": null,
+          "name": "W2",
+          "status": "END TASK"
+        },
+        {
+          "current_task": null,
+          "name": "W3",
+          "status": "END TASK"
+        }
+      ]
+    },
+    {
+      "name": "M2",
+      "status": "ONLINE",
+      "workers": [
+        {
+          "current_task": null,
+          "name": "W1",
+          "status": "END TASK"
+        },
+        {
+          "current_task": null,
+          "name": "W2",
+          "status": "END TASK"
+        },
+        {
+          "current_task": null,
+          "name": "W3",
+          "status": "END TASK"
+        }
+      ]
+    },
+    {
+      "name": "M3",
+      "status": "CLOSED",
+      "workers": [
+        {
+          "current_task": null,
+          "name": "W1",
+          "status": "CLOSED"
+        },
+        {
+          "current_task": null,
+          "name": "W2",
+          "status": "CLOSED"
+        },
+        {
+          "current_task": null,
+          "name": "W3",
+          "status": "CLOSED"
+        }
+      ]
+    },
+    {
+      "name": "M4",
+      "status": "STANDBY",
+      "workers": [
+        {
+          "current_task": null,
+          "name": "W1",
+          "status": "NO SLOT"
+        },
+        {
+          "current_task": null,
+          "name": "W2",
+          "status": "NO SLOT"
+        },
+        {
+          "current_task": null,
+          "name": "W3",
+          "status": "NO SLOT"
+        }
+      ]
+    }
+  ],
+  "recent_activity": [
+    {
+      "action": "task.created",
+      "actor": "zcode-sync",
+      "details": "T-0005 \"W2\" [P2]",
+      "ts": "2026-09-12T14:34:33.174Z"
+    },
+    {
+      "action": "task.created",
+      "actor": "zcode-sync",
+      "details": "T-0004 \"W1\" [P2]",
+      "ts": "2026-09-12T14:34:33.158Z"
+    },
+    {
+      "action": "task.created",
+      "actor": "zcode-sync",
+      "details": "T-0003 \"W3\" [P2]",
+      "ts": "2026-09-12T14:34:33.142Z"
+    },
+    {
+      "action": "task.created",
+      "actor": "zcode-sync",
+      "details": "T-0002 \"สร้างเว็บ Task Board ติดตาม AI Workers หลายเครื่องแบบ Real-time\" [P2]",
+      "ts": "2026-09-12T14:34:33.111Z"
+    },
+    {
+      "action": "auth.logout",
+      "actor": "owner",
+      "details": "",
+      "ts": "2026-09-12T14:24:13.527Z"
+    },
+    {
+      "action": "worker.status_changed",
+      "actor": "GPT",
+      "details": "STANDBY -> END TASK | reason: test done - restore",
+      "ts": "2026-09-12T14:23:55.535Z"
+    },
+    {
+      "action": "worker.status_changed",
+      "actor": "GPT",
+      "details": "END TASK -> STANDBY | reason: open-access write test",
+      "ts": "2026-09-12T14:23:55.374Z"
+    },
+    {
+      "action": "auth.login",
+      "actor": "owner",
+      "details": "role=OWNER",
+      "ts": "2026-09-12T14:15:46.041Z"
+    },
+    {
+      "action": "worker.status_changed",
+      "actor": "owner",
+      "details": "STANDBY -> END TASK | reason: maintenance window finished - back on duty",
+      "ts": "2026-09-12T14:10:29.971Z"
+    },
+    {
+      "action": "worker.status_changed",
+      "actor": "owner",
+      "details": "END TASK -> STANDBY | reason: Machine reserved for maintenance window",
+      "ts": "2026-09-12T14:09:42.451Z"
+    },
+    {
+      "action": "auth.login",
+      "actor": "owner",
+      "details": "role=OWNER",
+      "ts": "2026-09-12T14:08:14.474Z"
+    },
+    {
+      "action": "auth.login",
+      "actor": "owner",
+      "details": "role=OWNER",
+      "ts": "2026-09-12T14:07:26.131Z"
+    },
+    {
+      "action": "auth.login",
+      "actor": "owner",
+      "details": "role=OWNER",
+      "ts": "2026-09-12T14:06:05.074Z"
+    },
+    {
+      "action": "auth.login",
+      "actor": "owner",
+      "details": "role=OWNER",
+      "ts": "2026-09-12T14:05:54.523Z"
+    },
+    {
+      "action": "task.updated",
+      "actor": "owner",
+      "details": "Full suite 97 PASS / 0 FAIL / 6 SKIP",
+      "ts": "2026-09-12T14:03:45.025Z"
+    },
+    {
+      "action": "task.updated",
+      "actor": "owner",
+      "details": "Starved-present guard added",
+      "ts": "2026-09-12T13:55:45.025Z"
+    },
+    {
+      "action": "task.updated",
+      "actor": "owner",
+      "details": "240fps freeze reproduced",
+      "ts": "2026-09-12T13:41:45.025Z"
+    },
+    {
+      "action": "task.updated",
+      "actor": "owner",
+      "details": "Build passed",
+      "ts": "2026-09-12T13:28:45.025Z"
+    },
+    {
+      "action": "task.started",
+      "actor": "owner",
+      "details": "T-0001 started (worker ACTIVE -> WORKING)",
+      "ts": "2026-09-12T13:15:45.025Z"
+    },
+    {
+      "action": "task.assigned",
+      "actor": "owner",
+      "details": "T-0001 Gallery.Video Finalization -> M1/W1 (worker END TASK -> ACTIVE)",
+      "ts": "2026-09-12T13:10:45.025Z"
+    },
+    {
+      "action": "machine.created",
+      "actor": "system",
+      "details": "Machine M4 registered as STANDBY",
+      "ts": "2026-09-12T11:05:45.025Z"
+    },
+    {
+      "action": "machine.created",
+      "actor": "system",
+      "details": "Machine M3 registered as CLOSED",
+      "ts": "2026-09-12T11:05:45.025Z"
+    },
+    {
+      "action": "machine.created",
+      "actor": "system",
+      "details": "Machine M2 registered as ONLINE",
+      "ts": "2026-09-12T11:05:45.025Z"
+    },
+    {
+      "action": "machine.created",
+      "actor": "system",
+      "details": "Machine M1 registered as ONLINE",
+      "ts": "2026-09-12T11:05:45.025Z"
+    }
+  ],
+  "tasks": [
+    {
+      "blocker": "",
+      "code": "T-0005",
+      "priority": "P2",
+      "progress": 0,
+      "status": "CREATED",
+      "tests": "",
+      "title": "W2"
+    },
+    {
+      "blocker": "",
+      "code": "T-0004",
+      "priority": "P2",
+      "progress": 0,
+      "status": "CREATED",
+      "tests": "",
+      "title": "W1"
+    },
+    {
+      "blocker": "",
+      "code": "T-0003",
+      "priority": "P2",
+      "progress": 0,
+      "status": "CREATED",
+      "tests": "",
+      "title": "W3"
+    },
+    {
+      "blocker": "",
+      "code": "T-0002",
+      "priority": "P2",
+      "progress": 0,
+      "status": "CREATED",
+      "tests": "",
+      "title": "สร้างเว็บ Task Board ติดตาม AI Workers หลายเครื่องแบบ Real-time"
+    },
+    {
+      "blocker": "240fps architectural limit",
+      "code": "T-0001",
+      "priority": "P1",
+      "progress": 78,
+      "status": "IN_PROGRESS",
+      "tests": "97 PASS / 0 FAIL / 6 SKIP",
+      "title": "Gallery.Video Finalization"
+    }
+  ]
+}

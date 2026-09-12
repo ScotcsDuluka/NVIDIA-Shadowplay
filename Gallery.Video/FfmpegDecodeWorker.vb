@@ -6,10 +6,19 @@ Option Infer On
 '
 ' ONE worker instance PER GENERATION (open or seek):
 '   video:  ffmpeg -nostdin -v info -ss <t> -i <file> -map 0:v:0
-'                     -vf showinfo -f rawvideo -pix_fmt bgra pipe:1
+'                     -vf showinfo -fps_mode passthrough
+'                     -f rawvideo -pix_fmt bgra pipe:1
 '   audio:  ffmpeg -nostdin -v error -ss <t> -i <file> -map 0:a:0
 '                     -f s16le -ar <rate> -ac <ch> pipe:1
 '
+' WHY -fps_mode passthrough (2026-09-12, measured W1): the rawvideo muxer's
+' default vsync (cfr) DUPLICATES frames AFTER the filtergraph whenever the
+' µs-quantized source cadence drifts under the target rate (240fps file:
+' 966 stdout frames vs 961 showinfo lines). Duplicate frames carry no
+' showinfo line, so TakePtsTicks blocked the stdout reader for its full 2s
+' deadline per duplicate (5×2s = 10s per 4s file) and broke the 1:1
+' frame↔PTS pairing. passthrough keeps stdout frames == showinfo lines
+' (961/961 measured) and raised worker delivery 47.9 → 99.4 fps.
 ' WHY subprocess (repo precedent, no FFmpeg library bindings exist anywhere —
 ' see design doc §2): matches FFmpegProcessHost/LiveMuxSession discipline.
 ' WHY showinfo: rawvideo carries no timestamps; showinfo prints pts_time per
@@ -57,6 +66,15 @@ Namespace Gallery.Video
         Private ReadOnly _cfg As DecodeGenerationConfig
         Private _videoProc As Process
         Private _audioProc As Process
+
+        ' ★ W2 audio pacing: 1 ms timer quantum for the pump's sleeps (see
+        ' AudioStdoutLoop) — same winmm pattern as CaptureSession's CFR fix.
+        <System.Runtime.InteropServices.DllImport("winmm.dll")>
+        Private Shared Function timeBeginPeriod(period As UInteger) As Integer
+        End Function
+        <System.Runtime.InteropServices.DllImport("winmm.dll")>
+        Private Shared Function timeEndPeriod(period As UInteger) As Integer
+        End Function
         Private _threads As New List(Of Thread)()
         Private _stopState As Integer = 0          ' 0 running, 1 stop requested
         Private _videoEofState As Integer = 0      ' 0 not eof
@@ -83,6 +101,22 @@ Namespace Gallery.Video
         Public ReadOnly Property Generation As Long
             Get
                 Return _cfg.Generation
+            End Get
+        End Property
+
+        ''' <summary>Video ffmpeg PID — diagnostics + decode-liveness test seam
+        ''' (F4 stall tests must target the EXACT process, never a name-based
+        ''' lookup). -1 before spawn, after exit, or when unavailable.</summary>
+        Public ReadOnly Property VideoProcessId As Integer
+            Get
+                Dim p = _videoProc
+                If p Is Nothing Then Return -1
+                Try
+                    If p.HasExited Then Return -1
+                    Return p.Id
+                Catch
+                    Return -1
+                End Try
             End Get
         End Property
 
@@ -131,7 +165,7 @@ Namespace Gallery.Video
             If _cfg.VideoEnabled Then
                 Dim frameBytes = _cfg.FrameWidth * _cfg.FrameHeight * 4
                 Dim vArgs = $"-nostdin -hide_banner -v info -ss {seekStr} " &
-                            $"-i ""{_cfg.FilePath}"" -map 0:v:0 -vf showinfo " &
+                            $"-i ""{_cfg.FilePath}"" -map 0:v:0 -vf showinfo -fps_mode passthrough " &
                             $"-f rawvideo -pix_fmt bgra pipe:1"
                 _videoProc = Spawn(_cfg.FfmpegExe, vArgs)
                 If _videoProc Is Nothing Then
@@ -319,13 +353,34 @@ Namespace Gallery.Video
         ' ---- audio stdout: raw s16le ----
 
         Private Sub AudioStdoutLoop()
-            Dim buf(64 * 1024 - 1) As Byte
+            ' ★ W2 audio backpressure: the audio ffmpeg decodes the whole file
+            ' far faster than real time; an unpaced pump makes the drop-oldest
+            ' ring discard UNPLAYED content and the device starve after the
+            ' first ring (measured: ring→0, underruns=37, counter frozen).
+            ' Three rules keep content continuous: SMALL chunks (~25 ms — a
+            ' 64 KB read = 682 ms of audio lands past the 200 ms ring and
+            ' drop-oldest eats the middle), a 1 ms timer quantum (Thread.Sleep
+            ' honours the ~15.6 ms system quantum otherwise — the capture
+            ' session's CFR PACING FIX lesson), and a consumer-reference
+            ' throttle (writer stays ≤200 ms of audio ahead of what the device
+            ' actually consumed — BytesWritten − BytesRead).
+            Dim bytesPerSec = Math.Max(1, _cfg.AudioSampleRate * Math.Max(1, _cfg.AudioChannels) * 2)
+            Dim buf(Math.Max(1920, bytesPerSec \ 40) - 1) As Byte   ' ~25 ms
+            Dim bytesWritten As Long = 0
+            timeBeginPeriod(1UI)
             Try
                 Using stdout = _audioProc.StandardOutput.BaseStream
                     While Volatile.Read(_stopState) = 0
                         Dim read = stdout.Read(buf, 0, buf.Length)
                         If read <= 0 Then Exit While
+                        Dim aheadBytes = _cfg.AudioBuffer.BytesWritten - _cfg.AudioBuffer.BytesRead
+                        If aheadBytes + read > bytesPerSec \ 5 Then
+                            Dim behindMs = ((aheadBytes + read - bytesPerSec \ 5) * 1000.0) / bytesPerSec
+                            Dim waitMs = CInt(Math.Min(behindMs, 20.0))
+                            If waitMs > 0 Then Thread.Sleep(waitMs)
+                        End If
                         If Not _cfg.AudioBuffer.Write(buf, 0, read) Then Exit While
+                        bytesWritten += read
                         _audioBytesDecoded += read
                     End While
                 End Using
@@ -333,6 +388,7 @@ Namespace Gallery.Video
                 ' Killed mid-read on stop/seek — normal.
             Finally
                 Interlocked.CompareExchange(_audioEofState, 1, 0)
+                timeEndPeriod(1UI)
             End Try
         End Sub
 

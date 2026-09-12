@@ -27,6 +27,11 @@ Namespace Gallery.Video
         NoVideoStream
         ''' <summary>Seek target spawn failed or no frame arrived within SeekTimeoutMs.</summary>
         SeekFailed
+        ''' <summary>Decode worker stayed alive but produced no frame for
+        ''' DecodeStallTimeoutMs while Playing (F4 liveness guard). Advisory:
+        ''' the session transitions to Paused (freeze frame held) and stays
+        ''' usable — Play respawns a fresh decode generation.</summary>
+        DecodeStalled
         ''' <summary>Unexpected internal error — carries exception message; still no crash.</summary>
         InternalError
     End Enum

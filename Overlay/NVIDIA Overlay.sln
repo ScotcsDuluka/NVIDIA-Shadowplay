@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 18.3.11512.155
 MinimumVisualStudioVersion = 10.0.40219.1
@@ -7,6 +7,8 @@ EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NVIDIA API", "..\API\NVIDIA API.vbproj", "{F7369117-4B71-950A-C4CB-D6E0D5E5A225}"
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Launcher", "..\Launcher\Launcher.vbproj", "{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}"
+EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NVIDIA Overlay Engine", "..\Overlay.Engine\NVIDIA Overlay Engine.vbproj", "{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}"
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NVIDIA Notifier", "..\Notifier\NVIDIA Notifier.vbproj", "{26F262C5-0779-12EF-2119-F8A521A814E8}"
 EndProject
@@ -334,6 +336,18 @@ Global
 		{0CEE1CD0-5DFE-4F80-95DC-07ED90CBF595}.Release|x64.Build.0 = Release|Any CPU
 		{0CEE1CD0-5DFE-4F80-95DC-07ED90CBF595}.Release|x86.ActiveCfg = Release|Any CPU
 		{0CEE1CD0-5DFE-4F80-95DC-07ED90CBF595}.Release|x86.Build.0 = Release|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Debug|x64.ActiveCfg = Debug|x64
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Debug|x64.Build.0 = Debug|x64
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Debug|x86.Build.0 = Debug|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Release|x64.ActiveCfg = Release|x64
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Release|x64.Build.0 = Release|x64
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Release|x86.ActiveCfg = Release|Any CPU
+		{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
