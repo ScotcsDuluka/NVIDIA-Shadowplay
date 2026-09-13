@@ -1,0 +1,12 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:15.771  INFO  main.common/hardwareService- "retrieved launchtime system info"
+2026-09-13 15:50:15.771  INFO  /main/uiRouter/main/resolve/hardwareInfo- "Resolved"
+2026-09-13 15:50:15.771  INFO  main.telemetry/telemetryService- "telemetry deviceId" "77ad843b6946405c18e40e3d61e4358948814a3267b6d4574e65e72e2d9ace01"
+2026-09-13 15:50:15.771  INFO  nvJsEvents/jsEventsService- "Device Id:" "77ad843b6946405c18e40e3d61e4358948814a3267b6d4574e65e72e2d9ace01" "set for client:" "135333107684344109"
+2026-09-13 15:50:15.772  INFO  nvJsEvents/jsEventsService- "Device offline or No Functional consent. No clean job happened." {
+  "functional": "None",
+  "technical": "None",
+  "behavioral": "None"
+}
+2026-09-13 15:50:15.772  INFO  main.common/localeService- "setting System Locale, OS LCID: " "1033"
+2026-09-13 15:50:15.773  INFO  /main/uiRouter/main/resolve/language- "Requested"

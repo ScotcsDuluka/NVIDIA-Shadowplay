@@ -1,0 +1,10 @@
+// status=200 (non-JSON body)
+2026-09-13 16:08:03.329  INFO  main.common/framerateLimiterService- "processBB2StateInfo response:" {
+  "data": {
+    "supported": false,
+    "enabled": false
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

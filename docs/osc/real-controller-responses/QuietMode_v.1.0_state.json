@@ -1,0 +1,10 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:21.132  INFO  main.common/quietModeService- "processStateInfo response:" {
+  "data": {
+    "supported": false,
+    "enabled": false
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

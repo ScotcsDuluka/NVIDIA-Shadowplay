@@ -1,0 +1,36 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:18.222  INFO  main.preferences/preferencesService- "response for browser Release highlights request" {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name=\"getStyledClientReleaseHighlightsHtml\" date=\"2026-09-13T08:50:20+0000\" #%22cNm%22:%22gfe%22,%22cmID%22:%22%22,%22gcV%22:%223.28.0.412%22,%22lg%22:%221033%22,%22gLg%22:%22en-US%22,%22go%22:%22TH%22,%22cID%22:%22Intel(R)%20Core(TM)%20i5-10400F%20CPU%20@%202.90GHz%22,%22dIDa%22:#%221b06_10de_120f_10de_1%22#,%22sM%22:%2216GB%22,%22osC%22:%2210.0%22,%22osB%22:%2226340%22,%22is6%22:%221%22,%22GFPV%22:%22582.66%22,%22gIsB%22:%220%22,%22iLp%22:%220%22,%22isO%22:%221%22,%22isSLI%22:%220%22,%22cSR%22:%221680x1050@75%22,%22uCst%22:#%221%22,%221%22,%221%22#,%22jTK%22:%22eyJhbGciOiJIUzI1NiJ9.eyJ0ZCI6Ijk0MjExNTQ3NTI4NjkxNzEzIiwic2MiOlsic2Vzc2lvbl90b2tlbiJdLCJjZCI6IjEzNTMzMzEwNzY4NDM0NDEwOSIsInNlIjoiT2hpWVpsRUxqbjF5WGp2cjQ5aEN0RGp3aDRBY3BlVTV4QzdPWVdwVlZ6R1MxbFI1SXNxTlR5RjVfRkFFOGNmaiIsIm90IjoiOTIyMzM3MjAzNjg1NDc3NTgwNyIsImlkIjoiMzMxMDA3NTg2NDIwNjU0NzMyIiwiZXhwIjoxNzg5Mjg5NzE5LCJqdGkiOiJmYmNkYjFiMS03YmUyLTQ0MTktOGEzOS02MTVhMWQ1ODA3YmEiLCJzciI6InUiLCJ1dCI6IjE1NDg2MDg1ODk0NDU4OTAwNDgifQ.43VYi_2U_c5BfuuDTBj7T4cb0qF3wCraSg3fylajjbY%22# ResponseStatus=\"Success 200\" -->",
+    "ParsedParams": "<!--theVersion:3.28.0.412 vrsnRslv:3.28.0 theOperatingSystemCode:10.0 theOperatingSystemBuild:26340 theOperatingSystemBitness:1 theLanguageCode:1033 theLanguageCultureCode:en-US LanguageIDRslv:us/en_US theLanguageCountryCode:TH theSystemMemory:16GB thePrimaryDisplayDriverVersion582.66 theIsSyetemLaptop:0 theCampaignId: -->",
+    "GfeCampaignXmlContent": null,
+    "criteria": {
+      "overallState": "true",
+      "showInstaller": "true",
+      "cNm": "gfe",
+      "vrsn": "3.28.0.412",
+      "vrsnCrnt": "3.27.0",
+      "vrsnRslv": "3.28.0",
+      "osVersion": "10.0",
+      "LanguageCode": "1033",
+      "LanguageID": "en-US",
+      "LanguageIDRslv": "us/en_US",
+      "CountryID": "TH",
+      "CampaignId": ""
+    },
+    "gfcontent": {
+      "redirectUrl": "https://www.nvidia.com/en-us/geforce/release-notes/GFE/3_28_0/Web/gfe-v3_28_0-web-release-highlights/?jso=eyUyMmNObSUyMjolMjJnZmUlMjIsJTIyY21JRCUyMjolMjIlMjIsJTIyZ2NWJTIyOiUyMjMuMjguMC40MTIlMjIsJTIybGclMjI6JTIyMTAzMyUyMiwlMjJnTGclMjI6JTIyZW4tVVMlMjIsJTIyZ28lMjI6JTIyVEglMjIsJTIyY0lEJTIyOiUyMkludGVsKFIpJTIwQ29yZShUTSklMjBpNS0xMDQwMEYlMjBDUFUlMjBAJTIwMi45MEdIeiUyMiwlMjJkSURhJTIyOlslMjIxYjA2XzEwZGVfMTIwZl8xMGRlXzElMjJdLCUyMnNNJTIyOiUyMjE2R0IlMjIsJTIyb3NDJTIyOiUyMjEwLjAlMjIsJTIyb3NCJTIyOiUyMjI2MzQwJTIyLCUyMmlzNiUyMjolMjIxJTIyLCUyMkdGUFYlMjI6JTIyNTgyLjY2JTIyLCUyMmdJc0IlMjI6JTIyMCUyMiwlMjJpTHAlMjI6JTIyMCUyMiwlMjJpc08lMjI6JTIyMSUyMiwlMjJpc1NMSSUyMjolMjIwJTIyLCUyMmNTUiUyMjolMjIxNjgweDEwNTBANzUlMjIsJTIydUNzdCUyMjpbJTIyMSUyMiwlMjIxJTIyLCUyMjElMjJdLCUyMmpUSyUyMjolMjJleUpoYkdjaU9pSklVekkxTmlKOS5leUowWkNJNklqazBNakV4TlRRM05USTROamt4TnpFeklpd2ljMk1pT2xzaWMyVnpjMmx2Ymw5MGIydGxiaUpkTENKalpDSTZJakV6TlRNek16RXdOelk0TkRNME5ERXdPU0lzSW5ObElqb2lUMmhwV1Zwc1JVeHFiakY1V0dwMmNqUTVhRU4wUkdwM2FEUkJZM0JsVlRWNFF6ZFBXVmR3VmxaNlIxTXhiRkkxU1hOeFRsUjVSalZmUmtGRk9HTm1haUlzSW05MElqb2lPVEl5TXpNM01qQXpOamcxTkRjM05UZ3dOeUlzSW1sa0lqb2lNek14TURBM05UZzJOREl3TmpVME56TXlJaXdpWlhod0lqb3hOemc1TWpnNU56RTVMQ0pxZEdraU9pSm1ZbU5rWWpGaU1TMDNZbVV5TFRRME1Ua3RPR0V6T1MwMk1UVmhNV1ExT0RBM1ltRWlMQ0p6Y2lJNkluVWlMQ0oxZENJNklqRTFORGcyTURnMU9EazBORFU0T1RBd05EZ2lmUS40M1ZZaV8yVV9jNUJmdXVEVEJqN1Q0Y2IwcUYzd0NyYVNnM2Z5bGFqamJZJTIyfQ=="
+    },
+    "evaluatedPaths": [
+      {
+        "/content/nvidiaGDC/us/en_US/geforce/release-notes/GFE/3_28_0/os-10_0/Web/gfe-v3_28_0-web-release-highlights": "false"
+      },
+      {
+        "/content/nvidiaGDC/us/en_US/geforce/release-notes/GFE/3_28_0/Web/gfe-v3_28_0-web-release-highlights": "true"
+      }
+    ]
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

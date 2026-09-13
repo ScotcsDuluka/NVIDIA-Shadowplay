@@ -167,9 +167,14 @@ Public Class Base_Gallery
             Return
         End If
 
-        Dim scanTask = _mediaStore.ScanAsync(folder, ct)
+        ' ★ W3 hotfix: OptionInfer=Off made `Dim scanTask = …` an Object, so
+        ' ContinueWith compiled to a LATE call (NewLateBinding) and blew up at
+        ' runtime with AmbiguousMatchException (19 overloads × an untyped
+        ' lambda the binder cannot convert). Type the task + lambda explicitly.
+        Dim scanTask As System.Threading.Tasks.Task(Of List(Of GalleryMediaItem)) =
+            _mediaStore.ScanAsync(folder, ct)
         scanTask.ContinueWith(
-            Sub(t)
+            Sub(t As System.Threading.Tasks.Task(Of List(Of GalleryMediaItem)))
                 If IsDisposed OrElse Disposing OrElse ct.IsCancellationRequested Then Return
                 Invoke(New Action(Sub() OnScanCompleted(t, ct)))
             End Sub, TaskScheduler.Default)
@@ -208,13 +213,13 @@ Public Class Base_Gallery
     Private Sub StartTileLoading(tile As GalleryTile, item As GalleryMediaItem, ct As CancellationToken)
         ' Metadata via the EXISTING Gallery.Video MediaProbe, then thumbnail.
         _mediaStore.ProbeAsync(item, ct).ContinueWith(
-            Sub(t)
+            Sub(t As System.Threading.Tasks.Task)
                 If ct.IsCancellationRequested OrElse IsDisposed OrElse Disposing Then Return
                 Invoke(New Action(Sub() tile.UpdateMetadata()))
                 _mediaStore.GetThumbnailAsync(item, 320, ct).ContinueWith(
-                    Sub(tt)
+                    Sub(tt As System.Threading.Tasks.Task(Of String))
                         If ct.IsCancellationRequested OrElse IsDisposed OrElse Disposing Then Return
-                        Dim thumbPath = tt.Result
+                        Dim thumbPath As String = tt.Result
                         Invoke(New Action(Sub()
                                               If thumbPath IsNot Nothing Then
                                                   tile.SetThumbnail(Image.FromFile(thumbPath))

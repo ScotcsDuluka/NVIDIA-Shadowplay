@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:35.449  INFO  main.games/SystemGame- "new state for " "world_of_tanks_blitz" 1385367469 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:35.449  INFO  main.games/SystemGame- "slider settings not available for " "world_of_tanks_blitz" 1385367469
+2026-09-13 15:50:35.449  INFO  main.games/gamesService- "trying to get game state" "grand_theft_auto_v"
+2026-09-13 15:50:35.449  INFO  main.games/gamesService- "trying to get game state" "grand_theft_auto_v"

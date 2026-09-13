@@ -1,0 +1,14 @@
+// source-like reconstruction — beautified webpack module
+// (local identifiers inside functions remain minified; every string,
+//  template, and protocol name is the original)
+
+// ==================================================================
+// APP MODULE 340
+// (no Angular registrations — utility module)
+// webpack factory params: module, exports
+// ------------------------------------------------------------------
+
+function(module, exports) {
+  module.exports =
+    '<div ng-if="aControl.type===\'sidebar-slider\'"> <nv-filter-slider filter-slider=aControl /> </div> <div ng-if="aControl.type===\'sidebar-multislider\'"> <div class="mods-control-title-sizing mods-group-control-title"> <span class=mods-control-title-label ng-class="{\'general-disabled\': aControl.enabled === false}" translate={{aControl.title}}></span> </div> <div class=mods-filter-subcontrols ng-repeat="slider in aControl.subcontrols"> <nv-filter-slider filter-slider=slider /> </div> </div> <div ng-if="aControl.type===\'sidebar-boolean\'" flex layout=row layout-align="space-between center" class=full-width> <div flex=80> <span class=mods-control-title-label translate={{aControl.title}}></span> </div> <div flex=20> <md-switch tabindex=0 class="margin-padding-reset make-this-green" ng-model=aControl.value id={{aControl.id}} ng-change=aControl.onChange(aControl) focus-only ng-keydown=aControl.onKeyDown($event);></md-switch> </div> </div> <div ng-if="aControl.type===\'sidebar-list\'"> <md-menu class=sidebar-list md-offset="204 0"> <button focus-only tabindex=0 ng-click=$mdOpenMenu(event) ng-disabled=!aControl.enabled> <div class=menu-button-img layout=row layout-align="start center"> <md-icon class="share-icon icon-normal icon24 icon-chevron_right"></md-icon> </div> <div class="sidebar-list-text mods-group-control-title"> <p class=mods-control-title-label translate={{aControl.title}}></p> <p class=sidebar-list-text-subtitle translate={{aControl.selectedItem.title}}></p> </div> </button> <md-menu-content class=pane-items-background> <div class=sidebar-list-menu-content> <md-menu-item class="sidebar-list-menu-item active-filter-background" ng-repeat="selection in aControl.items"> <md-button class=sidebar-list-menu-item-button ng-click="aControl.selectItem(aControl, selection)" focus-only> <span translate={{selection.title}}></span> </md-button> </md-menu-item> </div> </md-menu-content> </md-menu> </div> <div ng-if="aControl.type===\'sidebar-edit\'"> <nv-filter-editbox filter-editbox=aControl /> </div> <div ng-if="aControl.type===\'sidebar-multiedit\'"> <div class="mods-control-title-sizing mods-group-control-title"> <span class=mods-control-title-label ng-class="{\'general-disabled\': aControl.enabled === false}" translate={{aControl.title}}></span> </div> <div class=mods-filter-subcontrols ng-repeat="editbox in aControl.subcontrols"> <nv-filter-editbox filter-editbox=editbox /> </div> </div> ';
+}

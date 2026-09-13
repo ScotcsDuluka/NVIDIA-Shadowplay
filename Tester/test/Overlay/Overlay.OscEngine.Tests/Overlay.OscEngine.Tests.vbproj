@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<AssemblyName>Overlay.OscEngine.Tests</AssemblyName>
+		<RootNamespace></RootNamespace>
+		<OptionStrict>On</OptionStrict>
+		<OptionExplicit>On</OptionExplicit>
+		<OptionInfer>On</OptionInfer>
+		<Nullable>disable</Nullable>
+		<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+		<UseWindowsForms>true</UseWindowsForms>
+		<IsPackable>false</IsPackable>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Test the REAL production sources via linked files (repo
+		     convention — zero drift, ConfigTruth philosophy). -->
+		<Compile Include="..\..\..\..\Overlay.Engine\OscWire.vb" Link="OscWire.vb" />
+		<Compile Include="..\..\..\..\Overlay.Engine\OscProtocol.vb" Link="OscProtocol.vb" />
+		<Compile Include="..\..\..\..\Overlay.Engine\OscHotkeys.vb" Link="OscHotkeys.vb" />
+		<Compile Include="..\..\..\..\Overlay.Engine\CefQueryBridge.vb" Link="CefQueryBridge.vb" />
+		<Compile Include="..\..\..\..\Overlay.Engine\SharedStorageStore.vb" Link="SharedStorageStore.vb" />
+		<Compile Include="..\..\..\..\Common\AppLayout.vb" Link="AppLayout.vb" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Include="golden\**\*" CopyToOutputDirectory="PreserveNewest" />
+	</ItemGroup>
+
+</Project>

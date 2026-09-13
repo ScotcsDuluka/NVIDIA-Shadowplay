@@ -1,0 +1,12 @@
+// ─────────────────────────────────────────────────────────────
+// APP MODULE 285
+// role       : utility
+// requires   : (none)
+// source     : Overlay/osc/app.js (minified) — beautified, unrecoverable local names remain
+// ─────────────────────────────────────────────────────────────
+function(e, t, n) {
+  t = e.exports = n(9)(), t.push([e.id,
+    ".progress-indicator{position:absolute;top:50%;left:50%;margin-top:-50px;margin-left:-50px;padding:20px;width:220px;max-height:140px;background:rgba(0,0,0,.85)!important}.progress-indicator p{margin:0;line-height:15px;text-transform:none;text-align:left;color:#fff!important;font-size:15px!important}.progress-indicator md-progress-linear .md-container{height:10px;background-color:none!important}.progress-indicator md-progress-linear.md-default-theme.md-accent .md-bar,md-progress-linear.md-accent .md-bar{height:10px;background-color:#76b900!important}.progress-indicator md-progress-linear.md-default-theme.md-accent .md-container,md-progress-linear.md-accent .md-container{background-color:transparent!important;border:1px solid #76b900}.progress-bar{padding-top:10px;padding-bottom:25px}.progress-bar-highlights{position:absolute!important;height:80px!important;top:40%!important;left:50%!important;margin-left:-60px!important}",
+    ""
+  ])
+}

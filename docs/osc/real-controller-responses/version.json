@@ -1,0 +1,3 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:16.134  INFO  main/MainToolbarController- "Share node addon loaded event status: " true
+2026-09-13 15:50:16.187  DEBUG  main/appService- "Trigger window resize"

@@ -1,0 +1,42 @@
+// status=200 (non-JSON body)
+2026-09-13 15:52:22.990  INFO  main.common/quietModeService- "processSupportInfo response:" {
+  "data": {
+    "criteria": {
+      "overallState": false,
+      "featureTile": "QuietMode",
+      "header": "Whisper Mode",
+      "message": "Makes your plugged-in laptop run quieter while gaming",
+      "states": [
+        {
+          "name": "gfe",
+          "message": "GeForce Experience 3.8 or later",
+          "state": true
+        },
+        {
+          "name": "gpu",
+          "message": "GeForce GTX notebook GPU, 1060 or higher",
+          "state": false
+        },
+        {
+          "name": "os",
+          "message": "Windows 10 or Windows 11",
+          "state": true
+        },
+        {
+          "name": "driver",
+          "message": "GeForce Driver coming soon",
+          "state": true
+        },
+        {
+          "name": "sli",
+          "message": "SLI is not supported",
+          "state": true,
+          "isRecommendation": true
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

@@ -1,0 +1,35 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:15.526  DEBUG  main.common/httpLoggingService- " gfwsl returned successfully with response " {
+  "data": {
+    "daysToExpire": 1,
+    "isConnectEnabled": true,
+    "configData": {
+      "jarvis": {
+        "server": "https://accounts.nvgs.nvidia.com"
+      },
+      "gfwsl": {
+        "server": "https://gfwsl.geforce.com/"
+      },
+      "aem": {
+        "server": "https://www.nvidia.com/"
+      },
+      "vrs": {
+        "server": "https://www.nvidia.com"
+      },
+      "jsEvents": {
+        "server": "https://events.gfe.nvidia.com"
+      },
+      "nvTelemetry": {
+        "eventsServer": "https://events.gfe.nvidia.com/v1.0/events/json",
+        "feedbackServer": "https://telemetry.gfe.nvidia.com/gfc/v2.0/head",
+        "feedbackAttachmentServer": "https://telemetry.gfe.nvidia.com/gfc/v2.0/attachment"
+      },
+      "redirect": {
+        "server": "https://www.nvidia.com/content/drivers/redirect.asp?language="
+      }
+    }
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

@@ -1,0 +1,70 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:40.650  INFO  main.games/SystemGame- "new state for " "fall_guys" 2142139706 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:40.650  INFO  main.games/SystemGame- "slider settings not available for " "fall_guys" 2142139706
+2026-09-13 15:50:40.650  INFO  main.games/gamesService- "start autoOptimizeLocalGames"
+2026-09-13 15:50:40.650  INFO  main.games/gamesService- "getGameOpsSupported " null
+2026-09-13 15:50:40.650  INFO  main.games/gamesService- "current opsfeature state" null
+2026-09-13 15:51:05.480  INFO  main.rewards/rewardsService- "rewards socket update from node:" {
+  "status": "STARTED",
+  "data": ""
+}
+2026-09-13 15:51:06.275  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "call_of_duty_black_ops_7"
+}
+2026-09-13 15:51:06.276  INFO  main.games/gamesService- "refreshing vops with game id" 1143229690
+2026-09-13 15:51:06.765  INFO  main.rewards/rewardsService- "rewards socket update from node:" {
+  "status": "FAILED",
+  "data": ""
+}
+2026-09-13 15:51:08.569  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "call_of_duty_black_ops_7"
+}
+2026-09-13 15:51:08.569  INFO  main.games/gamesService- "refreshing vops with game id" 1143229690
+2026-09-13 15:51:08.926  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "eternal_return_black_survival"
+}
+2026-09-13 15:51:08.926  INFO  main.games/gamesService- "refreshing vops with game id" 1327903101
+2026-09-13 15:51:11.009  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "eternal_return_black_survival"
+}
+2026-09-13 15:51:11.009  INFO  main.games/gamesService- "refreshing vops with game id" 1327903101
+2026-09-13 15:51:11.413  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "fall_guys"
+}
+2026-09-13 15:51:11.413  INFO  main.games/gamesService- "refreshing vops with game id" 2142139706
+2026-09-13 15:51:13.560  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "fall_guys"
+}
+2026-09-13 15:51:13.561  INFO  main.games/gamesService- "refreshing vops with game id" 2142139706
+2026-09-13 15:51:14.061  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "grand_theft_auto_v"
+}
+2026-09-13 15:51:14.062  INFO  main.games/gamesService- "refreshing vops with game id" 1676429267
+2026-09-13 15:51:17.100  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "grand_theft_auto_v"
+}
+2026-09-13 15:51:17.101  INFO  main.games/gamesService- "refreshing vops with game id" 1676429267
+2026-09-13 15:51:17.919  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "minecraft"
+}
+2026-09-13 15:51:17.919  INFO  main.games/gamesService- "refreshing vops with game id" 415109964
+2026-09-13 15:51:20.357  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "minecraft"
+}
+2026-09-13 15:51:20.357  INFO  main.games/gamesService- "refreshing vops with game id" 415109964
+2026-09-13 15:51:21.140  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "minecraft_rtx"
+}
+2026-09-13 15:51:21.140  INFO  main.games/gamesService- "refreshing vops with game id" 893349914
+2026-09-13 15:51:24.986  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "minecraft_rtx"
+}
+2026-09-13 15:51:24.986  INFO  main.games/gamesService- "refreshing vops with game id" 893349914
+2026-09-13 15:51:25.811  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "valorant"
+}
+2026-09-13 15:51:25.811  INFO  main.games/gamesService- "refreshing vops with game id" 953834201
+2026-09-13 15:51:26.446  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" {
+  "shortname": "valorant"
+}
+2026-09-13 15:51:26.446  INFO  main.games/gamesService- "refreshing vops with game id" 953834201

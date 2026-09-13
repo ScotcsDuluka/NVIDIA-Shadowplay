@@ -32,6 +32,32 @@ Namespace CaptureEngine.Recording
         Public Property DurationSeconds As Integer = 30
         Public Property UseSharedHandle As Boolean = False
 
+        ' ── P1-A DISK HEADROOM GUARD (W1) ──
+        ''' <summary>
+        ''' Test seam: override the derived required headroom (bytes) for the
+        ''' pre-start disk check. 0 = derive from the session config (video
+        ''' bitrate + audio streams × duration, ×2 for the faststart remux
+        ''' peak where the .frag and the final file coexist on disk).
+        ''' The derived value is the production default; this override exists
+        ''' ONLY so low/near-zero headroom can be tested deterministically
+        ''' without filling the real drive.
+        ''' </summary>
+        Public Property DiskHeadroomOverrideBytes As Long = 0
+
+        ' ── P3-D AUDIO TRANSPORT (W1) ──
+        ''' <summary>
+        ''' Production audio transport selector (P3-C evidence):
+        '''   True  = Sidecar/second-pass: engine PCM → WavSidecarWriter (direct
+        '''           WAV on disk) → after stop, second-pass mux folds the WAV
+        '''           into the final MP4. Bypasses the FFmpeg real-time audio
+        '''           pipe whose consumption collapsed to ~60% real-time on
+        '''           real-audio long runs (starved 6/6).
+        '''   False = Legacy live-mix: engine PCM → FFmpeg audio pipe → amix
+        '''           (kept as fallback; starves on real-audio long runs).
+        ''' </summary>
+        Public Property AudioSidecarMode As Boolean = True
+
+
         ' FFmpeg path (from EngineConfigV2.Runtime.FFmpegPath or CLI override)
         Public Property FFmpegPath As String = ""
 

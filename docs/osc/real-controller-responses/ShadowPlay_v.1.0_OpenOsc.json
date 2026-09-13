@@ -1,0 +1,10 @@
+// status=200 (non-JSON body)
+2026-09-13 15:51:49.485  INFO  main/MainToolbarController- "showOnscreenOverlay status: " 200
+2026-09-13 15:51:49.485  DEBUG  main.common/toastService- "hide toast message"
+2026-09-13 15:51:49.907  DEBUG  main.common/toastService- "toast completed"
+2026-09-13 15:52:03.617  INFO  main/appService- "Trigger window focus"
+2026-09-13 15:52:03.617  INFO  main.common/hardwareService- "refresh hardware"
+2026-09-13 15:52:03.618  INFO  main.common/quietModeService- "refresh quietModeState"
+2026-09-13 15:52:03.618  INFO  main.common/nisService- "refresh nisState"
+2026-09-13 15:52:03.618  INFO  main.common/framerateLimiterService- "refresh BB2 state"
+2026-09-13 15:52:03.619  INFO  main.games/gamesService- "triggering refresh states"

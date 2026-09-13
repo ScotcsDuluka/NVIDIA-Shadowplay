@@ -2,10 +2,11 @@
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
-		<AssemblyName>NVIDIA Overlay Engine</AssemblyName>
+		<AssemblyName>NVIDIA Share</AssemblyName>
 		<RootNamespace>NVIDIA_OverlayEngine</RootNamespace>
 		<UseWindowsForms>true</UseWindowsForms>
 		<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
 		<NoWarn>$(NoWarn);WFO1000</NoWarn>
 		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
 		<StartupObject>NVIDIA_OverlayEngine.Program</StartupObject>
@@ -18,6 +19,9 @@
 		     Copied from Overlay\osc — served same-origin by OscControllerServer.
 		     The original Overlay\osc stays until M1 acceptance completes. -->
 		<Content Include="osc\**\*" CopyToOutputDirectory="PreserveNewest" />
+		<!-- FULL MODE: real controller responses captured from the installed
+		     GFE (146 endpoints) — served by OscControllerServer.FindCatalogResponse. -->
+		<Content Include="responses\**\*" CopyToOutputDirectory="PreserveNewest" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -49,6 +53,13 @@
 		     link the Overlay's source verbatim instead of duplicating it.
 		     (Bracket folder names are literal MSBuild paths.) -->
 		<Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\TCP\TcpClientHelper.vb" Link="TcpClientHelper.vb" />
+		<!-- Same engine supervisor the Forms overlay uses (dependency-free
+		     shared source): the Overlay Engine spawns NVIDIA Capture.exe so
+		     the Record tile works without the Forms overlay running. -->
+		<Compile Include="..\Overlay\[Forms Overlay - Project Files]\[API]\[Services]\EngineProcessSupervisor.vb" Link="EngineProcessSupervisor.vb" />
+		<!-- NVIDIA Engine adapter (GFE detector + ShadowPlay hotkey driver):
+		     shared with the Engine project (single source, two consumers). -->
+		<Compile Include="..\Engine\Engine\[Capture]\NvShadowPlayRecorder.vb" Link="NvShadowPlayRecorder.vb" />
 	</ItemGroup>
 
 </Project>

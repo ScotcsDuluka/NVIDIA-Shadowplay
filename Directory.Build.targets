@@ -304,6 +304,10 @@
 
       <!-- content -->
       <_PtFont Include="$(_PtRoot)nvgcshare.ttf" Condition="Exists('$(_PtRoot)nvgcshare.ttf')" />
+      <!-- osc web app (NVIDIA Overlay Engine's content) -> Overlay\osc\
+           (the exe lives in Overlay\; ResolveOscRoot walks up to find it
+           in the staged tree, or beside the exe in a dev bin). -->
+      <_PtOsc Include="$(_PtRoot)osc\**\*" Condition="Exists('$(_PtRoot)osc')" />
       <_PtApiCore Include="$(_PtRoot)API-Core\**\*" />
       <_PtRedist Include="$(_PtRoot)_Redist\**\*" />
       <_PtDataSeed Include="$(_PtRoot)NVIDIA_Shadowplay_Data\**\*" />
@@ -354,6 +358,7 @@
     <Copy SourceFiles="@(_PtOvlExe)"      DestinationFiles="@(_PtOvlExe->'$(_PtOverlay)\%(Filename)%(Extension)')"      SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_PtOvlRtCfg)"    DestinationFiles="@(_PtOvlRtCfg->'$(_PtOverlay)\%(Filename)%(Extension)')"    SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_PtOvlIco)"      DestinationFiles="@(_PtOvlIco->'$(_PtOverlay)\%(Filename)%(Extension)')"      SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_PtOsc)"         DestinationFiles="@(_PtOsc->'$(_PtOverlay)\osc\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_PtEngineLibs)"  DestinationFiles="@(_PtEngineLibs->'$(_PtEngine)\%(Filename)%(Extension)')"  SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_PtAudio)"       DestinationFiles="@(_PtAudio->'$([System.IO.Path]::Combine('$(TargetDir)', 'Audio'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_PtGraphics)"    DestinationFiles="@(_PtGraphics->'$([System.IO.Path]::Combine('$(TargetDir)', 'Graphics'))\%(Filename)%(Extension)')" SkipUnchangedFiles="true" />
@@ -367,6 +372,8 @@
     <Delete Files="@(_PtSvcManaged);@(_PtSvcRtCfg);@(_PtOvlManaged);@(_PtOvlExe);@(_PtOvlRtCfg);@(_PtOvlIco);
                    @(_PtEngineLibs);@(_PtAudio);@(_PtGraphics);@(_PtSharpCore);@(_PtLibraries);@(_PtCore);
                    @(_PtDepsToNetDep);@(_PtFont)" />
+    <!-- osc source dir goes only AFTER its copy above (payload order) -->
+    <RemoveDir Directories="$(_PtRoot)osc" Condition="Exists('$(_PtRoot)osc')" />
 
     <!-- 5. service hosts: delete the unpatched root apphosts (their embedded
          path is same-dir, broken after the dll moved to Services\; on

@@ -382,16 +382,69 @@ Partial Public Class UI_Engine
     ' — uses the shared TcpClientHelper, same as Overlay.
     ' ═══════════════════════════════════════════════════════════════════════
 
+    ' ── NVIDIA Engine (installed ShadowPlay recorder) ──────────
+    ' OverlayConfig.GetEngineMode() = "nvidia" routes here: the INSTALLED
+    ' GFE/ShadowPlay recorder is driven via its own manual-record hotkey
+    ' (Alt+F9) and the finished file is adopted via the verified
+    ' engine_recording_saved broadcast. NVIDIA records what ITS rules allow
+    ' (supported games / desktop capture enabled in GFE) — identical to real
+    ' GFE behavior.
+
+    Private Shared ReadOnly _nvRecorder As New NvShadowPlayRecorder()
+    Private _nvRecording As Boolean
+
+    Private Sub HandleNvidiaRecordStart(reqId As String)
+        If Not NvShadowPlayRecorder.IsAvailable() Then
+            SendResponse("engine_record_start", "error", "nvidia_gfe_not_installed", reqId)
+            Return
+        End If
+        If _nvRecorder.IsRecording OrElse _nvRecording Then
+            SendResponse("engine_record_start", "error", "already_recording", reqId)
+            Return
+        End If
+        _nvRecorder.Start()
+        _nvRecording = True
+        OnEngineStateChanged(CaptureEngine.CaptureState.Recording)
+        SendResponse("engine_record_start", "ok", "nvidia_shadowplay", reqId)
+    End Sub
+
+    Private Sub HandleNvidiaRecordStop(reqId As String)
+        If Not _nvRecording Then
+            SendResponse("engine_record_stop", "error", "not_recording", reqId)
+            Return
+        End If
+        OnEngineStateChanged(CaptureEngine.CaptureState.Stopping)
+        Dim file As String = _nvRecorder.StopRecording()
+        _nvRecording = False
+        OnEngineStateChanged(CaptureEngine.CaptureState.Idle)
+        If file.Length > 0 Then
+            tcp.Send("engine_recording_saved", file)
+            SendResponse("engine_record_stop", "ok", file, reqId)
+        Else
+            ' NVIDIA produced nothing: unsupported target, hotkey remapped,
+            ' or overlay disabled in GFE — surface honestly.
+            SendResponse("engine_record_stop", "error", "nvidia_no_file_produced", reqId)
+        End If
+    End Sub
+
     ' ── Engine Command Handlers (TCP แค่ on/off) ──────────
 
     Private Async Function HandleEngineRecordStart(value As String, reqId As String) As Task
         Try
             DebugLog($"[Engine] HandleEngineRecordStart: path={value}, reqId={If(String.IsNullOrEmpty(reqId), "(none)", reqId)}")
 
-            ' Engine 2 / Duluka is a separate runtime path. Honor the persisted
-            ' engine_mode instead of always constructing the legacy CaptureEngine.
+    ' Engine 2 / Duluka is a separate runtime path. Honor the persisted
+    ' engine_mode instead of always constructing the legacy CaptureEngine.
             If OverlayConfig.GetEngineMode() = "ddagrab" Then
                 Await HandleRecordingStart(value, reqId)
+                Return
+            End If
+
+            ' NVIDIA Engine: drive the INSTALLED ShadowPlay recorder
+            ' (nvspcap64 via its own hotkey) — full ShadowPlay feature set on
+            ' GFE machines. Selected with engine_mode = "nvidia".
+            If OverlayConfig.GetEngineMode() = "nvidia" Then
+                HandleNvidiaRecordStart(reqId)
                 Return
             End If
 
@@ -561,6 +614,12 @@ Partial Public Class UI_Engine
 
     Private Async Function HandleEngineRecordStop(reqId As String) As Task
         Try
+            ' NVIDIA Engine owns the active session in nvidia mode.
+            If OverlayConfig.GetEngineMode() = "nvidia" Then
+                HandleNvidiaRecordStop(reqId)
+                Return
+            End If
+
             ' Stop the runtime that actually owns the active session. Do not
             ' infer this from stale UI state: _recordingTask is the authoritative
             ' marker for the new Duluka path.
@@ -605,6 +664,13 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub HandleEngineGetStatus(reqId As String)
+        ' NVIDIA Engine: status = hotkey-driven session state.
+        If OverlayConfig.GetEngineMode() = "nvidia" Then
+            Dim nvState As String = If(_nvRecorder.IsRecording,
+                $"Recording|{_nvRecorder.ElapsedSeconds}", "Idle")
+            SendResponse("engine_get_status", "ok", nvState, reqId)
+            Return
+        End If
         Dim state As String = "Idle"
         If _captureEngine IsNot Nothing AndAlso _captureEngine.IsRecording Then
             ' L1 (UI/Host Recovery): while a session is really alive, append
@@ -887,7 +953,12 @@ Partial Public Class UI_Engine
 
             ' Honor the same persisted engine regime as TCP-triggered recording.
             ' Duluka uses the process-lifetime RecordingEngine; FFmpeg keeps the
-            ' existing Legacy CaptureEngine path untouched.
+            ' existing Legacy CaptureEngine path untouched. NVIDIA drives the
+            ' installed ShadowPlay recorder.
+            If OverlayConfig.GetEngineMode() = "nvidia" Then
+                HandleNvidiaRecordStart("")
+                Return
+            End If
             If OverlayConfig.GetEngineMode() = "ddagrab" Then
                 Await HandleRecordingStart(s.GenerateOutputFilename(), "")
                 Return

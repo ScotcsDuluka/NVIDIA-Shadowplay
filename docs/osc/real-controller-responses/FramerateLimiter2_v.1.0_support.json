@@ -1,0 +1,49 @@
+// status=200 (non-JSON body)
+2026-09-13 16:08:03.332  INFO  main.common/framerateLimiterService- "processBB2SupportInfo response:" {
+  "criteria": {
+    "overallState": false,
+    "featureTile": "BatteryBoost2.0",
+    "header": "Battery Boost 2.0",
+    "message": "Automatically extend your battery life when gaming",
+    "states": [
+      {
+        "name": "gpu",
+        "message": "GeForce RTX notebook GPU, 3050 series or higher",
+        "state": false
+      },
+      {
+        "name": "os",
+        "message": "Windows 10 or later",
+        "state": true
+      },
+      {
+        "name": "drvrVrsn",
+        "message": "GeForce 510.59 Driver or later",
+        "state": true
+      },
+      {
+        "name": "bb2",
+        "message": "Supported per nvAPI and JPAC Platform-Enabled ",
+        "state": false
+      }
+    ]
+  }
+}
+2026-09-13 16:08:04.000  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "Simple_Event",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T09:08:04.000Z",
+  "parameters": {
+    "id": "GFE_MAXIMIZE_UI"
+  }
+}
+2026-09-13 16:08:04.101  DEBUG  main/appService- "Trigger window resize"
+2026-09-13 16:08:04.809  INFO  nvJsEvents/jsEventsEndpoints- "serverhttps://events.gfe.nvidia.com"
+2026-09-13 16:08:05.027  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "Simple_Event",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T09:08:05.027Z",
+  "parameters": {
+    "id": "GFE_MINIMIZE_UI"
+  }
+}

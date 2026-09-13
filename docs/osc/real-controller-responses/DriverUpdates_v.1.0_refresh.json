@@ -1,0 +1,16 @@
+// status=202 (non-JSON body)
+2026-09-13 16:05:15.712  INFO  main.updates/updatesService- "UpdatesService - got socket event  SCAN_UPDATE - " "STARTED"
+2026-09-13 16:05:15.712  INFO  main.updates/updatesService- "UpdatesService - SCAN_STARTED"
+2026-09-13 16:05:15.912  INFO  main.updates/updatesdrivercontroller- "driver tour element found"
+2026-09-13 16:05:15.912  INFO  main.common/productTourService- "pending tour info: " false
+2026-09-13 16:05:15.912  INFO  main.common/productTourService- "getSavedTourStepOrder tour " 0
+2026-09-13 16:05:15.912  INFO  main.common/productTourService- "pending tour info: " false
+2026-09-13 16:05:15.912  INFO  main.common/productTourService- "strating tour: driverTour"
+2026-09-13 16:05:15.919  INFO  main.common/productTourService- "tour launched" "driverTour" "step" 0
+2026-09-13 16:05:15.919  INFO  main.common/productTourService- "tourSteps at index" "0" "value" "value"
+2026-09-13 16:05:15.919  INFO  main.common/productTourService- "persistTourStepOrder for tour " "driverTour" " stepOrder:" 0
+2026-09-13 16:05:16.118  DEBUG  main.common/toastService- "toast completed"
+2026-09-13 16:05:16.520  INFO  main.updates/updatesService- "UpdatesService - got socket event  SCAN_UPDATE - " "FINISHED"
+2026-09-13 16:05:16.521  INFO  main.updates/updatesService- "Time taken to scan updates(ms):" 809
+2026-09-13 16:05:16.521  INFO  main.updates/updatesService- "UpdatesService - SCAN_FINISHED"
+2026-09-13 16:05:16.521  INFO  main.updates/updatesService- "getUpdates called"

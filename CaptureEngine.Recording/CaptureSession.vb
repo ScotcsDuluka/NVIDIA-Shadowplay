@@ -109,6 +109,11 @@ Namespace CaptureEngine.Recording
         Private _sysAudioEngineSink As AudioEngineMuxSink
         Private _micAudioEngineSink As AudioEngineMuxSink
 
+        ' ★ P3-D sidecar transport (W1): WAV-on-disk sinks — used when
+        ' SessionConfig.AudioSidecarMode = True (production default).
+        Private _sysSidecarSink As AudioSidecarSink
+        Private _micSidecarSink As AudioSidecarSink
+
         ' ★ OBS trick: render endless silence to the loopback device while
         ' recording so WASAPI delivers callbacks CONTINUOUSLY (silence included).
         ' Kills gap-fill/steering/noise-at-silence at the source.
@@ -298,13 +303,31 @@ Namespace CaptureEngine.Recording
                     .MicrophoneDeviceId = If(_config.MicDeviceId, ""),
                     .MicrophoneDeviceName = If(_config.MicDeviceName, "")
                 }, Sub(m) _logger.Info(m))
-                If _config.AudioEnabled Then
-                    _sysAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.System)
-                    _audioEngine.AddSink(AudioTrackKind.System, _sysAudioEngineSink)
-                End If
-                If _config.MicEnabled Then
-                    _micAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.Microphone)
-                    _audioEngine.AddSink(AudioTrackKind.Microphone, _micAudioEngineSink)
+                ' ★ P3-D AUDIO TRANSPORT (W1): the engine PCM goes to ONE of
+                ' two sinks — Sidecar (WAV on disk, second-pass mux) or the
+                ' legacy live-mix pipe. Same engine, same timeline, same
+                ' boundary math; only the transport differs.
+                If _config.AudioSidecarMode Then
+                    If _config.AudioEnabled Then
+                        _sysSidecarSink = New AudioSidecarSink(_config.OutputPath & ".sys.wav",
+                                                               If(_config.AudioEnabled, 2, 2))
+                        _audioEngine.AddSink(AudioTrackKind.System, _sysSidecarSink)
+                    End If
+                    If _config.MicEnabled Then
+                        _micSidecarSink = New AudioSidecarSink(_config.OutputPath & ".mic.wav", 1)
+                        _audioEngine.AddSink(AudioTrackKind.Microphone, _micSidecarSink)
+                    End If
+                    _logger.Info("[session] audio transport = SIDECAR (WAV on disk, second-pass mux; FFmpeg audio pipe bypassed)")
+                Else
+                    If _config.AudioEnabled Then
+                        _sysAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.System)
+                        _audioEngine.AddSink(AudioTrackKind.System, _sysAudioEngineSink)
+                    End If
+                    If _config.MicEnabled Then
+                        _micAudioEngineSink = New AudioEngineMuxSink(AudioTrackKind.Microphone)
+                        _audioEngine.AddSink(AudioTrackKind.Microphone, _micAudioEngineSink)
+                    End If
+                    _logger.Info("[session] audio transport = PIPE (legacy live-mix)")
                 End If
                 ' Audio capture is armed/warmed now, but its recording timeline starts at common T0.
                 _audioEngine.Start(_timelineStartQpc100ns)
@@ -595,12 +618,31 @@ Namespace CaptureEngine.Recording
                     micCh = 0
                 End If
 
+                ' ★ P3-D AUDIO TRANSPORT (W1): sidecar mode = video-only live
+                ' mux (no FFmpeg audio pipes at all — the proven starvation
+                ' point is bypassed entirely); audio goes to WAV sidecars and
+                ' a second-pass mux folds them in after the video finalizes.
+                Dim sidecarMode = _config.AudioSidecarMode
+                Dim sysRateForMux = 0, sysChForMux = 0, micRateForMux = 0, micChForMux = 0
+                If Not sidecarMode Then
+                    Dim hasSysFmt = _audioEngine IsNot Nothing AndAlso _audioEngine.TryGetTrackFormat(AudioTrackKind.System, sysRateForMux, sysChForMux)
+                    If _config.AudioEnabled AndAlso Not hasSysFmt Then
+                        _logger.Warning("[session] Shared Audio Engine has no System track — live mux will remain audio-input idle")
+                        sysRateForMux = 0 : sysChForMux = 0
+                    End If
+                    Dim hasMicFmt = _audioEngine IsNot Nothing AndAlso _audioEngine.TryGetTrackFormat(AudioTrackKind.Microphone, micRateForMux, micChForMux)
+                    If _config.MicEnabled AndAlso Not hasMicFmt Then
+                        _logger.Warning("[session] Shared Audio Engine has no Microphone track — mic input disabled")
+                        micRateForMux = 0 : micChForMux = 0
+                    End If
+                End If
+
                 _liveMux = New LiveMuxSession(
                     _config.FFmpegPath,
                     _config.OutputPath,
                     targetFps,
-                    sysRate, sysCh,
-                    micRate, micCh,
+                    sysRateForMux, sysChForMux,
+                    micRateForMux, micChForMux,
                     _config.MicSeparateTracks,
                     _config.SystemVolume,
                     _config.MicVolume,
@@ -609,8 +651,10 @@ Namespace CaptureEngine.Recording
                 If Not _liveMux.Start() Then
                     Throw New Exception("LiveMux failed to start (ffmpeg) — session aborted")
                 End If
-                _sysAudioEngineSink?.AttachMux(_liveMux)
-                _micAudioEngineSink?.AttachMux(_liveMux)
+                If Not sidecarMode Then
+                    _sysAudioEngineSink?.AttachMux(_liveMux)
+                    _micAudioEngineSink?.AttachMux(_liveMux)
+                End If
                 _logger.Info("[session] Shared Audio Engine sinks attached to LiveMux (audio PTS alignment handled upstream)")
 
                 ' ─── 3. Arm video capture + encoder BEFORE common T0 ────
@@ -1035,6 +1079,24 @@ Namespace CaptureEngine.Recording
                             If(_micAudioEngineSink IsNot Nothing, _micAudioEngineSink.PendingDroppedBytes, 0)
                         result.MicAccountingOk = (result.MicDroppedBytes = 0)
                     End If
+                    ' ★ P3-D sidecar transport: finalize the WAV sidecars
+                    ' (bounded) and fold their honest accounting into the
+                    ' result. The WAV boundary was already frozen at the video
+                    ' stop snapshot (P1-A SetSessionEndQpc100ns above), so the
+                    ' sidecar covers exactly [T0, T_END].
+                    If _config.AudioSidecarMode Then
+                        Dim sysSidecarReport = _sysSidecarSink?.FinalizeNow(10000)
+                        Dim micSidecarReport = _micSidecarSink?.FinalizeNow(10000)
+                        If sysSidecarReport IsNot Nothing Then
+                            result.AudioDroppedBytes += sysSidecarReport.BytesDropped + _sysSidecarSink.PostFinalizeDropped
+                            result.AudioAccountingOk = result.AudioAccountingOk AndAlso sysSidecarReport.AccountingOk
+                        End If
+                        If micSidecarReport IsNot Nothing Then
+                            result.MicDroppedBytes += micSidecarReport.BytesDropped + _micSidecarSink.PostFinalizeDropped
+                            result.MicAccountingOk = result.MicAccountingOk AndAlso micSidecarReport.AccountingOk
+                        End If
+                        _logger.Info($"[session] sidecar WAVs finalized: sys dur={If(sysSidecarReport IsNot Nothing, sysSidecarReport.DurationSec.ToString("0.00"), "-")}s mic dur={If(micSidecarReport IsNot Nothing, micSidecarReport.DurationSec.ToString("0.00"), "-")}s")
+                    End If
                 End If
 
                 ' ─── 8b. Legacy audio path retained but bypassed ─────────
@@ -1158,6 +1220,72 @@ Namespace CaptureEngine.Recording
                 End If
                 If liveRes.DroppedBytes > 0 Then
                     _logger.Warning($"[session] live-mux dropped {liveRes.DroppedBytes:N0}B — file is missing captured audio (pass will report False)")
+                End If
+
+                ' ─── P3-D SECOND-PASS MUX (sidecar transport, W1) ───
+                ' The live mux produced a VIDEO-ONLY MP4 at OutputPath; the
+                ' audio lives in WAV sidecars on the same timeline ([T0, T_END],
+                ' P1-A boundary). Fold them into the final MP4 here — the
+                ' real-time FFmpeg audio pipe (the proven starvation point) is
+                ' never involved. Failure keeps the video-only partial and
+                ' stays an honest FAILURE (no fake success).
+                If sidecarMode Then
+                    Dim videoOnly As String = _config.OutputPath & ".videoonly.mp4"
+                    Dim sysWavPath As String = _config.OutputPath & ".sys.wav"
+                    Dim micWavPath As String = _config.OutputPath & ".mic.wav"
+                    If File.Exists(_config.OutputPath) Then
+                        File.Move(_config.OutputPath, videoOnly)
+                    End If
+                    Dim hasSysWav As Boolean = _sysSidecarSink IsNot Nothing AndAlso
+                        File.Exists(sysWavPath) AndAlso New FileInfo(sysWavPath).Length > 44
+                    Dim hasMicWav As Boolean = _micSidecarSink IsNot Nothing AndAlso
+                        File.Exists(micWavPath) AndAlso New FileInfo(micWavPath).Length > 44
+                    Dim muxArgs As String = $"-y -i ""{videoOnly}"""
+                    If hasSysWav Then muxArgs &= $" -i ""{sysWavPath}"""
+                    If hasMicWav Then muxArgs &= $" -i ""{micWavPath}"""
+                    muxArgs &= " -map 0:v"
+                    If hasSysWav Then muxArgs &= " -map 1:a -c:a:0 aac -b:a:0 320k"
+                    If hasMicWav Then muxArgs &= If(hasSysWav, " -map 2:a -c:a:1 aac -b:a:1 128k", " -map 1:a -c:a aac -b:a 128k")
+                    muxArgs &= $" -movflags +faststart ""{_config.OutputPath}"""
+                    _logger.Info($"[session] P3-D second-pass mux: sys={hasSysWav} mic={hasMicWav}")
+                    Dim muxPsi As New ProcessStartInfo With {
+                        .FileName = _config.FFmpegPath,
+                        .Arguments = muxArgs,
+                        .UseShellExecute = False,
+                        .RedirectStandardError = True,
+                        .CreateNoWindow = True
+                    }
+                    Dim muxOk As Boolean = False
+                    Dim muxErrText As String = ""
+                    Try
+                        Using muxProc As Process = Process.Start(muxPsi)
+                            Dim errTask = muxProc.StandardError.ReadToEndAsync()
+                            If Not muxProc.WaitForExit(120000) Then
+                                Try : muxProc.Kill() : Catch : End Try
+                                muxErrText = "second-pass mux timed out (120s)"
+                            Else
+                                muxOk = (muxProc.ExitCode = 0)
+                                muxErrText = If(muxOk, "", errTask.Result)
+                            End If
+                        End Using
+                    Catch ex As Exception
+                        muxErrText = "second-pass mux exception: " & ex.Message
+                    End Try
+
+                    If muxOk Then
+                        _logger.Info("[session] P3-D second-pass mux ok (sidecar audio folded, faststart)")
+                        Try : File.Delete(videoOnly) : Catch : End Try
+                        Try : File.Delete(sysWavPath) : Catch : End Try
+                        If File.Exists(micWavPath) Then File.Delete(micWavPath)
+                    Else
+                        ' Honest partial: keep the video-only MP4 + the WAVs on
+                        ' disk for debugging; the session stays a FAILURE.
+                        If File.Exists(videoOnly) AndAlso Not File.Exists(_config.OutputPath) Then
+                            File.Move(videoOnly, _config.OutputPath)
+                        End If
+                        result.ErrorMessage = If(result.ErrorMessage, "") & "second-pass mux failed (video-only partial kept): " & Trunc(muxErrText, 200)
+                        _logger.Error("[session] P3-D second-pass mux FAILED — video-only partial kept: " & muxErrText)
+                    End If
                 End If
 
                 ' ─── 10. Probe final MP4 duration (evidence) ─────────────
@@ -1334,6 +1462,11 @@ Namespace CaptureEngine.Recording
         ''' Allocation per chunk is acceptable: chunks are ~10ms and the copy
         ''' already happens once (buffer ownership rule).
         ''' </summary>
+        Private Shared Function Trunc(s As String, n As Integer) As String
+            If String.IsNullOrEmpty(s) Then Return ""
+            Return If(s.Length <= n, s, s.Substring(0, n) & "…")
+        End Function
+
         Private Shared Function ConvertFloatToPcm16(buffer As Byte(), bytesRecorded As Integer) As Byte()
             Dim sampleCount As Integer = bytesRecorded \ 4
             Dim out(sampleCount * 2 - 1) As Byte

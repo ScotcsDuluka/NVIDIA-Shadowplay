@@ -1,0 +1,54 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:16.952  DEBUG  main.common/httpLoggingService- "debug jarvis response headers: x-jarvisrequestid" "production:seagucubtrou12_11127295" "x-jarvisresponder" "seagucubtrou12"
+2026-09-13 15:50:16.952  INFO  main.telemetry/telemetryService- "telemetry userId " "331007586420654732"
+2026-09-13 15:50:16.953  INFO  nvJsEvents/jsEventsService- "Device Id:" "77ad843b6946405c18e40e3d61e4358948814a3267b6d4574e65e72e2d9ace01" "set for client:" "135333107684344109"
+2026-09-13 15:50:16.954  INFO  main.common/hardwareService- "getLaunchTimeSystemInfo"
+2026-09-13 15:50:16.954  DEBUG  main.common/jarvisService- "Authenticated user and started session."
+2026-09-13 15:50:16.954  DEBUG  main.common/jarvisService- "storing session token"
+2026-09-13 15:50:16.954  INFO  main.common/jarvisService- "write functional consent in AccountsFile" {
+  "trackFunctionalData": {
+    "lastChangedOn": "2026-09-13T08:50:16.954Z",
+    "level": "Full"
+  }
+}
+2026-09-13 15:50:16.954  DEBUG  main.common/jarvisService- "storing user token"
+2026-09-13 15:50:16.955  INFO  main/urlRouter/main.auth/resolve- "jarvis session started on login from db"
+2026-09-13 15:50:16.955  INFO  main.rewards/rewardsService- "Received event to validate rewards status and session"
+2026-09-13 15:50:16.956  INFO  main.rewards/rewardsService- "reward is enabled"
+2026-09-13 15:50:16.956  INFO  main/MainToolbarController- "Setting rewards feature enabled to: " true
+2026-09-13 15:50:16.957  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "PrimaryGpuFourPartId",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T08:50:16.957Z",
+  "parameters": {
+    "deviceId": "1b06",
+    "vendorId": "10de",
+    "subVendorId": "10de",
+    "subSystemId": "120f"
+  }
+}
+2026-09-13 15:50:16.957  DEBUG  main.rewards/rewardsService- "got gfwsl consent params" [
+  "1",
+  "1",
+  "1"
+]
+2026-09-13 15:50:16.957  INFO  main.rewards/rewardsService- "Received event to validate rewards status and session"
+2026-09-13 15:50:16.957  INFO  main.preferences/preferencesService- " user loggedin found and web RH is true"
+2026-09-13 15:50:16.957  INFO  main.preferences/preferencesService- "getLoggedInUser "
+2026-09-13 15:50:16.958  DEBUG  main.preferences/preferencesService- "Found user session, system online state" true
+2026-09-13 15:50:16.958  INFO  main.common/productTourService- "oobeTour resumed"
+2026-09-13 15:50:16.958  INFO  cevoToggleService- "Querying profile status..."
+2026-09-13 15:50:16.959  INFO  main.notifications/notificationController- "fetching notification view state at user logged in"
+2026-09-13 15:50:16.959  INFO  main.notifications/notificationController- "displaying notification view state at user logged in " {
+  "status_": "loading"
+}
+2026-09-13 15:50:16.959  DEBUG  main.updates/gfwlsDriverInformationService- "reset driver information cache to empty"
+2026-09-13 15:50:16.959  DEBUG  main.rewards/rewardsService- "Resetting Rewards Session"
+2026-09-13 15:50:16.960  INFO  main.rewards/rewardsService- "Creating a new Session for Rewards"
+2026-09-13 15:50:16.960  INFO  main.gfwslSdk/gfwslEndpoints- "server: " "https://gfwsl.geforce.com/"
+2026-09-13 15:50:16.961  INFO  main.gfnCloudGames/gfnCloudGamesService- "cloud games feature toggle status" false
+2026-09-13 15:50:16.961  INFO  cevoToggleService- "affinity ebeta Region/support eligibility response" false
+2026-09-13 15:50:16.962  DEBUG  main.common/httpLoggingService- "Going to call endpoint request url " "https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientvrs.php/com.nvidia.services.GFEClientVrs.getGfeWebSsnJt/{\"cID\":\"Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz\",\"gcV\":\"3.28.0.412\",\"sM\":\"16GB\",\"IsB\":\"0\",\"dIDa\":[\"1b06_10de_120f_10de_1\"],\"dFma\":[\"130\"],\"osC\":\"10.0\",\"dch\":\"1\",\"osB\":\"26340\",\"is6\":\"1\",\"lg\":\"1033\",\"gLg\":\"en-US\",\"GFPV\":\"582.66\",\"IsQ\":\"0\",\"iLp\":\"0\",\"isSLI\":\"0\",\"go\":\"TH\",\"cSR\":\"1680x1050@75\",\"uCst\":[\"1\",\"1\",\"1\"]}"
+2026-09-13 15:50:16.966  INFO  cevoToggleService- "getVariant success" {
+  "eligible": false
+}

@@ -1,0 +1,14 @@
+// status=200 (non-JSON body)
+2026-09-13 15:52:23.008  INFO  main.games/gamesService- "socket event  GAME_VOPS_UPDATED" true
+2026-09-13 15:52:23.009  ERROR  main.games/gamesService- "VOPS update for unknown game" true
+2026-09-13 15:52:23.009  INFO  main.preferences/preferencesService- "streamingSupported: " true ", should show GS in OOBE: " true
+2026-09-13 15:52:23.009  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "Feature_State",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T08:52:23.009Z",
+  "parameters": {
+    "id": "GAMESTREAM_CAPABILITY",
+    "serviceSupportedState": "true",
+    "endpointSupportedState": "true"
+  }
+}

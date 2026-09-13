@@ -1,0 +1,31 @@
+// status=200 (non-JSON body)
+2026-09-13 16:08:03.324  INFO  main.common/nisService- "processStateInfo response:" {
+  "data": {
+    "supported": true,
+    "enabled": false,
+    "cmsId": 0,
+    "sharpen": 50,
+    "selectedResolutionIndex": 1,
+    "resolutions": [
+      {
+        "percent": 85,
+        "resolution": "1428 x 893"
+      },
+      {
+        "percent": 77,
+        "resolution": "1292 x 808"
+      },
+      {
+        "percent": 67,
+        "resolution": "1120 x 700"
+      },
+      {
+        "percent": 59,
+        "resolution": "988 x 618"
+      }
+    ]
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

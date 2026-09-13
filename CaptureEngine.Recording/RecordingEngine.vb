@@ -194,6 +194,21 @@ Namespace CaptureEngine.Recording
         Public Function StartSession(config As SessionConfig) As SessionResult
             If config Is Nothing Then Throw New ArgumentNullException(NameOf(config))
 
+            ' ★ P1-A DISK HEADROOM GUARD (W1): refuse BEFORE any resource is
+            ' spawned when the output drive cannot hold this session. Derived
+            ' from the session's own numbers (video bitrate + audio streams ×
+            ' duration), ×2 because the faststart remux holds the .frag and
+            ' the final file on disk simultaneously. P3-B evidence: every
+            ' long-run failure in the starvation matrix was triggered (or
+            ' aggravated) by the drive hitting 100% mid-record — ENOSPC,
+            ' stalled writes, drain discards. Failing here is cheap and loud.
+            Dim effectiveBitrate As Long = If(_startupEcho IsNot Nothing AndAlso _startupEcho.BitrateBps > 0,
+                                                  _startupEcho.BitrateBps, 20000000L)
+            Dim headroomCheck = DiskHeadroom.Evaluate(config, effectiveBitrate, _logger)
+            If Not headroomCheck.Ok Then
+                Throw New ArgumentException(headroomCheck.FailureReason, NameOf(config))
+            End If
+
             SyncLock _sync
                 If _disposed OrElse _disposeRequested Then Throw New ObjectDisposedException(NameOf(RecordingEngine))
                 If _state <> RecordingEngineState.Idle Then

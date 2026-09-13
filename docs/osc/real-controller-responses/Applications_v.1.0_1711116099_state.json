@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:36.913  INFO  main.games/SystemGame- "new state for " "attack_on_titan_2" 1711116099 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:36.914  INFO  main.games/SystemGame- "slider settings not available for " "attack_on_titan_2" 1711116099
+2026-09-13 15:50:36.914  INFO  main.games/gamesService- "trying to get game state" "secret_neighbor"
+2026-09-13 15:50:36.914  INFO  main.games/gamesService- "trying to get game state" "secret_neighbor"

@@ -1,0 +1,46 @@
+// status=200 (non-JSON body)
+2026-09-13 15:52:22.992  INFO  main.common/quietModeService- "process quiet mode 2 SupportInfo response:" {
+  "data": {
+    "criteria": {
+      "overallState": false,
+      "featureTile": "WM2",
+      "header": "WHISPERMODE 2.0",
+      "message": "Balance laptop performance and fan volume while gaming on AC power",
+      "states": [
+        {
+          "name": "gfe",
+          "message": "GeForce Experience 3.21.0 or later",
+          "state": true
+        },
+        {
+          "name": "gpu",
+          "message": "GeForce RTX notebook GPU, 3050 series or higher",
+          "state": false
+        },
+        {
+          "name": "os",
+          "message": "Windows 10 or later",
+          "state": true
+        },
+        {
+          "name": "drvrVrsn",
+          "message": "GeForce 460.89 Driver or later",
+          "state": true
+        },
+        {
+          "name": "wm2",
+          "message": "Supported per nvAPI and JPAC Platform-Enabled",
+          "state": false
+        },
+        {
+          "name": "wm2p",
+          "message": "Enabled by Notebook",
+          "state": false
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

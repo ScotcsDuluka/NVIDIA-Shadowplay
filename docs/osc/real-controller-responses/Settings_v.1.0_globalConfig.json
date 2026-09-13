@@ -1,0 +1,29 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:21.144  INFO  main.games/gamesService- "persisted auto optimized state successfully " true
+2026-09-13 15:50:21.305  INFO  main.updates/updatesService- "UpdatesService - got socket event  SCAN_UPDATE - " "FINISHED"
+2026-09-13 15:50:21.305  INFO  main.updates/updatesService- "Time taken to scan updates(ms):" 778
+2026-09-13 15:50:21.306  INFO  main.updates/updatesService- "UpdatesService - SCAN_FINISHED"
+2026-09-13 15:50:21.306  INFO  main.updates/updatesService- "getUpdates called"
+2026-09-13 15:50:21.397  ERROR  main.common/httpLoggingService- "Http request method " "POST" ", url " "https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientvrs.php/com.nvidia.services.GFEClientVrs.gfeVrsStatus/{\"cID\":\"Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz\",\"gcV\":\"3.28.0.412\",\"sM\":\"16GB\",\"IsB\":\"0\",\"dIDa\":[\"1b06_10de_120f_10de_1\"],\"dFma\":[\"130\"],\"osC\":\"10.0\",\"dch\":\"1\",\"osB\":\"26340\",\"is6\":\"1\",\"lg\":\"1033\",\"gLg\":\"en-US\",\"GFPV\":\"582.66\",\"IsQ\":\"0\",\"iLp\":\"0\",\"isSLI\":\"0\",\"go\":\"TH\",\"cSR\":\"1680x1050@75\",\"uCst\":[\"1\",\"1\",\"1\"]}" " FAILED with response " {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name='gfeVrsStatus' date='Sunday 13th September 2026 01:50:23 AM' UnKnown ResponseStatus='NotFound 400' -->",
+    "IncomingParams": "<!-- Incoming json:  --><!-- gpuState : 93-312-21-01-pi -->",
+    "NextNonceGfeVrsn": "<!-- NextNonceGfeVrsn:  -->",
+    "html": {
+      "body": {
+        "sessionState": {
+          "overallState": "false",
+          "ecnon_egcv": {
+            "value": ""
+          },
+          "errorDetails": {
+            "message": "Session Token Signature Failure in method gfeVrsStatus"
+          }
+        }
+      }
+    }
+  },
+  "status": 404,
+  "config": {
+    "method": "POST",
+    "transformRequest": [

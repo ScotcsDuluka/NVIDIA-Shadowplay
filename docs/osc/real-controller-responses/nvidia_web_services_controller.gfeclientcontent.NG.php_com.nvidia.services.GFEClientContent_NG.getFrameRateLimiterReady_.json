@@ -1,0 +1,36 @@
+// status=200 (non-JSON body)
+2026-09-13 15:52:23.004  DEBUG  main.common/httpLoggingService- " gfwsl returned successfully with response " {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name=\"getFrameRateLimiterReady\" date=\"2026-09-13T08:17:57+0000\" {\"gcV\":\"3.28.0.412\",\"lg\":\"1033\",\"gLg\":\"en-US\",\"dIDa\":[\"1b06_10de_120f_10de_1\"],\"osC\":\"10.0\",\"dch\":\"1\",\"osB\":\"26340\",\"is6\":\"1\",\"IsB\":\"0\",\"GFPV\":\"582.66\",\"IsQ\":\"0\",\"iLp\":\"0\",\"isSLI\":\"0\",\"gIsB\":\"0\",\"cSR\":\"1680x1050@75\",\"uCst\":[\"1\",\"1\",\"1\"],\"dID\":\"1B06\",\"vID\":\"10DE\",\"ssID\":\"120F\",\"svID\":\"10DE\"} ResponseStatus=\"Success 200\" --><!-- 04-312-21-01-pi~21 -->",
+    "ParsedParams": "<!-- theGeForceClientVersion:3.28.0.412 theProductFamilyDeviceID:1B06 theOperatingSystemCode:10.0 theOperatingSystemIs64Bit:1 theLanguageCode:1033 theLanguageCultureCode:en-US reverselookup_theLanguageID:en_US theDriverIsBetaFlag:0 theVendorID:10DE theSubSystemID:120F theSubVendorID:10DE theInstalledVersion:582.66 theSystemIssQuadroFlag:0 theSystemIsLaptopFlag:0 theSystemSLIStatusEnum:0 theGfeClientIsBetaFlag:0 --> MC:prodgfwslmem-spore.nzgvwo.cfg.apse1.cache.amazonaws.com:11211",
+    "GfeCampaignXmlContent": "<!-- Not Using Drupal _getGfeCampaignXmlContent $_USE_DRUPAL:0 $theContentType:/gfe-campaigns/framerate-limiter-ready/ $theVersion:3.28.0.412 $theLanguageID:en_US versionToGet:3.28.0 , $theGfeClientIsBetaFlag:0 , $theWhitelistsPath:s3://gfwslstore.singapore/gfwslActive/Active/en_US/en_US/gfe/3.28.0/gfe-campaigns/framerate-limiter-ready/whitelists.xml , $theTranslationsPath:s3://gfwslstore.singapore/gfwslActive/Active/en_US/en_US/gfe/3.28.0/gfe-campaigns/framerate-limiter-ready/translations.xml , gfwslMc:gfwslMcMissWL:false~gfwslMcMissTL:false -->",
+    "GPUFourPartState": "false_DEV_1B06_SUBSYS_120F10DE",
+    "criteria": {
+      "overallState": "false",
+      "featureTile": "BatteryBoost",
+      "header": "Battery Boost",
+      "message": "Automatically extend your battery life when gaming",
+      "states": [
+        {
+          "name": "gpu",
+          "state": "false",
+          "message": "GeForce GTX notebook GPU, 800M series or higher"
+        },
+        {
+          "name": "os",
+          "state": "true",
+          "message": "Windows 10 or later"
+        },
+        {
+          "name": "drvrVrsn",
+          "state": "true",
+          "message": "GeForce 331.40 Driver or later"
+        }
+      ]
+    },
+    "isLaptop": "<!-- IsLaptop state='false' message='Not available for Desktops' -->"
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

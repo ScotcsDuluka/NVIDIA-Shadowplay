@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:31.356  INFO  main.games/SystemGame- "new state for " "zenless_zone_zero" 1140047799 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:31.356  INFO  main.games/SystemGame- "slider settings not available for " "zenless_zone_zero" 1140047799
+2026-09-13 15:50:31.356  INFO  main.games/gamesService- "trying to get game state" "call_of_duty_black_ops_7"
+2026-09-13 15:50:31.356  INFO  main.games/gamesService- "trying to get game state" "call_of_duty_black_ops_7"

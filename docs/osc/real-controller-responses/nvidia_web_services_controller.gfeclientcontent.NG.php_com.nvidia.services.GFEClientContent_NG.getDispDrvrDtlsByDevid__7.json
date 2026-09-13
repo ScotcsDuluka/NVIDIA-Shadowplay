@@ -1,0 +1,201 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:21.857  DEBUG  main.common/httpLoggingService- " gfwsl returned successfully with response " {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name=\"getDispDrvrDtlsByDevid\" date=\"2026-09-13T08:50:23+0000\" Array ResponseStatus=\"Success 200\" -->",
+    "ParsedParams": "<!-- Parsed Params getDeviceDownload gcV:3.28.0.412 dID:1b06 osC:10.0 is6:1 osB:26340 lg:1054 gLg:en-US theDbLanguageID:1 go:TH lgO:1033 IsB:0 vID:10de ssID:120f svID:10de GFPV:582.66 IsQ:1 iLp:0 GLD: dch:1 isCRD:0 upCRD:0 gfX:1 wbX:0 isInst:1 --><!-- uid:mzmxmda3ntg2ndiwnju0nzmy --> MC:prodgfwslmem-spore.nzgvwo.cfg.apse1.cache.amazonaws.com:11211",
+    "GfeCampaignXmlContent": null,
+    "criteria": {
+      "overallState": "true",
+      "IsSupported": {
+        "state": "true",
+        "IsPrimary": "1",
+        "DeviceID": "1b06",
+        "Vendor": "10de",
+        "SubSystemID": "120f",
+        "SubVendorID": "10de",
+        "dispDrvrFound": "true",
+        "isgfXForced": "1"
+      },
+      "IsDispDriverNewer": {
+        "state": "false",
+        "installedDispDriverVersion": "582.66",
+        "latestDispDriverVersion": "582.66"
+      },
+      "IsDeviceOsBlackListed": []
+    },
+    "DriverAttributes": {
+      "ID": 272768,
+      "DownloadTypeID": 1,
+      "DownloadStatusID": 3,
+      "Name": "GeForce Security Update Driver",
+      "NameLocalized": "GeForce Security Update Driver",
+      "ReleaseDateTime": "2026-06-16T00:00:00+0000",
+      "Release": 580,
+      "Version": null,
+      "VersionMultiPart_1": 0,
+      "VersionMultiPart_2": 0,
+      "VersionMultiPart_3": 0,
+      "VersionMultiPart_4": 0,
+      "VersionMultiPart_5": 0,
+      "V1_Sort": "582.0000",
+      "V2_Sort": 66,
+      "V3_Sort": 0,
+      "V4_Sort": 0,
+      "V5_Sort": 0,
+      "DisplayVersion": "",
+      "GFE_VersionMultiPart_1": 0,
+      "GFE_VersionMultiPart_2": 0,
+      "GFE_VersionMultiPart_3": 0,
+      "GFE_VersionMultiPart_4": 0,
+      "GFE_DisplayVersion": "11.0.5.420",
+      "ReleaseNotes": "<strong>GeForce Security Update Driver</strong><br><br>NVIDIA has released a software security update display driver for Maxwell, Volta, and Pascal-series GeForce GPUs which are no longer supported by Game Ready Drivers. This update addresses multiple issues that may lead to security impacts.",
+      "ReleaseNotesAbstract": "Our new GeForce Game Ready Driver optimizes your system for the latest releases featuring DLSS and RTX technologies, including Empulse.",
+      "IsBeta": 0,
+      "IsWHQL": 1,
+      "IsRecommended": 0,
+      "IsFeaturePreview": 0,
+      "IsNewest": 0,
+      "IsDC": 1,
+      "IsCRD": 0,
+      "HasNetInst": 0,
+      "DetailsURL": "https://www.nvidia.com/en-us/drivers/details/272768/",
+      "DetailsAltURL": "https://www.nvidia.com/en-us/geforce/drivers/results/272768",
+      "DownloadURL": "https://international-gfe.download.nvidia.com/Windows/582.66/582.66-desktop-win10-win11-64bit-international-dch-whql-g.exe",
+      "DownloadURLAdmin": "https://us.download.nvidia.com/Windows/582.66/582.66-desktop-win10-win11-64bit-international-dch-whql.exe",
+      "Download_BuildStamp_Path": "",
+      "Download_NetInst_AppendPath": "",
+      "BannerURL": "https://www.nvidia.com/en-us/geforce/billboards/displaydriver/standalone/eve-std-game-ready-driver-2026-banners/",
+      "BannerURLGfe": "https://www.nvidia.com/en-us/geforce/billboards/displaydriver/gfe/eve-gfe-game-ready-driver-2026-banners/",
+      "BannerURLiCafe": "",
+      "BannerURLCudaTk": "",
+      "ShortDescription": "GeForce Security Update Driver",
+      "InstallationNotes": "",
+      "ReleaseNotesGFE": "Our new GeForce Game Ready Driver optimizes your system for the latest releases featuring DLSS and RTX technologies, including Empulse.",
+      "BannerTileLayoutGFE": "{\r\n  \"bannerGfeNg\": [\r\n    {\r\n      \"image\": \"https://images.nvidia.com/content/GRD/R610GA1/https://images.nvidia.com/content/GRD/R610GA1/geforce-experience-users-upgrade-to-the-nvidia-app-gfe-grd-1144x298-banner.jpg\",\r\n      \"video\": {\r\n        \"url\": \"\"\r\n      },\r\n      \"description\": \"Upgrade To The NVIDIA App For New Features & More\",\r\n      \"gfeLoadUrl\": \"https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\\\"cnP\\\":\\\"/AEM/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app\\\",\\\"dIDa\\\":[\\\"CTP_dIDa\\\"],\\\"osC\\\":\\\"CTP_osC\\\",\\\"is6\\\":\\\"CTP_is6\\\",\\\"lg\\\":\\\"CTP_lg\\\",\\\"go\\\":\\\"CTP_go\\\",\\\"gcV\\\":\\\"CTP_gcV\\\",\\\"GFPV\\\":\\\"CTP_GFPV\\\",\\\"gIsB\\\":\\\"CTP_gIsB\\\",\\\"iLp\\\":\\\"CTP_iLp\\\",\\\"IsB\\\":\\\"CTP_IsB\\\",\\\"isO\\\":\\\"CTP_isO\\\",\\\"cfb\\\":\\\"en-us\\\"}\",\r\n      \"linksTo\": \"https://www.nvidia.com/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app/\"\r\n    }\r\n  ],\r\n  \"highlightGfeNg\": {\r\n    \"games\": [],\r\n    \"features\": [],\r\n    \"tiles\": [\r\n      {\r\n        \"id\": \"1\",\r\n        \"name\": \"Upgrade To The NVIDIA App For New Features & More\",\r\n        \"coverImage\": \"https://images.nvidia.com/content/GRD/R610GA1/geforce-experience-users-upgrade-to-the-nvidia-app-gfe-grd-360x154-tile.jpg\",\r\n        \"description\": \"GeForce Experience is no longer being updated. Please upgrade to the NVIDIA app for continued support and new drivers.\",\r\n        \"gfeLoadUrl\": \"https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\\\"cnP\\\":\\\"/AEM/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app\\\",\\\"dIDa\\\":[\\\"CTP_dIDa\\\"],\\\"osC\\\":\\\"CTP_osC\\\",\\\"is6\\\":\\\"CTP_is6\\\",\\\"lg\\\":\\\"CTP_lg\\\",\\\"go\\\":\\\"CTP_go\\\",\\\"gcV\\\":\\\"CTP_gcV\\\",\\\"GFPV\\\":\\\"CTP_GFPV\\\",\\\"gIsB\\\":\\\"CTP_gIsB\\\",\\\"iLp\\\":\\\"CTP_iLp\\\",\\\"IsB\\\":\\\"CTP_IsB\\\",\\\"isO\\\":\\\"CTP_isO\\\",\\\"cfb\\\":\\\"en-us\\\"}\",\r\n        \"linksTo\": \"https://www.nvidia.com/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app/\"\r\n      }\r\n    ]\r\n  },\r\n  \"clientUX\": {\r\n    \"ReleaseNotesAbstract\": \"Our new GeForce Game Ready Driver optimizes your system for the latest releases featuring DLSS and RTX technologies, including Empulse.\",\r\n    \"ReleaseHighlight\": [\r\n      {\r\n        \"title\": \"What's New\",\r\n        \"elements\": [\r\n          {\r\n            \"title\": \"Game Ready For:\",\r\n            \"elements\": [\r\n              {\r\n                \"title\": \"Empulse, featuring DLSS 4.5 Super Resolution and Dynamic Multi Frame Generation, and NVIDIA Reflex\",\r\n                \"boxartUrl\": \"https://img.nvidiagrid.net/apps/108214769/ZZ/GAME_ICON_01_845a4b78-2089-4e4f-a3af-f73b6b53e1be.jpg\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Game\"\r\n              }\r\n            ]\r\n          }\r\n        ]\r\n      },\r\n      {\r\n        \"title\": \"What's Fixed\",\r\n        \"elements\": [\r\n          {\r\n            \"title\": \"Gaming\",\r\n            \"elements\": [\r\n              {\r\n                \"title\": \"Apex Legends: Occasional visual corruption after extended gameplay\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"Improved gaming stability in multi-monitor configurations when using V-SYNC with DLSS Frame Generation\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"Resolved an issue that could cause jittering or ghosting in some DirectX 11 games when Smooth Motion is enabled\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"Resolved an issue that could cause some games to crash when launched with Smooth Motion enabled\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"Users may observe DLSS settings being grayed out in certain games after updating to display driver 615.47\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"World of Warcraft: Gaming stability improvements\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              }\r\n            ]\r\n          },\r\n          {\r\n            \"title\": \"General\",\r\n            \"elements\": [\r\n              {\r\n                \"title\": \"Ada: Resolves a frame pacing issue on certain monitors when G-SYNC is enabled\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"General stability improvements when the system fails to create a new allocation\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"Resolved an issue that prevented the EDID from being read on certain monitors, causing them to be identified as \\\"NVIDIA NV-Failsafe”\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              },\r\n              {\r\n                \"title\": \"Resolved an issue where certain monitors would not wake from sleep mode\",\r\n                \"boxartUrl\": \"\",\r\n                \"linksTo\": \"\",\r\n                \"mouseOverDesc\": \"\",\r\n                \"category\": \"Whats_fixed\"\r\n              }\r\n            ]\r\n          }\r\n        ]\r\n      }\r\n    ],\r\n    \"MarqueeBanner\": [\r\n      {\r\n        \"id\": \"1\",\r\n        \"name\": \"Game Ready Driver Details\",\r\n        \"GFEimage\": \"\",\r\n        \"image\": \"https://images.nvidia.com/content/GRD/R590GA2/nvidia-geforce-game-ready-drivers-generic-nv-app-marquee-1920x620.jpg\",\r\n        \"description\": \"Our new GeForce Game Ready Driver optimizes your system for the latest releases featuring DLSS and RTX technologies, including Empulse.\",\r\n        \"gfeLoadUrl\": \"https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\\\"cnP\\\":\\\"/AEM/en-us/geforce/news/gfecnt/20266/june-16-2026-geforce-game-ready-driver\\\",\\\"dIDa\\\":[\\\"CTP_dIDa\\\"],\\\"osC\\\":\\\"CTP_osC\\\",\\\"is6\\\":\\\"CTP_is6\\\",\\\"lg\\\":\\\"CTP_lg\\\",\\\"go\\\":\\\"CTP_go\\\",\\\"gcV\\\":\\\"CTP_gcV\\\",\\\"GFPV\\\":\\\"CTP_GFPV\\\",\\\"gIsB\\\":\\\"CTP_gIsB\\\",\\\"iLp\\\":\\\"CTP_iLp\\\",\\\"IsB\\\":\\\"CTP_IsB\\\",\\\"isO\\\":\\\"CTP_isO\\\",\\\"cfb\\\":\\\"en-us\\\"}\",\r\n        \"linksTo\": \"https://www.nvidia.com/en-us/geforce/news/gfecnt/20266/june-16-2026-geforce-game-ready-driver/\",\r\n        \"actionLabel\": \"Learn More\"\r\n      },\r\n      {\r\n        \"id\": \"2\",\r\n        \"name\": \"Zenless Zone Zero 3.0 Adds DLSS & RTX\",\r\n        \"GFEimage\": \"\",\r\n        \"image\": \"https://images.nvidia.com/content/GRD/R610GA1.1/zenless-zone-zero-version-dlss-4-5-ray-tracing-nv-app-marquee-1920x620.jpg\",\r\n        \"description\": \"Plus, Empulse launches with DLSS, Squad upgrades their DLSS integration, and Reaper Actual is available now, with DLSS that can be upgraded to 4.5 via the NVIDIA app.\",\r\n        \"gfeLoadUrl\": \"https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\\\"cnP\\\":\\\"/AEM/en-us/geforce/news/gfecnt/20266/zenless-zone-zero-version-dlss-4-5-ray-tracing\\\",\\\"dIDa\\\":[\\\"CTP_dIDa\\\"],\\\"osC\\\":\\\"CTP_osC\\\",\\\"is6\\\":\\\"CTP_is6\\\",\\\"lg\\\":\\\"CTP_lg\\\",\\\"go\\\":\\\"CTP_go\\\",\\\"gcV\\\":\\\"CTP_gcV\\\",\\\"GFPV\\\":\\\"CTP_GFPV\\\",\\\"gIsB\\\":\\\"CTP_gIsB\\\",\\\"iLp\\\":\\\"CTP_iLp\\\",\\\"IsB\\\":\\\"CTP_IsB\\\",\\\"isO\\\":\\\"CTP_isO\\\",\\\"cfb\\\":\\\"en-us\\\"}\",\r\n        \"linksTo\": \"https://www.nvidia.com/en-us/geforce/news/gfecnt/20266/zenless-zone-zero-version-dlss-4-5-ray-tracing/\",\r\n        \"actionLabel\": \"Learn More\"\r\n      },\r\n      {\r\n        \"id\": \"3\",\r\n        \"name\": \"RTX Remix Update Aids Mod Development\",\r\n        \"GFEimage\": \"\",\r\n        \"image\": \"https://images.nvidia.com/content/GRD/R610GA1.1/rtx-remix-1-5-agent-skills-update-nv-app-marquee-1920x620.jpg\",\r\n        \"description\": \"With our newest update, Agent Skills accelerate development, and app optimizations accelerate performance and classic game compatibility.\",\r\n        \"gfeLoadUrl\": \"https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\\\"cnP\\\":\\\"/AEM/en-us/geforce/news/gfecnt/20266/rtx-remix-agent-skills-update\\\",\\\"dIDa\\\":[\\\"CTP_dIDa\\\"],\\\"osC\\\":\\\"CTP_osC\\\",\\\"is6\\\":\\\"CTP_is6\\\",\\\"lg\\\":\\\"CTP_lg\\\",\\\"go\\\":\\\"CTP_go\\\",\\\"gcV\\\":\\\"CTP_gcV\\\",\\\"GFPV\\\":\\\"CTP_GFPV\\\",\\\"gIsB\\\":\\\"CTP_gIsB\\\",\\\"iLp\\\":\\\"CTP_iLp\\\",\\\"IsB\\\":\\\"CTP_IsB\\\",\\\"isO\\\":\\\"CTP_isO\\\",\\\"cfb\\\":\\\"en-us\\\"}\",\r\n        \"linksTo\": \"https://www.nvidia.com/en-us/geforce/news/gfecnt/20266/rtx-remix-agent-skills-update/\",\r\n        \"actionLabel\": \"Learn More\"\r\n      }\r\n    ],\r\n    \"DriverTypeArticle\": {\r\n      \"name\": \"\",\r\n      \"GFEimage\": \"\",\r\n      \"image\": \"\",\r\n      \"description\": \"\",\r\n      \"gfeLoadUrl\": \"https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\\\"cnP\\\":\\\"/AEM/en-us/geforce/news/gfecnt/20266/june-16-2026-geforce-game-ready-driver\\\",\\\"dIDa\\\":[\\\"CTP_dIDa\\\"],\\\"osC\\\":\\\"CTP_osC\\\",\\\"is6\\\":\\\"CTP_is6\\\",\\\"lg\\\":\\\"CTP_lg\\\",\\\"go\\\":\\\"CTP_go\\\",\\\"gcV\\\":\\\"CTP_gcV\\\",\\\"GFPV\\\":\\\"CTP_GFPV\\\",\\\"gIsB\\\":\\\"CTP_gIsB\\\",\\\"iLp\\\":\\\"CTP_iLp\\\",\\\"IsB\\\":\\\"CTP_IsB\\\",\\\"isO\\\":\\\"CTP_isO\\\",\\\"cfb\\\":\\\"en-us\\\"}\",\r\n      \"linksTo\": \"https://www.nvidia.com/en-us/geforce/news/gfecnt/20266/june-16-2026-geforce-game-ready-driver/\",\r\n      \"actionLabel\": \"LEARN MORE\"\r\n    }\r\n  }\r\n}\r\n",
+      "ReleaseNotesGFECMSURL": "",
+      "BannerTileLayoutGFECMSURL": "",
+      "FourPartID": -1,
+      "EMAN_REVRES_BD": "70-lqssm-lswfg-b1espa-drp",
+      "UpdatesURLgfe": "http://www.hqdvdrup02.nvidia.com/gfe-driver-update-poc-ac1",
+      "ReleaseNotesAbstractNonGFE": "<strong>GeForce Security Update Driver</strong><br><br>NVIDIA has released a software security update display driver for Maxwell, Volta, and Pascal-series GeForce GPUs which are no longer supported by Game Ready Drivers. This update addresses multiple issues that may lead to security impacts.",
+      "bannerGfeNg": [
+        {
+          "image": "https://images.nvidia.com/content/GRD/R610GA1/https://images.nvidia.com/content/GRD/R610GA1/geforce-experience-users-upgrade-to-the-nvidia-app-gfe-grd-1144x298-banner.jpg",
+          "video": {
+            "url": ""
+          },
+          "description": "Upgrade To The NVIDIA App For New Features & More",
+          "gfeLoadUrl": "https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\"cnP\":\"/AEM/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app\",\"dIDa\":[\"CTP_dIDa\"],\"osC\":\"CTP_osC\",\"is6\":\"CTP_is6\",\"lg\":\"CTP_lg\",\"go\":\"CTP_go\",\"gcV\":\"CTP_gcV\",\"GFPV\":\"CTP_GFPV\",\"gIsB\":\"CTP_gIsB\",\"iLp\":\"CTP_iLp\",\"IsB\":\"CTP_IsB\",\"isO\":\"CTP_isO\",\"cfb\":\"en-us\"}",
+          "linksTo": "https://www.nvidia.com/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app/"
+        }
+      ],
+      "highlightGfeNg": {
+        "games": [],
+        "features": [],
+        "tiles": [
+          {
+            "id": "1",
+            "name": "Upgrade To The NVIDIA App For New Features & More",
+            "coverImage": "https://images.nvidia.com/content/GRD/R610GA1/geforce-experience-users-upgrade-to-the-nvidia-app-gfe-grd-360x154-tile.jpg",
+            "description": "GeForce Experience is no longer being updated. Please upgrade to the NVIDIA app for continued support and new drivers.",
+            "gfeLoadUrl": "https://gfwsl.geforce.com/nvidia_web_services/controller.gfeclientcontent.NG.php/com.nvidia.services.GFEClientContent_NG.getGfeCntntNode/{\"cnP\":\"/AEM/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app\",\"dIDa\":[\"CTP_dIDa\"],\"osC\":\"CTP_osC\",\"is6\":\"CTP_is6\",\"lg\":\"CTP_lg\",\"go\":\"CTP_go\",\"gcV\":\"CTP_gcV\",\"GFPV\":\"CTP_GFPV\",\"gIsB\":\"CTP_gIsB\",\"iLp\":\"CTP_iLp\",\"IsB\":\"CTP_IsB\",\"isO\":\"CTP_isO\",\"cfb\":\"en-us\"}",
+            "linksTo": "https://www.nvidia.com/en-us/geforce/news/gfecnt/20265/upgrade-to-nvidia-app/",
+            "gfeLoadUrlJsonErr": "- No errors"
+          }
+        ]
+      },
+      "banner_highlight_GfeNg_json_deErr": "- No errors",
+      "GFPV_FallbackFromTo": "_582.66",
+      "InstallationNotesFromBannerTileLayoutGFE": false,
+      "getDispDrvrDtlsByDevidTargetXml": [
+        {
+          "@attributes": {
+            "ID": "GFE_4K_Dec2017_SYS",
+            "Type": "GFE_METHOD_TARGETING",
+            "Name": "GFE 4K Primary Display Dec-2017 System Parametric"
+          }
+        },
+        {
+          "@attributes": {
+            "ID": "GFE_4K_Dec2017_JUID",
+            "Type": "GFE_METHOD_TARGETING",
+            "Name": "GFE 4K Primary Display Dec-2017 Jarvis UID"
+          }
+        }
+      ],
+      "bannerGfeNgTrgSgmnts": null,
+      "BannerURLGfeSgmnts": null,
+      "evaluateGfeTargetTargeting": null,
+      "clientUX": {
+        "ReleaseHighlight": [
+          {
+            "title": "What's New",
+            "elements": [
+              {
+                "title": "Game Ready For:",
+                "elements": [
+                  {
+                    "title": "Empulse, featuring DLSS 4.5 Super Resolution and Dynamic Multi Frame Generation, and NVIDIA Reflex",
+                    "boxartUrl": "https://img.nvidiagrid.net/apps/108214769/ZZ/GAME_ICON_01_845a4b78-2089-4e4f-a3af-f73b6b53e1be.jpg",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Game"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "title": "What's Fixed",
+            "elements": [
+              {
+                "title": "Gaming",
+                "elements": [
+                  {
+                    "title": "Apex Legends: Occasional visual corruption after extended gameplay",
+                    "boxartUrl": "",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Whats_fixed"
+                  },
+                  {
+                    "title": "Improved gaming stability in multi-monitor configurations when using V-SYNC with DLSS Frame Generation",
+                    "boxartUrl": "",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Whats_fixed"
+                  },
+                  {
+                    "title": "Resolved an issue that could cause jittering or ghosting in some DirectX 11 games when Smooth Motion is enabled",
+                    "boxartUrl": "",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Whats_fixed"
+                  },
+                  {
+                    "title": "Resolved an issue that could cause some games to crash when launched with Smooth Motion enabled",
+                    "boxartUrl": "",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Whats_fixed"
+                  },
+                  {
+                    "title": "Users may observe DLSS settings being grayed out in certain games after updating to display driver 615.47",
+                    "boxartUrl": "",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Whats_fixed"
+                  },
+                  {
+                    "title": "World of Warcraft: Gaming stability improvements",
+                    "boxartUrl": "",
+                    "linksTo": "",
+                    "mouseOverDesc": "",
+                    "category": "Whats_fixed"
+                  }
+                ]
+              },
+              {
+                "title": "General",
+                "elements": [
+                  {

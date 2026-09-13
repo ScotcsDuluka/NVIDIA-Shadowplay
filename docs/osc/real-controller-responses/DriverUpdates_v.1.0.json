@@ -1,0 +1,39 @@
+// status=200 (non-JSON body)
+2026-09-13 16:05:16.619  INFO  main.updates/updatesService- "UpdatesService - got update response" {
+  "checkTime": "2026-09-13T09:05:16Z"
+}
+2026-09-13 16:05:16.619  ERROR  main.updates/updatesService- "error getting driver updates:data " undefined " status:" undefined
+2026-09-13 16:05:16.619  DEBUG  main.common/toastService- "show toast with model " {
+  "textContent": "You have the latest GeForce Game Ready Driver",
+  "icon": "check"
+}
+2026-09-13 16:05:16.619  ERROR  main.updates/updatesdrivercontroller- "getUpdates failed with error: " undefined
+2026-09-13 16:05:16.620  INFO  main.updates/updatesdrivercontroller- "refreshAvailableUpdates finally IN"
+2026-09-13 16:05:16.620  INFO  main.updates/updatesdrivercontroller- "call cb" undefined
+2026-09-13 16:05:16.620  DEBUG  main.updates/updatesdrivercontroller- "driverExpandState IN" {
+  "582.66": true
+}
+2026-09-13 16:05:16.620  DEBUG  main.updates/updatesdrivercontroller- "driverExpandState OUT" {
+  "582.66": true
+}
+2026-09-13 16:05:16.621  INFO  main.updates/updatesdrivercontroller- "refreshAvailableUpdates finally OUT"
+2026-09-13 16:05:17.637  DEBUG  main.common/toastService- "toast completed"
+2026-09-13 16:05:17.854  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "TarCon_ClickInfo",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T09:05:17.854Z",
+  "parameters": {
+    "id": "3003",
+    "clickedUrl": "582.66"
+  }
+}
+2026-09-13 16:05:19.310  INFO  nvJsEvents/jsEventsEndpoints- "serverhttps://events.gfe.nvidia.com"
+2026-09-13 16:05:19.521  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "TarCon_ClickInfo",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T09:05:19.521Z",
+  "parameters": {
+    "id": "3003",
+    "clickedUrl": "582.66"
+  }
+}

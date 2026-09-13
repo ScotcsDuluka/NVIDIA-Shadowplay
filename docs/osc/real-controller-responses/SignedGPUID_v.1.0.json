@@ -1,0 +1,9 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:22.598  INFO  main.rewards/rewardsService- "NvAPI returns device info" {
+  "vendorId": 4318,
+  "deviceId": 6918,
+  "subSystemId": 4623,
+  "subVendorId": 4318,
+  "revisionId": 161,
+  "chipId": 306
+}

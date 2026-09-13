@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:32.493  INFO  main.games/SystemGame- "new state for " "call_of_duty_black_ops_7" 1143229690 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:32.493  INFO  main.games/SystemGame- "slider settings not available for " "call_of_duty_black_ops_7" 1143229690
+2026-09-13 15:50:32.493  INFO  main.games/gamesService- "trying to get game state" "grand_theft_auto_v_enhanced"
+2026-09-13 15:50:32.493  INFO  main.games/gamesService- "trying to get game state" "grand_theft_auto_v_enhanced"

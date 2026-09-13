@@ -443,6 +443,10 @@ Public NotInheritable Class OverlayConfig
                 If nested IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(nested.engine_mode) Then
                     Dim mode As String = nested.engine_mode.Trim().ToLowerInvariant()
                     If mode = "ffmpeg" OrElse mode = "legacy" Then Return "ffmpeg"
+                    ' "nvidia"/"shadowplay" = drive the installed NVIDIA
+                    ' ShadowPlay recorder (nvspcap64) instead of any in-process
+                    ' capture — full ShadowPlay feature set on GFE machines.
+                    If mode = "nvidia" OrElse mode = "shadowplay" Then Return "nvidia"
                     ' "native" is part of the Overlay's accepted Duluka
                     ' vocabulary (AppSettings.NormalizeEngineMode) and of the
                     ' documented regime table — rejecting it here makes the
@@ -455,6 +459,7 @@ Public NotInheritable Class OverlayConfig
                    Not String.IsNullOrWhiteSpace(cfg.Recording.EngineMode) Then
                     Dim mode As String = cfg.Recording.EngineMode.Trim().ToLowerInvariant()
                     If mode = "ffmpeg" OrElse mode = "legacy" Then Return "ffmpeg"
+                    If mode = "nvidia" OrElse mode = "shadowplay" Then Return "nvidia"
                     If mode = "duluka" OrElse mode = "ddagrab" OrElse mode = "native" Then Return "ddagrab"
                 End If
 

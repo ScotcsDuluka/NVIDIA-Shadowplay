@@ -1,0 +1,4 @@
+// status=200 (non-JSON body)
+2026-09-13 15:52:22.974  INFO  main.preferences/PreferencesGeneralController- "Framerate Limiter getSupportInfo success: " {
+  "supported": false
+}

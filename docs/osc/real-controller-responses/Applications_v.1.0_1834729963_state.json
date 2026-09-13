@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:38.513  INFO  main.games/SystemGame- "new state for " "counter_strike_2" 1834729963 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:38.513  INFO  main.games/SystemGame- "slider settings not available for " "counter_strike_2" 1834729963
+2026-09-13 15:50:38.514  INFO  main.games/gamesService- "trying to get game state" "genshin_impact"
+2026-09-13 15:50:38.514  INFO  main.games/gamesService- "trying to get game state" "genshin_impact"

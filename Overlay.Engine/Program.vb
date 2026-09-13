@@ -1,4 +1,4 @@
-' Program.vb — NVIDIA Overlay Engine entry point.
+' Program.vb — NVIDIA Share (osc overlay host) entry point.
 '
 ' The Overlay Engine is the SECOND overlay host (M1): a transparent
 ' per-screen window hosting the NVIDIA GFE "osc" web app in WebView2,
@@ -18,6 +18,7 @@
 Imports System
 Imports System.IO
 Imports System.Threading
+Imports System.Windows.Forms
 
 Public Class Program
 
@@ -43,7 +44,37 @@ Public Class Program
 
             Application.EnableVisualStyles()
             Application.SetCompatibleTextRenderingDefault(False)
-            Application.Run(New OscHostForm())
+            ' Any unhandled exception must leave a trace in the engine log —
+            ' an exit without an explanation cost a debugging round during
+            ' M1 bring-up (exit code 1 with a silent log).
+            AddHandler Application.ThreadException, Sub(s, e)
+                                                        Trace.WriteLine("[OscEngine] UI thread exception: " & e.Exception.Message)
+                                                        Try
+                                                            IO.File.AppendAllText(
+                                                                IO.Path.Combine(AppLayout.P("Logs", "overlay-engine.log")),
+                                                                DateTime.Now.ToString("HH:mm:ss.fff") & " UI EXCEPTION: " &
+                                                                e.Exception.ToString() & Environment.NewLine)
+                                                        Catch
+                                                        End Try
+                                                    End Sub
+            Application.SetUnhandledExceptionMode(UnhandledExceptionMode.CatchException)
+            AddHandler AppDomain.CurrentDomain.UnhandledException, Sub(s, e)
+                                                                       Try
+                                                                           IO.File.AppendAllText(
+                                                                               IO.Path.Combine(AppLayout.P("Logs", "overlay-engine.log")),
+                                                                               DateTime.Now.ToString("HH:mm:ss.fff") & " UNHANDLED: " &
+                                                                               e.ExceptionObject.ToString() & Environment.NewLine)
+                                                                       Catch
+                                                                       End Try
+                                                                   End Sub
+            ' Empty ApplicationContext: the overlay form must NEVER auto-show
+            ' (a hidden form keeps its rect on the primary screen, which is
+            ' what Chromium derives window.screen from — see OscHostForm
+            ' ctor; auto-showing would flash a fullscreen surface at boot).
+            ' The form is constructed up front (its ctor builds tray+stack)
+            ' but never shown until the first toggle.
+            Dim overlay As New OscHostForm()
+            Application.Run(New ApplicationContext())
         End Using
     End Sub
 

@@ -1,0 +1,45 @@
+// status=200 (non-JSON body)
+2026-09-13 15:52:22.927  DEBUG  main.common/httpLoggingService- " gfwsl returned successfully with response " {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name=\"getShieldReady\" date=\"2026-09-13T08:17:04+0000\" {\"gcV\":\"3.28.0.412\",\"lg\":\"1033\",\"gLg\":\"en-US\",\"dIDa\":[\"1b06_10de_120f_10de_1\"],\"cID\":\"Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz\",\"sM\":\"16GB\",\"osC\":\"10.0\",\"dch\":\"1\",\"osB\":\"26340\",\"is6\":\"1\",\"IsB\":\"0\",\"GFPV\":\"582.66\",\"IsQ\":\"0\",\"iLp\":\"0\",\"isO\":\"1\",\"apRT\":\"802.11a\",\"gIsB\":\"0\",\"cSR\":\"1680x1050@75\",\"dID\":\"1B06\",\"vID\":\"10DE\",\"ssID\":\"120F\",\"svID\":\"10DE\"} ResponseStatus=\"Success 200\" --><!-- 29-412-21-01-pi~30 -->",
+    "ParsedParams": "<!-- theCpuID:Intel(R) Core(TM) i5-10400F CPU @ 2.90GHz theAccessPointRouterType:802.11a theXBoxDriverVersion:false theGeForceClientVersion:3.28.0.412 theSysMem:16GB theProductFamilyDeviceID:1B06 theOperatingSystemCode:10.0 theOperatingSystemIs64Bit:1 theLanguageCode:1033 theLanguageCultureCode:en-US reverselookup_theLanguageID:en_US theDriverIsBetaFlag:0 theVendorID:10DE theSubSystemID:120F theSubVendorID:10DE theInstalledVersion:582.66 theSystemIssQuadroFlag:0 theSystemIsLaptopFlag:0 theSystemSLIStatusEnum:0 theSystemIsOptimusFlag:1 theGfeClientIsBetaFlag:0 --> MC:prodgfwslmem-spore.nzgvwo.cfg.apse1.cache.amazonaws.com:11211",
+    "GfeCampaignXmlContent": "<!-- Not Using Drupal _getGfeCampaignXmlContent $_USE_DRUPAL:0 $theContentType:/gfe-campaigns/shield-ready/ $theVersion:3.28.0.412 $theLanguageID:en_US versionToGet:3.28.0 , $theGfeClientIsBetaFlag:0 , $theWhitelistsPath:s3://gfwslstore.singapore/gfwslActive/Active/en_US/en_US/gfe/3.28.0/gfe-campaigns/shield-ready/whitelists.xml , $theTranslationsPath:s3://gfwslstore.singapore/gfwslActive/Active/en_US/en_US/gfe/3.28.0/gfe-campaigns/shield-ready/translations.xml , gfwslMc:gfwslMcMissWL:false~gfwslMcMissTL:false -->",
+    "criteria": {
+      "overallState": "true",
+      "featureTile": "GameStreaming",
+      "header": "GameStream",
+      "message": "Stream your games to NVIDIA SHIELD",
+      "states": [
+        {
+          "name": "gpu",
+          "state": "true",
+          "message": "GeForce GTX desktop GPU, 600 series or higher, or notebook GTX 660M, 670MX, 675MX, 680M, 700M series or higher"
+        },
+        {
+          "name": "mem",
+          "state": "true",
+          "message": "4GB of system RAM or higher"
+        },
+        {
+          "name": "rtr",
+          "state": "true",
+          "isRecommendation": "true",
+          "message": "802.11a/g router (minimum).  802.11n dual band router (recommended)"
+        },
+        {
+          "name": "os",
+          "state": "true",
+          "message": "Windows 10 or later"
+        },
+        {
+          "name": "drvrVrsn",
+          "state": "true",
+          "message": "GeForce 418.96 Driver or later"
+        }
+      ]
+    }
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

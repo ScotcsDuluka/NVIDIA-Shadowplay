@@ -90,13 +90,40 @@ harness in the same folder.
 | Fact | Golden evidence |
 |---|---|
 | Handshake `GET /socket.io/?X_LOCAL_SECURITY_COOKIE=<secret>&EIO=3&transport=polling&t=<rand>&b64=1` — custom query opts ride in the URL | step[0] |
-| Open packet response is length-prefixed like every batch: `<len>:0{"sid":…,"upgrades":[],"pingInterval":2000,"pingTimeout":60000}` — an UNPREFIXED `0{…}` fails with `parser error` (measured) | harness run 1 |
-| The client never sends CONNECT (`40`) for the default namespace — the SERVER sends `40` on the first poll; only then the client surfaces `connect` (`socket.io-client/lib/socket.js:190-198`: `if ('/' !== this.nsp)` skips the connect packet) | steps[2-3] |
+| Open packet response is length-prefixed like every batch: `<len>:0{"sid":…,"upgrades":[],"pingInterval":2000,"pingTimeout":60000}` — an UNPREFIXED `0{…}` fails the client with `parser error` (measured) | harness run 1 |
+| The client never sends CONNECT (`40`) for the default namespace — the SERVER sends `40` on the first poll; only then the client surfaces `connect` (`socket.io-client/lib/socket.js:190-198`: `if ('/' !== this.nsp)` skips the connect packet) — **true for socket.io-client v2; the v1.x client bundled in osc DOES also POST a `40` after open; our server tolerates both** | steps[2-3], vendor.js |
 | Events to the page: `<len>:42["<channel>",<payload-json>]`; multiple packets per response are allowed (`<len1>:…<len2>:…`) | steps[4], batch push |
 | Client emits POST `<len>:42["<channel>",<payload>]` | steps[POST] |
 | **Heartbeat: the CLIENT pings** — POST body `1:2` every `pingInterval`; server must deliver `3` in a later poll response (measured with pingInterval=2000; connection stayed alive across cycles) | POST bodies |
 | Batch encoding: `<len>:<packet>` concatenated; len counts the packet string's chars | all responses |
 | osc consumes via `io("http://localhost:"+port, {query:{X_LOCAL_SECURITY_COOKIE:secret}})` and `socket.on("/ShadowPlay/v.1.0/…")` — `socketService`/`oscDisplayService` in app.js | vendor/app analysis |
+
+### ⚠ Polling RESPONSE MODE (browser clients) — measured against the real page
+
+The osc bundle ships **socket.io-client 1.x-era libraries** (fingerprint:
+`has-binary`/`json3`/`blob`/`arraybuffer.slice` modules in manifest.json).
+Its polling XHR sets `responseType="arraybuffer"` and its `onLoad`
+(vendor.js, verbatim) routes the response:
+
+```js
+e = "application/octet-stream" === contentType ? xhr.response
+   : supportsBinary ? "ok"                       // ← dummy → parser error!
+   : xhr.responseText;
+```
+
+Therefore, for browser clients (handshake WITHOUT `b64=1`):
+1. Every GET response MUST carry **`Content-Type: application/octet-stream`**
+   — a text/plain body is discarded and replaced by the literal string
+   `"ok"`, which fails the parser (`polling got data "ok"` → `parser error`
+   → infinite reconnect storm of bare handshakes — measured live).
+2. The body uses the **binary framing** of engine.io-parser 1.x
+   `decodePayloadAsBinary` (extracted verbatim from vendor.js):
+   per packet: `0x00` | ASCII decimal byte-length | `0xFF` | utf8 payload.
+3. POST responses must decode to ZERO packets — empty octet-stream body.
+
+Clients that request `b64=1` (the npm golden harness) keep the text
+framing `<len>:<packet>` with text/plain. OscControllerServer switches
+per request on the `b64` query parameter.
 
 Channels the page subscribes (M1 subset in brackets):
 `/ShadowPlay/v.1.0/WindowState` [`windowMsg: overlayToggle|showHotkeyMessage|dismiss|fullscreenTransition`],

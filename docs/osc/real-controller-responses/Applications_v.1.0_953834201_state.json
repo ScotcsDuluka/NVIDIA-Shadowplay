@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:30.709  INFO  main.games/SystemGame- "new state for " "valorant" 953834201 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:30.709  INFO  main.games/SystemGame- "slider settings not available for " "valorant" 953834201
+2026-09-13 15:50:30.710  INFO  main.games/gamesService- "trying to get game state" "zenless_zone_zero"
+2026-09-13 15:50:30.710  INFO  main.games/gamesService- "trying to get game state" "zenless_zone_zero"

@@ -1,0 +1,6 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:17.338  DEBUG  main.common/httpLoggingService- "debug jarvis response headers: x-jarvisrequestid" "production:22hookwbirdigua_11129169" "x-jarvisresponder" "22hookwbirdigua"
+2026-09-13 15:50:17.356  INFO  cevoToggleService- "resolving cached status"
+2026-09-13 15:50:17.361  INFO  main.common/jarvisSyncService- "value has not changed, do not request jarvis endpoint to update values"
+2026-09-13 15:50:17.365  INFO  main.common/jarvisSyncService- "value has not changed, do not request jarvis endpoint to update values"
+2026-09-13 15:50:17.365  INFO  main.common/jarvisSyncService- "value has not changed, do not request jarvis endpoint to update values"

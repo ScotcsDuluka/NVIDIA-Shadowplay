@@ -1,0 +1,6 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:15.780  INFO  main.common/localeService- "Current language is not saved on the server, use system locale."
+2026-09-13 15:50:15.781  INFO  main.common/localeService- "Setting language to: " "en-US"
+2026-09-13 15:50:15.806  INFO  main.common/localeService- "Application starts with locale: " "en-US"
+2026-09-13 15:50:15.824  INFO  /main/uiRouter/main/resolve/language- "language Resolved"
+2026-09-13 15:50:15.825  INFO  /main/uiRouter/main/resolve/silentInstall- "requesting functional data consent"

@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:39.946  INFO  main.games/SystemGame- "new state for " "obs_studio" 2089555715 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:39.947  INFO  main.games/SystemGame- "slider settings not available for " "obs_studio" 2089555715
+2026-09-13 15:50:39.947  INFO  main.games/gamesService- "trying to get game state" "fall_guys"
+2026-09-13 15:50:39.947  INFO  main.games/gamesService- "trying to get game state" "fall_guys"

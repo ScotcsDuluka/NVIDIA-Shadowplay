@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:28.387  INFO  main.games/SystemGame- "new state for " "wuthering_waves" 504096819 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:28.387  INFO  main.games/SystemGame- "slider settings not available for " "wuthering_waves" 504096819
+2026-09-13 15:50:28.387  INFO  main.games/gamesService- "trying to get game state" "minecraft_rtx"
+2026-09-13 15:50:28.388  INFO  main.games/gamesService- "trying to get game state" "minecraft_rtx"

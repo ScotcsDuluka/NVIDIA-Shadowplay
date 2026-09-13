@@ -1,0 +1,24 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:16.314  INFO  main.preferences/preferencesService- "GFE download getStatus for version: " "11.0.5.420" " " {
+  "data": {
+    "status": 2,
+    "percentComplete": 100,
+    "timeRemaining": 0,
+    "downloadSpeed": 0,
+    "totalBytes": 177400584,
+    "bytesDone": 177400584,
+    "taskId": "0ce2fc43283f60c27a6026681b93c279",
+    "downloadedLocation": "C:\\ProgramData\\NVIDIA Corporation\\Downloader\\0ce2fc43283f60c27a6026681b93c279\\NvidiaAppSetupInt_11.0.5.420_BETA_751C13.exe",
+    "failureCount": 0,
+    "version": "11.0.5.420",
+    "downloadType": 4,
+    "httpResponseCode": 200,
+    "errorCode": 0,
+    "downloadPausedOnce": 0,
+    "downloadUrl": "https://ota-downloads.nvidia.com/ota/NvidiaAppSetupInt_11.0.5.420_BETA_751C13.exe",
+    "extractedPath": ""
+  },
+  "status": 200,
+  "config": {
+    "method": "GET",
+    "transformRequest": [

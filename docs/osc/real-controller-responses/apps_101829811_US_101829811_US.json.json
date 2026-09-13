@@ -1,0 +1,3 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:20.637  ERROR  main.cmsAssetsSdk/cmsService- "image type " 19 " undefined for " "170357127"
+2026-09-13 15:50:20.638  ERROR  main.cmsAssetsSdk/cmsService- "image type " 23 " undefined for " "170357127"

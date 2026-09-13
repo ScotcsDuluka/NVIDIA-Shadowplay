@@ -1,0 +1,14 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:18.961  INFO  main.common/jarvisService- "Valid accounts file already exists, no need to write it again. Setting user consent only."
+2026-09-13 15:50:18.964  INFO  main.common/productTourService- "addTourStep in progress, tourName: " "oobeTour" "stepToggleFlag: " true "step: " {
+  "element": {
+    "0": {
+      "ng339": 178
+    },
+    "length": 1
+  },
+  "stepId": "oobe-share",
+  "order": 2,
+  "title": "Access the in-game overlay to record and share videos, screenshots and livestreams.",
+  "placement": "bottom-right"
+} "stepToReplace: " undefined

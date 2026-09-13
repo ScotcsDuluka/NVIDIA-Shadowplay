@@ -1,0 +1,24 @@
+// status=201 (non-JSON body)
+2026-09-13 15:50:16.675  DEBUG  main.common/httpLoggingService- "debug jarvis response headers: x-jarvisrequestid" "production:27pandashadlace_11130717" "x-jarvisresponder" "27pandashadlace"
+2026-09-13 15:50:16.690  DEBUG  main.rewards/rewardsService- "got gfwsl consent params" [
+  "1",
+  "1",
+  "1"
+]
+2026-09-13 15:50:16.690  INFO  main.rewards/rewardsService- "Received event to validate rewards status and session"
+2026-09-13 15:50:16.690  DEBUG  main.rewards/rewardsService- "Waiting on Rewards dependencies onlineState, jarvisUser, minDriverVersion, IP, Locale, Geo" true false undefined "1033" undefined
+2026-09-13 15:50:16.690  INFO  main.common/jarvisService- "jarvisService received Accounts module socket notification: " {
+  "userId": "331007586420654732",
+  "consentLevel": 7,
+  "consentSettings": {
+    "trackFunctionalData": {
+      "level": "Full"
+    },
+    "trackTechnicalData": {
+      "level": "Full"
+    },
+    "trackBehavioralData": {
+      "level": "Full"
+    }
+  }
+}

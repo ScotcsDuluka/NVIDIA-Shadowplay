@@ -1,0 +1,28 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:21.538  DEBUG  main.common/httpLoggingService- " gfwsl returned successfully with response " {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name='getGfeWebSsnJt' date='Sunday 13th September 2026 01:50:23 AM' ResponseStatus='Success 200' -->",
+    "IncomingParams": "<!-- Incoming json: {\\\"_egcV\\\":\\\"3.28.0.412\\\",\\\"aiD\\\":\\\"b069495162aa9021ba8a0eb47ac1fa40cfafdfb481d585e3a3100f725bebe220\\\"} -->",
+    "html": {
+      "body": {
+        "sessionState": {
+          "overallState": "true",
+          "nonce": {
+            "value": "bc287ed2ef7f1acdcaaf415fcb29f27687d358a16ae7bfe5dd1fe36a3c067979"
+          },
+          "gfeVersion": {
+            "value": "3.28.0.412"
+          },
+          "gfeEtaExpire": {
+            "value": "2026-09-13T09:09:35+0000"
+          }
+        }
+      }
+    },
+    "ParsedParams": "<!-- Use Session --><!-- gcV:3.28.0.412 -->",
+    "edon": "<!-- 93-312-21-01-pi~19 -->"
+  },
+  "status": 200,
+  "config": {
+    "method": "POST",
+    "transformRequest": [

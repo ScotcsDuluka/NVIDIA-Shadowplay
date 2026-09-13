@@ -1,0 +1,86 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:16.791  DEBUG  crimson.cef/cefService- "dnslookup"
+2026-09-13 15:50:16.791  INFO  main.utils/GfeGeolocationService- "Geolocation set to" {
+  "city": "Takua Pa",
+  "countryCode": "TH",
+  "domainName": "tot.co.th",
+  "isInternal": false,
+  "region": "Phangnga",
+  "isp": "TOT Public Company Limited",
+  "timezone": "+07:00",
+  "netSpeed": "DSL",
+  "gregion": "APAC",
+  "ts": 1789289416791
+}
+2026-09-13 15:50:16.791  DEBUG  main.rewards/rewardsService- "got gfwsl geolocal params" {
+  "gcV": "3.28.0.412",
+  "L": {
+    "LCID": "1033",
+    "CC": "eng"
+  },
+  "uCst": [
+    "1",
+    "1",
+    "1"
+  ],
+  "lg": "1033",
+  "gLg": "en-US",
+  "iLp": "0",
+  "sM": "16GB",
+  "is6": "1",
+  "pArch": "AMD64",
+  "osC": "10.0",
+  "osB": "26340",
+  "GFPV": "582.66",
+  "cSR": "1680x1050@75",
+  "dch": "1",
+  "jUid": "",
+  "go": "TH"
+}
+2026-09-13 15:50:16.791  INFO  main.rewards/rewardsService- "Received event to validate rewards status and session"
+2026-09-13 15:50:16.791  DEBUG  main.rewards/rewardsService- "Waiting on Rewards dependencies onlineState, jarvisUser, minDriverVersion, IP, Locale, Geo" true false undefined "1033" "TH"
+2026-09-13 15:50:16.791  INFO  main.updates/updatesService- "onRefreshCRDFeatureState begin" true
+2026-09-13 15:50:16.791  DEBUG  main.rewards/rewardsService- "got gfwsl geolocal params" {
+  "gcV": "3.28.0.412",
+  "L": {
+    "LCID": "1033",
+    "CC": "eng"
+  },
+  "uCst": [
+    "1",
+    "1",
+    "1"
+  ],
+  "lg": "1033",
+  "gLg": "en-US",
+  "iLp": "0",
+  "sM": "16GB",
+  "is6": "1",
+  "pArch": "AMD64",
+  "osC": "10.0",
+  "osB": "26340",
+  "GFPV": "582.66",
+  "cSR": "1680x1050@75",
+  "dch": "1",
+  "jUid": "",
+  "go": "TH"
+}
+2026-09-13 15:50:16.792  INFO  main.rewards/rewardsService- "Received event to validate rewards status and session"
+2026-09-13 15:50:16.792  DEBUG  main.rewards/rewardsService- "Waiting on Rewards dependencies onlineState, jarvisUser, minDriverVersion, IP, Locale, Geo" true false undefined "1033" "TH"
+2026-09-13 15:50:16.792  INFO  main.updates/updatesService- "onRefreshCRDFeatureState begin" true
+2026-09-13 15:50:16.799  INFO  main.telemetry/telemetryService- "eventDetail" {
+  "name": "HTTPSuccess",
+  "gdprLevel": "functional",
+  "ts": "2026-09-13T08:50:16.799Z",
+  "parameters": {
+    "sourceComponent": "GFE_UI",
+    "originalService": "GX_GEO",
+    "serviceUseCase": "GetGeoLocation",
+    "serviceSubUseCase": "NA",
+    "url": "https://geo-location-api.gx.nvidia.com/geoLocation/v1",
+    "httpStatus": 200,
+    "durationMs": 927,
+    "destinationIp": "72.25.64.11",
+    "responseData": ""
+  }
+}

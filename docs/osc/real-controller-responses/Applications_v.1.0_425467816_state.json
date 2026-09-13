@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:26.970  INFO  main.games/SystemGame- "new state for " "grand_theft_auto_v_enhanced" 425467816 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:26.970  INFO  main.games/SystemGame- "slider settings not available for " "grand_theft_auto_v_enhanced" 425467816
+2026-09-13 15:50:26.970  INFO  main.games/gamesService- "trying to get game state" "muck"
+2026-09-13 15:50:26.970  INFO  main.games/gamesService- "trying to get game state" "muck"

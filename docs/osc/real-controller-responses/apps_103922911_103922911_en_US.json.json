@@ -1,0 +1,13 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:21.031  INFO  main.games/gamesService- "loadDbGames" {
+  "autoOptimize": true,
+  "ts": 1789287469696
+}
+2026-09-13 15:50:21.031  INFO  main.games/gamesService- "start initializing games"
+2026-09-13 15:50:21.031  INFO  main.games/gamesService- "getGamesCount " 20
+2026-09-13 15:50:21.032  INFO  main.games/gamesService- "trying to get game state" "vlc"
+2026-09-13 15:50:21.033  INFO  main.games/gamesService- "persist auto optimized state: " true
+2026-09-13 15:50:21.056  INFO  nvJsEvents/jsEventsEndpoints- "serverhttps://events.gfe.nvidia.com"
+2026-09-13 15:50:21.072  INFO  main.games/GameListController- "initialized received"
+2026-09-13 15:50:21.072  DEBUG  main.games/GameListController- "refresh Games" 20
+2026-09-13 15:50:21.072  INFO  main.games/GameListController- "After filtering gameList for defined systemGames, count is:" 20

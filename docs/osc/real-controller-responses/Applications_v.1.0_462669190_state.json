@@ -1,0 +1,5 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:27.655  INFO  main.games/SystemGame- "new state for " "muck" 462669190 "UNOPTIMIZED" "DISABLED"
+2026-09-13 15:50:27.655  INFO  main.games/SystemGame- "slider settings not available for " "muck" 462669190
+2026-09-13 15:50:27.656  INFO  main.games/gamesService- "trying to get game state" "wuthering_waves"
+2026-09-13 15:50:27.656  INFO  main.games/gamesService- "trying to get game state" "wuthering_waves"

@@ -1,0 +1,59 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:20.453  INFO  main.games/gamesService- "ignoring game" "discord" false 101073711
+2026-09-13 15:50:20.454  INFO  main.games/gamesService- "ignoring game" "minecraft_dungeons" false 101594211
+2026-09-13 15:50:20.454  INFO  main.games/gamesService- "ignoring game" "minecraft_dungeons" false 101594211
+2026-09-13 15:50:20.454  INFO  main.games/gamesService- "ignoring game" "steam" false 103468802
+2026-09-13 15:50:20.455  INFO  main.games/gamesService- "ignoring game" "lm_studio" false 102456011
+2026-09-13 15:50:20.455  INFO  main.games/gamesService- "ignoring game" "minecraft_dungeons" false 101594211
+2026-09-13 15:50:20.455  INFO  main.games/gamesService- "ignoring game" "vtube_studio_2_0" false 102141311
+2026-09-13 15:50:20.457  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.457  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.457  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.457  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.457  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.458  INFO  main.preferences/preferencesFeatureService- "isAnselFeatureAvailable returned cached value"
+2026-09-13 15:50:20.459  INFO  main.games/gamesService- "getGamesCount " 20
+2026-09-13 15:50:20.459  INFO  main.games/gamesService- "trigger gamelist updated" 20
+2026-09-13 15:50:20.463  INFO  main.games/userGamesService- "Games count in userGamesSet and newUserGamesSet is: " 0 " and " 20
+2026-09-13 15:50:20.466  INFO  main.games/userGamesService- "trigger usergamesupdated"
+2026-09-13 15:50:20.466  INFO  main.games/GameListController- "initialized received"
+2026-09-13 15:50:20.466  DEBUG  main.games/GameListController- "refresh Games" 20
+2026-09-13 15:50:20.467  INFO  main.games/GameListController- "After filtering gameList for defined systemGames, count is:" 20
+2026-09-13 15:50:20.527  INFO  main.updates/updatesService- "UpdatesService - got socket event  SCAN_UPDATE - " "STARTED"
+2026-09-13 15:50:20.527  INFO  main.updates/updatesService- "UpdatesService - SCAN_STARTED"
+2026-09-13 15:50:20.529  DEBUG  main.rewards/rewardsService- "got gfwsl consent params" [
+  "1",
+  "1",
+  "1"
+]
+2026-09-13 15:50:20.530  INFO  main.rewards/rewardsService- "Received event to validate rewards status and session"
+2026-09-13 15:50:20.530  INFO  main.rewards/rewardsService- "Session refresh already in progress, no action needed"
+2026-09-13 15:50:20.530  INFO  main.common/jarvisService- "jarvisService received Accounts module socket notification: " {
+  "userId": "331007586420654732",
+  "consentLevel": 7,
+  "consentSettings": {
+    "trackFunctionalData": {
+      "level": "Full"
+    },
+    "trackTechnicalData": {
+      "level": "Full"
+    },
+    "trackBehavioralData": {
+      "level": "Full"
+    }
+  }
+}

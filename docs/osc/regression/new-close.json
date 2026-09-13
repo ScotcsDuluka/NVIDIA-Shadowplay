@@ -1,0 +1,1 @@
+{"transcript":[{"kind":"push","channel":"/ShadowPlay/v.1.0/WindowState","payload":{"windowMsg":"fullscreenTransition"},"t":261944},{"kind":"cef","command":"QUERY_FULLSCREEN_STATE","t":261949},{"kind":"cef","command":"QUERY_WIN_CLOSE_OSC","t":262869}]}

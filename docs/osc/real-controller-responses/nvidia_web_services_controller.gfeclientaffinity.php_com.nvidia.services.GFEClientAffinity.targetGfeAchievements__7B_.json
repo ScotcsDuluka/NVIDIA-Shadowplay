@@ -1,0 +1,201 @@
+// status=200 (non-JSON body)
+2026-09-13 15:50:17.374  DEBUG  main.common/httpLoggingService- " gfwsl returned successfully with response " {
+  "data": {
+    "MethodCalled": "<!-- methodcalled name=\"targetGfeAchievements\" date=\"2026-09-13T08:50:19+0000\" ResponseStatus=\"Success 200\" --> ",
+    "theParsedParms": "",
+    "html": {
+      "body": {
+        "sessionState": {
+          "overallState": "true",
+          "gfeVersion": "3.28.0.412",
+          "versionToGet": "3.28.0",
+          "theLanguageID": "en_US"
+        },
+        "Achievements": [
+          {
+            "ID": "GFE-CRD-GRD-ENABLEMENT",
+            "CevoCampaignID": "gfe_ach_crd_grd_enable",
+            "Type": "GFE_ACHIEVEMENT_TARGETING",
+            "Name": "GFE Creative Ready Driver enablement, kludge for service enable/disable",
+            "overallState": "true",
+            "Message": {
+              "title": "No-title",
+              "description": "No-description",
+              "full": "No-full"
+            },
+            "methodsApplied": {
+              "item": [
+                {
+                  "note": "If want to target all possible methods",
+                  "ID": "NOTALLId"
+                },
+                {
+                  "note": "Targeting Evaluation Stub",
+                  "ID": "_testNVTargetGfe"
+                },
+                {
+                  "note": "Leveraging targeting to facilitate hamburger show or hide",
+                  "ID": "targetGfeAchievements"
+                }
+              ]
+            },
+            "target": {
+              "overallState": "true",
+              "lifeSpan": {
+                "startDate": "2019-01-01T01:00:00+01:00",
+                "endDate": "2099-12-31T01:00:00+01:00",
+                "except": "none",
+                "expiredMessage": "GFE Creative Ready Driver enablement ENABLED System Parametric",
+                "state": "true"
+              },
+              "supportedGPU": {
+                "message": "Device to be included is to be determined",
+                "state": "true",
+                "gpu": {
+                  "item": [
+                    {
+                      "name": "00ddbb2bfb4bd0af306a0e8179b4efc0",
+                      "ID": "15F8",
+                      "state": "false"
+                    },
+                    {
+                      "name": "01405835dd7ee001ccfc8752e5cee6b9",
+                      "ID": "1024",
+                      "state": "false"
+                    },
+                    {
+                      "name": "0140dbf4aafd79de454c1da7f5a2b67c",
+                      "ID": "1022",
+                      "state": "false"
+                    },
+                    {
+                      "name": "04802afa14f4799bde621cdd049893d5",
+                      "ID": "1E78",
+                      "state": "false"
+                    },
+                    {
+                      "name": "05b0dc60d4252d9ac791a6d608d3e368",
+                      "ID": "13F2",
+                      "state": "false"
+                    },
+                    {
+                      "name": "0713ac4f6e30c304d7267fca436507d4",
+                      "ID": "1F47",
+                      "state": "false"
+                    },
+                    {
+                      "name": "13659da47f3b22b28818c4c497ac398e",
+                      "ID": "2187",
+                      "state": "false"
+                    },
+                    {
+                      "name": "15e155511ef26c04c5c74917fd4dbc10",
+                      "ID": "1BE0",
+                      "state": "false"
+                    },
+                    {
+                      "name": "1b93a81f6ffc18ff99413128e27987b6",
+                      "ID": "1C03",
+                      "state": "false"
+                    },
+                    {
+                      "name": "1c96305f151bc0c3e3540b3d63837b47",
+                      "ID": "17FD",
+                      "state": "false"
+                    },
+                    {
+                      "name": "1d9065f1d8c4b4bf6f425bdd50e3173f",
+                      "ID": "1F11",
+                      "state": "false"
+                    },
+                    {
+                      "name": "20022a28370f2e6297df61fc7b568dfd",
+                      "ID": "1E90",
+                      "state": "false"
+                    },
+                    {
+                      "name": "20881236eb525edaecde028b065f7b97",
+                      "ID": "1EB8",
+                      "state": "false"
+                    },
+                    {
+                      "name": "21d8d04e3a35dc4c3935be84d937cd29",
+                      "ID": "1BE1",
+                      "state": "false"
+                    },
+                    {
+                      "name": "25bce20341c9e44ce765df2da607d746",
+                      "ID": "1F51",
+                      "state": "false"
+                    },
+                    {
+                      "name": "2b516c6f98c43180fa280a932db5883f",
+                      "ID": "1DF2",
+                      "state": "false"
+                    },
+                    {
+                      "name": "2f2eb79ab01c02dac85b74a5e568e203",
+                      "ID": "1C83",
+                      "state": "false"
+                    },
+                    {
+                      "name": "32f05739ff4873853c8a1548b3287a40",
+                      "ID": "1C8D",
+                      "state": "false"
+                    },
+                    {
+                      "name": "389c5ece71c46567174bfb4eb41308b9",
+                      "ID": "1023",
+                      "state": "false"
+                    },
+                    {
+                      "name": "3bac0d5282994f184e0d9d06c027bd45",
+                      "ID": "1CBD",
+                      "state": "false"
+                    },
+                    {
+                      "name": "3fead0aeb943083e86172f197f2cc1e0",
+                      "ID": "1F07",
+                      "state": "false"
+                    },
+                    {
+                      "name": "42fa9d0befdfd6eb5623cc64352a87ea",
+                      "ID": "1E02",
+                      "state": "false"
+                    },
+                    {
+                      "name": "46e330e506ea49f842b602fbc6f9b337",
+                      "ID": "1B00",
+                      "state": "false"
+                    },
+                    {
+                      "name": "481e0f888a72ad841a30627806761a66",
+                      "ID": "1B38",
+                      "state": "false"
+                    },
+                    {
+                      "name": "51c21ce32a64e1cdff77edec62440c9e",
+                      "ID": "21C4",
+                      "state": "false"
+                    },
+                    {
+                      "name": "52f000f519d7b9f095fb05f10302f5df",
+                      "ID": "1B06",
+                      "state": "true"
+                    },
+                    {
+                      "name": "53d063490d269293ab3b8203f2abaef7",
+                      "ID": "1B83"
+                    },
+                    {
+                      "name": "56ed06dfee0ca49d50c2d2b9b29095c7",
+                      "ID": "1DB4"
+                    },
+                    {
+                      "name": "5787d080a5e3c09ae4211a68ecf2ad27",
+                      "ID": "1B82"
+                    },
+                    {
+                      "name": "58a17177e75d50563c0563264544df6b",
+                      "ID": "1E04"
+                    },
