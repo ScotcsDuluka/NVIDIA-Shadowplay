@@ -143,6 +143,55 @@ Public Class HookCdpCapture
         End Using
     End Sub
 
+    ' ── CDP input injection (real Chromium input pipeline) ─────
+    ' Synthetic DOM events CANNOT trigger CSS :hover (the browser only
+    ' updates :hover from real input). Input.dispatchMouseEvent/Key go
+    ' through Chromium's own input pipeline → hover, click, focus, text
+    ' all behave natively. Own connection: independent of the capture WS.
+    Private Shared ReadOnly InputWsLock As New Object()
+    Private Shared _inputWs As System.Net.WebSockets.ClientWebSocket
+    Private Shared _inputMsgId As Integer = 50000
+
+    ''' <summary>Sends a CDP Input.* command; connects lazily. Returns False
+    '     when the connection failed (caller falls back to DOM events).</summary>
+    Public Shared Function SendCdpInput(cdpJson As String) As Boolean
+        SyncLock InputWsLock
+            Try
+                If _inputWs Is Nothing OrElse _inputWs.State <> System.Net.WebSockets.WebSocketState.Open Then
+                    If _inputWs IsNot Nothing Then _inputWs.Dispose()
+                    _inputWs = New System.Net.WebSockets.ClientWebSocket()
+                    Dim listJson As String = New HttpClient().GetStringAsync(
+                        "http://127.0.0.1:9224/json/list").Result
+                    Dim arr As System.Text.Json.JsonElement = System.Text.Json.JsonDocument.Parse(
+                        listJson.Substring(listJson.IndexOf("["c))).RootElement
+                    Dim wsUrl As String = Nothing
+                    For Each t As System.Text.Json.JsonElement In arr.EnumerateArray()
+                        Dim u As System.Text.Json.JsonElement
+                        If t.TryGetProperty("url", u) AndAlso u.GetString().Contains("index.html") Then
+                            Dim wN As System.Text.Json.JsonElement
+                            If t.TryGetProperty("webSocketDebuggerUrl", wN) Then wsUrl = wN.GetString()
+                            Exit For
+                        End If
+                    Next
+                    If String.IsNullOrEmpty(wsUrl) Then Return False
+                    _inputWs.ConnectAsync(New Uri(wsUrl), Nothing).Wait(3000)
+                    If _inputWs.State <> System.Net.WebSockets.WebSocketState.Open Then Return False
+                End If
+                _inputMsgId += 1
+                ' wrap: caller passes the "method/params" body
+                Dim msg As String = "{""id"":" & _inputMsgId & "," & cdpJson & "}"
+                Dim b As Byte() = Encoding.UTF8.GetBytes(msg)
+                _inputWs.SendAsync(New ArraySegment(Of Byte)(b),
+                    System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(3000)
+                Return True
+            Catch
+                Try : _inputWs?.Dispose() : Catch : End Try
+                _inputWs = Nothing
+                Return False
+            End Try
+        End SyncLock
+    End Function
+
     Private Sub CaptureLoop()
         Dim wsClient As New System.Net.WebSockets.ClientWebSocket()
         Dim wsOpen As Boolean = False

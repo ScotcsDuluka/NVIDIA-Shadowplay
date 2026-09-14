@@ -531,7 +531,46 @@ Public Class OscHostForm
                          ",ctrlKey:" & ctrl.ToString().ToLowerInvariant() &
                          ",bubbles:true}));})()"
             End Select
-            If js.Length > 0 Then _webView.CoreWebView2.ExecuteScriptAsync(js)
+            ' CDP Input.* goes through Chromium's REAL input pipeline —
+            ' synthetic DOM events can't trigger CSS :hover or set focus,
+            ' CDP input does both natively. DOM events are the FALLBACK
+            ' only (CDP down), never combined (would double-fire clicks).
+            Dim cdp As String = ""
+            Select Case typ
+                Case "mousemove"
+                    cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mouseMoved"",""x"":" & cx & ",""y"":" & cy & "}"
+                Case "mousedown"
+                    cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mousePressed"",""x"":" & cx & ",""y"":" & cy & ",""button"":""left"",""buttons"":1,""clickCount"":1}"
+                Case "mouseup"
+                    cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mouseReleased"",""x"":" & cx & ",""y"":" & cy & ",""button"":""left"",""buttons"":0,""clickCount"":1}"
+                Case "keydown", "keyup"
+                    Dim vkN As System.Text.Json.JsonElement
+                    If root.TryGetProperty("vk", vkN) Then
+                        Dim vk As Integer = vkN.GetInt32()
+                        Dim shift As Boolean = False
+                        Dim sN As System.Text.Json.JsonElement
+                        If root.TryGetProperty("shift", sN) Then shift = sN.GetInt32() = 1
+                        Dim keyName As String = VkToJsKey(vk, shift)
+                        If keyName IsNot Nothing AndAlso keyName.Length = 1 Then
+                            Dim txtParam As String = If(typ = "keydown",
+                                ",""text"":""" & keyName & """", "")
+                            cdp = """method"":""Input.dispatchKeyEvent"",""params"":{""type"":""" &
+                                If(typ = "keydown", "keyDown", "keyUp") & """,""key"":""" & keyName &
+                                """,""windowsVirtualKeyCode"":" & vk & txtParam & "}"
+                        ElseIf keyName IsNot Nothing Then
+                            cdp = """method"":""Input.dispatchKeyEvent"",""params"":{""type"":""" &
+                                If(typ = "keydown", "keyDown", "keyUp") & """,""key"":""" & keyName &
+                                """,""windowsVirtualKeyCode"":" & vk & "}"
+                        End If
+                    End If
+            End Select
+            If cdp.Length > 0 Then
+                If Not HookCdpCapture.SendCdpInput(cdp) AndAlso js.Length > 0 Then
+                    _webView.CoreWebView2.ExecuteScriptAsync(js)   ' fallback
+                End If
+            ElseIf js.Length > 0 Then
+                _webView.CoreWebView2.ExecuteScriptAsync(js)
+            End If
         Catch ex As Exception
             Log("hook input failed: " & ex.Message)
         End Try
