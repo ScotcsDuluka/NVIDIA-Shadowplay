@@ -31,6 +31,7 @@
 #include <cstdarg>
 #include <tlhelp32.h>
 #include <GL/gl.h>
+#include <vector>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
@@ -65,6 +66,13 @@ static WglSwapBuffers_t g_origWglSwapBuffers = nullptr;
 static void *g_wglTrampoline = nullptr;
 static volatile LONG g_wglExportHooked = 0;
 static volatile LONG g_wglFrameLogged = 0;
+static volatile LONG g_gdiSwapCount = 0;
+static volatile LONG g_wglInteropLogged = 0;
+static HGLRC g_glContext = nullptr;
+static GLuint g_glTexture = 0;
+static int g_glTextureW = 0;
+static int g_glTextureH = 0;
+static thread_local bool g_inGlOverlay = false;
 static WglSwapBuffers_t g_origGdiSwapBuffers = nullptr;
 typedef FARPROC (WINAPI *GetProcAddress_t)(HMODULE, LPCSTR);
 static GetProcAddress_t g_origGetProcAddress = nullptr;
@@ -179,17 +187,93 @@ static MappedFrame ReadFrame()
 
 static void DrawOpenGlFrame()
 {
-    if (!wglGetCurrentContext()) return;
+    HGLRC ctx = wglGetCurrentContext();
+    if (!ctx || g_inGlOverlay) return;
     MappedFrame f = ReadFrame();
-    if (!f.pixels || !f.visible || f.w <= 0 || f.h <= 0) return;
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_TEXTURE_2D);
-    glDisable(GL_BLEND);
+    static LONG drawChecks = 0;
+    LONG check = InterlockedIncrement(&drawChecks);
+    if (check <= 5) {
+        NLog("OpenGL draw check ctx=%p frame=%d visible=%d size=%dx%d pixels=%p",
+             (void *)ctx, f.frameId, f.visible, f.w, f.h, (void *)f.pixels);
+    }
+    if (!f.pixels || !f.visible || f.w <= 0 || f.h <= 0 ||
+        f.w > 8192 || f.h > 8192 ||
+        (size_t)f.w * (size_t)f.h > (size_t)8192 * 8192) return;
+    g_inGlOverlay = true;
+    const size_t bytes = (size_t)f.w * (size_t)f.h * 4;
+    std::vector<uint8_t> pixels(bytes);
+    memcpy(pixels.data(), f.pixels, bytes);
+
+    GLint viewport[4] = {};
+    GLint oldTexture = 0, oldMatrixMode = GL_MODELVIEW;
+    GLboolean oldBlend = glIsEnabled(GL_BLEND);
+    GLboolean oldDepth = glIsEnabled(GL_DEPTH_TEST);
+    GLboolean oldScissor = glIsEnabled(GL_SCISSOR_TEST);
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    glGetIntegerv(GL_TEXTURE_BINDING_2D, &oldTexture);
+    glGetIntegerv(GL_MATRIX_MODE, &oldMatrixMode);
+    if (viewport[2] <= 0 || viewport[3] <= 0) { g_inGlOverlay = false; return; }
+
+    if (g_glContext != ctx) {
+        g_glContext = ctx;
+        g_glTexture = 0;
+        g_glTextureW = 0;
+        g_glTextureH = 0;
+    }
+    if (!g_glTexture) glGenTextures(1, &g_glTexture);
+    glBindTexture(GL_TEXTURE_2D, g_glTexture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
-    glRasterPos2i(-1, 1);
-    glPixelZoom(1.0f, -1.0f);
-    glDrawPixels(f.w, f.h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, f.pixels);
-    glPopAttrib();
+    if (g_glTextureW != f.w || g_glTextureH != f.h) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, f.w, f.h, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixels.data());
+        g_glTextureW = f.w;
+        g_glTextureH = f.h;
+    } else {
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, f.w, f.h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixels.data());
+    }
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_SCISSOR_TEST);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glViewport(0, 0, viewport[2], viewport[3]);
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(0, viewport[2], viewport[3], 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glColor4f(1, 1, 1, 1);
+    glBegin(GL_QUADS);
+    glTexCoord2f(0, 0); glVertex2f(0, 0);
+    glTexCoord2f(1, 0); glVertex2f((GLfloat)viewport[2], 0);
+    glTexCoord2f(1, 1); glVertex2f((GLfloat)viewport[2], (GLfloat)viewport[3]);
+    glTexCoord2f(0, 1); glVertex2f(0, (GLfloat)viewport[3]);
+    glEnd();
+    glPopMatrix();
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(oldMatrixMode);
+    glBindTexture(GL_TEXTURE_2D, (GLuint)oldTexture);
+    if (!oldBlend) glDisable(GL_BLEND);
+    if (oldDepth) glEnable(GL_DEPTH_TEST);
+    if (oldScissor) glEnable(GL_SCISSOR_TEST);
+    g_inGlOverlay = false;
+}
+
+static void ProbeWglDxInterop()
+{
+    if (InterlockedCompareExchange(&g_wglInteropLogged, 1, 0) != 0) return;
+    HGLRC ctx = wglGetCurrentContext();
+    PROC open = ctx ? wglGetProcAddress("wglDXOpenDeviceNV") : nullptr;
+    PROC registerObject = ctx ? wglGetProcAddress("wglDXRegisterObjectNV") : nullptr;
+    PROC lockObject = ctx ? wglGetProcAddress("wglDXLockObjectsNV") : nullptr;
+    NLog("WGL_NV_DX_interop probe: context=%p open=%p register=%p lock=%p",
+         (void *)ctx, (void *)open, (void *)registerObject, (void *)lockObject);
 }
 
 static BOOL WINAPI HookedWglSwapBuffers(HDC hdc)
@@ -214,7 +298,6 @@ static BOOL WINAPI HookedWglSwapBuffers(HDC hdc)
             }
             wv[15] = fullscreen ? 1 : 0; // OpenGL fullscreen telemetry
         }
-        DrawOpenGlFrame();
         if (InterlockedCompareExchange(&g_wglFrameLogged, 1, 0) == 0) {
             NLog("OpenGL wglSwapBuffers reached");
         }
@@ -264,6 +347,18 @@ static void InstallWglExportHook()
 
 static PROC WINAPI HookedWglGetProcAddress(LPCSTR name);
 static BOOL WINAPI HookedGdiSwapBuffers(HDC hdc);
+static WglSwapBuffers_t g_origWglSwapLayer = nullptr;
+static BOOL WINAPI HookedWglSwapLayer(HDC hdc)
+{
+    LONG count = InterlockedIncrement(&g_gdiSwapCount);
+    if (count == 1 || (count % 60) == 0) {
+        static DWORD last = 0;
+        DWORD now = GetTickCount();
+        NLog("LAYER swap #%d (dt=%ums)", count, last ? now - last : 0);
+        last = now;
+    }
+    return g_origWglSwapLayer ? g_origWglSwapLayer(hdc) : FALSE;
+}
 
 static FARPROC WINAPI HookedGetProcAddress(HMODULE module, LPCSTR name)
 {
@@ -305,9 +400,16 @@ static PROC WINAPI HookedWglGetProcAddress(LPCSTR name)
 
 static BOOL WINAPI HookedGdiSwapBuffers(HDC hdc)
 {
+    LONG count = InterlockedIncrement(&g_gdiSwapCount);
+    if (count == 1 || (count % 60) == 0) {
+        static DWORD last = 0;
+        DWORD now = GetTickCount();
+        NLog("GDI swap #%d (dt=%ums)", count, last ? now - last : 0);
+        last = now;
+    }
     __try { DrawOpenGlFrame(); }
     __except (EXCEPTION_EXECUTE_HANDLER) {
-        NLog("GDI SwapBuffers overlay fault 0x%08X - skipped", GetExceptionCode());
+        NLog("OpenGL GDI overlay fault 0x%08X - skipped", GetExceptionCode());
     }
     return g_origGdiSwapBuffers ? g_origGdiSwapBuffers(hdc) : FALSE;
 }
@@ -545,12 +647,18 @@ static void PatchIatAll(const char *importDll, const char *funcName, void *hook,
 
 static void InstallIatHooks()
 {
-    InstallWglExportHook();
     PatchIatAll("user32.dll", "GetAsyncKeyState", (void *)&HookGetAsyncKeyState, (void **)&g_origGetAsyncKeyState);
     PatchIatAll("user32.dll", "GetKeyState", (void *)&HookGetKeyState, (void **)&g_origGetKeyState);
     PatchIatAll("user32.dll", "GetKeyboardState", (void *)&HookGetKeyboardState, (void **)&g_origGetKeyboardState);
     PatchIatAll("user32.dll", "GetRawInputData", (void *)&HookGetRawInputData, (void **)&g_origGetRawInputData);
+    // Prefer import/resolver hooks; never patch opengl32.dll's export
+    // prologue because Geometry Dash/driver combinations can crash there.
     PatchIatAll("opengl32.dll", "wglSwapBuffers", (void *)&HookedWglSwapBuffers, (void **)&g_origWglSwapBuffers);
+    PatchIatAll("gdi32.dll", "SwapBuffers", (void *)&HookedGdiSwapBuffers, (void **)&g_origGdiSwapBuffers);
+    PatchIatAll("opengl32.dll", "wglSwapLayerBuffers", (void *)&HookedWglSwapLayer, (void **)&g_origWglSwapLayer);
+    PatchIatAll("opengl32.dll", "wglGetProcAddress", (void *)&HookedWglGetProcAddress, (void **)&g_origWglGetProcAddress);
+    PatchIatAll("kernel32.dll", "GetProcAddress", (void *)&HookedGetProcAddress, (void **)&g_origGetProcAddress);
+
 }
 
 

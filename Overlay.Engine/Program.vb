@@ -74,6 +74,7 @@ Public Class Program
             ' The form is constructed up front (its ctor builds tray+stack)
             ' but never shown until the first toggle.
             Dim overlay As New OscHostForm()
+            HookAutoInject.Start()
             Application.Run(New ApplicationContext())
         End Using
     End Sub

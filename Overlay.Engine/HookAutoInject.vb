@@ -94,21 +94,18 @@ Public Class HookAutoInject
                     For Each p As Process In Process.GetProcessesByName(e.Exe)
                         Dim pid As Integer = p.Id
                         If Not Injected.Contains(pid) AndAlso Not Failed.Contains(pid) Then
-                            ' give the game a moment to finish loading D3D
-                            If p.MainWindowHandle <> IntPtr.Zero Then
-                                If IsHookModuleLoaded(p, dll) Then
-                                    Injected.Add(pid)
-                                    L("already loaded in " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
-                                    Continue For
-                                End If
-                                Dim rc As Integer = Inject(p.Id, dll)
-                                If rc = 0 Then
-                                    Injected.Add(pid)
-                                    L("injected into " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
-                                Else
-                                    Failed.Add(pid)
-                                    L("inject " & e.Exe & " (pid " & pid & ") failed rc=" & rc)
-                                End If
+                            If IsHookModuleLoaded(p, dll) Then
+                                Injected.Add(pid)
+                                L("already loaded in " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
+                                Continue For
+                            End If
+                            Dim rc As Integer = Inject(p.Id, dll)
+                            If rc = 0 Then
+                                Injected.Add(pid)
+                                L("injected into " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
+                            Else
+                                Failed.Add(pid)
+                                L("inject " & e.Exe & " (pid " & pid & ") failed rc=" & rc)
                             End If
                         End If
                         p.Dispose()

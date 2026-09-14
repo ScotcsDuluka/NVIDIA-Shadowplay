@@ -87,12 +87,27 @@ Public Class OscHostForm
     Private _hookModeActive As Boolean
 
     Private Function ShouldUseHookMode() As Boolean
-        If Not HookFramePump.HookLive() OrElse Not HookFramePump.ExclusiveFullscreen() Then Return False
+        If Not HookFramePump.HookLive() Then Return False
         Dim fg As IntPtr = GetForegroundWindow()
         If fg = IntPtr.Zero OrElse fg = Handle Then Return False
         Dim pid As UInteger = 0
         GetWindowThreadProcessId(fg, pid)
         If pid = CUInt(Process.GetCurrentProcess().Id) Then Return False
+        Dim geometryDash As Boolean = False
+        Try
+            Using game = Process.GetProcessById(CInt(pid))
+                geometryDash = String.Equals(game.ProcessName, "GeometryDash", StringComparison.OrdinalIgnoreCase)
+            End Using
+        Catch
+            Return False
+        End Try
+        If geometryDash Then
+            ' Geometry Dash's GDI SwapBuffers import is only used during
+            ' initialization; it is not its frame-present path. Keep the
+            ' reliable Desktop compositor instead of showing a blank hook.
+            Return False
+        End If
+        If Not geometryDash AndAlso Not HookFramePump.ExclusiveFullscreen() Then Return False
         Dim r As RectangleNative
         If Not GetWindowRect(fg, r) Then Return False
         Dim bounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
@@ -496,7 +511,7 @@ Public Class OscHostForm
             ' watch whitelisted games → auto-inject the in-game hook DLL —
             ' NOT when GFE/NVIDIA App owns the machine (their nvspcap hooks
             ' are already in every game; ours would fight them)
-            If Not NvShadowPlayRecorder.IsAvailable() Then HookAutoInject.Start()
+            HookAutoInject.Start()
         Catch ex As Exception
             Log("WebView2 init failed: " & ex.Message)
         End Try
