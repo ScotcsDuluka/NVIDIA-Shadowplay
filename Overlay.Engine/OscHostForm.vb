@@ -104,7 +104,10 @@ Public Class OscHostForm
         ' Geometry Dash: measured GDI SwapBuffers fires at 75fps (its real
         ' present loop) when foreground — the init-only conclusion was from
         ' a backgrounded game. Hook mode is allowed.
-        If Not geometryDash AndAlso Not HookFramePump.ExclusiveFullscreen() Then Return False
+        ' exclusive-flag requirement dropped: Dungeons runs borderless and
+        ' was kicked to Desktop mode (flat-gray window over the game). The
+        ' DLL-drawn path works for any hooked, foreground game.
+
         Dim r As RectangleNative
         If Not GetWindowRect(fg, r) Then Return False
         Dim bounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
