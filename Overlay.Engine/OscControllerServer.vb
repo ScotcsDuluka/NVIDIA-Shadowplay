@@ -269,6 +269,14 @@ Public Class OscControllerServer
                 Return
             End If
 
+            ' Angular occasionally emits an unresolved icon template while a
+            ' tile is being refreshed. It is a harmless asset miss, not an
+            ' authenticated API call; do not let it produce a noisy 401.
+            If rawPath.Contains("{{", StringComparison.Ordinal) Then
+                res.StatusCode = 204
+                Return
+            End If
+
             If Not HasCookie(req) Then
                 RaiseEvent LogLine("401 " & method & " " & rawPath & " (missing/invalid cookie)")
                 WriteJson(res, 401, "{}")
@@ -424,6 +432,50 @@ Public Class OscControllerServer
                         Dim stored As JsonObject = GetSection("instantReplay")
                         WriteJson(res, 200, If(stored.Count > 0, stored.ToJsonString(), "{""enabled"":false}"))
                     End If
+                Case "/ShadowPlay/v.1.0/8k60"
+                    WriteJson(res, 200, "{""support"":false}")
+                Case "/ShadowPlay/v.1.0/CoPlay/Enable"
+                    If method = "POST" Then StoreSection("coplay", ReadBody(req))
+                    Dim cp As JsonObject = GetSection("coplay")
+                    WriteJson(res, 200, If(cp.Count > 0, cp.ToJsonString(), "{""enable"":false}"))
+                Case "/ShadowPlay/v.1.0/Capture/State"
+                    WriteJson(res, 200, SafeJson(StateProvider, "{""running"":false}"))
+                Case "/ShadowPlay/v.1.0/Launch"
+                    WriteJson(res, 200, "{""success"":true}")
+                Case "/ShadowPlay/v.1.0/OSC/MainView", "/ShadowPlay/v.1.0/Osc"
+                    If method = "POST" Then StoreSection("oscMainView", ReadBody(req))
+                    WriteJson(res, 200, "{}")
+                Case "/ShadowPlay/v.1.0/Webcam/Settings"
+                    If method = "POST" Then StoreSection("webcamSettings", ReadBody(req))
+                    Dim ws As JsonObject = GetSection("webcamSettings")
+                    WriteJson(res, 200, If(ws.Count > 0, ws.ToJsonString(),
+                        "{""device"":"""",""resolution"":""native"",""framerate"":30}"))
+                Case "/ShadowPlay/v.1.0/Highlights/Session"
+                    WriteJson(res, 200, "{""active"":false,""supported"":false}")
+                Case "/SDK/v.1.0/Highlights/Active"
+                    WriteJson(res, 200, "{""active"":false}")
+                Case "/SDK/v.1.0/NotifyOverlayState"
+                    If method = "POST" Then StoreSection("overlayState", ReadBody(req))
+                    WriteJson(res, 200, "{}")
+                Case "/Feedback/v.0.1"
+                    WriteJson(res, 200, "{}")
+                Case "/ShadowPlay/v.1.0/CustomOverlay/Support"
+                    WriteJson(res, 200, "{""support"":false}")
+                Case "/ShadowPlay/v.1.0/CustomOverlay/DefaultPath"
+                    WriteJson(res, 200, "{""path"":""""}")
+                Case "/ShadowPlay/v.1.0/Broadcast/2KSupport"
+                    WriteJson(res, 200, "{""support"":false}")
+                Case "/ShadowPlay/v.1.0/Broadcast/Settings"
+                    If method = "POST" Then StoreSection("broadcastSettings", ReadBody(req))
+                    Dim bs As JsonObject = GetSection("broadcastSettings")
+                    WriteJson(res, 200, If(bs.Count > 0, bs.ToJsonString(), "{}"))
+                Case "/Gallery/v.1.0/Recent/8"
+                    WriteJson(res, 200, "{""items"":[]}")
+                Case "/Gallery/v.1.2/GetFolderListing"
+                    Dim listingBody As String = If(method = "POST", ReadBody(req), "{}")
+                    WriteJson(res, 200, BuildFolderListingJson(listingBody))
+                Case "/Gallery/v.1.0/EnumerateDrives"
+                    WriteJson(res, 200, BuildDrivesJson())
                 Case "/HardwareInformation/v.0.1"
                     ' Boot resolve + gfwslService need a REAL GPU list: the
                     ' octool min-spec check does findWhere(GPU,{IsPrimary:"1"})
@@ -684,6 +736,88 @@ Public Class OscControllerServer
         End Try
     End Function
 
+    Private Shared Function BuildFolderListingJson(body As String) As String
+        Try
+            Dim requested As String = ""
+            Dim parsed As JsonObject = TryCast(JsonNode.Parse(If(body, "{}")), JsonObject)
+            If parsed IsNot Nothing Then
+                For Each key As String In New String() {"path", "currentPath", "folder", "directory"}
+                    If parsed(key) IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(parsed(key).ToString()) Then
+                        requested = parsed(key).ToString()
+                        Exit For
+                    End If
+                Next
+            End If
+
+            If String.IsNullOrWhiteSpace(requested) Then
+                requested = AppConfigShared.ReadString("Paths", "SavePath",
+                    IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)))
+            End If
+            requested = IO.Path.GetFullPath(requested)
+            If Not Directory.Exists(requested) Then
+                requested = IO.Path.GetDirectoryName(requested)
+                If String.IsNullOrEmpty(requested) OrElse Not Directory.Exists(requested) Then
+                    requested = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)
+                End If
+            End If
+
+            ' The GFE FolderBrowserController consumes directories as an
+            ' array of names (not {folder,path} objects). Returning folders
+            ' here leaves the list visibly empty even though the HTTP call
+            ' succeeds.
+            Dim directories As New StringBuilder("[")
+            Dim first As Boolean = True
+            For Each dir As String In Directory.GetDirectories(requested)
+                Dim info As New DirectoryInfo(dir)
+                If Not info.Attributes.HasFlag(FileAttributes.Hidden) Then
+                    If Not first Then directories.Append(",")
+                    first = False
+                    directories.Append(OscWire.JsonString(info.Name))
+                End If
+            Next
+            directories.Append("]")
+
+            Dim writable As Boolean = CanWriteFolder(requested)
+            Return "{""path"":" & OscWire.JsonString(requested) &
+                   ",""currentPath"":" & OscWire.JsonString(requested) &
+                   ",""directories"":" & directories.ToString() &
+                   ",""folders"":" & directories.ToString() &
+                   ",""files"":[],""writable"":" & If(writable, "true", "false") &
+                   ",""isWritable"":" & If(writable, "true", "false") & "}"
+        Catch ex As Exception
+            Return "{""path"":"""",""currentPath"":"""",""folders"":[],""files"":[],""writable"":false,""isWritable"":false}"
+        End Try
+    End Function
+
+    Private Shared Function CanWriteFolder(path As String) As Boolean
+        Try
+            Dim probe As String = IO.Path.Combine(path, ".osc-write-test-" & Guid.NewGuid().ToString("N"))
+            Using fs As FileStream = File.Create(probe, 1, FileOptions.DeleteOnClose)
+            End Using
+            Return True
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Shared Function BuildDrivesJson() As String
+        Try
+            Dim drives As New StringBuilder("[")
+            Dim first As Boolean = True
+            For Each root As String In IO.Directory.GetLogicalDrives()
+                If Not first Then drives.Append(",")
+                first = False
+                drives.Append("{""name"":")
+                drives.Append(OscWire.JsonString(root))
+                drives.Append(",""type"":""drive""}")
+            Next
+            drives.Append("]")
+            Return "{""drives"":" & drives.ToString() & "}"
+        Catch
+            Return "{""drives"":[]}"
+        End Try
+    End Function
+
     ''' <summary>Preview hotkey bindings for /ShadowPlay/v.1.0/Hotkey/{name}.
     '     The response shape is {keys:[vk...]} — the page computes the label
     '     itself (shortcutToStr) and shows "Disabled" when keys is missing
@@ -762,6 +896,8 @@ Public Class OscControllerServer
         Dim bitrateKbps As Integer = 17000
         Dim width As Integer = 0
         Dim height As Integer = 0
+        Dim engineMode As String = "FFmpeg"
+        Dim apiCapture As String = "ffmpeg"
         Try
             Dim path As String = AppConfigShared.ConfigPath()
             If File.Exists(path) Then
@@ -773,6 +909,8 @@ Public Class OscControllerServer
                     If cur("bitrate") IsNot Nothing Then bitrateKbps = CInt(cur("bitrate"))
                     If cur("width") IsNot Nothing Then width = CInt(cur("width"))
                     If cur("height") IsNot Nothing Then height = CInt(cur("height"))
+                    If rec?.Item("engine_mode") IsNot Nothing Then engineMode = rec("engine_mode").ToString()
+                    If rec?.Item("api_capture") IsNot Nothing Then apiCapture = rec("api_capture").ToString()
                 End SyncLock
             End If
         Catch
@@ -784,13 +922,22 @@ Public Class OscControllerServer
         End If
         Return "{""quality"":""custom"",""resolution"":""" & width & "x" & height &
                """,""framerate"":" & fps.ToString(CultureInfo.InvariantCulture) &
-               ",""bitrateBps"":" & (bitrateKbps * 1000).ToString(CultureInfo.InvariantCulture) & "}"
+               ",""bitrateBps"":" & (bitrateKbps * 1000).ToString(CultureInfo.InvariantCulture) &
+               ",""engineMode"":" & OscWire.JsonString(engineMode) &
+               ",""apiCapture"":" & OscWire.JsonString(apiCapture) & "}"
     End Function
 
     Private Sub ApplyRecordSettingsToEngineConfig(body As String)
         Try
             Dim posted As JsonObject = TryCast(JsonNode.Parse(body), JsonObject)
             If posted Is Nothing Then Return
+            ' engine selector (osc page "custom" payload): FFmpeg / Duluka /
+            ' OBS map to Recording.engine_mode; api_capture keeps the legacy
+            ' ddagrab marker for older readers
+            Dim engineMode As String = Nothing
+            If posted("engineMode") IsNot Nothing Then engineMode = posted("engineMode").ToString().Trim()
+            Dim apiCapture As String = Nothing
+            If posted("apiCapture") IsNot Nothing Then apiCapture = posted("apiCapture").ToString().Trim()
             Dim fps As Integer? = Nothing
             Dim bitrateKbps As Integer? = Nothing
             Dim width As Integer? = Nothing
@@ -830,6 +977,16 @@ Public Class OscControllerServer
                     cur = New JsonObject()
                     rec("current") = cur
                 End If
+                If Not String.IsNullOrEmpty(engineMode) Then
+                    Dim em As String = engineMode.ToLowerInvariant()
+                    If em = "ffmpeg" OrElse em = "duluka" OrElse em = "obs" Then
+                        rec("engine_mode") = em.Substring(0, 1).ToUpperInvariant() & em.Substring(1)
+                        If String.IsNullOrEmpty(apiCapture) Then
+                            apiCapture = If(em = "duluka", "ddagrab", em)
+                        End If
+                    End If
+                End If
+                If Not String.IsNullOrEmpty(apiCapture) Then rec("api_capture") = apiCapture
                 If fps.HasValue AndAlso fps.Value > 0 AndAlso fps.Value <= 240 Then cur("fps") = fps.Value
                 If bitrateKbps.HasValue AndAlso bitrateKbps.Value > 0 Then cur("bitrate") = bitrateKbps.Value
                 If native.HasValue Then cur("use_native_resolution") = native.Value
