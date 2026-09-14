@@ -68,6 +68,7 @@ Public Class OscHostForm
     Private _cdpCapture As HookCdpCapture
     Private _pwCapture As HookPrintWindowCapture
     Private _inputReader As HookInputReader
+    Private _hookDrag As Boolean
     Private _wgcStarted As Boolean
     Private _server As OscControllerServer
     Private _client As OscEngineClient
@@ -759,10 +760,17 @@ Public Class OscHostForm
             Dim cdp As String = ""
             Select Case typ
                 Case "mousemove"
-                    cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mouseMoved"",""x"":" & cx & ",""y"":" & cy & "}"
+                    ' while the button is held, moves must carry buttons:1 —
+                    ' without it Angular's sliders/trackbars ignore the drag
+                    ' ("can't adjust" bug). _hookDrag tracks press state.
+                    Dim btns As Integer = If(_hookDrag, 1, 0)
+                    cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mouseMoved"",""x"":" & cx & ",""y"":" & cy &
+                           ",""buttons"":" & btns.ToString() & If(_hookDrag, ",""button"":""left""", "") & "}"
                 Case "mousedown"
+                    _hookDrag = True
                     cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mousePressed"",""x"":" & cx & ",""y"":" & cy & ",""button"":""left"",""buttons"":1,""clickCount"":1}"
                 Case "mouseup"
+                    _hookDrag = False
                     cdp = """method"":""Input.dispatchMouseEvent"",""params"":{""type"":""mouseReleased"",""x"":" & cx & ",""y"":" & cy & ",""button"":""left"",""buttons"":0,""clickCount"":1}"
                 Case "keydown", "keyup"
                     Dim vkN As System.Text.Json.JsonElement
@@ -988,6 +996,7 @@ Public Class OscHostForm
         If String.IsNullOrEmpty(p) Then
             p = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NVIDIA ShadowPlay", "videos")
         End If
+        p = p.Replace("/"c, "\"c)
         ' page fields: videos + tempFiles (bundle POSTs {videos, tempFiles})
         Dim temp As String = IO.Path.Combine(p, "temp")
         Return "{""videos"":" & OscWire.JsonString(p) & ",""tempFiles"":" & OscWire.JsonString(temp) & "}"
