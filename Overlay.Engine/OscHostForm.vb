@@ -462,6 +462,20 @@ Public Class OscHostForm
                                                       End Sub
                 End If
                 _keepTopTimer.Start()
+                ' wake the Chromium child window — WebView2 stops rendering
+                ' while its host is fully occluded by the game and does not
+                ' always resume (screen shows the form's gray). Re-show the
+                ' child + nudge the compositor.
+                Try
+                    Dim child As IntPtr = FindWindowEx(Handle, IntPtr.Zero, "Chrome_WidgetWin_0", Nothing)
+                    If child <> IntPtr.Zero Then
+                        SetWindowPos(child, IntPtr.Zero, 0, 0, 0, 0,
+                            SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE Or &H40 Or &H10)   ' SHOWWINDOW|FRAMECHANGED
+                    End If
+                    _webView.CoreWebView2.ExecuteScriptAsync(
+                        "requestAnimationFrame(function(){});document.documentElement.style.transform='translateZ(0)';")
+                Catch
+                End Try
             Else
                 ' OVERLAY-CLOSED (in-game): hide behind the game again.
                 _keepTopTimer?.[Stop]()
@@ -475,7 +489,7 @@ Public Class OscHostForm
                 ' backdrop painted the whole screen gray. Use a light
                 ' GFE-style dim so the game shows through behind the menu.
                 Dim bdFix As String = If(open,
-                    "var bd=document.getElementById('oscengine-backdrop');if(bd)bd.style.background='rgba(8,8,8,0.45)';",
+                    "var n=0;var t=setInterval(function(){var bd=document.getElementById('oscengine-backdrop');if(bd){bd.style.background='rgba(8,8,8,0.45)';clearInterval(t);}if(++n>40)clearInterval(t);},250);",
                     "var bd=document.getElementById('oscengine-backdrop');if(bd)bd.style.background='';")
                 _webView.CoreWebView2.ExecuteScriptAsync(
                     "document.documentElement.classList.toggle('oscengine-open'," &
@@ -969,6 +983,10 @@ Public Class OscHostForm
 
     <DllImport("user32.dll")>
     Private Shared Function SetWindowRgn(hWnd As IntPtr, hRgn As IntPtr, bRedraw As Boolean) As Integer
+    End Function
+
+    <DllImport("user32.dll", CharSet:=CharSet.Unicode)>
+    Private Shared Function FindWindowEx(parent As IntPtr, after As IntPtr, className As String, windowName As String) As IntPtr
     End Function
 
 End Class
