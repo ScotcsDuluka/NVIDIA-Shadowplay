@@ -1,5 +1,10 @@
 # 15 — Overlay Engine Handoff (NVIDIA osc on WebView2)
 
+สถานะ ณ 2026-09-15 01:30 — **HANDOFF: session คู่ (Copilot/gpt-5.6) เป็นเจ้าของ OscControllerServer.vb / OscHostForm.vb ต่อ** — ZCode ถอนตัวจากไฟล์ทั้งสองนี้ (กับดัก §6.14 เกิดจริง: สอง agent เขียนทับกันจน build แดงหลายรอบ)
+- commit `a7a2837fd6` = preservation snapshot (งานทั้งสองฝั่งถูก freeze ไว้ครบ — **build แดงใน snapshot นี้** เจ้าของใหม่ต้อง fix compile ก่อน)
+- งาน ZCode ที่อยู่ใน snapshot: engine_mode/api_capture sync (Record/Settings ↔ config.json ทุกใบผ่าน mirror), mic mode/camera toggle handlers, DesktopCapture→Privacy sync, BitRates/RecordPaths shapes
+- งานคู่ที่อยู่ใน snapshot: /8k60, CoPlay, OSC/MainView, Webcam/Settings, Gallery GetFolderListing (folder picker!), `{{` 204 shortcut
+
 สถานะ ณ 2026-09-14 07:58 — เอกสารส่งมอบให้ agent ตัวถัดไป — **อ่านไฟล์เดียวจบ ต่อได้เลย**
 เอกสารประกอบ: `docs/osc/01–14` (inventory/protocol/state/screen/flow), `Overlay.Engine/PROTOCOL-MATRIX.md`
 (ground-truth contract + file:line evidence), `Overlay.Engine/README.md`, รายงาน `W1-*.md`
