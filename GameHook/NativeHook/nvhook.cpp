@@ -197,6 +197,9 @@ static DWORD WINAPI InputThread(LPVOID)
     while (true) {
         __try {
         Sleep(16);
+        // with D3D hooks skipped (nvspcap conflict) nothing else refreshes
+        // the section — the input thread must re-open it itself
+        ReopenIfEngineRestarted();
         // liveness for the engine without a Present hook: bump +20
         if (g_mmf) {
             auto *lw = (int *)MapViewOfFile(g_mmf, FILE_MAP_WRITE, 0, 0, 0);
