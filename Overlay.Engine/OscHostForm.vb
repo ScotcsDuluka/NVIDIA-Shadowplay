@@ -417,7 +417,7 @@ Public Class OscHostForm
             Catch ex As Exception
                 Log("route/backdrop toggle failed: " & ex.Message)
             End Try
-            Log(If(open, "overlay open (in-game)", "overlay closed (in-game)"))
+            Log(If(open, "overlay open (in-game)", "overlay closed (in-game)") & " src=" & New System.Diagnostics.StackTrace(True).ToString().Replace(vbCrLf, " | "))
             Return
         End If
 
