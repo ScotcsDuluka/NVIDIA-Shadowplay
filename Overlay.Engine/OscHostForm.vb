@@ -46,6 +46,7 @@ Public Class OscHostForm
 
     Private WithEvents _webView As Microsoft.Web.WebView2.WinForms.WebView2
     Private _cdpCapture As HookCdpCapture
+    Private _pwCapture As HookPrintWindowCapture
     Private _inputReader As HookInputReader
     Private _server As OscControllerServer
     Private _client As OscEngineClient
@@ -355,6 +356,21 @@ Public Class OscHostForm
             HookCdpCapture.ControllerSecret = _server.Secret
             _cdpCapture = New HookCdpCapture("9224")
             _cdpCapture.Start()
+            ' FAST PATH: PrintWindow + PW_RENDERFULLCONTENT captures the
+            ' WebView2 directly to a DIB section — 3-4x faster than the
+            ' CDP captureScreenshot loop (no PNG/base64/WebSocket), and
+            ' works while the engine window is occluded by the game
+            ' (PW_RENDERFULLCONTENT forces DWM to render the full
+            ' composited content). Sets ExternalCapture=1 on success so
+            ' the CDP loop idles; falls back to CDP automatically on 5
+            ' consecutive PrintWindow failures. CDP Input.* dispatch is
+            ' unaffected (still owned by HookCdpCapture.SendCdpInput).
+            Try
+                _pwCapture = New HookPrintWindowCapture(_webView.Handle)
+                _pwCapture.Start()
+            Catch ex As Exception
+                Log("PrintWindow capture start failed: " & ex.Message & " — CDP stays as fallback")
+            End Try
             ' watch whitelisted games → auto-inject the in-game hook DLL
             HookAutoInject.Start()
         Catch ex As Exception
@@ -854,6 +870,12 @@ Public Class OscHostForm
         End Try
         Try
             If _client IsNot Nothing Then _client.Dispose()
+        Catch
+        End Try
+        Try
+            ' stop the fast path BEFORE the CDP capture so the latter can
+            ' cleanly reclaim publishing ownership (ExternalCapture=0)
+            If _pwCapture IsNot Nothing Then _pwCapture.[Stop]()
         Catch
         End Try
         ' WebView2: the WinForms control tears its browser process down with
