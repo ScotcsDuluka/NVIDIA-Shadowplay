@@ -47,6 +47,7 @@ Public Class OscHostForm
     Private WithEvents _webView As Microsoft.Web.WebView2.WinForms.WebView2
     Private _cdpCapture As HookCdpCapture
     Private _inputReader As HookInputReader
+    Private _keepTopTimer As System.Windows.Forms.Timer
     Private _server As OscControllerServer
     Private _client As OscEngineClient
     Private _bridge As CefQueryBridge
@@ -449,8 +450,21 @@ Public Class OscHostForm
                 SetLayeredWindowAttributes(Handle, 0, 255, LWA_ALPHA)
                 SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE Or SWP_SHOWWINDOW)
+                ' the game re-asserts its own topmost flag continuously —
+                ' re-assert ours on a timer while the menu is open
+                If _keepTopTimer Is Nothing Then
+                    _keepTopTimer = New System.Windows.Forms.Timer With {.Interval = 400}
+                    AddHandler _keepTopTimer.Tick, Sub()
+                                                          If _overlayOpen Then
+                                                              SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
+                                                                  SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
+                                                          End If
+                                                      End Sub
+                End If
+                _keepTopTimer.Start()
             Else
                 ' OVERLAY-CLOSED (in-game): hide behind the game again.
+                _keepTopTimer?.[Stop]()
                 Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
                 styleIn = styleIn And (Not WS_EX_LAYERED)
                 SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
