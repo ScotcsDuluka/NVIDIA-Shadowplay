@@ -440,6 +440,9 @@ Public Class OscHostForm
                 ' clicks. No capture pipeline needed for interaction.
                 Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
                 styleIn = styleIn And (Not WS_EX_TRANSPARENT)   ' accept mouse
+                styleIn = styleIn And (Not WS_EX_LAYERED)       ' a layered topmost
+                ' window covering the screen crashes the game's dxgi mode
+                ' change (resolution switch -> unhandled dxgi exception)
                 styleIn = styleIn Or WS_EX_NOACTIVATE           ' never steal focus
                 SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn))
                 SetWindowRgn(Handle, IntPtr.Zero, True)
@@ -449,6 +452,7 @@ Public Class OscHostForm
             Else
                 ' OVERLAY-CLOSED (in-game): hide behind the game again.
                 Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
+                styleIn = styleIn And (Not WS_EX_LAYERED)
                 SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
                 SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
             End If

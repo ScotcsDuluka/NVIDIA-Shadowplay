@@ -554,7 +554,7 @@ static void DrawFrame(void *swapChain, MappedFrame f)
 static volatile LONG g_presentCount = 0;
 static volatile LONG g_drawCount = 0;
 
-static void OverlayWork(void *swapChain)
+static void OverlayWorkInner(void *swapChain)
 {
     InterlockedIncrement(&g_presentCount);
     if (g_presentHooked && g_mmf) {
@@ -602,6 +602,22 @@ static void OverlayWork(void *swapChain)
             g_res.frameW = (UINT)f.w; g_res.frameH = (UINT)f.h;
         }
         DrawFrame(swapChain, f);
+    }
+}
+
+// SEH wrapper: a resize/resolution change mid-frame used to raise inside
+// our draw path and take the GAME down (dxgi unhandled exception). Now a
+// faulting frame is skipped and the game keeps running.
+static void OverlayWork(void *swapChain)
+{
+    __try
+    {
+        OverlayWorkInner(swapChain);
+    }
+    __except (EXCEPTION_EXECUTE_HANDLER)
+    {
+        NLog("overlay frame fault 0x%08X — frame skipped", GetExceptionCode());
+        g_res.ready = false;   // rebuild resources next frame
     }
 }
 
