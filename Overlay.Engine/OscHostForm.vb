@@ -101,9 +101,14 @@ Public Class OscHostForm
         Catch
             Return False
         End Try
-        ' Geometry Dash: measured GDI SwapBuffers fires at 75fps (its real
-        ' present loop) when foreground — the init-only conclusion was from
-        ' a backgrounded game. Hook mode is allowed.
+        If geometryDash Then
+            ' GD presents via GDI SwapBuffers at 75fps (measured) and the
+            ' IAT hook sits on it — but the OpenGL texture-quad draw inside
+            ' its context crashes the game the moment the menu opens
+            ' (every attempt). GD = Desktop mode until that renderer is
+            ' hardened; Desktop overlay works at full fps for it.
+            Return False
+        End If
         ' exclusive-flag requirement dropped: Dungeons runs borderless and
         ' was kicked to Desktop mode (flat-gray window over the game). The
         ' DLL-drawn path works for any hooked, foreground game.
