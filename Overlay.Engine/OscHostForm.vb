@@ -101,12 +101,9 @@ Public Class OscHostForm
         Catch
             Return False
         End Try
-        If geometryDash Then
-            ' Geometry Dash's GDI SwapBuffers import is only used during
-            ' initialization; it is not its frame-present path. Keep the
-            ' reliable Desktop compositor instead of showing a blank hook.
-            Return False
-        End If
+        ' Geometry Dash: measured GDI SwapBuffers fires at 75fps (its real
+        ' present loop) when foreground — the init-only conclusion was from
+        ' a backgrounded game. Hook mode is allowed.
         If Not geometryDash AndAlso Not HookFramePump.ExclusiveFullscreen() Then Return False
         Dim r As RectangleNative
         If Not GetWindowRect(fg, r) Then Return False
