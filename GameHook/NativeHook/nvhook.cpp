@@ -179,6 +179,7 @@ static MappedFrame ReadFrame()
 
 static void DrawOpenGlFrame()
 {
+    if (!wglGetCurrentContext()) return;
     MappedFrame f = ReadFrame();
     if (!f.pixels || !f.visible || f.w <= 0 || f.h <= 0) return;
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -544,10 +545,12 @@ static void PatchIatAll(const char *importDll, const char *funcName, void *hook,
 
 static void InstallIatHooks()
 {
+    InstallWglExportHook();
     PatchIatAll("user32.dll", "GetAsyncKeyState", (void *)&HookGetAsyncKeyState, (void **)&g_origGetAsyncKeyState);
     PatchIatAll("user32.dll", "GetKeyState", (void *)&HookGetKeyState, (void **)&g_origGetKeyState);
     PatchIatAll("user32.dll", "GetKeyboardState", (void *)&HookGetKeyboardState, (void **)&g_origGetKeyboardState);
     PatchIatAll("user32.dll", "GetRawInputData", (void *)&HookGetRawInputData, (void **)&g_origGetRawInputData);
+    PatchIatAll("opengl32.dll", "wglSwapBuffers", (void *)&HookedWglSwapBuffers, (void **)&g_origWglSwapBuffers);
 }
 
 

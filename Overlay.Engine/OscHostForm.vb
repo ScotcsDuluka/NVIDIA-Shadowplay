@@ -150,8 +150,20 @@ Public Class OscHostForm
         '   ShadowPlay overlay owns Alt+Z as the daily driver; OUR overlay
         '   stays reachable via tray/hub.
         '   No GFE → ours registers Alt+Z itself (limited feature set).
-        If NvShadowPlayRecorder.IsAvailable() Then
-            Log("GFE detected — real ShadowPlay overlay owns Alt+Z (ours = tray/hub)")
+        ' Data\overlay-mode.json {"force":true} = use OUR overlay even when
+        ' NVIDIA App/GFE is installed (their in-game overlay must be disabled
+        ' in their settings, or Alt+Z will be owned by whoever registers first)
+        Dim forceOurs As Boolean = False
+        Try
+            Dim mp As String = AppLayout.P("Data", "overlay-mode.json")
+            If File.Exists(mp) Then
+                Dim j = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(mp)).AsObject()
+                forceOurs = j("force")?.GetValue(Of Boolean)() = True
+            End If
+        Catch
+        End Try
+        If NvShadowPlayRecorder.IsAvailable() AndAlso Not forceOurs Then
+            Log("GFE/NVIDIA App detected — real overlay owns Alt+Z (ours = tray/hub)")
             EnsureRealShareRunning()
         Else
             Log("GFE not installed — our overlay takes Alt+Z (limited features)")
