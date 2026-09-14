@@ -453,9 +453,15 @@ Public Class OscHostForm
                 SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
             End If
             Try
+                ' in-game: the REAL window is visible over the game — a 94%
+                ' backdrop painted the whole screen gray. Use a light
+                ' GFE-style dim so the game shows through behind the menu.
+                Dim bdFix As String = If(open,
+                    "var bd=document.getElementById('oscengine-backdrop');if(bd)bd.style.background='rgba(8,8,8,0.45)';",
+                    "var bd=document.getElementById('oscengine-backdrop');if(bd)bd.style.background='';")
                 _webView.CoreWebView2.ExecuteScriptAsync(
                     "document.documentElement.classList.toggle('oscengine-open'," &
-                    open.ToString().ToLowerInvariant() & ");" &
+                    open.ToString().ToLowerInvariant() & ");" & bdFix &
                     If(open, "window.__oscOpen && window.__oscOpen();",
                         "window.__oscClose && window.__oscClose();"))
             Catch ex As Exception
