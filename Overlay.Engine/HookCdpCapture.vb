@@ -294,7 +294,7 @@ Public Class HookCdpCapture
                 ' Windows.Graphics.Capture (GPU, no PNG) — next milestone.
                 Dim req As String = "{""id"":" & msgId & ",""method"":""Page.captureScreenshot""," &
                                     """params"":{""format"":""png"",""optimizeForSpeed"":true," &
-                                    """clip"":{""x"":0,""y"":0,""width"":1920,""height"":1200,""scale"":0.5}}}"
+                                    """clip"":{""x"":0,""y"":0,""width"":1920,""height"":1200,""scale"":0.875}}}"
                 Dim sent = Encoding.UTF8.GetBytes(req)
                 Dim sendOk As Boolean = wsClient.SendAsync(New ArraySegment(Of Byte)(sent),
                     System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(5000)

@@ -554,8 +554,26 @@ static void DrawFrame(void *swapChain, MappedFrame f)
 static volatile LONG g_presentCount = 0;
 static volatile LONG g_drawCount = 0;
 
+static void *g_lastSwapChain = nullptr;
 static void OverlayWorkInner(void *swapChain)
 {
+    // exclusive-fullscreen resolution change hands us a NEW swapchain —
+    // resources bound to the old device are poison. Full reset on change.
+    if (g_lastSwapChain != swapChain) {
+        g_lastSwapChain = swapChain;
+        if (g_res.ready) {
+            if (g_res.tex) g_res.tex->Release();
+            if (g_res.srv) g_res.srv->Release();
+            if (g_res.vs) g_res.vs->Release();
+            if (g_res.ps) g_res.ps->Release();
+            if (g_res.layout) g_res.layout->Release();
+            if (g_res.blend) g_res.blend->Release();
+            if (g_res.raster) g_res.raster->Release();
+            if (g_res.sampler) g_res.sampler->Release();
+            g_res = HookRes();
+            NLog("swapchain changed - resources reset");
+        }
+    }
     InterlockedIncrement(&g_presentCount);
     if (g_presentHooked && g_mmf) {
         auto *wv = (int *)MapViewOfFile(g_mmf, FILE_MAP_WRITE, 0, 0, 0);
@@ -601,7 +619,21 @@ static void OverlayWorkInner(void *swapChain)
             }
             g_res.frameW = (UINT)f.w; g_res.frameH = (UINT)f.h;
         }
-        DrawFrame(swapChain, f);
+        // no in-frame draw: the engine's real window is the display now
+        // (DLL-drawn frames were blurry half-res PNGs at 11fps).
+        // Instead: enforce BORDERLESS — kick the swapchain out of exclusive
+        // fullscreen so DWM composes (the real window paints, and display-
+        // mode switches at resolution change stop crashing dxgi vs nvspcap)
+        static DWORD lastFsCheck = 0;
+        if (GetTickCount() - lastFsCheck > 2000) {
+            lastFsCheck = GetTickCount();
+            IDXGISwapChain *sc = (IDXGISwapChain *)swapChain;
+            BOOL fs = FALSE;
+            if (SUCCEEDED(sc->GetFullscreenState(&fs, nullptr)) && fs) {
+                sc->SetFullscreenState(FALSE, nullptr);
+                NLog("exclusive fullscreen detected -> forced borderless");
+            }
+        }
     }
 }
 
