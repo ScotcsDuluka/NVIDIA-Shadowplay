@@ -317,7 +317,7 @@ Public Class OscHostForm
                     Nothing, udf, New Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions() With {
                         .AdditionalBrowserArguments =
                             "--disable-backgrounding-occluded-windows --disable-renderer-backgrounding " &
-                            "--remote-debugging-port=9224 " &
+                            "--remote-debugging-port=9224 --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-renderer-backgrounding " &
                             Environment.GetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
                     })
             Await _webView.EnsureCoreWebView2Async(env)
@@ -462,6 +462,15 @@ Public Class OscHostForm
                                                       End Sub
                 End If
                 _keepTopTimer.Start()
+                ' WebView2Controller.IsVisible can be stuck false (form was
+                ' created hidden and never activated) — Chromium then paints
+                ' nothing and the screen shows the form's flat gray. Cycle the
+                ' control visibility to force the controller visible again.
+                Try
+                    _webView.Visible = False
+                    _webView.Visible = True
+                Catch
+                End Try
                 ' wake the Chromium child window — WebView2 stops rendering
                 ' while its host is fully occluded by the game and does not
                 ' always resume (screen shows the form's gray). Re-show the
