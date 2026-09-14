@@ -43,11 +43,32 @@ Public Class OscHostForm
     <DllImport("user32.dll")>
     Private Shared Function SetWindowPos(hWnd As IntPtr, after As IntPtr, x As Integer, y As Integer, w As Integer, h As Integer, flags As Integer) As Boolean
     End Function
+    <DllImport("user32.dll")>
+    Private Shared Function GetForegroundWindow() As IntPtr
+    End Function
+    <DllImport("user32.dll")>
+    Private Shared Function GetWindowRect(hWnd As IntPtr, ByRef rect As RectangleNative) As Boolean
+    End Function
+    <DllImport("user32.dll")>
+    Private Shared Function GetWindowThreadProcessId(hWnd As IntPtr, ByRef pid As UInteger) As UInteger
+    End Function
+
+    <StructLayout(LayoutKind.Sequential)>
+    Private Structure RectangleNative
+    Public Left As Integer
+    Public Top As Integer
+    Public Right As Integer
+    Public Bottom As Integer
+    End Structure
+    <DllImport("user32.dll")>
+    Private Shared Function SetForegroundWindow(hWnd As IntPtr) As Boolean
+    End Function
 
     Private WithEvents _webView As Microsoft.Web.WebView2.WinForms.WebView2
     Private _cdpCapture As HookCdpCapture
     Private _pwCapture As HookPrintWindowCapture
     Private _inputReader As HookInputReader
+    Private _wgcStarted As Boolean
     Private _server As OscControllerServer
     Private _client As OscEngineClient
     Private _bridge As CefQueryBridge
@@ -61,6 +82,23 @@ Public Class OscHostForm
     Private _menuInputEnabled As Boolean
     Private _webviewReady As Boolean
     Private _closingForExit As Boolean
+    Private _previousForegroundWindow As IntPtr
+    Private _modeTimer As System.Windows.Forms.Timer
+    Private _hookModeActive As Boolean
+
+    Private Function ShouldUseHookMode() As Boolean
+        If Not HookFramePump.HookLive() OrElse Not HookFramePump.ExclusiveFullscreen() Then Return False
+        Dim fg As IntPtr = GetForegroundWindow()
+        If fg = IntPtr.Zero OrElse fg = Handle Then Return False
+        Dim pid As UInteger = 0
+        GetWindowThreadProcessId(fg, pid)
+        If pid = CUInt(Process.GetCurrentProcess().Id) Then Return False
+        Dim r As RectangleNative
+        If Not GetWindowRect(fg, r) Then Return False
+        Dim bounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
+        Return r.Left <= bounds.Left AndAlso r.Top <= bounds.Top AndAlso
+               r.Right >= bounds.Right AndAlso r.Bottom >= bounds.Bottom
+    End Function
 
     ' latest engine truth for /state + the page
     Private _recording As Boolean
@@ -125,6 +163,23 @@ Public Class OscHostForm
         ' (tray icon removed — owner directive "ปิด Tray"; the ApplicationContext
         '  pump keeps the process alive and Alt+Z remains the toggle)
         StartStack()
+        _modeTimer = New System.Windows.Forms.Timer With {.Interval = 100}
+        AddHandler _modeTimer.Tick, AddressOf ModeTimer_Tick
+        _modeTimer.Start()
+    End Sub
+
+    Private Sub ModeTimer_Tick(sender As Object, e As EventArgs)
+        If Not _overlayOpen OrElse Not _webviewReady Then Return
+        Dim hookNow As Boolean = False
+        Try
+            hookNow = ShouldUseHookMode()
+        Catch ex As Exception
+            Log("mode probe failed: " & ex.Message)
+        End Try
+        If hookNow <> _hookModeActive Then
+            Log("overlay mode changed: " & If(hookNow, "hook", "desktop"))
+            SetOverlayOpen(_overlayOpen, pushToPage:=False, userInitiated:=_userOpen)
+        End If
     End Sub
 
     ''' <summary>Component management: the installed real overlay
@@ -159,6 +214,8 @@ Public Class OscHostForm
                 Return
             End If
 
+            _inGameOverlayActive = False
+
             _server = New OscControllerServer(oscRoot)
             AddHandler _server.LogLine, Sub(m) Log(m)
             AddHandler _server.RestRequested, Sub(m, p) Log("REST " & m & " " & p)
@@ -177,8 +234,24 @@ Public Class OscHostForm
             _bridge = New CefQueryBridge(_storage)
             _bridge.Configure(_server.Port, _server.Secret)
             AddHandler _bridge.LogLine, Sub(m) Log(m)
-            AddHandler _bridge.OpenOsc, Sub(input) BeginInvoke(Sub() SetOverlayOpen(True, pushToPage:=False, userInitiated:=False))
-            AddHandler _bridge.CloseOsc, Sub() BeginInvoke(Sub() SetOverlayOpen(False, pushToPage:=False))
+            AddHandler _bridge.OpenOsc, Sub(input) BeginInvoke(Sub()
+                                                                  If HookFramePump.HookLive() Then
+                                                                      Log("ignored page open request while in-game hook is live")
+                                                                      Return
+                                                                  End If
+                                                                  SetOverlayOpen(True, pushToPage:=False, userInitiated:=False)
+                                                              End Sub)
+            AddHandler _bridge.CloseOsc, Sub() BeginInvoke(Sub()
+                                                               ' The osc page emits close requests while rebuilding its
+                                                               ' desktop view in in-game mode. Those requests must not
+                                                               ' clear the MMF visibility flag; Alt+Z owns the in-game
+                                                               ' close transition.
+                                                               If _inGameOverlayActive AndAlso _overlayOpen Then
+                                                                   Log("ignored in-game page close request")
+                                                                   Return
+                                                               End If
+                                                               SetOverlayOpen(False, pushToPage:=False)
+                                                           End Sub)
 
             _client = New OscEngineClient()
             AddHandler _client.LogLine, Sub(m) Log(m)
@@ -206,6 +279,9 @@ Public Class OscHostForm
             AddHandler _applier.ActionTriggered, AddressOf OnHotkeyAction
             AddHandler _server.HotkeySaved, Sub(name) BeginInvoke(Sub() _applier.Reapply(Handle))
             AddHandler _server.HookInput, Sub(body) BeginInvoke(Sub() OnHookInput(body))
+            _inputReader = New HookInputReader()
+            AddHandler _inputReader.Input, Sub(body) BeginInvoke(Sub() OnHookInput(body))
+            _inputReader.Start()
             _applier.Reapply(Handle)
 
             ' in-game hook bridge: write port+secret next to every CONSENTED
@@ -220,22 +296,27 @@ Public Class OscHostForm
                         For Each g As System.Text.Json.Nodes.JsonNode In wl("games").AsArray()
                             Dim obj As System.Text.Json.Nodes.JsonObject = TryCast(g, System.Text.Json.Nodes.JsonObject)
                             If obj Is Nothing OrElse obj("consent")?.GetValue(Of Boolean)() <> True Then Continue For
-                            Dim gdir As String = obj("path")?.ToString()
-                            If gdir IsNot Nothing AndAlso Directory.Exists(gdir) Then
-                                Log("hook game whitelisted: " & obj("name")?.ToString() & " (" & gdir & ")")
-                                ' bridgeFile=true → write NvidiaShareHook.json next
-                                ' to the exe (C# mods). Native Present-hook games
-                                ' keep bridgeFile absent = ZERO files in the
-                                ' game folder (owner rule: "ห้ามลงไฟล์ในเกม") —
-                                ' they read port+secret from the MMF header
-                                ' (+28/+32) instead. File write is OPT-IN only.
-                                Dim wantBridge As Boolean = False
-                                If obj("bridgeFile") IsNot Nothing Then wantBridge = obj("bridgeFile").GetValue(Of Boolean)()
-                                If wantBridge Then
-                                    File.WriteAllText(IO.Path.Combine(gdir, "NvidiaShareHook.json"),
-                                        "{""port"":" & _server.Port.ToString() & ",""secret"":""" & _server.Secret & """}")
-                                    Log("hook bridge written: " & gdir)
-                                End If
+                            ' bridgeFile=true → resolve the live process path from
+                            ' exe name; the whitelist does not need a hard-coded
+                            ' install path anymore.
+                            Dim wantBridge As Boolean = False
+                            If obj("bridgeFile") IsNot Nothing Then wantBridge = obj("bridgeFile").GetValue(Of Boolean)()
+                            If wantBridge AndAlso obj("exe") IsNot Nothing Then
+                                Dim exeName As String = IO.Path.GetFileNameWithoutExtension(obj("exe").ToString())
+                                For Each gp As Process In Process.GetProcessesByName(exeName)
+                                    Try
+                                        Dim gdir As String = IO.Path.GetDirectoryName(gp.MainModule.FileName)
+                                        If Directory.Exists(gdir) Then
+                                            File.WriteAllText(IO.Path.Combine(gdir, "NvidiaShareHook.json"),
+                                                "{""port"":" & _server.Port.ToString() & ",""secret"":""" & _server.Secret & """}")
+                                            Log("hook bridge written: " & gdir)
+                                        End If
+                                    Catch ex As Exception
+                                        Log("hook bridge process path failed: " & ex.Message)
+                                    Finally
+                                        gp.Dispose()
+                                    End Try
+                                Next
                             End If
                         Next
                     End If
@@ -251,19 +332,42 @@ Public Class OscHostForm
     End Sub
 
     Private Function ResolveOscRoot() As String
-        ' 1) repo working copy (has BOTH the legacy bundle at root and the
-        '    NEW UI under next\) — preferred in dev
-        ' 2) staged product tree Overlay\osc\ (sweep copies it there)
-        ' 3) exe-relative fallbacks
-        Dim candidates As String() = {
-            IO.Path.Combine(Application.StartupPath, "..", "..", "..", "..", "Overlay", "osc"),
-            IO.Path.Combine(Application.StartupPath, "..", "osc"),
-            IO.Path.Combine(Application.StartupPath, "osc"),
-            IO.Path.Combine(Application.StartupPath, "..", "..", "osc")
-        }
+        ' Data\overlay-mode.json selects the UI bundle. Legacy is the safe
+        ' default; osc_new is raw and must be explicitly enabled after its
+        ' host bypass patches have been validated.
+        Dim mode As String = "legacy"
+        Try
+            Dim modePath As String = AppLayout.P("Data", "overlay-mode.json")
+            If File.Exists(modePath) Then
+                Dim modeObj = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(modePath)).AsObject()
+                Dim configured As String = modeObj("mode")?.ToString()
+                If Not String.IsNullOrWhiteSpace(configured) Then mode = configured.Trim().ToLowerInvariant()
+            End If
+        Catch ex As Exception
+            Log("overlay mode read failed: " & ex.Message & " — using legacy")
+        End Try
+        Dim bundleNames As New List(Of String)()
+        If Not String.Equals(mode, "new", StringComparison.OrdinalIgnoreCase) Then
+            mode = "legacy"
+            bundleNames.Add("osc")
+            bundleNames.Add("osc_new")
+        Else
+            bundleNames.Add("osc_new")
+            bundleNames.Add("osc")
+        End If
+        Dim candidates As New List(Of String)()
+        For Each bundle As String In bundleNames
+            candidates.Add(IO.Path.Combine(Application.StartupPath, "..", "..", "..", "..", "Overlay.Engine", bundle))
+            candidates.Add(IO.Path.Combine(Application.StartupPath, "..", bundle))
+            candidates.Add(IO.Path.Combine(Application.StartupPath, bundle))
+            candidates.Add(IO.Path.Combine(Application.StartupPath, "..", "..", bundle))
+        Next
         For Each c As String In candidates
             Dim full As String = IO.Path.GetFullPath(c)
-            If File.Exists(IO.Path.Combine(full, "index.html")) Then Return full
+            If File.Exists(IO.Path.Combine(full, "index.html")) Then
+                Log("overlay bundle selected: " & full & " (mode=" & mode & ")")
+                Return full
+            End If
         Next
         Return Nothing
     End Function
@@ -344,6 +448,12 @@ Public Class OscHostForm
             core.Navigate("http://localhost:" & _server.Port.ToString() & "/index.html")
             _webviewReady = True
             Log("webview navigated to http://localhost:" & _server.Port.ToString() & "/index.html (NVIDIA osc)")
+            ' Prewarm the Chromium compositor while remaining transparent and
+            ' click-through. The first Alt+Z then only changes page state and
+            ' does not pay the initial WebView2 surface creation cost.
+            If Not Visible Then Show()
+            SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0,
+                         SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
             ' mount the menu view NOW through the page's own openOSC (hidden
             ' while closed) so even the very first Alt+Z is a class flip
             Try
@@ -371,10 +481,33 @@ Public Class OscHostForm
             Catch ex As Exception
                 Log("PrintWindow capture start failed: " & ex.Message & " — CDP stays as fallback")
             End Try
-            ' watch whitelisted games → auto-inject the in-game hook DLL
-            HookAutoInject.Start()
+            ' watch whitelisted games → auto-inject the in-game hook DLL —
+            ' NOT when GFE/NVIDIA App owns the machine (their nvspcap hooks
+            ' are already in every game; ours would fight them)
+            If Not NvShadowPlayRecorder.IsAvailable() Then HookAutoInject.Start()
         Catch ex As Exception
             Log("WebView2 init failed: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub StartWgcCapture()
+        If _wgcStarted Then Return
+        _wgcStarted = True
+        Try
+            NvShareEngine.WgcFrameSource.FrameCallback =
+                Sub(w, h, pixels, rowPitch) HookCdpCapture.PublishPixels(w, h, pixels, rowPitch)
+            NvShareEngine.WgcFrameSource.GateProbe =
+                Function() HookCdpCapture.CaptureEnabled
+            NvShareEngine.WgcFrameSource.ActiveChanged =
+                Sub(active)
+                    HookCdpCapture.ExternalCapture = If(active, 1, 0)
+                    Log("WGC capture " & If(active, "active", "inactive"))
+                End Sub
+            NvShareEngine.WgcFrameSource.Start(Handle)
+            Log("WGC capture start requested")
+        Catch ex As Exception
+            HookCdpCapture.ExternalCapture = 0
+            Log("WGC capture start failed: " & ex.Message)
         End Try
     End Sub
 
@@ -401,35 +534,43 @@ Public Class OscHostForm
             Log("overlay state ignored — webview not ready")
             Return
         End If
-        If _overlayOpen = open Then Return
+        Dim requestedHookMode As Boolean = False
+        Try : requestedHookMode = If(open, ShouldUseHookMode(), False) : Catch : End Try
+        If _overlayOpen = open AndAlso requestedHookMode = _hookModeActive Then Return
         _overlayOpen = open
         _userOpen = If(open, userInitiated, False)
+        If open Then _previousForegroundWindow = GetForegroundWindow()
         HookCdpCapture.CaptureEnabled = If(open, 1, 0)
-        TopMost = True
-
+        HookCdpCapture.HookVisible = 0
         ' IN-GAME MODE: the injected DLL is alive → drive the overlay purely
         ' through the shared-memory header (overlayVisible @ +16) and NEVER
         ' touch the window — no Show, no Activate, no style change — so the
         ' exclusive-fullscreen game keeps focus (owner bug: Alt+Z alt-tabbed
         ' the game out).
         Dim inGame As Boolean = False
-        Try : inGame = HookFramePump.HookLive() : Catch : End Try
+        Try : inGame = ShouldUseHookMode() : Catch : End Try
         If inGame Then
+            _hookModeActive = True
+            HookCdpCapture.HookVisible = If(open, 1, 0)
+            _inGameOverlayActive = True
             ' DISPLAY = the injected DLL draws the frame inside the game's
             ' own Present. This window stays OUT OF SIGHT: bottom z-order +
             ' click-through, NEVER topmost (topmost = flat gray over all).
+            TopMost = False
             Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
             SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
-            If Not Visible Then Show()
-            Dim pr As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
-            Location = pr.Location
-            SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
+            ' Hook mode renders directly into the game swap chain. Keep the
+            ' Desktop/WebView host hidden; showing it creates a second layer.
+            If Visible Then Hide()
+            If open Then StartWgcCapture()
             Try
                 _webView.CoreWebView2.ExecuteScriptAsync(
+                    "document.documentElement.classList.remove('oscengine-open','oscengine-toast');" &
                     "document.documentElement.classList.toggle('oscengine-open'," &
                     open.ToString().ToLowerInvariant() & ");" &
                     If(open, "window.__oscOpen && window.__oscOpen();",
                         "window.__oscClose && window.__oscClose();"))
+                OscControllerServer.SetHookOverlayState(open)
             Catch ex As Exception
                 Log("route/backdrop toggle failed: " & ex.Message)
             End Try
@@ -437,19 +578,35 @@ Public Class OscHostForm
             Return
         End If
 
+        _hookModeActive = False
+        HookCdpCapture.HookVisible = 0
+        ' A hook can remain alive while focus/mode changes. Always clear its
+        ' shared visibility before exposing the interactive desktop window.
+        _inGameOverlayActive = False
+        Try
+            OscControllerServer.SetHookOverlayState(False)
+        Catch ex As Exception
+            Log("hook visibility clear failed: " & ex.Message)
+        End Try
+
         ' GFE semantics: menu open = the WHOLE window accepts input;
         ' closed = the whole window is click-through (WS_EX_TRANSPARENT —
         ' HTTRANSPARENT alone never passes hits to OTHER processes).
         ' Page-requested opens (screenshot/recording toasts) show the view
         ' but KEEP click-through — the screen must not be taken over.
         _menuInputEnabled = _overlayOpen AndAlso _userOpen
+        TopMost = True
         Dim style As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
         If _menuInputEnabled Then
             SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(style And Not WS_EX_TRANSPARENT))
             If Not Visible Then Show()   ' first open: the form was never auto-shown
             Activate()
+            StartWgcCapture()
         Else
             SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(style Or WS_EX_TRANSPARENT))
+            If _previousForegroundWindow <> IntPtr.Zero AndAlso _previousForegroundWindow <> Handle Then
+                SetForegroundWindow(_previousForegroundWindow)
+            End If
         End If
         ' THREE visual states —
         '   user open (Alt+Z)  : oscengine-open  = dim + menu (openOSC)
@@ -530,6 +687,14 @@ Public Class OscHostForm
                     Dim vkN As System.Text.Json.JsonElement
                     If Not root.TryGetProperty("vk", vkN) Then Exit Select
                     Dim vk As Integer = vkN.GetInt32()
+                    Dim rawMods As Integer = 0
+                    Dim rawModsNode As System.Text.Json.JsonElement
+                    If root.TryGetProperty("shift", rawModsNode) Then rawMods = rawModsNode.GetInt32()
+                    ' Action hotkeys are owned by RegisterHotKey. Do not
+                    ' replay their physical keystrokes into OSC, otherwise
+                    ' Alt+F1 (screenshot) is seen by the page as an OSC-open
+                    ' command and immediately reopens the menu after Alt+Z.
+                    If (rawMods And 2) <> 0 AndAlso (vk = &H70 OrElse vk = &H71) Then Exit Select
                     ' modifiers travel as flags only, never as standalone
                     ' key events; Alt+Z is the ENGINE's toggle — forwarding
                     ' it to the page made the menu flicker open/closed
@@ -644,14 +809,9 @@ Public Class OscHostForm
     End Function
 
     Private Sub ToggleOverlay(Optional forceOpen As Boolean = False)
-        ' debounce: rapid auto-repeat must not machine-gun toggles — 150ms
-        ' still filters key auto-repeat but lets fast pressing through
-        Dim now As Integer = Environment.TickCount
-        If Math.Abs(now - _lastToggleTick) < 150 Then Return
-        _lastToggleTick = now
         ' in-game mode: the HEADER is the ground truth (the form's state can
         ' desync from restarts) — toggle against what the DLL actually draws
-        If HookFramePump.HookLive() Then
+        If ShouldUseHookMode() Then
             Dim vis As Boolean = HookFramePump.OverlayHeaderVisible()
             SetOverlayOpen(Not vis, pushToPage:=False)
             Return
@@ -663,7 +823,7 @@ Public Class OscHostForm
         End If
     End Sub
 
-    Private _lastToggleTick As Integer = -1000
+    Private _inGameOverlayActive As Boolean
 
     Private Sub ExitApplication()
         _closingForExit = True
@@ -850,6 +1010,7 @@ Public Class OscHostForm
         ' a recording session must survive a UI close — same contract as
         ' the Forms overlay: nothing here touches NVIDIA Capture.exe.
         Try
+            If _inputReader IsNot Nothing Then _inputReader.Stop()
             If _hotkeys IsNot Nothing Then
                 _hotkeys.Unregister(Handle)
                 _hotkeys.Dispose()

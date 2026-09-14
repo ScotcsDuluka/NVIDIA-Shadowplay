@@ -30,11 +30,13 @@
 #include <d3d12.h>
 #include <cstdarg>
 #include <tlhelp32.h>
+#include <GL/gl.h>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
+#pragma comment(lib, "opengl32.lib")
 
 static void NLog(const char *fmt, ...) {
     FILE *f = nullptr;
@@ -58,6 +60,16 @@ static HWND g_gameWindow = nullptr;
 // original Present (saved from the swapchain vtable)
 typedef HRESULT(STDMETHODCALLTYPE *Present_t)(void *swapChain, UINT sync, UINT flags);
 static Present_t g_origPresent = nullptr;
+typedef BOOL (WINAPI *WglSwapBuffers_t)(HDC hdc);
+static WglSwapBuffers_t g_origWglSwapBuffers = nullptr;
+static void *g_wglTrampoline = nullptr;
+static volatile LONG g_wglExportHooked = 0;
+static volatile LONG g_wglFrameLogged = 0;
+static WglSwapBuffers_t g_origGdiSwapBuffers = nullptr;
+typedef FARPROC (WINAPI *GetProcAddress_t)(HMODULE, LPCSTR);
+static GetProcAddress_t g_origGetProcAddress = nullptr;
+typedef PROC (WINAPI *WglGetProcAddress_t)(LPCSTR);
+static WglGetProcAddress_t g_origWglGetProcAddress = nullptr;
 static void **g_vtableSlot = nullptr;      // address of the vtable entry we patched
 static DWORD g_vtableOldProtect = 0;
 
@@ -82,6 +94,7 @@ static HookRes g_res;
 
 // ── shared memory frame ────────────────────────────────────
 static HANDLE g_mmf = nullptr;
+static const uint8_t *g_mmfView = nullptr;
 static const wchar_t *MMF_NAME = L"NVIDIA_Share_Overlay_Frame_v1";
 static const int HEADER_BYTES = 64;
 static const int MAGIC = 0x4C50534E;      // "NSPL"
@@ -105,6 +118,7 @@ static void ReopenIfEngineRestarted()
     UnmapViewOfFile(nv);
     // accept the fresh section when ours is gone OR its epoch differs
     if (!g_mmf || (ep != 0 && ep != g_cachedEpoch)) {
+        if (g_mmfView) { UnmapViewOfFile(g_mmfView); g_mmfView = nullptr; }
         if (g_mmf) CloseHandle(g_mmf);
         g_mmf = h2;
         g_cachedEpoch = ep;
@@ -128,8 +142,12 @@ static MappedFrame ReadFrame()
         NLog("OpenFileMapping -> %p (err=%u)", (void *)g_mmf, GetLastError());
         if (!g_mmf) return f;
     }
-    auto *view = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 0);
-    if (!view) {
+
+    if (!g_mmfView) {
+        g_mmfView = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ | FILE_MAP_WRITE, 0, 0, 0);
+    }
+
+    if (!g_mmfView) {
         // the controller restarted (its MMF died with the old process) —
         // drop the stale handle so the next Present re-opens the new one
         CloseHandle(g_mmf); g_mmf = nullptr;
@@ -140,23 +158,157 @@ static MappedFrame ReadFrame()
     // resets again forever (live-counter null loop, measured).
     {
         static DWORD cachedCtrlPid = 0;
-        DWORD ctrlPid = *(const DWORD *)(view + 24);
+        DWORD ctrlPid = *(const DWORD *)(g_mmfView + 24);
         if (cachedCtrlPid != 0 && ctrlPid != cachedCtrlPid) {
             cachedCtrlPid = ctrlPid;
+            if (g_mmfView) { UnmapViewOfFile(g_mmfView); g_mmfView = nullptr; }
             CloseHandle(g_mmf); g_mmf = nullptr;
-            UnmapViewOfFile(view);
             return f;   // next Present re-opens the fresh section
         }
         cachedCtrlPid = ctrlPid;
     }
-    int magic = *(const int *)(view);
-    if (magic != MAGIC) { UnmapViewOfFile(view); return f; }
-    f.w = *(const int *)(view + 4);
-    f.h = *(const int *)(view + 8);
-    f.frameId = *(const int *)(view + 12);
-    f.visible = *(const int *)(view + 16);
-    f.pixels = view + HEADER_BYTES;
+    int magic = *(const int *)(g_mmfView);
+    if (magic != MAGIC) return f;
+    f.w = *(const int *)(g_mmfView + 4);
+    f.h = *(const int *)(g_mmfView + 8);
+    f.frameId = *(const int *)(g_mmfView + 12);
+    f.visible = *(const int *)(g_mmfView + 16);
+    f.pixels = g_mmfView + HEADER_BYTES;
     return f;
+}
+
+static void DrawOpenGlFrame()
+{
+    MappedFrame f = ReadFrame();
+    if (!f.pixels || !f.visible || f.w <= 0 || f.h <= 0) return;
+    glPushAttrib(GL_ALL_ATTRIB_BITS);
+    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_BLEND);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+    glRasterPos2i(-1, 1);
+    glPixelZoom(1.0f, -1.0f);
+    glDrawPixels(f.w, f.h, GL_BGRA_EXT, GL_UNSIGNED_BYTE, f.pixels);
+    glPopAttrib();
+}
+
+static BOOL WINAPI HookedWglSwapBuffers(HDC hdc)
+{
+    __try {
+        if (g_origWglSwapBuffers && g_mmfView) {
+            auto *wv = (int *)g_mmfView;
+            wv[5] = wv[5] + 1;
+            HWND hwnd = WindowFromDC(hdc);
+            RECT r = {};
+            bool fullscreen = false;
+            if (hwnd && GetWindowRect(hwnd, &r)) {
+                HMONITOR mon = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+                MONITORINFO mi = { sizeof(mi) };
+                LONG style = GetWindowLongW(hwnd, GWL_STYLE);
+                if (mon && GetMonitorInfoW(mon, &mi)) {
+                    fullscreen = (style & WS_CAPTION) == 0 &&
+                        r.left <= mi.rcMonitor.left && r.top <= mi.rcMonitor.top &&
+                        r.right >= mi.rcMonitor.right && r.bottom >= mi.rcMonitor.bottom;
+                }
+
+            }
+            wv[15] = fullscreen ? 1 : 0; // OpenGL fullscreen telemetry
+        }
+        DrawOpenGlFrame();
+        if (InterlockedCompareExchange(&g_wglFrameLogged, 1, 0) == 0) {
+            NLog("OpenGL wglSwapBuffers reached");
+        }
+    } __except (EXCEPTION_EXECUTE_HANDLER) {
+        NLog("OpenGL overlay frame fault 0x%08X - skipped", GetExceptionCode());
+    }
+    return g_origWglSwapBuffers ? g_origWglSwapBuffers(hdc) : FALSE;
+}
+
+static void InstallWglExportHook()
+{
+    if (InterlockedCompareExchange(&g_wglExportHooked, 1, 0) != 0) return;
+    HMODULE gl = GetModuleHandleW(L"opengl32.dll");
+    BYTE *target = gl ? (BYTE *)GetProcAddress(gl, "wglSwapBuffers") : nullptr;
+    if (!target) { InterlockedExchange(&g_wglExportHooked, 0); return; }
+    // wglSwapBuffers begins with:
+    // 40 55 | 57 | 48 83 EC 58 | 48 8B 05 <rip-rel32>
+    // Keep complete instructions and relocate the RIP-relative load in the
+    // trampoline before jumping back to the original function.
+    const SIZE_T stolen = 14;
+    BYTE *tramp = (BYTE *)VirtualAlloc(nullptr, stolen + 12,
+        MEM_COMMIT | MEM_RESERVE, PAGE_EXECUTE_READWRITE);
+    if (!tramp) { InterlockedExchange(&g_wglExportHooked, 0); return; }
+    memcpy(tramp, target, stolen);
+    INT32 oldDisp = *(INT32 *)(target + 10);
+    BYTE *absolute = target + 14 + oldDisp;
+    *(INT32 *)(tramp + 10) = (INT32)(absolute - (tramp + 14));
+    BYTE *j = tramp + stolen;
+    j[0] = 0x48; j[1] = 0xB8; *(void **)(j + 2) = target + stolen;
+    j[10] = 0xFF; j[11] = 0xE0;
+    DWORD oldp = 0;
+    if (!VirtualProtect(target, stolen, PAGE_EXECUTE_READWRITE, &oldp)) {
+        VirtualFree(tramp, 0, MEM_RELEASE);
+        InterlockedExchange(&g_wglExportHooked, 0);
+        return;
+    }
+    target[0] = 0x48; target[1] = 0xB8;
+    *(void **)(target + 2) = (void *)&HookedWglSwapBuffers;
+    target[10] = 0xFF; target[11] = 0xE0;
+    for (SIZE_T i = 12; i < stolen; i++) target[i] = 0x90;
+    VirtualProtect(target, stolen, oldp, &oldp);
+    FlushInstructionCache(GetCurrentProcess(), target, stolen);
+    g_wglTrampoline = tramp;
+    g_origWglSwapBuffers = (WglSwapBuffers_t)tramp;
+    NLog("OpenGL export wglSwapBuffers detour installed");
+}
+
+static PROC WINAPI HookedWglGetProcAddress(LPCSTR name);
+static BOOL WINAPI HookedGdiSwapBuffers(HDC hdc);
+
+static FARPROC WINAPI HookedGetProcAddress(HMODULE module, LPCSTR name)
+{
+    FARPROC proc = g_origGetProcAddress ? g_origGetProcAddress(module, name) : nullptr;
+    if (name && (strstr(name, "Swap") || strstr(name, "wgl"))) {
+        NLog("GetProcAddress request: %s", name);
+    }
+    if (name && _stricmp(name, "wglSwapBuffers") == 0 &&
+        module == GetModuleHandleW(L"opengl32.dll")) {
+        g_origWglSwapBuffers = (WglSwapBuffers_t)proc;
+        NLog("OpenGL wglSwapBuffers resolved; redirecting");
+        return (FARPROC)&HookedWglSwapBuffers;
+    }
+    if (name && _stricmp(name, "wglGetProcAddress") == 0 &&
+        module == GetModuleHandleW(L"opengl32.dll")) {
+        g_origWglGetProcAddress = (WglGetProcAddress_t)proc;
+        return (FARPROC)&HookedWglGetProcAddress;
+    }
+    if (name && _stricmp(name, "SwapBuffers") == 0 &&
+        module == GetModuleHandleW(L"gdi32.dll")) {
+        g_origGdiSwapBuffers = (WglSwapBuffers_t)proc;
+        NLog("GDI SwapBuffers resolved; redirecting");
+        return (FARPROC)&HookedGdiSwapBuffers;
+    }
+    return proc;
+}
+
+static PROC WINAPI HookedWglGetProcAddress(LPCSTR name)
+{
+    PROC proc = g_origWglGetProcAddress ? g_origWglGetProcAddress(name) : nullptr;
+    if (name && _stricmp(name, "wglSwapBuffers") == 0) {
+        g_origWglSwapBuffers = (WglSwapBuffers_t)proc;
+        NLog("OpenGL wglSwapBuffers resolved via wglGetProcAddress; redirecting");
+        return (PROC)&HookedWglSwapBuffers;
+    }
+
+    return proc;
+}
+
+static BOOL WINAPI HookedGdiSwapBuffers(HDC hdc)
+{
+    __try { DrawOpenGlFrame(); }
+    __except (EXCEPTION_EXECUTE_HANDLER) {
+        NLog("GDI SwapBuffers overlay fault 0x%08X - skipped", GetExceptionCode());
+    }
+    return g_origGdiSwapBuffers ? g_origGdiSwapBuffers(hdc) : FALSE;
 }
 
 // ── hook input → shared-memory ring ────────────────────────
@@ -166,7 +318,12 @@ static MappedFrame ReadFrame()
 // Layout: +0 magic "NSIN", +4 writeIdx, +8 readIdx, +16 events[512x16B]
 // event: {int type; int a; int b; int c;} 1=move 2=down 3=up 4=kd 5=ku
 static HANDLE g_inMmf = nullptr;
+static int *g_inView = nullptr;
 static volatile LONG g_inWriteIdx = 0;
+static SHORT (WINAPI *g_origGetAsyncKeyState)(int) = nullptr;
+static SHORT (WINAPI *g_origGetKeyState)(int) = nullptr;
+static BOOL (WINAPI *g_origGetKeyboardState)(PBYTE) = nullptr;
+static UINT (WINAPI *g_origGetRawInputData)(HRAWINPUT, UINT, LPVOID, PUINT, UINT) = nullptr;
 
 static void HookEnqueue(int type, int a, int b, int c)
 {
@@ -175,15 +332,14 @@ static void HookEnqueue(int type, int a, int b, int c)
                                    L"NVIDIA_Share_Overlay_Input_v1");
         if (!g_inMmf) return;
     }
-    auto *wv = (int *)MapViewOfFile(g_inMmf, FILE_MAP_WRITE, 0, 0, 0);
-    if (!wv) return;
-    if (wv[0] != 0x4E49534E) { UnmapViewOfFile(wv); return; }   // "NSIN"
+    if (!g_inView) g_inView = (int *)MapViewOfFile(g_inMmf, FILE_MAP_WRITE, 0, 0, 0);
+    if (!g_inView) return;
+    if (g_inView[0] != 0x4E49534E) return;   // "NSIN"
     int wi = InterlockedIncrement(&g_inWriteIdx) - 1;
     int slot = wi % 512;
-    int *ev = wv + (4 + slot * 4);
+    int *ev = g_inView + (4 + slot * 4);
     ev[0] = type; ev[1] = a; ev[2] = b; ev[3] = c;
-    wv[1] = wi + 1;                       // publish writeIdx
-    UnmapViewOfFile(wv);
+    g_inView[1] = wi + 1;                  // publish writeIdx
 }
 
 static BYTE g_keyState[256] = {};
@@ -196,15 +352,13 @@ static DWORD WINAPI InputThread(LPVOID)
     DWORD lastPostTick = GetTickCount();
     while (true) {
         __try {
-        Sleep(16);
+        Sleep(33);
         if (!g_mmf) continue;
-        auto *v = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 64);
-        if (!v) continue;
-        int visible = *(const int *)(v + 16);
-        DWORD port = *(const DWORD *)(v + 28);
+        if (!g_mmfView) continue;
+        int visible = *(const int *)(g_mmfView + 16);
+        DWORD port = *(const DWORD *)(g_mmfView + 28);
         char sec[40] = {};
-        memcpy(sec, v + 32, 31);
-        UnmapViewOfFile(v);
+        memcpy(sec, g_mmfView + 32, 31);
         if (!visible || !port || !sec[0]) {
             lastX = 0xFFFFFFFF; lastY = 0xFFFFFFFF;
             memset(g_keyState, 0, sizeof(g_keyState));   // no stuck keys
@@ -220,7 +374,9 @@ static DWORD WINAPI InputThread(LPVOID)
         POINT c = p;
         HWND fw = GetForegroundWindow();
         if (fw) ScreenToClient(fw, &c);
-        bool down = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
+        auto realGetAsync = g_origGetAsyncKeyState ? g_origGetAsyncKeyState : GetAsyncKeyState;
+        auto realGetKey = g_origGetKeyState ? g_origGetKeyState : GetKeyState;
+        bool down = (realGetAsync(VK_LBUTTON) & 0x8000) != 0;
 
         if ((DWORD)c.x != lastX || (DWORD)c.y != lastY) {
             lastX = (DWORD)c.x; lastY = (DWORD)c.y;
@@ -237,20 +393,21 @@ static DWORD WINAPI InputThread(LPVOID)
         for (int vk = 0x08; vk <= 0xFE; vk++) {
             if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == VK_MBUTTON ||
                 vk == VK_XBUTTON1 || vk == VK_XBUTTON2) continue;
-            bool kd = (GetAsyncKeyState(vk) & 0x8000) != 0;
+            bool kd = (realGetAsync(vk) & 0x8000) != 0;
             bool was = g_keyState[vk] != 0;
             if (kd != was) {
                 g_keyState[vk] = kd ? 1 : 0;
-                int mods = ((GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0) |
-                           ((GetKeyState(VK_MENU) & 0x8000) ? 2 : 0);
+                int mods = ((realGetKey(VK_SHIFT) & 0x8000) ? 1 : 0) |
+                           ((realGetKey(VK_MENU) & 0x8000) ? 2 : 0);
                 HookEnqueue(kd ? 4 : 5, vk, mods,
-                            (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
+                            (realGetKey(VK_CONTROL) & 0x8000) ? 1 : 0);
                 lastPostTick = GetTickCount();
             }
         }
         } __except (EXCEPTION_EXECUTE_HANDLER) {
             NLog("input thread SEH caught 0x%08X — recovering", GetExceptionCode());
             memset(g_keyState, 0, sizeof(g_keyState));
+            if (g_inView) { UnmapViewOfFile(g_inView); g_inView = nullptr; }
             g_inMmf = nullptr;
             Sleep(1000);
         }
@@ -265,12 +422,7 @@ static DWORD WINAPI InputThread(LPVOID)
 // system state and is unaffected by this.
 static bool OverlayVisibleCached()
 {
-    if (!g_mmf) return false;
-    auto *v = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 0);
-    if (!v) return false;
-    bool vis = *(const int *)(v + 16) == 1;
-    UnmapViewOfFile(v);
-    return vis;
+    return g_mmfView && *(const int *)(g_mmfView + 16) == 1;
 }
 
 static WNDPROC g_origWndProc = nullptr;
@@ -315,11 +467,6 @@ static void InstallWndProcHook()
 // APIs directly (UE: GetRawInputData in the pump, GetAsyncKeyState in
 // ticks). While the overlay is open we redirect those imports to stubs
 // that report "nothing pressed" so the game is fully blocked.
-static SHORT (WINAPI *g_origGetAsyncKeyState)(int) = nullptr;
-static SHORT (WINAPI *g_origGetKeyState)(int) = nullptr;
-static BOOL (WINAPI *g_origGetKeyboardState)(PBYTE) = nullptr;
-static UINT (WINAPI *g_origGetRawInputData)(HRAWINPUT, UINT, LPVOID, PUINT, UINT) = nullptr;
-
 static SHORT WINAPI HookGetAsyncKeyState(int vk)
 {
     if (OverlayVisibleCached()) return 0;
@@ -576,9 +723,18 @@ static void OverlayWorkInner(void *swapChain)
         }
     }
     InterlockedIncrement(&g_presentCount);
-    if (g_presentHooked && g_mmf) {
-        auto *wv = (int *)MapViewOfFile(g_mmf, FILE_MAP_WRITE, 0, 0, 0);
-        if (wv) { wv[5] = wv[5] + 1; UnmapViewOfFile(wv); }
+    if (g_presentHooked && g_mmfView) {
+        auto *wv = (int *)g_mmfView;
+        wv[5] = wv[5] + 1;
+        // Use the swap-chain descriptor instead of GetFullscreenState.
+        // GetDesc is already used by the renderer and is safe for UE/DXGI
+        // fullscreen transitions; Windowed=false indicates exclusive mode.
+        DXGI_SWAP_CHAIN_DESC modeDesc = {};
+        if (SUCCEEDED(((IDXGISwapChain *)swapChain)->GetDesc(&modeDesc))) {
+            wv[15] = modeDesc.Windowed ? 0 : 1; // header +60
+        } else {
+            wv[15] = 0;
+        }
     }
     if (!g_apiChecked) {
         IDXGISwapChain *sc = (IDXGISwapChain *)swapChain;
@@ -620,21 +776,11 @@ static void OverlayWorkInner(void *swapChain)
             }
             g_res.frameW = (UINT)f.w; g_res.frameH = (UINT)f.h;
         }
-        // no in-frame draw: the engine's real window is the display now
-        // (DLL-drawn frames were blurry half-res PNGs at 11fps).
-        // Instead: enforce BORDERLESS — kick the swapchain out of exclusive
-        // fullscreen so DWM composes (the real window paints, and display-
-        // mode switches at resolution change stop crashing dxgi vs nvspcap)
-        static DWORD lastFsCheck = 0;
-        if (GetTickCount() - lastFsCheck > 2000) {
-            lastFsCheck = GetTickCount();
-            IDXGISwapChain *sc = (IDXGISwapChain *)swapChain;
-            BOOL fs = FALSE;
-            if (SUCCEEDED(sc->GetFullscreenState(&fs, nullptr)) && fs) {
-                sc->SetFullscreenState(FALSE, nullptr);
-                NLog("exclusive fullscreen detected -> forced borderless");
-            }
-        }
+        // Draw the captured osc frame into the game's back buffer. The host
+        // window stays behind the game in in-game mode, so disabling this
+        // call leaves input blocked while rendering nothing visible.
+        DrawFrame(swapChain, f);
+
     }
 }
 
@@ -729,9 +875,9 @@ static void InstallPresentHook()
     }
     // announce liveness to the controller: header[20] = 1 (re-written
     // every Present so staleness is detectable)
-    {
-        auto *wv = (int *)MapViewOfFile(g_mmf, FILE_MAP_WRITE, 0, 0, 0);
-        if (wv) { wv[5] = wv[5] + 1; UnmapViewOfFile(wv); }
+    if (g_mmfView) {
+        auto *wv = (int *)g_mmfView;
+        wv[5] = wv[5] + 1;
     }
     if (ctx) ctx->Release();
     if (sc) sc->Release();
@@ -746,10 +892,12 @@ static DWORD WINAPI InitThread(LPVOID)
     // NO window wait — the dummy swapchain hook does not need the game
     // window; install immediately so Alt+Z works seconds after injection.
     InstallPresentHook();
-    // input suppression needs the game window; retry until it exists
-    for (int i = 0; i < 60 && !g_origWndProc; i++) {
-        InstallWndProcHook();
-        if (!g_origWndProc) Sleep(1000);
+    // Input and late-loaded graphics imports need a few retries while the
+    // game finishes loading its renderer (Geometry Dash delay-loads OpenGL).
+    for (int i = 0; i < 60; i++) {
+        if (!g_origWndProc) InstallWndProcHook();
+        InstallIatHooks();
+        Sleep(1000);
     }
     // API-level suppression (engines polling input directly)
     InstallIatHooks();

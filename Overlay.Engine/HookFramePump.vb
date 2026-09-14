@@ -64,6 +64,20 @@ Public Class HookFramePump
         End Try
     End Function
 
+    Public Shared Function ExclusiveFullscreen() As Boolean
+        Try
+            If _pubMmf Is Nothing Then
+                _pubMmf = MemoryMappedFile.OpenExisting(MmfName, MemoryMappedFileRights.Read)
+            End If
+            If _viewPub Is Nothing Then
+                _viewPub = _pubMmf.CreateViewAccessor(0, 0, MemoryMappedFileAccess.Read)
+            End If
+            Return _viewPub.ReadInt32(60) = 1
+        Catch
+            Return False
+        End Try
+    End Function
+
     Private Shared _pubMmf As MemoryMappedFile
     Private Shared _viewPub As MemoryMappedViewAccessor
     Private Shared _lastLiveCount As Integer = -1

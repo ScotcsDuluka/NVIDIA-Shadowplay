@@ -160,6 +160,13 @@ Public Class HookPrintWindowCapture
                         Thread.Sleep(100)
                         Continue While
                     End If
+                    ' In-game rendering uses the WGC GPU capture path. Do not
+                    ' let PrintWindow race it with compositor transition frames,
+                    ' which can be opaque black for a few ticks.
+                    If HookFramePump.HookLive() Then
+                        Thread.Sleep(50)
+                        Continue While
+                    End If
 
                     Dim rc As RECT
                     If Not GetClientRect(_hwnd, rc) Then
@@ -236,6 +243,16 @@ Public Class HookPrintWindowCapture
                     _failStreak = 0
                     HookCdpCapture.ExternalCapture = 1
 
+                    ' WebView2 can return a fully black intermediate surface for
+                    ' one compositor tick while the page is rebuilding. Do not
+                    ' publish that transient frame or the injected Present hook
+                    ' will visibly flash black over the game.
+                    If IsTransientBlack(w, h, dibBits) Then
+                        L("ignored transient black PrintWindow frame")
+                        Thread.Sleep(16)
+                        Continue While
+                    End If
+
                     ' publish pixels straight to the shared-memory MMF.
                     ' rowPitch = w * 4 (BGRA, no padding — DIB is top-down).
                     HookCdpCapture.PublishPixels(w, h, dibBits, w * 4)
@@ -261,6 +278,26 @@ Public Class HookPrintWindowCapture
             HookCdpCapture.ExternalCapture = 0
         End Try
     End Sub
+
+    Private Shared Function IsTransientBlack(w As Integer, h As Integer, bits As IntPtr) As Boolean
+        If bits = IntPtr.Zero OrElse w <= 0 OrElse h <= 0 Then Return True
+        Dim opaqueBlack As Integer = 0
+        Dim samples As Integer = 0
+        For sy As Integer = 0 To 10
+            Dim y As Integer = Math.Min(h - 1, (sy * h) \ 10)
+            For sx As Integer = 0 To 10
+                Dim x As Integer = Math.Min(w - 1, (sx * w) \ 10)
+                Dim p As IntPtr = IntPtr.Add(bits, (y * w + x) * 4)
+                Dim b As Integer = Marshal.ReadByte(p)
+                Dim g As Integer = Marshal.ReadByte(p, 1)
+                Dim r As Integer = Marshal.ReadByte(p, 2)
+                Dim a As Integer = Marshal.ReadByte(p, 3)
+                If a >= 245 AndAlso r <= 8 AndAlso g <= 8 AndAlso b <= 8 Then opaqueBlack += 1
+                samples += 1
+            Next
+        Next
+        Return opaqueBlack * 100 >= samples * 90
+    End Function
 
     Private Shared Sub L(m As String)
         Try

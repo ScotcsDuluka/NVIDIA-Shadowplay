@@ -36,15 +36,27 @@ Public Class NvShadowPlayRecorder
     Public Const GfeShareExe As String =
         "C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience\NVIDIA Share.exe"
 
+    Private Const PF As String = "C:"
+    Private Const AppDir As String = PF & ":/Program Files/NVIDIA Corporation/NVIDIA app"
+
     ''' <summary>True when the GFE/ShadowPlay stack is installed on this
     '     machine (the Share host binary is the marker).</summary>
     Public Shared Function IsAvailable() As Boolean
         Try
-            Return File.Exists(GfeShareExe)
+            ' GFE legacy host OR the new NVIDIA App (either one owns Alt+Z
+            ' and ships its own in-game overlay + nvspcap hooks)
+            If File.Exists(GfeShareExe) Then Return True
+            If File.Exists(NvidiaAppExe) Then Return True
+            If Directory.Exists(AppDir) Then Return True
+            Return Process.GetProcessesByName("NVIDIA App").Length > 0
         Catch
             Return False
         End Try
     End Function
+
+    ''' <summary>New NVIDIA App host binary (replaces GFE NVIDIA Share).</summary>
+    Public Const NvidiaAppExe As String =
+        "C:/Program Files/NVIDIA Corporation/NVIDIA app/CEF/NVIDIA app.exe"
 
     ''' <summary>NVIDIA's default recordings folder (configurable in GFE —
     '     the custom path is read from GFE's own config when present).</summary>

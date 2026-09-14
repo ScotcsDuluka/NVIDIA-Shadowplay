@@ -30,6 +30,8 @@ Public Class HookCdpCapture
     ''' <summary>1 = capture + publish frames (overlay open); 0 = publish
     '     visible=0 and idle. Set by OscHostForm.SetOverlayOpen.</summary>
     Public Shared CaptureEnabled As Integer = 0
+    ''' <summary>Only the native in-game renderer may set shared visibility.</summary>
+    Public Shared HookVisible As Integer = 0
 
     ''' <summary>Controller REST endpoint the in-game DLL posts hook input
     '     to. Published in the frame header so the DLL needs no config.</summary>
@@ -136,7 +138,7 @@ Public Class HookCdpCapture
                     _pubView.Write(4, w)
                     _pubView.Write(8, h)
                     _pubView.Write(12, Environment.TickCount)
-                    _pubView.Write(16, 1)
+                    _pubView.Write(16, HookVisible)
                     _pubView.Write(24, Process.GetCurrentProcess().Id)
                     WriteEndpointHeader()
                     For y As Integer = 0 To h - 1
@@ -215,7 +217,7 @@ Public Class HookCdpCapture
             _pubView.Write(4, w)
             _pubView.Write(8, h)
             _pubView.Write(12, Environment.TickCount)
-            _pubView.Write(16, 1)
+            _pubView.Write(16, HookVisible)
             _pubView.Write(24, Process.GetCurrentProcess().Id)
             WriteEndpointHeader()
             For y As Integer = 0 To h - 1

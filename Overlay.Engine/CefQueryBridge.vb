@@ -103,7 +103,7 @@ Public Class CefQueryBridge
         sb.Append("st.textContent='html.oscengine-open #oscengine-backdrop{display:block}html:not(.oscengine-open) .base{visibility:hidden!important}html.oscengine-toast #oscengine-backdrop{display:block;background:rgba(8,8,8,0.35)}html.oscengine-toast .base{visibility:visible!important}';")
         sb.Append("document.head.appendChild(st);")
         sb.Append("var bd=document.createElement('div');bd.id='oscengine-backdrop';")
-        sb.Append("bd.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(8,8,8,0.94);z-index:-1;pointer-events:none;display:none';")
+        sb.Append("bd.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(8,8,8,0.35);z-index:-1;pointer-events:none;display:none';")
         sb.Append("document.body.appendChild(bd);window.__bdStatus='created';")
         sb.Append("}catch(e){window.__bdStatus='err:'+e.message;}};")
         sb.Append("if(document.body){bdfn();}else{document.addEventListener('DOMContentLoaded',bdfn);}}catch(e){window.__bdStatus='reg-err:'+e.message;}")
@@ -364,6 +364,14 @@ Public NotInheritable Class WinFullscreen
 
     Public Shared Function IsFullscreenActive() As Boolean
         Try
+            ' In-game mode renders through the injected Present hook while
+            ' the game remains the foreground borderless window. Treating
+            ' that window as a fullscreen transition makes osc immediately
+            ' close the overlay after every in-game toggle.
+            If HookFramePump.HookLive() Then
+                LastFullscreenProbe = "in-game hook live"
+                Return False
+            End If
             Dim hwnd As IntPtr = GetForegroundWindow()
             If hwnd = IntPtr.Zero Then Return False
             ' OUR OWN overlay covers the whole monitor the moment it opens —

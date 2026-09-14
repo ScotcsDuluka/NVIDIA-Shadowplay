@@ -1,0 +1,4 @@
+{
+  "mode": "legacy",
+  "notes": "Use new only after osc_new host bypass validation."
+}

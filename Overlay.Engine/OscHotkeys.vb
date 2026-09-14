@@ -11,6 +11,7 @@
 ' never changes the Forms overlay's own registration.
 
 Imports System
+Imports System.Collections.Generic
 Imports System.Globalization
 
 Public Class OscHotkeys
@@ -131,6 +132,20 @@ Public Class OscHotkeys
                 result.VirtualKey = &H70 + fn - 1 ' VK_F1 = 0x70
                 Return result
             End If
+        End If
+        Dim namedKeys As New Dictionary(Of String, Integer)(StringComparer.OrdinalIgnoreCase) From {
+            {"ESC", &H1B}, {"ESCAPE", &H1B}, {"SPACE", &H20}, {"TAB", &H9},
+            {"ENTER", &HD}, {"RETURN", &HD}, {"BACKSPACE", &H8},
+            {"INSERT", &H2D}, {"DELETE", &H2E}, {"HOME", &H24}, {"END", &H23},
+            {"PAGEUP", &H21}, {"PAGEDOWN", &H22},
+            {"LEFT", &H25}, {"ARROWLEFT", &H25}, {"UP", &H26}, {"ARROWUP", &H26},
+            {"RIGHT", &H27}, {"ARROWRIGHT", &H27}, {"DOWN", &H28}, {"ARROWDOWN", &H28},
+            {"PRINTSCREEN", &H2C}, {"CAPSLOCK", &H14}, {"NUMLOCK", &H90}
+        }
+        Dim namedVk As Integer
+        If namedKeys.TryGetValue(keyName, namedVk) Then
+            result.VirtualKey = namedVk
+            Return result
         End If
         Return Nothing
     End Function

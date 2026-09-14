@@ -4,9 +4,10 @@
 ' ZERO files written to the game folder (owner rule). The DLL itself lives
 ' in <runtime>\Hooks\ and is never copied anywhere else.
 '
-' Whitelist: Data\hook-whitelist.json → games:[{name, path, consent, exe?}]
-' "exe" = process name to watch (e.g. "Dungeons"); when absent the first
-' *.exe in "path" is used. Only consent:true entries are injected.
+' Whitelist: Data\hook-whitelist.json → games:[{name, exe, consent}]
+' "exe" is the process filename (with or without .exe); path is optional
+' and is never required for process detection. Only consent:true entries
+' are injected.
 
 Imports System.IO
 Imports System.Runtime.InteropServices
@@ -70,18 +71,6 @@ Public Class HookAutoInject
                         e.Exe = e.Exe.Substring(0, e.Exe.Length - 4)
                     End If
                 End If
-                If String.IsNullOrEmpty(e.Exe) Then
-                    ' default: first exe in the whitelisted dir
-                    Dim dir As String = obj("path")?.ToString()
-                    If Not String.IsNullOrEmpty(dir) AndAlso Directory.Exists(dir) Then
-                        Dim first As String = Nothing
-                        For Each f As String In Directory.GetFiles(dir, "*.exe")
-                            first = Path.GetFileNameWithoutExtension(f)
-                            Exit For
-                        Next
-                        e.Exe = first
-                    End If
-                End If
                 If e.Consent AndAlso Not String.IsNullOrEmpty(e.Exe) Then out.Add(e)
             Next
         Catch ex As Exception
@@ -107,6 +96,11 @@ Public Class HookAutoInject
                         If Not Injected.Contains(pid) AndAlso Not Failed.Contains(pid) Then
                             ' give the game a moment to finish loading D3D
                             If p.MainWindowHandle <> IntPtr.Zero Then
+                                If IsHookModuleLoaded(p, dll) Then
+                                    Injected.Add(pid)
+                                    L("already loaded in " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
+                                    Continue For
+                                End If
                                 Dim rc As Integer = Inject(p.Id, dll)
                                 If rc = 0 Then
                                     Injected.Add(pid)
@@ -126,6 +120,20 @@ Public Class HookAutoInject
             Thread.Sleep(3000)
         End While
     End Sub
+
+    Private Shared Function IsHookModuleLoaded(p As Process, dllPath As String) As Boolean
+        Try
+            Dim expectedName As String = Path.GetFileName(dllPath)
+            For Each m As ProcessModule In p.Modules
+                If String.Equals(m.ModuleName, expectedName, StringComparison.OrdinalIgnoreCase) Then Return True
+                If String.Equals(m.FileName, dllPath, StringComparison.OrdinalIgnoreCase) Then Return True
+            Next
+        Catch ex As Exception
+            ' Module enumeration can fail on protected or exiting processes.
+            ' In that case, fall back to the normal one-shot injection path.
+        End Try
+        Return False
+    End Function
 
     ' ── native injection (same routine as GameHook\inject.ps1) ──
     Private Const PROCESS_ALL_ACCESS As UInteger = &H1F0FFFUI
