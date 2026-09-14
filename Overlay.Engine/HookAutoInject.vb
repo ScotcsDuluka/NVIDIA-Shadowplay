@@ -1,0 +1,180 @@
+' HookAutoInject.vb — watches whitelisted games and injects the in-game
+' hook DLL (NvidiaShareHook.dll) the moment a game process appears.
+' Pure memory injection (OpenProcess + CreateRemoteThread + LoadLibraryW) —
+' ZERO files written to the game folder (owner rule). The DLL itself lives
+' in <runtime>\Hooks\ and is never copied anywhere else.
+'
+' Whitelist: Data\hook-whitelist.json → games:[{name, path, consent, exe?}]
+' "exe" = process name to watch (e.g. "Dungeons"); when absent the first
+' *.exe in "path" is used. Only consent:true entries are injected.
+
+Imports System.IO
+Imports System.Runtime.InteropServices
+Imports System.Text
+Imports System.Threading
+
+Public Class HookAutoInject
+
+    Private Shared _thread As Thread
+    Private Shared _stopFlag As Boolean
+    Private Shared ReadOnly Injected As New HashSet(Of Integer)()   ' game PIDs already handled
+    Private Shared ReadOnly Failed As New HashSet(Of Integer)()     ' do not retry-loop on failure
+
+    Public Shared Sub Start()
+        If _thread IsNot Nothing Then Return
+        _stopFlag = False
+        _thread = New Thread(AddressOf WatchLoop) With {.IsBackground = True, .Name = "HookAutoInject"}
+        _thread.Start()
+    End Sub
+
+    Public Shared Sub [Stop]()
+        _stopFlag = True
+        Try : _thread?.Join(500) : Catch : End Try
+    End Sub
+
+    Private Shared Sub L(m As String)
+        Try
+            Dim p As String = AppLayout.P("Logs", "autoinject.log")
+            Dim d As String = IO.Path.GetDirectoryName(p)
+            If Not IO.Directory.Exists(d) Then IO.Directory.CreateDirectory(d)
+            IO.File.AppendAllText(p, DateTime.Now.ToString("HH:mm:ss.fff") & " " & m & Environment.NewLine)
+        Catch
+        End Try
+    End Sub
+
+    Private Class WatchEntry
+        Public Name As String
+        Public Exe As String          ' process name, no .exe
+        Public Consent As Boolean
+    End Class
+
+    Private Shared Function LoadWatchList() As List(Of WatchEntry)
+        Dim out As New List(Of WatchEntry)()
+        Try
+            Dim wlPath As String = AppLayout.P("Data", "hook-whitelist.json")
+            If Not File.Exists(wlPath) Then Return out
+            Dim wl As System.Text.Json.Nodes.JsonObject =
+                System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(wlPath)).AsObject()
+            If wl("games") Is Nothing Then Return out
+            For Each g As System.Text.Json.Nodes.JsonNode In wl("games").AsArray()
+                Dim obj As System.Text.Json.Nodes.JsonObject = TryCast(g, System.Text.Json.Nodes.JsonObject)
+                If obj Is Nothing Then Continue For
+                Dim e As New WatchEntry()
+                e.Name = If(obj("name")?.ToString(), "?")
+                e.Consent = obj("consent")?.GetValue(Of Boolean)() = True
+                e.Exe = obj("exe")?.ToString()
+                If Not String.IsNullOrEmpty(e.Exe) Then
+                    ' whitelist stores "Dungeons.exe" but GetProcessesByName
+                    ' wants the bare name — strip any extension
+                    If e.Exe.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) Then
+                        e.Exe = e.Exe.Substring(0, e.Exe.Length - 4)
+                    End If
+                End If
+                If String.IsNullOrEmpty(e.Exe) Then
+                    ' default: first exe in the whitelisted dir
+                    Dim dir As String = obj("path")?.ToString()
+                    If Not String.IsNullOrEmpty(dir) AndAlso Directory.Exists(dir) Then
+                        Dim first As String = Nothing
+                        For Each f As String In Directory.GetFiles(dir, "*.exe")
+                            first = Path.GetFileNameWithoutExtension(f)
+                            Exit For
+                        Next
+                        e.Exe = first
+                    End If
+                End If
+                If e.Consent AndAlso Not String.IsNullOrEmpty(e.Exe) Then out.Add(e)
+            Next
+        Catch ex As Exception
+            L("whitelist read failed: " & ex.Message)
+        End Try
+        Return out
+    End Function
+
+    Private Shared Sub WatchLoop()
+        ' settle: let the engine boot before the first scan
+        Thread.Sleep(4000)
+        While Not _stopFlag
+            Try
+                Dim dll As String = AppLayout.P("Hooks", "NvidiaShareHook.dll")
+                If Not File.Exists(dll) Then
+                    ' no DLL deployed — nothing to inject, idle quietly
+                    Thread.Sleep(5000)
+                    Continue While
+                End If
+                For Each e As WatchEntry In LoadWatchList()
+                    For Each p As Process In Process.GetProcessesByName(e.Exe)
+                        Dim pid As Integer = p.Id
+                        If Not Injected.Contains(pid) AndAlso Not Failed.Contains(pid) Then
+                            ' give the game a moment to finish loading D3D
+                            If p.MainWindowHandle <> IntPtr.Zero Then
+                                Dim rc As Integer = Inject(p.Id, dll)
+                                If rc = 0 Then
+                                    Injected.Add(pid)
+                                    L("injected into " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
+                                Else
+                                    Failed.Add(pid)
+                                    L("inject " & e.Exe & " (pid " & pid & ") failed rc=" & rc)
+                                End If
+                            End If
+                        End If
+                        p.Dispose()
+                    Next
+                Next
+            Catch ex As Exception
+                L("watch loop error: " & ex.Message)
+            End Try
+            Thread.Sleep(3000)
+        End While
+    End Sub
+
+    ' ── native injection (same routine as GameHook\inject.ps1) ──
+    Private Const PROCESS_ALL_ACCESS As UInteger = &H1F0FFFUI
+    Private Const MEM_COMMIT As UInteger = &H1000UI
+    Private Const MEM_RESERVE As UInteger = &H2000UI
+    Private Const PAGE_READWRITE As UInteger = &H40UI
+
+    Private Shared Function Inject(pid As Integer, dllPath As String) As Integer
+        Dim proc As IntPtr = OpenProcess(PROCESS_ALL_ACCESS, False, CUInt(pid))
+        If proc = IntPtr.Zero Then Return 1
+        Try
+            Dim k32 As IntPtr = GetModuleHandleW("kernel32.dll")
+            Dim loadLib As IntPtr = GetProcAddress(k32, "LoadLibraryW")
+            If loadLib = IntPtr.Zero Then Return 2
+            Dim pathBytes As Byte() = Encoding.Unicode.GetBytes(dllPath & ControlChars.NullChar)
+            Dim addr As IntPtr = VirtualAllocEx(proc, IntPtr.Zero,
+                New UIntPtr(CUInt(pathBytes.Length)), MEM_COMMIT Or MEM_RESERVE, PAGE_READWRITE)
+            If addr = IntPtr.Zero Then Return 3
+            If Not WriteProcessMemory(proc, addr, pathBytes, New UIntPtr(CUInt(pathBytes.Length)), IntPtr.Zero) Then Return 4
+            Dim thread As IntPtr = CreateRemoteThread(proc, IntPtr.Zero, UIntPtr.Zero,
+                loadLib, addr, 0, IntPtr.Zero)
+            If thread = IntPtr.Zero Then Return 5
+            CloseHandle(thread)
+            Return 0
+        Finally
+            CloseHandle(proc)
+        End Try
+    End Function
+
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function OpenProcess(access As UInteger, inherit As Boolean, pid As UInteger) As IntPtr
+    End Function
+    <DllImport("kernel32.dll", SetLastError:=True, CharSet:=CharSet.Unicode)>
+    Private Shared Function GetModuleHandleW(name As String) As IntPtr
+    End Function
+    <DllImport("kernel32.dll", SetLastError:=True, CharSet:=CharSet.Ansi)>
+    Private Shared Function GetProcAddress(moduleHandle As IntPtr, name As String) As IntPtr
+    End Function
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function VirtualAllocEx(proc As IntPtr, addr As IntPtr, size As UIntPtr, type As UInteger, protect As UInteger) As IntPtr
+    End Function
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function WriteProcessMemory(proc As IntPtr, addr As IntPtr, buf As Byte(), size As UIntPtr, written As IntPtr) As <Runtime.InteropServices.MarshalAs(UnmanagedType.Bool)> Boolean
+    End Function
+    <DllImport("kernel32.dll", SetLastError:=True)>
+    Private Shared Function CreateRemoteThread(proc As IntPtr, attr As IntPtr, size As UIntPtr, start As IntPtr, param As IntPtr, flags As UInteger, tid As IntPtr) As IntPtr
+    End Function
+    <DllImport("kernel32.dll")>
+    Private Shared Function CloseHandle(h As IntPtr) As <Runtime.InteropServices.MarshalAs(UnmanagedType.Bool)> Boolean
+    End Function
+
+End Class

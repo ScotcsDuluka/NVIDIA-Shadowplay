@@ -59,6 +59,13 @@
      PrintWindow(เกม) = แหล่งเดียวกับ taskbar thumbnail ยืนยันว่า overlay
      ผสมเข้าเฟรมเกมจริง แบบ GFE แท้ (ไม่ใช่หน้าต่างลอย) — เจ้าของยืนยัน
      เห็นบนจอแล้ว
+9. **(09:55) Auto-inject + FPS bump**: `HookAutoInject.vb` — engine เฝ้า
+   whitelist (แยกชื่อ process จาก "exe" โดยตัด .exe — GetProcessesByName
+   ไม่รับนามสกุล, บั๊กแรกที่ทำใject เงียบ) แล้ว inject DLL เองทาง memory
+   (DLL อยู่ `<runtime>\Hooks\`, ศูนย์ไฟล์ในเกม); CDP loop sleep 200→30ms
+   + `optimizeForSpeed` = **3.7 → 10.5fps**; engine restart กลางเกม:
+   DLL สลับ section เอง (epoch) + input วิ่งต่อ — พิสูจน์ครบ:
+   "injected into Dungeons (pid 14624)" + draw #1 + vis=1
 
 
 

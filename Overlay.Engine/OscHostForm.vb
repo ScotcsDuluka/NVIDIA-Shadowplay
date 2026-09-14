@@ -351,6 +351,8 @@ Public Class OscHostForm
             HookCdpCapture.ControllerSecret = _server.Secret
             _cdpCapture = New HookCdpCapture("9224")
             _cdpCapture.Start()
+            ' watch whitelisted games → auto-inject the in-game hook DLL
+            HookAutoInject.Start()
         Catch ex As Exception
             Log("WebView2 init failed: " & ex.Message)
         End Try

@@ -194,9 +194,10 @@ Public Class HookCdpCapture
                     Continue While
                 End If
 
-                ' captureScreenshot → base64 PNG
+                ' captureScreenshot → base64 PNG (optimizeForSpeed: much
+                ' faster PNG encode, keeps the alpha channel JPEG lacks)
                 Dim req As String = "{""id"":" & msgId & ",""method"":""Page.captureScreenshot""," &
-                                    """params"":{""format"":""png""}}"
+                                    """params"":{""format"":""png"",""optimizeForSpeed"":true}}"
                 Dim sent = Encoding.UTF8.GetBytes(req)
                 Dim sendOk As Boolean = wsClient.SendAsync(New ArraySegment(Of Byte)(sent),
                     System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(5000)
@@ -240,7 +241,7 @@ Public Class HookCdpCapture
                     L("no screenshot response for id " & msgId & " (timeout)")
                 End If
                 msgId += 1
-                Thread.Sleep(200)   ' ~4-5fps MVP
+                Thread.Sleep(30)    ' capture-bound loop (~10-15fps)
             Catch ex As Exception
                 L("cdp error: " & ex.Message)
                 wsOpen = False
