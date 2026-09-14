@@ -188,14 +188,19 @@ Public Class HookCdpCapture
                     _lastEnabled = CaptureEnabled
                     L("capture " & If(CaptureEnabled = 1, "ENABLED", "disabled"))
                 End If
+
                 If CaptureEnabled = 0 Then
                     PublishClosed()
                     Thread.Sleep(400)
                     Continue While
                 End If
 
-                ' captureScreenshot → base64 PNG (optimizeForSpeed: much
-                ' faster PNG encode, keeps the alpha channel JPEG lacks)
+                ' captureScreenshot polling — FORCED render works while the
+                ' window is occluded by the game. (Page.startScreencast was
+                ' tried and DOES NOT: it needs compositor frames, which an
+                ' occluded window never produces — frozen at 1 frame.)
+                ' ~65ms PNG round-trip = ~14fps ceiling; true 60fps needs
+                ' Windows.Graphics.Capture (GPU, no PNG) — next milestone.
                 Dim req As String = "{""id"":" & msgId & ",""method"":""Page.captureScreenshot""," &
                                     """params"":{""format"":""png"",""optimizeForSpeed"":true}}"
                 Dim sent = Encoding.UTF8.GetBytes(req)
@@ -212,14 +217,23 @@ Public Class HookCdpCapture
                     Dim buf(65536) As Byte
                     Dim ms As New MemoryStream()
                     Dim got As Boolean = False
-                    While Not got
-                        If wsClient.State <> System.Net.WebSockets.WebSocketState.Open Then Exit While
-                        Dim seg = New ArraySegment(Of Byte)(buf)
-                        Dim cts As New CancellationTokenSource(5000)
-                        Dim res = wsClient.ReceiveAsync(seg, cts.Token).Result
-                        ms.Write(seg.Array, seg.Offset, res.Count)
-                        If res.EndOfMessage Then got = True
-                    End While
+                    Try
+                        While Not got
+                            If wsClient.State <> System.Net.WebSockets.WebSocketState.Open Then Exit While
+                            Dim seg = New ArraySegment(Of Byte)(buf)
+                            Dim cts As New CancellationTokenSource(3000)
+                            Dim res = wsClient.ReceiveAsync(seg, cts.Token).Result
+                            ms.Write(seg.Array, seg.Offset, res.Count)
+                            If res.EndOfMessage Then got = True
+                        End While
+                    Catch ex As AggregateException
+                        Dim allCancel As Boolean = ex.InnerExceptions.Count > 0
+                        For Each ie As Exception In ex.InnerExceptions
+                            If Not (TypeOf ie Is OperationCanceledException) Then allCancel = False
+                        Next
+                        If Not allCancel Then Throw
+                    End Try
+                    If Not got Then Continue While
                     Dim txt As String = Encoding.UTF8.GetString(ms.ToArray())
                     Dim idNeedle As String = """id"":" & msgId
                     If txt.Contains(idNeedle) AndAlso txt.Contains("""data""") Then
@@ -227,21 +241,15 @@ Public Class HookCdpCapture
                             System.Text.RegularExpressions.Regex.Match(txt, """data""\s*:\s*""([^""]+)""")
                         If m2.Success Then
                             pngBytes = Convert.FromBase64String(m2.Groups(1).Value)
-                        Else
-                            L("response for id " & msgId & " has no data payload (" & txt.Length & " bytes)")
                         End If
-                    ElseIf txt.Contains("""error""") Then
-                        L("cdp error response: " & txt.Substring(0, Math.Min(200, txt.Length)))
                     End If
                 End While
 
                 If pngBytes IsNot Nothing Then
                     PublishFrame(pngBytes)
-                Else
-                    L("no screenshot response for id " & msgId & " (timeout)")
                 End If
                 msgId += 1
-                Thread.Sleep(30)    ' capture-bound loop (~10-15fps)
+                Thread.Sleep(20)
             Catch ex As Exception
                 L("cdp error: " & ex.Message)
                 wsOpen = False
@@ -250,6 +258,12 @@ Public Class HookCdpCapture
                 Thread.Sleep(2000)
             End Try
         End While
+    End Sub
+
+    Private Shared Sub SendCdp(ws As System.Net.WebSockets.ClientWebSocket, req As String)
+        Dim b As Byte() = Encoding.UTF8.GetBytes(req)
+        ws.SendAsync(New ArraySegment(Of Byte)(b),
+            System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(3000)
     End Sub
 
 End Class

@@ -104,7 +104,8 @@ static void ReopenIfEngineRestarted()
     if (!nv) { CloseHandle(h2); return; }
     DWORD ep = *(const DWORD *)(nv + 56);
     UnmapViewOfFile(nv);
-    if (ep != 0 && ep != g_cachedEpoch) {
+    // accept the fresh section when ours is gone OR its epoch differs
+    if (!g_mmf || (ep != 0 && ep != g_cachedEpoch)) {
         if (g_mmf) CloseHandle(g_mmf);
         g_mmf = h2;
         g_cachedEpoch = ep;
@@ -136,12 +137,13 @@ static MappedFrame ReadFrame()
         return f;
     }
     // the controller writes its PID at +24 — a change means the controller
-    // restarted and created a NEW section; our old handle points at the
-    // ORPHANED section (kept alive by our own handle) → re-open
+    // restarted. Update the cache EVEN on reset, otherwise the next Present
+    // resets again forever (live-counter null loop, measured).
     {
         static DWORD cachedCtrlPid = 0;
         DWORD ctrlPid = *(const DWORD *)(view + 24);
         if (cachedCtrlPid != 0 && ctrlPid != cachedCtrlPid) {
+            cachedCtrlPid = ctrlPid;
             CloseHandle(g_mmf); g_mmf = nullptr;
             UnmapViewOfFile(view);
             return f;   // next Present re-opens the fresh section
