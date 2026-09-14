@@ -265,6 +265,58 @@ static DWORD WINAPI InputThread(LPVOID)
     }
 }
 
+// ── input suppression while the overlay is open ────────────
+// Subclass the game's window: while header.overlayVisible, mouse and
+// keyboard MESSAGES are swallowed so the game does not also react to
+// menu interaction (GFE parity). GetAsyncKeyState (our input poll) reads
+// system state and is unaffected by this.
+static bool OverlayVisibleCached()
+{
+    if (!g_mmf) return false;
+    auto *v = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 0);
+    if (!v) return false;
+    bool vis = *(const int *)(v + 16) == 1;
+    UnmapViewOfFile(v);
+    return vis;
+}
+
+static WNDPROC g_origWndProc = nullptr;
+static LRESULT CALLBACK HookedWndProc(HWND h, UINT msg, WPARAM w, LPARAM l)
+{
+    if (OverlayVisibleCached()) {
+        // mouse: whole range (move + clicks + wheel + X buttons)
+        if ((msg >= WM_MOUSEFIRST && msg <= WM_MOUSELAST) ||
+            msg == WM_INPUT || msg == WM_MOUSEWHEEL || msg == WM_MOUSEHWHEEL) {
+            return 0;
+        }
+        // keyboard
+        if (msg == WM_KEYDOWN || msg == WM_KEYUP || msg == WM_CHAR ||
+            msg == WM_SYSKEYDOWN || msg == WM_SYSKEYUP || msg == WM_SYSCHAR ||
+            msg == WM_UNICHAR) {
+            return 0;
+        }
+    }
+    return CallWindowProcW(g_origWndProc, h, msg, w, l);
+}
+
+static void InstallWndProcHook()
+{
+    DWORD myPid = GetCurrentProcessId();
+    struct Ctx { DWORD pid; HWND found; } ctx = { myPid, nullptr };
+    EnumWindows([](HWND h, LPARAM lp) -> BOOL {
+        auto *c = (Ctx *)lp;
+        DWORD pid = 0; GetWindowThreadProcessId(h, &pid);
+        if (pid == c->pid && IsWindowVisible(h) && GetWindow(h, GW_OWNER) == nullptr) {
+            c->found = h; return FALSE;
+        }
+        return TRUE;
+    }, (LPARAM)&ctx);
+    if (!ctx.found) { NLog("WndProc: no game window yet"); return; }
+    g_origWndProc = (WNDPROC)SetWindowLongPtrW(ctx.found, GWLP_WNDPROC, (LONG_PTR)&HookedWndProc);
+    if (g_origWndProc) NLog("WndProc hook installed on game window %p", (void *)ctx.found);
+    else NLog("SetWindowLongPtrW FAILED err=%u", GetLastError());
+}
+
 // ── D3D helpers ────────────────────────────────────────────
 static const char *SHADER_HLSL = R"(
 struct VSOut { float4 pos:SV_POSITION; float2 uv:TEXCOORD0; };
@@ -565,6 +617,11 @@ static DWORD WINAPI InitThread(LPVOID)
     // NO window wait — the dummy swapchain hook does not need the game
     // window; install immediately so Alt+Z works seconds after injection.
     InstallPresentHook();
+    // input suppression needs the game window; retry until it exists
+    for (int i = 0; i < 60 && !g_origWndProc; i++) {
+        InstallWndProcHook();
+        if (!g_origWndProc) Sleep(1000);
+    }
     CreateThread(nullptr, 0, InputThread, nullptr, 0, nullptr);
     g_live = 1;
     return 0;

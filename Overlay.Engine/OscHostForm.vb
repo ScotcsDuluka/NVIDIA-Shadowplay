@@ -504,7 +504,17 @@ Public Class OscHostForm
                     Dim btn As Integer = 0
                     Dim bN As System.Text.Json.JsonElement
                     If root.TryGetProperty("button", bN) Then btn = bN.GetInt32()
-                    js = "(function(){var el=document.elementFromPoint(" & cx & "," & cy & ");if(!el)return;el.dispatchEvent(new MouseEvent('" & typ & "',{clientX:" & cx & ",clientY:" & cy & ",button:" & btn & ",bubbles:true}));})()"
+                    ' Angular binds (click)/(pointerdown) — a bare synthetic
+                    ' mousedown/mouseup never synthesizes a click event, so
+                    ' tiles ignored our taps. Dispatch the FULL sequence.
+                    Dim phase As String = If(typ = "mousedown", "down", "up")
+                    Dim seq As String =
+                        "el.dispatchEvent(new PointerEvent('pointer" & phase & "',o));" &
+                        "el.dispatchEvent(new MouseEvent('" & typ & "',o));"
+                    If typ = "mouseup" Then seq &= "el.dispatchEvent(new MouseEvent('click',o));"
+                    js = "(function(){var el=document.elementFromPoint(" & cx & "," & cy & ");if(!el)return;" &
+                        "var o={clientX:" & cx & ",clientY:" & cy & ",button:" & btn & ",bubbles:true,cancelable:true};" &
+                        seq & "})()"
                 Case "keydown", "keyup"
                     Dim vkN As System.Text.Json.JsonElement
                     If Not root.TryGetProperty("vk", vkN) Then Exit Select

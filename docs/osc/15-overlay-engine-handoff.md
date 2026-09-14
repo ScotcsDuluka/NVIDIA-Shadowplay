@@ -72,8 +72,16 @@
     `VkToJsKey` แปลง VK → JS key name → KeyboardEvent บน document;
     ไม่ส่ง Win/IME/mouse VK พิสูจน์ end-to-end ด้วยพฤติกรรมจริง:
     กด Escape ในเกม → เมนู osc ปิดเอง (capture disabled ทันที)
-    ข้อจำกัดที่รับรู้: เกมยังได้คีย์ด้วย (ไม่ block) — GFE แท้ block เกม
-    ตอนเมนูเปิด ถ้าจะทำต้องแยกเป็น milestone keyboard-suppression
+11. **(10:05) คลิ้อทะลุ → ใช้ได้จริง**: อาการ "กดแล้วทะลุ" มี 2 ต้นตอ
+    - **Angular ผูก (click)/(pointer) — synthetic mousedown+mouseup
+      อย่างเดียวไม่เกิด click event** → engine ตอนนี้ dispatch ครบ
+      sequence: pointerdown+mousedown / pointerup+mouseup+**click**
+      (cancelable:true ด้วย)
+    - **เกมยังรับ click ตรงๆ** → DLL subclass WndProc เกม (retry จนกว่า
+      window เกิด) กลืน WM_MOUSE*, WM_KEY*, WM_INPUT ตอน overlay เปิด
+      (GetAsyncKeyState อ่าน system state — input forwarding ไม่กระทบ)
+    พิสูจน์: คลิ้อ tile Instant Replay ในเกม → **หน้า settings Instant
+    Replay เปิดจริง** (sliders เวลา/คุณภาพ โชว์ในเฟรมเกม)
 
 
 
