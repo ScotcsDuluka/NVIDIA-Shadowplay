@@ -1,9 +1,15 @@
-# OSC REVERSE MAP — On-Screen Control (Overlay/osc)
+# OSC REVERSE MAP — the GFE "OSC" overlay package (Overlay/osc)
 
 Reverse-engineered from the actual artifacts in `Overlay/osc/` (compiled
 Webpack bundles — **no source maps exist anywhere in the repository**, see
 02-bundle-map). Every claim cites its evidence. Companion to the host-side
 `Overlay.Engine/PROTOCOL-MATRIX.md` (worker-owned, read-only for this effort).
+
+> Naming note (FACT ≠ GUESS): "OSC" is NVIDIA's own module/package name
+> (installer package `OSC.nvi` + `OSCExt.dll` + the `osc\` web tree; the app's
+> `windowName` is "shareclient"). The full-form expansion of the acronym
+> never appears in any NVIDIA artifact we have — treat "On-Screen Control"
+> as informal community usage, **UNKNOWN** as far as these artifacts prove.
 
 ## Files
 

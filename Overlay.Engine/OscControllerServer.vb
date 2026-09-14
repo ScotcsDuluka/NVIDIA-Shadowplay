@@ -85,7 +85,48 @@ Public Class OscControllerServer
         <System.Runtime.InteropServices.DllImport("winmm.dll")>
         Public Shared Function waveInGetNumDevs() As Integer
         End Function
+
+        <System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential, CharSet:=System.Runtime.InteropServices.CharSet.Unicode)>
+        Public Structure WaveInCaps
+            Public wMid As UShort
+            Public wPid As UShort
+            Public vDriverVersion As UInteger
+            <System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValTStr, SizeConst:=32)>
+            Public szPname As String
+            Public dwFormats As UInteger
+            Public wChannels As UShort
+            Public wReserved1 As UShort
+        End Structure
+
+        <System.Runtime.InteropServices.DllImport("winmm.dll", CharSet:=System.Runtime.InteropServices.CharSet.Unicode)>
+        Public Shared Function waveInGetDevCapsW(uDeviceID As IntPtr, ByRef caps As WaveInCaps, cbCaps As UInteger) As Integer
+        End Function
     End Class
+
+    ''' <summary>Product name of a waveform-input device ("" when absent) —
+    '     the Audio settings page renders these in the per-mic rows.</summary>
+    Private Shared Function MicrophoneName(index As Integer) As String
+        Try
+            If index < 0 OrElse index >= MicrophoneCount() Then Return ""
+            Dim caps As New NativeAudio.WaveInCaps()
+            Dim ok As Integer = NativeAudio.waveInGetDevCapsW(New IntPtr(index), caps, CUInt(System.Runtime.InteropServices.Marshal.SizeOf(GetType(NativeAudio.WaveInCaps))))
+            If ok = 0 Then Return caps.szPname
+        Catch
+        End Try
+        Return ""
+    End Function
+
+    Private Shared Function MicrophoneSettingsJson(index As Integer) As String
+        Dim stored As JsonObject = GetSection("mic:" & index.ToString(CultureInfo.InvariantCulture))
+        If stored.Count > 0 Then
+            stored("index") = index
+            If stored("name") Is Nothing Then stored("name") = MicrophoneName(index)
+            Return stored.ToJsonString()
+        End If
+        Return "{""index"":" & index.ToString(CultureInfo.InvariantCulture) &
+               ",""name"":""" & MicrophoneName(index) &
+               """,""muted"":false,""volumePercent"":100,""boostPercent"":0}"
+    End Function
 
     Private Class SioSession
         Public ReadOnly Lock As New Object()
@@ -404,7 +445,8 @@ Public Class OscControllerServer
                         Case "/ShadowPlay/v.1.0/AudioSettings"
                             If method = "POST" Then StoreSection("audioSettings", ReadBody(req))
                             Dim aus As JsonObject = GetSection("audioSettings")
-                            WriteJson(res, 200, If(aus.Count > 0, aus.ToJsonString(), "{}"))
+                            WriteJson(res, 200, If(aus.Count > 0, aus.ToJsonString(),
+                                "{""systemVolumePercent"":100,""separateTracks"":false}"))
                         Case "/ShadowPlay/v.1.0/Record/Concurrency/Broadcast",
                              "/ShadowPlay/v.1.0/Record/Concurrency/Gamestream"
                             WriteJson(res, 200, "{""supported"":true}")
@@ -427,27 +469,98 @@ Public Class OscControllerServer
                             End If
                             If rawPath.StartsWith("/NvCamera/v.1.0/", StringComparison.OrdinalIgnoreCase) Then
                         ' Ansel / Photo-mode panel preview data. The REAL values
-                        ' come from the driver's Ansel hook for the hooked game;
-                        ' without it the panel showed "0 x 0". Serve a
-                        ' capture-resolution list shaped as the page's
-                        ' HIGHRES_RESOLUTIONS payload (array of width/height).
+                        ' arrive from the driver hook through socket.io channel
+                        ' '/NvCamera/v.1.0/Notifications' as {type:...} payloads
+                        ' (NvCameraAPI.js EmitNotification → io.emit — the POSTs
+                        ' themselves only trigger the native side). Emit the
+                        ' same payloads from our store of truth: the screen.
                         If rawPath.StartsWith("/NvCamera/v.1.0/Capture/GetResolutions", StringComparison.OrdinalIgnoreCase) Then
-                            WriteJson(res, 200,
-                                "[{""width"":1920,""height"":1080},{""width"":2560,""height"":1440},{""width"":3840,""height"":2160}]")
+                            Dim b As System.Drawing.Rectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds
+                            PushEvent("/NvCamera/v.1.0/Notifications",
+                                      "{""type"":""gameResolution"",""width"":" & b.Width & ",""height"":" & b.Height & "}")
+                            PushEvent("/NvCamera/v.1.0/Notifications",
+                                      "{""type"":""highResResolutions"",""resolutions"":[" &
+                                      "{""width"":" & b.Width & ",""height"":" & b.Height & "}," &
+                                      "{""width"":1920,""height"":1080}," &
+                                      "{""width"":2560,""height"":1440}," &
+                                      "{""width"":3840,""height"":2160}]}")
+                            WriteJson(res, 200, "{}")
                             Return
                         End If
                         WriteJson(res, 200, "{}")
                         Return
                     End If
+                    ' ── Audio device settings (real WinMM devices) ──
+                    If rawPath = "/ShadowPlay/v.1.0/Microphone" AndAlso method = "GET" Then
+                        Dim items As New StringBuilder("[")
+                        For i As Integer = 0 To MicrophoneCount() - 1
+                            If i > 0 Then items.Append(",")
+                            items.Append(MicrophoneSettingsJson(i))
+                        Next
+                        items.Append("]")
+                        WriteJson(res, 200, items.ToString())
+                        Return
+                    End If
+                    If rawPath = "/ShadowPlay/v.1.0/Microphone/Settings" AndAlso method = "GET" Then
+                        WriteJson(res, 200, MicrophoneSettingsJson(0))
+                        Return
+                    End If
+                    If rawPath.StartsWith("/ShadowPlay/v.1.0/Microphone/", StringComparison.OrdinalIgnoreCase) Then
+                        Dim tail As String = rawPath.Substring("/ShadowPlay/v.1.0/Microphone/".Length)
+                        Dim parts As String() = tail.Split("/"c)
+                        Dim micIndex As Integer
+                        If parts.Length = 2 AndAlso parts(1).Equals("Settings", StringComparison.OrdinalIgnoreCase) AndAlso
+                           Integer.TryParse(parts(0), micIndex) Then
+                            If method = "POST" Then StoreSection("mic:" & micIndex.ToString(CultureInfo.InvariantCulture), ReadBody(req))
+                            WriteJson(res, 200, MicrophoneSettingsJson(micIndex))
+                            Return
+                        End If
+                        If tail.Equals("PTT", StringComparison.OrdinalIgnoreCase) Then
+                            WriteJson(res, 200, "{""enabled"":false}")
+                            Return
+                        End If
+                    End If
+
+                    ' ── In-game hook bridge (whitelisted games, e.g. MiSide) ──
+                    If rawPath = "/ShadowPlay/v.1.0/Hook/Poll" AndAlso method = "GET" Then
+                        Dim hk As JsonObject = GetSection("hook")
+                        If hk.Count > 0 Then
+                            WriteJson(res, 200, hk.ToJsonString())
+                        Else
+                            WriteJson(res, 200, "{""marker"":true,""text"":""NVIDIA Share - hooked"",""overlayVisible"":false}")
+                        End If
+                        Return
+                    End If
+                    If rawPath = "/ShadowPlay/v.1.0/Hook/Report" AndAlso method = "POST" Then
+                        Dim body As String = ReadBody(req)
+                        StoreSection("hookReport", body)
+                        RaiseEvent LogLine("hook report: " & body)
+                        WriteJson(res, 200, "{}")
+                        Return
+                    End If
+                    If rawPath = "/ShadowPlay/v.1.0/Hook/Input" AndAlso method = "POST" Then
+                        Dim body As String = ReadBody(req)
+                        RaiseEvent HookInput(body)
+                        WriteJson(res, 200, "{}")
+                        Return
+                    End If
+
                     ' ── Video-capture option lists (Recordings settings page) ──
+                    ' The option set mirrors the Forms overlay's Video Capture
+                    ' page (native + the 8 common resolutions, 30-240 FPS,
+                    ' kbps bitrate range) so the osc page offers the same set.
                     If rawPath.StartsWith("/ShadowPlay/v.1.0/Resolutions", StringComparison.OrdinalIgnoreCase) Then
                         Dim native As System.Drawing.Rectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds
                         Dim listJson As String = "{" &
                             """resolutions"":[" &
                             "{""name"":""" & native.Width & "x" & native.Height & """,""supported"":true}," &
                             "{""name"":""3840x2160"",""supported"":true}," &
+                            "{""name"":""3440x1440"",""supported"":true}," &
                             "{""name"":""2560x1440"",""supported"":true}," &
+                            "{""name"":""2560x1080"",""supported"":true}," &
                             "{""name"":""1920x1080"",""supported"":true}," &
+                            "{""name"":""1600x900"",""supported"":true}," &
+                            "{""name"":""1366x768"",""supported"":true}," &
                             "{""name"":""1280x720"",""supported"":true}]}"
                         WriteJson(res, 200, listJson)
                         Return
@@ -462,6 +575,21 @@ Public Class OscControllerServer
                     End If
                     If rawPath.StartsWith("/ShadowPlay/v.1.0/BitRates/", StringComparison.OrdinalIgnoreCase) Then
                         WriteJson(res, 200, "{""min"":5000,""max"":100000,""default"":17000}")
+                        Return
+                    End If
+
+                    ' ── Instant Replay settings (Forms overlay: 15-1200s) ──
+                    ' replayLengthSeconds maps to config.json Recording.
+                    ' replay_duration which the engine consumes at replay start.
+                    If rawPath = "/ShadowPlay/v.1.0/InstantReplay/Settings" Then
+                        If method = "POST" Then
+                            Dim body As String = ReadBody(req)
+                            StoreSection("instantReplaySettings", body)
+                            ApplyReplayLengthToEngineConfig(body)
+                            WriteJson(res, 200, "{}")
+                        Else
+                            WriteJson(res, 200, BuildInstantReplaySettings())
+                        End If
                         Return
                     End If
 
@@ -650,6 +778,71 @@ Public Class OscControllerServer
             RaiseEvent LogLine("record settings applied to engine config")
         Catch ex As Exception
             RaiseEvent LogLine("record settings apply failed: " & ex.Message)
+        End Try
+    End Sub
+
+    ''' <summary>Instant Replay settings: reads the saved section first and
+    '     fills replayLengthSeconds from the engine config default
+    '     (Forms overlay allows 15-1200 seconds).</summary>
+    Private Function BuildInstantReplaySettings() As String
+        Dim replaySec As Integer = 300
+        Dim fps As Integer = 60
+        Dim bitrateKbps As Integer = 17000
+        Try
+            Dim path As String = AppConfigShared.ConfigPath()
+            If File.Exists(path) Then
+                SyncLock RecordSettingsLock
+                    Dim root As JsonObject = JsonNode.Parse(File.ReadAllText(path)).AsObject()
+                    Dim rec As JsonObject = TryCast(root("Recording"), JsonObject)
+                    If rec?.Item("replay_duration") IsNot Nothing Then replaySec = CInt(rec("replay_duration"))
+                    Dim cur As JsonObject = TryCast(rec?.Item("current"), JsonObject)
+                    If cur?.Item("fps") IsNot Nothing Then fps = CInt(cur("fps"))
+                    If cur?.Item("bitrate") IsNot Nothing Then bitrateKbps = CInt(cur("bitrate"))
+                End SyncLock
+            End If
+        Catch
+        End Try
+        Dim stored As JsonObject = GetSection("instantReplaySettings")
+        If stored.Count > 0 Then Return stored.ToJsonString()
+        Dim w As Integer = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width
+        Dim h As Integer = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height
+        Return "{""replayLengthSeconds"":" & replaySec.ToString(CultureInfo.InvariantCulture) &
+               ",""quality"":""custom"",""resolution"":""" & w & "x" & h &
+               """,""framerate"":" & fps.ToString(CultureInfo.InvariantCulture) &
+               ",""bitrateBps"":" & (bitrateKbps * 1000).ToString(CultureInfo.InvariantCulture) & "}"
+    End Function
+
+    ''' <summary>Maps the osc replay payload to the engine's
+    '     Recording.replay_duration (consumed by ApplyUnifiedToCaptureSettings
+    '     — the Forms overlay allows 15-1200 seconds; clamp to that).</summary>
+    Private Sub ApplyReplayLengthToEngineConfig(body As String)
+        Try
+            Dim posted As JsonObject = TryCast(JsonNode.Parse(body), JsonObject)
+            If posted Is Nothing OrElse posted("replayLengthSeconds") Is Nothing Then Return
+            Dim secs As Integer = CInt(posted("replayLengthSeconds"))
+            secs = Math.Max(15, Math.Min(1200, secs))
+            Dim path As String = AppConfigShared.ConfigPath()
+            Dim root As JsonObject
+            If File.Exists(path) Then
+                root = JsonNode.Parse(File.ReadAllText(path)).AsObject()
+            Else
+                root = New JsonObject()
+            End If
+            SyncLock RecordSettingsLock
+                Dim rec As JsonObject = TryCast(root("Recording"), JsonObject)
+                If rec Is Nothing Then
+                    rec = New JsonObject()
+                    root("Recording") = rec
+                End If
+                rec("replay_duration") = secs
+                Dim dir As String = IO.Path.GetDirectoryName(path)
+                If Not Directory.Exists(dir) Then Directory.CreateDirectory(dir)
+                File.WriteAllText(path, root.ToJsonString(
+                    New System.Text.Json.JsonSerializerOptions With {.WriteIndented = True}))
+            End SyncLock
+            RaiseEvent LogLine("replay_duration applied to engine config: " & secs.ToString(CultureInfo.InvariantCulture) & "s")
+        Catch ex As Exception
+            RaiseEvent LogLine("replay settings apply failed: " & ex.Message)
         End Try
     End Sub
 
@@ -963,6 +1156,21 @@ Public Class OscControllerServer
     ''' <summary>A hotkey binding was saved by the page — the host re-applies
     '     its real RegisterHotKey bindings (OscHotkeyApplier).</summary>
     Public Event HotkeySaved(name As String)
+
+    ''' <summary>Raw input event from the in-game hook mod (JSON:
+    '     {type,x,y,button,key}) — the form dispatches it into the page.</summary>
+    Public Event HookInput(bodyJson As String)
+
+    ''' <summary>Overlay visibility published to the in-game hook mod's poll.
+    '     Written by OscHostForm on every open/close state change.</summary>
+    Public Shared Sub SetHookOverlayState(visible As Boolean)
+        Try
+            Dim sec As JsonObject = GetSection("hook")
+            sec("overlayVisible") = visible
+            SaveSettings()
+        Catch
+        End Try
+    End Sub
 
     ''' <summary>Stored VK array for an action name from the settings store,
     '     falling back to the preview bindings. Consumed by OscHotkeyApplier

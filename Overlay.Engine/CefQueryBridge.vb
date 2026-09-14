@@ -95,7 +95,12 @@ Public Class CefQueryBridge
         sb.Append("try{window.__bdStatus='registered';var bdfn=function(){")
         sb.Append("try{if(document.getElementById('oscengine-backdrop')){window.__bdStatus='already';return;}")
         sb.Append("var st=document.createElement('style');st.id='oscengine-backdrop-css';")
-        sb.Append("st.textContent='html.oscengine-open #oscengine-backdrop{display:block}';")
+        ' the second rule keeps the menu VIEWS mounted in the DOM while the
+        ' overlay is closed (owner: hotkey toggle felt slow — an unload/reload
+        ' on every Alt+Z was the cost). Open/close = one class flip = instant.
+        ' THIRD state (oscengine-toast): the page shows a notification toast
+        ' — .base visible but NO menu and a LIGHT dim, click-through kept.
+        sb.Append("st.textContent='html.oscengine-open #oscengine-backdrop{display:block}html:not(.oscengine-open) .base{visibility:hidden!important}html.oscengine-toast #oscengine-backdrop{display:block;background:rgba(8,8,8,0.35)}html.oscengine-toast .base{visibility:visible!important}';")
         sb.Append("document.head.appendChild(st);")
         sb.Append("var bd=document.createElement('div');bd.id='oscengine-backdrop';")
         sb.Append("bd.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;background:rgba(8,8,8,0.94);z-index:-1;pointer-events:none;display:none';")
@@ -125,6 +130,13 @@ Public Class CefQueryBridge
         sb.Append("try{var st=inj.get('$state');")
         sb.Append("nv.launchUIForNvCamera=function(){st.go('nvcamera');};")
         sb.Append("nv.launchUIForMods=function(){st.go('mods');};")
+        sb.Append("}catch(e){}")
+        ' toggle through the page's OWN display service (openOSC/closeOSC —
+        ' the same functions GFE's Alt+Z path uses) so state/hash stay in
+        ' sync — raw hash edits from the host desynced ui-router (blank UI)
+        sb.Append("try{var ds=inj.get('oscDisplayService');")
+        sb.Append("window.__oscOpen=function(){ds.openOSC();};")
+        sb.Append("window.__oscClose=function(){ds.closeOSC();};")
         sb.Append("}catch(e){}")
         sb.Append("window.__unlockStatus='done'; return true;")
         sb.Append("}catch(e){window.__unlockStatus='err:'+e.message; return false;}};")
@@ -180,10 +192,15 @@ Public Class CefQueryBridge
                     ",""secret"":""" & _secret & """}")
 
             Case "QUERY_FULLSCREEN_STATE"
+                ' ALWAYS answer desktop (fullscreen=false): the in-game DLL
+                ' draws the overlay into the game's frame itself — if the
+                ' page learns "fullscreen game" it auto-dismisses the menu
+                ' (measured: menu closed itself in Dungeons fullscreen).
+                ' WinFullscreen probe kept for the log.
                 Dim fs As Boolean = WinFullscreen.IsFullscreenActive()
-                Dim payload As String = "{""fullscreen"":" & If(fs, "true", "false") &
-                    ",""hdractive"":false,""borderlessMode"":null}"
-                RaiseEvent LogLine("fullscreen probe: " & WinFullscreen.LastFullscreenProbe & " → " & If(fs, "TRUE", "false"))
+                Dim payload As String = "{""fullscreen"":false,""hdractive"":false,""borderlessMode"":null}"
+                RaiseEvent LogLine("fullscreen probe: " & WinFullscreen.LastFullscreenProbe &
+                                   " → forced false (was " & If(fs, "TRUE", "false") & ")")
                 Return OkResponse(id, persistent, payload)
 
             Case "QUERY_OSC_DISPLAY_IS_DESKTOP_MODE"

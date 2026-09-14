@@ -29,18 +29,30 @@ Public Class OscHostForm
     Private Const GWL_EXSTYLE As Integer = -20
     Private Const WS_EX_TOOLWINDOW As Integer = &H80
     Private Const WS_EX_APPWINDOW As Integer = &H40000
+    Private Const WS_EX_TRANSPARENT As Integer = &H20
+    Private Const WS_EX_LAYERED As Integer = &H80000
+    Private Const LWA_ALPHA As Integer = 2
+    Private Const HWND_BOTTOM As Integer = 1
+    Private Const SWP_NOMOVE As Integer = 2
+    Private Const SWP_NOSIZE As Integer = 1
+    Private Const SWP_NOACTIVATE As Integer = &H10
+
+    <DllImport("user32.dll")>
+    Private Shared Function SetWindowPos(hWnd As IntPtr, after As IntPtr, x As Integer, y As Integer, w As Integer, h As Integer, flags As Integer) As Boolean
+    End Function
 
     Private WithEvents _webView As Microsoft.Web.WebView2.WinForms.WebView2
+    Private _cdpCapture As HookCdpCapture
     Private _server As OscControllerServer
     Private _client As OscEngineClient
     Private _bridge As CefQueryBridge
     Private _storage As SharedStorageStore
-    Private _tray As NotifyIcon
     Private _hotkeys As OscHotkeys
     Private _applier As OscHotkeyApplier
     Private Const ToggleHotkeyId As Integer = 1
     Private _oscReady As Boolean
     Private _overlayOpen As Boolean
+    Private _userOpen As Boolean
     Private _menuInputEnabled As Boolean
     Private _webviewReady As Boolean
     Private _closingForExit As Boolean
@@ -60,9 +72,12 @@ Public Class OscHostForm
         Size = bounds.Size
         TopMost = True
 
-        ' never in taskbar/Alt-Tab
+        ' never in taskbar/Alt-Tab; layered+alpha255 so the WS_EX_TRANSPARENT
+        ' click-through toggle (SetOverlayOpen) composites correctly; boot
+        ' state = closed → start click-through
         Dim ex As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
-        SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr((ex Or WS_EX_TOOLWINDOW) And Not WS_EX_APPWINDOW))
+        SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr((ex Or WS_EX_TOOLWINDOW Or WS_EX_LAYERED Or WS_EX_TRANSPARENT) And Not WS_EX_APPWINDOW))
+        SetLayeredWindowAttributes(Handle, 0, 255, LWA_ALPHA)
 
         ' The form is NEVER auto-shown (Program.vb pumps an empty
         ' ApplicationContext; the tray icon carries the UI). While hidden
@@ -102,7 +117,8 @@ Public Class OscHostForm
             _hotkeys.TryRegister(Handle)
         End If
 
-        SetupTray()
+        ' (tray icon removed — owner directive "ปิด Tray"; the ApplicationContext
+        '  pump keeps the process alive and Alt+Z remains the toggle)
         StartStack()
     End Sub
 
@@ -121,24 +137,6 @@ Public Class OscHostForm
         Catch ex As Exception
             Log("real overlay launch failed: " & ex.Message)
         End Try
-    End Sub
-
-    Private Sub SetupTray()
-        _tray = New NotifyIcon With {
-            .Icon = SystemIcons.Application,
-            .Text = "NVIDIA Share (osc)",
-            .Visible = True
-        }
-        Dim menu As New ContextMenuStrip()
-        menu.Items.Add("Toggle OUR overlay" & If(_hotkeys?.IsRegistered, " (" & _hotkeys.BindingText & ")", ""), Nothing, Sub() ToggleOverlay())
-        If Process.GetProcessesByName("NVIDIA Share").Length > 0 Then
-            menu.Items.Add("Toggle GFE overlay (real ShadowPlay)", Nothing,
-                Sub() NvShadowPlayRecorder.InjectAltZ())
-        End If
-        menu.Items.Add(New ToolStripSeparator())
-        menu.Items.Add("Exit", Nothing, Sub() ExitApplication())
-        _tray.ContextMenuStrip = menu
-        AddHandler _tray.DoubleClick, Sub() ToggleOverlay()
     End Sub
 
     Private Sub StartStack()
@@ -174,7 +172,7 @@ Public Class OscHostForm
             _bridge = New CefQueryBridge(_storage)
             _bridge.Configure(_server.Port, _server.Secret)
             AddHandler _bridge.LogLine, Sub(m) Log(m)
-            AddHandler _bridge.OpenOsc, Sub(input) BeginInvoke(Sub() SetOverlayOpen(True, pushToPage:=False))
+            AddHandler _bridge.OpenOsc, Sub(input) BeginInvoke(Sub() SetOverlayOpen(True, pushToPage:=False, userInitiated:=False))
             AddHandler _bridge.CloseOsc, Sub() BeginInvoke(Sub() SetOverlayOpen(False, pushToPage:=False))
 
             _client = New OscEngineClient()
@@ -202,7 +200,44 @@ Public Class OscHostForm
             AddHandler _applier.LogLine, Sub(m) Log(m)
             AddHandler _applier.ActionTriggered, AddressOf OnHotkeyAction
             AddHandler _server.HotkeySaved, Sub(name) BeginInvoke(Sub() _applier.Reapply(Handle))
+            AddHandler _server.HookInput, Sub(body) BeginInvoke(Sub() OnHookInput(body))
             _applier.Reapply(Handle)
+
+            ' in-game hook bridge: write port+secret next to every CONSENTED
+            ' whitelisted game (hook-whitelist.json) so the in-game mod can
+            ' poll the controller (MiSide = first whitelisted game)
+            Try
+                Dim wlPath As String = AppLayout.P("Data", "hook-whitelist.json")
+                If File.Exists(wlPath) Then
+                    Dim wl As System.Text.Json.Nodes.JsonObject =
+                        System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(wlPath)).AsObject()
+                    If wl("games") IsNot Nothing Then
+                        For Each g As System.Text.Json.Nodes.JsonNode In wl("games").AsArray()
+                            Dim obj As System.Text.Json.Nodes.JsonObject = TryCast(g, System.Text.Json.Nodes.JsonObject)
+                            If obj Is Nothing OrElse obj("consent")?.GetValue(Of Boolean)() <> True Then Continue For
+                            Dim gdir As String = obj("path")?.ToString()
+                            If gdir IsNot Nothing AndAlso Directory.Exists(gdir) Then
+                                Log("hook game whitelisted: " & obj("name")?.ToString() & " (" & gdir & ")")
+                                ' bridgeFile=true → write NvidiaShareHook.json next
+                                ' to the exe (C# mods). Native Present-hook games
+                                ' keep bridgeFile absent = ZERO files in the
+                                ' game folder (owner rule: "ห้ามลงไฟล์ในเกม") —
+                                ' they read port+secret from the MMF header
+                                ' (+28/+32) instead. File write is OPT-IN only.
+                                Dim wantBridge As Boolean = False
+                                If obj("bridgeFile") IsNot Nothing Then wantBridge = obj("bridgeFile").GetValue(Of Boolean)()
+                                If wantBridge Then
+                                    File.WriteAllText(IO.Path.Combine(gdir, "NvidiaShareHook.json"),
+                                        "{""port"":" & _server.Port.ToString() & ",""secret"":""" & _server.Secret & """}")
+                                    Log("hook bridge written: " & gdir)
+                                End If
+                            End If
+                        Next
+                    End If
+                End If
+            Catch ex As Exception
+                Log("hook bridge failed: " & ex.Message)
+            End Try
 
             InitWebView(oscRoot)
         Catch ex As Exception
@@ -275,7 +310,10 @@ Public Class OscHostForm
             Dim env As Microsoft.Web.WebView2.Core.CoreWebView2Environment =
                 Await Microsoft.Web.WebView2.Core.CoreWebView2Environment.CreateAsync(
                     Nothing, udf, New Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions() With {
-                        .AdditionalBrowserArguments = Environment.GetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
+                        .AdditionalBrowserArguments =
+                            "--disable-backgrounding-occluded-windows --disable-renderer-backgrounding " &
+                            "--remote-debugging-port=9224 " &
+                            Environment.GetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
                     })
             Await _webView.EnsureCoreWebView2Async(env)
 
@@ -301,6 +339,18 @@ Public Class OscHostForm
             core.Navigate("http://localhost:" & _server.Port.ToString() & "/index.html")
             _webviewReady = True
             Log("webview navigated to http://localhost:" & _server.Port.ToString() & "/index.html (NVIDIA osc)")
+            ' mount the menu view NOW through the page's own openOSC (hidden
+            ' while closed) so even the very first Alt+Z is a class flip
+            Try
+                Await core.ExecuteScriptAsync("window.__oscOpen && window.__oscOpen();")
+            Catch
+            End Try
+
+            ' frame pump: stream the osc page render to hooked games
+            HookCdpCapture.ControllerPort = _server.Port
+            HookCdpCapture.ControllerSecret = _server.Secret
+            _cdpCapture = New HookCdpCapture("9224")
+            _cdpCapture.Start()
         Catch ex As Exception
             Log("WebView2 init failed: " & ex.Message)
         End Try
@@ -317,91 +367,162 @@ Public Class OscHostForm
 
     ' ── toggle / visibility ────────────────────────────────────
 
-    ''' <summary>Idempotent state setter (closed-loop — see the push block).
-    '     The window NEVER moves while open... it DOES park when closed
-    '     (a topmost idle fullscreen window renders as a gray veil).</summary>
-    Private Async Sub SetOverlayOpen(open As Boolean, pushToPage As Boolean)
+    ''' <summary>Instant state setter (owner directives: "WebView เปิดเต็มตลอด
+    '     ห้ามย่อ", "hotkey ช้ามาก", "ปิดแล้วไป main-menu"). The window is
+    '     ALWAYS fullscreen on the primary screen — open/close flips only:
+    '     input (WndProc: closed = HTTRANSPARENT ทั้งจอ / open = HTCLIENT),
+    '     the page route (direct hash navigation = instant, no socket
+    '     round-trip), and the backdrop class. NO parking, NO window moves —
+    '     moving the fullscreen window was what made everything flicker.</summary>
+    Private Sub SetOverlayOpen(open As Boolean, pushToPage As Boolean, Optional userInitiated As Boolean = True)
         If Not _webviewReady Then
             Log("overlay state ignored — webview not ready")
             Return
         End If
         If _overlayOpen = open Then Return
         _overlayOpen = open
+        _userOpen = If(open, userInitiated, False)
+        HookCdpCapture.CaptureEnabled = If(open, 1, 0)
         TopMost = True
-        ' GFE semantics: menu open = the WHOLE window accepts input
-        ' (QUERY_WIN_OPEN_OSC enableInput) — displayRects are for the
-        ' closed/OSD state. Without this, an empty rect list made every
-        ' click fall through and the menu was unclickable (owner-reported).
-        _menuInputEnabled = open
-        If open Then
+
+        ' IN-GAME MODE: the injected DLL is alive → drive the overlay purely
+        ' through the shared-memory header (overlayVisible @ +16) and NEVER
+        ' touch the window — no Show, no Activate, no style change — so the
+        ' exclusive-fullscreen game keeps focus (owner bug: Alt+Z alt-tabbed
+        ' the game out).
+        Dim inGame As Boolean = False
+        Try : inGame = HookFramePump.HookLive() : Catch : End Try
+        If inGame Then
+            ' In-game mode: the window sits ON the primary screen at the
+            ' BOTTOM of the Z-order (the fullscreen game covers it) —
+            ' Chromium keeps rendering (occlusion throttle disabled via
+            ' browser flags) so the frame pump captures real pixels, and
+            ' the injected DLL draws them inside the game's own frame.
+            ' Zero focus steal, zero flicker.
+            ' MUST stay in the NORMAL z-band: TopMost=True put the window
+            ' in the topmost band where HWND_BOTTOM still floats ABOVE the
+            ' non-topmost game — the WebView then COVERED the game and the
+            ' taskbar/Alt-Tab preview (which shows the game's own frame)
+            ' had no overlay. Normal band + HWND_BOTTOM = game covers us.
+            TopMost = False
+            Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
+            SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
+            If Not Visible Then Show()
+            Dim pr As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
+            Location = pr.Location
+            SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
+            Try
+                _webView.CoreWebView2.ExecuteScriptAsync(
+                    "document.documentElement.classList.toggle('oscengine-open'," &
+                    open.ToString().ToLowerInvariant() & ");" &
+                    If(open, "window.__oscOpen && window.__oscOpen();",
+                        "window.__oscClose && window.__oscClose();"))
+            Catch ex As Exception
+                Log("route/backdrop toggle failed: " & ex.Message)
+            End Try
+            Log(If(open, "overlay open (in-game)", "overlay closed (in-game)"))
+            Return
+        End If
+
+        ' GFE semantics: menu open = the WHOLE window accepts input;
+        ' closed = the whole window is click-through (WS_EX_TRANSPARENT —
+        ' HTTRANSPARENT alone never passes hits to OTHER processes).
+        ' Page-requested opens (screenshot/recording toasts) show the view
+        ' but KEEP click-through — the screen must not be taken over.
+        _menuInputEnabled = _overlayOpen AndAlso _userOpen
+        Dim style As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
+        If _menuInputEnabled Then
+            SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(style And Not WS_EX_TRANSPARENT))
             If Not Visible Then Show()   ' first open: the form was never auto-shown
-            Dim bounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
-            Location = bounds.Location
-            Size = bounds.Size
             Activate()
         Else
-            ' park just BELOW the primary screen: invisible like a -32000
-            ' park, but MonitorFromWindow still resolves to the PRIMARY —
-            ' at -32000 it snapped to the portrait side monitor and
-            ' Chromium re-derived a wrong window.screen (menu mislaid out).
-            Dim b As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
-            Location = New System.Drawing.Point(b.X, b.Bottom + 40)
+            SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(style Or WS_EX_TRANSPARENT))
         End If
-        ' host-owned backdrop follows OUR state (real GFE: the host paints
-        ' the dim behind the menu; the page paints nothing)
+        ' THREE visual states —
+        '   user open (Alt+Z)  : oscengine-open  = dim + menu (openOSC)
+        '   page open (toasts) : oscengine-toast = light dim, NO menu,
+        '                        click-through KEPT (screenshot previews)
+        '   closed             : neither = fully hidden / click-through
         Try
-            _webView.CoreWebView2.ExecuteScriptAsync(
-                "document.documentElement.classList.toggle('oscengine-open'," &
-                open.ToString().ToLowerInvariant() & ")")
+            Dim cls As String = ""
+            If open AndAlso userInitiated Then
+                cls = "oscengine-open"
+            ElseIf open Then
+                cls = "oscengine-toast"
+            End If
+            Dim script As String =
+                "document.documentElement.classList.remove('oscengine-open','oscengine-toast');"
+            If cls.Length > 0 Then
+                script &= "document.documentElement.classList.add('" & cls & "');"
+            End If
+            If open AndAlso userInitiated Then
+                script &= "window.__oscOpen && window.__oscOpen();"
+            End If
+            If Not open Then
+                script &= "window.__oscClose && window.__oscClose();"
+            End If
+            _webView.CoreWebView2.ExecuteScriptAsync(script)
+            ' publish visibility to the in-game hook mod
+            OscControllerServer.SetHookOverlayState(open)
         Catch ex As Exception
-            Log("backdrop toggle failed: " & ex.Message)
+            Log("route/backdrop toggle failed: " & ex.Message)
         End Try
-        If pushToPage Then
-            ' CLOSED-LOOP control with retry: the page exposes NO stateful
-            ' "open menu" channel (DisplayOscState only routes
-            ' preferences/gallery), so we read location.hash, push the right
-            ' frame, and RE-READ until the page actually converged — a one-
-            ' shot read races the ui-router transition (measured: dismiss at
-            ' .406, hash still main-menu at .444 → phantom state flip).
-            Try
-                For attempt As Integer = 1 To 4
-                    Dim raw As String = Await _webView.CoreWebView2.ExecuteScriptAsync("location.hash")
-                    Dim pageOpen As Boolean = If(raw IsNot Nothing, raw.Contains("main-menu"), False)
-                    If pageOpen = open Then
-                        Log("page converged (" & If(pageOpen, "open", "closed") & ") on attempt " & attempt.ToString())
-                        Exit For
-                    End If
-                    If attempt > 1 Then
-                        Await Task.Delay(350)
-                        raw = Await _webView.CoreWebView2.ExecuteScriptAsync("location.hash")
-                        pageOpen = If(raw IsNot Nothing, raw.Contains("main-menu"), False)
-                        If pageOpen = open Then
-                            Log("page converged (" & If(pageOpen, "open", "closed") & ") after settle, attempt " & attempt.ToString())
-                            Exit For
-                        End If
-                    End If
-                    If open Then
-                        _server.PushEvent("/ShadowPlay/v.1.0/WindowState", "{""windowMsg"":""overlayToggle""}")
-                        Log("push overlayToggle (page reports closed), attempt " & attempt.ToString())
-                    Else
-                        _server.PushEvent("/ShadowPlay/v.1.0/WindowState", "{""windowMsg"":""dismiss""}")
-                        Log("push dismiss (page reports open), attempt " & attempt.ToString())
-                    End If
-                    Await Task.Delay(400)
-                Next
-            Catch ex As Exception
-                Log("closed-loop push failed: " & ex.Message)
-            End Try
-        End If
-        Log(If(open, "overlay open", "overlay closed"))
+        Log(If(open, If(userInitiated, "overlay open", "overlay toast"), "overlay closed"))
+    End Sub
+
+    ''' <summary>Input from the in-game hook mod → synthetic DOM events on
+    '     the page. Coordinates arrive in game pixels; the page viewport is
+    '     (game / zoom) CSS px where zoom = min(W/1920,H/1080).
+    '     type:"toggle" flips the overlay for remote control (bisect/debug).</summary>
+    Private Sub OnHookInput(bodyJson As String)
+        If Not _webviewReady Then Return
+        Try
+            Dim root As System.Text.Json.JsonElement = System.Text.Json.JsonDocument.Parse(bodyJson).RootElement
+            Dim typ As String = root.GetProperty("type").GetString()
+            If typ = "toggle" Then
+                BeginInvoke(Sub() SetOverlayOpen(Not _overlayOpen, pushToPage:=False))
+                Return
+            End If
+            Dim x As Double = 0, y As Double = 0
+            Dim xN As System.Text.Json.JsonElement
+            Dim yN As System.Text.Json.JsonElement
+            If root.TryGetProperty("x", xN) Then x = xN.GetDouble()
+            If root.TryGetProperty("y", yN) Then y = yN.GetDouble()
+            Dim zoom As Double = Math.Min(
+                Screen.PrimaryScreen.Bounds.Width / 1920.0,
+                Screen.PrimaryScreen.Bounds.Height / 1080.0)
+            If zoom <= 0 Then zoom = 1
+            Dim cx As Integer = CInt(x / zoom)
+            Dim cy As Integer = CInt(y / zoom)
+            Dim js As String = ""
+            Select Case typ
+                Case "mousemove"
+                    js = "(function(){var el=document.elementFromPoint(" & cx & "," & cy & ");if(!el)return;el.dispatchEvent(new MouseEvent('mousemove',{clientX:" & cx & ",clientY:" & cy & ",bubbles:true}));})()"
+                Case "mousedown", "mouseup"
+                    Dim btn As Integer = 0
+                    Dim bN As System.Text.Json.JsonElement
+                    If root.TryGetProperty("button", bN) Then btn = bN.GetInt32()
+                    js = "(function(){var el=document.elementFromPoint(" & cx & "," & cy & ");if(!el)return;el.dispatchEvent(new MouseEvent('" & typ & "',{clientX:" & cx & ",clientY:" & cy & ",button:" & btn & ",bubbles:true}));})()"
+            End Select
+            If js.Length > 0 Then _webView.CoreWebView2.ExecuteScriptAsync(js)
+        Catch ex As Exception
+            Log("hook input failed: " & ex.Message)
+        End Try
     End Sub
 
     Private Sub ToggleOverlay(Optional forceOpen As Boolean = False)
-        ' debounce: key auto-repeat (holding Alt+Z fires WM_HOTKEY every
-        ' ~30ms) must not machine-gun toggles — 500ms = one toggle per press
+        ' debounce: rapid auto-repeat must not machine-gun toggles — 150ms
+        ' still filters key auto-repeat but lets fast pressing through
         Dim now As Integer = Environment.TickCount
-        If Math.Abs(now - _lastToggleTick) < 500 Then Return
+        If Math.Abs(now - _lastToggleTick) < 150 Then Return
         _lastToggleTick = now
+        ' in-game mode: the HEADER is the ground truth (the form's state can
+        ' desync from restarts) — toggle against what the DLL actually draws
+        If HookFramePump.HookLive() Then
+            Dim vis As Boolean = HookFramePump.OverlayHeaderVisible()
+            SetOverlayOpen(Not vis, pushToPage:=False)
+            Return
+        End If
         If forceOpen Then
             SetOverlayOpen(True, pushToPage:=True)
         Else
@@ -502,11 +623,10 @@ Public Class OscHostForm
             Dim file As String = IO.Path.Combine(dir,
                 "Screenshot_" & DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss") & ".png")
 
-            ' hide our own window while capturing (real GFE does the same)
-            Dim wasVisible As Boolean = Visible
-            If wasVisible Then Visible = False
-            Threading.Thread.Sleep(120)
-
+            ' NO hide/show here (owner: the fullscreen flash felt like the
+            ' whole screen collapsing). The overlay is a layered transparent
+            ' surface — CopyFromScreen composites it out naturally, and the
+            ' window must never move or toggle visibility while capturing.
             Dim bounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
             Using bmp As New System.Drawing.Bitmap(bounds.Width, bounds.Height)
                 Using g As System.Drawing.Graphics = System.Drawing.Graphics.FromImage(bmp)
@@ -514,13 +634,11 @@ Public Class OscHostForm
                 End Using
                 bmp.Save(file, System.Drawing.Imaging.ImageFormat.Png)
             End Using
-            If wasVisible Then Visible = True
 
             Log("screenshot saved: " & file)
             PushNotificationPayload("screenshot", file)
         Catch ex As Exception
             Log("screenshot failed: " & ex.Message)
-            If Not Visible Then Visible = _overlayOpen
         End Try
     End Sub
 
@@ -574,7 +692,10 @@ Public Class OscHostForm
             End If
         End If
         If m.Msg = WM_NCHITTEST Then
-            If Not _overlayOpen OrElse Not _webviewReady Then
+            ' interactive ONLY when the USER opened the overlay (Alt+Z) —
+            ' page-requested opens (toasts) and the closed state stay
+            ' click-through
+            If Not _menuInputEnabled OrElse Not _webviewReady Then
                 m.Result = CType(HTTRANSPARENT, IntPtr)
                 Return
             End If
@@ -608,13 +729,6 @@ Public Class OscHostForm
         End Try
         Try
             EngineProcessSupervisor.Shutdown()
-        Catch
-        End Try
-        Try
-            If _tray IsNot Nothing Then
-                _tray.Visible = False
-                _tray.Dispose()
-            End If
         Catch
         End Try
         Try
@@ -667,6 +781,10 @@ Public Class OscHostForm
 
     <DllImport("user32.dll", EntryPoint:="SetWindowLongW")>
     Private Shared Function SetWindowLong(hWnd As IntPtr, nIndex As Integer, dwNewLong As IntPtr) As Integer
+    End Function
+
+    <DllImport("user32.dll")>
+    Private Shared Function SetLayeredWindowAttributes(hWnd As IntPtr, crKey As UInteger, bAlpha As Byte, dwFlags As Integer) As Boolean
     End Function
 
 End Class

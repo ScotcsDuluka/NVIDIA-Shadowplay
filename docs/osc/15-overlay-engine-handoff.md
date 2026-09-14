@@ -1,11 +1,66 @@
 # 15 — Overlay Engine Handoff (NVIDIA osc on WebView2)
 
-สถานะ ณ 2026-09-14 — เอกสารส่งมอบให้ agent ตัวถัดไป — **อ่านไฟล์เดียวจบ ต่อได้เลย**
+สถานะ ณ 2026-09-14 07:58 — เอกสารส่งมอบให้ agent ตัวถัดไป — **อ่านไฟล์เดียวจบ ต่อได้เลย**
 เอกสารประกอบ: `docs/osc/01–14` (inventory/protocol/state/screen/flow), `Overlay.Engine/PROTOCOL-MATRIX.md`
 (ground-truth contract + file:line evidence), `Overlay.Engine/README.md`, รายงาน `W1-*.md`
 (หมายเหตุ: README ของ engine บางย่อหน้าล้าสมัย — ยึดเอกสารนี้กับโค้ดจริงเป็นหลัก)
 
 ---
+
+## -1. อัปเดตล่าสุด (07:58 วันเดียวกัน) — งาน in-game hook ครบวงจรแล้ว
+
+1. **CDP publish = เสร็จแล้ว (พิสูจน์จริง)**: `HookCdpCapture` วน
+   `Page.captureScreenshot` → PNG → `PublishFrame` ลง MMF ต่อเนื่อง
+   (`hookcdp.log`: "published frame #N 1680x1050", เปิด/ปิดตาม `CaptureEnabled`,
+   log ครบทุกจุดแล้ว — send-fail / no-response / decode ทั้งหมดถูกบันทึก)
+2. **Port+secret ใน MMF header**: +28 = controller port (int32),
+   +32..+62 = secret ASCII NUL-terminated — DLL อ่านแล้วยิง POST เองได้
+   โดยไม่ต้องมีไฟล์ใดๆ ในโฟลเดอร์เกม
+3. **Input forwarding = เสร็จแล้ว (พิสูจน์จริง)**: `InputThread` ใน nvhook.cpp
+   วน 60Hz — อ่าน visible/port/secret จาก header → ส่ง mousemove/mousedown/mouseup
+   เมื่อ cursor เปลี่ยน (WinHTTP, cookie `X_LOCAL_SECURITY_COOKIE`) →
+   `POST /ShadowPlay/v.1.0/Hook/Input` → `OscControllerServer.HookInput` →
+   `OscHostForm.OnHookInput` → synthetic DOM events (engine log นับ 25+ POST ระหว่างทดสอบ)
+4. **DLL วาด overlay จริงแล้ว** (ไม่ใช่ bisect เขียว): pixel shader sample
+   texture + blend SRC_ALPHA/INV_SRC_ALPHA — `BuildResources ok (1680x1050)`,
+   `Draw(3,0) executed`, live counter (+20) วิ่งทุก Present
+5. **Alt+Z toggle ในเกม 2 ทิศทาง** (header flag เท่านั้น เกมไม่เสียโฟกัส): ปิด =
+   `capture disabled` + DLL หยุดวาด / เปิด = `capture ENABLED` + publish ต่อ
+6. **แก้ไฟล์ในเกม (กฎเหล็ก)**: session เก่าเขียน `NvidiaShareHook.json`
+   (port+secret) ลงโฟลเดอร์เกมเพราะ `wantBridge` default True — แก้เป็น
+   **opt-in only** (`bridgeFile:true` เท่านั้น) และลบไฟล์ทิ้งแล้ว —
+   โฟลเดอร์เกมกลับมาเป็นศูนย์ไฟล์ของเรา (engine = memory only)
+7. **กับดักใหม่ §6.21-24**: Dungeons.exe ตัวจริงอยู่
+   `E:\SteamLibrary\Steamapps\Common\Minecraft Dungeons\Dungeons\Binaries\Win64\`
+   (ตัวที่ root = launcher stub ค้าง 2 threads) — launch ตรงได้เมื่อ Steam รันอยู่;
+   `%TEMP%\osc-golden\` โดนลับระหว่างทาง (สร้าง altz2.ps1 ใหม่แล้ว)
+8. **(08:50) วาดในเกมจริงครบวงจร — เห็นทั้งบนจอและใน PrintWindow/taskbar
+   thumbnail แล้ว** ต้องแก้กับดัก 4 ตัวก่อนถึงสำเร็จ:
+   - **§6.21 TopMost band**: ใน in-game branch ห้ามคง `TopMost=True` —
+     HWND_BOTTOM ใน topmost band ยังลอยเหนือเกม (normal band) เสมอ =
+     WebView บังเกม + thumbnail เห็นเฟรมเกมเปล่า → `TopMost=False` ก่อน
+     HWND_BOTTOM เสมอ
+   - **§6.22 orphaned MMF**: engine restart ทิ้ง section เก่าที่ DLL ยังถือ
+     (เป็น unnamed orphan) — logic เทียบ PID ใน header เดิมไม่มีวัน trigger
+     → เพิ่ม **epoch @+56** (engine เขียนตอนสร้าง) + DLL poll ชื่อ section
+     ทุก 500ms สลับเมื่อ epoch ต่าง (`ReopenIfEngineRestarted`)
+   - **§6.23 vtable slot ผิด = crash**: `IDXGISwapChain1::Present1` = **slot 14**
+     (base ครอง 0..13; slot 12 คือ GetFrameStatistics — patch ผิดแล้วเกม
+     crash ทันที วาดกลาง frame)
+   - **§6.24 interface หลายชั้น**: เกม QI เป็น SwapChain2/3/4 แล้วเรียก
+     Present บน vtable ก้อนนั้น — ต้อง patch slot 8+14 บนทุก interface
+     (base+1+2+3+4) หลักฐานสำเร็จ: `draw #1200` @60fps + เกมเสถียร +
+     PrintWindow เห็นเมนูในเฟรมเกม
+   - **§6.25 vertex triangle ผิดทิศ = วาดแต่ล่องหน**: SV_VertexID
+     fullscreen triangle ต้องเป็น `(-1,-1),(3,-1),(-1,3)` — แบบเดิม
+     `(3,3),(-1,3),(3,-1)` ครอบแค่ x+y>2 (มุมจอจุดเดียว) draw รัน @60fps
+     แต่มองไม่เห็นเลย (บั๊กตัวสุดท้ายที่ทำให้ "วาดแล้วแต่จอสะอาด")
+   - **พิสูจน์ A/B สำเร็จ (09:03)**: vis=1 เฟรมเกมมีเมนู / vis=0 สะอาด —
+     PrintWindow(เกม) = แหล่งเดียวกับ taskbar thumbnail ยืนยันว่า overlay
+     ผสมเข้าเฟรมเกมจริง แบบ GFE แท้ (ไม่ใช่หน้าต่างลอย) — เจ้าของยืนยัน
+     เห็นบนจอแล้ว
+
+
 
 ## 0. TL;DR — ตอบคำถาม "ทำไม Hotkey/Settings/Video ยังใช้ไม่ได้"
 
@@ -17,10 +72,13 @@
 - **ชั้น "ลงมือทำ" (ทยอยเสร็จ บางส่วนยังไม่มี)** — worklist หลักอยู่ §4:
   - **rebind hotkey จริง = เสร็จแล้ว** (ไฟล์ใหม่ `OscHotkeyApplier.vb`: ค่าที่เซฟ → `RegisterHotKey` จริงทุกครั้งที่กด save;
     action จริงแล้ว — Screenshot ได้ไฟล์ PNG จริง (พิสูจน์แล้ว), RecordToggle ผ่าน TCP, เปิดหน้า Ansel preview — ที่เหลือยัง toast)
-  - Record/Settings → ยังไม่ถูกส่งต่อให้ CaptureEngine (เก็บแล้วแต่ไม่มีผู้บริโภค) + GET ตอบ `{}` จนกว่าจะมี POST แรก
-  - Audio → ยังไม่มี list อุปกรณ์จริง (มีแค่จำนวน mic จริง + webcam present จริง)
+  - **Record/Settings ⇆ engine config = เสร็จแล้ว (2026-09-14 ล่าสุด)**: GET อ่านจาก `config.json → Recording.current`
+    (framerate/bitrateBps/resolution ตอนนี้ตอบจริง ไม่ใช่ {}), POST → เขียน `Recording.current.{fps,bitrate(kbps),width,height,use_native_resolution}`
+    — engine อ่านเองตอน record start (`ApplyUnifiedToCaptureSettings`); option lists `/Resolutions` `/FrameRates` `/BitRates/:q/:r` ให้ครบ
+    (บั๊กต้นตอ: `Case "/Record/Settings"` = dead code ตั้งแต่ M1 — path จริงต้องเป็น `/ShadowPlay/v.1.0/Record/Settings`, ดู §6.16)
+  - **Audio devices จริง = เสร็จแล้ว**: `/Microphone/{i}/Settings` คืนชื่อไมค์จริงจาก WinMM (`waveInGetDevCapsW` — struct ต้อง `CharSet.Unicode` + `wReserved1`, ดู §6.18); `/AudioSettings` = {systemVolumePercent,separateTracks}
+  - **Ansel panel events = ทำแล้วยังไม่เวิร์ก**: PushEvent `{type:gameResolution|highResResolutions}` บน channel `/NvCamera/v.1.0/Notifications` (channel จริงจาก NvCameraAPI.js `io.emit`) แล้วแต่ panel ยัง 0x0 — ต้องตาม registration flow `Le()`/`g.register` (ดูข้อ 3)
   - OSD → ยังไม่มี surface วาดจริง
-  - Ansel panel → ค่า resolution ต้องส่งผ่าน **socket event** ไม่ใช่ REST (ดูข้อ 3)
 
 ไฟล์ NVIDIA (`C:\Program Files\NVIDIA Corporation\…` รวมถึงโฟลเดอร์ `ห้ามแตะห้ามใช้\`) **ไม่ถูกแตะแม้แต่ไฟล์เดียว** — ทุกอย่างเป็น source/Content ของเรา
 
@@ -140,6 +198,11 @@ NVIDIA Overlay Engine.exe (WinForms, net10.0-windows10.0.26100.0, PerMonitorV2)
 13. **เอกสารล้าสมัย**: README ของ engine (M0/hotkey/config flags) กับความจริงต่างกันแล้ว — ยึดโค้ด + เอกสารนี้; `config.js` ปัจจุบัน = flags true
 14. **Concurrent agent sessions**: repo นี้มีงานเข้าจากหลาย session (เคยชนกันจนต้อง STOP/INSPECT/PRESERVE ตาม W1 §8; เอกสารนี้เองถูกเขียนทับระหว่างทางหนึ่งครั้ง) — ก่อน drive interactive ตรวจว่าไม่มีใครคุม overlay อยู่, ไฟล์ใหม่อาจโผล่ระหว่างทาง, แก้อะไร re-read ก่อนเขียนทับ
 15. **Hotkey ownership**: RegisterHotKey first-come-first-served — ไม่แย่ง ไม่ retry รุนแรง; ถ้า Forms overlay/GFE ถือคอมโบอยู่ ให้ degrade ไป tray/hub อย่างซื่อสัตย์
+16. **Dead-case ใน Select Case (บั๊ก settings ไม่เซฟมาตลอด)**: `Case "/Record/Settings"` ไม่ match `/ShadowPlay/v.1.0/Record/Settings` — case ต้องเป็น **full path** เสมอ; ตอนนี้แก้แล้ว 3 case (Record/Settings, RecordPaths, Record/Enable) — เช็ค case อื่นที่ path สั้นเช่นกัน
+17. **Catalog shadowing**: `FindCatalogResponse` (longest-prefix) รันก่อน handlers — ไฟล์ `ShadowPlay_v.1.0_*.json` ที่เป็น `{}` บัง live handlers ทุกตัว (เคยทำให้ Screenshot/Support = undefined, Microphone/Present = {}); ลบ 12 ไฟล์ shadow แล้ว — **เพิ่ม live handler ใหม่ = ต้องลบ catalog file ทาง prefix เดียวกันด้วย**
+18. **robocopy //E ไม่ลบไฟล์ที่ถูกลบจากต้นทาง** — ไฟล์ที่ลบใน bin ยังค้างใน ShadowPlay.v1 (ดู "Extras" column) — ลบตรง ๆ เสมอ
+19. **WAVEINCAPS P/Invoke**: ByValTStr default = ANSI (struct 48 ไบต์ → waveInGetDevCapsW คืน 11 INVALPARAM) — ต้อง `StructLayout(CharSet:=CharSet.Unicode)` + ใส่ `wReserved1` ให้ครบ 80 ไบต์
+20. **Assembly เปลี่ยนชื่อแล้ว**: output = `NVIDIA Share.exe` (AssemblyName + ลบไฟล์เก่า `NVIDIA Overlay Engine.*` จาก staging ด้วย); `OscProtocol.AppName` = "NVIDIA Share"; `Overlay.Engine/gfe/` (198MB installer junk) ถูกลบแล้ว
 
 ## 7. Quick start ของ agent ตัวถัดไป
 
