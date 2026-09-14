@@ -33,9 +33,6 @@ Public Class OscHostForm
     Private Const WS_EX_LAYERED As Integer = &H80000
     Private Const LWA_ALPHA As Integer = 2
     Private Const HWND_BOTTOM As Integer = 1
-    Private Const HWND_TOPMOST As Integer = -1
-    Private Const WS_EX_NOACTIVATE As Integer = &H8000000
-    Private Const SWP_SHOWWINDOW As Integer = &H40
     Private Const SWP_NOMOVE As Integer = 2
     Private Const SWP_NOSIZE As Integer = 1
     Private Const SWP_NOACTIVATE As Integer = &H10
@@ -46,7 +43,6 @@ Public Class OscHostForm
 
     Private WithEvents _webView As Microsoft.Web.WebView2.WinForms.WebView2
     Private _cdpCapture As HookCdpCapture
-    Private _inputReader As HookInputReader
     Private _server As OscControllerServer
     Private _client As OscEngineClient
     Private _bridge As CefQueryBridge
@@ -355,24 +351,6 @@ Public Class OscHostForm
             HookCdpCapture.ControllerSecret = _server.Secret
             _cdpCapture = New HookCdpCapture("9224")
             _cdpCapture.Start()
-            ' WGC GPU source: 60fps frames straight off the compositor —
-            ' the CDP loop idles while WGC is live (fallback otherwise)
-            Try
-                NvShareEngine.WgcFrameSource.FrameCallback = AddressOf HookCdpCapture.PublishPixels
-                NvShareEngine.WgcFrameSource.GateProbe = Function() HookCdpCapture.CaptureEnabled
-                NvShareEngine.WgcFrameSource.ActiveChanged = Sub(a)
-                                                   HookCdpCapture.ExternalCapture = If(a, 1, 0)
-                                                   Log("wgc " & If(a, "ACTIVE — gpu frames", "inactive — CDP fallback"))
-                                               End Sub
-                NvShareEngine.WgcFrameSource.Start(Me.Handle)   ' top-level only: CreateForWindow rejects child windows
-            Catch ex2 As Exception
-                Log("wgc start failed: " & ex2.Message)
-            End Try
-            ' in-game hook input: shared-memory ring (no HTTP — the game's
-            ' online-fix layer intercepts WinHTTP inside the game process)
-            _inputReader = New HookInputReader()
-            AddHandler _inputReader.Input, Sub(body) BeginInvoke(Sub() OnHookInput(body))
-            _inputReader.Start()
             ' watch whitelisted games → auto-inject the in-game hook DLL
             HookAutoInject.Start()
         Catch ex As Exception
@@ -429,29 +407,12 @@ Public Class OscHostForm
             ' taskbar/Alt-Tab preview (which shows the game's own frame)
             ' had no overlay. Normal band + HWND_BOTTOM = game covers us.
             TopMost = False
+            Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
+            SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
+            If Not Visible Then Show()
             Dim pr As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
             Location = pr.Location
-            If open Then
-                ' OVERLAY-OPEN (in-game): show the REAL window over the game
-                ' WITHOUT taking focus — WS_EX_NOACTIVATE + SWP_NOACTIVATE
-                ' keep the game owning keyboard focus (its keys are swallowed
-                ' by the DLL's suppression and forwarded via the ring), while
-                ' the page renders natively: full fps, real CSS :hover, real
-                ' clicks. No capture pipeline needed for interaction.
-                Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
-                styleIn = styleIn And (Not WS_EX_TRANSPARENT)   ' accept mouse
-                styleIn = styleIn Or WS_EX_NOACTIVATE           ' never steal focus
-                SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn))
-                SetWindowRgn(Handle, IntPtr.Zero, True)
-                SetLayeredWindowAttributes(Handle, 0, 255, LWA_ALPHA)
-                SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
-                    SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE Or SWP_SHOWWINDOW)
-            Else
-                ' OVERLAY-CLOSED (in-game): hide behind the game again.
-                Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
-                SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
-                SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
-            End If
+            SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
             Try
                 _webView.CoreWebView2.ExecuteScriptAsync(
                     "document.documentElement.classList.toggle('oscengine-open'," &
@@ -937,14 +898,6 @@ Public Class OscHostForm
 
     <DllImport("user32.dll")>
     Private Shared Function SetLayeredWindowAttributes(hWnd As IntPtr, crKey As UInteger, bAlpha As Byte, dwFlags As Integer) As Boolean
-    End Function
-
-    <DllImport("gdi32.dll")>
-    Private Shared Function CreateRectRgn(x1 As Integer, y1 As Integer, x2 As Integer, y2 As Integer) As IntPtr
-    End Function
-
-    <DllImport("user32.dll")>
-    Private Shared Function SetWindowRgn(hWnd As IntPtr, hRgn As IntPtr, bRedraw As Boolean) As Integer
     End Function
 
 End Class
