@@ -278,7 +278,7 @@ Public Class OscHostForm
                                                                ' desktop view in in-game mode. Those requests must not
                                                                ' clear the MMF visibility flag; Alt+Z owns the in-game
                                                                ' close transition.
-                                                               If _inGameOverlayActive AndAlso _overlayOpen Then
+                                                               If HookFramePump.HookLive() AndAlso _overlayOpen Then
                                                                    Log("ignored in-game page close request")
                                                                    Return
                                                                End If
@@ -682,6 +682,10 @@ Public Class OscHostForm
             Dim root As System.Text.Json.JsonElement = System.Text.Json.JsonDocument.Parse(bodyJson).RootElement
             Dim typ As String = root.GetProperty("type").GetString()
             If typ = "toggle" Then
+                If _inGameOverlayActive AndAlso _overlayOpen Then
+                    Log("ignored duplicate in-game input toggle")
+                    Return
+                End If
                 BeginInvoke(Sub() SetOverlayOpen(Not _overlayOpen, pushToPage:=False))
                 Return
             End If
@@ -984,7 +988,9 @@ Public Class OscHostForm
         If String.IsNullOrEmpty(p) Then
             p = IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "NVIDIA ShadowPlay", "videos")
         End If
-        Return "{""savePath"":" & OscWire.JsonString(p) & "}"
+        ' page fields: videos + tempFiles (bundle POSTs {videos, tempFiles})
+        Dim temp As String = IO.Path.Combine(p, "temp")
+        Return "{""videos"":" & OscWire.JsonString(p) & ",""tempFiles"":" & OscWire.JsonString(temp) & "}"
     End Function
 
     ' ── socket events from the page ────────────────────────────

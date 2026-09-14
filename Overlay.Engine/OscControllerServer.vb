@@ -312,12 +312,32 @@ Public Class OscControllerServer
                         WriteJson(res, 200, BuildRecordSettingsFromEngineConfig())
                     End If
                 Case "/ShadowPlay/v.1.0/RecordPaths"
+                    ' page fields: {videos, tempFiles}; POST also syncs the
+                    ' videos path into config.json Paths/SavePath
                     If method = "POST" Then
-                        StoreSection("recordPaths", ReadBody(req))
+                        Dim body As String = ReadBody(req)
+                        StoreSection("recordPaths", body)
+                        Try
+                            Dim pb = TryCast(System.Text.Json.Nodes.JsonNode.Parse(body), System.Text.Json.Nodes.JsonObject)
+                            Dim vids = pb?("videos")?.ToString()
+                            If Not String.IsNullOrEmpty(vids) Then
+                                AppConfigShared.WriteString("Paths", "SavePath", vids)
+                            End If
+                        Catch
+                        End Try
                         WriteJson(res, 200, "{}")
                     Else
                         Dim stored As JsonObject = GetSection("recordPaths")
-                        WriteJson(res, 200, If(stored.Count > 0, stored.ToJsonString(), SafeJson(RecordPathsProvider, "{}")))
+                        Dim videos As String = stored("videos")?.ToString()
+                        If String.IsNullOrEmpty(videos) Then videos = stored("savePath")?.ToString()
+                        Dim tempFiles As String = stored("tempFiles")?.ToString()
+                        If String.IsNullOrEmpty(videos) Then
+                            WriteJson(res, 200, SafeJson(RecordPathsProvider, "{}"))
+                        Else
+                            If String.IsNullOrEmpty(tempFiles) Then tempFiles = IO.Path.Combine(videos, "temp")
+                            WriteJson(res, 200, "{""videos"":" & OscWire.JsonString(videos) &
+                                       ",""tempFiles"":" & OscWire.JsonString(tempFiles) & "}")
+                        End If
                     End If
                 Case "/ShadowPlay/v.1.0/Record/Enable"
                     If method = "POST" Then
@@ -574,7 +594,7 @@ Public Class OscControllerServer
                         Return
                     End If
                     If rawPath.StartsWith("/ShadowPlay/v.1.0/BitRates/", StringComparison.OrdinalIgnoreCase) Then
-                        WriteJson(res, 200, "{""min"":5000,""max"":100000,""default"":17000}")
+                        WriteJson(res, 200, "{""min"":10000,""max"":130000,""default"":40000}")
                         Return
                     End If
 

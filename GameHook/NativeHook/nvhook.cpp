@@ -651,14 +651,6 @@ static void InstallIatHooks()
     PatchIatAll("user32.dll", "GetKeyState", (void *)&HookGetKeyState, (void **)&g_origGetKeyState);
     PatchIatAll("user32.dll", "GetKeyboardState", (void *)&HookGetKeyboardState, (void **)&g_origGetKeyboardState);
     PatchIatAll("user32.dll", "GetRawInputData", (void *)&HookGetRawInputData, (void **)&g_origGetRawInputData);
-    // Prefer import/resolver hooks; never patch opengl32.dll's export
-    // prologue because Geometry Dash/driver combinations can crash there.
-    PatchIatAll("opengl32.dll", "wglSwapBuffers", (void *)&HookedWglSwapBuffers, (void **)&g_origWglSwapBuffers);
-    PatchIatAll("gdi32.dll", "SwapBuffers", (void *)&HookedGdiSwapBuffers, (void **)&g_origGdiSwapBuffers);
-    PatchIatAll("opengl32.dll", "wglSwapLayerBuffers", (void *)&HookedWglSwapLayer, (void **)&g_origWglSwapLayer);
-    PatchIatAll("opengl32.dll", "wglGetProcAddress", (void *)&HookedWglGetProcAddress, (void **)&g_origWglGetProcAddress);
-    PatchIatAll("kernel32.dll", "GetProcAddress", (void *)&HookedGetProcAddress, (void **)&g_origGetProcAddress);
-
 }
 
 

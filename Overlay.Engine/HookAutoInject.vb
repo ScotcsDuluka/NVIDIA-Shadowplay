@@ -71,12 +71,21 @@ Public Class HookAutoInject
                         e.Exe = e.Exe.Substring(0, e.Exe.Length - 4)
                     End If
                 End If
-                If e.Consent AndAlso Not String.IsNullOrEmpty(e.Exe) Then out.Add(e)
+                ' These renderers are not safe for the current native path:
+                ' Smash is unstable after DLL load and Geometry Dash needs
+                ' Desktop mode because its OpenGL present boundary is unknown.
+                If e.Consent AndAlso Not String.IsNullOrEmpty(e.Exe) AndAlso
+                   Not IsNativeHookBlocked(e.Exe) Then out.Add(e)
             Next
         Catch ex As Exception
             L("whitelist read failed: " & ex.Message)
         End Try
         Return out
+    End Function
+
+    Private Shared Function IsNativeHookBlocked(exeName As String) As Boolean
+        Return String.Equals(exeName, "Smash_Legends", StringComparison.OrdinalIgnoreCase) OrElse
+               String.Equals(exeName, "GeometryDash", StringComparison.OrdinalIgnoreCase)
     End Function
 
     Private Shared Sub WatchLoop()

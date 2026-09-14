@@ -169,6 +169,44 @@ Public Module AppConfigShared
     End Sub
 
     ''' <summary>
+    ''' Writes a string key into [section] using the same atomic
+    ''' read-modify-write contract as WriteBool.
+    ''' </summary>
+    Public Sub WriteString(sectionName As String, keyName As String, value As String)
+        Try
+            Dim targetPath As String = ConfigPath()
+            AppLayout.EnsureParentDir(targetPath)
+
+            Dim rootObj As JsonObject = Nothing
+            If File.Exists(targetPath) Then
+                Dim jsonText As String = File.ReadAllText(targetPath)
+                If Not String.IsNullOrWhiteSpace(jsonText) Then
+                    rootObj = TryCast(JsonNode.Parse(jsonText), JsonObject)
+                End If
+            End If
+            If rootObj Is Nothing Then rootObj = New JsonObject()
+
+            Dim sectionObj As JsonObject = TryCast(FindMember(rootObj, sectionName), JsonObject)
+            If sectionObj Is Nothing Then
+                sectionObj = New JsonObject()
+                rootObj(sectionName) = sectionObj
+            End If
+
+            sectionObj(keyName) = If(value, String.Empty)
+
+            Dim options As New JsonSerializerOptions With {.WriteIndented = True}
+            Dim finalJson As String = rootObj.ToJsonString(options)
+            Dim tmpPath As String = targetPath & "." & Process.GetCurrentProcess().Id.ToString() & ".tmp"
+            Dim bakPath As String = targetPath & ".bak"
+            File.WriteAllText(tmpPath, finalJson)
+            If File.Exists(targetPath) Then File.Copy(targetPath, bakPath, True)
+            File.Move(tmpPath, targetPath, True)
+        Catch
+            ' Settings persistence must not take down the controller server.
+        End Try
+    End Sub
+
+    ''' <summary>
     ''' Loads and parses the CURRENT config.json content. Returns Nothing when
     ''' the file is missing, empty, or not a JSON object — callers fall back.
     ''' </summary>
