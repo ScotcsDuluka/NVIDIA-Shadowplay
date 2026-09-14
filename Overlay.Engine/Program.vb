@@ -42,6 +42,15 @@ Public Class Program
                 Trace.WriteLine($"[OscEngine] AppLayout.Initialize: {ex.Message}")
             End Try
 
+            ' Config mirror: keep the Forms overlay's Config\config.json in
+            ' sync with ours (newest copy wins at boot, every write mirrors).
+            Try
+                AppConfigShared.RegisterMirror(
+                    "C:/My Project/NVIDIA-Shadowplay/Overlay/bin/Release/net10.0-windows10.0.26100.0/Config/config.json")
+            Catch ex As Exception
+                Trace.WriteLine($"[OscEngine] RegisterMirror: {ex.Message}")
+            End Try
+
             Application.EnableVisualStyles()
             Application.SetCompatibleTextRenderingDefault(False)
             ' Any unhandled exception must leave a trace in the engine log —

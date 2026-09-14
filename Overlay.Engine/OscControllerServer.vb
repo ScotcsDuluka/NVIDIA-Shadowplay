@@ -372,11 +372,45 @@ Public Class OscControllerServer
                     ' data.present = boolean
                     WriteJson(res, 200, "{""present"":" & If(WebcamPresent(), "true", "false") & "}")
                 Case "/ShadowPlay/v.1.0/Webcam/Enable"
+                    ' camera toggle state persists so the overlay menu
+                    ' reflects it across opens
                     If method = "POST" Then
-                        WriteJson(res, 200, "{}")
-                    Else
-                        WriteJson(res, 200, "{""status"":false}")
+                        StoreSection("webcam", ReadBody(req))
                     End If
+                    Dim wEn As Boolean = False
+                    Try
+                        wEn = GetSection("webcam")("enable")?.GetValue(Of Boolean)() = True
+                    Catch
+                    End Try
+                    WriteJson(res, 200, "{""status"":" & If(wEn, "true", "false") & "}")
+                Case "/ShadowPlay/v.1.0/Webcam/Toggle"
+                    If method = "POST" Then
+                        Dim wCur As Boolean = False
+                        Try
+                            wCur = GetSection("webcam")("enable")?.GetValue(Of Boolean)() = True
+                        Catch
+                        End Try
+                        StoreSection("webcam", "{""enable"":" & If(wCur, "false", "true") & "}")
+                    End If
+                    WriteJson(res, 200, "{}")
+                Case "/ShadowPlay/v.1.0/Microphone"
+                    ' mic mode menu (Push-to-talk / Always on / Off):
+                    ' POST {mode:"ptt"|"both"|"game"} - keep GET /Audio in
+                    ' sync so the menu highlight persists across opens
+                    If method = "POST" Then
+                        Dim mBody As String = ReadBody(req)
+                        StoreSection("audioMode", mBody)
+                        StoreSection("audio", mBody)
+                    End If
+                    Dim aMode As String = GetSection("audioMode")("mode")?.ToString()
+                    If String.IsNullOrEmpty(aMode) Then
+                        aMode = GetSection("audio")("mode")?.ToString()
+                    End If
+                    If String.IsNullOrEmpty(aMode) Then aMode = "off"
+                    WriteJson(res, 200, "{""mode"":""" & aMode & """}")
+                Case "/ShadowPlay/v.1.0/Microphone/PTT"
+                    If method = "POST" Then StoreSection("micPtt", ReadBody(req))
+                    WriteJson(res, 200, "{}")
                 Case "/ShadowPlay/v.1.0/Record/Running"
                     WriteJson(res, 200, SafeJson(StateProvider, "{""running"":false}"))
                 Case "/ShadowPlay/v.1.0/InstantReplay/Running"
@@ -794,6 +828,7 @@ Public Class OscControllerServer
                 If Not Directory.Exists(dir) Then Directory.CreateDirectory(dir)
                 File.WriteAllText(path, root.ToJsonString(
                     New System.Text.Json.JsonSerializerOptions With {.WriteIndented = True}))
+                AppConfigShared.MirrorNow()
             End SyncLock
             RaiseEvent LogLine("record settings applied to engine config")
         Catch ex As Exception
@@ -859,6 +894,7 @@ Public Class OscControllerServer
                 If Not Directory.Exists(dir) Then Directory.CreateDirectory(dir)
                 File.WriteAllText(path, root.ToJsonString(
                     New System.Text.Json.JsonSerializerOptions With {.WriteIndented = True}))
+                AppConfigShared.MirrorNow()
             End SyncLock
             RaiseEvent LogLine("replay_duration applied to engine config: " & secs.ToString(CultureInfo.InvariantCulture) & "s")
         Catch ex As Exception

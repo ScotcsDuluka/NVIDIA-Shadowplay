@@ -39,8 +39,63 @@ Public Module AppConfigShared
         If _configPath Is Nothing Then
             _configPath = AppLayout.P("Config", "config.json")
         End If
+        SyncMirrors()
         Return _configPath
     End Function
+
+    ' --- config mirrors: extra config.json copies kept in sync (e.g. the
+    '     Forms overlay own Config folder) so every consumer sees the same
+    '     settings regardless of which app wrote last. ---
+    Private ReadOnly Mirrors As New List(Of String)()
+    Private _mirrorSynced As Boolean
+
+    Public Sub RegisterMirror(path As String)
+        If Not String.IsNullOrEmpty(path) AndAlso Not Mirrors.Contains(path) Then
+            Mirrors.Add(path)
+            _mirrorSynced = False
+        End If
+    End Sub
+
+    Private Sub SyncMirrors()
+        If _mirrorSynced Then Return
+        _mirrorSynced = True
+        Try
+            Dim primary As String = ConfigPath()
+            Dim newest As String = primary
+            Dim newestTime As DateTime = If(File.Exists(primary), File.GetLastWriteTime(primary), DateTime.MinValue)
+            For Each m As String In Mirrors
+                If File.Exists(m) Then
+                    Dim t As DateTime = File.GetLastWriteTime(m)
+                    If t > newestTime Then
+                        newestTime = t
+                        newest = m
+                    End If
+                End If
+            Next
+            If newest <> primary AndAlso File.Exists(newest) Then
+                AppLayout.EnsureParentDir(primary)
+                File.Copy(newest, primary, True)
+            End If
+            For Each m As String In Mirrors
+                If File.Exists(primary) Then
+                    AppLayout.EnsureParentDir(m)
+                    File.Copy(primary, m, True)
+                End If
+            Next
+        Catch
+        End Try
+    End Sub
+
+    Public Sub MirrorNow()
+        Try
+            If Not File.Exists(ConfigPath()) Then Return
+            For Each m As String In Mirrors
+                AppLayout.EnsureParentDir(m)
+                File.Copy(ConfigPath(), m, True)
+            Next
+        Catch
+        End Try
+    End Sub
 
     ''' <summary>
     ''' Reads a boolean key from [section]. Falls back when the file, the
@@ -162,6 +217,7 @@ Public Module AppConfigShared
                 File.Copy(targetPath, bakPath, True)
             End If
             File.Move(tmpPath, targetPath, True)
+            MirrorNow()
         Catch
             ' config.json being locked/corrupt must never take the caller down
             ' (the Launcher tick and the API hub call this on a timer).
@@ -201,6 +257,7 @@ Public Module AppConfigShared
             File.WriteAllText(tmpPath, finalJson)
             If File.Exists(targetPath) Then File.Copy(targetPath, bakPath, True)
             File.Move(tmpPath, targetPath, True)
+            MirrorNow()
         Catch
             ' Settings persistence must not take down the controller server.
         End Try
