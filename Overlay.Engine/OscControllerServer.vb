@@ -489,7 +489,18 @@ Public Class OscControllerServer
                             Dim be As JsonObject = GetSection("broadcastEnable")
                             WriteJson(res, 200, If(be.Count > 0, be.ToJsonString(), "{""enable"":false}"))
                         Case "/ShadowPlay/v.1.0/DesktopCapture/Enable"
-                            If method = "POST" Then StoreSection("desktopCapture", ReadBody(req))
+                            ' privacy toggle: persist to store AND sync into
+                            ' config.json Privacy.DesktopCapture (mirrored)
+                            If method = "POST" Then
+                                Dim dcBody As String = ReadBody(req)
+                                StoreSection("desktopCapture", dcBody)
+                                Try
+                                    Dim dcVal = System.Text.Json.Nodes.JsonNode.Parse(dcBody)
+                                    Dim dcOn As Boolean = dcVal?("enable")?.GetValue(Of Boolean)() = True
+                                    AppConfigShared.WriteBool("Privacy", "DesktopCapture", dcOn)
+                                Catch
+                                End Try
+                            End If
                             Dim dc As JsonObject = GetSection("desktopCapture")
                             WriteJson(res, 200, If(dc.Count > 0, dc.ToJsonString(), "{""enable"":false}"))
                         Case "/ShadowPlay/v.1.0/Audio"

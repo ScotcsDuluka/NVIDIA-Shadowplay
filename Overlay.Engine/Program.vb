@@ -47,6 +47,11 @@ Public Class Program
             Try
                 AppConfigShared.RegisterMirror(
                     "C:/My Project/NVIDIA-Shadowplay/Overlay/bin/Release/net10.0-windows10.0.26100.0/Config/config.json")
+                ' Engine Capture + API Capture own configs stay in sync too
+                AppConfigShared.RegisterMirror(
+                    "C:/My Project/NVIDIA-Shadowplay/Engine/bin/Debug/net10.0-windows10.0.26100.0/Config/config.json")
+                AppConfigShared.RegisterMirror(
+                    "C:/My Project/NVIDIA-Shadowplay/API/bin/Debug/net10.0-windows10.0.26100.0/Config/config.json")
             Catch ex As Exception
                 Trace.WriteLine($"[OscEngine] RegisterMirror: {ex.Message}")
             End Try
