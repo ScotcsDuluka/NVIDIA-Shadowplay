@@ -97,6 +97,14 @@
     (fallback: ถ้า WGC fail เปิดพอร์ต → ใช้ CDP polling อย่างนี้)
     + แก้ DLL null-loop: cachedCtrlPid ต้อง update ใน branch รีเซ็ต
     ด้วย ไม่งั้นวนปิด handle ตลอด (live=0 หลัง engine restart)
+13. **(10:22) บล็อกเกมสมบูรณ์ตอนเมนูเปิด**: WndProc swallow อย่างเดียว
+    ทะลุ (UE อ่าน input ตรงผ่าน API) → เพิ่ม **IAT patch** ทุก module
+    ของเกม: GetAsyncKeyState/GetKeyState/GetKeyboardState/GetRawInputData
+    → stub คืนค่าว่างตอน overlay เปิด (27 call sites) — **ห้าม patch
+    DLL ตัวเอง** (input forwarding ใช้ GetAsyncKeyState จริง)
+    พิสูจน์: เมนูเปิด + hammer คลิ้อ 4 ครั้ง + WASD ในพื้นที่เกม =
+    **0/3080 พิกเซลเปลี่ยน** (เกมนิ่ง) แต่คลิ้อ tile Instant Replay
+    ยังเปิดหน้า settings ได้ปกติ
 
 
 
