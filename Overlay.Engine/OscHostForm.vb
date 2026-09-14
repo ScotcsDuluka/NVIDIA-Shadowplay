@@ -532,9 +532,18 @@ Public Class OscHostForm
                     Dim vkN As System.Text.Json.JsonElement
                     If Not root.TryGetProperty("vk", vkN) Then Exit Select
                     Dim vk As Integer = vkN.GetInt32()
+                    ' modifiers travel as flags only, never as standalone
+                    ' key events; Alt+Z is the ENGINE's toggle — forwarding
+                    ' it to the page made the menu flicker open/closed
+                    If vk = &H10 OrElse vk = &H11 OrElse vk = &H12 OrElse
+                       (vk >= &HA0 AndAlso vk <= &HA5) OrElse vk = &H5B OrElse vk = &H5C Then Exit Select
+                    Dim altHeld As Boolean = False
+                    Dim mN As System.Text.Json.JsonElement
+                    If root.TryGetProperty("shift", mN) Then altHeld = (mN.GetInt32() And 2) <> 0
+                    If vk = &H5A AndAlso altHeld Then Exit Select   ' Z under Alt
                     Dim shift As Boolean = False, ctrl As Boolean = False
                     Dim sN As System.Text.Json.JsonElement
-                    If root.TryGetProperty("shift", sN) Then shift = sN.GetInt32() = 1
+                    If root.TryGetProperty("shift", sN) Then shift = (sN.GetInt32() And 1) = 1
                     If root.TryGetProperty("ctrl", sN) Then ctrl = sN.GetInt32() = 1
                     Dim key As String = VkToJsKey(vk, shift)
                     If key Is Nothing Then Exit Select

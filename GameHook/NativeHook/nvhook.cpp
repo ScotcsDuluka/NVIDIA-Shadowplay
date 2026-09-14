@@ -241,8 +241,9 @@ static DWORD WINAPI InputThread(LPVOID)
             bool was = g_keyState[vk] != 0;
             if (kd != was) {
                 g_keyState[vk] = kd ? 1 : 0;
-                HookEnqueue(kd ? 4 : 5, vk,
-                            (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0,
+                int mods = ((GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0) |
+                           ((GetKeyState(VK_MENU) & 0x8000) ? 2 : 0);
+                HookEnqueue(kd ? 4 : 5, vk, mods,
                             (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
                 lastPostTick = GetTickCount();
             }
