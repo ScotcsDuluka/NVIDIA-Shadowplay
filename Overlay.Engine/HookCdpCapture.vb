@@ -36,6 +36,15 @@ Public Class HookCdpCapture
     Public Shared ControllerPort As Integer = 0
     Public Shared ControllerSecret As String = ""
 
+    ''' <summary>Shared log sink for hook subsystems (input reader etc.).</summary>
+    Public Shared Sub LogLine(m As String)
+        L(m)
+    End Sub
+
+    ''' <summary>1 = the WGC GPU source owns frame publishing — the CDP loop
+    '     must not publish (two writers would fight over the header).</summary>
+    Public Shared ExternalCapture As Integer = 0
+
     Private Shared _pubMmf As MemoryMappedFile
     Private Shared _pubView As MemoryMappedViewAccessor
     Private Shared ReadOnly PubLock As New Object()
@@ -192,6 +201,33 @@ Public Class HookCdpCapture
         End SyncLock
     End Function
 
+    ''' <summary>Publishes raw BGRA pixels (WGC GPU path — no PNG). The
+    '     pixels arrive on the capture thread; the header layout is
+    '     identical to the PNG path.</summary>
+    Public Shared Sub PublishPixels(w As Integer, h As Integer, pixels As IntPtr, rowPitch As Integer)
+        If w <= 0 OrElse h <= 0 OrElse pixels = IntPtr.Zero Then Return
+        If h > 2160 OrElse w > 2560 Then Return
+        EnsurePub()
+        Dim total As Integer = rowPitch * h
+        Dim raw(total - 1) As Byte
+        System.Runtime.InteropServices.Marshal.Copy(pixels, raw, 0, total)
+        SyncLock PubLock
+            _pubView.Write(4, w)
+            _pubView.Write(8, h)
+            _pubView.Write(12, Environment.TickCount)
+            _pubView.Write(16, 1)
+            _pubView.Write(24, Process.GetCurrentProcess().Id)
+            WriteEndpointHeader()
+            For y As Integer = 0 To h - 1
+                _pubView.WriteArray(HeaderBytes + CLng(y) * w * 4, raw, y * rowPitch, w * 4)
+            Next
+        End SyncLock
+        _pubFrames += 1L
+        If _pubFrames = 1L OrElse _pubFrames Mod 300L = 0L Then
+            L("wgc published frame #" & _pubFrames.ToString() & " " & w & "x" & h)
+        End If
+    End Sub
+
     Private Sub CaptureLoop()
         Dim wsClient As New System.Net.WebSockets.ClientWebSocket()
         Dim wsOpen As Boolean = False
@@ -244,6 +280,12 @@ Public Class HookCdpCapture
                     Continue While
                 End If
 
+                ' WGC (GPU source) owns publishing while active — idle here
+                If ExternalCapture = 1 Then
+                    Thread.Sleep(100)
+                    Continue While
+                End If
+
                 ' captureScreenshot polling — FORCED render works while the
                 ' window is occluded by the game. (Page.startScreencast was
                 ' tried and DOES NOT: it needs compositor frames, which an
@@ -252,7 +294,7 @@ Public Class HookCdpCapture
                 ' Windows.Graphics.Capture (GPU, no PNG) — next milestone.
                 Dim req As String = "{""id"":" & msgId & ",""method"":""Page.captureScreenshot""," &
                                     """params"":{""format"":""png"",""optimizeForSpeed"":true," &
-                                    """clip"":{""x"":0,""y"":0,""width"":1920,""height"":1080,""scale"":0.5}}}"
+                                    """clip"":{""x"":0,""y"":0,""width"":1920,""height"":1200,""scale"":0.5}}}"
                 Dim sent = Encoding.UTF8.GetBytes(req)
                 Dim sendOk As Boolean = wsClient.SendAsync(New ArraySegment(Of Byte)(sent),
                     System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(5000)

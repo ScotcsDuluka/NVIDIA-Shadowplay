@@ -30,13 +30,11 @@
 #include <d3d12.h>
 #include <cstdarg>
 #include <tlhelp32.h>
-#include <winhttp.h>
 
 #pragma comment(lib, "dxgi.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "d3dcompiler.lib")
 #pragma comment(lib, "d3d12.lib")
-#pragma comment(lib, "winhttp.lib")
 
 static void NLog(const char *fmt, ...) {
     FILE *f = nullptr;
@@ -161,45 +159,31 @@ static MappedFrame ReadFrame()
     return f;
 }
 
-// ── hook input → controller REST ───────────────────────────
-static HINTERNET g_httpSes = nullptr, g_httpCon = nullptr;
-static DWORD g_httpPort = 0;
-static char g_httpSecret[40] = {};
-static volatile LONG g_inputPosts = 0;
+// ── hook input → shared-memory ring ────────────────────────
+// The game's online-fix layer intercepts network APIs inside the game
+// process (WinHTTP worked exactly once per process, then 12029 forever)
+// — so input travels through a second shared-memory ring instead.
+// Layout: +0 magic "NSIN", +4 writeIdx, +8 readIdx, +16 events[512x16B]
+// event: {int type; int a; int b; int c;} 1=move 2=down 3=up 4=kd 5=ku
+static HANDLE g_inMmf = nullptr;
+static volatile LONG g_inWriteIdx = 0;
 
-static void HttpEnsure(DWORD port, const char *secret)
+static void HookEnqueue(int type, int a, int b, int c)
 {
-    if (g_httpSes && g_httpPort == port) return;
-    if (g_httpCon) { WinHttpCloseHandle(g_httpCon); g_httpCon = nullptr; }
-    if (g_httpSes) { WinHttpCloseHandle(g_httpSes); g_httpSes = nullptr; }
-    g_httpSes = WinHttpOpen(L"NvShareHook", WINHTTP_ACCESS_TYPE_NO_PROXY,
-                            WINHTTP_NO_PROXY_NAME, WINHTTP_NO_PROXY_BYPASS, 0);
-    if (!g_httpSes) { NLog("WinHttpOpen FAILED err=%u", GetLastError()); return; }
-    g_httpCon = WinHttpConnect(g_httpSes, L"127.0.0.1", (INTERNET_PORT)port, 0);
-    if (!g_httpCon) { NLog("WinHttpConnect FAILED err=%u", GetLastError()); return; }
-    g_httpPort = port;
-    NLog("hook input endpoint ready: 127.0.0.1:%u", port);
-}
-
-static void HookPostInput(const char *json)
-{
-    if (!g_httpCon) return;
-    HINTERNET rq = WinHttpOpenRequest(g_httpCon, L"POST", L"/ShadowPlay/v.1.0/Hook/Input",
-                                      nullptr, WINHTTP_NO_REFERER,
-                                      WINHTTP_DEFAULT_ACCEPT_TYPES, 0);
-    if (!rq) return;
-    wchar_t hdr[320];
-    swprintf_s(hdr, L"Content-Type: application/json\r\nX_LOCAL_SECURITY_COOKIE: %hs\r\n", g_httpSecret);
-    int len = (int)strlen(json);
-    if (WinHttpSendRequest(rq, hdr, -1L, (LPVOID)json, len, len, 0)) {
-        WinHttpReceiveResponse(rq, nullptr);
-        LONG posts = InterlockedIncrement(&g_inputPosts);
-        if (posts == 1) NLog("first input POST sent: %s", json);
-    } else {
-        static int sendErrLogged = 0;
-        if (!sendErrLogged) { NLog("SendRequest FAILED err=%u", GetLastError()); sendErrLogged = 1; }
+    if (!g_inMmf) {
+        g_inMmf = OpenFileMappingW(FILE_MAP_READ | FILE_MAP_WRITE, FALSE,
+                                   L"NVIDIA_Share_Overlay_Input_v1");
+        if (!g_inMmf) return;
     }
-    WinHttpCloseHandle(rq);
+    auto *wv = (int *)MapViewOfFile(g_inMmf, FILE_MAP_WRITE, 0, 0, 0);
+    if (!wv) return;
+    if (wv[0] != 0x4E49534E) { UnmapViewOfFile(wv); return; }   // "NSIN"
+    int wi = InterlockedIncrement(&g_inWriteIdx) - 1;
+    int slot = wi % 512;
+    int *ev = wv + (4 + slot * 4);
+    ev[0] = type; ev[1] = a; ev[2] = b; ev[3] = c;
+    wv[1] = wi + 1;                       // publish writeIdx
+    UnmapViewOfFile(wv);
 }
 
 static BYTE g_keyState[256] = {};
@@ -209,7 +193,9 @@ static DWORD WINAPI InputThread(LPVOID)
     NLog("input thread start");
     DWORD lastX = 0xFFFFFFFF, lastY = 0xFFFFFFFF;
     bool lastDown = false;
+    DWORD lastPostTick = GetTickCount();
     while (true) {
+        __try {
         Sleep(16);
         if (!g_mmf) continue;
         auto *v = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 64);
@@ -224,10 +210,11 @@ static DWORD WINAPI InputThread(LPVOID)
             memset(g_keyState, 0, sizeof(g_keyState));   // no stuck keys
             continue;
         }
-        strcpy_s(g_httpSecret, sec);
-        HttpEnsure(port, sec);
-        if (!g_httpCon) continue;
-
+        if (!visible) {
+            lastX = 0xFFFFFFFF; lastY = 0xFFFFFFFF;
+            memset(g_keyState, 0, sizeof(g_keyState));
+            continue;
+        }
         POINT p;
         if (!GetCursorPos(&p)) continue;
         POINT c = p;
@@ -237,16 +224,13 @@ static DWORD WINAPI InputThread(LPVOID)
 
         if ((DWORD)c.x != lastX || (DWORD)c.y != lastY) {
             lastX = (DWORD)c.x; lastY = (DWORD)c.y;
-            char js[128];
-            sprintf_s(js, "{\"type\":\"mousemove\",\"x\":%d,\"y\":%d}", c.x, c.y);
-            HookPostInput(js);
+            HookEnqueue(1, c.x, c.y, 0);
+            lastPostTick = GetTickCount();
         }
         if (down != lastDown) {
             lastDown = down;
-            char js[160];
-            sprintf_s(js, "{\"type\":\"%s\",\"x\":%d,\"y\":%d,\"button\":0}",
-                      down ? "mousedown" : "mouseup", c.x, c.y);
-            HookPostInput(js);
+            HookEnqueue(down ? 2 : 3, c.x, c.y, 0);
+            lastPostTick = GetTickCount();
         }
         // keyboard: transitions only, never logged (privacy: the key
         // values go straight to the controller, nothing touches disk)
@@ -257,15 +241,20 @@ static DWORD WINAPI InputThread(LPVOID)
             bool was = g_keyState[vk] != 0;
             if (kd != was) {
                 g_keyState[vk] = kd ? 1 : 0;
-                char js[128];
-                sprintf_s(js, "{\"type\":\"%s\",\"vk\":%d,\"shift\":%d,\"ctrl\":%d}",
-                          kd ? "keydown" : "keyup", vk,
-                          (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0,
-                          (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
-                HookPostInput(js);
+                HookEnqueue(kd ? 4 : 5, vk,
+                            (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0,
+                            (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
+                lastPostTick = GetTickCount();
             }
         }
+        } __except (EXCEPTION_EXECUTE_HANDLER) {
+            NLog("input thread SEH caught 0x%08X — recovering", GetExceptionCode());
+            memset(g_keyState, 0, sizeof(g_keyState));
+            g_inMmf = nullptr;
+            Sleep(1000);
+        }
     }
+    return 0;
 }
 
 // ── input suppression while the overlay is open ────────────
