@@ -355,24 +355,6 @@ Public Class OscHostForm
             HookCdpCapture.ControllerSecret = _server.Secret
             _cdpCapture = New HookCdpCapture("9224")
             _cdpCapture.Start()
-            ' WGC GPU source: 60fps frames straight off the compositor —
-            ' the CDP loop idles while WGC is live (fallback otherwise)
-            Try
-                NvShareEngine.WgcFrameSource.FrameCallback = AddressOf HookCdpCapture.PublishPixels
-                NvShareEngine.WgcFrameSource.GateProbe = Function() HookCdpCapture.CaptureEnabled
-                NvShareEngine.WgcFrameSource.ActiveChanged = Sub(a)
-                                                   HookCdpCapture.ExternalCapture = If(a, 1, 0)
-                                                   Log("wgc " & If(a, "ACTIVE — gpu frames", "inactive — CDP fallback"))
-                                               End Sub
-                NvShareEngine.WgcFrameSource.Start(Me.Handle)   ' top-level only: CreateForWindow rejects child windows
-            Catch ex2 As Exception
-                Log("wgc start failed: " & ex2.Message)
-            End Try
-            ' in-game hook input: shared-memory ring (no HTTP — the game's
-            ' online-fix layer intercepts WinHTTP inside the game process)
-            _inputReader = New HookInputReader()
-            AddHandler _inputReader.Input, Sub(body) BeginInvoke(Sub() OnHookInput(body))
-            _inputReader.Start()
             ' watch whitelisted games → auto-inject the in-game hook DLL
             HookAutoInject.Start()
         Catch ex As Exception
