@@ -197,14 +197,6 @@ static DWORD WINAPI InputThread(LPVOID)
     while (true) {
         __try {
         Sleep(16);
-        // with D3D hooks skipped (nvspcap conflict) nothing else refreshes
-        // the section — the input thread must re-open it itself
-        ReopenIfEngineRestarted();
-        // liveness for the engine without a Present hook: bump +20
-        if (g_mmf) {
-            auto *lw = (int *)MapViewOfFile(g_mmf, FILE_MAP_WRITE, 0, 0, 0);
-            if (lw) { lw[5] = lw[5] + 1; UnmapViewOfFile(lw); }
-        }
         if (!g_mmf) continue;
         auto *v = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 64);
         if (!v) continue;
@@ -562,7 +554,7 @@ static void DrawFrame(void *swapChain, MappedFrame f)
 static volatile LONG g_presentCount = 0;
 static volatile LONG g_drawCount = 0;
 
-static void OverlayWorkInner(void *swapChain)
+static void OverlayWork(void *swapChain)
 {
     InterlockedIncrement(&g_presentCount);
     if (g_presentHooked && g_mmf) {
@@ -610,22 +602,6 @@ static void OverlayWorkInner(void *swapChain)
             g_res.frameW = (UINT)f.w; g_res.frameH = (UINT)f.h;
         }
         DrawFrame(swapChain, f);
-    }
-}
-
-// SEH wrapper: a resize/resolution change mid-frame used to raise inside
-// our draw path and take the GAME down (dxgi unhandled exception). Now a
-// faulting frame is skipped and the game keeps running.
-static void OverlayWork(void *swapChain)
-{
-    __try
-    {
-        OverlayWorkInner(swapChain);
-    }
-    __except (EXCEPTION_EXECUTE_HANDLER)
-    {
-        NLog("overlay frame fault 0x%08X — frame skipped", GetExceptionCode());
-        g_res.ready = false;   // rebuild resources next frame
     }
 }
 
@@ -723,29 +699,16 @@ static void InstallPresentHook()
 static DWORD WINAPI InitThread(LPVOID)
 {
     NLog("init thread start");
-    // NVIDIA's own ShadowPlay hook (nvspcap64.dll) hooks Present too —
-    // patching the same vtable on top of it crashes dxgi at resize
-    // (unhandled exception, double-hook fight). If it is loaded, we do
-    // NOT touch D3D at all; the real-window overlay mode needs no draw,
-    // and the live counter is bumped by the input thread instead.
-    bool nvsp = false;
-    for (int i = 0; i < 20; i++) {          // nvspcap loads AFTER us — wait
-        if (GetModuleHandleW(L"nvspcap64.dll") != nullptr) { nvsp = true; break; }
-        Sleep(500);
-    }
-    if (nvsp) {
-        NLog("nvspcap64 detected - D3D hooks SKIPPED (conflict)");
-    } else {
-        InstallPresentHook();
-    }
+    // NO window wait — the dummy swapchain hook does not need the game
+    // window; install immediately so Alt+Z works seconds after injection.
+    InstallPresentHook();
     // input suppression needs the game window; retry until it exists
     for (int i = 0; i < 60 && !g_origWndProc; i++) {
         InstallWndProcHook();
         if (!g_origWndProc) Sleep(1000);
     }
-    // API-level suppression (engines polling input directly) — DISABLED
-    // for A/B: GetRawInputData stub suspected of crashing UE dxgi at init
-    // InstallIatHooks();
+    // API-level suppression (engines polling input directly)
+    InstallIatHooks();
     CreateThread(nullptr, 0, InputThread, nullptr, 0, nullptr);
     g_live = 1;
     return 0;

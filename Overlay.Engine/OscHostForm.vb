@@ -47,7 +47,6 @@ Public Class OscHostForm
     Private WithEvents _webView As Microsoft.Web.WebView2.WinForms.WebView2
     Private _cdpCapture As HookCdpCapture
     Private _inputReader As HookInputReader
-    Private _keepTopTimer As System.Windows.Forms.Timer
     Private _server As OscControllerServer
     Private _client As OscEngineClient
     Private _bridge As CefQueryBridge
@@ -317,7 +316,7 @@ Public Class OscHostForm
                     Nothing, udf, New Microsoft.Web.WebView2.Core.CoreWebView2EnvironmentOptions() With {
                         .AdditionalBrowserArguments =
                             "--disable-backgrounding-occluded-windows --disable-renderer-backgrounding " &
-                            "--remote-debugging-port=9224 --disable-features=CalculateNativeWinOcclusion --disable-backgrounding-occluded-windows --disable-renderer-backgrounding " &
+                            "--remote-debugging-port=9224 " &
                             Environment.GetEnvironmentVariable("WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS")
                     })
             Await _webView.EnsureCoreWebView2Async(env)
@@ -441,68 +440,22 @@ Public Class OscHostForm
                 ' clicks. No capture pipeline needed for interaction.
                 Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
                 styleIn = styleIn And (Not WS_EX_TRANSPARENT)   ' accept mouse
-                styleIn = styleIn And (Not WS_EX_LAYERED)       ' a layered topmost
-                ' window covering the screen crashes the game's dxgi mode
-                ' change (resolution switch -> unhandled dxgi exception)
                 styleIn = styleIn Or WS_EX_NOACTIVATE           ' never steal focus
                 SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn))
                 SetWindowRgn(Handle, IntPtr.Zero, True)
                 SetLayeredWindowAttributes(Handle, 0, 255, LWA_ALPHA)
                 SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
                     SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE Or SWP_SHOWWINDOW)
-                ' the game re-asserts its own topmost flag continuously —
-                ' re-assert ours on a timer while the menu is open
-                If _keepTopTimer Is Nothing Then
-                    _keepTopTimer = New System.Windows.Forms.Timer With {.Interval = 400}
-                    AddHandler _keepTopTimer.Tick, Sub()
-                                                          If _overlayOpen Then
-                                                              SetWindowPos(Handle, HWND_TOPMOST, 0, 0, 0, 0,
-                                                                  SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
-                                                          End If
-                                                      End Sub
-                End If
-                _keepTopTimer.Start()
-                ' WebView2Controller.IsVisible can be stuck false (form was
-                ' created hidden and never activated) — Chromium then paints
-                ' nothing and the screen shows the form's flat gray. Cycle the
-                ' control visibility to force the controller visible again.
-                Try
-                    _webView.Visible = False
-                    _webView.Visible = True
-                Catch
-                End Try
-                ' wake the Chromium child window — WebView2 stops rendering
-                ' while its host is fully occluded by the game and does not
-                ' always resume (screen shows the form's gray). Re-show the
-                ' child + nudge the compositor.
-                Try
-                    Dim child As IntPtr = FindWindowEx(Handle, IntPtr.Zero, "Chrome_WidgetWin_0", Nothing)
-                    If child <> IntPtr.Zero Then
-                        SetWindowPos(child, IntPtr.Zero, 0, 0, 0, 0,
-                            SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE Or &H40 Or &H10)   ' SHOWWINDOW|FRAMECHANGED
-                    End If
-                    _webView.CoreWebView2.ExecuteScriptAsync(
-                        "requestAnimationFrame(function(){});document.documentElement.style.transform='translateZ(0)';")
-                Catch
-                End Try
             Else
                 ' OVERLAY-CLOSED (in-game): hide behind the game again.
-                _keepTopTimer?.[Stop]()
                 Dim styleIn As Integer = CInt(GetWindowLong(Handle, GWL_EXSTYLE))
-                styleIn = styleIn And (Not WS_EX_LAYERED)
                 SetWindowLong(Handle, GWL_EXSTYLE, New IntPtr(styleIn Or WS_EX_TRANSPARENT))
                 SetWindowPos(Handle, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE Or SWP_NOSIZE Or SWP_NOACTIVATE)
             End If
             Try
-                ' in-game: the REAL window is visible over the game — a 94%
-                ' backdrop painted the whole screen gray. Use a light
-                ' GFE-style dim so the game shows through behind the menu.
-                Dim bdFix As String = If(open,
-                    "var n=0;var t=setInterval(function(){var bd=document.getElementById('oscengine-backdrop');if(bd){bd.style.background='rgba(8,8,8,0.45)';clearInterval(t);}if(++n>40)clearInterval(t);},250);",
-                    "var bd=document.getElementById('oscengine-backdrop');if(bd)bd.style.background='';")
                 _webView.CoreWebView2.ExecuteScriptAsync(
                     "document.documentElement.classList.toggle('oscengine-open'," &
-                    open.ToString().ToLowerInvariant() & ");" & bdFix &
+                    open.ToString().ToLowerInvariant() & ");" &
                     If(open, "window.__oscOpen && window.__oscOpen();",
                         "window.__oscClose && window.__oscClose();"))
             Catch ex As Exception
@@ -992,10 +945,6 @@ Public Class OscHostForm
 
     <DllImport("user32.dll")>
     Private Shared Function SetWindowRgn(hWnd As IntPtr, hRgn As IntPtr, bRedraw As Boolean) As Integer
-    End Function
-
-    <DllImport("user32.dll", CharSet:=CharSet.Unicode)>
-    Private Shared Function FindWindowEx(parent As IntPtr, after As IntPtr, className As String, windowName As String) As IntPtr
     End Function
 
 End Class
