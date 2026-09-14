@@ -202,7 +202,8 @@ Public Class HookCdpCapture
                 ' ~65ms PNG round-trip = ~14fps ceiling; true 60fps needs
                 ' Windows.Graphics.Capture (GPU, no PNG) — next milestone.
                 Dim req As String = "{""id"":" & msgId & ",""method"":""Page.captureScreenshot""," &
-                                    """params"":{""format"":""png"",""optimizeForSpeed"":true}}"
+                                    """params"":{""format"":""png"",""optimizeForSpeed"":true," &
+                                    """clip"":{""x"":0,""y"":0,""width"":1920,""height"":1080,""scale"":0.5}}}"
                 Dim sent = Encoding.UTF8.GetBytes(req)
                 Dim sendOk As Boolean = wsClient.SendAsync(New ArraySegment(Of Byte)(sent),
                     System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(5000)
