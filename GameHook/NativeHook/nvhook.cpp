@@ -197,6 +197,11 @@ static DWORD WINAPI InputThread(LPVOID)
     while (true) {
         __try {
         Sleep(16);
+        // liveness for the engine without a Present hook: bump +20
+        if (g_mmf) {
+            auto *lw = (int *)MapViewOfFile(g_mmf, FILE_MAP_WRITE, 0, 0, 0);
+            if (lw) { lw[5] = lw[5] + 1; UnmapViewOfFile(lw); }
+        }
         if (!g_mmf) continue;
         auto *v = (const uint8_t *)MapViewOfFile(g_mmf, FILE_MAP_READ, 0, 0, 64);
         if (!v) continue;
@@ -715,16 +720,29 @@ static void InstallPresentHook()
 static DWORD WINAPI InitThread(LPVOID)
 {
     NLog("init thread start");
-    // NO window wait — the dummy swapchain hook does not need the game
-    // window; install immediately so Alt+Z works seconds after injection.
-    InstallPresentHook();
+    // NVIDIA's own ShadowPlay hook (nvspcap64.dll) hooks Present too —
+    // patching the same vtable on top of it crashes dxgi at resize
+    // (unhandled exception, double-hook fight). If it is loaded, we do
+    // NOT touch D3D at all; the real-window overlay mode needs no draw,
+    // and the live counter is bumped by the input thread instead.
+    bool nvsp = false;
+    for (int i = 0; i < 20; i++) {          // nvspcap loads AFTER us — wait
+        if (GetModuleHandleW(L"nvspcap64.dll") != nullptr) { nvsp = true; break; }
+        Sleep(500);
+    }
+    if (nvsp) {
+        NLog("nvspcap64 detected - D3D hooks SKIPPED (conflict)");
+    } else {
+        InstallPresentHook();
+    }
     // input suppression needs the game window; retry until it exists
     for (int i = 0; i < 60 && !g_origWndProc; i++) {
         InstallWndProcHook();
         if (!g_origWndProc) Sleep(1000);
     }
-    // API-level suppression (engines polling input directly)
-    InstallIatHooks();
+    // API-level suppression (engines polling input directly) — DISABLED
+    // for A/B: GetRawInputData stub suspected of crashing UE dxgi at init
+    // InstallIatHooks();
     CreateThread(nullptr, 0, InputThread, nullptr, 0, nullptr);
     g_live = 1;
     return 0;
