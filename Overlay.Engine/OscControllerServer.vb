@@ -329,6 +329,7 @@ Public Class OscControllerServer
                             Dim pb = TryCast(System.Text.Json.Nodes.JsonNode.Parse(body), System.Text.Json.Nodes.JsonObject)
                             Dim vids = pb?("videos")?.ToString()
                             If Not String.IsNullOrEmpty(vids) Then
+                                vids = NormalizeWindowsPath(vids)
                                 AppConfigShared.WriteString("Paths", "SavePath", vids)
                             End If
                         Catch
@@ -342,7 +343,9 @@ Public Class OscControllerServer
                         If String.IsNullOrEmpty(videos) Then
                             WriteJson(res, 200, SafeJson(RecordPathsProvider, "{}"))
                         Else
+                            videos = NormalizeWindowsPath(videos)
                             If String.IsNullOrEmpty(tempFiles) Then tempFiles = IO.Path.Combine(videos, "temp")
+                            tempFiles = NormalizeWindowsPath(tempFiles)
                             WriteJson(res, 200, "{""videos"":" & OscWire.JsonString(videos) &
                                        ",""tempFiles"":" & OscWire.JsonString(tempFiles) & "}")
                         End If
@@ -474,6 +477,9 @@ Public Class OscControllerServer
                 Case "/Gallery/v.1.2/GetFolderListing"
                     Dim listingBody As String = If(method = "POST", ReadBody(req), "{}")
                     WriteJson(res, 200, BuildFolderListingJson(listingBody))
+                Case "/Gallery/v.1.0/IsDirectoryWritable"
+                    Dim writableBody As String = If(method = "POST", ReadBody(req), "{}")
+                    WriteJson(res, 200, BuildDirectoryWritableJson(writableBody))
                 Case "/Gallery/v.1.0/EnumerateDrives"
                     WriteJson(res, 200, BuildDrivesJson())
                 Case "/HardwareInformation/v.0.1"
@@ -789,6 +795,31 @@ Public Class OscControllerServer
         End Try
     End Function
 
+    Private Shared Function NormalizeWindowsPath(value As String) As String
+        If String.IsNullOrWhiteSpace(value) Then Return value
+        Return value.Replace("/"c, "\"c)
+    End Function
+
+    Private Shared Function BuildDirectoryWritableJson(body As String) As String
+        Try
+            Dim requested As String = ""
+            Dim parsed As JsonObject = TryCast(JsonNode.Parse(If(body, "{}")), JsonObject)
+            If parsed IsNot Nothing Then
+                For Each key As String In New String() {"path", "currentPath", "folder", "directory"}
+                    If parsed(key) IsNot Nothing AndAlso Not String.IsNullOrWhiteSpace(parsed(key).ToString()) Then
+                        requested = parsed(key).ToString()
+                        Exit For
+                    End If
+                Next
+            End If
+            requested = NormalizeWindowsPath(requested)
+            Return If(Not String.IsNullOrWhiteSpace(requested) AndAlso Directory.Exists(requested) AndAlso CanWriteFolder(requested),
+                      "true", "false")
+        Catch
+            Return "false"
+        End Try
+    End Function
+
     Private Shared Function CanWriteFolder(path As String) As Boolean
         Try
             Dim probe As String = IO.Path.Combine(path, ".osc-write-test-" & Guid.NewGuid().ToString("N"))
@@ -807,8 +838,9 @@ Public Class OscControllerServer
             For Each root As String In IO.Directory.GetLogicalDrives()
                 If Not first Then drives.Append(",")
                 first = False
+                Dim driveName As String = root.TrimEnd("\"c)
                 drives.Append("{""name"":")
-                drives.Append(OscWire.JsonString(root))
+                drives.Append(OscWire.JsonString(driveName))
                 drives.Append(",""type"":""drive""}")
             Next
             drives.Append("]")
@@ -898,6 +930,7 @@ Public Class OscControllerServer
         Dim height As Integer = 0
         Dim engineMode As String = "FFmpeg"
         Dim apiCapture As String = "ffmpeg"
+        Dim activePreset As String = "Custom"
         Try
             Dim path As String = AppConfigShared.ConfigPath()
             If File.Exists(path) Then
@@ -911,6 +944,7 @@ Public Class OscControllerServer
                     If cur("height") IsNot Nothing Then height = CInt(cur("height"))
                     If rec?.Item("engine_mode") IsNot Nothing Then engineMode = rec("engine_mode").ToString()
                     If rec?.Item("api_capture") IsNot Nothing Then apiCapture = rec("api_capture").ToString()
+                    If rec?.Item("active_preset") IsNot Nothing Then activePreset = rec("active_preset").ToString()
                 End SyncLock
             End If
         Catch
@@ -938,6 +972,15 @@ Public Class OscControllerServer
             If posted("engineMode") IsNot Nothing Then engineMode = posted("engineMode").ToString().Trim()
             Dim apiCapture As String = Nothing
             If posted("apiCapture") IsNot Nothing Then apiCapture = posted("apiCapture").ToString().Trim()
+            ' quality presets — same values as the Forms overlay NVIDIA_PRESETS
+            ' (Low 30fps/4Mbps, Medium 60fps/5Mbps, High 60fps/10Mbps, native)
+            Dim preset As String = Nothing
+            If posted("quality") IsNot Nothing Then preset = posted("quality").ToString().Trim()
+            Dim presetFps As Integer? = Nothing
+            Dim presetKbps As Integer? = Nothing
+            If preset = "Low" Then presetFps = 30 : presetKbps = 4000
+            If preset = "Medium" Then presetFps = 60 : presetKbps = 5000
+            If preset = "High" Then presetFps = 60 : presetKbps = 10000
             Dim fps As Integer? = Nothing
             Dim bitrateKbps As Integer? = Nothing
             Dim width As Integer? = Nothing
@@ -987,6 +1030,16 @@ Public Class OscControllerServer
                     End If
                 End If
                 If Not String.IsNullOrEmpty(apiCapture) Then rec("api_capture") = apiCapture
+                If presetFps.HasValue Then
+                    ' preset click: apply NVIDIA preset values + mark active
+                    rec("active_preset") = preset
+                    cur("fps") = presetFps.Value
+                    cur("bitrate") = presetKbps.Value
+                    cur("use_native_resolution") = True
+                ElseIf fps.HasValue AndAlso fps.Value > 0 AndAlso fps.Value <= 240 Then
+                    rec("active_preset") = "Custom"
+                    cur("fps") = fps.Value
+                End If
                 If fps.HasValue AndAlso fps.Value > 0 AndAlso fps.Value <= 240 Then cur("fps") = fps.Value
                 If bitrateKbps.HasValue AndAlso bitrateKbps.Value > 0 Then cur("bitrate") = bitrateKbps.Value
                 If native.HasValue Then cur("use_native_resolution") = native.Value

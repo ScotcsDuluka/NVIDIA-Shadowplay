@@ -110,15 +110,10 @@ Public Class OscHostForm
             ' hardened; Desktop overlay works at full fps for it.
             Return False
         End If
-        ' exclusive-flag requirement dropped: Dungeons runs borderless and
-        ' was kicked to Desktop mode (flat-gray window over the game). The
-        ' DLL-drawn path works for any hooked, foreground game.
-
-        Dim r As RectangleNative
-        If Not GetWindowRect(fg, r) Then Return False
-        Dim bounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
-        Return r.Left <= bounds.Left AndAlso r.Top <= bounds.Top AndAlso
-               r.Right >= bounds.Right AndAlso r.Bottom >= bounds.Bottom
+        ' A hooked game does not need to cover the primary monitor. Borderless
+        ' and windowed games still present through the patched swap chain, and
+        ' requiring fullscreen bounds incorrectly forced them into Desktop mode.
+        Return True
     End Function
 
     ' latest engine truth for /state + the page
@@ -595,7 +590,15 @@ Public Class OscHostForm
             ' Hook mode renders directly into the game swap chain. Keep the
             ' Desktop/WebView host hidden; showing it creates a second layer.
             If Visible Then Hide()
-            If open Then StartWgcCapture()
+            ' Hook mode publishes the hidden WebView through the CDP pump.
+            ' Do not start WGC here: its ownership flag can suppress CDP
+            ' without producing frames, leaving the injected renderer stale.
+            HookCdpCapture.ExternalCapture = 0
+            If open AndAlso _previousForegroundWindow <> IntPtr.Zero AndAlso
+               _previousForegroundWindow <> Handle Then
+                SetForegroundWindow(_previousForegroundWindow)
+                Log("hook focus restored to game")
+            End If
             Try
                 _webView.CoreWebView2.ExecuteScriptAsync(
                     "document.documentElement.classList.remove('oscengine-open','oscengine-toast');" &
@@ -613,6 +616,8 @@ Public Class OscHostForm
 
         _hookModeActive = False
         HookCdpCapture.HookVisible = 0
+        Dim primaryBounds As System.Drawing.Rectangle = Screen.PrimaryScreen.Bounds
+        Bounds = primaryBounds
         ' A hook can remain alive while focus/mode changes. Always clear its
         ' shared visibility before exposing the interactive desktop window.
         _inGameOverlayActive = False
