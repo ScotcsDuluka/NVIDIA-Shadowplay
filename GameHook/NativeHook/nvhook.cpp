@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <d3d12.h>
 #include <cstdarg>
+#include <tlhelp32.h>
 #include <winhttp.h>
 
 #pragma comment(lib, "dxgi.lib")
@@ -319,7 +320,100 @@ static void InstallWndProcHook()
     else NLog("SetWindowLongPtrW FAILED err=%u", GetLastError());
 }
 
-// ── D3D helpers ────────────────────────────────────────────
+// ── IAT-level input suppression ────────────────────────────
+// WndProc swallowing covers window MESSAGES, but engines often poll input
+// APIs directly (UE: GetRawInputData in the pump, GetAsyncKeyState in
+// ticks). While the overlay is open we redirect those imports to stubs
+// that report "nothing pressed" so the game is fully blocked.
+static SHORT (WINAPI *g_origGetAsyncKeyState)(int) = nullptr;
+static SHORT (WINAPI *g_origGetKeyState)(int) = nullptr;
+static BOOL (WINAPI *g_origGetKeyboardState)(PBYTE) = nullptr;
+static UINT (WINAPI *g_origGetRawInputData)(HRAWINPUT, UINT, LPVOID, PUINT, UINT) = nullptr;
+
+static SHORT WINAPI HookGetAsyncKeyState(int vk)
+{
+    if (OverlayVisibleCached()) return 0;
+    return g_origGetAsyncKeyState ? g_origGetAsyncKeyState(vk) : 0;
+}
+static SHORT WINAPI HookGetKeyState(int vk)
+{
+    if (OverlayVisibleCached()) return 0;
+    return g_origGetKeyState ? g_origGetKeyState(vk) : 0;
+}
+static BOOL WINAPI HookGetKeyboardState(PBYTE kb)
+{
+    if (OverlayVisibleCached() && kb) { memset(kb, 0, 256); return TRUE; }
+    return g_origGetKeyboardState ? g_origGetKeyboardState(kb) : FALSE;
+}
+static UINT WINAPI HookGetRawInputData(HRAWINPUT h, UINT cmd, LPVOID data, PUINT size, UINT headerSize)
+{
+    if (OverlayVisibleCached()) { if (size) *size = 0; return (UINT)-1; }
+    return g_origGetRawInputData ? g_origGetRawInputData(h, cmd, data, size, headerSize) : (UINT)-1;
+}
+
+// Patch one import across every loaded module's IAT (delay-load NOT
+// covered — UE imports these statically, verified via dumpbin-equivalent
+// behavior; re-run on later DLL loads is a future hardening step).
+static void PatchIatAll(const char *importDll, const char *funcName, void *hook, void **orig)
+{
+    if (*orig) return;   // already patched
+    HMODULE mods[1024];
+    HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPMODULE, GetCurrentProcessId());
+    if (snap == INVALID_HANDLE_VALUE) return;
+    MODULEENTRY32W me = { sizeof(me) };
+    int patched = 0;
+    if (Module32FirstW(snap, &me)) {
+        do {
+            // NEVER patch ourselves — our input-forwarding poll needs the
+            // real GetAsyncKeyState (patching it here would cut our own
+            // input stream while the overlay is open)
+            if ((uint8_t *)me.modBaseAddr == (uint8_t *)g_self) continue;
+            // parse PE imports
+            __try {
+                auto *base = (uint8_t *)me.modBaseAddr;
+                auto *dos = (IMAGE_DOS_HEADER *)base;
+                if (dos->e_magic != IMAGE_DOS_SIGNATURE) continue;
+                auto *nt = (IMAGE_NT_HEADERS *)(base + dos->e_lfanew);
+                if (nt->Signature != IMAGE_NT_SIGNATURE) continue;
+                auto dir = nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+                if (!dir.VirtualAddress) continue;
+                auto *imp = (IMAGE_IMPORT_DESCRIPTOR *)(base + dir.VirtualAddress);
+                for (; imp->Name; imp++) {
+                    const char *dll = (const char *)(base + imp->Name);
+                    if (_stricmp(dll, importDll) != 0) continue;
+                    auto *thunk = (IMAGE_THUNK_DATA *)(base +
+                        (imp->OriginalFirstThunk ? imp->OriginalFirstThunk : imp->FirstThunk));
+                    auto *iat = (IMAGE_THUNK_DATA *)(base + imp->FirstThunk);
+                    for (; thunk->u1.AddressOfData; thunk++, iat++) {
+                        if (thunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) continue;
+                        auto *fn = (IMAGE_IMPORT_BY_NAME *)(base + thunk->u1.AddressOfData);
+                        if (strcmp((const char *)fn->Name, funcName) != 0) continue;
+                        if (!*orig) *orig = (void *)(uintptr_t)iat->u1.Function;
+                        DWORD oldp;
+                        VirtualProtect(&iat->u1.Function, sizeof(void *), PAGE_EXECUTE_READWRITE, &oldp);
+                        iat->u1.Function = (ULONG_PTR)hook;
+                        VirtualProtect(&iat->u1.Function, sizeof(void *), oldp, &oldp);
+                        patched++;
+                    }
+                }
+            } __except (EXCEPTION_EXECUTE_HANDLER) {
+                // malformed module — skip it
+            }
+        } while (Module32NextW(snap, &me));
+    }
+    CloseHandle(snap);
+    if (patched) NLog("IAT %s!%s patched x%d", importDll, funcName, patched);
+}
+
+static void InstallIatHooks()
+{
+    PatchIatAll("user32.dll", "GetAsyncKeyState", (void *)&HookGetAsyncKeyState, (void **)&g_origGetAsyncKeyState);
+    PatchIatAll("user32.dll", "GetKeyState", (void *)&HookGetKeyState, (void **)&g_origGetKeyState);
+    PatchIatAll("user32.dll", "GetKeyboardState", (void *)&HookGetKeyboardState, (void **)&g_origGetKeyboardState);
+    PatchIatAll("user32.dll", "GetRawInputData", (void *)&HookGetRawInputData, (void **)&g_origGetRawInputData);
+}
+
+
 static const char *SHADER_HLSL = R"(
 struct VSOut { float4 pos:SV_POSITION; float2 uv:TEXCOORD0; };
 VSOut vsMain(uint vid:SV_VertexID){
@@ -624,6 +718,8 @@ static DWORD WINAPI InitThread(LPVOID)
         InstallWndProcHook();
         if (!g_origWndProc) Sleep(1000);
     }
+    // API-level suppression (engines polling input directly)
+    InstallIatHooks();
     CreateThread(nullptr, 0, InputThread, nullptr, 0, nullptr);
     g_live = 1;
     return 0;
