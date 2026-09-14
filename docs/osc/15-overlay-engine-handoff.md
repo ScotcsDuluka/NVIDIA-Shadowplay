@@ -82,6 +82,21 @@
       (GetAsyncKeyState อ่าน system state — input forwarding ไม่กระทบ)
     พิสูจน์: คลิ้อ tile Instant Replay ในเกม → **หน้า settings Instant
     Replay เปิดจริง** (sliders เวลา/คุณภาพ โชว์ในเฟรมเกม)
+12. **(10:17) กระตุก — ขีดจำกัดของ pipeline PNG และทางออก**: ทดลอง
+    `Page.startScreencast` แล้ว **ตายที่ 1 เฟรม** เพราะ screencast ต้อง
+    การ compositor frames ซึ่งหน้าต่าง WebView ที่ถูกเกมบัง
+    (occluded) ไม่ผลิต — captureScreenshot (force render) เท่านั้นที่
+    ได้งาน แต่จ่าย PNG encode เต็มจอ ~65-140ms/เฟรม = เพดาน 7-14fps
+    นั่นคือสาเหตุ "ไม่ตาม fps เกม" (เกม 60fps แต่แหล่งภาพ 10fps)
+    **ทางออก 60fps จริง = Windows.Graphics.Capture**: จับ GPU texture
+    ของหน้าต่าง WebView2 (Chrome_WidgetWin_0) ตรงเข้า frame pool —
+    ไม่มี PNG/CPU copy — ทำฝั่ง engine (VB WinRT: IGraphicsCaptureItemInterop
+    CreateForWindow + Direct3D11CaptureFramePool + CreateForWindow ของ
+    WebView child HWND; กรอบเหลืองถูกเกมบังมองไม่เห็น) แล้ว BGRA copy
+    ลง MMF เดิม — DLL ไม่ต้องแก้ ต่อกับ MMF header เดิมทุกประการ
+    (fallback: ถ้า WGC fail เปิดพอร์ต → ใช้ CDP polling อย่างนี้)
+    + แก้ DLL null-loop: cachedCtrlPid ต้อง update ใน branch รีเซ็ต
+    ด้วย ไม่งั้นวนปิด handle ตลอด (live=0 หลัง engine restart)
 
 
 
