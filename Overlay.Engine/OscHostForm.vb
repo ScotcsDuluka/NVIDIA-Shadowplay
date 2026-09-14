@@ -505,12 +505,74 @@ Public Class OscHostForm
                     Dim bN As System.Text.Json.JsonElement
                     If root.TryGetProperty("button", bN) Then btn = bN.GetInt32()
                     js = "(function(){var el=document.elementFromPoint(" & cx & "," & cy & ");if(!el)return;el.dispatchEvent(new MouseEvent('" & typ & "',{clientX:" & cx & ",clientY:" & cy & ",button:" & btn & ",bubbles:true}));})()"
+                Case "keydown", "keyup"
+                    Dim vkN As System.Text.Json.JsonElement
+                    If Not root.TryGetProperty("vk", vkN) Then Exit Select
+                    Dim vk As Integer = vkN.GetInt32()
+                    Dim shift As Boolean = False, ctrl As Boolean = False
+                    Dim sN As System.Text.Json.JsonElement
+                    If root.TryGetProperty("shift", sN) Then shift = sN.GetInt32() = 1
+                    If root.TryGetProperty("ctrl", sN) Then ctrl = sN.GetInt32() = 1
+                    Dim key As String = VkToJsKey(vk, shift)
+                    If key Is Nothing Then Exit Select
+                    js = "(function(){document.dispatchEvent(new KeyboardEvent('" & typ &
+                         "',{key:""" & key & """,keyCode:" & vk & ",which:" & vk &
+                         ",shiftKey:" & shift.ToString().ToLowerInvariant() &
+                         ",ctrlKey:" & ctrl.ToString().ToLowerInvariant() &
+                         ",bubbles:true}));})()"
             End Select
             If js.Length > 0 Then _webView.CoreWebView2.ExecuteScriptAsync(js)
         Catch ex As Exception
             Log("hook input failed: " & ex.Message)
         End Try
     End Sub
+
+    ''' <summary>Virtual-key → JS KeyboardEvent.key name. Returns Nothing
+    '     for keys we deliberately do not forward (LWin/RWin, IME, mouse).</summary>
+    Private Shared Function VkToJsKey(vk As Integer, shift As Boolean) As String
+        If vk >= &H41 AndAlso vk <= &H5A Then
+            Dim c As Char = ChrW(vk)
+            Return If(shift, c, Char.ToLowerInvariant(c))
+        End If
+        If vk >= &H30 AndAlso vk <= &H39 Then Return ChrW(vk).ToString()
+        If vk >= &H70 AndAlso vk <= &H87 Then Return "F" & (vk - &H6F).ToString()
+        If vk >= &H60 AndAlso vk <= &H69 Then Return "Numpad" & ChrW(&H30 + (vk - &H60))
+        Select Case vk
+            Case &H8 : Return "Backspace"
+            Case &H9 : Return "Tab"
+            Case &HD : Return "Enter"
+            Case &H10, &HA0, &HA1 : Return "Shift"
+            Case &H11, &HA2, &HA3 : Return "Control"
+            Case &H12, &HA4, &HA5 : Return "Alt"
+            Case &H13 : Return "Pause"
+            Case &H14 : Return "CapsLock"
+            Case &H1B : Return "Escape"
+            Case &H20 : Return " "
+            Case &H21 : Return "PageUp"
+            Case &H22 : Return "PageDown"
+            Case &H23 : Return "End"
+            Case &H24 : Return "Home"
+            Case &H25 : Return "ArrowLeft"
+            Case &H26 : Return "ArrowUp"
+            Case &H27 : Return "ArrowRight"
+            Case &H28 : Return "ArrowDown"
+            Case &H2C : Return "PrintScreen"
+            Case &H2D : Return "Insert"
+            Case &H2E : Return "Delete"
+            Case &HBA : Return ";"
+            Case &HBB : Return "="
+            Case &HBC : Return ","
+            Case &HBD : Return "-"
+            Case &HBE : Return "."
+            Case &HBF : Return "/"
+            Case &HC0 : Return "`"
+            Case &HDB : Return "["
+            Case &HDC : Return "\"
+            Case &HDD : Return "]"
+            Case &HDE : Return "'"
+            Case Else : Return Nothing
+        End Select
+    End Function
 
     Private Sub ToggleOverlay(Optional forceOpen As Boolean = False)
         ' debounce: rapid auto-repeat must not machine-gun toggles — 150ms

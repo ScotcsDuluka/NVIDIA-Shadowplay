@@ -199,6 +199,8 @@ static void HookPostInput(const char *json)
     WinHttpCloseHandle(rq);
 }
 
+static BYTE g_keyState[256] = {};
+
 static DWORD WINAPI InputThread(LPVOID)
 {
     NLog("input thread start");
@@ -214,7 +216,11 @@ static DWORD WINAPI InputThread(LPVOID)
         char sec[40] = {};
         memcpy(sec, v + 32, 31);
         UnmapViewOfFile(v);
-        if (!visible || !port || !sec[0]) { lastX = 0xFFFFFFFF; lastY = 0xFFFFFFFF; continue; }
+        if (!visible || !port || !sec[0]) {
+            lastX = 0xFFFFFFFF; lastY = 0xFFFFFFFF;
+            memset(g_keyState, 0, sizeof(g_keyState));   // no stuck keys
+            continue;
+        }
         strcpy_s(g_httpSecret, sec);
         HttpEnsure(port, sec);
         if (!g_httpCon) continue;
@@ -238,6 +244,23 @@ static DWORD WINAPI InputThread(LPVOID)
             sprintf_s(js, "{\"type\":\"%s\",\"x\":%d,\"y\":%d,\"button\":0}",
                       down ? "mousedown" : "mouseup", c.x, c.y);
             HookPostInput(js);
+        }
+        // keyboard: transitions only, never logged (privacy: the key
+        // values go straight to the controller, nothing touches disk)
+        for (int vk = 0x08; vk <= 0xFE; vk++) {
+            if (vk == VK_LBUTTON || vk == VK_RBUTTON || vk == VK_MBUTTON ||
+                vk == VK_XBUTTON1 || vk == VK_XBUTTON2) continue;
+            bool kd = (GetAsyncKeyState(vk) & 0x8000) != 0;
+            bool was = g_keyState[vk] != 0;
+            if (kd != was) {
+                g_keyState[vk] = kd ? 1 : 0;
+                char js[128];
+                sprintf_s(js, "{\"type\":\"%s\",\"vk\":%d,\"shift\":%d,\"ctrl\":%d}",
+                          kd ? "keydown" : "keyup", vk,
+                          (GetKeyState(VK_SHIFT) & 0x8000) ? 1 : 0,
+                          (GetKeyState(VK_CONTROL) & 0x8000) ? 1 : 0);
+                HookPostInput(js);
+            }
         }
     }
 }

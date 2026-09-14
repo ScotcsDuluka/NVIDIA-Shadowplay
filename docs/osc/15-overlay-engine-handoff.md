@@ -66,6 +66,14 @@
    + `optimizeForSpeed` = **3.7 → 10.5fps**; engine restart กลางเกม:
    DLL สลับ section เอง (epoch) + input วิ่งต่อ — พิสูจน์ครบ:
    "injected into Dungeons (pid 14624)" + draw #1 + vis=1
+10. **(09:59) คีย์บอร์ด forwarding เสร็จ**: DLL poll GetAsyncKeyState
+    (transition เท่านั้น, เคลียร์ state ตอน overlay ปิด — ไม่มี stuck key,
+    ไม่ log ค่าคีย์ลง disk) → POST {type:keydown|keyup,vk,shift,ctrl} →
+    `VkToJsKey` แปลง VK → JS key name → KeyboardEvent บน document;
+    ไม่ส่ง Win/IME/mouse VK พิสูจน์ end-to-end ด้วยพฤติกรรมจริง:
+    กด Escape ในเกม → เมนู osc ปิดเอง (capture disabled ทันที)
+    ข้อจำกัดที่รับรู้: เกมยังได้คีย์ด้วย (ไม่ block) — GFE แท้ block เกม
+    ตอนเมนูเปิด ถ้าจะทำต้องแยกเป็น milestone keyboard-suppression
 
 
 
