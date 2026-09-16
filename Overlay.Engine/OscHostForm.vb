@@ -97,7 +97,13 @@ Public Class OscHostForm
         Dim geometryDash As Boolean = False
         Try
             Using game = Process.GetProcessById(CInt(pid))
-                geometryDash = String.Equals(game.ProcessName, "GeometryDash", StringComparison.OrdinalIgnoreCase)
+                Dim processName As String = game.ProcessName
+                geometryDash = String.Equals(processName, "GeometryDash", StringComparison.OrdinalIgnoreCase)
+                If String.Equals(processName, "Smash_Legends", StringComparison.OrdinalIgnoreCase) Then
+                    ' Smash uses Desktop mode only. This guard prevents a
+                    ' previously loaded hook from being selected again.
+                    Return False
+                End If
             End Using
         Catch
             Return False

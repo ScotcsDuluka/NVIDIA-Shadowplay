@@ -10,6 +10,7 @@
 ' are injected.
 
 Imports System.IO
+Imports System.Diagnostics
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
@@ -71,9 +72,10 @@ Public Class HookAutoInject
                         e.Exe = e.Exe.Substring(0, e.Exe.Length - 4)
                     End If
                 End If
-                ' These renderers are not safe for the current native path:
-                ' Smash is unstable after DLL load and Geometry Dash needs
-                ' Desktop mode because its OpenGL present boundary is unknown.
+                ' Smash is intentionally blocked: loading the native hook
+                ' while the game is running has caused instability. Geometry
+                ' Dash also needs Desktop mode because its OpenGL present
+                ' boundary is unknown.
                 If e.Consent AndAlso Not String.IsNullOrEmpty(e.Exe) AndAlso
                    Not IsNativeHookBlocked(e.Exe) Then out.Add(e)
             Next
@@ -81,6 +83,37 @@ Public Class HookAutoInject
             L("whitelist read failed: " & ex.Message)
         End Try
         Return out
+    End Function
+
+    Private Shared Function IsRendererCompatible(p As Process) As Boolean
+        Try
+            Dim hasDxgi As Boolean = False
+            Dim hasD3d As Boolean = False
+            For Each m As ProcessModule In p.Modules
+                Dim n As String = m.ModuleName
+                If String.Equals(n, "dxgi.dll", StringComparison.OrdinalIgnoreCase) Then hasDxgi = True
+                If String.Equals(n, "d3d11.dll", StringComparison.OrdinalIgnoreCase) OrElse
+                   String.Equals(n, "d3d12.dll", StringComparison.OrdinalIgnoreCase) Then hasD3d = True
+                If n.IndexOf("easyanticheat", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                   n.IndexOf("eac", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                   n.IndexOf("battleye", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                   n.IndexOf("beservice", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                   n.IndexOf("vgk", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                   n.IndexOf("xigncode", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                   n.IndexOf("gameguard", StringComparison.OrdinalIgnoreCase) >= 0 Then
+                    L("compatibility denied for " & p.ProcessName & " (protected module " & n & ")")
+                    Return False
+                End If
+            Next
+            If Not hasDxgi OrElse Not hasD3d Then
+                L("compatibility pending for " & p.ProcessName & " (D3D not loaded yet)")
+                Return False
+            End If
+            Return True
+        Catch ex As Exception
+            L("compatibility check failed for " & p.ProcessName & ": " & ex.Message)
+            Return False
+        End Try
     End Function
 
     Private Shared Function IsNativeHookBlocked(exeName As String) As Boolean
@@ -103,6 +136,9 @@ Public Class HookAutoInject
                     For Each p As Process In Process.GetProcessesByName(e.Exe)
                         Dim pid As Integer = p.Id
                         If Not Injected.Contains(pid) AndAlso Not Failed.Contains(pid) Then
+                            If Not IsRendererCompatible(p) Then
+                                Continue For
+                            End If
                             If IsHookModuleLoaded(p, dll) Then
                                 Injected.Add(pid)
                                 L("already loaded in " & e.Exe & " (pid " & pid & ", " & e.Name & ")")
