@@ -673,18 +673,15 @@ Public Class OscControllerServer
                     ' page (native + the 8 common resolutions, 30-240 FPS,
                     ' kbps bitrate range) so the osc page offers the same set.
                     If rawPath.StartsWith("/ShadowPlay/v.1.0/Resolutions", StringComparison.OrdinalIgnoreCase) Then
+                        ' plain string array - the page init does indexOf(resName)
+                        ' on the unwrapped list; objects never match (root cause
+                        ' of the locked settings pages - initInProgress stuck)
                         Dim native As System.Drawing.Rectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds
-                        Dim listJson As String = "{" &
-                            """resolutions"":[" &
-                            "{""name"":""" & native.Width & "x" & native.Height & """,""supported"":true}," &
-                            "{""name"":""3840x2160"",""supported"":true}," &
-                            "{""name"":""3440x1440"",""supported"":true}," &
-                            "{""name"":""2560x1440"",""supported"":true}," &
-                            "{""name"":""2560x1080"",""supported"":true}," &
-                            "{""name"":""1920x1080"",""supported"":true}," &
-                            "{""name"":""1600x900"",""supported"":true}," &
-                            "{""name"":""1366x768"",""supported"":true}," &
-                            "{""name"":""1280x720"",""supported"":true}]}"
+                        Dim listJson As String = "{""resolutions"":[" &
+                            """" & native.Width & "x" & native.Height & """," &
+                            """3840x2160"",""3440x1440"",""2560x1440""," &
+                            """2560x1080"",""1920x1080"",""1600x900""," &
+                            """1366x768"",""1280x720""]}"
                         WriteJson(res, 200, listJson)
                         Return
                     End If

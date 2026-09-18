@@ -88,10 +88,15 @@ Public Class OscHostForm
     Private _hookModeActive As Boolean
     Private _pendingHookMode As Boolean
     Private _pendingHookModeTicks As Integer
+    Private _overlayTargetDungeons As Boolean
+    Private _lastToggleHotkeyTick As Integer
+    Private Const ToggleHotkeyDebounceMs As Integer = 1000
 
     Private Function ShouldUseHookMode() As Boolean
         If Not HookFramePump.HookLive() Then Return False
         Dim fg As IntPtr = GetForegroundWindow()
+        If _overlayTargetDungeons Then Return True
+        If HasDungeonsProcess() Then Return True
         If fg = IntPtr.Zero OrElse fg = Handle Then Return False
         Dim pid As UInteger = 0
         GetWindowThreadProcessId(fg, pid)
@@ -122,6 +127,32 @@ Public Class OscHostForm
         ' and windowed games still present through the patched swap chain, and
         ' requiring fullscreen bounds incorrectly forced them into Desktop mode.
         Return True
+    End Function
+
+    Private Function IsDungeonsForeground() As Boolean
+        Return IsDungeonsWindow(GetForegroundWindow())
+    End Function
+
+    Private Function HasDungeonsProcess() As Boolean
+        Try
+            Return Process.GetProcessesByName("Dungeons").Length > 0
+        Catch
+            Return False
+        End Try
+    End Function
+
+    Private Function IsDungeonsWindow(hwnd As IntPtr) As Boolean
+        Try
+            If hwnd = IntPtr.Zero Then Return False
+            Dim pid As UInteger = 0
+            GetWindowThreadProcessId(hwnd, pid)
+            If pid = 0 Then Return False
+            Using game = Process.GetProcessById(CInt(pid))
+                Return String.Equals(game.ProcessName, "Dungeons", StringComparison.OrdinalIgnoreCase)
+            End Using
+        Catch
+            Return False
+        End Try
     End Function
 
     ' latest engine truth for /state + the page
@@ -222,10 +253,15 @@ Public Class OscHostForm
         ElseIf _pendingHookModeTicks < 5 Then
             _pendingHookModeTicks += 1
         End If
-        ' Mode re-evaluation and stale-capture auto-close DISABLED — both
-        ' fired mid-use: the mode flip re-ran SetOverlayOpen (menu flicker),
-        ' and any 2s without CDP frames (user reading the menu) closed the
-        ' overlay outright. The user's Alt+Z is the only close control now.
+        If _pendingHookModeTicks >= 5 AndAlso _pendingHookMode <> _hookModeActive Then
+            Dim desiredHookMode As Boolean = _pendingHookMode
+            _hookModeActive = desiredHookMode
+            Log("overlay mode changed: " & If(desiredHookMode, "hook", "desktop"))
+            ' Re-enter the open path so the host is hidden/shown and the
+            ' shared visibility flag changes atomically with the mode.
+            _overlayOpen = False
+            SetOverlayOpen(True, pushToPage:=False, userInitiated:=_userOpen)
+        End If
     End Sub
 
     ''' <summary>Component management: the installed real overlay
@@ -292,7 +328,7 @@ Public Class OscHostForm
                                                                ' desktop view in in-game mode. Those requests must not
                                                                ' clear the MMF visibility flag; Alt+Z owns the in-game
                                                                ' close transition.
-                                                               If HookFramePump.HookLive() AndAlso _overlayOpen Then
+                                                               If (HookFramePump.HookLive() OrElse IsDungeonsForeground() OrElse _overlayTargetDungeons) AndAlso _overlayOpen Then
                                                                    Log("ignored in-game page close request")
                                                                    Return
                                                                End If
@@ -481,6 +517,48 @@ Public Class OscHostForm
             ' polyfill BEFORE any page script: vendor.js's cefService must
             ' find window.cefQuery on first use.
             Await core.AddScriptToExecuteOnDocumentCreatedAsync(CefQueryBridge.PolyfillSource())
+            ' Auto-unlock settings pages: nv-slider pages set initInProgress
+            ' which ng-disables the whole page when the overlay was hidden at
+            ' load (init flow needs focus on #replayTime that never fires
+            ' in-game). This script re-patches initInProgress every 2s so
+            ' the page is ALWAYS interactive regardless of when it mounted.
+            Await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                "setInterval(function(){" &
+                "try{" &
+                "var sl=document.querySelectorAll('nv-slider');" &
+                "for(var i=0;i<sl.length;i++){" &
+                "var sc=angular.element(sl[i]).scope();" &
+                "if(!sc)continue;" &
+                "var s=sc;var cm=null;" &
+                "for(var d=0;d<15&&s;d++){if(s.customizeMenu&&s.customizeMenu.initInProgress){cm=s.customizeMenu;break;}s=s.$parent;}" &
+                "if(cm&&cm.initInProgress&&cm.initInProgress()===true){" &
+                "cm.initInProgress=function(){return false;};" &
+                "var rs=angular.element(document).injector().get('$rootScope');" &
+                "rs.$apply();" &
+                "}" &
+                "}catch(e){}" &
+                "},1500);")
+            ' Keyboard shortcuts: inject key badge text when on shortcuts page
+            Await core.AddScriptToExecuteOnDocumentCreatedAsync(
+                "setInterval(function(){" &
+                "try{if(location.hash.indexOf('keyboard-shortcuts')<0||window.__hk)return;" &
+                "var labels=document.querySelectorAll('.shortcuts-list-item,li,div');" &
+                "var map={O:'Alt+Z','push-to-talk':'V','microphone':'Alt+M','FPS':'Alt+F','screenshot':'Alt+F1','photograph':'Alt+F2','filter':'Alt+F3','toggle filters':'Alt+F4','slot':'Alt+F5','instant replay':'Alt+F9','save the last':'Alt+F10','record':'Alt+F9','broadcast':'Alt+F8'};" &
+                "for(var i=0;i<labels.length;i++){" &
+                "var txt=(labels[i].textContent||'').trim().toLowerCase();" &
+                "for(var k in map){" &
+                "if(txt.indexOf(k)>=0&&k.length>2){" &
+                "var box=labels[i].querySelector('.nv-shortcut-text,.shortcut-key,[class*=key]');" &
+                "if(box&&!box.textContent.trim()){box.textContent=map[k];box.style.color='#76b900';}" &
+                "var sib=labels[i].previousElementSibling||labels[i].querySelector('[class*=badge],[class*=box]:not([class*=bg])');" &
+                "if(sib&&!sib.textContent.trim()){sib.textContent=map[k];sib.style.color='#76b900';}" &
+                "}" &
+                "}" &
+                "}" &
+                "var badges=document.querySelectorAll('[class*=shortcut-text],[class*=key-box],[class*=hotkey]');" &
+                "if(badges.length>0)window.__hk=true;" &
+                "}catch(e){}" &
+                "},2000);")
             ' IMPORTANT: the page's own API base is "http://localhost:<port>"
             ' (its LOCALHOST_ADDR constant). Serving the page from the SAME
             ' host keeps every REST/socket call same-origin — otherwise each
@@ -587,7 +665,14 @@ Public Class OscHostForm
         If _overlayOpen = open AndAlso requestedHookMode = _hookModeActive Then Return
         _overlayOpen = open
         _userOpen = If(open, userInitiated, False)
-        If open Then _previousForegroundWindow = GetForegroundWindow()
+        If open Then
+            If Not (_hookModeActive AndAlso _overlayTargetDungeons) Then
+                _previousForegroundWindow = GetForegroundWindow()
+            End If
+            _overlayTargetDungeons = IsDungeonsWindow(_previousForegroundWindow) OrElse HasDungeonsProcess()
+        Else
+            _overlayTargetDungeons = False
+        End If
         HookCdpCapture.CaptureEnabled = If(open, 1, 0)
         HookCdpCapture.HookVisible = 0
         ' IN-GAME MODE: the injected DLL is alive → drive the overlay purely
@@ -1047,6 +1132,14 @@ Public Class OscHostForm
             ' the applier's page-saved action bindings
             Dim hkId As Integer = m.WParam.ToInt32()
             If hkId = ToggleHotkeyId AndAlso _hotkeys IsNot Nothing AndAlso _hotkeys.IsRegistered Then
+                Dim nowTick As Integer = Environment.TickCount
+                If _lastToggleHotkeyTick <> 0 AndAlso
+                   nowTick - _lastToggleHotkeyTick < ToggleHotkeyDebounceMs Then
+                    Log("ignored duplicate Alt+Z WM_HOTKEY")
+                    Return
+                End If
+                _lastToggleHotkeyTick = nowTick
+                Log("Alt+Z WM_HOTKEY toggle")
                 ToggleOverlay()
                 Return
             End If

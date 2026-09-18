@@ -292,6 +292,7 @@ static BOOL WINAPI HookedWglSwapBuffers(HDC hdc)
         if (g_origWglSwapBuffers && g_mmfView) {
             auto *wv = (int *)g_mmfView;
             wv[5] = wv[5] + 1;
+            ((uint8_t *)g_mmfView)[61] = 3; // OpenGL telemetry; desktop fallback
             HWND hwnd = WindowFromDC(hdc);
             RECT r = {};
             bool fullscreen = false;
@@ -838,7 +839,7 @@ static void OverlayWorkInner(void *swapChain)
     InterlockedIncrement(&g_presentCount);
     if (g_presentHooked && g_mmfView) {
         auto *wv = (int *)g_mmfView;
-        wv[5] = wv[5] + 1;
+        wv[5] = wv[5] + 1; // Present liveness, independent of overlay visibility
         // Use the swap-chain descriptor instead of GetFullscreenState.
         // GetDesc is already used by the renderer and is safe for UE/DXGI
         // fullscreen transitions; Windowed=false indicates exclusive mode.
@@ -855,10 +856,12 @@ static void OverlayWorkInner(void *swapChain)
         HRESULT hr11 = sc->GetDevice(__uuidof(ID3D11Device), &d11);
         if (SUCCEEDED(hr11) && d11) {
             NLog("swapchain device = D3D11");
+            if (g_mmfView) ((uint8_t *)g_mmfView)[61] = 1;
             ((ID3D11Device *)d11)->Release();
         } else {
             HRESULT hr12 = sc->GetDevice(__uuidof(ID3D12Device), &d12);
             NLog("swapchain device = D3D12 (hr11=0x%08X hr12=0x%08X)", hr11, hr12);
+            if (g_mmfView) ((uint8_t *)g_mmfView)[61] = SUCCEEDED(hr12) ? 2 : 0;
             if (SUCCEEDED(hr12) && d12) ((ID3D12Device *)d12)->Release();
         }
         NLog("ReadFrame probe: mmf=%p", (void *)g_mmf);
@@ -893,7 +896,6 @@ static void OverlayWorkInner(void *swapChain)
         // window stays behind the game in in-game mode, so disabling this
         // call leaves input blocked while rendering nothing visible.
         DrawFrame(swapChain, f);
-
     }
 }
 

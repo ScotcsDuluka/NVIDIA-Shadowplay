@@ -8,8 +8,8 @@
 '           the CDP pump is the writer), [16]=overlayVisible, [20]=live
 '           counter (injected DLL writes), [24]=engine PID,
 '           [28]=controller port, [32..62]=controller secret (ASCII, NUL-
-'           terminated), [56]=writer tick — the in-game DLL rejects unknown
-'           or stale frame contracts. Magic encodes protocol version 2.
+'           terminated), [56]=writer tick, [61]=native renderer capability
+'           (1=D3D11, 2=D3D12, 3=OpenGL). Magic encodes protocol version 2.
 '   pixels: BGRA32 from offset 64
 
 Imports System

@@ -18,6 +18,7 @@ Public Class HookFramePump
     Public Const MmfName As String = "NVIDIA_Share_Overlay_Frame_v1"
     Private Const HeaderBytes As Integer = 64
     Private Const Magic As Integer = &H3250534E          ' "NSP2"
+    Private Const RendererCapabilityOffset As Long = 61
     ''' <summary>Written into the frame header (+16) so the in-game DLL
     '     knows whether the overlay should draw. Set by OscHostForm.</summary>
     Public Shared OverlayVisible As Integer = 0
@@ -41,7 +42,11 @@ Public Class HookFramePump
                                    (count > 0 AndAlso nowTick - _lastLiveTick < 3000)
             If count <> _lastLiveCount Then _lastLiveTick = nowTick
             _lastLiveCount = count
-            Return alive AndAlso count > 0
+            ' Native mode is selected only when the renderer has a
+            ' compatible compositor. Other APIs remain observable but use
+            ' the desktop fallback until their resource path is complete.
+            Return alive AndAlso count > 0 AndAlso
+                   _viewPub.ReadByte(RendererCapabilityOffset) = 1
         Catch
             _viewPub = Nothing
             _lastLiveCount = -1
