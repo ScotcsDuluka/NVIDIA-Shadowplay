@@ -1,0 +1,59 @@
+{
+ "Record": {
+  "status": 200,
+  "body": {
+   "resolutions": [
+    "In-game",
+    "2160p 4K",
+    "1440p HD",
+    "1080p HD",
+    "720p HD",
+    "480p",
+    "360p",
+    "240p"
+   ],
+   "framerates": [
+    60,
+    30
+   ],
+   "quality": "Custom",
+   "resolution": "1440p HD",
+   "framerate": 60,
+   "bitrate": {
+    "current": 50000000,
+    "min": 10000000,
+    "max": 130000000,
+    "default": 50000000
+   }
+  }
+ },
+ "InstantReplay": {
+  "status": 200,
+  "body": {
+   "resolutions": [
+    "In-game",
+    "2160p 4K",
+    "1440p HD",
+    "1080p HD",
+    "720p HD",
+    "480p",
+    "360p",
+    "240p"
+   ],
+   "framerates": [
+    60,
+    30
+   ],
+   "replayLengthSeconds": 15,
+   "quality": "Custom",
+   "resolution": "1440p HD",
+   "framerate": 60,
+   "bitrate": {
+    "current": 50000000,
+    "min": 10000000,
+    "max": 130000000,
+    "default": 50000000
+   }
+  }
+ }
+}

@@ -1,0 +1,53 @@
+{
+ "/ShadowPlay/v.1.0/Resolutions": {
+  "status": 200,
+  "body": {
+   "resolutions": [
+    "In-game",
+    "2160p 4K",
+    "1440p HD",
+    "1080p HD",
+    "720p HD",
+    "480p",
+    "360p",
+    "240p"
+   ]
+  }
+ },
+ "/ShadowPlay/v.1.0/FrameRates": {
+  "status": 200,
+  "body": {
+   "framerates": [
+    60,
+    30
+   ]
+  }
+ },
+ "/ShadowPlay/v.1.0/GetSupported": {
+  "status": 404,
+  "body": "Cannot GET /ShadowPlay/v.1.0/GetSupported\n"
+ },
+ "/ShadowPlay/v.1.0/RecordPaths": {
+  "status": 200,
+  "body": {
+   "videos": "C:\\Users\\ScotcsDuluka\\Videos",
+   "tempFiles": "C:\\Users\\SCOTCS~1\\AppData\\Local\\Temp\\"
+  }
+ },
+ "/ShadowPlay/v.1.0/Screenshot/Support": {
+  "status": 200,
+  "body": {
+   "support": true
+  }
+ },
+ "/SDK/v.1.0/Highlights/Active": {
+  "status": 200,
+  "body": {
+   "active": false
+  }
+ },
+ "/ShadowPlay/v1.0/OSC/Init": {
+  "status": 404,
+  "body": "Cannot POST /ShadowPlay/v1.0/OSC/Init\n"
+ }
+}
