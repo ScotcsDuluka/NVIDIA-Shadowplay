@@ -72,6 +72,7 @@ Public Class OscHostForm
     Private _wgcStarted As Boolean
     Private _server As OscControllerServer
     Private _client As OscEngineClient
+    Private _capture As OverlayCaptureBridge
     Private _bridge As CefQueryBridge
     Private _storage As SharedStorageStore
     Private _hotkeys As OscHotkeys
@@ -351,6 +352,8 @@ Public Class OscHostForm
                                                                          Log("record failed: " & reason)
                                                                          PushNotification("Recording failed", reason)
                                                                      End Sub)
+            _capture = New OverlayCaptureBridge(_client)
+            AddHandler _capture.LogLine, Sub(m) Log(m)
             _client.Connect()
 
             ' apply the page-saved hotkey bindings as REAL global hotkeys
@@ -995,12 +998,7 @@ Public Class OscHostForm
             Case "Screenshot"
                 CaptureScreenshotNow()
             Case "RecordToggle"
-                If _recording Then
-                    _client.SendRecordStop()
-                Else
-                    Dim savePath As String = AppConfigShared.ReadString("Paths", "SavePath", "")
-                    _client.SendRecordStart(OscProtocol.RecordOutputPath(savePath, DateTime.Now))
-                End If
+                _capture.ToggleRecording()
             Case "NvCameraUI", "ModsUI"
                 Dim route As String = If(name = "NvCameraUI", "nvcamera", "mods")
                 SetOverlayOpen(True, pushToPage:=False)
@@ -1040,12 +1038,7 @@ Public Class OscHostForm
     End Sub
 
     Private Sub OnRecordEnableRequested(enable As Boolean)
-        If enable Then
-            Dim savePath As String = AppConfigShared.ReadString("Paths", "SavePath", "")
-            _client.SendRecordStart(OscProtocol.RecordOutputPath(savePath, DateTime.Now))
-        Else
-            _client.SendRecordStop()
-        End If
+        _capture.SetRecordingEnabled(enable)
     End Sub
 
     Private Function BuildStateJson() As String

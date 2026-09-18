@@ -1,4 +1,4 @@
-' OscControllerServer.vb — the loopback controller server the osc page
+﻿' OscControllerServer.vb — the loopback controller server the osc page
 ' talks to (same origin as the static app, so there is no CORS surface).
 '
 ' Two protocols on one port:
@@ -231,6 +231,33 @@ Public Class OscControllerServer
 
     ' ── request routing ────────────────────────────────────────
 
+    ''' <summary>True when the REAL NVIDIA Web Helper backend is reachable
+    '''     (installed GFE, fixed port via HKLM\...\NvNode\port). In that mode
+    '''     the engine is a thin host: the osc page keeps 100% of its real
+    '''     features because every API call (capture control included) is
+    '''     answered by NVIDIA's own controller + nvsphelper capture stack.</summary>
+    Private Function RealBackendUsable() As Boolean
+        If WebHelperPort() <= 0 Then Return False
+        Static lastCheck As Integer
+        Static lastResult As Boolean
+        Dim nowTick As Integer = Environment.TickCount
+        If nowTick - lastCheck < 10000 AndAlso lastCheck >= 0 Then Return lastResult
+        Try
+            Using tcp As New System.Net.Sockets.TcpClient()
+                Dim ar = tcp.BeginConnect("127.0.0.1", WebHelperPort(), Nothing, Nothing)
+                If ar.AsyncWaitHandle.WaitOne(500) AndAlso tcp.Connected Then
+                    lastResult = True
+                Else
+                    lastResult = False
+                End If
+            End Using
+        Catch
+            lastResult = False
+        End Try
+        lastCheck = nowTick
+        Return lastResult
+    End Function
+
     Private Sub HandleContext(ctx As HttpListenerContext)
         Dim req As HttpListenerRequest = ctx.Request
         Dim res As HttpListenerResponse = ctx.Response
@@ -246,6 +273,19 @@ Public Class OscControllerServer
                 res.Headers("Access-Control-Allow-Methods") = "GET, POST, PUT, DELETE, OPTIONS"
                 WriteJson(res, 200, "{}")
                 Return
+            End If
+
+            ' ── REAL BACKEND MODE ──
+            ' When the real NVIDIA controller (GFE install, fixed port) is
+            ' up, EVERYTHING except our static osc files and two engine-local
+            ' status endpoints is forwarded to it — REST, /ShadowPlay/*
+            ' capture control, and socket.io polling. The page therefore
+            ' behaves exactly as it does behind NVIDIA Share.exe.
+            If rawPath <> "/uiReady" AndAlso rawPath <> "/state" AndAlso
+               rawPath <> "/favicon.ico" AndAlso Not IsStaticPath(rawPath) AndAlso
+               RealBackendUsable() Then
+                If ProxyToWebHelper(req, res, rawPath, includeShadowPlay:=True) Then Return
+                ' backend died mid-request → fall through to local handlers
             End If
 
             If rawPath.StartsWith("/socket.io/", StringComparison.Ordinal) Then
@@ -713,12 +753,18 @@ Public Class OscControllerServer
                         Return
                     End If
 
-                    RaiseEvent LogLine("unknown REST " & method & " " & rawPath & " → {}")
-                            If method = "GET" OrElse method = "POST" Then
-                                WriteJson(res, 200, "{}")
-                            Else
-                                WriteJson(res, 405, "{}")
-                            End If
+                    ' ── REAL BACKEND FALLBACK ──
+                    ' Unhandled API calls are forwarded to the standalone
+                    ' NVIDIA Web Helper (real Node controller, fixed port
+                    ' 59001 via HKLM ...\NvNode\port). Endpoints we DO
+                    ' implement (ShadowPlay capture control etc.) are served
+                    ' above and never reach this proxy.
+                    If method = "GET" OrElse method = "POST" Then
+                        If ProxyToWebHelper(req, res, rawPath) Then Return
+                        WriteJson(res, 200, "{}")
+                    Else
+                        WriteJson(res, 405, "{}")
+                    End If
                     End Select
             End Select
         Catch ex As HttpListenerException
@@ -729,6 +775,88 @@ Public Class OscControllerServer
             Try : res.Close() : Catch : End Try
         End Try
     End Sub
+
+    ''' <summary>Forward a request to the REAL NVIDIA Web Helper backend
+    '''     (standalone Node controller, fixed port via HKLM ...\NvNode\port).
+    '''     Returns True when the backend answered — caller then skips local
+    '''     handling. Returns False when the backend is unreachable.</summary>
+    Private Function ProxyToWebHelper(req As HttpListenerRequest, res As HttpListenerResponse, rawPath As String,
+                                       Optional includeShadowPlay As Boolean = False) As Boolean
+        ' in fallback (non-real-backend) mode capture control stays local
+        If Not includeShadowPlay AndAlso
+           rawPath.StartsWith("/ShadowPlay/", StringComparison.OrdinalIgnoreCase) Then Return False
+        Dim port As Integer = WebHelperPort()
+        If port <= 0 Then Return False
+        Try
+            Dim url As String = "http://127.0.0.1:" & port.ToString() & req.Url.PathAndQuery
+            ' socket.io long-polls hang ~25s by design — allow them through
+            Dim timeoutMs As Integer = If(rawPath.StartsWith("/socket.io/", StringComparison.Ordinal), 35000, 8000)
+            Using wc As New TimedWebClient(timeoutMs)
+                wc.Headers("Accept") = If(req.Headers("Accept"), "*/*")
+                wc.Headers("Content-Type") = If(req.Headers("Content-Type"), "application/json")
+                Dim sidCookie As String = req.Headers("X_LOCAL_SECURITY_COOKIE")
+                If sidCookie IsNot Nothing Then wc.Headers("X_LOCAL_SECURITY_COOKIE") = sidCookie
+                Dim body As Byte() = Nothing
+                If req.HttpMethod = "POST" AndAlso req.HasEntityBody Then
+                    Using ms As New IO.MemoryStream()
+                        req.InputStream.CopyTo(ms)
+                        body = ms.ToArray()
+                    End Using
+                End If
+                Dim respBytes As Byte()
+                Try
+                    respBytes = If(req.HttpMethod = "POST", wc.UploadData(url, body), wc.DownloadData(url))
+                Catch wex As System.Net.WebException
+                    Dim hr = TryCast(wex.Response, System.Net.HttpWebResponse)
+                    If hr Is Nothing Then Return False ' backend unreachable
+                    ' real backend has no ShadowPlay module (standalone mode) —
+                    ' let OUR local handlers answer capture control instead
+                    If includeShadowPlay AndAlso
+                       rawPath.StartsWith("/ShadowPlay/", StringComparison.OrdinalIgnoreCase) AndAlso
+                       CInt(hr.StatusCode) = 404 Then Return False
+                    Using s = hr.GetResponseStream()
+                        Using ms As New IO.MemoryStream()
+                            s.CopyTo(ms)
+                            respBytes = ms.ToArray()
+                        End Using
+                    End Using
+                    WriteBinary(res, CInt(hr.StatusCode), respBytes)
+                    res.ContentType = If(hr.ContentType, "application/json")
+                    Return True
+                End Try
+                ' preserve socket.io session content-type (text/plain etc.)
+                Dim ct As String = If(req.Headers("Content-Type"), "")
+                res.ContentType = If(ct.StartsWith("text/", StringComparison.Ordinal) OrElse
+                                     rawPath.StartsWith("/socket.io/", StringComparison.Ordinal),
+                                     "text/plain; charset=UTF-8", "application/json; charset=UTF-8")
+                WriteBinary(res, 200, respBytes)
+                Return True
+            End Using
+        Catch ex As Exception
+            RaiseEvent LogLine("proxy error " & rawPath & ": " & ex.Message)
+            Return False
+        End Try
+    End Function
+
+    Private Shared _webHelperPortCache As Integer = -1
+
+    ''' <summary>Web Helper fixed port: HKLM\SOFTWARE\...\Global\NvNode → port
+    '''     (DWORD, set by our launcher). -1 = not configured.</summary>
+    Private Shared Function WebHelperPort() As Integer
+        If _webHelperPortCache > 0 Then Return _webHelperPortCache
+        Try
+            Using k = Microsoft.Win32.Registry.LocalMachine.OpenSubKey("SOFTWARE\NVIDIA Corporation\Global\NvNode")
+                If k Is Nothing Then Return -1
+                Dim v = k.GetValue("port")
+                If v IsNot Nothing Then
+                    _webHelperPortCache = CInt(v)
+                    Return _webHelperPortCache
+                End If
+            End Using
+        Catch
+        End Try
+        Return -1
+    End Function
 
     Private Shared Function SafeJson(provider As Func(Of String), fallback As String) As String
         Try
@@ -1575,5 +1703,29 @@ Public Class OscControllerServer
         StopServer()
         Try : _cts.Dispose() : Catch : End Try
     End Sub
+
+    ''' <summary>WebClient with a request timeout (socket.io long-polls hang
+    '''     ~25s by design; normal API calls should fail fast).</summary>
+    Private Class TimedWebClient
+        Inherits System.Net.WebClient
+
+        Private ReadOnly _timeoutMs As Integer
+
+        Public Sub New(timeoutMs As Integer)
+            _timeoutMs = timeoutMs
+        End Sub
+
+        Protected Overrides Function GetWebRequest(address As Uri) As System.Net.WebRequest
+            Dim w = MyBase.GetWebRequest(address)
+            w.Timeout = _timeoutMs
+            Dim hwr = TryCast(w, System.Net.HttpWebRequest)
+            If hwr IsNot Nothing Then
+                hwr.ReadWriteTimeout = _timeoutMs
+                hwr.AllowAutoRedirect = False
+                hwr.KeepAlive = False
+            End If
+            Return w
+        End Function
+    End Class
 
 End Class

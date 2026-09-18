@@ -101,6 +101,17 @@ Public Class HookCdpCapture
             _pubView.WriteArray(32, b, 0, b.Length)
         Catch
         End Try
+        ' endpoint file for the real backend's ShadowPlayBridge (standalone
+        ' NVIDIA Web Helper forwards unknown routes to this controller)
+        Try
+            Dim p As String = IO.Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NVIDIA Corporation\NvNode\engine-endpoint.json")
+            IO.Directory.CreateDirectory(IO.Path.GetDirectoryName(p))
+            IO.File.WriteAllText(p, "{""port"":" & ControllerPort.ToString() &
+                ",""secret"":""" & ControllerSecret & """}")
+        Catch
+        End Try
     End Sub
 
     Private Shared Sub EnsurePub()
@@ -305,9 +316,13 @@ Public Class HookCdpCapture
                 ' occluded window never produces — frozen at 1 frame.)
                 ' ~65ms PNG round-trip = ~14fps ceiling; true 60fps needs
                 ' Windows.Graphics.Capture (GPU, no PNG) — next milestone.
+                ' NO hardcoded clip: a fixed 1920x1200@0.875 clip cropped the
+                ' page on every other viewport size and the overlay rendered
+                ' shifted left (measured on 1680x1050). The default capture
+                ' is the full viewport; PublishFrame sizes the frame from
+                ' the PNG itself and the DLL stretches to the swapchain.
                 Dim req As String = "{""id"":" & msgId & ",""method"":""Page.captureScreenshot""," &
-                                    """params"":{""format"":""png"",""optimizeForSpeed"":true," &
-                                    """clip"":{""x"":0,""y"":0,""width"":1920,""height"":1200,""scale"":0.875}}}"
+                                    """params"":{""format"":""png"",""optimizeForSpeed"":true}}"
                 Dim sent = Encoding.UTF8.GetBytes(req)
                 Dim sendOk As Boolean = wsClient.SendAsync(New ArraySegment(Of Byte)(sent),
                     System.Net.WebSockets.WebSocketMessageType.Text, True, Nothing).Wait(5000)
