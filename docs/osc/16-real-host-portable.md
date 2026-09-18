@@ -85,3 +85,67 @@ tonight that remain useful: OscControllerServer reverse-proxy to the real
 backend (RealBackendUsable + ProxyToWebHelper, /ShadowPlay/* 404->local
 fallback) and HookCdpCapture endpoint-file publication
 (engine-endpoint.json) for the ShadowPlayBridge concept.
+
+
+---
+
+# INTEL VALIDATION ADDENDUM (validated on HUAWEI-PC, Intel UHD, no NVIDIA)
+
+## RESULT: overlay opens on a machine with ZERO NVIDIA hardware.
+Full pipeline: Alt+Z -> listener -> POST /ShadowPlay/v.1.0/Hotkey/Toggle ->
+socket emit WindowState{overlayToggle} -> page opens via QUERY_WIN_OPEN_OSC.
+Settings pages navigate; hardware data flows from per-machine floor.
+
+## HOTKEY WIRE-THROUGH (who owns Alt+Z)
+- Share.exe: NO hotkey code at all (no overlayToggle/RegisterHotKey strings).
+- nvsphelperplugin64.dll: the real owner (RegisterHotKey + OpenShare inside)
+  - spawns only when the capture stack is ready = driver-bound
+  - on non-NVIDIA machines it NEVER appears -> hotkey is silent by nature
+- Solution: hotkey-listener.ps1 (RegisterHotKey Alt+Z itself, autostart
+  HKCU Run) -> POST /ShadowPlay/v.1.0/Hotkey/Toggle -> backend emits
+  WindowState{overlayToggle} (same frame the real stack sends).
+  On NVIDIA machines the listener FAILS to register (owner exists) and
+  withdraws itself - zero conflict by design.
+
+## FLOOR SHAPES (what the page reads - all values are STRINGS)
+- GET /HardwareInformation/v.0.2  (v.0.2! not v.1.0; no subpath)
+  fields the page reads: GPU[].LongGPUName, CPUName, PhysicalMemoryCapacity,
+  CurrentResolution, OSName + MoboType/BIOSVersion/JarvisDeviceId/
+  TelemetryDeviceId/UserDefaultUILanguage/ProcessorArchitecture/OSVersion/
+  OSBuildNumber/TotalPhysicalMemory/PCName/DriverVersion/IsDCHDriverInstalled/
+  DriverType/SLISupported/HasActiveSLITopology/ActiveTopologyGPUCount/IsOptimus
+  GPU[]: LongGPUName/ActualVRAMSize/GPURAMType/VBIOSVersion/IsQuadro/DeviceId/
+  VendorId/SubSystemId/SubVendorId/SystemType/BrandType/PhysicalGPUHandle/
+  GPUArchitecture("" for Intel)/GPUArchRevision/GPUArchVersion/
+  GPUArchImplementation/IsPrimary
+  -> gfwsl validates DeviceId+VendorId (NOT "DID" - wrong name made it spam)
+- GET /FramerateLimiter/v.0.1/state = {"enabled":false,"value":0}
+  (v.0.1 has NO "supported" field - that is v.1.0/2)
+- GET /ShadowPlay/v.1.0/Resolutions = {"resolutions":["In-game","2160p 4K",...]} (strings!)
+- GET /ShadowPlay/v.1.0/FrameRates = {"framerates":[60,30]}
+- POST /ShadowPlay/v1.0/OSC/GetCustomize/{Record|InstantReplay|Broadcast}
+  body MUST contain quality+resolution+framerate+bitrateBps (missing one =
+  500 "Argument doesn't have 'X' property" - error names the missing field)
+  response: resolutions[] + framerates[] + quality/resolution/framerate +
+  bitrate{current,min,max,default}  <- slider bounds for the video page
+- GetCustomize is REST POST, NOT socket. HardwareInformation data also
+  flows to the page via systemInfoUpdated socket event.
+- install-host.ps1 now generates hardware-floor.json per machine via WMI.
+
+## PAGE BEHAVIOR NOTES (observed on Intel)
+- Click-outside dismisses the overlay (normal) - synthetic clicks that land
+  outside the overlay rect close it; not a bug.
+- GPU process "Exiting GPU process due to errors during initialization"
+  appears on both machines - CEF falls back to software/dx9; normal.
+- Socket emits over engine.io v3 POLLING transport deliver on the client's
+  next poll (up to ~25s) - wait a full poll cycle before assuming death.
+- Page boot crashes if ANY init-chain endpoint returns a thin shape:
+  unsupportReason.indexOf(), info.GPU[0], octool overlayViews[0] - every
+  floor must match the real shape or the whole chain dies before
+  oscDisplayService.init (the /WindowState handler) registers.
+- osc page logs flow through user-config.js console bridge -> Debug/PageLog.
+
+## GIT MERGE NOTE
+Both machines hold doc-16 versions (1080 Ti blueprint + Intel addendum).
+This file = the merged master. Intel-side stash (their addendum edits)
+should be re-applied only for anything missing here.
