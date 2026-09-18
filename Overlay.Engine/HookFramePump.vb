@@ -17,7 +17,7 @@ Public Class HookFramePump
 
     Public Const MmfName As String = "NVIDIA_Share_Overlay_Frame_v1"
     Private Const HeaderBytes As Integer = 64
-    Private Const Magic As Integer = &H4C50534E          ' "NSPL"
+    Private Const Magic As Integer = &H3250534E          ' "NSP2"
     ''' <summary>Written into the frame header (+16) so the in-game DLL
     '     knows whether the overlay should draw. Set by OscHostForm.</summary>
     Public Shared OverlayVisible As Integer = 0
@@ -147,6 +147,7 @@ Public Class HookFramePump
                 view.Write(12, frameId)
                 view.Write(16, OverlayVisible)
                 view.Write(24, Process.GetCurrentProcess().Id)
+                view.Write(56, Environment.TickCount)
                 Dim bytes((CLng(w) * h * 4) - 1) As Byte
                 Marshal.Copy(_bitsPtr, bytes, 0, bytes.Length)
                 view.WriteArray(HeaderBytes, bytes, 0, bytes.Length)

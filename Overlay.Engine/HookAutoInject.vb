@@ -11,6 +11,7 @@
 
 Imports System.IO
 Imports System.Diagnostics
+Imports System.ComponentModel
 Imports System.Runtime.InteropServices
 Imports System.Text
 Imports System.Threading
@@ -95,7 +96,6 @@ Public Class HookAutoInject
                 If String.Equals(n, "d3d11.dll", StringComparison.OrdinalIgnoreCase) OrElse
                    String.Equals(n, "d3d12.dll", StringComparison.OrdinalIgnoreCase) Then hasD3d = True
                 If n.IndexOf("easyanticheat", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
-                   n.IndexOf("eac", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
                    n.IndexOf("battleye", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
                    n.IndexOf("beservice", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
                    n.IndexOf("vgk", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
@@ -112,7 +112,19 @@ Public Class HookAutoInject
             Return True
         Catch ex As Exception
             L("compatibility check failed for " & p.ProcessName & ": " & ex.Message)
-            Return False
+            ' Some Unreal child/render processes deny module enumeration even
+            ' though the consented game is otherwise compatible. Do not treat
+            ' that as a renderer mismatch; let the injection call report the
+            ' actual access failure instead of silently skipping the process.
+            If TypeOf ex Is UnauthorizedAccessException OrElse
+               (TypeOf ex Is Win32Exception AndAlso
+                (DirectCast(ex, Win32Exception).NativeErrorCode = 5 OrElse
+                 DirectCast(ex, Win32Exception).NativeErrorCode = 299)) Then
+                L("module enumeration denied for consented " & p.ProcessName & "; attempting injection")
+                Return True
+            End If
+            L("module enumeration incomplete for consented " & p.ProcessName & "; attempting injection")
+            Return True
         End Try
     End Function
 

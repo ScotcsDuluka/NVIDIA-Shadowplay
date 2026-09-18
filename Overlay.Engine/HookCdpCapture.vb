@@ -4,11 +4,12 @@
 ' even when the window is off-screen or occluded. ~5fps MVP via polling.
 '
 ' Frame publish: shared memory "NVIDIA_Share_Overlay_Frame_v1"
-'   header: [0]=magic "NSPL", [4]=w, [8]=h, [12]=frameId (TickCount when
+'   header: [0]=magic "NSP2", [4]=w, [8]=h, [12]=frameId (TickCount when
 '           the CDP pump is the writer), [16]=overlayVisible, [20]=live
 '           counter (injected DLL writes), [24]=engine PID,
-'           [28]=controller port, [32..50]=controller secret (ASCII, NUL-
-'           terminated) — the in-game DLL reads these to POST /Hook/Input.
+'           [28]=controller port, [32..62]=controller secret (ASCII, NUL-
+'           terminated), [56]=writer tick — the in-game DLL rejects unknown
+'           or stale frame contracts. Magic encodes protocol version 2.
 '   pixels: BGRA32 from offset 64
 
 Imports System
@@ -24,7 +25,7 @@ Public Class HookCdpCapture
 
     Private Const MmfName As String = "NVIDIA_Share_Overlay_Frame_v1"
     Private Const HeaderBytes As Integer = 64
-    Private Const Magic As Integer = &H4C50534E          ' "NSPL"
+    Private Const Magic As Integer = &H3250534E          ' "NSP2"
     Private Const PubMaxBytes As Long = HeaderBytes + 2560L * 1440L * 4L
 
     ''' <summary>1 = capture + publish frames (overlay open); 0 = publish
@@ -46,6 +47,10 @@ Public Class HookCdpCapture
     ''' <summary>1 = the WGC GPU source owns frame publishing — the CDP loop
     '     must not publish (two writers would fight over the header).</summary>
     Public Shared ExternalCapture As Integer = 0
+    ''' <summary>Tick count of the last valid frame published by either
+    '     capture source. Used to prevent a stale desktop window from
+    '     remaining topmost as a solid gray surface.</summary>
+    Public Shared LastPublishedTick As Integer = 0
 
     Private Shared _pubMmf As MemoryMappedFile
     Private Shared _pubView As MemoryMappedViewAccessor
@@ -104,6 +109,7 @@ Public Class HookCdpCapture
         _pubView = _pubMmf.CreateViewAccessor(0, PubMaxBytes)
         _pubView.Write(0, Magic)
         _pubView.Write(16, 0)
+        _pubView.Write(56, Environment.TickCount)
         ' epoch @+56: bumped every time a NEW engine process creates the
         ' section — the injected DLL polls this to drop its handle on the
         ' ORPHANED section of a dead engine and re-open the live one.
@@ -117,6 +123,7 @@ Public Class HookCdpCapture
         SyncLock PubLock
             _pubView.Write(16, 0)
             _pubView.Write(24, Process.GetCurrentProcess().Id)
+            _pubView.Write(56, Environment.TickCount)
             WriteEndpointHeader()
         End SyncLock
     End Sub
@@ -140,6 +147,7 @@ Public Class HookCdpCapture
                     _pubView.Write(12, Environment.TickCount)
                     _pubView.Write(16, HookVisible)
                     _pubView.Write(24, Process.GetCurrentProcess().Id)
+                    _pubView.Write(56, Environment.TickCount)
                     WriteEndpointHeader()
                     For y As Integer = 0 To h - 1
                         _pubView.WriteArray(HeaderBytes + CLng(y) * w * 4, raw,
@@ -147,6 +155,7 @@ Public Class HookCdpCapture
                     Next
                 End SyncLock
                 _pubFrames += 1L
+                LastPublishedTick = Environment.TickCount
                 If _pubFrames = 1L OrElse _pubFrames Mod 100L = 0L Then
                     L("published frame #" & _pubFrames.ToString() & " " & w & "x" & h)
                 End If
@@ -219,12 +228,14 @@ Public Class HookCdpCapture
             _pubView.Write(12, Environment.TickCount)
             _pubView.Write(16, HookVisible)
             _pubView.Write(24, Process.GetCurrentProcess().Id)
+            _pubView.Write(56, Environment.TickCount)
             WriteEndpointHeader()
             For y As Integer = 0 To h - 1
                 _pubView.WriteArray(HeaderBytes + CLng(y) * w * 4, raw, y * rowPitch, w * 4)
             Next
         End SyncLock
         _pubFrames += 1L
+        LastPublishedTick = Environment.TickCount
         If _pubFrames = 1L OrElse _pubFrames Mod 300L = 0L Then
             L("wgc published frame #" & _pubFrames.ToString() & " " & w & "x" & h)
         End If

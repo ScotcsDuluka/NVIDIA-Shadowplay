@@ -3,10 +3,11 @@
 // Injected into a CONSENTED whitelisted game (Minecraft Dungeons = first
 // target). Hooks IDXGISwapChain::Present (vtable swap) and draws the osc
 // overlay frame — streamed by NVIDIA Share.exe through the shared memory
-// "NVIDIA_Share_Overlay_Frame_v1" (BGRA32, header: magic,w,h,frameId,
+// "NVIDIA_Share_Overlay_Frame_v1" (BGRA32, header: magic "NSP2",w,h,frameId,
 // overlayVisible @ +16, live counter @ +20, engine PID @ +24,
-// controller port @ +28, controller secret @ +32, data @ +64) — as an
-// alpha-blended fullscreen quad INSIDE the game's own Present.
+// controller port @ +28, controller secret @ +32, writer tick @ +56,
+// data @ +64) — as an alpha-blended fullscreen quad INSIDE the game's own
+// Present. The magic value encodes protocol version 2.
 //
 // Toggle: the overlay draw follows header.overlayVisible (written by the
 // controller when Alt+Z opens/closes the page).
@@ -105,13 +106,15 @@ static HANDLE g_mmf = nullptr;
 static const uint8_t *g_mmfView = nullptr;
 static const wchar_t *MMF_NAME = L"NVIDIA_Share_Overlay_Frame_v1";
 static const int HEADER_BYTES = 64;
-static const int MAGIC = 0x4C50534E;      // "NSPL"
-static DWORD g_cachedEpoch = 0;           // header +56 (engine boot stamp)
+static const int MAGIC = 0x3250534E;      // "NSP2"
+static const DWORD FRAME_STALE_MS = 3000;
+static DWORD g_cachedEpoch = 0;           // cached controller PID
 static DWORD g_lastSectionCheck = 0;
 
 // A dead engine's section survives as an UNNAMED orphan as long as we hold
 // a handle — OpenFileMapping under the same name then resolves to the NEW
-// engine's section. Poll the name and switch when the epoch (@+56) differs.
+// engine's section. Poll the name and switch when controller PID (+24)
+// differs.
 static void ReopenIfEngineRestarted()
 {
     DWORD now = GetTickCount();
@@ -122,15 +125,15 @@ static void ReopenIfEngineRestarted()
     if (h2 == g_mmf) { CloseHandle(h2); return; }
     auto *nv = (const uint8_t *)MapViewOfFile(h2, FILE_MAP_READ, 0, 0, 0);
     if (!nv) { CloseHandle(h2); return; }
-    DWORD ep = *(const DWORD *)(nv + 56);
+    DWORD controllerPid = *(const DWORD *)(nv + 24);
     UnmapViewOfFile(nv);
-    // accept the fresh section when ours is gone OR its epoch differs
-    if (!g_mmf || (ep != 0 && ep != g_cachedEpoch)) {
+    // accept the fresh section when ours is gone OR its controller PID differs
+    if (!g_mmf || (controllerPid != 0 && controllerPid != g_cachedEpoch)) {
         if (g_mmfView) { UnmapViewOfFile(g_mmfView); g_mmfView = nullptr; }
         if (g_mmf) CloseHandle(g_mmf);
         g_mmf = h2;
-        g_cachedEpoch = ep;
-        NLog("switched to fresh engine section (epoch=%u)", ep);
+        g_cachedEpoch = controllerPid;
+        NLog("switched to fresh engine section (controllerPid=%u)", controllerPid);
     } else {
         CloseHandle(h2);
     }
@@ -138,6 +141,7 @@ static void ReopenIfEngineRestarted()
 
 struct MappedFrame {
     int w = 0, h = 0, frameId = -1, visible = 0;
+    DWORD writerTick = 0;
     const uint8_t *pixels = nullptr;      // points into the mapping (BGRA)
 };
 
@@ -161,6 +165,9 @@ static MappedFrame ReadFrame()
         CloseHandle(g_mmf); g_mmf = nullptr;
         return f;
     }
+    if (g_cachedEpoch == 0) {
+        g_cachedEpoch = *(const DWORD *)(g_mmfView + 24);
+    }
     // the controller writes its PID at +24 — a change means the controller
     // restarted. Update the cache EVEN on reset, otherwise the next Present
     // resets again forever (live-counter null loop, measured).
@@ -177,6 +184,9 @@ static MappedFrame ReadFrame()
     }
     int magic = *(const int *)(g_mmfView);
     if (magic != MAGIC) return f;
+    f.writerTick = *(const DWORD *)(g_mmfView + 56);
+    if (f.writerTick == 0 ||
+        GetTickCount() - f.writerTick > FRAME_STALE_MS) return f;
     f.w = *(const int *)(g_mmfView + 4);
     f.h = *(const int *)(g_mmfView + 8);
     f.frameId = *(const int *)(g_mmfView + 12);

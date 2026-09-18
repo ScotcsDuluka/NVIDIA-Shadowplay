@@ -2,6 +2,14 @@
 <assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
   <assemblyIdentity version="1.0.0.0" name="NVIDIA.Share.app"/>
 
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+    <security>
+      <requestedPrivileges>
+        <requestedExecutionLevel level="requireAdministrator" uiAccess="false" />
+      </requestedPrivileges>
+    </security>
+  </trustInfo>
+
   <!-- Per-monitor DPI awareness (v2): NVIDIA Share.exe ships dpiAware in
        its manifest and derives the overlay zoom from GetDpiForMonitor —
        same model here. On a 96-DPI monitor nothing changes; on scaled

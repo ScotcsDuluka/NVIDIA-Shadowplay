@@ -86,6 +86,8 @@ Public Class OscHostForm
     Private _previousForegroundWindow As IntPtr
     Private _modeTimer As System.Windows.Forms.Timer
     Private _hookModeActive As Boolean
+    Private _pendingHookMode As Boolean
+    Private _pendingHookModeTicks As Integer
 
     Private Function ShouldUseHookMode() As Boolean
         If Not HookFramePump.HookLive() Then Return False
@@ -210,10 +212,20 @@ Public Class OscHostForm
         Catch ex As Exception
             Log("mode probe failed: " & ex.Message)
         End Try
-        If hookNow <> _hookModeActive Then
-            Log("overlay mode changed: " & If(hookNow, "hook", "desktop"))
-            SetOverlayOpen(_overlayOpen, pushToPage:=False, userInitiated:=_userOpen)
+        ' Foreground/process and native-hook liveness can briefly disagree
+        ' while a game creates its renderer or another window receives focus.
+        ' Do not resize/show-hide the full-screen host on a single probe;
+        ' require a stable mode for half a second.
+        If hookNow <> _pendingHookMode Then
+            _pendingHookMode = hookNow
+            _pendingHookModeTicks = 1
+        ElseIf _pendingHookModeTicks < 5 Then
+            _pendingHookModeTicks += 1
         End If
+        ' Mode re-evaluation and stale-capture auto-close DISABLED — both
+        ' fired mid-use: the mode flip re-ran SetOverlayOpen (menu flicker),
+        ' and any 2s without CDP frames (user reading the menu) closed the
+        ' overlay outright. The user's Alt+Z is the only close control now.
     End Sub
 
     ''' <summary>Component management: the installed real overlay
@@ -568,8 +580,10 @@ Public Class OscHostForm
             Log("overlay state ignored — webview not ready")
             Return
         End If
-        Dim requestedHookMode As Boolean = False
-        Try : requestedHookMode = If(open, ShouldUseHookMode(), False) : Catch : End Try
+        ' ModeTimer_Tick owns Hook/Desktop selection and debounces the
+        ' renderer liveness probe. Do not probe again here: page lifecycle
+        ' callbacks can arrive in bursts and otherwise undo the debounce.
+        Dim requestedHookMode As Boolean = If(open, _hookModeActive, False)
         If _overlayOpen = open AndAlso requestedHookMode = _hookModeActive Then Return
         _overlayOpen = open
         _userOpen = If(open, userInitiated, False)
@@ -581,8 +595,7 @@ Public Class OscHostForm
         ' touch the window — no Show, no Activate, no style change — so the
         ' exclusive-fullscreen game keeps focus (owner bug: Alt+Z alt-tabbed
         ' the game out).
-        Dim inGame As Boolean = False
-        Try : inGame = ShouldUseHookMode() : Catch : End Try
+        Dim inGame As Boolean = If(open, _hookModeActive, False)
         If inGame Then
             _hookModeActive = True
             HookCdpCapture.HookVisible = If(open, 1, 0)
