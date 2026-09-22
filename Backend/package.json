@@ -1,0 +1,18 @@
+{
+  "name": "nvshadowplay-backend",
+  "version": "1.0.0",
+  "description": "NVIDIA ShadowPlay Portable backend - clean-room replacement for NVIDIA Web Helper.exe (NvNode). Serves the GFE osc frontend + the /ShadowPlay, /HardwareInformation, /Duluka REST+socket surfaces on :59001.",
+  "main": "index.js",
+  "private": true,
+  "license": "SEE LICENSE.NOTICE",
+  "engines": {
+    "node": ">=12"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "2.5.1"
+  }
+}

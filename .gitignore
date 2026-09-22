@@ -87,3 +87,9 @@ Duluka/**/AppData/
 
 # Local secrets (never commit)
 Duluka/.server-secret
+
+# Node runtime (Backend)
+node_modules/
+Backend/data/state.json
+Backend/data/hardware-floor.json
+Backend/data/logs/
