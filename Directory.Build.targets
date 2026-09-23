@@ -39,6 +39,7 @@
           Condition="'$(StageLayout)' == 'true' And '$(AppLayoutRoot)' != '' And
                      ('$(AssemblyName)' == 'NVIDIA API' Or
                       '$(AssemblyName)' == 'NVIDIA Capture' Or
+                      '$(AssemblyName)' == 'nvsphelper64' Or
                       '$(AssemblyName)' == 'NVIDIA Notifier' Or
                       '$(AssemblyName)' == 'Launcher')">
 
@@ -96,6 +97,7 @@
                      '$(AppHostSourcePath)' != '' And
                      ('$(AssemblyName)' == 'NVIDIA API' Or
                       '$(AssemblyName)' == 'NVIDIA Capture' Or
+                      '$(AssemblyName)' == 'nvsphelper64' Or
                       '$(AssemblyName)' == 'NVIDIA Notifier')">
     <MakeDir Directories="$([System.IO.Path]::Combine('$(AppLayoutRoot)', 'Application'))" />
     <CreateAppHost
@@ -216,13 +218,15 @@
       <_PtSvcManaged Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
                      Condition="'%(_PtDll.Filename)' == 'NVIDIA API' Or '%(_PtDll.Filename)' == 'NVIDIA Capture' Or '%(_PtDll.Filename)' == 'NVIDIA Notifier' Or
                                 '%(_PtPdb.Filename)' == 'NVIDIA API' Or '%(_PtPdb.Filename)' == 'NVIDIA Capture' Or '%(_PtPdb.Filename)' == 'NVIDIA Notifier' Or
-                                '%(_PtXml.Filename)' == 'NVIDIA API' Or '%(_PtXml.Filename)' == 'NVIDIA Capture' Or '%(_PtXml.Filename)' == 'NVIDIA Notifier'" />
+                                '%(_PtXml.Filename)' == 'NVIDIA API' Or '%(_PtXml.Filename)' == 'NVIDIA Capture' Or '%(_PtXml.Filename)' == 'NVIDIA Notifier' Or
+                                '%(_PtDll.Filename)' == 'nvsphelper64' Or '%(_PtPdb.Filename)' == 'nvsphelper64' Or '%(_PtXml.Filename)' == 'nvsphelper64'" />
       <_PtSvcRtCfg Include="@(_PtRtCfg)"
-                   Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig'" />
+                   Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'nvsphelper64.runtimeconfig'" />
       <_PtSvcExe Include="@(_PtExe)"
-                 Condition="'%(_PtExe.Filename)' == 'NVIDIA API' Or '%(_PtExe.Filename)' == 'NVIDIA Capture' Or '%(_PtExe.Filename)' == 'NVIDIA Notifier'" />
+                 Condition="'%(_PtExe.Filename)' == 'NVIDIA API' Or '%(_PtExe.Filename)' == 'NVIDIA Capture' Or '%(_PtExe.Filename)' == 'NVIDIA Notifier' Or '%(_PtExe.Filename)' == 'nvsphelper64'" />
       <_PtSvcExe Include="$(_PtRoot)NVIDIA API" Condition="Exists('$(_PtRoot)NVIDIA API')" />
       <_PtSvcExe Include="$(_PtRoot)NVIDIA Capture" Condition="Exists('$(_PtRoot)NVIDIA Capture')" />
+      <_PtSvcExe Include="$(_PtRoot)nvsphelper64" Condition="Exists('$(_PtRoot)nvsphelper64')" />
       <_PtSvcExe Include="$(_PtRoot)NVIDIA Notifier" Condition="Exists('$(_PtRoot)NVIDIA Notifier')" />
 
       <!-- overlay app -> Overlay\ -->
@@ -261,6 +265,7 @@
       <_PtCore Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
                Condition="'%(_PtDll.Filename)' != 'Launcher' And '%(_PtDll.Filename)' != 'NVIDIA Share' And '%(_PtDll.Filename)' != 'NVIDIA Overlay Engine' And
                           '%(_PtDll.Filename)' != 'NVIDIA API' And '%(_PtDll.Filename)' != 'NVIDIA Capture' And '%(_PtDll.Filename)' != 'NVIDIA Notifier' And
+                          '%(_PtDll.Filename)' != 'nvsphelper64' And
                           '%(_PtDll.Filename)' != 'CaptureEngine' And '%(_PtDll.Filename)' != 'CaptureEngine.Audio.Wasapi' And
                           '%(_PtDll.Filename)' != 'CaptureEngine.Encoder' And '%(_PtDll.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
                           '%(_PtDll.Filename)' != 'CaptureEngine.FFmpegBackend' And '%(_PtDll.Filename)' != 'CaptureEngine.Recording' And
@@ -274,6 +279,7 @@
                           '%(_PtDll.Filename)' != 'Newtonsoft.Json' And '%(_PtDll.Filename)' != 'SharpGen.Runtime' And '%(_PtDll.Filename)' != 'SharpGen.Runtime.COM' And
                           '%(_PtPdb.Filename)' != 'Launcher' And '%(_PtPdb.Filename)' != 'NVIDIA Share' And '%(_PtPdb.Filename)' != 'NVIDIA Overlay Engine' And
                           '%(_PtPdb.Filename)' != 'NVIDIA API' And '%(_PtPdb.Filename)' != 'NVIDIA Capture' And '%(_PtPdb.Filename)' != 'NVIDIA Notifier' And
+                          '%(_PtPdb.Filename)' != 'nvsphelper64' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine' And '%(_PtPdb.Filename)' != 'CaptureEngine.Audio.Wasapi' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder' And '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine.FFmpegBackend' And '%(_PtPdb.Filename)' != 'CaptureEngine.Recording' And
@@ -287,6 +293,7 @@
                           '%(_PtPdb.Filename)' != 'Newtonsoft.Json' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime.COM' And
                           '%(_PtXml.Filename)' != 'Launcher' And '%(_PtXml.Filename)' != 'NVIDIA Share' And '%(_PtXml.Filename)' != 'NVIDIA Overlay Engine' And
                           '%(_PtXml.Filename)' != 'NVIDIA API' And '%(_PtXml.Filename)' != 'NVIDIA Capture' And '%(_PtXml.Filename)' != 'NVIDIA Notifier' And
+                          '%(_PtXml.Filename)' != 'nvsphelper64' And
                           '%(_PtXml.Filename)' != 'Newtonsoft.Json'" />
 
       <!-- .NET Deployment\: every app deps.json moves here (Filename
@@ -296,10 +303,11 @@
       <_PtDepsToNetDep Include="@(_PtDepsJson)"
                        Condition="'%(_PtDepsJson.Filename)' == 'Launcher.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Share.deps' Or
                                   '%(_PtDepsJson.Filename)' == 'NVIDIA API.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Capture.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Notifier.deps' Or
+                                  '%(_PtDepsJson.Filename)' == 'nvsphelper64.deps' Or
                                   '%(_PtDepsJson.Filename)' == 'NVIDIA Overlay Engine.deps'" />
       <_PtRtCfgToNetDep Include="@(_PtRtCfg)"
                         Condition="'%(_PtRtCfg.Filename)' == 'Launcher.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Share.runtimeconfig' Or
-                                   '%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig' Or
+                                   '%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'nvsphelper64.runtimeconfig' Or
                                    '%(_PtRtCfg.Filename)' == 'NVIDIA Overlay Engine.runtimeconfig'" />
 
       <!-- content -->
@@ -389,9 +397,9 @@
                    WindowsGraphicalUserInterface="true"
                    Condition="'$(_PtWin)' == 'true' And '$(UseAppHost)' == 'true' And '$(AppHostSourcePath)' != ''" />
     <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)"
-                   AppHostDestinationPath="$(_PtAppHosts)\NVIDIA Capture.exe"
-                   AppBinaryName="..\Services\NVIDIA Capture.dll"
-                   IntermediateAssembly="$(_PtServices)\NVIDIA Capture.dll"
+                   AppHostDestinationPath="$(_PtAppHosts)\nvsphelper64.exe"
+                   AppBinaryName="..\Services\nvsphelper64.dll"
+                   IntermediateAssembly="$(_PtServices)\nvsphelper64.dll"
                    WindowsGraphicalUserInterface="true"
                    Condition="'$(_PtWin)' == 'true' And '$(UseAppHost)' == 'true' And '$(AppHostSourcePath)' != ''" />
     <CreateAppHost AppHostSourcePath="$(AppHostSourcePath)"
@@ -424,8 +432,20 @@
       <_PtStaleOvlDeps Include="$(_PtOverlay)/NVIDIA Share.deps.json" />
       <_PtStaleOvlDeps Include="$(_PtOverlay)/NVIDIA Overlay Engine.deps.json" />
       <_PtStaleRootCfg Include="$(_PtRoot)*.deps.json" />
+      <!-- engine rename (NVIDIA Capture -> nvsphelper64): sweep old-name
+           payloads so a plain build self-heals bins staged by older revs -->
+      <_PtStaleRename Include="$(_PtServices)/NVIDIA Capture.dll" />
+      <_PtStaleRename Include="$(_PtServices)/NVIDIA Capture.runtimeconfig.json" />
+      <_PtStaleRename Include="$(_PtAppHosts)/NVIDIA Capture.exe" />
+      <_PtStaleRename Include="$(_PtNetDep)/NVIDIA Capture.deps.json" />
+      <_PtStaleRename Include="$(_PtNetDep)/NVIDIA Capture.runtimeconfig.json" />
+      <_PtStaleRename Include="$(_PtRoot)NVIDIA Capture.dll" />
+      <_PtStaleRename Include="$(_PtRoot)NVIDIA Capture.pdb" />
+      <_PtStaleRename Include="$(_PtRoot)NVIDIA Capture.xml" />
+      <_PtStaleRename Include="$(_PtRoot)NVIDIA Capture.runtimeconfig.json" />
+      <_PtStaleRename Include="$(_PtRoot)NVIDIA Capture.exe" />
     </ItemGroup>
-    <Delete Files="@(_PtStaleDeps);@(_PtStaleOvlDeps);@(_PtStaleRootCfg)" />
+    <Delete Files="@(_PtStaleDeps);@(_PtStaleOvlDeps);@(_PtStaleRootCfg);@(_PtStaleRename)" />
     <RemoveDir Directories="$(_PtCfgAppDir)" Condition="Exists('$(_PtCfgAppDir)')" />
   </Target>
 

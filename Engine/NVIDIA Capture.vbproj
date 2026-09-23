@@ -2,6 +2,11 @@
 
         <PropertyGroup>
                 <OutputType>WinExe</OutputType>
+                <!-- OWNER rename: engine binary identity is nvsphelper64 (GFE-style
+                     capture worker, owned by NvContainer). Project FILE name is kept
+                     (sln + ProjectReference paths stay stable); AssemblyName drives
+                     every output name: exe/dll/deps/runtimeconfig. -->
+                <AssemblyName>nvsphelper64</AssemblyName>
                 <RootNamespace>NVIDIA_Capture</RootNamespace>
                 <StartupObject>NVIDIA_Capture.My.MyApplication</StartupObject>
                 <UseWindowsForms>true</UseWindowsForms>

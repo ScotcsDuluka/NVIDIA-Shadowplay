@@ -40,7 +40,7 @@ if (-not $Fast) {
     # ★ Root-cause lesson: HandleAppsSmart in the hub spawns/keeps the family
     # alive; any running instance (incl. Diag builds) locks bin DLLs →
     # 'Access denied' during Remove-Item. Kill FIRST, always, before clean.
-    foreach ($n in @("NVIDIA Share", "NVIDIA Capture", "NVIDIA API",
+    foreach ($n in @("NVIDIA Share", "NVIDIA Capture", "nvsphelper64", "NVIDIA API",
                      "Launcher", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost",
                      "ffmpeg", "ffprobe", "ffplay")) {
         Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -79,7 +79,7 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "BUILD OK" -ForegroundColor Green
 
 # ── 3. Timestamp sanity (BUILD_PROTOCOL) ───────────────────────────
-$dll = "Overlay\bin\Release\net10.0-windows10.0.26100.0\NVIDIA Capture.dll"
+$dll = "Overlay\bin\Release\net10.0-windows10.0.26100.0\nvsphelper64.dll"
 if (Test-Path $dll) {
     Write-Host "`n>>> Runtime DLL: $dll"
     Write-Host "    timestamp: $((Get-Item $dll).LastWriteTime)  (must be 'now')"
@@ -186,19 +186,19 @@ if ($StageLayout) {
         ".NET Deployment\NVIDIA ShadowPlay.runtimeconfig.json",
         ".NET Deployment\NVIDIA API.deps.json",
         ".NET Deployment\NVIDIA API.runtimeconfig.json",
-        ".NET Deployment\NVIDIA Capture.deps.json",
-        ".NET Deployment\NVIDIA Capture.runtimeconfig.json",
+        ".NET Deployment\nvsphelper64.deps.json",
+        ".NET Deployment\nvsphelper64.runtimeconfig.json",
         ".NET Deployment\NVIDIA Notifier.deps.json",
         ".NET Deployment\NVIDIA Notifier.runtimeconfig.json",
         # Application\ split hosts (Windows apphost — this script is Windows-only)
         "Application\NVIDIA API.exe",
-        "Application\NVIDIA Capture.exe",
+        "Application\nvsphelper64.exe",
         "Application\NVIDIA Notifier.exe",
         # Services: dll + runtimeconfig (loader hard requirement beside dll)
         "Services\NVIDIA API.dll",
         "Services\NVIDIA API.runtimeconfig.json",
-        "Services\NVIDIA Capture.dll",
-        "Services\NVIDIA Capture.runtimeconfig.json",
+        "Services\nvsphelper64.dll",
+        "Services\nvsphelper64.runtimeconfig.json",
         "Services\NVIDIA Notifier.dll",
         "Services\NVIDIA Notifier.runtimeconfig.json",
         # Overlay app

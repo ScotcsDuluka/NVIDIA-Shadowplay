@@ -77,14 +77,14 @@
                           $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json;
                           $(Repo)API\$(AppBin)\NVIDIA API.deps.json;
                           $(Repo)API\$(AppBin)\NVIDIA API.runtimeconfig.json;
-                          $(Repo)Engine\$(AppBin)\NVIDIA Capture.deps.json;
-                          $(Repo)Engine\$(AppBin)\NVIDIA Capture.runtimeconfig.json;
+                          $(Repo)Engine\$(AppBin)\nvsphelper64.deps.json;
+                          $(Repo)Engine\$(AppBin)\nvsphelper64.runtimeconfig.json;
                           $(Repo)Notifier\$(AppBin)\NVIDIA Notifier.deps.json;
                           $(Repo)Notifier\$(AppBin)\NVIDIA Notifier.runtimeconfig.json" />
   </ItemGroup>
 
   <ItemGroup>
-    <ServiceNames Include="NVIDIA API;NVIDIA Capture;NVIDIA Notifier" />
+    <ServiceNames Include="NVIDIA API;nvsphelper64;NVIDIA Notifier" />
     <!-- NVIDIA_Shadowplay_Data tree (collected here, transformed in Stage) -->
     <DataFiles Include="$(Repo)Overlay/NVIDIA_Shadowplay_Data/**/*" />
     <!-- Content globs (task parameters cannot expand wildcards; items can) -->
@@ -129,10 +129,10 @@
           DestinationFiles="$(LayoutRoot)/Services\NVIDIA API.dll" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(Repo)API/$(AppBin)\NVIDIA API.runtimeconfig.json"
           DestinationFiles="$(LayoutRoot)/Services\NVIDIA API.runtimeconfig.json" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\NVIDIA Capture.dll"
-          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Capture.dll" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\NVIDIA Capture.runtimeconfig.json"
-          DestinationFiles="$(LayoutRoot)/Services\NVIDIA Capture.runtimeconfig.json" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\nvsphelper64.dll"
+          DestinationFiles="$(LayoutRoot)/Services\nvsphelper64.dll" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(Repo)Engine/$(AppBin)\nvsphelper64.runtimeconfig.json"
+          DestinationFiles="$(LayoutRoot)/Services\nvsphelper64.runtimeconfig.json" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(Repo)Notifier/$(AppBin)\NVIDIA Notifier.dll"
           DestinationFiles="$(LayoutRoot)/Services\NVIDIA Notifier.dll" SkipUnchangedFiles="true" />
     <Copy SourceFiles="$(Repo)Notifier/$(AppBin)\NVIDIA Notifier.runtimeconfig.json"
@@ -208,19 +208,19 @@
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA ShadowPlay.runtimeconfig.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA API.deps.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA API.runtimeconfig.json" />
-      <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA Capture.deps.json" />
-      <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA Capture.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/.NET Deployment\nvsphelper64.deps.json" />
+      <Required Include="$(LayoutRoot)/.NET Deployment\nvsphelper64.runtimeconfig.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA Notifier.deps.json" />
       <Required Include="$(LayoutRoot)/.NET Deployment\NVIDIA Notifier.runtimeconfig.json" />
       <!-- Application\ split hosts (Windows apphost only) -->
       <Required Include="$(LayoutRoot)/Application\NVIDIA API.exe" />
-      <Required Include="$(LayoutRoot)/Application\NVIDIA Capture.exe" />
+      <Required Include="$(LayoutRoot)/Application\nvsphelper64.exe" />
       <Required Include="$(LayoutRoot)/Application\NVIDIA Notifier.exe" />
       <!-- Services: dll + runtimeconfig (loader requirement beside dll) -->
       <Required Include="$(LayoutRoot)/Services\NVIDIA API.dll" />
       <Required Include="$(LayoutRoot)/Services\NVIDIA API.runtimeconfig.json" />
-      <Required Include="$(LayoutRoot)/Services\NVIDIA Capture.dll" />
-      <Required Include="$(LayoutRoot)/Services\NVIDIA Capture.runtimeconfig.json" />
+      <Required Include="$(LayoutRoot)/Services\nvsphelper64.dll" />
+      <Required Include="$(LayoutRoot)/Services\nvsphelper64.runtimeconfig.json" />
       <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.dll" />
       <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.runtimeconfig.json" />
       <!-- Overlay app -->

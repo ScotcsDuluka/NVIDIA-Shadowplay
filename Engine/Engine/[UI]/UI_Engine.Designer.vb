@@ -143,7 +143,7 @@ Partial Class UI_Engine
         lblTitle.Name = "lblTitle"
         lblTitle.Size = New Size(234, 42)
         lblTitle.TabIndex = 0
-        lblTitle.Text = "NVIDIA Capture"
+        lblTitle.Text = "nvsphelper64"
         ' 
         ' lblStatus
         ' 
@@ -965,7 +965,7 @@ Partial Class UI_Engine
         Opacity = 0R
         ShowInTaskbar = False
         StartPosition = FormStartPosition.CenterScreen
-        Text = "NVIDIA Capture"
+        Text = "nvsphelper64"
         TopMost = True
         TransparencyKey = Color.Coral
         WindowState = FormWindowState.Maximized
