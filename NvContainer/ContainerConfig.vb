@@ -76,6 +76,10 @@ Friend Class ContainerConfig
                         If w.TryGetProperty("restartBackoffSeconds", prop) AndAlso prop.TryGetInt32(n) Then
                             spec.RestartBackoffSeconds = n
                         End If
+                        If w.TryGetProperty("adoptExisting", prop) AndAlso
+                           (prop.ValueKind = JsonValueKind.True OrElse prop.ValueKind = JsonValueKind.False) Then
+                            spec.AdoptExisting = prop.GetBoolean()
+                        End If
 
                         If spec.Name <> "" AndAlso spec.Exe <> "" Then
                             cfg.Workers.Add(spec)

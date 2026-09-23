@@ -15,6 +15,7 @@ Friend Class WorkerProcess
     Private _exitCode As Integer = 0
     Private _restarts As Integer = 0
     Private _stopRequested As Boolean = False
+    Private _adopted As Boolean = False
     Private _startedAtUtc As DateTime = DateTime.MinValue
     Private _monitor As Thread
 
@@ -42,6 +43,7 @@ Friend Class WorkerProcess
             d("pid") = _pid
             d("restarts") = _restarts
             d("exitCode") = _exitCode
+            d("adopted") = _adopted
             d("exe") = _spec.Exe
             Return d
         End SyncLock
@@ -59,6 +61,30 @@ Friend Class WorkerProcess
                 Return
             End If
             _stopRequested = False
+
+            ' ── Adopt path: an instance of this exact image may already be
+            ' running (e.g. spawned by the old scheduled task before the
+            ' ownership handover). Adopt it instead of spawning a duplicate —
+            ' that would be a silent dual-engine. The monitor below then
+            ' watches the adopted pid like any other; if it dies the normal
+            ' restart policy takes over and the container becomes the parent
+            ' of the next spawn.
+            If _spec.AdoptExisting Then
+                Dim ap As Process = FindAdoptable()
+                If ap IsNot Nothing Then
+                    _adopted = True
+                    _proc = ap
+                    _pid = ap.Id
+                    _state = "Running"
+                    _exitCode = 0
+                    _startedAtUtc = DateTime.UtcNow
+                    ContainerLog.Log("worker '" & _spec.Name & "' ADOPTED existing process (pid " &
+                                     _pid.ToString() & ") — " & _spec.Exe)
+                    GoTo MonitorStart
+                End If
+            End If
+            _adopted = False
+
             _state = "Starting"
             ContainerLog.Log("worker '" & _spec.Name & "' spawn (" & reason & "): " & _spec.Exe &
                              If(_spec.Args <> "", " " & _spec.Args, ""))
@@ -86,12 +112,37 @@ Friend Class WorkerProcess
             End Try
         End SyncLock
 
+MonitorStart:
         If _monitor Is Nothing OrElse Not _monitor.IsAlive Then
             _monitor = New Thread(AddressOf MonitorLoop)
             _monitor.IsBackground = True
             _monitor.Start()
         End If
     End Sub
+
+    ' Look for a live process whose full image path equals _spec.Exe.
+    ' GetProcessesByName matches by image name only — the path check is what
+    ' keeps us from adopting the WRONG instance (name collisions are real:
+    ' NVIDIA ships their own nvcontainer.exe in Program Files).
+
+    Private Function FindAdoptable() As Process
+        Try
+            Dim wantName As String = System.IO.Path.GetFileNameWithoutExtension(_spec.Exe)
+            Dim candidates As Process() = Process.GetProcessesByName(wantName)
+            For Each c As Process In candidates
+                Try
+                    Dim imgPath As String = c.MainModule.FileName
+                    If String.Equals(imgPath, _spec.Exe, StringComparison.OrdinalIgnoreCase) Then
+                        Return c
+                    End If
+                Catch
+                    ' MainModule unreadable (elevation/arch mismatch) — not adoptable
+                End Try
+            Next
+        Catch
+        End Try
+        Return Nothing
+    End Function
 
     Public Sub Shutdown()
         Dim p As Process = Nothing
@@ -114,6 +165,7 @@ Friend Class WorkerProcess
         SyncLock _lock
             _state = "Stopped"
             _pid = 0
+            _adopted = False
             _proc = Nothing
         End SyncLock
     End Sub
