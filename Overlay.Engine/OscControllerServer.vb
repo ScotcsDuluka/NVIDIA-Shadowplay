@@ -237,6 +237,10 @@ Public Class OscControllerServer
     '''     features because every API call (capture control included) is
     '''     answered by NVIDIA's own controller + nvsphelper capture stack.</summary>
     Private Function RealBackendUsable() As Boolean
+        ' documented cutover switch: OSC_FORCE_LOCAL=1 on the host process
+        ' forces the local handlers to serve every route (rebuild takes the
+        ' request path from the real controller without touching services)
+        If Environment.GetEnvironmentVariable("OSC_FORCE_LOCAL") = "1" Then Return False
         If WebHelperPort() <= 0 Then Return False
         Static lastCheck As Integer
         Static lastResult As Boolean
@@ -709,32 +713,53 @@ Public Class OscControllerServer
                     End If
 
                     ' ── Video-capture option lists (Recordings settings page) ──
-                    ' The option set mirrors the Forms overlay's Video Capture
-                    ' page (native + the 8 common resolutions, 30-240 FPS,
-                    ' kbps bitrate range) so the osc page offers the same set.
-                    If rawPath.StartsWith("/ShadowPlay/v.1.0/Resolutions", StringComparison.OrdinalIgnoreCase) Then
-                        ' plain string array - the page init does indexOf(resName)
-                        ' on the unwrapped list; objects never match (root cause
-                        ' of the locked settings pages - initInProgress stuck)
-                        Dim native As System.Drawing.Rectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds
-                        Dim listJson As String = "{""resolutions"":[" &
-                            """" & native.Width & "x" & native.Height & """," &
-                            """3840x2160"",""3440x1440"",""2560x1440""," &
-                            """2560x1080"",""1920x1080"",""1600x900""," &
-                            """1366x768"",""1280x720""]}"
-                        WriteJson(res, 200, listJson)
+                    ' Picker-parity with the osc page (app.js N.Resolutions /
+                    ' N.Framerates, ZCode extraction §C.2): names are LABELS
+                    ' ("1440p HD"), not pixel strings — the support-flagging
+                    ' loop does indexOf(t.name) against this list and the
+                    ' Record/Settings resolution value is matched the same
+                    ' way, so pixel strings silently lock every entry.
+                    If rawPath = "/ShadowPlay/v.1.0/Resolutions" OrElse
+                       rawPath = "/ShadowPlay/v.1.0/Resolutions/" Then
+                        WriteJson(res, 200, "{""resolutions"":[""In-game"",""4320p 8K"",""2160p 4K""," &
+                           """1440p HD"",""1080p HD"",""720p HD"",""480p"",""360p""]}")
+                        Return
+                    End If
+                    If rawPath.StartsWith("/ShadowPlay/v.1.0/Resolutions/", StringComparison.OrdinalIgnoreCase) Then
+                        ' GET Resolutions/:quality/ → default resolution for
+                        ' the quality (client getDefaultResolution reads
+                        ' t.data.resolution as a LABEL and maps it onto the
+                        ' picker via exact name match)
+                        Dim q As String = NormalizeQuality(
+                            rawPath.Substring("/ShadowPlay/v.1.0/Resolutions/".Length).Trim("/"c))
+                        WriteJson(res, 200, "{""resolution"":" &
+                           OscWire.JsonString(QualityDefaultResolutionLabel(q)) & "}")
                         Return
                     End If
                     If rawPath = "/ShadowPlay/v.1.0/FrameRates" OrElse rawPath = "/ShadowPlay/v.1.0/Framerates" Then
-                        WriteJson(res, 200, "{""framerates"":[30,60,120,144,240]}")
+                        ' osc picker offers 30/60 only (N.Framerates); values
+                        ' outside this list are flagged unsupported client-side
+                        WriteJson(res, 200, "{""framerates"":[30,60]}")
                         Return
                     End If
                     If rawPath.StartsWith("/ShadowPlay/v.1.0/Framerates/", StringComparison.OrdinalIgnoreCase) Then
-                        WriteJson(res, 200, "{""framerate"":60}")
+                        Dim qf As String = NormalizeQuality(
+                            rawPath.Substring("/ShadowPlay/v.1.0/Framerates/".Length).Trim("/"c))
+                        WriteJson(res, 200, "{""framerate"":" &
+                           QualityDefaultFramerate(qf).ToString(CultureInfo.InvariantCulture) & "}")
                         Return
                     End If
                     If rawPath.StartsWith("/ShadowPlay/v.1.0/BitRates/", StringComparison.OrdinalIgnoreCase) Then
-                        WriteJson(res, 200, "{""min"":10000,""max"":130000,""default"":40000}")
+                        ' Client reads t.bitrateBpsMin/Max/Default (bps; the
+                        ' slider divides by 1e6) — the old {min,max,default}
+                        ' kbps shape evaluated to NaN (ZCode §C.2 + app.js
+                        ' getBitrateRange consumer). Bounds are flat 10-130
+                        ' Mbps for IR/MR; broadcast sliders use portal caps.
+                        Dim tail As String = rawPath.Substring("/ShadowPlay/v.1.0/BitRates/".Length).Trim("/"c)
+                        Dim parts As String() = tail.Split("/"c)
+                        Dim qb As String = If(parts.Length > 0, parts(0), "")
+                        WriteJson(res, 200, "{""bitrateBpsMin"":10000000,""bitrateBpsMax"":130000000,""bitrateBpsDefault"":" &
+                           QualityDefaultBitrateBps(qb).ToString(CultureInfo.InvariantCulture) & "}")
                         Return
                     End If
 
@@ -746,6 +771,11 @@ Public Class OscControllerServer
                             Dim body As String = ReadBody(req)
                             StoreSection("instantReplaySettings", body)
                             ApplyReplayLengthToEngineConfig(body)
+                            ' quality/resolution/framerate/bitrateBps ride the
+                            ' same engine-config path as Record/Settings (the
+                            ' engine shares one recording pipeline; the osc IR
+                            ' and MR tabs write the same current block)
+                            ApplyRecordSettingsToEngineConfig(body)
                             WriteJson(res, 200, "{}")
                         Else
                             WriteJson(res, 200, BuildInstantReplaySettings())
@@ -1048,42 +1078,166 @@ Public Class OscControllerServer
 
     Private Shared ReadOnly RecordSettingsLock As New Object()
 
-    Private Function BuildRecordSettingsFromEngineConfig() As String
-        Dim fps As Integer = 60
-        Dim bitrateKbps As Integer = 17000
-        Dim width As Integer = 0
-        Dim height As Integer = 0
-        Dim engineMode As String = "FFmpeg"
-        Dim apiCapture As String = "ffmpeg"
-        Dim activePreset As String = "Custom"
+    ' ── Quality-authority helpers (osc picker parity, ZCode §C.1-C.2) ──
+
+    Private Class EngineRecordingSnapshot
+        Public Fps As Integer = 60
+        Public BitrateKbps As Integer = 17000
+        Public Width As Integer = 0
+        Public Height As Integer = 0
+        Public Native As Boolean = True
+        Public EngineMode As String = "FFmpeg"
+        Public ApiCapture As String = "ffmpeg"
+        Public ActivePreset As String = "Custom"
+    End Class
+
+    Private Function ReadEngineRecordingSnapshot() As EngineRecordingSnapshot
+        Dim s As New EngineRecordingSnapshot()
         Try
             Dim path As String = AppConfigShared.ConfigPath()
             If File.Exists(path) Then
                 SyncLock RecordSettingsLock
                     Dim root As JsonObject = JsonNode.Parse(File.ReadAllText(path)).AsObject()
                     Dim rec As JsonObject = TryCast(root("Recording"), JsonObject)
-                    Dim cur As JsonObject = If(TryCast(rec?.Item("current"), JsonObject), New JsonObject())
-                    If cur("fps") IsNot Nothing Then fps = CInt(cur("fps"))
-                    If cur("bitrate") IsNot Nothing Then bitrateKbps = CInt(cur("bitrate"))
-                    If cur("width") IsNot Nothing Then width = CInt(cur("width"))
-                    If cur("height") IsNot Nothing Then height = CInt(cur("height"))
-                    If rec?.Item("engine_mode") IsNot Nothing Then engineMode = rec("engine_mode").ToString()
-                    If rec?.Item("api_capture") IsNot Nothing Then apiCapture = rec("api_capture").ToString()
-                    If rec?.Item("active_preset") IsNot Nothing Then activePreset = rec("active_preset").ToString()
+                    Dim cur As JsonObject = TryCast(rec?.Item("current"), JsonObject)
+                    If cur?.Item("fps") IsNot Nothing Then s.Fps = CInt(cur("fps"))
+                    If cur?.Item("bitrate") IsNot Nothing Then s.BitrateKbps = CInt(cur("bitrate"))
+                    If cur?.Item("width") IsNot Nothing Then s.Width = CInt(cur("width"))
+                    If cur?.Item("height") IsNot Nothing Then s.Height = CInt(cur("height"))
+                    If cur?.Item("use_native_resolution") IsNot Nothing Then s.Native = CBool(cur("use_native_resolution"))
+                    If rec?.Item("engine_mode") IsNot Nothing Then s.EngineMode = rec("engine_mode").ToString()
+                    If rec?.Item("api_capture") IsNot Nothing Then s.ApiCapture = rec("api_capture").ToString()
+                    If rec?.Item("active_preset") IsNot Nothing Then s.ActivePreset = rec("active_preset").ToString()
                 End SyncLock
             End If
         Catch
         End Try
-        If width <= 0 OrElse height <= 0 Then
-            Dim b As System.Drawing.Rectangle = System.Windows.Forms.Screen.PrimaryScreen.Bounds
-            width = b.Width
-            height = b.Height
+        Return s
+    End Function
+
+    ' Map any quality naming family to the osc API id
+    ' (Average/Good/VeryGood/UltraGood/Custom). Broadcast portal prefixes
+    ' (Gamecast/GamecastYtl/GamecastFbl — config.js) are stripped first;
+    ' UI ids (Low/Medium/High/Ultra) stay valid for the Forms overlay path.
+    Private Shared Function NormalizeQuality(quality As String) As String
+        If String.IsNullOrWhiteSpace(quality) Then Return "Custom"
+        Dim q As String = quality.Trim()
+        For Each pfx As String In New String() {"GamecastYtl", "GamecastFbl", "Gamecast"}
+            If q.Length > pfx.Length AndAlso q.StartsWith(pfx, StringComparison.OrdinalIgnoreCase) Then
+                q = q.Substring(pfx.Length)
+                Exit For
+            End If
+        Next
+        Select Case q.ToLowerInvariant()
+            Case "average", "low"
+                Return "Average"
+            Case "good", "medium"
+                Return "Good"
+            Case "verygood", "high"
+                Return "VeryGood"
+            Case "ultragood", "ultra"
+                Return "UltraGood"
+            Case Else
+                Return "Custom"
+        End Select
+    End Function
+
+    ' Pixels for an osc picker label (N.Resolutions). Nothing = native /
+    ' unknown; WxH strings stay supported for legacy callers.
+    Private Shared Function ResolutionPixelsForLabel(label As String) As Integer()
+        If String.IsNullOrWhiteSpace(label) Then Return Nothing
+        Dim l As String = label.Trim()
+        If l.Equals("In-game", StringComparison.OrdinalIgnoreCase) OrElse
+           l.Equals("native", StringComparison.OrdinalIgnoreCase) Then Return Nothing
+        Dim parts As String() = l.Split("x"c, "X"c)
+        If parts.Length = 2 Then
+            Dim w As Integer, h As Integer
+            If Integer.TryParse(parts(0).Trim(), w) AndAlso Integer.TryParse(parts(1).Trim(), h) Then
+                Return New Integer() {w, h}
+            End If
+            Return Nothing
         End If
-        Return "{""quality"":""custom"",""resolution"":""" & width & "x" & height &
-               """,""framerate"":" & fps.ToString(CultureInfo.InvariantCulture) &
-               ",""bitrateBps"":" & (bitrateKbps * 1000).ToString(CultureInfo.InvariantCulture) &
-               ",""engineMode"":" & OscWire.JsonString(engineMode) &
-               ",""apiCapture"":" & OscWire.JsonString(apiCapture) & "}"
+        Select Case l.ToLowerInvariant()
+            Case "4320p 8k"
+                Return New Integer() {7680, 4320}
+            Case "2160p 4k"
+                Return New Integer() {3840, 2160}
+            Case "1440p hd"
+                Return New Integer() {2560, 1440}
+            Case "1080p hd"
+                Return New Integer() {1920, 1080}
+            Case "720p hd"
+                Return New Integer() {1280, 720}
+            Case "480p"
+                Return New Integer() {854, 480}
+            Case "360p"
+                Return New Integer() {640, 360}
+            Case Else
+                Return Nothing
+        End Select
+    End Function
+
+    ' Picker LABEL for engine pixels — exact label match, else "In-game"
+    ' (the client's w(e) name-match requires one of the eight picker names).
+    Private Shared Function ResolutionLabelForSize(width As Integer, height As Integer) As String
+        Select Case width.ToString(CultureInfo.InvariantCulture) & "x" & height.ToString(CultureInfo.InvariantCulture)
+            Case "7680x4320"
+                Return "4320p 8K"
+            Case "3840x2160"
+                Return "2160p 4K"
+            Case "2560x1440"
+                Return "1440p HD"
+            Case "1920x1080"
+                Return "1080p HD"
+            Case "1280x720"
+                Return "720p HD"
+            Case "854x480"
+                Return "480p"
+            Case "640x360"
+                Return "360p"
+            Case Else
+                Return "In-game"
+        End Select
+    End Function
+
+    Private Shared Function QualityDefaultFramerate(quality As String) As Integer
+        If NormalizeQuality(quality) = "Average" Then Return 30
+        Return 60
+    End Function
+
+    Private Function QualityDefaultResolutionLabel(quality As String) As String
+        If NormalizeQuality(quality) <> "Custom" Then Return "In-game"
+        Dim snap As EngineRecordingSnapshot = ReadEngineRecordingSnapshot()
+        Return If(snap.Native, "In-game", ResolutionLabelForSize(snap.Width, snap.Height))
+    End Function
+
+    Private Function QualityDefaultBitrateBps(quality As String) As Long
+        Select Case NormalizeQuality(quality)
+            Case "Average"
+                Return 4000000L
+            Case "Good"
+                Return 5000000L
+            Case "VeryGood"
+                Return 10000000L
+            Case Else
+                ' Ultra/Custom follow the engine's current authority
+                Dim snap As EngineRecordingSnapshot = ReadEngineRecordingSnapshot()
+                Return CLng(snap.BitrateKbps) * 1000L
+        End Select
+    End Function
+
+    Private Function BuildRecordSettingsFromEngineConfig() As String
+        Dim snap As EngineRecordingSnapshot = ReadEngineRecordingSnapshot()
+        ' the osc VM maps values back onto pickers by EXACT picker-name
+        ' match (w(e) name equality) — quality must be the API id and
+        ' resolution a picker LABEL, or the settings tab renders blank
+        Dim resolutionLabel As String = If(snap.Native, "In-game", ResolutionLabelForSize(snap.Width, snap.Height))
+        Return "{""quality"":" & OscWire.JsonString(NormalizeQuality(snap.ActivePreset)) &
+               ",""resolution"":" & OscWire.JsonString(resolutionLabel) &
+               ",""framerate"":" & snap.Fps.ToString(CultureInfo.InvariantCulture) &
+               ",""bitrateBps"":" & (CLng(snap.BitrateKbps) * 1000L).ToString(CultureInfo.InvariantCulture) &
+               ",""engineMode"":" & OscWire.JsonString(snap.EngineMode) &
+               ",""apiCapture"":" & OscWire.JsonString(snap.ApiCapture) & "}"
     End Function
 
     Private Sub ApplyRecordSettingsToEngineConfig(body As String)
@@ -1097,15 +1251,26 @@ Public Class OscControllerServer
             If posted("engineMode") IsNot Nothing Then engineMode = posted("engineMode").ToString().Trim()
             Dim apiCapture As String = Nothing
             If posted("apiCapture") IsNot Nothing Then apiCapture = posted("apiCapture").ToString().Trim()
-            ' quality presets — same values as the Forms overlay NVIDIA_PRESETS
-            ' (Low 30fps/4Mbps, Medium 60fps/5Mbps, High 60fps/10Mbps, native)
+            ' quality presets — API ids from the osc page (Average/Good/
+            ' VeryGood/UltraGood, ZCode §C.3) + UI ids kept for the Forms
+            ' overlay path (Low 30fps/4Mbps, Medium 60fps/5Mbps, High
+            ' 60fps/10Mbps, Ultra = native 60fps with bitrate untouched)
             Dim preset As String = Nothing
             If posted("quality") IsNot Nothing Then preset = posted("quality").ToString().Trim()
             Dim presetFps As Integer? = Nothing
             Dim presetKbps As Integer? = Nothing
-            If preset = "Low" Then presetFps = 30 : presetKbps = 4000
-            If preset = "Medium" Then presetFps = 60 : presetKbps = 5000
-            If preset = "High" Then presetFps = 60 : presetKbps = 10000
+            If preset IsNot Nothing Then
+                Select Case NormalizeQuality(preset)
+                    Case "Average"
+                        presetFps = 30 : presetKbps = 4000
+                    Case "Good"
+                        presetFps = 60 : presetKbps = 5000
+                    Case "VeryGood"
+                        presetFps = 60 : presetKbps = 10000
+                    Case "UltraGood"
+                        presetFps = 60
+                End Select
+            End If
             Dim fps As Integer? = Nothing
             Dim bitrateKbps As Integer? = Nothing
             Dim width As Integer? = Nothing
@@ -1114,17 +1279,18 @@ Public Class OscControllerServer
             If posted("framerate") IsNot Nothing Then fps = CInt(posted("framerate"))
             If posted("bitrateBps") IsNot Nothing Then bitrateKbps = CInt(Math.Max(1, CDbl(posted("bitrateBps").ToString()) / 1000.0))
             If posted("resolution") IsNot Nothing Then
+                ' osc payloads carry picker LABELS ("1440p HD", "In-game");
+                ' WxH strings stay supported for legacy callers
                 Dim res As String = posted("resolution").ToString().Trim()
-                If res.Length > 0 AndAlso res.ToLowerInvariant() <> "native" Then
-                    Dim parts As String() = res.Split("x"c, "X"c, "×"c)
-                    Dim w As Integer, h As Integer
-                    If parts.Length = 2 AndAlso Integer.TryParse(parts(0).Trim(), w) AndAlso Integer.TryParse(parts(1).Trim(), h) Then
-                        width = w
-                        height = h
+                If res.Length > 0 Then
+                    Dim px As Integer() = ResolutionPixelsForLabel(res)
+                    If px Is Nothing Then
+                        native = True
+                    Else
+                        width = px(0)
+                        height = px(1)
                         native = False
                     End If
-                Else
-                    native = True
                 End If
             End If
             Dim path As String = AppConfigShared.ConfigPath()
@@ -1156,10 +1322,11 @@ Public Class OscControllerServer
                 End If
                 If Not String.IsNullOrEmpty(apiCapture) Then rec("api_capture") = apiCapture
                 If presetFps.HasValue Then
-                    ' preset click: apply NVIDIA preset values + mark active
-                    rec("active_preset") = preset
+                    ' preset click: apply preset values + mark active
+                    ' (canonical API id — GET maps it straight back out)
+                    rec("active_preset") = NormalizeQuality(preset)
                     cur("fps") = presetFps.Value
-                    cur("bitrate") = presetKbps.Value
+                    If presetKbps.HasValue Then cur("bitrate") = presetKbps.Value
                     cur("use_native_resolution") = True
                 ElseIf fps.HasValue AndAlso fps.Value > 0 AndAlso fps.Value <= 240 Then
                     rec("active_preset") = "Custom"
@@ -1187,8 +1354,6 @@ Public Class OscControllerServer
     '     (Forms overlay allows 15-1200 seconds).</summary>
     Private Function BuildInstantReplaySettings() As String
         Dim replaySec As Integer = 300
-        Dim fps As Integer = 60
-        Dim bitrateKbps As Integer = 17000
         Try
             Dim path As String = AppConfigShared.ConfigPath()
             If File.Exists(path) Then
@@ -1196,21 +1361,30 @@ Public Class OscControllerServer
                     Dim root As JsonObject = JsonNode.Parse(File.ReadAllText(path)).AsObject()
                     Dim rec As JsonObject = TryCast(root("Recording"), JsonObject)
                     If rec?.Item("replay_duration") IsNot Nothing Then replaySec = CInt(rec("replay_duration"))
-                    Dim cur As JsonObject = TryCast(rec?.Item("current"), JsonObject)
-                    If cur?.Item("fps") IsNot Nothing Then fps = CInt(cur("fps"))
-                    If cur?.Item("bitrate") IsNot Nothing Then bitrateKbps = CInt(cur("bitrate"))
                 End SyncLock
             End If
         Catch
         End Try
+        Dim snap As EngineRecordingSnapshot = ReadEngineRecordingSnapshot()
+        Dim irLabel As String = If(snap.Native, "In-game", ResolutionLabelForSize(snap.Width, snap.Height))
         Dim stored As JsonObject = GetSection("instantReplaySettings")
-        If stored.Count > 0 Then Return stored.ToJsonString()
-        Dim w As Integer = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Width
-        Dim h As Integer = System.Windows.Forms.Screen.PrimaryScreen.Bounds.Height
+        If stored.Count > 0 Then
+            ' merge: preset POSTs only carry {replayLengthSeconds, quality};
+            ' normalize + fill the picker fields the VM's D(e,t) expects
+            If stored("quality") IsNot Nothing Then stored("quality") = NormalizeQuality(stored("quality").ToString())
+            If stored("quality") Is Nothing Then stored("quality") = NormalizeQuality(snap.ActivePreset)
+            If stored("resolution") Is Nothing Then stored("resolution") = irLabel
+            If stored("framerate") Is Nothing Then stored("framerate") = snap.Fps
+            If stored("bitrateBps") Is Nothing Then stored("bitrateBps") = CLng(snap.BitrateKbps) * 1000L
+            Return stored.ToJsonString()
+        End If
+        ' quality/resolution use the osc picker shapes (API id + LABEL) so
+        ' D(e,t) maps the IR tab onto valid picker entries (ZCode §C.3)
         Return "{""replayLengthSeconds"":" & replaySec.ToString(CultureInfo.InvariantCulture) &
-               ",""quality"":""custom"",""resolution"":""" & w & "x" & h &
-               """,""framerate"":" & fps.ToString(CultureInfo.InvariantCulture) &
-               ",""bitrateBps"":" & (bitrateKbps * 1000).ToString(CultureInfo.InvariantCulture) & "}"
+               ",""quality"":" & OscWire.JsonString(NormalizeQuality(snap.ActivePreset)) &
+               ",""resolution"":" & OscWire.JsonString(irLabel) &
+               ",""framerate"":" & snap.Fps.ToString(CultureInfo.InvariantCulture) &
+               ",""bitrateBps"":" & (CLng(snap.BitrateKbps) * 1000L).ToString(CultureInfo.InvariantCulture) & "}"
     End Function
 
     ''' <summary>Maps the osc replay payload to the engine's
