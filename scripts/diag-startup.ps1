@@ -27,7 +27,7 @@ $ErrorActionPreference = "Continue"
 $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 $overlayBin = Join-Path $repo "Overlay\bin\Release\net10.0-windows10.0.26100.0"
-$spExe  = Join-Path $overlayBin "NVIDIA ShadowPlay.exe"
+$spExe  = Join-Path $overlayBin "NVIDIA Share.exe"
 $apiExe = Join-Path $overlayBin "NVIDIA API.exe"
 
 Write-Host "=================================================="
@@ -36,7 +36,7 @@ Write-Host "=================================================="
 try { & dotnet --info 2>$null | Select-String "Version:" | Select-Object -First 1 | ForEach-Object { Write-Host " SDK $($_.Line.Trim())" } } catch { }
 
 # clean slate (B1/B2 launches start the real app → supervisor may spawn engine)
-foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API", "SPTest", "ScratchHost")) {
+foreach ($n in @("NVIDIA Share", "NVIDIA Capture", "NVIDIA API", "SPTest", "ScratchHost")) {
     Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 
@@ -105,7 +105,7 @@ try {
     & dotnet build "Overlay\NVIDIA Overlay.vbproj" -c Release -v q --nologo `
         -p:ApplicationManifest= -p:OutputPath=bin\DiagB1\ 2>&1 |
         Select-String "error" | Select-Object -First 5 | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
-    $b1exe = Join-Path $b1out "NVIDIA ShadowPlay.exe"
+    $b1exe = Join-Path $b1out "NVIDIA Share.exe"
     if (Test-Path $b1exe) {
         # Guard: verify the override actually removed the manifest (it costs ~1-2KB)
         $sizeA = (Get-Item $spExe).Length
@@ -121,7 +121,7 @@ try {
                 Write-Host ("  [FAIL] no-manifest exe still dies (exit {0}) → not the manifest" -f $b1.Code) -ForegroundColor Yellow
             }
         }
-        try { Get-Process -Name "NVIDIA ShadowPlay" -ErrorAction SilentlyContinue | Stop-Process -Force } catch { }
+        try { Get-Process -Name "NVIDIA Share" -ErrorAction SilentlyContinue | Stop-Process -Force } catch { }
     } else { Write-Host "  [SKIP] B1 build produced no exe" -ForegroundColor Yellow }
 } catch { Write-Host "  [SKIP] B1 build threw: $($_.Exception.Message)" -ForegroundColor Yellow }
 
@@ -145,7 +145,7 @@ try {
 } catch { Write-Host "  [SKIP] B2 build threw: $($_.Exception.Message)" -ForegroundColor Yellow }
 
 # ── Summary ────────────────────────────────────────────────────────
-foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "SPTest", "ScratchHost")) {
+foreach ($n in @("NVIDIA Share", "NVIDIA Capture", "SPTest", "ScratchHost")) {
     Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
 }
 Write-Host "`n=================================================="

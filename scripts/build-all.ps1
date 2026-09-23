@@ -8,7 +8,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -RunTests    # build + tests
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -Fast        # skip clean
 #   powershell -ExecutionPolicy Bypass -File scripts\build-all.ps1 -StageLayout # ALSO stage the
-#       # root-fixed "NVIDIA ShadowPlay" tree into dist\ (see docs/APP-LAYOUT.md)
+#       # root-fixed "NVIDIA Share" tree into dist\ (see docs/APP-LAYOUT.md)
 #       # and then MIRROR it onto Overlay\bin\Release\net10.0-windows10.0.26100.0\
 #       # (OWNER: the dev bin IS the main tree, CLEAN — dev clutter purged;
 #       # runtime dirs Config\Data\Logs\Flags excluded and preserved).
@@ -40,7 +40,7 @@ if (-not $Fast) {
     # ★ Root-cause lesson: HandleAppsSmart in the hub spawns/keeps the family
     # alive; any running instance (incl. Diag builds) locks bin DLLs →
     # 'Access denied' during Remove-Item. Kill FIRST, always, before clean.
-    foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
+    foreach ($n in @("NVIDIA Share", "NVIDIA Capture", "NVIDIA API",
                      "Launcher", "NVIDIA Notifier", "SPTest", "SPRename9", "ScratchHost",
                      "ffmpeg", "ffprobe", "ffplay")) {
         Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
@@ -89,7 +89,7 @@ if (Test-Path $dll) {
 $devBin = "Overlay\bin\Release\net10.0-windows10.0.26100.0"
 if (Test-Path "$devBin\Overlay\NVIDIA ShadowPlay.dll") {
     Write-Host "`n>>> DEV BIN = PRODUCT TREE: $devBin" -ForegroundColor Green
-    Write-Host "    -> run Launcher.exe from the root, NVIDIA ShadowPlay.exe from Overlay\."
+    Write-Host "    -> run Launcher.exe from the root, NVIDIA Share.exe from Overlay\."
     Write-Host "    -> hosts in Application\, deployment json in .NET Deployment\ — swept automatically"
     Write-Host "       by the plain build (_ProductTreeBin)."
 }
@@ -202,7 +202,7 @@ if ($StageLayout) {
         "Services\NVIDIA Notifier.dll",
         "Services\NVIDIA Notifier.runtimeconfig.json",
         # Overlay app
-        "Overlay\NVIDIA ShadowPlay.exe",
+        "Overlay\NVIDIA Share.exe",
         "Overlay\NVIDIA ShadowPlay.dll",
         "Overlay\NVIDIA ShadowPlay.ico",
         "Overlay\NVIDIA ShadowPlay.runtimeconfig.json",
@@ -223,7 +223,7 @@ if ($StageLayout) {
     }
     Write-Host "STAGED TREE APPLIED OK -> $bin" -ForegroundColor Green
     Write-Host "    -> bin is now the CLEAN product tree: Launcher.exe at" -ForegroundColor Green
-    Write-Host "       the root, NVIDIA ShadowPlay.exe in Overlay\, hosts in Application\," -ForegroundColor Green
+    Write-Host "       the root, NVIDIA Share.exe in Overlay\, hosts in Application\," -ForegroundColor Green
     Write-Host "       deployment json in .NET Deployment\." -ForegroundColor Green
     Write-Host "    -> plain builds now self-maintain this tree (_ProductTreeBin);" -ForegroundColor Green
     Write-Host "       -StageLayout remains the deep-clean + verify path." -ForegroundColor Green

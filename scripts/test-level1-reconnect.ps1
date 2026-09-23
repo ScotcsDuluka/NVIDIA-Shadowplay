@@ -6,7 +6,7 @@
 # until this script is executed and its summary is captured.
 #
 # What it proves (measured, never assumed):
-#   - UI (NVIDIA ShadowPlay.exe) death does NOT stop NVIDIA Capture.exe
+#   - UI (NVIDIA Share.exe) death does NOT stop NVIDIA Capture.exe
 #   - the engine session clock keeps ADVANCING while the UI is dead
 #     (the final MP4 materializes at SAVE — live-mux design — so the
 #     engine elapsed timer is the PRIMARY continuity signal, not file size)
@@ -35,7 +35,7 @@
 #   powershell -ExecutionPolicy Bypass -File scripts\test-level1-reconnect.ps1
 #   powershell ... -Iterations 10 -RecordSeconds 20
 #   powershell ... -AllowEngineKill          # enables matrix row 9
-#   powershell ... -UiExe 'C:\path\NVIDIA ShadowPlay.exe'  # only if auto-discovery misses
+#   powershell ... -UiExe 'C:\path\NVIDIA Share.exe'  # only if auto-discovery misses
 # ============================================================================
 
 param(
@@ -192,13 +192,13 @@ if (-not $UiExe -or -not (Test-Path $UiExe)) {
 }
 if (-not $UiExe -or -not (Test-Path $UiExe)) {
     $UiExe = @(
-        (Get-Command 'NVIDIA ShadowPlay.exe' -ErrorAction SilentlyContinue).Source,
-        "$PSScriptRoot\..\Application\NVIDIA ShadowPlay.exe",
-        "$PSScriptRoot\..\..\Application\NVIDIA ShadowPlay.exe"
+        (Get-Command 'NVIDIA Share.exe' -ErrorAction SilentlyContinue).Source,
+        "$PSScriptRoot\..\Application\NVIDIA Share.exe",
+        "$PSScriptRoot\..\..\Application\NVIDIA Share.exe"
     ) | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
 }
 if (-not $UiExe -or -not (Test-Path $UiExe)) {
-    Fail-Hard "NVIDIA ShadowPlay.exe not found. Launch the UI once and re-run, or pass the full path: -UiExe 'C:\...\NVIDIA ShadowPlay.exe'"
+    Fail-Hard "NVIDIA Share.exe not found. Launch the UI once and re-run, or pass the full path: -UiExe 'C:\...\NVIDIA Share.exe'"
 }
 Write-Host "ui exe = $UiExe"
 

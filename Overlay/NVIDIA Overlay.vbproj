@@ -33,7 +33,7 @@
 
                 <StartupObject>NVIDIA_Share.My.MyApplication</StartupObject>
                 <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
-                <AssemblyName>NVIDIA ShadowPlay</AssemblyName>
+                <AssemblyName>NVIDIA Share</AssemblyName>
 
                 <RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
                 <RunAnalyzersDuringLiveAnalysis>False</RunAnalyzersDuringLiveAnalysis>

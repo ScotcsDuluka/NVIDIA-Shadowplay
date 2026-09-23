@@ -9,10 +9,10 @@
 #    C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience\
 #    ├── osc\          (frontend static — served by the backend)
 #    ├── Backend\      (Node.js backend, port 59001, Web Helper replacement)
-#    ├── Coordinator\  (Share.exe #1 — HKCU Run entry points here)
+#    ├── Coordinator\  (NVIDIA Share.exe #1 — HKCU Run entry points here)
 #    ├── WinForm\      (NVIDIA Share.exe #2 — WinForms overlay build)
 #    ├── WebView\      (NVIDIA Share.exe #3 — Overlay.Engine, spawned --desktop)
-#    ├── Hook\         (Share.exe #4 — WebView hook slot, show port :59004)
+#    ├── Hook\         (NVIDIA Share.exe #4 — WebView hook slot, show port :59004)
 #    └── Notifier\     (NVIDIA Notifier.exe — tray balloons off :59001)
 #
 #  Usage:  .\install.ps1 [-BackendSrc path] [-OscSrc path] [-CoordinatorSrc path]
@@ -78,7 +78,7 @@ $notifierSrc = Resolve-Src 'Notifier build' $NotifierSrc @(
 
 # ── stop whatever is running from a previous install ────────────────
 Write-Host '[2/9] stopping previous processes...'
-foreach ($n in 'Share', 'NVIDIA Share', 'NVIDIA Notifier', 'NVIDIA Capture', 'node') {
+foreach ($n in 'Share', 'NVIDIA Share', 'NVIDIA ShadowPlay', 'NVIDIA Notifier', 'NVIDIA Capture', 'node') {
   Get-Process $n -ErrorAction SilentlyContinue | ForEach-Object {
     try {
       $p = $_.Path
@@ -141,14 +141,15 @@ foreach ($hive in 'HKLM:\SOFTWARE\NVIDIA Corporation\Global\NvNode', 'HKLM:\SOFT
 # ── firewall: backend is loopback-only — nothing to open. The Duluka ─
 #    Server (:5115) keeps its own rule if present.
 
-# ── autostart: HKCU Run -> Share.exe #1 (Coordinator) ───────────────
-Write-Host '[6/9] autostart: HKCU Run "NvPortableShare" -> Coordinator\Share.exe'
-$coordExe = Join-Path $gfe 'Coordinator\Share.exe'
+# ── autostart: HKCU Run -> NVIDIA Share.exe #1 (Coordinator) ───────────────
+Write-Host '[6/9] autostart: HKCU Run "NvPortableShare" -> Coordinator\NVIDIA Share.exe'
+$coordExe = Join-Path $gfe 'Coordinator\NVIDIA Share.exe'
+if (-not (Test-Path $coordExe)) { $coordExe = Join-Path $gfe 'Coordinator\Share.exe' }
 if (Test-Path $coordExe) {
   New-Item -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Force | Out-Null
   Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run' -Name 'NvPortableShare' -Value ('"' + $coordExe + '"') -Type String
 } else {
-  Write-Host '  WARNING: Coordinator\Share.exe missing — autostart NOT wired'
+  Write-Host '  WARNING: Coordinator exe missing — autostart NOT wired'
 }
 
 # Alt+Z wire-through: the WinForm/WebView overlays register NO global
@@ -189,7 +190,7 @@ New-Item -ItemType Directory -Force -Path $unDir | Out-Null
 @'
 # uninstall-host.ps1 — removes the ShadowPlay Portable product tree
 $gfe = "C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience"
-foreach ($n in "Share", "NVIDIA Share", "NVIDIA Notifier", "node") {
+foreach ($n in "Share", "NVIDIA Share", "NVIDIA ShadowPlay", "NVIDIA Notifier", "node") {
   Get-Process $n -ErrorAction SilentlyContinue | ForEach-Object {
     try { if ($_.Path -like "$gfe*") { Stop-Process -Id $_.Id -Force } } catch {}
   }
@@ -229,10 +230,10 @@ Write-Host ''
 Write-Host 'DONE. Product tree (4-instance Share model):'
 Write-Host ('  ' + $gfe)
 Write-Host '  API       : Backend (node)  http://127.0.0.1:59001 (health: /Backend/v.1.0/health)'
-Write-Host '  Share #1  : Coordinator\Share.exe  (spawns #2 #3 #4 + Notifier)'
+Write-Host '  Share #1  : Coordinator\NVIDIA Share.exe  (spawns #2 #3 #4 + Notifier)'
 Write-Host '  Share #2  : WinForm\NVIDIA Share.exe  (WinForms overlay)'
 Write-Host '  Share #3  : WebView\NVIDIA Share.exe --desktop  (WebView2 osc)'
-Write-Host '  Share #4  : Hook\Share.exe  (slot — show port :59004)'
+Write-Host '  Share #4  : Hook\NVIDIA Share.exe  (slot — show port :59004)'
 Write-Host '  Notifier  : Notifier\NVIDIA Notifier.exe  (tray balloons)'
 Write-Host '  Overlay   : Alt+Z (hotkey-listener) or Coordinator-spawned overlays'
 Write-Host '  Autostart : HKCU Run -> NvPortableShare + NvPortableBackend + NvPortableHotkey'

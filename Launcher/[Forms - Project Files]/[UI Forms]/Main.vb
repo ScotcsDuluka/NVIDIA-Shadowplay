@@ -87,7 +87,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
     End Sub
 
     Private Sub IF_APP_Tick(sender As Object, e As EventArgs) Handles IF_APP.Tick
-        Dim ShadowPlay As Boolean = Process.GetProcessesByName("NVIDIA ShadowPlay").Length > 0
+        Dim ShadowPlay As Boolean = Process.GetProcessesByName("NVIDIA Share").Length > 0
         Dim Ready_Use As String = AppLayout.P("Flags", "Ready")
         Dim isReady As Boolean = File.Exists(Ready_Use)
 
@@ -172,7 +172,7 @@ Partial Public Class NVIDIA_Shadowplay_Helper
         AppConfigShared.WriteBool("Overlay", "UseOverlayEnabled", False)
         Dim apps = {
         "NVIDIA Notifier.exe",
-        "NVIDIA ShadowPlay.exe",
+        "NVIDIA Share.exe",
         "NVIDIA API.exe",
         "NVIDIA Capture.exe"
     }

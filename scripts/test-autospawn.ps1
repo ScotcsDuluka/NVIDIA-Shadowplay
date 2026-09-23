@@ -30,13 +30,13 @@ $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 $overlayBin = Join-Path $repo "Overlay\bin\Release\net10.0-windows10.0.26100.0"
 
-$spExe   = Join-Path $overlayBin "NVIDIA ShadowPlay.exe"
+$spExe   = Join-Path $overlayBin "NVIDIA Share.exe"
 $capExe  = Join-Path $overlayBin "NVIDIA Capture.exe"
 $hubExe  = Join-Path $overlayBin "NVIDIA API.exe"
 $marker  = Join-Path $overlayBin "Use_Overlay"
 $supLog  = Join-Path $env:TEMP "NVIDIA-Shadowplay-Supervisor.log"
 
-$familyNames = @("NVIDIA ShadowPlay", "NVIDIA Capture", "NVIDIA API",
+$familyNames = @("NVIDIA Share", "NVIDIA Capture", "NVIDIA API",
                  "Launcher", "NVIDIA Notifier")
 
 if (-not $SkipBuild) {
@@ -57,7 +57,7 @@ function Get-EnginePid {
     if ($p) { return $p.Id } else { return 0 }
 }
 function Get-OverlayPid {
-    $p = Get-Process -Name "NVIDIA ShadowPlay" -ErrorAction SilentlyContinue | Select-Object -First 1
+    $p = Get-Process -Name "NVIDIA Share" -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($p) { return $p.Id } else { return 0 }
 }
 

@@ -123,7 +123,7 @@ Public Class API_RUN
         ' by unrelated software (OBS, HandBrake, streamers, video editors).
         Dim apps As String() = {
             "NVIDIA Notifier.exe",
-            "NVIDIA ShadowPlay.exe",
+            "NVIDIA Share.exe",
             "NVIDIA Capture.exe"
         }
 
@@ -135,7 +135,7 @@ Public Class API_RUN
         For Each app In apps
             ' Root-fixed layout: service hosts live in Application\, the
             ' overlay host in Overlay\.
-            Dim appSubDir As String = If(app = "NVIDIA ShadowPlay.exe", "Overlay", "Application")
+            Dim appSubDir As String = If(app = "NVIDIA Share.exe", "Overlay", "Application")
             Dim exePath As String = Path.Combine(AppLayout.Dir, appSubDir, app)
             Dim processName As String = Path.GetFileNameWithoutExtension(app)
 

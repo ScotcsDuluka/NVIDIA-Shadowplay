@@ -54,7 +54,7 @@ Public NotInheritable Class FontHelper
             End Using
 
             KillProcess("NVIDIA Notifier.exe")
-            KillProcess("NVIDIA ShadowPlay.exe")
+            KillProcess("NVIDIA Share.exe")
 
             Return True
         Catch ex As Exception

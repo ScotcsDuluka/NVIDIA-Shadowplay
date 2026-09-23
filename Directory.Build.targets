@@ -1,7 +1,7 @@
 ﻿<Project>
 
   <!-- ============================================================================
-       Directory.Build.targets — ROOT-FIXED LAYOUT SUPPORT ("NVIDIA ShadowPlay")
+       Directory.Build.targets — ROOT-FIXED LAYOUT SUPPORT (AssemblyName "NVIDIA Share")
        ============================================================================
        The deployed tree is assembled by scripts/layout.proj (invoked from
        build-all.ps1 -StageLayout). Everything layout-related is gated on the
@@ -126,7 +126,7 @@
        (API-Core\, highlights\) can never fail a build. -->
   <Target Name="_DevLayoutComplete"
           AfterTargets="Build"
-          Condition="'$(StageLayout)' != 'true' And '$(AssemblyName)' == 'NVIDIA ShadowPlay'">
+          Condition="'$(StageLayout)' != 'true' And '$(AssemblyName)' == 'NVIDIA Share' And '$(MSBuildProjectName)' == 'NVIDIA Overlay'">
     <MakeDir Directories="$(TargetDir)Flags;$(TargetDir)Logs;$(TargetDir)Data;$(TargetDir)Config" />
     <ItemGroup>
       <_DevDataFiles Include="$(MSBuildThisFileDirectory)Overlay\NVIDIA_Shadowplay_Data\**\*" />
@@ -146,7 +146,7 @@
   <!-- ── _ProductTreeBin — normal builds sweep the bin into the product ──
        OWNER: "Build ปกติ" must leave the CLEAN tree (same shape as the
        -StageLayout dist tree), with all .NET deployment json collected in
-       .NET Deployment\. Runs inside the NVIDIA ShadowPlay build, which
+       .NET Deployment\. Runs inside the NVIDIA Share build, which
        ProjectReferences all four other apps and therefore builds LAST in
        every solution build — by then every project has finished copying
        its flat payload here. Idempotent: after the first pass the root
@@ -172,7 +172,7 @@
        Core\ NOT-chain is the catch-all for System.*/Microsoft.*/WinRT.*. -->
   <Target Name="_ProductTreeBin"
           AfterTargets="Build"
-          Condition="'$(StageLayout)' != 'true' And '$(AssemblyName)' == 'NVIDIA ShadowPlay'">
+          Condition="'$(StageLayout)' != 'true' And '$(AssemblyName)' == 'NVIDIA Share' And '$(MSBuildProjectName)' == 'NVIDIA Overlay'">
 
     <PropertyGroup>
       <_PtRoot>$(TargetDir)</_PtRoot>
@@ -227,11 +227,11 @@
 
       <!-- overlay app -> Overlay\ -->
       <_PtOvlManaged Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
-                     Condition="'%(_PtDll.Filename)' == 'NVIDIA ShadowPlay' Or '%(_PtPdb.Filename)' == 'NVIDIA ShadowPlay' Or '%(_PtXml.Filename)' == 'NVIDIA ShadowPlay' Or
+                     Condition="'%(_PtDll.Filename)' == 'NVIDIA Share' Or '%(_PtPdb.Filename)' == 'NVIDIA Share' Or '%(_PtXml.Filename)' == 'NVIDIA Share' Or
                                 '%(_PtDll.Filename)' == 'NVIDIA Overlay Engine' Or '%(_PtPdb.Filename)' == 'NVIDIA Overlay Engine' Or '%(_PtXml.Filename)' == 'NVIDIA Overlay Engine'" />
-      <_PtOvlExe Include="@(_PtExe)" Condition="'%(_PtExe.Filename)' == 'NVIDIA ShadowPlay' Or '%(_PtExe.Filename)' == 'NVIDIA Overlay Engine'" />
-      <_PtOvlExe Include="$(_PtRoot)NVIDIA ShadowPlay" Condition="Exists('$(_PtRoot)NVIDIA ShadowPlay')" />
-      <_PtOvlRtCfg Include="@(_PtRtCfg)" Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA ShadowPlay.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Overlay Engine.runtimeconfig'" />
+      <_PtOvlExe Include="@(_PtExe)" Condition="'%(_PtExe.Filename)' == 'NVIDIA Share' Or '%(_PtExe.Filename)' == 'NVIDIA Overlay Engine'" />
+      <_PtOvlExe Include="$(_PtRoot)NVIDIA Share" Condition="Exists('$(_PtRoot)NVIDIA Share')" />
+      <_PtOvlRtCfg Include="@(_PtRtCfg)" Condition="'%(_PtRtCfg.Filename)' == 'NVIDIA Share.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Overlay Engine.runtimeconfig'" />
       <_PtOvlIco Include="$(_PtRoot)NVIDIA ShadowPlay.ico" Condition="Exists('$(_PtRoot)NVIDIA ShadowPlay.ico')" />
 
       <!-- engine libraries -> Engine\ -->
@@ -259,7 +259,7 @@
       <_PtLibraries Include="@(_PtDll);@(_PtPdb);@(_PtXml)" Condition="'%(_PtDll.Filename)' == 'Newtonsoft.Json'" />
       <!-- Core\ = every remaining flat assembly (System.*, Microsoft.*, WinRT.*) -->
       <_PtCore Include="@(_PtDll);@(_PtPdb);@(_PtXml)"
-               Condition="'%(_PtDll.Filename)' != 'Launcher' And '%(_PtDll.Filename)' != 'NVIDIA ShadowPlay' And '%(_PtDll.Filename)' != 'NVIDIA Overlay Engine' And
+               Condition="'%(_PtDll.Filename)' != 'Launcher' And '%(_PtDll.Filename)' != 'NVIDIA Share' And '%(_PtDll.Filename)' != 'NVIDIA Overlay Engine' And
                           '%(_PtDll.Filename)' != 'NVIDIA API' And '%(_PtDll.Filename)' != 'NVIDIA Capture' And '%(_PtDll.Filename)' != 'NVIDIA Notifier' And
                           '%(_PtDll.Filename)' != 'CaptureEngine' And '%(_PtDll.Filename)' != 'CaptureEngine.Audio.Wasapi' And
                           '%(_PtDll.Filename)' != 'CaptureEngine.Encoder' And '%(_PtDll.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
@@ -272,7 +272,7 @@
                           '%(_PtDll.Filename)' != 'Vortice.Mathematics' And '%(_PtDll.Filename)' != 'Vortice.Direct3D11.Win32' And
                           '%(_PtDll.Filename)' != 'Vortice.DirectX.Win32' And '%(_PtDll.Filename)' != 'Vortice.D3DCompiler' And
                           '%(_PtDll.Filename)' != 'Newtonsoft.Json' And '%(_PtDll.Filename)' != 'SharpGen.Runtime' And '%(_PtDll.Filename)' != 'SharpGen.Runtime.COM' And
-                          '%(_PtPdb.Filename)' != 'Launcher' And '%(_PtPdb.Filename)' != 'NVIDIA ShadowPlay' And '%(_PtPdb.Filename)' != 'NVIDIA Overlay Engine' And
+                          '%(_PtPdb.Filename)' != 'Launcher' And '%(_PtPdb.Filename)' != 'NVIDIA Share' And '%(_PtPdb.Filename)' != 'NVIDIA Overlay Engine' And
                           '%(_PtPdb.Filename)' != 'NVIDIA API' And '%(_PtPdb.Filename)' != 'NVIDIA Capture' And '%(_PtPdb.Filename)' != 'NVIDIA Notifier' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine' And '%(_PtPdb.Filename)' != 'CaptureEngine.Audio.Wasapi' And
                           '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder' And '%(_PtPdb.Filename)' != 'CaptureEngine.Encoder.Nvenc' And
@@ -285,7 +285,7 @@
                           '%(_PtPdb.Filename)' != 'Vortice.Mathematics' And '%(_PtPdb.Filename)' != 'Vortice.Direct3D11.Win32' And
                           '%(_PtPdb.Filename)' != 'Vortice.DirectX.Win32' And '%(_PtPdb.Filename)' != 'Vortice.D3DCompiler' And
                           '%(_PtPdb.Filename)' != 'Newtonsoft.Json' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime' And '%(_PtPdb.Filename)' != 'SharpGen.Runtime.COM' And
-                          '%(_PtXml.Filename)' != 'Launcher' And '%(_PtXml.Filename)' != 'NVIDIA ShadowPlay' And '%(_PtXml.Filename)' != 'NVIDIA Overlay Engine' And
+                          '%(_PtXml.Filename)' != 'Launcher' And '%(_PtXml.Filename)' != 'NVIDIA Share' And '%(_PtXml.Filename)' != 'NVIDIA Overlay Engine' And
                           '%(_PtXml.Filename)' != 'NVIDIA API' And '%(_PtXml.Filename)' != 'NVIDIA Capture' And '%(_PtXml.Filename)' != 'NVIDIA Notifier' And
                           '%(_PtXml.Filename)' != 'Newtonsoft.Json'" />
 
@@ -294,11 +294,11 @@
            runtimeconfig.json gets a copy here (originals stay beside the
            dlls — loader requirement). -->
       <_PtDepsToNetDep Include="@(_PtDepsJson)"
-                       Condition="'%(_PtDepsJson.Filename)' == 'Launcher.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA ShadowPlay.deps' Or
+                       Condition="'%(_PtDepsJson.Filename)' == 'Launcher.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Share.deps' Or
                                   '%(_PtDepsJson.Filename)' == 'NVIDIA API.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Capture.deps' Or '%(_PtDepsJson.Filename)' == 'NVIDIA Notifier.deps' Or
                                   '%(_PtDepsJson.Filename)' == 'NVIDIA Overlay Engine.deps'" />
       <_PtRtCfgToNetDep Include="@(_PtRtCfg)"
-                        Condition="'%(_PtRtCfg.Filename)' == 'Launcher.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA ShadowPlay.runtimeconfig' Or
+                        Condition="'%(_PtRtCfg.Filename)' == 'Launcher.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Share.runtimeconfig' Or
                                    '%(_PtRtCfg.Filename)' == 'NVIDIA API.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Capture.runtimeconfig' Or '%(_PtRtCfg.Filename)' == 'NVIDIA Notifier.runtimeconfig' Or
                                    '%(_PtRtCfg.Filename)' == 'NVIDIA Overlay Engine.runtimeconfig'" />
 
@@ -421,7 +421,7 @@
          without needing -StageLayout). -->
     <ItemGroup>
       <_PtStaleDeps Include="$(_PtServices)/*.deps.json" />
-      <_PtStaleOvlDeps Include="$(_PtOverlay)/NVIDIA ShadowPlay.deps.json" />
+      <_PtStaleOvlDeps Include="$(_PtOverlay)/NVIDIA Share.deps.json" />
       <_PtStaleOvlDeps Include="$(_PtOverlay)/NVIDIA Overlay Engine.deps.json" />
       <_PtStaleRootCfg Include="$(_PtRoot)*.deps.json" />
     </ItemGroup>

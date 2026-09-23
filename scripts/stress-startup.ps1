@@ -27,10 +27,10 @@ $repo = Split-Path -Parent $PSScriptRoot
 Set-Location $repo
 $overlayBin = Join-Path $repo "OverlaybinRelease
 et10.0-windows10.0.26100.0"
-$spExe   = Join-Path $overlayBin "NVIDIA ShadowPlay.exe"
+$spExe   = Join-Path $overlayBin "NVIDIA Share.exe"
 $hubExe  = Join-Path $overlayBin "NVIDIA API.exe"
 $b1Dir   = Join-Path $repo "Overlay\bin\DiagB1"
-$b1Exe   = Join-Path $b1Dir "NVIDIA ShadowPlay.exe"
+$b1Exe   = Join-Path $b1Dir "NVIDIA Share.exe"
 if ($Iterations -lt 3) { $Iterations = 3 }
 
 Write-Host "=================================================="
@@ -76,7 +76,7 @@ function Set-Hub([bool]$Up) {
 }
 
 function Kill-TestApps {
-    foreach ($n in @("NVIDIA ShadowPlay", "NVIDIA Capture", "SPRename9")) {
+    foreach ($n in @("NVIDIA Share", "NVIDIA Capture", "SPRename9")) {
         Get-Process -Name $n -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
     }
 }

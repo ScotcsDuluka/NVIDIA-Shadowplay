@@ -100,7 +100,9 @@ Public NotInheritable Class Program
         InitLog()
 
         ' ── resolve children (env > arg > product-tree default > legacy) ──
-        Dim root As String = AppContext.BaseDirectory
+        ' BaseDirectory ends in \Coordinator\ - the product root is its parent
+        ' (install.ps1 stages Share.exe into <gfe>\Coordinator\, siblings beside it).
+        Dim root As String = IO.Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, ".."))
         Dim myPid As String = Process.GetCurrentProcess().Id.ToString()
 
         Dim winform As String = If(Environment.GetEnvironmentVariable("SHARE_WINFORM_PATH"), winformPath)

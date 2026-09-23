@@ -1,7 +1,7 @@
 ﻿<Project DefaultTargets="Stage" InitialTargets="Prepare">
 
   <!-- ============================================================================
-       scripts/layout.proj — assembles the root-fixed "NVIDIA ShadowPlay" tree
+       scripts/layout.proj — assembles the root-fixed "NVIDIA Share" tree
        ============================================================================
        Invoked by build-all.ps1 -StageLayout, or directly:
 
@@ -68,7 +68,7 @@
     <LauncherExe Include="$(Repo)Launcher\$(AppBin)\Launcher.exe" />
     <OverlayPayload Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.dll;
                              $(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.runtimeconfig.json" />
-    <OverlayExe Include="$(Repo)Overlay\$(AppBin)\NVIDIA ShadowPlay.exe" />
+    <OverlayExe Include="$(Repo)Overlay\$(AppBin)\NVIDIA Share.exe" />
     <!-- .NET Deployment\ — the complete deployment-metadata set (OWNER
          tree): every app's deps.json + runtimeconfig.json, one folder. -->
     <NetDepJson Include="$(Repo)Launcher\$(AppBin)\Launcher.deps.json;
@@ -224,7 +224,7 @@
       <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.dll" />
       <Required Include="$(LayoutRoot)/Services\NVIDIA Notifier.runtimeconfig.json" />
       <!-- Overlay app -->
-      <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.exe" />
+      <Required Include="$(LayoutRoot)/Overlay\NVIDIA Share.exe" />
       <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.dll" />
       <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.ico" />
       <Required Include="$(LayoutRoot)/Overlay\NVIDIA ShadowPlay.runtimeconfig.json" />
