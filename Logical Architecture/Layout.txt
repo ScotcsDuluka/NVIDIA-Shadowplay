@@ -1,0 +1,58 @@
+NVIDIA ShadowPlay\
+│
+├── Launcher.exe
+├── Launcher.dll
+│
+├── NvContainer\
+│   └── NvContainer.exe
+│
+├── NvOverlay\
+│   ├── WebView\
+│   │   └── NVIDIA Share.exe
+│   │
+│   ├── WebViewHook\
+│   │   └── NVIDIA Share.exe
+│   │
+│   └── WinForm\
+│       ├── NVIDIA ShadowPlay.exe
+│       └── NVIDIA Notifier.exe
+│
+├── ShadowPlay\
+│   ├── nvsphelper64.exe
+│   ├── CaptureEngine.dll
+│   ├── CaptureEngine.Encoder.dll
+│   ├── CaptureEngine.Video.dll
+│   ├── CaptureEngine.Audio.dll
+│   ├── CaptureEngine.Recording.dll
+│   ├── nvspcap.dll
+│   └── ...
+│
+├── NvBackend\
+│   ├── NVIDIA Web Helper.exe
+│   ├── *.js
+│   ├── api\
+│   ├── node_modules\
+│   └── ...
+│
+├── Runtime\
+├── FFmpeg\
+├── Audio\
+├── Graphics\
+│
+├── Config\
+│   └── ShadowPlay / Overlay config only
+│
+├── Data\
+├── Languages\
+│
+├── Services\
+│   ├── NvContainer.dll
+│   ├── NVIDIA ShadowPlay.dll
+│   ├── NVIDIA Web Helper.dll
+│   ├── nvsphelper64.dll
+│   ├── NVIDIA Notifier.dll
+│   └── ...
+│
+├── .NET Deployment\
+├── Resources\
+└── Logs\
