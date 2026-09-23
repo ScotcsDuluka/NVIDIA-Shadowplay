@@ -1,0 +1,4 @@
+# NvCapture lane — local build artifacts and NVIDIA-derived raw dumps stay out of git
+build/
+abi-evidence/dumps/
+harness/build/

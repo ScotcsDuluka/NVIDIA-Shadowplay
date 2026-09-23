@@ -1,0 +1,18 @@
+; kernel32_min.def — imports used by the freestanding NvCapture shim+harness.
+; The real Windows kernel32 provides these at runtime; lib.exe /DEF turns this
+; into a minimal import library so no Windows SDK is needed to link.
+LIBRARY kernel32
+EXPORTS
+    AddVectoredExceptionHandler
+    DisableThreadLibraryCalls
+    ExitProcess
+    GetCommandLineA
+    GetModuleHandleExW
+    GetProcAddress
+    GetStdHandle
+    IsBadCodePtr
+    IsBadReadPtr
+    IsBadWritePtr
+    LoadLibraryA
+    OutputDebugStringA
+    WriteFile
