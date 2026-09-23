@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<AssemblyName>NVIDIA Notifier</AssemblyName>
+		<RootNamespace>NVIDIANotifier</RootNamespace>
+		<UseWindowsForms>true</UseWindowsForms>
+		<TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<NoWarn>$(NoWarn);WFO1000</NoWarn>
+		<SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+		<StartupObject>NVIDIANotifier.Program</StartupObject>
+		<Platforms>AnyCPU;x64</Platforms>
+		<Version Condition="'$(SharedBuildNumber)' != ''">3.41.$(SharedBuildNumber).61</Version>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Import Include="System" />
+		<Import Include="System.Collections.Generic" />
+		<Import Include="System.Diagnostics" />
+		<Import Include="System.IO" />
+		<Import Include="System.Linq" />
+		<Import Include="System.Threading" />
+		<Import Include="System.Windows.Forms" />
+	</ItemGroup>
+
+</Project>

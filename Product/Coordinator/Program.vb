@@ -1,22 +1,32 @@
-' Program.vb — Share.exe #1 (Coordinator): the 3-process launcher/monitor.
+' Program.vb — NVIDIA Share.exe #1 (Overlay Controller): the 4-instance
+' launcher/monitor (GFE process map, see docs/GFE-PROCESS-MAP.md).
 '
-' Product tree (GFE layout, see Product/README.md):
+' Product tree (all four Share slots carry the SAME exe name, like the
+' real host — they are distinguished by folder + arguments):
 '
-'   <root>\Coordinator\Share.exe      <- THIS process (HKCU Run autostart entry)
-'   <root>\Desktop\NVIDIA Share.exe   <- #2  the Overlay.Engine osc host (existing build)
-'   <root>\Hook\Share.exe             <- #3  hook host placeholder
+'   <root>\Coordinator\NVIDIA Share.exe  <- #1 THIS process (controller)
+'   <root>\WinForm\NVIDIA Share.exe      <- #2  WinForm overlay system
+'   <root>\WebView\NVIDIA Share.exe      <- #3  WebView desktop overlay
+'                                          (Overlay.Engine build, --desktop)
+'   <root>\Hook\NVIDIA Share.exe         <- #4  WebView hook slot
+'                                          (placeholder, show port :59004)
+'   <root>\Notifier\NVIDIA Notifier.exe  <- support child (tray balloons,
+'                                          polls the backend; not a Share
+'                                          instance — supervised anyway,
+'                                          mirroring the real host's
+'                                          "Share spawns Notifier" graph)
 '
 ' Contract:
-'   - spawn #2 and #3 ONCE, each with --parent-pid <coordinator pid>
-'     (both children self-exit when the coordinator dies — no orphans)
+'   - spawn #2/#3/#4 (+ Notifier) ONCE, each with --parent-pid
+'     (children self-exit when the controller dies — no orphans)
 '   - monitor: any child that dies is respawned with exponential backoff
-'     (3s -> 60s, reset after a stable 30s run — same constants as the
-'     proven EngineProcessSupervisor)
-'   - health check the backend (:59001/Backend/v.1.0/health) every cycle;
-'     STATUS CHANGES are logged (informational — the backend owns its own
-'     lifecycle and its own autostart)
+'     (3s -> 60s, reset after a stable 30s run — EngineProcessSupervisor
+'     constants)
+'   - health check the backend (:59001/Backend/v.1.0/health) AND the hook
+'     show port (:59004/hook/status) every cycle; STATUS CHANGES are
+'     logged (informational — each slot owns its own lifecycle)
 '   - adopt already-running children instead of double-spawning (matched
-'     by exe path, NOT by name — all three processes are named Share)
+'     by exe path, NOT by name — every Share instance is named the same)
 '
 ' Reuse-if-running + backoff semantics mirror
 ' Overlay\[Forms Overlay - Project Files]\[API]\[Services]\EngineProcessSupervisor.vb.
@@ -63,16 +73,22 @@ Public NotInheritable Class Program
     Private Shared _shuttingDown As Boolean = False
     Private Shared _parentPid As Integer = 0
     Private Shared _healthUrl As String = "http://127.0.0.1:59001/Backend/v.1.0/health"
+    Private Shared _hookUrl As String = "http://127.0.0.1:59004/hook/status"
 
-    Private Shared _desktop As Child
+    Private Shared _winform As Child
+    Private Shared _webview As Child
     Private Shared _hook As Child
+    Private Shared _notifier As Child
 
     Private Sub New()
     End Sub
 
     Public Shared Sub Main(args As String())
-        Dim desktopPath As String = ReadArg(args, "--desktop-path")
+        Dim winformPath As String = ReadArg(args, "--winform-path")
+        Dim webviewPath As String = ReadArg(args, "--webview-path")
+        Dim desktopPath As String = ReadArg(args, "--desktop-path") ' legacy alias -> webview
         Dim hookPath As String = ReadArg(args, "--hook-path")
+        Dim notifierPath As String = ReadArg(args, "--notifier-path")
         Dim parentArg As String = ReadArg(args, "--parent-pid")
         Dim backendArg As String = ReadArg(args, "--backend-url")
         If backendArg IsNot Nothing Then _healthUrl = backendArg
@@ -83,32 +99,59 @@ Public NotInheritable Class Program
 
         InitLog()
 
-        ' ── resolve children (env > arg > product-tree default) ─────
+        ' ── resolve children (env > arg > product-tree default > legacy) ──
         Dim root As String = AppContext.BaseDirectory
-        Dim desktop As String = If(Environment.GetEnvironmentVariable("SHARE_DESKTOP_PATH"), desktopPath)
-        If String.IsNullOrWhiteSpace(desktop) Then
-            desktop = Path.Combine(root, "Desktop", "NVIDIA Share.exe")
-            If Not File.Exists(desktop) Then desktop = Path.Combine(root, "Desktop", "Share.exe")
+        Dim myPid As String = Process.GetCurrentProcess().Id.ToString()
+
+        Dim winform As String = If(Environment.GetEnvironmentVariable("SHARE_WINFORM_PATH"), winformPath)
+        If String.IsNullOrWhiteSpace(winform) Then
+            winform = Path.Combine(root, "WinForm", "NVIDIA Share.exe")
+            If Not File.Exists(winform) Then winform = Path.Combine(root, "WinForm", "NVIDIA ShadowPlay.exe") ' pre-rename build
+            If Not File.Exists(winform) Then winform = Path.Combine(root, "WinForm", "Share.exe")
         End If
+
+        Dim webview As String = If(Environment.GetEnvironmentVariable("SHARE_WEBVIEW_PATH"), webviewPath)
+        If String.IsNullOrWhiteSpace(webview) Then webview = desktopPath ' legacy alias
+        If String.IsNullOrWhiteSpace(webview) Then
+            webview = If(Environment.GetEnvironmentVariable("SHARE_DESKTOP_PATH"), Nothing)
+        End If
+        If String.IsNullOrWhiteSpace(webview) Then
+            webview = Path.Combine(root, "WebView", "NVIDIA Share.exe")
+            If Not File.Exists(webview) Then webview = Path.Combine(root, "WebView", "Share.exe")
+            If Not File.Exists(webview) Then webview = Path.Combine(root, "Desktop", "NVIDIA Share.exe") ' pre-4.1 install
+            If Not File.Exists(webview) Then webview = Path.Combine(root, "Desktop", "Share.exe")
+        End If
+
         Dim hook As String = If(Environment.GetEnvironmentVariable("SHARE_HOOK_PATH"), hookPath)
         If String.IsNullOrWhiteSpace(hook) Then
-            hook = Path.Combine(root, "Hook", "Share.exe")
-            If Not File.Exists(hook) Then hook = Path.Combine(root, "Hook", "NVIDIA Share.exe")
+            hook = Path.Combine(root, "Hook", "NVIDIA Share.exe")
+            If Not File.Exists(hook) Then hook = Path.Combine(root, "Hook", "Share.exe")
         End If
 
-        Dim myPid As String = Process.GetCurrentProcess().Id.ToString()
-        _desktop = New Child("Desktop", desktop, "--parent-pid " & myPid)
-        _hook = New Child("Hook", hook, "--parent-pid " & myPid)
+        Dim notifier As String = If(Environment.GetEnvironmentVariable("SHARE_NOTIFIER_PATH"), notifierPath)
+        If String.IsNullOrWhiteSpace(notifier) Then
+            notifier = Path.Combine(root, "Notifier", "NVIDIA Notifier.exe")
+            If Not File.Exists(notifier) Then notifier = Path.Combine(root, "Notifier", "Notifier.exe")
+        End If
 
-        Log($"[Coordinator] Share coordinator starting (pid {myPid})")
+        _winform = New Child("WinForm#2", winform, "--parent-pid " & myPid)
+        _webview = New Child("WebView#3", webview, "--desktop --parent-pid " & myPid)
+        _hook = New Child("Hook#4", hook, "--parent-pid " & myPid)
+        _notifier = New Child("Notifier", notifier, "--parent-pid " & myPid)
+
+        Log($"[Coordinator] NVIDIA Share.exe [instance 1/4 — controller] starting (pid {myPid})")
         Log($"[Coordinator] root={root}")
-        Log($"[Coordinator] Desktop={desktop} (exists={File.Exists(desktop)})")
-        Log($"[Coordinator] Hook={hook} (exists={File.Exists(hook)})")
-        Log($"[Coordinator] backend health={_healthUrl}")
+        Log($"[Coordinator] #2 WinForm={winform} (exists={File.Exists(winform)})")
+        Log($"[Coordinator] #3 WebView={webview} (exists={File.Exists(webview)})")
+        Log($"[Coordinator] #4 Hook={hook} (exists={File.Exists(hook)})")
+        Log($"[Coordinator] Notifier={notifier} (exists={File.Exists(notifier)})")
+        Log($"[Coordinator] backend health={_healthUrl} | hook show port={_hookUrl}")
 
         ' initial spawns (best effort — monitor loop retries with backoff)
-        SpawnChild(_desktop, "startup")
+        SpawnChild(_winform, "startup")
+        SpawnChild(_webview, "startup")
         SpawnChild(_hook, "startup")
+        SpawnChild(_notifier, "startup")
 
         If _parentPid > 0 Then
             Dim monitor As New Thread(AddressOf MonitorLoop) With {.Name = "ShareCoordinator", .IsBackground = True}
@@ -122,15 +165,23 @@ Public NotInheritable Class Program
     ' ── monitor: respawn + health ───────────────────────────────────
     Private Shared Sub MonitorLoop()
         Dim lastHealth As String = "?"
+        Dim lastHook As String = "?"
         While Not _shuttingDown
             Try
-                Supervise(_desktop)
+                Supervise(_winform)
+                Supervise(_webview)
                 Supervise(_hook)
+                Supervise(_notifier)
 
-                Dim h As String = CheckHealth()
+                Dim h As String = CheckHealth(_healthUrl)
                 If h <> lastHealth Then
                     Log($"[Coordinator] backend health: {h}")
                     lastHealth = h
+                End If
+                Dim k As String = CheckHealth(_hookUrl)
+                If k <> lastHook Then
+                    Log($"[Coordinator] hook show port: {k}")
+                    lastHook = k
                 End If
             Catch ex As Exception
                 Log($"[Coordinator] monitor cycle error: {ex.Message}")
@@ -216,10 +267,10 @@ Public NotInheritable Class Program
         End Try
     End Sub
 
-    ' All three product processes are named Share — match by exe path.
+    ' Every Share instance is named "NVIDIA Share" — match by exe path.
     Private Shared Function FindRunningByPath(exePath As String) As Process
         Dim wanted As String = Path.GetFullPath(exePath).TrimEnd("\"c)
-        Dim candidates As String() = {"Share", "NVIDIA Share"}
+        Dim candidates As String() = {"NVIDIA Share", "Share"}
         For Each name As String In candidates
             Dim procs As Process() = Process.GetProcessesByName(name)
             For Each p As Process In procs
@@ -240,10 +291,10 @@ Public NotInheritable Class Program
         Return Nothing
     End Function
 
-    ' ── backend health (informational) ──────────────────────────────
-    Private Shared Function CheckHealth() As String
+    ' ── backend / hook health (informational) ───────────────────────
+    Private Shared Function CheckHealth(url As String) As String
         Try
-            Dim req As HttpWebRequest = CType(WebRequest.Create(_healthUrl), HttpWebRequest)
+            Dim req As HttpWebRequest = CType(WebRequest.Create(url), HttpWebRequest)
             req.Method = "GET"
             req.Timeout = HealthTimeoutMs
             req.ReadWriteTimeout = HealthTimeoutMs
@@ -261,7 +312,7 @@ Public NotInheritable Class Program
         End Try
     End Function
 
-    ' ── parent watch: coordinator may itself be spawned by a launcher ──
+    ' ── parent watch: the controller may itself be spawned by a launcher ──
     Private Shared Sub WatchParent()
         Try
             Dim parent As Process = Process.GetProcessById(_parentPid)
@@ -269,7 +320,7 @@ Public NotInheritable Class Program
             While Not _shuttingDown
                 parent.Refresh()
                 If parent.HasExited Then
-                    Log("[Coordinator] parent gone — coordinator exits (children self-exit via their own --parent-pid watch)")
+                    Log("[Coordinator] parent gone — controller exits (children self-exit via their own --parent-pid watch)")
                     _shuttingDown = True
                     Environment.Exit(0)
                 End If

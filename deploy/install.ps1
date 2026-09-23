@@ -1,27 +1,33 @@
 # ============================================================
 #  install.ps1 — NVIDIA ShadowPlay Portable, GFE product tree
-#  (Phase 4 of the 4-phase GFE rebuild)
+#  (Phase 4 of the GFE rebuild — 4-instance Share model)
 #
 #  Builds the GFE layout from repo build outputs and wires the
 #  autostart. Run from an ADMIN PowerShell.
 #
-#  Product tree created:
+#  Product tree created (docs/GFE-PROCESS-MAP.md):
 #    C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience\
 #    ├── osc\          (frontend static — served by the backend)
 #    ├── Backend\      (Node.js backend, port 59001, Web Helper replacement)
 #    ├── Coordinator\  (Share.exe #1 — HKCU Run entry points here)
-#    ├── Desktop\      (NVIDIA Share.exe #2 — Overlay.Engine build)
-#    └── Hook\         (Share.exe #3 — placeholder)
+#    ├── WinForm\      (NVIDIA Share.exe #2 — WinForms overlay build)
+#    ├── WebView\      (NVIDIA Share.exe #3 — Overlay.Engine, spawned --desktop)
+#    ├── Hook\         (Share.exe #4 — WebView hook slot, show port :59004)
+#    └── Notifier\     (NVIDIA Notifier.exe — tray balloons off :59001)
 #
 #  Usage:  .\install.ps1 [-BackendSrc path] [-OscSrc path] [-CoordinatorSrc path]
-#                        [-DesktopSrc path] [-HookSrc path] [-NoStart]
+#                        [-WinFormSrc path] [-WebViewSrc path] [-HookSrc path]
+#                        [-NotifierSrc path] [-NoStart]
 # ============================================================
 param(
   [string]$BackendSrc = '',
   [string]$OscSrc = '',
   [string]$CoordinatorSrc = '',
-  [string]$DesktopSrc = '',
+  [string]$WinFormSrc = '',
+  [string]$WebViewSrc = '',
+  [string]$DesktopSrc = '',   # legacy alias -> WebView
   [string]$HookSrc = '',
+  [string]$NotifierSrc = '',
   [switch]$NoStart
 )
 
@@ -50,17 +56,29 @@ $oscSrc = Resolve-Src 'osc frontend' $OscSrc @(
   (Join-Path $repo 'nvidia-shadowplay\Overlay.Engine\osc'))
 $coordSrc = Resolve-Src 'Coordinator build' $CoordinatorSrc @(
   (Join-Path (Join-Path $repo 'Product\Coordinator\bin\Release') $tfm),
+  (Join-Path $repo 'Product\Coordinator\bin\Release'),
   (Join-Path (Join-Path $repo 'nvidia-shadowplay\Product\Coordinator\bin\Release') $tfm))
-$desktopSrc = Resolve-Src 'Desktop (Overlay.Engine) build' $DesktopSrc @(
+$winformSrc = Resolve-Src 'WinForm (Overlay) build' $WinFormSrc @(
+  (Join-Path (Join-Path $repo 'Overlay\bin\Release') $tfm),
+  (Join-Path $repo 'Overlay\bin\Release'),
+  (Join-Path (Join-Path $repo 'nvidia-shadowplay\Overlay\bin\Release') $tfm),
+  (Join-Path $repo 'nvidia-shadowplay\Overlay\bin\Release'))
+$webviewSrc = Resolve-Src 'WebView (Overlay.Engine) build' $(if ($WebViewSrc) { $WebViewSrc } else { $DesktopSrc }) @(
   (Join-Path (Join-Path $repo 'Overlay.Engine\bin\Release') $tfm),
+  (Join-Path $repo 'Overlay.Engine\bin\Release'),
   (Join-Path (Join-Path $repo 'nvidia-shadowplay\Overlay.Engine\bin\Release') $tfm))
 $hookSrc = Resolve-Src 'Hook build' $HookSrc @(
   (Join-Path (Join-Path $repo 'Product\Hook\bin\Release') $tfm),
+  (Join-Path $repo 'Product\Hook\bin\Release'),
   (Join-Path (Join-Path $repo 'nvidia-shadowplay\Product\Hook\bin\Release') $tfm))
+$notifierSrc = Resolve-Src 'Notifier build' $NotifierSrc @(
+  (Join-Path (Join-Path $repo 'Product\Notifier\bin\Release') $tfm),
+  (Join-Path $repo 'Product\Notifier\bin\Release'),
+  (Join-Path (Join-Path $repo 'nvidia-shadowplay\Product\Notifier\bin\Release') $tfm))
 
 # ── stop whatever is running from a previous install ────────────────
 Write-Host '[2/9] stopping previous processes...'
-foreach ($n in 'Share', 'NVIDIA Share', 'NVIDIA Capture', 'node') {
+foreach ($n in 'Share', 'NVIDIA Share', 'NVIDIA Notifier', 'NVIDIA Capture', 'node') {
   Get-Process $n -ErrorAction SilentlyContinue | ForEach-Object {
     try {
       $p = $_.Path
@@ -74,13 +92,15 @@ Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyCon
 Start-Sleep 1
 
 # ── copy the tree ───────────────────────────────────────────────────
-Write-Host '[3/9] copying product tree...'
+Write-Host '[3/9] copying product tree (4-instance Share model)...'
 foreach ($slot in @(
-  @('osc',        $oscSrc),
-  @('Backend',    $backendSrc),
+  @('osc',         $oscSrc),
+  @('Backend',     $backendSrc),
   @('Coordinator', $coordSrc),
-  @('Desktop',    $desktopSrc),
-  @('Hook',       $hookSrc))) {
+  @('WinForm',     $winformSrc),
+  @('WebView',     $webviewSrc),
+  @('Hook',        $hookSrc),
+  @('Notifier',    $notifierSrc))) {
   $name = $slot[0]; $src = $slot[1]
   $dst = Join-Path $gfe $name
   if ($src) {
@@ -131,9 +151,10 @@ if (Test-Path $coordExe) {
   Write-Host '  WARNING: Coordinator\Share.exe missing — autostart NOT wired'
 }
 
-# Alt+Z wire-through: the Desktop overlay (#2) registers NO global hotkeys
-# (OscHotkeys ownership stays off), so on driverless machines the listener
-# keeps owning Alt+Z and POSTs the backend's debounced Toggle route.
+# Alt+Z wire-through: the WinForm/WebView overlays register NO global
+# hotkeys (OscHotkeys ownership stays off), so on driverless machines
+# the listener keeps owning Alt+Z and POSTs the backend's debounced
+# Toggle route.
 Write-Host '[6b/9] Alt+Z wire-through listener -> Coordinator\hotkey-listener.ps1'
 $listenerSrc = Join-Path $repo 'deploy\hotkey-listener.ps1'
 if (-not (Test-Path $listenerSrc)) { $listenerSrc = Join-Path $repo 'hotkey-listener.ps1' }
@@ -168,13 +189,17 @@ New-Item -ItemType Directory -Force -Path $unDir | Out-Null
 @'
 # uninstall-host.ps1 — removes the ShadowPlay Portable product tree
 $gfe = "C:\Program Files\NVIDIA Corporation\NVIDIA GeForce Experience"
-foreach ($n in "Share", "NVIDIA Share", "node") {
+foreach ($n in "Share", "NVIDIA Share", "NVIDIA Notifier", "node") {
   Get-Process $n -ErrorAction SilentlyContinue | ForEach-Object {
     try { if ($_.Path -like "$gfe*") { Stop-Process -Id $_.Id -Force } } catch {}
   }
 }
+Get-CimInstance Win32_Process -Filter "Name='powershell.exe'" -ErrorAction SilentlyContinue |
+  Where-Object { $_.CommandLine -like '*hotkey-listener.ps1*' } |
+  ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
 Remove-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "NvPortableShare" -ErrorAction SilentlyContinue
 Remove-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "NvPortableBackend" -ErrorAction SilentlyContinue
+Remove-ItemProperty -Path "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run" -Name "NvPortableHotkey" -ErrorAction SilentlyContinue
 foreach ($hive in "HKLM:\SOFTWARE\NVIDIA Corporation\Global\NvNode", "HKLM:\SOFTWARE\WOW6432Node\NVIDIA Corporation\Global\NvNode") {
   Remove-Item -Path $hive -Recurse -Force -ErrorAction SilentlyContinue
 }
@@ -201,8 +226,13 @@ if (-not $NoStart) {
 }
 
 Write-Host ''
-Write-Host 'DONE. Product tree:'
+Write-Host 'DONE. Product tree (4-instance Share model):'
 Write-Host ('  ' + $gfe)
-Write-Host '  Backend   : http://127.0.0.1:59001 (health: /Backend/v.1.0/health)'
-Write-Host '  Overlay   : Alt+Z (hotkey-listener) or Coordinator-spawned Desktop'
-Write-Host '  Autostart : HKCU Run -> NvPortableShare + NvPortableBackend'
+Write-Host '  API       : Backend (node)  http://127.0.0.1:59001 (health: /Backend/v.1.0/health)'
+Write-Host '  Share #1  : Coordinator\Share.exe  (spawns #2 #3 #4 + Notifier)'
+Write-Host '  Share #2  : WinForm\NVIDIA Share.exe  (WinForms overlay)'
+Write-Host '  Share #3  : WebView\NVIDIA Share.exe --desktop  (WebView2 osc)'
+Write-Host '  Share #4  : Hook\Share.exe  (slot — show port :59004)'
+Write-Host '  Notifier  : Notifier\NVIDIA Notifier.exe  (tray balloons)'
+Write-Host '  Overlay   : Alt+Z (hotkey-listener) or Coordinator-spawned overlays'
+Write-Host '  Autostart : HKCU Run -> NvPortableShare + NvPortableBackend + NvPortableHotkey'
