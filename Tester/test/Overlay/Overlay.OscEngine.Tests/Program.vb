@@ -42,6 +42,11 @@ Module Program
         RunTest("rects/hit-test", AddressOf RectHitTest)
         RunTest("rects/parse-json-array-shapes", AddressOf RectParseShapes)
         RunTest("bridge/polyfill-is-injectable-js", AddressOf BridgePolyfill)
+        RunTest("bridge/browse-directory-success", AddressOf BridgeBrowseDirectorySuccess)
+        RunTest("bridge/browse-directory-cancel-deterministic", AddressOf BridgeBrowseDirectoryCancel)
+        RunTest("bridge/browse-directory-no-picker-fails-fast", AddressOf BridgeBrowseDirectoryNoPicker)
+        RunTest("bridge/drop-url-and-kb-message-ack", AddressOf BridgeDropUrlAndKbMessageAck)
+        RunTest("bridge/time-system-info-stay-not-implemented", AddressOf BridgeTimeAndSystemInfoStayNotImplemented)
         RunTest("hotkeys/binding-parser", AddressOf HotkeyParser)
 
         Console.Out.WriteLine()
@@ -339,6 +344,87 @@ Module Program
         Assert(js.Contains("__cefDeliver"), "delivers host responses")
         Assert(js.Contains("persistent"), "handles persistent queries")
     End Sub
+
+    ' ── cefQuery phase 5 (ZCODE-CEFQUERY-PHASE5) ──
+
+    Private Function BridgeRequest(requestJson As String) As String
+        ' page → host wrapper (PolyfillSource contract): the request is a
+        ' JSON STRING inside the envelope
+        Dim escaped As String = System.Text.Json.JsonSerializer.Serialize(requestJson)
+        Return "{""__cef"":1,""id"":42,""persistent"":false,""request"":" & escaped & "}"
+    End Function
+
+    Private Function BridgeReply(reply As String, propName As String) As String
+        Dim el As System.Text.Json.JsonElement = System.Text.Json.JsonDocument.Parse(reply).RootElement
+        Dim v As System.Text.Json.JsonElement
+        If el.TryGetProperty(propName, v) Then Return v.ToString()
+        Return ""
+    End Function
+
+    Sub BridgeBrowseDirectorySuccess()
+        Dim bridge As New CefQueryBridge(New SharedStorageStore())
+        Dim opened As New List(Of String)
+        bridge.ShellOpen = Sub(path) opened.Add(path)
+        bridge.FolderPicker = Function(initial)
+                                  AssertEqual("C:\vids", initial, "picker receives the page's folder")
+                                  Return "C:\vids\picked"
+                              End Function
+        Dim reply As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_BROWSE_DIRECTORY"",""name"":""C:\\vids""}"))
+        AssertEqual("True", BridgeReply(reply, "ok"), "ok on pick")
+        AssertEqual("true", BridgeReply(reply, "response"), "resolve true — cefService maps it to boolean true")
+        AssertEqual("C:\vids\picked", opened(0), "picked folder opened in the shell")
+    End Sub
+
+    Sub BridgeBrowseDirectoryCancel()
+        Dim bridge As New CefQueryBridge(New SharedStorageStore())
+        Dim opened As Integer = 0
+        bridge.ShellOpen = Sub(path) opened += 1
+        bridge.FolderPicker = Function(initial) Nothing
+        Dim reply As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_BROWSE_DIRECTORY"",""name"":""C:\\vids""}"))
+        AssertEqual("True", BridgeReply(reply, "ok"), "cancel still RESOLVES (deterministic — no hang)")
+        AssertEqual("false", BridgeReply(reply, "response"), "resolve false on cancel")
+        Assert(opened = 0, "cancel opens nothing")
+    End Sub
+
+    Sub BridgeBrowseDirectoryNoPicker()
+        Dim bridge As New CefQueryBridge(New SharedStorageStore())
+        Dim reply As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_BROWSE_DIRECTORY"",""name"":""C:\\vids""}"))
+        AssertEqual("False", BridgeReply(reply, "ok"), "unwired picker fails fast (clean degrade)")
+        AssertEqual("folder_picker_unavailable", BridgeReply(reply, "response"), "reason surfaced")
+    End Sub
+
+    Sub BridgeDropUrlAndKbMessageAck()
+        Dim bridge As New CefQueryBridge(New SharedStorageStore())
+        ' page registers the drop URL and IGNORES the response (app module 4)
+        Dim drop As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_OSC_DROP_URL"",""url"":""Videos/clip.mp4"",""xpos"":0,""ypos"":0}"))
+        AssertEqual("True", BridgeReply(drop, "ok"), "drop url ok")
+        AssertEqual("true", BridgeReply(drop, "response"), "drop url ack")
+        ' gamepad nav sends {keycode, keymodifier} and ignores the response
+        Dim kb As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_WIN_KB_MESSAGE"",""keycode"":9,""keymodifier"":1}"))
+        AssertEqual("True", BridgeReply(kb, "ok"), "kb message ok")
+        AssertEqual("true", BridgeReply(kb, "response"), "kb message ack")
+    End Sub
+
+    Sub BridgeTimeAndSystemInfoStayNotImplemented()
+        ' QUERY_TIME_INFO / QUERY_SYSTEM_INFO: wrappers exist in vendor
+        ' cefService but the shipped osc page NEVER calls them and no
+        ' response shape is recoverable — the mission card says leave them
+        ' out rather than guess. This test LOCKS that contract.
+        Dim bridge As New CefQueryBridge(New SharedStorageStore())
+        Dim t As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_TIME_INFO"",""type"":1}"))
+        AssertEqual("False", BridgeReply(t, "ok"), "time info not implemented")
+        AssertEqual("-1", BridgeReply(t, "errorCode"), "generic failure code")
+        Dim s As String = bridge.HandleWebMessage(BridgeRequest(
+            "{""command"":""QUERY_SYSTEM_INFO""}"))
+        AssertEqual("False", BridgeReply(s, "ok"), "system info not implemented")
+    End Sub
+
 
     Sub HotkeyParser()
         ' Alt+Z (the default toggle binding)

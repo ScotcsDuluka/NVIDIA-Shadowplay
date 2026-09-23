@@ -15,6 +15,18 @@
 ' app.js/vendor.js (see PROTOCOL-MATRIX.md). Unknown commands are FAILED
 ' with errorCode -1 so the calling service degrades cleanly instead of
 ' hanging.
+'
+' Phase 5 (2026-09-24, mission card ZCODE-CEFQUERY-PHASE5): added the
+' OSC-relevant commands QUERY_BROWSE_DIRECTORY (native folder picker via
+' the FolderPicker/ShellOpen hooks), QUERY_OSC_DROP_URL and
+' QUERY_WIN_KB_MESSAGE (proven ack-only contracts). QUERY_TIME_INFO and
+' QUERY_SYSTEM_INFO are deliberately NOT implemented: both wrappers exist
+' in vendor.js cefService but the shipped osc page NEVER calls them
+' (verified: getTimeInfo/QUERY_TIME_INFO have zero callers outside the
+' definition; every getSystemInfo() call site goes through
+' hardwareService → HTTP /HardwareInformation, not cefQuery) and no
+' response shape is recoverable — per the mission card they stay on the
+' not_implemented failure path instead of guessing behavior.
 
 Imports System
 Imports System.Collections.Generic
@@ -32,6 +44,15 @@ Public Class CefQueryBridge
     Public Event OpenOsc(enableInput As Boolean)
     Public Event CloseOsc()
     Public Event CloseRequested()   ' persistent close-event push target
+
+    ' ── QUERY_BROWSE_DIRECTORY host hooks (gallery "Open Location") ──
+    ' The command logic lives in Dispatch; the modal dialog must run on the
+    ' UI thread with a real window handle, so the form injects it here.
+    ' Picker: initial directory → selected path, Nothing on cancel/dismiss.
+    ' ShellOpen: opens the picked folder (tests inject a spy; Nothing =
+    ' default explorer shell-open).
+    Public Property FolderPicker As Func(Of String, String)
+    Public Property ShellOpen As Action(Of String)
 
     ' displayRects / painting state live here; the form reads them for
     ' click-through and visibility decisions.
@@ -271,6 +292,68 @@ Public Class CefQueryBridge
                 ' login flow reports unavailable instead of hanging.
                 Return FailResponse(id, persistent, -1, "oauth_not_implemented")
 
+            Case "QUERY_BROWSE_DIRECTORY"
+                ' Gallery "Open Location" (app module 181:86): the page cuts
+                ' the display path at its last "\", calls closeOSC() and then
+                ' browseDirectory(folder) — fire-and-forget; the resolved
+                ' value is ignored. The native host opens a folder picker at
+                ' that folder and, after the user picks, opens the selection
+                ' in the shell (docs/OSC-GALLERY-IPC-EXTRACTION.md §A.2).
+                ' cefService maps the response through "true"/"false" →
+                ' boolean, and treats errorCode 204 as cancel — a real
+                ' failure code would be fine too, but resolving "false" on
+                ' cancel keeps the deterministic no-hang contract either way.
+                Dim initial As String = GetStr(req, "name")
+                If FolderPicker Is Nothing Then
+                    Log("browseDirectory: no folder picker wired — failing fast")
+                    Return FailResponse(id, persistent, -1, "folder_picker_unavailable")
+                End If
+                Dim picked As String = Nothing
+                Try
+                    If FolderPicker IsNot Nothing Then picked = FolderPicker.Invoke(If(String.IsNullOrEmpty(initial), Nothing, initial))
+                Catch ex As Exception
+                    Log("browseDirectory picker failed: " & ex.Message)
+                    picked = Nothing
+                End Try
+                If String.IsNullOrEmpty(picked) Then
+                    ' deterministic cancel — resolves the page promise, no hang
+                    Return OkResponse(id, persistent, "false")
+                End If
+                Try
+                    If ShellOpen IsNot Nothing Then
+                        ShellOpen.Invoke(picked)
+                    Else
+                        System.Diagnostics.Process.Start(New System.Diagnostics.ProcessStartInfo(picked) With {
+                            .UseShellExecute = True})
+                    End If
+                Catch ex As Exception
+                    Log("browseDirectory shell open failed: " & ex.Message)
+                End Try
+                Return OkResponse(id, persistent, "true")
+
+            Case "QUERY_OSC_DROP_URL"
+                ' Drag-drop upload prep (app module 4 / vendor 129
+                ' uploadService): the page registers the drop URL it expects
+                ' ({url, xpos, ypos}) alongside $document dragover/drop
+                ' handlers and IGNORES the query response. The file-drop
+                ' pipeline itself is host-native territory — acknowledging
+                ' the registration is the whole proven contract (mission
+                ' card: do not invent a file-download pipeline).
+                Log("oscDropUrl url=" & GetStr(req, "url") &
+                    " pos=" & GetInt(req, "xpos").ToString() & "," & GetInt(req, "ypos").ToString())
+                Return OkResponse(id, persistent, "true")
+
+            Case "QUERY_WIN_KB_MESSAGE"
+                ' Gamepad navigation (app modules 91/218): the page polls the
+                ' gamepad and translates dpad/stick moves into host key
+                ' messages {keycode, keymodifier} (e.g. TAB ± SHIFT); the
+                ' response is ignored. Our host has no native widgets to
+                ' focus, so the minimum proven behavior is a logged ack —
+                ' no global keyboard hooks, no new listeners (mission card).
+                Log("winKbMessage keycode=" & GetInt(req, "keycode").ToString() &
+                    " modifier=" & GetInt(req, "keymodifier").ToString())
+                Return OkResponse(id, persistent, "true")
+
             Case Else
                 Log("cefQuery not implemented: " & cmd)
                 Return FailResponse(id, persistent, -1, "not_implemented")
@@ -362,13 +445,19 @@ Public NotInheritable Class WinFullscreen
     '     Logged once per state change via the bridge log.</summary>
     Public Shared LastFullscreenProbe As String = ""
 
+    ''' <summary>In-game hook liveness, injected by the host process
+    '     (OscHostForm wires HookFramePump.HookLive). Kept as a delegate so
+    '     test host projects can compile this file without linking the
+    '     HookFramePump/MMF chain; Nothing = probe reports not-live.</summary>
+    Public Shared HookLiveProbe As Func(Of Boolean)
+
     Public Shared Function IsFullscreenActive() As Boolean
         Try
             ' In-game mode renders through the injected Present hook while
             ' the game remains the foreground borderless window. Treating
             ' that window as a fullscreen transition makes osc immediately
             ' close the overlay after every in-game toggle.
-            If HookFramePump.HookLive() Then
+            If HookLiveProbe IsNot Nothing AndAlso HookLiveProbe() Then
                 LastFullscreenProbe = "in-game hook live"
                 Return False
             End If

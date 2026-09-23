@@ -316,6 +316,8 @@ Public Class OscHostForm
 
             _bridge = New CefQueryBridge(_storage)
             _bridge.Configure(_server.Port, _server.Secret)
+            _bridge.FolderPicker = AddressOf ShowBrowseDirectoryDialog
+            WinFullscreen.HookLiveProbe = AddressOf HookFramePump.HookLive
             AddHandler _bridge.LogLine, Sub(m) Log(m)
             AddHandler _bridge.OpenOsc, Sub(input) BeginInvoke(Sub()
                                                                   If HookFramePump.HookLive() Then
@@ -646,6 +648,25 @@ Public Class OscHostForm
             Log("webmsg reply: " & reply.Substring(0, Math.Min(160, reply.Length)))
         End If
     End Sub
+
+    ''' <summary>QUERY_BROWSE_DIRECTORY host dialog (gallery "Open Location").
+    '     Owned by the overlay form so it stacks above the fullscreen
+    '     topmost window; Nothing on cancel lets the bridge answer the page
+    '     deterministically. Runs on the UI thread inside OnWebMessage —
+    '     the page has already closed itself (closeOSC precedes
+    '     browseDirectory), so the modal wait is invisible.</summary>
+    Private Function ShowBrowseDirectoryDialog(initialDir As String) As String
+        Using dlg As New System.Windows.Forms.FolderBrowserDialog()
+            dlg.ShowNewFolderButton = False
+            If Not String.IsNullOrEmpty(initialDir) AndAlso System.IO.Directory.Exists(initialDir) Then
+                dlg.SelectedPath = initialDir
+            End If
+            If dlg.ShowDialog(Me) = System.Windows.Forms.DialogResult.OK Then
+                Return dlg.SelectedPath
+            End If
+            Return Nothing
+        End Using
+    End Function
 
     ' ── toggle / visibility ────────────────────────────────────
 

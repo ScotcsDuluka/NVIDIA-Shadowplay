@@ -135,6 +135,16 @@ Channels the page subscribes (M1 subset in brackets):
 
 Native bridge (cefQuery): `QUERY_WIN_NODE_INFO` → `{"port":<p>,"secret":"<s>"}` (boot-critical; without it osc degrades to port 3000 + empty cookie), `QUERY_FULLSCREEN_STATE`, `QUERY_OSC_SET_DISPLAY_RECTS`, `QUERY_OSC_SET_PAINTING`, `QUERY_OSC_REGISTER_CLOSE_EVENT` (persistent), `QUERY_OSC_DISPLAY_IS_DESKTOP_MODE`, `QUERY_WIN_OPEN_OSC`/`QUERY_WIN_CLOSE_OSC`, `QUERY_READ/WRITE_SHARED_STORAGE`, `QUERY_LOAD_STRING_TABLE`, `QUERY_WIN_COPY_TO_CLIPBOARD`; everything else → logged + rejected so services degrade cleanly.
 
+### Phase 5 additions (2026-09-24 — ZCODE-CEFQUERY-PHASE5, evidence in docs/OSC-GALLERY-IPC-EXTRACTION.md + unpacked bundles)
+
+| Command | Request | Our behavior | Consumer evidence |
+|---|---|---|---|
+| `QUERY_BROWSE_DIRECTORY` | `{name}` (start folder) | native `FolderBrowserDialog` on the UI thread (OscHostForm injects `CefQueryBridge.FolderPicker`), owned by the overlay so it stacks above the topmost window; on OK opens the picked folder via shell and resolves `"true"`; on cancel resolves `"false"` — deterministic, no hang; picker unwired → fail `-1 folder_picker_unavailable` | app module 181:86 (gallery "Open Location": `closeOSC()` then `browseDirectory(folder)`, result ignored); cefService wrapper maps `"true"`/`"false"` → boolean, errorCode 204 = cancel |
+| `QUERY_OSC_DROP_URL` | `{url, xpos, ypos}` | log + resolve `"true"` (ack). No file-drop pipeline — the page registers the expected drop URL next to its own `$document` dragover/drop handlers and ignores the response | app module 4:163 + vendor 129 `uploadService` (`oscCreateDropUrl(e,0,0)`, return value unused) |
+| `QUERY_WIN_KB_MESSAGE` | `{keycode, keymodifier}` | log + resolve `"true"` (ack). No global keyboard hooks, no new listeners — our host has no native widgets to focus | app modules 91/218 (gamepad poll → `oscSendWinKBMessage(code, modifier)`, e.g. TAB ± SHIFT, result unused) |
+| `QUERY_TIME_INFO` | `{type}` | NOT implemented — stays on the `-1 not_implemented` failure path | wrapper only (vendor 125:212); zero callers in the shipped page (vendor=definition, app=0, common=0) and no response shape recoverable — mission card forbids guessing |
+| `QUERY_SYSTEM_INFO` | — | NOT implemented — same failure path | wrapper only (vendor 125:539); every page `getSystemInfo()` goes through `hardwareService` → HTTP `/HardwareInformation`, never cefQuery (modules 22/25/40/136/260) |
+
 ## Serving strategy (origin/CSP decision)
 
 osc static files are served by the SAME controller server (same origin
