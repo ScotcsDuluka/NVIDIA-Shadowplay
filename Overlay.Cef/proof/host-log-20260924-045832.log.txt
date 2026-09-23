@@ -1,0 +1,39 @@
+==== NVIDIA Share (CEF OSC host) run 2026-09-23T21:58:29.237Z ====
+[checkpoint] PROC_START at 0.8386 ms (NvShareCefMain entered)
+[2026-09-23T21:58:29.237Z] exe=C:\My Project\NVIDIA-Shadowplay-gfe\dist\nvoverlay-layout\NVIDIA ShadowPlay\NvOverlay\CEF
+[checkpoint] BROWSER_PROCESS at 2.2537 ms (CefExecuteProcess returned -1 (browser path))
+proof-of-life mode enabled (browser-process args)
+[2026-09-23T21:58:29.240Z] proof-of-life mode, self-exit-ms=25000
+[2026-09-23T21:58:29.240Z] config: nv-osc=true nv-gpu-accel=true nv-url-relative=Resources/osc/index.html
+[checkpoint] HTTP_SERVER_UP at 8.3183 ms (http://127.0.0.1:50382/ serving C:\My Project\NVIDIA-Shadowplay-gfe\dist\nvoverlay-layout\NVIDIA ShadowPlay\NvOverlay\CEF\Resources\osc)
+[2026-09-23T21:58:29.264Z] navigating to http://127.0.0.1:50382/index.html
+[checkpoint] CEF_INIT_OK at 184.161 ms (CefInitialize returned true)
+[checkpoint] BROWSER_CREATED at 241.423 ms (browser object created)
+[2026-09-23T21:58:30.596Z] http GET /index.html -> 200
+[checkpoint] PAGE_LOAD_START at 1364.83 ms (http://127.0.0.1:50382/index.html)
+[2026-09-23T21:58:30.607Z] http GET /common.js -> 200
+[2026-09-23T21:58:30.607Z] http GET /user-config.js -> 200
+[2026-09-23T21:58:30.607Z] http GET /config.js -> 200
+[2026-09-23T21:58:30.619Z] http GET /vendor.js -> 200
+[2026-09-23T21:58:30.627Z] http GET /app.js -> 200
+[checkpoint] ORGANIC_QUERY at 1785.71 ms (first page-originated command=QUERY_LOAD_STRING_TABLE)
+[2026-09-23T21:58:31.022Z] cefQuery cmd=QUERY_LOAD_STRING_TABLE persistent=0 -> ok "true"
+[2026-09-23T21:58:31.044Z] cefQuery cmd=QUERY_WIN_NODE_INFO persistent=0 -> ok "{"port":50382,"secret":"2afb49596dd5415e3622da62121e9c32"}" | boot handshake
+[checkpoint] PAGE_LOADED at 1819.14 ms (url=http://127.0.0.1:50382/index.html#/base httpStatus=200)
+[checkpoint] DOM_PROBE at 2086.54 ms ({"title":"","href":"http://127.0.0.1:50382/index.html#/base","angular":true,"baseCount":0,"bodyChildren":4,"hasCefQuery":true})
+[2026-09-23T21:58:31.323Z] cefQuery cmd=__PROOF_DOM persistent=0 -> ok "true"
+[2026-09-23T21:58:31.323Z] cefQuery cmd=QUERY_OSC_SET_EXPERIMENTAL persistent=0 -> ok "true"
+[checkpoint] UI_OPEN_TRIGGERED at 2087.9 ms (openOSC via oscDisplayService)
+[2026-09-23T21:58:31.332Z] cefQuery cmd=__PROOF_OPEN_UI persistent=0 -> ok "true"
+[checkpoint] PROOF_ECHO_VERIFIED at 2097.86 ms (QUERY_OSC_SET_EXPERIMENTAL round-trip returned "true")
+[2026-09-23T21:58:31.345Z] cefQuery cmd=__PROOF_ECHO persistent=0 -> ok "ack"
+[2026-09-23T21:58:31.586Z] cefQuery cmd=QUERY_OSC_SET_DISPLAY_RECTS persistent=0 -> ok "true" | displayRects=0 rect(s)
+[2026-09-23T21:58:31.688Z] cefQuery cmd=QUERY_FULLSCREEN_STATE persistent=0 -> ok "{"fullscreen":false,"hdractive":false,"borderlessMode":null}" | fullscreen probe: own-process pid=34676 -> forced false
+[2026-09-23T21:58:31.703Z] http GET /{{tile.icon}} -> 404
+[2026-09-23T21:58:31.703Z] http GET /osc_img_appicon_64x64.png -> 200
+[2026-09-23T21:58:31.703Z] http GET /perf_mixer.svg -> 200
+[2026-09-23T21:58:31.715Z] http GET /nvgcshare.woff2 -> 200
+[2026-09-23T21:58:31.939Z] http GET /socket.io/ -> 503 (backend path)
+[checkpoint] PROOF_FINISH at 2860.5 ms (proof-round-trip-complete)
+[2026-09-23T21:58:32.134Z] browser closed - quitting message loop
+[2026-09-23T21:58:32.252Z] host exit code 0
