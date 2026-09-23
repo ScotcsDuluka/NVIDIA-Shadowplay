@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0-windows10.0.26100.0</TargetFramework>
+    <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
+    <AssemblyName>NVIDIA Share</AssemblyName>
+    <RootNamespace>NvShim</RootNamespace>
+    <OptionStrict>On</OptionStrict>
+    <ApplicationIcon>Assets\NVIDIA ShadowPlay.ico</ApplicationIcon>
+    <AssemblyTitle>NVIDIA Share</AssemblyTitle>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="Assets\NVIDIA ShadowPlay.ico" />
+  </ItemGroup>
+</Project>

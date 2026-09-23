@@ -8,6 +8,8 @@ Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NVIDIA API", "..\API\NVIDIA
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "Launcher", "..\Launcher\Launcher.vbproj", "{A527F7B7-C35D-E8AB-8F4F-EEA41CA101FF}"
 EndProject
+Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NvShim", "..\NvShim\NvShim.vbproj", "{E0E2F3C4-7A89-4B01-9C2D-5E6F708192A3}"
+EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NVIDIA Overlay Engine", "..\Overlay.Engine\NVIDIA Overlay Engine.vbproj", "{B4E7A2D1-93C5-4F6A-8E12-7D90C3A5B6F8}"
 EndProject
 Project("{F184B08F-C81C-45F6-A57F-5ABD9991F28F}") = "NVIDIA Notifier", "..\Notifier\NVIDIA Notifier.vbproj", "{26F262C5-0779-12EF-2119-F8A521A814E8}"
