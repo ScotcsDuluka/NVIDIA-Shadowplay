@@ -83,7 +83,7 @@ Public NotInheritable Class Program
             _icon = New NotifyIcon With {
                 .Text = "NVIDIA ShadowPlay",
                 .Visible = True,
-                .Icon = SystemIcons.Shield
+                .Icon = System.Drawing.SystemIcons.Shield
             }
             _timer.Interval = PollMs
             AddHandler _timer.Tick, AddressOf OnPoll

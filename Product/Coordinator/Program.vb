@@ -275,8 +275,8 @@ Public NotInheritable Class Program
             Dim procs As Process() = Process.GetProcessesByName(name)
             For Each p As Process In procs
                 Try
-                    Dim exePath As String = p.MainModule.FileName
-                    If String.Equals(Path.GetFullPath(exePath).TrimEnd("\"c), wanted, StringComparison.OrdinalIgnoreCase) Then
+                    Dim candPath As String = p.MainModule.FileName
+                    If String.Equals(Path.GetFullPath(candPath).TrimEnd("\"c), wanted, StringComparison.OrdinalIgnoreCase) Then
                         For Each other As Process In procs
                             If other.Id <> p.Id Then other.Dispose()
                         Next
