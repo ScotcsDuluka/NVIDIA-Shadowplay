@@ -2,10 +2,23 @@
 #
 # Owner target (2026-09-23):
 #   NVIDIA ShadowPlay\
-#     Launcher.exe  NvContainer.exe  NVIDIA Web Helper.exe
-#     nvsphelper64.exe  NVIDIA ShadowPlay.exe  NVIDIA Share.exe  NVIDIA Notifier.exe
+#     Launcher.exe  NvContainer.exe  nvsphelper64.exe  NVIDIA Notifier.exe
+#     NVIDIA ShadowPlay.exe (WinForm, pending rename round)
+#     NVIDIA Share.exe (root shim, scaffold pending)
 #     Application\ Overlay\ WebView\ Hook\ Services\ Engine\
 #     Core\ Audio\ Graphics\ FFmpeg\ Config\ Data\ Languages\ Resources\
+#
+# Owner decisions LOCKED (2026-09-23, delegated by owner to lead):
+#   1. NVIDIA Web Helper.exe root slot -> DEFERRED (backend :59001 lives in the real
+#      NvNode helper; wrapper project comes later, overlay/WebView side only)
+#   2. Root exe mapping -> Option A: NVIDIA Share.exe at root = tiny dispatcher shim
+#      reading --role and spawning the per-role exe in its subdir (scaffold pending;
+#      spec in taskboard\SHARE-SHIM-COPILOT-CARD.md). NVIDIA ShadowPlay.exe at root =
+#      WinForm apphost move (needs Share->ShadowPlay assembly rename round, surgical
+#      patch discipline).
+#   3. NVIDIA Notifier.exe root slot -> DONE (apphost staged from Application\)
+#   4. NvContainer worker config -> DONE (dest Config\NvContainer.json retargeted to
+#      the root nvsphelper64.exe at stage time)
 #
 # Sources (the PROVEN tree):
 #   TFM   = Overlay\bin\Release\net10.0-windows10.0.26100.0   (product tree)
@@ -13,21 +26,14 @@
 #
 # Implemented now (unambiguous):
 #   - root: Launcher.{exe,dll,rtcfg}                <- TFM root
-#   - root: NvContainer.exe + NvContainer.deps/rtcfg<- NVC
+#   - root: NvContainer.exe + deps/rtcfg            <- NVC
 #   - root: nvsphelper64.exe (apphost)              <- TFM\Application (OBT3 root-exe rule)
+#   - root: NVIDIA Notifier.exe (apphost)           <- TFM\Application (owner decision 3)
 #   - Services\: nvsphelper64.{dll,rtcfg}           <- TFM\Services (body split, unchanged)
-#   - passthrough: Application\ Overlay\ WebView\ Hook\ Services\ Engine\ Core\
+#   - Config\: NvContainer.json retargeted to root worker (owner decision 4)
+#   - passthrough: Application\ Overlay\ WebView\ Hook\ Services\ Engine\
 #     Audio\ Graphics\ FFmpeg\ Libraries\ Config\ Data\ Languages\ Resources\
 #     Redist\ .NET Deployment\  <- TFM (whole subtree, robocopy)
-#
-# NOT staged (owner decision pending - printed as TODO):
-#   - NVIDIA Web Helper.exe   (WebHelper\ is the JS helper; an exe wrapper project
-#                              does not exist yet)
-#   - NVIDIA ShadowPlay.exe vs NVIDIA Share.exe at root (4 family instances are
-#                              per-role projects today: Coordinator/WinForm/WebView/
-#                              Hook; the owner tree names two root exes - mapping
-#                              needs a decision: root exe per role? args? subdirs?)
-#   - NVIDIA Notifier.exe root slot (notifier apphost lives in Application\ today)
 #
 # Usage:
 #   powershell -File deploy\deploy-owner-layout.ps1                    # dry-run
@@ -78,6 +84,13 @@ Stage (Join-Path $nvc 'NvContainer.runtimeconfig.json')  'NvContainer.runtimecon
 Stage (Join-Path $nvc 'NvContainer.deps.json')           'NvContainer.deps.json'
 # OBT3 root-exe rule: the capture engine apphost lives at the root, its body stays in Services\
 Stage (Join-Path $tfm 'Application\nvsphelper64.exe')    'nvsphelper64.exe'
+# Owner decision 3: notifier apphost at the root (body stays in Services\)
+$notifierHost = Join-Path $tfm 'Application\NVIDIA Notifier.exe'
+if (Test-Path -LiteralPath $notifierHost) {
+    Stage $notifierHost 'NVIDIA Notifier.exe'
+} else {
+    Write-Output '  [skip] NVIDIA Notifier.exe (apphost not found in Application\ - check build)'
+}
 
 Write-Output ''
 Write-Output '== PASSTHROUGH SUBTREES (robocopy, preserves the proven tree) =='
@@ -102,11 +115,39 @@ foreach ($s in $subtrees) {
 }
 
 Write-Output ''
-Write-Output '== OWNER DECISIONS PENDING (not staged) =='
-Write-Output '  1. NVIDIA Web Helper.exe  - WebHelper\ is node JS today; needs an exe wrapper project (owner: future NvContainer sibling, overlay/WebView side only)'
-Write-Output '  2. NVIDIA ShadowPlay.exe + NVIDIA Share.exe root slots - the live family is four per-role projects (Coordinator\WinForm\WebView\Hook = separate NVIDIA Share.dll builds); root-exe-per-role needs a mapping decision (args? role dirs? single dll?)'
-Write-Output '  3. NVIDIA Notifier.exe root slot - notifier apphost is in Application\ today (Services\NVIDIA Notifier.dll body)'
-Write-Output '  4. NvContainer worker config must point at the NEW root nvsphelper64.exe when this layout goes live (Config\NvContainer.json)'
+Write-Output '== NVCONTAINER WORKER CONFIG (owner decision 4) =='
+$destCfgDir = Join-Path $Dest 'Config'
+$destCfg    = Join-Path $destCfgDir 'NvContainer.json'
+$workerCfg = [ordered]@{
+    port           = 5050
+    securityCookie = 'eb6eb0702ec25f9aeb0b0f8f79d06d5b'
+    workers        = @(
+        [ordered]@{
+            name                  = 'nvsphelper64'
+            exe                   = (Join-Path $Dest 'nvsphelper64.exe')
+            args                  = ''
+            workingDirectory      = $Dest
+            enabled               = $true
+            adoptExisting         = $true
+            maxRestarts           = 10
+            restartBackoffSeconds = 5
+        }
+    )
+}
+if ($Apply) {
+    if (-not (Test-Path -LiteralPath $destCfgDir)) { New-Item -ItemType Directory -Force -Path $destCfgDir | Out-Null }
+    [System.IO.File]::WriteAllText($destCfg, ($workerCfg | ConvertTo-Json -Depth 5))
+    Write-Output '  [ok]  Config\NvContainer.json -> worker = root nvsphelper64.exe'
+} else {
+    Write-Output '  [dry] Config\NvContainer.json (retargeted to root nvsphelper64.exe)'
+}
+
+Write-Output ''
+Write-Output '== OWNER DECISIONS (locked by owner 2026-09-23) =='
+Write-Output '  1. NVIDIA Web Helper.exe root slot = DEFERRED (backend :59001 lives in the real NvNode helper; wrapper project later, overlay/WebView side only)'
+Write-Output '  2. Root exe mapping = Option A: NVIDIA Share.exe at root = dispatcher shim (--role -> per-role exe in subdir, scaffold pending); NVIDIA ShadowPlay.exe at root = WinForm apphost move (Share->ShadowPlay rename round pending)'
+Write-Output '  3. NVIDIA Notifier.exe root slot = DONE (staged from Application\ apphost)'
+Write-Output '  4. NvContainer worker config = DONE (dest Config\NvContainer.json -> root nvsphelper64.exe)'
 
 if ($Apply) {
     Write-Output ''
@@ -114,7 +155,7 @@ if ($Apply) {
     $manifest = Join-Path $Dest 'build-info.txt'
     ("owner-layout staged " + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss') +
      " from gfe-rebuild " + (git -C $repo rev-parse --short HEAD)) | Set-Content -LiteralPath $manifest
-    Write-Output ("build-info.txt written (source commit stamped)")
+    Write-Output 'build-info.txt written (source commit stamped)'
 } else {
     Write-Output ''
     Write-Output 'DRY RUN complete - re-run with -Apply to stage.'
