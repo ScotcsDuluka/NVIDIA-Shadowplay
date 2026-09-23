@@ -1240,14 +1240,56 @@ Namespace CaptureEngine.Recording
                         File.Exists(sysWavPath) AndAlso New FileInfo(sysWavPath).Length > 44
                     Dim hasMicWav As Boolean = _micSidecarSink IsNot Nothing AndAlso
                         File.Exists(micWavPath) AndAlso New FileInfo(micWavPath).Length > 44
+                    ' PHASE 4 (audio depth): honor the documented SessionConfig
+                    ' audio contract (RecordingDTOs) at the second pass:
+                    '   MicSeparateTracks=False (default) -> ONE mixed AAC track
+                    '     via the proven amix chain (per-source volume clamped
+                    '     0..2, normalize=0, aformat 48k stereo so device
+                    '     layout/rate mismatches never negotiate by accident).
+                    '   MicSeparateTracks=True -> two output tracks (sys 320k,
+                    '     mic 128k), volumes applied per track.
+                    ' The old block mapped both WAVs raw: volumes silently
+                    ' ignored, always 2 tracks - the DTO contract says
+                    ' "applied at mux" and the muxer lied.
+                    Dim sysVol As Single = Math.Max(0.0F, Math.Min(2.0F, _config.SystemVolume))
+                    Dim micVol As Single = Math.Max(0.0F, Math.Min(2.0F, _config.MicVolume))
+                    Dim nInv As System.Globalization.CultureInfo = System.Globalization.CultureInfo.InvariantCulture
+                    Dim sysVolText As String = sysVol.ToString("0.000", nInv)
+                    Dim micVolText As String = micVol.ToString("0.000", nInv)
+                    Dim sysChain As String = "aformat=sample_rates=48000:channel_layouts=stereo"
+                    Dim micChain As String = "aformat=sample_rates=48000:channel_layouts=stereo"
+                    If Math.Abs(sysVol - 1.0F) > 0.001F Then sysChain = "volume=" & sysVolText & "," & sysChain
+                    If Math.Abs(micVol - 1.0F) > 0.001F Then micChain = "volume=" & micVolText & "," & micChain
                     Dim muxArgs As String = $"-y -i ""{videoOnly}"""
                     If hasSysWav Then muxArgs &= $" -i ""{sysWavPath}"""
                     If hasMicWav Then muxArgs &= $" -i ""{micWavPath}"""
-                    muxArgs &= " -map 0:v"
-                    If hasSysWav Then muxArgs &= " -map 1:a -c:a:0 aac -b:a:0 320k"
-                    If hasMicWav Then muxArgs &= If(hasSysWav, " -map 2:a -c:a:1 aac -b:a:1 128k", " -map 1:a -c:a aac -b:a 128k")
+                    muxArgs &= " -map 0:v -c:v copy"
+                    If hasSysWav AndAlso hasMicWav AndAlso Not _config.MicSeparateTracks Then
+                        muxArgs &= " -filter_complex ""[1:a]" & sysChain & "[s0];[2:a]" & micChain &
+                                   "[m0];[s0][m0]amix=inputs=2:duration=longest:normalize=0[aout]"""
+                        muxArgs &= " -map ""[aout]"" -c:a aac -b:a 320k -ar 48000"
+                        _logger.Info("[session] P3-D second-pass mux: sys=" & hasSysWav & " mic=" & hasMicWav &
+                                     " mode=MIXED (sys " & sysVolText & "x mic " & micVolText & "x -> one AAC 320k)")
+                    ElseIf hasSysWav AndAlso hasMicWav Then
+                        muxArgs &= " -filter_complex ""[1:a]" & sysChain & "[sout];[2:a]" & micChain & "[mout]"""
+                        muxArgs &= " -map ""[sout]"" -c:a:0 aac -b:a:0 320k -ar:a:0 48000"
+                        muxArgs &= " -map ""[mout]"" -c:a:1 aac -b:a:1 128k -ar:a:1 48000"
+                        _logger.Info("[session] P3-D second-pass mux: sys=" & hasSysWav & " mic=" & hasMicWav &
+                                     " mode=SEPARATE (sys " & sysVolText & "x -> 320k, mic " & micVolText & "x -> 128k)")
+                    ElseIf hasSysWav Then
+                        muxArgs &= " -filter_complex ""[1:a]" & sysChain & "[aout]"""
+                        muxArgs &= " -map ""[aout]"" -c:a aac -b:a 320k -ar 48000"
+                        _logger.Info("[session] P3-D second-pass mux: sys=" & hasSysWav & " mic=" & hasMicWav &
+                                     " mode=SYS-ONLY (" & sysVolText & "x -> AAC 320k)")
+                    ElseIf hasMicWav Then
+                        muxArgs &= " -filter_complex ""[1:a]" & micChain & "[aout]"""
+                        muxArgs &= " -map ""[aout]"" -c:a aac -b:a 128k -ar 48000"
+                        _logger.Info("[session] P3-D second-pass mux: sys=" & hasSysWav & " mic=" & hasMicWav &
+                                     " mode=MIC-ONLY (" & micVolText & "x -> AAC 128k)")
+                    Else
+                        _logger.Info("[session] P3-D second-pass mux: no sidecar audio - video-only pass-through")
+                    End If
                     muxArgs &= $" -movflags +faststart ""{_config.OutputPath}"""
-                    _logger.Info($"[session] P3-D second-pass mux: sys={hasSysWav} mic={hasMicWav}")
                     Dim muxPsi As New ProcessStartInfo With {
                         .FileName = _config.FFmpegPath,
                         .Arguments = muxArgs,
