@@ -194,3 +194,37 @@ PrivacySettings}`, `/abHubAPI/v.0.1/{Message, Status}`,
   `$translate` part `l10n`; settings-screen key map in OSC-APPJS-EXTRACTION §D.
 - Telemetry: POST `{jsEvents.server}/v1.0/events/json` with
   `X-Event-Protocol: 1.1` — server is `""` in this build (inert).
+
+## 6. node-side extraction (ZCode mission 2)
+
+Full detail: docs/OSC-NODE-API-EXTRACTION.md. Sources = live NvNode JS
+(A:\ backup GeForce_Experience_v3.28.0.412\nodejs\ — 18 JS files; repo copies
+in docs/reference/osc/nodejs/ hold 7). Corrections/confirmations only:
+
+- **Path fix**: node bridge lives in `nodejs\` (not `NvBackend\api\`).
+- **Socket emit architecture**: per-module `EmitNotification(name,data)` =
+  `setImmediate(io.emit)`. Native-callback passthroughs (WindowState, Hotkey,
+  Notification, Broadcast/SessionEvent, QuietMode2, GameShare, SDK, NvCamera)
+  carry the native payload verbatim; DisplayOsc* and /Osc are **HTTP POST
+  echoes** of the request body; Language emit `{language}`; gfeupdate emit
+  `req.url` + raw text; PiplConfig emits on 5-min poll change; abHub Status
+  emits `true` once after init.
+- **Handshake confirmed**: HTTP 403 middleware + `io.use` both check
+  `X_LOCAL_SECURITY_COOKIE` (per-boot `nvUtil.GenerateRandom(16)`);
+  `io.on('connection')` is **log-only — no welcome burst**.
+- **Dead page listeners/routes in production** (404 or never emitted):
+  `POST /InstantReplay/Upload`, `POST /Hotkey/DynamicToggle`,
+  socket `/abHubAPI/v.0.1/Message`; `/Hotkey/Monitor` is served via
+  `/Hotkey/:hk` (`hk=monitor`).
+- **Correction**: `v1.0/OSC/GetCustomize/*` are POST routes, not GET.
+- **New family homes**: QuietMode2/Nis2/DeepDVC/Feedback/HardwareInformation →
+  NvBackendAPI.js; GameShare → NvGameShareAPI.js; SDK/Highlights → NvSDKAPI.js;
+  PiplConfig → NvPiplConfig.js; gfeupdate → NvAutoDownload.js;
+  Settings/Language → index.js.
+- **Persistence**: node layer is stateless — settings persist inside the
+  native `.node` modules; only language (nvUtil), autoGFEbeta (nv-localstore)
+  and PiplConfig cache touch node-side state. Our backend picks its own store;
+  wire shapes are the contract.
+- **Envelope**: no wrapper — GET returns native JSON directly, mutations
+  return 200/202 with empty body; errors are 400/500 text/html (message only);
+  security failure 403.
