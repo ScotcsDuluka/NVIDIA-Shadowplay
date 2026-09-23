@@ -123,6 +123,18 @@ Namespace CaptureEngine.Encoder.Nvenc
             End Get
         End Property
 
+        ''' <summary>
+        ''' Actual NVENC bitrate from the initialized native encoder (bps).
+        ''' CAPTURE-REST-PLAN phase 3: lets the engine detect per-session
+        ''' bitrate overrides and rebuild the rate-control session before
+        ''' any frame is submitted (mirrors FrameRateFps semantics).
+        ''' </summary>
+        Public ReadOnly Property BitrateBpsOutput As Long
+            Get
+                Return _encoderConfig.BitrateBps
+            End Get
+        End Property
+
         ' ─── Session boundary tracking ─────────────────────────────────
         ' When True, the next Encode() call will set FORCEIDR + OUTPUT_SPSPPS
         ' to create a clean H.264 access point (IDR frame + SPS/PPS headers).

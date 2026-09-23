@@ -71,6 +71,17 @@ Namespace CaptureEngine.Recording
         ''' </summary>
         Public Property TargetFps As Integer = 0
 
+        ' ── CAPTURE-REST-PLAN PHASE 3: per-session bitrate override ──
+        ''' <summary>
+        ''' Session bitrate override (bps). 0 = no override — the engine
+        ''' startup bitrate (EngineStartupConfig.BitrateBps) stays the
+        ''' authority. A positive value rebuilds the persistent NVENC
+        ''' rate-control session before the first frame is submitted
+        ''' (RecordingEngine.StartSession). Source: REST
+        ''' GET /ShadowPlay/v.1.0/Record/Settings bitrateBps.
+        ''' </summary>
+        Public Property BitrateBps As Long = 0
+
         ' ── PHASE 1 VIDEO RUNTIME WIRING (V-CT2): per-session resolution
         '    evidence. The ENCODE dimensions are init-time (persistent NVENC
         '    session — EngineStartupConfig); these fields freeze what THIS

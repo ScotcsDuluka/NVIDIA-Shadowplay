@@ -338,7 +338,7 @@ Partial Public Class UI_Engine
     ' (which truly Awaits the session task); this handler dispatches work via
     ' Task.Run and returns without awaiting anything — by design.
 #Disable Warning BC42356 ' Deliberately await-less (see comment above)
-    Private Async Function HandleRecordingStart(value As String, reqId As String) As Task
+    Private Async Function HandleRecordingStart(value As String, reqId As String, Optional restSettings As RecordSettingsSnapshot = Nothing) As Task
         Try
             If _engineReconfiguring Then
                 SendResponse("engine_record_start", "error", "engine_reconfiguring", reqId)
@@ -405,6 +405,30 @@ Partial Public Class UI_Engine
             ' "Legacy" = proven v2 path.
             Dim config As SessionConfig =
                 NextRecordingConfig.MapSessionConfig(effective, value, ffmpegPath, AddressOf AssignChildToJob)
+
+            ' ── CAPTURE-REST-PLAN phase 3: real quality settings ─────────
+            ' The REST edge fetched the backend's live /Record/Settings —
+            ' the REAL user quality (what the osc page shows). Applied as
+            ' session-level overrides; RecordingEngine.StartSession
+            ' reconciles FPS/bitrate/resolution via its per-session NVENC
+            ' rebuild. Nothing here when the fetch failed — config.json
+            ' remains the authority (fresh-reload semantics preserved).
+            ' The legacy command path passes Nothing — untouched behavior.
+            If restSettings IsNot Nothing Then
+                If restSettings.Framerate > 0 Then config.TargetFps = restSettings.Framerate
+                If restSettings.BitrateBps > 0 Then config.BitrateBps = restSettings.BitrateBps
+                If restSettings.NativeResolution Then
+                    config.UseNativeResolution = True
+                ElseIf restSettings.Width > 0 AndAlso restSettings.Height > 0 Then
+                    config.UseNativeResolution = False
+                    config.RequestedWidth = restSettings.Width
+                    config.RequestedHeight = restSettings.Height
+                End If
+                DebugLog($"[RecordingEngine] REST quality override: quality='{restSettings.Quality}', res='{restSettings.Resolution}'" &
+                         If(restSettings.NativeResolution, " (native)", $" → {restSettings.Width}x{restSettings.Height}") &
+                         $", fps={restSettings.Framerate}, bitrate={restSettings.BitrateBps} bps")
+            End If
+
             ' ✅ PHASE 3: keep the session seam visible to the Effective
             ' Runtime panel (the engine stamps the ACTUAL encode dims into
             ' this object at session start — RecordingEngine.StartSession).

@@ -230,7 +230,25 @@ Partial Public Class UI_Engine
     ' The backend actual-confirm now happens AFTER the engine accept point.
 
     Private Sub OnRestRecordStartRequested(savePath As String)
-        DebugLog("[REST] RecordStart edge (recordState=Starting) savePath=" & savePath & " -- phase 2: real capture dispatch")
+        DebugLog("[REST] RecordStart edge (recordState=Starting) savePath=" & savePath & " -- phase 3: real capture dispatch")
+        ' ★ CAPTURE-REST-PLAN phase 3: fetch the REAL quality settings the
+        ' backend holds right now (GET /Record/Settings — the osc page's
+        ' authority: quality/resolution/framerate/bitrate). Runs on the
+        ' poller thread, 3s request timeout — safe here. On any failure
+        ' Nothing flows through and config.json remains the authority.
+        Dim restSettings As RecordSettingsSnapshot = Nothing
+        Try
+            restSettings = _rest?.TryGetRecordSettings()
+        Catch
+            restSettings = Nothing
+        End Try
+        If restSettings IsNot Nothing Then
+            DebugLog($"[REST] record settings: quality='{restSettings.Quality}', res='{restSettings.Resolution}'" &
+                     If(restSettings.NativeResolution, " (native)", $" → {restSettings.Width}x{restSettings.Height}") &
+                     $", fps={restSettings.Framerate}, bitrate={restSettings.BitrateBps} bps")
+        Else
+            DebugLog("[REST] record settings unavailable — config.json remains the authority")
+        End If
         Try
             ' REST savePath may be a directory hint (e.g. the Videos root) —
             ' only honor it when it looks like a real file target; otherwise
@@ -240,13 +258,13 @@ Partial Public Class UI_Engine
                 outPath = savePath
             End If
             If String.IsNullOrEmpty(outPath) Then outPath = _settings.GenerateOutputFilename()
-            SafeInvoke(Sub() StartRestRecording(outPath))
+            SafeInvoke(Sub() StartRestRecording(outPath, restSettings))
         Catch ex As Exception
             DebugLog("[REST] start dispatch FAILED: " & ex.Message)
         End Try
     End Sub
 
-    Private Async Sub StartRestRecording(outPath As String)
+    Private Async Sub StartRestRecording(outPath As String, restSettings As RecordSettingsSnapshot)
         Try
             ' Same regime dispatch as OnRecordClick: nvidia = installed
             ' ShadowPlay external recorder; everything else = process-lifetime
@@ -254,7 +272,7 @@ Partial Public Class UI_Engine
             If String.Equals(OverlayConfig.GetEngineMode(), "nvidia", StringComparison.OrdinalIgnoreCase) Then
                 HandleNvidiaRecordStart(outPath)
             Else
-                Await HandleRecordingStart(outPath, "")
+                Await HandleRecordingStart(outPath, "", restSettings)
             End If
             _rest.ConfirmRecordStarted()
             DebugLog("[REST] confirmed actual=Recording -- backend pushes to osc page")

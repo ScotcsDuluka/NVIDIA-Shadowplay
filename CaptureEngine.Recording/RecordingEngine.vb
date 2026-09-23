@@ -227,9 +227,16 @@ Namespace CaptureEngine.Recording
                 ' (The encoder dims are init-time; the per-session request is
                 ' preserved in the echo fields.)
                 Dim echo As EngineStartupConfig = If(_startupEcho, New EngineStartupConfig())
-                config.UseNativeResolution = echo.UseNativeResolution
-                config.RequestedWidth = echo.RequestedWidth
-                config.RequestedHeight = echo.RequestedHeight
+
+                ' ★ CAPTURE-REST-PLAN phase 3: the session may carry its own
+                ' resolution request (REST /Record/Settings override). The
+                ' startup echo fills the group ONLY when the session did not
+                ' request anything — a session-level request WINS.
+                If config.RequestedWidth <= 0 OrElse config.RequestedHeight <= 0 Then
+                    config.UseNativeResolution = echo.UseNativeResolution
+                    config.RequestedWidth = echo.RequestedWidth
+                    config.RequestedHeight = echo.RequestedHeight
+                End If
 
                 If config.TargetFps <= 0 Then
                     config.TargetFps = If(echo.Fps > 0, echo.Fps, 60)
@@ -238,25 +245,61 @@ Namespace CaptureEngine.Recording
                     _logger.Info($"[RecordingEngine] session FPS {config.TargetFps} differs from startup FPS {echo.Fps}; NVENC will be reconciled before the session starts.")
                 End If
 
-                config.EncodeWidth = _encoder.EncodeWidthOutput
-                config.EncodeHeight = _encoder.EncodeHeightOutput
+                ' ★ phase 3: resolve the session's OWN encode dimensions
+                ' (native, or a requested NVENC downscale). An upscale attempt
+                ' fails closed to native with a loud log — NVENC cannot
+                ' upscale, and a silent resolution substitution is forbidden.
+                Dim sessionEncodeW As Integer
+                Dim sessionEncodeH As Integer
+                Try
+                    Dim sessionDims As Tuple(Of Integer, Integer) =
+                        EngineStartupConfig.ResolveEncodeDimensions(
+                            _capture.OutputWidth, _capture.OutputHeight,
+                            config.UseNativeResolution, config.RequestedWidth, config.RequestedHeight)
+                    sessionEncodeW = sessionDims.Item1
+                    sessionEncodeH = sessionDims.Item2
+                Catch ex As ArgumentException
+                    _logger.Warning($"[RecordingEngine] session resolution {config.RequestedWidth}x{config.RequestedHeight} exceeds capture {_capture.OutputWidth}x{_capture.OutputHeight} — falling back to native ({ex.Message})")
+                    sessionEncodeW = _capture.OutputWidth
+                    sessionEncodeH = _capture.OutputHeight
+                    config.UseNativeResolution = True
+                    config.RequestedWidth = 0
+                    config.RequestedHeight = 0
+                End Try
+                config.EncodeWidth = sessionEncodeW
+                config.EncodeHeight = sessionEncodeH
+
+                ' ★ phase 3: per-session bitrate override (REST record
+                ' settings). 0 = no override — the startup bitrate stays
+                ' the authority for this session.
+                Dim sessionBitrate As Long =
+                    If(config.BitrateBps > 0, config.BitrateBps,
+                       If(echo.BitrateBps > 0, echo.BitrateBps, 20_000_000L))
 
                 ' The NVENC frame rate is encoded into the native encoder session and
                 ' therefore into the raw H.264 stream timing. A per-session FPS change
                 ' MUST rebuild the encoder before any frame is submitted; merely pacing
                 ' CaptureSession at a new FPS would otherwise produce a rate-mismatched
                 ' stream (e.g. 120 submitted frames interpreted as 60fps).
+                ' ★ phase 3: bitrate and encode dimensions are baked into the
+                ' native session the same way — a change on ANY of the three
+                ' triggers the rebuild below.
                 Dim encoderFps As Integer = _encoder.FrameRateFps
-                If encoderFps <> config.TargetFps Then
-                    _logger.Warning($"[RecordingEngine] rebuilding persistent NVENC for session FPS: encoder={encoderFps}fps → session={config.TargetFps}fps")
+                Dim needsRebuild As Boolean =
+                    encoderFps <> config.TargetFps OrElse
+                    _encoder.BitrateBpsOutput <> sessionBitrate OrElse
+                    _encoder.EncodeWidthOutput <> sessionEncodeW OrElse
+                    _encoder.EncodeHeightOutput <> sessionEncodeH
+                If needsRebuild Then
+                    _logger.Warning($"[RecordingEngine] rebuilding persistent NVENC for session video config: encoder={encoderFps}fps/{_encoder.BitrateBpsOutput}bps/{_encoder.EncodeWidthOutput}x{_encoder.EncodeHeightOutput} → session={config.TargetFps}fps/{sessionBitrate}bps/{sessionEncodeW}x{sessionEncodeH}")
 
                     Dim startup As EngineStartupConfig = If(_startupEcho, New EngineStartupConfig())
                     Dim rebuiltConfig As New EncoderConfig() With {
                         .CodecKey = If(String.IsNullOrEmpty(startup.CodecKey), "NVENC_H264", startup.CodecKey),
-                        .BitrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
-                        .MinrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
-                        .MaxrateBps = If(startup.BitrateBps > 0, startup.BitrateBps, 20_000_000L),
-                        .BufsizeBps = If(startup.BitrateBps > 0, startup.BitrateBps * 2, 40_000_000L),
+                        .BitrateBps = sessionBitrate,
+                        .MinrateBps = sessionBitrate,
+                        .MaxrateBps = sessionBitrate,
+                        .BufsizeBps = sessionBitrate * 2,
                         .GopSize = If(startup.GopSize > 0, startup.GopSize, 60),
                         .RateControl = EngineStartupConfig.ResolveRateControl(startup.RateControl),
                         .Preset = If(String.IsNullOrEmpty(startup.Preset), "p4", startup.Preset),
@@ -309,9 +352,9 @@ Namespace CaptureEngine.Recording
                         End Try
                     End If
 
-                    _logger.Info($"[RecordingEngine] NVENC FPS authority now={_encoder.FrameRateFps}fps (session requested={config.TargetFps}fps)")
+                    _logger.Info($"[RecordingEngine] NVENC video authority now={_encoder.FrameRateFps}fps/{_encoder.BitrateBpsOutput}bps/{_encoder.EncodeWidthOutput}x{_encoder.EncodeHeightOutput} (session requested={config.TargetFps}fps/{sessionBitrate}bps/{sessionEncodeW}x{sessionEncodeH})")
                 Else
-                    _logger.Info($"[RecordingEngine] NVENC FPS authority verified={encoderFps}fps")
+                    _logger.Info($"[RecordingEngine] NVENC video authority verified={encoderFps}fps/{_encoder.BitrateBpsOutput}bps/{_encoder.EncodeWidthOutput}x{_encoder.EncodeHeightOutput}")
                 End If
 
                 Dim startStop As Boolean

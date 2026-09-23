@@ -122,6 +122,30 @@ Public NotInheritable Class ShadowPlayRestClient
         Return sb.ToString()
     End Function
 
+    ''' <summary>
+    ''' Leading integer field extractor (framerate / bitrateBps). Returns 0
+    ''' when the field is absent or not numeric — callers treat 0 as "no
+    ''' value" everywhere in the phase 3 quality path.
+    ''' </summary>
+    Public Shared Function JsonLongField(json As String, field As String) As Long
+        If String.IsNullOrEmpty(json) Then Return 0L
+        Dim marker As String = """" & field & """:"
+        Dim idx As Integer = json.IndexOf(marker, StringComparison.Ordinal)
+        If idx < 0 Then Return 0L
+        Dim tail As String = json.Substring(idx + marker.Length).TrimStart()
+        Dim sb As New StringBuilder()
+        For Each c As Char In tail
+            If (c >= "0"c AndAlso c <= "9"c) OrElse (sb.Length = 0 AndAlso c = "-"c) Then
+                sb.Append(c)
+            Else
+                Exit For
+            End If
+        Next
+        Dim v As Long = 0L
+        Long.TryParse(sb.ToString(), v)
+        Return v
+    End Function
+
     ' ── boot gate ───────────────────────────────────────────────────
     Public Function IsBackendUp() As Boolean
         Try
@@ -156,6 +180,23 @@ Public NotInheritable Class ShadowPlayRestClient
             videos = Environment.GetFolderPath(Environment.SpecialFolder.MyVideos)
         End If
         Return videos
+    End Function
+
+    ''' <summary>
+    ''' CAPTURE-REST-PLAN phase 3: fetch the REAL quality settings the
+    ''' backend currently holds — GET /ShadowPlay/v.1.0/Record/Settings,
+    ''' body {"quality":...,"resolution":...,"framerate":60,"bitrateBps":...}
+    ''' (live-verified 2026-09-23: {"quality":"Custom","resolution":"1440p HD",
+    ''' "framerate":60,"bitrateBps":50000000}). Nothing on ANY failure —
+    ''' callers fall back to config.json without changing behavior.
+    ''' </summary>
+    Public Function TryGetRecordSettings() As RecordSettingsSnapshot
+        Try
+            Dim body As String = GetJson("/ShadowPlay/v.1.0/Record/Settings")
+            Return RecordSettingsSnapshot.FromJson(body)
+        Catch
+            Return Nothing
+        End Try
     End Function
 
     ' ── engine-plane state surface (the DEPLOYED backend's proven loop) ──
@@ -219,6 +260,77 @@ Public NotInheritable Class ShadowPlayRestClient
             End Using
         End Using
     End Function
+
+End Class
+
+' ── CAPTURE-REST-PLAN phase 3: real quality settings snapshot ────────
+''' <summary>
+''' The backend's /ShadowPlay/v.1.0/Record/Settings body — the REAL user
+''' quality (what the osc page shows in Customize). Resolution labels map
+''' exactly the list the backend advertises on /Resolutions
+''' (hardware-floor.json). NativeResolution=True means "In-game" (encode
+''' at the captured desktop size); a known label yields a downscale-only
+''' request (NVENC cannot upscale — the engine fails closed to native).
+''' </summary>
+Public NotInheritable Class RecordSettingsSnapshot
+
+    Public Property Quality As String = ""
+    Public Property Resolution As String = ""
+    Public Property Framerate As Integer = 0
+    Public Property BitrateBps As Long = 0L
+    Public Property NativeResolution As Boolean = True
+    Public Property Width As Integer = 0
+    Public Property Height As Integer = 0
+
+    Public Shared Function FromJson(json As String) As RecordSettingsSnapshot
+        If String.IsNullOrEmpty(json) Then Return Nothing
+        Dim snap As New RecordSettingsSnapshot()
+        snap.Quality = If(ShadowPlayRestClient.JsonStringField(json, "quality"), "")
+        snap.Resolution = If(ShadowPlayRestClient.JsonStringField(json, "resolution"), "")
+        snap.Framerate = CInt(ShadowPlayRestClient.JsonLongField(json, "framerate"))
+        snap.BitrateBps = ShadowPlayRestClient.JsonLongField(json, "bitrateBps")
+        ApplyResolution(snap, snap.Resolution)
+        Return snap
+    End Function
+
+    Private Shared Sub ApplyResolution(snap As RecordSettingsSnapshot, value As String)
+        If String.IsNullOrWhiteSpace(value) OrElse value = "In-game" Then
+            snap.NativeResolution = True
+            snap.Width = 0
+            snap.Height = 0
+            Return
+        End If
+        Dim w As Integer = 0
+        Dim h As Integer = 0
+        Select Case value
+            Case "2160p 4K"
+                w = 3840 : h = 2160
+            Case "1440p HD"
+                w = 2560 : h = 1440
+            Case "1080p HD"
+                w = 1920 : h = 1080
+            Case "720p HD"
+                w = 1280 : h = 720
+            Case "480p"
+                w = 854 : h = 480
+            Case "360p"
+                w = 640 : h = 360
+            Case "240p"
+                w = 426 : h = 240
+            Case Else
+                w = 0 : h = 0
+        End Select
+        If w > 0 AndAlso h > 0 Then
+            snap.NativeResolution = False
+            snap.Width = w
+            snap.Height = h
+        Else
+            ' unknown label — native is the only safe interpretation
+            snap.NativeResolution = True
+            snap.Width = 0
+            snap.Height = 0
+        End If
+    End Sub
 
 End Class
 
