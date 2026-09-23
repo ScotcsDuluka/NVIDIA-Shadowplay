@@ -75,7 +75,7 @@ Public NotInheritable Class Program
         Inherits ApplicationContext
 
         Private ReadOnly _icon As NotifyIcon
-        Private ReadOnly _timer As New Timer()
+        Private ReadOnly _timer As New System.Windows.Forms.Timer()
         Private _lastEnable As Boolean? = Nothing
         Private _lastRunning As Boolean? = Nothing
 

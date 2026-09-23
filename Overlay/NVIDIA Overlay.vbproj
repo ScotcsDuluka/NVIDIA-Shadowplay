@@ -33,7 +33,7 @@
 
                 <StartupObject>NVIDIA_Share.My.MyApplication</StartupObject>
                 <SupportedOSPlatformVersion>10.0.26100.0</SupportedOSPlatformVersion>
-                <AssemblyName>NVIDIA Share</AssemblyName>
+                <AssemblyName>NVIDIA ShadowPlay</AssemblyName>
 
                 <RunAnalyzersDuringBuild>False</RunAnalyzersDuringBuild>
                 <RunAnalyzersDuringLiveAnalysis>False</RunAnalyzersDuringLiveAnalysis>
@@ -423,11 +423,10 @@
                 <ProjectReference Include="..\Notifier\NVIDIA Notifier.vbproj" />
                 <ProjectReference Include="..\Gallery.Video\Gallery.Video.vbproj" />
                 <ProjectReference Include="..\NVIDIA Controls\NVIDIA Controls.vbproj" />
-                <!-- Build wiring only: carries NVIDIA Overlay Engine (the osc/
-                     WebView2 host) through the product-tree sweep. No runtime
-                     behavior of THIS app changes — the two overlays are
-                     independent processes. -->
-                <ProjectReference Include="..\Overlay.Engine\NVIDIA Overlay Engine.vbproj" />
+                <!-- Overlay.Engine is NOT referenced here: both projects ship
+                     AssemblyName "NVIDIA Share" (the GFE 4-instance rule) and a
+                     shared restore graph rejects that (NuGet: ambiguous project
+                     name). install.ps1 v2 builds/copies each slot separately. -->
         </ItemGroup>
 
         <ProjectExtensions>

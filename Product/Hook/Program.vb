@@ -127,7 +127,10 @@ Public NotInheritable Class Program
                 If _listener IsNot Nothing AndAlso _listener.IsListening Then
                     Log($"[Hook] show port request error: {ex.Message}")
                 End If
-                Try : If ctx IsNot Nothing Then ctx.Response.Close() : Catch : End Try
+                Try
+                    If ctx IsNot Nothing Then ctx.Response.Close()
+                Catch
+                End Try
             End Try
         End While
     End Sub
@@ -171,7 +174,10 @@ Public NotInheritable Class Program
                 Log("[Hook] /hook/exit — graceful exit requested over the show port")
                 Task.Run(Sub()
                              Thread.Sleep(150)
-                             Try : If _listener IsNot Nothing Then _listener.Stop() : Catch : End Try
+                             Try
+                                 If _listener IsNot Nothing Then _listener.Stop()
+                             Catch
+                             End Try
                              Environment.Exit(0)
                          End Sub)
             Case Else
