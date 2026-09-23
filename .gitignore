@@ -93,3 +93,4 @@ node_modules/
 Backend/data/state.json
 Backend/data/hardware-floor.json
 Backend/data/logs/
+build-all.log
