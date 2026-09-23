@@ -103,6 +103,12 @@ Partial Public Class UI_Engine
         ' เชื่อมกับ API Hub
         StartHubClient()
 
+        ' CAPTURE-REST-PLAN phase 1 (wire-through): REST command channel on
+        ' :59001 -- the same API surface the osc page drives. The old TCP
+        ' :5001 engine path stays for the diagnostic window, but record
+        ' commands now arrive through the poller (state machine edges).
+        StartRestChannel()
+
         ' ✅ PHASE 3 UI CONTRACT: the mirror controls (nudFPS, nudBitrate,
         ' chkNativeRes, cboResolution, cboCaptureMethod, cboEncoder,
         ' nudReplayDuration, txtOutputDir, txtFFmpegPath) are READ-ONLY
@@ -154,6 +160,7 @@ Partial Public Class UI_Engine
             tcp.Disconnect()
             tcp.Dispose()
         End If
+        If _restPoller IsNot Nothing Then _restPoller.Stop()
         If _captureEngine IsNot Nothing Then _captureEngine.Dispose()
         ' ✅ P1: flush all queued log writers so no log lines are lost on exit.
         BackgroundLogger.ShutdownAll()
@@ -181,6 +188,67 @@ Partial Public Class UI_Engine
 
     Private Sub OnHubLog(sender As Object, message As String)
         DebugLog(message)
+    End Sub
+
+    ' ═══════════════════════════════════════════════════════════════════════
+    ' CAPTURE-REST-PLAN phase 1 (wire-through): REST command channel :59001.
+    ' Polls /Duluka/v.1.0/State recordState edges (the plane the osc page
+    ' drives), confirms actuals via /Duluka/v.1.0/Actual so the backend
+    ' completes its PROVEN state machine and pushes to the osc page.
+    ' No pixels yet -- log-only pipeline; frame grabber lands in phase 2.
+    ' ═══════════════════════════════════════════════════════════════════════
+
+    Private _rest As ShadowPlayRestClient
+    Private _restPoller As RestCommandPoller
+
+    Private Sub StartRestChannel()
+        _rest = New ShadowPlayRestClient()
+        Dim boot As New System.Threading.Thread(Sub()
+                                                    Try
+                                                        Dim up As Boolean = _rest.WaitForBackend(TimeSpan.FromSeconds(10))
+                                                        DebugLog(If(up, "[REST] backend :59001 up -- command poller starting (phase 1 wire-through, log-only)",
+                                                                       "[REST] backend :59001 not up after 10s -- poller keeps retrying (standalone rule)"))
+                                                    Catch
+                                                        DebugLog("[REST] boot probe error -- poller keeps retrying")
+                                                    End Try
+                                                    _restPoller = New RestCommandPoller(_rest)
+                                                    AddHandler _restPoller.RecordStartRequested, AddressOf OnRestRecordStartRequested
+                                                    AddHandler _restPoller.RecordStopRequested, AddressOf OnRestRecordStopRequested
+                                                    AddHandler _restPoller.InstantReplayStartRequested, AddressOf OnRestInstantReplayStartRequested
+                                                    AddHandler _restPoller.InstantReplayStopRequested, AddressOf OnRestInstantReplayStopRequested
+                                                    _restPoller.Start()
+                                                End Sub)
+        boot.IsBackground = True
+        boot.Name = "RestBoot"
+        boot.Start()
+    End Sub
+
+    Private Sub OnRestRecordStartRequested(savePath As String)
+        DebugLog("[REST] RecordStart edge (recordState=Starting) savePath=" & savePath & " -- phase 1 log-only, no pixels")
+        Try
+            _rest.ConfirmRecordStarted()
+            DebugLog("[REST] confirmed actual=Recording -- backend pushes to osc page")
+        Catch ex As Exception
+            DebugLog("[REST] confirm start FAILED: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub OnRestRecordStopRequested()
+        DebugLog("[REST] RecordStop edge (recordState=Stopping) -- phase 1 log-only")
+        Try
+            _rest.ConfirmRecordStopped()
+            DebugLog("[REST] confirmed actual=Idle -- backend pushes to osc page")
+        Catch ex As Exception
+            DebugLog("[REST] confirm stop FAILED: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub OnRestInstantReplayStartRequested(savePath As String)
+        DebugLog("[REST] InstantReplayStart edge savePath=" & savePath & " -- phase 1 log-only")
+    End Sub
+
+    Private Sub OnRestInstantReplayStopRequested()
+        DebugLog("[REST] InstantReplayStop edge -- phase 1 log-only")
     End Sub
 
     ' ═══════════════════════════════════════════════════════════════════════

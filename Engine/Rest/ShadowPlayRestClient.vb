@@ -40,7 +40,16 @@ Imports System.Threading
 Public NotInheritable Class ShadowPlayRestClient
 
     Private Const DefaultBaseUrl As String = "http://127.0.0.1:59001"
-    Private Const HealthPath As String = "/Backend/v.1.0/health"
+    ' Liveness probe: the deployed Duluka backend serves an OPEN /health
+    ' BEFORE the auth middleware ({"status":"ok"}). The authed
+    ' /Backend/v.1.0/health shape belongs to the newer dev backend, not the
+    ' deployed Phase 1B host -- watch /health for the boot gate.
+    Private Const HealthPath As String = "/health"
+    ' M1 host cookie: the same value the osc bundle carries in commonHeaders
+    ' and the deployed backend pins in config/default.json. Every request
+    ' carries it (header form), same scheme as the osc page.
+    Private Const DefaultSecret As String = "eb6eb0702ec25f9aeb0b0f8f79d06d5b"
+    Private Shared ReadOnly _secret As String = If(Environment.GetEnvironmentVariable("DULUKA_BACKEND_SECRET"), DefaultSecret)
     Private Const RequestTimeoutMs As Integer = 3000
 
     Private ReadOnly _baseUrl As String
@@ -117,7 +126,7 @@ Public NotInheritable Class ShadowPlayRestClient
     Public Function IsBackendUp() As Boolean
         Try
             Dim body As String = Request("GET", HealthPath, Nothing)
-            Return body IsNot Nothing AndAlso body.IndexOf("""ok"":true", StringComparison.Ordinal) >= 0
+            Return body IsNot Nothing AndAlso (body.IndexOf("""ok"":true", StringComparison.Ordinal) >= 0 OrElse body.IndexOf("""status"":""ok""", StringComparison.Ordinal) >= 0)
         Catch
             Return False
         End Try
@@ -149,6 +158,31 @@ Public NotInheritable Class ShadowPlayRestClient
         Return videos
     End Function
 
+    ' ── engine-plane state surface (the DEPLOYED backend's proven loop) ──
+    ' GET /Record/Enable only flips true AFTER the engine's own confirm
+    ' (recordState=Recording), so the capture engine watches the state
+    ' machine string instead: Idle|Starting|Recording|Stopping|Saved|HasError.
+    Public Function GetRecordStateName() As String
+        Return JsonStringField(GetJson("/Duluka/v.1.0/State"), "recordState")
+    End Function
+
+    ' Actual confirmations on the Duluka ingestion surface: the backend runs
+    ' the PROVEN state machine (Starting -> Recording only via actual.confirm)
+    ' and emits the socket pushes the osc page trusts -- desired changes never
+    ' push, actuals do. Invalid transitions are REJECTED (never guessed).
+    Public Function ConfirmRecordStarted() As String
+        Return PostJson("/Duluka/v.1.0/Actual", "{""record"":""Recording""}")
+    End Function
+
+    Public Function ConfirmRecordStopped() As String
+        Return PostJson("/Duluka/v.1.0/Actual", "{""record"":""Idle""}")
+    End Function
+
+    Public Function ReportRecordError(reason As String) As String
+        Dim r As String = If(reason, "").Replace("\"c, "/"c).Replace(""""c, "'"c)
+        Return PostJson("/Duluka/v.1.0/Actual", "{""record"":""Error"",""reason"":""" & r & """}")
+    End Function
+
     Public Sub PublishRecordRunning(running As Boolean)
         Try
             PostJson("/ShadowPlay/v.1.0/Record/Running", "{""running"":" & If(running, "true", "false") & "}")
@@ -171,6 +205,7 @@ Public NotInheritable Class ShadowPlayRestClient
         req.Timeout = RequestTimeoutMs
         req.ReadWriteTimeout = RequestTimeoutMs
         req.ContentType = "application/json"
+        req.Headers("X_LOCAL_SECURITY_COOKIE") = _secret
         If body IsNot Nothing Then
             Dim bytes As Byte() = Encoding.UTF8.GetBytes(body)
             req.ContentLength = bytes.Length
@@ -196,7 +231,7 @@ Public NotInheritable Class RestCommandPoller
     Private ReadOnly _rest As ShadowPlayRestClient
     Private ReadOnly _thread As Thread
     Private _running As Boolean = False
-    Private _lastRecordEnabled As Boolean = False
+    Private _lastRecordState As String = Nothing
     Private _lastInstantReplayEnabled As Boolean = False
     Private _primed As Boolean = False
 
@@ -224,18 +259,25 @@ Public NotInheritable Class RestCommandPoller
     Private Sub PollLoop()
         While _running
             Try
-                Dim rec As Boolean = _rest.GetRecordEnabled()
+                Dim st As String = _rest.GetRecordStateName()
                 Dim ir As Boolean = _rest.GetInstantReplayEnabled()
 
                 If Not _primed Then
-                    ' first cycle adopts current state (no spurious START on boot)
-                    _lastRecordEnabled = rec
+                    ' first cycle adopts current state (no spurious START on
+                    ' boot) -- but a Starting/Stopping leftover from a previous
+                    ' session is PENDING WORK, not neutral state: recover it.
+                    _lastRecordState = st
                     _lastInstantReplayEnabled = ir
                     _primed = True
-                Else
-                    If rec AndAlso Not _lastRecordEnabled Then
+                    If st = "Starting" Then
                         RaiseEvent RecordStartRequested(_rest.GetRecordSavePath())
-                    ElseIf Not rec AndAlso _lastRecordEnabled Then
+                    ElseIf st = "Stopping" Then
+                        RaiseEvent RecordStopRequested()
+                    End If
+                Else
+                    If st = "Starting" AndAlso _lastRecordState <> "Starting" Then
+                        RaiseEvent RecordStartRequested(_rest.GetRecordSavePath())
+                    ElseIf st = "Stopping" AndAlso _lastRecordState <> "Stopping" Then
                         RaiseEvent RecordStopRequested()
                     End If
                     If ir AndAlso Not _lastInstantReplayEnabled Then
@@ -243,7 +285,7 @@ Public NotInheritable Class RestCommandPoller
                     ElseIf Not ir AndAlso _lastInstantReplayEnabled Then
                         RaiseEvent InstantReplayStopRequested()
                     End If
-                    _lastRecordEnabled = rec
+                    _lastRecordState = st
                     _lastInstantReplayEnabled = ir
                 End If
 
