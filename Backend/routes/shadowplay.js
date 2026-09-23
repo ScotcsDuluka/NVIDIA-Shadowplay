@@ -247,6 +247,17 @@ module.exports = function shadowplayRoutes(app, ctx) {
             res.status(200).json({ enabled: sec.enabled === true });
             return;
         }
+        if (hk === 'dynamictoggle') {
+            // production has no DynamicToggle binding: POST /Hotkey/DynamicToggle
+            // matches the /:hk param route and the native layer rejects the
+            // unknown name (replyWithError path). Mirror that error floor —
+            // the dead channel must not answer 200.
+            res.status(500).json({
+                type: 'Error', code: -1, codeText: 'Unknown/Internal error',
+                message: 'Unknown hotkey: DynamicToggle'
+            });
+            return;
+        }
         if (req.body && typeof req.body === 'object' && req.body.keys) {
             store.storeSection('hotkey:' + hk, req.body);
             ctx.logger.info('hotkey saved: ' + hk);

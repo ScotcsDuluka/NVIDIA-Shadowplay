@@ -207,7 +207,9 @@ function eq(actual, expected) {
                 function (p) { return function () { return POSTJSON(BASE + '/Debug/SocketEmit', { channel: p[0], payload: p[1] }); }; }(pair),
                 pair[1]);
         }
-        sockCtx.sock.disconnect();
+        // the client stays connected through the HTTP probes below so the
+        // route side-effect channels (gfeupdate, families) are observable
+        global.__sockCtx = sockCtx;
     }
 
     // ── route families + gallery (skipped on the socket-only gate) ─────
@@ -272,13 +274,15 @@ function eq(actual, expected) {
         const gs400 = await DEL(BASE + '/GameShare/v.1.0/Session/');
         check('http: GameShare Session DELETE no-id 400', gs400.status === 400, 'status ' + gs400.status);
 
-        // dead channels must stay dead (404 — production parity)
+        // dead channels must stay dead (production parity)
         const dead1 = await POSTJSON(BASE + '/ShadowPlay/v.1.0/InstantReplay/Upload', {});
         check('http: InstantReplay/Upload stays 404', dead1.status === 404, 'status ' + dead1.status);
         const dead2 = await POSTJSON(BASE + '/ShadowPlay/v.1.0/Hotkey/DynamicToggle', { enable: true });
-        check('http: Hotkey/DynamicToggle stays 404', dead2.status === 404, 'status ' + dead2.status);
+        check('http: Hotkey/DynamicToggle stays an error (no working toggle)',
+            dead2.status >= 400 && dead2.status < 500 || dead2.status === 500, 'status ' + dead2.status);
     }
 
+    try { if (global.__sockCtx) global.__sockCtx.sock.disconnect(); } catch (e) { /* keep */ }
     try { child.kill(); } catch (e) { /* already gone */ }
 
     const failed = results.filter(function (r) { return !r.ok; });

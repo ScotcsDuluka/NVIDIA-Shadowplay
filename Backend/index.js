@@ -146,6 +146,8 @@ require('./routes/customize')(app, ctx);    // GetCustomize + slider bounds
 require('./routes/shadowplay')(app, ctx);   // the big state store
 require('./routes/hardware')(app, ctx);
 require('./routes/duluka')(app, ctx);
+require('./routes/families')(app, ctx);     // QuietMode2/Nis2/DeepDVC/Feedback/abHub/gfeupdate/GameShare
+require('./routes/gallery')(app, ctx);      // /Gallery HTTP (GetFolderListing/EnumerateDrives/...)
 
 // 404 — mirror the REAL backend's exact miss shape
 // ("Cannot POST /path\n" text — floor captures, commit 01b6a02)

@@ -226,7 +226,11 @@ for wire-fidelity.
   `api.HotKey(doReply, false, req.params.hk)` (2505-2520). The literal second
   arg is `false` in both — the "set" flag the Account routes use is absent
   here; binding writes come from the body/param exactly as passed.
-- `POST /Hotkey/DynamicToggle` — **no route** → 404 (page tolerates it).
+- `POST /Hotkey/DynamicToggle` — **no dedicated route**; the path matches the
+  `/Hotkey/:hk` param route, so production forwards the unknown name to the
+  native layer (`api.HotKey(doReply, false, 'DynamicToggle')`) which rejects
+  it through the error path — effectively a 4xx/5xx for the page, never a
+  working toggle.
 
 ### B.12 NvCamera family (NvCameraAPI.js)
 

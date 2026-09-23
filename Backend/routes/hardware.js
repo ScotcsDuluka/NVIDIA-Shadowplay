@@ -23,6 +23,7 @@ module.exports = function hardwareRoutes(app, ctx) {
     app.get('/HardwareInformation/v.0.1/', floorReply);
     app.get('/HardwareInformation/v.0.2', floorReply);
     app.get('/HardwareInformation/v.0.2/', floorReply);
+    app.get('/HardwareInformation/v.0.2/generic', floorReply);
 
     app.get('/HardwareInformation/v.1.0/GPU', function (req, res) { res.status(404).json({}); });
     app.get('/HardwareInformation/v.1.0/Info', function (req, res) { res.status(404).json({}); });
