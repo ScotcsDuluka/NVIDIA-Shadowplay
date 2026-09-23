@@ -228,3 +228,32 @@ in docs/reference/osc/nodejs/ hold 7). Corrections/confirmations only:
 - **Envelope**: no wrapper — GET returns native JSON directly, mutations
   return 200/202 with empty body; errors are 400/500 text/html (message only);
   security failure 403.
+
+## 7. gallery IPC extraction (ZCode mission 3)
+
+Full detail: docs/OSC-GALLERY-IPC-EXTRACTION.md. Corrections/confirmations:
+
+- **QUERY_WIN_DIR_INFO is NOT used by the osc page** (zero app.js callers).
+  Gallery browse = HTTP: POST `/Gallery/v.1.2/GetFolderListing`,
+  GET `/Gallery/v.1.0/EnumerateDrives`, POST `/Gallery/v.1.0/isDirectoryWritable`
+  (lowercase i — server route casing must be verified) via the
+  `galleryEndpoints` SDK in vendor.js (dual base: node v.1.0 via
+  setLocalConfig, local v.1.2 hardcoded). "Open Location" = IPC
+  `QUERY_BROWSE_DIRECTORY` (native folder dialog).
+- **cefQuery surface = 82 commands** (77 vendor + 5 app.js direct); our
+  CefQueryBridge covers 14. Next most relevant for osc parity:
+  `QUERY_BROWSE_DIRECTORY`, `QUERY_OSC_DROP_URL`, `QUERY_WIN_KB_MESSAGE`,
+  `QUERY_TIME_INFO`, `QUERY_SYSTEM_INFO`. Ansel/GFN/streamer/IPC-config
+  families (~40) are out of scope until those features are rebuilt.
+- **Playback**: HTML5 `<video>` src = local file path with normalized slashes
+  (`videoSrc = fullFilename.replace(/\/g,"/")`), editor wraps with
+  `$sce.trustAsResourceUrl`; no custom scheme, no external player.
+  `QUERY_HTTPSERVER_START` is the OAuth loopback flow (ports
+  2259/6460/7119/8870/9096, persistent query, `serverCreated` push) — not
+  media serving.
+- **Production cefQuery answerer** = native CEF host
+  `GFExperience\NVIDIA Share.exe` (command strings found in the binary,
+  A:\ backup). The live GFE dir currently hosts OUR portable tree.
+- Gallery upload prep confirmed: `/TranscodeMediaFile` response
+  `{newFile, newFileWidth, newFileHeight, newFileSizeB}`; item removal via
+  `/Remove {file, forceDelete}`; `/CopyFile` before trim-save.
