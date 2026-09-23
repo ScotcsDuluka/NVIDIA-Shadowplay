@@ -75,6 +75,81 @@ function create(httpServer, logger, cfg) {
         }
     }
 
+    // ── production parity helpers (docs/OSC-NODE-API-EXTRACTION.md §A) ──
+    //
+    // The production NvNode forwards native callbacks through
+    // EmitNotification(name, data) = setImmediate(io.emit(...)). Our
+    // equivalent triggers are the HTTP state-change routes below
+    // (routes/shadowplay.js) and the /Debug/SocketEmit validation hook.
+
+    // CaptureStateChangeNotificationCallback switch, verbatim: the native
+    // layer reports {captureMode, recordingState} and the bridge maps it to
+    // exactly one channel + payload (NvShadowPlayAPI.js:2740-2824).
+    //   captureMode 0 = Manual Record, 1 = Instant Replay, 2 = Broadcast.
+    function captureStateChange(captureMode, recordingState) {
+        let result;
+        let endpoint;
+        switch (captureMode) {
+            case 0: // Manual Record
+                endpoint = '/ShadowPlay/v.1.0/Record/Enable';
+                switch (recordingState) {
+                    case 0x00: result = { status: false }; break;
+                    case 0x01: result = { status: true }; break;
+                    default:
+                        logger.error('Unhandled recording state: ' + recordingState);
+                        return null;
+                }
+                break;
+            case 1: // Instant Replay
+                switch (recordingState) {
+                    case 0x00: result = { started: false }; endpoint = '/ShadowPlay/v.1.0/InstantReplay/Started'; break;
+                    case 0x01: result = { started: true }; endpoint = '/ShadowPlay/v.1.0/InstantReplay/Started'; break;
+                    case 0x20: result = { status: true }; endpoint = '/ShadowPlay/v.1.0/InstantReplay/Save'; break;
+                    case 0x40: result = { restarted: true }; endpoint = '/ShadowPlay/v.1.0/InstantReplay/Started'; break;
+                    case 0x44: result = { status: true }; endpoint = '/ShadowPlay/v.1.0/InstantReplay/Enable'; break;
+                    case 0x45: result = { status: false }; endpoint = '/ShadowPlay/v.1.0/InstantReplay/Enable'; break;
+                    default:
+                        logger.error('Unhandled instant replay state: ' + recordingState);
+                        return null;
+                }
+                break;
+            case 2: // Broadcast
+                switch (recordingState) {
+                    case 0x00: result = { status: false }; endpoint = '/ShadowPlay/v.1.0/Broadcast/Enable'; break;
+                    case 0x01: result = { status: true }; endpoint = '/ShadowPlay/v.1.0/Broadcast/Enable'; break;
+                    case 0x02:
+                    case 0x04: result = { status: true }; endpoint = '/ShadowPlay/v.1.0/Broadcast/Pause'; break;
+                    case 0x41: result = { status: false }; endpoint = '/ShadowPlay/v.1.0/Broadcast/Pause'; break;
+                    default:
+                        logger.error('Unhandled broadcast state: ' + recordingState);
+                        return null;
+                }
+                break;
+            default:
+                logger.error('Unhandled capture mode: ' + captureMode);
+                return null;
+        }
+        logger.info('Notification:' + endpoint + ' Data:' + JSON.stringify(result));
+        emitChannel(endpoint, result);
+        return { endpoint: endpoint, payload: result };
+    }
+
+    // HotkeyCallback — production payload is the native passthrough; we emit
+    // the same channel with the hotkey identity we have (routes carry the
+    // name; the page's hotKeyMapping matches on it).
+    function emitHotkey(hotkeyData) {
+        emitChannel('/ShadowPlay/v.1.0/Hotkey', hotkeyData);
+    }
+
+    // POST /OpenOscPreferences | /OpenOscState | /OscNotification echo their
+    // JSON body onto the matching DisplayOsc channel (production semantics:
+    // content passthrough, NvShadowPlayAPI.js:1058-1097).
+    function emitDisplayOsc(kind, content) {
+        const channel = '/ShadowPlay/v.1.0/DisplayOsc' + kind;
+        emitChannel(channel, content);
+        return channel;
+    }
+
     // ── hotkey edge debounce ────────────────────────────────────────
     const lastToggleAt = Object.create(null);
 
@@ -100,6 +175,9 @@ function create(httpServer, logger, cfg) {
         io: io,
         emitWindowState: emitWindowState,
         emitChannel: emitChannel,
+        captureStateChange: captureStateChange,
+        emitHotkey: emitHotkey,
+        emitDisplayOsc: emitDisplayOsc,
         toggleAllowed: toggleAllowed,
         hotkeyToggle: hotkeyToggle
     };

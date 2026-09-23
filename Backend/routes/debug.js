@@ -44,6 +44,19 @@ module.exports = function debugRoutes(app, ctx) {
     app.post('/ShadowPlay/v.1.0/Debug/PageLog', pageLog);
     app.post('/Debug/PageLog', pageLog);
 
+    // validation hook: push any production socket channel with a
+    // representative payload (Backend/test/parity-validation.js drives this
+    // to exercise each implemented channel end-to-end)
+    app.post('/Debug/SocketEmit', function (req, res) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        if (!body.channel) {
+            res.status(400).json({ error: 'channel required' });
+            return;
+        }
+        ctx.socket.emitChannel(body.channel, body.payload !== undefined ? body.payload : {});
+        res.status(200).json({ ok: true, channel: body.channel });
+    });
+
     app.get('/Backend/v.1.0/health', function (req, res) {
         let osc = { dir: ctx.cfg.oscDir, served: false };
         try { osc.served = fs.existsSync(path.join(ctx.cfg.oscDir, 'index.html')); } catch (e) { /* keep */ }

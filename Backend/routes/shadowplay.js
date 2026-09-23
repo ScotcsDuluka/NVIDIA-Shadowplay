@@ -53,6 +53,17 @@ module.exports = function shadowplayRoutes(app, ctx) {
         res.status(200).json({});
     });
 
+    // ── Instant Replay save ─────────────────────────────────────────
+    // POST /InstantReplay/Save → the production bridge emits
+    // /InstantReplay/Save {status:true} when the buffer is saved
+    // (capture mode 1, recordingState 0x20 — NvShadowPlayAPI.js:2773).
+    app.post('/ShadowPlay/v.1.0/InstantReplay/Save', function (req, res) {
+        store.storeSection('instantReplaySave', { savedAt: new Date().toISOString() });
+        socket.emitChannel('/ShadowPlay/v.1.0/InstantReplay/Save', { status: true });
+        ctx.logger.info('instant replay saved');
+        res.status(200).json({});
+    });
+
     // ── capture enable/running (engine-driven state) ────────────────
     // The osc page AND the engine (Phase 3 REST client, replacing the
     // TCP :5001 channel) speak this exact surface:
@@ -71,7 +82,11 @@ module.exports = function shadowplayRoutes(app, ctx) {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const status = body.status === true;
         store.storeSection(feature + 'Enable', { status: status, changedAt: new Date().toISOString() });
-        socket.emitChannel('/ShadowPlay/v.1.0/' + req.params[0] + '/update', { status: status });
+        // production parity: the state flip emits the feature's own channel
+        // with {status} — the same frame the native CaptureStateChange
+        // notification produces for modes 0/1-0x44|0x45
+        // (docs/OSC-NODE-API-EXTRACTION.md §A.1).
+        socket.emitChannel('/ShadowPlay/v.1.0/' + req.params[0] + '/Enable', { status: status });
         ctx.logger.info('capture enable: ' + feature + ' → ' + status);
         res.status(200).json({ status: status });
     });
@@ -80,22 +95,39 @@ module.exports = function shadowplayRoutes(app, ctx) {
         res.status(200).json({ running: sec.running === true });
     });
     app.post(new RegExp('^/ShadowPlay/v\\.1\\.0/(' + FEATURES + ')/Running/?$'), function (req, res) {
-        // engine publish — the page never POSTs this; the REST client does
+        // engine publish — the page never POSTs this; the REST client does.
+        // Production pushes NO channel for Running (the page polls) — the
+        // store is the only state change here.
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
         const running = body.running === true;
         store.storeSection(req.params[0].toLowerCase() + 'Running', { running: running, at: new Date().toISOString() });
-        socket.emitChannel('/ShadowPlay/v.1.0/' + req.params[0] + '/update', { running: running });
         res.status(200).json({ running: running });
     });
 
     app.get('/ShadowPlay/v.1.0/Broadcast/Enable', function (req, res) {
-        res.status(200).json({ status: false });
+        res.status(200).json({ status: store.getSection('broadcastEnable').status === true });
     });
     app.post('/ShadowPlay/v.1.0/Broadcast/Enable', function (req, res) {
-        res.status(200).json({ status: false });
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const status = body.status === true;
+        store.storeSection('broadcastEnable', { status: status, changedAt: new Date().toISOString() });
+        // production parity: broadcast mode 2 state flips emit
+        // /Broadcast/Enable {status} (NvShadowPlayAPI.js:2786-2796)
+        socket.emitChannel('/ShadowPlay/v.1.0/Broadcast/Enable', { status: status });
+        res.status(200).json({ status: status });
+    });
+    app.post('/ShadowPlay/v.1.0/Broadcast/Pause', function (req, res) {
+        // page payload {pause:bool}; the production paused-state channel
+        // carries {status} (true = paused, false = resumed) — modes
+        // 0x02|0x04 / 0x41 (NvShadowPlayAPI.js:2797-2804)
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        const paused = body.pause === true;
+        store.storeSection('broadcastPause', { paused: paused, changedAt: new Date().toISOString() });
+        socket.emitChannel('/ShadowPlay/v.1.0/Broadcast/Pause', { status: paused });
+        res.status(200).json({ status: paused });
     });
     app.get('/ShadowPlay/v.1.0/Broadcast/Running', function (req, res) {
-        res.status(200).json({ running: false });
+        res.status(200).json({ running: store.getSection('broadcastEnable').status === true });
     });
     app.get('/ShadowPlay/v.1.0/Broadcast/Support', function (req, res) {
         res.status(200).json({ support: true });
@@ -185,6 +217,13 @@ module.exports = function shadowplayRoutes(app, ctx) {
     //                        WindowState{overlayToggle} emission
     app.get('/ShadowPlay/v.1.0/Hotkey/:name', function (req, res) {
         const hk = String(req.params.name || '').toLowerCase();
+        if (hk === 'monitor') {
+            // production: GET monitor reads the hotkey-monitor state
+            // (HotKeyMonitor(doReply, false) — NvShadowPlayAPI.js:2494-2520)
+            const mon = store.getSection('hotkey:monitor');
+            res.status(200).json({ enabled: mon.enabled === true });
+            return;
+        }
         const sec = store.getSection('hotkey:' + hk);
         if (sec.keys) { res.status(200).json(sec); return; }
         const keys = defaults.HOTKEY_DEFAULTS[hk];
@@ -194,7 +233,18 @@ module.exports = function shadowplayRoutes(app, ctx) {
         const hk = String(req.params.name || '').toLowerCase();
         if (hk === 'toggle' || hk === 'overlaytoggle') {
             const emitted = socket.hotkeyToggle(hk, 'overlayToggle');
+            // production parity: hotkey presses also surface on the Hotkey
+            // channel (payload is the native passthrough in production —
+            // we emit the identity we have; representative shape)
+            socket.emitHotkey({ hotkeyName: hk });
             res.status(200).json(emitted ? {} : { suppressed: true });
+            return;
+        }
+        if (hk === 'monitor') {
+            // production: both GET and POST monitor read the monitor state
+            // (HotKeyMonitor(doReply, false) — NvShadowPlayAPI.js:2505-2520)
+            const sec = store.getSection('hotkey:monitor');
+            res.status(200).json({ enabled: sec.enabled === true });
             return;
         }
         if (req.body && typeof req.body === 'object' && req.body.keys) {
@@ -219,12 +269,36 @@ module.exports = function shadowplayRoutes(app, ctx) {
         res.status(200).json({});
     });
 
+    // ── DisplayOsc POST echoes (production §A.2: content passthrough) ──
+    // The production bridge broadcasts the POST body verbatim onto the
+    // matching DisplayOsc channel (NvShadowPlayAPI.js:1058-1097).
+    app.post('/ShadowPlay/v.1.0/OpenOscPreferences', function (req, res) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        socket.emitDisplayOsc('Preferences', body);
+        res.status(200).json({});
+    });
+    app.post('/ShadowPlay/v.1.0/OpenOscState', function (req, res) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        socket.emitDisplayOsc('State', body);
+        res.status(200).json({});
+    });
+    app.post('/ShadowPlay/v.1.0/OscNotification', function (req, res) {
+        const body = (req.body && typeof req.body === 'object') ? req.body : {};
+        socket.emitDisplayOsc('Notification', body);
+        res.status(200).json({});
+    });
+
     // ── misc settings surfaces ──────────────────────────────────────
     app.get('/Settings/v.1.0/Language', function (req, res) {
         res.status(200).json(sectionOr('language', { language: '' }));
     });
     app.post('/Settings/v.1.0/Language', function (req, res) {
-        if (req.body && typeof req.body === 'object') store.storeSection('language', req.body);
+        if (req.body && typeof req.body === 'object') {
+            store.storeSection('language', req.body);
+            // production parity: POST persists then broadcasts
+            // {language} (index.js:654-660)
+            socket.emitChannel('/Settings/v.1.0/Language', { language: req.body.language });
+        }
         res.status(200).json({});
     });
 

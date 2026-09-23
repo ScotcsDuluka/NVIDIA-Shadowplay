@@ -63,7 +63,14 @@ module.exports = function dulukaRoutes(app, ctx) {
 
     function pushAccount() {
         const a = account();
-        socket.emitChannel('/Account/v.1.0/update', { loggedIn: !!a.loggedIn, user: a.user || null });
+        // production parity: the UserToken native callback emits the token
+        // channel with {userToken, userInfo} (NvAccountAPI.js:555-565);
+        // the Duluka-specific state channel below keeps the panel informed.
+        socket.emitChannel('/Account/v.1.0/UserToken', {
+            userToken: a.token || '',
+            userInfo: a.user ? { userId: (a.user && a.user.userId) || a.user.displayName || '', displayName: (a.user && a.user.displayName) || '' } : {}
+        });
+        socket.emitChannel('/Duluka/v.1.0/state', { loggedIn: !!a.loggedIn, user: a.user || null });
     }
     function pushDulukaState() {
         const a = account();
@@ -94,10 +101,13 @@ module.exports = function dulukaRoutes(app, ctx) {
 
     app.post('/Account/v.1.0/UserToken', function (req, res) {
         const body = (req.body && typeof req.body === 'object') ? req.body : {};
-        if (body.token) {
+        // production wire: {userToken, userInfo} (NvAccountAPI.js:334-357);
+        // the Duluka login bridge's {token, user} stays accepted.
+        const token = body.userToken !== undefined ? body.userToken : body.token;
+        if (token) {
             store.storeSection('account', {
-                token: body.token,
-                user: body.user || null,
+                token: token,
+                user: body.userInfo || body.user || null,
                 loggedIn: true
             });
             pushAccount();
@@ -122,6 +132,9 @@ module.exports = function dulukaRoutes(app, ctx) {
             store.storeSection('account', {
                 privacy: Object.assign({}, a.privacy || {}, req.body)
             });
+            // production parity: the consent native callback emits the
+            // consent data verbatim (NvAccountAPI.js:568-572)
+            socket.emitChannel('/Account/v.1.0/PrivacySettings', req.body);
         }
         res.status(200).json({});
     });
