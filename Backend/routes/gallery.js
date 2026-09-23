@@ -88,8 +88,12 @@ module.exports = function galleryRoutes(app, ctx) {
             fs.unlinkSync(probe);
             writable = true;
         } catch (err) { /* missing dir, read-only, ACL — not writable */ }
-        // the consumer reads the body AS the boolean (app.js:778200: !n)
-        res.status(200).json(writable);
+        // consumer chain (verbatim bundle evidence): vendor.js ugc-lib
+        // galleryService resolves e.data.writable and the FolderBrowser
+        // consumes that value (isReadOnly = !n) — the body must be the
+        // {writable} OBJECT; a bare boolean reads as undefined → every
+        // folder marked read-only.
+        res.status(200).json({ writable: writable });
     });
     // capital-I alias — NvGalleryAPI.js:513 registers this spelling too
     app.post('/Gallery/v.1.0/IsDirectoryWritable', function (req, res) {

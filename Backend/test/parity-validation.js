@@ -225,11 +225,11 @@ function eq(actual, expected) {
             typeof drives.json.drives[0].type === 'string',
             drives.text.slice(0, 120));
         const writable = await POSTJSON(BASE + '/Gallery/v.1.0/isDirectoryWritable', { directory: dataDir });
-        check('http: isDirectoryWritable boolean body true',
-            writable.status === 200 && writable.json === true, writable.text.slice(0, 60));
+        check('http: isDirectoryWritable {writable:true} (consumer reads body.writable)',
+            writable.status === 200 && writable.json && writable.json.writable === true, writable.text.slice(0, 60));
         const readOnly = await POSTJSON(BASE + '/Gallery/v.1.0/isDirectoryWritable', { directory: 'Q:\\definitely\\missing' });
-        check('http: isDirectoryWritable boolean body false (missing dir)',
-            readOnly.status === 200 && readOnly.json === false, readOnly.text.slice(0, 60));
+        check('http: isDirectoryWritable {writable:false} (missing dir)',
+            readOnly.status === 200 && readOnly.json && readOnly.json.writable === false, readOnly.text.slice(0, 60));
 
         // route families (production status codes)
         const qm = await GET(BASE + '/QuietMode2/v.1.0/state');
