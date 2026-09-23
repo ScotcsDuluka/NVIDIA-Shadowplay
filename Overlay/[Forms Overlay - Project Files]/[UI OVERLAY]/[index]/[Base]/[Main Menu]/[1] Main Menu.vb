@@ -1065,7 +1065,7 @@ Partial Public Class Base
 
         Dim EngineFile = AppLayout.P("Flags", "Engine.UI")
 
-        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        Dim captureProcess = Process.GetProcessesByName("nvsphelper64").FirstOrDefault()
         If captureProcess Is Nothing Then
             Engine_UI.Stop()
             ShowNotifier("notificationErrorEngineNotRunning")
@@ -1085,7 +1085,7 @@ Partial Public Class Base
     Private Sub Audio_UI_Tick(sender As Object, e As EventArgs) Handles Audio_UI.Tick
         Dim AudioFile = AppLayout.P("Flags", "Audio.UI")
 
-        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        Dim captureProcess = Process.GetProcessesByName("nvsphelper64").FirstOrDefault()
         If captureProcess Is Nothing Then
             Audio_UI.Stop()
             ShowNotifier("notificationErrorEngineNotRunning")

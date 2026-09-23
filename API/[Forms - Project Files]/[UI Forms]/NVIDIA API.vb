@@ -121,10 +121,12 @@ Public Class API_RUN
         ' not be "kept alive" or killed by the API Hub. Old behavior: when Use_Overlay marker
         ' was absent, the API killed every ffmpeg.exe on the machine — including ones launched
         ' by unrelated software (OBS, HandBrake, streamers, video editors).
+        ' OWNERSHIP BOUNDARY: the capture engine (nvsphelper64.exe) is owned
+        ' by NvContainer.exe — the keep-alive list covers only the overlay
+        ' family and must never respawn the engine (dual-engine guard).
         Dim apps As String() = {
             "NVIDIA Notifier.exe",
-            "NVIDIA Share.exe",
-            "NVIDIA Capture.exe"
+            "NVIDIA Share.exe"
         }
 
         ' Single-source config: the overlay stack switch lives in config.json

@@ -601,7 +601,7 @@ Partial Public Class Base
     Private Sub EngineUI_Click(sender As Object, e As EventArgs) Handles Engine_TEXT.Click, Engine_ICO.Click
         Dim uiFile = AppLayout.P("Flags", "Engine.UI")
 
-        Dim captureProcess = Process.GetProcessesByName("NVIDIA Capture").FirstOrDefault()
+        Dim captureProcess = Process.GetProcessesByName("nvsphelper64").FirstOrDefault()
         If captureProcess Is Nothing Then
             Engine_UI.Stop()
             ShowNotifier("notificationErrorEngineNotRunning")

@@ -8,8 +8,8 @@ Imports System.Threading
 
 Public NotInheritable Class EngineProcessSupervisor
 
-    Private Const ProcessName As String = "NVIDIA Capture"     
-    Private Const ExeFileName As String = "NVIDIA Capture.exe"
+    Private Const ProcessName As String = "nvsphelper64"     
+    Private Const ExeFileName As String = "nvsphelper64.exe"
 
     Private Const RespawnBaseDelayMs As Integer = 3000
     Private Const RespawnMaxDelayMs As Integer = 60000
@@ -44,23 +44,19 @@ Public NotInheritable Class EngineProcessSupervisor
     End Sub
 
     Public Shared Sub EnsureEngineRunning()
+        ' OWNERSHIP BOUNDARY (owner decision): the capture engine is
+        ' nvsphelper64.exe and is owned by NvContainer.exe — the root
+        ' control-plane authority. The overlay family stays independent of
+        ' the engine: no startup spawn, no monitor respawn, no watching.
+        ' The old body here (startup spawn + MonitorLoop respawn of the
+        ' legacy engine exe) was the dual-engine source on live systems.
+        ' Public API and the reuse-only spawn helper stay for callers and
+        ' source-truth tests; the ownership is gone.
         SyncLock _sync
             If _started Then Return
             _started = True
-            _shuttingDown = False
         End SyncLock
-
-        Try
-            SpawnIfNotRunning(reason:="startup")
-        Catch ex As Exception
-            Log($"[EngineSupervisor] startup spawn failed: {ex.Message}")
-        End Try
-
-        _monitorThread = New Thread(AddressOf MonitorLoop) With {
-            .Name = "EngineProcessSupervisor",
-            .IsBackground = True
-        }
-        _monitorThread.Start()
+        Log("[EngineSupervisor] disabled — engine owned by NvContainer.exe (overlay spawns nothing)")
     End Sub
 
     Public Shared Sub Shutdown()
