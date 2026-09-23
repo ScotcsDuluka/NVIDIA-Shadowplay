@@ -223,9 +223,39 @@ Partial Public Class UI_Engine
         boot.Start()
     End Sub
 
+    ' ── phase 2 (CAPTURE-REST-PLAN): edges dispatch into the PROVEN new-engine
+    ' session path (HandleRecordingStart/Stop — the exact seam the record
+    ' button uses, reqId="" like OnStopClick). Marshaled onto the UI thread
+    ' via SafeInvoke (BeginInvoke) — same pattern as the TCP-triggered path.
+    ' The backend actual-confirm now happens AFTER the engine accept point.
+
     Private Sub OnRestRecordStartRequested(savePath As String)
-        DebugLog("[REST] RecordStart edge (recordState=Starting) savePath=" & savePath & " -- phase 1 log-only, no pixels")
+        DebugLog("[REST] RecordStart edge (recordState=Starting) savePath=" & savePath & " -- phase 2: real capture dispatch")
         Try
+            ' REST savePath may be a directory hint (e.g. the Videos root) —
+            ' only honor it when it looks like a real file target; otherwise
+            ' generate a proper timestamped filename from settings.
+            Dim outPath As String = ""
+            If Not String.IsNullOrEmpty(savePath) AndAlso IO.Path.HasExtension(savePath) AndAlso Not IO.Directory.Exists(savePath) Then
+                outPath = savePath
+            End If
+            If String.IsNullOrEmpty(outPath) Then outPath = _settings.GenerateOutputFilename()
+            SafeInvoke(Sub() StartRestRecording(outPath))
+        Catch ex As Exception
+            DebugLog("[REST] start dispatch FAILED: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Async Sub StartRestRecording(outPath As String)
+        Try
+            ' Same regime dispatch as OnRecordClick: nvidia = installed
+            ' ShadowPlay external recorder; everything else = process-lifetime
+            ' RecordingEngine (Ddagrab + NVENC + ffmpeg mux).
+            If String.Equals(OverlayConfig.GetEngineMode(), "nvidia", StringComparison.OrdinalIgnoreCase) Then
+                HandleNvidiaRecordStart(outPath)
+            Else
+                Await HandleRecordingStart(outPath, "")
+            End If
             _rest.ConfirmRecordStarted()
             DebugLog("[REST] confirmed actual=Recording -- backend pushes to osc page")
         Catch ex As Exception
@@ -234,8 +264,17 @@ Partial Public Class UI_Engine
     End Sub
 
     Private Sub OnRestRecordStopRequested()
-        DebugLog("[REST] RecordStop edge (recordState=Stopping) -- phase 1 log-only")
+        DebugLog("[REST] RecordStop edge (recordState=Stopping) -- phase 2: stop session")
+        SafeInvoke(Sub() StopRestRecording())
+    End Sub
+
+    Private Async Sub StopRestRecording()
         Try
+            If _recordingTask IsNot Nothing AndAlso Not _recordingTask.IsCompleted Then
+                Await HandleRecordingStop("")
+            Else
+                DebugLog("[REST] no active session task -- confirming Idle")
+            End If
             _rest.ConfirmRecordStopped()
             DebugLog("[REST] confirmed actual=Idle -- backend pushes to osc page")
         Catch ex As Exception
