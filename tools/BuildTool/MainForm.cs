@@ -57,8 +57,11 @@ public class MainForm : Form
                 {
                     try
                     {
-                        using var doc = JsonDocument.Parse(e.WebMessageAsJson);
-                        var rootEl = doc.RootElement;
+                        // postMessage(string) arrives DOUBLE-ENCODED as a JSON string
+                        var outer = JsonDocument.Parse(e.WebMessageAsJson).RootElement;
+                        var rootEl = outer.ValueKind == JsonValueKind.String
+                            ? JsonDocument.Parse(outer.GetString()).RootElement
+                            : outer;
                         if (rootEl.ValueKind != JsonValueKind.Object || !rootEl.TryGetProperty("id", out var idEl))
                         {
                             UiLog("JS: " + e.WebMessageAsJson);

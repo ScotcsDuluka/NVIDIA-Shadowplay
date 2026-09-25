@@ -60,6 +60,13 @@ async function preview() {
 /* ── Dashboard ── */
 views.dashboard = async function () {
   const s = await status();
+  try {
+    chrome.webview.postMessage("DOM: main.len=" + document.getElementById("main").innerHTML.length +
+      " statCards=" + document.querySelectorAll(".stat").length +
+      " sheets=" + document.styleSheets.length +
+      " rules=" + (document.styleSheets[0] ? document.styleSheets[0].cssRules.length : "?") +
+      " mainRect=" + JSON.stringify(document.getElementById("main").getBoundingClientRect()));
+  } catch (e) { }
   const up = (n) => (s.procs || []).some((p) => p.name === n && p.up);
   $("#main").innerHTML = `
     <h1>Dashboard</h1>
