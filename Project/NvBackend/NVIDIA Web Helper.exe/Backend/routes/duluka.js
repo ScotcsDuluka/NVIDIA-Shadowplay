@@ -61,14 +61,33 @@ module.exports = function dulukaRoutes(app, ctx) {
 
     function account() { return store.getSection('account'); }
 
+    // Production parity (NvAccountAPI.js:555-566): the native layer pushes
+    // the stored session over the UserToken channel once at startup — the
+    // osc boot resolve consumes THAT push (not the HTTP GET). Without a
+    // boot-time push the resolve reports "user session (rejection)".
+    if (ctx.socket && ctx.socket.io) {
+        ctx.socket.io.on('connection', function () {
+            setImmediate(function () { pushAccount(); });
+        });
+    }
+
     function pushAccount() {
         const a = account();
-        // production parity: the UserToken native callback emits the token
-        // channel with {userToken, userInfo} (NvAccountAPI.js:555-565);
-        // the Duluka-specific state channel below keeps the panel informed.
+        // production parity (NvAccountAPI.js:555-565): the UserToken channel
+        // carries {userToken, userInfo} where userInfo is a JSON STRING —
+        // the page runs JSON.parse(sessionData.userInfo) and reads
+        // userInfo.userId; an object here throws inside the page and the
+        // boot resolve reports "user session (rejection)".
+        const info = {
+            userId: (a.user && (a.user.userId || a.user.id)) || (a.loggedIn ? 'duluka-user' : 'guest-standalone'),
+            displayName: (a.user && (a.user.displayName || a.user.name)) || (a.loggedIn ? 'Duluka user' : 'Guest'),
+            deviceId: 'standalone',
+            userToken: a.token || 'guest-standalone'
+        };
         socket.emitChannel('/Account/v.1.0/UserToken', {
-            userToken: a.token || '',
-            userInfo: a.user ? { userId: (a.user && a.user.userId) || a.user.displayName || '', displayName: (a.user && a.user.displayName) || '' } : {}
+            userToken: info.userToken,
+            userInfo: JSON.stringify(info),
+            userId: info.userId
         });
         socket.emitChannel('/Duluka/v.1.0/state', { loggedIn: !!a.loggedIn, user: a.user || null });
     }
@@ -87,24 +106,52 @@ module.exports = function dulukaRoutes(app, ctx) {
     }
 
     // ── Account ─────────────────────────────────────────────────────
+    // Production wire shape (NvAccountAPI.js): the UserToken answer carries
+    // {userToken, userInfo} where userInfo is a JSON STRING containing
+    // userId — UserTokenCallback parses it and hands the userId to the page
+    // (NvAccountAPI.js:555-565). The osc boot resolve (main/resolve/
+    // hardwareInfo) hard-requires that userId: a 401 or a wrong shape leaves
+    // the #/base ui-view EMPTY (the "black screen", CDP-verified 2026-09-25).
+    function GuestAccount() {
+        const guestInfo = {
+            userId: 'guest-standalone',
+            displayName: 'Guest',
+            deviceId: 'standalone',
+            userToken: 'guest-standalone',
+            dataTracking: {
+                trackTechnicalData: { level: 0 },
+                trackBehavioralData: { level: 0 }
+            }
+        };
+        return {
+            userToken: 'guest-standalone',
+            userInfo: JSON.stringify(guestInfo),
+            userId: guestInfo.userId
+        };
+    }
     app.get('/Account/v.1.0/UserToken', function (req, res) {
         const a = account();
         if (!a.loggedIn || !a.token) {
             // Guest-mode parity shim (2026-09-25, CDP-verified on the Intel
-            // machine): the osc boot resolve (main/resolve/hardwareInfo)
-            // hard-requires a user id from this token — answering 401 makes
-            // the uiRouter resolve reject and the #/base ui-view stays EMPTY
-            // (the "black screen": container 1920x1080, zero children).
-            // A deterministic guest token lets the page boot; a real Duluka
+            // machine): the osc boot resolve hard-requires a user id — a 401
+            // or a token without userInfo.userId makes the uiRouter resolve
+            // reject and the #/base ui-view stays EMPTY (the "black screen").
+            // A deterministic guest account lets the page boot; a real Duluka
             // login still takes precedence below.
-            res.status(200).json({
-                token: 'guest-standalone',
-                user: { name: 'Guest', guest: true },
-                provider: 'guest'
-            });
+            res.status(200).json(GuestAccount());
             return;
         }
-        res.status(200).json({ token: a.token, user: a.user, provider: 'duluka' });
+        const info = {
+            userId: (a.user && (a.user.userId || a.user.id)) || 'duluka-user',
+            displayName: (a.user && (a.user.displayName || a.user.name)) || 'Duluka user',
+            deviceId: 'duluka',
+            userToken: a.token
+        };
+        res.status(200).json({
+            userToken: a.token,
+            userInfo: JSON.stringify(info),
+            userId: info.userId
+        });
     });
 
     app.post('/Account/v.1.0/UserToken', function (req, res) {
@@ -208,6 +255,27 @@ module.exports = function dulukaRoutes(app, ctx) {
         res.status(200).json(captureState());
     });
 
+    // ── jarvis emulation (standalone) ───────────────────────────────
+    // When pipl points jarvis.server at THIS backend, the page resolves its
+    // boot session against us (real flow: NvAccountAPI.js:220-248 POSTs
+    // /api/1/authentication/client/login with Basic auth(userToken:)).
+    // A guest session here closes the last boot gate on standalone machines.
+    app.post('/api/1/authentication/client/login', function (req, res) {
+        res.status(200).json({
+            sessionToken: 'guest-session-standalone',
+            userId: 'guest-standalone',
+            userName: 'Guest',
+           Correlation: undefined,
+            correlationId: 'guest-standalone'
+        });
+    });
+    app.get('/api/1/authentication/client/login', function (req, res) {
+        res.status(200).json({
+            sessionToken: 'guest-session-standalone',
+            userId: 'guest-standalone'
+        });
+    });
+
     // ── PiplConfig (jarvis.server → Duluka Server) ──────────────────
     function piplBody() {
         const floorPipl = defaults.PIPL_FLOOR;
@@ -215,7 +283,19 @@ module.exports = function dulukaRoutes(app, ctx) {
         const body = JSON.parse(JSON.stringify(floorPipl)); // deep-enough copy
         body.daysToExpire = stored.daysToExpire !== undefined ? stored.daysToExpire : (body.daysToExpire || 1);
         if (!body.configData) body.configData = {};
-        body.configData.jarvis = { server: stored.jarvisServer || ctx.cfg.dulukaServer };
+        // Empty string is a VALID posture (official nodejs\config.json ships
+        // jarvis.server: "" — standalone, no jarvis): only an UNSET value
+        // falls back to the Duluka default. A `||` here silently resurrects
+        // a dead jarvis URL the user explicitly cleared.
+        body.configData.jarvis = {
+            server: stored.jarvisServer !== undefined ? stored.jarvisServer : ctx.cfg.dulukaServer,
+            // the page builds its jarvis session from these — clientId is
+            // REQUIRED (PrivacySettings?clientId=... ; official value from
+            // nodejs\config.json)
+            clientId: '135333107684344109',
+            clientDescription: 'NVIDIA Web Helper',
+            userConsentRefreshWaitMins: 1440
+        };
         return body;
     }
 
