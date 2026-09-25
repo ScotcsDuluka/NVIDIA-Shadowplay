@@ -155,6 +155,10 @@ int NvShareCefMain(void) {
   shareproof::Checkpoint("PROC_START", "NvShareCefMain entered");
   shareproof::LogLine("exe=" + sharewin::WideToUtf8(sharewin::GetExeDir()));
 
+  // Display-scale parity with the genuine host (its utils_win.cc does the
+  // same): without per-monitor DPI awareness the overlay metrics are
+  // virtualized and the page renders at the wrong size.
+  SetProcessDPIAware();  // user32 — system-DPI aware (no extra lib)
   CefMainArgs args(GetModuleHandleW(NULL));
   CefRefPtr<ShareApp> app(new ShareApp());
 

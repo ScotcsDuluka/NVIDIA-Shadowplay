@@ -191,6 +191,11 @@ LRESULT CALLBACK HostWndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
           SetWindowLongW(hwnd, GWL_EXSTYLE,
                          transparent_now ? (ex & ~WS_EX_TRANSPARENT)
                                          : (ex | WS_EX_TRANSPARENT));
+          // FRAMECHANGED is required or the new style never applies — the
+          // window stays stuck in the old click-through mode.
+          SetWindowPos(hwnd, NULL, 0, 0, 0, 0,
+                       SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER |
+                           SWP_NOACTIVATE | SWP_FRAMECHANGED);
         }
         if (opaque) ShareClient::active_client_->ForwardMouseMove(x, y, false);
       }
