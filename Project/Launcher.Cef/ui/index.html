@@ -13,9 +13,6 @@
   <!-- ==================== NAV (drag region) ==================== -->
   <nav id="titlebar">
     <div class="nav-brand">
-      <svg class="eye" viewBox="0 0 48 34" aria-hidden="true">
-        <path fill="#76B900" d="M24 33.6 5.1 24.4 0 0l15.9 11.2L24 0l8.1 11.2L48 0l-5.1 24.4L24 33.6Zm0-4.6 14.6-7.1L42 7.4 30.2 15 24 6.3 17.8 15 6 7.4l3.4 14.5L24 29Z"/>
-      </svg>
       <span class="nav-name">NVIDIA <b>SHADOWPLAY</b></span>
       <span class="hero-badge">LAUNCHER</span>
     </div>
@@ -42,13 +39,8 @@
         lanes&thinsp;&mdash;&thinsp;everything on this page is live system state.
       </p>
       <div class="hero-cta-group">
-        <span class="tech-info">BUILD: OBT3 &middot; SEP 2026</span>
-        <span class="tech-info">SDK 26100 &middot; NVENC READY</span>
       </div>
       <div class="hero-meta">
-        <span class="lane-chip" id="chipEngine">ENGINE LANE</span>
-        <span class="lane-chip" id="chipCef">CEF LANE</span>
-        <span class="lane-chip" id="chipHub">API HUB</span>
       </div>
     </section>
 
@@ -59,7 +51,7 @@
       <div class="obt3-runway"><span></span></div>
       <div class="obt3-inner">
         <div class="obt3-head">
-          <span class="obt3-tag">Live State</span>
+          <span class="obt3-tag">Status</span>
           <span class="obt3-title">SERVICES</span>
           <span class="obt3-live">&#9679; MONITORING</span>
         </div>
@@ -67,21 +59,21 @@
           <li>
             <span class="dot" id="dotOverlay"></span>
             <div class="svc-text">
-              <div class="svc-name">OVERLAY API</div>
+              <div class="svc-name">NVIDIA ShadowPlay</div>
               <div class="svc-state" id="stateOverlay">STOPPED</div>
             </div>
           </li>
           <li>
             <span class="dot" id="dotNotifier"></span>
             <div class="svc-text">
-              <div class="svc-name">NOTIFIER API</div>
+              <div class="svc-name">NVIDIA NOTIFIER</div>
               <div class="svc-state" id="stateNotifier">STOPPED</div>
             </div>
           </li>
           <li>
             <span class="dot" id="dotNvApi"></span>
             <div class="svc-text">
-              <div class="svc-name">NVIDIA API</div>
+              <div class="svc-name">NVIDIA Backend</div>
               <div class="svc-state" id="stateNvApi">STOPPED</div>
             </div>
           </li>
@@ -96,22 +88,22 @@
     <div class="feature-card">
       <div class="feat-row">
         <div class="feat-text">
-          <span class="card-status">TOGGLE</span>
-          <h3>OVERLAY ENABLED</h3>
-          <p>Hub keeps the overlay stack alive</p>
+          <span class="card-status">Overlay In-game</span>
+          <h3>NVIDIA ShadowPlay</h3>
+          <p>Precision-engineered, that keeps you in control - without ever breaking immersion.</p>
         </div>
         <span class="toggle" id="tglOverlay" role="switch" aria-checked="false" tabindex="0"></span>
       </div>
     </div>
     <div class="feature-card">
       <div class="mode-panel">
-        <div class="mode-title">NVIDIA SHADOWPLAY ENGINE</div>
+        <div class="mode-title">ENGINE TYPE</div>
         <div class="mode-row">
           <span class="mode-label active" id="lblWinform">WINFORM</span>
           <span class="mode-toggle" id="tglEngine" role="switch" aria-checked="false" tabindex="0"><span class="mode-knob"></span></span>
           <span class="mode-label" id="lblCef">CEF</span>
         </div>
-        <div class="mode-desc" id="modeDesc">WinForm family &mdash; hub-managed overlay</div>
+        <div class="mode-desc" id="modeDesc">Two Engine Regimes</div>
       </div>
     </div>
   </section>
@@ -119,8 +111,6 @@
   <!-- ==================== FOOTER ==================== -->
   <footer>
     <div class="foot-left">
-      <span class="ver" id="verTag">v3.41 &middot; CEF 73</span>
-      <span class="bridge" id="bridgeState"></span>
     </div>
     <div class="foot-right">
       <button id="btnObt3" class="btn-secondary">OBT3 &rarr;</button>

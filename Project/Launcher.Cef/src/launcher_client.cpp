@@ -15,6 +15,7 @@
 #include "launcher_main.h"
 #include "launcher_supervisor.h"
 #include "launcher_util.h"
+#include "launcher_win.h"
 
 LauncherClient* LauncherClient::active_client_ = NULL;
 
@@ -136,6 +137,9 @@ void LauncherClient::OnLoadError(CefRefPtr<CefBrowser> browser,
 }
 
 void LauncherClient::RequestClose() {
+  // Borrow the caption frame so the DWM close animation plays (page ✕ /
+  // LAUNCHER_CLOSE / EXIT ALL all funnel through here).
+  if (host_wnd_) launcherwin::PrepareCloseFrame(host_wnd_);
   if (browser_.get()) browser_->GetHost()->CloseBrowser(false);
 }
 

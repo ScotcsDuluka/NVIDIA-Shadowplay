@@ -20,6 +20,10 @@ HWND CreateLauncherWindow(HINSTANCE hinstance, bool show, int width,
 // contract) so the page can drag the borderless window from its top bar.
 void BeginWindowDrag(HWND hwnd);
 
+// Borrow WS_CAPTION so DWM plays the standard close animation when the
+// borderless window is destroyed (dropped again on restore).
+void PrepareCloseFrame(HWND hwnd);
+
 void Minimize(HWND hwnd);
 
 }  // namespace launcherwin
